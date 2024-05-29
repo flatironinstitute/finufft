@@ -14,10 +14,21 @@ namespace deconvolve {
 // to N/2-1), modeord=1: FFT-compatible mode ordering in fk (from 0 to N/2-1, then -N/2 up to -1).
 template <typename T>
 __global__ void deconvolve_1d(int ms, int nf1, cuda_complex<T> *fw, cuda_complex<T> *fk, T *fwkerhalf1, int modeord) {
-    for (int i = blockDim.x * blockIdx.x + threadIdx.x; i < ms; i += blockDim.x * gridDim.x) {
-        int w1 = ( modeord == 0 ) ? ( (i - ms / 2 >= 0) ? i - ms / 2 : nf1 + i - ms / 2 ) : ( (i - ms + ms / 2 >= 0) ? nf1 + i - ms : i );
+    int pivot1, w1, fwkerind1;
+    T kervalue;
 
-        T kervalue = fwkerhalf1[(modeord==0) ? abs(i - ms / 2) : ((i - ms + ms / 2 >= 0) ? ms - i : i)];
+    for (int i = blockDim.x * blockIdx.x + threadIdx.x; i < ms; i += blockDim.x * gridDim.x) {
+        if (modeord == 0) {
+            pivot1 = i - ms / 2;
+            w1 = (pivot1 >= 0) ? pivot1 : nf1 + pivot1;
+            fwkerind1 = abs(pivot1);
+        } else {
+            pivot1 = i - ms + ms / 2;
+            w1 = (pivot1 >= 0) ? nf1 + i - ms : i;
+            fwkerind1 = (pivot1 >= 0) ? ms - i : i;
+        }
+
+        kervalue = fwkerhalf1[fwkerind1];
         fk[i].x = fw[w1].x / kervalue;
         fk[i].y = fw[w1].y / kervalue;
     }
@@ -26,15 +37,33 @@ __global__ void deconvolve_1d(int ms, int nf1, cuda_complex<T> *fw, cuda_complex
 template <typename T>
 __global__ void deconvolve_2d(int ms, int mt, int nf1, int nf2, cuda_complex<T> *fw, cuda_complex<T> *fk, T *fwkerhalf1,
                               T *fwkerhalf2, int modeord) {
-    for (int i = blockDim.x * blockIdx.x + threadIdx.x; i < ms * mt; i += blockDim.x * gridDim.x) {
-        int k1 = i % ms;
-        int k2 = i / ms;
-        int outidx = k1 + k2 * ms;
-        int w1 = ( modeord == 0 ) ? ( (k1 - ms / 2 >= 0) ? k1 - ms / 2 : nf1 + k1 - ms / 2 ) : ( (k1 - ms + ms / 2 >= 0) ? nf1 + k1 - ms : k1 );
-        int w2 = ( modeord == 0 ) ? ( (k2 - mt / 2 >= 0) ? k2 - mt / 2 : nf2 + k2 - mt / 2 ) : ( (k2 - mt + mt / 2 >= 0) ? nf2 + k2 - mt : k2 );
-        int inidx = w1 + w2 * nf1;
+    int pivot1, pivot2, w1, w2, fwkerind1, fwkerind2;
+    int k1, k2, inidx, outidx;
+    T kervalue;
 
-        T kervalue = fwkerhalf1[(modeord==0) ? abs(k1 - ms / 2) : ((k1 - ms + ms / 2 >= 0) ? ms - k1 : k1)] * fwkerhalf2[(modeord==0) ? abs(k2 - mt / 2) : ((k2 - mt + mt / 2 >= 0) ? mt - k2 : k2)];
+    for (int i = blockDim.x * blockIdx.x + threadIdx.x; i < ms * mt; i += blockDim.x * gridDim.x) {
+        k1 = i % ms;
+        k2 = i / ms;
+        outidx = k1 + k2 * ms;
+
+        if (modeord == 0) {
+            pivot1 = k1 - ms / 2;
+            pivot2 = k2 - mt / 2;
+            w1 = (pivot1 >= 0) ? pivot1 : nf1 + pivot1;
+            w2 = (pivot2 >= 0) ? pivot2 : nf2 + pivot2;
+            fwkerind1 = abs(pivot1);
+            fwkerind2 = abs(pivot2);
+        } else {
+            pivot1 = k1 - ms + ms / 2;
+            pivot2 = k2 - mt + mt / 2;
+            w1 = (pivot1 >= 0) ? nf1 + k1 - ms : k1;
+            w2 = (pivot2 >= 0) ? nf2 + k2 - mt : k2;
+            fwkerind1 = (pivot1 >= 0) ? ms - k1 : k1;
+            fwkerind2 = (pivot2 >= 0) ? mt - k2 : k2;
+        }
+
+        inidx = w1 + w2 * nf1;
+        kervalue = fwkerhalf1[fwkerind1] * fwkerhalf2[fwkerind2];
         fk[outidx].x = fw[inidx].x / kervalue;
         fk[outidx].y = fw[inidx].y / kervalue;
     }
@@ -43,17 +72,40 @@ __global__ void deconvolve_2d(int ms, int mt, int nf1, int nf2, cuda_complex<T> 
 template <typename T>
 __global__ void deconvolve_3d(int ms, int mt, int mu, int nf1, int nf2, int nf3, cuda_complex<T> *fw,
                               cuda_complex<T> *fk, T *fwkerhalf1, T *fwkerhalf2, T *fwkerhalf3, int modeord) {
-    for (int i = blockDim.x * blockIdx.x + threadIdx.x; i < ms * mt * mu; i += blockDim.x * gridDim.x) {
-        int k1 = i % ms;
-        int k2 = (i / ms) % mt;
-        int k3 = (i / ms / mt);
-        int outidx = k1 + k2 * ms + k3 * ms * mt;
-        int w1 = ( modeord == 0 ) ? ( (k1 - ms / 2 >= 0) ? k1 - ms / 2 : nf1 + k1 - ms / 2 ) : ( (k1 - ms + ms / 2 >= 0) ? nf1 + k1 - ms : k1 );
-        int w2 = ( modeord == 0 ) ? ( (k2 - mt / 2 >= 0) ? k2 - mt / 2 : nf2 + k2 - mt / 2 ) : ( (k2 - mt + mt / 2 >= 0) ? nf2 + k2 - mt : k2 );
-        int w3 = ( modeord == 0 ) ? ( (k3 - mu / 2 >= 0) ? k3 - mu / 2 : nf3 + k3 - mu / 2 ) : ( (k3 - mu + mu / 2 >= 0) ? nf3 + k3 - mu : k3 );
-        int inidx = w1 + w2 * nf1 + w3 * nf1 * nf2;
+    int pivot1, pivot2, pivot3, w1, w2, w3, fwkerind1, fwkerind2, fwkerind3;
+    int k1, k2, k3, inidx, outidx;
+    T kervalue;
 
-        T kervalue = fwkerhalf1[(modeord==0) ? abs(k1 - ms / 2) : ((k1 - ms + ms / 2 >= 0) ? ms - k1 : k1)] * fwkerhalf2[(modeord==0) ? abs(k2 - mt / 2) : ((k2 - mt + mt / 2 >= 0) ? mt - k2 : k2)] * fwkerhalf3[(modeord==0) ? abs(k3 - mu / 2) : ((k3 - mu + mu / 2 >= 0) ? mu - k3 : k3)];
+    for (int i = blockDim.x * blockIdx.x + threadIdx.x; i < ms * mt * mu; i += blockDim.x * gridDim.x) {
+        k1 = i % ms;
+        k2 = (i / ms) % mt;
+        k3 = (i / ms / mt);
+        outidx = k1 + k2 * ms + k3 * ms * mt;
+
+        if (modeord == 0) {
+            pivot1 = k1 - ms / 2;
+            pivot2 = k2 - mt / 2;
+            pivot3 = k3 - mu / 2;
+            w1 = (pivot1 >= 0) ? pivot1 : nf1 + pivot1;
+            w2 = (pivot2 >= 0) ? pivot2 : nf2 + pivot2;
+            w3 = (pivot3 >= 0) ? pivot3 : nf3 + pivot3;
+            fwkerind1 = abs(pivot1);
+            fwkerind2 = abs(pivot2);
+            fwkerind3 = abs(pivot3);
+        } else {
+            pivot1 = k1 - ms + ms / 2;
+            pivot2 = k2 - mt + mt / 2;
+            pivot3 = k3 - mu + mu / 2;
+            w1 = (pivot1 >= 0) ? nf1 + k1 - ms : k1;
+            w2 = (pivot2 >= 0) ? nf2 + k2 - mt : k2;
+            w3 = (pivot3 >= 0) ? nf3 + k3 - mu : k3;
+            fwkerind1 = (pivot1 >= 0) ? ms - k1 : k1;
+            fwkerind2 = (pivot2 >= 0) ? mt - k2 : k2;
+            fwkerind3 = (pivot3 >= 0) ? mu - k3 : k3;
+        }
+
+        inidx = w1 + w2 * nf1 + w3 * nf1 * nf2;
+        kervalue = fwkerhalf1[fwkerind1] * fwkerhalf2[fwkerind2] * fwkerhalf3[fwkerind3];
         fk[outidx].x = fw[inidx].x / kervalue;
         fk[outidx].y = fw[inidx].y / kervalue;
     }
@@ -62,10 +114,21 @@ __global__ void deconvolve_3d(int ms, int mt, int mu, int nf1, int nf2, int nf3,
 /* Kernel for copying fk to fw with same amplication */
 template <typename T>
 __global__ void amplify_1d(int ms, int nf1, cuda_complex<T> *fw, cuda_complex<T> *fk, T *fwkerhalf1, int modeord) {
-    for (int i = blockDim.x * blockIdx.x + threadIdx.x; i < ms; i += blockDim.x * gridDim.x) {
-        int w1 = ( modeord == 0 ) ? ( (i - ms / 2 >= 0) ? i - ms / 2 : nf1 + i - ms / 2 ) : ( (i - ms + ms / 2 >= 0) ? nf1 + i - ms : i );
+    int pivot1, w1, fwkerind1;
+    T kervalue;
 
-        T kervalue = fwkerhalf1[(modeord==0) ? abs(i - ms / 2) : ((i - ms + ms / 2 >= 0) ? ms - i : i)];
+    for (int i = blockDim.x * blockIdx.x + threadIdx.x; i < ms; i += blockDim.x * gridDim.x) {
+        if (modeord == 0) {
+            pivot1 = i - ms / 2;
+            w1 = (pivot1 >= 0) ? pivot1 : nf1 + pivot1;
+            fwkerind1 = abs(pivot1);
+        } else {
+            pivot1 = i - ms + ms / 2;
+            w1 = (pivot1 >= 0) ? nf1 + i - ms : i;
+            fwkerind1 = (pivot1 >= 0) ? ms - i : i;
+        }
+
+        kervalue = fwkerhalf1[fwkerind1];
         fw[w1].x = fk[i].x / kervalue;
         fw[w1].y = fk[i].y / kervalue;
     }
@@ -74,15 +137,33 @@ __global__ void amplify_1d(int ms, int nf1, cuda_complex<T> *fw, cuda_complex<T>
 template <typename T>
 __global__ void amplify_2d(int ms, int mt, int nf1, int nf2, cuda_complex<T> *fw, cuda_complex<T> *fk, T *fwkerhalf1,
                            T *fwkerhalf2, int modeord) {
-    for (int i = blockDim.x * blockIdx.x + threadIdx.x; i < ms * mt; i += blockDim.x * gridDim.x) {
-        int k1 = i % ms;
-        int k2 = i / ms;
-        int inidx = k1 + k2 * ms;
-        int w1 = ( modeord == 0 ) ? ( (k1 - ms / 2 >= 0) ? k1 - ms / 2 : nf1 + k1 - ms / 2 ) : ( (k1 - ms + ms / 2 >= 0) ? nf1 + k1 - ms : k1 );
-        int w2 = ( modeord == 0 ) ? ( (k2 - mt / 2 >= 0) ? k2 - mt / 2 : nf2 + k2 - mt / 2 ) : ( (k2 - mt + mt / 2 >= 0) ? nf2 + k2 - mt : k2 );
-        int outidx = w1 + w2 * nf1;
+    int pivot1, pivot2, w1, w2, fwkerind1, fwkerind2;
+    int k1, k2, inidx, outidx;
+    T kervalue;
 
-        T kervalue = fwkerhalf1[(modeord==0) ? abs(k1 - ms / 2) : ((k1 - ms + ms / 2 >= 0) ? ms - k1 : k1)] * fwkerhalf2[(modeord==0) ? abs(k2 - mt / 2) : ((k2 - mt + mt / 2 >= 0) ? mt - k2 : k2)];
+    for (int i = blockDim.x * blockIdx.x + threadIdx.x; i < ms * mt; i += blockDim.x * gridDim.x) {
+        k1 = i % ms;
+        k2 = i / ms;
+        inidx = k1 + k2 * ms;
+
+        if (modeord == 0) {
+            pivot1 = k1 - ms / 2;
+            pivot2 = k2 - mt / 2;
+            w1 = (pivot1 >= 0) ? pivot1 : nf1 + pivot1;
+            w2 = (pivot2 >= 0) ? pivot2 : nf2 + pivot2;
+            fwkerind1 = abs(pivot1);
+            fwkerind2 = abs(pivot2);
+        } else {
+            pivot1 = k1 - ms + ms / 2;
+            pivot2 = k2 - mt + mt / 2;
+            w1 = (pivot1 >= 0) ? nf1 + k1 - ms : k1;
+            w2 = (pivot2 >= 0) ? nf2 + k2 - mt : k2;
+            fwkerind1 = (pivot1 >= 0) ? ms - k1 : k1;
+            fwkerind2 = (pivot2 >= 0) ? mt - k2 : k2;
+        }
+
+        outidx = w1 + w2 * nf1;
+        kervalue = fwkerhalf1[fwkerind1] * fwkerhalf2[fwkerind2];
         fw[outidx].x = fk[inidx].x / kervalue;
         fw[outidx].y = fk[inidx].y / kervalue;
     }
@@ -91,17 +172,40 @@ __global__ void amplify_2d(int ms, int mt, int nf1, int nf2, cuda_complex<T> *fw
 template <typename T>
 __global__ void amplify_3d(int ms, int mt, int mu, int nf1, int nf2, int nf3, cuda_complex<T> *fw, cuda_complex<T> *fk,
                            T *fwkerhalf1, T *fwkerhalf2, T *fwkerhalf3, int modeord) {
-    for (int i = blockDim.x * blockIdx.x + threadIdx.x; i < ms * mt * mu; i += blockDim.x * gridDim.x) {
-        int k1 = i % ms;
-        int k2 = (i / ms) % mt;
-        int k3 = (i / ms / mt);
-        int inidx = k1 + k2 * ms + k3 * ms * mt;
-        int w1 = ( modeord == 0 ) ? ( (k1 - ms / 2 >= 0) ? k1 - ms / 2 : nf1 + k1 - ms / 2 ) : ( (k1 - ms + ms / 2 >= 0) ? nf1 + k1 - ms : k1 );
-        int w2 = ( modeord == 0 ) ? ( (k2 - mt / 2 >= 0) ? k2 - mt / 2 : nf2 + k2 - mt / 2 ) : ( (k2 - mt + mt / 2 >= 0) ? nf2 + k2 - mt : k2 );
-        int w3 = ( modeord == 0 ) ? ( (k3 - mu / 2 >= 0) ? k3 - mu / 2 : nf3 + k3 - mu / 2 ) : ( (k3 - mu + mu / 2 >= 0) ? nf3 + k3 - mu : k3 );
-        int outidx = w1 + w2 * nf1 + w3 * nf1 * nf2;
+    int pivot1, pivot2, pivot3, w1, w2, w3, fwkerind1, fwkerind2, fwkerind3;
+    int k1, k2, k3, inidx, outidx;
+    T kervalue;
 
-        T kervalue = fwkerhalf1[(modeord==0) ? abs(k1 - ms / 2) : ((k1 - ms + ms / 2 >= 0) ? ms - k1 : k1)] * fwkerhalf2[(modeord==0) ? abs(k2 - mt / 2) : ((k2 - mt + mt / 2 >= 0) ? mt - k2 : k2)] * fwkerhalf3[(modeord==0) ? abs(k3 - mu / 2) : ((k3 - mu + mu / 2 >= 0) ? mu - k3 : k3)];
+    for (int i = blockDim.x * blockIdx.x + threadIdx.x; i < ms * mt * mu; i += blockDim.x * gridDim.x) {
+        k1 = i % ms;
+        k2 = (i / ms) % mt;
+        k3 = (i / ms / mt);
+        inidx = k1 + k2 * ms + k3 * ms * mt;
+
+        if (modeord == 0) {
+            pivot1 = k1 - ms / 2;
+            pivot2 = k2 - mt / 2;
+            pivot3 = k3 - mu / 2;
+            w1 = (pivot1 >= 0) ? pivot1 : nf1 + pivot1;
+            w2 = (pivot2 >= 0) ? pivot2 : nf2 + pivot2;
+            w3 = (pivot3 >= 0) ? pivot3 : nf3 + pivot3;
+            fwkerind1 = abs(pivot1);
+            fwkerind2 = abs(pivot2);
+            fwkerind3 = abs(pivot3);
+        } else {
+            pivot1 = k1 - ms + ms / 2;
+            pivot2 = k2 - mt + mt / 2;
+            pivot3 = k3 - mu + mu / 2;
+            w1 = (pivot1 >= 0) ? nf1 + k1 - ms : k1;
+            w2 = (pivot2 >= 0) ? nf2 + k2 - mt : k2;
+            w3 = (pivot3 >= 0) ? nf3 + k3 - mu : k3;
+            fwkerind1 = (pivot1 >= 0) ? ms - k1 : k1;
+            fwkerind2 = (pivot2 >= 0) ? mt - k2 : k2;
+            fwkerind3 = (pivot3 >= 0) ? mu - k3 : k3;
+        }
+
+        outidx = w1 + w2 * nf1 + w3 * nf1 * nf2;
+        kervalue = fwkerhalf1[fwkerind1] * fwkerhalf2[fwkerind2] * fwkerhalf3[fwkerind3];
         fw[outidx].x = fk[inidx].x / kervalue;
         fw[outidx].y = fk[inidx].y / kervalue;
     }
