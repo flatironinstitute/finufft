@@ -1072,7 +1072,7 @@ static void spread_subproblem_2d_kernel(const BIGINT off1, const BIGINT off2, co
 
   static constexpr auto ns2 = ns * FLT(0.5);          // half spread width
   std::fill(du, du + 2 * size1 * size2, 0);
-  alignas(alignment) FLT ker1val[2 * ns + padding];
+  alignas(alignment) FLT ker1val[2 * ns + padding] = {0};
   // Kernel values stored in consecutive memory. This allows us to compute
   // values in all three directions in a single kernel evaluation call.
   alignas(alignment) FLT kernel_values[2 * MAX_NSPREAD];
@@ -1173,7 +1173,7 @@ static void spread_subproblem_3d_kernel(const BIGINT off1, const BIGINT off2, co
   static constexpr auto ns2 = ns * FLT(0.5);          // half spread width
   std::fill(du, du + 2 * size1 * size2 * size3, 0);
   // initialized to 0 due to the padding
-  alignas(alignment) FLT ker1val[2 * ns + padding];
+  alignas(alignment) FLT ker1val[2 * ns + padding] = {0};
   // Kernel values stored in consecutive memory. This allows us to compute
   // values in all three directions in a single kernel evaluation call.
   alignas(alignment) FLT kernel_values[3 * MAX_NSPREAD];
