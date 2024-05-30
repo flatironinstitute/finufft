@@ -1007,8 +1007,8 @@ void spread_subproblem_1d_kernel(const BIGINT off1, const BIGINT size1, FLT * __
     // du is padded, so we can use SIMD even if we write more than ns values in du
     // ker0 is also padded.
     for (auto dx=0; dx < 2*ns; dx+=avx_size) {
-      const auto a = xsimd::load_aligned<arch_t>(ker+(dx>>1));
-      const auto ker0 = xsimd::shuffle(a,a,zip);
+      auto ker0 = xsimd::load_aligned<arch_t>(ker+(dx>>1));
+      ker0 = xsimd::shuffle(ker0,ker0,zip);
       const auto du_pt = xsimd::load_unaligned<arch_t>(trg + dx);
       const auto res = xsimd::fma(ker0, dd_pt, du_pt);
       res.store_unaligned(trg + dx);
