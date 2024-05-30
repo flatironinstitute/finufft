@@ -12,7 +12,7 @@
 #include <vector>
 #include <math.h>
 #include <stdio.h>
-
+#include <iostream>
 
 using namespace std;
 using namespace finufft::utils;              // access to timer
@@ -975,17 +975,16 @@ void spread_subproblem_1d_kernel(const BIGINT off1, const BIGINT size1, FLT * __
 
   alignas(alignment) std::array<FLT, avx_size> kk{};
   alignas(alignment) FLT ker[MAX_NSPREAD];
-  alignas(alignment) FLT padded_ker[2*ns+padding]{0};
-//  auto  *  __restrict__ du_c = reinterpret_cast<std::complex<FLT> *>(du);
-  for (BIGINT i = 0; i < M; i++) {           // loop over NU pts
-    const auto re0 = dd[2 * i];
-    const auto im0 = dd[2 * i + 1];
-
-    for (int j = 0; j < avx_size/2; j++) {
-      kk[j*2] = re0;
-      kk[j*2+1] = im0;
+  struct zip_generator{
+    static constexpr size_t get(size_t index, size_t size) {
+      return (index & 1) ? (index / 2 + size) : index / 2;
     }
-    const auto dd_pt = xsimd::load_aligned<arch_t>(kk.data());
+  };
+  static constexpr auto zip = xsimd::make_batch_constant<xsimd::as_unsigned_integer_t<FLT>, arch_t, zip_generator>();
+  for (BIGINT i = 0; i < M; i++) {           // loop over NU pts
+    const auto re0v = batch_t(dd[2 * i]);
+    const auto im0v = batch_t(dd[2 * i + 1]);
+    const auto dd_pt = xsimd::shuffle(re0v, im0v, zip);
     // ceil offset, hence rounding, must match that in get_subgrid...
     const auto i1 = (BIGINT) std::ceil(kx[i] - ns2);    // fine grid start index
     auto x1 = (FLT) i1 - kx[i];            // x1 in [-w/2,-w/2+1], up to rounding
@@ -1002,18 +1001,14 @@ void spread_subproblem_1d_kernel(const BIGINT off1, const BIGINT size1, FLT * __
       evaluate_kernel_vector(ker, kernel_args, opts, ns);
     }
 
-    for (int j = 0; j < ns; ++j) {
-      padded_ker[j*2] = ker[j];
-      padded_ker[j*2+1] = ker[j];
-    }
-
     const auto j = i1 - off1;    // offset rel to subgrid, starts the output indices
     const auto trg = du + 2 * j;
     // critical inner loop:
     // du is padded, so we can use SIMD even if we write more than ns values in du
     // ker0 is also padded.
     for (auto dx=0; dx < 2*ns; dx+=avx_size) {
-      const auto ker0 = xsimd::load_aligned<arch_t>(padded_ker+dx);
+      const auto a = xsimd::load_aligned<arch_t>(ker+(dx>>1));
+      const auto ker0 = xsimd::shuffle(a,a,zip);
       const auto du_pt = xsimd::load_unaligned<arch_t>(trg + dx);
       const auto res = xsimd::fma(ker0, dd_pt, du_pt);
       res.store_unaligned(trg + dx);
@@ -1077,7 +1072,7 @@ static void spread_subproblem_2d_kernel(const BIGINT off1, const BIGINT off2, co
 
   static constexpr auto ns2 = ns * FLT(0.5);          // half spread width
   std::fill(du, du + 2 * size1 * size2, 0);
-  alignas(alignment) FLT ker1val[2 * ns + padding] = {0};
+  alignas(alignment) FLT ker1val[2 * ns + padding];
   // Kernel values stored in consecutive memory. This allows us to compute
   // values in all three directions in a single kernel evaluation call.
   alignas(alignment) FLT kernel_values[2 * MAX_NSPREAD];
@@ -1178,7 +1173,7 @@ static void spread_subproblem_3d_kernel(const BIGINT off1, const BIGINT off2, co
   static constexpr auto ns2 = ns * FLT(0.5);          // half spread width
   std::fill(du, du + 2 * size1 * size2 * size3, 0);
   // initialized to 0 due to the padding
-  alignas(alignment) FLT ker1val[2 * ns + padding]={0};
+  alignas(alignment) FLT ker1val[2 * ns + padding];
   // Kernel values stored in consecutive memory. This allows us to compute
   // values in all three directions in a single kernel evaluation call.
   alignas(alignment) FLT kernel_values[3 * MAX_NSPREAD];
