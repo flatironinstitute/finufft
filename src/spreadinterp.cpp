@@ -998,25 +998,17 @@ void spread_subproblem_1d_kernel(const BIGINT off1, const BIGINT size1, FLT * __
     }
 
     const auto j = i1 - off1;    // offset rel to subgrid, starts the output indices
-    const auto  trg = du + 2 * j;
+    const auto trg = du + 2 * j;
 
     // du is padded, so we can use SIMD even if we write more than ns values in du
     // ker0 is also padded.
-    // it iterates over 2*avx size to avoid an extra load
-    // the break should go away as the compiler knows the number of iterations
-    // at compile time
     // critical inner loop:
-    for (auto dx = 0; dx < 2*ns; dx += 2*avx_size) {
-      auto ker01 = xsimd::load_unaligned<arch_t>(ker + (dx >> 1));
-      auto ker0 = xsimd::zip_lo(ker01,ker01);
-      auto du_pt = xsimd::load_unaligned<arch_t>(trg + dx);
-      auto res = xsimd::fma(ker0, dd_pt, du_pt);
+    for (auto dx = 0; dx < 2 * ns; dx += avx_size) {
+      const auto ker01 = xsimd::load_unaligned<arch_t>(ker + (dx >> 1));
+      const auto ker0 = xsimd::zip_lo(ker01, ker01);
+      const auto du_pt = xsimd::load_unaligned<arch_t>(trg + dx);
+      const auto res = xsimd::fma(ker0, dd_pt, du_pt);
       res.store_unaligned(trg + dx);
-      if (dx+avx_size >= 2*ns) break; // avoid writing out of bounds
-      ker0 = xsimd::zip_hi(ker01,ker01);
-      du_pt = xsimd::load_unaligned<arch_t>(trg + dx + avx_size);
-      res = xsimd::fma(ker0, dd_pt, du_pt);
-      res.store_unaligned(trg + dx + avx_size);
     }
   }
 }
