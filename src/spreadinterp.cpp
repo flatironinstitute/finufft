@@ -969,21 +969,19 @@ void spread_subproblem_1d_kernel(const BIGINT off1, const BIGINT size1, FLT * __
   using arch_t = typename batch_t::arch_type;
   static constexpr size_t alignment = batch_t::arch_type::alignment();
   static constexpr auto avx_size = batch_t::size;
-
   static constexpr auto ns2 = ns * FLT(0.5);          // half spread width
   std::fill(du, du + 2 * size1, 0);           // zero output
-
   alignas(alignment) FLT ker[MAX_NSPREAD] = {0}; // this needs to be zeroed as the vector loop reads more elements
   // no padding needed if MAX_NSPREAD is 16
   // the largest read is 16 floats with avx512
   // if larger instructions will be available or half precision is used, this should be padded
-  for (BIGINT i = 0; i < M; i++) {           // loop over NU pts
-    const auto re0v = batch_t(dd[2 * i]);
-    const auto im0v = batch_t(dd[2 * i + 1]);
+  for (uint64_t i{0}; i < M; i++) {           // loop over NU pts
+    const batch_t re0v(dd[i<<1]);
+    const batch_t im0v(dd[(i<<1) + 1]);
     const auto dd_pt = xsimd::zip_lo(re0v, im0v);
     // ceil offset, hence rounding, must match that in get_subgrid...
     const auto i1 = (BIGINT) std::ceil(kx[i] - ns2);    // fine grid start index
-    auto x1 = (FLT) i1 - kx[i];            // x1 in [-w/2,-w/2+1], up to rounding
+    auto x1 = (FLT) std::ceil(kx[i] - ns2) - kx[i];     // x1 in [-w/2,-w/2+1], up to rounding
     // However if N1*epsmach>O(1) then can cause O(1) errors in x1, hence ppoly
     // kernel evaluation will fall outside their designed domains, >>1 errors.
     // This can only happen if the overall error would be O(1) anyway. Clip x1??
@@ -998,15 +996,15 @@ void spread_subproblem_1d_kernel(const BIGINT off1, const BIGINT size1, FLT * __
     }
 
     const auto j = i1 - off1;    // offset rel to subgrid, starts the output indices
-    const auto trg = du + 2 * j;
+    auto * __restrict__ trg = du + 2 * j;
 
     // du is padded, so we can use SIMD even if we write more than ns values in du
     // ker0 is also padded.
     // critical inner loop:
-    for (auto dx = 0; dx < 2 * ns; dx += avx_size) {
+    for (uint8_t dx{0}; dx < 2 * ns; dx += avx_size) {
       const auto ker01 = xsimd::load_unaligned<arch_t>(ker + (dx >> 1));
-      const auto ker0 = xsimd::zip_lo(ker01, ker01);
       const auto du_pt = xsimd::load_unaligned<arch_t>(trg + dx);
+      const auto ker0 = xsimd::zip_lo(ker01, ker01);
       const auto res = xsimd::fma(ker0, dd_pt, du_pt);
       res.store_unaligned(trg + dx);
     }
@@ -1577,9 +1575,9 @@ static constexpr uint16_t min_batch_size() {
 
 template<class T, uint16_t N>
 static constexpr auto find_optimal_batch_size() {
-  uint16_t min_iterations = N;
-  uint16_t optimal_batch_size = 1;
-  for (uint16_t batch_size = min_batch_size<T>(); batch_size <= xsimd::batch<T>::size; batch_size *= 2) {
+  uint16_t optimal_batch_size = min_batch_size<T>();
+  uint16_t min_iterations = (N+optimal_batch_size-1)/optimal_batch_size;
+  for (uint16_t batch_size = optimal_batch_size; batch_size <= xsimd::batch<T, xsimd::best_arch>::size; batch_size *= 2) {
     uint16_t iterations = (N + batch_size - 1) / batch_size;
     if (iterations < min_iterations) {
       min_iterations = iterations;
@@ -1591,7 +1589,6 @@ static constexpr auto find_optimal_batch_size() {
 
 template<class T, uint16_t N>
 static constexpr auto GetPaddedSIMDSize() {
-  static_assert(N < 128);
   return xsimd::make_sized_batch<T, find_optimal_batch_size<T, N>()>::type::size;
 }
 
