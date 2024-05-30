@@ -973,18 +973,14 @@ void spread_subproblem_1d_kernel(const BIGINT off1, const BIGINT size1, FLT * __
   static constexpr auto ns2 = ns * FLT(0.5);          // half spread width
   std::fill(du, du + 2 * size1, 0);           // zero output
 
-  alignas(alignment) std::array<FLT, avx_size> kk{};
-  alignas(alignment) FLT ker[MAX_NSPREAD];
-  struct zip_generator{
-    static constexpr size_t get(size_t index, size_t size) {
-      return (index & 1) ? (index / 2 + size) : index / 2;
-    }
-  };
-  static constexpr auto zip = xsimd::make_batch_constant<xsimd::as_unsigned_integer_t<FLT>, arch_t, zip_generator>();
+  alignas(alignment) FLT ker[MAX_NSPREAD] = {0}; // this needs to be zeroed as the vector loop reads more elements
+  // no padding needed if MAX_NSPREAD is 16
+  // the largest read is 16 floats with avx512
+  // if larger instructions will be available or half precision is used, this should be padded
   for (BIGINT i = 0; i < M; i++) {           // loop over NU pts
     const auto re0v = batch_t(dd[2 * i]);
     const auto im0v = batch_t(dd[2 * i + 1]);
-    const auto dd_pt = xsimd::shuffle(re0v, im0v, zip);
+    const auto dd_pt = xsimd::zip_lo(re0v, im0v);
     // ceil offset, hence rounding, must match that in get_subgrid...
     const auto i1 = (BIGINT) std::ceil(kx[i] - ns2);    // fine grid start index
     auto x1 = (FLT) i1 - kx[i];            // x1 in [-w/2,-w/2+1], up to rounding
@@ -1002,16 +998,25 @@ void spread_subproblem_1d_kernel(const BIGINT off1, const BIGINT size1, FLT * __
     }
 
     const auto j = i1 - off1;    // offset rel to subgrid, starts the output indices
-    const auto trg = du + 2 * j;
-    // critical inner loop:
+    const auto  trg = du + 2 * j;
+
     // du is padded, so we can use SIMD even if we write more than ns values in du
     // ker0 is also padded.
-    for (auto dx=0; dx < 2*ns; dx+=avx_size) {
-      auto ker0 = xsimd::load_aligned<arch_t>(ker+(dx>>1));
-      ker0 = xsimd::shuffle(ker0,ker0,zip);
-      const auto du_pt = xsimd::load_unaligned<arch_t>(trg + dx);
-      const auto res = xsimd::fma(ker0, dd_pt, du_pt);
+    // it iterates over 2*avx size to avoid an extra load
+    // the break should go away as the compiler knows the number of iterations
+    // at compile time
+    // critical inner loop:
+    for (auto dx = 0; dx < 2*ns; dx += 2*avx_size) {
+      auto ker01 = xsimd::load_unaligned<arch_t>(ker + (dx >> 1));
+      auto ker0 = xsimd::zip_lo(ker01,ker01);
+      auto du_pt = xsimd::load_unaligned<arch_t>(trg + dx);
+      auto res = xsimd::fma(ker0, dd_pt, du_pt);
       res.store_unaligned(trg + dx);
+      if (dx+avx_size >= 2*ns) break; // avoid writing out of bounds
+      ker0 = xsimd::zip_hi(ker01,ker01);
+      du_pt = xsimd::load_unaligned<arch_t>(trg + dx + avx_size);
+      res = xsimd::fma(ker0, dd_pt, du_pt);
+      res.store_unaligned(trg + dx + avx_size);
     }
   }
 }
