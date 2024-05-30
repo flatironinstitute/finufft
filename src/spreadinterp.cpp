@@ -695,7 +695,7 @@ x_j = x + j,  for j=0,..,w-1.  Thus x in [-w/2,-w/2+1].   w is aka ns.
 This is the current evaluation method, since it's faster (except i7 w=16).
 Two upsampfacs implemented. Params must match ref formula. Barnett 4/24/18 */
 {
-  const FLT z = xsimd::fma(FLT(2.0),x, FLT(w-1)); // scale so local grid offset z in [-1,1]
+  const FLT z = std::fma(FLT(2.0),x, FLT(w-1)); // scale so local grid offset z in [-1,1]
   // insert the auto-generated code which expects z, w args, writes to ker...
   if (opts.upsampfac==2.0) {     // floating point equality is fine here
 #include "ker_horner_allw_loop_constexpr.c"
@@ -987,8 +987,6 @@ void spread_subproblem_1d_kernel(const BIGINT off1, const BIGINT size1, FLT * __
     // This can only happen if the overall error would be O(1) anyway. Clip x1??
     if (x1 < -ns2) x1 = -ns2; // why the wrapping only in 1D ?
     if (x1 > -ns2 + 1) x1 = -ns2 + 1;   // ***
-    const auto j = i1 - off1;    // offset rel to subgrid, starts the output indices
-    auto * __restrict__ trg = du + 2 * j;
     if constexpr (kerevalmeth) {          // faster Horner poly method
       eval_kernel_vec_Horner<ns>(ker, x1, opts);
     } else {
@@ -996,6 +994,9 @@ void spread_subproblem_1d_kernel(const BIGINT off1, const BIGINT size1, FLT * __
       set_kernel_args(kernel_args, x1, opts);
       evaluate_kernel_vector(ker, kernel_args, opts, ns);
     }
+
+    const auto j = i1 - off1;    // offset rel to subgrid, starts the output indices
+    auto * __restrict__ trg = du + 2 * j;
 
     // du is padded, so we can use SIMD even if we write more than ns values in du
     // ker0 is also padded.
