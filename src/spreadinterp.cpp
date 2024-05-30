@@ -971,7 +971,7 @@ void spread_subproblem_1d_kernel(const BIGINT off1, const BIGINT size1, FLT * __
   static constexpr auto avx_size = batch_t::size;
   static constexpr auto ns2 = ns * FLT(0.5);          // half spread width
   std::fill(du, du + 2 * size1, 0);           // zero output
-  alignas(alignment) FLT ker[MAX_NSPREAD] = {0}; // this needs to be zeroed as the vector loop reads more elements
+  FLT ker[MAX_NSPREAD] = {0}; // this needs to be zeroed as the vector loop reads more elements
   // no padding needed if MAX_NSPREAD is 16
   // the largest read is 16 floats with avx512
   // if larger instructions will be available or half precision is used, this should be padded
@@ -1079,8 +1079,8 @@ static void spread_subproblem_2d_kernel(const BIGINT off1, const BIGINT off2, co
     // ceil offset, hence rounding, must match that in get_subgrid...
     const auto i1 = (BIGINT) std::ceil(kx[pt] - ns2);   // fine grid start indices
     const auto i2 = (BIGINT) std::ceil(ky[pt] - ns2);
-    const auto x1 = (FLT) i1 - kx[pt];
-    const auto x2 = (FLT) i2 - ky[pt];
+    const auto x1 = (FLT) std::ceil(kx[pt] - ns2) - kx[pt];
+    const auto x2 = (FLT) std::ceil(ky[pt] - ns2) - ky[pt];
     if constexpr (kerevalmeth) {          // faster Horner poly method
       eval_kernel_vec_Horner<ns>(ker1, x1, opts);
       eval_kernel_vec_Horner<ns>(ker2, x2, opts);
