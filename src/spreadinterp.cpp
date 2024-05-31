@@ -702,7 +702,7 @@ Two upsampfacs implemented. Params must match ref formula. Barnett 4/24/18 */
   static constexpr const auto nc = w*2+1;
   static constexpr const auto alignment = [](){
       if constexpr (std::is_void_v<batch_t>) {
-          return 32;
+          return 0; // ignored
       } else {
           return batch_t::arch_type::alignment();
       }
@@ -722,16 +722,19 @@ Two upsampfacs implemented. Params must match ref formula. Barnett 4/24/18 */
           static_assert(ns <=MAX_NSPREAD && ns % 8 == 0, "ns must be a multiple of 8");
           static constexpr auto avx_size = std::min(int(batch_t::size), ns);
           using best_batch = xsimd::make_sized_batch_t<FLT, avx_size>;
-          for (int i = 0; i < ns; i += avx_size) {
+
+          best_batch zs[nc-1];
+          zs[0]=z;
+          for (uint8_t i=1; i<nc-1; ++i){
+            zs[i] = zs[i-1]*z;
+          }
+          for (uint8_t i = 0; i < ns; i += avx_size) {
               auto k = best_batch::load_aligned(ci[0] + i);
-              auto zi = z;
-              for (int j = 1; j < nc; ++j) {
+              for (uint8_t j = 1; j < nc; ++j) {
                   const auto cji = best_batch::load_aligned(ci[j] + i);
-                  const best_batch zi_t(zi);
-                  zi *= z;
-                  k = xsimd::fma(cji, zi_t, k);
+                  k = xsimd::fma(cji, zs[j-1], k);
               }
-              k.store_unaligned(ker + i);
+              k.store_aligned(ker + i);
           }
       }
   };
