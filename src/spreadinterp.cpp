@@ -971,14 +971,31 @@ void spread_subproblem_1d_kernel(const BIGINT off1, const BIGINT size1, FLT * __
   static constexpr auto avx_size = batch_t::size;
   static constexpr auto ns2 = ns * FLT(0.5);          // half spread width
   std::fill(du, du + 2 * size1, 0);           // zero output
+
+  struct propagate{
+    static constexpr unsigned get(unsigned index, unsigned /*size*/)
+    {
+      return index&1;
+    }
+  };
+  static constexpr auto propagate_index = xsimd::make_batch_constant<xsimd::as_unsigned_integer_t<FLT>, arch_t, propagate>();
+
+  struct zip{
+    static constexpr unsigned get(unsigned index, unsigned /*size*/)
+    {
+      return index>>1;
+    }
+  };
+  static constexpr auto zip_index = xsimd::make_batch_constant<xsimd::as_unsigned_integer_t<FLT>, arch_t, zip>();
   FLT ker[MAX_NSPREAD] = {0}; // this needs to be zeroed as the vector loop reads more elements
   // no padding needed if MAX_NSPREAD is 16
   // the largest read is 16 floats with avx512
   // if larger instructions will be available or half precision is used, this should be padded
   for (uint64_t i{0}; i < M; i++) {           // loop over NU pts
-    const batch_t re0v(dd[i<<1]);
-    const batch_t im0v(dd[(i<<1) + 1]);
-    const auto dd_pt = xsimd::zip_lo(re0v, im0v);
+    batch_t dd_pt{};
+    dd_pt = xsimd::insert(dd_pt, dd[i<<1], xsimd::index<0>());
+    dd_pt = xsimd::insert(dd_pt, dd[(i<<1)+1], xsimd::index<1>());
+    dd_pt = xsimd::swizzle(dd_pt, propagate_index);
     // ceil offset, hence rounding, must match that in get_subgrid...
     const auto i1 = (BIGINT) std::ceil(kx[i] - ns2);    // fine grid start index
     auto x1 = (FLT) std::ceil(kx[i] - ns2) - kx[i];     // x1 in [-w/2,-w/2+1], up to rounding
@@ -1004,7 +1021,7 @@ void spread_subproblem_1d_kernel(const BIGINT off1, const BIGINT size1, FLT * __
     for (uint8_t dx{0}; dx < 2 * ns; dx += avx_size) {
       const auto ker01 = xsimd::load_unaligned<arch_t>(ker + (dx >> 1));
       const auto du_pt = xsimd::load_unaligned<arch_t>(trg + dx);
-      const auto ker0 = xsimd::zip_lo(ker01, ker01);
+      const auto ker0 = xsimd::swizzle(ker01, zip_index);
       const auto res = xsimd::fma(ker0, dd_pt, du_pt);
       res.store_unaligned(trg + dx);
     }
