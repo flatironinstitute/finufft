@@ -987,14 +987,17 @@ void spread_subproblem_1d_kernel(const BIGINT off1, const BIGINT size1, FLT * __
     }
   };
   static constexpr auto zip_index = xsimd::make_batch_constant<xsimd::as_unsigned_integer_t<FLT>, arch_t, zip>();
+
   FLT ker[MAX_NSPREAD] = {0}; // this needs to be zeroed as the vector loop reads more elements
   // no padding needed if MAX_NSPREAD is 16
   // the largest read is 16 floats with avx512
   // if larger instructions will be available or half precision is used, this should be padded
   for (uint64_t i{0}; i < M; i++) {           // loop over NU pts
+    // auto dd_pt = batch_t::gather(dd+2*i, propagate_index.as_batch());
+    // is more elegant but slower
     batch_t dd_pt{};
-    dd_pt = xsimd::insert(dd_pt, dd[i<<1], xsimd::index<0>());
-    dd_pt = xsimd::insert(dd_pt, dd[(i<<1)+1], xsimd::index<1>());
+    dd_pt = xsimd::insert(dd_pt, dd[i*2], xsimd::index<0>());
+    dd_pt = xsimd::insert(dd_pt, dd[i*2+1], xsimd::index<1>());
     dd_pt = xsimd::swizzle(dd_pt, propagate_index);
     // ceil offset, hence rounding, must match that in get_subgrid...
     const auto i1 = (BIGINT) std::ceil(kx[i] - ns2);    // fine grid start index
@@ -1019,8 +1022,8 @@ void spread_subproblem_1d_kernel(const BIGINT off1, const BIGINT size1, FLT * __
     // ker0 is also padded.
     // critical inner loop:
     for (uint8_t dx{0}; dx < 2 * ns; dx += avx_size) {
-      const auto ker01 = xsimd::load_unaligned<arch_t>(ker + (dx >> 1));
-      const auto du_pt = xsimd::load_unaligned<arch_t>(trg + dx);
+      const auto ker01 = batch_t::load_unaligned(ker + (dx / 2));
+      const auto du_pt = batch_t::load_unaligned(trg + dx);
       const auto ker0 = xsimd::swizzle(ker01, zip_index);
       const auto res = xsimd::fma(ker0, dd_pt, du_pt);
       res.store_unaligned(trg + dx);
