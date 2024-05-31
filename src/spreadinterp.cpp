@@ -54,7 +54,7 @@ static FINUFFT_ALWAYS_INLINE FLT fold_rescale(FLT x, BIGINT N) noexcept;
 static FINUFFT_ALWAYS_INLINE void set_kernel_args(FLT *args, FLT x, const finufft_spread_opts& opts) noexcept;
 static FINUFFT_ALWAYS_INLINE void evaluate_kernel_vector(FLT *ker, FLT *args, const finufft_spread_opts& opts, int N) noexcept;
 static FINUFFT_ALWAYS_INLINE void eval_kernel_vec_Horner(FLT *ker, FLT x, int w, const finufft_spread_opts &opts) noexcept;
-template<uint16_t w> // aka ns
+template<uint16_t w, class batch_t = void> // aka ns
 static FINUFFT_ALWAYS_INLINE void eval_kernel_vec_Horner(FLT * __restrict__ ker, FLT x, const finufft_spread_opts &opts) noexcept;
 void interp_line(FLT *out,FLT *du, FLT *ker,BIGINT i1,BIGINT N1,int ns);
 void interp_square(FLT *out,FLT *du, FLT *ker1, FLT *ker2, BIGINT i1,BIGINT i2,BIGINT N1,BIGINT N2,int ns);
@@ -687,7 +687,7 @@ static inline void evaluate_kernel_vector(FLT *ker, FLT *args, const finufft_spr
     if (abs(args[i])>=(FLT)opts.ES_halfwidth) ker[i] = 0.0;
 }
 
-template<uint16_t w> // aka ns
+template<uint16_t w, class batch_t> // aka ns
 static inline void eval_kernel_vec_Horner(FLT *__restrict__ ker, const FLT x,
                        const finufft_spread_opts &opts) noexcept
 /* Fill ker[] with Horner piecewise poly approx to [-w/2,w/2] ES kernel eval at
@@ -696,6 +696,46 @@ This is the current evaluation method, since it's faster (except i7 w=16).
 Two upsampfacs implemented. Params must match ref formula. Barnett 4/24/18 */
 {
   const FLT z = std::fma(FLT(2.0),x, FLT(w-1)); // scale so local grid offset z in [-1,1]
+
+  // pad w modulo 4
+  static constexpr const auto ns = (w + 7) & ~7;
+  static constexpr const auto nc = w*2+1;
+  static constexpr const auto alignment = [](){
+      if constexpr (std::is_void_v<batch_t>) {
+          return 32;
+      } else {
+          return batch_t::arch_type::alignment();
+      }
+  }();
+
+  const auto compute = [z, ker](const auto& ci) noexcept {
+      if constexpr (std::is_void_v<batch_t>) {
+          for (int i = 0; i < ns; ++i) {
+              ker[i] = ci[0][i];
+              FLT zi = z;
+              for (int j = 1; j < nc; ++j) {
+                  ker[i] += ci[j][i] * zi;
+                  zi *= z;
+              }
+          }
+      } else {
+          static_assert(ns <=MAX_NSPREAD && ns % 8 == 0, "ns must be a multiple of 8");
+          static constexpr auto avx_size = std::min(int(batch_t::size), ns);
+          using best_batch = xsimd::make_sized_batch_t<FLT, avx_size>;
+          for (int i = 0; i < ns; i += avx_size) {
+              auto k = best_batch::load_aligned(ci[0] + i);
+              auto zi = z;
+              for (int j = 1; j < nc; ++j) {
+                  const auto cji = best_batch::load_aligned(ci[j] + i);
+                  const best_batch zi_t(zi);
+                  zi *= z;
+                  k = xsimd::fma(cji, zi_t, k);
+              }
+              k.store_unaligned(ker + i);
+          }
+      }
+  };
+
   // insert the auto-generated code which expects z, w args, writes to ker...
   if (opts.upsampfac==2.0) {     // floating point equality is fine here
 #include "ker_horner_allw_loop_constexpr.c"
@@ -971,7 +1011,7 @@ void spread_subproblem_1d_kernel(const BIGINT off1, const BIGINT size1, FLT * __
   static constexpr auto avx_size = batch_t::size;
   static constexpr auto ns2 = ns * FLT(0.5);          // half spread width
   std::fill(du, du + 2 * size1, 0);           // zero output
-  FLT ker[MAX_NSPREAD] = {0}; // this needs to be zeroed as the vector loop reads more elements
+  alignas(alignment) FLT ker[MAX_NSPREAD] = {0}; // this needs to be zeroed as the vector loop reads more elements
   // no padding needed if MAX_NSPREAD is 16
   // the largest read is 16 floats with avx512
   // if larger instructions will be available or half precision is used, this should be padded
@@ -988,7 +1028,7 @@ void spread_subproblem_1d_kernel(const BIGINT off1, const BIGINT size1, FLT * __
     if (x1 < -ns2) x1 = -ns2; // why the wrapping only in 1D ?
     if (x1 > -ns2 + 1) x1 = -ns2 + 1;   // ***
     if constexpr (kerevalmeth) {          // faster Horner poly method
-      eval_kernel_vec_Horner<ns>(ker, x1, opts);
+      eval_kernel_vec_Horner<ns, batch_t>(ker, x1, opts);
     } else {
       FLT kernel_args[ns];
       set_kernel_args(kernel_args, x1, opts);
@@ -1082,8 +1122,8 @@ static void spread_subproblem_2d_kernel(const BIGINT off1, const BIGINT off2, co
     const auto x1 = (FLT) std::ceil(kx[pt] - ns2) - kx[pt];
     const auto x2 = (FLT) std::ceil(ky[pt] - ns2) - ky[pt];
     if constexpr (kerevalmeth) {          // faster Horner poly method
-      eval_kernel_vec_Horner<ns>(ker1, x1, opts);
-      eval_kernel_vec_Horner<ns>(ker2, x2, opts);
+      eval_kernel_vec_Horner<ns, batch_t>(ker1, x1, opts);
+      eval_kernel_vec_Horner<ns, batch_t>(ker2, x2, opts);
     } else {
       alignas(alignment) FLT kernel_args[3 * ns];
       set_kernel_args(kernel_args, x1, opts);
@@ -1186,9 +1226,9 @@ static void spread_subproblem_3d_kernel(const BIGINT off1, const BIGINT off2, co
     const auto x2= std::ceil(ky[pt] - ns2) - ky[pt];
     const auto x3= std::ceil(kz[pt] - ns2) - kz[pt];
     if constexpr (kerevalmeth) {          // faster Horner poly method
-      eval_kernel_vec_Horner<ns>(ker1, x1, opts);
-      eval_kernel_vec_Horner<ns>(ker2, x2, opts);
-      eval_kernel_vec_Horner<ns>(ker3, x3, opts);
+      eval_kernel_vec_Horner<ns, batch_t>(ker1, x1, opts);
+      eval_kernel_vec_Horner<ns, batch_t>(ker2, x2, opts);
+      eval_kernel_vec_Horner<ns, batch_t>(ker3, x3, opts);
     } else {
       alignas(alignment) FLT kernel_args[3 * ns];
       set_kernel_args(kernel_args, x1, opts);
@@ -1595,7 +1635,7 @@ static constexpr auto GetPaddedSIMDSize() {
 template<class T, uint16_t ns>
 static constexpr auto get_padding() {
   constexpr uint16_t width = GetPaddedSIMDSize<T, ns>();
-  return ns % width == 0 ? 0 : width - (ns % width);
+  return (ns + width - 1) & ~(width-1);
 }
 
 template<class T, uint16_t ns>
