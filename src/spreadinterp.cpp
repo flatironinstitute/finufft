@@ -942,6 +942,32 @@ void interp_cube(FLT *target,FLT *du, FLT *ker1, FLT *ker2, FLT *ker3,
   target[1] = out[1];  
 }
 
+struct propagate{
+    static constexpr unsigned get(unsigned index, unsigned /*size*/)
+    {
+        return index&1;
+    }
+};
+template <class arch_t>
+static constexpr auto propagate_index = xsimd::make_batch_constant<xsimd::as_unsigned_integer_t<FLT>, arch_t, propagate>();
+
+
+struct zip_low{
+    static constexpr unsigned get(unsigned index, unsigned /*size*/)
+    {
+        return index/2;
+    }
+};
+struct zip_hi {
+    static constexpr unsigned get(unsigned index, unsigned size) {
+        return (size+index)/2;
+    }
+};
+template <class arch_t>
+static constexpr auto zip_low_index = xsimd::make_batch_constant<xsimd::as_unsigned_integer_t<FLT>, arch_t, zip_low>();
+template <class arch_t>
+static constexpr auto zip_hi_index = xsimd::make_batch_constant<xsimd::as_unsigned_integer_t<FLT>, arch_t, zip_hi>();
+
 template<uint16_t ns, bool kerevalmeth>
 void spread_subproblem_1d_kernel(const BIGINT off1, const BIGINT size1, FLT * __restrict__ du, const BIGINT M,
                               const FLT * const kx, const FLT * const dd, const finufft_spread_opts& opts) noexcept {
@@ -972,30 +998,6 @@ void spread_subproblem_1d_kernel(const BIGINT off1, const BIGINT size1, FLT * __
   static constexpr auto ns2 = ns * FLT(0.5);          // half spread width
   std::fill(du, du + 2 * size1, 0);           // zero output
 
-  struct propagate{
-    static constexpr unsigned get(unsigned index, unsigned /*size*/)
-    {
-      return index&1;
-    }
-  };
-  static constexpr auto propagate_index = xsimd::make_batch_constant<xsimd::as_unsigned_integer_t<FLT>, arch_t, propagate>();
-
-
-  struct zip_low{
-    static constexpr unsigned get(unsigned index, unsigned /*size*/)
-    {
-      return index/2;
-    }
-  };
-  struct zip_hi {
-    static constexpr unsigned get(unsigned index, unsigned size) {
-        return (size+index)/2;
-    }
-  };
-
-  static constexpr auto zip_low_index = xsimd::make_batch_constant<xsimd::as_unsigned_integer_t<FLT>, arch_t, zip_low>();
-  static constexpr auto zip_hi_index = xsimd::make_batch_constant<xsimd::as_unsigned_integer_t<FLT>, arch_t, zip_hi>();
-
   FLT ker[MAX_NSPREAD] = {0}; // this needs to be zeroed as the vector loop reads more elements
   // no padding needed if MAX_NSPREAD is 16
   // the largest read is 16 floats with avx512
@@ -1006,7 +1008,7 @@ void spread_subproblem_1d_kernel(const BIGINT off1, const BIGINT size1, FLT * __
     batch_t dd_pt{};
     dd_pt = xsimd::insert(dd_pt, dd[i*2], xsimd::index<0>());
     dd_pt = xsimd::insert(dd_pt, dd[i*2+1], xsimd::index<1>());
-    dd_pt = xsimd::swizzle(dd_pt, propagate_index);
+    dd_pt = xsimd::swizzle(dd_pt, propagate_index<arch_t>);
     // ceil offset, hence rounding, must match that in get_subgrid...
     const auto i1 = (BIGINT) std::ceil(kx[i] - ns2);    // fine grid start index
     auto x1 = (FLT) std::ceil(kx[i] - ns2) - kx[i];     // x1 in [-w/2,-w/2+1], up to rounding
@@ -1035,8 +1037,8 @@ void spread_subproblem_1d_kernel(const BIGINT off1, const BIGINT size1, FLT * __
       const auto du_pt0 = batch_t::load_unaligned(trg + dx);
       const auto du_pt1 = batch_t::load_unaligned(trg + dx + avx_size);
       // swizzle is faster than zip_lo(ker01, ker01) and zip_hi(ker01, ker01)
-      const auto ker0   = xsimd::swizzle(ker01, zip_low_index);
-      const auto ker1   = xsimd::swizzle(ker01, zip_hi_index);
+      const auto ker0   = xsimd::swizzle(ker01, zip_low_index<arch_t>);
+      const auto ker1   = xsimd::swizzle(ker01, zip_hi_index<arch_t>);
       const auto res0   = xsimd::fma(ker0, dd_pt, du_pt0);
       const auto res1   = xsimd::fma(ker1, dd_pt, du_pt1);
       res0.store_unaligned(trg + dx);
@@ -1047,7 +1049,7 @@ void spread_subproblem_1d_kernel(const BIGINT off1, const BIGINT size1, FLT * __
     if constexpr (regular_part < 2*ns) {
       const auto ker01 = batch_t::load_unaligned(ker + (regular_part / 2));
       const auto du_pt = batch_t::load_unaligned(trg + regular_part);
-      const auto ker0 = xsimd::swizzle(ker01, zip_low_index);
+      const auto ker0 = xsimd::swizzle(ker01, zip_low_index<arch_t>);
       const auto res = xsimd::fma(ker0, dd_pt, du_pt);
       res.store_unaligned(trg + regular_part);
     }
@@ -1110,15 +1112,20 @@ static void spread_subproblem_2d_kernel(const BIGINT off1, const BIGINT off2, co
 
   static constexpr auto ns2 = ns * FLT(0.5);          // half spread width
   std::fill(du, du + 2 * size1 * size2, 0);
-  alignas(alignment) FLT ker1val[2 * ns + padding] = {0};
+  // initialized to 0 due to the padding
+  //  alignas(alignment) FLT ker1val[2 * ns + padding] = {0};
   // Kernel values stored in consecutive memory. This allows us to compute
   // values in all three directions in a single kernel evaluation call.
-  alignas(alignment) FLT kernel_values[2 * MAX_NSPREAD];
-  auto *ker1 = kernel_values;
-  auto *ker2 = kernel_values + ns;
-  for (BIGINT pt = 0; pt < M; pt++) {           // loop over NU pts
-    const auto re0 = dd[2 * pt];
-    const auto im0 = dd[2 * pt + 1];
+  alignas(alignment) FLT kernel_values[2 * MAX_NSPREAD] = {0};
+  auto *__restrict__ ker1 = kernel_values;
+  auto *__restrict__ ker2 = kernel_values + MAX_NSPREAD;
+
+  for (uint64_t pt = 0; pt < M; pt++) {           // loop over NU pts
+    batch_t dd_pt{};
+    dd_pt = xsimd::insert(dd_pt, dd[pt*2], xsimd::index<0>());
+    dd_pt = xsimd::insert(dd_pt, dd[pt*2+1], xsimd::index<1>());
+    dd_pt = xsimd::swizzle(dd_pt, propagate_index<arch_t>);
+
     // ceil offset, hence rounding, must match that in get_subgrid...
     const auto i1 = (BIGINT) std::ceil(kx[pt] - ns2);   // fine grid start indices
     const auto i2 = (BIGINT) std::ceil(ky[pt] - ns2);
@@ -1130,28 +1137,36 @@ static void spread_subproblem_2d_kernel(const BIGINT off1, const BIGINT off2, co
     } else {
       alignas(alignment) FLT kernel_args[3 * ns];
       set_kernel_args(kernel_args, x1, opts);
-      set_kernel_args(kernel_args + ns, x2, opts);
+      set_kernel_args(kernel_args + MAX_NSPREAD, x2, opts);
       evaluate_kernel_vector(kernel_values, kernel_args, opts, 3 * ns);
     }
     // Combine kernel with complex source value to simplify inner loop
     // here 2* is because of complex
-    // initialized to 0 due to the padding
+    static constexpr uint8_t batches = (2*ns+padding)/avx_size;
+    static_assert(batches>0, "batches must be greater than 0");
+    batch_t ker1val_batches[batches];
 
-    for (auto i = 0; i < ns; i++) {
-      ker1val[2 * i] = re0 * ker1[i];
-      ker1val[2 * i + 1] = im0 * ker1[i];
+    for (u_int8_t i = 0; i < (batches & ~1); i += 2) {
+      const auto ker01 = batch_t::load_aligned(ker1 + i * avx_size/2);
+      const auto ker00 = xsimd::swizzle(ker01, zip_low_index<arch_t>);
+      const auto ker11 = xsimd::swizzle(ker01, zip_hi_index<arch_t>);
+      ker1val_batches[i] = ker00 * dd_pt;
+      ker1val_batches[i+1] = ker11 * dd_pt;
+    }
+    if constexpr (batches % 2) {
+      const auto ker1_batch = batch_t::load_unaligned(ker1 + (batches-1) * avx_size / 2);
+      const auto res = xsimd::swizzle(ker1_batch, zip_low_index<arch_t>) * dd_pt;
+      ker1val_batches[batches-1] = res;
     }
     // critical inner loop:
     for (auto dy = 0; dy < ns; ++dy) {
       const auto j = size1 * (i2 - off2 + dy) + i1 - off1;   // should be in subgrid
       auto *__restrict__ trg = du + 2 * j;
-      const auto kerval = ker2[dy];
-      const batch_t kerval_batch(kerval);
-      for (auto dx = 0; dx < 2 * ns; dx += avx_size) {
-        const auto ker1val_batch = xsimd::load_aligned<arch_t>(ker1val + dx);
-        const auto trg_batch = xsimd::load_unaligned<arch_t>(trg + dx);
-        const auto result = xsimd::fma(kerval_batch, ker1val_batch, trg_batch);
-        result.store_unaligned(trg + dx);
+      const batch_t kerval_batch(ker2[dy]);
+      for ( u_int8_t i = 0; i < batches; ++i) {
+        const auto trg_batch = batch_t::load_unaligned(trg + i*avx_size);
+        const auto result = xsimd::fma(kerval_batch, ker1val_batches[i], trg_batch);
+        result.store_unaligned(trg + i*avx_size);
       }
     }
   }
