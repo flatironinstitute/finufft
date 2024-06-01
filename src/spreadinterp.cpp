@@ -1214,65 +1214,76 @@ du (size size1*size2*size3) is uniform complex output array
 
 template<uint16_t ns, bool kerevalmeth>
 static void spread_subproblem_3d_kernel(const BIGINT off1, const BIGINT off2, const BIGINT off3, const BIGINT size1,
-                                 const BIGINT size2, const BIGINT size3, FLT *__restrict__ du, const BIGINT M,
-                                 const FLT *kx, const FLT *ky, const FLT *kz, const FLT *dd,
-                                 const finufft_spread_opts &opts) noexcept {
+                                        const BIGINT size2, const BIGINT size3, FLT *__restrict__ du, const BIGINT M,
+                                        const FLT *kx, const FLT *ky, const FLT *kz, const FLT *dd,
+                                        const finufft_spread_opts &opts) noexcept {
   static constexpr auto padding = get_padding<FLT, 2 * ns>();
   using batch_t = PaddedSIMD<FLT, 2 * ns>;
   using arch_t = typename batch_t::arch_type;
   static constexpr auto avx_size = batch_t::size;
   static constexpr size_t alignment = batch_t::arch_type::alignment();
 
-  static constexpr auto ns2 = ns * FLT(0.5);          // half spread width
+  static constexpr auto ns2 = ns * FLT(0.5); // half spread width
   std::fill(du, du + 2 * size1 * size2 * size3, 0);
-  // initialized to 0 due to the padding
-  alignas(alignment) FLT ker1val[2 * ns + padding] = {0};
   // Kernel values stored in consecutive memory. This allows us to compute
   // values in all three directions in a single kernel evaluation call.
-  alignas(alignment) FLT kernel_values[3 * MAX_NSPREAD];
-  auto * ker1 = kernel_values;
-  auto * ker2 = kernel_values + ns;
-  auto * ker3 = kernel_values + 2 * ns;
-  for (BIGINT pt = 0; pt < M; pt++) {           // loop over NU pts
-    const auto re0 = dd[2 * pt];
-    const auto im0 = dd[2 * pt + 1];
+  alignas(alignment) FLT kernel_values[3 * MAX_NSPREAD] = {0};
+  auto *ker1 = kernel_values;
+  auto *ker2 = kernel_values + MAX_NSPREAD;
+  auto *ker3 = kernel_values + 2 * MAX_NSPREAD;
+  for (BIGINT pt = 0; pt < M; pt++) { // loop over NU pts
+    batch_t dd_pt{};
+    dd_pt = xsimd::insert(dd_pt, dd[pt*2], xsimd::index<0>());
+    dd_pt = xsimd::insert(dd_pt, dd[pt*2+1], xsimd::index<1>());
+    dd_pt = xsimd::swizzle(dd_pt, propagate_index<arch_t>);
     // ceil offset, hence rounding, must match that in get_subgrid...
-    const auto i1 = (BIGINT) std::ceil(kx[pt] - ns2);   // fine grid start indices
-    const auto i2 = (BIGINT) std::ceil(ky[pt] - ns2);
-    const auto i3 = (BIGINT) std::ceil(kz[pt] - ns2);
-    const auto x1= std::ceil(kx[pt] - ns2) - kx[pt];
-    const auto x2= std::ceil(ky[pt] - ns2) - ky[pt];
-    const auto x3= std::ceil(kz[pt] - ns2) - kz[pt];
-    if constexpr (kerevalmeth) {          // faster Horner poly method
+    const auto i1 = (BIGINT)std::ceil(kx[pt] - ns2); // fine grid start indices
+    const auto i2 = (BIGINT)std::ceil(ky[pt] - ns2);
+    const auto i3 = (BIGINT)std::ceil(kz[pt] - ns2);
+    const auto x1 = std::ceil(kx[pt] - ns2) - kx[pt];
+    const auto x2 = std::ceil(ky[pt] - ns2) - ky[pt];
+    const auto x3 = std::ceil(kz[pt] - ns2) - kz[pt];
+    if constexpr (kerevalmeth) { // faster Horner poly method
       eval_kernel_vec_Horner<ns>(ker1, x1, opts);
       eval_kernel_vec_Horner<ns>(ker2, x2, opts);
       eval_kernel_vec_Horner<ns>(ker3, x3, opts);
     } else {
       alignas(alignment) FLT kernel_args[3 * ns];
       set_kernel_args(kernel_args, x1, opts);
-      set_kernel_args(kernel_args + ns, x2, opts);
-      set_kernel_args(kernel_args + 2 * ns, x3, opts);
+      set_kernel_args(kernel_args + MAX_NSPREAD, x2, opts);
+      set_kernel_args(kernel_args + 2 * MAX_NSPREAD, x3, opts);
       evaluate_kernel_vector(kernel_values, kernel_args, opts, 3 * ns);
     }
     // Combine kernel with complex source value to simplify inner loop
     // here 2* is because of complex
-    for (auto i = 0; i < ns; i++) {
-      ker1val[2 * i] = re0 * ker1[i];
-      ker1val[2 * i + 1] = im0 * ker1[i];
+    static constexpr uint8_t batches = (2*ns+padding)/avx_size;
+    static_assert(batches>0, "batches must be greater than 0");
+    batch_t ker1val_batches[batches];
+
+    for (u_int8_t i = 0; i < (batches & ~1); i += 2) {
+      const auto ker01 = batch_t::load_aligned(ker1 + i * avx_size/2);
+      const auto ker00 = xsimd::swizzle(ker01, zip_low_index<arch_t>);
+      const auto ker11 = xsimd::swizzle(ker01, zip_hi_index<arch_t>);
+      ker1val_batches[i] = ker00 * dd_pt;
+      ker1val_batches[i+1] = ker11 * dd_pt;
+    }
+    if constexpr (batches % 2) {
+      const auto ker1_batch = batch_t::load_unaligned(ker1 + (batches-1) * avx_size / 2);
+      const auto res = xsimd::swizzle(ker1_batch, zip_low_index<arch_t>) * dd_pt;
+      ker1val_batches[batches-1] = res;
     }
     // critical inner loop:
     for (auto dz = 0; dz < ns; ++dz) {
-      const auto oz = size1 * size2 * (i3 - off3 + dz);        // offset due to z
+      const auto oz = size1 * size2 * (i3 - off3 + dz); // offset due to z
       for (auto dy = 0; dy < ns; ++dy) {
-        const auto j = oz + size1 * (i2 - off2 + dy) + i1 - off1;   // should be in subgrid
-        auto * __restrict__ trg = du + 2 * j;
+        const auto j = oz + size1 * (i2 - off2 + dy) + i1 - off1; // should be in subgrid
+        auto *__restrict__ trg = du + 2 * j;
         const auto kerval = ker2[dy] * ker3[dz];
         const batch_t kerval_batch(kerval);
-        for (auto dx = 0; dx < 2 * ns; dx += avx_size) {
-          const auto ker1val_batch = xsimd::load_aligned<arch_t>(ker1val + dx);
-          const auto trg_batch = xsimd::load_unaligned<arch_t>(trg + dx);
-          const auto result = xsimd::fma(kerval_batch, ker1val_batch, trg_batch);
-          result.store_unaligned(trg + dx);
+        for ( u_int8_t i = 0; i < batches; ++i) {
+          const auto trg_batch = batch_t::load_unaligned(trg + i*avx_size);
+          const auto result = xsimd::fma(kerval_batch, ker1val_batches[i], trg_batch);
+          result.store_unaligned(trg + i*avx_size);
         }
       }
     }
