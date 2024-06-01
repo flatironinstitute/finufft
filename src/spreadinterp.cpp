@@ -980,13 +980,21 @@ void spread_subproblem_1d_kernel(const BIGINT off1, const BIGINT size1, FLT * __
   };
   static constexpr auto propagate_index = xsimd::make_batch_constant<xsimd::as_unsigned_integer_t<FLT>, arch_t, propagate>();
 
-  struct zip{
+
+  struct zip_low{
     static constexpr unsigned get(unsigned index, unsigned /*size*/)
     {
-      return index>>1;
+      return index/2;
     }
   };
-  static constexpr auto zip_index = xsimd::make_batch_constant<xsimd::as_unsigned_integer_t<FLT>, arch_t, zip>();
+  struct zip_hi {
+    static constexpr unsigned get(unsigned index, unsigned size) {
+        return (size+index)/2;
+    }
+  };
+
+  static constexpr auto zip_low_index = xsimd::make_batch_constant<xsimd::as_unsigned_integer_t<FLT>, arch_t, zip_low>();
+  static constexpr auto zip_hi_index = xsimd::make_batch_constant<xsimd::as_unsigned_integer_t<FLT>, arch_t, zip_hi>();
 
   FLT ker[MAX_NSPREAD] = {0}; // this needs to be zeroed as the vector loop reads more elements
   // no padding needed if MAX_NSPREAD is 16
@@ -1021,12 +1029,27 @@ void spread_subproblem_1d_kernel(const BIGINT off1, const BIGINT size1, FLT * __
     // du is padded, so we can use SIMD even if we write more than ns values in du
     // ker0 is also padded.
     // critical inner loop:
-    for (uint8_t dx{0}; dx < 2 * ns; dx += avx_size) {
-      const auto ker01 = batch_t::load_unaligned(ker + (dx / 2));
-      const auto du_pt = batch_t::load_unaligned(trg + dx);
-      const auto ker0 = xsimd::swizzle(ker01, zip_index);
+    static constexpr auto regular_part = (2 * ns) - ((2 * ns)%2*avx_size);
+    for (uint8_t dx{0}; dx < regular_part; dx += 2*avx_size) {
+      const auto ker01  = batch_t::load_aligned(ker + dx/2);
+      const auto du_pt0 = batch_t::load_unaligned(trg + dx);
+      const auto du_pt1 = batch_t::load_unaligned(trg + dx + avx_size);
+      // swizzle is faster than zip_lo(ker01, ker01) and zip_hi(ker01, ker01)
+      const auto ker0   = xsimd::swizzle(ker01, zip_low_index);
+      const auto ker1   = xsimd::swizzle(ker01, zip_hi_index);
+      const auto res0   = xsimd::fma(ker0, dd_pt, du_pt0);
+      const auto res1   = xsimd::fma(ker1, dd_pt, du_pt1);
+      res0.store_unaligned(trg + dx);
+      res1.store_unaligned(trg + dx + avx_size);
+    }
+    // probably not needed, left it in for now
+    static_assert(regular_part <= 2*ns && regular_part+avx_size >= 2*ns);
+    if constexpr (regular_part < 2*ns) {
+      const auto ker01 = batch_t::load_unaligned(ker + (regular_part / 2));
+      const auto du_pt = batch_t::load_unaligned(trg + regular_part);
+      const auto ker0 = xsimd::swizzle(ker01, zip_low_index);
       const auto res = xsimd::fma(ker0, dd_pt, du_pt);
-      res.store_unaligned(trg + dx);
+      res.store_unaligned(trg + regular_part);
     }
   }
 }
