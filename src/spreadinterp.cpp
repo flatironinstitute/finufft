@@ -996,27 +996,35 @@ void spread_subproblem_1d_kernel(const BIGINT off1, const BIGINT size1, FLT * __
   static constexpr size_t alignment = batch_t::arch_type::alignment();
   static constexpr auto avx_size = batch_t::size;
   static constexpr auto ns2 = ns * FLT(0.5);          // half spread width
+
   std::fill(du, du + 2 * size1, 0);           // zero output
 
   FLT ker[MAX_NSPREAD] = {0}; // this needs to be zeroed as the vector loop reads more elements
   // no padding needed if MAX_NSPREAD is 16
   // the largest read is 16 floats with avx512
   // if larger instructions will be available or half precision is used, this should be padded
+  batch_t dd_pt{};
   for (uint64_t i{0}; i < M; i++) {           // loop over NU pts
+    // ceil offset, hence rounding, must match that in get_subgrid...
+    const auto i1 = (BIGINT) std::ceil(kx[i] - ns2);    // fine grid start index
+
+    const auto j = i1 - off1;    // offset rel to subgrid, starts the output indices
+    auto * __restrict__ trg = du + 2 * j;
+    asm volatile("prefetcht0 (%0)" : : "r"(trg));
+
     // auto dd_pt = batch_t::gather(dd+2*i, propagate_index.as_batch());
     // is more elegant but slower
-    batch_t dd_pt{};
     dd_pt = xsimd::insert(dd_pt, dd[i*2], xsimd::index<0>());
     dd_pt = xsimd::insert(dd_pt, dd[i*2+1], xsimd::index<1>());
     dd_pt = xsimd::swizzle(dd_pt, propagate_index<arch_t>);
-    // ceil offset, hence rounding, must match that in get_subgrid...
-    const auto i1 = (BIGINT) std::ceil(kx[i] - ns2);    // fine grid start index
+
     auto x1 = (FLT) std::ceil(kx[i] - ns2) - kx[i];     // x1 in [-w/2,-w/2+1], up to rounding
     // However if N1*epsmach>O(1) then can cause O(1) errors in x1, hence ppoly
     // kernel evaluation will fall outside their designed domains, >>1 errors.
     // This can only happen if the overall error would be O(1) anyway. Clip x1??
     if (x1 < -ns2) x1 = -ns2; // why the wrapping only in 1D ?
     if (x1 > -ns2 + 1) x1 = -ns2 + 1;   // ***
+
     if constexpr (kerevalmeth) {          // faster Horner poly method
       eval_kernel_vec_Horner<ns>(ker, x1, opts);
     } else {
@@ -1024,10 +1032,6 @@ void spread_subproblem_1d_kernel(const BIGINT off1, const BIGINT size1, FLT * __
       set_kernel_args(kernel_args, x1, opts);
       evaluate_kernel_vector(ker, kernel_args, opts, ns);
     }
-
-    const auto j = i1 - off1;    // offset rel to subgrid, starts the output indices
-    auto * __restrict__ trg = du + 2 * j;
-
     // du is padded, so we can use SIMD even if we write more than ns values in du
     // ker0 is also padded.
     // critical inner loop:
@@ -1120,17 +1124,19 @@ static void spread_subproblem_2d_kernel(const BIGINT off1, const BIGINT off2, co
   auto *__restrict__ ker1 = kernel_values;
   auto *__restrict__ ker2 = kernel_values + MAX_NSPREAD;
 
-  for (uint64_t pt = 0; pt < M; pt++) {           // loop over NU pts
-    batch_t dd_pt{};
-    dd_pt = xsimd::insert(dd_pt, dd[pt*2], xsimd::index<0>());
-    dd_pt = xsimd::insert(dd_pt, dd[pt*2+1], xsimd::index<1>());
-    dd_pt = xsimd::swizzle(dd_pt, propagate_index<arch_t>);
+  static constexpr uint8_t batches = (2*ns+padding)/avx_size;
+  static_assert(batches>0, "batches must be greater than 0");
+  alignas(alignment) std::array<batch_t, batches> ker1val_batches{};
+  batch_t dd_pt{};
 
+  for (uint64_t pt = 0; pt < M; pt++) {           // loop over NU pts
     // ceil offset, hence rounding, must match that in get_subgrid...
     const auto i1 = (BIGINT) std::ceil(kx[pt] - ns2);   // fine grid start indices
     const auto i2 = (BIGINT) std::ceil(ky[pt] - ns2);
     const auto x1 = (FLT) std::ceil(kx[pt] - ns2) - kx[pt];
     const auto x2 = (FLT) std::ceil(ky[pt] - ns2) - ky[pt];
+    //__builtin_prefetch(du + size1 * (i2 - off2) + i1 - off1,1,3);
+    asm volatile("prefetcht0 (%0)" : : "r"(du + size1 * (i2 - off2) + i1 - off1));
     if constexpr (kerevalmeth) {          // faster Horner poly method
       eval_kernel_vec_Horner<ns>(ker1, x1, opts);
       eval_kernel_vec_Horner<ns>(ker2, x2, opts);
@@ -1142,21 +1148,21 @@ static void spread_subproblem_2d_kernel(const BIGINT off1, const BIGINT off2, co
     }
     // Combine kernel with complex source value to simplify inner loop
     // here 2* is because of complex
-    static constexpr uint8_t batches = (2*ns+padding)/avx_size;
-    static_assert(batches>0, "batches must be greater than 0");
-    batch_t ker1val_batches[batches];
 
+    dd_pt = xsimd::insert(dd_pt, dd[pt * 2], xsimd::index<0>());
+    dd_pt = xsimd::insert(dd_pt, dd[pt * 2 + 1], xsimd::index<1>());
+    dd_pt = xsimd::swizzle(dd_pt, propagate_index<arch_t>);
     for (u_int8_t i = 0; i < (batches & ~1); i += 2) {
-      const auto ker01 = batch_t::load_aligned(ker1 + i * avx_size/2);
+      const auto ker01 = batch_t::load_aligned(ker1 + i * avx_size / 2);
       const auto ker00 = xsimd::swizzle(ker01, zip_low_index<arch_t>);
       const auto ker11 = xsimd::swizzle(ker01, zip_hi_index<arch_t>);
       ker1val_batches[i] = ker00 * dd_pt;
-      ker1val_batches[i+1] = ker11 * dd_pt;
+      ker1val_batches[i + 1] = ker11 * dd_pt;
     }
     if constexpr (batches % 2) {
-      const auto ker1_batch = batch_t::load_unaligned(ker1 + (batches-1) * avx_size / 2);
+      const auto ker1_batch = batch_t::load_unaligned(ker1 + (batches - 1) * avx_size / 2);
       const auto res = xsimd::swizzle(ker1_batch, zip_low_index<arch_t>) * dd_pt;
-      ker1val_batches[batches-1] = res;
+      ker1val_batches[batches - 1] = res;
     }
     // critical inner loop:
     for (auto dy = 0; dy < ns; ++dy) {
@@ -1224,10 +1230,18 @@ static void spread_subproblem_3d_kernel(const BIGINT off1, const BIGINT off2, co
   static constexpr size_t alignment = batch_t::arch_type::alignment();
 
   static constexpr auto ns2 = ns * FLT(0.5); // half spread width
+//  asm volatile("prefetcht0 %0" : : "m"(du));
   std::fill(du, du + 2 * size1 * size2 * size3, 0);
   // Kernel values stored in consecutive memory. This allows us to compute
   // values in all three directions in a single kernel evaluation call.
   alignas(alignment) FLT kernel_values[3 * MAX_NSPREAD] = {0};
+
+  // Combine kernel with complex source value to simplify inner loop
+  // here 2* is because of complex
+  static constexpr uint8_t batches = (2*ns+padding)/avx_size;
+  static_assert(batches>0, "batches must be greater than 0");
+  alignas(alignment) std::array<batch_t, batches> ker1val_batches{};
+
   auto *ker1 = kernel_values;
   auto *ker2 = kernel_values + MAX_NSPREAD;
   auto *ker3 = kernel_values + 2 * MAX_NSPREAD;
@@ -1243,6 +1257,8 @@ static void spread_subproblem_3d_kernel(const BIGINT off1, const BIGINT off2, co
     const auto x1 = std::ceil(kx[pt] - ns2) - kx[pt];
     const auto x2 = std::ceil(ky[pt] - ns2) - ky[pt];
     const auto x3 = std::ceil(kz[pt] - ns2) - kz[pt];
+//    __builtin_prefetch(du + size1 * size2 * (i3 - off3) + size1 * (i2 - off2) + i1 - off1,1,3);
+    asm volatile("prefetcht0 (%0)" : : "r"(du + size1 * size2 * (i3 - off3) + size1 * (i2 - off2) + i1 - off1));
     if constexpr (kerevalmeth) { // faster Horner poly method
       eval_kernel_vec_Horner<ns>(ker1, x1, opts);
       eval_kernel_vec_Horner<ns>(ker2, x2, opts);
@@ -1254,11 +1270,6 @@ static void spread_subproblem_3d_kernel(const BIGINT off1, const BIGINT off2, co
       set_kernel_args(kernel_args + 2 * MAX_NSPREAD, x3, opts);
       evaluate_kernel_vector(kernel_values, kernel_args, opts, 3 * ns);
     }
-    // Combine kernel with complex source value to simplify inner loop
-    // here 2* is because of complex
-    static constexpr uint8_t batches = (2*ns+padding)/avx_size;
-    static_assert(batches>0, "batches must be greater than 0");
-    batch_t ker1val_batches[batches];
 
     for (u_int8_t i = 0; i < (batches & ~1); i += 2) {
       const auto ker01 = batch_t::load_aligned(ker1 + i * avx_size/2);
@@ -1267,6 +1278,7 @@ static void spread_subproblem_3d_kernel(const BIGINT off1, const BIGINT off2, co
       ker1val_batches[i] = ker00 * dd_pt;
       ker1val_batches[i+1] = ker11 * dd_pt;
     }
+
     if constexpr (batches % 2) {
       const auto ker1_batch = batch_t::load_unaligned(ker1 + (batches-1) * avx_size / 2);
       const auto res = xsimd::swizzle(ker1_batch, zip_low_index<arch_t>) * dd_pt;
