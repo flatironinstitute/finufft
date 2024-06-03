@@ -969,6 +969,7 @@ template <class arch_t>
 static constexpr auto zip_hi_index = xsimd::make_batch_constant<xsimd::as_unsigned_integer_t<FLT>, arch_t, zip_hi>();
 
 template<uint16_t ns, bool kerevalmeth>
+FINUFFT_NEVER_INLINE
 void spread_subproblem_1d_kernel(const BIGINT off1, const BIGINT size1, FLT * __restrict__ du, const BIGINT M,
                               const FLT * const kx, const FLT * const dd, const finufft_spread_opts& opts) noexcept {
 /* 1D spreader from nonuniform to uniform subproblem grid, without wrapping.
@@ -996,19 +997,20 @@ void spread_subproblem_1d_kernel(const BIGINT off1, const BIGINT size1, FLT * __
   static constexpr size_t alignment = batch_t::arch_type::alignment();
   static constexpr auto avx_size = batch_t::size;
   static constexpr auto ns2 = ns * FLT(0.5);          // half spread width
+  // something weird here. Reversing ker{0} and std fill causes ker
+  // to be zeroed inside the loop GCC uses AVX, clang AVX2
+  alignas(alignment) std::array<FLT, MAX_NSPREAD> ker{0}; // zero due to padding
+  alignas(alignment) batch_t dd_pt{};
   std::fill(du, du + 2 * size1, 0);           // zero output
-
-  FLT ker[MAX_NSPREAD] = {0}; // this needs to be zeroed as the vector loop reads more elements
   // no padding needed if MAX_NSPREAD is 16
   // the largest read is 16 floats with avx512
   // if larger instructions will be available or half precision is used, this should be padded
   for (uint64_t i{0}; i < M; i++) {           // loop over NU pts
     // auto dd_pt = batch_t::gather(dd+2*i, propagate_index.as_batch());
-    // is more elegant but slower
-    batch_t dd_pt{};
-    dd_pt = xsimd::insert(dd_pt, dd[i*2], xsimd::index<0>());
-    dd_pt = xsimd::insert(dd_pt, dd[i*2+1], xsimd::index<1>());
-    dd_pt = xsimd::swizzle(dd_pt, propagate_index<arch_t>);
+    // is more elegant but slowerD
+    dd_pt = xsimd::insert(dd_pt, dd[i * 2], xsimd::index<0>());
+    dd_pt = xsimd::insert(dd_pt, dd[i * 2 + 1], xsimd::index<1>());
+    dd_pt = xsimd::swizzle(dd_pt, propagate_index < arch_t > );
     // ceil offset, hence rounding, must match that in get_subgrid...
     const auto i1 = (BIGINT) std::ceil(kx[i] - ns2);    // fine grid start index
     auto x1 = (FLT) std::ceil(kx[i] - ns2) - kx[i];     // x1 in [-w/2,-w/2+1], up to rounding
@@ -1018,38 +1020,36 @@ void spread_subproblem_1d_kernel(const BIGINT off1, const BIGINT size1, FLT * __
     if (x1 < -ns2) x1 = -ns2; // why the wrapping only in 1D ?
     if (x1 > -ns2 + 1) x1 = -ns2 + 1;   // ***
     if constexpr (kerevalmeth) {          // faster Horner poly method
-      eval_kernel_vec_Horner<ns>(ker, x1, opts);
+      eval_kernel_vec_Horner<ns>(ker.data(), x1, opts);
     } else {
       FLT kernel_args[ns];
       set_kernel_args(kernel_args, x1, opts);
-      evaluate_kernel_vector(ker, kernel_args, opts, ns);
+      evaluate_kernel_vector(ker.data(), kernel_args, opts, ns);
     }
-
     const auto j = i1 - off1;    // offset rel to subgrid, starts the output indices
-    auto * __restrict__ trg = du + 2 * j;
-
+    auto *__restrict__ trg = du + 2 * j;
     // du is padded, so we can use SIMD even if we write more than ns values in du
     // ker0 is also padded.
     // critical inner loop:
-    static constexpr auto regular_part = (2 * ns) - ((2 * ns)%2*avx_size);
-    for (uint8_t dx{0}; dx < regular_part; dx += 2*avx_size) {
-      const auto ker01  = batch_t::load_aligned(ker + dx/2);
+    static constexpr auto regular_part = (2 * ns) - ((2 * ns) % 2 * avx_size);
+    for (uint8_t dx{0}; dx < regular_part; dx += 2 * avx_size) {
+      const auto ker01 = batch_t::load_aligned(ker.data() + dx / 2);
       const auto du_pt0 = batch_t::load_unaligned(trg + dx);
       const auto du_pt1 = batch_t::load_unaligned(trg + dx + avx_size);
       // swizzle is faster than zip_lo(ker01, ker01) and zip_hi(ker01, ker01)
-      const auto ker0   = xsimd::swizzle(ker01, zip_low_index<arch_t>);
-      const auto ker1   = xsimd::swizzle(ker01, zip_hi_index<arch_t>);
-      const auto res0   = xsimd::fma(ker0, dd_pt, du_pt0);
-      const auto res1   = xsimd::fma(ker1, dd_pt, du_pt1);
+      const auto ker0 = xsimd::swizzle(ker01, zip_low_index < arch_t > );
+      const auto ker1 = xsimd::swizzle(ker01, zip_hi_index < arch_t > );
+      const auto res0 = xsimd::fma(ker0, dd_pt, du_pt0);
+      const auto res1 = xsimd::fma(ker1, dd_pt, du_pt1);
       res0.store_unaligned(trg + dx);
       res1.store_unaligned(trg + dx + avx_size);
     }
     // probably not needed, left it in for now
-    static_assert(regular_part <= 2*ns && regular_part+avx_size >= 2*ns);
-    if constexpr (regular_part < 2*ns) {
+    static_assert(regular_part <= 2 * ns && regular_part + avx_size >= 2 * ns);
+    if constexpr (regular_part < 2 * ns) {
       const auto ker01 = batch_t::load_unaligned(ker + (regular_part / 2));
       const auto du_pt = batch_t::load_unaligned(trg + regular_part);
-      const auto ker0 = xsimd::swizzle(ker01, zip_low_index<arch_t>);
+      const auto ker0 = xsimd::swizzle(ker01, zip_low_index < arch_t > );
       const auto res = xsimd::fma(ker0, dd_pt, du_pt);
       res.store_unaligned(trg + regular_part);
     }
@@ -1057,8 +1057,7 @@ void spread_subproblem_1d_kernel(const BIGINT off1, const BIGINT size1, FLT * __
 }
 
 template<uint16_t NS>
-FINUFFT_ALWAYS_INLINE
-static void spread_subproblem_1d_dispatch(const BIGINT off1, const BIGINT size1, FLT *__restrict__ du, const BIGINT M,
+void spread_subproblem_1d_dispatch(const BIGINT off1, const BIGINT size1, FLT *__restrict__ du, const BIGINT M,
                                    const FLT *kx, const FLT *dd,
                                    const finufft_spread_opts &opts) noexcept {
   static_assert(MIN_NSPREAD <= NS <= MAX_NSPREAD, "NS must be in the range (MIN_NSPREAD, MAX_NSPREAD)");
@@ -1094,6 +1093,7 @@ du (size size1*size2*size3) is uniform complex output array
 }
 
 template<uint16_t ns, bool kerevalmeth>
+FINUFFT_NEVER_INLINE
 static void spread_subproblem_2d_kernel(const BIGINT off1, const BIGINT off2, const BIGINT size1, const BIGINT size2,
                           FLT * __restrict__ du, const BIGINT M, const FLT *kx, const FLT *ky, const FLT *dd,
                           const finufft_spread_opts &opts) noexcept
@@ -1109,23 +1109,18 @@ static void spread_subproblem_2d_kernel(const BIGINT off1, const BIGINT off2, co
   using arch_t = typename batch_t::arch_type;
   static constexpr auto avx_size = batch_t::size;
   static constexpr size_t alignment = batch_t::arch_type::alignment();
-
-  static constexpr auto ns2 = ns * FLT(0.5);          // half spread width
-  std::fill(du, du + 2 * size1 * size2, 0);
-  // initialized to 0 due to the padding
-  //  alignas(alignment) FLT ker1val[2 * ns + padding] = {0};
   // Kernel values stored in consecutive memory. This allows us to compute
   // values in all three directions in a single kernel evaluation call.
+  alignas(alignment) batch_t dd_pt{};
   alignas(alignment) FLT kernel_values[2 * MAX_NSPREAD] = {0};
   auto *__restrict__ ker1 = kernel_values;
   auto *__restrict__ ker2 = kernel_values + MAX_NSPREAD;
-
+  static constexpr auto ns2 = ns * FLT(0.5);          // half spread width
+  std::fill(du, du + 2 * size1 * size2, 0); // initialized to 0 due to the padding
   for (uint64_t pt = 0; pt < M; pt++) {           // loop over NU pts
-    batch_t dd_pt{};
     dd_pt = xsimd::insert(dd_pt, dd[pt*2], xsimd::index<0>());
     dd_pt = xsimd::insert(dd_pt, dd[pt*2+1], xsimd::index<1>());
     dd_pt = xsimd::swizzle(dd_pt, propagate_index<arch_t>);
-
     // ceil offset, hence rounding, must match that in get_subgrid...
     const auto i1 = (BIGINT) std::ceil(kx[pt] - ns2);   // fine grid start indices
     const auto i2 = (BIGINT) std::ceil(ky[pt] - ns2);
@@ -1135,7 +1130,7 @@ static void spread_subproblem_2d_kernel(const BIGINT off1, const BIGINT off2, co
       eval_kernel_vec_Horner<ns>(ker1, x1, opts);
       eval_kernel_vec_Horner<ns>(ker2, x2, opts);
     } else {
-      alignas(alignment) FLT kernel_args[3 * ns];
+      alignas(alignment) FLT kernel_args[2 * MAX_NSPREAD];
       set_kernel_args(kernel_args, x1, opts);
       set_kernel_args(kernel_args + MAX_NSPREAD, x2, opts);
       evaluate_kernel_vector(kernel_values, kernel_args, opts, 3 * ns);
@@ -1173,8 +1168,7 @@ static void spread_subproblem_2d_kernel(const BIGINT off1, const BIGINT off2, co
 }
 
 template<uint16_t NS>
-FINUFFT_ALWAYS_INLINE
-static void spread_subproblem_2d_dispatch(const BIGINT off1, const BIGINT off2, const BIGINT size1, const BIGINT size2,
+void spread_subproblem_2d_dispatch(const BIGINT off1, const BIGINT off2, const BIGINT size1, const BIGINT size2,
                                  FLT * __restrict__ du, const BIGINT M, const FLT *kx, const FLT *ky, const FLT *dd,
                                  const finufft_spread_opts &opts) {
   static_assert(MIN_NSPREAD <= NS <= MAX_NSPREAD, "NS must be in the range (MIN_NSPREAD, MAX_NSPREAD)");
@@ -1212,8 +1206,8 @@ du (size size1*size2*size3) is uniform complex output array
 }
 
 
-template<uint16_t ns, bool kerevalmeth>
-static void spread_subproblem_3d_kernel(const BIGINT off1, const BIGINT off2, const BIGINT off3, const BIGINT size1,
+template<uint16_t ns, bool kerevalmeth> FINUFFT_NEVER_INLINE
+void spread_subproblem_3d_kernel(const BIGINT off1, const BIGINT off2, const BIGINT off3, const BIGINT size1,
                                         const BIGINT size2, const BIGINT size3, FLT *__restrict__ du, const BIGINT M,
                                         const FLT *kx, const FLT *ky, const FLT *kz, const FLT *dd,
                                         const finufft_spread_opts &opts) noexcept {
@@ -1222,17 +1216,18 @@ static void spread_subproblem_3d_kernel(const BIGINT off1, const BIGINT off2, co
   using arch_t = typename batch_t::arch_type;
   static constexpr auto avx_size = batch_t::size;
   static constexpr size_t alignment = batch_t::arch_type::alignment();
-
-  static constexpr auto ns2 = ns * FLT(0.5); // half spread width
-  std::fill(du, du + 2 * size1 * size2 * size3, 0);
   // Kernel values stored in consecutive memory. This allows us to compute
   // values in all three directions in a single kernel evaluation call.
+  // set to 0 due to padding
   alignas(alignment) FLT kernel_values[3 * MAX_NSPREAD] = {0};
   auto *ker1 = kernel_values;
   auto *ker2 = kernel_values + MAX_NSPREAD;
   auto *ker3 = kernel_values + 2 * MAX_NSPREAD;
-  for (BIGINT pt = 0; pt < M; pt++) { // loop over NU pts
-    batch_t dd_pt{};
+  alignas(alignment) batch_t dd_pt{};
+  std::fill(du, du + 2 * size1 * size2 * size3, 0);
+  static constexpr auto ns2 = ns * FLT(0.5); // half spread width
+
+  for (uint64_t pt = 0; pt < M; pt++) { // loop over NU pts
     dd_pt = xsimd::insert(dd_pt, dd[pt*2], xsimd::index<0>());
     dd_pt = xsimd::insert(dd_pt, dd[pt*2+1], xsimd::index<1>());
     dd_pt = xsimd::swizzle(dd_pt, propagate_index<arch_t>);
@@ -1280,7 +1275,7 @@ static void spread_subproblem_3d_kernel(const BIGINT off1, const BIGINT off2, co
         auto *__restrict__ trg = du + 2 * j;
         const auto kerval = ker2[dy] * ker3[dz];
         const batch_t kerval_batch(kerval);
-        for ( u_int8_t i = 0; i < batches; ++i) {
+        for (u_int8_t i = 0; i < batches; ++i) {
           const auto trg_batch = batch_t::load_unaligned(trg + i*avx_size);
           const auto result = xsimd::fma(kerval_batch, ker1val_batches[i], trg_batch);
           result.store_unaligned(trg + i*avx_size);
@@ -1291,8 +1286,7 @@ static void spread_subproblem_3d_kernel(const BIGINT off1, const BIGINT off2, co
 }
 
 template<int NS>
-FINUFFT_ALWAYS_INLINE
-static void spread_subproblem_3d_dispatch(BIGINT off1, BIGINT off2, BIGINT off3, BIGINT size1, BIGINT size2, BIGINT size3,
+void spread_subproblem_3d_dispatch(BIGINT off1, BIGINT off2, BIGINT off3, BIGINT size1, BIGINT size2, BIGINT size3,
                                    FLT *du, BIGINT M, const FLT *kx, const FLT *ky, const FLT *kz, const FLT *dd,
                                    const finufft_spread_opts &opts) noexcept {
   static_assert(MIN_NSPREAD <= NS <= MAX_NSPREAD, "NS must be in the range (MIN_NSPREAD, MAX_NSPREAD)");
@@ -1611,7 +1605,7 @@ void get_subgrid(BIGINT &offset1, BIGINT &offset2, BIGINT &offset3, BIGINT &padd
    Martin Reinecke, 8.5.2024 used floor to speedup the function and removed the range limitation
    Marco Barbone, 8.5.2024 Changed it from a Macro to an inline function
 */
-FINUFFT_ALWAYS_INLINE FLT fold_rescale(const FLT x, const BIGINT N) noexcept {
+FLT fold_rescale(const FLT x, const BIGINT N) noexcept {
   static constexpr const FLT x2pi = FLT(M_1_2PI);
   const FLT result = x * x2pi + FLT(0.5);
   return (result-floor(result)) * FLT(N);
@@ -1624,7 +1618,7 @@ FINUFFT_ALWAYS_INLINE FLT fold_rescale(const FLT x, const BIGINT N) noexcept {
 // this finds the largest SIMD instruction set that can handle N elements
 // void otherwise -> compile error
 template<class T, uint16_t N, uint16_t K>
-static constexpr auto BestSIMDHelper() {
+constexpr auto BestSIMDHelper() {
   if constexpr (N % K == 0) { // returns void in the worst case
     return xsimd::make_sized_batch<T, K>{};
   } else {
@@ -1633,7 +1627,7 @@ static constexpr auto BestSIMDHelper() {
 }
 
 template<class T, uint16_t N>
-static constexpr uint16_t min_batch_size() {
+constexpr uint16_t min_batch_size() {
   if constexpr (std::is_void_v<xsimd::make_sized_batch_t<T, N>>) {
     return min_batch_size<T, N*2>();
   } else {
@@ -1643,7 +1637,7 @@ static constexpr uint16_t min_batch_size() {
 
 
 template<class T, uint16_t N>
-static constexpr auto find_optimal_batch_size() {
+constexpr auto find_optimal_batch_size() {
   uint16_t optimal_batch_size = min_batch_size<T>();
   uint16_t min_iterations = (N+optimal_batch_size-1)/optimal_batch_size;
   for (uint16_t batch_size = optimal_batch_size; batch_size <= xsimd::batch<T, xsimd::best_arch>::size; batch_size *= 2) {
@@ -1657,18 +1651,18 @@ static constexpr auto find_optimal_batch_size() {
 }
 
 template<class T, uint16_t N>
-static constexpr auto GetPaddedSIMDSize() {
+constexpr auto GetPaddedSIMDSize() {
   return xsimd::make_sized_batch<T, find_optimal_batch_size<T, N>()>::type::size;
 }
 
 template<class T, uint16_t ns>
-static constexpr auto get_padding() {
+constexpr auto get_padding() {
   constexpr uint16_t width = GetPaddedSIMDSize<T, ns>();
   return ns % width == 0 ? 0 : width - (ns % width);
 }
 
 template<class T, uint16_t ns>
-static constexpr auto get_padding_helper(uint16_t runtime_ns) {
+constexpr auto get_padding_helper(uint16_t runtime_ns) {
   if constexpr (ns < 2) {
     return 0;
   } else {
@@ -1681,7 +1675,7 @@ static constexpr auto get_padding_helper(uint16_t runtime_ns) {
 }
 
 template<class T>
-static uint16_t get_padding(uint16_t ns) {
+uint16_t get_padding(uint16_t ns) {
   return get_padding_helper<T, 2*MAX_NSPREAD>(ns);
 }
 

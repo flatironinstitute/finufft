@@ -107,38 +107,9 @@ static uint16_t get_padding(uint16_t ns) {
   return get_padding_helper<T, 32>(ns);
 }
 
-template<class T, uint16_t N>
-std::vector<uint16_t> mixed_vectors() {
-  auto min_batch = min_batch_size<T>();
-  auto max_batch = max_batch_size<T>();
-  std::vector<uint16_t> batch_sizes{1};
-  std::vector<uint16_t> chosen_batch_sizes(N+1, 0);
-  for (uint16_t i = min_batch; i <= max_batch; i *= 2) {
-    batch_sizes.push_back(i);
-  }
-  std::vector<uint16_t> dp(N+1, N+1);  // Initialize the dp table
-  dp[0] = 0;  // 0 amount requires 0 coins
-
-  for (uint16_t i = 0; i <= N; ++i) {
-    for (const auto batch_size : batch_sizes) {
-      if (batch_size <= i && dp[i - batch_size] + 1 < dp[i]) {
-        dp[i] = dp[i - batch_size] + 1;
-        chosen_batch_sizes[i] = batch_size;
-      }
-    }
-  }
-
-  // Build the sequence of coins that fit in N
-  std::vector<uint16_t> sequence;
-  for (int i = N; i > 0; i -= chosen_batch_sizes[i]) {
-    sequence.push_back(chosen_batch_sizes[i]);
-  }
-  return sequence;
-}
-
 template<class T>
-auto& print(std::vector<T> arg) {
-  T sum = 0;
+std::ostream & print(T arg) {
+  typename T::value_type sum = 0;
   for (const auto &elem : arg) {
     std::cout << elem << " ";
     sum += elem;
@@ -146,6 +117,50 @@ auto& print(std::vector<T> arg) {
   std::cout << "sum is " << sum;
   return std::cout;
 }
+
+
+template<uint16_t low, uint16_t high>
+constexpr uint16_t po2_in_between() {
+  std::uint16_t result = 0;
+  for (auto i = low; i <= high; i<<=1 ) {
+    result++;
+  }
+  return result;
+}
+
+template<class T, uint16_t N>
+constexpr auto mixed_vectors() {
+  constexpr auto min_batch = min_batch_size<T>();
+  constexpr auto max_batch = max_batch_size<T>();
+  // compute all the power of 2 between min_batch and max_batch
+
+  std::array<uint16_t, po2_in_between<min_batch, max_batch>()+1> batch_sizes{1};
+  for (uint16_t i = 1; i < batch_sizes.size(); i++) {
+    batch_sizes[i] = min_batch << (i - 1);
+  }
+  print(batch_sizes);
+  std::array<uint16_t, N+1> chosen_batch_sizes{0}, dp{N+1};
+  dp[0] = 0;  // 0 amount requires 0 coins
+
+  for (uint16_t i = 0; i < N+1; ++i) {
+    for (const auto batch_size : batch_sizes) {
+      if (batch_size <= i && dp[i - batch_size] + 1 < dp[i]) {
+        dp[i] = dp[i - batch_size] + 1;
+        chosen_batch_sizes[i] = batch_size;
+      }
+    }
+  }
+  // Build the sequence of coins that fit in N
+  std::array<uint16_t, N> sequence{0};
+  auto index = 0;
+  for (int i = N; i > 0; i -= chosen_batch_sizes[i]) {
+    sequence[index++] = chosen_batch_sizes[i];
+  }
+  // return the not zero elements in the sequence
+  return sequence;
+}
+
+
 
 int main(int argc, char *argv[]) {
   std::cout << "sequence for 16 single precision is ";

@@ -41,10 +41,14 @@
 // this avoids the use of macros to implement functions
 #if defined(_MSC_VER)
 #define FINUFFT_ALWAYS_INLINE __forceinline
+#define FINUFFT_NEVER_INLINE __declspec(noinline)
 #elif defined(__GNUC__) || defined(__clang__)
 #define FINUFFT_ALWAYS_INLINE __attribute__((always_inline)) inline
+#define FINUFFT_NEVER_INLINE __attribute__((noinline))
 #else
 #define FINUFFT_ALWAYS_INLINE inline
+#define FINUFFT_NEVER_INLINE
+
 #endif
 
 // ------------- Library-wide algorithm parameter settings ----------------
