@@ -128,8 +128,8 @@ int main(int argc, char *argv[])
     std::vector<FLT> d_uniform(2 * Ng); // Re and Im
 
     finufft_spread_opts opts;
-    static constexpr auto max_digits = []() {
-        if constexpr (std::is_same<FLT, double>::value) {
+    const auto max_digits = []() {
+        if (std::is_same<FLT, double>::value) {
             return 17;
         } else {
             return 9;
