@@ -12,9 +12,8 @@
 %                       -mu/2 <= k3 <= (mu-1)/2.
 %
 %  Inputs:
-%     x,y,z coordinates of nonuniform targets on the cube [-pi, pi)^3,
-%           each a vector of length nj. Values outside will be folded.
-%           Note: folding large values can result in a loss of accuracy.
+%     x,y,z real-valued coordinates of nonuniform targets,
+%           each a vector of length nj
 %     f     complex Fourier coefficient array, whose size sets (ms,mt,mu).
 %           (Mode ordering given by opts.modeord, in each dimension.)
 %           If a 4D array, 4th dimension sets ntrans, and each of ntrans

@@ -63,13 +63,17 @@ int @G_setpts(finufft_plan plan, int64_t M, double* x, double* y, double* z, int
 @r
 
   Notes:
-    * For type 1 and 2, the values in x (and if nonempty, y and z) can be in any
-      interval, they will be folded to [-pi, pi). Note: for large numbers outside
-      this range there might be numerical inaccuracies.
-      For type 1 they are "sources", but for type 2, "targets".
-      In contrast, for type 3 there are no restrictions on them,
-      or on s, t, u, other than the resulting size of the internal fine
-      grids fitting in memory.
+    * The coordinates in x (and if nonempty, y and z) can be any real numbers.
+      For type 1 and 2 transforms, their definitions imply that that the
+      result is invariant to adding any multiple of 2pi to these coordinates.
+      (Internally, each coordinate is folded to [-pi,pi); as usual for
+      periodic functions, rounding errors are inevitable if much larger values
+      are input.) For type 1 these coordinates are "sources", whereas for type
+      2, they are "targets".
+      For type 3 the coordinates are "sources", and the "frequency targets"
+      s (and if nonempty, t and u) may also be any real numbers; the only
+      restriction for type 3 is that the product of source and target domain
+      sizes is not too large (it controls the internal fine grid size).
     * The coordinates pointed to by any used arrays x, y, z, s, t, u must
       not be changed between this call and the below execute call!
 

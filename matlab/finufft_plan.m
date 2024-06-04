@@ -97,11 +97,10 @@
 %     plan   finufft_plan object
 %
 % Notes:
-%  * For type 1 and 2, the values in xj (and if nonempty, yj and zj) 
-%    lie in the interval [-pi, pi) values outside will be folded.
-%    Note: folding large values can result in a loss of accuracy.
-%    For type 1 they are "sources", but for
-%    type 2, "targets". In contrast, for type 3 there are no restrictions other
+%  * The values in xj (and if nonempty, yj and zj) are real-valued, and
+%    invariant under translations by multiples of 2pi. For type 1
+%    they are "sources", whereas for type 2 they are "targets".
+%    For type 3 there is no periodicity, and no restrictions other
 %    than the resulting size of the internal fine grids.
 %  * s (and t and u) are only relevant for type 3, and may be omitted otherwise
 %  * The matlab vectors xj,... and s,... should not be changed before calling

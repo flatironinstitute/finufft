@@ -14,7 +14,7 @@ switch ier
  case 3
   error('FINUFFT:spreadinterp:fineGridSmall','FINUFFT spreader fine grid too small compared to kernel width');
  case 4
-  error('FINUFFT:spreadinterp:NUrange','FINUFFT spreader nonuniform point out of range [-3pi,3pi]^d in type 1 or 2.');
+  error('FINUFFT:spreadinterp:NUrange','[DEPRECATED]');
  case 5
   error('FINUFFT:spreadinterp:malloc','FINUFFT spreader malloc error');
  case 6
