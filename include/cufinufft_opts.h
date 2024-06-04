@@ -26,6 +26,9 @@ typedef struct cufinufft_opts { // see cufinufft_default_opts() for defaults
     int gpu_device_id;
 
     void *gpu_stream;
+
+    int modeord; // (type 1,2 only): 0 CMCL-style increasing mode order
+                 //                  1 FFT-style mode order
 } cufinufft_opts;
 
 #endif

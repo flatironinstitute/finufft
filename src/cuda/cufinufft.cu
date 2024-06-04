@@ -121,5 +121,7 @@ void cufinufft_default_opts(cufinufft_opts *opts)
 
     // By default, only use device 0
     opts->gpu_device_id = 0;
+
+    opts->modeord = 0;
 }
 }

@@ -1,6 +1,8 @@
 List of features / changes made / release notes, in reverse chronological order.
 If not stated, FINUFFT is assumed (cuFINUFFT <=1.3 is listed separately).
 
+* cufinufft now supports modeord(type 1,2 only): 0 CMCL-style increasing mode
+  order, 1 FFT-style mode order.
 * New doc page: migration guide from NFFT3 (2d1 case only).
 * New foldrescale, removes [-3pi,3pi) restriction on NU points, and slight
   speedup at large tols. Deprecates both opts.chkbnds and error code

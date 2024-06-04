@@ -57,8 +57,13 @@ int cufinufft3d1_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk, cufinufft_pla
             return FINUFFT_ERR_CUDA_FAILURE;
 
         // Step 3: deconvolve and shuffle
-        if ((ier = cudeconvolve3d<T>(d_plan, blksize)))
-            return ier;
+        if (d_plan->opts.modeord == 0) {
+            if ((ier = cudeconvolve3d<T, 0>(d_plan, blksize)))
+                return ier;
+        } else {
+            if ((ier = cudeconvolve3d<T, 1>(d_plan, blksize)))
+                return ier;
+        }
     }
 
     return 0;
@@ -91,8 +96,13 @@ int cufinufft3d2_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk, cufinufft_pla
         d_plan->fk = d_fkstart;
 
         // Step 1: amplify Fourier coeffs fk and copy into upsampled array fw
-        if ((ier = cudeconvolve3d<T>(d_plan, blksize)))
-            return ier;
+        if (d_plan->opts.modeord == 0) {
+            if ((ier = cudeconvolve3d<T, 0>(d_plan, blksize)))
+                return ier;
+        } else {
+            if ((ier = cudeconvolve3d<T, 1>(d_plan, blksize)))
+                return ier;
+        }
 
         // Step 2: FFT
         RETURN_IF_CUDA_ERROR

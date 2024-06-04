@@ -9,11 +9,12 @@ import utils
 # NOTE: Tests below fail for tolerance 1e-4 (error executing plan).
 
 DTYPES = [np.float32, np.float64]
-SHAPES = [(16,), (16, 16), (16, 16, 16)]
+SHAPES = [(16,), (16, 16), (16, 16, 16), (19,), (17, 19), (17, 19, 24)]
 MS = [256, 1024, 4096]
 TOLS = [1e-3, 1e-6]
 OUTPUT_ARGS = [False, True]
 CONTIGUOUS = [False, True]
+MODEORDS = [0, 1]
 
 
 @pytest.mark.parametrize("dtype", DTYPES)
@@ -21,7 +22,8 @@ CONTIGUOUS = [False, True]
 @pytest.mark.parametrize("M", MS)
 @pytest.mark.parametrize("tol", TOLS)
 @pytest.mark.parametrize("output_arg", OUTPUT_ARGS)
-def test_type1(to_gpu, to_cpu, dtype, shape, M, tol, output_arg):
+@pytest.mark.parametrize("modeord", MODEORDS)
+def test_type1(to_gpu, to_cpu, dtype, shape, M, tol, output_arg, modeord):
     complex_dtype = utils._complex_dtype(dtype)
 
     k, c = utils.type1_problem(dtype, shape, M)
@@ -29,7 +31,7 @@ def test_type1(to_gpu, to_cpu, dtype, shape, M, tol, output_arg):
     k_gpu = to_gpu(k)
     c_gpu = to_gpu(c)
 
-    plan = Plan(1, shape, eps=tol, dtype=complex_dtype)
+    plan = Plan(1, shape, eps=tol, dtype=complex_dtype, modeord=modeord)
 
     # Since k_gpu is an array of shape (dim, M), this will expand to
     # plan.setpts(k_gpu[0], ..., k_gpu[dim]), allowing us to handle all
@@ -43,6 +45,8 @@ def test_type1(to_gpu, to_cpu, dtype, shape, M, tol, output_arg):
         fk_gpu = plan.execute(c_gpu)
 
     fk = to_cpu(fk_gpu)
+    if modeord == 1:
+        fk = np.fft.fftshift(fk)
 
     utils.verify_type1(k, c, fk, tol)
 
@@ -53,12 +57,13 @@ def test_type1(to_gpu, to_cpu, dtype, shape, M, tol, output_arg):
 @pytest.mark.parametrize("tol", TOLS)
 @pytest.mark.parametrize("output_arg", OUTPUT_ARGS)
 @pytest.mark.parametrize("contiguous", CONTIGUOUS)
-def test_type2(to_gpu, to_cpu, dtype, shape, M, tol, output_arg, contiguous):
+@pytest.mark.parametrize("modeord", MODEORDS)
+def test_type2(to_gpu, to_cpu, dtype, shape, M, tol, output_arg, contiguous, modeord):
     complex_dtype = utils._complex_dtype(dtype)
 
     k, fk = utils.type2_problem(dtype, shape, M)
 
-    plan = Plan(2, shape, eps=tol, dtype=complex_dtype)
+    plan = Plan(2, shape, eps=tol, dtype=complex_dtype, modeord=modeord)
 
     check_result = True
 
@@ -81,7 +86,12 @@ def test_type2(to_gpu, to_cpu, dtype, shape, M, tol, output_arg, contiguous):
             return plan.execute(*args, **kwargs)
 
     k_gpu = to_gpu(k)
-    fk_gpu = to_gpu(fk)
+
+    if modeord == 1:
+        _fk = np.fft.ifftshift(fk)
+    else:
+        _fk = fk
+    fk_gpu = to_gpu(_fk)
 
     plan.setpts(*k_gpu)
 
