@@ -468,6 +468,8 @@ int interpSorted(BIGINT* sort_indices,BIGINT N1, BIGINT N2, BIGINT N3,
 	  }
 
 	  else{
+            // due to ns being padded up to next multiple of 4 in the eval_kernel_vec_Horner
+            // and writing zeros out to this padded size, these must occur in the order x,y,z...
 	    eval_kernel_vec_Horner(ker1,x1,ns,opts);
 	    if (ndims > 1) eval_kernel_vec_Horner(ker2,x2,ns,opts);  
 	    if (ndims > 2) eval_kernel_vec_Horner(ker3,x3,ns,opts);
@@ -979,6 +981,8 @@ void spread_subproblem_2d(BIGINT off1,BIGINT off2,BIGINT size1,BIGINT size2,
       set_kernel_args(kernel_args+ns, x2, opts);
       evaluate_kernel_vector(kernel_values, kernel_args, opts, 2*ns);
     } else {
+      // due to ns being padded up to next multiple of 4 in the eval_kernel_vec_Horner
+      // and writing zeros out to this padded size, these must occur in the order x,y...
       eval_kernel_vec_Horner(ker1,x1,ns,opts);
       eval_kernel_vec_Horner(ker2,x2,ns,opts);
     }
@@ -1038,6 +1042,8 @@ void spread_subproblem_3d(BIGINT off1,BIGINT off2,BIGINT off3,BIGINT size1,
       set_kernel_args(kernel_args+2*ns, x3, opts);
       evaluate_kernel_vector(kernel_values, kernel_args, opts, 3*ns);
     } else {
+      // due to ns being padded up to next multiple of 4 in the eval_kernel_vec_Horner
+      // and writing zeros out to this padded size, these must occur in the order x,y,z...
       eval_kernel_vec_Horner(ker1,x1,ns,opts);
       eval_kernel_vec_Horner(ker2,x2,ns,opts);
       eval_kernel_vec_Horner(ker3,x3,ns,opts);

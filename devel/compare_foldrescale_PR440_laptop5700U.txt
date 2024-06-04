@@ -1,0 +1,229 @@
+PR #440 tests on AMD laptop 5700U CPU (8-core)
+
+
+We pick tests in 1D v poor tol (so that spreading negligible)
+
+MASTER branch 79de0847 :  ........................................
+
+(base) alex@ross /home/alex/numerics/finufft> OMP_NUM_THREADS=1 perftest/spreadtestnd 1 1e7 1e6 1e-1 1 0 1
+setup_spreader (kerevalmeth=1) eps=0.1 sigma=2: chose ns=2 beta=4.4
+	sorted (1 threads):	0.000317 s
+	spread 1D (M=1; N1=1000000,N2=1,N3=1; pir=0), nthr=1
+	zero output array	0.00144 s
+	using low-density speed rescue nb=M...
+	t1 fancy spread: 	2.3e-05 s (1 subprobs)
+making random data...
+spreadinterp 1D, 1e+06 U pts, dir=1, tol=0.1: nspread=2
+	sorted (1 threads):	0.136 s
+	spread 1D (M=10000000; N1=1000000,N2=1,N3=1; pir=0), nthr=1
+	zero output array	0.00144 s
+	capping subproblem sizes to max of 10000
+	t1 fancy spread: 	0.237 s (1000 subprobs)
+    1e+07 NU pts in 0.382 s 	2.62e+07 pts/s 	5.24e+07 spread pts/s
+    rel err in total over grid:      0.04
+making more random NU pts...
+spreadinterp 1D, 1e+06 U pts, dir=2, tol=0.1: nspread=2
+	sorted (1 threads):	0.133 s
+	interp 1D (M=10000000; N1=1000000,N2=1,N3=1; pir=0), nthr=1
+	t2 spreading loop: 	0.339 s
+    1e+07 NU pts in 0.478 s 	2.09e+07 pts/s 	4.18e+07 spread pts/s
+    max rel err in values at NU pts: 0.0954
+
+[note for single-thread t2: sorting helps, but default opt=2 doesn't choose it]
+
+(base) alex@ross /home/alex/numerics/finufft> OMP_NUM_THREADS=8 perftest/spreadtestnd 1 1e8 1e6 1e-1 2 0 1
+setup_spreader (kerevalmeth=1) eps=0.1 sigma=2: chose ns=2 beta=4.4
+	sorted (1 threads):	0.000287 s
+	spread 1D (M=1; N1=1000000,N2=1,N3=1; pir=0), nthr=8
+	zero output array	0.00139 s
+	using low-density speed rescue nb=M...
+	t1 fancy spread: 	0.000771 s (1 subprobs)
+making random data...
+spreadinterp 1D, 1e+06 U pts, dir=1, tol=0.1: nspread=2
+	sorted (8 threads):	0.631 s
+	spread 1D (M=100000000; N1=1000000,N2=1,N3=1; pir=0), nthr=8
+	zero output array	0.00154 s
+	capping subproblem sizes to max of 10000
+	t1 fancy spread: 	1.04 s (10000 subprobs)
+    1e+08 NU pts in 1.77 s 	5.66e+07 pts/s 	1.13e+08 spread pts/s
+    rel err in total over grid:      0.0303
+making more random NU pts...
+spreadinterp 1D, 1e+06 U pts, dir=2, tol=0.1: nspread=2
+	not sorted (sort=2): 	0.0647 s
+	interp 1D (M=100000000; N1=1000000,N2=1,N3=1; pir=0), nthr=8
+	t2 spreading loop: 	0.769 s
+    1e+08 NU pts in 0.905 s 	1.1e+08 pts/s 	2.21e+08 spread pts/s
+    max rel err in values at NU pts: 0.0954
+
+[note for multi-thread t2: sorting doesn't helps and default opt=2 doesn't choose it... good]
+
+fold PR #440 ..........................................
+
+(base) alex@ross /home/alex/numerics/finufft> OMP_NUM_THREADS=1 perftest/spreadtestnd 1 1e7 1e6 1e-1 1 0 1
+setup_spreader (kerevalmeth=1) eps=0.1 sigma=2: chose ns=2 beta=4.4
+	sorted (1 threads):	0.000316 s
+	spread 1D (M=1; N1=1000000,N2=1,N3=1), nthr=1
+	zero output array	0.00142 s
+	using low-density speed rescue nb=M...
+	t1 fancy spread: 	3.4e-05 s (1 subprobs)
+making random data...
+spreadinterp 1D, 1e+06 U pts, dir=1, tol=0.1: nspread=2
+	sorted (1 threads):	0.136 s
+	spread 1D (M=10000000; N1=1000000,N2=1,N3=1), nthr=1
+	zero output array	0.00145 s
+	capping subproblem sizes to max of 10000
+	t1 fancy spread: 	0.223 s (1000 subprobs)
+    1e+07 NU pts in 0.367 s 	2.72e+07 pts/s 	5.44e+07 spread pts/s
+    rel err in total over grid:      0.0475
+making more random NU pts...
+spreadinterp 1D, 1e+06 U pts, dir=2, tol=0.1: nspread=2
+	sorted (1 threads):	0.134 s
+	interp 1D (M=10000000; N1=1000000,N2=1,N3=1), nthr=1
+	t2 spreading loop: 	0.308 s
+    1e+07 NU pts in 0.448 s 	2.23e+07 pts/s 	4.46e+07 spread pts/s
+    max rel err in values at NU pts: 0.0954
+
+(base) alex@ross /home/alex/numerics/finufft>  OMP_NUM_THREADS=8 perftest/spreadtestnd 1 1e8 1e6 1e-1 2 0 1
+setup_spreader (kerevalmeth=1) eps=0.1 sigma=2: chose ns=2 beta=4.4
+	sorted (1 threads):	0.00028 s
+	spread 1D (M=1; N1=1000000,N2=1,N3=1), nthr=8
+	zero output array	0.00137 s
+	using low-density speed rescue nb=M...
+	t1 fancy spread: 	0.000328 s (1 subprobs)
+making random data...
+spreadinterp 1D, 1e+06 U pts, dir=1, tol=0.1: nspread=2
+	sorted (8 threads):	0.634 s
+	spread 1D (M=100000000; N1=1000000,N2=1,N3=1), nthr=8
+	zero output array	0.00137 s
+	capping subproblem sizes to max of 10000
+	t1 fancy spread: 	1.04 s (10000 subprobs)
+    1e+08 NU pts in 1.77 s 	5.65e+07 pts/s 	1.13e+08 spread pts/s
+    rel err in total over grid:      0.0477
+making more random NU pts...
+spreadinterp 1D, 1e+06 U pts, dir=2, tol=0.1: nspread=2
+	not sorted (sort=2): 	0.064 s
+	interp 1D (M=100000000; N1=1000000,N2=1,N3=1), nthr=8
+	t2 spreading loop: 	0.759 s
+    1e+08 NU pts in 0.895 s 	1.12e+08 pts/s 	2.24e+08 spread pts/s
+    max rel err in values at NU pts: 0.0954
+
+............................
+
+1D Concl: single-thread 7% speedup interp (dir=2) - none to do with sorting
+                        5% speedup spread dir=1.
+          multi-thread  no significant change (~1% level).       
+
+Also noted: PR #440 compile time for spreadinterp.o is 10x longer than before (~5 sec)
+
+
+=================================================
+3D tests: (poor tol to give foldrescale a chance to shine; 3 coords done each NU pt):
+
+MASTER:
+
+(base) alex@ross /home/alex/numerics/finufft> OMP_NUM_THREADS=1 perftest/spreadtestnd 3 1e7 1e6 1e-1 1 0 1
+setup_spreader (kerevalmeth=1) eps=0.1 sigma=2: chose ns=2 beta=4.4
+	sorted (1 threads):	2.9e-05 s
+	spread 3D (M=1; N1=100,N2=100,N3=100; pir=0), nthr=1
+	zero output array	0.00141 s
+	using low-density speed rescue nb=M...
+	t1 fancy spread: 	2.5e-05 s (1 subprobs)
+making random data...
+spreadinterp 3D, 1e+06 U pts, dir=1, tol=0.1: nspread=2
+	sorted (1 threads):	0.137 s
+	spread 3D (M=10000000; N1=100,N2=100,N3=100; pir=0), nthr=1
+	zero output array	0.00136 s
+	capping subproblem sizes to max of 100000
+	t1 fancy spread: 	0.782 s (100 subprobs)
+    1e+07 NU pts in 0.927 s 	1.08e+07 pts/s 	8.63e+07 spread pts/s
+    rel err in total over grid:      0.189
+making more random NU pts...
+spreadinterp 3D, 1e+06 U pts, dir=2, tol=0.1: nspread=2
+	sorted (1 threads):	0.134 s
+	interp 3D (M=10000000; N1=100,N2=100,N3=100; pir=0), nthr=1
+	t2 spreading loop: 	0.752 s
+    1e+07 NU pts in 0.892 s 	1.12e+07 pts/s 	8.97e+07 spread pts/s
+    max rel err in values at NU pts: 0.315
+    
+(base) alex@ross /home/alex/numerics/finufft> OMP_NUM_THREADS=8 perftest/spreadtestnd 3 1e8 1e6 1e-1 2 0 1
+setup_spreader (kerevalmeth=1) eps=0.1 sigma=2: chose ns=2 beta=4.4
+	sorted (1 threads):	1.7e-05 s
+	spread 3D (M=1; N1=100,N2=100,N3=100; pir=0), nthr=8
+	zero output array	0.00147 s
+	using low-density speed rescue nb=M...
+	t1 fancy spread: 	0.000397 s (1 subprobs)
+making random data...
+spreadinterp 3D, 1e+06 U pts, dir=1, tol=0.1: nspread=2
+	sorted (8 threads):	0.315 s
+	spread 3D (M=100000000; N1=100,N2=100,N3=100; pir=0), nthr=8
+	zero output array	0.00138 s
+	capping subproblem sizes to max of 100000
+	t1 fancy spread: 	1.91 s (1000 subprobs)
+    1e+08 NU pts in 2.32 s 	4.31e+07 pts/s 	3.45e+08 spread pts/s
+    rel err in total over grid:      0.165
+making more random NU pts...
+spreadinterp 3D, 1e+06 U pts, dir=2, tol=0.1: nspread=2
+	sorted (8 threads):	0.311 s
+	interp 3D (M=100000000; N1=100,N2=100,N3=100; pir=0), nthr=8
+	t2 spreading loop: 	2.04 s
+    1e+08 NU pts in 2.45 s 	4.08e+07 pts/s 	3.26e+08 spread pts/s
+    max rel err in values at NU pts: 0.315
+
+
+PR #440:
+
+(base) alex@ross /home/alex/numerics/finufft> OMP_NUM_THREADS=1 perftest/spreadtestnd 3 1e7 1e6 1e-1 1 0 1
+setup_spreader (kerevalmeth=1) eps=0.1 sigma=2: chose ns=2 beta=4.4
+	sorted (1 threads):	2e-05 s
+	spread 3D (M=1; N1=100,N2=100,N3=100), nthr=1
+	zero output array	0.00142 s
+	using low-density speed rescue nb=M...
+	t1 fancy spread: 	3.3e-05 s (1 subprobs)
+making random data...
+spreadinterp 3D, 1e+06 U pts, dir=1, tol=0.1: nspread=2
+	sorted (1 threads):	0.136 s
+	spread 3D (M=10000000; N1=100,N2=100,N3=100), nthr=1
+	zero output array	0.00135 s
+	capping subproblem sizes to max of 100000
+	t1 fancy spread: 	0.794 s (100 subprobs)
+    1e+07 NU pts in 0.937 s 	1.07e+07 pts/s 	8.53e+07 spread pts/s
+    rel err in total over grid:      0.143
+making more random NU pts...
+spreadinterp 3D, 1e+06 U pts, dir=2, tol=0.1: nspread=2
+	sorted (1 threads):	0.135 s
+	interp 3D (M=10000000; N1=100,N2=100,N3=100), nthr=1
+	t2 spreading loop: 	0.687 s
+    1e+07 NU pts in 0.829 s 	1.21e+07 pts/s 	9.65e+07 spread pts/s
+    max rel err in values at NU pts: 0.315
+    
+(base) alex@ross /home/alex/numerics/finufft> OMP_NUM_THREADS=8 perftest/spreadtestnd 3 1e8 1e6 1e-1 2 0 1
+setup_spreader (kerevalmeth=1) eps=0.1 sigma=2: chose ns=2 beta=4.4
+	sorted (1 threads):	1.8e-05 s
+	spread 3D (M=1; N1=100,N2=100,N3=100), nthr=8
+	zero output array	0.0014 s
+	using low-density speed rescue nb=M...
+	t1 fancy spread: 	0.000358 s (1 subprobs)
+making random data...
+spreadinterp 3D, 1e+06 U pts, dir=1, tol=0.1: nspread=2
+	sorted (8 threads):	0.31 s
+	spread 3D (M=100000000; N1=100,N2=100,N3=100), nthr=8
+	zero output array	0.00132 s
+	capping subproblem sizes to max of 100000
+	t1 fancy spread: 	1.92 s (1000 subprobs)
+    1e+08 NU pts in 2.33 s 	4.29e+07 pts/s 	3.43e+08 spread pts/s
+    rel err in total over grid:      0.167
+making more random NU pts...
+spreadinterp 3D, 1e+06 U pts, dir=2, tol=0.1: nspread=2
+	sorted (8 threads):	0.319 s
+	interp 3D (M=100000000; N1=100,N2=100,N3=100), nthr=8
+	t2 spreading loop: 	2.02 s
+    1e+08 NU pts in 2.44 s 	4.1e+07 pts/s 	3.28e+08 spread pts/s
+    max rel err in values at NU pts: 0.315
+
+concl: single-thread: spread no change; interp is 9% faster
+       8-thread :    spread no change; interp no change.
+
+Overall: only affects single-core perf, and by 9% or less.
+
+(Of course, advantage of no 3pi-restriction is good too)
+

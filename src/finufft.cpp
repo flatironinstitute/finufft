@@ -136,13 +136,8 @@ int setup_spreader_for_nufft(finufft_spread_opts &spopts, FLT eps, finufft_opts 
     spopts.atomic_threshold = opts.spread_nthr_atomic;
   if (opts.spread_max_sp_size>0)      // overrides
     spopts.max_subproblem_size = opts.spread_max_sp_size;
-  if (opts.chkbnds != 1) {
-      fprintf(stderr, "chkbnds options is deprecated, please use the default value\n");
-      // if other error occurred before this, return that error otherwise return a warning
-      if (!ier) {
-        return FINUFFT_WARN_CHKBND_NOT_DEFAULT;
-      }
-  }
+  if (opts.chkbnds != 1)              // deprecated default value hardcoded here
+    fprintf(stderr, "[%s] opts.chkbnds is deprecated; ignoring change from default value.\n",__func__);
   return ier;
 } 
 

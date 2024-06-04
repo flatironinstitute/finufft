@@ -65,7 +65,7 @@ Finally, we'll need some variables to compute the NUDFT at some arbitrary point 
     int idx;
     float _Complex f0;
 
-Now the actual work can begin. First, we allocate the host (CPU) arrays and fill the ``x`` and ``c`` arrays with appropriate values (``f`` will hold the output of the cuFINUFFT call). The frequencies in ``x`` must be in the interval :math:`[-\pi, \pi]` while the coefficients ``c`` can be any value. Here we draw the frequencies and coefficients from the uniform distributions on :math:`[-\pi, \pi]` and :math:`[-1, 1]^2` respectively.
+Now the actual work can begin. First, we allocate the host (CPU) arrays and fill the ``x`` and ``c`` arrays with appropriate values (``f`` will hold the output of the cuFINUFFT call). The frequencies in ``x`` are interpreted with periodicity :math:`2\pi`, while the coefficients ``c`` can be any value. Here we draw the frequencies and coefficients from the uniform distributions on :math:`[-\pi, \pi]` and :math:`[-1, 1]^2` respectively.
 
 .. code-block:: c
 
@@ -218,8 +218,8 @@ For type 1 these points are "sources", but for type 2, "targets".
     x, y, z     length-M GPU arrays of x (in 1D), x, y (in 2D), or x, y, z (in 3D) coordinates of
                 nonuniform points. In each dimension they refer to a periodic domain
                 [-pi,pi), but values outside will be folded back correctly
-                into this domain. Beyond that, they will not, and may result in crash.
-                In dimension 2, z is ignored.
+                into this domain. In dimension 1, y and z are ignored. In dimension 2, z is
+                ignored.
     N, s, t, u  (unused for types 1 or 2 transforms; reserved for future type 3)
 
     Input/Output:

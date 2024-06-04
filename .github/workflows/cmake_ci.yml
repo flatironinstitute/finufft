@@ -16,7 +16,7 @@ jobs:
           - macos-13
         compiler:
           - llvm
-          - gcc
+          - gcc-12
           # you can specify the version after `-` like `llvm-13.0.0`.
         generator:
           - "Ninja"
@@ -32,7 +32,7 @@ jobs:
             finufft_static_linking: "OFF"
         exclude:
           - os: "windows-2022"
-            compiler: "gcc"
+            compiler: "gcc-12"
             generator: "Ninja"
             build_type: "Release"
     steps:
@@ -42,6 +42,7 @@ jobs:
         if: runner.os == 'macOS'
         run: |
           brew unlink gcc
+        continue-on-error: true
 
       - name: Setup Cpp
         uses: aminya/setup-cpp@v1
