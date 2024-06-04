@@ -1181,8 +1181,8 @@ static void spread_subproblem_2d_kernel(const BIGINT off1, const BIGINT off2, co
     const auto x1 = (FLT) std::ceil(kx[pt] - ns2) - kx[pt];
     const auto x2 = (FLT) std::ceil(ky[pt] - ns2) - ky[pt];
     if constexpr (kerevalmeth) {          // faster Horner poly method
-      eval_kernel_vec_Horner<ns>(ker1, x1, opts);
-      eval_kernel_vec_Horner<ns>(ker2, x2, opts);
+      eval_kernel_vec_Horner<ns, batch_t>(ker1, x1, opts);
+      eval_kernel_vec_Horner<ns, batch_t>(ker2, x2, opts);
     } else {
       alignas(alignment) FLT kernel_args[2 * MAX_NSPREAD];
       set_kernel_args(kernel_args, x1, opts);
@@ -1293,9 +1293,9 @@ void spread_subproblem_3d_kernel(const BIGINT off1, const BIGINT off2, const BIG
     const auto x2 = std::ceil(ky[pt] - ns2) - ky[pt];
     const auto x3 = std::ceil(kz[pt] - ns2) - kz[pt];
     if constexpr (kerevalmeth) { // faster Horner poly method
-      eval_kernel_vec_Horner<ns>(ker1, x1, opts);
-      eval_kernel_vec_Horner<ns>(ker2, x2, opts);
-      eval_kernel_vec_Horner<ns>(ker3, x3, opts);
+      eval_kernel_vec_Horner<ns, batch_t>(ker1, x1, opts);
+      eval_kernel_vec_Horner<ns, batch_t>(ker2, x2, opts);
+      eval_kernel_vec_Horner<ns, batch_t>(ker3, x3, opts);
     } else {
       alignas(alignment) FLT kernel_args[3 * ns];
       set_kernel_args(kernel_args, x1, opts);
