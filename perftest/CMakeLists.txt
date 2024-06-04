@@ -1,5 +1,5 @@
 # Each source test file is instantiated in single and double precision
-set(PERFTESTS guru_timing_test manysmallprobs spreadtestnd)
+set(PERFTESTS guru_timing_test manysmallprobs spreadtestnd spreadtestndall)
 
 foreach(TEST ${PERFTESTS})
   add_executable(${TEST} ${TEST}.cpp)
