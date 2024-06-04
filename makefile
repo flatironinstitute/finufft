@@ -269,10 +269,16 @@ perftest/%f: perftest/%.cpp $(DYNLIB)
 
 # spreader only test, double/single (good for self-contained work on spreader)
 ST=perftest/spreadtestnd
+STA=perftest/spreadtestndall
 STF=$(ST)f
+STAF=$(STA)f
 $(ST): $(ST).cpp $(SOBJS) $(SOBJS_PI)
 	$(CXX) $(CXXFLAGS) ${LDFLAGS} $< $(SOBJS) $(SOBJS_PI) $(LIBS) -o $@
 $(STF): $(ST).cpp $(SOBJSF) $(SOBJS_PI)
+	$(CXX) $(CXXFLAGS) ${LDFLAGS} -DSINGLE $< $(SOBJSF) $(SOBJS_PI) $(LIBS) -o $@
+$(STA): $(STA).cpp $(SOBJS) $(SOBJS_PI)
+	$(CXX) $(CXXFLAGS) ${LDFLAGS} $< $(SOBJS) $(SOBJS_PI) $(LIBS) -o $@
+$(STAF): $(STA).cpp $(SOBJSF) $(SOBJS_PI)
 	$(CXX) $(CXXFLAGS) ${LDFLAGS} -DSINGLE $< $(SOBJSF) $(SOBJS_PI) $(LIBS) -o $@
 spreadtest: $(ST) $(STF)
 # run one thread per core... (escape the $ to get single $ in bash; one big cmd)
@@ -285,16 +291,19 @@ spreadtest: $(ST) $(STF)
 	$(STF) 1 8e6 8e6 1e-3 ;\
 	$(STF) 2 8e6 8e6 1e-3 ;\
 	$(STF) 3 8e6 8e6 1e-3 )
+# smaller test of spreadinterp various tols, precs, kermeths...
 spreadtestall: $(ST) $(STF)
 	(cd perftest; ./spreadtestall.sh)
-
+# Marco's sweep through kernel widths (ie tols)...
+spreadtestndall: $(STA) $(STAF)
+	(cd perftest; ./multispreadtestndall.sh)
 bigtest: perftest/big2d2f
 	@echo "\nRunning >2^31 size example (takes 30 s and 30 GB RAM)..."
 	perftest/big2d2f
 
 PERFEXECS := $(basename $(wildcard test/finufft?d_test.cpp))
 PERFEXECS += $(PERFEXECS:%=%f)
-perftest: $(ST) $(STF) $(PERFEXECS) bigtest
+perftest: $(ST) $(STF) $(PERFEXECS) spreadtestndall bigtest
 # here the tee cmd copies output to screen. 2>&1 grabs both stdout and stderr...
 	(cd perftest ;\
 	./spreadtestnd.sh 2>&1 | tee results/spreadtestnd_results.txt ;\
