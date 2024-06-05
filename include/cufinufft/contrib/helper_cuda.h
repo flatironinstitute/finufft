@@ -37,95 +37,97 @@
 
 #include <cufft.h>
 
-static const char *_cudaGetErrorEnum(cudaError_t error) { return cudaGetErrorName(error); }
+static const char *_cudaGetErrorEnum(cudaError_t error) {
+  return cudaGetErrorName(error);
+}
 
 // This will output the proper CUDA error strings in the event
 // that a CUDA host call returns an error
 #define checkCudaErrors(val) check((val), #val, __FILE__, __LINE__)
 
-#define RETURN_IF_CUDA_ERROR                                                                                           \
-    {                                                                                                                  \
-        cudaError_t err = cudaGetLastError();                                                                          \
-        if (err != cudaSuccess) {                                                                                      \
-            printf("[%s] Error: %s\n", __func__, cudaGetErrorString(err));                                             \
-            return FINUFFT_ERR_CUDA_FAILURE;                                                                           \
-        }                                                                                                              \
-    }
+#define RETURN_IF_CUDA_ERROR                                         \
+  {                                                                  \
+    cudaError_t err = cudaGetLastError();                            \
+    if (err != cudaSuccess) {                                        \
+      printf("[%s] Error: %s\n", __func__, cudaGetErrorString(err)); \
+      return FINUFFT_ERR_CUDA_FAILURE;                               \
+    }                                                                \
+  }
 
-#define CUDA_FREE_AND_NULL(val, stream)                                                                                \
-    {                                                                                                                  \
-        if (val != nullptr) {                                                                                          \
-            check(cudaFreeAsync(val, stream), #val, __FILE__, __LINE__);                                               \
-            val = nullptr;                                                                                             \
-        }                                                                                                              \
-    }
+#define CUDA_FREE_AND_NULL(val, stream)                            \
+  {                                                                \
+    if (val != nullptr) {                                          \
+      check(cudaFreeAsync(val, stream), #val, __FILE__, __LINE__); \
+      val = nullptr;                                               \
+    }                                                              \
+  }
 
 static const char *cufftGetErrorString(cufftResult error) {
-    switch (error) {
-    case CUFFT_SUCCESS:
-        return "CUFFT_SUCCESS";
+  switch (error) {
+  case CUFFT_SUCCESS:
+    return "CUFFT_SUCCESS";
 
-    case CUFFT_INVALID_PLAN:
-        return "CUFFT_INVALID_PLAN";
+  case CUFFT_INVALID_PLAN:
+    return "CUFFT_INVALID_PLAN";
 
-    case CUFFT_ALLOC_FAILED:
-        return "CUFFT_ALLOC_FAILED";
+  case CUFFT_ALLOC_FAILED:
+    return "CUFFT_ALLOC_FAILED";
 
-    case CUFFT_INVALID_TYPE:
-        return "CUFFT_INVALID_TYPE";
+  case CUFFT_INVALID_TYPE:
+    return "CUFFT_INVALID_TYPE";
 
-    case CUFFT_INVALID_VALUE:
-        return "CUFFT_INVALID_VALUE";
+  case CUFFT_INVALID_VALUE:
+    return "CUFFT_INVALID_VALUE";
 
-    case CUFFT_INTERNAL_ERROR:
-        return "CUFFT_INTERNAL_ERROR";
+  case CUFFT_INTERNAL_ERROR:
+    return "CUFFT_INTERNAL_ERROR";
 
-    case CUFFT_EXEC_FAILED:
-        return "CUFFT_EXEC_FAILED";
+  case CUFFT_EXEC_FAILED:
+    return "CUFFT_EXEC_FAILED";
 
-    case CUFFT_SETUP_FAILED:
-        return "CUFFT_SETUP_FAILED";
+  case CUFFT_SETUP_FAILED:
+    return "CUFFT_SETUP_FAILED";
 
-    case CUFFT_INVALID_SIZE:
-        return "CUFFT_INVALID_SIZE";
+  case CUFFT_INVALID_SIZE:
+    return "CUFFT_INVALID_SIZE";
 
-    case CUFFT_UNALIGNED_DATA:
-        return "CUFFT_UNALIGNED_DATA";
+  case CUFFT_UNALIGNED_DATA:
+    return "CUFFT_UNALIGNED_DATA";
 
-    case CUFFT_INCOMPLETE_PARAMETER_LIST:
-        return "CUFFT_INCOMPLETE_PARAMETER_LIST";
+  case CUFFT_INCOMPLETE_PARAMETER_LIST:
+    return "CUFFT_INCOMPLETE_PARAMETER_LIST";
 
-    case CUFFT_INVALID_DEVICE:
-        return "CUFFT_INVALID_DEVICE";
+  case CUFFT_INVALID_DEVICE:
+    return "CUFFT_INVALID_DEVICE";
 
-    case CUFFT_PARSE_ERROR:
-        return "CUFFT_PARSE_ERROR";
+  case CUFFT_PARSE_ERROR:
+    return "CUFFT_PARSE_ERROR";
 
-    case CUFFT_NO_WORKSPACE:
-        return "CUFFT_NO_WORKSPACE";
+  case CUFFT_NO_WORKSPACE:
+    return "CUFFT_NO_WORKSPACE";
 
-    case CUFFT_NOT_IMPLEMENTED:
-        return "CUFFT_NOT_IMPLEMENTED";
+  case CUFFT_NOT_IMPLEMENTED:
+    return "CUFFT_NOT_IMPLEMENTED";
 
-    case CUFFT_LICENSE_ERROR:
-        return "CUFFT_LICENSE_ERROR";
+  case CUFFT_LICENSE_ERROR:
+    return "CUFFT_LICENSE_ERROR";
 
-    case CUFFT_NOT_SUPPORTED:
-        return "CUFFT_NOT_SUPPORTED";
-    }
+  case CUFFT_NOT_SUPPORTED:
+    return "CUFFT_NOT_SUPPORTED";
+  }
 
-    return "<unknown>";
+  return "<unknown>";
 }
 
-template <typename T>
+template<typename T>
 int check(T result, char const *const func, const char *const file, int const line) {
-    if (result) {
-        fprintf(stderr, "CUDA error at %s:%d code=%d(%s) \"%s\" \n", file, line, static_cast<unsigned int>(result),
-                _cudaGetErrorEnum(result), func);
-        return FINUFFT_ERR_CUDA_FAILURE;
-    }
+  if (result) {
+    fprintf(stderr, "CUDA error at %s:%d code=%d(%s) \"%s\" \n", file, line,
+            static_cast<unsigned int>(result), _cudaGetErrorEnum(result), func);
+    return FINUFFT_ERR_CUDA_FAILURE;
+  }
 
-    return 0;
+  return 0;
 }
 
 #endif // COMMON_HELPER_CUDA_H_
