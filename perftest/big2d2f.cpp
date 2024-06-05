@@ -10,31 +10,29 @@
 #include <finufft.h>
 
 // also used in this example...
-#include <vector>
 #include <complex>
 #include <iostream>
 #include <omp.h>
+#include <vector>
 using namespace std;
 
-int test_finufft(finufft_opts* opts)
-{
-    size_t nj = 129*129*2;
-    size_t ms = 129, mt = 129;
-    size_t ntrans = 75000;     // the point is: 129*129*2*75000 > 2^31 ~ 2.15e9
-    std::vector<float> x(nj);   // bunch of zero data
-    std::vector<float> y(nj);
-    std::vector<std::complex<float>> cj(ntrans*nj);
-    std::vector<std::complex<float>> fk(ntrans*ms*mt);
+int test_finufft(finufft_opts *opts) {
+  size_t nj = 129 * 129 * 2;
+  size_t ms = 129, mt = 129;
+  size_t ntrans = 75000;    // the point is: 129*129*2*75000 > 2^31 ~ 2.15e9
+  std::vector<float> x(nj); // bunch of zero data
+  std::vector<float> y(nj);
+  std::vector<std::complex<float>> cj(ntrans * nj);
+  std::vector<std::complex<float>> fk(ntrans * ms * mt);
 
-    int ier = finufftf2d2many(ntrans, nj, x.data(), y.data(), cj.data(),
-                          -1, 1e-3, ms, mt, fk.data(), opts);
+  int ier = finufftf2d2many(ntrans, nj, x.data(), y.data(), cj.data(), -1, 1e-3, ms, mt,
+                            fk.data(), opts);
 
-    std::cout << "\tbig2d2f finufft status: " << ier << std::endl;
-    return ier;
+  std::cout << "\tbig2d2f finufft status: " << ier << std::endl;
+  return ier;
 }
 
-int main(int argc, char* argv[])
-{
+int main(int argc, char *argv[]) {
   finufft_opts opts;
   finufftf_default_opts(&opts);
   return test_finufft(&opts);

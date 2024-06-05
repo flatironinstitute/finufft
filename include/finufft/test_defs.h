@@ -7,7 +7,7 @@
 
 // TESTER SETTINGS...
 // how big a problem to check direct DFT for in 1D...
-#define TEST_BIGPROB 1e8
+#define TEST_BIGPROB   1e8
 // for omp rand filling
 #define TEST_RANDCHUNK 1000000
 
@@ -25,11 +25,11 @@
 #include <finufft/fftw_defs.h>
 
 // std stuff for tester src
+#include <cstdio>
+#include <iomanip>
+#include <iostream>
 #include <math.h>
 #include <stdlib.h>
-#include <cstdio>
-#include <iostream>
-#include <iomanip>
 #include <vector>
 
-#endif   // TEST_DEFS_H
+#endif // TEST_DEFS_H

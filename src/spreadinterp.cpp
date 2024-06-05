@@ -1,65 +1,62 @@
 // Spreading/interpolating module within FINUFFT. Uses precision-switching
 // macros for FLT, CPX, etc.
 
-#include <finufft/spreadinterp.h>
 #include <finufft/defs.h>
+#include <finufft/spreadinterp.h>
 #include <finufft/utils.h>
 #include <finufft/utils_precindep.h>
 
-#include <stdlib.h>
-#include <vector>
 #include <math.h>
 #include <stdio.h>
-
+#include <stdlib.h>
+#include <vector>
 
 using namespace std;
-using namespace finufft::utils;              // access to timer
+using namespace finufft::utils; // access to timer
 
 namespace finufft {
-  namespace spreadinterp {
+namespace spreadinterp {
 
 // declarations of purely internal functions... (thus need not be in .h)
 static FINUFFT_ALWAYS_INLINE FLT fold_rescale(FLT x, BIGINT N) noexcept;
-static FINUFFT_ALWAYS_INLINE void set_kernel_args(FLT *args, FLT x, const finufft_spread_opts& opts);
-static FINUFFT_ALWAYS_INLINE void evaluate_kernel_vector(FLT *ker, FLT *args, const finufft_spread_opts& opts, const int N);
-static FINUFFT_ALWAYS_INLINE void eval_kernel_vec_Horner(FLT *ker, FLT z, const int w, const finufft_spread_opts &opts);
-void interp_line(FLT *out,FLT *du, FLT *ker,BIGINT i1,BIGINT N1,int ns);
-void interp_square(FLT *out,FLT *du, FLT *ker1, FLT *ker2, BIGINT i1,BIGINT i2,BIGINT N1,BIGINT N2,int ns);
-void interp_cube(FLT *out,FLT *du, FLT *ker1, FLT *ker2, FLT *ker3,
-		 BIGINT i1,BIGINT i2,BIGINT i3,BIGINT N1,BIGINT N2,BIGINT N3,int ns);
-void spread_subproblem_1d(BIGINT off1, BIGINT size1,FLT *du0,BIGINT M0,FLT *kx0,
-                          FLT *dd0,const finufft_spread_opts& opts);
-void spread_subproblem_2d(BIGINT off1, BIGINT off2, BIGINT size1,BIGINT size2,
-                          FLT *du0,BIGINT M0,
-			  FLT *kx0,FLT *ky0,FLT *dd0,const finufft_spread_opts& opts);
-void spread_subproblem_3d(BIGINT off1,BIGINT off2, BIGINT off3, BIGINT size1,
-                          BIGINT size2,BIGINT size3,FLT *du0,BIGINT M0,
-			  FLT *kx0,FLT *ky0,FLT *kz0,FLT *dd0,
-			  const finufft_spread_opts& opts);
-void add_wrapped_subgrid(BIGINT offset1,BIGINT offset2,BIGINT offset3,
-			 BIGINT size1,BIGINT size2,BIGINT size3,BIGINT N1,
-			 BIGINT N2,BIGINT N3,FLT *data_uniform, FLT *du0);
-void add_wrapped_subgrid_thread_safe(BIGINT offset1,BIGINT offset2,BIGINT offset3,
-                                     BIGINT size1,BIGINT size2,BIGINT size3,BIGINT N1,
-                                     BIGINT N2,BIGINT N3,FLT *data_uniform, FLT *du0);
-void bin_sort_singlethread(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
-	      BIGINT N1,BIGINT N2,BIGINT N3,
-	      double bin_size_x,double bin_size_y,double bin_size_z, int debug);
-void bin_sort_multithread(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
-	      BIGINT N1,BIGINT N2,BIGINT N3,
-              double bin_size_x,double bin_size_y,double bin_size_z, int debug,
-              int nthr);
-void get_subgrid(BIGINT &offset1,BIGINT &offset2,BIGINT &offset3,BIGINT &size1,
-		 BIGINT &size2,BIGINT &size3,BIGINT M0,FLT* kx0,FLT* ky0,
-		 FLT* kz0,int ns, int ndims);
-
-
+static FINUFFT_ALWAYS_INLINE void set_kernel_args(FLT *args, FLT x,
+                                                  const finufft_spread_opts &opts);
+static FINUFFT_ALWAYS_INLINE void evaluate_kernel_vector(
+    FLT *ker, FLT *args, const finufft_spread_opts &opts, const int N);
+static FINUFFT_ALWAYS_INLINE void eval_kernel_vec_Horner(FLT *ker, FLT z, const int w,
+                                                         const finufft_spread_opts &opts);
+void interp_line(FLT *out, FLT *du, FLT *ker, BIGINT i1, BIGINT N1, int ns);
+void interp_square(FLT *out, FLT *du, FLT *ker1, FLT *ker2, BIGINT i1, BIGINT i2,
+                   BIGINT N1, BIGINT N2, int ns);
+void interp_cube(FLT *out, FLT *du, FLT *ker1, FLT *ker2, FLT *ker3, BIGINT i1, BIGINT i2,
+                 BIGINT i3, BIGINT N1, BIGINT N2, BIGINT N3, int ns);
+void spread_subproblem_1d(BIGINT off1, BIGINT size1, FLT *du0, BIGINT M0, FLT *kx0,
+                          FLT *dd0, const finufft_spread_opts &opts);
+void spread_subproblem_2d(BIGINT off1, BIGINT off2, BIGINT size1, BIGINT size2, FLT *du0,
+                          BIGINT M0, FLT *kx0, FLT *ky0, FLT *dd0,
+                          const finufft_spread_opts &opts);
+void spread_subproblem_3d(BIGINT off1, BIGINT off2, BIGINT off3, BIGINT size1,
+                          BIGINT size2, BIGINT size3, FLT *du0, BIGINT M0, FLT *kx0,
+                          FLT *ky0, FLT *kz0, FLT *dd0, const finufft_spread_opts &opts);
+void add_wrapped_subgrid(BIGINT offset1, BIGINT offset2, BIGINT offset3, BIGINT size1,
+                         BIGINT size2, BIGINT size3, BIGINT N1, BIGINT N2, BIGINT N3,
+                         FLT *data_uniform, FLT *du0);
+void add_wrapped_subgrid_thread_safe(BIGINT offset1, BIGINT offset2, BIGINT offset3,
+                                     BIGINT size1, BIGINT size2, BIGINT size3, BIGINT N1,
+                                     BIGINT N2, BIGINT N3, FLT *data_uniform, FLT *du0);
+void bin_sort_singlethread(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz, BIGINT N1,
+                           BIGINT N2, BIGINT N3, double bin_size_x, double bin_size_y,
+                           double bin_size_z, int debug);
+void bin_sort_multithread(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz, BIGINT N1,
+                          BIGINT N2, BIGINT N3, double bin_size_x, double bin_size_y,
+                          double bin_size_z, int debug, int nthr);
+void get_subgrid(BIGINT &offset1, BIGINT &offset2, BIGINT &offset3, BIGINT &size1,
+                 BIGINT &size2, BIGINT &size3, BIGINT M0, FLT *kx0, FLT *ky0, FLT *kz0,
+                 int ns, int ndims);
 
 // ==========================================================================
-int spreadinterp(
-        BIGINT N1, BIGINT N2, BIGINT N3, FLT *data_uniform,
-        BIGINT M, FLT *kx, FLT *ky, FLT *kz, FLT *data_nonuniform,
-        finufft_spread_opts opts)
+int spreadinterp(BIGINT N1, BIGINT N2, BIGINT N3, FLT *data_uniform, BIGINT M, FLT *kx,
+                 FLT *ky, FLT *kz, FLT *data_nonuniform, finufft_spread_opts opts)
 /* ------------Spreader/interpolator for 1, 2, or 3 dimensions --------------
    If opts.spread_direction=1, evaluate, in the 1D case,
 
@@ -96,13 +93,13 @@ int spreadinterp(
    Inputs:
    N1,N2,N3 - grid sizes in x (fastest), y (medium), z (slowest) respectively.
               If N2==1, 1D spreading is done. If N3==1, 2D spreading.
-	      Otherwise, 3D.
+        Otherwise, 3D.
    M - number of NU pts.
    kx, ky, kz - length-M real arrays of NU point coordinates (only kx read in
                 1D, only kx and ky read in 2D).
 
-		These should lie in the box -pi<=kx<=pi. Points outside this domain are also
-		correctly folded back into this domain.
+    These should lie in the box -pi<=kx<=pi. Points outside this domain are also
+    correctly folded back into this domain.
    opts - spread/interp options struct, documented in ../include/finufft_spread_opts.h
 
    Inputs/Outputs:
@@ -126,16 +123,15 @@ int spreadinterp(
 */
 {
   int ier = spreadcheck(N1, N2, N3, M, kx, ky, kz, opts);
-  if (ier)
-    return ier;
-  BIGINT* sort_indices = (BIGINT*)malloc(sizeof(BIGINT)*M);
+  if (ier) return ier;
+  BIGINT *sort_indices = (BIGINT *)malloc(sizeof(BIGINT) * M);
   if (!sort_indices) {
-    fprintf(stderr,"%s failed to allocate sort_indices!\n",__func__);
+    fprintf(stderr, "%s failed to allocate sort_indices!\n", __func__);
     return FINUFFT_ERR_SPREAD_ALLOC;
   }
   int did_sort = indexSort(sort_indices, N1, N2, N3, M, kx, ky, kz, opts);
-  spreadinterpSorted(sort_indices, N1, N2, N3, data_uniform,
-                     M, kx, ky, kz, data_nonuniform, opts, did_sort);
+  spreadinterpSorted(sort_indices, N1, N2, N3, data_uniform, M, kx, ky, kz,
+                     data_nonuniform, opts, did_sort);
   free(sort_indices);
   return 0;
 }
@@ -145,36 +141,38 @@ static int ndims_from_Ns(BIGINT N1, BIGINT N2, BIGINT N3)
    Split out, Barnett 7/26/18
 */
 {
-  int ndims = 1;                // decide ndims: 1,2 or 3
-  if (N2>1) ++ndims;
-  if (N3>1) ++ndims;
+  int ndims = 1; // decide ndims: 1,2 or 3
+  if (N2 > 1) ++ndims;
+  if (N3 > 1) ++ndims;
   return ndims;
 }
 
-int spreadcheck(BIGINT N1, BIGINT N2, BIGINT N3, BIGINT M, FLT *kx, FLT *ky,
-                FLT *kz, finufft_spread_opts opts)
+int spreadcheck(BIGINT N1, BIGINT N2, BIGINT N3, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
+                finufft_spread_opts opts)
 /* This does just the input checking and reporting for the spreader.
    See spreadinterp() for input arguments and meaning of returned value.
    Split out by Melody Shih, Jun 2018. Finiteness chk Barnett 7/30/18.
-   Marco Barbone 5.8.24 removed bounds check as new foldrescale is not limited to [-3pi,3pi)
+   Marco Barbone 5.8.24 removed bounds check as new foldrescale is not limited to
+   [-3pi,3pi)
 */
 {
   // INPUT CHECKING & REPORTING .... cuboid not too small for spreading?
-  int minN = 2*opts.nspread;
-  if (N1<minN || (N2>1 && N2<minN) || (N3>1 && N3<minN)) {
-    fprintf(stderr,"%s error: one or more non-trivial box dims is less than 2.nspread!\n",__func__);
+  int minN = 2 * opts.nspread;
+  if (N1 < minN || (N2 > 1 && N2 < minN) || (N3 > 1 && N3 < minN)) {
+    fprintf(stderr,
+            "%s error: one or more non-trivial box dims is less than 2.nspread!\n",
+            __func__);
     return FINUFFT_ERR_SPREAD_BOX_SMALL;
   }
-  if (opts.spread_direction!=1 && opts.spread_direction!=2) {
-    fprintf(stderr,"%s error: opts.spread_direction must be 1 or 2!\n",__func__);
+  if (opts.spread_direction != 1 && opts.spread_direction != 2) {
+    fprintf(stderr, "%s error: opts.spread_direction must be 1 or 2!\n", __func__);
     return FINUFFT_ERR_SPREAD_DIR;
   }
   return 0;
 }
 
-
-int indexSort(BIGINT* sort_indices, BIGINT N1, BIGINT N2, BIGINT N3, BIGINT M, 
-               FLT *kx, FLT *ky, FLT *kz, finufft_spread_opts opts)
+int indexSort(BIGINT *sort_indices, BIGINT N1, BIGINT N2, BIGINT N3, BIGINT M, FLT *kx,
+              FLT *ky, FLT *kz, finufft_spread_opts opts)
 /* This makes a decision whether or not to sort the NU pts (influenced by
    opts.sort), and if yes, calls either single- or multi-threaded bin sort,
    writing reordered index list to sort_indices. If decided not to sort, the
@@ -200,398 +198,423 @@ int indexSort(BIGINT* sort_indices, BIGINT N1, BIGINT N2, BIGINT N3, BIGINT M,
 */
 {
   CNTime timer;
-  int ndims = ndims_from_Ns(N1,N2,N3);
-  BIGINT N=N1*N2*N3;            // U grid (periodic box) sizes
-  
+  int ndims = ndims_from_Ns(N1, N2, N3);
+  BIGINT N  = N1 * N2 * N3; // U grid (periodic box) sizes
+
   // heuristic binning box size for U grid... affects performance:
   double bin_size_x = 16, bin_size_y = 4, bin_size_z = 4;
   // put in heuristics based on cache sizes (only useful for single-thread) ?
 
-  int better_to_sort = !(ndims==1 && (opts.spread_direction==2 || (M > 1000*N1))); // 1D small-N or dir=2 case: don't sort
+  int better_to_sort =
+      !(ndims == 1 && (opts.spread_direction == 2 || (M > 1000 * N1))); // 1D small-N or
+                                                                        // dir=2 case:
+                                                                        // don't sort
 
-  timer.start();                 // if needed, sort all the NU pts...
-  int did_sort=0;
-  int maxnthr = MY_OMP_GET_MAX_THREADS();  // used if both below opts default
-  if (opts.nthreads>0)
-    maxnthr = opts.nthreads;         // user nthreads overrides, without limit
-  if (opts.sort_threads>0)
-    maxnthr = opts.sort_threads;     // high-priority override, also no limit
+  timer.start();                           // if needed, sort all the NU pts...
+  int did_sort = 0;
+  int maxnthr  = MY_OMP_GET_MAX_THREADS(); // used if both below opts default
+  if (opts.nthreads > 0)
+    maxnthr = opts.nthreads;               // user nthreads overrides, without limit
+  if (opts.sort_threads > 0)
+    maxnthr = opts.sort_threads;           // high-priority override, also no limit
   // At this point: maxnthr = the max threads sorting could use
   // (we don't print warning here, since: no showwarn in spread_opts, and finufft
   // already warned about it. spreadinterp-only advanced users will miss a warning)
-  if (opts.sort==1 || (opts.sort==2 && better_to_sort)) {
+  if (opts.sort == 1 || (opts.sort == 2 && better_to_sort)) {
     // store a good permutation ordering of all NU pts (dim=1,2 or 3)
-    int sort_debug = (opts.debug>=2);    // show timing output?
-    int sort_nthr = opts.sort_threads;   // 0, or user max # threads for sort
+    int sort_debug = (opts.debug >= 2); // show timing output?
+    int sort_nthr  = opts.sort_threads; // 0, or user max # threads for sort
 #ifndef _OPENMP
-    sort_nthr = 1;                       // if single-threaded lib, override user
+    sort_nthr = 1;                      // if single-threaded lib, override user
 #endif
-    if (sort_nthr==0)   // multithreaded auto choice: when N>>M, one thread is better!
-      sort_nthr = (10*M>N) ? maxnthr : 1;     // heuristic
-    if (sort_nthr==1)
-      bin_sort_singlethread(sort_indices,M,kx,ky,kz,N1,N2,N3,bin_size_x,bin_size_y,bin_size_z,sort_debug);
-    else                                      // sort_nthr>1, user fixes # threads (>=2)
-      bin_sort_multithread(sort_indices,M,kx,ky,kz,N1,N2,N3,bin_size_x,bin_size_y,bin_size_z,sort_debug,sort_nthr);
-    if (opts.debug) 
-      printf("\tsorted (%d threads):\t%.3g s\n",sort_nthr,timer.elapsedsec());
-    did_sort=1;
-  } else {
-#pragma omp parallel for num_threads(maxnthr) schedule(static,1000000)
-    for (BIGINT i=0; i<M; i++)                // here omp helps xeon, hinders i7
-      sort_indices[i]=i;                      // the identity permutation
+    if (sort_nthr == 0) // multithreaded auto choice: when N>>M, one thread is better!
+      sort_nthr = (10 * M > N) ? maxnthr : 1; // heuristic
+    if (sort_nthr == 1)
+      bin_sort_singlethread(sort_indices, M, kx, ky, kz, N1, N2, N3, bin_size_x,
+                            bin_size_y, bin_size_z, sort_debug);
+    else // sort_nthr>1, user fixes # threads (>=2)
+      bin_sort_multithread(sort_indices, M, kx, ky, kz, N1, N2, N3, bin_size_x,
+                           bin_size_y, bin_size_z, sort_debug, sort_nthr);
     if (opts.debug)
-      printf("\tnot sorted (sort=%d): \t%.3g s\n",(int)opts.sort,timer.elapsedsec());
+      printf("\tsorted (%d threads):\t%.3g s\n", sort_nthr, timer.elapsedsec());
+    did_sort = 1;
+  } else {
+#pragma omp parallel for num_threads(maxnthr) schedule(static, 1000000)
+    for (BIGINT i = 0; i < M; i++) // here omp helps xeon, hinders i7
+      sort_indices[i] = i;         // the identity permutation
+    if (opts.debug)
+      printf("\tnot sorted (sort=%d): \t%.3g s\n", (int)opts.sort, timer.elapsedsec());
   }
   return did_sort;
 }
 
-
-int spreadinterpSorted(BIGINT* sort_indices, BIGINT N1, BIGINT N2, BIGINT N3, 
-		      FLT *data_uniform, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
-		      FLT *data_nonuniform, finufft_spread_opts opts, int did_sort)
+int spreadinterpSorted(BIGINT *sort_indices, BIGINT N1, BIGINT N2, BIGINT N3,
+                       FLT *data_uniform, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
+                       FLT *data_nonuniform, finufft_spread_opts opts, int did_sort)
 /* Logic to select the main spreading (dir=1) vs interpolation (dir=2) routine.
    See spreadinterp() above for inputs arguments and definitions.
    Return value should always be 0 (no error reporting).
    Split out by Melody Shih, Jun 2018; renamed Barnett 5/20/20.
 */
 {
-  if (opts.spread_direction==1)  // ========= direction 1 (spreading) =======
-    spreadSorted(sort_indices, N1, N2, N3, data_uniform, M, kx, ky, kz, data_nonuniform, opts, did_sort);
-  
-  else           // ================= direction 2 (interpolation) ===========
-    interpSorted(sort_indices, N1, N2, N3, data_uniform, M, kx, ky, kz, data_nonuniform, opts, did_sort);
-  
+  if (opts.spread_direction == 1) // ========= direction 1 (spreading) =======
+    spreadSorted(sort_indices, N1, N2, N3, data_uniform, M, kx, ky, kz, data_nonuniform,
+                 opts, did_sort);
+
+  else // ================= direction 2 (interpolation) ===========
+    interpSorted(sort_indices, N1, N2, N3, data_uniform, M, kx, ky, kz, data_nonuniform,
+                 opts, did_sort);
+
   return 0;
 }
 
-
 // --------------------------------------------------------------------------
-int spreadSorted(BIGINT* sort_indices,BIGINT N1, BIGINT N2, BIGINT N3, 
-		      FLT *data_uniform,BIGINT M, FLT *kx, FLT *ky, FLT *kz,
-		      FLT *data_nonuniform, finufft_spread_opts opts, int did_sort)
+int spreadSorted(BIGINT *sort_indices, BIGINT N1, BIGINT N2, BIGINT N3, FLT *data_uniform,
+                 BIGINT M, FLT *kx, FLT *ky, FLT *kz, FLT *data_nonuniform,
+                 finufft_spread_opts opts, int did_sort)
 // Spread NU pts in sorted order to a uniform grid. See spreadinterp() for doc.
 {
   CNTime timer;
-  int ndims = ndims_from_Ns(N1,N2,N3);
-  BIGINT N=N1*N2*N3;            // output array size
-  int ns=opts.nspread;          // abbrev. for w, kernel width
-  int nthr = MY_OMP_GET_MAX_THREADS();  // guess # threads to use to spread
-  if (opts.nthreads>0)
-    nthr = opts.nthreads;       // user override, now without limit
+  int ndims = ndims_from_Ns(N1, N2, N3);
+  BIGINT N  = N1 * N2 * N3;                    // output array size
+  int ns    = opts.nspread;                    // abbrev. for w, kernel width
+  int nthr  = MY_OMP_GET_MAX_THREADS();        // guess # threads to use to spread
+  if (opts.nthreads > 0) nthr = opts.nthreads; // user override, now without limit
 #ifndef _OPENMP
-  nthr = 1;                   // single-threaded lib must override user
+  nthr = 1;                                    // single-threaded lib must override user
 #endif
   if (opts.debug)
-    printf("\tspread %dD (M=%lld; N1=%lld,N2=%lld,N3=%lld), nthr=%d\n",ndims,(long long)M,(long long)N1,(long long)N2,(long long)N3,nthr);
-  
+    printf("\tspread %dD (M=%lld; N1=%lld,N2=%lld,N3=%lld), nthr=%d\n", ndims,
+           (long long)M, (long long)N1, (long long)N2, (long long)N3, nthr);
+
   timer.start();
-  for (BIGINT i=0; i<2*N; i++) // zero the output array. std::fill is no faster
-    data_uniform[i]=0.0;
-  if (opts.debug) printf("\tzero output array\t%.3g s\n",timer.elapsedsec());
-  if (M==0)                     // no NU pts, we're done
+  for (BIGINT i = 0; i < 2 * N; i++) // zero the output array. std::fill is no faster
+    data_uniform[i] = 0.0;
+  if (opts.debug) printf("\tzero output array\t%.3g s\n", timer.elapsedsec());
+  if (M == 0) // no NU pts, we're done
     return 0;
-  
-  int spread_single = (nthr==1) || (M*100<N);     // low-density heuristic?
-  spread_single = 0;                 // for now
+
+  int spread_single = (nthr == 1) || (M * 100 < N); // low-density heuristic?
+  spread_single     = 0;                            // for now
   timer.start();
-  if (spread_single) {    // ------- Basic single-core t1 spreading ------
-    for (BIGINT j=0; j<M; j++) {
+  if (spread_single) { // ------- Basic single-core t1 spreading ------
+    for (BIGINT j = 0; j < M; j++) {
       // *** todo, not urgent
       // ... (question is: will the index wrapping per NU pt slow it down?)
     }
-    if (opts.debug) printf("\tt1 simple spreading:\t%.3g s\n",timer.elapsedsec());
-    
-  } else {           // ------- Fancy multi-core blocked t1 spreading ----
-                     // Splits sorted inds (jfm's advanced2), could double RAM.
+    if (opts.debug) printf("\tt1 simple spreading:\t%.3g s\n", timer.elapsedsec());
+
+  } else { // ------- Fancy multi-core blocked t1 spreading ----
+           // Splits sorted inds (jfm's advanced2), could double RAM.
     // choose nb (# subprobs) via used nthreads:
-    int nb = min((BIGINT)nthr,M);         // simply split one subprob per thr...
-    if (nb*(BIGINT)opts.max_subproblem_size<M) {  // ...or more subprobs to cap size
-      nb = 1 + (M-1)/opts.max_subproblem_size;  // int div does ceil(M/opts.max_subproblem_size)
-      if (opts.debug) printf("\tcapping subproblem sizes to max of %d\n",opts.max_subproblem_size);
+    int nb = min((BIGINT)nthr, M); // simply split one subprob per thr...
+    if (nb * (BIGINT)opts.max_subproblem_size < M) { // ...or more subprobs to cap
+                                                     // size
+      nb = 1 + (M - 1) / opts.max_subproblem_size;   // int div does
+                                                     // ceil(M/opts.max_subproblem_size)
+      if (opts.debug)
+        printf("\tcapping subproblem sizes to max of %d\n", opts.max_subproblem_size);
     }
-    if (M*1000<N) {         // low-density heuristic: one thread per NU pt!
+    if (M * 1000 < N) { // low-density heuristic: one thread per NU pt!
       nb = M;
       if (opts.debug) printf("\tusing low-density speed rescue nb=M...\n");
     }
-    if (!did_sort && nthr==1) {
+    if (!did_sort && nthr == 1) {
       nb = 1;
       if (opts.debug) printf("\tunsorted nthr=1: forcing single subproblem...\n");
     }
-    if (opts.debug && nthr>opts.atomic_threshold)
+    if (opts.debug && nthr > opts.atomic_threshold)
       printf("\tnthr big: switching add_wrapped OMP from critical to atomic (!)\n");
-      
-    std::vector<BIGINT> brk(nb+1); // NU index breakpoints defining nb subproblems
-    for (int p=0;p<=nb;++p)
-      brk[p] = (BIGINT)(0.5 + M*p/(double)nb);
-    
-#pragma omp parallel for num_threads(nthr) schedule(dynamic,1)  // each is big
-      for (int isub=0; isub<nb; isub++) {   // Main loop through the subproblems
-        BIGINT M0 = brk[isub+1]-brk[isub];  // # NU pts in this subproblem
-        // copy the location and data vectors for the nonuniform points
-        FLT *kx0=(FLT*)malloc(sizeof(FLT)*M0), *ky0=NULL, *kz0=NULL;
-        if (N2>1)
-          ky0=(FLT*)malloc(sizeof(FLT)*M0);
-        if (N3>1)
-          kz0=(FLT*)malloc(sizeof(FLT)*M0);
-        FLT *dd0=(FLT*)malloc(sizeof(FLT)*M0*2);    // complex strength data
-        for (BIGINT j=0; j<M0; j++) {           // todo: can avoid this copying?
-          BIGINT kk=sort_indices[j+brk[isub]];  // NU pt from subprob index list
-          kx0[j]= fold_rescale(kx[kk], N1);
-          if (N2>1) ky0[j]= fold_rescale(ky[kk], N2);
-          if (N3>1) kz0[j]= fold_rescale(kz[kk], N3);
-          dd0[j*2]=data_nonuniform[kk*2];     // real part
-          dd0[j*2+1]=data_nonuniform[kk*2+1]; // imag part
-        }
-        // get the subgrid which will include padding by roughly nspread/2
-        BIGINT offset1,offset2,offset3,size1,size2,size3; // get_subgrid sets
-        get_subgrid(offset1,offset2,offset3,size1,size2,size3,M0,kx0,ky0,kz0,ns,ndims);  // sets offsets and sizes
-        if (opts.debug>1) { // verbose
-          if (ndims==1)
-            printf("\tsubgrid: off %lld\t siz %lld\t #NU %lld\n",(long long)offset1,(long long)size1,(long long)M0);
-          else if (ndims==2)
-            printf("\tsubgrid: off %lld,%lld\t siz %lld,%lld\t #NU %lld\n",(long long)offset1,(long long)offset2,(long long)size1,(long long)size2,(long long)M0);
-          else
-            printf("\tsubgrid: off %lld,%lld,%lld\t siz %lld,%lld,%lld\t #NU %lld\n",(long long)offset1,(long long)offset2,(long long)offset3,(long long)size1,(long long)size2,(long long)size3,(long long)M0);
-	}
-        // allocate output data for this subgrid
-        FLT *du0=(FLT*)malloc(sizeof(FLT)*2*size1*size2*size3); // complex
-        
-        // Spread to subgrid without need for bounds checking or wrapping
-        if (!(opts.flags & TF_OMIT_SPREADING)) {
-          if (ndims==1)
-            spread_subproblem_1d(offset1,size1,du0,M0,kx0,dd0,opts);
-          else if (ndims==2)
-            spread_subproblem_2d(offset1,offset2,size1,size2,du0,M0,kx0,ky0,dd0,opts);
-          else
-            spread_subproblem_3d(offset1,offset2,offset3,size1,size2,size3,du0,M0,kx0,ky0,kz0,dd0,opts);
-	}
-        
-        // do the adding of subgrid to output
-        if (!(opts.flags & TF_OMIT_WRITE_TO_GRID)) {
-          if (nthr > opts.atomic_threshold)   // see above for debug reporting
-            add_wrapped_subgrid_thread_safe(offset1,offset2,offset3,size1,size2,size3,N1,N2,N3,data_uniform,du0);   // R Blackwell's atomic version
-          else {
-#pragma omp critical
-            add_wrapped_subgrid(offset1,offset2,offset3,size1,size2,size3,N1,N2,N3,data_uniform,du0);
-          }
-        }
 
-        // free up stuff from this subprob... (that was malloc'ed by hand)
-        free(dd0);
-        free(du0);
-        free(kx0);
-        if (N2>1) free(ky0);
-        if (N3>1) free(kz0); 
-      }     // end main loop over subprobs
-      if (opts.debug) printf("\tt1 fancy spread: \t%.3g s (%d subprobs)\n",timer.elapsedsec(), nb);
-    }   // end of choice of which t1 spread type to use
-    return 0;
+    std::vector<BIGINT> brk(nb + 1); // NU index breakpoints defining nb subproblems
+    for (int p = 0; p <= nb; ++p) brk[p] = (BIGINT)(0.5 + M * p / (double)nb);
+
+#pragma omp parallel for num_threads(nthr) schedule(dynamic, 1) // each is big
+    for (int isub = 0; isub < nb; isub++) {  // Main loop through the subproblems
+      BIGINT M0 = brk[isub + 1] - brk[isub]; // # NU pts in this subproblem
+      // copy the location and data vectors for the nonuniform points
+      FLT *kx0 = (FLT *)malloc(sizeof(FLT) * M0), *ky0 = NULL, *kz0 = NULL;
+      if (N2 > 1) ky0 = (FLT *)malloc(sizeof(FLT) * M0);
+      if (N3 > 1) kz0 = (FLT *)malloc(sizeof(FLT) * M0);
+      FLT *dd0 = (FLT *)malloc(sizeof(FLT) * M0 * 2); // complex strength data
+      for (BIGINT j = 0; j < M0; j++) {               // todo: can avoid this copying?
+        BIGINT kk = sort_indices[j + brk[isub]];      // NU pt from subprob index list
+        kx0[j]    = fold_rescale(kx[kk], N1);
+        if (N2 > 1) ky0[j] = fold_rescale(ky[kk], N2);
+        if (N3 > 1) kz0[j] = fold_rescale(kz[kk], N3);
+        dd0[j * 2]     = data_nonuniform[kk * 2];     // real part
+        dd0[j * 2 + 1] = data_nonuniform[kk * 2 + 1]; // imag part
+      }
+      // get the subgrid which will include padding by roughly nspread/2
+      BIGINT offset1, offset2, offset3, size1, size2, size3; // get_subgrid sets
+      get_subgrid(offset1, offset2, offset3, size1, size2, size3, M0, kx0, ky0, kz0, ns,
+                  ndims);                                    // sets offsets and sizes
+      if (opts.debug > 1) {                                  // verbose
+        if (ndims == 1)
+          printf("\tsubgrid: off %lld\t siz %lld\t #NU %lld\n", (long long)offset1,
+                 (long long)size1, (long long)M0);
+        else if (ndims == 2)
+          printf("\tsubgrid: off %lld,%lld\t siz %lld,%lld\t #NU %lld\n",
+                 (long long)offset1, (long long)offset2, (long long)size1,
+                 (long long)size2, (long long)M0);
+        else
+          printf("\tsubgrid: off %lld,%lld,%lld\t siz %lld,%lld,%lld\t #NU %lld\n",
+                 (long long)offset1, (long long)offset2, (long long)offset3,
+                 (long long)size1, (long long)size2, (long long)size3, (long long)M0);
+      }
+      // allocate output data for this subgrid
+      FLT *du0 = (FLT *)malloc(sizeof(FLT) * 2 * size1 * size2 * size3); // complex
+
+      // Spread to subgrid without need for bounds checking or wrapping
+      if (!(opts.flags & TF_OMIT_SPREADING)) {
+        if (ndims == 1)
+          spread_subproblem_1d(offset1, size1, du0, M0, kx0, dd0, opts);
+        else if (ndims == 2)
+          spread_subproblem_2d(offset1, offset2, size1, size2, du0, M0, kx0, ky0, dd0,
+                               opts);
+        else
+          spread_subproblem_3d(offset1, offset2, offset3, size1, size2, size3, du0, M0,
+                               kx0, ky0, kz0, dd0, opts);
+      }
+
+      // do the adding of subgrid to output
+      if (!(opts.flags & TF_OMIT_WRITE_TO_GRID)) {
+        if (nthr > opts.atomic_threshold) // see above for debug reporting
+          add_wrapped_subgrid_thread_safe(offset1, offset2, offset3, size1, size2, size3,
+                                          N1, N2, N3, data_uniform, du0); // R Blackwell's
+                                                                          // atomic
+                                                                          // version
+        else {
+#pragma omp critical
+          add_wrapped_subgrid(offset1, offset2, offset3, size1, size2, size3, N1, N2, N3,
+                              data_uniform, du0);
+        }
+      }
+
+      // free up stuff from this subprob... (that was malloc'ed by hand)
+      free(dd0);
+      free(du0);
+      free(kx0);
+      if (N2 > 1) free(ky0);
+      if (N3 > 1) free(kz0);
+    } // end main loop over subprobs
+    if (opts.debug)
+      printf("\tt1 fancy spread: \t%.3g s (%d subprobs)\n", timer.elapsedsec(), nb);
+  } // end of choice of which t1 spread type to use
+  return 0;
 };
 
-
 // --------------------------------------------------------------------------
-int interpSorted(BIGINT* sort_indices,BIGINT N1, BIGINT N2, BIGINT N3, 
-		      FLT *data_uniform,BIGINT M, FLT *kx, FLT *ky, FLT *kz,
-		      FLT *data_nonuniform, finufft_spread_opts opts, int did_sort)
+int interpSorted(BIGINT *sort_indices, BIGINT N1, BIGINT N2, BIGINT N3, FLT *data_uniform,
+                 BIGINT M, FLT *kx, FLT *ky, FLT *kz, FLT *data_nonuniform,
+                 finufft_spread_opts opts, int did_sort)
 // Interpolate to NU pts in sorted order from a uniform grid.
 // See spreadinterp() for doc.
 {
   CNTime timer;
-  int ndims = ndims_from_Ns(N1,N2,N3);
-  int ns=opts.nspread;          // abbrev. for w, kernel width
-  FLT ns2 = (FLT)ns/2;          // half spread width, used as stencil shift
-  int nthr = MY_OMP_GET_MAX_THREADS();   // guess # threads to use to interp
-  if (opts.nthreads>0)
-    nthr = opts.nthreads;       // user override, now without limit
+  int ndims = ndims_from_Ns(N1, N2, N3);
+  int ns    = opts.nspread;                    // abbrev. for w, kernel width
+  FLT ns2   = (FLT)ns / 2;                     // half spread width, used as stencil shift
+  int nthr  = MY_OMP_GET_MAX_THREADS();        // guess # threads to use to interp
+  if (opts.nthreads > 0) nthr = opts.nthreads; // user override, now without limit
 #ifndef _OPENMP
-  nthr = 1;                   // single-threaded lib must override user
+  nthr = 1;                                    // single-threaded lib must override user
 #endif
   if (opts.debug)
-    printf("\tinterp %dD (M=%lld; N1=%lld,N2=%lld,N3=%lld), nthr=%d\n",ndims,(long long)M,(long long)N1,(long long)N2,(long long)N3,nthr);
+    printf("\tinterp %dD (M=%lld; N1=%lld,N2=%lld,N3=%lld), nthr=%d\n", ndims,
+           (long long)M, (long long)N1, (long long)N2, (long long)N3, nthr);
 
-  timer.start();  
+  timer.start();
 #pragma omp parallel num_threads(nthr)
   {
-#define CHUNKSIZE 16     // Chunks of Type 2 targets (Ludvig found by expt)
+#define CHUNKSIZE 16 // Chunks of Type 2 targets (Ludvig found by expt)
     BIGINT jlist[CHUNKSIZE];
     FLT xjlist[CHUNKSIZE], yjlist[CHUNKSIZE], zjlist[CHUNKSIZE];
-    FLT outbuf[2*CHUNKSIZE];
+    FLT outbuf[2 * CHUNKSIZE];
     // Kernels: static alloc is faster, so we do it for up to 3D...
-    FLT kernel_args[3*MAX_NSPREAD];
-    FLT kernel_values[3*MAX_NSPREAD];
+    FLT kernel_args[3 * MAX_NSPREAD];
+    FLT kernel_values[3 * MAX_NSPREAD];
     FLT *ker1 = kernel_values;
     FLT *ker2 = kernel_values + ns;
-    FLT *ker3 = kernel_values + 2*ns;       
+    FLT *ker3 = kernel_values + 2 * ns;
 
     // Loop over interpolation chunks
-#pragma omp for schedule (dynamic,1000)  // assign threads to NU targ pts:
-    for (BIGINT i=0; i<M; i+=CHUNKSIZE)  // main loop over NU targs, interp each from U
-      {
-        // Setup buffers for this chunk
-        int bufsize = (i+CHUNKSIZE > M) ? M-i : CHUNKSIZE;
-        for (int ibuf=0; ibuf<bufsize; ibuf++) {
-          BIGINT j = sort_indices[i+ibuf];
-          jlist[ibuf] = j;
-	  xjlist[ibuf] = fold_rescale(kx[j], N1);
-	  if(ndims >=2)
-	    yjlist[ibuf] = fold_rescale(ky[j], N2);
-	  if(ndims == 3)
-	    zjlist[ibuf] = fold_rescale(kz[j], N3);
-	}
-      
-    // Loop over targets in chunk
-    for (int ibuf=0; ibuf<bufsize; ibuf++) {
-      FLT xj = xjlist[ibuf];
-      FLT yj = (ndims > 1) ? yjlist[ibuf] : 0;
-      FLT zj = (ndims > 2) ? zjlist[ibuf] : 0;
-
-      FLT *target = outbuf+2*ibuf;
-        
-      // coords (x,y,z), spread block corner index (i1,i2,i3) of current NU targ
-      BIGINT i1=(BIGINT)std::ceil(xj-ns2); // leftmost grid index
-      BIGINT i2= (ndims > 1) ? (BIGINT)std::ceil(yj-ns2) : 0; // min y grid index
-      BIGINT i3= (ndims > 2) ? (BIGINT)std::ceil(zj-ns2) : 0; // min z grid index
-     
-      FLT x1=(FLT)i1-xj;           // shift of ker center, in [-w/2,-w/2+1]
-      FLT x2= (ndims > 1) ? (FLT)i2-yj : 0 ;
-      FLT x3= (ndims > 2)? (FLT)i3-zj : 0;
-
-      // eval kernel values patch and use to interpolate from uniform data...
-      if (!(opts.flags & TF_OMIT_SPREADING)) {
-
-	  if (opts.kerevalmeth==0) {               // choose eval method
-	    set_kernel_args(kernel_args, x1, opts);
-	    if(ndims > 1)  set_kernel_args(kernel_args+ns, x2, opts);
-	    if(ndims > 2)  set_kernel_args(kernel_args+2*ns, x3, opts);
-	    
-	    evaluate_kernel_vector(kernel_values, kernel_args, opts, ndims*ns);
-	  }
-
-	  else{
-            // due to ns being padded up to next multiple of 4 in the eval_kernel_vec_Horner
-            // and writing zeros out to this padded size, these must occur in the order x,y,z...
-	    eval_kernel_vec_Horner(ker1,x1,ns,opts);
-	    if (ndims > 1) eval_kernel_vec_Horner(ker2,x2,ns,opts);  
-	    if (ndims > 2) eval_kernel_vec_Horner(ker3,x3,ns,opts);
-	  }
-
-	  switch(ndims){
-	  case 1:
-	    interp_line(target,data_uniform,ker1,i1,N1,ns);
-	    break;
-	  case 2:
-	    interp_square(target,data_uniform,ker1,ker2,i1,i2,N1,N2,ns);
-	    break;
-	  case 3:
-	    interp_cube(target,data_uniform,ker1,ker2,ker3,i1,i2,i3,N1,N2,N3,ns);
-	    break;
-	  default: //can't get here
-	    break;
-	     
-	  }	 
+#pragma omp for schedule(dynamic, 1000)       // assign threads to NU targ pts:
+    for (BIGINT i = 0; i < M; i += CHUNKSIZE) // main loop over NU targs, interp each
+                                              // from U
+    {
+      // Setup buffers for this chunk
+      int bufsize = (i + CHUNKSIZE > M) ? M - i : CHUNKSIZE;
+      for (int ibuf = 0; ibuf < bufsize; ibuf++) {
+        BIGINT j     = sort_indices[i + ibuf];
+        jlist[ibuf]  = j;
+        xjlist[ibuf] = fold_rescale(kx[j], N1);
+        if (ndims >= 2) yjlist[ibuf] = fold_rescale(ky[j], N2);
+        if (ndims == 3) zjlist[ibuf] = fold_rescale(kz[j], N3);
       }
-    } // end loop over targets in chunk
-        
-    // Copy result buffer to output array
-    for (int ibuf=0; ibuf<bufsize; ibuf++) {
-      BIGINT j = jlist[ibuf];
-      data_nonuniform[2*j] = outbuf[2*ibuf];
-      data_nonuniform[2*j+1] = outbuf[2*ibuf+1];              
-    }         
-        
-      } // end NU targ loop
+
+      // Loop over targets in chunk
+      for (int ibuf = 0; ibuf < bufsize; ibuf++) {
+        FLT xj = xjlist[ibuf];
+        FLT yj = (ndims > 1) ? yjlist[ibuf] : 0;
+        FLT zj = (ndims > 2) ? zjlist[ibuf] : 0;
+
+        FLT *target = outbuf + 2 * ibuf;
+
+        // coords (x,y,z), spread block corner index (i1,i2,i3) of current NU targ
+        BIGINT i1 = (BIGINT)std::ceil(xj - ns2);                   // leftmost grid index
+        BIGINT i2 = (ndims > 1) ? (BIGINT)std::ceil(yj - ns2) : 0; // min y grid
+                                                                   // index
+        BIGINT i3 = (ndims > 2) ? (BIGINT)std::ceil(zj - ns2) : 0; // min z grid
+                                                                   // index
+
+        FLT x1 = (FLT)i1 - xj; // shift of ker center, in [-w/2,-w/2+1]
+        FLT x2 = (ndims > 1) ? (FLT)i2 - yj : 0;
+        FLT x3 = (ndims > 2) ? (FLT)i3 - zj : 0;
+
+        // eval kernel values patch and use to interpolate from uniform data...
+        if (!(opts.flags & TF_OMIT_SPREADING)) {
+
+          if (opts.kerevalmeth == 0) { // choose eval method
+            set_kernel_args(kernel_args, x1, opts);
+            if (ndims > 1) set_kernel_args(kernel_args + ns, x2, opts);
+            if (ndims > 2) set_kernel_args(kernel_args + 2 * ns, x3, opts);
+
+            evaluate_kernel_vector(kernel_values, kernel_args, opts, ndims * ns);
+          }
+
+          else {
+            // due to ns being padded up to next multiple of 4 in the
+            // eval_kernel_vec_Horner and writing zeros out to this padded
+            // size, these must occur in the order x,y,z...
+            eval_kernel_vec_Horner(ker1, x1, ns, opts);
+            if (ndims > 1) eval_kernel_vec_Horner(ker2, x2, ns, opts);
+            if (ndims > 2) eval_kernel_vec_Horner(ker3, x3, ns, opts);
+          }
+
+          switch (ndims) {
+          case 1:
+            interp_line(target, data_uniform, ker1, i1, N1, ns);
+            break;
+          case 2:
+            interp_square(target, data_uniform, ker1, ker2, i1, i2, N1, N2, ns);
+            break;
+          case 3:
+            interp_cube(target, data_uniform, ker1, ker2, ker3, i1, i2, i3, N1, N2, N3,
+                        ns);
+            break;
+          default: // can't get here
+            break;
+          }
+        }
+      } // end loop over targets in chunk
+
+      // Copy result buffer to output array
+      for (int ibuf = 0; ibuf < bufsize; ibuf++) {
+        BIGINT j                   = jlist[ibuf];
+        data_nonuniform[2 * j]     = outbuf[2 * ibuf];
+        data_nonuniform[2 * j + 1] = outbuf[2 * ibuf + 1];
+      }
+
+    } // end NU targ loop
   } // end parallel section
-  if (opts.debug) printf("\tt2 spreading loop: \t%.3g s\n",timer.elapsedsec());
+  if (opts.debug) printf("\tt2 spreading loop: \t%.3g s\n", timer.elapsedsec());
   return 0;
 };
 
-
-
 ///////////////////////////////////////////////////////////////////////////
 
-int setup_spreader(finufft_spread_opts &opts, FLT eps, double upsampfac,
-                   int kerevalmeth, int debug, int showwarn, int dim)
+int setup_spreader(finufft_spread_opts &opts, FLT eps, double upsampfac, int kerevalmeth,
+                   int debug, int showwarn, int dim)
 /* Initializes spreader kernel parameters given desired NUFFT tolerance eps,
    upsampling factor (=sigma in paper, or R in Dutt-Rokhlin), ker eval meth
    (either 0:exp(sqrt()), 1: Horner ppval), and some debug-level flags.
-   Also sets all default options in finufft_spread_opts. See finufft_spread_opts.h for opts.
-   dim is spatial dimension (1,2, or 3).
-   See finufft.cpp:finufft_plan() for where upsampfac is set.
-   Must call this before any kernel evals done, otherwise segfault likely.
-   Returns:
-     0  : success
-     FINUFFT_WARN_EPS_TOO_SMALL : requested eps cannot be achieved, but proceed with
-                          best possible eps
-     otherwise : failure (see codes in defs.h); spreading must not proceed
-   Barnett 2017. debug, loosened eps logic 6/14/20.
+   Also sets all default options in finufft_spread_opts. See finufft_spread_opts.h for
+   opts. dim is spatial dimension (1,2, or 3). See finufft.cpp:finufft_plan() for where
+   upsampfac is set. Must call this before any kernel evals done, otherwise segfault
+   likely. Returns: 0  : success FINUFFT_WARN_EPS_TOO_SMALL : requested eps cannot be
+   achieved, but proceed with best possible eps otherwise : failure (see codes in defs.h);
+   spreading must not proceed Barnett 2017. debug, loosened eps logic 6/14/20.
 */
 {
-  if (upsampfac!=2.0 && upsampfac!=1.25) {   // nonstandard sigma
-    if (kerevalmeth==1) {
-      fprintf(stderr,"FINUFFT setup_spreader: nonstandard upsampfac=%.3g cannot be handled by kerevalmeth=1\n",upsampfac);
+  if (upsampfac != 2.0 && upsampfac != 1.25) { // nonstandard sigma
+    if (kerevalmeth == 1) {
+      fprintf(stderr,
+              "FINUFFT setup_spreader: nonstandard upsampfac=%.3g cannot be "
+              "handled by kerevalmeth=1\n",
+              upsampfac);
       return FINUFFT_ERR_HORNER_WRONG_BETA;
     }
-    if (upsampfac<=1.0) {       // no digits would result
-      fprintf(stderr,"FINUFFT setup_spreader: error, upsampfac=%.3g is <=1.0\n",upsampfac);
+    if (upsampfac <= 1.0) { // no digits would result
+      fprintf(stderr, "FINUFFT setup_spreader: error, upsampfac=%.3g is <=1.0\n",
+              upsampfac);
       return FINUFFT_ERR_UPSAMPFAC_TOO_SMALL;
     }
     // calling routine must abort on above errors, since opts is garbage!
-    if (showwarn && upsampfac>4.0)
-      fprintf(stderr,"FINUFFT setup_spreader warning: upsampfac=%.3g way too large to be beneficial.\n",upsampfac);
+    if (showwarn && upsampfac > 4.0)
+      fprintf(stderr,
+              "FINUFFT setup_spreader warning: upsampfac=%.3g way too large to be "
+              "beneficial.\n",
+              upsampfac);
   }
-    
-  // write out default finufft_spread_opts (some overridden in setup_spreader_for_nufft)
-  opts.spread_direction = 0;    // user should always set to 1 or 2 as desired
-  opts.sort = 2;                // 2:auto-choice
-  opts.kerpad = 0;              // affects only evaluate_kernel_vector
-  opts.kerevalmeth = kerevalmeth;
-  opts.upsampfac = upsampfac;
-  opts.nthreads = 0;            // all avail
-  opts.sort_threads = 0;        // 0:auto-choice
-  // heuristic dir=1 chunking for nthr>>1, typical for intel i7 and skylake...
-  opts.max_subproblem_size = (dim==1) ? 10000 : 100000;
-  opts.flags = 0;               // 0:no timing flags (>0 for experts only)
-  opts.debug = 0;               // 0:no debug output
-  // heuristic nthr above which switch OMP critical to atomic (add_wrapped...):
-  opts.atomic_threshold = 10;   // R Blackwell's value
 
-  int ns, ier = 0;  // Set kernel width w (aka ns, nspread) then copy to opts...
-  if (eps<EPSILON) {            // safety; there's no hope of beating e_mach
+  // write out default finufft_spread_opts (some overridden in setup_spreader_for_nufft)
+  opts.spread_direction = 0; // user should always set to 1 or 2 as desired
+  opts.sort             = 2; // 2:auto-choice
+  opts.kerpad           = 0; // affects only evaluate_kernel_vector
+  opts.kerevalmeth      = kerevalmeth;
+  opts.upsampfac        = upsampfac;
+  opts.nthreads         = 0; // all avail
+  opts.sort_threads     = 0; // 0:auto-choice
+  // heuristic dir=1 chunking for nthr>>1, typical for intel i7 and skylake...
+  opts.max_subproblem_size = (dim == 1) ? 10000 : 100000;
+  opts.flags               = 0; // 0:no timing flags (>0 for experts only)
+  opts.debug               = 0; // 0:no debug output
+  // heuristic nthr above which switch OMP critical to atomic (add_wrapped...):
+  opts.atomic_threshold = 10; // R Blackwell's value
+
+  int ns, ier = 0;            // Set kernel width w (aka ns, nspread) then copy to opts...
+  if (eps < EPSILON) {        // safety; there's no hope of beating e_mach
     if (showwarn)
-      fprintf(stderr,"%s warning: increasing tol=%.3g to eps_mach=%.3g.\n",__func__,(double)eps,(double)EPSILON);
-    eps = EPSILON;              // only changes local copy (not any opts)
+      fprintf(stderr, "%s warning: increasing tol=%.3g to eps_mach=%.3g.\n", __func__,
+              (double)eps, (double)EPSILON);
+    eps = EPSILON; // only changes local copy (not any opts)
     ier = FINUFFT_WARN_EPS_TOO_SMALL;
   }
-  if (upsampfac==2.0)           // standard sigma (see SISC paper)
-    ns = std::ceil(-log10(eps/(FLT)10.0));          // 1 digit per power of 10
-  else                          // custom sigma
-    ns = std::ceil(-log(eps) / (PI*sqrt(1.0-1.0/upsampfac)));  // formula, gam=1
-  ns = max(2,ns);               // (we don't have ns=1 version yet)
-  if (ns>MAX_NSPREAD) {         // clip to fit allocated arrays, Horner rules
+  if (upsampfac == 2.0)                      // standard sigma (see SISC paper)
+    ns = std::ceil(-log10(eps / (FLT)10.0)); // 1 digit per power of 10
+  else                                       // custom sigma
+    ns = std::ceil(-log(eps) / (PI * sqrt(1.0 - 1.0 / upsampfac))); // formula, gam=1
+  ns = max(2, ns);        // (we don't have ns=1 version yet)
+  if (ns > MAX_NSPREAD) { // clip to fit allocated arrays, Horner rules
     if (showwarn)
-      fprintf(stderr,"%s warning: at upsampfac=%.3g, tol=%.3g would need kernel width ns=%d; clipping to max %d.\n",__func__,
-              upsampfac,(double)eps,ns,MAX_NSPREAD);
-    ns = MAX_NSPREAD;
+      fprintf(stderr,
+              "%s warning: at upsampfac=%.3g, tol=%.3g would need kernel width "
+              "ns=%d; clipping to max %d.\n",
+              __func__, upsampfac, (double)eps, ns, MAX_NSPREAD);
+    ns  = MAX_NSPREAD;
     ier = FINUFFT_WARN_EPS_TOO_SMALL;
   }
   opts.nspread = ns;
 
   // setup for reference kernel eval (via formula): select beta width param...
   // (even when kerevalmeth=1, this ker eval needed for FTs in onedim_*_kernel)
-  opts.ES_halfwidth=(double)ns/2;   // constants to help (see below routines)
-  opts.ES_c = 4.0/(double)(ns*ns);
-  double betaoverns = 2.30;         // gives decent betas for default sigma=2.0
-  if (ns==2) betaoverns = 2.20;  // some small-width tweaks...
-  if (ns==3) betaoverns = 2.26;
-  if (ns==4) betaoverns = 2.38;
-  if (upsampfac!=2.0) {          // again, override beta for custom sigma
-    FLT gamma=0.97;              // must match devel/gen_all_horner_C_code.m !
-    betaoverns = gamma*PI*(1.0-1.0/(2*upsampfac));  // formula based on cutoff
+  opts.ES_halfwidth = (double)ns / 2; // constants to help (see below routines)
+  opts.ES_c         = 4.0 / (double)(ns * ns);
+  double betaoverns = 2.30;           // gives decent betas for default sigma=2.0
+  if (ns == 2) betaoverns = 2.20;     // some small-width tweaks...
+  if (ns == 3) betaoverns = 2.26;
+  if (ns == 4) betaoverns = 2.38;
+  if (upsampfac != 2.0) { // again, override beta for custom sigma
+    FLT gamma  = 0.97;    // must match devel/gen_all_horner_C_code.m !
+    betaoverns = gamma * PI * (1.0 - 1.0 / (2 * upsampfac)); // formula based on
+                                                             // cutoff
   }
-  opts.ES_beta = betaoverns * ns;   // set the kernel beta parameter
+  opts.ES_beta = betaoverns * ns; // set the kernel beta parameter
   if (debug)
-    printf("%s (kerevalmeth=%d) eps=%.3g sigma=%.3g: chose ns=%d beta=%.3g\n",__func__,kerevalmeth,(double)eps,upsampfac,ns,opts.ES_beta);
-  
+    printf("%s (kerevalmeth=%d) eps=%.3g sigma=%.3g: chose ns=%d beta=%.3g\n", __func__,
+           kerevalmeth, (double)eps, upsampfac, ns, opts.ES_beta);
+
   return ier;
 }
 
@@ -603,23 +626,23 @@ FLT evaluate_kernel(FLT x, const finufft_spread_opts &opts)
    This is the "reference implementation", used by eg finufft/onedim_* 2/17/17
 */
 {
-  if (abs(x)>=(FLT)opts.ES_halfwidth)
+  if (abs(x) >= (FLT)opts.ES_halfwidth)
     // if spreading/FT careful, shouldn't need this if, but causes no speed hit
     return 0.0;
   else
-    return exp((FLT)opts.ES_beta * sqrt((FLT)1.0 - (FLT)opts.ES_c*x*x));
+    return exp((FLT)opts.ES_beta * sqrt((FLT)1.0 - (FLT)opts.ES_c * x * x));
 }
 
-static inline void set_kernel_args(FLT *args, FLT x, const finufft_spread_opts& opts)
+static inline void set_kernel_args(FLT *args, FLT x, const finufft_spread_opts &opts)
 // Fills vector args[] with kernel arguments x, x+1, ..., x+ns-1.
 // needed for the vectorized kernel eval of Ludvig af K.
 {
-  int ns=opts.nspread;
-  for (int i=0; i<ns; i++)
-    args[i] = x + (FLT) i;
+  int ns = opts.nspread;
+  for (int i = 0; i < ns; i++) args[i] = x + (FLT)i;
 }
 
-static inline void evaluate_kernel_vector(FLT *ker, FLT *args, const finufft_spread_opts& opts, const int N)
+static inline void evaluate_kernel_vector(FLT *ker, FLT *args,
+                                          const finufft_spread_opts &opts, const int N)
 /* Evaluate ES kernel for a vector of N arguments; by Ludvig af K.
    If opts.kerpad true, args and ker must be allocated for Npad, and args is
    written to (to pad to length Npad), only first N outputs are correct.
@@ -635,46 +658,46 @@ static inline void evaluate_kernel_vector(FLT *ker, FLT *args, const finufft_spr
     // seems to benefit auto-vectorization.
     // gcc 5.4 vectorizes first loop; gcc 7.2 vectorizes both loops
     int Npad = N;
-    if (opts.kerpad) {        // since always same branch, no speed hit
-      Npad = 4*(1+(N-1)/4);   // pad N to mult of 4; help i7 GCC, not xeon
-      for (int i=N;i<Npad;++i)    // pad with 1-3 zeros for safe eval
-	args[i] = 0.0;
+    if (opts.kerpad) {               // since always same branch, no speed hit
+      Npad = 4 * (1 + (N - 1) / 4);  // pad N to mult of 4; help i7 GCC, not xeon
+      for (int i = N; i < Npad; ++i) // pad with 1-3 zeros for safe eval
+        args[i] = 0.0;
     }
     for (int i = 0; i < Npad; i++) { // Loop 1: Compute exponential arguments
-      ker[i] = b * sqrt((FLT)1.0 - c*args[i]*args[i]);  // care! 1.0 is double
+      ker[i] = b * sqrt((FLT)1.0 - c * args[i] * args[i]); // care! 1.0 is double
     }
     if (!(opts.flags & TF_OMIT_EVALUATE_EXPONENTIAL))
       for (int i = 0; i < Npad; i++) // Loop 2: Compute exponentials
-	ker[i] = exp(ker[i]);
+        ker[i] = exp(ker[i]);
   } else {
-    for (int i = 0; i < N; i++)             // dummy for timing only
+    for (int i = 0; i < N; i++) // dummy for timing only
       ker[i] = 1.0;
   }
   // Separate check from arithmetic (Is this really needed? doesn't slow down)
   for (int i = 0; i < N; i++)
-    if (abs(args[i])>=(FLT)opts.ES_halfwidth) ker[i] = 0.0;
+    if (abs(args[i]) >= (FLT)opts.ES_halfwidth) ker[i] = 0.0;
 }
 
 static inline void eval_kernel_vec_Horner(FLT *ker, const FLT x, const int w,
-					  const finufft_spread_opts &opts)
+                                          const finufft_spread_opts &opts)
 /* Fill ker[] with Horner piecewise poly approx to [-w/2,w/2] ES kernel eval at
    x_j = x + j,  for j=0,..,w-1.  Thus x in [-w/2,-w/2+1].   w is aka ns.
    This is the current evaluation method, since it's faster (except i7 w=16).
    Two upsampfacs implemented. Params must match ref formula. Barnett 4/24/18 */
 {
   if (!(opts.flags & TF_OMIT_EVALUATE_KERNEL)) {
-    FLT z = (FLT)2.0*x + w - (FLT)1.0; // scale so local grid offset z in [-1,1]
+    FLT z = (FLT)2.0 * x + w - (FLT)1.0; // scale so local grid offset z in [-1,1]
     // insert the auto-generated code which expects z, w args, writes to ker...
-    if (opts.upsampfac==2.0) {     // floating point equality is fine here
+    if (opts.upsampfac == 2.0) { // floating point equality is fine here
 #include "ker_horner_allw_loop.c"
-    } else if (opts.upsampfac==1.25) {
+    } else if (opts.upsampfac == 1.25) {
 #include "ker_lowupsampfac_horner_allw_loop.c"
     } else
-      fprintf(stderr,"%s: unknown upsampfac, failed!\n",__func__);
+      fprintf(stderr, "%s: unknown upsampfac, failed!\n", __func__);
   }
 }
 
-void interp_line(FLT *target,FLT *du, FLT *ker,BIGINT i1,BIGINT N1,int ns)
+void interp_line(FLT *target, FLT *du, FLT *ker, BIGINT i1, BIGINT N1, int ns)
 /* 1D interpolate complex values from size-ns block of the du (uniform grid
    data) array to a single complex output value "target", using as weights the
    1d kernel evaluation list ker1.
@@ -693,36 +716,36 @@ void interp_line(FLT *target,FLT *du, FLT *ker,BIGINT i1,BIGINT N1,int ns)
 */
 {
   FLT out[] = {0.0, 0.0};
-  BIGINT j = i1;
-  if (i1<0) {                               // wraps at left
-    j+=N1;
-    for (int dx=0; dx<-i1; ++dx) {
-      out[0] += du[2*j]*ker[dx];
-      out[1] += du[2*j+1]*ker[dx];
+  BIGINT j  = i1;
+  if (i1 < 0) { // wraps at left
+    j += N1;
+    for (int dx = 0; dx < -i1; ++dx) {
+      out[0] += du[2 * j] * ker[dx];
+      out[1] += du[2 * j + 1] * ker[dx];
       ++j;
     }
-    j-=N1;
-    for (int dx=-i1; dx<ns; ++dx) {
-      out[0] += du[2*j]*ker[dx];
-      out[1] += du[2*j+1]*ker[dx];
+    j -= N1;
+    for (int dx = -i1; dx < ns; ++dx) {
+      out[0] += du[2 * j] * ker[dx];
+      out[1] += du[2 * j + 1] * ker[dx];
       ++j;
     }
-  } else if (i1+ns>=N1) {                    // wraps at right
-    for (int dx=0; dx<N1-i1; ++dx) {
-      out[0] += du[2*j]*ker[dx];
-      out[1] += du[2*j+1]*ker[dx];
+  } else if (i1 + ns >= N1) { // wraps at right
+    for (int dx = 0; dx < N1 - i1; ++dx) {
+      out[0] += du[2 * j] * ker[dx];
+      out[1] += du[2 * j + 1] * ker[dx];
       ++j;
     }
-    j-=N1;
-    for (int dx=N1-i1; dx<ns; ++dx) {
-      out[0] += du[2*j]*ker[dx];
-      out[1] += du[2*j+1]*ker[dx];
+    j -= N1;
+    for (int dx = N1 - i1; dx < ns; ++dx) {
+      out[0] += du[2 * j] * ker[dx];
+      out[1] += du[2 * j + 1] * ker[dx];
       ++j;
     }
-  } else {                                     // doesn't wrap
-    for (int dx=0; dx<ns; ++dx) {
-      out[0] += du[2*j]*ker[dx];
-      out[1] += du[2*j+1]*ker[dx];
+  } else { // doesn't wrap
+    for (int dx = 0; dx < ns; ++dx) {
+      out[0] += du[2 * j] * ker[dx];
+      out[1] += du[2 * j + 1] * ker[dx];
       ++j;
     }
   }
@@ -730,7 +753,8 @@ void interp_line(FLT *target,FLT *du, FLT *ker,BIGINT i1,BIGINT N1,int ns)
   target[1] = out[1];
 }
 
-void interp_square(FLT *target,FLT *du, FLT *ker1, FLT *ker2, BIGINT i1,BIGINT i2,BIGINT N1,BIGINT N2,int ns)
+void interp_square(FLT *target, FLT *du, FLT *ker1, FLT *ker2, BIGINT i1, BIGINT i2,
+                   BIGINT N1, BIGINT N2, int ns)
 /* 2D interpolate complex values from a ns*ns block of the du (uniform grid
    data) array to a single complex output value "target", using as weights the
    ns*ns outer product of the 1d kernel lists ker1 and ker2.
@@ -760,56 +784,56 @@ void interp_square(FLT *target,FLT *du, FLT *ker1, FLT *ker2, BIGINT i1,BIGINT i
 */
 {
   FLT out[] = {0.0, 0.0};
-  if (i1>=0 && i1+ns<=N1 && i2>=0 && i2+ns<=N2) {  // no wrapping: avoid ptrs
-    FLT line[2*MAX_NSPREAD];   // store a horiz line (interleaved real,imag)
+  if (i1 >= 0 && i1 + ns <= N1 && i2 >= 0 && i2 + ns <= N2) { // no wrapping: avoid ptrs
+    FLT line[2 * MAX_NSPREAD]; // store a horiz line (interleaved real,imag)
     // block for first y line, to avoid explicitly initializing line with zeros
     {
-      const FLT *lptr = du + 2*(N1*i2 + i1);   // ptr to horiz line start in du
-      for (int l=0; l<2*ns; l++) {    // l is like dx but for ns interleaved
-        line[l] = ker2[0]*lptr[l];
+      const FLT *lptr = du + 2 * (N1 * i2 + i1); // ptr to horiz line start in du
+      for (int l = 0; l < 2 * ns; l++) {         // l is like dx but for ns interleaved
+        line[l] = ker2[0] * lptr[l];
       }
     }
     // add remaining const-y lines to the line (expensive inner loop)
-    for (int dy=1; dy<ns; dy++) {
-      const FLT *lptr = du + 2*(N1*(i2+dy) + i1);  // (see above)
-      for (int l=0; l<2*ns; ++l) {
-        line[l] += ker2[dy]*lptr[l];
+    for (int dy = 1; dy < ns; dy++) {
+      const FLT *lptr = du + 2 * (N1 * (i2 + dy) + i1); // (see above)
+      for (int l = 0; l < 2 * ns; ++l) {
+        line[l] += ker2[dy] * lptr[l];
       }
     }
     // apply x kernel to the (interleaved) line and add together
-    for (int dx=0; dx<ns; dx++) {
-      out[0] += line[2*dx]   * ker1[dx];
-      out[1] += line[2*dx+1] * ker1[dx];
+    for (int dx = 0; dx < ns; dx++) {
+      out[0] += line[2 * dx] * ker1[dx];
+      out[1] += line[2 * dx + 1] * ker1[dx];
     }
-  } else {                         // wraps somewhere: use ptr list
+  } else { // wraps somewhere: use ptr list
     // this is slower than above, but occurs much less often, with fractional
     // rate O(ns/min(N1,N2)). Thus this code doesn't need to be so optimized.
-    BIGINT j1[MAX_NSPREAD], j2[MAX_NSPREAD];   // 1d ptr lists
-    BIGINT x=i1, y=i2;                 // initialize coords
-    for (int d=0; d<ns; d++) {         // set up ptr lists
-      if (x<0) x+=N1;
-      if (x>=N1) x-=N1;
+    BIGINT j1[MAX_NSPREAD], j2[MAX_NSPREAD]; // 1d ptr lists
+    BIGINT x = i1, y = i2;                   // initialize coords
+    for (int d = 0; d < ns; d++) {           // set up ptr lists
+      if (x < 0) x += N1;
+      if (x >= N1) x -= N1;
       j1[d] = x++;
-      if (y<0) y+=N2;
-      if (y>=N2) y-=N2;
+      if (y < 0) y += N2;
+      if (y >= N2) y -= N2;
       j2[d] = y++;
     }
-    for (int dy=0; dy<ns; dy++) {      // use the pts lists
-      BIGINT oy = N1*j2[dy];           // offset due to y
-      for (int dx=0; dx<ns; dx++) {
-	FLT k = ker1[dx]*ker2[dy];
-	BIGINT j = oy + j1[dx];
-	out[0] += du[2*j] * k;
-	out[1] += du[2*j+1] * k;
+    for (int dy = 0; dy < ns; dy++) { // use the pts lists
+      BIGINT oy = N1 * j2[dy];        // offset due to y
+      for (int dx = 0; dx < ns; dx++) {
+        FLT k    = ker1[dx] * ker2[dy];
+        BIGINT j = oy + j1[dx];
+        out[0] += du[2 * j] * k;
+        out[1] += du[2 * j + 1] * k;
       }
     }
   }
   target[0] = out[0];
-  target[1] = out[1];  
+  target[1] = out[1];
 }
 
-void interp_cube(FLT *target,FLT *du, FLT *ker1, FLT *ker2, FLT *ker3,
-		 BIGINT i1,BIGINT i2,BIGINT i3, BIGINT N1,BIGINT N2,BIGINT N3,int ns)
+void interp_cube(FLT *target, FLT *du, FLT *ker1, FLT *ker2, FLT *ker3, BIGINT i1,
+                 BIGINT i2, BIGINT i3, BIGINT N1, BIGINT N2, BIGINT N3, int ns)
 /* 3D interpolate complex values from a ns*ns*ns block of the du (uniform grid
    data) array to a single complex output value "target", using as weights the
    ns*ns*ns outer product of the 1d kernel lists ker1, ker2, and ker3.
@@ -834,67 +858,68 @@ void interp_cube(FLT *target,FLT *du, FLT *ker1, FLT *ker2, FLT *ker3,
    (see above note in interp_square)
 */
 {
-  FLT out[] = {0.0, 0.0};  
-  if (i1>=0 && i1+ns<=N1 && i2>=0 && i2+ns<=N2 && i3>=0 && i3+ns<=N3) {
+  FLT out[] = {0.0, 0.0};
+  if (i1 >= 0 && i1 + ns <= N1 && i2 >= 0 && i2 + ns <= N2 && i3 >= 0 && i3 + ns <= N3) {
     // no wrapping: avoid ptrs (by far the most common case)
-    FLT line[2*MAX_NSPREAD];       // store a horiz line (interleaved real,imag)
+    FLT line[2 * MAX_NSPREAD]; // store a horiz line (interleaved real,imag)
     // initialize line with zeros; hard to avoid here, but overhead small in 3D
-    for (int l=0; l<2*ns; l++) {
+    for (int l = 0; l < 2 * ns; l++) {
       line[l] = 0;
     }
     // co-add y and z contributions to line in x; do not apply x kernel yet
     // This is expensive innermost loop
-    for (int dz=0; dz<ns; dz++) {
-      BIGINT oz = N1*N2*(i3+dz);        // offset due to z
-      for (int dy=0; dy<ns; dy++) {
-        const FLT *lptr = du + 2*(oz + N1*(i2+dy) + i1);  // ptr start of line
-        FLT ker23 = ker2[dy]*ker3[dz];
-        for (int l=0; l<2*ns; ++l) {    // loop over ns interleaved (R,I) pairs
-          line[l] += lptr[l]*ker23;
+    for (int dz = 0; dz < ns; dz++) {
+      BIGINT oz = N1 * N2 * (i3 + dz);                         // offset due to z
+      for (int dy = 0; dy < ns; dy++) {
+        const FLT *lptr = du + 2 * (oz + N1 * (i2 + dy) + i1); // ptr start of
+                                                               // line
+        FLT ker23 = ker2[dy] * ker3[dz];
+        for (int l = 0; l < 2 * ns; ++l) { // loop over ns interleaved (R,I) pairs
+          line[l] += lptr[l] * ker23;
         }
       }
     }
     // apply x kernel to the (interleaved) line and add together (cheap)
-    for (int dx=0; dx<ns; dx++) {
-      out[0] += line[2*dx]   * ker1[dx];
-      out[1] += line[2*dx+1] * ker1[dx];
+    for (int dx = 0; dx < ns; dx++) {
+      out[0] += line[2 * dx] * ker1[dx];
+      out[1] += line[2 * dx + 1] * ker1[dx];
     }
-  } else {                         // wraps somewhere: use ptr list
+  } else { // wraps somewhere: use ptr list
     // ...can be slower since this case only happens with probability
     // O(ns/min(N1,N2,N3))
-    BIGINT j1[MAX_NSPREAD], j2[MAX_NSPREAD], j3[MAX_NSPREAD];   // 1d ptr lists
-    BIGINT x=i1, y=i2, z=i3;         // initialize coords
-    for (int d=0; d<ns; d++) {          // set up ptr lists
-      if (x<0) x+=N1;
-      if (x>=N1) x-=N1;
+    BIGINT j1[MAX_NSPREAD], j2[MAX_NSPREAD], j3[MAX_NSPREAD]; // 1d ptr lists
+    BIGINT x = i1, y = i2, z = i3;                            // initialize coords
+    for (int d = 0; d < ns; d++) {                            // set up ptr lists
+      if (x < 0) x += N1;
+      if (x >= N1) x -= N1;
       j1[d] = x++;
-      if (y<0) y+=N2;
-      if (y>=N2) y-=N2;
+      if (y < 0) y += N2;
+      if (y >= N2) y -= N2;
       j2[d] = y++;
-      if (z<0) z+=N3;
-      if (z>=N3) z-=N3;
+      if (z < 0) z += N3;
+      if (z >= N3) z -= N3;
       j3[d] = z++;
     }
-    for (int dz=0; dz<ns; dz++) {             // use the pts lists
-      BIGINT oz = N1*N2*j3[dz];               // offset due to z
-      for (int dy=0; dy<ns; dy++) {
-	BIGINT oy = oz + N1*j2[dy];           // offset due to y & z
-	FLT ker23 = ker2[dy]*ker3[dz];	
-	for (int dx=0; dx<ns; dx++) {
-	  FLT k = ker1[dx]*ker23;
-	  BIGINT j = oy + j1[dx];
-	  out[0] += du[2*j] * k;
-	  out[1] += du[2*j+1] * k;
-	}
+    for (int dz = 0; dz < ns; dz++) { // use the pts lists
+      BIGINT oz = N1 * N2 * j3[dz];   // offset due to z
+      for (int dy = 0; dy < ns; dy++) {
+        BIGINT oy = oz + N1 * j2[dy]; // offset due to y & z
+        FLT ker23 = ker2[dy] * ker3[dz];
+        for (int dx = 0; dx < ns; dx++) {
+          FLT k    = ker1[dx] * ker23;
+          BIGINT j = oy + j1[dx];
+          out[0] += du[2 * j] * k;
+          out[1] += du[2 * j + 1] * k;
+        }
       }
     }
   }
   target[0] = out[0];
-  target[1] = out[1];  
+  target[1] = out[1];
 }
 
-void spread_subproblem_1d(BIGINT off1, BIGINT size1,FLT *du,BIGINT M,
-			  FLT *kx,FLT *dd, const finufft_spread_opts& opts)
+void spread_subproblem_1d(BIGINT off1, BIGINT size1, FLT *du, BIGINT M, FLT *kx, FLT *dd,
+                          const finufft_spread_opts &opts)
 /* 1D spreader from nonuniform to uniform subproblem grid, without wrapping.
    Inputs:
    off1 - integer offset of left end of du subgrid from that of overall fine
@@ -915,42 +940,42 @@ void spread_subproblem_1d(BIGINT off1, BIGINT size1,FLT *du,BIGINT M,
    This needed off1 as extra arg. AHB 11/30/20.
 */
 {
-  int ns=opts.nspread;          // a.k.a. w
-  FLT ns2 = (FLT)ns/2;          // half spread width
-  for (BIGINT i=0;i<2*size1;++i)         // zero output
+  int ns  = opts.nspread;                // a.k.a. w
+  FLT ns2 = (FLT)ns / 2;                 // half spread width
+  for (BIGINT i = 0; i < 2 * size1; ++i) // zero output
     du[i] = 0.0;
   FLT kernel_args[MAX_NSPREAD];
   FLT ker[MAX_NSPREAD];
-  for (BIGINT i=0; i<M; i++) {           // loop over NU pts
-    FLT re0 = dd[2*i];
-    FLT im0 = dd[2*i+1];
+  for (BIGINT i = 0; i < M; i++) { // loop over NU pts
+    FLT re0 = dd[2 * i];
+    FLT im0 = dd[2 * i + 1];
     // ceil offset, hence rounding, must match that in get_subgrid...
-    BIGINT i1 = (BIGINT)std::ceil(kx[i] - ns2);    // fine grid start index
-    FLT x1 = (FLT)i1 - kx[i];            // x1 in [-w/2,-w/2+1], up to rounding
+    BIGINT i1 = (BIGINT)std::ceil(kx[i] - ns2); // fine grid start index
+    FLT x1    = (FLT)i1 - kx[i];                // x1 in [-w/2,-w/2+1], up to rounding
     // However if N1*epsmach>O(1) then can cause O(1) errors in x1, hence ppoly
     // kernel evaluation will fall outside their designed domains, >>1 errors.
     // This can only happen if the overall error would be O(1) anyway. Clip x1??
-    if (x1<-ns2) x1=-ns2;
-    if (x1>-ns2+1) x1=-ns2+1;   // ***
-    if (opts.kerevalmeth==0) {          // faster Horner poly method
+    if (x1 < -ns2) x1 = -ns2;
+    if (x1 > -ns2 + 1) x1 = -ns2 + 1; // ***
+    if (opts.kerevalmeth == 0) {      // faster Horner poly method
       set_kernel_args(kernel_args, x1, opts);
       evaluate_kernel_vector(ker, kernel_args, opts, ns);
     } else
-      eval_kernel_vec_Horner(ker,x1,ns,opts);
-    BIGINT j = i1-off1;    // offset rel to subgrid, starts the output indices
+      eval_kernel_vec_Horner(ker, x1, ns, opts);
+    BIGINT j = i1 - off1; // offset rel to subgrid, starts the output indices
     // critical inner loop:
-    for (int dx=0; dx<ns; ++dx) {
+    for (int dx = 0; dx < ns; ++dx) {
       FLT k = ker[dx];
-      du[2*j] += re0*k;
-      du[2*j+1] += im0*k;
+      du[2 * j] += re0 * k;
+      du[2 * j + 1] += im0 * k;
       ++j;
     }
   }
 }
 
-void spread_subproblem_2d(BIGINT off1,BIGINT off2,BIGINT size1,BIGINT size2,
-                          FLT *du,BIGINT M, FLT *kx,FLT *ky,FLT *dd,
-			  const finufft_spread_opts& opts)
+void spread_subproblem_2d(BIGINT off1, BIGINT off2, BIGINT size1, BIGINT size2, FLT *du,
+                          BIGINT M, FLT *kx, FLT *ky, FLT *dd,
+                          const finufft_spread_opts &opts)
 /* spreader from dd (NU) to du (uniform) in 2D without wrapping.
    See above docs/notes for spread_subproblem_2d.
    kx,ky (size M) are NU locations in [off+ns/2,off+size-1-ns/2] in both dims.
@@ -958,56 +983,55 @@ void spread_subproblem_2d(BIGINT off1,BIGINT off2,BIGINT size1,BIGINT size2,
    du (size size1*size2) is complex uniform output array
  */
 {
-  int ns=opts.nspread;
-  FLT ns2 = (FLT)ns/2;          // half spread width
-  for (BIGINT i=0;i<2*size1*size2;++i)
-    du[i] = 0.0;
-  FLT kernel_args[2*MAX_NSPREAD];
+  int ns  = opts.nspread;
+  FLT ns2 = (FLT)ns / 2; // half spread width
+  for (BIGINT i = 0; i < 2 * size1 * size2; ++i) du[i] = 0.0;
+  FLT kernel_args[2 * MAX_NSPREAD];
   // Kernel values stored in consecutive memory. This allows us to compute
   // values in two directions in a single kernel evaluation call.
-  FLT kernel_values[2*MAX_NSPREAD];
+  FLT kernel_values[2 * MAX_NSPREAD];
   FLT *ker1 = kernel_values;
-  FLT *ker2 = kernel_values + ns;  
-  for (BIGINT i=0; i<M; i++) {           // loop over NU pts
-    FLT re0 = dd[2*i];
-    FLT im0 = dd[2*i+1];
+  FLT *ker2 = kernel_values + ns;
+  for (BIGINT i = 0; i < M; i++) { // loop over NU pts
+    FLT re0 = dd[2 * i];
+    FLT im0 = dd[2 * i + 1];
     // ceil offset, hence rounding, must match that in get_subgrid...
-    BIGINT i1 = (BIGINT)std::ceil(kx[i] - ns2);   // fine grid start indices
+    BIGINT i1 = (BIGINT)std::ceil(kx[i] - ns2); // fine grid start indices
     BIGINT i2 = (BIGINT)std::ceil(ky[i] - ns2);
-    FLT x1 = (FLT)i1 - kx[i];
-    FLT x2 = (FLT)i2 - ky[i];
-    if (opts.kerevalmeth==0) {          // faster Horner poly method
+    FLT x1    = (FLT)i1 - kx[i];
+    FLT x2    = (FLT)i2 - ky[i];
+    if (opts.kerevalmeth == 0) { // faster Horner poly method
       set_kernel_args(kernel_args, x1, opts);
-      set_kernel_args(kernel_args+ns, x2, opts);
-      evaluate_kernel_vector(kernel_values, kernel_args, opts, 2*ns);
+      set_kernel_args(kernel_args + ns, x2, opts);
+      evaluate_kernel_vector(kernel_values, kernel_args, opts, 2 * ns);
     } else {
-      // due to ns being padded up to next multiple of 4 in the eval_kernel_vec_Horner
-      // and writing zeros out to this padded size, these must occur in the order x,y...
-      eval_kernel_vec_Horner(ker1,x1,ns,opts);
-      eval_kernel_vec_Horner(ker2,x2,ns,opts);
+      // due to ns being padded up to next multiple of 4 in the
+      // eval_kernel_vec_Horner and writing zeros out to this padded size, these
+      // must occur in the order x,y...
+      eval_kernel_vec_Horner(ker1, x1, ns, opts);
+      eval_kernel_vec_Horner(ker2, x2, ns, opts);
     }
     // Combine kernel with complex source value to simplify inner loop
-    FLT ker1val[2*MAX_NSPREAD];    // here 2* is because of complex
+    FLT ker1val[2 * MAX_NSPREAD]; // here 2* is because of complex
     for (int i = 0; i < ns; i++) {
-      ker1val[2*i] = re0*ker1[i];
-      ker1val[2*i+1] = im0*ker1[i];
-    }    
+      ker1val[2 * i]     = re0 * ker1[i];
+      ker1val[2 * i + 1] = im0 * ker1[i];
+    }
     // critical inner loop:
-    for (int dy=0; dy<ns; ++dy) {
-      BIGINT j = size1*(i2-off2+dy) + i1-off1;   // should be in subgrid
+    for (int dy = 0; dy < ns; ++dy) {
+      BIGINT j   = size1 * (i2 - off2 + dy) + i1 - off1; // should be in subgrid
       FLT kerval = ker2[dy];
-      FLT *trg = du+2*j;
-      for (int dx=0; dx<2*ns; ++dx) {
-	trg[dx] += kerval*ker1val[dx];
-      }	
+      FLT *trg   = du + 2 * j;
+      for (int dx = 0; dx < 2 * ns; ++dx) {
+        trg[dx] += kerval * ker1val[dx];
+      }
     }
   }
 }
 
-void spread_subproblem_3d(BIGINT off1,BIGINT off2,BIGINT off3,BIGINT size1,
-                          BIGINT size2,BIGINT size3,FLT *du,BIGINT M,
-			  FLT *kx,FLT *ky,FLT *kz,FLT *dd,
-			  const finufft_spread_opts& opts)
+void spread_subproblem_3d(BIGINT off1, BIGINT off2, BIGINT off3, BIGINT size1,
+                          BIGINT size2, BIGINT size3, FLT *du, BIGINT M, FLT *kx, FLT *ky,
+                          FLT *kz, FLT *dd, const finufft_spread_opts &opts)
 /* spreader from dd (NU) to du (uniform) in 3D without wrapping.
    See above docs/notes for spread_subproblem_2d.
    kx,ky,kz (size M) are NU locations in [off+ns/2,off+size-1-ns/2] in each dim.
@@ -1015,63 +1039,64 @@ void spread_subproblem_3d(BIGINT off1,BIGINT off2,BIGINT off3,BIGINT size1,
    du (size size1*size2*size3) is uniform complex output array
  */
 {
-  int ns=opts.nspread;
-  FLT ns2 = (FLT)ns/2;          // half spread width
-  for (BIGINT i=0;i<2*size1*size2*size3;++i)
-    du[i] = 0.0;
-  FLT kernel_args[3*MAX_NSPREAD];
+  int ns  = opts.nspread;
+  FLT ns2 = (FLT)ns / 2; // half spread width
+  for (BIGINT i = 0; i < 2 * size1 * size2 * size3; ++i) du[i] = 0.0;
+  FLT kernel_args[3 * MAX_NSPREAD];
   // Kernel values stored in consecutive memory. This allows us to compute
   // values in all three directions in a single kernel evaluation call.
-  FLT kernel_values[3*MAX_NSPREAD];
+  FLT kernel_values[3 * MAX_NSPREAD];
   FLT *ker1 = kernel_values;
   FLT *ker2 = kernel_values + ns;
-  FLT *ker3 = kernel_values + 2*ns;  
-  for (BIGINT i=0; i<M; i++) {           // loop over NU pts
-    FLT re0 = dd[2*i];
-    FLT im0 = dd[2*i+1];
+  FLT *ker3 = kernel_values + 2 * ns;
+  for (BIGINT i = 0; i < M; i++) { // loop over NU pts
+    FLT re0 = dd[2 * i];
+    FLT im0 = dd[2 * i + 1];
     // ceil offset, hence rounding, must match that in get_subgrid...
-    BIGINT i1 = (BIGINT)std::ceil(kx[i] - ns2);   // fine grid start indices
+    BIGINT i1 = (BIGINT)std::ceil(kx[i] - ns2); // fine grid start indices
     BIGINT i2 = (BIGINT)std::ceil(ky[i] - ns2);
     BIGINT i3 = (BIGINT)std::ceil(kz[i] - ns2);
-    FLT x1 = (FLT)i1 - kx[i];
-    FLT x2 = (FLT)i2 - ky[i];
-    FLT x3 = (FLT)i3 - kz[i];
-    if (opts.kerevalmeth==0) {          // faster Horner poly method
+    FLT x1    = (FLT)i1 - kx[i];
+    FLT x2    = (FLT)i2 - ky[i];
+    FLT x3    = (FLT)i3 - kz[i];
+    if (opts.kerevalmeth == 0) { // faster Horner poly method
       set_kernel_args(kernel_args, x1, opts);
-      set_kernel_args(kernel_args+ns, x2, opts);
-      set_kernel_args(kernel_args+2*ns, x3, opts);
-      evaluate_kernel_vector(kernel_values, kernel_args, opts, 3*ns);
+      set_kernel_args(kernel_args + ns, x2, opts);
+      set_kernel_args(kernel_args + 2 * ns, x3, opts);
+      evaluate_kernel_vector(kernel_values, kernel_args, opts, 3 * ns);
     } else {
-      // due to ns being padded up to next multiple of 4 in the eval_kernel_vec_Horner
-      // and writing zeros out to this padded size, these must occur in the order x,y,z...
-      eval_kernel_vec_Horner(ker1,x1,ns,opts);
-      eval_kernel_vec_Horner(ker2,x2,ns,opts);
-      eval_kernel_vec_Horner(ker3,x3,ns,opts);
+      // due to ns being padded up to next multiple of 4 in the
+      // eval_kernel_vec_Horner and writing zeros out to this padded size, these
+      // must occur in the order x,y,z...
+      eval_kernel_vec_Horner(ker1, x1, ns, opts);
+      eval_kernel_vec_Horner(ker2, x2, ns, opts);
+      eval_kernel_vec_Horner(ker3, x3, ns, opts);
     }
     // Combine kernel with complex source value to simplify inner loop
-    FLT ker1val[2*MAX_NSPREAD];    // here 2* is because of complex
+    FLT ker1val[2 * MAX_NSPREAD]; // here 2* is because of complex
     for (int i = 0; i < ns; i++) {
-      ker1val[2*i] = re0*ker1[i];
-      ker1val[2*i+1] = im0*ker1[i];	
-    }    
+      ker1val[2 * i]     = re0 * ker1[i];
+      ker1val[2 * i + 1] = im0 * ker1[i];
+    }
     // critical inner loop:
-    for (int dz=0; dz<ns; ++dz) {
-      BIGINT oz = size1*size2*(i3-off3+dz);        // offset due to z
-      for (int dy=0; dy<ns; ++dy) {
-	BIGINT j = oz + size1*(i2-off2+dy) + i1-off1;   // should be in subgrid
-	FLT kerval = ker2[dy]*ker3[dz];
-	FLT *trg = du+2*j;
-	for (int dx=0; dx<2*ns; ++dx) {
-	  trg[dx] += kerval*ker1val[dx];
-	}	
+    for (int dz = 0; dz < ns; ++dz) {
+      BIGINT oz = size1 * size2 * (i3 - off3 + dz);           // offset due to z
+      for (int dy = 0; dy < ns; ++dy) {
+        BIGINT j = oz + size1 * (i2 - off2 + dy) + i1 - off1; // should be in
+                                                              // subgrid
+        FLT kerval = ker2[dy] * ker3[dz];
+        FLT *trg   = du + 2 * j;
+        for (int dx = 0; dx < 2 * ns; ++dx) {
+          trg[dx] += kerval * ker1val[dx];
+        }
       }
     }
   }
 }
 
-void add_wrapped_subgrid(BIGINT offset1,BIGINT offset2,BIGINT offset3,
-			 BIGINT size1,BIGINT size2,BIGINT size3,BIGINT N1,
-			 BIGINT N2,BIGINT N3,FLT *data_uniform, FLT *du0)
+void add_wrapped_subgrid(BIGINT offset1, BIGINT offset2, BIGINT offset3, BIGINT size1,
+                         BIGINT size2, BIGINT size3, BIGINT N1, BIGINT N2, BIGINT N3,
+                         FLT *data_uniform, FLT *du0)
 /* Add a large subgrid (du0) to output grid (data_uniform),
    with periodic wrapping to N1,N2,N3 box.
    offset1,2,3 give the offset of the subgrid from the lowest corner of output.
@@ -1081,42 +1106,40 @@ void add_wrapped_subgrid(BIGINT offset1,BIGINT offset2,BIGINT offset3,
 */
 {
   std::vector<BIGINT> o2(size2), o3(size3);
-  BIGINT y=offset2, z=offset3;    // fill wrapped ptr lists in slower dims y,z...
-  for (int i=0; i<size2; ++i) {
-    if (y<0) y+=N2;
-    if (y>=N2) y-=N2;
+  BIGINT y = offset2, z = offset3; // fill wrapped ptr lists in slower dims y,z...
+  for (int i = 0; i < size2; ++i) {
+    if (y < 0) y += N2;
+    if (y >= N2) y -= N2;
     o2[i] = y++;
   }
-  for (int i=0; i<size3; ++i) {
-    if (z<0) z+=N3;
-    if (z>=N3) z-=N3;
+  for (int i = 0; i < size3; ++i) {
+    if (z < 0) z += N3;
+    if (z >= N3) z -= N3;
     o3[i] = z++;
   }
-  BIGINT nlo = (offset1<0) ? -offset1 : 0;          // # wrapping below in x
-  BIGINT nhi = (offset1+size1>N1) ? offset1+size1-N1 : 0;    // " above in x
+  BIGINT nlo = (offset1 < 0) ? -offset1 : 0;                      // # wrapping below in x
+  BIGINT nhi = (offset1 + size1 > N1) ? offset1 + size1 - N1 : 0; // " above in x
   // this triple loop works in all dims
-  for (int dz=0; dz<size3; dz++) {       // use ptr lists in each axis
-    BIGINT oz = N1*N2*o3[dz];            // offset due to z (0 in <3D)
-    for (int dy=0; dy<size2; dy++) {
-      BIGINT oy = oz + N1*o2[dy];        // off due to y & z (0 in 1D)
-      FLT *out = data_uniform + 2*oy;
-      FLT *in  = du0 + 2*size1*(dy + size2*dz);   // ptr to subgrid array
-      BIGINT o = 2*(offset1+N1);         // 1d offset for output
-      for (int j=0; j<2*nlo; j++)        // j is really dx/2 (since re,im parts)
-	out[j+o] += in[j];
-      o = 2*offset1;
-      for (int j=2*nlo; j<2*(size1-nhi); j++)
-	out[j+o] += in[j];
-      o = 2*(offset1-N1);
-      for (int j=2*(size1-nhi); j<2*size1; j++)
-      	out[j+o] += in[j];
+  for (int dz = 0; dz < size3; dz++) {                 // use ptr lists in each axis
+    BIGINT oz = N1 * N2 * o3[dz];                      // offset due to z (0 in <3D)
+    for (int dy = 0; dy < size2; dy++) {
+      BIGINT oy = oz + N1 * o2[dy];                    // off due to y & z (0 in 1D)
+      FLT *out  = data_uniform + 2 * oy;
+      FLT *in   = du0 + 2 * size1 * (dy + size2 * dz); // ptr to subgrid array
+      BIGINT o  = 2 * (offset1 + N1);                  // 1d offset for output
+      for (int j = 0; j < 2 * nlo; j++) // j is really dx/2 (since re,im parts)
+        out[j + o] += in[j];
+      o = 2 * offset1;
+      for (int j = 2 * nlo; j < 2 * (size1 - nhi); j++) out[j + o] += in[j];
+      o = 2 * (offset1 - N1);
+      for (int j = 2 * (size1 - nhi); j < 2 * size1; j++) out[j + o] += in[j];
     }
   }
 }
 
-void add_wrapped_subgrid_thread_safe(BIGINT offset1,BIGINT offset2,BIGINT offset3,
-                                     BIGINT size1,BIGINT size2,BIGINT size3,BIGINT N1,
-                                     BIGINT N2,BIGINT N3,FLT *data_uniform, FLT *du0)
+void add_wrapped_subgrid_thread_safe(BIGINT offset1, BIGINT offset2, BIGINT offset3,
+                                     BIGINT size1, BIGINT size2, BIGINT size3, BIGINT N1,
+                                     BIGINT N2, BIGINT N3, FLT *data_uniform, FLT *du0)
 /* Add a large subgrid (du0) to output grid (data_uniform),
    with periodic wrapping to N1,N2,N3 box.
    offset1,2,3 give the offset of the subgrid from the lowest corner of output.
@@ -1126,49 +1149,48 @@ void add_wrapped_subgrid_thread_safe(BIGINT offset1,BIGINT offset2,BIGINT offset
 */
 {
   std::vector<BIGINT> o2(size2), o3(size3);
-  BIGINT y=offset2, z=offset3;    // fill wrapped ptr lists in slower dims y,z...
-  for (int i=0; i<size2; ++i) {
-    if (y<0) y+=N2;
-    if (y>=N2) y-=N2;
+  BIGINT y = offset2, z = offset3; // fill wrapped ptr lists in slower dims y,z...
+  for (int i = 0; i < size2; ++i) {
+    if (y < 0) y += N2;
+    if (y >= N2) y -= N2;
     o2[i] = y++;
   }
-  for (int i=0; i<size3; ++i) {
-    if (z<0) z+=N3;
-    if (z>=N3) z-=N3;
+  for (int i = 0; i < size3; ++i) {
+    if (z < 0) z += N3;
+    if (z >= N3) z -= N3;
     o3[i] = z++;
   }
-  BIGINT nlo = (offset1<0) ? -offset1 : 0;          // # wrapping below in x
-  BIGINT nhi = (offset1+size1>N1) ? offset1+size1-N1 : 0;    // " above in x
+  BIGINT nlo = (offset1 < 0) ? -offset1 : 0;                      // # wrapping below in x
+  BIGINT nhi = (offset1 + size1 > N1) ? offset1 + size1 - N1 : 0; // " above in x
   // this triple loop works in all dims
-  for (int dz=0; dz<size3; dz++) {       // use ptr lists in each axis
-    BIGINT oz = N1*N2*o3[dz];            // offset due to z (0 in <3D)
-    for (int dy=0; dy<size2; dy++) {
-      BIGINT oy = oz + N1*o2[dy];        // off due to y & z (0 in 1D)
-      FLT *out = data_uniform + 2*oy;
-      FLT *in  = du0 + 2*size1*(dy + size2*dz);   // ptr to subgrid array
-      BIGINT o = 2*(offset1+N1);         // 1d offset for output
-      for (int j=0; j<2*nlo; j++) { // j is really dx/2 (since re,im parts)
+  for (int dz = 0; dz < size3; dz++) {                 // use ptr lists in each axis
+    BIGINT oz = N1 * N2 * o3[dz];                      // offset due to z (0 in <3D)
+    for (int dy = 0; dy < size2; dy++) {
+      BIGINT oy = oz + N1 * o2[dy];                    // off due to y & z (0 in 1D)
+      FLT *out  = data_uniform + 2 * oy;
+      FLT *in   = du0 + 2 * size1 * (dy + size2 * dz); // ptr to subgrid array
+      BIGINT o  = 2 * (offset1 + N1);                  // 1d offset for output
+      for (int j = 0; j < 2 * nlo; j++) { // j is really dx/2 (since re,im parts)
 #pragma omp atomic
         out[j + o] += in[j];
       }
-      o = 2*offset1;
-      for (int j=2*nlo; j<2*(size1-nhi); j++) {
+      o = 2 * offset1;
+      for (int j = 2 * nlo; j < 2 * (size1 - nhi); j++) {
 #pragma omp atomic
         out[j + o] += in[j];
       }
-      o = 2*(offset1-N1);
-      for (int j=2*(size1-nhi); j<2*size1; j++) {
+      o = 2 * (offset1 - N1);
+      for (int j = 2 * (size1 - nhi); j < 2 * size1; j++) {
 #pragma omp atomic
-        out[j+o] += in[j];
+        out[j + o] += in[j];
       }
     }
   }
 }
 
-
-void bin_sort_singlethread(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
-	      BIGINT N1,BIGINT N2,BIGINT N3,
-	      double bin_size_x,double bin_size_y,double bin_size_z, int debug)
+void bin_sort_singlethread(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz, BIGINT N1,
+                           BIGINT N2, BIGINT N3, double bin_size_x, double bin_size_y,
+                           double bin_size_z, int debug)
 /* Returns permutation of all nonuniform points with good RAM access,
  * ie less cache misses for spreading, in 1D, 2D, or 3D. Single-threaded version
  *
@@ -1177,7 +1199,7 @@ void bin_sort_singlethread(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
  * these bins in a Cartesian cuboid ordering (x fastest, y med, z slowest).
  * Finally the permutation is inverted, so that the good ordering is: the
  * NU pt of index ret[0], the NU pt of index ret[1],..., NU pt of index ret[M-1]
- * 
+ *
  * Inputs: M - number of input NU points.
  *         kx,ky,kz - length-M arrays of real coords of NU pts in [-pi, pi).
  *                    Points outside this range are folded into it.
@@ -1197,48 +1219,47 @@ void bin_sort_singlethread(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
  * Simplified by Martin Reinecke, 6/19/23 (no apparent effect on speed).
  */
 {
-  bool isky=(N2>1), iskz=(N3>1);  // ky,kz avail? (cannot access if not)
+  bool isky = (N2 > 1), iskz = (N3 > 1); // ky,kz avail? (cannot access if not)
   // here the +1 is needed to allow round-off error causing i1=N1/bin_size_x,
   // for kx near +pi, ie foldrescale gives N1 (exact arith would be 0 to N1-1).
   // Note that round-off near kx=-pi stably rounds negative to i1=0.
-  BIGINT nbins1=N1/bin_size_x+1, nbins2, nbins3;
-  nbins2 = isky ? N2/bin_size_y+1 : 1;
-  nbins3 = iskz ? N3/bin_size_z+1 : 1;
-  BIGINT nbins = nbins1*nbins2*nbins3;
+  BIGINT nbins1 = N1 / bin_size_x + 1, nbins2, nbins3;
+  nbins2        = isky ? N2 / bin_size_y + 1 : 1;
+  nbins3        = iskz ? N3 / bin_size_z + 1 : 1;
+  BIGINT nbins  = nbins1 * nbins2 * nbins3;
 
-  std::vector<BIGINT> counts(nbins,0);  // count how many pts in each bin
-  for (BIGINT i=0; i<M; i++) {
+  std::vector<BIGINT> counts(nbins, 0); // count how many pts in each bin
+  for (BIGINT i = 0; i < M; i++) {
     // find the bin index in however many dims are needed
-    BIGINT i1= fold_rescale(kx[i], N1) / bin_size_x, i2=0, i3=0;
+    BIGINT i1 = fold_rescale(kx[i], N1) / bin_size_x, i2 = 0, i3 = 0;
     if (isky) i2 = fold_rescale(ky[i], N2) / bin_size_y;
     if (iskz) i3 = fold_rescale(kz[i], N3) / bin_size_z;
-    BIGINT bin = i1+nbins1*(i2+nbins2*i3);
+    BIGINT bin = i1 + nbins1 * (i2 + nbins2 * i3);
     counts[bin]++;
   }
 
   // compute the offsets directly in the counts array (no offset array)
-  BIGINT current_offset=0;
-  for (BIGINT i=0; i<nbins; i++) {
+  BIGINT current_offset = 0;
+  for (BIGINT i = 0; i < nbins; i++) {
     BIGINT tmp = counts[i];
-    counts[i] = current_offset;   // Reinecke's cute replacement of counts[i]
+    counts[i]  = current_offset; // Reinecke's cute replacement of counts[i]
     current_offset += tmp;
-  }              // (counts now contains the index offsets for each bin)
-  
-  for (BIGINT i=0; i<M; i++) {
+  } // (counts now contains the index offsets for each bin)
+
+  for (BIGINT i = 0; i < M; i++) {
     // find the bin index (again! but better than using RAM)
-    BIGINT i1= fold_rescale(kx[i], N1) / bin_size_x, i2=0, i3=0;
+    BIGINT i1 = fold_rescale(kx[i], N1) / bin_size_x, i2 = 0, i3 = 0;
     if (isky) i2 = fold_rescale(ky[i], N2) / bin_size_y;
     if (iskz) i3 = fold_rescale(kz[i], N3) / bin_size_z;
-    BIGINT bin = i1+nbins1*(i2+nbins2*i3);
-    ret[counts[bin]] = i;      // fill the inverse map on the fly
-    ++counts[bin];             // update the offsets
+    BIGINT bin       = i1 + nbins1 * (i2 + nbins2 * i3);
+    ret[counts[bin]] = i; // fill the inverse map on the fly
+    ++counts[bin];        // update the offsets
   }
 }
 
-void bin_sort_multithread(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
-	      BIGINT N1,BIGINT N2,BIGINT N3,
-              double bin_size_x,double bin_size_y,double bin_size_z, int debug,
-              int nthr)
+void bin_sort_multithread(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz, BIGINT N1,
+                          BIGINT N2, BIGINT N3, double bin_size_x, double bin_size_y,
+                          double bin_size_z, int debug, int nthr)
 /* Mostly-OpenMP'ed version of bin_sort.
    For documentation see: bin_sort_singlethread.
    Caution: when M (# NU pts) << N (# U pts), is SLOWER than single-thread.
@@ -1248,66 +1269,67 @@ void bin_sort_multithread(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
    Todo: if debug, print timing breakdowns.
  */
 {
-  bool isky=(N2>1), iskz=(N3>1);  // ky,kz avail? (cannot access if not)
-  BIGINT nbins1=N1/bin_size_x+1, nbins2, nbins3;  // see above note on why +1
-  nbins2 = isky ? N2/bin_size_y+1 : 1;
-  nbins3 = iskz ? N3/bin_size_z+1 : 1;
-  BIGINT nbins = nbins1*nbins2*nbins3;
-  if (nthr==0)                      // should never happen in spreadinterp use
-    fprintf(stderr,"[%s] nthr (%d) must be positive!\n",__func__,nthr);
-  int nt = min(M,(BIGINT)nthr);     // handle case of less points than threads
-  std::vector<BIGINT> brk(nt+1);    // list of start NU pt indices per thread
+  bool isky = (N2 > 1), iskz = (N3 > 1); // ky,kz avail? (cannot access if not)
+  BIGINT nbins1 = N1 / bin_size_x + 1, nbins2, nbins3; // see above note on why +1
+  nbins2        = isky ? N2 / bin_size_y + 1 : 1;
+  nbins3        = iskz ? N3 / bin_size_z + 1 : 1;
+  BIGINT nbins  = nbins1 * nbins2 * nbins3;
+  if (nthr == 0)                   // should never happen in spreadinterp use
+    fprintf(stderr, "[%s] nthr (%d) must be positive!\n", __func__, nthr);
+  int nt = min(M, (BIGINT)nthr);   // handle case of less points than threads
+  std::vector<BIGINT> brk(nt + 1); // list of start NU pt indices per thread
 
   // distribute the NU pts to threads once & for all...
-  for (int t=0; t<=nt; ++t)
-    brk[t] = (BIGINT)(0.5 + M*t/(double)nt);   // start index for t'th chunk
+  for (int t = 0; t <= nt; ++t)
+    brk[t] = (BIGINT)(0.5 + M * t / (double)nt); // start index for t'th chunk
 
   // set up 2d array (nthreads * nbins), just its pointers for now
   // (sub-vectors will be initialized later)
-  std::vector< std::vector<BIGINT> > counts(nt);
-    
+  std::vector<std::vector<BIGINT>> counts(nt);
+
 #pragma omp parallel num_threads(nt)
-  {  // parallel binning to each thread's count. Block done once per thread
-    int t = MY_OMP_GET_THREAD_NUM();     // (we assume all nt threads created)
-    auto &my_counts(counts[t]);          // name for counts[t]
-    my_counts.resize(nbins,0);  // allocate counts[t], now in parallel region
-    for (BIGINT i=brk[t]; i<brk[t+1]; i++) {
+  { // parallel binning to each thread's count. Block done once per thread
+    int t = MY_OMP_GET_THREAD_NUM(); // (we assume all nt threads created)
+    auto &my_counts(counts[t]);      // name for counts[t]
+    my_counts.resize(nbins, 0);      // allocate counts[t], now in parallel region
+    for (BIGINT i = brk[t]; i < brk[t + 1]; i++) {
       // find the bin index in however many dims are needed
-      BIGINT i1= fold_rescale(kx[i], N1) / bin_size_x, i2=0, i3=0;
+      BIGINT i1 = fold_rescale(kx[i], N1) / bin_size_x, i2 = 0, i3 = 0;
       if (isky) i2 = fold_rescale(ky[i], N2) / bin_size_y;
       if (iskz) i3 = fold_rescale(kz[i], N3) / bin_size_z;
-      BIGINT bin = i1+nbins1*(i2+nbins2*i3);
-      ++my_counts[bin];               // no clash btw threads
+      BIGINT bin = i1 + nbins1 * (i2 + nbins2 * i3);
+      ++my_counts[bin]; // no clash btw threads
     }
   }
-  
+
   // inner sum along both bin and thread (inner) axes to get global offsets
   BIGINT current_offset = 0;
-  for (BIGINT b=0; b<nbins; ++b)   // (not worth omp)
-    for (int t=0; t<nt; ++t) {
-      BIGINT tmp = counts[t][b];
+  for (BIGINT b = 0; b < nbins; ++b) // (not worth omp)
+    for (int t = 0; t < nt; ++t) {
+      BIGINT tmp   = counts[t][b];
       counts[t][b] = current_offset;
       current_offset += tmp;
-    }   // counts[t][b] is now the index offset as if t ordered fast, b slow
-  
+    } // counts[t][b] is now the index offset as if t ordered fast, b slow
+
 #pragma omp parallel num_threads(nt)
   {
     int t = MY_OMP_GET_THREAD_NUM();
     auto &my_counts(counts[t]);
-    for (BIGINT i=brk[t]; i<brk[t+1]; i++) {
+    for (BIGINT i = brk[t]; i < brk[t + 1]; i++) {
       // find the bin index (again! but better than using RAM)
-      BIGINT i1= fold_rescale(kx[i], N1) / bin_size_x, i2=0, i3=0;
+      BIGINT i1 = fold_rescale(kx[i], N1) / bin_size_x, i2 = 0, i3 = 0;
       if (isky) i2 = fold_rescale(ky[i], N2) / bin_size_y;
       if (iskz) i3 = fold_rescale(kz[i], N3) / bin_size_z;
-      BIGINT bin = i1+nbins1*(i2+nbins2*i3);
-      ret[my_counts[bin]] = i;   // inverse is offset for this NU pt and thread
-      ++my_counts[bin];          // update the offsets; no thread clash
+      BIGINT bin          = i1 + nbins1 * (i2 + nbins2 * i3);
+      ret[my_counts[bin]] = i; // inverse is offset for this NU pt and thread
+      ++my_counts[bin];        // update the offsets; no thread clash
     }
   }
 }
 
-
-void get_subgrid(BIGINT &offset1,BIGINT &offset2,BIGINT &offset3,BIGINT &size1,BIGINT &size2,BIGINT &size3,BIGINT M,FLT* kx,FLT* ky,FLT* kz,int ns,int ndims)
+void get_subgrid(BIGINT &offset1, BIGINT &offset2, BIGINT &offset3, BIGINT &size1,
+                 BIGINT &size2, BIGINT &size3, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
+                 int ns, int ndims)
 /* Writes out the integer offsets and sizes of a "subgrid" (cuboid subset of
    Z^ndims) large enough to enclose all of the nonuniform points with
    (non-periodic) padding of half the kernel width ns to each side in
@@ -1321,7 +1343,7 @@ void get_subgrid(BIGINT &offset1,BIGINT &offset2,BIGINT &offset3,BIGINT &size1,B
               assumed to be in [0,Nj] for dimension j=1,..,ndims.
    ns - (positive integer) spreading kernel width.
    ndims - space dimension (1,2, or 3).
-   
+
  Outputs:
    offset1,2,3 - left-most coord of cuboid in each dimension (up to ndims)
    size1,2,3   - size of cuboid in each dimension.
@@ -1351,41 +1373,41 @@ void get_subgrid(BIGINT &offset1,BIGINT &offset2,BIGINT &offset3,BIGINT &size1,B
    tests.
 */
 {
-  FLT ns2 = (FLT)ns/2;
-  FLT min_kx,max_kx;   // 1st (x) dimension: get min/max of nonuniform points
-  arrayrange(M,kx,&min_kx,&max_kx);
-  offset1 = (BIGINT)std::ceil(min_kx-ns2);   // min index touched by kernel
-  size1 = (BIGINT)std::ceil(max_kx-ns2) - offset1 + ns;  // int(ceil) first!
-  if (ndims>1) {
-    FLT min_ky,max_ky;   // 2nd (y) dimension: get min/max of nonuniform points
-    arrayrange(M,ky,&min_ky,&max_ky);
-    offset2 = (BIGINT)std::ceil(min_ky-ns2);
-    size2 = (BIGINT)std::ceil(max_ky-ns2) - offset2 + ns;
+  FLT ns2 = (FLT)ns / 2;
+  FLT min_kx, max_kx; // 1st (x) dimension: get min/max of nonuniform points
+  arrayrange(M, kx, &min_kx, &max_kx);
+  offset1 = (BIGINT)std::ceil(min_kx - ns2);                // min index touched by kernel
+  size1   = (BIGINT)std::ceil(max_kx - ns2) - offset1 + ns; // int(ceil) first!
+  if (ndims > 1) {
+    FLT min_ky, max_ky; // 2nd (y) dimension: get min/max of nonuniform points
+    arrayrange(M, ky, &min_ky, &max_ky);
+    offset2 = (BIGINT)std::ceil(min_ky - ns2);
+    size2   = (BIGINT)std::ceil(max_ky - ns2) - offset2 + ns;
   } else {
     offset2 = 0;
-    size2 = 1;
+    size2   = 1;
   }
-  if (ndims>2) {
-    FLT min_kz,max_kz;   // 3rd (z) dimension: get min/max of nonuniform points
-    arrayrange(M,kz,&min_kz,&max_kz);
-    offset3 = (BIGINT)std::ceil(min_kz-ns2);
-    size3 = (BIGINT)std::ceil(max_kz-ns2) - offset3 + ns;
+  if (ndims > 2) {
+    FLT min_kz, max_kz; // 3rd (z) dimension: get min/max of nonuniform points
+    arrayrange(M, kz, &min_kz, &max_kz);
+    offset3 = (BIGINT)std::ceil(min_kz - ns2);
+    size3   = (BIGINT)std::ceil(max_kz - ns2) - offset3 + ns;
   } else {
     offset3 = 0;
-    size3 = 1;
+    size3   = 1;
   }
 }
 /* local NU coord fold+rescale macro: does the following affine transform to x:
      when p=true:   (x+PI) mod PI    each to [0,N)
      otherwise,     x mod N          each to [0,N)
    Note: folding big numbers can cause numerical inaccuracies
-   Martin Reinecke, 8.5.2024 used floor to speedup the function and removed the range limitation
-   Marco Barbone, 8.5.2024 Changed it from a Macro to an inline function
+   Martin Reinecke, 8.5.2024 used floor to speedup the function and removed the range
+   limitation Marco Barbone, 8.5.2024 Changed it from a Macro to an inline function
 */
 FINUFFT_ALWAYS_INLINE FLT fold_rescale(const FLT x, const BIGINT N) noexcept {
   static constexpr const FLT x2pi = FLT(M_1_2PI);
-  const FLT result = x * x2pi + FLT(0.5);
-  return (result-floor(result)) * FLT(N);
+  const FLT result                = x * x2pi + FLT(0.5);
+  return (result - floor(result)) * FLT(N);
 }
-}   // namespace
-}   // namespace
+} // namespace spreadinterp
+} // namespace finufft
