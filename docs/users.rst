@@ -42,6 +42,8 @@ and also add them to GitHub's Used By feature):
 
 #. `FTK <https://github.com/flatironinstitute/ftk>`_: Factorization of the translation kernel for fast 2D rigid image alignment, by Rangan, Spivak, Andén, and Barnett.
 
+#. `nifty-ls <https://github.com/flatironinstitute/nifty-ls>`_: Fast evaluation of the Lomb-Scargle periodogram for time series analysis, backed by finufft or cufinufft
+
    
 Other wrappers to (cu)FINUFFT
 ------------------------------
