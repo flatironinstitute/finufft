@@ -18,6 +18,10 @@ If not stated, FINUFFT is assumed (cuFINUFFT <=1.3 is listed separately).
 * MAX_NF increased from 1e11 to 1e12, since machines grow.
 * improved GPU python docs: migration guide; usage from cupy, numba, torch,
   pycuda. PyPI pkg still at 2.2.0beta.
+* Added a clang-format pre-commit hook to ensure consistent code style.
+  Created a .clang-format file to define the style similar to the existing style.
+  Applied clang-format to all cmake, C, C++, and CUDA code. Ignored the blame
+  using .git-blame-ignore-revs. Added a contributing.md for developers.
 
 V 2.2.0 (12/12/23)
 

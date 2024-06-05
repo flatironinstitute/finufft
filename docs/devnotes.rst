@@ -3,7 +3,7 @@
 Developer notes
 ===============
 
-* Developers needing to update/regenerate documentation in general, including our readthedocs website, see ``docs/README``. Developers changing MATLAB/octave interfaces or docs, also see ``matlab/README``.
+* Developers needing to update/regenerate documentation in general, including our readthedocs website, see ``docs/README``. Developers changing MATLAB/octave interfaces or docs, also see ``matlab/README``. Please also see ``contributing.md`` for code style and git hook guidelines.
 
 * To update the version number, this needs to be done by hand in the following places:
 
