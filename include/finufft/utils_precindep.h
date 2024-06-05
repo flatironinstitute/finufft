@@ -10,34 +10,35 @@
 #include <chrono>
 
 namespace finufft {
-  namespace utils {
-  
-  FINUFFT_EXPORT BIGINT FINUFFT_CDECL next235even(BIGINT n);
+namespace utils {
 
-  // jfm's timer class
-  class FINUFFT_EXPORT CNTime {
-  public:
-    void start();
-    double restart();
-    double elapsedsec();
-  private:
-    double initial;
-  };
+FINUFFT_EXPORT BIGINT FINUFFT_CDECL next235even(BIGINT n);
 
-  // openmp helpers
-  int get_num_threads_parallel_block();
-    
-  } //namespace
-} //namespace
-  
+// jfm's timer class
+class FINUFFT_EXPORT CNTime {
+public:
+  void start();
+  double restart();
+  double elapsedsec();
+
+private:
+  double initial;
+};
+
+// openmp helpers
+int get_num_threads_parallel_block();
+
+} // namespace utils
+} // namespace finufft
+
 // thread-safe rand number generator for Windows platform
 #ifdef _WIN32
 #include <random>
 namespace finufft {
-  namespace utils {
-  FINUFFT_EXPORT int FINUFFT_CDECL rand_r(unsigned int *seedp);
-  }   // namespace
-}   // namespace
+namespace utils {
+FINUFFT_EXPORT int FINUFFT_CDECL rand_r(unsigned int *seedp);
+} // namespace utils
+} // namespace finufft
 #endif
 
-#endif  // UTILS_PRECINDEP_H
+#endif // UTILS_PRECINDEP_H

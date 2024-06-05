@@ -5,7 +5,6 @@
 // They will clobber any prior macros starting FINUFFT*, so in the lib/test
 // sources finufft.h must be included before defs.h
 
-
 /* Devnotes.
    A) Two precisions done by including the "either precision" headers twice.
    No use of the private headers for lib/test/example compilation is made.
@@ -37,7 +36,7 @@
 #define FINUFFT_BIGINT int64_t
 
 #ifndef __cplusplus
-#include <stdbool.h>     // for bool type in C (needed for item in plan struct)
+#include <stdbool.h> // for bool type in C (needed for item in plan struct)
 #endif
 
 // this macro name has to be safe since exposed to user
@@ -50,4 +49,4 @@
 // clean up any purely local defs that are not in finufft_eitherprec.h...
 #undef FINUFFT_BIGINT
 
-#endif  // FINUFFT_H
+#endif // FINUFFT_H
