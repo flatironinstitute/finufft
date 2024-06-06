@@ -31,13 +31,7 @@ int invokeGuruInterface(int n_dims, int type, int n_transf, BIGINT nj, FLT *xj, 
 {
   FINUFFT_PLAN plan;
   int ier = FINUFFT_MAKEPLAN(type, n_dims, n_modes, iflag, n_transf, eps, &plan,
-                             popts); // popts
-                                     // (ptr
-                                     // to
-                                     // opts)
-                                     // can
-                                     // be
-                                     // NULL
+                             popts); // popts (ptr to opts) can be NULL
   if (ier > 1) {                     // since 1 (a warning) still allows proceeding...
     fprintf(stderr, "FINUFFT invokeGuru: plan error (ier=%d)!\n", ier);
     delete plan;
