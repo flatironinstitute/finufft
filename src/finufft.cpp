@@ -38,41 +38,41 @@ using namespace finufft::quadrature;
 Algorithm summaries taken from old finufft?d?() documentation, Feb-Jun 2017:
 
    TYPE 1:
-     The type 1 NUFFT proceeds in three main steps:
-     1) spread data to oversampled regular mesh using kernel.
-     2) compute FFT on uniform mesh
-     3) deconvolve by division of each Fourier mode independently by the kernel
-        Fourier series coeffs (not merely FFT of kernel), shuffle to output.
-     The kernel coeffs are precomputed in what is called step 0 in the code.
+   The type 1 NUFFT proceeds in three main steps:
+   1) spread data to oversampled regular mesh using kernel.
+   2) compute FFT on uniform mesh
+   3) deconvolve by division of each Fourier mode independently by the kernel
+    Fourier series coeffs (not merely FFT of kernel), shuffle to output.
+   The kernel coeffs are precomputed in what is called step 0 in the code.
    Written with FFTW style complex arrays. Step 3a internally uses CPX,
    and Step 3b internally uses real arithmetic and FFTW style complex.
 
    TYPE 2:
-     The type 2 algorithm proceeds in three main steps:
-     1) deconvolve (amplify) each Fourier mode, dividing by kernel Fourier coeff
-     2) compute inverse FFT on uniform fine grid
-     3) spread (dir=2, ie interpolate) data to regular mesh
-     The kernel coeffs are precomputed in what is called step 0 in the code.
+   The type 2 algorithm proceeds in three main steps:
+   1) deconvolve (amplify) each Fourier mode, dividing by kernel Fourier coeff
+   2) compute inverse FFT on uniform fine grid
+   3) spread (dir=2, ie interpolate) data to regular mesh
+   The kernel coeffs are precomputed in what is called step 0 in the code.
    Written with FFTW style complex arrays. Step 0 internally uses CPX,
    and Step 1 internally uses real arithmetic and FFTW style complex.
 
    TYPE 3:
-     The type 3 algorithm is basically a type 2 (which is implemented precisely
-     as call to type 2) replacing the middle FFT (Step 2) of a type 1.
-     Beyond this, the new twists are:
-     i) nf1, number of upsampled points for the type-1, depends on the product
-       of interval widths containing input and output points (X*S).
-     ii) The deconvolve (post-amplify) step is division by the Fourier transform
-       of the scaled kernel, evaluated on the *nonuniform* output frequency
-       grid; this is done by direct approximation of the Fourier integral
-       using quadrature of the kernel function times exponentials.
-     iii) Shifts in x (real) and s (Fourier) are done to minimize the interval
-       half-widths X and S, hence nf1.
+   The type 3 algorithm is basically a type 2 (which is implemented precisely
+   as call to type 2) replacing the middle FFT (Step 2) of a type 1.
+   Beyond this, the new twists are:
+   i) nf1, number of upsampled points for the type-1, depends on the product
+     of interval widths containing input and output points (X*S).
+   ii) The deconvolve (post-amplify) step is division by the Fourier transform
+     of the scaled kernel, evaluated on the *nonuniform* output frequency
+     grid; this is done by direct approximation of the Fourier integral
+     using quadrature of the kernel function times exponentials.
+   iii) Shifts in x (real) and s (Fourier) are done to minimize the interval
+     half-widths X and S, hence nf1.
    No references to FFTW are needed here. CPX arithmetic is used.
 
    MULTIPLE STRENGTH VECTORS FOR THE SAME NONUNIFORM POINTS (n_transf>1):
-     maxBatchSize (set to max_num_omp_threads) times the RAM is needed, so
-     this is good only for small problems.
+   maxBatchSize (set to max_num_omp_threads) times the RAM is needed, so
+   this is good only for small problems.
 
 
 Design notes for guru interface implementation:
@@ -111,10 +111,10 @@ int SET_NF_TYPE12(BIGINT ms, finufft_opts opts, finufft_spread_opts spopts, BIGI
     *nf = next235even(*nf);                               // expensive at huge nf
     return 0;
   } else {
-    fprintf(
-        stderr,
-        "[%s] nf=%.3g exceeds MAX_NF of %.3g, so exit without attempting even a malloc\n",
-        __func__, (double)*nf, (double)MAX_NF);
+    fprintf(stderr,
+            "[%s] nf=%.3g exceeds MAX_NF of %.3g, so exit without attempting even a "
+            "malloc\n",
+            __func__, (double)*nf, (double)MAX_NF);
     return FINUFFT_ERR_MAXNALLOC;
   }
 }
@@ -198,8 +198,8 @@ void onedim_fseries_kernel(BIGINT nf, FLT *fwkerhalf, finufft_spread_opts opts)
 
   Outputs:
   fwkerhalf - real Fourier series coeffs from indices 0 to nf/2 inclusive,
-              divided by h = 2pi/n.
-              (should be allocated for at least nf/2+1 FLTs)
+        divided by h = 2pi/n.
+        (should be allocated for at least nf/2+1 FLTs)
 
   Compare onedim_dct_kernel which has same interface, but computes DFT of
   sampled kernel, not quite the same object.
@@ -253,8 +253,8 @@ void onedim_nuft_kernel(BIGINT nk, FLT *k, FLT *phihat, finufft_spread_opts opts
   Inputs:
   nk - number of freqs
   k - frequencies, dual to the kernel's natural argument, ie exp(i.k.z)
-       Note, z is in grid-point units, and k values must be in [-pi, pi) for
-       accuracy.
+     Note, z is in grid-point units, and k values must be in [-pi, pi) for
+     accuracy.
   opts - spreading opts object, needed to eval kernel (must be already set up)
 
   Outputs:
@@ -291,11 +291,11 @@ void deconvolveshuffle1d(int dir, FLT prefac, FLT *ker, BIGINT ms, FLT *fk, BIGI
   if dir==2: copies fk to fw (and zero pads rest of it), same amplification.
 
   modeord=0: use CMCL-compatible mode ordering in fk (from -N/2 up to N/2-1)
-          1: use FFT-style (from 0 to N/2-1, then -N/2 up to -1).
+      1: use FFT-style (from 0 to N/2-1, then -N/2 up to -1).
 
   fk is size-ms FLT complex array (2*ms FLTs alternating re,im parts)
   fw is a FFTW style complex array, ie FLT [nf1][2], essentially FLTs
-       alternating re,im parts.
+     alternating re,im parts.
   ker is real-valued FLT array of length nf1/2+1.
 
   Single thread only, but shouldn't matter since mostly data movement.
@@ -305,7 +305,7 @@ void deconvolveshuffle1d(int dir, FLT prefac, FLT *ker, BIGINT ms, FLT *fk, BIGI
   This could be removed by passing in an inverse kernel and doing mults.
 
   todo: rewrite w/ C++-complex I/O, check complex divide not slower than
-        real divide, or is there a way to force a real divide?
+    real divide, or is there a way to force a real divide?
 
   Barnett 1/25/17. Fixed ms=0 case 3/14/17. modeord flag & clean 10/25/17
 */
@@ -328,7 +328,8 @@ void deconvolveshuffle1d(int dir, FLT prefac, FLT *ker, BIGINT ms, FLT *fk, BIGI
       fk[pn++] = prefac * fw[nf1 + k][1] / ker[-k]; // im
     }
   } else { // read fk, write out to fw w/ zero padding...
-    for (BIGINT k = kmax + 1; k < nf1 + kmin; ++k) { // zero pad precisely where needed
+    for (BIGINT k = kmax + 1; k < nf1 + kmin; ++k) { // zero pad precisely where
+                                                     // needed
       fw[k][0] = fw[k][1] = 0.0;
     }
     for (BIGINT k = 0; k <= kmax; ++k) {            // non-neg freqs k
@@ -351,14 +352,14 @@ void deconvolveshuffle2d(int dir, FLT prefac, FLT *ker1, FLT *ker2, BIGINT ms, B
   if dir==2: copies fk to fw (and zero pads rest of it), same amplification.
 
   modeord=0: use CMCL-compatible mode ordering in fk (each dim increasing)
-          1: use FFT-style (pos then negative, on each dim)
+      1: use FFT-style (pos then negative, on each dim)
 
   fk is complex array stored as 2*ms*mt FLTs alternating re,im parts, with
-    ms looped over fast and mt slow.
+  ms looped over fast and mt slow.
   fw is a FFTW style complex array, ie FLT [nf1*nf2][2], essentially FLTs
-       alternating re,im parts; again nf1 is fast and nf2 slow.
+     alternating re,im parts; again nf1 is fast and nf2 slow.
   ker1, ker2 are real-valued FLT arrays of lengths nf1/2+1, nf2/2+1
-       respectively.
+     respectively.
 
   Barnett 2/1/17, Fixed mt=0 case 3/14/17. modeord 10/25/17
 */
@@ -372,7 +373,8 @@ void deconvolveshuffle2d(int dir, FLT prefac, FLT *ker1, FLT *ker2, BIGINT ms, B
     pn = 2 * (k2max + 1) * ms;
   } // or, instead, FFT ordering
   if (dir == 2) // zero pad needed x-lines (contiguous in memory)
-    for (BIGINT j = nf1 * (k2max + 1); j < nf1 * (nf2 + k2min); ++j) // sweeps all dims
+    for (BIGINT j = nf1 * (k2max + 1); j < nf1 * (nf2 + k2min); ++j) // sweeps all
+                                                                     // dims
       fw[j][0] = fw[j][1] = 0.0;
   for (BIGINT k2 = 0; k2 <= k2max; ++k2, pp += 2 * ms)               // non-neg y-freqs
     // point fk and fw to the start of this y value's row (2* is for complex):
@@ -393,14 +395,14 @@ void deconvolveshuffle3d(int dir, FLT prefac, FLT *ker1, FLT *ker2, FLT *ker3, B
   if dir==2: copies fk to fw (and zero pads rest of it), same amplification.
 
   modeord=0: use CMCL-compatible mode ordering in fk (each dim increasing)
-          1: use FFT-style (pos then negative, on each dim)
+      1: use FFT-style (pos then negative, on each dim)
 
   fk is complex array stored as 2*ms*mt*mu FLTs alternating re,im parts, with
-    ms looped over fastest and mu slowest.
+  ms looped over fastest and mu slowest.
   fw is a FFTW style complex array, ie FLT [nf1*nf2*nf3][2], effectively
-       FLTs alternating re,im parts; again nf1 is fastest and nf3 slowest.
+     FLTs alternating re,im parts; again nf1 is fastest and nf3 slowest.
   ker1, ker2, ker3 are real-valued FLT arrays of lengths nf1/2+1, nf2/2+1,
-       and nf3/2+1 respectively.
+     and nf3/2+1 respectively.
 
   Barnett 2/1/17, Fixed mu=0 case 3/14/17. modeord 10/25/17
 */
@@ -437,7 +439,7 @@ int spreadinterpSortedBatch(int batchSize, FINUFFT_PLAN p, CPX *cBatch)
   Returns 0 (no error reporting for now).
   Notes:
   1) cBatch is already assumed to have the correct offset, ie here we
-     read from the start of cBatch (unlike Malleo). fwBatch also has zero offset
+   read from the start of cBatch (unlike Malleo). fwBatch also has zero offset
   2) this routine is a batched version of spreadinterpSorted in spreadinterp.cpp
   Barnett 5/19/20, based on Malleo 2019.
 */
@@ -602,7 +604,7 @@ int FINUFFT_MAKEPLAN(int type, int dim, BIGINT *n_modes, int iflag, int ntrans, 
   p->tol     = tol;
   p->fftSign = (iflag >= 0) ? 1 : -1; // clean up flag input
 
-  // choose overall # threads...
+                                      // choose overall # threads...
 #ifdef _OPENMP
   int ompmaxnthr = MY_OMP_GET_MAX_THREADS();
   int nthr       = ompmaxnthr; // default: use as many as OMP gives us
@@ -653,8 +655,8 @@ int FINUFFT_MAKEPLAN(int type, int dim, BIGINT *n_modes, int iflag, int ntrans, 
       if (type == 3)                         // could move to setpts, more known?
         p->opts.upsampfac = 1.25;            // faster b/c smaller RAM & FFT
       else if ((dim == 1 && p->N > 10000000) || (dim == 2 && p->N > 300000) ||
-               (dim == 3 && p->N > 3000000)) // type 1,2 heuristic cutoffs, double, typ
-                                             // tol, 12-core xeon
+               (dim == 3 && p->N > 3000000)) // type 1,2 heuristic cutoffs, double,
+                                             // typ tol, 12-core xeon
         p->opts.upsampfac = 1.25;
     }
     if (p->opts.debug > 1)
@@ -723,8 +725,9 @@ int FINUFFT_MAKEPLAN(int type, int dim, BIGINT *n_modes, int iflag, int ntrans, 
     }
 
     if (p->opts.debug) { // "long long" here is to avoid warnings with printf...
-      printf("[%s] %dd%d: (ms,mt,mu)=(%lld,%lld,%lld) (nf1,nf2,nf3)=(%lld,%lld,%lld)\n   "
-             "            ntrans=%d nthr=%d batchSize=%d ",
+      printf("[%s] %dd%d: (ms,mt,mu)=(%lld,%lld,%lld) "
+             "(nf1,nf2,nf3)=(%lld,%lld,%lld)\n               ntrans=%d nthr=%d "
+             "batchSize=%d ",
              __func__, dim, type, (long long)p->ms, (long long)p->mt, (long long)p->mu,
              (long long)p->nf1, (long long)p->nf2, (long long)p->nf3, ntrans, nthr,
              p->batchSize);
@@ -768,16 +771,16 @@ int FINUFFT_MAKEPLAN(int type, int dim, BIGINT *n_modes, int iflag, int ntrans, 
 
     timer.restart(); // plan the FFTW
     int *ns = GRIDSIZE_FOR_FFTW(p);
-    // fftw_plan_many_dft args: rank, gridsize/dim, howmany, in, inembed, istride, idist,
-    // ot, onembed, ostride, odist, sign, flags
+    // fftw_plan_many_dft args: rank, gridsize/dim, howmany, in, inembed, istride,
+    // idist, ot, onembed, ostride, odist, sign, flags
     {
       std::lock_guard<std::mutex> lock(fftw_lock);
 
       // FFTW_PLAN_TH sets all future fftw_plan calls to use nthr_fft threads.
-      // FIXME: Since this might override what the user wants for fftw, we'd like to set
-      // it just for our one plan and then revert to the user value. Unfortunately
-      // fftw_planner_nthreads wasn't introduced until fftw 3.3.9, and there isn't a
-      // convenient mechanism to probe the version
+      // FIXME: Since this might override what the user wants for fftw, we'd like to
+      // set it just for our one plan and then revert to the user value.
+      // Unfortunately fftw_planner_nthreads wasn't introduced until fftw 3.3.9, and
+      // there isn't a convenient mechanism to probe the version
       FFTW_PLAN_TH(nthr_fft);
       p->fftwPlan =
           FFTW_PLAN_MANY_DFT(dim, ns, p->batchSize, p->fwBatch, NULL, 1, p->nf,
@@ -839,9 +842,9 @@ int FINUFFT_SETPTS(FINUFFT_PLAN p, BIGINT nj, FLT *xj, FLT *yj, FLT *zj, BIGINT 
     if (ier) // no warnings allowed here
       return ier;
     timer.restart();
-    // Free sortIndices if it has been allocated before in case of repeated setpts calls
-    // causing memory leak. We don't know it is the same size as before, so we have to
-    // malloc each time.
+    // Free sortIndices if it has been allocated before in case of repeated setpts
+    // calls causing memory leak. We don't know it is the same size as before, so we
+    // have to malloc each time.
     if (p->sortIndices) free(p->sortIndices);
     p->sortIndices = (BIGINT *)malloc(sizeof(BIGINT) * p->nj);
     if (!p->sortIndices) {
@@ -966,7 +969,8 @@ int FINUFFT_SETPTS(FINUFFT_PLAN p, BIGINT nj, FLT *xj, FLT *yj, FLT *zj, BIGINT 
         FLT phase = p->t3P.D1 * xj[j];
         if (d > 1) phase += p->t3P.D2 * yj[j];
         if (d > 2) phase += p->t3P.D3 * zj[j];
-        p->prephase[j] = cos(phase) + imasign * sin(phase); // Euler e^{+-i.phase}
+        p->prephase[j] = cos(phase) + imasign * sin(phase); // Euler
+                                                            // e^{+-i.phase}
       }
     } else
       for (BIGINT j = 0; j < nj; ++j)
@@ -977,9 +981,11 @@ int FINUFFT_SETPTS(FINUFFT_PLAN p, BIGINT nj, FLT *xj, FLT *yj, FLT *zj, BIGINT 
     for (BIGINT k = 0; k < nk; ++k) {
       p->Sp[k] = p->t3P.h1 * p->t3P.gam1 * (s[k] - p->t3P.D1);   // so |s'_k| < pi/R
       if (d > 1)
-        p->Tp[k] = p->t3P.h2 * p->t3P.gam2 * (t[k] - p->t3P.D2); // so |t'_k| < pi/R
+        p->Tp[k] = p->t3P.h2 * p->t3P.gam2 * (t[k] - p->t3P.D2); // so |t'_k| <
+                                                                 // pi/R
       if (d > 2)
-        p->Up[k] = p->t3P.h3 * p->t3P.gam3 * (u[k] - p->t3P.D3); // so |u'_k| < pi/R
+        p->Up[k] = p->t3P.h3 * p->t3P.gam3 * (u[k] - p->t3P.D3); // so |u'_k| <
+                                                                 // pi/R
     }
 
     // (old STEP 3a) Compute deconvolution post-factors array (per targ pt)...
@@ -1024,9 +1030,9 @@ int FINUFFT_SETPTS(FINUFFT_PLAN p, BIGINT nj, FLT *xj, FLT *yj, FLT *zj, BIGINT 
 
     // Set up sort for spreading Cp (from primed NU src pts X, Y, Z) to fw...
     timer.restart();
-    // Free sortIndices if it has been allocated before in case of repeated setpts calls
-    // causing memory leak. We don't know it is the same size as before, so we have to
-    // malloc each time.
+    // Free sortIndices if it has been allocated before in case of repeated setpts
+    // calls causing memory leak. We don't know it is the same size as before, so we
+    // have to malloc each time.
     if (p->sortIndices) free(p->sortIndices);
     p->sortIndices = (BIGINT *)malloc(sizeof(BIGINT) * p->nj);
     if (!p->sortIndices) {
@@ -1073,16 +1079,16 @@ int FINUFFT_SETPTS(FINUFFT_PLAN p, BIGINT nj, FLT *xj, FLT *yj, FLT *zj, BIGINT 
 int FINUFFT_EXECUTE(FINUFFT_PLAN p, CPX *cj, CPX *fk) {
   /* See ../docs/cguru.doc for current documentation.
 
-     For given (stack of) weights cj or coefficients fk, performs NUFFTs with
-     existing (sorted) NU pts and existing plan.
-     For type 1 and 3: cj is input, fk is output.
-     For type 2: fk is input, cj is output.
-     Performs spread/interp, pre/post deconvolve, and fftw_execute as appropriate
-     for each of the 3 types.
-     For cases of ntrans>1, performs work in blocks of size up to batchSize.
-     Return value 0 (no error diagnosis yet).
-     Barnett 5/20/20, based on Malleo 2019.
-  */
+   For given (stack of) weights cj or coefficients fk, performs NUFFTs with
+   existing (sorted) NU pts and existing plan.
+   For type 1 and 3: cj is input, fk is output.
+   For type 2: fk is input, cj is output.
+   Performs spread/interp, pre/post deconvolve, and fftw_execute as appropriate
+   for each of the 3 types.
+   For cases of ntrans>1, performs work in blocks of size up to batchSize.
+   Return value 0 (no error diagnosis yet).
+   Barnett 5/20/20, based on Malleo 2019.
+*/
   CNTime timer;
   timer.start();
 
@@ -1148,7 +1154,8 @@ int FINUFFT_EXECUTE(FINUFFT_PLAN p, CPX *cj, CPX *fk) {
     // for (BIGINT j=0;j<10;++j) printf("\tcj[%ld]=%.15g+%.15gi\n",(long
     // int)j,(double)real(cj[j]),(double)imag(cj[j]));  // debug
 
-    double t_pre = 0.0, t_spr = 0.0, t_t2 = 0.0, t_deconv = 0.0; // accumulated timings
+    double t_pre = 0.0, t_spr = 0.0, t_t2 = 0.0,
+           t_deconv = 0.0; // accumulated timings
     if (p->opts.debug)
       printf("[%s t3] start ntrans=%d (%d batches, bsize=%d)...\n", __func__, p->ntrans,
              p->nbatch, p->batchSize);
@@ -1180,14 +1187,15 @@ int FINUFFT_EXECUTE(FINUFFT_PLAN p, CPX *cj, CPX *fk) {
       t_spr += timer.elapsedsec();
 
       // for (int j=0;j<p->nf1;++j)
-      // printf("fw[%d]=%.3g+%.3gi\n",j,p->fwBatch[j][0],p->fwBatch[j][1]);  // debug
+      // printf("fw[%d]=%.3g+%.3gi\n",j,p->fwBatch[j][0],p->fwBatch[j][1]);  //
+      // debug
 
       // STEP 2: type 2 NUFFT from fw batch to user output fk array batch...
       timer.restart();
       // illegal possible shrink of ntrans *after* plan for smaller last batch:
       p->innerT2plan->ntrans = thisBatchSize; // do not try this at home!
       /* (alarming that FFTW not shrunk, but safe, because t2's fwBatch array
-         still the same size, as Andrea explained; just wastes a few flops) */
+     still the same size, as Andrea explained; just wastes a few flops) */
       FINUFFT_EXECUTE(p->innerT2plan, fkb, (CPX *)(p->fwBatch));
       t_t2 += timer.elapsedsec();
 
