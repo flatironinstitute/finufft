@@ -6,6 +6,10 @@
 #include <finufft/utils.h>
 #include <finufft/utils_precindep.h>
 
+#include "ker_horner_allw_loop_constexpr.h"
+#include <xsimd/xsimd.hpp>
+
+#include <iostream>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -14,45 +18,78 @@
 using namespace std;
 using namespace finufft::utils; // access to timer
 
-namespace finufft {
-namespace spreadinterp {
+namespace finufft::spreadinterp {
 
+namespace { // anonymous namespace for internal structs equivalent to declaring everything
+            // static
+struct zip_low;
+struct zip_hi;
+// forward declaration to clean up the code and be able to use this everywhere in the file
+template<class T, uint16_t N, uint16_t K = N> static constexpr auto BestSIMDHelper();
+template<class T, uint16_t N> constexpr auto GetPaddedSIMDSize();
+template<class T, uint16_t N>
+using PaddedSIMD = typename xsimd::make_sized_batch<T, GetPaddedSIMDSize<T, N>()>::type;
+template<class T> uint16_t get_padding(uint8_t ns);
+template<class T, uint8_t ns> constexpr auto get_padding();
+template<class T, uint16_t N>
+using BestSIMD = typename decltype(BestSIMDHelper<T, N, xsimd::batch<T>::size>())::type;
+template<class T, uint16_t N = 1> constexpr uint16_t min_batch_size();
+template<class T, uint16_t N> constexpr auto find_optimal_batch_size();
+template<class T, class V = typename T::value_type, std::size_t N = T::size>
+constexpr auto initialize_complex_batch(V a, V b) noexcept;
+template<class arch_t>
+constexpr auto zip_low_index =
+    xsimd::make_batch_constant<xsimd::as_unsigned_integer_t<FLT>, arch_t, zip_low>();
+template<class arch_t>
+constexpr auto zip_hi_index =
+    xsimd::make_batch_constant<xsimd::as_unsigned_integer_t<FLT>, arch_t, zip_hi>();
+} // namespace
 // declarations of purely internal functions... (thus need not be in .h)
+template<uint8_t ns, uint8_t kerevalmeth, class T,
+         class batch_t = xsimd::make_sized_batch_t<T, find_optimal_batch_size<T, ns>()>,
+         typename... V>
+static FINUFFT_ALWAYS_INLINE auto ker_eval(const finufft_spread_opts &opts,
+                                           const V... elems) noexcept;
 static FINUFFT_ALWAYS_INLINE FLT fold_rescale(FLT x, BIGINT N) noexcept;
-static FINUFFT_ALWAYS_INLINE void set_kernel_args(FLT *args, FLT x,
-                                                  const finufft_spread_opts &opts);
+static FINUFFT_ALWAYS_INLINE void set_kernel_args(
+    FLT *args, FLT x, const finufft_spread_opts &opts) noexcept;
 static FINUFFT_ALWAYS_INLINE void evaluate_kernel_vector(
-    FLT *ker, FLT *args, const finufft_spread_opts &opts, const int N);
-static FINUFFT_ALWAYS_INLINE void eval_kernel_vec_Horner(FLT *ker, FLT z, const int w,
-                                                         const finufft_spread_opts &opts);
-void interp_line(FLT *out, FLT *du, FLT *ker, BIGINT i1, BIGINT N1, int ns);
-void interp_square(FLT *out, FLT *du, FLT *ker1, FLT *ker2, BIGINT i1, BIGINT i2,
-                   BIGINT N1, BIGINT N2, int ns);
-void interp_cube(FLT *out, FLT *du, FLT *ker1, FLT *ker2, FLT *ker3, BIGINT i1, BIGINT i2,
-                 BIGINT i3, BIGINT N1, BIGINT N2, BIGINT N3, int ns);
-void spread_subproblem_1d(BIGINT off1, BIGINT size1, FLT *du0, BIGINT M0, FLT *kx0,
-                          FLT *dd0, const finufft_spread_opts &opts);
-void spread_subproblem_2d(BIGINT off1, BIGINT off2, BIGINT size1, BIGINT size2, FLT *du0,
-                          BIGINT M0, FLT *kx0, FLT *ky0, FLT *dd0,
-                          const finufft_spread_opts &opts);
-void spread_subproblem_3d(BIGINT off1, BIGINT off2, BIGINT off3, BIGINT size1,
-                          BIGINT size2, BIGINT size3, FLT *du0, BIGINT M0, FLT *kx0,
-                          FLT *ky0, FLT *kz0, FLT *dd0, const finufft_spread_opts &opts);
-void add_wrapped_subgrid(BIGINT offset1, BIGINT offset2, BIGINT offset3, BIGINT size1,
-                         BIGINT size2, BIGINT size3, BIGINT N1, BIGINT N2, BIGINT N3,
-                         FLT *data_uniform, FLT *du0);
-void add_wrapped_subgrid_thread_safe(BIGINT offset1, BIGINT offset2, BIGINT offset3,
-                                     BIGINT size1, BIGINT size2, BIGINT size3, BIGINT N1,
-                                     BIGINT N2, BIGINT N3, FLT *data_uniform, FLT *du0);
-void bin_sort_singlethread(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz, BIGINT N1,
-                           BIGINT N2, BIGINT N3, double bin_size_x, double bin_size_y,
-                           double bin_size_z, int debug);
+    FLT *ker, FLT *args, const finufft_spread_opts &opts, int N) noexcept;
+static FINUFFT_ALWAYS_INLINE void eval_kernel_vec_Horner(
+    FLT *ker, FLT x, int w, const finufft_spread_opts &opts) noexcept;
+template<uint16_t w, class batch_t = xsimd::make_sized_batch_t<
+                         FLT, find_optimal_batch_size<FLT, w>()>> // aka ns
+static FINUFFT_ALWAYS_INLINE void eval_kernel_vec_Horner(
+    FLT *FINUFFT_RESTRICT ker, FLT x, const finufft_spread_opts &opts) noexcept;
+static void interp_line(FLT *out, FLT *du, FLT *ker, BIGINT i1, BIGINT N1, int ns);
+static void interp_square(FLT *out, FLT *du, FLT *ker1, FLT *ker2, BIGINT i1, BIGINT i2,
+                          BIGINT N1, BIGINT N2, int ns);
+static void interp_cube(FLT *out, FLT *du, FLT *ker1, FLT *ker2, FLT *ker3, BIGINT i1,
+                        BIGINT i2, BIGINT i3, BIGINT N1, BIGINT N2, BIGINT N3, int ns);
+static void spread_subproblem_1d(BIGINT off1, BIGINT size1, FLT *du0, BIGINT M0, FLT *kx0,
+                                 FLT *dd0, const finufft_spread_opts &opts) noexcept;
+static void spread_subproblem_2d(BIGINT off1, BIGINT off2, BIGINT size1, BIGINT size2,
+                                 FLT *FINUFFT_RESTRICT du, BIGINT M, const FLT *kx,
+                                 const FLT *ky, const FLT *dd,
+                                 const finufft_spread_opts &opts) noexcept;
+static void spread_subproblem_3d(BIGINT off1, BIGINT off2, BIGINT off3, BIGINT size1,
+                                 BIGINT size2, BIGINT size3, FLT *du0, BIGINT M0,
+                                 FLT *kx0, FLT *ky0, FLT *kz0, FLT *dd0,
+                                 const finufft_spread_opts &opts) noexcept;
+template<bool thread_safe>
+static void add_wrapped_subgrid(BIGINT offset1, BIGINT offset2, BIGINT offset3,
+                                BIGINT padded_size1, BIGINT size1, BIGINT size2,
+                                BIGINT size3, BIGINT N1, BIGINT N2, BIGINT N3,
+                                FLT *FINUFFT_RESTRICT data_uniform, const FLT *du0);
+static void bin_sort_singlethread(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
+                                  BIGINT N1, BIGINT N2, BIGINT N3, double bin_size_x,
+                                  double bin_size_y, double bin_size_z, int debug);
 void bin_sort_multithread(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz, BIGINT N1,
                           BIGINT N2, BIGINT N3, double bin_size_x, double bin_size_y,
                           double bin_size_z, int debug, int nthr);
-void get_subgrid(BIGINT &offset1, BIGINT &offset2, BIGINT &offset3, BIGINT &size1,
-                 BIGINT &size2, BIGINT &size3, BIGINT M0, FLT *kx0, FLT *ky0, FLT *kz0,
-                 int ns, int ndims);
+static void get_subgrid(BIGINT &offset1, BIGINT &offset2, BIGINT &offset3,
+                        BIGINT &padded_size1, BIGINT &size1, BIGINT &size2, BIGINT &size3,
+                        BIGINT M0, FLT *kx0, FLT *ky0, FLT *kz0, int ns, int ndims);
 
 // ==========================================================================
 int spreadinterp(BIGINT N1, BIGINT N2, BIGINT N3, FLT *data_uniform, BIGINT M, FLT *kx,
@@ -93,13 +130,13 @@ int spreadinterp(BIGINT N1, BIGINT N2, BIGINT N3, FLT *data_uniform, BIGINT M, F
    Inputs:
    N1,N2,N3 - grid sizes in x (fastest), y (medium), z (slowest) respectively.
               If N2==1, 1D spreading is done. If N3==1, 2D spreading.
-        Otherwise, 3D.
+          Otherwise, 3D.
    M - number of NU pts.
    kx, ky, kz - length-M real arrays of NU point coordinates (only kx read in
                 1D, only kx and ky read in 2D).
 
-    These should lie in the box -pi<=kx<=pi. Points outside this domain are also
-    correctly folded back into this domain.
+        These should lie in the box -pi<=kx<=pi. Points outside this domain are also
+        correctly folded back into this domain.
    opts - spread/interp options struct, documented in ../include/finufft_spread_opts.h
 
    Inputs/Outputs:
@@ -308,8 +345,7 @@ int spreadSorted(BIGINT *sort_indices, BIGINT N1, BIGINT N2, BIGINT N3, FLT *dat
            // Splits sorted inds (jfm's advanced2), could double RAM.
     // choose nb (# subprobs) via used nthreads:
     int nb = min((BIGINT)nthr, M); // simply split one subprob per thr...
-    if (nb * (BIGINT)opts.max_subproblem_size < M) { // ...or more subprobs to cap
-                                                     // size
+    if (nb * (BIGINT)opts.max_subproblem_size < M) { // ...or more subprobs to cap size
       nb = 1 + (M - 1) / opts.max_subproblem_size;   // int div does
                                                      // ceil(M/opts.max_subproblem_size)
       if (opts.debug)
@@ -346,48 +382,53 @@ int spreadSorted(BIGINT *sort_indices, BIGINT N1, BIGINT N2, BIGINT N3, FLT *dat
         dd0[j * 2 + 1] = data_nonuniform[kk * 2 + 1]; // imag part
       }
       // get the subgrid which will include padding by roughly nspread/2
-      BIGINT offset1, offset2, offset3, size1, size2, size3; // get_subgrid sets
-      get_subgrid(offset1, offset2, offset3, size1, size2, size3, M0, kx0, ky0, kz0, ns,
-                  ndims);                                    // sets offsets and sizes
-      if (opts.debug > 1) {                                  // verbose
+      BIGINT offset1, offset2, offset3, padded_size1, size1, size2, size3; // get_subgrid
+                                                                           // sets
+      get_subgrid(offset1, offset2, offset3, padded_size1, size1, size2, size3, M0, kx0,
+                  ky0, kz0, ns,
+                  ndims);   // sets offsets and sizes
+      if (opts.debug > 1) { // verbose
+        printf("size1 %ld, padded_size1 %ld\n", size1, padded_size1);
         if (ndims == 1)
           printf("\tsubgrid: off %lld\t siz %lld\t #NU %lld\n", (long long)offset1,
-                 (long long)size1, (long long)M0);
+                 (long long)padded_size1, (long long)M0);
         else if (ndims == 2)
           printf("\tsubgrid: off %lld,%lld\t siz %lld,%lld\t #NU %lld\n",
-                 (long long)offset1, (long long)offset2, (long long)size1,
+                 (long long)offset1, (long long)offset2, (long long)padded_size1,
                  (long long)size2, (long long)M0);
         else
           printf("\tsubgrid: off %lld,%lld,%lld\t siz %lld,%lld,%lld\t #NU %lld\n",
                  (long long)offset1, (long long)offset2, (long long)offset3,
-                 (long long)size1, (long long)size2, (long long)size3, (long long)M0);
+                 (long long)padded_size1, (long long)size2, (long long)size3,
+                 (long long)M0);
       }
       // allocate output data for this subgrid
-      FLT *du0 = (FLT *)malloc(sizeof(FLT) * 2 * size1 * size2 * size3); // complex
+      FLT *du0 = (FLT *)malloc(sizeof(FLT) * 2 * padded_size1 * size2 * size3); // complex
 
       // Spread to subgrid without need for bounds checking or wrapping
       if (!(opts.flags & TF_OMIT_SPREADING)) {
         if (ndims == 1)
-          spread_subproblem_1d(offset1, size1, du0, M0, kx0, dd0, opts);
+          spread_subproblem_1d(offset1, padded_size1, du0, M0, kx0, dd0, opts);
         else if (ndims == 2)
-          spread_subproblem_2d(offset1, offset2, size1, size2, du0, M0, kx0, ky0, dd0,
-                               opts);
+          spread_subproblem_2d(offset1, offset2, padded_size1, size2, du0, M0, kx0, ky0,
+                               dd0, opts);
         else
-          spread_subproblem_3d(offset1, offset2, offset3, size1, size2, size3, du0, M0,
-                               kx0, ky0, kz0, dd0, opts);
+          spread_subproblem_3d(offset1, offset2, offset3, padded_size1, size2, size3, du0,
+                               M0, kx0, ky0, kz0, dd0, opts);
       }
 
       // do the adding of subgrid to output
       if (!(opts.flags & TF_OMIT_WRITE_TO_GRID)) {
         if (nthr > opts.atomic_threshold) // see above for debug reporting
-          add_wrapped_subgrid_thread_safe(offset1, offset2, offset3, size1, size2, size3,
-                                          N1, N2, N3, data_uniform, du0); // R Blackwell's
-                                                                          // atomic
-                                                                          // version
+          add_wrapped_subgrid<true>(offset1, offset2, offset3, padded_size1, size1, size2,
+                                    size3, N1, N2, N3, data_uniform, du0); // R
+                                                                           // Blackwell's
+                                                                           // atomic
+                                                                           // version
         else {
 #pragma omp critical
-          add_wrapped_subgrid(offset1, offset2, offset3, size1, size2, size3, N1, N2, N3,
-                              data_uniform, du0);
+          add_wrapped_subgrid<false>(offset1, offset2, offset3, padded_size1, size1,
+                                     size2, size3, N1, N2, N3, data_uniform, du0);
         }
       }
 
@@ -440,8 +481,8 @@ int interpSorted(BIGINT *sort_indices, BIGINT N1, BIGINT N2, BIGINT N3, FLT *dat
 
     // Loop over interpolation chunks
 #pragma omp for schedule(dynamic, 1000)       // assign threads to NU targ pts:
-    for (BIGINT i = 0; i < M; i += CHUNKSIZE) // main loop over NU targs, interp each
-                                              // from U
+    for (BIGINT i = 0; i < M; i += CHUNKSIZE) // main loop over NU targs, interp each from
+                                              // U
     {
       // Setup buffers for this chunk
       int bufsize = (i + CHUNKSIZE > M) ? M - i : CHUNKSIZE;
@@ -463,10 +504,8 @@ int interpSorted(BIGINT *sort_indices, BIGINT N1, BIGINT N2, BIGINT N3, FLT *dat
 
         // coords (x,y,z), spread block corner index (i1,i2,i3) of current NU targ
         BIGINT i1 = (BIGINT)std::ceil(xj - ns2);                   // leftmost grid index
-        BIGINT i2 = (ndims > 1) ? (BIGINT)std::ceil(yj - ns2) : 0; // min y grid
-                                                                   // index
-        BIGINT i3 = (ndims > 2) ? (BIGINT)std::ceil(zj - ns2) : 0; // min z grid
-                                                                   // index
+        BIGINT i2 = (ndims > 1) ? (BIGINT)std::ceil(yj - ns2) : 0; // min y grid index
+        BIGINT i3 = (ndims > 2) ? (BIGINT)std::ceil(zj - ns2) : 0; // min z grid index
 
         FLT x1 = (FLT)i1 - xj; // shift of ker center, in [-w/2,-w/2+1]
         FLT x2 = (ndims > 1) ? (FLT)i2 - yj : 0;
@@ -484,9 +523,6 @@ int interpSorted(BIGINT *sort_indices, BIGINT N1, BIGINT N2, BIGINT N3, FLT *dat
           }
 
           else {
-            // due to ns being padded up to next multiple of 4 in the
-            // eval_kernel_vec_Horner and writing zeros out to this padded
-            // size, these must occur in the order x,y,z...
             eval_kernel_vec_Horner(ker1, x1, ns, opts);
             if (ndims > 1) eval_kernel_vec_Horner(ker2, x2, ns, opts);
             if (ndims > 2) eval_kernel_vec_Horner(ker3, x3, ns, opts);
@@ -540,8 +576,8 @@ int setup_spreader(finufft_spread_opts &opts, FLT eps, double upsampfac, int ker
   if (upsampfac != 2.0 && upsampfac != 1.25) { // nonstandard sigma
     if (kerevalmeth == 1) {
       fprintf(stderr,
-              "FINUFFT setup_spreader: nonstandard upsampfac=%.3g cannot be "
-              "handled by kerevalmeth=1\n",
+              "FINUFFT setup_spreader: nonstandard upsampfac=%.3g cannot be handled by "
+              "kerevalmeth=1\n",
               upsampfac);
       return FINUFFT_ERR_HORNER_WRONG_BETA;
     }
@@ -589,14 +625,13 @@ int setup_spreader(finufft_spread_opts &opts, FLT eps, double upsampfac, int ker
   if (ns > MAX_NSPREAD) { // clip to fit allocated arrays, Horner rules
     if (showwarn)
       fprintf(stderr,
-              "%s warning: at upsampfac=%.3g, tol=%.3g would need kernel width "
-              "ns=%d; clipping to max %d.\n",
+              "%s warning: at upsampfac=%.3g, tol=%.3g would need kernel width ns=%d; "
+              "clipping to max %d.\n",
               __func__, upsampfac, (double)eps, ns, MAX_NSPREAD);
     ns  = MAX_NSPREAD;
     ier = FINUFFT_WARN_EPS_TOO_SMALL;
   }
   opts.nspread = ns;
-
   // setup for reference kernel eval (via formula): select beta width param...
   // (even when kerevalmeth=1, this ker eval needed for FTs in onedim_*_kernel)
   opts.ES_halfwidth = (double)ns / 2; // constants to help (see below routines)
@@ -607,8 +642,7 @@ int setup_spreader(finufft_spread_opts &opts, FLT eps, double upsampfac, int ker
   if (ns == 4) betaoverns = 2.38;
   if (upsampfac != 2.0) { // again, override beta for custom sigma
     FLT gamma  = 0.97;    // must match devel/gen_all_horner_C_code.m !
-    betaoverns = gamma * PI * (1.0 - 1.0 / (2 * upsampfac)); // formula based on
-                                                             // cutoff
+    betaoverns = gamma * PI * (1.0 - 1.0 / (2 * upsampfac)); // formula based on cutoff
   }
   opts.ES_beta = betaoverns * ns; // set the kernel beta parameter
   if (debug)
@@ -633,7 +667,7 @@ FLT evaluate_kernel(FLT x, const finufft_spread_opts &opts)
     return exp((FLT)opts.ES_beta * sqrt((FLT)1.0 - (FLT)opts.ES_c * x * x));
 }
 
-static inline void set_kernel_args(FLT *args, FLT x, const finufft_spread_opts &opts)
+void set_kernel_args(FLT *args, FLT x, const finufft_spread_opts &opts) noexcept
 // Fills vector args[] with kernel arguments x, x+1, ..., x+ns-1.
 // needed for the vectorized kernel eval of Ludvig af K.
 {
@@ -641,8 +675,8 @@ static inline void set_kernel_args(FLT *args, FLT x, const finufft_spread_opts &
   for (int i = 0; i < ns; i++) args[i] = x + (FLT)i;
 }
 
-static inline void evaluate_kernel_vector(FLT *ker, FLT *args,
-                                          const finufft_spread_opts &opts, const int N)
+void evaluate_kernel_vector(FLT *ker, FLT *args, const finufft_spread_opts &opts,
+                            const int N) noexcept
 /* Evaluate ES kernel for a vector of N arguments; by Ludvig af K.
    If opts.kerpad true, args and ker must be allocated for Npad, and args is
    written to (to pad to length Npad), only first N outputs are correct.
@@ -678,15 +712,85 @@ static inline void evaluate_kernel_vector(FLT *ker, FLT *args,
     if (abs(args[i]) >= (FLT)opts.ES_halfwidth) ker[i] = 0.0;
 }
 
-static inline void eval_kernel_vec_Horner(FLT *ker, const FLT x, const int w,
-                                          const finufft_spread_opts &opts)
+template<typename T, std::size_t N, std::size_t PaddedN>
+constexpr std::array<T, PaddedN> pad_with_zeros(const std::array<T, N> &input) {
+  std::array<T, PaddedN> output{0};
+  for (auto i = 0; i < N; ++i) {
+    output[i] = input[i];
+  }
+  return output;
+}
+
+template<typename T, std::size_t N, std::size_t M, std::size_t PaddedM>
+constexpr std::array<std::array<T, PaddedM>, N> pad_2D_array_with_zeros(
+    std::array<std::array<T, M>, N> &&input) {
+  std::array<std::array<T, PaddedM>, N> output{};
+  for (std::size_t i = 0; i < N; ++i) {
+    output[i] = pad_with_zeros<T, M, PaddedM>(input[i]);
+  }
+  return output;
+}
+
+template<uint16_t w, class batch_t> // aka ns
+void eval_kernel_vec_Horner(FLT *FINUFFT_RESTRICT ker, const FLT x,
+                            const finufft_spread_opts &opts) noexcept
+/* Fill ker[] with Horner piecewise poly approx to [-w/2,w/2] ES kernel eval at
+x_j = x + j,  for j=0,..,w-1.  Thus x in [-w/2,-w/2+1].   w is aka ns.
+This is the current evaluation method, since it's faster (except i7 w=16).
+Two upsampfacs implemented. Params must match ref formula. Barnett 4/24/18 */
+{
+  const FLT z = std::fma(FLT(2.0), x, FLT(w - 1)); // scale so local grid offset z in
+                                                   // [-1,1]
+  if (opts.upsampfac == 2.0) {                     // floating point equality is fine here
+    static constexpr const auto nc = []() {
+      static_assert(w <= 16, "w must be <= 16");
+      static_assert(w >= 2, "w must be >= 2");
+      if constexpr (w < 10) {
+        return w + 3;
+      } else {
+        return w + 2;
+      }
+    }();
+    static constexpr const auto alignment = batch_t::arch_type::alignment();
+    static constexpr const auto avx_size  = batch_t::size;
+    static constexpr const auto padded_ns = (w + avx_size - 1) & ~(avx_size - 1);
+    alignas(alignment) static constexpr const auto ci =
+        pad_2D_array_with_zeros<FLT, nc, w, padded_ns>(get_horner_coeffs<FLT, w, nc>());
+    alignas(alignment) const std::array<batch_t, nc - 1> zs = [](const FLT z) noexcept {
+      std::array<batch_t, nc - 1> zs_v{};
+      auto sz = z;
+      for (uint8_t i = 0; i < nc - 1; ++i) {
+        zs_v[i] = batch_t(sz);
+        sz *= z;
+      }
+      return zs_v;
+    }(z);
+    for (uint8_t i = 0; i < w; i += avx_size) {
+      auto k = batch_t::load_aligned(ci[0].data() + i);
+      for (uint8_t j = 1; j < nc; ++j) {
+        const auto cji = batch_t::load_aligned(ci[j].data() + i);
+        k              = xsimd::fma(cji, zs[j - 1], k);
+      }
+      k.store_aligned(ker + i);
+    }
+    return;
+  }
+  // insert the auto-generated code which expects z, w args, writes to ker...
+  if (opts.upsampfac == 1.25) {
+#include "ker_lowupsampfac_horner_allw_loop_constexpr.c"
+    return;
+  }
+}
+void eval_kernel_vec_Horner(FLT *ker, const FLT x, const int w,
+                            const finufft_spread_opts &opts) noexcept
 /* Fill ker[] with Horner piecewise poly approx to [-w/2,w/2] ES kernel eval at
    x_j = x + j,  for j=0,..,w-1.  Thus x in [-w/2,-w/2+1].   w is aka ns.
    This is the current evaluation method, since it's faster (except i7 w=16).
    Two upsampfacs implemented. Params must match ref formula. Barnett 4/24/18 */
 {
   if (!(opts.flags & TF_OMIT_EVALUATE_KERNEL)) {
-    FLT z = (FLT)2.0 * x + w - (FLT)1.0; // scale so local grid offset z in [-1,1]
+    const FLT z = std::fma(FLT(2.0), x, FLT(w - 1)); // scale so local grid offset z in
+                                                     // [-1,1]
     // insert the auto-generated code which expects z, w args, writes to ker...
     if (opts.upsampfac == 2.0) { // floating point equality is fine here
 #include "ker_horner_allw_loop.c"
@@ -871,9 +975,8 @@ void interp_cube(FLT *target, FLT *du, FLT *ker1, FLT *ker2, FLT *ker3, BIGINT i
     for (int dz = 0; dz < ns; dz++) {
       BIGINT oz = N1 * N2 * (i3 + dz);                         // offset due to z
       for (int dy = 0; dy < ns; dy++) {
-        const FLT *lptr = du + 2 * (oz + N1 * (i2 + dy) + i1); // ptr start of
-                                                               // line
-        FLT ker23 = ker2[dy] * ker3[dz];
+        const FLT *lptr = du + 2 * (oz + N1 * (i2 + dy) + i1); // ptr start of line
+        FLT ker23       = ker2[dy] * ker3[dz];
         for (int l = 0; l < 2 * ns; ++l) { // loop over ns interleaved (R,I) pairs
           line[l] += lptr[l] * ker23;
         }
@@ -918,237 +1021,455 @@ void interp_cube(FLT *target, FLT *du, FLT *ker1, FLT *ker2, FLT *ker3, BIGINT i
   target[1] = out[1];
 }
 
-void spread_subproblem_1d(BIGINT off1, BIGINT size1, FLT *du, BIGINT M, FLT *kx, FLT *dd,
-                          const finufft_spread_opts &opts)
-/* 1D spreader from nonuniform to uniform subproblem grid, without wrapping.
-   Inputs:
-   off1 - integer offset of left end of du subgrid from that of overall fine
-          periodized output grid {0,1,..N-1}.
-   size1 - integer length of output subgrid du
-   M - number of NU pts in subproblem
-   kx (length M) - are rescaled NU source locations, should lie in
-                   [off1+ns/2,off1+size1-1-ns/2] so as kernels stay in bounds
-   dd (length M complex, interleaved) - source strengths
-   Outputs:
-   du (length size1 complex, interleaved) - preallocated uniform subgrid array
+template<uint8_t ns, bool kerevalmeth>
+FINUFFT_NEVER_INLINE void spread_subproblem_1d_kernel(
+    const BIGINT off1, const BIGINT size1, FLT *FINUFFT_RESTRICT du, const BIGINT M,
+    const FLT *const kx, const FLT *const dd, const finufft_spread_opts &opts) noexcept {
+  /* 1D spreader from nonuniform to uniform subproblem grid, without wrapping.
+     Inputs:
+     off1 - integer offset of left end of du subgrid from that of overall fine
+            periodized output grid {0,1,...N-1}.
+     size1 - integer length of output subgrid du
+     M - number of NU pts in subproblem
+     kx (length M) - are rescaled NU source locations, should lie in
+                     [off1+ns/2,off1+size1-1-ns/2] so as kernels stay in bounds
+     dd (length M complex, interleaved) - source strengths
+     Outputs:
+     du (length size1 complex, interleaved) - preallocated uniform subgrid array
 
-   The reason periodic wrapping is avoided in subproblems is speed: avoids
-   conditionals, indirection (pointers), and integer mod. Originally 2017.
-   Kernel eval mods by Ludvig al Klinteberg.
-   Fixed so rounding to integer grid consistent w/ get_subgrid, prevents
-   chance of segfault when epsmach*N1>O(1), assuming max() and ceil() commute.
-   This needed off1 as extra arg. AHB 11/30/20.
-*/
-{
-  int ns  = opts.nspread;                // a.k.a. w
-  FLT ns2 = (FLT)ns / 2;                 // half spread width
-  for (BIGINT i = 0; i < 2 * size1; ++i) // zero output
-    du[i] = 0.0;
-  FLT kernel_args[MAX_NSPREAD];
-  FLT ker[MAX_NSPREAD];
-  for (BIGINT i = 0; i < M; i++) { // loop over NU pts
-    FLT re0 = dd[2 * i];
-    FLT im0 = dd[2 * i + 1];
+     The reason periodic wrapping is avoided in subproblems is speed: avoids
+     conditionals, indirection (pointers), and integer mod. Originally 2017.
+     Kernel eval mods by Ludvig al Klinteberg.
+     Fixed so rounding to integer grid consistent w/ get_subgrid, prevents
+     chance of segfault when epsmach*N1>O(1), assuming max() and ceil() commute.
+     This needed off1 as extra arg. AHB 11/30/20.
+     Vectorized using xsimd by M. Barbone 06/24.
+  */
+  using batch_t                   = PaddedSIMD<FLT, 2 * ns>;
+  using arch_t                    = typename batch_t::arch_type;
+  static constexpr auto padding   = get_padding<FLT, 2 * ns>();
+  static constexpr auto alignment = batch_t::arch_type::alignment();
+  static constexpr auto avx_size  = batch_t::size;
+  static constexpr auto ns2       = ns * FLT(0.5); // half spread width
+  // something weird here. Reversing ker{0} and std fill causes ker
+  // to be zeroed inside the loop GCC uses AVX, clang AVX2
+  std::fill(du, du + 2 * size1, 0); // zero output
+  // no padding needed if MAX_NSPREAD is 16
+  // the largest read is 16 floats with avx512
+  // if larger instructions will be available or half precision is used, this should be
+  // padded
+  for (uint64_t i{0}; i < M; i++) { // loop over NU pts
+    // lamda here to return a dd_pt that is const
+    // should not make a difference in performance
+    // but is a hint to the compiler that after the lambda
+    // dd_pt is not modified and can be kept as is in a register
+    // given (re, im) in this case dd[i*2] and dd[i*2+1]
+    // this function returns a simd register of size avx_size
+    // initialized as follows:
+    // +-----------------------+
+    // |re|im|re|im|re|im|re|im|
+    // +-----------------------+
+    const auto dd_pt = initialize_complex_batch<batch_t>(dd[i * 2], dd[i * 2 + 1]);
     // ceil offset, hence rounding, must match that in get_subgrid...
-    BIGINT i1 = (BIGINT)std::ceil(kx[i] - ns2); // fine grid start index
-    FLT x1    = (FLT)i1 - kx[i];                // x1 in [-w/2,-w/2+1], up to rounding
+    const auto i1 = BIGINT(std::ceil(kx[i] - ns2)); // fine grid start index
+    // FLT(i1) has different semantics and results an extra cast
+    auto x1 = std::ceil(kx[i] - ns2) - kx[i]; // x1 in [-w/2,-w/2+1], up to rounding
     // However if N1*epsmach>O(1) then can cause O(1) errors in x1, hence ppoly
     // kernel evaluation will fall outside their designed domains, >>1 errors.
     // This can only happen if the overall error would be O(1) anyway. Clip x1??
     if (x1 < -ns2) x1 = -ns2;
     if (x1 > -ns2 + 1) x1 = -ns2 + 1; // ***
-    if (opts.kerevalmeth == 0) {      // faster Horner poly method
-      set_kernel_args(kernel_args, x1, opts);
-      evaluate_kernel_vector(ker, kernel_args, opts, ns);
-    } else
-      eval_kernel_vec_Horner(ker, x1, ns, opts);
-    BIGINT j = i1 - off1; // offset rel to subgrid, starts the output indices
-    // critical inner loop:
-    for (int dx = 0; dx < ns; ++dx) {
-      FLT k = ker[dx];
-      du[2 * j] += re0 * k;
-      du[2 * j + 1] += im0 * k;
-      ++j;
+    alignas(alignment) const auto ker = ker_eval<ns, kerevalmeth, FLT, batch_t>(opts, x1);
+    const auto j = i1 - off1;         // offset rel to subgrid, starts the output indices
+    auto *FINUFFT_RESTRICT trg = du + 2 * j; // restrict helps compiler to vectorize
+    // du is padded, so we can use SIMD even if we write more than ns values in du
+    // ker0 is also padded.
+    // regular_part is the largest multiple of 2*ns minus the remainder modulo
+    // (2*avx_size). This allows to save one load.
+    // see below for the details.
+    // adding padding to guarantee that all the elments are computed
+    // this trick only works when avx_size is a power of 2
+    // avx_size*2 is guaranteed to be a power of 2, trivially
+    static constexpr auto regular_part = (2 * ns + padding) & (-(2 * avx_size));
+    // this loop increment is 2*avx_size by design
+    // it allows to save one load this way
+    // this does for each element e of the subgrid, x1 defined above and pt the NU point
+    // the following: e += exp(beta.sqrt(1 - (2*x1/n_s)^2))*pt
+    // NOTE: x1 is translated accordingly, please see the ES method for more
+    // using uint8_t in loops to favor unrolling.
+    // Most compilers limit the unrolling to 255, uint8_t is at most 255
+    for (uint8_t dx{0}; dx < regular_part; dx += 2 * avx_size) {
+      // read ker01 which is avx_size wide from ker
+      // ker01 looks like this:
+      // +-----------------------+
+      // |y0|y1|y2|y3|y4|y5|y6|y7|
+      // +-----------------------+
+      const auto ker01 = batch_t::load_aligned(ker.data() + dx / 2);
+      // read 2*SIMD vectors from the subproblem grid
+      const auto du_pt0 = batch_t::load_unaligned(trg + dx);
+      const auto du_pt1 = batch_t::load_unaligned(trg + dx + avx_size);
+      // swizzle is faster than zip_lo(ker01, ker01) and zip_hi(ker01, ker01)
+      // swizzle in this case is equivalent to zip_lo and zip_hi respectively
+      const auto ker0 = xsimd::swizzle(ker01, zip_low_index<arch_t>);
+      // ker 0 looks like this now:
+      // +-----------------------+
+      // |y0|y0|y1|y1|y2|y2|y3|y3|
+      // +-----------------------+
+      const auto ker1 = xsimd::swizzle(ker01, zip_hi_index<arch_t>);
+      // ker 1 looks like this now:
+      // +-----------------------+
+      // |y4|y4|y5|y5|y6|y6|y7|y7|
+      // +-----------------------+
+      // same as before each element of the subproblem grid is multiplied by the
+      // corresponding element of the kernel since dd_pt is re|im interleaves res0 is also
+      // correctly re|im interleaved
+      // doing this for two SIMD vectors at once allows to fully utilize ker01 instead of
+      // wasting the higher half
+      const auto res0 = xsimd::fma(ker0, dd_pt, du_pt0);
+      const auto res1 = xsimd::fma(ker1, dd_pt, du_pt1);
+      res0.store_unaligned(trg + dx);
+      res1.store_unaligned(trg + dx + avx_size);
+    }
+    // sanity check at compile time that all the elements are computed
+    static_assert(regular_part + avx_size >= 2 * ns);
+    // case where the 2*ns is not a multiple of 2*avx_size
+    // checking 2*ns instead of 2*ns+padding as we do not need to compute useless zeros...
+    if constexpr (regular_part < 2 * ns) {
+      // here we need to load the last kernel values,
+      // but we can avoid computing extra padding
+      // also this padding will result in out-of-bounds access to trg
+      const auto ker01 = batch_t::load_unaligned(ker.data() + (regular_part / 2));
+      const auto du_pt = batch_t::load_unaligned(trg + regular_part);
+      const auto ker0  = xsimd::swizzle(ker01, zip_low_index<arch_t>);
+      const auto res   = xsimd::fma(ker0, dd_pt, du_pt);
+      res.store_unaligned(trg + regular_part);
     }
   }
 }
 
-void spread_subproblem_2d(BIGINT off1, BIGINT off2, BIGINT size1, BIGINT size2, FLT *du,
-                          BIGINT M, FLT *kx, FLT *ky, FLT *dd,
-                          const finufft_spread_opts &opts)
+template<uint8_t NS>
+static void spread_subproblem_1d_dispatch(
+    const BIGINT off1, const BIGINT size1, FLT *FINUFFT_RESTRICT du, const BIGINT M,
+    const FLT *kx, const FLT *dd, const finufft_spread_opts &opts) noexcept {
+  /* this is a dispatch function that will call the correct kernel based on the ns
+   it recursively iterates from MAX_NSPREAD to MIN_NSPREAD
+   it generates the following code:
+   if (ns == MAX_NSPREAD) {
+     if (opts.kerevalmeth) {
+       return spread_subproblem_1d_kernel<MAX_NSPREAD, true>(off1, size1, du, M, kx, dd,
+       opts);
+    } else {
+       return spread_subproblem_1d_kernel<MAX_NSPREAD, false>(off1, size1, du, M, kx, dd,
+       opts);
+   }
+   if (ns == MAX_NSPREAD-1) {
+     if (opts.kerevalmeth) {
+       return spread_subproblem_1d_kernel<MAX_NSPREAD-1, true>(off1, size1, du, M, kx, dd,
+       opts);
+     } else {
+       return spread_subproblem_1d_kernel<MAX_NSPREAD-1, false>(off1, size1, du, M, kx,
+       dd, opts);
+     }
+   }
+   ...
+   NOTE: using a big MAX_NSPREAD will generate a lot of code
+         if MAX_NSPREAD gets too large it will crash the compiler with a compile time
+         stack overflow. Older compiler will just throw an internal error without
+         providing any useful information on the error.
+         This is a known issue with template metaprogramming.
+         If you increased MAX_NSPREAD and the code does not compile, try reducing it.
+  */
+  static_assert(MIN_NSPREAD <= NS <= MAX_NSPREAD,
+                "NS must be in the range (MIN_NSPREAD, MAX_NSPREAD)");
+  if constexpr (NS == MIN_NSPREAD) { // Base case
+    if (opts.kerevalmeth)
+      return spread_subproblem_1d_kernel<MIN_NSPREAD, true>(off1, size1, du, M, kx, dd,
+                                                            opts);
+    else {
+      return spread_subproblem_1d_kernel<MIN_NSPREAD, false>(off1, size1, du, M, kx, dd,
+                                                             opts);
+    }
+  } else {
+    if (opts.nspread == NS) {
+      if (opts.kerevalmeth) {
+        return spread_subproblem_1d_kernel<NS, true>(off1, size1, du, M, kx, dd, opts);
+      } else {
+        return spread_subproblem_1d_kernel<NS, false>(off1, size1, du, M, kx, dd, opts);
+      }
+    } else {
+      return spread_subproblem_1d_dispatch<NS - 1>(off1, size1, du, M, kx, dd, opts);
+    }
+  }
+}
+
+void spread_subproblem_1d(BIGINT off1, BIGINT size1, FLT *du, BIGINT M, FLT *kx, FLT *dd,
+                          const finufft_spread_opts &opts) noexcept
 /* spreader from dd (NU) to du (uniform) in 2D without wrapping.
    See above docs/notes for spread_subproblem_2d.
    kx,ky (size M) are NU locations in [off+ns/2,off+size-1-ns/2] in both dims.
    dd (size M complex) are complex source strengths
    du (size size1*size2) is complex uniform output array
- */
+   For algoritmic details see spread_subproblem_1d_kernel.
+*/
 {
-  int ns  = opts.nspread;
-  FLT ns2 = (FLT)ns / 2; // half spread width
-  for (BIGINT i = 0; i < 2 * size1 * size2; ++i) du[i] = 0.0;
-  FLT kernel_args[2 * MAX_NSPREAD];
+  spread_subproblem_1d_dispatch<MAX_NSPREAD>(off1, size1, du, M, kx, dd, opts);
+}
+
+template<uint8_t ns, bool kerevalmeth>
+FINUFFT_NEVER_INLINE static void spread_subproblem_2d_kernel(
+    const BIGINT off1, const BIGINT off2, const BIGINT size1, const BIGINT size2,
+    FLT *FINUFFT_RESTRICT du, const BIGINT M, const FLT *kx, const FLT *ky, const FLT *dd,
+    const finufft_spread_opts &opts) noexcept
+/* spreader from dd (NU) to du (uniform) in 2D without wrapping.
+   See above docs/notes for spread_subproblem_2d.
+   kx,ky (size M) are NU locations in [off+ns/2,off+size-1-ns/2] in both dims.
+   dd (size M complex) are complex source strengths
+   du (size size1*size2) is complex uniform output array
+   For algoritmic details see spread_subproblem_1d_kernel.
+*/
+{
+  using batch_t                   = PaddedSIMD<FLT, 2 * ns>;
+  using arch_t                    = typename batch_t::arch_type;
+  static constexpr auto padding   = get_padding<FLT, 2 * ns>();
+  static constexpr auto avx_size  = batch_t::size;
+  static constexpr auto alignment = batch_t::arch_type::alignment();
   // Kernel values stored in consecutive memory. This allows us to compute
-  // values in two directions in a single kernel evaluation call.
-  FLT kernel_values[2 * MAX_NSPREAD];
-  FLT *ker1 = kernel_values;
-  FLT *ker2 = kernel_values + ns;
-  for (BIGINT i = 0; i < M; i++) { // loop over NU pts
-    FLT re0 = dd[2 * i];
-    FLT im0 = dd[2 * i + 1];
+  // values in all three directions in a single kernel evaluation call.
+  static constexpr auto ns2 = ns * FLT(0.5); // half spread width
+  std::fill(du, du + 2 * size1 * size2, 0);  // initialized to 0 due to the padding
+  for (uint64_t pt = 0; pt < M; pt++) {      // loop over NU pts
+    const auto dd_pt = initialize_complex_batch<batch_t>(dd[pt * 2], dd[pt * 2 + 1]);
     // ceil offset, hence rounding, must match that in get_subgrid...
-    BIGINT i1 = (BIGINT)std::ceil(kx[i] - ns2); // fine grid start indices
-    BIGINT i2 = (BIGINT)std::ceil(ky[i] - ns2);
-    FLT x1    = (FLT)i1 - kx[i];
-    FLT x2    = (FLT)i2 - ky[i];
-    if (opts.kerevalmeth == 0) { // faster Horner poly method
-      set_kernel_args(kernel_args, x1, opts);
-      set_kernel_args(kernel_args + ns, x2, opts);
-      evaluate_kernel_vector(kernel_values, kernel_args, opts, 2 * ns);
-    } else {
-      // due to ns being padded up to next multiple of 4 in the
-      // eval_kernel_vec_Horner and writing zeros out to this padded size, these
-      // must occur in the order x,y...
-      eval_kernel_vec_Horner(ker1, x1, ns, opts);
-      eval_kernel_vec_Horner(ker2, x2, ns, opts);
-    }
+    const auto i1 = (BIGINT)std::ceil(kx[pt] - ns2); // fine grid start indices
+    const auto i2 = (BIGINT)std::ceil(ky[pt] - ns2);
+    const auto x1 = (FLT)std::ceil(kx[pt] - ns2) - kx[pt];
+    const auto x2 = (FLT)std::ceil(ky[pt] - ns2) - ky[pt];
+    alignas(alignment) const auto kernel_values =
+        ker_eval<ns, kerevalmeth, FLT, batch_t>(opts, x1, x2);
+    alignas(alignment) auto *FINUFFT_RESTRICT ker1 = kernel_values.data();
+    alignas(alignment) auto *FINUFFT_RESTRICT ker2 = kernel_values.data() + MAX_NSPREAD;
     // Combine kernel with complex source value to simplify inner loop
-    FLT ker1val[2 * MAX_NSPREAD]; // here 2* is because of complex
-    for (int i = 0; i < ns; i++) {
-      ker1val[2 * i]     = re0 * ker1[i];
-      ker1val[2 * i + 1] = im0 * ker1[i];
+    // here 2* is because of complex
+    static constexpr uint8_t batches = (2 * ns + padding) / avx_size;
+    static_assert(batches > 0, "batches must be greater than 0");
+    batch_t ker1val_batches[batches];
+
+    for (u_int8_t i = 0; i < (batches & ~1); i += 2) {
+      const auto ker01       = batch_t::load_aligned(ker1 + i * avx_size / 2);
+      const auto ker00       = xsimd::swizzle(ker01, zip_low_index<arch_t>);
+      const auto ker11       = xsimd::swizzle(ker01, zip_hi_index<arch_t>);
+      ker1val_batches[i]     = ker00 * dd_pt;
+      ker1val_batches[i + 1] = ker11 * dd_pt;
+    }
+    if constexpr (batches % 2) {
+      const auto ker1_batch =
+          batch_t::load_unaligned(ker1 + (batches - 1) * avx_size / 2);
+      const auto res = xsimd::swizzle(ker1_batch, zip_low_index<arch_t>) * dd_pt;
+      ker1val_batches[batches - 1] = res;
     }
     // critical inner loop:
-    for (int dy = 0; dy < ns; ++dy) {
-      BIGINT j   = size1 * (i2 - off2 + dy) + i1 - off1; // should be in subgrid
-      FLT kerval = ker2[dy];
-      FLT *trg   = du + 2 * j;
-      for (int dx = 0; dx < 2 * ns; ++dx) {
-        trg[dx] += kerval * ker1val[dx];
+    for (auto dy = 0; dy < ns; ++dy) {
+      const auto j = size1 * (i2 - off2 + dy) + i1 - off1; // should be in subgrid
+      auto *FINUFFT_RESTRICT trg = du + 2 * j;
+      const batch_t kerval_batch(ker2[dy]);
+      for (u_int8_t i = 0; i < batches; ++i) {
+        const auto trg_batch = batch_t::load_unaligned(trg + i * avx_size);
+        const auto result    = xsimd::fma(kerval_batch, ker1val_batches[i], trg_batch);
+        result.store_unaligned(trg + i * avx_size);
       }
     }
   }
 }
 
-void spread_subproblem_3d(BIGINT off1, BIGINT off2, BIGINT off3, BIGINT size1,
-                          BIGINT size2, BIGINT size3, FLT *du, BIGINT M, FLT *kx, FLT *ky,
-                          FLT *kz, FLT *dd, const finufft_spread_opts &opts)
-/* spreader from dd (NU) to du (uniform) in 3D without wrapping.
-   See above docs/notes for spread_subproblem_2d.
-   kx,ky,kz (size M) are NU locations in [off+ns/2,off+size-1-ns/2] in each dim.
-   dd (size M complex) are complex source strengths
-   du (size size1*size2*size3) is uniform complex output array
- */
-{
-  int ns  = opts.nspread;
-  FLT ns2 = (FLT)ns / 2; // half spread width
-  for (BIGINT i = 0; i < 2 * size1 * size2 * size3; ++i) du[i] = 0.0;
-  FLT kernel_args[3 * MAX_NSPREAD];
-  // Kernel values stored in consecutive memory. This allows us to compute
-  // values in all three directions in a single kernel evaluation call.
-  FLT kernel_values[3 * MAX_NSPREAD];
-  FLT *ker1 = kernel_values;
-  FLT *ker2 = kernel_values + ns;
-  FLT *ker3 = kernel_values + 2 * ns;
-  for (BIGINT i = 0; i < M; i++) { // loop over NU pts
-    FLT re0 = dd[2 * i];
-    FLT im0 = dd[2 * i + 1];
-    // ceil offset, hence rounding, must match that in get_subgrid...
-    BIGINT i1 = (BIGINT)std::ceil(kx[i] - ns2); // fine grid start indices
-    BIGINT i2 = (BIGINT)std::ceil(ky[i] - ns2);
-    BIGINT i3 = (BIGINT)std::ceil(kz[i] - ns2);
-    FLT x1    = (FLT)i1 - kx[i];
-    FLT x2    = (FLT)i2 - ky[i];
-    FLT x3    = (FLT)i3 - kz[i];
-    if (opts.kerevalmeth == 0) { // faster Horner poly method
-      set_kernel_args(kernel_args, x1, opts);
-      set_kernel_args(kernel_args + ns, x2, opts);
-      set_kernel_args(kernel_args + 2 * ns, x3, opts);
-      evaluate_kernel_vector(kernel_values, kernel_args, opts, 3 * ns);
-    } else {
-      // due to ns being padded up to next multiple of 4 in the
-      // eval_kernel_vec_Horner and writing zeros out to this padded size, these
-      // must occur in the order x,y,z...
-      eval_kernel_vec_Horner(ker1, x1, ns, opts);
-      eval_kernel_vec_Horner(ker2, x2, ns, opts);
-      eval_kernel_vec_Horner(ker3, x3, ns, opts);
+template<uint8_t NS>
+void spread_subproblem_2d_dispatch(
+    const BIGINT off1, const BIGINT off2, const BIGINT size1, const BIGINT size2,
+    FLT *FINUFFT_RESTRICT du, const BIGINT M, const FLT *kx, const FLT *ky, const FLT *dd,
+    const finufft_spread_opts &opts) {
+  static_assert(MIN_NSPREAD <= NS <= MAX_NSPREAD,
+                "NS must be in the range (MIN_NSPREAD, MAX_NSPREAD)");
+  if constexpr (NS == MIN_NSPREAD) { // Base case
+    if (opts.kerevalmeth)
+      return spread_subproblem_2d_kernel<MIN_NSPREAD, true>(off1, off2, size1, size2, du,
+                                                            M, kx, ky, dd, opts);
+    else {
+      return spread_subproblem_2d_kernel<MIN_NSPREAD, false>(off1, off2, size1, size2, du,
+                                                             M, kx, ky, dd, opts);
     }
+  } else {
+    if (opts.nspread == NS) {
+      if (opts.kerevalmeth) {
+        return spread_subproblem_2d_kernel<NS, true>(off1, off2, size1, size2, du, M, kx,
+                                                     ky, dd, opts);
+      } else {
+        return spread_subproblem_2d_kernel<NS, false>(off1, off2, size1, size2, du, M, kx,
+                                                      ky, dd, opts);
+      }
+    } else {
+      return spread_subproblem_2d_dispatch<NS - 1>(off1, off2, size1, size2, du, M, kx,
+                                                   ky, dd, opts);
+    }
+  }
+}
+
+void spread_subproblem_2d(const BIGINT off1, const BIGINT off2, const BIGINT size1,
+                          const BIGINT size2, FLT *FINUFFT_RESTRICT du, const BIGINT M,
+                          const FLT *kx, const FLT *ky, const FLT *dd,
+                          const finufft_spread_opts &opts) noexcept
+/* spreader from dd (NU) to du (uniform) in 2D without wrapping.
+   See above docs/notes for spread_subproblem_2d.
+   kx,ky (size M) are NU locations in [off+ns/2,off+size-1-ns/2] in both dims.
+   dd (size M complex) are complex source strengths
+   du (size size1*size2) is complex uniform output array
+   For algoritmic details see spread_subproblem_1d_kernel.
+*/
+{
+  spread_subproblem_2d_dispatch<MAX_NSPREAD>(off1, off2, size1, size2, du, M, kx, ky, dd,
+                                             opts);
+}
+
+template<uint8_t ns, bool kerevalmeth>
+FINUFFT_NEVER_INLINE void spread_subproblem_3d_kernel(
+    const BIGINT off1, const BIGINT off2, const BIGINT off3, const BIGINT size1,
+    const BIGINT size2, const BIGINT size3, FLT *FINUFFT_RESTRICT du, const BIGINT M,
+    const FLT *kx, const FLT *ky, const FLT *kz, const FLT *dd,
+    const finufft_spread_opts &opts) noexcept {
+  using batch_t                   = PaddedSIMD<FLT, 2 * ns>;
+  using arch_t                    = typename batch_t::arch_type;
+  static constexpr auto padding   = get_padding<FLT, 2 * ns>();
+  static constexpr auto avx_size  = batch_t::size;
+  static constexpr auto alignment = batch_t::arch_type::alignment();
+  static constexpr auto ns2       = ns * FLT(0.5); // half spread width
+  std::fill(du, du + 2 * size1 * size2 * size3, 0);
+  for (uint64_t pt = 0; pt < M; pt++) {            // loop over NU pts
+    const auto dd_pt = initialize_complex_batch<batch_t>(dd[pt * 2], dd[pt * 2 + 1]);
+    // ceil offset, hence rounding, must match that in get_subgrid...
+    const auto i1 = (BIGINT)std::ceil(kx[pt] - ns2); // fine grid start indices
+    const auto i2 = (BIGINT)std::ceil(ky[pt] - ns2);
+    const auto i3 = (BIGINT)std::ceil(kz[pt] - ns2);
+    const auto x1 = std::ceil(kx[pt] - ns2) - kx[pt];
+    const auto x2 = std::ceil(ky[pt] - ns2) - ky[pt];
+    const auto x3 = std::ceil(kz[pt] - ns2) - kz[pt];
+
+    alignas(alignment) const auto kernel_values =
+        ker_eval<ns, kerevalmeth, FLT, batch_t>(opts, x1, x2, x3);
+    auto *FINUFFT_RESTRICT ker1 = kernel_values.data();
+    auto *FINUFFT_RESTRICT ker2 = kernel_values.data() + MAX_NSPREAD;
+    auto *FINUFFT_RESTRICT ker3 = kernel_values.data() + 2 * MAX_NSPREAD;
     // Combine kernel with complex source value to simplify inner loop
-    FLT ker1val[2 * MAX_NSPREAD]; // here 2* is because of complex
-    for (int i = 0; i < ns; i++) {
-      ker1val[2 * i]     = re0 * ker1[i];
-      ker1val[2 * i + 1] = im0 * ker1[i];
+    // here 2* is because of complex
+    // Batches is the number of SIMD iterations needed to compute all the elements
+    static constexpr uint8_t batches = (2 * ns + padding) / avx_size;
+    static_assert(batches > 0, "batches must be greater than 0");
+    batch_t ker1val_batches[batches];
+    // Iterate over batches but in case the number of batches is odd
+    // we need to handle the last batch separately
+    // to the & ~1 is to ensure that we do not iterate over the last batch if it is odd
+    // as it sets the last bit to 0
+    for (u_int8_t i = 0; i < (batches & ~1); i += 2) {
+      const auto ker01       = batch_t::load_aligned(ker1 + i * avx_size / 2);
+      const auto ker00       = xsimd::swizzle(ker01, zip_low_index<arch_t>);
+      const auto ker11       = xsimd::swizzle(ker01, zip_hi_index<arch_t>);
+      ker1val_batches[i]     = ker00 * dd_pt;
+      ker1val_batches[i + 1] = ker11 * dd_pt;
+    }
+
+    // (at compile time) check if the number of batches is odd
+    // if it is we need to handle the last batch separately
+    if constexpr (batches % 2) {
+      const auto ker1_batch =
+          batch_t::load_unaligned(ker1 + (batches - 1) * avx_size / 2);
+      const auto res = xsimd::swizzle(ker1_batch, zip_low_index<arch_t>) * dd_pt;
+      ker1val_batches[batches - 1] = res;
     }
     // critical inner loop:
-    for (int dz = 0; dz < ns; ++dz) {
-      BIGINT oz = size1 * size2 * (i3 - off3 + dz);           // offset due to z
-      for (int dy = 0; dy < ns; ++dy) {
-        BIGINT j = oz + size1 * (i2 - off2 + dy) + i1 - off1; // should be in
-                                                              // subgrid
-        FLT kerval = ker2[dy] * ker3[dz];
-        FLT *trg   = du + 2 * j;
-        for (int dx = 0; dx < 2 * ns; ++dx) {
-          trg[dx] += kerval * ker1val[dx];
+    for (u_int8_t dz{0}; dz < ns; ++dz) {
+      const auto oz = size1 * size2 * (i3 - off3 + dz);           // offset due to z
+      for (u_int8_t dy{0}; dy < ns; ++dy) {
+        const auto j = oz + size1 * (i2 - off2 + dy) + i1 - off1; // should be in subgrid
+        auto *FINUFFT_RESTRICT trg = du + 2 * j;
+        const auto kerval          = ker2[dy] * ker3[dz];
+        const batch_t kerval_batch(kerval);
+        for (u_int8_t i{0}; i < batches; ++i) {
+          const auto trg_batch = batch_t::load_unaligned(trg + i * avx_size);
+          const auto result    = xsimd::fma(kerval_batch, ker1val_batches[i], trg_batch);
+          result.store_unaligned(trg + i * avx_size);
         }
       }
     }
   }
 }
 
-void add_wrapped_subgrid(BIGINT offset1, BIGINT offset2, BIGINT offset3, BIGINT size1,
-                         BIGINT size2, BIGINT size3, BIGINT N1, BIGINT N2, BIGINT N3,
-                         FLT *data_uniform, FLT *du0)
-/* Add a large subgrid (du0) to output grid (data_uniform),
-   with periodic wrapping to N1,N2,N3 box.
-   offset1,2,3 give the offset of the subgrid from the lowest corner of output.
-   size1,2,3 give the size of subgrid.
-   Works in all dims. Not thread-safe and must be called inside omp critical.
-   Barnett 3/27/18 made separate routine, tried to speed up inner loop.
-*/
-{
-  std::vector<BIGINT> o2(size2), o3(size3);
-  BIGINT y = offset2, z = offset3; // fill wrapped ptr lists in slower dims y,z...
-  for (int i = 0; i < size2; ++i) {
-    if (y < 0) y += N2;
-    if (y >= N2) y -= N2;
-    o2[i] = y++;
-  }
-  for (int i = 0; i < size3; ++i) {
-    if (z < 0) z += N3;
-    if (z >= N3) z -= N3;
-    o3[i] = z++;
-  }
-  BIGINT nlo = (offset1 < 0) ? -offset1 : 0;                      // # wrapping below in x
-  BIGINT nhi = (offset1 + size1 > N1) ? offset1 + size1 - N1 : 0; // " above in x
-  // this triple loop works in all dims
-  for (int dz = 0; dz < size3; dz++) {                 // use ptr lists in each axis
-    BIGINT oz = N1 * N2 * o3[dz];                      // offset due to z (0 in <3D)
-    for (int dy = 0; dy < size2; dy++) {
-      BIGINT oy = oz + N1 * o2[dy];                    // off due to y & z (0 in 1D)
-      FLT *out  = data_uniform + 2 * oy;
-      FLT *in   = du0 + 2 * size1 * (dy + size2 * dz); // ptr to subgrid array
-      BIGINT o  = 2 * (offset1 + N1);                  // 1d offset for output
-      for (int j = 0; j < 2 * nlo; j++) // j is really dx/2 (since re,im parts)
-        out[j + o] += in[j];
-      o = 2 * offset1;
-      for (int j = 2 * nlo; j < 2 * (size1 - nhi); j++) out[j + o] += in[j];
-      o = 2 * (offset1 - N1);
-      for (int j = 2 * (size1 - nhi); j < 2 * size1; j++) out[j + o] += in[j];
+template<uint8_t NS>
+void spread_subproblem_3d_dispatch(
+    BIGINT off1, BIGINT off2, BIGINT off3, BIGINT size1, BIGINT size2, BIGINT size3,
+    FLT *du, BIGINT M, const FLT *kx, const FLT *ky, const FLT *kz, const FLT *dd,
+    const finufft_spread_opts &opts) noexcept {
+  static_assert(MIN_NSPREAD <= NS <= MAX_NSPREAD,
+                "NS must be in the range (MIN_NSPREAD, MAX_NSPREAD)");
+  if constexpr (NS == MIN_NSPREAD) { // Base case
+    if (opts.kerevalmeth)
+      return spread_subproblem_3d_kernel<MIN_NSPREAD, true>(
+          off1, off2, off3, size1, size2, size3, du, M, kx, ky, kz, dd, opts);
+    else {
+      return spread_subproblem_3d_kernel<MIN_NSPREAD, false>(
+          off1, off2, off3, size1, size2, size3, du, M, kx, ky, kz, dd, opts);
+    }
+  } else {
+    if (opts.nspread == NS) {
+      if (opts.kerevalmeth) {
+        return spread_subproblem_3d_kernel<NS, true>(off1, off2, off3, size1, size2,
+                                                     size3, du, M, kx, ky, kz, dd, opts);
+      } else {
+        return spread_subproblem_3d_kernel<NS, false>(off1, off2, off3, size1, size2,
+                                                      size3, du, M, kx, ky, kz, dd, opts);
+      }
+    } else {
+      return spread_subproblem_3d_dispatch<NS - 1>(off1, off2, off3, size1, size2, size3,
+                                                   du, M, kx, ky, kz, dd, opts);
     }
   }
 }
 
-void add_wrapped_subgrid_thread_safe(BIGINT offset1, BIGINT offset2, BIGINT offset3,
-                                     BIGINT size1, BIGINT size2, BIGINT size3, BIGINT N1,
-                                     BIGINT N2, BIGINT N3, FLT *data_uniform, FLT *du0)
+void spread_subproblem_3d(BIGINT off1, BIGINT off2, BIGINT off3, BIGINT size1,
+                          BIGINT size2, BIGINT size3, FLT *du, BIGINT M, FLT *kx, FLT *ky,
+                          FLT *kz, FLT *dd, const finufft_spread_opts &opts) noexcept
+/* spreader from dd (NU) to du (uniform) in 3D without wrapping.
+See above docs/notes for spread_subproblem_2d.
+kx,ky,kz (size M) are NU locations in [off+ns/2,off+size-1-ns/2] in each dim.
+dd (size M complex) are complex source strengths
+du (size size1*size2*size3) is uniform complex output array
+*/
+{
+  spread_subproblem_3d_dispatch<MAX_NSPREAD>(off1, off2, off3, size1, size2, size3, du, M,
+                                             kx, ky, kz, dd, opts);
+}
+
+template<bool thread_safe>
+void add_wrapped_subgrid(BIGINT offset1, BIGINT offset2, BIGINT offset3,
+                         BIGINT padded_size1, BIGINT size1, BIGINT size2, BIGINT size3,
+                         BIGINT N1, BIGINT N2, BIGINT N3,
+                         FLT *FINUFFT_RESTRICT data_uniform, const FLT *const du0)
 /* Add a large subgrid (du0) to output grid (data_uniform),
    with periodic wrapping to N1,N2,N3 box.
    offset1,2,3 give the offset of the subgrid from the lowest corner of output.
-   size1,2,3 give the size of subgrid.
+   padded_size1,2,3 give the size of subgrid.
    Works in all dims. Thread-safe variant of the above routine,
    using atomic writes (R Blackwell, Nov 2020).
+   Merged the thread_safe and the not thread_safe version of the function into one
+   (M. Barbone 06/24).
 */
 {
   std::vector<BIGINT> o2(size2), o3(size3);
+  static auto accumulate = [](FLT &a, FLT b) {
+    if constexpr (thread_safe) { // NOLINT(*-branch-clone)
+#pragma omp atomic
+      a += b;
+    } else {
+      a += b;
+    }
+  };
+
   BIGINT y = offset2, z = offset3; // fill wrapped ptr lists in slower dims y,z...
   for (int i = 0; i < size2; ++i) {
     if (y < 0) y += N2;
@@ -1163,26 +1484,23 @@ void add_wrapped_subgrid_thread_safe(BIGINT offset1, BIGINT offset2, BIGINT offs
   BIGINT nlo = (offset1 < 0) ? -offset1 : 0;                      // # wrapping below in x
   BIGINT nhi = (offset1 + size1 > N1) ? offset1 + size1 - N1 : 0; // " above in x
   // this triple loop works in all dims
-  for (int dz = 0; dz < size3; dz++) {                 // use ptr lists in each axis
-    BIGINT oz = N1 * N2 * o3[dz];                      // offset due to z (0 in <3D)
+  for (int dz = 0; dz < size3; dz++) {               // use ptr lists in each axis
+    const auto oz = N1 * N2 * o3[dz];                // offset due to z (0 in <3D)
     for (int dy = 0; dy < size2; dy++) {
-      BIGINT oy = oz + N1 * o2[dy];                    // off due to y & z (0 in 1D)
-      FLT *out  = data_uniform + 2 * oy;
-      FLT *in   = du0 + 2 * size1 * (dy + size2 * dz); // ptr to subgrid array
-      BIGINT o  = 2 * (offset1 + N1);                  // 1d offset for output
-      for (int j = 0; j < 2 * nlo; j++) { // j is really dx/2 (since re,im parts)
-#pragma omp atomic
-        out[j + o] += in[j];
+      const auto oy              = N1 * o2[dy] + oz; // off due to y & z (0 in 1D)
+      auto *FINUFFT_RESTRICT out = data_uniform + 2 * oy;
+      const auto in = du0 + 2 * padded_size1 * (dy + size2 * dz); // ptr to subgrid array
+      auto o        = 2 * (offset1 + N1);                         // 1d offset for output
+      for (auto j = 0; j < 2 * nlo; j++) { // j is really dx/2 (since re,im parts)
+        accumulate(out[j + o], in[j]);
       }
       o = 2 * offset1;
-      for (int j = 2 * nlo; j < 2 * (size1 - nhi); j++) {
-#pragma omp atomic
-        out[j + o] += in[j];
+      for (auto j = 2 * nlo; j < 2 * (size1 - nhi); j++) {
+        accumulate(out[j + o], in[j]);
       }
       o = 2 * (offset1 - N1);
-      for (int j = 2 * (size1 - nhi); j < 2 * size1; j++) {
-#pragma omp atomic
-        out[j + o] += in[j];
+      for (auto j = 2 * (size1 - nhi); j < 2 * size1; j++) {
+        accumulate(out[j + o], in[j]);
       }
     }
   }
@@ -1219,23 +1537,27 @@ void bin_sort_singlethread(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz, BIG
  * Simplified by Martin Reinecke, 6/19/23 (no apparent effect on speed).
  */
 {
-  bool isky = (N2 > 1), iskz = (N3 > 1); // ky,kz avail? (cannot access if not)
+  const auto isky = (N2 > 1), iskz = (N3 > 1); // ky,kz avail? (cannot access if not)
   // here the +1 is needed to allow round-off error causing i1=N1/bin_size_x,
   // for kx near +pi, ie foldrescale gives N1 (exact arith would be 0 to N1-1).
   // Note that round-off near kx=-pi stably rounds negative to i1=0.
-  BIGINT nbins1 = N1 / bin_size_x + 1, nbins2, nbins3;
-  nbins2        = isky ? N2 / bin_size_y + 1 : 1;
-  nbins3        = iskz ? N3 / bin_size_z + 1 : 1;
-  BIGINT nbins  = nbins1 * nbins2 * nbins3;
+  const auto nbins1         = BIGINT(FLT(N1) / bin_size_x + 1);
+  const auto nbins2         = isky ? BIGINT(FLT(N2) / bin_size_y + 1) : 1;
+  const auto nbins3         = iskz ? BIGINT(FLT(N3) / bin_size_z + 1) : 1;
+  const auto nbins          = nbins1 * nbins2 * nbins3;
+  const auto inv_bin_size_x = FLT(1.0 / bin_size_x);
+  const auto inv_bin_size_y = FLT(1.0 / bin_size_y);
+  const auto inv_bin_size_z = FLT(1.0 / bin_size_z);
+  // count how many pts in each bin
+  std::vector<BIGINT> counts(nbins, 0);
 
-  std::vector<BIGINT> counts(nbins, 0); // count how many pts in each bin
-  for (BIGINT i = 0; i < M; i++) {
+  for (auto i = 0; i < M; i++) {
     // find the bin index in however many dims are needed
-    BIGINT i1 = fold_rescale(kx[i], N1) / bin_size_x, i2 = 0, i3 = 0;
-    if (isky) i2 = fold_rescale(ky[i], N2) / bin_size_y;
-    if (iskz) i3 = fold_rescale(kz[i], N3) / bin_size_z;
-    BIGINT bin = i1 + nbins1 * (i2 + nbins2 * i3);
-    counts[bin]++;
+    const auto i1  = BIGINT(fold_rescale(kx[i], N1) * inv_bin_size_x);
+    const auto i2  = isky ? BIGINT(fold_rescale(ky[i], N2) * inv_bin_size_y) : 0;
+    const auto i3  = iskz ? BIGINT(fold_rescale(kz[i], N3) * inv_bin_size_z) : 0;
+    const auto bin = i1 + nbins1 * (i2 + nbins2 * i3);
+    ++counts[bin];
   }
 
   // compute the offsets directly in the counts array (no offset array)
@@ -1246,14 +1568,14 @@ void bin_sort_singlethread(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz, BIG
     current_offset += tmp;
   } // (counts now contains the index offsets for each bin)
 
-  for (BIGINT i = 0; i < M; i++) {
+  for (auto i = 0; i < M; i++) {
     // find the bin index (again! but better than using RAM)
-    BIGINT i1 = fold_rescale(kx[i], N1) / bin_size_x, i2 = 0, i3 = 0;
-    if (isky) i2 = fold_rescale(ky[i], N2) / bin_size_y;
-    if (iskz) i3 = fold_rescale(kz[i], N3) / bin_size_z;
-    BIGINT bin       = i1 + nbins1 * (i2 + nbins2 * i3);
-    ret[counts[bin]] = i; // fill the inverse map on the fly
-    ++counts[bin];        // update the offsets
+    const auto i1    = BIGINT(fold_rescale(kx[i], N1) * inv_bin_size_x);
+    const auto i2    = isky ? BIGINT(fold_rescale(ky[i], N2) * inv_bin_size_y) : 0;
+    const auto i3    = iskz ? BIGINT(fold_rescale(kz[i], N3) * inv_bin_size_z) : 0;
+    const auto bin   = i1 + nbins1 * (i2 + nbins2 * i3);
+    ret[counts[bin]] = BIGINT(i); // fill the inverse map on the fly
+    ++counts[bin];                // update the offsets
   }
 }
 
@@ -1327,9 +1649,9 @@ void bin_sort_multithread(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz, BIGI
   }
 }
 
-void get_subgrid(BIGINT &offset1, BIGINT &offset2, BIGINT &offset3, BIGINT &size1,
-                 BIGINT &size2, BIGINT &size3, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
-                 int ns, int ndims)
+void get_subgrid(BIGINT &offset1, BIGINT &offset2, BIGINT &offset3, BIGINT &padded_size1,
+                 BIGINT &size1, BIGINT &size2, BIGINT &size3, BIGINT M, FLT *kx, FLT *ky,
+                 FLT *kz, int ns, int ndims)
 /* Writes out the integer offsets and sizes of a "subgrid" (cuboid subset of
    Z^ndims) large enough to enclose all of the nonuniform points with
    (non-periodic) padding of half the kernel width ns to each side in
@@ -1346,7 +1668,7 @@ void get_subgrid(BIGINT &offset1, BIGINT &offset2, BIGINT &offset3, BIGINT &size
 
  Outputs:
    offset1,2,3 - left-most coord of cuboid in each dimension (up to ndims)
-   size1,2,3   - size of cuboid in each dimension.
+   padded_size1,2,3   - size of cuboid in each dimension.
                  Thus the right-most coord of cuboid is offset+size-1.
    Returns offset 0 and size 1 for each unused dimension (ie when ndims<3);
    this is required by the calling code.
@@ -1356,7 +1678,7 @@ void get_subgrid(BIGINT &offset1, BIGINT &offset2, BIGINT &offset3, BIGINT &size
           ndims=1, M=2, kx[0]=0.2, ks[1]=4.9, ns=3
       outputs:
           offset1=-1 (since kx[0] spreads to {-1,0,1}, and -1 is the min)
-          size1=8 (since kx[1] spreads to {4,5,6}, so subgrid is {-1,..,6}
+          padded_size1=8 (since kx[1] spreads to {4,5,6}, so subgrid is {-1,..,6}
                    hence 8 grid points).
  Notes:
    1) Works in all dims 1,2,3.
@@ -1376,8 +1698,9 @@ void get_subgrid(BIGINT &offset1, BIGINT &offset2, BIGINT &offset3, BIGINT &size
   FLT ns2 = (FLT)ns / 2;
   FLT min_kx, max_kx; // 1st (x) dimension: get min/max of nonuniform points
   arrayrange(M, kx, &min_kx, &max_kx);
-  offset1 = (BIGINT)std::ceil(min_kx - ns2);                // min index touched by kernel
-  size1   = (BIGINT)std::ceil(max_kx - ns2) - offset1 + ns; // int(ceil) first!
+  offset1      = (BIGINT)std::ceil(min_kx - ns2); // min index touched by kernel
+  size1        = (BIGINT)std::ceil(max_kx - ns2) - offset1 + ns; // int(ceil) first!
+  padded_size1 = size1 + get_padding<FLT>(2 * ns) / 2;
   if (ndims > 1) {
     FLT min_ky, max_ky; // 2nd (y) dimension: get min/max of nonuniform points
     arrayrange(M, ky, &min_ky, &max_ky);
@@ -1404,10 +1727,128 @@ void get_subgrid(BIGINT &offset1, BIGINT &offset2, BIGINT &offset3, BIGINT &size
    Martin Reinecke, 8.5.2024 used floor to speedup the function and removed the range
    limitation Marco Barbone, 8.5.2024 Changed it from a Macro to an inline function
 */
-FINUFFT_ALWAYS_INLINE FLT fold_rescale(const FLT x, const BIGINT N) noexcept {
+FLT fold_rescale(const FLT x, const BIGINT N) noexcept {
   static constexpr const FLT x2pi = FLT(M_1_2PI);
   const FLT result                = x * x2pi + FLT(0.5);
   return (result - floor(result)) * FLT(N);
 }
-} // namespace spreadinterp
-} // namespace finufft
+
+template<uint8_t ns, uint8_t kerevalmeth, class T, class batch_t, typename... V>
+auto ker_eval(const finufft_spread_opts &opts, const V... elems) noexcept {
+  /* Utility function that allows to move the kernel evaluation outside the spreader for
+     clarity Inputs are: ns = kernel width kerevalmeth = kernel evaluation method T =
+     (single or double precision) type of the kernel batch_t = batch type for Horner
+     vectorization (default is the optimal batch size) finufft_spread_opts as Horner needs
+     the oversampling factor elems = kernel arguments examples usage is ker_eval<ns,
+     kerevalmeth>(opts, x, y, z) // for 3D or ker_eval<ns, kerevalmeth>(opts, x, y) // for
+     2D or ker_eval<ns, kerevalmeth>(opts, x) // for 1D
+   */
+  alignas(batch_t::arch_type::alignment()) std::array<T, sizeof...(elems) * MAX_NSPREAD>
+      ker{0};
+  const std::array inputs{elems...};
+  // compile time loop, no performance overhead
+  for (auto i = 0; i < sizeof...(elems); ++i) {
+    // compile time branch no performance overhead
+    if constexpr (kerevalmeth == 1) {
+      eval_kernel_vec_Horner<ns, batch_t>(ker.data() + (i * MAX_NSPREAD), inputs[i],
+                                          opts);
+    }
+    if constexpr (kerevalmeth == 0) {
+      alignas(batch_t::arch_type::alignment()) std::array<T, MAX_NSPREAD> kernel_args{};
+      set_kernel_args(kernel_args.data(), inputs[i], opts);
+      evaluate_kernel_vector(ker.data() + (i * MAX_NSPREAD), kernel_args.data(), opts,
+                             ns);
+    }
+  }
+  return ker;
+}
+
+namespace {
+template<class T, class V, size_t... Is>
+constexpr T generate_sequence_impl(V a, V b, index_sequence<Is...>) noexcept {
+  // utility function to generate a sequence of a, b interleaved as function arguments
+  return T(((Is % 2 == 0) ? a : b)...);
+}
+
+template<class T, class V, std::size_t N>
+constexpr auto initialize_complex_batch(V a, V b) noexcept {
+  // populates a SIMD register with a and b interleaved
+  // for example:
+  // +-------------------------------+
+  // | a | b | a | b | a | b | a | b |
+  // +-------------------------------+
+  // it uses index_sequence to generate the sequence of a, b at compile time
+  return generate_sequence_impl<T>(a, b, std::make_index_sequence<N>{});
+}
+
+// Below there is some template metaprogramming magic to find the best SIMD type
+// for the given number of elements. The code is based on the xsimd library
+
+// this finds the largest SIMD instruction set that can handle N elements
+// void otherwise -> compile error
+template<class T, uint16_t N, uint16_t K> constexpr auto BestSIMDHelper() {
+  if constexpr (N % K == 0) { // returns void in the worst case
+    return xsimd::make_sized_batch<T, K>{};
+  } else {
+    return BestSIMDHelper<T, N, (K >> 1)>();
+  }
+}
+
+template<class T, uint16_t N> constexpr uint16_t min_batch_size() {
+  if constexpr (std::is_void_v<xsimd::make_sized_batch_t<T, N>>) {
+    return min_batch_size<T, N * 2>();
+  } else {
+    return N;
+  }
+};
+
+template<class T, uint16_t N> constexpr auto find_optimal_batch_size() {
+  uint16_t optimal_batch_size = min_batch_size<T>();
+  uint16_t min_iterations     = (N + optimal_batch_size - 1) / optimal_batch_size;
+  for (uint16_t batch_size = optimal_batch_size;
+       batch_size <= xsimd::batch<T, xsimd::best_arch>::size;
+       batch_size *= 2) {
+    uint16_t iterations = (N + batch_size - 1) / batch_size;
+    if (iterations < min_iterations) {
+      min_iterations     = iterations;
+      optimal_batch_size = batch_size;
+    }
+  }
+  return optimal_batch_size;
+}
+
+template<class T, uint16_t N> constexpr auto GetPaddedSIMDSize() {
+  return xsimd::make_sized_batch<T, find_optimal_batch_size<T, N>()>::type::size;
+}
+
+template<class T, uint8_t ns> constexpr auto get_padding() {
+  constexpr uint16_t width = GetPaddedSIMDSize<T, ns>();
+  return ns % width == 0 ? 0 : width - (ns % width);
+}
+
+template<class T, uint8_t ns> constexpr auto get_padding_helper(uint16_t runtime_ns) {
+  if constexpr (ns < 2) {
+    return 0;
+  } else {
+    if (runtime_ns == ns) {
+      return get_padding<T, ns>();
+    } else {
+      return get_padding_helper<T, ns - 1>(runtime_ns);
+    }
+  }
+}
+
+template<class T> uint16_t get_padding(uint8_t ns) {
+  return get_padding_helper<T, 2 * MAX_NSPREAD>(ns);
+}
+
+struct zip_low {
+  static constexpr unsigned get(unsigned index, unsigned /*size*/) { return index / 2; }
+};
+struct zip_hi {
+  static constexpr unsigned get(unsigned index, unsigned size) {
+    return (size + index) / 2;
+  }
+};
+} // namespace
+} // namespace finufft::spreadinterp
