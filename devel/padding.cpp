@@ -74,7 +74,7 @@ template<class T, uint16_t N> static constexpr auto GetPaddedSIMDSize() {
 
 template<class T, uint16_t ns> static constexpr auto get_padding() {
   constexpr uint16_t width = GetPaddedSIMDSize<T, ns>();
-  return ns % width == 0 ? 0 : width - (ns % width);
+  return ((ns + width - 1) & (-width)) - ns;
 }
 
 template<class T, uint16_t ns>

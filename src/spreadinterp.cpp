@@ -25,16 +25,16 @@ namespace { // anonymous namespace for internal structs equivalent to declaring 
 struct zip_low;
 struct zip_hi;
 // forward declaration to clean up the code and be able to use this everywhere in the file
-template<class T, uint16_t N, uint16_t K = N> static constexpr auto BestSIMDHelper();
-template<class T, uint16_t N> constexpr auto GetPaddedSIMDSize();
-template<class T, uint16_t N>
+template<class T, uint8_t N, uint8_t K = N> static constexpr auto BestSIMDHelper();
+template<class T, uint8_t N> constexpr auto GetPaddedSIMDSize();
+template<class T, uint8_t N>
 using PaddedSIMD = typename xsimd::make_sized_batch<T, GetPaddedSIMDSize<T, N>()>::type;
-template<class T> uint16_t get_padding(uint8_t ns);
+template<class T> uint8_t get_padding(uint8_t ns);
 template<class T, uint8_t ns> constexpr auto get_padding();
-template<class T, uint16_t N>
+template<class T, uint8_t N>
 using BestSIMD = typename decltype(BestSIMDHelper<T, N, xsimd::batch<T>::size>())::type;
-template<class T, uint16_t N = 1> constexpr uint16_t min_batch_size();
-template<class T, uint16_t N> constexpr auto find_optimal_batch_size();
+template<class T, uint8_t N = 1> constexpr uint8_t min_batch_size();
+template<class T, uint8_t N> constexpr auto find_optimal_batch_size();
 template<class T, class V = typename T::value_type, std::size_t N = T::size>
 constexpr auto initialize_complex_batch(V a, V b) noexcept;
 template<class arch_t>
@@ -43,6 +43,13 @@ constexpr auto zip_low_index =
 template<class arch_t>
 constexpr auto zip_hi_index =
     xsimd::make_batch_constant<xsimd::as_unsigned_integer_t<FLT>, arch_t, zip_hi>();
+template<typename T, std::size_t N, std::size_t M, std::size_t PaddedM>
+constexpr std::array<std::array<T, PaddedM>, N> pad_2D_array_with_zeros(
+    const std::array<std::array<T, M>, N> &input) noexcept;
+FINUFFT_NEVER_INLINE
+void print_subgrid_info(int ndims, BIGINT offset1, BIGINT offset2, BIGINT offset3,
+                        BIGINT padded_size1, BIGINT size1, BIGINT size2, BIGINT size3,
+                        BIGINT M0);
 } // namespace
 // declarations of purely internal functions... (thus need not be in .h)
 template<uint8_t ns, uint8_t kerevalmeth, class T,
@@ -57,8 +64,8 @@ static FINUFFT_ALWAYS_INLINE void evaluate_kernel_vector(
     FLT *ker, FLT *args, const finufft_spread_opts &opts, int N) noexcept;
 static FINUFFT_ALWAYS_INLINE void eval_kernel_vec_Horner(
     FLT *ker, FLT x, int w, const finufft_spread_opts &opts) noexcept;
-template<uint16_t w, class batch_t = xsimd::make_sized_batch_t<
-                         FLT, find_optimal_batch_size<FLT, w>()>> // aka ns
+template<uint8_t w, class batch_t = xsimd::make_sized_batch_t<
+                        FLT, find_optimal_batch_size<FLT, w>()>> // aka ns
 static FINUFFT_ALWAYS_INLINE void eval_kernel_vec_Horner(
     FLT *FINUFFT_RESTRICT ker, FLT x, const finufft_spread_opts &opts) noexcept;
 static void interp_line(FLT *out, FLT *du, FLT *ker, BIGINT i1, BIGINT N1, int ns);
@@ -323,12 +330,10 @@ int spreadSorted(BIGINT *sort_indices, BIGINT N1, BIGINT N2, BIGINT N3, FLT *dat
   if (opts.debug)
     printf("\tspread %dD (M=%lld; N1=%lld,N2=%lld,N3=%lld), nthr=%d\n", ndims,
            (long long)M, (long long)N1, (long long)N2, (long long)N3, nthr);
-
   timer.start();
-  for (BIGINT i = 0; i < 2 * N; i++) // zero the output array. std::fill is no faster
-    data_uniform[i] = 0.0;
+  std::fill(data_uniform, data_uniform + 2 * N, 0.0); // zero the output array
   if (opts.debug) printf("\tzero output array\t%.3g s\n", timer.elapsedsec());
-  if (M == 0) // no NU pts, we're done
+  if (M == 0)                                         // no NU pts, we're done
     return 0;
 
   int spread_single = (nthr == 1) || (M * 100 < N); // low-density heuristic?
@@ -340,11 +345,10 @@ int spreadSorted(BIGINT *sort_indices, BIGINT N1, BIGINT N2, BIGINT N3, FLT *dat
       // ... (question is: will the index wrapping per NU pt slow it down?)
     }
     if (opts.debug) printf("\tt1 simple spreading:\t%.3g s\n", timer.elapsedsec());
-
   } else { // ------- Fancy multi-core blocked t1 spreading ----
            // Splits sorted inds (jfm's advanced2), could double RAM.
     // choose nb (# subprobs) via used nthreads:
-    int nb = min((BIGINT)nthr, M); // simply split one subprob per thr...
+    auto nb = min((BIGINT)nthr, M); // simply split one subprob per thr...
     if (nb * (BIGINT)opts.max_subproblem_size < M) { // ...or more subprobs to cap size
       nb = 1 + (M - 1) / opts.max_subproblem_size;   // int div does
                                                      // ceil(M/opts.max_subproblem_size)
@@ -363,84 +367,70 @@ int spreadSorted(BIGINT *sort_indices, BIGINT N1, BIGINT N2, BIGINT N3, FLT *dat
       printf("\tnthr big: switching add_wrapped OMP from critical to atomic (!)\n");
 
     std::vector<BIGINT> brk(nb + 1); // NU index breakpoints defining nb subproblems
-    for (int p = 0; p <= nb; ++p) brk[p] = (BIGINT)(0.5 + M * p / (double)nb);
+    for (int p = 0; p <= nb; ++p) brk[p] = (M * p + nb - 1) / nb;
 
-#pragma omp parallel for num_threads(nthr) schedule(dynamic, 1) // each is big
-    for (int isub = 0; isub < nb; isub++) {  // Main loop through the subproblems
-      BIGINT M0 = brk[isub + 1] - brk[isub]; // # NU pts in this subproblem
-      // copy the location and data vectors for the nonuniform points
-      FLT *kx0 = (FLT *)malloc(sizeof(FLT) * M0), *ky0 = NULL, *kz0 = NULL;
-      if (N2 > 1) ky0 = (FLT *)malloc(sizeof(FLT) * M0);
-      if (N3 > 1) kz0 = (FLT *)malloc(sizeof(FLT) * M0);
-      FLT *dd0 = (FLT *)malloc(sizeof(FLT) * M0 * 2); // complex strength data
-      for (BIGINT j = 0; j < M0; j++) {               // todo: can avoid this copying?
-        BIGINT kk = sort_indices[j + brk[isub]];      // NU pt from subprob index list
-        kx0[j]    = fold_rescale(kx[kk], N1);
-        if (N2 > 1) ky0[j] = fold_rescale(ky[kk], N2);
-        if (N3 > 1) kz0[j] = fold_rescale(kz[kk], N3);
-        dd0[j * 2]     = data_nonuniform[kk * 2];     // real part
-        dd0[j * 2 + 1] = data_nonuniform[kk * 2 + 1]; // imag part
-      }
-      // get the subgrid which will include padding by roughly nspread/2
-      BIGINT offset1, offset2, offset3, padded_size1, size1, size2, size3; // get_subgrid
-                                                                           // sets
-      get_subgrid(offset1, offset2, offset3, padded_size1, size1, size2, size3, M0, kx0,
-                  ky0, kz0, ns,
-                  ndims);   // sets offsets and sizes
-      if (opts.debug > 1) { // verbose
-        printf("size1 %ld, padded_size1 %ld\n", size1, padded_size1);
-        if (ndims == 1)
-          printf("\tsubgrid: off %lld\t siz %lld\t #NU %lld\n", (long long)offset1,
-                 (long long)padded_size1, (long long)M0);
-        else if (ndims == 2)
-          printf("\tsubgrid: off %lld,%lld\t siz %lld,%lld\t #NU %lld\n",
-                 (long long)offset1, (long long)offset2, (long long)padded_size1,
-                 (long long)size2, (long long)M0);
-        else
-          printf("\tsubgrid: off %lld,%lld,%lld\t siz %lld,%lld,%lld\t #NU %lld\n",
-                 (long long)offset1, (long long)offset2, (long long)offset3,
-                 (long long)padded_size1, (long long)size2, (long long)size3,
-                 (long long)M0);
-      }
-      // allocate output data for this subgrid
-      FLT *du0 = (FLT *)malloc(sizeof(FLT) * 2 * padded_size1 * size2 * size3); // complex
-
-      // Spread to subgrid without need for bounds checking or wrapping
-      if (!(opts.flags & TF_OMIT_SPREADING)) {
-        if (ndims == 1)
-          spread_subproblem_1d(offset1, padded_size1, du0, M0, kx0, dd0, opts);
-        else if (ndims == 2)
-          spread_subproblem_2d(offset1, offset2, padded_size1, size2, du0, M0, kx0, ky0,
-                               dd0, opts);
-        else
-          spread_subproblem_3d(offset1, offset2, offset3, padded_size1, size2, size3, du0,
-                               M0, kx0, ky0, kz0, dd0, opts);
-      }
-
-      // do the adding of subgrid to output
-      if (!(opts.flags & TF_OMIT_WRITE_TO_GRID)) {
-        if (nthr > opts.atomic_threshold) // see above for debug reporting
-          add_wrapped_subgrid<true>(offset1, offset2, offset3, padded_size1, size1, size2,
-                                    size3, N1, N2, N3, data_uniform, du0); // R
-                                                                           // Blackwell's
-                                                                           // atomic
-                                                                           // version
-        else {
-#pragma omp critical
-          add_wrapped_subgrid<false>(offset1, offset2, offset3, padded_size1, size1,
-                                     size2, size3, N1, N2, N3, data_uniform, du0);
+#pragma omp parallel num_threads(nthr)
+    {
+      // local copies of NU pts and data for each subproblem
+      std::vector<FLT> kx0{}, ky0{}, kz0{}, dd0{}, du0{};
+#pragma omp for schedule(dynamic, 1)           // each is big
+      for (int isub = 0; isub < nb; isub++) {  // Main loop through the subproblems
+        BIGINT M0 = brk[isub + 1] - brk[isub]; // # NU pts in this subproblem
+        // copy the location and data vectors for the nonuniform points
+        kx0.resize(M0);
+        ky0.resize(M0 * (N2 > 1));
+        kz0.resize(M0 * (N3 > 1));
+        dd0.resize(2 * M0);                               // complex strength data
+        for (UBIGINT j = 0; j < M0; j++) {                // todo: can avoid this copying?
+          const UBIGINT kk = sort_indices[j + brk[isub]]; // NU pt from subprob index list
+          kx0[j]           = fold_rescale(kx[kk], N1);
+          if (N2 > 1) ky0[j] = fold_rescale(ky[kk], N2);
+          if (N3 > 1) kz0[j] = fold_rescale(kz[kk], N3);
+          dd0[j * 2]     = data_nonuniform[kk * 2];     // real part
+          dd0[j * 2 + 1] = data_nonuniform[kk * 2 + 1]; // imag part
         }
-      }
-
-      // free up stuff from this subprob... (that was malloc'ed by hand)
-      free(dd0);
-      free(du0);
-      free(kx0);
-      if (N2 > 1) free(ky0);
-      if (N3 > 1) free(kz0);
-    } // end main loop over subprobs
+        // get the subgrid which will include padding by roughly nspread/2
+        // get_subgrid sets
+        BIGINT offset1, offset2, offset3, padded_size1, size1, size2, size3;
+        // sets offsets and sizes
+        get_subgrid(offset1, offset2, offset3, padded_size1, size1, size2, size3, M0,
+                    kx0.data(), ky0.data(), kz0.data(), ns, ndims);
+        if (opts.debug > 1) {
+          print_subgrid_info(ndims, offset1, offset2, offset3, padded_size1, size1, size2,
+                             size3, M0);
+        }
+        // allocate output data for this subgrid
+        du0.resize(2 * padded_size1 * size2 * size3); // complex
+        // Spread to subgrid without need for bounds checking or wrapping
+        if (!(opts.flags & TF_OMIT_SPREADING)) {
+          if (ndims == 1)
+            spread_subproblem_1d(offset1, padded_size1, du0.data(), M0, kx0.data(),
+                                 dd0.data(), opts);
+          else if (ndims == 2)
+            spread_subproblem_2d(offset1, offset2, padded_size1, size2, du0.data(), M0,
+                                 kx0.data(), ky0.data(), dd0.data(), opts);
+          else
+            spread_subproblem_3d(offset1, offset2, offset3, padded_size1, size2, size3,
+                                 du0.data(), M0, kx0.data(), ky0.data(), kz0.data(),
+                                 dd0.data(), opts);
+        }
+        // do the adding of subgrid to output
+        if (!(opts.flags & TF_OMIT_WRITE_TO_GRID)) {
+          if (nthr > opts.atomic_threshold) { // see above for debug reporting
+            add_wrapped_subgrid<true>(offset1, offset2, offset3, padded_size1, size1,
+                                      size2, size3, N1, N2, N3, data_uniform,
+                                      du0.data()); // R Blackwell's atomic version
+          } else {
+#pragma omp critical
+            add_wrapped_subgrid<false>(offset1, offset2, offset3, padded_size1, size1,
+                                       size2, size3, N1, N2, N3, data_uniform,
+                                       du0.data());
+          }
+        }
+      } // end main loop over subprobs
+    }
     if (opts.debug)
-      printf("\tt1 fancy spread: \t%.3g s (%d subprobs)\n", timer.elapsedsec(), nb);
+      printf("\tt1 fancy spread: \t%.3g s (%ld subprobs)\n", timer.elapsedsec(), nb);
   } // end of choice of which t1 spread type to use
   return 0;
 };
@@ -712,64 +702,40 @@ void evaluate_kernel_vector(FLT *ker, FLT *args, const finufft_spread_opts &opts
     if (abs(args[i]) >= (FLT)opts.ES_halfwidth) ker[i] = 0.0;
 }
 
-template<typename T, std::size_t N, std::size_t PaddedN>
-constexpr std::array<T, PaddedN> pad_with_zeros(const std::array<T, N> &input) {
-  std::array<T, PaddedN> output{0};
-  for (auto i = 0; i < N; ++i) {
-    output[i] = input[i];
-  }
-  return output;
-}
-
-template<typename T, std::size_t N, std::size_t M, std::size_t PaddedM>
-constexpr std::array<std::array<T, PaddedM>, N> pad_2D_array_with_zeros(
-    std::array<std::array<T, M>, N> &&input) {
-  std::array<std::array<T, PaddedM>, N> output{};
-  for (std::size_t i = 0; i < N; ++i) {
-    output[i] = pad_with_zeros<T, M, PaddedM>(input[i]);
-  }
-  return output;
-}
-
-template<uint16_t w, class batch_t> // aka ns
+template<uint8_t w, class batch_t> // aka ns
 void eval_kernel_vec_Horner(FLT *FINUFFT_RESTRICT ker, const FLT x,
                             const finufft_spread_opts &opts) noexcept
 /* Fill ker[] with Horner piecewise poly approx to [-w/2,w/2] ES kernel eval at
 x_j = x + j,  for j=0,..,w-1.  Thus x in [-w/2,-w/2+1].   w is aka ns.
 This is the current evaluation method, since it's faster (except i7 w=16).
 Two upsampfacs implemented. Params must match ref formula. Barnett 4/24/18 */
+
 {
   const FLT z = std::fma(FLT(2.0), x, FLT(w - 1)); // scale so local grid offset z in
                                                    // [-1,1]
   if (opts.upsampfac == 2.0) {                     // floating point equality is fine here
-    static constexpr const auto nc = []() {
-      static_assert(w <= 16, "w must be <= 16");
-      static_assert(w >= 2, "w must be >= 2");
-      if constexpr (w < 10) {
-        return w + 3;
-      } else {
-        return w + 2;
-      }
-    }();
-    static constexpr const auto alignment = batch_t::arch_type::alignment();
-    static constexpr const auto avx_size  = batch_t::size;
-    static constexpr const auto padded_ns = (w + avx_size - 1) & ~(avx_size - 1);
-    alignas(alignment) static constexpr const auto ci =
-        pad_2D_array_with_zeros<FLT, nc, w, padded_ns>(get_horner_coeffs<FLT, w, nc>());
-    alignas(alignment) const std::array<batch_t, nc - 1> zs = [](const FLT z) noexcept {
-      std::array<batch_t, nc - 1> zs_v{};
-      auto sz = z;
-      for (uint8_t i = 0; i < nc - 1; ++i) {
-        zs_v[i] = batch_t(sz);
-        sz *= z;
-      }
-      return zs_v;
-    }(z);
+    static constexpr auto alignment     = batch_t::arch_type::alignment();
+    static constexpr auto avx_size      = batch_t::size;
+    static constexpr auto padded_ns     = (w + avx_size - 1) & ~(avx_size - 1);
+    static constexpr auto nc            = nc200<w>();
+    static constexpr auto horner_coeffs = get_horner_coeffs_200<FLT, w>();
+    alignas(alignment) static constexpr auto padded_coeffs =
+        pad_2D_array_with_zeros<FLT, nc, w, padded_ns>(horner_coeffs);
+    alignas(alignment) const std::array<batch_t, nc - 1> pow_z =
+        [](const FLT z) constexpr noexcept {
+          std::array<batch_t, nc - 1> zs_v{};
+          auto sz = z;
+          for (uint8_t i = 0; i < nc - 1; ++i) {
+            zs_v[i] = batch_t(sz);
+            sz *= z;
+          }
+          return zs_v;
+        }(z);
     for (uint8_t i = 0; i < w; i += avx_size) {
-      auto k = batch_t::load_aligned(ci[0].data() + i);
+      auto k = batch_t::load_aligned(padded_coeffs[0].data() + i);
       for (uint8_t j = 1; j < nc; ++j) {
-        const auto cji = batch_t::load_aligned(ci[j].data() + i);
-        k              = xsimd::fma(cji, zs[j - 1], k);
+        const auto cji = batch_t::load_aligned(padded_coeffs[j].data() + i);
+        k              = xsimd::fma(cji, pow_z[j - 1], k);
       }
       k.store_aligned(ker + i);
     }
@@ -1764,6 +1730,24 @@ auto ker_eval(const finufft_spread_opts &opts, const V... elems) noexcept {
 }
 
 namespace {
+
+template<typename T, std::size_t N, std::size_t M, std::size_t PaddedM>
+constexpr array<std::array<T, PaddedM>, N> pad_2D_array_with_zeros(
+    const array<std::array<T, M>, N> &input) noexcept {
+  constexpr auto pad_with_zeros = [](const auto &input) constexpr noexcept {
+    std::array<T, PaddedM> padded{0};
+    for (auto i = 0; i < input.size(); ++i) {
+      padded[i] = input[i];
+    }
+    return padded;
+  };
+  std::array<std::array<T, PaddedM>, N> output{};
+  for (std::size_t i = 0; i < N; ++i) {
+    output[i] = pad_with_zeros(input[i]);
+  }
+  return output;
+}
+
 template<class T, class V, size_t... Is>
 constexpr T generate_sequence_impl(V a, V b, index_sequence<Is...>) noexcept {
   // utility function to generate a sequence of a, b interleaved as function arguments
@@ -1786,7 +1770,7 @@ constexpr auto initialize_complex_batch(V a, V b) noexcept {
 
 // this finds the largest SIMD instruction set that can handle N elements
 // void otherwise -> compile error
-template<class T, uint16_t N, uint16_t K> constexpr auto BestSIMDHelper() {
+template<class T, uint8_t N, uint8_t K> constexpr auto BestSIMDHelper() {
   if constexpr (N % K == 0) { // returns void in the worst case
     return xsimd::make_sized_batch<T, K>{};
   } else {
@@ -1794,7 +1778,9 @@ template<class T, uint16_t N, uint16_t K> constexpr auto BestSIMDHelper() {
   }
 }
 
-template<class T, uint16_t N> constexpr uint16_t min_batch_size() {
+template<class T, uint8_t N> constexpr uint8_t min_batch_size() {
+  // finds the smallest batch size that can handle N elements
+  // batch size is the SIMD width in xsimd terminology
   if constexpr (std::is_void_v<xsimd::make_sized_batch_t<T, N>>) {
     return min_batch_size<T, N * 2>();
   } else {
@@ -1802,13 +1788,16 @@ template<class T, uint16_t N> constexpr uint16_t min_batch_size() {
   }
 };
 
-template<class T, uint16_t N> constexpr auto find_optimal_batch_size() {
-  uint16_t optimal_batch_size = min_batch_size<T>();
-  uint16_t min_iterations     = (N + optimal_batch_size - 1) / optimal_batch_size;
-  for (uint16_t batch_size = optimal_batch_size;
+template<class T, uint8_t N> constexpr auto find_optimal_batch_size() {
+  // finds the smallest batch size that minimizes the number of iterations
+  // NOTE: might be suboptimal for some cases 2^N+1 for example
+  // in the future we might want to implement a more sophisticated algorithm
+  uint8_t optimal_batch_size = min_batch_size<T>();
+  uint8_t min_iterations     = (N + optimal_batch_size - 1) / optimal_batch_size;
+  for (uint8_t batch_size = optimal_batch_size;
        batch_size <= xsimd::batch<T, xsimd::best_arch>::size;
        batch_size *= 2) {
-    uint16_t iterations = (N + batch_size - 1) / batch_size;
+    uint8_t iterations = (N + batch_size - 1) / batch_size;
     if (iterations < min_iterations) {
       min_iterations     = iterations;
       optimal_batch_size = batch_size;
@@ -1817,16 +1806,27 @@ template<class T, uint16_t N> constexpr auto find_optimal_batch_size() {
   return optimal_batch_size;
 }
 
-template<class T, uint16_t N> constexpr auto GetPaddedSIMDSize() {
+template<class T, uint8_t N> constexpr auto GetPaddedSIMDSize() {
+  // helper function to get the SIMD size with padding for the given number of elements
+  // that minimizes the number of iterations
   return xsimd::make_sized_batch<T, find_optimal_batch_size<T, N>()>::type::size;
 }
 
 template<class T, uint8_t ns> constexpr auto get_padding() {
-  constexpr uint16_t width = GetPaddedSIMDSize<T, ns>();
-  return ns % width == 0 ? 0 : width - (ns % width);
+  // helper function to get the padding for the given number of elements
+  // ns is known at compile time
+  // rounds ns to the next multiple of the SIMD width
+  // then subtracts ns to get the padding
+  constexpr uint8_t width = GetPaddedSIMDSize<T, ns>();
+  return ((ns + width - 1) & (-width)) - ns;
 }
 
-template<class T, uint8_t ns> constexpr auto get_padding_helper(uint16_t runtime_ns) {
+template<class T, uint8_t ns> constexpr auto get_padding_helper(uint8_t runtime_ns) {
+  // helper function to get the padding for the given number of elements where ns is
+  // known at runtime, it uses recursion to find the padding
+  // this allows to avoid having a function with a large number of switch cases
+  // as GetPaddedSIMDSize requires a compile time value
+  // it cannot be a lambda function because of the template recursion
   if constexpr (ns < 2) {
     return 0;
   } else {
@@ -1838,17 +1838,48 @@ template<class T, uint8_t ns> constexpr auto get_padding_helper(uint16_t runtime
   }
 }
 
-template<class T> uint16_t get_padding(uint8_t ns) {
+template<class T> uint8_t get_padding(uint8_t ns) {
+  // return the padding as a function of the number of elements
+  // 2 * MAX_NSPREAD is the maximum number of elements that we can have
+  // that's why is hardcoded here
   return get_padding_helper<T, 2 * MAX_NSPREAD>(ns);
 }
 
 struct zip_low {
+  // helper struct to get the lower half of a SIMD register and zip it with itself
+  // it returns index 0, 0, 1, 1, ... N/2, N/2
   static constexpr unsigned get(unsigned index, unsigned /*size*/) { return index / 2; }
 };
 struct zip_hi {
+  // helper struct to get the upper half of a SIMD register and zip it with itself
+  // it returns index N/2, N/2, N/2+1, N/2+1, ... N, N
   static constexpr unsigned get(unsigned index, unsigned size) {
     return (size + index) / 2;
   }
 };
+
+void print_subgrid_info(int ndims, BIGINT offset1, BIGINT offset2, BIGINT offset3,
+                        BIGINT padded_size1, BIGINT size1, BIGINT size2, BIGINT size3,
+                        BIGINT M0) {
+  printf("size1 %ld, padded_size1 %ld\n", size1, padded_size1);
+  switch (ndims) {
+  case 1:
+    printf("\tsubgrid: off %lld\t siz %lld\t #NU %lld\n", (long long)offset1,
+           (long long)padded_size1, (long long)M0);
+    break;
+  case 2:
+    printf("\tsubgrid: off %lld,%lld\t siz %lld,%lld\t #NU %lld\n", (long long)offset1,
+           (long long)offset2, (long long)padded_size1, (long long)size2, (long long)M0);
+    break;
+  case 3:
+    printf("\tsubgrid: off %lld,%lld,%lld\t siz %lld,%lld,%lld\t #NU %lld\n",
+           (long long)offset1, (long long)offset2, (long long)offset3,
+           (long long)padded_size1, (long long)size2, (long long)size3, (long long)M0);
+    break;
+  default:
+    printf("Invalid number of dimensions: %d\n", ndims);
+    break;
+  }
+}
 } // namespace
 } // namespace finufft::spreadinterp

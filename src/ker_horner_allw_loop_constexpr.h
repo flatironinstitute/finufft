@@ -3,8 +3,11 @@
 // (C) The Simons Foundation, Inc.
 #include <array>
 
-template<class T, std::size_t w, std::size_t nc>
-constexpr std::array<std::array<T, w>, nc> get_horner_coeffs() noexcept {
+template<uint8_t w> constexpr auto nc200() noexcept { return w + 2 + (w <= 8); }
+
+template<class T, uint8_t w>
+constexpr std::array<std::array<T, w>, nc200<w>()> get_horner_coeffs_200() noexcept {
+  constexpr auto nc = nc200<w>();
   if constexpr (w == 2) {
     return std::array<std::array<T, w>, nc>{
         {{4.5147043243215315E+01, 4.5147043243215300E+01},
