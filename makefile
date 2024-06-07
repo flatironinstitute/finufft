@@ -142,6 +142,7 @@ usage:
 	@echo " make spreadtestall - small set spreader-only tests for CI use"
 	@echo " make objclean - remove all object files, preserving libs & MEX"
 	@echo " make clean - also remove all lib, MEX, py, and demo executables"
+	@echo " make setup - download dependencies"
 	@echo "For faster (multicore) making, append, for example, -j8"
 	@echo ""
 	@echo "Make options:"
@@ -154,9 +155,9 @@ usage:
 HEADERS = $(wildcard include/*.h include/finufft/*.h)
 
 # implicit rules for objects (note -o ensures writes to correct dir)
-%.o: %.cpp $(HEADERS)
+%.o: %.cpp $(HEADERS) setup
 	$(CXX) -c $(CXXFLAGS) $< -o $@
-%_32.o: %.cpp $(HEADERS)
+%_32.o: %.cpp $(HEADERS) setup
 	$(CXX) -DSINGLE -c $(CXXFLAGS) $< -o $@
 %.o: %.c $(HEADERS)
 	$(CC) -c $(CFLAGS) $< -o $@
@@ -174,14 +175,14 @@ src/spreadinterp.o: src/ker_horner_allw_loop.c src/ker_lowupsampfac_horner_allw_
 # lib -----------------------------------------------------------------------
 # build library with double/single prec both bundled in...
 lib: $(STATICLIB) $(DYNLIB)
-$(STATICLIB): setup $(OBJSD)
+$(STATICLIB): $(OBJSD)
 	ar rcs $(STATICLIB) $(OBJSD)
 ifeq ($(OMP),OFF)
 	@echo "$(STATICLIB) built, single-thread version"
 else
 	@echo "$(STATICLIB) built, multithreaded version"
 endif
-$(DYNLIB): setup $(OBJSD)
+$(DYNLIB): $(OBJSD)
 # using *absolute* path in the -o here is needed to make portable executables
 # when compiled against it, in mac OSX, strangely...
 	$(CXX) -shared ${LDFLAGS} $(OMPFLAGS) $(OBJSD) -o $(ABSDYNLIB) $(LIBSFFT)
@@ -199,7 +200,7 @@ endif
 # examples (C++/C) -----------------------------------------------------------
 # build all examples (single-prec codes separate, and not all have one)...
 EXAMPLES = $(basename $(wildcard examples/*.c examples/*.cpp))
-examples: setup $(EXAMPLES)
+examples: $(EXAMPLES)
 ifneq ($(MINGW),ON)
   # Windows-MSYS does not find the dynamic libraries, so we make a temporary copy
   # Windows-MSYS has same commands as Linux/OSX
