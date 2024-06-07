@@ -1254,7 +1254,7 @@ FINUFFT_NEVER_INLINE static void spread_subproblem_2d_kernel(
     static_assert(batches > 0, "batches must be greater than 0");
     batch_t ker1val_batches[batches];
 
-    for (u_int8_t i = 0; i < (batches & ~1); i += 2) {
+    for (uint8_t i = 0; i < (batches & ~1); i += 2) {
       const auto ker01       = batch_t::load_aligned(ker1 + i * avx_size / 2);
       const auto ker00       = xsimd::swizzle(ker01, zip_low_index<arch_t>);
       const auto ker11       = xsimd::swizzle(ker01, zip_hi_index<arch_t>);
@@ -1272,7 +1272,7 @@ FINUFFT_NEVER_INLINE static void spread_subproblem_2d_kernel(
       const auto j = size1 * (i2 - off2 + dy) + i1 - off1; // should be in subgrid
       auto *FINUFFT_RESTRICT trg = du + 2 * j;
       const batch_t kerval_batch(ker2[dy]);
-      for (u_int8_t i = 0; i < batches; ++i) {
+      for (uint8_t i = 0; i < batches; ++i) {
         const auto trg_batch = batch_t::load_unaligned(trg + i * avx_size);
         const auto result    = xsimd::fma(kerval_batch, ker1val_batches[i], trg_batch);
         result.store_unaligned(trg + i * avx_size);
@@ -1366,7 +1366,7 @@ FINUFFT_NEVER_INLINE void spread_subproblem_3d_kernel(
     // we need to handle the last batch separately
     // to the & ~1 is to ensure that we do not iterate over the last batch if it is odd
     // as it sets the last bit to 0
-    for (u_int8_t i = 0; i < (batches & ~1); i += 2) {
+    for (uint8_t i = 0; i < (batches & ~1); i += 2) {
       const auto ker01       = batch_t::load_aligned(ker1 + i * avx_size / 2);
       const auto ker00       = xsimd::swizzle(ker01, zip_low_index<arch_t>);
       const auto ker11       = xsimd::swizzle(ker01, zip_hi_index<arch_t>);
@@ -1383,14 +1383,14 @@ FINUFFT_NEVER_INLINE void spread_subproblem_3d_kernel(
       ker1val_batches[batches - 1] = res;
     }
     // critical inner loop:
-    for (u_int8_t dz{0}; dz < ns; ++dz) {
+    for (uint8_t dz{0}; dz < ns; ++dz) {
       const auto oz = size1 * size2 * (i3 - off3 + dz);           // offset due to z
-      for (u_int8_t dy{0}; dy < ns; ++dy) {
+      for (uint8_t dy{0}; dy < ns; ++dy) {
         const auto j = oz + size1 * (i2 - off2 + dy) + i1 - off1; // should be in subgrid
         auto *FINUFFT_RESTRICT trg = du + 2 * j;
         const auto kerval          = ker2[dy] * ker3[dz];
         const batch_t kerval_batch(kerval);
-        for (u_int8_t i{0}; i < batches; ++i) {
+        for (uint8_t i{0}; i < batches; ++i) {
           const auto trg_batch = batch_t::load_unaligned(trg + i * avx_size);
           const auto result    = xsimd::fma(kerval_batch, ker1val_batches[i], trg_batch);
           result.store_unaligned(trg + i * avx_size);
