@@ -1612,20 +1612,21 @@ void bin_sort_singlethread(
   };
 
   const auto compute_bins = [=](auto... args) constexpr noexcept {
-    std::array<const FLT *, sizeof...(args)> k_arr = {args...};
-    auto bins                                      = xsimd::floor(
-        fold_rescale_vec(xsimd::load_unaligned(k_arr[0]), N1) * inv_bin_size_x);
+    const std::array<const FLT *, sizeof...(args)> k_arr = {args...};
+    //
+    auto bins =
+        to_uint(fold_rescale_vec(xsimd::load_unaligned(k_arr[0]), N1) * inv_bin_size_x);
     if constexpr (sizeof...(args) > 1) {
-      const auto i2 = xsimd::floor(
-          fold_rescale_vec(xsimd::load_unaligned(k_arr[1]), N2) * inv_bin_size_y);
+      const auto i2 =
+          to_uint(fold_rescale_vec(xsimd::load_unaligned(k_arr[1]), N2) * inv_bin_size_y);
       bins = xsimd::fma(decltype(bins)(nbins1), i2, bins);
     }
     if constexpr (sizeof...(args) > 2) {
-      const auto i3 = xsimd::floor(
-          fold_rescale_vec(xsimd::load_unaligned(k_arr[2]), N3) * inv_bin_size_z);
+      const auto i3 =
+          to_uint(fold_rescale_vec(xsimd::load_unaligned(k_arr[2]), N3) * inv_bin_size_z);
       bins = xsimd::fma(decltype(bins)(nbins12), i3, bins);
     }
-    return to_uint(bins);
+    return bins;
   };
 
   const auto increment_bins = [&counts](const auto bins) constexpr noexcept {
