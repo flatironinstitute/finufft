@@ -50,7 +50,8 @@ FINUFFT_NEVER_INLINE
 void print_subgrid_info(int ndims, BIGINT offset1, BIGINT offset2, BIGINT offset3,
                         BIGINT padded_size1, BIGINT size1, BIGINT size2, BIGINT size3,
                         BIGINT M0);
-FINUFFT_ALWAYS_INLINE xsimd::batch<FLT> fold_rescale_vec(xsimd::batch<FLT> x, BIGINT N);
+FINUFFT_ALWAYS_INLINE xsimd::batch<FLT> fold_rescale_vec(xsimd::batch<FLT> x, FLT N);
+FINUFFT_ALWAYS_INLINE xsimd::batch<FLT> fold(xsimd::batch<FLT> x);
 } // namespace
 // declarations of purely internal functions... (thus need not be in .h)
 template<uint8_t ns, uint8_t kerevalmeth, class T,
@@ -1593,6 +1594,12 @@ void bin_sort_singlethread(
   const auto inv_bin_size_x = FLT(1.0 / bin_size_x);
   const auto inv_bin_size_y = FLT(1.0 / bin_size_y);
   const auto inv_bin_size_z = FLT(1.0 / bin_size_z);
+  const auto fN1            = FLT(N1);
+  const auto fN2            = FLT(N2);
+  const auto fN3            = FLT(N3);
+  const auto rescale1       = fN1 * inv_bin_size_x;
+  const auto rescale2       = fN2 * inv_bin_size_y;
+  const auto rescale3       = fN3 * inv_bin_size_z;
 
   static constexpr auto avx_width = xsimd::batch<FLT>::size;
   const auto regular_part         = M & (-avx_width);
@@ -1611,22 +1618,25 @@ void bin_sort_singlethread(
     return xsimd::batch_cast<xsimd::as_unsigned_integer_t<FLT>>(bins);
   };
 
-  const auto compute_bins = [=](auto... args) constexpr noexcept {
+  const auto compute_bins = [=](const auto... args) constexpr noexcept {
     const std::array<const FLT *, sizeof...(args)> k_arr = {args...};
     //
-    auto bins =
-        to_uint(fold_rescale_vec(xsimd::load_unaligned(k_arr[0]), N1) * inv_bin_size_x);
+    auto bins0 = to_uint(fold(xsimd::load_unaligned(k_arr[0])) * rescale1);
+    decltype(bins0) bins1{0u};
+    decltype(bins0) bins2{0u};
     if constexpr (sizeof...(args) > 1) {
-      const auto i2 =
-          to_uint(fold_rescale_vec(xsimd::load_unaligned(k_arr[1]), N2) * inv_bin_size_y);
-      bins = xsimd::fma(decltype(bins)(nbins1), i2, bins);
+      const auto i2 = to_uint(fold(xsimd::load_unaligned(k_arr[1])) * rescale2);
+      bins1         = nbins1 * i2;
+    } else {
+      return bins0;
     }
     if constexpr (sizeof...(args) > 2) {
-      const auto i3 =
-          to_uint(fold_rescale_vec(xsimd::load_unaligned(k_arr[2]), N3) * inv_bin_size_z);
-      bins = xsimd::fma(decltype(bins)(nbins12), i3, bins);
+      const auto i3 = to_uint(fold(xsimd::load_unaligned(k_arr[2])) * rescale3);
+      bins2         = nbins12 * i3;
+    } else {
+      return bins0 + bins1;
     }
-    return bins;
+    return bins0 + bins1 + bins2;
   };
 
   const auto increment_bins = [&counts](const auto bins) constexpr noexcept {
@@ -2044,12 +2054,19 @@ void print_subgrid_info(int ndims, BIGINT offset1, BIGINT offset2, BIGINT offset
 // hence moved them here
 
 FINUFFT_ALWAYS_INLINE xsimd::batch<FLT> fold_rescale_vec(const xsimd::batch<FLT> x,
-                                                         const BIGINT N) {
+                                                         const FLT N) {
   const xsimd::batch<FLT> x2pi{FLT(M_1_2PI)};
   const xsimd::batch<FLT> half{FLT(0.5)};
   auto result = xsimd::fma(x, x2pi, half);
   result -= xsimd::floor(result);
-  return result * FLT(N);
+  return result * N;
+}
+FINUFFT_ALWAYS_INLINE xsimd::batch<FLT> fold(xsimd::batch<FLT> x) {
+  const xsimd::batch<FLT> x2pi{FLT(M_1_2PI)};
+  const xsimd::batch<FLT> half{FLT(0.5)};
+  auto result = xsimd::fma(x, x2pi, half);
+  result -= xsimd::floor(result);
+  return result;
 }
 } // namespace
 } // namespace finufft::spreadinterp
