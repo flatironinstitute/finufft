@@ -1622,8 +1622,8 @@ void bin_sort_singlethread(
     const std::array<const FLT *, sizeof...(args)> k_arr = {args...};
     //
     auto bins0 = to_uint(fold(xsimd::load_unaligned(k_arr[0])) * rescale1);
-    decltype(bins0) bins1{0u};
-    decltype(bins0) bins2{0u};
+    auto bins1 = to_uint(FLT(0));
+    auto bins2 = to_uint(FLT(0));
     if constexpr (sizeof...(args) > 1) {
       const auto i2 = to_uint(fold(xsimd::load_unaligned(k_arr[1])) * rescale2);
       bins1         = nbins1 * i2;
