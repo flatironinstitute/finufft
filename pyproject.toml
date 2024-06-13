@@ -7,11 +7,11 @@ build-backend = "scikit_build_core.build"
 
 [project]
 name = "finufft"
-version = "2.2.0"
 description = "Python bindings for the FINUFFT C++ library"
 readme = "README.md"
 requires-python = ">=3.8"
 dependencies = ["numpy >= 1.12.0"]
+dynamic = ["version"]
 
 [tool.scikit-build]
 # Protect the configuration against future changes in scikit-build-core
@@ -23,6 +23,11 @@ cmake.targets = ["finufft"]
 cmake.define = {"FINUFFT_BUILD_PYTHON" = "ON", "FINUFFT_ENABLE_INSTALL" = "OFF"}
 
 wheel.packages = ["python/finufft/finufft"]
+
+[tool.scikit-build.metadata.version]
+provider = "scikit_build_core.metadata.regex"
+input = "python/finufft/finufft/__init__.py"
+
 [tool.cibuildwheel]
 # Necessary to see build output from the actual compilation
 build-verbosity = 1
