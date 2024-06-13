@@ -1,7 +1,6 @@
 [build-system]
 requires = [
     "scikit-build-core >= 0.4.3",
-    "ninja; platform_system != 'Windows'"
 ]
 
 build-backend = "scikit_build_core.build"
@@ -21,10 +20,9 @@ minimum-version = "0.4"
 build-dir = "build/{wheel_tag}"
 
 cmake.targets = ["finufft"]
-cmake.define = {"FINUFFT_BUILD_PYTHON" = "ON"}
+cmake.define = {"FINUFFT_BUILD_PYTHON" = "ON", "FINUFFT_ENABLE_INSTALL" = "OFF"}
 
 wheel.packages = ["python/finufft/finufft"]
-
 [tool.cibuildwheel]
 # Necessary to see build output from the actual compilation
 build-verbosity = 1

@@ -5,20 +5,18 @@ This file contains low level python bindings for the finufft libraries.
 Seperate bindings are provided for single and double precision libraries,
 differentiated by 'f' suffix.
 """
-
 import ctypes
-import os
-import warnings
-import platform
-import importlib.util
+import pathlib
+from ctypes.util import find_library
+from ctypes import c_double
+from ctypes import c_float
+from ctypes import c_int
+from ctypes import c_longlong
+from ctypes import c_void_p
 
 import numpy as np
-
-from ctypes import c_double
-from ctypes import c_int
-from ctypes import c_float
-from ctypes import c_void_p
-from ctypes import c_longlong
+import os
+import platform
 from numpy.ctypeslib import ndpointer
 
 c_int_p = ctypes.POINTER(c_int)
@@ -28,33 +26,31 @@ c_longlong_p = ctypes.POINTER(c_longlong)
 
 # TODO: See if there is a way to improve this so it is less hacky.
 lib = None
-# Try to load a local library directly.
-try:
-    path = os.path.dirname(__file__)
-    lib = ctypes.cdll.LoadLibrary(path+'/libfinufft.so')
-except OSError:
-    pass
+# Try to load finufft installed from the python package.
+path = pathlib.Path(__file__).parent.resolve()
+# Ignoring the exceptions to avoid the print
+# exception, during the process of an exception another exception occurred
+# unix systems have lib prefix, non unix systems do not
+library_names = ['libfinufft', 'finufft']
+for lib_name in library_names:
+    try:
+        lib = np.ctypeslib.load_library(lib_name, path)
+        break
+    except OSError:
+        # Paranoid, in case lib is set to something and then an exception is thrown
+        lib = None
 
-# Should that not work, try to find the full path of a packaged lib.
-#   The packaged lib should have a py/platform decorated name,
-#   and be rpath'ed the true FINUFFT library through the Extension and wheel
-#   systems.
-try:
-    if lib is None:
-        # Find the library.
-        lib_path = importlib.util.find_spec('finufft.finufftc').origin
-        # Get the full path for the ctypes loader.
-        if platform.system() == 'Windows':
-            os.environ["PATH"] += os.pathsep + os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(lib_path))),'finufft')
-            full_lib_path = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(lib_path))),'finufft','libfinufft.dll')
-        else:
-            full_lib_path = os.path.realpath(lib_path)
-
-        # Load the library,
-        #    which rpaths the libraries we care about.
-        lib = ctypes.cdll.LoadLibrary(full_lib_path)
-except Exception:
-    raise ImportError('Failed to find a suitable finufft library')
+if lib is None:
+    # If that fails, try to load the library from the system path.
+    libname = find_library('finufft')
+    if libname is not None:
+        lib = ctypes.cdll.LoadLibrary(libname)
+        # we probably should add a version check and trow a warning if the version is different
+    else:
+        # if that does not work, finufft is not installed correctly.
+        raise ImportError('Failed to find a suitable finufft library. '
+                          'Please check your installation, '
+                          'finufft does not seem to be installed correctly.')
 
 
 class FinufftOpts(ctypes.Structure):

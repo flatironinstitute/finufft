@@ -59,6 +59,7 @@ option(FINUFFT_USE_CPU "Whether to build the ordinary FINUFFT library (libfinuff
 option(FINUFFT_STATIC_LINKING "Whether to link the static FINUFFT library (libfinufft_static)." ON)
 option(FINUFFT_BUILD_DEVEL "Whether to build development executables" OFF)
 option(FINUFFT_USE_DUCC0 "Whether to use DUCC0 (instead of FFTW) for CPU FFTs" OFF)
+option(FINUFFT_ENABLE_INSTALL "Wheter to enable installation of FINUFFT library" ON)
 # sphinx tag (don't remove): @cmake_opts_end
 
 if (FINUFFT_USE_CPU)
@@ -267,9 +268,10 @@ if (FINUFFT_USE_CPU)
     target_include_directories(finufft_static PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
     target_include_directories(finufft_static SYSTEM INTERFACE $<INSTALL_INTERFACE:${CMAKE_INSTALL_PREFIX}/include>)
 
-    file(GLOB FINUFFT_PUBLIC_HEADERS "${CMAKE_CURRENT_SOURCE_DIR}/include/finufft*.h")
-    set_target_properties(finufft PROPERTIES PUBLIC_HEADER "${FINUFFT_PUBLIC_HEADERS}")
-
+    if (FINUFFT_ENABLE_INSTALL)
+        file(GLOB FINUFFT_PUBLIC_HEADERS "${CMAKE_CURRENT_SOURCE_DIR}/include/finufft*.h")
+        set_target_properties(finufft PROPERTIES PUBLIC_HEADER "${FINUFFT_PUBLIC_HEADERS}")
+    endif()
     list(APPEND INSTALL_TARGETS finufft finufft_static)
 endif ()
 
@@ -317,10 +319,10 @@ if (FINUFFT_BUILD_DEVEL)
 endif ()
 
 if (FINUFFT_BUILD_PYTHON)
-    set(INSTALL_TARGETS "")
     add_subdirectory(python)
 endif ()
 
+if (FINUFFT_ENABLE_INSTALL)
 include(GNUInstallDirs)
 install(TARGETS ${INSTALL_TARGETS} PUBLIC_HEADER)
 install(FILES ${PROJECT_SOURCE_DIR}/LICENSE
@@ -347,4 +349,5 @@ if (FINUFFT_USE_CUDA)
             PATTERN "README" EXCLUDE
             PATTERN "CMakeLists.txt" EXCLUDE
     )
+endif ()
 endif ()
