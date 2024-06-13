@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.19)
 
-project(finufft VERSION 2.2.0 LANGUAGES C CXX)
+project(FINUFFT VERSION 2.2.0 LANGUAGES C CXX)
+
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
@@ -34,7 +36,7 @@ if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Release CACHE STRING "Set the default build type to Release" FORCE)
 endif()
 
-if (CMAKE_CXX_COMPILER_ID IN_LIST GNU_LIKE_FRONTENDS)
+if (CMAKE_CXX_COMPILER_ID IN_LIST GNU_LIKE_FRONTENDS AND NOT DEFINED FINUFFT_ARCH_FLAGS)
     if (CMAKE_SYSTEM_PROCESSOR MATCHES "ppc|ppc64|powerpc|powerpc64" OR (APPLE AND CMAKE_OSX_ARCHITECTURES MATCHES "ppc|ppc64"))
         # PowerPC arch does not have -march flag.
         set(FINUFFT_ARCH_FLAGS "-mtune=native" CACHE STRING "Compiler flags for specifying target architecture.")
@@ -60,6 +62,7 @@ option(FINUFFT_STATIC_LINKING "Whether to link the static FINUFFT library (libfi
 option(FINUFFT_BUILD_DEVEL "Whether to build development executables" OFF)
 option(FINUFFT_USE_DUCC0 "Whether to use DUCC0 (instead of FFTW) for CPU FFTs" OFF)
 option(FINUFFT_BUILD_DEVEL "Whether to build developement executables" OFF)
+option(FINUFFT_ENABLE_INSTALL "Whether to enable installation of FINUFFT library" ON)
 # sphinx tag (don't remove): @cmake_opts_end
 
 if (FINUFFT_USE_CPU)
@@ -148,18 +151,18 @@ function(finufft_link_test target)
 
     if (FINUFFT_STATIC_LINKING)
         target_link_libraries(${target} PRIVATE finufft_static)
-        if (FINUFFT_USE_OPENMP)
+        if(FINUFFT_USE_OPENMP)
             target_link_libraries(${target} PRIVATE OpenMP::OpenMP_CXX)
-            if (WIN32)
+            if(WIN32)
                 target_link_options(${target} PRIVATE ${OpenMP_CXX_FLAGS})
-            endif ()
-        endif ()
-    else ()
+            endif()
+        endif()
+    else()
         target_link_libraries(${target} PRIVATE finufft)
-        if (WIN32)
+        if(WIN32)
             target_compile_definitions(${target} PRIVATE FINUFFT_DLL)
-        endif ()
-    endif ()
+        endif()
+    endif()
     enable_asan(${target})
 endfunction()
 
@@ -322,32 +325,58 @@ if (FINUFFT_BUILD_PYTHON)
     add_subdirectory(python)
 endif ()
 
-if (FINUFFT_ENABLE_INSTALL)
-include(GNUInstallDirs)
-install(TARGETS ${INSTALL_TARGETS} PUBLIC_HEADER)
-install(FILES ${PROJECT_SOURCE_DIR}/LICENSE
-        DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/licenses/finufft)
+message(STATUS " CMAKE_BUILD_TYPE: ${CMAKE_BUILD_TYPE}")
+message(STATUS "FINUFFT configuration summary:")
+message(STATUS "  FINUFFT_USE_CPU: ${FINUFFT_USE_CPU}")
+message(STATUS "  FINUFFT_USE_CUDA: ${FINUFFT_USE_CUDA}")
+message(STATUS "  FINUFFT_USE_OPENMP: ${FINUFFT_USE_OPENMP}")
+message(STATUS "  FINUFFT_STATIC_LINKING: ${FINUFFT_STATIC_LINKING}")
+message(STATUS "  FINUFFT_ENABLE_INSTALL: ${FINUFFT_ENABLE_INSTALL}")
+message(STATUS "  FINUFFT_BUILD_EXAMPLES: ${FINUFFT_BUILD_EXAMPLES}")
+message(STATUS "  FINUFFT_BUILD_TESTS: ${FINUFFT_BUILD_TESTS}")
+message(STATUS "  FINUFFT_BUILD_FORTRAN: ${FINUFFT_BUILD_FORTRAN}")
+message(STATUS "  FINUFFT_BUILD_MATLAB: ${FINUFFT_BUILD_MATLAB}")
+message(STATUS "  FINUFFT_BUILD_PYTHON: ${FINUFFT_BUILD_PYTHON}")
+message(STATUS "  FINUFFT_ENABLE_SANITIZERS: ${FINUFFT_ENABLE_SANITIZERS}")
+message(STATUS "  FINUFFT_FFTW_SUFFIX: ${FINUFFT_FFTW_SUFFIX}")
+message(STATUS "  FINUFFT_FFTW_LIBRARIES: ${FINUFFT_FFTW_LIBRARIES}")
+message(STATUS "  FINUFFT_ARCH_FLAGS: ${FINUFFT_ARCH_FLAGS}")
+
 if (FINUFFT_USE_CPU)
-    install(DIRECTORY ${PROJECT_SOURCE_DIR}/examples
-            DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/finufft
-            PATTERN "CMakeLists.txt" EXCLUDE
-            PATTERN "README" EXCLUDE
-            PATTERN "examples/cuda" EXCLUDE
-    )
-    if (FINUFFT_BUILD_FORTRAN)
-        install(DIRECTORY ${PROJECT_SOURCE_DIR}/fortran/examples
-                DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/finufft/fortran
-        )
-        install(FILES ${PROJECT_SOURCE_DIR}/include/finufft.fh
-                DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
-        )
+    if (FINUFFT_STATIC_LINKING)
+        get_target_property(FINUFFT_COMPILE_OPTIONS finufft_static COMPILE_OPTIONS)
+    else ()
+        get_target_property(FINUFFT_COMPILE_OPTIONS finufft COMPILE_OPTIONS)
     endif ()
+    message("Compile options for finufft: ${MY_COMPILE_OPTIONS}")
 endif ()
-if (FINUFFT_USE_CUDA)
-    install(DIRECTORY ${PROJECT_SOURCE_DIR}/examples/cuda
-            DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/finufft/examples
-            PATTERN "README" EXCLUDE
-            PATTERN "CMakeLists.txt" EXCLUDE
-    )
-endif ()
+
+if (FINUFFT_ENABLE_INSTALL)
+    include(GNUInstallDirs)
+    install(TARGETS ${INSTALL_TARGETS} PUBLIC_HEADER)
+    install(FILES ${PROJECT_SOURCE_DIR}/LICENSE
+            DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/licenses/finufft)
+    if (FINUFFT_USE_CPU)
+        install(DIRECTORY ${PROJECT_SOURCE_DIR}/examples
+                DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/finufft
+                PATTERN "CMakeLists.txt" EXCLUDE
+                PATTERN "README" EXCLUDE
+                PATTERN "examples/cuda" EXCLUDE
+        )
+        if (FINUFFT_BUILD_FORTRAN)
+            install(DIRECTORY ${PROJECT_SOURCE_DIR}/fortran/examples
+                    DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/finufft/fortran
+            )
+            install(FILES ${PROJECT_SOURCE_DIR}/include/finufft.fh
+                    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+            )
+        endif()
+    endif ()
+    if (FINUFFT_USE_CUDA)
+        install(DIRECTORY ${PROJECT_SOURCE_DIR}/examples/cuda
+                DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/finufft/examples
+                PATTERN "README" EXCLUDE
+                PATTERN "CMakeLists.txt" EXCLUDE
+        )
+    endif()
 endif ()
