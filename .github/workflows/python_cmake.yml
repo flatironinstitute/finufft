@@ -10,9 +10,8 @@ jobs:
         uses: actions/checkout@v4
       - name: Generate matrix
         id: generate_matrix
-        working-directory: ${{ github.workspace }}
         run: |
-          MATRIX=$(python3 .github/workflows/generate_matrix.py)
+          MATRIX=$(python3 ${{ github.workspace }}/.github/workflows/generate_matrix.py)
           echo "matrix=$MATRIX" >> $GITHUB_OUTPUT
   build:
     name: Build with Pip
