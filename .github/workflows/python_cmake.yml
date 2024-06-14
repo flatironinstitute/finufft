@@ -23,6 +23,16 @@ jobs:
       fail-fast: false
       matrix: ${{ fromJSON(needs.prepare.outputs.matrix) }}
     steps:
+      - name: Setup Cpp
+        uses: aminya/setup-cpp@v1
+        with:
+          compiler: ${{ matrix.compiler }}
+          vcvarsall: ${{ contains(matrix.os, 'windows') }}
+          cmake: false
+          ninja: false
+          vcpkg: false
+          cppcheck: false
+          clangtidy: false
       - name: Set min macOS version and install fftw and libomp
         if: runner.os == 'macOS'
         run: |
@@ -34,28 +44,19 @@ jobs:
             echo "PATH=/opt/homebrew/bin:$PATH" >> $GITHUB_ENV
           endif
           brew install fftw libomp
-      - uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python-version }}
-      - name: Setup Cpp
-        uses: aminya/setup-cpp@v1
-        with:
-          compiler: ${{ matrix.compiler }}
-          vcvarsall: ${{ contains(matrix.os, 'windows') }}
-          cmake: false
-          ninja: false
-          vcpkg: false
-          cppcheck: false
-          clangtidy: false
-      - name: Install pytest
-        run: |
-          python3 -m pip install --upgrade pip
-          python3 -m pip install pytest
       - name: Install fftw and libomp
         if: runner.os == 'linux'
         run: |
           sudo apt update
-          sudo apt install -y libfftw3-dev libomp-dev build-essential
+          sudo apt install -y libfftw3-dev libomp-dev libomp5
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install pytest
+        run: |
+          python3 -m pip install --upgrade pip
+          python3 -m pip install pytest
       - name: Set compiler flags
         run: |
           echo CMAKE_ARGS="-DFINUFFT_ARCH_FLAGS=${{ matrix.arch_flags }}" >> $GITHUB_ENV
