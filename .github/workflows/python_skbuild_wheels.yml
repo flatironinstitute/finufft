@@ -18,8 +18,8 @@ jobs:
         uses: pypa/cibuildwheel@v2.19.1
         env:
           CIBW_BUILD_VERBOSITY: 1
+          CIBW_SKIP: "pp* *musllinux*"
           CIBW_ARCHS_LINUX: "x86_64"
-          CIBW_SKIP_LINUX: "pp* *musllinux*"
           CIBW_BEFORE_ALL_LINUX: yum install -y fftw3-devel
           CIBW_BEFORE_ALL_MACOS: brew install gcc libomp fftw
           CIBW_ENVIRONMENT_MACOS: >
