@@ -7,15 +7,15 @@ matrix = {
 python_versions = ["3.8", "3.11"]
 
 combinations = {
-    "ubuntu-latest": {
+    "ubuntu-22.04": {
         "compiler": ["llvm", "gcc"],
         "arch_flags": ["-march=native", "-march=x86-64"]
     },
-    "windows-latest": {
+    "windows-11": {
         "compiler": ["msvc"],
         "arch_flags": ["/arch:AVX2", "/arch:AVX512", "/arch:SSE2"]
     },
-    "macos-latest": {
+    "macos-13": {
         "compiler": ["llvm", "gcc"],
         "arch_flags": ["-march=native", "-march=x86-64"]
     }

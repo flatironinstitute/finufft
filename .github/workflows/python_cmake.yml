@@ -36,13 +36,6 @@ jobs:
       - name: Set min macOS version and install fftw and libomp
         if: runner.os == 'macOS'
         run: |
-          echo "MACOS_DEPLOYMENT_TARGET=10.14" >> $GITHUB_ENV
-          if [ -f /usr/local/bin/brew ]; then
-            echo "PATH=/usr/local/bin:$PATH" >> $GITHUB_ENV
-          endif
-          if [ -f /opt/homebrew/bin/brew ]; then
-            echo "PATH=/opt/homebrew/bin:$PATH" >> $GITHUB_ENV
-          endif
           brew install fftw libomp
       - name: Install fftw and libomp
         if: runner.os == 'linux'
