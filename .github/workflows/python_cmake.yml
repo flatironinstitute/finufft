@@ -19,8 +19,7 @@ jobs:
     needs: prepare
     strategy:
       fail-fast: false
-      matrix:
-        include: ${{fromJson(needs.prepare.outputs.matrix)}}
+      matrix: ${{ fromJSON(needs.prepare.outputs.matrix) }}
     steps:
       - uses: actions/setup-python@v5
         with:
