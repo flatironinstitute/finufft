@@ -54,9 +54,8 @@ jobs:
       - name: Install fftw and libomp
         if: runner.os == 'linux'
         run: |
-          apt-get update
-          apt install build-essential
-          apt-get install -y libfftw3-dev libomp-dev
+          sudo apt update
+          sudo apt install -y libfftw3-dev libomp-dev build-essential
       - name: Set compiler flags
         run: |
           echo CMAKE_ARGS="-DFINUFFT_ARCH_FLAGS=${{ matrix.arch_flags }}" >> $GITHUB_ENV
