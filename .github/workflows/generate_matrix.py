@@ -4,13 +4,12 @@ matrix = {
     "include": []
 }
 
-platforms = ["windows-latest", "macos-latest", "ubuntu-latest"]
 python_versions = ["3.8", "3.11"]
 
 combinations = {
     "ubuntu-latest": {
         "compiler": ["llvm", "gcc"],
-        "arch_flags": ["-march=native", "-march=x86-64", ""]
+        "arch_flags": ["-march=native", "-march=x86-64"]
     },
     "windows-latest": {
         "compiler": ["msvc"],
@@ -18,7 +17,7 @@ combinations = {
     },
     "macos-latest": {
         "compiler": ["llvm", "gcc"],
-        "arch_flags": ["-march=native", "-march=x86-64", ""]
+        "arch_flags": ["-march=native", "-march=x86-64"]
     }
 }
 
@@ -32,5 +31,6 @@ for platform in combinations.keys():
                     "compiler": compiler,
                     "arch_flags": arch_flag
                 })
+
 json_str = json.dumps(matrix, ensure_ascii=False)
 print(json_str)

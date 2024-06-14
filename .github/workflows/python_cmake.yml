@@ -5,6 +5,8 @@ on: [push, pull_request]
 jobs:
   prepare:
     runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.generate_matrix.outputs.matrix }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -21,12 +23,18 @@ jobs:
       fail-fast: false
       matrix: ${{ fromJSON(needs.prepare.outputs.matrix) }}
     steps:
-      - uses: actions/checkout@v4
       - name: Set min macOS version and install fftw and libomp
         if: runner.os == 'macOS'
         run: |
           /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
           echo "MACOS_DEPLOYMENT_TARGET=10.14" >> $GITHUB_ENV
+          echo "HOMEBREW_NO_AUTO_UPDATE=1" >> $GITHUB_ENV
+          if [ -f /usr/local/bin/brew ]; then
+            echo "PATH=/usr/local/bin:$PATH" >> $GITHUB_ENV
+          endif
+          if [ -f /opt/homebrew/bin/brew ]; then
+            echo "PATH=/opt/homebrew/bin:$PATH" >> $GITHUB_ENV
+          endif
           brew install fftw libomp
       - uses: actions/setup-python@v5
         with:
@@ -42,16 +50,19 @@ jobs:
           cppcheck: false
           clangtidy: false
       - name: Install pytest
-        run: python -m pip install pytest
+        run: |
+          python3 -m pip install --upgrade pip
+          python3 -m pip install pytest
       - name: Install fftw and libomp
         if: runner.os == 'linux'
         run: |
-          sudo apt-get update
-          sudo apt-get install -y libfftw3-dev libomp-dev
+          apt-get update
+          apt install build-essential
+          apt-get install -y libfftw3-dev libomp-dev
       - name: Set compiler flags
         run: |
-          echo MAKE_ARGS="-DFINUFFT_ARCH_FLAGS=${{ matrix.arch_flags }}" >> $GITHUB_ENV
+          echo CMAKE_ARGS="-DFINUFFT_ARCH_FLAGS=${{ matrix.arch_flags }}" >> $GITHUB_ENV
       - name: Build
-        run: pip install . --verbose
+        run: python3 -m pip install . --verbose
       - name: Test
-        run: python -m pytest python/finufft/test
+        run: python3 -m pytest python/finufft/test
