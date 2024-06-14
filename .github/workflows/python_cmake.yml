@@ -48,12 +48,12 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - name: Install pytest
         run: |
-          python3 -m pip install --upgrade pip
-          python3 -m pip install pytest
+          pip install --upgrade pip
+          pip install pytest
       - name: Set compiler flags
         run: |
           echo CMAKE_ARGS="-DFINUFFT_ARCH_FLAGS=${{ matrix.arch_flags }}" >> $GITHUB_ENV
       - name: Build
-        run: python3 -m pip install ${{ github.workspace }} --verbose
+        run: pip install ${{ github.workspace }} --verbose
       - name: Test
         run: python3 -m pytest ${{ github.workspace }}/python/finufft/test
