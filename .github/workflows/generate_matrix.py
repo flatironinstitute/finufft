@@ -11,8 +11,8 @@ combinations = {
         "compiler": ["llvm", "gcc"],
         "arch_flags": ["-march=native", "-march=x86-64"]
     },
-    "windows-11": {
-        "compiler": ["msvc"],
+    "windows-2022": {
+        "compiler": ["msvc", "llvm"],
         "arch_flags": ["/arch:AVX2", "/arch:AVX512", "/arch:SSE2"]
     },
     "macos-13": {

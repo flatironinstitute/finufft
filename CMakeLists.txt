@@ -117,7 +117,7 @@ if (FINUFFT_BUILD_MATLAB)
 else ()
     # For non-matlab builds, find system OpenMP
     if (FINUFFT_USE_OPENMP)
-        find_package(OpenMP REQUIRED)
+        find_package(OpenMP COMPONENTS CXX REQUIRED)
     endif ()
 endif ()
 

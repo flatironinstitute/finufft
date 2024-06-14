@@ -13,6 +13,7 @@ jobs:
       - name: Generate matrix
         id: generate_matrix
         run: |
+          echo "MACOSX_DEPLOYMENT_TARGET=11.0" >> $GITHUB_ENV 
           MATRIX=$(python3 ${{ github.workspace }}/.github/workflows/generate_matrix.py)
           echo "matrix=$MATRIX" >> $GITHUB_OUTPUT
   build:
@@ -50,12 +51,12 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - name: Install pytest
         run: |
-          pip install --upgrade pip
-          pip install pytest
+          python3 -m pip install --upgrade pip
+          python3 -m pip install pytest
       - name: Set compiler flags
         run: |
           echo CMAKE_ARGS="-DFINUFFT_ARCH_FLAGS=${{ matrix.arch_flags }}" >> $GITHUB_ENV
       - name: Build
-        run: pip install ${{ github.workspace }} --verbose
+        run: python3 -m pip install ${{ github.workspace }} --verbose
       - name: Test
         run: python3 -m pytest ${{ github.workspace }}/python/finufft/test
