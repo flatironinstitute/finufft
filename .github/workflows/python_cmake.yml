@@ -26,9 +26,7 @@ jobs:
       - name: Set min macOS version and install fftw and libomp
         if: runner.os == 'macOS'
         run: |
-          /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
           echo "MACOS_DEPLOYMENT_TARGET=10.14" >> $GITHUB_ENV
-          echo "HOMEBREW_NO_AUTO_UPDATE=1" >> $GITHUB_ENV
           if [ -f /usr/local/bin/brew ]; then
             echo "PATH=/usr/local/bin:$PATH" >> $GITHUB_ENV
           endif
