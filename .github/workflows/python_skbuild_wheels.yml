@@ -21,6 +21,7 @@ jobs:
           CIBW_SKIP_LINUX: "pp* *musllinux*"
           CIBW_BEFORE_ALL_LINUX: yum install -y fftw3-devel
           CIBW_BEFORE_ALL_MACOS: brew install gcc fftw
+          CIBW_ENVIRONMENT_MACOS: "FC=gfortran CC=gcc CXX=g++"
 
       - uses: actions/upload-artifact@v4
         with:
