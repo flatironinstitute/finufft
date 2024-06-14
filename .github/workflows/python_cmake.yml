@@ -23,6 +23,8 @@ jobs:
       fail-fast: false
       matrix: ${{ fromJSON(needs.prepare.outputs.matrix) }}
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
       - name: Setup Cpp
         uses: aminya/setup-cpp@v1
         with:
