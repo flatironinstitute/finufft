@@ -1,4 +1,4 @@
-name: Pip
+name: Test python skbuild with CMake
 
 on: [push, pull_request]
 
