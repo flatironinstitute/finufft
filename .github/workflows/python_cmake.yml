@@ -34,13 +34,21 @@ jobs:
           vcpkg: false
           cppcheck: false
           clangtidy: false
-
+      - name: Set up Homebrew
+        id: set-up-homebrew
+        uses: Homebrew/actions/setup-homebrew@master
       - name: Install pytest
         run: python -m pip install pytest
-      - name: Set min macOS version
+      - name: Set min macOS version and install fftw and libomp
         if: runner.os == 'macOS'
         run: |
           echo "MACOS_DEPLOYMENT_TARGET=10.14" >> $GITHUB_ENV
+          brew install fftw libomp
+      - name: Install fftw and libomp
+        if: runner.os == 'linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libfftw3-dev libomp-dev
       - name: Set compiler flags
         run: |
           echo MAKE_ARGS="-DFINUFFT_ARCH_FLAGS=${{ matrix.arch_flags }}" >> $GITHUB_ENV
