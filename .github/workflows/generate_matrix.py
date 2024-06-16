@@ -13,10 +13,10 @@ combinations = {
     },
     "windows-2022": {
         "compiler": ["msvc", "llvm"],
-        "arch_flags": ["/arch:AVX2", "/arch:AVX512", "/arch:SSE2"]
+        "arch_flags": ["/arch:AVX2", "/arch:SSE2"]
     },
     "macos-13": {
-        "compiler": ["llvm", "gcc"],
+        "compiler": ["llvm", "gcc-14"],
         "arch_flags": ["-march=native", "-march=x86-64"]
     }
 }

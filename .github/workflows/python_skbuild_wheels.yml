@@ -21,12 +21,12 @@ jobs:
           CIBW_SKIP: "pp* *musllinux*"
           CIBW_ARCHS_LINUX: "x86_64"
           CIBW_BEFORE_ALL_LINUX: yum install -y fftw3-devel
-          CIBW_BEFORE_ALL_MACOS: brew install gcc@13 libomp fftw
+          CIBW_BEFORE_ALL_MACOS: brew install gcc@14 fftw
           CIBW_ENVIRONMENT_MACOS: >
-            FC=gfortran-13
-            CC=gcc-13
-            CXX=g++-13
-            OpenMP_ROOT=/usr/local/opt/libomp
+            FC=gfortran-14
+            CC=gcc-14
+            CXX=g++-14
+            MACOSX_DEPLOYMENT_TARGET=13
 
       - uses: actions/upload-artifact@v4
         with:

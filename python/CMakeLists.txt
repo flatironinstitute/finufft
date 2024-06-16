@@ -1,5 +1,9 @@
 if(FINUFFT_USE_CPU)
-    install(TARGETS finufft LIBRARY DESTINATION finufft)
+    if (WIN32)
+        install(TARGETS finufft LIBRARY DESTINATION finufft RUNTIME DESTINATION finufft)
+    else ()
+        install(TARGETS finufft LIBRARY DESTINATION finufft)
+    endif ()
 endif()
 
 if(FINUFFT_USE_GPU)

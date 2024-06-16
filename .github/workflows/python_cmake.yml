@@ -36,15 +36,15 @@ jobs:
           vcpkg: false
           cppcheck: false
           clangtidy: false
-      - name: Set min macOS version and install fftw and libomp
+      - name: Set min macOS version and install fftw
         if: runner.os == 'macOS'
         run: |
-          brew install fftw libomp
-      - name: Install fftw and libomp
+          brew install fftw
+      - name: Install fftw
         if: runner.os == 'linux'
         run: |
           sudo apt update
-          sudo apt install -y libfftw3-dev libomp-dev libomp5
+          sudo apt install -y libfftw3-dev
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
@@ -56,6 +56,7 @@ jobs:
       - name: Set compiler flags
         run: |
           echo CMAKE_ARGS="-DFINUFFT_ARCH_FLAGS=${{ matrix.arch_flags }}" >> $GITHUB_ENV
+        shell: bash
       - name: Build
         run: python3 -m pip install ${{ github.workspace }} --verbose
       - name: Test
