@@ -1036,11 +1036,7 @@ FINUFFT_NEVER_INLINE void spread_subproblem_1d_kernel(
     // +-----------------------+
     // |re|im|re|im|re|im|re|im|
     // +-----------------------+
-    //    const auto dd_pt = initialize_complex_batch<batch_t>(dd[i * 2], dd[i * 2 + 1]);
-    const auto dd_pt = [dd, i]() constexpr noexcept {
-      const batch_t ddi{dd[i * 2]}, ddj{dd[i * 2 + 1]};
-      return xsimd::zip_lo(ddi, ddj);
-    }();
+    const auto dd_pt = initialize_complex_batch<batch_t>(dd[i * 2], dd[i * 2 + 1]);
     // ceil offset, hence rounding, must match that in get_subgrid...
     const auto i1 = BIGINT(std::ceil(kx[i] - ns2)); // fine grid start index
     // FLT(i1) has different semantics and results an extra cast
@@ -1209,12 +1205,7 @@ FINUFFT_NEVER_INLINE static void spread_subproblem_2d_kernel(
   static constexpr auto ns2 = ns * FLT(0.5); // half spread width
   std::fill(du, du + 2 * size1 * size2, 0);  // initialized to 0 due to the padding
   for (uint64_t pt = 0; pt < M; pt++) {      // loop over NU pts
-    //    const auto dd_pt = initialize_complex_batch<batch_t>(dd[pt * 2], dd[pt * 2 +
-    //    1]);
-    const auto dd_pt = [dd, pt]() constexpr noexcept {
-      const batch_t ddi{dd[pt * 2]}, ddj{dd[pt * 2 + 1]};
-      return xsimd::zip_lo(ddi, ddj);
-    }();
+    const auto dd_pt = initialize_complex_batch<batch_t>(dd[pt * 2], dd[pt * 2 + 1]);
     // ceil offset, hence rounding, must match that in get_subgrid...
     const auto i1 = (BIGINT)std::ceil(kx[pt] - ns2); // fine grid start indices
     const auto i2 = (BIGINT)std::ceil(ky[pt] - ns2);
@@ -1318,12 +1309,7 @@ FINUFFT_NEVER_INLINE void spread_subproblem_3d_kernel(
   static constexpr auto ns2       = ns * FLT(0.5); // half spread width
   std::fill(du, du + 2 * size1 * size2 * size3, 0);
   for (uint64_t pt = 0; pt < M; pt++) {            // loop over NU pts
-    //        const auto dd_pt = initialize_complex_batch<batch_t>(dd[pt * 2], dd[pt * 2 +
-    //        1]);
-    const auto dd_pt = [dd, pt]() constexpr noexcept {
-      const batch_t ddi{dd[pt * 2]}, ddj{dd[pt * 2 + 1]};
-      return xsimd::zip_lo(ddi, ddj);
-    }();
+    const auto dd_pt = initialize_complex_batch<batch_t>(dd[pt * 2], dd[pt * 2 + 1]);
     // ceil offset, hence rounding, must match that in get_subgrid...
     const auto i1 = (BIGINT)std::ceil(kx[pt] - ns2); // fine grid start indices
     const auto i2 = (BIGINT)std::ceil(ky[pt] - ns2);
