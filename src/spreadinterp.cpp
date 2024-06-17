@@ -722,16 +722,18 @@ Two upsampfacs implemented. Params must match ref formula. Barnett 4/24/18 */
     static constexpr auto horner_coeffs = get_horner_coeffs_200<FLT, w>();
     alignas(alignment) static constexpr auto padded_coeffs =
         pad_2D_array_with_zeros<FLT, nc, w, padded_ns>(horner_coeffs);
-    alignas(alignment) const std::array<batch_t, nc - 1> pow_z =
-        [](const FLT z) constexpr noexcept {
-          std::array<batch_t, nc - 1> zs_v{};
-          auto sz = z;
-          for (uint8_t i = 0; i < nc - 1; ++i) {
-            zs_v[i] = batch_t(sz);
-            sz *= z;
-          }
-          return zs_v;
-        }(z);
+    const std::array<batch_t, nc - 1> pow_z = [](const FLT z) constexpr noexcept {
+      std::array<FLT, nc - 1> zs{};
+      std::array<batch_t, nc - 1> zs_v{};
+      zs[0] = z;
+      for (uint8_t i = 1; i < nc - 1; ++i) {
+        zs[i] = zs[i - 1] * z;
+      }
+      for (uint8_t i = 0; i < nc - 1; ++i) {
+        zs_v[i] = batch_t::broadcast(zs[i]);
+      }
+      return zs_v;
+    }(z);
     for (uint8_t i = 0; i < w; i += avx_size) {
       auto k = batch_t::load_aligned(padded_coeffs[0].data() + i);
       for (uint8_t j = 1; j < nc; ++j) {
