@@ -720,25 +720,17 @@ Two upsampfacs implemented. Params must match ref formula. Barnett 4/24/18 */
     static constexpr auto padded_ns     = (w + avx_size - 1) & ~(avx_size - 1);
     static constexpr auto nc            = nc200<w>();
     static constexpr auto horner_coeffs = get_horner_coeffs_200<FLT, w>();
+
     alignas(alignment) static constexpr auto padded_coeffs =
         pad_2D_array_with_zeros<FLT, nc, w, padded_ns>(horner_coeffs);
-    const std::array<batch_t, nc - 1> pow_z = [](const FLT z) constexpr noexcept {
-      std::array<FLT, nc - 1> zs{};
-      std::array<batch_t, nc - 1> zs_v{};
-      zs[0] = z;
-      for (uint8_t i = 1; i < nc - 1; ++i) {
-        zs[i] = zs[i - 1] * z;
-      }
-      for (uint8_t i = 0; i < nc - 1; ++i) {
-        zs_v[i] = batch_t::broadcast(zs[i]);
-      }
-      return zs_v;
-    }(z);
+
+    const auto zv = batch_t(z);
+
     for (uint8_t i = 0; i < w; i += avx_size) {
       auto k = batch_t::load_aligned(padded_coeffs[0].data() + i);
       for (uint8_t j = 1; j < nc; ++j) {
         const auto cji = batch_t::load_aligned(padded_coeffs[j].data() + i);
-        k              = xsimd::fma(cji, pow_z[j - 1], k);
+        k              = xsimd::fma(k, zv, cji);
       }
       k.store_aligned(ker + i);
     }
@@ -1048,7 +1040,8 @@ FINUFFT_NEVER_INLINE void spread_subproblem_1d_kernel(
     // This can only happen if the overall error would be O(1) anyway. Clip x1??
     if (x1 < -ns2) x1 = -ns2;
     if (x1 > -ns2 + 1) x1 = -ns2 + 1; // ***
-    alignas(alignment) const auto ker = ker_eval<ns, kerevalmeth, FLT, batch_t>(opts, x1);
+    //alignas(alignment) const auto ker = ker_eval<ns, kerevalmeth, FLT, batch_t>(opts, x1);
+    const auto &ker = ker_eval<ns, kerevalmeth, FLT, batch_t>(opts, x1);
     const auto j = i1 - off1;         // offset rel to subgrid, starts the output indices
     auto *FINUFFT_RESTRICT trg = du + 2 * j; // restrict helps compiler to vectorize
     // du is padded, so we can use SIMD even if we write more than ns values in du
@@ -1213,7 +1206,8 @@ FINUFFT_NEVER_INLINE static void spread_subproblem_2d_kernel(
     const auto i2 = (BIGINT)std::ceil(ky[pt] - ns2);
     const auto x1 = (FLT)std::ceil(kx[pt] - ns2) - kx[pt];
     const auto x2 = (FLT)std::ceil(ky[pt] - ns2) - ky[pt];
-    alignas(alignment) const auto kernel_values =
+    //alignas(alignment) const auto kernel_values =
+    const auto &kernel_values =
         ker_eval<ns, kerevalmeth, FLT, batch_t>(opts, x1, x2);
     alignas(alignment) auto *FINUFFT_RESTRICT ker1 = kernel_values.data();
     alignas(alignment) auto *FINUFFT_RESTRICT ker2 = kernel_values.data() + MAX_NSPREAD;
@@ -1320,7 +1314,8 @@ FINUFFT_NEVER_INLINE void spread_subproblem_3d_kernel(
     const auto x2 = std::ceil(ky[pt] - ns2) - ky[pt];
     const auto x3 = std::ceil(kz[pt] - ns2) - kz[pt];
 
-    alignas(alignment) const auto kernel_values =
+    //alignas(alignment) const auto kernel_values =
+    const auto &kernel_values =
         ker_eval<ns, kerevalmeth, FLT, batch_t>(opts, x1, x2, x3);
     auto *FINUFFT_RESTRICT ker1 = kernel_values.data();
     auto *FINUFFT_RESTRICT ker2 = kernel_values.data() + MAX_NSPREAD;
