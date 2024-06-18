@@ -1040,8 +1040,8 @@ FINUFFT_NEVER_INLINE void spread_subproblem_1d_kernel(
     // This can only happen if the overall error would be O(1) anyway. Clip x1??
     if (x1 < -ns2) x1 = -ns2;
     if (x1 > -ns2 + 1) x1 = -ns2 + 1; // ***
-    //alignas(alignment) const auto ker = ker_eval<ns, kerevalmeth, FLT, batch_t>(opts, x1);
-    const auto &ker = ker_eval<ns, kerevalmeth, FLT, batch_t>(opts, x1);
+    alignas(alignment) const auto ker = ker_eval<ns, kerevalmeth, FLT, batch_t>(opts, x1);
+    //const auto &ker = ker_eval<ns, kerevalmeth, FLT, batch_t>(opts, x1);
     const auto j = i1 - off1;         // offset rel to subgrid, starts the output indices
     auto *FINUFFT_RESTRICT trg = du + 2 * j; // restrict helps compiler to vectorize
     // du is padded, so we can use SIMD even if we write more than ns values in du
@@ -1206,8 +1206,8 @@ FINUFFT_NEVER_INLINE static void spread_subproblem_2d_kernel(
     const auto i2 = (BIGINT)std::ceil(ky[pt] - ns2);
     const auto x1 = (FLT)std::ceil(kx[pt] - ns2) - kx[pt];
     const auto x2 = (FLT)std::ceil(ky[pt] - ns2) - ky[pt];
-    //alignas(alignment) const auto kernel_values =
-    const auto &kernel_values =
+    alignas(alignment) const auto kernel_values =
+    //const auto &kernel_values =
         ker_eval<ns, kerevalmeth, FLT, batch_t>(opts, x1, x2);
     alignas(alignment) auto *FINUFFT_RESTRICT ker1 = kernel_values.data();
     alignas(alignment) auto *FINUFFT_RESTRICT ker2 = kernel_values.data() + MAX_NSPREAD;
@@ -1314,8 +1314,8 @@ FINUFFT_NEVER_INLINE void spread_subproblem_3d_kernel(
     const auto x2 = std::ceil(ky[pt] - ns2) - ky[pt];
     const auto x3 = std::ceil(kz[pt] - ns2) - kz[pt];
 
-    //alignas(alignment) const auto kernel_values =
-    const auto &kernel_values =
+    alignas(alignment) const auto kernel_values =
+    //const auto &kernel_values =
         ker_eval<ns, kerevalmeth, FLT, batch_t>(opts, x1, x2, x3);
     auto *FINUFFT_RESTRICT ker1 = kernel_values.data();
     auto *FINUFFT_RESTRICT ker2 = kernel_values.data() + MAX_NSPREAD;
