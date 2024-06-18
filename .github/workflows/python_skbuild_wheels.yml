@@ -3,7 +3,7 @@ name: Build Python wheels (skbuild)
 on: [push, pull_request]
 
 jobs:
-  build_wheels:
+  build_wheels_unix:
     name: Build wheels on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
@@ -27,6 +27,41 @@ jobs:
             CC=gcc-14
             CXX=g++-14
             MACOSX_DEPLOYMENT_TARGET=13
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cibw-wheels-${{ matrix.os }}-${{ strategy.job-index }}
+          path: ./wheelhouse/*.whl
+
+  build_wheels_win:
+    name: Build wheels on Windows
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install FFTW
+        run: |
+          Invoke-WebRequest -Uri "https://www.fftw.org/fftw-3.3.10.tar.gz" -OutFile "${{ github.workspace }}\fftw.tar.gz"
+
+          New-Item -Path "${{ github.workspace }}" -Name "fftw-source" -ItemType Directory
+          tar --strip-components=1 -C "${{ github.workspace }}\fftw-source" -zxf "${{ github.workspace }}\fftw.tar.gz"
+
+          cmake -S "${{ github.workspace }}\fftw-source" -D CMAKE_INSTALL_PREFIX="${{ github.workspace }}\fftw" -D ENABLE_AVX2=ON -D BUILD_TESTS=OFF -D BUILD_SHARED_LIBS=OFF -D ENABLE_OPENMP=ON -D ENABLE_FLOAT=OFF -B "${{ github.workspace }}\fftw-build"
+          cmake --build "${{ github.workspace }}\fftw-build" --config Release
+          cmake --install "${{ github.workspace }}\fftw-build"
+
+          cmake -S "${{ github.workspace }}\fftw-source" -D CMAKE_INSTALL_PREFIX="${{ github.workspace }}\fftw" -D ENABLE_AVX2=ON -D BUILD_TESTS=OFF -D BUILD_SHARED_LIBS=OFF -D ENABLE_OPENMP=ON -D ENABLE_FLOAT=ON -B "${{ github.workspace }}\fftw-build"
+          cmake --build "${{ github.workspace }}\fftw-build" --config Release
+          cmake --install "${{ github.workspace }}\fftw-build"
+
+      - name: Build wheels
+        uses: pypa/cibuildwheel@v2.19.1
+        env:
+          CIBW_BUILD_VERBOSITY: 1
+          CIBW_ARCHS: AMD64
+          CIBW_ENVIRONMENT: >
+            FFTWDIR='${{ github.workspace }}\fftw'
 
       - uses: actions/upload-artifact@v4
         with:
