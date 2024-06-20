@@ -421,7 +421,7 @@ docker-wheel:
 define clone_repo
     @echo "Cloning repository $(1) at tag $(2) into directory $(3)"
     @if [ ! -d "$(3)" ]; then \
-        git clone --branch $(2) $(1) $(3); \
+        git clone --depth=1 --branch $(2) $(1) $(3); \
     else \
         cd $(3) && \
         CURRENT_VERSION=$$(git describe --tags --abbrev=0) && \

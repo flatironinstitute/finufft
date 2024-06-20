@@ -26,17 +26,17 @@ struct zip_low;
 struct zip_hi;
 // forward declaration to clean up the code and be able to use this everywhere in the file
 template<class T, uint8_t N, uint8_t K = N> static constexpr auto BestSIMDHelper();
-template<class T, uint8_t N> constexpr auto GetPaddedSIMDSize();
+template<class T, uint8_t N> constexpr auto GetPaddedSIMDWidth();
 template<class T, uint8_t N>
-using PaddedSIMD = typename xsimd::make_sized_batch<T, GetPaddedSIMDSize<T, N>()>::type;
+using PaddedSIMD = typename xsimd::make_sized_batch<T, GetPaddedSIMDWidth<T, N>()>::type;
 template<class T> uint8_t get_padding(uint8_t ns);
 template<class T, uint8_t ns> constexpr auto get_padding();
 template<class T, uint8_t N>
 using BestSIMD = typename decltype(BestSIMDHelper<T, N, xsimd::batch<T>::size>())::type;
-template<class T, uint8_t N = 1> constexpr uint8_t min_batch_size();
-template<class T, uint8_t N> constexpr auto find_optimal_batch_size();
+template<class T, uint8_t N = 1> constexpr uint8_t min_simd_width();
+template<class T, uint8_t N> constexpr auto find_optimal_simd_width();
 template<class T, class V = typename T::value_type, std::size_t N = T::size>
-constexpr auto initialize_complex_batch(V a, V b) noexcept;
+constexpr auto initialize_complex_register(V a, V b) noexcept;
 template<class arch_t>
 constexpr auto zip_low_index =
     xsimd::make_batch_constant<xsimd::as_unsigned_integer_t<FLT>, arch_t, zip_low>();
@@ -53,7 +53,7 @@ void print_subgrid_info(int ndims, BIGINT offset1, BIGINT offset2, BIGINT offset
 } // namespace
 // declarations of purely internal functions... (thus need not be in .h)
 template<uint8_t ns, uint8_t kerevalmeth, class T,
-         class batch_t = xsimd::make_sized_batch_t<T, find_optimal_batch_size<T, ns>()>,
+         class simd_type = xsimd::make_sized_batch_t<T, find_optimal_simd_width<T, ns>()>,
          typename... V>
 static auto ker_eval(FLT *FINUFFT_RESTRICT ker, const finufft_spread_opts &opts,
                      const V... elems) noexcept;
@@ -62,8 +62,8 @@ static FINUFFT_ALWAYS_INLINE void set_kernel_args(
     FLT *args, FLT x, const finufft_spread_opts &opts) noexcept;
 static FINUFFT_ALWAYS_INLINE void evaluate_kernel_vector(
     FLT *ker, FLT *args, const finufft_spread_opts &opts, int N) noexcept;
-template<uint8_t w, class batch_t = xsimd::make_sized_batch_t<
-                        FLT, find_optimal_batch_size<FLT, w>()>> // aka ns
+template<uint8_t w, class simd_type = xsimd::make_sized_batch_t<
+                        FLT, find_optimal_simd_width<FLT, w>()>> // aka ns
 static FINUFFT_ALWAYS_INLINE void eval_kernel_vec_Horner(
     FLT *FINUFFT_RESTRICT ker, FLT x, const finufft_spread_opts &opts) noexcept;
 template<uint8_t ns>
@@ -377,9 +377,9 @@ int spreadSorted(BIGINT *sort_indices, BIGINT N1, BIGINT N2, BIGINT N3, FLT *dat
     {
       // local copies of NU pts and data for each subproblem
       std::vector<FLT> kx0{0}, ky0{0}, kz0{0}, dd0{0}, du0{0};
-#pragma omp for schedule(dynamic, 1)           // each is big
-      for (int isub = 0; isub < nb; isub++) {  // Main loop through the subproblems
-        BIGINT M0 = brk[isub + 1] - brk[isub]; // # NU pts in this subproblem
+#pragma omp for schedule(dynamic, 1)                 // each is big
+      for (int isub = 0; isub < nb; isub++) {        // Main loop through the subproblems
+        const BIGINT M0 = brk[isub + 1] - brk[isub]; // # NU pts in this subproblem
         // copy the location and data vectors for the nonuniform points
         kx0.resize(M0);
         ky0.resize(M0 * (N2 > 1));
@@ -447,11 +447,11 @@ int interpSorted_kernel(const BIGINT *sort_indices, BIGINT N1, BIGINT N2, BIGINT
 // Interpolate to NU pts in sorted order from a uniform grid.
 // See spreadinterp() for doc.
 {
-  using batch_t                   = xsimd::batch<FLT>;
-  using arch_t                    = typename batch_t::arch_type;
+  using simd_type                 = xsimd::batch<FLT>;
+  using arch_t                    = typename simd_type::arch_type;
   static constexpr auto padding   = get_padding<FLT, 2 * ns>();
-  static constexpr auto alignment = batch_t::arch_type::alignment();
-  static constexpr auto avx_size  = batch_t::size;
+  static constexpr auto alignment = simd_type::arch_type::alignment();
+  static constexpr auto simd_size = simd_type::size;
   static constexpr auto ns2 = ns * FLT(0.5); // half spread width, used as stencil shift
 
   CNTime timer;
@@ -739,7 +739,7 @@ void evaluate_kernel_vector(FLT *ker, FLT *args, const finufft_spread_opts &opts
     if (abs(args[i]) >= (FLT)opts.ES_halfwidth) ker[i] = 0.0;
 }
 
-template<uint8_t w, class batch_t> // aka ns
+template<uint8_t w, class simd_type> // aka ns
 void eval_kernel_vec_Horner(FLT *FINUFFT_RESTRICT ker, const FLT x,
                             const finufft_spread_opts &opts) noexcept
 /* Fill ker[] with Horner piecewise poly approx to [-w/2,w/2] ES kernel eval at
@@ -751,21 +751,21 @@ Two upsampfacs implemented. Params must match ref formula. Barnett 4/24/18 */
   const FLT z = std::fma(FLT(2.0), x, FLT(w - 1)); // scale so local grid offset z in
                                                    // [-1,1]
   if (opts.upsampfac == 2.0) {                     // floating point equality is fine here
-    static constexpr auto alignment     = batch_t::arch_type::alignment();
-    static constexpr auto avx_size      = batch_t::size;
-    static constexpr auto padded_ns     = (w + avx_size - 1) & ~(avx_size - 1);
+    static constexpr auto alignment     = simd_type::arch_type::alignment();
+    static constexpr auto simd_size     = simd_type::size;
+    static constexpr auto padded_ns     = (w + simd_size - 1) & ~(simd_size - 1);
     static constexpr auto nc            = nc200<w>();
     static constexpr auto horner_coeffs = get_horner_coeffs_200<FLT, w>();
 
     alignas(alignment) static constexpr auto padded_coeffs =
         pad_2D_array_with_zeros<FLT, nc, w, padded_ns>(horner_coeffs);
 
-    const auto zv = batch_t(z);
+    const auto zv = simd_type(z);
 
-    for (uint8_t i = 0; i < w; i += avx_size) {
-      auto k = batch_t::load_aligned(padded_coeffs[0].data() + i);
+    for (uint8_t i = 0; i < w; i += simd_size) {
+      auto k = simd_type::load_aligned(padded_coeffs[0].data() + i);
       for (uint8_t j = 1; j < nc; ++j) {
-        const auto cji = batch_t::load_aligned(padded_coeffs[j].data() + i);
+        const auto cji = simd_type::load_aligned(padded_coeffs[j].data() + i);
         k              = xsimd::fma(k, zv, cji);
       }
       k.store_aligned(ker + i);
@@ -1028,11 +1028,11 @@ FINUFFT_NEVER_INLINE void spread_subproblem_1d_kernel(
      This needed off1 as extra arg. AHB 11/30/20.
      Vectorized using xsimd by M. Barbone 06/24.
   */
-  using batch_t                   = PaddedSIMD<FLT, 2 * ns>;
-  using arch_t                    = typename batch_t::arch_type;
+  using simd_type                 = PaddedSIMD<FLT, 2 * ns>;
+  using arch_t                    = typename simd_type::arch_type;
   static constexpr auto padding   = get_padding<FLT, 2 * ns>();
-  static constexpr auto alignment = batch_t::arch_type::alignment();
-  static constexpr auto avx_size  = batch_t::size;
+  static constexpr auto alignment = arch_t::alignment();
+  static constexpr auto simd_size = simd_type::size;
   static constexpr auto ns2       = ns * FLT(0.5); // half spread width
   // something weird here. Reversing ker{0} and std fill causes ker
   // to be zeroed inside the loop GCC uses AVX, clang AVX2
@@ -1048,59 +1048,69 @@ FINUFFT_NEVER_INLINE void spread_subproblem_1d_kernel(
     // but is a hint to the compiler that after the lambda
     // dd_pt is not modified and can be kept as is in a register
     // given (re, im) in this case dd[i*2] and dd[i*2+1]
-    // this function returns a simd register of size avx_size
+    // this function returns a simd register of size simd_size
     // initialized as follows:
     // +-----------------------+
     // |re|im|re|im|re|im|re|im|
     // +-----------------------+
-    const auto dd_pt = initialize_complex_batch<batch_t>(dd[i * 2], dd[i * 2 + 1]);
+    const auto dd_pt = initialize_complex_register<simd_type>(dd[i * 2], dd[i * 2 + 1]);
     // ceil offset, hence rounding, must match that in get_subgrid...
     const auto i1 = BIGINT(std::ceil(kx[i] - ns2)); // fine grid start index
     // FLT(i1) has different semantics and results an extra cast
-    auto x1 = std::ceil(kx[i] - ns2) - kx[i]; // x1 in [-w/2,-w/2+1], up to rounding
-    // However if N1*epsmach>O(1) then can cause O(1) errors in x1, hence ppoly
-    // kernel evaluation will fall outside their designed domains, >>1 errors.
-    // This can only happen if the overall error would be O(1) anyway. Clip x1??
-    if (x1 < -ns2) x1 = -ns2;
-    if (x1 > -ns2 + 1) x1 = -ns2 + 1; // ***
-    ker_eval<ns, kerevalmeth, FLT, batch_t>(ker.data(), opts, x1);
-    //    const auto ker = ker_eval<ns, kerevalmeth, FLT, batch_t>(opts, x1);
+    const auto x1 = [i, kx]() constexpr noexcept {
+      auto x1 = std::ceil(kx[i] - ns2) - kx[i]; // x1 in [-w/2,-w/2+1], up to rounding
+      // However if N1*epsmach>O(1) then can cause O(1) errors in x1, hence ppoly
+      // kernel evaluation will fall outside their designed domains, >>1 errors.
+      // This can only happen if the overall error would be O(1) anyway. Clip x1??
+      if (x1 < -ns2) x1 = -ns2;
+      if (x1 > -ns2 + 1) x1 = -ns2 + 1; // ***
+      return x1;
+    }();
+    // Libin improvement: pass ker as a parameter and allocate it outside the loop
+    // gcc13 + 10% speedup
+    ker_eval<ns, kerevalmeth, FLT, simd_type>(ker.data(), opts, x1);
+    //    const auto ker = ker_eval<ns, kerevalmeth, FLT, simd_type>(opts, x1);
     const auto j = i1 - off1; // offset rel to subgrid, starts the output indices
     auto *FINUFFT_RESTRICT trg = du + 2 * j; // restrict helps compiler to vectorize
     // du is padded, so we can use SIMD even if we write more than ns values in du
     // ker is also padded.
-    // regular_part is the largest multiple of 2*ns minus the remainder modulo
-    // (2*avx_size). This allows to save one load.
-    // see below for the details.
-    // adding padding to guarantee that all the elements are computed
-    // this trick only works when avx_size is a power of 2
-    // avx_size*2 is guaranteed to be a power of 2, trivially
-    static constexpr auto regular_part = (2 * ns + padding) & (-(2 * avx_size));
-    // this loop increment is 2*avx_size by design
-    // it allows to save one load this way
-    // this does for each element e of the subgrid, x1 defined above and pt the NU point
+    // regular_part, source Agner Fog
+    // [VCL](https://www.agner.org/optimize/vcl_manual.pdf)
+    // Given 2*ns+padding=L so that L = M*simd_size
+    // if M is even then regular_part == M else regular_part == (M-1) * simd_size
+    // this means that the elements from regular_part to L are a special case that
+    // needs a different handling. These last elements are not computed in the loop but,
+    // the if constexpr block at the end of the loop takes care of them.
+    // This allows to save one load at each loop iteration.
+    // The special case, allows to minimize padding otherwise out of bounds access.
+    // See below for the details.
+    static constexpr auto regular_part = (2 * ns + padding) & (-(2 * simd_size));
+    // this loop increment is 2*simd_size by design
+    // it allows to save one load this way at each iteration
+
+    // This does for each element e of the subgrid, x1 defined above and pt the NU point
     // the following: e += exp(beta.sqrt(1 - (2*x1/n_s)^2))*pt
     // NOTE: x1 is translated accordingly, please see the ES method for more
     // using uint8_t in loops to favor unrolling.
     // Most compilers limit the unrolling to 255, uint8_t is at most 255
-    for (uint8_t dx{0}; dx < regular_part; dx += 2 * avx_size) {
-      // read ker01 which is avx_size wide from ker
-      // ker01 looks like this:
+    for (uint8_t dx{0}; dx < regular_part; dx += 2 * simd_size) {
+      // read ker_v which is simd_size wide from ker
+      // ker_v looks like this:
       // +-----------------------+
       // |y0|y1|y2|y3|y4|y5|y6|y7|
       // +-----------------------+
-      const auto ker01 = batch_t::load_aligned(ker.data() + dx / 2);
+      const auto ker_v = simd_type::load_aligned(ker.data() + dx / 2);
       // read 2*SIMD vectors from the subproblem grid
-      const auto du_pt0 = batch_t::load_unaligned(trg + dx);
-      const auto du_pt1 = batch_t::load_unaligned(trg + dx + avx_size);
-      // swizzle is faster than zip_lo(ker01, ker01) and zip_hi(ker01, ker01)
+      const auto du_pt0 = simd_type::load_unaligned(trg + dx);
+      const auto du_pt1 = simd_type::load_unaligned(trg + dx + simd_size);
+      // swizzle is faster than zip_lo(ker_v, ker_v) and zip_hi(ker_v, ker_v)
       // swizzle in this case is equivalent to zip_lo and zip_hi respectively
-      const auto ker0 = xsimd::swizzle(ker01, zip_low_index<arch_t>);
+      const auto ker0low = xsimd::swizzle(ker_v, zip_low_index<arch_t>);
       // ker 0 looks like this now:
       // +-----------------------+
       // |y0|y0|y1|y1|y2|y2|y3|y3|
       // +-----------------------+
-      const auto ker1 = xsimd::swizzle(ker01, zip_hi_index<arch_t>);
+      const auto ker0hi = xsimd::swizzle(ker_v, zip_hi_index<arch_t>);
       // ker 1 looks like this now:
       // +-----------------------+
       // |y4|y4|y5|y5|y6|y6|y7|y7|
@@ -1108,25 +1118,27 @@ FINUFFT_NEVER_INLINE void spread_subproblem_1d_kernel(
       // same as before each element of the subproblem grid is multiplied by the
       // corresponding element of the kernel since dd_pt is re|im interleaves res0 is also
       // correctly re|im interleaved
-      // doing this for two SIMD vectors at once allows to fully utilize ker01 instead of
+      // doing this for two SIMD vectors at once allows to fully utilize ker_v instead of
       // wasting the higher half
-      const auto res0 = xsimd::fma(ker0, dd_pt, du_pt0);
-      const auto res1 = xsimd::fma(ker1, dd_pt, du_pt1);
+      const auto res0 = xsimd::fma(ker0low, dd_pt, du_pt0);
+      const auto res1 = xsimd::fma(ker0hi, dd_pt, du_pt1);
       res0.store_unaligned(trg + dx);
-      res1.store_unaligned(trg + dx + avx_size);
+      res1.store_unaligned(trg + dx + simd_size);
     }
     // sanity check at compile time that all the elements are computed
-    static_assert(regular_part + avx_size >= 2 * ns);
-    // case where the 2*ns is not a multiple of 2*avx_size
+    static_assert(regular_part + simd_size >= 2 * ns);
+    // case where the 2*ns is not a multiple of 2*simd_size
     // checking 2*ns instead of 2*ns+padding as we do not need to compute useless zeros...
     if constexpr (regular_part < 2 * ns) {
       // here we need to load the last kernel values,
       // but we can avoid computing extra padding
       // also this padding will result in out-of-bounds access to trg
-      const auto ker01 = batch_t::load_unaligned(ker.data() + (regular_part / 2));
-      const auto du_pt = batch_t::load_unaligned(trg + regular_part);
-      const auto ker0  = xsimd::swizzle(ker01, zip_low_index<arch_t>);
-      const auto res   = xsimd::fma(ker0, dd_pt, du_pt);
+      // The difference between this and the loop is that ker0hi is not computed and
+      // the corresponding memory is not accessed
+      const auto ker0    = simd_type::load_unaligned(ker.data() + (regular_part / 2));
+      const auto du_pt   = simd_type::load_unaligned(trg + regular_part);
+      const auto ker0low = xsimd::swizzle(ker0, zip_low_index<arch_t>);
+      const auto res     = xsimd::fma(ker0low, dd_pt, du_pt);
       res.store_unaligned(trg + regular_part);
     }
   }
@@ -1213,55 +1225,81 @@ FINUFFT_NEVER_INLINE static void spread_subproblem_2d_kernel(
    For algoritmic details see spread_subproblem_1d_kernel.
 */
 {
-  using batch_t                   = PaddedSIMD<FLT, 2 * ns>;
-  using arch_t                    = typename batch_t::arch_type;
+  using simd_type                 = PaddedSIMD<FLT, 2 * ns>;
+  using arch_t                    = typename simd_type::arch_type;
   static constexpr auto padding   = get_padding<FLT, 2 * ns>();
-  static constexpr auto avx_size  = batch_t::size;
-  static constexpr auto alignment = batch_t::arch_type::alignment();
+  static constexpr auto simd_size = simd_type::size;
+  static constexpr auto alignment = arch_t::alignment();
   // Kernel values stored in consecutive memory. This allows us to compute
   // values in all three directions in a single kernel evaluation call.
   static constexpr auto ns2 = ns * FLT(0.5); // half spread width
   alignas(alignment) std::array<FLT, 2 * MAX_NSPREAD> kernel_values{0};
   std::fill(du, du + 2 * size1 * size2, 0);  // initialized to 0 due to the padding
   for (uint64_t pt = 0; pt < M; pt++) {      // loop over NU pts
-    const auto dd_pt = initialize_complex_batch<batch_t>(dd[pt * 2], dd[pt * 2 + 1]);
+    const auto dd_pt = initialize_complex_register<simd_type>(dd[pt * 2], dd[pt * 2 + 1]);
     // ceil offset, hence rounding, must match that in get_subgrid...
     const auto i1 = (BIGINT)std::ceil(kx[pt] - ns2); // fine grid start indices
     const auto i2 = (BIGINT)std::ceil(ky[pt] - ns2);
     const auto x1 = (FLT)std::ceil(kx[pt] - ns2) - kx[pt];
     const auto x2 = (FLT)std::ceil(ky[pt] - ns2) - ky[pt];
-    // alignas(alignment) const auto kernel_values =
-    ker_eval<ns, kerevalmeth, FLT, batch_t>(kernel_values.data(), opts, x1, x2);
+    ker_eval<ns, kerevalmeth, FLT, simd_type>(kernel_values.data(), opts, x1, x2);
     const auto *ker1 = kernel_values.data();
     const auto *ker2 = kernel_values.data() + MAX_NSPREAD;
     // Combine kernel with complex source value to simplify inner loop
     // here 2* is because of complex
-    static constexpr uint8_t batches = (2 * ns + padding) / avx_size;
-    static_assert(batches > 0, "batches must be greater than 0");
-    batch_t ker1val_batches[batches];
+    static constexpr uint8_t kerval_vectors = (2 * ns + padding) / simd_size;
+    static_assert(kerval_vectors > 0, "kerval_vectors must be greater than 0");
+    // wrapping this in a lambda gives an extra 10% speedup (gcc13)
+    // the compiler realizes the values are constant after the lambda
+    // Guess: it realizes what is the invariant and moves some operations outside the loop
+    //        it might also realize that some variables are not needed anymore and can
+    //        re-use the registers with other data.
+    const auto ker1val_v = [ker1, dd_pt]() constexpr noexcept {
+      // array of simd_registers that will store the kernel values
+      std::array<simd_type, kerval_vectors> ker1val_v{};
+      // similar to the 1D case, we compute the kernel values in advance
+      // and store them in simd_registers.
+      // Compared to the 1D case the difference is that here ker values are stored in
+      // an array of simd_registers.
+      // This is a hint to the compiler to keep the values in registers, instead of
+      // pushing them to the stack.
+      // Same as the 1D case, the loop is structured in a way to half the number of loads
+      // This cause an issue with the last elements, but this is handled in the
+      // `if constexpr`.
+      // For more details please read the 1D case. The difference is that
+      // here the loop is on the number of simd vectors In the 1D case the loop is on the
+      // number of elements in the kernel
+      for (uint8_t i = 0; i < (kerval_vectors & ~1); // NOLINT(*-too-small-loop-variable)
+           i += 2) {
+        const auto ker1_v  = simd_type::load_aligned(ker1 + i * simd_size / 2);
+        const auto ker1low = xsimd::swizzle(ker1_v, zip_low_index<arch_t>);
+        const auto ker1hi  = xsimd::swizzle(ker1_v, zip_hi_index<arch_t>);
+        // this initializes the entire vector registers with the same value
+        // the ker1val_v[i] looks like this:
+        // +-----------------------+
+        // |y0|y0|y0|y0|y0|y0|y0|y0|
+        // +-----------------------+
+        ker1val_v[i]     = ker1low * dd_pt;
+        ker1val_v[i + 1] = ker1hi * dd_pt; // same as above
+      }
+      if constexpr (kerval_vectors % 2) {
+        const auto ker1_v =
+            simd_type::load_unaligned(ker1 + (kerval_vectors - 1) * simd_size / 2);
+        const auto res = xsimd::swizzle(ker1_v, zip_low_index<arch_t>) * dd_pt;
+        ker1val_v[kerval_vectors - 1] = res;
+      }
+      return ker1val_v;
+    }();
 
-    for (uint8_t i = 0; i < (batches & ~1); i += 2) {
-      const auto ker01       = batch_t::load_aligned(ker1 + i * avx_size / 2);
-      const auto ker00       = xsimd::swizzle(ker01, zip_low_index<arch_t>);
-      const auto ker11       = xsimd::swizzle(ker01, zip_hi_index<arch_t>);
-      ker1val_batches[i]     = ker00 * dd_pt;
-      ker1val_batches[i + 1] = ker11 * dd_pt;
-    }
-    if constexpr (batches % 2) {
-      const auto ker1_batch =
-          batch_t::load_unaligned(ker1 + (batches - 1) * avx_size / 2);
-      const auto res = xsimd::swizzle(ker1_batch, zip_low_index<arch_t>) * dd_pt;
-      ker1val_batches[batches - 1] = res;
-    }
     // critical inner loop:
     for (auto dy = 0; dy < ns; ++dy) {
       const auto j = size1 * (i2 - off2 + dy) + i1 - off1; // should be in subgrid
       auto *FINUFFT_RESTRICT trg = du + 2 * j;
-      const batch_t kerval_batch(ker2[dy]);
-      for (uint8_t i = 0; i < batches; ++i) {
-        const auto trg_batch = batch_t::load_unaligned(trg + i * avx_size);
-        const auto result    = xsimd::fma(kerval_batch, ker1val_batches[i], trg_batch);
-        result.store_unaligned(trg + i * avx_size);
+      const simd_type kerval_v(ker2[dy]);
+      for (uint8_t i = 0; i < kerval_vectors; ++i) {
+        const auto trg_v  = simd_type::load_unaligned(trg + i * simd_size);
+        const auto result = xsimd::fma(kerval_v, ker1val_v[i], trg_v);
+        result.store_unaligned(trg + i * simd_size);
       }
     }
   }
@@ -1320,16 +1358,18 @@ FINUFFT_NEVER_INLINE void spread_subproblem_3d_kernel(
     const BIGINT size2, const BIGINT size3, FLT *FINUFFT_RESTRICT du, const BIGINT M,
     const FLT *kx, const FLT *ky, const FLT *kz, const FLT *dd,
     const finufft_spread_opts &opts) noexcept {
-  using batch_t                   = PaddedSIMD<FLT, 2 * ns>;
-  using arch_t                    = typename batch_t::arch_type;
+  using simd_type                 = PaddedSIMD<FLT, 2 * ns>;
+  using arch_t                    = typename simd_type::arch_type;
   static constexpr auto padding   = get_padding<FLT, 2 * ns>();
-  static constexpr auto avx_size  = batch_t::size;
-  static constexpr auto alignment = batch_t::arch_type::alignment();
-  static constexpr auto ns2       = ns * FLT(0.5); // half spread width
+  static constexpr auto simd_size = simd_type::size;
+  static constexpr auto alignment = arch_t::alignment();
+
+  static constexpr auto ns2 = ns * FLT(0.5); // half spread width
   alignas(alignment) std::array<FLT, 3 * MAX_NSPREAD> kernel_values{0};
   std::fill(du, du + 2 * size1 * size2 * size3, 0);
+
   for (uint64_t pt = 0; pt < M; pt++) { // loop over NU pts
-    const auto dd_pt = initialize_complex_batch<batch_t>(dd[pt * 2], dd[pt * 2 + 1]);
+    const auto dd_pt = initialize_complex_register<simd_type>(dd[pt * 2], dd[pt * 2 + 1]);
     // ceil offset, hence rounding, must match that in get_subgrid...
     const auto i1 = (BIGINT)std::ceil(kx[pt] - ns2); // fine grid start indices
     const auto i2 = (BIGINT)std::ceil(ky[pt] - ns2);
@@ -1338,48 +1378,50 @@ FINUFFT_NEVER_INLINE void spread_subproblem_3d_kernel(
     const auto x2 = std::ceil(ky[pt] - ns2) - ky[pt];
     const auto x3 = std::ceil(kz[pt] - ns2) - kz[pt];
 
-    ker_eval<ns, kerevalmeth, FLT, batch_t>(kernel_values.data(), opts, x1, x2, x3);
+    ker_eval<ns, kerevalmeth, FLT, simd_type>(kernel_values.data(), opts, x1, x2, x3);
     const auto *ker1 = kernel_values.data();
     const auto *ker2 = kernel_values.data() + MAX_NSPREAD;
     const auto *ker3 = kernel_values.data() + 2 * MAX_NSPREAD;
     // Combine kernel with complex source value to simplify inner loop
     // here 2* is because of complex
-    // Batches is the number of SIMD iterations needed to compute all the elements
-    static constexpr uint8_t batches = (2 * ns + padding) / avx_size;
-    static_assert(batches > 0, "batches must be greater than 0");
-    batch_t ker1val_batches[batches];
-    // Iterate over batches but in case the number of batches is odd
-    // we need to handle the last batch separately
-    // to the & ~1 is to ensure that we do not iterate over the last batch if it is odd
-    // as it sets the last bit to 0
-    for (uint8_t i = 0; i < (batches & ~1); i += 2) {
-      const auto ker01       = batch_t::load_aligned(ker1 + i * avx_size / 2);
-      const auto ker00       = xsimd::swizzle(ker01, zip_low_index<arch_t>);
-      const auto ker11       = xsimd::swizzle(ker01, zip_hi_index<arch_t>);
-      ker1val_batches[i]     = ker00 * dd_pt;
-      ker1val_batches[i + 1] = ker11 * dd_pt;
-    }
-
-    // (at compile time) check if the number of batches is odd
-    // if it is we need to handle the last batch separately
-    if constexpr (batches % 2) {
-      const auto ker1_batch =
-          batch_t::load_unaligned(ker1 + (batches - 1) * avx_size / 2);
-      const auto res = xsimd::swizzle(ker1_batch, zip_low_index<arch_t>) * dd_pt;
-      ker1val_batches[batches - 1] = res;
-    }
+    // kerval_vectors is the number of SIMD iterations needed to compute all the elements
+    static constexpr uint8_t kerval_vectors = (2 * ns + padding) / simd_size;
+    static_assert(kerval_vectors > 0, "kerval_vectors must be greater than 0");
+    const auto ker1val_v = [ker1, dd_pt]() constexpr noexcept {
+      std::array<simd_type, kerval_vectors> ker1val_v{};
+      // Iterate over kerval_vectors but in case the number of kerval_vectors is odd
+      // we need to handle the last batch separately
+      // to the & ~1 is to ensure that we do not iterate over the last batch if it is odd
+      // as it sets the last bit to 0
+      for (uint8_t i = 0; i < (kerval_vectors & ~1); // NOLINT(*-too-small-loop-variable
+           i += 2) {
+        const auto ker1_v  = simd_type::load_aligned(ker1 + i * simd_size / 2);
+        const auto ker1low = xsimd::swizzle(ker1_v, zip_low_index<arch_t>);
+        const auto ker1hi  = xsimd::swizzle(ker1_v, zip_hi_index<arch_t>);
+        ker1val_v[i]       = ker1low * dd_pt;
+        ker1val_v[i + 1]   = ker1hi * dd_pt;
+      }
+      // (at compile time) check if the number of kerval_vectors is odd
+      // if it is we need to handle the last batch separately
+      if constexpr (kerval_vectors % 2) {
+        const auto ker1_v =
+            simd_type::load_unaligned(ker1 + (kerval_vectors - 1) * simd_size / 2);
+        const auto res = xsimd::swizzle(ker1_v, zip_low_index<arch_t>) * dd_pt;
+        ker1val_v[kerval_vectors - 1] = res;
+      }
+      return ker1val_v;
+    }();
     // critical inner loop:
     for (uint8_t dz{0}; dz < ns; ++dz) {
       const auto oz = size1 * size2 * (i3 - off3 + dz);           // offset due to z
       for (uint8_t dy{0}; dy < ns; ++dy) {
         const auto j = oz + size1 * (i2 - off2 + dy) + i1 - off1; // should be in subgrid
         auto *FINUFFT_RESTRICT trg = du + 2 * j;
-        const auto kerval          = ker2[dy] * ker3[dz];
-        const batch_t kerval_batch(kerval);
-        for (uint8_t i{0}; i < batches; ++i) {
-          const auto trg_batch = batch_t::load_unaligned(trg + i * avx_size);
-          const auto result    = xsimd::fma(kerval_batch, ker1val_batches[i], trg_batch);
-          result.store_unaligned(trg + i * avx_size);
+        const simd_type kerval_v(ker2[dy] * ker3[dz]);
+        for (uint8_t i{0}; i < kerval_vectors; ++i) {
+          const auto trg_v  = simd_type::load_unaligned(trg + i * simd_size);
+          const auto result = xsimd::fma(kerval_v, ker1val_v[i], trg_v);
+          result.store_unaligned(trg + i * simd_size);
         }
       }
     }
@@ -1720,13 +1762,13 @@ FLT fold_rescale(const FLT x, const BIGINT N) noexcept {
   return (result - floor(result)) * FLT(N);
 }
 
-template<uint8_t ns, uint8_t kerevalmeth, class T, class batch_t, typename... V>
+template<uint8_t ns, uint8_t kerevalmeth, class T, class simd_type, typename... V>
 auto ker_eval(FLT *FINUFFT_RESTRICT ker, const finufft_spread_opts &opts,
               const V... elems) noexcept {
   /* Utility function that allows to move the kernel evaluation outside the spreader for
      clarity Inputs are: ns = kernel width kerevalmeth = kernel evaluation method T =
-     (single or double precision) type of the kernel batch_t = batch type for Horner
-     vectorization (default is the optimal batch size) finufft_spread_opts as Horner needs
+     (single or double precision) type of the kernel simd_type = xsimd::batch for Horner
+     vectorization (default is the optimal simd size) finufft_spread_opts as Horner needs
      the oversampling factor elems = kernel arguments examples usage is ker_eval<ns,
      kerevalmeth>(opts, x, y, z) // for 3D or ker_eval<ns, kerevalmeth>(opts, x, y) // for
      2D or ker_eval<ns, kerevalmeth>(opts, x) // for 1D
@@ -1736,10 +1778,10 @@ auto ker_eval(FLT *FINUFFT_RESTRICT ker, const finufft_spread_opts &opts,
   for (auto i = 0; i < sizeof...(elems); ++i) {
     // compile time branch no performance overhead
     if constexpr (kerevalmeth == 1) {
-      eval_kernel_vec_Horner<ns, batch_t>(ker + (i * MAX_NSPREAD), inputs[i], opts);
+      eval_kernel_vec_Horner<ns, simd_type>(ker + (i * MAX_NSPREAD), inputs[i], opts);
     }
     if constexpr (kerevalmeth == 0) {
-      alignas(batch_t::arch_type::alignment()) std::array<T, MAX_NSPREAD> kernel_args{};
+      alignas(simd_type::arch_type::alignment()) std::array<T, MAX_NSPREAD> kernel_args{};
       set_kernel_args(kernel_args.data(), inputs[i], opts);
       evaluate_kernel_vector(ker + (i * MAX_NSPREAD), kernel_args.data(), opts, ns);
     }
@@ -1773,7 +1815,7 @@ constexpr T generate_sequence_impl(V a, V b, index_sequence<Is...>) noexcept {
 }
 
 template<class T, class V, std::size_t N>
-constexpr auto initialize_complex_batch(V a, V b) noexcept {
+constexpr auto initialize_complex_register(V a, V b) noexcept {
   // populates a SIMD register with a and b interleaved
   // for example:
   // +-------------------------------+
@@ -1796,46 +1838,47 @@ template<class T, uint8_t N, uint8_t K> constexpr auto BestSIMDHelper() {
   }
 }
 
-template<class T, uint8_t N> constexpr uint8_t min_batch_size() {
-  // finds the smallest batch size that can handle N elements
-  // batch size is the SIMD width in xsimd terminology
+template<class T, uint8_t N> constexpr uint8_t min_simd_width() {
+  // finds the smallest simd width that can handle N elements
+  // simd size is batch size the SIMD width in xsimd terminology
   if constexpr (std::is_void_v<xsimd::make_sized_batch_t<T, N>>) {
-    return min_batch_size<T, N * 2>();
+    return min_simd_width<T, N * 2>();
   } else {
     return N;
   }
 };
 
-template<class T, uint8_t N> constexpr auto find_optimal_batch_size() {
-  // finds the smallest batch size that minimizes the number of iterations
+template<class T, uint8_t N> constexpr auto find_optimal_simd_width() {
+  // finds the smallest simd width that minimizes the number of iterations
   // NOTE: might be suboptimal for some cases 2^N+1 for example
   // in the future we might want to implement a more sophisticated algorithm
-  uint8_t optimal_batch_size = min_batch_size<T>();
-  uint8_t min_iterations     = (N + optimal_batch_size - 1) / optimal_batch_size;
-  for (uint8_t batch_size = optimal_batch_size;
-       batch_size <= xsimd::batch<T, xsimd::best_arch>::size;
-       batch_size *= 2) {
-    uint8_t iterations = (N + batch_size - 1) / batch_size;
+  uint8_t optimal_simd_width = min_simd_width<T>();
+  uint8_t min_iterations     = (N + optimal_simd_width - 1) / optimal_simd_width;
+  for (uint8_t simd_width = optimal_simd_width;
+       simd_width <= xsimd::batch<T, xsimd::best_arch>::size;
+       simd_width *= 2) {
+    uint8_t iterations = (N + simd_width - 1) / simd_width;
     if (iterations < min_iterations) {
       min_iterations     = iterations;
-      optimal_batch_size = batch_size;
+      optimal_simd_width = simd_width;
     }
   }
-  return optimal_batch_size;
+  return optimal_simd_width;
 }
 
-template<class T, uint8_t N> constexpr auto GetPaddedSIMDSize() {
-  // helper function to get the SIMD size with padding for the given number of elements
+template<class T, uint8_t N> constexpr auto GetPaddedSIMDWidth() {
+  // helper function to get the SIMD width with padding for the given number of elements
   // that minimizes the number of iterations
-  return xsimd::make_sized_batch<T, find_optimal_batch_size<T, N>()>::type::size;
+  return xsimd::make_sized_batch<T, find_optimal_simd_width<T, N>()>::type::size;
 }
 
 template<class T, uint8_t ns> constexpr auto get_padding() {
   // helper function to get the padding for the given number of elements
-  // ns is known at compile time
-  // rounds ns to the next multiple of the SIMD width
-  // then subtracts ns to get the padding
-  constexpr uint8_t width = GetPaddedSIMDSize<T, ns>();
+  // ns is known at compile time, rounds ns to the next multiple of the SIMD width
+  // then subtracts ns to get the padding using a bitwise and trick
+  // WARING: this trick works only for power of 2s
+  // SOURCE: Agner Fog's VCL manual
+  constexpr uint8_t width = GetPaddedSIMDWidth<T, ns>();
   return ((ns + width - 1) & (-width)) - ns;
 }
 
@@ -1843,7 +1886,7 @@ template<class T, uint8_t ns> constexpr auto get_padding_helper(uint8_t runtime_
   // helper function to get the padding for the given number of elements where ns is
   // known at runtime, it uses recursion to find the padding
   // this allows to avoid having a function with a large number of switch cases
-  // as GetPaddedSIMDSize requires a compile time value
+  // as GetPaddedSIMDWidth requires a compile time value
   // it cannot be a lambda function because of the template recursion
   if constexpr (ns < 2) {
     return 0;

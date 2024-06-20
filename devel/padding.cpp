@@ -8,7 +8,7 @@
 
 template<class T, uint16_t N, uint16_t K = N> static constexpr auto BestSIMDHelper();
 
-template<class T, uint16_t N> static constexpr auto GetPaddedSIMDSize();
+template<class T, uint16_t N> static constexpr auto GetPaddedSIMDWidth();
 
 template<class T> static uint16_t get_padding(uint16_t ns);
 
@@ -17,11 +17,11 @@ template<class T, uint16_t ns> static constexpr auto get_padding();
 template<class T, uint16_t N>
 using BestSIMD = typename decltype(BestSIMDHelper<T, N, xsimd::batch<T>::size>())::type;
 
-template<class T, uint16_t N = 1> static constexpr uint16_t min_batch_size();
+template<class T, uint16_t N = 1> static constexpr uint16_t min_simd_width();
 
-template<class T, uint16_t N = min_batch_size<T>()> constexpr uint16_t max_batch_size();
+template<class T, uint16_t N = min_simd_width<T>()> constexpr uint16_t max_simd_width();
 
-template<class T, uint16_t N> static constexpr auto find_optimal_batch_size();
+template<class T, uint16_t N> static constexpr auto find_optimal_simd_width();
 
 // below there is some trickery to obtain the padded SIMD type to vectorize
 // the given number of elements.
@@ -37,26 +37,26 @@ template<class T, uint16_t N, uint16_t K> static constexpr auto BestSIMDHelper()
   }
 }
 
-template<class T, uint16_t N> constexpr uint16_t min_batch_size() {
+template<class T, uint16_t N> constexpr uint16_t min_simd_width() {
   if constexpr (std::is_void_v<xsimd::make_sized_batch_t<T, N>>) {
-    return min_batch_size<T, N * 2>();
+    return min_simd_width<T, N * 2>();
   } else {
     return N;
   }
 };
 
-template<class T, uint16_t N> constexpr uint16_t max_batch_size() {
+template<class T, uint16_t N> constexpr uint16_t max_simd_width() {
   if constexpr (!std::is_void_v<xsimd::make_sized_batch_t<T, N * 2>>) {
-    return max_batch_size<T, N * 2>();
+    return max_simd_width<T, N * 2>();
   } else {
     return N;
   }
 };
 
-template<class T, uint16_t N> static constexpr auto find_optimal_batch_size() {
+template<class T, uint16_t N> static constexpr auto find_optimal_simd_width() {
   uint16_t min_iterations     = N;
   uint16_t optimal_batch_size = 1;
-  for (uint16_t batch_size = min_batch_size<T>(); batch_size <= xsimd::batch<T>::size;
+  for (uint16_t batch_size = min_simd_width<T>(); batch_size <= xsimd::batch<T>::size;
        batch_size *= 2) {
     uint16_t iterations = (N + batch_size - 1) / batch_size;
     if (iterations < min_iterations) {
@@ -67,13 +67,13 @@ template<class T, uint16_t N> static constexpr auto find_optimal_batch_size() {
   return optimal_batch_size;
 }
 
-template<class T, uint16_t N> static constexpr auto GetPaddedSIMDSize() {
+template<class T, uint16_t N> static constexpr auto GetPaddedSIMDWidth() {
   static_assert(N < 128);
-  return xsimd::make_sized_batch<T, find_optimal_batch_size<T, N>()>::type::size;
+  return xsimd::make_sized_batch<T, find_optimal_simd_width<T, N>()>::type::size;
 }
 
 template<class T, uint16_t ns> static constexpr auto get_padding() {
-  constexpr uint16_t width = GetPaddedSIMDSize<T, ns>();
+  constexpr uint16_t width = GetPaddedSIMDWidth<T, ns>();
   return ((ns + width - 1) & (-width)) - ns;
 }
 
@@ -113,8 +113,8 @@ template<uint16_t low, uint16_t high> constexpr uint16_t po2_in_between() {
 }
 
 template<class T, uint16_t N> constexpr auto mixed_vectors() {
-  constexpr auto min_batch = min_batch_size<T>();
-  constexpr auto max_batch = max_batch_size<T>();
+  constexpr auto min_batch = min_simd_width<T>();
+  constexpr auto max_batch = max_simd_width<T>();
   // compute all the power of 2 between min_batch and max_batch
 
   std::array<uint16_t, po2_in_between<min_batch, max_batch>() + 1> batch_sizes{1};
@@ -145,13 +145,13 @@ template<class T, uint16_t N> constexpr auto mixed_vectors() {
 
 int main(int argc, char *argv[]) {
   std::cout << "Min batch size for single precision is "
-            << uint64_t(min_batch_size<float>()) << std::endl;
+            << uint64_t(min_simd_width<float>()) << std::endl;
   std::cout << "Max batch size for single precision is "
-            << uint64_t(max_batch_size<float>()) << std::endl;
+            << uint64_t(max_simd_width<float>()) << std::endl;
   std::cout << "Min batch size for double precision is "
-            << uint64_t(min_batch_size<double>()) << std::endl;
+            << uint64_t(min_simd_width<double>()) << std::endl;
   std::cout << "Max batch size for double precision is "
-            << uint64_t(max_batch_size<double>()) << std::endl;
+            << uint64_t(max_simd_width<double>()) << std::endl;
 
   std::cout << "Best SIMD single precision" << std::endl;
   std::cout << "SIMD for " << 4 << " is " << uint64_t(BestSIMD<float, 4>::size)
@@ -191,47 +191,47 @@ int main(int argc, char *argv[]) {
 
   std::cout << "Padded SIMD single precision" << std::endl;
   std::cout << "Padded SIMD for " << 4 << " is "
-            << uint64_t(GetPaddedSIMDSize<float, 4>()) << std::endl;
+            << uint64_t(GetPaddedSIMDWidth<float, 4>()) << std::endl;
   std::cout << "Padded SIMD for " << 6 << " is "
-            << uint64_t(GetPaddedSIMDSize<float, 6>()) << std::endl;
+            << uint64_t(GetPaddedSIMDWidth<float, 6>()) << std::endl;
   std::cout << "Padded SIMD for " << 10 << " is "
-            << uint64_t(GetPaddedSIMDSize<float, 10>()) << std::endl;
+            << uint64_t(GetPaddedSIMDWidth<float, 10>()) << std::endl;
   std::cout << "Padded SIMD for " << 12 << " is "
-            << uint64_t(GetPaddedSIMDSize<float, 12>()) << std::endl;
+            << uint64_t(GetPaddedSIMDWidth<float, 12>()) << std::endl;
   std::cout << "Padded SIMD for " << 15 << " is "
-            << uint64_t(GetPaddedSIMDSize<float, 15>()) << std::endl;
+            << uint64_t(GetPaddedSIMDWidth<float, 15>()) << std::endl;
   std::cout << "Padded SIMD for " << 18 << " is "
-            << uint64_t(GetPaddedSIMDSize<float, 18>()) << std::endl;
+            << uint64_t(GetPaddedSIMDWidth<float, 18>()) << std::endl;
   std::cout << "Padded SIMD for " << 22 << " is "
-            << uint64_t(GetPaddedSIMDSize<float, 22>()) << std::endl;
+            << uint64_t(GetPaddedSIMDWidth<float, 22>()) << std::endl;
   std::cout << "Padded SIMD for " << 26 << " is "
-            << uint64_t(GetPaddedSIMDSize<float, 26>()) << std::endl;
+            << uint64_t(GetPaddedSIMDWidth<float, 26>()) << std::endl;
   std::cout << "Padded SIMD for " << 30 << " is "
-            << uint64_t(GetPaddedSIMDSize<float, 30>()) << std::endl;
+            << uint64_t(GetPaddedSIMDWidth<float, 30>()) << std::endl;
   std::cout << "Padded SIMD for " << 32 << " is "
-            << uint64_t(GetPaddedSIMDSize<float, 32>()) << std::endl;
+            << uint64_t(GetPaddedSIMDWidth<float, 32>()) << std::endl;
 
   std::cout << "Padded SIMD double precision" << std::endl;
   std::cout << "Padded SIMD for " << 4 << " is "
-            << uint64_t(GetPaddedSIMDSize<double, 4>()) << std::endl;
+            << uint64_t(GetPaddedSIMDWidth<double, 4>()) << std::endl;
   std::cout << "Padded SIMD for " << 6 << " is "
-            << uint64_t(GetPaddedSIMDSize<double, 6>()) << std::endl;
+            << uint64_t(GetPaddedSIMDWidth<double, 6>()) << std::endl;
   std::cout << "Padded SIMD for " << 10 << " is "
-            << uint64_t(GetPaddedSIMDSize<double, 10>()) << std::endl;
+            << uint64_t(GetPaddedSIMDWidth<double, 10>()) << std::endl;
   std::cout << "Padded SIMD for " << 12 << " is "
-            << uint64_t(GetPaddedSIMDSize<double, 12>()) << std::endl;
+            << uint64_t(GetPaddedSIMDWidth<double, 12>()) << std::endl;
   std::cout << "Padded SIMD for " << 15 << " is "
-            << uint64_t(GetPaddedSIMDSize<double, 15>()) << std::endl;
+            << uint64_t(GetPaddedSIMDWidth<double, 15>()) << std::endl;
   std::cout << "Padded SIMD for " << 18 << " is "
-            << uint64_t(GetPaddedSIMDSize<double, 18>()) << std::endl;
+            << uint64_t(GetPaddedSIMDWidth<double, 18>()) << std::endl;
   std::cout << "Padded SIMD for " << 22 << " is "
-            << uint64_t(GetPaddedSIMDSize<double, 22>()) << std::endl;
+            << uint64_t(GetPaddedSIMDWidth<double, 22>()) << std::endl;
   std::cout << "Padded SIMD for " << 26 << " is "
-            << uint64_t(GetPaddedSIMDSize<double, 26>()) << std::endl;
+            << uint64_t(GetPaddedSIMDWidth<double, 26>()) << std::endl;
   std::cout << "Padded SIMD for " << 30 << " is "
-            << uint64_t(GetPaddedSIMDSize<double, 30>()) << std::endl;
+            << uint64_t(GetPaddedSIMDWidth<double, 30>()) << std::endl;
   std::cout << "Padded SIMD for " << 32 << " is "
-            << uint64_t(GetPaddedSIMDSize<double, 32>()) << std::endl;
+            << uint64_t(GetPaddedSIMDWidth<double, 32>()) << std::endl;
 
   std::cout << "single precision" << std::endl;
   for (auto i = 2; i < 16; i++) {
