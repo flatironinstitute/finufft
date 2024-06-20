@@ -104,7 +104,7 @@ static void get_subgrid(BIGINT &offset1, BIGINT &offset2, BIGINT &offset3,
 
 // ==========================================================================
 int spreadinterp(BIGINT N1, BIGINT N2, BIGINT N3, FLT *data_uniform, BIGINT M, FLT *kx,
-                 FLT *ky, FLT *kz, FLT *data_nonuniform, finufft_spread_opts opts)
+                 FLT *ky, FLT *kz, FLT *data_nonuniform, const finufft_spread_opts &opts)
 /* ------------Spreader/interpolator for 1, 2, or 3 dimensions --------------
    If opts.spread_direction=1, evaluate, in the 1D case,
 
@@ -196,7 +196,7 @@ static int ndims_from_Ns(BIGINT N1, BIGINT N2, BIGINT N3)
 }
 
 int spreadcheck(BIGINT N1, BIGINT N2, BIGINT N3, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
-                finufft_spread_opts opts)
+                const finufft_spread_opts &opts)
 /* This does just the input checking and reporting for the spreader.
    See spreadinterp() for input arguments and meaning of returned value.
    Split out by Melody Shih, Jun 2018. Finiteness chk Barnett 7/30/18.
@@ -220,7 +220,7 @@ int spreadcheck(BIGINT N1, BIGINT N2, BIGINT N3, BIGINT M, FLT *kx, FLT *ky, FLT
 }
 
 int indexSort(BIGINT *sort_indices, BIGINT N1, BIGINT N2, BIGINT N3, BIGINT M, FLT *kx,
-              FLT *ky, FLT *kz, finufft_spread_opts opts)
+              FLT *ky, FLT *kz, const finufft_spread_opts &opts)
 /* This makes a decision whether or not to sort the NU pts (influenced by
    opts.sort), and if yes, calls either single- or multi-threaded bin sort,
    writing reordered index list to sort_indices. If decided not to sort, the
@@ -298,7 +298,8 @@ int indexSort(BIGINT *sort_indices, BIGINT N1, BIGINT N2, BIGINT N3, BIGINT M, F
 
 int spreadinterpSorted(BIGINT *sort_indices, BIGINT N1, BIGINT N2, BIGINT N3,
                        FLT *data_uniform, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
-                       FLT *data_nonuniform, finufft_spread_opts opts, int did_sort)
+                       FLT *data_nonuniform, const finufft_spread_opts &opts,
+                       int did_sort)
 /* Logic to select the main spreading (dir=1) vs interpolation (dir=2) routine.
    See spreadinterp() above for inputs arguments and definitions.
    Return value should always be 0 (no error reporting).
@@ -311,15 +312,16 @@ int spreadinterpSorted(BIGINT *sort_indices, BIGINT N1, BIGINT N2, BIGINT N3,
 
   else // ================= direction 2 (interpolation) ===========
     interpSorted(sort_indices, N1, N2, N3, data_uniform, M, kx, ky, kz, data_nonuniform,
-                 opts, did_sort);
+                 opts);
 
   return 0;
 }
 
 // --------------------------------------------------------------------------
-int spreadSorted(BIGINT *sort_indices, BIGINT N1, BIGINT N2, BIGINT N3, FLT *data_uniform,
-                 BIGINT M, FLT *kx, FLT *ky, FLT *kz, FLT *data_nonuniform,
-                 finufft_spread_opts opts, int did_sort)
+int spreadSorted(const BIGINT *sort_indices, BIGINT N1, BIGINT N2, BIGINT N3,
+                 FLT *data_uniform, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
+                 const FLT *data_nonuniform, const finufft_spread_opts &opts,
+                 int did_sort)
 // Spread NU pts in sorted order to a uniform grid. See spreadinterp() for doc.
 {
   CNTime timer;
@@ -441,9 +443,10 @@ int spreadSorted(BIGINT *sort_indices, BIGINT N1, BIGINT N2, BIGINT N3, FLT *dat
 
 // --------------------------------------------------------------------------
 template<uint16_t ns, uint16_t kerevalmeth>
-int interpSorted_kernel(const BIGINT *sort_indices, BIGINT N1, BIGINT N2, BIGINT N3,
-                        FLT *data_uniform, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
-                        FLT *data_nonuniform, finufft_spread_opts opts, int did_sort)
+static int interpSorted_kernel(const BIGINT *sort_indices, const BIGINT N1,
+                               const BIGINT N2, const BIGINT N3, const FLT *data_uniform,
+                               const BIGINT M, FLT *kx, FLT *ky, FLT *kz,
+                               FLT *data_nonuniform, const finufft_spread_opts &opts)
 // Interpolate to NU pts in sorted order from a uniform grid.
 // See spreadinterp() for doc.
 {
@@ -546,43 +549,40 @@ int interpSorted_kernel(const BIGINT *sort_indices, BIGINT N1, BIGINT N2, BIGINT
 }
 
 template<uint16_t NS>
-int interpSorted_dispatch(BIGINT *sort_indices, BIGINT N1, BIGINT N2, BIGINT N3,
-                          FLT *data_uniform, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
-                          FLT *data_nonuniform, finufft_spread_opts opts, int did_sort) {
+static int interpSorted_dispatch(BIGINT *sort_indices, BIGINT N1, BIGINT N2, BIGINT N3,
+                                 FLT *data_uniform, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
+                                 FLT *data_nonuniform, const finufft_spread_opts &opts) {
   static_assert(MIN_NSPREAD <= NS <= MAX_NSPREAD,
                 "NS must be in the range (MIN_NSPREAD, MAX_NSPREAD)");
   if constexpr (NS == MIN_NSPREAD) { // Base case
     if (opts.kerevalmeth)
-      return interpSorted_kernel<MIN_NSPREAD, true>(sort_indices, N1, N2, N3,
-                                                    data_uniform, M, kx, ky, kz,
-                                                    data_nonuniform, opts, did_sort);
+      return interpSorted_kernel<MIN_NSPREAD, true>(
+          sort_indices, N1, N2, N3, data_uniform, M, kx, ky, kz, data_nonuniform, opts);
     else {
-      return interpSorted_kernel<MIN_NSPREAD, false>(sort_indices, N1, N2, N3,
-                                                     data_uniform, M, kx, ky, kz,
-                                                     data_nonuniform, opts, did_sort);
+      return interpSorted_kernel<MIN_NSPREAD, false>(
+          sort_indices, N1, N2, N3, data_uniform, M, kx, ky, kz, data_nonuniform, opts);
     }
   } else {
     if (opts.nspread == NS) {
       if (opts.kerevalmeth) {
         return interpSorted_kernel<NS, true>(sort_indices, N1, N2, N3, data_uniform, M,
-                                             kx, ky, kz, data_nonuniform, opts, did_sort);
+                                             kx, ky, kz, data_nonuniform, opts);
       } else {
         return interpSorted_kernel<NS, false>(sort_indices, N1, N2, N3, data_uniform, M,
-                                              kx, ky, kz, data_nonuniform, opts,
-                                              did_sort);
+                                              kx, ky, kz, data_nonuniform, opts);
       }
     } else {
       return interpSorted_dispatch<NS - 1>(sort_indices, N1, N2, N3, data_uniform, M, kx,
-                                           ky, kz, data_nonuniform, opts, did_sort);
+                                           ky, kz, data_nonuniform, opts);
     }
   }
 }
 
 int interpSorted(BIGINT *sort_indices, BIGINT N1, BIGINT N2, BIGINT N3, FLT *data_uniform,
                  BIGINT M, FLT *kx, FLT *ky, FLT *kz, FLT *data_nonuniform,
-                 finufft_spread_opts opts, int did_sort) {
+                 const finufft_spread_opts &opts) {
   return interpSorted_dispatch<MAX_NSPREAD>(sort_indices, N1, N2, N3, data_uniform, M, kx,
-                                            ky, kz, data_nonuniform, opts, did_sort);
+                                            ky, kz, data_nonuniform, opts);
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -760,7 +760,7 @@ Two upsampfacs implemented. Params must match ref formula. Barnett 4/24/18 */
     alignas(alignment) static constexpr auto padded_coeffs =
         pad_2D_array_with_zeros<FLT, nc, w, padded_ns>(horner_coeffs);
 
-    const auto zv = simd_type(z);
+    const simd_type zv(z);
 
     for (uint8_t i = 0; i < w; i += simd_size) {
       auto k = simd_type::load_aligned(padded_coeffs[0].data() + i);
