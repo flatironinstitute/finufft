@@ -169,7 +169,7 @@ HEADERS = $(wildcard include/*.h include/finufft/*.h)
 	$(FC) -DSINGLE -c $(FFLAGS) $< -o $@
 
 # included auto-generated code dependency...
-src/spreadinterp.o: src/ker_horner_allw_loop.c src/ker_lowupsampfac_horner_allw_loop.c
+src/spreadinterp.o: src/ker_horner_allw_loop_constexpr.h src/ker_lowupsampfac_horner_allw_loop_constexpr.c
 
 
 # lib -----------------------------------------------------------------------
