@@ -44,7 +44,9 @@ and also add them to GitHub's Used By feature):
 
 #. `nifty-ls <https://github.com/flatironinstitute/nifty-ls>`_: Fast evaluation of the Lomb-Scargle periodogram for time series analysis, backed by finufft or cufinufft
 
-   
+#. `TRIQS CTINT <https://github.com/TRIQS/ctint>`_: continous time interaction-expansion solver, by N. Wentzell and O. Parcollet (Flatiron Institute, part of platform for interacting quantum systems).
+
+
 Other wrappers to (cu)FINUFFT
 ------------------------------
    
