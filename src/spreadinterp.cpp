@@ -55,24 +55,27 @@ void print_subgrid_info(int ndims, BIGINT offset1, BIGINT offset2, BIGINT offset
 template<uint8_t ns, uint8_t kerevalmeth, class T,
          class batch_t = xsimd::make_sized_batch_t<T, find_optimal_batch_size<T, ns>()>,
          typename... V>
-static FINUFFT_ALWAYS_INLINE auto ker_eval(const finufft_spread_opts &opts,
-                                           const V... elems) noexcept;
+static auto ker_eval(FLT *FINUFFT_RESTRICT ker, const finufft_spread_opts &opts,
+                     const V... elems) noexcept;
 static FINUFFT_ALWAYS_INLINE FLT fold_rescale(FLT x, BIGINT N) noexcept;
 static FINUFFT_ALWAYS_INLINE void set_kernel_args(
     FLT *args, FLT x, const finufft_spread_opts &opts) noexcept;
 static FINUFFT_ALWAYS_INLINE void evaluate_kernel_vector(
     FLT *ker, FLT *args, const finufft_spread_opts &opts, int N) noexcept;
-static FINUFFT_ALWAYS_INLINE void eval_kernel_vec_Horner(
-    FLT *ker, FLT x, int w, const finufft_spread_opts &opts) noexcept;
 template<uint8_t w, class batch_t = xsimd::make_sized_batch_t<
                         FLT, find_optimal_batch_size<FLT, w>()>> // aka ns
 static FINUFFT_ALWAYS_INLINE void eval_kernel_vec_Horner(
     FLT *FINUFFT_RESTRICT ker, FLT x, const finufft_spread_opts &opts) noexcept;
-static void interp_line(FLT *out, FLT *du, FLT *ker, BIGINT i1, BIGINT N1, int ns);
-static void interp_square(FLT *out, FLT *du, FLT *ker1, FLT *ker2, BIGINT i1, BIGINT i2,
-                          BIGINT N1, BIGINT N2, int ns);
-static void interp_cube(FLT *out, FLT *du, FLT *ker1, FLT *ker2, FLT *ker3, BIGINT i1,
-                        BIGINT i2, BIGINT i3, BIGINT N1, BIGINT N2, BIGINT N3, int ns);
+template<uint8_t ns>
+static void interp_line(FLT *FINUFFT_RESTRICT out, const FLT *du, const FLT *ker,
+                        BIGINT i1, BIGINT N1);
+template<uint8_t ns>
+static void interp_square(FLT *FINUFFT_RESTRICT out, const FLT *du, const FLT *ker1,
+                          const FLT *ker2, BIGINT i1, BIGINT i2, BIGINT N1, BIGINT N2);
+template<uint8_t ns>
+static void interp_cube(FLT *FINUFFT_RESTRICT out, const FLT *du, const FLT *ker1,
+                        const FLT *ker2, const FLT *ker3, BIGINT i1, BIGINT i2, BIGINT i3,
+                        BIGINT N1, BIGINT N2, BIGINT N3);
 static void spread_subproblem_1d(BIGINT off1, BIGINT size1, FLT *du0, BIGINT M0, FLT *kx0,
                                  FLT *dd0, const finufft_spread_opts &opts) noexcept;
 static void spread_subproblem_2d(BIGINT off1, BIGINT off2, BIGINT size1, BIGINT size2,
@@ -373,7 +376,7 @@ int spreadSorted(BIGINT *sort_indices, BIGINT N1, BIGINT N2, BIGINT N3, FLT *dat
 #pragma omp parallel num_threads(nthr)
     {
       // local copies of NU pts and data for each subproblem
-      std::vector<FLT> kx0{}, ky0{}, kz0{}, dd0{}, du0{};
+      std::vector<FLT> kx0{0}, ky0{0}, kz0{0}, dd0{0}, du0{0};
 #pragma omp for schedule(dynamic, 1)           // each is big
       for (int isub = 0; isub < nb; isub++) {  // Main loop through the subproblems
         BIGINT M0 = brk[isub + 1] - brk[isub]; // # NU pts in this subproblem
@@ -437,16 +440,22 @@ int spreadSorted(BIGINT *sort_indices, BIGINT N1, BIGINT N2, BIGINT N3, FLT *dat
 };
 
 // --------------------------------------------------------------------------
-int interpSorted(BIGINT *sort_indices, BIGINT N1, BIGINT N2, BIGINT N3, FLT *data_uniform,
-                 BIGINT M, FLT *kx, FLT *ky, FLT *kz, FLT *data_nonuniform,
-                 finufft_spread_opts opts, int did_sort)
+template<uint16_t ns, uint16_t kerevalmeth>
+int interpSorted_kernel(const BIGINT *sort_indices, BIGINT N1, BIGINT N2, BIGINT N3,
+                        FLT *data_uniform, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
+                        FLT *data_nonuniform, finufft_spread_opts opts, int did_sort)
 // Interpolate to NU pts in sorted order from a uniform grid.
 // See spreadinterp() for doc.
 {
+  using batch_t                   = xsimd::batch<FLT>;
+  using arch_t                    = typename batch_t::arch_type;
+  static constexpr auto padding   = get_padding<FLT, 2 * ns>();
+  static constexpr auto alignment = batch_t::arch_type::alignment();
+  static constexpr auto avx_size  = batch_t::size;
+  static constexpr auto ns2 = ns * FLT(0.5); // half spread width, used as stencil shift
+
   CNTime timer;
   int ndims = ndims_from_Ns(N1, N2, N3);
-  int ns    = opts.nspread;                    // abbrev. for w, kernel width
-  FLT ns2   = (FLT)ns / 2;                     // half spread width, used as stencil shift
   int nthr  = MY_OMP_GET_MAX_THREADS();        // guess # threads to use to interp
   if (opts.nthreads > 0) nthr = opts.nthreads; // user override, now without limit
 #ifndef _OPENMP
@@ -455,7 +464,6 @@ int interpSorted(BIGINT *sort_indices, BIGINT N1, BIGINT N2, BIGINT N3, FLT *dat
   if (opts.debug)
     printf("\tinterp %dD (M=%lld; N1=%lld,N2=%lld,N3=%lld), nthr=%d\n", ndims,
            (long long)M, (long long)N1, (long long)N2, (long long)N3, nthr);
-
   timer.start();
 #pragma omp parallel num_threads(nthr)
   {
@@ -464,16 +472,16 @@ int interpSorted(BIGINT *sort_indices, BIGINT N1, BIGINT N2, BIGINT N3, FLT *dat
     FLT xjlist[CHUNKSIZE], yjlist[CHUNKSIZE], zjlist[CHUNKSIZE];
     FLT outbuf[2 * CHUNKSIZE];
     // Kernels: static alloc is faster, so we do it for up to 3D...
-    FLT kernel_args[3 * MAX_NSPREAD];
-    FLT kernel_values[3 * MAX_NSPREAD];
-    FLT *ker1 = kernel_values;
-    FLT *ker2 = kernel_values + ns;
-    FLT *ker3 = kernel_values + 2 * ns;
+    alignas(alignment) std::array<FLT, 3 * MAX_NSPREAD> kernel_values{0};
+    FLT *FINUFFT_RESTRICT ker1 = kernel_values.data();
+    FLT *FINUFFT_RESTRICT ker2 = kernel_values.data() + MAX_NSPREAD;
+    FLT *FINUFFT_RESTRICT ker3 = kernel_values.data() + 2 * MAX_NSPREAD;
 
     // Loop over interpolation chunks
 #pragma omp for schedule(dynamic, 1000)       // assign threads to NU targ pts:
-    for (BIGINT i = 0; i < M; i += CHUNKSIZE) // main loop over NU targs, interp each from
+    for (BIGINT i = 0; i < M; i += CHUNKSIZE) // main loop over NU trgs, interp each from
                                               // U
+
     {
       // Setup buffers for this chunk
       int bufsize = (i + CHUNKSIZE > M) ? M - i : CHUNKSIZE;
@@ -504,31 +512,19 @@ int interpSorted(BIGINT *sort_indices, BIGINT N1, BIGINT N2, BIGINT N3, FLT *dat
 
         // eval kernel values patch and use to interpolate from uniform data...
         if (!(opts.flags & TF_OMIT_SPREADING)) {
-
-          if (opts.kerevalmeth == 0) { // choose eval method
-            set_kernel_args(kernel_args, x1, opts);
-            if (ndims > 1) set_kernel_args(kernel_args + ns, x2, opts);
-            if (ndims > 2) set_kernel_args(kernel_args + 2 * ns, x3, opts);
-
-            evaluate_kernel_vector(kernel_values, kernel_args, opts, ndims * ns);
-          }
-
-          else {
-            eval_kernel_vec_Horner(ker1, x1, ns, opts);
-            if (ndims > 1) eval_kernel_vec_Horner(ker2, x2, ns, opts);
-            if (ndims > 2) eval_kernel_vec_Horner(ker3, x3, ns, opts);
-          }
-
           switch (ndims) {
           case 1:
-            interp_line(target, data_uniform, ker1, i1, N1, ns);
+            ker_eval<ns, kerevalmeth, FLT>(kernel_values.data(), opts, x1);
+            interp_line<ns>(target, data_uniform, ker1, i1, N1);
             break;
           case 2:
-            interp_square(target, data_uniform, ker1, ker2, i1, i2, N1, N2, ns);
+            ker_eval<ns, kerevalmeth, FLT>(kernel_values.data(), opts, x1, x2);
+            interp_square<ns>(target, data_uniform, ker1, ker2, i1, i2, N1, N2);
             break;
           case 3:
-            interp_cube(target, data_uniform, ker1, ker2, ker3, i1, i2, i3, N1, N2, N3,
-                        ns);
+            ker_eval<ns, kerevalmeth, FLT>(kernel_values.data(), opts, x1, x2, x3);
+            interp_cube<ns>(target, data_uniform, ker1, ker2, ker3, i1, i2, i3, N1, N2,
+                            N3);
             break;
           default: // can't get here
             break;
@@ -547,7 +543,47 @@ int interpSorted(BIGINT *sort_indices, BIGINT N1, BIGINT N2, BIGINT N3, FLT *dat
   } // end parallel section
   if (opts.debug) printf("\tt2 spreading loop: \t%.3g s\n", timer.elapsedsec());
   return 0;
-};
+}
+
+template<uint16_t NS>
+int interpSorted_dispatch(BIGINT *sort_indices, BIGINT N1, BIGINT N2, BIGINT N3,
+                          FLT *data_uniform, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
+                          FLT *data_nonuniform, finufft_spread_opts opts, int did_sort) {
+  static_assert(MIN_NSPREAD <= NS <= MAX_NSPREAD,
+                "NS must be in the range (MIN_NSPREAD, MAX_NSPREAD)");
+  if constexpr (NS == MIN_NSPREAD) { // Base case
+    if (opts.kerevalmeth)
+      return interpSorted_kernel<MIN_NSPREAD, true>(sort_indices, N1, N2, N3,
+                                                    data_uniform, M, kx, ky, kz,
+                                                    data_nonuniform, opts, did_sort);
+    else {
+      return interpSorted_kernel<MIN_NSPREAD, false>(sort_indices, N1, N2, N3,
+                                                     data_uniform, M, kx, ky, kz,
+                                                     data_nonuniform, opts, did_sort);
+    }
+  } else {
+    if (opts.nspread == NS) {
+      if (opts.kerevalmeth) {
+        return interpSorted_kernel<NS, true>(sort_indices, N1, N2, N3, data_uniform, M,
+                                             kx, ky, kz, data_nonuniform, opts, did_sort);
+      } else {
+        return interpSorted_kernel<NS, false>(sort_indices, N1, N2, N3, data_uniform, M,
+                                              kx, ky, kz, data_nonuniform, opts,
+                                              did_sort);
+      }
+    } else {
+      return interpSorted_dispatch<NS - 1>(sort_indices, N1, N2, N3, data_uniform, M, kx,
+                                           ky, kz, data_nonuniform, opts, did_sort);
+    }
+  }
+}
+
+int interpSorted(BIGINT *sort_indices, BIGINT N1, BIGINT N2, BIGINT N3, FLT *data_uniform,
+                 BIGINT M, FLT *kx, FLT *ky, FLT *kz, FLT *data_nonuniform,
+                 finufft_spread_opts opts, int did_sort) {
+  return interpSorted_dispatch<MAX_NSPREAD>(sort_indices, N1, N2, N3, data_uniform, M, kx,
+                                            ky, kz, data_nonuniform, opts, did_sort);
+}
 
 ///////////////////////////////////////////////////////////////////////////
 
@@ -742,27 +778,10 @@ Two upsampfacs implemented. Params must match ref formula. Barnett 4/24/18 */
     return;
   }
 }
-void eval_kernel_vec_Horner(FLT *ker, const FLT x, const int w,
-                            const finufft_spread_opts &opts) noexcept
-/* Fill ker[] with Horner piecewise poly approx to [-w/2,w/2] ES kernel eval at
-   x_j = x + j,  for j=0,..,w-1.  Thus x in [-w/2,-w/2+1].   w is aka ns.
-   This is the current evaluation method, since it's faster (except i7 w=16).
-   Two upsampfacs implemented. Params must match ref formula. Barnett 4/24/18 */
-{
-  if (!(opts.flags & TF_OMIT_EVALUATE_KERNEL)) {
-    const FLT z = std::fma(FLT(2.0), x, FLT(w - 1)); // scale so local grid offset z in
-                                                     // [-1,1]
-    // insert the auto-generated code which expects z, w args, writes to ker...
-    if (opts.upsampfac == 2.0) { // floating point equality is fine here
-#include "ker_horner_allw_loop.c"
-    } else if (opts.upsampfac == 1.25) {
-#include "ker_lowupsampfac_horner_allw_loop.c"
-    } else
-      fprintf(stderr, "%s: unknown upsampfac, failed!\n", __func__);
-  }
-}
 
-void interp_line(FLT *target, FLT *du, FLT *ker, BIGINT i1, BIGINT N1, int ns)
+template<uint8_t ns>
+void interp_line(FLT *FINUFFT_RESTRICT target, const FLT *du, const FLT *ker, BIGINT i1,
+                 BIGINT N1)
 /* 1D interpolate complex values from size-ns block of the du (uniform grid
    data) array to a single complex output value "target", using as weights the
    1d kernel evaluation list ker1.
@@ -818,8 +837,9 @@ void interp_line(FLT *target, FLT *du, FLT *ker, BIGINT i1, BIGINT N1, int ns)
   target[1] = out[1];
 }
 
-void interp_square(FLT *target, FLT *du, FLT *ker1, FLT *ker2, BIGINT i1, BIGINT i2,
-                   BIGINT N1, BIGINT N2, int ns)
+template<uint8_t ns>
+void interp_square(FLT *FINUFFT_RESTRICT target, const FLT *du, const FLT *ker1,
+                   const FLT *ker2, BIGINT i1, BIGINT i2, BIGINT N1, BIGINT N2)
 /* 2D interpolate complex values from a ns*ns block of the du (uniform grid
    data) array to a single complex output value "target", using as weights the
    ns*ns outer product of the 1d kernel lists ker1 and ker2.
@@ -897,8 +917,10 @@ void interp_square(FLT *target, FLT *du, FLT *ker1, FLT *ker2, BIGINT i1, BIGINT
   target[1] = out[1];
 }
 
-void interp_cube(FLT *target, FLT *du, FLT *ker1, FLT *ker2, FLT *ker3, BIGINT i1,
-                 BIGINT i2, BIGINT i3, BIGINT N1, BIGINT N2, BIGINT N3, int ns)
+template<uint8_t ns>
+void interp_cube(FLT *FINUFFT_RESTRICT target, const FLT *du, const FLT *ker1,
+                 const FLT *ker2, const FLT *ker3, BIGINT i1, BIGINT i2, BIGINT i3,
+                 BIGINT N1, BIGINT N2, BIGINT N3)
 /* 3D interpolate complex values from a ns*ns*ns block of the du (uniform grid
    data) array to a single complex output value "target", using as weights the
    ns*ns*ns outer product of the 1d kernel lists ker1, ker2, and ker3.
@@ -1014,13 +1036,14 @@ FINUFFT_NEVER_INLINE void spread_subproblem_1d_kernel(
   static constexpr auto ns2       = ns * FLT(0.5); // half spread width
   // something weird here. Reversing ker{0} and std fill causes ker
   // to be zeroed inside the loop GCC uses AVX, clang AVX2
+  alignas(alignment) std::array<FLT, MAX_NSPREAD> ker{0};
   std::fill(du, du + 2 * size1, 0); // zero output
   // no padding needed if MAX_NSPREAD is 16
   // the largest read is 16 floats with avx512
   // if larger instructions will be available or half precision is used, this should be
   // padded
   for (uint64_t i{0}; i < M; i++) { // loop over NU pts
-    // lamda here to return a dd_pt that is const
+    // initializes a dd_pt that is const
     // should not make a difference in performance
     // but is a hint to the compiler that after the lambda
     // dd_pt is not modified and can be kept as is in a register
@@ -1040,16 +1063,16 @@ FINUFFT_NEVER_INLINE void spread_subproblem_1d_kernel(
     // This can only happen if the overall error would be O(1) anyway. Clip x1??
     if (x1 < -ns2) x1 = -ns2;
     if (x1 > -ns2 + 1) x1 = -ns2 + 1; // ***
-    alignas(alignment) const auto ker = ker_eval<ns, kerevalmeth, FLT, batch_t>(opts, x1);
-    //const auto &ker = ker_eval<ns, kerevalmeth, FLT, batch_t>(opts, x1);
-    const auto j = i1 - off1;         // offset rel to subgrid, starts the output indices
+    ker_eval<ns, kerevalmeth, FLT, batch_t>(ker.data(), opts, x1);
+    //    const auto ker = ker_eval<ns, kerevalmeth, FLT, batch_t>(opts, x1);
+    const auto j = i1 - off1; // offset rel to subgrid, starts the output indices
     auto *FINUFFT_RESTRICT trg = du + 2 * j; // restrict helps compiler to vectorize
     // du is padded, so we can use SIMD even if we write more than ns values in du
-    // ker0 is also padded.
+    // ker is also padded.
     // regular_part is the largest multiple of 2*ns minus the remainder modulo
     // (2*avx_size). This allows to save one load.
     // see below for the details.
-    // adding padding to guarantee that all the elments are computed
+    // adding padding to guarantee that all the elements are computed
     // this trick only works when avx_size is a power of 2
     // avx_size*2 is guaranteed to be a power of 2, trivially
     static constexpr auto regular_part = (2 * ns + padding) & (-(2 * avx_size));
@@ -1198,6 +1221,7 @@ FINUFFT_NEVER_INLINE static void spread_subproblem_2d_kernel(
   // Kernel values stored in consecutive memory. This allows us to compute
   // values in all three directions in a single kernel evaluation call.
   static constexpr auto ns2 = ns * FLT(0.5); // half spread width
+  alignas(alignment) std::array<FLT, 2 * MAX_NSPREAD> kernel_values{0};
   std::fill(du, du + 2 * size1 * size2, 0);  // initialized to 0 due to the padding
   for (uint64_t pt = 0; pt < M; pt++) {      // loop over NU pts
     const auto dd_pt = initialize_complex_batch<batch_t>(dd[pt * 2], dd[pt * 2 + 1]);
@@ -1206,11 +1230,10 @@ FINUFFT_NEVER_INLINE static void spread_subproblem_2d_kernel(
     const auto i2 = (BIGINT)std::ceil(ky[pt] - ns2);
     const auto x1 = (FLT)std::ceil(kx[pt] - ns2) - kx[pt];
     const auto x2 = (FLT)std::ceil(ky[pt] - ns2) - ky[pt];
-    alignas(alignment) const auto kernel_values =
-    //const auto &kernel_values =
-        ker_eval<ns, kerevalmeth, FLT, batch_t>(opts, x1, x2);
-    alignas(alignment) auto *FINUFFT_RESTRICT ker1 = kernel_values.data();
-    alignas(alignment) auto *FINUFFT_RESTRICT ker2 = kernel_values.data() + MAX_NSPREAD;
+    // alignas(alignment) const auto kernel_values =
+    ker_eval<ns, kerevalmeth, FLT, batch_t>(kernel_values.data(), opts, x1, x2);
+    const auto *ker1 = kernel_values.data();
+    const auto *ker2 = kernel_values.data() + MAX_NSPREAD;
     // Combine kernel with complex source value to simplify inner loop
     // here 2* is because of complex
     static constexpr uint8_t batches = (2 * ns + padding) / avx_size;
@@ -1303,8 +1326,9 @@ FINUFFT_NEVER_INLINE void spread_subproblem_3d_kernel(
   static constexpr auto avx_size  = batch_t::size;
   static constexpr auto alignment = batch_t::arch_type::alignment();
   static constexpr auto ns2       = ns * FLT(0.5); // half spread width
+  alignas(alignment) std::array<FLT, 3 * MAX_NSPREAD> kernel_values{0};
   std::fill(du, du + 2 * size1 * size2 * size3, 0);
-  for (uint64_t pt = 0; pt < M; pt++) {            // loop over NU pts
+  for (uint64_t pt = 0; pt < M; pt++) { // loop over NU pts
     const auto dd_pt = initialize_complex_batch<batch_t>(dd[pt * 2], dd[pt * 2 + 1]);
     // ceil offset, hence rounding, must match that in get_subgrid...
     const auto i1 = (BIGINT)std::ceil(kx[pt] - ns2); // fine grid start indices
@@ -1314,12 +1338,10 @@ FINUFFT_NEVER_INLINE void spread_subproblem_3d_kernel(
     const auto x2 = std::ceil(ky[pt] - ns2) - ky[pt];
     const auto x3 = std::ceil(kz[pt] - ns2) - kz[pt];
 
-    alignas(alignment) const auto kernel_values =
-    //const auto &kernel_values =
-        ker_eval<ns, kerevalmeth, FLT, batch_t>(opts, x1, x2, x3);
-    auto *FINUFFT_RESTRICT ker1 = kernel_values.data();
-    auto *FINUFFT_RESTRICT ker2 = kernel_values.data() + MAX_NSPREAD;
-    auto *FINUFFT_RESTRICT ker3 = kernel_values.data() + 2 * MAX_NSPREAD;
+    ker_eval<ns, kerevalmeth, FLT, batch_t>(kernel_values.data(), opts, x1, x2, x3);
+    const auto *ker1 = kernel_values.data();
+    const auto *ker2 = kernel_values.data() + MAX_NSPREAD;
+    const auto *ker3 = kernel_values.data() + 2 * MAX_NSPREAD;
     // Combine kernel with complex source value to simplify inner loop
     // here 2* is because of complex
     // Batches is the number of SIMD iterations needed to compute all the elements
@@ -1699,7 +1721,8 @@ FLT fold_rescale(const FLT x, const BIGINT N) noexcept {
 }
 
 template<uint8_t ns, uint8_t kerevalmeth, class T, class batch_t, typename... V>
-auto ker_eval(const finufft_spread_opts &opts, const V... elems) noexcept {
+auto ker_eval(FLT *FINUFFT_RESTRICT ker, const finufft_spread_opts &opts,
+              const V... elems) noexcept {
   /* Utility function that allows to move the kernel evaluation outside the spreader for
      clarity Inputs are: ns = kernel width kerevalmeth = kernel evaluation method T =
      (single or double precision) type of the kernel batch_t = batch type for Horner
@@ -1708,21 +1731,17 @@ auto ker_eval(const finufft_spread_opts &opts, const V... elems) noexcept {
      kerevalmeth>(opts, x, y, z) // for 3D or ker_eval<ns, kerevalmeth>(opts, x, y) // for
      2D or ker_eval<ns, kerevalmeth>(opts, x) // for 1D
    */
-  alignas(batch_t::arch_type::alignment()) std::array<T, sizeof...(elems) * MAX_NSPREAD>
-      ker{0};
   const std::array inputs{elems...};
   // compile time loop, no performance overhead
   for (auto i = 0; i < sizeof...(elems); ++i) {
     // compile time branch no performance overhead
     if constexpr (kerevalmeth == 1) {
-      eval_kernel_vec_Horner<ns, batch_t>(ker.data() + (i * MAX_NSPREAD), inputs[i],
-                                          opts);
+      eval_kernel_vec_Horner<ns, batch_t>(ker + (i * MAX_NSPREAD), inputs[i], opts);
     }
     if constexpr (kerevalmeth == 0) {
       alignas(batch_t::arch_type::alignment()) std::array<T, MAX_NSPREAD> kernel_args{};
       set_kernel_args(kernel_args.data(), inputs[i], opts);
-      evaluate_kernel_vector(ker.data() + (i * MAX_NSPREAD), kernel_args.data(), opts,
-                             ns);
+      evaluate_kernel_vector(ker + (i * MAX_NSPREAD), kernel_args.data(), opts, ns);
     }
   }
   return ker;
