@@ -32,6 +32,7 @@ option(FINUFFT_USE_CUDA "Whether to build CUDA accelerated FINUFFT library (libc
 option(FINUFFT_USE_CPU "Whether to build the ordinary FINUFFT library (libfinufft)." ON)
 option(FINUFFT_STATIC_LINKING "Whether to link the static FINUFFT library (libfinufft_static)." ON)
 option(FINUFFT_BUILD_DEVEL "Whether to build developement executables" OFF)
+option(FINUFFT_USE_DUCC0 "Whether to use DUCC0 for CPU fft library" ON)
 # sphinx tag (don't remove): @cmake_opts_end
 
 if (FINUFFT_USE_CPU)
@@ -47,10 +48,13 @@ if (FINUFFT_USE_CPU)
 
     set(CPM_DOWNLOAD_VERSION 0.38.0)
     set(FFTW_VERSION 3.3.10)
-
+    set(DUCC0_VERSION ducc0_0_34_0)
+    set(FINUFFT_FFTW_LIBRARIES)
     include(cmake/setupCPM.cmake)
     include(cmake/setupFFTW.cmake)
-
+    if (FINUFFT_USE_DUCC0)
+        include(cmake/setupDUCC.cmake)
+    endif ()
 endif ()
 
 if (FINUFFT_BUILD_MATLAB)
@@ -154,7 +158,9 @@ function(set_finufft_options target)
         set(FFTW_INCLUDE_DIR ${FFTW_SOURCE_DIR}/api)
         target_include_directories(${target} PUBLIC ${FFTW_INCLUDE_DIR})
     endif ()
-
+    if (FINUFFT_USE_DUCC0)
+        target_compile_definitions(${target} PRIVATE FINUFFT_USE_DUCC0)
+    endif ()
 endfunction()
 
 if (FINUFFT_USE_CPU)
