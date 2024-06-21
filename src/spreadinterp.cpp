@@ -55,8 +55,9 @@ void print_subgrid_info(int ndims, BIGINT offset1, BIGINT offset2, BIGINT offset
 template<uint8_t ns, uint8_t kerevalmeth, class T,
          class simd_type = xsimd::make_sized_batch_t<T, find_optimal_simd_width<T, ns>()>,
          typename... V>
-static auto ker_eval(FLT *FINUFFT_RESTRICT ker, const finufft_spread_opts &opts,
-                     const V... elems) noexcept;
+static FINUFFT_ALWAYS_INLINE auto ker_eval(FLT *FINUFFT_RESTRICT ker,
+                                           const finufft_spread_opts &opts,
+                                           const V... elems) noexcept;
 static FINUFFT_ALWAYS_INLINE FLT fold_rescale(FLT x, BIGINT N) noexcept;
 static FINUFFT_ALWAYS_INLINE void set_kernel_args(
     FLT *args, FLT x, const finufft_spread_opts &opts) noexcept;
