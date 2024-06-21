@@ -49,6 +49,15 @@ MKOCTFILE = mkoctfile
 OFLAGS =
 # For experts only, location of MWrap executable (see docs/install.rst):
 MWRAP = mwrap
+
+# depenency root
+DEPS_ROOT := deps
+
+# xsimd repo url
+XSIMD_URL := https://github.com/xtensor-stack/xsimd.git
+XSIMD_VERSION := 13.0.0
+XSIMD_DIR := $(DEPS_ROOT)/xsimd
+
 # absolute path of this makefile, ie FINUFFT's top-level directory...
 FINUFFT = $(dir $(realpath $(firstword $(MAKEFILE_LIST))))
 
@@ -60,7 +69,7 @@ FINUFFT = $(dir $(realpath $(firstword $(MAKEFILE_LIST))))
 # -fPIC (position-indep code) needed to build dyn lib (.so)
 # Also, we force return (via :=) to the land of simply-expanded variables...
 INCL = -Iinclude
-CXXFLAGS := $(CXXFLAGS) $(INCL) -fPIC -std=c++14
+CXXFLAGS := $(CXXFLAGS) $(INCL) -fPIC -std=c++17
 CFLAGS := $(CFLAGS) $(INCL) -fPIC
 # here /usr/include needed for fftw3.f "fortran header"... (JiriK: no longer)
 FFLAGS := $(FFLAGS) $(INCL) -I/usr/include -fPIC
@@ -116,7 +125,7 @@ OBJSD = $(OBJS) $(OBJSF) $(OBJS_PI)
 
 default: usage
 
-all: test perftest lib examples fortran matlab octave python
+all: test perftest lib examples fortran matlab octave python setup
 
 usage:
 	@echo "Makefile for FINUFFT library. Please specify your task:"
@@ -133,6 +142,7 @@ usage:
 	@echo " make spreadtestall - small set spreader-only tests for CI use"
 	@echo " make objclean - remove all object files, preserving libs & MEX"
 	@echo " make clean - also remove all lib, MEX, py, and demo executables"
+	@echo " make setup - download dependencies"
 	@echo "For faster (multicore) making, append, for example, -j8"
 	@echo ""
 	@echo "Make options:"
@@ -145,9 +155,9 @@ usage:
 HEADERS = $(wildcard include/*.h include/finufft/*.h)
 
 # implicit rules for objects (note -o ensures writes to correct dir)
-%.o: %.cpp $(HEADERS)
+%.o: %.cpp $(HEADERS) setup
 	$(CXX) -c $(CXXFLAGS) $< -o $@
-%_32.o: %.cpp $(HEADERS)
+%_32.o: %.cpp $(HEADERS) setup
 	$(CXX) -DSINGLE -c $(CXXFLAGS) $< -o $@
 %.o: %.c $(HEADERS)
 	$(CC) -c $(CFLAGS) $< -o $@
@@ -159,7 +169,7 @@ HEADERS = $(wildcard include/*.h include/finufft/*.h)
 	$(FC) -DSINGLE -c $(FFLAGS) $< -o $@
 
 # included auto-generated code dependency...
-src/spreadinterp.o: src/ker_horner_allw_loop.c src/ker_lowupsampfac_horner_allw_loop.c
+src/spreadinterp.o: src/ker_horner_allw_loop_constexpr.h src/ker_lowupsampfac_horner_allw_loop_constexpr.c
 
 
 # lib -----------------------------------------------------------------------
@@ -406,7 +416,35 @@ wheel: $(STATICLIB) $(DYNLIB)
 docker-wheel:
 	docker run --rm -e package_name=finufft -v `pwd`:/io libinlu/manylinux2010_x86_64_fftw /io/python/ci/build-wheels.sh
 
+# =============================== SETUP ====================================
 
+define clone_repo
+    @echo "Cloning repository $(1) at tag $(2) into directory $(3)"
+    @if [ ! -d "$(3)" ]; then \
+        git clone --depth=1 --branch $(2) $(1) $(3); \
+    else \
+        cd $(3) && \
+        CURRENT_VERSION=$$(git describe --tags --abbrev=0) && \
+        if [ "$$CURRENT_VERSION" = "$(2)" ]; then \
+            echo "Directory $(3) already exists and is at the correct version $(2)."; \
+        else \
+            echo "Directory $(3) exists but is at version $$CURRENT_VERSION. Checking out the correct version $(2)."; \
+            git fetch --tags && \
+            git checkout $(2) || { echo "Error: Failed to checkout version $(2) in $(3)."; exit 1; }; \
+        fi; \
+    fi
+endef
+
+setup:
+	@echo "Downloading dependencies..."
+	@echo "Downloading xsimd..."
+	mkdir -p $(DEPS_ROOT)
+	$(call clone_repo,$(XSIMD_URL),$(XSIMD_VERSION),$(XSIMD_DIR))
+	@echo "xsimd downloaded in deps/xsimd"
+    CXXFLAGS += -I$(XSIMD_DIR)/include
+
+setupclean:
+	rm -rf $(DEPS_ROOT)
 
 # =============================== DOCUMENTATION =============================
 
@@ -420,7 +458,7 @@ docs/matlabhelp.doc: docs/genmatlabhelp.sh matlab/*.sh matlab/*.docsrc matlab/*.
 
 # =============================== CLEAN UP ==================================
 
-clean: objclean pyclean
+clean: objclean pyclean setupclean
 ifneq ($(MINGW),ON)
   # non-Windows-WSL clean up...
 	rm -f $(STATICLIB) $(DYNLIB)
@@ -439,6 +477,7 @@ else
 	del perftest\manysmallprobs
 	del examples\core, test\core, perftest\core, $(subst /,\, $(FE_DIR))\core
 endif
+
 
 # indiscriminate .o killer; needed before changing threading...
 objclean:
@@ -473,3 +512,4 @@ else
   # Windows-WSL...
 	del matlab\finufft_plan.m matlab\finufft.cpp matlab\finufft.mex*
 endif
+

@@ -24,7 +24,8 @@
 
 // All indexing in library that potentially can exceed 2^31 uses 64-bit signed.
 // This includes all calling arguments (eg M,N) that could be huge someday.
-#define BIGINT int64_t
+#define BIGINT  int64_t
+#define UBIGINT uint64_t
 // Precision-independent real and complex types, for private lib/test compile
 #ifdef SINGLE
 #define FLT float
@@ -40,16 +41,30 @@
 // this avoids the use of macros to implement functions
 #if defined(_MSC_VER)
 #define FINUFFT_ALWAYS_INLINE __forceinline
+#define FINUFFT_NEVER_INLINE  __declspec(noinline)
+#define FINUFFT_RESTRICT      __restrict
+#define FINUFFT_UNREACHABLE   __assume(0)
+
 #elif defined(__GNUC__) || defined(__clang__)
 #define FINUFFT_ALWAYS_INLINE __attribute__((always_inline)) inline
+#define FINUFFT_NEVER_INLINE  __attribute__((noinline))
+#define FINUFFT_RESTRICT      __restrict__
+#define FINUFFT_UNREACHABLE   __builtin_unreachable()
 #else
 #define FINUFFT_ALWAYS_INLINE inline
+#define FINUFFT_NEVER_INLINE
+#define FINUFFT_RESTRICT
+#define FINUFFT_UNREACHABLE
 #endif
 
 // ------------- Library-wide algorithm parameter settings ----------------
 
 // Library version (is a string)
 #define FINUFFT_VER          "2.2.0"
+
+// Smallest possible kernel spread width per dimension, in fine grid points
+// (used only in spreadinterp.cpp)
+#define MIN_NSPREAD          2
 
 // Largest possible kernel spread width per dimension, in fine grid points
 // (used only in spreadinterp.cpp)
