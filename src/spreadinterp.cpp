@@ -7,12 +7,12 @@
 #include <finufft/utils_precindep.h>
 
 #include "ker_horner_allw_loop_constexpr.h"
+
 #include <xsimd/xsimd.hpp>
 
-#include <iostream>
-#include <math.h>
-#include <stdio.h>
-#include <stdlib.h>
+#include <cmath>
+#include <cstdio>
+#include <cstdlib>
 #include <vector>
 
 using namespace std;
@@ -296,10 +296,11 @@ int indexSort(BIGINT *sort_indices, BIGINT N1, BIGINT N2, BIGINT N3, BIGINT M, F
   return did_sort;
 }
 
-int spreadinterpSorted(BIGINT *sort_indices, BIGINT N1, BIGINT N2, BIGINT N3,
-                       FLT *data_uniform, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
-                       FLT *data_nonuniform, const finufft_spread_opts &opts,
-                       int did_sort)
+int spreadinterpSorted(const BIGINT *sort_indices, const BIGINT N1, const BIGINT N2,
+                       const BIGINT N3, FLT *data_uniform, const BIGINT M,
+                       FLT *FINUFFT_RESTRICT kx, FLT *FINUFFT_RESTRICT ky,
+                       FLT *FINUFFT_RESTRICT kz, FLT *FINUFFT_RESTRICT data_nonuniform,
+                       const finufft_spread_opts &opts, int did_sort)
 /* Logic to select the main spreading (dir=1) vs interpolation (dir=2) routine.
    See spreadinterp() above for inputs arguments and definitions.
    Return value should always be 0 (no error reporting).
@@ -319,7 +320,8 @@ int spreadinterpSorted(BIGINT *sort_indices, BIGINT N1, BIGINT N2, BIGINT N3,
 
 // --------------------------------------------------------------------------
 int spreadSorted(const BIGINT *sort_indices, BIGINT N1, BIGINT N2, BIGINT N3,
-                 FLT *data_uniform, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
+                 FLT *FINUFFT_RESTRICT data_uniform, BIGINT M, FLT *FINUFFT_RESTRICT kx,
+                 FLT *FINUFFT_RESTRICT ky, FLT *FINUFFT_RESTRICT kz,
                  const FLT *data_nonuniform, const finufft_spread_opts &opts,
                  int did_sort)
 // Spread NU pts in sorted order to a uniform grid. See spreadinterp() for doc.
@@ -443,10 +445,11 @@ int spreadSorted(const BIGINT *sort_indices, BIGINT N1, BIGINT N2, BIGINT N3,
 
 // --------------------------------------------------------------------------
 template<uint16_t ns, uint16_t kerevalmeth>
-static int interpSorted_kernel(const BIGINT *sort_indices, const BIGINT N1,
-                               const BIGINT N2, const BIGINT N3, const FLT *data_uniform,
-                               const BIGINT M, FLT *kx, FLT *ky, FLT *kz,
-                               FLT *data_nonuniform, const finufft_spread_opts &opts)
+FINUFFT_NEVER_INLINE static int interpSorted_kernel(
+    const BIGINT *sort_indices, const BIGINT N1, const BIGINT N2, const BIGINT N3,
+    const FLT *data_uniform, const BIGINT M, FLT *FINUFFT_RESTRICT kx,
+    FLT *FINUFFT_RESTRICT ky, FLT *FINUFFT_RESTRICT kz,
+    FLT *FINUFFT_RESTRICT data_nonuniform, const finufft_spread_opts &opts)
 // Interpolate to NU pts in sorted order from a uniform grid.
 // See spreadinterp() for doc.
 {
@@ -476,9 +479,9 @@ static int interpSorted_kernel(const BIGINT *sort_indices, const BIGINT N1,
     FLT outbuf[2 * CHUNKSIZE];
     // Kernels: static alloc is faster, so we do it for up to 3D...
     alignas(alignment) std::array<FLT, 3 * MAX_NSPREAD> kernel_values{0};
-    FLT *FINUFFT_RESTRICT ker1 = kernel_values.data();
-    FLT *FINUFFT_RESTRICT ker2 = kernel_values.data() + MAX_NSPREAD;
-    FLT *FINUFFT_RESTRICT ker3 = kernel_values.data() + 2 * MAX_NSPREAD;
+    auto *FINUFFT_RESTRICT ker1 = kernel_values.data();
+    auto *FINUFFT_RESTRICT ker2 = kernel_values.data() + MAX_NSPREAD;
+    auto *FINUFFT_RESTRICT ker3 = kernel_values.data() + 2 * MAX_NSPREAD;
 
     // Loop over interpolation chunks
 #pragma omp for schedule(dynamic, 1000)       // assign threads to NU targ pts:
@@ -487,7 +490,7 @@ static int interpSorted_kernel(const BIGINT *sort_indices, const BIGINT N1,
 
     {
       // Setup buffers for this chunk
-      int bufsize = (i + CHUNKSIZE > M) ? M - i : CHUNKSIZE;
+      const int bufsize = (i + CHUNKSIZE > M) ? M - i : CHUNKSIZE;
       for (int ibuf = 0; ibuf < bufsize; ibuf++) {
         BIGINT j     = sort_indices[i + ibuf];
         jlist[ibuf]  = j;
@@ -498,20 +501,20 @@ static int interpSorted_kernel(const BIGINT *sort_indices, const BIGINT N1,
 
       // Loop over targets in chunk
       for (int ibuf = 0; ibuf < bufsize; ibuf++) {
-        FLT xj = xjlist[ibuf];
-        FLT yj = (ndims > 1) ? yjlist[ibuf] : 0;
-        FLT zj = (ndims > 2) ? zjlist[ibuf] : 0;
+        const auto xj = xjlist[ibuf];
+        const auto yj = (ndims > 1) ? yjlist[ibuf] : 0;
+        const auto zj = (ndims > 2) ? zjlist[ibuf] : 0;
 
-        FLT *target = outbuf + 2 * ibuf;
+        auto *FINUFFT_RESTRICT target = outbuf + 2 * ibuf;
 
         // coords (x,y,z), spread block corner index (i1,i2,i3) of current NU targ
-        BIGINT i1 = (BIGINT)std::ceil(xj - ns2);                   // leftmost grid index
-        BIGINT i2 = (ndims > 1) ? (BIGINT)std::ceil(yj - ns2) : 0; // min y grid index
-        BIGINT i3 = (ndims > 2) ? (BIGINT)std::ceil(zj - ns2) : 0; // min z grid index
+        const auto i1 = (BIGINT)std::ceil(xj - ns2); // leftmost grid index
+        const auto i2 = (ndims > 1) ? (BIGINT)std::ceil(yj - ns2) : 0; // min y grid index
+        const auto i3 = (ndims > 2) ? (BIGINT)std::ceil(zj - ns2) : 0; // min z grid index
 
-        FLT x1 = (FLT)i1 - xj; // shift of ker center, in [-w/2,-w/2+1]
-        FLT x2 = (ndims > 1) ? (FLT)i2 - yj : 0;
-        FLT x3 = (ndims > 2) ? (FLT)i3 - zj : 0;
+        const auto x1 = (FLT)i1 - xj; // shift of ker center, in [-w/2,-w/2+1]
+        const auto x2 = (ndims > 1) ? (FLT)i2 - yj : 0;
+        const auto x3 = (ndims > 2) ? (FLT)i3 - zj : 0;
 
         // eval kernel values patch and use to interpolate from uniform data...
         if (!(opts.flags & TF_OMIT_SPREADING)) {
@@ -537,7 +540,7 @@ static int interpSorted_kernel(const BIGINT *sort_indices, const BIGINT N1,
 
       // Copy result buffer to output array
       for (int ibuf = 0; ibuf < bufsize; ibuf++) {
-        BIGINT j                   = jlist[ibuf];
+        const UBIGINT j            = jlist[ibuf];
         data_nonuniform[2 * j]     = outbuf[2 * ibuf];
         data_nonuniform[2 * j + 1] = outbuf[2 * ibuf + 1];
       }
@@ -549,9 +552,11 @@ static int interpSorted_kernel(const BIGINT *sort_indices, const BIGINT N1,
 }
 
 template<uint16_t NS>
-static int interpSorted_dispatch(BIGINT *sort_indices, BIGINT N1, BIGINT N2, BIGINT N3,
-                                 FLT *data_uniform, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
-                                 FLT *data_nonuniform, const finufft_spread_opts &opts) {
+static int interpSorted_dispatch(
+    const BIGINT *sort_indices, const BIGINT N1, const BIGINT N2, const BIGINT N3,
+    FLT *FINUFFT_RESTRICT data_uniform, const BIGINT M, FLT *FINUFFT_RESTRICT kx,
+    FLT *FINUFFT_RESTRICT ky, FLT *FINUFFT_RESTRICT kz,
+    FLT *FINUFFT_RESTRICT data_nonuniform, const finufft_spread_opts &opts) {
   static_assert(MIN_NSPREAD <= NS <= MAX_NSPREAD,
                 "NS must be in the range (MIN_NSPREAD, MAX_NSPREAD)");
   if constexpr (NS == MIN_NSPREAD) { // Base case
@@ -578,8 +583,10 @@ static int interpSorted_dispatch(BIGINT *sort_indices, BIGINT N1, BIGINT N2, BIG
   }
 }
 
-int interpSorted(BIGINT *sort_indices, BIGINT N1, BIGINT N2, BIGINT N3, FLT *data_uniform,
-                 BIGINT M, FLT *kx, FLT *ky, FLT *kz, FLT *data_nonuniform,
+int interpSorted(const BIGINT *sort_indices, const BIGINT N1, const BIGINT N2,
+                 const BIGINT N3, FLT *FINUFFT_RESTRICT data_uniform, const BIGINT M,
+                 FLT *FINUFFT_RESTRICT kx, FLT *FINUFFT_RESTRICT ky,
+                 FLT *FINUFFT_RESTRICT kz, FLT *FINUFFT_RESTRICT data_nonuniform,
                  const finufft_spread_opts &opts) {
   return interpSorted_dispatch<MAX_NSPREAD>(sort_indices, N1, N2, N3, data_uniform, M, kx,
                                             ky, kz, data_nonuniform, opts);
@@ -781,7 +788,7 @@ Two upsampfacs implemented. Params must match ref formula. Barnett 4/24/18 */
 
 template<uint8_t ns>
 void interp_line(FLT *FINUFFT_RESTRICT target, const FLT *du, const FLT *ker, BIGINT i1,
-                 BIGINT N1)
+                 const BIGINT N1)
 /* 1D interpolate complex values from size-ns block of the du (uniform grid
    data) array to a single complex output value "target", using as weights the
    1d kernel evaluation list ker1.
@@ -839,7 +846,8 @@ void interp_line(FLT *FINUFFT_RESTRICT target, const FLT *du, const FLT *ker, BI
 
 template<uint8_t ns>
 void interp_square(FLT *FINUFFT_RESTRICT target, const FLT *du, const FLT *ker1,
-                   const FLT *ker2, BIGINT i1, BIGINT i2, BIGINT N1, BIGINT N2)
+                   const FLT *ker2, const BIGINT i1, const BIGINT i2, const BIGINT N1,
+                   const BIGINT N2)
 /* 2D interpolate complex values from a ns*ns block of the du (uniform grid
    data) array to a single complex output value "target", using as weights the
    ns*ns outer product of the 1d kernel lists ker1 and ker2.
@@ -919,8 +927,8 @@ void interp_square(FLT *FINUFFT_RESTRICT target, const FLT *du, const FLT *ker1,
 
 template<uint8_t ns>
 void interp_cube(FLT *FINUFFT_RESTRICT target, const FLT *du, const FLT *ker1,
-                 const FLT *ker2, const FLT *ker3, BIGINT i1, BIGINT i2, BIGINT i3,
-                 BIGINT N1, BIGINT N2, BIGINT N3)
+                 const FLT *ker2, const FLT *ker3, const BIGINT i1, const BIGINT i2,
+                 const BIGINT i3, const BIGINT N1, const BIGINT N2, const BIGINT N3)
 /* 3D interpolate complex values from a ns*ns*ns block of the du (uniform grid
    data) array to a single complex output value "target", using as weights the
    ns*ns*ns outer product of the 1d kernel lists ker1, ker2, and ker3.
