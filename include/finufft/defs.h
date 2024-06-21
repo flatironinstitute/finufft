@@ -43,14 +43,18 @@
 #define FINUFFT_ALWAYS_INLINE __forceinline
 #define FINUFFT_NEVER_INLINE  __declspec(noinline)
 #define FINUFFT_RESTRICT      __restrict
+#define FINUFFT_UNREACHABLE   __assume(0)
+
 #elif defined(__GNUC__) || defined(__clang__)
 #define FINUFFT_ALWAYS_INLINE __attribute__((always_inline)) inline
 #define FINUFFT_NEVER_INLINE  __attribute__((noinline))
 #define FINUFFT_RESTRICT      __restrict__
+#define FINUFFT_UNREACHABLE   __builtin_unreachable()
 #else
 #define FINUFFT_ALWAYS_INLINE inline
 #define FINUFFT_NEVER_INLINE
 #define FINUFFT_RESTRICT
+#define FINUFFT_UNREACHABLE
 #endif
 
 // ------------- Library-wide algorithm parameter settings ----------------

@@ -461,8 +461,8 @@ FINUFFT_NEVER_INLINE static int interpSorted_kernel(
   static constexpr auto ns2 = ns * FLT(0.5); // half spread width, used as stencil shift
 
   CNTime timer;
-  int ndims = ndims_from_Ns(N1, N2, N3);
-  int nthr  = MY_OMP_GET_MAX_THREADS();        // guess # threads to use to interp
+  const int ndims = ndims_from_Ns(N1, N2, N3);
+  int nthr        = MY_OMP_GET_MAX_THREADS();  // guess # threads to use to interp
   if (opts.nthreads > 0) nthr = opts.nthreads; // user override, now without limit
 #ifndef _OPENMP
   nthr = 1;                                    // single-threaded lib must override user
@@ -533,6 +533,7 @@ FINUFFT_NEVER_INLINE static int interpSorted_kernel(
                             N3);
             break;
           default: // can't get here
+            FINUFFT_UNREACHABLE;
             break;
           }
         }
