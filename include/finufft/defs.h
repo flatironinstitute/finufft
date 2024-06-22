@@ -171,8 +171,10 @@
 // --------  FINUFFT's plan object, prec-switching version ------------------
 // NB: now private (the public C++ or C etc user sees an opaque pointer to it)
 
-#ifndef FINUFFT_USE_DUCC0
+#ifdef FINUFFT_USE_DUCC0
+#define FFTW_FORGET_WISDOM()  // temporary hack since some tests call this unconditionally
 // FFTW is needed since we include a FFTW plan in the FINUFFT plan...
+#else
 #include <finufft/fftw_defs.h> // (must come after complex.h)
 // (other FFT lib headers eg MKL could be here...)
 #endif
