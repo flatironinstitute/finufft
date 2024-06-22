@@ -75,7 +75,7 @@ inline __attribute__((always_inline)) FLT foldRescale03(FLT x, BIGINT N) {
 
 #ifdef __AVX2__
 
-inline __attribute__((always_inline)) __m256d foldRescaleVec(__m256d x, BIGINT N) {
+inline /*__attribute__((always_inline))*/ __m256d foldRescaleVec(__m256d x, BIGINT N) {
   __m256d result;
   __m256d fN                = _mm256_set1_pd(FLT(N));
   static const __m256d x2pi = _mm256_set1_pd(FLT(M_1_2PI));

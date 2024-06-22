@@ -9,10 +9,6 @@
 
 #include <fftw3.h> // (after complex.h) needed so can typedef FFTW_CPX
 
-#ifdef FINUFFT_USE_DUCC0
-#include <ducc0/fft/fft.h>
-#endif
-
 // precision-switching names for interfaces to FFTW...
 #ifdef SINGLE
 // macro to prepend fftw_ (for double) or fftwf_ (for single) to a string
