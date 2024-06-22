@@ -161,6 +161,8 @@ function(set_finufft_options target)
         target_include_directories(${target} PUBLIC ${FFTW_INCLUDE_DIR})
     endif ()
 
+    # XSIMD is a header only library, so we just need to include the headers
+    target_include_directories(${target} PUBLIC ${XSIMD_INCLUDE_DIR})
 endfunction()
 
 if (FINUFFT_USE_CPU)
