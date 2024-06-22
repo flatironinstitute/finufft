@@ -18,15 +18,16 @@ Major code contributions by:
 * Libin Lu - guru Fortran, python, MATLAB/octave, julia interfaces, cmake, CI maintenance
 * Joakim Andén - python, MATLAB/FFTW issues, dual-precision, performance tests, GPU version merge docs/tests
 * Robert Blackwell - atomic OMP add_wrapped_subgrid, GPU version merge
-
+* Marco Barbone - SIMD kernel vectorization, benchmarking, foldrescale, Cmake, windows build
+  
 Other significant code contributions by:
 
 * Leslie Greengard and June-Yub Lee - CMCL Fortran test drivers
 * Dan Foreman-Mackey - early python wrappers
 * David Stein - python wrappers, finding "pi-1ULP" spreadcheck error
 * Garrett Wright - dual-precision build, py packaging, GPU version
-* Wenda Zhou - Cmake build, SIMD optims, code review, professionalization
-* Martin Reinecke - SIMD acceleration of interpolator, improved binsort
+* Wenda Zhou - Cmake build, code review, professionalization, SIMD ideas
+* Martin Reinecke - SIMD kernel and interp auto-vectorization, binsort; other good ideas
 
 Testing, bug reports, helpful discussions:
 
@@ -45,11 +46,10 @@ Testing, bug reports, helpful discussions:
 * Vladimir Rokhlin - piecewise polynomial approximation on complex boxes
 * Reinhard Neder - fortran90 demo using finufft as module, OSX build
 * Vineet Bansal - py packaging
-* Marco Barbone - cmake, windows build
 
 Logo design: `Sherry Choi <http://www.sherrychoi.com>`_ with input
 from Alex Barnett and Lucy Reading-Ikkanda.
   
 We are also indebted to the authors of other NUFFT codes
-such as NFFT3, CMCL NUFFT, MIRT, BART, etc, upon whose interfaces, code,
+such as NFFT3, CMCL NUFFT, MIRT, BART, DUCC0, etc, upon whose interfaces, code,
 and algorithms we have built.
