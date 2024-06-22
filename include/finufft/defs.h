@@ -173,6 +173,8 @@
 
 #ifdef FINUFFT_USE_DUCC0
 #define FFTW_FORGET_WISDOM()  // temporary hack since some tests call this unconditionally
+#define FFTW_CLEANUP()  // temporary hack since some tests call this unconditionally
+#define FFTW_CLEANUP_THREADS()  // temporary hack since some tests call this unconditionally
 // FFTW is needed since we include a FFTW plan in the FINUFFT plan...
 #else
 #include <finufft/fftw_defs.h> // (must come after complex.h)
