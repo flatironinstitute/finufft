@@ -13,6 +13,7 @@
 # Barnett tidying Feb, May 2020. Libin Lu edits, 2020.
 # Garrett Wright, Joakim Anden, Barnett: dual-prec lib build, Jun-Jul'20.
 # Windows compatibility, jonas-kr, Sep '20.
+# XSIMD dependency, Marco Barbone, June 2024.
 
 # Compiler (CXX), and linking from C, fortran. We use GCC by default...
 CXX = g++
@@ -26,7 +27,7 @@ PYTHON = python3
 # Notes: 1) -Ofast breaks isfinite() & isnan(), so use -O3 which now is as fast
 #        2) -fcx-limited-range for fortran-speed complex arith in C++
 #        3) we use simply-expanded (:=) makefile variables, otherwise confusing
-CFLAGS := -O3 -funroll-loops -march=native -fcx-limited-range $(CFLAGS)
+CFLAGS := -O3 -funroll-loops -march=native -fcx-limited-range -ffp-contract=fast $(CFLAGS)
 FFLAGS := $(CFLAGS) $(FFLAGS)
 CXXFLAGS := $(CFLAGS) $(CXXFLAGS)
 # FFTW base name, and math linking...
@@ -50,10 +51,10 @@ OFLAGS =
 # For experts only, location of MWrap executable (see docs/install.rst):
 MWRAP = mwrap
 
-# depenency root
+# dependency root (relative to top directory)
 DEPS_ROOT := deps
 
-# xsimd repo url
+# xsimd dependency repo URL
 XSIMD_URL := https://github.com/xtensor-stack/xsimd.git
 XSIMD_VERSION := 13.0.0
 XSIMD_DIR := $(DEPS_ROOT)/xsimd
@@ -68,7 +69,7 @@ FINUFFT = $(dir $(realpath $(firstword $(MAKEFILE_LIST))))
 # Now come flags that should be added, whatever user overrode in make.inc.
 # -fPIC (position-indep code) needed to build dyn lib (.so)
 # Also, we force return (via :=) to the land of simply-expanded variables...
-INCL = -Iinclude
+INCL = -Iinclude -I$(XSIMD_DIR)/include
 CXXFLAGS := $(CXXFLAGS) $(INCL) -fPIC -std=c++17
 CFLAGS := $(CFLAGS) $(INCL) -fPIC
 # here /usr/include needed for fftw3.f "fortran header"... (JiriK: no longer)
@@ -121,11 +122,11 @@ OBJS_PI = $(SOBJS_PI) contrib/legendre_rule_fast.o
 # all lib dual-precision objs
 OBJSD = $(OBJS) $(OBJSF) $(OBJS_PI)
 
-.PHONY: usage lib examples test perftest spreadtest spreadtestall fortran matlab octave all mex python clean objclean pyclean mexclean wheel docker-wheel gurutime docs
+.PHONY: usage lib examples test perftest spreadtest spreadtestall fortran matlab octave all mex python clean objclean pyclean mexclean wheel docker-wheel gurutime docs setup setupclean
 
 default: usage
 
-all: test perftest lib examples fortran matlab octave python setup
+all: test perftest lib examples fortran matlab octave python
 
 usage:
 	@echo "Makefile for FINUFFT library. Please specify your task:"
@@ -142,7 +143,8 @@ usage:
 	@echo " make spreadtestall - small set spreader-only tests for CI use"
 	@echo " make objclean - remove all object files, preserving libs & MEX"
 	@echo " make clean - also remove all lib, MEX, py, and demo executables"
-	@echo " make setup - download dependencies"
+	@echo " make setup - check (and possibly download) dependencies"
+	@echo " make setupclean - delete downloaded dependencies"
 	@echo "For faster (multicore) making, append, for example, -j8"
 	@echo ""
 	@echo "Make options:"
@@ -155,9 +157,9 @@ usage:
 HEADERS = $(wildcard include/*.h include/finufft/*.h)
 
 # implicit rules for objects (note -o ensures writes to correct dir)
-%.o: %.cpp $(HEADERS) setup
+%.o: %.cpp $(HEADERS)
 	$(CXX) -c $(CXXFLAGS) $< -o $@
-%_32.o: %.cpp $(HEADERS) setup
+%_32.o: %.cpp $(HEADERS)
 	$(CXX) -DSINGLE -c $(CXXFLAGS) $< -o $@
 %.o: %.c $(HEADERS)
 	$(CC) -c $(CFLAGS) $< -o $@
@@ -168,8 +170,9 @@ HEADERS = $(wildcard include/*.h include/finufft/*.h)
 %_32.o: %.f
 	$(FC) -DSINGLE -c $(FFLAGS) $< -o $@
 
-# included auto-generated code dependency...
-src/spreadinterp.o: src/ker_horner_allw_loop_constexpr.h src/ker_lowupsampfac_horner_allw_loop_constexpr.c
+# included auto-generated code and xsimd header-lib dependency...
+src/spreadinterp.o: src/ker_horner_allw_loop_constexpr.h src/ker_lowupsampfac_horner_allw_loop_constexpr.c $(XSIMD_DIR)/include/xsimd/xsimd.hpp
+src/spreadinterp_32.o: src/ker_horner_allw_loop_constexpr.h src/ker_lowupsampfac_horner_allw_loop_constexpr.c $(XSIMD_DIR)/include/xsimd/xsimd.hpp
 
 
 # lib -----------------------------------------------------------------------
@@ -416,11 +419,12 @@ wheel: $(STATICLIB) $(DYNLIB)
 docker-wheel:
 	docker run --rm -e package_name=finufft -v `pwd`:/io libinlu/manylinux2010_x86_64_fftw /io/python/ci/build-wheels.sh
 
-# =============================== SETUP ====================================
+
+# ================== SETUP OF EXTERNAL DEPENDENCIES ===============
 
 define clone_repo
-    @echo "Cloning repository $(1) at tag $(2) into directory $(3)"
     @if [ ! -d "$(3)" ]; then \
+        echo "Cloning repository $(1) at tag $(2) into directory $(3)"; \
         git clone --depth=1 --branch $(2) $(1) $(3); \
     else \
         cd $(3) && \
@@ -435,16 +439,15 @@ define clone_repo
     fi
 endef
 
-setup:
-	@echo "Downloading dependencies..."
-	@echo "Downloading xsimd..."
+$(XSIMD_DIR)/include/xsimd/xsimd.hpp:
 	mkdir -p $(DEPS_ROOT)
+	@echo "Checking xsimd external dependency..."
 	$(call clone_repo,$(XSIMD_URL),$(XSIMD_VERSION),$(XSIMD_DIR))
-	@echo "xsimd downloaded in deps/xsimd"
-    CXXFLAGS += -I$(XSIMD_DIR)/include
+	@echo "xsimd installed in deps/xsimd"
 
 setupclean:
 	rm -rf $(DEPS_ROOT)
+
 
 # =============================== DOCUMENTATION =============================
 
@@ -458,7 +461,7 @@ docs/matlabhelp.doc: docs/genmatlabhelp.sh matlab/*.sh matlab/*.docsrc matlab/*.
 
 # =============================== CLEAN UP ==================================
 
-clean: objclean pyclean setupclean
+clean: objclean pyclean
 ifneq ($(MINGW),ON)
   # non-Windows-WSL clean up...
 	rm -f $(STATICLIB) $(DYNLIB)
