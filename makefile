@@ -13,6 +13,7 @@
 # Barnett tidying Feb, May 2020. Libin Lu edits, 2020.
 # Garrett Wright, Joakim Anden, Barnett: dual-prec lib build, Jun-Jul'20.
 # Windows compatibility, jonas-kr, Sep '20.
+# XSIMD dependency, Marco Barbone, June 2024.
 
 # Compiler (CXX), and linking from C, fortran. We use GCC by default...
 CXX = g++
@@ -26,7 +27,7 @@ PYTHON = python3
 # Notes: 1) -Ofast breaks isfinite() & isnan(), so use -O3 which now is as fast
 #        2) -fcx-limited-range for fortran-speed complex arith in C++
 #        3) we use simply-expanded (:=) makefile variables, otherwise confusing
-CFLAGS := -O3 -funroll-loops -march=native -fcx-limited-range $(CFLAGS)
+CFLAGS := -O3 -funroll-loops -march=native -fcx-limited-range -ffp-contract=fast $(CFLAGS)
 FFLAGS := $(CFLAGS) $(FFLAGS)
 CXXFLAGS := $(CFLAGS) $(CXXFLAGS)
 # FFTW base name, and math linking...
@@ -49,6 +50,15 @@ MKOCTFILE = mkoctfile
 OFLAGS =
 # For experts only, location of MWrap executable (see docs/install.rst):
 MWRAP = mwrap
+
+# dependency root (relative to top directory)
+DEPS_ROOT := deps
+
+# xsimd dependency repo URL
+XSIMD_URL := https://github.com/xtensor-stack/xsimd.git
+XSIMD_VERSION := 13.0.0
+XSIMD_DIR := $(DEPS_ROOT)/xsimd
+
 # absolute path of this makefile, ie FINUFFT's top-level directory...
 FINUFFT = $(dir $(realpath $(firstword $(MAKEFILE_LIST))))
 
@@ -59,8 +69,8 @@ FINUFFT = $(dir $(realpath $(firstword $(MAKEFILE_LIST))))
 # Now come flags that should be added, whatever user overrode in make.inc.
 # -fPIC (position-indep code) needed to build dyn lib (.so)
 # Also, we force return (via :=) to the land of simply-expanded variables...
-INCL = -Iinclude
-CXXFLAGS := $(CXXFLAGS) $(INCL) -fPIC -std=c++14
+INCL = -Iinclude -I$(XSIMD_DIR)/include
+CXXFLAGS := $(CXXFLAGS) $(INCL) -fPIC -std=c++17
 CFLAGS := $(CFLAGS) $(INCL) -fPIC
 # here /usr/include needed for fftw3.f "fortran header"... (JiriK: no longer)
 FFLAGS := $(FFLAGS) $(INCL) -I/usr/include -fPIC
@@ -112,7 +122,7 @@ OBJS_PI = $(SOBJS_PI) contrib/legendre_rule_fast.o
 # all lib dual-precision objs
 OBJSD = $(OBJS) $(OBJSF) $(OBJS_PI)
 
-.PHONY: usage lib examples test perftest spreadtest spreadtestall fortran matlab octave all mex python clean objclean pyclean mexclean wheel docker-wheel gurutime docs
+.PHONY: usage lib examples test perftest spreadtest spreadtestall fortran matlab octave all mex python clean objclean pyclean mexclean wheel docker-wheel gurutime docs setup setupclean
 
 default: usage
 
@@ -133,6 +143,8 @@ usage:
 	@echo " make spreadtestall - small set spreader-only tests for CI use"
 	@echo " make objclean - remove all object files, preserving libs & MEX"
 	@echo " make clean - also remove all lib, MEX, py, and demo executables"
+	@echo " make setup - check (and possibly download) dependencies"
+	@echo " make setupclean - delete downloaded dependencies"
 	@echo "For faster (multicore) making, append, for example, -j8"
 	@echo ""
 	@echo "Make options:"
@@ -158,8 +170,9 @@ HEADERS = $(wildcard include/*.h include/finufft/*.h)
 %_32.o: %.f
 	$(FC) -DSINGLE -c $(FFLAGS) $< -o $@
 
-# included auto-generated code dependency...
-src/spreadinterp.o: src/ker_horner_allw_loop.c src/ker_lowupsampfac_horner_allw_loop.c
+# included auto-generated code and xsimd header-lib dependency...
+src/spreadinterp.o: src/ker_horner_allw_loop_constexpr.h src/ker_lowupsampfac_horner_allw_loop_constexpr.c $(XSIMD_DIR)/include/xsimd/xsimd.hpp
+src/spreadinterp_32.o: src/ker_horner_allw_loop_constexpr.h src/ker_lowupsampfac_horner_allw_loop_constexpr.c $(XSIMD_DIR)/include/xsimd/xsimd.hpp
 
 
 # lib -----------------------------------------------------------------------
@@ -407,6 +420,34 @@ docker-wheel:
 	docker run --rm -e package_name=finufft -v `pwd`:/io libinlu/manylinux2010_x86_64_fftw /io/python/ci/build-wheels.sh
 
 
+# ================== SETUP OF EXTERNAL DEPENDENCIES ===============
+
+define clone_repo
+    @if [ ! -d "$(3)" ]; then \
+        echo "Cloning repository $(1) at tag $(2) into directory $(3)"; \
+        git clone --depth=1 --branch $(2) $(1) $(3); \
+    else \
+        cd $(3) && \
+        CURRENT_VERSION=$$(git describe --tags --abbrev=0) && \
+        if [ "$$CURRENT_VERSION" = "$(2)" ]; then \
+            echo "Directory $(3) already exists and is at the correct version $(2)."; \
+        else \
+            echo "Directory $(3) exists but is at version $$CURRENT_VERSION. Checking out the correct version $(2)."; \
+            git fetch --tags && \
+            git checkout $(2) || { echo "Error: Failed to checkout version $(2) in $(3)."; exit 1; }; \
+        fi; \
+    fi
+endef
+
+$(XSIMD_DIR)/include/xsimd/xsimd.hpp:
+	mkdir -p $(DEPS_ROOT)
+	@echo "Checking xsimd external dependency..."
+	$(call clone_repo,$(XSIMD_URL),$(XSIMD_VERSION),$(XSIMD_DIR))
+	@echo "xsimd installed in deps/xsimd"
+
+setupclean:
+	rm -rf $(DEPS_ROOT)
+
 
 # =============================== DOCUMENTATION =============================
 
@@ -439,6 +480,7 @@ else
 	del perftest\manysmallprobs
 	del examples\core, test\core, perftest\core, $(subst /,\, $(FE_DIR))\core
 endif
+
 
 # indiscriminate .o killer; needed before changing threading...
 objclean:
@@ -473,3 +515,4 @@ else
   # Windows-WSL...
 	del matlab\finufft_plan.m matlab\finufft.cpp matlab\finufft.mex*
 endif
+

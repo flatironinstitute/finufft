@@ -4,7 +4,7 @@ using CairoMakie
 using JLD2        # for load/save arrays to file
 using UnPack
 
-fnam = "results/master-vs-svec2_gcc114_5700U_nthr8"   # outfile head
+fnam = "results/master-vs-svec2_gcc114_5700U_nthr1"   # outfile head
 # locations of pair of FINUFFT repos to compare...
 repo1 = "/home/alex/numerics/finufft"
 repo2 = "/home/alex/numerics/nufft/finufft-svec2"
@@ -62,7 +62,7 @@ function plot_all(fnam,ts,wstr,dims,M,N,nthr)
 end
 
 # main script...........................................................................
-nthr = 8; # 1: leave cpu freq at max (4.3GHz); for 8, lower to 2.7GHz since drops to this.
+nthr = 1; # 1: leave cpu freq at max (4.3GHz); for 8, lower to 2.7GHz since drops to this.
 # set freq lim with cpupower-gui
 # check with:   watch -n 1 sort -nr /sys/devices/system/cpu/cpu*/cpufreq/scaling_cur_freq
 dims = 1:3

@@ -17,6 +17,9 @@ Developer notes
 
 * There are some sphinx tags in the source code, indicated by @ in comments. Please leave these alone since they are needed by the doc generation.
 
+* Source code is now in clang format: devs should run ``clang-format --files=<editedfile> -i --style=.clang-format`` before pushing, or set up their editor to do this
+  automatically.
+
 * If you add a new option field (recall it must be plain C style only, no special types) to ``include/finufft_opts.h``, don't forget to add it to ``include/finufft.fh``, ``include/finufft_mod.f90``, ``matlab/finufft.mw``, ``python/finufft/_finufft.py``, and the Julia interface, as well a paragraph describing its use in the docs. Also to set its default value in ``src/finufft.cpp``. You will then need to regenerate the docs as in ``docs/README``.
 
 * For testing and performance measuring routines see ``test/README`` and ``perftest/README``. We need more of the latter, eg, something making performance graphs that enable rapid eyeball comparison of various settings/machines. Marco is working on that.
