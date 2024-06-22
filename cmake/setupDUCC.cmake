@@ -5,9 +5,15 @@ CPMAddPackage(
         DOWNLOAD_ONLY YES
 )
 
+
 if(ducc0_ADDED)
-    add_library(ducc0 INTERFACE)
-    target_include_directories(ducc0 INTERFACE ${ducc0_SOURCE_DIR}/src/)
+    add_library(ducc0 STATIC
+            ${ducc0_SOURCE_DIR}/src/ducc0/infra/string_utils.cc
+            ${ducc0_SOURCE_DIR}/src/ducc0/infra/threading.cc
+            ${ducc0_SOURCE_DIR}/src/ducc0/infra/mav.cc
+            ${ducc0_SOURCE_DIR}/src/ducc0/math/gridding_kernel.cc
+    )
+    target_include_directories(ducc0 PUBLIC ${ducc0_SOURCE_DIR}/src/)
 endif ()
 
 list(APPEND FINUFFT_FFTW_LIBRARIES ducc0)
