@@ -758,10 +758,8 @@ int FINUFFT_MAKEPLAN(int type, int dim, BIGINT *n_modes, int iflag, int ntrans, 
       return FINUFFT_ERR_MAXNALLOC;
     }
 
-#ifdef FINUFFT_USE_DUCC0
-#else
+#ifndef FINUFFT_USE_DUCC0
     p->fwBatch = (CPX *)FFTW_ALLOC_CPX(p->nf * p->batchSize); // the big workspace
-#endif
     if (p->opts.debug)
       printf("[%s] fwBatch %.2fGB alloc:   \t%.3g s\n", __func__,
              (double)1E-09 * sizeof(CPX) * p->nf * p->batchSize, timer.elapsedsec());
@@ -773,6 +771,7 @@ int FINUFFT_MAKEPLAN(int type, int dim, BIGINT *n_modes, int iflag, int ntrans, 
       free(p->phiHat3);
       return FINUFFT_ERR_ALLOC;
     }
+#endif
 
     timer.restart(); // plan the FFTW
 #ifndef FINUFFT_USE_DUCC0
@@ -802,8 +801,10 @@ int FINUFFT_MAKEPLAN(int type, int dim, BIGINT *n_modes, int iflag, int ntrans, 
 
     if (p->opts.debug) printf("[%s] %dd%d: ntrans=%d\n", __func__, dim, type, ntrans);
     // in case destroy occurs before setpts, need safe dummy ptrs/plans...
+#ifndef FINUFFT_USE_DUCC0
     p->CpBatch     = NULL;
     p->fwBatch     = NULL;
+#endif
     p->Sp          = NULL;
     p->Tp          = NULL;
     p->Up          = NULL;
@@ -1307,7 +1308,7 @@ int FINUFFT_EXECUTE(FINUFFT_PLAN p, CPX *cj, CPX *fk) {
       p->innerT2plan->ntrans = thisBatchSize; // do not try this at home!
       /* (alarming that FFT not shrunk, but safe, because t2's fwBatch array
      still the same size, as Andrea explained; just wastes a few flops) */
-      FINUFFT_EXECUTE(p->innerT2plan, fkb, (CPX *)(p->fwBatch));
+      FINUFFT_EXECUTE(p->innerT2plan, fkb, (CPX *)(fwBatch));
       t_t2 += timer.elapsedsec();
 
       // STEP 3: apply deconvolve (precomputed 1/phiHat(targ_k), phasing too)...
