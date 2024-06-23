@@ -87,9 +87,11 @@ Design notes for guru interface implementation:
 namespace finufft {
 namespace common {
 
+#ifndef FINUFFT_USE_DUCC0
 // Technically global state...
 // Needs to be static to avoid name collision with SINGLE/DOUBLE
 static std::mutex fftw_lock;
+#endif
 
 // We macro because it has no FLT args but gets compiled for both prec's...
 #ifdef SINGLE
@@ -491,9 +493,9 @@ int deconvolveBatch(int batchSize, FINUFFT_PLAN p, CPX *fwBatch, CPX *fkBatch)
 
 // since this func is local only, we macro its name here...
 #ifdef SINGLE
-#define GRIDSIZE_FOR_FFTW gridsize_for_fftf
+#define GRIDSIZE_FOR_FFT gridsize_for_fftf
 #else
-#define GRIDSIZE_FOR_FFTW gridsize_for_fft
+#define GRIDSIZE_FOR_FFT gridsize_for_fft
 #endif
 
 int *GRIDSIZE_FOR_FFT(FINUFFT_PLAN p) {
@@ -749,7 +751,6 @@ int FINUFFT_MAKEPLAN(int type, int dim, BIGINT *n_modes, int iflag, int ntrans, 
       printf("[%s] kernel fser (ns=%d):\t\t%.3g s\n", __func__, p->spopts.nspread,
              timer.elapsedsec());
 
-    timer.restart();
     p->nf = p->nf1 * p->nf2 * p->nf3; // fine grid total number of points
     if (p->nf * p->batchSize > MAX_NF) {
       fprintf(stderr,
@@ -759,6 +760,7 @@ int FINUFFT_MAKEPLAN(int type, int dim, BIGINT *n_modes, int iflag, int ntrans, 
     }
 
 #ifndef FINUFFT_USE_DUCC0
+    timer.restart();
     p->fwBatch = (CPX *)FFTW_ALLOC_CPX(p->nf * p->batchSize); // the big workspace
     if (p->opts.debug)
       printf("[%s] fwBatch %.2fGB alloc:   \t%.3g s\n", __func__,
@@ -773,8 +775,8 @@ int FINUFFT_MAKEPLAN(int type, int dim, BIGINT *n_modes, int iflag, int ntrans, 
     }
 #endif
 
-    timer.restart(); // plan the FFTW
 #ifndef FINUFFT_USE_DUCC0
+    timer.restart(); // plan the FFTW
     int *ns = GRIDSIZE_FOR_FFT(p);
     // fftw_plan_many_dft args: rank, gridsize/dim, howmany, in, inembed, istride,
     // idist, ot, onembed, ostride, odist, sign, flags
@@ -1094,7 +1096,7 @@ int FINUFFT_EXECUTE(FINUFFT_PLAN p, CPX *cj, CPX *fk) {
    existing (sorted) NU pts and existing plan.
    For type 1 and 3: cj is input, fk is output.
    For type 2: fk is input, cj is output.
-   Performs spread/interp, pre/post deconvolve, and fftw_execute as appropriate
+   Performs spread/interp, pre/post deconvolve, and FFT as appropriate
    for each of the 3 types.
    For cases of ntrans>1, performs work in blocks of size up to batchSize.
    Return value 0 (no error diagnosis yet).
