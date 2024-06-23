@@ -187,9 +187,6 @@ if (FINUFFT_USE_CPU)
     # Main finufft libraries
     if (FINUFFT_USE_DUCC0)
         set_finufft_options(ducc0)
-        if (WIN32)
-            set_finufft_options(ducc0_dll)
-        endif ()
     endif ()
 
     add_library(finufft_f32 OBJECT ${FINUFFT_PRECISION_DEPENDENT_SOURCES})
