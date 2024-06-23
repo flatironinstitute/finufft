@@ -1150,40 +1150,32 @@ int FINUFFT_EXECUTE(FINUFFT_PLAN p, CPX *cj, CPX *fk) {
       ducc0::vfmav<CPX> data(fwBatch, arrdims);
       if (p->dim==1)  // 1D: no chance for FFT shortcuts
         ducc0::c2c(data, data, axes, p->fftSign<0, FLT(1), p->opts.nthreads);
-      else if (p->dim==2)  // 2D: do partial FFTs
-        {
+      else if (p->dim==2)  { // 2D: do partial FFTs
         if (p->ms<2)  // something is weird, do standard FFT
           ducc0::c2c(data, data, axes, p->fftSign<0, FLT(1), p->opts.nthreads);
-        else
-          {
+        else {
           size_t y_lo = size_t((p->ms+1)/2);
           size_t y_hi = size_t(ns[1]-p->ms/2);
           auto sub1 = ducc0::subarray(data, {{},{},{0,y_lo}});
           auto sub2 = ducc0::subarray(data, {{},{},{y_hi,ducc0::MAXIDX}});
-          if (p->type == 1)  // spreading, not all parts of the output array are needed
-            {
+          if (p->type == 1) {  // spreading, not all parts of the output array are needed
             // do axis 2 in full
             ducc0::c2c(data, data, {2}, p->fftSign<0, FLT(1), p->opts.nthreads);
             // do only parts of axis 1
             ducc0::c2c(sub1, sub1, {1}, p->fftSign<0, FLT(1), p->opts.nthreads);
             ducc0::c2c(sub2, sub2, {1}, p->fftSign<0, FLT(1), p->opts.nthreads);
-            }
-          else  // interpolation, parts of the input array are zero
-            {
+          } else {  // interpolation, parts of the input array are zero
             // do only parts of axis 1
             ducc0::c2c(sub1, sub1, {1}, p->fftSign<0, FLT(1), p->opts.nthreads);
             ducc0::c2c(sub2, sub2, {1}, p->fftSign<0, FLT(1), p->opts.nthreads);
             // do axis 2 in full
             ducc0::c2c(data, data, {2}, p->fftSign<0, FLT(1), p->opts.nthreads);
-            }
           }
         }
-      else // 3D
-        {
+      } else {  // 3D
         if ((p->ms<2) || (p->mt<2))  // something is weird, do standard FFT
           ducc0::c2c(data, data, axes, p->fftSign<0, FLT(1), p->opts.nthreads);
-        else
-          {
+        else {
           size_t z_lo = size_t((p->ms+1)/2);
           size_t z_hi = size_t(ns[2]-p->ms/2);
           size_t y_lo = size_t((p->mt+1)/2);
@@ -1194,8 +1186,7 @@ int FINUFFT_EXECUTE(FINUFFT_PLAN p, CPX *cj, CPX *fk) {
           auto sub4 = ducc0::subarray(sub1, {{},{},{y_hi, ducc0::MAXIDX},{}});
           auto sub5 = ducc0::subarray(sub2, {{},{},{0,y_lo},{}});
           auto sub6 = ducc0::subarray(sub2, {{},{},{y_hi, ducc0::MAXIDX},{}});
-          if (p->type == 1)  // spreading, not all parts of the output array are needed
-            {
+          if (p->type == 1) {  // spreading, not all parts of the output array are needed
             // do axis 3 in full
             ducc0::c2c(data, data, {3}, p->fftSign<0, FLT(1), p->opts.nthreads);
             // do only parts of axis 2
@@ -1206,9 +1197,7 @@ int FINUFFT_EXECUTE(FINUFFT_PLAN p, CPX *cj, CPX *fk) {
             ducc0::c2c(sub4, sub4, {1}, p->fftSign<0, FLT(1), p->opts.nthreads);
             ducc0::c2c(sub5, sub5, {1}, p->fftSign<0, FLT(1), p->opts.nthreads);
             ducc0::c2c(sub6, sub6, {1}, p->fftSign<0, FLT(1), p->opts.nthreads);
-            }
-          else  // interpolation, parts of the input array are zero
-            {
+          } else {  // interpolation, parts of the input array are zero
             // do even smaller parts of axis 1
             ducc0::c2c(sub3, sub3, {1}, p->fftSign<0, FLT(1), p->opts.nthreads);
             ducc0::c2c(sub4, sub4, {1}, p->fftSign<0, FLT(1), p->opts.nthreads);
@@ -1219,9 +1208,9 @@ int FINUFFT_EXECUTE(FINUFFT_PLAN p, CPX *cj, CPX *fk) {
             ducc0::c2c(sub2, sub2, {2}, p->fftSign<0, FLT(1), p->opts.nthreads);
             // do axis 3 in full
             ducc0::c2c(data, data, {3}, p->fftSign<0, FLT(1), p->opts.nthreads);
-            }
           }
         }
+      }
       delete[] ns;
       }
 #else
