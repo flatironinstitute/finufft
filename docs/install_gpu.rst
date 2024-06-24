@@ -5,7 +5,7 @@ Installation (GPU)
 
 .. note::
 
-    Python users may install the cuFINUFFT package using ``pip install cufinufft``, which contains binary wheels compiled against CUDA 10.2 on Linux. If these requirements do not work for your use case, please see the detailed instructions below.
+    Python users may install the cuFINUFFT package using ``pip install cufinufft``, which contains binary wheels compiled against CUDA 11.2 on Linux. If these requirements do not work for your use case, please see the detailed instructions below.
 
 The GPU version of FINUFFT is called cuFINUFFT,
 and it uses CUDA kernels (often exploiting fast GPU shared memory)
