@@ -1047,12 +1047,130 @@ FINUFFT_NEVER_INLINE void spread_subproblem_1d_kernel(
   // something weird here. Reversing ker{0} and std fill causes ker
   // to be zeroed inside the loop GCC uses AVX, clang AVX2
   alignas(alignment) std::array<FLT, MAX_NSPREAD> ker{0};
+  const auto regular_M = M & (-simd_size);
   std::fill(du, du + 2 * size1, 0); // zero output
   // no padding needed if MAX_NSPREAD is 16
   // the largest read is 16 floats with avx512
   // if larger instructions will be available or half precision is used, this should be
   // padded
-  for (uint64_t i{0}; i < M; i++) { // loop over NU pts
+  for (uint64_t i{0}; i < regular_M; i += simd_size) { // loop over NU pts
+    // ceil offset, hence rounding, must match that in get_subgrid...
+    const auto [trg, x1] = [du, kx, i, off1] {
+      const auto kx_v   = simd_type::load_unaligned(kx + i);
+      const auto kv_sub = xsimd::ceil(kx_v - ns2); // fine grid start index
+      const auto i1_v   = xsimd::to_int(kv_sub);   // fine grid start index
+      const auto j_v    = 2 * (i1_v - off1); // offset rel to subgrid, starts the output
+                                             // indices
+      alignas(alignment) std::array<BIGINT, simd_size> j_array{};
+      j_v.store_aligned(j_array.data());
+      std::array<FLT * FINUFFT_RESTRICT, simd_size> trg_array{};
+      for (uint8_t j{0}; j < simd_size; j++) {
+        trg_array[j] = du + j_array[j]; // restrict helps compiler to vectorize
+      }
+      auto x1_v = simd_type::load_unaligned(kx + i);
+      x1_v      = kv_sub - x1_v; // x1_array in [-w/2,-w/2+1], up to rounding
+      // However if N1*epsmach>O(1) then can cause O(1) errors in x1_array, hence ppoly
+      // kernel evaluation will fall outside their designed domains, >>1 errors.
+      // This can only happen if the overall error would be O(1) anyway. Clip x1_array??
+      x1_v -= xsimd::select(x1_v < -ns2, simd_type(ns2), simd_type(0));
+      x1_v = xsimd::select(x1_v > -ns2 + 1, simd_type(-ns2 + 1), x1_v);
+      alignas(alignment) std::array<FLT, simd_size> x1_array{};
+      x1_v.store_aligned(x1_array.data());
+      return std::make_pair(trg_array, x1_array);
+    }();
+
+    // du is padded, so we can use SIMD even if we write more than ns values in du
+    // ker is also padded.
+    // regular_part, source Agner Fog
+    // [VCL](https://www.agner.org/optimize/vcl_manual.pdf)
+    // Given 2*ns+padding=L so that L = M*simd_size
+    // if M is even then regular_part == M else regular_part == (M-1) * simd_size
+    // this means that the elements from regular_part to L are a special case that
+    // needs a different handling. These last elements are not computed in the loop but,
+    // the if constexpr block at the end of the loop takes care of them.
+    // This allows to save one load at each loop iteration.
+    // The special case, allows to minimize padding otherwise out of bounds access.
+    // See below for the details.
+    static constexpr auto regular_part = (2 * ns + padding) & (-(2 * simd_size));
+    // this loop increment is 2*simd_size by design
+    // it allows to save one load this way at each iteration
+
+    // This does for each element e of the subgrid, x1 defined above and pt the NU point
+    // the following: e += exp(beta.sqrt(1 - (2*x1/n_s)^2))*pt
+    // NOTE: x1 is translated accordingly, please see the ES method for more
+    // using uint8_t in loops to favor unrolling.
+    // Most compilers limit the unrolling to 255, uint8_t is at most 255
+    for (uint8_t j{0}; j < simd_size; ++j) {
+      __builtin_prefetch(trg[j]);
+      // initializes a dd_pt that is const
+      // should not make a difference in performance
+      // but is a hint to the compiler that after the lambda
+      // dd_pt is not modified and can be kept as is in a register
+      // given (re, im) in this case dd[i*2] and dd[i*2+1]
+      // this function returns a simd register of size simd_size
+      // initialized as follows:
+      // +-----------------------+
+      // |re|im|re|im|re|im|re|im|
+      // +-----------------------+
+      const auto dd_pt =
+          initialize_complex_register<simd_type>(dd[(i + j) * 2], dd[(i + j) * 2 + 1]);
+
+      // Libin improvement: pass ker as a parameter and allocate it outside the loop
+      // gcc13 + 10% speedup
+      ker_eval<ns, kerevalmeth, FLT, simd_type>(ker.data(), opts, x1[j]);
+
+      for (uint8_t dx{0}; dx < regular_part; dx += 2 * simd_size) {
+        // read ker_v which is simd_size wide from ker
+        // ker_v looks like this:
+        // +-----------------------+
+        // |y0|y1|y2|y3|y4|y5|y6|y7|
+        // +-----------------------+
+        const auto ker_v = simd_type::load_aligned(ker.data() + dx / 2);
+        // read 2*SIMD vectors from the subproblem grid
+        const auto du_pt0 = simd_type::load_unaligned(trg[j] + dx);
+        const auto du_pt1 = simd_type::load_unaligned(trg[j] + dx + simd_size);
+        // swizzle is faster than zip_lo(ker_v, ker_v) and zip_hi(ker_v, ker_v)
+        // swizzle in this case is equivalent to zip_lo and zip_hi respectively
+        const auto ker0low = xsimd::swizzle(ker_v, zip_low_index<arch_t>);
+        // ker 0 looks like this now:
+        // +-----------------------+
+        // |y0|y0|y1|y1|y2|y2|y3|y3|
+        // +-----------------------+
+        const auto ker0hi = xsimd::swizzle(ker_v, zip_hi_index<arch_t>);
+        // ker 1 looks like this now:
+        // +-----------------------+
+        // |y4|y4|y5|y5|y6|y6|y7|y7|
+        // +-----------------------+
+        // same as before each element of the subproblem grid is multiplied by the
+        // corresponding element of the kernel since dd_pt is re|im interleaves res0 is
+        // also correctly re|im interleaved doing this for two SIMD vectors at once allows
+        // to fully utilize ker_v instead of wasting the higher half
+        const auto res0 = xsimd::fma(ker0low, dd_pt, du_pt0);
+        const auto res1 = xsimd::fma(ker0hi, dd_pt, du_pt1);
+        res0.store_unaligned(trg[j] + dx);
+        res1.store_unaligned(trg[j] + dx + simd_size);
+      }
+      // sanity check at compile time that all the elements are computed
+      static_assert(regular_part + simd_size >= 2 * ns);
+      // case where the 2*ns is not a multiple of 2*simd_size
+      // checking 2*ns instead of 2*ns+padding as we do not need to compute useless
+      // zeros...
+      if constexpr (regular_part < 2 * ns) {
+        // here we need to load the last kernel values,
+        // but we can avoid computing extra padding
+        // also this padding will result in out-of-bounds access to trg
+        // The difference between this and the loop is that ker0hi is not computed and
+        // the corresponding memory is not accessed
+        const auto ker0    = simd_type::load_unaligned(ker.data() + (regular_part / 2));
+        const auto du_pt   = simd_type::load_unaligned(trg[j] + regular_part);
+        const auto ker0low = xsimd::swizzle(ker0, zip_low_index<arch_t>);
+        const auto res     = xsimd::fma(ker0low, dd_pt, du_pt);
+        res.store_unaligned(trg[j] + regular_part);
+      }
+    }
+  }
+
+  for (uint64_t i{regular_M}; i < M; i++) { // loop over NU pts
     // initializes a dd_pt that is const
     // should not make a difference in performance
     // but is a hint to the compiler that after the lambda
