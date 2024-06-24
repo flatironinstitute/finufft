@@ -1,7 +1,6 @@
 cmake_minimum_required(VERSION 3.19)
 
 project(finufft VERSION 2.2.0 LANGUAGES C CXX)
-set(CMAKE_CXX_STANDARD 17)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
@@ -118,6 +117,11 @@ endfunction()
 
 # Utility function to link static/dynamic lib
 function(finufft_link_test target)
+
+    if (FINUFFT_USE_DUCC0)
+        target_compile_definitions(${target} PRIVATE FINUFFT_USE_DUCC0)
+    endif ()
+
     if (FINUFFT_STATIC_LINKING)
         target_link_libraries(${target} PRIVATE finufft_static)
         if (FINUFFT_USE_OPENMP)
@@ -186,6 +190,7 @@ endfunction()
 if (FINUFFT_USE_CPU)
     # Main finufft libraries
     if (FINUFFT_USE_DUCC0)
+        # okay for now, to be cleaned up
         set_finufft_options(ducc0)
     endif ()
 
@@ -212,7 +217,7 @@ if (FINUFFT_USE_CPU)
         target_link_libraries(finufft_f64_dll PUBLIC ${FINUFFT_FFTLIBS})
     endif ()
 
-    add_library(finufft SHARED src/utils_precindep.cpp contrib/legendre_rule_fast.cpp)
+    add_library(finufft SHARED src/fft.cpp src/utils_precindep.cpp contrib/legendre_rule_fast.cpp)
     target_compile_definitions(finufft PRIVATE dll_EXPORTS FINUFFT_DLL)
     set_finufft_options(finufft)
     if (NOT WIN32)
@@ -226,7 +231,7 @@ if (FINUFFT_USE_CPU)
     endif ()
     target_include_directories(finufft PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
 
-    add_library(finufft_static STATIC src/utils_precindep.cpp contrib/legendre_rule_fast.cpp)
+    add_library(finufft_static STATIC src/fft.cpp src/utils_precindep.cpp contrib/legendre_rule_fast.cpp)
     set_finufft_options(finufft_static)
     target_link_libraries(finufft_static PUBLIC finufft_f32 finufft_f64)
     # windows does not have a math library, so we need to exclude it

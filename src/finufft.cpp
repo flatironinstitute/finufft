@@ -4,9 +4,7 @@
 // private headers for lib build
 // (must come after finufft.h which clobbers FINUFFT* macros)
 #include <finufft/defs.h>
-#ifdef FINUFFT_USE_DUCC0
-#include "ducc0/fft/fftnd_impl.h"
-#endif
+#include <finufft/fft.h>
 #include <finufft/spreadinterp.h>
 #include <finufft/utils.h>
 #include <finufft/utils_precindep.h>
@@ -227,7 +225,7 @@ void onedim_fseries_kernel(BIGINT nf, FLT *fwkerhalf, finufft_spread_opts opts)
 #pragma omp parallel num_threads(nt)
   {                                                // each thread gets own chunk to do
     int t = MY_OMP_GET_THREAD_NUM();
-    CPX aj[MAX_NQUAD];               // phase rotator for this thread
+    CPX aj[MAX_NQUAD];                             // phase rotator for this thread
     for (int n = 0; n < q; ++n)
       aj[n] = pow(a[n], (FLT)brk[t]);              // init phase factors for chunk
     for (BIGINT j = brk[t]; j < brk[t + 1]; ++j) { // loop along output array
@@ -316,12 +314,12 @@ void deconvolveshuffle1d(int dir, FLT prefac, FLT *ker, BIGINT ms, FLT *fk, BIGI
     pp = 0;
     pn = 2 * (kmax + 1);
   } // or, instead, FFT ordering
-  if (dir == 1) {                                   // read fw, write out to fk...
-    for (BIGINT k = 0; k <= kmax; ++k) {            // non-neg freqs k
+  if (dir == 1) {                                       // read fw, write out to fk...
+    for (BIGINT k = 0; k <= kmax; ++k) {                // non-neg freqs k
       fk[pp++] = prefac * fw[k].real() / ker[k];        // re
       fk[pp++] = prefac * fw[k].imag() / ker[k];        // im
     }
-    for (BIGINT k = kmin; k < 0; ++k) {             // neg freqs k
+    for (BIGINT k = kmin; k < 0; ++k) {                 // neg freqs k
       fk[pn++] = prefac * fw[nf1 + k].real() / ker[-k]; // re
       fk[pn++] = prefac * fw[nf1 + k].imag() / ker[-k]; // im
     }
@@ -330,11 +328,11 @@ void deconvolveshuffle1d(int dir, FLT prefac, FLT *ker, BIGINT ms, FLT *fk, BIGI
                                                      // needed
       fw[k] = 0.0;
     }
-    for (BIGINT k = 0; k <= kmax; ++k) {            // non-neg freqs k
+    for (BIGINT k = 0; k <= kmax; ++k) {             // non-neg freqs k
       fw[k].real(prefac * fk[pp++] / ker[k]);        // re
       fw[k].imag(prefac * fk[pp++] / ker[k]);        // im
     }
-    for (BIGINT k = kmin; k < 0; ++k) {             // neg freqs k
+    for (BIGINT k = kmin; k < 0; ++k) {              // neg freqs k
       fw[nf1 + k].real(prefac * fk[pn++] / ker[-k]); // re
       fw[nf1 + k].imag(prefac * fk[pn++] / ker[-k]); // im
     }
@@ -451,7 +449,7 @@ int spreadinterpSortedBatch(int batchSize, FINUFFT_PLAN p, CPX *fwBatch, CPX *cB
 #pragma omp parallel for num_threads(nthr_outer)
   for (int i = 0; i < batchSize; i++) {
     CPX *fwi = fwBatch + i * p->nf; // start of i'th fw array in wkspace
-    CPX *ci  = cBatch + i * p->nj;     // start of i'th c array in cBatch
+    CPX *ci  = cBatch + i * p->nj;  // start of i'th c array in cBatch
     spreadinterpSorted(p->sortIndices, p->nf1, p->nf2, p->nf3, (FLT *)fwi, p->nj, p->X,
                        p->Y, p->Z, (FLT *)ci, p->spopts, p->didSort);
   }
@@ -474,7 +472,7 @@ int deconvolveBatch(int batchSize, FINUFFT_PLAN p, CPX *fwBatch, CPX *fkBatch)
 #pragma omp parallel for num_threads(batchSize)
   for (int i = 0; i < batchSize; i++) {
     CPX *fwi = fwBatch + i * p->nf; // start of i'th fw array in wkspace
-    CPX *fki = fkBatch + i * p->N;     // start of i'th fk array in fkBatch
+    CPX *fki = fkBatch + i * p->N;  // start of i'th fk array in fkBatch
 
     // Call routine from common.cpp for the dim; prefactors hardcoded to 1.0...
     if (p->dim == 1)
@@ -547,11 +545,11 @@ void FINUFFT_DEFAULT_OPTS(finufft_opts *o)
   o->spread_debug = 0;
   o->showwarn     = 1;
 
-  o->nthreads           = 0;
+  o->nthreads = 0;
 #ifdef FINUFFT_USE_DUCC0
-  o->fftw               = 0; //
+  o->fftw = 0; //
 #else
-  o->fftw               = FFTW_ESTIMATE; //
+  o->fftw = FFTW_ESTIMATE; //
 #endif
   o->spread_sort        = 2;
   o->spread_kerevalmeth = 1;
@@ -789,9 +787,9 @@ int FINUFFT_MAKEPLAN(int type, int dim, BIGINT *n_modes, int iflag, int ntrans, 
       // Unfortunately fftw_planner_nthreads wasn't introduced until fftw 3.3.9, and
       // there isn't a convenient mechanism to probe the version
       FFTW_PLAN_TH(nthr_fft);
-      p->fftwPlan =
-          FFTW_PLAN_MANY_DFT(dim, ns, p->batchSize, (FFTW_CPX *)p->fwBatch, NULL, 1, p->nf,
-                             (FFTW_CPX *)p->fwBatch, NULL, 1, p->nf, p->fftSign, p->opts.fftw);
+      p->fftwPlan = FFTW_PLAN_MANY_DFT(dim, ns, p->batchSize, (FFTW_CPX *)p->fwBatch,
+                                       NULL, 1, p->nf, (FFTW_CPX *)p->fwBatch, NULL, 1,
+                                       p->nf, p->fftSign, p->opts.fftw);
     }
     if (p->opts.debug)
       printf("[%s] FFTW plan (mode %d, nthr=%d):\t%.3g s\n", __func__, p->opts.fftw,
@@ -802,10 +800,10 @@ int FINUFFT_MAKEPLAN(int type, int dim, BIGINT *n_modes, int iflag, int ntrans, 
   } else { // -------------------------- type 3 (no planning) ------------
 
     if (p->opts.debug) printf("[%s] %dd%d: ntrans=%d\n", __func__, dim, type, ntrans);
-    // in case destroy occurs before setpts, need safe dummy ptrs/plans...
+      // in case destroy occurs before setpts, need safe dummy ptrs/plans...
 #ifndef FINUFFT_USE_DUCC0
-    p->CpBatch     = NULL;
-    p->fwBatch     = NULL;
+    p->CpBatch = NULL;
+    p->fwBatch = NULL;
 #endif
     p->Sp          = NULL;
     p->Tp          = NULL;
@@ -1106,7 +1104,7 @@ int FINUFFT_EXECUTE(FINUFFT_PLAN p, CPX *cj, CPX *fk) {
   timer.start();
 
 #ifdef FINUFFT_USE_DUCC0
-  std::vector<CPX> fwBatch_(p->nf * p->batchSize);    // the big workspace
+  std::vector<CPX> fwBatch_(p->nf * p->batchSize); // the big workspace
   CPX *fwBatch = fwBatch_.data();
 #else
   CPX *fwBatch = p->fwBatch;
@@ -1143,77 +1141,84 @@ int FINUFFT_EXECUTE(FINUFFT_PLAN p, CPX *cj, CPX *fk) {
       timer.restart();
 #ifdef FINUFFT_USE_DUCC0
       {
-      int *ns = GRIDSIZE_FOR_FFT(p);
-      vector<size_t> arrdims, axes;
-      arrdims.push_back(size_t(p->batchSize));
-      arrdims.push_back(size_t(ns[0])); axes.push_back(1);
-      if (p->dim>=2) { arrdims.push_back(size_t(ns[1])); axes.push_back(2); }
-      if (p->dim>=3) { arrdims.push_back(size_t(ns[2])); axes.push_back(3); }
-      ducc0::vfmav<CPX> data(fwBatch, arrdims);
-      if (p->dim==1)  // 1D: no chance for FFT shortcuts
-        ducc0::c2c(data, data, axes, p->fftSign<0, FLT(1), p->opts.nthreads);
-      else if (p->dim==2)  { // 2D: do partial FFTs
-        if (p->ms<2)  // something is weird, do standard FFT
-          ducc0::c2c(data, data, axes, p->fftSign<0, FLT(1), p->opts.nthreads);
-        else {
-          size_t y_lo = size_t((p->ms+1)/2);
-          size_t y_hi = size_t(ns[1]-p->ms/2);
-          auto sub1 = ducc0::subarray(data, {{},{},{0,y_lo}});
-          auto sub2 = ducc0::subarray(data, {{},{},{y_hi,ducc0::MAXIDX}});
-          if (p->type == 1) {  // spreading, not all parts of the output array are needed
-            // do axis 2 in full
-            ducc0::c2c(data, data, {2}, p->fftSign<0, FLT(1), p->opts.nthreads);
-            // do only parts of axis 1
-            ducc0::c2c(sub1, sub1, {1}, p->fftSign<0, FLT(1), p->opts.nthreads);
-            ducc0::c2c(sub2, sub2, {1}, p->fftSign<0, FLT(1), p->opts.nthreads);
-          } else {  // interpolation, parts of the input array are zero
-            // do only parts of axis 1
-            ducc0::c2c(sub1, sub1, {1}, p->fftSign<0, FLT(1), p->opts.nthreads);
-            ducc0::c2c(sub2, sub2, {1}, p->fftSign<0, FLT(1), p->opts.nthreads);
-            // do axis 2 in full
-            ducc0::c2c(data, data, {2}, p->fftSign<0, FLT(1), p->opts.nthreads);
+        int *ns = GRIDSIZE_FOR_FFT(p);
+        vector<size_t> arrdims, axes;
+        arrdims.push_back(size_t(p->batchSize));
+        arrdims.push_back(size_t(ns[0]));
+        axes.push_back(1);
+        if (p->dim >= 2) {
+          arrdims.push_back(size_t(ns[1]));
+          axes.push_back(2);
+        }
+        if (p->dim >= 3) {
+          arrdims.push_back(size_t(ns[2]));
+          axes.push_back(3);
+        }
+        ducc0::vfmav<CPX> data(fwBatch, arrdims);
+        if (p->dim == 1)        // 1D: no chance for FFT shortcuts
+          ducc0::c2c(data, data, axes, p->fftSign < 0, FLT(1), p->opts.nthreads);
+        else if (p->dim == 2) { // 2D: do partial FFTs
+          if (p->ms < 2)        // something is weird, do standard FFT
+            ducc0::c2c(data, data, axes, p->fftSign < 0, FLT(1), p->opts.nthreads);
+          else {
+            size_t y_lo = size_t((p->ms + 1) / 2);
+            size_t y_hi = size_t(ns[1] - p->ms / 2);
+            auto sub1   = ducc0::subarray(data, {{}, {}, {0, y_lo}});
+            auto sub2   = ducc0::subarray(data, {{}, {}, {y_hi, ducc0::MAXIDX}});
+            if (p->type == 1) { // spreading, not all parts of the output array are needed
+              // do axis 2 in full
+              ducc0::c2c(data, data, {2}, p->fftSign < 0, FLT(1), p->opts.nthreads);
+              // do only parts of axis 1
+              ducc0::c2c(sub1, sub1, {1}, p->fftSign < 0, FLT(1), p->opts.nthreads);
+              ducc0::c2c(sub2, sub2, {1}, p->fftSign < 0, FLT(1), p->opts.nthreads);
+            } else { // interpolation, parts of the input array are zero
+              // do only parts of axis 1
+              ducc0::c2c(sub1, sub1, {1}, p->fftSign < 0, FLT(1), p->opts.nthreads);
+              ducc0::c2c(sub2, sub2, {1}, p->fftSign < 0, FLT(1), p->opts.nthreads);
+              // do axis 2 in full
+              ducc0::c2c(data, data, {2}, p->fftSign < 0, FLT(1), p->opts.nthreads);
+            }
+          }
+        } else {                          // 3D
+          if ((p->ms < 2) || (p->mt < 2)) // something is weird, do standard FFT
+            ducc0::c2c(data, data, axes, p->fftSign < 0, FLT(1), p->opts.nthreads);
+          else {
+            size_t z_lo = size_t((p->ms + 1) / 2);
+            size_t z_hi = size_t(ns[2] - p->ms / 2);
+            size_t y_lo = size_t((p->mt + 1) / 2);
+            size_t y_hi = size_t(ns[1] - p->mt / 2);
+            auto sub1   = ducc0::subarray(data, {{}, {}, {}, {0, z_lo}});
+            auto sub2   = ducc0::subarray(data, {{}, {}, {}, {z_hi, ducc0::MAXIDX}});
+            auto sub3   = ducc0::subarray(sub1, {{}, {}, {0, y_lo}, {}});
+            auto sub4   = ducc0::subarray(sub1, {{}, {}, {y_hi, ducc0::MAXIDX}, {}});
+            auto sub5   = ducc0::subarray(sub2, {{}, {}, {0, y_lo}, {}});
+            auto sub6   = ducc0::subarray(sub2, {{}, {}, {y_hi, ducc0::MAXIDX}, {}});
+            if (p->type == 1) { // spreading, not all parts of the output array are needed
+              // do axis 3 in full
+              ducc0::c2c(data, data, {3}, p->fftSign < 0, FLT(1), p->opts.nthreads);
+              // do only parts of axis 2
+              ducc0::c2c(sub1, sub1, {2}, p->fftSign < 0, FLT(1), p->opts.nthreads);
+              ducc0::c2c(sub2, sub2, {2}, p->fftSign < 0, FLT(1), p->opts.nthreads);
+              // do even smaller parts of axis 1
+              ducc0::c2c(sub3, sub3, {1}, p->fftSign < 0, FLT(1), p->opts.nthreads);
+              ducc0::c2c(sub4, sub4, {1}, p->fftSign < 0, FLT(1), p->opts.nthreads);
+              ducc0::c2c(sub5, sub5, {1}, p->fftSign < 0, FLT(1), p->opts.nthreads);
+              ducc0::c2c(sub6, sub6, {1}, p->fftSign < 0, FLT(1), p->opts.nthreads);
+            } else { // interpolation, parts of the input array are zero
+              // do even smaller parts of axis 1
+              ducc0::c2c(sub3, sub3, {1}, p->fftSign < 0, FLT(1), p->opts.nthreads);
+              ducc0::c2c(sub4, sub4, {1}, p->fftSign < 0, FLT(1), p->opts.nthreads);
+              ducc0::c2c(sub5, sub5, {1}, p->fftSign < 0, FLT(1), p->opts.nthreads);
+              ducc0::c2c(sub6, sub6, {1}, p->fftSign < 0, FLT(1), p->opts.nthreads);
+              // do only parts of axis 2
+              ducc0::c2c(sub1, sub1, {2}, p->fftSign < 0, FLT(1), p->opts.nthreads);
+              ducc0::c2c(sub2, sub2, {2}, p->fftSign < 0, FLT(1), p->opts.nthreads);
+              // do axis 3 in full
+              ducc0::c2c(data, data, {3}, p->fftSign < 0, FLT(1), p->opts.nthreads);
+            }
           }
         }
-      } else {  // 3D
-        if ((p->ms<2) || (p->mt<2))  // something is weird, do standard FFT
-          ducc0::c2c(data, data, axes, p->fftSign<0, FLT(1), p->opts.nthreads);
-        else {
-          size_t z_lo = size_t((p->ms+1)/2);
-          size_t z_hi = size_t(ns[2]-p->ms/2);
-          size_t y_lo = size_t((p->mt+1)/2);
-          size_t y_hi = size_t(ns[1]-p->mt/2);
-          auto sub1 = ducc0::subarray(data, {{},{},{},{0,z_lo}});
-          auto sub2 = ducc0::subarray(data, {{},{},{},{z_hi,ducc0::MAXIDX}});
-          auto sub3 = ducc0::subarray(sub1, {{},{},{0,y_lo},{}});
-          auto sub4 = ducc0::subarray(sub1, {{},{},{y_hi, ducc0::MAXIDX},{}});
-          auto sub5 = ducc0::subarray(sub2, {{},{},{0,y_lo},{}});
-          auto sub6 = ducc0::subarray(sub2, {{},{},{y_hi, ducc0::MAXIDX},{}});
-          if (p->type == 1) {  // spreading, not all parts of the output array are needed
-            // do axis 3 in full
-            ducc0::c2c(data, data, {3}, p->fftSign<0, FLT(1), p->opts.nthreads);
-            // do only parts of axis 2
-            ducc0::c2c(sub1, sub1, {2}, p->fftSign<0, FLT(1), p->opts.nthreads);
-            ducc0::c2c(sub2, sub2, {2}, p->fftSign<0, FLT(1), p->opts.nthreads);
-            // do even smaller parts of axis 1
-            ducc0::c2c(sub3, sub3, {1}, p->fftSign<0, FLT(1), p->opts.nthreads);
-            ducc0::c2c(sub4, sub4, {1}, p->fftSign<0, FLT(1), p->opts.nthreads);
-            ducc0::c2c(sub5, sub5, {1}, p->fftSign<0, FLT(1), p->opts.nthreads);
-            ducc0::c2c(sub6, sub6, {1}, p->fftSign<0, FLT(1), p->opts.nthreads);
-          } else {  // interpolation, parts of the input array are zero
-            // do even smaller parts of axis 1
-            ducc0::c2c(sub3, sub3, {1}, p->fftSign<0, FLT(1), p->opts.nthreads);
-            ducc0::c2c(sub4, sub4, {1}, p->fftSign<0, FLT(1), p->opts.nthreads);
-            ducc0::c2c(sub5, sub5, {1}, p->fftSign<0, FLT(1), p->opts.nthreads);
-            ducc0::c2c(sub6, sub6, {1}, p->fftSign<0, FLT(1), p->opts.nthreads);
-            // do only parts of axis 2
-            ducc0::c2c(sub1, sub1, {2}, p->fftSign<0, FLT(1), p->opts.nthreads);
-            ducc0::c2c(sub2, sub2, {2}, p->fftSign<0, FLT(1), p->opts.nthreads);
-            // do axis 3 in full
-            ducc0::c2c(data, data, {3}, p->fftSign<0, FLT(1), p->opts.nthreads);
-          }
-        }
-      }
-      delete[] ns;
+        delete[] ns;
       }
 #else
       FFTW_EX(p->fftwPlan); // if thisBatchSize<batchSize it wastes some flops
@@ -1257,7 +1262,7 @@ int FINUFFT_EXECUTE(FINUFFT_PLAN p, CPX *cj, CPX *fk) {
              p->nbatch, p->batchSize);
 
 #ifdef FINUFFT_USE_DUCC0
-    std::vector<CPX> CpBatch_(p->nj*p->batchSize);  // batch c' work
+    std::vector<CPX> CpBatch_(p->nj * p->batchSize); // batch c' work
     CPX *CpBatch = CpBatch_.data();
 #else
     CPX *CpBatch = p->CpBatch;
@@ -1285,7 +1290,7 @@ int FINUFFT_EXECUTE(FINUFFT_PLAN p, CPX *cj, CPX *fk) {
 
       // STEP 1: spread c'_j batch (x'_j NU pts) into fw batch grid...
       timer.restart();
-      p->spopts.spread_direction = 1;                        // spread
+      p->spopts.spread_direction = 1;                              // spread
       spreadinterpSortedBatch(thisBatchSize, p, fwBatch, CpBatch); // p->X are primed
       t_spr += timer.elapsedsec();
 

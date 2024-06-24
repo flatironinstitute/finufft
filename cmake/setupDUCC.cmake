@@ -16,5 +16,10 @@ if(ducc0_ADDED)
     )
     target_include_directories(ducc0 PUBLIC ${ducc0_SOURCE_DIR}/src/)
     target_compile_options(ducc0 PRIVATE -ffast-math)
-    target_compile_features(ducc0 PUBLIC cxx_std_17)
+    target_compile_features(ducc0 PRIVATE cxx_std_17) # private because we do not want to propagate this requirement
+
+    if (NOT OpenMP_CXX_FOUND)
+        find_package(Threads REQUIRED)
+        target_link_libraries(ducc0 PRIVATE Threads::Threads)
+    endif ()
 endif ()

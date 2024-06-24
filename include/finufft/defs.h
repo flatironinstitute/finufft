@@ -186,15 +186,7 @@
 // --------  FINUFFT's plan object, prec-switching version ------------------
 // NB: now private (the public C++ or C etc user sees an opaque pointer to it)
 
-#ifdef FINUFFT_USE_DUCC0
-#define FFTW_FORGET_WISDOM()  // temporary hack since some tests call this unconditionally
-#define FFTW_CLEANUP()  // temporary hack since some tests call this unconditionally
-#define FFTW_CLEANUP_THREADS()  // temporary hack since some tests call this unconditionally
-// FFTW is needed since we include a FFTW plan in the FINUFFT plan...
-#else
-#include <finufft/fftw_defs.h> // (must come after complex.h)
-// (other FFT lib headers eg MKL could be here...)
-#endif
+#include <finufft/fft.h> // (must come after complex.h)
 
 // group together a bunch of type 3 rescaling/centering/phasing parameters:
 #define TYPE3PARAMS FINUFFTIFY(_type3Params)
@@ -208,34 +200,34 @@ typedef struct FINUFFT_PLAN_S { // the main plan object, fully C++
 
   int type;                     // transform type (Rokhlin naming): 1,2 or 3
   int dim;                      // overall dimension: 1,2 or 3
-  int ntrans;          // how many transforms to do at once (vector or "many" mode)
-  BIGINT nj;           // num of NU pts in type 1,2 (for type 3, num input x pts)
-  BIGINT nk;           // number of NU freq pts (type 3 only)
-  FLT tol;             // relative user tolerance
-  int batchSize;       // # strength vectors to group together for FFTW, etc
-  int nbatch;          // how many batches done to cover all ntrans vectors
+  int ntrans;    // how many transforms to do at once (vector or "many" mode)
+  BIGINT nj;     // num of NU pts in type 1,2 (for type 3, num input x pts)
+  BIGINT nk;     // number of NU freq pts (type 3 only)
+  FLT tol;       // relative user tolerance
+  int batchSize; // # strength vectors to group together for FFTW, etc
+  int nbatch;    // how many batches done to cover all ntrans vectors
 
-  BIGINT ms;           // number of modes in x (1) dir (historical CMCL name) = N1
-  BIGINT mt;           // number of modes in y (2) direction = N2
-  BIGINT mu;           // number of modes in z (3) direction = N3
-  BIGINT N;            // total # modes (prod of above three)
+  BIGINT ms;     // number of modes in x (1) dir (historical CMCL name) = N1
+  BIGINT mt;     // number of modes in y (2) direction = N2
+  BIGINT mu;     // number of modes in z (3) direction = N3
+  BIGINT N;      // total # modes (prod of above three)
 
-  BIGINT nf1;          // size of internal fine grid in x (1) direction
-  BIGINT nf2;          // " y (2)
-  BIGINT nf3;          // " z (3)
-  BIGINT nf;           // total # fine grid points (product of the above three)
+  BIGINT nf1;    // size of internal fine grid in x (1) direction
+  BIGINT nf2;    // " y (2)
+  BIGINT nf3;    // " z (3)
+  BIGINT nf;     // total # fine grid points (product of the above three)
 
-  int fftSign;         // sign in exponential for NUFFT defn, guaranteed to be +-1
+  int fftSign;   // sign in exponential for NUFFT defn, guaranteed to be +-1
 
-  FLT *phiHat1;        // FT of kernel in t1,2, on x-axis mode grid
-  FLT *phiHat2;        // " y-axis.
-  FLT *phiHat3;        // " z-axis.
+  FLT *phiHat1;  // FT of kernel in t1,2, on x-axis mode grid
+  FLT *phiHat2;  // " y-axis.
+  FLT *phiHat3;  // " z-axis.
 
 #ifdef FINUFFT_USE_DUCC0
   CPX *FwBatch_dummy;
 #else
-  CPX *fwBatch;        // (batches of) fine grid(s) for FFTW to plan
-                       // & act on. Usually the largest working array
+  CPX *fwBatch; // (batches of) fine grid(s) for FFTW to plan
+                // & act on. Usually the largest working array
 #endif
 
   BIGINT *sortIndices; // precomputed NU pt permutation, speeds spread/interp
@@ -245,24 +237,20 @@ typedef struct FINUFFT_PLAN_S { // the main plan object, fully C++
                        // for t3: allocated as "primed" (scaled) src pts x'_j, etc
 
   // type 3 specific
-  FLT *S, *T, *U;           // pointers to user's target NU pts arrays (no new allocs)
-  CPX *prephase;            // pre-phase, for all input NU pts
-  CPX *deconv;              // reciprocal of kernel FT, phase, all output NU pts
+  FLT *S, *T, *U; // pointers to user's target NU pts arrays (no new allocs)
+  CPX *prephase;  // pre-phase, for all input NU pts
+  CPX *deconv;    // reciprocal of kernel FT, phase, all output NU pts
 #ifdef FINUFFT_USE_DUCC0
   CPX *CpBatch_dummy;
 #else
-  CPX *CpBatch;             // working array of prephased strengths
+  CPX *CpBatch; // working array of prephased strengths
 #endif
   FLT *Sp, *Tp, *Up;        // internal primed targs (s'_k, etc), allocated
   TYPE3PARAMS t3P;          // groups together type 3 shift, scale, phase, parameters
   FINUFFT_PLAN innerT2plan; // ptr used for type 2 in step 2 of type 3
 
   // other internal structs; each is C-compatible of course
-#ifdef FINUFFT_USE_DUCC0
-  void * fftwPlan_dummy;
-#else
-  FFTW_PLAN fftwPlan;
-#endif
+  fft_plan_t fftwPlan;
   finufft_opts opts; // this and spopts could be made ptrs
   finufft_spread_opts spopts;
 

@@ -1,0 +1,16 @@
+#ifndef FINUFFT_INCLUDE_FINUFFT_FFT_H
+#define FINUFFT_INCLUDE_FINUFFT_FFT_H
+
+#ifdef FINUFFT_USE_DUCC0
+#include "ducc0/fft/fftnd_impl.h"
+#define FFTW_FORGET_WISDOM()   // temporary hack since some tests call this unconditionally
+#define FFTW_CLEANUP()         // temporary hack since some tests call this unconditionally
+#define FFTW_CLEANUP_THREADS() // temporary hack since some tests call this
+                               // unconditionally
+using fft_plan_t = void *;
+#else
+#include "fftw_defs.h"
+using fft_plan_t = FFTW_PLAN;
+#endif
+
+#endif // FINUFFT_INCLUDE_FINUFFT_FFT_H
