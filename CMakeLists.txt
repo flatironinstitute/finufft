@@ -162,7 +162,7 @@ function(set_finufft_options target)
         target_include_directories(${target} PUBLIC ${FFTW_INCLUDE_DIR})
     endif ()
     target_link_libraries(${target} PRIVATE xsimd)
-    target_link_libraries(${target} PRIVATE ${FINUFFT_FFTW_LIBRARIES})
+    target_link_libraries(${target} PUBLIC ${FINUFFT_FFTW_LIBRARIES})
 endfunction()
 
 if (FINUFFT_USE_CPU)
