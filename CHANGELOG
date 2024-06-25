@@ -29,6 +29,12 @@ V 2.3.0beta (6/21/24)
   Created a .clang-format file to define the style similar to the existing style.
   Applied clang-format to all cmake, C, C++, and CUDA code. Ignored the blame
   using .git-blame-ignore-revs. Added a contributing.md for developers.
+* cuFINUFFT interface update: number of nonuniform points M is now a 64-bit integer
+as opposed to 32-bit. While this does modify the ABI, most code will just need to
+recompile against the new library as compilers will silently upcast any 32-bit
+integers to 64-bit when calling cufinufft(f)_setpts. Note that internally, 32-bit
+integers are still used, so calling cufinufft with more than 2e9 points will fail.
+This restriction may be lifted in the future.
 
 V 2.2.0 (12/12/23)
 

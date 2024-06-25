@@ -48,15 +48,19 @@ int cufinufft_makeplan(int type, int dim, const int64_t *nmodes, int iflag, int 
                                  (cufinufft_plan_t<double> **)d_plan_ptr, opts);
 }
 
-int cufinufftf_setpts(cufinufftf_plan d_plan, int M, float *d_x, float *d_y, float *d_z,
-                      int N, float *d_s, float *d_t, float *d_u) {
-  return cufinufft_setpts_impl(M, d_x, d_y, d_z, N, d_s, d_t, d_u,
+int cufinufftf_setpts(cufinufftf_plan d_plan, const int64_t M, float *d_x, float *d_y,
+                      float *d_z, int N, float *d_s, float *d_t, float *d_u) {
+  if (M > std::numeric_limits<int32_t>::max()) return FINUFFT_ERR_NDATA_NOTVALID;
+
+  return cufinufft_setpts_impl((int)M, d_x, d_y, d_z, N, d_s, d_t, d_u,
                                (cufinufft_plan_t<float> *)d_plan);
 }
 
-int cufinufft_setpts(cufinufft_plan d_plan, int M, double *d_x, double *d_y, double *d_z,
-                     int N, double *d_s, double *d_t, double *d_u) {
-  return cufinufft_setpts_impl(M, d_x, d_y, d_z, N, d_s, d_t, d_u,
+int cufinufft_setpts(cufinufft_plan d_plan, const int64_t M, double *d_x, double *d_y,
+                     double *d_z, int N, double *d_s, double *d_t, double *d_u) {
+  if (M > std::numeric_limits<int32_t>::max()) return FINUFFT_ERR_NDATA_NOTVALID;
+
+  return cufinufft_setpts_impl((int)M, d_x, d_y, d_z, N, d_s, d_t, d_u,
                                (cufinufft_plan_t<double> *)d_plan);
 }
 
