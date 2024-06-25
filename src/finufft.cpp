@@ -771,9 +771,7 @@ int FINUFFT_MAKEPLAN(int type, int dim, BIGINT *n_modes, int iflag, int ntrans, 
       free(p->phiHat3);
       return FINUFFT_ERR_ALLOC;
     }
-#endif
 
-#ifndef FINUFFT_USE_DUCC0
     timer.restart(); // plan the FFTW
     int *ns = GRIDSIZE_FOR_FFT(p);
     // fftw_plan_many_dft args: rank, gridsize/dim, howmany, in, inembed, istride,
@@ -802,8 +800,8 @@ int FINUFFT_MAKEPLAN(int type, int dim, BIGINT *n_modes, int iflag, int ntrans, 
     if (p->opts.debug) printf("[%s] %dd%d: ntrans=%d\n", __func__, dim, type, ntrans);
       // in case destroy occurs before setpts, need safe dummy ptrs/plans...
 #ifndef FINUFFT_USE_DUCC0
-    p->CpBatch = NULL;
-    p->fwBatch = NULL;
+    p->CpBatch     = NULL;
+    p->fwBatch     = NULL;
 #endif
     p->Sp          = NULL;
     p->Tp          = NULL;
