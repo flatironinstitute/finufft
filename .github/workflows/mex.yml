@@ -41,6 +41,10 @@ jobs:
           sudo apt install libfftw3-dev
           sed -i '/  LIBSFFT/a \ \ LIBSFFT := `g++ --print-file-name libfftw3.a` `g++ --print-file-name libfftw3f.a` `g++ --print-file-name libfftw3_omp.a` `g++ --print-file-name libfftw3f_omp.a` -lm -lgomp' makefile
           make matlab
+      - name: Run Matlab test
+        uses: matlab-actions/run-command@v2
+        with:
+          command: addpath(genpath('matlab')), check_finufft
       - name: Upload mex files
         uses: actions/upload-artifact@v4
         with:
