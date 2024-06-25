@@ -12,6 +12,9 @@ endforeach()
 
 # Add ctest definitions not for both precisions...
 add_executable(testutils testutils.cpp)
+if (FINUFFT_USE_DUCC0)
+  target_compile_definitions(testutils PRIVATE -DFINUFFT_USE_DUCC0)
+endif ()
 finufft_link_test(testutils)
 add_test(NAME run_testutils COMMAND testutils WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
 

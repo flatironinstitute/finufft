@@ -36,6 +36,7 @@ option(FINUFFT_USE_CUDA "Whether to build CUDA accelerated FINUFFT library (libc
 option(FINUFFT_USE_CPU "Whether to build the ordinary FINUFFT library (libfinufft)." ON)
 option(FINUFFT_STATIC_LINKING "Whether to link the static FINUFFT library (libfinufft_static)." ON)
 option(FINUFFT_BUILD_DEVEL "Whether to build development executables" OFF)
+option(FINUFFT_USE_DUCC0 "Whether to use DUCC0 for CPU fft library" ON)
 # sphinx tag (don't remove): @cmake_opts_end
 
 if (FINUFFT_USE_CPU)
@@ -53,9 +54,21 @@ if (FINUFFT_USE_CPU)
     set(FFTW_VERSION 3.3.10)
     set(XTL_VERSION 0.7.7)
     set(XSIMD_VERSION 13.0.0)
+    set(DUCC0_VERSION ducc0_0_34_0)
+    set(FINUFFT_FFTW_LIBRARIES)
     include(cmake/setupCPM.cmake)
-    include(cmake/setupFFTW.cmake)
     include(cmake/setupXSIMD.cmake)
+    if (FINUFFT_USE_DUCC0)
+        include(cmake/setupDUCC.cmake)
+    else ()
+        include(cmake/setupFFTW.cmake)
+    endif ()
+endif ()
+
+if (FINUFFT_USE_DUCC0)
+    set (FINUFFT_FFTLIBS ducc0)
+else ()
+    set (FINUFFT_FFTLIBS ${FINUFFT_FFTW_LIBRARIES})
 endif ()
 
 if (FINUFFT_BUILD_MATLAB)
@@ -104,6 +117,11 @@ endfunction()
 
 # Utility function to link static/dynamic lib
 function(finufft_link_test target)
+
+    if (FINUFFT_USE_DUCC0)
+        target_compile_definitions(${target} PRIVATE FINUFFT_USE_DUCC0)
+    endif ()
+
     if (FINUFFT_STATIC_LINKING)
         target_link_libraries(${target} PRIVATE finufft_static)
         if (FINUFFT_USE_OPENMP)
@@ -150,15 +168,19 @@ function(set_finufft_options target)
         endif ()
     endif ()
 
-    # FFTW CMAKE file includes the APIs only as an install target, so we need to manually
-    # include them since we need them for build not for install
-    # trying to include them directly into the fftw and fftwf targets causes issues with
-    # the latest version of cmake, so we do it here instead.
-    if ((NOT FFTW_FOUND) OR (FINUFFT_FFTW_LIBRARIES STREQUAL DOWNLOAD))
-        list(GET FINUFFT_FFTW_LIBRARIES 0 element)
-        get_property(FFTW_SOURCE_DIR TARGET ${element} PROPERTY SOURCE_DIR)
-        set(FFTW_INCLUDE_DIR ${FFTW_SOURCE_DIR}/api)
-        target_include_directories(${target} PUBLIC ${FFTW_INCLUDE_DIR})
+    if (FINUFFT_USE_DUCC0)
+        target_compile_definitions(${target} PRIVATE FINUFFT_USE_DUCC0)
+    else ()
+        # FFTW CMAKE file includes the APIs only as an install target, so we need to manually
+        # include them since we need them for build not for install
+        # trying to include them directly into the fftw and fftwf targets causes issues with
+        # the latest version of cmake, so we do it here instead.
+        if ((NOT FFTW_FOUND) OR (FINUFFT_FFTW_LIBRARIES STREQUAL DOWNLOAD))
+            list(GET FINUFFT_FFTW_LIBRARIES 0 element)
+            get_property(FFTW_SOURCE_DIR TARGET ${element} PROPERTY SOURCE_DIR)
+            set(FFTW_INCLUDE_DIR ${FFTW_SOURCE_DIR}/api)
+            target_include_directories(${target} PUBLIC ${FFTW_INCLUDE_DIR})
+        endif ()
     endif ()
 
     # XSIMD is a header only library, so we just need to include the headers
@@ -167,30 +189,35 @@ endfunction()
 
 if (FINUFFT_USE_CPU)
     # Main finufft libraries
+    if (FINUFFT_USE_DUCC0)
+        # okay for now, to be cleaned up
+        set_finufft_options(ducc0)
+    endif ()
+
     add_library(finufft_f32 OBJECT ${FINUFFT_PRECISION_DEPENDENT_SOURCES})
     target_compile_definitions(finufft_f32 PRIVATE SINGLE)
     set_finufft_options(finufft_f32)
-    target_link_libraries(finufft_f32 PUBLIC ${FINUFFT_FFTW_LIBRARIES})
+    target_link_libraries(finufft_f32 PUBLIC ${FINUFFT_FFTLIBS})
     target_link_libraries(finufft_f32 PRIVATE xsimd)
 
     add_library(finufft_f64 OBJECT ${FINUFFT_PRECISION_DEPENDENT_SOURCES})
     target_compile_definitions(finufft_f64 PRIVATE)
     set_finufft_options(finufft_f64)
-    target_link_libraries(finufft_f64 PUBLIC ${FINUFFT_FFTW_LIBRARIES})
+    target_link_libraries(finufft_f64 PUBLIC ${FINUFFT_FFTLIBS})
     target_link_libraries(finufft_f64 PRIVATE xsimd)
     if (WIN32)
         add_library(finufft_f32_dll OBJECT ${FINUFFT_PRECISION_DEPENDENT_SOURCES})
         target_compile_definitions(finufft_f32_dll PRIVATE SINGLE dll_EXPORTS FINUFFT_DLL)
         set_finufft_options(finufft_f32_dll)
-        target_link_libraries(finufft_f32_dll PUBLIC ${FINUFFT_FFTW_LIBRARIES})
+        target_link_libraries(finufft_f32_dll PUBLIC ${FINUFFT_FFTLIBS})
 
         add_library(finufft_f64_dll OBJECT ${FINUFFT_PRECISION_DEPENDENT_SOURCES})
         target_compile_definitions(finufft_f64_dll PRIVATE dll_EXPORTS FINUFFT_DLL)
         set_finufft_options(finufft_f64_dll)
-        target_link_libraries(finufft_f64_dll PUBLIC ${FINUFFT_FFTW_LIBRARIES})
+        target_link_libraries(finufft_f64_dll PUBLIC ${FINUFFT_FFTLIBS})
     endif ()
 
-    add_library(finufft SHARED src/utils_precindep.cpp contrib/legendre_rule_fast.cpp)
+    add_library(finufft SHARED src/fft.cpp src/utils_precindep.cpp contrib/legendre_rule_fast.cpp)
     target_compile_definitions(finufft PRIVATE dll_EXPORTS FINUFFT_DLL)
     set_finufft_options(finufft)
     if (NOT WIN32)
@@ -204,7 +231,7 @@ if (FINUFFT_USE_CPU)
     endif ()
     target_include_directories(finufft PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
 
-    add_library(finufft_static STATIC src/utils_precindep.cpp contrib/legendre_rule_fast.cpp)
+    add_library(finufft_static STATIC src/fft.cpp src/utils_precindep.cpp contrib/legendre_rule_fast.cpp)
     set_finufft_options(finufft_static)
     target_link_libraries(finufft_static PUBLIC finufft_f32 finufft_f64)
     # windows does not have a math library, so we need to exclude it
