@@ -818,32 +818,28 @@ void interp_line(FLT *FINUFFT_RESTRICT target, const FLT *du, const FLT *ker,
 */
 {
 
-  FLT out[] = {0.0, 0.0};
-  BIGINT j  = i1;
+  std::array<FLT, 2> out{0};
+  BIGINT j = i1;
   if (FINUFFT_UNLIKELY(i1 < 0)) { // wraps at left
     j += N1;
-    for (UBIGINT dx = 0; dx < -i1; ++dx) {
-      out[0] += du[2 * j] * ker[dx];
-      out[1] += du[2 * j + 1] * ker[dx];
-      ++j;
+    for (UBIGINT dx = 0; dx < -i1; ++dx, ++j) {
+      out[0] = xsimd::fma(du[2 * j], ker[dx], out[0]);
+      out[1] = xsimd::fma(du[2 * j + 1], ker[dx], out[1]);
     }
     j -= N1;
-    for (UBIGINT dx = -i1; dx < ns; ++dx) {
-      out[0] += du[2 * j] * ker[dx];
-      out[1] += du[2 * j + 1] * ker[dx];
-      ++j;
+    for (UBIGINT dx = -i1; dx < ns; ++dx, ++j) {
+      out[0] = xsimd::fma(du[2 * j], ker[dx], out[0]);
+      out[1] = xsimd::fma(du[2 * j + 1], ker[dx], out[1]);
     }
   } else if (FINUFFT_UNLIKELY(i1 + ns >= N1)) { // wraps at right
-    for (int dx = 0; dx < N1 - i1; ++dx) {
-      out[0] += du[2 * j] * ker[dx];
-      out[1] += du[2 * j + 1] * ker[dx];
-      ++j;
+    for (int dx = 0; dx < N1 - i1; ++dx, ++j) {
+      out[0] = xsimd::fma(du[2 * j], ker[dx], out[0]);
+      out[1] = xsimd::fma(du[2 * j + 1], ker[dx], out[1]);
     }
     j -= N1;
-    for (UBIGINT dx = N1 - i1; dx < ns; ++dx) {
-      out[0] += du[2 * j] * ker[dx];
-      out[1] += du[2 * j + 1] * ker[dx];
-      ++j;
+    for (UBIGINT dx = N1 - i1; dx < ns; ++dx, ++j) {
+      out[0] = xsimd::fma(du[2 * j], ker[dx], out[0]);
+      out[1] = xsimd::fma(du[2 * j + 1], ker[dx], out[1]);
     }
   } else { // doesn't wrap
     using arch_t                       = typename simd_type::arch_type;
