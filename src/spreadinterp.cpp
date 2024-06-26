@@ -47,10 +47,10 @@ constexpr auto zip_hi_index =
     xsimd::make_batch_constant<xsimd::as_unsigned_integer_t<FLT>, arch_t, zip_hi>();
 template<class arch_t>
 constexpr auto select_even_mask =
-    xsimd::make_batch_bool_constant<FLT, arch_t, select_even>();
+    xsimd::make_batch_constant<xsimd::as_unsigned_integer_t<FLT>, arch_t, select_even>();
 template<class arch_t>
 constexpr auto select_odd_mask =
-    xsimd::make_batch_bool_constant<FLT, arch_t, select_odd>();
+    xsimd::make_batch_constant<xsimd::as_unsigned_integer_t<FLT>, arch_t, select_odd>();
 template<typename T, std::size_t N, std::size_t M, std::size_t PaddedM>
 constexpr std::array<std::array<T, PaddedM>, N> pad_2D_array_with_zeros(
     const std::array<std::array<T, M>, N> &input) noexcept;
@@ -817,7 +817,6 @@ void interp_line(FLT *FINUFFT_RESTRICT target, const FLT *du, const FLT *ker,
    Barnett 6/16/17.
 */
 {
-
   std::array<FLT, 2> out{0};
   BIGINT j = i1;
   if (FINUFFT_UNLIKELY(i1 < 0)) { // wraps at left
@@ -847,21 +846,29 @@ void interp_line(FLT *FINUFFT_RESTRICT target, const FLT *du, const FLT *ker,
     static constexpr auto alignment    = arch_t::alignment();
     static constexpr auto simd_size    = simd_type::size;
     static constexpr auto regular_part = (2 * ns + padding) & (-(2 * simd_size));
-    simd_type res{0};
+    simd_type res_low{0}, res_hi{0};
     for (uint8_t dx{0}; dx < regular_part; dx += 2 * simd_size) {
       const auto ker_v   = simd_type::load_aligned(ker + dx / 2);
       const auto du_pt0  = simd_type::load_unaligned(du + dx);
       const auto du_pt1  = simd_type::load_unaligned(du + dx + simd_size);
       const auto ker0low = xsimd::swizzle(ker_v, zip_low_index<arch_t>);
       const auto ker0hi  = xsimd::swizzle(ker_v, zip_hi_index<arch_t>);
-      res                = xsimd::fma(ker0low, du_pt0, xsimd::fma(ker0hi, du_pt1, res));
+      res_low            = xsimd::fma(ker0low, du_pt0, res_low);
+      res_hi             = xsimd::fma(ker0hi, du_pt1, res_hi);
     }
     if constexpr (regular_part < 2 * ns) {
       const auto ker0    = simd_type::load_unaligned(ker + (regular_part / 2));
       const auto du_pt   = simd_type::load_unaligned(du + regular_part);
       const auto ker0low = xsimd::swizzle(ker0, zip_low_index<arch_t>);
-      res                = xsimd::fma(ker0low, du_pt, res);
+      res_low            = xsimd::fma(ker0low, du_pt, res_low);
     }
+    // This is slower than summing and looping
+    //     const auto res_real = xsimd::shuffle(res_low, res_hi,
+    //     select_even_mask<arch_t>); const auto res_imag = xsimd::shuffle(res_low,
+    //     res_hi, select_odd_mask<arch_t>); out[0] = xsimd::reduce_add(res_real); out[1]
+    //     = xsimd::reduce_add(res_imag);
+
+    const auto res = res_low + res_hi;
     alignas(alignment) std::array<FLT, simd_size> res_array{};
     res.store_aligned(res_array.data());
     for (uint8_t i{0}; i < simd_size; i += 2) {
@@ -1957,10 +1964,12 @@ struct zip_hi {
 };
 
 struct select_even {
-  static constexpr bool get(unsigned index, unsigned /*size*/) { return index % 2 == 0; }
+  static constexpr unsigned get(unsigned index, unsigned /*size*/) { return index * 2; }
 };
 struct select_odd {
-  static constexpr bool get(unsigned index, unsigned /*size*/) { return index % 2 == 1; }
+  static constexpr unsigned get(unsigned index, unsigned /*size*/) {
+    return index * 2 + 1;
+  }
 };
 
 void print_subgrid_info(int ndims, BIGINT offset1, BIGINT offset2, BIGINT offset3,
