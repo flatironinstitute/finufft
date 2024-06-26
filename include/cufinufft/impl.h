@@ -125,6 +125,11 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
     d_plan->opts = *opts; // keep a deep copy; changing *opts now has no effect
   }
 
+  // cudaMallocAsync isn't supported for all devices, regardless of cuda version. Check
+  // for support
+  cudaDeviceGetAttribute(&d_plan->supports_pools, cudaDevAttrMemoryPoolsSupported,
+                         device_id);
+
   auto &stream = d_plan->stream = (cudaStream_t)d_plan->opts.gpu_stream;
 
   /* Automatically set GPU method. */
@@ -246,10 +251,11 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
                                     d_plan->spopts);
 
     if ((ier = checkCudaErrors(
-             cudaMallocAsync(&d_a, dim * MAX_NQUAD * sizeof(cuDoubleComplex), stream))))
+             cudaMallocWrapper(&d_a, dim * MAX_NQUAD * sizeof(cuDoubleComplex), stream,
+                               d_plan->supports_pools))))
       goto finalize;
-    if ((ier =
-             checkCudaErrors(cudaMallocAsync(&d_f, dim * MAX_NQUAD * sizeof(T), stream))))
+    if ((ier = checkCudaErrors(cudaMallocWrapper(&d_f, dim * MAX_NQUAD * sizeof(T),
+                                                 stream, d_plan->supports_pools))))
       goto finalize;
     if ((ier = checkCudaErrors(
              cudaMemcpyAsync(d_a, a, dim * MAX_NQUAD * sizeof(cuDoubleComplex),
@@ -265,8 +271,8 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
   }
 
 finalize:
-  cudaFreeAsync(d_a, stream);
-  cudaFreeAsync(d_f, stream);
+  cudaFreeWrapper(d_a, stream, d_plan->supports_pools);
+  cudaFreeWrapper(d_f, stream, d_plan->supports_pools);
 
   if (ier > 1) {
     delete *d_plan_ptr;

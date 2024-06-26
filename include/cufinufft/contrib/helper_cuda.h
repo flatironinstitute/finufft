@@ -45,6 +45,19 @@ static const char *_cudaGetErrorEnum(cudaError_t error) {
 // that a CUDA host call returns an error
 #define checkCudaErrors(val) check((val), #val, __FILE__, __LINE__)
 
+template<typename T>
+static inline cudaError_t cudaMallocWrapper(T **devPtr, size_t size, cudaStream_t stream,
+                                            int pool_supported) {
+  return pool_supported ? cudaMallocAsync(devPtr, size, stream)
+                        : cudaMalloc(devPtr, size);
+}
+
+template<typename T>
+static inline cudaError_t cudaFreeWrapper(T *devPtr, cudaStream_t stream,
+                                          int pool_supported) {
+  return pool_supported ? cudaFreeAsync(devPtr, stream) : cudaFree(devPtr);
+}
+
 #define RETURN_IF_CUDA_ERROR                                         \
   {                                                                  \
     cudaError_t err = cudaGetLastError();                            \
@@ -54,12 +67,12 @@ static const char *_cudaGetErrorEnum(cudaError_t error) {
     }                                                                \
   }
 
-#define CUDA_FREE_AND_NULL(val, stream)                            \
-  {                                                                \
-    if (val != nullptr) {                                          \
-      check(cudaFreeAsync(val, stream), #val, __FILE__, __LINE__); \
-      val = nullptr;                                               \
-    }                                                              \
+#define CUDA_FREE_AND_NULL(val, stream, pool_supported)                              \
+  {                                                                                  \
+    if (val != nullptr) {                                                            \
+      check(cudaFreeWrapper(val, stream, pool_supported), #val, __FILE__, __LINE__); \
+      val = nullptr;                                                                 \
+    }                                                                                \
   }
 
 static const char *cufftGetErrorString(cufftResult error) {
