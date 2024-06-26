@@ -832,7 +832,7 @@ void interp_line(FLT *FINUFFT_RESTRICT target, const FLT *du, const FLT *ker,
       out[1] = xsimd::fma(du[2 * j + 1], ker[dx], out[1]);
     }
   } else if (FINUFFT_UNLIKELY(i1 + ns >= N1)) { // wraps at right
-    for (int dx = 0; dx < N1 - i1; ++dx, ++j) {
+    for (UBIGINT dx = 0; dx < N1 - i1; ++dx, ++j) {
       out[0] = xsimd::fma(du[2 * j], ker[dx], out[0]);
       out[1] = xsimd::fma(du[2 * j + 1], ker[dx], out[1]);
     }
