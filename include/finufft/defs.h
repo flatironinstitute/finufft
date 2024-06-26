@@ -15,6 +15,9 @@
 #ifndef DEFS_H
 #define DEFS_H
 
+#include <limits>
+#include <vector>
+
 // public header gives access to f_opts, f_spread_opts, f_plan...
 // (and clobbers FINUFFT* macros; watch out!)
 #include <finufft.h>
@@ -24,18 +27,16 @@
 
 // All indexing in library that potentially can exceed 2^31 uses 64-bit signed.
 // This includes all calling arguments (eg M,N) that could be huge someday.
-#define BIGINT  int64_t
-#define UBIGINT uint64_t
+using BIGINT = int64_t;
+using UBIGINT = uint64_t;
 // Precision-independent real and complex types, for private lib/test compile
 #ifdef SINGLE
-#define FLT float
+using FLT = float;
 #else
-#define FLT double
+using FLT = double;
 #endif
-// next line possibly obsolete...
-#define _USE_MATH_DEFINES
 #include <complex> // we define C++ complex type only
-#define CPX std::complex<FLT>
+using CPX = std::complex<FLT>;
 
 // inline macro, to force inlining of small functions
 // this avoids the use of macros to implement functions
@@ -64,32 +65,32 @@
 
 // Smallest possible kernel spread width per dimension, in fine grid points
 // (used only in spreadinterp.cpp)
-#define MIN_NSPREAD          2
+static constexpr int MIN_NSPREAD          = 2;
 
 // Largest possible kernel spread width per dimension, in fine grid points
 // (used only in spreadinterp.cpp)
-#define MAX_NSPREAD          16
+static constexpr int MAX_NSPREAD          = 16;
 
 // Fraction growth cut-off in utils:arraywidcen, sets when translate in type-3
-#define ARRAYWIDCEN_GROWFRAC 0.1
+static constexpr double ARRAYWIDCEN_GROWFRAC = 0.1;
 
 // Max number of positive quadr nodes for kernel FT (used only in common.cpp)
-#define MAX_NQUAD            100
+static constexpr int MAX_NQUAD            = 100;
 
 // Internal (nf1 etc) array allocation size that immediately raises error.
 // (Note: next235 takes 1s for 1e11, so it is also to prevent hang here.)
 // Increase this if you need >10TB (!) RAM...
-#define MAX_NF               (BIGINT)1e12
+static constexpr BIGINT MAX_NF             = (BIGINT)1e12;
 
 // Maximum allowed number M of NU points; useful to catch incorrectly cast int32
 // values for M = nj (also nk in type 3)...
-#define MAX_NU_PTS           (BIGINT)1e14
+static constexpr BIGINT MAX_NU_PTS         = (BIGINT)1e14;
 
 // -------------- Math consts (not in math.h) and useful math macros ----------
 #include <math.h>
 
 // either-precision unit imaginary number...
-#define IMA (CPX(0.0, 1.0))
+static constexpr CPX IMA(0.0, 1.0);
 // using namespace std::complex_literals;  // needs C++14, provides 1i, 1if
 #ifndef M_PI // Windows apparently doesn't have this const
 #define M_PI 3.14159265358979329
@@ -100,11 +101,7 @@
 #define PI      (FLT) M_PI
 
 // machine epsilon for decisions of achievable tolerance...
-#ifdef SINGLE
-#define EPSILON (float)6e-08
-#else
-#define EPSILON (double)1.1e-16
-#endif
+static constexpr FLT EPSILON = std::numeric_limits<FLT>::epsilon();
 
 // Random numbers: crappy unif random number generator in [0,1).
 // These macros should probably be replaced by modern C++ std lib or random123.
@@ -190,13 +187,13 @@
 
 // group together a bunch of type 3 rescaling/centering/phasing parameters:
 #define TYPE3PARAMS FINUFFTIFY(_type3Params)
-typedef struct {
+struct TYPE3PARAMS {
   FLT X1, C1, D1, h1, gam1; // x dim: X=halfwid C=center D=freqcen h,gam=rescale
   FLT X2, C2, D2, h2, gam2; // y
   FLT X3, C3, D3, h3, gam3; // z
-} TYPE3PARAMS;
+};
 
-typedef struct FINUFFT_PLAN_S { // the main plan object, fully C++
+struct FINUFFT_PLAN_S { // the main plan object, fully C++
 
   int type;                     // transform type (Rokhlin naming): 1,2 or 3
   int dim;                      // overall dimension: 1,2 or 3
@@ -219,16 +216,16 @@ typedef struct FINUFFT_PLAN_S { // the main plan object, fully C++
 
   int fftSign;   // sign in exponential for NUFFT defn, guaranteed to be +-1
 
-  FLT *phiHat1;  // FT of kernel in t1,2, on x-axis mode grid
-  FLT *phiHat2;  // " y-axis.
-  FLT *phiHat3;  // " z-axis.
+  std::vector<FLT> phiHat1;  // FT of kernel in t1,2, on x-axis mode grid
+  std::vector<FLT> phiHat2;  // " y-axis.
+  std::vector<FLT> phiHat3;  // " z-axis.
 
 #ifndef FINUFFT_USE_DUCC0
   CPX *fwBatch; // (batches of) fine grid(s) for FFTW to plan
                 // & act on. Usually the largest working array
 #endif
 
-  BIGINT *sortIndices; // precomputed NU pt permutation, speeds spread/interp
+  std::vector<BIGINT> sortIndices; // precomputed NU pt permutation, speeds spread/interp
   bool didSort;        // whether binsorting used (false: identity perm used)
 
   FLT *X, *Y, *Z;      // for t1,2: ptr to user-supplied NU pts (no new allocs).
@@ -236,23 +233,23 @@ typedef struct FINUFFT_PLAN_S { // the main plan object, fully C++
 
   // type 3 specific
   FLT *S, *T, *U; // pointers to user's target NU pts arrays (no new allocs)
-  CPX *prephase;  // pre-phase, for all input NU pts
-  CPX *deconv;    // reciprocal of kernel FT, phase, all output NU pts
+  std::vector<CPX> prephase;  // pre-phase, for all input NU pts
+  std::vector<CPX> deconv;    // reciprocal of kernel FT, phase, all output NU pts
 #ifndef FINUFFT_USE_DUCC0
   CPX *CpBatch; // working array of prephased strengths
 #endif
-  FLT *Sp, *Tp, *Up;        // internal primed targs (s'_k, etc), allocated
+  std::vector<FLT> Sp, Tp, Up;        // internal primed targs (s'_k, etc), allocated
   TYPE3PARAMS t3P;          // groups together type 3 shift, scale, phase, parameters
   FINUFFT_PLAN innerT2plan; // ptr used for type 2 in step 2 of type 3
 
-  // other internal structs; each is C-compatible of course
+  // other internal structs
 #ifndef FINUFFT_USE_DUCC0
   FFTW_PLAN fftwPlan;
 #endif
   finufft_opts opts; // this and spopts could be made ptrs
   finufft_spread_opts spopts;
 
-} FINUFFT_PLAN_S;
+};
 
 #undef TYPE3PARAMS
 
