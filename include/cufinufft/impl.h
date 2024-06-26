@@ -129,6 +129,13 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
   // for support
   cudaDeviceGetAttribute(&d_plan->supports_pools, cudaDevAttrMemoryPoolsSupported,
                          device_id);
+  static bool warned = false;
+  if (!warned && !d_plan->supports_pools && d_plan->opts.gpu_stream != nullptr) {
+    fprintf(stderr,
+            "[cufinufft] Warning: cudaMallocAsync not supported on this device. Use of "
+            "CUDA streams may not perform optimally.\n");
+    warned = true;
+  }
 
   auto &stream = d_plan->stream = (cudaStream_t)d_plan->opts.gpu_stream;
 
