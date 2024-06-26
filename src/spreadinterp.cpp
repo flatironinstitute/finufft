@@ -24,6 +24,8 @@ namespace { // anonymous namespace for internal structs equivalent to declaring 
             // static
 struct zip_low;
 struct zip_hi;
+struct select_even;
+struct select_odd;
 // forward declaration to clean up the code and be able to use this everywhere in the file
 template<class T, uint8_t N, uint8_t K = N> static constexpr auto BestSIMDHelper();
 template<class T, uint8_t N> constexpr auto GetPaddedSIMDWidth();
@@ -43,6 +45,12 @@ constexpr auto zip_low_index =
 template<class arch_t>
 constexpr auto zip_hi_index =
     xsimd::make_batch_constant<xsimd::as_unsigned_integer_t<FLT>, arch_t, zip_hi>();
+template<class arch_t>
+constexpr auto select_even_mask =
+    xsimd::make_batch_bool_constant<FLT, arch_t, select_even>();
+template<class arch_t>
+constexpr auto select_odd_mask =
+    xsimd::make_batch_bool_constant<FLT, arch_t, select_odd>();
 template<typename T, std::size_t N, std::size_t M, std::size_t PaddedM>
 constexpr std::array<std::array<T, PaddedM>, N> pad_2D_array_with_zeros(
     const std::array<std::array<T, M>, N> &input) noexcept;
@@ -67,14 +75,14 @@ template<uint8_t w, class simd_type = xsimd::make_sized_batch_t<
                         FLT, find_optimal_simd_width<FLT, w>()>> // aka ns
 static FINUFFT_ALWAYS_INLINE void eval_kernel_vec_Horner(
     FLT *FINUFFT_RESTRICT ker, FLT x, const finufft_spread_opts &opts) noexcept;
-template<uint8_t ns>
-static void interp_line(FLT *FINUFFT_RESTRICT out, const FLT *du, const FLT *ker,
+template<uint8_t ns, class simd_type = PaddedSIMD<FLT, 2 * ns>>
+static void interp_line(FLT *FINUFFT_RESTRICT target, const FLT *du, const FLT *ker,
                         BIGINT i1, BIGINT N1);
 template<uint8_t ns>
-static void interp_square(FLT *FINUFFT_RESTRICT out, const FLT *du, const FLT *ker1,
+static void interp_square(FLT *FINUFFT_RESTRICT target, const FLT *du, const FLT *ker1,
                           const FLT *ker2, BIGINT i1, BIGINT i2, BIGINT N1, BIGINT N2);
 template<uint8_t ns>
-static void interp_cube(FLT *FINUFFT_RESTRICT out, const FLT *du, const FLT *ker1,
+static void interp_cube(FLT *FINUFFT_RESTRICT target, const FLT *du, const FLT *ker1,
                         const FLT *ker2, const FLT *ker3, BIGINT i1, BIGINT i2, BIGINT i3,
                         BIGINT N1, BIGINT N2, BIGINT N3);
 static void spread_subproblem_1d(BIGINT off1, BIGINT size1, FLT *du0, BIGINT M0, FLT *kx0,
@@ -454,10 +462,10 @@ FINUFFT_NEVER_INLINE static int interpSorted_kernel(
 // Interpolate to NU pts in sorted order from a uniform grid.
 // See spreadinterp() for doc.
 {
-  using simd_type                 = xsimd::batch<FLT>;
+  using simd_type                 = PaddedSIMD<FLT, 2 * ns>;
   using arch_t                    = typename simd_type::arch_type;
   static constexpr auto padding   = get_padding<FLT, 2 * ns>();
-  static constexpr auto alignment = simd_type::arch_type::alignment();
+  static constexpr auto alignment = arch_t::alignment();
   static constexpr auto simd_size = simd_type::size;
   static constexpr auto ns2 = ns * FLT(0.5); // half spread width, used as stencil shift
 
@@ -521,15 +529,16 @@ FINUFFT_NEVER_INLINE static int interpSorted_kernel(
         if (!(opts.flags & TF_OMIT_SPREADING)) {
           switch (ndims) {
           case 1:
-            ker_eval<ns, kerevalmeth, FLT>(kernel_values.data(), opts, x1);
-            interp_line<ns>(target, data_uniform, ker1, i1, N1);
+            ker_eval<ns, kerevalmeth, FLT, simd_type>(kernel_values.data(), opts, x1);
+            interp_line<ns, simd_type>(target, data_uniform, ker1, i1, N1);
             break;
           case 2:
-            ker_eval<ns, kerevalmeth, FLT>(kernel_values.data(), opts, x1, x2);
+            ker_eval<ns, kerevalmeth, FLT, simd_type>(kernel_values.data(), opts, x1, x2);
             interp_square<ns>(target, data_uniform, ker1, ker2, i1, i2, N1, N2);
             break;
           case 3:
-            ker_eval<ns, kerevalmeth, FLT>(kernel_values.data(), opts, x1, x2, x3);
+            ker_eval<ns, kerevalmeth, FLT, simd_type>(kernel_values.data(), opts, x1, x2,
+                                                      x3);
             interp_cube<ns>(target, data_uniform, ker1, ker2, ker3, i1, i2, i3, N1, N2,
                             N3);
             break;
@@ -788,9 +797,9 @@ Two upsampfacs implemented. Params must match ref formula. Barnett 4/24/18 */
   }
 }
 
-template<uint8_t ns>
-void interp_line(FLT *FINUFFT_RESTRICT target, const FLT *du, const FLT *ker, BIGINT i1,
-                 const BIGINT N1)
+template<uint8_t ns, class simd_type>
+void interp_line(FLT *FINUFFT_RESTRICT target, const FLT *du, const FLT *ker,
+                 const BIGINT i1, const BIGINT N1)
 /* 1D interpolate complex values from size-ns block of the du (uniform grid
    data) array to a single complex output value "target", using as weights the
    1d kernel evaluation list ker1.
@@ -808,38 +817,60 @@ void interp_line(FLT *FINUFFT_RESTRICT target, const FLT *du, const FLT *ker, BI
    Barnett 6/16/17.
 */
 {
+
   FLT out[] = {0.0, 0.0};
   BIGINT j  = i1;
-  if (i1 < 0) { // wraps at left
+  if (FINUFFT_UNLIKELY(i1 < 0)) { // wraps at left
     j += N1;
-    for (int dx = 0; dx < -i1; ++dx) {
+    for (UBIGINT dx = 0; dx < -i1; ++dx) {
       out[0] += du[2 * j] * ker[dx];
       out[1] += du[2 * j + 1] * ker[dx];
       ++j;
     }
     j -= N1;
-    for (int dx = -i1; dx < ns; ++dx) {
+    for (UBIGINT dx = -i1; dx < ns; ++dx) {
       out[0] += du[2 * j] * ker[dx];
       out[1] += du[2 * j + 1] * ker[dx];
       ++j;
     }
-  } else if (i1 + ns >= N1) { // wraps at right
+  } else if (FINUFFT_UNLIKELY(i1 + ns >= N1)) { // wraps at right
     for (int dx = 0; dx < N1 - i1; ++dx) {
       out[0] += du[2 * j] * ker[dx];
       out[1] += du[2 * j + 1] * ker[dx];
       ++j;
     }
     j -= N1;
-    for (int dx = N1 - i1; dx < ns; ++dx) {
+    for (UBIGINT dx = N1 - i1; dx < ns; ++dx) {
       out[0] += du[2 * j] * ker[dx];
       out[1] += du[2 * j + 1] * ker[dx];
       ++j;
     }
   } else { // doesn't wrap
-    for (int dx = 0; dx < ns; ++dx) {
-      out[0] += du[2 * j] * ker[dx];
-      out[1] += du[2 * j + 1] * ker[dx];
-      ++j;
+    using arch_t                       = typename simd_type::arch_type;
+    static constexpr auto padding      = get_padding<FLT, 2 * ns>();
+    static constexpr auto alignment    = arch_t::alignment();
+    static constexpr auto simd_size    = simd_type::size;
+    static constexpr auto regular_part = (2 * ns + padding) & (-(2 * simd_size));
+    simd_type res{0};
+    for (uint8_t dx{0}; dx < regular_part; dx += 2 * simd_size) {
+      const auto ker_v   = simd_type::load_aligned(ker + dx / 2);
+      const auto du_pt0  = simd_type::load_unaligned(du + dx);
+      const auto du_pt1  = simd_type::load_unaligned(du + dx + simd_size);
+      const auto ker0low = xsimd::swizzle(ker_v, zip_low_index<arch_t>);
+      const auto ker0hi  = xsimd::swizzle(ker_v, zip_hi_index<arch_t>);
+      res                = xsimd::fma(ker0low, du_pt0, xsimd::fma(ker0hi, du_pt1, res));
+    }
+    if constexpr (regular_part < 2 * ns) {
+      const auto ker0    = simd_type::load_unaligned(ker + (regular_part / 2));
+      const auto du_pt   = simd_type::load_unaligned(du + regular_part);
+      const auto ker0low = xsimd::swizzle(ker0, zip_low_index<arch_t>);
+      res                = xsimd::fma(ker0low, du_pt, res);
+    }
+    alignas(alignment) std::array<FLT, simd_size> res_array{};
+    res.store_aligned(res_array.data());
+    for (uint8_t i{0}; i < simd_size; i += 2) {
+      out[0] += res_array[i];
+      out[1] += res_array[i + 1];
     }
   }
   target[0] = out[0];
@@ -1927,6 +1958,13 @@ struct zip_hi {
   static constexpr unsigned get(unsigned index, unsigned size) {
     return (size + index) / 2;
   }
+};
+
+struct select_even {
+  static constexpr bool get(unsigned index, unsigned /*size*/) { return index % 2 == 0; }
+};
+struct select_odd {
+  static constexpr bool get(unsigned index, unsigned /*size*/) { return index % 2 == 1; }
 };
 
 void print_subgrid_info(int ndims, BIGINT offset1, BIGINT offset2, BIGINT offset3,
