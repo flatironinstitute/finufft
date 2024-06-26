@@ -236,7 +236,7 @@ struct FINUFFT_PLAN_S { // the main plan object, fully C++
   std::vector<CPX> prephase;  // pre-phase, for all input NU pts
   std::vector<CPX> deconv;    // reciprocal of kernel FT, phase, all output NU pts
 #ifndef FINUFFT_USE_DUCC0
-  CPX *CpBatch; // working array of prephased strengths
+  std::vector<CPX> CpBatch; // working array of prephased strengths
 #endif
   std::vector<FLT> Sp, Tp, Up;        // internal primed targs (s'_k, etc), allocated
   TYPE3PARAMS t3P;          // groups together type 3 shift, scale, phase, parameters

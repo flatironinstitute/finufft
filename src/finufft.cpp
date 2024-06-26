@@ -271,7 +271,7 @@ static void onedim_nuft_kernel(BIGINT nk, FLT *k, FLT *phihat, finufft_spread_op
   }
 }
 
-static void deconvolveshuffle1d(int dir, FLT prefac, FLT *ker, BIGINT ms, FLT *fk, BIGINT nf1,
+static void deconvolveshuffle1d(int dir, FLT prefac, FLT *ker, BIGINT ms, CPX *fk, BIGINT nf1,
                          CPX *fw, int modeord)
 /*
   if dir==1: copies fw to fk with amplification by prefac/ker
@@ -299,38 +299,29 @@ static void deconvolveshuffle1d(int dir, FLT prefac, FLT *ker, BIGINT ms, FLT *f
   BIGINT kmin = -ms / 2, kmax = (ms - 1) / 2; // inclusive range of k indices
   if (ms == 0) kmax = -1;                     // fixes zero-pad for trivial no-mode case
   // set up pp & pn as ptrs to start of pos(ie nonneg) & neg chunks of fk array
-  BIGINT pp = -2 * kmin, pn = 0; // CMCL mode-ordering case (2* since cmplx)
+  BIGINT pp = -kmin, pn = 0; // CMCL mode-ordering case (2* since cmplx)
   if (modeord == 1) {
     pp = 0;
-    pn = 2 * (kmax + 1);
+    pn = kmax + 1;
   } // or, instead, FFT ordering
   if (dir == 1) {                                       // read fw, write out to fk...
-    for (BIGINT k = 0; k <= kmax; ++k) {                // non-neg freqs k
-      fk[pp++] = prefac * fw[k].real() / ker[k];        // re
-      fk[pp++] = prefac * fw[k].imag() / ker[k];        // im
-    }
-    for (BIGINT k = kmin; k < 0; ++k) {                 // neg freqs k
-      fk[pn++] = prefac * fw[nf1 + k].real() / ker[-k]; // re
-      fk[pn++] = prefac * fw[nf1 + k].imag() / ker[-k]; // im
-    }
+    for (BIGINT k = 0; k <= kmax; ++k)                  // non-neg freqs k
+      fk[pp++] = prefac * fw[k] / ker[k];
+    for (BIGINT k = kmin; k < 0; ++k)                   // neg freqs k
+      fk[pn++] = prefac * fw[nf1 + k] / ker[-k];
   } else { // read fk, write out to fw w/ zero padding...
-    for (BIGINT k = kmax + 1; k < nf1 + kmin; ++k) { // zero pad precisely where
+    for (BIGINT k = kmax + 1; k < nf1 + kmin; ++k)   // zero pad precisely where
                                                      // needed
       fw[k] = 0.0;
-    }
-    for (BIGINT k = 0; k <= kmax; ++k) {             // non-neg freqs k
-      fw[k].real(prefac * fk[pp++] / ker[k]);        // re
-      fw[k].imag(prefac * fk[pp++] / ker[k]);        // im
-    }
-    for (BIGINT k = kmin; k < 0; ++k) {              // neg freqs k
-      fw[nf1 + k].real(prefac * fk[pn++] / ker[-k]); // re
-      fw[nf1 + k].imag(prefac * fk[pn++] / ker[-k]); // im
-    }
+    for (BIGINT k = 0; k <= kmax; ++k)               // non-neg freqs k
+      fw[k] = prefac * fk[pp++] / ker[k];
+    for (BIGINT k = kmin; k < 0; ++k)                // neg freqs k
+      fw[nf1 + k] = prefac * fk[pn++] / ker[-k];
   }
 }
 
 static void deconvolveshuffle2d(int dir, FLT prefac, FLT *ker1, FLT *ker2, BIGINT ms, BIGINT mt,
-                         FLT *fk, BIGINT nf1, BIGINT nf2, CPX *fw, int modeord)
+                         CPX *fk, BIGINT nf1, BIGINT nf2, CPX *fw, int modeord)
 /*
   2D version of deconvolveshuffle1d, calls it on each x-line using 1/ker2 fac.
 
@@ -353,26 +344,26 @@ static void deconvolveshuffle2d(int dir, FLT prefac, FLT *ker1, FLT *ker2, BIGIN
   BIGINT k2min = -mt / 2, k2max = (mt - 1) / 2; // inclusive range of k2 indices
   if (mt == 0) k2max = -1;                      // fixes zero-pad for trivial no-mode case
   // set up pp & pn as ptrs to start of pos(ie nonneg) & neg chunks of fk array
-  BIGINT pp = -2 * k2min * ms, pn = 0; // CMCL mode-ordering case (2* since cmplx)
+  BIGINT pp = -k2min * ms, pn = 0; // CMCL mode-ordering case (2* since cmplx)
   if (modeord == 1) {
     pp = 0;
-    pn = 2 * (k2max + 1) * ms;
+    pn = (k2max + 1) * ms;
   } // or, instead, FFT ordering
   if (dir == 2) // zero pad needed x-lines (contiguous in memory)
     for (BIGINT j = nf1 * (k2max + 1); j < nf1 * (nf2 + k2min); ++j) // sweeps all
                                                                      // dims
       fw[j] = 0.0;
-  for (BIGINT k2 = 0; k2 <= k2max; ++k2, pp += 2 * ms)               // non-neg y-freqs
+  for (BIGINT k2 = 0; k2 <= k2max; ++k2, pp += ms)               // non-neg y-freqs
     // point fk and fw to the start of this y value's row (2* is for complex):
     common::deconvolveshuffle1d(dir, prefac / ker2[k2], ker1, ms, fk + pp, nf1,
                                 &fw[nf1 * k2], modeord);
-  for (BIGINT k2 = k2min; k2 < 0; ++k2, pn += 2 * ms) // neg y-freqs
+  for (BIGINT k2 = k2min; k2 < 0; ++k2, pn += ms) // neg y-freqs
     common::deconvolveshuffle1d(dir, prefac / ker2[-k2], ker1, ms, fk + pn, nf1,
                                 &fw[nf1 * (nf2 + k2)], modeord);
 }
 
 static void deconvolveshuffle3d(int dir, FLT prefac, FLT *ker1, FLT *ker2, FLT *ker3, BIGINT ms,
-                         BIGINT mt, BIGINT mu, FLT *fk, BIGINT nf1, BIGINT nf2,
+                         BIGINT mt, BIGINT mu, CPX *fk, BIGINT nf1, BIGINT nf2,
                          BIGINT nf3, CPX *fw, int modeord)
 /*
   3D version of deconvolveshuffle2d, calls it on each xy-plane using 1/ker3 fac.
@@ -396,20 +387,20 @@ static void deconvolveshuffle3d(int dir, FLT prefac, FLT *ker1, FLT *ker2, FLT *
   BIGINT k3min = -mu / 2, k3max = (mu - 1) / 2; // inclusive range of k3 indices
   if (mu == 0) k3max = -1;                      // fixes zero-pad for trivial no-mode case
   // set up pp & pn as ptrs to start of pos(ie nonneg) & neg chunks of fk array
-  BIGINT pp = -2 * k3min * ms * mt, pn = 0; // CMCL mode-ordering (2* since cmplx)
+  BIGINT pp = -k3min * ms * mt, pn = 0; // CMCL mode-ordering (2* since cmplx)
   if (modeord == 1) {
     pp = 0;
-    pn = 2 * (k3max + 1) * ms * mt;
+    pn = (k3max + 1) * ms * mt;
   } // or FFT ordering
   BIGINT np = nf1 * nf2; // # pts in an upsampled Fourier xy-plane
   if (dir == 2)          // zero pad needed xy-planes (contiguous in memory)
     for (BIGINT j = np * (k3max + 1); j < np * (nf3 + k3min); ++j) // sweeps all dims
       fw[j] = 0.0;
-  for (BIGINT k3 = 0; k3 <= k3max; ++k3, pp += 2 * ms * mt)        // non-neg z-freqs
+  for (BIGINT k3 = 0; k3 <= k3max; ++k3, pp += ms * mt)        // non-neg z-freqs
     // point fk and fw to the start of this z value's plane (2* is for complex):
     common::deconvolveshuffle2d(dir, prefac / ker3[k3], ker1, ker2, ms, mt, fk + pp, nf1,
                                 nf2, &fw[np * k3], modeord);
-  for (BIGINT k3 = k3min; k3 < 0; ++k3, pn += 2 * ms * mt) // neg z-freqs
+  for (BIGINT k3 = k3min; k3 < 0; ++k3, pn += ms * mt) // neg z-freqs
     common::deconvolveshuffle2d(dir, prefac / ker3[-k3], ker1, ker2, ms, mt, fk + pn, nf1,
                                 nf2, &fw[np * (nf3 + k3)], modeord);
 }
@@ -466,14 +457,14 @@ static int deconvolveBatch(int batchSize, FINUFFT_PLAN p, CPX *fwBatch, CPX *fkB
 
     // Call routine from common.cpp for the dim; prefactors hardcoded to 1.0...
     if (p->dim == 1)
-      deconvolveshuffle1d(p->spopts.spread_direction, 1.0, p->phiHat1.data(), p->ms, (FLT *)fki,
+      deconvolveshuffle1d(p->spopts.spread_direction, 1.0, p->phiHat1.data(), p->ms, fki,
                           p->nf1, fwi, p->opts.modeord);
     else if (p->dim == 2)
       deconvolveshuffle2d(p->spopts.spread_direction, 1.0, p->phiHat1.data(), p->phiHat2.data(), p->ms,
-                          p->mt, (FLT *)fki, p->nf1, p->nf2, fwi, p->opts.modeord);
+                          p->mt, fki, p->nf1, p->nf2, fwi, p->opts.modeord);
     else
       deconvolveshuffle3d(p->spopts.spread_direction, 1.0, p->phiHat1.data(), p->phiHat2.data(),
-                          p->phiHat3.data(), p->ms, p->mt, p->mu, (FLT *)fki, p->nf1, p->nf2,
+                          p->phiHat3.data(), p->ms, p->mt, p->mu, fki, p->nf1, p->nf2,
                           p->nf3, fwi, p->opts.modeord);
   }
   return 0;
@@ -768,7 +759,6 @@ int FINUFFT_MAKEPLAN(int type, int dim, BIGINT *n_modes, int iflag, int ntrans, 
     if (p->opts.debug) printf("[%s] %dd%d: ntrans=%d\n", __func__, dim, type, ntrans);
       // in case destroy occurs before setpts, need safe dummy ptrs/plans...
 #ifndef FINUFFT_USE_DUCC0
-    p->CpBatch     = NULL;
     p->fwBatch     = NULL;
 #endif
     p->innerT2plan = NULL;
@@ -879,15 +869,14 @@ int FINUFFT_SETPTS(FINUFFT_PLAN p, BIGINT nj, FLT *xj, FLT *yj, FLT *zj, BIGINT 
     p->fwBatch = (CPX *)FFTW_ALLOC_CPX(p->nf * p->batchSize); // maybe big workspace
 
     // (note FFTW_ALLOC is not needed over malloc, but matches its type)
-    free(p->CpBatch);
-    p->CpBatch = (CPX *)malloc(sizeof(CPX) * nj * p->batchSize); // batch c' work
+    p->CpBatch.resize(nj*p->batchSize); // batch c' work
 
     if (p->opts.debug)
       printf("[%s t3] widcen, batch %.2fGB alloc:\t%.3g s\n", __func__,
              (double)1E-09 * sizeof(CPX) * (p->nf + nj) * p->batchSize,
              timer.elapsedsec());
-    if (!p->fwBatch || !p->CpBatch) {
-      fprintf(stderr, "[%s t3] malloc fail for fwBatch or CpBatch!\n", __func__);
+    if (!p->fwBatch) {
+      fprintf(stderr, "[%s t3] malloc fail for fwBatch!\n", __func__);
       return FINUFFT_ERR_ALLOC;
     }
     // printf("fwbatch, cpbatch ptrs: %llx %llx\n",p->fwBatch,p->CpBatch);
@@ -1208,7 +1197,7 @@ int FINUFFT_EXECUTE(FINUFFT_PLAN p, CPX *cj, CPX *fk) {
     std::vector<CPX> CpBatch_(p->nj * p->batchSize); // batch c' work
     CPX *CpBatch = CpBatch_.data();
 #else
-    CPX *CpBatch = p->CpBatch;
+    CPX *CpBatch = p->CpBatch.data();
 #endif
 
     for (int b = 0; b * p->batchSize < p->ntrans; b++) { // .....loop b over batches
@@ -1295,9 +1284,6 @@ int FINUFFT_DESTROY(FINUFFT_PLAN p)
 #endif
   } else {                           // free the stuff alloc for type 3 only
     FINUFFT_DESTROY(p->innerT2plan); // if NULL, ignore its error code
-#ifndef FINUFFT_USE_DUCC0
-    free(p->CpBatch);
-#endif
     free(p->X);
     free(p->Y);
     free(p->Z);
