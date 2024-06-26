@@ -260,8 +260,8 @@ int cuspread3d_blockgather_prop(int nf1, int nf2, int nf3, int M,
                                              cudaMemcpyDeviceToHost, stream))))
     return ier;
   cudaStreamSynchronize(stream);
-  if ((ier = checkCudaErrors(
-           cudaMallocAsync(&d_idxnupts, totalNUpts * sizeof(int), stream))))
+  if ((ier = checkCudaErrors(cudaMallocWrapper(&d_idxnupts, totalNUpts * sizeof(int),
+                                               stream, d_plan->supports_pools))))
     return ier;
 
   calc_inverse_of_global_sort_index_ghost<<<(M + 1024 - 1) / 1024, 1024, 0, stream>>>(
@@ -320,7 +320,8 @@ int cuspread3d_blockgather_prop(int nf1, int nf2, int nf3, int M,
     return ier;
   cudaStreamSynchronize(stream);
   if ((ier = checkCudaErrors(
-           cudaMallocAsync(&d_subprob_to_bin, totalnumsubprob * sizeof(int), stream))))
+           cudaMallocWrapper(&d_subprob_to_bin, totalnumsubprob * sizeof(int), stream,
+                             d_plan->supports_pools))))
     return ier;
   map_b_into_subprob_3d_v1<<<(n + 1024 - 1) / 1024, 1024, 0, stream>>>(
       d_subprob_to_bin, d_subprobstartpts, d_numsubprob, n);
@@ -474,8 +475,8 @@ int cuspread3d_subprob_prop(int nf1, int nf2, int nf3, int M,
                                       sizeof(int), cudaMemcpyDeviceToHost, stream)))
     return FINUFFT_ERR_CUDA_FAILURE;
   cudaStreamSynchronize(stream);
-  if (checkCudaErrors(
-          cudaMallocAsync(&d_subprob_to_bin, totalnumsubprob * sizeof(int), stream)))
+  if (checkCudaErrors(cudaMallocWrapper(&d_subprob_to_bin, totalnumsubprob * sizeof(int),
+                                        stream, d_plan->supports_pools)))
     return FINUFFT_ERR_CUDA_FAILURE;
 
   map_b_into_subprob_3d_v2<<<(numbins[0] * numbins[1] + 1024 - 1) / 1024, 1024, 0,

@@ -220,7 +220,8 @@ int cuspread2d_subprob_prop(int nf1, int nf2, int M, cufinufft_plan_t<T> *d_plan
     return ier;
   cudaStreamSynchronize(stream);
   if ((ier = checkCudaErrors(
-           cudaMallocAsync(&d_subprob_to_bin, totalnumsubprob * sizeof(int), stream))))
+           cudaMallocWrapper(&d_subprob_to_bin, totalnumsubprob * sizeof(int), stream,
+                             d_plan->supports_pools))))
     return ier;
   map_b_into_subprob_2d<<<(numbins[0] * numbins[1] + 1024 - 1) / 1024, 1024, 0, stream>>>(
       d_subprob_to_bin, d_subprobstartpts, d_numsubprob, numbins[0] * numbins[1]);
@@ -232,7 +233,7 @@ int cuspread2d_subprob_prop(int nf1, int nf2, int M, cufinufft_plan_t<T> *d_plan
   }
 
   assert(d_subprob_to_bin != NULL);
-  cudaFreeAsync(d_plan->subprob_to_bin, stream);
+  cudaFreeWrapper(d_plan->subprob_to_bin, stream, d_plan->supports_pools);
   d_plan->subprob_to_bin  = d_subprob_to_bin;
   d_plan->totalnumsubprob = totalnumsubprob;
 
