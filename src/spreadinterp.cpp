@@ -81,7 +81,7 @@ static void interp_line(FLT *FINUFFT_RESTRICT target, const FLT *du, const FLT *
 template<uint8_t ns, class simd_type = PaddedSIMD<FLT, 2 * ns>>
 static void interp_square(FLT *FINUFFT_RESTRICT target, const FLT *du, const FLT *ker1,
                           const FLT *ker2, BIGINT i1, BIGINT i2, BIGINT N1, BIGINT N2);
-template<uint8_t ns>
+template<uint8_t ns, class simd_type = PaddedSIMD<FLT, 2 * ns>>
 static void interp_cube(FLT *FINUFFT_RESTRICT target, const FLT *du, const FLT *ker1,
                         const FLT *ker2, const FLT *ker3, BIGINT i1, BIGINT i2, BIGINT i3,
                         BIGINT N1, BIGINT N2, BIGINT N3);
@@ -540,8 +540,8 @@ FINUFFT_NEVER_INLINE static int interpSorted_kernel(
           case 3:
             ker_eval<ns, kerevalmeth, FLT, simd_type>(kernel_values.data(), opts, x1, x2,
                                                       x3);
-            interp_cube<ns>(target, data_uniform, ker1, ker2, ker3, i1, i2, i3, N1, N2,
-                            N3);
+            interp_cube<ns, simd_type>(target, data_uniform, ker1, ker2, ker3, i1, i2, i3,
+                                       N1, N2, N3);
             break;
           default: // can't get here
             FINUFFT_UNREACHABLE;
@@ -818,37 +818,42 @@ void interp_line(FLT *FINUFFT_RESTRICT target, const FLT *du, const FLT *ker,
    Barnett 6/16/17.
 */
 {
+  using arch_t                       = typename simd_type::arch_type;
+  static constexpr auto padding      = get_padding<FLT, 2 * ns>();
+  static constexpr auto alignment    = arch_t::alignment();
+  static constexpr auto simd_size    = simd_type::size;
+  static constexpr auto regular_part = (2 * ns + padding) & (-(2 * simd_size));
   std::array<FLT, 2> out{0};
   BIGINT j = i1;
   // removing the wrapping leads up to 10% speedup in certain cases
   if (FINUFFT_UNLIKELY(i1 < 0)) { // wraps at left
     j += N1;
-    for (UBIGINT dx = 0; dx < -i1; ++dx, ++j) {
+    for (uint8_t dx = 0; dx < -i1; ++dx, ++j) {
       out[0] = xsimd::fma(du[2 * j], ker[dx], out[0]);
       out[1] = xsimd::fma(du[2 * j + 1], ker[dx], out[1]);
     }
     j -= N1;
-    for (UBIGINT dx = -i1; dx < ns; ++dx, ++j) {
+    for (uint8_t dx = -i1; dx < ns; ++dx, ++j) {
       out[0] = xsimd::fma(du[2 * j], ker[dx], out[0]);
       out[1] = xsimd::fma(du[2 * j + 1], ker[dx], out[1]);
     }
   } else if (FINUFFT_UNLIKELY(i1 + ns >= N1)) { // wraps at right
-    for (UBIGINT dx = 0; dx < N1 - i1; ++dx, ++j) {
+    for (uint8_t dx = 0; dx < N1 - i1; ++dx, ++j) {
       out[0] = xsimd::fma(du[2 * j], ker[dx], out[0]);
       out[1] = xsimd::fma(du[2 * j + 1], ker[dx], out[1]);
     }
     j -= N1;
-    for (UBIGINT dx = N1 - i1; dx < ns; ++dx, ++j) {
+    for (uint8_t dx = N1 - i1; dx < ns; ++dx, ++j) {
+      out[0] = xsimd::fma(du[2 * j], ker[dx], out[0]);
+      out[1] = xsimd::fma(du[2 * j + 1], ker[dx], out[1]);
+    }
+  } else if (FINUFFT_UNLIKELY(i1 + ns + (padding + 1) / 2 >= N1)) {
+    for (uint8_t dx = 0; dx < ns; ++dx, ++j) {
       out[0] = xsimd::fma(du[2 * j], ker[dx], out[0]);
       out[1] = xsimd::fma(du[2 * j + 1], ker[dx], out[1]);
     }
   } else { // doesn't wrap
-    using arch_t                       = typename simd_type::arch_type;
-    static constexpr auto padding      = get_padding<FLT, 2 * ns>();
-    static constexpr auto alignment    = arch_t::alignment();
-    static constexpr auto simd_size    = simd_type::size;
-    static constexpr auto regular_part = (2 * ns + padding) & (-(2 * simd_size));
-    const auto du_ptr                  = du + 2 * j;
+    const auto du_ptr = du + 2 * j;
     simd_type res_low{0}, res_hi{0};
     for (uint8_t dx{0}; dx < regular_part; dx += 2 * simd_size) {
       const auto ker_v   = simd_type::load_aligned(ker + dx / 2);
@@ -916,65 +921,90 @@ void interp_square(FLT *FINUFFT_RESTRICT target, const FLT *du, const FLT *ker1,
    it."
 */
 {
-  FLT out[] = {0.0, 0.0};
-  if (i1 >= 0 && i1 + ns <= N1 && i2 >= 0 && i2 + ns <= N2) { // no wrapping: avoid ptrs
-    using arch_t                          = typename simd_type::arch_type;
-    static constexpr auto padding         = get_padding<FLT, 2 * ns>();
-    static constexpr auto alignment       = arch_t::alignment();
-    static constexpr auto simd_size       = simd_type::size;
-    static constexpr uint8_t regular_part = (2 * ns + padding) & (-(2 * simd_size));
-    static constexpr uint8_t line_vectors = (2 * ns + padding) / simd_size;
-    const auto line                       = [du, N1, i2, i1, ker2]() {
-      std::array<simd_type, line_vectors> line{};
+  std::array<FLT, 2> out{0};
+  // no wrapping: avoid ptrs
+  using arch_t                          = typename simd_type::arch_type;
+  static constexpr auto padding         = get_padding<FLT, 2 * ns>();
+  static constexpr auto alignment       = arch_t::alignment();
+  static constexpr auto simd_size       = simd_type::size;
+  static constexpr uint8_t regular_part = (2 * ns + padding) & (-(2 * simd_size));
+  static constexpr uint8_t line_vectors = (2 * ns + padding) / simd_size;
+  if (FINUFFT_LIKELY(i1 >= 0 && i1 + ns <= N1 && i2 >= 0 && i2 + ns <= N2)) {
+    if (FINUFFT_LIKELY(i1 + ns + (padding + 1) / 2 < N1)) {
+      const auto line = [du, N1, i2, i1, ker2]() constexpr noexcept {
+        std::array<simd_type, line_vectors> line{};
+        // block for first y line, to avoid explicitly initializing line with zeros
+        {
+          const auto l_ptr = du + 2 * (N1 * i2 + i1); // ptr to horiz line start in du
+          const simd_type ker2_v{ker2[0]};
+          for (uint8_t l{0}; l < line_vectors; ++l) {
+            // l is like dx but for ns interleaved
+            line[l] = ker2_v * simd_type::load_unaligned(l * simd_size + l_ptr);
+          }
+        }
+        // add remaining const-y lines to the line (expensive inner loop)
+        for (uint8_t dy{1}; dy < ns; dy++) {
+          const auto l_ptr = du + 2 * (N1 * (i2 + dy) + i1); // (see above)
+          const simd_type ker2_v{ker2[dy]};
+          for (uint8_t l{0}; l < line_vectors; ++l) {
+            line[l] = xsimd::fma(ker2_v, simd_type::load_unaligned(l * simd_size + l_ptr),
+                                 line[l]);
+          }
+        }
+        return line;
+      }();
+      // apply x kernel to the (interleaved) line and add together
+      simd_type res_low{0}, res_hi{0};
+      for (uint8_t i = 0; i < (line_vectors & ~1); // NOLINT(*-too-small-loop-variable)
+           i += 2) {
+        const auto ker1_v  = simd_type::load_aligned(ker1 + i * simd_size / 2);
+        const auto ker1low = xsimd::swizzle(ker1_v, zip_low_index<arch_t>);
+        const auto ker1hi  = xsimd::swizzle(ker1_v, zip_hi_index<arch_t>);
+        res_low            = xsimd::fma(ker1low, line[i], res_low);
+        res_hi             = xsimd::fma(ker1hi, line[i + 1], res_hi);
+      }
+      if constexpr (line_vectors % 2) {
+        const auto ker1_v =
+            simd_type::load_aligned(ker1 + (line_vectors - 1) * simd_size / 2);
+        const auto ker1low = xsimd::swizzle(ker1_v, zip_low_index<arch_t>);
+        res_low            = xsimd::fma(ker1low, line.back(), res_low);
+      }
+      const auto res = res_low + res_hi;
+      alignas(alignment) std::array<FLT, simd_size> res_array{};
+      res.store_aligned(res_array.data());
+      for (uint8_t i{0}; i < simd_size; i += 2) {
+        out[0] += res_array[i];
+        out[1] += res_array[i + 1];
+      }
+    } else {
+      // store a horiz line (interleaved real,imag)
+      alignas(alignment) std::array<FLT, 2 * MAX_NSPREAD> line{};
       // block for first y line, to avoid explicitly initializing line with zeros
       {
         const auto l_ptr = du + 2 * (N1 * i2 + i1); // ptr to horiz line start in du
-        const simd_type ker2_v{ker2[0]};
-        for (uint8_t l{0}; l < line_vectors; ++l) {
-          // l is like dx but for ns interleaved
-          line[l] = ker2_v * simd_type::load_unaligned(l * simd_size + l_ptr);
+        for (uint8_t l{0}; l < 2 * ns; ++l) {       // l is like dx but for ns interleaved
+          line[l] = ker2[0] * l_ptr[l];
         }
       }
       // add remaining const-y lines to the line (expensive inner loop)
-      for (uint8_t dy{1}; dy < ns; dy++) {
-        const auto l_ptr = du + 2 * (N1 * (i2 + dy) + i1); // (see above)
-        const simd_type ker2_v{ker2[dy]};
-        for (uint8_t l{0}; l < line_vectors; ++l) {
-          line[l] = xsimd::fma(ker2_v, simd_type::load_unaligned(l * simd_size + l_ptr),
-                                                     line[l]);
+      for (uint8_t dy{1}; dy < ns; ++dy) {
+        const auto *l_ptr = du + 2 * (N1 * (i2 + dy) + i1); // (see above)
+        for (uint8_t l{0}; l < 2 * ns; ++l) {
+          line[l] = xsimd::fma(ker2[dy], l_ptr[l], line[l]);
         }
       }
-      return line;
-    }();
-    // apply x kernel to the (interleaved) line and add together
-    simd_type res_low{0}, res_hi{0};
-    for (uint8_t i = 0; i < (line_vectors & ~1); // NOLINT(*-too-small-loop-variable)
-         i += 2) {
-      const auto ker1_v  = simd_type::load_aligned(ker1 + i * simd_size / 2);
-      const auto ker1low = xsimd::swizzle(ker1_v, zip_low_index<arch_t>);
-      const auto ker1hi  = xsimd::swizzle(ker1_v, zip_hi_index<arch_t>);
-      res_low            = xsimd::fma(ker1low, line[i], res_low);
-      res_hi             = xsimd::fma(ker1hi, line[i + 1], res_hi);
-    }
-    if constexpr (line_vectors % 2) {
-      const auto ker1_v =
-          simd_type::load_aligned(ker1 + (line_vectors - 1) * simd_size / 2);
-      const auto ker1low = xsimd::swizzle(ker1_v, zip_low_index<arch_t>);
-      res_low            = xsimd::fma(ker1low, line.back(), res_low);
-    }
-    const auto res = res_low + res_hi;
-    alignas(alignment) std::array<FLT, simd_size> res_array{};
-    res.store_aligned(res_array.data());
-    for (uint8_t i{0}; i < simd_size; i += 2) {
-      out[0] += res_array[i];
-      out[1] += res_array[i + 1];
+      // apply x kernel to the (interleaved) line and add together
+      for (uint8_t dx{0}; dx < ns; dx++) {
+        out[0] = xsimd::fma(line[2 * dx], ker1[dx], out[0]);
+        out[1] = xsimd::fma(line[2 * dx + 1], ker1[dx], out[1]);
+      }
     }
   } else { // wraps somewhere: use ptr list
     // this is slower than above, but occurs much less often, with fractional
     // rate O(ns/min(N1,N2)). Thus this code doesn't need to be so optimized.
-    BIGINT j1[MAX_NSPREAD], j2[MAX_NSPREAD]; // 1d ptr lists
-    BIGINT x = i1, y = i2;                   // initialize coords
-    for (uint8_t d{0}; d < ns; d++) {        // set up ptr lists
+    std::array<UBIGINT, ns> j1{}, j2{}; // 1d ptr lists
+    auto x = i1, y = i2;                // initialize coords
+    for (uint8_t d{0}; d < ns; d++) {   // set up ptr lists
       if (x < 0) x += N1;
       if (x >= N1) x -= N1;
       j1[d] = x++;
@@ -983,10 +1013,10 @@ void interp_square(FLT *FINUFFT_RESTRICT target, const FLT *du, const FLT *ker1,
       j2[d] = y++;
     }
     for (uint8_t dy{0}; dy < ns; dy++) { // use the pts lists
-      BIGINT oy = N1 * j2[dy];           // offset due to y
+      const auto oy = N1 * j2[dy];       // offset due to y
       for (uint8_t dx{0}; dx < ns; dx++) {
-        FLT k    = ker1[dx] * ker2[dy];
-        BIGINT j = oy + j1[dx];
+        const auto k    = ker1[dx] * ker2[dy];
+        const UBIGINT j = oy + j1[dx];
         out[0] += du[2 * j] * k;
         out[1] += du[2 * j + 1] * k;
       }
@@ -996,7 +1026,7 @@ void interp_square(FLT *FINUFFT_RESTRICT target, const FLT *du, const FLT *ker1,
   target[1] = out[1];
 }
 
-template<uint8_t ns>
+template<uint8_t ns, class simd_type>
 void interp_cube(FLT *FINUFFT_RESTRICT target, const FLT *du, const FLT *ker1,
                  const FLT *ker2, const FLT *ker3, const BIGINT i1, const BIGINT i2,
                  const BIGINT i3, const BIGINT N1, const BIGINT N2, const BIGINT N3)
@@ -1024,37 +1054,86 @@ void interp_cube(FLT *FINUFFT_RESTRICT target, const FLT *du, const FLT *ker1,
    (see above note in interp_square)
 */
 {
-  FLT out[] = {0.0, 0.0};
-  if (i1 >= 0 && i1 + ns <= N1 && i2 >= 0 && i2 + ns <= N2 && i3 >= 0 && i3 + ns <= N3) {
-    // no wrapping: avoid ptrs (by far the most common case)
-    FLT line[2 * MAX_NSPREAD]; // store a horiz line (interleaved real,imag)
-    // initialize line with zeros; hard to avoid here, but overhead small in 3D
-    for (int l = 0; l < 2 * ns; l++) {
-      line[l] = 0;
-    }
-    // co-add y and z contributions to line in x; do not apply x kernel yet
-    // This is expensive innermost loop
-    for (int dz = 0; dz < ns; dz++) {
-      BIGINT oz = N1 * N2 * (i3 + dz);                         // offset due to z
-      for (int dy = 0; dy < ns; dy++) {
-        const FLT *lptr = du + 2 * (oz + N1 * (i2 + dy) + i1); // ptr start of line
-        FLT ker23       = ker2[dy] * ker3[dz];
-        for (int l = 0; l < 2 * ns; ++l) { // loop over ns interleaved (R,I) pairs
-          line[l] += lptr[l] * ker23;
+  std::array<FLT, 2> out{0};
+  using arch_t                          = typename simd_type::arch_type;
+  static constexpr auto padding         = get_padding<FLT, 2 * ns>();
+  static constexpr auto alignment       = arch_t::alignment();
+  static constexpr auto simd_size       = simd_type::size;
+  static constexpr uint8_t line_vectors = (2 * ns + padding) / simd_size;
+  const auto in_bounds_1                = (i1 >= 0) & (i1 + ns <= N1);
+  const auto in_bounds_2                = (i2 >= 0) & (i2 + ns <= N2);
+  const auto in_bounds_3                = (i3 >= 0) & (i3 + ns <= N3);
+  if (FINUFFT_LIKELY(in_bounds_1 && in_bounds_2 && in_bounds_3)) {
+    if (FINUFFT_LIKELY(i1 + ns + (padding + 1) / 2 < N1)) {
+      std::array<simd_type, line_vectors> line{0};
+      for (uint8_t dz{0}; dz < ns; ++dz) {
+        const UBIGINT oz = N1 * N2 * (i3 + dz);
+        for (uint8_t dy{0}; dy < ns; ++dy) {
+          const auto du_ptr = du + 2 * (oz + N1 * (i2 + dy) + i1); // (see above)
+          const simd_type ker23_v{ker2[dy] * ker3[dz]};
+          for (uint8_t l{0}; l < line_vectors; ++l) {
+            const auto du_pt = simd_type::load_unaligned(l * simd_size + du_ptr);
+            line[l]          = xsimd::fma(ker23_v, du_pt, line[l]);
+          }
         }
       }
-    }
-    // apply x kernel to the (interleaved) line and add together (cheap)
-    for (int dx = 0; dx < ns; dx++) {
-      out[0] += line[2 * dx] * ker1[dx];
-      out[1] += line[2 * dx + 1] * ker1[dx];
+      // apply x kernel to the (interleaved) line and add together
+      const auto res_array = [ker1](const auto &line) constexpr noexcept {
+        const auto res = [ker1](const auto &line) constexpr noexcept {
+          simd_type res_low{0}, res_hi{0};
+          for (uint8_t i{0}; i < (line_vectors & ~1); // NOLINT(*-too-small-loop-variable)
+               i += 2) {
+            const auto ker1_v  = simd_type::load_aligned(i * simd_size / 2 + ker1);
+            const auto ker1low = xsimd::swizzle(ker1_v, zip_low_index<arch_t>);
+            const auto ker1hi  = xsimd::swizzle(ker1_v, zip_hi_index<arch_t>);
+            res_low            = xsimd::fma(ker1low, line[i], res_low);
+            res_hi             = xsimd::fma(ker1hi, line[i + 1], res_hi);
+          }
+          if constexpr (line_vectors % 2) {
+            const auto ker1_v =
+                simd_type::load_aligned((line_vectors - 1) * simd_size / 2 + ker1);
+            const auto ker1low = xsimd::swizzle(ker1_v, zip_low_index<arch_t>);
+            res_low            = xsimd::fma(ker1low, line.back(), res_low);
+          }
+          return res_low + res_hi;
+        }(line);
+        alignas(alignment) std::array<FLT, simd_size> res_array{};
+        res.store_aligned(res_array.data());
+        return res_array;
+      }(line);
+      for (uint8_t i{0}; i < simd_size; i += 2) {
+        out[0] += res_array[i];
+        out[1] += res_array[i + 1];
+      }
+    } else {
+      // no wrapping: avoid ptrs (by far the most common case)
+      // store a horiz line (interleaved real,imag)
+      // initialize line with zeros; hard to avoid here, but overhead small in 3D
+      std::array<FLT, 2 * MAX_NSPREAD> line{0};
+      // co-add y and z contributions to line in x; do not apply x kernel yet
+      // This is expensive innermost loop
+      for (uint8_t dz{0}; dz < ns; ++dz) {
+        const auto oz = N1 * N2 * (i3 + dz);                      // offset due to z
+        for (uint8_t dy{0}; dy < ns; ++dy) {
+          const auto l_ptr = du + 2 * (oz + N1 * (i2 + dy) + i1); // ptr start of line
+          const auto ker23 = ker2[dy] * ker3[dz];
+          for (uint8_t l{0}; l < 2 * ns; ++l) { // loop over ns interleaved (R,I) pairs
+            line[l] = xsimd::fma(l_ptr[l], ker23, line[l]);
+          }
+        }
+      }
+      // apply x kernel to the (interleaved) line and add together (cheap)
+      for (uint8_t dx{0}; dx < ns; ++dx) {
+        out[0] += line[2 * dx] * ker1[dx];
+        out[1] += line[2 * dx + 1] * ker1[dx];
+      }
     }
   } else { // wraps somewhere: use ptr list
     // ...can be slower since this case only happens with probability
     // O(ns/min(N1,N2,N3))
-    BIGINT j1[MAX_NSPREAD], j2[MAX_NSPREAD], j3[MAX_NSPREAD]; // 1d ptr lists
-    BIGINT x = i1, y = i2, z = i3;                            // initialize coords
-    for (int d = 0; d < ns; d++) {                            // set up ptr lists
+    alignas(alignment) std::array<UBIGINT, ns> j1{}, j2{}, j3{}; // 1d ptr lists
+    auto x = i1, y = i2, z = i3;                                 // initialize coords
+    for (uint8_t d{0}; d < ns; d++) {                            // set up ptr lists
       if (x < 0) x += N1;
       if (x >= N1) x -= N1;
       j1[d] = x++;
@@ -1065,14 +1144,14 @@ void interp_cube(FLT *FINUFFT_RESTRICT target, const FLT *du, const FLT *ker1,
       if (z >= N3) z -= N3;
       j3[d] = z++;
     }
-    for (int dz = 0; dz < ns; dz++) { // use the pts lists
-      BIGINT oz = N1 * N2 * j3[dz];   // offset due to z
-      for (int dy = 0; dy < ns; dy++) {
-        BIGINT oy = oz + N1 * j2[dy]; // offset due to y & z
-        FLT ker23 = ker2[dy] * ker3[dz];
-        for (int dx = 0; dx < ns; dx++) {
-          FLT k    = ker1[dx] * ker23;
-          BIGINT j = oy + j1[dx];
+    for (uint8_t dz{0}; dz < ns; dz++) {     // use the pts lists
+      const auto oz = N1 * N2 * j3[dz];      // offset due to z
+      for (uint8_t dy{0}; dy < ns; dy++) {
+        const auto oy    = oz + N1 * j2[dy]; // offset due to y & z
+        const auto ker23 = ker2[dy] * ker3[dz];
+        for (uint8_t dx{0}; dx < ns; dx++) {
+          const auto k = ker1[dx] * ker23;
+          const auto j = oy + j1[dx];
           out[0] += du[2 * j] * k;
           out[1] += du[2 * j + 1] * k;
         }
