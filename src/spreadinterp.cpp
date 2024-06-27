@@ -482,7 +482,8 @@ FINUFFT_NEVER_INLINE static int interpSorted_kernel(
   timer.start();
 #pragma omp parallel num_threads(nthr)
   {
-#define CHUNKSIZE 16 // Chunks of Type 2 targets (Ludvig found by expt)
+    static constexpr auto CHUNKSIZE = 16; // Chunks of Type 2 targets (Ludvig found by
+                                          // expt)
     BIGINT jlist[CHUNKSIZE];
     FLT xjlist[CHUNKSIZE], yjlist[CHUNKSIZE], zjlist[CHUNKSIZE];
     FLT outbuf[2 * CHUNKSIZE];
@@ -1109,7 +1110,7 @@ void interp_cube(FLT *FINUFFT_RESTRICT target, const FLT *du, const FLT *ker1,
       // no wrapping: avoid ptrs (by far the most common case)
       // store a horiz line (interleaved real,imag)
       // initialize line with zeros; hard to avoid here, but overhead small in 3D
-      std::array<FLT, 2 * MAX_NSPREAD> line{0};
+      alignas(alignment) std::array<FLT, 2 * ns> line{0};
       // co-add y and z contributions to line in x; do not apply x kernel yet
       // This is expensive innermost loop
       for (uint8_t dz{0}; dz < ns; ++dz) {
