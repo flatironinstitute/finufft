@@ -157,7 +157,7 @@ static void set_nhg_type3(FLT S, FLT X, finufft_opts opts, finufft_spread_opts s
   else
     Ssafe = max(Ssafe, 1 / X);
   // use the safe X and S...
-  FLT nfd = 2.0 * opts.upsampfac * Ssafe * Xsafe / PI + nss;
+  FLT nfd = FLT(2.0 * opts.upsampfac * Ssafe * Xsafe / PI + nss);
   if (!isfinite(nfd)) nfd = 0.0; // use FLT to catch inf
   *nf = (BIGINT)nfd;
   // printf("initial nf=%lld, ns=%d\n",*nf,spopts.nspread);
@@ -166,7 +166,7 @@ static void set_nhg_type3(FLT S, FLT X, finufft_opts opts, finufft_spread_opts s
   if (*nf < MAX_NF)                                 // otherwise will fail anyway
     *nf = next235even(*nf);                         // expensive at huge nf
   *h   = 2 * PI / *nf;                              // upsampled grid spacing
-  *gam = (FLT)*nf / (2.0 * opts.upsampfac * Ssafe); // x scale fac to x'
+  *gam = FLT(*nf / (2.0 * opts.upsampfac * Ssafe)); // x scale fac to x'
 }
 
 static void onedim_fseries_kernel(BIGINT nf, FLT *fwkerhalf, finufft_spread_opts opts)
@@ -195,7 +195,7 @@ static void onedim_fseries_kernel(BIGINT nf, FLT *fwkerhalf, finufft_spread_opts
   Fixed num_threads 7/20/20
  */
 {
-  FLT J2 = opts.nspread / 2.0; // J/2, half-width of ker z-support
+  FLT J2 = opts.nspread / FLT(2); // J/2, half-width of ker z-support
   // # quadr nodes in z (from 0 to J/2; reflections will be added)...
   int q = (int)(2 + 3.0 * J2); // not sure why so large? cannot exceed MAX_NQUAD
   FLT f[MAX_NQUAD];
@@ -250,9 +250,9 @@ static void onedim_nuft_kernel(BIGINT nk, FLT *k, FLT *phihat, finufft_spread_op
   Barnett 2/8/17. openmp since cos slow 2/9/17
  */
 {
-  FLT J2 = opts.nspread / 2.0; // J/2, half-width of ker z-support
+  FLT J2 = opts.nspread / FLT(2); // J/2, half-width of ker z-support
   // # quadr nodes in z (from 0 to J/2; reflections will be added)...
-  int q = (int)(2 + 2.0 * J2); // > pi/2 ratio.  cannot exceed MAX_NQUAD
+  int q = (int)(2 + FLT(2) * J2); // > pi/2 ratio.  cannot exceed MAX_NQUAD
   if (opts.debug) printf("q (# ker FT quadr pts) = %d\n", q);
   FLT f[MAX_NQUAD];
   double z[2 * MAX_NQUAD], w[2 * MAX_NQUAD]; // glr needs double
@@ -898,9 +898,9 @@ int FINUFFT_SETPTS(FINUFFT_PLAN p, BIGINT nj, FLT *xj, FLT *yj, FLT *zj, BIGINT 
     }
 
     // always shift as use gam to rescale x_j to x'_j, etc (twist iii)...
-    FLT ig1 = 1.0 / p->t3P.gam1, ig2 = 0.0, ig3 = 0.0; // "reciprocal-math" optim
-    if (d > 1) ig2 = 1.0 / p->t3P.gam2;
-    if (d > 2) ig3 = 1.0 / p->t3P.gam3;
+    FLT ig1 = FLT(1) / p->t3P.gam1, ig2 = 0.0, ig3 = 0.0; // "reciprocal-math" optim
+    if (d > 1) ig2 = FLT(1) / p->t3P.gam2;
+    if (d > 2) ig3 = FLT(1) / p->t3P.gam3;
 #pragma omp parallel for num_threads(p->opts.nthreads) schedule(static)
     for (BIGINT j = 0; j < nj; ++j) {
       p->X[j] = (xj[j] - p->t3P.C1) * ig1; // rescale x_j
@@ -962,7 +962,7 @@ int FINUFFT_SETPTS(FINUFFT_PLAN p, BIGINT nj, FLT *xj, FLT *yj, FLT *zj, BIGINT 
       FLT phiHat = phiHatk1[k];
       if (d > 1) phiHat *= phiHatk2[k];
       if (d > 2) phiHat *= phiHatk3[k];
-      p->deconv[k] = (CPX)(1.0 / phiHat);
+      p->deconv[k] = (CPX)(FLT(1) / phiHat);
       if (Cfinite && Cnonzero) {
         FLT phase = (s[k] - p->t3P.D1) * p->t3P.C1;
         if (d > 1) phase += (t[k] - p->t3P.D2) * p->t3P.C2;

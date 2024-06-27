@@ -185,7 +185,7 @@ int spreadinterp(BIGINT N1, BIGINT N2, BIGINT N3, FLT *data_uniform, BIGINT M, F
   return 0;
 }
 
-static int ndims_from_Ns(BIGINT N1, BIGINT N2, BIGINT N3)
+static int ndims_from_Ns(BIGINT /*N1*/, BIGINT N2, BIGINT N3)
 /* rule for getting number of spreading dimensions from the list of Ns per dim.
    Split out, Barnett 7/26/18
 */
@@ -196,7 +196,7 @@ static int ndims_from_Ns(BIGINT N1, BIGINT N2, BIGINT N3)
   return ndims;
 }
 
-int spreadcheck(BIGINT N1, BIGINT N2, BIGINT N3, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
+int spreadcheck(BIGINT N1, BIGINT N2, BIGINT N3, BIGINT /*M*/, FLT */*kx*/, FLT */*ky*/, FLT */*kz*/,
                 const finufft_spread_opts &opts)
 /* This does just the input checking and reporting for the spreader.
    See spreadinterp() for input arguments and meaning of returned value.
@@ -390,7 +390,7 @@ int spreadSorted(const BIGINT *sort_indices, BIGINT N1, BIGINT N2, BIGINT N3,
         ky0.resize(M0 * (N2 > 1));
         kz0.resize(M0 * (N3 > 1));
         dd0.resize(2 * M0);                               // complex strength data
-        for (UBIGINT j = 0; j < M0; j++) {                // todo: can avoid this copying?
+        for (UBIGINT j = 0; j < UBIGINT(M0); j++) {                // todo: can avoid this copying?
           const UBIGINT kk = sort_indices[j + brk[isub]]; // NU pt from subprob index list
           kx0[j]           = fold_rescale(kx[kk], N1);
           if (N2 > 1) ky0[j] = fold_rescale(ky[kk], N2);
@@ -455,10 +455,7 @@ FINUFFT_NEVER_INLINE static int interpSorted_kernel(
 // See spreadinterp() for doc.
 {
   using simd_type                 = xsimd::batch<FLT>;
-  using arch_t                    = typename simd_type::arch_type;
-  static constexpr auto padding   = get_padding<FLT, 2 * ns>();
   static constexpr auto alignment = simd_type::arch_type::alignment();
-  static constexpr auto simd_size = simd_type::size;
   static constexpr auto ns2 = ns * FLT(0.5); // half spread width, used as stencil shift
 
   CNTime timer;
@@ -559,7 +556,7 @@ static int interpSorted_dispatch(
     FLT *FINUFFT_RESTRICT data_uniform, const BIGINT M, FLT *FINUFFT_RESTRICT kx,
     FLT *FINUFFT_RESTRICT ky, FLT *FINUFFT_RESTRICT kz,
     FLT *FINUFFT_RESTRICT data_nonuniform, const finufft_spread_opts &opts) {
-  static_assert(MIN_NSPREAD <= NS <= MAX_NSPREAD,
+  static_assert((MIN_NSPREAD <= NS) && (NS <= MAX_NSPREAD),
                 "NS must be in the range (MIN_NSPREAD, MAX_NSPREAD)");
   if constexpr (NS == MIN_NSPREAD) { // Base case
     if (opts.kerevalmeth)
@@ -654,9 +651,9 @@ int setup_spreader(finufft_spread_opts &opts, FLT eps, double upsampfac, int ker
     ier = FINUFFT_WARN_EPS_TOO_SMALL;
   }
   if (upsampfac == 2.0)                      // standard sigma (see SISC paper)
-    ns = std::ceil(-log10(eps / (FLT)10.0)); // 1 digit per power of 10
+    ns = int(std::ceil(-log10(eps / (FLT)10.0))); // 1 digit per power of 10
   else                                       // custom sigma
-    ns = std::ceil(-log(eps) / (PI * sqrt(1.0 - 1.0 / upsampfac))); // formula, gam=1
+    ns = int(std::ceil(-log(eps) / (PI * sqrt(1.0 - 1.0 / upsampfac)))); // formula, gam=1
   ns = max(2, ns);        // (we don't have ns=1 version yet)
   if (ns > MAX_NSPREAD) { // clip to fit allocated arrays, Horner rules
     if (showwarn)
@@ -677,7 +674,7 @@ int setup_spreader(finufft_spread_opts &opts, FLT eps, double upsampfac, int ker
   if (ns == 3) betaoverns = 2.26;
   if (ns == 4) betaoverns = 2.38;
   if (upsampfac != 2.0) { // again, override beta for custom sigma
-    FLT gamma  = 0.97;    // must match devel/gen_all_horner_C_code.m !
+    FLT gamma  = FLT(0.97);    // must match devel/gen_all_horner_C_code.m !
     betaoverns = gamma * PI * (1.0 - 1.0 / (2 * upsampfac)); // formula based on cutoff
   }
   opts.ES_beta = betaoverns * ns; // set the kernel beta parameter
@@ -1052,7 +1049,7 @@ FINUFFT_NEVER_INLINE void spread_subproblem_1d_kernel(
   // the largest read is 16 floats with avx512
   // if larger instructions will be available or half precision is used, this should be
   // padded
-  for (uint64_t i{0}; i < M; i++) { // loop over NU pts
+  for (uint64_t i{0}; i < uint64_t(M); i++) { // loop over NU pts
     // initializes a dd_pt that is const
     // should not make a difference in performance
     // but is a hint to the compiler that after the lambda
@@ -1186,7 +1183,7 @@ static void spread_subproblem_1d_dispatch(
          This is a known issue with template metaprogramming.
          If you increased MAX_NSPREAD and the code does not compile, try reducing it.
   */
-  static_assert(MIN_NSPREAD <= NS <= MAX_NSPREAD,
+  static_assert((MIN_NSPREAD <= NS) & (NS <= MAX_NSPREAD),
                 "NS must be in the range (MIN_NSPREAD, MAX_NSPREAD)");
   if constexpr (NS == MIN_NSPREAD) { // Base case
     if (opts.kerevalmeth)
@@ -1245,7 +1242,7 @@ FINUFFT_NEVER_INLINE static void spread_subproblem_2d_kernel(
   static constexpr auto ns2 = ns * FLT(0.5); // half spread width
   alignas(alignment) std::array<FLT, 2 * MAX_NSPREAD> kernel_values{0};
   std::fill(du, du + 2 * size1 * size2, 0);  // initialized to 0 due to the padding
-  for (uint64_t pt = 0; pt < M; pt++) {      // loop over NU pts
+  for (uint64_t pt = 0; pt < uint64_t(M); pt++) {      // loop over NU pts
     const auto dd_pt = initialize_complex_register<simd_type>(dd[pt * 2], dd[pt * 2 + 1]);
     // ceil offset, hence rounding, must match that in get_subgrid...
     const auto i1 = (BIGINT)std::ceil(kx[pt] - ns2); // fine grid start indices
@@ -1302,7 +1299,7 @@ FINUFFT_NEVER_INLINE static void spread_subproblem_2d_kernel(
     }();
 
     // critical inner loop:
-    for (auto dy = 0; dy < ns; ++dy) {
+    for (uint8_t dy = 0; dy < ns; ++dy) {
       const auto j = size1 * (i2 - off2 + dy) + i1 - off1; // should be in subgrid
       auto *FINUFFT_RESTRICT trg = du + 2 * j;
       const simd_type kerval_v(ker2[dy]);
@@ -1320,7 +1317,7 @@ void spread_subproblem_2d_dispatch(
     const BIGINT off1, const BIGINT off2, const BIGINT size1, const BIGINT size2,
     FLT *FINUFFT_RESTRICT du, const BIGINT M, const FLT *kx, const FLT *ky, const FLT *dd,
     const finufft_spread_opts &opts) {
-  static_assert(MIN_NSPREAD <= NS <= MAX_NSPREAD,
+  static_assert((MIN_NSPREAD <= NS) && (NS <= MAX_NSPREAD),
                 "NS must be in the range (MIN_NSPREAD, MAX_NSPREAD)");
   if constexpr (NS == MIN_NSPREAD) { // Base case
     if (opts.kerevalmeth)
@@ -1378,7 +1375,7 @@ FINUFFT_NEVER_INLINE void spread_subproblem_3d_kernel(
   alignas(alignment) std::array<FLT, 3 * MAX_NSPREAD> kernel_values{0};
   std::fill(du, du + 2 * size1 * size2 * size3, 0);
 
-  for (uint64_t pt = 0; pt < M; pt++) { // loop over NU pts
+  for (uint64_t pt = 0; pt < uint64_t(M); pt++) { // loop over NU pts
     const auto dd_pt = initialize_complex_register<simd_type>(dd[pt * 2], dd[pt * 2 + 1]);
     // ceil offset, hence rounding, must match that in get_subgrid...
     const auto i1 = (BIGINT)std::ceil(kx[pt] - ns2); // fine grid start indices
@@ -1443,7 +1440,7 @@ void spread_subproblem_3d_dispatch(
     BIGINT off1, BIGINT off2, BIGINT off3, BIGINT size1, BIGINT size2, BIGINT size3,
     FLT *du, BIGINT M, const FLT *kx, const FLT *ky, const FLT *kz, const FLT *dd,
     const finufft_spread_opts &opts) noexcept {
-  static_assert(MIN_NSPREAD <= NS <= MAX_NSPREAD,
+  static_assert((MIN_NSPREAD <= NS) && (NS <= MAX_NSPREAD),
                 "NS must be in the range (MIN_NSPREAD, MAX_NSPREAD)");
   if constexpr (NS == MIN_NSPREAD) { // Base case
     if (opts.kerevalmeth)
@@ -1547,7 +1544,7 @@ void add_wrapped_subgrid(BIGINT offset1, BIGINT offset2, BIGINT offset3,
 void bin_sort_singlethread(
     BIGINT *ret, const BIGINT M, const FLT *kx, const FLT *ky, const FLT *kz,
     const BIGINT N1, const BIGINT N2, const BIGINT N3, const double bin_size_x,
-    const double bin_size_y, const double bin_size_z, const int debug)
+    const double bin_size_y, const double bin_size_z, const int /*debug*/)
 /* Returns permutation of all nonuniform points with good RAM access,
  * ie less cache misses for spreading, in 1D, 2D, or 3D. Single-threaded version
  *
@@ -1620,7 +1617,7 @@ void bin_sort_singlethread(
 
 void bin_sort_multithread(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz, BIGINT N1,
                           BIGINT N2, BIGINT N3, double bin_size_x, double bin_size_y,
-                          double bin_size_z, int debug, int nthr)
+                          double bin_size_z, int /*debug*/, int nthr)
 /* Mostly-OpenMP'ed version of bin_sort.
    For documentation see: bin_sort_singlethread.
    Caution: when M (# NU pts) << N (# U pts), is SLOWER than single-thread.
@@ -1631,9 +1628,9 @@ void bin_sort_multithread(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz, BIGI
  */
 {
   bool isky = (N2 > 1), iskz = (N3 > 1); // ky,kz avail? (cannot access if not)
-  BIGINT nbins1 = N1 / bin_size_x + 1, nbins2, nbins3; // see above note on why +1
-  nbins2        = isky ? N2 / bin_size_y + 1 : 1;
-  nbins3        = iskz ? N3 / bin_size_z + 1 : 1;
+  BIGINT nbins1 = BIGINT(N1 / bin_size_x + 1), nbins2, nbins3; // see above note on why +1
+  nbins2        = isky ? BIGINT(N2 / bin_size_y + 1) : 1;
+  nbins3        = iskz ? BIGINT(N3 / bin_size_z + 1) : 1;
   BIGINT nbins  = nbins1 * nbins2 * nbins3;
   if (nthr == 0)                   // should never happen in spreadinterp use
     fprintf(stderr, "[%s] nthr (%d) must be positive!\n", __func__, nthr);
@@ -1655,9 +1652,9 @@ void bin_sort_multithread(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz, BIGI
     my_counts.resize(nbins, 0);      // allocate counts[t], now in parallel region
     for (BIGINT i = brk[t]; i < brk[t + 1]; i++) {
       // find the bin index in however many dims are needed
-      BIGINT i1 = fold_rescale(kx[i], N1) / bin_size_x, i2 = 0, i3 = 0;
-      if (isky) i2 = fold_rescale(ky[i], N2) / bin_size_y;
-      if (iskz) i3 = fold_rescale(kz[i], N3) / bin_size_z;
+      BIGINT i1 = BIGINT(fold_rescale(kx[i], N1) / bin_size_x), i2 = 0, i3 = 0;
+      if (isky) i2 = BIGINT(fold_rescale(ky[i], N2) / bin_size_y);
+      if (iskz) i3 = BIGINT(fold_rescale(kz[i], N3) / bin_size_z);
       BIGINT bin = i1 + nbins1 * (i2 + nbins2 * i3);
       ++my_counts[bin]; // no clash btw threads
     }
@@ -1678,9 +1675,9 @@ void bin_sort_multithread(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz, BIGI
     auto &my_counts(counts[t]);
     for (BIGINT i = brk[t]; i < brk[t + 1]; i++) {
       // find the bin index (again! but better than using RAM)
-      BIGINT i1 = fold_rescale(kx[i], N1) / bin_size_x, i2 = 0, i3 = 0;
-      if (isky) i2 = fold_rescale(ky[i], N2) / bin_size_y;
-      if (iskz) i3 = fold_rescale(kz[i], N3) / bin_size_z;
+      BIGINT i1 = BIGINT(fold_rescale(kx[i], N1) / bin_size_x), i2 = 0, i3 = 0;
+      if (isky) i2 = BIGINT(fold_rescale(ky[i], N2) / bin_size_y);
+      if (iskz) i3 = BIGINT(fold_rescale(kz[i], N3) / bin_size_z);
       BIGINT bin          = i1 + nbins1 * (i2 + nbins2 * i3);
       ret[my_counts[bin]] = i; // inverse is offset for this NU pt and thread
       ++my_counts[bin];        // update the offsets; no thread clash
@@ -1785,7 +1782,7 @@ auto ker_eval(FLT *FINUFFT_RESTRICT ker, const finufft_spread_opts &opts,
    */
   const std::array inputs{elems...};
   // compile time loop, no performance overhead
-  for (auto i = 0; i < sizeof...(elems); ++i) {
+  for (size_t i = 0; i < sizeof...(elems); ++i) {
     // compile time branch no performance overhead
     if constexpr (kerevalmeth == 1) {
       eval_kernel_vec_Horner<ns, simd_type>(ker + (i * MAX_NSPREAD), inputs[i], opts);
@@ -1806,7 +1803,7 @@ constexpr array<std::array<T, PaddedM>, N> pad_2D_array_with_zeros(
     const array<std::array<T, M>, N> &input) noexcept {
   constexpr auto pad_with_zeros = [](const auto &input) constexpr noexcept {
     std::array<T, PaddedM> padded{0};
-    for (auto i = 0; i < input.size(); ++i) {
+    for (size_t i = 0; i < input.size(); ++i) {
       padded[i] = input[i];
     }
     return padded;

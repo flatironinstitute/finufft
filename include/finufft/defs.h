@@ -90,7 +90,7 @@ static constexpr BIGINT MAX_NU_PTS         = (BIGINT)1e14;
 #include <math.h>
 
 // either-precision unit imaginary number...
-static constexpr CPX IMA(0.0, 1.0);
+static constexpr CPX IMA(FLT(0), FLT(1));
 // using namespace std::complex_literals;  // needs C++14, provides 1i, 1if
 #ifndef M_PI // Windows apparently doesn't have this const
 #define M_PI 3.14159265358979329
