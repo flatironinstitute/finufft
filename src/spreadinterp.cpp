@@ -526,8 +526,6 @@ FINUFFT_NEVER_INLINE static int interpSorted_kernel(
         const auto x2 = (ndims > 1) ? std::ceil(yj - ns2) - yj : 0;
         const auto x3 = (ndims > 2) ? std::ceil(zj - ns2) - zj : 0;
 
-        ker_eval<ns, kerevalmeth, FLT, simd_type>(kernel_values.data(), opts, x1);
-        interp_line<ns, simd_type>(target, data_uniform, ker1, i1, N1);
         // eval kernel values patch and use to interpolate from uniform data...
         if (!(opts.flags & TF_OMIT_SPREADING)) {
           switch (ndims) {
