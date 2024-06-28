@@ -7,12 +7,10 @@ differentiated by 'f' suffix.
 """
 
 import ctypes
+import ctypes.util
 import os
-import warnings
 import platform
 import importlib.util
-
-import numpy as np
 
 from ctypes import c_double
 from ctypes import c_int
@@ -26,13 +24,14 @@ c_float_p = ctypes.POINTER(c_float)
 c_double_p = ctypes.POINTER(c_double)
 c_longlong_p = ctypes.POINTER(c_longlong)
 
-# TODO: See if there is a way to improve this so it is less hacky.
 lib = None
 # Try to load a local library directly.
 try:
     lib = ctypes.cdll.LoadLibrary('libfinufft.so')
 except OSError:
-    pass
+    libname = ctypes.util.find_library('finufft')
+    if libname is not None:
+        lib = ctypes.cdll.LoadLibrary(libname)
 
 # Should that not work, try to find the full path of a packaged lib.
 #   The packaged lib should have a py/platform decorated name,
