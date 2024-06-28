@@ -46,11 +46,11 @@ pipeline {
     sh '${PYBIN}/python3 -m venv $HOME'
     sh '''#!/bin/bash -ex
       source $HOME/bin/activate
-      python3 -m pip install --upgrade pip
-      python3 -m pip install --upgrade pycuda cupy-cuda112 numba
-      python3 -m pip install torch==1.10.2+cu111 -f https://download.pytorch.org/whl/torch_stable.html
-      python3 -m pip install python/cufinufft
-      python3 -m pip install pytest
+      python3 -m pip install --no-cache-dir --upgrade pip
+      python3 -m pip install --no-cache-dir --upgrade pycuda cupy-cuda112 numba
+      python3 -m pip install --no-cache-dir torch==1.10.2+cu111 -f https://download.pytorch.org/whl/torch_stable.html
+      python3 -m pip install --no-cache-dir python/cufinufft
+      python3 -m pip install --no-cache-dir pytest
       python -c "from numba import cuda; cuda.cudadrv.libs.test()"
       python3 -m pytest --framework=pycuda python/cufinufft
       python3 -m pytest --framework=numba python/cufinufft
