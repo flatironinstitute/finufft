@@ -7,7 +7,7 @@ using namespace finufft::utils;
 const char *help[] = {"Tester for FINUFFT in 3d, all 3 types, either precision.",
                       "",
                       "Usage: finufft3d_test Nmodes1 Nmodes2 Nmodes3 Nsrc [tol [debug "
-                      "[spread_sort [upsampfac [errfail]]]]]",
+                      "[spread_sort [upsampfac]]]]",
                       "\teg:\tfinufft3d_test 100 200 50 1e6 1e-12 0 2 0.0 1e-11",
                       "\tnotes:\tif errfail present, exit code 1 if any error > errfail",
                       NULL};
