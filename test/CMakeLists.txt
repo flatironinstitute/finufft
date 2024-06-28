@@ -1,5 +1,5 @@
 # Each of these source test files is instantiated in single and double precision
-set(TESTS basicpassfail dumbinputs finufft1d_test finufft1dmany_test finufft2d_test finufft2dmany_test finufft3d_test finufft3dmany_test)
+set(TESTS basicpassfail dumbinputs finufft1d_test finufft1dmany_test finufft2d_test finufft2dmany_test finufft3d_test finufft3dmany_test finufft3dkernel_test)
 
 foreach(TEST ${TESTS})
   add_executable(${TEST} ${TEST}.cpp)
