@@ -800,8 +800,9 @@ Two upsampfacs implemented. Params must match ref formula. Barnett 4/24/18 */
 }
 
 template<uint8_t ns>
-static void interp_line_wrap(FLT *FINUFFT_RESTRICT target, const FLT *du, const FLT *ker,
-                             const BIGINT i1, const UBIGINT N1) {
+FINUFFT_NEVER_INLINE static void interp_line_wrap(FLT *FINUFFT_RESTRICT target,
+                                                  const FLT *du, const FLT *ker,
+                                                  const BIGINT i1, const UBIGINT N1) {
   /* This function is called when the kernel wraps around the grid. It is
      slower than interp_line.
      M. Barbone July 2024: - moved the logic to a separate function
@@ -954,9 +955,9 @@ void interp_line(FLT *FINUFFT_RESTRICT target, const FLT *du, const FLT *ker,
 }
 
 template<uint8_t ns, class simd_type>
-static void interp_square_wrap(FLT *FINUFFT_RESTRICT target, const FLT *du,
-                               const FLT *ker1, const FLT *ker2, const BIGINT i1,
-                               const BIGINT i2, const UBIGINT N1, const UBIGINT N2) {
+FINUFFT_NEVER_INLINE static void interp_square_wrap(
+    FLT *FINUFFT_RESTRICT target, const FLT *du, const FLT *ker1, const FLT *ker2,
+    const BIGINT i1, const BIGINT i2, const UBIGINT N1, const UBIGINT N2) {
   /*
    * This function is called when the kernel wraps around the grid. It is slower than
    * the non wrapping version.
@@ -1137,10 +1138,10 @@ void interp_square(FLT *FINUFFT_RESTRICT target, const FLT *du, const FLT *ker1,
 }
 
 template<uint8_t ns, class simd_type>
-static void interp_cube_wrapped(FLT *FINUFFT_RESTRICT target, const FLT *du,
-                                const FLT *ker1, const FLT *ker2, const FLT *ker3,
-                                const BIGINT i1, const BIGINT i2, const BIGINT i3,
-                                const UBIGINT N1, const UBIGINT N2, const UBIGINT N3) {
+FINUFFT_NEVER_INLINE static void interp_cube_wrapped(
+    FLT *FINUFFT_RESTRICT target, const FLT *du, const FLT *ker1, const FLT *ker2,
+    const FLT *ker3, const BIGINT i1, const BIGINT i2, const BIGINT i3, const UBIGINT N1,
+    const UBIGINT N2, const UBIGINT N3) {
   /*
    * This function is called when the kernel wraps around the cube.
    * Similarly to 2D and 1D wrapping, this is slower than the non wrapping version.
@@ -1246,6 +1247,7 @@ void interp_cube(FLT *FINUFFT_RESTRICT target, const FLT *du, const FLT *ker1,
   static constexpr auto padding         = get_padding<FLT, 2 * ns>();
   static constexpr auto alignment       = arch_t::alignment();
   static constexpr auto simd_size       = simd_type::size;
+  static constexpr auto ker23_size      = (ns + simd_size - 1) & -simd_size;
   static constexpr uint8_t line_vectors = (2 * ns + padding) / simd_size;
   const auto in_bounds_1                = (i1 >= 0) & (i1 + ns <= N1);
   const auto in_bounds_2                = (i2 >= 0) & (i2 + ns <= N2);
@@ -1254,13 +1256,22 @@ void interp_cube(FLT *FINUFFT_RESTRICT target, const FLT *du, const FLT *ker1,
   if (in_bounds_1 && in_bounds_2 && in_bounds_3 && (i1 + ns + (padding + 1) / 2 < N1)) {
     const auto line = [N1, N2, i1, i2, i3, ker2, ker3, du]() constexpr noexcept {
       std::array<simd_type, line_vectors> line{0}, du_pts{};
+      alignas(alignment) std::array<FLT, ker23_size> ker23_array{};
       const UBIGINT base_oz = N1 * N2 * i3;     // Move invariant part outside the loop
       for (uint8_t dz{0}; dz < ns; ++dz) {
         const auto oz = base_oz + N1 * N2 * dz; // Only the dz part is inside the loop
-        const auto base_du_ptr = du + 2 * (oz + N1 * i2 + UBIGINT(i1));
+        const auto base_du_ptr = du + 2 * UBIGINT(oz + N1 * i2 + i1);
+        {
+          const simd_type ker3_v{ker3[dz]};
+          for (uint8_t dy{0}; dy < ns; dy += simd_size) {
+            const auto ker2_v  = simd_type::load_aligned(ker2 + dy);
+            const auto ker23_v = ker2_v * ker3_v;
+            ker23_v.store_aligned(ker23_array.data() + dy);
+          }
+        }
         for (uint8_t dy{0}; dy < ns; ++dy) {
           const auto du_ptr = base_du_ptr + 2 * N1 * dy; // (see above)
-          const simd_type ker23_v{ker2[dy] * ker3[dz]};
+          const simd_type ker23_v{ker23_array[dy]};
           // First loop: Load all du_pt into the du_pts array
           for (uint8_t l{0}; l < line_vectors; ++l) {
             du_pts[l] = simd_type::load_unaligned(l * simd_size + du_ptr);
