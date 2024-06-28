@@ -1089,14 +1089,25 @@ void interp_square(FLT *FINUFFT_RESTRICT target, const FLT *du, const FLT *ker1,
     // using lambda to limit the scope of the temporary variables
     const auto res = [ker1](const auto &line) constexpr noexcept {
       // apply x kernel to the (interleaved) line and add together
-      simd_type res_low{0}, res_hi{0};
-      for (uint8_t i = 0; i < (line_vectors & ~1); // NOLINT(*-too-small-loop-variable)
-           i += 2) {
-        const auto ker1_v  = simd_type::load_aligned(ker1 + i * simd_size / 2);
+      simd_type res_low{}, res_hi{};
+      if constexpr (line_vectors > 1) {
+        // Manually write out the first iteration
+        const auto ker1_v  = simd_type::load_aligned(ker1);
         const auto ker1low = xsimd::swizzle(ker1_v, zip_low_index<arch_t>);
         const auto ker1hi  = xsimd::swizzle(ker1_v, zip_hi_index<arch_t>);
-        res_low            = xsimd::fma(ker1low, line[i], res_low);
-        res_hi             = xsimd::fma(ker1hi, line[i + 1], res_hi);
+        res_low            = ker1low * line[0];
+        res_hi             = ker1hi * line[1];
+      }
+      if constexpr (line_vectors > 3) {
+        // Start the loop from the second iteration
+        for (uint8_t i = 2; i < (line_vectors & ~1); // NOLINT(*-too-small-loop-variable)
+             i += 2) {
+          const auto ker1_v  = simd_type::load_aligned(ker1 + i * simd_size / 2);
+          const auto ker1low = xsimd::swizzle(ker1_v, zip_low_index<arch_t>);
+          const auto ker1hi  = xsimd::swizzle(ker1_v, zip_hi_index<arch_t>);
+          res_low            = xsimd::fma(ker1low, line[i], res_low);
+          res_hi             = xsimd::fma(ker1hi, line[i + 1], res_hi);
+        }
       }
       if constexpr (line_vectors % 2) {
         const auto ker1_v =
@@ -1104,7 +1115,11 @@ void interp_square(FLT *FINUFFT_RESTRICT target, const FLT *du, const FLT *ker1,
         const auto ker1low = xsimd::swizzle(ker1_v, zip_low_index<arch_t>);
         res_low            = xsimd::fma(ker1low, line.back(), res_low);
       }
-      return res_low + res_hi;
+      if constexpr (line_vectors > 1) {
+        return res_low + res_hi;
+      } else {
+        return res_low;
+      }
     }(line);
     alignas(alignment) std::array<FLT, simd_size> res_array{};
     res.store_aligned(res_array.data());
@@ -1261,22 +1276,39 @@ void interp_cube(FLT *FINUFFT_RESTRICT target, const FLT *du, const FLT *ker1,
     // apply x kernel to the (interleaved) line and add together
     const auto res_array = [ker1](const auto &line) constexpr noexcept {
       const auto res = [ker1](const auto &line) constexpr noexcept {
-        simd_type res_low{0}, res_hi{0};
-        for (uint8_t i{0}; i < (line_vectors & ~1); // NOLINT(*-too-small-loop-variable)
-             i += 2) {
-          const auto ker1_v  = simd_type::load_aligned(i * simd_size / 2 + ker1);
+        // apply x kernel to the (interleaved) line and add together
+        simd_type res_low{}, res_hi{};
+        if constexpr (line_vectors > 1) {
+          // Manually write out the first iteration
+          const auto ker1_v  = simd_type::load_aligned(ker1);
           const auto ker1low = xsimd::swizzle(ker1_v, zip_low_index<arch_t>);
           const auto ker1hi  = xsimd::swizzle(ker1_v, zip_hi_index<arch_t>);
-          res_low            = xsimd::fma(ker1low, line[i], res_low);
-          res_hi             = xsimd::fma(ker1hi, line[i + 1], res_hi);
+          res_low            = ker1low * line[0];
+          res_hi             = ker1hi * line[1];
+        }
+        if constexpr (line_vectors > 3) {
+          // Start the loop from the second iteration
+          for (uint8_t i = 2;
+               i < (line_vectors & ~1); // NOLINT(*-too-small-loop-variable)
+               i += 2) {
+            const auto ker1_v  = simd_type::load_aligned(ker1 + i * simd_size / 2);
+            const auto ker1low = xsimd::swizzle(ker1_v, zip_low_index<arch_t>);
+            const auto ker1hi  = xsimd::swizzle(ker1_v, zip_hi_index<arch_t>);
+            res_low            = xsimd::fma(ker1low, line[i], res_low);
+            res_hi             = xsimd::fma(ker1hi, line[i + 1], res_hi);
+          }
         }
         if constexpr (line_vectors % 2) {
           const auto ker1_v =
-              simd_type::load_aligned((line_vectors - 1) * simd_size / 2 + ker1);
+              simd_type::load_aligned(ker1 + (line_vectors - 1) * simd_size / 2);
           const auto ker1low = xsimd::swizzle(ker1_v, zip_low_index<arch_t>);
           res_low            = xsimd::fma(ker1low, line.back(), res_low);
         }
-        return res_low + res_hi;
+        if constexpr (line_vectors > 1) {
+          return res_low + res_hi;
+        } else {
+          return res_low;
+        }
       }(line);
       alignas(alignment) std::array<FLT, simd_size> res_array{};
       res.store_aligned(res_array.data());
