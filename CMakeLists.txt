@@ -100,6 +100,7 @@ function(enable_asan target)
         target_compile_options(${target} PRIVATE $<$<CONFIG:DEBUG>:-fsanitize=address -fsanitize=undefined -fsanitize=bounds-strict>)
         target_link_options(${target} PRIVATE $<$<CONFIG:DEBUG>:-fsanitize=address -fsanitize=undefined -fsanitize=bounds-strict>)
     endif ()
+    target_compile_options(${target} PRIVATE $<$<CONFIG:DEBUG>:-Wall -Wno-sign-compare>)
 endfunction()
 
 # Utility function to link static/dynamic lib
