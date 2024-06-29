@@ -1256,29 +1256,30 @@ void interp_cube(FLT *FINUFFT_RESTRICT target, const FLT *du, const FLT *ker1,
   if (in_bounds_1 && in_bounds_2 && in_bounds_3 && (i1 + ns + (padding + 1) / 2 < N1)) {
     const auto line = [N1, N2, i1, i2, i3, ker2, ker3, du]() constexpr noexcept {
       std::array<simd_type, line_vectors> line{0}, du_pts{};
-      alignas(alignment) std::array<FLT, ker23_size> ker23_array{};
-      const UBIGINT base_oz = N1 * N2 * i3;     // Move invariant part outside the loop
+      std::array<simd_type, ns> ker23_array{};
+      const auto base_oz = N1 * N2 * UBIGINT(i3); // Move invariant part outside the loop
       for (uint8_t dz{0}; dz < ns; ++dz) {
-        const auto oz = base_oz + N1 * N2 * dz; // Only the dz part is inside the loop
-        const auto base_du_ptr = du + 2 * UBIGINT(oz + N1 * i2 + i1);
+        const auto oz = base_oz + N1 * N2 * dz;   // Only the dz part is inside the loop
+        const auto base_du_ptr = du + 2 * (oz + N1 * i2 + UBIGINT(i1));
         {
+          alignas(alignment) std::array<FLT, ker23_size> ker23_scalar{};
           const simd_type ker3_v{ker3[dz]};
           for (uint8_t dy{0}; dy < ns; dy += simd_size) {
             const auto ker2_v  = simd_type::load_aligned(ker2 + dy);
             const auto ker23_v = ker2_v * ker3_v;
-            ker23_v.store_aligned(ker23_array.data() + dy);
+            ker23_v.store_aligned(ker23_scalar.data() + dy);
+          }
+          for (uint8_t dy{0}; dy < ns; ++dy) {
+            ker23_array[dy] = ker23_scalar[dy];
           }
         }
         for (uint8_t dy{0}; dy < ns; ++dy) {
           const auto du_ptr = base_du_ptr + 2 * N1 * dy; // (see above)
-          const simd_type ker23_v{ker23_array[dy]};
-          // First loop: Load all du_pt into the du_pts array
           for (uint8_t l{0}; l < line_vectors; ++l) {
-            du_pts[l] = simd_type::load_unaligned(l * simd_size + du_ptr);
+            du_pts[l] = simd_type::load_unaligned(l * simd_size + base_du_ptr);
           }
-          // Second loop: Perform the multiplication
           for (uint8_t l{0}; l < line_vectors; ++l) {
-            line[l] = xsimd::fma(ker23_v, du_pts[l], line[l]);
+            line[l] = xsimd::fma(ker23_array[dy], du_pts[l], line[l]);
           }
         }
       }
