@@ -1276,7 +1276,7 @@ void interp_cube(FLT *FINUFFT_RESTRICT target, const FLT *du, const FLT *ker1,
         for (uint8_t dy{0}; dy < ns; ++dy) {
           const auto du_ptr = base_du_ptr + 2 * N1 * dy; // (see above)
           for (uint8_t l{0}; l < line_vectors; ++l) {
-            du_pts[l] = simd_type::load_unaligned(l * simd_size + base_du_ptr);
+            du_pts[l] = simd_type::load_unaligned(l * simd_size + du_ptr);
           }
           for (uint8_t l{0}; l < line_vectors; ++l) {
             line[l] = xsimd::fma(ker23_array[dy], du_pts[l], line[l]);
