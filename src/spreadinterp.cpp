@@ -1063,12 +1063,15 @@ void interp_square(FLT *FINUFFT_RESTRICT target, const FLT *du, const FLT *ker1,
       // new array du_pts to store the du values for the current y line
       std::array<simd_type, line_vectors> line{}, du_pts{};
       // block for first y line, to avoid explicitly initializing line with zeros
-      const auto l_ptr_base = du + 2 * (N1 * i2 + i1); // ptr to horiz line start in du
+      const auto l_ptr_base = du + 2 * UBIGINT(N1 * i2 + i1); // ptr to horiz line start
+                                                              // in du
+      for (uint8_t l{0}; l < line_vectors; ++l) {
+        du_pts[l] = simd_type::load_unaligned(l * simd_size + l_ptr_base);
+      }
       for (uint8_t l{0}; l < line_vectors; ++l) {
         // l is like dx but for ns interleaved
         // no fancy trick needed to multiply real,imag by ker2
-        const auto du_pt = simd_type::load_unaligned(l * simd_size + l_ptr_base);
-        line[l]          = du_pt * simd_type{ker2[0]};
+        line[l] = du_pts[l] * simd_type{ker2[0]};
       }
       // add remaining const-y lines to the line (expensive inner loop)
       for (uint8_t dy{1}; dy < ns; dy++) {
@@ -1260,7 +1263,7 @@ void interp_cube(FLT *FINUFFT_RESTRICT target, const FLT *du, const FLT *ker1,
       const auto base_oz = N1 * N2 * UBIGINT(i3); // Move invariant part outside the loop
       for (uint8_t dz{0}; dz < ns; ++dz) {
         const auto oz = base_oz + N1 * N2 * dz;   // Only the dz part is inside the loop
-        const auto base_du_ptr = du + 2 * (oz + N1 * i2 + UBIGINT(i1));
+        const auto base_du_ptr = du + 2 * UBIGINT(oz + N1 * i2 + i1);
         {
           alignas(alignment) std::array<FLT, ker23_size> ker23_scalar{};
           const simd_type ker3_v{ker3[dz]};
