@@ -5,7 +5,7 @@ There are four steps needed to call cuFINUFFT from C: 1) making a plan, 2) setti
 The simplest case is to call them in order, i.e., 1234.
 However, it is possible to repeat 3 with new strength or coefficient data, or to repeat 2 to choose new nonuniform points in order to do one or more step 3's again, before destroying.
 For instance, 123334 and 1232334 are allowed.
-If non-standard algorithm options are desired, an extra function is needed before making the plan (see bottom of this page).
+If non-standard algorithm options are desired, an extra function is needed before making the plan; see bottom of this page for options.
 
 This API matches very closely that of the plan interface to FINUFFT (in turn modeled on those of FFTW and NFFT).
 Here is the full documentation for these functions.
@@ -289,8 +289,8 @@ This deallocates all arrays inside the ``plan`` struct, freeing all internal mem
 Note: the plan (being just a pointer to the plan struct) is not actually "destroyed"; rather, its internal struct is destroyed.
 There is no need for further deallocation of the plan.
 
-Non-standard options
-~~~~~~~~~~~~~~~~~~~~
+Options for GPU code
+--------------------
 
 The last argument in the above plan stage accepts a pointer to an options structure, which is the same in both single and double precision.
 To create such a structure, use:
@@ -300,7 +300,59 @@ To create such a structure, use:
     cufinufft_opts opts;
     cufinufft_default_opts(&opts);
 
-Then you may change fields of ``opts`` by hand, finally pass ``&opts`` in as the last argument to ``cufinufft_makeplan`` or ``cufinufftf_makeplan``.
-The options fields are currently only documented in the ``include/cufinufft_opts.h``.
+Then you may change fields of ``opts`` by hand, finally pass ``&opts`` in as the last argument to ``cufinufft_makeplan`` or ``cufinufftf_makeplan``. Here are the options, with the important user-controllable ones documented. For their default values, see below.
 
-For examples of this advanced usage, see ``test/cuda/cufinufft*.cu``
+Data handling options
+~~~~~~~~~~~~~~~~~~~~~
+
+**modeord**: Fourier coefficient frequency index ordering; see the CPU option of the same name :ref:`modeord<modeord>`.
+As a reminder, ``modeord=0`` selects increasing frequencies (negative through positive) in each dimension,
+while ``modeord=1`` selects FFT-style ordering starting at zero and wrapping over to negative frequencies half way through.
+
+**gpu_device_id**: Sets the GPU device ID. Leave at default unless you know what you're doing. [To be documented]
+
+Diagnostic options
+~~~~~~~~~~~~~~~~~~
+
+**gpu_spreadinterponly**: if ``0`` do the NUFFT as intended. If ``1``, omit the FFT and kernel FT deconvolution steps and return garbage answers.
+Nonzero value is *only* to be used to aid timing tests (although currently there are no timing codes that exploit this option), and will give wrong or undefined answers for the NUFFT transforms!
+
+
+Algorithm performance options
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+**gpu_method**: Spreader/interpolator algorithm.
+
+* ``gpu_method=0`` : makes an automatic choice of one of the below methods, based on our heuristics.
+
+* ``gpu_method=1`` : uses a nonuniform points-driven method, either unsorted which is referred to as GM in our paper, or sorted which is called GM-sort in our paper, depending on option ``gpu_sort`` below
+  
+* ``gpu_method=2`` : for spreading only, ie, type 1 transforms, uses a shared memory output-block driven method, referred to as SM in our paper. Has no effect for interpolation (type 2 transforms)
+
+* ``gpu_method>2`` : (various upsupported experimental methods due to Melody Shih, not for regular users. Eg ``3`` tests an idea of Paul Springer's to group NU points when spreading, ``4`` is a block gather method of possible interest.)
+
+**gpu_sort**: ``0`` do not sort nonuniform points, ``1`` do sort nonuniform points. Only has an effect when ``gpu_method=1`` (or if this method has been internally chosen when ``gpu_method=0``). Unlike the CPU code, there is no auto-choice since in our experience sorting is fast and always helps. It is possible for structured NU point inputs that ``gpu_sort=0`` may be the faster.
+
+**gpu_kerevalmeth**: ``0`` use direct (reference) kernel evaluation, which is not recommended for speed (however, it allows nonstandard ``opts.upsampfac`` to be used). ``1`` use Horner piecewise polynomial evaluation (recommended, and enforces ``upsampfac=2.0``)
+
+**upsampfac**: set upsampling factor. For the recommended ``kerevalmeth=1`` you must choose the standard ``upsampfac=2.0``. If you are willing to risk a slower kernel evaluation, you may set any ``upsampfac>1.0``, but this is experimental and unsupported.
+
+**gpu_maxsubprobsize**: maximum number of NU points to be handled in a single subproblem in the spreading SM method (``gpu_method=2`` only)
+
+**gpu_{o}binsize{x,y,z}**: various bisizes for sorting (GM-sort) or SM subproblem methods. Values of ``-1`` trigger the heuristically set default values. Leave at default unless you know what you're doing. [To be documented]
+
+**gpu_maxbatchsize**: ``0`` use heuristically defined batch size for vectorized (many-transforms with same NU points) interface, else set this batch size.
+
+**gpu_stream**: CUDA stream to use. Leave at default unless you know what you're doing. [To be documented]
+
+
+For all GPU option default values we refer to the source code in
+``src/cuda/cufinufft.cu:cufinufft_default_opts``):
+
+.. literalinclude:: ../src/cuda/cufinufft.cu
+   :start-after: @gpu_defopts_start
+   :end-before: @gpu_defopts_end
+
+For examples of advanced options-switching usage, see ``test/cuda/cufinufft*.cu`` and ``perftest/cuda/cuperftest.cu``.
+
+You may notice a lack of debugging/timing options in the GPU code. This is to avoid CUDA writing to stdout. Please help us out by adding some of these.

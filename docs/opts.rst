@@ -1,7 +1,7 @@
 .. _opts:
 
-Options parameters
-==================
+Options parameters (CPU)
+========================
 
 Aside from the mandatory inputs (dimension, type,
 nonuniform points, strengths or coefficients, and, in C++/C/Fortran/MATLAB,
