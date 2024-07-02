@@ -140,7 +140,7 @@ automatically from call to call in the same executable (incidentally, also in th
 * ``spread_sort=2`` : uses a heuristic to decide whether to sort or not.
 
 The heuristic bakes in empirical findings such as: generally it is not worth sorting in 1D type 2 transforms, or when the number of nonuniform points is small.
-Do not change this from its default unless you obsever.
+Feel free to try experimenting here; if you have highly-structured nonuniform point ordering (such as coming from polar-grid or propeller-type MRI k-points) it may be advantageous not to sort.
 
 **spread_kerevalmeth**: Kernel evaluation method in spreader/interpolator.
 This should not be changed from its default value, unless you are an
