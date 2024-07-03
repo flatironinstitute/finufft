@@ -20,12 +20,17 @@ if (CMAKE_CXX_COMPILER_ID IN_LIST GNU_LIKE_FRONTENDS)
             -freciprocal-math
             -fmerge-all-constants
             -ftree-vectorize
+            -fimplicit-constexpr
     )
-    # if the compiler does  support -fimplicit-constexpr add it
-    check_cxx_compiler_flag("-fimplicit-constexpr" COMPILER_SUPPORTS_FIMPLICIT_CONSTEXPR)
-    if (COMPILER_SUPPORTS_FIMPLICIT_CONSTEXPR)
-        list(APPEND FINUFFT_CXX_FLAGS_RELEASE -fimplicit-constexpr)
-    endif ()
+    # Assuming FINUFFT_CXX_FLAGS_RELEASE is already defined
+    foreach(flag ${FINUFFT_CXX_FLAGS_RELEASE})
+        check_cxx_compiler_flag("${flag}" flag_supported)
+        if(NOT flag_supported)
+            list(REMOVE_ITEM FINUFFT_CXX_FLAGS_RELEASE "${flag}")
+            message(STATUS "Flag ${flag} is not supported by the compiler and will be removed.")
+        endif()
+    endforeach()
+
     set(FINUFFT_CXX_FLAGS_RELWITHDEBINFO -g ${FINUFFT_CXX_FLAGS_RELEASE})
 endif ()
 
