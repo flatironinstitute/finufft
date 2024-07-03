@@ -19,6 +19,7 @@ if (CMAKE_CXX_COMPILER_ID IN_LIST GNU_LIKE_FRONTENDS)
             -fassociative-math
             -freciprocal-math
             -fmerge-all-constants
+            -ftree-vectorize
     )
     # if the compiler does  support -fimplicit-constexpr add it
     check_cxx_compiler_flag("-fimplicit-constexpr" COMPILER_SUPPORTS_FIMPLICIT_CONSTEXPR)
