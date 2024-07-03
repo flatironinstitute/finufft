@@ -32,6 +32,10 @@ template<typename T>
 void onedim_fseries_kernel_compute(CUFINUFFT_BIGINT nf, T *f, std::complex<double> *a,
                                    T *fwkerhalf, finufft_spread_opts opts);
 
+template<typename T>
+std::size_t shared_memory_required(int dim, int ns, int bin_size_x, int bin_size_y,
+                                   int bin_size_z);
+
 } // namespace common
 } // namespace cufinufft
 #endif

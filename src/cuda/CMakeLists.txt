@@ -24,26 +24,38 @@ set(CUFINUFFT_INCLUDE_DIRS ${CUFINUFFT_INCLUDE_DIRS} PARENT_SCOPE)
 
 add_library(cufinufft_common_objects OBJECT ${PRECISION_INDEPENDENT_SRC})
 target_include_directories(cufinufft_common_objects PUBLIC ${CUFINUFFT_INCLUDE_DIRS})
-set_property(TARGET cufinufft_common_objects PROPERTY POSITION_INDEPENDENT_CODE ON)
+set_target_properties(
+        cufinufft_common_objects PROPERTIES
+        POSITION_INDEPENDENT_CODE ON
+        CUDA_ARCHITECTURES ${FINUFFT_CUDA_ARCHITECTURES}
+)
 
 add_library(cufinufft_objects OBJECT ${PRECISION_DEPENDENT_SRC})
 target_include_directories(cufinufft_objects PUBLIC ${CUFINUFFT_INCLUDE_DIRS})
 set_property(TARGET cufinufft_objects PROPERTY POSITION_INDEPENDENT_CODE ON)
+set_target_properties(
+        cufinufft_objects PROPERTIES
+        POSITION_INDEPENDENT_CODE ON
+        CUDA_ARCHITECTURES ${FINUFFT_CUDA_ARCHITECTURES}
+)
 
 add_library(cufinufft SHARED
   $<TARGET_OBJECTS:cufinufft_common_objects>
   $<TARGET_OBJECTS:cufinufft_objects>
 )
+target_include_directories(cufinufft PUBLIC ${CUFINUFFT_INCLUDE_DIRS})
 target_link_libraries(cufinufft CUDA::cudart CUDA::cufft CUDA::nvToolsExt)
 set_target_properties(
   cufinufft PROPERTIES
   LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}"
+        CUDA_ARCHITECTURES ${FINUFFT_CUDA_ARCHITECTURES}
 )
 
 add_library(cufinufft_static STATIC
   $<TARGET_OBJECTS:cufinufft_common_objects>
   $<TARGET_OBJECTS:cufinufft_objects>
 )
+target_include_directories(cufinufft_static PUBLIC ${CUFINUFFT_INCLUDE_DIRS})
 if(WIN32)
   target_link_libraries(cufinufft_static PUBLIC CUDA::cudart CUDA::cufft CUDA::nvToolsExt)
 else()
@@ -51,7 +63,8 @@ else()
 endif()
 set_target_properties(
   cufinufft_static PROPERTIES
-  ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}"
+        CUDA_ARCHITECTURES ${FINUFFT_CUDA_ARCHITECTURES}
+        ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}"
 )
 
 file(GLOB CUFINUFFT_PUBLIC_HEADERS "${CMAKE_SOURCE_DIR}/include/cufinufft*.h")

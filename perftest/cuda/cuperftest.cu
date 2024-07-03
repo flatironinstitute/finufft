@@ -275,24 +275,29 @@ template<typename T> void run_test(test_options_t &test_opts) {
   }
 
   const int64_t nupts_tot = M * test_opts.n_runs * ntransf;
-
-  printf("event,count,tot(ms),mean(ms),std(ms),nupts/s,ns/nupt\n");
-  printf("host_to_device,%d,%f,%f,%f,0.0,0.0\n", h2d_timer.count(), h2d_timer.tot(),
-         h2d_timer.mean(), h2d_timer.std());
-  printf("makeplan,%d,%f,%f,%f,0.0,0.0\n", makeplan_timer.count(), makeplan_timer.tot(),
-         makeplan_timer.mean(), makeplan_timer.std());
-  printf("setpts,%d,%f,%f,%f,%g,%f\n", test_opts.n_runs, setpts_timer.tot(),
-         setpts_timer.mean(), setpts_timer.std(), nupts_tot * 1000 / setpts_timer.tot(),
-         setpts_timer.tot() * 1E6 / nupts_tot);
-  printf("execute,%d,%f,%f,%f,%g,%f\n", test_opts.n_runs, execute_timer.tot(),
-         execute_timer.mean(), execute_timer.std(),
-         nupts_tot * 1000 / execute_timer.tot(), execute_timer.tot() * 1E6 / nupts_tot);
-  printf("device_to_host,%d,%f,%f,%f,0.0,0.0\n", d2h_timer.count(), d2h_timer.tot(),
-         d2h_timer.mean(), d2h_timer.std());
-  printf("amortized,%d,%f,%f,%f,%g,%f\n", 1, amortized_timer.tot(),
-         amortized_timer.mean(), amortized_timer.std(),
-         nupts_tot * 1000 / amortized_timer.tot(),
-         amortized_timer.tot() * 1E6 / nupts_tot);
+  //
+  //  printf("event,count,tot(ms),mean(ms),std(ms),nupts/s,ns/nupt\n");
+  //  printf("host_to_device,%d,%f,%f,%f,0.0,0.0\n", h2d_timer.count(), h2d_timer.tot(),
+  //         h2d_timer.mean(), h2d_timer.std());
+  //  printf("makeplan,%d,%f,%f,%f,0.0,0.0\n", makeplan_timer.count(),
+  //  makeplan_timer.tot(),
+  //         makeplan_timer.mean(), makeplan_timer.std());
+  //  printf("setpts,%d,%f,%f,%f,%g,%f\n", test_opts.n_runs, setpts_timer.tot(),
+  //         setpts_timer.mean(), setpts_timer.std(), nupts_tot * 1000 /
+  //         setpts_timer.tot(), setpts_timer.tot() * 1E6 / nupts_tot);
+  //  printf("execute,%d,%f,%f,%f,%g,%f\n", test_opts.n_runs, execute_timer.tot(),
+  //         execute_timer.mean(), execute_timer.std(),
+  //         nupts_tot * 1000 / execute_timer.tot(), execute_timer.tot() * 1E6 /
+  //         nupts_tot);
+  //  printf("device_to_host,%d,%f,%f,%f,0.0,0.0\n", d2h_timer.count(), d2h_timer.tot(),
+  //         d2h_timer.mean(), d2h_timer.std());
+  //  printf("amortized,%d,%f,%f,%f,%g,%f\n", 1, amortized_timer.tot(),
+  //         amortized_timer.mean(), amortized_timer.std(),
+  //         nupts_tot * 1000 / amortized_timer.tot(),
+  //         amortized_timer.tot() * 1E6 / nupts_tot);
+  // print numpts / s
+  printf("setpts pts/s: %g\n", float(nupts_tot) * 1000 / setpts_timer.tot());
+  printf("execute pts/s: %g\n", float(nupts_tot) * 1000 / execute_timer.tot());
 }
 
 int main(int argc, char *argv[]) {

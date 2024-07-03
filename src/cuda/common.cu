@@ -199,6 +199,28 @@ void onedim_fseries_kernel_compute(CUFINUFFT_BIGINT nf, T *f, std::complex<doubl
   }
 }
 
+template<typename T>
+std::size_t shared_memory_required(int dim, int ns, int bin_size_x, int bin_size_y,
+                                   int bin_size_z) {
+  printf("dim, ns, bin_size_x, bin_size_y, bin_size_z: %d %d %d %d %d\n", dim, ns,
+         bin_size_x, bin_size_y, bin_size_z);
+  int adjusted_ns = bin_size_x + ((ns + 1) / 2) * 2;
+
+  if (dim == 1) {
+    return adjusted_ns * sizeof(cuda_complex<T>);
+  }
+
+  adjusted_ns *= (bin_size_y + ((ns + 1) / 2) * 2);
+
+  if (dim == 2) {
+    return adjusted_ns * sizeof(cuda_complex<T>);
+  }
+
+  adjusted_ns *= (bin_size_z + ((ns + 1) / 2) * 2);
+
+  return adjusted_ns * sizeof(cuda_complex<T>);
+}
+
 template void onedim_fseries_kernel_compute(CUFINUFFT_BIGINT nf, float *f,
                                             std::complex<double> *a, float *fwkerhalf,
                                             finufft_spread_opts opts);
@@ -227,5 +249,11 @@ template void onedim_fseries_kernel(CUFINUFFT_BIGINT nf, float *fwkerhalf,
                                     finufft_spread_opts opts);
 template void onedim_fseries_kernel(CUFINUFFT_BIGINT nf, double *fwkerhalf,
                                     finufft_spread_opts opts);
+
+template std::size_t shared_memory_required<float>(int dim, int ns, int bin_size_x,
+                                                   int bin_size_y, int bin_size_z);
+template std::size_t shared_memory_required<double>(int dim, int ns, int bin_size_x,
+                                                    int bin_size_y, int bin_size_z);
+
 } // namespace common
 } // namespace cufinufft

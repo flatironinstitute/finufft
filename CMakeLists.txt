@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.19)
+cmake_minimum_required(VERSION 3.23)
 
 project(finufft VERSION 2.2.0 LANGUAGES C CXX)
 
@@ -23,7 +23,7 @@ if (CMAKE_CXX_COMPILER_ID IN_LIST GNU_LIKE_FRONTENDS)
 endif ()
 set(FINUFFT_FFTW_SUFFIX "OpenMP" CACHE STRING "Suffix for FFTW libraries (e.g. OpenMP, Threads etc.)")
 set(FINUFFT_FFTW_LIBRARIES "DEFAULT" CACHE STRING "Specify a custom FFTW library")
-
+set(FINUFFT_CUDA_ARCHITECTURES "all-major" CACHE STRING "CUDA architectures to build for (e.g. 60;70;75;)")
 # All options go here
 # sphinx tag (don't remove): @cmake_opts_start
 option(FINUFFT_BUILD_EXAMPLES "Whether to build the FINUFFT examples" OFF)
@@ -219,30 +219,29 @@ if (FINUFFT_USE_CUDA)
     if (NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
         message("FINUFFT WARNING: No CUDA architecture supplied via '-DCMAKE_CUDA_ARCHITECTURES=...', defaulting to '60;70;75;'")
         message("See: https://developer.nvidia.com/cuda-gpus for more details on what architecture to supply.")
-        set(CMAKE_CUDA_ARCHITECTURES "60;70;75" CACHE STRING "" FORCE)
     endif ()
     enable_language(CUDA)
     find_package(CUDAToolkit REQUIRED)
     add_subdirectory(src/cuda)
-    if (BUILD_TESTING AND FINUFFT_BUILD_TESTS)
+    if (BUILD_TESTING OR FINUFFT_BUILD_TESTS)
         add_subdirectory(perftest/cuda)
+        add_subdirectory(test/cuda)
     endif ()
-
     list(APPEND INSTALL_TARGETS cufinufft cufinufft_static)
 endif ()
 
 # Add tests defined in their own directory
-if (BUILD_TESTING AND FINUFFT_BUILD_TESTS AND FINUFFT_USE_CPU)
+if (FINUFFT_USE_CPU AND (BUILD_TESTING OR FINUFFT_BUILD_TESTS))
     add_subdirectory(test)
     add_subdirectory(perftest)
 endif ()
 
-if (BUILD_TESTING AND FINUFFT_BUILD_TESTS AND FINUFFT_USE_CUDA)
-    add_subdirectory(test/cuda)
+if (FINUFFT_BUILD_EXAMPLES AND FINUFFT_USE_CPU)
+    add_subdirectory(examples)
 endif ()
 
-if (FINUFFT_BUILD_EXAMPLES)
-    add_subdirectory(examples)
+if (FINUFFT_BUILD_EXAMPLES AND FINUFFT_USE_GPU)
+    add_subdirectory(examples/cuda)
 endif ()
 
 if (FINUFFT_BUILD_FORTRAN)

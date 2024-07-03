@@ -69,7 +69,7 @@ int setup_spreader(finufft_spread_opts &opts, T eps, T upsampfac, int kerevalmet
     ier = FINUFFT_WARN_EPS_TOO_SMALL;
   }
   opts.nspread      = ns;
-  opts.ES_halfwidth = (T)ns / 2; // constants to help ker eval (except Horner)
+  opts.ES_halfwidth = T(ns * .5); // constants to help ker eval (except Horner)
   opts.ES_c         = 4.0 / (T)(ns * ns);
 
   T betaoverns = 2.30;            // gives decent betas for default sigma=2.0

@@ -536,14 +536,17 @@ int cuspread3d_subprob(int nf1, int nf2, int nf3, int M, cufinufft_plan_t<T> *d_
   size_t sharedplanorysize = (bin_size_x + 2 * ceil(ns / 2.0)) *
                              (bin_size_y + 2 * ceil(ns / 2.0)) *
                              (bin_size_z + 2 * ceil(ns / 2.0)) * sizeof(cuda_complex<T>);
-  if (sharedplanorysize > 49152) {
-    std::cerr << "[cuspread3d_subprob] error: not enough shared memory ("
-              << sharedplanorysize << ")" << std::endl;
-    return FINUFFT_ERR_INSUFFICIENT_SHMEM;
-  }
+  //  if (sharedplanorysize > 49152) {
+  //    std::cerr << "[cuspread3d_subprob] error: not enough shared memory ("
+  //              << sharedplanorysize << ")" << std::endl;
+  //    return FINUFFT_ERR_INSUFFICIENT_SHMEM;
+  //  }
 
   for (int t = 0; t < blksize; t++) {
     if (d_plan->opts.gpu_kerevalmeth) {
+      cudaFuncSetAttribute(spread_3d_subprob<T, 1>,
+                           cudaFuncAttributeMaxDynamicSharedMemorySize,
+                           sharedplanorysize);
       spread_3d_subprob<T, 1><<<totalnumsubprob, 256, sharedplanorysize, stream>>>(
           d_kx, d_ky, d_kz, d_c + t * M, d_fw + t * nf1 * nf2 * nf3, M, ns, nf1, nf2, nf3,
           sigma, es_c, es_beta, d_binstartpts, d_binsize, bin_size_x, bin_size_y,
@@ -551,6 +554,9 @@ int cuspread3d_subprob(int nf1, int nf2, int nf3, int M, cufinufft_plan_t<T> *d_
           numbins[0], numbins[1], numbins[2], d_idxnupts);
       RETURN_IF_CUDA_ERROR
     } else {
+      cudaFuncSetAttribute(spread_3d_subprob<T, 0>,
+                           cudaFuncAttributeMaxDynamicSharedMemorySize,
+                           sharedplanorysize);
       spread_3d_subprob<T, 0><<<totalnumsubprob, 256, sharedplanorysize, stream>>>(
           d_kx, d_ky, d_kz, d_c + t * M, d_fw + t * nf1 * nf2 * nf3, M, ns, nf1, nf2, nf3,
           sigma, es_c, es_beta, d_binstartpts, d_binsize, bin_size_x, bin_size_y,

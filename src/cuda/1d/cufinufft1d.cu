@@ -5,11 +5,10 @@
 #include <iostream>
 #include <type_traits>
 
-#include <assert.h>
+#include <cassert>
 #include <cufft.h>
 
 #include <cufinufft/cudeconvolve.h>
-#include <cufinufft/memtransfer.h>
 #include <cufinufft/spreadinterp.h>
 #include <cufinufft/types.h>
 
