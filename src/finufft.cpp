@@ -550,7 +550,7 @@ void FINUFFT_DEFAULT_OPTS(finufft_opts *o)
   o->showwarn     = 1;
 
   o->nthreads           = 0;
-  o->fftw               = FFTW_ESTIMATE; //
+  o->fftw               = FFTW_ESTIMATE;
   o->spread_sort        = 2;
   o->spread_kerevalmeth = 1;
   o->spread_kerpad      = 1;

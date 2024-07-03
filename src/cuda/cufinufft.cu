@@ -92,39 +92,36 @@ void cufinufft_default_opts(cufinufft_opts *opts)
     Options with prefix "gpu_" are used for gpu code.
 
     Notes:
-    Values set in this function for different type and dimensions are preferable
-    based on experiments. User can experiement with different settings by
-    replacing them after calling this function.
+    1) Values set in this function for different type and dimensions are preferable
+    based on experiments. User can experiment with different settings by
+    changing them after calling this function.
+    2) Sphinx sucks the below code block into the web docs, hence keep it clean.
 
-    Melody Shih 07/25/19; Barnett 2/5/21.
+    Melody Shih 07/25/19; Barnett 2/5/21, tidied for sphinx 7/2/24.
 */
 {
+  // sphinx tag (don't remove): @gpu_defopts_start
+  // data handling opts...
+  opts->modeord = 0;
+  opts->gpu_device_id = 0;
+
+  // diagnostic opts...
+  opts->gpu_spreadinterponly = 0;
+
+  // algorithm performance opts...
+  opts->gpu_method = 0;
+  opts->gpu_sort = 1;
+  opts->gpu_kerevalmeth = 1;
   opts->upsampfac = 2.0;
-
-  /* following options are for gpu */
-  opts->gpu_sort = 1; // access nupts in an ordered way for nupts driven method
-
   opts->gpu_maxsubprobsize = 1024;
   opts->gpu_obinsizex      = -1;
   opts->gpu_obinsizey      = -1;
   opts->gpu_obinsizez      = -1;
-
   opts->gpu_binsizex = -1;
   opts->gpu_binsizey = -1;
   opts->gpu_binsizez = -1;
-
-  opts->gpu_spreadinterponly = 0; // default to do the whole nufft
-
-  opts->gpu_maxbatchsize = 0;     // Heuristically set
+  opts->gpu_maxbatchsize = 0;
   opts->gpu_stream       = cudaStreamDefault;
-
-  opts->gpu_kerevalmeth = 1; // Horner
-
-  opts->gpu_method = 0;      // Auto method (2 for type 1, 2 for type 2).
-
-  // By default, only use device 0
-  opts->gpu_device_id = 0;
-
-  opts->modeord = 0;
+  // sphinx tag (don't remove): @gpu_defopts_end
 }
 }
