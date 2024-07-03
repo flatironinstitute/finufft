@@ -22,15 +22,29 @@ if (CMAKE_CXX_COMPILER_ID IN_LIST GNU_LIKE_FRONTENDS)
             -ftree-vectorize
             -fimplicit-constexpr
     )
-    # Assuming FINUFFT_CXX_FLAGS_RELEASE is already defined
+
+    # Create a temporary list to hold the valid flags
+    set(FINUFFT_CXX_FLAGS_RELEASE_VALID)
+
+    # Check each flag
     foreach(flag ${FINUFFT_CXX_FLAGS_RELEASE})
-        check_cxx_compiler_flag("${flag}" flag_supported)
-        if(NOT flag_supported)
-            list(REMOVE_ITEM FINUFFT_CXX_FLAGS_RELEASE "${flag}")
+        string(FIND "${flag}" "=" EQUAL_SIGN_POS)
+        if (EQUAL_SIGN_POS GREATER 0)
+            string(SUBSTRING "${flag}" 0 ${EQUAL_SIGN_POS} BASE_FLAG)
+        else()
+            set(BASE_FLAG ${flag})
+        endif()
+
+        check_cxx_compiler_flag("${BASE_FLAG}" flag_supported)
+        if(flag_supported)
+            list(APPEND FINUFFT_CXX_FLAGS_RELEASE_VALID "${flag}")
+        else()
             message(STATUS "Flag ${flag} is not supported by the compiler and will be removed.")
         endif()
     endforeach()
 
+    # Replace the original list with the valid flags list
+    set(FINUFFT_CXX_FLAGS_RELEASE ${FINUFFT_CXX_FLAGS_RELEASE_VALID})
     set(FINUFFT_CXX_FLAGS_RELWITHDEBINFO -g ${FINUFFT_CXX_FLAGS_RELEASE})
 endif ()
 
