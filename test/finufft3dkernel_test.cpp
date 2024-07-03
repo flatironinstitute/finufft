@@ -4,15 +4,25 @@
 using namespace std;
 using namespace finufft::utils;
 
-const char *help[] = {"Tester for FINUFFT in 3d, all 3 types, either precision.",
-                      "",
-                      "Usage: finufft3d_test Nmodes1 Nmodes2 Nmodes3 Nsrc [tol [debug "
-                      "[spread_sort [upsampfac]]]]",
-                      "\teg:\tfinufft3d_test 100 200 50 1e6 1e-12 0 2 0.0 1e-11",
-                      "\tnotes:\tif errfail present, exit code 1 if any error > errfail",
-                      NULL};
-// Barnett 2/2/17 onwards.
-
+const char *help[] = {
+    "Tester for FINUFFT in 3d, all 3 types, either precision.",
+    "",
+    "Usage: finufft3d_test Nmodes1 Nmodes2 Nmodes3 Nsrc",
+    "\t[tol] error tolerance (default 1e-6)",
+    "\t[debug] (default 0) 0: silent, 1: text, 2: as 1 but also spreader",
+    "\t[spread_sort] (default 2) 0: don't sort NU pts, 1: do, 2: auto",
+    "\t[upsampfac] (default 2.0)",
+    "\teg: finufft3d_test 100 200 50 1e6 1e-12 0 2 0.0",
+    "\tnotes: exit code 1 if any error > tol",
+    nullptr};
+/**
+ * @brief Test the 3D NUFFT of type 1, 2, and 3.
+ * It evaluates the error of the kernel evaluation methods.
+ * It uses err(a,b)=||a-b||_2 / ||a||_2 as the error metric.
+ * It return FINUFFT error code if it is not 0.
+ * It returns 1 if any error exceeds tol.
+ * It returns 0 if test passes.
+ */
 int main(int argc, char *argv[]) {
   BIGINT M, N1, N2, N3;      // M = # srcs, N1,N2,N3 = # modes
   double w, tol      = 1e-6; // default
@@ -142,9 +152,6 @@ int main(int argc, char *argv[]) {
   std::vector<FLT> s(N); // targ freqs (1-cmpt)
   std::vector<FLT> t(N); // targ freqs (2-cmpt)
   std::vector<FLT> u(N); // targ freqs (3-cmpt)
-  FLT S1 = (FLT)N1 / 2;  // choose freq range sim to type 1
-  FLT S2 = (FLT)N2 / 2;
-  FLT S3 = (FLT)N3 / 2;
 
   timer.restart();
   printf("kerevalmeth 0:\n");
@@ -171,5 +178,7 @@ int main(int argc, char *argv[]) {
   err    = relerrtwonorm(N, F0.data(), F1.data());
   errmax = max(err, errmax);
   printf("\ttype 3 rel l2-err in F is %.3g\n", err);
+  // return 1 if any error exceeds tol
+  // or return finufft error code if it is not 0
   return (errmax > tol);
 }

@@ -59,10 +59,11 @@ static FINUFFT_ALWAYS_INLINE auto ker_eval(FLT *FINUFFT_RESTRICT ker,
                                            const finufft_spread_opts &opts,
                                            const V... elems) noexcept;
 static FINUFFT_ALWAYS_INLINE FLT fold_rescale(FLT x, BIGINT N) noexcept;
-static FINUFFT_ALWAYS_INLINE void set_kernel_args(
-    FLT *args, FLT x, const finufft_spread_opts &opts) noexcept;
+template<uint8_t ns>
+static FINUFFT_ALWAYS_INLINE void set_kernel_args(FLT *args, FLT x) noexcept;
+template<uint8_t N>
 static FINUFFT_ALWAYS_INLINE void evaluate_kernel_vector(
-    FLT *ker, FLT *args, const finufft_spread_opts &opts, int N) noexcept;
+    FLT *ker, FLT *args, const finufft_spread_opts &opts) noexcept;
 template<uint8_t w, class simd_type = xsimd::make_sized_batch_t<
                         FLT, find_optimal_simd_width<FLT, w>()>> // aka ns
 static FINUFFT_ALWAYS_INLINE void eval_kernel_vec_Horner(
@@ -703,16 +704,15 @@ FLT evaluate_kernel(FLT x, const finufft_spread_opts &opts)
     return exp((FLT)opts.ES_beta * sqrt((FLT)1.0 - (FLT)opts.ES_c * x * x));
 }
 
-void set_kernel_args(FLT *args, FLT x, const finufft_spread_opts &opts) noexcept
+template<uint8_t ns>
+void set_kernel_args(FLT *args, FLT x) noexcept
 // Fills vector args[] with kernel arguments x, x+1, ..., x+ns-1.
 // needed for the vectorized kernel eval of Ludvig af K.
 {
-  int ns = opts.nspread;
   for (int i = 0; i < ns; i++) args[i] = x + (FLT)i;
 }
-
-void evaluate_kernel_vector(FLT *ker, FLT *args, const finufft_spread_opts &opts,
-                            const int N) noexcept
+template<uint8_t N>
+void evaluate_kernel_vector(FLT *ker, FLT *args, const finufft_spread_opts &opts) noexcept
 /* Evaluate ES kernel for a vector of N arguments; by Ludvig af K.
    If opts.kerpad true, args and ker must be allocated for Npad, and args is
    written to (to pad to length Npad), only first N outputs are correct.
@@ -742,8 +742,7 @@ void evaluate_kernel_vector(FLT *ker, FLT *args, const finufft_spread_opts &opts
     if (opts.kerpad) {
       // padded part should be zero, in spread_subproblem_nd_kernels, there are
       // out of bound writes to trg arrays
-      for (int i = N; i < Npad; ++i)
-        ker[i] = 0.0;
+      for (int i = N; i < Npad; ++i) ker[i] = 0.0;
     }
   } else {
     for (int i = 0; i < N; i++) // dummy for timing only
@@ -1798,8 +1797,8 @@ auto ker_eval(FLT *FINUFFT_RESTRICT ker, const finufft_spread_opts &opts,
     }
     if constexpr (kerevalmeth == 0) {
       alignas(simd_type::arch_type::alignment()) std::array<T, MAX_NSPREAD> kernel_args{};
-      set_kernel_args(kernel_args.data(), inputs[i], opts);
-      evaluate_kernel_vector(ker + (i * MAX_NSPREAD), kernel_args.data(), opts, ns);
+      set_kernel_args<ns>(kernel_args.data(), inputs[i]);
+      evaluate_kernel_vector<ns>(ker + (i * MAX_NSPREAD), kernel_args.data(), opts);
     }
   }
   return ker;
