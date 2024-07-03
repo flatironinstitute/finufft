@@ -75,6 +75,8 @@ template<uint8_t w, class simd_type = xsimd::make_sized_batch_t<
                         FLT, find_optimal_simd_width<FLT, w>()>> // aka ns
 static FINUFFT_ALWAYS_INLINE void eval_kernel_vec_Horner(
     FLT *FINUFFT_RESTRICT ker, FLT x, const finufft_spread_opts &opts) noexcept;
+static FINUFFT_ALWAYS_INLINE void eval_kernel_vec_Horner_unaligned_store(
+    FLT *FINUFFT_RESTRICT ker, FLT x, const finufft_spread_opts &opts) noexcept;
 template<uint8_t ns>
 static void interp_line(FLT *FINUFFT_RESTRICT out, const FLT *du, const FLT *ker,
                         BIGINT i1, BIGINT N1);
@@ -763,6 +765,66 @@ void evaluate_kernel_vector(FLT *ker, FLT *args, const finufft_spread_opts &opts
 }
 
 template<uint8_t w, class simd_type> // aka ns
+void eval_kernel_vec_Horner_unaligned_store(FLT *FINUFFT_RESTRICT ker, const FLT x,
+                            const finufft_spread_opts &opts) noexcept
+/* Fill ker[] with Horner piecewise poly approx to [-w/2,w/2] ES kernel eval at
+x_j = x + j,  for j=0,..,w-1.  Thus x in [-w/2,-w/2+1].   w is aka ns.
+This is the current evaluation method, since it's faster (except i7 w=16).
+Two upsampfacs implemented. Params must match ref formula. Barnett 4/24/18 */
+
+{
+  const FLT z = std::fma(FLT(2.0), x, FLT(w - 1)); // scale so local grid offset z in
+                                                   // [-1,1]
+  if (opts.upsampfac == 2.0) {                     // floating point equality is fine here
+    static constexpr auto alignment     = simd_type::arch_type::alignment();
+    static constexpr auto simd_size     = simd_type::size;
+    static constexpr auto padded_ns     = (w + simd_size - 1) & ~(simd_size - 1);
+    static constexpr auto nc            = nc200<w>();
+    static constexpr auto horner_coeffs = get_horner_coeffs_200<FLT, w>();
+
+    alignas(alignment) static constexpr auto padded_coeffs =
+        pad_2D_array_with_zeros<FLT, nc, w, padded_ns>(horner_coeffs);
+
+    static constexpr uint8_t nvec = (w+simd_size-1)/simd_size;
+    static constexpr uint8_t nvec_eval = (nvec+1)/2;
+    static constexpr uint8_t n_eval = simd_size*nvec_eval;
+    static constexpr uint8_t if_odd_degree = ((nc+1) % 2);
+    static const simd_type zerov(0.0);
+    const simd_type zv(z);
+    const simd_type z2v = zv * zv;
+    alignas(alignment) std::array<FLT, simd_size> sym_{};
+
+    // process simd vecs
+    for (uint8_t i = 0; i < n_eval; i += simd_size) {
+      auto k_odd  = if_odd_degree ? simd_type::load_aligned(padded_coeffs[0].data() + i) : zerov;
+      auto k_even = simd_type::load_aligned(padded_coeffs[if_odd_degree].data() + i);
+      for (uint8_t j = 1+if_odd_degree; j < nc; j += 2) {
+        const auto cji_odd  = simd_type::load_aligned(padded_coeffs[j].data() + i);
+        k_odd               = xsimd::fma(k_odd, z2v, cji_odd);
+        const auto cji_even = simd_type::load_aligned(padded_coeffs[j+1].data() + i);
+        k_even              = xsimd::fma(k_even, z2v, cji_even);
+      }
+
+      // left
+      xsimd::fma(k_odd, zv, k_even).store_aligned(ker + i);
+
+      // right
+      xsimd::fma(k_odd, -zv, k_even).store_aligned(sym_.data());
+      // let compiler optimize the store, probably unaligned?
+      for (uint8_t j=0, j2=w-1-i; (j<simd_size)&&(j2>=n_eval); ++j,--j2) {
+        ker[j2] = sym_[j];
+      }
+    }
+    return;
+  }
+  // insert the auto-generated code which expects z, w args, writes to ker...
+  if (opts.upsampfac == 1.25) {
+#include "ker_lowupsampfac_horner_allw_loop_constexpr.c"
+    return;
+  }
+}
+
+template<uint8_t w, class simd_type> // aka ns
 void eval_kernel_vec_Horner(FLT *FINUFFT_RESTRICT ker, const FLT x,
                             const finufft_spread_opts &opts) noexcept
 /* Fill ker[] with Horner piecewise poly approx to [-w/2,w/2] ES kernel eval at
@@ -798,8 +860,8 @@ Two upsampfacs implemented. Params must match ref formula. Barnett 4/24/18 */
         // some xsimd constants for shuffle
         //static constexpr auto reverse_batch_head = xsimd::make_batch_constant<xsimd::as_unsigned_integer_t<FLT>, arch_t, reverse_index<tail>>();
         //static constexpr auto reverse_batch_tail = xsimd::make_batch_constant<xsimd::as_unsigned_integer_t<FLT>, arch_t, reverse_index_tail<tail>>();
-        static constexpr auto shuffle_batch = xsimd::make_batch_constant<xsimd::as_unsigned_integer_t<FLT>, arch_t, shuffle_index<tail>>();
         //static constexpr auto select_batch = xsimd::make_batch_bool_constant<typename simd_type::value_type, arch_t, select_index<tail>>();
+        static constexpr auto shuffle_batch = xsimd::make_batch_constant<xsimd::as_unsigned_integer_t<FLT>, arch_t, shuffle_index<tail>>();
 
         // process simd vecs
         simd_type k_odd, k_even, k_prev, k_sym = zerov;
@@ -818,6 +880,8 @@ Two upsampfacs implemented. Params must match ref formula. Barnett 4/24/18 */
             k_sym = xsimd::fma(k_odd, -zv, k_even);
             xsimd::shuffle(k_sym, k_prev, shuffle_batch).store_aligned(ker + offset);
             /*
+            // the following is the equivalent code for the shuffle operation to avoid one swizzle in the first iteration
+            // seems not helping the performance
             if (i==0) {
               // save one xsimd::swizzle for the first iteration(k_prev is zerov)
               // by assumption, ker is padded to be multiple of simd_size
