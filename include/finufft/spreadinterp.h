@@ -20,10 +20,10 @@
     NOTE: non-zero values are for experts only, since
     NUMERICAL OUTPUT MAY BE INCORRECT UNLESS finufft_spread_opts.flags=0 !
 */
-#define TF_OMIT_WRITE_TO_GRID        1 // don't add subgrids to out grid (dir=1)
-#define TF_OMIT_EVALUATE_KERNEL      2 // don't evaluate the kernel at all
-#define TF_OMIT_EVALUATE_EXPONENTIAL 4 // omit exp() in kernel (kereval=0 only)
-#define TF_OMIT_SPREADING            8 // don't interp/spread (dir=1: to subgrids)
+enum{ TF_OMIT_WRITE_TO_GRID        = 1, // don't add subgrids to out grid (dir=1)
+      TF_OMIT_EVALUATE_KERNEL      = 2, // don't evaluate the kernel at all
+      TF_OMIT_EVALUATE_EXPONENTIAL = 4, // omit exp() in kernel (kereval=0 only)
+      TF_OMIT_SPREADING            = 8 }; // don't interp/spread (dir=1: to subgrids)
 
 namespace finufft {
 namespace spreadinterp {
@@ -38,15 +38,6 @@ FINUFFT_EXPORT int FINUFFT_CDECL spreadcheck(BIGINT N1, BIGINT N2, BIGINT N3, BI
 FINUFFT_EXPORT int FINUFFT_CDECL indexSort(BIGINT *sort_indices, BIGINT N1, BIGINT N2,
                                            BIGINT N3, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
                                            const finufft_spread_opts &opts);
-FINUFFT_EXPORT int FINUFFT_CDECL interpSorted(
-    const BIGINT *sort_indices, BIGINT N1, BIGINT N2, BIGINT N3,
-    FLT *FINUFFT_RESTRICT data_uniform, BIGINT M, FLT *FINUFFT_RESTRICT kx,
-    FLT *FINUFFT_RESTRICT ky, FLT *FINUFFT_RESTRICT kz,
-    FLT *FINUFFT_RESTRICT data_nonuniform, const finufft_spread_opts &opts);
-FINUFFT_EXPORT int FINUFFT_CDECL spreadSorted(
-    const BIGINT *sort_indices, BIGINT N1, BIGINT N2, BIGINT N3, FLT *data_uniform,
-    BIGINT M, FLT *kx, FLT *ky, FLT *kz, const FLT *data_nonuniform,
-    const finufft_spread_opts &opts, int did_sort);
 FINUFFT_EXPORT int FINUFFT_CDECL spreadinterpSorted(
     const BIGINT *sort_indices, BIGINT N1, BIGINT N2, BIGINT N3,
     FLT *FINUFFT_RESTRICT data_uniform, BIGINT M, FLT *FINUFFT_RESTRICT kx,

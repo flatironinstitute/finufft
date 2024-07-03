@@ -96,12 +96,21 @@ static void bin_sort_singlethread(BIGINT *ret, BIGINT M, const FLT *kx, const FL
                                   const FLT *kz, BIGINT N1, BIGINT N2, BIGINT N3,
                                   double bin_size_x, double bin_size_y, double bin_size_z,
                                   int debug);
-void bin_sort_multithread(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz, BIGINT N1,
+static void bin_sort_multithread(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz, BIGINT N1,
                           BIGINT N2, BIGINT N3, double bin_size_x, double bin_size_y,
                           double bin_size_z, int debug, int nthr);
 static void get_subgrid(BIGINT &offset1, BIGINT &offset2, BIGINT &offset3,
                         BIGINT &padded_size1, BIGINT &size1, BIGINT &size2, BIGINT &size3,
                         BIGINT M0, FLT *kx0, FLT *ky0, FLT *kz0, int ns, int ndims);
+static int interpSorted(
+    const BIGINT *sort_indices, BIGINT N1, BIGINT N2, BIGINT N3,
+    FLT *FINUFFT_RESTRICT data_uniform, BIGINT M, FLT *FINUFFT_RESTRICT kx,
+    FLT *FINUFFT_RESTRICT ky, FLT *FINUFFT_RESTRICT kz,
+    FLT *FINUFFT_RESTRICT data_nonuniform, const finufft_spread_opts &opts);
+static int spreadSorted(
+    const BIGINT *sort_indices, BIGINT N1, BIGINT N2, BIGINT N3, FLT *data_uniform,
+    BIGINT M, FLT *kx, FLT *ky, FLT *kz, const FLT *data_nonuniform,
+    const finufft_spread_opts &opts, int did_sort);
 
 // ==========================================================================
 int spreadinterp(BIGINT N1, BIGINT N2, BIGINT N3, FLT *data_uniform, BIGINT M, FLT *kx,
@@ -320,7 +329,7 @@ int spreadinterpSorted(const BIGINT *sort_indices, const BIGINT N1, const BIGINT
 }
 
 // --------------------------------------------------------------------------
-int spreadSorted(const BIGINT *sort_indices, BIGINT N1, BIGINT N2, BIGINT N3,
+static int spreadSorted(const BIGINT *sort_indices, BIGINT N1, BIGINT N2, BIGINT N3,
                  FLT *FINUFFT_RESTRICT data_uniform, BIGINT M, FLT *FINUFFT_RESTRICT kx,
                  FLT *FINUFFT_RESTRICT ky, FLT *FINUFFT_RESTRICT kz,
                  const FLT *data_nonuniform, const finufft_spread_opts &opts,
@@ -582,7 +591,7 @@ static int interpSorted_dispatch(
   }
 }
 
-int interpSorted(const BIGINT *sort_indices, const BIGINT N1, const BIGINT N2,
+static int interpSorted(const BIGINT *sort_indices, const BIGINT N1, const BIGINT N2,
                  const BIGINT N3, FLT *FINUFFT_RESTRICT data_uniform, const BIGINT M,
                  FLT *FINUFFT_RESTRICT kx, FLT *FINUFFT_RESTRICT ky,
                  FLT *FINUFFT_RESTRICT kz, FLT *FINUFFT_RESTRICT data_nonuniform,
@@ -1615,7 +1624,7 @@ void bin_sort_singlethread(
   }
 }
 
-void bin_sort_multithread(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz, BIGINT N1,
+static void bin_sort_multithread(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz, BIGINT N1,
                           BIGINT N2, BIGINT N3, double bin_size_x, double bin_size_y,
                           double bin_size_z, int /*debug*/, int nthr)
 /* Mostly-OpenMP'ed version of bin_sort.

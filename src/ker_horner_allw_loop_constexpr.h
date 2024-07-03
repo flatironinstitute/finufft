@@ -5,7 +5,7 @@
 template<uint8_t w> constexpr auto nc200() noexcept { return w + 2 + (w <= 8); }
 
 template<class T, uint8_t w>
-constexpr std::array<std::array<T, w>, nc200<w>()> get_horner_coeffs_200() noexcept {
+static constexpr std::array<std::array<T, w>, nc200<w>()> get_horner_coeffs_200() noexcept {
     constexpr auto nc = nc200<w>();
     if constexpr (w == 2) {
       return std::array<std::array<T, w>, nc> {{
