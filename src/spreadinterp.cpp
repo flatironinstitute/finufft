@@ -1014,11 +1014,6 @@ FINUFFT_NEVER_INLINE static void interp_square_wrap(
   target[1] = out[1];
 }
 
-#pragma GCC optimize("no-math-errno")
-#pragma GCC optimize("no-signed-zeros")
-#pragma GCC optimize("no-trapping-math")
-#pragma GCC optimize("associative-math")
-#pragma GCC optimize("reciprocal-math")
 template<uint8_t ns, class simd_type>
 void interp_square(FLT *FINUFFT_RESTRICT target, const FLT *du, const FLT *ker1,
                    const FLT *ker2, const BIGINT i1, const BIGINT i2, const UBIGINT N1,
@@ -1218,11 +1213,6 @@ FINUFFT_NEVER_INLINE static void interp_cube_wrapped(
   target[1] = out[1];
 }
 
-#pragma GCC optimize("no-math-errno")
-#pragma GCC optimize("no-signed-zeros")
-#pragma GCC optimize("no-trapping-math")
-#pragma GCC optimize("associative-math")
-#pragma GCC optimize("reciprocal-math")
 template<uint8_t ns, class simd_type>
 void interp_cube(FLT *FINUFFT_RESTRICT target, const FLT *du, const FLT *ker1,
                  const FLT *ker2, const FLT *ker3, const BIGINT i1, const BIGINT i2,

@@ -4,6 +4,7 @@ project(finufft VERSION 2.2.0 LANGUAGES C CXX)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+include(CheckCXXCompilerFlag)
 
 set(GNU_LIKE_FRONTENDS AppleClang Clang GNU)
 if (CMAKE_CXX_COMPILER_ID IN_LIST GNU_LIKE_FRONTENDS)
@@ -12,7 +13,18 @@ if (CMAKE_CXX_COMPILER_ID IN_LIST GNU_LIKE_FRONTENDS)
             -funroll-loops
             -ffp-contract=fast
             -fexcess-precision=fast
+            -fno-math-errno
+            -fno-signed-zeros
+            -fno-trapping-math
+            -fassociative-math
+            -freciprocal-math
+            -fmerge-all-constants
     )
+    # if the compiler does  support -fimplicit-constexpr add it
+    check_cxx_compiler_flag("-fimplicit-constexpr" COMPILER_SUPPORTS_FIMPLICIT_CONSTEXPR)
+    if (COMPILER_SUPPORTS_FIMPLICIT_CONSTEXPR)
+        list(APPEND FINUFFT_CXX_FLAGS_RELEASE -fimplicit-constexpr)
+    endif ()
     set(FINUFFT_CXX_FLAGS_RELWITHDEBINFO -g ${FINUFFT_CXX_FLAGS_RELEASE})
 endif ()
 
