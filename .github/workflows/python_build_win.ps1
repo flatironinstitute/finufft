@@ -15,7 +15,7 @@ Add-Content -Path make.inc -Value "CXXFLAGS+= -march=x86-64"
 Set-Variable libvcruntime140_a -Value ([IO.Path]::Combine((Split-Path -Path $PYTHON), "libs", 'libvcruntime140.a'))
 Copy-Item -Path .\.github\workflows\libvcruntime140.a -Destination $libvcruntime140_a
 
-python -m pip install --upgrade setuptools wheel numpy pip
+python -m pip install --upgrade setuptools==70.1.1 wheel numpy pip
 if (-not $?) {throw "Failed pip install"}
 
 # mingw gcc compiler pacth to work with python
