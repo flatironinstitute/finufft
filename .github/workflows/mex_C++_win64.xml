@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<config Name="MinGW64 Compiler (C++)" ShortName="mingw64-g++" Manufacturer="GNU" Version="$VERSION" Language="C++" Priority="E" Location="$MINGWROOT">
+	<Details CompilerExecutable="$CXX" CompilerDefines="$DEFINES" CompilerFlags="$CXXFLAGS" OptimizationFlags="$CXXOPTIMFLAGS" DebugFlags="$CXXDEBUGFLAGS" IncludeFlags="$INCLUDE" LinkerExecutable="$LDXX" LinkerFlags="$LDFLAGS $LDTYPE" LinkerLibraries="$LINKLIBS" LinkerOptimizationFlags="$LDOPTIMFLAGS" LinkerDebugFlags="$LDDEBUGFLAGS" CommandLineShell="set MINGW_ROOT_PATH=$MINGWROOT" CommandLineShellArg="" CompilerDefineFormatter="-D%s" LinkerLibrarySwitchFormatter="-l%s;-llib%s" LinkerPathFormatter="-L%s" LibrarySearchPath="$$LIB;$$LIBPATH;$$PATH;$$INCLUDE;$MATLABROOT\extern\lib\$ARCH\mingw"/>
+	<vars CMDLINE1="$CXX -c $DEFINES $INCLUDE $CXXFLAGS $OPTIM $SRC -o $OBJ" CMDLINE2="$LDXX $LDFLAGS $LDTYPE $LINKOPTIM $LINKEXPORTVER $OBJS $CXXLIBS $LINKLIBS -o $EXE" CXX="$MINGWROOT\bin\g++" COMPILER="$CXX" DEFINES="-m64 $MATLABMEX" MATLABMEX="-DMATLAB_MEX_FILE " CFLAGS="-fexceptions -fno-omit-frame-pointer" CXXFLAGS="$CFLAGS" INCLUDE="-I&quot;$MATLABROOT/extern/include&quot; -I&quot;$MATLABROOT/simulink/include&quot;" CXXOPTIMFLAGS="-O2 -fwrapv -DNDEBUG" CXXDEBUGFLAGS="-g" LDXX="$CXX" LINKER="$LDXX" LDFLAGS="-m64 -Wl,--no-undefined" LDTYPE="-shared -static" LINKEXPORT="-Wl,&quot;$MATLABROOT/extern/lib/win64/mingw64/mexFunction.def&quot;" LINKEXPORTVER="-Wl,&quot;$MATLABROOT/extern/lib/win64/mingw64/exportsmexfileversion.def&quot;" LIBLOC="$MATLABROOT\extern\lib\win64\mingw64" LINKLIBS="-L&quot;$MATLABROOT\extern\lib\$ARCH\mingw64&quot; -llibmx -llibmex -llibmat -llibmwblas -llibMatlabDataArray -llibMatlabEngine -lm" LDOPTIMFLAGS="-s" LDDEBUGFLAGS="-g" OBJEXT=".obj" LDEXT=".mexw64" SETENV="set COMPILER=$MINGWROOT\bin\gcc
+                set CXXCOMPILER=$CXX
+                set COMPFLAGS=-c $CFLAGS $DEFINES $MATLABMEX
+                set CXXCOMPFLAGS=-c $CXXFLAGS $DEFINES $MATLABMEX
+                set OPTIMFLAGS=$CXXOPTIMFLAGS
+                set DEBUGFLAGS=$CXXDEBUGFLAGS
+                set LINKER=$MINGWROOT\bin\gcc
+                set CXXLINKER=$LDXX
+                set LINKFLAGS=$LDFLAGS $LDTYPE $LINKLIBS $LINKEXPORT
+                set LINKDEBUGFLAGS=$LDDEBUGFLAGS
+                set NAME_OUTPUT= -o &quot;%OUTDIR%%MEX_NAME%%MEX_EXT%&quot;" MINGWROOT="C:\msys64\mingw64" MINGWTARGET="x86_64-w64-mingw32" VERSION="C:\msys64\mingw64\g++ -dumpversion"/>
+	<client>
+		<engine LINKLIBS="$LINKLIBS -llibeng -llibMatlabDataArray -llibMatlabEngine" LINKEXPORT="" LINKEXPORTVER="" LDEXT=".exe" LINKTYPE="" MATLABMEX="" LDTYPE="-static"/>
+		<mbuild CXXFLAGS="$CXXFLAGS -Wno-endif-labels" DEFFILE="" LINKLIBS="-L&quot;$MATLABROOT\extern\lib\$ARCH\mingw64&quot; -lmclmcrrt -Bstatic &quot;$MATLABROOT\extern\bin\$ARCH\libMatlabDataArray.dll.a&quot; -llibMatlabCppSharedLib -lkernel32 -luser32 -lgdi32 -lwinspool -lcomdlg32 -ladvapi32 -lshell32 -lole32 -loleaut32 -luuid -lodbc32 -lodbccp32 " LINKEXPORT="" LINKEXPORTVER="" LDEXT=".exe" LDFLAGS="-m64 -Wl,--no-undefined,--out-implib,$LIB,&quot;$DEFFILE&quot;" LINKTYPE="" MATLABMEX="" LDTYPE="-static" INCLUDE="$INCLUDE -I&quot;$MATLABROOT\extern\include\$ARCH&quot;"/>
+	</client>
+	<locationFinder>
+		<MINGWROOT>
+			<and>
+				<envVarExists name="MW_MINGW64_LOC"/>
+				<fileExists name="$$\bin\g++.exe"/>
+				<dirExists name="$$\..\"/>
+			</and>
+		</MINGWROOT>
+		<MINGWTARGET>
+			<envVarExists name="MW_MINGW64_LOC"/>
+			<cmdReturns name="$$\bin\g++ -dumpmachine"/>
+		</MINGWTARGET>
+		<VERSION>
+			<envVarExists name="MW_MINGW64_LOC"/>
+			<cmdReturns name="$$\bin\g++ -dumpversion"/>
+		</VERSION>
+	</locationFinder>
+	<env PATH="$MINGWROOT\bin;$MATLABROOT\extern\include\$ARCH;$MATLABROOT\extern\include;$MATLABROOT\simulink\include;$MATLABROOT\lib\$ARCH" INCLUDE="$MINGWROOT\include;$MINGWROOT\lib\gcc\$MINGWTARGET\$VERSION\include\c++;$MINGWROOT\lib\gcc\$MINGWTARGET\$VERSION\include;$MINGWROOT\lib\gcc\$MINGWTARGET\$VERSION\include\c++\$MINGWTARGET;$MINGWROOT\lib\gcc\$MINGWTARGET\$VERSION\include\c++\backward;$MINGWROOT\$MINGWTARGET\include" LIB="$MINGWROOT\lib;" MW_TARGET_ARCH="win64" LIBPATH="$MATLABROOT\extern\lib\win64"/>
+	<MATLAB release="R2023a"/>
+</config>

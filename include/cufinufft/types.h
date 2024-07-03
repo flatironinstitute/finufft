@@ -39,6 +39,7 @@ template<typename T> struct cufinufft_plan_t {
   int ntransf;
   int maxbatchsize;
   int iflag;
+  int supports_pools;
 
   int totalnumsubprob;
   T *fwkerhalf1;

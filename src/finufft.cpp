@@ -519,9 +519,9 @@ void FINUFFT_DEFAULT_OPTS(finufft_opts *o)
 
   o->nthreads = 0;
 #ifdef FINUFFT_USE_DUCC0
-  o->fftw = 0; //
+  o->fftw = 0;
 #else
-  o->fftw = FFTW_ESTIMATE; //
+  o->fftw = FFTW_ESTIMATE;
 #endif
   o->spread_sort        = 2;
   o->spread_kerevalmeth = 1;
