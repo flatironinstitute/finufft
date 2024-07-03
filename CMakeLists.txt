@@ -12,18 +12,6 @@ if (CMAKE_CXX_COMPILER_ID IN_LIST GNU_LIKE_FRONTENDS)
             -funroll-loops
             -ffp-contract=fast
             -fexcess-precision=fast
-            -fno-math-errno
-            -fno-signed-zeros
-            -fno-trapping-math
-            -fassociative-math
-            -freciprocal-math
-            # These flags make the spreader 20% faster in 2D and up to 100% faster in 3D with no loss of accuracy.
-            # Why no -fast-math or -funsafe-math-optimizations ?
-            # It breaks the code, and influences other software that depend on finufft bu changing the rounding mode.
-            # GCC-13 recently fixed this issue:
-            # https://github.com/llvm/llvm-project/issues/57589
-            # https://gcc.gnu.org/gcc-13/changes.html
-            # https://trofi.github.io/posts/302-Ofast-and-ffast-math-non-local-effects.html
     )
     set(FINUFFT_CXX_FLAGS_RELWITHDEBINFO -g ${FINUFFT_CXX_FLAGS_RELEASE})
 endif ()
