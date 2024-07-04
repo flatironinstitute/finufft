@@ -235,11 +235,11 @@ typedef struct FINUFFT_PLAN_S { // the main plan object, fully C++
                        // for t3: allocated as "primed" (scaled) src pts x'_j, etc
 
   // type 3 specific
-  FLT *S, *T, *U; // pointers to user's target NU pts arrays (no new allocs)
-  CPX *prephase;  // pre-phase, for all input NU pts
-  CPX *deconv;    // reciprocal of kernel FT, phase, all output NU pts
+  FLT *S, *T, *U;           // pointers to user's target NU pts arrays (no new allocs)
+  CPX *prephase;            // pre-phase, for all input NU pts
+  CPX *deconv;              // reciprocal of kernel FT, phase, all output NU pts
 #ifndef FINUFFT_USE_DUCC0
-  CPX *CpBatch; // working array of prephased strengths
+  CPX *CpBatch;             // working array of prephased strengths
 #endif
   FLT *Sp, *Tp, *Up;        // internal primed targs (s'_k, etc), allocated
   TYPE3PARAMS t3P;          // groups together type 3 shift, scale, phase, parameters

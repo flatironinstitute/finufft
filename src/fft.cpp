@@ -24,10 +24,10 @@ int *gridsize_for_fft(FINUFFT_PLAN p) {
   return nf;
 }
 
-void do_fft (FINUFFT_PLAN p, CPX *fwBatch) {
+void do_fft(FINUFFT_PLAN p, CPX *fwBatch) {
 #ifdef FINUFFT_USE_DUCC0
   size_t nthreads = min<size_t>(MY_OMP_GET_MAX_THREADS(), p->opts.nthreads);
-  int *ns = gridsize_for_fft(p);
+  int *ns         = gridsize_for_fft(p);
   vector<size_t> arrdims, axes;
   arrdims.push_back(size_t(p->batchSize));
   arrdims.push_back(size_t(ns[0]));

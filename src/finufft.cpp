@@ -772,8 +772,8 @@ int FINUFFT_MAKEPLAN(int type, int dim, BIGINT *n_modes, int iflag, int ntrans, 
     if (p->opts.debug) printf("[%s] %dd%d: ntrans=%d\n", __func__, dim, type, ntrans);
       // in case destroy occurs before setpts, need safe dummy ptrs/plans...
 #ifndef FINUFFT_USE_DUCC0
-    p->CpBatch     = NULL;
-    p->fwBatch     = NULL;
+    p->CpBatch = NULL;
+    p->fwBatch = NULL;
 #endif
     p->Sp          = NULL;
     p->Tp          = NULL;
@@ -1109,7 +1109,7 @@ int FINUFFT_EXECUTE(FINUFFT_PLAN p, CPX *cj, CPX *fk) {
 
       // STEP 2: call the FFT on this batch
       timer.restart();
-      do_fft (p, fwBatch);
+      do_fft(p, fwBatch);
       t_fft += timer.elapsedsec();
       if (p->opts.debug > 1) printf("\tFFT exec:\t\t%.3g s\n", timer.elapsedsec());
 

@@ -13,6 +13,6 @@
 #include <finufft/defs.h>
 
 int *gridsize_for_fft(FINUFFT_PLAN p);
-void do_fft (FINUFFT_PLAN p, CPX *fwBatch);
+void do_fft(FINUFFT_PLAN p, CPX *fwBatch);
 
 #endif // FINUFFT_INCLUDE_FINUFFT_FFT_H
