@@ -23,7 +23,7 @@ if (CMAKE_CXX_COMPILER_ID IN_LIST GNU_LIKE_FRONTENDS)
 endif ()
 set(FINUFFT_FFTW_SUFFIX "OpenMP" CACHE STRING "Suffix for FFTW libraries (e.g. OpenMP, Threads etc.)")
 set(FINUFFT_FFTW_LIBRARIES "DEFAULT" CACHE STRING "Specify a custom FFTW library")
-set(FINUFFT_CUDA_ARCHITECTURES "all-major" CACHE STRING "CUDA architectures to build for (e.g. 60;70;75;)")
+set(FINUFFT_CUDA_ARCHITECTURES "native" CACHE STRING "CUDA architectures to build for (e.g. 60;70;75;)")
 # All options go here
 # sphinx tag (don't remove): @cmake_opts_start
 option(FINUFFT_BUILD_EXAMPLES "Whether to build the FINUFFT examples" OFF)
