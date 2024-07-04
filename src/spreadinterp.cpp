@@ -800,9 +800,8 @@ Two upsampfacs implemented. Params must match ref formula. Barnett 4/24/18 */
 }
 
 template<uint8_t ns>
-FINUFFT_NEVER_INLINE static void interp_line_wrap(FLT *FINUFFT_RESTRICT target,
-                                                  const FLT *du, const FLT *ker,
-                                                  const BIGINT i1, const UBIGINT N1) {
+static void interp_line_wrap(FLT *FINUFFT_RESTRICT target, const FLT *du, const FLT *ker,
+                             const BIGINT i1, const UBIGINT N1) {
   /* This function is called when the kernel wraps around the grid. It is
      slower than interp_line.
      M. Barbone July 2024: - moved the logic to a separate function
@@ -879,22 +878,10 @@ void interp_line(FLT *FINUFFT_RESTRICT target, const FLT *du, const FLT *ker,
   } else { // doesn't wrap
     // logic largely similar to spread 1D kernel, please see the explanation there
     // for the first part of this code
-    const auto du_ptr = du + 2 * j;
-    simd_type res_low{}, res_hi{};
-    // Handle the first iteration only if regular_part is greater than 0
-    // unrolling the first iteration to avoid initializing the variables to 0
-    if constexpr (regular_part > 0) {
-      const auto ker_v   = simd_type::load_aligned(ker);
-      const auto du_pt0  = simd_type::load_unaligned(du_ptr);
-      const auto du_pt1  = simd_type::load_unaligned(du_ptr + simd_size);
-      const auto ker0low = xsimd::swizzle(ker_v, zip_low_index<arch_t>);
-      const auto ker0hi  = xsimd::swizzle(ker_v, zip_hi_index<arch_t>);
-      res_low            = ker0low * du_pt0;
-      res_hi             = ker0hi * du_pt1;
-    }
-    if constexpr (regular_part > 3 * simd_size) {
-      // Now loop over the remaining elements
-      for (uint8_t dx = 2 * simd_size; dx < regular_part; dx += 2 * simd_size) {
+    const auto res = [du, j, ker]() constexpr noexcept {
+      const auto du_ptr = du + 2 * j;
+      simd_type res_low{0}, res_hi{0};
+      for (uint8_t dx{0}; dx < regular_part; dx += 2 * simd_size) {
         const auto ker_v   = simd_type::load_aligned(ker + dx / 2);
         const auto du_pt0  = simd_type::load_unaligned(du_ptr + dx);
         const auto du_pt1  = simd_type::load_unaligned(du_ptr + dx + simd_size);
@@ -903,19 +890,24 @@ void interp_line(FLT *FINUFFT_RESTRICT target, const FLT *du, const FLT *ker,
         res_low            = xsimd::fma(ker0low, du_pt0, res_low);
         res_hi             = xsimd::fma(ker0hi, du_pt1, res_hi);
       }
-    }
-    if constexpr (regular_part < 2 * ns) {
-      const auto ker0    = simd_type::load_unaligned(ker + (regular_part / 2));
-      const auto du_pt   = simd_type::load_unaligned(du_ptr + regular_part);
-      const auto ker0low = xsimd::swizzle(ker0, zip_low_index<arch_t>);
-      if constexpr (regular_part > 0) {
-        res_low = xsimd::fma(ker0low, du_pt, res_low);
-      } else {
-        // handle the case where res_hi is unused because now is not 0 is un-initialized
-        res_low = ker0low * du_pt;
-      }
-    }
 
+      if constexpr (regular_part < 2 * ns) {
+        const auto ker0    = simd_type::load_unaligned(ker + (regular_part / 2));
+        const auto du_pt   = simd_type::load_unaligned(du_ptr + regular_part);
+        const auto ker0low = xsimd::swizzle(ker0, zip_low_index<arch_t>);
+        res_low            = xsimd::fma(ker0low, du_pt, res_low);
+      }
+
+      // This does a horizontal sum using a loop instead of relying on SIMD instructions
+      // this is faster than the code below but less elegant.
+      // lambdas here to limit the scope of temporary variables and have the compiler
+      // optimize the code better
+      return res_low + res_hi;
+    }();
+    for (uint8_t i{0}; i < simd_size; i += 2) {
+      out[0] += res.get(i);
+      out[1] += res.get(i + 1);
+    }
     // this is where the code differs from spread_kernel, the interpolator does an extra
     // reduction step to SIMD elements down to 2 elements
     // This is known as horizontal sum in SIMD terminology
@@ -928,36 +920,15 @@ void interp_line(FLT *FINUFFT_RESTRICT target, const FLT *du, const FLT *ker,
     // out[0]              = xsimd::reduce_add(res_real);
     // out[1]              = xsimd::reduce_add(res_imag);
     // clang-format on
-
-    // This does a horizontal sum using a loop instead of relying on SIMD instructions
-    // this is faster than the above code but less elegant.
-    // lambdas here to limit the scope of temporary variables and have the compiler
-    // optimize the code better
-    alignas(alignment) const auto res_array = [](const auto &res_low,
-                                                 const auto &res_hi) constexpr noexcept {
-      alignas(alignment) std::array<FLT, simd_size> res_array{};
-      if constexpr (regular_part > 0) {
-        const auto res = res_low + res_hi;
-        res.store_aligned(res_array.data());
-      } else {
-        // handle the case where res_hi is unused because now is not 0 is un-initialized
-        res_low.store_aligned(res_array.data());
-      }
-      return res_array;
-    }(res_low, res_hi);
-    for (uint8_t i{0}; i < simd_size; i += 2) {
-      out[0] += res_array[i];
-      out[1] += res_array[i + 1];
-    }
   }
   target[0] = out[0];
   target[1] = out[1];
 }
 
 template<uint8_t ns, class simd_type>
-FINUFFT_NEVER_INLINE static void interp_square_wrap(
-    FLT *FINUFFT_RESTRICT target, const FLT *du, const FLT *ker1, const FLT *ker2,
-    const BIGINT i1, const BIGINT i2, const UBIGINT N1, const UBIGINT N2) {
+static void interp_square_wrap(FLT *FINUFFT_RESTRICT target, const FLT *du,
+                               const FLT *ker1, const FLT *ker2, const BIGINT i1,
+                               const BIGINT i2, const UBIGINT N1, const UBIGINT N2) {
   /*
    * This function is called when the kernel wraps around the grid. It is slower than
    * the non wrapping version.
@@ -969,16 +940,9 @@ FINUFFT_NEVER_INLINE static void interp_square_wrap(
   static constexpr auto alignment = arch_t::alignment();
   if (i1 >= 0 && i1 + ns <= N1 && i2 >= 0 && i2 + ns <= N2) {
     // store a horiz line (interleaved real,imag)
-    alignas(alignment) std::array<FLT, 2 * MAX_NSPREAD> line{};
-    // block for first y line, to avoid explicitly initializing line with zeros
-    {
-      const auto l_ptr = du + 2 * (N1 * i2 + i1); // ptr to horiz line start in du
-      for (uint8_t l{0}; l < 2 * ns; ++l) {       // l is like dx but for ns interleaved
-        line[l] = ker2[0] * l_ptr[l];
-      }
-    }
+    alignas(alignment) std::array<FLT, 2 * ns> line{0};
     // add remaining const-y lines to the line (expensive inner loop)
-    for (uint8_t dy{1}; dy < ns; ++dy) {
+    for (uint8_t dy{0}; dy < ns; ++dy) {
       const auto *l_ptr = du + 2 * (N1 * (i2 + dy) + i1); // (see above)
       for (uint8_t l{0}; l < 2 * ns; ++l) {
         line[l] = std::fma(ker2[dy], l_ptr[l], line[l]);
@@ -1059,59 +1023,35 @@ void interp_square(FLT *FINUFFT_RESTRICT target, const FLT *du, const FLT *ker1,
   static constexpr uint8_t line_vectors = (2 * ns + padding) / simd_size;
   if (i1 >= 0 && i1 + ns <= N1 && i2 >= 0 && i2 + ns <= N2 &&
       (i1 + ns + (padding + 1) / 2 < N1)) {
-    const auto line = [du, N1, i2, i1, ker2]() constexpr noexcept {
+    const auto line = [du, N1, i1 = UBIGINT(i1), i2 = UBIGINT(i2),
+                       ker2]() constexpr noexcept {
       // new array du_pts to store the du values for the current y line
-      std::array<simd_type, line_vectors> line{}, du_pts{};
+      std::array<simd_type, line_vectors> line{0};
       // block for first y line, to avoid explicitly initializing line with zeros
-      const auto l_ptr_base = du + 2 * UBIGINT(N1 * i2 + i1); // ptr to horiz line start
-                                                              // in du
-      for (uint8_t l{0}; l < line_vectors; ++l) {
-        du_pts[l] = simd_type::load_unaligned(l * simd_size + l_ptr_base);
-      }
-      for (uint8_t l{0}; l < line_vectors; ++l) {
-        // l is like dx but for ns interleaved
-        // no fancy trick needed to multiply real,imag by ker2
-        line[l] = du_pts[l] * simd_type{ker2[0]};
-      }
       // add remaining const-y lines to the line (expensive inner loop)
-      for (uint8_t dy{1}; dy < ns; dy++) {
-        const auto l_ptr = l_ptr_base + 2 * (N1 * dy); // (see above)
+      for (uint8_t dy{0}; dy < ns; dy++) {
+        const auto l_ptr = du + 2 * (N1 * (i2 + dy) + i1); // (see above)
         const simd_type ker2_v{ker2[dy]};
-        // vectorize over the fast axis of the du array
-        // First loop: Load all du_pt into the du_pts array
         for (uint8_t l{0}; l < line_vectors; ++l) {
-          du_pts[l] = simd_type::load_unaligned(l * simd_size + l_ptr);
-        }
-        // Second loop: Perform the FMA operation
-        for (uint8_t l{0}; l < line_vectors; ++l) {
-          line[l] = xsimd::fma(ker2_v, du_pts[l], line[l]);
+          const auto du_pt = simd_type::load_unaligned(l * simd_size + l_ptr);
+          line[l]          = xsimd::fma(ker2_v, du_pt, line[l]);
         }
       }
       return line;
     }();
     // This is the same as 1D interpolation
     // using lambda to limit the scope of the temporary variables
-    const auto res = [ker1](const auto &line) constexpr noexcept {
+    const auto res = [ker1, &line]() constexpr noexcept {
       // apply x kernel to the (interleaved) line and add together
-      simd_type res_low{}, res_hi{};
-      if constexpr (line_vectors > 1) {
-        // Manually write out the first iteration
-        const auto ker1_v  = simd_type::load_aligned(ker1);
+      simd_type res_low{0}, res_hi{0};
+      // Start the loop from the second iteration
+      for (uint8_t i{0}; i < (line_vectors & ~1); // NOLINT(*-too-small-loop-variable)
+           i += 2) {
+        const auto ker1_v  = simd_type::load_aligned(ker1 + i * simd_size / 2);
         const auto ker1low = xsimd::swizzle(ker1_v, zip_low_index<arch_t>);
         const auto ker1hi  = xsimd::swizzle(ker1_v, zip_hi_index<arch_t>);
-        res_low            = ker1low * line[0];
-        res_hi             = ker1hi * line[1];
-      }
-      if constexpr (line_vectors > 3) {
-        // Start the loop from the second iteration
-        for (uint8_t i = 2; i < (line_vectors & ~1); // NOLINT(*-too-small-loop-variable)
-             i += 2) {
-          const auto ker1_v  = simd_type::load_aligned(ker1 + i * simd_size / 2);
-          const auto ker1low = xsimd::swizzle(ker1_v, zip_low_index<arch_t>);
-          const auto ker1hi  = xsimd::swizzle(ker1_v, zip_hi_index<arch_t>);
-          res_low            = xsimd::fma(ker1low, line[i], res_low);
-          res_hi             = xsimd::fma(ker1hi, line[i + 1], res_hi);
-        }
+        res_low            = xsimd::fma(ker1low, line[i], res_low);
+        res_hi             = xsimd::fma(ker1hi, line[i + 1], res_hi);
       }
       if constexpr (line_vectors % 2) {
         const auto ker1_v =
@@ -1119,17 +1059,11 @@ void interp_square(FLT *FINUFFT_RESTRICT target, const FLT *du, const FLT *ker1,
         const auto ker1low = xsimd::swizzle(ker1_v, zip_low_index<arch_t>);
         res_low            = xsimd::fma(ker1low, line.back(), res_low);
       }
-      if constexpr (line_vectors > 1) {
-        return res_low + res_hi;
-      } else {
-        return res_low;
-      }
-    }(line);
-    alignas(alignment) std::array<FLT, simd_size> res_array{};
-    res.store_aligned(res_array.data());
+      return res_low + res_hi;
+    }();
     for (uint8_t i{0}; i < simd_size; i += 2) {
-      out[0] += res_array[i];
-      out[1] += res_array[i + 1];
+      out[0] += res.get(i);
+      out[1] += res.get(i + 1);
     }
   } else { // wraps somewhere: use ptr list
     // this is slower than above, but occurs much less often, with fractional
@@ -1141,10 +1075,10 @@ void interp_square(FLT *FINUFFT_RESTRICT target, const FLT *du, const FLT *ker1,
 }
 
 template<uint8_t ns, class simd_type>
-FINUFFT_NEVER_INLINE static void interp_cube_wrapped(
-    FLT *FINUFFT_RESTRICT target, const FLT *du, const FLT *ker1, const FLT *ker2,
-    const FLT *ker3, const BIGINT i1, const BIGINT i2, const BIGINT i3, const UBIGINT N1,
-    const UBIGINT N2, const UBIGINT N3) {
+static void interp_cube_wrapped(FLT *FINUFFT_RESTRICT target, const FLT *du,
+                                const FLT *ker1, const FLT *ker2, const FLT *ker3,
+                                const BIGINT i1, const BIGINT i2, const BIGINT i3,
+                                const UBIGINT N1, const UBIGINT N2, const UBIGINT N3) {
   /*
    * This function is called when the kernel wraps around the cube.
    * Similarly to 2D and 1D wrapping, this is slower than the non wrapping version.
@@ -1257,81 +1191,45 @@ void interp_cube(FLT *FINUFFT_RESTRICT target, const FLT *du, const FLT *ker1,
   const auto in_bounds_3                = (i3 >= 0) & (i3 + ns <= N3);
   std::array<FLT, 2> out{0};
   if (in_bounds_1 && in_bounds_2 && in_bounds_3 && (i1 + ns + (padding + 1) / 2 < N1)) {
-    const auto line = [N1, N2, i1, i2, i3, ker2, ker3, du]() constexpr noexcept {
-      std::array<simd_type, line_vectors> line{0}, du_pts{};
-      std::array<simd_type, ns> ker23_array{};
-      const auto base_oz = N1 * N2 * UBIGINT(i3); // Move invariant part outside the loop
+    const auto line = [N1, N2, i1 = UBIGINT(i1), i2 = UBIGINT(i2), i3 = UBIGINT(i3), ker2,
+                       ker3, du]() constexpr noexcept {
+      std::array<simd_type, line_vectors> line{0};
       for (uint8_t dz{0}; dz < ns; ++dz) {
-        const auto oz = base_oz + N1 * N2 * dz;   // Only the dz part is inside the loop
-        const auto base_du_ptr = du + 2 * UBIGINT(oz + N1 * i2 + i1);
-        {
-          alignas(alignment) std::array<FLT, ker23_size> ker23_scalar{};
-          const simd_type ker3_v{ker3[dz]};
-          for (uint8_t dy{0}; dy < ns; dy += simd_size) {
-            const auto ker2_v  = simd_type::load_aligned(ker2 + dy);
-            const auto ker23_v = ker2_v * ker3_v;
-            ker23_v.store_aligned(ker23_scalar.data() + dy);
-          }
-          for (uint8_t dy{0}; dy < ns; ++dy) {
-            ker23_array[dy] = ker23_scalar[dy];
-          }
-        }
+        const auto oz = N1 * N2 * (i3 + dz);                      // offset due to z
         for (uint8_t dy{0}; dy < ns; ++dy) {
-          const auto du_ptr = base_du_ptr + 2 * N1 * dy; // (see above)
+          const auto l_ptr = du + 2 * (oz + N1 * (i2 + dy) + i1); // ptr start of line
+          const simd_type ker23{ker2[dy] * ker3[dz]};
           for (uint8_t l{0}; l < line_vectors; ++l) {
-            du_pts[l] = simd_type::load_unaligned(l * simd_size + du_ptr);
-          }
-          for (uint8_t l{0}; l < line_vectors; ++l) {
-            line[l] = xsimd::fma(ker23_array[dy], du_pts[l], line[l]);
+            const auto du_pt = simd_type::load_unaligned(l * simd_size + l_ptr);
+            line[l]          = xsimd::fma(ker23, du_pt, line[l]);
           }
         }
       }
       return line;
     }();
-    // apply x kernel to the (interleaved) line and add together
-    const auto res_array = [ker1](const auto &line) constexpr noexcept {
-      const auto res = [ker1](const auto &line) constexpr noexcept {
-        // apply x kernel to the (interleaved) line and add together
-        simd_type res_low{}, res_hi{};
-        if constexpr (line_vectors > 1) {
-          // Manually write out the first iteration
-          const auto ker1_v  = simd_type::load_aligned(ker1);
-          const auto ker1low = xsimd::swizzle(ker1_v, zip_low_index<arch_t>);
-          const auto ker1hi  = xsimd::swizzle(ker1_v, zip_hi_index<arch_t>);
-          res_low            = ker1low * line[0];
-          res_hi             = ker1hi * line[1];
-        }
-        if constexpr (line_vectors > 3) {
-          // Start the loop from the second iteration
-          for (uint8_t i = 2;
-               i < (line_vectors & ~1); // NOLINT(*-too-small-loop-variable)
-               i += 2) {
-            const auto ker1_v  = simd_type::load_aligned(ker1 + i * simd_size / 2);
-            const auto ker1low = xsimd::swizzle(ker1_v, zip_low_index<arch_t>);
-            const auto ker1hi  = xsimd::swizzle(ker1_v, zip_hi_index<arch_t>);
-            res_low            = xsimd::fma(ker1low, line[i], res_low);
-            res_hi             = xsimd::fma(ker1hi, line[i + 1], res_hi);
-          }
-        }
-        if constexpr (line_vectors % 2) {
-          const auto ker1_v =
-              simd_type::load_aligned(ker1 + (line_vectors - 1) * simd_size / 2);
-          const auto ker1low = xsimd::swizzle(ker1_v, zip_low_index<arch_t>);
-          res_low            = xsimd::fma(ker1low, line.back(), res_low);
-        }
-        if constexpr (line_vectors > 1) {
-          return res_low + res_hi;
-        } else {
-          return res_low;
-        }
-      }(line);
-      alignas(alignment) std::array<FLT, simd_size> res_array{};
-      res.store_aligned(res_array.data());
-      return res_array;
-    }(line);
+    const auto res = [ker1, &line]() constexpr noexcept {
+      // apply x kernel to the (interleaved) line and add together
+      simd_type res_low{0}, res_hi{0};
+      // Start the loop from the second iteration
+      for (uint8_t i{0}; i < (line_vectors & ~1); // NOLINT(*-too-small-loop-variable)
+           i += 2) {
+        const auto ker1_v  = simd_type::load_aligned(ker1 + i * simd_size / 2);
+        const auto ker1low = xsimd::swizzle(ker1_v, zip_low_index<arch_t>);
+        const auto ker1hi  = xsimd::swizzle(ker1_v, zip_hi_index<arch_t>);
+        res_low            = xsimd::fma(ker1low, line[i], res_low);
+        res_hi             = xsimd::fma(ker1hi, line[i + 1], res_hi);
+      }
+      if constexpr (line_vectors % 2) {
+        const auto ker1_v =
+            simd_type::load_aligned(ker1 + (line_vectors - 1) * simd_size / 2);
+        const auto ker1low = xsimd::swizzle(ker1_v, zip_low_index<arch_t>);
+        res_low            = xsimd::fma(ker1low, line.back(), res_low);
+      }
+      return res_low + res_hi;
+    }();
     for (uint8_t i{0}; i < simd_size; i += 2) {
-      out[0] += res_array[i];
-      out[1] += res_array[i + 1];
+      out[0] += res.get(i);
+      out[1] += res.get(i + 1);
     }
   } else {
     return interp_cube_wrapped<ns, simd_type>(target, du, ker1, ker2, ker3, i1, i2, i3,
