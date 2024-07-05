@@ -1,9 +1,10 @@
-Julia interfaces
-================
+Julia interfaces (CPU and GPU)
+==============================
 
-Ludvig af Klinteberg, Libin Lu, and others, have built `FINUFFT.jl <https://github.com/ludvigak/FINUFFT.jl>`_, an interface from the `Julia <https://julialang.org/>`_ language. This package supports 32-bit and 64-bit precision, and automatically downloads and runs pre-built binaries of the FINUFFT library for Linux, macOS, Windows and FreeBSD (for a full list see `finufft_jll <https://github.com/JuliaBinaryWrappers/finufft_jll.jl>`_).
+Principal author Ludvig af Klinteberg and others have built and maintain `FINUFFT.jl <https://github.com/ludvigak/FINUFFT.jl>`_, an interface from the `Julia <https://julialang.org/>`_ language. This official Julia package supports 32-bit and 64-bit precision, now on both CPU and GPU (via `CUDA.jl`), via a common interface.
+The Julia package installation automatically downloads pre-built CPU binaries of the FINUFFT library for Linux, macOS, Windows and FreeBSD (for a full list see `finufft_jll <https://github.com/JuliaBinaryWrappers/finufft_jll.jl>`_), and the GPU binary for Linux (see `cufinufft_jll <https://github.com/JuliaBinaryWrappers/cufinufft_jll.jl>`_).
 
-`FINUFFT.jl` has now (in 2022) itself been wrapped as part of `NFFT.jl <https://juliamath.github.io/NFFT.jl/dev/performance/>`_, which contains an "abstract" interface
+`FINUFFT.jl` has itself been wrapped as part of `NFFT.jl <https://juliamath.github.io/NFFT.jl/dev/performance/>`_, which contains an "abstract" interface
 to any NUFFT in Julia, with FINUFFT as an example.
 Their
 `performance comparison page <https://juliamath.github.io/NFFT.jl/dev/performance/>`_
