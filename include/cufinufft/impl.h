@@ -39,40 +39,6 @@ template<typename T>
 int cufinufft3d2_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
                       cufinufft_plan_t<T> *d_plan);
 
-static void cufinufft_setup_binsize(int type, int dim, cufinufft_opts *opts) {
-  switch (dim) {
-  case 1: {
-    opts->gpu_binsizex = (opts->gpu_binsizex < 0) ? 16384 : opts->gpu_binsizex;
-    opts->gpu_binsizey = 1;
-    opts->gpu_binsizez = 1;
-  } break;
-  case 2: {
-    opts->gpu_binsizex = (opts->gpu_binsizex < 0) ? 32 : opts->gpu_binsizex;
-    opts->gpu_binsizey = (opts->gpu_binsizey < 0) ? 32 : opts->gpu_binsizey;
-    opts->gpu_binsizez = 1;
-  } break;
-  case 3: {
-    switch (opts->gpu_method) {
-    case 0:
-    case 1:
-    case 2: {
-      opts->gpu_binsizex = (opts->gpu_binsizex < 0) ? 16 : opts->gpu_binsizex;
-      opts->gpu_binsizey = (opts->gpu_binsizey < 0) ? 16 : opts->gpu_binsizey;
-      opts->gpu_binsizez = (opts->gpu_binsizez < 0) ? 2 : opts->gpu_binsizez;
-    } break;
-    case 4: {
-      opts->gpu_obinsizex = (opts->gpu_obinsizex < 0) ? 8 : opts->gpu_obinsizex;
-      opts->gpu_obinsizey = (opts->gpu_obinsizey < 0) ? 8 : opts->gpu_obinsizey;
-      opts->gpu_obinsizez = (opts->gpu_obinsizez < 0) ? 8 : opts->gpu_obinsizez;
-      opts->gpu_binsizex  = (opts->gpu_binsizex < 0) ? 4 : opts->gpu_binsizex;
-      opts->gpu_binsizey  = (opts->gpu_binsizey < 0) ? 4 : opts->gpu_binsizey;
-      opts->gpu_binsizez  = (opts->gpu_binsizez < 0) ? 4 : opts->gpu_binsizez;
-    } break;
-    }
-  } break;
-  }
-}
-
 template<typename T>
 int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntransf, T tol,
                             cufinufft_plan_t<T> **d_plan_ptr, cufinufft_opts *opts) {
@@ -153,7 +119,7 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
   d_plan->mt  = nmodes[1];
   d_plan->mu  = nmodes[2];
 
-  cufinufft_setup_binsize(type, dim, &d_plan->opts);
+  cufinufft_setup_binsize<T>(type, d_plan->spopts.nspread, dim, &d_plan->opts);
   CUFINUFFT_BIGINT nf1 = 1, nf2 = 1, nf3 = 1;
   set_nf_type12(d_plan->ms, d_plan->opts, d_plan->spopts, &nf1,
                 d_plan->opts.gpu_obinsizex);

@@ -15,7 +15,7 @@ def run_command(command, args):
         cmd = [command] + args
         print("Running command:", ' '.join(cmd))
         result = subprocess.run(cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-        return result.stdout
+        return result.stdout, result.stderr
     except subprocess.CalledProcessError as e:
         print('stdout output:\n', e.stdout)
         print('stderr output:\n', e.stderr)
@@ -38,9 +38,9 @@ def build_args(args):
 # nsys profile -o cuperftest_profile ./cuperftest --prec f --n_runs 10 --method 1 --N1 256 --N2 256 --N3 256 --M 1E8 --tol 1E-6
 # example arguments
 args = {"--prec": "f",
-        "--n_runs": "5",
-        "--method": "1",
-        "--N1": "65536",
+        "--n_runs": "10",
+        "--method": "0",
+        "--N1": "16777216",
         # "--N2": "256",
         # "--N3": "256",
         "--M": "1E8",
@@ -53,10 +53,26 @@ data = {
     # 'setpts': [],
     'exec': [],
 }
+warmup = {"--prec": "f",
+        "--n_runs": "1",
+        "--method": "0",
+        "--N1": "256",
+        # "--N2": "256",
+        # "--N3": "256",
+        "--M": "256",
+        "--tol": "1E-1"}
+cmd = ["profile", "--force-overwrite", "true", "-o", "cuperftest_profile", cwd + "/cuperftest"] + build_args(warmup)
+print("Warmup")
+stdout, stderr = run_command("nsys", cmd)
+print("Benchmarking")
+if stderr != '':
+    print(stderr)
+    exit(0)
 for i in range(1, 7):
     args["--tol"] = "1E-" + str(i)
     print("Running with tol = 1E-" + str(i))
     for method in ['2', '1']:
+        args["--method"] = method
         if method == '0':
             data['method'].append('auto')
         elif method == '1':
@@ -65,7 +81,10 @@ for i in range(1, 7):
             data['method'].append('SM')
         print("Method " + data['method'][-1])
         cmd = ["profile", "--force-overwrite", "true", "-o", "cuperftest_profile", cwd + "/cuperftest"] + build_args(args)
-        stdout = run_command("nsys", cmd)
+        stdout, stderr = run_command("nsys", cmd)
+        if stderr != '':
+            print(stderr)
+            exit(0)
         # skip all lines starting with # in stdout
         conf = [x for x in stdout.splitlines() if x.startswith("#")]
         print('\n'.join(conf))
@@ -79,7 +98,10 @@ for i in range(1, 7):
         print(f'exec pts/s: {exec}')
         cmd = ["stats", "--force-overwrite=true", "--force-export=true", "--report", "cuda_gpu_trace", "--report", "cuda_gpu_kern_sum", "cuperftest_profile.nsys-rep",
                "--format=csv", "--output", "cuperftest"]
-        stdout = run_command("nsys", cmd)
+        stdout, _ = run_command("nsys", cmd)
+        # remove format from cmd
+        cmd = cmd[:-3]
+        # print(run_command("nsys", cmd))
         # print(csv)
         dt = pd.read_csv("./cuperftest_cuda_gpu_trace.csv")
         # print(dt)
@@ -94,6 +116,9 @@ for i in range(1, 7):
         # sort dt by column "Time (%)"
         total_spread = dt['Duration (ns)'].sum() - total_fft
         print(f'total_spread: {total_spread}')
+        if total_fft > total_spread:
+            print("Warning: total_fft > total_spread")
+            # exit(0)
         # pt/s
         throughput = float(args['--M']) * float(args['--n_runs']) * 1_000_000_000 / total_spread
         print(f'throughput: {throughput}')
@@ -116,12 +141,16 @@ pivot_df['exec', 'SM'] /= pivot_df['exec', 'GM']
 # remove the GM column
 pivot_df.drop(('throughput', 'GM'), axis=1, inplace=True)
 pivot_df.drop(('exec', 'GM'), axis=1, inplace=True)
+
+print(pivot_df)
 # Plot
 pivot_df.plot(kind='bar', figsize=(10, 7))
 # Find the minimum throughput value
-min_val = min(df['throughput'].min(), df['exec'].min())
-max_val = max(df['throughput'].max(), df['exec'].max())
-plt.ylim(.8, 1.2)
+min_val = min(pivot_df[('exec', 'SM')].min(), pivot_df[('throughput', 'SM')].min(), 1)
+max_val = max(pivot_df[('exec', 'SM')].max(), pivot_df[('throughput', 'SM')].max(), 0)
+print(min_val, max_val)
+plt.ylim(min_val * .99, max_val * 1.01)
+# plt.ylim(.8, 1.2)
 
 # Calculate the smallest power of 10
 # min_pow_10 = 10 ** np.floor(np.log10(min_throughput))

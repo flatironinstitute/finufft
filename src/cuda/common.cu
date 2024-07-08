@@ -202,8 +202,8 @@ void onedim_fseries_kernel_compute(CUFINUFFT_BIGINT nf, T *f, std::complex<doubl
 template<typename T>
 std::size_t shared_memory_required(int dim, int ns, int bin_size_x, int bin_size_y,
                                    int bin_size_z) {
-  printf("dim, ns, bin_size_x, bin_size_y, bin_size_z: %d %d %d %d %d\n", dim, ns,
-         bin_size_x, bin_size_y, bin_size_z);
+  //  printf("dim, ns, bin_size_x, bin_size_y, bin_size_z: %d %d %d %d %d\n", dim, ns,
+  //         bin_size_x, bin_size_y, bin_size_z);
   int adjusted_ns = bin_size_x + ((ns + 1) / 2) * 2;
 
   if (dim == 1) {
@@ -219,6 +219,65 @@ std::size_t shared_memory_required(int dim, int ns, int bin_size_x, int bin_size
   adjusted_ns *= (bin_size_z + ((ns + 1) / 2) * 2);
 
   return adjusted_ns * sizeof(cuda_complex<T>);
+}
+
+template<typename T>
+void cufinufft_setup_binsize(int type, int ns, int dim, cufinufft_opts *opts) {
+  int shared_mem_per_block{}, device_id{};
+  switch (dim) {
+  case 1: {
+    switch (opts->gpu_method) {
+    case 0:
+    case 1:
+    case 2:
+      if (opts->gpu_binsizex < 0) {
+        cudaGetDevice(&device_id);
+        if (const auto err = cudaGetLastError(); err != cudaSuccess) {
+          throw std::runtime_error(cudaGetErrorString(err));
+        }
+        cudaDeviceGetAttribute(&shared_mem_per_block,
+                               cudaDevAttrMaxSharedMemoryPerBlockOptin, device_id);
+        if (const auto err = cudaGetLastError(); err != cudaSuccess) {
+          throw std::runtime_error(cudaGetErrorString(err));
+        }
+        const int bin_size =
+            shared_mem_per_block / sizeof(cuda_complex<T>) - ((ns + 1) / 2) * 2;
+        // find the power of 2 that is less than bin_size
+        const int exponent = std::log2(bin_size);
+        opts->gpu_binsizex = 1 << (exponent - 1);
+        //        printf("bin_size: %d, gpu_binsizex: %d\n", bin_size,
+        //        opts->gpu_binsizex);
+      }
+      break;
+    }
+    opts->gpu_binsizey = 1;
+    opts->gpu_binsizez = 1;
+  } break;
+  case 2: {
+    opts->gpu_binsizex = (opts->gpu_binsizex < 0) ? 32 : opts->gpu_binsizex;
+    opts->gpu_binsizey = (opts->gpu_binsizey < 0) ? 32 : opts->gpu_binsizey;
+    opts->gpu_binsizez = 1;
+  } break;
+  case 3: {
+    switch (opts->gpu_method) {
+    case 0:
+    case 1:
+    case 2: {
+      opts->gpu_binsizex = (opts->gpu_binsizex < 0) ? 16 : opts->gpu_binsizex;
+      opts->gpu_binsizey = (opts->gpu_binsizey < 0) ? 16 : opts->gpu_binsizey;
+      opts->gpu_binsizez = (opts->gpu_binsizez < 0) ? 2 : opts->gpu_binsizez;
+    } break;
+    case 4: {
+      opts->gpu_obinsizex = (opts->gpu_obinsizex < 0) ? 8 : opts->gpu_obinsizex;
+      opts->gpu_obinsizey = (opts->gpu_obinsizey < 0) ? 8 : opts->gpu_obinsizey;
+      opts->gpu_obinsizez = (opts->gpu_obinsizez < 0) ? 8 : opts->gpu_obinsizez;
+      opts->gpu_binsizex  = (opts->gpu_binsizex < 0) ? 4 : opts->gpu_binsizex;
+      opts->gpu_binsizey  = (opts->gpu_binsizey < 0) ? 4 : opts->gpu_binsizey;
+      opts->gpu_binsizez  = (opts->gpu_binsizez < 0) ? 4 : opts->gpu_binsizez;
+    } break;
+    }
+  } break;
+  }
 }
 
 template void onedim_fseries_kernel_compute(CUFINUFFT_BIGINT nf, float *f,
@@ -255,5 +314,9 @@ template std::size_t shared_memory_required<float>(int dim, int ns, int bin_size
 template std::size_t shared_memory_required<double>(int dim, int ns, int bin_size_x,
                                                     int bin_size_y, int bin_size_z);
 
+template void cufinufft_setup_binsize<float>(int type, int ns, int dim,
+                                             cufinufft_opts *opts);
+template void cufinufft_setup_binsize<double>(int type, int ns, int dim,
+                                              cufinufft_opts *opts);
 } // namespace common
 } // namespace cufinufft

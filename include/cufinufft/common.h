@@ -36,6 +36,34 @@ template<typename T>
 std::size_t shared_memory_required(int dim, int ns, int bin_size_x, int bin_size_y,
                                    int bin_size_z);
 
+template<typename T>
+void cufinufft_setup_binsize(int type, int ns, int dim, cufinufft_opts *opts);
+
+template<typename T, typename V>
+auto cufinufft_set_shared_memory(V *kernel, const int dim,
+                                 const cufinufft_plan_t<T> &d_plan) {
+  int device_id;
+  cudaGetDevice(&device_id);
+  const auto shared_mem_required =
+      shared_memory_required<T>(dim, d_plan.spopts.nspread, d_plan.opts.gpu_binsizex,
+                                d_plan.opts.gpu_binsizey, d_plan.opts.gpu_binsizez);
+  int shared_mem_per_block{};
+  const auto err = cudaDeviceGetAttribute(
+      &shared_mem_per_block, cudaDevAttrMaxSharedMemoryPerBlockOptin, device_id);
+  if (err != cudaSuccess) {
+    return err;
+  }
+  if (shared_mem_required > shared_mem_per_block) {
+    fprintf(stderr,
+            "Error: Shared memory required per block is %zu bytes, but the device "
+            "supports only %d bytes.\n",
+            shared_mem_required, shared_mem_per_block);
+    return err;
+  }
+  return cudaFuncSetAttribute(kernel, cudaFuncAttributeMaxDynamicSharedMemorySize,
+                              shared_mem_required);
+}
+
 } // namespace common
 } // namespace cufinufft
 #endif

@@ -7,6 +7,7 @@
 #include <thrust/device_ptr.h>
 #include <thrust/scan.h>
 
+#include <cufinufft/common.h>
 #include <cufinufft/memtransfer.h>
 #include <cufinufft/precision_independent.h>
 #include <cufinufft/spreadinterp.h>
@@ -251,15 +252,14 @@ int cuspread1d_subprob(int nf1, int M, cufinufft_plan_t<T> *d_plan, int blksize)
 
   T sigma = d_plan->opts.upsampfac;
 
-  size_t sharedplanorysize =
-      (bin_size_x + 2 * (int)ceil(ns / 2.0)) * sizeof(cuda_complex<T>);
-  if (sharedplanorysize > 49152) {
-    std::cerr << "[cuspread1d_subprob] error: not enough shared memory\n";
-    return FINUFFT_ERR_INSUFFICIENT_SHMEM;
-  }
+  const auto sharedplanorysize =
+      shared_memory_required<T>(1, d_plan->spopts.nspread, d_plan->opts.gpu_binsizex,
+                                d_plan->opts.gpu_binsizey, d_plan->opts.gpu_binsizez);
 
   if (d_plan->opts.gpu_kerevalmeth) {
     for (int t = 0; t < blksize; t++) {
+      cufinufft_set_shared_memory(spread_1d_subprob<T, 1>, 1, *d_plan);
+      RETURN_IF_CUDA_ERROR
       spread_1d_subprob<T, 1><<<totalnumsubprob, 256, sharedplanorysize, stream>>>(
           d_kx, d_c + t * M, d_fw + t * nf1, M, ns, nf1, es_c, es_beta, sigma,
           d_binstartpts, d_binsize, bin_size_x, d_subprob_to_bin, d_subprobstartpts,
@@ -268,6 +268,8 @@ int cuspread1d_subprob(int nf1, int M, cufinufft_plan_t<T> *d_plan, int blksize)
     }
   } else {
     for (int t = 0; t < blksize; t++) {
+      cufinufft_set_shared_memory(spread_1d_subprob<T, 0>, 1, *d_plan);
+      RETURN_IF_CUDA_ERROR
       spread_1d_subprob<T, 0><<<totalnumsubprob, 256, sharedplanorysize, stream>>>(
           d_kx, d_c + t * M, d_fw + t * nf1, M, ns, nf1, es_c, es_beta, sigma,
           d_binstartpts, d_binsize, bin_size_x, d_subprob_to_bin, d_subprobstartpts,
