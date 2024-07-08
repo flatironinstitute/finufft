@@ -14,7 +14,7 @@
 
 # Barnett 3/14/17. numdiff-free option 3/16/17. simpler, dual-prec 7/3/20,
 # execs now have exit codes, removed any numdiff dep 8/18/20
-# removed diff 6/16/23.
+# removed diff 6/16/23. Added kerevalmeth=0 vs 1 test 7/8/24.
 
 # precision-specific settings
 if [[ $1 == "SINGLE" ]]; then
@@ -90,6 +90,12 @@ if [[ $E -eq 0 ]]; then echo passed; elif [[ $E -eq $SIGSEGV ]]; then echo crash
 ((N++))
 T=finufft3dmany_test$PRECSUF
 ./$T$FEX 2 10 50 20 1e2 $FINUFFT_REQ_TOL 0 0 0 2 0.0 $CHECK_TOL 2>$DIR/$T.err.out | tee $DIR/$T.out
+E=${PIPESTATUS[0]}
+if [[ $E -eq 0 ]]; then echo passed; elif [[ $E -eq $SIGSEGV ]]; then echo crashed; ((CRASHES++)); else echo failed; ((FAILS++)); fi
+
+((N++))
+T=finufft3dkernel_test$PRECSUF
+./$T$FEX 20 50 30 1e3 $FINUFFT_REQ_TOL 2>$DIR/$T.err.out | tee $DIR/$T.out
 E=${PIPESTATUS[0]}
 if [[ $E -eq 0 ]]; then echo passed; elif [[ $E -eq $SIGSEGV ]]; then echo crashed; ((CRASHES++)); else echo failed; ((FAILS++)); fi
 

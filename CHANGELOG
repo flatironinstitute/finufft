@@ -7,6 +7,7 @@ V 2.3.0beta (6/21/24)
   kernel evaluation, templating by ns with AVX-width-dependent decisions.
   Up to 80% faster, dep on compiler. (Marco Barbone with help from Libin Lu).
     NOTE: introduces new dependency (XSIMD), added to cMake and makefile.
+* new test/finufft3dkernel_test checks kerevalmeth=0,1 same to tol (M Barbone).
 * new perftest/compare_spreads.jl compares two spreadinterp libs (A Barnett).
 * new benchmarker perftest/spreadtestndall sweeps all kernel widths (M Barbone).
 * cufinufft now supports modeord(type 1,2 only): 0 CMCL-style increasing mode
@@ -26,15 +27,15 @@ V 2.3.0beta (6/21/24)
 * improved GPU python docs: migration guide; usage from cupy, numba, torch,
   pycuda. PyPI pkg still at 2.2.0beta.
 * Added a clang-format pre-commit hook to ensure consistent code style.
-  Created a .clang-format file to define the style similar to the existing style.
+  Created a .clang-format file to define a style similar to the existing style.
   Applied clang-format to all cmake, C, C++, and CUDA code. Ignored the blame
   using .git-blame-ignore-revs. Added a contributing.md for developers.
-* cuFINUFFT interface update: number of nonuniform points M is now a 64-bit integer
-as opposed to 32-bit. While this does modify the ABI, most code will just need to
-recompile against the new library as compilers will silently upcast any 32-bit
-integers to 64-bit when calling cufinufft(f)_setpts. Note that internally, 32-bit
-integers are still used, so calling cufinufft with more than 2e9 points will fail.
-This restriction may be lifted in the future.
+* cuFINUFFT interface update: number of nonuniform points M is now a 64-bit int
+  as opposed to 32-bit. While this does modify the ABI, most code will just
+  need to recompile against the new library as compilers will silently upcast
+  any 32-bit integers to 64-bit when calling cufinufft(f)_setpts. Note that
+  internally, 32-bit integers are still used, so calling cufinufft with more
+  than 2e9 points will fail. This restriction may be lifted in the future.
 
 V 2.2.0 (12/12/23)
 
@@ -52,7 +53,7 @@ V 2.2.0 (12/12/23)
 * CMake build structure (thanks: Wenda Zhou, Marco Barbone, Libin Lu)
   - Note: the plan is to continue to support GNU makefile and make.inc.* but
     to transition to CMake as the main build system.
-  - CI workflow using CMake on 3 OSes, 2 compilers each, PR #382 (Libin Lu)	
+  - CI workflow using CMake on 3 OSes, 2 compilers each, PR #382 (Libin Lu)
 * Docs: new tutorial content on iterative inverse NUFFTs; troubleshooting.
 * GitHub-facing badges
 * include/finufft/finufft_eitherprec.h moved up directory to be public (bea316c)
