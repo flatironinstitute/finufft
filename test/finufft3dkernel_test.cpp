@@ -6,13 +6,12 @@ using namespace finufft::utils;
 
 const char *help[] = {
     "Tester for FINUFFT in 3d, all 3 types, either precision.",
-    "",
-    "Usage: finufft3d_test Nmodes1 Nmodes2 Nmodes3 Nsrc",
+    "Usage: finufft3dkernel_test Nmodes1 Nmodes2 Nmodes3 Nsrc",
     "\t[tol] error tolerance (default 1e-6)",
     "\t[debug] (default 0) 0: silent, 1: text, 2: as 1 but also spreader",
     "\t[spread_sort] (default 2) 0: don't sort NU pts, 1: do, 2: auto",
     "\t[upsampfac] (default 2.0)",
-    "\teg: finufft3d_test 100 200 50 1e6 1e-12 0 2 0.0",
+    "\teg: finufft3dkernel_test 100 200 50 1e6 1e-12 0 2 0.0",
     "\tnotes: exit code 1 if any error > tol",
     nullptr};
 /**
