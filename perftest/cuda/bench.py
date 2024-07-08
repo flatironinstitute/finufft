@@ -3,7 +3,7 @@ import os
 import subprocess
 import pandas as pd
 import numpy as np
-
+import io
 cwd = os.getcwd()
 
 
@@ -61,10 +61,19 @@ for i in range(1, 7):
             data['method'].append('SM')
         print("Method " + data['method'][-1])
         cmd = ["profile", "--force-overwrite", "true", "-o", "cuperftest_profile", cwd + "/cuperftest", build_args(args)]
-        run_command("nsys", cmd)
+        stdout = run_command("nsys", cmd)
+        # skip all lines starting with # in stdout
+        stdout = [x for x in stdout.splitlines() if not x.startswith("#")][:7]
+        stdout = '\n'.join(stdout)
+        # convert stdout to a dataframe from csv string
+        dt = pd.read_csv(io.StringIO(stdout), sep=',')
+        setpts = dt[dt["event"].str.contains("setpts")]['nupts/s'].sum()
+        exec = dt[dt["event"].str.contains("exec")]['nupts/s'].sum()
+        print(f'setpts pts/s: {setpts}')
+        print(f'exec pts/s: {exec}')
         cmd = ["stats", "--force-overwrite=true", "--force-export=true", "--report", "cuda_gpu_trace", "--report", "cuda_gpu_kern_sum", "cuperftest_profile.nsys-rep",
                "--format=csv", "--output", "cuperftest"]
-        csv = run_command("nsys", cmd)
+        stdout = run_command("nsys", cmd)
         # print(csv)
         dt = pd.read_csv("./cuperftest_cuda_gpu_trace.csv")
         # print(dt)
