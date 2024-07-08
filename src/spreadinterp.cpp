@@ -54,6 +54,8 @@ constexpr auto select_odd_mask =
 template<typename T, std::size_t N, std::size_t M, std::size_t PaddedM>
 constexpr std::array<std::array<T, PaddedM>, N> pad_2D_array_with_zeros(
     const std::array<std::array<T, M>, N> &input) noexcept;
+template<typename T> FINUFFT_ALWAYS_INLINE auto xsimd_to_array(const T &vec) noexcept;
+
 FINUFFT_NEVER_INLINE
 void print_subgrid_info(int ndims, BIGINT offset1, BIGINT offset2, BIGINT offset3,
                         UBIGINT padded_size1, UBIGINT size1, UBIGINT size2, UBIGINT size3,
@@ -781,7 +783,6 @@ Two upsampfacs implemented. Params must match ref formula. Barnett 4/24/18 */
         pad_2D_array_with_zeros<FLT, nc, w, padded_ns>(horner_coeffs);
 
     const simd_type zv(z);
-
     for (uint8_t i = 0; i < w; i += simd_size) {
       auto k = simd_type::load_aligned(padded_coeffs[0].data() + i);
       for (uint8_t j = 1; j < nc; ++j) {
@@ -904,9 +905,10 @@ void interp_line(FLT *FINUFFT_RESTRICT target, const FLT *du, const FLT *ker,
       // optimize the code better
       return res_low + res_hi;
     }();
+    const auto res_array = xsimd_to_array(res);
     for (uint8_t i{0}; i < simd_size; i += 2) {
-      out[0] += res.get(i);
-      out[1] += res.get(i + 1);
+      out[0] += res_array[i];
+      out[1] += res_array[i + 1];
     }
     // this is where the code differs from spread_kernel, the interpolator does an extra
     // reduction step to SIMD elements down to 2 elements
@@ -1061,9 +1063,10 @@ void interp_square(FLT *FINUFFT_RESTRICT target, const FLT *du, const FLT *ker1,
       }
       return res_low + res_hi;
     }();
+    const auto res_array = xsimd_to_array(res);
     for (uint8_t i{0}; i < simd_size; i += 2) {
-      out[0] += res.get(i);
-      out[1] += res.get(i + 1);
+      out[0] += res_array[i];
+      out[1] += res_array[i + 1];
     }
   } else { // wraps somewhere: use ptr list
     // this is slower than above, but occurs much less often, with fractional
@@ -1227,9 +1230,10 @@ void interp_cube(FLT *FINUFFT_RESTRICT target, const FLT *du, const FLT *ker1,
       }
       return res_low + res_hi;
     }();
+    const auto res_array = xsimd_to_array(res);
     for (uint8_t i{0}; i < simd_size; i += 2) {
-      out[0] += res.get(i);
-      out[1] += res.get(i + 1);
+      out[0] += res_array[i];
+      out[1] += res_array[i + 1];
     }
   } else {
     return interp_cube_wrapped<ns, simd_type>(target, du, ker1, ker2, ker3, i1, i2, i3,
@@ -2169,6 +2173,13 @@ struct select_odd {
     return index * 2 + 1;
   }
 };
+
+template<typename T> auto xsimd_to_array(const T &vec) noexcept {
+  constexpr auto alignment = T::arch_type::alignment();
+  alignas(alignment) std::array<typename T::value_type, T::size> array{};
+  vec.store_aligned(array.data());
+  return array;
+}
 
 void print_subgrid_info(int ndims, BIGINT offset1, BIGINT offset2, BIGINT offset3,
                         UBIGINT padded_size1, UBIGINT size1, UBIGINT size2, UBIGINT size3,
