@@ -286,13 +286,13 @@ STA=perftest/spreadtestndall
 STF=$(ST)f
 STAF=$(STA)f
 $(ST): $(ST).cpp $(SOBJS) $(SOBJS_PI)
-	$(CXX) $(CXXFLAGS) ${LDFLAGS} $< $(SOBJS) $(SOBJS_PI) -o $@
+	$(CXX) $(CXXFLAGS) ${LDFLAGS} $< $(SOBJS) $(SOBJS_PI) $(LIBS) -o $@
 $(STF): $(ST).cpp $(SOBJSF) $(SOBJS_PI)
-	$(CXX) $(CXXFLAGS) ${LDFLAGS} -DSINGLE $< $(SOBJSF) $(SOBJS_PI) -o $@
+	$(CXX) $(CXXFLAGS) ${LDFLAGS} -DSINGLE $< $(SOBJSF) $(SOBJS_PI) $(LIBS) -o $@
 $(STA): $(STA).cpp $(SOBJS) $(SOBJS_PI)
-	$(CXX) $(CXXFLAGS) ${LDFLAGS} $< $(SOBJS) $(SOBJS_PI) -o $@
+	$(CXX) $(CXXFLAGS) ${LDFLAGS} $< $(SOBJS) $(SOBJS_PI) $(LIBS) -o $@
 $(STAF): $(STA).cpp $(SOBJSF) $(SOBJS_PI)
-	$(CXX) $(CXXFLAGS) ${LDFLAGS} -DSINGLE $< $(SOBJSF) $(SOBJS_PI) -o $@
+	$(CXX) $(CXXFLAGS) ${LDFLAGS} -DSINGLE $< $(SOBJSF) $(SOBJS_PI) $(LIBS) -o $@
 spreadtest: $(ST) $(STF)
 # run one thread per core... (escape the $ to get single $ in bash; one big cmd)
 	(export OMP_NUM_THREADS=$$(perftest/mynumcores.sh) ;\
