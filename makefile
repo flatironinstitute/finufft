@@ -105,7 +105,7 @@ ABSDYNLIB = $(FINUFFT)$(DYNLIB)
 
 # spreader is subset of the library with self-contained testing, hence own objs:
 # double-prec spreader object files that also need single precision...
-SOBJS = src/spreadinterp.o src/utils.o src/fft.o
+SOBJS = src/spreadinterp.o src/utils.o
 # their single-prec versions
 SOBJSF = $(SOBJS:%.o=%_32.o)
 # precision-dependent spreader object files (compiled & linked only once)...
@@ -114,7 +114,7 @@ SOBJS_PI = src/utils_precindep.o
 SOBJSD = $(SOBJS) $(SOBJSF) $(SOBJS_PI)
 
 # double-prec library object files that also need single precision...
-OBJS = $(SOBJS) src/finufft.o src/simpleinterfaces.o fortran/finufftfort.o
+OBJS = $(SOBJS) src/finufft.o src/simpleinterfaces.o fortran/finufftfort.o src/fft.o
 # their single-prec versions
 OBJSF = $(OBJS:%.o=%_32.o)
 # precision-dependent library object files (compiled & linked only once)...
