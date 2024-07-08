@@ -12,7 +12,6 @@ if (CMAKE_CXX_COMPILER_ID IN_LIST GNU_LIKE_FRONTENDS)
     set(FINUFFT_CXX_FLAGS_RELEASE -O3
             -funroll-loops
             -ffp-contract=fast
-            -fexcess-precision=fast
             -fno-math-errno
             -fno-signed-zeros
             -fno-trapping-math
@@ -20,7 +19,6 @@ if (CMAKE_CXX_COMPILER_ID IN_LIST GNU_LIKE_FRONTENDS)
             -freciprocal-math
             -fmerge-all-constants
             -ftree-vectorize
-
     )
     # if -fimplicit-constexpr is supported, add it to the list of flags
     check_cxx_compiler_flag("-fimplicit-constexpr" COMPILER_SUPPORTS_FIMPLICIT_CONSTEXPR)
