@@ -65,20 +65,27 @@ for i in range(1, 7):
         cmd = ["stats", "--force-overwrite=true", "--force-export=true", "--report", "cuda_gpu_trace", "--report", "cuda_gpu_kern_sum", "cuperftest_profile.nsys-rep",
                "--format=csv", "--output", "cuperftest"]
         csv = run_command("nsys", cmd)
-        print(csv)
-        dt = pd.read_csv("./cuperftest_cuda_gpu_kern_sum.csv")
-        # sort dt by column "Time (%)"
-        dt = dt[dt["Name"].str.contains("cufinufft::spreadinterp::spread")]
-        dt = dt.sort_values(by="Time (%)", ascending=False)
+        # print(csv)
+        dt = pd.read_csv("./cuperftest_cuda_gpu_trace.csv")
+        # print(dt)
+        # sum the "Total Time" column of the ones that contain "fft" in name
+        # print(dt[dt["Name"].str.contains("fft") & ~dt["Name"].str.contains("cufinufft")])
+        total_fft = dt[dt["Name"].str.contains("fft") & ~dt["Name"].str.contains("cufinufft")]['Duration (ns)'].sum()
+        print(f'total_fft: {total_fft}')
         # drop all the rows with spread not in "Name"
-        time = dt["Avg (ns)"].values[0]
+        dt = dt[dt["Name"].str.contains("cufinufft::spreadinterp::spread")]
+        # print(dt)
+        # sort dt by column "Time (%)"
+        total_spread = dt['Duration (ns)'].sum() - total_fft
+        print(f'total_spread: {total_spread}')
         # pt/s
-        throughput = float(args['--M']) * 1_000_000_000 / time
+        throughput = float(args['--M']) * float(args['--n_runs']) * 1_000_000_000 / total_spread
+        print(f'throughput: {throughput}')
         data['throughput'].append(throughput)
         data['tolerance'].append(args['--tol'])
 
 df = pd.DataFrame(data)
-
+print(df)
 # Pivot the DataFrame
 pivot_df = df.pivot(index='tolerance', columns='method', values='throughput')
 # Plot
@@ -90,7 +97,7 @@ min_throughput = df['throughput'].min()
 min_pow_10 = 10 ** np.floor(np.log10(min_throughput))
 
 # Adjust the plot's y-axis limits
-plt.ylim(df['throughput'].min()*.95, df['throughput'].max() * 1.05)  # Adding 10% for upper margin
+plt.ylim(df['throughput'].min()*.99, df['throughput'].max() * 1.09)  # Adding 10% for upper margin
 
 plt.xlabel('Tolerance')
 plt.ylabel('Throughput')
