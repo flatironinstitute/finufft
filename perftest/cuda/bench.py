@@ -13,6 +13,7 @@ def run_command(command, args):
     # convert command and args to a string
     try:
         cmd = [command] + args
+        print("Running command:", ' '.join(cmd))
         result = subprocess.run(cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
         return result.stdout
     except subprocess.CalledProcessError as e:
@@ -26,8 +27,9 @@ def run_command(command, args):
 def build_args(args):
     args_list = []
     for key, value in args.items():
-        args_list.append(key + " " + value)
-    return ' '.join(args_list)
+        args_list.append(key)
+        args_list.append(value)
+    return args_list
 
 
 # function
@@ -36,9 +38,9 @@ def build_args(args):
 # nsys profile -o cuperftest_profile ./cuperftest --prec f --n_runs 10 --method 1 --N1 256 --N2 256 --N3 256 --M 1E8 --tol 1E-6
 # example arguments
 args = {"--prec": "f",
-        "--n_runs": "1",
+        "--n_runs": "5",
         "--method": "1",
-        "--N1": "256",
+        "--N1": "65536",
         # "--N2": "256",
         # "--N3": "256",
         "--M": "1E8",
@@ -47,7 +49,9 @@ args = {"--prec": "f",
 data = {
     'method': [],
     'throughput': [],
-    'tolerance': []
+    'tolerance': [],
+    # 'setpts': [],
+    'exec': [],
 }
 for i in range(1, 7):
     args["--tol"] = "1E-" + str(i)
@@ -60,15 +64,17 @@ for i in range(1, 7):
         elif method == '2':
             data['method'].append('SM')
         print("Method " + data['method'][-1])
-        cmd = ["profile", "--force-overwrite", "true", "-o", "cuperftest_profile", cwd + "/cuperftest", build_args(args)]
+        cmd = ["profile", "--force-overwrite", "true", "-o", "cuperftest_profile", cwd + "/cuperftest"] + build_args(args)
         stdout = run_command("nsys", cmd)
         # skip all lines starting with # in stdout
+        conf = [x for x in stdout.splitlines() if x.startswith("#")]
+        print('\n'.join(conf))
         stdout = [x for x in stdout.splitlines() if not x.startswith("#")][:7]
         stdout = '\n'.join(stdout)
         # convert stdout to a dataframe from csv string
         dt = pd.read_csv(io.StringIO(stdout), sep=',')
-        setpts = dt[dt["event"].str.contains("setpts")]['nupts/s'].sum()
-        exec = dt[dt["event"].str.contains("exec")]['nupts/s'].sum()
+        setpts = dt[dt["event"].str.contains("setpts")]['nupts/s'].sum() # it is only one row it extracts the value
+        exec = dt[dt["event"].str.contains("exec")]['nupts/s'].sum() # it is only one row it extracts the value
         print(f'setpts pts/s: {setpts}')
         print(f'exec pts/s: {exec}')
         cmd = ["stats", "--force-overwrite=true", "--force-export=true", "--report", "cuda_gpu_trace", "--report", "cuda_gpu_kern_sum", "cuperftest_profile.nsys-rep",
@@ -84,6 +90,7 @@ for i in range(1, 7):
         # drop all the rows with spread not in "Name"
         dt = dt[dt["Name"].str.contains("cufinufft::spreadinterp::spread")]
         # print(dt)
+        # exit(0)
         # sort dt by column "Time (%)"
         total_spread = dt['Duration (ns)'].sum() - total_fft
         print(f'total_spread: {total_spread}')
@@ -92,30 +99,46 @@ for i in range(1, 7):
         print(f'throughput: {throughput}')
         data['throughput'].append(throughput)
         data['tolerance'].append(args['--tol'])
+        # data['setpts'].append(setpts)
+        data['exec'].append(exec)
+
 
 df = pd.DataFrame(data)
-print(df)
 # Pivot the DataFrame
-pivot_df = df.pivot(index='tolerance', columns='method', values='throughput')
+pivot_df = df.pivot(index='tolerance', columns='method')
+# print(pivot_df)
+# scale the throughput SM by GM
+pivot_df['throughput', 'SM'] /= pivot_df['throughput', 'GM']
+# pivot_df['throughput', 'GM'] /= pivot_df['throughput', 'GM']
+# scale setpts SM by GM
+pivot_df['exec', 'SM'] /= pivot_df['exec', 'GM']
+# pivot_df['exec', 'GM'] /= pivot_df['exec', 'GM']
+# remove the GM column
+pivot_df.drop(('throughput', 'GM'), axis=1, inplace=True)
+pivot_df.drop(('exec', 'GM'), axis=1, inplace=True)
 # Plot
 pivot_df.plot(kind='bar', figsize=(10, 7))
 # Find the minimum throughput value
-min_throughput = df['throughput'].min()
+min_val = min(df['throughput'].min(), df['exec'].min())
+max_val = max(df['throughput'].max(), df['exec'].max())
+plt.ylim(.8, 1.2)
 
 # Calculate the smallest power of 10
-min_pow_10 = 10 ** np.floor(np.log10(min_throughput))
+# min_pow_10 = 10 ** np.floor(np.log10(min_throughput))
 
 # Adjust the plot's y-axis limits
-plt.ylim(df['throughput'].min()*.99, df['throughput'].max() * 1.09)  # Adding 10% for upper margin
+# plt.ylim(df['throughput'].min()*.99, df['throughput'].max() * 1.009)  # Adding 10% for upper margin
 
+# plot an horizontal line at 1 with label "GM"
+plt.axhline(y=1, color='k', linestyle='--', label='GM')
 plt.xlabel('Tolerance')
-plt.ylabel('Throughput')
+plt.ylabel('Throughput (% of GM)')
 plt.title('Throughput by Tolerance and Method')
 plt.legend(title='Method')
 plt.tight_layout()
 plt.show()
 plt.xlabel("Tolerance")
-plt.ylabel("Points/s")
+plt.ylabel("Points/s (% of GM)")
 plt.savefig("bench.png")
 plt.savefig("bench.svg")
 plt.savefig("bench.pdf")

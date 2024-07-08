@@ -42,7 +42,7 @@ int cufinufft3d2_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
 static void cufinufft_setup_binsize(int type, int dim, cufinufft_opts *opts) {
   switch (dim) {
   case 1: {
-    opts->gpu_binsizex = (opts->gpu_binsizex < 0) ? 1024 : opts->gpu_binsizex;
+    opts->gpu_binsizex = (opts->gpu_binsizex < 0) ? 16384 : opts->gpu_binsizex;
     opts->gpu_binsizey = 1;
     opts->gpu_binsizez = 1;
   } break;
