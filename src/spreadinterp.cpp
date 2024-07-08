@@ -752,6 +752,12 @@ void evaluate_kernel_vector(FLT *ker, FLT *args, const finufft_spread_opts &opts
     if (!(opts.flags & TF_OMIT_EVALUATE_EXPONENTIAL))
       for (int i = 0; i < Npad; i++) // Loop 2: Compute exponentials
         ker[i] = exp(ker[i]);
+    if (opts.kerpad) {
+      // padded part should be zero, in spread_subproblem_nd_kernels, there are
+      // out of bound writes to trg arrays
+      for (int i = N; i < Npad; ++i)
+        ker[i] = 0.0;
+    }
   } else {
     for (int i = 0; i < N; i++) // dummy for timing only
       ker[i] = 1.0;
