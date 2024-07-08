@@ -497,9 +497,9 @@ FINUFFT_NEVER_INLINE static int interpSorted_kernel(
     auto *FINUFFT_RESTRICT ker3 = kernel_values.data() + 2 * MAX_NSPREAD;
 
     // Loop over interpolation chunks
-#pragma omp for schedule(dynamic, 1000) // assign threads to NU targ pts:
     // main loop over NU trgs, interp each from U
     // (note: windows omp doesn't like unsigned loop vars)
+#pragma omp for schedule(dynamic, 1000) // assign threads to NU targ pts:
     for (BIGINT i = 0; i < M; i += CHUNKSIZE) {
       // Setup buffers for this chunk
       const UBIGINT bufsize = (i + CHUNKSIZE > M) ? M - i : CHUNKSIZE;
