@@ -33,6 +33,34 @@ jobs:
           name: cibw-wheels-${{ matrix.os }}-${{ strategy.job-index }}
           path: ./wheelhouse/*.whl
 
+  build_wheels_macos_arm64:
+    name: Build wheels on macos-14
+    runs-on: macos-14
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build wheels
+        uses: pypa/cibuildwheel@v2.19.2
+        env:
+          CIBW_BUILD_VERBOSITY: 1
+          CIBW_SKIP: "pp*"
+          CIBW_ARCHS_MACOS: "arm64"
+          CIBW_BEFORE_ALL_MACOS: |
+            pkg=$(brew fetch --force --bottle-tag=arm64_ventura fftw | grep 'Downloaded to' | cut -d' ' -f3)
+            brew install $pkg
+            pkg=$(brew fetch --force --bottle-tag=arm64_ventura gcc | grep 'Downloaded to' | cut -d' ' -f3)
+            brew install $pkg
+          CIBW_ENVIRONMENT_MACOS: >
+            CC=gcc-14
+            CXX=g++-14
+            MACOSX_DEPLOYMENT_TARGET=14
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cibw-wheels-${{ matrix.os }}-${{ strategy.job-index }}
+          path: ./wheelhouse/*.whl
+
   build_wheels_win:
     name: Build wheels on windows
     runs-on: windows-latest
