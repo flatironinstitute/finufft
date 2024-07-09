@@ -227,8 +227,10 @@ void cufinufft_setup_binsize(int type, int ns, int dim, cufinufft_opts *opts) {
   switch (dim) {
   case 1: {
     switch (opts->gpu_method) {
-    case 0:
     case 1:
+      opts->gpu_binsizex = (opts->gpu_binsizex < 0) ? 1024 : opts->gpu_binsizex;
+      break;
+    case 0:
     case 2:
       if (opts->gpu_binsizex < 0) {
         cudaGetDevice(&device_id);

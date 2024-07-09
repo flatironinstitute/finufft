@@ -40,8 +40,10 @@ def build_args(args):
 args = {"--prec": "f",
         "--n_runs": "10",
         "--method": "0",
-        "--N1": "16777216",
-        # "--N2": "256",
+        "--sort": "1",
+        # "--N1": "16777216",
+        "--N1": "256",
+        "--N2": "256",
         # "--N3": "256",
         "--M": "1E8",
         "--tol": "1E-6"}
@@ -56,7 +58,6 @@ data = {
 warmup = {"--prec": "f",
         "--n_runs": "1",
         "--method": "0",
-        "--sort": "0",
         "--N1": "256",
         # "--N2": "256",
         # "--N3": "256",
@@ -142,13 +143,13 @@ pivot_df['exec', 'SM'] /= pivot_df['exec', 'GM']
 # remove the GM column
 pivot_df.drop(('throughput', 'GM'), axis=1, inplace=True)
 pivot_df.drop(('exec', 'GM'), axis=1, inplace=True)
-
+pivot_df.drop(('exec', 'SM'), axis=1, inplace=True)
 print(pivot_df)
 # Plot
 pivot_df.plot(kind='bar', figsize=(10, 7))
 # Find the minimum throughput value
-min_val = min(pivot_df[('exec', 'SM')].min(), pivot_df[('throughput', 'SM')].min(), 1)
-max_val = max(pivot_df[('exec', 'SM')].max(), pivot_df[('throughput', 'SM')].max(), 0)
+min_val = min(pivot_df[('throughput', 'SM')].min(), 1)
+max_val = max(pivot_df[('throughput', 'SM')].max(), 0)
 print(min_val, max_val)
 plt.ylim(min_val * .99, max_val * 1.01)
 # plt.ylim(.8, 1.2)

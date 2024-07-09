@@ -2,6 +2,7 @@
 #define __CUSPREADINTERP_H__
 
 #include <cmath>
+#include <cuda.h>
 #include <cufinufft/types.h>
 #include <finufft_spread_opts.h>
 
