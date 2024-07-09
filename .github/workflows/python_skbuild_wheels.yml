@@ -27,6 +27,8 @@ jobs:
             CC=gcc-14
             CXX=g++-14
             MACOSX_DEPLOYMENT_TARGET=13
+          CIBW_TEST_REQUIRES: pytest
+          CIBW_TEST_COMMAND: pytest {project}/python/finufft/test
 
       - uses: actions/upload-artifact@v4
         with:
@@ -55,6 +57,8 @@ jobs:
             CC=gcc-14
             CXX=g++-14
             MACOSX_DEPLOYMENT_TARGET=14
+          CIBW_TEST_REQUIRES: pytest
+          CIBW_TEST_COMMAND: pytest {project}/python/finufft/test
 
       - uses: actions/upload-artifact@v4
         with:
@@ -90,6 +94,8 @@ jobs:
           CIBW_ARCHS: AMD64
           CIBW_ENVIRONMENT: >
             FFTWDIR='${{ github.workspace }}\fftw'
+          CIBW_TEST_REQUIRES: pytest
+          CIBW_TEST_COMMAND: pytest {project}/python/finufft/test
 
       - uses: actions/upload-artifact@v4
         with:
