@@ -531,15 +531,15 @@ FINUFFT_NEVER_INLINE static int interpSorted_kernel(
         if (!(opts.flags & TF_OMIT_SPREADING)) {
           switch (ndims) {
           case 1:
-            ker_eval<ns, kerevalmeth, FLT, simd_type>(kernel_values.data(), opts, x1);
+            ker_eval<ns, kerevalmeth, FLT>(kernel_values.data(), opts, x1);
             interp_line<ns>(target, data_uniform, ker1, i1, N1);
             break;
           case 2:
-            ker_eval<ns, kerevalmeth, FLT, simd_type>(kernel_values.data(), opts, x1, x2);
+            ker_eval<ns, kerevalmeth, FLT>(kernel_values.data(), opts, x1, x2);
             interp_square<ns>(target, data_uniform, ker1, ker2, i1, i2, N1, N2);
             break;
           case 3:
-            ker_eval<ns, kerevalmeth, FLT, simd_type>(kernel_values.data(), opts, x1, x2, x3);
+            ker_eval<ns, kerevalmeth, FLT>(kernel_values.data(), opts, x1, x2, x3);
             interp_cube<ns>(target, data_uniform, ker1, ker2, ker3, i1, i2, i3, N1, N2,
                             N3);
             break;
