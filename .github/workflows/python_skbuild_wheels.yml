@@ -34,7 +34,7 @@ jobs:
           path: ./wheelhouse/*.whl
 
   build_wheels_win:
-    name: Build wheels on Windows
+    name: Build wheels on windows
     runs-on: windows-latest
 
     steps:
