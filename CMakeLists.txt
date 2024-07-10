@@ -97,7 +97,7 @@ endif ()
 
 # This set of sources is compiled twice, once in single precision and once in double precision
 # The single precision compilation is done with -DSINGLE
-set(FINUFFT_PRECISION_DEPENDENT_SOURCES src/finufft.cpp src/simpleinterfaces.cpp src/spreadinterp.cpp src/utils.cpp fortran/finufftfort.cpp)
+set(FINUFFT_PRECISION_DEPENDENT_SOURCES src/finufft.cpp src/fft.cpp src/simpleinterfaces.cpp src/spreadinterp.cpp src/utils.cpp fortran/finufftfort.cpp)
 
 # Set of compilers which behave like gcc
 set(FINUFFT_GNU_LIKE_COMPILERS AppleClang Clang GNU)
@@ -153,7 +153,8 @@ function(set_finufft_options target)
     endif ()
     target_compile_options(${target} PRIVATE $<$<CONFIG:Release>:${FINUFFT_CXX_FLAGS_RELEASE}>)
     target_compile_options(${target} PRIVATE $<$<CONFIG:RelWithDebInfo>:${FINUFFT_CXX_FLAGS_RELWITHDEBINFO}>)
-    target_include_directories(${target} PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
+    target_include_directories(${target} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
+    target_include_directories(${target} SYSTEM INTERFACE $<INSTALL_INTERFACE:${CMAKE_INSTALL_PREFIX}/include>)
     if (FINUFFT_USE_OPENMP)
         target_link_libraries(${target} PRIVATE OpenMP::OpenMP_CXX)
         # there are issues on windows with OpenMP and CMake, so we need to manually add the flags
@@ -182,9 +183,8 @@ function(set_finufft_options target)
             target_include_directories(${target} PUBLIC ${FFTW_INCLUDE_DIR})
         endif ()
     endif ()
-
-    # XSIMD is a header only library, so we just need to include the headers
-    target_include_directories(${target} PUBLIC ${XSIMD_INCLUDE_DIR})
+#    target_link_libraries(${target} PRIVATE xsimd)
+#    target_link_libraries(${target} PUBLIC ${FINUFFT_FFTW_LIBRARIES})
 endfunction()
 
 if (FINUFFT_USE_CPU)
@@ -217,7 +217,7 @@ if (FINUFFT_USE_CPU)
         target_link_libraries(finufft_f64_dll PUBLIC ${FINUFFT_FFTLIBS})
     endif ()
 
-    add_library(finufft SHARED src/fft.cpp src/utils_precindep.cpp contrib/legendre_rule_fast.cpp)
+    add_library(finufft SHARED src/utils_precindep.cpp contrib/legendre_rule_fast.cpp)
     target_compile_definitions(finufft PRIVATE dll_EXPORTS FINUFFT_DLL)
     set_finufft_options(finufft)
     if (NOT WIN32)
@@ -229,16 +229,18 @@ if (FINUFFT_USE_CPU)
     if (NOT WIN32)
         target_link_libraries(finufft PUBLIC m)
     endif ()
-    target_include_directories(finufft PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
+    target_include_directories(finufft PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
+    target_include_directories(finufft SYSTEM INTERFACE $<INSTALL_INTERFACE:${CMAKE_INSTALL_PREFIX}/include>)
 
-    add_library(finufft_static STATIC src/fft.cpp src/utils_precindep.cpp contrib/legendre_rule_fast.cpp)
+    add_library(finufft_static STATIC src/utils_precindep.cpp contrib/legendre_rule_fast.cpp)
     set_finufft_options(finufft_static)
     target_link_libraries(finufft_static PUBLIC finufft_f32 finufft_f64)
     # windows does not have a math library, so we need to exclude it
     if (NOT WIN32)
         target_link_libraries(finufft_static PUBLIC m)
     endif ()
-    target_include_directories(finufft_static PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
+    target_include_directories(finufft_static PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
+    target_include_directories(finufft_static SYSTEM INTERFACE $<INSTALL_INTERFACE:${CMAKE_INSTALL_PREFIX}/include>)
 
     file(GLOB FINUFFT_PUBLIC_HEADERS "${CMAKE_CURRENT_SOURCE_DIR}/include/finufft*.h")
     set_target_properties(finufft PROPERTIES PUBLIC_HEADER "${FINUFFT_PUBLIC_HEADERS}")

@@ -27,7 +27,7 @@
 
 // All indexing in library that potentially can exceed 2^31 uses 64-bit signed.
 // This includes all calling arguments (eg M,N) that could be huge someday.
-using BIGINT = int64_t;
+using BIGINT  = int64_t;
 using UBIGINT = uint64_t;
 // Precision-independent real and complex types, for private lib/test compile
 #ifdef SINGLE
@@ -61,30 +61,30 @@ using CPX = std::complex<FLT>;
 // ------------- Library-wide algorithm parameter settings ----------------
 
 // Library version (is a string)
-#define FINUFFT_VER          "2.2.0"
+#define FINUFFT_VER "2.2.0"
 
 // Smallest possible kernel spread width per dimension, in fine grid points
 // (used only in spreadinterp.cpp)
-static constexpr int MIN_NSPREAD          = 2;
+static constexpr int MIN_NSPREAD = 2;
 
 // Largest possible kernel spread width per dimension, in fine grid points
 // (used only in spreadinterp.cpp)
-static constexpr int MAX_NSPREAD          = 16;
+static constexpr int MAX_NSPREAD = 16;
 
 // Fraction growth cut-off in utils:arraywidcen, sets when translate in type-3
 static constexpr double ARRAYWIDCEN_GROWFRAC = 0.1;
 
 // Max number of positive quadr nodes for kernel FT (used only in common.cpp)
-static constexpr int MAX_NQUAD            = 100;
+static constexpr int MAX_NQUAD = 100;
 
 // Internal (nf1 etc) array allocation size that immediately raises error.
 // (Note: next235 takes 1s for 1e11, so it is also to prevent hang here.)
 // Increase this if you need >10TB (!) RAM...
-static constexpr BIGINT MAX_NF             = (BIGINT)1e12;
+static constexpr BIGINT MAX_NF = (BIGINT)1e12;
 
 // Maximum allowed number M of NU points; useful to catch incorrectly cast int32
 // values for M = nj (also nk in type 3)...
-static constexpr BIGINT MAX_NU_PTS         = (BIGINT)1e14;
+static constexpr BIGINT MAX_NU_PTS = (BIGINT)1e14;
 
 // -------------- Math consts (not in math.h) and useful math macros ----------
 #include <math.h>
@@ -193,32 +193,32 @@ struct TYPE3PARAMS {
   FLT X3, C3, D3, h3, gam3; // z
 };
 
-struct FINUFFT_PLAN_S { // the main plan object, fully C++
+struct FINUFFT_PLAN_S {     // the main plan object, fully C++
 
-  int type;                     // transform type (Rokhlin naming): 1,2 or 3
-  int dim;                      // overall dimension: 1,2 or 3
-  int ntrans;    // how many transforms to do at once (vector or "many" mode)
-  BIGINT nj;     // num of NU pts in type 1,2 (for type 3, num input x pts)
-  BIGINT nk;     // number of NU freq pts (type 3 only)
-  FLT tol;       // relative user tolerance
-  int batchSize; // # strength vectors to group together for FFTW, etc
-  int nbatch;    // how many batches done to cover all ntrans vectors
+  int type;                 // transform type (Rokhlin naming): 1,2 or 3
+  int dim;                  // overall dimension: 1,2 or 3
+  int ntrans;               // how many transforms to do at once (vector or "many" mode)
+  BIGINT nj;                // num of NU pts in type 1,2 (for type 3, num input x pts)
+  BIGINT nk;                // number of NU freq pts (type 3 only)
+  FLT tol;                  // relative user tolerance
+  int batchSize;            // # strength vectors to group together for FFTW, etc
+  int nbatch;               // how many batches done to cover all ntrans vectors
 
-  BIGINT ms;     // number of modes in x (1) dir (historical CMCL name) = N1
-  BIGINT mt;     // number of modes in y (2) direction = N2
-  BIGINT mu;     // number of modes in z (3) direction = N3
-  BIGINT N;      // total # modes (prod of above three)
+  BIGINT ms;                // number of modes in x (1) dir (historical CMCL name) = N1
+  BIGINT mt;                // number of modes in y (2) direction = N2
+  BIGINT mu;                // number of modes in z (3) direction = N3
+  BIGINT N;                 // total # modes (prod of above three)
 
-  BIGINT nf1;    // size of internal fine grid in x (1) direction
-  BIGINT nf2;    // " y (2)
-  BIGINT nf3;    // " z (3)
-  BIGINT nf;     // total # fine grid points (product of the above three)
+  BIGINT nf1;               // size of internal fine grid in x (1) direction
+  BIGINT nf2;               // " y (2)
+  BIGINT nf3;               // " z (3)
+  BIGINT nf;                // total # fine grid points (product of the above three)
 
-  int fftSign;   // sign in exponential for NUFFT defn, guaranteed to be +-1
+  int fftSign;              // sign in exponential for NUFFT defn, guaranteed to be +-1
 
-  std::vector<FLT> phiHat1;  // FT of kernel in t1,2, on x-axis mode grid
-  std::vector<FLT> phiHat2;  // " y-axis.
-  std::vector<FLT> phiHat3;  // " z-axis.
+  std::vector<FLT> phiHat1; // FT of kernel in t1,2, on x-axis mode grid
+  std::vector<FLT> phiHat2; // " y-axis.
+  std::vector<FLT> phiHat3; // " z-axis.
 
 #ifndef FINUFFT_USE_DUCC0
   CPX *fwBatch; // (batches of) fine grid(s) for FFTW to plan
@@ -226,21 +226,21 @@ struct FINUFFT_PLAN_S { // the main plan object, fully C++
 #endif
 
   std::vector<BIGINT> sortIndices; // precomputed NU pt permutation, speeds spread/interp
-  bool didSort;        // whether binsorting used (false: identity perm used)
+  bool didSort;                    // whether binsorting used (false: identity perm used)
 
-  FLT *X, *Y, *Z;      // for t1,2: ptr to user-supplied NU pts (no new allocs).
-                       // for t3: allocated as "primed" (scaled) src pts x'_j, etc
+  FLT *X, *Y, *Z; // for t1,2: ptr to user-supplied NU pts (no new allocs).
+                  // for t3: allocated as "primed" (scaled) src pts x'_j, etc
 
   // type 3 specific
-  FLT *S, *T, *U; // pointers to user's target NU pts arrays (no new allocs)
-  std::vector<CPX> prephase;  // pre-phase, for all input NU pts
-  std::vector<CPX> deconv;    // reciprocal of kernel FT, phase, all output NU pts
+  FLT *S, *T, *U;              // pointers to user's target NU pts arrays (no new allocs)
+  std::vector<CPX> prephase;   // pre-phase, for all input NU pts
+  std::vector<CPX> deconv;     // reciprocal of kernel FT, phase, all output NU pts
 #ifndef FINUFFT_USE_DUCC0
-  std::vector<CPX> CpBatch; // working array of prephased strengths
+  std::vector<CPX> CpBatch;    // working array of prephased strengths
 #endif
-  std::vector<FLT> Sp, Tp, Up;        // internal primed targs (s'_k, etc), allocated
-  TYPE3PARAMS t3P;          // groups together type 3 shift, scale, phase, parameters
-  FINUFFT_PLAN innerT2plan; // ptr used for type 2 in step 2 of type 3
+  std::vector<FLT> Sp, Tp, Up; // internal primed targs (s'_k, etc), allocated
+  TYPE3PARAMS t3P;             // groups together type 3 shift, scale, phase, parameters
+  FINUFFT_PLAN innerT2plan;    // ptr used for type 2 in step 2 of type 3
 
   // other internal structs
 #ifndef FINUFFT_USE_DUCC0
@@ -248,7 +248,6 @@ struct FINUFFT_PLAN_S { // the main plan object, fully C++
 #endif
   finufft_opts opts; // this and spopts could be made ptrs
   finufft_spread_opts spopts;
-
 };
 
 #undef TYPE3PARAMS

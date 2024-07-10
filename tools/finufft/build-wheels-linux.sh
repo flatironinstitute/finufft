@@ -25,7 +25,6 @@ versions=("cp36-cp36m"
           "cp310-cp310"
           "cp311-cp311"
           "cp312-cp312"
-          "pp38-pypy38_pp73"
           "pp39-pypy39_pp73")
 
 pys=()

@@ -96,21 +96,21 @@ static void bin_sort_singlethread(BIGINT *ret, BIGINT M, const FLT *kx, const FL
                                   const FLT *kz, BIGINT N1, BIGINT N2, BIGINT N3,
                                   double bin_size_x, double bin_size_y, double bin_size_z,
                                   int debug);
-static void bin_sort_multithread(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz, BIGINT N1,
-                          BIGINT N2, BIGINT N3, double bin_size_x, double bin_size_y,
-                          double bin_size_z, int debug, int nthr);
+static void bin_sort_multithread(
+    BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz, BIGINT N1, BIGINT N2, BIGINT N3,
+    double bin_size_x, double bin_size_y, double bin_size_z, int debug, int nthr);
 static void get_subgrid(BIGINT &offset1, BIGINT &offset2, BIGINT &offset3,
                         BIGINT &padded_size1, BIGINT &size1, BIGINT &size2, BIGINT &size3,
                         BIGINT M0, FLT *kx0, FLT *ky0, FLT *kz0, int ns, int ndims);
-static int interpSorted(
-    const BIGINT *sort_indices, BIGINT N1, BIGINT N2, BIGINT N3,
-    FLT *FINUFFT_RESTRICT data_uniform, BIGINT M, FLT *FINUFFT_RESTRICT kx,
-    FLT *FINUFFT_RESTRICT ky, FLT *FINUFFT_RESTRICT kz,
-    FLT *FINUFFT_RESTRICT data_nonuniform, const finufft_spread_opts &opts);
-static int spreadSorted(
-    const BIGINT *sort_indices, BIGINT N1, BIGINT N2, BIGINT N3, FLT *data_uniform,
-    BIGINT M, FLT *kx, FLT *ky, FLT *kz, const FLT *data_nonuniform,
-    const finufft_spread_opts &opts, int did_sort);
+static int interpSorted(const BIGINT *sort_indices, BIGINT N1, BIGINT N2, BIGINT N3,
+                        FLT *FINUFFT_RESTRICT data_uniform, BIGINT M,
+                        FLT *FINUFFT_RESTRICT kx, FLT *FINUFFT_RESTRICT ky,
+                        FLT *FINUFFT_RESTRICT kz, FLT *FINUFFT_RESTRICT data_nonuniform,
+                        const finufft_spread_opts &opts);
+static int spreadSorted(const BIGINT *sort_indices, BIGINT N1, BIGINT N2, BIGINT N3,
+                        FLT *data_uniform, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
+                        const FLT *data_nonuniform, const finufft_spread_opts &opts,
+                        int did_sort);
 
 // ==========================================================================
 int spreadinterp(BIGINT N1, BIGINT N2, BIGINT N3, FLT *data_uniform, BIGINT M, FLT *kx,
@@ -205,8 +205,8 @@ static int ndims_from_Ns(BIGINT /*N1*/, BIGINT N2, BIGINT N3)
   return ndims;
 }
 
-int spreadcheck(BIGINT N1, BIGINT N2, BIGINT N3, BIGINT /*M*/, FLT */*kx*/, FLT */*ky*/, FLT */*kz*/,
-                const finufft_spread_opts &opts)
+int spreadcheck(BIGINT N1, BIGINT N2, BIGINT N3, BIGINT /*M*/, FLT * /*kx*/, FLT * /*ky*/,
+                FLT * /*kz*/, const finufft_spread_opts &opts)
 /* This does just the input checking and reporting for the spreader.
    See spreadinterp() for input arguments and meaning of returned value.
    Split out by Melody Shih, Jun 2018. Finiteness chk Barnett 7/30/18.
@@ -330,10 +330,10 @@ int spreadinterpSorted(const BIGINT *sort_indices, const BIGINT N1, const BIGINT
 
 // --------------------------------------------------------------------------
 static int spreadSorted(const BIGINT *sort_indices, BIGINT N1, BIGINT N2, BIGINT N3,
-                 FLT *FINUFFT_RESTRICT data_uniform, BIGINT M, FLT *FINUFFT_RESTRICT kx,
-                 FLT *FINUFFT_RESTRICT ky, FLT *FINUFFT_RESTRICT kz,
-                 const FLT *data_nonuniform, const finufft_spread_opts &opts,
-                 int did_sort)
+                        FLT *FINUFFT_RESTRICT data_uniform, BIGINT M,
+                        FLT *FINUFFT_RESTRICT kx, FLT *FINUFFT_RESTRICT ky,
+                        FLT *FINUFFT_RESTRICT kz, const FLT *data_nonuniform,
+                        const finufft_spread_opts &opts, int did_sort)
 // Spread NU pts in sorted order to a uniform grid. See spreadinterp() for doc.
 {
   CNTime timer;
@@ -399,7 +399,7 @@ static int spreadSorted(const BIGINT *sort_indices, BIGINT N1, BIGINT N2, BIGINT
         ky0.resize(M0 * (N2 > 1));
         kz0.resize(M0 * (N3 > 1));
         dd0.resize(2 * M0);                               // complex strength data
-        for (UBIGINT j = 0; j < UBIGINT(M0); j++) {                // todo: can avoid this copying?
+        for (UBIGINT j = 0; j < UBIGINT(M0); j++) {       // todo: can avoid this copying?
           const UBIGINT kk = sort_indices[j + brk[isub]]; // NU pt from subprob index list
           kx0[j]           = fold_rescale(kx[kk], N1);
           if (N2 > 1) ky0[j] = fold_rescale(ky[kk], N2);
@@ -591,11 +591,11 @@ static int interpSorted_dispatch(
   }
 }
 
-static int interpSorted(const BIGINT *sort_indices, const BIGINT N1, const BIGINT N2,
-                 const BIGINT N3, FLT *FINUFFT_RESTRICT data_uniform, const BIGINT M,
-                 FLT *FINUFFT_RESTRICT kx, FLT *FINUFFT_RESTRICT ky,
-                 FLT *FINUFFT_RESTRICT kz, FLT *FINUFFT_RESTRICT data_nonuniform,
-                 const finufft_spread_opts &opts) {
+static int interpSorted(
+    const BIGINT *sort_indices, const BIGINT N1, const BIGINT N2, const BIGINT N3,
+    FLT *FINUFFT_RESTRICT data_uniform, const BIGINT M, FLT *FINUFFT_RESTRICT kx,
+    FLT *FINUFFT_RESTRICT ky, FLT *FINUFFT_RESTRICT kz,
+    FLT *FINUFFT_RESTRICT data_nonuniform, const finufft_spread_opts &opts) {
   return interpSorted_dispatch<MAX_NSPREAD>(sort_indices, N1, N2, N3, data_uniform, M, kx,
                                             ky, kz, data_nonuniform, opts);
 }
@@ -659,9 +659,9 @@ int setup_spreader(finufft_spread_opts &opts, FLT eps, double upsampfac, int ker
     eps = EPSILON; // only changes local copy (not any opts)
     ier = FINUFFT_WARN_EPS_TOO_SMALL;
   }
-  if (upsampfac == 2.0)                      // standard sigma (see SISC paper)
+  if (upsampfac == 2.0)                           // standard sigma (see SISC paper)
     ns = int(std::ceil(-log10(eps / (FLT)10.0))); // 1 digit per power of 10
-  else                                       // custom sigma
+  else                                            // custom sigma
     ns = int(std::ceil(-log(eps) / (PI * sqrt(1.0 - 1.0 / upsampfac)))); // formula, gam=1
   ns = max(2, ns);        // (we don't have ns=1 version yet)
   if (ns > MAX_NSPREAD) { // clip to fit allocated arrays, Horner rules
@@ -682,8 +682,8 @@ int setup_spreader(finufft_spread_opts &opts, FLT eps, double upsampfac, int ker
   if (ns == 2) betaoverns = 2.20;     // some small-width tweaks...
   if (ns == 3) betaoverns = 2.26;
   if (ns == 4) betaoverns = 2.38;
-  if (upsampfac != 2.0) { // again, override beta for custom sigma
-    FLT gamma  = FLT(0.97);    // must match devel/gen_all_horner_C_code.m !
+  if (upsampfac != 2.0) {   // again, override beta for custom sigma
+    FLT gamma  = FLT(0.97); // must match devel/gen_all_horner_C_code.m !
     betaoverns = gamma * PI * (1.0 - 1.0 / (2 * upsampfac)); // formula based on cutoff
   }
   opts.ES_beta = betaoverns * ns; // set the kernel beta parameter
@@ -745,6 +745,11 @@ void evaluate_kernel_vector(FLT *ker, FLT *args, const finufft_spread_opts &opts
     if (!(opts.flags & TF_OMIT_EVALUATE_EXPONENTIAL))
       for (int i = 0; i < Npad; i++) // Loop 2: Compute exponentials
         ker[i] = exp(ker[i]);
+    if (opts.kerpad) {
+      // padded part should be zero, in spread_subproblem_nd_kernels, there are
+      // out of bound writes to trg arrays
+      for (int i = N; i < Npad; ++i) ker[i] = 0.0;
+    }
   } else {
     for (int i = 0; i < N; i++) // dummy for timing only
       ker[i] = 1.0;
@@ -1248,10 +1253,10 @@ FINUFFT_NEVER_INLINE static void spread_subproblem_2d_kernel(
   static constexpr auto alignment = arch_t::alignment();
   // Kernel values stored in consecutive memory. This allows us to compute
   // values in all three directions in a single kernel evaluation call.
-  static constexpr auto ns2 = ns * FLT(0.5); // half spread width
+  static constexpr auto ns2 = ns * FLT(0.5);      // half spread width
   alignas(alignment) std::array<FLT, 2 * MAX_NSPREAD> kernel_values{0};
-  std::fill(du, du + 2 * size1 * size2, 0);  // initialized to 0 due to the padding
-  for (uint64_t pt = 0; pt < uint64_t(M); pt++) {      // loop over NU pts
+  std::fill(du, du + 2 * size1 * size2, 0);       // initialized to 0 due to the padding
+  for (uint64_t pt = 0; pt < uint64_t(M); pt++) { // loop over NU pts
     const auto dd_pt = initialize_complex_register<simd_type>(dd[pt * 2], dd[pt * 2 + 1]);
     // ceil offset, hence rounding, must match that in get_subgrid...
     const auto i1 = (BIGINT)std::ceil(kx[pt] - ns2); // fine grid start indices
@@ -1624,9 +1629,9 @@ void bin_sort_singlethread(
   }
 }
 
-static void bin_sort_multithread(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz, BIGINT N1,
-                          BIGINT N2, BIGINT N3, double bin_size_x, double bin_size_y,
-                          double bin_size_z, int /*debug*/, int nthr)
+static void bin_sort_multithread(
+    BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz, BIGINT N1, BIGINT N2, BIGINT N3,
+    double bin_size_x, double bin_size_y, double bin_size_z, int /*debug*/, int nthr)
 /* Mostly-OpenMP'ed version of bin_sort.
    For documentation see: bin_sort_singlethread.
    Caution: when M (# NU pts) << N (# U pts), is SLOWER than single-thread.

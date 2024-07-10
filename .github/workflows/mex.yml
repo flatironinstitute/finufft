@@ -1,0 +1,55 @@
+name: Generate Matlab mex files
+on: [push]
+jobs:
+  mex-ci:
+    name: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up MATLAB
+        uses: matlab-actions/setup-matlab@v2
+        with:
+          release: R2023b
+          cache: true
+      - name: Generate Windows mex file
+        if: runner.os == 'Windows'
+        run: |
+          export PATH=/d/hostedtoolcache/windows/MATLAB/2023.2.999/x64/bin/win64:$PATH
+          export PATH=/c/msys64/usr/bin:$PATH
+          export PATH=/c/msys64/mingw64/bin:$PATH
+          export MW_MINGW64_LOC=/c/msys64/mingw64
+          pacman -Sy --noconfirm make mingw-w64-x86_64-toolchain mingw-w64-x86_64-fftw
+          mex -setup:.github/workflows/mex_C++_win64.xml C++
+          cp make.inc.windows_msys make.inc
+          sed -i '/  LIBSFFT/a \ \ LIBSFFT := `g++ --print-file-name libfftw3.a` `g++ --print-file-name libfftw3f.a` `g++ --print-file-name libfftw3_omp.a` `g++ --print-file-name libfftw3f_omp.a` `g++ --print-file-name libm.a` `g++ --print-file-name libgomp.a`' makefile
+          /c/msys64/usr/bin/make matlab
+        shell: C:\msys64\usr\bin\bash.exe {0}
+      - name: Generate macOS mex file
+        if: runner.os == 'macOS'
+        run: |
+          brew install fftw libomp
+          sed 's/\/Applications\/MATLAB_R20\*\*.app/\/Users\/runner\/hostedtoolcache\/MATLAB\/2023.2.999\/arm64\/MATLAB.app/' make.inc.macosx_arm64 > make.inc
+          sed -i -e 's/  LIBSFFT.*/\ \ LIBSFFT := \/opt\/homebrew\/opt\/fftw\/lib\/libfftw3\.a \/opt\/homebrew\/opt\/fftw\/lib\/libfftw3f\.a \/opt\/homebrew\/opt\/fftw\/lib\/libfftw3_omp.a \/opt\/homebrew\/opt\/fftw\/lib\/libfftw3f_omp\.a -L\/Users\/runner\/hostedtoolcache\/MATLAB\/2023.2.999\/arm64\/MATLAB.app\/bin\/maca64\/lib -lomp/' makefile
+          make matlab
+      - name: Generate Linux mex file
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt install libfftw3-dev
+          sed -i '/  LIBSFFT/a \ \ LIBSFFT := `g++ --print-file-name libfftw3.a` `g++ --print-file-name libfftw3f.a` `g++ --print-file-name libfftw3_omp.a` `g++ --print-file-name libfftw3f_omp.a` -lm -lgomp' makefile
+          make matlab
+      - name: Run Matlab test
+        uses: matlab-actions/run-command@v2
+        with:
+          command: addpath(genpath('matlab')), check_finufft
+      - name: Upload mex files
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{matrix.os}}-R2023b-finufft-mex
+          path: ${{runner.workspace}}/finufft/matlab/finufft.mex*
+      - name: Setup tmate session
+        if: ${{ failure() }}
+        uses: mxschmitt/action-tmate@v3

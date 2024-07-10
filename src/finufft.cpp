@@ -87,7 +87,8 @@ namespace common {
 static std::mutex fftw_lock;
 #endif
 
-static int set_nf_type12(BIGINT ms, finufft_opts opts, finufft_spread_opts spopts, BIGINT *nf)
+static int set_nf_type12(BIGINT ms, finufft_opts opts, finufft_spread_opts spopts,
+                         BIGINT *nf)
 // Type 1 & 2 recipe for how to set 1d size of upsampled array, nf, given opts
 // and requested number of Fourier modes ms. Returns 0 if success, else an
 // error code if nf was unreasonably big (& tell the world).
@@ -106,8 +107,8 @@ static int set_nf_type12(BIGINT ms, finufft_opts opts, finufft_spread_opts spopt
   }
 }
 
-static int setup_spreader_for_nufft(finufft_spread_opts &spopts, FLT eps, finufft_opts opts,
-                             int dim)
+static int setup_spreader_for_nufft(finufft_spread_opts &spopts, FLT eps,
+                                    finufft_opts opts, int dim)
 // Set up the spreader parameters given eps, and pass across various nufft
 // options. Return status of setup_spreader. Uses pass-by-ref. Barnett 10/30/17
 {
@@ -132,7 +133,7 @@ static int setup_spreader_for_nufft(finufft_spread_opts &spopts, FLT eps, finuff
 }
 
 static void set_nhg_type3(FLT S, FLT X, finufft_opts opts, finufft_spread_opts spopts,
-                   BIGINT *nf, FLT *h, FLT *gam)
+                          BIGINT *nf, FLT *h, FLT *gam)
 /* sets nf, h (upsampled grid spacing), and gamma (x_j rescaling factor),
    for type 3 only.
    Inputs:
@@ -271,8 +272,8 @@ static void onedim_nuft_kernel(BIGINT nk, FLT *k, FLT *phihat, finufft_spread_op
   }
 }
 
-static void deconvolveshuffle1d(int dir, FLT prefac, FLT *ker, BIGINT ms, CPX *fk, BIGINT nf1,
-                         CPX *fw, int modeord)
+static void deconvolveshuffle1d(int dir, FLT prefac, FLT *ker, BIGINT ms, CPX *fk,
+                                BIGINT nf1, CPX *fw, int modeord)
 /*
   if dir==1: copies fw to fk with amplification by prefac/ker
   if dir==2: copies fk to fw (and zero pads rest of it), same amplification.
@@ -304,24 +305,25 @@ static void deconvolveshuffle1d(int dir, FLT prefac, FLT *ker, BIGINT ms, CPX *f
     pp = 0;
     pn = kmax + 1;
   } // or, instead, FFT ordering
-  if (dir == 1) {                                       // read fw, write out to fk...
-    for (BIGINT k = 0; k <= kmax; ++k)                  // non-neg freqs k
+  if (dir == 1) {                      // read fw, write out to fk...
+    for (BIGINT k = 0; k <= kmax; ++k) // non-neg freqs k
       fk[pp++] = prefac * fw[k] / ker[k];
-    for (BIGINT k = kmin; k < 0; ++k)                   // neg freqs k
+    for (BIGINT k = kmin; k < 0; ++k)  // neg freqs k
       fk[pn++] = prefac * fw[nf1 + k] / ker[-k];
-  } else { // read fk, write out to fw w/ zero padding...
-    for (BIGINT k = kmax + 1; k < nf1 + kmin; ++k)   // zero pad precisely where
-                                                     // needed
+  } else {                             // read fk, write out to fw w/ zero padding...
+    for (BIGINT k = kmax + 1; k < nf1 + kmin; ++k) // zero pad precisely where
+                                                   // needed
       fw[k] = 0.0;
-    for (BIGINT k = 0; k <= kmax; ++k)               // non-neg freqs k
+    for (BIGINT k = 0; k <= kmax; ++k)             // non-neg freqs k
       fw[k] = prefac * fk[pp++] / ker[k];
-    for (BIGINT k = kmin; k < 0; ++k)                // neg freqs k
+    for (BIGINT k = kmin; k < 0; ++k)              // neg freqs k
       fw[nf1 + k] = prefac * fk[pn++] / ker[-k];
   }
 }
 
-static void deconvolveshuffle2d(int dir, FLT prefac, FLT *ker1, FLT *ker2, BIGINT ms, BIGINT mt,
-                         CPX *fk, BIGINT nf1, BIGINT nf2, CPX *fw, int modeord)
+static void deconvolveshuffle2d(int dir, FLT prefac, FLT *ker1, FLT *ker2, BIGINT ms,
+                                BIGINT mt, CPX *fk, BIGINT nf1, BIGINT nf2, CPX *fw,
+                                int modeord)
 /*
   2D version of deconvolveshuffle1d, calls it on each x-line using 1/ker2 fac.
 
@@ -353,7 +355,7 @@ static void deconvolveshuffle2d(int dir, FLT prefac, FLT *ker1, FLT *ker2, BIGIN
     for (BIGINT j = nf1 * (k2max + 1); j < nf1 * (nf2 + k2min); ++j) // sweeps all
                                                                      // dims
       fw[j] = 0.0;
-  for (BIGINT k2 = 0; k2 <= k2max; ++k2, pp += ms)               // non-neg y-freqs
+  for (BIGINT k2 = 0; k2 <= k2max; ++k2, pp += ms)                   // non-neg y-freqs
     // point fk and fw to the start of this y value's row (2* is for complex):
     common::deconvolveshuffle1d(dir, prefac / ker2[k2], ker1, ms, fk + pp, nf1,
                                 &fw[nf1 * k2], modeord);
@@ -362,9 +364,9 @@ static void deconvolveshuffle2d(int dir, FLT prefac, FLT *ker1, FLT *ker2, BIGIN
                                 &fw[nf1 * (nf2 + k2)], modeord);
 }
 
-static void deconvolveshuffle3d(int dir, FLT prefac, FLT *ker1, FLT *ker2, FLT *ker3, BIGINT ms,
-                         BIGINT mt, BIGINT mu, CPX *fk, BIGINT nf1, BIGINT nf2,
-                         BIGINT nf3, CPX *fw, int modeord)
+static void deconvolveshuffle3d(int dir, FLT prefac, FLT *ker1, FLT *ker2, FLT *ker3,
+                                BIGINT ms, BIGINT mt, BIGINT mu, CPX *fk, BIGINT nf1,
+                                BIGINT nf2, BIGINT nf3, CPX *fw, int modeord)
 /*
   3D version of deconvolveshuffle2d, calls it on each xy-plane using 1/ker3 fac.
 
@@ -396,7 +398,7 @@ static void deconvolveshuffle3d(int dir, FLT prefac, FLT *ker1, FLT *ker2, FLT *
   if (dir == 2)          // zero pad needed xy-planes (contiguous in memory)
     for (BIGINT j = np * (k3max + 1); j < np * (nf3 + k3min); ++j) // sweeps all dims
       fw[j] = 0.0;
-  for (BIGINT k3 = 0; k3 <= k3max; ++k3, pp += ms * mt)        // non-neg z-freqs
+  for (BIGINT k3 = 0; k3 <= k3max; ++k3, pp += ms * mt)            // non-neg z-freqs
     // point fk and fw to the start of this z value's plane (2* is for complex):
     common::deconvolveshuffle2d(dir, prefac / ker3[k3], ker1, ker2, ms, mt, fk + pp, nf1,
                                 nf2, &fw[np * k3], modeord);
@@ -407,7 +409,8 @@ static void deconvolveshuffle3d(int dir, FLT prefac, FLT *ker1, FLT *ker2, FLT *
 
 // --------- batch helper functions for t1,2 exec: ---------------------------
 
-static int spreadinterpSortedBatch(int batchSize, FINUFFT_PLAN p, CPX *fwBatch, CPX *cBatch)
+static int spreadinterpSortedBatch(int batchSize, FINUFFT_PLAN p, CPX *fwBatch,
+                                   CPX *cBatch)
 /*
   Spreads (or interpolates) a batch of batchSize strength vectors in cBatch
   to (or from) the batch of fine working grids fwBatch, using the same set of
@@ -431,8 +434,8 @@ static int spreadinterpSortedBatch(int batchSize, FINUFFT_PLAN p, CPX *fwBatch, 
   for (int i = 0; i < batchSize; i++) {
     CPX *fwi = fwBatch + i * p->nf; // start of i'th fw array in wkspace
     CPX *ci  = cBatch + i * p->nj;  // start of i'th c array in cBatch
-    spreadinterpSorted(p->sortIndices.data(), p->nf1, p->nf2, p->nf3, (FLT *)fwi, p->nj, p->X,
-                       p->Y, p->Z, (FLT *)ci, p->spopts, p->didSort);
+    spreadinterpSorted(p->sortIndices.data(), p->nf1, p->nf2, p->nf3, (FLT *)fwi, p->nj,
+                       p->X, p->Y, p->Z, (FLT *)ci, p->spopts, p->didSort);
   }
   return 0;
 }
@@ -460,25 +463,15 @@ static int deconvolveBatch(int batchSize, FINUFFT_PLAN p, CPX *fwBatch, CPX *fkB
       deconvolveshuffle1d(p->spopts.spread_direction, 1.0, p->phiHat1.data(), p->ms, fki,
                           p->nf1, fwi, p->opts.modeord);
     else if (p->dim == 2)
-      deconvolveshuffle2d(p->spopts.spread_direction, 1.0, p->phiHat1.data(), p->phiHat2.data(), p->ms,
-                          p->mt, fki, p->nf1, p->nf2, fwi, p->opts.modeord);
+      deconvolveshuffle2d(p->spopts.spread_direction, 1.0, p->phiHat1.data(),
+                          p->phiHat2.data(), p->ms, p->mt, fki, p->nf1, p->nf2, fwi,
+                          p->opts.modeord);
     else
-      deconvolveshuffle3d(p->spopts.spread_direction, 1.0, p->phiHat1.data(), p->phiHat2.data(),
-                          p->phiHat3.data(), p->ms, p->mt, p->mu, fki, p->nf1, p->nf2,
-                          p->nf3, fwi, p->opts.modeord);
+      deconvolveshuffle3d(p->spopts.spread_direction, 1.0, p->phiHat1.data(),
+                          p->phiHat2.data(), p->phiHat3.data(), p->ms, p->mt, p->mu, fki,
+                          p->nf1, p->nf2, p->nf3, fwi, p->opts.modeord);
   }
   return 0;
-}
-
-static std::vector<int> gridsize_for_fft(FINUFFT_PLAN p) {
-  // local helper func returns a new int array of length dim, extracted from
-  // the finufft plan, that fftw_plan_many_dft needs as its 2nd argument.
-  if (p->dim == 1)
-    return {(int)p->nf1};
-  if (p->dim == 2)
-    return {(int)p->nf2, (int)p->nf1};
- // if (p->dim == 3)
-  return {(int)p->nf3, (int)p->nf2, (int)p->nf1};
 }
 
 } // namespace common
@@ -511,9 +504,9 @@ void FINUFFT_DEFAULT_OPTS(finufft_opts *o)
 
   o->nthreads = 0;
 #ifdef FINUFFT_USE_DUCC0
-  o->fftw = 0; //
+  o->fftw = 0;
 #else
-  o->fftw = FFTW_ESTIMATE; //
+  o->fftw = FFTW_ESTIMATE;
 #endif
   o->spread_sort        = 2;
   o->spread_kerevalmeth = 1;
@@ -632,12 +625,12 @@ int FINUFFT_MAKEPLAN(int type, int dim, BIGINT *n_modes, int iflag, int ntrans, 
     return ier;
 
   // set others as defaults (or unallocated for arrays)...
-  p->X           = NULL;
-  p->Y           = NULL;
-  p->Z           = NULL;
-  p->nf1         = 1;
-  p->nf2         = 1;
-  p->nf3         = 1;    // crucial to leave as 1 for unused dims
+  p->X   = NULL;
+  p->Y   = NULL;
+  p->Z   = NULL;
+  p->nf1 = 1;
+  p->nf2 = 1;
+  p->nf3 = 1; // crucial to leave as 1 for unused dims
 
   //  ------------------------ types 1,2: planning needed ---------------------
   if (type == 1 || type == 2) {
@@ -745,9 +738,9 @@ int FINUFFT_MAKEPLAN(int type, int dim, BIGINT *n_modes, int iflag, int ntrans, 
       // Unfortunately fftw_planner_nthreads wasn't introduced until fftw 3.3.9, and
       // there isn't a convenient mechanism to probe the version
       FFTW_PLAN_TH(nthr_fft);
-      p->fftwPlan = FFTW_PLAN_MANY_DFT(dim, ns.data(), p->batchSize, (FFTW_CPX *)p->fwBatch,
-                                       NULL, 1, p->nf, (FFTW_CPX *)p->fwBatch, NULL, 1,
-                                       p->nf, p->fftSign, p->opts.fftw);
+      p->fftwPlan = FFTW_PLAN_MANY_DFT(
+          dim, ns.data(), p->batchSize, (FFTW_CPX *)p->fwBatch, NULL, 1, p->nf,
+          (FFTW_CPX *)p->fwBatch, NULL, 1, p->nf, p->fftSign, p->opts.fftw);
     }
     if (p->opts.debug)
       printf("[%s] FFTW plan (mode %d, nthr=%d):\t%.3g s\n", __func__, p->opts.fftw,
@@ -759,7 +752,7 @@ int FINUFFT_MAKEPLAN(int type, int dim, BIGINT *n_modes, int iflag, int ntrans, 
     if (p->opts.debug) printf("[%s] %dd%d: ntrans=%d\n", __func__, dim, type, ntrans);
       // in case destroy occurs before setpts, need safe dummy ptrs/plans...
 #ifndef FINUFFT_USE_DUCC0
-    p->fwBatch     = NULL;
+    p->fwBatch = NULL;
 #endif
     p->innerT2plan = NULL;
     // Type 3 will call finufft_makeplan for type 2; no need to init FFTW
@@ -802,8 +795,8 @@ int FINUFFT_SETPTS(FINUFFT_PLAN p, BIGINT nj, FLT *xj, FLT *yj, FLT *zj, BIGINT 
       return ier;
     timer.restart();
     p->sortIndices.resize(p->nj);
-    p->didSort =
-        indexSort(p->sortIndices.data(), p->nf1, p->nf2, p->nf3, p->nj, xj, yj, zj, p->spopts);
+    p->didSort = indexSort(p->sortIndices.data(), p->nf1, p->nf2, p->nf3, p->nj, xj, yj,
+                           zj, p->spopts);
     if (p->opts.debug)
       printf("[%s] sort (didSort=%d):\t\t%.3g s\n", __func__, p->didSort,
              timer.elapsedsec());
@@ -869,7 +862,7 @@ int FINUFFT_SETPTS(FINUFFT_PLAN p, BIGINT nj, FLT *xj, FLT *yj, FLT *zj, BIGINT 
     p->fwBatch = (CPX *)FFTW_ALLOC_CPX(p->nf * p->batchSize); // maybe big workspace
 
     // (note FFTW_ALLOC is not needed over malloc, but matches its type)
-    p->CpBatch.resize(nj*p->batchSize); // batch c' work
+    p->CpBatch.resize(nj * p->batchSize); // batch c' work
 
     if (p->opts.debug)
       printf("[%s t3] widcen, batch %.2fGB alloc:\t%.3g s\n", __func__,
@@ -884,16 +877,16 @@ int FINUFFT_SETPTS(FINUFFT_PLAN p, BIGINT nj, FLT *xj, FLT *yj, FLT *zj, BIGINT 
 
     // alloc rescaled NU src pts x'_j (in X etc), rescaled NU targ pts s'_k ...
     free(p->X);
-    p->X  = (FLT *)malloc(sizeof(FLT) * nj);
+    p->X = (FLT *)malloc(sizeof(FLT) * nj);
     p->Sp.resize(nk);
     if (d > 1) {
       free(p->Y);
-      p->Y  = (FLT *)malloc(sizeof(FLT) * nj);
+      p->Y = (FLT *)malloc(sizeof(FLT) * nj);
       p->Tp.resize(nk);
     }
     if (d > 2) {
       free(p->Z);
-      p->Z  = (FLT *)malloc(sizeof(FLT) * nj);
+      p->Z = (FLT *)malloc(sizeof(FLT) * nj);
       p->Up.resize(nk);
     }
 
@@ -940,7 +933,7 @@ int FINUFFT_SETPTS(FINUFFT_PLAN p, BIGINT nj, FLT *xj, FLT *yj, FLT *zj, BIGINT 
     // (old STEP 3a) Compute deconvolution post-factors array (per targ pt)...
     // (exploits that FT separates because kernel is prod of 1D funcs)
     p->deconv.resize(nk);
-    FLT *phiHatk1 = (FLT *)malloc(sizeof(FLT) * nk);    // don't confuse w/ p->phiHat
+    FLT *phiHatk1 = (FLT *)malloc(sizeof(FLT) * nk); // don't confuse w/ p->phiHat
     onedim_nuft_kernel(nk, p->Sp.data(), phiHatk1, p->spopts); // fill phiHat1
     FLT *phiHatk2 = NULL, *phiHatk3 = NULL;
     if (d > 1) {
@@ -982,8 +975,8 @@ int FINUFFT_SETPTS(FINUFFT_PLAN p, BIGINT nj, FLT *xj, FLT *yj, FLT *zj, BIGINT 
     // calls causing memory leak. We don't know it is the same size as before, so we
     // have to malloc each time.
     p->sortIndices.resize(p->nj);
-    p->didSort = indexSort(p->sortIndices.data(), p->nf1, p->nf2, p->nf3, p->nj, p->X, p->Y,
-                           p->Z, p->spopts);
+    p->didSort = indexSort(p->sortIndices.data(), p->nf1, p->nf2, p->nf3, p->nj, p->X,
+                           p->Y, p->Z, p->spopts);
     if (p->opts.debug)
       printf("[%s t3] sort (didSort=%d):\t\t%.3g s\n", __func__, p->didSort,
              timer.elapsedsec());
@@ -1005,7 +998,8 @@ int FINUFFT_SETPTS(FINUFFT_PLAN p, BIGINT nj, FLT *xj, FLT *yj, FLT *zj, BIGINT 
               __func__, ier);
       return ier;
     }
-    ier = FINUFFT_SETPTS(p->innerT2plan, nk, p->Sp.data(), p->Tp.data(), p->Up.data(), 0, NULL, NULL,
+    ier = FINUFFT_SETPTS(p->innerT2plan, nk, p->Sp.data(), p->Tp.data(), p->Up.data(), 0,
+                         NULL, NULL,
                          NULL); // note nk = # output points (not nj)
     if (ier > 1) {
       fprintf(stderr, "[%s t3]: inner type 2 setpts failed, ier=%d!\n", __func__, ier);
@@ -1071,90 +1065,7 @@ int FINUFFT_EXECUTE(FINUFFT_PLAN p, CPX *cj, CPX *fk) {
 
       // STEP 2: call the FFT on this batch
       timer.restart();
-#ifdef FINUFFT_USE_DUCC0
-      {
-        size_t nthreads = min<size_t>(MY_OMP_GET_MAX_THREADS(), p->opts.nthreads);
-        auto ns = gridsize_for_fft(p);
-        vector<size_t> arrdims, axes;
-        arrdims.push_back(size_t(p->batchSize));
-        arrdims.push_back(size_t(ns[0]));
-        axes.push_back(1);
-        if (p->dim >= 2) {
-          arrdims.push_back(size_t(ns[1]));
-          axes.push_back(2);
-        }
-        if (p->dim >= 3) {
-          arrdims.push_back(size_t(ns[2]));
-          axes.push_back(3);
-        }
-        ducc0::vfmav<CPX> data(fwBatch, arrdims);
-        if (p->dim == 1)        // 1D: no chance for FFT shortcuts
-          ducc0::c2c(data, data, axes, p->fftSign < 0, FLT(1), nthreads);
-        else if (p->dim == 2) { // 2D: do partial FFTs
-          if (p->ms < 2)        // something is weird, do standard FFT
-            ducc0::c2c(data, data, axes, p->fftSign < 0, FLT(1), nthreads);
-          else {
-            size_t y_lo = size_t((p->ms + 1) / 2);
-            size_t y_hi = size_t(ns[1] - p->ms / 2);
-            auto sub1   = ducc0::subarray(data, {{}, {}, {0, y_lo}});
-            auto sub2   = ducc0::subarray(data, {{}, {}, {y_hi, ducc0::MAXIDX}});
-            if (p->type == 1) { // spreading, not all parts of the output array are needed
-              // do axis 2 in full
-              ducc0::c2c(data, data, {2}, p->fftSign < 0, FLT(1), nthreads);
-              // do only parts of axis 1
-              ducc0::c2c(sub1, sub1, {1}, p->fftSign < 0, FLT(1), nthreads);
-              ducc0::c2c(sub2, sub2, {1}, p->fftSign < 0, FLT(1), nthreads);
-            } else { // interpolation, parts of the input array are zero
-              // do only parts of axis 1
-              ducc0::c2c(sub1, sub1, {1}, p->fftSign < 0, FLT(1), nthreads);
-              ducc0::c2c(sub2, sub2, {1}, p->fftSign < 0, FLT(1), nthreads);
-              // do axis 2 in full
-              ducc0::c2c(data, data, {2}, p->fftSign < 0, FLT(1), nthreads);
-            }
-          }
-        } else {                          // 3D
-          if ((p->ms < 2) || (p->mt < 2)) // something is weird, do standard FFT
-            ducc0::c2c(data, data, axes, p->fftSign < 0, FLT(1), nthreads);
-          else {
-            size_t z_lo = size_t((p->ms + 1) / 2);
-            size_t z_hi = size_t(ns[2] - p->ms / 2);
-            size_t y_lo = size_t((p->mt + 1) / 2);
-            size_t y_hi = size_t(ns[1] - p->mt / 2);
-            auto sub1   = ducc0::subarray(data, {{}, {}, {}, {0, z_lo}});
-            auto sub2   = ducc0::subarray(data, {{}, {}, {}, {z_hi, ducc0::MAXIDX}});
-            auto sub3   = ducc0::subarray(sub1, {{}, {}, {0, y_lo}, {}});
-            auto sub4   = ducc0::subarray(sub1, {{}, {}, {y_hi, ducc0::MAXIDX}, {}});
-            auto sub5   = ducc0::subarray(sub2, {{}, {}, {0, y_lo}, {}});
-            auto sub6   = ducc0::subarray(sub2, {{}, {}, {y_hi, ducc0::MAXIDX}, {}});
-            if (p->type == 1) { // spreading, not all parts of the output array are needed
-              // do axis 3 in full
-              ducc0::c2c(data, data, {3}, p->fftSign < 0, FLT(1), nthreads);
-              // do only parts of axis 2
-              ducc0::c2c(sub1, sub1, {2}, p->fftSign < 0, FLT(1), nthreads);
-              ducc0::c2c(sub2, sub2, {2}, p->fftSign < 0, FLT(1), nthreads);
-              // do even smaller parts of axis 1
-              ducc0::c2c(sub3, sub3, {1}, p->fftSign < 0, FLT(1), nthreads);
-              ducc0::c2c(sub4, sub4, {1}, p->fftSign < 0, FLT(1), nthreads);
-              ducc0::c2c(sub5, sub5, {1}, p->fftSign < 0, FLT(1), nthreads);
-              ducc0::c2c(sub6, sub6, {1}, p->fftSign < 0, FLT(1), nthreads);
-            } else { // interpolation, parts of the input array are zero
-              // do even smaller parts of axis 1
-              ducc0::c2c(sub3, sub3, {1}, p->fftSign < 0, FLT(1), nthreads);
-              ducc0::c2c(sub4, sub4, {1}, p->fftSign < 0, FLT(1), nthreads);
-              ducc0::c2c(sub5, sub5, {1}, p->fftSign < 0, FLT(1), nthreads);
-              ducc0::c2c(sub6, sub6, {1}, p->fftSign < 0, FLT(1), nthreads);
-              // do only parts of axis 2
-              ducc0::c2c(sub1, sub1, {2}, p->fftSign < 0, FLT(1), nthreads);
-              ducc0::c2c(sub2, sub2, {2}, p->fftSign < 0, FLT(1), nthreads);
-              // do axis 3 in full
-              ducc0::c2c(data, data, {3}, p->fftSign < 0, FLT(1), nthreads);
-            }
-          }
-        }
-      }
-#else
-      FFTW_EX(p->fftwPlan); // if thisBatchSize<batchSize it wastes some flops
-#endif
+      do_fft(p, fwBatch);
       t_fft += timer.elapsedsec();
       if (p->opts.debug > 1) printf("\tFFT exec:\t\t%.3g s\n", timer.elapsedsec());
 
