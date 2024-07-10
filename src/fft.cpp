@@ -51,19 +51,15 @@ void do_fft(FINUFFT_PLAN p, CPX *fwBatch) {
       size_t y_hi = size_t(ns[1] - p->ms / 2);
       auto sub1   = ducc0::subarray(data, {{}, {}, {0, y_lo}});
       auto sub2   = ducc0::subarray(data, {{}, {}, {y_hi, ducc0::MAXIDX}});
-      if (p->type == 1) { // spreading, not all parts of the output array are needed
+      if (p->type == 1) // spreading, not all parts of the output array are needed
         // do axis 2 in full
         ducc0::c2c(data, data, {2}, p->fftSign < 0, FLT(1), nthreads);
-        // do only parts of axis 1
-        ducc0::c2c(sub1, sub1, {1}, p->fftSign < 0, FLT(1), nthreads);
-        ducc0::c2c(sub2, sub2, {1}, p->fftSign < 0, FLT(1), nthreads);
-      } else { // interpolation, parts of the input array are zero
-        // do only parts of axis 1
-        ducc0::c2c(sub1, sub1, {1}, p->fftSign < 0, FLT(1), nthreads);
-        ducc0::c2c(sub2, sub2, {1}, p->fftSign < 0, FLT(1), nthreads);
+      // do only parts of axis 1
+      ducc0::c2c(sub1, sub1, {1}, p->fftSign < 0, FLT(1), nthreads);
+      ducc0::c2c(sub2, sub2, {1}, p->fftSign < 0, FLT(1), nthreads);
+      if (p->type == 2) // interpolation, parts of the input array are zero
         // do axis 2 in full
         ducc0::c2c(data, data, {2}, p->fftSign < 0, FLT(1), nthreads);
-      }
     }
   } else {                          // 3D
     if ((p->ms < 2) || (p->mt < 2)) // something is weird, do standard FFT
@@ -85,17 +81,13 @@ void do_fft(FINUFFT_PLAN p, CPX *fwBatch) {
         // do only parts of axis 2
         ducc0::c2c(sub1, sub1, {2}, p->fftSign < 0, FLT(1), nthreads);
         ducc0::c2c(sub2, sub2, {2}, p->fftSign < 0, FLT(1), nthreads);
-        // do even smaller parts of axis 1
-        ducc0::c2c(sub3, sub3, {1}, p->fftSign < 0, FLT(1), nthreads);
-        ducc0::c2c(sub4, sub4, {1}, p->fftSign < 0, FLT(1), nthreads);
-        ducc0::c2c(sub5, sub5, {1}, p->fftSign < 0, FLT(1), nthreads);
-        ducc0::c2c(sub6, sub6, {1}, p->fftSign < 0, FLT(1), nthreads);
-      } else { // interpolation, parts of the input array are zero
-        // do even smaller parts of axis 1
-        ducc0::c2c(sub3, sub3, {1}, p->fftSign < 0, FLT(1), nthreads);
-        ducc0::c2c(sub4, sub4, {1}, p->fftSign < 0, FLT(1), nthreads);
-        ducc0::c2c(sub5, sub5, {1}, p->fftSign < 0, FLT(1), nthreads);
-        ducc0::c2c(sub6, sub6, {1}, p->fftSign < 0, FLT(1), nthreads);
+      }
+      // do even smaller parts of axis 1
+      ducc0::c2c(sub3, sub3, {1}, p->fftSign < 0, FLT(1), nthreads);
+      ducc0::c2c(sub4, sub4, {1}, p->fftSign < 0, FLT(1), nthreads);
+      ducc0::c2c(sub5, sub5, {1}, p->fftSign < 0, FLT(1), nthreads);
+      ducc0::c2c(sub6, sub6, {1}, p->fftSign < 0, FLT(1), nthreads);
+      if (p->type == 2) { // interpolation, parts of the input array are zero
         // do only parts of axis 2
         ducc0::c2c(sub1, sub1, {2}, p->fftSign < 0, FLT(1), nthreads);
         ducc0::c2c(sub2, sub2, {2}, p->fftSign < 0, FLT(1), nthreads);
