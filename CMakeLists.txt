@@ -97,7 +97,7 @@ endif ()
 
 # This set of sources is compiled twice, once in single precision and once in double precision
 # The single precision compilation is done with -DSINGLE
-set(FINUFFT_PRECISION_DEPENDENT_SOURCES src/finufft.cpp src/fft.cpp src/simpleinterfaces.cpp src/spreadinterp.cpp fortran/finufftfort.cpp)
+set(FINUFFT_PRECISION_DEPENDENT_SOURCES src/finufft.cpp src/fft.cpp src/simpleinterfaces.cpp fortran/finufftfort.cpp)
 
 # Set of compilers which behave like gcc
 set(FINUFFT_GNU_LIKE_COMPILERS AppleClang Clang GNU)
@@ -217,7 +217,7 @@ if (FINUFFT_USE_CPU)
         target_link_libraries(finufft_f64_dll PUBLIC ${FINUFFT_FFTLIBS})
     endif ()
 
-    add_library(finufft SHARED src/utils_precindep.cpp contrib/legendre_rule_fast.cpp)
+    add_library(finufft SHARED src/utils_precindep.cpp contrib/legendre_rule_fast.cpp src/spreadinterp.cpp)
     target_compile_definitions(finufft PRIVATE dll_EXPORTS FINUFFT_DLL)
     set_finufft_options(finufft)
     if (NOT WIN32)
@@ -232,7 +232,7 @@ if (FINUFFT_USE_CPU)
     target_include_directories(finufft PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
     target_include_directories(finufft SYSTEM INTERFACE $<INSTALL_INTERFACE:${CMAKE_INSTALL_PREFIX}/include>)
 
-    add_library(finufft_static STATIC src/utils_precindep.cpp contrib/legendre_rule_fast.cpp)
+    add_library(finufft_static STATIC src/utils_precindep.cpp contrib/legendre_rule_fast.cpp src/spreadinterp.cpp)
     set_finufft_options(finufft_static)
     target_link_libraries(finufft_static PUBLIC finufft_f32 finufft_f64)
     # windows does not have a math library, so we need to exclude it

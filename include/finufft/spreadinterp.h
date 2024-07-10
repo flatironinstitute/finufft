@@ -20,31 +20,39 @@
     NOTE: non-zero values are for experts only, since
     NUMERICAL OUTPUT MAY BE INCORRECT UNLESS finufft_spread_opts.flags=0 !
 */
-enum{ TF_OMIT_WRITE_TO_GRID        = 1, // don't add subgrids to out grid (dir=1)
-      TF_OMIT_EVALUATE_KERNEL      = 2, // don't evaluate the kernel at all
-      TF_OMIT_EVALUATE_EXPONENTIAL = 4, // omit exp() in kernel (kereval=0 only)
-      TF_OMIT_SPREADING            = 8 }; // don't interp/spread (dir=1: to subgrids)
+enum {
+  TF_OMIT_WRITE_TO_GRID        = 1, // don't add subgrids to out grid (dir=1)
+  TF_OMIT_EVALUATE_KERNEL      = 2, // don't evaluate the kernel at all
+  TF_OMIT_EVALUATE_EXPONENTIAL = 4, // omit exp() in kernel (kereval=0 only)
+  TF_OMIT_SPREADING            = 8
+}; // don't interp/spread (dir=1: to subgrids)
 
 namespace finufft {
 namespace spreadinterp {
 
 // things external (spreadinterp) interface needs...
+template<typename T>
 FINUFFT_EXPORT int FINUFFT_CDECL spreadinterp(
-    BIGINT N1, BIGINT N2, BIGINT N3, FLT *data_uniform, BIGINT M, FLT *kx, FLT *ky,
-    FLT *kz, FLT *data_nonuniform, const finufft_spread_opts &opts);
+    BIGINT N1, BIGINT N2, BIGINT N3, T *data_uniform, BIGINT M, T *kx, T *ky, T *kz,
+    T *data_nonuniform, const finufft_spread_opts &opts);
+template<typename T>
 FINUFFT_EXPORT int FINUFFT_CDECL spreadcheck(BIGINT N1, BIGINT N2, BIGINT N3, BIGINT M,
-                                             FLT *kx, FLT *ky, FLT *kz,
+                                             T *kx, T *ky, T *kz,
                                              const finufft_spread_opts &opts);
+template<typename T>
 FINUFFT_EXPORT int FINUFFT_CDECL indexSort(BIGINT *sort_indices, BIGINT N1, BIGINT N2,
-                                           BIGINT N3, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
+                                           BIGINT N3, BIGINT M, T *kx, T *ky, T *kz,
                                            const finufft_spread_opts &opts);
+template<typename T>
 FINUFFT_EXPORT int FINUFFT_CDECL spreadinterpSorted(
     const BIGINT *sort_indices, BIGINT N1, BIGINT N2, BIGINT N3,
-    FLT *FINUFFT_RESTRICT data_uniform, BIGINT M, FLT *FINUFFT_RESTRICT kx,
-    FLT *FINUFFT_RESTRICT ky, FLT *FINUFFT_RESTRICT kz,
-    FLT *FINUFFT_RESTRICT data_nonuniform, const finufft_spread_opts &opts, int did_sort);
-FINUFFT_EXPORT FLT FINUFFT_CDECL evaluate_kernel(FLT x, const finufft_spread_opts &opts);
-FINUFFT_EXPORT int FINUFFT_CDECL setup_spreader(finufft_spread_opts &opts, FLT eps,
+    T *FINUFFT_RESTRICT data_uniform, BIGINT M, T *FINUFFT_RESTRICT kx,
+    T *FINUFFT_RESTRICT ky, T *FINUFFT_RESTRICT kz, T *FINUFFT_RESTRICT data_nonuniform,
+    const finufft_spread_opts &opts, int did_sort);
+template<typename T>
+FINUFFT_EXPORT T FINUFFT_CDECL evaluate_kernel(T x, const finufft_spread_opts &opts);
+template<typename T>
+FINUFFT_EXPORT int FINUFFT_CDECL setup_spreader(finufft_spread_opts &opts, T eps,
                                                 double upsampfac, int kerevalmeth,
                                                 int debug, int showwarn, int dim);
 

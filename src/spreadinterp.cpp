@@ -37,12 +37,12 @@ template<class T, uint8_t N = 1> constexpr uint8_t min_simd_width();
 template<class T, uint8_t N> constexpr auto find_optimal_simd_width();
 template<class T, class V = typename T::value_type, std::size_t N = T::size>
 constexpr auto initialize_complex_register(V a, V b) noexcept;
-template<class arch_t>
+template<class arch_t, typename T>
 constexpr auto zip_low_index =
-    xsimd::make_batch_constant<xsimd::as_unsigned_integer_t<FLT>, arch_t, zip_low>();
-template<class arch_t>
+    xsimd::make_batch_constant<xsimd::as_unsigned_integer_t<T>, arch_t, zip_low>();
+template<class arch_t, typename T>
 constexpr auto zip_hi_index =
-    xsimd::make_batch_constant<xsimd::as_unsigned_integer_t<FLT>, arch_t, zip_hi>();
+    xsimd::make_batch_constant<xsimd::as_unsigned_integer_t<T>, arch_t, zip_hi>();
 template<typename T, std::size_t N, std::size_t M, std::size_t PaddedM>
 constexpr std::array<std::array<T, PaddedM>, N> pad_2D_array_with_zeros(
     const std::array<std::array<T, M>, N> &input) noexcept;
@@ -123,8 +123,9 @@ static int spreadSorted(const BIGINT *sort_indices, BIGINT N1, BIGINT N2, BIGINT
                         int did_sort);
 
 // ==========================================================================
-int spreadinterp(BIGINT N1, BIGINT N2, BIGINT N3, FLT *data_uniform, BIGINT M, FLT *kx,
-                 FLT *ky, FLT *kz, FLT *data_nonuniform, const finufft_spread_opts &opts)
+template<typename T>
+int spreadinterp(BIGINT N1, BIGINT N2, BIGINT N3, T *data_uniform, BIGINT M, T *kx, T *ky,
+                 T *kz, T *data_nonuniform, const finufft_spread_opts &opts)
 /* ------------Spreader/interpolator for 1, 2, or 3 dimensions --------------
    If opts.spread_direction=1, evaluate, in the 1D case,
 
@@ -215,8 +216,9 @@ static int ndims_from_Ns(BIGINT /*N1*/, BIGINT N2, BIGINT N3)
   return ndims;
 }
 
-int spreadcheck(BIGINT N1, BIGINT N2, BIGINT N3, BIGINT /*M*/, FLT * /*kx*/, FLT * /*ky*/,
-                FLT * /*kz*/, const finufft_spread_opts &opts)
+template<typename T>
+int spreadcheck(BIGINT N1, BIGINT N2, BIGINT N3, BIGINT /*M*/, T * /*kx*/, T * /*ky*/,
+                T * /*kz*/, const finufft_spread_opts &opts)
 /* This does just the input checking and reporting for the spreader.
    See spreadinterp() for input arguments and meaning of returned value.
    Split out by Melody Shih, Jun 2018. Finiteness chk Barnett 7/30/18.
@@ -239,8 +241,9 @@ int spreadcheck(BIGINT N1, BIGINT N2, BIGINT N3, BIGINT /*M*/, FLT * /*kx*/, FLT
   return 0;
 }
 
-int indexSort(BIGINT *sort_indices, BIGINT N1, BIGINT N2, BIGINT N3, BIGINT M, FLT *kx,
-              FLT *ky, FLT *kz, const finufft_spread_opts &opts)
+template<typename T>
+int indexSort(BIGINT *sort_indices, BIGINT N1, BIGINT N2, BIGINT N3, BIGINT M, T *kx,
+              T *ky, T *kz, const finufft_spread_opts &opts)
 /* This makes a decision whether or not to sort the NU pts (influenced by
    opts.sort), and if yes, calls either single- or multi-threaded bin sort,
    writing reordered index list to sort_indices. If decided not to sort, the
@@ -316,10 +319,11 @@ int indexSort(BIGINT *sort_indices, BIGINT N1, BIGINT N2, BIGINT N3, BIGINT M, F
   return did_sort;
 }
 
+template<typename T>
 int spreadinterpSorted(const BIGINT *sort_indices, const BIGINT N1, const BIGINT N2,
-                       const BIGINT N3, FLT *data_uniform, const BIGINT M,
-                       FLT *FINUFFT_RESTRICT kx, FLT *FINUFFT_RESTRICT ky,
-                       FLT *FINUFFT_RESTRICT kz, FLT *FINUFFT_RESTRICT data_nonuniform,
+                       const BIGINT N3, T *data_uniform, const BIGINT M,
+                       T *FINUFFT_RESTRICT kx, T *FINUFFT_RESTRICT ky,
+                       T *FINUFFT_RESTRICT kz, T *FINUFFT_RESTRICT data_nonuniform,
                        const finufft_spread_opts &opts, int did_sort)
 /* Logic to select the main spreading (dir=1) vs interpolation (dir=2) routine.
    See spreadinterp() above for inputs arguments and definitions.
@@ -465,18 +469,18 @@ static int spreadSorted(const BIGINT *sort_indices, BIGINT N1, BIGINT N2, BIGINT
 };
 
 // --------------------------------------------------------------------------
-template<uint16_t ns, uint16_t kerevalmeth>
+template<uint16_t ns, uint16_t kerevalmeth, typename T>
 FINUFFT_NEVER_INLINE static int interpSorted_kernel(
     const BIGINT *sort_indices, const BIGINT N1, const BIGINT N2, const BIGINT N3,
-    const FLT *data_uniform, const BIGINT M, FLT *FINUFFT_RESTRICT kx,
-    FLT *FINUFFT_RESTRICT ky, FLT *FINUFFT_RESTRICT kz,
-    FLT *FINUFFT_RESTRICT data_nonuniform, const finufft_spread_opts &opts)
+    const T *data_uniform, const BIGINT M, T *FINUFFT_RESTRICT kx, T *FINUFFT_RESTRICT ky,
+    T *FINUFFT_RESTRICT kz, T *FINUFFT_RESTRICT data_nonuniform,
+    const finufft_spread_opts &opts)
 // Interpolate to NU pts in sorted order from a uniform grid.
 // See spreadinterp() for doc.
 {
-  using simd_type                 = xsimd::batch<FLT>;
+  using simd_type                 = xsimd::batch<T>;
   static constexpr auto alignment = simd_type::arch_type::alignment();
-  static constexpr auto ns2 = ns * FLT(0.5); // half spread width, used as stencil shift
+  static constexpr auto ns2 = ns * T(0.5); // half spread width, used as stencil shift
 
   CNTime timer;
   const int ndims = ndims_from_Ns(N1, N2, N3);
@@ -493,10 +497,10 @@ FINUFFT_NEVER_INLINE static int interpSorted_kernel(
   {
 #define CHUNKSIZE 16 // Chunks of Type 2 targets (Ludvig found by expt)
     BIGINT jlist[CHUNKSIZE];
-    FLT xjlist[CHUNKSIZE], yjlist[CHUNKSIZE], zjlist[CHUNKSIZE];
-    FLT outbuf[2 * CHUNKSIZE];
+    T xjlist[CHUNKSIZE], yjlist[CHUNKSIZE], zjlist[CHUNKSIZE];
+    T outbuf[2 * CHUNKSIZE];
     // Kernels: static alloc is faster, so we do it for up to 3D...
-    alignas(alignment) std::array<FLT, 3 * MAX_NSPREAD> kernel_values{0};
+    alignas(alignment) std::array<T, 3 * MAX_NSPREAD> kernel_values{0};
     auto *FINUFFT_RESTRICT ker1 = kernel_values.data();
     auto *FINUFFT_RESTRICT ker2 = kernel_values.data() + MAX_NSPREAD;
     auto *FINUFFT_RESTRICT ker3 = kernel_values.data() + 2 * MAX_NSPREAD;
@@ -530,23 +534,23 @@ FINUFFT_NEVER_INLINE static int interpSorted_kernel(
         const auto i2 = (ndims > 1) ? (BIGINT)std::ceil(yj - ns2) : 0; // min y grid index
         const auto i3 = (ndims > 2) ? (BIGINT)std::ceil(zj - ns2) : 0; // min z grid index
 
-        const auto x1 = (FLT)i1 - xj; // shift of ker center, in [-w/2,-w/2+1]
-        const auto x2 = (ndims > 1) ? (FLT)i2 - yj : 0;
-        const auto x3 = (ndims > 2) ? (FLT)i3 - zj : 0;
+        const auto x1 = (T)i1 - xj; // shift of ker center, in [-w/2,-w/2+1]
+        const auto x2 = (ndims > 1) ? (T)i2 - yj : 0;
+        const auto x3 = (ndims > 2) ? (T)i3 - zj : 0;
 
         // eval kernel values patch and use to interpolate from uniform data...
         if (!(opts.flags & TF_OMIT_SPREADING)) {
           switch (ndims) {
           case 1:
-            ker_eval<ns, kerevalmeth, FLT>(kernel_values.data(), opts, x1);
+            ker_eval<ns, kerevalmeth, T>(kernel_values.data(), opts, x1);
             interp_line<ns>(target, data_uniform, ker1, i1, N1);
             break;
           case 2:
-            ker_eval<ns, kerevalmeth, FLT>(kernel_values.data(), opts, x1, x2);
+            ker_eval<ns, kerevalmeth, T>(kernel_values.data(), opts, x1, x2);
             interp_square<ns>(target, data_uniform, ker1, ker2, i1, i2, N1, N2);
             break;
           case 3:
-            ker_eval<ns, kerevalmeth, FLT>(kernel_values.data(), opts, x1, x2, x3);
+            ker_eval<ns, kerevalmeth, T>(kernel_values.data(), opts, x1, x2, x3);
             interp_cube<ns>(target, data_uniform, ker1, ker2, ker3, i1, i2, i3, N1, N2,
                             N3);
             break;
@@ -570,12 +574,12 @@ FINUFFT_NEVER_INLINE static int interpSorted_kernel(
   return 0;
 }
 
-template<uint16_t NS>
+template<uint16_t NS, typename T>
 static int interpSorted_dispatch(
     const BIGINT *sort_indices, const BIGINT N1, const BIGINT N2, const BIGINT N3,
-    FLT *FINUFFT_RESTRICT data_uniform, const BIGINT M, FLT *FINUFFT_RESTRICT kx,
-    FLT *FINUFFT_RESTRICT ky, FLT *FINUFFT_RESTRICT kz,
-    FLT *FINUFFT_RESTRICT data_nonuniform, const finufft_spread_opts &opts) {
+    T *FINUFFT_RESTRICT data_uniform, const BIGINT M, T *FINUFFT_RESTRICT kx,
+    T *FINUFFT_RESTRICT ky, T *FINUFFT_RESTRICT kz, T *FINUFFT_RESTRICT data_nonuniform,
+    const finufft_spread_opts &opts) {
   static_assert((MIN_NSPREAD <= NS) && (NS <= MAX_NSPREAD),
                 "NS must be in the range (MIN_NSPREAD, MAX_NSPREAD)");
   if constexpr (NS == MIN_NSPREAD) { // Base case
@@ -614,7 +618,8 @@ static int interpSorted(const BIGINT *sort_indices, const BIGINT N1, const BIGIN
 
 ///////////////////////////////////////////////////////////////////////////
 
-int setup_spreader(finufft_spread_opts &opts, FLT eps, double upsampfac, int kerevalmeth,
+template<typename T>
+int setup_spreader(finufft_spread_opts &opts, T eps, double upsampfac, int kerevalmeth,
                    int debug, int showwarn, int dim)
 /* Initializes spreader kernel parameters given desired NUFFT tolerance eps,
    upsampling factor (=sigma in paper, or R in Dutt-Rokhlin), ker eval meth
@@ -671,9 +676,9 @@ int setup_spreader(finufft_spread_opts &opts, FLT eps, double upsampfac, int ker
     eps = EPSILON; // only changes local copy (not any opts)
     ier = FINUFFT_WARN_EPS_TOO_SMALL;
   }
-  if (upsampfac == 2.0)                           // standard sigma (see SISC paper)
-    ns = int(std::ceil(-log10(eps / (FLT)10.0))); // 1 digit per power of 10
-  else                                            // custom sigma
+  if (upsampfac == 2.0)                         // standard sigma (see SISC paper)
+    ns = int(std::ceil(-log10(eps / (T)10.0))); // 1 digit per power of 10
+  else                                          // custom sigma
     ns = int(
         std::ceil(-log(eps) / (finufft_pi * sqrt(1.0 - 1.0 / upsampfac)))); // formula,
                                                                             // gam=1
@@ -696,8 +701,8 @@ int setup_spreader(finufft_spread_opts &opts, FLT eps, double upsampfac, int ker
   if (ns == 2) betaoverns = 2.20;     // some small-width tweaks...
   if (ns == 3) betaoverns = 2.26;
   if (ns == 4) betaoverns = 2.38;
-  if (upsampfac != 2.0) {   // again, override beta for custom sigma
-    FLT gamma  = FLT(0.97); // must match devel/gen_all_horner_C_code.m !
+  if (upsampfac != 2.0) { // again, override beta for custom sigma
+    T gamma    = T(0.97); // must match devel/gen_all_horner_C_code.m !
     betaoverns = gamma * finufft_pi * (1.0 - 1.0 / (2 * upsampfac)); // formula based on
                                                                      // cutoff
   }
@@ -709,7 +714,8 @@ int setup_spreader(finufft_spread_opts &opts, FLT eps, double upsampfac, int ker
   return ier;
 }
 
-FLT evaluate_kernel(FLT x, const finufft_spread_opts &opts)
+template<typename T>
+T evaluate_kernel(T x, const finufft_spread_opts &opts)
 /* ES ("exp sqrt") kernel evaluation at single real argument:
       phi(x) = exp(beta.sqrt(1 - (2x/n_s)^2)),    for |x| < nspread/2
    related to an asymptotic approximation to the Kaiser--Bessel, itself an
@@ -717,11 +723,11 @@ FLT evaluate_kernel(FLT x, const finufft_spread_opts &opts)
    This is the "reference implementation", used by eg finufft/onedim_* 2/17/17
 */
 {
-  if (abs(x) >= (FLT)opts.ES_halfwidth)
+  if (abs(x) >= (T)opts.ES_halfwidth)
     // if spreading/FT careful, shouldn't need this if, but causes no speed hit
     return 0.0;
   else
-    return exp((FLT)opts.ES_beta * sqrt((FLT)1.0 - (FLT)opts.ES_c * x * x));
+    return exp((T)opts.ES_beta * sqrt((T)1.0 - (T)opts.ES_c * x * x));
 }
 
 template<typename T>
@@ -993,10 +999,10 @@ void interp_cube(T *FINUFFT_RESTRICT target, const T *du, const T *ker1, const T
     // co-add y and z contributions to line in x; do not apply x kernel yet
     // This is expensive innermost loop
     for (int dz = 0; dz < ns; dz++) {
-      BIGINT oz = N1 * N2 * (i3 + dz);                         // offset due to z
+      BIGINT oz = N1 * N2 * (i3 + dz);                       // offset due to z
       for (int dy = 0; dy < ns; dy++) {
-        const FLT *lptr = du + 2 * (oz + N1 * (i2 + dy) + i1); // ptr start of line
-        T ker23         = ker2[dy] * ker3[dz];
+        const T *lptr = du + 2 * (oz + N1 * (i2 + dy) + i1); // ptr start of line
+        T ker23       = ker2[dy] * ker3[dz];
         for (int l = 0; l < 2 * ns; ++l) { // loop over ns interleaved (R,I) pairs
           line[l] += lptr[l] * ker23;
         }
@@ -1027,9 +1033,9 @@ void interp_cube(T *FINUFFT_RESTRICT target, const T *du, const T *ker1, const T
       BIGINT oz = N1 * N2 * j3[dz];   // offset due to z
       for (int dy = 0; dy < ns; dy++) {
         BIGINT oy = oz + N1 * j2[dy]; // offset due to y & z
-        FLT ker23 = ker2[dy] * ker3[dz];
+        T ker23   = ker2[dy] * ker3[dz];
         for (int dx = 0; dx < ns; dx++) {
-          FLT k    = ker1[dx] * ker23;
+          T k      = ker1[dx] * ker23;
           BIGINT j = oy + j1[dx];
           out[0] += du[2 * j] * k;
           out[1] += du[2 * j + 1] * k;
@@ -1093,7 +1099,7 @@ FINUFFT_NEVER_INLINE void spread_subproblem_1d_kernel(
     const auto dd_pt = initialize_complex_register<simd_type>(dd[i * 2], dd[i * 2 + 1]);
     // ceil offset, hence rounding, must match that in get_subgrid...
     const auto i1 = BIGINT(std::ceil(kx[i] - ns2)); // fine grid start index
-    // FLT(i1) has different semantics and results an extra cast
+    // T(i1) has different semantics and results an extra cast
     const auto x1 = [i, kx]() constexpr noexcept {
       auto x1 = std::ceil(kx[i] - ns2) - kx[i]; // x1 in [-w/2,-w/2+1], up to rounding
       // However if N1*epsmach>O(1) then can cause O(1) errors in x1, hence ppoly
@@ -1106,7 +1112,7 @@ FINUFFT_NEVER_INLINE void spread_subproblem_1d_kernel(
     // Libin improvement: pass ker as a parameter and allocate it outside the loop
     // gcc13 + 10% speedup
     ker_eval<ns, kerevalmeth, T, simd_type>(ker.data(), opts, x1);
-    //    const auto ker = ker_eval<ns, kerevalmeth, FLT, simd_type>(opts, x1);
+    //    const auto ker = ker_eval<ns, kerevalmeth, T, simd_type>(opts, x1);
     const auto j = i1 - off1; // offset rel to subgrid, starts the output indices
     auto *FINUFFT_RESTRICT trg = du + 2 * j; // restrict helps compiler to vectorize
     // du is padded, so we can use SIMD even if we write more than ns values in du
@@ -1142,12 +1148,12 @@ FINUFFT_NEVER_INLINE void spread_subproblem_1d_kernel(
       const auto du_pt1 = simd_type::load_unaligned(trg + dx + simd_size);
       // swizzle is faster than zip_lo(ker_v, ker_v) and zip_hi(ker_v, ker_v)
       // swizzle in this case is equivalent to zip_lo and zip_hi respectively
-      const auto ker0low = xsimd::swizzle(ker_v, zip_low_index<arch_t>);
+      const auto ker0low = xsimd::swizzle(ker_v, zip_low_index<arch_t, T>);
       // ker 0 looks like this now:
       // +-----------------------+
       // |y0|y0|y1|y1|y2|y2|y3|y3|
       // +-----------------------+
-      const auto ker0hi = xsimd::swizzle(ker_v, zip_hi_index<arch_t>);
+      const auto ker0hi = xsimd::swizzle(ker_v, zip_hi_index<arch_t, T>);
       // ker 1 looks like this now:
       // +-----------------------+
       // |y4|y4|y5|y5|y6|y6|y7|y7|
@@ -1174,7 +1180,7 @@ FINUFFT_NEVER_INLINE void spread_subproblem_1d_kernel(
       // the corresponding memory is not accessed
       const auto ker0    = simd_type::load_unaligned(ker.data() + (regular_part / 2));
       const auto du_pt   = simd_type::load_unaligned(trg + regular_part);
-      const auto ker0low = xsimd::swizzle(ker0, zip_low_index<arch_t>);
+      const auto ker0low = xsimd::swizzle(ker0, zip_low_index<arch_t, T>);
       const auto res     = xsimd::fma(ker0low, dd_pt, du_pt);
       res.store_unaligned(trg + regular_part);
     }
@@ -1310,8 +1316,8 @@ FINUFFT_NEVER_INLINE static void spread_subproblem_2d_kernel(
       for (uint8_t i = 0; i < (kerval_vectors & ~1); // NOLINT(*-too-small-loop-variable)
            i += 2) {
         const auto ker1_v  = simd_type::load_aligned(ker1 + i * simd_size / 2);
-        const auto ker1low = xsimd::swizzle(ker1_v, zip_low_index<arch_t>);
-        const auto ker1hi  = xsimd::swizzle(ker1_v, zip_hi_index<arch_t>);
+        const auto ker1low = xsimd::swizzle(ker1_v, zip_low_index<arch_t, T>);
+        const auto ker1hi  = xsimd::swizzle(ker1_v, zip_hi_index<arch_t, T>);
         // this initializes the entire vector registers with the same value
         // the ker1val_v[i] looks like this:
         // +-----------------------+
@@ -1323,7 +1329,7 @@ FINUFFT_NEVER_INLINE static void spread_subproblem_2d_kernel(
       if constexpr (kerval_vectors % 2) {
         const auto ker1_v =
             simd_type::load_unaligned(ker1 + (kerval_vectors - 1) * simd_size / 2);
-        const auto res = xsimd::swizzle(ker1_v, zip_low_index<arch_t>) * dd_pt;
+        const auto res = xsimd::swizzle(ker1_v, zip_low_index<arch_t, T>) * dd_pt;
         ker1val_v[kerval_vectors - 1] = res;
       }
       return ker1val_v;
@@ -1346,7 +1352,7 @@ FINUFFT_NEVER_INLINE static void spread_subproblem_2d_kernel(
 template<uint8_t NS, typename T>
 void spread_subproblem_2d_dispatch(
     const BIGINT off1, const BIGINT off2, const BIGINT size1, const BIGINT size2,
-    T *FINUFFT_RESTRICT du, const BIGINT M, const FLT *kx, const T *ky, const T *dd,
+    T *FINUFFT_RESTRICT du, const BIGINT M, const T *kx, const T *ky, const T *dd,
     const finufft_spread_opts &opts) {
   static_assert((MIN_NSPREAD <= NS) && (NS <= MAX_NSPREAD),
                 "NS must be in the range (MIN_NSPREAD, MAX_NSPREAD)");
@@ -1435,8 +1441,8 @@ FINUFFT_NEVER_INLINE void spread_subproblem_3d_kernel(
       for (uint8_t i = 0; i < (kerval_vectors & ~1); // NOLINT(*-too-small-loop-variable
            i += 2) {
         const auto ker1_v  = simd_type::load_aligned(ker1 + i * simd_size / 2);
-        const auto ker1low = xsimd::swizzle(ker1_v, zip_low_index<arch_t>);
-        const auto ker1hi  = xsimd::swizzle(ker1_v, zip_hi_index<arch_t>);
+        const auto ker1low = xsimd::swizzle(ker1_v, zip_low_index<arch_t, T>);
+        const auto ker1hi  = xsimd::swizzle(ker1_v, zip_hi_index<arch_t, T>);
         ker1val_v[i]       = ker1low * dd_pt;
         ker1val_v[i + 1]   = ker1hi * dd_pt;
       }
@@ -1445,7 +1451,7 @@ FINUFFT_NEVER_INLINE void spread_subproblem_3d_kernel(
       if constexpr (kerval_vectors % 2) {
         const auto ker1_v =
             simd_type::load_unaligned(ker1 + (kerval_vectors - 1) * simd_size / 2);
-        const auto res = xsimd::swizzle(ker1_v, zip_low_index<arch_t>) * dd_pt;
+        const auto res = xsimd::swizzle(ker1_v, zip_low_index<arch_t, T>) * dd_pt;
         ker1val_v[kerval_vectors - 1] = res;
       }
       return ker1val_v;
@@ -1985,5 +1991,49 @@ void print_subgrid_info(int ndims, BIGINT offset1, BIGINT offset2, BIGINT offset
     break;
   }
 }
+
 } // namespace
+// instantiations
+template FINUFFT_EXPORT int FINUFFT_CDECL spreadinterp<float>(
+    BIGINT N1, BIGINT N2, BIGINT N3, float *data_uniform, BIGINT M, float *kx, float *ky,
+    float *kz, float *data_nonuniform, const finufft_spread_opts &opts);
+template FINUFFT_EXPORT int FINUFFT_CDECL spreadcheck<float>(
+    BIGINT N1, BIGINT N2, BIGINT N3, BIGINT M, float *kx, float *ky, float *kz,
+    const finufft_spread_opts &opts);
+template FINUFFT_EXPORT int FINUFFT_CDECL indexSort<float>(
+    BIGINT *sort_indices, BIGINT N1, BIGINT N2, BIGINT N3, BIGINT M, float *kx, float *ky,
+    float *kz, const finufft_spread_opts &opts);
+template FINUFFT_EXPORT int FINUFFT_CDECL spreadinterpSorted<float>(
+    const BIGINT *sort_indices, BIGINT N1, BIGINT N2, BIGINT N3,
+    float *FINUFFT_RESTRICT data_uniform, BIGINT M, float *FINUFFT_RESTRICT kx,
+    float *FINUFFT_RESTRICT ky, float *FINUFFT_RESTRICT kz,
+    float *FINUFFT_RESTRICT data_nonuniform, const finufft_spread_opts &opts,
+    int did_sort);
+template FINUFFT_EXPORT float FINUFFT_CDECL evaluate_kernel<float>(
+    float x, const finufft_spread_opts &opts);
+template FINUFFT_EXPORT int FINUFFT_CDECL setup_spreader<float>(
+    finufft_spread_opts &opts, float eps, double upsampfac, int kerevalmeth, int debug,
+    int showwarn, int dim);
+
+template FINUFFT_EXPORT int FINUFFT_CDECL spreadinterp<double>(
+    BIGINT N1, BIGINT N2, BIGINT N3, double *data_uniform, BIGINT M, double *kx,
+    double *ky, double *kz, double *data_nonuniform, const finufft_spread_opts &opts);
+template FINUFFT_EXPORT int FINUFFT_CDECL spreadcheck<double>(
+    BIGINT N1, BIGINT N2, BIGINT N3, BIGINT M, double *kx, double *ky, double *kz,
+    const finufft_spread_opts &opts);
+template FINUFFT_EXPORT int FINUFFT_CDECL indexSort<double>(
+    BIGINT *sort_indices, BIGINT N1, BIGINT N2, BIGINT N3, BIGINT M, double *kx,
+    double *ky, double *kz, const finufft_spread_opts &opts);
+template FINUFFT_EXPORT int FINUFFT_CDECL spreadinterpSorted<double>(
+    const BIGINT *sort_indices, BIGINT N1, BIGINT N2, BIGINT N3,
+    double *FINUFFT_RESTRICT data_uniform, BIGINT M, double *FINUFFT_RESTRICT kx,
+    double *FINUFFT_RESTRICT ky, double *FINUFFT_RESTRICT kz,
+    double *FINUFFT_RESTRICT data_nonuniform, const finufft_spread_opts &opts,
+    int did_sort);
+template FINUFFT_EXPORT double FINUFFT_CDECL evaluate_kernel<double>(
+    double x, const finufft_spread_opts &opts);
+template FINUFFT_EXPORT int FINUFFT_CDECL setup_spreader<double>(
+    finufft_spread_opts &opts, double eps, double upsampfac, int kerevalmeth, int debug,
+    int showwarn, int dim);
+
 } // namespace finufft::spreadinterp

@@ -105,11 +105,11 @@ ABSDYNLIB = $(FINUFFT)$(DYNLIB)
 
 # spreader is subset of the library with self-contained testing, hence own objs:
 # double-prec spreader object files that also need single precision...
-SOBJS = src/spreadinterp.o
+SOBJS =
 # their single-prec versions
-SOBJSF = $(SOBJS:%.o=%_32.o)
+SOBJSF =
 # precision-dependent spreader object files (compiled & linked only once)...
-SOBJS_PI = src/utils_precindep.o
+SOBJS_PI = src/utils_precindep.o src/spreadinterp.o
 # spreader dual-precision objs
 SOBJSD = $(SOBJS) $(SOBJSF) $(SOBJS_PI)
 
