@@ -85,6 +85,6 @@ void do_fft(FINUFFT_PLAN p, CPX *fwBatch) {
     }
   }
 #else
-  FFTW_EX(p->fftwPlan); // if thisBatchSize<batchSize it wastes some flops
+  p->fftwPlan.execute(); // if thisBatchSize<batchSize it wastes some flops
 #endif
 }

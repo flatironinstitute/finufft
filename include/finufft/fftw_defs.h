@@ -7,38 +7,110 @@
 // precision library compilation, which need different FFTW command symbols.
 // Barnett simplified via FFTWIFY, 6/7/22.
 
+#include <complex>
 #include <fftw3.h> // (after complex.h) needed so can typedef FFTW_CPX
+#include <mutex>
 
-// precision-switching names for interfaces to FFTW...
-#ifdef SINGLE
-// macro to prepend fftw_ (for double) or fftwf_ (for single) to a string
-// without a space. The 2nd level of indirection is needed for safety, see:
-// https://isocpp.org/wiki/faq/misc-technical-issues#macros-with-token-pasting
-#define FFTWIFY_UNSAFE(x) fftwf_##x
-#else
-#define FFTWIFY_UNSAFE(x) fftw_##x
-#endif
-#define FFTWIFY(x)         FFTWIFY_UNSAFE(x)
-// now use this tool (note we replaced typedefs v<=2.0.4, in favor of macros):
-#define FFTW_CPX           FFTWIFY(complex)
-#define FFTW_PLAN          FFTWIFY(plan)
-#define FFTW_ALLOC_CPX     FFTWIFY(alloc_complex)
-#define FFTW_PLAN_MANY_DFT FFTWIFY(plan_many_dft)
-#define FFTW_EX            FFTWIFY(execute)
-#define FFTW_DE            FFTWIFY(destroy_plan)
-#define FFTW_FR            FFTWIFY(free)
-#define FFTW_FORGET_WISDOM FFTWIFY(forget_wisdom)
-#define FFTW_CLEANUP       FFTWIFY(cleanup)
-// the following OMP switch could be done in the src code instead...
+template<typename T> class My_fftw_plan {};
+
+template<> struct My_fftw_plan<float> {
+private:
+  static std::mutex fftw_lock;
+  fftwf_plan plan_;
+
+public:
+  My_fftw_plan() : plan_(nullptr) {
+    // Now place FFTW initialization in a lock, courtesy of OMP. Makes FINUFFT
+    // thread-safe (can be called inside OMP)
+    static bool did_fftw_init = false; // the only global state of FINUFFT
+    std::lock_guard<std::mutex> lock(fftw_lock);
+    if (!did_fftw_init) {
+      init();               // setup FFTW global state; should only do once
+      did_fftw_init = true; // ensure other FINUFFT threads don't clash
+    }
+  }
+  ~My_fftw_plan() {
+    std::lock_guard<std::mutex> lock(fftw_lock);
+    fftwf_destroy_plan(plan_);
+  }
+
+  void plan(const std::vector<int> &dims, size_t batchSize, std::complex<float> *ptr,
+            int sign, int options, int nthreads) {
+    uint64_t nf = 1;
+    for (auto i : dims) nf *= i;
+    std::lock_guard<std::mutex> lock(fftw_lock);
+    plan_with_nthreads(nthreads);
+    plan_ = fftwf_plan_many_dft(dims.size(), dims.data(), batchSize, (fftwf_complex *)ptr,
+                                nullptr, 1, nf, (fftwf_complex *)ptr, nullptr, 1, nf,
+                                sign, options);
+  }
+  static std::complex<float> *alloc_complex(size_t N) {
+    return reinterpret_cast<std::complex<float> *>(fftwf_alloc_complex(N));
+  }
+  static void free(std::complex<float> *ptr) { fftwf_free(ptr); }
+  void execute() { fftwf_execute(plan_); }
+
+  static void forget_wisdom() { fftwf_forget_wisdom(); }
+  static void cleanup() { fftwf_cleanup(); }
 #ifdef _OPENMP
-#define FFTW_INIT            FFTWIFY(init_threads)
-#define FFTW_PLAN_TH         FFTWIFY(plan_with_nthreads)
-#define FFTW_CLEANUP_THREADS FFTWIFY(cleanup_threads)
+  static void init() { fftwf_init_threads(); }
+  static void plan_with_nthreads(int nthreads) { fftwf_plan_with_nthreads(nthreads); }
+  static void cleanup_threads() { fftwf_cleanup_threads(); }
 #else
-// no OMP (no fftw{f}_threads or _omp), need dummy fftw threads calls...
-#define FFTW_INIT()
-#define FFTW_PLAN_TH(x)
-#define FFTW_CLEANUP_THREADS()
+  static void init() {}
+  static void plan_with_nthreads(int /*nthreads*/) {}
+  static void cleanup_threads() {}
 #endif
+};
+
+template<> struct My_fftw_plan<double> {
+private:
+  static std::mutex fftw_lock;
+  fftw_plan plan_;
+
+public:
+  My_fftw_plan() : plan_(nullptr) {
+    // Now place FFTW initialization in a lock, courtesy of OMP. Makes FINUFFT
+    // thread-safe (can be called inside OMP)
+    static bool did_fftw_init = false; // the only global state of FINUFFT
+    std::lock_guard<std::mutex> lock(fftw_lock);
+    if (!did_fftw_init) {
+      init();               // setup FFTW global state; should only do once
+      did_fftw_init = true; // ensure other FINUFFT threads don't clash
+    }
+  }
+  ~My_fftw_plan() {
+    std::lock_guard<std::mutex> lock(fftw_lock);
+    fftw_destroy_plan(plan_);
+  }
+
+  void plan(const std::vector<int> &dims, size_t batchSize, std::complex<double> *ptr,
+            int sign, int options, int nthreads) {
+    uint64_t nf = 1;
+    for (auto i : dims) nf *= i;
+    std::lock_guard<std::mutex> lock(fftw_lock);
+    plan_with_nthreads(nthreads);
+    plan_ = fftw_plan_many_dft(dims.size(), dims.data(), batchSize, (fftw_complex *)ptr,
+                               nullptr, 1, nf, (fftw_complex *)ptr, nullptr, 1, nf, sign,
+                               options);
+  }
+  static std::complex<double> *alloc_complex(size_t N) {
+    return reinterpret_cast<std::complex<double> *>(fftw_alloc_complex(N));
+  }
+  static void free(std::complex<double> *ptr) { fftw_free(ptr); }
+  void execute() { fftw_execute(plan_); }
+
+  static void forget_wisdom() { fftw_forget_wisdom(); }
+  static void cleanup() { fftw_cleanup(); }
+#ifdef _OPENMP
+  static void init() { fftw_init_threads(); }
+  static void plan_with_nthreads(int nthreads) { fftw_plan_with_nthreads(nthreads); }
+  static void cleanup_threads() { fftw_cleanup_threads(); }
+#else
+  static void init() {}
+  static void plan_with_nthreads(int /*nthreads*/) {}
+  static void cleanup_threads() {}
+#endif
+};
 
 #endif // FFTW_DEFS_H

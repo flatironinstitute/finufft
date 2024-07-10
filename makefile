@@ -105,7 +105,7 @@ ABSDYNLIB = $(FINUFFT)$(DYNLIB)
 
 # spreader is subset of the library with self-contained testing, hence own objs:
 # double-prec spreader object files that also need single precision...
-SOBJS = src/spreadinterp.o src/utils.o
+SOBJS = src/spreadinterp.o
 # their single-prec versions
 SOBJSF = $(SOBJS:%.o=%_32.o)
 # precision-dependent spreader object files (compiled & linked only once)...
@@ -237,8 +237,8 @@ test/%: test/%.cpp $(DYNLIB)
 test/%f: test/%.cpp $(DYNLIB)
 	$(CXX) $(CXXFLAGS) ${LDFLAGS} -DSINGLE $< $(ABSDYNLIB) $(LIBSFFT) -o $@
 # low-level tests that are cleaner if depend on only specific objects...
-test/testutils: test/testutils.cpp src/utils.o src/utils_precindep.o
-	$(CXX) $(CXXFLAGS) ${LDFLAGS} test/testutils.cpp src/utils.o src/utils_precindep.o $(LIBS) -o test/testutils
+test/testutils: test/testutils.cpp src/utils_precindep.o
+	$(CXX) $(CXXFLAGS) ${LDFLAGS} test/testutils.cpp src/utils_precindep.o $(LIBS) -o test/testutils
 test/testutilsf: test/testutils.cpp src/utils_32.o src/utils_precindep.o
 	$(CXX) $(CXXFLAGS) ${LDFLAGS} -DSINGLE test/testutils.cpp src/utils_32.o src/utils_precindep.o $(LIBS) -o test/testutilsf
 
@@ -396,7 +396,7 @@ endif
 
 # python ---------------------------------------------------------------------
 python: $(STATICLIB) $(DYNLIB)
-	FINUFFT_DIR=$(FINUFFT) $(PYTHON) -m pip -v install -e ./python/finufft
+	FINUFFT_DIR=$(FINUFFT) $(PYTHON) -m pip -v install --break-system-packages -e ./python/finufft
 # note to devs: if trouble w/ NumPy, use: pip install ./python --no-deps
 	$(PYTHON) python/finufft/test/run_accuracy_tests.py
 	$(PYTHON) python/finufft/examples/simple1d1.py

@@ -239,7 +239,7 @@ struct FINUFFT_PLAN_S {     // the main plan object, fully C++
 
   // other internal structs
 #ifndef FINUFFT_USE_DUCC0
-  FFTW_PLAN fftwPlan;
+  My_fftw_plan<FLT> fftwPlan;
 #endif
   finufft_opts opts; // this and spopts could be made ptrs
   finufft_spread_opts spopts;

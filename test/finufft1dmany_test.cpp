@@ -87,7 +87,7 @@ int main(int argc, char *argv[]) {
   printf("\tone mode: rel err in F[%lld] of trans#%d is %.3g\n", (long long)nt1, i, err);
 
   // compare the result with FINUFFT1D1
-  FFTW_FORGET_WISDOM();
+  My_fftw_plan<FLT>::forget_wisdom();
   CPX *F_1d1 = (CPX *)malloc(sizeof(CPX) * N * ntransf);
   CPX *Fstart;
   CPX *cstart;
@@ -118,7 +118,7 @@ int main(int argc, char *argv[]) {
   free(F_1d1);
 
   printf("test 1d2 many vs repeated single: ------------------------------------\n");
-  FFTW_FORGET_WISDOM();
+  My_fftw_plan<FLT>::forget_wisdom();
 
 #pragma omp parallel
   {
@@ -148,7 +148,7 @@ int main(int argc, char *argv[]) {
   printf("\tone targ: rel err in c[%lld] of trans#%d is %.3g\n", (long long)jt, i, err);
 
   // check against single calls to FINUFFT1D2...
-  FFTW_FORGET_WISDOM();
+  My_fftw_plan<FLT>::forget_wisdom();
   CPX *c_1d2 = (CPX *)malloc(sizeof(CPX) * M * ntransf);
   timer.restart();
   for (BIGINT j = 0; j < ntransf; j++) {
@@ -173,7 +173,7 @@ int main(int argc, char *argv[]) {
   free(c_1d2);
 
   printf("test 1d3 many vs repeated single: ------------------------------------\n");
-  FFTW_FORGET_WISDOM();
+  My_fftw_plan<FLT>::forget_wisdom();
 
 #pragma omp parallel
   {
@@ -215,7 +215,7 @@ int main(int argc, char *argv[]) {
   printf("\tone targ: rel err in F[%lld] of trans#%d is %.3g\n", (long long)kt, i, err);
 
   // compare the result with single calls to FINUFFT1D3...
-  FFTW_FORGET_WISDOM();
+  My_fftw_plan<FLT>::forget_wisdom();
   CPX *f_1d3 = (CPX *)malloc(sizeof(CPX) * N * ntransf);
   timer.restart();
   for (int k = 0; k < ntransf; k++) {

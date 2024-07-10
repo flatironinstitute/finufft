@@ -97,7 +97,7 @@ endif ()
 
 # This set of sources is compiled twice, once in single precision and once in double precision
 # The single precision compilation is done with -DSINGLE
-set(FINUFFT_PRECISION_DEPENDENT_SOURCES src/finufft.cpp src/fft.cpp src/simpleinterfaces.cpp src/spreadinterp.cpp src/utils.cpp fortran/finufftfort.cpp)
+set(FINUFFT_PRECISION_DEPENDENT_SOURCES src/finufft.cpp src/fft.cpp src/simpleinterfaces.cpp src/spreadinterp.cpp fortran/finufftfort.cpp)
 
 # Set of compilers which behave like gcc
 set(FINUFFT_GNU_LIKE_COMPILERS AppleClang Clang GNU)
