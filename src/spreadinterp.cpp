@@ -662,7 +662,9 @@ int setup_spreader(finufft_spread_opts &opts, FLT eps, double upsampfac, int ker
   if (upsampfac == 2.0)                           // standard sigma (see SISC paper)
     ns = int(std::ceil(-log10(eps / (FLT)10.0))); // 1 digit per power of 10
   else                                            // custom sigma
-    ns = int(std::ceil(-log(eps) / (PI * sqrt(1.0 - 1.0 / upsampfac)))); // formula, gam=1
+    ns = int(
+        std::ceil(-log(eps) / (finufft_pi * sqrt(1.0 - 1.0 / upsampfac)))); // formula,
+                                                                            // gam=1
   ns = max(2, ns);        // (we don't have ns=1 version yet)
   if (ns > MAX_NSPREAD) { // clip to fit allocated arrays, Horner rules
     if (showwarn)
@@ -684,7 +686,8 @@ int setup_spreader(finufft_spread_opts &opts, FLT eps, double upsampfac, int ker
   if (ns == 4) betaoverns = 2.38;
   if (upsampfac != 2.0) {   // again, override beta for custom sigma
     FLT gamma  = FLT(0.97); // must match devel/gen_all_horner_C_code.m !
-    betaoverns = gamma * PI * (1.0 - 1.0 / (2 * upsampfac)); // formula based on cutoff
+    betaoverns = gamma * finufft_pi * (1.0 - 1.0 / (2 * upsampfac)); // formula based on
+                                                                     // cutoff
   }
   opts.ES_beta = betaoverns * ns; // set the kernel beta parameter
   if (debug)
@@ -1778,7 +1781,7 @@ void get_subgrid(BIGINT &offset1, BIGINT &offset2, BIGINT &offset3, BIGINT &padd
    limitation Marco Barbone, 8.5.2024 Changed it from a Macro to an inline function
 */
 FLT fold_rescale(const FLT x, const BIGINT N) noexcept {
-  static constexpr const FLT x2pi = FLT(M_1_2PI);
+  static constexpr const FLT x2pi = FLT(finufft_1_2pi);
   const FLT result                = x * x2pi + FLT(0.5);
   return (result - floor(result)) * FLT(N);
 }

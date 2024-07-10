@@ -57,7 +57,7 @@ int main(int argc, char *argv[]) {
   FLT *x = (FLT *)malloc(sizeof(FLT) * M);
   CPX *c = (CPX *)malloc(sizeof(CPX) * M);
   for (int j = 0; j < M; ++j) {
-    x[j] = PI * cos((FLT)j); // deterministic
+    x[j] = finufft_pi * cos((FLT)j); // deterministic
     c[j] = sin((FLT)1.3 * j) + IMA * cos((FLT)0.9 * j);
   }
   // allocate output array F for Fourier modes, fix some type-3 coords...

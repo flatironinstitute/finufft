@@ -91,14 +91,9 @@ static constexpr BIGINT MAX_NU_PTS = (BIGINT)1e14;
 
 // either-precision unit imaginary number...
 static constexpr CPX IMA(FLT(0), FLT(1));
-// using namespace std::complex_literals;  // needs C++14, provides 1i, 1if
-#ifndef M_PI // Windows apparently doesn't have this const
-#define M_PI 3.14159265358979329
-#endif
-#define M_1_2PI 0.159154943091895336
-#define M_2PI   6.28318530717958648
-// to avoid mixed precision operators in eg i*pi, an either-prec PI...
-#define PI      (FLT) M_PI
+
+static constexpr double finufft_pi    = 3.14159265358979329;
+static constexpr double finufft_1_2pi = 0.159154943091895336;
 
 // machine epsilon for decisions of achievable tolerance...
 static constexpr FLT EPSILON = std::numeric_limits<FLT>::epsilon();

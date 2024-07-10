@@ -7,7 +7,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(GNU_LIKE_FRONTENDS AppleClang Clang GNU)
 if (CMAKE_CXX_COMPILER_ID IN_LIST GNU_LIKE_FRONTENDS)
     # Set custom compiler flags for gcc-compatible compilers
-    set(FINUFFT_CXX_FLAGS_RELEASE -W -Wall -O3 -funroll-loops -ffp-contract=fast -Wfatal-errors -Wfloat-conversion -Wstrict-aliasing -Wwrite-strings -Wredundant-decls -Woverloaded-virtual -Wcast-qual -Wcast-align -Wpointer-arith -Wnon-virtual-dtor -Wzero-as-null-pointer-constant)
+    set(FINUFFT_CXX_FLAGS_RELEASE -W -Wall -O3 -funroll-loops -ffp-contract=fast -Wfatal-errors -Wstrict-aliasing -Wwrite-strings -Wredundant-decls -Woverloaded-virtual -Wcast-qual -Wcast-align -Wpointer-arith -Wnon-virtual-dtor -Wzero-as-null-pointer-constant)
     set(FINUFFT_CXX_FLAGS_RELWITHDEBINFO -g ${FINUFFT_CXX_FLAGS_RELEASE})
 endif ()
 

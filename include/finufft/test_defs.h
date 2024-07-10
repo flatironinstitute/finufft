@@ -7,9 +7,9 @@
 
 // TESTER SETTINGS...
 // how big a problem to check direct DFT for in 1D...
-#define TEST_BIGPROB   1e8
+static constexpr double TEST_BIGPROB = 1e8;
 // for omp rand filling
-#define TEST_RANDCHUNK 1000000
+static constexpr int TEST_RANDCHUNK = 1000000;
 
 // the public interface: since this clobbers FINUFFT* macros, must be included
 // *before* private defs.h...

@@ -158,7 +158,7 @@ static void set_nhg_type3(FLT S, FLT X, finufft_opts opts, finufft_spread_opts s
   else
     Ssafe = max(Ssafe, 1 / X);
   // use the safe X and S...
-  FLT nfd = FLT(2.0 * opts.upsampfac * Ssafe * Xsafe / PI + nss);
+  FLT nfd = FLT(2.0 * opts.upsampfac * Ssafe * Xsafe / finufft_pi + nss);
   if (!isfinite(nfd)) nfd = 0.0; // use FLT to catch inf
   *nf = (BIGINT)nfd;
   // printf("initial nf=%lld, ns=%d\n",*nf,spopts.nspread);
@@ -166,7 +166,7 @@ static void set_nhg_type3(FLT S, FLT X, finufft_opts opts, finufft_spread_opts s
   if (*nf < 2 * spopts.nspread) *nf = 2 * spopts.nspread;
   if (*nf < MAX_NF)                                 // otherwise will fail anyway
     *nf = next235even(*nf);                         // expensive at huge nf
-  *h   = 2 * PI / *nf;                              // upsampled grid spacing
+  *h   = 2 * finufft_pi / *nf;                      // upsampled grid spacing
   *gam = FLT(*nf / (2.0 * opts.upsampfac * Ssafe)); // x scale fac to x'
 }
 
@@ -205,8 +205,10 @@ static void onedim_fseries_kernel(BIGINT nf, FLT *fwkerhalf, finufft_spread_opts
   CPX a[MAX_NQUAD];
   for (int n = 0; n < q; ++n) {      // set up nodes z_n and vals f_n
     z[n] *= J2;                      // rescale nodes
-    f[n] = J2 * (FLT)w[n] * evaluate_kernel((FLT)z[n], opts);  // vals & quadr wei
-    a[n] = exp(2 * PI * IMA * (FLT)(nf / 2 - z[n]) / (FLT)nf); // phase winding rates
+    f[n] = J2 * (FLT)w[n] * evaluate_kernel((FLT)z[n], opts); // vals & quadr wei
+    a[n] = exp(2 * (FLT)finufft_pi * IMA * (FLT)(nf / 2 - z[n]) / (FLT)nf); // phase
+                                                                            // winding
+                                                                            // rates
   }
   BIGINT nout = nf / 2 + 1;                       // how many values we're writing to
   int nt      = min(nout, (BIGINT)opts.nthreads); // how many chunks
