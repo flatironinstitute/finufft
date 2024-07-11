@@ -798,7 +798,7 @@ Two upsampfacs implemented. Params must match ref formula. Barnett 4/24/18 */
       const simd_type zv(z);
       const simd_type z2v = zv * zv;
 
-      // no xsimd::select neeeded if tail is zero
+      // no xsimd::shuffle neeeded if tail is zero
       if constexpr (tail) {
         // some xsimd constant for shuffle
         static constexpr auto shuffle_batch =
@@ -819,8 +819,11 @@ Two upsampfacs implemented. Params must match ref formula. Barnett 4/24/18 */
                 simd_type::load_aligned(padded_coeffs[j + 1].data() + i);
             k_even = xsimd::fma(k_even, z2v, cji_even);
           }
+          // left part
           xsimd::fma(k_odd, zv, k_even).store_aligned(ker + i);
+          // right part symmetric to the left part
           if (offset >= (w + 1) / 2) {
+            // to use aligned store, we need shuffle the previous k_sym and current k_sym
             k_prev = k_sym;
             k_sym  = xsimd::fma(k_odd, -zv, k_even);
             xsimd::shuffle(k_sym, k_prev, shuffle_batch).store_aligned(ker + offset);
@@ -846,8 +849,11 @@ Two upsampfacs implemented. Params must match ref formula. Barnett 4/24/18 */
                 simd_type::load_aligned(padded_coeffs[j + 1].data() + i);
             k_even = xsimd::fma(k_even, z2v, cji_even);
           }
+          // left part
           xsimd::fma(k_odd, zv, k_even).store_aligned(ker + i);
+          // right part symmetric to the left part
           if (offset >= w / 2) {
+            // reverse the order for symmetric part
             xsimd::swizzle(xsimd::fma(k_odd, -zv, k_even), reverse_batch)
                 .store_aligned(ker + offset);
           }
