@@ -181,11 +181,10 @@ static constexpr FLT EPSILON = std::numeric_limits<FLT>::epsilon();
 #include <finufft/fft.h> // (must come after complex.h)
 
 // group together a bunch of type 3 rescaling/centering/phasing parameters:
-#define TYPE3PARAMS FINUFFTIFY(_type3Params)
-struct TYPE3PARAMS {
-  FLT X1, C1, D1, h1, gam1; // x dim: X=halfwid C=center D=freqcen h,gam=rescale
-  FLT X2, C2, D2, h2, gam2; // y
-  FLT X3, C3, D3, h3, gam3; // z
+template<typename T> struct TYPE3PARAMS {
+  T X1, C1, D1, h1, gam1; // x dim: X=halfwid C=center D=freqcen h,gam=rescale
+  T X2, C2, D2, h2, gam2; // y
+  T X3, C3, D3, h3, gam3; // z
 };
 
 struct FINUFFT_PLAN_S {     // the main plan object, fully C++
@@ -234,7 +233,7 @@ struct FINUFFT_PLAN_S {     // the main plan object, fully C++
   std::vector<CPX> CpBatch;    // working array of prephased strengths
 #endif
   std::vector<FLT> Sp, Tp, Up; // internal primed targs (s'_k, etc), allocated
-  TYPE3PARAMS t3P;             // groups together type 3 shift, scale, phase, parameters
+  TYPE3PARAMS<FLT> t3P;        // groups together type 3 shift, scale, phase, parameters
   FINUFFT_PLAN innerT2plan;    // ptr used for type 2 in step 2 of type 3
 
   // other internal structs
@@ -244,7 +243,5 @@ struct FINUFFT_PLAN_S {     // the main plan object, fully C++
   finufft_opts opts; // this and spopts could be made ptrs
   finufft_spread_opts spopts;
 };
-
-#undef TYPE3PARAMS
 
 #endif // DEFS_H

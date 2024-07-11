@@ -103,8 +103,9 @@ static int set_nf_type12(BIGINT ms, finufft_opts opts, finufft_spread_opts spopt
   }
 }
 
-static int setup_spreader_for_nufft(finufft_spread_opts &spopts, FLT eps,
-                                    finufft_opts opts, int dim)
+template<typename T>
+static int setup_spreader_for_nufft(finufft_spread_opts &spopts, T eps, finufft_opts opts,
+                                    int dim)
 // Set up the spreader parameters given eps, and pass across various nufft
 // options. Return status of setup_spreader. Uses pass-by-ref. Barnett 10/30/17
 {
@@ -128,8 +129,9 @@ static int setup_spreader_for_nufft(finufft_spread_opts &spopts, FLT eps,
   return ier;
 }
 
-static void set_nhg_type3(FLT S, FLT X, finufft_opts opts, finufft_spread_opts spopts,
-                          BIGINT *nf, FLT *h, FLT *gam)
+template<typename T>
+static void set_nhg_type3(T S, T X, finufft_opts opts, finufft_spread_opts spopts,
+                          BIGINT *nf, T *h, T *gam)
 /* sets nf, h (upsampled grid spacing), and gamma (x_j rescaling factor),
    for type 3 only.
    Inputs:
@@ -143,9 +145,9 @@ static void set_nhg_type3(FLT S, FLT X, finufft_opts opts, finufft_spread_opts s
    New logic 6/12/17
 */
 {
-  int nss   = spopts.nspread + 1; // since ns may be odd
-  FLT Xsafe = X, Ssafe = S;       // may be tweaked locally
-  if (X == 0.0)                   // logic ensures XS>=1, handle X=0 a/o S=0
+  int nss = spopts.nspread + 1; // since ns may be odd
+  T Xsafe = X, Ssafe = S;       // may be tweaked locally
+  if (X == 0.0)                 // logic ensures XS>=1, handle X=0 a/o S=0
     if (S == 0.0) {
       Xsafe = 1.0;
       Ssafe = 1.0;
@@ -154,19 +156,20 @@ static void set_nhg_type3(FLT S, FLT X, finufft_opts opts, finufft_spread_opts s
   else
     Ssafe = max(Ssafe, 1 / X);
   // use the safe X and S...
-  FLT nfd = FLT(2.0 * opts.upsampfac * Ssafe * Xsafe / finufft_pi + nss);
-  if (!isfinite(nfd)) nfd = 0.0; // use FLT to catch inf
+  T nfd = T(2.0 * opts.upsampfac * Ssafe * Xsafe / finufft_pi + nss);
+  if (!isfinite(nfd)) nfd = 0.0; // use T to catch inf
   *nf = (BIGINT)nfd;
   // printf("initial nf=%lld, ns=%d\n",*nf,spopts.nspread);
   //  catch too small nf, and nan or +-inf, otherwise spread fails...
   if (*nf < 2 * spopts.nspread) *nf = 2 * spopts.nspread;
-  if (*nf < MAX_NF)                                 // otherwise will fail anyway
-    *nf = next235even(*nf);                         // expensive at huge nf
-  *h   = 2 * finufft_pi / *nf;                      // upsampled grid spacing
-  *gam = FLT(*nf / (2.0 * opts.upsampfac * Ssafe)); // x scale fac to x'
+  if (*nf < MAX_NF)                               // otherwise will fail anyway
+    *nf = next235even(*nf);                       // expensive at huge nf
+  *h   = 2 * finufft_pi / *nf;                    // upsampled grid spacing
+  *gam = T(*nf / (2.0 * opts.upsampfac * Ssafe)); // x scale fac to x'
 }
 
-static void onedim_fseries_kernel(BIGINT nf, FLT *fwkerhalf, finufft_spread_opts opts)
+template<typename T>
+static void onedim_fseries_kernel(BIGINT nf, T *fwkerhalf, finufft_spread_opts opts)
 /*
   Approximates exact Fourier series coeffs of cnufftspread's real symmetric
   kernel, directly via q-node quadrature on Euler-Fourier formula, exploiting
@@ -183,7 +186,7 @@ static void onedim_fseries_kernel(BIGINT nf, FLT *fwkerhalf, finufft_spread_opts
   Outputs:
   fwkerhalf - real Fourier series coeffs from indices 0 to nf/2 inclusive,
         divided by h = 2pi/n.
-        (should be allocated for at least nf/2+1 FLTs)
+        (should be allocated for at least nf/2+1 Ts)
 
   Compare onedim_dct_kernel which has same interface, but computes DFT of
   sampled kernel, not quite the same object.
@@ -192,19 +195,19 @@ static void onedim_fseries_kernel(BIGINT nf, FLT *fwkerhalf, finufft_spread_opts
   Fixed num_threads 7/20/20
  */
 {
-  FLT J2 = opts.nspread / FLT(2); // J/2, half-width of ker z-support
+  T J2 = opts.nspread / T(2); // J/2, half-width of ker z-support
   // # quadr nodes in z (from 0 to J/2; reflections will be added)...
   int q = (int)(2 + 3.0 * J2); // not sure why so large? cannot exceed MAX_NQUAD
-  FLT f[MAX_NQUAD];
+  T f[MAX_NQUAD];
   double z[2 * MAX_NQUAD], w[2 * MAX_NQUAD];
   legendre_compute_glr(2 * q, z, w); // only half the nodes used, eg on (0,1)
-  CPX a[MAX_NQUAD];
+  std::complex<T> a[MAX_NQUAD];
   for (int n = 0; n < q; ++n) {      // set up nodes z_n and vals f_n
     z[n] *= J2;                      // rescale nodes
-    f[n] = J2 * (FLT)w[n] * evaluate_kernel((FLT)z[n], opts); // vals & quadr wei
-    a[n] = exp(2 * (FLT)finufft_pi * IMA * (FLT)(nf / 2 - z[n]) / (FLT)nf); // phase
-                                                                            // winding
-                                                                            // rates
+    f[n] = J2 * (T)w[n] * evaluate_kernel((T)z[n], opts);             // vals & quadr wei
+    a[n] = exp(2 * (T)finufft_pi * IMA * (T)(nf / 2 - z[n]) / (T)nf); // phase
+                                                                      // winding
+                                                                      // rates
   }
   BIGINT nout = nf / 2 + 1;                       // how many values we're writing to
   int nt      = min(nout, (BIGINT)opts.nthreads); // how many chunks
@@ -214,11 +217,11 @@ static void onedim_fseries_kernel(BIGINT nf, FLT *fwkerhalf, finufft_spread_opts
 #pragma omp parallel num_threads(nt)
   {                                                // each thread gets own chunk to do
     int t = MY_OMP_GET_THREAD_NUM();
-    CPX aj[MAX_NQUAD];                             // phase rotator for this thread
+    std::complex<T> aj[MAX_NQUAD];                 // phase rotator for this thread
     for (int n = 0; n < q; ++n)
-      aj[n] = pow(a[n], (FLT)brk[t]);              // init phase factors for chunk
+      aj[n] = pow(a[n], (T)brk[t]);                // init phase factors for chunk
     for (BIGINT j = brk[t]; j < brk[t + 1]; ++j) { // loop along output array
-      FLT x = 0.0;                                 // accumulator for answer at this j
+      T x = 0.0;                                   // accumulator for answer at this j
       for (int n = 0; n < q; ++n) {
         x += f[n] * 2 * real(aj[n]);               // include the negative freq
         aj[n] *= a[n];                             // wind the phases
@@ -228,7 +231,8 @@ static void onedim_fseries_kernel(BIGINT nf, FLT *fwkerhalf, finufft_spread_opts
   }
 }
 
-static void onedim_nuft_kernel(BIGINT nk, FLT *k, FLT *phihat, finufft_spread_opts opts)
+template<typename T>
+static void onedim_nuft_kernel(BIGINT nk, T *k, T *phihat, finufft_spread_opts opts)
 /*
   Approximates exact 1D Fourier transform of cnufftspread's real symmetric
   kernel, directly via q-node quadrature on Euler-Fourier formula, exploiting
@@ -244,34 +248,35 @@ static void onedim_nuft_kernel(BIGINT nk, FLT *k, FLT *phihat, finufft_spread_op
   opts - spreading opts object, needed to eval kernel (must be already set up)
 
   Outputs:
-  phihat - real Fourier transform evaluated at freqs (alloc for nk FLTs)
+  phihat - real Fourier transform evaluated at freqs (alloc for nk Ts)
 
   Barnett 2/8/17. openmp since cos slow 2/9/17
  */
 {
-  FLT J2 = opts.nspread / FLT(2); // J/2, half-width of ker z-support
+  T J2 = opts.nspread / T(2); // J/2, half-width of ker z-support
   // # quadr nodes in z (from 0 to J/2; reflections will be added)...
-  int q = (int)(2 + FLT(2) * J2); // > pi/2 ratio.  cannot exceed MAX_NQUAD
+  int q = (int)(2 + T(2) * J2); // > pi/2 ratio.  cannot exceed MAX_NQUAD
   if (opts.debug) printf("q (# ker FT quadr pts) = %d\n", q);
-  FLT f[MAX_NQUAD];
+  T f[MAX_NQUAD];
   double z[2 * MAX_NQUAD], w[2 * MAX_NQUAD]; // glr needs double
   legendre_compute_glr(2 * q, z, w);         // only half the nodes used, eg on (0,1)
   for (int n = 0; n < q; ++n) {
-    z[n] *= (FLT)J2;                         // quadr nodes for [0,J/2]
-    f[n] = J2 * (FLT)w[n] * evaluate_kernel((FLT)z[n], opts); // w/ quadr weights
+    z[n] *= (T)J2;                           // quadr nodes for [0,J/2]
+    f[n] = J2 * (T)w[n] * evaluate_kernel((T)z[n], opts); // w/ quadr weights
     // printf("f[%d] = %.3g\n",n,f[n]);
   }
 #pragma omp parallel for num_threads(opts.nthreads)
-  for (BIGINT j = 0; j < nk; ++j) {          // loop along output array
-    FLT x = 0.0;                             // register
+  for (BIGINT j = 0; j < nk; ++j) {        // loop along output array
+    T x = 0.0;                             // register
     for (int n = 0; n < q; ++n)
-      x += f[n] * 2 * cos(k[j] * (FLT)z[n]); // pos & neg freq pair.  use FLT cos!
+      x += f[n] * 2 * cos(k[j] * (T)z[n]); // pos & neg freq pair.  use T cos!
     phihat[j] = x;
   }
 }
 
-static void deconvolveshuffle1d(int dir, FLT prefac, FLT *ker, BIGINT ms, CPX *fk,
-                                BIGINT nf1, CPX *fw, int modeord)
+template<typename T>
+static void deconvolveshuffle1d(int dir, T prefac, T *ker, BIGINT ms, std::complex<T> *fk,
+                                BIGINT nf1, std::complex<T> *fw, int modeord)
 /*
   if dir==1: copies fw to fk with amplification by prefac/ker
   if dir==2: copies fk to fw (and zero pads rest of it), same amplification.
@@ -279,9 +284,9 @@ static void deconvolveshuffle1d(int dir, FLT prefac, FLT *ker, BIGINT ms, CPX *f
   modeord=0: use CMCL-compatible mode ordering in fk (from -N/2 up to N/2-1)
       1: use FFT-style (from 0 to N/2-1, then -N/2 up to -1).
 
-  fk is a size-ms FLT complex array (2*ms FLTs alternating re,im parts)
-  fw is a size-nf1 complex array (2*nf1 FLTs alternating re,im parts)
-  ker is real-valued FLT array of length nf1/2+1.
+  fk is a size-ms T complex array (2*ms Ts alternating re,im parts)
+  fw is a size-nf1 complex array (2*nf1 Ts alternating re,im parts)
+  ker is real-valued T array of length nf1/2+1.
 
   Single thread only, but shouldn't matter since mostly data movement.
 
@@ -319,9 +324,10 @@ static void deconvolveshuffle1d(int dir, FLT prefac, FLT *ker, BIGINT ms, CPX *f
   }
 }
 
-static void deconvolveshuffle2d(int dir, FLT prefac, FLT *ker1, FLT *ker2, BIGINT ms,
-                                BIGINT mt, CPX *fk, BIGINT nf1, BIGINT nf2, CPX *fw,
-                                int modeord)
+template<typename T>
+static void deconvolveshuffle2d(int dir, T prefac, T *ker1, T *ker2, BIGINT ms, BIGINT mt,
+                                std::complex<T> *fk, BIGINT nf1, BIGINT nf2,
+                                std::complex<T> *fw, int modeord)
 /*
   2D version of deconvolveshuffle1d, calls it on each x-line using 1/ker2 fac.
 
@@ -331,11 +337,11 @@ static void deconvolveshuffle2d(int dir, FLT prefac, FLT *ker1, FLT *ker2, BIGIN
   modeord=0: use CMCL-compatible mode ordering in fk (each dim increasing)
       1: use FFT-style (pos then negative, on each dim)
 
-  fk is a complex array stored as 2*ms*mt FLTs alternating re,im parts, with
+  fk is a complex array stored as 2*ms*mt Ts alternating re,im parts, with
   ms looped over fast and mt slow.
-  fw is a complex array stored as 2*nf1*nf2] FLTs alternating re,im parts, with
+  fw is a complex array stored as 2*nf1*nf2] Ts alternating re,im parts, with
   nf1 looped over fast and nf2 slow.
-  ker1, ker2 are real-valued FLT arrays of lengths nf1/2+1, nf2/2+1
+  ker1, ker2 are real-valued T arrays of lengths nf1/2+1, nf2/2+1
      respectively.
 
   Barnett 2/1/17, Fixed mt=0 case 3/14/17. modeord 10/25/17
@@ -362,9 +368,10 @@ static void deconvolveshuffle2d(int dir, FLT prefac, FLT *ker1, FLT *ker2, BIGIN
                                 &fw[nf1 * (nf2 + k2)], modeord);
 }
 
-static void deconvolveshuffle3d(int dir, FLT prefac, FLT *ker1, FLT *ker2, FLT *ker3,
-                                BIGINT ms, BIGINT mt, BIGINT mu, CPX *fk, BIGINT nf1,
-                                BIGINT nf2, BIGINT nf3, CPX *fw, int modeord)
+template<typename T>
+static void deconvolveshuffle3d(int dir, T prefac, T *ker1, T *ker2, T *ker3, BIGINT ms,
+                                BIGINT mt, BIGINT mu, std::complex<T> *fk, BIGINT nf1,
+                                BIGINT nf2, BIGINT nf3, std::complex<T> *fw, int modeord)
 /*
   3D version of deconvolveshuffle2d, calls it on each xy-plane using 1/ker3 fac.
 
@@ -374,11 +381,11 @@ static void deconvolveshuffle3d(int dir, FLT prefac, FLT *ker1, FLT *ker2, FLT *
   modeord=0: use CMCL-compatible mode ordering in fk (each dim increasing)
       1: use FFT-style (pos then negative, on each dim)
 
-  fk is a complex array stored as 2*ms*mt*mu FLTs alternating re,im parts, with
+  fk is a complex array stored as 2*ms*mt*mu Ts alternating re,im parts, with
   ms looped over fastest and mu slowest.
-  fw is a complex array stored as 2*nf1*nf2*nf3 FLTs alternating re,im parts, with
+  fw is a complex array stored as 2*nf1*nf2*nf3 Ts alternating re,im parts, with
   nf1 looped over fastest and nf3 slowest.
-  ker1, ker2, ker3 are real-valued FLT arrays of lengths nf1/2+1, nf2/2+1,
+  ker1, ker2, ker3 are real-valued T arrays of lengths nf1/2+1, nf2/2+1,
      and nf3/2+1 respectively.
 
   Barnett 2/1/17, Fixed mu=0 case 3/14/17. modeord 10/25/17
@@ -407,8 +414,9 @@ static void deconvolveshuffle3d(int dir, FLT prefac, FLT *ker1, FLT *ker2, FLT *
 
 // --------- batch helper functions for t1,2 exec: ---------------------------
 
-static int spreadinterpSortedBatch(int batchSize, FINUFFT_PLAN p, CPX *fwBatch,
-                                   CPX *cBatch)
+template<typename T>
+static int spreadinterpSortedBatch(int batchSize, FINUFFT_PLAN p,
+                                   std::complex<T> *fwBatch, std::complex<T> *cBatch)
 /*
   Spreads (or interpolates) a batch of batchSize strength vectors in cBatch
   to (or from) the batch of fine working grids fwBatch, using the same set of
@@ -430,15 +438,17 @@ static int spreadinterpSortedBatch(int batchSize, FINUFFT_PLAN p, CPX *fwBatch,
 #endif
 #pragma omp parallel for num_threads(nthr_outer)
   for (int i = 0; i < batchSize; i++) {
-    CPX *fwi = fwBatch + i * p->nf; // start of i'th fw array in wkspace
-    CPX *ci  = cBatch + i * p->nj;  // start of i'th c array in cBatch
-    spreadinterpSorted(p->sortIndices.data(), p->nf1, p->nf2, p->nf3, (FLT *)fwi, p->nj,
-                       p->X, p->Y, p->Z, (FLT *)ci, p->spopts, p->didSort);
+    std::complex<T> *fwi = fwBatch + i * p->nf; // start of i'th fw array in wkspace
+    std::complex<T> *ci  = cBatch + i * p->nj;  // start of i'th c array in cBatch
+    spreadinterpSorted(p->sortIndices.data(), p->nf1, p->nf2, p->nf3, (T *)fwi, p->nj,
+                       p->X, p->Y, p->Z, (T *)ci, p->spopts, p->didSort);
   }
   return 0;
 }
 
-static int deconvolveBatch(int batchSize, FINUFFT_PLAN p, CPX *fwBatch, CPX *fkBatch)
+template<typename T>
+static int deconvolveBatch(int batchSize, FINUFFT_PLAN p, std::complex<T> *fwBatch,
+                           std::complex<T> *fkBatch)
 /*
   Type 1: deconvolves (amplifies) from each interior fw array in fwBatch
   into each output array fk in fkBatch.
@@ -453,19 +463,19 @@ static int deconvolveBatch(int batchSize, FINUFFT_PLAN p, CPX *fwBatch, CPX *fkB
   // since deconvolveshuffle?d are single-thread, omp par seems to help here...
 #pragma omp parallel for num_threads(batchSize)
   for (int i = 0; i < batchSize; i++) {
-    CPX *fwi = fwBatch + i * p->nf; // start of i'th fw array in wkspace
-    CPX *fki = fkBatch + i * p->N;  // start of i'th fk array in fkBatch
+    std::complex<T> *fwi = fwBatch + i * p->nf; // start of i'th fw array in wkspace
+    std::complex<T> *fki = fkBatch + i * p->N;  // start of i'th fk array in fkBatch
 
     // Call routine from common.cpp for the dim; prefactors hardcoded to 1.0...
     if (p->dim == 1)
-      deconvolveshuffle1d(p->spopts.spread_direction, 1.0, p->phiHat1.data(), p->ms, fki,
+      deconvolveshuffle1d(p->spopts.spread_direction, T(1), p->phiHat1.data(), p->ms, fki,
                           p->nf1, fwi, p->opts.modeord);
     else if (p->dim == 2)
-      deconvolveshuffle2d(p->spopts.spread_direction, 1.0, p->phiHat1.data(),
+      deconvolveshuffle2d(p->spopts.spread_direction, T(1), p->phiHat1.data(),
                           p->phiHat2.data(), p->ms, p->mt, fki, p->nf1, p->nf2, fwi,
                           p->opts.modeord);
     else
-      deconvolveshuffle3d(p->spopts.spread_direction, 1.0, p->phiHat1.data(),
+      deconvolveshuffle3d(p->spopts.spread_direction, T(1), p->phiHat1.data(),
                           p->phiHat2.data(), p->phiHat3.data(), p->ms, p->mt, p->mu, fki,
                           p->nf1, p->nf2, p->nf3, fwi, p->opts.modeord);
   }
