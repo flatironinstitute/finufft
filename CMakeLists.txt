@@ -29,6 +29,10 @@ if (CMAKE_CXX_COMPILER_ID IN_LIST GNU_LIKE_FRONTENDS)
 endif ()
 
 include(CTest)
+# Set default build type to Release
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE Release CACHE STRING "Set the default build type to Release" FORCE)
+endif()
 
 if (CMAKE_CXX_COMPILER_ID IN_LIST GNU_LIKE_FRONTENDS)
     if (CMAKE_SYSTEM_PROCESSOR MATCHES "ppc|ppc64|powerpc|powerpc64" OR (APPLE AND CMAKE_OSX_ARCHITECTURES MATCHES "ppc|ppc64"))
@@ -228,11 +232,13 @@ if (FINUFFT_USE_CPU)
         target_compile_definitions(finufft_f32_dll PRIVATE SINGLE dll_EXPORTS FINUFFT_DLL)
         set_finufft_options(finufft_f32_dll)
         target_link_libraries(finufft_f32_dll PUBLIC ${FINUFFT_FFTLIBS})
+        target_link_libraries(finufft_f32_dll PRIVATE xsimd)
 
         add_library(finufft_f64_dll OBJECT ${FINUFFT_PRECISION_DEPENDENT_SOURCES})
         target_compile_definitions(finufft_f64_dll PRIVATE dll_EXPORTS FINUFFT_DLL)
         set_finufft_options(finufft_f64_dll)
         target_link_libraries(finufft_f64_dll PUBLIC ${FINUFFT_FFTLIBS})
+        target_link_libraries(finufft_f64_dll PRIVATE xsimd)
     endif ()
 
     add_library(finufft SHARED src/utils_precindep.cpp contrib/legendre_rule_fast.cpp)
