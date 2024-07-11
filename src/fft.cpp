@@ -41,6 +41,9 @@ void do_fft(FINUFFT_PLAN p, CPX *fwBatch) {
     axes.push_back(3);
   }
   ducc0::vfmav<CPX> data(fwBatch, arrdims);
+#ifdef FINUFFT_NO_DUCC0_TWEAKS
+  ducc0::c2c(data, data, axes, p->fftSign < 0, FLT(1), nthreads);
+#else
   if (p->dim == 1)        // 1D: no chance for FFT shortcuts
     ducc0::c2c(data, data, axes, p->fftSign < 0, FLT(1), nthreads);
   else if (p->dim == 2) { // 2D: do partial FFTs
@@ -96,6 +99,7 @@ void do_fft(FINUFFT_PLAN p, CPX *fwBatch) {
       }
     }
   }
+#endif
   delete[] ns;
 #else
   FFTW_EX(p->fftwPlan); // if thisBatchSize<batchSize it wastes some flops
