@@ -27,7 +27,11 @@ PYTHON = python3
 # Notes: 1) -Ofast breaks isfinite() & isnan(), so use -O3 which now is as fast
 #        2) -fcx-limited-range for fortran-speed complex arith in C++
 #        3) we use simply-expanded (:=) makefile variables, otherwise confusing
-CFLAGS := -O3 -funroll-loops -march=native -fcx-limited-range -ffp-contract=fast $(CFLAGS)
+# 		 4) the extra math flags are for speed, but they do not impact accuracy
+#           they allow gcc to vectorize the code more effectively
+CFLAGS := -O3 -funroll-loops -march=native -fcx-limited-range -ffp-contract=fast\
+		  -fno-math-errno -fno-signed-zeros -fno-trapping-math -fassociative-math\
+		  -freciprocal-math -fmerge-all-constants -ftree-vectorize $(CFLAGS)
 FFLAGS := $(CFLAGS) $(FFLAGS)
 CXXFLAGS := $(CFLAGS) $(CXXFLAGS)
 # FFTW base name, and math linking...
