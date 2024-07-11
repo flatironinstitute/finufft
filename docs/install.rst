@@ -65,7 +65,7 @@ The basic quick download, building, and test is then:
   cmake --install .
 
 
-Note: if you don't supply --install-prefix, it will default to ``/usr/local`` on most systems. If you don't
+Note: `Release` here is essential to get the best performing version. Also, if you don't supply `--install-prefix`, it will default to ``/usr/local`` on most systems. If you don't
 have root access, you must supply a prefix you can write to such as ``$HOME/local``. Now...
 
 In ``build``, this creates ``libfinufft_static.a`` and ``libfinufft.so``, and runs a test that should take a
@@ -104,7 +104,7 @@ For example, to configure, build and test the development preset (which builds t
 
 .. warning::
 
-  Intel compilers (unlike GPU compilers) currently engage ``fastmath`` behavior with ``-O2`` or ``-O3``. This may interfere with our use of ``std::isnan`` in our test codes. For this reason in the Intel presets ``icx`` and ``icc`` have set ``-fp-model=strict``. You may get more speed if you remove this flag.
+  Intel compilers (unlike GPU compilers) currently engage ``fastmath`` behavior with ``-O2`` or ``-O3``. This may interfere with our use of ``std::isfinite`` in our test codes. For this reason in the Intel presets ``icx`` and ``icc`` have set ``-fp-model=strict``. You may get more speed if you remove this flag, or try ``-fno-finite-math-only``.
 
 From other CMake projects, to use ``finufft`` as a library, simply add this repository as a subdirectory using
 ``add_subdirectory``, and use ``target_link_library(your_executable finufft)``.
