@@ -59,7 +59,7 @@ The basic quick download, building, and test is then:
   cd finufft
   mkdir build
   cd build
-  cmake .. -D FINUFFT_BUILD_TESTS=ON --install-prefix /path/to/install
+  cmake .. -D FINUFFT_BUILD_TESTS=ON -D CMAKE_BUILD_TYPE=Release --install-prefix /path/to/install
   cmake --build . -j
   ctest
   cmake --install .

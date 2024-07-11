@@ -4,7 +4,7 @@ using CairoMakie
 using JLD2        # for load/save arrays to file
 using UnPack
 
-fnam = "/home/alex/numerics/finufft/perftest/results/7-1-24-vs-ivec_gcc114_5700U_nthr1"   # outfile head
+fnam = "/home/alex/numerics/finufft/perftest/results/7-2-24-vs-ivecflags_gcc114_5700U_nthr1"   # outfile head
 # locations of pair of FINUFFT repos to compare...
 repo1 = "/home/alex/numerics/finufft"
 repo2 = "/home/alex/numerics/nufft/finufft-svec2"
