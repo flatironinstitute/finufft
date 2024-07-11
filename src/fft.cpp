@@ -44,6 +44,14 @@ void do_fft(FINUFFT_PLAN p) {
 #ifdef FINUFFT_NO_DUCC0_TWEAKS
   ducc0::c2c(data, data, axes, p->fftSign < 0, FLT(1), nthreads);
 #else
+  /* For type 1 NUFFTs, only the low-frequency parts of the output fine grid are
+     going to be used, and for type 2 NUFFTs, the high frequency parts of the
+     input fine grid are zero by definition. This can be used to reduce the
+     total FFT work for 2D and 3D NUFFTs. One of the FFT axes always has to be
+     transformed fully (that's why there is no savings for 1D NUFFTs), for the
+     second axis we need to do (roughly) a fraction of 1/oversampling_factor
+     of all 1D FFTs, and for the last remaining axis the factor is
+     1/oversampling_factor^2. */
   if (p->dim == 1)        // 1D: no chance for FFT shortcuts
     ducc0::c2c(data, data, axes, p->fftSign < 0, FLT(1), nthreads);
   else if (p->dim == 2) { // 2D: do partial FFTs
