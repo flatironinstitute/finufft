@@ -24,7 +24,7 @@ int *gridsize_for_fft(FINUFFT_PLAN p) {
   return nf;
 }
 
-void do_fft(FINUFFT_PLAN p, CPX *fwBatch) {
+void do_fft(FINUFFT_PLAN p) {
 #ifdef FINUFFT_USE_DUCC0
   size_t nthreads = min<size_t>(MY_OMP_GET_MAX_THREADS(), p->opts.nthreads);
   int *ns         = gridsize_for_fft(p);
@@ -40,7 +40,7 @@ void do_fft(FINUFFT_PLAN p, CPX *fwBatch) {
     arrdims.push_back(size_t(ns[2]));
     axes.push_back(3);
   }
-  ducc0::vfmav<CPX> data(fwBatch, arrdims);
+  ducc0::vfmav<CPX> data(p->fwBatch, arrdims);
 #ifdef FINUFFT_NO_DUCC0_TWEAKS
   ducc0::c2c(data, data, axes, p->fftSign < 0, FLT(1), nthreads);
 #else

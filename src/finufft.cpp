@@ -426,10 +426,10 @@ void deconvolveshuffle3d(int dir, FLT prefac, FLT *ker1, FLT *ker2, FLT *ker3, B
 
 // --------- batch helper functions for t1,2 exec: ---------------------------
 
-int spreadinterpSortedBatch(int batchSize, FINUFFT_PLAN p, CPX *fwBatch, CPX *cBatch)
+int spreadinterpSortedBatch(int batchSize, FINUFFT_PLAN p, CPX *cBatch)
 /*
   Spreads (or interpolates) a batch of batchSize strength vectors in cBatch
-  to (or from) the batch of fine working grids fwBatch, using the same set of
+  to (or from) the batch of fine working grids p->fwBatch, using the same set of
   (index-sorted) NU points p->X,Y,Z for each vector in the batch.
   The direction (spread vs interpolate) is set by p->spopts.spread_direction.
   Returns 0 (no error reporting for now).
@@ -448,20 +448,20 @@ int spreadinterpSortedBatch(int batchSize, FINUFFT_PLAN p, CPX *fwBatch, CPX *cB
 #endif
 #pragma omp parallel for num_threads(nthr_outer)
   for (int i = 0; i < batchSize; i++) {
-    CPX *fwi = fwBatch + i * p->nf; // start of i'th fw array in wkspace
-    CPX *ci  = cBatch + i * p->nj;  // start of i'th c array in cBatch
+    CPX *fwi = p->fwBatch + i * p->nf; // start of i'th fw array in wkspace
+    CPX *ci  = cBatch + i * p->nj;     // start of i'th c array in cBatch
     spreadinterpSorted(p->sortIndices, p->nf1, p->nf2, p->nf3, (FLT *)fwi, p->nj, p->X,
                        p->Y, p->Z, (FLT *)ci, p->spopts, p->didSort);
   }
   return 0;
 }
 
-int deconvolveBatch(int batchSize, FINUFFT_PLAN p, CPX *fwBatch, CPX *fkBatch)
+int deconvolveBatch(int batchSize, FINUFFT_PLAN p, CPX *fkBatch)
 /*
-  Type 1: deconvolves (amplifies) from each interior fw array in fwBatch
+  Type 1: deconvolves (amplifies) from each interior fw array in p->fwBatch
   into each output array fk in fkBatch.
   Type 2: deconvolves from user-supplied input fk to 0-padded interior fw,
-  again looping over fk in fkBatch and fw in fwBatch.
+  again looping over fk in fkBatch and fw in p->fwBatch.
   The direction (spread vs interpolate) is set by p->spopts.spread_direction.
   This is mostly a loop calling deconvolveshuffle?d for the needed dim batchSize
   times.
@@ -471,8 +471,8 @@ int deconvolveBatch(int batchSize, FINUFFT_PLAN p, CPX *fwBatch, CPX *fkBatch)
   // since deconvolveshuffle?d are single-thread, omp par seems to help here...
 #pragma omp parallel for num_threads(batchSize)
   for (int i = 0; i < batchSize; i++) {
-    CPX *fwi = fwBatch + i * p->nf; // start of i'th fw array in wkspace
-    CPX *fki = fkBatch + i * p->N;  // start of i'th fk array in fkBatch
+    CPX *fwi = p->fwBatch + i * p->nf; // start of i'th fw array in wkspace
+    CPX *fki = fkBatch + i * p->N;     // start of i'th fk array in fkBatch
 
     // Call routine from common.cpp for the dim; prefactors hardcoded to 1.0...
     if (p->dim == 1)
@@ -729,9 +729,12 @@ int FINUFFT_MAKEPLAN(int type, int dim, BIGINT *n_modes, int iflag, int ntrans, 
       return FINUFFT_ERR_MAXNALLOC;
     }
 
-#ifndef FINUFFT_USE_DUCC0
     timer.restart();
+#ifdef FINUFFT_USE_DUCC0
+    p->fwBatch = (CPX *)malloc(p->nf * p->batchSize * sizeof(CPX)); // the big workspace
+#else
     p->fwBatch = (CPX *)FFTW_ALLOC_CPX(p->nf * p->batchSize); // the big workspace
+#endif
     if (p->opts.debug)
       printf("[%s] fwBatch %.2fGB alloc:   \t%.3g s\n", __func__,
              (double)1E-09 * sizeof(CPX) * p->nf * p->batchSize, timer.elapsedsec());
@@ -744,6 +747,7 @@ int FINUFFT_MAKEPLAN(int type, int dim, BIGINT *n_modes, int iflag, int ntrans, 
       return FINUFFT_ERR_ALLOC;
     }
 
+#ifndef FINUFFT_USE_DUCC0
     timer.restart(); // plan the FFTW
     int *ns = gridsize_for_fft(p);
     // fftw_plan_many_dft args: rank, gridsize/dim, howmany, in, inembed, istride,
@@ -770,11 +774,9 @@ int FINUFFT_MAKEPLAN(int type, int dim, BIGINT *n_modes, int iflag, int ntrans, 
   } else { // -------------------------- type 3 (no planning) ------------
 
     if (p->opts.debug) printf("[%s] %dd%d: ntrans=%d\n", __func__, dim, type, ntrans);
-      // in case destroy occurs before setpts, need safe dummy ptrs/plans...
-#ifndef FINUFFT_USE_DUCC0
-    p->CpBatch = NULL;
-    p->fwBatch = NULL;
-#endif
+    // in case destroy occurs before setpts, need safe dummy ptrs/plans...
+    p->CpBatch     = NULL;
+    p->fwBatch     = NULL;
     p->Sp          = NULL;
     p->Tp          = NULL;
     p->Up          = NULL;
@@ -891,9 +893,13 @@ int FINUFFT_SETPTS(FINUFFT_PLAN p, BIGINT nj, FLT *xj, FLT *yj, FLT *zj, BIGINT 
               __func__);
       return FINUFFT_ERR_MAXNALLOC;
     }
-#ifndef FINUFFT_USE_DUCC0
+#ifdef FINUFFT_USE_DUCC0
+    free(p->fwBatch);
+    p->fwBatch = (CPX *)malloc(p->nf * p->batchSize * sizeof(CPX)); // maybe big workspace
+#else
     if (p->fwBatch) FFTW_FR(p->fwBatch);
     p->fwBatch = (CPX *)FFTW_ALLOC_CPX(p->nf * p->batchSize); // maybe big workspace
+#endif
 
     // (note FFTW_ALLOC is not needed over malloc, but matches its type)
     if (p->CpBatch) free(p->CpBatch);
@@ -908,7 +914,6 @@ int FINUFFT_SETPTS(FINUFFT_PLAN p, BIGINT nj, FLT *xj, FLT *yj, FLT *zj, BIGINT 
       return FINUFFT_ERR_ALLOC;
     }
     // printf("fwbatch, cpbatch ptrs: %llx %llx\n",p->fwBatch,p->CpBatch);
-#endif
 
     // alloc rescaled NU src pts x'_j (in X etc), rescaled NU targ pts s'_k ...
     if (p->X) free(p->X);
@@ -1073,13 +1078,6 @@ int FINUFFT_EXECUTE(FINUFFT_PLAN p, CPX *cj, CPX *fk) {
   CNTime timer;
   timer.start();
 
-#ifdef FINUFFT_USE_DUCC0
-  std::vector<CPX> fwBatch_(p->nf * p->batchSize); // the big workspace
-  CPX *fwBatch = fwBatch_.data();
-#else
-  CPX *fwBatch = p->fwBatch;
-#endif
-
   if (p->type != 3) { // --------------------- TYPE 1,2 EXEC ------------------
 
     double t_sprint = 0.0, t_fft = 0.0, t_deconv = 0.0; // accumulated timing
@@ -1100,26 +1098,26 @@ int FINUFFT_EXECUTE(FINUFFT_PLAN p, CPX *cj, CPX *fk) {
       // STEP 1: (varies by type)
       timer.restart();
       if (p->type == 1) { // type 1: spread NU pts p->X, weights cj, to fw grid
-        spreadinterpSortedBatch(thisBatchSize, p, fwBatch, cjb);
+        spreadinterpSortedBatch(thisBatchSize, p, cjb);
         t_sprint += timer.elapsedsec();
       } else { //  type 2: amplify Fourier coeffs fk into 0-padded fw
-        deconvolveBatch(thisBatchSize, p, fwBatch, fkb);
+        deconvolveBatch(thisBatchSize, p, fkb);
         t_deconv += timer.elapsedsec();
       }
 
       // STEP 2: call the FFT on this batch
       timer.restart();
-      do_fft(p, fwBatch);
+      do_fft(p);
       t_fft += timer.elapsedsec();
       if (p->opts.debug > 1) printf("\tFFT exec:\t\t%.3g s\n", timer.elapsedsec());
 
       // STEP 3: (varies by type)
       timer.restart();
       if (p->type == 1) { // type 1: deconvolve (amplify) fw and shuffle to fk
-        deconvolveBatch(thisBatchSize, p, fwBatch, fkb);
+        deconvolveBatch(thisBatchSize, p, fkb);
         t_deconv += timer.elapsedsec();
       } else { // type 2: interpolate unif fw grid to NU target pts
-        spreadinterpSortedBatch(thisBatchSize, p, fwBatch, cjb);
+        spreadinterpSortedBatch(thisBatchSize, p, cjb);
         t_sprint += timer.elapsedsec();
       }
     } // ........end b loop
@@ -1148,13 +1146,6 @@ int FINUFFT_EXECUTE(FINUFFT_PLAN p, CPX *cj, CPX *fk) {
       printf("[%s t3] start ntrans=%d (%d batches, bsize=%d)...\n", __func__, p->ntrans,
              p->nbatch, p->batchSize);
 
-#ifdef FINUFFT_USE_DUCC0
-    std::vector<CPX> CpBatch_(p->nj * p->batchSize); // batch c' work
-    CPX *CpBatch = CpBatch_.data();
-#else
-    CPX *CpBatch = p->CpBatch;
-#endif
-
     for (int b = 0; b * p->batchSize < p->ntrans; b++) { // .....loop b over batches
 
       // batching and pointers to this batch, identical to t1,2 above...
@@ -1171,14 +1162,14 @@ int FINUFFT_EXECUTE(FINUFFT_PLAN p, CPX *cj, CPX *fk) {
       for (int i = 0; i < thisBatchSize; i++) {
         BIGINT ioff = i * p->nj;
         for (BIGINT j = 0; j < p->nj; ++j)
-          CpBatch[ioff + j] = p->prephase[j] * cjb[ioff + j];
+          p->CpBatch[ioff + j] = p->prephase[j] * cjb[ioff + j];
       }
       t_pre += timer.elapsedsec();
 
       // STEP 1: spread c'_j batch (x'_j NU pts) into fw batch grid...
       timer.restart();
-      p->spopts.spread_direction = 1;                              // spread
-      spreadinterpSortedBatch(thisBatchSize, p, fwBatch, CpBatch); // p->X are primed
+      p->spopts.spread_direction = 1;                        // spread
+      spreadinterpSortedBatch(thisBatchSize, p, p->CpBatch); // p->X are primed
       t_spr += timer.elapsedsec();
 
       // for (int j=0;j<p->nf1;++j)
@@ -1191,7 +1182,7 @@ int FINUFFT_EXECUTE(FINUFFT_PLAN p, CPX *cj, CPX *fk) {
       p->innerT2plan->ntrans = thisBatchSize; // do not try this at home!
       /* (alarming that FFT not shrunk, but safe, because t2's fwBatch array
      still the same size, as Andrea explained; just wastes a few flops) */
-      FINUFFT_EXECUTE(p->innerT2plan, fkb, (CPX *)(fwBatch));
+      FINUFFT_EXECUTE(p->innerT2plan, fkb, p->fwBatch);
       t_t2 += timer.elapsedsec();
 
       // STEP 3: apply deconvolve (precomputed 1/phiHat(targ_k), phasing too)...
@@ -1227,7 +1218,9 @@ int FINUFFT_DESTROY(FINUFFT_PLAN p)
   if (!p) // NULL ptr, so not a ptr to a plan, report error
     return 1;
 
-#ifndef FINUFFT_USE_DUCC0
+#ifdef FINUFFT_USE_DUCC0
+  free(p->fwBatch); // free the big FFTW (or t3 spread) working array
+#else
   FFTW_FR(p->fwBatch); // free the big FFTW (or t3 spread) working array
 #endif
   free(p->sortIndices);
@@ -1243,9 +1236,7 @@ int FINUFFT_DESTROY(FINUFFT_PLAN p)
     free(p->phiHat3);
   } else {                           // free the stuff alloc for type 3 only
     FINUFFT_DESTROY(p->innerT2plan); // if NULL, ignore its error code
-#ifndef FINUFFT_USE_DUCC0
     free(p->CpBatch);
-#endif
     free(p->Sp);
     free(p->Tp);
     free(p->Up);
