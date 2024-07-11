@@ -69,8 +69,6 @@ template<uint8_t w, class simd_type = xsimd::make_sized_batch_t<
                         FLT, find_optimal_simd_width<FLT, w>()>> // aka ns
 static FINUFFT_ALWAYS_INLINE void eval_kernel_vec_Horner(
     FLT *FINUFFT_RESTRICT ker, FLT x, const finufft_spread_opts &opts) noexcept;
-static FINUFFT_ALWAYS_INLINE void eval_kernel_vec_Horner_unaligned_store(
-    FLT *FINUFFT_RESTRICT ker, FLT x, const finufft_spread_opts &opts) noexcept;
 template<uint8_t ns>
 static void interp_line(FLT *FINUFFT_RESTRICT out, const FLT *du, const FLT *ker,
                         BIGINT i1, BIGINT N1);
