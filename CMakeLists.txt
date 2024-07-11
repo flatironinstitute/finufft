@@ -53,7 +53,7 @@ option(FINUFFT_USE_CUDA "Whether to build CUDA accelerated FINUFFT library (libc
 option(FINUFFT_USE_CPU "Whether to build the ordinary FINUFFT library (libfinufft)." ON)
 option(FINUFFT_STATIC_LINKING "Whether to link the static FINUFFT library (libfinufft_static)." ON)
 option(FINUFFT_BUILD_DEVEL "Whether to build development executables" OFF)
-option(FINUFFT_USE_DUCC0 "Whether to use DUCC0 for CPU fft library" ON)
+option(FINUFFT_USE_DUCC0 "Whether to use DUCC0 (instead of FFTW) for CPU FFTs" OFF)
 # sphinx tag (don't remove): @cmake_opts_end
 
 if (FINUFFT_USE_CPU)
