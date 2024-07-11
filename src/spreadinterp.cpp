@@ -24,14 +24,8 @@ namespace { // anonymous namespace for internal structs equivalent to declaring 
             // static
 struct zip_low;
 struct zip_hi;
-template<unsigned cap>
-struct reverse_index;
-template<unsigned cap>
-struct select_index;
-template<unsigned cap>
-struct reverse_index_tail;
-template<unsigned cap>
-struct shuffle_index;
+template<unsigned cap> struct reverse_index;
+template<unsigned cap> struct shuffle_index;
 // forward declaration to clean up the code and be able to use this everywhere in the file
 template<class T, uint8_t N, uint8_t K = N> static constexpr auto BestSIMDHelper();
 template<class T, uint8_t N> constexpr auto GetPaddedSIMDWidth();
@@ -752,8 +746,7 @@ void evaluate_kernel_vector(FLT *ker, FLT *args, const finufft_spread_opts &opts
     if (opts.kerpad) {
       // padded part should be zero, in spread_subproblem_nd_kernels, there are
       // out of bound writes to trg arrays
-      for (int i = N; i < Npad; ++i)
-        ker[i] = 0.0;
+      for (int i = N; i < Npad; ++i) ker[i] = 0.0;
     }
   } else {
     for (int i = 0; i < N; i++) // dummy for timing only
@@ -762,66 +755,6 @@ void evaluate_kernel_vector(FLT *ker, FLT *args, const finufft_spread_opts &opts
   // Separate check from arithmetic (Is this really needed? doesn't slow down)
   for (int i = 0; i < N; i++)
     if (abs(args[i]) >= (FLT)opts.ES_halfwidth) ker[i] = 0.0;
-}
-
-template<uint8_t w, class simd_type> // aka ns
-void eval_kernel_vec_Horner_unaligned_store(FLT *FINUFFT_RESTRICT ker, const FLT x,
-                            const finufft_spread_opts &opts) noexcept
-/* Fill ker[] with Horner piecewise poly approx to [-w/2,w/2] ES kernel eval at
-x_j = x + j,  for j=0,..,w-1.  Thus x in [-w/2,-w/2+1].   w is aka ns.
-This is the current evaluation method, since it's faster (except i7 w=16).
-Two upsampfacs implemented. Params must match ref formula. Barnett 4/24/18 */
-
-{
-  const FLT z = std::fma(FLT(2.0), x, FLT(w - 1)); // scale so local grid offset z in
-                                                   // [-1,1]
-  if (opts.upsampfac == 2.0) {                     // floating point equality is fine here
-    static constexpr auto alignment     = simd_type::arch_type::alignment();
-    static constexpr auto simd_size     = simd_type::size;
-    static constexpr auto padded_ns     = (w + simd_size - 1) & ~(simd_size - 1);
-    static constexpr auto nc            = nc200<w>();
-    static constexpr auto horner_coeffs = get_horner_coeffs_200<FLT, w>();
-
-    alignas(alignment) static constexpr auto padded_coeffs =
-        pad_2D_array_with_zeros<FLT, nc, w, padded_ns>(horner_coeffs);
-
-    static constexpr uint8_t nvec = (w+simd_size-1)/simd_size;
-    static constexpr uint8_t nvec_eval = (nvec+1)/2;
-    static constexpr uint8_t n_eval = simd_size*nvec_eval;
-    static constexpr uint8_t if_odd_degree = ((nc+1) % 2);
-    static const simd_type zerov(0.0);
-    const simd_type zv(z);
-    const simd_type z2v = zv * zv;
-    alignas(alignment) std::array<FLT, simd_size> sym_{};
-
-    // process simd vecs
-    for (uint8_t i = 0; i < n_eval; i += simd_size) {
-      auto k_odd  = if_odd_degree ? simd_type::load_aligned(padded_coeffs[0].data() + i) : zerov;
-      auto k_even = simd_type::load_aligned(padded_coeffs[if_odd_degree].data() + i);
-      for (uint8_t j = 1+if_odd_degree; j < nc; j += 2) {
-        const auto cji_odd  = simd_type::load_aligned(padded_coeffs[j].data() + i);
-        k_odd               = xsimd::fma(k_odd, z2v, cji_odd);
-        const auto cji_even = simd_type::load_aligned(padded_coeffs[j+1].data() + i);
-        k_even              = xsimd::fma(k_even, z2v, cji_even);
-      }
-
-      // left
-      xsimd::fma(k_odd, zv, k_even).store_aligned(ker + i);
-
-      // right
-      xsimd::fma(k_odd, -zv, k_even).store_aligned(sym_.data());
-      // let compiler optimize the store, probably unaligned?
-      for (uint8_t j=0, j2=w-1-i; (j<simd_size)&&(j2>=n_eval); ++j,--j2) {
-        ker[j2] = sym_[j];
-      }
-    }
-    return;
-  }
-  // insert the auto-generated code which expects z, w args, writes to ker...
-  if (opts.upsampfac == 1.25) {
-#include "ker_lowupsampfac_horner_allw_loop_constexpr.c"
-    return;
-  }
 }
 
 template<uint8_t w, class simd_type> // aka ns
@@ -849,76 +782,68 @@ Two upsampfacs implemented. Params must match ref formula. Barnett 4/24/18 */
 
     // use kernel symmetry trick if w > simd_size
     if constexpr (use_ker_sym) {
-      static constexpr uint8_t tail = w % simd_size;
-      static constexpr uint8_t if_odd_degree = ((nc+1) % 2);
+      static constexpr uint8_t tail          = w % simd_size;
+      static constexpr uint8_t if_odd_degree = ((nc + 1) % 2);
       static const simd_type zerov(0.0);
       const simd_type zv(z);
       const simd_type z2v = zv * zv;
 
       // no xsimd::select neeeded if tail is zero
       if constexpr (tail) {
-        // some xsimd constants for shuffle
-        //static constexpr auto reverse_batch_head = xsimd::make_batch_constant<xsimd::as_unsigned_integer_t<FLT>, arch_t, reverse_index<tail>>();
-        //static constexpr auto reverse_batch_tail = xsimd::make_batch_constant<xsimd::as_unsigned_integer_t<FLT>, arch_t, reverse_index_tail<tail>>();
-        //static constexpr auto select_batch = xsimd::make_batch_bool_constant<typename simd_type::value_type, arch_t, select_index<tail>>();
-        static constexpr auto shuffle_batch = xsimd::make_batch_constant<xsimd::as_unsigned_integer_t<FLT>, arch_t, shuffle_index<tail>>();
+        // some xsimd constant for shuffle
+        static constexpr auto shuffle_batch =
+            xsimd::make_batch_constant<xsimd::as_unsigned_integer_t<FLT>, arch_t,
+                                       shuffle_index<tail>>();
 
         // process simd vecs
         simd_type k_odd, k_even, k_prev, k_sym = zerov;
-        for (uint8_t i = 0, offset = w - tail; i < (w+1)/2; i += simd_size, offset -= simd_size) {
-          k_odd  = if_odd_degree ? simd_type::load_aligned(padded_coeffs[0].data() + i) : zerov;
+        for (uint8_t i = 0, offset = w - tail; i < (w + 1) / 2;
+             i += simd_size, offset -= simd_size) {
+          k_odd  = if_odd_degree ? simd_type::load_aligned(padded_coeffs[0].data() + i)
+                                 : zerov;
           k_even = simd_type::load_aligned(padded_coeffs[if_odd_degree].data() + i);
-          for (uint8_t j = 1+if_odd_degree; j < nc; j += 2) {
-            const auto cji_odd  = simd_type::load_aligned(padded_coeffs[j].data() + i);
-            k_odd               = xsimd::fma(k_odd, z2v, cji_odd);
-            const auto cji_even = simd_type::load_aligned(padded_coeffs[j+1].data() + i);
-            k_even              = xsimd::fma(k_even, z2v, cji_even);
+          for (uint8_t j = 1 + if_odd_degree; j < nc; j += 2) {
+            const auto cji_odd = simd_type::load_aligned(padded_coeffs[j].data() + i);
+            k_odd              = xsimd::fma(k_odd, z2v, cji_odd);
+            const auto cji_even =
+                simd_type::load_aligned(padded_coeffs[j + 1].data() + i);
+            k_even = xsimd::fma(k_even, z2v, cji_even);
           }
           xsimd::fma(k_odd, zv, k_even).store_aligned(ker + i);
-          if (offset >= (w+1)/2) {
+          if (offset >= (w + 1) / 2) {
             k_prev = k_sym;
-            k_sym = xsimd::fma(k_odd, -zv, k_even);
+            k_sym  = xsimd::fma(k_odd, -zv, k_even);
             xsimd::shuffle(k_sym, k_prev, shuffle_batch).store_aligned(ker + offset);
-            /*
-            // the following is the equivalent code for the shuffle operation to avoid one swizzle in the first iteration
-            // seems not helping the performance
-            if (i==0) {
-              // save one xsimd::swizzle for the first iteration(k_prev is zerov)
-              // by assumption, ker is padded to be multiple of simd_size
-              // the padded part must be zero because in spread_subproblem_*d_kernel, trg has out of bound writes.
-              xsimd::select(select_batch, xsimd::swizzle(k_sym, reverse_batch_head), zerov).store_aligned(ker + offset);
-            }
-            else {
-              // xsimd::select of two xsimd::swizzle is the xsimd::shuffle for the general shuffle case
-              //xsimd::select(select_batch, xsimd::swizzle(k_sym, reverse_batch_head), xsimd::swizzle(k_prev, reverse_batch_tail)).store_aligned(ker + offset);
-              xsimd::shuffle(k_sym, k_prev, shuffle_batch).store_aligned(ker + offset);
-            }
-            */
           }
         }
-      }
-      else {
+      } else {
         // xsimd constants for reverse
-        static constexpr auto reverse_batch = xsimd::make_batch_constant<xsimd::as_unsigned_integer_t<FLT>, arch_t, reverse_index<simd_size>>();
+        static constexpr auto reverse_batch =
+            xsimd::make_batch_constant<xsimd::as_unsigned_integer_t<FLT>, arch_t,
+                                       reverse_index<simd_size>>();
 
         // process simd vecs
-        for (uint8_t i = 0, offset = w - simd_size; i < w/2; i += simd_size, offset -= simd_size) {
-          auto k_odd  = if_odd_degree ? simd_type::load_aligned(padded_coeffs[0].data() + i) : zerov;
+        for (uint8_t i = 0, offset = w - simd_size; i < w / 2;
+             i += simd_size, offset -= simd_size) {
+          auto k_odd  = if_odd_degree
+                            ? simd_type::load_aligned(padded_coeffs[0].data() + i)
+                            : zerov;
           auto k_even = simd_type::load_aligned(padded_coeffs[if_odd_degree].data() + i);
-          for (uint8_t j = 1+if_odd_degree; j < nc; j += 2) {
-            const auto cji_odd  = simd_type::load_aligned(padded_coeffs[j].data() + i);
-            k_odd               = xsimd::fma(k_odd, z2v, cji_odd);
-            const auto cji_even = simd_type::load_aligned(padded_coeffs[j+1].data() + i);
-            k_even              = xsimd::fma(k_even, z2v, cji_even);
+          for (uint8_t j = 1 + if_odd_degree; j < nc; j += 2) {
+            const auto cji_odd = simd_type::load_aligned(padded_coeffs[j].data() + i);
+            k_odd              = xsimd::fma(k_odd, z2v, cji_odd);
+            const auto cji_even =
+                simd_type::load_aligned(padded_coeffs[j + 1].data() + i);
+            k_even = xsimd::fma(k_even, z2v, cji_even);
           }
           xsimd::fma(k_odd, zv, k_even).store_aligned(ker + i);
-          if(offset >= w/2) {
-            xsimd::swizzle(xsimd::fma(k_odd, -zv, k_even), reverse_batch).store_aligned(ker + offset);
+          if (offset >= w / 2) {
+            xsimd::swizzle(xsimd::fma(k_odd, -zv, k_even), reverse_batch)
+                .store_aligned(ker + offset);
           }
         }
       }
-    }
-    else {
+    } else {
       const simd_type zv(z);
 
       for (uint8_t i = 0; i < w; i += simd_size) {
@@ -2080,26 +2005,12 @@ struct zip_hi {
     return (size + index) / 2;
   }
 };
-template<unsigned cap>
-struct reverse_index {
+template<unsigned cap> struct reverse_index {
   static constexpr unsigned get(unsigned index, const unsigned size) {
     return index < cap ? (cap - 1 - index) : index;
   }
 };
-template<unsigned cap>
-struct select_index {
-  static constexpr bool get(unsigned index, const unsigned size) {
-    return index < cap ? 1 : 0;
-  }
-};
-template<unsigned cap>
-struct reverse_index_tail {
-  static constexpr unsigned get(unsigned index, const unsigned size) {
-    return index < cap ? index : size + cap - 1 - index;
-  }
-};
-template<unsigned cap>
-struct shuffle_index {
+template<unsigned cap> struct shuffle_index {
   static constexpr unsigned get(unsigned index, const unsigned size) {
     return index < cap ? (cap - 1 - index) : size + size + cap - 1 - index;
   }
