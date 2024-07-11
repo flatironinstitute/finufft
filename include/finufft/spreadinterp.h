@@ -30,26 +30,26 @@ namespace spreadinterp {
 
 // things external (spreadinterp) interface needs...
 FINUFFT_EXPORT int FINUFFT_CDECL spreadinterp(
-    BIGINT N1, BIGINT N2, BIGINT N3, FLT *data_uniform, BIGINT M, FLT *kx, FLT *ky,
+    UBIGINT N1, UBIGINT N2, UBIGINT N3, FLT *data_uniform, UBIGINT N, FLT *kx, FLT *ky,
     FLT *kz, FLT *data_nonuniform, const finufft_spread_opts &opts);
-FINUFFT_EXPORT int FINUFFT_CDECL spreadcheck(BIGINT N1, BIGINT N2, BIGINT N3, BIGINT M,
-                                             FLT *kx, FLT *ky, FLT *kz,
+FINUFFT_EXPORT int FINUFFT_CDECL spreadcheck(UBIGINT N1, UBIGINT N2, UBIGINT N3,
+                                             UBIGINT N, FLT *kx, FLT *ky, FLT *kz,
                                              const finufft_spread_opts &opts);
-FINUFFT_EXPORT int FINUFFT_CDECL indexSort(BIGINT *sort_indices, BIGINT N1, BIGINT N2,
-                                           BIGINT N3, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
-                                           const finufft_spread_opts &opts);
+FINUFFT_EXPORT int FINUFFT_CDECL indexSort(BIGINT *sort_indices, UBIGINT N1, UBIGINT N2,
+                                           UBIGINT N3, UBIGINT N, FLT *kx, FLT *ky,
+                                           FLT *kz, const finufft_spread_opts &opts);
 FINUFFT_EXPORT int FINUFFT_CDECL interpSorted(
-    const BIGINT *sort_indices, BIGINT N1, BIGINT N2, BIGINT N3,
-    FLT *FINUFFT_RESTRICT data_uniform, BIGINT M, FLT *FINUFFT_RESTRICT kx,
+    const BIGINT *sort_indices, UBIGINT N1, UBIGINT N2, UBIGINT N3,
+    FLT *FINUFFT_RESTRICT data_uniform, UBIGINT N, FLT *FINUFFT_RESTRICT kx,
     FLT *FINUFFT_RESTRICT ky, FLT *FINUFFT_RESTRICT kz,
     FLT *FINUFFT_RESTRICT data_nonuniform, const finufft_spread_opts &opts);
 FINUFFT_EXPORT int FINUFFT_CDECL spreadSorted(
-    const BIGINT *sort_indices, BIGINT N1, BIGINT N2, BIGINT N3, FLT *data_uniform,
-    BIGINT M, FLT *kx, FLT *ky, FLT *kz, const FLT *data_nonuniform,
+    const BIGINT *sort_indices, UBIGINT N1, UBIGINT N2, UBIGINT N3, FLT *data_uniform,
+    UBIGINT N, FLT *kx, FLT *ky, FLT *kz, const FLT *data_nonuniform,
     const finufft_spread_opts &opts, int did_sort);
 FINUFFT_EXPORT int FINUFFT_CDECL spreadinterpSorted(
-    const BIGINT *sort_indices, BIGINT N1, BIGINT N2, BIGINT N3,
-    FLT *FINUFFT_RESTRICT data_uniform, BIGINT M, FLT *FINUFFT_RESTRICT kx,
+    const BIGINT *sort_indices, UBIGINT N1, UBIGINT N2, UBIGINT N3,
+    FLT *FINUFFT_RESTRICT data_uniform, UBIGINT N, FLT *FINUFFT_RESTRICT kx,
     FLT *FINUFFT_RESTRICT ky, FLT *FINUFFT_RESTRICT kz,
     FLT *FINUFFT_RESTRICT data_nonuniform, const finufft_spread_opts &opts, int did_sort);
 FINUFFT_EXPORT FLT FINUFFT_CDECL evaluate_kernel(FLT x, const finufft_spread_opts &opts);

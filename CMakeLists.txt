@@ -4,10 +4,27 @@ project(finufft VERSION 2.2.0 LANGUAGES C CXX)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+include(CheckCXXCompilerFlag)
+
 set(GNU_LIKE_FRONTENDS AppleClang Clang GNU)
 if (CMAKE_CXX_COMPILER_ID IN_LIST GNU_LIKE_FRONTENDS)
     # Set custom compiler flags for gcc-compatible compilers
-    set(FINUFFT_CXX_FLAGS_RELEASE -O3 -funroll-loops -ffp-contract=fast)
+    set(FINUFFT_CXX_FLAGS_RELEASE -O3
+            -funroll-loops
+            -ffp-contract=fast
+            -fno-math-errno
+            -fno-signed-zeros
+            -fno-trapping-math
+            -fassociative-math
+            -freciprocal-math
+            -fmerge-all-constants
+            -ftree-vectorize
+    )
+    # if -fimplicit-constexpr is supported, add it to the list of flags
+    check_cxx_compiler_flag("-fimplicit-constexpr" COMPILER_SUPPORTS_FIMPLICIT_CONSTEXPR)
+    if (COMPILER_SUPPORTS_FIMPLICIT_CONSTEXPR)
+        list(APPEND FINUFFT_CXX_FLAGS_RELEASE -fimplicit-constexpr)
+    endif ()
     set(FINUFFT_CXX_FLAGS_RELWITHDEBINFO -g ${FINUFFT_CXX_FLAGS_RELEASE})
 endif ()
 
@@ -100,6 +117,7 @@ function(enable_asan target)
         target_compile_options(${target} PRIVATE $<$<CONFIG:DEBUG>:-fsanitize=address -fsanitize=undefined -fsanitize=bounds-strict>)
         target_link_options(${target} PRIVATE $<$<CONFIG:DEBUG>:-fsanitize=address -fsanitize=undefined -fsanitize=bounds-strict>)
     endif ()
+    target_compile_options(${target} PRIVATE $<$<CONFIG:DEBUG>:-Wall -Wno-sign-compare>)
 endfunction()
 
 # Utility function to link static/dynamic lib
