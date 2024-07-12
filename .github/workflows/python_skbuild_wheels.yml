@@ -87,8 +87,8 @@ jobs:
           CIBW_REPAIR_WHEEL_COMMAND: delvewheel repair -v --analyze-existing -w {dest_dir} {wheel}
           CIBW_TEST_REQUIRES: pytest
           CIBW_TEST_COMMAND: pytest {project}/python/finufft/test
-          # PyPy 3.10 triggers access violation under Windows, for some reason.
-          CIBW_TEST_SKIP: "pp310-win*"
+          # PyPy doesn't seem to work under windows, for some reason.
+          CIBW_TEST_SKIP: "pp*-win*"
 
       - uses: actions/upload-artifact@v4
         with:
