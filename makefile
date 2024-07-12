@@ -118,7 +118,7 @@ SOBJS_PI = src/utils_precindep.o
 SOBJSD = $(SOBJS) $(SOBJSF) $(SOBJS_PI)
 
 # double-prec library object files that also need single precision...
-OBJS = $(SOBJS) src/finufft.o src/simpleinterfaces.o fortran/finufftfort.o
+OBJS = $(SOBJS) src/finufft.o src/simpleinterfaces.o fortran/finufftfort.o src/fft.o
 # their single-prec versions
 OBJSF = $(OBJS:%.o=%_32.o)
 # precision-dependent library object files (compiled & linked only once)...
