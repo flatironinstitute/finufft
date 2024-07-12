@@ -825,7 +825,7 @@ Two upsampfacs implemented. Params must match ref formula. Barnett 4/24/18 */
           if (offset >= (w + 1) / 2) {
             // to use aligned store, we need shuffle the previous k_sym and current k_sym
             k_prev = k_sym;
-            k_sym  = xsimd::fma(k_odd, -zv, k_even);
+            k_sym  = xsimd::fnma(k_odd, zv, k_even);
             xsimd::shuffle(k_sym, k_prev, shuffle_batch).store_aligned(ker + offset);
           }
         }
@@ -854,7 +854,7 @@ Two upsampfacs implemented. Params must match ref formula. Barnett 4/24/18 */
           // right part symmetric to the left part
           if (offset >= w / 2) {
             // reverse the order for symmetric part
-            xsimd::swizzle(xsimd::fma(k_odd, -zv, k_even), reverse_batch)
+            xsimd::swizzle(xsimd::fnma(k_odd, zv, k_even), reverse_batch)
                 .store_aligned(ker + offset);
           }
         }
