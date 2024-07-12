@@ -72,28 +72,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install FFTW
+      - name: Install dependencies
         run: |
-          Invoke-WebRequest -Uri "https://www.fftw.org/fftw-3.3.10.tar.gz" -OutFile "${{ github.workspace }}\fftw.tar.gz"
-
-          New-Item -Path "${{ github.workspace }}" -Name "fftw-source" -ItemType Directory
-          tar --strip-components=1 -C "${{ github.workspace }}\fftw-source" -zxf "${{ github.workspace }}\fftw.tar.gz"
-
-          cmake -S "${{ github.workspace }}\fftw-source" -D CMAKE_INSTALL_PREFIX="${{ github.workspace }}\fftw" -D ENABLE_AVX2=ON -D BUILD_TESTS=OFF -D BUILD_SHARED_LIBS=OFF -D ENABLE_OPENMP=ON -D ENABLE_FLOAT=OFF -B "${{ github.workspace }}\fftw-build"
-          cmake --build "${{ github.workspace }}\fftw-build" --config Release
-          cmake --install "${{ github.workspace }}\fftw-build"
-
-          cmake -S "${{ github.workspace }}\fftw-source" -D CMAKE_INSTALL_PREFIX="${{ github.workspace }}\fftw" -D ENABLE_AVX2=ON -D BUILD_TESTS=OFF -D BUILD_SHARED_LIBS=OFF -D ENABLE_OPENMP=ON -D ENABLE_FLOAT=ON -B "${{ github.workspace }}\fftw-build"
-          cmake --build "${{ github.workspace }}\fftw-build" --config Release
-          cmake --install "${{ github.workspace }}\fftw-build"
+          c:\msys64\usr\bin\pacman.exe -Sy --noconfirm mingw-w64-x86_64-gcc mingw-w64-x86_64-fftw mingw-w64-x86_64-pkgconf
+          echo "c:\msys64\mingw64\bin;" >> $env:GITHUB_PATH
 
       - name: Build wheels
         uses: pypa/cibuildwheel@v2.19.2
         env:
           CIBW_BUILD_VERBOSITY: 1
           CIBW_ARCHS: AMD64
-          CIBW_ENVIRONMENT: >
-            FFTWDIR='${{ github.workspace }}\fftw'
+          CIBW_CONFIG_SETTINGS: "cmake.args='-G Ninja'"
           CIBW_BEFORE_BUILD: pip install delvewheel
           CIBW_REPAIR_WHEEL_COMMAND: delvewheel repair -v -w {dest_dir} {wheel}
           CIBW_TEST_REQUIRES: pytest
