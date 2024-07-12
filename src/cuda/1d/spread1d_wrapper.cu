@@ -16,6 +16,7 @@ using namespace cufinufft::common;
 using namespace cufinufft::memtransfer;
 
 #include "spreadinterp1d.cuh"
+#include <thrust/sort.h>
 
 namespace cufinufft {
 namespace spreadinterp {
@@ -51,10 +52,30 @@ int cuspread1d(cufinufft_plan_t<T> *d_plan, int blksize)
   return ier;
 }
 
+template<typename T> struct cmp : public thrust::binary_function<int, int, bool> {
+
+  cmp(const T *kx) : kx(kx) {}
+
+  __host__ __device__ bool operator()(const int a, const int b) const {
+    return fold_rescale(kx[a], 1) < fold_rescale(kx[b], 1);
+  }
+
+private:
+  const T *kx;
+};
+
 template<typename T>
 int cuspread1d_nuptsdriven_prop(int nf1, int M, cufinufft_plan_t<T> *d_plan) {
   auto &stream = d_plan->stream;
-
+  if (d_plan->opts.gpu_sort && d_plan->opts.gpu_method == 1) {
+    int *d_idxnupts = d_plan->idxnupts;
+    thrust::sequence(thrust::cuda::par.on(stream), d_idxnupts, d_idxnupts + M);
+    RETURN_IF_CUDA_ERROR
+    thrust::sort(thrust::cuda::par.on(stream), d_idxnupts, d_idxnupts + M,
+                 cmp{d_plan->kx});
+    RETURN_IF_CUDA_ERROR
+    return 0;
+  }
   if (d_plan->opts.gpu_sort) {
     int bin_size_x = d_plan->opts.gpu_binsizex;
     if (bin_size_x < 0) {
@@ -84,17 +105,16 @@ int cuspread1d_nuptsdriven_prop(int nf1, int M, cufinufft_plan_t<T> *d_plan) {
     thrust::device_ptr<int> d_ptr(d_binsize);
     thrust::device_ptr<int> d_result(d_binstartpts);
     thrust::exclusive_scan(thrust::cuda::par.on(stream), d_ptr, d_ptr + n, d_result);
+    RETURN_IF_CUDA_ERROR
 
     calc_inverse_of_global_sort_idx_1d<<<(M + 1024 - 1) / 1024, 1024, 0, stream>>>(
         M, bin_size_x, numbins, d_binstartpts, d_sortidx, d_kx, d_idxnupts, nf1);
     RETURN_IF_CUDA_ERROR
   } else {
     int *d_idxnupts = d_plan->idxnupts;
-    trivial_global_sort_index_1d<<<(M + 1024 - 1) / 1024, 1024, 0, stream>>>(M,
-                                                                             d_idxnupts);
+    thrust::sequence(thrust::cuda::par.on(stream), d_idxnupts, d_idxnupts + M);
     RETURN_IF_CUDA_ERROR
   }
-
   return 0;
 }
 
@@ -134,7 +154,6 @@ int cuspread1d_nuptsdriven(int nf1, int M, cufinufft_plan_t<T> *d_plan, int blks
       RETURN_IF_CUDA_ERROR
     }
   }
-
   return 0;
 }
 
@@ -146,33 +165,29 @@ int cuspread1d_subprob_prop(int nf1, int M, cufinufft_plan_t<T> *d_plan)
     which only needs to be done once.
 */
 {
-  auto &stream = d_plan->stream;
-  int ier;
 
-  int maxsubprobsize = d_plan->opts.gpu_maxsubprobsize;
-  int bin_size_x     = d_plan->opts.gpu_binsizex;
+  const auto maxsubprobsize = d_plan->opts.gpu_maxsubprobsize;
+  const auto bin_size_x     = d_plan->opts.gpu_binsizex;
   if (bin_size_x < 0) {
     std::cerr << "[cuspread1d_subprob_prop] error: invalid binsize (binsizex) = ("
               << bin_size_x << ")\n";
     return FINUFFT_ERR_BINSIZE_NOTVALID;
   }
 
-  int numbins = ceil((T)nf1 / bin_size_x);
-
-  T *d_kx = d_plan->kx;
-
-  int *d_binsize         = d_plan->binsize;
-  int *d_binstartpts     = d_plan->binstartpts;
-  int *d_sortidx         = d_plan->sortidx;
-  int *d_numsubprob      = d_plan->numsubprob;
-  int *d_subprobstartpts = d_plan->subprobstartpts;
-  int *d_idxnupts        = d_plan->idxnupts;
+  const auto numbins           = (nf1 + bin_size_x - 1) / bin_size_x;
+  const auto d_kx              = d_plan->kx;
+  const auto d_binsize         = d_plan->binsize;
+  const auto d_binstartpts     = d_plan->binstartpts;
+  const auto d_sortidx         = d_plan->sortidx;
+  const auto d_numsubprob      = d_plan->numsubprob;
+  const auto d_subprobstartpts = d_plan->subprobstartpts;
+  const auto d_idxnupts        = d_plan->idxnupts;
+  const auto stream            = d_plan->stream;
 
   int *d_subprob_to_bin = nullptr;
 
-  if ((ier =
-           checkCudaErrors(cudaMemsetAsync(d_binsize, 0, numbins * sizeof(int), stream))))
-    return ier;
+  cudaMemsetAsync(d_binsize, 0, numbins * sizeof(int), stream);
+  RETURN_IF_CUDA_ERROR
   calc_bin_size_noghost_1d<<<(M + 1024 - 1) / 1024, 1024, 0, stream>>>(
       M, nf1, bin_size_x, numbins, d_binsize, d_kx, d_sortidx);
   RETURN_IF_CUDA_ERROR
@@ -193,30 +208,25 @@ int cuspread1d_subprob_prop(int nf1, int M, cufinufft_plan_t<T> *d_plan)
   d_ptr    = thrust::device_pointer_cast(d_numsubprob);
   d_result = thrust::device_pointer_cast(d_subprobstartpts + 1);
   thrust::inclusive_scan(thrust::cuda::par.on(stream), d_ptr, d_ptr + n, d_result);
+  RETURN_IF_CUDA_ERROR
 
-  if ((ier = checkCudaErrors(cudaMemsetAsync(d_subprobstartpts, 0, sizeof(int), stream))))
-    return ier;
+  cudaMemsetAsync(d_subprobstartpts, 0, sizeof(int), stream);
+  RETURN_IF_CUDA_ERROR
 
-  int totalnumsubprob;
-  if ((ier =
-           checkCudaErrors(cudaMemcpyAsync(&totalnumsubprob, &d_subprobstartpts[n],
-                                           sizeof(int), cudaMemcpyDeviceToHost, stream))))
-    return ier;
+  int totalnumsubprob{};
+  cudaMemcpyAsync(&totalnumsubprob, &d_subprobstartpts[n], sizeof(int),
+                  cudaMemcpyDeviceToHost, stream);
   cudaStreamSynchronize(stream);
-  if ((ier = checkCudaErrors(
-           cudaMallocWrapper(&d_subprob_to_bin, totalnumsubprob * sizeof(int), stream,
-                             d_plan->supports_pools))))
-    return ier;
+  RETURN_IF_CUDA_ERROR
+
+  cudaMallocWrapper(&d_subprob_to_bin, totalnumsubprob * sizeof(int), stream,
+                    d_plan->supports_pools);
+  RETURN_IF_CUDA_ERROR
+
   map_b_into_subprob_1d<<<(numbins + 1024 - 1) / 1024, 1024, 0, stream>>>(
       d_subprob_to_bin, d_subprobstartpts, d_numsubprob, numbins);
-  cudaError_t err = cudaGetLastError();
-  if (err != cudaSuccess) {
-    fprintf(stderr, "[%s] Error: %s\n", __func__, cudaGetErrorString(err));
-    cudaFree(d_subprob_to_bin);
-    return FINUFFT_ERR_CUDA_FAILURE;
-  }
-
-  assert(d_subprob_to_bin != NULL);
+  RETURN_IF_CUDA_ERROR
+  assert(d_subprob_to_bin != nullptr);
   cudaFreeWrapper(d_plan->subprob_to_bin, stream, d_plan->supports_pools);
   d_plan->subprob_to_bin  = d_subprob_to_bin;
   d_plan->totalnumsubprob = totalnumsubprob;

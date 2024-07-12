@@ -9,10 +9,39 @@
 namespace cufinufft {
 namespace spreadinterp {
 
-template<typename T> static __forceinline__ __device__ T fold_rescale(T x, int N) {
-  static constexpr const auto x2pi = T(0.159154943091895345554011992339482617);
-  const T result                   = x * x2pi + T(0.5);
-  return (result - floor(result)) * T(N);
+template<typename T>
+constexpr __forceinline__ __host__ __device__ T fold_rescale(T x, int N) {
+  constexpr const auto x2pi = T(0.159154943091895345554011992339482617);
+  constexpr const auto half = T(0.5);
+#if defined(__CUDA_ARCH__)
+  if constexpr (std::is_same_v<T, float>) {
+    auto result = __fmaf_rn(x, x2pi, half);
+    result      = __fsub_rd(result, truncf(result));
+    return __fmul_rd(result, static_cast<T>(N));
+  } else if constexpr (std::is_same_v<T, double>) {
+    auto result = __fma_rn(x, x2pi, half);
+    result      = __dsub_rd(result, trunc(result));
+    return __dmul_rd(result, static_cast<T>(N));
+  } else {
+    static_assert(std::is_same_v<T, float> || std::is_same_v<T, double>,
+                  "Only float and double are supported.");
+  }
+#else
+  const auto result = std::fma(x, x2pi, half);
+  return (result - std::trunc(result)) * static_cast<T>(N);
+#endif
+}
+
+template<typename T>
+static __forceinline__ __device__ constexpr T fma(const T a, const T b, const T c) {
+  if constexpr (std::is_same_v<T, float>) {
+    return __fmaf_rn(a, b, c);
+  } else if constexpr (std::is_same_v<T, double>) {
+    return __fma_rn(a, b, c);
+  } else {
+    static_assert(std::is_same_v<T, float> || std::is_same_v<T, double>,
+                  "Only float and double are supported.");
+  }
 }
 
 template<typename T>
@@ -23,11 +52,11 @@ static inline T evaluate_kernel(T x, const finufft_spread_opts &opts)
    approximation to prolate spheroidal wavefunction (PSWF) of order 0.
    This is the "reference implementation", used by eg common/onedim_* 2/17/17 */
 {
-  if (abs(x) >= opts.ES_halfwidth)
+  if (abs(x) >= T(opts.ES_halfwidth))
     // if spreading/FT careful, shouldn't need this if, but causes no speed hit
     return 0.0;
   else
-    return exp(opts.ES_beta * sqrt(1.0 - opts.ES_c * x * x));
+    return exp(T(opts.ES_beta) * sqrt(T(1.0) - T(opts.ES_c) * x * x));
 }
 
 template<typename T>
@@ -53,7 +82,17 @@ static __inline__ __device__ void eval_kernel_vec_horner(T *ker, const T x, cons
    This is the current evaluation method, since it's faster (except i7 w=16).
    Two upsampfacs implemented. Params must match ref formula. Barnett 4/24/18 */
 {
-  T z = 2 * x + w - 1.0; // scale so local grid offset z in [-1,1]
+#ifdef __CUDA_ARCH__
+  __builtin_assume(w >= 2);
+  if constexpr (std::is_same_v<T, float>) {
+    __builtin_assume(w <= 7);
+  }
+  if constexpr (std::is_same_v<T, double>) {
+    __builtin_assume(w <= 16);
+  }
+#endif
+  const auto z = fma(T(2), x, T(w - 1)); // scale so local grid offset z in [-1,1]
+  //  T z = 2 * x + w - 1.0;
   // insert the auto-generated code which expects z, w args, writes to ker...
   if (upsampfac == 2.0) { // floating point equality is fine here
     using FLT           = T;

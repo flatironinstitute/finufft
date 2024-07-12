@@ -10,6 +10,8 @@
 #include <cufinufft/spreadinterp.h>
 #include <cufinufft/utils.h>
 
+#include <thrust/sort.h>
+
 using namespace cufinufft::utils;
 
 namespace cufinufft {
@@ -21,26 +23,33 @@ template<typename T, int KEREVALMETH>
 __global__ void spread_1d_nuptsdriven(const T *x, const cuda_complex<T> *c,
                                       cuda_complex<T> *fw, int M, int ns, int nf1, T es_c,
                                       T es_beta, T sigma, const int *idxnupts) {
-  int xx, ix;
-  T ker1[MAX_NSPREAD];
 
-  T x_rescaled;
-  cuda_complex<T> cnow;
+  auto ker1 = (T __restrict__ *)alloca(sizeof(T) * ns);
+
   for (int i = blockDim.x * blockIdx.x + threadIdx.x; i < M;
        i += blockDim.x * gridDim.x) {
-    x_rescaled = fold_rescale(x[idxnupts[i]], nf1);
-    cnow       = c[idxnupts[i]];
-    int xstart = ceil(x_rescaled - ns / 2.0);
-    int xend   = floor(x_rescaled + ns / 2.0);
-
-    T x1 = (T)xstart - x_rescaled;
+    const auto x_rescaled     = fold_rescale(x[idxnupts[i]], nf1);
+    const auto cnow           = c[idxnupts[i]];
+    const auto [xstart, xend] = [ns, x_rescaled]() constexpr noexcept {
+      if constexpr (std::is_same_v<T, float>) {
+        const auto xstart = __float2int_ru(__fmaf_ru(ns, -.5f, x_rescaled));
+        const auto xend   = __float2int_rd(__fmaf_rd(ns, .5f, x_rescaled));
+        return int2{xstart, xend};
+      }
+      if constexpr (std::is_same_v<T, double>) {
+        const auto xstart = __double2int_ru(__fma_ru(ns, -.5, x_rescaled));
+        const auto xend   = __double2int_rd(__fma_rd(ns, .5, x_rescaled));
+        return int2{xstart, xend};
+      }
+    }();
+    const T x1 = (T)xstart - x_rescaled;
     if constexpr (KEREVALMETH == 1)
       eval_kernel_vec_horner(ker1, x1, ns, sigma);
     else
       eval_kernel_vec(ker1, x1, ns, es_c, es_beta);
 
-    for (xx = xstart; xx <= xend; xx++) {
-      ix         = xx < 0 ? xx + nf1 : (xx > nf1 - 1 ? xx - nf1 : xx);
+    for (auto xx = xstart; xx <= xend; xx++) {
+      auto ix    = xx < 0 ? xx + nf1 : (xx > nf1 - 1 ? xx - nf1 : xx);
       T kervalue = ker1[xx - xstart];
       atomicAdd(&fw[ix].x, cnow.x * kervalue);
       atomicAdd(&fw[ix].y, cnow.y * kervalue);
@@ -87,16 +96,21 @@ __global__ void calc_inverse_of_global_sort_idx_1d(
   }
 }
 
+template<typename T>
+__forceinline__ __device__ cuda_complex<T> mul(const cuda_complex<T> &a, const T b) {
+  return {a.x * b, a.y * b};
+}
+
 template<typename T, int KEREVALMETH>
 __global__ void spread_1d_subprob(
     const T *x, const cuda_complex<T> *c, cuda_complex<T> *fw, int M, uint8_t ns, int nf1,
     T es_c, T es_beta, T sigma, const int *binstartpts, const int *bin_size,
     int bin_size_x, const int *subprob_to_bin, const int *subprobstartpts,
-    const int *numsubprob, int maxsubprobsize, int nbinx, const int *idxnupts) {
+    const int *numsubprob, int maxsubprobsize, int nbinx, int *idxnupts) {
   extern __shared__ char sharedbuf[];
-  auto *__restrict__ fwshared = (cuda_complex<T> *)sharedbuf;
+  alignas(256) auto *__restrict__ fwshared = (cuda_complex<T> *)sharedbuf;
 
-  int xstart, xend, ix;
+  int ix;
   const int subpidx     = blockIdx.x;
   const int bidx        = subprob_to_bin[subpidx];
   const int binsubp_idx = subpidx - subprobstartpts[bidx];
@@ -106,11 +120,11 @@ __global__ void spread_1d_subprob(
   const auto ns_2   = (ns + 1) / 2;
   const int N       = bin_size_x + 2 * ns_2;
 
-  T ker1[MAX_NSPREAD];
+  // dynamic stack allocation
+  auto ker1 = (T __restrict__ *)alloca(sizeof(T) * ns);
 
   for (int i = threadIdx.x; i < N; i += blockDim.x) {
-    fwshared[i].x = T(0);
-    fwshared[i].y = T(0);
+    fwshared[i] = {0, 0};
   }
   __syncthreads();
 
@@ -119,8 +133,18 @@ __global__ void spread_1d_subprob(
     const auto x_rescaled = fold_rescale(x[idxnupts[idx]], nf1);
     const auto cnow       = c[idxnupts[idx]];
 
-    xstart = ceil(x_rescaled - ns / 2.0) - xoffset;
-    xend   = floor(x_rescaled + ns / 2.0) - xoffset;
+    const auto [xstart, xend] = [ns, x_rescaled]() constexpr noexcept {
+      if constexpr (std::is_same_v<T, float>) {
+        const auto xstart = __float2int_ru(__fmaf_ru(ns, -.5f, x_rescaled));
+        const auto xend   = __float2int_rd(__fmaf_rd(ns, .5f, x_rescaled));
+        return int2{xstart, xend};
+      }
+      if constexpr (std::is_same_v<T, double>) {
+        const auto xstart = __double2int_ru(__fma_ru(ns, -.5, x_rescaled));
+        const auto xend   = __double2int_rd(__fma_rd(ns, .5, x_rescaled));
+        return int2{xstart, xend};
+      }
+    }();
 
     const T x1 = T(xstart + xoffset) - x_rescaled;
     if constexpr (KEREVALMETH == 1)
@@ -130,8 +154,9 @@ __global__ void spread_1d_subprob(
     for (int xx = xstart; xx <= xend; xx++) {
       ix = xx + ns_2;
       if (ix >= (bin_size_x + ns_2) || ix < 0) break;
-      atomicAdd(&fwshared[ix].x, cnow.x * ker1[xx - xstart]);
-      atomicAdd(&fwshared[ix].y, cnow.y * ker1[xx - xstart]);
+      const auto result = mul(cnow, ker1[xx - xstart]);
+      atomicAdd(&fwshared[ix].x, result.x);
+      atomicAdd(&fwshared[ix].y, result.y);
     }
   }
   __syncthreads();
