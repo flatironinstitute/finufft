@@ -58,6 +58,6 @@ jobs:
           echo CMAKE_ARGS="-DFINUFFT_ARCH_FLAGS=${{ matrix.arch_flags }}" >> $GITHUB_ENV
         shell: bash
       - name: Build
-        run: python3 -m pip install ${{ github.workspace }} --verbose
+        run: python3 -m pip install ${{ github.workspace }}/python/finufft --verbose
       - name: Test
         run: python3 -m pytest ${{ github.workspace }}/python/finufft/test
