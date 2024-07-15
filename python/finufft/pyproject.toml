@@ -36,10 +36,12 @@ minimum-version = "0.4"
 # Setuptools-style build caching in a local directory
 build-dir = "build/{wheel_tag}"
 
+# Tell skbuild to look for the CMakeLists.txt file two directories up.
+cmake.source-dir = "../../"
 cmake.targets = ["finufft"]
 cmake.define = {"FINUFFT_BUILD_PYTHON" = "ON", "FINUFFT_ENABLE_INSTALL" = "OFF"}
 
-wheel.packages = ["python/finufft/finufft"]
+wheel.packages = ["finufft"]
 
 # Indicate that we don't depend on the CPython API
 wheel.py-api = "py3"
@@ -47,7 +49,7 @@ wheel.py-api = "py3"
 [tool.scikit-build.metadata.version]
 # Instead of hardcoding the version here, extract it from the source files.
 provider = "scikit_build_core.metadata.regex"
-input = "python/finufft/finufft/__init__.py"
+input = "finufft/__init__.py"
 
 [tool.cibuildwheel]
 # Necessary to see build output from the actual compilation
