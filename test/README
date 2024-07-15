@@ -9,7 +9,7 @@ OpenMP static scheduling for rand-# generation means that the test data should
 be reproducible (non-stochastic). Reordering of thread ops in FINUFFT itself
 leads to machine-rounding sized variations only.
 
-These CPU test executables have suffix "f" fior single precision, else double.
+These CPU test executables have suffix "f" for single precision, else double.
 The source codes do not have the suffix:
 
 basicpassfail{f} : basic double and single-prec smoke tests of the math.
@@ -22,6 +22,9 @@ finufft{1,2,3}dmany_test{f}: accuracy/speed tests for vectorized transforms,
                    in a given dimension. Types 1, 2, and 3 are tested.
                    (exit code 0 is a pass).
                    Call with no arguments for argument documentation.
+finufft3dkernel_test{f} : test kerevalmeth=0,1 give same answer within tol.
+                   Types 1, 2, and 3 are tested, in d=3 only.
+                   (exit code 0 is a pass).
 dumbinputs{f} :    test of edge cases, invalid inputs, and plan interface.
                    No arguments needed (exit code 0 is a pass).
 testutils{f} :     test of utils module.

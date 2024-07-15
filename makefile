@@ -27,7 +27,11 @@ PYTHON = python3
 # Notes: 1) -Ofast breaks isfinite() & isnan(), so use -O3 which now is as fast
 #        2) -fcx-limited-range for fortran-speed complex arith in C++
 #        3) we use simply-expanded (:=) makefile variables, otherwise confusing
-CFLAGS := -O3 -funroll-loops -march=native -fcx-limited-range -ffp-contract=fast $(CFLAGS)
+# 		 4) the extra math flags are for speed, but they do not impact accuracy
+#           they allow gcc to vectorize the code more effectively
+CFLAGS := -O3 -funroll-loops -march=native -fcx-limited-range -ffp-contract=fast\
+		  -fno-math-errno -fno-signed-zeros -fno-trapping-math -fassociative-math\
+		  -freciprocal-math -fmerge-all-constants -ftree-vectorize $(CFLAGS)
 FFLAGS := $(CFLAGS) $(FFLAGS)
 CXXFLAGS := $(CFLAGS) $(CXXFLAGS)
 # FFTW base name, and math linking...
@@ -114,7 +118,7 @@ SOBJS_PI = src/utils_precindep.o
 SOBJSD = $(SOBJS) $(SOBJSF) $(SOBJS_PI)
 
 # double-prec library object files that also need single precision...
-OBJS = $(SOBJS) src/finufft.o src/simpleinterfaces.o fortran/finufftfort.o
+OBJS = $(SOBJS) src/finufft.o src/simpleinterfaces.o fortran/finufftfort.o src/fft.o
 # their single-prec versions
 OBJSF = $(OBJS:%.o=%_32.o)
 # precision-dependent library object files (compiled & linked only once)...
@@ -467,7 +471,7 @@ ifneq ($(MINGW),ON)
 	rm -f $(STATICLIB) $(DYNLIB)
 	rm -f matlab/*.mex*
 	rm -f $(TESTS) test/results/*.out perftest/results/*.out
-	rm -f $(EXAMPLES) $(FE) $(ST) $(STF) $(GTT) $(GTTF)
+	rm -f $(EXAMPLES) $(FE) $(ST) $(STF) $(STA) $(STAF) $(GTT) $(GTTF)
 	rm -f perftest/manysmallprobs
 	rm -f examples/core test/core perftest/core $(FE_DIR)/core
 else
@@ -476,7 +480,7 @@ else
 	del matlab\*.mex*
 	for %%f in ($(subst /,\, $(TESTS))) do ((if exist %%f del %%f) & (if exist %%f.exe del %%f.exe))
 	del test\results\*.out perftest\results\*.out
-	for %%f in ($(subst /,\, $(EXAMPLES)), $(subst /,\,$(FE)), $(subst /,\,$(ST)), $(subst /,\,$(STF)), $(subst /,\,$(GTT)), $(subst /,\,$(GTTF))) do ((if exist %%f del %%f) & (if exist %%f.exe del %%f.exe))
+	for %%f in ($(subst /,\, $(EXAMPLES)), $(subst /,\,$(FE)), $(subst /,\,$(ST)), $(subst /,\,$(STF)), $(subst /,\,$(STA)), $(subst /,\,$(STAF)), $(subst /,\,$(GTT)), $(subst /,\,$(GTTF))) do ((if exist %%f del %%f) & (if exist %%f.exe del %%f.exe))
 	del perftest\manysmallprobs
 	del examples\core, test\core, perftest\core, $(subst /,\, $(FE_DIR))\core
 endif

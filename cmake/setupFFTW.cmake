@@ -44,7 +44,6 @@ if (FINUFFT_FFTW_LIBRARIES STREQUAL DEFAULT OR FINUFFT_FFTW_LIBRARIES STREQUAL D
                     EXCLUDE_FROM_ALL YES
                     GIT_SHALLOW YES
             )
-
             set(FINUFFT_FFTW_LIBRARIES fftw3 fftw3f)
             if (FINUFFT_USE_THREADS)
                 list(APPEND FINUFFT_FFTW_LIBRARIES fftw3_threads fftw3f_threads)

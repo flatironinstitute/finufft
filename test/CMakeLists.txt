@@ -1,17 +1,22 @@
 # Each of these source test files is instantiated in single and double precision
-set(TESTS basicpassfail dumbinputs finufft1d_test finufft1dmany_test finufft2d_test finufft2dmany_test finufft3d_test finufft3dmany_test)
+set(TESTS basicpassfail dumbinputs finufft1d_test finufft1dmany_test finufft2d_test finufft2dmany_test finufft3d_test finufft3dmany_test finufft3dkernel_test)
 
 foreach(TEST ${TESTS})
   add_executable(${TEST} ${TEST}.cpp)
+  target_compile_features(${TEST} PRIVATE cxx_std_17)
   finufft_link_test(${TEST})
 
   add_executable(${TEST}f ${TEST}.cpp)
   target_compile_definitions(${TEST}f PRIVATE -DSINGLE)
+  target_compile_features(${TEST}f PRIVATE cxx_std_17)
   finufft_link_test(${TEST}f)
 endforeach()
 
 # Add ctest definitions not for both precisions...
 add_executable(testutils testutils.cpp)
+if (FINUFFT_USE_DUCC0)
+  target_compile_definitions(testutils PRIVATE -DFINUFFT_USE_DUCC0)
+endif ()
 finufft_link_test(testutils)
 add_test(NAME run_testutils COMMAND testutils WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
 
