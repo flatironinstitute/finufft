@@ -20,7 +20,7 @@
     constexpr CUFINUFFT_FLT c5[] = {-3.9654011076088960E+00, 6.0642442697108023E-14, 3.9654011139270056E+00};
     constexpr CUFINUFFT_FLT c6[] = {3.3694352031960180E+00, -4.8817394017826032E+00, 3.3694352094301192E+00};
 for (int i=0; i<3; i++) {
-    ker[i] = fmaf(z, fmaf(z, fmaf(z, fmaf(z, fmaf(z, fmaf(z, c6[i], c5[i]), c4[i]), c3[i]), c2[i]), c1[i]), c0[i]);
+    ker[i] = fma(z, fma(z, fma(z, fma(z, fma(z, fma(z, c6[i], c5[i]), c4[i]), c3[i]), c2[i]), c1[i]), c0[i]);
 }
   } else if (w==4) {
     constexpr CUFINUFFT_FLT c0[] = {5.4284366850213223E+02, 1.0073871433088403E+04, 1.0073871433088401E+04, 5.4284366850213223E+02};
@@ -32,7 +32,7 @@ for (int i=0; i<3; i++) {
     constexpr CUFINUFFT_FLT c6[] = {-1.0039212571700762E+01, 5.0626747735616444E+00, 5.0626747735613531E+00, -1.0039212571700721E+01};
     constexpr CUFINUFFT_FLT c7[] = {4.7282853097645736E+00, -9.5966330409183929E+00, 9.5966330409170837E+00, -4.7282853097647068E+00};
     for (int i=0; i<4; i++) {
-        ker[i] = fmaf(z, fmaf(z, fmaf(z, fmaf(z, fmaf(z, fmaf(z, fmaf(z, c7[i], c6[i]), c5[i]), c4[i]), c3[i]), c2[i]), c1[i]), c0[i]);
+        ker[i] = fma(z, fma(z, fma(z, fma(z, fma(z, fma(z, fma(z, c7[i], c6[i]), c5[i]), c4[i]), c3[i]), c2[i]), c1[i]), c0[i]);
     }
   } else if (w==5) {
     constexpr CUFINUFFT_FLT c0[] = {9.9223677575398324E+02, 3.7794697666613341E+04, 9.8715771010760523E+04, 3.7794697666613290E+04, 9.9223677575398494E+02};
@@ -45,7 +45,7 @@ for (int i=0; i<3; i++) {
     constexpr CUFINUFFT_FLT c7[] = {-3.3762488150349701E+00, 2.2839981872969930E+00, 3.9507985966337744E-12, -2.2839981872938613E+00, 3.3762488150346224E+00};
     constexpr CUFINUFFT_FLT c8[] = {2.5183531846827609E+00, -5.3664382310942162E+00, 6.6969190369431528E+00, -5.3664382311060113E+00, 2.5183531846825087E+00};
     for (int i=0; i<5; i++) {
-        ker[i] = fmaf(z, fmaf(z, fmaf(z, fmaf(z, fmaf(z, fmaf(z, fmaf(z, fmaf(z, c8[i], c7[i]), c6[i]), c5[i]), c4[i]), c3[i]), c2[i]), c1[i]), c0[i]);
+        ker[i] = fma(z, fma(z, fma(z, fma(z, fma(z, fma(z, fma(z, fma(z, c8[i], c7[i]), c6[i]), c5[i]), c4[i]), c3[i]), c2[i]), c1[i]), c0[i]);
     }
   } else if (w==6) {
     constexpr CUFINUFFT_FLT c0[] = {2.0553833234911881E+03, 1.5499537739913142E+05, 8.1177907023291197E+05, 8.1177907023291243E+05, 1.5499537739913136E+05, 2.0553833235005709E+03};

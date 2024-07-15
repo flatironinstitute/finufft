@@ -268,6 +268,7 @@ int cuspread1d_subprob(int nf1, int M, cufinufft_plan_t<T> *d_plan, int blksize)
 
   if (d_plan->opts.gpu_kerevalmeth) {
     for (int t = 0; t < blksize; t++) {
+
       cufinufft_set_shared_memory(spread_1d_subprob<T, 1>, 1, *d_plan);
       RETURN_IF_CUDA_ERROR
       spread_1d_subprob<T, 1><<<totalnumsubprob, 256, sharedplanorysize, stream>>>(

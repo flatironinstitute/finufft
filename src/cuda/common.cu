@@ -221,18 +221,68 @@ std::size_t shared_memory_required(int dim, int ns, int bin_size_x, int bin_size
   return adjusted_ns * sizeof(cuda_complex<T>);
 }
 
+// Function to find bin_size_x == bin_size_y where bin_size_x * bin_size_y < MemSize
+template<typename T> int find_bin_size(std::size_t MemSize, int dim, int ns) {
+  int binsize = 1; // Start with the smallest possible bin size
+
+  while (true) {
+    // Calculate the shared memory required for the current bin_size_x and bin_size_y
+    std::size_t required_memory =
+        shared_memory_required<T>(dim, ns, binsize, binsize, binsize);
+
+    // Check if the required memory is less than the available memory
+    if (required_memory > MemSize) {
+      // If the condition is met, return the current bin_size_x
+      return binsize - 1;
+    }
+
+    // Increment bin_size_x for the next iteration
+    binsize++;
+  }
+}
+
 template<typename T>
 void cufinufft_setup_binsize(int type, int ns, int dim, cufinufft_opts *opts) {
   int shared_mem_per_block{}, device_id{};
   switch (dim) {
   case 1: {
-    switch (opts->gpu_method) {
-    case 1:
-      opts->gpu_binsizex = (opts->gpu_binsizex < 0) ? 1024 : opts->gpu_binsizex;
-      break;
-    case 0:
-    case 2:
-      if (opts->gpu_binsizex < 0) {
+    if (opts->gpu_binsizex < 0) {
+      cudaGetDevice(&device_id);
+      if (const auto err = cudaGetLastError(); err != cudaSuccess) {
+        throw std::runtime_error(cudaGetErrorString(err));
+      }
+      cudaDeviceGetAttribute(&shared_mem_per_block,
+                             cudaDevAttrMaxSharedMemoryPerBlockOptin, device_id);
+      if (const auto err = cudaGetLastError(); err != cudaSuccess) {
+        throw std::runtime_error(cudaGetErrorString(err));
+      }
+      const int bin_size =
+          shared_mem_per_block / sizeof(cuda_complex<T>) - ((ns + 1) / 2) * 2;
+      // find the power of 2 that is less than bin_size
+      // this makes the bin_size use the maximum shared memory available
+      opts->gpu_binsizex             = bin_size;
+      const auto shared_mem_required = shared_memory_required<T>(
+          dim, ns, opts->gpu_binsizex, opts->gpu_binsizey, opts->gpu_binsizez);
+      //      printf("binsizex: %d, shared_mem_required %ld (bytes)\n",
+      //      opts->gpu_binsizex,
+      //             shared_mem_required);
+    }
+    opts->gpu_binsizey = 1;
+    opts->gpu_binsizez = 1;
+  } break;
+  case 2: {
+    if (opts->gpu_binsizex < 0 || opts->gpu_binsizey < 0) {
+      switch (opts->gpu_method) {
+      case 0:
+      case 2: {
+        opts->gpu_binsizex = 32;
+        opts->gpu_binsizey = 32;
+        // fall through otherwise
+        if (opts->gpu_method && ns > 2) {
+          break;
+        }
+      }
+      case 1: {
         cudaGetDevice(&device_id);
         if (const auto err = cudaGetLastError(); err != cudaSuccess) {
           throw std::runtime_error(cudaGetErrorString(err));
@@ -242,22 +292,17 @@ void cufinufft_setup_binsize(int type, int ns, int dim, cufinufft_opts *opts) {
         if (const auto err = cudaGetLastError(); err != cudaSuccess) {
           throw std::runtime_error(cudaGetErrorString(err));
         }
-        const int bin_size =
-            shared_mem_per_block / sizeof(cuda_complex<T>) - ((ns + 1) / 2) * 2;
-        // find the power of 2 that is less than bin_size
-        const int exponent = std::log2(bin_size);
-        opts->gpu_binsizex = 1 << (exponent - 1);
-        //        printf("bin_size: %d, gpu_binsizex: %d\n", bin_size,
-        //        opts->gpu_binsizex);
+
+        const auto binsize = find_bin_size<T>(shared_mem_per_block, dim, ns);
+        opts->gpu_binsizex = binsize;
+        opts->gpu_binsizey = binsize;
+      } break;
       }
-      break;
     }
-    opts->gpu_binsizey = 1;
-    opts->gpu_binsizez = 1;
-  } break;
-  case 2: {
-    opts->gpu_binsizex = (opts->gpu_binsizex < 0) ? 32 : opts->gpu_binsizex;
-    opts->gpu_binsizey = (opts->gpu_binsizey < 0) ? 32 : opts->gpu_binsizey;
+    //      const auto shared_mem_required = shared_memory_required<T>(
+    //          dim, ns, opts->gpu_binsizex, opts->gpu_binsizey, opts->gpu_binsizez);
+    //      printf("binsizex: %d, binsizey: %d, shared_mem_required %ld (bytes)\n",
+    //             opts->gpu_binsizex, opts->gpu_binsizey, shared_mem_required);
     opts->gpu_binsizez = 1;
   } break;
   case 3: {

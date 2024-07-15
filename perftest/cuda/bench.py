@@ -37,14 +37,13 @@ def build_args(args):
 # example command to run:
 # nsys profile -o cuperftest_profile ./cuperftest --prec f --n_runs 10 --method 1 --N1 256 --N2 256 --N3 256 --M 1E8 --tol 1E-6
 # example arguments
-args = {"--prec": "f",
-        "--n_runs": "10",
+args = {"--prec": "d",
+        "--n_runs": "5",
         "--method": "0",
         "--sort": "1",
-        "--N1": "16777216",
-        # "--N2": "256",
-        # "--N1": "256",
-        # "--N2": "256",
+        # "--N1": "16777216",
+        "--N1": "256",
+        "--N2": "256",
         # "--N3": "256",
         "--kerevalmethod": "1",
         "--M": "1E8",
@@ -93,6 +92,10 @@ for i in range(1, 7):
         conf = [x for x in stdout.splitlines() if x.startswith("#")]
         print('\n'.join(conf))
         stdout = [x for x in stdout.splitlines() if not x.startswith("#")][:7]
+        if stdout[0].startswith("bin"):
+            print(stdout[0])
+            stdout = stdout[1:]
+
         stdout = '\n'.join(stdout)
         # convert stdout to a dataframe from csv string
         dt = pd.read_csv(io.StringIO(stdout), sep=',')
@@ -153,7 +156,7 @@ pivot_df.plot(kind='bar', figsize=(10, 7))
 min_val = min(pivot_df[('throughput', 'SM')].min(), pivot_df[('throughput', 'GM')].min())
 max_val = max(pivot_df[('throughput', 'SM')].max(), pivot_df[('throughput', 'GM')].max())
 print(min_val, max_val)
-plt.ylim(min_val * .99, max_val * 1.01)
+plt.ylim(min_val * .90, max_val * 1.1)
 # plt.ylim(.8, 1.2)
 
 # Calculate the smallest power of 10
@@ -163,15 +166,15 @@ plt.ylim(min_val * .99, max_val * 1.01)
 # plt.ylim(df['throughput'].min()*.99, df['throughput'].max() * 1.009)  # Adding 10% for upper margin
 
 # plot an horizontal line at 1 with label "GM"
-plt.axhline(y=1, color='k', linestyle='--', label='GM')
+# plt.axhline(y=1, color='k', linestyle='--', label='GM')
 plt.xlabel('Tolerance')
-plt.ylabel('Throughput (% of GM)')
+plt.ylabel('Throughput')
 plt.title('Throughput by Tolerance and Method')
 plt.legend(title='Method')
 plt.tight_layout()
 plt.show()
 plt.xlabel("Tolerance")
-plt.ylabel("Points/s (% of GM)")
+plt.ylabel("Points/s")
 plt.savefig("bench.png")
 plt.savefig("bench.svg")
 plt.savefig("bench.pdf")

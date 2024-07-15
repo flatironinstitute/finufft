@@ -23,26 +23,15 @@ template<typename T, int KEREVALMETH>
 __global__ void spread_1d_nuptsdriven(const T *x, const cuda_complex<T> *c,
                                       cuda_complex<T> *fw, int M, int ns, int nf1, T es_c,
                                       T es_beta, T sigma, const int *idxnupts) {
-
+  // dynamic stack allocation to reduce stack usage
   auto ker1 = (T __restrict__ *)alloca(sizeof(T) * ns);
 
   for (int i = blockDim.x * blockIdx.x + threadIdx.x; i < M;
        i += blockDim.x * gridDim.x) {
     const auto x_rescaled     = fold_rescale(x[idxnupts[i]], nf1);
     const auto cnow           = c[idxnupts[i]];
-    const auto [xstart, xend] = [ns, x_rescaled]() constexpr noexcept {
-      if constexpr (std::is_same_v<T, float>) {
-        const auto xstart = __float2int_ru(__fmaf_ru(ns, -.5f, x_rescaled));
-        const auto xend   = __float2int_rd(__fmaf_rd(ns, .5f, x_rescaled));
-        return int2{xstart, xend};
-      }
-      if constexpr (std::is_same_v<T, double>) {
-        const auto xstart = __double2int_ru(__fma_ru(ns, -.5, x_rescaled));
-        const auto xend   = __double2int_rd(__fma_rd(ns, .5, x_rescaled));
-        return int2{xstart, xend};
-      }
-    }();
-    const T x1 = (T)xstart - x_rescaled;
+    const auto [xstart, xend] = interval(ns, x_rescaled);
+    const T x1                = (T)xstart - x_rescaled;
     if constexpr (KEREVALMETH == 1)
       eval_kernel_vec_horner(ker1, x1, ns, sigma);
     else
@@ -126,27 +115,17 @@ __global__ void spread_1d_subprob(
   for (int i = threadIdx.x; i < N; i += blockDim.x) {
     fwshared[i] = {0, 0};
   }
+
+  const T ns_2f = ns * T(.5);
+
   __syncthreads();
 
   for (auto i = threadIdx.x; i < nupts; i += blockDim.x) {
-    const auto idx        = ptstart + i;
-    const auto x_rescaled = fold_rescale(x[idxnupts[idx]], nf1);
-    const auto cnow       = c[idxnupts[idx]];
-
-    const auto [xstart, xend] = [ns, x_rescaled]() constexpr noexcept {
-      if constexpr (std::is_same_v<T, float>) {
-        const auto xstart = __float2int_ru(__fmaf_ru(ns, -.5f, x_rescaled));
-        const auto xend   = __float2int_rd(__fmaf_rd(ns, .5f, x_rescaled));
-        return int2{xstart, xend};
-      }
-      if constexpr (std::is_same_v<T, double>) {
-        const auto xstart = __double2int_ru(__fma_ru(ns, -.5, x_rescaled));
-        const auto xend   = __double2int_rd(__fma_rd(ns, .5, x_rescaled));
-        return int2{xstart, xend};
-      }
-    }();
-
-    const T x1 = T(xstart + xoffset) - x_rescaled;
+    const auto idx            = ptstart + i;
+    const auto x_rescaled     = fold_rescale(x[idxnupts[idx]], nf1);
+    const auto cnow           = c[idxnupts[idx]];
+    const auto [xstart, xend] = interval(ns, x_rescaled);
+    const T x1                = T(xstart + xoffset) - x_rescaled;
     if constexpr (KEREVALMETH == 1)
       eval_kernel_vec_horner(ker1, x1, ns, sigma);
     else

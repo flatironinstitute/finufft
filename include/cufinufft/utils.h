@@ -68,6 +68,19 @@ template<typename T> T infnorm(int n, std::complex<T> *a) {
   }
   return sqrt(nrm);
 }
+
+#ifdef __CUDA_ARCH__
+__forceinline__ __device__ auto interval(const int ns, const float x) {
+  const auto xstart = __float2int_ru(__fmaf_ru(ns, -.5f, x));
+  const auto xend   = __float2int_rd(__fmaf_rd(ns, .5f, x));
+  return int2{xstart, xend};
+}
+__forceinline__ __device__ auto interval(const int ns, const double x) {
+  const auto xstart = __double2int_ru(__fma_ru(ns, -.5, x));
+  const auto xend   = __double2int_rd(__fma_rd(ns, .5, x));
+  return int2{xstart, xend};
+}
+#endif
 } // namespace utils
 } // namespace cufinufft
 
