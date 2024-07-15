@@ -36,3 +36,21 @@ input = "python/finufft/finufft/__init__.py"
 [tool.cibuildwheel]
 # Necessary to see build output from the actual compilation
 build-verbosity = 1
+# Not building for PyPy and musllinux for now.
+skip = "pp* *musllinux"
+test-requires = "pytest"
+test-command = "pytest {project}/python/finufft/test"
+
+[tool.cibuildwheel.linux]
+archs = "x86_64"
+before-all = "yum install -y fftw3-devel"
+
+[tool.cibuildwheel.macos]
+archs = "arm64"
+
+[tool.cibuildwheel.windows]
+archs = "amd64"
+before-build = "pip install delvewheel"
+# CIBW doesn't do vendoring of DLLs on Windows by default, so we have to
+# install delvewheel and run it.
+repair-wheel-command = "delvewheel repair -v --analyze-existing -w {dest_dir} {wheel}

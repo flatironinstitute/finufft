@@ -16,11 +16,6 @@ jobs:
       - name: Build wheels
         uses: pypa/cibuildwheel@v2.19.2
         env:
-          CIBW_BUILD_VERBOSITY: 1
-          # Not building for PyPy and musllinux for now.
-          CIBW_SKIP: "pp* *musllinux*"
-          CIBW_ARCHS_LINUX: "x86_64"
-          CIBW_BEFORE_ALL_LINUX: yum install -y fftw3-devel
           CIBW_BEFORE_ALL_MACOS: brew install gcc@14 fftw
           # Need following versions of GCC for compatibility with fftw
           # installed by homebrew. Similarly, we set the macOS version
@@ -29,8 +24,6 @@ jobs:
             CC=gcc-14
             CXX=g++-14
             MACOSX_DEPLOYMENT_TARGET=13
-          CIBW_TEST_REQUIRES: pytest
-          CIBW_TEST_COMMAND: pytest {project}/python/finufft/test
 
       - uses: actions/upload-artifact@v4
         with:
@@ -47,9 +40,6 @@ jobs:
       - name: Build wheels
         uses: pypa/cibuildwheel@v2.19.2
         env:
-          CIBW_BUILD_VERBOSITY: 1
-          CIBW_SKIP: "pp*"
-          CIBW_ARCHS_MACOS: "arm64"
           # Make sure to install the ARM64-specific versions of FFTW and GCC.
           # Perhaps this is done automatically on the macos-14 image. We should
           # look into this further.
@@ -62,8 +52,6 @@ jobs:
             CC=gcc-14
             CXX=g++-14
             MACOSX_DEPLOYMENT_TARGET=14
-          CIBW_TEST_REQUIRES: pytest
-          CIBW_TEST_COMMAND: pytest {project}/python/finufft/test
 
       - uses: actions/upload-artifact@v4
         with:
@@ -90,20 +78,10 @@ jobs:
       - name: Build wheels
         uses: pypa/cibuildwheel@v2.19.2
         env:
-          CIBW_BUILD_VERBOSITY: 1
-          CIBW_ARCHS: AMD64
           # This is required to force cmake to avoid using MSVC (the default).
           # By setting the generator to Ninja, cmake will pick gcc (mingw64)
           # as the compiler.
           CIBW_CONFIG_SETTINGS: "cmake.args='-G Ninja'"
-          # CIBW doesn't do vendoring of DLLs on Windows by default, so we
-          # have to install delvewheel and run it.
-          CIBW_BEFORE_BUILD: pip install delvewheel
-          CIBW_REPAIR_WHEEL_COMMAND: delvewheel repair -v --analyze-existing -w {dest_dir} {wheel}
-          CIBW_TEST_REQUIRES: pytest
-          CIBW_TEST_COMMAND: pytest {project}/python/finufft/test
-          # PyPy doesn't seem to work under windows, for some reason.
-          CIBW_TEST_SKIP: "pp*-win*"
 
       - uses: actions/upload-artifact@v4
         with:
