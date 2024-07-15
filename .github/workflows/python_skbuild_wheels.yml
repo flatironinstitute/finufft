@@ -96,7 +96,7 @@ jobs:
           # By setting the generator to Ninja, cmake will pick gcc (mingw64)
           # as the compiler.
           CIBW_CONFIG_SETTINGS: "cmake.args='-G Ninja'"
-          # CIBW doesn't do vendoring of DLLs on Windows by defaulat, so we
+          # CIBW doesn't do vendoring of DLLs on Windows by default, so we
           # have to install delvewheel and run it.
           CIBW_BEFORE_BUILD: pip install delvewheel
           CIBW_REPAIR_WHEEL_COMMAND: delvewheel repair -v --analyze-existing -w {dest_dir} {wheel}
