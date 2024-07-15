@@ -1,4 +1,4 @@
-name: Build Python wheels (skbuild)
+name: Build and test Python wheels
 
 on: [push, pull_request]
 
