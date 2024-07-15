@@ -9,10 +9,25 @@ build-backend = "scikit_build_core.build"
 
 [project]
 name = "finufft"
-description = "Python bindings for the FINUFFT C++ library"
 readme = "README.md"
 requires-python = ">=3.8"
 dependencies = ["numpy >= 1.12.0"]
+authors = [
+    {name = "Jeremy Magland"},
+    {name = "Daniel Foreman-Mackey"},
+    {name = "Joakim Anden"},
+    {name = "Libin Lu"},
+    {name = "Alex Barnett"}]
+maintainers = [{name = "Alex Barnett", email = "abarnett@flatironinstitute.org"}]
+description = "Python interface to FINUFFT"
+classifiers = [
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: C++",
+    "Operating System :: POSIX :: Linux",
+    "Operating System :: MacOS :: MacOS X",
+    "Operating System :: Microsoft :: Windows"
+    ]
 dynamic = ["version"]
 
 [tool.scikit-build]
