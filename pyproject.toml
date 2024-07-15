@@ -53,4 +53,4 @@ archs = "amd64"
 before-build = "pip install delvewheel"
 # CIBW doesn't do vendoring of DLLs on Windows by default, so we have to
 # install delvewheel and run it.
-repair-wheel-command = "delvewheel repair -v --analyze-existing -w {dest_dir} {wheel}
+repair-wheel-command = "delvewheel repair -v --analyze-existing -w {dest_dir} {wheel}"
