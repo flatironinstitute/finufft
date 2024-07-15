@@ -13,37 +13,65 @@ set(PRECISION_DEPENDENT_SRC
   memtransfer_wrapper.cu deconvolve_wrapper.cu cufinufft.cu common.cu
 )
 
+set(HELPER_MATH_URL "https://raw.githubusercontent.com/NVIDIA/cuda-samples/master/Common/helper_math.h")
+set(HELPER_MATH_FILE "${CMAKE_BINARY_DIR}/helper_math.h")
+if(NOT EXISTS ${HELPER_MATH_FILE})
+  file(DOWNLOAD ${HELPER_MATH_URL} ${HELPER_MATH_FILE})
+endif()
+
 set(CUFINUFFT_INCLUDE_DIRS
   ${PROJECT_SOURCE_DIR}/include
   ${PROJECT_SOURCE_DIR}/contrib
+  ${CMAKE_BINARY_DIR}
   $<TARGET_PROPERTY:CUDA::cudart,INTERFACE_INCLUDE_DIRECTORIES>
   $<TARGET_PROPERTY:CUDA::cufft,INTERFACE_INCLUDE_DIRECTORIES>
   $<TARGET_PROPERTY:CUDA::nvToolsExt,INTERFACE_INCLUDE_DIRECTORIES>
 )
 set(CUFINUFFT_INCLUDE_DIRS ${CUFINUFFT_INCLUDE_DIRS} PARENT_SCOPE)
 
+# flush denormals to zero and enable verbose PTXAS output
+set(FINUFFT_CUDA_FLAGS
+        -ftz=true -fmad=true -restrict -Xptxas=-v --extra-device-vectorization -res-usage
+        -Wdouble-promotion -lineinfo --extended-lambda --expt-relaxed-constexpr
+)
+
 add_library(cufinufft_common_objects OBJECT ${PRECISION_INDEPENDENT_SRC})
 target_include_directories(cufinufft_common_objects PUBLIC ${CUFINUFFT_INCLUDE_DIRS})
-set_property(TARGET cufinufft_common_objects PROPERTY POSITION_INDEPENDENT_CODE ON)
+set_target_properties(
+        cufinufft_common_objects PROPERTIES
+        POSITION_INDEPENDENT_CODE ON
+        CUDA_ARCHITECTURES ${FINUFFT_CUDA_ARCHITECTURES}
+)
+
+target_compile_options(cufinufft_common_objects PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:${FINUFFT_CUDA_FLAGS}>)
 
 add_library(cufinufft_objects OBJECT ${PRECISION_DEPENDENT_SRC})
 target_include_directories(cufinufft_objects PUBLIC ${CUFINUFFT_INCLUDE_DIRS})
 set_property(TARGET cufinufft_objects PROPERTY POSITION_INDEPENDENT_CODE ON)
+set_target_properties(
+        cufinufft_objects PROPERTIES
+        POSITION_INDEPENDENT_CODE ON
+        CUDA_ARCHITECTURES ${FINUFFT_CUDA_ARCHITECTURES}
+)
+target_compile_options(cufinufft_objects PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:${FINUFFT_CUDA_FLAGS}>)
 
 add_library(cufinufft SHARED
   $<TARGET_OBJECTS:cufinufft_common_objects>
   $<TARGET_OBJECTS:cufinufft_objects>
 )
+target_include_directories(cufinufft PUBLIC ${CUFINUFFT_INCLUDE_DIRS})
 target_link_libraries(cufinufft CUDA::cudart CUDA::cufft CUDA::nvToolsExt)
 set_target_properties(
   cufinufft PROPERTIES
   LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}"
+        CUDA_ARCHITECTURES ${FINUFFT_CUDA_ARCHITECTURES}
 )
 
 add_library(cufinufft_static STATIC
   $<TARGET_OBJECTS:cufinufft_common_objects>
   $<TARGET_OBJECTS:cufinufft_objects>
 )
+target_include_directories(cufinufft_static PUBLIC ${CUFINUFFT_INCLUDE_DIRS})
 if(WIN32)
   target_link_libraries(cufinufft_static PUBLIC CUDA::cudart CUDA::cufft CUDA::nvToolsExt)
 else()
@@ -51,7 +79,8 @@ else()
 endif()
 set_target_properties(
   cufinufft_static PROPERTIES
-  ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}"
+        CUDA_ARCHITECTURES ${FINUFFT_CUDA_ARCHITECTURES}
+        ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}"
 )
 
 file(GLOB CUFINUFFT_PUBLIC_HEADERS "${CMAKE_SOURCE_DIR}/include/cufinufft*.h")
