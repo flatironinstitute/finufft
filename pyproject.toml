@@ -37,7 +37,7 @@ input = "python/finufft/finufft/__init__.py"
 # Necessary to see build output from the actual compilation
 build-verbosity = 1
 # Not building for PyPy and musllinux for now.
-skip = "pp* *musllinux"
+skip = "pp* *musllinux*"
 test-requires = "pytest"
 test-command = "pytest {project}/python/finufft/test"
 
