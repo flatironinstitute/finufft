@@ -49,7 +49,7 @@ before-all = "yum install -y fftw3-devel"
 archs = "arm64"
 
 [tool.cibuildwheel.windows]
-archs = "amd64"
+archs = "AMD64"
 before-build = "pip install delvewheel"
 # CIBW doesn't do vendoring of DLLs on Windows by default, so we have to
 # install delvewheel and run it.
