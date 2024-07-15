@@ -45,6 +45,7 @@ wheel.packages = ["python/finufft/finufft"]
 wheel.py-api = "py3"
 
 [tool.scikit-build.metadata.version]
+# Instead of hardcoding the version here, extract it from the source files.
 provider = "scikit_build_core.metadata.regex"
 input = "python/finufft/finufft/__init__.py"
 
