@@ -19,6 +19,7 @@ jobs:
           package-dir: 'python/finufft'
         env:
           CIBW_BEFORE_ALL_MACOS: brew install gcc@14 fftw
+          CIBW_ARCHS_MACOS: "x86_64"
           # Need following versions of GCC for compatibility with fftw
           # installed by homebrew. Similarly, we set the macOS version
           # for compatibility with those libraries.
@@ -44,6 +45,7 @@ jobs:
         with:
           package-dir: 'python/finufft'
         env:
+          CIBW_ARCHS_MACOS: "arm64"
           # Make sure to install the ARM64-specific versions of FFTW and GCC.
           # Perhaps this is done automatically on the macos-14 image. We should
           # look into this further.

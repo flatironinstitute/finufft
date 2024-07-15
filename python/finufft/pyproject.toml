@@ -63,9 +63,6 @@ test-command = "pytest {project}/python/finufft/test"
 archs = "x86_64"
 before-all = "yum install -y fftw3-devel"
 
-[tool.cibuildwheel.macos]
-archs = ["x86_64", "arm64"]
-
 [tool.cibuildwheel.windows]
 archs = "AMD64"
 before-build = "pip install delvewheel"
