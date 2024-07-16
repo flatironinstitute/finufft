@@ -68,32 +68,32 @@ using CPX = std::complex<FLT>;
 
 // Smallest possible kernel spread width per dimension, in fine grid points
 // (used only in spreadinterp.cpp)
-static constexpr int MIN_NSPREAD = 2;
+inline constexpr int MIN_NSPREAD = 2;
 
 // Largest possible kernel spread width per dimension, in fine grid points
 // (used only in spreadinterp.cpp)
-static constexpr int MAX_NSPREAD = 16;
+inline constexpr int MAX_NSPREAD = 16;
 
 // Fraction growth cut-off in utils:arraywidcen, sets when translate in type-3
-static constexpr double ARRAYWIDCEN_GROWFRAC = 0.1;
+inline constexpr double ARRAYWIDCEN_GROWFRAC = 0.1;
 
 // Max number of positive quadr nodes for kernel FT (used only in common.cpp)
-static constexpr int MAX_NQUAD = 100;
+inline constexpr int MAX_NQUAD = 100;
 
 // Internal (nf1 etc) array allocation size that immediately raises error.
 // (Note: next235 takes 1s for 1e11, so it is also to prevent hang here.)
 // Increase this if you need >10TB (!) RAM...
-static constexpr BIGINT MAX_NF = BIGINT(1e12);
+inline constexpr BIGINT MAX_NF = BIGINT(1e12);
 
 // Maximum allowed number M of NU points; useful to catch incorrectly cast int32
 // values for M = nj (also nk in type 3)...
-static constexpr BIGINT MAX_NU_PTS = BIGINT(1e14);
+inline constexpr BIGINT MAX_NU_PTS = BIGINT(1e14);
 
 // -------------- Math consts (not in math.h) and useful math macros ----------
 #include <math.h>
 
 // either-precision unit imaginary number...
-static constexpr CPX IMA(FLT(0), FLT(1));
+inline constexpr CPX IMA(FLT(0), FLT(1));
 
 // MR: In the longer term I suggest to move
 // away from M_PI, which was never part of the standard.
@@ -103,13 +103,13 @@ static constexpr CPX IMA(FLT(0), FLT(1));
 #ifndef M_PI // Windows apparently doesn't have this const
 #define M_PI 3.14159265358979329
 #endif
-static constexpr double M_1_2PI = 0.159154943091895336;
-static constexpr double M_2PI   = 6.28318530717958648;
+inline constexpr double M_1_2PI = 0.159154943091895336;
+inline constexpr double M_2PI   = 6.28318530717958648;
 // to avoid mixed precision operators in eg i*pi, an either-prec PI...
-static constexpr FLT PI = FLT(M_PI);
+inline constexpr FLT PI = FLT(M_PI);
 
 // machine epsilon for decisions of achievable tolerance...
-static constexpr FLT EPSILON = std::numeric_limits<FLT>::epsilon();
+inline constexpr FLT EPSILON = std::numeric_limits<FLT>::epsilon();
 
 // Random numbers: crappy unif random number generator in [0,1).
 // These macros should probably be replaced by modern C++ std lib or random123.
