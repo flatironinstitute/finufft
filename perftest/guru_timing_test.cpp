@@ -100,17 +100,17 @@ int main(int argc, char *argv[])
     FLT S1 = (FLT)N1 / 2;
 #pragma omp parallel
     {
-      unsigned int se = MY_OMP_GET_THREAD_NUM(); // needed for parallel random #s
+      Finufft_RNG<FLT> rng(MY_OMP_GET_THREAD_NUM());
 #pragma omp for schedule(dynamic, TEST_RANDCHUNK)
       for (BIGINT k = 0; k < N; ++k) {
-        s[k] = S1 * (1.7 + randm11r(&se)); // note the offset, to test type 3.
+        s[k] = S1 * (1.7 + rng.randm11()); // note the offset, to test type 3.
       }
       if (ndim > 1) {
         t      = (FLT *)malloc(sizeof(FLT) * N); // targ freqs (2-cmpt)
         FLT S2 = (FLT)N2 / 2;
 #pragma omp for schedule(dynamic, TEST_RANDCHUNK)
         for (BIGINT k = 0; k < N; ++k) {
-          t[k] = S2 * (-0.5 + randm11r(&se));
+          t[k] = S2 * (-0.5 + rng.randm11());
         }
       }
       if (ndim > 2) {
@@ -118,7 +118,7 @@ int main(int argc, char *argv[])
         FLT S3 = (FLT)N3 / 2;
 #pragma omp for schedule(dynamic, TEST_RANDCHUNK)
         for (BIGINT k = 0; k < N; ++k) {
-          u[k] = S3 * (0.9 + randm11r(&se));
+          u[k] = S3 * (0.9 + rng.randm11());
         }
       }
     }
@@ -132,16 +132,16 @@ int main(int argc, char *argv[])
   if (ndim > 2) z = (FLT *)malloc(sizeof(FLT) * M);              // NU pts z coords
 #pragma omp parallel
   {
-    unsigned int se = MY_OMP_GET_THREAD_NUM(); // needed for parallel random #s
+    Finufft_RNG<FLT> rng(MY_OMP_GET_THREAD_NUM());
 #pragma omp for schedule(dynamic, TEST_RANDCHUNK)
     for (BIGINT j = 0; j < M; ++j) {
-      x[j] = M_PI * randm11r(&se);
-      if (y) y[j] = M_PI * randm11r(&se);
-      if (z) z[j] = M_PI * randm11r(&se);
+      x[j] = M_PI * rng.randm11();
+      if (y) y[j] = M_PI * rng.randm11();
+      if (z) z[j] = M_PI * rng.randm11();
     }
 #pragma omp for schedule(dynamic, TEST_RANDCHUNK)
     for (BIGINT i = 0; i < ntransf * M; i++) // random strengths
-      c[i] = crandm11r(&se);
+      c[i] = rng.crandm11();
   }
 
   // Andrea found the following are needed to get reliable independent timings:

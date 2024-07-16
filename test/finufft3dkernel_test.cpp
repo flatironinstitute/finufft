@@ -71,13 +71,13 @@ int main(int argc, char *argv[]) {
   std::vector<CPX> F1(N);        // mode ampls kereval 1
 #pragma omp parallel
   {
-    unsigned int se = MY_OMP_GET_THREAD_NUM(); // needed for parallel random #s
+    Finufft_RNG<FLT> rng(MY_OMP_GET_THREAD_NUM());
 #pragma omp for schedule(static, TEST_RANDCHUNK)
     for (BIGINT j = 0; j < M; ++j) {
-      x[j]  = M_PI * randm11r(&se);
-      y[j]  = M_PI * randm11r(&se);
-      z[j]  = M_PI * randm11r(&se);
-      c0[j] = crandm11r(&se);
+      x[j]  = M_PI * rng.randm11();
+      y[j]  = M_PI * rng.randm11();
+      z[j]  = M_PI * rng.randm11();
+      c0[j] = rng.crandm11();
     }
   }
   c1 = c0;                     // copy strengths
@@ -140,12 +140,12 @@ int main(int argc, char *argv[]) {
   printf("test 3d type 3:\n"); // -------------- type 3
 #pragma omp parallel
   {
-    unsigned int se = MY_OMP_GET_THREAD_NUM();
+    Finufft_RNG<FLT> rng(MY_OMP_GET_THREAD_NUM());
 #pragma omp for schedule(static, TEST_RANDCHUNK)
     for (BIGINT j = 0; j < M; ++j) {
-      x[j] = 2.0 + M_PI * randm11r(&se);  // new x_j srcs, offset from origin
-      y[j] = -3.0 + M_PI * randm11r(&se); // " y_j
-      z[j] = 1.0 + M_PI * randm11r(&se);  // " z_j
+      x[j] = 2.0 + M_PI * rng.randm11();  // new x_j srcs, offset from origin
+      y[j] = -3.0 + M_PI * rng.randm11(); // " y_j
+      z[j] = 1.0 + M_PI * rng.randm11();  // " z_j
     }
   }
   std::vector<FLT> s(N); // targ freqs (1-cmpt)

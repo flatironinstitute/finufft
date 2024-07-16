@@ -16,6 +16,7 @@
 #define DEFS_H
 
 #include <limits>
+#include <random>
 // public header gives access to f_opts, f_spread_opts, f_plan...
 // (and clobbers FINUFFT* macros; watch out!)
 #include <finufft.h>
@@ -111,32 +112,25 @@ static constexpr FLT PI = FLT(M_PI);
 // machine epsilon for decisions of achievable tolerance...
 static constexpr FLT EPSILON = std::numeric_limits<FLT>::epsilon();
 
-// Random numbers: crappy unif random number generator in [0,1).
-// These macros should probably be replaced by modern C++ std lib or random123.
-// (RAND_MAX is in stdlib.h)
-#include <stdlib.h>
-static inline FLT rand01() { return FLT(rand()) / FLT(RAND_MAX); }
-// unif[-1,1]:
-static inline FLT randm11() { return 2 * rand01() - FLT(1); }
-// complex unif[-1,1] for Re and Im:
-static inline CPX crandm11() { return randm11() + IMA * randm11(); }
+// random numbers: simple replacement for the existing functionality
+// Should probably move to a separate, test-specific header at some point
+template<typename T> class Finufft_RNG {
+private:
+  std::mt19937 gen;
+  std::uniform_real_distribution<T> distm11;
 
-// Thread-safe seed-carrying versions of above (x is ptr to seed)...
-// MR: we have to leave those as macros for now, as "rand_r" is deprecated
-// and apparently no longer available on Windows.
-#if 1
-#define rand01r(x)   ((FLT)rand_r(x) / (FLT)RAND_MAX)
-// unif[-1,1]:
-#define randm11r(x)  (2 * rand01r(x) - (FLT)1.0)
-// complex unif[-1,1] for Re and Im:
-#define crandm11r(x) (randm11r(x) + IMA * randm11r(x))
-#else
-static inline FLT rand01r(unsigned int *x) { return FLT(rand_r(x)) / FLT(RAND_MAX); }
-// unif[-1,1]:
-static inline FLT randm11r(unsigned int *x) { return 2 * rand01r(x) - FLT(1); }
-// complex unif[-1,1] for Re and Im:
-static inline CPX crandm11r(unsigned int *x) { return randm11r(x) + IMA * randm11r(x); }
-#endif
+public:
+  Finufft_RNG(unsigned int seed) : gen(seed), distm11(T(-1), T(1)) {}
+  T randm11() { return distm11(gen); }
+  std::complex<T> crandm11() {
+    std::complex<T> res;
+    // setting real and imaginary part in two statements
+    // to ensure consistency which part is drawn first.
+    res.real(distm11(gen));
+    res.imag(distm11(gen));
+    return res;
+  }
+};
 
 // ----- OpenMP macros which also work when omp not present -----
 // Allows compile-time switch off of openmp, so compilation without any openmp

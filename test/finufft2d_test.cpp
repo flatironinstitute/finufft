@@ -50,12 +50,12 @@ int main(int argc, char *argv[]) {
   CPX *F = (CPX *)malloc(sizeof(CPX) * N); // mode ampls
 #pragma omp parallel
   {
-    unsigned int se = MY_OMP_GET_THREAD_NUM(); // needed for parallel random #s
+    Finufft_RNG<FLT> rng(MY_OMP_GET_THREAD_NUM());
 #pragma omp for schedule(static, TEST_RANDCHUNK)
     for (BIGINT j = 0; j < M; ++j) {
-      x[j] = M_PI * randm11r(&se);
-      y[j] = M_PI * randm11r(&se);
-      c[j] = crandm11r(&se);
+      x[j] = M_PI * rng.randm11();
+      y[j] = M_PI * rng.randm11();
+      c[j] = rng.crandm11();
     }
   }
 
@@ -97,9 +97,9 @@ int main(int argc, char *argv[]) {
   printf("test 2d type 2:\n"); // -------------- type 2
 #pragma omp parallel
   {
-    unsigned int se = MY_OMP_GET_THREAD_NUM();
+    Finufft_RNG<FLT> rng(MY_OMP_GET_THREAD_NUM());
 #pragma omp for schedule(static, TEST_RANDCHUNK)
-    for (BIGINT m = 0; m < N; ++m) F[m] = crandm11r(&se);
+    for (BIGINT m = 0; m < N; ++m) F[m] = rng.crandm11();
   }
   timer.restart();
   ier = FINUFFT2D2(M, x, y, c, isign, tol, N1, N2, F, &opts);
@@ -135,11 +135,11 @@ int main(int argc, char *argv[]) {
                                // reuse the strengths c, interpret N as number of targs:
 #pragma omp parallel
   {
-    unsigned int se = MY_OMP_GET_THREAD_NUM();
+    Finufft_RNG<FLT> rng(MY_OMP_GET_THREAD_NUM());
 #pragma omp for schedule(static, TEST_RANDCHUNK)
     for (BIGINT j = 0; j < M; ++j) {
-      x[j] = 2.0 + M_PI * randm11r(&se);  // new x_j srcs, offset from origin
-      y[j] = -3.0 + M_PI * randm11r(&se); // " y_j
+      x[j] = 2.0 + M_PI * rng.randm11();  // new x_j srcs, offset from origin
+      y[j] = -3.0 + M_PI * rng.randm11(); // " y_j
     }
   }
   FLT *s = (FLT *)malloc(sizeof(FLT) * N); // targ freqs (1-cmpt)
@@ -148,11 +148,11 @@ int main(int argc, char *argv[]) {
   FLT S2 = (FLT)N2 / 2;
 #pragma omp parallel
   {
-    unsigned int se = MY_OMP_GET_THREAD_NUM();
+    Finufft_RNG<FLT> rng(MY_OMP_GET_THREAD_NUM());
 #pragma omp for schedule(static, TEST_RANDCHUNK)
     for (BIGINT k = 0; k < N; ++k) {
-      s[k] = S1 * (1.7 + randm11r(&se)); // S*(1.7 + k/(FLT)N); // offset the freqs
-      t[k] = S2 * (-0.5 + randm11r(&se));
+      s[k] = S1 * (1.7 + rng.randm11()); // S*(1.7 + k/(FLT)N); // offset the freqs
+      t[k] = S2 * (-0.5 + rng.randm11());
     }
   }
   timer.restart();

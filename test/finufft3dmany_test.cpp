@@ -60,16 +60,16 @@ int main(int argc, char *argv[]) {
 
 #pragma omp parallel
   {
-    unsigned int se = MY_OMP_GET_THREAD_NUM();
+    Finufft_RNG<FLT> rng(MY_OMP_GET_THREAD_NUM());
 #pragma omp for schedule(static, TEST_RANDCHUNK)
     for (BIGINT j = 0; j < M; ++j) {
-      x[j] = M_PI * randm11r(&se);
-      y[j] = M_PI * randm11r(&se);
-      z[j] = M_PI * randm11r(&se);
+      x[j] = M_PI * rng.randm11();
+      y[j] = M_PI * rng.randm11();
+      z[j] = M_PI * rng.randm11();
     }
 #pragma omp for schedule(static, TEST_RANDCHUNK)
     for (BIGINT j = 0; j < ntransf * M; ++j) {
-      c[j] = crandm11r(&se);
+      c[j] = rng.crandm11();
     }
   }
 
@@ -138,9 +138,9 @@ int main(int argc, char *argv[]) {
   printf("test 3d2 many vs repeated single: ------------------------------------\n");
 #pragma omp parallel
   {
-    unsigned int se = MY_OMP_GET_THREAD_NUM();
+    Finufft_RNG<FLT> rng(MY_OMP_GET_THREAD_NUM());
 #pragma omp for schedule(static, TEST_RANDCHUNK)
-    for (BIGINT m = 0; m < N * ntransf; ++m) F[m] = crandm11r(&se);
+    for (BIGINT m = 0; m < N * ntransf; ++m) F[m] = rng.crandm11();
   }
   FFTW_FORGET_WISDOM();
   timer.restart();
@@ -202,12 +202,12 @@ int main(int argc, char *argv[]) {
   // reuse the strengths c, interpret N as number of targs:
 #pragma omp parallel
   {
-    unsigned int se = MY_OMP_GET_THREAD_NUM();
+    Finufft_RNG<FLT> rng(MY_OMP_GET_THREAD_NUM());
 #pragma omp for schedule(static, TEST_RANDCHUNK)
     for (BIGINT j = 0; j < M; ++j) {
-      x[j] = 2.0 + M_PI * randm11r(&se);  // new x_j srcs, offset from origin
-      y[j] = -3.0 + M_PI * randm11r(&se); // " y_j
-      z[j] = 1.0 + M_PI * randm11r(&se);  // " z_j
+      x[j] = 2.0 + M_PI * rng.randm11();  // new x_j srcs, offset from origin
+      y[j] = -3.0 + M_PI * rng.randm11(); // " y_j
+      z[j] = 1.0 + M_PI * rng.randm11();  // " z_j
     }
   }
   FLT *s_freq = (FLT *)malloc(sizeof(FLT) * N); // targ freqs (1-cmpt)
@@ -219,13 +219,13 @@ int main(int argc, char *argv[]) {
 
 #pragma omp parallel
   {
-    unsigned int se = MY_OMP_GET_THREAD_NUM();
+    Finufft_RNG<FLT> rng(MY_OMP_GET_THREAD_NUM());
 #pragma omp for schedule(static, TEST_RANDCHUNK)
     for (BIGINT k = 0; k < N; ++k) {
-      s_freq[k] = S1 * (1.7 + randm11r(&se)); // S*(1.7 + k/(FLT)N); // offset the
+      s_freq[k] = S1 * (1.7 + rng.randm11()); // S*(1.7 + k/(FLT)N); // offset the
                                               // freqs
-      t_freq[k] = S2 * (-0.5 + randm11r(&se));
-      u_freq[k] = S3 * (0.9 + randm11r(&se));
+      t_freq[k] = S2 * (-0.5 + rng.randm11());
+      u_freq[k] = S3 * (0.9 + rng.randm11());
     }
   }
 

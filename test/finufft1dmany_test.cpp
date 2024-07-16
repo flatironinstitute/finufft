@@ -53,14 +53,14 @@ int main(int argc, char *argv[]) {
 
 #pragma omp parallel
   {
-    unsigned int se = MY_OMP_GET_THREAD_NUM();
+    Finufft_RNG<FLT> rng(MY_OMP_GET_THREAD_NUM());
 #pragma omp for schedule(static, TEST_RANDCHUNK)
     for (BIGINT j = 0; j < M; ++j) {
-      x[j] = M_PI * randm11r(&se);
+      x[j] = M_PI * rng.randm11();
     }
 #pragma omp for schedule(static, TEST_RANDCHUNK)
     for (BIGINT j = 0; j < ntransf * M; ++j) {
-      c[j] = crandm11r(&se);
+      c[j] = rng.crandm11();
     }
   }
 
@@ -122,9 +122,9 @@ int main(int argc, char *argv[]) {
 
 #pragma omp parallel
   {
-    unsigned int se = MY_OMP_GET_THREAD_NUM(); // needed for parallel random #s
+    Finufft_RNG<FLT> rng(MY_OMP_GET_THREAD_NUM());
 #pragma omp for schedule(static, TEST_RANDCHUNK)
-    for (BIGINT m = 0; m < N; ++m) F[m] = crandm11r(&se);
+    for (BIGINT m = 0; m < N; ++m) F[m] = rng.crandm11();
   }
   timer.restart();
   ier = FINUFFT1D2MANY(ntransf, M, x, c, isign, tol, N, F, &opts);
@@ -177,21 +177,21 @@ int main(int argc, char *argv[]) {
 
 #pragma omp parallel
   {
-    unsigned int se = MY_OMP_GET_THREAD_NUM();
+    Finufft_RNG<FLT> rng(MY_OMP_GET_THREAD_NUM());
 #pragma omp for schedule(static, TEST_RANDCHUNK)
-    for (BIGINT j = 0; j < M; ++j) x[j] = 2.0 + PI * randm11r(&se); // new x_j srcs
+    for (BIGINT j = 0; j < M; ++j) x[j] = 2.0 + PI * rng.randm11(); // new x_j srcs
   }
   FLT *s = (FLT *)malloc(sizeof(FLT) * N);                          // targ freqs
   FLT S  = (FLT)N / 2; // choose freq range sim to type 1
 #pragma omp parallel
   {
-    unsigned int se = MY_OMP_GET_THREAD_NUM();
+    Finufft_RNG<FLT> rng(MY_OMP_GET_THREAD_NUM());
 #pragma omp for schedule(static, TEST_RANDCHUNK)
     for (BIGINT k = 0; k < N; ++k)
-      s[k] = S * (1.7 + randm11r(&se)); // S*(1.7 + k/(FLT)N); // offset
+      s[k] = S * (1.7 + rng.randm11()); // S*(1.7 + k/(FLT)N); // offset
 
 #pragma omp for schedule(static, TEST_RANDCHUNK)
-    for (BIGINT j = 0; j < ntransf * M; ++j) c[j] = crandm11r(&se);
+    for (BIGINT j = 0; j < ntransf * M; ++j) c[j] = rng.crandm11();
   }
 
   timer.restart();

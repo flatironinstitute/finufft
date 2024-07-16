@@ -181,15 +181,15 @@ int main(int argc, char *argv[])
     FLT strre = 0.0, strim = 0.0; // also sum the strengths
 #pragma omp parallel
     {
-      unsigned int se = MY_OMP_GET_THREAD_NUM(); // needed for parallel random #s
+      Finufft_RNG<FLT> rng(MY_OMP_GET_THREAD_NUM());
 #pragma omp for schedule(dynamic, 1000000) reduction(+ : strre, strim)
       for (BIGINT i = 0; i < M; ++i) {
-        kx[i] = randm11r(&se) * 3 * M_PI;
+        kx[i] = rng.randm11() * 3 * M_PI;
         // kx[i]=2.0*kx[i] - 50.0;      //// to test folding within +-1 period
-        if (d > 1) ky[i] = randm11r(&se) * 3 * M_PI; // only fill needed coords
-        if (d > 2) kz[i] = randm11r(&se) * 3 * M_PI;
-        d_nonuniform[i * 2]     = randm11r(&se);
-        d_nonuniform[i * 2 + 1] = randm11r(&se);
+        if (d > 1) ky[i] = rng.randm11() * 3 * M_PI; // only fill needed coords
+        if (d > 2) kz[i] = rng.randm11() * 3 * M_PI;
+        d_nonuniform[i * 2]     = rng.randm11();
+        d_nonuniform[i * 2 + 1] = rng.randm11();
         strre += d_nonuniform[2 * i];
         strim += d_nonuniform[2 * i + 1];
       }
@@ -233,13 +233,13 @@ int main(int argc, char *argv[])
       }
 #pragma omp parallel
       {
-        unsigned int se = MY_OMP_GET_THREAD_NUM(); // needed for parallel random #s
+        Finufft_RNG<FLT> rng(MY_OMP_GET_THREAD_NUM());
 #pragma omp for schedule(dynamic, 1000000)
-        for (BIGINT i = 0; i < M; ++i) {           // random target pts
+        for (BIGINT i = 0; i < M; ++i) { // random target pts
           // kx[i]=10+.9*rand01r(&s)*N;   // or if want to keep ns away from edges
-          kx[i] = randm11r(&se) * 3 * M_PI;
-          if (d > 1) ky[i] = randm11r(&se) * 3 * M_PI;
-          if (d > 2) kz[i] = randm11r(&se) * 3 * M_PI;
+          kx[i] = rng.randm11() * 3 * M_PI;
+          if (d > 1) ky[i] = rng.randm11() * 3 * M_PI;
+          if (d > 2) kz[i] = rng.randm11() * 3 * M_PI;
         }
       }
 
