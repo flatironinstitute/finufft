@@ -796,8 +796,8 @@ Two upsampfacs implemented. Params must match ref formula. Barnett 4/24/18 */
       static constexpr uint8_t if_odd_degree = ((nc + 1) % 2);
       static constexpr uint8_t offset_start  = tail ? w - tail : w - simd_size;
       static constexpr uint8_t end_idx       = (w + (tail > 0)) / 2;
-      const simd_type zv(z);
-      const simd_type z2v = zv * zv;
+      const simd_type zv{z};
+      const simd_type z2v{zv * zv};
 
       // some xsimd constant for shuffle or inverse
       static constexpr auto shuffle_batch = []() constexpr noexcept {
@@ -811,21 +811,24 @@ Two upsampfacs implemented. Params must match ref formula. Barnett 4/24/18 */
       }();
 
       // process simd vecs
-      simd_type k_odd, k_even, k_prev, k_sym{0};
-      for (uint8_t i = 0, offset = offset_start; i < end_idx;
+      struct EmptySimd {};
+      // these exist only if tail > 0
+      typename std::conditional<(tail > 0), simd_type, EmptySimd>::type k_prev, k_sym;
+      if constexpr (tail) k_sym = {0};
+      for (uint8_t i{0}, offset = offset_start; i < end_idx;
            i += simd_size, offset -= simd_size) {
-        k_odd = [i]() constexpr noexcept {
+        auto k_odd = [i]() constexpr noexcept {
           if constexpr (if_odd_degree) {
             return simd_type::load_aligned(padded_coeffs[0].data() + i);
           } else {
             return simd_type{0};
           }
         }();
-        k_even = simd_type::load_aligned(padded_coeffs[if_odd_degree].data() + i);
-        for (uint8_t j = 1 + if_odd_degree; j < nc; j += 2) {
+        auto k_even = simd_type::load_aligned(padded_coeffs[if_odd_degree].data() + i);
+        for (uint8_t j{1 + if_odd_degree}; j < nc; j += 2) {
           const auto cji_odd  = simd_type::load_aligned(padded_coeffs[j].data() + i);
-          k_odd               = xsimd::fma(k_odd, z2v, cji_odd);
           const auto cji_even = simd_type::load_aligned(padded_coeffs[j + 1].data() + i);
+          k_odd               = xsimd::fma(k_odd, z2v, cji_odd);
           k_even              = xsimd::fma(k_even, z2v, cji_even);
         }
         // left part
@@ -845,7 +848,6 @@ Two upsampfacs implemented. Params must match ref formula. Barnett 4/24/18 */
       }
     } else {
       const simd_type zv(z);
-
       for (uint8_t i = 0; i < w; i += simd_size) {
         auto k = simd_type::load_aligned(padded_coeffs[0].data() + i);
         for (uint8_t j = 1; j < nc; ++j) {
@@ -855,7 +857,6 @@ Two upsampfacs implemented. Params must match ref formula. Barnett 4/24/18 */
         k.store_aligned(ker + i);
       }
     }
-
     return;
   }
   // insert the auto-generated code which expects z, w args, writes to ker...
