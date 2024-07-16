@@ -794,67 +794,51 @@ Two upsampfacs implemented. Params must match ref formula. Barnett 4/24/18 */
     if constexpr (use_ker_sym) {
       static constexpr uint8_t tail          = w % simd_size;
       static constexpr uint8_t if_odd_degree = ((nc + 1) % 2);
-      static const simd_type zerov(0.0);
+      static constexpr uint8_t offset_start  = tail ? w - tail : w - simd_size;
+      static constexpr uint8_t end_idx       = (w + (tail > 0)) / 2;
       const simd_type zv(z);
       const simd_type z2v = zv * zv;
 
-      // no xsimd::shuffle neeeded if tail is zero
-      if constexpr (tail) {
-        // some xsimd constant for shuffle
-        static constexpr auto shuffle_batch =
-            xsimd::make_batch_constant<xsimd::as_unsigned_integer_t<FLT>, arch_t,
-                                       shuffle_index<tail>>();
+      // some xsimd constant for shuffle or inverse
+      static constexpr auto shuffle_batch = []() constexpr noexcept {
+        if constexpr (tail) {
+          return xsimd::make_batch_constant<xsimd::as_unsigned_integer_t<FLT>, arch_t,
+                                            shuffle_index<tail>>();
+        } else {
+          return xsimd::make_batch_constant<xsimd::as_unsigned_integer_t<FLT>, arch_t,
+                                            reverse_index<simd_size>>();
+        }
+      }();
 
-        // process simd vecs
-        simd_type k_odd, k_even, k_prev, k_sym = zerov;
-        for (uint8_t i = 0, offset = w - tail; i < (w + 1) / 2;
-             i += simd_size, offset -= simd_size) {
-          k_odd  = if_odd_degree ? simd_type::load_aligned(padded_coeffs[0].data() + i)
-                                 : zerov;
-          k_even = simd_type::load_aligned(padded_coeffs[if_odd_degree].data() + i);
-          for (uint8_t j = 1 + if_odd_degree; j < nc; j += 2) {
-            const auto cji_odd = simd_type::load_aligned(padded_coeffs[j].data() + i);
-            k_odd              = xsimd::fma(k_odd, z2v, cji_odd);
-            const auto cji_even =
-                simd_type::load_aligned(padded_coeffs[j + 1].data() + i);
-            k_even = xsimd::fma(k_even, z2v, cji_even);
+      // process simd vecs
+      simd_type k_odd, k_even, k_prev, k_sym{0};
+      for (uint8_t i = 0, offset = offset_start; i < end_idx;
+           i += simd_size, offset -= simd_size) {
+        k_odd = [i]() constexpr noexcept {
+          if constexpr (if_odd_degree) {
+            return simd_type::load_aligned(padded_coeffs[0].data() + i);
+          } else {
+            return simd_type{0};
           }
-          // left part
-          xsimd::fma(k_odd, zv, k_even).store_aligned(ker + i);
-          // right part symmetric to the left part
-          if (offset >= (w + 1) / 2) {
+        }();
+        k_even = simd_type::load_aligned(padded_coeffs[if_odd_degree].data() + i);
+        for (uint8_t j = 1 + if_odd_degree; j < nc; j += 2) {
+          const auto cji_odd  = simd_type::load_aligned(padded_coeffs[j].data() + i);
+          k_odd               = xsimd::fma(k_odd, z2v, cji_odd);
+          const auto cji_even = simd_type::load_aligned(padded_coeffs[j + 1].data() + i);
+          k_even              = xsimd::fma(k_even, z2v, cji_even);
+        }
+        // left part
+        xsimd::fma(k_odd, zv, k_even).store_aligned(ker + i);
+        // right part symmetric to the left part
+        if (offset >= end_idx) {
+          if constexpr (tail) {
             // to use aligned store, we need shuffle the previous k_sym and current k_sym
             k_prev = k_sym;
             k_sym  = xsimd::fnma(k_odd, zv, k_even);
             xsimd::shuffle(k_sym, k_prev, shuffle_batch).store_aligned(ker + offset);
-          }
-        }
-      } else {
-        // xsimd constants for reverse
-        static constexpr auto reverse_batch =
-            xsimd::make_batch_constant<xsimd::as_unsigned_integer_t<FLT>, arch_t,
-                                       reverse_index<simd_size>>();
-
-        // process simd vecs
-        for (uint8_t i = 0, offset = w - simd_size; i < w / 2;
-             i += simd_size, offset -= simd_size) {
-          auto k_odd  = if_odd_degree
-                            ? simd_type::load_aligned(padded_coeffs[0].data() + i)
-                            : zerov;
-          auto k_even = simd_type::load_aligned(padded_coeffs[if_odd_degree].data() + i);
-          for (uint8_t j = 1 + if_odd_degree; j < nc; j += 2) {
-            const auto cji_odd = simd_type::load_aligned(padded_coeffs[j].data() + i);
-            k_odd              = xsimd::fma(k_odd, z2v, cji_odd);
-            const auto cji_even =
-                simd_type::load_aligned(padded_coeffs[j + 1].data() + i);
-            k_even = xsimd::fma(k_even, z2v, cji_even);
-          }
-          // left part
-          xsimd::fma(k_odd, zv, k_even).store_aligned(ker + i);
-          // right part symmetric to the left part
-          if (offset >= w / 2) {
-            // reverse the order for symmetric part
-            xsimd::swizzle(xsimd::fnma(k_odd, zv, k_even), reverse_batch)
+          } else {
+            xsimd::swizzle(xsimd::fnma(k_odd, zv, k_even), shuffle_batch)
                 .store_aligned(ker + offset);
           }
         }
