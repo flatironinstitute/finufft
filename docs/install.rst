@@ -59,14 +59,14 @@ The basic quick download, building, and test is then:
   cd finufft
   mkdir build
   cd build
-  cmake .. -D FINUFFT_BUILD_TESTS=ON -D CMAKE_BUILD_TYPE=Release --install-prefix /path/to/install
+  cmake .. -D FINUFFT_BUILD_TESTS=ON --install-prefix /path/to/install
   cmake --build . -j
   ctest
   cmake --install .
 
+.. note::
 
-Note: `Release` here is essential to get the best performing version. Also, if you don't supply `--install-prefix`, it will default to ``/usr/local`` on most systems. If you don't
-have root access, you must supply a prefix you can write to such as ``$HOME/local``. Now...
+   If you don't supply `--install-prefix`, it will default to ``/usr/local`` on most systems. If you don't have root access, you must supply a prefix you can write to such as ``$HOME/local``.
 
 In ``build``, this creates ``libfinufft_static.a`` and ``libfinufft.so``, and runs a test that should take a
 few seconds and report ``100% tests passed, 0 tests failed out of 17``.  To use the library, link against
