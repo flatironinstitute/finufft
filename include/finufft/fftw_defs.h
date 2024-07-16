@@ -22,11 +22,7 @@
 // now use this tool (note we replaced typedefs v<=2.0.4, in favor of macros):
 #define FFTW_CPX           FFTWIFY(complex)
 #define FFTW_PLAN          FFTWIFY(plan)
-#define FFTW_ALLOC_RE      FFTWIFY(alloc_real)
 #define FFTW_ALLOC_CPX     FFTWIFY(alloc_complex)
-#define FFTW_PLAN_1D       FFTWIFY(plan_dft_1d)
-#define FFTW_PLAN_2D       FFTWIFY(plan_dft_2d)
-#define FFTW_PLAN_3D       FFTWIFY(plan_dft_3d)
 #define FFTW_PLAN_MANY_DFT FFTWIFY(plan_many_dft)
 #define FFTW_EX            FFTWIFY(execute)
 #define FFTW_DE            FFTWIFY(destroy_plan)
