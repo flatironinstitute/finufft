@@ -122,11 +122,21 @@ static inline FLT randm11() { return 2 * rand01() - FLT(1); }
 static inline CPX crandm11() { return randm11() + IMA * randm11(); }
 
 // Thread-safe seed-carrying versions of above (x is ptr to seed)...
+// MR: we have to leave those as macros for now, as "rand_r" is deprecated
+// and apparently no longer available on Windows.
+#if 1
+#define rand01r(x)   ((FLT)rand_r(x) / (FLT)RAND_MAX)
+// unif[-1,1]:
+#define randm11r(x)  (2 * rand01r(x) - (FLT)1.0)
+// complex unif[-1,1] for Re and Im:
+#define crandm11r(x) (randm11r(x) + IMA * randm11r(x))
+#else
 static inline FLT rand01r(unsigned int *x) { return FLT(rand_r(x)) / FLT(RAND_MAX); }
 // unif[-1,1]:
 static inline FLT randm11r(unsigned int *x) { return 2 * rand01r(x) - FLT(1); }
 // complex unif[-1,1] for Re and Im:
 static inline CPX crandm11r(unsigned int *x) { return randm11r(x) + IMA * randm11r(x); }
+#endif
 
 // ----- OpenMP macros which also work when omp not present -----
 // Allows compile-time switch off of openmp, so compilation without any openmp
