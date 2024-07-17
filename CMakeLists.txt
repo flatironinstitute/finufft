@@ -17,6 +17,7 @@ if (CMAKE_CXX_COMPILER_ID IN_LIST GNU_LIKE_FRONTENDS)
             -fno-trapping-math
             -fassociative-math
             -freciprocal-math
+            -fmerge-all-constants
             -ftree-vectorize
     )
     # if -fimplicit-constexpr is supported, add it to the list of flags

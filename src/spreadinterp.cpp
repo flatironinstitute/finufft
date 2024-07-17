@@ -811,9 +811,7 @@ Two upsampfacs implemented. Params must match ref formula. Barnett 4/24/18 */
       }();
 
       // process simd vecs
-      struct EmptySimd {};
-      // these exist only if tail > 0
-      typename std::conditional<(tail > 0), simd_type, EmptySimd>::type k_prev, k_sym;
+      simd_type k_prev, k_sym;
       if constexpr (tail) k_sym = {0};
       for (uint8_t i{0}, offset = offset_start; i < end_idx;
            i += simd_size, offset -= simd_size) {
