@@ -796,8 +796,8 @@ Two upsampfacs implemented. Params must match ref formula. Barnett 4/24/18 */
       static constexpr uint8_t if_odd_degree = ((nc + 1) % 2);
       static constexpr uint8_t offset_start  = tail ? w - tail : w - simd_size;
       static constexpr uint8_t end_idx       = (w + (tail > 0)) / 2;
-      const simd_type zv{z};
-      const simd_type z2v{zv * zv};
+      const simd_type zv(z);
+      const simd_type z2v = zv * zv;
 
       // some xsimd constant for shuffle or inverse
       static constexpr auto shuffle_batch = []() constexpr noexcept {
@@ -811,8 +811,7 @@ Two upsampfacs implemented. Params must match ref formula. Barnett 4/24/18 */
       }();
 
       // process simd vecs
-      simd_type k_prev, k_sym;
-      if constexpr (tail) k_sym = {0};
+      simd_type k_prev, k_sym{0};
       for (uint8_t i{0}, offset = offset_start; i < end_idx;
            i += simd_size, offset -= simd_size) {
         auto k_odd = [i]() constexpr noexcept {
