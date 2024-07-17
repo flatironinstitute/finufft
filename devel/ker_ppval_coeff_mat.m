@@ -20,7 +20,7 @@ function C = ker_ppval_coeff_mat(w,d,be,o)
 if nargin==0, test_ker_ppval_coeff_mat; return; end
 if nargin<4, o=[]; end
 
-f = @(z) exp(be*sqrt(1-z.^2));    % ES kernel on [-1,1], handles complex
+f = @(z) exp(be*(sqrt(1-z.^2)-1));    % ES kernel on [-1,1], handles complex
 
 fitd = 20; % fit degree
 m = 7;     % colloc pts per wall (4m>deg). Odd is better, hits Re axis
@@ -55,7 +55,7 @@ for w=2:16
     tol = exp(-pi*w*sqrt(1-1/sigma));
     d = ceil(0.55*w+2.2);   % hacking the degree rule so error << tol
   end
-  f = @(z) exp(beta*sqrt(1-z.^2));  % must match the above, to test
+  f = @(z) exp(beta*(sqrt(1-z.^2)-1));  % must match the above, to test
 
   C = ker_ppval_coeff_mat(w,d,beta);
   %C/exp(beta)  % shows that no advantage to truncating any tails...
@@ -65,7 +65,7 @@ for w=2:16
   for i=1:w
     xi = -1+h*(2*i-1);      % center of the i'th expansion, in [-1,1] supp.
     erri = max(abs(f(xi+t*h) - polyval(C(end:-1:1,i),t)));
-    erri = erri / exp(beta);     % scale to rel err to kernel peak
+    % erri = erri / exp(beta);     % scale to rel err to kernel peak (now 1)
     maxerr = max(erri,maxerr);
   end
   fprintf('w=%d\t d=%d\t tol=%.g\t maxerr=%.3g   \tmaxerr/tol=%.3g\n',w,d,tol,maxerr,maxerr/tol)
