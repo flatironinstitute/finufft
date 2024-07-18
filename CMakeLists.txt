@@ -63,7 +63,7 @@ endif()
 if (NOT FINUFFT_ARCH_FLAGS)
     message(WARNING "No architecture flags are supported by the compiler.")
 endif()
-if (MSVC)
+if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
     # Check for AVX, AVX512 and SSE support on windows
     message(STATUS "Checking for AVX, AVX512 and SSE support")
     try_run(RUN_RESULT_VAR COMPILE_RESULT_VAR
