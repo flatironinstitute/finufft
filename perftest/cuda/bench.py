@@ -74,7 +74,7 @@ if stderr != '':
 for i in range(1, 7):
     args["--tol"] = "1E-" + str(i)
     print("Running with tol = 1E-" + str(i))
-    for method in ['4', '2']:
+    for method in ['2', '1']:
         args["--method"] = method
         if method == '0':
             data['method'].append('auto')

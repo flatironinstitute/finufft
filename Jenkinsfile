@@ -9,7 +9,7 @@ pipeline {
     stage('main') {
       agent {
          dockerfile {
-            filename 'tools/cufinufft/docker/cuda11.2/Dockerfile-x86_64'
+            filename 'tools/cufinufft/docker/cuda12.0/Dockerfile-x86_64'
             args '--gpus 2'
             label 'v100'
          }
