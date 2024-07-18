@@ -252,7 +252,7 @@ if (FINUFFT_USE_CPU)
     target_link_libraries(finufft PRIVATE finufft_f32 finufft_f64)
     set_finufft_options(finufft)
 
-    if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+    if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC" AND NOT FINUFFT_STATIC_LINKING)
         target_compile_definitions(finufft_f32 PRIVATE dll_EXPORTS FINUFFT_DLL)
         target_compile_definitions(finufft_f64 PRIVATE dll_EXPORTS FINUFFT_DLL)
         target_compile_definitions(finufft PRIVATE dll_EXPORTS FINUFFT_DLL)
