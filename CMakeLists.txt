@@ -3,30 +3,87 @@ cmake_minimum_required(VERSION 3.23)
 project(finufft VERSION 2.2.0 LANGUAGES C CXX)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-
 include(CheckCXXCompilerFlag)
 
-set(GNU_LIKE_FRONTENDS AppleClang Clang GNU)
-if (CMAKE_CXX_COMPILER_ID IN_LIST GNU_LIKE_FRONTENDS)
-    # Set custom compiler flags for gcc-compatible compilers
-    set(FINUFFT_CXX_FLAGS_RELEASE -O3
-            -funroll-loops
-            -ffp-contract=fast
-            -fno-math-errno
-            -fno-signed-zeros
-            -fno-trapping-math
-            -fassociative-math
-            -freciprocal-math
-            -fmerge-all-constants
-            -ftree-vectorize
-    )
-    # if -fimplicit-constexpr is supported, add it to the list of flags
-    check_cxx_compiler_flag("-fimplicit-constexpr" COMPILER_SUPPORTS_FIMPLICIT_CONSTEXPR)
-    if (COMPILER_SUPPORTS_FIMPLICIT_CONSTEXPR)
-        list(APPEND FINUFFT_CXX_FLAGS_RELEASE -fimplicit-constexpr)
+# Define the function
+function(filter_supported_compiler_flags input_flags_var output_flags_var)
+    # Create an empty list to store supported flags
+    set(supported_flags)
+    # Iterate over each flag in the input list
+    foreach(flag ${${input_flags_var}})
+        # Check if the current flag is supported by the compiler
+        check_cxx_compiler_flag(${flag} FLAG_SUPPORTED)
+        if(FLAG_SUPPORTED)
+            # If supported, append the flag to the list of supported flags
+            message(STATUS "Flag ${flag} is supported")
+            list(APPEND supported_flags ${flag})
+        else()
+            message(STATUS "Flag ${flag} is not supported")
+        endif()
+        unset(FLAG_SUPPORTED CACHE)
+    endforeach()
+    # Set the output variable to the list of supported flags
+    set(${output_flags_var} ${supported_flags} PARENT_SCOPE)
+endfunction()
+
+# Define a list of additional flags to check for support
+set(FINUFFT_CXX_FLAGS_RELEASE
+        -funroll-loops
+        -ffp-contract=fast
+        -fno-math-errno
+        -fno-signed-zeros
+        -fno-trapping-math
+        -fassociative-math
+        -freciprocal-math
+        -fmerge-all-constants
+        -ftree-vectorize
+        -fimplicit-constexpr
+        -fcx-limited-range
+        /fp:fast
+        -O3
+        /O2
+)
+filter_supported_compiler_flags(FINUFFT_CXX_FLAGS_RELEASE FINUFFT_CXX_FLAGS_RELEASE)
+message(STATUS "FINUFFT Release flags: ${FINUFFT_CXX_FLAGS_RELEASE}")
+set(FINUFFT_CXX_FLAGS_RELWITHDEBINFO ${FINUFFT_CXX_FLAGS_RELEASE})
+
+set(FINUFFT_CXX_FLAGS_DEBUG -g -g3 -ggdb -ggdb3 /Zi /ZI -Wall -Wno-sign-compare -Wno-unknown-pragmas)
+filter_supported_compiler_flags(FINUFFT_CXX_FLAGS_DEBUG FINUFFT_CXX_FLAGS_DEBUG)
+message(STATUS "FINUFFT Debug flags: ${FINUFFT_CXX_FLAGS_DEBUG}")
+list (APPEND FINUFFT_CXX_FLAGS_RELWITHDEBINFO ${FINUFFT_CXX_FLAGS_RELEASE} ${FINUFFT_CXX_FLAGS_DEBUG})
+message(STATUS "FINUFFT RelWithDebInfo flags: ${FINUFFT_CXX_FLAGS_RELWITHDEBINFO}")
+
+set(FINUFFT_ARCH_FLAGS -march=native CACHE STRING "Compiler flags for specifying target architecture.")
+filter_supported_compiler_flags(FINUFFT_ARCH_FLAGS FINUFFT_ARCH_FLAGS)
+if (NOT FINUFFT_ARCH_FLAGS)
+    message(WARNING "Architecture flags are not supported by the compiler.")
+    set(FINUFFT_ARCH_FLAGS -mtune=native)
+    filter_supported_compiler_flags(FINUFFT_ARCH_FLAGS FINUFFT_ARCH_FLAGS)
+endif()
+if (NOT FINUFFT_ARCH_FLAGS)
+    message(WARNING "No architecture flags are supported by the compiler.")
+endif()
+if (MSVC)
+    # Check for AVX, AVX512 and SSE support on windows
+    message(STATUS "Checking for AVX, AVX512 and SSE support")
+    try_run(RUN_RESULT_VAR COMPILE_RESULT_VAR
+            ${CMAKE_BINARY_DIR}
+            ${CMAKE_CURRENT_SOURCE_DIR}/cmake/CheckAVX.cpp
+            COMPILE_OUTPUT_VARIABLE COMPILE_OUTPUT
+            RUN_OUTPUT_VARIABLE RUN_OUTPUT)
+    if (RUN_OUTPUT MATCHES "AVX512")
+        set(FINUFFT_ARCH_FLAGS "/arch:AVX512" CACHE STRING "Compiler flags for specifying target architecture.")
+    elseif (RUN_OUTPUT MATCHES "AVX")
+        set(FINUFFT_ARCH_FLAGS "/arch:AVX" CACHE STRING "Compiler flags for specifying target architecture.")
+    elseif (RUN_OUTPUT MATCHES "SSE")
+        set(FINUFFT_ARCH_FLAGS "/arch:SSE" CACHE STRING "Compiler flags for specifying target architecture.")
+    else ()
+        set(FINUFFT_ARCH_FLAGS "" CACHE STRING "Compiler flags for specifying target architecture.")
     endif ()
-    set(FINUFFT_CXX_FLAGS_RELWITHDEBINFO -g ${FINUFFT_CXX_FLAGS_RELEASE})
+    message(STATUS "CPU supports: ${RUN_OUTPUT}")
+    message(STATUS "Using MSVC flags: ${FINUFFT_ARCH_FLAGS}")
 endif ()
+    message(STATUS "FINUFFT Arch flags: ${FINUFFT_ARCH_FLAGS}")
 
 include(CTest)
 # Set default build type to Release
@@ -34,14 +91,6 @@ if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Release CACHE STRING "Set the default build type to Release" FORCE)
 endif()
 
-if (CMAKE_CXX_COMPILER_ID IN_LIST GNU_LIKE_FRONTENDS)
-    if (CMAKE_SYSTEM_PROCESSOR MATCHES "ppc|ppc64|powerpc|powerpc64" OR (APPLE AND CMAKE_OSX_ARCHITECTURES MATCHES "ppc|ppc64"))
-        # PowerPC arch does not have -march flag.
-        set(FINUFFT_ARCH_FLAGS "-mtune=native" CACHE STRING "Compiler flags for specifying target architecture.")
-    else ()
-        set(FINUFFT_ARCH_FLAGS "-march=native" CACHE STRING "Compiler flags for specifying target architecture.")
-    endif ()
-endif ()
 set(FINUFFT_FFTW_SUFFIX "OpenMP" CACHE STRING "Suffix for FFTW libraries (e.g. OpenMP, Threads etc.)")
 set(FINUFFT_FFTW_LIBRARIES "DEFAULT" CACHE STRING "Specify a custom FFTW library")
 set(FINUFFT_CUDA_ARCHITECTURES "native" CACHE STRING "CUDA architectures to build for (e.g. 60;70;75;)")
@@ -59,6 +108,15 @@ option(FINUFFT_STATIC_LINKING "Whether to link the static FINUFFT library (libfi
 option(FINUFFT_BUILD_DEVEL "Whether to build development executables" OFF)
 option(FINUFFT_USE_DUCC0 "Whether to use DUCC0 (instead of FFTW) for CPU FFTs" OFF)
 # sphinx tag (don't remove): @cmake_opts_end
+
+# Check if FINUFFT_STATIC_LINKING is true
+if(NOT FINUFFT_STATIC_LINKING)
+    # If true, set FINUFFT_SHARED_LINKING to false
+    set(FINUFFT_SHARED_LINKING TRUE)
+else()
+    # If not true, set FINUFFT_SHARED_LINKING to true
+    set(FINUFFT_SHARED_LINKING FALSE)
+endif()
 
 if (FINUFFT_USE_CPU)
     # suppress Windows warnings about "unsafe" functions
@@ -120,63 +178,52 @@ endif ()
 # The single precision compilation is done with -DSINGLE
 set(FINUFFT_PRECISION_DEPENDENT_SOURCES src/finufft.cpp src/fft.cpp src/simpleinterfaces.cpp src/spreadinterp.cpp src/utils.cpp fortran/finufftfort.cpp)
 
-# Set of compilers which behave like gcc
-set(FINUFFT_GNU_LIKE_COMPILERS AppleClang Clang GNU)
+set(SANITIZERS -fsanitize=address -fsanitize=undefined -fsanitize=bounds-strict)
+filter_supported_compiler_flags(SANITIZERS SANITIZERS)
 
 # Utility function to enable ASAN on debug builds
 function(enable_asan target)
     if (NOT FINUFFT_ENABLE_SANITIZERS)
         return()
     endif ()
-
-    if (CMAKE_CXX_COMPILER_ID IN_LIST FINUFFT_GNU_LIKE_COMPILERS)
-        # Enable only on clang / gcc compilers.
-        target_compile_options(${target} PRIVATE $<$<CONFIG:DEBUG>:-fsanitize=address -fsanitize=undefined -fsanitize=bounds-strict>)
-        target_link_options(${target} PRIVATE $<$<CONFIG:DEBUG>:-fsanitize=address -fsanitize=undefined -fsanitize=bounds-strict>)
-    endif ()
-    target_compile_options(${target} PRIVATE $<$<CONFIG:DEBUG>:-Wall -Wno-sign-compare>)
+    target_compile_options(${target} PRIVATE $<$<CONFIG:DEBUG>:${SANITIZERS}>)
+    target_link_options(${target} PRIVATE $<$<CONFIG:DEBUG>:${SANITIZERS}>)
 endfunction()
 
 # Utility function to link static/dynamic lib
 function(finufft_link_test target)
-
     if (FINUFFT_USE_DUCC0)
         target_compile_definitions(${target} PRIVATE FINUFFT_USE_DUCC0)
     endif ()
-
-    if (FINUFFT_STATIC_LINKING)
-        target_link_libraries(${target} PRIVATE finufft_static)
-        if (FINUFFT_USE_OPENMP)
-            target_link_libraries(${target} PRIVATE OpenMP::OpenMP_CXX)
-            if (WIN32)
-                target_link_options(${target} PRIVATE ${OpenMP_CXX_FLAGS})
-            endif ()
-        endif ()
-    else ()
-        target_link_libraries(${target} PRIVATE finufft)
+    if (FINUFFT_USE_OPENMP)
+        target_link_libraries(${target} PRIVATE OpenMP::OpenMP_CXX)
         if (WIN32)
-            target_compile_definitions(${target} PRIVATE FINUFFT_DLL)
+            target_link_options(${target} PRIVATE ${OpenMP_CXX_FLAGS})
         endif ()
     endif ()
-    enable_asan(${target})
+    target_link_libraries(${target} PRIVATE finufft)
+    if (WIN32)
+        target_compile_definitions(${target} PRIVATE FINUFFT_DLL)
+    endif ()
+    if (FINUFFT_ENABLE_SANITIZERS)
+        enable_asan(${target})
+    endif ()
 endfunction()
 
 # Utility function to set finufft compilation options.
 function(set_finufft_options target)
-    set_property(TARGET ${target} PROPERTY POSITION_INDEPENDENT_CODE ON)
+    set_property(TARGET ${target} PROPERTY POSITION_INDEPENDENT_CODE ${FINUFFT_SHARED_LINKING})
     target_compile_features(${target} PRIVATE cxx_std_17)
-
-    enable_asan(${target})
-
-    target_compile_options(${target} PRIVATE SHELL:$<$<CONFIG:Release,RelWithDebInfo>:${FINUFFT_ARCH_FLAGS}>)
-    if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-        # Enable cx-limited-range on supported compilers
-        target_compile_options(${target} PRIVATE $<$<CONFIG:Release,RelWithDebInfo>:-fcx-limited-range>)
+    if (FINUFFT_ENABLE_SANITIZERS)
+        enable_asan(${target})
     endif ()
+    target_compile_options(${target} PRIVATE SHELL:$<$<CONFIG:Release,RelWithDebInfo>:${FINUFFT_ARCH_FLAGS}>)
     target_compile_options(${target} PRIVATE $<$<CONFIG:Release>:${FINUFFT_CXX_FLAGS_RELEASE}>)
     target_compile_options(${target} PRIVATE $<$<CONFIG:RelWithDebInfo>:${FINUFFT_CXX_FLAGS_RELWITHDEBINFO}>)
+    target_compile_options(${target} PRIVATE $<$<CONFIG:Debug>:${FINUFFT_CXX_FLAGS_DEBUG}>)
     target_include_directories(${target} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
     target_include_directories(${target} SYSTEM INTERFACE $<INSTALL_INTERFACE:${CMAKE_INSTALL_PREFIX}/include>)
+
     if (FINUFFT_USE_OPENMP)
         target_link_libraries(${target} PRIVATE OpenMP::OpenMP_CXX)
         # there are issues on windows with OpenMP and CMake, so we need to manually add the flags
@@ -184,92 +231,43 @@ function(set_finufft_options target)
         if (WIN32)
             target_link_options(${target} PRIVATE ${OpenMP_CXX_FLAGS})
         endif ()
-    else ()
-        if (CMAKE_CXX_COMPILER_ID IN_LIST FINUFFT_GNU_LIKE_COMPILERS)
-            # OpenMP disabled, suppress unknown pragma warnings to avoid spam.
-            target_compile_options(${target} PRIVATE "-Wno-unknown-pragmas")
-        endif ()
     endif ()
 
     if (FINUFFT_USE_DUCC0)
         target_compile_definitions(${target} PRIVATE FINUFFT_USE_DUCC0)
-    else ()
-        # FFTW CMAKE file includes the APIs only as an install target, so we need to manually
-        # include them since we need them for build not for install
-        # trying to include them directly into the fftw and fftwf targets causes issues with
-        # the latest version of cmake, so we do it here instead.
-        if ((NOT FFTW_FOUND) OR (FINUFFT_FFTW_LIBRARIES STREQUAL DOWNLOAD))
-            list(GET FINUFFT_FFTW_LIBRARIES 0 element)
-            get_property(FFTW_SOURCE_DIR TARGET ${element} PROPERTY SOURCE_DIR)
-            set(FFTW_INCLUDE_DIR ${FFTW_SOURCE_DIR}/api)
-            target_include_directories(${target} PUBLIC ${FFTW_INCLUDE_DIR})
-        endif ()
     endif ()
-#    target_link_libraries(${target} PRIVATE xsimd)
-#    target_link_libraries(${target} PUBLIC ${FINUFFT_FFTW_LIBRARIES})
+    target_link_libraries(${target} PRIVATE xsimd)
+    target_link_libraries(${target} PUBLIC ${FINUFFT_FFTLIBS})
 endfunction()
 
 if (FINUFFT_USE_CPU)
     # Main finufft libraries
-    if (FINUFFT_USE_DUCC0)
-        # okay for now, to be cleaned up
-        set_finufft_options(ducc0)
-    endif ()
-
     add_library(finufft_f32 OBJECT ${FINUFFT_PRECISION_DEPENDENT_SOURCES})
     target_compile_definitions(finufft_f32 PRIVATE SINGLE)
     set_finufft_options(finufft_f32)
-    target_link_libraries(finufft_f32 PUBLIC ${FINUFFT_FFTLIBS})
-    target_link_libraries(finufft_f32 PRIVATE xsimd)
 
     add_library(finufft_f64 OBJECT ${FINUFFT_PRECISION_DEPENDENT_SOURCES})
-    target_compile_definitions(finufft_f64 PRIVATE)
     set_finufft_options(finufft_f64)
-    target_link_libraries(finufft_f64 PUBLIC ${FINUFFT_FFTLIBS})
-    target_link_libraries(finufft_f64 PRIVATE xsimd)
     if (WIN32)
-        add_library(finufft_f32_dll OBJECT ${FINUFFT_PRECISION_DEPENDENT_SOURCES})
-        target_compile_definitions(finufft_f32_dll PRIVATE SINGLE dll_EXPORTS FINUFFT_DLL)
-        set_finufft_options(finufft_f32_dll)
-        target_link_libraries(finufft_f32_dll PUBLIC ${FINUFFT_FFTLIBS})
-        target_link_libraries(finufft_f32_dll PRIVATE xsimd)
-
-        add_library(finufft_f64_dll OBJECT ${FINUFFT_PRECISION_DEPENDENT_SOURCES})
-        target_compile_definitions(finufft_f64_dll PRIVATE dll_EXPORTS FINUFFT_DLL)
-        set_finufft_options(finufft_f64_dll)
-        target_link_libraries(finufft_f64_dll PUBLIC ${FINUFFT_FFTLIBS})
-        target_link_libraries(finufft_f64_dll PRIVATE xsimd)
+        target_compile_definitions(finufft_f32 PRIVATE dll_EXPORTS FINUFFT_DLL)
+        target_compile_definitions(finufft_f64 PRIVATE dll_EXPORTS FINUFFT_DLL)
     endif ()
-
-    add_library(finufft SHARED src/utils_precindep.cpp contrib/legendre_rule_fast.cpp)
-    target_compile_definitions(finufft PRIVATE dll_EXPORTS FINUFFT_DLL)
-    set_finufft_options(finufft)
-    if (NOT WIN32)
-        target_link_libraries(finufft PUBLIC finufft_f32 finufft_f64)
+    if (NOT FINUFFT_STATIC_LINKING)
+        add_library(finufft SHARED src/utils_precindep.cpp contrib/legendre_rule_fast.cpp)
     else ()
-        target_link_libraries(finufft PUBLIC finufft_f32_dll finufft_f64_dll)
+        add_library(finufft STATIC src/utils_precindep.cpp contrib/legendre_rule_fast.cpp)
     endif ()
-    # windows does not have a math library, so we need to exclude it
-    if (NOT WIN32)
+    target_link_libraries(finufft PRIVATE finufft_f32 finufft_f64)
+    set_finufft_options(finufft)
+    if (WIN32)
+        target_compile_definitions(finufft PRIVATE dll_EXPORTS FINUFFT_DLL)
+    else ()
+        # windows does not have a math library, so we need to exclude it
         target_link_libraries(finufft PUBLIC m)
     endif ()
-    target_include_directories(finufft PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
-    target_include_directories(finufft SYSTEM INTERFACE $<INSTALL_INTERFACE:${CMAKE_INSTALL_PREFIX}/include>)
-
-    add_library(finufft_static STATIC src/utils_precindep.cpp contrib/legendre_rule_fast.cpp)
-    set_finufft_options(finufft_static)
-    target_link_libraries(finufft_static PUBLIC finufft_f32 finufft_f64)
-    # windows does not have a math library, so we need to exclude it
-    if (NOT WIN32)
-        target_link_libraries(finufft_static PUBLIC m)
-    endif ()
-    target_include_directories(finufft_static PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
-    target_include_directories(finufft_static SYSTEM INTERFACE $<INSTALL_INTERFACE:${CMAKE_INSTALL_PREFIX}/include>)
-
-    file(GLOB FINUFFT_PUBLIC_HEADERS "${CMAKE_CURRENT_SOURCE_DIR}/include/finufft*.h")
+    file(GLOB FINUFFT_PUBLIC_HEADERS "${CMAKE_CURRENT_SOURCE_DIR}/include/finufft.h")
     set_target_properties(finufft PROPERTIES PUBLIC_HEADER "${FINUFFT_PUBLIC_HEADERS}")
-
-    list(APPEND INSTALL_TARGETS finufft finufft_static)
+    list(APPEND INSTALL_TARGETS finufft)
 endif ()
 
 if (FINUFFT_USE_CUDA)
