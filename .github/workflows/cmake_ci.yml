@@ -61,9 +61,10 @@ jobs:
 
       # may change to cpack and action-gh-release later
       - name: Upload static and shared lib
+        if: startsWith(github.ref, 'refs/tags/') && github.event_name == 'release' && github.event.action == 'published' && matrix.build_type == 'Release'
         uses: actions/upload-artifact@v4
         with:
-          name: ${{matrix.os}}-${{matrix.compiler}}-${{matrix.build_type}}-finufft-lib
+          name: ${{matrix.os}}-${{matrix.compiler}}-finufft-lib
           path: ${{runner.workspace}}/finufft/build/*finufft*
 
       - name: Pack For Release
