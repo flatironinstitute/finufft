@@ -112,6 +112,12 @@ option(FINUFFT_BUILD_DEVEL "Whether to build developement executables" OFF)
 option(FINUFFT_ENABLE_INSTALL "Whether to enable installation of FINUFFT library" ON)
 # sphinx tag (don't remove): @cmake_opts_end
 
+if (NOT FINUFFT_STATIC_LINKING)
+    set (FINUFFT_SHARED_LINKING ON)
+else ()
+    set (FINUFFT_SHARED_LINKING OFF)
+endif ()
+
 if (FINUFFT_USE_CPU)
     # suppress Windows warnings about "unsafe" functions
     if (WIN32)
