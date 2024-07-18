@@ -1,6 +1,5 @@
 #include <cassert>
 #include <cufinufft/contrib/helper_cuda.h>
-#include <iomanip>
 #include <iostream>
 
 #include <cuComplex.h>

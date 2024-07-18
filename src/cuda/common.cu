@@ -310,9 +310,18 @@ void cufinufft_setup_binsize(int type, int ns, int dim, cufinufft_opts *opts) {
     case 0:
     case 1:
     case 2: {
-      opts->gpu_binsizex = (opts->gpu_binsizex < 0) ? 16 : opts->gpu_binsizex;
-      opts->gpu_binsizey = (opts->gpu_binsizey < 0) ? 16 : opts->gpu_binsizey;
-      opts->gpu_binsizez = (opts->gpu_binsizez < 0) ? 2 : opts->gpu_binsizez;
+      if (opts->gpu_binsizex < 0 || opts->gpu_binsizey < 0 || opts->gpu_binsizez < 0) {
+        opts->gpu_binsizex = 16;
+        opts->gpu_binsizey = 16;
+        opts->gpu_binsizez = 2;
+        //        const auto shared_mem_required = shared_memory_required<T>(
+        //            dim, ns, opts->gpu_binsizex, opts->gpu_binsizey,
+        //            opts->gpu_binsizez);
+        //        printf(
+        //            "binsizex: %d, binsizey: %d, binsizez: %d shared_mem_required %ld
+        //            (bytes)\n", opts->gpu_binsizex, opts->gpu_binsizey,
+        //            opts->gpu_binsizez, shared_mem_required);
+      }
     } break;
     case 4: {
       opts->gpu_obinsizex = (opts->gpu_obinsizex < 0) ? 8 : opts->gpu_obinsizex;

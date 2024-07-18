@@ -1,14 +1,11 @@
-#include <iomanip>
 #include <iostream>
 
 #include <cuComplex.h>
 #include <cufinufft/contrib/helper_cuda.h>
 
 #include <cufinufft/common.h>
-#include <cufinufft/memtransfer.h>
 #include <cufinufft/spreadinterp.h>
 
-using namespace cufinufft::memtransfer;
 using namespace cufinufft::common;
 
 #include "spreadinterp2d.cuh"

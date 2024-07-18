@@ -37,14 +37,14 @@ def build_args(args):
 # example command to run:
 # nsys profile -o cuperftest_profile ./cuperftest --prec f --n_runs 10 --method 1 --N1 256 --N2 256 --N3 256 --M 1E8 --tol 1E-6
 # example arguments
-args = {"--prec": "d",
+args = {"--prec": "f",
         "--n_runs": "5",
         "--method": "0",
         "--sort": "1",
         # "--N1": "16777216",
         "--N1": "256",
         "--N2": "256",
-        # "--N3": "256",
+        "--N3": "256",
         "--kerevalmethod": "1",
         "--M": "1E8",
         "--tol": "1E-6"}
@@ -82,6 +82,8 @@ for i in range(1, 7):
             data['method'].append('GM')
         elif method == '2':
             data['method'].append('SM')
+        elif method == '4':
+            data['method'].append('BLOCK')
         print("Method " + data['method'][-1])
         cmd = ["profile", "--force-overwrite", "true", "-o", "cuperftest_profile", cwd + "/cuperftest"] + build_args(args)
         stdout, stderr = run_command("nsys", cmd)

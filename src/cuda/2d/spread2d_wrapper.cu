@@ -1,5 +1,4 @@
 #include <cassert>
-#include <iomanip>
 #include <iostream>
 
 #include <cuComplex.h>
@@ -8,14 +7,12 @@
 #include <thrust/scan.h>
 
 #include <cufinufft/common.h>
-#include <cufinufft/memtransfer.h>
 #include <cufinufft/precision_independent.h>
 #include <cufinufft/spreadinterp.h>
 
 #include "spreadinterp2d.cuh"
 
 using namespace cufinufft::common;
-using namespace cufinufft::memtransfer;
 
 namespace cufinufft {
 namespace spreadinterp {

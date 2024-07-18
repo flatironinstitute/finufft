@@ -1,5 +1,4 @@
 #include <cassert>
-#include <iomanip>
 #include <iostream>
 
 #include <cuComplex.h>
@@ -8,12 +7,10 @@
 #include <thrust/scan.h>
 
 #include <cufinufft/common.h>
-#include <cufinufft/memtransfer.h>
 #include <cufinufft/precision_independent.h>
 #include <cufinufft/spreadinterp.h>
 
 using namespace cufinufft::common;
-using namespace cufinufft::memtransfer;
 
 #include "spreadinterp3d.cuh"
 
@@ -532,12 +529,12 @@ int cuspread3d_subprob(int nf1, int nf2, int nf3, int M, cufinufft_plan_t<T> *d_
   int totalnumsubprob   = d_plan->totalnumsubprob;
   int *d_subprob_to_bin = d_plan->subprob_to_bin;
 
-  T sigma                  = d_plan->spopts.upsampfac;
-  T es_c                   = d_plan->spopts.ES_c;
-  T es_beta                = d_plan->spopts.ES_beta;
-  size_t sharedplanorysize = (bin_size_x + 2 * ceil(ns / 2.0)) *
-                             (bin_size_y + 2 * ceil(ns / 2.0)) *
-                             (bin_size_z + 2 * ceil(ns / 2.0)) * sizeof(cuda_complex<T>);
+  T sigma   = d_plan->spopts.upsampfac;
+  T es_c    = d_plan->spopts.ES_c;
+  T es_beta = d_plan->spopts.ES_beta;
+  const auto sharedplanorysize =
+      shared_memory_required<T>(3, d_plan->spopts.nspread, d_plan->opts.gpu_binsizex,
+                                d_plan->opts.gpu_binsizey, d_plan->opts.gpu_binsizez);
   for (int t = 0; t < blksize; t++) {
     if (d_plan->opts.gpu_kerevalmeth) {
       cufinufft_set_shared_memory(spread_3d_subprob<T, 1>, 3, *d_plan);

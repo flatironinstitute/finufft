@@ -1,9 +1,6 @@
 #include <cmath>
 #include <complex>
 #include <cufinufft/contrib/helper_cuda.h>
-#include <iomanip>
-#include <iostream>
-#include <type_traits>
 
 #include <cassert>
 #include <cufft.h>
