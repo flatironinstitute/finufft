@@ -3,8 +3,6 @@ cmake_minimum_required(VERSION 3.23)
 project(FINUFFT VERSION 2.2.0 LANGUAGES C CXX)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 include(CheckCXXCompilerFlag)
 
 # Define the function
@@ -327,11 +325,7 @@ message(STATUS "  FINUFFT_FFTW_LIBRARIES: ${FINUFFT_FFTW_LIBRARIES}")
 message(STATUS "  FINUFFT_ARCH_FLAGS: ${FINUFFT_ARCH_FLAGS}")
 
 if (FINUFFT_USE_CPU)
-    if (FINUFFT_STATIC_LINKING)
-        get_target_property(FINUFFT_COMPILE_OPTIONS finufft_static COMPILE_OPTIONS)
-    else ()
-        get_target_property(FINUFFT_COMPILE_OPTIONS finufft COMPILE_OPTIONS)
-    endif ()
+    get_target_property(FINUFFT_COMPILE_OPTIONS finufft COMPILE_OPTIONS)
     message("Compile options for finufft: ${MY_COMPILE_OPTIONS}")
 endif ()
 
