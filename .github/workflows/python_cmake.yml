@@ -1,0 +1,63 @@
+name: Test python skbuild with CMake
+
+on: [push, pull_request]
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.generate_matrix.outputs.matrix }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Generate matrix
+        id: generate_matrix
+        run: |
+          echo "MACOSX_DEPLOYMENT_TARGET=11.0" >> $GITHUB_ENV 
+          MATRIX=$(python3 ${{ github.workspace }}/.github/workflows/generate_matrix.py)
+          echo "matrix=$MATRIX" >> $GITHUB_OUTPUT
+  build:
+    name: Build with Pip
+    runs-on: ${{ matrix.os }}
+    needs: prepare
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.prepare.outputs.matrix) }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Setup Cpp
+        uses: aminya/setup-cpp@v1
+        with:
+          compiler: ${{ matrix.compiler }}
+          vcvarsall: ${{ contains(matrix.os, 'windows') }}
+          cmake: false
+          ninja: false
+          vcpkg: false
+          cppcheck: false
+          clangtidy: false
+      - name: Set min macOS version and install fftw
+        if: runner.os == 'macOS'
+        run: |
+          brew install fftw
+      - name: Install fftw
+        if: runner.os == 'linux'
+        run: |
+          sudo apt update
+          sudo apt install -y libfftw3-dev
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install pytest
+        run: |
+          python3 -m pip install --upgrade pip
+          python3 -m pip install pytest
+      - name: Set compiler flags
+        run: |
+          echo CMAKE_ARGS="-DFINUFFT_ARCH_FLAGS=${{ matrix.arch_flags }}" >> $GITHUB_ENV
+        shell: bash
+      - name: Build
+        run: python3 -m pip install ${{ github.workspace }}/python/finufft --verbose
+      - name: Test
+        run: python3 -m pytest ${{ github.workspace }}/python/finufft/test

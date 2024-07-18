@@ -110,6 +110,18 @@
         "FINUFFT_BUILD_MATLAB": "ON",
         "FINUFFT_ENABLE_SANITIZERS": "OFF"
       }
+    },
+    {
+      "name": "python",
+      "binaryDir": "build/python",
+      "displayName": "python",
+      "description": "Build with the python interface",
+      "generator": "Ninja Multi-Config",
+      "cacheVariables": {
+        "FINUFFT_BUILD_PYTHON": "ON",
+        "FINUFFT_ENABLE_SANITIZERS": "OFF",
+        "CMAKE_INSTALL_DATAROOTDIR": "."
+      }
     }
   ],
   "buildPresets": [
