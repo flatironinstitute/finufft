@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.23)
 
-project(finufft VERSION 2.2.0 LANGUAGES C CXX)
+project(FINUFFT VERSION 2.2.0 LANGUAGES C CXX)
+
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 include(CheckCXXCompilerFlag)
@@ -100,6 +102,7 @@ option(FINUFFT_BUILD_EXAMPLES "Whether to build the FINUFFT examples" OFF)
 option(FINUFFT_BUILD_TESTS "Whether to build the FINUFFT tests" OFF)
 option(FINUFFT_BUILD_FORTRAN "Whether to build the FINUFFT Fortran examples" OFF)
 option(FINUFFT_BUILD_MATLAB "Whether to build the FINUFFT Matlab interface" OFF)
+option(FINUFFT_BUILD_PYTHON "Whether the Python wrapper should be built." OFF)
 option(FINUFFT_ENABLE_SANITIZERS "Whether to enable sanitizers, only effective for Debug configuration." ON)
 option(FINUFFT_USE_OPENMP "Whether to use OpenMP for parallelization. If disabled, the finufft library will be single threaded. This does not affect the choice of FFTW library." ON)
 option(FINUFFT_USE_CUDA "Whether to build CUDA accelerated FINUFFT library (libcufinufft). This is completely independent of the main FINUFFT library" OFF)
@@ -107,16 +110,9 @@ option(FINUFFT_USE_CPU "Whether to build the ordinary FINUFFT library (libfinuff
 option(FINUFFT_STATIC_LINKING "Whether to link the static FINUFFT library (libfinufft_static)." ON)
 option(FINUFFT_BUILD_DEVEL "Whether to build development executables" OFF)
 option(FINUFFT_USE_DUCC0 "Whether to use DUCC0 (instead of FFTW) for CPU FFTs" OFF)
+option(FINUFFT_BUILD_DEVEL "Whether to build developement executables" OFF)
+option(FINUFFT_ENABLE_INSTALL "Whether to enable installation of FINUFFT library" ON)
 # sphinx tag (don't remove): @cmake_opts_end
-
-# Check if FINUFFT_STATIC_LINKING is true
-if(NOT FINUFFT_STATIC_LINKING)
-    # If true, set FINUFFT_SHARED_LINKING to false
-    set(FINUFFT_SHARED_LINKING TRUE)
-else()
-    # If not true, set FINUFFT_SHARED_LINKING to true
-    set(FINUFFT_SHARED_LINKING FALSE)
-endif()
 
 if (FINUFFT_USE_CPU)
     # suppress Windows warnings about "unsafe" functions
@@ -170,7 +166,7 @@ if (FINUFFT_BUILD_MATLAB)
 else ()
     # For non-matlab builds, find system OpenMP
     if (FINUFFT_USE_OPENMP)
-        find_package(OpenMP REQUIRED)
+        find_package(OpenMP COMPONENTS CXX REQUIRED)
     endif ()
 endif ()
 
@@ -192,6 +188,7 @@ endfunction()
 
 # Utility function to link static/dynamic lib
 function(finufft_link_test target)
+
     if (FINUFFT_USE_DUCC0)
         target_compile_definitions(${target} PRIVATE FINUFFT_USE_DUCC0)
     endif ()
@@ -308,30 +305,62 @@ if (FINUFFT_BUILD_DEVEL)
     add_subdirectory(devel)
 endif ()
 
-include(GNUInstallDirs)
-install(TARGETS ${INSTALL_TARGETS} PUBLIC_HEADER)
-install(FILES ${PROJECT_SOURCE_DIR}/LICENSE
-        DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/licenses/finufft)
-if (FINUFFT_USE_CPU)
-    install(DIRECTORY ${PROJECT_SOURCE_DIR}/examples
-            DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/finufft
-            PATTERN "CMakeLists.txt" EXCLUDE
-            PATTERN "README" EXCLUDE
-            PATTERN "examples/cuda" EXCLUDE
-    )
-    if (FINUFFT_BUILD_FORTRAN)
-        install(DIRECTORY ${PROJECT_SOURCE_DIR}/fortran/examples
-                DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/finufft/fortran
-        )
-        install(FILES ${PROJECT_SOURCE_DIR}/include/finufft.fh
-                DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
-        )
-    endif ()
+if (FINUFFT_BUILD_PYTHON)
+    add_subdirectory(python)
 endif ()
-if (FINUFFT_USE_CUDA)
-    install(DIRECTORY ${PROJECT_SOURCE_DIR}/examples/cuda
-            DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/finufft/examples
-            PATTERN "README" EXCLUDE
-            PATTERN "CMakeLists.txt" EXCLUDE
-    )
+
+message(STATUS " CMAKE_BUILD_TYPE: ${CMAKE_BUILD_TYPE}")
+message(STATUS "FINUFFT configuration summary:")
+message(STATUS "  FINUFFT_USE_CPU: ${FINUFFT_USE_CPU}")
+message(STATUS "  FINUFFT_USE_CUDA: ${FINUFFT_USE_CUDA}")
+message(STATUS "  FINUFFT_USE_OPENMP: ${FINUFFT_USE_OPENMP}")
+message(STATUS "  FINUFFT_STATIC_LINKING: ${FINUFFT_STATIC_LINKING}")
+message(STATUS "  FINUFFT_ENABLE_INSTALL: ${FINUFFT_ENABLE_INSTALL}")
+message(STATUS "  FINUFFT_BUILD_EXAMPLES: ${FINUFFT_BUILD_EXAMPLES}")
+message(STATUS "  FINUFFT_BUILD_TESTS: ${FINUFFT_BUILD_TESTS}")
+message(STATUS "  FINUFFT_BUILD_FORTRAN: ${FINUFFT_BUILD_FORTRAN}")
+message(STATUS "  FINUFFT_BUILD_MATLAB: ${FINUFFT_BUILD_MATLAB}")
+message(STATUS "  FINUFFT_BUILD_PYTHON: ${FINUFFT_BUILD_PYTHON}")
+message(STATUS "  FINUFFT_ENABLE_SANITIZERS: ${FINUFFT_ENABLE_SANITIZERS}")
+message(STATUS "  FINUFFT_FFTW_SUFFIX: ${FINUFFT_FFTW_SUFFIX}")
+message(STATUS "  FINUFFT_FFTW_LIBRARIES: ${FINUFFT_FFTW_LIBRARIES}")
+message(STATUS "  FINUFFT_ARCH_FLAGS: ${FINUFFT_ARCH_FLAGS}")
+
+if (FINUFFT_USE_CPU)
+    if (FINUFFT_STATIC_LINKING)
+        get_target_property(FINUFFT_COMPILE_OPTIONS finufft_static COMPILE_OPTIONS)
+    else ()
+        get_target_property(FINUFFT_COMPILE_OPTIONS finufft COMPILE_OPTIONS)
+    endif ()
+    message("Compile options for finufft: ${MY_COMPILE_OPTIONS}")
+endif ()
+
+if (FINUFFT_ENABLE_INSTALL)
+    include(GNUInstallDirs)
+    install(TARGETS ${INSTALL_TARGETS} PUBLIC_HEADER)
+    install(FILES ${PROJECT_SOURCE_DIR}/LICENSE
+            DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/licenses/finufft)
+    if (FINUFFT_USE_CPU)
+        install(DIRECTORY ${PROJECT_SOURCE_DIR}/examples
+                DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/finufft
+                PATTERN "CMakeLists.txt" EXCLUDE
+                PATTERN "README" EXCLUDE
+                PATTERN "examples/cuda" EXCLUDE
+        )
+        if (FINUFFT_BUILD_FORTRAN)
+            install(DIRECTORY ${PROJECT_SOURCE_DIR}/fortran/examples
+                    DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/finufft/fortran
+            )
+            install(FILES ${PROJECT_SOURCE_DIR}/include/finufft.fh
+                    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+            )
+        endif()
+    endif ()
+    if (FINUFFT_USE_CUDA)
+        install(DIRECTORY ${PROJECT_SOURCE_DIR}/examples/cuda
+                DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/finufft/examples
+                PATTERN "README" EXCLUDE
+                PATTERN "CMakeLists.txt" EXCLUDE
+        )
+    endif()
 endif ()
