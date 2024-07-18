@@ -277,11 +277,7 @@ void cufinufft_setup_binsize(int type, int ns, int dim, cufinufft_opts *opts) {
       case 2: {
         opts->gpu_binsizex = 32;
         opts->gpu_binsizey = 32;
-        // fall through otherwise
-        if (opts->gpu_method && ns > 2) {
-          break;
-        }
-      }
+      } break;
       case 1: {
         cudaGetDevice(&device_id);
         if (const auto err = cudaGetLastError(); err != cudaSuccess) {
