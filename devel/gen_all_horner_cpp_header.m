@@ -10,7 +10,7 @@ clear
 opts = struct();
 
 ws = 2:16;           % list of widths (the driver, rather than toloerances)
-upsampfac = 2.0;       % sigma (upsampling): either 2 (default) or low (eg 5/4).
+upsampfac = 2.0;    % sigma (upsampling): either 2 (default) or low (eg 5/4)
 
 if upsampfac==2
   fid = fopen('../src/ker_horner_allw_loop_constexpr.h','w');
@@ -47,7 +47,7 @@ for j=1:numel(ws)
   if j==1                                % write switch statement
     fwrite(fid,sprintf('    if constexpr (w==%d) {\n',w));
   else
-    fwrite(fid,sprintf('    } else if (w==%d) {\n',w));
+    fwrite(fid,sprintf('    } else if constexpr (w==%d) {\n',w));
   end
   for i=1:numel(str); fwrite(fid,['    ',str{i}]); end   % format 4 extra spaces
 end

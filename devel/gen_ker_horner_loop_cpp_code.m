@@ -44,8 +44,9 @@ str = cell(d+3,1);     % nc = d+1, plus one start and one close-paren line
 str{1} = sprintf('  return std::array<std::array<T, w>, nc> {{\n');
 for n=1:d+1                  % loop over poly coeff powers 0,1,..,d
   % implicitly loops over fine-grid interpolation intervals 1:w...
-  coeffrow = sprintf('%.16E, ', C(n,:));    % trailing comma allowed in C++
-  str{d+3-n} = sprintf('      {%s},\n', coeffrow);    % ditto for outer list
+  coeffrow = sprintf('%.16E, ', C(n,:));
+  coeffrow = coeffrow(1:end-2);   % kill trailing comma even though allowed in C++
+  str{d+3-n} = sprintf('      {%s},\n', coeffrow);    % leaves outer trailing comma
 end
 str{d+3} = sprintf('  }};\n');     % terminate the array   *** why two }}?
 
