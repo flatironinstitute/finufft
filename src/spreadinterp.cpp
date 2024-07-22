@@ -24,6 +24,8 @@ namespace { // anonymous namespace for internal structs equivalent to declaring 
             // static
 struct zip_low;
 struct zip_hi;
+template<unsigned cap> struct reverse_index;
+template<unsigned cap> struct shuffle_index;
 struct select_even;
 struct select_odd;
 // forward declaration to clean up the code and be able to use this everywhere in the file
@@ -781,24 +783,80 @@ Two upsampfacs implemented. Params must match ref formula. Barnett 4/24/18 */
   const FLT z = std::fma(FLT(2.0), x, FLT(w - 1)); // scale so local grid offset z in
                                                    // [-1,1]
   if (opts.upsampfac == 2.0) {                     // floating point equality is fine here
-    static constexpr auto alignment     = simd_type::arch_type::alignment();
+    using arch_t                        = typename simd_type::arch_type;
+    static constexpr auto alignment     = arch_t::alignment();
     static constexpr auto simd_size     = simd_type::size;
     static constexpr auto padded_ns     = (w + simd_size - 1) & ~(simd_size - 1);
     static constexpr auto horner_coeffs = get_horner_coeffs_200<FLT, w>();
     static constexpr auto nc            = horner_coeffs.size();
-
-
+    static constexpr auto use_ker_sym   = (simd_size < w);
+    
     alignas(alignment) static constexpr auto padded_coeffs =
         pad_2D_array_with_zeros<FLT, nc, w, padded_ns>(horner_coeffs);
 
-    const simd_type zv(z);
-    for (uint8_t i = 0; i < w; i += simd_size) {
-      auto k = simd_type::load_aligned(padded_coeffs[0].data() + i);
-      for (uint8_t j = 1; j < nc; ++j) {
-        const auto cji = simd_type::load_aligned(padded_coeffs[j].data() + i);
-        k              = xsimd::fma(k, zv, cji);
+    // use kernel symmetry trick if w > simd_size
+    if constexpr (use_ker_sym) {
+      static constexpr uint8_t tail          = w % simd_size;
+      static constexpr uint8_t if_odd_degree = ((nc + 1) % 2);
+      static constexpr uint8_t offset_start  = tail ? w - tail : w - simd_size;
+      static constexpr uint8_t end_idx       = (w + (tail > 0)) / 2;
+      const simd_type zv{z};
+      const auto z2v = zv * zv;
+
+      // some xsimd constant for shuffle or inverse
+      static constexpr auto shuffle_batch = []() constexpr noexcept {
+        if constexpr (tail) {
+          return xsimd::make_batch_constant<xsimd::as_unsigned_integer_t<FLT>, arch_t,
+                                            shuffle_index<tail>>();
+        } else {
+          return xsimd::make_batch_constant<xsimd::as_unsigned_integer_t<FLT>, arch_t,
+                                            reverse_index<simd_size>>();
+        }
+      }();
+
+      // process simd vecs
+      simd_type k_prev, k_sym{0};
+      for (uint8_t i{0}, offset = offset_start; i < end_idx;
+           i += simd_size, offset -= simd_size) {
+        auto k_odd = [i]() constexpr noexcept {
+          if constexpr (if_odd_degree) {
+            return simd_type::load_aligned(padded_coeffs[0].data() + i);
+          } else {
+            return simd_type{0};
+          }
+        }();
+        auto k_even = simd_type::load_aligned(padded_coeffs[if_odd_degree].data() + i);
+        for (uint8_t j{1 + if_odd_degree}; j < nc; j += 2) {
+          const auto cji_odd  = simd_type::load_aligned(padded_coeffs[j].data() + i);
+          const auto cji_even = simd_type::load_aligned(padded_coeffs[j + 1].data() + i);
+          k_odd               = xsimd::fma(k_odd, z2v, cji_odd);
+          k_even              = xsimd::fma(k_even, z2v, cji_even);
+        }
+        // left part
+        xsimd::fma(k_odd, zv, k_even).store_aligned(ker + i);
+        // right part symmetric to the left part
+        if (offset >= end_idx) {
+          if constexpr (tail) {
+            // to use aligned store, we need shuffle the previous k_sym and current k_sym
+            k_prev = k_sym;
+            k_sym  = xsimd::fnma(k_odd, zv, k_even);
+            xsimd::shuffle(k_sym, k_prev, shuffle_batch).store_aligned(ker + offset);
+          } else {
+            xsimd::swizzle(xsimd::fnma(k_odd, zv, k_even), shuffle_batch)
+                .store_aligned(ker + offset);
+          }
+        }
       }
-      k.store_aligned(ker + i);
+    } else {
+      const simd_type zv(z);
+      for (uint8_t i = 0; i < w; i += simd_size) {
+        auto k = simd_type::load_aligned(padded_coeffs[0].data() + i);
+        for (uint8_t j = 1; j < nc; ++j) {
+          const auto cji = simd_type::load_aligned(padded_coeffs[j].data() + i);
+          k              = xsimd::fma(k, zv, cji);
+        }
+        k.store_aligned(ker + i);
+      }
     }
     return;
   }
@@ -2171,6 +2229,16 @@ struct zip_hi {
   // it returns index N/2, N/2, N/2+1, N/2+1, ... N, N
   static constexpr unsigned get(unsigned index, unsigned size) {
     return (size + index) / 2;
+  }
+};
+template<unsigned cap> struct reverse_index {
+  static constexpr unsigned get(unsigned index, const unsigned size) {
+    return index < cap ? (cap - 1 - index) : index;
+  }
+};
+template<unsigned cap> struct shuffle_index {
+  static constexpr unsigned get(unsigned index, const unsigned size) {
+    return index < cap ? (cap - 1 - index) : size + size + cap - 1 - index;
   }
 };
 
