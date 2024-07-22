@@ -30,7 +30,7 @@ elseif upsampfac==1.25  % use formulae, must match params in setup_spreader
   betaoverws = gamma*pi*(1-1/(2*upsampfac));  % from cutoff freq formula
   beta = betaoverws * w;
   d = ceil(0.7*w+1.3);                  % less, since beta smaller. tweak
-  %d = 0;    % auto-choose override
+  %d = 0;    % auto-choose override? No, too much jitter.
 end
 
 if d==0

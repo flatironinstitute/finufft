@@ -5,8 +5,8 @@ function str = gen_ker_horner_loop_cpp_code(w,d,be,o)
 %
 % Inputs:
 %  w = integer kernel width in grid points, eg 10
-%  d = poly degree to keep, eg 13.  (will give # coeffs nc=d+1)
-%  beta = kernel parameter, around 2.3*w
+%  d = 0 for auto, else poly degree to keep, eg 13.  (will give # coeffs nc=d+1)
+%  beta = kernel parameter, around 2.3*w (upsampfac=2 only)
 %  opts - optional struct, with fields: [none for now].
 %
 % Outputs:
@@ -33,22 +33,23 @@ function str = gen_ker_horner_loop_cpp_code(w,d,be,o)
 %  variant, etc..
 
 % Ludvig af Klinteberg 4/25/18, based on Barnett 4/23/18. Ludvig wpad 1/31/20.
-% Barnett redo for Barbone templated arrays, no wpad, 7/26/24.
+% Barnett redo for Barbone templated arrays, no wpad, 7/16/24.
 
 if nargin==0, test_gen_ker_horner_loop_cpp_code; return; end
 if nargin<4, o=[]; end
 
 C = ker_ppval_coeff_mat(w,d,be,o);
+if d==0, d = size(C,2)-1; end
 str = cell(d+3,1);     % nc = d+1, plus one start and one close-paren line
-% code to open the templated array...   *** why two {{?
+% code to open the templated array...   why two {{?  (some C++ ambiguity thing)
 str{1} = sprintf('  return std::array<std::array<T, w>, nc> {{\n');
 for n=1:d+1                  % loop over poly coeff powers 0,1,..,d
-  % implicitly loops over fine-grid interpolation intervals 1:w...
+  % sprintf implicitly loops over fine-grid interpolation intervals 1:w...
   coeffrow = sprintf('%.16E, ', C(n,:));
   coeffrow = coeffrow(1:end-2);   % kill trailing comma even though allowed in C++
   str{d+3-n} = sprintf('      {%s},\n', coeffrow);    % leaves outer trailing comma
 end
-str{d+3} = sprintf('  }};\n');     % terminate the array   *** why two }}?
+str{d+3} = sprintf('  }};\n');     % terminate the array   why two }}?
 
 
 %%%%%%%%
@@ -56,7 +57,7 @@ function test_gen_ker_horner_loop_cpp_code  % writes code to file, doesn't test
 w=13; d=w+1;           % pick a single kernel width and degree to write code for
 %w=7; d=11;
 %w=2; d=5;
-beta=2.3*w;
+beta=2.3*w;    % upsampfac=2 only
 str = gen_ker_horner_loop_cpp_code(w,d,beta);
 % str{:}
 % check write and read to file...

@@ -11,8 +11,8 @@ echo checkallaccs for dim=$DIM :
 
 # finufft test size params (prod{N}.N < TEST_BIGPROB so compares direct transf)
 TEST1="1e3 1e3"
-TEST2="1e2 1e1 1e3"
-TEST3="1e1 1e1 1e1 1e3"
+TEST2="1e2 2e1 1e3"
+TEST3="1e1 2e1 3e1 1e3"
 # bash hack to make DIM switch between one of the above 3 choices
 TESTD=TEST$DIM
 TEST=${!TESTD}
