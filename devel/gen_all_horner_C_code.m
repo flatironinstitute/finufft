@@ -10,7 +10,7 @@ clear
 opts = struct();
 
 ws = 2:16;
-upsampfac = 2.0;     % sigma (upsampling): either 2 (default) or low (eg 5/4)
+upsampfac = 1.25;     % sigma (upsampling): either 2 (default) or low (eg 5/4)
 opts.wpad = true;    % pad kernel eval to multiple of 4
 
 if upsampfac==2, fid = fopen('../src/ker_horner_allw_loop_constexpr.c','w');
@@ -28,7 +28,7 @@ for j=1:numel(ws)
     gamma=0.97;                           % safety factor
     betaoverws = gamma*pi*(1-1/(2*upsampfac));  % from cutoff freq formula
     beta = betaoverws * w;
-    d = ceil(0.55*w+2.2);                 % from ker_ppval_coeff_mat expts
+    d = ceil(0.6*w+2.2);                 % from ker_ppval_coeff_mat expts
   end
   str = gen_ker_horner_loop_C_code(w,d,beta,opts);
   if j==1                                % write switch statement

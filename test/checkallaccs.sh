@@ -19,7 +19,7 @@ TEST=${!TESTD}
 
 # other test args
 SORT=2
-UPSAMPFAC=2.0
+UPSAMPFAC=1.25
 
 for acc in `seq 1 15`;
 do

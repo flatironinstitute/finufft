@@ -14,7 +14,7 @@ function C = ker_ppval_coeff_mat(w,d,be,o)
 %      is the local variable in 1/w units about each grid pt.
 %
 % Notes: the self-test of this function is useful to tweak d (degree) for
-%  each w.
+%  each w.  Also once FINUFFT CPU compiled, run test/checkallaccs.sh
 
 % Barnett 4/23/18. Test all w, and rescale to 1 max val, 7/21/24
 if nargin==0, test_ker_ppval_coeff_mat; return; end
@@ -41,7 +41,7 @@ C = C(1:d+1,:);     % keep only up to requested eval degree (coeffs 0 to d)
 
 %%%%%%
 function test_ker_ppval_coeff_mat
-sigma = 2.0;  % upsampfac
+sigma = 1.25;  % upsampfac
 for w=2:16
   if sigma==2.0          % we test the rules used in setup_spreader...
     betaoverws = [2.20 2.26 2.38 2.30];
@@ -53,7 +53,8 @@ for w=2:16
     betaoverns = gamma*pi*(1-1/(2*sigma));   % actually good for any sigma
     beta=betaoverns*w;
     tol = exp(-pi*w*sqrt(1-1/sigma));
-    d = ceil(0.55*w+2.2);   % hacking the degree rule so error << tol
+    d = ceil(0.6*w+2.2);   % hacking the degree rule so error << tol
+                           % (and needs a little more acc at large w)
   end
   f = @(z) exp(beta*(sqrt(1-z.^2)-1));  % must match the above, to test
 
