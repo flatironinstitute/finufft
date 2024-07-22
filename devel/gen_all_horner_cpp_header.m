@@ -43,10 +43,10 @@ for upsampfac = [2.0, 1.25]   % sigma: either 2 (default) or low (eg 5/4)
   end
 
   % handle bad w at compile time...
-  fwrite(fid,sprintf('    } else {\n'));
-  fwrite(fid,sprintf('      static_assert(w >= %d, "w must be >= %d");\n',ws(1),ws(1)));
-  fwrite(fid,sprintf('      static_assert(w <= %d, "w must be <= %d");\n',ws(end),ws(end)));
-  fwrite(fid,sprintf('      return {};\n    }\n};\n'));    % close all brackets
+  fwrite(fid,sprintf('    }\n'));
+  fwrite(fid,sprintf('    static_assert(w >= %d, "w must be >= %d");\n',ws(1),ws(1)));
+  fwrite(fid,sprintf('    static_assert(w <= %d, "w must be <= %d");\n',ws(end),ws(end)));
+  fwrite(fid,sprintf('  };\n'));    % close all brackets
   fclose(fid);
   
 end
