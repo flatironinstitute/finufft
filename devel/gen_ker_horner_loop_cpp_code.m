@@ -34,22 +34,24 @@ function str = gen_ker_horner_loop_cpp_code(w,d,be,o)
 
 % Ludvig af Klinteberg 4/25/18, based on Barnett 4/23/18. Ludvig wpad 1/31/20.
 % Barnett redo for Barbone templated arrays, no wpad, 7/16/24.
+% hardcoded outer nc array size, 7/22/24.
 
 if nargin==0, test_gen_ker_horner_loop_cpp_code; return; end
 if nargin<4, o=[]; end
 
 C = ker_ppval_coeff_mat(w,d,be,o);
 if d==0, d = size(C,2)-1; end
-str = cell(d+3,1);     % nc = d+1, plus one start and one close-paren line
+nc = d+1;
+str = cell(nc+2,1);     % one coeff per line + one return and one close-paren line
 % code to open the templated array...   why two {{?  (some C++ ambiguity thing)
-str{1} = sprintf('  return std::array<std::array<T, w>, nc> {{\n');
+str{1} = sprintf('  return std::array<std::array<T, w>, %d> {{\n', nc);
 for n=1:d+1                  % loop over poly coeff powers 0,1,..,d
   % sprintf implicitly loops over fine-grid interpolation intervals 1:w...
   coeffrow = sprintf('%.16E, ', C(n,:));
-  coeffrow = coeffrow(1:end-2);   % kill trailing comma even though allowed in C++
-  str{d+3-n} = sprintf('      {%s},\n', coeffrow);    % leaves outer trailing comma
+  coeffrow = coeffrow(1:end-2);   % easy kill trailing comma (but allowed in C++)
+  str{d+3-n} = sprintf('      {%s},\n', coeffrow);   % leave outer trailing comma
 end
-str{d+3} = sprintf('  }};\n');     % terminate the array   why two }}?
+str{nc+2} = sprintf('  }};\n');     % terminate the array (two braces)
 
 
 %%%%%%%%
