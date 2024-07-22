@@ -5,11 +5,12 @@ function str = gen_ker_horner_loop_C_code(w,d,be,o)
 %
 % Inputs:
 %  w = integer kernel width in grid points, eg 10
-%  d = poly degree to keep, eg 13
+%  d = 0 (auto), or poly degree to keep, eg 13. (passed to ker_ppval_coeff_mat)
 %  beta = kernel parameter, around 2.3*w (for upsampfac=2)
 %  opts - optional struct, with fields:
 %         wpad - if true, pad the number of kernel eval (segments) to w=4n
 %                for SIMD speed, esp. w/ GCC<=5.4
+%         cutoff - desired coeff cutoff for this kernel, needed when d=0
 %         [ideas: could use to switch to cosh kernel variant, etc..]
 %
 % Outputs:
@@ -23,11 +24,12 @@ function str = gen_ker_horner_loop_C_code(w,d,be,o)
 % (Horner can't be vectorized in the degree direction; Estrin was no faster.)
 
 % Ludvig af Klinteberg 4/25/18, based on Barnett 4/23/18. Ludvig wpad 1/31/20.
-% Barnett fixed bug where degree was d-1 not d throughout, 7/21/24.
+% Barnett fixed bug where degree was d-1 not d throughout; auto-d opt, 7/22/24.
 if nargin==0, test_gen_ker_horner_loop_C_code; return; end
 if nargin<4, o=[]; end
 
 C = ker_ppval_coeff_mat(w,d,be,o);
+if d==0, d = size(C,2)-1; end
 str = cell(d+2,1);
 if isfield(o,'wpad') && o.wpad
   width = 4*ceil(w/4);
@@ -54,11 +56,11 @@ str{d+2} = s;
 
 %%%%%%%%
 function test_gen_ker_horner_loop_C_code  % writes C code to file, doesn't test
-w=13; d=15;           % pick a single kernel width and degree to write code for
+w=13; d=0; opts.cutoff = 1e-12;   % pick a width and cutoff for degree
+beta=2.3*w;        % implies upsampfac=2
 %w=7; d=11;
 %w=2; d=5;
-beta=2.3*w;
-str = gen_ker_horner_loop_C_code(w,d,beta);
+str = gen_ker_horner_loop_C_code(w,d,beta,opts);
 % str{:}
 fnam = sprintf('ker_horner_w%d.c',w);
 fid = fopen(fnam,'w');

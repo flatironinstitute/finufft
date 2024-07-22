@@ -10,11 +10,11 @@ clear
 opts = struct();
 
 ws = 2:16;           % list of widths (the driver, rather than toloerances)
-upsampfac = 1.25;    % sigma (upsampling): either 2 (default) or low (eg 5/4)
+upsampfac = 2.0;    % sigma (upsampling): either 2 (default) or low (eg 5/4)
 
 if upsampfac==2
   fid = fopen('../src/ker_horner_allw_loop_constexpr.h','w');
-  get_nc_code = 'w + 2 + (w <= 8)';   % must be C++ expression for nc=d+1, not d
+  get_nc_code = 'w + 2 + (w <= 7) - (w==2)';   % must be C++ expression for nc=d+1, not d
 elseif upsampfac==1.25
   fid = fopen('../src/ker_lowupsampfac_horner_allw_loop_constexpr.h','w');
   get_nc_code = 'std::ceil(0.6*w + 3.2)';  % must be C++ code for nc=d+1, not d
@@ -34,7 +34,7 @@ for j=1:numel(ws)
   if upsampfac==2    % hardwire the betas for this default case
     betaoverws = [2.20 2.26 2.38 2.30];   % must match setup_spreader
     beta = betaoverws(min(4,w-1)) * w;    % uses last entry for w>=5
-    d = w + 1 + (w<=8);                   % between 2-3 more degree than w
+    d = w + 1 + (w<=7) - (w==2);          % between 1-2 more degree than w
   elseif upsampfac==1.25  % use formulae, must match params in setup_spreader
     gamma=0.97;                           % safety factor
     betaoverws = gamma*pi*(1-1/(2*upsampfac));  % from cutoff freq formula
