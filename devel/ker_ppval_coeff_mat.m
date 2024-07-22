@@ -16,7 +16,7 @@ function C = ker_ppval_coeff_mat(w,d,be,o)
 % Notes: the self-test of this function is useful to tweak d (degree) for
 %  each w.
 
-% Barnett 4/23/18. Test all w, 7/16/24
+% Barnett 4/23/18. Test all w, and rescale to 1 max val, 7/21/24
 if nargin==0, test_ker_ppval_coeff_mat; return; end
 if nargin<4, o=[]; end
 

@@ -8,6 +8,8 @@ o.debug = 0;      % choose 1 for timing breakdown text output
 
 tols = 10.^(-1:-1:-14);
 %tols = 1e-6;
+%tols = 10.^(-1:-1:-10); o.upsampfac=1.25;    % for lowupsampfac
+
 errs = nan*tols;
 for t=1:numel(tols)
   x = pi*(2*rand(1,M)-1);

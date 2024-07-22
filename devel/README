@@ -1,0 +1,17 @@
+Developer and experimental codes for FINUFFT
+--------------------------------------------
+
+For generating kernel coefficient codes in ../src,
+the developer must run from MATLAB the following:
+
+gen_all_horner_C_code.m          : writes C-style Horner coeffs (pre-2024)
+  (you must rerun with upsampfac=2 and 1.25)
+gen_all_horner_cpp_header.m      : writes C++ header Horner coeffs (7/2024 on)
+  (you must rerun with upsampfac=2 and 1.25)
+
+Both these call for the solve of the coeffs for each w:
+ker_ppval_coeff_mat.m
+  (which has the kernel definition in it, which must match spreadinterp.cpp)
+  The self-test for this last code is a good place to tweak the degree vs w.
+
+Barnett 7/21/24
