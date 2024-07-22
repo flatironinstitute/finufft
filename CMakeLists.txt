@@ -9,17 +9,24 @@ include(CheckCXXCompilerFlag)
 function(filter_supported_compiler_flags input_flags_var output_flags_var)
     # Create an empty list to store supported flags
     set(supported_flags)
+
     # Iterate over each flag in the input list
     foreach(flag ${${input_flags_var}})
-        check_cxx_compiler_flag(${flag} FLAG_SUPPORTED)
-        if(${FLAG_SUPPORTED})
+        string(REPLACE "=" "_" flag_var ${flag}) # Convert flag to a valid variable name
+        string(REPLACE "-" "" flag_var ${flag_var}) # Remove '-' for the variable name
+
+        # Append the test linker flag to the existing flags
+        list(APPEND CMAKE_EXE_LINKER_FLAGS ${flag})
+        check_cxx_compiler_flag(${flag} ${flag_var})
+        if(${flag_var})
             # If supported, append the flag to the list of supported flags
-            message(STATUS "Flag ${flag} is supported")
             list(APPEND supported_flags ${flag})
         else()
             message(STATUS "Flag ${flag} is not supported")
         endif()
-        unset(FLAG_SUPPORTED CACHE)
+        unset(${flag_var} CACHE)
+        # remove last flag from linker flags
+        list(REMOVE_ITEM CMAKE_EXE_LINKER_FLAGS ${flag})
     endforeach()
     # Set the output variable to the list of supported flags
     set(${output_flags_var} ${supported_flags} PARENT_SCOPE)
@@ -136,7 +143,6 @@ if (FINUFFT_USE_CPU)
     set(FINUFFT_FFTW_LIBRARIES)
     include(cmake/setupCPM.cmake)
     include(cmake/setupXSIMD.cmake)
-    include(cmake/setupSanitizers.cmake)
     if (FINUFFT_USE_DUCC0)
         include(cmake/setupDUCC.cmake)
     else ()
@@ -178,24 +184,17 @@ endif ()
 # The single precision compilation is done with -DSINGLE
 set(FINUFFT_PRECISION_DEPENDENT_SOURCES src/finufft.cpp src/fft.cpp src/simpleinterfaces.cpp src/spreadinterp.cpp src/utils.cpp fortran/finufftfort.cpp)
 
-set(SANITIZE_ADDRESS ON)
-set(SANITIZE_UNDEFINED ON)
-set(SANITIZE_MEMORY OFF)
-set(SANITIZE_THREAD OFF)
+# set linker flags for sanitizer
+set(FINUFFT_SANITIZER_FLAGS -fsanitize=address -fsanitize=undefined -fsanitize=bounds-strict /fsanitize=address /RTC1)
 
+filter_supported_compiler_flags(FINUFFT_SANITIZER_FLAGS FINUFFT_SANITIZER_FLAGS)
 # Utility function to enable ASAN on debug builds
 function(enable_asan target)
     if (NOT FINUFFT_ENABLE_SANITIZERS OR NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
         return()
     endif ()
-    find_package(Sanitizers REQUIRED)
-    if (CMAKE_CXX_COMPILER_ID STREQUAL "NVCC")
-        set (SANITIZE_ADDRESS OFF)
-        add_sanitizers(${target})
-        set (SANITIZE_ADDRESS ON)
-    else ()
-        add_sanitizers(${target})
-    endif ()
+    target_compile_options(${target} PRIVATE ${FINUFFT_SANITIZER_FLAGS})
+    target_link_options(${target} PRIVATE ${FINUFFT_SANITIZER_FLAGS})
 endfunction()
 
 # Utility function to link static/dynamic lib

@@ -783,8 +783,8 @@ Two upsampfacs implemented. Params must match ref formula. Barnett 4/24/18 */
     static constexpr auto alignment     = arch_t::alignment();
     static constexpr auto simd_size     = simd_type::size;
     static constexpr auto padded_ns     = (w + simd_size - 1) & ~(simd_size - 1);
-    static constexpr auto nc            = nc200<w>();
     static constexpr auto horner_coeffs = get_horner_coeffs_200<FLT, w>();
+    static constexpr auto nc            = horner_coeffs.size();
     static constexpr auto use_ker_sym   = (simd_size < w);
 
     alignas(alignment) static constexpr auto padded_coeffs =

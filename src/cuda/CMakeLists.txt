@@ -25,7 +25,7 @@ set(CUFINUFFT_INCLUDE_DIRS ${CUFINUFFT_INCLUDE_DIRS} PARENT_SCOPE)
 # flush denormals to zero and enable verbose PTXAS output
 set(FINUFFT_CUDA_FLAGS
         -ftz=true -fmad=true -restrict -Xptxas=-v --extra-device-vectorization -res-usage
-        -Wdouble-promotion -lineinfo --extended-lambda --expt-relaxed-constexpr
+        -Wdouble-promotion -lineinfo --extended-lambda --expt-relaxed-constexpr $<$<CONFIG:Debug>:-G -maxrregcount 32>
 )
 
 add_library(cufinufft_common_objects OBJECT ${PRECISION_INDEPENDENT_SRC})
