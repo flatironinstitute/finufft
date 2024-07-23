@@ -16,7 +16,7 @@ pipeline {
       }
       environment {
     HOME = "$WORKSPACE"
-    PYBIN = "/opt/python/cp38-cp38/bin"
+    PYBIN = "/opt/python/cp310-cp310/bin"
     LIBRARY_PATH = "$WORKSPACE/build"
     LD_LIBRARY_PATH = "$WORKSPACE/build"
       }
