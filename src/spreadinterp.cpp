@@ -24,6 +24,8 @@ namespace { // anonymous namespace for internal structs equivalent to declaring 
             // static
 struct zip_low;
 struct zip_hi;
+template<unsigned cap> struct reverse_index;
+template<unsigned cap> struct shuffle_index;
 struct select_even;
 struct select_odd;
 // forward declaration to clean up the code and be able to use this everywhere in the file
@@ -703,17 +705,18 @@ int setup_spreader(finufft_spread_opts &opts, FLT eps, double upsampfac, int ker
 
 FLT evaluate_kernel(FLT x, const finufft_spread_opts &opts)
 /* ES ("exp sqrt") kernel evaluation at single real argument:
-      phi(x) = exp(beta.sqrt(1 - (2x/n_s)^2)),    for |x| < nspread/2
+      phi(x) = exp(beta.(sqrt(1 - (2x/n_s)^2) - 1)),    for |x| < nspread/2
    related to an asymptotic approximation to the Kaiser--Bessel, itself an
    approximation to prolate spheroidal wavefunction (PSWF) of order 0.
-   This is the "reference implementation", used by eg finufft/onedim_* 2/17/17
+   This is the "reference implementation", used by eg finufft/onedim_* 2/17/17.
+   Rescaled so max is 1, Barnett 7/21/24
 */
 {
   if (abs(x) >= (FLT)opts.ES_halfwidth)
     // if spreading/FT careful, shouldn't need this if, but causes no speed hit
     return 0.0;
   else
-    return exp((FLT)opts.ES_beta * sqrt((FLT)1.0 - (FLT)opts.ES_c * x * x));
+    return exp( (FLT)opts.ES_beta * (sqrt((FLT)1.0 - (FLT)opts.ES_c * x * x) - (FLT)1.0) );
 }
 
 template<uint8_t ns>
@@ -729,9 +732,11 @@ void evaluate_kernel_vector(FLT *ker, FLT *args, const finufft_spread_opts &opts
    If opts.kerpad true, args and ker must be allocated for Npad, and args is
    written to (to pad to length Npad), only first N outputs are correct.
    Barnett 4/24/18 option to pad to mult of 4 for better SIMD vectorization.
+   Rescaled so max is 1, Barnett 7/21/24
 
    Obsolete (replaced by Horner), but keep around for experimentation since
-   works for arbitrary beta. Formula must match reference implementation. */
+   works for arbitrary beta. Formula must match reference implementation.
+*/
 {
   FLT b = (FLT)opts.ES_beta;
   FLT c = (FLT)opts.ES_c;
@@ -746,7 +751,8 @@ void evaluate_kernel_vector(FLT *ker, FLT *args, const finufft_spread_opts &opts
         args[i] = 0.0;
     }
     for (int i = 0; i < Npad; i++) { // Loop 1: Compute exponential arguments
-      ker[i] = b * sqrt((FLT)1.0 - c * args[i] * args[i]); // care! 1.0 is double
+      // care! 1.0 is double...
+      ker[i] = b * (sqrt((FLT)1.0 - c * args[i] * args[i]) - (FLT)1.0);
     }
     if (!(opts.flags & TF_OMIT_EVALUATE_EXPONENTIAL))
       for (int i = 0; i < Npad; i++) // Loop 2: Compute exponentials
@@ -777,23 +783,80 @@ Two upsampfacs implemented. Params must match ref formula. Barnett 4/24/18 */
   const FLT z = std::fma(FLT(2.0), x, FLT(w - 1)); // scale so local grid offset z in
                                                    // [-1,1]
   if (opts.upsampfac == 2.0) {                     // floating point equality is fine here
-    static constexpr auto alignment     = simd_type::arch_type::alignment();
+    using arch_t                        = typename simd_type::arch_type;
+    static constexpr auto alignment     = arch_t::alignment();
     static constexpr auto simd_size     = simd_type::size;
     static constexpr auto padded_ns     = (w + simd_size - 1) & ~(simd_size - 1);
-    static constexpr auto nc            = nc200<w>();
     static constexpr auto horner_coeffs = get_horner_coeffs_200<FLT, w>();
-
+    static constexpr auto nc            = horner_coeffs.size();
+    static constexpr auto use_ker_sym   = (simd_size < w);
+    
     alignas(alignment) static constexpr auto padded_coeffs =
         pad_2D_array_with_zeros<FLT, nc, w, padded_ns>(horner_coeffs);
 
-    const simd_type zv(z);
-    for (uint8_t i = 0; i < w; i += simd_size) {
-      auto k = simd_type::load_aligned(padded_coeffs[0].data() + i);
-      for (uint8_t j = 1; j < nc; ++j) {
-        const auto cji = simd_type::load_aligned(padded_coeffs[j].data() + i);
-        k              = xsimd::fma(k, zv, cji);
+    // use kernel symmetry trick if w > simd_size
+    if constexpr (use_ker_sym) {
+      static constexpr uint8_t tail          = w % simd_size;
+      static constexpr uint8_t if_odd_degree = ((nc + 1) % 2);
+      static constexpr uint8_t offset_start  = tail ? w - tail : w - simd_size;
+      static constexpr uint8_t end_idx       = (w + (tail > 0)) / 2;
+      const simd_type zv{z};
+      const auto z2v = zv * zv;
+
+      // some xsimd constant for shuffle or inverse
+      static constexpr auto shuffle_batch = []() constexpr noexcept {
+        if constexpr (tail) {
+          return xsimd::make_batch_constant<xsimd::as_unsigned_integer_t<FLT>, arch_t,
+                                            shuffle_index<tail>>();
+        } else {
+          return xsimd::make_batch_constant<xsimd::as_unsigned_integer_t<FLT>, arch_t,
+                                            reverse_index<simd_size>>();
+        }
+      }();
+
+      // process simd vecs
+      simd_type k_prev, k_sym{0};
+      for (uint8_t i{0}, offset = offset_start; i < end_idx;
+           i += simd_size, offset -= simd_size) {
+        auto k_odd = [i]() constexpr noexcept {
+          if constexpr (if_odd_degree) {
+            return simd_type::load_aligned(padded_coeffs[0].data() + i);
+          } else {
+            return simd_type{0};
+          }
+        }();
+        auto k_even = simd_type::load_aligned(padded_coeffs[if_odd_degree].data() + i);
+        for (uint8_t j{1 + if_odd_degree}; j < nc; j += 2) {
+          const auto cji_odd  = simd_type::load_aligned(padded_coeffs[j].data() + i);
+          const auto cji_even = simd_type::load_aligned(padded_coeffs[j + 1].data() + i);
+          k_odd               = xsimd::fma(k_odd, z2v, cji_odd);
+          k_even              = xsimd::fma(k_even, z2v, cji_even);
+        }
+        // left part
+        xsimd::fma(k_odd, zv, k_even).store_aligned(ker + i);
+        // right part symmetric to the left part
+        if (offset >= end_idx) {
+          if constexpr (tail) {
+            // to use aligned store, we need shuffle the previous k_sym and current k_sym
+            k_prev = k_sym;
+            k_sym  = xsimd::fnma(k_odd, zv, k_even);
+            xsimd::shuffle(k_sym, k_prev, shuffle_batch).store_aligned(ker + offset);
+          } else {
+            xsimd::swizzle(xsimd::fnma(k_odd, zv, k_even), shuffle_batch)
+                .store_aligned(ker + offset);
+          }
+        }
       }
-      k.store_aligned(ker + i);
+    } else {
+      const simd_type zv(z);
+      for (uint8_t i = 0; i < w; i += simd_size) {
+        auto k = simd_type::load_aligned(padded_coeffs[0].data() + i);
+        for (uint8_t j = 1; j < nc; ++j) {
+          const auto cji = simd_type::load_aligned(padded_coeffs[j].data() + i);
+          k              = xsimd::fma(k, zv, cji);
+        }
+        k.store_aligned(ker + i);
+      }
     }
     return;
   }
@@ -1332,9 +1395,9 @@ FINUFFT_NEVER_INLINE void spread_subproblem_1d_kernel(
     // it allows to save one load this way at each iteration
 
     // This does for each element e of the subgrid, x1 defined above and pt the NU point
-    // the following: e += exp(beta.sqrt(1 - (2*x1/n_s)^2))*pt
-    // NOTE: x1 is translated accordingly, please see the ES method for more
-    // using uint8_t in loops to favor unrolling.
+    // the following: e += scaled_kernel(2*x1/n_s)*pt, where "scaled_kernel" is defined
+    // on [-1,1].
+    // Using uint8_t in loops to favor unrolling.
     // Most compilers limit the unrolling to 255, uint8_t is at most 255
     for (uint8_t dx{0}; dx < regular_part; dx += 2 * simd_size) {
       // read ker_v which is simd_size wide from ker
@@ -2166,6 +2229,16 @@ struct zip_hi {
   // it returns index N/2, N/2, N/2+1, N/2+1, ... N, N
   static constexpr unsigned get(unsigned index, unsigned size) {
     return (size + index) / 2;
+  }
+};
+template<unsigned cap> struct reverse_index {
+  static constexpr unsigned get(unsigned index, const unsigned size) {
+    return index < cap ? (cap - 1 - index) : index;
+  }
+};
+template<unsigned cap> struct shuffle_index {
+  static constexpr unsigned get(unsigned index, const unsigned size) {
+    return index < cap ? (cap - 1 - index) : size + size + cap - 1 - index;
   }
 };
 

@@ -24,6 +24,14 @@ Developer notes
 
 * For testing and performance measuring routines see ``test/README`` and ``perftest/README``. We need more of the latter, eg, something making performance graphs that enable rapid eyeball comparison of various settings/machines. Marco is working on that.
 
+* The kernel function in spreadinterp is evaluated via piecewise-polynomial approximation (Horner's rule). The code for this is auto-generated in MATLAB, for all upsampling factors. There are two versions supported:
+
+  - 2018--2024 vintage: no explicit SIMD vectorization, C code is generated code for the Horner evaluation loop, by running from MATLAB `gen_all_horner_C_code.m`
+    
+  - post-2024 vintage: explicit SIMD and many other acceleration tricks, and the generated code is a static C++ array of coefficients, and their sizes (`nc` or number of coefficients) for each width `w`. Run from MATLAB `gen_ker_horner_loop_cpp_code.m`
+
+  See `devel/README` for more details. The ES kernel coefficient and poly approx degree for both of the above are defined in a single location, `devel/get_degree_and_beta.m`, which must match the C++ `setup_spreader()` function.
+  
 * Continuous Integration (CI). See files for this in ``.github/workflows/``. It currently tests the default ``makefile`` settings in linux, and three other ``make.inc.*`` files covering OSX and Windows (MinGW). CI does not test build the variant OMP=OFF. The dev should test these locally. Likewise, the Julia wrapper is separate and thus not tested in CI. We have added ``JenkinsFile`` for the GPU CI via python wrappers.
 
 * **Installing MWrap**. This is needed only for experts to rebuild the matlab/octave interfaces.
