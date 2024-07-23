@@ -705,17 +705,18 @@ int setup_spreader(finufft_spread_opts &opts, FLT eps, double upsampfac, int ker
 
 FLT evaluate_kernel(FLT x, const finufft_spread_opts &opts)
 /* ES ("exp sqrt") kernel evaluation at single real argument:
-      phi(x) = exp(beta.sqrt(1 - (2x/n_s)^2)),    for |x| < nspread/2
+      phi(x) = exp(beta.(sqrt(1 - (2x/n_s)^2) - 1)),    for |x| < nspread/2
    related to an asymptotic approximation to the Kaiser--Bessel, itself an
    approximation to prolate spheroidal wavefunction (PSWF) of order 0.
-   This is the "reference implementation", used by eg finufft/onedim_* 2/17/17
+   This is the "reference implementation", used by eg finufft/onedim_* 2/17/17.
+   Rescaled so max is 1, Barnett 7/21/24
 */
 {
   if (abs(x) >= (FLT)opts.ES_halfwidth)
     // if spreading/FT careful, shouldn't need this if, but causes no speed hit
     return 0.0;
   else
-    return exp((FLT)opts.ES_beta * sqrt((FLT)1.0 - (FLT)opts.ES_c * x * x));
+    return exp( (FLT)opts.ES_beta * (sqrt((FLT)1.0 - (FLT)opts.ES_c * x * x) - (FLT)1.0) );
 }
 
 template<uint8_t ns>
@@ -731,9 +732,11 @@ void evaluate_kernel_vector(FLT *ker, FLT *args, const finufft_spread_opts &opts
    If opts.kerpad true, args and ker must be allocated for Npad, and args is
    written to (to pad to length Npad), only first N outputs are correct.
    Barnett 4/24/18 option to pad to mult of 4 for better SIMD vectorization.
+   Rescaled so max is 1, Barnett 7/21/24
 
    Obsolete (replaced by Horner), but keep around for experimentation since
-   works for arbitrary beta. Formula must match reference implementation. */
+   works for arbitrary beta. Formula must match reference implementation.
+*/
 {
   FLT b = (FLT)opts.ES_beta;
   FLT c = (FLT)opts.ES_c;
@@ -748,7 +751,8 @@ void evaluate_kernel_vector(FLT *ker, FLT *args, const finufft_spread_opts &opts
         args[i] = 0.0;
     }
     for (int i = 0; i < Npad; i++) { // Loop 1: Compute exponential arguments
-      ker[i] = b * sqrt((FLT)1.0 - c * args[i] * args[i]); // care! 1.0 is double
+      // care! 1.0 is double...
+      ker[i] = b * (sqrt((FLT)1.0 - c * args[i] * args[i]) - (FLT)1.0);
     }
     if (!(opts.flags & TF_OMIT_EVALUATE_EXPONENTIAL))
       for (int i = 0; i < Npad; i++) // Loop 2: Compute exponentials
@@ -783,10 +787,10 @@ Two upsampfacs implemented. Params must match ref formula. Barnett 4/24/18 */
     static constexpr auto alignment     = arch_t::alignment();
     static constexpr auto simd_size     = simd_type::size;
     static constexpr auto padded_ns     = (w + simd_size - 1) & ~(simd_size - 1);
-    static constexpr auto nc            = nc200<w>();
     static constexpr auto horner_coeffs = get_horner_coeffs_200<FLT, w>();
+    static constexpr auto nc            = horner_coeffs.size();
     static constexpr auto use_ker_sym   = (simd_size < w);
-
+    
     alignas(alignment) static constexpr auto padded_coeffs =
         pad_2D_array_with_zeros<FLT, nc, w, padded_ns>(horner_coeffs);
 
@@ -1391,9 +1395,9 @@ FINUFFT_NEVER_INLINE void spread_subproblem_1d_kernel(
     // it allows to save one load this way at each iteration
 
     // This does for each element e of the subgrid, x1 defined above and pt the NU point
-    // the following: e += exp(beta.sqrt(1 - (2*x1/n_s)^2))*pt
-    // NOTE: x1 is translated accordingly, please see the ES method for more
-    // using uint8_t in loops to favor unrolling.
+    // the following: e += scaled_kernel(2*x1/n_s)*pt, where "scaled_kernel" is defined
+    // on [-1,1].
+    // Using uint8_t in loops to favor unrolling.
     // Most compilers limit the unrolling to 255, uint8_t is at most 255
     for (uint8_t dx{0}; dx < regular_part; dx += 2 * simd_size) {
       // read ker_v which is simd_size wide from ker
