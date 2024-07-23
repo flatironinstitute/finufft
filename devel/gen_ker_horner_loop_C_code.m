@@ -35,7 +35,7 @@ else
   width = w;
 end
 for n=1:d                  % loop over poly coeff powers
-  s = sprintf('FLT c%d[] = {%.16E',n-1, C(n,1));
+  s = sprintf('constexpr FLT c%d[] = {%.16E',n-1, C(n,1));
   for i=2:width            % loop over segments
     s = sprintf('%s, %.16E', s, C(n,i));      
   end
