@@ -37,8 +37,8 @@ if isfield(o,'wpad') && o.wpad
 else
   width = w;
 end
-for n=1:d+1                 % loop over poly coeff powers
-  s = sprintf('FLT c%d[] = {%.16E',n-1, C(n,1));
+for n=1:d                  % loop over poly coeff powers
+  s = sprintf('constexpr FLT c%d[] = {%.16E',n-1, C(n,1));
   for i=2:width            % loop over segments
     s = sprintf('%s, %.16E', s, C(n,i));      
   end
