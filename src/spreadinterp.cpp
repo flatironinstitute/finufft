@@ -7,6 +7,7 @@
 #include <finufft/utils_precindep.h>
 
 #include "ker_horner_allw_loop_constexpr.h"
+#include "ker_lowupsampfac_horner_allw_loop_constexpr.h"
 
 #include <xsimd/xsimd.hpp>
 
@@ -78,8 +79,9 @@ static FINUFFT_ALWAYS_INLINE void set_kernel_args(
     FLT *args, FLT x, const finufft_spread_opts &opts) noexcept;
 static FINUFFT_ALWAYS_INLINE void evaluate_kernel_vector(
     FLT *ker, FLT *args, const finufft_spread_opts &opts) noexcept;
-template<uint8_t w, class simd_type = xsimd::make_sized_batch_t<
-                        FLT, find_optimal_simd_width<FLT, w>()>> // aka ns
+template<uint8_t w, uint8_t upsampfact,
+         class simd_type =
+             xsimd::make_sized_batch_t<FLT, find_optimal_simd_width<FLT, w>()>> // aka ns
 static FINUFFT_ALWAYS_INLINE void eval_kernel_vec_Horner(
     FLT *FINUFFT_RESTRICT ker, FLT x, const finufft_spread_opts &opts) noexcept;
 template<uint8_t ns, class simd_type = PaddedSIMD<FLT, 2 * ns>>
@@ -716,7 +718,7 @@ FLT evaluate_kernel(FLT x, const finufft_spread_opts &opts)
     // if spreading/FT careful, shouldn't need this if, but causes no speed hit
     return 0.0;
   else
-    return exp( (FLT)opts.ES_beta * (sqrt((FLT)1.0 - (FLT)opts.ES_c * x * x) - (FLT)1.0) );
+    return exp((FLT)opts.ES_beta * (sqrt((FLT)1.0 - (FLT)opts.ES_c * x * x) - (FLT)1.0));
 }
 
 template<uint8_t ns>
@@ -771,7 +773,7 @@ void evaluate_kernel_vector(FLT *ker, FLT *args, const finufft_spread_opts &opts
     if (abs(args[i]) >= (FLT)opts.ES_halfwidth) ker[i] = 0.0;
 }
 
-template<uint8_t w, class simd_type> // aka ns
+template<uint8_t w, uint8_t upsampfact, class simd_type> // aka ns
 void eval_kernel_vec_Horner(FLT *FINUFFT_RESTRICT ker, const FLT x,
                             const finufft_spread_opts &opts) noexcept
 /* Fill ker[] with Horner piecewise poly approx to [-w/2,w/2] ES kernel eval at
@@ -780,90 +782,88 @@ This is the current evaluation method, since it's faster (except i7 w=16).
 Two upsampfacs implemented. Params must match ref formula. Barnett 4/24/18 */
 
 {
-  const FLT z = std::fma(FLT(2.0), x, FLT(w - 1)); // scale so local grid offset z in
-                                                   // [-1,1]
-  if (opts.upsampfac == 2.0) {                     // floating point equality is fine here
-    using arch_t                        = typename simd_type::arch_type;
-    static constexpr auto alignment     = arch_t::alignment();
-    static constexpr auto simd_size     = simd_type::size;
-    static constexpr auto padded_ns     = (w + simd_size - 1) & ~(simd_size - 1);
-    static constexpr auto horner_coeffs = get_horner_coeffs_200<FLT, w>();
-    static constexpr auto nc            = horner_coeffs.size();
-    static constexpr auto use_ker_sym   = (simd_size < w);
-    
-    alignas(alignment) static constexpr auto padded_coeffs =
-        pad_2D_array_with_zeros<FLT, nc, w, padded_ns>(horner_coeffs);
+  // scale so local grid offset z in[-1,1]
+  const FLT z                         = std::fma(FLT(2.0), x, FLT(w - 1));
+  using arch_t                        = typename simd_type::arch_type;
+  static constexpr auto alignment     = arch_t::alignment();
+  static constexpr auto simd_size     = simd_type::size;
+  static constexpr auto padded_ns     = (w + simd_size - 1) & ~(simd_size - 1);
+  static constexpr auto horner_coeffs = []() constexpr noexcept {
+    if constexpr (upsampfact == 200) {
+      return get_horner_coeffs_200<FLT, w>();
+    } else if constexpr (upsampfact == 125) {
+      return get_horner_coeffs_125<FLT, w>();
+    }
+  }();
+  static constexpr auto nc          = horner_coeffs.size();
+  static constexpr auto use_ker_sym = (simd_size < w);
 
-    // use kernel symmetry trick if w > simd_size
-    if constexpr (use_ker_sym) {
-      static constexpr uint8_t tail          = w % simd_size;
-      static constexpr uint8_t if_odd_degree = ((nc + 1) % 2);
-      static constexpr uint8_t offset_start  = tail ? w - tail : w - simd_size;
-      static constexpr uint8_t end_idx       = (w + (tail > 0)) / 2;
-      const simd_type zv{z};
-      const auto z2v = zv * zv;
+  alignas(alignment) static constexpr auto padded_coeffs =
+      pad_2D_array_with_zeros<FLT, nc, w, padded_ns>(horner_coeffs);
 
-      // some xsimd constant for shuffle or inverse
-      static constexpr auto shuffle_batch = []() constexpr noexcept {
-        if constexpr (tail) {
-          return xsimd::make_batch_constant<xsimd::as_unsigned_integer_t<FLT>, arch_t,
-                                            shuffle_index<tail>>();
+  // use kernel symmetry trick if w > simd_size
+  if constexpr (use_ker_sym) {
+    static constexpr uint8_t tail          = w % simd_size;
+    static constexpr uint8_t if_odd_degree = ((nc + 1) % 2);
+    static constexpr uint8_t offset_start  = tail ? w - tail : w - simd_size;
+    static constexpr uint8_t end_idx       = (w + (tail > 0)) / 2;
+    const simd_type zv{z};
+    const auto z2v = zv * zv;
+
+    // some xsimd constant for shuffle or inverse
+    static constexpr auto shuffle_batch = []() constexpr noexcept {
+      if constexpr (tail) {
+        return xsimd::make_batch_constant<xsimd::as_unsigned_integer_t<FLT>, arch_t,
+                                          shuffle_index<tail>>();
+      } else {
+        return xsimd::make_batch_constant<xsimd::as_unsigned_integer_t<FLT>, arch_t,
+                                          reverse_index<simd_size>>();
+      }
+    }();
+
+    // process simd vecs
+    simd_type k_prev, k_sym{0};
+    for (uint8_t i{0}, offset = offset_start; i < end_idx;
+         i += simd_size, offset -= simd_size) {
+      auto k_odd = [i]() constexpr noexcept {
+        if constexpr (if_odd_degree) {
+          return simd_type::load_aligned(padded_coeffs[0].data() + i);
         } else {
-          return xsimd::make_batch_constant<xsimd::as_unsigned_integer_t<FLT>, arch_t,
-                                            reverse_index<simd_size>>();
+          return simd_type{0};
         }
       }();
-
-      // process simd vecs
-      simd_type k_prev, k_sym{0};
-      for (uint8_t i{0}, offset = offset_start; i < end_idx;
-           i += simd_size, offset -= simd_size) {
-        auto k_odd = [i]() constexpr noexcept {
-          if constexpr (if_odd_degree) {
-            return simd_type::load_aligned(padded_coeffs[0].data() + i);
-          } else {
-            return simd_type{0};
-          }
-        }();
-        auto k_even = simd_type::load_aligned(padded_coeffs[if_odd_degree].data() + i);
-        for (uint8_t j{1 + if_odd_degree}; j < nc; j += 2) {
-          const auto cji_odd  = simd_type::load_aligned(padded_coeffs[j].data() + i);
-          const auto cji_even = simd_type::load_aligned(padded_coeffs[j + 1].data() + i);
-          k_odd               = xsimd::fma(k_odd, z2v, cji_odd);
-          k_even              = xsimd::fma(k_even, z2v, cji_even);
-        }
-        // left part
-        xsimd::fma(k_odd, zv, k_even).store_aligned(ker + i);
-        // right part symmetric to the left part
-        if (offset >= end_idx) {
-          if constexpr (tail) {
-            // to use aligned store, we need shuffle the previous k_sym and current k_sym
-            k_prev = k_sym;
-            k_sym  = xsimd::fnma(k_odd, zv, k_even);
-            xsimd::shuffle(k_sym, k_prev, shuffle_batch).store_aligned(ker + offset);
-          } else {
-            xsimd::swizzle(xsimd::fnma(k_odd, zv, k_even), shuffle_batch)
-                .store_aligned(ker + offset);
-          }
-        }
+      auto k_even = simd_type::load_aligned(padded_coeffs[if_odd_degree].data() + i);
+      for (uint8_t j{1 + if_odd_degree}; j < nc; j += 2) {
+        const auto cji_odd  = simd_type::load_aligned(padded_coeffs[j].data() + i);
+        const auto cji_even = simd_type::load_aligned(padded_coeffs[j + 1].data() + i);
+        k_odd               = xsimd::fma(k_odd, z2v, cji_odd);
+        k_even              = xsimd::fma(k_even, z2v, cji_even);
       }
-    } else {
-      const simd_type zv(z);
-      for (uint8_t i = 0; i < w; i += simd_size) {
-        auto k = simd_type::load_aligned(padded_coeffs[0].data() + i);
-        for (uint8_t j = 1; j < nc; ++j) {
-          const auto cji = simd_type::load_aligned(padded_coeffs[j].data() + i);
-          k              = xsimd::fma(k, zv, cji);
+      // left part
+      xsimd::fma(k_odd, zv, k_even).store_aligned(ker + i);
+      // right part symmetric to the left part
+      if (offset >= end_idx) {
+        if constexpr (tail) {
+          // to use aligned store, we need shuffle the previous k_sym and current k_sym
+          k_prev = k_sym;
+          k_sym  = xsimd::fnma(k_odd, zv, k_even);
+          xsimd::shuffle(k_sym, k_prev, shuffle_batch).store_aligned(ker + offset);
+        } else {
+          xsimd::swizzle(xsimd::fnma(k_odd, zv, k_even), shuffle_batch)
+              .store_aligned(ker + offset);
         }
-        k.store_aligned(ker + i);
       }
     }
-    return;
-  }
-  // insert the auto-generated code which expects z, w args, writes to ker...
-  if (opts.upsampfac == 1.25) {
-#include "ker_lowupsampfac_horner_allw_loop_constexpr.c"
-    return;
+  } else {
+    const simd_type zv(z);
+    for (uint8_t i = 0; i < w; i += simd_size) {
+      auto k = simd_type::load_aligned(padded_coeffs[0].data() + i);
+      for (uint8_t j = 1; j < nc; ++j) {
+        const auto cji = simd_type::load_aligned(padded_coeffs[j].data() + i);
+        k              = xsimd::fma(k, zv, cji);
+      }
+      k.store_aligned(ker + i);
+    }
   }
 }
 
@@ -2091,7 +2091,14 @@ auto ker_eval(FLT *FINUFFT_RESTRICT ker, const finufft_spread_opts &opts,
   for (auto i = 0; i < sizeof...(elems); ++i) {
     // compile time branch no performance overhead
     if constexpr (kerevalmeth == 1) {
-      eval_kernel_vec_Horner<ns, simd_type>(ker + (i * MAX_NSPREAD), inputs[i], opts);
+      if (opts.upsampfac == 2.0) {
+        eval_kernel_vec_Horner<ns, 200, simd_type>(ker + (i * MAX_NSPREAD), inputs[i],
+                                                   opts);
+      }
+      if (opts.upsampfac == 1.25) {
+        eval_kernel_vec_Horner<ns, 125, simd_type>(ker + (i * MAX_NSPREAD), inputs[i],
+                                                   opts);
+      }
     }
     if constexpr (kerevalmeth == 0) {
       alignas(simd_type::arch_type::alignment()) std::array<T, MAX_NSPREAD> kernel_args{};
