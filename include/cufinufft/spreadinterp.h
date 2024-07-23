@@ -56,7 +56,7 @@ static inline T evaluate_kernel(T x, const finufft_spread_opts &opts)
     // if spreading/FT careful, shouldn't need this if, but causes no speed hit
     return 0.0;
   else
-    return exp(T(opts.ES_beta) * sqrt(T(1.0) - T(opts.ES_c) * x * x));
+    return exp((T)opts.ES_beta * (sqrt((T)1.0 - (T)opts.ES_c * x * x) - (T)1.0));
 }
 
 template<typename T>
@@ -71,7 +71,9 @@ static __forceinline__ __device__ T evaluate_kernel(T x, T es_c, T es_beta, int 
    This is the "reference implementation", used by eg common/onedim_*
     2/17/17 */
 {
-  return abs(x) < ns / 2.0 ? exp(es_beta * (sqrt(1.0 - es_c * x * x))) : 0.0;
+  return abs(x) < ns / T(2.0)
+             ? exp((T)es_beta * (sqrt((T)1.0 - (T)es_c * x * x) - (T)1.0))
+             : 0.0;
 }
 
 template<typename T>
@@ -82,22 +84,16 @@ static __inline__ __device__ void eval_kernel_vec_horner(T *ker, const T x, cons
    This is the current evaluation method, since it's faster (except i7 w=16).
    Two upsampfacs implemented. Params must match ref formula. Barnett 4/24/18 */
 {
-#ifdef __CUDA_ARCH__
-  __builtin_assume(w >= 2);
-  if constexpr (std::is_same_v<T, float>) {
-    __builtin_assume(w <= 7);
-  }
-  if constexpr (std::is_same_v<T, double>) {
-    __builtin_assume(w <= 16);
-  }
-#endif
   const auto z = fma(T(2), x, T(w - 1)); // scale so local grid offset z in [-1,1]
   //  T z = 2 * x + w - 1.0;
   // insert the auto-generated code which expects z, w args, writes to ker...
   if (upsampfac == 2.0) { // floating point equality is fine here
-    using FLT           = T;
-    using CUFINUFFT_FLT = T;
+    using FLT = T;
 #include "cufinufft/contrib/ker_horner_allw_loop.inc"
+  }
+  if (upsampfac == 1.25) { // floating point equality is fine here
+    using FLT = T;
+#include "cufinufft/contrib/ker_lowupsampfac_horner_allw_loop.inc"
   }
 }
 
