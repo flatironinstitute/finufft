@@ -52,7 +52,7 @@ if (FINUFFT_FFTW_LIBRARIES STREQUAL DEFAULT OR FINUFFT_FFTW_LIBRARIES STREQUAL D
             endif ()
             
             foreach (element IN LISTS FINUFFT_FFTW_LIBRARIES)
-                set_property(TARGET ${element} PROPERTY POSITION_INDEPENDENT_CODE ON)
+                set_property(TARGET ${element} PROPERTY POSITION_INDEPENDENT_CODE ${FINUFFT_SHARED_LINKING})
             endforeach ()
 
     else ()
