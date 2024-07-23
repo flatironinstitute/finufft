@@ -35,7 +35,8 @@ pipeline {
                          -DFINUFFT_USE_CPU=OFF \
                          -DFINUFFT_BUILD_TESTS=ON \
                          -DCMAKE_CUDA_ARCHITECTURES="$cuda_arch" \
-                         -DBUILD_TESTING=ON
+                         -DBUILD_TESTING=ON \
+                         -DFINUFFT_STATIC_LINKING=OFF
         cd build
         make -j4
     '''
