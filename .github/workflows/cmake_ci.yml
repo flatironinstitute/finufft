@@ -30,8 +30,8 @@ jobs:
         with:
           compiler: ${{ matrix.compiler }}
           vcvarsall: ${{ contains(matrix.os, 'windows') }}
-          cmake: false
-          ninja: false
+          cmake: true
+          ninja: true
           vcpkg: false
           cppcheck: false
           clangtidy: false
