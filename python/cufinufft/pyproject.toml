@@ -17,6 +17,8 @@ authors = [
     {name = "Yu-shuan Melody Shih"},
     {name = "Garrett Wright"},
     {name = "Joakim Anden"},
+    {name = "Marco Barbone"},
+    {name = "Robert Blackwell"},
     {name = "Johannes Blascke"},
     {name = "Alex Barnett"}]
 maintainers = [{name = "Joakim Anden", email = "janden-vscholar@flatironinstitute.org"}]

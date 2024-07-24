@@ -1,8 +1,8 @@
 # Flatiron Institute Nonuniform Fast Fourier Transform library: FINUFFT
 
-Principal author **Alex H. Barnett**, main co-developers Jeremy F. Magland, Ludvig af Klinteberg, Yu-hsuan "Melody" Shih, Andrea Malleo, Libin Lu, and Joakim Andén.
+Principal author **Alex H. Barnett**, main co-developers Jeremy F. Magland, Ludvig af Klinteberg, Yu-hsuan "Melody" Shih, Andrea Malleo, Libin Lu, Joakim Andén, Marco Barbone, and Robert Blackwell.
 
-This package provides a Python interface to the library, enabling fast computation of nonuniform discrete Fourier transforms to specified precision in one, two, and three dimensions.
+This package provides a Python interface to the CPU library, enabling fast computation of nonuniform discrete Fourier transforms to specified precision in one, two, and three dimensions.
 It supports transforms of type 1 (nonuniform to uniform), type 2 (uniform to nonuniform) and type 3 (nonuniform to nonuniform).
 For more information, see the [online documentation](https://finufft.readthedocs.io/en/latest/python.html).
 

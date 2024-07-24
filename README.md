@@ -8,7 +8,7 @@
 Principal author **Alex H. Barnett** (abarnett@flatironinstitute.org),
 main co-developers Jeremy F. Magland,
 Ludvig af Klinteberg, Yu-hsuan "Melody" Shih, Libin Lu,
-Joakim Andén, and Robert Blackwell;
+Joakim Andén, Marco Barbone, and Robert Blackwell;
 see `docs/ackn.rst` for full list of contributors.
 ​
 <img align="right" src="docs/logo.png" width="350">
@@ -63,4 +63,3 @@ For cuFINUFFT (GPU library):
 cuFINUFFT: a load-balanced GPU library for general-purpose nonuniform FFTs,
 Yu-hsuan Shih, Garrett Wright, Joakim Andén, Johannes Blaschke, Alex H. Barnett,
 PDSEC2021 workshop of the IPDPS2021 conference. https://arxiv.org/abs/2102.08463
-

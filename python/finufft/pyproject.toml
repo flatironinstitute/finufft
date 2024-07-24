@@ -17,6 +17,8 @@ authors = [
     {name = "Daniel Foreman-Mackey"},
     {name = "Joakim Anden"},
     {name = "Libin Lu"},
+    {name = "Marco Barbone"},
+    {name = "Robert Blackwell"},
     {name = "Alex Barnett"}]
 maintainers = [{name = "Alex Barnett", email = "abarnett@flatironinstitute.org"}]
 description = "Python interface to FINUFFT"
