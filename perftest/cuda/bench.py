@@ -44,7 +44,7 @@ args = {"--prec": "d",
         # "--N1": "16777216",
         "--N1": "256",
         "--N2": "256",
-        "--N3": "256",
+        # "--N3": "256",
         "--kerevalmethod": "1",
         "--M": "1E8",
         "--tol": "1E-6"}
@@ -71,7 +71,7 @@ print("Benchmarking")
 if stderr != '':
     print(stderr)
     exit(0)
-max_range = 8 if args["--prec"] == "d" else 7
+max_range = 16 if args["--prec"] == "d" else 7
 
 for i in range(1, max_range):
     args["--tol"] = "1E-" + ("0" if i < 10 else "") + str(i)

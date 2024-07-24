@@ -263,13 +263,7 @@ void cufinufft_setup_binsize(int type, int ns, int dim, cufinufft_opts *opts) {
       const int bin_size =
           shared_mem_per_block / sizeof(cuda_complex<T>) - ((ns + 1) / 2) * 2;
 
-      opts->gpu_binsizex             = bin_size;
-      opts->gpu_binsizex             = 1024;
-      const auto shared_mem_required = shared_memory_required<T>(
-          dim, ns, opts->gpu_binsizex, opts->gpu_binsizey, opts->gpu_binsizez);
-      //      printf("binsizex: %d, shared_mem_required %ld (bytes)\n",
-      //      opts->gpu_binsizex,
-      //             shared_mem_required);
+      opts->gpu_binsizex = bin_size;
     }
     opts->gpu_binsizey = 1;
     opts->gpu_binsizez = 1;
