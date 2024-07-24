@@ -4,6 +4,9 @@ project(
   VERSION 2.2.0
   LANGUAGES C CXX)
 
+# windows MSVC runtime flags policy
+cmake_policy(SET CMP0091 NEW)
+
 include(CMakeDependentOption)
 
 # cmake-format: off
@@ -62,7 +65,6 @@ set(FINUFFT_CXX_FLAGS_DEBUG
     -ggdb
     -ggdb3
     /Zi
-    /ZI
     -Wall
     -Wno-sign-compare
     -Wno-unknown-pragmas)
@@ -170,6 +172,9 @@ function(finufft_link_test target)
   endif()
   enable_asan(${target})
   target_compile_features(${target} PRIVATE cxx_std_17)
+  set_target_properties(
+    ${target} PROPERTIES MSVC_RUNTIME_LIBRARY
+                         "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 endfunction()
 
 # Utility function to set finufft compilation options.
@@ -191,8 +196,10 @@ function(set_finufft_options target)
     INTERFACE $<INSTALL_INTERFACE:${CMAKE_INSTALL_PREFIX}/include>)
   # suppress Windows warnings about "unsafe" functions
   target_compile_definitions(${target} PRIVATE _CRT_SECURE_NO_WARNINGS)
-  set_property(TARGET ${target} PROPERTY POSITION_INDEPENDENT_CODE
-                                         ${FINUFFT_SHARED_LINKING})
+  set_target_properties(
+    ${target}
+    PROPERTIES MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>"
+               POSITION_INDEPENDENT_CODE ${FINUFFT_SHARED_LINKING})
   enable_asan(${target})
   if(FINUFFT_USE_OPENMP)
     target_link_libraries(${target} PRIVATE OpenMP::OpenMP_CXX)
@@ -262,7 +269,7 @@ if(FINUFFT_USE_CUDA)
   enable_language(CUDA)
   find_package(CUDAToolkit REQUIRED)
   add_subdirectory(src/cuda)
-  if(BUILD_TESTING OR FINUFFT_BUILD_TESTS)
+  if(FINUFFT_BUILD_TESTS)
     add_subdirectory(perftest/cuda)
     add_subdirectory(test/cuda)
   endif()
@@ -271,7 +278,7 @@ if(FINUFFT_USE_CUDA)
 endif()
 
 # Add tests defined in their own directory
-if(FINUFFT_USE_CPU AND (BUILD_TESTING OR FINUFFT_BUILD_TESTS))
+if(FINUFFT_USE_CPU AND FINUFFT_BUILD_TESTS)
   add_subdirectory(test)
   add_subdirectory(perftest)
 endif()
