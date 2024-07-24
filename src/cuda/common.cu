@@ -256,11 +256,15 @@ void cufinufft_setup_binsize(int type, int ns, int dim, cufinufft_opts *opts) {
       if (const auto err = cudaGetLastError(); err != cudaSuccess) {
         throw std::runtime_error(cudaGetErrorString(err));
       }
+      // use half of the available shared memory if double precision
+      if constexpr (std::is_same_v<T, double>) {
+        shared_mem_per_block /= 2;
+      }
       const int bin_size =
           shared_mem_per_block / sizeof(cuda_complex<T>) - ((ns + 1) / 2) * 2;
-      // find the power of 2 that is less than bin_size
-      // this makes the bin_size use the maximum shared memory available
+
       opts->gpu_binsizex             = bin_size;
+      opts->gpu_binsizex             = 1024;
       const auto shared_mem_required = shared_memory_required<T>(
           dim, ns, opts->gpu_binsizex, opts->gpu_binsizey, opts->gpu_binsizez);
       //      printf("binsizex: %d, shared_mem_required %ld (bytes)\n",
@@ -310,13 +314,6 @@ void cufinufft_setup_binsize(int type, int ns, int dim, cufinufft_opts *opts) {
         opts->gpu_binsizex = 16;
         opts->gpu_binsizey = 16;
         opts->gpu_binsizez = 2;
-        //        const auto shared_mem_required = shared_memory_required<T>(
-        //            dim, ns, opts->gpu_binsizex, opts->gpu_binsizey,
-        //            opts->gpu_binsizez);
-        //        printf(
-        //            "binsizex: %d, binsizey: %d, binsizez: %d shared_mem_required %ld
-        //            (bytes)\n", opts->gpu_binsizex, opts->gpu_binsizey,
-        //            opts->gpu_binsizez, shared_mem_required);
       }
     } break;
     case 4: {

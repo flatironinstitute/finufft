@@ -37,7 +37,7 @@ def build_args(args):
 # example command to run:
 # nsys profile -o cuperftest_profile ./cuperftest --prec f --n_runs 10 --method 1 --N1 256 --N2 256 --N3 256 --M 1E8 --tol 1E-6
 # example arguments
-args = {"--prec": "f",
+args = {"--prec": "d",
         "--n_runs": "5",
         "--method": "0",
         "--sort": "1",
@@ -71,8 +71,10 @@ print("Benchmarking")
 if stderr != '':
     print(stderr)
     exit(0)
-for i in range(1, 7):
-    args["--tol"] = "1E-" + str(i)
+max_range = 8 if args["--prec"] == "d" else 7
+
+for i in range(1, max_range):
+    args["--tol"] = "1E-" + ("0" if i < 10 else "") + str(i)
     print("Running with tol = 1E-" + str(i))
     for method in ['2', '1']:
         args["--method"] = method

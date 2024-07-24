@@ -144,24 +144,23 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
      * For type 2, we always default to method 1 (GM). */
 
     // query the device for the amount of shared memory available
-    int shared_mem_per_block{};
-    cudaDeviceGetAttribute(&shared_mem_per_block, cudaDevAttrMaxSharedMemoryPerBlockOptin,
-                           device_id);
-    RETURN_IF_CUDA_ERROR
-    // compute the amount of shared memory required for the method
-    const auto shared_mem_required =
-        shared_memory_required<T>(dim, d_plan->spopts.nspread, d_plan->opts.gpu_binsizex,
-                                  d_plan->opts.gpu_binsizey, d_plan->opts.gpu_binsizez);
-    printf("Shared memory available: %d KB, required: %d KB\n", shared_mem_per_block,
-           shared_mem_required);
-    if ((shared_mem_required > shared_mem_per_block)) {
+    if (dim == 3 && std::is_same_v<T, double>) {
       d_plan->opts.gpu_method = 1;
-      printf("choosing method 1\n");
     } else {
-      d_plan->opts.gpu_method = 2;
-      printf("choosing method 2\n");
+      int shared_mem_per_block{};
+      cudaDeviceGetAttribute(&shared_mem_per_block,
+                             cudaDevAttrMaxSharedMemoryPerBlockOptin, device_id);
+      RETURN_IF_CUDA_ERROR
+      // compute the amount of shared memory required for the method
+      const auto shared_mem_required = shared_memory_required<T>(
+          dim, d_plan->spopts.nspread, d_plan->opts.gpu_binsizex,
+          d_plan->opts.gpu_binsizey, d_plan->opts.gpu_binsizez);
+      if ((shared_mem_required > shared_mem_per_block)) {
+        d_plan->opts.gpu_method = 1;
+      } else {
+        d_plan->opts.gpu_method = 2;
+      }
     }
-    printf("using method %d\n", d_plan->opts.gpu_method);
   }
 
   int fftsign = (iflag >= 0) ? 1 : -1;

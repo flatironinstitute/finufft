@@ -280,6 +280,7 @@ int cuspread3d_blockgather_prop(int nf1, int nf2, int nf3, int M,
 
   blocks.x = (threadsPerBlock.x + numbins[0] - 1) / threadsPerBlock.x;
   blocks.y = (threadsPerBlock.y + numbins[1] - 1) / threadsPerBlock.y;
+  blocks.y = (threadsPerBlock.y + numbins[1] - 1) / threadsPerBlock.y;
   blocks.z = (threadsPerBlock.z + numbins[2] - 1) / threadsPerBlock.z;
 
   ghost_bin_pts_index<<<blocks, threadsPerBlock, 0, stream>>>(

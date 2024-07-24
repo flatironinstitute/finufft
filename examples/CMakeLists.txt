@@ -21,7 +21,3 @@ if(FINUFFT_USE_OPENMP)
     enable_asan(${EXAMPLE})
   endforeach()
 endif()
-
-if (FINUFFT_USE_CUDA)
-  add_subdirectory(cuda)
-endif()
