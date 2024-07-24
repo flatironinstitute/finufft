@@ -6,6 +6,6 @@ if(FINUFFT_USE_CPU)
     endif ()
 endif()
 
-if(FINUFFT_USE_GPU)
-    install(TARGETS finufft_gpu LIBRARY DESTINATION cufinufft)
+if(FINUFFT_USE_CUDA)
+    install(TARGETS cufinufft LIBRARY DESTINATION cufinufft)
 endif()

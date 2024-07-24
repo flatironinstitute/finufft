@@ -1,0 +1,24 @@
+Developer and experimental codes for FINUFFT
+--------------------------------------------
+
+For generating kernel coefficient codes in ../src,
+the developer must run from MATLAB the following:
+
+gen_all_horner_C_code.m        : writes C-style Horner coeffs (pre-2024)
+  * a single call writes upsampfac=2 and 1.25
+  * calls gen_ker_horner_loop_C_code.m
+gen_all_horner_cpp_header.m    : writes C++ header Horner coeffs (July 2024 on)
+  * a single call writes upsampfac=2 and 1.25
+  * calls gen_ker_horner_loop_cpp_code.m
+
+Both of the gen_ker_* scripts call for the solve of the coeffs for each w:
+ker_ppval_coeff_mat.m
+  (which has the kernel definition in it, which must match spreadinterp.cpp)
+
+The universal location for kernel approximation (degree, ES beta setting) is:
+get_degree_and_beta.m
+Tweaks should be done here, and see instructions there for resulting acc test.
+Another code that has to match ../src/spreadinterp.cpp is:
+reverse_engineer_tol.m
+
+Barnett 7/22/24

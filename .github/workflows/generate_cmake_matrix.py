@@ -9,15 +9,15 @@ static_linking = ["On", "Off"]
 combinations = {
     "ubuntu-22.04": {
         "compiler": ["llvm", "gcc"],
-        "arch_flags": ["-march=native", "-march=x86-64"]
+        "arch_flags": ["-march=native", "-march=x86-64", "native"]
     },
     "windows-2022": {
         "compiler": ["msvc", "llvm"],
-        "arch_flags": ["/arch:AVX2", "/arch:SSE2"]
+        "arch_flags": ["/arch:AVX2", "/arch:SSE2", "native"]
     },
     "macos-13": {
         "compiler": ["llvm", "gcc-14"],
-        "arch_flags": ["-march=native", "-march=x86-64"]
+        "arch_flags": ["-march=native", "-march=x86-64", "native"]
     }
 }
 
