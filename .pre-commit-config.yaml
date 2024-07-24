@@ -15,5 +15,6 @@ repos:
     hooks:
     - id: cmake-format
     additional_dependencies: [pyyaml]
+    args: [--line-width=180]
     types: [file]
     files: (\.cmake|CMakeLists.txt)(.in)?$

@@ -6,60 +6,32 @@ project(
 
 include(CMakeDependentOption)
 
+# cmake-format: off
 # All options go here sphinx tag (don't remove): @cmake_opts_start
-option(FINUFFT_BUILD_FORTRAN "Whether to build the FINUFFT Fortran examples"
-       OFF)
+option(FINUFFT_BUILD_FORTRAN "Whether to build the FINUFFT Fortran examples" OFF)
 option(FINUFFT_BUILD_MATLAB "Whether to build the FINUFFT Matlab interface" OFF)
 option(FINUFFT_BUILD_PYTHON "Whether the Python wrapper should be built." OFF)
-option(FINUFFT_ENABLE_SANITIZERS
-       "Whether to enable sanitizers, only effective for Debug configuration."
-       ON)
-option(
-  FINUFFT_USE_OPENMP
-  "Whether to use OpenMP for parallelization. If disabled, the finufft library will be single threaded. This does not affect the choice of FFTW library."
-  ON)
-option(FINUFFT_USE_CPU
-       "Whether to build the ordinary FINUFFT library (libfinufft)." ON)
-option(
-  FINUFFT_USE_CUDA
-  "Whether to build CUDA accelerated FINUFFT library (libcufinufft). This is completely independent of the main FINUFFT library"
-  OFF)
+option(FINUFFT_ENABLE_SANITIZERS "Whether to enable sanitizers, only effective for Debug configuration." ON)
+option(FINUFFT_USE_OPENMP "Whether to use OpenMP for parallelization. If disabled, the finufft library will be single threaded. This does not affect the choice of FFTW library." ON)
+option(FINUFFT_USE_CPU "Whether to build the ordinary FINUFFT library (libfinufft)." ON)
+option(FINUFFT_USE_CUDA "Whether to build CUDA accelerated FINUFFT library (libcufinufft). This is completely independent of the main FINUFFT library" OFF)
 option(FINUFFT_STATIC_LINKING "Whether to build the static FINUFFT library." ON)
 option(FINUFFT_BUILD_DEVEL "Whether to build development executables" OFF)
 option(FINUFFT_BUILD_EXAMPLES "Whether to build the FINUFFT examples" OFF)
 option(FINUFFT_BUILD_TESTS "Whether to build the FINUFFT tests" OFF)
-option(FINUFFT_USE_DUCC0 "Whether to use DUCC0 (instead of FFTW) for CPU FFTs"
-       OFF)
+option(FINUFFT_USE_DUCC0 "Whether to use DUCC0 (instead of FFTW) for CPU FFTs" OFF)
 # if FINUFFT_USE_DUCC0 is ON, the following options are ignored
-set(FINUFFT_FFTW_LIBRARIES
-    "DEFAULT"
-    CACHE STRING "Specify a custom FFTW library")
-set(FINUFFT_FFTW_SUFFIX
-    "OpenMP"
-    CACHE STRING "Suffix for FFTW libraries (e.g. OpenMP, Threads etc.)")
+set(FINUFFT_FFTW_LIBRARIES "DEFAULT" CACHE STRING "Specify a custom FFTW library")
+set(FINUFFT_FFTW_SUFFIX "OpenMP" CACHE STRING "Suffix for FFTW libraries (e.g. OpenMP, Threads etc.)")
 # if FINUFFT_USE_CUDA is OFF, the following options are ignored
-set(FINUFFT_CUDA_ARCHITECTURES
-    "native"
-    CACHE STRING "CUDA architectures to build for (e.g. 60;70;75;)")
+set(FINUFFT_CUDA_ARCHITECTURES "native" CACHE STRING "CUDA architectures to build for (e.g. 60;70;75;)")
 # if FINUFFT_USE_CPU is OFF, the following options are ignored
-set(FINUFFT_ARCH_FLAGS
-    native
-    CACHE
-      STRING
-      "Compiler flags for specifying target architecture, defaults to -march=native"
-)
+set(FINUFFT_ARCH_FLAGS native CACHE STRING "Compiler flags for specifying target architecture, defaults to -march=native")
 # sphinx tag (don't remove): @cmake_opts_end
-
-cmake_dependent_option(
-  FINUFFT_ENABLE_INSTALL "Disable installation in the case of python builds"
-  OFF "FINUFFT_BUILD_PYTHON" OFF)
-cmake_dependent_option(
-  FINUFFT_STATIC_LINKING
-  "Disable static libraries in the case of python builds" ON
-  "NOT FINUFFT_BUILD_PYTHON" OFF)
-cmake_dependent_option(
-  FINUFFT_SHARED_LINKING "Shared should be the opposite of static linking" ON
-  "NOT FINUFFT_STATIC_LINKING" OFF)
+cmake_dependent_option(FINUFFT_ENABLE_INSTALL "Disable installation in the case of python builds" OFF "FINUFFT_BUILD_PYTHON" OFF)
+cmake_dependent_option(FINUFFT_STATIC_LINKING "Disable static libraries in the case of python builds" ON "NOT FINUFFT_BUILD_PYTHON" OFF)
+cmake_dependent_option(FINUFFT_SHARED_LINKING "Shared should be the opposite of static linking" ON "NOT FINUFFT_STATIC_LINKING" OFF)
+# cmake-format: on
 
 include(cmake/utils.cmake)
 
