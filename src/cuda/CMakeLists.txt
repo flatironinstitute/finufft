@@ -1,8 +1,3 @@
-
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_EXTENSIONS OFF)
-set(CMAKE_CUDA_SEPARABLE_COMPILATION ON)
-
 set(PRECISION_INDEPENDENT_SRC precision_independent.cu utils.cpp
         ${PROJECT_SOURCE_DIR}/contrib/legendre_rule_fast.cpp)
 set(PRECISION_DEPENDENT_SRC
@@ -22,13 +17,34 @@ set(CUFINUFFT_INCLUDE_DIRS
 )
 set(CUFINUFFT_INCLUDE_DIRS ${CUFINUFFT_INCLUDE_DIRS} PARENT_SCOPE)
 
+# flush denormals to zero and enable verbose PTXAS output
+set(FINUFFT_CUDA_FLAGS
+        -ftz=true -fmad=true -restrict -Xptxas=-v --extra-device-vectorization -res-usage
+        -Wdouble-promotion -lineinfo --extended-lambda --expt-relaxed-constexpr
+)
+
 add_library(cufinufft_common_objects OBJECT ${PRECISION_INDEPENDENT_SRC})
 target_include_directories(cufinufft_common_objects PUBLIC ${CUFINUFFT_INCLUDE_DIRS})
-set_property(TARGET cufinufft_common_objects PROPERTY POSITION_INDEPENDENT_CODE ON)
+set_target_properties(
+        cufinufft_common_objects PROPERTIES
+        POSITION_INDEPENDENT_CODE ${FINUFFT_SHARED_LINKING}
+        CUDA_ARCHITECTURES ${FINUFFT_CUDA_ARCHITECTURES}
+        CUDA_SEPARABLE_COMPILATION ON
+)
+
+target_compile_options(cufinufft_common_objects PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:${FINUFFT_CUDA_FLAGS}>)
+target_compile_features(cufinufft_common_objects PRIVATE cxx_std_17)
 
 add_library(cufinufft_objects OBJECT ${PRECISION_DEPENDENT_SRC})
 target_include_directories(cufinufft_objects PUBLIC ${CUFINUFFT_INCLUDE_DIRS})
-set_property(TARGET cufinufft_objects PROPERTY POSITION_INDEPENDENT_CODE ON)
+set_target_properties(
+        cufinufft_objects PROPERTIES
+        POSITION_INDEPENDENT_CODE ${FINUFFT_SHARED_LINKING}
+        CUDA_ARCHITECTURES ${FINUFFT_CUDA_ARCHITECTURES}
+        CUDA_SEPARABLE_COMPILATION ON
+)
+target_compile_features(cufinufft_objects PRIVATE cxx_std_17)
+target_compile_options(cufinufft_objects PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:${FINUFFT_CUDA_FLAGS}>)
 
 if (FINUFFT_SHARED_LINKING)
     add_library(cufinufft SHARED
@@ -56,5 +72,12 @@ else ()
     target_link_libraries(cufinufft PUBLIC CUDA::cudart_static CUDA::cufft_static CUDA::nvToolsExt)
 endif ()
 
+target_compile_options(cufinufft PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:${FINUFFT_CUDA_FLAGS}>)
 file(GLOB CUFINUFFT_PUBLIC_HEADERS "${CMAKE_SOURCE_DIR}/include/cufinufft*.h")
-set_target_properties(cufinufft PROPERTIES PUBLIC_HEADER "${CUFINUFFT_PUBLIC_HEADERS}")
+set_target_properties(
+        cufinufft PROPERTIES
+        PUBLIC_HEADER "${CUFINUFFT_PUBLIC_HEADERS}"
+        POSITION_INDEPENDENT_CODE ${FINUFFT_SHARED_LINKING}
+        CUDA_ARCHITECTURES ${FINUFFT_CUDA_ARCHITECTURES}
+        CUDA_SEPARABLE_COMPILATION ON
+)
