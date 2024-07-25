@@ -138,8 +138,7 @@ __global__ void spread_1d_subprob(
       if (ix >= (bin_size_x + ns_2) || ix < 0) break;
       const cuda_complex<T> result{cnow.x * ker1[xx - xstart],
                                    cnow.y * ker1[xx - xstart]};
-      atomicAdd(&fwshared[ix].x, result.x);
-      atomicAdd(&fwshared[ix].y, result.y);
+      atomicAddComplexShared<T>(fwshared + ix, result);
     }
   }
   __syncthreads();
@@ -148,8 +147,7 @@ __global__ void spread_1d_subprob(
     auto ix = xoffset - ns_2 + k;
     if (ix < (nf1 + ns_2)) {
       ix = ix < 0 ? ix + nf1 : (ix > nf1 - 1 ? ix - nf1 : ix);
-      atomicAdd(&fw[ix].x, fwshared[k].x);
-      atomicAdd(&fw[ix].y, fwshared[k].y);
+      atomicAddComplexGlobal<T>(fw + ix, fwshared[k]);
     }
   }
 }

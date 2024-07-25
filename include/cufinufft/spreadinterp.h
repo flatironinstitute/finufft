@@ -38,11 +38,11 @@ static __forceinline__ __device__ constexpr T fma(const T a, const T b, const T 
     return __fmaf_rn(a, b, c);
   } else if constexpr (std::is_same_v<T, double>) {
     return __fma_rn(a, b, c);
-  } else {
-    static_assert(std::is_same_v<T, float> || std::is_same_v<T, double>,
-                  "Only float and double are supported.");
   }
-}
+  static_assert(std::is_same_v<T, float> || std::is_same_v<T, double>,
+                "Only float and double are supported.");
+  return T{0};
+};
 
 template<typename T>
 static inline T evaluate_kernel(T x, const finufft_spread_opts &opts)

@@ -53,8 +53,9 @@ __global__ void spread_2d_nupts_driven(
         const auto outidx    = ix + iy * nf1;
         const auto kervalue1 = ker1[xx - xstart];
         const auto kervalue2 = ker2[yy - ystart];
-        atomicAdd(&fw[outidx].x, cnow.x * kervalue1 * kervalue2);
-        atomicAdd(&fw[outidx].y, cnow.y * kervalue1 * kervalue2);
+        const cuda_complex<T> res{cnow.x * kervalue1 * kervalue2,
+                                  cnow.y * kervalue1 * kervalue2};
+        atomicAddComplexGlobal<T>(fw + outidx, res);
       }
     }
   }
@@ -180,10 +181,8 @@ __global__ void spread_2d_subprob(
         if (ix >= (bin_size_x + rounded_ns) || ix < 0) break;
         const auto outidx   = ix + iy * (bin_size_x + rounded_ns);
         const auto kervalue = ker1[xx - xstart] * ker2[yy - ystart];
-        const auto resx     = cnow.x * kervalue;
-        const auto resy     = cnow.y * kervalue;
-        atomicAdd(&fwshared[outidx].x, resx);
-        atomicAdd(&fwshared[outidx].y, resy);
+        const cuda_complex<T> res{cnow.x * kervalue, cnow.y * kervalue};
+        atomicAddComplexShared<T>(fwshared + outidx, res);
       }
     }
   }
@@ -200,8 +199,7 @@ __global__ void spread_2d_subprob(
       iy                   = iy < 0 ? iy + nf2 : (iy > nf2 - 1 ? iy - nf2 : iy);
       const auto outidx    = ix + iy * nf1;
       const auto sharedidx = i + j * (bin_size_x + rounded_ns);
-      atomicAdd(&fw[outidx].x, fwshared[sharedidx].x);
-      atomicAdd(&fw[outidx].y, fwshared[sharedidx].y);
+      atomicAddComplexGlobal<T>(fw + outidx, fwshared[sharedidx]);
     }
   }
 }

@@ -127,8 +127,9 @@ __global__ void spread_3d_nupts_driven(const T *x, const T *y, const T *z,
           const int outidx    = ix + iy * nf1 + iz * nf1 * nf2;
           const auto ker1val  = ker1[xx - xstart];
           const auto kervalue = ker1val * ker2val * ker3val;
-          atomicAdd(&fw[outidx].x, c[idxnupts[i]].x * kervalue);
-          atomicAdd(&fw[outidx].y, c[idxnupts[i]].y * kervalue);
+          const cuda_complex<T> res{c[idxnupts[i]].x * kervalue,
+                                    c[idxnupts[i]].y * kervalue};
+          atomicAddComplexGlobal<T>(fw + outidx, res);
         }
       }
     }
@@ -223,10 +224,8 @@ __global__ void spread_3d_subprob(
           const int outidx = ix + iy * (bin_size_x + rounded_ns) +
                              iz * (bin_size_x + rounded_ns) * (bin_size_y + rounded_ns);
           const auto kervalue = ker1[xx - xstart] * kervalue2 * kervalue3;
-          const auto resx     = cnow.x * kervalue;
-          const auto resy     = cnow.y * kervalue;
-          atomicAdd(&fwshared[outidx].x, resx);
-          atomicAdd(&fwshared[outidx].y, resy);
+          const cuda_complex<T> res{cnow.x * kervalue, cnow.y * kervalue};
+          atomicAddComplexShared<T>(fwshared + outidx, res);
         }
       }
     }
@@ -250,8 +249,7 @@ __global__ void spread_3d_subprob(
       const int outidx    = ix + iy * nf1 + iz * nf1 * nf2;
       const int sharedidx = i + j * (bin_size_x + rounded_ns) +
                             k * (bin_size_x + rounded_ns) * (bin_size_y + rounded_ns);
-      atomicAdd(&fw[outidx].x, fwshared[sharedidx].x);
-      atomicAdd(&fw[outidx].y, fwshared[sharedidx].y);
+      atomicAddComplexGlobal<T>(fw + outidx, fwshared[sharedidx]);
     }
   }
 }
@@ -408,8 +406,9 @@ __global__ void spread_3d_block_gather(
         for (int xx = xstartnew; xx <= xendnew; xx++) {
           const auto outidx = xx + yy * obin_size_x + zz * obin_size_y * obin_size_x;
           const T kervalue1 = ker1[xx - xstart];
-          atomicAdd(&fwshared[outidx].x, cnow.x * kervalue1 * kervalue2 * kervalue3);
-          atomicAdd(&fwshared[outidx].y, cnow.y * kervalue1 * kervalue2 * kervalue3);
+          const cuda_complex<T> res{cnow.x * kervalue1 * kervalue2 * kervalue3,
+                                    cnow.y * kervalue1 * kervalue2 * kervalue3};
+          atomicAddComplexShared<T>(fwshared + outidx, res);
         }
       }
     }

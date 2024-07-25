@@ -4,6 +4,7 @@ target_link_libraries(cuperftest PUBLIC cufinufft)
 set_target_properties(cuperftest PROPERTIES
         LINKER_LANGUAGE CUDA
         CUDA_ARCHITECTURES ${FINUFFT_CUDA_ARCHITECTURES}
+        CUDA_STANDARD 17
+        CUDA_STANDARD_REQUIRED ON
 )
-
-#file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/bench.sh DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+target_compile_features(cuperftest PRIVATE cxx_std_17)
