@@ -4,6 +4,7 @@
 #include <cuda.h>
 #include <cufinufft/contrib/helper_cuda.h>
 
+#include <cuda_runtime.h>
 #include <cufinufft/defs.h>
 #include <cufinufft/precision_independent.h>
 #include <cufinufft/spreadinterp.h>
@@ -81,11 +82,16 @@ __global__ void spread_3d_nupts_driven(const T *x, const T *y, const T *z,
                                        const cuda_complex<T> *c, cuda_complex<T> *fw,
                                        int M, int ns, int nf1, int nf2, int nf3, T es_c,
                                        T es_beta, T sigma, const int *idxnupts) {
+#if ALLOCA_SUPPORTED
   auto ker                = (T *)alloca(sizeof(T) * ns * 3);
   auto *__restrict__ ker1 = ker;
   auto *__restrict__ ker2 = ker + ns;
   auto *__restrict__ ker3 = ker + ns + ns;
-
+#else
+  T ker1[MAX_NSPREAD];
+  T ker2[MAX_NSPREAD];
+  T ker3[MAX_NSPREAD];
+#endif
   for (int i = blockDim.x * blockIdx.x + threadIdx.x; i < M;
        i += blockDim.x * gridDim.x) {
     const auto x_rescaled = fold_rescale(x[idxnupts[i]], nf1);
@@ -160,10 +166,16 @@ __global__ void spread_3d_subprob(
     fwshared[i] = {0, 0};
   }
   __syncthreads();
+#if ALLOCA_SUPPORTED
   auto ker                = (T *)alloca(sizeof(T) * ns * 3);
   auto *__restrict__ ker1 = ker;
   auto *__restrict__ ker2 = ker + ns;
   auto *__restrict__ ker3 = ker + ns + ns;
+#else
+  T ker1[MAX_NSPREAD];
+  T ker2[MAX_NSPREAD];
+  T ker3[MAX_NSPREAD];
+#endif
 
   for (int i = threadIdx.x; i < nupts; i += blockDim.x) {
     const int nuptsidx    = idxnupts[ptstart + i];
@@ -309,85 +321,93 @@ __global__ void spread_3d_block_gather(
     int nobinx, int nobiny, int nobinz, const int *idxnupts) {
   extern __shared__ char sharedbuf[];
   cuda_complex<T> *fwshared = (cuda_complex<T> *)sharedbuf;
+  const int subpidx         = blockIdx.x;
+  const int obidx           = subprob_to_bin[subpidx];
+  const int bidx            = obidx * binsperobin;
 
-  int xstart, ystart, zstart, xend, yend, zend;
-  int xstartnew, ystartnew, zstartnew, xendnew, yendnew, zendnew;
-  int subpidx = blockIdx.x;
-  int obidx   = subprob_to_bin[subpidx];
-  int bidx    = obidx * binsperobin;
+  const int obinsubp_idx = subpidx - subprobstartpts[obidx];
+  const int ptstart      = binstartpts[bidx] + obinsubp_idx * maxsubprobsize;
+  const int nupts =
+      min(maxsubprobsize, binstartpts[bidx + binsperobin] - binstartpts[bidx] -
+                              obinsubp_idx * maxsubprobsize);
 
-  int obinsubp_idx = subpidx - subprobstartpts[obidx];
-  int ix, iy, iz;
-  int outidx;
-  int ptstart = binstartpts[bidx] + obinsubp_idx * maxsubprobsize;
-  int nupts   = min(maxsubprobsize, binstartpts[bidx + binsperobin] - binstartpts[bidx] -
-                                        obinsubp_idx * maxsubprobsize);
+  const int xoffset = (obidx % nobinx) * obin_size_x;
+  const int yoffset = (obidx / nobinx) % nobiny * obin_size_y;
+  const int zoffset = (obidx / (nobinx * nobiny)) * obin_size_z;
 
-  int xoffset = (obidx % nobinx) * obin_size_x;
-  int yoffset = (obidx / nobinx) % nobiny * obin_size_y;
-  int zoffset = (obidx / (nobinx * nobiny)) * obin_size_z;
+  const int N = obin_size_x * obin_size_y * obin_size_z;
 
-  int N = obin_size_x * obin_size_y * obin_size_z;
-
+#if ALLOCA_SUPPORTED
+  auto ker                = (T *)alloca(sizeof(T) * ns * 3);
+  auto *__restrict__ ker1 = ker;
+  auto *__restrict__ ker2 = ker + ns;
+  auto *__restrict__ ker3 = ker + ns + ns;
+#else
   T ker1[MAX_NSPREAD];
   T ker2[MAX_NSPREAD];
   T ker3[MAX_NSPREAD];
-
+#endif
   for (int i = threadIdx.x; i < N; i += blockDim.x) {
-    fwshared[i].x = 0.0;
-    fwshared[i].y = 0.0;
+    fwshared[i] = {0, 0};
   }
+
   __syncthreads();
 
-  T x_rescaled, y_rescaled, z_rescaled;
-  cuda_complex<T> cnow;
   for (int i = threadIdx.x; i < nupts; i += blockDim.x) {
     int nidx = idxnupts[ptstart + i];
     int b    = nidx / M;
     int box[3];
-    for (int d = 0; d < 3; d++) {
-      box[d] = b % 3;
-      if (box[d] == 1) box[d] = -1;
-      if (box[d] == 2) box[d] = 1;
+    for (int &d : box) {
+      d = b % 3;
+      if (d == 1) d = -1;
+      if (d == 2) d = 1;
       b = b / 3;
     }
-    int ii     = nidx % M;
-    x_rescaled = fold_rescale(x[ii], nf1) + box[0] * nf1;
-    y_rescaled = fold_rescale(y[ii], nf2) + box[1] * nf2;
-    z_rescaled = fold_rescale(z[ii], nf3) + box[2] * nf3;
-    cnow       = c[ii];
+    const int ii          = nidx % M;
+    const auto x_rescaled = fold_rescale(x[ii], nf1) + box[0] * nf1;
+    const auto y_rescaled = fold_rescale(y[ii], nf2) + box[1] * nf2;
+    const auto z_rescaled = fold_rescale(z[ii], nf3) + box[2] * nf3;
+    const auto cnow       = c[ii];
+    auto [xstart, xend]   = interval(ns, x_rescaled);
+    auto [ystart, yend]   = interval(ns, y_rescaled);
+    auto [zstart, zend]   = interval(ns, z_rescaled);
 
-    xstart = ceil(x_rescaled - ns / 2.0) - xoffset;
-    ystart = ceil(y_rescaled - ns / 2.0) - yoffset;
-    zstart = ceil(z_rescaled - ns / 2.0) - zoffset;
-    xend   = floor(x_rescaled + ns / 2.0) - xoffset;
-    yend   = floor(y_rescaled + ns / 2.0) - yoffset;
-    zend   = floor(z_rescaled + ns / 2.0) - zoffset;
+    const T x1 = T(xstart) - x_rescaled;
+    const T y1 = T(ystart) - y_rescaled;
+    const T z1 = T(zstart) - z_rescaled;
+
+    xstart -= xoffset;
+    ystart -= yoffset;
+    zstart -= zoffset;
+
+    xend -= xoffset;
+    yend -= yoffset;
+    zend -= zoffset;
 
     if constexpr (KEREVALMETH == 1) {
-      eval_kernel_vec_horner(ker1, xstart + xoffset - x_rescaled, ns, sigma);
-      eval_kernel_vec_horner(ker2, ystart + yoffset - y_rescaled, ns, sigma);
-      eval_kernel_vec_horner(ker3, zstart + zoffset - z_rescaled, ns, sigma);
+      eval_kernel_vec_horner(ker1, x1, ns, sigma);
+      eval_kernel_vec_horner(ker2, y1, ns, sigma);
+      eval_kernel_vec_horner(ker3, z1, ns, sigma);
     } else {
-      eval_kernel_vec(ker1, xstart + xoffset - x_rescaled, ns, es_c, es_beta);
-      eval_kernel_vec(ker2, ystart + yoffset - y_rescaled, ns, es_c, es_beta);
-      eval_kernel_vec(ker3, zstart + zoffset - z_rescaled, ns, es_c, es_beta);
+      eval_kernel_vec(ker1, x1, ns, es_c, es_beta);
+      eval_kernel_vec(ker2, y1, ns, es_c, es_beta);
+      eval_kernel_vec(ker3, z1, ns, es_c, es_beta);
     }
 
-    xstartnew = xstart < 0 ? 0 : xstart;
-    ystartnew = ystart < 0 ? 0 : ystart;
-    zstartnew = zstart < 0 ? 0 : zstart;
-    xendnew   = xend >= obin_size_x ? obin_size_x - 1 : xend;
-    yendnew   = yend >= obin_size_y ? obin_size_y - 1 : yend;
-    zendnew   = zend >= obin_size_z ? obin_size_z - 1 : zend;
+    const auto xstartnew = xstart < 0 ? 0 : xstart;
+    const auto ystartnew = ystart < 0 ? 0 : ystart;
+    const auto zstartnew = zstart < 0 ? 0 : zstart;
+    const auto xendnew   = xend >= obin_size_x ? obin_size_x - 1 : xend;
+    const auto yendnew   = yend >= obin_size_y ? obin_size_y - 1 : yend;
+    const auto zendnew   = zend >= obin_size_z ? obin_size_z - 1 : zend;
 
     for (int zz = zstartnew; zz <= zendnew; zz++) {
-      T kervalue3 = ker3[zz - zstart];
+      const T kervalue3 = ker3[zz - zstart];
       for (int yy = ystartnew; yy <= yendnew; yy++) {
-        T kervalue2 = ker2[yy - ystart];
+        const T kervalue2 = ker2[yy - ystart];
         for (int xx = xstartnew; xx <= xendnew; xx++) {
-          outidx      = xx + yy * obin_size_x + zz * obin_size_y * obin_size_x;
-          T kervalue1 = ker1[xx - xstart];
+          const auto outidx = xx + yy * obin_size_x + zz * obin_size_y * obin_size_x;
+          const T kervalue1 = ker1[xx - xstart];
           atomicAdd(&fwshared[outidx].x, cnow.x * kervalue1 * kervalue2 * kervalue3);
           atomicAdd(&fwshared[outidx].y, cnow.y * kervalue1 * kervalue2 * kervalue3);
         }
@@ -401,10 +421,10 @@ __global__ void spread_3d_block_gather(
     int j = (n / obin_size_x) % obin_size_y;
     int k = n / (obin_size_x * obin_size_y);
 
-    ix     = xoffset + i;
-    iy     = yoffset + j;
-    iz     = zoffset + k;
-    outidx = ix + iy * nf1 + iz * nf1 * nf2;
+    const auto ix     = xoffset + i;
+    const auto iy     = yoffset + j;
+    const auto iz     = zoffset + k;
+    const auto outidx = ix + iy * nf1 + iz * nf1 * nf2;
     atomicAdd(&fw[outidx].x, fwshared[n].x);
     atomicAdd(&fw[outidx].y, fwshared[n].y);
   }
@@ -416,10 +436,16 @@ template<typename T, int KEREVALMETH>
 __global__ void interp_3d_nupts_driven(
     const T *x, const T *y, const T *z, cuda_complex<T> *c, const cuda_complex<T> *fw,
     int M, int ns, int nf1, int nf2, int nf3, T es_c, T es_beta, T sigma, int *idxnupts) {
-  auto ker                = (T *)alloca(sizeof(T) * ns * 2);
+#if ALLOCA_SUPPORTED
+  auto ker                = (T *)alloca(sizeof(T) * ns * 3);
   auto *__restrict__ ker1 = ker;
   auto *__restrict__ ker2 = ker + ns;
   auto *__restrict__ ker3 = ker + ns + ns;
+#else
+  T ker1[MAX_NSPREAD];
+  T ker2[MAX_NSPREAD];
+  T ker3[MAX_NSPREAD];
+#endif
   for (int i = blockDim.x * blockIdx.x + threadIdx.x; i < M;
        i += blockDim.x * gridDim.x) {
     const auto x_rescaled = fold_rescale(x[idxnupts[i]], nf1);
@@ -461,8 +487,7 @@ __global__ void interp_3d_nupts_driven(
         }
       }
     }
-    c[idxnupts[i]].x = cnow.x;
-    c[idxnupts[i]].y = cnow.y;
+    c[idxnupts[i]] = cnow;
   }
 }
 
@@ -478,10 +503,16 @@ __global__ void interp_3d_subprob(
   extern __shared__ char sharedbuf[];
   auto fwshared = (cuda_complex<T> *)sharedbuf;
 
-  auto ker                = (T *)alloca(sizeof(T) * ns * 2);
+#if ALLOCA_SUPPORTED
+  auto ker                = (T *)alloca(sizeof(T) * ns * 3);
   auto *__restrict__ ker1 = ker;
   auto *__restrict__ ker2 = ker + ns;
   auto *__restrict__ ker3 = ker + ns + ns;
+#else
+  T ker1[MAX_NSPREAD];
+  T ker2[MAX_NSPREAD];
+  T ker3[MAX_NSPREAD];
+#endif
 
   const auto subpidx     = blockIdx.x;
   const auto bidx        = subprob_to_bin[subpidx];
@@ -514,8 +545,7 @@ __global__ void interp_3d_subprob(
       const auto outidx = ix + iy * nf1 + iz * nf1 * nf2;
       int sharedidx     = i + j * (bin_size_x + rounded_ns) +
                       k * (bin_size_x + rounded_ns) * (bin_size_y + rounded_ns);
-      fwshared[sharedidx].x = fw[outidx].x;
-      fwshared[sharedidx].y = fw[outidx].y;
+      fwshared[sharedidx] = fw[outidx];
     }
   }
   __syncthreads();
@@ -569,8 +599,7 @@ __global__ void interp_3d_subprob(
         }
       }
     }
-    c[idxnupts[idx]].x = cnow.x;
-    c[idxnupts[idx]].y = cnow.y;
+    c[idxnupts[idx]] = cnow;
   }
 }
 

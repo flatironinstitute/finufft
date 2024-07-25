@@ -23,7 +23,12 @@ __global__ void spread_1d_nuptsdriven(const T *x, const cuda_complex<T> *c,
                                       cuda_complex<T> *fw, int M, int ns, int nf1, T es_c,
                                       T es_beta, T sigma, const int *idxnupts) {
   // dynamic stack allocation to reduce stack usage
-  auto ker1 = (T __restrict__ *)alloca(sizeof(T) * ns);
+#if ALLOCA_SUPPORTED
+  auto ker                = (T *)alloca(sizeof(T) * ns * 3);
+  auto *__restrict__ ker1 = ker;
+#else
+  T ker1[MAX_NSPREAD];
+#endif
 
   for (int i = blockDim.x * blockIdx.x + threadIdx.x; i < M;
        i += blockDim.x * gridDim.x) {
@@ -37,8 +42,8 @@ __global__ void spread_1d_nuptsdriven(const T *x, const cuda_complex<T> *c,
       eval_kernel_vec(ker1, x1, ns, es_c, es_beta);
 
     for (auto xx = xstart; xx <= xend; xx++) {
-      auto ix    = xx < 0 ? xx + nf1 : (xx > nf1 - 1 ? xx - nf1 : xx);
-      T kervalue = ker1[xx - xstart];
+      auto ix          = xx < 0 ? xx + nf1 : (xx > nf1 - 1 ? xx - nf1 : xx);
+      const T kervalue = ker1[xx - xstart];
       atomicAdd(&fw[ix].x, cnow.x * kervalue);
       atomicAdd(&fw[ix].y, cnow.y * kervalue);
     }
@@ -84,11 +89,6 @@ __global__ void calc_inverse_of_global_sort_idx_1d(
   }
 }
 
-template<typename T>
-__forceinline__ __device__ cuda_complex<T> mul(const cuda_complex<T> &a, const T b) {
-  return {a.x * b, a.y * b};
-}
-
 template<typename T, int KEREVALMETH>
 __global__ void spread_1d_subprob(
     const T *x, const cuda_complex<T> *c, cuda_complex<T> *fw, int M, uint8_t ns, int nf1,
@@ -96,9 +96,8 @@ __global__ void spread_1d_subprob(
     int bin_size_x, const int *subprob_to_bin, const int *subprobstartpts,
     const int *numsubprob, int maxsubprobsize, int nbinx, int *idxnupts) {
   extern __shared__ char sharedbuf[];
-  alignas(256) auto *__restrict__ fwshared = (cuda_complex<T> *)sharedbuf;
+  auto *__restrict__ fwshared = (cuda_complex<T> *)sharedbuf;
 
-  int ix;
   const int subpidx     = blockIdx.x;
   const int bidx        = subprob_to_bin[subpidx];
   const int binsubp_idx = subpidx - subprobstartpts[bidx];
@@ -109,7 +108,12 @@ __global__ void spread_1d_subprob(
   const int N       = bin_size_x + 2 * ns_2;
 
   // dynamic stack allocation
-  auto ker1 = (T __restrict__ *)alloca(sizeof(T) * ns);
+#if ALLOCA_SUPPORTED
+  auto ker                = (T *)alloca(sizeof(T) * ns * 3);
+  auto *__restrict__ ker1 = ker;
+#else
+  T ker1[MAX_NSPREAD];
+#endif
 
   for (int i = threadIdx.x; i < N; i += blockDim.x) {
     fwshared[i] = {0, 0};
@@ -130,9 +134,10 @@ __global__ void spread_1d_subprob(
     else
       eval_kernel_vec(ker1, x1, ns, es_c, es_beta);
     for (int xx = xstart; xx <= xend; xx++) {
-      ix = xx + ns_2;
+      const auto ix = xx + ns_2;
       if (ix >= (bin_size_x + ns_2) || ix < 0) break;
-      const auto result = mul(cnow, ker1[xx - xstart]);
+      const cuda_complex<T> result{cnow.x * ker1[xx - xstart],
+                                   cnow.y * ker1[xx - xstart]};
       atomicAdd(&fwshared[ix].x, result.x);
       atomicAdd(&fwshared[ix].y, result.y);
     }
@@ -140,7 +145,7 @@ __global__ void spread_1d_subprob(
   __syncthreads();
   /* write to global memory */
   for (int k = threadIdx.x; k < N; k += blockDim.x) {
-    ix = xoffset - ns_2 + k;
+    auto ix = xoffset - ns_2 + k;
     if (ix < (nf1 + ns_2)) {
       ix = ix < 0 ? ix + nf1 : (ix > nf1 - 1 ? ix - nf1 : ix);
       atomicAdd(&fw[ix].x, fwshared[k].x);
@@ -155,31 +160,32 @@ template<typename T, int KEREVALMETH>
 __global__ void interp_1d_nuptsdriven(const T *x, cuda_complex<T> *c,
                                       const cuda_complex<T> *fw, int M, int ns, int nf1,
                                       T es_c, T es_beta, T sigma, const int *idxnupts) {
+  // dynamic stack allocation
+#if ALLOCA_SUPPORTED
+  auto ker                = (T *)alloca(sizeof(T) * ns * 3);
+  auto *__restrict__ ker1 = ker;
+#else
   T ker1[MAX_NSPREAD];
+#endif
   for (int i = blockDim.x * blockIdx.x + threadIdx.x; i < M;
        i += blockDim.x * gridDim.x) {
-    T x_rescaled = fold_rescale(x[idxnupts[i]], nf1);
+    const T x_rescaled        = fold_rescale(x[idxnupts[i]], nf1);
+    const auto [xstart, xend] = interval(ns, x_rescaled);
 
-    int xstart = ceil(x_rescaled - ns / 2.0);
-    int xend   = floor(x_rescaled + ns / 2.0);
-    cuda_complex<T> cnow;
-    cnow.x = 0.0;
-    cnow.y = 0.0;
+    cuda_complex<T> cnow{0, 0};
 
-    T x1 = (T)xstart - x_rescaled;
+    const T x1 = (T)xstart - x_rescaled;
     if constexpr (KEREVALMETH == 1)
       eval_kernel_vec_horner(ker1, x1, ns, sigma);
     else
       eval_kernel_vec(ker1, x1, ns, es_c, es_beta);
-
     for (int xx = xstart; xx <= xend; xx++) {
-      int ix      = xx < 0 ? xx + nf1 : (xx > nf1 - 1 ? xx - nf1 : xx);
-      T kervalue1 = ker1[xx - xstart];
+      int ix            = xx < 0 ? xx + nf1 : (xx > nf1 - 1 ? xx - nf1 : xx);
+      const T kervalue1 = ker1[xx - xstart];
       cnow.x += fw[ix].x * kervalue1;
       cnow.y += fw[ix].y * kervalue1;
     }
-    c[idxnupts[i]].x = cnow.x;
-    c[idxnupts[i]].y = cnow.y;
+    c[idxnupts[i]] = cnow;
   }
 }
 

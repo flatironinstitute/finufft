@@ -81,6 +81,29 @@ __forceinline__ __device__ auto interval(const int ns, const double x) {
   return int2{xstart, xend};
 }
 #endif
+
+// Define a macro to check if NVCC version is >= 11.3
+#if defined(__CUDACC_VER_MAJOR__) && defined(__CUDACC_VER_MINOR__)
+#if (__CUDACC_VER_MAJOR__ > 11) || \
+    (__CUDACC_VER_MAJOR__ == 11 && __CUDACC_VER_MINOR__ >= 3 && __CUDA_ARCH__ >= 600)
+#define ALLOCA_SUPPORTED 1
+#else
+#define ALLOCA_SUPPORTED 0
+#endif
+#else
+#define ALLOCA_SUPPORTED 0
+#endif
+
+#if defined(__CUDA_ARCH__)
+#if __CUDA_ARCH__ >= 900
+#define COMPUTE_CAPABILITY_90_OR_HIGHER 1
+#else
+#define COMPUTE_CAPABILITY_90_OR_HIGHER 0
+#endif
+#else
+#define COMPUTE_CAPABILITY_90_OR_HIGHER 0
+#endif
+
 } // namespace utils
 } // namespace cufinufft
 

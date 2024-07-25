@@ -19,9 +19,14 @@ template<typename T, int KEREVALMETH>
 __global__ void spread_2d_nupts_driven(
     const T *x, const T *y, const cuda_complex<T> *c, cuda_complex<T> *fw, int M, int ns,
     int nf1, int nf2, T es_c, T es_beta, T sigma, const int *idxnupts) {
-  auto ker                = (T *)alloca(sizeof(T) * ns * 2);
+#if ALLOCA_SUPPORTED
+  auto ker                = (T *)alloca(sizeof(T) * ns * 3);
   auto *__restrict__ ker1 = ker;
   auto *__restrict__ ker2 = ker + ns;
+#else
+  T ker1[MAX_NSPREAD];
+  T ker2[MAX_NSPREAD];
+#endif
   for (int i = blockDim.x * blockIdx.x + threadIdx.x; i < M;
        i += blockDim.x * gridDim.x) {
     const auto x_rescaled     = fold_rescale(x[idxnupts[i]], nf1);
@@ -130,9 +135,14 @@ __global__ void spread_2d_subprob(
   const auto rounded_ns = ns_2 * 2;
   const int N           = (bin_size_x + rounded_ns) * (bin_size_y + rounded_ns);
 
-  auto ker                = (T *)alloca(sizeof(T) * ns * 2);
+#if ALLOCA_SUPPORTED
+  auto ker                = (T *)alloca(sizeof(T) * ns * 3);
   auto *__restrict__ ker1 = ker;
   auto *__restrict__ ker2 = ker + ns;
+#else
+  T ker1[MAX_NSPREAD];
+  T ker2[MAX_NSPREAD];
+#endif
 
   for (int i = threadIdx.x; i < N; i += blockDim.x) {
     fwshared[i] = {0, 0};
@@ -202,9 +212,14 @@ template<typename T, int KEREVALMETH>
 __global__ void interp_2d_nupts_driven(
     const T *x, const T *y, cuda_complex<T> *c, const cuda_complex<T> *fw, int M, int ns,
     int nf1, int nf2, T es_c, T es_beta, T sigma, const int *idxnupts) {
-  auto ker                = (T *)alloca(sizeof(T) * ns * 2);
+#if ALLOCA_SUPPORTED
+  auto ker                = (T *)alloca(sizeof(T) * ns * 3);
   auto *__restrict__ ker1 = ker;
   auto *__restrict__ ker2 = ker + ns;
+#else
+  T ker1[MAX_NSPREAD];
+  T ker2[MAX_NSPREAD];
+#endif
 
   for (int i = blockDim.x * blockIdx.x + threadIdx.x; i < M;
        i += blockDim.x * gridDim.x) {
@@ -236,8 +251,7 @@ __global__ void interp_2d_nupts_driven(
         cnow.y += fw[inidx].y * kervalue1 * kervalue2;
       }
     }
-    c[idxnupts[i]].x = cnow.x;
-    c[idxnupts[i]].y = cnow.y;
+    c[idxnupts[i]] = cnow;
   }
 }
 
@@ -252,9 +266,14 @@ __global__ void interp_2d_subprob(
   extern __shared__ char sharedbuf[];
   cuda_complex<T> *fwshared = (cuda_complex<T> *)sharedbuf;
 
-  auto ker                = (T *)alloca(sizeof(T) * ns * 2);
+#if ALLOCA_SUPPORTED
+  auto ker                = (T *)alloca(sizeof(T) * ns * 3);
   auto *__restrict__ ker1 = ker;
   auto *__restrict__ ker2 = ker + ns;
+#else
+  T ker1[MAX_NSPREAD];
+  T ker2[MAX_NSPREAD];
+#endif
 
   const auto subpidx     = blockIdx.x;
   const auto bidx        = subprob_to_bin[subpidx];
@@ -276,12 +295,11 @@ __global__ void interp_2d_subprob(
     auto ix = xoffset - ns_2 + i;
     auto iy = yoffset - ns_2 + j;
     if (ix < (nf1 + ns_2) && iy < (nf2 + ns_2)) {
-      ix                    = ix < 0 ? ix + nf1 : (ix > nf1 - 1 ? ix - nf1 : ix);
-      iy                    = iy < 0 ? iy + nf2 : (iy > nf2 - 1 ? iy - nf2 : iy);
-      const auto outidx     = ix + int(iy * nf1);
-      const auto sharedidx  = i + j * (bin_size_x + rounded_ns);
-      fwshared[sharedidx].x = fw[outidx].x;
-      fwshared[sharedidx].y = fw[outidx].y;
+      ix                   = ix < 0 ? ix + nf1 : (ix > nf1 - 1 ? ix - nf1 : ix);
+      iy                   = iy < 0 ? iy + nf2 : (iy > nf2 - 1 ? iy - nf2 : iy);
+      const auto outidx    = ix + iy * nf1;
+      const auto sharedidx = i + j * (bin_size_x + rounded_ns);
+      fwshared[sharedidx]  = fw[outidx];
     }
   }
   __syncthreads();
