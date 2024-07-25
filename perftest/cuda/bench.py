@@ -49,13 +49,7 @@ args = {"--prec": "f",
         "--M": "1E8",
         "--tol": "1E-6"}
 # iterate over tol from 1E-6 to 1E-1
-data = {
-    'method': [],
-    'throughput': [],
-    'tolerance': [],
-    # 'setpts': [],
-    'exec': [],
-}
+
 warmup = {"--prec": "f",
         "--n_runs": "1",
         "--method": "0",
@@ -71,7 +65,8 @@ print("Benchmarking")
 if stderr != '':
     print(stderr)
     exit(0)
-for precision in ['f', 'd']:
+for precision in ['d']:
+    print(f"precision: {precision}")
     for dim in range(1, 4):
         if dim == 1:
             args["--N1"] = "16777216"
@@ -84,6 +79,16 @@ for precision in ['f', 'd']:
             args["--N3"] = "256"
         args["--prec"] = precision
         max_range = 16 if args["--prec"] == "d" else 7
+        if precision == 'd' and dim == 3:
+            max_range = 6
+        print(f"dimensions {dim}")
+        data = {
+            'method': [],
+            'throughput': [],
+            'tolerance': [],
+            # 'setpts': [],
+            'exec': [],
+        }
         for i in range(1, max_range):
             args["--tol"] = "1E-" + ("0" if i < 10 else "") + str(i)
             print("Running with tol = 1E-" + str(i))
@@ -116,8 +121,8 @@ for precision in ['f', 'd']:
                 dt = pd.read_csv(io.StringIO(stdout), sep=',')
                 setpts = dt[dt["event"].str.contains("setpts")]['nupts/s'].sum() # it is only one row it extracts the value
                 exec = dt[dt["event"].str.contains("exec")]['nupts/s'].sum() # it is only one row it extracts the value
-                print(f'setpts pts/s: {setpts}')
-                print(f'exec pts/s: {exec}')
+                # print(f'setpts pts/s: {setpts}')
+                # print(f'exec pts/s: {exec}')
                 cmd = ["stats", "--force-overwrite=true", "--force-export=true", "--report", "cuda_gpu_trace", "--report", "cuda_gpu_kern_sum", "cuperftest_profile.nsys-rep",
                        "--format=csv", "--output", "cuperftest"]
                 stdout, _ = run_command("nsys", cmd)
@@ -130,14 +135,14 @@ for precision in ['f', 'd']:
                 # sum the "Total Time" column of the ones that contain "fft" in name
                 # print(dt[dt["Name"].str.contains("fft") & ~dt["Name"].str.contains("cufinufft")])
                 total_fft = dt[dt["Name"].str.contains("fft") & ~dt["Name"].str.contains("cufinufft")]['Duration (ns)'].sum()
-                print(f'total_fft: {total_fft}')
+                # print(f'total_fft: {total_fft}')
                 # drop all the rows with spread not in "Name"
                 dt = dt[dt["Name"].str.contains("cufinufft::spreadinterp::spread")]
                 # print(dt)
                 # exit(0)
                 # sort dt by column "Time (%)"
                 total_spread = dt['Duration (ns)'].sum() - total_fft
-                print(f'total_spread: {total_spread}')
+                # print(f'total_spread: {total_spread}')
                 if total_fft > total_spread:
                     print("Warning: total_fft > total_spread")
                     # exit(0)
@@ -148,8 +153,6 @@ for precision in ['f', 'd']:
                 data['tolerance'].append(args['--tol'])
                 # data['setpts'].append(setpts)
                 data['exec'].append(exec)
-
-
         df = pd.DataFrame(data)
         # Pivot the DataFrame
         pivot_df = df.pivot(index='tolerance', columns='method')
