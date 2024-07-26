@@ -10,29 +10,6 @@ namespace cufinufft {
 namespace spreadinterp {
 
 template<typename T>
-constexpr __forceinline__ __host__ __device__ T fold_rescale(T x, int N) {
-  constexpr const auto x2pi = T(0.159154943091895345554011992339482617);
-  constexpr const auto half = T(0.5);
-#if defined(__CUDA_ARCH__)
-  if constexpr (std::is_same_v<T, float>) {
-    auto result = __fmaf_rn(x, x2pi, half);
-    result      = __fsub_rd(result, truncf(result));
-    return __fmul_rd(result, static_cast<T>(N));
-  } else if constexpr (std::is_same_v<T, double>) {
-    auto result = __fma_rn(x, x2pi, half);
-    result      = __dsub_rd(result, trunc(result));
-    return __dmul_rd(result, static_cast<T>(N));
-  } else {
-    static_assert(std::is_same_v<T, float> || std::is_same_v<T, double>,
-                  "Only float and double are supported.");
-  }
-#else
-  const auto result = std::fma(x, x2pi, half);
-  return (result - std::trunc(result)) * static_cast<T>(N);
-#endif
-}
-
-template<typename T>
 static __forceinline__ __device__ constexpr T fma(const T a, const T b, const T c) {
   if constexpr (std::is_same_v<T, float>) {
     return __fmaf_rn(a, b, c);
@@ -42,7 +19,28 @@ static __forceinline__ __device__ constexpr T fma(const T a, const T b, const T 
   static_assert(std::is_same_v<T, float> || std::is_same_v<T, double>,
                 "Only float and double are supported.");
   return T{0};
-};
+}
+
+template<typename T, typename V>
+constexpr __forceinline__ __host__ __device__ T fold_rescale(const T x, const V N) {
+  constexpr auto x2pi = T(0.159154943091895345554011992339482617);
+  constexpr auto half = T(0.5);
+#if defined(__CUDA_ARCH__)
+  if constexpr (std::is_same_v<T, float>) {
+    const auto result = fma(x, x2pi, half);
+    return (result - floorf(result)) * static_cast<T>(N);
+  } else if constexpr (std::is_same_v<T, double>) {
+    const auto result = fma(x, x2pi, half);
+    return (result - floor(result)) * static_cast<T>(N);
+  } else {
+    static_assert(std::is_same_v<T, float> || std::is_same_v<T, double>,
+                  "Only float and double are supported.");
+  }
+#else
+  const auto result = fma(x, x2pi, half);
+  return (result - std::floor(result)) * static_cast<T>(N);
+#endif
+}
 
 template<typename T>
 static inline T evaluate_kernel(T x, const finufft_spread_opts &opts)

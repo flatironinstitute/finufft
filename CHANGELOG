@@ -38,6 +38,15 @@ V 2.3.0beta (7/21/24)
   any 32-bit integers to 64-bit when calling cufinufft(f)_setpts. Note that
   internally, 32-bit integers are still used, so calling cufinufft with more
   than 2e9 points will fail. This restriction may be lifted in the future.
+* cuFINUFFT binsize is now a function of the shared memory available where
+  possible.
+* cuFINUFFT GM 1D sorts using thrust::sort instead of bin-sort.
+* cuFINUFFT using the new normalized Horner coefficients and added support
+  for 1.25.
+* cuFINUFFT new compile flags for extra-vectorization, flushing single
+  precision denormals to 0 and using fma where possible.
+* cuFINUFFT using intrinsics in foldrescale and other places to increase
+  performance
 
 V 2.2.0 (12/12/23)
 
