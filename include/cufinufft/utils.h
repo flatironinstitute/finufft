@@ -74,11 +74,14 @@ template<typename T> T infnorm(int n, std::complex<T> *a) {
 
 #ifdef __CUDA_ARCH__
 __forceinline__ __device__ auto interval(const int ns, const float x) {
+  // float to int round up and fused multiply-add to round up
   const auto xstart = __float2int_ru(__fmaf_ru(ns, -.5f, x));
-  const auto xend   = __float2int_rd(__fmaf_rd(ns, .5f, x));
+  // float to int round down and fused multiply-add to round down
+  const auto xend = __float2int_rd(__fmaf_rd(ns, .5f, x));
   return int2{xstart, xend};
 }
 __forceinline__ __device__ auto interval(const int ns, const double x) {
+  // same as above
   const auto xstart = __double2int_ru(__fma_ru(ns, -.5, x));
   const auto xend   = __double2int_rd(__fma_rd(ns, .5, x));
   return int2{xstart, xend};
@@ -107,17 +110,29 @@ __forceinline__ __device__ auto interval(const int ns, const double x) {
 #define COMPUTE_CAPABILITY_90_OR_HIGHER 0
 #endif
 
+/**
+ * does a complex atomic add on a shared memory address
+ * it adds the real and imaginary parts separately
+ * cuda does not support atomic operations
+ * on complex numbers on shared memory directly
+ */
+
 template<typename T>
-static __forceinline__ __device__ void atomicAddComplexShared(
-    cuda_complex<T> *address, cuda_complex<T> res) {
+static __forceinline__ __device__ void atomicAddComplexShared(cuda_complex<T> *address,
+                                                              cuda_complex<T> res) {
   const auto raw_address = reinterpret_cast<T *>(address);
   atomicAdd(raw_address, res.x);
   atomicAdd(raw_address + 1, res.y);
 }
 
+/**
+ * does a complex atomic add on a global memory address
+ * since cuda 90 atomic operations on complex numbers
+ * on shared memory are supported so we leverage them
+ */
 template<typename T>
-static __forceinline__ __device__ void atomicAddComplexGlobal(
-    cuda_complex<T> *address, cuda_complex<T> res) {
+static __forceinline__ __device__ void atomicAddComplexGlobal(cuda_complex<T> *address,
+                                                              cuda_complex<T> res) {
   if constexpr (
       std::is_same_v<cuda_complex<T>, float2> && COMPUTE_CAPABILITY_90_OR_HIGHER) {
     atomicAdd(address, res);

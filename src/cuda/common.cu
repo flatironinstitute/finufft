@@ -202,8 +202,7 @@ void onedim_fseries_kernel_compute(CUFINUFFT_BIGINT nf, T *f, std::complex<doubl
 template<typename T>
 std::size_t shared_memory_required(int dim, int ns, int bin_size_x, int bin_size_y,
                                    int bin_size_z) {
-  //  printf("dim, ns, bin_size_x, bin_size_y, bin_size_z: %d %d %d %d %d\n", dim, ns,
-  //         bin_size_x, bin_size_y, bin_size_z);
+  // Helper to compute the shared memory required for the spreader when using SM
   int adjusted_ns = bin_size_x + ((ns + 1) / 2) * 2;
 
   if (dim == 1) {
@@ -221,17 +220,18 @@ std::size_t shared_memory_required(int dim, int ns, int bin_size_x, int bin_size
   return adjusted_ns * sizeof(cuda_complex<T>);
 }
 
-// Function to find bin_size_x == bin_size_y where bin_size_x * bin_size_y < MemSize
-template<typename T> int find_bin_size(std::size_t MemSize, int dim, int ns) {
+// Function to find bin_size_x == bin_size_y
+// where bin_size_x * bin_size_y * bin_size_z < mem_size
+// TODO: this can be done without a loop by using a direct formula
+template<typename T> int find_bin_size(std::size_t mem_size, int dim, int ns) {
   int binsize = 1; // Start with the smallest possible bin size
-
   while (true) {
     // Calculate the shared memory required for the current bin_size_x and bin_size_y
     std::size_t required_memory =
         shared_memory_required<T>(dim, ns, binsize, binsize, binsize);
 
     // Check if the required memory is less than the available memory
-    if (required_memory > MemSize) {
+    if (required_memory > mem_size) {
       // If the condition is met, return the current bin_size_x
       return binsize - 1;
     }
@@ -243,6 +243,9 @@ template<typename T> int find_bin_size(std::size_t MemSize, int dim, int ns) {
 
 template<typename T>
 void cufinufft_setup_binsize(int type, int ns, int dim, cufinufft_opts *opts) {
+  // Marco Barbone 07/26/24. Using the shared memory available on the device, to
+  // determine the optimal binsize for the spreader.
+  // TODO: This can still be improved some sizes are hardcoded still
   int shared_mem_per_block{}, device_id{};
   switch (dim) {
   case 1: {
@@ -290,10 +293,6 @@ void cufinufft_setup_binsize(int type, int ns, int dim, cufinufft_opts *opts) {
       } break;
       }
     }
-    //      const auto shared_mem_required = shared_memory_required<T>(
-    //          dim, ns, opts->gpu_binsizex, opts->gpu_binsizey, opts->gpu_binsizez);
-    //      printf("binsizex: %d, binsizey: %d, shared_mem_required %ld (bytes)\n",
-    //             opts->gpu_binsizex, opts->gpu_binsizey, shared_mem_required);
     opts->gpu_binsizez = 1;
   } break;
   case 3: {

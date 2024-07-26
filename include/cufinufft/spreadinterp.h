@@ -12,8 +12,10 @@ namespace spreadinterp {
 template<typename T>
 static __forceinline__ __device__ constexpr T fma(const T a, const T b, const T c) {
   if constexpr (std::is_same_v<T, float>) {
+    // fused multiply-add, round to nearest even
     return __fmaf_rn(a, b, c);
   } else if constexpr (std::is_same_v<T, double>) {
+    // fused multiply-add, round to nearest even
     return __fma_rn(a, b, c);
   }
   static_assert(std::is_same_v<T, float> || std::is_same_v<T, double>,
@@ -21,23 +23,31 @@ static __forceinline__ __device__ constexpr T fma(const T a, const T b, const T 
   return T{0};
 }
 
-template<typename T, typename V>
-constexpr __forceinline__ __host__ __device__ T fold_rescale(const T x, const V N) {
+template<typename T>
+constexpr __forceinline__ __host__ __device__ T fold_rescale(T x, int N) {
   constexpr auto x2pi = T(0.159154943091895345554011992339482617);
   constexpr auto half = T(0.5);
 #if defined(__CUDA_ARCH__)
   if constexpr (std::is_same_v<T, float>) {
-    const auto result = fma(x, x2pi, half);
-    return (result - floorf(result)) * static_cast<T>(N);
+    // fused multiply-add, round to nearest even
+    auto result = __fmaf_rn(x, x2pi, half);
+    // subtract, round down
+    result = __fsub_rd(result, floorf(result));
+    // multiply, round down
+    return __fmul_rd(result, static_cast<T>(N));
   } else if constexpr (std::is_same_v<T, double>) {
-    const auto result = fma(x, x2pi, half);
-    return (result - floor(result)) * static_cast<T>(N);
+    // fused multiply-add, round to nearest even
+    auto result = __fma_rn(x, x2pi, half);
+    // subtract, round down
+    result = __dsub_rd(result, floor(result));
+    // multiply, round down
+    return __dmul_rd(result, static_cast<T>(N));
   } else {
     static_assert(std::is_same_v<T, float> || std::is_same_v<T, double>,
                   "Only float and double are supported.");
   }
 #else
-  const auto result = fma(x, x2pi, half);
+  const auto result = std::fma(x, x2pi, half);
   return (result - std::floor(result)) * static_cast<T>(N);
 #endif
 }

@@ -60,6 +60,7 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
           Variables and arrays inside the plan struct are set and allocated.
 
       Melody Shih 07/25/19. Use-facing moved to markdown, Barnett 2/16/21.
+      Marco Barbone 07/26/24. Using SM when shared memory available is enough.
   */
   int ier;
   cuDoubleComplex *d_a = nullptr; // fseries temp data

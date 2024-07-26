@@ -47,6 +47,7 @@ V 2.3.0beta (7/21/24)
   precision denormals to 0 and using fma where possible.
 * cuFINUFFT using intrinsics in foldrescale and other places to increase
   performance
+* cuFINUFFT using SM90 float2 vector atomicAdd where supported
 
 V 2.2.0 (12/12/23)
 
