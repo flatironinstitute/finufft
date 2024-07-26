@@ -143,7 +143,7 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
      *
      * For type 2, we always default to method 1 (GM). */
 
-    if (d_plan->type == 2) {
+    if (type == 2) {
       d_plan->opts.gpu_method = 1;
     } else {
       // query the device for the amount of shared memory available
