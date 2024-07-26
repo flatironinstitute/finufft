@@ -54,7 +54,7 @@ warmup = {"--prec": "f",
         "--n_runs": "1",
         "--method": "0",
         "--N1": "256",
-        "--N2": "256",
+        # "--N2": "256",
         # "--N3": "256",
         "--M": "256",
         "--tol": "1E-1"}
@@ -67,7 +67,7 @@ if stderr != '':
     exit(0)
 for precision in ['d']:
     print(f"precision: {precision}")
-    for dim in range(1, 4):
+    for dim in range(1, 2):
         if dim == 1:
             args["--N1"] = "16777216"
         if dim == 2:

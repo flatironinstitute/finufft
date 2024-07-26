@@ -143,10 +143,10 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
      *
      * For type 2, we always default to method 1 (GM). */
 
-    // query the device for the amount of shared memory available
-    if (dim == 3 && std::is_same_v<T, double>) {
+    if (d_plan->type == 2) {
       d_plan->opts.gpu_method = 1;
     } else {
+      // query the device for the amount of shared memory available
       int shared_mem_per_block{};
       cudaDeviceGetAttribute(&shared_mem_per_block,
                              cudaDevAttrMaxSharedMemoryPerBlockOptin, device_id);

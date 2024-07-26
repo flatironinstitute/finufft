@@ -256,13 +256,10 @@ void cufinufft_setup_binsize(int type, int ns, int dim, cufinufft_opts *opts) {
       if (const auto err = cudaGetLastError(); err != cudaSuccess) {
         throw std::runtime_error(cudaGetErrorString(err));
       }
-      // use half of the available shared memory if double precision
-      if constexpr (std::is_same_v<T, double>) {
-        shared_mem_per_block /= 2;
-      }
+      // use 1/6 of the shared memory for the binsize
+      shared_mem_per_block /= 6;
       const int bin_size =
           shared_mem_per_block / sizeof(cuda_complex<T>) - ((ns + 1) / 2) * 2;
-
       opts->gpu_binsizex = bin_size;
     }
     opts->gpu_binsizey = 1;
