@@ -50,9 +50,9 @@ jobs:
 
       - name: Build
         run: |
-          cmake --build ./build --config ${{matrix.build_type}} -- -j
+          cmake --build ./build --config ${{matrix.build_type}}
 
       - name: Test
         working-directory: ./build
         run: |
-          ctest -C ${{matrix.build_type}} -j
+          ctest -C ${{matrix.build_type}}
