@@ -6,24 +6,24 @@ matrix = {
 
 build_type = ["Release", "Debug"]
 static_linking = ["On", "Off"]
-combinations = {
-    "ubuntu-22.04": {
+combinations = [
+    ("ubuntu-22.04", {
         "toolchain": ["llvm", "gcc"],
         "arch_flags": ["-march=native", "-march=x86-64", "native"]
-    },
-    "windows-2022-msvc": {
+    }),
+    ("windows-2022",{
         "toolchain": ["msvc"],
         "arch_flags": ["/arch:AVX2", "/arch:SSE2", "native"]
-    },
-    "windows-2022-llvm": {
-        "toolchain": ["msvc"],
+    }),
+    ("windows-2022", {
+        "toolchain": ["llvm"],
         "arch_flags": ["-march=native", "-march=x86-64", "native"]
-    },
-    "macos-13": {
+    }),
+    ("macos-13", {
         "toolchain": ["llvm", "gcc-14"],
         "arch_flags": ["-march=native", "-march=x86-64", "native"]
-    }
-}
+    })
+]
 
 
 def get_c_compiler(toolchain):
@@ -46,9 +46,10 @@ def get_cxx_compiler(toolchain):
     else:
         raise ValueError(f"Unknown toolchain: {toolchain}")
 
-for platform in combinations.keys():
-    for toolchain in combinations[platform]["toolchain"]:
-        for arch_flag in combinations[platform]["arch_flags"]:
+
+for platform, value in combinations:
+    for toolchain in value["toolchain"]:
+        for arch_flag in value["arch_flags"]:
             for linking in static_linking:
                 for build in build_type:
                     matrix["include"].append({
