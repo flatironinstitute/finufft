@@ -157,9 +157,8 @@ set(FINUFFT_PRECISION_DEPENDENT_SOURCES
 # set linker flags for sanitizer
 set(FINUFFT_SANITIZER_FLAGS)
 if(FINUFFT_ENABLE_SANITIZERS)
-  set(FINUFFT_SANITIZER_FLAGS
-      -fsanitize=address -fsanitize=undefined -shared-libasan
-      -fsanitize=bounds-strict /fsanitize=address /RTC1)
+  set(FINUFFT_SANITIZER_FLAGS -fsanitize=address -fsanitize=undefined
+                              -fsanitize=bounds-strict /fsanitize=address /RTC1)
   filter_supported_compiler_flags(FINUFFT_SANITIZER_FLAGS
                                   FINUFFT_SANITIZER_FLAGS)
   set(FINUFFT_SANITIZER_FLAGS

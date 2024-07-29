@@ -41,6 +41,10 @@ function(check_arch_support)
     set(FINUFFT_ARCH_FLAGS
         "/arch:AVX512"
         CACHE STRING "" FORCE)
+  elseif(RUN_OUTPUT MATCHES "AVX2")
+    set(FINUFFT_ARCH_FLAGS
+        "/arch:AVX2"
+        CACHE STRING "" FORCE)
   elseif(RUN_OUTPUT MATCHES "AVX")
     set(FINUFFT_ARCH_FLAGS
         "/arch:AVX"
