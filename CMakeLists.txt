@@ -142,7 +142,10 @@ if(FINUFFT_USE_CPU)
     set(FINUFFT_FFTLIBS ${FINUFFT_FFTW_LIBRARIES})
   endif()
   if(FINUFFT_USE_OPENMP)
-    find_package(OpenMP)
+    find_package(
+      OpenMP
+      COMPONENTS CXX
+      REQUIRED)
   endif()
 endif()
 
@@ -178,13 +181,13 @@ function(finufft_link_test target)
   target_link_libraries(${target} PRIVATE finufft ${FINUFFT_FFTLIBS})
   if(FINUFFT_USE_OPENMP)
     target_link_libraries(${target} PRIVATE OpenMP::OpenMP_CXX)
+    target_link_options(${target} PRIVATE ${OpenMP_CXX_FLAGS})
   endif()
   enable_asan(${target})
   target_compile_features(${target} PRIVATE cxx_std_17)
   set_target_properties(
     ${target} PROPERTIES MSVC_RUNTIME_LIBRARY
                          "MultiThreaded$<$<CONFIG:Debug>:Debug>")
-  copy_dll(finufft ${target})
 endfunction()
 
 # Utility function to set finufft compilation options.
@@ -213,6 +216,7 @@ function(set_finufft_options target)
   enable_asan(${target})
   if(FINUFFT_USE_OPENMP)
     target_link_libraries(${target} PRIVATE OpenMP::OpenMP_CXX)
+    target_link_options(${target} PRIVATE ${OpenMP_CXX_FLAGS})
   endif()
   if(FINUFFT_USE_DUCC0)
     target_compile_definitions(${target} PRIVATE FINUFFT_USE_DUCC0)
