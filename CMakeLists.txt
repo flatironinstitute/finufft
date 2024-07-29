@@ -157,8 +157,9 @@ set(FINUFFT_PRECISION_DEPENDENT_SOURCES
 # set linker flags for sanitizer
 set(FINUFFT_SANITIZER_FLAGS)
 if(FINUFFT_ENABLE_SANITIZERS)
-  set(FINUFFT_SANITIZER_FLAGS -fsanitize=address -fsanitize=undefined
-                              -fsanitize=bounds-strict /fsanitize=address /RTC1)
+  set(FINUFFT_SANITIZER_FLAGS
+      -fsanitize=address -fsanitize=undefined -shared-libasan
+      -fsanitize=bounds-strict /fsanitize=address /RTC1)
   filter_supported_compiler_flags(FINUFFT_SANITIZER_FLAGS
                                   FINUFFT_SANITIZER_FLAGS)
   set(FINUFFT_SANITIZER_FLAGS
@@ -171,6 +172,10 @@ function(enable_asan target)
     target_link_options(${target} PRIVATE ${FINUFFT_SANITIZER_FLAGS})
   endif()
 endfunction()
+
+# check if -Wno-deprecated-declarations is supported
+check_cxx_compiler_flag(-Wno-deprecated-declarations
+                        FINUFFT_HAS_NO_DEPRECATED_DECLARATIONS)
 
 # Utility function to link static/dynamic lib
 function(finufft_link_test target)
@@ -187,6 +192,10 @@ function(finufft_link_test target)
   set_target_properties(
     ${target} PROPERTIES MSVC_RUNTIME_LIBRARY
                          "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+  # disable deprecated warnings for tests if supported
+  if(FINUFFT_HAS_NO_DEPRECATED_DECLARATIONS)
+    target_compile_options(${target} PRIVATE -Wno-deprecated-declarations)
+  endif()
 endfunction()
 
 # Utility function to set finufft compilation options.
@@ -206,8 +215,6 @@ function(set_finufft_options target)
   target_include_directories(
     ${target} SYSTEM
     INTERFACE $<INSTALL_INTERFACE:${CMAKE_INSTALL_PREFIX}/include>)
-  # suppress Windows warnings about "unsafe" functions
-  target_compile_definitions(${target} PRIVATE _CRT_SECURE_NO_WARNINGS)
   set_target_properties(
     ${target}
     PROPERTIES MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>"
