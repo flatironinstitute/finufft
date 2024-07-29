@@ -29,7 +29,7 @@ set(FINUFFT_FFTW_SUFFIX "OpenMP" CACHE STRING "Suffix for FFTW libraries (e.g. O
 # if FINUFFT_USE_CUDA is OFF, the following options are ignored
 set(FINUFFT_CUDA_ARCHITECTURES "native" CACHE STRING "CUDA architectures to build for (e.g. 60;70;75;)")
 # if FINUFFT_USE_CPU is OFF, the following options are ignored
-set(FINUFFT_ARCH_FLAGS native CACHE STRING "Compiler flags for specifying target architecture, defaults to -march=native")
+set(FINUFFT_ARCH_FLAGS "native" CACHE STRING "Compiler flags for specifying target architecture, defaults to -march=native")
 # sphinx tag (don't remove): @cmake_opts_end
 cmake_dependent_option(FINUFFT_ENABLE_INSTALL "Disable installation in the case of python builds" OFF "FINUFFT_BUILD_PYTHON" OFF)
 cmake_dependent_option(FINUFFT_STATIC_LINKING "Disable static libraries in the case of python builds" ON "NOT FINUFFT_BUILD_PYTHON" OFF)
@@ -77,10 +77,10 @@ message(
   STATUS "FINUFFT RelWithDebInfo flags: ${FINUFFT_CXX_FLAGS_RELWITHDEBINFO}")
 
 if(FINUFFT_ARCH_FLAGS STREQUAL "native")
-  set(FINUFFT_ARCH_FLAGS -march=native)
+  set(FINUFFT_ARCH_FLAGS CACHE STRING -march=native FORCE)
   filter_supported_compiler_flags(FINUFFT_ARCH_FLAGS FINUFFT_ARCH_FLAGS)
   if(NOT FINUFFT_ARCH_FLAGS)
-    set(FINUFFT_ARCH_FLAGS -mtune=native)
+    set(FINUFFT_ARCH_FLAGS CACHE STRING -mtune=native FORCE)
     filter_supported_compiler_flags(FINUFFT_ARCH_FLAGS FINUFFT_ARCH_FLAGS)
   endif()
   if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
@@ -172,15 +172,7 @@ function(finufft_link_test target)
   set_target_properties(
     ${target} PROPERTIES MSVC_RUNTIME_LIBRARY
                          "MultiThreaded$<$<CONFIG:Debug>:Debug>")
-  if(WIN32)
-    # copy the .dll file to the same folder as the executable on windows make we
-    # should provide a helper cmake function for the users to use
-    add_custom_command(
-      TARGET ${target}
-      POST_BUILD
-      COMMAND ${CMAKE_COMMAND} -E copy_directory $<TARGET_FILE_DIR:finufft>
-              $<TARGET_FILE_DIR:${target}>)
-  endif()
+  copy_dll(finufft ${target})
 endfunction()
 
 # Utility function to set finufft compilation options.

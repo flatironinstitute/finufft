@@ -11,9 +11,13 @@ combinations = {
         "toolchain": ["llvm", "gcc"],
         "arch_flags": ["-march=native", "-march=x86-64", "native"]
     },
-    "windows-2022": {
-        "toolchain": ["msvc", "llvm"],
+    "windows-2022-msvc": {
+        "toolchain": ["msvc"],
         "arch_flags": ["/arch:AVX2", "/arch:SSE2", "native"]
+    },
+    "windows-2022-llvm": {
+        "toolchain": ["msvc"],
+        "arch_flags": ["-march=native", "-march=x86-64", "native"]
     },
     "macos-13": {
         "toolchain": ["llvm", "gcc-14"],

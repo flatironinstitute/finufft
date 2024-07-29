@@ -40,20 +40,47 @@ function(check_arch_support)
   if(RUN_OUTPUT MATCHES "AVX512")
     set(FINUFFT_ARCH_FLAGS
         "/arch:AVX512"
-        CACHE STRING "Compiler flags for specifying target architecture.")
+        CACHE STRING FORCE)
   elseif(RUN_OUTPUT MATCHES "AVX")
     set(FINUFFT_ARCH_FLAGS
         "/arch:AVX"
-        CACHE STRING "Compiler flags for specifying target architecture.")
+        CACHE STRING FORCE)
   elseif(RUN_OUTPUT MATCHES "SSE")
     set(FINUFFT_ARCH_FLAGS
         "/arch:SSE"
-        CACHE STRING "Compiler flags for specifying target architecture.")
+        CACHE STRING FORCE)
   else()
     set(FINUFFT_ARCH_FLAGS
         ""
-        CACHE STRING "Compiler flags for specifying target architecture.")
+        CACHE STRING FORCE)
   endif()
   message(STATUS "CPU supports: ${RUN_OUTPUT}")
   message(STATUS "Using MSVC flags: ${FINUFFT_ARCH_FLAGS}")
+endfunction()
+
+function(copy_dll source_target destination_target)
+  if(NOT WIN32)
+    return()
+  endif()
+  # Get the binary directory of the destination target
+  get_target_property(DESTINATION_DIR ${destination_target} BINARY_DIR)
+  set(DESTINATION_FILE ${DESTINATION_DIR}/$<TARGET_FILE_NAME:${source_target}>)
+  if(NOT EXISTS ${DESTINATION_FILE})
+    message(
+      STATUS
+        "Copying ${source_target} to ${DESTINATION_DIR} directory for ${destination_target}"
+    )
+    # Define the custom command to copy the source target to the destination
+    # directory
+    add_custom_command(
+      TARGET ${destination_target}
+      POST_BUILD
+      COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:${source_target}>
+              ${DESTINATION_FILE}
+      COMMENT "Copying ${source_target} to ${destination_target} directory")
+  endif()
+  # Unset the variables to leave a clean state
+  unset(DESTINATION_DIR)
+  unset(SOURCE_FILE)
+  unset(DESTINATION_FILE)
 endfunction()
