@@ -75,8 +75,7 @@ set(FINUFFT_CXX_FLAGS_DEBUG
     /Zi
     -Wall
     -Wno-sign-compare
-    -Wno-unknown-pragmas
-    -Wno-deprecated-declarations)
+    -Wno-unknown-pragmas)
 filter_supported_compiler_flags(FINUFFT_CXX_FLAGS_DEBUG FINUFFT_CXX_FLAGS_DEBUG)
 message(STATUS "FINUFFT Debug flags: ${FINUFFT_CXX_FLAGS_DEBUG}")
 list(APPEND FINUFFT_CXX_FLAGS_RELWITHDEBINFO ${FINUFFT_CXX_FLAGS_RELEASE}
@@ -168,7 +167,7 @@ endif()
 # Utility function to enable ASAN on debug builds
 function(enable_asan target)
   target_compile_options(${target} PRIVATE ${FINUFFT_SANITIZER_FLAGS})
-  if(NOT CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+  if(NOT (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC"))
     target_link_options(${target} PRIVATE ${FINUFFT_SANITIZER_FLAGS})
   endif()
 endfunction()
