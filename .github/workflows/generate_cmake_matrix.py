@@ -43,7 +43,7 @@ def get_cxx_compiler(toolchain):
         raise ValueError(f"Unknown toolchain: {toolchain}")
 
 for platform in combinations.keys():
-    for toolchain in combinations[platform]["compiler"]:
+    for toolchain in combinations[platform]["toolchain"]:
         for arch_flag in combinations[platform]["arch_flags"]:
             for linking in static_linking:
                 for build in build_type:

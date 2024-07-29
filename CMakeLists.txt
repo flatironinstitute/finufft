@@ -67,7 +67,8 @@ set(FINUFFT_CXX_FLAGS_DEBUG
     /Zi
     -Wall
     -Wno-sign-compare
-    -Wno-unknown-pragmas)
+    -Wno-unknown-pragmas
+    -Wno-deprecated-declarations)
 filter_supported_compiler_flags(FINUFFT_CXX_FLAGS_DEBUG FINUFFT_CXX_FLAGS_DEBUG)
 message(STATUS "FINUFFT Debug flags: ${FINUFFT_CXX_FLAGS_DEBUG}")
 list(APPEND FINUFFT_CXX_FLAGS_RELWITHDEBINFO ${FINUFFT_CXX_FLAGS_RELEASE}
@@ -152,7 +153,9 @@ endif()
 # Utility function to enable ASAN on debug builds
 function(enable_asan target)
   target_compile_options(${target} PRIVATE ${FINUFFT_SANITIZER_FLAGS})
-  target_link_options(${target} PRIVATE ${FINUFFT_SANITIZER_FLAGS})
+  if(NOT CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+    target_link_options(${target} PRIVATE ${FINUFFT_SANITIZER_FLAGS})
+  endif()
 endfunction()
 
 # Utility function to link static/dynamic lib
@@ -163,18 +166,21 @@ function(finufft_link_test target)
   target_link_libraries(${target} PRIVATE finufft ${FINUFFT_FFTLIBS})
   if(FINUFFT_USE_OPENMP)
     target_link_libraries(${target} PRIVATE OpenMP::OpenMP_CXX)
-    if(WIN32)
-      target_link_options(${target} PRIVATE ${OpenMP_CXX_FLAGS})
-      if(FINUFFT_SHARED_LINKING)
-        target_compile_definitions(${target} PRIVATE FINUFFT_DLL)
-      endif()
-    endif()
   endif()
   enable_asan(${target})
   target_compile_features(${target} PRIVATE cxx_std_17)
   set_target_properties(
     ${target} PROPERTIES MSVC_RUNTIME_LIBRARY
                          "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+  if(WIN32)
+    # copy the .dll file to the same folder as the executable on windows make we
+    # should provide a helper cmake function for the users to use
+    add_custom_command(
+      TARGET ${target}
+      POST_BUILD
+      COMMAND ${CMAKE_COMMAND} -E copy_directory $<TARGET_FILE_DIR:finufft>
+              $<TARGET_FILE_DIR:${target}>)
+  endif()
 endfunction()
 
 # Utility function to set finufft compilation options.
@@ -203,11 +209,6 @@ function(set_finufft_options target)
   enable_asan(${target})
   if(FINUFFT_USE_OPENMP)
     target_link_libraries(${target} PRIVATE OpenMP::OpenMP_CXX)
-    # there are issues on windows with OpenMP and CMake, so we need to manually
-    # add the flags otherwise there are link errors
-    if(WIN32)
-      target_link_options(${target} PRIVATE ${OpenMP_CXX_FLAGS})
-    endif()
   endif()
   if(FINUFFT_USE_DUCC0)
     target_compile_definitions(${target} PRIVATE FINUFFT_USE_DUCC0)
@@ -234,7 +235,7 @@ if(FINUFFT_USE_CPU)
   target_link_libraries(finufft PRIVATE finufft_f32 finufft_f64)
   set_finufft_options(finufft)
 
-  if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC" AND FINUFFT_SHARED_LINKING)
+  if(WIN32 AND FINUFFT_SHARED_LINKING)
     target_compile_definitions(finufft_f32 PRIVATE dll_EXPORTS FINUFFT_DLL)
     target_compile_definitions(finufft_f64 PRIVATE dll_EXPORTS FINUFFT_DLL)
     target_compile_definitions(finufft PRIVATE dll_EXPORTS FINUFFT_DLL)
