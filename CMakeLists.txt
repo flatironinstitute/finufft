@@ -52,7 +52,15 @@ set(FINUFFT_CXX_FLAGS_RELEASE
     -fcx-limited-range
     /fp:fast
     -O3
-    /O2)
+    /O2
+    /Ox
+    /GF
+    /GY
+    /GS-
+    /Ob
+    /Oi
+    /Ot
+    /Oy)
 
 filter_supported_compiler_flags(FINUFFT_CXX_FLAGS_RELEASE
                                 FINUFFT_CXX_FLAGS_RELEASE)
@@ -77,10 +85,14 @@ message(
   STATUS "FINUFFT RelWithDebInfo flags: ${FINUFFT_CXX_FLAGS_RELWITHDEBINFO}")
 
 if(FINUFFT_ARCH_FLAGS STREQUAL "native")
-  set(FINUFFT_ARCH_FLAGS CACHE STRING -march=native FORCE)
+  set(FINUFFT_ARCH_FLAGS
+      -march=native
+      CACHE STRING "" FORCE)
   filter_supported_compiler_flags(FINUFFT_ARCH_FLAGS FINUFFT_ARCH_FLAGS)
   if(NOT FINUFFT_ARCH_FLAGS)
-    set(FINUFFT_ARCH_FLAGS CACHE STRING -mtune=native FORCE)
+    set(FINUFFT_ARCH_FLAGS
+        -mtune=native
+        CACHE STRING "" FORCE)
     filter_supported_compiler_flags(FINUFFT_ARCH_FLAGS FINUFFT_ARCH_FLAGS)
   endif()
   if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")

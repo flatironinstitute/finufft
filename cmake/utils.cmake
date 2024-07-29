@@ -7,9 +7,9 @@ function(filter_supported_compiler_flags input_flags_var output_flags_var)
   # Iterate over each flag in the input list
   foreach(flag ${${input_flags_var}})
     string(REPLACE "=" "_" flag_var ${flag}) # Convert flag to a valid variable
-                                             # name
+    # name
     string(REPLACE "-" "" flag_var ${flag_var}) # Remove '-' for the variable
-                                                # name
+    # name
 
     # Append the test linker flag to the existing flags
     list(APPEND CMAKE_EXE_LINKER_FLAGS ${flag})
@@ -40,19 +40,19 @@ function(check_arch_support)
   if(RUN_OUTPUT MATCHES "AVX512")
     set(FINUFFT_ARCH_FLAGS
         "/arch:AVX512"
-        CACHE STRING FORCE)
+        CACHE STRING "" FORCE)
   elseif(RUN_OUTPUT MATCHES "AVX")
     set(FINUFFT_ARCH_FLAGS
         "/arch:AVX"
-        CACHE STRING FORCE)
+        CACHE STRING "" FORCE)
   elseif(RUN_OUTPUT MATCHES "SSE")
     set(FINUFFT_ARCH_FLAGS
         "/arch:SSE"
-        CACHE STRING FORCE)
+        CACHE STRING "" FORCE)
   else()
     set(FINUFFT_ARCH_FLAGS
         ""
-        CACHE STRING FORCE)
+        CACHE STRING "" FORCE)
   endif()
   message(STATUS "CPU supports: ${RUN_OUTPUT}")
   message(STATUS "Using MSVC flags: ${FINUFFT_ARCH_FLAGS}")
