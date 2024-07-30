@@ -22,8 +22,9 @@ if(ducc0_ADDED)
     ducc0 PRIVATE cxx_std_17) # private because we do not want to propagate this
                               # requirement
   set_target_properties(
-    ducc0 PROPERTIES MSVC_RUNTIME_LIBRARY
-                     "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+    ducc0
+    PROPERTIES MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>"
+               POSITION_INDEPENDENT_CODE ${FINUFFT_SHARED_LINKING})
   if(NOT OpenMP_CXX_FOUND)
     find_package(Threads REQUIRED)
     target_link_libraries(ducc0 PRIVATE Threads::Threads)
