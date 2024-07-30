@@ -54,4 +54,4 @@ jobs:
       - name: Test
         working-directory: ./build
         run: |
-          ctest -C ${{matrix.build_type}}
+          ctest -C ${{matrix.build_type}} --output-on-failure

@@ -116,6 +116,30 @@ if(NOT CMAKE_BUILD_TYPE)
       CACHE STRING "Set the default build type to Release" FORCE)
 endif()
 
+# This set of sources is compiled twice, once in single precision and once in
+# double precision The single precision compilation is done with -DSINGLE
+set(FINUFFT_PRECISION_DEPENDENT_SOURCES
+    src/finufft.cpp src/fft.cpp src/simpleinterfaces.cpp src/spreadinterp.cpp
+    src/utils.cpp fortran/finufftfort.cpp)
+
+# set linker flags for sanitizer
+set(FINUFFT_SANITIZER_FLAGS)
+if(FINUFFT_ENABLE_SANITIZERS)
+  set(FINUFFT_SANITIZER_FLAGS -fsanitize=address -fsanitize=undefined
+                              -fsanitize=bounds-strict /fsanitize=address /RTC1)
+  filter_supported_compiler_flags(FINUFFT_SANITIZER_FLAGS
+                                  FINUFFT_SANITIZER_FLAGS)
+  set(FINUFFT_SANITIZER_FLAGS
+      $<$<CONFIG:Debug,RelWithDebInfo>:${FINUFFT_SANITIZER_FLAGS}>)
+endif()
+# Utility function to enable ASAN on debug builds
+function(enable_asan target)
+  target_compile_options(${target} PRIVATE ${FINUFFT_SANITIZER_FLAGS})
+  if(NOT (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC"))
+    target_link_options(${target} PRIVATE ${FINUFFT_SANITIZER_FLAGS})
+  endif()
+endfunction()
+
 if(FINUFFT_USE_CPU)
   # make apple with gnu use old linker, new linker breaks, see issue #360
   if((APPLE) AND (CMAKE_CXX_COMPILER_ID STREQUAL "GNU"))
@@ -143,34 +167,10 @@ if(FINUFFT_USE_CPU)
   if(FINUFFT_USE_OPENMP)
     find_package(
       OpenMP
-      COMPONENTS CXX
+      COMPONENTS C CXX
       REQUIRED)
   endif()
 endif()
-
-# This set of sources is compiled twice, once in single precision and once in
-# double precision The single precision compilation is done with -DSINGLE
-set(FINUFFT_PRECISION_DEPENDENT_SOURCES
-    src/finufft.cpp src/fft.cpp src/simpleinterfaces.cpp src/spreadinterp.cpp
-    src/utils.cpp fortran/finufftfort.cpp)
-
-# set linker flags for sanitizer
-set(FINUFFT_SANITIZER_FLAGS)
-if(FINUFFT_ENABLE_SANITIZERS)
-  set(FINUFFT_SANITIZER_FLAGS -fsanitize=address -fsanitize=undefined
-                              -fsanitize=bounds-strict /fsanitize=address /RTC1)
-  filter_supported_compiler_flags(FINUFFT_SANITIZER_FLAGS
-                                  FINUFFT_SANITIZER_FLAGS)
-  set(FINUFFT_SANITIZER_FLAGS
-      $<$<CONFIG:Debug,RelWithDebInfo>:${FINUFFT_SANITIZER_FLAGS}>)
-endif()
-# Utility function to enable ASAN on debug builds
-function(enable_asan target)
-  target_compile_options(${target} PRIVATE ${FINUFFT_SANITIZER_FLAGS})
-  if(NOT (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC"))
-    target_link_options(${target} PRIVATE ${FINUFFT_SANITIZER_FLAGS})
-  endif()
-endfunction()
 
 # check if -Wno-deprecated-declarations is supported
 check_cxx_compiler_flag(-Wno-deprecated-declarations
@@ -283,7 +283,7 @@ if(FINUFFT_USE_CUDA)
   enable_language(CUDA)
   find_package(CUDAToolkit REQUIRED)
   add_subdirectory(src/cuda)
-  if(FINUFFT_BUILD_TESTS)
+  if(BUILD_TESTING AND FINUFFT_BUILD_TESTS)
     add_subdirectory(perftest/cuda)
     add_subdirectory(test/cuda)
   endif()
@@ -292,7 +292,9 @@ if(FINUFFT_USE_CUDA)
 endif()
 
 # Add tests defined in their own directory
-if(FINUFFT_USE_CPU AND FINUFFT_BUILD_TESTS)
+if(BUILD_TESTING
+   AND FINUFFT_USE_CPU
+   AND FINUFFT_BUILD_TESTS)
   add_subdirectory(test)
   add_subdirectory(perftest)
 endif()
@@ -338,6 +340,7 @@ message(STATUS "  FINUFFT_ENABLE_SANITIZERS: ${FINUFFT_ENABLE_SANITIZERS}")
 message(STATUS "  FINUFFT_FFTW_SUFFIX: ${FINUFFT_FFTW_SUFFIX}")
 message(STATUS "  FINUFFT_FFTW_LIBRARIES: ${FINUFFT_FFTW_LIBRARIES}")
 message(STATUS "  FINUFFT_ARCH_FLAGS: ${FINUFFT_ARCH_FLAGS}")
+message(STATUS "  FINUFFT_USE_DUCC0: ${FINUFFT_USE_DUCC0}")
 
 if(FINUFFT_ENABLE_INSTALL)
   include(GNUInstallDirs)
