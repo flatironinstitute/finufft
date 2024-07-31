@@ -1,69 +1,52 @@
 name: cmake ci linux macos windows
-on:
-  push:
-  release:
-    types: [published]
+
+on: [push, pull_request]
 
 jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.generate_matrix.outputs.matrix }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Generate matrix
+        id: generate_matrix
+        run: |
+          echo "MACOSX_DEPLOYMENT_TARGET=11.0" >> $GITHUB_ENV
+          MATRIX=$(python3 ${{ github.workspace }}/.github/workflows/generate_cmake_matrix.py)
+          echo "matrix=$MATRIX" >> $GITHUB_OUTPUT
   cmake-ci:
     runs-on: ${{ matrix.os }}
+    needs: prepare
     strategy:
       fail-fast: false
-      matrix:
-        os:
-          - windows-2022
-          - ubuntu-22.04
-          - macos-13
-        compiler:
-          - llvm
-          - gcc-12
-          # you can specify the version after `-` like `llvm-13.0.0`.
-        generator:
-          - "Ninja"
-        build_type:
-          - Release
-        finufft_static_linking:
-          - ON
-        include:
-          - os: "windows-2022"
-            compiler: "msvc"
-            generator: "Ninja"
-            build_type: "Release"
-            finufft_static_linking: "OFF"
-        exclude:
-          - os: "windows-2022"
-            compiler: "gcc-12"
-            generator: "Ninja"
-            build_type: "Release"
+      matrix: ${{ fromJSON(needs.prepare.outputs.matrix) }}
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Unlink gcc
-        if: runner.os == 'macOS'
-        run: |
-          brew unlink gcc
-        continue-on-error: true
-
+      - name: Checkout code
+        uses: actions/checkout@v4
       - name: Setup Cpp
         uses: aminya/setup-cpp@v1
         with:
-          compiler: ${{ matrix.compiler }}
+          compiler: ${{ matrix.toolchain }}
           vcvarsall: ${{ contains(matrix.os, 'windows') }}
           cmake: true
           ninja: true
           vcpkg: false
           cppcheck: false
           clangtidy: false
-
-      - name: Install macOS dependencies
+      - name: Set min macOS version and install fftw
         if: runner.os == 'macOS'
         run: |
           brew install fftw
-
+      - name: Install fftw
+        if: runner.os == 'linux'
+        run: |
+          sudo apt update
+          sudo apt install -y libfftw3-dev
       - name: Configure Cmake
         run: |
-          cmake -S . -B ./build -G "${{matrix.generator}}" -DCMAKE_BUILD_TYPE:STRING=${{matrix.build_type}} -DFINUFFT_BUILD_TESTS=ON -DFINUFFT_STATIC_LINKING=${{matrix.finufft_static_linking}}
-
+          cmake -S . -B ./build -G Ninja -DCMAKE_BUILD_TYPE:STRING=${{matrix.build_type}} -DFINUFFT_ARCH_FLAGS=${{ matrix.arch_flags }} -DFINUFFT_BUILD_TESTS=ON -DFINUFFT_STATIC_LINKING=${{matrix.finufft_static_linking}} -DFINUFFT_USE_DUCC0=${{ matrix.ducc_fft }}
       - name: Build
         run: |
           cmake --build ./build --config ${{matrix.build_type}}
@@ -71,31 +54,4 @@ jobs:
       - name: Test
         working-directory: ./build
         run: |
-          ctest -C ${{matrix.build_type}}
-
-      # may change to cpack and action-gh-release later
-      - name: Upload static and shared lib
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{matrix.os}}-${{matrix.compiler}}-finufft-lib
-          path: ${{runner.workspace}}/finufft/build/*finufft*
-
-      - name: Pack For Release
-        if: startsWith(github.ref, 'refs/tags/') && github.event_name == 'release' && github.event.action == 'published'
-        shell: bash
-        run: |
-          cd build
-          if [[ "${{ matrix.os }}" == "windows-2022" ]]
-          then
-            7z a ../${{matrix.os}}-${{matrix.compiler}}-finufft-lib.zip *finufft*
-          else
-            tar czvf ../${{matrix.os}}-${{matrix.compiler}}-finufft-lib.tar.gz *finufft*
-          fi
-          cd -
-
-      - name: Publish
-        uses: softprops/action-gh-release@v1
-        if: startsWith(github.ref, 'refs/tags/') && github.event_name == 'release' && github.event.action == 'published'
-        with:
-          files: |
-            *-finufft-lib*
+          ctest -C ${{matrix.build_type}} --output-on-failure
