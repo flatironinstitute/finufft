@@ -1,7 +1,3 @@
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_EXTENSIONS OFF)
-set(CMAKE_CUDA_SEPARABLE_COMPILATION ON)
-
 set(PRECISION_INDEPENDENT_SRC
     precision_independent.cu utils.cpp
     ${PROJECT_SOURCE_DIR}/contrib/legendre_rule_fast.cpp)
@@ -47,8 +43,14 @@ target_include_directories(cufinufft_common_objects
 set_target_properties(
   cufinufft_common_objects
   PROPERTIES POSITION_INDEPENDENT_CODE ${FINUFFT_SHARED_LINKING}
-             CUDA_ARCHITECTURES ${FINUFFT_CUDA_ARCHITECTURES})
-
+             CUDA_ARCHITECTURES ${FINUFFT_CUDA_ARCHITECTURES}
+             CUDA_SEPARABLE_COMPILATION ON
+             CUDA_STANDARD 17
+             CUDA_STANDARD_REQUIRED ON)
+target_compile_features(cufinufft_common_objects PRIVATE cxx_std_17)
+target_compile_options(
+  cufinufft_common_objects
+  PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:${FINUFFT_CUDA_FLAGS}>)
 target_compile_options(
   cufinufft_common_objects
   PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:${FINUFFT_CUDA_FLAGS}>)
@@ -58,23 +60,30 @@ target_include_directories(cufinufft_objects PUBLIC ${CUFINUFFT_INCLUDE_DIRS})
 set_target_properties(
   cufinufft_objects
   PROPERTIES POSITION_INDEPENDENT_CODE ${FINUFFT_SHARED_LINKING}
-             CUDA_ARCHITECTURES ${FINUFFT_CUDA_ARCHITECTURES})
+             CUDA_ARCHITECTURES ${FINUFFT_CUDA_ARCHITECTURES}
+             CUDA_SEPARABLE_COMPILATION ON
+             CUDA_STANDARD 17
+             CUDA_STANDARD_REQUIRED ON)
+target_compile_features(cufinufft_objects PRIVATE cxx_std_17)
 target_compile_options(
   cufinufft_objects PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:${FINUFFT_CUDA_FLAGS}>)
 
 if(FINUFFT_SHARED_LINKING)
   add_library(cufinufft SHARED $<TARGET_OBJECTS:cufinufft_common_objects>
                                $<TARGET_OBJECTS:cufinufft_objects>)
-  set_target_properties(
-    cufinufft PROPERTIES LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}"
-                         CUDA_ARCHITECTURES ${FINUFFT_CUDA_ARCHITECTURES})
 else()
   add_library(cufinufft STATIC $<TARGET_OBJECTS:cufinufft_common_objects>
                                $<TARGET_OBJECTS:cufinufft_objects>)
-  set_target_properties(
-    cufinufft PROPERTIES ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}"
-                         CUDA_ARCHITECTURES ${FINUFFT_CUDA_ARCHITECTURES})
 endif()
+
+set_target_properties(
+  cufinufft
+  PROPERTIES CUDA_ARCHITECTURES ${FINUFFT_CUDA_ARCHITECTURES}
+             CUDA_SEPARABLE_COMPILATION ON
+             CUDA_STANDARD 17
+             CUDA_STANDARD_REQUIRED ON
+             ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}"
+             CUDA_ARCHITECTURES ${FINUFFT_CUDA_ARCHITECTURES})
 
 if(WIN32)
   target_link_libraries(cufinufft PUBLIC CUDA::cudart CUDA::cufft
