@@ -27,15 +27,9 @@ combinations = [
     }),
     ("macos-13", {
         "build_type": ["Release", "Debug"],
-        "toolchain": ["llvm"],
+        "toolchain": ["llvm", "gcc-14"],
         "arch_flags": ["-march=native", "-march=x86-64", "native"],
         "ducc_fft": ["On", "Off"]
-    }),
-    ("macos-13", {
-        "build_type": ["Release", "Debug"],
-        "toolchain": ["gcc-14"],
-        "arch_flags": ["-march=native", "-march=x86-64", "native"],
-        "ducc_fft": ["Off"]
     })
 ]
 
