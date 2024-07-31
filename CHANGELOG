@@ -38,6 +38,11 @@ V 2.3.0beta (7/21/24)
   any 32-bit integers to 64-bit when calling cufinufft(f)_setpts. Note that
   internally, 32-bit integers are still used, so calling cufinufft with more
   than 2e9 points will fail. This restriction may be lifted in the future.
+* cmake build system revamped completely, more modern practices.
+  It auto selects compiler flags based on the supported ones on all operative systems.
+  Added support for Windows (llvm, msvc), Linux (llvm, gcc) and MacOS (llvm, gcc).
+* cmake support for both ducc0 and fftw
+* cmake adding nvcc and msvc optimization flags
 
 V 2.2.0 (12/12/23)
 
