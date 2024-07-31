@@ -66,8 +66,8 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'finufft'
-copyright = u'2017-2023 The Simons Foundation, Inc. - All Rights Reserved'
-author = u'Alex Barnett, Ludvig af Klinteberg, Joakim Andén, Libin Lu, Jeremy Magland, Andrea Malleo, Yu-Hsuan Shih, and others.'
+copyright = u'2017-2024 The Simons Foundation, Inc. - All Rights Reserved'
+author = u'Alex Barnett, Ludvig af Klinteberg, Joakim Andén, Libin Lu, Jeremy Magland, Andrea Malleo, Yu-Hsuan Shih, Marco Barbone, Robert Blackwell, and others.'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -253,14 +253,14 @@ latex_elements = {
 
 # removes blank pages:
 'classoptions': ',openany,oneside',
-    
+
 # Additional stuff for the LaTeX preamble.
 #'preamble': '',
 'preamble': r'''
   \usepackage{hyperref}
   \setcounter{tocdepth}{3}
 ''',
-    
+
 # Latex figure (float) alignment
 #'figure_align': 'htbp',
 
