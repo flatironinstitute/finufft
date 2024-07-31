@@ -260,6 +260,8 @@ void cufinufft_setup_binsize(int type, int ns, int dim, cufinufft_opts *opts) {
         throw std::runtime_error(cudaGetErrorString(err));
       }
       // use 1/6 of the shared memory for the binsize
+      // From experiments on multiple GPUs this gives the best tradeoff.
+      // It is within 90% of the maximum performance for all GPUs tested.
       shared_mem_per_block /= 6;
       const int bin_size =
           shared_mem_per_block / sizeof(cuda_complex<T>) - ((ns + 1) / 2) * 2;
