@@ -46,7 +46,7 @@ jobs:
           sudo apt install -y libfftw3-dev
       - name: Configure Cmake
         run: |
-          cmake -S . -B ./build -G Ninja -DCMAKE_BUILD_TYPE:STRING=${{matrix.build_type}} -DFINUFFT_ARCH_FLAGS=${{ matrix.arch_flags }} -DFINUFFT_BUILD_TESTS=ON -DFINUFFT_STATIC_LINKING=${{matrix.finufft_static_linking}} -DFINUFFT_USE_DUCC0=${{ matrix.ducc_fft }}
+          cmake -S . -B ./build -DCMAKE_BUILD_TYPE:STRING=${{matrix.build_type}} -DFINUFFT_ARCH_FLAGS=${{ matrix.arch_flags }} -DFINUFFT_BUILD_TESTS=ON -DFINUFFT_STATIC_LINKING=${{matrix.finufft_static_linking}} -DFINUFFT_USE_DUCC0=${{ matrix.ducc_fft }}
       - name: Build
         run: |
           cmake --build ./build --config ${{matrix.build_type}}
