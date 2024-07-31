@@ -50,6 +50,8 @@ set(FINUFFT_CXX_FLAGS_RELEASE
     -ftree-vectorize
     -fimplicit-constexpr
     -fcx-limited-range
+    -O3
+    /Ox
     /fp:contract
     /fp:except-
     /GF
@@ -201,16 +203,10 @@ function(set_finufft_options target)
   target_compile_options(
     ${target} PRIVATE $<$<CONFIG:Release,RelWithDebInfo>:${FINUFFT_ARCH_FLAGS}>)
   target_compile_options(
-    ${target}
-    PRIVATE $<$<CONFIG:Release>:${FINUFFT_CXX_FLAGS_RELEASE}>
-            $<$<AND:$<CONFIG:Release>,$<CXX_COMPILER_ID:GNU>>:-O3>
-            $<$<AND:$<CONFIG:Release>,$<NOT:$<CXX_COMPILER_ID:GNU>>>:/Ox>)
+    ${target} PRIVATE $<$<CONFIG:Release>:${FINUFFT_CXX_FLAGS_RELEASE}>)
   target_compile_options(
     ${target}
-    PRIVATE $<$<CONFIG:RelWithDebInfo>:${FINUFFT_CXX_FLAGS_RELWITHDEBINFO}>
-            $<$<AND:$<CONFIG:RelWithDebInfo>,$<CXX_COMPILER_ID:GNU>>:-O2>
-            $<$<AND:$<CONFIG:RelWithDebInfo>,$<NOT:$<CXX_COMPILER_ID:GNU>>>:/O2>
-  )
+    PRIVATE $<$<CONFIG:RelWithDebInfo>:${FINUFFT_CXX_FLAGS_RELWITHDEBINFO}>>)
   target_compile_options(${target}
                          PRIVATE $<$<CONFIG:Debug>:${FINUFFT_CXX_FLAGS_DEBUG}>)
   target_include_directories(
