@@ -10,3 +10,11 @@ repos:
       - id: check-yaml
       - id: end-of-file-fixer
       - id: trailing-whitespace
+  - repo: https://github.com/cheshirekow/cmake-format-precommit
+    rev: v0.6.13
+    hooks:
+    - id: cmake-format
+    additional_dependencies: [pyyaml]
+    args: [--line-width=180]
+    types: [file]
+    files: (\.cmake|CMakeLists.txt)(.in)?$

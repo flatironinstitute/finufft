@@ -7,6 +7,14 @@ foreach(srcfile ${test_src})
   add_executable(${executable} ${srcfile})
   target_include_directories(${executable} PUBLIC ${CUFINUFFT_INCLUDE_DIRS})
   target_link_libraries(${executable} PUBLIC cufinufft m)
+  set_target_properties(${executable} PROPERTIES
+          LINKER_LANGUAGE CUDA
+          CUDA_ARCHITECTURES ${FINUFFT_CUDA_ARCHITECTURES}
+  )
+  message(STATUS "Adding test ${executable}"
+          " with CUDA_ARCHITECTURES=${FINUFFT_CUDA_ARCHITECTURES}"
+          " and INCLUDE=${CUFINUFFT_INCLUDE_DIRS}"
+  )
 endforeach()
 
 function(add_tests PREC REQ_TOL CHECK_TOL)
