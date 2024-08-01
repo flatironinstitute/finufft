@@ -18,7 +18,7 @@ option(FINUFFT_ENABLE_SANITIZERS "Whether to enable sanitizers, only effective f
 option(FINUFFT_USE_OPENMP "Whether to use OpenMP for parallelization. If disabled, the finufft library will be single threaded. This does not affect the choice of FFTW library." ON)
 option(FINUFFT_USE_CPU "Whether to build the ordinary FINUFFT library (libfinufft)." ON)
 option(FINUFFT_USE_CUDA "Whether to build CUDA accelerated FINUFFT library (libcufinufft). This is completely independent of the main FINUFFT library" OFF)
-option(FINUFFT_STATIC_LINKING "Whether to build the static FINUFFT library." ON)
+option(FINUFFT_STATIC_LINKING "If ON builds the static finufft library, if OFF build a shared finufft library." ON)
 option(FINUFFT_BUILD_DEVEL "Whether to build development executables" OFF)
 option(FINUFFT_BUILD_EXAMPLES "Whether to build the FINUFFT examples" OFF)
 option(FINUFFT_BUILD_TESTS "Whether to build the FINUFFT tests" OFF)
@@ -141,6 +141,9 @@ include(cmake/setupCPM.cmake)
 
 if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
   include(CTest)
+  if(FINUFFT_BUILD_TESTS)
+    enable_testing()
+  endif()
   include(cmake/setupSphinx.cmake)
 endif()
 
