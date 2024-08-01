@@ -126,6 +126,10 @@ Here are all our build options, showing name, explanatory text, and default valu
    :start-after: @cmake_opts_start
    :end-before: @cmake_opts_end
 
+.. note::
+    It is possible to choose between ``FFTW`` and `DUCC fft <https://gitlab.mpcdf.mpg.de/mtr/ducc>`_, Ducc fft is from the same author as `pocket fft <https://gitlab.mpcdf.mpg.de/mtr/pocketfft>`_.
+    Pocket fft is the fft used by `scipy <https://scipy.org/>`_.
+    An idea about ducc performance can be found in `this discussion <https://github.com/flatironinstitute/finufft/pull/463#issuecomment-2223988300>`_. We encourage the power user can try switching to ducc0 to see if it improves performance.
 
 For convenience we also provide a number of `cmake presets <https://cmake.org/cmake/help/latest/manual/cmake-presets.7.html>`_
 for various options and compilers, in ``CMakePresets.json`` (this will grow to replace the old ``make.inc.*`` site files).
