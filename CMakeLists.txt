@@ -105,10 +105,6 @@ if(FINUFFT_ARCH_FLAGS STREQUAL "native")
   endif()
 endif()
 
-if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
-  include(CTest)
-endif()
-
 # Set default build type to Release
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE
@@ -140,20 +136,25 @@ function(enable_asan target)
   endif()
 endfunction()
 
+set(CPM_DOWNLOAD_VERSION 0.40.0)
+include(cmake/setupCPM.cmake)
+
+if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
+  include(CTest)
+  include(cmake/setupSphinx.cmake)
+endif()
+
 if(FINUFFT_USE_CPU)
   # make apple with gnu use old linker, new linker breaks, see issue #360
   if((APPLE) AND (CMAKE_CXX_COMPILER_ID STREQUAL "GNU"))
     add_link_options("-ld_classic")
   endif()
-
-  set(CPM_DOWNLOAD_VERSION 0.40.0)
   set(FFTW_VERSION 3.3.10)
   set(XTL_VERSION 0.7.7)
   set(XSIMD_VERSION 13.0.0)
   # using latest ducc0 version for now as it fixes MacOS GCC build
   set(DUCC0_VERSION b0beb85e03982344a31ebb119758d7aa3ef5d362)
   set(FINUFFT_FFTW_LIBRARIES)
-  include(cmake/setupCPM.cmake)
   include(cmake/setupXSIMD.cmake)
   if(FINUFFT_USE_DUCC0)
     include(cmake/setupDUCC.cmake)
