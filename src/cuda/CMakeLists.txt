@@ -84,6 +84,7 @@ set_target_properties(
              CUDA_STANDARD_REQUIRED ON
              ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}"
              CUDA_ARCHITECTURES ${FINUFFT_CUDA_ARCHITECTURES})
+target_compile_features(cufinufft PRIVATE cxx_std_17)
 
 if(WIN32)
   target_link_libraries(cufinufft PUBLIC CUDA::cudart CUDA::cufft

@@ -7,8 +7,12 @@ foreach(srcfile ${test_src})
   target_include_directories(${executable} PUBLIC ${CUFINUFFT_INCLUDE_DIRS})
   target_link_libraries(${executable} PUBLIC cufinufft m)
   set_target_properties(
-    ${executable} PROPERTIES LINKER_LANGUAGE CUDA CUDA_ARCHITECTURES
-                                                  ${FINUFFT_CUDA_ARCHITECTURES})
+    ${executable}
+    PROPERTIES LINKER_LANGUAGE CUDA
+               CUDA_ARCHITECTURES ${FINUFFT_CUDA_ARCHITECTURES}
+               CUDA_STANDARD 17
+               CUDA_STANDARD_REQUIRED ON)
+  target_compile_features(${executable} PRIVATE cxx_std_17)
   message(STATUS "Adding test ${executable}"
                  " with CUDA_ARCHITECTURES=${FINUFFT_CUDA_ARCHITECTURES}"
                  " and INCLUDE=${CUFINUFFT_INCLUDE_DIRS}")

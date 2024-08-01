@@ -24,7 +24,7 @@ __global__ void spread_1d_nuptsdriven(const T *x, const cuda_complex<T> *c,
                                       T es_beta, T sigma, const int *idxnupts) {
   // dynamic stack allocation to reduce stack usage
 #if ALLOCA_SUPPORTED
-  auto ker                = (T *)alloca(sizeof(T) * ns * 3);
+  auto ker                = (T *)alloca(sizeof(T) * ns);
   auto *__restrict__ ker1 = ker;
 #else
   T ker1[MAX_NSPREAD];
@@ -109,7 +109,7 @@ __global__ void spread_1d_subprob(
 
   // dynamic stack allocation
 #if ALLOCA_SUPPORTED
-  auto ker                = (T *)alloca(sizeof(T) * ns * 3);
+  auto ker                = (T *)alloca(sizeof(T) * ns);
   auto *__restrict__ ker1 = ker;
 #else
   T ker1[MAX_NSPREAD];
@@ -160,7 +160,7 @@ __global__ void interp_1d_nuptsdriven(const T *x, cuda_complex<T> *c,
                                       T es_c, T es_beta, T sigma, const int *idxnupts) {
   // dynamic stack allocation
 #if ALLOCA_SUPPORTED
-  auto ker                = (T *)alloca(sizeof(T) * ns * 3);
+  auto ker                = (T *)alloca(sizeof(T) * ns);
   auto *__restrict__ ker1 = ker;
 #else
   T ker1[MAX_NSPREAD];

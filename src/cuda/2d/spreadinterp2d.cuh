@@ -20,7 +20,7 @@ __global__ void spread_2d_nupts_driven(
     const T *x, const T *y, const cuda_complex<T> *c, cuda_complex<T> *fw, int M, int ns,
     int nf1, int nf2, T es_c, T es_beta, T sigma, const int *idxnupts) {
 #if ALLOCA_SUPPORTED
-  auto ker                = (T *)alloca(sizeof(T) * ns * 3);
+  auto ker                = (T *)alloca(sizeof(T) * ns * 2);
   auto *__restrict__ ker1 = ker;
   auto *__restrict__ ker2 = ker + ns;
 #else
@@ -137,7 +137,7 @@ __global__ void spread_2d_subprob(
   const int N           = (bin_size_x + rounded_ns) * (bin_size_y + rounded_ns);
 
 #if ALLOCA_SUPPORTED
-  auto ker                = (T *)alloca(sizeof(T) * ns * 3);
+  auto ker                = (T *)alloca(sizeof(T) * ns * 2);
   auto *__restrict__ ker1 = ker;
   auto *__restrict__ ker2 = ker + ns;
 #else
@@ -211,7 +211,7 @@ __global__ void interp_2d_nupts_driven(
     const T *x, const T *y, cuda_complex<T> *c, const cuda_complex<T> *fw, int M, int ns,
     int nf1, int nf2, T es_c, T es_beta, T sigma, const int *idxnupts) {
 #if ALLOCA_SUPPORTED
-  auto ker                = (T *)alloca(sizeof(T) * ns * 3);
+  auto ker                = (T *)alloca(sizeof(T) * ns * 2);
   auto *__restrict__ ker1 = ker;
   auto *__restrict__ ker2 = ker + ns;
 #else
@@ -265,7 +265,7 @@ __global__ void interp_2d_subprob(
   cuda_complex<T> *fwshared = (cuda_complex<T> *)sharedbuf;
 
 #if ALLOCA_SUPPORTED
-  auto ker                = (T *)alloca(sizeof(T) * ns * 3);
+  auto ker                = (T *)alloca(sizeof(T) * ns * 2);
   auto *__restrict__ ker1 = ker;
   auto *__restrict__ ker2 = ker + ns;
 #else
