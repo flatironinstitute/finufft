@@ -12,19 +12,19 @@ a precompiled binary for your platform under Assets for various
 `releases <https://github.com/flatironinstitute/finufft/releases>`_.
 Please post an `Issue <https://github.com/flatironinstitute/finufft/issues>`_
 to document your installation problem.
+When using CMake, finufft requires no external dependencies except (c/c++ compilers supporting OpenMP).
+However GNU ``makefile`` assumes that FFTW (single/double) are installed.
 
-.. warning::
-
-    finufft builds with no issues on Linux using any compiler, in our experience GCC-13 gives best performance.
-    On MacOS both GCC and clang are fine.
-    On Windows MSVC works fine. The llvm toolchain included in Visual Studio does not seem to have OpenMP.
-    The official LLVM distribution builds finufft but debug builds using sanitizers break.
+.. note::
+    finufft builds with no issues on Linux and MacOS using any compiler, in our experience GCC-13 gives best performance.
+    On Windows MSVC works fine. The llvm toolchain included in Visual Studio does not seem to have OpenMP, it is possible to build single-threaded FINUFFT.
+    The official windows LLVM distribution builds finufft with no issues but debug builds using sanitizers break.
 
 .. note::
 
     On windows finufft built with MSVC requires ``VCOMP140D.DLL`` which is part of the `Microsoft Visual C++ Redistributable <https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist?view=msvc-170>`_.
+    It is likely to be already installed in your system.
     If the library is built with LLVM it requires ``libomp140.x86.64.dll``, more information `here <https://devblogs.microsoft.com/cppblog/improved-openmp-support-for-cpp-in-visual-studio/>`_.
-
     Python-only users can simply install via ``pip install finufft`` which downloads a generic binary from PyPI. Only if you prefer a custom compilation, see :ref:`below<install-python>`.
 
 CMake CPM Based Installation
@@ -39,10 +39,14 @@ Then add the following to your ``CMakeLists.txt``:
 
 .. code-block:: cmake
 
+  # short version
+  CPMAddPackage("gh:flatironinstitute/finufft@2.3")
+
+  # alternative in case custom options are needed
   CPMAddPackage(
     NAME             Finufft
     GIT_REPOSITORY   https://github.com/flatironinstitute/finufft.git
-    GIT_TAG          master
+    GIT_TAG          2.3
     GIT_SHALLOW      Yes
     GIT_PROGRESS     Yes
     EXCLUDE_FROM_ALL Yes
@@ -61,6 +65,7 @@ which is provided directly by cmake.
 To do so add the following to your ``CMakeLists.txt``:
 
 .. code-block:: cmake
+
     include(FetchContent)
 
     # Define the finufft library
@@ -75,6 +80,8 @@ To do so add the following to your ``CMakeLists.txt``:
 
     # Optionally, link the finufft library to your target
     target_link_libraries(your_executable [PUBLIC|PRIVATE|INTERFACE] finufft)
+
+Then cmake will automatically download the library and link it to your executable.
 
 CMake Based Installation
 ------------------------
@@ -96,7 +103,7 @@ The basic quick download, building, and test is then:
 
    If you don't supply `--install-prefix`, it will default to ``/usr/local`` on most systems. If you don't have root access, you must supply a prefix you can write to such as ``$HOME/local``.
 
-In ``build``, this creates ``libfinufft_static.a`` and ``libfinufft.so``, and runs a test that should take a
+In ``build``, this creates ``libfinufft.a`` or ``libfinufft.so``, and runs a test that should take a
 few seconds and report ``100% tests passed, 0 tests failed out of 17``.  To use the library, link against
 either the static or dynamic library in ``build`` or your installed version
 (i.e. ``/path/to/install/lib64/libfinufft.so`` or ``/path/to/install/lib/libfinufft.so``). If you install
@@ -164,7 +171,7 @@ If there is an error in testing on what you consider a standard set-up,
 please file a detailed bug report as a New Issue at https://github.com/flatironinstitute/finufft/issues
 
 
-Quick linux install instructions
+Quick linux GNU MAKE install instructions
 --------------------------------
 
 Make sure you have packages ``fftw3`` and ``fftw3-dev`` (or their
@@ -240,7 +247,7 @@ This compiles the main libraries then runs double- and single-precision tests, e
 .. note::
 
    GCC versions on linux: long-term linux distros ship old GCC versions
-   that may not be C++14 compatible. We recommend that you
+   that may not be C++17 compatible. We recommend that you
    compile with a recent GCC, at least GCC 7.3 (which we used
    for benchmarks in 2018 in our SISC paper), or GCC 9+. We do not recommend
    GCC versions prior to 7. We also **do not recommend GCC8** since
@@ -445,7 +452,7 @@ section of ``mexopts.sh``.
 
 
 
-3) Windows: tips for compiling
+3) Windows GNU MAKE: tips for compiling
 -------------------------------
 
 We have users who have adjusted the makefile to work - at least to some extent - on Windows 10. If you are only interested in calling from Octave (which already comes with MinGW-w64 and FFTW), then we have been told this can be done very simply: from within Octave, go to the ``finufft`` directory and do ``system('make octave')``. You may have to tweak ``OCTAVE`` in your ``make.inc`` in a similar fashion to below.
