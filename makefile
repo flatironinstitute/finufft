@@ -58,16 +58,17 @@ MWRAP = mwrap
 # root directory for dependencies to be downloaded:
 DEPS_ROOT := deps
 
-# xsimd dependency repo URL
+# xsimd header-only dependency repo
 XSIMD_URL := https://github.com/xtensor-stack/xsimd.git
 XSIMD_VERSION := 13.0.0
 XSIMD_DIR := $(DEPS_ROOT)/xsimd
 
-# DUCC optional dependency repo URL
+# DUCC sources optional dependency repo
 DUCC_URL := https://gitlab.mpcdf.mpg.de/mtr/ducc.git
 DUCC_VERSION := ducc0_0_34_0
 DUCC_DIR := $(DEPS_ROOT)/ducc
-#DUCC_LIB := $(DUCC_DIR)/libducc0.a      # *** to kill
+# this dummy file used as empty target by make...
+DUCC_COOKIE := $(DUCC_DIR)/.finufft_has_ducc
 
 # absolute path of this makefile, ie FINUFFT's top-level directory...
 FINUFFT = $(dir $(realpath $(firstword $(MAKEFILE_LIST))))
@@ -84,15 +85,16 @@ INCL = -Iinclude -I$(XSIMD_DIR)/include
 # (Note: finufft tests use LIBSFFT; spread & util tests only need LIBS)
 LIBSFFT := $(LIBS)
 ifeq ($(FFT),DUCC)
-  DUCC_SETUP := ducc_setup
+  DUCC_SETUP := $(DUCC_COOKIE)
   DUCC_SRC := $(DUCC_DIR)/src/ducc0
-# so fft.cpp can see DUCC headers, but also internal DUCC compilation...
+# for internal DUCC compile...
   DUCC_INCL := -I$(DUCC_DIR)/src
+# so FINUFFT build can see DUCC headers...
   INCL += $(DUCC_INCL)
   DUCC_OBJS := $(DUCC_SRC)/infra/string_utils.o $(DUCC_SRC)/infra/threading.o $(DUCC_SRC)/infra/mav.o $(DUCC_SRC)/math/gridding_kernel.o $(DUCC_SRC)/math/gl_integrator.o
-# for DUCC objects compile only (not our objects)...  *** pthreads?
+# for DUCC objects compile only (not our objects)...  *** check flags, pthreads?:
   DUCC_CXXFLAGS := -fPIC -std=c++17 -ffast-math
-# switchable FFT done via this compile directive...
+# FINUFFT's switchable FFT done via this compile directive...
   CXXFLAGS += -DFINUFFT_USE_DUCC0
 else
 # link against FFTW3 single-threaded
@@ -474,21 +476,20 @@ $(XSIMD_DIR)/include/xsimd/xsimd.hpp:
 	$(call clone_repo,$(XSIMD_URL),$(XSIMD_VERSION),$(XSIMD_DIR))
 	@echo "xsimd installed in deps/xsimd"
 
-# download DUCC...
-ducc_setup:
+# download DUCC... (task is a empty target just used to track if installed)
+$(DUCC_COOKIE):
 	mkdir -p $(DEPS_ROOT)
 	@echo "Checking DUCC external dependency..."
 	$(call clone_repo,$(DUCC_URL),$(DUCC_VERSION),$(DUCC_DIR))
+	touch $(DUCC_COOKIE)
 	@echo "DUCC installed in deps/ducc"
 
 # implicit rule for DUCC compile just needed objects, only used if FFT=DUCC.
-# Needed since DUCC has no makefile (yet).
-$(DUCC_SRC)/%.o: $(DUCC_SRC)/%.cc ducc_setup
-# note the includes in DUCC start at $(DUCC_DIR)/src
+# Needed since DUCC has no makefile (yet). Cookie triggers download if need:
+$(DUCC_SRC)/%.o: $(DUCC_SRC)/%.cc $(DUCC_COOKIE)
 	$(CXX) -c $(DUCC_CXXFLAGS) $(DUCC_INCL) $< -o $@
 
 setup: $(XSIMD_DIR)/include/xsimd/xsimd.hpp $(DUCC_SETUP)
-	@echo $(DUCC_HEADERS)
 
 setupclean:
 	rm -rf $(DEPS_ROOT)
