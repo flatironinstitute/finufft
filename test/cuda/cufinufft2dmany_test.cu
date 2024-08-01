@@ -19,7 +19,7 @@ using cufinufft::utils::infnorm;
 
 template<typename T>
 int run_test(int method, int type, int N1, int N2, int ntransf, int maxbatchsize, int M,
-             T tol, T checktol, int iflag) {
+             T tol, T checktol, int iflag, double upsampfac) {
   std::cout << std::scientific << std::setprecision(3);
 
   int ier;
@@ -93,6 +93,7 @@ int run_test(int method, int type, int N1, int N2, int ntransf, int maxbatchsize
 
   opts.gpu_method       = method;
   opts.gpu_maxbatchsize = maxbatchsize;
+  opts.upsampfac        = upsampfac;
 
   int nmodes[3] = {N1, N2, 1};
   cudaEventRecord(start);
@@ -184,7 +185,7 @@ int run_test(int method, int type, int N1, int N2, int ntransf, int maxbatchsize
 }
 
 int main(int argc, char *argv[]) {
-  if (argc != 11) {
+  if (argc != 12) {
     fprintf(stderr,
             "Usage: cufinufft2d1many_test method type N1 N2 ntransf maxbatchsize M "
             "tol checktol prec\n"
@@ -199,7 +200,8 @@ int main(int argc, char *argv[]) {
             "  M: The number of non-uniform points\n"
             "  tol: NUFFT tolerance\n"
             "  checktol: relative error to pass test\n"
-            "  prec:  'f' or 'd' (float/double)\n");
+            "  prec:  'f' or 'd' (float/double)\n"
+            "  upsampfac: upsampling factor\n");
     return 1;
   }
   const int method       = atoi(argv[1]);
@@ -212,14 +214,15 @@ int main(int argc, char *argv[]) {
   const double tol       = atof(argv[8]);
   const double checktol  = atof(argv[9]);
   const char prec        = argv[10][0];
+  const double upsampfac = atof(argv[11]);
   const int iflag        = 1;
 
   if (prec == 'f')
     return run_test<float>(method, type, N1, N2, ntransf, maxbatchsize, M, tol, checktol,
-                           iflag);
+                           iflag, upsampfac);
   else if (prec == 'd')
     return run_test<double>(method, type, N1, N2, ntransf, maxbatchsize, M, tol, checktol,
-                            iflag);
+                            iflag, upsampfac);
   else
     return -1;
 }

@@ -17,7 +17,8 @@
 using cufinufft::utils::infnorm;
 
 template<typename T>
-int run_test(int method, int type, int N1, int M, T tol, T checktol, int iflag) {
+int run_test(int method, int type, int N1, int M, T tol, T checktol, int iflag,
+             double upsampfac) {
   std::cout << std::scientific << std::setprecision(3);
   int ier;
 
@@ -88,6 +89,7 @@ int run_test(int method, int type, int N1, int M, T tol, T checktol, int iflag) 
 
   opts.gpu_method       = method;
   opts.gpu_maxbatchsize = 1;
+  opts.upsampfac        = upsampfac;
 
   int nmodes[3] = {N1, 1, 1};
   int ntransf   = 1;
@@ -178,7 +180,7 @@ int run_test(int method, int type, int N1, int M, T tol, T checktol, int iflag) 
 }
 
 int main(int argc, char *argv[]) {
-  if (argc != 8) {
+  if (argc != 9) {
     fprintf(stderr, "Usage: cufinufft1d_test method type N1 M tol checktol prec\n"
                     "Arguments:\n"
                     "  method: One of\n"
@@ -188,21 +190,23 @@ int main(int argc, char *argv[]) {
                     "  M: The number of non-uniform points\n"
                     "  tol: NUFFT tolerance\n"
                     "  checktol:  relative error to pass test\n"
-                    "  precision: f or d\n");
+                    "  precision: f or d\n"
+                    "  upsampfac: upsampling factor\n");
     return 1;
   }
-  const int method      = atoi(argv[1]);
-  const int type        = atoi(argv[2]);
-  const int N1          = atof(argv[3]);
-  const int M           = atof(argv[4]);
-  const double tol      = atof(argv[5]);
-  const double checktol = atof(argv[6]);
-  const int iflag       = 1;
-  const char prec       = argv[7][0];
+  const int method       = atoi(argv[1]);
+  const int type         = atoi(argv[2]);
+  const int N1           = atof(argv[3]);
+  const int M            = atof(argv[4]);
+  const double tol       = atof(argv[5]);
+  const double checktol  = atof(argv[6]);
+  const int iflag        = 1;
+  const char prec        = argv[7][0];
+  const double upsampfac = atof(argv[8]);
   if (prec == 'f')
-    return run_test<float>(method, type, N1, M, tol, checktol, iflag);
+    return run_test<float>(method, type, N1, M, tol, checktol, iflag, upsampfac);
   else if (prec == 'd')
-    return run_test<double>(method, type, N1, M, tol, checktol, iflag);
+    return run_test<double>(method, type, N1, M, tol, checktol, iflag, upsampfac);
   else
     return -1;
 }
