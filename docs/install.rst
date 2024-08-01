@@ -131,6 +131,10 @@ Here are all our build options, showing name, explanatory text, and default valu
     Pocket fft is the fft used by `scipy <https://scipy.org/>`_.
     An idea about ducc performance can be found in `this discussion <https://github.com/flatironinstitute/finufft/pull/463#issuecomment-2223988300>`_. We encourage the power user can try switching to ducc0 to see if it improves performance.
 
+.. warning::
+    On windows with msvc cl, ``ducc fft`` has to compile with ``/fp:fast``, otherwise some tests (run_finufft3d_test_float, run_finufft3dmany_test_float) may fail because of the resulting error is larger than the tolerance.
+    On the other hand, finufft on windows with msvc cl should not compile with flag ``/fp:fast``, with ``/fp:fast`` the test run_dumbinputs_double will result in segfault, because /fp:fast makes values (NaN, +infinity, -infinity, -0.0) may not be propagated or behave strictly according to the IEEE-754 standard.
+
 For convenience we also provide a number of `cmake presets <https://cmake.org/cmake/help/latest/manual/cmake-presets.7.html>`_
 for various options and compilers, in ``CMakePresets.json`` (this will grow to replace the old ``make.inc.*`` site files).
 For example, to configure, build and test the development preset (which builds tests and examples), from ``build`` do:
