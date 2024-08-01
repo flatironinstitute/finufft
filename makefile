@@ -1,4 +1,4 @@
-# Makefile for FINUFFT
+# Makefile for FINUFFT (CPU code only, and its various interfaces)
 
 # For simplicity, this is the only makefile; there are no makefiles in
 # subdirectories. This makefile is useful to show humans how to compile
@@ -14,6 +14,7 @@
 # Garrett Wright, Joakim Anden, Barnett: dual-prec lib build, Jun-Jul'20.
 # Windows compatibility, jonas-kr, Sep '20.
 # XSIMD dependency, Marco Barbone, June 2024.
+# DUCC optional dependency to replace FFTW3. Barnett, July '24.
 
 # Compiler (CXX), and linking from C, fortran. We use GCC by default...
 CXX = g++
@@ -21,13 +22,12 @@ CC = gcc
 FC = gfortran
 CLINK = -lstdc++
 FLINK = $(CLINK)
-# Python version: we use python3 by default, but you may need to change...
 PYTHON = python3
 # baseline compile flags for GCC (no multithreading):
 # Notes: 1) -Ofast breaks isfinite() & isnan(), so use -O3 which now is as fast
 #        2) -fcx-limited-range for fortran-speed complex arith in C++
 #        3) we use simply-expanded (:=) makefile variables, otherwise confusing
-# 		 4) the extra math flags are for speed, but they do not impact accuracy
+#        4) the extra math flags are for speed, but they do not impact accuracy;
 #           they allow gcc to vectorize the code more effectively
 CFLAGS := -O3 -funroll-loops -march=native -fcx-limited-range -ffp-contract=fast\
 		  -fno-math-errno -fno-signed-zeros -fno-trapping-math -fassociative-math\
@@ -55,13 +55,19 @@ OFLAGS =
 # For experts only, location of MWrap executable (see docs/install.rst):
 MWRAP = mwrap
 
-# dependency root (relative to top directory)
+# root directory for dependencies to be downloaded:
 DEPS_ROOT := deps
 
 # xsimd dependency repo URL
 XSIMD_URL := https://github.com/xtensor-stack/xsimd.git
 XSIMD_VERSION := 13.0.0
 XSIMD_DIR := $(DEPS_ROOT)/xsimd
+
+# DUCC optional dependency repo URL
+DUCC_URL := https://gitlab.mpcdf.mpg.de/mtr/ducc.git
+DUCC_VERSION := ducc0_0_34_0
+DUCC_DIR := $(DEPS_ROOT)/ducc
+#DUCC_LIB := $(DUCC_DIR)/libducc0.a      # *** to kill
 
 # absolute path of this makefile, ie FINUFFT's top-level directory...
 FINUFFT = $(dir $(realpath $(firstword $(MAKEFILE_LIST))))
@@ -74,14 +80,28 @@ FINUFFT = $(dir $(realpath $(firstword $(MAKEFILE_LIST))))
 # -fPIC (position-indep code) needed to build dyn lib (.so)
 # Also, we force return (via :=) to the land of simply-expanded variables...
 INCL = -Iinclude -I$(XSIMD_DIR)/include
+# single-thread total list of math and FFT libs (now both precisions)...
+# (Note: finufft tests use LIBSFFT; spread & util tests only need LIBS)
+LIBSFFT := $(LIBS)
+ifeq ($(FFT),DUCC)
+  DUCC_SETUP := ducc_setup
+  DUCC_SRC := $(DUCC_DIR)/src/ducc0
+# so fft.cpp can see DUCC headers, but also internal DUCC compilation...
+  DUCC_INCL := -I$(DUCC_DIR)/src
+  INCL += $(DUCC_INCL)
+  DUCC_OBJS := $(DUCC_SRC)/infra/string_utils.o $(DUCC_SRC)/infra/threading.o $(DUCC_SRC)/infra/mav.o $(DUCC_SRC)/math/gridding_kernel.o $(DUCC_SRC)/math/gl_integrator.o
+# for DUCC objects compile only (not our objects)...  *** pthreads?
+  DUCC_CXXFLAGS := -fPIC -std=c++17 -ffast-math
+# switchable FFT done via this compile directive...
+  CXXFLAGS += -DFINUFFT_USE_DUCC0
+else
+# link against FFTW3 single-threaded
+  LIBSFFT += -l$(FFTWNAME) -l$(FFTWNAME)f
+endif
 CXXFLAGS := $(CXXFLAGS) $(INCL) -fPIC -std=c++17
 CFLAGS := $(CFLAGS) $(INCL) -fPIC
 # here /usr/include needed for fftw3.f "fortran header"... (JiriK: no longer)
 FFLAGS := $(FFLAGS) $(INCL) -I/usr/include -fPIC
-
-# single-thread total list of math and FFTW libs (now both precisions)...
-# (Note: finufft tests use LIBSFFT; spread & util tests only need LIBS)
-LIBSFFT := -l$(FFTWNAME) -l$(FFTWNAME)f $(LIBS)
 
 # multi-threaded libs & flags, and req'd flags (OO for new interface)...
 ifneq ($(OMP),OFF)
@@ -91,11 +111,13 @@ ifneq ($(OMP),OFF)
   MFLAGS += $(MOMPFLAGS) -DR2008OO
   OFLAGS += $(OOMPFLAGS) -DR2008OO
   LIBS += $(OMPLIBS)
-# omp override for total list of math and FFTW libs (now both precisions)...
-  LIBSFFT := -l$(FFTWNAME) -l$(FFTWNAME)_$(FFTWOMPSUFFIX) -l$(FFTWNAME)f -l$(FFTWNAME)f_$(FFTWOMPSUFFIX) $(LIBS)
+# fftw3 multithreaded libs...
+  ifneq ($(FFT),DUCC)
+    LIBSFFT += -l$(FFTWNAME)_$(FFTWOMPSUFFIX) -l$(FFTWNAME)f_$(FFTWOMPSUFFIX)
+  endif
 endif
 
-# name & location of library we're building...
+# name & location of shared library we're building...
 LIBNAME = libfinufft
 ifeq ($(MINGW),ON)
   DYNLIB = lib/$(LIBNAME).dll
@@ -123,8 +145,8 @@ OBJS = $(SOBJS) src/finufft.o src/simpleinterfaces.o fortran/finufftfort.o src/f
 OBJSF = $(OBJS:%.o=%_32.o)
 # precision-dependent library object files (compiled & linked only once)...
 OBJS_PI = $(SOBJS_PI) contrib/legendre_rule_fast.o
-# all lib dual-precision objs
-OBJSD = $(OBJS) $(OBJSF) $(OBJS_PI)
+# all lib dual-precision objs (note DUCC_OBJS empty if unused)
+OBJSD = $(OBJS) $(OBJSF) $(OBJS_PI) $(DUCC_OBJS)
 
 .PHONY: usage lib examples test perftest spreadtest spreadtestall fortran matlab octave all mex python clean objclean pyclean mexclean wheel docker-wheel gurutime docs setup setupclean
 
@@ -143,22 +165,23 @@ usage:
 	@echo " make octave - compile and test octave interfaces"
 	@echo " make python - compile and test python interfaces"
 	@echo " make all - do all the above (around 1 minute; assumes you have MATLAB, etc)"
-	@echo " make spreadtest - compile & run spreader-only tests (no FFTW)"
+	@echo " make spreadtest - compile & run spreader-only tests (no FFT)"
 	@echo " make spreadtestall - small set spreader-only tests for CI use"
 	@echo " make objclean - remove all object files, preserving libs & MEX"
 	@echo " make clean - also remove all lib, MEX, py, and demo executables"
 	@echo " make setup - check (and possibly download) dependencies"
 	@echo " make setupclean - delete downloaded dependencies"
-	@echo "For faster (multicore) making, append, for example, -j8"
+	@echo "For faster (multicore) compilation, append, for example, -j8"
 	@echo ""
 	@echo "Make options:"
 	@echo " 'make [task] OMP=OFF' for single-threaded (otherwise OpenMP)"
+	@echo " 'make [task] FFT=DUCC' for DUCC0 FFT (otherwise FFTW3)"
 	@echo " You must 'make objclean' before changing such options!"
 	@echo ""
 	@echo "Also see docs/install.rst and docs/README"
 
 # collect headers for implicit depends (we don't separate public from private)
-HEADERS = $(wildcard include/*.h include/finufft/*.h)
+HEADERS = $(wildcard include/*.h include/finufft/*.h) $(DUCC_HEADERS)
 
 # implicit rules for objects (note -o ensures writes to correct dir)
 %.o: %.cpp $(HEADERS)
@@ -174,9 +197,10 @@ HEADERS = $(wildcard include/*.h include/finufft/*.h)
 %_32.o: %.f
 	$(FC) -DSINGLE -c $(FFLAGS) $< -o $@
 
-# included auto-generated code and xsimd header-lib dependency...
-src/spreadinterp.o: src/ker_horner_allw_loop_constexpr.h $(XSIMD_DIR)/include/xsimd/xsimd.hpp
-src/spreadinterp_32.o: src/ker_horner_allw_loop_constexpr.h $(XSIMD_DIR)/include/xsimd/xsimd.hpp
+# spreadinterp include auto-generated code, xsimd header-only dependency...
+SHEAD = $(wildcard src/*.h) $(XSIMD_DIR)/include/xsimd/xsimd.hpp
+src/spreadinterp.o: $(SHEAD)
+src/spreadinterp_32.o: $(SHEAD)
 
 
 # lib -----------------------------------------------------------------------
@@ -424,7 +448,7 @@ docker-wheel:
 	docker run --rm -e package_name=finufft -v `pwd`:/io libinlu/manylinux2010_x86_64_fftw /io/python/ci/build-wheels.sh
 
 
-# ================== SETUP OF EXTERNAL DEPENDENCIES ===============
+# ================== SETUP/COMPILE OF EXTERNAL DEPENDENCIES ===============
 
 define clone_repo
     @if [ ! -d "$(3)" ]; then \
@@ -443,11 +467,28 @@ define clone_repo
     fi
 endef
 
+# download: header-only, no compile needed...
 $(XSIMD_DIR)/include/xsimd/xsimd.hpp:
 	mkdir -p $(DEPS_ROOT)
-	@echo "Checking xsimd external dependency..."
+	@echo "Checking XSIMD external dependency..."
 	$(call clone_repo,$(XSIMD_URL),$(XSIMD_VERSION),$(XSIMD_DIR))
 	@echo "xsimd installed in deps/xsimd"
+
+# download DUCC...
+ducc_setup:
+	mkdir -p $(DEPS_ROOT)
+	@echo "Checking DUCC external dependency..."
+	$(call clone_repo,$(DUCC_URL),$(DUCC_VERSION),$(DUCC_DIR))
+	@echo "DUCC installed in deps/ducc"
+
+# implicit rule for DUCC compile just needed objects, only used if FFT=DUCC.
+# Needed since DUCC has no makefile (yet).
+$(DUCC_SRC)/%.o: $(DUCC_SRC)/%.cc ducc_setup
+# note the includes in DUCC start at $(DUCC_DIR)/src
+	$(CXX) -c $(DUCC_CXXFLAGS) $(DUCC_INCL) $< -o $@
+
+setup: $(XSIMD_DIR)/include/xsimd/xsimd.hpp $(DUCC_SETUP)
+	@echo $(DUCC_HEADERS)
 
 setupclean:
 	rm -rf $(DEPS_ROOT)
