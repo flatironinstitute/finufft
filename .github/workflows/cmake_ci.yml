@@ -17,7 +17,6 @@ jobs:
           MATRIX=$(python3 ${{ github.workspace }}/.github/workflows/generate_cmake_matrix.py)
           echo "matrix=$MATRIX" >> $GITHUB_OUTPUT
   cmake-ci:
-
     runs-on: ${{ matrix.os }}
     needs: prepare
     strategy:
