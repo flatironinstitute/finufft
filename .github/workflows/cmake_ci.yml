@@ -25,10 +25,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      - name: Set up Docker CLI
-      - uses: docker/setup-buildx-action@v3
-      - name: Set up Depot CLI
-        uses: depot/setup-action@v1
       - name: Run sccache-cache
         uses: mozilla-actions/sccache-action@v0.0.5
       - name: Run sccache-cache only on non-release runs
@@ -57,14 +53,6 @@ jobs:
         run: |
           sudo apt update
           sudo apt install -y libfftw3-dev
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          push: true
-          tags: user/app:latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
       - name: Configure Cmake
         run: |
           cmake -S . -B ./build -G Ninja -DCMAKE_C_COMPILER_LAUNCHER=sccache -DCMAKE_CXX_COMPILER_LAUNCHER=sccache -DCMAKE_BUILD_TYPE:STRING=${{matrix.build_type}} -DFINUFFT_ARCH_FLAGS=${{ matrix.arch_flags }} -DFINUFFT_BUILD_TESTS=ON -DFINUFFT_STATIC_LINKING=${{matrix.finufft_static_linking}} -DFINUFFT_USE_DUCC0=${{ matrix.ducc_fft }}
