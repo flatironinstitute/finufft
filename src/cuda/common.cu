@@ -245,6 +245,8 @@ template<typename T>
 void cufinufft_setup_binsize(int type, int ns, int dim, cufinufft_opts *opts) {
   // Marco Barbone 07/26/24. Using the shared memory available on the device, to
   // determine the optimal binsize for the spreader.
+  // WARNING: This function does not check for CUDA errors, the caller should check and
+  // handle them.
   // TODO: This can still be improved some sizes are hardcoded still
   int shared_mem_per_block{}, device_id{};
   switch (dim) {
