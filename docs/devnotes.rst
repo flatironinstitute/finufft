@@ -9,8 +9,9 @@ Developer notes
 
   - ``CMakeLists.txt`` for cmake
   - ``docs/conf.py`` for sphinx
-  - ``python/finufft/setup.py`` for the python pkg version
-  - ``python/cufinufft/setup.py`` for the GPU python pkg version
+  - ``docs/install.rst`` cmake git tags
+  - ``python/finufft/finufft/__init__.py`` for the python pkg version
+  - ``python/cufinufft/cufinufft/__init__.py`` for the GPU python pkg version
   - ``include/finufft/defs.h`` for the debug>0 output
   - ``matlab/Contents.m`` for the MATLAB/Octave help
   - ``CHANGELOG``: don't forget to describe the new features and changes, folding lines at 80 chars.
@@ -27,11 +28,11 @@ Developer notes
 * The kernel function in spreadinterp is evaluated via piecewise-polynomial approximation (Horner's rule). The code for this is auto-generated in MATLAB, for all upsampling factors. There are two versions supported:
 
   - 2018--2024 vintage: no explicit SIMD vectorization, C code is generated code for the Horner evaluation loop, by running from MATLAB `gen_all_horner_C_code.m`
-    
+
   - post-2024 vintage: explicit SIMD and many other acceleration tricks, and the generated code is a static C++ array of coefficients, and their sizes (`nc` or number of coefficients) for each width `w`. Run from MATLAB `gen_ker_horner_loop_cpp_code.m`
 
   See `devel/README` for more details. The ES kernel coefficient and poly approx degree for both of the above are defined in a single location, `devel/get_degree_and_beta.m`, which must match the C++ `setup_spreader()` function.
-  
+
 * Continuous Integration (CI). See files for this in ``.github/workflows/``. It currently tests the default ``makefile`` settings in linux, and three other ``make.inc.*`` files covering OSX and Windows (MinGW). CI does not test build the variant OMP=OFF. The dev should test these locally. Likewise, the Julia wrapper is separate and thus not tested in CI. We have added ``JenkinsFile`` for the GPU CI via python wrappers.
 
 * **Installing MWrap**. This is needed only for experts to rebuild the matlab/octave interfaces.
@@ -43,7 +44,7 @@ Developer notes
   Make sure to override the location of MWrap by adding a line such as::
 
     MWRAP = your-path-to-mwrap-executable
-  
+
   to your ``make.inc``, and then you can use the ``make mex`` task.
 
 * The cufinufft Python wheels are generated using Docker based on the manylinux2014 image. For instructions, see ``tools/cufinufft/distribution_helper.sh``. These are binary wheels that are built using CUDA 11 (or optionally CUDA 12, but these are not distributed on PyPI) and bundled with the necessary libraries.
