@@ -177,9 +177,9 @@ usage:
 	@echo "For faster (multicore) compilation, append, for example, -j8"
 	@echo ""
 	@echo "Make options:"
-	@echo " 'make [task] OMP=OFF' for single-threaded (otherwise OpenMP)"
-	@echo " 'make [task] FFT=DUCC' for DUCC0 FFT (otherwise FFTW3)"
-	@echo " You must 'make objclean' before changing such options!"
+	@echo " 'make [task] OMP=OFF' for single-threaded (no refs to OpenMP)"
+	@echo " 'make [task] FFT=DUCC' for DUCC0 FFT (otherwise uses FFTW3)"
+	@echo " You must at least 'make objclean' before changing such options!"
 	@echo ""
 	@echo "Also see docs/install.rst and docs/README"
 
@@ -503,6 +503,8 @@ setupclean:
 
 docs: docs/*.docsrc docs/matlabhelp.doc docs/makecdocs.sh
 	(cd docs; ./makecdocs.sh)
+# get the makefile help strings from make w/o args, stdout...
+	make 1> docs/makefile.doc
 docs/matlabhelp.doc: docs/genmatlabhelp.sh matlab/*.sh matlab/*.docsrc matlab/*.docbit matlab/*.m
 	(cd matlab; ./addmhelp.sh)
 	(cd docs; ./genmatlabhelp.sh)

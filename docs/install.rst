@@ -3,8 +3,9 @@
 Installation
 ============
 
-There are two main ways to compile this library from source:
-via CMake (the recommended modern way, being more platform-independent),
+There are two main ways to compile the CPU library from source:
+via CMake (the recommended modern way, being more platform-independent, and also the
+only way to build the GPU library),
 or via a GNU ``makefile`` (which has various settings for linux, OSX, Windows).
 We currently support both, and detail them in that order in the text below.
 The only requirement is a C/C++ compiler supporting OpenMP and the C++17
@@ -166,15 +167,15 @@ PowerPC. The general procedure to download, then compile for such a special setu
   cp make.inc.powerpc make.inc
   make test -j
 
-Have a look for ``make.inc.*`` to see what is available, and/or edit your ``make.inc`` based on looking in the ``makefile`` and quirks of your local setup. As of 2021, we have continuous integration which tests the default (linux) settings in this ``makefile``, plus those in three OS-specific setup files::
+Have a look for ``make.inc.*`` to see what is available, and/or edit your ``make.inc`` based on looking in the ``makefile`` and quirks of your local setup. We have continuous integration which tests the default (linux) settings in this ``makefile``, plus those in three OS-specific setup files, currently::
 
   make.inc.macosx_clang
-  make.inc.macosx_gcc-10
+  make.inc.macosx_gcc-12
   make.inc.windows_msys
 
+Thus, those are the recommended files for OSX or Windows users to try as their ``make.inc``.
 If there is an error in testing on what you consider a standard set-up,
 please file a detailed bug report as a New Issue at https://github.com/flatironinstitute/finufft/issues
-
 
 Quick linux GNU make install instructions
 -----------------------------------------
@@ -186,8 +187,8 @@ This should compile the static
 library in ``lib-static/``, some C++ test drivers in ``test/``, then run them,
 printing some terminal output ending in::
 
-  0 segfaults out of 8 tests done
-  0 fails out of 8 tests done
+  0 segfaults out of 9 tests done
+  0 fails out of 9 tests done
 
 This output repeats for double then single precision (hence, scroll up to check the double also gave no fails).
 If this fails, see the more detailed instructions below.
@@ -195,7 +196,21 @@ If it succeeds,
 please look in ``examples/``, ``test/``, and the rest of this manual,
 for examples of how to call and link to the library.
 Type ``make`` to see a list of other aspects the user can build
-(examples, language interfaces, etc).
+(examples, language interfaces, build options, etc).
+
+Make build tasks and options
+----------------------------
+
+Here are the GNU make tasks and options, taken from the current ``makefile`` output:
+
+.. literalinclude:: makefile.doc
+
+The variables ``OMP`` and ``FFT`` need to be used consistently for downstream make tasks
+(e.g: ``make test -j && make examples FFT=DUCC`` will fail).
+They can instead be set in your ``make.inc``.
+A ``make objclean`` (eg, via ``make clean``) is needed before changing use of such variables.
+As usual, user environment variables are also visible to GNU make.
+
 
 Dependencies
 ------------
@@ -203,24 +218,24 @@ Dependencies
 This library is fully supported for unix/linux, and partially for
 Mac OSX for Windows (eg under MSYS or WSL using MinGW compilers).
 
-For the basic libraries you need
+For the basic libraries you must have:
 
-* C++ compiler supporting C++14, such ``g++`` in GCC (version >=5.0), or ``clang`` (version >=3.4)
-* FFTW3 (version at least 3.3.6) including its development libraries
+* C++ compiler supporting C++17, such ``g++`` in GCC, or ``clang`` (version >=3.4)
 * GNU ``make`` and other standard unix/POSIX tools such as ``bash``
 
-Optional:
+Optionally you need:
 
+* By default (unless ``FFT=DUCC``) FFTW3 (version at least 3.3.6) including its development libraries
 * for Fortran wrappers: compiler such as ``gfortran`` in GCC
 * for MATLAB wrappers: MATLAB (versions at least R2016b up to current work)
 * for Octave wrappers: recent Octave version at least 4.4, and its development libraries
-* for the python wrappers you will need ``python`` version at least 3.6 (python 2 is unsupported), with ``numpy``.
+* for the python wrappers you will need ``python`` version at least 3.9 (python 2 is unsupported), with ``numpy``.
 
 
 1) Linux: tips for installing dependencies and compiling
 -------------------------------------------------------------------
 
-On a Fedora/CentOS linux system, the base dependencies can be installed by::
+On a Fedora/CentOS linux system, the base dependencies (including optional FFTW3) can be installed by::
 
   sudo yum install make gcc gcc-c++ fftw-devel libgomp
 
@@ -242,12 +257,7 @@ and for Fortran, Python, and Octave language interfaces also do::
 
 In older distros you may have to compile ``octave`` from source to get the needed >=4.4 version.
 
-You should then compile and test the library via various ``make`` tasks, eg::
-
-  make test -j
-
-then checking you got ``0 fails``.
-This compiles the main libraries then runs double- and single-precision tests, each of which should report zero segfaults and zero fails.
+You should then compile and test the library via various ``make`` tasks, as discussed above.
 
 .. note::
 
