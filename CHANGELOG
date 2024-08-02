@@ -3,8 +3,10 @@ If not stated, FINUFFT is assumed (cuFINUFFT <=1.3 is listed separately).
 
 V 2.3.0-rc1 (8/2/24)
 
-* python build modernized to pyproject.toml (both CPU and GPU).
-  PRs 507 (Anden, Lu, Barbone)
+* Switched C++ standards from C++14 to C++17, allowing various templating
+  improvements (Barbone).
+* python build modernized to pyproject.toml (for both CPU and GPU).
+  PR 507 (Anden, Lu, Barbone)
 * switchable FFT: either FFTW or DUCC0 (latter needs no plan stage; also it is
   used to exploit sparsity pattern to achieve FFT speedups 1-3x in 2D and 3D).
   PR463, Martin Reinecke. Both CMake and makefile includes this DUCC0 option
@@ -17,7 +19,7 @@ V 2.3.0-rc1 (8/2/24)
   A large chunk of work: PRs 459, 471, 502.
   NOTE: introduces new dependency (XSIMD), added to CMake and makefile.
 * Exploiting even/odd symmetry for 10% faster xsimd-accel kernel poly eval
-  Libin Lu based on idea of Martin Reinecke (PR477,492,493).
+  (Libin Lu based on idea of Martin Reinecke; PR477,492,493).
 * new test/finufft3dkernel_test checks kerevalmeth=0 and 1 agree to tolerance
   PR 473 (M Barbone).
 * new perftest/compare_spreads.jl compares two spreadinterp libs (A Barnett).
@@ -48,11 +50,11 @@ V 2.3.0-rc1 (8/2/24)
   any 32-bit integers to 64-bit when calling cufinufft(f)_setpts. Note that
   internally, 32-bit integers are still used, so calling cufinufft with more
   than 2e9 points will fail. This restriction may be lifted in the future.
-* CMake build system revamped completely, using more modern practices (Barbone)
-  It auto-selects compiler flags based on those supported on all OSes.
-  Has support for Windows (llvm, msvc), Linux (llvm, gcc) and MacOS (llvm, gcc).
-* cmake added nvcc and msvc optimization flags
-* sphinx local doc build also using CMake
+* CMake build system revamped completely, using more modern practices (Barbone).
+  It now auto-selects compiler flags based on those supported on all OSes, and
+  has support for Windows (llvm, msvc), Linux (llvm, gcc) and MacOS (llvm, gcc).
+* CMake added nvcc and msvc optimization flags.
+* sphinx local doc build also using CMake.
 * updated install docs, including for DUCC0 FFT.
 
 V 2.2.0 (12/12/23)

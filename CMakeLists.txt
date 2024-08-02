@@ -144,7 +144,8 @@ if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
   if(FINUFFT_BUILD_TESTS)
     enable_testing()
   endif()
-  include(cmake/setupSphinx.cmake)
+  # include(cmake/setupSphinx.cmake)    # to be made default off since only for
+  # devs
 endif()
 
 if(FINUFFT_USE_CPU)
