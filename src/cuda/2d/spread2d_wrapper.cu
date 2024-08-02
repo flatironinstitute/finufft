@@ -277,7 +277,10 @@ int cuspread2d_subprob(int nf1, int nf2, int M, cufinufft_plan_t<T> *d_plan,
 
   if (d_plan->opts.gpu_kerevalmeth) {
     for (int t = 0; t < blksize; t++) {
-      cufinufft_set_shared_memory(spread_2d_subprob<T, 1>, 2, *d_plan);
+      if (const auto finufft_err =
+              cufinufft_set_shared_memory(spread_2d_subprob<T, 1>, 2, *d_plan) != 0) {
+        return FINUFFT_ERR_INSUFFICIENT_SHMEM;
+      }
       RETURN_IF_CUDA_ERROR
       spread_2d_subprob<T, 1><<<totalnumsubprob, 256, sharedplanorysize, stream>>>(
           d_kx, d_ky, d_c + t * M, d_fw + t * nf1 * nf2, M, ns, nf1, nf2, es_c, es_beta,
@@ -288,7 +291,10 @@ int cuspread2d_subprob(int nf1, int nf2, int M, cufinufft_plan_t<T> *d_plan,
     }
   } else {
     for (int t = 0; t < blksize; t++) {
-      cufinufft_set_shared_memory(spread_2d_subprob<T, 0>, 2, *d_plan);
+      if (const auto finufft_err =
+              cufinufft_set_shared_memory(spread_2d_subprob<T, 0>, 2, *d_plan) != 0) {
+        return FINUFFT_ERR_INSUFFICIENT_SHMEM;
+      }
       RETURN_IF_CUDA_ERROR
       spread_2d_subprob<T, 0><<<totalnumsubprob, 256, sharedplanorysize, stream>>>(
           d_kx, d_ky, d_c + t * M, d_fw + t * nf1 * nf2, M, ns, nf1, nf2, es_c, es_beta,

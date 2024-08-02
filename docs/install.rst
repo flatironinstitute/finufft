@@ -12,20 +12,18 @@ a precompiled binary for your platform under Assets for various
 `releases <https://github.com/flatironinstitute/finufft/releases>`_.
 Please post an `Issue <https://github.com/flatironinstitute/finufft/issues>`_
 to document your installation problem.
-When using CMake, finufft requires no external dependencies except (c/c++ compilers supporting OpenMP).
+When using CMake, finufft requires no external dependencies except (c/c++ compilers supporting OpenMP and c++17).
 However GNU ``makefile`` assumes that FFTW (single/double) are installed.
+Python-only users can simply install via ``pip install finufft`` which downloads a generic binary from PyPI. Only if you prefer a custom compilation, see :ref:`below<install-python>`.
 
 .. note::
     finufft builds with no issues on Linux and MacOS using any compiler, in our experience GCC-13 gives best performance.
     On Windows MSVC works fine. The llvm toolchain included in Visual Studio does not seem to have OpenMP, it is possible to build single-threaded FINUFFT.
     The official windows LLVM distribution builds finufft with no issues but debug builds using sanitizers break.
-
-.. note::
-
     On windows finufft built with MSVC requires ``VCOMP140D.DLL`` which is part of the `Microsoft Visual C++ Redistributable <https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist?view=msvc-170>`_.
     It is likely to be already installed in your system.
     If the library is built with LLVM it requires ``libomp140.x86.64.dll``, more information `here <https://devblogs.microsoft.com/cppblog/improved-openmp-support-for-cpp-in-visual-studio/>`_.
-    Python-only users can simply install via ``pip install finufft`` which downloads a generic binary from PyPI. Only if you prefer a custom compilation, see :ref:`below<install-python>`.
+
 
 CMake CPM Based Installation
 ----------------------------
@@ -40,13 +38,13 @@ Then add the following to your ``CMakeLists.txt``:
 .. code-block:: cmake
 
   # short version
-  CPMAddPackage("gh:flatironinstitute/finufft@2.3")
+  CPMAddPackage("gh:flatironinstitute/finufft@2.2")
 
   # alternative in case custom options are needed
   CPMAddPackage(
     NAME             Finufft
     GIT_REPOSITORY   https://github.com/flatironinstitute/finufft.git
-    GIT_TAG          2.3
+    GIT_TAG          2.2
     GIT_SHALLOW      Yes
     GIT_PROGRESS     Yes
     EXCLUDE_FROM_ALL Yes
@@ -72,7 +70,7 @@ To do so add the following to your ``CMakeLists.txt``:
     FetchContent_Declare(
       finufft
       GIT_REPOSITORY https://github.com/flatironinstitute/finufft.git
-      GIT_TAG 2.3
+      GIT_TAG 2.2
     )
 
     # Make the content available
@@ -96,8 +94,8 @@ The basic quick download, building, and test is then:
   cd finufft
   cmake -S . -B build -DFINUFFT_BUILD_TESTS=ON --install-prefix /path/to/install
   cmake --build build
-  ctest
-  cmake --install .
+  ctest --test-dir build/
+  cmake --install build
 
 .. note::
 
@@ -127,11 +125,12 @@ Here are all our build options, showing name, explanatory text, and default valu
    :end-before: @cmake_opts_end
 
 .. note::
-    It is possible to choose between ``FFTW`` and `DUCC fft <https://gitlab.mpcdf.mpg.de/mtr/ducc>`_, Ducc fft is from the same author as `pocket fft <https://gitlab.mpcdf.mpg.de/mtr/pocketfft>`_.
+    It is possible to choose between ``FFTW`` and `ducc fft <https://gitlab.mpcdf.mpg.de/mtr/ducc>`_, ducc fft is from the same author as `pocket fft <https://gitlab.mpcdf.mpg.de/mtr/pocketfft>`_.
     Pocket fft is the fft used by `scipy <https://scipy.org/>`_.
-    An idea about ducc performance can be found in `this discussion <https://github.com/flatironinstitute/finufft/pull/463#issuecomment-2223988300>`_. We encourage the power user can try switching to ducc0 to see if it improves performance.
+    An idea about ducc performance can be found in `this discussion <https://github.com/flatironinstitute/finufft/pull/463#issuecomment-2223988300>`_. We encourage the power user to try switching to ducc to see if it improves performance.
 
 .. warning::
+    Note to the user, using --fast-math or /fp:fast can break finufft and its tests.
     On windows with msvc cl, ``ducc fft`` has to compile with ``/fp:fast``, otherwise some tests (run_finufft3d_test_float, run_finufft3dmany_test_float) may fail because of the resulting error is larger than the tolerance.
     On the other hand, finufft on windows with msvc cl should not compile with flag ``/fp:fast``, with ``/fp:fast`` the test run_dumbinputs_double will result in segfault, because /fp:fast makes values (NaN, +infinity, -infinity, -0.0) may not be propagated or behave strictly according to the IEEE-754 standard.
 
@@ -143,7 +142,7 @@ For example, to configure, build and test the development preset (which builds t
 
   cmake -S . -B build --preset dev # dev is the preset name
   cmake --build build
-  ctest
+  ctest --test-dir build/
 
 .. warning::
 
@@ -179,7 +178,7 @@ If there is an error in testing on what you consider a standard set-up,
 please file a detailed bug report as a New Issue at https://github.com/flatironinstitute/finufft/issues
 
 
-Quick linux GNU MAKE install instructions
+Quick linux GNU make install instructions
 --------------------------------
 
 Make sure you have packages ``fftw3`` and ``fftw3-dev`` (or their
@@ -460,7 +459,7 @@ section of ``mexopts.sh``.
 
 
 
-3) Windows GNU MAKE: tips for compiling
+3) Windows GNU make: tips for compiling
 -------------------------------
 
 We have users who have adjusted the makefile to work - at least to some extent - on Windows 10. If you are only interested in calling from Octave (which already comes with MinGW-w64 and FFTW), then we have been told this can be done very simply: from within Octave, go to the ``finufft`` directory and do ``system('make octave')``. You may have to tweak ``OCTAVE`` in your ``make.inc`` in a similar fashion to below.

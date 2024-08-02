@@ -64,6 +64,7 @@ V 2.3.0beta (7/24/24)
 * cuFINUFFT using intrinsics in foldrescale and other places to increase
   performance
 * cuFINUFFT using SM90 float2 vector atomicAdd where supported
+* cuFINUFFT making default binsize = 0
 
 V 2.2.0 (12/12/23)
 

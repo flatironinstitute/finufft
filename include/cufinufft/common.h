@@ -4,6 +4,7 @@
 #include <cufft.h>
 #include <cufinufft/types.h>
 #include <cufinufft_opts.h>
+#include <finufft_errors.h>
 #include <finufft_spread_opts.h>
 
 #include <complex.h>
@@ -42,26 +43,26 @@ void cufinufft_setup_binsize(int type, int ns, int dim, cufinufft_opts *opts);
 template<typename T, typename V>
 auto cufinufft_set_shared_memory(V *kernel, const int dim,
                                  const cufinufft_plan_t<T> &d_plan) {
-  int device_id;
+  /**
+   * WARNING: this function does not handle cuda errors. The caller should check them.
+   */
+  int device_id{}, shared_mem_per_block{};
   cudaGetDevice(&device_id);
   const auto shared_mem_required =
       shared_memory_required<T>(dim, d_plan.spopts.nspread, d_plan.opts.gpu_binsizex,
                                 d_plan.opts.gpu_binsizey, d_plan.opts.gpu_binsizez);
-  int shared_mem_per_block{};
-  const auto err = cudaDeviceGetAttribute(
-      &shared_mem_per_block, cudaDevAttrMaxSharedMemoryPerBlockOptin, device_id);
-  if (err != cudaSuccess) {
-    return err;
-  }
+  cudaDeviceGetAttribute(&shared_mem_per_block, cudaDevAttrMaxSharedMemoryPerBlockOptin,
+                         device_id);
   if (shared_mem_required > shared_mem_per_block) {
     fprintf(stderr,
             "Error: Shared memory required per block is %zu bytes, but the device "
             "supports only %d bytes.\n",
             shared_mem_required, shared_mem_per_block);
-    return err;
+    return FINUFFT_ERR_INSUFFICIENT_SHMEM;
   }
-  return cudaFuncSetAttribute(kernel, cudaFuncAttributeMaxDynamicSharedMemorySize,
-                              shared_mem_required);
+  cudaFuncSetAttribute(kernel, cudaFuncAttributeMaxDynamicSharedMemorySize,
+                       shared_mem_required);
+  return 0;
 }
 
 } // namespace common

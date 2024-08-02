@@ -121,6 +121,8 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
   d_plan->mu  = nmodes[2];
 
   cufinufft_setup_binsize<T>(type, d_plan->spopts.nspread, dim, &d_plan->opts);
+  RETURN_IF_CUDA_ERROR
+
   CUFINUFFT_BIGINT nf1 = 1, nf2 = 1, nf3 = 1;
   set_nf_type12(d_plan->ms, d_plan->opts, d_plan->spopts, &nf1,
                 d_plan->opts.gpu_obinsizex);
@@ -136,14 +138,11 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
 
   /* Automatically set GPU method. */
   if (d_plan->opts.gpu_method == 0) {
-    /* For type 1, we default to method 2 (SM) since this is generally faster.
-     * However, in the special case of _double precision_ in _three dimensions_
-     * with more than _three digits of precision_, there is note enough shared
-     * memory for this to work. As a result, we will default to method 1 (GM) in
-     * this special case.
+    /* For type 1, we default to method 2 (SM) since this is generally faster
+     * if there is enough shared memory available. Otherwise, we default to GM.
      *
-     * For type 2, we always default to method 1 (GM). */
-
+     * For type 2, we always default to method 1 (GM).
+     */
     if (type == 2) {
       d_plan->opts.gpu_method = 1;
     } else {
