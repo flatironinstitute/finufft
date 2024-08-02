@@ -280,7 +280,6 @@ int cuspread3d_blockgather_prop(int nf1, int nf2, int nf3, int M,
 
   blocks.x = (threadsPerBlock.x + numbins[0] - 1) / threadsPerBlock.x;
   blocks.y = (threadsPerBlock.y + numbins[1] - 1) / threadsPerBlock.y;
-  blocks.y = (threadsPerBlock.y + numbins[1] - 1) / threadsPerBlock.y;
   blocks.z = (threadsPerBlock.z + numbins[2] - 1) / threadsPerBlock.z;
 
   ghost_bin_pts_index<<<blocks, threadsPerBlock, 0, stream>>>(
@@ -538,7 +537,10 @@ int cuspread3d_subprob(int nf1, int nf2, int nf3, int M, cufinufft_plan_t<T> *d_
                                 d_plan->opts.gpu_binsizey, d_plan->opts.gpu_binsizez);
   for (int t = 0; t < blksize; t++) {
     if (d_plan->opts.gpu_kerevalmeth) {
-      cufinufft_set_shared_memory(spread_3d_subprob<T, 1>, 3, *d_plan);
+      if (const auto finufft_err =
+              cufinufft_set_shared_memory(spread_3d_subprob<T, 1>, 3, *d_plan) != 0) {
+        return FINUFFT_ERR_INSUFFICIENT_SHMEM;
+      }
       RETURN_IF_CUDA_ERROR
       spread_3d_subprob<T, 1><<<totalnumsubprob, 256, sharedplanorysize, stream>>>(
           d_kx, d_ky, d_kz, d_c + t * M, d_fw + t * nf1 * nf2 * nf3, M, ns, nf1, nf2, nf3,
@@ -547,7 +549,10 @@ int cuspread3d_subprob(int nf1, int nf2, int nf3, int M, cufinufft_plan_t<T> *d_
           numbins[0], numbins[1], numbins[2], d_idxnupts);
       RETURN_IF_CUDA_ERROR
     } else {
-      cufinufft_set_shared_memory(spread_3d_subprob<T, 0>, 3, *d_plan);
+      if (const auto finufft_err =
+              cufinufft_set_shared_memory(spread_3d_subprob<T, 0>, 3, *d_plan) != 0) {
+        return FINUFFT_ERR_INSUFFICIENT_SHMEM;
+      }
       RETURN_IF_CUDA_ERROR
       spread_3d_subprob<T, 0><<<totalnumsubprob, 256, sharedplanorysize, stream>>>(
           d_kx, d_ky, d_kz, d_c + t * M, d_fw + t * nf1 * nf2 * nf3, M, ns, nf1, nf2, nf3,

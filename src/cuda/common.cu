@@ -249,16 +249,11 @@ void cufinufft_setup_binsize(int type, int ns, int dim, cufinufft_opts *opts) {
   int shared_mem_per_block{}, device_id{};
   switch (dim) {
   case 1: {
-    if (opts->gpu_binsizex < 0) {
+    if (opts->gpu_binsizex == 0) {
       cudaGetDevice(&device_id);
-      if (const auto err = cudaGetLastError(); err != cudaSuccess) {
-        throw std::runtime_error(cudaGetErrorString(err));
-      }
       cudaDeviceGetAttribute(&shared_mem_per_block,
                              cudaDevAttrMaxSharedMemoryPerBlockOptin, device_id);
-      if (const auto err = cudaGetLastError(); err != cudaSuccess) {
-        throw std::runtime_error(cudaGetErrorString(err));
-      }
+      // CUDA error handled by the caller not checking them here.
       // use 1/6 of the shared memory for the binsize
       // From experiments on multiple GPUs this gives the best tradeoff.
       // It is within 90% of the maximum performance for all GPUs tested.
@@ -271,7 +266,7 @@ void cufinufft_setup_binsize(int type, int ns, int dim, cufinufft_opts *opts) {
     opts->gpu_binsizez = 1;
   } break;
   case 2: {
-    if (opts->gpu_binsizex < 0 || opts->gpu_binsizey < 0) {
+    if (opts->gpu_binsizex == 0 || opts->gpu_binsizey == 0) {
       switch (opts->gpu_method) {
       case 0:
       case 2: {
@@ -280,16 +275,10 @@ void cufinufft_setup_binsize(int type, int ns, int dim, cufinufft_opts *opts) {
       } break;
       case 1: {
         cudaGetDevice(&device_id);
-        if (const auto err = cudaGetLastError(); err != cudaSuccess) {
-          throw std::runtime_error(cudaGetErrorString(err));
-        }
         cudaDeviceGetAttribute(&shared_mem_per_block,
                                cudaDevAttrMaxSharedMemoryPerBlockOptin, device_id);
-        if (const auto err = cudaGetLastError(); err != cudaSuccess) {
-          throw std::runtime_error(cudaGetErrorString(err));
-        }
-
         const auto binsize = find_bin_size<T>(shared_mem_per_block, dim, ns);
+        // in 2D 1/6 is too small, it gets slower because of the excessive padding
         opts->gpu_binsizex = binsize;
         opts->gpu_binsizey = binsize;
       } break;
@@ -302,19 +291,19 @@ void cufinufft_setup_binsize(int type, int ns, int dim, cufinufft_opts *opts) {
     case 0:
     case 1:
     case 2: {
-      if (opts->gpu_binsizex < 0 || opts->gpu_binsizey < 0 || opts->gpu_binsizez < 0) {
+      if (opts->gpu_binsizex == 0 || opts->gpu_binsizey == 0 || opts->gpu_binsizez == 0) {
         opts->gpu_binsizex = 16;
         opts->gpu_binsizey = 16;
         opts->gpu_binsizez = 2;
       }
     } break;
     case 4: {
-      opts->gpu_obinsizex = (opts->gpu_obinsizex < 0) ? 8 : opts->gpu_obinsizex;
-      opts->gpu_obinsizey = (opts->gpu_obinsizey < 0) ? 8 : opts->gpu_obinsizey;
-      opts->gpu_obinsizez = (opts->gpu_obinsizez < 0) ? 8 : opts->gpu_obinsizez;
-      opts->gpu_binsizex  = (opts->gpu_binsizex < 0) ? 4 : opts->gpu_binsizex;
-      opts->gpu_binsizey  = (opts->gpu_binsizey < 0) ? 4 : opts->gpu_binsizey;
-      opts->gpu_binsizez  = (opts->gpu_binsizez < 0) ? 4 : opts->gpu_binsizez;
+      opts->gpu_obinsizex = (opts->gpu_obinsizex == 0) ? 8 : opts->gpu_obinsizex;
+      opts->gpu_obinsizey = (opts->gpu_obinsizey == 0) ? 8 : opts->gpu_obinsizey;
+      opts->gpu_obinsizez = (opts->gpu_obinsizez == 0) ? 8 : opts->gpu_obinsizez;
+      opts->gpu_binsizex  = (opts->gpu_binsizex == 0) ? 4 : opts->gpu_binsizex;
+      opts->gpu_binsizey  = (opts->gpu_binsizey == 0) ? 4 : opts->gpu_binsizey;
+      opts->gpu_binsizez  = (opts->gpu_binsizez == 0) ? 4 : opts->gpu_binsizez;
     } break;
     }
   } break;
