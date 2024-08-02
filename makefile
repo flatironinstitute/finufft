@@ -116,7 +116,7 @@ ifneq ($(OMP),OFF)
   LIBS += $(OMPLIBS)
 # fftw3 multithreaded libs...
   ifneq ($(FFT),DUCC)
-    LIBSFFT += -l$(FFTWNAME)_$(FFTWOMPSUFFIX) -l$(FFTWNAME)f_$(FFTWOMPSUFFIX)
+    LIBSFFT += -l$(FFTWNAME)_$(FFTWOMPSUFFIX) -l$(FFTWNAME)f_$(FFTWOMPSUFFIX) $(OMPLIBS)
   endif
 endif
 
@@ -200,10 +200,14 @@ HEADERS = $(wildcard include/*.h include/finufft/*.h) $(DUCC_HEADERS)
 %_32.o: %.f
 	$(FC) -DSINGLE -c $(FFLAGS) $< -o $@
 
-# spreadinterp include auto-generated code, xsimd header-only dependency...
-SHEAD = $(wildcard src/*.h) $(XSIMD_DIR)/include/xsimd/xsimd.hpp
-src/spreadinterp.o: $(SHEAD)
-src/spreadinterp_32.o: $(SHEAD)
+# spreadinterp include auto-generated code, xsimd header-only dependency,
+# if FFT=DUCC also setup ducc...
+# note src/spreadinterp.cpp includes finufft/defs.h which includes finufft/fft.h
+# so fftw/ducc header needed for spreadinterp, though spreadinterp should not
+# depend on fftw/ducc directly?
+SHEAD = $(wildcard src/*.h)
+src/spreadinterp.o: $(SHEAD) setup
+src/spreadinterp_32.o: $(SHEAD) setup
 
 
 # lib -----------------------------------------------------------------------
@@ -489,8 +493,8 @@ $(DUCC_COOKIE):
 	@echo "DUCC installed in deps/ducc"
 
 # implicit rule for DUCC compile just needed objects, only used if FFT=DUCC.
-# Needed since DUCC has no makefile (yet). Cookie triggers download if need:
-$(DUCC_SRC)/%.o: $(DUCC_SRC)/%.cc $(DUCC_COOKIE)
+# Needed since DUCC has no makefile (yet).
+$(DUCC_SRC)/%.o: $(DUCC_SRC)/%.cc
 	$(CXX) -c $(DUCC_CXXFLAGS) $(DUCC_INCL) $< -o $@
 
 setup: $(XSIMD_DIR)/include/xsimd/xsimd.hpp $(DUCC_SETUP)
