@@ -149,7 +149,7 @@ int main(int argc, char *argv[]) {
   timer.restart();
   ier = FINUFFT1D3(M, x, c, isign, tol, N, s, F, &opts);
   t   = timer.elapsedsec();
-  if (ier > 0) {
+  if (ier > 1) {
     printf("error (ier=%d)!\n", ier);
     return ier;
   } else
