@@ -14,7 +14,7 @@
 # Garrett Wright, Joakim Anden, Barnett: dual-prec lib build, Jun-Jul'20.
 # Windows compatibility, jonas-kr, Sep '20.
 # XSIMD dependency, Marco Barbone, June 2024.
-# DUCC optional dependency to replace FFTW3. Barnett, July '24.
+# DUCC optional dependency to replace FFTW3. Barnett, 8/1/24.
 
 # Compiler (CXX), and linking from C, fortran. We use GCC by default...
 CXX = g++
@@ -42,7 +42,8 @@ LIBS := -lm
 # multithreading for GCC: C++/C/Fortran, MATLAB, and octave (ICC differs)...
 OMPFLAGS = -fopenmp
 OMPLIBS = -lgomp
-MOMPFLAGS = -D_OPENMP
+# we bundle any libs mex needs here with flags...
+MOMPFLAGS = -D_OPENMP $(OMPLIBS)
 OOMPFLAGS =
 # MATLAB MEX compilation (also see below +=)...
 MFLAGS := -largeArrayDims
@@ -69,6 +70,11 @@ DUCC_VERSION := ducc0_0_34_0
 DUCC_DIR := $(DEPS_ROOT)/ducc
 # this dummy file used as empty target by make...
 DUCC_COOKIE := $(DUCC_DIR)/.finufft_has_ducc
+# for internal DUCC compile...
+DUCC_INCL := -I$(DUCC_DIR)/src
+DUCC_SRC := $(DUCC_DIR)/src/ducc0
+# for DUCC objects compile only (not our objects)...  *** check flags, pthreads?:
+DUCC_CXXFLAGS := -fPIC -std=c++17 -ffast-math
 
 # absolute path of this makefile, ie FINUFFT's top-level directory...
 FINUFFT = $(dir $(realpath $(firstword $(MAKEFILE_LIST))))
@@ -86,18 +92,13 @@ INCL = -Iinclude -I$(XSIMD_DIR)/include
 LIBSFFT := $(LIBS)
 ifeq ($(FFT),DUCC)
   DUCC_SETUP := $(DUCC_COOKIE)
-  DUCC_SRC := $(DUCC_DIR)/src/ducc0
-# for internal DUCC compile...
-  DUCC_INCL := -I$(DUCC_DIR)/src
 # so FINUFFT build can see DUCC headers...
   INCL += $(DUCC_INCL)
   DUCC_OBJS := $(DUCC_SRC)/infra/string_utils.o $(DUCC_SRC)/infra/threading.o $(DUCC_SRC)/infra/mav.o $(DUCC_SRC)/math/gridding_kernel.o $(DUCC_SRC)/math/gl_integrator.o
-# for DUCC objects compile only (not our objects)...  *** check flags, pthreads?:
-  DUCC_CXXFLAGS := -fPIC -std=c++17 -ffast-math
 # FINUFFT's switchable FFT done via this compile directive...
   CXXFLAGS += -DFINUFFT_USE_DUCC0
 else
-# link against FFTW3 single-threaded
+# link against FFTW3 single-threaded (leaves DUCC_OBJS and DUCC_SETUP undef)
   LIBSFFT += -l$(FFTWNAME) -l$(FFTWNAME)f
 endif
 CXXFLAGS := $(CXXFLAGS) $(INCL) -fPIC -std=c++17
@@ -476,7 +477,7 @@ $(XSIMD_DIR)/include/xsimd/xsimd.hpp:
 	$(call clone_repo,$(XSIMD_URL),$(XSIMD_VERSION),$(XSIMD_DIR))
 	@echo "xsimd installed in deps/xsimd"
 
-# download DUCC... (task is a empty target just used to track if installed)
+# download DUCC... (an empty target just used to track if installed)
 $(DUCC_COOKIE):
 	mkdir -p $(DEPS_ROOT)
 	@echo "Checking DUCC external dependency..."
@@ -514,7 +515,7 @@ ifneq ($(MINGW),ON)
 	rm -f matlab/*.mex*
 	rm -f $(TESTS) test/results/*.out perftest/results/*.out
 	rm -f $(EXAMPLES) $(FE) $(ST) $(STF) $(STA) $(STAF) $(GTT) $(GTTF)
-	rm -f perftest/manysmallprobs
+	rm -f perftest/manysmallprobs perftest/big2d2f
 	rm -f examples/core test/core perftest/core $(FE_DIR)/core
 else
   # Windows-WSL clean up...
@@ -523,7 +524,7 @@ else
 	for %%f in ($(subst /,\, $(TESTS))) do ((if exist %%f del %%f) & (if exist %%f.exe del %%f.exe))
 	del test\results\*.out perftest\results\*.out
 	for %%f in ($(subst /,\, $(EXAMPLES)), $(subst /,\,$(FE)), $(subst /,\,$(ST)), $(subst /,\,$(STF)), $(subst /,\,$(STA)), $(subst /,\,$(STAF)), $(subst /,\,$(GTT)), $(subst /,\,$(GTTF))) do ((if exist %%f del %%f) & (if exist %%f.exe del %%f.exe))
-	del perftest\manysmallprobs
+	del perftest\manysmallprobs, perftest\big2d2f
 	del examples\core, test\core, perftest\core, $(subst /,\, $(FE_DIR))\core
 endif
 
@@ -531,13 +532,15 @@ endif
 # indiscriminate .o killer; needed before changing threading...
 objclean:
 ifneq ($(MINGW),ON)
-  # non-Windows-WSL...
+  # non-Windows-WSL... (note: cleans DUCC objects regardless of FFT choice)
 	rm -f src/*.o test/directft/*.o test/*.o examples/*.o matlab/*.o contrib/*.o
 	rm -f fortran/*.o $(FE_DIR)/*.o $(FD)/*.o finufft_mod.mod
+	rm -f $(DUCC_SRC)/infra/*.o $(DUCC_SRC)/math/*.o
 else
   # Windows-WSL...
 	for /d %%d in (src,test\directfttest,examples,matlab,contrib) do (for %%f in (%%d\*.o) do (del %%f))
 	for /d %%d in (fortran,$(subst /,\, $(FE_DIR)),$(subst /,\, $(FD))) do (for %%f in (%%d\*.o) do (del %%f))
+  # *** to del DUCC *.o
 endif
 
 pyclean:
