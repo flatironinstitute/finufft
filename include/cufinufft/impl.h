@@ -39,39 +39,6 @@ template<typename T>
 int cufinufft3d2_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
                       cufinufft_plan_t<T> *d_plan);
 
-static void cufinufft_setup_binsize(int type, int dim, cufinufft_opts *opts) {
-  switch (dim) {
-  case 1: {
-    opts->gpu_binsizex = (opts->gpu_binsizex < 0) ? 1024 : opts->gpu_binsizex;
-    opts->gpu_binsizey = 1;
-    opts->gpu_binsizez = 1;
-  } break;
-  case 2: {
-    opts->gpu_binsizex = (opts->gpu_binsizex < 0) ? 32 : opts->gpu_binsizex;
-    opts->gpu_binsizey = (opts->gpu_binsizey < 0) ? 32 : opts->gpu_binsizey;
-    opts->gpu_binsizez = 1;
-  } break;
-  case 3: {
-    switch (opts->gpu_method) {
-    case 1:
-    case 2: {
-      opts->gpu_binsizex = (opts->gpu_binsizex < 0) ? 16 : opts->gpu_binsizex;
-      opts->gpu_binsizey = (opts->gpu_binsizey < 0) ? 16 : opts->gpu_binsizey;
-      opts->gpu_binsizez = (opts->gpu_binsizez < 0) ? 2 : opts->gpu_binsizez;
-    } break;
-    case 4: {
-      opts->gpu_obinsizex = (opts->gpu_obinsizex < 0) ? 8 : opts->gpu_obinsizex;
-      opts->gpu_obinsizey = (opts->gpu_obinsizey < 0) ? 8 : opts->gpu_obinsizey;
-      opts->gpu_obinsizez = (opts->gpu_obinsizez < 0) ? 8 : opts->gpu_obinsizez;
-      opts->gpu_binsizex  = (opts->gpu_binsizex < 0) ? 4 : opts->gpu_binsizex;
-      opts->gpu_binsizey  = (opts->gpu_binsizey < 0) ? 4 : opts->gpu_binsizey;
-      opts->gpu_binsizez  = (opts->gpu_binsizez < 0) ? 4 : opts->gpu_binsizez;
-    } break;
-    }
-  } break;
-  }
-}
-
 template<typename T>
 int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntransf, T tol,
                             cufinufft_plan_t<T> **d_plan_ptr, cufinufft_opts *opts) {
@@ -93,6 +60,7 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
           Variables and arrays inside the plan struct are set and allocated.
 
       Melody Shih 07/25/19. Use-facing moved to markdown, Barnett 2/16/21.
+      Marco Barbone 07/26/24. Using SM when shared memory available is enough.
   */
   int ier;
   cuDoubleComplex *d_a = nullptr; // fseries temp data
@@ -109,17 +77,16 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
   }
 
   // Mult-GPU support: set the CUDA Device ID:
-  const int device_id = opts == NULL ? 0 : opts->gpu_device_id;
+  const int device_id = opts == nullptr ? 0 : opts->gpu_device_id;
   cufinufft::utils::WithCudaDevice device_swapper(device_id);
 
   /* allocate the plan structure, assign address to user pointer. */
-  cufinufft_plan_t<T> *d_plan = new cufinufft_plan_t<T>;
-  *d_plan_ptr                 = d_plan;
+  auto *d_plan = new cufinufft_plan_t<T>;
+  *d_plan_ptr  = d_plan;
   // Zero out your struct, (sets all pointers to NULL)
   memset(d_plan, 0, sizeof(*d_plan));
-
   /* If a user has not supplied their own options, assign defaults for them. */
-  if (opts == NULL) {     // use default opts
+  if (opts == nullptr) {  // use default opts
     cufinufft_default_opts(&(d_plan->opts));
   } else {                // or read from what's passed in
     d_plan->opts = *opts; // keep a deep copy; changing *opts now has no effect
@@ -138,26 +105,9 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
   }
 
   auto &stream = d_plan->stream = (cudaStream_t)d_plan->opts.gpu_stream;
-
-  /* Automatically set GPU method. */
-  if (d_plan->opts.gpu_method == 0) {
-    /* For type 1, we default to method 2 (SM) since this is generally faster.
-     * However, in the special case of _double precision_ in _three dimensions_
-     * with more than _three digits of precision_, there is note enough shared
-     * memory for this to work. As a result, we will default to method 1 (GM) in
-     * this special case.
-     *
-     * For type 2, we always default to method 1 (GM). */
-    if (type == 1 && (sizeof(T) == 4 || dim < 3 || tol >= 1e-3))
-      d_plan->opts.gpu_method = 2;
-    else if (type == 1 && tol < 1e-3)
-      d_plan->opts.gpu_method = 1;
-    else if (type == 2)
-      d_plan->opts.gpu_method = 1;
-  }
-
-  /* Setup Spreader */
   using namespace cufinufft::common;
+  /* Setup Spreader */
+
   // can return FINUFFT_WARN_EPS_TOO_SMALL=1, which is OK
   if ((ier = setup_spreader_for_nufft(d_plan->spopts, tol, d_plan->opts)) > 1) {
     delete *d_plan_ptr;
@@ -170,7 +120,9 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
   d_plan->mt  = nmodes[1];
   d_plan->mu  = nmodes[2];
 
-  cufinufft_setup_binsize(type, dim, &d_plan->opts);
+  cufinufft_setup_binsize<T>(type, d_plan->spopts.nspread, dim, &d_plan->opts);
+  RETURN_IF_CUDA_ERROR
+
   CUFINUFFT_BIGINT nf1 = 1, nf2 = 1, nf3 = 1;
   set_nf_type12(d_plan->ms, d_plan->opts, d_plan->spopts, &nf1,
                 d_plan->opts.gpu_obinsizex);
@@ -180,6 +132,37 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
   if (dim > 2)
     set_nf_type12(d_plan->mu, d_plan->opts, d_plan->spopts, &nf3,
                   d_plan->opts.gpu_obinsizez);
+
+  // dynamically request the maximum amount of shared memory available
+  // for the spreader
+
+  /* Automatically set GPU method. */
+  if (d_plan->opts.gpu_method == 0) {
+    /* For type 1, we default to method 2 (SM) since this is generally faster
+     * if there is enough shared memory available. Otherwise, we default to GM.
+     *
+     * For type 2, we always default to method 1 (GM).
+     */
+    if (type == 2) {
+      d_plan->opts.gpu_method = 1;
+    } else {
+      // query the device for the amount of shared memory available
+      int shared_mem_per_block{};
+      cudaDeviceGetAttribute(&shared_mem_per_block,
+                             cudaDevAttrMaxSharedMemoryPerBlockOptin, device_id);
+      RETURN_IF_CUDA_ERROR
+      // compute the amount of shared memory required for the method
+      const auto shared_mem_required = shared_memory_required<T>(
+          dim, d_plan->spopts.nspread, d_plan->opts.gpu_binsizex,
+          d_plan->opts.gpu_binsizey, d_plan->opts.gpu_binsizez);
+      if ((shared_mem_required > shared_mem_per_block)) {
+        d_plan->opts.gpu_method = 1;
+      } else {
+        d_plan->opts.gpu_method = 2;
+      }
+    }
+  }
+
   int fftsign = (iflag >= 0) ? 1 : -1;
 
   d_plan->nf1      = nf1;

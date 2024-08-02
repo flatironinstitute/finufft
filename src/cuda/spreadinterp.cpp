@@ -22,7 +22,7 @@ int setup_spreader(finufft_spread_opts &opts, T eps, T upsampfac, int kerevalmet
 // Must call before any kernel evals done.
 // Returns: 0 success, 1, warning, >1 failure (see error codes in utils.h)
 {
-  if (upsampfac != 2.0) { // nonstandard sigma
+  if (upsampfac != 2.0 && upsampfac != 1.25) { // nonstandard sigma
     if (kerevalmeth == 1) {
       fprintf(stderr,
               "[%s] nonstandard upsampfac=%.3g cannot be handled by kerevalmeth=1\n",
@@ -69,7 +69,7 @@ int setup_spreader(finufft_spread_opts &opts, T eps, T upsampfac, int kerevalmet
     ier = FINUFFT_WARN_EPS_TOO_SMALL;
   }
   opts.nspread      = ns;
-  opts.ES_halfwidth = (T)ns / 2; // constants to help ker eval (except Horner)
+  opts.ES_halfwidth = T(ns * .5); // constants to help ker eval (except Horner)
   opts.ES_c         = 4.0 / (T)(ns * ns);
 
   T betaoverns = 2.30;            // gives decent betas for default sigma=2.0

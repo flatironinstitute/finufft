@@ -1,5 +1,4 @@
 #include <cassert>
-#include <iomanip>
 #include <iostream>
 
 #include <cuComplex.h>
@@ -7,14 +6,13 @@
 #include <thrust/device_ptr.h>
 #include <thrust/scan.h>
 
-#include <cufinufft/memtransfer.h>
+#include <cufinufft/common.h>
 #include <cufinufft/precision_independent.h>
 #include <cufinufft/spreadinterp.h>
 
 #include "spreadinterp2d.cuh"
 
 using namespace cufinufft::common;
-using namespace cufinufft::memtransfer;
 
 namespace cufinufft {
 namespace spreadinterp {
@@ -273,16 +271,17 @@ int cuspread2d_subprob(int nf1, int nf2, int M, cufinufft_plan_t<T> *d_plan,
 
   T sigma = d_plan->opts.upsampfac;
 
-  size_t sharedplanorysize = (bin_size_x + 2 * (int)ceil(ns / 2.0)) *
-                             (bin_size_y + 2 * (int)ceil(ns / 2.0)) *
-                             sizeof(cuda_complex<T>);
-  if (sharedplanorysize > 49152) {
-    std::cerr << "[cuspread2d_subprob] error: not enough shared memory\n";
-    return FINUFFT_ERR_INSUFFICIENT_SHMEM;
-  }
+  const auto sharedplanorysize =
+      shared_memory_required<T>(2, d_plan->spopts.nspread, d_plan->opts.gpu_binsizex,
+                                d_plan->opts.gpu_binsizey, d_plan->opts.gpu_binsizez);
 
   if (d_plan->opts.gpu_kerevalmeth) {
     for (int t = 0; t < blksize; t++) {
+      if (const auto finufft_err =
+              cufinufft_set_shared_memory(spread_2d_subprob<T, 1>, 2, *d_plan) != 0) {
+        return FINUFFT_ERR_INSUFFICIENT_SHMEM;
+      }
+      RETURN_IF_CUDA_ERROR
       spread_2d_subprob<T, 1><<<totalnumsubprob, 256, sharedplanorysize, stream>>>(
           d_kx, d_ky, d_c + t * M, d_fw + t * nf1 * nf2, M, ns, nf1, nf2, es_c, es_beta,
           sigma, d_binstartpts, d_binsize, bin_size_x, bin_size_y, d_subprob_to_bin,
@@ -292,6 +291,11 @@ int cuspread2d_subprob(int nf1, int nf2, int M, cufinufft_plan_t<T> *d_plan,
     }
   } else {
     for (int t = 0; t < blksize; t++) {
+      if (const auto finufft_err =
+              cufinufft_set_shared_memory(spread_2d_subprob<T, 0>, 2, *d_plan) != 0) {
+        return FINUFFT_ERR_INSUFFICIENT_SHMEM;
+      }
+      RETURN_IF_CUDA_ERROR
       spread_2d_subprob<T, 0><<<totalnumsubprob, 256, sharedplanorysize, stream>>>(
           d_kx, d_ky, d_c + t * M, d_fw + t * nf1 * nf2, M, ns, nf1, nf2, es_c, es_beta,
           sigma, d_binstartpts, d_binsize, bin_size_x, bin_size_y, d_subprob_to_bin,
