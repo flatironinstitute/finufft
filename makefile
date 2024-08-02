@@ -46,13 +46,13 @@ OMPLIBS = -lgomp
 MOMPFLAGS = -D_OPENMP $(OMPLIBS)
 OOMPFLAGS =
 # MATLAB MEX compilation (also see below +=)...
-MFLAGS := -largeArrayDims
+MFLAGS := -DR2008OO -largeArrayDims
 # location of MATLAB's mex compiler (could add flags to switch GCC, etc)...
 MEX = mex
 # octave, and its mkoctfile and flags (also see below +=)...
 OCTAVE = octave
 MKOCTFILE = mkoctfile
-OFLAGS =
+OFLAGS = -DR2008OO
 # For experts only, location of MWrap executable (see docs/install.rst):
 MWRAP = mwrap
 
@@ -111,8 +111,8 @@ ifneq ($(OMP),OFF)
   CXXFLAGS += $(OMPFLAGS)
   CFLAGS += $(OMPFLAGS)
   FFLAGS += $(OMPFLAGS)
-  MFLAGS += $(MOMPFLAGS) -DR2008OO
-  OFLAGS += $(OOMPFLAGS) -DR2008OO
+  MFLAGS += $(MOMPFLAGS)
+  OFLAGS += $(OOMPFLAGS)
   LIBS += $(OMPLIBS)
 # fftw3 multithreaded libs...
   ifneq ($(FFT),DUCC)
