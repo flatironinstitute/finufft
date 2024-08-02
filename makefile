@@ -233,7 +233,10 @@ endif
 
 # examples (C++/C) -----------------------------------------------------------
 # build all examples (single-prec codes separate, and not all have one)...
-EXAMPLES = $(basename $(wildcard examples/*.c examples/*.cpp))
+EXAMPLES := $(basename $(wildcard examples/*.c examples/*.cpp))
+ifeq ($(OMP),OFF)
+  EXAMPLES := $(filter-out $(basename $(wildcard examples/*thread*.cpp)),$(EXAMPLES))
+endif
 examples: $(EXAMPLES)
 ifneq ($(MINGW),ON)
   # Windows-MSYS does not find the dynamic libraries, so we make a temporary copy
