@@ -4,14 +4,14 @@ Developer notes
 ===============
 
 * Developers needing to update/regenerate documentation in general, including our readthedocs website, see ``docs/README``. Developers changing MATLAB/octave interfaces or docs, also see ``matlab/README``. Please also see ``contributing.md`` for code style and git hook guidelines.
-* cmake supports sphinx generation one can do by ``cmake --build . --target finufft_sphinx``. This will crete a folder called finufft_sphinx in your build directory, opening ``index.html`` will preview the updated documentation.
-* cmake sphinx requires shpinx and texext to be installed in python
+
 * To update the version number, this needs to be done by hand in the following places:
 
   - ``CMakeLists.txt`` for cmake
   - ``docs/conf.py`` for sphinx
-  - ``python/finufft/setup.py`` for the python pkg version
-  - ``python/cufinufft/setup.py`` for the GPU python pkg version
+  - ``docs/install.rst`` cmake git tags
+  - ``python/finufft/finufft/__init__.py`` for the python pkg version
+  - ``python/cufinufft/cufinufft/__init__.py`` for the GPU python pkg version
   - ``include/finufft/defs.h`` for the debug>0 output
   - ``matlab/Contents.m`` for the MATLAB/Octave help
   - ``CHANGELOG``: don't forget to describe the new features and changes, folding lines at 80 chars.
