@@ -201,13 +201,14 @@ HEADERS = $(wildcard include/*.h include/finufft/*.h) $(DUCC_HEADERS)
 	$(FC) -DSINGLE -c $(FFLAGS) $< -o $@
 
 # spreadinterp include auto-generated code, xsimd header-only dependency,
-# if FFT=DUCC also setup ducc...
+# if FFT=DUCC also setup ducc with fft.h dependency on $(DUCC_SETUP)...
 # note src/spreadinterp.cpp includes finufft/defs.h which includes finufft/fft.h
 # so fftw/ducc header needed for spreadinterp, though spreadinterp should not
 # depend on fftw/ducc directly?
-SHEAD = $(wildcard src/*.h)
-src/spreadinterp.o: $(SHEAD) setup
-src/spreadinterp_32.o: $(SHEAD) setup
+include/finufft/fft.h: $(DUCC_SETUP)
+SHEAD = $(wildcard src/*.h) $(XSIMD_DIR)/include/xsimd/xsimd.hpp
+src/spreadinterp.o: $(SHEAD)
+src/spreadinterp_32.o: $(SHEAD)
 
 
 # lib -----------------------------------------------------------------------
@@ -494,8 +495,25 @@ $(DUCC_COOKIE):
 
 # implicit rule for DUCC compile just needed objects, only used if FFT=DUCC.
 # Needed since DUCC has no makefile (yet).
-$(DUCC_SRC)/%.o: $(DUCC_SRC)/%.cc
+$(DUCC_SRC)/infra/string_utils.cc: $(DUCC_SETUP)
+$(DUCC_SRC)/infra/string_utils.o: $(DUCC_SRC)/infra/string_utils.cc
 	$(CXX) -c $(DUCC_CXXFLAGS) $(DUCC_INCL) $< -o $@
+$(DUCC_SRC)/infra/threading.cc: $(DUCC_SETUP)
+$(DUCC_SRC)/infra/threading.o: $(DUCC_SRC)/infra/threading.cc
+	$(CXX) -c $(DUCC_CXXFLAGS) $(DUCC_INCL) $< -o $@
+$(DUCC_SRC)/infra/mav.cc: $(DUCC_SETUP)
+$(DUCC_SRC)/infra/mav.o: $(DUCC_SRC)/infra/mav.cc
+	$(CXX) -c $(DUCC_CXXFLAGS) $(DUCC_INCL) $< -o $@
+$(DUCC_SRC)/math/gridding_kernel.cc: $(DUCC_SETUP)
+$(DUCC_SRC)/math/gridding_kernel.o: $(DUCC_SRC)/math/gridding_kernel.cc
+	$(CXX) -c $(DUCC_CXXFLAGS) $(DUCC_INCL) $< -o $@
+$(DUCC_SRC)/math/gl_integrator.cc: $(DUCC_SETUP)
+$(DUCC_SRC)/math/gl_integrator.o: $(DUCC_SRC)/math/gl_integrator.cc
+	$(CXX) -c $(DUCC_CXXFLAGS) $(DUCC_INCL) $< -o $@
+# -j with the following not working yet..., need to expand the wildcard as above...
+#$(DUCC_SRC)/%.cc: $(DUCC_SETUP)
+#$(DUCC_SRC)/%.o: $(DUCC_SRC)/%.cc
+#	$(CXX) -c $(DUCC_CXXFLAGS) $(DUCC_INCL) $< -o $@
 
 setup: $(XSIMD_DIR)/include/xsimd/xsimd.hpp $(DUCC_SETUP)
 
