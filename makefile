@@ -1,7 +1,7 @@
-# Makefile for FINUFFT
+# Makefile for FINUFFT (CPU code only, and its various interfaces)
 
 # For simplicity, this is the only makefile; there are no makefiles in
-# subdirectories. This makefile is useful to show humans how to compile
+# subdirectories. This makefile is also useful to show humans how to compile
 # FINUFFT and its various language interfaces and examples.
 # Users should not need to edit this makefile (doing so would make it hard to
 # stay up to date with the repo version). Rather, in order to change
@@ -14,6 +14,7 @@
 # Garrett Wright, Joakim Anden, Barnett: dual-prec lib build, Jun-Jul'20.
 # Windows compatibility, jonas-kr, Sep '20.
 # XSIMD dependency, Marco Barbone, June 2024.
+# DUCC optional dependency to replace FFTW3. Barnett/Lu, 8/6/24.
 
 # Compiler (CXX), and linking from C, fortran. We use GCC by default...
 CXX = g++
@@ -21,13 +22,12 @@ CC = gcc
 FC = gfortran
 CLINK = -lstdc++
 FLINK = $(CLINK)
-# Python version: we use python3 by default, but you may need to change...
 PYTHON = python3
 # baseline compile flags for GCC (no multithreading):
 # Notes: 1) -Ofast breaks isfinite() & isnan(), so use -O3 which now is as fast
 #        2) -fcx-limited-range for fortran-speed complex arith in C++
 #        3) we use simply-expanded (:=) makefile variables, otherwise confusing
-# 		 4) the extra math flags are for speed, but they do not impact accuracy
+#        4) the extra math flags are for speed, but they do not impact accuracy;
 #           they allow gcc to vectorize the code more effectively
 CFLAGS := -O3 -funroll-loops -march=native -fcx-limited-range -ffp-contract=fast\
 		  -fno-math-errno -fno-signed-zeros -fno-trapping-math -fassociative-math\
@@ -42,26 +42,39 @@ LIBS := -lm
 # multithreading for GCC: C++/C/Fortran, MATLAB, and octave (ICC differs)...
 OMPFLAGS = -fopenmp
 OMPLIBS = -lgomp
-MOMPFLAGS = -D_OPENMP
+# we bundle any libs mex needs here with flags...
+MOMPFLAGS = -D_OPENMP $(OMPLIBS)
 OOMPFLAGS =
 # MATLAB MEX compilation (also see below +=)...
-MFLAGS := -largeArrayDims
+MFLAGS := -DR2008OO -largeArrayDims
 # location of MATLAB's mex compiler (could add flags to switch GCC, etc)...
 MEX = mex
 # octave, and its mkoctfile and flags (also see below +=)...
 OCTAVE = octave
 MKOCTFILE = mkoctfile
-OFLAGS =
+OFLAGS = -DR2008OO
 # For experts only, location of MWrap executable (see docs/install.rst):
 MWRAP = mwrap
 
-# dependency root (relative to top directory)
+# root directory for dependencies to be downloaded:
 DEPS_ROOT := deps
 
-# xsimd dependency repo URL
+# xsimd header-only dependency repo
 XSIMD_URL := https://github.com/xtensor-stack/xsimd.git
 XSIMD_VERSION := 13.0.0
 XSIMD_DIR := $(DEPS_ROOT)/xsimd
+
+# DUCC sources optional dependency repo
+DUCC_URL := https://gitlab.mpcdf.mpg.de/mtr/ducc.git
+DUCC_VERSION := ducc0_0_34_0
+DUCC_DIR := $(DEPS_ROOT)/ducc
+# this dummy file used as empty target by make...
+DUCC_COOKIE := $(DUCC_DIR)/.finufft_has_ducc
+# for internal DUCC compile...
+DUCC_INCL := -I$(DUCC_DIR)/src
+DUCC_SRC := $(DUCC_DIR)/src/ducc0
+# for DUCC objects compile only (not our objects)...  *** check flags, pthreads?:
+DUCC_CXXFLAGS := -fPIC -std=c++17 -ffast-math
 
 # absolute path of this makefile, ie FINUFFT's top-level directory...
 FINUFFT = $(dir $(realpath $(firstword $(MAKEFILE_LIST))))
@@ -74,28 +87,40 @@ FINUFFT = $(dir $(realpath $(firstword $(MAKEFILE_LIST))))
 # -fPIC (position-indep code) needed to build dyn lib (.so)
 # Also, we force return (via :=) to the land of simply-expanded variables...
 INCL = -Iinclude -I$(XSIMD_DIR)/include
+# single-thread total list of math and FFT libs (now both precisions)...
+# (Note: finufft tests use LIBSFFT; spread & util tests only need LIBS)
+LIBSFFT := $(LIBS)
+ifeq ($(FFT),DUCC)
+  DUCC_SETUP := $(DUCC_COOKIE)
+# so FINUFFT build can see DUCC headers...
+  INCL += $(DUCC_INCL)
+  DUCC_OBJS := $(DUCC_SRC)/infra/string_utils.o $(DUCC_SRC)/infra/threading.o $(DUCC_SRC)/infra/mav.o $(DUCC_SRC)/math/gridding_kernel.o $(DUCC_SRC)/math/gl_integrator.o
+# FINUFFT's switchable FFT done via this compile directive...
+  CXXFLAGS += -DFINUFFT_USE_DUCC0
+else
+# link against FFTW3 single-threaded (leaves DUCC_OBJS and DUCC_SETUP undef)
+  LIBSFFT += -l$(FFTWNAME) -l$(FFTWNAME)f
+endif
 CXXFLAGS := $(CXXFLAGS) $(INCL) -fPIC -std=c++17
 CFLAGS := $(CFLAGS) $(INCL) -fPIC
 # here /usr/include needed for fftw3.f "fortran header"... (JiriK: no longer)
 FFLAGS := $(FFLAGS) $(INCL) -I/usr/include -fPIC
-
-# single-thread total list of math and FFTW libs (now both precisions)...
-# (Note: finufft tests use LIBSFFT; spread & util tests only need LIBS)
-LIBSFFT := -l$(FFTWNAME) -l$(FFTWNAME)f $(LIBS)
 
 # multi-threaded libs & flags, and req'd flags (OO for new interface)...
 ifneq ($(OMP),OFF)
   CXXFLAGS += $(OMPFLAGS)
   CFLAGS += $(OMPFLAGS)
   FFLAGS += $(OMPFLAGS)
-  MFLAGS += $(MOMPFLAGS) -DR2008OO
-  OFLAGS += $(OOMPFLAGS) -DR2008OO
+  MFLAGS += $(MOMPFLAGS)
+  OFLAGS += $(OOMPFLAGS)
   LIBS += $(OMPLIBS)
-# omp override for total list of math and FFTW libs (now both precisions)...
-  LIBSFFT := -l$(FFTWNAME) -l$(FFTWNAME)_$(FFTWOMPSUFFIX) -l$(FFTWNAME)f -l$(FFTWNAME)f_$(FFTWOMPSUFFIX) $(LIBS)
+# fftw3 multithreaded libs...
+  ifneq ($(FFT),DUCC)
+    LIBSFFT += -l$(FFTWNAME)_$(FFTWOMPSUFFIX) -l$(FFTWNAME)f_$(FFTWOMPSUFFIX) $(OMPLIBS)
+  endif
 endif
 
-# name & location of library we're building...
+# name & location of shared library we're building...
 LIBNAME = libfinufft
 ifeq ($(MINGW),ON)
   DYNLIB = lib/$(LIBNAME).dll
@@ -123,8 +148,8 @@ OBJS = $(SOBJS) src/finufft.o src/simpleinterfaces.o fortran/finufftfort.o src/f
 OBJSF = $(OBJS:%.o=%_32.o)
 # precision-dependent library object files (compiled & linked only once)...
 OBJS_PI = $(SOBJS_PI) contrib/legendre_rule_fast.o
-# all lib dual-precision objs
-OBJSD = $(OBJS) $(OBJSF) $(OBJS_PI)
+# all lib dual-precision objs (note DUCC_OBJS empty if unused)
+OBJSD = $(OBJS) $(OBJSF) $(OBJS_PI) $(DUCC_OBJS)
 
 .PHONY: usage lib examples test perftest spreadtest spreadtestall fortran matlab octave all mex python clean objclean pyclean mexclean wheel docker-wheel gurutime docs setup setupclean
 
@@ -143,22 +168,23 @@ usage:
 	@echo " make octave - compile and test octave interfaces"
 	@echo " make python - compile and test python interfaces"
 	@echo " make all - do all the above (around 1 minute; assumes you have MATLAB, etc)"
-	@echo " make spreadtest - compile & run spreader-only tests (no FFTW)"
+	@echo " make spreadtest - compile & run spreader-only tests (no FFT)"
 	@echo " make spreadtestall - small set spreader-only tests for CI use"
 	@echo " make objclean - remove all object files, preserving libs & MEX"
 	@echo " make clean - also remove all lib, MEX, py, and demo executables"
 	@echo " make setup - check (and possibly download) dependencies"
 	@echo " make setupclean - delete downloaded dependencies"
-	@echo "For faster (multicore) making, append, for example, -j8"
+	@echo "For faster (multicore) compilation, append, for example, -j8"
 	@echo ""
 	@echo "Make options:"
-	@echo " 'make [task] OMP=OFF' for single-threaded (otherwise OpenMP)"
-	@echo " You must 'make objclean' before changing such options!"
+	@echo " 'make [task] OMP=OFF' for single-threaded (no refs to OpenMP)"
+	@echo " 'make [task] FFT=DUCC' for DUCC0 FFT (otherwise uses FFTW3)"
+	@echo " You must at least 'make objclean' before changing such options!"
 	@echo ""
 	@echo "Also see docs/install.rst and docs/README"
 
 # collect headers for implicit depends (we don't separate public from private)
-HEADERS = $(wildcard include/*.h include/finufft/*.h)
+HEADERS = $(wildcard include/*.h include/finufft/*.h) $(DUCC_HEADERS)
 
 # implicit rules for objects (note -o ensures writes to correct dir)
 %.o: %.cpp $(HEADERS)
@@ -174,9 +200,15 @@ HEADERS = $(wildcard include/*.h include/finufft/*.h)
 %_32.o: %.f
 	$(FC) -DSINGLE -c $(FFLAGS) $< -o $@
 
-# included auto-generated code and xsimd header-lib dependency...
-src/spreadinterp.o: src/ker_horner_allw_loop_constexpr.h $(XSIMD_DIR)/include/xsimd/xsimd.hpp
-src/spreadinterp_32.o: src/ker_horner_allw_loop_constexpr.h $(XSIMD_DIR)/include/xsimd/xsimd.hpp
+# spreadinterp include auto-generated code, xsimd header-only dependency;
+# if FFT=DUCC also setup ducc with fft.h dependency on $(DUCC_SETUP)...
+# Note src/spreadinterp.cpp includes finufft/defs.h which includes finufft/fft.h
+# so fftw/ducc header needed for spreadinterp, though spreadinterp should not
+# depend on fftw/ducc directly?
+include/finufft/fft.h: $(DUCC_SETUP)
+SHEAD = $(wildcard src/*.h) $(XSIMD_DIR)/include/xsimd/xsimd.hpp
+src/spreadinterp.o: $(SHEAD)
+src/spreadinterp_32.o: $(SHEAD)
 
 
 # lib -----------------------------------------------------------------------
@@ -206,7 +238,10 @@ endif
 
 # examples (C++/C) -----------------------------------------------------------
 # build all examples (single-prec codes separate, and not all have one)...
-EXAMPLES = $(basename $(wildcard examples/*.c examples/*.cpp))
+EXAMPLES := $(basename $(wildcard examples/*.c examples/*.cpp))
+ifeq ($(OMP),OFF)
+  EXAMPLES := $(filter-out $(basename $(wildcard examples/*thread*.cpp)),$(EXAMPLES))
+endif
 examples: $(EXAMPLES)
 ifneq ($(MINGW),ON)
   # Windows-MSYS does not find the dynamic libraries, so we make a temporary copy
@@ -400,7 +435,7 @@ endif
 
 # python ---------------------------------------------------------------------
 python: $(STATICLIB) $(DYNLIB)
-	FINUFFT_DIR=$(FINUFFT) $(PYTHON) -m pip -v install -e ./python/finufft
+	FINUFFT_DIR=$(FINUFFT) $(PYTHON) -m pip -v install python/finufft
 # note to devs: if trouble w/ NumPy, use: pip install ./python --no-deps
 	$(PYTHON) python/finufft/test/run_accuracy_tests.py
 	$(PYTHON) python/finufft/examples/simple1d1.py
@@ -424,7 +459,7 @@ docker-wheel:
 	docker run --rm -e package_name=finufft -v `pwd`:/io libinlu/manylinux2010_x86_64_fftw /io/python/ci/build-wheels.sh
 
 
-# ================== SETUP OF EXTERNAL DEPENDENCIES ===============
+# ================== SETUP/COMPILE OF EXTERNAL DEPENDENCIES ===============
 
 define clone_repo
     @if [ ! -d "$(3)" ]; then \
@@ -443,11 +478,44 @@ define clone_repo
     fi
 endef
 
+# download: header-only, no compile needed...
 $(XSIMD_DIR)/include/xsimd/xsimd.hpp:
 	mkdir -p $(DEPS_ROOT)
-	@echo "Checking xsimd external dependency..."
+	@echo "Checking XSIMD external dependency..."
 	$(call clone_repo,$(XSIMD_URL),$(XSIMD_VERSION),$(XSIMD_DIR))
 	@echo "xsimd installed in deps/xsimd"
+
+# download DUCC... (an empty target just used to track if installed)
+$(DUCC_COOKIE):
+	mkdir -p $(DEPS_ROOT)
+	@echo "Checking DUCC external dependency..."
+	$(call clone_repo,$(DUCC_URL),$(DUCC_VERSION),$(DUCC_DIR))
+	touch $(DUCC_COOKIE)
+	@echo "DUCC installed in deps/ducc"
+
+# implicit rule for DUCC compile just needed objects, only used if FFT=DUCC.
+# Needed since DUCC has no makefile (yet).
+$(DUCC_SRC)/infra/string_utils.cc: $(DUCC_SETUP)
+$(DUCC_SRC)/infra/string_utils.o: $(DUCC_SRC)/infra/string_utils.cc
+	$(CXX) -c $(DUCC_CXXFLAGS) $(DUCC_INCL) $< -o $@
+$(DUCC_SRC)/infra/threading.cc: $(DUCC_SETUP)
+$(DUCC_SRC)/infra/threading.o: $(DUCC_SRC)/infra/threading.cc
+	$(CXX) -c $(DUCC_CXXFLAGS) $(DUCC_INCL) $< -o $@
+$(DUCC_SRC)/infra/mav.cc: $(DUCC_SETUP)
+$(DUCC_SRC)/infra/mav.o: $(DUCC_SRC)/infra/mav.cc
+	$(CXX) -c $(DUCC_CXXFLAGS) $(DUCC_INCL) $< -o $@
+$(DUCC_SRC)/math/gridding_kernel.cc: $(DUCC_SETUP)
+$(DUCC_SRC)/math/gridding_kernel.o: $(DUCC_SRC)/math/gridding_kernel.cc
+	$(CXX) -c $(DUCC_CXXFLAGS) $(DUCC_INCL) $< -o $@
+$(DUCC_SRC)/math/gl_integrator.cc: $(DUCC_SETUP)
+$(DUCC_SRC)/math/gl_integrator.o: $(DUCC_SRC)/math/gl_integrator.cc
+	$(CXX) -c $(DUCC_CXXFLAGS) $(DUCC_INCL) $< -o $@
+# -j with the following not working yet..., need to expand the wildcard as above...
+#$(DUCC_SRC)/%.cc: $(DUCC_SETUP)
+#$(DUCC_SRC)/%.o: $(DUCC_SRC)/%.cc
+#	$(CXX) -c $(DUCC_CXXFLAGS) $(DUCC_INCL) $< -o $@
+
+setup: $(XSIMD_DIR)/include/xsimd/xsimd.hpp $(DUCC_SETUP)
 
 setupclean:
 	rm -rf $(DEPS_ROOT)
@@ -457,6 +525,8 @@ setupclean:
 
 docs: docs/*.docsrc docs/matlabhelp.doc docs/makecdocs.sh
 	(cd docs; ./makecdocs.sh)
+# get the makefile help strings from make w/o args, stdout...
+	make 1> docs/makefile.doc
 docs/matlabhelp.doc: docs/genmatlabhelp.sh matlab/*.sh matlab/*.docsrc matlab/*.docbit matlab/*.m
 	(cd matlab; ./addmhelp.sh)
 	(cd docs; ./genmatlabhelp.sh)
@@ -472,7 +542,7 @@ ifneq ($(MINGW),ON)
 	rm -f matlab/*.mex*
 	rm -f $(TESTS) test/results/*.out perftest/results/*.out
 	rm -f $(EXAMPLES) $(FE) $(ST) $(STF) $(STA) $(STAF) $(GTT) $(GTTF)
-	rm -f perftest/manysmallprobs
+	rm -f perftest/manysmallprobs perftest/big2d2f
 	rm -f examples/core test/core perftest/core $(FE_DIR)/core
 else
   # Windows-WSL clean up...
@@ -481,7 +551,7 @@ else
 	for %%f in ($(subst /,\, $(TESTS))) do ((if exist %%f del %%f) & (if exist %%f.exe del %%f.exe))
 	del test\results\*.out perftest\results\*.out
 	for %%f in ($(subst /,\, $(EXAMPLES)), $(subst /,\,$(FE)), $(subst /,\,$(ST)), $(subst /,\,$(STF)), $(subst /,\,$(STA)), $(subst /,\,$(STAF)), $(subst /,\,$(GTT)), $(subst /,\,$(GTTF))) do ((if exist %%f del %%f) & (if exist %%f.exe del %%f.exe))
-	del perftest\manysmallprobs
+	del perftest\manysmallprobs, perftest\big2d2f
 	del examples\core, test\core, perftest\core, $(subst /,\, $(FE_DIR))\core
 endif
 
@@ -489,13 +559,15 @@ endif
 # indiscriminate .o killer; needed before changing threading...
 objclean:
 ifneq ($(MINGW),ON)
-  # non-Windows-WSL...
+  # non-Windows-WSL... (note: cleans DUCC objects regardless of FFT choice)
 	rm -f src/*.o test/directft/*.o test/*.o examples/*.o matlab/*.o contrib/*.o
 	rm -f fortran/*.o $(FE_DIR)/*.o $(FD)/*.o finufft_mod.mod
+	rm -f $(DUCC_SRC)/infra/*.o $(DUCC_SRC)/math/*.o
 else
   # Windows-WSL...
 	for /d %%d in (src,test\directfttest,examples,matlab,contrib) do (for %%f in (%%d\*.o) do (del %%f))
 	for /d %%d in (fortran,$(subst /,\, $(FE_DIR)),$(subst /,\, $(FD))) do (for %%f in (%%d\*.o) do (del %%f))
+  # *** to del DUCC *.o
 endif
 
 pyclean:

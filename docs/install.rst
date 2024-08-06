@@ -3,36 +3,49 @@
 Installation
 ============
 
-There are two main ways to compile this library from source:
-via CMake (the recommended modern way, being more platform-independent),
+There are two main routes to compile the CPU library from source:
+via CMake (the recommended modern way, being more platform-independent, and also the
+only way to build the GPU library),
 or via a GNU ``makefile`` (which has various settings for linux, OSX, Windows).
 We currently support both, and detail them in that order in the text below.
+The only requirement is a C/C++ compiler supporting OpenMP and the C++17
+standard.
+FINUFFT builds with no issues on Linux and MacOS using any compiler, and in our experience (as of 2024), GCC13 gives the best performance. We do not recommend any GCC version prior to 9, due to vectorization issues.
+
+.. note::
+  There are now two choices of FFT library for the CPU build:
+
+    * `FFTW3 <https://www.fftw.org>`_ (its single- and double-precision libraries must then already be installed), or
+    * `DUCC0 FFT <https://gitlab.mpcdf.mpg.de/mtr/ducc>`_ (which is automatically installed into the ``deps`` subdirectory by CMake or GNU make).
+
+  Both are available in either CMake or GNU make build routes. Currently FFTW3 is the default in both routes, since DUCC0 is new as of FINUFFT v2.3 and not as well tested. DUCC0 is from the same author as `PocketFFT <https://gitlab.mpcdf.mpg.de/mtr/pocketfft>`_ (used, for instance, by `scipy <https://scipy.org/>`_); however, DUCC0 FFT is more optimized than PocketFFT. Choosing DUCC0 also exploits the block-sparsity structure in 2D and 3D transforms, and is generally faster than FFTW3 in those cases. In 1D, the relative speed of FFTW3 and DUCC0 varies depending on `N` and the batch size. DUCC0 has no plan stage, whereas FFTW3 requires a plan stage. Some idea of their relative performance can be found in `this discussion <https://github.com/flatironinstitute/finufft/pull/463#issuecomment-2223988300>`_. We encourage the power user to try switching to DUCC to see if it is faster in their setting.
+
 If you cannot get FINUFFT to compile, as a last resort you might find
 a precompiled binary for your platform under Assets for various
 `releases <https://github.com/flatironinstitute/finufft/releases>`_.
 Please post an `Issue <https://github.com/flatironinstitute/finufft/issues>`_
 to document your installation problem.
-When using CMake, finufft requires no external dependencies except (c/c++ compilers supporting OpenMP and c++17).
-However GNU ``makefile`` assumes that FFTW (single/double) are installed.
-Python-only users can simply install via ``pip install finufft`` which downloads a generic binary from PyPI. Only if you prefer a custom compilation, see :ref:`below<install-python>`.
+
+Python-only users can simply install via ``pip install finufft`` which downloads a generic binary from PyPI. If you prefer a local Python package build, see :ref:`below<install-python>`.
 
 .. note::
-    finufft builds with no issues on Linux and MacOS using any compiler, in our experience GCC-13 gives best performance.
-    On Windows MSVC works fine. The llvm toolchain included in Visual Studio does not seem to have OpenMP, it is possible to build single-threaded FINUFFT.
-    The official windows LLVM distribution builds finufft with no issues but debug builds using sanitizers break.
-    On windows finufft built with MSVC requires ``VCOMP140D.DLL`` which is part of the `Microsoft Visual C++ Redistributable <https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist?view=msvc-170>`_.
+    Here are some overall notes about Windows. On Windows, MSVC works fine. However, the LLVM toolchain included in Visual Studio does not seem to have OpenMP, but it is still possible to build single-threaded FINUFFT.
+    The official windows LLVM distribution builds FINUFFT with no issues, but debug builds using sanitizers break.
+    On Windows with MSVC, FINUFFT also requires ``VCOMP140D.DLL`` which is part of the `Microsoft Visual C++ Redistributable <https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist?view=msvc-170>`_.
     It is likely to be already installed in your system.
-    If the library is built with LLVM it requires ``libomp140.x86.64.dll``, more information `here <https://devblogs.microsoft.com/cppblog/improved-openmp-support-for-cpp-in-visual-studio/>`_.
+    If the library is built on Windows with LLVM, it requires ``libomp140.x86.64.dll``; see `here <https://devblogs.microsoft.com/cppblog/improved-openmp-support-for-cpp-in-visual-studio/>`_.
 
 
-CMake CPM Based Installation
-----------------------------
+Including FINUFFT into your own CMake project
+---------------------------------------------
 
-This is the easiest way to install ``finufft`` if you are using CMake in your own project.
-First include `CPM <https://github.com/cpm-cmake/CPM.cmake>`_ to your project.
+This is the easiest way to install and use FINUFFT if you already use
+CMake in your own project, since CMake automates all aspects of
+installation and compilation.
+There are two options: CPM or FetchContent.
+We recommend the first.
 
-The easiest way is to follow the `instructions <https://github.com/cpm-cmake/CPM.cmake/wiki/Downloading-CPM.cmake-in-CMake>`_ to automatically add CPM to cmake.
-
+1) **CPM**. First include `CPM <https://github.com/cpm-cmake/CPM.cmake>`_ to your project, by following the `instructions <https://github.com/cpm-cmake/CPM.cmake/wiki/Downloading-CPM.cmake-in-CMake>`_ to automatically add CPM to CMake.
 Then add the following to your ``CMakeLists.txt``:
 
 .. code-block:: cmake
@@ -53,14 +66,10 @@ Then add the following to your ``CMakeLists.txt``:
 
   target_link_library(your_executable [PUBLIC|PRIVATE|INTERFACE] finufft)
 
-Then cmake will automatically download the library and link it to your executable.
+Then CMake will automatically download FINUFFT and link it to your executable.
 
-CMake FetchContent Based Installation
-----------------------------
-
-Another way to include finufft in the project is to use FetchContent
-which is provided directly by cmake.
-To do so add the following to your ``CMakeLists.txt``:
+2) **FetchContent**: This tool is provided directly by CMake.
+Add the following to your ``CMakeLists.txt``:
 
 .. code-block:: cmake
 
@@ -79,14 +88,14 @@ To do so add the following to your ``CMakeLists.txt``:
     # Optionally, link the finufft library to your target
     target_link_libraries(your_executable [PUBLIC|PRIVATE|INTERFACE] finufft)
 
-Then cmake will automatically download the library and link it to your executable.
+Then CMake will automatically download FINUFFT and link it to your executable.
 
-CMake Based Installation
-------------------------
+CMake based installation and compilation
+----------------------------------------
 
-These instructions are in draft form.
 Make sure you have ``cmake`` version at least 3.19.
-The basic quick download, building, and test is then:
+The basic quick download, default building, and test and install
+is then done by:
 
 .. code-block:: bash
 
@@ -94,19 +103,19 @@ The basic quick download, building, and test is then:
   cd finufft
   cmake -S . -B build -DFINUFFT_BUILD_TESTS=ON --install-prefix /path/to/install
   cmake --build build
-  ctest --test-dir build/
+  ctest --test-dir build
   cmake --install build
+
+In ``build``, this creates the static library (``libfinufft.a`` on linux or OSX), and runs a test that should take a
+couple of seconds and report ``100% tests passed, 0 tests failed out of 17``. It then attempts to install the library.
+To instead build a shared library, see the ``FINUFFT_STATIC_LINKING`` CMake option below.
 
 .. note::
 
-   If you don't supply `--install-prefix`, it will default to ``/usr/local`` on most systems. If you don't have root access, you must supply a prefix you can write to such as ``$HOME/local``.
+   The use of ``--install-prefix`` and the final install command are optional, if the user is happy working with the static library in ``build``. If you don't supply ``--install-prefix``, it will default to ``/usr/local`` on most systems. If you don't have root access for your install directory, it will complain. If you supply a prefix, make sure it is one you can write to, such as ``$HOME/local``.
 
-In ``build``, this creates ``libfinufft.a`` or ``libfinufft.so``, and runs a test that should take a
-few seconds and report ``100% tests passed, 0 tests failed out of 17``.  To use the library, link against
-either the static or dynamic library in ``build`` or your installed version
-(i.e. ``/path/to/install/lib64/libfinufft.so`` or ``/path/to/install/lib/libfinufft.so``). If you install
-anywhere other than standard system wide locations (``/usr/local``), building/linking requires you specify the
-location of the library. If you link the shared library, you should also tell your compiled binary to store
+To use the library, link against either the static or dynamic library in ``build``, or your installed version
+(i.e. ``/path/to/install/lib64/libfinufft.so`` or ``/path/to/install/lib/libfinufft.so``). If you link to the shared library, you should also tell your compiled binary to store
 the location of that library in its ``RPATH``. Let's say you installed with the prefix ``$HOME/local``, your
 system prefers the ``lib64`` library directory, and you're still in the build directory. Then...
 
@@ -115,24 +124,14 @@ system prefers the ``lib64`` library directory, and you're still in the build di
   g++ -o simple1d1 ../examples/simple1d1.cpp -I$HOME/local/include -L$HOME/local/lib64 -Wl,-rpath $HOME/local/lib64 -lfinufft -O2
 
 
-will manually build the ``simple1d1`` example and drop it in the current directory.
+will manually build the executable for our ``simple1d1`` example, and drop it in the current directory.
 
-Here are all our build options, showing name, explanatory text, and default value, straight from the ``CMakeLists.txt`` file:
+Here are our CMake build options, showing name, explanatory text, and default value, straight from the ``CMakeLists.txt`` file:
 
 .. literalinclude:: ../CMakeLists.txt
    :language: cmake
    :start-after: @cmake_opts_start
    :end-before: @cmake_opts_end
-
-.. note::
-    It is possible to choose between ``FFTW`` and `ducc fft <https://gitlab.mpcdf.mpg.de/mtr/ducc>`_, ducc fft is from the same author as `pocket fft <https://gitlab.mpcdf.mpg.de/mtr/pocketfft>`_.
-    Pocket fft is the fft used by `scipy <https://scipy.org/>`_.
-    An idea about ducc performance can be found in `this discussion <https://github.com/flatironinstitute/finufft/pull/463#issuecomment-2223988300>`_. We encourage the power user to try switching to ducc to see if it improves performance.
-
-.. warning::
-    Note to the user, using --fast-math or /fp:fast can break finufft and its tests.
-    On windows with msvc cl, ``ducc fft`` has to compile with ``/fp:fast``, otherwise some tests (run_finufft3d_test_float, run_finufft3dmany_test_float) may fail because of the resulting error is larger than the tolerance.
-    On the other hand, finufft on windows with msvc cl should not compile with flag ``/fp:fast``, with ``/fp:fast`` the test run_dumbinputs_double will result in segfault, because /fp:fast makes values (NaN, +infinity, -infinity, -0.0) may not be propagated or behave strictly according to the IEEE-754 standard.
 
 For convenience we also provide a number of `cmake presets <https://cmake.org/cmake/help/latest/manual/cmake-presets.7.html>`_
 for various options and compilers, in ``CMakePresets.json`` (this will grow to replace the old ``make.inc.*`` site files).
@@ -140,20 +139,28 @@ For example, to configure, build and test the development preset (which builds t
 
 .. code-block:: bash
 
-  cmake -S . -B build --preset dev # dev is the preset name
+  cmake -S . -B build --preset dev            # dev is the name of the preset
   cmake --build build
-  ctest --test-dir build/
+  ctest --test-dir build
+
+From other CMake projects, to use ``finufft`` as a library after building as above, simply add this repository as a subdirectory using
+``add_subdirectory``, and use ``target_link_library(your_executable finufft)``.
+
+Notes on compiler flags for various systems
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+These apply to CMake (as above), or GNU make (as below).
+
+.. warning::
+    Using ``--fast-math`` or ``/fp:fast`` can break FINUFFT and its tests.
+    On windows with msvc cl, ``DUCC0 FFT`` has to compile with ``/fp:fast``, otherwise some tests (run_finufft3d_test_float, run_finufft3dmany_test_float) may fail because of the resulting error is larger than the tolerance.
+    On the other hand, finufft on Windows with msvc cl should not compile with flag ``/fp:fast``, with ``/fp:fast`` the test run_dumbinputs_double will result in segfault, because ``/fp:fast`` makes values (NaN, +infinity, -infinity, -0.0) may not be propagated or behave strictly according to the IEEE-754 standard.
 
 .. warning::
 
-  Intel compilers (unlike GPU compilers) currently engage ``fastmath`` behavior with ``-O2`` or ``-O3``. This may interfere with our use of ``std::isfinite`` in our test codes. For this reason in the Intel presets ``icx`` and ``icc`` have set ``-fp-model=strict``. You may get more speed if you remove this flag, or try ``-fno-finite-math-only``.
+  Intel compilers (unlike GPU compilers) currently engage ``fastmath`` behavior with ``-O2`` or ``-O3``. This may interfere with our use of ``std::isfinite`` in our source and test codes. For this reason in the Intel presets ``icx`` and ``icc`` have set ``-fp-model=strict``. You may get more speed if you remove this flag, or try ``-fno-finite-math-only``.
 
-From other CMake projects, to use ``finufft`` as a library, simply add this repository as a subdirectory using
-``add_subdirectory``, and use ``target_link_library(your_executable finufft)``.
 
-.. note::
-
-   CMake compiling on linux at Flatiron Institute (Rusty cluster). We have had a report that if you want to use LLVM, you need to ``module load llvm/16.0.3`` otherwise the default ``llvm/14.0.6`` does not find ``OpenMP_CXX``.
 
 
 Classic GNU make based route
@@ -168,61 +175,73 @@ PowerPC. The general procedure to download, then compile for such a special setu
   cp make.inc.powerpc make.inc
   make test -j
 
-Have a look for ``make.inc.*`` to see what is available, and/or edit your ``make.inc`` based on looking in the ``makefile`` and quirks of your local setup. As of 2021, we have continuous integration which tests the default (linux) settings in this ``makefile``, plus those in three OS-specific setup files::
+Have a look for ``make.inc.*`` to see what is available, and/or edit your ``make.inc`` based on looking in the ``makefile`` and quirks of your local setup. We have continuous integration which tests the default (linux) settings in this ``makefile``, plus those in three OS-specific setup files, currently::
 
   make.inc.macosx_clang
-  make.inc.macosx_gcc-10
+  make.inc.macosx_gcc-12
   make.inc.windows_msys
 
+Thus, those are the recommended files for OSX or Windows users to try as their ``make.inc``.
 If there is an error in testing on what you consider a standard set-up,
 please file a detailed bug report as a New Issue at https://github.com/flatironinstitute/finufft/issues
 
-
 Quick linux GNU make install instructions
---------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Make sure you have packages ``fftw3`` and ``fftw3-dev`` (or their
-equivalent on your distro) installed.
+Unless you select ``FFT=DUCC``, make sure you have packages ``fftw3`` and ``fftw3-dev`` (or their equivalent on your distro) installed.
 Then ``cd`` into your FINUFFT directory and do ``make test -j``.
 This should compile the static
 library in ``lib-static/``, some C++ test drivers in ``test/``, then run them,
 printing some terminal output ending in::
 
-  0 segfaults out of 8 tests done
-  0 fails out of 8 tests done
+  0 segfaults out of 9 tests done
+  0 fails out of 9 tests done
 
 This output repeats for double then single precision (hence, scroll up to check the double also gave no fails).
-If this fails, see the more detailed instructions below.
+If this fails, see the more detailed instructions/tips below.
 If it succeeds,
 please look in ``examples/``, ``test/``, and the rest of this manual,
 for examples of how to call and link to the library.
-Type ``make`` to see a list of other aspects the user can build
-(examples, language interfaces, etc).
+
+
+Make build tasks and options
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Here are the GNU make tasks and options, taken from the current ``makefile`` output:
+
+.. literalinclude:: makefile.doc
+
+The variables ``OMP`` and ``FFT`` need to be used consistently for downstream make tasks
+(e.g: ``make test -j && make examples FFT=DUCC`` will fail).
+They can instead be set in your ``make.inc``.
+A ``make objclean`` (eg, via ``make clean``) is needed before changing use of such variables.
+As usual, user environment variables are also visible to GNU make.
+
 
 Dependencies
-------------
+~~~~~~~~~~~~
 
 This library is fully supported for unix/linux, and partially for
 Mac OSX for Windows (eg under MSYS or WSL using MinGW compilers).
 
-For the basic libraries you need
+For the basic libraries you must have:
 
-* C++ compiler supporting C++14, such ``g++`` in GCC (version >=5.0), or ``clang`` (version >=3.4)
-* FFTW3 (version at least 3.3.6) including its development libraries
+* C++ compiler supporting C++17, such ``g++`` in GCC, or ``clang`` (version >=3.4)
 * GNU ``make`` and other standard unix/POSIX tools such as ``bash``
 
-Optional:
+Optionally you need:
 
+* By default (unless ``FFT=DUCC``) FFTW3 (version at least 3.3.6) including its development libraries
 * for Fortran wrappers: compiler such as ``gfortran`` in GCC
 * for MATLAB wrappers: MATLAB (versions at least R2016b up to current work)
 * for Octave wrappers: recent Octave version at least 4.4, and its development libraries
-* for the python wrappers you will need ``python`` version at least 3.6 (python 2 is unsupported), with ``numpy``.
+* for the python wrappers you will need ``python`` version at least 3.8 (python 2 is unsupported), with ``numpy``.
 
 
 1) Linux: tips for installing dependencies and compiling
 -------------------------------------------------------------------
 
-On a Fedora/CentOS linux system, the base dependencies can be installed by::
+On a Fedora/CentOS linux system, the base dependencies (including optional FFTW3) can be installed by::
 
   sudo yum install make gcc gcc-c++ fftw-devel libgomp
 
@@ -244,34 +263,12 @@ and for Fortran, Python, and Octave language interfaces also do::
 
 In older distros you may have to compile ``octave`` from source to get the needed >=4.4 version.
 
-You should then compile and test the library via various ``make`` tasks, eg::
-
-  make test -j
-
-then checking you got ``0 fails``.
-This compiles the main libraries then runs double- and single-precision tests, each of which should report zero segfaults and zero fails.
-
-.. note::
-
-   GCC versions on linux: long-term linux distros ship old GCC versions
-   that may not be C++17 compatible. We recommend that you
-   compile with a recent GCC, at least GCC 7.3 (which we used
-   for benchmarks in 2018 in our SISC paper), or GCC 9+. We do not recommend
-   GCC versions prior to 7. We also **do not recommend GCC8** since
-   its auto vectorization has worsened, and its kernel evaluation rate
-   using the default looped piecewise-polynomial Horner code drops to
-   less than 150 Meval/s/core on an i7. This contrasts 400-700
-   Meval/s/core achievable with GCC7 or GCC9 on i7. If you wish to
-   test these raw kernel evaluation rates, do into ``devel/``, compile
-   ``test_ker_ppval.cpp`` and run ``fig_speed_ker_ppval.m`` in MATLAB. We are
-   unsure if GCC8 is so poor in Mac OSX (see below).
-
+You should then compile and test the library via various ``make`` tasks, as discussed above.
 The make tasks (eg ``make lib``) compiles double and single precision functions,
 which live simultaneously in ``libfinufft``, with distinct function names.
 
-The only selectable option at compile time is
-multithreaded (default, using OpenMP) vs single-threaded
-(to achieve this append ``OMP=OFF`` to the make tasks).
+The make variable ``OMP=OFF`` builds a single-threaded library without
+reference to OpenMP.
 Since you may always set ``opts.nthreads=1`` when calling the multithreaded
 library, the point of having a single-threaded library is
 mostly for small repeated problems to avoid *any* OpenMP overhead, or
@@ -293,21 +290,17 @@ Since these call many tiny problem sizes, they will (due to openmp and fftw thre
 run much faster with less than the full thread count, explaining our use of 4 threads.
 Text (and stderr) outputs are written into ``test/results/*.out``.
 
-Use ``make perftest`` for larger spread/interpolation and NUFFT tests taking 10-20 seconds. This writes log files into ``test/results/`` where you will be able to compare to results from standard CPUs.
+Use ``make perftest`` for larger spread/interpolation and NUFFT tests taking 30=60 seconds. This writes log files into ``test/results/``.
 
-Run ``make`` without arguments for full list of possible make tasks.
-
-``make examples`` to compile and run the examples for calling from C++ and from C.
-
-``make fortran`` to compile and run the fortran wrappers and examples.
+Run ``make`` without arguments for full list of possible make tasks (see above).
 
 **High-level interfaces**.
 See :ref:`below<install-python>` for python compilation.
 
 ``make matlab`` to compile the MEX interface to matlab,
 then within MATLAB add the ``matlab`` directory to your path,
-cd to ``matlab/test`` and run ``check_finufft`` which should run for 5 secs
-and print a bunch of errors around ``1e-6``.
+cd to ``matlab/test`` and run ``check_finufft`` which should run for 3 secs
+and print a bunch of errors of typical size ``1e-6``.
 
 .. note::
 
@@ -323,31 +316,12 @@ and print a bunch of errors around ``1e-6``.
 
 
 
-Compilation flags and make.inc settings
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-This is for experts.
-Here are all the flags that the FINUFFT source responds to.
-Activate them by adding a line of the form ``CXXFLAGS+=-DMYFLAG`` in your ``make.inc``:
-
-* ``-DSINGLE``: This is internally used by our build process to switch
-  (via preprocessor macros) the source from double to single precision.
-  You should not need to use this flag yourself.
-
-Here are some other settings that you may need to adjust in ``make.inc``:
-
-* Switching to linking tests, examples, etc, with PTHREADS instead of the default OMP version of FFTW, is achieved by inserting into ``make.inc`` the line ``FFTWOMPSUFFIX = threads``.
-
-
-
-
-
 2) Mac OSX: tips for installing dependencies and compiling
 -----------------------------------------------------------
 
 .. note::
 
-   A brew package will come shortly; stay tuned. However, the below has been tested on 10.14 (Mojave) with both clang and gcc-8, and 10.15 (Catalina) with clang.
+   The below has been tested on 10.14 (Mojave) with both clang and gcc-8, and 10.15 (Catalina) with clang. The notes are a couple of years out of date (as of 2024).
 
 First you'll want to set up Homebrew, as follows. We assume a fresh OSX machine.
 If you don't have Xcode, install Command Line Tools
@@ -407,7 +381,7 @@ Whichever you picked, now try ``make test -j``, and clang should compile and you
 you should now ``make matlab``. You may need to do ``make matlab -j``; see
 https://github.com/flatironinstitute/finufft/issues/157 which needs attention.
 To test, open MATLAB, ``addpath matlab``,
-``cd matlab/test``, and ``check_finufft``, which should complete in around 5 seconds.
+``cd matlab/test``, and ``check_finufft``, which should complete in around 3 seconds.
 
 .. note::
 
@@ -431,7 +405,7 @@ appears to be essential. The basic idea is::
   make fortran
 
 which also compiles and tests the fortran interfaces.
-You may need to edit to ``g++-11``, or whatever your GCC version is,
+You may need to edit to ``g++-13``, or whatever your GCC version is,
 in your ``make.inc``.
 
 .. note::
@@ -460,9 +434,9 @@ section of ``mexopts.sh``.
 
 
 3) Windows GNU make: tips for compiling
--------------------------------
+------------------------------------------
 
-We have users who have adjusted the makefile to work - at least to some extent - on Windows 10. If you are only interested in calling from Octave (which already comes with MinGW-w64 and FFTW), then we have been told this can be done very simply: from within Octave, go to the ``finufft`` directory and do ``system('make octave')``. You may have to tweak ``OCTAVE`` in your ``make.inc`` in a similar fashion to below.
+We have users who have adjusted the makefile to work - at least to some extent - on Windows 10. We suggest switching to the above CMake route instead for Windows, since we will not invest much effort supporting the ``makefile`` for Windows. If you are only interested in calling from Octave (which already comes with MinGW-w64 and FFTW), then we have been told this can be done very simply: from within Octave, go to the ``finufft`` directory and do ``system('make octave')``. You may have to tweak ``OCTAVE`` in your ``make.inc`` in a similar fashion to below.
 
 More generally, please make sure to have a recent version of Mingw at hand, preferably with a 64bit version of gnu-make like the WinLibs standalone build of GCC and MinGW-w64 for Windows. Note that most MinGW-w64 distributions, such as TDM-GCC, do not feature the 64bit gnu-make. Fortunately, this limitation is only relevant to run the tests. To prepare the build of the static and dynamic libraries run::
 
@@ -480,21 +454,21 @@ In a similar fashion, the examples can now be build with ``make examples``. This
 
   make matlab
 
-For users who work with Windows using MSYS and MinGW compilers. Please
+For users who work with Windows using MSYS and MinGW compilers, please
 try::
 
   cp make.inc.windows_msys make.inc
   make test -j
 
-We seek help with Windows support. Also see https://github.com/flatironinstitute/finufft/issues
+Also see https://github.com/flatironinstitute/finufft/issues
 
 
 
 
 .. _install-python:
 
-Building a python interface to a locally compiled library
------------------------------------------------------------------------
+Building a Python interface to a locally compiled library
+---------------------------------------------------------
 
 Recall that the basic user may simply ``pip install finufft``,
 then check it worked via either (if you have ``pytest`` installed)::
@@ -507,32 +481,20 @@ or the older-style eyeball check with::
 
 which should report errors around ``1e-6`` and throughputs around 1-10 million points/sec.
 
-However, a user or developer may want to build a python wrapper to their locally
-compiled FINUFFT library, perhaps for more speed. We now describe this,
-for all OSes.
-We assume ``python3`` (hence ``pip3``; make sure you have that installed).
+However, better performance will result by locally compiling the library on your CPU into a Python module. This can better exploit your CPU's capabilities than the ``pypi`` distribution that ``pip install finufft`` downloads.
+We assume ``python`` (hence ``pip``; make sure you have that installed), at least version 3.8. We now use the modern ``pyproject.toml`` build system,
+which locally compiles with cmake (giving you native performance on your CPU).
+For this, run::
 
-First, compile the shared C++ library, via, eg ``make lib -j`` (using the old-style ``makefile``),
-or via::
+  pip install python/finufft
 
-  make -p build
-  cd build
-  cmake ..
-  cmake --build . -j
-  cd ..
-
-You may then run::
-
-  pip3 install -e python/finufft
-
-which builds the ``finufft`` Python module, linking to the ``.so``,
-and installs (in editable mode) via pip.
-You will see that the ``finufftc.*.so`` shared object appears in the ``python/finufft/finufft/`` directory.
+which compiles the library from source then installs the Python module.
+If you see a complaint about missing ``setup.py``, you need a more recent version of pip/python.
 You should then run the above tests. You could also run tests and examples via ``make python``.
 
 An additional performance test you could then do is::
 
-  python3 python/finufft/test/run_speed_tests.py
+  python python/finufft/test/run_speed_tests.py
 
 .. note::
 
