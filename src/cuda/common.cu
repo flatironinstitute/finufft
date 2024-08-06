@@ -199,6 +199,119 @@ void onedim_fseries_kernel_compute(CUFINUFFT_BIGINT nf, T *f, std::complex<doubl
   }
 }
 
+template<typename T>
+std::size_t shared_memory_required(int dim, int ns, int bin_size_x, int bin_size_y,
+                                   int bin_size_z) {
+  // Helper to compute the shared memory required for the spreader when using SM
+  int adjusted_ns = bin_size_x + ((ns + 1) / 2) * 2;
+
+  if (dim == 1) {
+    return adjusted_ns * sizeof(cuda_complex<T>);
+  }
+
+  adjusted_ns *= (bin_size_y + ((ns + 1) / 2) * 2);
+
+  if (dim == 2) {
+    return adjusted_ns * sizeof(cuda_complex<T>);
+  }
+
+  adjusted_ns *= (bin_size_z + ((ns + 1) / 2) * 2);
+
+  return adjusted_ns * sizeof(cuda_complex<T>);
+}
+
+// Function to find bin_size_x == bin_size_y
+// where bin_size_x * bin_size_y * bin_size_z < mem_size
+// TODO: this can be done without a loop by using a direct formula
+template<typename T> int find_bin_size(std::size_t mem_size, int dim, int ns) {
+  int binsize = 1; // Start with the smallest possible bin size
+  while (true) {
+    // Calculate the shared memory required for the current bin_size_x and bin_size_y
+    std::size_t required_memory =
+        shared_memory_required<T>(dim, ns, binsize, binsize, binsize);
+
+    // Check if the required memory is less than the available memory
+    if (required_memory > mem_size) {
+      // If the condition is met, return the current bin_size_x
+      return binsize - 1;
+    }
+
+    // Increment bin_size_x for the next iteration
+    binsize++;
+  }
+}
+
+template<typename T>
+void cufinufft_setup_binsize(int type, int ns, int dim, cufinufft_opts *opts) {
+  // Marco Barbone 07/26/24. Using the shared memory available on the device, to
+  // determine the optimal binsize for the spreader.
+  // WARNING: This function does not check for CUDA errors, the caller should check and
+  // handle them.
+  // TODO: This can still be improved some sizes are hardcoded still
+  int shared_mem_per_block{}, device_id{};
+  switch (dim) {
+  case 1: {
+    if (opts->gpu_binsizex == 0) {
+      cudaGetDevice(&device_id);
+      cudaDeviceGetAttribute(&shared_mem_per_block,
+                             cudaDevAttrMaxSharedMemoryPerBlockOptin, device_id);
+      // CUDA error handled by the caller not checking them here.
+      // use 1/6 of the shared memory for the binsize
+      // From experiments on multiple GPUs this gives the best tradeoff.
+      // It is within 90% of the maximum performance for all GPUs tested.
+      shared_mem_per_block /= 6;
+      const int bin_size =
+          shared_mem_per_block / sizeof(cuda_complex<T>) - ((ns + 1) / 2) * 2;
+      opts->gpu_binsizex = bin_size;
+    }
+    opts->gpu_binsizey = 1;
+    opts->gpu_binsizez = 1;
+  } break;
+  case 2: {
+    if (opts->gpu_binsizex == 0 || opts->gpu_binsizey == 0) {
+      switch (opts->gpu_method) {
+      case 0:
+      case 2: {
+        opts->gpu_binsizex = 32;
+        opts->gpu_binsizey = 32;
+      } break;
+      case 1: {
+        cudaGetDevice(&device_id);
+        cudaDeviceGetAttribute(&shared_mem_per_block,
+                               cudaDevAttrMaxSharedMemoryPerBlockOptin, device_id);
+        const auto binsize = find_bin_size<T>(shared_mem_per_block, dim, ns);
+        // in 2D 1/6 is too small, it gets slower because of the excessive padding
+        opts->gpu_binsizex = binsize;
+        opts->gpu_binsizey = binsize;
+      } break;
+      }
+    }
+    opts->gpu_binsizez = 1;
+  } break;
+  case 3: {
+    switch (opts->gpu_method) {
+    case 0:
+    case 1:
+    case 2: {
+      if (opts->gpu_binsizex == 0 || opts->gpu_binsizey == 0 || opts->gpu_binsizez == 0) {
+        opts->gpu_binsizex = 16;
+        opts->gpu_binsizey = 16;
+        opts->gpu_binsizez = 2;
+      }
+    } break;
+    case 4: {
+      opts->gpu_obinsizex = (opts->gpu_obinsizex == 0) ? 8 : opts->gpu_obinsizex;
+      opts->gpu_obinsizey = (opts->gpu_obinsizey == 0) ? 8 : opts->gpu_obinsizey;
+      opts->gpu_obinsizez = (opts->gpu_obinsizez == 0) ? 8 : opts->gpu_obinsizez;
+      opts->gpu_binsizex  = (opts->gpu_binsizex == 0) ? 4 : opts->gpu_binsizex;
+      opts->gpu_binsizey  = (opts->gpu_binsizey == 0) ? 4 : opts->gpu_binsizey;
+      opts->gpu_binsizez  = (opts->gpu_binsizez == 0) ? 4 : opts->gpu_binsizez;
+    } break;
+    }
+  } break;
+  }
+}
+
 template void onedim_fseries_kernel_compute(CUFINUFFT_BIGINT nf, float *f,
                                             std::complex<double> *a, float *fwkerhalf,
                                             finufft_spread_opts opts);
@@ -227,5 +340,15 @@ template void onedim_fseries_kernel(CUFINUFFT_BIGINT nf, float *fwkerhalf,
                                     finufft_spread_opts opts);
 template void onedim_fseries_kernel(CUFINUFFT_BIGINT nf, double *fwkerhalf,
                                     finufft_spread_opts opts);
+
+template std::size_t shared_memory_required<float>(int dim, int ns, int bin_size_x,
+                                                   int bin_size_y, int bin_size_z);
+template std::size_t shared_memory_required<double>(int dim, int ns, int bin_size_x,
+                                                    int bin_size_y, int bin_size_z);
+
+template void cufinufft_setup_binsize<float>(int type, int ns, int dim,
+                                             cufinufft_opts *opts);
+template void cufinufft_setup_binsize<double>(int type, int ns, int dim,
+                                              cufinufft_opts *opts);
 } // namespace common
 } // namespace cufinufft

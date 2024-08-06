@@ -19,7 +19,7 @@ using cufinufft::utils::infnorm;
 
 template<typename T>
 int run_test(int method, int type, int N1, int N2, int N3, int M, T tol, T checktol,
-             int iflag) {
+             int iflag, double upsampfac) {
   std::cout << std::scientific << std::setprecision(3);
   int ier;
 
@@ -94,9 +94,9 @@ int run_test(int method, int type, int N1, int N2, int N3, int M, T tol, T check
   opts.gpu_method       = method;
   opts.gpu_kerevalmeth  = 1;
   opts.gpu_maxbatchsize = 1;
-
-  int nmodes[3] = {N1, N2, N3};
-  int ntransf   = 1;
+  opts.upsampfac        = upsampfac;
+  int nmodes[3]         = {N1, N2, N3};
+  int ntransf           = 1;
 
   cudaEventRecord(start);
   ier = cufinufft_makeplan_impl(type, dim, nmodes, iflag, ntransf, tol, &dplan, &opts);
@@ -190,7 +190,7 @@ int run_test(int method, int type, int N1, int N2, int N3, int M, T tol, T check
 }
 
 int main(int argc, char *argv[]) {
-  if (argc < 10) {
+  if (argc != 11) {
     fprintf(stderr,
             "Usage: cufinufft3d1_test method type N1 N2 N3 M tol checktol prec\n"
             "Arguments:\n"
@@ -203,24 +203,26 @@ int main(int argc, char *argv[]) {
             "  M: The number of non-uniform points\n"
             "  tol: NUFFT tolerance\n"
             "  checktol:  relative error to pass test\n"
-            "  prec:  'f' or 'd' (float/double)\n");
+            "  prec:  'f' or 'd' (float/double)\n"
+            "  upsamplefac: upsampling factor\n");
     return 1;
   }
-  const int method      = atoi(argv[1]);
-  const int type        = atoi(argv[2]);
-  const int N1          = atof(argv[3]);
-  const int N2          = atof(argv[4]);
-  const int N3          = atof(argv[5]);
-  const int M           = atof(argv[6]);
-  const double tol      = atof(argv[7]);
-  const double checktol = atof(argv[8]);
-  const char prec       = argv[9][0];
-  const int iflag       = 1;
+  const int method       = atoi(argv[1]);
+  const int type         = atoi(argv[2]);
+  const int N1           = atof(argv[3]);
+  const int N2           = atof(argv[4]);
+  const int N3           = atof(argv[5]);
+  const int M            = atof(argv[6]);
+  const double tol       = atof(argv[7]);
+  const double checktol  = atof(argv[8]);
+  const char prec        = argv[9][0];
+  const double upsampfac = atof(argv[10]);
+  const int iflag        = 1;
 
   if (prec == 'f')
-    return run_test<float>(method, type, N1, N2, N3, M, tol, checktol, iflag);
+    return run_test<float>(method, type, N1, N2, N3, M, tol, checktol, iflag, upsampfac);
   else if (prec == 'd')
-    return run_test<double>(method, type, N1, N2, N3, M, tol, checktol, iflag);
+    return run_test<double>(method, type, N1, N2, N3, M, tol, checktol, iflag, upsampfac);
   else
     return -1;
 }

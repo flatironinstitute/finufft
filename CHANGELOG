@@ -1,13 +1,13 @@
 List of features / changes made / release notes, in reverse chronological order.
 If not stated, FINUFFT is assumed (cuFINUFFT <=1.3 is listed separately).
 
-V 2.3.0-rc1 (8/2/24)
+V 2.3.0-rc1 (8/6/24)
 
 * Switched C++ standards from C++14 to C++17, allowing various templating
   improvements (Barbone).
-* python build modernized to pyproject.toml (for both CPU and GPU).
-  PR 507 (Anden, Lu, Barbone)
-* switchable FFT: either FFTW or DUCC0 (latter needs no plan stage; also it is
+* Python build modernized to pyproject.toml (for both CPU and GPU).
+  PR 507 (Anden, Lu, Barbone). Compiles from source for the local build.
+* Switchable FFT: either FFTW or DUCC0 (latter needs no plan stage; also it is
   used to exploit sparsity pattern to achieve FFT speedups 1-3x in 2D and 3D).
   PR463, Martin Reinecke. Both CMake and makefile includes this DUCC0 option
   (makefile PR511 by Barnett; CMake by Barbone).
@@ -54,8 +54,20 @@ V 2.3.0-rc1 (8/2/24)
   It now auto-selects compiler flags based on those supported on all OSes, and
   has support for Windows (llvm, msvc), Linux (llvm, gcc) and MacOS (llvm, gcc).
 * CMake added nvcc and msvc optimization flags.
-* sphinx local doc build also using CMake.
-* updated install docs, including for DUCC0 FFT.
+* sphinx local doc build also using CMake. (Barbone)
+* updated install docs, including for DUCC0 FFT and new python build.
+* updated install docs (Barnett)
+* Major acceleration effort for the GPU library cufinufft (M Barbone, PR488):
+  - binsize is now a function of the shared memory available where possible.
+  - GM 1D sorts using thrust::sort instead of bin-sort.
+  - uses the new normalized Horner coefficients and added support for
+    upsampfac=1.25 on GPU, for first time.
+  - new compile flags for extra-vectorization, flushing single
+    precision denormals to 0 and using fma where possible.
+  -  using intrinsics (eg FMA) in foldrescale and other places to increase
+    performance
+  - using SM90 float2 vector atomicAdd where supported
+  - make default binsize = 0
 
 V 2.2.0 (12/12/23)
 
