@@ -481,17 +481,15 @@ or the older-style eyeball check with::
 
 which should report errors around ``1e-6`` and throughputs around 1-10 million points/sec.
 
-However, a user or developer may want to build a python wrapper to their locally
-compiled FINUFFT library, perhaps for more speed.
-We now describe this, for all OSes.
+However, better performance will result by locally compiling the library on your CPU into a Python module. This can better exploit your CPU's capabilities than the ``pypi`` distribution that ``pip install finufft`` downloads.
 We assume ``python`` (hence ``pip``; make sure you have that installed), at least version 3.8. We now use the modern ``pyproject.toml`` build system,
-which locally compiles (giving you native performance on your CPU).
+which locally compiles with cmake (giving you native performance on your CPU).
 For this, run::
 
-  pip install -e python/finufft
+  pip install python/finufft
 
-which compiles the library from source then makes the ``finufft`` Python module
-and installs (in editable mode). If you see a complaint about missing ``setup.py``, you need a more recent version of pip/python.
+which compiles the library from source then installs the Python module.
+If you see a complaint about missing ``setup.py``, you need a more recent version of pip/python.
 You should then run the above tests. You could also run tests and examples via ``make python``.
 
 An additional performance test you could then do is::
