@@ -35,10 +35,6 @@
 #include <stdint.h>
 #define FINUFFT_BIGINT int64_t
 
-#ifndef __cplusplus
-#include <stdbool.h> // for bool type in C (needed for item in plan struct)
-#endif
-
 // this macro name has to be safe since exposed to user
 #define FINUFFT_SINGLE
 #include <finufft_eitherprec.h>

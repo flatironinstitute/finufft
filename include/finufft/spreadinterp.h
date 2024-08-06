@@ -20,10 +20,12 @@
     NOTE: non-zero values are for experts only, since
     NUMERICAL OUTPUT MAY BE INCORRECT UNLESS finufft_spread_opts.flags=0 !
 */
-#define TF_OMIT_WRITE_TO_GRID        1 // don't add subgrids to out grid (dir=1)
-#define TF_OMIT_EVALUATE_KERNEL      2 // don't evaluate the kernel at all
-#define TF_OMIT_EVALUATE_EXPONENTIAL 4 // omit exp() in kernel (kereval=0 only)
-#define TF_OMIT_SPREADING            8 // don't interp/spread (dir=1: to subgrids)
+enum {
+  TF_OMIT_WRITE_TO_GRID        = 1, // don't add subgrids to out grid (dir=1)
+  TF_OMIT_EVALUATE_KERNEL      = 2, // don't evaluate the kernel at all
+  TF_OMIT_EVALUATE_EXPONENTIAL = 4, // omit exp() in kernel (kereval=0 only)
+  TF_OMIT_SPREADING            = 8  // don't interp/spread (dir=1: to subgrids)
+};
 
 namespace finufft {
 namespace spreadinterp {

@@ -24,7 +24,6 @@
 
 // decide which kind of complex numbers FINUFFT_CPX is (four options)
 #ifdef __cplusplus
-#define _USE_MATH_DEFINES
 #include <complex> // C++ type
 #define FINUFFT_COMPLEXIFY(X) std::complex<X>
 #else
@@ -183,4 +182,3 @@ FINUFFT_EXPORT int FINUFFT_CDECL FINUFFTIFY(3d3many)(
 #undef FINUFFT_CPX
 #undef FINUFFT_PLAN
 #undef FINUFFT_PLAN_S
-#undef FINUFFT_TYPE3PARAMS

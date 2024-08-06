@@ -91,13 +91,8 @@ namespace common {
 static std::mutex fftw_lock;
 #endif
 
-// We macro because it has no FLT args but gets compiled for both prec's...
-#ifdef SINGLE
-#define SET_NF_TYPE12 set_nf_type12f
-#else
-#define SET_NF_TYPE12 set_nf_type12
-#endif
-int SET_NF_TYPE12(BIGINT ms, finufft_opts opts, finufft_spread_opts spopts, BIGINT *nf)
+static int set_nf_type12(BIGINT ms, finufft_opts opts, finufft_spread_opts spopts,
+                         BIGINT *nf)
 // Type 1 & 2 recipe for how to set 1d size of upsampled array, nf, given opts
 // and requested number of Fourier modes ms. Returns 0 if success, else an
 // error code if nf was unreasonably big (& tell the world).
@@ -684,16 +679,16 @@ int FINUFFT_MAKEPLAN(int type, int dim, BIGINT *n_modes, int iflag, int ntrans, 
     }
 
     // determine fine grid sizes, sanity check..
-    int nfier = SET_NF_TYPE12(p->ms, p->opts, p->spopts, &(p->nf1));
+    int nfier = set_nf_type12(p->ms, p->opts, p->spopts, &(p->nf1));
     if (nfier) return nfier; // nf too big; we're done
     p->phiHat1 = (FLT *)malloc(sizeof(FLT) * (p->nf1 / 2 + 1));
     if (dim > 1) {
-      nfier = SET_NF_TYPE12(p->mt, p->opts, p->spopts, &(p->nf2));
+      nfier = set_nf_type12(p->mt, p->opts, p->spopts, &(p->nf2));
       if (nfier) return nfier;
       p->phiHat2 = (FLT *)malloc(sizeof(FLT) * (p->nf2 / 2 + 1));
     }
     if (dim > 2) {
-      nfier = SET_NF_TYPE12(p->mu, p->opts, p->spopts, &(p->nf3));
+      nfier = set_nf_type12(p->mu, p->opts, p->spopts, &(p->nf3));
       if (nfier) return nfier;
       p->phiHat3 = (FLT *)malloc(sizeof(FLT) * (p->nf3 / 2 + 1));
     }
