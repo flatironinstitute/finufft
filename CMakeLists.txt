@@ -23,6 +23,7 @@ option(FINUFFT_BUILD_DEVEL "Whether to build development executables" OFF)
 option(FINUFFT_BUILD_EXAMPLES "Whether to build the FINUFFT examples" OFF)
 option(FINUFFT_BUILD_TESTS "Whether to build the FINUFFT tests" OFF)
 option(FINUFFT_USE_DUCC0 "Whether to use DUCC0 (instead of FFTW) for CPU FFTs" OFF)
+option(FINUFFT_BUILD_DOCS "Whether to build the FINUFFT documentation" OFF)
 # if FINUFFT_USE_DUCC0 is ON, the following options are ignored
 set(FINUFFT_FFTW_LIBRARIES "DEFAULT" CACHE STRING "Specify a custom FFTW library")
 set(FINUFFT_FFTW_SUFFIX "OpenMP" CACHE STRING "Suffix for FFTW libraries (e.g. OpenMP, Threads etc.)")
@@ -144,8 +145,9 @@ if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
   if(FINUFFT_BUILD_TESTS)
     enable_testing()
   endif()
-  # include(cmake/setupSphinx.cmake)    # to be made default off since only for
-  # devs
+  if(FINUFFT_BUILD_DOCS)
+    include(cmake/setupSphinx.cmake)
+  endif()
 endif()
 
 if(FINUFFT_USE_CPU)
