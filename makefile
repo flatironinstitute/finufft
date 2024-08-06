@@ -1,7 +1,7 @@
 # Makefile for FINUFFT (CPU code only, and its various interfaces)
 
 # For simplicity, this is the only makefile; there are no makefiles in
-# subdirectories. This makefile is useful to show humans how to compile
+# subdirectories. This makefile is also useful to show humans how to compile
 # FINUFFT and its various language interfaces and examples.
 # Users should not need to edit this makefile (doing so would make it hard to
 # stay up to date with the repo version). Rather, in order to change
@@ -14,7 +14,7 @@
 # Garrett Wright, Joakim Anden, Barnett: dual-prec lib build, Jun-Jul'20.
 # Windows compatibility, jonas-kr, Sep '20.
 # XSIMD dependency, Marco Barbone, June 2024.
-# DUCC optional dependency to replace FFTW3. Barnett, 8/1/24.
+# DUCC optional dependency to replace FFTW3. Barnett/Lu, 8/6/24.
 
 # Compiler (CXX), and linking from C, fortran. We use GCC by default...
 CXX = g++
@@ -200,9 +200,9 @@ HEADERS = $(wildcard include/*.h include/finufft/*.h) $(DUCC_HEADERS)
 %_32.o: %.f
 	$(FC) -DSINGLE -c $(FFLAGS) $< -o $@
 
-# spreadinterp include auto-generated code, xsimd header-only dependency,
+# spreadinterp include auto-generated code, xsimd header-only dependency;
 # if FFT=DUCC also setup ducc with fft.h dependency on $(DUCC_SETUP)...
-# note src/spreadinterp.cpp includes finufft/defs.h which includes finufft/fft.h
+# Note src/spreadinterp.cpp includes finufft/defs.h which includes finufft/fft.h
 # so fftw/ducc header needed for spreadinterp, though spreadinterp should not
 # depend on fftw/ducc directly?
 include/finufft/fft.h: $(DUCC_SETUP)
