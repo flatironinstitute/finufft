@@ -467,8 +467,8 @@ Also see https://github.com/flatironinstitute/finufft/issues
 
 .. _install-python:
 
-Building a python interface to a locally compiled library
------------------------------------------------------------------------
+Building a Python interface to a locally compiled library
+---------------------------------------------------------
 
 Recall that the basic user may simply ``pip install finufft``,
 then check it worked via either (if you have ``pytest`` installed)::
@@ -482,31 +482,21 @@ or the older-style eyeball check with::
 which should report errors around ``1e-6`` and throughputs around 1-10 million points/sec.
 
 However, a user or developer may want to build a python wrapper to their locally
-compiled FINUFFT library, perhaps for more speed. We now describe this,
-for all OSes.
-We assume ``python3`` (hence ``pip3``; make sure you have that installed).
+compiled FINUFFT library, perhaps for more speed.
+We now describe this, for all OSes.
+We assume ``python`` (hence ``pip``; make sure you have that installed), at least version 3.8. We now use the modern ``pyproject.toml`` build system,
+which locally compiles (giving you native performance on your CPU).
+For this, run::
 
-First, compile the shared C++ library, via, eg ``make lib -j`` (using the old-style ``makefile``),
-or via::
+  pip install -e python/finufft
 
-  make -p build
-  cd build
-  cmake ..
-  cmake --build . -j
-  cd ..
-
-You may then run::
-
-  pip3 install -e python/finufft
-
-which builds the ``finufft`` Python module, linking to the ``.so``,
-and installs (in editable mode) via pip.
-You will see that the ``finufftc.*.so`` shared object appears in the ``python/finufft/finufft/`` directory.
+which compiles the library from source then makes the ``finufft`` Python module
+and installs (in editable mode). If you see a complaint about missing ``setup.py``, you need a more recent version of pip/python.
 You should then run the above tests. You could also run tests and examples via ``make python``.
 
 An additional performance test you could then do is::
 
-  python3 python/finufft/test/run_speed_tests.py
+  python python/finufft/test/run_speed_tests.py
 
 .. note::
 
