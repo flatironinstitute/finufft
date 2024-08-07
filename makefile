@@ -95,6 +95,7 @@ ifeq ($(FFT),DUCC)
 # so FINUFFT build can see DUCC headers...
   INCL += $(DUCC_INCL)
   DUCC_OBJS := $(DUCC_SRC)/infra/string_utils.o $(DUCC_SRC)/infra/threading.o $(DUCC_SRC)/infra/mav.o $(DUCC_SRC)/math/gridding_kernel.o $(DUCC_SRC)/math/gl_integrator.o
+  DUCC_SRCS := $(DUCC_OBJS:.o=.cc)
 # FINUFFT's switchable FFT done via this compile directive...
   CXXFLAGS += -DFINUFFT_USE_DUCC0
 else
@@ -495,25 +496,9 @@ $(DUCC_COOKIE):
 
 # implicit rule for DUCC compile just needed objects, only used if FFT=DUCC.
 # Needed since DUCC has no makefile (yet).
-$(DUCC_SRC)/infra/string_utils.cc: $(DUCC_SETUP)
-$(DUCC_SRC)/infra/string_utils.o: $(DUCC_SRC)/infra/string_utils.cc
+$(DUCC_SRCS): %.cc: $(DUCC_SETUP)
+$(DUCC_OBJS): %.o: %.cc
 	$(CXX) -c $(DUCC_CXXFLAGS) $(DUCC_INCL) $< -o $@
-$(DUCC_SRC)/infra/threading.cc: $(DUCC_SETUP)
-$(DUCC_SRC)/infra/threading.o: $(DUCC_SRC)/infra/threading.cc
-	$(CXX) -c $(DUCC_CXXFLAGS) $(DUCC_INCL) $< -o $@
-$(DUCC_SRC)/infra/mav.cc: $(DUCC_SETUP)
-$(DUCC_SRC)/infra/mav.o: $(DUCC_SRC)/infra/mav.cc
-	$(CXX) -c $(DUCC_CXXFLAGS) $(DUCC_INCL) $< -o $@
-$(DUCC_SRC)/math/gridding_kernel.cc: $(DUCC_SETUP)
-$(DUCC_SRC)/math/gridding_kernel.o: $(DUCC_SRC)/math/gridding_kernel.cc
-	$(CXX) -c $(DUCC_CXXFLAGS) $(DUCC_INCL) $< -o $@
-$(DUCC_SRC)/math/gl_integrator.cc: $(DUCC_SETUP)
-$(DUCC_SRC)/math/gl_integrator.o: $(DUCC_SRC)/math/gl_integrator.cc
-	$(CXX) -c $(DUCC_CXXFLAGS) $(DUCC_INCL) $< -o $@
-# -j with the following not working yet..., need to expand the wildcard as above...
-#$(DUCC_SRC)/%.cc: $(DUCC_SETUP)
-#$(DUCC_SRC)/%.o: $(DUCC_SRC)/%.cc
-#	$(CXX) -c $(DUCC_CXXFLAGS) $(DUCC_INCL) $< -o $@
 
 setup: $(XSIMD_DIR)/include/xsimd/xsimd.hpp $(DUCC_SETUP)
 
