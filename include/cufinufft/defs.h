@@ -1,15 +1,18 @@
 #ifndef CUFINUFFT_DEFS_H
 #define CUFINUFFT_DEFS_H
 
+#include <complex>
 #include <limits>
-
 // constants needed within common
 // upper bound on w, ie nspread, even when padded (see evaluate_kernel_vector); also for
 // common
-#define MAX_NSPREAD 16
+#define MAX_NSPREAD          16
 
 // max number of positive quadr nodes
-#define MAX_NQUAD   100
+#define MAX_NQUAD            100
+
+// Fraction growth cut-off in utils:arraywidcen, sets when translate in type-3
+#define ARRAYWIDCEN_GROWFRAC 0.1
 
 // FIXME: If cufft ever takes N > INT_MAX...
 constexpr int32_t MAX_NF = std::numeric_limits<int32_t>::max();

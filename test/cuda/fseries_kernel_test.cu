@@ -34,38 +34,42 @@ template<typename T> int run_test(int nf1, int dim, T eps, int gpu, int nf2, int
 
   CNTime timer;
   if (!gpu) {
-    timer.start();
-    fwkerhalf1 = (T *)malloc(sizeof(T) * (nf1 / 2 + 1));
-    if (dim > 1) fwkerhalf2 = (T *)malloc(sizeof(T) * (nf2 / 2 + 1));
-    if (dim > 2) fwkerhalf3 = (T *)malloc(sizeof(T) * (nf3 / 2 + 1));
-
-    onedim_fseries_kernel(nf1, fwkerhalf1, opts);
-    if (dim > 1) onedim_fseries_kernel(nf2, fwkerhalf2, opts);
-    if (dim > 2) onedim_fseries_kernel(nf3, fwkerhalf3, opts);
-    cputime = timer.elapsedsec();
-    cudaEventRecord(start);
-    {
-      checkCudaErrors(cudaMemcpy(d_fwkerhalf1, fwkerhalf1, sizeof(T) * (nf1 / 2 + 1),
-                                 cudaMemcpyHostToDevice));
-      if (dim > 1)
-        checkCudaErrors(cudaMemcpy(d_fwkerhalf2, fwkerhalf2, sizeof(T) * (nf2 / 2 + 1),
-                                   cudaMemcpyHostToDevice));
-      if (dim > 2)
-        checkCudaErrors(cudaMemcpy(d_fwkerhalf3, fwkerhalf3, sizeof(T) * (nf3 / 2 + 1),
-                                   cudaMemcpyHostToDevice));
-    }
-    cudaEventRecord(stop);
-    cudaEventSynchronize(stop);
-    cudaEventElapsedTime(&milliseconds, start, stop);
-    gputime = milliseconds;
-    printf("[time  ] dim=%d, nf1=%8d, ns=%2d, CPU: %6.2f ms\n", dim, nf1, opts.nspread,
-           gputime + cputime * 1000);
-    free(fwkerhalf1);
-    if (dim > 1) free(fwkerhalf2);
-    if (dim > 2) free(fwkerhalf3);
+    //    timer.start();
+    //    fwkerhalf1 = (T *)malloc(sizeof(T) * (nf1 / 2 + 1));
+    //    if (dim > 1) fwkerhalf2 = (T *)malloc(sizeof(T) * (nf2 / 2 + 1));
+    //    if (dim > 2) fwkerhalf3 = (T *)malloc(sizeof(T) * (nf3 / 2 + 1));
+    //
+    //    onedim_fseries_kernel(nf1, fwkerhalf1, opts);
+    //    if (dim > 1) onedim_fseries_kernel(nf2, fwkerhalf2, opts);
+    //    if (dim > 2) onedim_fseries_kernel(nf3, fwkerhalf3, opts);
+    //    cputime = timer.elapsedsec();
+    //    cudaEventRecord(start);
+    //    {
+    //      checkCudaErrors(cudaMemcpy(d_fwkerhalf1, fwkerhalf1, sizeof(T) * (nf1 / 2 +
+    //      1),
+    //                                 cudaMemcpyHostToDevice));
+    //      if (dim > 1)
+    //        checkCudaErrors(cudaMemcpy(d_fwkerhalf2, fwkerhalf2, sizeof(T) * (nf2 / 2 +
+    //        1),
+    //                                   cudaMemcpyHostToDevice));
+    //      if (dim > 2)
+    //        checkCudaErrors(cudaMemcpy(d_fwkerhalf3, fwkerhalf3, sizeof(T) * (nf3 / 2 +
+    //        1),
+    //                                   cudaMemcpyHostToDevice));
+    //    }
+    //    cudaEventRecord(stop);
+    //    cudaEventSynchronize(stop);
+    //    cudaEventElapsedTime(&milliseconds, start, stop);
+    //    gputime = milliseconds;
+    //    printf("[time  ] dim=%d, nf1=%8d, ns=%2d, CPU: %6.2f ms\n", dim, nf1,
+    //    opts.nspread,
+    //           gputime + cputime * 1000);
+    //    free(fwkerhalf1);
+    //    if (dim > 1) free(fwkerhalf2);
+    //    if (dim > 2) free(fwkerhalf3);
   } else {
     timer.start();
-    std::complex<double> a[dim * MAX_NQUAD];
+    T a[dim * MAX_NQUAD];
     T f[dim * MAX_NQUAD];
     onedim_fseries_kernel_precomp(nf1, f, a, opts);
     if (dim > 1) onedim_fseries_kernel_precomp(nf2, f + MAX_NQUAD, a + MAX_NQUAD, opts);
@@ -73,14 +77,14 @@ template<typename T> int run_test(int nf1, int dim, T eps, int gpu, int nf2, int
       onedim_fseries_kernel_precomp(nf3, f + 2 * MAX_NQUAD, a + 2 * MAX_NQUAD, opts);
     cputime = timer.elapsedsec();
 
-    cuDoubleComplex *d_a;
+    T *d_a;
     T *d_f;
     cudaEventRecord(start);
     {
-      checkCudaErrors(cudaMalloc(&d_a, dim * MAX_NQUAD * sizeof(cuDoubleComplex)));
+      checkCudaErrors(cudaMalloc(&d_a, dim * MAX_NQUAD * sizeof(T)));
       checkCudaErrors(cudaMalloc(&d_f, dim * MAX_NQUAD * sizeof(T)));
-      checkCudaErrors(cudaMemcpy(d_a, a, dim * MAX_NQUAD * sizeof(cuDoubleComplex),
-                                 cudaMemcpyHostToDevice));
+      checkCudaErrors(
+          cudaMemcpy(d_a, a, dim * MAX_NQUAD * sizeof(T), cudaMemcpyHostToDevice));
       checkCudaErrors(
           cudaMemcpy(d_f, f, dim * MAX_NQUAD * sizeof(T), cudaMemcpyHostToDevice));
       ier =
