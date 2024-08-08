@@ -726,6 +726,7 @@ int FINUFFT_MAKEPLAN(int type, int dim, BIGINT *n_modes, int iflag, int ntrans, 
       fprintf(stderr,
               "[%s] fwBatch would be bigger than MAX_NF, not attempting malloc!\n",
               __func__);
+      // FIXME: this error causes memory leaks. We should free phiHat1, phiHat2, phiHat3
       return FINUFFT_ERR_MAXNALLOC;
     }
 
@@ -760,7 +761,7 @@ int FINUFFT_MAKEPLAN(int type, int dim, BIGINT *n_modes, int iflag, int ntrans, 
       // set it just for our one plan and then revert to the user value.
       // Unfortunately fftw_planner_nthreads wasn't introduced until fftw 3.3.9, and
       // there isn't a convenient mechanism to probe the version
-      FFTW_PLAN_TH(nthr_fft);
+      // there is fftw_version which returns a string, but that's not compile time
       p->fftwPlan = FFTW_PLAN_MANY_DFT(dim, ns, p->batchSize, (FFTW_CPX *)p->fwBatch,
                                        NULL, 1, p->nf, (FFTW_CPX *)p->fwBatch, NULL, 1,
                                        p->nf, p->fftSign, p->opts.fftw);
@@ -916,6 +917,7 @@ int FINUFFT_SETPTS(FINUFFT_PLAN p, BIGINT nj, FLT *xj, FLT *yj, FLT *zj, BIGINT 
     // printf("fwbatch, cpbatch ptrs: %llx %llx\n",p->fwBatch,p->CpBatch);
 
     // alloc rescaled NU src pts x'_j (in X etc), rescaled NU targ pts s'_k ...
+    // FIXME: should use realloc
     if (p->X) free(p->X);
     if (p->Sp) free(p->Sp);
     p->X  = (FLT *)malloc(sizeof(FLT) * nj);

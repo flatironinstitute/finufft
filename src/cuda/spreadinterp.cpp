@@ -1,10 +1,7 @@
 #include <cmath>
 #include <cstdio>
-#include <cstdlib>
-#include <limits>
 #include <vector>
 
-#include <cufinufft/defs.h>
 #include <cufinufft/spreadinterp.h>
 #include <cufinufft/utils.h>
 
@@ -44,8 +41,7 @@ int setup_spreader(finufft_spread_opts &opts, T eps, T upsampfac, int kerevalmet
   opts.upsampfac        = upsampfac;
 
   // as in FINUFFT v2.0, allow too-small-eps by truncating to eps_mach...
-  int ier = 0;
-
+  int ier             = 0;
   constexpr T EPSILON = std::numeric_limits<T>::epsilon();
   if (eps < EPSILON) {
     fprintf(stderr, "setup_spreader: warning, increasing tol=%.3g to eps_mach=%.3g.\n",
