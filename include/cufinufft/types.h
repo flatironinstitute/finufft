@@ -24,9 +24,9 @@ using cuda_complex = typename std::conditional<
                               void>::type>::type;
 namespace {
 template<typename T> struct cufinuftt_type3_params_t {
-  T X1, C1, D1, h1, gam1; // x dim: X=halfwid C=center D=freqcen h,gam=rescale
-  T X2, C2, D2, h2, gam2; // y
-  T X3, C3, D3, h3, gam3; // z
+  T X1, C1, S1, D1, h1, gam1; // x dim: X=halfwid C=center D=freqcen h,gam=rescale
+  T X2, C2, S2, D2, h2, gam2; // y
+  T X3, C3, S3, D3, h3, gam3; // z
 };
 } // namespace
 
@@ -88,12 +88,10 @@ template<typename T> struct cufinufft_plan_t {
   int *numnupts;
   int *subprob_to_nupts;
 
-  // Temporary variables to do fseries precomputation
-  T fseries_precomp_a[3 * MAX_NQUAD];
-  T fseries_precomp_f[3 * MAX_NQUAD];
-
   cufftHandle fftplan;
   cudaStream_t stream;
+
+  using real_t = T;
 };
 
 template<typename T> constexpr static inline cufftType_t cufft_type();

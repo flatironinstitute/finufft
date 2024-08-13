@@ -130,8 +130,8 @@ __forceinline__ __device__ auto interval(const int ns, const double x) {
  */
 
 template<typename T>
-static __forceinline__ __device__ void atomicAddComplexShared(cuda_complex<T> *address,
-                                                              cuda_complex<T> res) {
+static __forceinline__ __device__ void atomicAddComplexShared(
+    cuda_complex<T> *address, cuda_complex<T> res) {
   const auto raw_address = reinterpret_cast<T *>(address);
   atomicAdd(raw_address, res.x);
   atomicAdd(raw_address + 1, res.y);
@@ -143,8 +143,8 @@ static __forceinline__ __device__ void atomicAddComplexShared(cuda_complex<T> *a
  * on shared memory are supported so we leverage them
  */
 template<typename T>
-static __forceinline__ __device__ void atomicAddComplexGlobal(cuda_complex<T> *address,
-                                                              cuda_complex<T> res) {
+static __forceinline__ __device__ void atomicAddComplexGlobal(
+    cuda_complex<T> *address, cuda_complex<T> res) {
   if constexpr (
       std::is_same_v<cuda_complex<T>, float2> && COMPUTE_CAPABILITY_90_OR_HIGHER) {
     atomicAdd(address, res);
@@ -154,9 +154,15 @@ static __forceinline__ __device__ void atomicAddComplexGlobal(cuda_complex<T> *a
 }
 
 template<typename T> auto arrayrange(int n, T *a, cudaStream_t stream) {
-  const auto [d_min, d_max] =
-      thrust::minmax_element(thrust::cuda::par.on(stream), a, a + n);
-  return std::make_tuple(*d_min, *d_max);
+  const auto d_min_max = thrust::minmax_element(thrust::cuda::par.on(stream), a, a + n);
+
+  // copy d_min and d_max to host
+  T min{}, max{};
+  checkCudaErrors(cudaMemcpy(&min, thrust::raw_pointer_cast(d_min_max.first), sizeof(T),
+                             cudaMemcpyDeviceToHost));
+  checkCudaErrors(cudaMemcpy(&max, thrust::raw_pointer_cast(d_min_max.second), sizeof(T),
+                             cudaMemcpyDeviceToHost));
+  return std::make_tuple(min, max);
 }
 
 // Writes out w = half-width and c = center of an interval enclosing all a[n]'s
@@ -168,7 +174,7 @@ template<typename T> auto arraywidcen(int n, T *a, cudaStream_t stream) {
   const auto [lo, hi] = arrayrange(n, a, stream);
   auto w              = (hi - lo) / 2;
   auto c              = (hi + lo) / 2;
-  if (std::abs(c) < ARRAYWIDCEN_GROWFRAC * (w)) {
+  if (std::abs(c) < ARRAYWIDCEN_GROWFRAC * w) {
     w += std::abs(c);
     c = 0.0;
   }
@@ -198,9 +204,9 @@ auto set_nhg_type3(T S, T X, const cufinufft_opts &opts,
       Xsafe = 1.0;
       Ssafe = 1.0;
     } else
-      Xsafe = max(Xsafe, 1 / S);
+      Xsafe = max(Xsafe, T(1) / S);
   else
-    Ssafe = max(Ssafe, 1 / X);
+    Ssafe = max(Ssafe, T(1) / X);
   // use the safe X and S...
   T nfd = 2.0 * opts.upsampfac * Ssafe * Xsafe / M_PI + nss;
   if (!isfinite(nfd)) nfd = 0.0; // use FLT to catch inf
@@ -213,7 +219,7 @@ auto set_nhg_type3(T S, T X, const cufinufft_opts &opts,
   // Note: b is 1 because type 3 uses a type 2 plan, so it should not need the extra
   // condition that seems to be used by Block Gather as type 2 are only GM-sort
   auto h   = 2 * T(M_PI) / nf;                       // upsampled grid spacing
-  auto gam = (T)nf / (2.0 * opts.upsampfac * Ssafe); // x scale fac to x'
+  auto gam = T(nf) / (2.0 * opts.upsampfac * Ssafe); // x scale fac to x'
   return std::make_tuple(nf, h, gam);
 }
 

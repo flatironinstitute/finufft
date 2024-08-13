@@ -15,6 +15,7 @@
 #include <cufinufft/utils.h>
 
 #include <finufft_errors.h>
+#include <thrust/device_vector.h>
 
 // 1d
 template<typename T>
@@ -65,9 +66,6 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
   */
   using namespace cufinufft::common;
   int ier;
-  T *d_a = nullptr; // fseries temp data
-  T *d_f = nullptr; // fseries temp data
-
   if (type < 1 || type > 3) {
     fprintf(stderr, "[%s] Invalid type (%d): should be 1 or 2.\n", __func__, type);
     return FINUFFT_ERR_TYPE_NOTVALID;
@@ -95,11 +93,17 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
   }
   d_plan->dim                   = dim;
   d_plan->opts.gpu_maxbatchsize = std::max(d_plan->opts.gpu_maxbatchsize, 1);
+
   if (type != 3) {
     d_plan->ms = nmodes[0];
     d_plan->mt = nmodes[1];
     d_plan->mu = nmodes[2];
   }
+
+  int fftsign     = (iflag >= 0) ? 1 : -1;
+  d_plan->iflag   = fftsign;
+  d_plan->ntransf = ntransf;
+
   const auto stream = d_plan->stream = (cudaStream_t)d_plan->opts.gpu_stream;
 
   // Mult-GPU support: set the CUDA Device ID:
@@ -122,7 +126,7 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
   // FIXME: since cufft is really fast we should use 1.25 only if we run out of vram
   if (d_plan->opts.upsampfac == 0.0) { // indicates auto-choose
     d_plan->opts.upsampfac = 2.0;      // default, and need for tol small
-    if (tol >= (T)1E-9) {              // the tol sigma=5/4 can reach
+    if (tol >= (T)1E-9 && type == 3) { // the tol sigma=5/4 can reach
       d_plan->opts.upsampfac = 1.25;
     }
     if (d_plan->opts.debug) {
@@ -133,9 +137,7 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
   /* Setup Spreader */
   if ((ier = setup_spreader_for_nufft(d_plan->spopts, tol, d_plan->opts)) > 1) {
     // can return FINUFFT_WARN_EPS_TOO_SMALL=1, which is OK
-    delete *d_plan_ptr;
-    *d_plan_ptr = nullptr;
-    return ier;
+    goto finalize;
   }
 
   d_plan->type                    = type;
@@ -143,7 +145,9 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
 
   if (type == 1 || type == 2) {
     cufinufft_setup_binsize<T>(type, d_plan->spopts.nspread, dim, &d_plan->opts);
-
+    if (ier = cudaGetLastError(), ier != cudaSuccess) {
+      goto finalize;
+    }
     if (d_plan->opts.debug) {
       printf("[cufinufft] bin size x: %d", d_plan->opts.gpu_binsizex);
       if (dim > 1) printf(" bin size y: %d", d_plan->opts.gpu_binsizey);
@@ -158,9 +162,6 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
           d_plan->opts.gpu_binsizey, d_plan->opts.gpu_binsizez);
       printf("[cufinufft] shared memory required for the spreader: %d\n", mem_required);
     }
-
-    RETURN_IF_CUDA_ERROR
-
     CUFINUFFT_BIGINT nf1 = 1, nf2 = 1, nf3 = 1;
     set_nf_type12(d_plan->ms, d_plan->opts, d_plan->spopts, &nf1,
                   d_plan->opts.gpu_obinsizex);
@@ -188,7 +189,6 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
         int shared_mem_per_block{};
         cudaDeviceGetAttribute(&shared_mem_per_block,
                                cudaDevAttrMaxSharedMemoryPerBlockOptin, device_id);
-        RETURN_IF_CUDA_ERROR
         // compute the amount of shared memory required for the method
         const auto shared_mem_required = shared_memory_required<T>(
             dim, d_plan->spopts.nspread, d_plan->opts.gpu_binsizex,
@@ -201,13 +201,14 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
       }
     }
 
-    int fftsign = (iflag >= 0) ? 1 : -1;
+    if ((ier = cudaGetLastError())) {
+      goto finalize;
+    }
 
-    d_plan->nf1      = nf1;
-    d_plan->nf2      = nf2;
-    d_plan->nf3      = nf3;
-    d_plan->iflag    = fftsign;
-    d_plan->ntransf  = ntransf;
+    d_plan->nf1 = nf1;
+    d_plan->nf2 = nf2;
+    d_plan->nf3 = nf3;
+
     int maxbatchsize = opts ? opts->gpu_maxbatchsize : 0;
     if (maxbatchsize == 0)                 // implies: use a heuristic.
       maxbatchsize = std::min(ntransf, 8); // heuristic from test codes
@@ -263,44 +264,38 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
     cufftSetStream(fftplan, stream);
 
     d_plan->fftplan = fftplan;
-    {
-      T *a = d_plan->fseries_precomp_a;
-      T *f = d_plan->fseries_precomp_f;
 
-      onedim_fseries_kernel_precomp(nf1, f, a, d_plan->spopts);
-      if (dim > 1)
-        onedim_fseries_kernel_precomp(nf2, f + MAX_NQUAD, a + MAX_NQUAD, d_plan->spopts);
-      if (dim > 2)
-        onedim_fseries_kernel_precomp(nf3, f + 2 * MAX_NQUAD, a + 2 * MAX_NQUAD,
-                                      d_plan->spopts);
-
-      if ((ier = checkCudaErrors(cudaMallocWrapper(&d_a, dim * MAX_NQUAD * sizeof(T),
-                                                   stream, d_plan->supports_pools))))
-        goto finalize;
-      if ((ier = checkCudaErrors(cudaMallocWrapper(&d_f, dim * MAX_NQUAD * sizeof(T),
-                                                   stream, d_plan->supports_pools))))
-        goto finalize;
-      if ((ier = checkCudaErrors(cudaMemcpyAsync(d_a, a, dim * MAX_NQUAD * sizeof(T),
-                                                 cudaMemcpyHostToDevice, stream))))
-        goto finalize;
-      if ((ier = checkCudaErrors(cudaMemcpyAsync(d_f, f, dim * MAX_NQUAD * sizeof(T),
-                                                 cudaMemcpyHostToDevice, stream))))
-        goto finalize;
-      if ((ier = cufserieskernelcompute(
-               d_plan->dim, nf1, nf2, nf3, d_f, d_a, d_plan->fwkerhalf1,
-               d_plan->fwkerhalf2, d_plan->fwkerhalf3, d_plan->spopts.nspread, stream)))
-        goto finalize;
-    }
+    T fseries_precomp_a[3 * MAX_NQUAD];
+    T fseries_precomp_f[3 * MAX_NQUAD];
+    thrust::device_vector<T> d_fseries_precomp_a(3 * MAX_NQUAD);
+    thrust::device_vector<T> d_fseries_precomp_f(3 * MAX_NQUAD);
+    onedim_fseries_kernel_precomp<T, true>(d_plan->nf1, fseries_precomp_f,
+                                           fseries_precomp_a, d_plan->spopts);
+    if (d_plan->dim > 1)
+      onedim_fseries_kernel_precomp<T, true>(d_plan->nf2, fseries_precomp_f + MAX_NQUAD,
+                                             fseries_precomp_a + MAX_NQUAD,
+                                             d_plan->spopts);
+    if (d_plan->dim > 2)
+      onedim_fseries_kernel_precomp<T, true>(
+          d_plan->nf3, fseries_precomp_f + 2 * MAX_NQUAD,
+          fseries_precomp_a + 2 * MAX_NQUAD, d_plan->spopts);
+    // copy the precomputed data to the device using thrust
+    thrust::copy(fseries_precomp_a, fseries_precomp_a + 3 * MAX_NQUAD,
+                 d_fseries_precomp_a.begin());
+    thrust::copy(fseries_precomp_f, fseries_precomp_f + 3 * MAX_NQUAD,
+                 d_fseries_precomp_f.begin());
+    if ((ier = cufserieskernelcompute(
+             d_plan->dim, d_plan->nf1, d_plan->nf2, d_plan->nf3,
+             d_fseries_precomp_f.data().get(), d_fseries_precomp_a.data().get(),
+             d_plan->fwkerhalf1, d_plan->fwkerhalf2, d_plan->fwkerhalf3,
+             d_plan->spopts.nspread, stream)))
+      goto finalize;
   }
 finalize:
-  cudaFreeWrapper(d_a, stream, d_plan->supports_pools);
-  cudaFreeWrapper(d_f, stream, d_plan->supports_pools);
-
   if (ier > 1) {
     delete *d_plan_ptr;
     *d_plan_ptr = nullptr;
   }
-
   return ier;
 }
 
@@ -444,34 +439,37 @@ int cufinufft_setpts_impl(int M, T *d_kx, T *d_ky, T *d_kz, int N, T *d_s, T *d_
   //  memset(d_plan->type3_params, 0, sizeof(d_plan->type3_params));
   using namespace cufinufft::utils;
   if (d_plan->dim > 0) {
-    const auto [x1, c1]        = arraywidcen<T>(M, d_plan->kx, stream);
+    const auto [x1, c1]        = arraywidcen<T>(M, d_kx, stream);
     d_plan->type3_params.X1    = x1;
     d_plan->type3_params.C1    = c1;
     const auto [S1, D1]        = arraywidcen<T>(N, d_s, stream);
     const auto [nf1, h1, gam1] = set_nhg_type3<T>(S1, x1, d_plan->opts, d_plan->spopts);
     d_plan->nf1                = nf1;
+    d_plan->type3_params.S1    = S1;
     d_plan->type3_params.D1    = D1;
     d_plan->type3_params.h1    = h1;
     d_plan->type3_params.gam1  = gam1;
   }
   if (d_plan->dim > 1) {
-    const auto [x2, c2]        = arraywidcen<T>(M, d_plan->ky, stream);
+    const auto [x2, c2]        = arraywidcen<T>(M, d_ky, stream);
     d_plan->type3_params.X2    = x2;
     d_plan->type3_params.C2    = c2;
     const auto [S2, D2]        = arraywidcen<T>(N, d_t, stream);
     const auto [nf2, h2, gam2] = set_nhg_type3<T>(S2, x2, d_plan->opts, d_plan->spopts);
     d_plan->nf2                = nf2;
+    d_plan->type3_params.S2    = S2;
     d_plan->type3_params.D2    = D2;
     d_plan->type3_params.h2    = h2;
     d_plan->type3_params.gam2  = gam2;
   }
   if (d_plan->dim > 2) {
-    const auto [x3, c3]        = arraywidcen<T>(M, d_plan->kz, stream);
+    const auto [x3, c3]        = arraywidcen<T>(M, d_kz, stream);
     d_plan->type3_params.X3    = x3;
     d_plan->type3_params.C3    = c3;
     const auto [S3, D3]        = arraywidcen<T>(N, d_u, stream);
     const auto [nf3, h3, gam3] = set_nhg_type3<T>(S3, x3, d_plan->opts, d_plan->spopts);
     d_plan->nf3                = nf3;
+    d_plan->type3_params.S3    = S3;
     d_plan->type3_params.D3    = D3;
     d_plan->type3_params.h3    = h3;
     d_plan->type3_params.gam3  = gam3;
@@ -479,18 +477,18 @@ int cufinufft_setpts_impl(int M, T *d_kx, T *d_ky, T *d_kz, int N, T *d_s, T *d_
   if (d_plan->opts.debug) {
     printf("[%s]", __func__);
     printf("\tM=%lld N=%lld\n", M, N);
-    printf("\tX1=%.3g C1=%.3g D1=%.3g gam1=%g nf1=%lld\t\n", d_plan->type3_params.X1,
-           d_plan->type3_params.C1, d_plan->type3_params.D1, d_plan->type3_params.gam1,
-           d_plan->nf1);
+    printf("\tX1=%.3g C1=%.3g S1=%.3g D1=%.3g gam1=%g nf1=%lld\t\n",
+           d_plan->type3_params.X1, d_plan->type3_params.C1, d_plan->type3_params.S1,
+           d_plan->type3_params.D1, d_plan->type3_params.gam1, d_plan->nf1);
     if (d_plan->dim > 1) {
-      printf("\tX2=%.3g C2=%.3g D2=%.3g gam2=%g nf2=%lld\n", d_plan->type3_params.X2,
-             d_plan->type3_params.C2, d_plan->type3_params.D2, d_plan->type3_params.gam2,
-             d_plan->nf2);
+      printf("\tX2=%.3g C2=%.3g S2=%.3g D2=%.3g gam2=%g nf2=%lld\n",
+             d_plan->type3_params.X2, d_plan->type3_params.C2, d_plan->type3_params.S2,
+             d_plan->type3_params.D2, d_plan->type3_params.gam2, d_plan->nf2);
     }
     if (d_plan->dim > 2) {
-      printf("\tX3=%.3g C3=%.3g D3=%.3g gam3=%g nf3=%lld\n", d_plan->type3_params.X3,
-             d_plan->type3_params.C3, d_plan->type3_params.D3, d_plan->type3_params.gam3,
-             d_plan->nf3);
+      printf("\tX3=%.3g C3=%.3g S3=%.3g D3=%.3g gam3=%g nf3=%lld\n",
+             d_plan->type3_params.X3, d_plan->type3_params.C3, d_plan->type3_params.S3,
+             d_plan->type3_params.D3, d_plan->type3_params.gam3, d_plan->nf3);
     }
   }
   d_plan->nf = d_plan->nf1 * d_plan->nf2 * d_plan->nf3;
@@ -523,14 +521,17 @@ int cufinufft_setpts_impl(int M, T *d_kx, T *d_ky, T *d_kz, int N, T *d_s, T *d_
   }
   if (checked_realloc(d_plan->prephase, sizeof(cuda_complex<T>) * M) != cudaSuccess)
     goto finalize;
-  cudaStreamSynchronize(stream);
+  if (checked_realloc(d_plan->deconv, sizeof(cuda_complex<T>) * N) != cudaSuccess)
+    goto finalize;
+
+  // should not be needed
+  // cudaStreamSynchronize(stream);
 
   // NOTE: init-captures are not allowed for extended __host__ __device__ lambdas
 
   if (d_plan->dim > 0) {
     // TODO: merging the tree calls to GPU into one as in the version below might
     //       might be more readable and faster
-
     const auto ig1 = T(1) / d_plan->type3_params.gam1;
     const auto C1  = -d_plan->type3_params.C1;
     thrust::transform(
@@ -548,10 +549,9 @@ int cufinufft_setpts_impl(int M, T *d_kx, T *d_ky, T *d_kz, int N, T *d_s, T *d_
     const auto ig3 = T(1) / d_plan->type3_params.gam3;
     const auto C3  = -d_plan->type3_params.C3;
     thrust::transform(
-        thrust::cuda::par.on(stream), d_kz, d_ky + M, d_plan->ky,
+        thrust::cuda::par.on(stream), d_kz, d_kz + M, d_plan->kz,
         [ig3, C3] __host__ __device__(const T x) -> T { return (x + C3) * ig3; });
   }
-
   if (d_plan->type3_params.D1 != 0 || d_plan->type3_params.D2 != 0 ||
       d_plan->type3_params.D3 != 0) {
     // if ky is null, use kx for ky and kz
@@ -567,7 +567,8 @@ int cufinufft_setpts_impl(int M, T *d_kx, T *d_ky, T *d_kz, int N, T *d_s, T *d_
     const auto D3 = d_plan->type3_params.D3; // this should be 0 if dim < 3
     const auto imasign =
         d_plan->iflag >= 0 ? cuda_complex<T>{0, 1} : cuda_complex<T>{0, -1};
-    thrust::transform(iterator, iterator + M, d_plan->prephase,
+    thrust::transform(thrust::cuda::par.on(stream), iterator, iterator + M,
+                      d_plan->prephase,
                       [D1, D2, D3, imasign] __host__ __device__(
                           const thrust::tuple<T, T, T> &tuple) -> cuda_complex<T> {
                         const auto x = thrust::get<0>(tuple);
@@ -582,28 +583,118 @@ int cufinufft_setpts_impl(int M, T *d_kx, T *d_ky, T *d_kz, int N, T *d_s, T *d_
                         return sin(phase) * imasign + cos(phase);
                       });
   } else {
-    thrust::fill(d_plan->prephase, d_plan->prephase + M, cuda_complex<T>{1, 0});
+    thrust::fill(thrust::cuda::par.on(stream), d_plan->prephase, d_plan->prephase + M,
+                 cuda_complex<T>{1, 0});
   }
   if (d_plan->dim > 0) {
     const auto scale = d_plan->type3_params.h1 * d_plan->type3_params.gam1;
     const auto D1    = -d_plan->type3_params.D1;
     thrust::transform(
-        d_s, d_s + N, d_plan->d_s,
+        thrust::cuda::par.on(stream), d_s, d_s + N, d_plan->d_s,
         [scale, D1] __host__ __device__(const T s) -> T { return scale * (s + D1); });
   }
   if (d_plan->dim > 1) {
     const auto scale = d_plan->type3_params.h2 * d_plan->type3_params.gam2;
     const auto D2    = -d_plan->type3_params.D2;
     thrust::transform(
-        d_t, d_t + N, d_plan->d_t,
+        thrust::cuda::par.on(stream), d_t, d_t + N, d_plan->d_t,
         [scale, D2] __host__ __device__(const T t) -> T { return scale * (t + D2); });
   }
   if (d_plan->dim > 2) {
     const auto scale = d_plan->type3_params.h3 * d_plan->type3_params.gam3;
     const auto D3    = -d_plan->type3_params.D3;
     thrust::transform(
-        d_u, d_u + N, d_plan->d_u,
+        thrust::cuda::par.on(stream), d_u, d_u + N, d_plan->d_u,
         [scale, D3] __host__ __device__(const T u) -> T { return scale * (u + D3); });
+  }
+  {
+    using namespace cufinufft::common;
+
+    std::array<T, 3 * MAX_NQUAD> fseries_precomp_a{};
+    std::array<T, 3 * MAX_NQUAD> fseries_precomp_f{};
+    thrust::device_vector<T> d_fseries_precomp_a(3 * MAX_NQUAD);
+    thrust::device_vector<T> d_fseries_precomp_f(3 * MAX_NQUAD);
+    thrust::device_vector<T> phi_hat1{}, phi_hat2{}, phi_hat3{};
+    if (d_plan->dim > 0) {
+      phi_hat1.resize(N);
+    }
+    if (d_plan->dim > 1) {
+      phi_hat2.resize(N);
+    }
+    if (d_plan->dim > 2) {
+      phi_hat3.resize(N);
+    }
+    onedim_fseries_kernel_precomp<T, false>(d_plan->nf1, fseries_precomp_f.data(),
+                                            fseries_precomp_a.data(), d_plan->spopts);
+    if (d_plan->dim > 1) {
+      onedim_fseries_kernel_precomp<T, false>(
+          d_plan->nf2, fseries_precomp_f.data() + MAX_NQUAD,
+          fseries_precomp_a.data() + MAX_NQUAD, d_plan->spopts);
+    }
+    if (d_plan->dim > 2) {
+      onedim_fseries_kernel_precomp<T, false>(
+          d_plan->nf3, fseries_precomp_f.data() + 2 * MAX_NQUAD,
+          fseries_precomp_a.data() + 2 * MAX_NQUAD, d_plan->spopts);
+    }
+    // copy the precomputed data to the device using thrust
+    thrust::copy(fseries_precomp_a.begin(), fseries_precomp_a.end(),
+                 d_fseries_precomp_a.begin());
+    thrust::copy(fseries_precomp_f.begin(), fseries_precomp_f.end(),
+                 d_fseries_precomp_f.begin());
+    // sync the stream before calling the kernel might be needed
+    if (cufserieskernelcompute(d_plan->dim, N, N, N, d_fseries_precomp_f.data().get(),
+                               d_fseries_precomp_a.data().get(), d_plan->d_s, d_plan->d_t,
+                               d_plan->d_u, phi_hat1.data().get(), phi_hat2.data().get(),
+                               phi_hat3.data().get(), d_plan->spopts.nspread, stream))
+      goto finalize;
+    const auto is_c_finite = std::isfinite(d_plan->type3_params.C1) &&
+                             std::isfinite(d_plan->type3_params.C2) &&
+                             std::isfinite(d_plan->type3_params.C3);
+    const auto is_c_nonzero = d_plan->type3_params.C1 != 0 ||
+                              d_plan->type3_params.C2 != 0 ||
+                              d_plan->type3_params.C3 != 0;
+    {
+      const auto dim              = d_plan->dim;
+      const auto phi_hat_iterator = thrust::make_zip_iterator(thrust::make_tuple(
+          phi_hat1.begin(), dim > 1 ? phi_hat2.begin() : phi_hat1.begin(),
+          dim > 2 ? phi_hat3.begin() : phi_hat1.begin()));
+      thrust::transform(thrust::cuda::par.on(stream), phi_hat_iterator,
+                        phi_hat_iterator + N, d_plan->deconv,
+                        [dim] __host__ __device__(
+                            const thrust::tuple<T, T, T> &tuple) -> cuda_complex<T> {
+                          auto phiHat = thrust::get<0>(tuple);
+                          phiHat *= (dim > 1) ? thrust::get<1>(tuple) : 1;
+                          phiHat *= (dim > 2) ? thrust::get<2>(tuple) : 1;
+                          return cuda_complex<T>{1 / phiHat, 0};
+                        });
+    }
+    if (is_c_finite && is_c_nonzero) {
+      const auto dim = d_plan->dim;
+      const auto c1  = d_plan->type3_params.C1;
+      const auto c2  = d_plan->type3_params.C2;
+      const auto c3  = d_plan->type3_params.C3;
+      const auto d1  = -d_plan->type3_params.D1;
+      const auto d2  = -d_plan->type3_params.D2;
+      const auto d3  = -d_plan->type3_params.D3;
+      const auto imasign =
+          d_plan->iflag >= 0 ? cuda_complex<T>{0, 1} : cuda_complex<T>{0, -1};
+      // passing d_s three times if dim == 1 because d_t and d_u are not allocated
+      // passing d_s and d_t if dim == 2 because d_u is not allocated
+      const auto phase_iterator = thrust::make_zip_iterator(
+          thrust::make_tuple(d_plan->d_s, dim > 1 ? d_plan->d_t : d_plan->d_s,
+                             dim > 2 ? d_plan->d_u : d_plan->d_s));
+      thrust::transform(thrust::cuda::par.on(stream), phase_iterator, phase_iterator + N,
+                        d_plan->deconv, d_plan->deconv,
+                        [c1, c2, c3, d1, d2, d3, imasign] __host__ __device__(
+                            const thrust::tuple<T, T, T> tuple,
+                            cuda_complex<T> deconv) -> cuda_complex<T> {
+                          // d2 and d3 are 0 if dim < 2 and dim < 3
+                          const auto phase = c1 * (thrust::get<0>(tuple) + d1) +
+                                             c2 * (thrust::get<1>(tuple) + d2) +
+                                             c3 * (thrust::get<2>(tuple) + d3);
+                          return deconv * (std::sin(phase) * imasign + std::cos(phase));
+                        });
+    }
   }
   return 0;
 finalize:
@@ -614,6 +705,7 @@ finalize:
   checked_free(d_plan->kz);
   checked_free(d_plan->d_u);
   checked_free(d_plan->prephase);
+  checked_free(d_plan->deconv);
   return FINUFFT_ERR_CUDA_FAILURE;
 }
 

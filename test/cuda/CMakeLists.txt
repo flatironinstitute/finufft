@@ -7,12 +7,16 @@ foreach(srcfile ${test_src})
   target_include_directories(${executable} PUBLIC ${CUFINUFFT_INCLUDE_DIRS})
   find_library(MathLib m)
   if(MathLib)
-    target_link_libraries(${executable} PUBLIC cufinufft ${MathLib})
+    target_link_libraries(${executable} PUBLIC ${MathLib})
   endif()
+  target_link_libraries(${executable} PUBLIC cufinufft finufft)
   target_compile_features(${executable} PUBLIC cxx_std_17)
   set_target_properties(
     ${executable} PROPERTIES LINKER_LANGUAGE CUDA CUDA_ARCHITECTURES
                                                   ${FINUFFT_CUDA_ARCHITECTURES})
+  target_compile_options(
+    ${executable} PUBLIC $<$<COMPILE_LANGUAGE:CUDA>:$<$<CONFIG:Debug>:-G
+                         -maxrregcount 32>>)
   message(STATUS "Adding test ${executable}"
                  " with CUDA_ARCHITECTURES=${FINUFFT_CUDA_ARCHITECTURES}"
                  " and INCLUDE=${CUFINUFFT_INCLUDE_DIRS}")
@@ -78,15 +82,21 @@ function(add_tests PREC REQ_TOL CHECK_TOL UPSAMP)
                    ${PREC} ${UPSAMP})
 endfunction()
 
+add_test(NAME cufinufft_public_api COMMAND public_api_test)
+add_test(NAME cufinufft_makeplan COMMAND test_makeplan)
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+  add_test(NAME cufinufft_makeplan_impl COMMAND cufinufft_makeplan_impl)
+endif()
+add_test(NAME cufinufft_setpts COMMAND cufinufft_setpts)
+add_test(NAME cufinufft_math_test COMMAND cufinufft_math_test)
+
 add_tests(float 1e-5 2e-4 2.0)
 add_tests(double 1e-12 1e-11 2.0)
 add_tests(float 1e-5 2e-4 1.25)
 add_tests(double 1e-8 1e-7 1.25)
-add_tests(float 1e-5 2e-4 0)
-add_tests(double 1e-12 1e-11 0)
-add_tests(float 1e-5 2e-4 0.0)
-add_tests(double 1e-8 1e-7 0.0)
+add_tests(float 1e-5 2e-4 0.f)
+add_tests(double 1e-12 1e-11 0.f)
+add_tests(float 1e-5 2e-4 0.)
+add_tests(double 1e-8 1e-7 0.)
 
-add_test(NAME cufinufft_public_api COMMAND public_api_test)
-add_test(NAME cufinufft_makeplan COMMAND test_makeplan)
-add_test(NAME cufinufft_math_test COMMAND cufinufft_math_test)
+# add_test(NAME cufinufft_type3_test COMMAND cufinufft_type3_test)

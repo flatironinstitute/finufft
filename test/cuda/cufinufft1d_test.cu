@@ -1,12 +1,12 @@
 #include <cmath>
 #include <complex>
-#include <cufinufft/contrib/helper_cuda.h>
 #include <iomanip>
 #include <iostream>
 #include <random>
 
 #include <cufinufft.h>
 
+#include <cufinufft/contrib/helper_cuda.h>
 #include <cufinufft/impl.h>
 #include <cufinufft/utils.h>
 

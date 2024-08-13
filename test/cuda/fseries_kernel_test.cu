@@ -71,10 +71,12 @@ template<typename T> int run_test(int nf1, int dim, T eps, int gpu, int nf2, int
     timer.start();
     T a[dim * MAX_NQUAD];
     T f[dim * MAX_NQUAD];
-    onedim_fseries_kernel_precomp(nf1, f, a, opts);
-    if (dim > 1) onedim_fseries_kernel_precomp(nf2, f + MAX_NQUAD, a + MAX_NQUAD, opts);
+    onedim_fseries_kernel_precomp<T, true>(nf1, f, a, opts);
+    if (dim > 1)
+      onedim_fseries_kernel_precomp<T, true>(nf2, f + MAX_NQUAD, a + MAX_NQUAD, opts);
     if (dim > 2)
-      onedim_fseries_kernel_precomp(nf3, f + 2 * MAX_NQUAD, a + 2 * MAX_NQUAD, opts);
+      onedim_fseries_kernel_precomp<T, true>(nf3, f + 2 * MAX_NQUAD, a + 2 * MAX_NQUAD,
+                                             opts);
     cputime = timer.elapsedsec();
 
     T *d_a;

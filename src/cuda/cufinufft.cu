@@ -112,7 +112,7 @@ void cufinufft_default_opts(cufinufft_opts *opts)
   opts->gpu_method         = 0;
   opts->gpu_sort           = 1;
   opts->gpu_kerevalmeth    = 1;
-  opts->upsampfac          = 2.0;
+  opts->upsampfac          = 0;
   opts->gpu_maxsubprobsize = 1024;
   opts->gpu_obinsizex      = 0;
   opts->gpu_obinsizey      = 0;

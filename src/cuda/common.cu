@@ -50,7 +50,40 @@ __global__ void fseries_kernel_compute(int nf1, int nf2, int nf3, T *f, T *a,
        i += blockDim.x * gridDim.x) {
     T x = 0.0;
     for (int n = 0; n < q; n++) {
-      x += ft[n] * 2 * cos(i * at[n]);
+      x += ft[n] * T(2) * cos(T(i) * at[n]);
+    }
+    oarr[i] = x;
+  }
+}
+
+template<typename T>
+__global__ void fseries_kernel_compute(int nf1, int nf2, int nf3, T *f, T *a, T *kx,
+                                       T *ky, T *kz, T *fwkerhalf1, T *fwkerhalf2,
+                                       T *fwkerhalf3, int ns) {
+  T J2  = ns / 2.0;
+  int q = (int)(2 + 3.0 * J2);
+  int nf;
+  T *at = a + threadIdx.y * MAX_NQUAD;
+  T *ft = f + threadIdx.y * MAX_NQUAD;
+  T *oarr, *k;
+  if (threadIdx.y == 0) {
+    k    = kx;
+    oarr = fwkerhalf1;
+    nf   = nf1;
+  } else if (threadIdx.y == 1) {
+    k    = ky;
+    oarr = fwkerhalf2;
+    nf   = nf2;
+  } else {
+    k    = kz;
+    oarr = fwkerhalf3;
+    nf   = nf3;
+  }
+  for (int i = blockDim.x * blockIdx.x + threadIdx.x; i < nf;
+       i += blockDim.x * gridDim.x) {
+    T x = 0.0;
+    for (int n = 0; n < q; n++) {
+      x += ft[n] * T(2) * cos(k[i] * at[n]);
     }
     oarr[i] = x;
   }
@@ -74,6 +107,30 @@ int cufserieskernelcompute(int dim, int nf1, int nf2, int nf3, T *d_f, T *d_a,
 
   fseries_kernel_compute<<<numBlocks, threadsPerBlock, 0, stream>>>(
       nf1, nf2, nf3, d_f, d_a, d_fwkerhalf1, d_fwkerhalf2, d_fwkerhalf3, ns);
+  RETURN_IF_CUDA_ERROR
+
+  return 0;
+}
+
+template<typename T>
+int cufserieskernelcompute(int dim, int nf1, int nf2, int nf3, T *d_f, T *d_a, T *d_kx,
+                           T *d_ky, T *d_kz, T *d_fwkerhalf1, T *d_fwkerhalf2,
+                           T *d_fwkerhalf3, int ns, cudaStream_t stream)
+/*
+    wrapper for approximation of Fourier series of real symmetric spreading
+    kernel.
+
+Melody Shih 2/20/22
+*/
+{
+  int nout = max(max(nf1 / 2 + 1, nf2 / 2 + 1), nf3 / 2 + 1);
+
+  dim3 threadsPerBlock(16, dim);
+  dim3 numBlocks((nout + 16 - 1) / 16, 1);
+
+  fseries_kernel_compute<<<numBlocks, threadsPerBlock, 0, stream>>>(
+      nf1, nf2, nf3, d_f, d_a, d_kx, d_ky, d_kz, d_fwkerhalf1, d_fwkerhalf2, d_fwkerhalf3,
+      ns);
   RETURN_IF_CUDA_ERROR
 
   return 0;
@@ -149,7 +206,7 @@ void set_nf_type12(CUFINUFFT_BIGINT ms, cufinufft_opts opts, finufft_spread_opts
   f - funciton values at quadrature nodes multiplied with quadrature weights
   (a, f are provided as the inputs of onedim_fseries_kernel_compute() defined below)
 */
-template<typename T>
+template<typename T, bool phase_winding = true>
 void onedim_fseries_kernel_precomp(CUFINUFFT_BIGINT nf, T *f, T *a,
                                    finufft_spread_opts opts) {
   T J2 = opts.nspread / 2.0; // J/2, half-width of ker z-support
@@ -163,7 +220,11 @@ void onedim_fseries_kernel_precomp(CUFINUFFT_BIGINT nf, T *f, T *a,
   for (int n = 0; n < q; ++n) {                           // set up nodes z_n and vals f_n
     z[n] *= J2;                                           // rescale nodes
     f[n] = J2 * w[n] * evaluate_kernel((T)z[n], opts);    // vals & quadr wei
-    a[n] = ((T)(2.0 * M_PI) * (T)(nf / 2 - z[n]) / (T)nf); // phase winding rates
+    if constexpr (phase_winding) {
+      a[n] = ((T)(2.0 * M_PI) * (T)(nf / 2 - z[n]) / (T)nf); // phase winding rates
+    } else {
+      a[n] = z[n];
+    }
   }
 }
 
@@ -321,17 +382,28 @@ template int setup_spreader_for_nufft(finufft_spread_opts &spopts, float eps,
                                       cufinufft_opts opts);
 template int setup_spreader_for_nufft(finufft_spread_opts &spopts, double eps,
                                       cufinufft_opts opts);
-template void onedim_fseries_kernel_precomp(CUFINUFFT_BIGINT nf, float *f, float *a,
-                                            finufft_spread_opts opts);
-template void onedim_fseries_kernel_precomp(CUFINUFFT_BIGINT nf, double *f, double *a,
-                                            finufft_spread_opts opts);
+template void onedim_fseries_kernel_precomp<float, true>(
+    CUFINUFFT_BIGINT nf, float *f, float *a, finufft_spread_opts opts);
+template void onedim_fseries_kernel_precomp<double, true>(
+    CUFINUFFT_BIGINT nf, double *f, double *a, finufft_spread_opts opts);
+template void onedim_fseries_kernel_precomp<float, false>(
+    CUFINUFFT_BIGINT nf, float *f, float *a, finufft_spread_opts opts);
+template void onedim_fseries_kernel_precomp<double, false>(
+    CUFINUFFT_BIGINT nf, double *f, double *a, finufft_spread_opts opts);
 template int cufserieskernelcompute(int dim, int nf1, int nf2, int nf3, float *d_f,
                                     float *d_a, float *d_fwkerhalf1, float *d_fwkerhalf2,
                                     float *d_fwkerhalf3, int ns, cudaStream_t stream);
 template int cufserieskernelcompute(
     int dim, int nf1, int nf2, int nf3, double *d_f, double *d_a, double *d_fwkerhalf1,
     double *d_fwkerhalf2, double *d_fwkerhalf3, int ns, cudaStream_t stream);
-
+template int cufserieskernelcompute<float>(
+    int dim, int nf1, int nf2, int nf3, float *d_f, float *d_a, float *d_kx, float *d_ky,
+    float *d_kz, float *d_fwkerhalf1, float *d_fwkerhalf2, float *d_fwkerhalf3, int ns,
+    cudaStream_t stream);
+template int cufserieskernelcompute<double>(
+    int dim, int nf1, int nf2, int nf3, double *d_f, double *d_a, double *d_kx,
+    double *d_ky, double *d_kz, double *d_fwkerhalf1, double *d_fwkerhalf2,
+    double *d_fwkerhalf3, int ns, cudaStream_t stream);
 // template void onedim_fseries_kernel(CUFINUFFT_BIGINT nf, float *fwkerhalf,
 //                                     finufft_spread_opts opts);
 // template void onedim_fseries_kernel(CUFINUFFT_BIGINT nf, double *fwkerhalf,
