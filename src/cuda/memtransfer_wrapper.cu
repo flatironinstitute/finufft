@@ -423,7 +423,8 @@ void freegpumemory(cufinufft_plan_t<T> *d_plan)
 */
 {
   utils::WithCudaDevice device_swapper(d_plan->opts.gpu_device_id);
-  auto &stream = d_plan->stream;
+  // Fixes a crash whewre the plan itself is deleted before the stream
+  const auto stream = d_plan->stream;
 
   CUDA_FREE_AND_NULL(d_plan->fw, stream, d_plan->supports_pools);
   CUDA_FREE_AND_NULL(d_plan->fwkerhalf1, stream, d_plan->supports_pools);
