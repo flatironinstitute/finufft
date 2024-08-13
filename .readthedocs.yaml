@@ -25,5 +25,6 @@ python:
 
 # Include all versions by default and manually exclude the unneeded ones
 versions:
-  only: "master"
+  only: 
+    - "master"
   regex: '^v*$'
