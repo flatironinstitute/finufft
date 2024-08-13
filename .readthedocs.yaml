@@ -27,4 +27,4 @@ python:
 versions:
   only: 
     - "master"
-  regex: '^v*$'
+  regex: "^v*$"
