@@ -435,6 +435,7 @@ int cufinufft_setpts_impl(int M, T *d_kx, T *d_ky, T *d_kz, int N, T *d_s, T *d_
   d_plan->d_s       = d_s;
   d_plan->d_t       = d_t;
   d_plan->d_u       = d_u;
+  const auto dim    = d_plan->dim;
   // no need to set the params to zero, as they are already zeroed out in the plan
   //  memset(d_plan->type3_params, 0, sizeof(d_plan->type3_params));
   using namespace cufinufft::utils;
@@ -499,6 +500,8 @@ int cufinufft_setpts_impl(int M, T *d_kx, T *d_ky, T *d_kz, int N, T *d_s, T *d_
             __func__);
     return FINUFFT_ERR_MAXNALLOC;
   }
+
+  // A macro might be better as it has access to __line__ and __func__
   const auto checked_free = [stream, pool = d_plan->supports_pools](auto x) constexpr {
     if (!x) return cudaFreeWrapper(x, stream, pool);
     return cudaSuccess;
@@ -556,32 +559,32 @@ int cufinufft_setpts_impl(int M, T *d_kx, T *d_ky, T *d_kz, int N, T *d_s, T *d_
       d_plan->type3_params.D3 != 0) {
     // if ky is null, use kx for ky and kz
     // this is not the most efficient implementation, but it is the most compact
-    const auto iterator = thrust::make_zip_iterator(
-        thrust::make_tuple(d_plan->kx,
-                           // to avoid out of bounds access, use kx if ky is null
-                           d_plan->ky ? d_plan->ky : d_plan->kx,
-                           // same idea as above
-                           d_plan->kz ? d_plan->kz : d_plan->kx));
-    const auto D1 = d_plan->type3_params.D1;
-    const auto D2 = d_plan->type3_params.D2; // this should be 0 if dim < 2
-    const auto D3 = d_plan->type3_params.D3; // this should be 0 if dim < 3
-    const auto imasign =
-        d_plan->iflag >= 0 ? cuda_complex<T>{0, 1} : cuda_complex<T>{0, -1};
-    thrust::transform(thrust::cuda::par.on(stream), iterator, iterator + M,
-                      d_plan->prephase,
-                      [D1, D2, D3, imasign] __host__ __device__(
-                          const thrust::tuple<T, T, T> &tuple) -> cuda_complex<T> {
-                        const auto x = thrust::get<0>(tuple);
-                        const auto y = thrust::get<1>(tuple);
-                        const auto z = thrust::get<2>(tuple);
-                        // no branching because D2 and D3 are 0 if dim < 2 and dim < 3
-                        // this is generally faster on GPU
-                        const auto phase = D1 * x + D2 * y + D3 * z;
-                        // TODO: nvcc should have the sincos function
-                        //       check the cos + i*sin
-                        //       ref: https://en.wikipedia.org/wiki/Cis_(mathematics)
-                        return sin(phase) * imasign + cos(phase);
-                      });
+    const auto iterator =
+        thrust::make_zip_iterator(thrust::make_tuple(d_kx,
+                                                     // to avoid out of bounds access, use
+                                                     // kx if ky is null
+                                                     (d_plan->dim > 1) ? d_ky : d_kx,
+                                                     // same idea as above
+                                                     (d_plan->dim > 1) ? d_kz : d_kx));
+    const auto D1      = d_plan->type3_params.D1;
+    const auto D2      = d_plan->type3_params.D2; // this should be 0 if dim < 2
+    const auto D3      = d_plan->type3_params.D3; // this should be 0 if dim < 3
+    const auto imasign = d_plan->iflag >= 0 ? T(1) : T(-1);
+    thrust::transform(
+        thrust::cuda::par.on(stream), iterator, iterator + M, d_plan->prephase,
+        [D1, D2, D3, imasign] __host__ __device__(
+            const thrust::tuple<T, T, T> &tuple) -> cuda_complex<T> {
+          const auto x = thrust::get<0>(tuple);
+          const auto y = thrust::get<1>(tuple);
+          const auto z = thrust::get<2>(tuple);
+          // no branching because D2 and D3 are 0 if dim < 2 and dim < 3
+          // this is generally faster on GPU
+          const auto phase = D1 * x + D2 * y + D3 * z;
+          // TODO: nvcc should have the sincos function
+          //       check the cos + i*sin
+          //       ref: https://en.wikipedia.org/wiki/Cis_(mathematics)
+          return cuda_complex<T>{std::cos(phase), std::sin(phase) * imasign};
+        });
   } else {
     thrust::fill(thrust::cuda::par.on(stream), d_plan->prephase, d_plan->prephase + M,
                  cuda_complex<T>{1, 0});
@@ -607,7 +610,8 @@ int cufinufft_setpts_impl(int M, T *d_kx, T *d_ky, T *d_kz, int N, T *d_s, T *d_
         thrust::cuda::par.on(stream), d_u, d_u + N, d_plan->d_u,
         [scale, D3] __host__ __device__(const T u) -> T { return scale * (u + D3); });
   }
-  {
+  { // here we declare phi_hat1, phi_hat2, and phi_hat3
+    // and the precomputed data for the fseries kernel
     using namespace cufinufft::common;
 
     std::array<T, 3 * MAX_NQUAD> fseries_precomp_a{};
@@ -647,54 +651,54 @@ int cufinufft_setpts_impl(int M, T *d_kx, T *d_ky, T *d_kz, int N, T *d_s, T *d_
                                d_plan->d_u, phi_hat1.data().get(), phi_hat2.data().get(),
                                phi_hat3.data().get(), d_plan->spopts.nspread, stream))
       goto finalize;
+
     const auto is_c_finite = std::isfinite(d_plan->type3_params.C1) &&
                              std::isfinite(d_plan->type3_params.C2) &&
                              std::isfinite(d_plan->type3_params.C3);
     const auto is_c_nonzero = d_plan->type3_params.C1 != 0 ||
                               d_plan->type3_params.C2 != 0 ||
                               d_plan->type3_params.C3 != 0;
-    {
-      const auto dim              = d_plan->dim;
-      const auto phi_hat_iterator = thrust::make_zip_iterator(thrust::make_tuple(
-          phi_hat1.begin(), dim > 1 ? phi_hat2.begin() : phi_hat1.begin(),
-          dim > 2 ? phi_hat3.begin() : phi_hat1.begin()));
-      thrust::transform(thrust::cuda::par.on(stream), phi_hat_iterator,
-                        phi_hat_iterator + N, d_plan->deconv,
-                        [dim] __host__ __device__(
-                            const thrust::tuple<T, T, T> &tuple) -> cuda_complex<T> {
-                          auto phiHat = thrust::get<0>(tuple);
-                          phiHat *= (dim > 1) ? thrust::get<1>(tuple) : 1;
-                          phiHat *= (dim > 2) ? thrust::get<2>(tuple) : 1;
-                          return cuda_complex<T>{1 / phiHat, 0};
-                        });
-    }
+
+    const auto phi_hat_iterator = thrust::make_zip_iterator(thrust::make_tuple(
+        phi_hat1.begin(), dim > 1 ? phi_hat2.begin() : phi_hat1.begin(),
+        dim > 2 ? phi_hat3.begin() : phi_hat1.begin()));
+    thrust::transform(thrust::cuda::par.on(stream), phi_hat_iterator,
+                      phi_hat_iterator + N, d_plan->deconv,
+                      [dim] __host__ __device__(
+                          const thrust::tuple<T, T, T> &tuple) -> cuda_complex<T> {
+                        auto phiHat = thrust::get<0>(tuple);
+                        phiHat *= (dim > 1) ? thrust::get<1>(tuple) : T(1);
+                        phiHat *= (dim > 2) ? thrust::get<2>(tuple) : T(1);
+                        return cuda_complex<T>{T(1) / phiHat, T(0)};
+                      });
+
     if (is_c_finite && is_c_nonzero) {
-      const auto dim = d_plan->dim;
-      const auto c1  = d_plan->type3_params.C1;
-      const auto c2  = d_plan->type3_params.C2;
-      const auto c3  = d_plan->type3_params.C3;
-      const auto d1  = -d_plan->type3_params.D1;
-      const auto d2  = -d_plan->type3_params.D2;
-      const auto d3  = -d_plan->type3_params.D3;
-      const auto imasign =
-          d_plan->iflag >= 0 ? cuda_complex<T>{0, 1} : cuda_complex<T>{0, -1};
+      const auto c1      = d_plan->type3_params.C1;
+      const auto c2      = d_plan->type3_params.C2;
+      const auto c3      = d_plan->type3_params.C3;
+      const auto d1      = -d_plan->type3_params.D1;
+      const auto d2      = -d_plan->type3_params.D2;
+      const auto d3      = -d_plan->type3_params.D3;
+      const auto imasign = d_plan->iflag >= 0 ? T(1) : T(-1);
       // passing d_s three times if dim == 1 because d_t and d_u are not allocated
       // passing d_s and d_t if dim == 2 because d_u is not allocated
       const auto phase_iterator = thrust::make_zip_iterator(
-          thrust::make_tuple(d_plan->d_s, dim > 1 ? d_plan->d_t : d_plan->d_s,
-                             dim > 2 ? d_plan->d_u : d_plan->d_s));
-      thrust::transform(thrust::cuda::par.on(stream), phase_iterator, phase_iterator + N,
-                        d_plan->deconv, d_plan->deconv,
-                        [c1, c2, c3, d1, d2, d3, imasign] __host__ __device__(
-                            const thrust::tuple<T, T, T> tuple,
-                            cuda_complex<T> deconv) -> cuda_complex<T> {
-                          // d2 and d3 are 0 if dim < 2 and dim < 3
-                          const auto phase = c1 * (thrust::get<0>(tuple) + d1) +
-                                             c2 * (thrust::get<1>(tuple) + d2) +
-                                             c3 * (thrust::get<2>(tuple) + d3);
-                          return deconv * (std::sin(phase) * imasign + std::cos(phase));
-                        });
+          thrust::make_tuple(d_s, dim > 1 ? d_t : d_s, dim > 2 ? d_u : d_s));
+      thrust::transform(
+          thrust::cuda::par.on(stream), phase_iterator, phase_iterator + N,
+          d_plan->deconv, d_plan->deconv,
+          [c1, c2, c3, d1, d2, d3, imasign] __host__ __device__(
+              const thrust::tuple<T, T, T> tuple, cuda_complex<T> deconv)
+              -> cuda_complex<T> {
+            // d2 and d3 are 0 if dim < 2 and dim < 3
+            const auto phase = c1 * (thrust::get<0>(tuple) + d1) +
+                               c2 * (thrust::get<1>(tuple) + d2) +
+                               c3 * (thrust::get<2>(tuple) + d3);
+            return cuda_complex<T>{std::cos(phase), imasign * std::sin(phase)} * deconv;
+          });
     }
+    // exiting the block frees the memory allocated for phi_hat1, phi_hat2, and phi_hat3
+    //  and the precomputed data for the fseries kernel
   }
   return 0;
 finalize:

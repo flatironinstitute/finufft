@@ -755,7 +755,6 @@ int FINUFFT_MAKEPLAN(int type, int dim, BIGINT *n_modes, int iflag, int ntrans, 
     // idist, ot, onembed, ostride, odist, sign, flags
     {
       std::lock_guard<std::mutex> lock(fftw_lock);
-
       // FFTW_PLAN_TH sets all future fftw_plan calls to use nthr_fft threads.
       // FIXME: Since this might override what the user wants for fftw, we'd like to
       // set it just for our one plan and then revert to the user value.

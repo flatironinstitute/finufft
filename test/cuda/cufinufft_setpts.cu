@@ -39,8 +39,21 @@ template<typename T, typename V> bool equal(V *d_vec, T *cpu, const std::size_t 
 }
 
 template<typename T>
+T infnorm(std::complex<T> *a, std::complex<T> *b, const std::size_t n) {
+  T err{0}, max_element{0};
+  for (std::size_t m = 0; m < n; ++m) {
+    //    std::cout << "a[" << m << "]: " << a[m] << " b[" << m << "]: " << b[m] << "\n";
+    err         = std::max(err, std::abs(a[m] - b[m]));
+    max_element = std::max(std::max(std::abs(a[m]), std::abs(b[m])), max_element);
+  }
+  return err / max_element;
+}
+// max error divide by max element
+// max ( abs(a-b)) / max(abs(a))
+// 10*(machine precision)
+template<typename T>
 T relerrtwonorm(std::complex<T> *a, std::complex<T> *b, const std::size_t n) {
-  T err = 0.0, nrm = 0.0;
+  T err{0}, nrm{0};
   for (std::size_t m = 0; m < n; ++m) {
     //    std::cout << "a[" << m << "]: " << a[m] << " b[" << m << "]: " << b[m] << "\n";
     nrm += std::real(std::conj(a[m]) * a[m]);
@@ -61,12 +74,11 @@ auto almost_equal(V *d_vec,
   // cause issues use it with case
   assert(cudaMemcpy(h_vec.data(), d_vec, size * sizeof(T), cudaMemcpyDeviceToHost) ==
          cudaSuccess);
+  std::cout << "infnorm: " << infnorm(h_vec.data(), cpu, size) << std::endl;
   // compare the l2 norm of the difference between the two vectors
-  if (relerrtwonorm(h_vec.data(), cpu, size) < tol) {
+  if (infnorm(h_vec.data(), cpu, size) < tol) {
     return true;
   }
-  //  std::cout << "relerrtwonorm: " << relerrtwonorm(h_vec.data(), cpu, size) <<
-  //  std::endl;
   return false;
 }
 
@@ -79,7 +91,7 @@ int main() {
   finufft_default_opts(&fin_opts);
   fin_opts.debug    = 2;
   const int iflag   = 1;
-  const float tol   = 1e-5;
+  const float tol   = 1e-9;
   const int ntransf = 1;
   const int dim     = 3;
   int n_modes[3]    = {10, 20, 15};
@@ -101,14 +113,14 @@ int main() {
 
   // Making data
   for (int64_t i = 0; i < M; i++) {
-    x[i] = M_PI * rand_util_11(); // x in [-pi,pi)
-    y[i] = M_PI * rand_util_11();
-    z[i] = M_PI * rand_util_11();
+    x[i] = M_PI * rand_util_11() + 4; // x in [-pi,pi)
+    y[i] = M_PI * rand_util_11() + 4;
+    z[i] = M_PI * rand_util_11() + 4;
   }
   for (int64_t i = 0; i < N; i++) {
-    s[i] = M_PI * rand_util_11();
-    t[i] = M_PI * rand_util_11();
-    u[i] = M_PI * rand_util_11();
+    s[i] = M_PI * rand_util_11() + 8; // shifted so D1 is 8
+    t[i] = M_PI * rand_util_11() + 8; // shifted so D2 is 8
+    u[i] = M_PI * rand_util_11() + 8; // shifted so D3 is 8
   }
 
   for (int64_t i = M; i < M * ntransf; ++i) {
@@ -208,14 +220,15 @@ int main() {
     assert(plan->type3_params.gam3 == cpu_plan->t3P.gam3);
     assert(plan->nf1 == cpu_plan->nf1);
     assert(plan->nf2 == cpu_plan->nf2);
-    assert(plan->nf2 == cpu_plan->nf2);
+    assert(plan->nf3 == cpu_plan->nf3);
     assert(equal(plan->kx, cpu_plan->X, M));
     assert(equal(plan->ky, cpu_plan->Y, M));
     assert(equal(plan->kz, cpu_plan->Z, M));
-    assert(equal(plan->prephase, cpu_plan->prephase, M));
     assert(equal(plan->d_s, cpu_plan->Sp, N));
     assert(equal(plan->d_t, cpu_plan->Tp, N));
     assert(equal(plan->d_u, cpu_plan->Up, N));
+    // NOTE:seems with infnorm we are getting at most 11 digits of precision
+    assert(almost_equal(plan->prephase, cpu_plan->prephase, M, tol * T(1e-2)));
     assert(almost_equal(plan->deconv, cpu_plan->deconv, N, tol * T(1e-2)));
     assert(cufinufft_destroy_impl<T>(plan) == 0);
     assert(finufft_destroy(cpu_plan) == 0);
