@@ -58,13 +58,14 @@ static inline cudaError_t cudaFreeWrapper(T *devPtr, cudaStream_t stream,
   return pool_supported ? cudaFreeAsync(devPtr, stream) : cudaFree(devPtr);
 }
 
-#define RETURN_IF_CUDA_ERROR                                         \
-  {                                                                  \
-    cudaError_t err = cudaGetLastError();                            \
-    if (err != cudaSuccess) {                                        \
-      printf("[%s] Error: %s\n", __func__, cudaGetErrorString(err)); \
-      return FINUFFT_ERR_CUDA_FAILURE;                               \
-    }                                                                \
+#define RETURN_IF_CUDA_ERROR                                                         \
+  {                                                                                  \
+    cudaError_t err = cudaGetLastError();                                            \
+    if (err != cudaSuccess) {                                                        \
+      printf("[%s] Error: %s in %s at line %d\n", __func__, cudaGetErrorString(err), \
+             __FILE__, __LINE__);                                                    \
+      return FINUFFT_ERR_CUDA_FAILURE;                                               \
+    }                                                                                \
   }
 
 #define CUDA_FREE_AND_NULL(val, stream, pool_supported)                              \

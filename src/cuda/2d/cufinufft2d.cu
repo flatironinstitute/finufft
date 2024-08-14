@@ -1,14 +1,10 @@
-#include <assert.h>
+#include <cassert>
 #include <cmath>
 #include <complex>
-#include <iomanip>
-#include <iostream>
-
 #include <cufft.h>
 #include <cufinufft/contrib/helper_cuda.h>
 
 #include <cufinufft/cudeconvolve.h>
-#include <cufinufft/memtransfer.h>
 #include <cufinufft/spreadinterp.h>
 
 using namespace cufinufft::deconvolve;

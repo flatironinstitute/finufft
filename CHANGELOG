@@ -1,41 +1,77 @@
 List of features / changes made / release notes, in reverse chronological order.
 If not stated, FINUFFT is assumed (cuFINUFFT <=1.3 is listed separately).
 
-V 2.3.0beta (6/21/24)
+V 2.3.0-rc1 (8/6/24)
 
-* Major acceleration of spread/interp kernels using XSIMD header-only lib,
+* Switched C++ standards from C++14 to C++17, allowing various templating
+  improvements (Barbone).
+* Python build modernized to pyproject.toml (for both CPU and GPU).
+  PR 507 (Anden, Lu, Barbone). Compiles from source for the local build.
+* Switchable FFT: either FFTW or DUCC0 (latter needs no plan stage; also it is
+  used to exploit sparsity pattern to achieve FFT speedups 1-3x in 2D and 3D).
+  PR463, Martin Reinecke. Both CMake and makefile includes this DUCC0 option
+  (makefile PR511 by Barnett; CMake by Barbone).
+* ES kernel rescaled to max value 1, reduced poly degrees for upsampfac=1.25,
+  cleaner Horner coefficient generation PR499 (fixes fp32 overflow issue #454).
+* Major manual acceleration of spread/interp kernels via XSIMD header-only lib,
   kernel evaluation, templating by ns with AVX-width-dependent decisions.
   Up to 80% faster, dep on compiler. (Marco Barbone with help from Libin Lu).
-    NOTE: introduces new dependency (XSIMD), added to cMake and makefile.
-* new test/finufft3dkernel_test checks kerevalmeth=0,1 same to tol (M Barbone).
+  A large chunk of work: PRs 459, 471, 502.
+  NOTE: introduces new dependency (XSIMD), added to CMake and makefile.
+* Exploiting even/odd symmetry for 10% faster xsimd-accel kernel poly eval
+  (Libin Lu based on idea of Martin Reinecke; PR477,492,493).
+* new test/finufft3dkernel_test checks kerevalmeth=0 and 1 agree to tolerance
+  PR 473 (M Barbone).
 * new perftest/compare_spreads.jl compares two spreadinterp libs (A Barnett).
 * new benchmarker perftest/spreadtestndall sweeps all kernel widths (M Barbone).
 * cufinufft now supports modeord(type 1,2 only): 0 CMCL-style increasing mode
-  order, 1 FFT-style mode order.
-* New doc page: migration guide from NFFT3 (2d1 case only).
+  order, 1 FFT-style mode order. PR447,446 (Libin Lu, Joakim Anden).
+* New doc page: migration guide from NFFT3 (2d1 case only), Barnett.
 * New foldrescale, removes [-3pi,3pi) restriction on NU points, and slight
   speedup at large tols. Deprecates both opts.chkbnds and error code
-  FINUFFT_ERR_SPREAD_PTS_OUT_RANGE. Also inlined kernel eval code, increases
-  compile of spreadinterp.cpp to 10s. PR #440 (Marco Barbone + Martin Reinecke)
+  FINUFFT_ERR_SPREAD_PTS_OUT_RANGE. Also inlined kernel eval code (increases
+  compile of spreadinterp.cpp to 10s). PR440 Marco Barbone + Martin Reinecke.
 * CPU plan stage allows any # threads, warns if > omp_get_max_threads(); or
   if single-threaded fixes nthr=1 and warns opts.nthreads>1 attempt.
   Sort now respects spread_opts.sort_threads not nthreads. Supercedes PR 431.
 * new docs troubleshooting accuracy limitations due to condition number of the
-  NUFFT problem.
+  NUFFT problem (Barnett).
 * new sanity check on nj and nk (<0 or too big); new err code, tester, doc.
 * MAX_NF increased from 1e11 to 1e12, since machines grow.
 * improved GPU python docs: migration guide; usage from cupy, numba, torch,
-  pycuda. PyPI pkg still at 2.2.0beta.
+  pycuda. Docs for all GPU options. PyPI pkg still at 2.2.0beta.
 * Added a clang-format pre-commit hook to ensure consistent code style.
   Created a .clang-format file to define a style similar to the existing style.
   Applied clang-format to all cmake, C, C++, and CUDA code. Ignored the blame
-  using .git-blame-ignore-revs. Added a contributing.md for developers.
+  using .git-blame-ignore-revs. contributing.md for devs. PR450,455, Barbone.
 * cuFINUFFT interface update: number of nonuniform points M is now a 64-bit int
   as opposed to 32-bit. While this does modify the ABI, most code will just
   need to recompile against the new library as compilers will silently upcast
   any 32-bit integers to 64-bit when calling cufinufft(f)_setpts. Note that
   internally, 32-bit integers are still used, so calling cufinufft with more
   than 2e9 points will fail. This restriction may be lifted in the future.
+* CMake build system revamped completely, using more modern practices (Barbone).
+  It now auto-selects compiler flags based on those supported on all OSes, and
+  has support for Windows (llvm, msvc), Linux (llvm, gcc) and MacOS (llvm, gcc).
+* CMake added nvcc and msvc optimization flags.
+* sphinx local doc build also using CMake. (Barbone)
+* updated install docs, including for DUCC0 FFT and new python build.
+* updated install docs (Barnett)
+* Major acceleration effort for the GPU library cufinufft (M Barbone, PR488):
+  - binsize is now a function of the shared memory available where possible.
+  - GM 1D sorts using thrust::sort instead of bin-sort.
+  - uses the new normalized Horner coefficients and added support for
+    upsampfac=1.25 on GPU, for first time.
+  - new compile flags for extra-vectorization, flushing single
+    precision denormals to 0 and using fma where possible.
+  -  using intrinsics (eg FMA) in foldrescale and other places to increase
+    performance
+  - using SM90 float2 vector atomicAdd where supported
+  - make default binsize = 0
+* overide single-output relative error by l2 relative error in exit codes of
+  test/finufft?d_test.cpp to reduce CI fails due to random numbers on some
+  platforms in single-prec (with DUCC, etc). (Barnett PR516)
+* fix GPU segfault due to stream deletion as pointer not value (Barbone PR520)
 
 V 2.2.0 (12/12/23)
 

@@ -1,0 +1,24 @@
+Makefile for FINUFFT library. Please specify your task:
+ make lib - build the main library (in lib/ and lib-static/)
+ make examples - compile and run all codes in examples/
+ make test - compile and run quick math validation tests
+ make perftest - compile and run (slower) performance tests
+ make fortran - compile and run Fortran tests and examples
+ make matlab - compile MATLAB interfaces (no test)
+ make octave - compile and test octave interfaces
+ make python - compile and test python interfaces
+ make all - do all the above (around 1 minute; assumes you have MATLAB, etc)
+ make spreadtest - compile & run spreader-only tests (no FFT)
+ make spreadtestall - small set spreader-only tests for CI use
+ make objclean - remove all object files, preserving libs & MEX
+ make clean - also remove all lib, MEX, py, and demo executables
+ make setup - check (and possibly download) dependencies
+ make setupclean - delete downloaded dependencies
+For faster (multicore) compilation, append, for example, -j8
+
+Make options:
+ 'make [task] OMP=OFF' for single-threaded (no refs to OpenMP)
+ 'make [task] FFT=DUCC' for DUCC0 FFT (otherwise uses FFTW3)
+ You must at least 'make objclean' before changing such options!
+
+Also see docs/install.rst and docs/README

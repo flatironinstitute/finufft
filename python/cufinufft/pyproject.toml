@@ -1,0 +1,49 @@
+[build-system]
+requires = [
+    "scikit-build-core >= 0.4.3",
+    "cmake >= 3.19",
+    "ninja >= 1.9.0",
+]
+build-backend = "scikit_build_core.build"
+
+[project]
+name = "cufinufft"
+description = "Non-uniform fast Fourier transforms on the GPU"
+version = "2.2.0"
+readme = "README.md"
+requires-python = ">=3.8"
+dependencies = ["numpy"]
+authors = [
+    {name = "Yu-shuan Melody Shih"},
+    {name = "Garrett Wright"},
+    {name = "Joakim Anden"},
+    {name = "Marco Barbone"},
+    {name = "Robert Blackwell"},
+    {name = "Johannes Blascke"},
+    {name = "Alex Barnett"}]
+maintainers = [{name = "Joakim Anden", email = "janden-vscholar@flatironinstitute.org"}]
+classifiers = [
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: C++",
+    "Operating System :: POSIX :: Linux",
+    "Environment :: GPU",
+    "Topic :: Scientific/Engineering :: Mathematics"
+    ]
+
+[tool.scikit-build]
+# Protect the configuration against future changes in scikit-build-core
+minimum-version = "0.4"
+# Setuptools-style build caching in a local directory
+build-dir = "build/{wheel_tag}"
+
+# Tell skbuild to look for the CMakeLists.txt file two directories up.
+cmake.source-dir = "../../"
+cmake.targets = ["cufinufft"]
+cmake.define = {"FINUFFT_BUILD_PYTHON" = "ON", "FINUFFT_USE_CUDA" = "ON", "FINUFFT_USE_CPU" = "OFF"}
+
+wheel.packages = ["cufinufft"]
+
+# Indicate that we don't depend on the CPython API
+wheel.py-api = "py3"

@@ -17,6 +17,8 @@ authors = [
     {name = "Daniel Foreman-Mackey"},
     {name = "Joakim Anden"},
     {name = "Libin Lu"},
+    {name = "Marco Barbone"},
+    {name = "Robert Blackwell"},
     {name = "Alex Barnett"}]
 maintainers = [{name = "Alex Barnett", email = "abarnett@flatironinstitute.org"}]
 description = "Python interface to FINUFFT"
@@ -39,7 +41,7 @@ build-dir = "build/{wheel_tag}"
 # Tell skbuild to look for the CMakeLists.txt file two directories up.
 cmake.source-dir = "../../"
 cmake.targets = ["finufft"]
-cmake.define = {"FINUFFT_BUILD_PYTHON" = "ON", "FINUFFT_ENABLE_INSTALL" = "OFF"}
+cmake.define = {"FINUFFT_BUILD_PYTHON" = "ON"}
 
 wheel.packages = ["finufft"]
 
