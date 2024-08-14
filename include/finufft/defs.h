@@ -15,7 +15,6 @@
 #ifndef DEFS_H
 #define DEFS_H
 
-#include <limits>
 // public header gives access to f_opts, f_spread_opts, f_plan...
 // (and clobbers FINUFFT* macros; watch out!)
 #include <finufft.h>
@@ -93,7 +92,7 @@ inline constexpr BIGINT MAX_NU_PTS = BIGINT(1e14);
 #include <math.h>
 
 // either-precision unit imaginary number...
-inline constexpr CPX IMA(FLT(0), FLT(1));
+#define IMA (CPX(0.0, 1.0))
 
 // MR: In the longer term I suggest to move
 // away from M_PI, which was never part of the standard.
@@ -103,13 +102,17 @@ inline constexpr CPX IMA(FLT(0), FLT(1));
 #ifndef M_PI // Windows apparently doesn't have this const
 #define M_PI 3.14159265358979329
 #endif
-inline constexpr double M_1_2PI = 0.159154943091895336;
-inline constexpr double M_2PI   = 6.28318530717958648;
+#define M_1_2PI 0.159154943091895336
+#define M_2PI   6.28318530717958648
 // to avoid mixed precision operators in eg i*pi, an either-prec PI...
-inline constexpr FLT PI = FLT(M_PI);
+#define PI      FLT(M_PI)
 
 // machine epsilon for decisions of achievable tolerance...
-inline constexpr FLT EPSILON = std::numeric_limits<FLT>::epsilon();
+#ifdef SINGLE
+#define EPSILON (float)6e-08
+#else
+#define EPSILON (double)1.1e-16
+#endif
 
 // Random numbers: crappy unif random number generator in [0,1).
 // These macros should probably be replaced by modern C++ std lib or random123.
