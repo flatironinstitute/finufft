@@ -156,6 +156,12 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
   d_plan->type                    = type;
   d_plan->spopts.spread_direction = d_plan->type;
 
+  if (d_plan->opts.debug) {
+    // print the spreader options
+    printf("[cufinufft] spreader options:\n");
+    printf("[cufinufft] nspread: %d\n", d_plan->spopts.nspread);
+  }
+
   cufinufft_setup_binsize<T>(type, d_plan->spopts.nspread, dim, &d_plan->opts);
   if (ier = cudaGetLastError(), ier != cudaSuccess) {
     goto finalize;
@@ -674,18 +680,22 @@ int cufinufft_setpts_impl(int M, T *d_kx, T *d_ky, T *d_kz, int N, T *d_s, T *d_
     const auto is_c_nonzero = d_plan->type3_params.C1 != 0 |
                               d_plan->type3_params.C2 != 0 | d_plan->type3_params.C3 != 0;
 
-    const auto phi_hat_iterator = thrust::make_zip_iterator(thrust::make_tuple(
-        phi_hat1.begin(), dim > 1 ? phi_hat2.begin() : phi_hat1.begin(),
-        dim > 2 ? phi_hat3.begin() : phi_hat1.begin()));
-    thrust::transform(thrust::cuda::par.on(stream), phi_hat_iterator,
-                      phi_hat_iterator + N, d_plan->deconv,
-                      [dim] __host__ __device__(
-                          const thrust::tuple<T, T, T> &tuple) -> cuda_complex<T> {
-                        auto phiHat = thrust::get<0>(tuple);
-                        phiHat *= (dim > 1) ? thrust::get<1>(tuple) : T(1);
-                        phiHat *= (dim > 2) ? thrust::get<2>(tuple) : T(1);
-                        return cuda_complex<T>{T(1) / phiHat, T(0)};
-                      });
+    const auto phi_hat_iterator = thrust::make_zip_iterator(
+        thrust::make_tuple(phi_hat1.begin(),
+                           // to avoid out of bounds access, use phi_hat1 if dim < 2
+                           dim > 1 ? phi_hat2.begin() : phi_hat1.begin(),
+                           // to avoid out of bounds access, use phi_hat1 if dim < 3
+                           dim > 2 ? phi_hat3.begin() : phi_hat1.begin()));
+    thrust::transform(
+        thrust::cuda::par.on(stream), phi_hat_iterator, phi_hat_iterator + N,
+        d_plan->deconv,
+        [dim] __host__ __device__(const thrust::tuple<T, T, T> tuple) -> cuda_complex<T> {
+          auto phiHat = thrust::get<0>(tuple);
+          // in case dim < 2 or dim < 3, multiply by 1
+          phiHat *= (dim > 1) ? thrust::get<1>(tuple) : T(1);
+          phiHat *= (dim > 2) ? thrust::get<2>(tuple) : T(1);
+          return {T(1) / phiHat, T(0)};
+        });
 
     if (is_c_finite && is_c_nonzero) {
       const auto c1      = d_plan->type3_params.C1;
@@ -703,8 +713,8 @@ int cufinufft_setpts_impl(int M, T *d_kx, T *d_ky, T *d_kz, int N, T *d_s, T *d_
           thrust::cuda::par.on(stream), phase_iterator, phase_iterator + N,
           d_plan->deconv, d_plan->deconv,
           [c1, c2, c3, d1, d2, d3, imasign] __host__ __device__(
-              const thrust::tuple<T, T, T> tuple,
-              cuda_complex<T> deconv) -> cuda_complex<T> {
+              const thrust::tuple<T, T, T> tuple, cuda_complex<T> deconv)
+              -> cuda_complex<T> {
             // d2 and d3 are 0 if dim < 2 and dim < 3
             const auto phase = c1 * (thrust::get<0>(tuple) + d1) +
                                c2 * (thrust::get<1>(tuple) + d2) +

@@ -50,7 +50,7 @@ __global__ void fseries_kernel_compute(int nf1, int nf2, int nf3, T *f, T *a,
        i += blockDim.x * gridDim.x) {
     T x = 0.0;
     for (int n = 0; n < q; n++) {
-      x += ft[n] * T(2) * cos(T(i) * at[n]);
+      x += ft[n] * T(2) * std::cos(T(i) * at[n]);
     }
     oarr[i] = x;
   }
@@ -61,7 +61,7 @@ __global__ void fseries_kernel_compute(int nf1, int nf2, int nf3, T *f, T *a, T 
                                        T *ky, T *kz, T *fwkerhalf1, T *fwkerhalf2,
                                        T *fwkerhalf3, int ns) {
   T J2  = ns / 2.0;
-  int q = (int)(2 + 3.0 * J2);
+  int q = (int)(2 + 2.0 * J2);
   int nf;
   T *at = a + threadIdx.y * MAX_NQUAD;
   T *ft = f + threadIdx.y * MAX_NQUAD;
@@ -83,7 +83,7 @@ __global__ void fseries_kernel_compute(int nf1, int nf2, int nf3, T *f, T *a, T 
        i += blockDim.x * gridDim.x) {
     T x = 0.0;
     for (int n = 0; n < q; n++) {
-      x += ft[n] * T(2) * cos(k[i] * at[n]);
+      x += ft[n] * T(2) * std::cos(k[i] * at[n]);
     }
     oarr[i] = x;
   }
@@ -123,7 +123,7 @@ int cufserieskernelcompute(int dim, int nf1, int nf2, int nf3, T *d_f, T *d_a, T
 Melody Shih 2/20/22
 */
 {
-  int nout = max(max(nf1 / 2 + 1, nf2 / 2 + 1), nf3 / 2 + 1);
+  int nout = max(max(nf1, nf2), nf3);
 
   dim3 threadsPerBlock(16, dim);
   dim3 numBlocks((nout + 16 - 1) / 16, 1);
@@ -211,7 +211,8 @@ void onedim_fseries_kernel_precomp(CUFINUFFT_BIGINT nf, T *f, T *a,
                                    finufft_spread_opts opts) {
   T J2 = opts.nspread / 2.0; // J/2, half-width of ker z-support
   // # quadr nodes in z (from 0 to J/2; reflections will be added)...
-  int q = (int)(2 + 3.0 * J2); // not sure why so large? cannot exceed MAX_NQUAD
+  int q = (int)(2 + (phase_winding ? 3.0 : 2.0) * J2); // not sure why so large? cannot
+                                                       // exceed MAX_NQUAD
   double z[2 * MAX_NQUAD];
   double w[2 * MAX_NQUAD];
 

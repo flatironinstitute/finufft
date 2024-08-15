@@ -75,13 +75,13 @@ auto almost_equal(V *d_vec,
   assert(cudaMemcpy(h_vec.data(), d_vec, size * sizeof(T), cudaMemcpyDeviceToHost) ==
          cudaSuccess);
   // print h_vec and cpu
-  //  for (std::size_t i = 0; i < size; ++i) {
-  //    std::cout << "gpu[" << i << "]: " << h_vec[i] << " cpu[" << i << "]: " << cpu[i]
-  //              << '\n';
-  //  }
-  std::cout << "infnorm: " << infnorm(h_vec.data(), cpu, size) << std::endl;
+  //    for (std::size_t i = 0; i < size; ++i) {
+  //      std::cout << "gpu[" << i << "]: " << h_vec[i] << " cpu[" << i << "]: " << cpu[i]
+  //                << '\n';
+  //    }
+  std::cout << "relerrtwonorm: " << infnorm(h_vec.data(), cpu, size) << std::endl;
   // compare the l2 norm of the difference between the two vectors
-  if (infnorm(h_vec.data(), cpu, size) < tol) {
+  if (relerrtwonorm(h_vec.data(), cpu, size) < tol) {
     return true;
   }
   return false;
@@ -95,15 +95,15 @@ int main() {
   // opts.gpu_sort = 0;
   finufft_opts fin_opts;
   finufft_default_opts(&fin_opts);
-  fin_opts.debug    = 2;
-  const int iflag   = 1;
-  const double tol  = 1e-8;
-  const int ntransf = 1;
-  const int dim     = 3;
-  //  int n_modes[3]    = {5, 6, 4};
-  const int N            = 1023;
-  const int M            = 10000;
-  const double bandwidth = 50.0;
+  fin_opts.debug              = 2;
+  fin_opts.spread_kerevalmeth = 1;
+  const int iflag             = 1;
+  const int ntransf           = 1;
+  const int dim               = 3;
+  const double tol            = 1e-9;
+  const int N                 = 1023;
+  const int M                 = 1000;
+  const double bandwidth      = 50.0;
 
   thrust::host_vector<T> x(M * ntransf), y(M * ntransf), z(M * ntransf), s(N * ntransf),
       t(N * ntransf), u(N * ntransf);
@@ -130,7 +130,7 @@ int main() {
     u[i] = M_PI * rand_util_11() * bandwidth + 8; // shifted so D3 is 8
   }
 
-  const double deconv_tol = std::numeric_limits<double>::epsilon() * bandwidth * 10000;
+  const double deconv_tol = std::numeric_limits<double>::epsilon() * bandwidth * 100;
 
   for (int64_t i = M; i < M * ntransf; ++i) {
     int64_t j = i % M;
@@ -147,10 +147,10 @@ int main() {
 
   // fill them all
 
-  for (int i = 0; i < N * ntransf; i++) {
-    fk[i].real(randm11());
-    fk[i].imag(randm11());
-  }
+  //  for (int i = 0; i < N * ntransf; i++) {
+  //    fk[i].real(randm11());
+  //    fk[i].imag(randm11());
+  //  }
   // copy x, y, z, s, t, u to device d_x, d_y, d_z, d_s, d_t, d_u
   d_x = x;
   d_y = y;
@@ -248,7 +248,8 @@ int main() {
     assert(equal(plan->d_u, cpu_plan->Up, N));
     // NOTE:seems with infnorm we are getting at most 11 digits of precision
     std::cout << "prephase :\n";
-    assert(almost_equal(plan->prephase, cpu_plan->prephase, M, 1e-10));
+    assert(almost_equal(
+        plan->prephase, cpu_plan->prephase, M, std::numeric_limits<T>::epsilon() * 100));
     std::cout << "deconv :\n";
     assert(almost_equal(plan->deconv, cpu_plan->deconv, N, deconv_tol));
 
