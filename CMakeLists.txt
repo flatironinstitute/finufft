@@ -4,6 +4,7 @@ project(
   VERSION 2.3.0
   LANGUAGES C CXX)
 
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 # windows MSVC runtime flags policy
 cmake_policy(SET CMP0091 NEW)
 

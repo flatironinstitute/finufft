@@ -40,6 +40,9 @@ int cufinufft3d1_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
 template<typename T>
 int cufinufft3d2_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
                       cufinufft_plan_t<T> *d_plan);
+template<typename T>
+int cufinufft3d3_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
+                      cufinufft_plan_t<T> *d_plan);
 
 template<typename T>
 int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntransf, T tol,
@@ -85,6 +88,7 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
   d_plan->nf1 = 1;
   d_plan->nf2 = 1;
   d_plan->nf3 = 1;
+  d_plan->tol = tol;
   /* If a user has not supplied their own options, assign defaults for them. */
   if (opts == nullptr) {  // use default opts
     cufinufft_default_opts(&(d_plan->opts));
@@ -98,11 +102,20 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
     d_plan->ms = nmodes[0];
     d_plan->mt = nmodes[1];
     d_plan->mu = nmodes[2];
+  } else {
+    d_plan->opts.gpu_method           = 1;
+    d_plan->opts.gpu_spreadinterponly = 1;
   }
 
   int fftsign     = (iflag >= 0) ? 1 : -1;
   d_plan->iflag   = fftsign;
   d_plan->ntransf = ntransf;
+
+  int maxbatchsize = (opts != nullptr) ? opts->gpu_maxbatchsize : 0;
+  // TODO: check if this is the right heuristic
+  if (maxbatchsize == 0)                 // implies: use a heuristic.
+    maxbatchsize = std::min(ntransf, 8); // heuristic from test codes
+  d_plan->maxbatchsize = maxbatchsize;
 
   const auto stream = d_plan->stream = (cudaStream_t)d_plan->opts.gpu_stream;
 
@@ -143,25 +156,26 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
   d_plan->type                    = type;
   d_plan->spopts.spread_direction = d_plan->type;
 
+  cufinufft_setup_binsize<T>(type, d_plan->spopts.nspread, dim, &d_plan->opts);
+  if (ier = cudaGetLastError(), ier != cudaSuccess) {
+    goto finalize;
+  }
+  if (d_plan->opts.debug) {
+    printf("[cufinufft] bin size x: %d", d_plan->opts.gpu_binsizex);
+    if (dim > 1) printf(" bin size y: %d", d_plan->opts.gpu_binsizey);
+    if (dim > 2) printf(" bin size z: %d", d_plan->opts.gpu_binsizez);
+    printf("\n");
+    // shared memory required for the spreader vs available shared memory
+    int shared_mem_per_block{};
+    cudaDeviceGetAttribute(&shared_mem_per_block, cudaDevAttrMaxSharedMemoryPerBlockOptin,
+                           device_id);
+    const auto mem_required =
+        shared_memory_required<T>(dim, d_plan->spopts.nspread, d_plan->opts.gpu_binsizex,
+                                  d_plan->opts.gpu_binsizey, d_plan->opts.gpu_binsizez);
+    printf("[cufinufft] shared memory required for the spreader: %d\n", mem_required);
+  }
+
   if (type == 1 || type == 2) {
-    cufinufft_setup_binsize<T>(type, d_plan->spopts.nspread, dim, &d_plan->opts);
-    if (ier = cudaGetLastError(), ier != cudaSuccess) {
-      goto finalize;
-    }
-    if (d_plan->opts.debug) {
-      printf("[cufinufft] bin size x: %d", d_plan->opts.gpu_binsizex);
-      if (dim > 1) printf(" bin size y: %d", d_plan->opts.gpu_binsizey);
-      if (dim > 2) printf(" bin size z: %d", d_plan->opts.gpu_binsizez);
-      printf("\n");
-      // shared memory required for the spreader vs available shared memory
-      int shared_mem_per_block{};
-      cudaDeviceGetAttribute(&shared_mem_per_block,
-                             cudaDevAttrMaxSharedMemoryPerBlockOptin, device_id);
-      const auto mem_required = shared_memory_required<T>(
-          dim, d_plan->spopts.nspread, d_plan->opts.gpu_binsizex,
-          d_plan->opts.gpu_binsizey, d_plan->opts.gpu_binsizez);
-      printf("[cufinufft] shared memory required for the spreader: %d\n", mem_required);
-    }
     CUFINUFFT_BIGINT nf1 = 1, nf2 = 1, nf3 = 1;
     set_nf_type12(d_plan->ms, d_plan->opts, d_plan->spopts, &nf1,
                   d_plan->opts.gpu_obinsizex);
@@ -208,11 +222,6 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
     d_plan->nf1 = nf1;
     d_plan->nf2 = nf2;
     d_plan->nf3 = nf3;
-
-    int maxbatchsize = opts ? opts->gpu_maxbatchsize : 0;
-    if (maxbatchsize == 0)                 // implies: use a heuristic.
-      maxbatchsize = std::min(ntransf, 8); // heuristic from test codes
-    d_plan->maxbatchsize = maxbatchsize;
 
     using namespace cufinufft::memtransfer;
     switch (d_plan->dim) {
@@ -431,7 +440,7 @@ int cufinufft_setpts_impl(int M, T *d_kx, T *d_ky, T *d_kz, int N, T *d_s, T *d_
     return FINUFFT_ERR_NUM_NU_PTS_INVALID;
   }
   const auto stream = d_plan->stream;
-  d_plan->nk        = N;
+  d_plan->N         = N;
   d_plan->d_s       = d_s;
   d_plan->d_t       = d_t;
   d_plan->d_u       = d_u;
@@ -493,6 +502,7 @@ int cufinufft_setpts_impl(int M, T *d_kx, T *d_ky, T *d_kz, int N, T *d_s, T *d_
     }
   }
   d_plan->nf = d_plan->nf1 * d_plan->nf2 * d_plan->nf3;
+
   // FIXME: MAX_NF might be too small...
   if (d_plan->nf * d_plan->opts.gpu_maxbatchsize > MAX_NF) {
     fprintf(stderr,
@@ -511,7 +521,13 @@ int cufinufft_setpts_impl(int M, T *d_kx, T *d_ky, T *d_kz, int N, T *d_s, T *d_
     if (auto ier = checked_free(x); ier != cudaSuccess) return ier;
     return cudaMallocWrapper(&x, size, stream, pool);
   };
-
+  // FIXME: check the size of the allocs for the batch interface
+  if (checked_realloc(d_plan->fw, sizeof(cuda_complex<T>) * d_plan->nf *
+                                      d_plan->maxbatchsize) != cudaSuccess)
+    goto finalize;
+  if (checked_realloc(d_plan->c_batch,
+                      sizeof(cuda_complex<T>) * M * d_plan->maxbatchsize) != cudaSuccess)
+    goto finalize;
   if (checked_realloc(d_plan->kx, sizeof(T) * M) != cudaSuccess) goto finalize;
   if (checked_realloc(d_plan->d_s, sizeof(T) * N) != cudaSuccess) goto finalize;
   if (d_plan->dim > 1) {
@@ -652,12 +668,11 @@ int cufinufft_setpts_impl(int M, T *d_kx, T *d_ky, T *d_kz, int N, T *d_s, T *d_
                                phi_hat3.data().get(), d_plan->spopts.nspread, stream))
       goto finalize;
 
-    const auto is_c_finite = std::isfinite(d_plan->type3_params.C1) &&
-                             std::isfinite(d_plan->type3_params.C2) &&
+    const auto is_c_finite = std::isfinite(d_plan->type3_params.C1) &
+                             std::isfinite(d_plan->type3_params.C2) &
                              std::isfinite(d_plan->type3_params.C3);
-    const auto is_c_nonzero = d_plan->type3_params.C1 != 0 ||
-                              d_plan->type3_params.C2 != 0 ||
-                              d_plan->type3_params.C3 != 0;
+    const auto is_c_nonzero = d_plan->type3_params.C1 != 0 |
+                              d_plan->type3_params.C2 != 0 | d_plan->type3_params.C3 != 0;
 
     const auto phi_hat_iterator = thrust::make_zip_iterator(thrust::make_tuple(
         phi_hat1.begin(), dim > 1 ? phi_hat2.begin() : phi_hat1.begin(),
@@ -688,8 +703,8 @@ int cufinufft_setpts_impl(int M, T *d_kx, T *d_ky, T *d_kz, int N, T *d_s, T *d_
           thrust::cuda::par.on(stream), phase_iterator, phase_iterator + N,
           d_plan->deconv, d_plan->deconv,
           [c1, c2, c3, d1, d2, d3, imasign] __host__ __device__(
-              const thrust::tuple<T, T, T> tuple, cuda_complex<T> deconv)
-              -> cuda_complex<T> {
+              const thrust::tuple<T, T, T> tuple,
+              cuda_complex<T> deconv) -> cuda_complex<T> {
             // d2 and d3 are 0 if dim < 2 and dim < 3
             const auto phase = c1 * (thrust::get<0>(tuple) + d1) +
                                c2 * (thrust::get<1>(tuple) + d2) +
@@ -698,9 +713,47 @@ int cufinufft_setpts_impl(int M, T *d_kx, T *d_ky, T *d_kz, int N, T *d_s, T *d_
           });
     }
     // exiting the block frees the memory allocated for phi_hat1, phi_hat2, and phi_hat3
-    //  and the precomputed data for the fseries kernel
+    // and the precomputed data for the fseries kernel
+    // since GPU memory is expensive, we should free it as soon as possible
   }
-  return 0;
+
+  using namespace cufinufft::memtransfer;
+  switch (d_plan->dim) {
+  case 1: {
+    if ((allocgpumem1d_plan<T>(d_plan))) goto finalize;
+  } break;
+  case 2: {
+    if ((allocgpumem2d_plan<T>(d_plan))) goto finalize;
+  } break;
+  case 3: {
+    if ((allocgpumem3d_plan<T>(d_plan))) goto finalize;
+  } break;
+  }
+  if (cufinufft_setpts_12_impl(M, d_plan->kx, d_plan->ky, d_plan->kz, d_plan)) {
+    fprintf(stderr, "[%s] cufinufft_setpts_12_impl failed\n", __func__);
+    goto finalize;
+  }
+  {
+    int t2modes[]               = {d_plan->nf1, d_plan->nf2, d_plan->nf3};
+    cufinufft_opts t2opts       = d_plan->opts;
+    t2opts.modeord              = 0;
+    t2opts.debug                = std::max(0, t2opts.debug - 1);
+    t2opts.gpu_spreadinterponly = 0;
+    // Safe to ignore the return value here?
+    if (d_plan->t2_plan) cufinufft_destroy_impl(d_plan->t2_plan);
+    // check that maxbatchsize is correct
+    if (cufinufft_makeplan_impl<T>(2, dim, t2modes, d_plan->iflag, d_plan->maxbatchsize,
+                                   d_plan->tol, &d_plan->t2_plan, &t2opts)) {
+      fprintf(stderr, "[%s] inner t2 plan cufinufft_makeplan failed\n", __func__);
+      goto finalize;
+    }
+    if (cufinufft_setpts_12_impl(N, d_plan->d_s, d_plan->d_t, d_plan->d_u,
+                                 d_plan->t2_plan)) {
+      fprintf(stderr, "[%s] inner t2 plan cufinufft_setpts_12 failed\n", __func__);
+      goto finalize;
+    }
+    return 0;
+  }
 finalize:
   checked_free(d_plan->kx);
   checked_free(d_plan->d_s);
@@ -710,6 +763,9 @@ finalize:
   checked_free(d_plan->d_u);
   checked_free(d_plan->prephase);
   checked_free(d_plan->deconv);
+  checked_free(d_plan->fw_batch);
+  checked_free(d_plan->c_batch);
+  cufinufft_destroy_impl(d_plan->t2_plan);
   return FINUFFT_ERR_CUDA_FAILURE;
 }
 
@@ -761,10 +817,7 @@ int cufinufft_execute_impl(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
   case 3: {
     if (type == 1) ier = cufinufft3d1_exec<T>(d_c, d_fk, d_plan);
     if (type == 2) ier = cufinufft3d2_exec<T>(d_c, d_fk, d_plan);
-    if (type == 3) {
-      std::cerr << "Not Implemented yet" << std::endl;
-      ier = FINUFFT_ERR_TYPE_NOTVALID;
-    }
+    if (type == 3) ier = cufinufft3d3_exec<T>(d_c, d_fk, d_plan);
   } break;
   }
 

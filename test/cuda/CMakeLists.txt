@@ -14,9 +14,7 @@ foreach(srcfile ${test_src})
   set_target_properties(
     ${executable} PROPERTIES LINKER_LANGUAGE CUDA CUDA_ARCHITECTURES
                                                   ${FINUFFT_CUDA_ARCHITECTURES})
-  target_compile_options(
-    ${executable} PUBLIC $<$<COMPILE_LANGUAGE:CUDA>:$<$<CONFIG:Debug>:-G
-                         -maxrregcount 32>>)
+  target_compile_options(${executable} PUBLIC ${FINUFFT_CUDA_FLAGS})
   message(STATUS "Adding test ${executable}"
                  " with CUDA_ARCHITECTURES=${FINUFFT_CUDA_ARCHITECTURES}"
                  " and INCLUDE=${CUFINUFFT_INCLUDE_DIRS}")

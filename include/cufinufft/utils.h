@@ -112,6 +112,8 @@ __forceinline__ __device__ auto interval(const int ns, const double x) {
 #define ALLOCA_SUPPORTED 0
 #endif
 
+#undef ALLOCA_SUPPORTED
+
 #if defined(__CUDA_ARCH__)
 #if __CUDA_ARCH__ >= 900
 #define COMPUTE_CAPABILITY_90_OR_HIGHER 1
@@ -130,8 +132,8 @@ __forceinline__ __device__ auto interval(const int ns, const double x) {
  */
 
 template<typename T>
-static __forceinline__ __device__ void atomicAddComplexShared(
-    cuda_complex<T> *address, cuda_complex<T> res) {
+static __forceinline__ __device__ void atomicAddComplexShared(cuda_complex<T> *address,
+                                                              cuda_complex<T> res) {
   const auto raw_address = reinterpret_cast<T *>(address);
   atomicAdd(raw_address, res.x);
   atomicAdd(raw_address + 1, res.y);
@@ -143,8 +145,8 @@ static __forceinline__ __device__ void atomicAddComplexShared(
  * on shared memory are supported so we leverage them
  */
 template<typename T>
-static __forceinline__ __device__ void atomicAddComplexGlobal(
-    cuda_complex<T> *address, cuda_complex<T> res) {
+static __forceinline__ __device__ void atomicAddComplexGlobal(cuda_complex<T> *address,
+                                                              cuda_complex<T> res) {
   if constexpr (
       std::is_same_v<cuda_complex<T>, float2> && COMPUTE_CAPABILITY_90_OR_HIGHER) {
     atomicAdd(address, res);
@@ -204,12 +206,12 @@ auto set_nhg_type3(T S, T X, const cufinufft_opts &opts,
       Xsafe = 1.0;
       Ssafe = 1.0;
     } else
-      Xsafe = max(Xsafe, T(1) / S);
+      Xsafe = std::max(Xsafe, T(1) / S);
   else
-    Ssafe = max(Ssafe, T(1) / X);
+    Ssafe = std::max(Ssafe, T(1) / X);
   // use the safe X and S...
   T nfd = 2.0 * opts.upsampfac * Ssafe * Xsafe / M_PI + nss;
-  if (!isfinite(nfd)) nfd = 0.0; // use FLT to catch inf
+  if (!std::isfinite(nfd)) nfd = 0.0; // use FLT to catch inf
   auto nf = (int)nfd;
   // printf("initial nf=%lld, ns=%d\n",*nf,spopts.nspread);
   //  catch too small nf, and nan or +-inf, otherwise spread fails...
