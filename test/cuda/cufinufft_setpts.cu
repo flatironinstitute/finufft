@@ -19,7 +19,7 @@
 #include <thrust/host_vector.h>
 
 // for now, once finufft is demacroized we can test float
-using T = double;
+using test_t = double;
 
 template<typename T, typename V> bool equal(V *d_vec, T *cpu, const std::size_t size) {
   // copy d_vec to cpu
@@ -98,15 +98,15 @@ int main() {
   const int N       = n_modes[0] * n_modes[1] * n_modes[2];
   const int M       = 100;
 
-  thrust::host_vector<T> x(M * ntransf), y(M * ntransf), z(M * ntransf), s(N * ntransf),
-      t(N * ntransf), u(N * ntransf);
-  thrust::host_vector<thrust::complex<T>> c(M * ntransf), fk(N * ntransf);
+  thrust::host_vector<test_t> x(M * ntransf), y(M * ntransf), z(M * ntransf),
+      s(N * ntransf), t(N * ntransf), u(N * ntransf);
+  thrust::host_vector<thrust::complex<test_t>> c(M * ntransf), fk(N * ntransf);
 
-  thrust::device_vector<T> d_x{}, d_y{}, d_z{}, d_s{}, d_t{}, d_u{};
-  thrust::device_vector<thrust::complex<T>> d_c(M * ntransf), d_fk(N * ntransf);
+  thrust::device_vector<test_t> d_x{}, d_y{}, d_z{}, d_s{}, d_t{}, d_u{};
+  thrust::device_vector<thrust::complex<test_t>> d_c(M * ntransf), d_fk(N * ntransf);
 
   std::default_random_engine eng(42);
-  std::uniform_real_distribution<T> dist11(-1, 1);
+  std::uniform_real_distribution<test_t> dist11(-1, 1);
   auto rand_util_11 = [&eng, &dist11]() {
     return dist11(eng);
   };
@@ -237,7 +237,7 @@ int main() {
   };
   // testing correctness of the plan creation
   //  cufinufft_plan_t<float> *single_plan{nullptr};
-  cufinufft_plan_t<T> *double_plan{nullptr};
+  cufinufft_plan_t<test_t> *double_plan{nullptr};
   //  test_type1(double_plan);
   //  test_type2(double_plan);
   test_type3(double_plan);

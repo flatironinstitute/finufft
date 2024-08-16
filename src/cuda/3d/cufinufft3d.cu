@@ -135,36 +135,39 @@ int cufinufft3d3_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
   int ier;
   cuda_complex<T> *d_cstart;
   cuda_complex<T> *d_fkstart;
-  cuda_complex<T> *d_cbatch_start;
   const auto stream = d_plan->stream;
   for (int i = 0; i * d_plan->maxbatchsize < d_plan->ntransf; i++) {
     int blksize = min(d_plan->ntransf - i * d_plan->maxbatchsize, d_plan->maxbatchsize);
     d_cstart    = d_c + i * d_plan->maxbatchsize * d_plan->M;
     d_fkstart   = d_fk + i * d_plan->maxbatchsize * d_plan->N;
-    d_cbatch_start = d_plan->c_batch + i * d_plan->maxbatchsize * d_plan->M;
-    d_plan->c      = d_cbatch_start;
-    d_plan->fk     = d_plan->fw;
+    // setting input for spreader
+    d_plan->c = d_plan->c_batch + i * d_plan->maxbatchsize * d_plan->M;
+    // setting output for spreader
+    d_plan->fk = d_plan->fw;
     // NOTE: fw might need to be set to 0
     // Step 0: pre-phase the input strengths
     for (int i = 0; i < blksize; i++) {
       thrust::transform(thrust::cuda::par.on(stream), d_plan->prephase,
                         d_plan->prephase + d_plan->M, d_cstart + i * d_plan->M,
-                        d_plan->c_batch + i * d_plan->M,
-                        thrust::multiplies<cuda_complex<T>>());
+                        d_plan->c + i * d_plan->M, thrust::multiplies<cuda_complex<T>>());
     }
     // Step 1: Spread
     if ((ier = cuspread3d<T>(d_plan, blksize))) return ier;
+    // now d_plan->fk = d_plan->fw contains the spread values
     // Step 2: Type 3 NUFFT
+    // type 2 goes from fk to c
+    // saving the results directly in the user output array d_fk
+    // it needs to do blksize transforms
     d_plan->t2_plan->ntransf = blksize;
     if ((ier = cufinufft3d2_exec<T>(d_fkstart, d_plan->fw, d_plan->t2_plan))) return ier;
     // Step 3: deconvolve
+    // now we need to d_fk = d_fk*d_plan->deconv
     for (int i = 0; i < blksize; i++) {
       thrust::transform(thrust::cuda::par.on(stream), d_plan->deconv,
                         d_plan->deconv + d_plan->N, d_fkstart + i * d_plan->N,
                         d_fkstart + i * d_plan->N, thrust::multiplies<cuda_complex<T>>());
     }
   }
-
   return 0;
 }
 

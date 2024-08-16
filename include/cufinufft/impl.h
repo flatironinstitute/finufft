@@ -713,8 +713,8 @@ int cufinufft_setpts_impl(int M, T *d_kx, T *d_ky, T *d_kz, int N, T *d_s, T *d_
           thrust::cuda::par.on(stream), phase_iterator, phase_iterator + N,
           d_plan->deconv, d_plan->deconv,
           [c1, c2, c3, d1, d2, d3, imasign] __host__ __device__(
-              const thrust::tuple<T, T, T> tuple, cuda_complex<T> deconv)
-              -> cuda_complex<T> {
+              const thrust::tuple<T, T, T> tuple,
+              cuda_complex<T> deconv) -> cuda_complex<T> {
             // d2 and d3 are 0 if dim < 2 and dim < 3
             const auto phase = c1 * (thrust::get<0>(tuple) + d1) +
                                c2 * (thrust::get<1>(tuple) + d2) +
@@ -747,7 +747,7 @@ int cufinufft_setpts_impl(int M, T *d_kx, T *d_ky, T *d_kz, int N, T *d_s, T *d_
     int t2modes[]               = {d_plan->nf1, d_plan->nf2, d_plan->nf3};
     cufinufft_opts t2opts       = d_plan->opts;
     t2opts.modeord              = 0;
-    t2opts.debug                = std::max(0, t2opts.debug - 1);
+    t2opts.debug                = std::max(0, t2opts.debug);
     t2opts.gpu_spreadinterponly = 0;
     // Safe to ignore the return value here?
     if (d_plan->t2_plan) cufinufft_destroy_impl(d_plan->t2_plan);

@@ -33,7 +33,7 @@ set(FINUFFT_CUDA_ARCHITECTURES "native" CACHE STRING "CUDA architectures to buil
 # if FINUFFT_USE_CPU is OFF, the following options are ignored
 set(FINUFFT_ARCH_FLAGS "native" CACHE STRING "Compiler flags for specifying target architecture, defaults to -march=native")
 # sphinx tag (don't remove): @cmake_opts_end
-cmake_dependent_option(FINUFFT_ENABLE_INSTALL "Disable installation in the case of python builds" OFF "FINUFFT_BUILD_PYTHON" OFF)
+cmake_dependent_option(FINUFFT_ENABLE_INSTALL "Disable installation in the case of python builds" ON "NOT FINUFFT_BUILD_PYTHON" OFF)
 cmake_dependent_option(FINUFFT_STATIC_LINKING "Disable static libraries in the case of python builds" ON "NOT FINUFFT_BUILD_PYTHON" OFF)
 cmake_dependent_option(FINUFFT_SHARED_LINKING "Shared should be the opposite of static linking" ON "NOT FINUFFT_STATIC_LINKING" OFF)
 # cmake-format: on

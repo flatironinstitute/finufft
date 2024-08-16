@@ -18,9 +18,6 @@
 #include <thrust/device_vector.h>
 #include <thrust/host_vector.h>
 
-// for now, once finufft is demacroized we can test float
-using T = double;
-
 template<typename T, typename V> bool equal(V *d_vec, T *cpu, const std::size_t size) {
   // copy d_vec to cpu
   thrust::host_vector<T> h_vec(size);
@@ -75,10 +72,10 @@ auto almost_equal(V *d_vec,
   assert(cudaMemcpy(h_vec.data(), d_vec, size * sizeof(T), cudaMemcpyDeviceToHost) ==
          cudaSuccess);
   // print h_vec and cpu
-  //    for (std::size_t i = 0; i < size; ++i) {
-  //      std::cout << "gpu[" << i << "]: " << h_vec[i] << " cpu[" << i << "]: " << cpu[i]
-  //                << '\n';
-  //    }
+  for (std::size_t i = 0; i < size; ++i) {
+    std::cout << "gpu[" << i << "]: " << h_vec[i] << " cpu[" << i << "]: " << cpu[i]
+              << '\n';
+  }
   std::cout << "relerrtwonorm: " << infnorm(h_vec.data(), cpu, size) << std::endl;
   // compare the l2 norm of the difference between the two vectors
   if (relerrtwonorm(h_vec.data(), cpu, size) < tol) {
@@ -88,32 +85,39 @@ auto almost_equal(V *d_vec,
 }
 
 int main() {
+  // for now, once finufft is demacroized we can test float
+  using test_t = double;
+
   // defaults. tests should shadow them to override
   cufinufft_opts opts;
   cufinufft_default_opts(&opts);
-  opts.debug = 2;
+  opts.debug           = 2;
+  opts.upsampfac       = 1.25;
+  opts.gpu_kerevalmeth = 1;
   // opts.gpu_sort = 0;
   finufft_opts fin_opts;
   finufft_default_opts(&fin_opts);
   fin_opts.debug              = 2;
   fin_opts.spread_kerevalmeth = 1;
+  fin_opts.upsampfac          = 1.25;
   const int iflag             = 1;
   const int ntransf           = 1;
   const int dim               = 3;
   const double tol            = 1e-9;
-  const int N                 = 1023;
+  const int n_modes[]         = {10, 5, 3};
+  const int N                 = n_modes[0] * n_modes[1] * n_modes[2];
   const int M                 = 1000;
   const double bandwidth      = 50.0;
 
-  thrust::host_vector<T> x(M * ntransf), y(M * ntransf), z(M * ntransf), s(N * ntransf),
-      t(N * ntransf), u(N * ntransf);
-  thrust::host_vector<std::complex<T>> c(M * ntransf), fk(N * ntransf);
+  thrust::host_vector<test_t> x(M * ntransf), y(M * ntransf), z(M * ntransf),
+      s(N * ntransf), t(N * ntransf), u(N * ntransf);
+  thrust::host_vector<std::complex<test_t>> c(M * ntransf), fk(N * ntransf);
 
-  thrust::device_vector<T> d_x{}, d_y{}, d_z{}, d_s{}, d_t{}, d_u{};
-  thrust::device_vector<std::complex<T>> d_c(M * ntransf), d_fk(N * ntransf);
+  thrust::device_vector<test_t> d_x{}, d_y{}, d_z{}, d_s{}, d_t{}, d_u{};
+  thrust::device_vector<std::complex<test_t>> d_c(M * ntransf), d_fk(N * ntransf);
 
   std::default_random_engine eng(42);
-  std::uniform_real_distribution<T> dist11(-1, 1);
+  std::uniform_real_distribution<test_t> dist11(-1, 1);
   auto rand_util_11 = [&eng, &dist11]() {
     return dist11(eng);
   };
@@ -161,11 +165,12 @@ int main() {
   cudaDeviceSynchronize();
 
   const auto cpu_planer =
-      [iflag, tol, ntransf, dim, M, N, &x, &y, &z, &s, &t, &u, &fin_opts](
+      [iflag, tol, ntransf, dim, M, N, n_modes, &x, &y, &z, &s, &t, &u, &fin_opts](
           const auto type) {
         finufft_plan_s *plan{nullptr};
-        assert(finufft_makeplan(
-                   type, dim, nullptr, iflag, ntransf, tol, &plan, &fin_opts) == 0);
+        std::int64_t nl[] = {n_modes[0], n_modes[1], n_modes[2]};
+        assert(
+            finufft_makeplan(type, dim, nl, iflag, ntransf, tol, &plan, &fin_opts) == 0);
         assert(finufft_setpts(plan, M, x.data(), y.data(), z.data(), N, s.data(),
                               t.data(), u.data()) == 0);
         return plan;
@@ -204,6 +209,7 @@ int main() {
                      deconv_tol,
                      M,
                      N,
+                     n_modes,
                      &d_x,
                      &d_y,
                      &d_z,
@@ -219,8 +225,8 @@ int main() {
     using T             = typename std::remove_pointer<decltype(plan)>::type::real_t;
     const int type      = 3;
     const auto cpu_plan = cpu_planer(type);
-    assert(cufinufft_makeplan_impl<T>(type, dim, nullptr, iflag, ntransf, T(tol), &plan,
-                                      &opts) == 0);
+    assert(cufinufft_makeplan_impl<T>(type, dim, (int *)n_modes, iflag, ntransf, T(tol),
+                                      &plan, &opts) == 0);
     assert(cufinufft_setpts_impl<T>(M, d_x.data().get(), d_y.data().get(),
                                     d_z.data().get(), N, d_s.data().get(),
                                     d_t.data().get(), d_u.data().get(), plan) == 0);
@@ -245,6 +251,11 @@ int main() {
     assert(equal(plan->kz, cpu_plan->Z, M));
     assert(equal(plan->d_s, cpu_plan->Sp, N));
     assert(equal(plan->d_t, cpu_plan->Tp, N));
+    assert(plan->spopts.nspread == cpu_plan->spopts.nspread);
+    assert(plan->spopts.upsampfac == cpu_plan->spopts.upsampfac);
+    assert(plan->spopts.ES_beta == cpu_plan->spopts.ES_beta);
+    assert(plan->spopts.ES_halfwidth == cpu_plan->spopts.ES_halfwidth);
+    assert(plan->spopts.ES_c == cpu_plan->spopts.ES_c);
     assert(equal(plan->d_u, cpu_plan->Up, N));
     // NOTE:seems with infnorm we are getting at most 11 digits of precision
     std::cout << "prephase :\n";
@@ -258,10 +269,10 @@ int main() {
       c[i].imag(randm11());
     }
     d_c = c;
-    for (int i = 0; i < N; i++) {
-      fk[i] = {-100, -100};
-    }
-    d_fk = fk;
+    // for (int i = 0; i < N; i++) {
+    // fk[i] = {randm11(), randm11()};
+    // }
+    // d_fk = fk;
     cufinufft_execute_impl(
         (cuda_complex<T> *)d_c.data().get(), (cuda_complex<T> *)d_fk.data().get(), plan);
     finufft_execute(cpu_plan, (std::complex<T> *)c.data(), (std::complex<T> *)fk.data());
@@ -273,7 +284,7 @@ int main() {
   };
   // testing correctness of the plan creation
   //  cufinufft_plan_t<float> *single_plan{nullptr};
-  cufinufft_plan_t<T> *double_plan{nullptr};
+  cufinufft_plan_t<test_t> *double_plan{nullptr};
   //  test_type1(double_plan);
   //  test_type2(double_plan);
   test_type3(double_plan);
