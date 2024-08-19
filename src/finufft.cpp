@@ -760,10 +760,12 @@ int FINUFFT_MAKEPLAN(int type, int dim, BIGINT *n_modes, int iflag, int ntrans, 
       // set it just for our one plan and then revert to the user value.
       // Unfortunately fftw_planner_nthreads wasn't introduced until fftw 3.3.9, and
       // there isn't a convenient mechanism to probe the version
+      int prev_nthr_fft = FFTW_GET_NTHREADS();
       FFTW_PLAN_TH(nthr_fft);
       p->fftwPlan = FFTW_PLAN_MANY_DFT(dim, ns, p->batchSize, (FFTW_CPX *)p->fwBatch,
                                        NULL, 1, p->nf, (FFTW_CPX *)p->fwBatch, NULL, 1,
                                        p->nf, p->fftSign, p->opts.fftw);
+      FFTW_PLAN_TH(prev_nthr_fft);
     }
     if (p->opts.debug)
       printf("[%s] FFTW plan (mode %d, nthr=%d):\t%.3g s\n", __func__, p->opts.fftw,

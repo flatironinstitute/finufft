@@ -38,11 +38,13 @@
 #define FFTW_INIT            FFTWIFY(init_threads)
 #define FFTW_PLAN_TH         FFTWIFY(plan_with_nthreads)
 #define FFTW_CLEANUP_THREADS FFTWIFY(cleanup_threads)
+#define FFTW_GET_NTHREADS    FFTWIFY(planner_nthreads)
 #else
 // no OMP (no fftw{f}_threads or _omp), need dummy fftw threads calls...
 #define FFTW_INIT()
 #define FFTW_PLAN_TH(x)
 #define FFTW_CLEANUP_THREADS()
+#define FFTW_GET_NTHREADS()
 #endif
 
 #endif // FFTW_DEFS_H
