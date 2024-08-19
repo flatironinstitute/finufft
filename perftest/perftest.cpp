@@ -27,7 +27,6 @@ struct test_options_t {
   int M;
   int ntransf;
   int kerevalmethod;
-  int method;
   int sort;
   int threads;
   double tol;
@@ -52,7 +51,6 @@ struct test_options_t {
                 {"M", required_argument, 0, 0},
                 {"ntransf", required_argument, 0, 0},
                 {"tol", required_argument, 0, 0},
-                {"method", required_argument, 0, 0},
                 {"kerevalmethod", required_argument, 0, 0},
                 {"threads", required_argument, 0, 0},
                 {"sort", required_argument, 0, 0},
@@ -84,7 +82,6 @@ struct test_options_t {
     N[2]          = std::stof(get_or(options_map, "N3", "1"));
     M             = std::stof(get_or(options_map, "M", "2E6"));
     ntransf       = std::stoi(get_or(options_map, "ntransf", "1"));
-    method        = std::stoi(get_or(options_map, "method", "1"));
     kerevalmethod = std::stoi(get_or(options_map, "kerevalmethod", "1"));
     sort          = std::stoi(get_or(options_map, "sort", "1"));
     threads       = std::stoi(get_or(options_map, "threads", "0"));
@@ -103,7 +100,6 @@ struct test_options_t {
                 << "# N3 = " << opts.N[2] << "\n"
                 << "# M = " << opts.M << "\n"
                 << "# ntransf = " << opts.ntransf << "\n"
-                << "# method = " << opts.method << "\n"
                 << "# kerevalmethod = " << opts.kerevalmethod << "\n"
                 << "# sort = " << opts.sort << "\n"
                 << "# threads = " << opts.threads << "\n"

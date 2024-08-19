@@ -27,29 +27,48 @@ def build_args(args):
         args_list.append(key + '=' + value)
     return args_list
 
-versions = ['2.2.0', 'master']
+versions = ['v2.2.0', 'v2.3.0-rc1']
+fft = ['fftw', 'ducc']
 
 # clone the repository
 run_command('git', ['clone', 'https://github.com/DiamonDinoia/finufft.git'])
-run_command('git', ['-C','finufft', 'fetch'])
-run_command('git', ['-C','finufft', 'checkout', 'v2.2.0'])
-# checkout folder perftest from master branch
-run_command('git', ['-C','finufft', 'checkout', 'perftests', '--', 'perftest'])
-run_command('cmake', ['-S', 'finufft', '-B', 'build', '-DFINUFFT_BUILD_TESTS=ON'])
-run_command('cmake', ['--build', 'build', '-j', str(os.cpu_count()), '--target', 'perftest'])
-args = {'--prec': 'f',
-        '--n_runs': '5',
-        '--method': '0',
-        '--sort': '1',
-        '--N1': '16777216',
-        # '--N1': '256',
-        # '--N2': '256',
-        # '--N3': '256',
-        '--kerevalmethod': '1',
-        '--M': '1E5',
-        '--tol': '1E-6'}
 
-print(run_command('build/perftest/perftest', build_args(args)))
+all_data = pd.DataFrame()
+
+for version in versions:
+    run_command('git', ['-C','finufft', 'checkout', version])
+    # checkout folder perftest from master branch
+    run_command('git', ['-C','finufft', 'checkout', 'origin/perftests', '--', 'perftest'])
+    run_command('cmake', ['-S', 'finufft', '-B', 'build', '-DFINUFFT_BUILD_TESTS=ON'])
+    run_command('cmake', ['--build', 'build', '-j', str(os.cpu_count()), '--target', 'perftest'])
+    args = {'--prec': 'f',
+            '--n_runs': '1',
+            '--sort': '1',
+            '--N1': '320',
+            '--N2': '320',
+            '--N3': '1',
+            '--ntransf': '1',
+            '--thread': '1',
+            '--M': '1E6',
+            '--tol': '1E-5'}
+
+    out, _ = run_command('build/perftest/perftest', build_args(args))
+
+    # parse the output, escape all the lines that start with #
+    out = io.StringIO(out)
+    lines = out.readlines()
+    conf = [line for line in lines if line.startswith('#')]
+    print(*conf, sep='')
+    stdout = '\n'.join([line for line in lines if not line.startswith('#')])
+    # convert stdout to a dataframe from csv string
+    dt = pd.read_csv(io.StringIO(stdout), sep=',')
+    # add columns with version and configuration
+    dt['version'] = version[1:]
+    for key, value in args.items():
+        dt[key[2:]] = value
+    print(dt)
+    all_data = pd.concat((all_data, dt), ignore_index=True)
+    print(all_data)
 
 if __name__ == '__main__':
     pass
