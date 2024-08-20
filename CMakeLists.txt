@@ -117,7 +117,13 @@ endif()
 # double precision The single precision compilation is done with -DSINGLE
 set(FINUFFT_PRECISION_DEPENDENT_SOURCES
     src/finufft.cpp src/fft.cpp src/simpleinterfaces.cpp src/spreadinterp.cpp
-    src/utils.cpp fortran/finufftfort.cpp)
+    src/utils.cpp)
+
+# If we're building for Fortran, make sure we also include the translation
+# layer.
+if(FINUFFT_BUILD_FORTRAN)
+  list(APPEND FINUFFT_PRECISION_DEPENDENT_SOURCES fortran/finufftfort.cpp)
+endif()
 
 # set linker flags for sanitizer
 set(FINUFFT_SANITIZER_FLAGS)
