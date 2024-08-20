@@ -121,7 +121,7 @@ int run_test(int method, int type, int N1, int N2, int M, T tol, T checktol, int
   printf("[time  ] cufinufft plan:\t\t %.3g s\n", milliseconds / 1000);
 
   cudaEventRecord(start);
-  ier = cufinufft_setpts_impl<T>(M, d_x.data().get(), d_y.data().get(), nullptr, 0,
+  ier = cufinufft_setpts_impl<T>(M, d_x.data().get(), d_y.data().get(), nullptr, N1 * N2,
                                  d_s.data().get(), d_t.data().get(), nullptr, dplan);
   if (ier != 0) {
     printf("err: cufinufft_setpts\n");

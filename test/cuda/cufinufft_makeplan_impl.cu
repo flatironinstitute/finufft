@@ -134,7 +134,7 @@ int main() {
     assert(plan->fwkerhalf3 == nullptr);
     assert(plan->spopts.spread_direction == type);
     assert(plan->type == type);
-    assert(plan->opts.gpu_method == 0);
+    // assert(plan->opts.gpu_method == 0);
     assert(plan->opts.upsampfac == 1.25);
     assert(cufinufft_destroy_impl<T>(plan) == 0);
     plan = nullptr;

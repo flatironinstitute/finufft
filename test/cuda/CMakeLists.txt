@@ -94,9 +94,7 @@ endfunction()
 
 add_test(NAME cufinufft_public_api COMMAND public_api_test)
 add_test(NAME cufinufft_makeplan COMMAND test_makeplan)
-if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-  add_test(NAME cufinufft_makeplan_impl COMMAND cufinufft_makeplan_impl)
-endif()
+add_test(NAME cufinufft_makeplan_impl COMMAND cufinufft_makeplan_impl)
 add_test(NAME cufinufft_setpts COMMAND cufinufft_setpts)
 add_test(NAME cufinufft_math_test COMMAND cufinufft_math_test)
 

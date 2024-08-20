@@ -592,7 +592,7 @@ int cufinufft_setpts_impl(int M, T *d_kx, T *d_ky, T *d_kz, int N, T *d_s, T *d_
                                                      // kx if ky is null
                                                      (d_plan->dim > 1) ? d_ky : d_kx,
                                                      // same idea as above
-                                                     (d_plan->dim > 1) ? d_kz : d_kx));
+                                                     (d_plan->dim > 2) ? d_kz : d_kx));
     const auto D1      = d_plan->type3_params.D1;
     const auto D2      = d_plan->type3_params.D2; // this should be 0 if dim < 2
     const auto D3      = d_plan->type3_params.D3; // this should be 0 if dim < 3
@@ -845,10 +845,11 @@ int cufinufft_destroy_impl(cufinufft_plan_t<T> *d_plan)
         Also see ../docs/cppdoc.md for main user-facing documentation.
 */
 {
-  cufinufft::utils::WithCudaDevice device_swapper(d_plan->opts.gpu_device_id);
 
   // Can't destroy a null pointer.
   if (!d_plan) return FINUFFT_ERR_PLAN_NOTVALID;
+
+  cufinufft::utils::WithCudaDevice device_swapper(d_plan->opts.gpu_device_id);
 
   using namespace cufinufft::memtransfer;
   freegpumemory<T>(d_plan);
