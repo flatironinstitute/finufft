@@ -19,10 +19,86 @@ The title of the image contains the parameters used.
 
 The other parameters are the same as finufft_opts.
 
-2D MRI transform
+1D Transforms
 ---------------------------------------------
-.. image:: pics/2d-1.25.png
-   :alt: Performance of Finuffft in a 2D MRI use case with upsampfact 1.25
 
-.. image:: pics/2d-2.00.png
-   :alt: Performance of Finuffft in a 2D MRI use case with upsampfact 2.00
+Type 1
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. image:: pics/10000x1x1-type-1-upsamp2.00-precf-thread1.png
+.. image:: pics/10000x1x1-type-1-upsamp1.25-precf-thread1.png
+.. image:: pics/10000x1x1-type-1-upsamp2.00-precd-thread1.png
+.. image:: pics/10000x1x1-type-1-upsamp1.25-precd-thread1.png
+
+Type 2
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. image:: pics/10000x1x1-type-2-upsamp1.25-precd-thread1.png
+.. image:: pics/10000x1x1-type-2-upsamp1.25-precf-thread1.png
+.. image:: pics/10000x1x1-type-2-upsamp2.00-precd-thread1.png
+.. image:: pics/10000x1x1-type-2-upsamp2.00-precf-thread1.png
+
+Type 3
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. image:: pics/10000x1x1-type-3-upsamp1.25-precd-thread1.png
+.. image:: pics/10000x1x1-type-3-upsamp1.25-precf-thread1.png
+.. image:: pics/10000x1x1-type-3-upsamp2.00-precd-thread1.png
+.. image:: pics/10000x1x1-type-3-upsamp2.00-precf-thread1.png
+
+2D transforms
+---------------------------------------------
+Type 1
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. image:: pics/320x320x1-type-1-upsamp1.25-precf-thread1.png
+.. image:: pics/320x320x1-type-1-upsamp1.25-precd-thread1.png
+.. image:: pics/320x320x1-type-1-upsamp2.00-precf-thread1.png
+.. image:: pics/320x320x1-type-1-upsamp2.00-precd-thread1.png
+
+Type 2
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. image:: pics/320x320x1-type-2-upsamp1.25-precf-thread1.png
+.. image:: pics/320x320x1-type-2-upsamp1.25-precd-thread1.png
+.. image:: pics/320x320x1-type-2-upsamp2.00-precf-thread1.png
+.. image:: pics/320x320x1-type-2-upsamp2.00-precd-thread1.png
+
+Type 3
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. image:: pics/320x320x1-type-3-upsamp1.25-precf-thread1.png
+.. image:: pics/320x320x1-type-3-upsamp1.25-precd-thread1.png
+.. image:: pics/320x320x1-type-3-upsamp2.00-precf-thread1.png
+.. image:: pics/320x320x1-type-3-upsamp2.00-precd-thread1.png
+
+2D transforms Multi-Threaded
+---------------------------------------------
+
+Type 1
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. image:: pics/320x320x1-type-1-upsamp1.25-precf-thread32.png
+.. image:: pics/320x320x1-type-1-upsamp2.00-precf-thread32.png
+
+Type 2
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. image:: pics/320x320x1-type-2-upsamp1.25-precf-thread32.png
+.. image:: pics/320x320x1-type-2-upsamp2.00-precf-thread32.png
+
+Type 3
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. image:: pics/320x320x1-type-3-upsamp1.25-precf-thread32.png
+.. image:: pics/320x320x1-type-3-upsamp2.00-precf-thread32.png
+
+3D transforms Multi-Threaded (float32)
+---------------------------------------------
+
+Type 1
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. image:: pics/192x192x128-type-1-upsamp1.25-precf-thread32.png
+.. image:: pics/192x192x128-type-1-upsamp2.00-precf-thread32.png
+
+Type 2
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. image:: pics/192x192x128-type-2-upsamp1.25-precf-thread32.png
+.. image:: pics/192x192x128-type-2-upsamp2.00-precf-thread32.png
+
+Type 3
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. image:: pics/192x192x128-type-3-upsamp1.25-precf-thread32.png
+.. image:: pics/192x192x128-type-3-upsamp2.00-precf-thread32.png
