@@ -7,6 +7,7 @@ import numpy as np
 import io
 from numbers import Number
 
+
 # function that runs a command line command and returns the output
 # it also takes a list of arguments to pass to the command
 def run_command(command, args):
@@ -29,26 +30,24 @@ def build_args(args):
     return args_list
 
 
-
-
 # clone the repository
 run_command('git', ['clone', 'https://github.com/DiamonDinoia/finufft.git'])
 
 all_data = pd.DataFrame()
 
 args = {
-        '--type': '1',
-        '--prec': 'f',
-        '--n_runs': '5',
-        '--sort': '1',
-        '--N1': '320',
-        '--N2': '320',
-        '--N3': '1',
-        '--ntransf': '1',
-        '--thread': '1',
-        '--M': '1E6',
-        '--tol': '1E-5',
-        '--upsampfac': '1.25'
+    '--type': '1',
+    '--prec': 'f',
+    '--n_runs': '5',
+    '--sort': '1',
+    '--N1': '320',
+    '--N2': '320',
+    '--N3': '1',
+    '--ntransf': '1',
+    '--thread': '1',
+    '--M': '1E6',
+    '--tol': '1E-5',
+    '--upsampfac': '1.25'
 }
 
 
@@ -66,21 +65,20 @@ class Params:
 
 thread_num = int(os.cpu_count())
 
-
 versions = ['v2.2.0', 'v2.3.0-rc1']
 fft_lib = ['fftw', 'ducc']
 upsamp = ['1.25', '2.00']
 transform = ['1', '2', '3']
 
-
 ParamList = [
-    Params('f', 1e4,   1, 1, 1, 1, 1e7, 1e-4),
-    Params('d', 1e4,   1, 1, 1, 1, 1e7, 1e-9),
+    Params('f', 1e4, 1, 1, 1, 1, 1e7, 1e-4),
+    Params('d', 1e4, 1, 1, 1, 1, 1e7, 1e-9),
     Params('f', 320, 320, 1, 1, 1, 1E7, 1E-5),
     Params('d', 320, 320, 1, 1, 1, 1E7, 1E-9),
     Params('f', 320, 320, 1, thread_num, thread_num, 1E7, 1E-5),
     Params('f', 192, 192, 128, 1, thread_num, 1E7, 1E-5),
 ]
+
 
 def plot_stacked_bar_chart(pivot_data, speedup_data, args, figname):
     categories = list(pivot_data.keys())
@@ -88,7 +86,6 @@ def plot_stacked_bar_chart(pivot_data, speedup_data, args, figname):
 
     # Create a figure
     plt.figure(figsize=(7.5, 7.5))
-
 
     # Initialize the bottom array for stacking
     bottom = np.zeros(len(versions))
@@ -137,9 +134,12 @@ for version in versions:
         # checkout folder perftest from master branch
         run_command('git', ['-C', 'finufft', 'checkout', 'origin/perftests', '--', 'perftest'])
         if fft == 'ducc':
-            run_command('cmake', ['-S', 'finufft', '-B', 'build', '-DFINUFFT_BUILD_TESTS=ON', '-DFINUFFT_USE_DUCC0=ON'])
+            run_command('cmake',
+                        ['-S', 'finufft', '-B', 'build', '-DCMAKE_BUILD_TYPE=Release', '-DFINUFFT_BUILD_TESTS=ON',
+                         '-DFINUFFT_USE_DUCC0=ON'])
         else:
-            run_command('cmake', ['-S', 'finufft', '-B', 'build', '-DFINUFFT_BUILD_TESTS=ON'])
+            run_command('cmake',
+                        ['-S', 'finufft', '-B', 'build', '-DCMAKE_BUILD_TYPE=Release', '-DFINUFFT_BUILD_TESTS=ON'])
         run_command('cmake', ['--build', 'build', '-j', str(os.cpu_count()), '--target', 'perftest'])
         for param in ParamList:
             for key, value in param.__dict__.items():
