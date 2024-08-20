@@ -1,11 +1,13 @@
+from dataclasses import dataclass
 import matplotlib.pyplot as plt
 import os
 import subprocess
 import pandas as pd
 import numpy as np
 import io
-
-cwd = os.getcwd()
+from numbers import Number
+from pyasn1_modules.rfc2985 import pkcs_9_at_encryptedPrivateKeyInfo
+from pycparser.c_ast import ParamList
 
 
 # function that runs a command line command and returns the output
@@ -30,17 +32,17 @@ def build_args(args):
     return args_list
 
 
-versions = ['v2.2.0', 'v2.3.0-rc1']
-fft_lib = ['fftw', 'ducc']
-upsamp = ['1.25', '2.00']
+
 
 # clone the repository
 run_command('git', ['clone', 'https://github.com/DiamonDinoia/finufft.git'])
 
 all_data = pd.DataFrame()
 
-args = {'--prec': 'f',
-        '--n_runs': '1',
+args = {
+        '--type': '1',
+        '--prec': 'f',
+        '--n_runs': '5',
         '--sort': '1',
         '--N1': '320',
         '--N2': '320',
@@ -50,8 +52,38 @@ args = {'--prec': 'f',
         '--M': '1E6',
         '--tol': '1E-5',
         '--upsampfac': '1.25'
-        }
+}
 
+
+@dataclass
+class Params:
+    prec: str
+    N1: Number
+    N2: Number
+    N3: Number
+    ntransf: int
+    thread: int
+    M: Number
+    tol: float
+
+
+thread_num = int(os.cpu_count())
+
+
+versions = ['v2.2.0', 'v2.3.0-rc1']
+fft_lib = ['fftw', 'ducc']
+upsamp = ['1.25', '2.00']
+transform = ['1', '2', '3']
+
+
+ParamList = [
+    Params('f', 1e4,   1, 1, 1, 1, 1e7, 1e-4),
+    Params('d', 1e4,   1, 1, 1, 1, 1e7, 1e-9),
+    Params('f', 320, 320, 1, 1, 1, 1E7, 1E-5),
+    Params('d', 320, 320, 1, 1, 1, 1E7, 1E-9),
+    Params('f', 320, 320, 1, thread_num, thread_num, 1E7, 1E-5),
+    Params('f', 192, 192, 128, 1, thread_num, 1E7, 1E-5),
+]
 
 def plot_stacked_bar_chart(pivot_data, speedup_data, args, figname):
     categories = list(pivot_data.keys())
@@ -59,6 +91,7 @@ def plot_stacked_bar_chart(pivot_data, speedup_data, args, figname):
 
     # Create a figure
     plt.figure(figsize=(7.5, 7.5))
+
 
     # Initialize the bottom array for stacking
     bottom = np.zeros(len(versions))
@@ -80,6 +113,7 @@ def plot_stacked_bar_chart(pivot_data, speedup_data, args, figname):
     plt.ylabel('time (ms)')
     plt.xlabel('version')
     plt.xticks(rotation=0)
+
     # for txt create a string with all the arguments insert a newline after half of the arguments
     txt = ''
     for i, (key, value) in enumerate(args.items()):
@@ -90,7 +124,7 @@ def plot_stacked_bar_chart(pivot_data, speedup_data, args, figname):
             txt += ' '
 
     plt.title(txt)
-    plt.legend()
+    plt.legend(loc='lower left')
 
     # Save the figure
     plt.savefig(figname + '.png')
@@ -110,37 +144,65 @@ for version in versions:
         else:
             run_command('cmake', ['-S', 'finufft', '-B', 'build', '-DFINUFFT_BUILD_TESTS=ON'])
         run_command('cmake', ['--build', 'build', '-j', str(os.cpu_count()), '--target', 'perftest'])
-
-        for upsampfac in upsamp:
-            args['--upsampfac'] = upsampfac
-            out, _ = run_command('build/perftest/perftest', build_args(args))
-            # parse the output, escape all the lines that start with #
-            out = io.StringIO(out)
-            lines = out.readlines()
-            conf = [line for line in lines if line.startswith('#')]
-            print(*conf, sep='')
-            stdout = '\n'.join([line for line in lines if not line.startswith('#')])
-            # convert stdout to a dataframe from csv string
-            dt = pd.read_csv(io.StringIO(stdout), sep=',')
-            # add columns with version and configuration
-            dt['version'] = version[1:] + '-' + fft
-            dt['upsampfac'] = upsampfac
-            # for key, value in args.items():
-            #     dt[key[2:]] = value
-            print(dt)
-            all_data = pd.concat((all_data, dt), ignore_index=True)
-
+        for param in ParamList:
+            for key, value in param.__dict__.items():
+                args['--' + key] = str(value)
+            for type in transform:
+                args['--' + 'type'] = type
+                for upsampfac in upsamp:
+                    args['--upsampfac'] = upsampfac
+                    # print(args)
+                    out, _ = run_command('build/perftest/perftest', build_args(args))
+                    # parse the output, escape all the lines that start with #
+                    out = io.StringIO(out)
+                    lines = out.readlines()
+                    conf = [line for line in lines if line.startswith('#')]
+                    print(*conf, sep='')
+                    stdout = '\n'.join([line for line in lines if not line.startswith('#')])
+                    # convert stdout to a dataframe from csv string
+                    dt = pd.read_csv(io.StringIO(stdout), sep=',')
+                    # add columns with version and configuration
+                    dt['version'] = version[1:] + '-' + fft
+                    for key, value in args.items():
+                        dt[key[2:]] = value
+                    all_data = pd.concat((all_data, dt), ignore_index=True)
+                    print(dt)
 
 print(all_data)
+all_data.to_csv('all_data.csv')
+for param in ParamList:
+    for key, value in param.__dict__.items():
+        args['--' + key] = str(value)
+    for upsampfac in upsamp:
+        args['--upsampfac'] = upsampfac
+        for type in transform:
+            args['--' + 'type'] = type
+            this_data = all_data
+            # select data for this specific upsampling factor, type and parameters
+            for key, value in args.items():
+                this_data = this_data[this_data[key[2:]] == value]
 
-for upsampfac in upsamp:
-    this_data = all_data[all_data['upsampfac'] == upsampfac]
-    baseline = this_data[this_data['version'] == '2.2.0-fftw']
-    baseline_amortized = baseline[baseline['event'] == 'amortized']['mean(ms)'].values[0]
-    this_data['speedup'] = baseline_amortized / this_data[this_data['event'] == 'amortized']['mean(ms)']
-    pivot = this_data.pivot(index='version', columns='event', values='mean(ms)')
-    pivot = pivot.drop(columns='amortized')
-    plot_stacked_bar_chart(pivot, this_data, args, '2d-' + str(upsampfac))
+            print(this_data)
+            name = f'{int(param.N1)}x{int(param.N2)}x{int(param.N3)}-type-{type}-upsamp{upsampfac}-prec{param.prec}-thread{int(param.thread)}'
+            # select the baseline data
+            baseline = this_data[this_data['version'] == '2.2.0-fftw']
+            # calculate the amortized time for the baseline
+            baseline_amortized = baseline[baseline['event'] == 'amortized']['mean(ms)'].values[0]
+            # calculate the speedup for all the other versions
+            this_data['speedup'] = baseline_amortized / this_data[this_data['event'] == 'amortized']['mean(ms)']
+            # pivot the data
+            pivot = this_data.pivot(index='version', columns='event', values='mean(ms)')
+            pivot = pivot.drop(columns='amortized')
+            # plot the stacked bar chart
+            plot_stacked_bar_chart(pivot, this_data, args, name)
+
+# this_data = all_data[all_data['upsampfac'] == upsampfac]
+# baseline = this_data[this_data['version'] == '2.2.0-fftw']
+# baseline_amortized = baseline[baseline['event'] == 'amortized']['mean(ms)'].values[0]
+# this_data['speedup'] = baseline_amortized / this_data[this_data['event'] == 'amortized']['mean(ms)']
+# pivot = this_data.pivot(index='version', columns='event', values='mean(ms)')
+# pivot = pivot.drop(columns='amortized')
+# plot_stacked_bar_chart(pivot, this_data, args, '2d-' + str(upsampfac))
 
 if __name__ == '__main__':
     pass
