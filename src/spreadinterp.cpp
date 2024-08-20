@@ -2079,12 +2079,20 @@ template<uint8_t ns, uint8_t kerevalmeth, class T, class simd_type, typename... 
 auto ker_eval(FLT *FINUFFT_RESTRICT ker, const finufft_spread_opts &opts,
               const V... elems) noexcept {
   /* Utility function that allows to move the kernel evaluation outside the spreader for
-     clarity Inputs are: ns = kernel width kerevalmeth = kernel evaluation method T =
-     (single or double precision) type of the kernel simd_type = xsimd::batch for Horner
-     vectorization (default is the optimal simd size) finufft_spread_opts as Horner needs
-     the oversampling factor elems = kernel arguments examples usage is ker_eval<ns,
-     kerevalmeth>(opts, x, y, z) // for 3D or ker_eval<ns, kerevalmeth>(opts, x, y) // for
-     2D or ker_eval<ns, kerevalmeth>(opts, x) // for 1D
+     clarity
+     Inputs are:
+     ns = kernel width
+     kerevalmeth = kernel evaluation method
+     T = (single or double precision) type of the kernel
+     simd_type = xsimd::batch for Horner
+     vectorization (default is the optimal simd size)
+     finufft_spread_opts as Horner needs
+     the oversampling factor
+     elems = kernel arguments
+     Examples usage is
+     ker_eval<ns,kerevalmeth>(opts, x, y, z) // for 3D or
+     ker_eval<ns, kerevalmeth>(opts, x, y) // for 2D or
+     ker_eval<ns, kerevalmeth>(opts, x) // for 1D
    */
   const std::array inputs{elems...};
   // compile time loop, no performance overhead
