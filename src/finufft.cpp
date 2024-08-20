@@ -197,13 +197,13 @@ void onedim_fseries_kernel(BIGINT nf, FLT *fwkerhalf, finufft_spread_opts opts)
   fwkerhalf - real Fourier series coeffs from indices 0 to nf/2 inclusive,
         divided by h = 2pi/n.
         (should be allocated for at least nf/2+1 FLTs)
-  The kernel is actually centered at nf/2, which has to be understood.
+  The kernel is actually centered at nf/2, related to the centering of the grid
 
   Compare onedim_dct_kernel which has same interface, but computes DFT of
   sampled kernel, not quite the same object.
 
   Barnett 2/7/17. openmp (since slow vs fftw in 1D large-N case) 3/3/18.
-  Fixed num_threads 7/20/20
+  Fixed num_threads 7/20/20. Reduced rounding error in a[n] calc 8/20/24.
  */
 {
   FLT J2 = opts.nspread / 2.0; // J/2, half-width of ker z-support
@@ -216,8 +216,7 @@ void onedim_fseries_kernel(BIGINT nf, FLT *fwkerhalf, finufft_spread_opts opts)
   for (int n = 0; n < q; ++n) {      // set up nodes z_n and vals f_n
     z[n] *= J2;                      // rescale nodes
     f[n] = J2 * (FLT)w[n] * evaluate_kernel((FLT)z[n], opts); // vals & quadr wei
-    a[n] = -exp(-2 * PI * IMA * z[n] / (FLT)nf);              // phase winding rates
-    // a[n] = exp(2 * PI * IMA * (FLT)(nf / 2 - z[n]) / (FLT)nf); // phase winding rates
+    a[n] = -exp(-2 * PI * IMA * (FLT)z[n] / (FLT)nf);         // phase winding rates
   }
   BIGINT nout = nf / 2 + 1;                       // how many values we're writing to
   int nt      = min(nout, (BIGINT)opts.nthreads); // how many chunks
