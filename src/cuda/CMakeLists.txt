@@ -43,7 +43,7 @@ target_include_directories(cufinufft_common_objects
 set_target_properties(
   cufinufft_common_objects
   PROPERTIES POSITION_INDEPENDENT_CODE ${FINUFFT_SHARED_LINKING}
-             CUDA_ARCHITECTURES ${FINUFFT_CUDA_ARCHITECTURES}
+             CUDA_ARCHITECTURES "${FINUFFT_CUDA_ARCHITECTURES}"
              CUDA_SEPARABLE_COMPILATION ON
              CUDA_STANDARD 17
              CUDA_STANDARD_REQUIRED ON)
@@ -60,7 +60,7 @@ target_include_directories(cufinufft_objects PUBLIC ${CUFINUFFT_INCLUDE_DIRS})
 set_target_properties(
   cufinufft_objects
   PROPERTIES POSITION_INDEPENDENT_CODE ${FINUFFT_SHARED_LINKING}
-             CUDA_ARCHITECTURES ${FINUFFT_CUDA_ARCHITECTURES}
+             CUDA_ARCHITECTURES "${FINUFFT_CUDA_ARCHITECTURES}"
              CUDA_SEPARABLE_COMPILATION ON
              CUDA_STANDARD 17
              CUDA_STANDARD_REQUIRED ON)
