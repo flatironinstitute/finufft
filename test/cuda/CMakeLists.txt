@@ -41,6 +41,14 @@ function(add_tests PREC REQ_TOL CHECK_TOL UPSAMP)
            COMMAND cufinufft2d_test 2 1 1e2 2e2 2e4 ${REQ_TOL} ${CHECK_TOL}
                    ${PREC} ${UPSAMP})
 
+  add_test(NAME cufinufft2d2_test_SM_${PREC}_${UPSAMP}
+           COMMAND cufinufft2d_test 2 2 1e2 2e2 2e4 ${REQ_TOL} ${CHECK_TOL}
+                   ${PREC} ${UPSAMP})
+
+  add_test(NAME cufinufft2d3_test_SM_${PREC}_${UPSAMP}
+           COMMAND cufinufft2d_test 2 3 1e2 2e2 2e4 ${REQ_TOL} ${CHECK_TOL}
+                   ${PREC} ${UPSAMP})
+
   add_test(NAME cufinufft2d1many_test_GM_${PREC}_${UPSAMP}
            COMMAND cufinufft2dmany_test 1 1 1e2 2e2 5 0 2e4 ${REQ_TOL}
                    ${CHECK_TOL} ${PREC} ${UPSAMP})
@@ -77,6 +85,10 @@ function(add_tests PREC REQ_TOL CHECK_TOL UPSAMP)
 
   add_test(NAME cufinufft3d2_test_GM_${PREC}_${UPSAMP}
            COMMAND cufinufft3d_test 1 2 2 5 10 20 ${REQ_TOL} ${CHECK_TOL}
+                   ${PREC} ${UPSAMP})
+
+  add_test(NAME cufinufft3d3_test_GM_${PREC}_${UPSAMP}
+           COMMAND cufinufft3d_test 1 3 2 5 10 20 ${REQ_TOL} ${CHECK_TOL}
                    ${PREC} ${UPSAMP})
 endfunction()
 

@@ -24,7 +24,9 @@ int cufinufft1d1_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
 template<typename T>
 int cufinufft1d2_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
                       cufinufft_plan_t<T> *d_plan);
-
+template<typename T>
+int cufinufft1d3_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
+                      cufinufft_plan_t<T> *d_plan);
 // 2d
 template<typename T>
 int cufinufft2d1_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
@@ -33,6 +35,9 @@ template<typename T>
 int cufinufft2d2_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
                       cufinufft_plan_t<T> *d_plan);
 
+template<typename T>
+int cufinufft2d3_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
+                      cufinufft_plan_t<T> *d_plan);
 // 3d
 template<typename T>
 int cufinufft3d1_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
@@ -811,18 +816,12 @@ int cufinufft_execute_impl(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
   case 1: {
     if (type == 1) ier = cufinufft1d1_exec<T>(d_c, d_fk, d_plan);
     if (type == 2) ier = cufinufft1d2_exec<T>(d_c, d_fk, d_plan);
-    if (type == 3) {
-      std::cerr << "Not Implemented yet" << std::endl;
-      ier = FINUFFT_ERR_TYPE_NOTVALID;
-    }
+    if (type == 3) ier = cufinufft1d3_exec<T>(d_c, d_fk, d_plan);
   } break;
   case 2: {
     if (type == 1) ier = cufinufft2d1_exec<T>(d_c, d_fk, d_plan);
     if (type == 2) ier = cufinufft2d2_exec<T>(d_c, d_fk, d_plan);
-    if (type == 3) {
-      std::cerr << "Not Implemented yet" << std::endl;
-      ier = FINUFFT_ERR_TYPE_NOTVALID;
-    }
+    if (type == 3) ier = cufinufft2d3_exec<T>(d_c, d_fk, d_plan);
   } break;
   case 3: {
     if (type == 1) ier = cufinufft3d1_exec<T>(d_c, d_fk, d_plan);

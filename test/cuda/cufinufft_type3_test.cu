@@ -72,10 +72,10 @@ auto almost_equal(V *d_vec,
   assert(cudaMemcpy(h_vec.data(), d_vec, size * sizeof(T), cudaMemcpyDeviceToHost) ==
          cudaSuccess);
   // print h_vec and cpu
-  for (std::size_t i = 0; i < size; ++i) {
-    std::cout << "gpu[" << i << "]: " << h_vec[i] << " cpu[" << i << "]: " << cpu[i]
-              << '\n';
-  }
+  // for (std::size_t i = 0; i < size; ++i) {
+  // std::cout << "gpu[" << i << "]: " << h_vec[i] << " cpu[" << i << "]: " << cpu[i]
+  // << '\n';
+  // }
   std::cout << "relerrtwonorm: " << infnorm(h_vec.data(), cpu, size) << std::endl;
   // compare the l2 norm of the difference between the two vectors
   if (relerrtwonorm(h_vec.data(), cpu, size) < tol) {
@@ -102,7 +102,7 @@ int main() {
   fin_opts.upsampfac          = 1.25;
   const int iflag             = 1;
   const int ntransf           = 1;
-  const int dim               = 3;
+  const int dim               = 1;
   const double tol            = 1e-9;
   const int n_modes[]         = {10, 5, 3};
   const int N                 = n_modes[0] * n_modes[1] * n_modes[2];
@@ -232,31 +232,31 @@ int main() {
                                     d_t.data().get(), d_u.data().get(), plan) == 0);
     cudaDeviceSynchronize();
     assert(plan->type3_params.X1 == cpu_plan->t3P.X1);
-    assert(plan->type3_params.X2 == cpu_plan->t3P.X2);
-    assert(plan->type3_params.X3 == cpu_plan->t3P.X3);
+    // assert(plan->type3_params.X2 == cpu_plan->t3P.X2);
+    // assert(plan->type3_params.X3 == cpu_plan->t3P.X3);
     assert(plan->type3_params.C1 == cpu_plan->t3P.C1);
-    assert(plan->type3_params.C2 == cpu_plan->t3P.C2);
-    assert(plan->type3_params.C3 == cpu_plan->t3P.C3);
+    // assert(plan->type3_params.C2 == cpu_plan->t3P.C2);
+    // assert(plan->type3_params.C3 == cpu_plan->t3P.C3);
     assert(plan->type3_params.D1 == cpu_plan->t3P.D1);
-    assert(plan->type3_params.D2 == cpu_plan->t3P.D2);
-    assert(plan->type3_params.D3 == cpu_plan->t3P.D3);
+    // assert(plan->type3_params.D2 == cpu_plan->t3P.D2);
+    // assert(plan->type3_params.D3 == cpu_plan->t3P.D3);
     assert(plan->type3_params.gam1 == cpu_plan->t3P.gam1);
-    assert(plan->type3_params.gam2 == cpu_plan->t3P.gam2);
-    assert(plan->type3_params.gam3 == cpu_plan->t3P.gam3);
+    // assert(plan->type3_params.gam2 == cpu_plan->t3P.gam2);
+    // assert(plan->type3_params.gam3 == cpu_plan->t3P.gam3);
     assert(plan->nf1 == cpu_plan->nf1);
-    assert(plan->nf2 == cpu_plan->nf2);
-    assert(plan->nf3 == cpu_plan->nf3);
+    // assert(plan->nf2 == cpu_plan->nf2);
+    // assert(plan->nf3 == cpu_plan->nf3);
     assert(equal(plan->kx, cpu_plan->X, M));
-    assert(equal(plan->ky, cpu_plan->Y, M));
-    assert(equal(plan->kz, cpu_plan->Z, M));
+    // assert(equal(plan->ky, cpu_plan->Y, M));
+    // assert(equal(plan->kz, cpu_plan->Z, M));
     assert(equal(plan->d_s, cpu_plan->Sp, N));
-    assert(equal(plan->d_t, cpu_plan->Tp, N));
+    // assert(equal(plan->d_t, cpu_plan->Tp, N));
+    // assert(equal(plan->d_u, cpu_plan->Up, N));
     assert(plan->spopts.nspread == cpu_plan->spopts.nspread);
     assert(plan->spopts.upsampfac == cpu_plan->spopts.upsampfac);
     assert(plan->spopts.ES_beta == cpu_plan->spopts.ES_beta);
     assert(plan->spopts.ES_halfwidth == cpu_plan->spopts.ES_halfwidth);
     assert(plan->spopts.ES_c == cpu_plan->spopts.ES_c);
-    assert(equal(plan->d_u, cpu_plan->Up, N));
     // NOTE:seems with infnorm we are getting at most 11 digits of precision
     std::cout << "prephase :\n";
     assert(almost_equal(
