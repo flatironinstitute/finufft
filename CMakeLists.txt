@@ -280,13 +280,17 @@ if(FINUFFT_USE_CPU)
 endif()
 
 if(FINUFFT_USE_CUDA)
-  if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
-    message(
-      "FINUFFT WARNING: No CUDA architecture supplied via '-DCMAKE_CUDA_ARCHITECTURES=...', defaulting to 'native'"
-    )
-    message(
-      "See: https://developer.nvidia.com/cuda-gpus for more details on what architecture to supply."
-    )
+  if(NOT DEFINED FINUFFT_CUDA_ARCHITECTURES)
+    if(DEFINED CMAKE_CUDA_ARCHITECTURES)
+      set(FINUFFT_CUDA_ARCHITECTURES "{$CMAKE_CUDA_ARCHITECTURES}")
+    else()
+      message(
+        "FINUFFT WARNING: No CUDA architecture supplied via '-DFINUFFT_CUDA_ARCHITECTURES=...', defaulting to 'native'"
+      )
+      message(
+        "See: https://developer.nvidia.com/cuda-gpus for more details on what architecture to supply."
+      )
+    endif()
   endif()
   enable_language(CUDA)
   find_package(CUDAToolkit REQUIRED)
