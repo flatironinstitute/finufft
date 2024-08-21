@@ -8,6 +8,7 @@
 #include <unordered_map>
 
 #include <chrono>
+#include <fftw3.h>
 #include <finufft.h>
 
 std::string get_or(const std::unordered_map<std::string, std::string> &m,
@@ -341,7 +342,10 @@ int main(int argc, char *argv[]) {
     return 0;
   }
   test_options_t opts(argc, argv);
-
+#ifdef FFTW3_H
+  fftw_forget_wisdom();
+  fftwf_forget_wisdom();
+#endif
   if (opts.prec == 'f')
     run_test<float>(opts);
   else if (opts.prec == 'd')
