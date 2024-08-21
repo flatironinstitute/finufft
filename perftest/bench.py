@@ -38,7 +38,7 @@ all_data = pd.DataFrame()
 args = {
     '--type': '1',
     '--prec': 'f',
-    '--n_runs': '5',
+    '--n_runs': '10',
     '--sort': '1',
     '--N1': '320',
     '--N2': '320',
@@ -72,11 +72,11 @@ transform = ['1', '2', '3']
 
 ParamList = [
     Params('f', 1e4, 1, 1, 1, 1, 1e7, 1e-4),
-    # Params('d', 1e4, 1, 1, 1, 1, 1e7, 1e-9),
-    # Params('f', 320, 320, 1, 1, 1, 1E7, 1E-5),
-    # Params('d', 320, 320, 1, 1, 1, 1E7, 1E-9),
-    # Params('f', 320, 320, 1, thread_num, thread_num, 1E7, 1E-5),
-    # Params('f', 192, 192, 128, 1, thread_num, 1E7, 1E-5),
+    Params('d', 1e4, 1, 1, 1, 1, 1e7, 1e-9),
+    Params('f', 320, 320, 1, 1, 1, 1E7, 1E-5),
+    Params('d', 320, 320, 1, 1, 1, 1E7, 1E-9),
+    Params('f', 320, 320, 1, thread_num, thread_num, 1E7, 1E-5),
+    Params('f', 192, 192, 128, 1, thread_num, 1E7, 1E-5),
 ]
 
 
