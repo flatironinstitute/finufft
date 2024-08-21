@@ -215,7 +215,6 @@ void onedim_fseries_kernel_precomp(CUFINUFFT_BIGINT nf, T *f, T *a,
                                                        // exceed MAX_NQUAD
   double z[2 * MAX_NQUAD];
   double w[2 * MAX_NQUAD];
-
   finufft::quadrature::legendre_compute_glr(2 * q, z, w); // only half the nodes used,
                                                           // eg on (0,1)
   for (int n = 0; n < q; ++n) {                           // set up nodes z_n and vals f_n
@@ -224,7 +223,9 @@ void onedim_fseries_kernel_precomp(CUFINUFFT_BIGINT nf, T *f, T *a,
     if constexpr (phase_winding) {
       a[n] = ((T)(2.0 * M_PI) * (T)(nf / 2 - z[n]) / (T)nf); // phase winding rates
     } else {
-      a[n] = z[n];
+      a[n] = T(z[n]);
+      // printf("[cufinufft] f[%d] = %.16g\n",n,f[n]);
+      // printf("[cufinufft] z[%d] = %.16g\n",n,z[n]);
     }
   }
 }

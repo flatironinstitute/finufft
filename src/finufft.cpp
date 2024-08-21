@@ -270,7 +270,8 @@ void onedim_nuft_kernel(BIGINT nk, FLT *k, FLT *phihat, finufft_spread_opts opts
   for (int n = 0; n < q; ++n) {
     z[n] *= (FLT)J2;                         // quadr nodes for [0,J/2]
     f[n] = J2 * (FLT)w[n] * evaluate_kernel((FLT)z[n], opts); // w/ quadr weights
-    // printf("f[%d] = %.3g\n",n,f[n]);
+    // printf("[finufft] f[%d] = %.16g\n",n,f[n]);
+    // printf("[finufft] z[%d] = %.16g\n",n,z[n]);
   }
 #pragma omp parallel for num_threads(opts.nthreads)
   for (BIGINT j = 0; j < nk; ++j) {          // loop along output array
@@ -877,14 +878,14 @@ int FINUFFT_SETPTS(FINUFFT_PLAN p, BIGINT nj, FLT *xj, FLT *yj, FLT *zj, BIGINT 
 
     if (p->opts.debug) { // report on choices of shifts, centers, etc...
       printf("\tM=%lld N=%lld\n", (long long)nj, (long long)nk);
-      printf("\tX1=%.3g C1=%.3g S1=%.3g D1=%.3g gam1=%g nf1=%lld\t\n", p->t3P.X1,
-             p->t3P.C1, S1, p->t3P.D1, p->t3P.gam1, (long long)p->nf1);
+      printf("\tX1=%.3g C1=%.3g S1=%.3g D1=%.3g gam1=%g nf1=%lld h1=%.3g\t\n", p->t3P.X1,
+             p->t3P.C1, S1, p->t3P.D1, p->t3P.gam1, (long long)p->nf1, p->t3P.h1);
       if (d > 1)
-        printf("\tX2=%.3g C2=%.3g S2=%.3g D2=%.3g gam2=%g nf2=%lld\n", p->t3P.X2,
-               p->t3P.C2, S2, p->t3P.D2, p->t3P.gam2, (long long)p->nf2);
+        printf("\tX2=%.3g C2=%.3g S2=%.3g D2=%.3g gam2=%g nf2=%lld h2=%.3g\n", p->t3P.X2,
+               p->t3P.C2, S2, p->t3P.D2, p->t3P.gam2, (long long)p->nf2, p->t3P.h2);
       if (d > 2)
-        printf("\tX3=%.3g C3=%.3g S3=%.3g D3=%.3g gam3=%g nf3=%lld\n", p->t3P.X3,
-               p->t3P.C3, S3, p->t3P.D3, p->t3P.gam3, (long long)p->nf3);
+        printf("\tX3=%.3g C3=%.3g S3=%.3g D3=%.3g gam3=%g nf3=%lld h3=%.3g\n", p->t3P.X3,
+               p->t3P.C3, S3, p->t3P.D3, p->t3P.gam3, (long long)p->nf3, p->t3P.h3);
     }
     p->nf = p->nf1 * p->nf2 * p->nf3; // fine grid total number of points
     if (p->nf * p->batchSize > MAX_NF) {
@@ -974,7 +975,14 @@ int FINUFFT_SETPTS(FINUFFT_PLAN p, BIGINT nj, FLT *xj, FLT *yj, FLT *zj, BIGINT 
         p->Up[k] = p->t3P.h3 * p->t3P.gam3 * (u[k] - p->t3P.D3); // so |u'_k| <
                                                                  // pi/R
     }
-
+    // #pragma omp parallel for num_threads(p->opts.nthreads) schedule(static)
+    //     for (BIGINT k = 0; k < nk; ++k) {
+    //       p->Sp[k] = s[k];
+    //       if (d > 1)
+    //         p->Tp[k] =t[k];
+    //       if (d > 2)
+    //         p->Up[k] = u[k];
+    //     }
     // (old STEP 3a) Compute deconvolution post-factors array (per targ pt)...
     // (exploits that FT separates because kernel is prod of 1D funcs)
     if (p->deconv) free(p->deconv);

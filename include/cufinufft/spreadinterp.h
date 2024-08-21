@@ -85,15 +85,15 @@ static __forceinline__ __device__ T evaluate_kernel(T x, T es_c, T es_beta, int 
 }
 
 template<typename T>
-static __inline__ __device__ void eval_kernel_vec_horner(T *ker, const T x, const int w,
-                                                         const double upsampfac)
+static __device__ void eval_kernel_vec_horner(T *ker, const T x, const int w,
+                                              const double upsampfac)
 /* Fill ker[] with Horner piecewise poly approx to [-w/2,w/2] ES kernel eval at
    x_j = x + j,  for j=0,..,w-1.  Thus x in [-w/2,-w/2+1].   w is aka ns.
    This is the current evaluation method, since it's faster (except i7 w=16).
    Two upsampfacs implemented. Params must match ref formula. Barnett 4/24/18 */
 {
   const auto z = fma(T(2), x, T(w - 1)); // scale so local grid offset z in [-1,1]
-  //  T z = 2 * x + w - 1.0;
+  // const T z = 2 * x + w - 1.0;
   // insert the auto-generated code which expects z, w args, writes to ker...
   if (upsampfac == 2.0) { // floating point equality is fine here
     using FLT = T;

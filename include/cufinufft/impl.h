@@ -108,8 +108,8 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
     d_plan->mt = nmodes[1];
     d_plan->mu = nmodes[2];
   } else {
-    d_plan->opts.gpu_method           = 1;
     d_plan->opts.gpu_spreadinterponly = 1;
+    d_plan->opts.gpu_method           = 1;
   }
 
   int fftsign     = (iflag >= 0) ? 1 : -1;
@@ -313,7 +313,7 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
   }
 finalize:
   if (ier > 1) {
-    delete *d_plan_ptr;
+    cufinufft_destroy_impl(*d_plan_ptr);
     *d_plan_ptr = nullptr;
   }
   return ier;
@@ -498,18 +498,21 @@ int cufinufft_setpts_impl(int M, T *d_kx, T *d_ky, T *d_kz, int N, T *d_s, T *d_
   if (d_plan->opts.debug) {
     printf("[%s]", __func__);
     printf("\tM=%d N=%d\n", M, N);
-    printf("\tX1=%.3g C1=%.3g S1=%.3g D1=%.3g gam1=%g nf1=%lld\t\n",
+    printf("\tX1=%.3g C1=%.3g S1=%.3g D1=%.3g gam1=%g nf1=%lld h1=%.3g\t\n",
            d_plan->type3_params.X1, d_plan->type3_params.C1, d_plan->type3_params.S1,
-           d_plan->type3_params.D1, d_plan->type3_params.gam1, d_plan->nf1);
+           d_plan->type3_params.D1, d_plan->type3_params.gam1, d_plan->nf1,
+           d_plan->type3_params.h1);
     if (d_plan->dim > 1) {
-      printf("\tX2=%.3g C2=%.3g S2=%.3g D2=%.3g gam2=%g nf2=%lld\n",
+      printf("\tX2=%.3g C2=%.3g S2=%.3g D2=%.3g gam2=%g nf2=%lld h2=%.3g\n",
              d_plan->type3_params.X2, d_plan->type3_params.C2, d_plan->type3_params.S2,
-             d_plan->type3_params.D2, d_plan->type3_params.gam2, d_plan->nf2);
+             d_plan->type3_params.D2, d_plan->type3_params.gam2, d_plan->nf2,
+             d_plan->type3_params.h2);
     }
     if (d_plan->dim > 2) {
-      printf("\tX3=%.3g C3=%.3g S3=%.3g D3=%.3g gam3=%g nf3=%lld\n",
+      printf("\tX3=%.3g C3=%.3g S3=%.3g D3=%.3g gam3=%g nf3=%lld h3=%.3g\n",
              d_plan->type3_params.X3, d_plan->type3_params.C3, d_plan->type3_params.S3,
-             d_plan->type3_params.D3, d_plan->type3_params.gam3, d_plan->nf3);
+             d_plan->type3_params.D3, d_plan->type3_params.gam3, d_plan->nf3,
+             d_plan->type3_params.h3);
     }
   }
   d_plan->nf = d_plan->nf1 * d_plan->nf2 * d_plan->nf3;
@@ -616,26 +619,30 @@ int cufinufft_setpts_impl(int M, T *d_kx, T *d_ky, T *d_kz, int N, T *d_s, T *d_
     thrust::fill(thrust::cuda::par.on(stream), d_plan->prephase, d_plan->prephase + M,
                  cuda_complex<T>{1, 0});
   }
-  if (d_plan->dim > 0) {
-    const auto scale = d_plan->type3_params.h1 * d_plan->type3_params.gam1;
-    const auto D1    = -d_plan->type3_params.D1;
-    thrust::transform(
-        thrust::cuda::par.on(stream), d_s, d_s + N, d_plan->d_s,
-        [scale, D1] __host__ __device__(const T s) -> T { return scale * (s + D1); });
-  }
-  if (d_plan->dim > 1) {
-    const auto scale = d_plan->type3_params.h2 * d_plan->type3_params.gam2;
-    const auto D2    = -d_plan->type3_params.D2;
-    thrust::transform(
-        thrust::cuda::par.on(stream), d_t, d_t + N, d_plan->d_t,
-        [scale, D2] __host__ __device__(const T t) -> T { return scale * (t + D2); });
-  }
-  if (d_plan->dim > 2) {
-    const auto scale = d_plan->type3_params.h3 * d_plan->type3_params.gam3;
-    const auto D3    = -d_plan->type3_params.D3;
-    thrust::transform(
-        thrust::cuda::par.on(stream), d_u, d_u + N, d_plan->d_u,
-        [scale, D3] __host__ __device__(const T u) -> T { return scale * (u + D3); });
+  {
+    const auto source_iterator = thrust::make_zip_iterator(
+        thrust::make_tuple(d_s, dim > 1 ? d_t : d_s, dim > 2 ? d_u : d_s));
+    const auto target_iterator = thrust::make_zip_iterator(
+        thrust::make_tuple(d_plan->d_s, dim > 1 ? d_plan->d_t : d_plan->d_s,
+                           dim > 2 ? d_plan->d_u : d_plan->d_s));
+    const auto scale1 = d_plan->type3_params.h1 * d_plan->type3_params.gam1;
+    const auto D1     = d_plan->type3_params.D1;
+    const auto scale2 = d_plan->type3_params.h2 * d_plan->type3_params.gam2;
+    const auto D2     = d_plan->type3_params.D2;
+    const auto scale3 = d_plan->type3_params.h3 * d_plan->type3_params.gam3;
+    const auto D3     = d_plan->type3_params.D3;
+    thrust::transform(thrust::cuda::par.on(stream), source_iterator, source_iterator + N,
+                      target_iterator,
+                      [scale1, D1, scale2, D2, scale3, D3] __host__ __device__(
+                          const thrust::tuple<T, T, T> tuple) -> thrust::tuple<T, T, T> {
+                        auto s = thrust::get<0>(tuple);
+                        auto t = thrust::get<1>(tuple);
+                        auto u = thrust::get<2>(tuple);
+                        s      = scale1 * (s - D1);
+                        t      = scale2 * (t - D2);
+                        u      = scale3 * (u - D3);
+                        return {s, t, u};
+                      });
   }
   { // here we declare phi_hat1, phi_hat2, and phi_hat3
     // and the precomputed data for the fseries kernel
@@ -718,8 +725,8 @@ int cufinufft_setpts_impl(int M, T *d_kx, T *d_ky, T *d_kz, int N, T *d_s, T *d_
           thrust::cuda::par.on(stream), phase_iterator, phase_iterator + N,
           d_plan->deconv, d_plan->deconv,
           [c1, c2, c3, d1, d2, d3, imasign] __host__ __device__(
-              const thrust::tuple<T, T, T> tuple,
-              cuda_complex<T> deconv) -> cuda_complex<T> {
+              const thrust::tuple<T, T, T> tuple, cuda_complex<T> deconv)
+              -> cuda_complex<T> {
             // d2 and d3 are 0 if dim < 2 and dim < 3
             const auto phase = c1 * (thrust::get<0>(tuple) + d1) +
                                c2 * (thrust::get<1>(tuple) + d2) +
@@ -751,9 +758,8 @@ int cufinufft_setpts_impl(int M, T *d_kx, T *d_ky, T *d_kz, int N, T *d_s, T *d_
   {
     int t2modes[]               = {d_plan->nf1, d_plan->nf2, d_plan->nf3};
     cufinufft_opts t2opts       = d_plan->opts;
-    t2opts.modeord              = 0;
-    t2opts.debug                = std::max(0, t2opts.debug);
     t2opts.gpu_spreadinterponly = 0;
+
     // Safe to ignore the return value here?
     if (d_plan->t2_plan) cufinufft_destroy_impl(d_plan->t2_plan);
     // check that maxbatchsize is correct

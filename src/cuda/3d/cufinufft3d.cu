@@ -151,6 +151,10 @@ int cufinufft3d3_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
                         d_plan->prephase + d_plan->M, d_cstart + i * d_plan->M,
                         d_plan->c + i * d_plan->M, thrust::multiplies<cuda_complex<T>>());
     }
+    if ((ier = checkCudaErrors(cudaMemsetAsync(
+             d_plan->fk, 0, d_plan->maxbatchsize * d_plan->nf * sizeof(cuda_complex<T>),
+             stream))))
+      return ier;
     // Step 1: Spread
     if ((ier = cuspread3d<T>(d_plan, blksize))) return ier;
     // now d_plan->fk = d_plan->fw contains the spread values
