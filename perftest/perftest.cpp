@@ -343,9 +343,7 @@ int main(int argc, char *argv[]) {
     return 0;
   }
   test_options_t opts(argc, argv);
-#ifdef FFTW3_H
   FFTW_FORGET_WISDOM();
-#endif
   if (opts.prec == 'f')
     run_test<float>(opts);
   else if (opts.prec == 'd')
