@@ -18,7 +18,7 @@ endforeach()
 
 foreach(EXAMPLE ${EXAMPLES_C})
   add_executable(${EXAMPLE} ${EXAMPLE}.c)
-  target_link_libraries(${EXAMPLE} PRIVATE finufft)
+  target_link_libraries(${EXAMPLE} PRIVATE finufft m)
   target_compile_features(${EXAMPLE} PRIVATE cxx_std_17)
   enable_asan(${EXAMPLE})
 endforeach()
