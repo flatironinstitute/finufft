@@ -102,7 +102,7 @@ int main() {
   fin_opts.upsampfac          = 1.25;
   const int iflag             = 1;
   const int ntransf           = 1;
-  const int dim               = 1;
+  const int dim               = 3;
   const double tol            = 1e-9;
   const int n_modes[]         = {10, 5, 3};
   const int N                 = n_modes[0] * n_modes[1] * n_modes[2];
@@ -149,12 +149,6 @@ int main() {
     u[i]      = u[j];
   }
 
-  // fill them all
-
-  //  for (int i = 0; i < N * ntransf; i++) {
-  //    fk[i].real(randm11());
-  //    fk[i].imag(randm11());
-  //  }
   // copy x, y, z, s, t, u to device d_x, d_y, d_z, d_s, d_t, d_u
   d_x = x;
   d_y = y;
@@ -175,32 +169,109 @@ int main() {
                               t.data(), u.data()) == 0);
         return plan;
       };
-  const auto test_type1 = [iflag, tol, ntransf, dim, cpu_planer, &opts](auto *plan) {
-    // plan is a pointer to a type that contains real_t
-    using T        = typename std::remove_pointer<decltype(plan)>::type::real_t;
-    const int type = 1;
 
-    assert(cufinufft_makeplan_impl<T>(type, dim, nullptr, iflag, ntransf, T(tol), &plan,
-                                      &opts) == 0);
-    const auto cpu_plan = cpu_planer(type);
-    cudaDeviceSynchronize();
-    assert(cufinufft_destroy_impl<T>(plan) == 0);
-    assert(finufft_destroy(cpu_plan) == 0);
-    plan = nullptr;
-  };
-  auto test_type2 = [iflag, tol, ntransf, dim, cpu_planer, &opts](auto plan) {
+  const auto test_type1 = [iflag,
+                           tol,
+                           ntransf,
+                           dim,
+                           cpu_planer,
+                           M,
+                           N,
+                           n_modes,
+                           &d_x,
+                           &d_y,
+                           &d_z,
+                           &c,
+                           &d_c,
+                           &fk,
+                           &d_fk,
+                           &opts](auto plan) {
     // plan is a pointer to a type that contains real_t
-    using T        = typename std::remove_pointer<decltype(plan)>::type::real_t;
-    const int type = 2;
-    assert(cufinufft_makeplan_impl<T>(type, dim, nullptr, iflag, ntransf, T(tol), &plan,
-                                      &opts) == 0);
+    using T             = typename std::remove_pointer<decltype(plan)>::type::real_t;
+    const int type      = 1;
     const auto cpu_plan = cpu_planer(type);
+    assert(cufinufft_makeplan_impl<T>(type, dim, (int *)n_modes, iflag, ntransf, T(tol),
+                                      &plan, &opts) == 0);
+    assert(
+        cufinufft_setpts_impl<T>(M, d_x.data().get(), d_y.data().get(), d_z.data().get(),
+                                 0, nullptr, nullptr, nullptr, plan) == 0);
     cudaDeviceSynchronize();
+    assert(plan->nf1 == cpu_plan->nf1);
+    assert(plan->nf2 == cpu_plan->nf2);
+    assert(plan->nf3 == cpu_plan->nf3);
+    assert(plan->spopts.nspread == cpu_plan->spopts.nspread);
+    assert(plan->spopts.upsampfac == cpu_plan->spopts.upsampfac);
+    assert(plan->spopts.ES_beta == cpu_plan->spopts.ES_beta);
+    assert(plan->spopts.ES_halfwidth == cpu_plan->spopts.ES_halfwidth);
+    assert(plan->spopts.ES_c == cpu_plan->spopts.ES_c);
+
+    for (int i = 0; i < M; i++) {
+      c[i].real(randm11());
+      c[i].imag(randm11());
+    }
+    d_c = c;
+    cufinufft_execute_impl(
+        (cuda_complex<T> *)d_c.data().get(), (cuda_complex<T> *)d_fk.data().get(), plan);
+    finufft_execute(cpu_plan, (std::complex<T> *)c.data(), (std::complex<T> *)fk.data());
+    std::cout << "type " << type << ": ";
+    assert(almost_equal(d_fk.data().get(), fk.data(), N, tol));
     assert(cufinufft_destroy_impl<T>(plan) == 0);
-    cudaDeviceSynchronize();
     assert(finufft_destroy(cpu_plan) == 0);
+    cudaDeviceSynchronize();
     plan = nullptr;
   };
+
+  const auto test_type2 = [iflag,
+                           tol,
+                           ntransf,
+                           dim,
+                           cpu_planer,
+                           M,
+                           N,
+                           n_modes,
+                           &d_x,
+                           &d_y,
+                           &d_z,
+                           &c,
+                           &d_c,
+                           &fk,
+                           &d_fk,
+                           &opts](auto plan) {
+    // plan is a pointer to a type that contains real_t
+    using T             = typename std::remove_pointer<decltype(plan)>::type::real_t;
+    const int type      = 2;
+    const auto cpu_plan = cpu_planer(type);
+    assert(cufinufft_makeplan_impl<T>(type, dim, (int *)n_modes, iflag, ntransf, T(tol),
+                                      &plan, &opts) == 0);
+    assert(
+        cufinufft_setpts_impl<T>(M, d_x.data().get(), d_y.data().get(), d_z.data().get(),
+                                 0, nullptr, nullptr, nullptr, plan) == 0);
+    cudaDeviceSynchronize();
+    assert(plan->nf1 == cpu_plan->nf1);
+    assert(plan->nf2 == cpu_plan->nf2);
+    assert(plan->nf3 == cpu_plan->nf3);
+    assert(plan->spopts.nspread == cpu_plan->spopts.nspread);
+    assert(plan->spopts.upsampfac == cpu_plan->spopts.upsampfac);
+    assert(plan->spopts.ES_beta == cpu_plan->spopts.ES_beta);
+    assert(plan->spopts.ES_halfwidth == cpu_plan->spopts.ES_halfwidth);
+    assert(plan->spopts.ES_c == cpu_plan->spopts.ES_c);
+
+    for (int i = 0; i < N; i++) {
+      fk[i].real(randm11());
+      fk[i].imag(randm11());
+    }
+    d_fk = fk;
+    cufinufft_execute_impl(
+        (cuda_complex<T> *)d_c.data().get(), (cuda_complex<T> *)d_fk.data().get(), plan);
+    finufft_execute(cpu_plan, (std::complex<T> *)c.data(), (std::complex<T> *)fk.data());
+    std::cout << "type " << type << ": ";
+    assert(almost_equal(d_c.data().get(), c.data(), M, tol));
+    assert(cufinufft_destroy_impl<T>(plan) == 0);
+    assert(finufft_destroy(cpu_plan) == 0);
+    cudaDeviceSynchronize();
+    plan = nullptr;
+  };
+
   auto test_type3 = [iflag,
                      tol,
                      ntransf,
@@ -232,32 +303,31 @@ int main() {
                                     d_t.data().get(), d_u.data().get(), plan) == 0);
     cudaDeviceSynchronize();
     assert(plan->type3_params.X1 == cpu_plan->t3P.X1);
-    // assert(plan->type3_params.X2 == cpu_plan->t3P.X2);
-    // assert(plan->type3_params.X3 == cpu_plan->t3P.X3);
+    assert(plan->type3_params.X2 == cpu_plan->t3P.X2);
+    assert(plan->type3_params.X3 == cpu_plan->t3P.X3);
     assert(plan->type3_params.C1 == cpu_plan->t3P.C1);
-    // assert(plan->type3_params.C2 == cpu_plan->t3P.C2);
-    // assert(plan->type3_params.C3 == cpu_plan->t3P.C3);
+    assert(plan->type3_params.C2 == cpu_plan->t3P.C2);
+    assert(plan->type3_params.C3 == cpu_plan->t3P.C3);
     assert(plan->type3_params.D1 == cpu_plan->t3P.D1);
-    // assert(plan->type3_params.D2 == cpu_plan->t3P.D2);
-    // assert(plan->type3_params.D3 == cpu_plan->t3P.D3);
+    assert(plan->type3_params.D2 == cpu_plan->t3P.D2);
+    assert(plan->type3_params.D3 == cpu_plan->t3P.D3);
     assert(plan->type3_params.gam1 == cpu_plan->t3P.gam1);
-    // assert(plan->type3_params.gam2 == cpu_plan->t3P.gam2);
-    // assert(plan->type3_params.gam3 == cpu_plan->t3P.gam3);
+    assert(plan->type3_params.gam2 == cpu_plan->t3P.gam2);
+    assert(plan->type3_params.gam3 == cpu_plan->t3P.gam3);
     assert(plan->nf1 == cpu_plan->nf1);
-    // assert(plan->nf2 == cpu_plan->nf2);
-    // assert(plan->nf3 == cpu_plan->nf3);
+    assert(plan->nf2 == cpu_plan->nf2);
+    assert(plan->nf3 == cpu_plan->nf3);
     assert(equal(plan->kx, cpu_plan->X, M));
-    // assert(equal(plan->ky, cpu_plan->Y, M));
-    // assert(equal(plan->kz, cpu_plan->Z, M));
+    assert(equal(plan->ky, cpu_plan->Y, M));
+    assert(equal(plan->kz, cpu_plan->Z, M));
     assert(equal(plan->d_s, cpu_plan->Sp, N));
-    // assert(equal(plan->d_t, cpu_plan->Tp, N));
-    // assert(equal(plan->d_u, cpu_plan->Up, N));
+    assert(equal(plan->d_t, cpu_plan->Tp, N));
+    assert(equal(plan->d_u, cpu_plan->Up, N));
     assert(plan->spopts.nspread == cpu_plan->spopts.nspread);
     assert(plan->spopts.upsampfac == cpu_plan->spopts.upsampfac);
     assert(plan->spopts.ES_beta == cpu_plan->spopts.ES_beta);
     assert(plan->spopts.ES_halfwidth == cpu_plan->spopts.ES_halfwidth);
     assert(plan->spopts.ES_c == cpu_plan->spopts.ES_c);
-    // NOTE:seems with infnorm we are getting at most 11 digits of precision
     std::cout << "prephase :\n";
     assert(almost_equal(
         plan->prephase, cpu_plan->prephase, M, std::numeric_limits<T>::epsilon() * 100));
@@ -273,6 +343,7 @@ int main() {
     // fk[i] = {randm11(), randm11()};
     // }
     // d_fk = fk;
+    cudaDeviceSynchronize();
     cufinufft_execute_impl(
         (cuda_complex<T> *)d_c.data().get(), (cuda_complex<T> *)d_fk.data().get(), plan);
     finufft_execute(cpu_plan, (std::complex<T> *)c.data(), (std::complex<T> *)fk.data());
@@ -285,8 +356,8 @@ int main() {
   // testing correctness of the plan creation
   //  cufinufft_plan_t<float> *single_plan{nullptr};
   cufinufft_plan_t<test_t> *double_plan{nullptr};
-  //  test_type1(double_plan);
-  //  test_type2(double_plan);
+  test_type1(double_plan);
+  test_type2(double_plan);
   test_type3(double_plan);
   return 0;
 }

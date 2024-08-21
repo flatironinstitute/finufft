@@ -422,6 +422,7 @@ void freegpumemory(cufinufft_plan_t<T> *d_plan)
     Melody Shih 11/21/21
 */
 {
+
   utils::WithCudaDevice device_swapper(d_plan->opts.gpu_device_id);
   // passing the stream by reference was causing a segfault
   const auto stream = d_plan->stream;
@@ -441,6 +442,21 @@ void freegpumemory(cufinufft_plan_t<T> *d_plan)
 
   CUDA_FREE_AND_NULL(d_plan->numnupts, stream, d_plan->supports_pools);
   CUDA_FREE_AND_NULL(d_plan->numsubprob, stream, d_plan->supports_pools);
+
+  if (d_plan->type != 3) {
+    return;
+  }
+
+  CUDA_FREE_AND_NULL(d_plan->kx, stream, d_plan->supports_pools);
+  CUDA_FREE_AND_NULL(d_plan->d_s, stream, d_plan->supports_pools);
+  CUDA_FREE_AND_NULL(d_plan->ky, stream, d_plan->supports_pools);
+  CUDA_FREE_AND_NULL(d_plan->d_t, stream, d_plan->supports_pools);
+  CUDA_FREE_AND_NULL(d_plan->kz, stream, d_plan->supports_pools);
+  CUDA_FREE_AND_NULL(d_plan->d_u, stream, d_plan->supports_pools);
+  CUDA_FREE_AND_NULL(d_plan->prephase, stream, d_plan->supports_pools);
+  CUDA_FREE_AND_NULL(d_plan->deconv, stream, d_plan->supports_pools);
+  CUDA_FREE_AND_NULL(d_plan->fw_batch, stream, d_plan->supports_pools);
+  CUDA_FREE_AND_NULL(d_plan->c_batch, stream, d_plan->supports_pools);
 }
 
 template int allocgpumem1d_plan<float>(cufinufft_plan_t<float> *d_plan);

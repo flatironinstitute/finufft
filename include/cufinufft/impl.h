@@ -497,7 +497,7 @@ int cufinufft_setpts_impl(int M, T *d_kx, T *d_ky, T *d_kz, int N, T *d_s, T *d_
   }
   if (d_plan->opts.debug) {
     printf("[%s]", __func__);
-    printf("\tM=%lld N=%lld\n", M, N);
+    printf("\tM=%d N=%d\n", M, N);
     printf("\tX1=%.3g C1=%.3g S1=%.3g D1=%.3g gam1=%g nf1=%lld\t\n",
            d_plan->type3_params.X1, d_plan->type3_params.C1, d_plan->type3_params.S1,
            d_plan->type3_params.D1, d_plan->type3_params.gam1, d_plan->nf1);
@@ -767,19 +767,15 @@ int cufinufft_setpts_impl(int M, T *d_kx, T *d_ky, T *d_kz, int N, T *d_s, T *d_
       fprintf(stderr, "[%s] inner t2 plan cufinufft_setpts_12 failed\n", __func__);
       goto finalize;
     }
+    if (d_plan->t2_plan->spopts.spread_direction != 2) {
+      fprintf(stderr, "[%s] inner t2 plan cufinufft_setpts_12 wrong direction\n",
+              __func__);
+      goto finalize;
+    }
     return 0;
   }
 finalize:
-  checked_free(d_plan->kx);
-  checked_free(d_plan->d_s);
-  checked_free(d_plan->ky);
-  checked_free(d_plan->d_t);
-  checked_free(d_plan->kz);
-  checked_free(d_plan->d_u);
-  checked_free(d_plan->prephase);
-  checked_free(d_plan->deconv);
-  checked_free(d_plan->fw_batch);
-  checked_free(d_plan->c_batch);
+  cufinufft_destroy_impl(d_plan);
   cufinufft_destroy_impl(d_plan->t2_plan);
   return FINUFFT_ERR_CUDA_FAILURE;
 }
@@ -855,6 +851,8 @@ int cufinufft_destroy_impl(cufinufft_plan_t<T> *d_plan)
   freegpumemory<T>(d_plan);
 
   if (d_plan->fftplan) cufftDestroy(d_plan->fftplan);
+
+  if (d_plan->t2_plan) cufinufft_destroy_impl(d_plan->t2_plan);
 
   /* free/destruct the plan */
   delete d_plan;
