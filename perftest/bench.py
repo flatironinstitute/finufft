@@ -148,7 +148,10 @@ for version in versions:
                 args['--' + 'type'] = type
                 for upsampfac in upsamp:
                     args['--upsampfac'] = upsampfac
-                    out, _ = run_command('taskset', ['-c', '0', 'build/perftest/perftest'] + build_args(args))
+                    if param.thread == 1:
+                         out, _ = run_command('taskset', ['-c', '0', 'build/perftest/perftest'] + build_args(args))
+                    else:
+                         out, _ = run_command('build/perftest/perftest', build_args(args))
                     # parse the output, escape all the lines that start with #
                     out = io.StringIO(out)
                     lines = out.readlines()
