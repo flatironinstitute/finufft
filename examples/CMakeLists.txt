@@ -13,7 +13,7 @@ find_library(MATH_LIBRARY m)
 
 foreach(EXAMPLE ${EXAMPLES})
   add_executable(${EXAMPLE} ${EXAMPLE}.cpp)
-  target_compile_features(${EXAMPLE} PRIVATE cxx_std_11)
+  target_compile_features(${EXAMPLE} PRIVATE cxx_std_14)
   target_link_libraries(${EXAMPLE} PRIVATE finufft)
   enable_asan(${EXAMPLE})
 endforeach()
