@@ -664,6 +664,7 @@ int FINUFFT_MAKEPLAN(int type, int dim, BIGINT *n_modes, int iflag, int ntrans, 
       std::lock_guard<std::mutex> lock(fftw_lock);
       if (!did_fftw_init) {
         FFTW_INIT();          // setup FFTW global state; should only do once
+        FFTW_PLAN_SF();
         did_fftw_init = true; // ensure other FINUFFT threads don't clash
       }
     }
