@@ -7,7 +7,6 @@
 #include <cufinufft/contrib/helper_math.h>
 
 #include <cufinufft/common.h>
-#include <cufinufft/cudeconvolve.h>
 #include <cufinufft/defs.h>
 #include <cufinufft/memtransfer.h>
 #include <cufinufft/spreadinterp.h>
@@ -452,10 +451,25 @@ int cufinufft_setpts_impl(int M, T *d_kx, T *d_ky, T *d_kz, int N, T *d_s, T *d_
   }
   const auto stream = d_plan->stream;
   d_plan->N         = N;
-  d_plan->d_s       = d_s;
-  d_plan->d_t       = d_t;
-  d_plan->d_u       = d_u;
-  const auto dim    = d_plan->dim;
+  if (d_plan->dim > 0 && d_s == nullptr) {
+    fprintf(stderr, "[%s] Error: d_s is nullptr but dim > 0.\n", __func__);
+    return FINUFFT_ERR_INVALID_ARGUMENT;
+  }
+  d_plan->d_s = d_plan->dim > 0 ? d_s : nullptr;
+
+  if (d_plan->dim > 1 && d_t == nullptr) {
+    fprintf(stderr, "[%s] Error: d_t is nullptr but dim > 1.\n", __func__);
+    return FINUFFT_ERR_INVALID_ARGUMENT;
+  }
+  d_plan->d_t = d_plan->dim > 1 ? d_t : nullptr;
+
+  if (d_plan->dim > 2 && d_u == nullptr) {
+    fprintf(stderr, "[%s] Error: d_u is nullptr but dim > 2.\n", __func__);
+    return FINUFFT_ERR_INVALID_ARGUMENT;
+  }
+  d_plan->d_u = d_plan->dim > 2 ? d_u : nullptr;
+
+  const auto dim = d_plan->dim;
   // no need to set the params to zero, as they are already zeroed out in the plan
   //  memset(d_plan->type3_params, 0, sizeof(d_plan->type3_params));
   using namespace cufinufft::utils;
@@ -596,13 +610,13 @@ int cufinufft_setpts_impl(int M, T *d_kx, T *d_ky, T *d_kz, int N, T *d_s, T *d_
                                                      (d_plan->dim > 1) ? d_ky : d_kx,
                                                      // same idea as above
                                                      (d_plan->dim > 2) ? d_kz : d_kx));
-    const auto D1      = d_plan->type3_params.D1;
-    const auto D2      = d_plan->type3_params.D2; // this should be 0 if dim < 2
-    const auto D3      = d_plan->type3_params.D3; // this should be 0 if dim < 3
-    const auto imasign = d_plan->iflag >= 0 ? T(1) : T(-1);
+    const auto D1       = d_plan->type3_params.D1;
+    const auto D2       = d_plan->type3_params.D2; // this should be 0 if dim < 2
+    const auto D3       = d_plan->type3_params.D3; // this should be 0 if dim < 3
+    const auto realsign = d_plan->iflag >= 0 ? T(1) : T(-1);
     thrust::transform(
         thrust::cuda::par.on(stream), iterator, iterator + M, d_plan->prephase,
-        [D1, D2, D3, imasign] __host__ __device__(
+        [D1, D2, D3, realsign] __host__ __device__(
             const thrust::tuple<T, T, T> &tuple) -> cuda_complex<T> {
           const auto x = thrust::get<0>(tuple);
           const auto y = thrust::get<1>(tuple);
@@ -613,36 +627,33 @@ int cufinufft_setpts_impl(int M, T *d_kx, T *d_ky, T *d_kz, int N, T *d_s, T *d_
           // TODO: nvcc should have the sincos function
           //       check the cos + i*sin
           //       ref: https://en.wikipedia.org/wiki/Cis_(mathematics)
-          return cuda_complex<T>{std::cos(phase), std::sin(phase) * imasign};
+          return cuda_complex<T>{std::cos(phase), std::sin(phase) * realsign};
         });
   } else {
     thrust::fill(thrust::cuda::par.on(stream), d_plan->prephase, d_plan->prephase + M,
                  cuda_complex<T>{1, 0});
   }
-  {
-    const auto source_iterator = thrust::make_zip_iterator(
-        thrust::make_tuple(d_s, dim > 1 ? d_t : d_s, dim > 2 ? d_u : d_s));
-    const auto target_iterator = thrust::make_zip_iterator(
-        thrust::make_tuple(d_plan->d_s, dim > 1 ? d_plan->d_t : d_plan->d_s,
-                           dim > 2 ? d_plan->d_u : d_plan->d_s));
-    const auto scale1 = d_plan->type3_params.h1 * d_plan->type3_params.gam1;
-    const auto D1     = d_plan->type3_params.D1;
-    const auto scale2 = d_plan->type3_params.h2 * d_plan->type3_params.gam2;
-    const auto D2     = d_plan->type3_params.D2;
-    const auto scale3 = d_plan->type3_params.h3 * d_plan->type3_params.gam3;
-    const auto D3     = d_plan->type3_params.D3;
-    thrust::transform(thrust::cuda::par.on(stream), source_iterator, source_iterator + N,
-                      target_iterator,
-                      [scale1, D1, scale2, D2, scale3, D3] __host__ __device__(
-                          const thrust::tuple<T, T, T> tuple) -> thrust::tuple<T, T, T> {
-                        auto s = thrust::get<0>(tuple);
-                        auto t = thrust::get<1>(tuple);
-                        auto u = thrust::get<2>(tuple);
-                        s      = scale1 * (s - D1);
-                        t      = scale2 * (t - D2);
-                        u      = scale3 * (u - D3);
-                        return {s, t, u};
-                      });
+
+  if (d_plan->dim > 0) {
+    const auto scale = d_plan->type3_params.h1 * d_plan->type3_params.gam1;
+    const auto D1    = -d_plan->type3_params.D1;
+    thrust::transform(
+        thrust::cuda::par.on(stream), d_s, d_s + N, d_plan->d_s,
+        [scale, D1] __host__ __device__(const T s) -> T { return scale * (s + D1); });
+  }
+  if (d_plan->dim > 1) {
+    const auto scale = d_plan->type3_params.h2 * d_plan->type3_params.gam2;
+    const auto D2    = -d_plan->type3_params.D2;
+    thrust::transform(
+        thrust::cuda::par.on(stream), d_t, d_t + N, d_plan->d_t,
+        [scale, D2] __host__ __device__(const T t) -> T { return scale * (t + D2); });
+  }
+  if (d_plan->dim > 2) {
+    const auto scale = d_plan->type3_params.h3 * d_plan->type3_params.gam3;
+    const auto D3    = -d_plan->type3_params.D3;
+    thrust::transform(
+        thrust::cuda::par.on(stream), d_u, d_u + N, d_plan->d_u,
+        [scale, D3] __host__ __device__(const T u) -> T { return scale * (u + D3); });
   }
   { // here we declare phi_hat1, phi_hat2, and phi_hat3
     // and the precomputed data for the fseries kernel
@@ -686,11 +697,12 @@ int cufinufft_setpts_impl(int M, T *d_kx, T *d_ky, T *d_kz, int N, T *d_s, T *d_
                                phi_hat3.data().get(), d_plan->spopts.nspread, stream))
       goto finalize;
 
-    const auto is_c_finite = std::isfinite(d_plan->type3_params.C1) &
-                             std::isfinite(d_plan->type3_params.C2) &
+    const auto is_c_finite = std::isfinite(d_plan->type3_params.C1) &&
+                             std::isfinite(d_plan->type3_params.C2) &&
                              std::isfinite(d_plan->type3_params.C3);
-    const auto is_c_nonzero = d_plan->type3_params.C1 != 0 |
-                              d_plan->type3_params.C2 != 0 | d_plan->type3_params.C3 != 0;
+    const auto is_c_nonzero = d_plan->type3_params.C1 != 0 ||
+                              d_plan->type3_params.C2 != 0 ||
+                              d_plan->type3_params.C3 != 0;
 
     const auto phi_hat_iterator = thrust::make_zip_iterator(
         thrust::make_tuple(phi_hat1.begin(),
@@ -710,13 +722,13 @@ int cufinufft_setpts_impl(int M, T *d_kx, T *d_ky, T *d_kz, int N, T *d_s, T *d_
         });
 
     if (is_c_finite && is_c_nonzero) {
-      const auto c1      = d_plan->type3_params.C1;
-      const auto c2      = d_plan->type3_params.C2;
-      const auto c3      = d_plan->type3_params.C3;
-      const auto d1      = -d_plan->type3_params.D1;
-      const auto d2      = -d_plan->type3_params.D2;
-      const auto d3      = -d_plan->type3_params.D3;
-      const auto imasign = d_plan->iflag >= 0 ? T(1) : T(-1);
+      const auto c1       = d_plan->type3_params.C1;
+      const auto c2       = d_plan->type3_params.C2;
+      const auto c3       = d_plan->type3_params.C3;
+      const auto d1       = -d_plan->type3_params.D1;
+      const auto d2       = -d_plan->type3_params.D2;
+      const auto d3       = -d_plan->type3_params.D3;
+      const auto realsign = d_plan->iflag >= 0 ? T(1) : T(-1);
       // passing d_s three times if dim == 1 because d_t and d_u are not allocated
       // passing d_s and d_t if dim == 2 because d_u is not allocated
       const auto phase_iterator = thrust::make_zip_iterator(
@@ -724,14 +736,14 @@ int cufinufft_setpts_impl(int M, T *d_kx, T *d_ky, T *d_kz, int N, T *d_s, T *d_
       thrust::transform(
           thrust::cuda::par.on(stream), phase_iterator, phase_iterator + N,
           d_plan->deconv, d_plan->deconv,
-          [c1, c2, c3, d1, d2, d3, imasign] __host__ __device__(
-              const thrust::tuple<T, T, T> tuple, cuda_complex<T> deconv)
-              -> cuda_complex<T> {
+          [c1, c2, c3, d1, d2, d3, realsign] __host__ __device__(
+              const thrust::tuple<T, T, T> tuple,
+              cuda_complex<T> deconv) -> cuda_complex<T> {
             // d2 and d3 are 0 if dim < 2 and dim < 3
             const auto phase = c1 * (thrust::get<0>(tuple) + d1) +
                                c2 * (thrust::get<1>(tuple) + d2) +
                                c3 * (thrust::get<2>(tuple) + d3);
-            return cuda_complex<T>{std::cos(phase), imasign * std::sin(phase)} * deconv;
+            return cuda_complex<T>{std::cos(phase), realsign * std::sin(phase)} * deconv;
           });
     }
     // exiting the block frees the memory allocated for phi_hat1, phi_hat2, and phi_hat3
@@ -782,7 +794,6 @@ int cufinufft_setpts_impl(int M, T *d_kx, T *d_ky, T *d_kz, int N, T *d_s, T *d_
   }
 finalize:
   cufinufft_destroy_impl(d_plan);
-  cufinufft_destroy_impl(d_plan->t2_plan);
   return FINUFFT_ERR_CUDA_FAILURE;
 }
 

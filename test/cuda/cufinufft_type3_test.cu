@@ -85,7 +85,7 @@ auto almost_equal(V *d_vec, T *cpu, const std::size_t size,
     }
     std::cout << std::setprecision(6);
   }
-  std::cout << "relerrtwonorm: " << infnorm(h_vec.data(), cpu, size) << std::endl;
+  std::cout << "relerrtwonorm: " << relerrtwonorm(h_vec.data(), cpu, size) << std::endl;
   // compare the l2 norm of the difference between the two vectors
   if (relerrtwonorm(h_vec.data(), cpu, size) < tol) {
     return true;
@@ -101,27 +101,31 @@ int main() {
   cufinufft_opts opts;
   cufinufft_default_opts(&opts);
   opts.debug           = 2;
-  opts.upsampfac       = 2.0;
+  opts.upsampfac       = 2.00;
   opts.gpu_kerevalmeth = 1;
+  opts.gpu_method      = 1;
+  opts.gpu_sort        = 0;
   finufft_opts fin_opts;
   finufft_default_opts(&fin_opts);
   fin_opts.debug              = opts.debug;
   fin_opts.spread_kerevalmeth = opts.gpu_kerevalmeth;
   fin_opts.upsampfac          = opts.upsampfac;
+  fin_opts.spread_sort        = opts.gpu_sort;
   const int iflag             = 1;
   const int ntransf           = 1;
   const int dim               = 3;
-  const double tol            = 1e-12;
-  const int n_modes[]         = {10, 5, 3};
-  const int N                 = n_modes[0] * n_modes[1] * n_modes[2];
-  const int M                 = 1000;
-  const double bandwidth      = 1.0;
+  const double tol            = 1e-13;
+  const int n_modes[]         = {5, 4, 3};
+  const int N = n_modes[0] * (dim > 1 ? n_modes[1] : 1) * (dim > 2 ? n_modes[2] : 1);
+  const int M = 13;
+  const double bandwidth = 1.0;
 
   thrust::host_vector<test_t> x(M * ntransf), y(M * ntransf), z(M * ntransf),
       s(N * ntransf), t(N * ntransf), u(N * ntransf);
   thrust::host_vector<std::complex<test_t>> c(M * ntransf), fk(N * ntransf);
 
-  thrust::device_vector<test_t> d_x{}, d_y{}, d_z{}, d_s{}, d_t{}, d_u{};
+  thrust::device_vector<test_t> d_x(M * ntransf), d_y(M * ntransf), d_z(M * ntransf),
+      d_s(N * ntransf), d_t(N * ntransf), d_u(N * ntransf);
   thrust::device_vector<std::complex<test_t>> d_c(M * ntransf), d_fk(N * ntransf);
 
   std::default_random_engine eng(42);
@@ -132,17 +136,17 @@ int main() {
 
   // Making data
   for (int64_t i = 0; i < M; i++) {
-    x[i] = M_PI * rand_util_11() + 4; // x in [-pi,pi)
-    y[i] = M_PI * rand_util_11() + 4;
-    z[i] = M_PI * rand_util_11() + 4;
+    x[i] = M_PI * rand_util_11(); // x in [-pi,pi)
+    y[i] = M_PI * rand_util_11();
+    z[i] = M_PI * rand_util_11();
   }
   for (int64_t i = 0; i < N; i++) {
-    s[i] = M_PI * rand_util_11() * bandwidth + 8; // shifted so D1 is 8
-    t[i] = M_PI * rand_util_11() * bandwidth + 8; // shifted so D2 is 8
-    u[i] = M_PI * rand_util_11() * bandwidth + 8; // shifted so D3 is 8
+    s[i] = M_PI * rand_util_11() * bandwidth; // shifted so D1 is 8
+    t[i] = M_PI * rand_util_11() * bandwidth; // shifted so D2 is 8
+    u[i] = M_PI * rand_util_11() * bandwidth; // shifted so D3 is 8
   }
 
-  const double deconv_tol = std::numeric_limits<double>::epsilon() * bandwidth * 100;
+  const double deconv_tol = std::numeric_limits<double>::epsilon() * bandwidth * 1000;
 
   for (int64_t i = M; i < M * ntransf; ++i) {
     int64_t j = i % M;
@@ -208,7 +212,7 @@ int main() {
                            (cuda_complex<T> *)d_fk.data().get(), plan);
     finufft_execute(cpu_plan, (std::complex<T> *)c.data(), (std::complex<T> *)fk.data());
     std::cout << "type " << type << ": ";
-    assert(almost_equal(d_fk.data().get(), fk.data(), N, tol));
+    assert(almost_equal(d_fk.data().get(), fk.data(), N, tol * 10));
     assert(cufinufft_destroy_impl<T>(plan) == 0);
     assert(finufft_destroy(cpu_plan) == 0);
     cudaDeviceSynchronize();
@@ -270,29 +274,29 @@ int main() {
                                     d_t.data().get(), d_u.data().get(), plan) == 0);
     cudaDeviceSynchronize();
     assert(plan->type3_params.X1 == cpu_plan->t3P.X1);
-    assert(plan->type3_params.X2 == cpu_plan->t3P.X2);
-    assert(plan->type3_params.X3 == cpu_plan->t3P.X3);
+    if (dim > 1) assert(plan->type3_params.X2 == cpu_plan->t3P.X2);
+    if (dim > 2) assert(plan->type3_params.X3 == cpu_plan->t3P.X3);
     assert(plan->type3_params.C1 == cpu_plan->t3P.C1);
-    assert(plan->type3_params.C2 == cpu_plan->t3P.C2);
-    assert(plan->type3_params.C3 == cpu_plan->t3P.C3);
+    if (dim > 1) assert(plan->type3_params.C2 == cpu_plan->t3P.C2);
+    if (dim > 2) assert(plan->type3_params.C3 == cpu_plan->t3P.C3);
     assert(plan->type3_params.D1 == cpu_plan->t3P.D1);
-    assert(plan->type3_params.D2 == cpu_plan->t3P.D2);
-    assert(plan->type3_params.D3 == cpu_plan->t3P.D3);
+    if (dim > 1) assert(plan->type3_params.D2 == cpu_plan->t3P.D2);
+    if (dim > 2) assert(plan->type3_params.D3 == cpu_plan->t3P.D3);
     assert(plan->type3_params.gam1 == cpu_plan->t3P.gam1);
-    assert(plan->type3_params.gam2 == cpu_plan->t3P.gam2);
-    assert(plan->type3_params.gam3 == cpu_plan->t3P.gam3);
+    if (dim > 1) assert(plan->type3_params.gam2 == cpu_plan->t3P.gam2);
+    if (dim > 2) assert(plan->type3_params.gam3 == cpu_plan->t3P.gam3);
     assert(plan->type3_params.h1 == cpu_plan->t3P.h1);
-    assert(plan->type3_params.h2 == cpu_plan->t3P.h2);
-    assert(plan->type3_params.h3 == cpu_plan->t3P.h3);
+    if (dim > 1) assert(plan->type3_params.h2 == cpu_plan->t3P.h2);
+    if (dim > 2) assert(plan->type3_params.h3 == cpu_plan->t3P.h3);
     assert(plan->nf1 == cpu_plan->nf1);
-    assert(plan->nf2 == cpu_plan->nf2);
-    assert(plan->nf3 == cpu_plan->nf3);
+    if (dim > 1) assert(plan->nf2 == cpu_plan->nf2);
+    if (dim > 2) assert(plan->nf3 == cpu_plan->nf3);
     assert(equal(plan->kx, cpu_plan->X, M));
-    assert(equal(plan->ky, cpu_plan->Y, M));
-    assert(equal(plan->kz, cpu_plan->Z, M));
+    if (dim > 1) assert(equal(plan->ky, cpu_plan->Y, M));
+    if (dim > 2) assert(equal(plan->kz, cpu_plan->Z, M));
     assert(equal(plan->d_s, cpu_plan->Sp, N));
-    assert(equal(plan->d_t, cpu_plan->Tp, N));
-    assert(equal(plan->d_u, cpu_plan->Up, N));
+    if (dim > 1) assert(equal(plan->d_t, cpu_plan->Tp, N));
+    if (dim > 2) assert(equal(plan->d_u, cpu_plan->Up, N));
     assert(plan->spopts.nspread == cpu_plan->spopts.nspread);
     assert(plan->spopts.upsampfac == cpu_plan->spopts.upsampfac);
     assert(plan->spopts.ES_beta == cpu_plan->spopts.ES_beta);

@@ -18,6 +18,7 @@ foreach(srcfile ${test_src})
   message(STATUS "Adding test ${executable}"
                  " with CUDA_ARCHITECTURES=${FINUFFT_CUDA_ARCHITECTURES}"
                  " and INCLUDE=${CUFINUFFT_INCLUDE_DIRS}")
+  enable_asan(${executable})
 endforeach()
 
 function(add_tests PREC REQ_TOL CHECK_TOL UPSAMP)

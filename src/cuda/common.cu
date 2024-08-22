@@ -50,6 +50,7 @@ __global__ void fseries_kernel_compute(int nf1, int nf2, int nf3, T *f, T *a,
        i += blockDim.x * gridDim.x) {
     T x = 0.0;
     for (int n = 0; n < q; n++) {
+      // in type 1/2 2*PI/nf -> k[i]
       x += ft[n] * T(2) * std::cos(T(i) * at[n]);
     }
     oarr[i] = x;

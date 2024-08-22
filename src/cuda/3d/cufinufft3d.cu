@@ -136,6 +136,7 @@ int cufinufft3d3_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
   cuda_complex<T> *d_cstart;
   cuda_complex<T> *d_fkstart;
   const auto stream = d_plan->stream;
+  printf("[cufinufft] d_plan->ntransf = %d\n", d_plan->ntransf);
   for (int i = 0; i * d_plan->maxbatchsize < d_plan->ntransf; i++) {
     int blksize = min(d_plan->ntransf - i * d_plan->maxbatchsize, d_plan->maxbatchsize);
     d_cstart    = d_c + i * d_plan->maxbatchsize * d_plan->M;
@@ -145,24 +146,36 @@ int cufinufft3d3_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
     // setting output for spreader
     d_plan->fk = d_plan->fw;
     // NOTE: fw might need to be set to 0
+    if ((ier = checkCudaErrors(cudaMemsetAsync(
+             d_plan->fk, 0, d_plan->maxbatchsize * d_plan->nf * sizeof(cuda_complex<T>),
+             stream))))
+      return ier;
     // Step 0: pre-phase the input strengths
     for (int i = 0; i < blksize; i++) {
       thrust::transform(thrust::cuda::par.on(stream), d_plan->prephase,
                         d_plan->prephase + d_plan->M, d_cstart + i * d_plan->M,
                         d_plan->c + i * d_plan->M, thrust::multiplies<cuda_complex<T>>());
     }
-    if ((ier = checkCudaErrors(cudaMemsetAsync(
-             d_plan->fk, 0, d_plan->maxbatchsize * d_plan->nf * sizeof(cuda_complex<T>),
-             stream))))
-      return ier;
+    // use thrust to print d_plan->c
+    thrust::for_each(
+        thrust::cuda::par.on(stream), d_plan->c, d_plan->c + blksize * d_plan->M,
+        [] __host__ __device__(cuda_complex<T> & x) {
+          printf("[cufinufft] d_plan->cBatch  = %0.16g | %0.16g\n", x.x, x.y);
+        });
     // Step 1: Spread
     if ((ier = cuspread3d<T>(d_plan, blksize))) return ier;
     // now d_plan->fk = d_plan->fw contains the spread values
+    thrust::for_each(thrust::cuda::par.on(stream), d_plan->fw + d_plan->nf1 * d_plan->nf2,
+                     d_plan->fw + d_plan->maxbatchsize * d_plan->nf1 * d_plan->nf2 * 5,
+                     [] __host__ __device__(cuda_complex<T> & x) {
+                       if (x.x != 0 || x.y != 0)
+                         printf("[cufinufft] d_plan->fw  = %0.16g | %0.16g\n", x.x, x.y);
+                     });
     // Step 2: Type 3 NUFFT
     // type 2 goes from fk to c
     // saving the results directly in the user output array d_fk
     // it needs to do blksize transforms
-    d_plan->t2_plan->ntransf = blksize;
+    // d_plan->t2_plan->ntransf = blksize;
     if ((ier = cufinufft3d2_exec<T>(d_fkstart, d_plan->fw, d_plan->t2_plan))) return ier;
     // Step 3: deconvolve
     // now we need to d_fk = d_fk*d_plan->deconv
