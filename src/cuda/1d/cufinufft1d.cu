@@ -146,6 +146,10 @@ int cufinufft1d3_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
     d_plan->c = d_plan->c_batch + i * d_plan->maxbatchsize * d_plan->M;
     // setting output for spreader
     d_plan->fk = d_plan->fw;
+    if ((ier = checkCudaErrors(cudaMemsetAsync(
+             d_plan->fw, 0, d_plan->maxbatchsize * d_plan->nf * sizeof(cuda_complex<T>),
+             stream))))
+      return ier;
     // NOTE: fw might need to be set to 0
     // Step 0: pre-phase the input strengths
     for (int i = 0; i < blksize; i++) {

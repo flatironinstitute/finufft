@@ -1172,8 +1172,9 @@ int FINUFFT_EXECUTE(FINUFFT_PLAN p, CPX *cj, CPX *fk) {
         BIGINT ioff = i * p->nj;
         for (BIGINT j = 0; j < p->nj; ++j) {
           p->CpBatch[ioff + j] = p->prephase[j] * cjb[ioff + j];
-          printf("[finufft] p->CpBatch[%ld] = %.16g | %.16gi\n", j, real(p->CpBatch[j]),
-                 imag(p->CpBatch[j])); // debug
+          //          printf("[finufft] ??p->CpBatch[%ld] = %.16g | %.16gi\n", j,
+          //          real(p->CpBatch[j]),
+          //                 imag(p->CpBatch[j])); // debug
         }
       }
       t_pre += timer.elapsedsec();
@@ -1184,12 +1185,12 @@ int FINUFFT_EXECUTE(FINUFFT_PLAN p, CPX *cj, CPX *fk) {
       spreadinterpSortedBatch(thisBatchSize, p, p->CpBatch); // p->X are primed
       t_spr += timer.elapsedsec();
 
-      for (int j = p->nf1 * p->nf2; j < p->nf1 * p->nf2 * 5; ++j) {
-        if (p->fwBatch[j].real() != 0.0 || p->fwBatch[j].imag() != 0.0)
-          printf("[finufft] fw[%d]=%.16g+%.16gi\n", j, p->fwBatch[j].real(),
-                 p->fwBatch[j].imag()); //
-        // debug
-      }
+      //      for (int j = p->nf1 * p->nf2; j < p->nf1 * p->nf2 * 5; ++j) {
+      //        if (p->fwBatch[j].real() != 0.0 || p->fwBatch[j].imag() != 0.0)
+      //          printf("[finufft] fw[%d]=%.16g+%.16gi\n", j, p->fwBatch[j].real(),
+      //                 p->fwBatch[j].imag()); //
+      //        // debug
+      //      }
 
       // STEP 2: type 2 NUFFT from fw batch to user output fk array batch...
       timer.restart();

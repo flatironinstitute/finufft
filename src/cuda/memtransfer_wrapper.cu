@@ -20,9 +20,9 @@ int allocgpumem1d_plan(cufinufft_plan_t<T> *d_plan)
 */
 {
   utils::WithCudaDevice device_swapper(d_plan->opts.gpu_device_id);
-  auto &stream = d_plan->stream;
+  const auto stream = d_plan->stream;
 
-  int ier;
+  int ier{0};
   int nf1          = d_plan->nf1;
   int maxbatchsize = d_plan->maxbatchsize;
 
@@ -90,8 +90,8 @@ int allocgpumem1d_nupts(cufinufft_plan_t<T> *d_plan)
 */
 {
   utils::WithCudaDevice device_swapper(d_plan->opts.gpu_device_id);
-  auto &stream = d_plan->stream;
-  int ier;
+  const auto stream = d_plan->stream;
+  int ier{0};
 
   int M = d_plan->M;
   CUDA_FREE_AND_NULL(d_plan->sortidx, stream, d_plan->supports_pools);
@@ -135,8 +135,8 @@ int allocgpumem2d_plan(cufinufft_plan_t<T> *d_plan)
 */
 {
   utils::WithCudaDevice device_swapper(d_plan->opts.gpu_device_id);
-  auto &stream = d_plan->stream;
-  int ier;
+  const auto stream = d_plan->stream;
+  int ier{0};
 
   int nf1          = d_plan->nf1;
   int nf2          = d_plan->nf2;
@@ -213,8 +213,8 @@ int allocgpumem2d_nupts(cufinufft_plan_t<T> *d_plan)
 */
 {
   utils::WithCudaDevice device_swapper(d_plan->opts.gpu_device_id);
-  auto &stream = d_plan->stream;
-  int ier;
+  const auto stream = d_plan->stream;
+  int ier{0};
 
   const int M = d_plan->M;
 
@@ -258,8 +258,8 @@ int allocgpumem3d_plan(cufinufft_plan_t<T> *d_plan)
 */
 {
   utils::WithCudaDevice device_swapper(d_plan->opts.gpu_device_id);
-  auto &stream = d_plan->stream;
-  int ier;
+  const auto stream = d_plan->stream;
+  int ier{0};
 
   int nf1          = d_plan->nf1;
   int nf2          = d_plan->nf2;
@@ -360,7 +360,11 @@ int allocgpumem3d_plan(cufinufft_plan_t<T> *d_plan)
   }
 
 finalize:
-  if (ier) freegpumemory(d_plan);
+  if (ier) {
+    std::cerr << "[allocgpumem3d_plan] error:"
+              << cudaGetErrorString(static_cast<cudaError_t>(ier)) << std::endl;
+    freegpumemory(d_plan);
+  }
 
   return ier;
 }
@@ -374,8 +378,8 @@ int allocgpumem3d_nupts(cufinufft_plan_t<T> *d_plan)
 */
 {
   utils::WithCudaDevice device_swapper(d_plan->opts.gpu_device_id);
-  auto &stream = d_plan->stream;
-  int ier;
+  const auto stream = d_plan->stream;
+  int ier{0};
   int M = d_plan->M;
 
   CUDA_FREE_AND_NULL(d_plan->sortidx, stream, d_plan->supports_pools);

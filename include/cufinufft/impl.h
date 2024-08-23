@@ -108,7 +108,6 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
     d_plan->mu = nmodes[2];
   } else {
     d_plan->opts.gpu_spreadinterponly = 1;
-    d_plan->opts.gpu_method           = 1;
   }
 
   int fftsign     = (iflag >= 0) ? 1 : -1;
@@ -663,7 +662,7 @@ int cufinufft_setpts_impl(int M, T *d_kx, T *d_ky, T *d_kz, int N, T *d_s, T *d_
     std::array<T, 3 * MAX_NQUAD> fseries_precomp_f{};
     thrust::device_vector<T> d_fseries_precomp_a(3 * MAX_NQUAD);
     thrust::device_vector<T> d_fseries_precomp_f(3 * MAX_NQUAD);
-    thrust::device_vector<T> phi_hat1{}, phi_hat2{}, phi_hat3{};
+    thrust::device_vector<T> phi_hat1, phi_hat2, phi_hat3;
     if (d_plan->dim > 0) {
       phi_hat1.resize(N);
     }
@@ -673,17 +672,17 @@ int cufinufft_setpts_impl(int M, T *d_kx, T *d_ky, T *d_kz, int N, T *d_s, T *d_
     if (d_plan->dim > 2) {
       phi_hat3.resize(N);
     }
-    onedim_fseries_kernel_precomp<T, false>(d_plan->nf1, fseries_precomp_f.data(),
+    onedim_fseries_kernel_precomp<T, false>(0, fseries_precomp_f.data(),
                                             fseries_precomp_a.data(), d_plan->spopts);
     if (d_plan->dim > 1) {
-      onedim_fseries_kernel_precomp<T, false>(
-          d_plan->nf2, fseries_precomp_f.data() + MAX_NQUAD,
-          fseries_precomp_a.data() + MAX_NQUAD, d_plan->spopts);
+      onedim_fseries_kernel_precomp<T, false>(0, fseries_precomp_f.data() + MAX_NQUAD,
+                                              fseries_precomp_a.data() + MAX_NQUAD,
+                                              d_plan->spopts);
     }
     if (d_plan->dim > 2) {
-      onedim_fseries_kernel_precomp<T, false>(
-          d_plan->nf3, fseries_precomp_f.data() + 2 * MAX_NQUAD,
-          fseries_precomp_a.data() + 2 * MAX_NQUAD, d_plan->spopts);
+      onedim_fseries_kernel_precomp<T, false>(0, fseries_precomp_f.data() + 2 * MAX_NQUAD,
+                                              fseries_precomp_a.data() + 2 * MAX_NQUAD,
+                                              d_plan->spopts);
     }
     // copy the precomputed data to the device using thrust
     thrust::copy(fseries_precomp_a.begin(), fseries_precomp_a.end(),
@@ -771,7 +770,7 @@ int cufinufft_setpts_impl(int M, T *d_kx, T *d_ky, T *d_kz, int N, T *d_s, T *d_
     int t2modes[]               = {d_plan->nf1, d_plan->nf2, d_plan->nf3};
     cufinufft_opts t2opts       = d_plan->opts;
     t2opts.gpu_spreadinterponly = 0;
-
+    t2opts.gpu_method           = 1;
     // Safe to ignore the return value here?
     if (d_plan->t2_plan) cufinufft_destroy_impl(d_plan->t2_plan);
     // check that maxbatchsize is correct
@@ -790,8 +789,8 @@ int cufinufft_setpts_impl(int M, T *d_kx, T *d_ky, T *d_kz, int N, T *d_s, T *d_
               __func__);
       goto finalize;
     }
-    return 0;
   }
+  return 0;
 finalize:
   cufinufft_destroy_impl(d_plan);
   return FINUFFT_ERR_CUDA_FAILURE;

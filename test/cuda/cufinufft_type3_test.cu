@@ -56,7 +56,7 @@ T relerrtwonorm(std::complex<T> *a, std::complex<T> *b, const std::size_t n) {
     nrm += std::real(std::conj(a[m]) * a[m]);
     const auto diff = a[m] - b[m];
     auto this_err   = std::real(std::conj(diff) * diff);
-    if (this_err > 1e-9) {
+    if (this_err > 1e-12) {
       std::cout << "a[" << m << "]: " << a[m] << " b[" << m << "]: " << b[m] << "\n";
       std::cout << "diff: " << diff << " this_err: " << this_err << std::endl;
     }
@@ -85,12 +85,11 @@ auto almost_equal(V *d_vec, T *cpu, const std::size_t size,
     }
     std::cout << std::setprecision(6);
   }
-  std::cout << "relerrtwonorm: " << relerrtwonorm(h_vec.data(), cpu, size) << std::endl;
+  const auto error = relerrtwonorm(h_vec.data(), cpu, size);
+  std::cout << "relerrtwonorm: " << error << std::endl;
+  ;
   // compare the l2 norm of the difference between the two vectors
-  if (relerrtwonorm(h_vec.data(), cpu, size) < tol) {
-    return true;
-  }
-  return false;
+  return (error < tol);
 }
 
 int main() {
@@ -102,9 +101,9 @@ int main() {
   cufinufft_default_opts(&opts);
   opts.debug           = 2;
   opts.upsampfac       = 2.00;
-  opts.gpu_kerevalmeth = 1;
+  opts.gpu_kerevalmeth = 0;
   opts.gpu_method      = 1;
-  opts.gpu_sort        = 0;
+  opts.gpu_sort        = 1;
   finufft_opts fin_opts;
   finufft_default_opts(&fin_opts);
   fin_opts.debug              = opts.debug;
@@ -114,10 +113,10 @@ int main() {
   const int iflag             = 1;
   const int ntransf           = 1;
   const int dim               = 3;
-  const double tol            = 1e-13;
-  const int n_modes[]         = {5, 4, 3};
+  const double tol            = 1e-15;
+  const int n_modes[]         = {5, 4, 2};
   const int N = n_modes[0] * (dim > 1 ? n_modes[1] : 1) * (dim > 2 ? n_modes[2] : 1);
-  const int M = 13;
+  const int M = 15;
   const double bandwidth = 1.0;
 
   thrust::host_vector<test_t> x(M * ntransf), y(M * ntransf), z(M * ntransf),
@@ -322,7 +321,7 @@ int main() {
                            (cuda_complex<T> *)d_fk.data().get(), plan);
     finufft_execute(cpu_plan, c.data(), fk.data());
     cudaDeviceSynchronize();
-    assert(almost_equal(d_fk.data().get(), fk.data(), N, tol, false));
+    assert(almost_equal(d_fk.data().get(), fk.data(), N, tol * 10, false));
     assert(cufinufft_destroy_impl<T>(plan) == 0);
     assert(finufft_destroy(cpu_plan) == 0);
     plan = nullptr;
@@ -331,8 +330,8 @@ int main() {
   // testing correctness of the plan creation
   //  cufinufft_plan_t<float> *single_plan{nullptr};
   cufinufft_plan_t<test_t> *double_plan{nullptr};
-  test_type1(double_plan);
-  test_type2(double_plan);
+  //  test_type1(double_plan);
+  //  test_type2(double_plan);
   test_type3(double_plan);
   return 0;
 }

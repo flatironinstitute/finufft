@@ -10,6 +10,8 @@ cmake_policy(SET CMP0091 NEW)
 
 include(CMakeDependentOption)
 
+set(CMAKE_CUDA_ARCHITECTURES native)
+
 # cmake-format: off
 # All options go here sphinx tag (don't remove): @cmake_opts_start
 option(FINUFFT_BUILD_FORTRAN "Whether to build the FINUFFT Fortran examples" OFF)
@@ -281,14 +283,6 @@ if(FINUFFT_USE_CPU)
 endif()
 
 if(FINUFFT_USE_CUDA)
-  if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
-    message(
-      "FINUFFT WARNING: No CUDA architecture supplied via '-DCMAKE_CUDA_ARCHITECTURES=...', defaulting to 'native'"
-    )
-    message(
-      "See: https://developer.nvidia.com/cuda-gpus for more details on what architecture to supply."
-    )
-  endif()
   enable_language(CUDA)
   find_package(CUDAToolkit REQUIRED)
   add_subdirectory(src/cuda)
