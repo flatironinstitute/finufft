@@ -3,7 +3,6 @@
 
 // octave (mkoctfile) needs this otherwise it doesn't know what int64_t is!
 #include <complex>
-#include <cstdint>
 
 #include <cuComplex.h>
 #include <cufinufft/types.h>
@@ -155,10 +154,10 @@ template<typename T> auto arrayrange(int n, T *a, cudaStream_t stream) {
 
   // copy d_min and d_max to host
   T min{}, max{};
-  checkCudaErrors(cudaMemcpy(&min, thrust::raw_pointer_cast(d_min_max.first), sizeof(T),
-                             cudaMemcpyDeviceToHost));
-  checkCudaErrors(cudaMemcpy(&max, thrust::raw_pointer_cast(d_min_max.second), sizeof(T),
-                             cudaMemcpyDeviceToHost));
+  checkCudaErrors(cudaMemcpyAsync(&min, thrust::raw_pointer_cast(d_min_max.first),
+                                  sizeof(T), cudaMemcpyDeviceToHost, stream));
+  checkCudaErrors(cudaMemcpyAsync(&max, thrust::raw_pointer_cast(d_min_max.second),
+                                  sizeof(T), cudaMemcpyDeviceToHost, stream));
   return std::make_tuple(min, max);
 }
 

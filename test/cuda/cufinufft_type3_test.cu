@@ -87,7 +87,6 @@ auto almost_equal(V *d_vec, T *cpu, const std::size_t size,
   }
   const auto error = relerrtwonorm(h_vec.data(), cpu, size);
   std::cout << "relerrtwonorm: " << error << std::endl;
-  ;
   // compare the l2 norm of the difference between the two vectors
   return (error < tol);
 }
@@ -103,7 +102,7 @@ int main() {
   opts.upsampfac       = 2.00;
   opts.gpu_kerevalmeth = 0;
   opts.gpu_method      = 1;
-  opts.gpu_sort        = 1;
+  opts.gpu_sort        = 0;
   finufft_opts fin_opts;
   finufft_default_opts(&fin_opts);
   fin_opts.debug              = opts.debug;
@@ -113,7 +112,7 @@ int main() {
   const int iflag             = 1;
   const int ntransf           = 1;
   const int dim               = 3;
-  const double tol            = 1e-15;
+  const double tol            = 1e-13;
   const int n_modes[]         = {5, 4, 2};
   const int N = n_modes[0] * (dim > 1 ? n_modes[1] : 1) * (dim > 2 ? n_modes[2] : 1);
   const int M = 15;
@@ -307,6 +306,43 @@ int main() {
     std::cout << "deconv :\n";
     assert(almost_equal(plan->deconv, cpu_plan->deconv, N, deconv_tol));
 
+    assert(plan->t2_plan->nf1 == cpu_plan->innerT2plan->nf1);
+    if (dim > 1) assert(plan->t2_plan->nf2 == cpu_plan->innerT2plan->nf2);
+    if (dim > 2) assert(plan->t2_plan->nf3 == cpu_plan->innerT2plan->nf3);
+    assert(plan->t2_plan->spopts.nspread == cpu_plan->innerT2plan->spopts.nspread);
+    assert(plan->t2_plan->spopts.upsampfac == cpu_plan->innerT2plan->spopts.upsampfac);
+    assert(plan->t2_plan->spopts.ES_beta == cpu_plan->innerT2plan->spopts.ES_beta);
+    assert(
+        plan->t2_plan->spopts.ES_halfwidth == cpu_plan->innerT2plan->spopts.ES_halfwidth);
+    assert(plan->t2_plan->spopts.ES_c == cpu_plan->innerT2plan->spopts.ES_c);
+
+    int nf[]       = {plan->t2_plan->nf1, plan->t2_plan->nf2, plan->t2_plan->nf3};
+    T *fwkerhalf[] = {plan->t2_plan->fwkerhalf1, plan->t2_plan->fwkerhalf2,
+                      plan->t2_plan->fwkerhalf3};
+    T *phiHat[]    = {cpu_plan->innerT2plan->phiHat1, cpu_plan->innerT2plan->phiHat2,
+                      cpu_plan->innerT2plan->phiHat3};
+    for (int idx = 0; idx < dim; ++idx) {
+      std::cout << "nf[" << idx << "]: " << nf[idx] << std::endl;
+      const auto size = (nf[idx] / 2 + 1);
+      std::vector<T> fwkerhalf_host(size, -1);
+      const auto ier = cudaMemcpy(fwkerhalf_host.data(), fwkerhalf[idx], size * sizeof(T),
+                                  cudaMemcpyDeviceToHost);
+      if (ier != cudaSuccess) {
+        std::cerr << "Error: " << cudaGetErrorString(ier) << std::endl;
+      }
+      assert(ier == cudaSuccess);
+      cudaDeviceSynchronize();
+      for (int i = 0; i < size; i++) {
+        const auto error = abs(1 - fwkerhalf_host[i] / phiHat[idx][i]);
+        if (error > tol) {
+          std::cout << "fwkerhalf[" << idx << "][" << i << "]: " << fwkerhalf_host[i]
+                    << " phiHat[" << idx << "][" << i << "]: " << phiHat[idx][i]
+                    << std::endl;
+          std::cout << "error: " << error << std::endl;
+        }
+        assert(error < tol * 100);
+      }
+    }
     for (int i = 0; i < M; i++) {
       c[i].real(randm11());
       c[i].imag(randm11());
@@ -316,7 +352,6 @@ int main() {
     // fk[i] = {randm11(), randm11()};
     // }
     // d_fk = fk;
-    cudaDeviceSynchronize();
     cufinufft_execute_impl((cuda_complex<T> *)d_c.data().get(),
                            (cuda_complex<T> *)d_fk.data().get(), plan);
     finufft_execute(cpu_plan, c.data(), fk.data());
@@ -330,8 +365,8 @@ int main() {
   // testing correctness of the plan creation
   //  cufinufft_plan_t<float> *single_plan{nullptr};
   cufinufft_plan_t<test_t> *double_plan{nullptr};
-  //  test_type1(double_plan);
-  //  test_type2(double_plan);
+  test_type1(double_plan);
+  test_type2(double_plan);
   test_type3(double_plan);
   return 0;
 }

@@ -56,9 +56,6 @@ int main() {
       std::vector<T> fwkerhalf_host(size, -1);
       const auto ier = cudaMemcpy(fwkerhalf_host.data(), fwkerhalf[idx], size * sizeof(T),
                                   cudaMemcpyDeviceToHost);
-      if (ier != cudaSuccess) {
-        std::cerr << "Error: " << cudaGetErrorString(ier) << std::endl;
-      }
       assert(ier == cudaSuccess);
       for (int i = 0; i < size; i++) {
         assert(abs(1 - fwkerhalf_host[i] / phiHat[idx][i]) < tol);
@@ -134,7 +131,6 @@ int main() {
     assert(plan->fwkerhalf3 == nullptr);
     assert(plan->spopts.spread_direction == type);
     assert(plan->type == type);
-    // assert(plan->opts.gpu_method == 0);
     assert(plan->opts.upsampfac == 1.25);
     assert(cufinufft_destroy_impl<T>(plan) == 0);
     plan = nullptr;
