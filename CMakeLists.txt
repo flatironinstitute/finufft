@@ -137,7 +137,7 @@ function(enable_asan target)
   endif()
 endfunction()
 
-set(CPM_DOWNLOAD_VERSION 0.40.0)
+set(CPM_DOWNLOAD_VERSION 0.40.2)
 include(cmake/setupCPM.cmake)
 
 if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
