@@ -47,9 +47,9 @@ __global__ void spread_2d_nupts_driven(
     }
 
     for (auto yy = ystart; yy <= yend; yy++) {
+      const auto iy = yy < 0 ? yy + nf2 : (yy > nf2 - 1 ? yy - nf2 : yy);
       for (auto xx = xstart; xx <= xend; xx++) {
         const auto ix        = xx < 0 ? xx + nf1 : (xx > nf1 - 1 ? xx - nf1 : xx);
-        const auto iy        = yy < 0 ? yy + nf2 : (yy > nf2 - 1 ? yy - nf2 : yy);
         const auto outidx    = ix + iy * nf1;
         const auto kervalue1 = ker1[xx - xstart];
         const auto kervalue2 = ker2[yy - ystart];
@@ -240,9 +240,9 @@ __global__ void interp_2d_nupts_driven(
     cuda_complex<T> cnow{0, 0};
     for (int yy = ystart; yy <= yend; yy++) {
       const T kervalue2 = ker2[yy - ystart];
+      const auto iy     = yy < 0 ? yy + nf2 : (yy > nf2 - 1 ? yy - nf2 : yy);
       for (int xx = xstart; xx <= xend; xx++) {
         const auto ix        = xx < 0 ? xx + nf1 : (xx > nf1 - 1 ? xx - nf1 : xx);
-        const auto iy        = yy < 0 ? yy + nf2 : (yy > nf2 - 1 ? yy - nf2 : yy);
         const auto inidx     = ix + iy * nf1;
         const auto kervalue1 = ker1[xx - xstart];
         cnow.x += fw[inidx].x * kervalue1 * kervalue2;

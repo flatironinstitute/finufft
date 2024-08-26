@@ -154,31 +154,30 @@ int cufinufft3d3_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
                         d_plan->prephase + d_plan->M, d_cstart + i * d_plan->M,
                         d_plan->c + i * d_plan->M, thrust::multiplies<cuda_complex<T>>());
     }
-    // use thrust to print d_plan->c
-    //    thrust::for_each(
-    //        thrust::cuda::par.on(stream), d_plan->c, d_plan->c + blksize * d_plan->M,
-    //        [] __host__ __device__(cuda_complex<T> & x) {
-    //          printf("[cufinufft] d_plan->cBatch  = %0.16g | %0.16g\n", x.x, x.y);
-    //        });
+
     // Step 1: Spread
 
     if ((ier = cuspread3d<T>(d_plan, blksize))) return ier;
     // now d_plan->fk = d_plan->fw contains the spread values
-    //    thrust::for_each(thrust::cuda::par.on(stream), d_plan->fw + d_plan->nf1 *
-    //    d_plan->nf2,
-    //                     d_plan->fw + d_plan->maxbatchsize * d_plan->nf1 * d_plan->nf2 *
-    //                     5,
-    //                     [] __host__ __device__(cuda_complex<T> & x) {
-    //                       if (x.x != 0 || x.y != 0)
-    //                         printf("[cufinufft] d_plan->fw  = %0.16g | %0.16g\n", x.x,
-    //                         x.y);
-    //                     });
+
     // Step 2: Type 3 NUFFT
+
     // type 2 goes from fk to c
     // saving the results directly in the user output array d_fk
     // it needs to do blksize transforms
     d_plan->t2_plan->ntransf = blksize;
     if ((ier = cufinufft3d2_exec<T>(d_fkstart, d_plan->fw, d_plan->t2_plan))) return ier;
+    // print d_fk using thrust on the GPU
+    // create a host vector to store the results
+    // copy d_fk to host
+    // print the results
+    //    std::vector<cuda_complex<T>> h_fk(d_plan->N);
+    //    cudaMemcpyAsync(h_fk.data(), d_fkstart, d_plan->N * sizeof(cuda_complex<T>),
+    //                    cudaMemcpyDeviceToHost, stream);
+    //    for (int i = 0; i < d_plan->N; i++) {
+    //      printf("[cufinufft] d_fk = %.16g %.16g\n", h_fk[i].x, h_fk[i].y);
+    //    }
+
     // Step 3: deconvolve
     // now we need to d_fk = d_fk*d_plan->deconv
     for (int i = 0; i < blksize; i++) {

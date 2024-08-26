@@ -106,6 +106,7 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
     d_plan->ms = nmodes[0];
     d_plan->mt = nmodes[1];
     d_plan->mu = nmodes[2];
+    printf("[cufinufft] (ms,mt,mu): %d %d %d\n", d_plan->ms, d_plan->mt, d_plan->mu);
   } else {
     d_plan->opts.gpu_spreadinterponly = 1;
   }
@@ -231,6 +232,11 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
     d_plan->nf1 = nf1;
     d_plan->nf2 = nf2;
     d_plan->nf3 = nf3;
+    d_plan->nf  = nf1 * nf2 * nf3;
+    if (d_plan->opts.debug) {
+      printf("[cufinufft] (nf1,nf2,nf3) = (%d, %d, %d)\n", d_plan->nf1, d_plan->nf2,
+             d_plan->nf3);
+    }
 
     using namespace cufinufft::memtransfer;
     switch (d_plan->dim) {
@@ -423,6 +429,9 @@ Notes: the type T means either single or double, matching the
   } break;
   }
 
+  if (d_plan->opts.debug) {
+    printf("[cufinufft] plan->M=%d\n", M);
+  }
   return ier;
 }
 
@@ -561,7 +570,7 @@ int cufinufft_setpts_impl(int M, T *d_kx, T *d_ky, T *d_kz, int N, T *d_s, T *d_
     if (checked_realloc(d_plan->ky, sizeof(T) * M) != cudaSuccess) goto finalize;
     if (checked_realloc(d_plan->d_t, sizeof(T) * N) != cudaSuccess) goto finalize;
   }
-  if (d_plan->dim > 1) {
+  if (d_plan->dim > 2) {
     if (checked_realloc(d_plan->kz, sizeof(T) * M) != cudaSuccess) goto finalize;
     if (checked_realloc(d_plan->d_u, sizeof(T) * N) != cudaSuccess) goto finalize;
   }
@@ -570,14 +579,9 @@ int cufinufft_setpts_impl(int M, T *d_kx, T *d_ky, T *d_kz, int N, T *d_s, T *d_
   if (checked_realloc(d_plan->deconv, sizeof(cuda_complex<T>) * N) != cudaSuccess)
     goto finalize;
 
-  // should not be needed
-  // cudaStreamSynchronize(stream);
-
   // NOTE: init-captures are not allowed for extended __host__ __device__ lambdas
 
   if (d_plan->dim > 0) {
-    // TODO: merging the tree calls to GPU into one as in the version below might
-    //       might be more readable and faster
     const auto ig1 = T(1) / d_plan->type3_params.gam1;
     const auto C1  = -d_plan->type3_params.C1;
     thrust::transform(
