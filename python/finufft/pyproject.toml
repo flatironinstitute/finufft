@@ -59,7 +59,7 @@ input = "finufft/__init__.py"
 build-verbosity = 1
 # Not building for PyPy and musllinux for now.
 skip = "pp* *musllinux*"
-test-requires = "pytest"
+test-requires = ["pytest", "pytest-mock"]
 test-command = "pytest {project}/python/finufft/test"
 
 [tool.cibuildwheel.linux]
