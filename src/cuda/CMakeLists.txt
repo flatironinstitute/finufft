@@ -37,9 +37,8 @@ set(FINUFFT_CUDA_FLAGS
     -fmad=true
     -restrict
     --extra-device-vectorization
-    $<$<CONFIG:Debug>:-G
-    -maxrregcount
-    32>>)
+    # $<$<CONFIG:Debug>:-G -maxrregcount 64 >
+    >)
 
 add_library(cufinufft_common_objects OBJECT ${PRECISION_INDEPENDENT_SRC})
 target_include_directories(cufinufft_common_objects

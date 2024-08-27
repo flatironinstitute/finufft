@@ -121,9 +121,9 @@ int main() {
   cufinufft_default_opts(&opts);
   opts.debug           = 2;
   opts.upsampfac       = 2.00;
-  opts.gpu_kerevalmeth = 0;
+  opts.gpu_kerevalmeth = 1;
   opts.gpu_method      = 1;
-  opts.gpu_sort        = 0;
+  opts.gpu_sort        = 1;
   opts.modeord         = 0;
   finufft_opts fin_opts;
   finufft_default_opts(&fin_opts);
@@ -133,12 +133,12 @@ int main() {
   fin_opts.spread_sort        = opts.gpu_sort;
   fin_opts.modeord            = opts.modeord;
   const int iflag             = 1;
-  const int ntransf           = 1;
+  const int ntransf           = 10;
   const int dim               = 3;
   const double tol            = 1e-13;
-  const int n_modes[]         = {5, 4, 2};
+  const int n_modes[]         = {10, 4, 2};
   const int N = n_modes[0] * (dim > 1 ? n_modes[1] : 1) * (dim > 2 ? n_modes[2] : 1);
-  const int M = 15;
+  const int M = 20;
   const double bandwidth = 1.0;
 
   thrust::host_vector<test_t> x(M * ntransf), y(M * ntransf), z(M * ntransf),
@@ -224,7 +224,7 @@ int main() {
     assert(plan->spopts.ES_halfwidth == cpu_plan->spopts.ES_halfwidth);
     assert(plan->spopts.ES_c == cpu_plan->spopts.ES_c);
 
-    for (int i = 0; i < M; i++) {
+    for (int i = 0; i < M * ntransf; i++) {
       c[i].real(rand_util_11());
       c[i].imag(rand_util_11());
     }
@@ -234,7 +234,7 @@ int main() {
                            (cuda_complex<T> *)d_fk.data().get(), plan);
     finufft_execute(cpu_plan, (std::complex<T> *)c.data(), (std::complex<T> *)fk.data());
     std::cout << "type " << type << ": ";
-    assert(almost_equal(d_fk.data().get(), fk.data(), N, tol * 10));
+    assert(almost_equal(d_fk.data().get(), fk.data(), N * ntransf, tol * 10));
     assert(cufinufft_destroy_impl<T>(plan) == 0);
     assert(finufft_destroy(cpu_plan) == 0);
     cudaDeviceSynchronize();
@@ -264,7 +264,7 @@ int main() {
     assert(plan->spopts.ES_halfwidth == cpu_plan->spopts.ES_halfwidth);
     assert(plan->spopts.ES_c == cpu_plan->spopts.ES_c);
 
-    for (int i = 0; i < N; i++) {
+    for (int i = 0; i < N * ntransf; i++) {
       fk[i].real(rand_util_11());
       fk[i].imag(rand_util_11());
     }
@@ -275,16 +275,16 @@ int main() {
     finufft_execute(cpu_plan, c.data(), fk.data());
     cudaDeviceSynchronize();
     std::cout << "type " << type << ": ";
-    assert(almost_equal(d_c.data().get(), c.data(), M, tol));
+    assert(almost_equal(d_c.data().get(), c.data(), M * ntransf, tol));
     assert(cufinufft_destroy_impl<T>(plan) == 0);
     assert(finufft_destroy(cpu_plan) == 0);
     cudaDeviceSynchronize();
     plan = nullptr;
   };
 
-  auto test_type3 = [iflag, tol, ntransf, dim, cpu_planer, deconv_tol, M, N, n_modes,
-                     &d_x, &d_y, &d_z, &d_s, &d_t, &d_u, &c, &d_c, &fk, &d_fk, &opts,
-                     &rand_util_11, &s, &t, &u, &x, &y, &z](auto plan) {
+  const auto test_type3 = [iflag, tol, ntransf, dim, cpu_planer, deconv_tol, M, N,
+                           n_modes, &d_x, &d_y, &d_z, &d_s, &d_t, &d_u, &c, &d_c, &fk,
+                           &d_fk, &opts, &rand_util_11](auto plan) {
     // plan is a pointer to a type that contains real_t
     using T             = typename std::remove_pointer<decltype(plan)>::type::real_t;
     const int type      = 3;
@@ -363,48 +363,30 @@ int main() {
       cudaDeviceSynchronize();
       for (int i = 0; i < size; i++) {
         const auto error = abs(1 - fwkerhalf_host[i] / phiHat[idx][i]);
-        if (error > tol) {
-          std::cout << "fwkerhalf[" << idx << "][" << i << "]: " << fwkerhalf_host[i]
-                    << " phiHat[" << idx << "][" << i << "]: " << phiHat[idx][i]
-                    << std::endl;
-          std::cout << "error: " << error << std::endl;
-        }
-        //        assert(error < tol * 1000);
+        assert(error < tol * 1000);
       }
     }
-    for (int i = 0; i < M; i++) {
+    for (int i = 0; i < M * ntransf; i++) {
       c[i].real(rand_util_11());
       c[i].imag(rand_util_11());
     }
     d_c = c;
-    for (int i = 0; i < N; i++) {
-      fk[i] = {1000, 1000};
-    }
-    d_fk = fk;
     cufinufft_execute_impl((cuda_complex<T> *)d_c.data().get(),
                            (cuda_complex<T> *)d_fk.data().get(), plan);
     finufft_execute(cpu_plan, c.data(), fk.data());
     cudaDeviceSynchronize();
-    std::cout << "CpBatch : ";
-    assert(almost_equal(plan->c_batch, cpu_plan->CpBatch, M, tol, false));
-    std::cout << "fw : ";
-    assert(almost_equal(plan->fw, cpu_plan->fwBatch, plan->nf, tol * 10, false));
-    std::cout << "t2_plan->fw : ";
-    assert(almost_equal(plan->t2_plan->fw, cpu_plan->innerT2plan->fwBatch,
-                        plan->t2_plan->nf, std::numeric_limits<T>::epsilon() * 100));
-
-    if (M * N < TEST_BIGPROB) {
-      std::vector<std::complex<T>> Ft(N, 0);
-      dirft3d3(M, x.data(), y.data(), z.data(), c.data(), cpu_plan->fftSign, N, s.data(),
-               t.data(), u.data(), Ft.data()); // writes to F
-      std::cout << "dirft3d cpu: ";
-      (almost_equal(fk.data(), Ft.data(), N, tol * 10, false));
-      std::cout << "dirft3d gpu: ";
-      (almost_equal(d_fk.data().get(), Ft.data(), N, tol * 10, false));
+    if (ntransf == 1) {
+      std::cout << "CpBatch : ";
+      assert(almost_equal(plan->c_batch, cpu_plan->CpBatch, M, tol, false));
+      std::cout << "fw : ";
+      assert(almost_equal(plan->fw, cpu_plan->fwBatch, plan->nf, tol * 10, false));
+      std::cout << "t2_plan->fw : ";
+      assert(almost_equal(plan->t2_plan->fw, cpu_plan->innerT2plan->fwBatch,
+                          plan->t2_plan->nf, std::numeric_limits<T>::epsilon() * 100));
     }
 
     std::cout << "fk : ";
-    (almost_equal(d_fk.data().get(), fk.data(), N, tol * 10, false));
+    assert(almost_equal(d_fk.data().get(), fk.data(), N * ntransf, tol * 10, false));
     assert(cufinufft_destroy_impl<T>(plan) == 0);
     assert(finufft_destroy(cpu_plan) == 0);
     plan = nullptr;

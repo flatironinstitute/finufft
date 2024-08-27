@@ -143,7 +143,7 @@ int cufinufft2d3_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
     d_cstart    = d_c + i * d_plan->maxbatchsize * d_plan->M;
     d_fkstart   = d_fk + i * d_plan->maxbatchsize * d_plan->N;
     // setting input for spreader
-    d_plan->c = d_plan->c_batch + i * d_plan->maxbatchsize * d_plan->M;
+    d_plan->c = d_plan->c_batch;
     // setting output for spreader
     d_plan->fk = d_plan->fw;
     if ((ier = checkCudaErrors(cudaMemsetAsync(
