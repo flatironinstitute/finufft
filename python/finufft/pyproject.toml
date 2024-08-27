@@ -41,7 +41,8 @@ build-dir = "build/{wheel_tag}"
 # Tell skbuild to look for the CMakeLists.txt file two directories up.
 cmake.source-dir = "../../"
 cmake.targets = ["finufft"]
-cmake.define = {"FINUFFT_BUILD_PYTHON" = "ON"}
+cmake.define.FINUFFT_BUILD_PYTHON = "ON"
+cmake.define.FINUFFT_ARCH_FLAGS = ""        # Disable -march=native (default)
 
 wheel.packages = ["finufft"]
 
