@@ -445,6 +445,7 @@ __global__ void interp_3d_nupts_driven(
   T ker2[MAX_NSPREAD];
   T ker3[MAX_NSPREAD];
 #endif
+  cuda_complex<T> cnow{};
   for (int i = blockDim.x * blockIdx.x + threadIdx.x; i < M;
        i += blockDim.x * gridDim.x) {
     const auto x_rescaled = fold_rescale(x[idxnupts[i]], nf1);
@@ -459,7 +460,10 @@ __global__ void interp_3d_nupts_driven(
     const T y1 = T(ystart) - y_rescaled;
     const T z1 = T(zstart) - z_rescaled;
 
-    cuda_complex<T> cnow{0, 0};
+    // having cnow allocated to 0 inside the loop breaks type 3 spread
+    // are we doing a buffer overflow somewhere?
+    cnow.x = T(0);
+    cnow.y = T(0);
 
     if constexpr (KEREVALMETH == 1) {
       eval_kernel_vec_horner(ker1, x1, ns, sigma);
@@ -473,7 +477,7 @@ __global__ void interp_3d_nupts_driven(
 
     for (int zz = zstart; zz <= zend; zz++) {
       const auto kervalue3 = ker3[zz - zstart];
-      int iz               = zz < 0 ? zz + nf3 : (zz > nf3 - 1 ? zz - nf3 : zz);
+      const auto iz        = zz < 0 ? zz + nf3 : (zz > nf3 - 1 ? zz - nf3 : zz);
       for (int yy = ystart; yy <= yend; yy++) {
         const auto kervalue2 = ker2[yy - ystart];
         int iy               = yy < 0 ? yy + nf2 : (yy > nf2 - 1 ? yy - nf2 : yy);

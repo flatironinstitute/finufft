@@ -8,15 +8,15 @@
 
 #include <random>
 
+#include <thrust/complex.h>
+#include <thrust/device_vector.h>
+#include <thrust/host_vector.h>
+
 #include <cufinufft.h>
 #include <cufinufft/impl.h>
 #include <cufinufft/utils.h>
 
 #include <finufft/test_defs.h>
-
-#include <thrust/complex.h>
-#include <thrust/device_vector.h>
-#include <thrust/host_vector.h>
 
 template<typename T, typename V> bool equal(V *d_vec, T *cpu, const std::size_t size) {
   // copy d_vec to cpu
@@ -91,6 +91,27 @@ auto almost_equal(V *d_vec, T *cpu, const std::size_t size,
   return (error < tol);
 }
 
+template<typename T1, typename T2, typename T3, typename T4>
+void dirft3d3(T1 nj, T2 *x, T2 *y, T2 *z, T4 *c, T3 iflag, T1 nk, T2 *s, T2 *t, T2 *u,
+              T4 *f)
+/* Direct computation of 3D type-3 nonuniform FFT. Interface same as finufft3d3
+c               nj-1
+c     f[k]  =   SUM   c[j] exp(+-i (s[k] x[j] + t[k] y[j] + u[k] z[j]))
+c               j=0
+c                    for k = 0, ..., nk-1
+c  If iflag>0 the + sign is used, otherwise the - sign is used, in the
+c  exponential. Uses C++ complex type. Simple brute force.  Barnett 2/1/17
+*/
+{
+  for (BIGINT k = 0; k < nk; ++k) {
+    CPX ss = (iflag > 0) ? IMA * s[k] : -IMA * s[k];
+    CPX tt = (iflag > 0) ? IMA * t[k] : -IMA * t[k];
+    CPX uu = (iflag > 0) ? IMA * u[k] : -IMA * u[k];
+    f[k]   = CPX(0, 0);
+    for (BIGINT j = 0; j < nj; ++j) f[k] += c[j] * exp(ss * x[j] + tt * y[j] + uu * z[j]);
+  }
+}
+
 int main() {
   // for now, once finufft is demacroized we can test float
   using test_t = double;
@@ -102,7 +123,7 @@ int main() {
   opts.upsampfac       = 2.00;
   opts.gpu_kerevalmeth = 0;
   opts.gpu_method      = 1;
-  opts.gpu_sort        = 1;
+  opts.gpu_sort        = 0;
   opts.modeord         = 0;
   finufft_opts fin_opts;
   finufft_default_opts(&fin_opts);
@@ -263,7 +284,7 @@ int main() {
 
   auto test_type3 = [iflag, tol, ntransf, dim, cpu_planer, deconv_tol, M, N, n_modes,
                      &d_x, &d_y, &d_z, &d_s, &d_t, &d_u, &c, &d_c, &fk, &d_fk, &opts,
-                     &rand_util_11](auto plan) {
+                     &rand_util_11, &s, &t, &u, &x, &y, &z](auto plan) {
     // plan is a pointer to a type that contains real_t
     using T             = typename std::remove_pointer<decltype(plan)>::type::real_t;
     const int type      = 3;
@@ -356,23 +377,34 @@ int main() {
       c[i].imag(rand_util_11());
     }
     d_c = c;
-    // for (int i = 0; i < N; i++) {
-    // fk[i] = {randm11(), randm11()};
-    // }
-    // d_fk = fk;
+    for (int i = 0; i < N; i++) {
+      fk[i] = {1000, 1000};
+    }
+    d_fk = fk;
     cufinufft_execute_impl((cuda_complex<T> *)d_c.data().get(),
                            (cuda_complex<T> *)d_fk.data().get(), plan);
     finufft_execute(cpu_plan, c.data(), fk.data());
     cudaDeviceSynchronize();
-    std::cout << "t2_plan->fw : ";
-    assert(almost_equal(plan->t2_plan->fw, cpu_plan->innerT2plan->fwBatch,
-                        plan->t2_plan->nf, std::numeric_limits<T>::epsilon() * 100));
     std::cout << "CpBatch : ";
     assert(almost_equal(plan->c_batch, cpu_plan->CpBatch, M, tol, false));
     std::cout << "fw : ";
     assert(almost_equal(plan->fw, cpu_plan->fwBatch, plan->nf, tol * 10, false));
+    std::cout << "t2_plan->fw : ";
+    assert(almost_equal(plan->t2_plan->fw, cpu_plan->innerT2plan->fwBatch,
+                        plan->t2_plan->nf, std::numeric_limits<T>::epsilon() * 100));
+
+    if (M * N < TEST_BIGPROB) {
+      std::vector<std::complex<T>> Ft(N, 0);
+      dirft3d3(M, x.data(), y.data(), z.data(), c.data(), cpu_plan->fftSign, N, s.data(),
+               t.data(), u.data(), Ft.data()); // writes to F
+      std::cout << "dirft3d cpu: ";
+      (almost_equal(fk.data(), Ft.data(), N, tol * 10, false));
+      std::cout << "dirft3d gpu: ";
+      (almost_equal(d_fk.data().get(), Ft.data(), N, tol * 10, false));
+    }
+
     std::cout << "fk : ";
-    assert(almost_equal(d_fk.data().get(), fk.data(), N, tol * 10, false));
+    (almost_equal(d_fk.data().get(), fk.data(), N, tol * 10, false));
     assert(cufinufft_destroy_impl<T>(plan) == 0);
     assert(finufft_destroy(cpu_plan) == 0);
     plan = nullptr;

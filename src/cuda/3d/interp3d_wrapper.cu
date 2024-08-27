@@ -52,9 +52,6 @@ int cuinterp3d_nuptsdriven(int nf1, int nf2, int nf3, int M, cufinufft_plan_t<T>
                            int blksize) {
   const auto stream = d_plan->stream;
 
-  dim3 threadsPerBlock;
-  dim3 blocks;
-
   int ns    = d_plan->spopts.nspread; // psi's support in terms of number of cells
   T es_c    = d_plan->spopts.ES_c;
   T es_beta = d_plan->spopts.ES_beta;
@@ -68,10 +65,8 @@ int cuinterp3d_nuptsdriven(int nf1, int nf2, int nf3, int M, cufinufft_plan_t<T>
   cuda_complex<T> *d_c  = d_plan->c;
   cuda_complex<T> *d_fw = d_plan->fw;
 
-  threadsPerBlock.x = 16;
-  threadsPerBlock.y = 1;
-  blocks.x          = (M + threadsPerBlock.x - 1) / threadsPerBlock.x;
-  blocks.y          = 1;
+  const dim3 threadsPerBlock{16, 1, 1};
+  const dim3 blocks{(M + threadsPerBlock.x - 1) / threadsPerBlock.x, 1, 1};
 
   if (d_plan->opts.gpu_kerevalmeth) {
     for (int t = 0; t < blksize; t++) {

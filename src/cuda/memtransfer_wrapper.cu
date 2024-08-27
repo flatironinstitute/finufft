@@ -59,6 +59,7 @@ int allocgpumem1d_plan(cufinufft_plan_t<T> *d_plan)
       goto finalize;
   } break;
   default:
+    ier = FINUFFT_ERR_METHOD_NOTVALID;
     std::cerr << "err: invalid method " << std::endl;
   }
 
@@ -180,6 +181,7 @@ int allocgpumem2d_plan(cufinufft_plan_t<T> *d_plan)
       goto finalize;
   } break;
   default:
+    ier = FINUFFT_ERR_METHOD_NOTVALID;
     std::cerr << "[allocgpumem2d_plan] error: invalid method\n";
   }
 
@@ -240,6 +242,7 @@ int allocgpumem2d_nupts(cufinufft_plan_t<T> *d_plan)
       goto finalize;
   } break;
   default:
+    ier = FINUFFT_ERR_METHOD_NOTVALID;
     std::cerr << "[allocgpumem2d_nupts] error: invalid method\n";
   }
 
@@ -337,6 +340,7 @@ int allocgpumem3d_plan(cufinufft_plan_t<T> *d_plan)
       goto finalize;
   } break;
   default:
+    ier = FINUFFT_ERR_METHOD_NOTVALID;
     std::cerr << "[allocgpumem3d_plan] error: invalid method\n";
   }
 
@@ -409,6 +413,7 @@ int allocgpumem3d_nupts(cufinufft_plan_t<T> *d_plan)
       goto finalize;
   } break;
   default:
+    ier = FINUFFT_ERR_METHOD_NOTVALID;
     std::cerr << "[allocgpumem3d_nupts] error: invalid method\n";
   }
 

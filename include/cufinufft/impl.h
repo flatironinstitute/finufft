@@ -85,9 +85,10 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
 
   /* allocate the plan structure, assign address to user pointer. */
   auto *d_plan = new cufinufft_plan_t<T>;
-  *d_plan_ptr  = d_plan;
-  // Zero out your struct, (sets all pointers to NULL)
   memset(d_plan, 0, sizeof(*d_plan));
+  *d_plan_ptr = d_plan;
+
+  // Zero out your struct, (sets all pointers to NULL)
   // set nf1, nf2, nf3 to 1 for type 3, type 1, type 2 will overwrite this
   d_plan->nf1 = 1;
   d_plan->nf2 = 1;
@@ -129,14 +130,16 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
 
   // cudaMallocAsync isn't supported for all devices, regardless of cuda version. Check
   // for support
-  cudaDeviceGetAttribute(&d_plan->supports_pools, cudaDevAttrMemoryPoolsSupported,
-                         device_id);
-  static bool warned = false;
-  if (!warned && !d_plan->supports_pools && d_plan->opts.gpu_stream != nullptr) {
-    fprintf(stderr,
-            "[cufinufft] Warning: cudaMallocAsync not supported on this device. Use of "
-            "CUDA streams may not perform optimally.\n");
-    warned = true;
+  {
+    cudaDeviceGetAttribute(&d_plan->supports_pools, cudaDevAttrMemoryPoolsSupported,
+                           device_id);
+    static bool warned = false;
+    if (!warned && !d_plan->supports_pools && d_plan->opts.gpu_stream != nullptr) {
+      fprintf(stderr,
+              "[cufinufft] Warning: cudaMallocAsync not supported on this device. Use of "
+              "CUDA streams may not perform optimally.\n");
+      warned = true;
+    }
   }
 
   // simple check to use upsampfac=1.25 if tol is big

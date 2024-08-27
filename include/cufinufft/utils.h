@@ -35,21 +35,11 @@ __inline__ __device__ double atomicAdd(double *address, double val) {
 }
 #endif
 
-#ifdef __CUDA_ARCH__
-__forceinline__ __device__ auto interval(const int ns, const float x) {
-  // float to int round up and fused multiply-add to round up
-  const auto xstart = __float2int_ru(__fmaf_ru(ns, -.5f, x));
-  // float to int round down and fused multiply-add to round down
-  const auto xend = __float2int_rd(__fmaf_rd(ns, .5f, x));
+template<typename T> __forceinline__ __device__ auto interval(const int ns, const T x) {
+  const auto xstart = int(std::ceil(x - T(ns) * T(.5)));
+  const auto xend   = int(std::floor(x + T(ns) * T(.5)));
   return int2{xstart, xend};
 }
-__forceinline__ __device__ auto interval(const int ns, const double x) {
-  // same as above
-  const auto xstart = __double2int_ru(__fma_ru(ns, -.5, x));
-  const auto xend   = __double2int_rd(__fma_rd(ns, .5, x));
-  return int2{xstart, xend};
-}
-#endif
 
 // Define a macro to check if NVCC version is >= 11.3
 #if defined(__CUDACC_VER_MAJOR__) && defined(__CUDACC_VER_MINOR__)
