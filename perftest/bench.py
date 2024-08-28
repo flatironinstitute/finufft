@@ -33,6 +33,20 @@ def build_args(args):
 # clone the repository
 run_command('git', ['clone', 'https://github.com/DiamonDinoia/finufft.git'])
 
+def get_cpu_temperature():
+    try:
+        # Run the sensors command
+        output, _ = run_command('sensors', [])
+        # Parse the output to find the CPU temperature
+        for line in output.split('\n'):
+            if 'Core 0' in line:
+                # Extract the temperature value
+                temp_str = line.split()[2]
+                return temp_str
+    except subprocess.CalledProcessError as e:
+        print('Error executing sensors command:', e)
+        return None
+
 all_data = pd.DataFrame()
 
 args = {
@@ -148,6 +162,9 @@ for version in versions:
                 args['--' + 'type'] = type
                 for upsampfac in upsamp:
                     args['--upsampfac'] = upsampfac
+                    while (cpu_temp := float(get_cpu_temperature())) > 42.0:
+                        print(f'CPU temperature is {cpu_temp}°C, waiting for it to cool down...')
+                        sleep(30)
                     if param.thread == 1:
                          out, _ = run_command('taskset', ['-c', '0', 'build/perftest/perftest'] + build_args(args))
                     else:
