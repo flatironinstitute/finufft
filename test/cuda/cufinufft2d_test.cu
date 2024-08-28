@@ -191,7 +191,6 @@ int run_test(int method, int type, int N1, int N2, int M, T tol, T checktol, int
     rel_error = abs(c[jt] - ct) / infnorm(M, (std::complex<T> *)c.data());
     printf("[gpu   ] one targ: rel err in c[%d] is %.3g\n", jt, rel_error);
   } else if (type == 3) {
-
     int jt                = (N1 * N2) / 2; // check arbitrary choice of one targ pt
     thrust::complex<T> J  = thrust::complex<T>(0, iflag);
     thrust::complex<T> Ft = thrust::complex<T>(0, 0);

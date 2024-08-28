@@ -375,7 +375,7 @@ int main() {
                            (cuda_complex<T> *)d_fk.data().get(), plan);
     finufft_execute(cpu_plan, c.data(), fk.data());
     cudaDeviceSynchronize();
-    if (ntransf == 1) {
+    if (ntransf == 1) { // cpu and gpu handle batching differently
       std::cout << "CpBatch : ";
       assert(almost_equal(plan->c_batch, cpu_plan->CpBatch, M, tol, false));
       std::cout << "fw : ";
