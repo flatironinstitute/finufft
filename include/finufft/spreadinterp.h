@@ -53,6 +53,8 @@ FINUFFT_EXPORT int FINUFFT_CDECL spreadinterpSorted(
     FLT *FINUFFT_RESTRICT ky, FLT *FINUFFT_RESTRICT kz,
     FLT *FINUFFT_RESTRICT data_nonuniform, const finufft_spread_opts &opts, int did_sort);
 FINUFFT_EXPORT FLT FINUFFT_CDECL evaluate_kernel(FLT x, const finufft_spread_opts &opts);
+FINUFFT_EXPORT FLT FINUFFT_CDECL evaluate_kernel_horner(FLT x,
+                                                        const finufft_spread_opts &opts);
 FINUFFT_EXPORT int FINUFFT_CDECL setup_spreader(finufft_spread_opts &opts, FLT eps,
                                                 double upsampfac, int kerevalmeth,
                                                 int debug, int showwarn, int dim);
