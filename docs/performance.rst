@@ -24,7 +24,8 @@ The other parameters are the same as finufft_opts.
 
 To generate the results run `bench.py` as is inside perftest. It requires ``numpy``, ``pandas`` and ``matplotlib``.
 The script assumes a bash like shell and it might not work on Windows.
-DO NOT RUN the script from inside the finufft git directory as it will mess up the git directory and fail!
+.. warning::
+    DO NOT RUN the script from inside the finufft git directory as it will mess up the git directory and fail!
 
 1D Transforms
 ---------------------------------------------
