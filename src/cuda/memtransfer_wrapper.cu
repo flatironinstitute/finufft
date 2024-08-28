@@ -431,9 +431,8 @@ void freegpumemory(cufinufft_plan_t<T> *d_plan)
     Melody Shih 11/21/21
 */
 {
-
   utils::WithCudaDevice device_swapper(d_plan->opts.gpu_device_id);
-  // passing the stream by reference was causing a segfault
+  // Fixes a crash whewre the plan itself is deleted before the stream
   const auto stream = d_plan->stream;
 
   CUDA_FREE_AND_NULL(d_plan->fw, stream, d_plan->supports_pools);

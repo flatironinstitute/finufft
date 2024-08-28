@@ -7,18 +7,15 @@ foreach(srcfile ${test_src})
   target_include_directories(${executable} PUBLIC ${CUFINUFFT_INCLUDE_DIRS})
   find_library(MathLib m)
   if(MathLib)
-    target_link_libraries(${executable} PUBLIC ${MathLib})
+    target_link_libraries(${executable} PUBLIC cufinufft ${MathLib})
   endif()
-  target_link_libraries(${executable} PUBLIC cufinufft)
   target_compile_features(${executable} PUBLIC cxx_std_17)
   set_target_properties(
     ${executable} PROPERTIES LINKER_LANGUAGE CUDA CUDA_ARCHITECTURES
-                                                  ${FINUFFT_CUDA_ARCHITECTURES})
-  target_compile_options(${executable} PUBLIC ${FINUFFT_CUDA_FLAGS})
+                                                  "${FINUFFT_CUDA_ARCHITECTURES}")
   message(STATUS "Adding test ${executable}"
                  " with CUDA_ARCHITECTURES=${FINUFFT_CUDA_ARCHITECTURES}"
                  " and INCLUDE=${CUFINUFFT_INCLUDE_DIRS}")
-  enable_asan(${executable})
 endforeach()
 
 function(add_tests PREC REQ_TOL CHECK_TOL UPSAMP)

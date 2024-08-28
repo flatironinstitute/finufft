@@ -4,13 +4,10 @@ project(
   VERSION 2.3.0
   LANGUAGES C CXX)
 
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 # windows MSVC runtime flags policy
 cmake_policy(SET CMP0091 NEW)
 
 include(CMakeDependentOption)
-
-set(CMAKE_CUDA_ARCHITECTURES native)
 
 # cmake-format: off
 # All options go here sphinx tag (don't remove): @cmake_opts_start
@@ -120,13 +117,19 @@ endif()
 # double precision The single precision compilation is done with -DSINGLE
 set(FINUFFT_PRECISION_DEPENDENT_SOURCES
     src/finufft.cpp src/fft.cpp src/simpleinterfaces.cpp src/spreadinterp.cpp
-    src/utils.cpp fortran/finufftfort.cpp)
+    src/utils.cpp)
+
+# If we're building for Fortran, make sure we also include the translation
+# layer.
+if(FINUFFT_BUILD_FORTRAN)
+  list(APPEND FINUFFT_PRECISION_DEPENDENT_SOURCES fortran/finufftfort.cpp)
+endif()
 
 # set linker flags for sanitizer
 set(FINUFFT_SANITIZER_FLAGS)
 if(FINUFFT_ENABLE_SANITIZERS)
-  set(FINUFFT_SANITIZER_FLAGS -fsanitize=undefined -fsanitize=bounds-strict
-                              /fsanitize=address /RTC1)
+  set(FINUFFT_SANITIZER_FLAGS -fsanitize=address -fsanitize=undefined
+                              -fsanitize=bounds-strict /fsanitize=address /RTC1)
   filter_supported_compiler_flags(FINUFFT_SANITIZER_FLAGS
                                   FINUFFT_SANITIZER_FLAGS)
   set(FINUFFT_SANITIZER_FLAGS
@@ -140,7 +143,7 @@ function(enable_asan target)
   endif()
 endfunction()
 
-set(CPM_DOWNLOAD_VERSION 0.40.0)
+set(CPM_DOWNLOAD_VERSION 0.40.2)
 include(cmake/setupCPM.cmake)
 
 if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
@@ -283,6 +286,18 @@ if(FINUFFT_USE_CPU)
 endif()
 
 if(FINUFFT_USE_CUDA)
+  if(NOT DEFINED FINUFFT_CUDA_ARCHITECTURES)
+    if(DEFINED CMAKE_CUDA_ARCHITECTURES)
+      set(FINUFFT_CUDA_ARCHITECTURES "{$CMAKE_CUDA_ARCHITECTURES}")
+    else()
+      message(
+        "FINUFFT WARNING: No CUDA architecture supplied via '-DFINUFFT_CUDA_ARCHITECTURES=...', defaulting to 'native'"
+      )
+      message(
+        "See: https://developer.nvidia.com/cuda-gpus for more details on what architecture to supply."
+      )
+    endif()
+  endif()
   enable_language(CUDA)
   find_package(CUDAToolkit REQUIRED)
   add_subdirectory(src/cuda)

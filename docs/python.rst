@@ -9,10 +9,19 @@ The easiest way to install is to run::
   pip install finufft
 
 which downloads and installs the latest precompiled binaries from PyPI.
+If you would like to compile from source, you can tell ``pip`` to compile the library from source with the option ``--no-binary`` using the command::
+
+  pip install --no-binary finufft finufft
+
+By default, this will use the ``-march=native`` flag when compiling the library, which should result in improved performance.
+Note that ``finufft`` has to be specified twice (first as an argument to ``--no-binary`` and second as the package the is to be installed). This option also allows you to switch out the default FFT library (FFTW) for DUCC0 using::
+
+  pip install --no-binary finufft finufft --config-settings=cmake.define.FINUFFT_USE_DUCC0=ON finufft
+
 If you have ``pytest`` installed, you can test it with::
 
   pytest python/finufft/test
-  
+
 or, without having ``pytest`` you can run the older-style eyeball check::
 
   python3 python/finufft/test/run_accuracy_tests.py

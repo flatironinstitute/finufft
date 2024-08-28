@@ -11,6 +11,7 @@ import warnings
 import importlib.util
 import pathlib
 import numpy as np
+from ctypes.util import find_library
 
 from ctypes import c_double
 from ctypes import c_int

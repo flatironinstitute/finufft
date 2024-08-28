@@ -71,6 +71,7 @@ V 2.3.0-rc1 (8/6/24)
 * overide single-output relative error by l2 relative error in exit codes of
   test/finufft?d_test.cpp to reduce CI fails due to random numbers on some
   platforms in single-prec (with DUCC, etc). (Barnett PR516)
+* fix GPU segfault due to stream deletion as pointer not value (Barbone PR520)
 
 V 2.2.0 (12/12/23)
 
