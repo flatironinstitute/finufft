@@ -1,6 +1,5 @@
 # Each source test file is instantiated in single and double precision
-set(PERFTESTS guru_timing_test manysmallprobs spreadtestnd spreadtestndall
-              perftest)
+set(PERFTESTS guru_timing_test manysmallprobs spreadtestnd spreadtestndall)
 
 foreach(TEST ${PERFTESTS})
   add_executable(${TEST} ${TEST}.cpp)
@@ -16,3 +15,13 @@ foreach(TEST ${PERFTESTS})
   endif()
   finufft_link_test(${TEST}f)
 endforeach()
+
+include(CheckIncludeFile)
+check_include_file("getopt.h" HAVE_GETOPT_H)
+if(HAVE_GETOPT_H)
+  add_executable(perftest perftest.cpp)
+  if(FINUFFT_USE_DUCC0)
+    target_compile_definitions(perftest PRIVATE -DFINUFFT_USE_DUCC0)
+  endif()
+  finufft_link_test(perftest)
+endif()
