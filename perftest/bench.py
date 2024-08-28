@@ -6,6 +6,7 @@ import pandas as pd
 import numpy as np
 import io
 from numbers import Number
+import time
 
 
 # function that runs a command line command and returns the output
@@ -39,7 +40,7 @@ def get_cpu_temperature():
         output, _ = run_command('sensors', [])
         # Parse the output to find the CPU temperature
         for line in output.split('\n'):
-            if 'Core 0' in line:
+            if 'Core 14' in line:
                 # Extract the temperature value
                 temp_str = line.split()[2]
                 return temp_str
@@ -162,13 +163,14 @@ for version in versions:
                 args['--' + 'type'] = type
                 for upsampfac in upsamp:
                     args['--upsampfac'] = upsampfac
-                    while (cpu_temp := float(get_cpu_temperature())) > 42.0:
-                        print(f'CPU temperature is {cpu_temp}°C, waiting for it to cool down...')
-                        sleep(30)
+                    # while (cpu_temp := float(get_cpu_temperature()[:-2])) > 44.0:
+                    #     print(f'CPU temperature is {cpu_temp}°C, waiting for it to cool down...')
+                    #     time.sleep(5)
                     if param.thread == 1:
-                         out, _ = run_command('taskset', ['-c', '0', 'build/perftest/perftest'] + build_args(args))
+                        out, _ = run_command('taskset', ['-c', '0', 'build/perftest/perftest'] + build_args(args))
                     else:
-                         out, _ = run_command('build/perftest/perftest', build_args(args))
+                        time.sleep(30)
+                        out, _ = run_command('build/perftest/perftest', build_args(args))
                     # parse the output, escape all the lines that start with #
                     out = io.StringIO(out)
                     lines = out.readlines()
