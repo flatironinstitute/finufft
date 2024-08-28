@@ -90,8 +90,8 @@ $     }
 $     else if (strcmp(fname[ifield],"spread_thread") == 0) {
 $       oc->spread_thread = (int)round(*mxGetPr(mxGetFieldByNumber(om,idx,ifield)));
 $     }
-$     else if (strcmp(fname[ifield],"batchsize") == 0) {
-$       oc->batchsize = (int)round(*mxGetPr(mxGetFieldByNumber(om,idx,ifield)));
+$     else if (strcmp(fname[ifield],"maxbatchsize") == 0) {
+$       oc->maxbatchsize = (int)round(*mxGetPr(mxGetFieldByNumber(om,idx,ifield)));
 $     }
 $     else if (strcmp(fname[ifield],"nthreads") == 0) {
 $       oc->nthreads = (int)round(*mxGetPr(mxGetFieldByNumber(om,idx,ifield)));
