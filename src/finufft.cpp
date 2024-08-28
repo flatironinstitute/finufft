@@ -270,8 +270,6 @@ void onedim_nuft_kernel(BIGINT nk, FLT *k, FLT *phihat, finufft_spread_opts opts
   for (int n = 0; n < q; ++n) {
     z[n] *= (FLT)J2;                         // quadr nodes for [0,J/2]
     f[n] = J2 * (FLT)w[n] * evaluate_kernel((FLT)z[n], opts); // w/ quadr weights
-    // printf("[finufft] f[%d] = %.16g\n",n,f[n]);
-    // printf("[finufft] z[%d] = %.16g\n",n,z[n]);
   }
 #pragma omp parallel for num_threads(opts.nthreads)
   for (BIGINT j = 0; j < nk; ++j) {          // loop along output array
@@ -975,38 +973,6 @@ int FINUFFT_SETPTS(FINUFFT_PLAN p, BIGINT nj, FLT *xj, FLT *yj, FLT *zj, BIGINT 
         p->Up[k] = p->t3P.h3 * p->t3P.gam3 * (u[k] - p->t3P.D3); // so |u'_k| <
                                                                  // pi/R
     }
-    //    // print Sp, Tp, Up
-    //    for (BIGINT k = 0; k < nk; ++k) {
-    //      printf("Sp[%lld] = %.16g\n", (long long)k, p->Sp[k]);
-    //    }
-    //    for (BIGINT k = 0; k < nk; ++k) {
-    //      printf("Tp[%lld] = %.16g\n", (long long)k, p->Tp[k]);
-    //    }
-    //    for (BIGINT k = 0; k < nk; ++k) {
-    //      printf("Up[%lld] = %.16g\n", (long long)k, p->Up[k]);
-    //    }
-    //    // print min, max of Sp, Tp, Up
-    //    FLT minSp = p->Sp[0], maxSp = p->Sp[0];
-    //    FLT minTp = p->Tp[0], maxTp = p->Tp[0];
-    //    FLT minUp = p->Up[0], maxUp = p->Up[0];
-    //    for (BIGINT k = 0; k < nk; ++k) {
-    //      if (p->Sp[k] < minSp) minSp = p->Sp[k];
-    //      if (p->Sp[k] > maxSp) maxSp = p->Sp[k];
-    //      if (p->Tp[k] < minTp) minTp = p->Tp[k];
-    //      if (p->Tp[k] > maxTp) maxTp = p->Tp[k];
-    //      if (p->Up[k] < minUp) minUp = p->Up[k];
-    //      if (p->Up[k] > maxUp) maxUp = p->Up[k];
-    //    }
-    //    printf("minSp = %.16g, maxSp = %.16g\n", minSp, maxSp);
-
-    // #pragma omp parallel for num_threads(p->opts.nthreads) schedule(static)
-    //     for (BIGINT k = 0; k < nk; ++k) {
-    //       p->Sp[k] = s[k];
-    //       if (d > 1)
-    //         p->Tp[k] =t[k];
-    //       if (d > 2)
-    //         p->Up[k] = u[k];
-    //     }
     // (old STEP 3a) Compute deconvolution post-factors array (per targ pt)...
     // (exploits that FT separates because kernel is prod of 1D funcs)
     if (p->deconv) free(p->deconv);
@@ -1196,9 +1162,6 @@ int FINUFFT_EXECUTE(FINUFFT_PLAN p, CPX *cj, CPX *fk) {
         BIGINT ioff = i * p->nj;
         for (BIGINT j = 0; j < p->nj; ++j) {
           p->CpBatch[ioff + j] = p->prephase[j] * cjb[ioff + j];
-          //          printf("[finufft] ??p->CpBatch[%ld] = %.16g | %.16gi\n", j,
-          //          real(p->CpBatch[j]),
-          //                 imag(p->CpBatch[j])); // debug
         }
       }
       t_pre += timer.elapsedsec();
@@ -1209,13 +1172,6 @@ int FINUFFT_EXECUTE(FINUFFT_PLAN p, CPX *cj, CPX *fk) {
       spreadinterpSortedBatch(thisBatchSize, p, p->CpBatch); // p->X are primed
       t_spr += timer.elapsedsec();
 
-      //      for (int j = p->nf1 * p->nf2; j < p->nf1 * p->nf2 * 5; ++j) {
-      //        if (p->fwBatch[j].real() != 0.0 || p->fwBatch[j].imag() != 0.0)
-      //          printf("[finufft] fw[%d]=%.16g+%.16gi\n", j, p->fwBatch[j].real(),
-      //                 p->fwBatch[j].imag()); //
-      //        // debug
-      //      }
-
       // STEP 2: type 2 NUFFT from fw batch to user output fk array batch...
       timer.restart();
       // illegal possible shrink of ntrans *after* plan for smaller last batch:
@@ -1224,11 +1180,6 @@ int FINUFFT_EXECUTE(FINUFFT_PLAN p, CPX *cj, CPX *fk) {
      still the same size, as Andrea explained; just wastes a few flops) */
       FINUFFT_EXECUTE(p->innerT2plan, fkb, p->fwBatch);
       t_t2 += timer.elapsedsec();
-      //      for (int j = 0; j < p->nk; ++j) {
-      //          printf("[finufft] fk[%d]=%.16g %.16g\n", j, fkb[j].real(),
-      //          fkb[j].imag());
-      // debug
-      //      }
       // STEP 3: apply deconvolve (precomputed 1/phiHat(targ_k), phasing too)...
       timer.restart();
 #pragma omp parallel for num_threads(p->opts.nthreads)

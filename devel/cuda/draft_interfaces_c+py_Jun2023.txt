@@ -1,6 +1,6 @@
 int finufft_makeplan(int type, int dim, int64_t* nmodes, int iflag, int ntr, double eps, finufft_plan* plan, nufft_opts* opts)
-int cufinufft_makeplan(int type, int dim, int* nmodes, int iflag, int ntransf, double tol, int maxbatchsize, cufinufft_plan *plan, cufinufft_opts *opts)
-// Remove maxbatchsize (-> opts), use int64_t.   Rename ntransf to ntr, tol to eps.
+int cufinufft_makeplan(int type, int dim, int* nmodes, int iflag, int ntransf, double tol, int batchsize, cufinufft_plan *plan, cufinufft_opts *opts)
+// Remove batchsize (-> opts), use int64_t.   Rename ntransf to ntr, tol to eps.
 
 int finufft_setpts(finufft_plan plan, int64_t m, double* x, double* y, double* z, int64_t n, double* s, double* t, double* z)
 int cufinufft_setpts(int m, double* x, double* y, double* z, int n, double* s, double* t, double *u, cufinufft_plan plan)

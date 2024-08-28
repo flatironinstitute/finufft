@@ -37,8 +37,7 @@ template<typename T> struct cufinufft_plan_t {
   CUFINUFFT_BIGINT mt;
   CUFINUFFT_BIGINT mu;
   int ntransf;
-  int maxbatchsize; // TODO: this might be called batchsize non maxbatchsize (double
-                    //       check)
+  int batchsize;
   int iflag;
   int supports_pools;
 
@@ -52,8 +51,8 @@ template<typename T> struct cufinufft_plan_t {
   T *kx;
   T *ky;
   T *kz;
-  cuda_complex<T> *c_batch;
-  cuda_complex<T> *fw_batch;
+  cuda_complex<T> *CpBatch; // working array of prephased strengths
+  cuda_complex<T> *fwbatch;
 
   // no allocs here
   cuda_complex<T> *c;
@@ -68,16 +67,16 @@ template<typename T> struct cufinufft_plan_t {
   } type3_params;
   int N;                        // number of NU freq pts (type 3 only)
   CUFINUFFT_BIGINT nf;
-  T *d_s;
-  T *d_t;
-  T *d_u;
+  T *d_Sp;
+  T *d_Tp;
+  T *d_Up;
   T tol;
   // inner type 2 plan for type 3
   cufinufft_plan_t<T> *t2_plan;
-  // new allocs. FIXME: convert to device vectors to use resize
+  // new allocs.
+  // FIXME: convert to device vectors to use resize
   cuda_complex<T> *prephase; // pre-phase, for all input NU pts
   cuda_complex<T> *deconv;   // reciprocal of kernel FT, phase, all output NU pts
-  cuda_complex<T> *CpBatch;  // working array of prephased strengths
 
   // Arrays that used in subprob method
   int *idxnupts;        // length: #nupts, index of the nupts in the bin-sorted order
@@ -94,8 +93,6 @@ template<typename T> struct cufinufft_plan_t {
 
   cufftHandle fftplan;
   cudaStream_t stream;
-
-  using real_t = T;
 };
 
 template<typename T> constexpr static inline cufftType_t cufft_type();

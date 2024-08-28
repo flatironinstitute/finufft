@@ -20,16 +20,36 @@ static __forceinline__ __device__ constexpr T cudaFMA(const T a, const T b, cons
   }
   static_assert(std::is_same_v<T, float> || std::is_same_v<T, double>,
                 "Only float and double are supported.");
-  return T{0};
+  return std::fma(a, b, c);
 }
 
 template<typename T>
 constexpr __forceinline__ __host__ __device__ T fold_rescale(T x, int N) {
   constexpr auto x2pi = T(0.159154943091895345554011992339482617);
   constexpr auto half = T(0.5);
-  const auto result   = x * x2pi + half;
-  return (result - std::floor(result)) * T(N);
-  // #endif
+#if defined(__CUDA_ARCH__)
+  if constexpr (std::is_same_v<T, float>) {
+    // fused multiply-add, round to nearest even
+    auto result = cudaFMA(x, x2pi, half);
+    // subtract, round down
+    result = __fsub_rd(result, floorf(result));
+    // multiply, round down
+    return __fmul_rd(result, static_cast<T>(N));
+  } else if constexpr (std::is_same_v<T, double>) {
+    // fused multiply-add, round to nearest even
+    auto result = cudaFMA(x, x2pi, half);
+    // subtract, round down
+    result = __dsub_rd(result, floor(result));
+    // multiply, round down
+    return __dmul_rd(result, static_cast<T>(N));
+  } else {
+    static_assert(std::is_same_v<T, float> || std::is_same_v<T, double>,
+                  "Only float and double are supported.");
+  }
+#else
+  const auto result = std::fma(x, x2pi, half);
+  return (result - std::floor(result)) * static_cast<T>(N);
+#endif
 }
 
 template<typename T>

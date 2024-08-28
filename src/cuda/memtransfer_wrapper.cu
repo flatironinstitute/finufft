@@ -24,7 +24,7 @@ int allocgpumem1d_plan(cufinufft_plan_t<T> *d_plan)
 
   int ier{0};
   int nf1          = d_plan->nf1;
-  int maxbatchsize = d_plan->maxbatchsize;
+  int maxbatchsize = d_plan->batchsize;
 
   switch (d_plan->opts.gpu_method) {
   case 1: {
@@ -141,7 +141,7 @@ int allocgpumem2d_plan(cufinufft_plan_t<T> *d_plan)
 
   int nf1          = d_plan->nf1;
   int nf2          = d_plan->nf2;
-  int maxbatchsize = d_plan->maxbatchsize;
+  int maxbatchsize = d_plan->batchsize;
 
   switch (d_plan->opts.gpu_method) {
   case 1: {
@@ -267,7 +267,7 @@ int allocgpumem3d_plan(cufinufft_plan_t<T> *d_plan)
   int nf1          = d_plan->nf1;
   int nf2          = d_plan->nf2;
   int nf3          = d_plan->nf3;
-  int maxbatchsize = d_plan->maxbatchsize;
+  int maxbatchsize = d_plan->batchsize;
 
   switch (d_plan->opts.gpu_method) {
   case 1: {
@@ -456,15 +456,15 @@ void freegpumemory(cufinufft_plan_t<T> *d_plan)
   }
 
   CUDA_FREE_AND_NULL(d_plan->kx, stream, d_plan->supports_pools);
-  CUDA_FREE_AND_NULL(d_plan->d_s, stream, d_plan->supports_pools);
+  CUDA_FREE_AND_NULL(d_plan->d_Sp, stream, d_plan->supports_pools);
   CUDA_FREE_AND_NULL(d_plan->ky, stream, d_plan->supports_pools);
-  CUDA_FREE_AND_NULL(d_plan->d_t, stream, d_plan->supports_pools);
+  CUDA_FREE_AND_NULL(d_plan->d_Tp, stream, d_plan->supports_pools);
   CUDA_FREE_AND_NULL(d_plan->kz, stream, d_plan->supports_pools);
-  CUDA_FREE_AND_NULL(d_plan->d_u, stream, d_plan->supports_pools);
+  CUDA_FREE_AND_NULL(d_plan->d_Up, stream, d_plan->supports_pools);
   CUDA_FREE_AND_NULL(d_plan->prephase, stream, d_plan->supports_pools);
   CUDA_FREE_AND_NULL(d_plan->deconv, stream, d_plan->supports_pools);
-  CUDA_FREE_AND_NULL(d_plan->fw_batch, stream, d_plan->supports_pools);
-  CUDA_FREE_AND_NULL(d_plan->c_batch, stream, d_plan->supports_pools);
+  CUDA_FREE_AND_NULL(d_plan->fwbatch, stream, d_plan->supports_pools);
+  CUDA_FREE_AND_NULL(d_plan->CpBatch, stream, d_plan->supports_pools);
 }
 
 template int allocgpumem1d_plan<float>(cufinufft_plan_t<float> *d_plan);

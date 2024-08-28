@@ -120,7 +120,7 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
   // TODO: check if this is the right heuristic
   if (maxbatchsize == 0)                 // implies: use a heuristic.
     maxbatchsize = std::min(ntransf, 8); // heuristic from test codes
-  d_plan->maxbatchsize = maxbatchsize;
+  d_plan->batchsize = maxbatchsize;
 
   const auto stream = d_plan->stream = (cudaStream_t)d_plan->opts.gpu_stream;
 
@@ -466,19 +466,19 @@ int cufinufft_setpts_impl(int M, T *d_kx, T *d_ky, T *d_kz, int N, T *d_s, T *d_
     fprintf(stderr, "[%s] Error: d_s is nullptr but dim > 0.\n", __func__);
     return FINUFFT_ERR_INVALID_ARGUMENT;
   }
-  d_plan->d_s = d_plan->dim > 0 ? d_s : nullptr;
+  d_plan->d_Sp = d_plan->dim > 0 ? d_s : nullptr;
 
   if (d_plan->dim > 1 && d_t == nullptr) {
     fprintf(stderr, "[%s] Error: d_t is nullptr but dim > 1.\n", __func__);
     return FINUFFT_ERR_INVALID_ARGUMENT;
   }
-  d_plan->d_t = d_plan->dim > 1 ? d_t : nullptr;
+  d_plan->d_Tp = d_plan->dim > 1 ? d_t : nullptr;
 
   if (d_plan->dim > 2 && d_u == nullptr) {
     fprintf(stderr, "[%s] Error: d_u is nullptr but dim > 2.\n", __func__);
     return FINUFFT_ERR_INVALID_ARGUMENT;
   }
-  d_plan->d_u = d_plan->dim > 2 ? d_u : nullptr;
+  d_plan->d_Up = d_plan->dim > 2 ? d_u : nullptr;
 
   const auto dim = d_plan->dim;
   // no need to set the params to zero, as they are already zeroed out in the plan
@@ -562,20 +562,20 @@ int cufinufft_setpts_impl(int M, T *d_kx, T *d_ky, T *d_kz, int N, T *d_s, T *d_
   };
   // FIXME: check the size of the allocs for the batch interface
   if (checked_realloc(d_plan->fw, sizeof(cuda_complex<T>) * d_plan->nf *
-                                      d_plan->maxbatchsize) != cudaSuccess)
+                                      d_plan->batchsize) != cudaSuccess)
     goto finalize;
-  if (checked_realloc(d_plan->c_batch,
-                      sizeof(cuda_complex<T>) * M * d_plan->maxbatchsize) != cudaSuccess)
+  if (checked_realloc(d_plan->CpBatch, sizeof(cuda_complex<T>) * M * d_plan->batchsize) !=
+      cudaSuccess)
     goto finalize;
   if (checked_realloc(d_plan->kx, sizeof(T) * M) != cudaSuccess) goto finalize;
-  if (checked_realloc(d_plan->d_s, sizeof(T) * N) != cudaSuccess) goto finalize;
+  if (checked_realloc(d_plan->d_Sp, sizeof(T) * N) != cudaSuccess) goto finalize;
   if (d_plan->dim > 1) {
     if (checked_realloc(d_plan->ky, sizeof(T) * M) != cudaSuccess) goto finalize;
-    if (checked_realloc(d_plan->d_t, sizeof(T) * N) != cudaSuccess) goto finalize;
+    if (checked_realloc(d_plan->d_Tp, sizeof(T) * N) != cudaSuccess) goto finalize;
   }
   if (d_plan->dim > 2) {
     if (checked_realloc(d_plan->kz, sizeof(T) * M) != cudaSuccess) goto finalize;
-    if (checked_realloc(d_plan->d_u, sizeof(T) * N) != cudaSuccess) goto finalize;
+    if (checked_realloc(d_plan->d_Up, sizeof(T) * N) != cudaSuccess) goto finalize;
   }
   if (checked_realloc(d_plan->prephase, sizeof(cuda_complex<T>) * M) != cudaSuccess)
     goto finalize;
@@ -644,21 +644,21 @@ int cufinufft_setpts_impl(int M, T *d_kx, T *d_ky, T *d_kz, int N, T *d_s, T *d_
     const auto scale = d_plan->type3_params.h1 * d_plan->type3_params.gam1;
     const auto D1    = -d_plan->type3_params.D1;
     thrust::transform(
-        thrust::cuda::par.on(stream), d_s, d_s + N, d_plan->d_s,
+        thrust::cuda::par.on(stream), d_s, d_s + N, d_plan->d_Sp,
         [scale, D1] __host__ __device__(const T s) -> T { return scale * (s + D1); });
   }
   if (d_plan->dim > 1) {
     const auto scale = d_plan->type3_params.h2 * d_plan->type3_params.gam2;
     const auto D2    = -d_plan->type3_params.D2;
     thrust::transform(
-        thrust::cuda::par.on(stream), d_t, d_t + N, d_plan->d_t,
+        thrust::cuda::par.on(stream), d_t, d_t + N, d_plan->d_Tp,
         [scale, D2] __host__ __device__(const T t) -> T { return scale * (t + D2); });
   }
   if (d_plan->dim > 2) {
     const auto scale = d_plan->type3_params.h3 * d_plan->type3_params.gam3;
     const auto D3    = -d_plan->type3_params.D3;
     thrust::transform(
-        thrust::cuda::par.on(stream), d_u, d_u + N, d_plan->d_u,
+        thrust::cuda::par.on(stream), d_u, d_u + N, d_plan->d_Up,
         [scale, D3] __host__ __device__(const T u) -> T { return scale * (u + D3); });
   }
   { // here we declare phi_hat1, phi_hat2, and phi_hat3
@@ -698,9 +698,10 @@ int cufinufft_setpts_impl(int M, T *d_kx, T *d_ky, T *d_kz, int N, T *d_s, T *d_
                  d_fseries_precomp_f.begin());
     // sync the stream before calling the kernel might be needed
     if (cufserieskernelcompute(d_plan->dim, N, N, N, d_fseries_precomp_f.data().get(),
-                               d_fseries_precomp_a.data().get(), d_plan->d_s, d_plan->d_t,
-                               d_plan->d_u, phi_hat1.data().get(), phi_hat2.data().get(),
-                               phi_hat3.data().get(), d_plan->spopts.nspread, stream))
+                               d_fseries_precomp_a.data().get(), d_plan->d_Sp,
+                               d_plan->d_Tp, d_plan->d_Up, phi_hat1.data().get(),
+                               phi_hat2.data().get(), phi_hat3.data().get(),
+                               d_plan->spopts.nspread, stream))
       goto finalize;
 
     const auto is_c_finite = std::isfinite(d_plan->type3_params.C1) &&
@@ -781,12 +782,12 @@ int cufinufft_setpts_impl(int M, T *d_kx, T *d_ky, T *d_kz, int N, T *d_s, T *d_
     // Safe to ignore the return value here?
     if (d_plan->t2_plan) cufinufft_destroy_impl(d_plan->t2_plan);
     // check that maxbatchsize is correct
-    if (cufinufft_makeplan_impl<T>(2, dim, t2modes, d_plan->iflag, d_plan->maxbatchsize,
+    if (cufinufft_makeplan_impl<T>(2, dim, t2modes, d_plan->iflag, d_plan->batchsize,
                                    d_plan->tol, &d_plan->t2_plan, &t2opts)) {
       fprintf(stderr, "[%s] inner t2 plan cufinufft_makeplan failed\n", __func__);
       goto finalize;
     }
-    if (cufinufft_setpts_12_impl(N, d_plan->d_s, d_plan->d_t, d_plan->d_u,
+    if (cufinufft_setpts_12_impl(N, d_plan->d_Sp, d_plan->d_Tp, d_plan->d_Up,
                                  d_plan->t2_plan)) {
       fprintf(stderr, "[%s] inner t2 plan cufinufft_setpts_12 failed\n", __func__);
       goto finalize;

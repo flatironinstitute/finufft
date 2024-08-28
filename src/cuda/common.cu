@@ -35,6 +35,9 @@ __global__ void fseries_kernel_compute(int nf1, int nf2, int nf3, T *f, T *a,
   T *at = a + threadIdx.y * MAX_NQUAD;
   T *ft = f + threadIdx.y * MAX_NQUAD;
   T *oarr;
+  // standard parallelism pattern in cuda. using a 2D grid, this allows to leverage more
+  // threads as the parallelism is x*y*z
+  // each thread check the y index to determine which array to use
   if (threadIdx.y == 0) {
     oarr = fwkerhalf1;
     nf   = nf1;
@@ -67,6 +70,9 @@ __global__ void fseries_kernel_compute(int nf1, int nf2, int nf3, T *f, T *a, T 
   T *at = a + threadIdx.y * MAX_NQUAD;
   T *ft = f + threadIdx.y * MAX_NQUAD;
   T *oarr, *k;
+  // standard parallelism pattern in cuda. using a 2D grid, this allows to leverage more
+  // threads as the parallelism is x*y*z
+  // each thread check the y index to determine which array to use
   if (threadIdx.y == 0) {
     k    = kx;
     oarr = fwkerhalf1;
@@ -118,10 +124,13 @@ int cufserieskernelcompute(int dim, int nf1, int nf2, int nf3, T *d_f, T *d_a, T
                            T *d_ky, T *d_kz, T *d_fwkerhalf1, T *d_fwkerhalf2,
                            T *d_fwkerhalf3, int ns, cudaStream_t stream)
 /*
-    wrapper for approximation of Fourier series of real symmetric spreading
-    kernel.
+    Approximates exact Fourier transform of cnufftspread's real symmetric
+    kernel, directly via q-node quadrature on Euler-Fourier formula, exploiting
+    narrowness of kernel. Evaluates at set of arbitrary freqs k in [-pi, pi),
+    for a kernel with x measured in grid-spacings. (See previous routine for
+    FT definition).
 
-Melody Shih 2/20/22
+    Marco Barbone 08/28/2024
 */
 {
   int nout = max(max(nf1, nf2), nf3);
@@ -161,39 +170,6 @@ void set_nf_type12(CUFINUFFT_BIGINT ms, cufinufft_opts opts, finufft_spread_opts
   }
 }
 
-// template<typename T>
-// void onedim_fseries_kernel(CUFINUFFT_BIGINT nf, T *fwkerhalf, finufft_spread_opts opts)
-///*
-//  Approximates exact Fourier series coeffs of cnufftspread's real symmetric
-//  kernel, directly via q-node quadrature on Euler-Fourier formula, exploiting
-//  narrowness of kernel. Uses phase winding for cheap eval on the regular freq
-//  grid. Note that this is also the Fourier transform of the non-periodized
-//  kernel. The FT definition is f(k) = int e^{-ikx} f(x) dx. The output has an
-//  overall prefactor of 1/h, which is needed anyway for the correction, and
-//  arises because the quadrature weights are scaled for grid units not x units.
-//
-//  Inputs:
-//  nf - size of 1d uniform spread grid, must be even.
-//  opts - spreading opts object, needed to eval kernel (must be already set up)
-//
-//  Outputs:
-//  fwkerhalf - real Fourier series coeffs from indices 0 to nf/2 inclusive,
-//              divided by h = 2pi/n.
-//              (should be allocated for at least nf/2+1 Ts)
-//
-//  Compare onedim_dct_kernel which has same interface, but computes DFT of
-//  sampled kernel, not quite the same object.
-//
-//  Barnett 2/7/17. openmp (since slow vs fftw in 1D large-N case) 3/3/18
-//  Melody 2/20/22 separate into precomp & comp functions defined below.
-// */
-//{
-//  T f[MAX_NQUAD];
-//  T a[MAX_NQUAD];
-//  onedim_fseries_kernel_precomp(nf, f, a, opts);
-////  onedim_fseries_kernel_compute(nf, f, a, fwkerhalf, opts);
-//}
-
 /*
   Precomputation of approximations of exact Fourier series coeffs of cnufftspread's
   real symmetric kernel.
@@ -201,9 +177,11 @@ void set_nf_type12(CUFINUFFT_BIGINT ms, cufinufft_opts opts, finufft_spread_opts
   Inputs:
   nf - size of 1d uniform spread grid, must be even.
   opts - spreading opts object, needed to eval kernel (must be already set up)
+  phase_winding - if true, compute normalization factors for phase winding rates,
+                  otherwise compute scaled quadrature nodes
 
   Outputs:
-  a - phase winding rates
+  a - normalization factors if phase winding is true, otherwise scaled quadrature nodes
   f - funciton values at quadrature nodes multiplied with quadrature weights
   (a, f are provided as the inputs of onedim_fseries_kernel_compute() defined below)
 */
@@ -225,41 +203,9 @@ void onedim_fseries_kernel_precomp(CUFINUFFT_BIGINT nf, T *f, T *a,
       a[n] = ((T)(2.0 * M_PI) * (T)(nf / 2 - z[n]) / (T)nf); // phase winding rates
     } else {
       a[n] = T(z[n]);
-      // printf("[cufinufft] f[%d] = %.16g\n",n,f[n]);
-      // printf("[cufinufft] z[%d] = %.16g\n",n,z[n]);
     }
   }
 }
-
-// template<typename T>
-// void onedim_fseries_kernel_compute(CUFINUFFT_BIGINT nf, T *f, std::complex<double> *a,
-//                                    T *fwkerhalf, finufft_spread_opts opts) {
-//   T J2  = opts.nspread / 2.0;         // J/2, half-width of ker z-support
-//   int q = (int)(2 + 3.0 * J2);        // not sure why so large? cannot exceed MAX_NQUAD
-//   CUFINUFFT_BIGINT nout = nf / 2 + 1; // how many values we're writing to
-//   int nt                = std::min(nout, MY_OMP_GET_MAX_THREADS()); // how many chunks
-//   std::vector<CUFINUFFT_BIGINT> brk(nt + 1); // start indices for each thread
-//   for (int t = 0; t <= nt; ++t)              // split nout mode indices btw threads
-//     brk[t] = (CUFINUFFT_BIGINT)(0.5 + nout * t / (double)nt);
-// #pragma omp parallel
-//   {
-//     int t = MY_OMP_GET_THREAD_NUM();
-//     if (t < nt) {                         // could be nt < actual # threads
-//       std::complex<double> aj[MAX_NQUAD]; // phase rotator for this thread
-//       for (int n = 0; n < q; ++n)
-//         aj[n] = pow(a[n], (T)brk[t]);     // init phase factors for chunk
-//       for (CUFINUFFT_BIGINT j = brk[t]; j < brk[t + 1]; ++j) { // loop along output
-//                                                                // array
-//         T x = 0.0;                     // accumulator for answer at this j
-//         for (int n = 0; n < q; ++n) {
-//           x += f[n] * 2 * real(aj[n]); // include the negative freq
-//           aj[n] *= a[n];               // wind the phases
-//         }
-//         fwkerhalf[j] = x;
-//       }
-//     }
-//   }
-// }
 
 template<typename T>
 std::size_t shared_memory_required(int dim, int ns, int bin_size_x, int bin_size_y,
@@ -374,13 +320,6 @@ void cufinufft_setup_binsize(int type, int ns, int dim, cufinufft_opts *opts) {
   }
 }
 
-// template void onedim_fseries_kernel_compute(CUFINUFFT_BIGINT nf, float *f,
-//                                             std::complex<double> *a, float *fwkerhalf,
-//                                             finufft_spread_opts opts);
-// template void onedim_fseries_kernel_compute(CUFINUFFT_BIGINT nf, double *f,
-//                                             std::complex<double> *a, double *fwkerhalf,
-//                                             finufft_spread_opts opts);
-
 template int setup_spreader_for_nufft(finufft_spread_opts &spopts, float eps,
                                       cufinufft_opts opts);
 template int setup_spreader_for_nufft(finufft_spread_opts &spopts, double eps,
@@ -407,10 +346,6 @@ template int cufserieskernelcompute<double>(
     int dim, int nf1, int nf2, int nf3, double *d_f, double *d_a, double *d_kx,
     double *d_ky, double *d_kz, double *d_fwkerhalf1, double *d_fwkerhalf2,
     double *d_fwkerhalf3, int ns, cudaStream_t stream);
-// template void onedim_fseries_kernel(CUFINUFFT_BIGINT nf, float *fwkerhalf,
-//                                     finufft_spread_opts opts);
-// template void onedim_fseries_kernel(CUFINUFFT_BIGINT nf, double *fwkerhalf,
-//                                     finufft_spread_opts opts);
 
 template std::size_t shared_memory_required<float>(int dim, int ns, int bin_size_x,
                                                    int bin_size_y, int bin_size_z);

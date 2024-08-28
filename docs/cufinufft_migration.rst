@@ -17,7 +17,7 @@ The following function signatures were updated during the API change:
     .. code-block:: c
 
       int cufinufft_makeplan(int type, int dim, int *n_modes, int iflag,
-          int ntransf, double tol, int maxbatchsize, cufinufft_plan *plan,
+          int ntransf, double tol, int batchsize, cufinufft_plan *plan,
           cufinufft_opts *opts);
 
   and now has the signature
@@ -29,7 +29,7 @@ The following function signatures were updated during the API change:
           cufinufft_opts *opts);
 
 
-  In other words, the ``n_modes`` argument now takes the type ``int64_t`` to accomodate larger arrays and the ``maxbatchsize`` argument has been removed (and can now be found as part of ``cufinufft_opts``).
+  In other words, the ``n_modes`` argument now takes the type ``int64_t`` to accomodate larger arrays and the ``batchsize`` argument has been removed (and can now be found as part of ``cufinufft_opts``).
   The ``tol`` and ``ntransf`` arguments have also been renamed to ``eps`` and ``ntr``, respectively.
 
 - ``cufinufft_setpts``, which had the signature
@@ -45,7 +45,7 @@ The following function signatures were updated during the API change:
     .. code-block:: c
 
       int cufinufft_setpts(cufinufft_plan d_plan, int M, double *d_x,
-          double *d_y, double *d_z, int N, double *d_s, double *d_t, double *d_u);
+          double *d_y, double *d_z, int N, double *d_Sp, double *d_Tp, double *d_Up);
 
 
   Aside from name changes, main difference here is that the ``plan`` is now the first argument, not the last.

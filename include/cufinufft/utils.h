@@ -53,8 +53,6 @@ template<typename T> __forceinline__ __device__ auto interval(const int ns, cons
 #endif
 #endif
 
-#undef ALLOCA_SUPPORTED
-
 #if defined(__CUDA_ARCH__)
 #if __CUDA_ARCH__ >= 900
 #define COMPUTE_CAPABILITY_90_OR_HIGHER 1

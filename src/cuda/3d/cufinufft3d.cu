@@ -35,16 +35,16 @@ int cufinufft3d1_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
   int ier;
   cuda_complex<T> *d_fkstart;
   cuda_complex<T> *d_cstart;
-  for (int i = 0; i * d_plan->maxbatchsize < d_plan->ntransf; i++) {
-    int blksize = min(d_plan->ntransf - i * d_plan->maxbatchsize, d_plan->maxbatchsize);
-    d_cstart    = d_c + i * d_plan->maxbatchsize * d_plan->M;
-    d_fkstart   = d_fk + i * d_plan->maxbatchsize * d_plan->ms * d_plan->mt * d_plan->mu;
+  for (int i = 0; i * d_plan->batchsize < d_plan->ntransf; i++) {
+    int blksize = min(d_plan->ntransf - i * d_plan->batchsize, d_plan->batchsize);
+    d_cstart    = d_c + i * d_plan->batchsize * d_plan->M;
+    d_fkstart   = d_fk + i * d_plan->batchsize * d_plan->ms * d_plan->mt * d_plan->mu;
 
     d_plan->c  = d_cstart;
     d_plan->fk = d_fkstart;
 
     if ((ier = checkCudaErrors(cudaMemsetAsync(
-             d_plan->fw, 0, d_plan->maxbatchsize * d_plan->nf * sizeof(cuda_complex<T>),
+             d_plan->fw, 0, d_plan->batchsize * d_plan->nf * sizeof(cuda_complex<T>),
              stream))))
       return ier;
 
@@ -86,10 +86,10 @@ int cufinufft3d2_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
   int ier;
   cuda_complex<T> *d_fkstart;
   cuda_complex<T> *d_cstart;
-  for (int i = 0; i * d_plan->maxbatchsize < d_plan->ntransf; i++) {
-    int blksize = min(d_plan->ntransf - i * d_plan->maxbatchsize, d_plan->maxbatchsize);
-    d_cstart    = d_c + i * d_plan->maxbatchsize * d_plan->M;
-    d_fkstart   = d_fk + i * d_plan->maxbatchsize * d_plan->ms * d_plan->mt * d_plan->mu;
+  for (int i = 0; i * d_plan->batchsize < d_plan->ntransf; i++) {
+    int blksize = min(d_plan->ntransf - i * d_plan->batchsize, d_plan->batchsize);
+    d_cstart    = d_c + i * d_plan->batchsize * d_plan->M;
+    d_fkstart   = d_fk + i * d_plan->batchsize * d_plan->ms * d_plan->mt * d_plan->mu;
 
     d_plan->c  = d_cstart;
     d_plan->fk = d_fkstart;
@@ -135,17 +135,17 @@ int cufinufft3d3_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
   cuda_complex<T> *d_fkstart;
   const auto stream = d_plan->stream;
   printf("[cufinufft] d_plan->ntransf = %d\n", d_plan->ntransf);
-  for (int i = 0; i * d_plan->maxbatchsize < d_plan->ntransf; i++) {
-    int blksize = min(d_plan->ntransf - i * d_plan->maxbatchsize, d_plan->maxbatchsize);
-    d_cstart    = d_c + i * d_plan->maxbatchsize * d_plan->M;
-    d_fkstart   = d_fk + i * d_plan->maxbatchsize * d_plan->N;
+  for (int i = 0; i * d_plan->batchsize < d_plan->ntransf; i++) {
+    int blksize = min(d_plan->ntransf - i * d_plan->batchsize, d_plan->batchsize);
+    d_cstart    = d_c + i * d_plan->batchsize * d_plan->M;
+    d_fkstart   = d_fk + i * d_plan->batchsize * d_plan->N;
     // setting input for spreader
-    d_plan->c = d_plan->c_batch;
+    d_plan->c = d_plan->CpBatch;
     // setting output for spreader
     d_plan->fk = d_plan->fw;
     // NOTE: fw might need to be set to 0
     if ((ier = checkCudaErrors(cudaMemsetAsync(
-             d_plan->fw, 0, d_plan->maxbatchsize * d_plan->nf * sizeof(cuda_complex<T>),
+             d_plan->fw, 0, d_plan->batchsize * d_plan->nf * sizeof(cuda_complex<T>),
              stream))))
       return ier;
     // Step 0: pre-phase the input strengths
