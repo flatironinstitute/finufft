@@ -51,6 +51,8 @@ Developer notes
 
 * CMake compiling on linux at Flatiron Institute (Rusty cluster): We have had a report that if you want to use LLVM, you need to ``module load llvm/16.0.3`` otherwise the default ``llvm/14.0.6`` does not find ``OpenMP_CXX``.
 
+* Note to the nvcc developer. nvcc with debug symbols causes a stack overflow that is undetected at both compile and runtime. This goes undetected until ns>=10, for ns<10, one can use -G and debug the code with cuda-gdb. The way to avoid is to not use Debug symbols, possibly using ``--generate-line-info`` might work (not tested). As a side note, compute-sanitizers do not detect the issue.
+
 * Testing cufinufft (for FI, mostly):
 
 .. code-block:: sh
