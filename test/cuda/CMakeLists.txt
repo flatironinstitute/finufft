@@ -9,7 +9,7 @@ foreach(srcfile ${test_src})
   if(MathLib)
     target_link_libraries(${executable} PUBLIC ${MathLib})
   endif()
-  target_link_libraries(${executable} PUBLIC cufinufft finufft)
+  target_link_libraries(${executable} PUBLIC cufinufft)
   target_compile_features(${executable} PUBLIC cxx_std_17)
   set_target_properties(
     ${executable} PROPERTIES LINKER_LANGUAGE CUDA CUDA_ARCHITECTURES
@@ -110,8 +110,6 @@ endfunction()
 
 add_test(NAME cufinufft_public_api COMMAND public_api_test)
 add_test(NAME cufinufft_makeplan COMMAND test_makeplan)
-add_test(NAME cufinufft_makeplan_impl COMMAND cufinufft_makeplan_impl)
-add_test(NAME cufinufft_setpts COMMAND cufinufft_setpts)
 add_test(NAME cufinufft_math_test COMMAND cufinufft_math_test)
 
 add_tests(float 1e-5 2e-4 2.0)

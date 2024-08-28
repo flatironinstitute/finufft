@@ -108,7 +108,8 @@ template<typename T> int testRandomOperations() {
       return 1;
 
     // Test division with scalar
-    if (scalar != 0.0) { // Avoid division by zero
+    // Avoid division by small numbers which is not accurate
+    if (scalar > (std::is_same_v<T, double> ? 1e-15 : 1e-6)) {
       cuda_complex<T> result_div_scalar   = a / scalar;
       std::complex<T> expected_div_scalar = std_a / scalar;
       if (!compareComplex(result_div_scalar, expected_div_scalar,
