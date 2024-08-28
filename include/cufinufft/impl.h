@@ -185,7 +185,7 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
     const auto mem_required =
         shared_memory_required<T>(dim, d_plan->spopts.nspread, d_plan->opts.gpu_binsizex,
                                   d_plan->opts.gpu_binsizey, d_plan->opts.gpu_binsizez);
-    printf("[cufinufft] shared memory required for the spreader: %d\n", mem_required);
+    printf("[cufinufft] shared memory required for the spreader: %ld\n", mem_required);
   }
 
   if (type == 1 || type == 2) {
@@ -523,18 +523,18 @@ int cufinufft_setpts_impl(int M, T *d_kx, T *d_ky, T *d_kz, int N, T *d_s, T *d_
   if (d_plan->opts.debug) {
     printf("[%s]", __func__);
     printf("\tM=%d N=%d\n", M, N);
-    printf("\tX1=%.3g C1=%.3g S1=%.3g D1=%.3g gam1=%g nf1=%lld h1=%.3g\t\n",
+    printf("\tX1=%.3g C1=%.3g S1=%.3g D1=%.3g gam1=%g nf1=%d h1=%.3g\t\n",
            d_plan->type3_params.X1, d_plan->type3_params.C1, d_plan->type3_params.S1,
            d_plan->type3_params.D1, d_plan->type3_params.gam1, d_plan->nf1,
            d_plan->type3_params.h1);
     if (d_plan->dim > 1) {
-      printf("\tX2=%.3g C2=%.3g S2=%.3g D2=%.3g gam2=%g nf2=%lld h2=%.3g\n",
+      printf("\tX2=%.3g C2=%.3g S2=%.3g D2=%.3g gam2=%g nf2=%d h2=%.3g\n",
              d_plan->type3_params.X2, d_plan->type3_params.C2, d_plan->type3_params.S2,
              d_plan->type3_params.D2, d_plan->type3_params.gam2, d_plan->nf2,
              d_plan->type3_params.h2);
     }
     if (d_plan->dim > 2) {
-      printf("\tX3=%.3g C3=%.3g S3=%.3g D3=%.3g gam3=%g nf3=%lld h3=%.3g\n",
+      printf("\tX3=%.3g C3=%.3g S3=%.3g D3=%.3g gam3=%g nf3=%d h3=%.3g\n",
              d_plan->type3_params.X3, d_plan->type3_params.C3, d_plan->type3_params.S3,
              d_plan->type3_params.D3, d_plan->type3_params.gam3, d_plan->nf3,
              d_plan->type3_params.h3);
