@@ -37,7 +37,10 @@ set(FINUFFT_CUDA_FLAGS
     -fmad=true
     -restrict
     --extra-device-vectorization
-    # $<$<CONFIG:Debug>:-G -maxrregcount 64 >
+    $<$<CONFIG:Debug>:-G
+    -maxrregcount
+    64
+    >
     >)
 
 add_library(cufinufft_common_objects OBJECT ${PRECISION_INDEPENDENT_SRC})
@@ -81,7 +84,7 @@ set_target_properties(
              CUDA_STANDARD_REQUIRED ON
              ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
 target_compile_features(cufinufft PRIVATE cxx_std_17)
-target_compile_options(cufinufft PUBLIC ${FINUFFT_CUDA_FLAGS})
+target_compile_options(cufinufft PRIVATE ${FINUFFT_CUDA_FLAGS})
 if(WIN32)
   target_link_libraries(cufinufft PUBLIC CUDA::cudart CUDA::cufft
                                          CUDA::nvToolsExt)
