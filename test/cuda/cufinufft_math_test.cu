@@ -14,19 +14,18 @@ template<typename T> cuda_complex<T> make_cuda_complex(T real, T imag) {
 
 // Helper function to compare cuComplex with std::complex<T> using 1 - ratio as error
 template<typename T>
-bool compareComplex(const cuda_complex<T> &a, const std::complex<T> &b,
+bool compareComplex(const cuda_complex<T> a, const std::complex<T> b,
                     const std::string &operation,
                     T epsilon = std::numeric_limits<T>::epsilon()) {
-  T real_error = 1 - a.x / b.real();
-  T imag_error = 1 - a.y / b.imag();
-  if (real_error >= epsilon || imag_error >= epsilon) {
+  const auto std_a = std::complex<T>(a.x, a.y);
+  const auto err   = std::abs(std_a - b) / std::abs(std_a);
+  if (err > epsilon) {
     std::cout << "Comparison failed in operation: " << operation << "\n";
     std::cout << "cuComplex: (" << a.x << ", " << a.y << ")\n";
     std::cout << "std::complex: (" << b.real() << ", " << b.imag() << ")\n";
-    std::cout << "Real error: " << real_error << "\n";
-    std::cout << "Imag error: " << imag_error << "\n";
+    std::cout << "Error: " << err << "\n";
   }
-  return real_error < epsilon && imag_error < epsilon;
+  return err <= epsilon;
 }
 
 template<typename T> int testRandomOperations() {
@@ -107,16 +106,12 @@ template<typename T> int testRandomOperations() {
                             std::string(typeid(T).name()) + ">"))
       return 1;
 
-    // Test division with scalar
-    // Avoid division by small numbers which is not accurate
-    if (scalar > (std::is_same_v<T, double> ? 1e-15 : 1e-6)) {
-      cuda_complex<T> result_div_scalar   = a / scalar;
-      std::complex<T> expected_div_scalar = std_a / scalar;
-      if (!compareComplex(result_div_scalar, expected_div_scalar,
-                          "div complex<" + std::string(typeid(T).name()) + "> scalar<" +
-                              std::string(typeid(T).name()) + ">"))
-        return 1;
-    }
+    cuda_complex<T> result_div_scalar   = a / scalar;
+    std::complex<T> expected_div_scalar = std_a / scalar;
+    if (!compareComplex(result_div_scalar, expected_div_scalar,
+                        "div complex<" + std::string(typeid(T).name()) + "> scalar<" +
+                            std::string(typeid(T).name()) + ">"))
+      return 1;
   }
   return 0;
 }
