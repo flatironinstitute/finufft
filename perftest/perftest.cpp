@@ -26,7 +26,7 @@ struct test_options_t {
   char prec;
   int type;
   int n_runs;
-  long N[3];
+  std::int64_t N[3];
   int M;
   int ntransf;
   int kerevalmethod;
