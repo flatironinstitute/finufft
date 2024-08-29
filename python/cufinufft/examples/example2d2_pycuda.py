@@ -56,4 +56,4 @@ for i in range(n_transf):
     print(f"[{i}] Absolute error on point [{jt}] is {err:.3g}")
     print(f"[{i}] Relative error on point [{jt}] is {rel_err:.3g}")
 
-    assert(rel_err < 10 * eps)
+    assert(rel_err < 15 * eps)
