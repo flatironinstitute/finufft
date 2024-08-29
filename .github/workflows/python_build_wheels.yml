@@ -18,7 +18,14 @@ jobs:
         with:
           package-dir: 'python/finufft'
         env:
-          CIBW_BEFORE_ALL_MACOS: brew install gcc@14 fftw
+          CIBW_BEFORE_ALL_MACOS: |
+            # In order to reinstall a version of GCC compatible with older versions of macOS, we need to first uninstall the existing version.
+            brew uninstall gcc
+            pkg=$(brew fetch --force --bottle-tag=monterey gcc | grep 'Downloaded to' | cut -d' ' -f3)
+            brew install $pkg
+
+            pkg=$(brew fetch --force --bottle-tag=monterey fftw | grep 'Downloaded to' | cut -d' ' -f3)
+            brew install $pkg
           CIBW_ARCHS_MACOS: "x86_64"
           # Need following versions of GCC for compatibility with fftw
           # installed by homebrew. Similarly, we set the macOS version
@@ -26,7 +33,7 @@ jobs:
           CIBW_ENVIRONMENT_MACOS: >
             CC=gcc-14
             CXX=g++-14
-            MACOSX_DEPLOYMENT_TARGET=13
+            MACOSX_DEPLOYMENT_TARGET=12
 
       - uses: actions/upload-artifact@v4
         with:
@@ -46,18 +53,18 @@ jobs:
           package-dir: 'python/finufft'
         env:
           CIBW_ARCHS_MACOS: "arm64"
-          # Make sure to install the ARM64-specific versions of FFTW and GCC.
-          # Perhaps this is done automatically on the macos-14 image. We should
-          # look into this further.
           CIBW_BEFORE_ALL_MACOS: |
-            pkg=$(brew fetch --force --bottle-tag=arm64_ventura fftw | grep 'Downloaded to' | cut -d' ' -f3)
+            # In order to reinstall a version of GCC compatible with older versions of macOS, we need to first uninstall the existing version.
+            brew uninstall gcc
+            pkg=$(brew fetch --force --bottle-tag=arm64_monterey gcc | grep 'Downloaded to' | cut -d' ' -f3)
             brew install $pkg
-            pkg=$(brew fetch --force --bottle-tag=arm64_ventura gcc | grep 'Downloaded to' | cut -d' ' -f3)
+
+            pkg=$(brew fetch --force --bottle-tag=arm64_monterey fftw | grep 'Downloaded to' | cut -d' ' -f3)
             brew install $pkg
           CIBW_ENVIRONMENT_MACOS: >
             CC=gcc-14
             CXX=g++-14
-            MACOSX_DEPLOYMENT_TARGET=14
+            MACOSX_DEPLOYMENT_TARGET=12
 
       - uses: actions/upload-artifact@v4
         with:
