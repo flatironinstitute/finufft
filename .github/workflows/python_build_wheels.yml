@@ -92,11 +92,6 @@ jobs:
         uses: pypa/cibuildwheel@v2.19.2
         with:
           package-dir: 'python/finufft'
-        env:
-          # This is required to force cmake to avoid using MSVC (the default).
-          # By setting the generator to Ninja, cmake will pick gcc (mingw64)
-          # as the compiler.
-          CIBW_CONFIG_SETTINGS: "cmake.args='-G Ninja'"
 
       - uses: actions/upload-artifact@v4
         with:

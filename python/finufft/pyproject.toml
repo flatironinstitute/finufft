@@ -60,7 +60,12 @@ build-verbosity = 1
 skip = "pp* *musllinux*"
 test-requires = ["pytest", "pytest-mock"]
 test-command = "pytest {project}/python/finufft/test"
-config-settings = {"cmake.define.FINUFFT_ARCH_FLAGS" = ""}
+
+# Ensure that the wheels are compatible with x86-64. Without this, they crash
+# in x86_64 compatibility mode (Rosetta 2) on macOS.
+config-settings = {"cmake.define.FINUFFT_ARCH_FLAGS" = "-march=x86-64", "cmake.define.CMAKE_VERBOSE_MAKEFILE" = "ON"}
+
+# TODO: CIBW crashes when we try to make config-settings above into a table. Why?
 
 [tool.cibuildwheel.linux]
 archs = "x86_64"
@@ -72,3 +77,14 @@ before-build = "pip install delvewheel"
 # CIBW doesn't do vendoring of DLLs on Windows by default, so we have to
 # install delvewheel and run it.
 repair-wheel-command = "delvewheel repair -v --analyze-existing -w {dest_dir} {wheel}"
+# Need to repeat this here as the platform-specific config-settings overwrite
+# the general ones.
+# The last setting is required to force cmake to avoid using MSVC (the
+# default). By setting the generator to Ninja, cmake will pick gcc (mingw64) as
+# the compiler.
+config-settings = {"cmake.define.FINUFFT_ARCH_FLAGS" = "-march=x86-64", "cmake.define.CMAKE_VERBOSE_MAKEFILE" = "ON", "cmake.args" = "-G Ninja"}
+
+[[tool.cibuildwheel.overrides]]
+select = "*arm64*"
+# Don't enforce x84_64 when building on arm64.
+config-settings = {"cmake.define.FINUFFT_ARCH_FLAGS" = "", "cmake.define.CMAKE_VERBOSE_MAKEFILE" = "ON"}
