@@ -593,7 +593,7 @@ int FINUFFT_MAKEPLAN(int type, int dim, BIGINT *n_modes, int iflag, int ntrans, 
     fprintf(stderr, "[%s] ntrans (%d) should be at least 1.\n", __func__, ntrans);
     return FINUFFT_ERR_NTRANS_NOTVALID;
   }
-  if (!opts->fftw_lock_fun != !opts->fftw_unlock_fun) {
+  if (!p->opts.fftw_lock_fun != !p->opts.fftw_unlock_fun) {
     fprintf(stderr, "[%s] fftw_(un)lock functions should be both null or both set\n",
             __func__);
     return FINUFFT_ERR_LOCK_FUNS_INVALID;
@@ -692,8 +692,8 @@ int FINUFFT_MAKEPLAN(int type, int dim, BIGINT *n_modes, int iflag, int ntrans, 
     // thread-safe (can be called inside OMP)
     {
       static bool did_fftw_init = false; // the only global state of FINUFFT
-      FFTWLockGuard lock(opts->fftw_lock_fun, opts->fftw_unlock_fun,
-                         opts->fftw_lock_data);
+      FFTWLockGuard lock(p->opts.fftw_lock_fun, p->opts.fftw_unlock_fun,
+                         p->opts.fftw_lock_data);
       if (!did_fftw_init) {
         FFTW_INIT();          // setup FFTW global state; should only do once
         did_fftw_init = true; // ensure other FINUFFT threads don't clash
