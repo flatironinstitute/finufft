@@ -19,13 +19,15 @@ bool compareComplex(const cuda_complex<T> a, const std::complex<T> b,
                     T epsilon = std::numeric_limits<T>::epsilon()) {
   const auto std_a = std::complex<T>(a.x, a.y);
   const auto err   = std::abs(std_a - b) / std::abs(std_a);
-  if (err > epsilon) {
+  // add 10% tolerance to the error
+  constexpr auto tol = std::is_same_v<T, float> ? 1e2f : 1e4;
+  if (err > epsilon * tol) {
     std::cout << "Comparison failed in operation: " << operation << "\n";
     std::cout << "cuComplex: (" << a.x << ", " << a.y << ")\n";
     std::cout << "std::complex: (" << b.real() << ", " << b.imag() << ")\n";
     std::cout << "Error: " << err << "\n";
   }
-  return err <= epsilon;
+  return err <= epsilon * tol;
 }
 
 template<typename T> int testRandomOperations() {

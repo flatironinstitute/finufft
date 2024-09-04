@@ -116,11 +116,11 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
   d_plan->iflag   = fftsign;
   d_plan->ntransf = ntransf;
 
-  int maxbatchsize = (opts != nullptr) ? opts->gpu_maxbatchsize : 0;
+  int batchsize = (opts != nullptr) ? opts->gpu_maxbatchsize : 0;
   // TODO: check if this is the right heuristic
-  if (maxbatchsize == 0)                 // implies: use a heuristic.
-    maxbatchsize = std::min(ntransf, 8); // heuristic from test codes
-  d_plan->batchsize = maxbatchsize;
+  if (batchsize == 0)                 // implies: use a heuristic.
+    batchsize = std::min(ntransf, 8); // heuristic from test codes
+  d_plan->batchsize = batchsize;
 
   const auto stream = d_plan->stream = (cudaStream_t)d_plan->opts.gpu_stream;
 
@@ -262,7 +262,7 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
       int inembed[] = {(int)nf1};
 
       cufft_status = cufftPlanMany(&fftplan, 1, n, inembed, 1, inembed[0], inembed, 1,
-                                   inembed[0], cufft_type<T>(), maxbatchsize);
+                                   inembed[0], cufft_type<T>(), batchsize);
     } break;
     case 2: {
       int n[]       = {(int)nf2, (int)nf1};
@@ -270,7 +270,7 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
 
       cufft_status =
           cufftPlanMany(&fftplan, 2, n, inembed, 1, inembed[0] * inembed[1], inembed, 1,
-                        inembed[0] * inembed[1], cufft_type<T>(), maxbatchsize);
+                        inembed[0] * inembed[1], cufft_type<T>(), batchsize);
     } break;
     case 3: {
       int n[]       = {(int)nf3, (int)nf2, (int)nf1};
@@ -278,7 +278,7 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
 
       cufft_status = cufftPlanMany(
           &fftplan, 3, n, inembed, 1, inembed[0] * inembed[1] * inembed[2], inembed, 1,
-          inembed[0] * inembed[1] * inembed[2], cufft_type<T>(), maxbatchsize);
+          inembed[0] * inembed[1] * inembed[2], cufft_type<T>(), batchsize);
     } break;
     }
 
@@ -292,6 +292,7 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
 
     d_plan->fftplan = fftplan;
 
+    // compute up to 3 * NQUAD precomputed values on CPU
     T fseries_precomp_a[3 * MAX_NQUAD];
     T fseries_precomp_f[3 * MAX_NQUAD];
     thrust::device_vector<T> d_fseries_precomp_a(3 * MAX_NQUAD);
@@ -311,6 +312,7 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
                  d_fseries_precomp_a.begin());
     thrust::copy(fseries_precomp_f, fseries_precomp_f + 3 * MAX_NQUAD,
                  d_fseries_precomp_f.begin());
+    // the full fseries is done on the GPU here
     if ((ier = cufserieskernelcompute(
              d_plan->dim, d_plan->nf1, d_plan->nf2, d_plan->nf3,
              d_fseries_precomp_f.data().get(), d_fseries_precomp_a.data().get(),
@@ -446,6 +448,12 @@ int cufinufft_setpts_impl(int M, T *d_kx, T *d_ky, T *d_kz, int N, T *d_s, T *d_
     return cufinufft_setpts_12_impl<T>(M, d_kx, d_ky, d_kz, d_plan);
   }
   // type 3 setpts
+
+  // This code follows the same implementation of the CPU code in finufft and uses similar
+  // variables names where possible. However, the use of GPU routines and paradigms make
+  // it harder to follow. To understand the code, it is recommended to read the CPU code
+  // first.
+
   if (d_plan->type != 3) {
     fprintf(stderr, "[%s] Invalid type (%d): should be 1, 2, or 3.\n", __func__,
             d_plan->type);
@@ -744,8 +752,8 @@ int cufinufft_setpts_impl(int M, T *d_kx, T *d_ky, T *d_kz, int N, T *d_s, T *d_
           thrust::cuda::par.on(stream), phase_iterator, phase_iterator + N,
           d_plan->deconv, d_plan->deconv,
           [c1, c2, c3, d1, d2, d3, realsign] __host__ __device__(
-              const thrust::tuple<T, T, T> tuple,
-              cuda_complex<T> deconv) -> cuda_complex<T> {
+              const thrust::tuple<T, T, T> tuple, cuda_complex<T> deconv)
+              -> cuda_complex<T> {
             // d2 and d3 are 0 if dim < 2 and dim < 3
             const auto phase = c1 * (thrust::get<0>(tuple) + d1) +
                                c2 * (thrust::get<1>(tuple) + d2) +
@@ -861,8 +869,6 @@ int cufinufft_destroy_impl(cufinufft_plan_t<T> *d_plan)
     In this stage, we
         (1) free all the memories that have been allocated on gpu
         (2) delete the cuFFT plan
-
-        Also see ../docs/cppdoc.md for main user-facing documentation.
 */
 {
 

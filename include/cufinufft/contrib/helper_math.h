@@ -3,6 +3,11 @@
 
 #include <cuComplex.h>
 
+// This header provides some helper functions for cuComplex types.
+// It mainly wraps existing CUDA implementations to provide operator overloads
+// e.g. cuAdd, cuSub, cuMul, cuDiv, cuCreal, cuCimag, cuCabs, cuCarg, cuConj are all
+// provided by CUDA
+
 // Addition for cuDoubleComplex (double) with cuDoubleComplex (double)
 __host__ __device__ __forceinline__ cuDoubleComplex operator+(
     const cuDoubleComplex &a, const cuDoubleComplex &b) noexcept {

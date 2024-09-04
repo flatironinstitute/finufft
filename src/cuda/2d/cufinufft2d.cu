@@ -123,13 +123,13 @@ template<typename T>
 int cufinufft2d3_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
                       cufinufft_plan_t<T> *d_plan) {
   /*
-    3D Type-3 NUFFT
+    2D Type-3 NUFFT
 
   This function is called in "exec" stage (See ../cufinufft.cu).
   It includes (copied from doc in finufft library)
     Step 0: pre-phase the input strengths
     Step 1: spread data
-    Step 2: Type 3 NUFFT
+    Step 2: Type 2 NUFFT
     Step 3: deconvolve (amplify) each Fourier mode, using kernel Fourier coeff
 
   Marco Barbone 08/14/2024
@@ -160,7 +160,7 @@ int cufinufft2d3_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
     // Step 1: Spread
     if ((ier = cuspread2d<T>(d_plan, blksize))) return ier;
     // now d_plan->fk = d_plan->fw contains the spread values
-    // Step 2: Type 3 NUFFT
+    // Step 2: Type 2 NUFFT
     // type 2 goes from fk to c
     // saving the results directly in the user output array d_fk
     // it needs to do blksize transforms

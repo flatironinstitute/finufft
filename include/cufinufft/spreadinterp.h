@@ -23,6 +23,10 @@ static __forceinline__ __device__ constexpr T cudaFMA(const T a, const T b, cons
   return std::fma(a, b, c);
 }
 
+/**
+ * local NU coord fold+rescale macro: does the following affine transform to x:
+ *   (x+PI) mod PI    each to [0,N)
+ */
 template<typename T>
 constexpr __forceinline__ __host__ __device__ T fold_rescale(T x, int N) {
   constexpr auto x2pi = T(0.159154943091895345554011992339482617);
@@ -92,8 +96,8 @@ static __device__ void eval_kernel_vec_horner(T *ker, const T x, const int w,
    This is the current evaluation method, since it's faster (except i7 w=16).
    Two upsampfacs implemented. Params must match ref formula. Barnett 4/24/18 */
 {
+  // const T z = T(2) * x + T(w - 1);
   const auto z = cudaFMA(T(2), x, T(w - 1)); // scale so local grid offset z in [-1,1]
-                                             //   const T z = T(2) * x + T(w - 1);
   // insert the auto-generated code which expects z, w args, writes to ker...
   if (upsampfac == 2.0) { // floating point equality is fine here
     using FLT = T;

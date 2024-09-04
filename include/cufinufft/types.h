@@ -14,6 +14,10 @@
 
 // Marco Barbone 8/5/2924, replaced the ugly trick with std::conditional
 // to define cuda_complex
+// by using std::conditional and std::is_same, we can define cuda_complex
+// if T is float, cuda_complex<T> is cuFloatComplex
+// if T is double, cuda_complex<T> is cuDoubleComplex
+// where cuFloatComplex and cuDoubleComplex are defined in cuComplex.h
 // TODO: migrate to cuda/std/complex and remove this
 //       Issue: cufft seems not to support cuda::std::complex
 //       A reinterpret_cast should be enough
@@ -61,7 +65,8 @@ template<typename T> struct cufinufft_plan_t {
 
   // Type 3 specific
   struct {
-    T X1, C1, S1, D1, h1, gam1; // x dim: X=halfwid C=center D=freqcen h,gam=rescale
+    T X1, C1, S1, D1, h1, gam1; // x dim: X=halfwid C=center D=freqcen h,gam=rescale,
+                                // s=interval
     T X2, C2, S2, D2, h2, gam2; // y
     T X3, C3, S3, D3, h3, gam3; // z
   } type3_params;

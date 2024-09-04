@@ -60,9 +60,9 @@ int run_test(int method, int type, int N1, int N2, int N3, int M, T tol, T check
     t.resize(N1 * N2 * N3);
     u.resize(N1 * N2 * N3);
     for (int i = 0; i < N1 * N2 * N3; i++) {
-      s[i] = M_PI * randm11();
-      t[i] = M_PI * randm11();
-      u[i] = M_PI * randm11();
+      s[i] = (N1 / 2) * randm11();
+      t[i] = (N2 / 2) * randm11();
+      u[i] = (N3 / 2) * randm11();
     }
     d_s = s;
     d_t = t;

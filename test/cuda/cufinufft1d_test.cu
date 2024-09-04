@@ -58,7 +58,7 @@ int run_test(int method, int type, int N1, int M, T tol, T checktol, int iflag,
     }
     s.resize(N1);
     for (int i = 0; i < N1; i++) {
-      s[i] = M_PI * randm11();
+      s[i] = N1 / 2 * randm11();
     }
     d_s = s;
   } else {
@@ -212,7 +212,7 @@ int main(int argc, char *argv[]) {
                     "Arguments:\n"
                     "  method: One of\n"
                     "    1: nupts driven\n"
-                    "  type: Type of transform (1, 2)\n"
+                    "  type: Type of transform (1, 2, 3)\n"
                     "  N1: Number of fourier modes\n"
                     "  M: The number of non-uniform points\n"
                     "  tol: NUFFT tolerance\n"

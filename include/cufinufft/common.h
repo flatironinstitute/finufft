@@ -8,7 +8,6 @@
 #include <finufft_spread_opts.h>
 
 #include <complex>
-#include <optional>
 
 namespace cufinufft {
 namespace common {

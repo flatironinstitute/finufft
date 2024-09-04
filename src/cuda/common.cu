@@ -21,10 +21,13 @@ namespace common {
 using namespace cufinufft::spreadinterp;
 using std::max;
 
-/* Kernel for computing approximations of exact Fourier series coeffs of
-   cnufftspread's real symmetric kernel. */
-// a , f are intermediate results from function onedim_fseries_kernel_precomp()
-// (see cufinufft/contrib/common.cpp for description)
+/** Kernel for computing approximations of exact Fourier series coeffs of
+ *  cnufftspread's real symmetric kernel.
+ * a , f are intermediate results from function onedim_fseries_kernel_precomp()
+ * (see cufinufft/contrib/common.cpp for description)
+ * this is the equispaced frequency case, used by type 1 & 2, matching
+ * onedim_fseries_kernel in CPU code
+ */
 template<typename T>
 __global__ void fseries_kernel_compute(int nf1, int nf2, int nf3, T *f, T *a,
                                        T *fwkerhalf1, T *fwkerhalf2, T *fwkerhalf3,
@@ -60,6 +63,13 @@ __global__ void fseries_kernel_compute(int nf1, int nf2, int nf3, T *f, T *a,
   }
 }
 
+/** Kernel for computing approximations of exact Fourier series coeffs of
+ *  cnufftspread's real symmetric kernel.
+ * a , f are intermediate results from function onedim_fseries_kernel_precomp()
+ * (see cufinufft/contrib/common.cpp for description)
+ * this is the arbitrary frequency case (hence the extra kx, ky, kx arguments), used by
+ * type 3, matching onedim_nuft_kernel in CPU code
+ */
 template<typename T>
 __global__ void fseries_kernel_compute(int nf1, int nf2, int nf3, T *f, T *a, T *kx,
                                        T *ky, T *kz, T *fwkerhalf1, T *fwkerhalf2,
@@ -129,6 +139,7 @@ int cufserieskernelcompute(int dim, int nf1, int nf2, int nf3, T *d_f, T *d_a, T
     narrowness of kernel. Evaluates at set of arbitrary freqs k in [-pi, pi),
     for a kernel with x measured in grid-spacings. (See previous routine for
     FT definition).
+    It implements onedim_nuft_kernel in CPU code.
 
     Marco Barbone 08/28/2024
 */
@@ -177,13 +188,13 @@ void set_nf_type12(CUFINUFFT_BIGINT ms, cufinufft_opts opts, finufft_spread_opts
   Inputs:
   nf - size of 1d uniform spread grid, must be even.
   opts - spreading opts object, needed to eval kernel (must be already set up)
-  phase_winding - if true, compute normalization factors for phase winding rates,
-                  otherwise compute scaled quadrature nodes
+  phase_winding - if true (type 1-2), scaling for the equispaced case else (type 3)
+                  scaling for the general kx,ky,kz case
 
   Outputs:
-  a - normalization factors if phase winding is true, otherwise scaled quadrature nodes
-  f - funciton values at quadrature nodes multiplied with quadrature weights
-  (a, f are provided as the inputs of onedim_fseries_kernel_compute() defined below)
+  a - vector of scaled quadrature nodes;
+  f - funciton values at quadrature nodes multiplied with quadrature weights (a, f are
+      provided as the inputs of onedim_fseries_kernel_compute() defined below)
 */
 template<typename T, bool phase_winding = true>
 void onedim_fseries_kernel_precomp(CUFINUFFT_BIGINT nf, T *f, T *a,

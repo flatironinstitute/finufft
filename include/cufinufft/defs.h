@@ -1,7 +1,6 @@
 #ifndef CUFINUFFT_DEFS_H
 #define CUFINUFFT_DEFS_H
 
-#include <complex>
 #include <limits>
 // constants needed within common
 // upper bound on w, ie nspread, even when padded (see evaluate_kernel_vector); also for

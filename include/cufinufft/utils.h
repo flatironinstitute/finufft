@@ -35,6 +35,10 @@ __inline__ __device__ double atomicAdd(double *address, double val) {
 }
 #endif
 
+/**
+ * It computes the stard and end point of the spreading window given the center x and the
+ * width ns.
+ */
 template<typename T> __forceinline__ __device__ auto interval(const int ns, const T x) {
   const auto xstart = int(std::ceil(x - T(ns) * T(.5)));
   const auto xend   = int(std::floor(x + T(ns) * T(.5)));
@@ -114,8 +118,8 @@ template<typename T> T infnorm(int n, std::complex<T> *a) {
  */
 
 template<typename T>
-static __forceinline__ __device__ void atomicAddComplexShared(
-    cuda_complex<T> *address, cuda_complex<T> res) {
+static __forceinline__ __device__ void atomicAddComplexShared(cuda_complex<T> *address,
+                                                              cuda_complex<T> res) {
   const auto raw_address = reinterpret_cast<T *>(address);
   atomicAdd(raw_address, res.x);
   atomicAdd(raw_address + 1, res.y);
@@ -127,8 +131,8 @@ static __forceinline__ __device__ void atomicAddComplexShared(
  * on shared memory are supported so we leverage them
  */
 template<typename T>
-static __forceinline__ __device__ void atomicAddComplexGlobal(
-    cuda_complex<T> *address, cuda_complex<T> res) {
+static __forceinline__ __device__ void atomicAddComplexGlobal(cuda_complex<T> *address,
+                                                              cuda_complex<T> res) {
   if constexpr (
       std::is_same_v<cuda_complex<T>, float2> && COMPUTE_CAPABILITY_90_OR_HIGHER) {
     atomicAdd(address, res);
@@ -168,18 +172,10 @@ template<typename T> auto arraywidcen(int n, T *a, cudaStream_t stream) {
 template<typename T>
 auto set_nhg_type3(T S, T X, const cufinufft_opts &opts,
                    const finufft_spread_opts &spopts)
-/* sets nf, h (upsampled grid spacing), and gamma (x_j rescaling factor),
-   for type 3 only.
-   Inputs:
-   X and S are the xj and sk interval half-widths respectively.
-   opts and spopts are the NUFFT and spreader opts strucs, respectively.
-   Outputs:
-   nf is the size of upsampled grid for a given single dimension.
-   h is the grid spacing = 2pi/nf
-   gam is the x rescale factor, ie x'_j = x_j/gam  (modulo shifts).
-   Barnett 2/13/17. Caught inf/nan 3/14/17. io int types changed 3/28/17
-   New logic 6/12/17
-*/
+/*
+ * It implements the same function in finufft.cpp
+ * set_nhg_type3 in finufft.cpp for documentation
+ */
 {
   int nss = spopts.nspread + 1; // since ns may be odd
   T Xsafe = X, Ssafe = S;       // may be tweaked locally
