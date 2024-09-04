@@ -87,4 +87,4 @@ config-settings = {"cmake.define.FINUFFT_ARCH_FLAGS" = "-march=x86-64", "cmake.d
 [[tool.cibuildwheel.overrides]]
 select = "*arm64*"
 # Don't enforce x84_64 when building on arm64.
-config-settings = {"cmake.define.FINUFFT_ARCH_FLAGS" = "", "cmake.define.CMAKE_VERBOSE_MAKEFILE" = "ON"}
+config-settings = {"cmake.define.FINUFFT_ARCH_FLAGS" = "-mcpu=apple-m3", "cmake.define.CMAKE_VERBOSE_MAKEFILE" = "ON"}
