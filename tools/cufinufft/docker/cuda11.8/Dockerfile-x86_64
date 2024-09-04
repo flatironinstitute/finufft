@@ -1,16 +1,8 @@
 FROM quay.io/pypa/manylinux2014_x86_64
 LABEL maintainer "Joakim Andén"
 
-ENV CUDA_MAJOR 12
-ENV CUDA_MINOR 0
-
-ENV CUDART_VERSION 12.0.146
-ENV CUFFT_VERSION 11.0.1.95
-ENV CURAND_VERSION 10.3.1.124
-ENV PROFILER_VERSION 12.0.140
-ENV NVTX_VERSION 12.0.140
-ENV NVCC_VERSION 12.0.140
-
+ENV CUDA_MAJOR 11
+ENV CUDA_MINOR 8
 ENV CUDA_DASH_VERSION ${CUDA_MAJOR}-${CUDA_MINOR}
 ENV CUDA_DOT_VERSION ${CUDA_MAJOR}.${CUDA_MINOR}
 
@@ -24,7 +16,7 @@ COPY tools/cufinufft/docker/cuda${CUDA_DOT_VERSION}/cuda.repo /etc/yum.repos.d/c
 
 # For libraries in the cuda-compat-* package: https://docs.nvidia.com/cuda/eula/index.html#attachment-a
 RUN yum install -y \
-        cuda-cudart-${CUDA_DASH_VERSION}-${CUDART_VERSION}-1 \
+        cuda-cudart-${CUDA_DASH_VERSION} \
         cuda-compat-${CUDA_DASH_VERSION} && \
     ln -s cuda-${CUDA_DOT_VERSION} /usr/local/cuda && \
     rm -rf /var/cache/yum/*
@@ -43,23 +35,29 @@ ENV NVIDIA_REQUIRE_CUDA "cuda>=${CUDA_DOT_VERSION} brand=tesla,driver>=418,drive
 
 # runtime
 RUN yum install -y \
-        libcufft-${CUDA_DASH_VERSION}-${CUFFT_VERSION}-1 \
-        libcurand-${CUDA_DASH_VERSION}-${CURAND_VERSION}-1 \
-        cuda-nvtx-${CUDA_DASH_VERSION}-${NVTX_VERSION}-1 && \
+        cuda-libraries-${CUDA_DASH_VERSION} \
+        cuda-nvtx-${CUDA_DASH_VERSION} && \
     rm -rf /var/cache/yum/*
 
 # devel
 RUN yum install -y \
-        cuda-cudart-devel-${CUDA_DASH_VERSION}-${CUDART_VERSION}-1 \
-        libcufft-devel-${CUDA_DASH_VERSION}-${CUFFT_VERSION}-1 \
-        libcurand-devel-${CUDA_DASH_VERSION}-${CURAND_VERSION}-1 \
-        cuda-profiler-api-${CUDA_DASH_VERSION}-${PROFILER_VERSION}-1 \
-        cuda-nvcc-${CUDA_DASH_VERSION}-${NVCC_VERSION}-1 && \
+        cuda-cudart-devel-${CUDA_DASH_VERSION} \
+        cuda-libraries-devel-${CUDA_DASH_VERSION} \
+        cuda-nvprof-${CUDA_DASH_VERSION} \
+        cuda-nvcc-${CUDA_DASH_VERSION} && \
     rm -rf /var/cache/yum/*
 
 ENV LIBRARY_PATH /usr/local/cuda/lib64/stubs
 
 # /CUDA #
+
+# CUDA 11 doesn't work on gcc/g++ newer than v9
+RUN yum install -y \
+        devtoolset-9-gcc \
+        devtoolset-9-gcc-c++ && \
+    rm -rf /var/cache/yum/*
+
+ENV PATH /opt/rh/devtoolset-9/root/usr/bin:${PATH}
 
 # finufft reqs
 RUN yum install -y \

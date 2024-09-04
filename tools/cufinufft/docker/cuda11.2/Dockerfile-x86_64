@@ -63,3 +63,5 @@ ENV PATH /opt/rh/devtoolset-9/root/usr/bin:${PATH}
 RUN yum install -y \
         cmake && \
     rm -rf /var/cache/yum/*
+
+CMD ["/bin/bash"]
