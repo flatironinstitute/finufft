@@ -13,23 +13,24 @@ Flatiron Institute Nonuniform Fast Fourier Transform
 
 
 Documentation contents
-========================             
-             
+========================
+
 .. toctree::
    :maxdepth: 3
 
    install
    install_gpu
+   performance
    dirs
    math
-   cex           
+   cex
    c
    c_gpu
    opts
    error
    trouble
    tut
-   fortran          
+   fortran
    matlab
    python
    python_gpu
@@ -42,5 +43,3 @@ Documentation contents
    users
    ackn
    refs
-
-                
