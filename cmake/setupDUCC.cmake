@@ -29,7 +29,7 @@ if(ducc0_ADDED)
   set_target_properties(
     ducc0
     PROPERTIES MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>"
-               POSITION_INDEPENDENT_CODE ${FINUFFT_SHARED_LINKING})
+               POSITION_INDEPENDENT_CODE ${FINUFFT_POSITION_INDEPENDENT_CODE})
   check_cxx_compiler_flag(-ffast-math HAS_FAST_MATH)
   if(HAS_FAST_MATH)
     target_compile_options(ducc0 PRIVATE -ffast-math)

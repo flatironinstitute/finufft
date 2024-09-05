@@ -72,7 +72,8 @@ if(FINUFFT_FFTW_LIBRARIES STREQUAL DEFAULT OR FINUFFT_FFTW_LIBRARIES STREQUAL
       set_target_properties(
         ${element}
         PROPERTIES MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>"
-                   POSITION_INDEPENDENT_CODE ${FINUFFT_SHARED_LINKING})
+                   POSITION_INDEPENDENT_CODE
+                   ${FINUFFT_POSITION_INDEPENDENT_CODE})
     endforeach()
 
     target_include_directories(
