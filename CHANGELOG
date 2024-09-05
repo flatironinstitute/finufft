@@ -72,6 +72,7 @@ V 2.3.0-rc1 (8/6/24)
   test/finufft?d_test.cpp to reduce CI fails due to random numbers on some
   platforms in single-prec (with DUCC, etc). (Barnett PR516)
 * fix GPU segfault due to stream deletion as pointer not value (Barbone PR520)
+* new performance-tracking doc page comparing releases (Barbone, #527)
 
 V 2.2.0 (12/12/23)
 
