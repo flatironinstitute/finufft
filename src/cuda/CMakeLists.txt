@@ -42,7 +42,7 @@ target_include_directories(cufinufft_common_objects
                            PUBLIC ${CUFINUFFT_INCLUDE_DIRS})
 set_target_properties(
   cufinufft_common_objects
-  PROPERTIES POSITION_INDEPENDENT_CODE ${FINUFFT_SHARED_LINKING}
+  PROPERTIES POSITION_INDEPENDENT_CODE ${FINUFFT_POSITION_INDEPENDENT_CODE}
              CUDA_ARCHITECTURES "${FINUFFT_CUDA_ARCHITECTURES}"
              CUDA_SEPARABLE_COMPILATION ON
              CUDA_STANDARD 17
@@ -59,7 +59,7 @@ add_library(cufinufft_objects OBJECT ${PRECISION_DEPENDENT_SRC})
 target_include_directories(cufinufft_objects PUBLIC ${CUFINUFFT_INCLUDE_DIRS})
 set_target_properties(
   cufinufft_objects
-  PROPERTIES POSITION_INDEPENDENT_CODE ${FINUFFT_SHARED_LINKING}
+  PROPERTIES POSITION_INDEPENDENT_CODE ${FINUFFT_POSITION_INDEPENDENT_CODE}
              CUDA_ARCHITECTURES "${FINUFFT_CUDA_ARCHITECTURES}"
              CUDA_SEPARABLE_COMPILATION ON
              CUDA_STANDARD 17
@@ -74,6 +74,9 @@ if(FINUFFT_SHARED_LINKING)
 else()
   add_library(cufinufft STATIC $<TARGET_OBJECTS:cufinufft_common_objects>
                                $<TARGET_OBJECTS:cufinufft_objects>)
+  set_target_properties(
+    cufinufft PROPERTIES POSITION_INDEPENDENT_CODE
+                         ${FINUFFT_POSITION_INDEPENDENT_CODE})
 endif()
 
 set_target_properties(
