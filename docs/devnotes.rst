@@ -5,6 +5,8 @@ Developer notes
 
 * Developers needing to update/regenerate documentation in general, including our readthedocs website, see ``docs/README``. Developers changing MATLAB/octave interfaces or docs, also see ``matlab/README``. Please also see ``contributing.md`` for code style and git hook guidelines.
 
+* FINUFFT is by default built with position-independent code (``-fPIC`` compile flag), by both the Makefile and CMake. See CMake options to change this for the static library. Developers changing the FINUFFT source code should use ``static`` functions unless they need to export the symbol; this will prevent performance degradation when using ``-fPIC``.
+
 * To update the version number, this needs to be done by hand in the following places (we decided that a version-bump script is not worth the hassle):
 
   - ``CMakeLists.txt`` for cmake
