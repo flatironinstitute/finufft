@@ -19,6 +19,7 @@ option(FINUFFT_USE_OPENMP "Whether to use OpenMP for parallelization. If disable
 option(FINUFFT_USE_CPU "Whether to build the ordinary FINUFFT library (libfinufft)." ON)
 option(FINUFFT_USE_CUDA "Whether to build CUDA accelerated FINUFFT library (libcufinufft). This is completely independent of the main FINUFFT library" OFF)
 option(FINUFFT_STATIC_LINKING "If ON builds the static finufft library, if OFF build a shared finufft library." ON)
+option(FINUFFT_POSITION_INDEPENDENT_CODE "Whether to build the finufft library with position independent code (-fPIC). This is only effective when FINUFFT_STATIC_LINKING is ON." ON)
 option(FINUFFT_BUILD_DEVEL "Whether to build development executables" OFF)
 option(FINUFFT_BUILD_EXAMPLES "Whether to build the FINUFFT examples" OFF)
 option(FINUFFT_BUILD_TESTS "Whether to build the FINUFFT tests" OFF)
@@ -36,6 +37,11 @@ cmake_dependent_option(FINUFFT_ENABLE_INSTALL "Disable installation in the case 
 cmake_dependent_option(FINUFFT_STATIC_LINKING "Disable static libraries in the case of python builds" ON "NOT FINUFFT_BUILD_PYTHON" OFF)
 cmake_dependent_option(FINUFFT_SHARED_LINKING "Shared should be the opposite of static linking" ON "NOT FINUFFT_STATIC_LINKING" OFF)
 # cmake-format: on
+
+# When building shared libraries, we need to build with -fPIC in all cases
+if(FINUFFT_SHARED_LINKING)
+  set(FINUFFT_POSITION_INDEPENDENT_CODE ON)
+endif()
 
 include(cmake/utils.cmake)
 
@@ -231,7 +237,7 @@ function(set_finufft_options target)
   set_target_properties(
     ${target}
     PROPERTIES MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>"
-               POSITION_INDEPENDENT_CODE ${FINUFFT_SHARED_LINKING})
+               POSITION_INDEPENDENT_CODE ${FINUFFT_POSITION_INDEPENDENT_CODE})
   enable_asan(${target})
   if(FINUFFT_USE_OPENMP)
     target_link_libraries(${target} PRIVATE OpenMP::OpenMP_CXX)
@@ -342,12 +348,14 @@ if(FINUFFT_BUILD_PYTHON)
   add_subdirectory(python)
 endif()
 
-message(STATUS " CMAKE_BUILD_TYPE: ${CMAKE_BUILD_TYPE}")
+# cmake-format: off
 message(STATUS "FINUFFT configuration summary:")
+message(STATUS "  CMAKE_BUILD_TYPE: ${CMAKE_BUILD_TYPE}")
 message(STATUS "  FINUFFT_USE_CPU: ${FINUFFT_USE_CPU}")
 message(STATUS "  FINUFFT_USE_CUDA: ${FINUFFT_USE_CUDA}")
 message(STATUS "  FINUFFT_USE_OPENMP: ${FINUFFT_USE_OPENMP}")
 message(STATUS "  FINUFFT_STATIC_LINKING: ${FINUFFT_STATIC_LINKING}")
+message(STATUS "  FINUFFT_POSITION_INDEPENDENT_CODE: ${FINUFFT_POSITION_INDEPENDENT_CODE}")
 message(STATUS "  FINUFFT_ENABLE_INSTALL: ${FINUFFT_ENABLE_INSTALL}")
 message(STATUS "  FINUFFT_BUILD_EXAMPLES: ${FINUFFT_BUILD_EXAMPLES}")
 message(STATUS "  FINUFFT_BUILD_TESTS: ${FINUFFT_BUILD_TESTS}")
@@ -359,7 +367,7 @@ message(STATUS "  FINUFFT_FFTW_SUFFIX: ${FINUFFT_FFTW_SUFFIX}")
 message(STATUS "  FINUFFT_FFTW_LIBRARIES: ${FINUFFT_FFTW_LIBRARIES}")
 message(STATUS "  FINUFFT_ARCH_FLAGS: ${FINUFFT_ARCH_FLAGS}")
 message(STATUS "  FINUFFT_USE_DUCC0: ${FINUFFT_USE_DUCC0}")
-
+# cmake-format: on
 if(FINUFFT_ENABLE_INSTALL)
   include(GNUInstallDirs)
   install(TARGETS ${INSTALL_TARGETS} PUBLIC_HEADER)
