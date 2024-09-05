@@ -1,31 +1,37 @@
 Performance
 ============
 
-This page shows the performance of the various version of FINUFFT starting from version 2.2.0. The goal is to ensure that performance does not regress between releases.
-The results serve also as a user guideline to select the best compile time configuration (compiler, flags, fft implementation) and the best runtime parameters (upsampling factor, number of threads).
-Please note that the performance depends on multiple parameters.
-Notably: dimensions, size, digits requested, upsamplig factor, CPU utilised, compiler flags, SIMD instructions.
+This page compares performance measurements for various releases of the FINUFFT CPU library,
+starting from version 2.2.0 (December 2023).
+One goal is to document progress between releases; another is to insure that performance does not regress.
+The results should be compared against by users unsure if they are getting acceptable performance
+on their machine; please also read our :ref:`troubleshooting <trouble>` page.
+The results may also help the user to select the best compile time configuration (compiler, flags, FFT implementation) and the best runtime parameters (upsampling factor, number of threads).
+Keep in mind that CPU performance depends on multiple parameters, including
+dimensions, size, type, digits requested, upsampling factor, number of threads, compiler flags,
+SIMD instructions available, and (as of 2.3.0) choice of FFT.
 Due to the curse of dimensionality it is not possible to test all possible configurations.
-Hence, we selected some use cases from this `GitHub discussion <https://github.com/flatironinstitute/finufft/discussions/398>`_.
-If none of the following examples is of any help for your specific use case, participating in the discussion is the best way to communicate with us and the benchmarks may be updated to satisfy the majority of the users.
+Hence, we selected some user scenarios from this `GitHub discussion <https://github.com/flatironinstitute/finufft/discussions/398>`_.
+If none of the following examples is of any help for your specific use case, participating in the discussion is the best way to communicate with us, so that benchmarks may be updated to satisfy more users.
 
-This `GitHub discussion <https://github.com/flatironinstitute/finufft/discussions/452>`_ shows instead the performance of the spreader/interpolator with different compilers and gives more insight on which one might be the faster for a specific CPU.
+This `GitHub discussion <https://github.com/flatironinstitute/finufft/discussions/452>`_ measures the performance of the spreader/interpolator alone, for different compilers, and gives more insight on which one might be fastest for a specific CPU.
 
-
-The CPU used for all benchmarks is Intel(R) Xeon(R) w5-3435X, the compiler is GCC 13.2.0.
-The compiler flags are the ones used as a default in the CMakeLists.txt of the version tested we only impose a Release build and `-march=native`.
-The title of the image contains the parameters used.
- - pref: precision f=float, d=double
- - N(x): dimension along one axes
+The CPU used for all benchmarks below is: Intel(R) Xeon(R) w5-3435X.
+The compiler is GCC 13.2.0.
+The compiler flags are the ones used by default in the `CMakeLists.txt` of the version tested; we only impose a Release build and `-march=native`.
+In the below graphs, the title of the image contains the following parameters used:
+ - pref: precision (f=float, d=double)
+ - N1, N2, N3: numbers of modes in each dimension, or 1 if that dimension unused
  - M: number of non-uniform points
  - type: transform type (1, 2 or 3)
 
-The other parameters are the same as finufft_opts.
+The other parameters are the defaults for `finufft_opts`.
 
-To generate the results run `bench.py` as is inside perftest. It requires ``numpy``, ``pandas`` and ``matplotlib``.
-The script assumes a bash like shell and it might not work on Windows.
+To generate the below results, run `bench.py` from the `perftest` directory.
+This requires the Python packages ``numpy``, ``pandas`` and ``matplotlib``.
+The script assumes a bash-like shell, and may not work on Windows.
 .. warning::
-    DO NOT RUN the script from inside the finufft git directory as it will mess up the git directory and fail!
+    The script `bench.py` clones FINUFFT into the current directory, then switches between various branches and builds them. Thus DO NOT RUN the script from inside your FINUFFT git directory as it will mess up the git directory and fail! Instead move the script into a clean directory and run there.
 
 1D Transforms
 ---------------------------------------------

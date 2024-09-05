@@ -20,7 +20,6 @@ Documentation contents
 
    install
    install_gpu
-   performance
    dirs
    math
    cex
@@ -29,6 +28,7 @@ Documentation contents
    opts
    error
    trouble
+   performance
    tut
    fortran
    matlab
