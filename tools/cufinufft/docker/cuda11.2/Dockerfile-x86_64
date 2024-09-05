@@ -64,8 +64,12 @@ RUN yum install -y \
         cmake && \
     rm -rf /var/cache/yum/*
 
+RUN ls -l /opt/python/cp312-cp312/bin
+
 # pick py312 as default
 RUN ln -s /opt/python/cp312-cp312/bin/python3 /usr/bin/python3
+
+RUN ls -l /usr/bin/python*
 
 # upgrade pip, install auditwheel
 RUN python3 -m pip install --no-cache-dir --upgrade pip && \
