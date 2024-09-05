@@ -70,7 +70,7 @@ RUN yum install -y \
 RUN ln -s /opt/python/cp312-cp312/bin/python3 /usr/bin/python3
 
 # upgrade pip, install auditwheel
-RUN python3 -m pip install --upgrade pip && \
-    python3 -m pip install --upgrade auditwheel
+RUN python3 -m pip install --no-cache-dir --upgrade pip && \
+    python3 -m pip install --no-cache-dir --upgrade auditwheel
 
 CMD ["/bin/bash"]
