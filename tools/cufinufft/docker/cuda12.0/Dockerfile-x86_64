@@ -66,32 +66,11 @@ RUN yum install -y \
         cmake && \
     rm -rf /var/cache/yum/*
 
-# Okay, so now we can begin cufinufft
+# pick py312 as default
+RUN ln -s /opt/python/cp312-cp312/bin/python3 /usr/bin/python3
 
-# Only copy the C++/CUDA code (this way the cache is not invalidated by changes
-# to the Python code or to the docs).
-COPY src /io/src
-COPY fortran /io/fortran
-COPY include /io/include
-COPY test /io/test
-COPY perftest /io/perftest
-COPY examples /io/examples
-COPY cmake /io/cmake
-COPY contrib /io/contrib
-COPY CMakeLists.txt /io/
-
-# Set up cmake and build the code.
-RUN mkdir -p /io/build
-WORKDIR /io/build
-RUN cmake -D FINUFFT_USE_CUDA=ON -D FINUFFT_USE_CPU=OFF -D CMAKE_CUDA_ARCHITECTURES="50;60;70;75;80;90" -DBUILD_TESTING=ON -DFINUFFT_BUILD_TESTS=ON ..
-RUN make -j4
-
-# Need to pack the compiled library into our path.
-ENV LD_LIBRARY_PATH /io/build:${LD_LIBRARY_PATH}
-
-# Now copy the rest of the repository in.
-COPY python /io/python
-COPY docs /io/docs
-COPY tools /io/tools
+# upgrade pip, install auditwheel
+RUN python3 -m pip install --no-cache-dir --upgrade pip && \
+    python3 -m pip install --no-cache-dir --upgrade auditwheel
 
 CMD ["/bin/bash"]
