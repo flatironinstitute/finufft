@@ -121,6 +121,19 @@ struct Timer {
 
   float mean() { return this->tot() / start_.size(); }
 
+  float min() {
+    float min_dt = std::numeric_limits<float>::max();
+    for (size_t i = 0; i < start_.size(); ++i) {
+      auto dt = float(
+          std::chrono::duration_cast<std::chrono::milliseconds>(stop_[i] - start_[i])
+              .count());
+      if (dt < min_dt) {
+        min_dt = dt;
+      }
+    }
+    return min_dt;
+  }
+
   float std() {
     float avg  = this->mean();
     double var = 0.0;
@@ -269,17 +282,18 @@ template<typename T> void run_test(test_options_t &test_opts) {
 
   const int64_t nupts_tot = M * test_opts.n_runs * ntransf;
 
-  printf("event,count,tot(ms),mean(ms),std(ms),nupts/s,ns/nupt\n");
-  printf("makeplan,%d,%f,%f,%f,0.0,0.0\n", makeplan_timer.count(), makeplan_timer.tot(),
-         makeplan_timer.mean(), makeplan_timer.std());
-  printf("setpts,%d,%f,%f,%f,%g,%f\n", test_opts.n_runs, setpts_timer.tot(),
-         setpts_timer.mean(), setpts_timer.std(), nupts_tot * 1000 / setpts_timer.tot(),
-         setpts_timer.tot() * 1E6 / nupts_tot);
-  printf("execute,%d,%f,%f,%f,%g,%f\n", test_opts.n_runs, execute_timer.tot(),
-         execute_timer.mean(), execute_timer.std(),
+  printf("event,count,tot(ms),mean(ms),min(ms),std(ms),nupts/s,ns/nupt\n");
+  printf("makeplan,%d,%f,%f,%f,%f,0.0,0.0\n", makeplan_timer.count(),
+         makeplan_timer.tot(), makeplan_timer.mean(), makeplan_timer.min(),
+         makeplan_timer.std());
+  printf("setpts,%d,%f,%f,%f,%f,%g,%f\n", test_opts.n_runs, setpts_timer.tot(),
+         setpts_timer.mean(), setpts_timer.min(), setpts_timer.std(),
+         nupts_tot * 1000 / setpts_timer.tot(), setpts_timer.tot() * 1E6 / nupts_tot);
+  printf("execute,%d,%f,%f,%f,%f,%g,%f\n", test_opts.n_runs, execute_timer.tot(),
+         execute_timer.mean(), execute_timer.min(), execute_timer.std(),
          nupts_tot * 1000 / execute_timer.tot(), execute_timer.tot() * 1E6 / nupts_tot);
-  printf("amortized,%d,%f,%f,%f,%g,%f\n", 1, amortized_timer.tot(),
-         amortized_timer.mean(), amortized_timer.std(),
+  printf("amortized,%d,%f,%f,%f,%f,%g,%f\n", 1, amortized_timer.tot(),
+         amortized_timer.mean(), amortized_timer.min(), amortized_timer.std(),
          nupts_tot * 1000 / amortized_timer.tot(),
          amortized_timer.tot() * 1E6 / nupts_tot);
 }

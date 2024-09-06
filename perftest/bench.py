@@ -32,7 +32,7 @@ def build_args(args):
 
 
 # clone the repository
-run_command('git', ['clone', 'https://github.com/DiamonDinoia/finufft.git'])
+run_command('git', ['clone', 'https://github.com/flatironinstitute/finufft.git'])
 
 def get_cpu_temperature():
     try:
@@ -40,7 +40,7 @@ def get_cpu_temperature():
         output, _ = run_command('sensors', [])
         # Parse the output to find the CPU temperature
         for line in output.split('\n'):
-            if 'Core 14' in line:
+            if 'Core 0' in line:
                 # Extract the temperature value
                 temp_str = line.split()[2]
                 return temp_str
@@ -80,7 +80,7 @@ class Params:
 
 thread_num = int(os.cpu_count())
 
-versions = ['v2.2.0', 'v2.3.0-rc1']
+versions = ['v2.3.0-rc1', 'v2.2.0']
 fft_lib = ['fftw', 'ducc']
 upsamp = ['1.25', '2.00']
 transform = ['1', '2', '3']
@@ -147,7 +147,7 @@ for version in versions:
         run_command('git', ['-C', 'finufft', 'reset', '--hard'])
         run_command('git', ['-C', 'finufft', 'checkout', version])
         # checkout folder perftest from master branch
-        run_command('git', ['-C', 'finufft', 'checkout', 'origin/perftests', '--', 'perftest'])
+        run_command('git', ['-C', 'finufft', 'checkout', 'origin/master', '--', 'perftest'])
         if fft == 'ducc':
             run_command('cmake',
                         ['-S', 'finufft', '-B', 'build', '-DCMAKE_BUILD_TYPE=Release', '-DFINUFFT_BUILD_TESTS=ON',
@@ -205,11 +205,11 @@ for param in ParamList:
             # select the baseline data
             baseline = this_data[this_data['version'] == '2.2.0-fftw']
             # calculate the amortized time for the baseline
-            baseline_amortized = baseline[baseline['event'] == 'amortized']['mean(ms)'].values[0]
+            baseline_amortized = baseline[baseline['event'] == 'amortized']['min(ms)'].values[0]
             # calculate the speedup for all the other versions
-            this_data['speedup'] = baseline_amortized / this_data[this_data['event'] == 'amortized']['mean(ms)']
+            this_data['speedup'] = baseline_amortized / this_data[this_data['event'] == 'amortized']['min(ms)']
             # pivot the data
-            pivot = this_data.pivot(index='version', columns='event', values='mean(ms)')
+            pivot = this_data.pivot(index='version', columns='event', values='min(ms)')
             pivot = pivot.drop(columns='amortized')
             # plot the stacked bar chart
             plot_stacked_bar_chart(pivot, this_data, args, name)
