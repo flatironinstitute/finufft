@@ -93,22 +93,23 @@ static std::mutex fftw_lock;
 class FFTWLockGuard {
 public:
   FFTWLockGuard(void (*lock_fun)(void *), void (*unlock_fun)(void *), void *lock_data)
-      : unlock_fun_(unlock_fun), lock_data_(lock_data) {
+      : unlock_fun_(unlock_fun), lock_data_(lock_data), fftw_lock_(fftw_lock) {
     if (lock_fun)
       lock_fun(lock_data_);
     else
-      fftw_lock.lock();
+      fftw_lock_.lock();
   }
   ~FFTWLockGuard() {
     if (unlock_fun_)
       unlock_fun_(lock_data_);
     else
-      fftw_lock.unlock();
+      fftw_lock_.unlock();
   }
 
 private:
   void (*unlock_fun_)(void *);
   void *lock_data_;
+  std::mutex &fftw_lock_;
 };
 
 #endif
