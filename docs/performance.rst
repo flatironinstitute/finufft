@@ -36,7 +36,7 @@ This requires the Python packages ``numpy``, ``pandas`` and ``matplotlib``.
 The script assumes a bash-like shell, and may not work on Windows.
 
 .. warning::
-    The script ``bench.py`` clones FINUFFT into the current directory, then switches between various branches and builds them. Thus DO NOT RUN the script from inside your FINUFFT git directory as it will mess up the git directory and fail! Instead move the script into a clean directory and run there.
+    The script ``bench.py`` clones FINUFFT into the current directory, then switches between various branches and builds them. Thus DO NOT RUN the script from inside your FINUFFT git directory as it will mess up the git directory and fail! Instead move the script into a clean directory outside the git checkout and run there.
 
 1D Transforms
 ---------------------------------------------
@@ -86,7 +86,7 @@ Type 3
 .. image:: pics/320x320x1-type-3-upsamp2.00-precf-thread1.png
 .. image:: pics/320x320x1-type-3-upsamp2.00-precd-thread1.png
 
-2D transforms Multi-Threaded
+2D transforms Multi-Threaded (float32)
 ---------------------------------------------
 
 Type 1
@@ -104,7 +104,7 @@ Type 3
 .. image:: pics/320x320x1-type-3-upsamp1.25-precf-thread32.png
 .. image:: pics/320x320x1-type-3-upsamp2.00-precf-thread32.png
 
-3D transforms Multi-Threaded (float32)
+3D transforms Multi-Threaded (float64)
 ---------------------------------------------
 
 Type 1
