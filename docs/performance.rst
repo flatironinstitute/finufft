@@ -109,15 +109,15 @@ Type 3
 
 Type 1
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-.. image:: pics/192x192x128-type-1-upsamp1.25-precf-thread32.png
-.. image:: pics/192x192x128-type-1-upsamp2.00-precf-thread32.png
+.. image:: pics/192x192x128-type-1-upsamp1.25-precd-thread32.png
+.. image:: pics/192x192x128-type-1-upsamp2.00-precd-thread32.png
 
 Type 2
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-.. image:: pics/192x192x128-type-2-upsamp1.25-precf-thread32.png
-.. image:: pics/192x192x128-type-2-upsamp2.00-precf-thread32.png
+.. image:: pics/192x192x128-type-2-upsamp1.25-precd-thread32.png
+.. image:: pics/192x192x128-type-2-upsamp2.00-precd-thread32.png
 
 Type 3
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-.. image:: pics/192x192x128-type-3-upsamp1.25-precf-thread32.png
-.. image:: pics/192x192x128-type-3-upsamp2.00-precf-thread32.png
+.. image:: pics/192x192x128-type-3-upsamp1.25-precd-thread32.png
+.. image:: pics/192x192x128-type-3-upsamp2.00-precd-thread32.png

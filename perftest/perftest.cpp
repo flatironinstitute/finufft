@@ -242,15 +242,14 @@ template<typename T> void run_test(test_options_t &test_opts) {
   Timer makeplan_timer, setpts_timer, execute_timer, amortized_timer;
   amortized_timer.start();
 
+  T *x_p = dim >= 1 ? x.data() : nullptr;
+  T *y_p = dim >= 2 ? y.data() : nullptr;
+  T *z_p = dim == 3 ? z.data() : nullptr;
+  T *s_p = type == 3 && dim >= 1 ? s.data() : nullptr;
+  T *t_p = type == 3 && dim >= 2 ? t.data() : nullptr;
+  T *u_p = type == 3 && dim == 3 ? u.data() : nullptr;
   if constexpr (std::is_same_v<T, double>) {
-    T *x_p = dim >= 1 ? x.data() : nullptr;
-    T *y_p = dim >= 2 ? y.data() : nullptr;
-    T *z_p = dim == 3 ? z.data() : nullptr;
-    T *s_p = type == 3 && dim >= 1 ? s.data() : nullptr;
-    T *t_p = type == 3 && dim >= 2 ? t.data() : nullptr;
-    T *u_p = type == 3 && dim == 3 ? u.data() : nullptr;
     finufft_plan_s *plan{nullptr};
-
     timeit(finufft_makeplan, makeplan_timer, test_opts.type, dim, test_opts.N, iflag,
            ntransf, test_opts.tol, &plan, &opts);
     for (int i = 0; i < test_opts.n_runs; ++i) {
@@ -261,14 +260,7 @@ template<typename T> void run_test(test_options_t &test_opts) {
   }
 
   if constexpr (std::is_same_v<T, float>) {
-    T *x_p = dim >= 1 ? x.data() : nullptr;
-    T *y_p = dim >= 2 ? y.data() : nullptr;
-    T *z_p = dim == 3 ? z.data() : nullptr;
-    T *s_p = type == 3 && dim >= 1 ? s.data() : nullptr;
-    T *t_p = type == 3 && dim >= 2 ? t.data() : nullptr;
-    T *u_p = type == 3 && dim == 3 ? u.data() : nullptr;
     finufftf_plan_s *plan{nullptr};
-
     timeit(finufftf_makeplan, makeplan_timer, test_opts.type, dim, test_opts.N, iflag,
            ntransf, test_opts.tol, &plan, &opts);
     for (int i = 0; i < test_opts.n_runs; ++i) {
@@ -276,7 +268,6 @@ template<typename T> void run_test(test_options_t &test_opts) {
       timeit(finufftf_execute, execute_timer, plan, c.data(), fk.data());
     }
     finufftf_destroy(plan);
-    plan = nullptr;
   }
   amortized_timer.stop();
 
