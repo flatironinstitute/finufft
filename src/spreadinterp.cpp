@@ -1260,53 +1260,59 @@ static void add_wrapped_subgrid(BIGINT offset1, BIGINT offset2, BIGINT offset3,
 }
 
 template<typename T>
-static void bin_sort_singlethread(std::vector<BIGINT> &ret, UBIGINT M, const T *kx,
-                                  const T *ky, const T *kz, UBIGINT N1, UBIGINT N2,
-                                  UBIGINT N3, double bin_size_x, double bin_size_y,
-                                  double bin_size_z, int debug [[maybe_unused]])
-/* Returns permutation of all nonuniform points with good RAM access,
- * ie less cache misses for spreading, in 1D, 2D, or 3D. Single-threaded version
- *
- * This is achieved by binning into cuboids (of given bin_size within the
- * overall box domain), then reading out the indices within
- * these bins in a Cartesian cuboid ordering (x fastest, y med, z slowest).
- * Finally the permutation is inverted, so that the good ordering is: the
- * NU pt of index ret[0], the NU pt of index ret[1],..., NU pt of index ret[M-1]
- *
- * Inputs: M - number of input NU points.
- *         kx,ky,kz - length-M arrays of real coords of NU pts in [-pi, pi).
- *                    Points outside this range are folded into it.
- *         N1,N2,N3 - integer sizes of overall box (N2=N3=1 for 1D, N3=1 for 2D)
- *         bin_size_x,y,z - what binning box size to use in each dimension
- *                    (in rescaled coords where ranges are [0,Ni] ).
- *                    For 1D, only bin_size_x is used; for 2D, it & bin_size_y.
- * Output:
- *         writes to ret a vector list of indices, each in the range 0,..,M-1.
- *         Thus, ret must have been preallocated for M BIGINTs.
- *
- * Notes: I compared RAM usage against declaring an internal vector and passing
- * back; the latter used more RAM and was slower.
- * Avoided the bins array, as in JFM's spreader of 2016,
- * tidied up, early 2017, Barnett.
- * Timings (2017): 3s for M=1e8 NU pts on 1 core of i7; 5s on 1 core of xeon.
- * Simplified by Martin Reinecke, 6/19/23 (no apparent effect on speed).
+static void bin_sort_singlethread_vector(
+    std::vector<BIGINT> &ret, UBIGINT M, const T *kx, const T *ky, const T *kz,
+    UBIGINT N1, UBIGINT N2, UBIGINT N3, double bin_size_x, double bin_size_y,
+    double bin_size_z, int debug [[maybe_unused]])
+/* SIMD-vectorized version of bin_sort_singlethread.
+ * For documentation see: bin_sort_singlethread.
  */
 {
+  using simd_type                 = xsimd::batch<T>;
+  using arch_t                    = typename simd_type::arch_type;
+  static constexpr auto simd_size = simd_type::size;
+  static constexpr auto alignment = arch_t::alignment();
+
+  constexpr auto to_array = [](const auto &vec) constexpr noexcept {
+    using VT = decltype(std::decay_t<decltype(vec)>());
+    alignas(alignment) std::array<typename VT::value_type, VT::size> array{};
+    vec.store_aligned(array.data());
+    return array;
+  };
+
   const auto isky = (N2 > 1), iskz = (N3 > 1); // ky,kz avail? (cannot access if not)
   // here the +1 is needed to allow round-off error causing i1=N1/bin_size_x,
   // for kx near +pi, ie foldrescale gives N1 (exact arith would be 0 to N1-1).
   // Note that round-off near kx=-pi stably rounds negative to i1=0.
-  const auto nbins1         = BIGINT(T(N1) / bin_size_x + 1);
-  const auto nbins2         = isky ? BIGINT(T(N2) / bin_size_y + 1) : 1;
-  const auto nbins3         = iskz ? BIGINT(T(N3) / bin_size_z + 1) : 1;
-  const auto nbins          = nbins1 * nbins2 * nbins3;
-  const auto inv_bin_size_x = T(1.0 / bin_size_x);
-  const auto inv_bin_size_y = T(1.0 / bin_size_y);
-  const auto inv_bin_size_z = T(1.0 / bin_size_z);
+  const auto nbins1             = BIGINT(T(N1) / bin_size_x + 1);
+  const auto nbins2             = isky ? BIGINT(T(N2) / bin_size_y + 1) : 1;
+  const auto nbins3             = iskz ? BIGINT(T(N3) / bin_size_z + 1) : 1;
+  const auto nbins              = nbins1 * nbins2 * nbins3;
+  const auto inv_bin_size_x     = T(1.0 / bin_size_x);
+  const auto inv_bin_size_y     = T(1.0 / bin_size_y);
+  const auto inv_bin_size_z     = T(1.0 / bin_size_z);
+  const auto inv_bin_size_x_vec = simd_type(1.0 / bin_size_x);
+  const auto inv_bin_size_y_vec = simd_type(1.0 / bin_size_y);
+  const auto inv_bin_size_z_vec = simd_type(1.0 / bin_size_z);
+  const auto zero               = to_int(simd_type(0));
+
   // count how many pts in each bin
   std::vector<BIGINT> counts(nbins, 0);
-
-  for (UBIGINT i = 0; i < M; i++) {
+  const auto simd_M = M & (-simd_size); // round down to simd_size multiple
+  UBIGINT i{};
+  for (i = 0; i < simd_M; i += simd_size) {
+    const auto i1 = to_int(simd_type::load_aligned(kx + i) * inv_bin_size_x_vec);
+    const auto i2 =
+        isky ? to_int(simd_type::load_aligned(ky + i) * inv_bin_size_y_vec) : zero;
+    const auto i3 =
+        iskz ? to_int(simd_type::load_aligned(kz + i) * inv_bin_size_z_vec) : zero;
+    const auto bin       = i1 + nbins1 * (i2 + nbins2 * i3);
+    const auto bin_array = to_array(bin);
+    for (int j = 0; j < simd_size; j++) {
+      ++counts[bin_array[j]];
+    }
+  }
+  for (; i < M; i++) {
     // find the bin index in however many dims are needed
     const auto i1  = BIGINT(fold_rescale<T>(kx[i], N1) * inv_bin_size_x);
     const auto i2  = isky ? BIGINT(fold_rescale<T>(ky[i], N2) * inv_bin_size_y) : 0;
@@ -1323,16 +1329,35 @@ static void bin_sort_singlethread(std::vector<BIGINT> &ret, UBIGINT M, const T *
     current_offset += tmp;
   } // (counts now contains the index offsets for each bin)
 
-  for (UBIGINT i = 0; i < M; i++) {
+  for (i = 0; i < simd_M; i += simd_size) {
+    const auto i1 = xsimd::to_int((simd_type::load_aligned(kx + i) * inv_bin_size_x_vec));
+    const auto i2 =
+        isky ? xsimd::to_int(simd_type::load_aligned(ky + i) * inv_bin_size_y_vec) : zero;
+    const auto i3 =
+        iskz ? xsimd::to_int(simd_type::load_aligned(kz + i) * inv_bin_size_z_vec) : zero;
+    const auto bin       = i1 + nbins1 * (i2 + nbins2 * i3);
+    const auto bin_array = to_array(bin);
+    for (int j = 0; j < simd_size; j++) {
+      ret[counts[bin_array[j]]] = j + i;
+      counts[bin_array[j]]++;
+    }
+  }
+  for (; i < M; i++) {
     // find the bin index (again! but better than using RAM)
     const auto i1    = BIGINT(fold_rescale<T>(kx[i], N1) * inv_bin_size_x);
     const auto i2    = isky ? BIGINT(fold_rescale<T>(ky[i], N2) * inv_bin_size_y) : 0;
     const auto i3    = iskz ? BIGINT(fold_rescale<T>(kz[i], N3) * inv_bin_size_z) : 0;
     const auto bin   = i1 + nbins1 * (i2 + nbins2 * i3);
     ret[counts[bin]] = BIGINT(i); // fill the inverse map on the fly
-    ++counts[bin]; // update the offsets
+    ++counts[bin];        // update the offsets
   }
 }
+
+template<typename T>
+static void bin_sort_singlethread(std::vector<BIGINT> &ret, UBIGINT M, const T *kx,
+                                  const T *ky, const T *kz, UBIGINT N1, UBIGINT N2,
+                                  UBIGINT N3, double bin_size_x, double bin_size_y,
+                                  double bin_size_z, int debug [[maybe_unused]])
 
 template<typename T>
 static void bin_sort_multithread(std::vector<BIGINT> &ret, UBIGINT M, const T *kx,
@@ -1576,8 +1601,8 @@ int indexSort(std::vector<BIGINT> &sort_indices, UBIGINT N1, UBIGINT N2, UBIGINT
     if (sort_nthr == 0) // multithreaded auto choice: when N>>M, one thread is better!
       sort_nthr = (10 * M > N) ? maxnthr : 1; // heuristic
     if (sort_nthr == 1)
-      bin_sort_singlethread(sort_indices, M, kx, ky, kz, N1, N2, N3, bin_size_x,
-                            bin_size_y, bin_size_z, sort_debug);
+      bin_sort_singlethread_vector(sort_indices, M, kx, ky, kz, N1, N2, N3, bin_size_x,
+                                   bin_size_y, bin_size_z, sort_debug);
     else // sort_nthr>1, user fixes # threads (>=2)
       bin_sort_multithread(sort_indices, M, kx, ky, kz, N1, N2, N3, bin_size_x,
                            bin_size_y, bin_size_z, sort_debug, sort_nthr);
