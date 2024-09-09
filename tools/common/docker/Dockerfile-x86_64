@@ -1,0 +1,13 @@
+FROM quay.io/pypa/manylinux2014_x86_64:2024-09-09-f386546
+LABEL maintainer "Joakim Andén"
+
+ENV PATH /opt/python/cp312-cp312/bin:${PATH}
+
+RUN pip install --root-user-action ignore --no-cache-dir --upgrade pip
+RUN pip install --root-user-action ignore --no-cache-dir --upgrade build toml-cli
+
+COPY . /io/finufft
+
+WORKDIR /io
+
+CMD ["/bin/bash"]
