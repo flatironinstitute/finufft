@@ -14,11 +14,12 @@ include(CMakeDependentOption)
 option(FINUFFT_BUILD_FORTRAN "Whether to build the FINUFFT Fortran examples" OFF)
 option(FINUFFT_BUILD_MATLAB "Whether to build the FINUFFT Matlab interface" OFF)
 option(FINUFFT_BUILD_PYTHON "Whether the Python wrapper should be built." OFF)
-option(FINUFFT_ENABLE_SANITIZERS "Whether to enable sanitizers, only effective for Debug configuration." ON)
+option(FINUFFT_ENABLE_SANITIZERS "Whether to enable sanitizers, only effective for Debug configuration." OFF)
 option(FINUFFT_USE_OPENMP "Whether to use OpenMP for parallelization. If disabled, the finufft library will be single threaded. This does not affect the choice of FFTW library." ON)
 option(FINUFFT_USE_CPU "Whether to build the ordinary FINUFFT library (libfinufft)." ON)
 option(FINUFFT_USE_CUDA "Whether to build CUDA accelerated FINUFFT library (libcufinufft). This is completely independent of the main FINUFFT library" OFF)
 option(FINUFFT_STATIC_LINKING "If ON builds the static finufft library, if OFF build a shared finufft library." ON)
+option(FINUFFT_POSITION_INDEPENDENT_CODE "Whether to build the finufft library with position independent code (-fPIC). This forced ON when FINUFFT_SHARED_LINKING is ON." ON)
 option(FINUFFT_BUILD_DEVEL "Whether to build development executables" OFF)
 option(FINUFFT_BUILD_EXAMPLES "Whether to build the FINUFFT examples" OFF)
 option(FINUFFT_BUILD_TESTS "Whether to build the FINUFFT tests" OFF)
@@ -32,10 +33,15 @@ set(FINUFFT_CUDA_ARCHITECTURES "native" CACHE STRING "CUDA architectures to buil
 # if FINUFFT_USE_CPU is OFF, the following options are ignored
 set(FINUFFT_ARCH_FLAGS "native" CACHE STRING "Compiler flags for specifying target architecture, defaults to -march=native")
 # sphinx tag (don't remove): @cmake_opts_end
-cmake_dependent_option(FINUFFT_ENABLE_INSTALL "Disable installation in the case of python builds" OFF "FINUFFT_BUILD_PYTHON" OFF)
+cmake_dependent_option(FINUFFT_ENABLE_INSTALL "Disable installation in the case of python builds" ON "NOT FINUFFT_BUILD_PYTHON" OFF)
 cmake_dependent_option(FINUFFT_STATIC_LINKING "Disable static libraries in the case of python builds" ON "NOT FINUFFT_BUILD_PYTHON" OFF)
 cmake_dependent_option(FINUFFT_SHARED_LINKING "Shared should be the opposite of static linking" ON "NOT FINUFFT_STATIC_LINKING" OFF)
 # cmake-format: on
+
+# When building shared libraries, we need to build with -fPIC in all cases
+if(FINUFFT_SHARED_LINKING)
+  set(FINUFFT_POSITION_INDEPENDENT_CODE ON)
+endif()
 
 include(cmake/utils.cmake)
 
@@ -117,7 +123,13 @@ endif()
 # double precision The single precision compilation is done with -DSINGLE
 set(FINUFFT_PRECISION_DEPENDENT_SOURCES
     src/finufft.cpp src/fft.cpp src/simpleinterfaces.cpp src/spreadinterp.cpp
-    src/utils.cpp fortran/finufftfort.cpp)
+    src/utils.cpp)
+
+# If we're building for Fortran, make sure we also include the translation
+# layer.
+if(FINUFFT_BUILD_FORTRAN)
+  list(APPEND FINUFFT_PRECISION_DEPENDENT_SOURCES fortran/finufftfort.cpp)
+endif()
 
 # set linker flags for sanitizer
 set(FINUFFT_SANITIZER_FLAGS)
@@ -137,7 +149,7 @@ function(enable_asan target)
   endif()
 endfunction()
 
-set(CPM_DOWNLOAD_VERSION 0.40.0)
+set(CPM_DOWNLOAD_VERSION 0.40.2)
 include(cmake/setupCPM.cmake)
 
 if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
@@ -225,7 +237,7 @@ function(set_finufft_options target)
   set_target_properties(
     ${target}
     PROPERTIES MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>"
-               POSITION_INDEPENDENT_CODE ${FINUFFT_SHARED_LINKING})
+               POSITION_INDEPENDENT_CODE ${FINUFFT_POSITION_INDEPENDENT_CODE})
   enable_asan(${target})
   if(FINUFFT_USE_OPENMP)
     target_link_libraries(${target} PRIVATE OpenMP::OpenMP_CXX)
@@ -280,13 +292,17 @@ if(FINUFFT_USE_CPU)
 endif()
 
 if(FINUFFT_USE_CUDA)
-  if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
-    message(
-      "FINUFFT WARNING: No CUDA architecture supplied via '-DCMAKE_CUDA_ARCHITECTURES=...', defaulting to 'native'"
-    )
-    message(
-      "See: https://developer.nvidia.com/cuda-gpus for more details on what architecture to supply."
-    )
+  if(NOT DEFINED FINUFFT_CUDA_ARCHITECTURES)
+    if(DEFINED CMAKE_CUDA_ARCHITECTURES)
+      set(FINUFFT_CUDA_ARCHITECTURES "{$CMAKE_CUDA_ARCHITECTURES}")
+    else()
+      message(
+        "FINUFFT WARNING: No CUDA architecture supplied via '-DFINUFFT_CUDA_ARCHITECTURES=...', defaulting to 'native'"
+      )
+      message(
+        "See: https://developer.nvidia.com/cuda-gpus for more details on what architecture to supply."
+      )
+    endif()
   endif()
   enable_language(CUDA)
   find_package(CUDAToolkit REQUIRED)
@@ -332,12 +348,14 @@ if(FINUFFT_BUILD_PYTHON)
   add_subdirectory(python)
 endif()
 
-message(STATUS " CMAKE_BUILD_TYPE: ${CMAKE_BUILD_TYPE}")
+# cmake-format: off
 message(STATUS "FINUFFT configuration summary:")
+message(STATUS "  CMAKE_BUILD_TYPE: ${CMAKE_BUILD_TYPE}")
 message(STATUS "  FINUFFT_USE_CPU: ${FINUFFT_USE_CPU}")
 message(STATUS "  FINUFFT_USE_CUDA: ${FINUFFT_USE_CUDA}")
 message(STATUS "  FINUFFT_USE_OPENMP: ${FINUFFT_USE_OPENMP}")
 message(STATUS "  FINUFFT_STATIC_LINKING: ${FINUFFT_STATIC_LINKING}")
+message(STATUS "  FINUFFT_POSITION_INDEPENDENT_CODE: ${FINUFFT_POSITION_INDEPENDENT_CODE}")
 message(STATUS "  FINUFFT_ENABLE_INSTALL: ${FINUFFT_ENABLE_INSTALL}")
 message(STATUS "  FINUFFT_BUILD_EXAMPLES: ${FINUFFT_BUILD_EXAMPLES}")
 message(STATUS "  FINUFFT_BUILD_TESTS: ${FINUFFT_BUILD_TESTS}")
@@ -349,7 +367,7 @@ message(STATUS "  FINUFFT_FFTW_SUFFIX: ${FINUFFT_FFTW_SUFFIX}")
 message(STATUS "  FINUFFT_FFTW_LIBRARIES: ${FINUFFT_FFTW_LIBRARIES}")
 message(STATUS "  FINUFFT_ARCH_FLAGS: ${FINUFFT_ARCH_FLAGS}")
 message(STATUS "  FINUFFT_USE_DUCC0: ${FINUFFT_USE_DUCC0}")
-
+# cmake-format: on
 if(FINUFFT_ENABLE_INSTALL)
   include(GNUInstallDirs)
   install(TARGETS ${INSTALL_TARGETS} PUBLIC_HEADER)
