@@ -30,6 +30,7 @@ add_executable(testutils testutils.cpp)
 if(FINUFFT_USE_DUCC0)
   target_compile_definitions(testutils PRIVATE -DFINUFFT_USE_DUCC0)
 endif()
+target_compile_features(testutils PRIVATE cxx_std_17)
 finufft_link_test(testutils)
 add_test(
   NAME run_testutils
