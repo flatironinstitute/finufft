@@ -36,6 +36,17 @@ add_test(
   COMMAND testutils
   WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
 
+if(NOT FINUFFT_USE_DUCC0)
+  add_executable(fftw_lock_test fftw_lock_test.cpp)
+  target_compile_features(fftw_lock_test PRIVATE cxx_std_17)
+  finufft_link_test(fftw_lock_test)
+
+  add_test(
+    NAME run_fftw_lock_test
+    COMMAND fftw_lock_test
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
+endif()
+
 # Add ctest definitions that run at both precisions...
 function(add_tests_with_prec PREC REQ_TOL CHECK_TOL SUFFIX)
   # All of the following should be run at OMP_NUM_THREADS=4 or something small,
