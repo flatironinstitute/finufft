@@ -188,6 +188,8 @@ void onedim_fseries_kernel(BIGINT nf, FLT *fwkerhalf, finufft_spread_opts opts)
   kernel. The FT definition is f(k) = int e^{-ikx} f(x) dx. The output has an
   overall prefactor of 1/h, which is needed anyway for the correction, and
   arises because the quadrature weights are scaled for grid units not x units.
+  The kernel is actually centered at nf/2, related to the centering of the grid;
+  this is now achieved by the sign flip in a[n] below.
 
   Inputs:
   nf - size of 1d uniform spread grid, must be even.
@@ -202,7 +204,7 @@ void onedim_fseries_kernel(BIGINT nf, FLT *fwkerhalf, finufft_spread_opts opts)
   sampled kernel, not quite the same object.
 
   Barnett 2/7/17. openmp (since slow vs fftw in 1D large-N case) 3/3/18.
-  Fixed num_threads 7/20/20
+  Fixed num_threads 7/20/20. Reduced rounding error in a[n] calc 8/20/24.
  */
 {
   FLT J2 = opts.nspread / 2.0; // J/2, half-width of ker z-support
@@ -214,8 +216,8 @@ void onedim_fseries_kernel(BIGINT nf, FLT *fwkerhalf, finufft_spread_opts opts)
   CPX a[MAX_NQUAD];
   for (int n = 0; n < q; ++n) {      // set up nodes z_n and vals f_n
     z[n] *= J2;                      // rescale nodes
-    f[n] = J2 * (FLT)w[n] * evaluate_kernel((FLT)z[n], opts);  // vals & quadr wei
-    a[n] = exp(2 * PI * IMA * (FLT)(nf / 2 - z[n]) / (FLT)nf); // phase winding rates
+    f[n] = J2 * (FLT)w[n] * evaluate_kernel((FLT)z[n], opts); // vals & quadr wei
+    a[n] = -exp(2 * PI * IMA * (FLT)z[n] / (FLT)nf);          // phase winding rates
   }
   BIGINT nout = nf / 2 + 1;                       // how many values we're writing to
   int nt      = min(nout, (BIGINT)opts.nthreads); // how many chunks
