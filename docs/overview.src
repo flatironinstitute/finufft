@@ -77,14 +77,14 @@ or interpolated from, this fine grid, using a specially designed kernel
 (see right figure above).
 Our main features are:
 
-* **High speed**.  For instance, at similar accuracy, FINUFFT is up to 10x faster than the multi-threaded `Chemnitz NFFT3 library <https://www-user.tu-chemnitz.de/~potts/nfft/>`_, and (in single-thread mode) up to 50x faster than the `CMCL NUFFT library <http://www.cims.nyu.edu/cmcl/nufft/nufft.html>`_. This is achieved via:
+* **High speed**.  See our :ref:`performance tests <performance>`. For instance, at similar accuracy, FINUFFT is up to 10x faster than the multi-threaded `Chemnitz NFFT3 library <https://www-user.tu-chemnitz.de/~potts/nfft/>`_, and (in single-thread mode) up to 50x faster than the `CMCL NUFFT library <http://www.cims.nyu.edu/cmcl/nufft/nufft.html>`_. This is achieved via:
 
-  1. a simple new `"exponential of semicircle" kernel <https://arxiv.org/abs/2001.09405>`_ that is provably close to optimal
+  1. a simple `"exponential of semicircle" kernel <https://arxiv.org/abs/2001.09405>`_ that is provably close to optimal
   #. quadrature approximation for this kernel's Fourier transform
-  #. load-balanced multithreaded spreading/interpolation
+  #. load-balanced multithreaded manual-SIMD-vectorized spreading/interpolation
   #. bin-sorting of points to improve cache reuse
   #. a low upsampling option for smaller FFTs, especially in type 3 transforms
-  #. piecewise polynomial kernel evaluation (additions and multiplications only) that SIMD-vectorizes reliably on open-source compilers
+  #. piecewise polynomial kernel evaluation (additions and multiplications only) with manual SIMD vectorization
 
 * **Less RAM**. Our kernel is so fast that there is no point in precomputation; it is always evaluated on the fly. Thus our memory footprint is often an order of magnitude less than the fastest (precomputed) modes of competitors such as NFFT3 and MIRT, especially at high accuracy.
 

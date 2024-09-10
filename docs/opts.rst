@@ -20,17 +20,17 @@ to the simple, vectorized, or guru makeplan routines.
 Recall how to do this from C++:
 
 .. code-block:: C++
-                
+
   // (... set up M,x,c,tol,N, and allocate F here...)
-  finufft_opts* opts;
-  finufft_default_opts(opts);
-  opts->debug = 1;
-  int ier = finufft1d1(M,x,c,+1,tol,N,F,opts);
+  finufft_opts opts;
+  finufft_default_opts(&opts);
+  opts.debug = 1;
+  int ier = finufft1d1(M,x,c,+1,tol,N,F,&opts);
 
 This setting produces more timing output to ``stdout``.
 
 .. warning::
-   
+
  In C/C++ and Fortran, don't forget to call the command which sets default options
  (``finufft_default_opts`` or ``finufftf_default_opts``)
  before you start changing them and passing them to FINUFFT.
@@ -51,9 +51,9 @@ Here are their default settings (from ``src/finufft.cpp:finufft_default_opts``):
 .. literalinclude:: ../src/finufft.cpp
    :start-after: @defopts_start
    :end-before: @defopts_end
-  
+
 As for quick advice, the main options you'll want to play with are:
-  
+
 - ``modeord`` to flip ("fftshift") the Fourier mode ordering
 - ``debug`` to look at timing output (to determine if your problem is spread/interpolation dominated, vs FFT dominated)
 - ``nthreads`` to run with a different number of threads than the current maximum available through OpenMP (a large number can sometimes be detrimental, and very small problems can sometimes run faster on 1 thread)
@@ -92,7 +92,7 @@ Data handling options
   .. note:: The index *sets* are the same in the two ``modeord`` choices; their ordering differs only by a cyclic shift. The FFT ordering cyclically shifts the CMCL indices $\mbox{floor}(N/2)$ to the left (often called an "fftshift").
 
 **chkbnds**: [DEPRECATED] has no effect.
-  
+
 
 Diagnostic options
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -100,7 +100,7 @@ Diagnostic options
 **debug**: Controls the amount of overall debug/timing output to stdout.
 
 * ``debug=0`` : silent
-  
+
 * ``debug=1`` : print some information
 
 * ``debug=2`` : prints more information
@@ -113,11 +113,11 @@ Diagnostic options
 
   * ``spread_debug=2`` : prints lots. This can print thousands of lines since it includes one line per *subproblem*.
 
-   
+
 **showwarn**: Whether to print warnings (these go to stderr).
-    
+
 * ``showwarn=0`` : suppresses such warnings
-  
+
 * ``showwarn=1`` : prints warnings
 
 
@@ -173,16 +173,16 @@ for only two settings, as follows. Otherwise, setting it to zero chooses a good 
 **spread_thread**: in the case of multiple transforms per call (``ntr>1``, or the "many" interfaces), controls how multithreading is used to spread/interpolate each batch of data.
 
 * ``spread_thread=0`` : makes an automatic choice between the below. Recommended.
-  
+
 * ``spread_thread=1`` : acts on each vector in the batch in sequence, using multithreaded spread/interpolate on that vector. It can be slightly better than ``2`` for large problems.
-    
+
 * ``spread_thread=2`` : acts on all vectors in a batch (of size chosen typically to be the number of threads) simultaneously, assigning each a thread which performs a single-threaded spread/interpolate.  It is much better than ``1`` for all but large problems. (Historical note: this was used by Melody Shih for the original "2dmany" interface in 2018.)
 
   .. note::
-  
+
     Historical note: A former option ``3`` has been removed. This was like ``2`` except allowing nested OMP parallelism, so multi-threaded spread-interpolate was used for each of the vectors in a batch in parallel. This was used by Andrea Malleo in 2019. We have not yet found a case where this beats both ``1`` and ``2``, hence removed it due to complications with changing the OMP nesting state in both old and new OMP versions.
 
-     
+
 **maxbatchsize**:  in the case of multiple transforms per call (``ntr>1``, or the "many" interfaces), set the largest batch size of data vectors.
 Here ``0`` makes an automatic choice. If you are unhappy with this, then for small problems it should equal the number of threads, while for large problems it appears that ``1`` often better (since otherwise too much simultaneous RAM movement occurs). Some further work is needed to optimize this parameter.
 
