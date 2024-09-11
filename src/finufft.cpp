@@ -91,13 +91,8 @@ namespace common {
 static std::mutex fftw_lock;
 #endif
 
-// We macro because it has no FLT args but gets compiled for both prec's...
-#ifdef SINGLE
-#define SET_NF_TYPE12 set_nf_type12f
-#else
-#define SET_NF_TYPE12 set_nf_type12
-#endif
-int SET_NF_TYPE12(BIGINT ms, finufft_opts opts, finufft_spread_opts spopts, BIGINT *nf)
+static int set_nf_type12(BIGINT ms, finufft_opts opts, finufft_spread_opts spopts,
+                         BIGINT *nf)
 // Type 1 & 2 recipe for how to set 1d size of upsampled array, nf, given opts
 // and requested number of Fourier modes ms. Returns 0 if success, else an
 // error code if nf was unreasonably big (& tell the world).
@@ -188,6 +183,8 @@ void onedim_fseries_kernel(BIGINT nf, FLT *fwkerhalf, finufft_spread_opts opts)
   kernel. The FT definition is f(k) = int e^{-ikx} f(x) dx. The output has an
   overall prefactor of 1/h, which is needed anyway for the correction, and
   arises because the quadrature weights are scaled for grid units not x units.
+  The kernel is actually centered at nf/2, related to the centering of the grid;
+  this is now achieved by the sign flip in a[n] below.
 
   Inputs:
   nf - size of 1d uniform spread grid, must be even.
@@ -202,7 +199,7 @@ void onedim_fseries_kernel(BIGINT nf, FLT *fwkerhalf, finufft_spread_opts opts)
   sampled kernel, not quite the same object.
 
   Barnett 2/7/17. openmp (since slow vs fftw in 1D large-N case) 3/3/18.
-  Fixed num_threads 7/20/20
+  Fixed num_threads 7/20/20. Reduced rounding error in a[n] calc 8/20/24.
  */
 {
   FLT J2 = opts.nspread / 2.0; // J/2, half-width of ker z-support
@@ -214,8 +211,8 @@ void onedim_fseries_kernel(BIGINT nf, FLT *fwkerhalf, finufft_spread_opts opts)
   CPX a[MAX_NQUAD];
   for (int n = 0; n < q; ++n) {      // set up nodes z_n and vals f_n
     z[n] *= J2;                      // rescale nodes
-    f[n] = J2 * (FLT)w[n] * evaluate_kernel((FLT)z[n], opts);  // vals & quadr wei
-    a[n] = exp(2 * PI * IMA * (FLT)(nf / 2 - z[n]) / (FLT)nf); // phase winding rates
+    f[n] = J2 * (FLT)w[n] * evaluate_kernel((FLT)z[n], opts); // vals & quadr wei
+    a[n] = -exp(2 * PI * IMA * (FLT)z[n] / (FLT)nf);          // phase winding rates
   }
   BIGINT nout = nf / 2 + 1;                       // how many values we're writing to
   int nt      = min(nout, (BIGINT)opts.nthreads); // how many chunks
@@ -683,16 +680,16 @@ int FINUFFT_MAKEPLAN(int type, int dim, BIGINT *n_modes, int iflag, int ntrans, 
     }
 
     // determine fine grid sizes, sanity check..
-    int nfier = SET_NF_TYPE12(p->ms, p->opts, p->spopts, &(p->nf1));
+    int nfier = set_nf_type12(p->ms, p->opts, p->spopts, &(p->nf1));
     if (nfier) return nfier; // nf too big; we're done
     p->phiHat1 = (FLT *)malloc(sizeof(FLT) * (p->nf1 / 2 + 1));
     if (dim > 1) {
-      nfier = SET_NF_TYPE12(p->mt, p->opts, p->spopts, &(p->nf2));
+      nfier = set_nf_type12(p->mt, p->opts, p->spopts, &(p->nf2));
       if (nfier) return nfier;
       p->phiHat2 = (FLT *)malloc(sizeof(FLT) * (p->nf2 / 2 + 1));
     }
     if (dim > 2) {
-      nfier = SET_NF_TYPE12(p->mu, p->opts, p->spopts, &(p->nf3));
+      nfier = set_nf_type12(p->mu, p->opts, p->spopts, &(p->nf3));
       if (nfier) return nfier;
       p->phiHat3 = (FLT *)malloc(sizeof(FLT) * (p->nf3 / 2 + 1));
     }

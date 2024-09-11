@@ -50,8 +50,8 @@ template<typename T>
 void cufinufft_setup_binsize(int type, int ns, int dim, cufinufft_opts *opts);
 
 template<typename T, typename V>
-auto cufinufft_set_shared_memory(V *kernel, const int dim,
-                                 const cufinufft_plan_t<T> &d_plan) {
+int cufinufft_set_shared_memory(V *kernel, const int dim,
+                                const cufinufft_plan_t<T> &d_plan) {
   /**
    * WARNING: this function does not handle cuda errors. The caller should check them.
    */

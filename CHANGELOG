@@ -1,7 +1,9 @@
 List of features / changes made / release notes, in reverse chronological order.
 If not stated, FINUFFT is assumed (cuFINUFFT <=1.3 is listed separately).
 
-V 2.4.0 (08/28/24)
+Master (9/10/24)
+* reduced roundoff error in a[n] phase calc in CPU onedim_fseries_kernel().
+   #534 (Barnett).
 * Support for type 3 in 1D, 2D, and 3D in the GPU library cufinufft (PR #517).
     - Removed the CPU fseries computation (only used for benchmark no longer needed).
     - Added complex arithmetic support for cuda_complex type
@@ -10,7 +12,7 @@ V 2.4.0 (08/28/24)
         a) removed memory leaks in case of errors
         b) renamed maxbatchsize to batchsize
 
-V 2.3.0-rc1 (8/6/24)
+V 2.3.0 (9/5/24)
 
 * Switched C++ standards from C++14 to C++17, allowing various templating
   improvements (Barbone).
@@ -81,6 +83,9 @@ V 2.3.0-rc1 (8/6/24)
   test/finufft?d_test.cpp to reduce CI fails due to random numbers on some
   platforms in single-prec (with DUCC, etc). (Barnett PR516)
 * fix GPU segfault due to stream deletion as pointer not value (Barbone PR520)
+* new performance-tracking doc page comparing releases (Barbone) #527
+* fix various Py 3.8 wheel and numpy distutils logging issues #549 #545
+* Cmake option to control -fPIC in static build; default now ON (as v2.2) #551
 
 V 2.2.0 (12/12/23)
 
