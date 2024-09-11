@@ -14,6 +14,7 @@
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
+#include <iostream>
 #include <vector>
 
 using namespace std;
@@ -73,8 +74,8 @@ static FINUFFT_ALWAYS_INLINE auto ker_eval(FLT *FINUFFT_RESTRICT ker,
                                            const V... elems) noexcept;
 static FINUFFT_ALWAYS_INLINE FLT fold_rescale(FLT x, UBIGINT N) noexcept;
 template<class simd_type>
-FINUFFT_ALWAYS_INLINE static simd_type fold_rescale(const simd_type &x,
-                                                    UBIGINT N) noexcept;
+static FINUFFT_ALWAYS_INLINE simd_type fold_rescale(const simd_type &x,
+                                                    const BIGINT N) noexcept;
 static FINUFFT_ALWAYS_INLINE void set_kernel_args(
     FLT *args, FLT x, const finufft_spread_opts &opts) noexcept;
 static FINUFFT_ALWAYS_INLINE void evaluate_kernel_vector(
@@ -1845,6 +1846,11 @@ void add_wrapped_subgrid(BIGINT offset1, BIGINT offset2, BIGINT offset3,
   }
 }
 
+template<typename simd_type, std::size_t... Is>
+simd_type make_incremented_vectors(std::index_sequence<Is...>) {
+  return simd_type{Is...}; // Creates a SIMD vector with the index sequence
+}
+
 void bin_sort_singlethread_vector(
     BIGINT *ret, const UBIGINT M, const FLT *kx, const FLT *ky, const FLT *kz,
     const UBIGINT N1, const UBIGINT N2, const UBIGINT N3, const double bin_size_x,
@@ -1878,6 +1884,7 @@ void bin_sort_singlethread_vector(
  */
 {
   using simd_type                 = xsimd::batch<FLT>;
+  using int_simd_type             = xsimd::batch<xsimd::as_integer_t<FLT>>;
   using arch_t                    = simd_type::arch_type;
   static constexpr auto simd_size = simd_type::size;
   static constexpr auto alignment = arch_t::alignment();
@@ -1904,23 +1911,36 @@ void bin_sort_singlethread_vector(
   const auto inv_bin_size_y_vec = simd_type(1.0 / bin_size_y);
   const auto inv_bin_size_z_vec = simd_type(1.0 / bin_size_z);
   const auto zero               = to_int(simd_type(0));
+  const auto increment =
+      to_int(make_incremented_vectors<simd_type>(std::make_index_sequence<simd_size>{}));
 
   // count how many pts in each bin
-  std::vector<BIGINT> counts(nbins, 0);
+  alignas(alignment) std::vector<xsimd::as_integer_t<FLT>> counts(nbins + simd_size, 0);
+  alignas(alignment) std::vector<xsimd::as_integer_t<FLT>> ref_counts(nbins + simd_size,
+                                                                      0);
   const auto simd_M = M & (-simd_size); // round down to simd_size multiple
   UBIGINT i{};
   for (i = 0; i < simd_M; i += simd_size) {
-    const auto i1 = to_int(simd_type::load_aligned(kx + i) * inv_bin_size_x_vec);
+    const auto i1 = xsimd::to_int(
+        fold_rescale(simd_type::load_unaligned(kx + i), N1) * inv_bin_size_x_vec);
     const auto i2 =
-        isky ? to_int(simd_type::load_aligned(ky + i) * inv_bin_size_y_vec) : zero;
+        isky ? xsimd::to_int(fold_rescale(simd_type::load_unaligned(ky + i), N2) *
+                             inv_bin_size_y_vec)
+             : zero;
     const auto i3 =
-        iskz ? to_int(simd_type::load_aligned(kz + i) * inv_bin_size_z_vec) : zero;
+        iskz ? xsimd::to_int(fold_rescale(simd_type::load_unaligned(kz + i), N3) *
+                             inv_bin_size_z_vec)
+             : zero;
     const auto bin       = i1 + nbins1 * (i2 + nbins2 * i3);
     const auto bin_array = to_array(bin);
     for (int j = 0; j < simd_size; j++) {
-      ++counts[bin_array[j]];
+      ++ref_counts[bin_array[j]];
     }
+    const auto bins      = int_simd_type::gather(counts.data(), bin);
+    const auto incr_bins = bins + 1;
+    incr_bins.scatter(counts.data(), bin);
   }
+
   for (; i < M; i++) {
     // find the bin index in however many dims are needed
     const auto i1  = BIGINT(fold_rescale(kx[i], N1) * inv_bin_size_x);
@@ -1928,24 +1948,44 @@ void bin_sort_singlethread_vector(
     const auto i3  = iskz ? BIGINT(fold_rescale(kz[i], N3) * inv_bin_size_z) : 0;
     const auto bin = i1 + nbins1 * (i2 + nbins2 * i3);
     ++counts[bin];
+    ++ref_counts[bin];
+  }
+
+  for (i = 0; i < nbins; i++) {
+    if (counts[i] != ref_counts[i]) {
+      std::cerr << "Error: bin count mismatch at bin " << i
+                << " counts[i] = " << counts[i] << " ref_counts[i] = " << ref_counts[i]
+                << std::endl;
+      std::abort();
+    }
   }
 
   // compute the offsets directly in the counts array (no offset array)
   BIGINT current_offset = 0;
-  for (BIGINT i = 0; i < nbins; i++) {
+  for (i = 0; i < nbins; i++) {
     BIGINT tmp = counts[i];
     counts[i]  = current_offset; // Reinecke's cute replacement of counts[i]
     current_offset += tmp;
   } // (counts now contains the index offsets for each bin)
 
   for (i = 0; i < simd_M; i += simd_size) {
-    const auto i1 = xsimd::to_int((simd_type::load_aligned(kx + i) * inv_bin_size_x_vec));
+    const auto i1 = xsimd::to_int(
+        fold_rescale(simd_type::load_unaligned(kx + i), N1) * inv_bin_size_x_vec);
     const auto i2 =
-        isky ? xsimd::to_int(simd_type::load_aligned(ky + i) * inv_bin_size_y_vec) : zero;
+        isky ? xsimd::to_int(fold_rescale(simd_type::load_unaligned(ky + i), N2) *
+                             inv_bin_size_y_vec)
+             : zero;
     const auto i3 =
-        iskz ? xsimd::to_int(simd_type::load_aligned(kz + i) * inv_bin_size_z_vec) : zero;
-    const auto bin       = i1 + nbins1 * (i2 + nbins2 * i3);
-    const auto bin_array = to_array(bin);
+        iskz ? xsimd::to_int(fold_rescale(simd_type::load_unaligned(kz + i), N3) *
+                             inv_bin_size_z_vec)
+             : zero;
+    const auto bin = i1 + nbins1 * (i2 + nbins2 * i3);
+    // const auto bins = decltype(bin)::gather(counts.data(), bin);
+    // const auto ret_elems = decltype(bins)::gather(ret, bins) + (increment+i);
+    // ret_elems.scatter(ret, bins);
+    // const auto inc_bins = bins+1;
+    // inc_bins.scatter(counts.data(), bin);
+    const auto bin_array = to_array(to_int(bin));
     for (int j = 0; j < simd_size; j++) {
       ret[counts[bin_array[j]]] = j + i;
       counts[bin_array[j]]++;
