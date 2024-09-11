@@ -297,14 +297,14 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
     T fseries_precomp_f[3 * MAX_NQUAD];
     thrust::device_vector<T> d_fseries_precomp_a(3 * MAX_NQUAD);
     thrust::device_vector<T> d_fseries_precomp_f(3 * MAX_NQUAD);
-    onedim_fseries_kernel_precomp<T, true>(d_plan->nf1, fseries_precomp_f,
-                                           fseries_precomp_a, d_plan->spopts);
+    onedim_uniformn_fseries_kernel_precomp<T>(d_plan->nf1, fseries_precomp_f,
+                                              fseries_precomp_a, d_plan->spopts);
     if (d_plan->dim > 1)
-      onedim_fseries_kernel_precomp<T, true>(d_plan->nf2, fseries_precomp_f + MAX_NQUAD,
-                                             fseries_precomp_a + MAX_NQUAD,
-                                             d_plan->spopts);
+      onedim_uniformn_fseries_kernel_precomp<T>(
+          d_plan->nf2, fseries_precomp_f + MAX_NQUAD, fseries_precomp_a + MAX_NQUAD,
+          d_plan->spopts);
     if (d_plan->dim > 2)
-      onedim_fseries_kernel_precomp<T, true>(
+      onedim_uniformn_fseries_kernel_precomp<T>(
           d_plan->nf3, fseries_precomp_f + 2 * MAX_NQUAD,
           fseries_precomp_a + 2 * MAX_NQUAD, d_plan->spopts);
     // copy the precomputed data to the device using thrust
@@ -687,17 +687,18 @@ int cufinufft_setpts_impl(int M, T *d_kx, T *d_ky, T *d_kz, int N, T *d_s, T *d_
     if (d_plan->dim > 2) {
       phi_hat3.resize(N);
     }
-    onedim_fseries_kernel_precomp<T, false>(0, fseries_precomp_f.data(),
-                                            fseries_precomp_a.data(), d_plan->spopts);
+    onedim_non_uniform_fseries_kernel_precomp<T>(
+        fseries_precomp_f.data(), fseries_precomp_a.data(), d_plan->spopts);
     if (d_plan->dim > 1) {
-      onedim_fseries_kernel_precomp<T, false>(0, fseries_precomp_f.data() + MAX_NQUAD,
-                                              fseries_precomp_a.data() + MAX_NQUAD,
-                                              d_plan->spopts);
+      onedim_non_uniform_fseries_kernel_precomp<T>(fseries_precomp_f.data() + MAX_NQUAD,
+                                                   fseries_precomp_a.data() + MAX_NQUAD,
+                                                   d_plan->spopts);
     }
     if (d_plan->dim > 2) {
-      onedim_fseries_kernel_precomp<T, false>(0, fseries_precomp_f.data() + 2 * MAX_NQUAD,
-                                              fseries_precomp_a.data() + 2 * MAX_NQUAD,
-                                              d_plan->spopts);
+      onedim_non_uniform_fseries_kernel_precomp<T>(
+          fseries_precomp_f.data() + 2 * MAX_NQUAD,
+          fseries_precomp_a.data() + 2 * MAX_NQUAD,
+          d_plan->spopts);
     }
     // copy the precomputed data to the device using thrust
     thrust::copy(fseries_precomp_a.begin(), fseries_precomp_a.end(),

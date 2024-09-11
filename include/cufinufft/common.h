@@ -32,12 +32,13 @@ int setup_spreader_for_nufft(finufft_spread_opts &spopts, T eps, cufinufft_opts 
 
 void set_nf_type12(CUFINUFFT_BIGINT ms, cufinufft_opts opts, finufft_spread_opts spopts,
                    CUFINUFFT_BIGINT *nf, CUFINUFFT_BIGINT b);
-// template<typename T>
-// void onedim_fseries_kernel(CUFINUFFT_BIGINT nf, T *fwkerhalf, finufft_spread_opts
-// opts);
-template<typename T, bool>
-void onedim_fseries_kernel_precomp(CUFINUFFT_BIGINT nf, T *f, T *a,
-                                   finufft_spread_opts opts);
+
+template<typename T>
+void onedim_uniformn_fseries_kernel_precomp(CUFINUFFT_BIGINT nf, T *f, T *a,
+                                            finufft_spread_opts opts);
+template<typename T>
+void onedim_non_uniform_fseries_kernel_precomp(T *f, T *a, finufft_spread_opts opts);
+
 template<typename T>
 void onedim_fseries_kernel_compute(CUFINUFFT_BIGINT nf, T *f, std::complex<double> *a,
                                    T *fwkerhalf, finufft_spread_opts opts);

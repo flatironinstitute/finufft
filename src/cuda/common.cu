@@ -196,13 +196,31 @@ void set_nf_type12(CUFINUFFT_BIGINT ms, cufinufft_opts opts, finufft_spread_opts
   f - funciton values at quadrature nodes multiplied with quadrature weights (a, f are
       provided as the inputs of onedim_fseries_kernel_compute() defined below)
 */
-template<typename T, bool phase_winding = true>
-void onedim_fseries_kernel_precomp(CUFINUFFT_BIGINT nf, T *f, T *a,
-                                   finufft_spread_opts opts) {
+
+template<typename T>
+void onedim_uniformn_fseries_kernel_precomp(CUFINUFFT_BIGINT nf, T *f, T *a,
+                                            finufft_spread_opts opts) {
   T J2 = opts.nspread / 2.0; // J/2, half-width of ker z-support
   // # quadr nodes in z (from 0 to J/2; reflections will be added)...
-  int q = (int)(2 + (phase_winding ? 3.0 : 2.0) * J2); // not sure why so large? cannot
-                                                       // exceed MAX_NQUAD
+  int q = (int)(2 + 3.0 * J2); // not sure why so large? cannot
+  // exceed MAX_NQUAD
+  double z[2 * MAX_NQUAD];
+  double w[2 * MAX_NQUAD];
+  finufft::quadrature::legendre_compute_glr(2 * q, z, w); // only half the nodes used,
+  // eg on (0,1)
+  for (int n = 0; n < q; ++n) {                        // set up nodes z_n and vals f_n
+    z[n] *= J2;                                        // rescale nodes
+    f[n] = J2 * w[n] * evaluate_kernel((T)z[n], opts); // vals & quadr wei
+    a[n] = ((T)(2.0 * M_PI) * (T)(nf / 2 - z[n]) / (T)nf); // phase winding rates
+  }
+}
+
+template<typename T>
+void onedim_non_uniform_fseries_kernel_precomp(T *f, T *a, finufft_spread_opts opts) {
+  T J2 = opts.nspread / 2.0; // J/2, half-width of ker z-support
+  // # quadr nodes in z (from 0 to J/2; reflections will be added)...
+  int q = (int)(2 + 2.0 * J2); // not sure why so large? cannot
+                               // exceed MAX_NQUAD
   double z[2 * MAX_NQUAD];
   double w[2 * MAX_NQUAD];
   finufft::quadrature::legendre_compute_glr(2 * q, z, w); // only half the nodes used,
@@ -210,11 +228,7 @@ void onedim_fseries_kernel_precomp(CUFINUFFT_BIGINT nf, T *f, T *a,
   for (int n = 0; n < q; ++n) {                           // set up nodes z_n and vals f_n
     z[n] *= J2;                                           // rescale nodes
     f[n] = J2 * w[n] * evaluate_kernel((T)z[n], opts);    // vals & quadr wei
-    if constexpr (phase_winding) {
-      a[n] = ((T)(2.0 * M_PI) * (T)(nf / 2 - z[n]) / (T)nf); // phase winding rates
-    } else {
-      a[n] = T(z[n]);
-    }
+    a[n] = T(z[n]);
   }
 }
 
@@ -335,14 +349,14 @@ template int setup_spreader_for_nufft(finufft_spread_opts &spopts, float eps,
                                       cufinufft_opts opts);
 template int setup_spreader_for_nufft(finufft_spread_opts &spopts, double eps,
                                       cufinufft_opts opts);
-template void onedim_fseries_kernel_precomp<float, true>(
+template void onedim_uniformn_fseries_kernel_precomp<float>(
     CUFINUFFT_BIGINT nf, float *f, float *a, finufft_spread_opts opts);
-template void onedim_fseries_kernel_precomp<double, true>(
+template void onedim_uniformn_fseries_kernel_precomp<double>(
     CUFINUFFT_BIGINT nf, double *f, double *a, finufft_spread_opts opts);
-template void onedim_fseries_kernel_precomp<float, false>(
-    CUFINUFFT_BIGINT nf, float *f, float *a, finufft_spread_opts opts);
-template void onedim_fseries_kernel_precomp<double, false>(
-    CUFINUFFT_BIGINT nf, double *f, double *a, finufft_spread_opts opts);
+template void onedim_non_uniform_fseries_kernel_precomp<float>(float *f, float *a,
+                                                               finufft_spread_opts opts);
+template void onedim_non_uniform_fseries_kernel_precomp<double>(double *f, double *a,
+                                                                finufft_spread_opts opts);
 template int cufserieskernelcompute(int dim, int nf1, int nf2, int nf3, float *d_f,
                                     float *d_a, float *d_fwkerhalf1, float *d_fwkerhalf2,
                                     float *d_fwkerhalf3, int ns, cudaStream_t stream);
