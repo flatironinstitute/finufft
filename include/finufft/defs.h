@@ -24,18 +24,16 @@
 
 // All indexing in library that potentially can exceed 2^31 uses 64-bit signed.
 // This includes all calling arguments (eg M,N) that could be huge someday.
-#define BIGINT  int64_t
-#define UBIGINT uint64_t
+using BIGINT  = int64_t;
+using UBIGINT = uint64_t;
 // Precision-independent real and complex types, for private lib/test compile
 #ifdef SINGLE
-#define FLT float
+using FLT = float;
 #else
-#define FLT double
+using FLT = double;
 #endif
-// next line possibly obsolete...
-#define _USE_MATH_DEFINES
 #include <complex> // we define C++ complex type only
-#define CPX std::complex<FLT>
+using CPX = std::complex<FLT>;
 
 // inline macro, to force inlining of small functions
 // this avoids the use of macros to implement functions
@@ -65,44 +63,49 @@
 // ------------- Library-wide algorithm parameter settings ----------------
 
 // Library version (is a string)
-#define FINUFFT_VER          "2.3.0"
+#define FINUFFT_VER "2.3.0"
 
 // Smallest possible kernel spread width per dimension, in fine grid points
 // (used only in spreadinterp.cpp)
-#define MIN_NSPREAD          2
+inline constexpr int MIN_NSPREAD = 2;
 
 // Largest possible kernel spread width per dimension, in fine grid points
 // (used only in spreadinterp.cpp)
-#define MAX_NSPREAD          16
+inline constexpr int MAX_NSPREAD = 16;
 
 // Fraction growth cut-off in utils:arraywidcen, sets when translate in type-3
-#define ARRAYWIDCEN_GROWFRAC 0.1
+inline constexpr double ARRAYWIDCEN_GROWFRAC = 0.1;
 
 // Max number of positive quadr nodes for kernel FT (used only in common.cpp)
-#define MAX_NQUAD            100
+inline constexpr int MAX_NQUAD = 100;
 
 // Internal (nf1 etc) array allocation size that immediately raises error.
 // (Note: next235 takes 1s for 1e11, so it is also to prevent hang here.)
 // Increase this if you need >10TB (!) RAM...
-#define MAX_NF               (BIGINT)1e12
+inline constexpr BIGINT MAX_NF = BIGINT(1e12);
 
 // Maximum allowed number M of NU points; useful to catch incorrectly cast int32
 // values for M = nj (also nk in type 3)...
-#define MAX_NU_PTS           (BIGINT)1e14
+inline constexpr BIGINT MAX_NU_PTS = BIGINT(1e14);
 
 // -------------- Math consts (not in math.h) and useful math macros ----------
 #include <math.h>
 
 // either-precision unit imaginary number...
 #define IMA (CPX(0.0, 1.0))
-// using namespace std::complex_literals;  // needs C++14, provides 1i, 1if
+
+// MR: In the longer term I suggest to move
+// away from M_PI, which was never part of the standard.
+// Perhaps a constexpr pi in the namespace finufft, or a constexpr finufft_pi
+// if no namespaces are used?
+// In C++20 these constants will be part of the language, and the problem will go away.
 #ifndef M_PI // Windows apparently doesn't have this const
 #define M_PI 3.14159265358979329
 #endif
 #define M_1_2PI 0.159154943091895336
 #define M_2PI   6.28318530717958648
 // to avoid mixed precision operators in eg i*pi, an either-prec PI...
-#define PI      (FLT) M_PI
+#define PI      FLT(M_PI)
 
 // machine epsilon for decisions of achievable tolerance...
 #ifdef SINGLE
@@ -115,19 +118,28 @@
 // These macros should probably be replaced by modern C++ std lib or random123.
 // (RAND_MAX is in stdlib.h)
 #include <stdlib.h>
-// #define rand01() (((FLT)(rand()%RAND_MAX))/RAND_MAX)
-#define rand01()     ((FLT)rand() / (FLT)RAND_MAX)
+static inline FLT rand01() { return FLT(rand()) / FLT(RAND_MAX); }
 // unif[-1,1]:
-#define randm11()    (2 * rand01() - (FLT)1.0)
+static inline FLT randm11() { return 2 * rand01() - FLT(1); }
 // complex unif[-1,1] for Re and Im:
-#define crandm11()   (randm11() + IMA * randm11())
+static inline CPX crandm11() { return randm11() + IMA * randm11(); }
 
 // Thread-safe seed-carrying versions of above (x is ptr to seed)...
+// MR: we have to leave those as macros for now, as "rand_r" is deprecated
+// and apparently no longer available on Windows.
+#if 1
 #define rand01r(x)   ((FLT)rand_r(x) / (FLT)RAND_MAX)
 // unif[-1,1]:
 #define randm11r(x)  (2 * rand01r(x) - (FLT)1.0)
 // complex unif[-1,1] for Re and Im:
 #define crandm11r(x) (randm11r(x) + IMA * randm11r(x))
+#else
+static inline FLT rand01r(unsigned int *x) { return FLT(rand_r(x)) / FLT(RAND_MAX); }
+// unif[-1,1]:
+static inline FLT randm11r(unsigned int *x) { return 2 * rand01r(x) - FLT(1); }
+// complex unif[-1,1] for Re and Im:
+static inline CPX crandm11r(unsigned int *x) { return randm11r(x) + IMA * randm11r(x); }
+#endif
 
 // ----- OpenMP macros which also work when omp not present -----
 // Allows compile-time switch off of openmp, so compilation without any openmp
@@ -135,16 +147,16 @@
 #ifdef _OPENMP
 #include <omp.h>
 // point to actual omp utils
-#define MY_OMP_GET_NUM_THREADS()  omp_get_num_threads()
-#define MY_OMP_GET_MAX_THREADS()  omp_get_max_threads()
-#define MY_OMP_GET_THREAD_NUM()   omp_get_thread_num()
-#define MY_OMP_SET_NUM_THREADS(x) omp_set_num_threads(x)
+static inline int MY_OMP_GET_NUM_THREADS() { return omp_get_num_threads(); }
+static inline int MY_OMP_GET_MAX_THREADS() { return omp_get_max_threads(); }
+static inline int MY_OMP_GET_THREAD_NUM() { return omp_get_thread_num(); }
+static inline void MY_OMP_SET_NUM_THREADS(int x) { omp_set_num_threads(x); }
 #else
 // non-omp safe dummy versions of omp utils...
-#define MY_OMP_GET_NUM_THREADS() 1
-#define MY_OMP_GET_MAX_THREADS() 1
-#define MY_OMP_GET_THREAD_NUM()  0
-#define MY_OMP_SET_NUM_THREADS(x)
+static inline int MY_OMP_GET_NUM_THREADS() { return 1; }
+static inline int MY_OMP_GET_MAX_THREADS() { return 1; }
+static inline int MY_OMP_GET_THREAD_NUM() { return 0; }
+static inline void MY_OMP_SET_NUM_THREADS(int) {}
 #endif
 
 // Prec-switching name macros (respond to SINGLE), used in lib & test sources
@@ -194,12 +206,11 @@
 #include <finufft/fft.h> // (must come after complex.h)
 
 // group together a bunch of type 3 rescaling/centering/phasing parameters:
-#define TYPE3PARAMS FINUFFTIFY(_type3Params)
-typedef struct {
-  FLT X1, C1, D1, h1, gam1; // x dim: X=halfwid C=center D=freqcen h,gam=rescale
-  FLT X2, C2, D2, h2, gam2; // y
-  FLT X3, C3, D3, h3, gam3; // z
-} TYPE3PARAMS;
+template<typename T> struct type3params {
+  T X1, C1, D1, h1, gam1; // x dim: X=halfwid C=center D=freqcen h,gam=rescale
+  T X2, C2, D2, h2, gam2; // y
+  T X3, C3, D3, h3, gam3; // z
+};
 
 typedef struct FINUFFT_PLAN_S { // the main plan object, fully C++
 
@@ -243,7 +254,7 @@ typedef struct FINUFFT_PLAN_S { // the main plan object, fully C++
   CPX *deconv;              // reciprocal of kernel FT, phase, all output NU pts
   CPX *CpBatch;             // working array of prephased strengths
   FLT *Sp, *Tp, *Up;        // internal primed targs (s'_k, etc), allocated
-  TYPE3PARAMS t3P;          // groups together type 3 shift, scale, phase, parameters
+  type3params<FLT> t3P;     // groups together type 3 shift, scale, phase, parameters
   FINUFFT_PLAN innerT2plan; // ptr used for type 2 in step 2 of type 3
 
   // other internal structs; each is C-compatible of course
@@ -254,7 +265,5 @@ typedef struct FINUFFT_PLAN_S { // the main plan object, fully C++
   finufft_spread_opts spopts;
 
 } FINUFFT_PLAN_S;
-
-#undef TYPE3PARAMS
 
 #endif // DEFS_H

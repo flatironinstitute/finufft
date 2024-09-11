@@ -3,10 +3,10 @@
 
 #ifdef FINUFFT_USE_DUCC0
 #include "ducc0/fft/fftnd_impl.h"
-#define FFTW_FORGET_WISDOM()   // temporary hack since some tests call this unconditionally
-#define FFTW_CLEANUP()         // temporary hack since some tests call this unconditionally
-#define FFTW_CLEANUP_THREADS() // temporary hack since some tests call this
-                               // unconditionally
+// temporary hacks to allow compilation of tests that assume FFTW is used
+static inline void FFTW_FORGET_WISDOM() {}
+static inline void FFTW_CLEANUP() {}
+static inline void FFTW_CLEANUP_THREADS() {}
 #else
 #include "fftw_defs.h"
 #endif
