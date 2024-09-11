@@ -35,7 +35,7 @@ and also add them to GitHub's Used By feature):
 #. `EM-Align <https://github.com/ShkolniskyLab/emalign>`_: Aligning rotation, reflection, and translation between volumes (desntiy maps) in cryo-electron microscopy, from Shkolnisky Lab at Tel Aviv.
 
 #. `spinifel <https://gitlab.osti.gov/mtip/spinifel>`_: Uses the multitiered iterative phasing (M-TIP) algorithm for single particle X-ray diffraction imaging, on CPU/GPU, from the ExaFEL project at LBNL/DOE.
-   
+
 #. `sinctransform <https://github.com/hannahlawrence/sinctransform>`_: C++ and MATLAB codes to evaluate sums of the sinc and sinc^2 kernels between arbitrary nonuniform points in 1,2, or 3 dimensions, by Hannah Lawrence (2017 summer intern at Flatiron).
 
 #. `fsinc <https://github.com/gauteh/fsinc>`_:  Gaute Hope's fast sinc transform and interpolation Python package.
@@ -46,18 +46,20 @@ and also add them to GitHub's Used By feature):
 
 #. `TRIQS CTINT <https://github.com/TRIQS/ctint>`_: continous time interaction-expansion solver, by N. Wentzell and O. Parcollet (Flatiron Institute, part of platform for interacting quantum systems).
 
+#. `cunuSHT <https://github.com/Sebastian-Belkner/cunuSHT>`_: GPU accelerated spherical harmonic transforms from nonuniform samples (arbitrary pixelizations), by S. Belkner and coauthors. https://arxiv.org/abs/2406.14542
+
 
 Other wrappers to (cu)FINUFFT
 ------------------------------
-   
+
 #. `FINUFFT.jl <https://github.com/ludvigak/FINUFFT.jl>`_: a `julia <https://julialang.org/>`_ language wrapper by Ludvig af Klinteberg, Libin Lu, and others, now using pure Julia, and fully featured (rather than via Python). This is itself wrapped by `AbstractNFFTs.jl` in `NFFT.jl <https://juliamath.github.io/NFFT.jl/dev/performance/>`_.
 
 #. `TensorFlow NUFFT <https://github.com/mrphys/tensorflow-nufft>`_: a wrapper to the differentiable machine learning Python tool TensorFlow, for the CPU (via FINUFFT) and GPU (via cuFINUFFT). By Javier Montalt Tordera (UCL).
 
 #. `JAX bindings to (cu)FINUFFT <https://github.com/dfm/jax-finufft>`_: a wrapper to the differentiable machine learning Python tool JAX. Directly exposes the FINUFFT library to JAX's XLA backend, as well as implementing differentiation rules for the transforms. By Dan Foreman-Mackey (CCA).
-   
+
 #. `PyTorch wrapper to (cu)FINUFFT <https://flatironinstitute.github.io/pytorch-finufft>`_:  a wrapper to the differentiable machine learning Python tool PyTorch. By Michael Eickenberg and Brian Ward (CCM).
-   
+
 
 Research output using (cu)FINUFFT
 ---------------------------------
@@ -92,14 +94,14 @@ For the latest see: Google Scholar `FINUFFT citations <https://scholar.google.co
 #. A. Harness, S. Shaklan, P. Willems, N. J. Kasdin, K. Balasubramanian, V. White, K. Yee, P. Dumont, R. Muller, S. Vuong, M. Galvin,
    "Optical experiments and model validation of perturbed starshade designs," Proc. SPIE 11823, Techniques and Instrumentation for Detection of Exoplanets X, 1182312 (1 September 2021); https://doi.org/10.1117/12.2595409
 
-#. Chang, P., Pienaar, E., & Gebbie, T. (2020). "Malliavin--Mancino Estimators Implemented with Nonuniform Fast Fourier Transforms." SIAM J. Sci. Comput. 42(6), B1378–B1403. https://doi.org/10.1137/20m1325903 
+#. Chang, P., Pienaar, E., & Gebbie, T. (2020). "Malliavin--Mancino Estimators Implemented with Nonuniform Fast Fourier Transforms." SIAM J. Sci. Comput. 42(6), B1378–B1403. https://doi.org/10.1137/20m1325903
 
 #. Heisenberg voxelization (HVOX) for inteferometry of spherical sky maps in radio-astronomy, by Kashani, Simeoni, et al. (2023) https://arxiv.org/abs/2306.06007 https://github.com/matthieumeo/hvox
 
 #. Sriramkrishnan Muralikrishnan at the Jülich Supercomputing Centre is running cufinufft on 6144 A100 GPUs (the NERSC-9 supercomputer), for a particle-in-Fourier method for plasma simulations. https://pasc23.pasc-conference.org/presentation/?id=msa167&sess=sess154
 
 #. Related to that, FINUFFT is being used for a better-converging Fourier approach to the Immersed Boundary method of Peskin and his group at NYU. Zhe Chen and Charles Peskin, https://arxiv.org/abs/2302.08694
-   
+
 #. Pei R, Askham T, Greengard L, Jiang S (2023). "A fast method for imposing periodic boundary conditions on arbitrarily-shaped lattices in two dimensions." J. Comput. Phys. 474, 111792. https://doi.org/10.1016/j.jcp.2022.111792 Uses FINUFFT for plane wave sums.
 
 #. Dylan Green, JR Jamora, and Anne Gelb (2023). "Leveraging joint sparsity in 3D synthetic aperture radar imaging," Appl. Math. Modern Chall. 1, 61-86. https://doi.org/10.3934/ammc.2023005 Uses 3D transforms between $N=201^3$ modes (voxels) and $M=313300$ data points. As they state, "...the computational cost of each method heavily depends on the NUFFT algorithm used."
@@ -119,8 +121,8 @@ Papers influenced by other aspects of FINUFFT:
 
 1. NFFT.jl: Generic and Fast Julia Implementation of the Nonequidistant Fast Fourier Transform, by Tobias Knopp, Marija Boberg, Mirco Grosser (2022). https://arxiv.org/abs/2208.00049  They use our blocked spreading and piecewise polynomial ideas, and beat our type 1 and 2 performance by a factor of up to 1.7 in multithreaded cases. Code is dimension-independent but very abstract (two levels of meta-programming, I believe).
 
-   
-   
+
+
 Some citations to FINUFFT that do not appear to be actual users
 ---------------------------------------------------------------
 
@@ -133,5 +135,5 @@ Some citations to FINUFFT that do not appear to be actual users
 #. https://arxiv.org/abs/1912.09746
 
 #. https://arxiv.org/abs/2010.05295
-      
+
 Now too many to track by hand... please see Google Scholar search linked above.
