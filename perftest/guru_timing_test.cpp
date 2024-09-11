@@ -145,9 +145,9 @@ int main(int argc, char *argv[])
   }
 
   // Andrea found the following are needed to get reliable independent timings:
-  FFTW_CLEANUP();
-  FFTW_CLEANUP_THREADS();
-  FFTW_FORGET_WISDOM();
+  finufft_fft_cleanup();
+  finufft_fft_cleanup_threads();
+  finufft_fft_forget_wisdom();
   // std::this_thread::sleep_for(std::chrono::seconds(1));
   sleep(tsleep);
 
