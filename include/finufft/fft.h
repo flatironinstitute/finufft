@@ -5,8 +5,10 @@
 
 #ifndef FINUFFT_USE_DUCC0
 
+//clang-format off
 #include <complex>
 #include <fftw3.h> // (after complex) needed so can typedef FFTW_CPX
+//clang-format on
 #include <mutex>
 
 template<typename T> class Finufft_FFTW_plan {};
