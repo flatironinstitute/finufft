@@ -445,6 +445,7 @@ __global__ void interp_3d_nupts_driven(
   T ker2[MAX_NSPREAD];
   T ker3[MAX_NSPREAD];
 #endif
+  cuda_complex<T> cnow{};
   for (int i = blockDim.x * blockIdx.x + threadIdx.x; i < M;
        i += blockDim.x * gridDim.x) {
     const auto x_rescaled = fold_rescale(x[idxnupts[i]], nf1);
@@ -455,11 +456,14 @@ __global__ void interp_3d_nupts_driven(
     const auto [ystart, yend] = interval(ns, y_rescaled);
     const auto [zstart, zend] = interval(ns, z_rescaled);
 
-    const auto x1 = T(xstart) - x_rescaled;
-    const auto y1 = T(ystart) - y_rescaled;
-    const auto z1 = T(zstart) - z_rescaled;
+    const T x1 = T(xstart) - x_rescaled;
+    const T y1 = T(ystart) - y_rescaled;
+    const T z1 = T(zstart) - z_rescaled;
 
-    cuda_complex<T> cnow{0, 0};
+    // having cnow allocated to 0 inside the loop breaks type 3 spread
+    // are we doing a buffer overflow somewhere?
+    cnow.x = T(0);
+    cnow.y = T(0);
 
     if constexpr (KEREVALMETH == 1) {
       eval_kernel_vec_horner(ker1, x1, ns, sigma);
@@ -473,13 +477,13 @@ __global__ void interp_3d_nupts_driven(
 
     for (int zz = zstart; zz <= zend; zz++) {
       const auto kervalue3 = ker3[zz - zstart];
-      int iz               = zz < 0 ? zz + nf3 : (zz > nf3 - 1 ? zz - nf3 : zz);
+      const auto iz        = zz < 0 ? zz + nf3 : (zz > nf3 - 1 ? zz - nf3 : zz);
       for (int yy = ystart; yy <= yend; yy++) {
         const auto kervalue2 = ker2[yy - ystart];
         int iy               = yy < 0 ? yy + nf2 : (yy > nf2 - 1 ? yy - nf2 : yy);
         for (int xx = xstart; xx <= xend; xx++) {
-          const int ix         = xx < 0 ? xx + nf1 : (xx > nf1 - 1 ? xx - nf1 : xx);
-          const int inidx      = ix + iy * nf1 + iz * nf2 * nf1;
+          const auto ix        = xx < 0 ? xx + nf1 : (xx > nf1 - 1 ? xx - nf1 : xx);
+          const auto inidx     = ix + iy * nf1 + iz * nf2 * nf1;
           const auto kervalue1 = ker1[xx - xstart];
           cnow.x += fw[inidx].x * kervalue1 * kervalue2 * kervalue3;
           cnow.y += fw[inidx].y * kervalue1 * kervalue2 * kervalue3;
