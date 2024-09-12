@@ -1280,11 +1280,22 @@ static void bin_sort_singlethread_vector(
   static constexpr auto simd_size = simd_type::size;
   static constexpr auto alignment = arch_t::alignment();
 
-  constexpr auto to_array = [](const auto &vec) constexpr noexcept {
+  static constexpr auto to_array = [](const auto &vec) constexpr noexcept {
     using VT = decltype(std::decay_t<decltype(vec)>());
     alignas(alignment) std::array<typename VT::value_type, VT::size> array{};
     vec.store_aligned(array.data());
     return array;
+  };
+
+  static constexpr auto has_duplicates = [](const auto &vec) constexpr noexcept {
+    using T = decltype(std::decay_t<decltype(vec)>());
+    for (auto i = 0; i < simd_size; i++) {
+      const auto rotated = xsimd::rotl(vec, (sizeof(typename T::value_type) * 8) * i);
+      if ((rotated == vec).mask() != 0) {
+        return true;
+      }
+    }
+    return false;
   };
 
   const auto isky = (N2 > 1), iskz = (N3 > 1); // ky,kz avail? (cannot access if not)
@@ -1307,8 +1318,6 @@ static void bin_sort_singlethread_vector(
 
   // count how many pts in each bin
   alignas(alignment) std::vector<xsimd::as_integer_t<FLT>> counts(nbins + simd_size, 0);
-  alignas(alignment) std::vector<xsimd::as_integer_t<FLT>> ref_counts(nbins + simd_size,
-                                                                      0);
   const auto simd_M = M & (-simd_size); // round down to simd_size multiple
   UBIGINT i{};
   for (i = 0; i < simd_M; i += simd_size) {
@@ -1322,14 +1331,17 @@ static void bin_sort_singlethread_vector(
         iskz ? xsimd::to_int(fold_rescale(simd_type::load_unaligned(kz + i), N3) *
                              inv_bin_size_z_vec)
              : zero;
-    const auto bin       = i1 + nbins1 * (i2 + nbins2 * i3);
-    const auto bin_array = to_array(bin);
-    for (int j = 0; j < simd_size; j++) {
-      ++ref_counts[bin_array[j]];
+    const auto bin = i1 + nbins1 * (i2 + nbins2 * i3);
+    if (has_duplicates(bin)) {
+      const auto bin_array = to_array(bin);
+      for (int j = 0; j < simd_size; j++) {
+        ++counts[bin_array[j]];
+      }
+    } else {
+      const auto bins      = int_simd_type::gather(counts.data(), bin);
+      const auto incr_bins = bins + 1;
+      incr_bins.scatter(counts.data(), bin);
     }
-    const auto bins      = int_simd_type::gather(counts.data(), bin);
-    const auto incr_bins = bins + 1;
-    incr_bins.scatter(counts.data(), bin);
   }
 
   for (; i < M; i++) {
@@ -1339,16 +1351,6 @@ static void bin_sort_singlethread_vector(
     const auto i3  = iskz ? BIGINT(fold_rescale<T>(kz[i], N3) * inv_bin_size_z) : 0;
     const auto bin = i1 + nbins1 * (i2 + nbins2 * i3);
     ++counts[bin];
-    ++ref_counts[bin];
-  }
-
-  for (i = 0; i < nbins; i++) {
-    if (counts[i] != ref_counts[i]) {
-      std::cerr << "Error: bin count mismatch at bin " << i
-                << " counts[i] = " << counts[i] << " ref_counts[i] = " << ref_counts[i]
-                << std::endl;
-      std::abort();
-    }
   }
 
   // compute the offsets directly in the counts array (no offset array)
@@ -1370,16 +1372,19 @@ static void bin_sort_singlethread_vector(
         iskz ? xsimd::to_int(fold_rescale(simd_type::load_unaligned(kz + i), N3) *
                              inv_bin_size_z_vec)
              : zero;
-    const auto bin = i1 + nbins1 * (i2 + nbins2 * i3);
-    // const auto bins = decltype(bin)::gather(counts.data(), bin);
-    // const auto ret_elems = decltype(bins)::gather(ret, bins) + (increment+i);
-    // ret_elems.scatter(ret, bins);
-    // const auto inc_bins = bins+1;
-    // inc_bins.scatter(counts.data(), bin);
-    const auto bin_array = to_array(to_int(bin));
-    for (int j = 0; j < simd_size; j++) {
-      ret[counts[bin_array[j]]] = j + i;
-      counts[bin_array[j]]++;
+    const auto bin  = i1 + nbins1 * (i2 + nbins2 * i3);
+    const auto bins = decltype(bin)::gather(counts.data(), bin);
+    if (has_duplicates(bin) || has_duplicates(bins)) {
+      const auto bin_array = to_array(to_int(bin));
+      for (int j = 0; j < simd_size; j++) {
+        ret[counts[bin_array[j]]] = j + i;
+        counts[bin_array[j]]++;
+      }
+    } else {
+      const auto incr_bins = bins + 1;
+      incr_bins.scatter(counts.data(), bin);
+      const auto result = increment + i;
+      result.scatter(ret, bins);
     }
   }
   for (; i < M; i++) {
