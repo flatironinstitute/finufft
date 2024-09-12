@@ -1290,8 +1290,8 @@ static void bin_sort_singlethread_vector(
   static constexpr auto has_duplicates = [](const auto &vec) constexpr noexcept {
     using T = decltype(std::decay_t<decltype(vec)>());
     for (auto i = 0; i < simd_size; i++) {
-      const auto rotated = xsimd::rotl(vec, (sizeof(typename T::value_type) * 8) * i);
-      if ((rotated == vec).mask() != 0) {
+      const auto rotated = xsimd::rotr(vec, sizeof(typename T::value_type) * 8 * i);
+      if ((rotated == vec) != xsimd::batch_bool<bool>(false)) {
         return true;
       }
     }
@@ -1339,7 +1339,7 @@ static void bin_sort_singlethread_vector(
       }
     } else {
       const auto bins      = int_simd_type::gather(counts.data(), bin);
-      const auto incr_bins = bins + 1;
+      const auto incr_bins = xsimd::incr(bins);
       incr_bins.scatter(counts.data(), bin);
     }
   }
@@ -1381,9 +1381,9 @@ static void bin_sort_singlethread_vector(
         counts[bin_array[j]]++;
       }
     } else {
-      const auto incr_bins = bins + 1;
+      const auto incr_bins = xsimd::incr(bins);
       incr_bins.scatter(counts.data(), bin);
-      const auto result = increment + i;
+      const auto result = increment + int_simd_type(i);
       result.scatter(ret, bins);
     }
   }
@@ -1418,6 +1418,7 @@ static void bin_sort_singlethread(std::vector<BIGINT> &ret, UBIGINT M, const T *
   const auto inv_bin_size_z = T(1.0 / bin_size_z);
   std::vector<BIGINT> counts(nbins, 0);
 
+#pragma omp simd
   for (UBIGINT i = 0; i < M; i++) {
     const auto i1  = BIGINT(fold_rescale<T>(kx[i], N1) * inv_bin_size_x);
     const auto i2  = isky ? BIGINT(fold_rescale<T>(ky[i], N2) * inv_bin_size_y) : 0;
@@ -1433,6 +1434,7 @@ static void bin_sort_singlethread(std::vector<BIGINT> &ret, UBIGINT M, const T *
     current_offset += tmp;
   }
 
+#pragma omp simd
   for (UBIGINT i = 0; i < M; i++) {
     const auto i1    = BIGINT(fold_rescale<T>(kx[i], N1) * inv_bin_size_x);
     const auto i2    = isky ? BIGINT(fold_rescale<T>(ky[i], N2) * inv_bin_size_y) : 0;
