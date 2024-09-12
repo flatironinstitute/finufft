@@ -1899,8 +1899,8 @@ void bin_sort_singlethread_vector(
   static constexpr auto has_duplicates = [](const auto &vec) constexpr noexcept {
     using T = decltype(std::decay_t<decltype(vec)>());
     for (auto i = 0; i < simd_size; i++) {
-      const auto rotated = xsimd::rotl(vec, (sizeof(typename T::value_type) * 8) * i);
-      if ((rotated == vec).mask() != 0) {
+      const auto rotated = xsimd::rotr(vec, sizeof(typename T::value_type) * 8 * i);
+      if ((rotated == vec) != xsimd::batch_bool<bool>(false)) {
         return true;
       }
     }
@@ -1948,7 +1948,7 @@ void bin_sort_singlethread_vector(
       }
     } else {
       const auto bins      = int_simd_type::gather(counts.data(), bin);
-      const auto incr_bins = bins + 1;
+      const auto incr_bins = xsimd::incr(bins);
       incr_bins.scatter(counts.data(), bin);
     }
   }
@@ -1990,9 +1990,9 @@ void bin_sort_singlethread_vector(
         counts[bin_array[j]]++;
       }
     } else {
-      const auto incr_bins = bins + 1;
+      const auto incr_bins = xsimd::incr(bins);
       incr_bins.scatter(counts.data(), bin);
-      const auto result = increment + i;
+      const auto result = increment + int_simd_type(i);
       result.scatter(ret, bins);
     }
   }
@@ -2053,6 +2053,7 @@ void bin_sort_singlethread(
   // count how many pts in each bin
   std::vector<BIGINT> counts(nbins, 0);
 
+#pragma omp simd
   for (auto i = 0; i < M; i++) {
     // find the bin index in however many dims are needed
     const auto i1  = BIGINT(fold_rescale(kx[i], N1) * inv_bin_size_x);
@@ -2070,6 +2071,7 @@ void bin_sort_singlethread(
     current_offset += tmp;
   } // (counts now contains the index offsets for each bin)
 
+#pragma omp simd
   for (auto i = 0; i < M; i++) {
     // find the bin index (again! but better than using RAM)
     const auto i1    = BIGINT(fold_rescale(kx[i], N1) * inv_bin_size_x);
