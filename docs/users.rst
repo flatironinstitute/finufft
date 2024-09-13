@@ -48,6 +48,8 @@ and also add them to GitHub's Used By feature):
 
 #. `cunuSHT <https://github.com/Sebastian-Belkner/cunuSHT>`_: GPU accelerated spherical harmonic transforms from nonuniform samples (arbitrary pixelizations), by S. Belkner and coauthors. https://arxiv.org/abs/2406.14542
 
+#. `FReSCO <https://github.com/martiniani-lab/FReSCo>`_: Fast reciprocal-space correlator, by Aaron Shih, Mathias Kasiulis, and Stefano Martiani. This uses thousands of calls to all three transform types in 2D or 3D, to iteratively adjust nonuniform points until their Fourier transforms match a desired function. Physics Mag. article and movie: https://physics.aps.org/articles/v17/134
+
 
 Other wrappers to (cu)FINUFFT
 ------------------------------
