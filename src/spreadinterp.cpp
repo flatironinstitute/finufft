@@ -1288,11 +1288,11 @@ static void bin_sort_singlethread_vector(
   };
 
   static constexpr auto has_duplicates = [](const auto &vec) constexpr noexcept {
-    using T = decltype(std::decay_t<decltype(vec)>());
-    for (auto i = 0; i < simd_size; i++) {
-      const auto rotated = xsimd::rotr(vec, sizeof(typename T::value_type) * 8 * i);
-      if ((rotated == vec) != xsimd::batch_bool<bool>(false)) {
-        return true;
+    for (int i = 0; i < simd_size; i++) {
+      for (int j = i + 1; j < simd_size; j++) {
+        if (vec[i] == vec[j]) {
+          return true;
+        }
       }
     }
     return false;
@@ -1331,9 +1331,9 @@ static void bin_sort_singlethread_vector(
         iskz ? xsimd::to_int(fold_rescale(simd_type::load_unaligned(kz + i), N3) *
                              inv_bin_size_z_vec)
              : zero;
-    const auto bin = i1 + nbins1 * (i2 + nbins2 * i3);
-    if (has_duplicates(bin)) {
-      const auto bin_array = to_array(bin);
+    const auto bin       = i1 + nbins1 * (i2 + nbins2 * i3);
+    const auto bin_array = to_array(bin);
+    if (has_duplicates(bin_array)) {
       for (int j = 0; j < simd_size; j++) {
         ++counts[bin_array[j]];
       }
@@ -1372,10 +1372,11 @@ static void bin_sort_singlethread_vector(
         iskz ? xsimd::to_int(fold_rescale(simd_type::load_unaligned(kz + i), N3) *
                              inv_bin_size_z_vec)
              : zero;
-    const auto bin  = i1 + nbins1 * (i2 + nbins2 * i3);
-    const auto bins = decltype(bin)::gather(counts.data(), bin);
-    if (has_duplicates(bin) || has_duplicates(bins)) {
-      const auto bin_array = to_array(to_int(bin));
+    const auto bin        = i1 + nbins1 * (i2 + nbins2 * i3);
+    const auto bins       = decltype(bin)::gather(counts.data(), bin);
+    const auto bin_array  = to_array(to_int(bin));
+    const auto bins_array = to_array(to_int(bins));
+    if (has_duplicates(bin_array) || has_duplicates(bins_array)) {
       for (int j = 0; j < simd_size; j++) {
         ret[counts[bin_array[j]]] = j + i;
         counts[bin_array[j]]++;
