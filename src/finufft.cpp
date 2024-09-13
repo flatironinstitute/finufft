@@ -644,10 +644,8 @@ int FINUFFT_MAKEPLAN(int type, int dim, BIGINT *n_modes, int iflag, int ntrans, 
   //  ------------------------ types 1,2: planning needed ---------------------
   if (type == 1 || type == 2) {
 
-#ifndef FINUFFT_USE_DUCC0
     int nthr_fft = nthr; // give FFTW all threads (or use o.spread_thread?)
                          // Note: batchSize not used since might be only 1.
-#endif
 
     p->spopts.spread_direction = type;
 
@@ -710,11 +708,7 @@ int FINUFFT_MAKEPLAN(int type, int dim, BIGINT *n_modes, int iflag, int ntrans, 
     }
 
     timer.restart();
-#ifdef FINUFFT_USE_DUCC0
-    p->fwBatch = (CPX *)malloc(p->nf * p->batchSize * sizeof(CPX)); // the big workspace
-#else
-    p->fwBatch = p->fftwPlan.alloc_complex(p->nf * p->batchSize); // the big workspace
-#endif
+    p->fwBatch = p->fftPlan.alloc_complex(p->nf * p->batchSize); // the big workspace
     if (p->opts.debug)
       printf("[%s] fwBatch %.2fGB alloc:   \t%.3g s\n", __func__,
              (double)1E-09 * sizeof(CPX) * p->nf * p->batchSize, timer.elapsedsec());
@@ -727,14 +721,12 @@ int FINUFFT_MAKEPLAN(int type, int dim, BIGINT *n_modes, int iflag, int ntrans, 
       return FINUFFT_ERR_ALLOC;
     }
 
-#ifndef FINUFFT_USE_DUCC0
     timer.restart(); // plan the FFTW
     auto ns = gridsize_for_fft(p);
-    p->fftwPlan.plan(ns, p->batchSize, p->fwBatch, p->fftSign, p->opts.fftw, nthr_fft);
+    p->fftPlan.plan(ns, p->batchSize, p->fwBatch, p->fftSign, p->opts.fftw, nthr_fft);
     if (p->opts.debug)
-      printf("[%s] FFTW plan (mode %d, nthr=%d):\t%.3g s\n", __func__, p->opts.fftw,
+      printf("[%s] FFT plan (mode %d, nthr=%d):\t%.3g s\n", __func__, p->opts.fftw,
              nthr_fft, timer.elapsedsec());
-#endif
 
   } else { // -------------------------- type 3 (no planning) ------------
 
@@ -858,13 +850,8 @@ int FINUFFT_SETPTS(FINUFFT_PLAN p, BIGINT nj, FLT *xj, FLT *yj, FLT *zj, BIGINT 
               __func__);
       return FINUFFT_ERR_MAXNALLOC;
     }
-#ifdef FINUFFT_USE_DUCC0
-    free(p->fwBatch);
-    p->fwBatch = (CPX *)malloc(p->nf * p->batchSize * sizeof(CPX)); // maybe big workspace
-#else
-    if (p->fwBatch) p->fftwPlan.free(p->fwBatch);
-    p->fwBatch = p->fftwPlan.alloc_complex(p->nf * p->batchSize); // maybe big workspace
-#endif
+    p->fftPlan.free(p->fwBatch);
+    p->fwBatch = p->fftPlan.alloc_complex(p->nf * p->batchSize); // maybe big workspace
 
     // (note FFTW_ALLOC is not needed over malloc, but matches its type)
     if (p->CpBatch) free(p->CpBatch);
@@ -1183,11 +1170,7 @@ int FINUFFT_DESTROY(FINUFFT_PLAN p)
   if (!p) // NULL ptr, so not a ptr to a plan, report error
     return 1;
 
-#ifdef FINUFFT_USE_DUCC0
-  free(p->fwBatch); // free the big FFTW (or t3 spread) working array
-#else
-  p->fftwPlan.free(p->fwBatch); // free the big FFTW (or t3 spread) working array
-#endif
+  p->fftPlan.free(p->fwBatch); // free the big FFTW (or t3 spread) working array
   free(p->sortIndices);
   if (p->type == 1 || p->type == 2) {
     free(p->phiHat1);

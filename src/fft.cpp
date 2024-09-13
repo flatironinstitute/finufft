@@ -103,6 +103,6 @@ void do_fft(FINUFFT_PLAN p) {
   }
 #endif
 #else
-  p->fftwPlan.execute(); // if thisBatchSize<batchSize it wastes some flops
+  p->fftPlan.execute(); // if thisBatchSize<batchSize it wastes some flops
 #endif
 }

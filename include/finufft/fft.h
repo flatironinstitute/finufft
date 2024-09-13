@@ -3,7 +3,22 @@
 
 #include <vector>
 
-#ifndef FINUFFT_USE_DUCC0
+#ifdef FINUFFT_USE_DUCC0
+#include <complex>
+
+template<typename T> class Finufft_FFT_plan {
+public:
+  void plan(const std::vector<int> & /*dims*/, size_t /*batchSize*/,
+            std::complex<T> * /*ptr*/, int /*sign*/, int /*options*/, int /*nthreads*/) {}
+  static std::complex<T> *alloc_complex(size_t N) { return new std::complex<T>[N]; }
+  static void free(std::complex<T> *ptr) { delete[] ptr; }
+
+  static void forget_wisdom() {}
+  static void cleanup() {}
+  static void cleanup_threads() {}
+};
+
+#else
 
 //clang-format off
 #include <complex>
@@ -11,9 +26,9 @@
 //clang-format on
 #include <mutex>
 
-template<typename T> class Finufft_FFTW_plan {};
+template<typename T> class Finufft_FFT_plan {};
 
-template<> struct Finufft_FFTW_plan<float> {
+template<> struct Finufft_FFT_plan<float> {
 private:
   static std::mutex &mut() {
     static std::mutex mut_;
@@ -22,7 +37,7 @@ private:
   fftwf_plan plan_;
 
 public:
-  Finufft_FFTW_plan() : plan_(nullptr) {
+  Finufft_FFT_plan() : plan_(nullptr) {
     std::lock_guard<std::mutex> lock(mut());
 #ifdef _OPENMP
     static bool initialized = false;
@@ -32,7 +47,7 @@ public:
     }
 #endif
   }
-  ~Finufft_FFTW_plan() {
+  ~Finufft_FFT_plan() {
     std::lock_guard<std::mutex> lock(mut());
     fftwf_destroy_plan(plan_);
   }
@@ -54,7 +69,7 @@ public:
     return reinterpret_cast<std::complex<float> *>(fftwf_alloc_complex(N));
   }
   static void free(std::complex<float> *ptr) {
-    fftwf_free(reinterpret_cast<fftwf_complex *>(ptr));
+    if (ptr) fftwf_free(reinterpret_cast<fftwf_complex *>(ptr));
   }
   void execute() { fftwf_execute(plan_); }
 
@@ -74,7 +89,7 @@ public:
   }
 };
 
-template<> struct Finufft_FFTW_plan<double> {
+template<> struct Finufft_FFT_plan<double> {
 private:
   static std::mutex &mut() {
     static std::mutex mut_;
@@ -83,7 +98,7 @@ private:
   fftw_plan plan_;
 
 public:
-  Finufft_FFTW_plan() : plan_(nullptr) {
+  Finufft_FFT_plan() : plan_(nullptr) {
     std::lock_guard<std::mutex> lock(mut());
 #ifdef _OPENMP
     static bool initialized = false;
@@ -93,7 +108,7 @@ public:
     }
 #endif
   }
-  ~Finufft_FFTW_plan() {
+  ~Finufft_FFT_plan() {
     std::lock_guard<std::mutex> lock(mut());
     fftw_destroy_plan(plan_);
   }
@@ -139,19 +154,11 @@ public:
 
 #include <finufft/defs.h>
 
-#ifdef FINUFFT_USE_DUCC0
-static inline void finufft_fft_forget_wisdom() {}
-static inline void finufft_fft_cleanup() {}
-static inline void finufft_fft_cleanup_threads() {}
-#else
-static inline void finufft_fft_forget_wisdom() {
-  Finufft_FFTW_plan<FLT>::forget_wisdom();
-}
-static inline void finufft_fft_cleanup() { Finufft_FFTW_plan<FLT>::cleanup(); }
+static inline void finufft_fft_forget_wisdom() { Finufft_FFT_plan<FLT>::forget_wisdom(); }
+static inline void finufft_fft_cleanup() { Finufft_FFT_plan<FLT>::cleanup(); }
 static inline void finufft_fft_cleanup_threads() {
-  Finufft_FFTW_plan<FLT>::cleanup_threads();
+  Finufft_FFT_plan<FLT>::cleanup_threads();
 }
-#endif
 
 std::vector<int> gridsize_for_fft(FINUFFT_PLAN p);
 void do_fft(FINUFFT_PLAN p);
