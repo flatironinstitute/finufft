@@ -1261,13 +1261,13 @@ static void add_wrapped_subgrid(BIGINT offset1, BIGINT offset2, BIGINT offset3,
 }
 
 template<typename simd_type, std::size_t... Is>
-simd_type make_incremented_vectors(std::index_sequence<Is...>) {
+static FINUFFT_ALWAYS_INLINE simd_type make_incremented_vectors(
+    std::index_sequence<Is...>) {
   return simd_type{Is...}; // Creates a SIMD vector with the index sequence
 }
 
 template<std::size_t N, typename simd_type>
-static FINUFFT_ALWAYS_INLINE constexpr bool has_duplicates_impl(
-    const simd_type &vec) noexcept {
+static FINUFFT_ALWAYS_INLINE bool has_duplicates_impl(const simd_type &vec) noexcept {
 
   if constexpr (N == simd_type::size) {
     return false;
@@ -1282,8 +1282,7 @@ static FINUFFT_ALWAYS_INLINE constexpr bool has_duplicates_impl(
 }
 
 template<typename simd_type>
-static FINUFFT_ALWAYS_INLINE constexpr bool has_duplicates(
-    const simd_type &vec) noexcept {
+static FINUFFT_ALWAYS_INLINE bool has_duplicates(const simd_type &vec) noexcept {
   return has_duplicates_impl<1, simd_type>(vec);
 }
 
@@ -1429,7 +1428,6 @@ static void bin_sort_singlethread(std::vector<BIGINT> &ret, UBIGINT M, const T *
   const auto inv_bin_size_z = T(1.0 / bin_size_z);
   std::vector<BIGINT> counts(nbins, 0);
 
-#pragma omp simd
   for (UBIGINT i = 0; i < M; i++) {
     const auto i1  = BIGINT(fold_rescale<T>(kx[i], N1) * inv_bin_size_x);
     const auto i2  = isky ? BIGINT(fold_rescale<T>(ky[i], N2) * inv_bin_size_y) : 0;
@@ -1445,7 +1443,6 @@ static void bin_sort_singlethread(std::vector<BIGINT> &ret, UBIGINT M, const T *
     current_offset += tmp;
   }
 
-#pragma omp simd
   for (UBIGINT i = 0; i < M; i++) {
     const auto i1    = BIGINT(fold_rescale<T>(kx[i], N1) * inv_bin_size_x);
     const auto i2    = isky ? BIGINT(fold_rescale<T>(ky[i], N2) * inv_bin_size_y) : 0;
