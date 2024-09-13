@@ -1265,6 +1265,28 @@ simd_type make_incremented_vectors(std::index_sequence<Is...>) {
   return simd_type{Is...}; // Creates a SIMD vector with the index sequence
 }
 
+template<std::size_t N, typename simd_type>
+static FINUFFT_ALWAYS_INLINE constexpr bool has_duplicates_impl(
+    const simd_type &vec) noexcept {
+
+  if constexpr (N == simd_type::size) {
+    return false;
+  } else {
+    const auto duplicates =
+        (xsimd::rotate_right<N>(vec) == vec) != xsimd::batch_bool<bool>(false);
+    if (duplicates) {
+      return true;
+    }
+    return has_duplicates_impl<N + 1>(vec);
+  }
+}
+
+template<typename simd_type>
+static FINUFFT_ALWAYS_INLINE constexpr bool has_duplicates(
+    const simd_type &vec) noexcept {
+  return has_duplicates_impl<1, simd_type>(vec);
+}
+
 template<typename T>
 static void bin_sort_singlethread_vector(
     std::vector<BIGINT> &ret, UBIGINT M, const T *kx, const T *ky, const T *kz,
@@ -1285,17 +1307,6 @@ static void bin_sort_singlethread_vector(
     alignas(alignment) std::array<typename VT::value_type, VT::size> array{};
     vec.store_aligned(array.data());
     return array;
-  };
-
-  static constexpr auto has_duplicates = [](const auto &vec) constexpr noexcept {
-    for (int i = 0; i < simd_size; i++) {
-      for (int j = i + 1; j < simd_size; j++) {
-        if (vec[i] == vec[j]) {
-          return true;
-        }
-      }
-    }
-    return false;
   };
 
   const auto isky = (N2 > 1), iskz = (N3 > 1); // ky,kz avail? (cannot access if not)
@@ -1331,9 +1342,9 @@ static void bin_sort_singlethread_vector(
         iskz ? xsimd::to_int(fold_rescale(simd_type::load_unaligned(kz + i), N3) *
                              inv_bin_size_z_vec)
              : zero;
-    const auto bin       = i1 + nbins1 * (i2 + nbins2 * i3);
-    const auto bin_array = to_array(bin);
-    if (has_duplicates(bin_array)) {
+    const auto bin = i1 + nbins1 * (i2 + nbins2 * i3);
+    if (has_duplicates(bin)) {
+      const auto bin_array = to_array(bin);
       for (int j = 0; j < simd_size; j++) {
         ++counts[bin_array[j]];
       }
@@ -1372,16 +1383,15 @@ static void bin_sort_singlethread_vector(
         iskz ? xsimd::to_int(fold_rescale(simd_type::load_unaligned(kz + i), N3) *
                              inv_bin_size_z_vec)
              : zero;
-    const auto bin        = i1 + nbins1 * (i2 + nbins2 * i3);
-    const auto bins       = decltype(bin)::gather(counts.data(), bin);
-    const auto bin_array  = to_array(to_int(bin));
-    const auto bins_array = to_array(to_int(bins));
-    if (has_duplicates(bin_array) || has_duplicates(bins_array)) {
+    const auto bin = i1 + nbins1 * (i2 + nbins2 * i3);
+    if (has_duplicates(bin)) {
+      const auto bin_array = to_array(to_int(bin));
       for (int j = 0; j < simd_size; j++) {
         ret[counts[bin_array[j]]] = j + i;
         counts[bin_array[j]]++;
       }
     } else {
+      const auto bins      = decltype(bin)::gather(counts.data(), bin);
       const auto incr_bins = xsimd::incr(bins);
       incr_bins.scatter(counts.data(), bin);
       const auto result = increment + int_simd_type(i);
