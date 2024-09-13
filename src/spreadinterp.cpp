@@ -1847,13 +1847,13 @@ void add_wrapped_subgrid(BIGINT offset1, BIGINT offset2, BIGINT offset3,
 }
 
 template<typename simd_type, std::size_t... Is>
-simd_type make_incremented_vectors(std::index_sequence<Is...>) {
+static FINUFFT_ALWAYS_INLINE simd_type make_incremented_vectors(
+    std::index_sequence<Is...>) {
   return simd_type{Is...}; // Creates a SIMD vector with the index sequence
 }
 
 template<std::size_t N, typename simd_type>
-static FINUFFT_ALWAYS_INLINE constexpr bool has_duplicates_impl(
-    const simd_type &vec) noexcept {
+static FINUFFT_ALWAYS_INLINE bool has_duplicates_impl(const simd_type &vec) noexcept {
 
   if constexpr (N == simd_type::size) {
     return false;
@@ -1868,8 +1868,7 @@ static FINUFFT_ALWAYS_INLINE constexpr bool has_duplicates_impl(
 }
 
 template<typename simd_type>
-static FINUFFT_ALWAYS_INLINE constexpr bool has_duplicates(
-    const simd_type &vec) noexcept {
+static FINUFFT_ALWAYS_INLINE bool has_duplicates(const simd_type &vec) noexcept {
   return has_duplicates_impl<1, simd_type>(vec);
 }
 
@@ -2064,7 +2063,6 @@ void bin_sort_singlethread(
   // count how many pts in each bin
   std::vector<BIGINT> counts(nbins, 0);
 
-#pragma omp simd
   for (auto i = 0; i < M; i++) {
     // find the bin index in however many dims are needed
     const auto i1  = BIGINT(fold_rescale(kx[i], N1) * inv_bin_size_x);
@@ -2082,7 +2080,6 @@ void bin_sort_singlethread(
     current_offset += tmp;
   } // (counts now contains the index offsets for each bin)
 
-#pragma omp simd
   for (auto i = 0; i < M; i++) {
     // find the bin index (again! but better than using RAM)
     const auto i1    = BIGINT(fold_rescale(kx[i], N1) * inv_bin_size_x);
