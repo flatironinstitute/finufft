@@ -10,7 +10,7 @@ namespace cufinufft {
 namespace spreadinterp {
 
 template<typename T>
-static __forceinline__ __device__ constexpr T fma(const T a, const T b, const T c) {
+static __forceinline__ __device__ constexpr T cudaFMA(const T a, const T b, const T c) {
   if constexpr (std::is_same_v<T, float>) {
     // fused multiply-add, round to nearest even
     return __fmaf_rn(a, b, c);
@@ -20,9 +20,13 @@ static __forceinline__ __device__ constexpr T fma(const T a, const T b, const T 
   }
   static_assert(std::is_same_v<T, float> || std::is_same_v<T, double>,
                 "Only float and double are supported.");
-  return T{0};
+  return std::fma(a, b, c);
 }
 
+/**
+ * local NU coord fold+rescale macro: does the following affine transform to x:
+ *   (x+PI) mod PI    each to [0,N)
+ */
 template<typename T>
 constexpr __forceinline__ __host__ __device__ T fold_rescale(T x, int N) {
   constexpr auto x2pi = T(0.159154943091895345554011992339482617);
@@ -30,14 +34,14 @@ constexpr __forceinline__ __host__ __device__ T fold_rescale(T x, int N) {
 #if defined(__CUDA_ARCH__)
   if constexpr (std::is_same_v<T, float>) {
     // fused multiply-add, round to nearest even
-    auto result = __fmaf_rn(x, x2pi, half);
+    auto result = cudaFMA(x, x2pi, half);
     // subtract, round down
     result = __fsub_rd(result, floorf(result));
     // multiply, round down
     return __fmul_rd(result, static_cast<T>(N));
   } else if constexpr (std::is_same_v<T, double>) {
     // fused multiply-add, round to nearest even
-    auto result = __fma_rn(x, x2pi, half);
+    auto result = cudaFMA(x, x2pi, half);
     // subtract, round down
     result = __dsub_rd(result, floor(result));
     // multiply, round down
@@ -85,15 +89,15 @@ static __forceinline__ __device__ T evaluate_kernel(T x, T es_c, T es_beta, int 
 }
 
 template<typename T>
-static __inline__ __device__ void eval_kernel_vec_horner(T *ker, const T x, const int w,
-                                                         const double upsampfac)
+static __device__ void eval_kernel_vec_horner(T *ker, const T x, const int w,
+                                              const double upsampfac)
 /* Fill ker[] with Horner piecewise poly approx to [-w/2,w/2] ES kernel eval at
    x_j = x + j,  for j=0,..,w-1.  Thus x in [-w/2,-w/2+1].   w is aka ns.
    This is the current evaluation method, since it's faster (except i7 w=16).
    Two upsampfacs implemented. Params must match ref formula. Barnett 4/24/18 */
 {
-  const auto z = fma(T(2), x, T(w - 1)); // scale so local grid offset z in [-1,1]
-  //  T z = 2 * x + w - 1.0;
+  // const T z = T(2) * x + T(w - 1);
+  const auto z = cudaFMA(T(2), x, T(w - 1)); // scale so local grid offset z in [-1,1]
   // insert the auto-generated code which expects z, w args, writes to ker...
   if (upsampfac == 2.0) { // floating point equality is fine here
     using FLT = T;

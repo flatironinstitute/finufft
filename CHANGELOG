@@ -2,9 +2,15 @@ List of features / changes made / release notes, in reverse chronological order.
 If not stated, FINUFFT is assumed (cuFINUFFT <=1.3 is listed separately).
 
 Master (9/10/24)
-
 * reduced roundoff error in a[n] phase calc in CPU onedim_fseries_kernel().
    #534 (Barnett).
+* Support for type 3 in 1D, 2D, and 3D in the GPU library cufinufft (PR #517).
+    - Removed the CPU fseries computation (only used for benchmark no longer needed).
+    - Added complex arithmetic support for cuda_complex type
+    - Added tests for type 3 in 1D, 2D, and 3D and cuda_complex arithmetic
+    - Minor fixes on the GPU code:
+        a) removed memory leaks in case of errors
+        b) renamed maxbatchsize to batchsize
 
 V 2.3.0 (9/5/24)
 

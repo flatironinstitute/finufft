@@ -260,7 +260,6 @@ void onedim_nuft_kernel(BIGINT nk, FLT *k, FLT *phihat, finufft_spread_opts opts
   for (int n = 0; n < q; ++n) {
     z[n] *= (FLT)J2;                         // quadr nodes for [0,J/2]
     f[n] = J2 * (FLT)w[n] * evaluate_kernel((FLT)z[n], opts); // w/ quadr weights
-    // printf("f[%d] = %.3g\n",n,f[n]);
   }
 #pragma omp parallel for num_threads(opts.nthreads)
   for (BIGINT j = 0; j < nk; ++j) {          // loop along output array
@@ -704,6 +703,7 @@ int FINUFFT_MAKEPLAN(int type, int dim, BIGINT *n_modes, int iflag, int ntrans, 
       fprintf(stderr,
               "[%s] fwBatch would be bigger than MAX_NF, not attempting malloc!\n",
               __func__);
+      // FIXME: this error causes memory leaks. We should free phiHat1, phiHat2, phiHat3
       return FINUFFT_ERR_MAXNALLOC;
     }
 
@@ -834,14 +834,14 @@ int FINUFFT_SETPTS(FINUFFT_PLAN p, BIGINT nj, FLT *xj, FLT *yj, FLT *zj, BIGINT 
 
     if (p->opts.debug) { // report on choices of shifts, centers, etc...
       printf("\tM=%lld N=%lld\n", (long long)nj, (long long)nk);
-      printf("\tX1=%.3g C1=%.3g S1=%.3g D1=%.3g gam1=%g nf1=%lld\t\n", p->t3P.X1,
-             p->t3P.C1, S1, p->t3P.D1, p->t3P.gam1, (long long)p->nf1);
+      printf("\tX1=%.3g C1=%.3g S1=%.3g D1=%.3g gam1=%g nf1=%lld h1=%.3g\t\n", p->t3P.X1,
+             p->t3P.C1, S1, p->t3P.D1, p->t3P.gam1, (long long)p->nf1, p->t3P.h1);
       if (d > 1)
-        printf("\tX2=%.3g C2=%.3g S2=%.3g D2=%.3g gam2=%g nf2=%lld\n", p->t3P.X2,
-               p->t3P.C2, S2, p->t3P.D2, p->t3P.gam2, (long long)p->nf2);
+        printf("\tX2=%.3g C2=%.3g S2=%.3g D2=%.3g gam2=%g nf2=%lld h2=%.3g\n", p->t3P.X2,
+               p->t3P.C2, S2, p->t3P.D2, p->t3P.gam2, (long long)p->nf2, p->t3P.h2);
       if (d > 2)
-        printf("\tX3=%.3g C3=%.3g S3=%.3g D3=%.3g gam3=%g nf3=%lld\n", p->t3P.X3,
-               p->t3P.C3, S3, p->t3P.D3, p->t3P.gam3, (long long)p->nf3);
+        printf("\tX3=%.3g C3=%.3g S3=%.3g D3=%.3g gam3=%g nf3=%lld h3=%.3g\n", p->t3P.X3,
+               p->t3P.C3, S3, p->t3P.D3, p->t3P.gam3, (long long)p->nf3, p->t3P.h3);
     }
     p->nf = p->nf1 * p->nf2 * p->nf3; // fine grid total number of points
     if (p->nf * p->batchSize > MAX_NF) {
@@ -868,6 +868,7 @@ int FINUFFT_SETPTS(FINUFFT_PLAN p, BIGINT nj, FLT *xj, FLT *yj, FLT *zj, BIGINT 
     // printf("fwbatch, cpbatch ptrs: %llx %llx\n",p->fwBatch,p->CpBatch);
 
     // alloc rescaled NU src pts x'_j (in X etc), rescaled NU targ pts s'_k ...
+    // FIXME: should use realloc
     if (p->X) free(p->X);
     if (p->Sp) free(p->Sp);
     p->X  = (FLT *)malloc(sizeof(FLT) * nj);
@@ -925,7 +926,6 @@ int FINUFFT_SETPTS(FINUFFT_PLAN p, BIGINT nj, FLT *xj, FLT *yj, FLT *zj, BIGINT 
         p->Up[k] = p->t3P.h3 * p->t3P.gam3 * (u[k] - p->t3P.D3); // so |u'_k| <
                                                                  // pi/R
     }
-
     // (old STEP 3a) Compute deconvolution post-factors array (per targ pt)...
     // (exploits that FT separates because kernel is prod of 1D funcs)
     if (p->deconv) free(p->deconv);
@@ -1113,8 +1113,9 @@ int FINUFFT_EXECUTE(FINUFFT_PLAN p, CPX *cj, CPX *fk) {
 #pragma omp parallel for num_threads(p->opts.nthreads) // or p->batchSize?
       for (int i = 0; i < thisBatchSize; i++) {
         BIGINT ioff = i * p->nj;
-        for (BIGINT j = 0; j < p->nj; ++j)
+        for (BIGINT j = 0; j < p->nj; ++j) {
           p->CpBatch[ioff + j] = p->prephase[j] * cjb[ioff + j];
+        }
       }
       t_pre += timer.elapsedsec();
 
@@ -1124,10 +1125,6 @@ int FINUFFT_EXECUTE(FINUFFT_PLAN p, CPX *cj, CPX *fk) {
       spreadinterpSortedBatch(thisBatchSize, p, p->CpBatch); // p->X are primed
       t_spr += timer.elapsedsec();
 
-      // for (int j=0;j<p->nf1;++j)
-      // printf("fw[%d]=%.3g+%.3gi\n",j,p->fwBatch[j][0],p->fwBatch[j][1]);  //
-      // debug
-
       // STEP 2: type 2 NUFFT from fw batch to user output fk array batch...
       timer.restart();
       // illegal possible shrink of ntrans *after* plan for smaller last batch:
@@ -1136,7 +1133,6 @@ int FINUFFT_EXECUTE(FINUFFT_PLAN p, CPX *cj, CPX *fk) {
      still the same size, as Andrea explained; just wastes a few flops) */
       FINUFFT_EXECUTE(p->innerT2plan, fkb, p->fwBatch);
       t_t2 += timer.elapsedsec();
-
       // STEP 3: apply deconvolve (precomputed 1/phiHat(targ_k), phasing too)...
       timer.restart();
 #pragma omp parallel for num_threads(p->opts.nthreads)

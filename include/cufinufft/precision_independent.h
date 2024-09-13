@@ -41,8 +41,6 @@ __global__ void calc_subprob_2d(int *bin_size, int *num_subprob, int maxsubprobs
 __global__ void map_b_into_subprob_2d(int *d_subprob_to_bin, int *d_subprobstartpts,
                                       int *d_numsubprob, int numbins);
 
-__global__ void trivial_global_sort_index_2d(int M, int *index);
-
 /* spreadinterp3d */
 __global__ void calc_subprob_3d_v2(int *bin_size, int *num_subprob, int maxsubprobsize,
                                    int numbins);
@@ -56,8 +54,6 @@ __global__ void calc_subprob_3d_v1(int binsperobinx, int binsperobiny, int binsp
 
 __global__ void map_b_into_subprob_3d_v1(int *d_subprob_to_obin, int *d_subprobstartpts,
                                          int *d_numsubprob, int numbins);
-
-__global__ void trivial_global_sort_index_3d(int M, int *index);
 
 __global__ void fill_ghost_bins(int binsperobinx, int binsperobiny, int binsperobinz,
                                 int nobinx, int nobiny, int nobinz, int *binsize);
