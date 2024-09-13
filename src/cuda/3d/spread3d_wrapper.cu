@@ -5,6 +5,7 @@
 #include <cufinufft/contrib/helper_cuda.h>
 #include <thrust/device_ptr.h>
 #include <thrust/scan.h>
+#include <thrust/sort.h>
 
 #include <cufinufft/common.h>
 #include <cufinufft/precision_independent.h>
@@ -72,9 +73,9 @@ int cuspread3d_nuptsdriven_prop(int nf1, int nf2, int nf3, int M,
     }
 
     int numbins[3];
-    numbins[0] = ceil((T)nf1 / bin_size_x);
-    numbins[1] = ceil((T)nf2 / bin_size_y);
-    numbins[2] = ceil((T)nf3 / bin_size_z);
+    numbins[0] = (nf1 + bin_size_x - 1) / bin_size_x;
+    numbins[1] = (nf2 + bin_size_y - 1) / bin_size_y;
+    numbins[2] = (nf3 + bin_size_z - 1) / bin_size_z;
 
     T *d_kx = d_plan->kx;
     T *d_ky = d_plan->ky;
@@ -105,9 +106,7 @@ int cuspread3d_nuptsdriven_prop(int nf1, int nf2, int nf3, int M,
     RETURN_IF_CUDA_ERROR
   } else {
     int *d_idxnupts = d_plan->idxnupts;
-
-    trivial_global_sort_index_3d<<<(M + 1024 - 1) / 1024, 1024, 0, stream>>>(M,
-                                                                             d_idxnupts);
+    thrust::sequence(thrust::cuda::par.on(stream), d_idxnupts, d_idxnupts + M);
     RETURN_IF_CUDA_ERROR
   }
 
