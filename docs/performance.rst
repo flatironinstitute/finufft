@@ -35,8 +35,10 @@ To generate the below results, run ``bench.py`` from the ``perftest`` directory.
 This requires the Python packages ``numpy``, ``pandas`` and ``matplotlib``.
 The script assumes a bash-like shell, and may not work on Windows.
 
+The last set of benchmarks shows the difference in performance between fftw and ducc in a fft bound problem. ducc is expected to outperform fftw in 2D and 3D problems however in 1D fftw is expected to be faster.
+
 .. warning::
-    The script ``bench.py`` clones FINUFFT into the current directory, then switches between various branches and builds them. Thus DO NOT RUN the script from inside your FINUFFT git directory as it will mess up the git directory and fail! Instead move the script into a clean directory and run there.
+    The script ``bench.py`` clones FINUFFT into the current directory, then switches between various branches and builds them. Thus DO NOT RUN the script from inside your FINUFFT git directory as it will mess up the git directory and fail! Instead move the script into a clean directory outside the git checkout and run there.
 
 1D Transforms
 ---------------------------------------------
@@ -86,7 +88,7 @@ Type 3
 .. image:: pics/320x320x1-type-3-upsamp2.00-precf-thread1.png
 .. image:: pics/320x320x1-type-3-upsamp2.00-precd-thread1.png
 
-2D transforms Multi-Threaded
+2D transforms Multi-Threaded (float32)
 ---------------------------------------------
 
 Type 1
@@ -104,20 +106,34 @@ Type 3
 .. image:: pics/320x320x1-type-3-upsamp1.25-precf-thread32.png
 .. image:: pics/320x320x1-type-3-upsamp2.00-precf-thread32.png
 
-3D transforms Multi-Threaded (float32)
----------------------------------------------
+3D transforms Multi-Threaded (float64)
+--------------------------------------
 
 Type 1
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-.. image:: pics/192x192x128-type-1-upsamp1.25-precf-thread32.png
-.. image:: pics/192x192x128-type-1-upsamp2.00-precf-thread32.png
+.. image:: pics/192x192x128-type-1-upsamp1.25-precd-thread32.png
+.. image:: pics/192x192x128-type-1-upsamp2.00-precd-thread32.png
 
 Type 2
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-.. image:: pics/192x192x128-type-2-upsamp1.25-precf-thread32.png
-.. image:: pics/192x192x128-type-2-upsamp2.00-precf-thread32.png
+.. image:: pics/192x192x128-type-2-upsamp1.25-precd-thread32.png
+.. image:: pics/192x192x128-type-2-upsamp2.00-precd-thread32.png
 
 Type 3
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-.. image:: pics/192x192x128-type-3-upsamp1.25-precf-thread32.png
-.. image:: pics/192x192x128-type-3-upsamp2.00-precf-thread32.png
+.. image:: pics/192x192x128-type-3-upsamp1.25-precd-thread32.png
+
+3D FFT benchmarks
+-----------------
+
+Type 1
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. image:: pics/250x250x250-type-1-upsamp2.00-precd-thread1.png
+
+Type 2
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. image:: pics/250x250x250-type-2-upsamp2.00-precd-thread1.png
+
+Type 3
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. image:: pics/250x250x250-type-3-upsamp2.00-precd-thread1.png

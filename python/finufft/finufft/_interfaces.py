@@ -513,9 +513,9 @@ def destroy(plan):
 ### invoke guru interface, this function is used for simple interfaces
 def invoke_guru(dim,tp,x,y,z,c,s,t,u,f,isign,eps,n_modes,**kwargs):
     # infer dtype from x
-    if x.dtype is np.dtype('float64'):
+    if x.dtype == np.dtype('float64'):
         pdtype = 'complex128'
-    elif x.dtype is np.dtype('float32'):
+    elif x.dtype == np.dtype('float32'):
         pdtype = 'complex64'
     else:
         raise RuntimeError('FINUFFT x dtype should be float64 for double precision or float32 for single precision')

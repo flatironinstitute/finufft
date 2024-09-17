@@ -1,4 +1,4 @@
-FROM quay.io/pypa/manylinux2014_x86_64
+FROM quay.io/pypa/manylinux2014_x86_64:2024-09-09-f386546
 LABEL maintainer "Joakim Andén"
 
 ENV CUDA_MAJOR 11

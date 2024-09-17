@@ -5,6 +5,7 @@
 #include <cufinufft/contrib/helper_cuda.h>
 #include <thrust/device_ptr.h>
 #include <thrust/scan.h>
+#include <thrust/sort.h>
 
 #include <cufinufft/common.h>
 #include <cufinufft/precision_independent.h>
@@ -96,9 +97,7 @@ int cuspread2d_nuptsdriven_prop(int nf1, int nf2, int M, cufinufft_plan_t<T> *d_
     RETURN_IF_CUDA_ERROR
   } else {
     int *d_idxnupts = d_plan->idxnupts;
-
-    trivial_global_sort_index_2d<<<(M + 1024 - 1) / 1024, 1024, 0, stream>>>(M,
-                                                                             d_idxnupts);
+    thrust::sequence(thrust::cuda::par.on(stream), d_idxnupts, d_idxnupts + M);
     RETURN_IF_CUDA_ERROR
   }
 

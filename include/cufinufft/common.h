@@ -7,31 +7,37 @@
 #include <finufft_errors.h>
 #include <finufft_spread_opts.h>
 
-#include <complex.h>
+#include <complex>
 
 namespace cufinufft {
 namespace common {
 template<typename T>
-__global__ void fseries_kernel_compute(int nf1, int nf2, int nf3, T *f,
-                                       cuDoubleComplex *a, T *fwkerhalf1, T *fwkerhalf2,
+__global__ void fseries_kernel_compute(int nf1, int nf2, int nf3, T *f, T *a,
+                                       T *fwkerhalf1, T *fwkerhalf2, T *fwkerhalf3,
+                                       int ns);
+template<typename T>
+__global__ void cu_nuft_kernel_compute(int nf1, int nf2, int nf3, T *f, T *z, T *kx,
+                                       T *ky, T *kz, T *fwkerhalf1, T *fwkerhalf2,
                                        T *fwkerhalf3, int ns);
 template<typename T>
-int cufserieskernelcompute(int dim, int nf1, int nf2, int nf3, T *d_f,
-                           cuDoubleComplex *d_a, T *d_fwkerhalf1, T *d_fwkerhalf2,
-                           T *d_fwkerhalf3, int ns, cudaStream_t stream);
+int fseries_kernel_compute(int dim, int nf1, int nf2, int nf3, T *d_f, T *d_phase,
+                           T *d_fwkerhalf1, T *d_fwkerhalf2, T *d_fwkerhalf3, int ns,
+                           cudaStream_t stream);
+template<typename T>
+int nuft_kernel_compute(int dim, int nf1, int nf2, int nf3, T *d_f, T *d_z, T *d_kx,
+                        T *d_ky, T *d_kz, T *d_fwkerhalf1, T *d_fwkerhalf2,
+                        T *d_fwkerhalf3, int ns, cudaStream_t stream);
 template<typename T>
 int setup_spreader_for_nufft(finufft_spread_opts &spopts, T eps, cufinufft_opts opts);
 
 void set_nf_type12(CUFINUFFT_BIGINT ms, cufinufft_opts opts, finufft_spread_opts spopts,
                    CUFINUFFT_BIGINT *nf, CUFINUFFT_BIGINT b);
+
 template<typename T>
-void onedim_fseries_kernel(CUFINUFFT_BIGINT nf, T *fwkerhalf, finufft_spread_opts opts);
-template<typename T>
-void onedim_fseries_kernel_precomp(CUFINUFFT_BIGINT nf, T *f, std::complex<double> *a,
+void onedim_fseries_kernel_precomp(CUFINUFFT_BIGINT nf, T *f, T *a,
                                    finufft_spread_opts opts);
 template<typename T>
-void onedim_fseries_kernel_compute(CUFINUFFT_BIGINT nf, T *f, std::complex<double> *a,
-                                   T *fwkerhalf, finufft_spread_opts opts);
+void onedim_nuft_kernel_precomp(T *f, T *zout, finufft_spread_opts opts);
 
 template<typename T>
 std::size_t shared_memory_required(int dim, int ns, int bin_size_x, int bin_size_y,
@@ -41,8 +47,8 @@ template<typename T>
 void cufinufft_setup_binsize(int type, int ns, int dim, cufinufft_opts *opts);
 
 template<typename T, typename V>
-auto cufinufft_set_shared_memory(V *kernel, const int dim,
-                                 const cufinufft_plan_t<T> &d_plan) {
+int cufinufft_set_shared_memory(V *kernel, const int dim,
+                                const cufinufft_plan_t<T> &d_plan) {
   /**
    * WARNING: this function does not handle cuda errors. The caller should check them.
    */

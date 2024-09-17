@@ -1,6 +1,9 @@
 #include <cmath>
 #include <complex>
+#include <thrust/extrema.h>
+
 #include <cufinufft/contrib/helper_cuda.h>
+#include <cufinufft/contrib/helper_math.h>
 
 #include <cassert>
 #include <cufft.h>
@@ -34,17 +37,16 @@ int cufinufft1d1_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
   int ier;
   cuda_complex<T> *d_fkstart;
   cuda_complex<T> *d_cstart;
-  for (int i = 0; i * d_plan->maxbatchsize < d_plan->ntransf; i++) {
-    int blksize =
-        std::min(d_plan->ntransf - i * d_plan->maxbatchsize, d_plan->maxbatchsize);
-    d_cstart   = d_c + i * d_plan->maxbatchsize * d_plan->M;
-    d_fkstart  = d_fk + i * d_plan->maxbatchsize * d_plan->ms;
-    d_plan->c  = d_cstart;
-    d_plan->fk = d_fkstart;
+  for (int i = 0; i * d_plan->batchsize < d_plan->ntransf; i++) {
+    int blksize = std::min(d_plan->ntransf - i * d_plan->batchsize, d_plan->batchsize);
+    d_cstart    = d_c + i * d_plan->batchsize * d_plan->M;
+    d_fkstart   = d_fk + i * d_plan->batchsize * d_plan->ms;
+    d_plan->c   = d_cstart;
+    d_plan->fk  = d_fkstart;
 
     // this is needed
     if ((ier = checkCudaErrors(cudaMemsetAsync(
-             d_plan->fw, 0, d_plan->maxbatchsize * d_plan->nf1 * sizeof(cuda_complex<T>),
+             d_plan->fw, 0, d_plan->batchsize * d_plan->nf1 * sizeof(cuda_complex<T>),
              stream))))
       return ier;
 
@@ -88,11 +90,10 @@ int cufinufft1d2_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
   int ier;
   cuda_complex<T> *d_fkstart;
   cuda_complex<T> *d_cstart;
-  for (int i = 0; i * d_plan->maxbatchsize < d_plan->ntransf; i++) {
-    int blksize =
-        std::min(d_plan->ntransf - i * d_plan->maxbatchsize, d_plan->maxbatchsize);
-    d_cstart  = d_c + i * d_plan->maxbatchsize * d_plan->M;
-    d_fkstart = d_fk + i * d_plan->maxbatchsize * d_plan->ms;
+  for (int i = 0; i * d_plan->batchsize < d_plan->ntransf; i++) {
+    int blksize = std::min(d_plan->ntransf - i * d_plan->batchsize, d_plan->batchsize);
+    d_cstart    = d_c + i * d_plan->batchsize * d_plan->M;
+    d_fkstart   = d_fk + i * d_plan->batchsize * d_plan->ms;
 
     d_plan->c  = d_cstart;
     d_plan->fk = d_fkstart;
@@ -116,6 +117,65 @@ int cufinufft1d2_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
   return 0;
 }
 
+template<typename T>
+int cufinufft1d3_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
+                      cufinufft_plan_t<T> *d_plan) {
+  /*
+    1D Type-3 NUFFT
+
+  This function is called in "exec" stage (See ../cufinufft.cu).
+  It includes (copied from doc in finufft library)
+    Step 0: pre-phase the input strengths
+    Step 1: spread data
+    Step 2: Type 2 NUFFT
+    Step 3: deconvolve (amplify) each Fourier mode, using kernel Fourier coeff
+
+  Marco Barbone 08/14/2024
+  */
+  int ier;
+  cuda_complex<T> *d_cstart;
+  cuda_complex<T> *d_fkstart;
+  const auto stream = d_plan->stream;
+  for (int i = 0; i * d_plan->batchsize < d_plan->ntransf; i++) {
+    int blksize = min(d_plan->ntransf - i * d_plan->batchsize, d_plan->batchsize);
+    d_cstart    = d_c + i * d_plan->batchsize * d_plan->M;
+    d_fkstart   = d_fk + i * d_plan->batchsize * d_plan->N;
+    // setting input for spreader
+    d_plan->c = d_plan->CpBatch;
+    // setting output for spreader
+    d_plan->fk = d_plan->fw;
+    if ((ier = checkCudaErrors(cudaMemsetAsync(
+             d_plan->fw, 0, d_plan->batchsize * d_plan->nf * sizeof(cuda_complex<T>),
+             stream))))
+      return ier;
+    // NOTE: fw might need to be set to 0
+    // Step 0: pre-phase the input strengths
+    for (int block = 0; block < blksize; block++) {
+      thrust::transform(thrust::cuda::par.on(stream), d_plan->prephase,
+                        d_plan->prephase + d_plan->M, d_cstart + block * d_plan->M,
+                        d_plan->c + block * d_plan->M,
+                        thrust::multiplies<cuda_complex<T>>());
+    }
+    // Step 1: Spread
+    if ((ier = cuspread1d<T>(d_plan, blksize))) return ier;
+    // now d_plan->fk = d_plan->fw contains the spread values
+    // Step 2: Type 2 NUFFT
+    // type 2 goes from fk to c
+    // saving the results directly in the user output array d_fk
+    // it needs to do blksize transforms
+    d_plan->t2_plan->ntransf = blksize;
+    if ((ier = cufinufft1d2_exec<T>(d_fkstart, d_plan->fw, d_plan->t2_plan))) return ier;
+    // Step 3: deconvolve
+    // now we need to d_fk = d_fk*d_plan->deconv
+    for (int i = 0; i < blksize; i++) {
+      thrust::transform(thrust::cuda::par.on(stream), d_plan->deconv,
+                        d_plan->deconv + d_plan->N, d_fkstart + i * d_plan->N,
+                        d_fkstart + i * d_plan->N, thrust::multiplies<cuda_complex<T>>());
+    }
+  }
+  return 0;
+}
+
 template int cufinufft1d1_exec<float>(cuda_complex<float> *d_c, cuda_complex<float> *d_fk,
                                       cufinufft_plan_t<float> *d_plan);
 template int cufinufft1d1_exec<double>(cuda_complex<double> *d_c,
@@ -124,5 +184,10 @@ template int cufinufft1d1_exec<double>(cuda_complex<double> *d_c,
 template int cufinufft1d2_exec<float>(cuda_complex<float> *d_c, cuda_complex<float> *d_fk,
                                       cufinufft_plan_t<float> *d_plan);
 template int cufinufft1d2_exec<double>(cuda_complex<double> *d_c,
+                                       cuda_complex<double> *d_fk,
+                                       cufinufft_plan_t<double> *d_plan);
+template int cufinufft1d3_exec<float>(cuda_complex<float> *d_c, cuda_complex<float> *d_fk,
+                                      cufinufft_plan_t<float> *d_plan);
+template int cufinufft1d3_exec<double>(cuda_complex<double> *d_c,
                                        cuda_complex<double> *d_fk,
                                        cufinufft_plan_t<double> *d_plan);

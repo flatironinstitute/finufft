@@ -22,10 +22,10 @@ Recall how to do this from C++:
 .. code-block:: C++
 
   // (... set up M,x,c,tol,N, and allocate F here...)
-  finufft_opts* opts;
-  finufft_default_opts(opts);
-  opts->debug = 1;
-  int ier = finufft1d1(M,x,c,+1,tol,N,F,opts);
+  finufft_opts opts;
+  finufft_default_opts(&opts);
+  opts.debug = 1;
+  int ier = finufft1d1(M,x,c,+1,tol,N,F,&opts);
 
 This setting produces more timing output to ``stdout``.
 

@@ -235,7 +235,7 @@ int cudeconvolve1d(cufinufft_plan_t<T> *d_plan, int blksize)
   int ms           = d_plan->ms;
   int nf1          = d_plan->nf1;
   int nmodes       = ms;
-  int maxbatchsize = d_plan->maxbatchsize;
+  int maxbatchsize = d_plan->batchsize;
 
   if (d_plan->spopts.spread_direction == 1) {
     for (int t = 0; t < blksize; t++) {
@@ -268,7 +268,7 @@ int cudeconvolve2d(cufinufft_plan_t<T> *d_plan, int blksize)
   int nf1          = d_plan->nf1;
   int nf2          = d_plan->nf2;
   int nmodes       = ms * mt;
-  int maxbatchsize = d_plan->maxbatchsize;
+  int maxbatchsize = d_plan->batchsize;
 
   if (d_plan->spopts.spread_direction == 1) {
     for (int t = 0; t < blksize; t++) {
@@ -305,7 +305,7 @@ int cudeconvolve3d(cufinufft_plan_t<T> *d_plan, int blksize)
   int nf2          = d_plan->nf2;
   int nf3          = d_plan->nf3;
   int nmodes       = ms * mt * mu;
-  int maxbatchsize = d_plan->maxbatchsize;
+  int maxbatchsize = d_plan->batchsize;
   if (d_plan->spopts.spread_direction == 1) {
     for (int t = 0; t < blksize; t++) {
       deconvolve_3d<T, modeord><<<(nmodes + 256 - 1) / 256, 256, 0, stream>>>(
