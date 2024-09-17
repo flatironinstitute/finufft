@@ -6,8 +6,15 @@
 #include <finufft.h>
 #include <omp.h>
 
+// This file tests the user locking mechanism for multi-threaded FFTW. This
+// demonstrates a user lock to prevent FFTW plan calls from interfering with
+// finufft plan calls (make/destroy).
+// Robert Blackwell. Based on bug identified by Jonas Krimmer (9/17/24)
+// See discussion at https://github.com/ludvigak/FINUFFT.jl/issues/62
+
 constexpr int N = 65384;
 
+// Example user lock functions
 void locker(void *lck) { reinterpret_cast<std::mutex *>(lck)->lock(); }
 void unlocker(void *lck) { reinterpret_cast<std::mutex *>(lck)->unlock(); }
 
