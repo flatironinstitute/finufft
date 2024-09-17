@@ -86,9 +86,9 @@ namespace finufft {
 namespace common {
 
 #ifndef FINUFFT_USE_DUCC0
-// The only global state in finufft. Inline ensures variables shared between float/double
-inline std::mutex fftw_lock;
-inline bool did_fftw_init = false;
+// Technically global state...
+// Needs to be static to avoid name collision with SINGLE/DOUBLE
+static std::mutex fftw_lock;
 
 class FFTWLockGuard {
 public:
@@ -688,6 +688,7 @@ int FINUFFT_MAKEPLAN(int type, int dim, BIGINT *n_modes, int iflag, int ntrans, 
     // Now place FFTW initialization in a lock, courtesy of OMP. Makes FINUFFT
     // thread-safe (can be called inside OMP)
     {
+      static bool did_fftw_init = false; // the only global state of FINUFFT
       FFTWLockGuard lock(p->opts.fftw_lock_fun, p->opts.fftw_unlock_fun,
                          p->opts.fftw_lock_data);
       if (!did_fftw_init) {
