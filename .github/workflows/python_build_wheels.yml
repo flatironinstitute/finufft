@@ -21,12 +21,10 @@ jobs:
           CIBW_BEFORE_ALL_MACOS: |
             # In order to reinstall a version of GCC compatible with older versions of macOS, we need to first uninstall the existing version.
             brew uninstall gcc
-            brew cleanup -s
-            rm -rf $(brew --cache)
-            pkg=$(brew fetch --force --bottle-tag=monterey gcc | grep 'Downloaded to' | cut -d' ' -f3)
+            pkg=$(brew fetch --force --bottle-tag=monterey gcc | grep 'Downloaded to.*monterey.*' | cut -d' ' -f3)
             brew install $pkg
 
-            pkg=$(brew fetch --force --bottle-tag=monterey fftw | grep 'Downloaded to' | cut -d' ' -f3)
+            pkg=$(brew fetch --force --bottle-tag=monterey fftw | grep 'Downloaded to.*monterey.*' | cut -d' ' -f3)
             brew install $pkg
           CIBW_ARCHS_MACOS: "x86_64"
           # Need following versions of GCC for compatibility with fftw
@@ -58,12 +56,10 @@ jobs:
           CIBW_BEFORE_ALL_MACOS: |
             # In order to reinstall a version of GCC compatible with older versions of macOS, we need to first uninstall the existing version.
             brew uninstall gcc
-            brew cleanup -s
-            rm -rf $(brew --cache)
-            pkg=$(brew fetch --force --bottle-tag=arm64_monterey gcc | grep 'Downloaded to' | cut -d' ' -f3)
+            pkg=$(brew fetch --force --bottle-tag=arm64_monterey gcc | grep 'Downloaded to.*monterey.*' | cut -d' ' -f3)
             brew install $pkg
 
-            pkg=$(brew fetch --force --bottle-tag=arm64_monterey fftw | grep 'Downloaded to' | cut -d' ' -f3)
+            pkg=$(brew fetch --force --bottle-tag=arm64_monterey fftw | grep 'Downloaded to.*monterey.*' | cut -d' ' -f3)
             brew install $pkg
           CIBW_ENVIRONMENT_MACOS: >
             CC=gcc-14
