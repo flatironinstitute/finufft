@@ -21,6 +21,8 @@ jobs:
           CIBW_BEFORE_ALL_MACOS: |
             # In order to reinstall a version of GCC compatible with older versions of macOS, we need to first uninstall the existing version.
             brew uninstall gcc
+            brew cleanup -s
+            rm -rf $(brew --cache)
             pkg=$(brew fetch --force --bottle-tag=monterey gcc | grep 'Downloaded to' | cut -d' ' -f3)
             brew install $pkg
 
@@ -56,6 +58,8 @@ jobs:
           CIBW_BEFORE_ALL_MACOS: |
             # In order to reinstall a version of GCC compatible with older versions of macOS, we need to first uninstall the existing version.
             brew uninstall gcc
+            brew cleanup -s
+            rm -rf $(brew --cache)
             pkg=$(brew fetch --force --bottle-tag=arm64_monterey gcc | grep 'Downloaded to' | cut -d' ' -f3)
             brew install $pkg
 
