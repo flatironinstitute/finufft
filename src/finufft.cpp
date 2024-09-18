@@ -89,6 +89,29 @@ namespace common {
 // Technically global state...
 // Needs to be static to avoid name collision with SINGLE/DOUBLE
 static std::mutex fftw_lock;
+
+class FFTWLockGuard {
+public:
+  FFTWLockGuard(void (*lock_fun)(void *), void (*unlock_fun)(void *), void *lock_data)
+      : unlock_fun_(unlock_fun), lock_data_(lock_data), fftw_lock_(fftw_lock) {
+    if (lock_fun)
+      lock_fun(lock_data_);
+    else
+      fftw_lock_.lock();
+  }
+  ~FFTWLockGuard() {
+    if (unlock_fun_)
+      unlock_fun_(lock_data_);
+    else
+      fftw_lock_.unlock();
+  }
+
+private:
+  void (*unlock_fun_)(void *);
+  void *lock_data_;
+  std::mutex &fftw_lock_;
+};
+
 #endif
 
 static int set_nf_type12(BIGINT ms, finufft_opts opts, finufft_spread_opts spopts,
@@ -527,6 +550,9 @@ void FINUFFT_DEFAULT_OPTS(finufft_opts *o)
   o->maxbatchsize       = 0;
   o->spread_nthr_atomic = -1;
   o->spread_max_sp_size = 0;
+  o->fftw_lock_fun      = nullptr;
+  o->fftw_unlock_fun    = nullptr;
+  o->fftw_lock_data     = nullptr;
   // sphinx tag (don't remove): @defopts_end
 }
 
@@ -563,6 +589,12 @@ int FINUFFT_MAKEPLAN(int type, int dim, BIGINT *n_modes, int iflag, int ntrans, 
   if (ntrans < 1) {
     fprintf(stderr, "[%s] ntrans (%d) should be at least 1.\n", __func__, ntrans);
     return FINUFFT_ERR_NTRANS_NOTVALID;
+  }
+  if (!p->opts.fftw_lock_fun != !p->opts.fftw_unlock_fun) {
+    fprintf(stderr, "[%s] fftw_(un)lock functions should be both null or both set\n",
+            __func__);
+    return FINUFFT_ERR_LOCK_FUNS_INVALID;
+    ;
   }
 
   // get stuff from args...
@@ -657,7 +689,8 @@ int FINUFFT_MAKEPLAN(int type, int dim, BIGINT *n_modes, int iflag, int ntrans, 
     // thread-safe (can be called inside OMP)
     {
       static bool did_fftw_init = false; // the only global state of FINUFFT
-      std::lock_guard<std::mutex> lock(fftw_lock);
+      FFTWLockGuard lock(p->opts.fftw_lock_fun, p->opts.fftw_unlock_fun,
+                         p->opts.fftw_lock_data);
       if (!did_fftw_init) {
         FFTW_INIT();          // setup FFTW global state; should only do once
         did_fftw_init = true; // ensure other FINUFFT threads don't clash
@@ -750,7 +783,8 @@ int FINUFFT_MAKEPLAN(int type, int dim, BIGINT *n_modes, int iflag, int ntrans, 
     // fftw_plan_many_dft args: rank, gridsize/dim, howmany, in, inembed, istride,
     // idist, ot, onembed, ostride, odist, sign, flags
     {
-      std::lock_guard<std::mutex> lock(fftw_lock);
+      FFTWLockGuard lock(p->opts.fftw_lock_fun, p->opts.fftw_unlock_fun,
+                         p->opts.fftw_lock_data);
       // FFTW_PLAN_TH sets all future fftw_plan calls to use nthr_fft threads.
       // FIXME: Since this might override what the user wants for fftw, we'd like to
       // set it just for our one plan and then revert to the user value.
@@ -1220,7 +1254,8 @@ int FINUFFT_DESTROY(FINUFFT_PLAN p)
   if (p->type == 1 || p->type == 2) {
 #ifndef FINUFFT_USE_DUCC0
     {
-      std::lock_guard<std::mutex> lock(fftw_lock);
+      FFTWLockGuard lock(p->opts.fftw_lock_fun, p->opts.fftw_unlock_fun,
+                         p->opts.fftw_lock_data);
       FFTW_DE(p->fftwPlan);
     }
 #endif

@@ -14,6 +14,9 @@ Master (9/10/24)
   - Minor fixes on the GPU code:
     a) removed memory leaks in case of errors
     b) renamed maxbatchsize to batchsize
+* Add options for user-provided FFTW locker (PR548, Blackwell). These options can be be
+used to prevent crashes when a user is creating/destroying FFTW plans and
+FINUFFT plans in threads simultaneously.
 
 V 2.3.0 (9/5/24)
 

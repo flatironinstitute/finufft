@@ -189,3 +189,77 @@ Here ``0`` makes an automatic choice. If you are unhappy with this, then for sma
 **spread_nthr_atomic**: if non-negative: for numbers of threads up to this value, an OMP critical block for ``add_wrapped_subgrid`` is used in spreading (type 1 transforms). Above this value, instead OMP atomic writes are used, which scale better for large thread numbers. If negative, the heuristic default in the spreader is used, set in ``src/spreadinterp.cpp:setup_spreader()``.
 
 **spread_max_sp_size**: if positive, overrides the maximum subproblem (chunking) size for multithreaded spreading (type 1 transforms). Otherwise the default in the spreader is used, set in ``src/spreadinterp.cpp:setup_spreader()``, which we believe is a decent heuristic for Intel i7 and xeon machines.
+
+
+Thread safety options (advanced)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+By default, with FFTW as the FFT library, FINUFFT is thread safe so long as no other threads are calling FFTW plan creation/destruction routines independently of FINUFFT. If these FFTW routines are called outside of FINUFFT, then the program is liable to crash. In most cases, the calling program can simply call the FFTW routine ``fftw_make_planner_thread_safe()`` before threading out and thread safety will be maintained. However, in instances where this is less desirable, we provide a means to provide your own FFTW locking mechanism. The following example code should exercise FFTW thread safety, and can be built with ``c++ thread_test.cpp -o thread_test -lfinufft -lfftw3_threads -lfftw3 -fopenmp -std=c++11``, assuming the finufft include and library paths are set.
+
+.. code-block:: C++
+
+
+  // thread_test.cpp
+  #include <vector>
+  #include <mutex>
+  #include <complex>
+
+  #include <fftw3.h>
+  #include <finufft.h>
+  #include <omp.h>
+
+  using namespace std;
+
+  constexpr int N = 65384;
+
+  void locker(void *lck) { reinterpret_cast<recursive_mutex *>(lck)->lock(); }
+  void unlocker(void *lck) { reinterpret_cast<recursive_mutex *>(lck)->unlock(); }
+
+  int main() {
+    int64_t Ns[3]; // guru describes mode array by vector [N1,N2..]
+    Ns[0] = N;
+    recursive_mutex lck;
+
+    finufft_opts opts;
+    finufft_default_opts(&opts);
+    opts.nthreads = 1;
+    opts.debug = 0;
+    opts.fftw_lock_fun = locker;
+    opts.fftw_unlock_fun = unlocker;
+    opts.fftw_lock_data = reinterpret_cast<void *>(&lck);
+
+    // random nonuniform points (x) and complex strengths (c)
+    vector<complex<double>> c(N);
+
+    // init FFTW threads
+    fftw_init_threads();
+
+    // FFTW and FINUFFT execution using OpenMP parallelization
+    #pragma omp parallel for
+    for (int j = 0; j < 100; ++j) {
+      // allocate output array for FFTW...
+      vector<complex<double>> F1(N);
+
+      // FFTW plan
+      lck.lock();
+      fftw_plan_with_nthreads(1);
+      fftw_plan plan = fftw_plan_dft_1d(N, reinterpret_cast<fftw_complex*>(c.data()),
+                                        reinterpret_cast<fftw_complex*>(F1.data()),
+                                        FFTW_FORWARD, FFTW_ESTIMATE);
+      fftw_destroy_plan(plan);
+      lck.unlock();
+
+      // FINUFFT plan
+      finufft_plan nufftplan;
+      finufft_makeplan(1, 1, Ns, 1, 1, 1e-6, &nufftplan, &opts);
+      finufft_destroy(nufftplan);
+    }
+
+    return 0;
+  }
+
+**fftw_lock_fun**:  ``void (fun*)(void *)`` C-style callback function to lock calls to FFTW plan manipulation routines. A ``nullptr`` or ``0`` value will be ignored. If non-null, ``fftw_unlock_fun`` must also be set.
+
+**fftw_unlock_fun**: ``void (fun*)(void *)`` C-style callback function to unlock calls to FFTW plan manipulation routines. A ``nullptr`` or ``0`` value will be ignored. If non-null, ``fftw_lock_fun`` must also be set.
+
+**fftw_lock_data**:  ``void *data`` pointer, typically to the lock object itself. Pointer will be passed to ``fftw_lock_fun`` and ``fftw_unlock_fun`` if they are set.

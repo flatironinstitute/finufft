@@ -32,6 +32,12 @@ typedef struct finufft_opts { // defaults see finufft.cpp:finufft_default_opts()
                           // atomic
   int spread_max_sp_size; // if >0, overrides spreader (dir=1) max subproblem size
                           // sphinx tag (don't remove): @opts_end
+
+  // User can provide their own FFTW planner lock functions for thread safety
+  // Null values ignored and use a default lock function (both or neither must be set)
+  void (*fftw_lock_fun)(void *);   // Function ptr that locks the FFTW planner
+  void (*fftw_unlock_fun)(void *); // Function ptr that unlocks the FFTW planner
+  void *fftw_lock_data;            // Data to pass to the lock functions (e.g. a mutex)
 } finufft_opts;
 
 // Those of the above of the form spread_* indicate pass through to finufft_spread_opts
