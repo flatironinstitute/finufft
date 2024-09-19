@@ -254,10 +254,12 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
     if ((ier = checkCudaErrors(cudaMemcpyAsync(d_f, f, dim * MAX_NQUAD * sizeof(T),
                                                cudaMemcpyHostToDevice, stream))))
       goto finalize;
-    if ((ier = cufserieskernelcompute(
-             d_plan->dim, nf1, nf2, nf3, d_f, d_a, d_plan->fwkerhalf1, d_plan->fwkerhalf2,
-             d_plan->fwkerhalf3, d_plan->spopts.nspread, stream)))
-      goto finalize;
+    if (!d_plan->opts.gpu_spreadinterponly) {
+      if ((ier = cufserieskernelcompute(
+               d_plan->dim, nf1, nf2, nf3, d_f, d_a, d_plan->fwkerhalf1,
+               d_plan->fwkerhalf2, d_plan->fwkerhalf3, d_plan->spopts.nspread, stream)))
+        goto finalize;
+    }
   }
 
 finalize:
