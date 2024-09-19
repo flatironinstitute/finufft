@@ -311,13 +311,16 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
                  d_fseries_precomp_phase.begin());
     thrust::copy(fseries_precomp_f, fseries_precomp_f + 3 * MAX_NQUAD,
                  d_fseries_precomp_f.begin());
+    if(!d_plan->opts.gpu_spreadinterponly) {
     // the full fseries is done on the GPU here
-    if ((ier = fseries_kernel_compute(
-             d_plan->dim, d_plan->nf1, d_plan->nf2, d_plan->nf3,
-             d_fseries_precomp_f.data().get(), d_fseries_precomp_phase.data().get(),
-             d_plan->fwkerhalf1, d_plan->fwkerhalf2, d_plan->fwkerhalf3,
-             d_plan->spopts.nspread, stream)))
-      goto finalize;
+        if ((ier = fseries_kernel_compute(
+                 d_plan->dim, d_plan->nf1, d_plan->nf2, d_plan->nf3,
+                 d_fseries_precomp_f.data().get(), d_fseries_precomp_phase.data().get(),
+                 d_plan->fwkerhalf1, d_plan->fwkerhalf2, d_plan->fwkerhalf3,
+                 d_plan->spopts.nspread, stream)))
+          goto finalize;
+    }
+    
   }
 finalize:
   if (ier > 1) {

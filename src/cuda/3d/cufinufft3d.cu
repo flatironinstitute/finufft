@@ -42,6 +42,8 @@ int cufinufft3d1_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
 
     d_plan->c  = d_cstart;
     d_plan->fk = d_fkstart;
+    if (d_plan->opts.gpu_spreadinterponly)
+        d_plan->fw = d_fkstart;
 
     if ((ier = checkCudaErrors(cudaMemsetAsync(
              d_plan->fw, 0, d_plan->batchsize * d_plan->nf * sizeof(cuda_complex<T>),
@@ -50,8 +52,12 @@ int cufinufft3d1_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
 
     // Step 1: Spread
     if ((ier = cuspread3d<T>(d_plan, blksize))) return ier;
-
-    // Step 2: FFT
+    
+    // Step 1.5: if spreadonly, skip the rest
+    if (d_plan->opts.gpu_spreadinterponly)
+        continue;
+    
+        // Step 2: FFT
     cufftResult cufft_status =
         cufft_ex(d_plan->fftplan, d_plan->fw, d_plan->fw, d_plan->iflag);
     if (cufft_status != CUFFT_SUCCESS) return FINUFFT_ERR_CUDA_FAILURE;
@@ -94,19 +100,23 @@ int cufinufft3d2_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
     d_plan->c  = d_cstart;
     d_plan->fk = d_fkstart;
 
-    // Step 1: amplify Fourier coeffs fk and copy into upsampled array fw
-    if (d_plan->opts.modeord == 0) {
-      if ((ier = cudeconvolve3d<T, 0>(d_plan, blksize))) return ier;
-    } else {
-      if ((ier = cudeconvolve3d<T, 1>(d_plan, blksize))) return ier;
+    // Skip all steps if interponly
+    if (!d_plan->opts.gpu_spreadinterponly) {
+            // Step 1: amplify Fourier coeffs fk and copy into upsampled array fw
+        if (d_plan->opts.modeord == 0) {
+          if ((ier = cudeconvolve3d<T, 0>(d_plan, blksize))) return ier;
+        } else {
+          if ((ier = cudeconvolve3d<T, 1>(d_plan, blksize))) return ier;
+        }
+        // Step 2: FFT
+        RETURN_IF_CUDA_ERROR
+        cufftResult cufft_status =
+            cufft_ex(d_plan->fftplan, d_plan->fw, d_plan->fw, d_plan->iflag);
+        if (cufft_status != CUFFT_SUCCESS) return FINUFFT_ERR_CUDA_FAILURE;
     }
-
-    // Step 2: FFT
-    RETURN_IF_CUDA_ERROR
-    cufftResult cufft_status =
-        cufft_ex(d_plan->fftplan, d_plan->fw, d_plan->fw, d_plan->iflag);
-    if (cufft_status != CUFFT_SUCCESS) return FINUFFT_ERR_CUDA_FAILURE;
-
+    else
+        d_plan->fw = d_fkstart;
+        
     // Step 3: deconvolve and shuffle
     if ((ier = cuinterp3d<T>(d_plan, blksize))) return ier;
   }
