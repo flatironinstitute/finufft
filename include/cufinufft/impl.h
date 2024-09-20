@@ -155,7 +155,10 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
       printf("[cufinufft] upsampfac automatically set to %.3g\n", d_plan->opts.upsampfac);
     }
   }
-
+  if (d_plan->opts.gpu_spreadinterponly && d_plan->opts.upsampfac != 1) {
+    ier = FINUFFT_ERR_SPREADONLY_UPSAMP_INVALID;
+    goto finalize;
+  }
   /* Setup Spreader */
   if ((ier = setup_spreader_for_nufft(d_plan->spopts, tol, d_plan->opts)) > 1) {
     // can return FINUFFT_WARN_EPS_TOO_SMALL=1, which is OK
