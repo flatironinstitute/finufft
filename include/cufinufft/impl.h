@@ -106,6 +106,12 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
 
   auto &stream = d_plan->stream = (cudaStream_t)d_plan->opts.gpu_stream;
   using namespace cufinufft::common;
+
+  if (d_plan->opts.gpu_spreadinterponly && d_plan->opts.upsampfac != 1) {
+    ier = FINUFFT_ERR_SPREADONLY_UPSAMP_INVALID;
+    goto finalize;
+  }
+
   /* Setup Spreader */
 
   // can return FINUFFT_WARN_EPS_TOO_SMALL=1, which is OK
