@@ -8,6 +8,8 @@
 
 template<typename T> class Finufft_FFT_plan {
 public:
+  Finufft_FFT_plan(void (*)(void *) = nullptr, void (*)(void *) = nullptr,
+                   void * = nullptr) {}
   void plan(const std::vector<int> & /*dims*/, size_t /*batchSize*/,
             std::complex<T> * /*ptr*/, int /*sign*/, int /*options*/, int /*nthreads*/) {}
   static std::complex<T> *alloc_complex(size_t N) { return new std::complex<T>[N]; }
@@ -36,9 +38,19 @@ private:
   }
   fftwf_plan plan_;
 
+  void (*fftw_lock_fun)(void *);   // Function ptr that locks the FFTW planner
+  void (*fftw_unlock_fun)(void *); // Function ptr that unlocks the FFTW planner
+  void *lock_data;
+  void lock() { fftw_lock_fun ? fftw_lock_fun(lock_data) : mut().lock(); }
+  void unlock() { fftw_lock_fun ? fftw_unlock_fun(lock_data) : mut().unlock(); }
+
 public:
-  Finufft_FFT_plan() : plan_(nullptr) {
-    std::lock_guard<std::mutex> lock(mut());
+  Finufft_FFT_plan(void (*fftw_lock_fun_)(void *)   = nullptr,
+                   void (*fftw_unlock_fun_)(void *) = nullptr,
+                   void *lock_data_                 = nullptr)
+      : plan_(nullptr), fftw_lock_fun(fftw_lock_fun_), fftw_unlock_fun(fftw_unlock_fun_),
+        lock_data(lock_data_) {
+    lock();
 #ifdef _OPENMP
     static bool initialized = false;
     if (!initialized) {
@@ -46,17 +58,19 @@ public:
       initialized = true;
     }
 #endif
+    unlock();
   }
   ~Finufft_FFT_plan() {
-    std::lock_guard<std::mutex> lock(mut());
+    lock();
     fftwf_destroy_plan(plan_);
+    unlock();
   }
 
   void plan(const std::vector<int> &dims, size_t batchSize, std::complex<float> *ptr,
             int sign, int options, int nthreads) {
     uint64_t nf = 1;
     for (auto i : dims) nf *= i;
-    std::lock_guard<std::mutex> lock(mut());
+    lock();
 #ifdef _OPENMP
     fftwf_plan_with_nthreads(nthreads);
 #endif
@@ -64,6 +78,7 @@ public:
                                 reinterpret_cast<fftwf_complex *>(ptr), nullptr, 1, nf,
                                 reinterpret_cast<fftwf_complex *>(ptr), nullptr, 1, nf,
                                 sign, options);
+    unlock();
   }
   static std::complex<float> *alloc_complex(size_t N) {
     return reinterpret_cast<std::complex<float> *>(fftwf_alloc_complex(N));
@@ -74,17 +89,20 @@ public:
   void execute() { fftwf_execute(plan_); }
 
   static void forget_wisdom() {
-    std::lock_guard<std::mutex> lock(mut());
+    //    lock();
     fftwf_forget_wisdom();
+    //    unlock();
   }
   static void cleanup() {
-    std::lock_guard<std::mutex> lock(mut());
+    //    lock();
     fftwf_cleanup();
+    //    unlock();
   }
   static void cleanup_threads() {
 #ifdef _OPENMP
-    std::lock_guard<std::mutex> lock(mut());
+    //    lock();
     fftwf_cleanup_threads();
+//    unlock();
 #endif
   }
 };
@@ -97,9 +115,19 @@ private:
   }
   fftw_plan plan_;
 
+  void (*fftw_lock_fun)(void *);   // Function ptr that locks the FFTW planner
+  void (*fftw_unlock_fun)(void *); // Function ptr that unlocks the FFTW planner
+  void *lock_data;
+  void lock() { fftw_lock_fun ? fftw_lock_fun(lock_data) : mut().lock(); }
+  void unlock() { fftw_lock_fun ? fftw_unlock_fun(lock_data) : mut().unlock(); }
+
 public:
-  Finufft_FFT_plan() : plan_(nullptr) {
-    std::lock_guard<std::mutex> lock(mut());
+  Finufft_FFT_plan(void (*fftw_lock_fun_)(void *)   = nullptr,
+                   void (*fftw_unlock_fun_)(void *) = nullptr,
+                   void *lock_data_                 = nullptr)
+      : plan_(nullptr), fftw_lock_fun(fftw_lock_fun_), fftw_unlock_fun(fftw_unlock_fun_),
+        lock_data(lock_data_) {
+    lock();
 #ifdef _OPENMP
     static bool initialized = false;
     if (!initialized) {
@@ -107,17 +135,19 @@ public:
       initialized = true;
     }
 #endif
+    unlock();
   }
   ~Finufft_FFT_plan() {
-    std::lock_guard<std::mutex> lock(mut());
+    lock();
     fftw_destroy_plan(plan_);
+    unlock();
   }
 
   void plan(const std::vector<int> &dims, size_t batchSize, std::complex<double> *ptr,
             int sign, int options, int nthreads) {
     uint64_t nf = 1;
     for (auto i : dims) nf *= i;
-    std::lock_guard<std::mutex> lock(mut());
+    lock();
 #ifdef _OPENMP
     fftw_plan_with_nthreads(nthreads);
 #endif
@@ -125,6 +155,7 @@ public:
                                reinterpret_cast<fftw_complex *>(ptr), nullptr, 1, nf,
                                reinterpret_cast<fftw_complex *>(ptr), nullptr, 1, nf,
                                sign, options);
+    unlock();
   }
   static std::complex<double> *alloc_complex(size_t N) {
     return reinterpret_cast<std::complex<double> *>(fftw_alloc_complex(N));
@@ -135,17 +166,20 @@ public:
   void execute() { fftw_execute(plan_); }
 
   static void forget_wisdom() {
-    std::lock_guard<std::mutex> lock(mut());
+    //    lock();
     fftw_forget_wisdom();
+    //    unlock();
   }
   static void cleanup() {
-    std::lock_guard<std::mutex> lock(mut());
+    //    lock();
     fftw_cleanup();
+    //    unlock();
   }
   static void cleanup_threads() {
 #ifdef _OPENMP
-    std::lock_guard<std::mutex> lock(mut());
+    //    lock();
     fftw_cleanup_threads();
+//    unlock();
 #endif
   }
 };

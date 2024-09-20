@@ -18,6 +18,7 @@
 // public header gives access to f_opts, f_spread_opts, f_plan...
 // (and clobbers FINUFFT* macros; watch out!)
 #include <finufft.h>
+#include <memory>
 
 // --------------- Private data types for compilation in either prec ---------
 // Devnote: must match those in relevant prec of public finufft.h interface!
@@ -258,7 +259,7 @@ typedef struct FINUFFT_PLAN_S { // the main plan object, fully C++
   FINUFFT_PLAN innerT2plan; // ptr used for type 2 in step 2 of type 3
 
   // other internal structs; each is C-compatible of course
-  Finufft_FFT_plan<FLT> fftPlan;
+  std::unique_ptr<Finufft_FFT_plan<FLT>> fftPlan;
   finufft_opts opts; // this and spopts could be made ptrs
   finufft_spread_opts spopts;
 

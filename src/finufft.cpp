@@ -15,6 +15,7 @@
 #include <cstdlib>
 #include <iomanip>
 #include <iostream>
+#include <memory>
 #include <vector>
 
 using namespace std;
@@ -520,6 +521,9 @@ void FINUFFT_DEFAULT_OPTS(finufft_opts *o)
   o->maxbatchsize       = 0;
   o->spread_nthr_atomic = -1;
   o->spread_max_sp_size = 0;
+  o->fftw_lock_fun      = nullptr;
+  o->fftw_unlock_fun    = nullptr;
+  o->fftw_lock_data     = nullptr;
   // sphinx tag (don't remove): @defopts_end
 }
 
@@ -545,6 +549,9 @@ int FINUFFT_MAKEPLAN(int type, int dim, BIGINT *n_modes, int iflag, int ntrans, 
     printf("[%s] new plan: FINUFFT version " FINUFFT_VER " .................\n",
            __func__);
 
+  p->fftPlan = std::make_unique<Finufft_FFT_plan<FLT>>(
+      p->opts.fftw_lock_fun, p->opts.fftw_unlock_fun, p->opts.fftw_lock_data);
+
   if ((type != 1) && (type != 2) && (type != 3)) {
     fprintf(stderr, "[%s] Invalid type (%d), should be 1, 2 or 3.\n", __func__, type);
     return FINUFFT_ERR_TYPE_NOTVALID;
@@ -556,6 +563,12 @@ int FINUFFT_MAKEPLAN(int type, int dim, BIGINT *n_modes, int iflag, int ntrans, 
   if (ntrans < 1) {
     fprintf(stderr, "[%s] ntrans (%d) should be at least 1.\n", __func__, ntrans);
     return FINUFFT_ERR_NTRANS_NOTVALID;
+  }
+  if (!p->opts.fftw_lock_fun != !p->opts.fftw_unlock_fun) {
+    fprintf(stderr, "[%s] fftw_(un)lock functions should be both null or both set\n",
+            __func__);
+    return FINUFFT_ERR_LOCK_FUNS_INVALID;
+    ;
   }
 
   // get stuff from args...
@@ -708,7 +721,7 @@ int FINUFFT_MAKEPLAN(int type, int dim, BIGINT *n_modes, int iflag, int ntrans, 
     }
 
     timer.restart();
-    p->fwBatch = p->fftPlan.alloc_complex(p->nf * p->batchSize); // the big workspace
+    p->fwBatch = p->fftPlan->alloc_complex(p->nf * p->batchSize); // the big workspace
     if (p->opts.debug)
       printf("[%s] fwBatch %.2fGB alloc:   \t%.3g s\n", __func__,
              (double)1E-09 * sizeof(CPX) * p->nf * p->batchSize, timer.elapsedsec());
@@ -723,7 +736,7 @@ int FINUFFT_MAKEPLAN(int type, int dim, BIGINT *n_modes, int iflag, int ntrans, 
 
     timer.restart(); // plan the FFTW
     auto ns = gridsize_for_fft(p);
-    p->fftPlan.plan(ns, p->batchSize, p->fwBatch, p->fftSign, p->opts.fftw, nthr_fft);
+    p->fftPlan->plan(ns, p->batchSize, p->fwBatch, p->fftSign, p->opts.fftw, nthr_fft);
     if (p->opts.debug)
       printf("[%s] FFT plan (mode %d, nthr=%d):\t%.3g s\n", __func__, p->opts.fftw,
              nthr_fft, timer.elapsedsec());
@@ -850,8 +863,8 @@ int FINUFFT_SETPTS(FINUFFT_PLAN p, BIGINT nj, FLT *xj, FLT *yj, FLT *zj, BIGINT 
               __func__);
       return FINUFFT_ERR_MAXNALLOC;
     }
-    p->fftPlan.free(p->fwBatch);
-    p->fwBatch = p->fftPlan.alloc_complex(p->nf * p->batchSize); // maybe big workspace
+    p->fftPlan->free(p->fwBatch);
+    p->fwBatch = p->fftPlan->alloc_complex(p->nf * p->batchSize); // maybe big workspace
 
     // (note FFTW_ALLOC is not needed over malloc, but matches its type)
     if (p->CpBatch) free(p->CpBatch);
@@ -1166,7 +1179,7 @@ int FINUFFT_DESTROY(FINUFFT_PLAN p)
   if (!p) // NULL ptr, so not a ptr to a plan, report error
     return 1;
 
-  p->fftPlan.free(p->fwBatch); // free the big FFTW (or t3 spread) working array
+  p->fftPlan->free(p->fwBatch); // free the big FFTW (or t3 spread) working array
   free(p->sortIndices);
   if (p->type == 1 || p->type == 2) {
     free(p->phiHat1);
