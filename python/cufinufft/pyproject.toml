@@ -41,7 +41,7 @@ build-dir = "build/{wheel_tag}"
 # Tell skbuild to where to find CMakeLists.txt.
 cmake.source-dir = "../../"
 cmake.targets = ["cufinufft"]
-cmake.define = {"FINUFFT_BUILD_PYTHON" = "ON", "FINUFFT_USE_CUDA" = "ON", "FINUFFT_USE_CPU" = "OFF", "CMAKE_BUILD_TYPE"="Debug"}
+cmake.define = {"FINUFFT_BUILD_PYTHON" = "ON", "FINUFFT_USE_CUDA" = "ON", "FINUFFT_USE_CPU" = "OFF"}#, "CMAKE_BUILD_TYPE"="Debug"}
 
 wheel.packages = ["cufinufft"]
 
