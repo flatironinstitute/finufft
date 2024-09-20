@@ -107,7 +107,9 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
     d_plan->ms = nmodes[0];
     d_plan->mt = nmodes[1];
     d_plan->mu = nmodes[2];
-    printf("[cufinufft] (ms,mt,mu): %d %d %d\n", d_plan->ms, d_plan->mt, d_plan->mu);
+    if (d_plan->opts.debug) {
+        printf("[cufinufft] (ms,mt,mu): %d %d %d\n", d_plan->ms, d_plan->mt, d_plan->mu);
+    }
   } else {
     d_plan->opts.gpu_spreadinterponly = 1;
   }
