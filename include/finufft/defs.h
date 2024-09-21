@@ -119,11 +119,11 @@ inline constexpr BIGINT MAX_NU_PTS = BIGINT(1e14);
 // These macros should probably be replaced by modern C++ std lib or random123.
 // (RAND_MAX is in stdlib.h)
 #include <stdlib.h>
-static inline FLT rand01() { return FLT(rand()) / FLT(RAND_MAX); }
+static inline FLT rand01 [[maybe_unused]] () { return FLT(rand()) / FLT(RAND_MAX); }
 // unif[-1,1]:
-static inline FLT randm11() { return 2 * rand01() - FLT(1); }
+static inline FLT randm11 [[maybe_unused]] () { return 2 * rand01() - FLT(1); }
 // complex unif[-1,1] for Re and Im:
-static inline CPX crandm11() { return randm11() + IMA * randm11(); }
+static inline CPX crandm11 [[maybe_unused]] () { return randm11() + IMA * randm11(); }
 
 // Thread-safe seed-carrying versions of above (x is ptr to seed)...
 // MR: we have to leave those as macros for now, as "rand_r" is deprecated
