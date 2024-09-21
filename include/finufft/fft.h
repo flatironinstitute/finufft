@@ -8,16 +8,19 @@
 
 template<typename T> class Finufft_FFT_plan {
 public:
-  Finufft_FFT_plan(void (*)(void *) = nullptr, void (*)(void *) = nullptr,
-                   void * = nullptr) {}
-  void plan(const std::vector<int> & /*dims*/, size_t /*batchSize*/,
-            std::complex<T> * /*ptr*/, int /*sign*/, int /*options*/, int /*nthreads*/) {}
-  static std::complex<T> *alloc_complex(size_t N) { return new std::complex<T>[N]; }
-  static void free(std::complex<T> *ptr) { delete[] ptr; }
+  [[maybe_unused]] Finufft_FFT_plan(void (*)(void *) = nullptr,
+                                    void (*)(void *) = nullptr, void * = nullptr) {}
+  [[maybe_unused]] void plan(const std::vector<int> & /*dims*/, size_t /*batchSize*/,
+                             std::complex<T> * /*ptr*/, int /*sign*/, int /*options*/,
+                             int /*nthreads*/) {}
+  [[maybe_unused]] static std::complex<T> *alloc_complex(size_t N) {
+    return new std::complex<T>[N];
+  }
+  [[maybe_unused]] static void free(std::complex<T> *ptr) { delete[] ptr; }
 
-  static void forget_wisdom() {}
-  static void cleanup() {}
-  static void cleanup_threads() {}
+  [[maybe_unused]] static void forget_wisdom() {}
+  [[maybe_unused]] static void cleanup() {}
+  [[maybe_unused]] static void cleanup_threads() {}
 };
 
 #else
@@ -45,9 +48,9 @@ private:
   void unlock() { fftw_lock_fun ? fftw_unlock_fun(lock_data) : mut().unlock(); }
 
 public:
-  Finufft_FFT_plan(void (*fftw_lock_fun_)(void *)   = nullptr,
-                   void (*fftw_unlock_fun_)(void *) = nullptr,
-                   void *lock_data_                 = nullptr)
+  [[maybe_unused]] Finufft_FFT_plan(void (*fftw_lock_fun_)(void *)   = nullptr,
+                                    void (*fftw_unlock_fun_)(void *) = nullptr,
+                                    void *lock_data_                 = nullptr)
       : plan_(nullptr), fftw_lock_fun(fftw_lock_fun_), fftw_unlock_fun(fftw_unlock_fun_),
         lock_data(lock_data_) {
     lock();
@@ -60,7 +63,7 @@ public:
 #endif
     unlock();
   }
-  ~Finufft_FFT_plan() {
+  [[maybe_unused]] ~Finufft_FFT_plan() {
     lock();
     fftwf_destroy_plan(plan_);
     unlock();
@@ -113,9 +116,9 @@ private:
   void unlock() { fftw_lock_fun ? fftw_unlock_fun(lock_data) : mut().unlock(); }
 
 public:
-  Finufft_FFT_plan(void (*fftw_lock_fun_)(void *)   = nullptr,
-                   void (*fftw_unlock_fun_)(void *) = nullptr,
-                   void *lock_data_                 = nullptr)
+  [[maybe_unused]] Finufft_FFT_plan(void (*fftw_lock_fun_)(void *)   = nullptr,
+                                    void (*fftw_unlock_fun_)(void *) = nullptr,
+                                    void *lock_data_                 = nullptr)
       : plan_(nullptr), fftw_lock_fun(fftw_lock_fun_), fftw_unlock_fun(fftw_unlock_fun_),
         lock_data(lock_data_) {
     lock();
@@ -128,7 +131,7 @@ public:
 #endif
     unlock();
   }
-  ~Finufft_FFT_plan() {
+  [[maybe_unused]] ~Finufft_FFT_plan() {
     lock();
     fftw_destroy_plan(plan_);
     unlock();
