@@ -188,9 +188,13 @@ public:
 
 #include <finufft/defs.h>
 
-static inline void finufft_fft_forget_wisdom() { Finufft_FFT_plan<FLT>::forget_wisdom(); }
-static inline void finufft_fft_cleanup() { Finufft_FFT_plan<FLT>::cleanup(); }
-static inline void finufft_fft_cleanup_threads() {
+static inline void finufft_fft_forget_wisdom [[maybe_unused]] () {
+  Finufft_FFT_plan<FLT>::forget_wisdom();
+}
+static inline void finufft_fft_cleanup [[maybe_unused]] () {
+  Finufft_FFT_plan<FLT>::cleanup();
+}
+static inline void finufft_fft_cleanup_threads [[maybe_unused]] () {
   Finufft_FFT_plan<FLT>::cleanup_threads();
 }
 
