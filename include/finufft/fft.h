@@ -74,10 +74,10 @@ public:
 #ifdef _OPENMP
     fftwf_plan_with_nthreads(nthreads);
 #endif
-    plan_ = fftwf_plan_many_dft(dims.size(), dims.data(), batchSize,
-                                reinterpret_cast<fftwf_complex *>(ptr), nullptr, 1, nf,
-                                reinterpret_cast<fftwf_complex *>(ptr), nullptr, 1, nf,
-                                sign, options);
+    plan_ = fftwf_plan_many_dft(int(dims.size()), dims.data(), int(batchSize),
+                                reinterpret_cast<fftwf_complex *>(ptr), nullptr, 1,
+                                int(nf), reinterpret_cast<fftwf_complex *>(ptr), nullptr,
+                                1, int(nf), sign, options);
     unlock();
   }
   static std::complex<float> *alloc_complex(size_t N) {

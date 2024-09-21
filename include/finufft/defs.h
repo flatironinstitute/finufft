@@ -135,11 +135,17 @@ static inline CPX crandm11() { return randm11() + IMA * randm11(); }
 // complex unif[-1,1] for Re and Im:
 #define crandm11r(x) (randm11r(x) + IMA * randm11r(x))
 #else
-static inline FLT rand01r(unsigned int *x) { return FLT(rand_r(x)) / FLT(RAND_MAX); }
+static inline FLT rand01r [[maybe_unused]] (unsigned int *x) {
+  return FLT(rand_r(x)) / FLT(RAND_MAX);
+}
 // unif[-1,1]:
-static inline FLT randm11r(unsigned int *x) { return 2 * rand01r(x) - FLT(1); }
+static inline FLT randm11r [[maybe_unused]] (unsigned int *x) {
+  return 2 * rand01r(x) - FLT(1);
+}
 // complex unif[-1,1] for Re and Im:
-static inline CPX crandm11r(unsigned int *x) { return randm11r(x) + IMA * randm11r(x); }
+static inline CPX crandm11r [[maybe_unused]] (unsigned int *x) {
+  return randm11r(x) + IMA * randm11r(x);
+}
 #endif
 
 // ----- OpenMP macros which also work when omp not present -----
@@ -148,16 +154,24 @@ static inline CPX crandm11r(unsigned int *x) { return randm11r(x) + IMA * randm1
 #ifdef _OPENMP
 #include <omp.h>
 // point to actual omp utils
-static inline int MY_OMP_GET_NUM_THREADS() { return omp_get_num_threads(); }
-static inline int MY_OMP_GET_MAX_THREADS() { return omp_get_max_threads(); }
-static inline int MY_OMP_GET_THREAD_NUM() { return omp_get_thread_num(); }
-static inline void MY_OMP_SET_NUM_THREADS(int x) { omp_set_num_threads(x); }
+static inline int MY_OMP_GET_NUM_THREADS [[maybe_unused]] () {
+  return omp_get_num_threads();
+}
+static inline int MY_OMP_GET_MAX_THREADS [[maybe_unused]] () {
+  return omp_get_max_threads();
+}
+static inline int MY_OMP_GET_THREAD_NUM [[maybe_unused]] () {
+  return omp_get_thread_num();
+}
+static inline void MY_OMP_SET_NUM_THREADS [[maybe_unused]] (int x) {
+  omp_set_num_threads(x);
+}
 #else
 // non-omp safe dummy versions of omp utils...
-static inline int MY_OMP_GET_NUM_THREADS() { return 1; }
-static inline int MY_OMP_GET_MAX_THREADS() { return 1; }
-static inline int MY_OMP_GET_THREAD_NUM() { return 0; }
-static inline void MY_OMP_SET_NUM_THREADS(int) {}
+static inline int MY_OMP_GET_NUM_THREADS [[maybe_unused]] () { return 1; }
+static inline int MY_OMP_GET_MAX_THREADS [[maybe_unused]] () { return 1; }
+static inline int MY_OMP_GET_THREAD_NUM [[maybe_unused]] () { return 0; }
+static inline void MY_OMP_SET_NUM_THREADS [[maybe_unused]] (int) {}
 #endif
 
 // Prec-switching name macros (respond to SINGLE), used in lib & test sources
@@ -214,9 +228,13 @@ template<typename T> struct type3params {
 };
 
 typedef struct FINUFFT_PLAN_S { // the main plan object, fully C++
+  // added to silence a warning
+  FINUFFT_PLAN_S()                                  = default;
+  FINUFFT_PLAN_S(const FINUFFT_PLAN_S &)            = delete;
+  FINUFFT_PLAN_S &operator=(const FINUFFT_PLAN_S &) = delete;
 
-  int type;                     // transform type (Rokhlin naming): 1,2 or 3
-  int dim;                      // overall dimension: 1,2 or 3
+  int type;            // transform type (Rokhlin naming): 1,2 or 3
+  int dim;             // overall dimension: 1,2 or 3
   int ntrans;          // how many transforms to do at once (vector or "many" mode)
   BIGINT nj;           // num of NU pts in type 1,2 (for type 3, num input x pts)
   BIGINT nk;           // number of NU freq pts (type 3 only)
