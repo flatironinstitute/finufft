@@ -91,7 +91,7 @@ static int set_nf_type12(BIGINT ms, finufft_opts opts, finufft_spread_opts spopt
 // and requested number of Fourier modes ms. Returns 0 if success, else an
 // error code if nf was unreasonably big (& tell the world).
 {
-  *nf = (BIGINT)(opts.upsampfac * ms); // manner of rounding not crucial
+  *nf = (BIGINT)(opts.upsampfac * double(ms)); // manner of rounding not crucial
   if (*nf < 2 * spopts.nspread) *nf = 2 * spopts.nspread; // otherwise spread fails
   if (*nf < MAX_NF) {
     *nf = next235even(*nf);                               // expensive at huge nf
@@ -156,7 +156,7 @@ void set_nhg_type3(FLT S, FLT X, finufft_opts opts, finufft_spread_opts spopts,
   else
     Ssafe = max(Ssafe, 1 / X);
   // use the safe X and S...
-  FLT nfd = 2.0 * opts.upsampfac * Ssafe * Xsafe / PI + nss;
+  FLT nfd = FLT(2.0 * opts.upsampfac * Ssafe * Xsafe / PI + nss);
   if (!isfinite(nfd)) nfd = 0.0; // use FLT to catch inf
   *nf = (BIGINT)nfd;
   // printf("initial nf=%lld, ns=%d\n",*nf,spopts.nspread);
@@ -164,8 +164,8 @@ void set_nhg_type3(FLT S, FLT X, finufft_opts opts, finufft_spread_opts spopts,
   if (*nf < 2 * spopts.nspread) *nf = 2 * spopts.nspread;
   if (*nf < MAX_NF)                                 // otherwise will fail anyway
     *nf = next235even(*nf);                         // expensive at huge nf
-  *h   = 2 * PI / *nf;                              // upsampled grid spacing
-  *gam = (FLT)*nf / (2.0 * opts.upsampfac * Ssafe); // x scale fac to x'
+  *h   = FLT(2 * PI / *nf);                         // upsampled grid spacing
+  *gam = FLT(*nf / (2.0 * opts.upsampfac * Ssafe)); // x scale fac to x'
 }
 
 void onedim_fseries_kernel(BIGINT nf, FLT *fwkerhalf, finufft_spread_opts opts)
