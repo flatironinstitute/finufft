@@ -227,7 +227,7 @@ template<typename T> struct type3params {
   T X3, C3, D3, h3, gam3; // z
 };
 
-typedef struct FINUFFT_PLAN_S { // the main plan object, fully C++
+struct FINUFFT_PLAN_S { // the main plan object, fully C++
   // added to silence a warning
   FINUFFT_PLAN_S()                                  = default;
   FINUFFT_PLAN_S(const FINUFFT_PLAN_S &)            = delete;
@@ -280,7 +280,6 @@ typedef struct FINUFFT_PLAN_S { // the main plan object, fully C++
   std::unique_ptr<Finufft_FFT_plan<FLT>> fftPlan;
   finufft_opts opts; // this and spopts could be made ptrs
   finufft_spread_opts spopts;
-
-} FINUFFT_PLAN_S;
+};
 
 #endif // DEFS_H

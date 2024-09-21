@@ -66,8 +66,9 @@ public:
     unlock();
   }
 
-  void plan(const std::vector<int> &dims, size_t batchSize, std::complex<float> *ptr,
-            int sign, int options, int nthreads) {
+  void plan
+      [[maybe_unused]] (const std::vector<int> &dims, size_t batchSize,
+                        std::complex<float> *ptr, int sign, int options, int nthreads) {
     uint64_t nf = 1;
     for (auto i : dims) nf *= i;
     lock();
@@ -80,29 +81,19 @@ public:
                                 1, int(nf), sign, unsigned(options));
     unlock();
   }
-  static std::complex<float> *alloc_complex(size_t N) {
+  static std::complex<float> *alloc_complex [[maybe_unused]] (size_t N) {
     return reinterpret_cast<std::complex<float> *>(fftwf_alloc_complex(N));
   }
-  static void free(std::complex<float> *ptr) {
+  static void free [[maybe_unused]] (std::complex<float> *ptr) {
     if (ptr) fftwf_free(reinterpret_cast<fftwf_complex *>(ptr));
   }
-  void execute() { fftwf_execute(plan_); }
+  void execute [[maybe_unused]] () { fftwf_execute(plan_); }
 
-  static void forget_wisdom() {
-    //    lock();
-    fftwf_forget_wisdom();
-    //    unlock();
-  }
-  static void cleanup() {
-    //    lock();
-    fftwf_cleanup();
-    //    unlock();
-  }
-  static void cleanup_threads() {
+  static void forget_wisdom [[maybe_unused]] () { fftwf_forget_wisdom(); }
+  static void cleanup [[maybe_unused]] () { fftwf_cleanup(); }
+  static void cleanup_threads [[maybe_unused]] () {
 #ifdef _OPENMP
-    //    lock();
     fftwf_cleanup_threads();
-//    unlock();
 #endif
   }
 };
@@ -143,8 +134,9 @@ public:
     unlock();
   }
 
-  void plan(const std::vector<int> &dims, size_t batchSize, std::complex<double> *ptr,
-            int sign, int options, int nthreads) {
+  void plan
+      [[maybe_unused]] (const std::vector<int> &dims, size_t batchSize,
+                        std::complex<double> *ptr, int sign, int options, int nthreads) {
     uint64_t nf = 1;
     for (auto i : dims) nf *= i;
     lock();
@@ -157,29 +149,19 @@ public:
                                sign, unsigned(options));
     unlock();
   }
-  static std::complex<double> *alloc_complex(size_t N) {
+  static std::complex<double> *alloc_complex [[maybe_unused]] (size_t N) {
     return reinterpret_cast<std::complex<double> *>(fftw_alloc_complex(N));
   }
-  static void free(std::complex<double> *ptr) {
+  static void free [[maybe_unused]] (std::complex<double> *ptr) {
     fftw_free(reinterpret_cast<fftw_complex *>(ptr));
   }
-  void execute() { fftw_execute(plan_); }
+  void execute [[maybe_unused]] () { fftw_execute(plan_); }
 
-  static void forget_wisdom() {
-    //    lock();
-    fftw_forget_wisdom();
-    //    unlock();
-  }
-  static void cleanup() {
-    //    lock();
-    fftw_cleanup();
-    //    unlock();
-  }
-  static void cleanup_threads() {
+  static void forget_wisdom [[maybe_unused]] () { fftw_forget_wisdom(); }
+  static void cleanup [[maybe_unused]] () { fftw_cleanup(); }
+  static void cleanup_threads [[maybe_unused]] () {
 #ifdef _OPENMP
-    //    lock();
     fftw_cleanup_threads();
-//    unlock();
 #endif
   }
 };
