@@ -155,7 +155,7 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
       printf("[cufinufft] upsampfac automatically set to %.3g\n", d_plan->opts.upsampfac);
     }
   }
-  if (d_plan->opts.gpu_spreadinterponly && d_plan->opts.upsampfac != 1) {
+  if (d_plan->opts.gpu_spreadinterponly && d_plan->opts.upsampfac != 1 && d_plan->type != 3) {
     ier = FINUFFT_ERR_SPREADONLY_UPSAMP_INVALID;
     goto finalize;
   }
