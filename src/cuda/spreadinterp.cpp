@@ -26,7 +26,9 @@ int setup_spreader(finufft_spread_opts &opts, T eps, T upsampfac, int kerevalmet
               __func__, upsampfac);
       return FINUFFT_ERR_HORNER_WRONG_BETA;
     }
-    if (upsampfac < 1.0) {
+    if (upsampfac <= 1.0) {
+      if (upsampfac ==  1.0 && opts.gpu_spreadinterponly)
+        continue; // Upsampfac == 1.0 is valid for spreadinterponly mode.
       fprintf(stderr, "[%s] error: upsampfac=%.3g is <=1.0\n", __func__, upsampfac);
       return FINUFFT_ERR_UPSAMPFAC_TOO_SMALL;
     }

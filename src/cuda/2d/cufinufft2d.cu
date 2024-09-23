@@ -57,7 +57,7 @@ int cufinufft2d1_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
     // Step 1: Spread
     if ((ier = cuspread2d<T>(d_plan, blksize))) return ier;
 
-    // Step 1.5: if spreadonly, skip the rest
+    // if spreadonly, skip the rest
     if (d_plan->opts.gpu_spreadinterponly)
         continue;
     
@@ -106,7 +106,7 @@ int cufinufft2d2_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
     d_plan->c  = d_cstart;
     d_plan->fk = d_fkstart;
 
-    // Skip all steps if interponly
+    // Skip steps 1 and 2 if interponly
     if (!d_plan->opts.gpu_spreadinterponly) {
         // Step 1: amplify Fourier coeffs fk and copy into upsampled array fw
         if (d_plan->opts.modeord == 0) {
@@ -123,7 +123,7 @@ int cufinufft2d2_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
     else
         d_plan->fw = d_fkstart;
     
-    // Step 3: deconvolve and shuffle
+    // Step 3: Interpolate
     if ((ier = cuinterp2d<T>(d_plan, blksize))) return ier;
   }
 
