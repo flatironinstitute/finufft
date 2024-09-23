@@ -104,8 +104,8 @@ int cufinufft1d2_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
     d_plan->c  = d_cstart;
     d_plan->fk = d_fkstart;
     
-    // Skip steps 1 and 2 if interponly
-    if (!d_plan->opts.gpu_spreadinterponly) {
+    // Skip steps 1 and 2 if interponly, but if it is type3 (upsampfac > 1.0), we need to do step 1
+    if (!d_plan->opts.gpu_spreadinterponly || d_plan->opts.upsampfac > 1.0) {
         // Step 1: amplify Fourier coeffs fk and copy into upsampled array fw
         if (d_plan->opts.modeord == 0) {
           if ((ier = cudeconvolve1d<T, 0>(d_plan, blksize))) return ier;
