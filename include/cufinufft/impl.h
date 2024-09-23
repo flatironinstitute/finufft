@@ -156,7 +156,8 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
     }
   }
   if (d_plan->opts.gpu_spreadinterponly) {
-    if (d_plan->opts.upsampfac != 1 ^^ d_plan->type != 3) {
+    // XNOR implementation below with boolean logic.
+    if ((d_plan->opts.upsampfac !=1) == (d_plan->type != 3)) {
         ier = FINUFFT_ERR_SPREADONLY_UPSAMP_INVALID;
         goto finalize;
     }
