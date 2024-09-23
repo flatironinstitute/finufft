@@ -311,11 +311,8 @@ while ``modeord=1`` selects FFT-style ordering starting at zero and wrapping ove
 
 **gpu_device_id**: Sets the GPU device ID. Leave at default unless you know what you're doing. [To be documented]
 
-Diagnostic options
-~~~~~~~~~~~~~~~~~~
-
 **gpu_spreadinterponly**: if ``0`` do the NUFFT as intended. If ``1``, omit the FFT and kernel FT deconvolution steps and return garbage answers.
-Nonzero value is *only* to be used to aid timing tests (although currently there are no timing codes that exploit this option), and will give wrong or undefined answers for the NUFFT transforms!
+Nonzero value can be used *only* with `upsampfac=1` and `kerevalmeth=1` for using cufinufft for only spread and interpolate mode. This has applications into estimating the density compensation, which is conventionally used in MRI. (See [MRI-NUFFT](https://mind-inria.github.io/mri-nufft/nufft.html))
 
 
 Algorithm performance options
