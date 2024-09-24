@@ -18,6 +18,7 @@
 // public header gives access to f_opts, f_spread_opts, f_plan...
 // (and clobbers FINUFFT* macros; watch out!)
 #include <finufft.h>
+#include <memory>
 
 // --------------- Private data types for compilation in either prec ---------
 // Devnote: must match those in relevant prec of public finufft.h interface!
@@ -89,7 +90,7 @@ inline constexpr BIGINT MAX_NF = BIGINT(1e12);
 inline constexpr BIGINT MAX_NU_PTS = BIGINT(1e14);
 
 // -------------- Math consts (not in math.h) and useful math macros ----------
-#include <math.h>
+#include <cmath>
 
 // either-precision unit imaginary number...
 #define IMA (CPX(0.0, 1.0))
@@ -118,11 +119,11 @@ inline constexpr BIGINT MAX_NU_PTS = BIGINT(1e14);
 // These macros should probably be replaced by modern C++ std lib or random123.
 // (RAND_MAX is in stdlib.h)
 #include <stdlib.h>
-static inline FLT rand01() { return FLT(rand()) / FLT(RAND_MAX); }
+static inline FLT rand01 [[maybe_unused]] () { return FLT(rand()) / FLT(RAND_MAX); }
 // unif[-1,1]:
-static inline FLT randm11() { return 2 * rand01() - FLT(1); }
+static inline FLT randm11 [[maybe_unused]] () { return 2 * rand01() - FLT(1); }
 // complex unif[-1,1] for Re and Im:
-static inline CPX crandm11() { return randm11() + IMA * randm11(); }
+static inline CPX crandm11 [[maybe_unused]] () { return randm11() + IMA * randm11(); }
 
 // Thread-safe seed-carrying versions of above (x is ptr to seed)...
 // MR: we have to leave those as macros for now, as "rand_r" is deprecated
@@ -134,11 +135,17 @@ static inline CPX crandm11() { return randm11() + IMA * randm11(); }
 // complex unif[-1,1] for Re and Im:
 #define crandm11r(x) (randm11r(x) + IMA * randm11r(x))
 #else
-static inline FLT rand01r(unsigned int *x) { return FLT(rand_r(x)) / FLT(RAND_MAX); }
+static inline FLT rand01r [[maybe_unused]] (unsigned int *x) {
+  return FLT(rand_r(x)) / FLT(RAND_MAX);
+}
 // unif[-1,1]:
-static inline FLT randm11r(unsigned int *x) { return 2 * rand01r(x) - FLT(1); }
+static inline FLT randm11r [[maybe_unused]] (unsigned int *x) {
+  return 2 * rand01r(x) - FLT(1);
+}
 // complex unif[-1,1] for Re and Im:
-static inline CPX crandm11r(unsigned int *x) { return randm11r(x) + IMA * randm11r(x); }
+static inline CPX crandm11r [[maybe_unused]] (unsigned int *x) {
+  return randm11r(x) + IMA * randm11r(x);
+}
 #endif
 
 // ----- OpenMP macros which also work when omp not present -----
@@ -147,16 +154,24 @@ static inline CPX crandm11r(unsigned int *x) { return randm11r(x) + IMA * randm1
 #ifdef _OPENMP
 #include <omp.h>
 // point to actual omp utils
-static inline int MY_OMP_GET_NUM_THREADS() { return omp_get_num_threads(); }
-static inline int MY_OMP_GET_MAX_THREADS() { return omp_get_max_threads(); }
-static inline int MY_OMP_GET_THREAD_NUM() { return omp_get_thread_num(); }
-static inline void MY_OMP_SET_NUM_THREADS(int x) { omp_set_num_threads(x); }
+static inline int MY_OMP_GET_NUM_THREADS [[maybe_unused]] () {
+  return omp_get_num_threads();
+}
+static inline int MY_OMP_GET_MAX_THREADS [[maybe_unused]] () {
+  return omp_get_max_threads();
+}
+static inline int MY_OMP_GET_THREAD_NUM [[maybe_unused]] () {
+  return omp_get_thread_num();
+}
+static inline void MY_OMP_SET_NUM_THREADS [[maybe_unused]] (int x) {
+  omp_set_num_threads(x);
+}
 #else
 // non-omp safe dummy versions of omp utils...
-static inline int MY_OMP_GET_NUM_THREADS() { return 1; }
-static inline int MY_OMP_GET_MAX_THREADS() { return 1; }
-static inline int MY_OMP_GET_THREAD_NUM() { return 0; }
-static inline void MY_OMP_SET_NUM_THREADS(int) {}
+static inline int MY_OMP_GET_NUM_THREADS [[maybe_unused]] () { return 1; }
+static inline int MY_OMP_GET_MAX_THREADS [[maybe_unused]] () { return 1; }
+static inline int MY_OMP_GET_THREAD_NUM [[maybe_unused]] () { return 0; }
+static inline void MY_OMP_SET_NUM_THREADS [[maybe_unused]] (int) {}
 #endif
 
 // Prec-switching name macros (respond to SINGLE), used in lib & test sources
@@ -212,10 +227,17 @@ template<typename T> struct type3params {
   T X3, C3, D3, h3, gam3; // z
 };
 
-typedef struct FINUFFT_PLAN_S { // the main plan object, fully C++
+struct FINUFFT_PLAN_S { // the main plan object, fully C++
+  // These default and delete specifications just state the obvious,
+  // but are here to silence compiler warnings.
+  FINUFFT_PLAN_S() = default;
+  // Copy construction and assignent are already deleted implicitly
+  // because of the unique_ptr member.
+  FINUFFT_PLAN_S(const FINUFFT_PLAN_S &)            = delete;
+  FINUFFT_PLAN_S &operator=(const FINUFFT_PLAN_S &) = delete;
 
-  int type;                     // transform type (Rokhlin naming): 1,2 or 3
-  int dim;                      // overall dimension: 1,2 or 3
+  int type;            // transform type (Rokhlin naming): 1,2 or 3
+  int dim;             // overall dimension: 1,2 or 3
   int ntrans;          // how many transforms to do at once (vector or "many" mode)
   BIGINT nj;           // num of NU pts in type 1,2 (for type 3, num input x pts)
   BIGINT nk;           // number of NU freq pts (type 3 only)
@@ -258,12 +280,9 @@ typedef struct FINUFFT_PLAN_S { // the main plan object, fully C++
   FINUFFT_PLAN innerT2plan; // ptr used for type 2 in step 2 of type 3
 
   // other internal structs; each is C-compatible of course
-#ifndef FINUFFT_USE_DUCC0
-  FFTW_PLAN fftwPlan;
-#endif
+  std::unique_ptr<Finufft_FFT_plan<FLT>> fftPlan;
   finufft_opts opts; // this and spopts could be made ptrs
   finufft_spread_opts spopts;
-
-} FINUFFT_PLAN_S;
+};
 
 #endif // DEFS_H

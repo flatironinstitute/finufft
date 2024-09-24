@@ -10,12 +10,12 @@
 #include <finufft/utils_precindep.h>
 
 #include "../contrib/legendre_rule_fast.h"
+#include <cmath>
+#include <cstdio>
+#include <cstdlib>
 #include <iomanip>
 #include <iostream>
-#include <math.h>
-#include <mutex>
-#include <stdio.h>
-#include <stdlib.h>
+#include <memory>
 #include <vector>
 
 using namespace std;
@@ -85,42 +85,13 @@ Design notes for guru interface implementation:
 namespace finufft {
 namespace common {
 
-#ifndef FINUFFT_USE_DUCC0
-// Technically global state...
-// Needs to be static to avoid name collision with SINGLE/DOUBLE
-static std::mutex fftw_lock;
-
-class FFTWLockGuard {
-public:
-  FFTWLockGuard(void (*lock_fun)(void *), void (*unlock_fun)(void *), void *lock_data)
-      : unlock_fun_(unlock_fun), lock_data_(lock_data), fftw_lock_(fftw_lock) {
-    if (lock_fun)
-      lock_fun(lock_data_);
-    else
-      fftw_lock_.lock();
-  }
-  ~FFTWLockGuard() {
-    if (unlock_fun_)
-      unlock_fun_(lock_data_);
-    else
-      fftw_lock_.unlock();
-  }
-
-private:
-  void (*unlock_fun_)(void *);
-  void *lock_data_;
-  std::mutex &fftw_lock_;
-};
-
-#endif
-
 static int set_nf_type12(BIGINT ms, finufft_opts opts, finufft_spread_opts spopts,
                          BIGINT *nf)
 // Type 1 & 2 recipe for how to set 1d size of upsampled array, nf, given opts
 // and requested number of Fourier modes ms. Returns 0 if success, else an
 // error code if nf was unreasonably big (& tell the world).
 {
-  *nf = (BIGINT)(opts.upsampfac * ms); // manner of rounding not crucial
+  *nf = BIGINT(opts.upsampfac * double(ms)); // manner of rounding not crucial
   if (*nf < 2 * spopts.nspread) *nf = 2 * spopts.nspread; // otherwise spread fails
   if (*nf < MAX_NF) {
     *nf = next235even(*nf);                               // expensive at huge nf
@@ -185,7 +156,7 @@ void set_nhg_type3(FLT S, FLT X, finufft_opts opts, finufft_spread_opts spopts,
   else
     Ssafe = max(Ssafe, 1 / X);
   // use the safe X and S...
-  FLT nfd = 2.0 * opts.upsampfac * Ssafe * Xsafe / PI + nss;
+  auto nfd = FLT(2.0 * opts.upsampfac * Ssafe * Xsafe / PI + nss);
   if (!isfinite(nfd)) nfd = 0.0; // use FLT to catch inf
   *nf = (BIGINT)nfd;
   // printf("initial nf=%lld, ns=%d\n",*nf,spopts.nspread);
@@ -193,8 +164,8 @@ void set_nhg_type3(FLT S, FLT X, finufft_opts opts, finufft_spread_opts spopts,
   if (*nf < 2 * spopts.nspread) *nf = 2 * spopts.nspread;
   if (*nf < MAX_NF)                                 // otherwise will fail anyway
     *nf = next235even(*nf);                         // expensive at huge nf
-  *h   = 2 * PI / *nf;                              // upsampled grid spacing
-  *gam = (FLT)*nf / (2.0 * opts.upsampfac * Ssafe); // x scale fac to x'
+  *h   = FLT(2.0 * PI / *nf);                       // upsampled grid spacing
+  *gam = FLT(*nf / (2.0 * opts.upsampfac * Ssafe)); // x scale fac to x'
 }
 
 void onedim_fseries_kernel(BIGINT nf, FLT *fwkerhalf, finufft_spread_opts opts)
@@ -578,6 +549,9 @@ int FINUFFT_MAKEPLAN(int type, int dim, BIGINT *n_modes, int iflag, int ntrans, 
     printf("[%s] new plan: FINUFFT version " FINUFFT_VER " .................\n",
            __func__);
 
+  p->fftPlan = std::make_unique<Finufft_FFT_plan<FLT>>(
+      p->opts.fftw_lock_fun, p->opts.fftw_unlock_fun, p->opts.fftw_lock_data);
+
   if ((type != 1) && (type != 2) && (type != 3)) {
     fprintf(stderr, "[%s] Invalid type (%d), should be 1, 2 or 3.\n", __func__, type);
     return FINUFFT_ERR_TYPE_NOTVALID;
@@ -682,21 +656,8 @@ int FINUFFT_MAKEPLAN(int type, int dim, BIGINT *n_modes, int iflag, int ntrans, 
   //  ------------------------ types 1,2: planning needed ---------------------
   if (type == 1 || type == 2) {
 
-#ifndef FINUFFT_USE_DUCC0
     int nthr_fft = nthr; // give FFTW all threads (or use o.spread_thread?)
                          // Note: batchSize not used since might be only 1.
-    // Now place FFTW initialization in a lock, courtesy of OMP. Makes FINUFFT
-    // thread-safe (can be called inside OMP)
-    {
-      static bool did_fftw_init = false; // the only global state of FINUFFT
-      FFTWLockGuard lock(p->opts.fftw_lock_fun, p->opts.fftw_unlock_fun,
-                         p->opts.fftw_lock_data);
-      if (!did_fftw_init) {
-        FFTW_INIT();          // setup FFTW global state; should only do once
-        did_fftw_init = true; // ensure other FINUFFT threads don't clash
-      }
-    }
-#endif
 
     p->spopts.spread_direction = type;
 
@@ -760,11 +721,7 @@ int FINUFFT_MAKEPLAN(int type, int dim, BIGINT *n_modes, int iflag, int ntrans, 
     }
 
     timer.restart();
-#ifdef FINUFFT_USE_DUCC0
-    p->fwBatch = (CPX *)malloc(p->nf * p->batchSize * sizeof(CPX)); // the big workspace
-#else
-    p->fwBatch = (CPX *)FFTW_ALLOC_CPX(p->nf * p->batchSize); // the big workspace
-#endif
+    p->fwBatch = p->fftPlan->alloc_complex(p->nf * p->batchSize); // the big workspace
     if (p->opts.debug)
       printf("[%s] fwBatch %.2fGB alloc:   \t%.3g s\n", __func__,
              (double)1E-09 * sizeof(CPX) * p->nf * p->batchSize, timer.elapsedsec());
@@ -777,30 +734,12 @@ int FINUFFT_MAKEPLAN(int type, int dim, BIGINT *n_modes, int iflag, int ntrans, 
       return FINUFFT_ERR_ALLOC;
     }
 
-#ifndef FINUFFT_USE_DUCC0
     timer.restart(); // plan the FFTW
-    int *ns = gridsize_for_fft(p);
-    // fftw_plan_many_dft args: rank, gridsize/dim, howmany, in, inembed, istride,
-    // idist, ot, onembed, ostride, odist, sign, flags
-    {
-      FFTWLockGuard lock(p->opts.fftw_lock_fun, p->opts.fftw_unlock_fun,
-                         p->opts.fftw_lock_data);
-      // FFTW_PLAN_TH sets all future fftw_plan calls to use nthr_fft threads.
-      // FIXME: Since this might override what the user wants for fftw, we'd like to
-      // set it just for our one plan and then revert to the user value.
-      // Unfortunately fftw_planner_nthreads wasn't introduced until fftw 3.3.9, and
-      // there isn't a convenient mechanism to probe the version
-      // there is fftw_version which returns a string, but that's not compile time
-      FFTW_PLAN_TH(nthr_fft);
-      p->fftwPlan = FFTW_PLAN_MANY_DFT(dim, ns, p->batchSize, (FFTW_CPX *)p->fwBatch,
-                                       NULL, 1, p->nf, (FFTW_CPX *)p->fwBatch, NULL, 1,
-                                       p->nf, p->fftSign, p->opts.fftw);
-    }
+    const auto ns = gridsize_for_fft(p);
+    p->fftPlan->plan(ns, p->batchSize, p->fwBatch, p->fftSign, p->opts.fftw, nthr_fft);
     if (p->opts.debug)
-      printf("[%s] FFTW plan (mode %d, nthr=%d):\t%.3g s\n", __func__, p->opts.fftw,
+      printf("[%s] FFT plan (mode %d, nthr=%d):\t%.3g s\n", __func__, p->opts.fftw,
              nthr_fft, timer.elapsedsec());
-    delete[] ns;
-#endif
 
   } else { // -------------------------- type 3 (no planning) ------------
 
@@ -924,13 +863,8 @@ int FINUFFT_SETPTS(FINUFFT_PLAN p, BIGINT nj, FLT *xj, FLT *yj, FLT *zj, BIGINT 
               __func__);
       return FINUFFT_ERR_MAXNALLOC;
     }
-#ifdef FINUFFT_USE_DUCC0
-    free(p->fwBatch);
-    p->fwBatch = (CPX *)malloc(p->nf * p->batchSize * sizeof(CPX)); // maybe big workspace
-#else
-    if (p->fwBatch) FFTW_FR(p->fwBatch);
-    p->fwBatch = (CPX *)FFTW_ALLOC_CPX(p->nf * p->batchSize); // maybe big workspace
-#endif
+    p->fftPlan->free(p->fwBatch);
+    p->fwBatch = p->fftPlan->alloc_complex(p->nf * p->batchSize); // maybe big workspace
 
     // (note FFTW_ALLOC is not needed over malloc, but matches its type)
     if (p->CpBatch) free(p->CpBatch);
@@ -1245,20 +1179,9 @@ int FINUFFT_DESTROY(FINUFFT_PLAN p)
   if (!p) // NULL ptr, so not a ptr to a plan, report error
     return 1;
 
-#ifdef FINUFFT_USE_DUCC0
-  free(p->fwBatch); // free the big FFTW (or t3 spread) working array
-#else
-  FFTW_FR(p->fwBatch); // free the big FFTW (or t3 spread) working array
-#endif
+  p->fftPlan->free(p->fwBatch); // free the big FFTW (or t3 spread) working array
   free(p->sortIndices);
   if (p->type == 1 || p->type == 2) {
-#ifndef FINUFFT_USE_DUCC0
-    {
-      FFTWLockGuard lock(p->opts.fftw_lock_fun, p->opts.fftw_unlock_fun,
-                         p->opts.fftw_lock_data);
-      FFTW_DE(p->fftwPlan);
-    }
-#endif
     free(p->phiHat1);
     free(p->phiHat2);
     free(p->phiHat3);
