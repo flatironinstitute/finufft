@@ -198,6 +198,8 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
   } break;
   }
 
+  // We dont need any cuFFT plans or kernel values if we are only spreading /
+  // interpolating
   if (!d_plan->opts.gpu_spreadinterponly) {
     cufftHandle fftplan;
     cufftResult_t cufft_status;
