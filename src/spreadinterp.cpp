@@ -2132,12 +2132,12 @@ int spreadinterpSorted(const BIGINT *sort_indices, const UBIGINT N1, const UBIGI
 
   return 0;
 }
-template int spreadinterpSorted(<float> const BIGINT *sort_indices, const UBIGINT N1,
-                                const UBIGINT N2, const UBIGINT N3, float *data_uniform,
-                                const UBIGINT M, float *FINUFFT_RESTRICT kx,
-                                float *FINUFFT_RESTRICT ky, float *FINUFFT_RESTRICT kz,
-                                float *FINUFFT_RESTRICT data_nonuniform,
-                                const finufft_spread_opts &opts, int did_sort);
+template int spreadinterpSorted<float>(
+    const BIGINT *sort_indices, const UBIGINT N1, const UBIGINT N2, const UBIGINT N3,
+    float *data_uniform, const UBIGINT M, float *FINUFFT_RESTRICT kx,
+    float *FINUFFT_RESTRICT ky, float *FINUFFT_RESTRICT kz,
+    float *FINUFFT_RESTRICT data_nonuniform, const finufft_spread_opts &opts,
+    int did_sort);
 template int spreadinterpSorted<double>(
     const BIGINT *sort_indices, const UBIGINT N1, const UBIGINT N2, const UBIGINT N3,
     double *data_uniform, const UBIGINT M, double *FINUFFT_RESTRICT kx,
