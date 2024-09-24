@@ -122,7 +122,7 @@ endif()
 # This set of sources is compiled twice, once in single precision and once in
 # double precision The single precision compilation is done with -DSINGLE
 set(FINUFFT_PRECISION_DEPENDENT_SOURCES src/finufft.cpp src/fft.cpp
-                                        src/simpleinterfaces.cpp src/utils.cpp)
+                                        src/simpleinterfaces.cpp)
 
 # If we're building for Fortran, make sure we also include the translation
 # layer.
