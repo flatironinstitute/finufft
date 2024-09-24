@@ -228,8 +228,11 @@ template<typename T> struct type3params {
 };
 
 struct FINUFFT_PLAN_S { // the main plan object, fully C++
-  // added to silence a warning
-  FINUFFT_PLAN_S()                                  = default;
+  // These default and delete specifications just state the obvious,
+  // but are here to silence compiler warnings.
+  FINUFFT_PLAN_S() = default;
+  // Copy construction and assignent are already deleted implicitly
+  // because of the unique_ptr member.
   FINUFFT_PLAN_S(const FINUFFT_PLAN_S &)            = delete;
   FINUFFT_PLAN_S &operator=(const FINUFFT_PLAN_S &) = delete;
 

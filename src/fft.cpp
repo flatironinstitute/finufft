@@ -19,7 +19,7 @@ std::vector<int> gridsize_for_fft(FINUFFT_PLAN p) {
 void do_fft(FINUFFT_PLAN p) {
 #ifdef FINUFFT_USE_DUCC0
   size_t nthreads = min<size_t>(MY_OMP_GET_MAX_THREADS(), p->opts.nthreads);
-  auto ns         = gridsize_for_fft(p);
+  const auto ns   = gridsize_for_fft(p);
   vector<size_t> arrdims, axes;
   arrdims.push_back(size_t(p->batchSize));
   arrdims.push_back(size_t(ns[0]));
