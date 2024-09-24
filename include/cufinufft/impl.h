@@ -198,69 +198,69 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
   } break;
   }
 
-  cufftHandle fftplan;
-  cufftResult_t cufft_status;
-  switch (d_plan->dim) {
-  case 1: {
-    int n[]       = {(int)nf1};
-    int inembed[] = {(int)nf1};
+  if (!d_plan->opts.gpu_spreadinterponly) {
+    cufftHandle fftplan;
+    cufftResult_t cufft_status;
+    switch (d_plan->dim) {
+    case 1: {
+      int n[]       = {(int)nf1};
+      int inembed[] = {(int)nf1};
 
-    cufft_status = cufftPlanMany(&fftplan, 1, n, inembed, 1, inembed[0], inembed, 1,
-                                 inembed[0], cufft_type<T>(), maxbatchsize);
-  } break;
-  case 2: {
-    int n[]       = {(int)nf2, (int)nf1};
-    int inembed[] = {(int)nf2, (int)nf1};
+      cufft_status = cufftPlanMany(&fftplan, 1, n, inembed, 1, inembed[0], inembed, 1,
+                                   inembed[0], cufft_type<T>(), maxbatchsize);
+    } break;
+    case 2: {
+      int n[]       = {(int)nf2, (int)nf1};
+      int inembed[] = {(int)nf2, (int)nf1};
 
-    cufft_status =
-        cufftPlanMany(&fftplan, 2, n, inembed, 1, inembed[0] * inembed[1], inembed, 1,
-                      inembed[0] * inembed[1], cufft_type<T>(), maxbatchsize);
-  } break;
-  case 3: {
-    int n[]       = {(int)nf3, (int)nf2, (int)nf1};
-    int inembed[] = {(int)nf3, (int)nf2, (int)nf1};
+      cufft_status =
+          cufftPlanMany(&fftplan, 2, n, inembed, 1, inembed[0] * inembed[1], inembed, 1,
+                        inembed[0] * inembed[1], cufft_type<T>(), maxbatchsize);
+    } break;
+    case 3: {
+      int n[]       = {(int)nf3, (int)nf2, (int)nf1};
+      int inembed[] = {(int)nf3, (int)nf2, (int)nf1};
 
-    cufft_status = cufftPlanMany(
-        &fftplan, 3, n, inembed, 1, inembed[0] * inembed[1] * inembed[2], inembed, 1,
-        inembed[0] * inembed[1] * inembed[2], cufft_type<T>(), maxbatchsize);
-  } break;
-  }
+      cufft_status = cufftPlanMany(
+          &fftplan, 3, n, inembed, 1, inembed[0] * inembed[1] * inembed[2], inembed, 1,
+          inembed[0] * inembed[1] * inembed[2], cufft_type<T>(), maxbatchsize);
+    } break;
+    }
 
-  if (cufft_status != CUFFT_SUCCESS) {
-    fprintf(stderr, "[%s] cufft makeplan error: %s", __func__,
-            cufftGetErrorString(cufft_status));
-    ier = FINUFFT_ERR_CUDA_FAILURE;
-    goto finalize;
-  }
-  cufftSetStream(fftplan, stream);
-
-  d_plan->fftplan = fftplan;
-  {
-    std::complex<double> *a = d_plan->fseries_precomp_a;
-    T *f                    = d_plan->fseries_precomp_f;
-
-    onedim_fseries_kernel_precomp(nf1, f, a, d_plan->spopts);
-    if (dim > 1)
-      onedim_fseries_kernel_precomp(nf2, f + MAX_NQUAD, a + MAX_NQUAD, d_plan->spopts);
-    if (dim > 2)
-      onedim_fseries_kernel_precomp(nf3, f + 2 * MAX_NQUAD, a + 2 * MAX_NQUAD,
-                                    d_plan->spopts);
-
-    if ((ier = checkCudaErrors(
-             cudaMallocWrapper(&d_a, dim * MAX_NQUAD * sizeof(cuDoubleComplex), stream,
-                               d_plan->supports_pools))))
+    if (cufft_status != CUFFT_SUCCESS) {
+      fprintf(stderr, "[%s] cufft makeplan error: %s", __func__,
+              cufftGetErrorString(cufft_status));
+      ier = FINUFFT_ERR_CUDA_FAILURE;
       goto finalize;
-    if ((ier = checkCudaErrors(cudaMallocWrapper(&d_f, dim * MAX_NQUAD * sizeof(T),
-                                                 stream, d_plan->supports_pools))))
-      goto finalize;
-    if ((ier = checkCudaErrors(
-             cudaMemcpyAsync(d_a, a, dim * MAX_NQUAD * sizeof(cuDoubleComplex),
-                             cudaMemcpyHostToDevice, stream))))
-      goto finalize;
-    if ((ier = checkCudaErrors(cudaMemcpyAsync(d_f, f, dim * MAX_NQUAD * sizeof(T),
-                                               cudaMemcpyHostToDevice, stream))))
-      goto finalize;
-    if (!d_plan->opts.gpu_spreadinterponly) {
+    }
+    cufftSetStream(fftplan, stream);
+
+    d_plan->fftplan = fftplan;
+    {
+      std::complex<double> *a = d_plan->fseries_precomp_a;
+      T *f                    = d_plan->fseries_precomp_f;
+
+      onedim_fseries_kernel_precomp(nf1, f, a, d_plan->spopts);
+      if (dim > 1)
+        onedim_fseries_kernel_precomp(nf2, f + MAX_NQUAD, a + MAX_NQUAD, d_plan->spopts);
+      if (dim > 2)
+        onedim_fseries_kernel_precomp(nf3, f + 2 * MAX_NQUAD, a + 2 * MAX_NQUAD,
+                                      d_plan->spopts);
+
+      if ((ier = checkCudaErrors(
+               cudaMallocWrapper(&d_a, dim * MAX_NQUAD * sizeof(cuDoubleComplex), stream,
+                                 d_plan->supports_pools))))
+        goto finalize;
+      if ((ier = checkCudaErrors(cudaMallocWrapper(&d_f, dim * MAX_NQUAD * sizeof(T),
+                                                   stream, d_plan->supports_pools))))
+        goto finalize;
+      if ((ier = checkCudaErrors(
+               cudaMemcpyAsync(d_a, a, dim * MAX_NQUAD * sizeof(cuDoubleComplex),
+                               cudaMemcpyHostToDevice, stream))))
+        goto finalize;
+      if ((ier = checkCudaErrors(cudaMemcpyAsync(d_f, f, dim * MAX_NQUAD * sizeof(T),
+                                                 cudaMemcpyHostToDevice, stream))))
+        goto finalize;
       if ((ier = cufserieskernelcompute(
                d_plan->dim, nf1, nf2, nf3, d_f, d_a, d_plan->fwkerhalf1,
                d_plan->fwkerhalf2, d_plan->fwkerhalf3, d_plan->spopts.nspread, stream)))
