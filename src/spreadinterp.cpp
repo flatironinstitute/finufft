@@ -2148,8 +2148,9 @@ template int spreadinterpSorted<double>(
 ///////////////////////////////////////////////////////////////////////////
 
 template<typename T>
-int setup_spreader(finufft_spread_opts &opts, T eps, double upsampfac, int kerevalmeth,
-                   int debug, int showwarn, int dim)
+FINUFFT_EXPORT int FINUFFT_CDECL setup_spreader(finufft_spread_opts &opts, T eps,
+                                                double upsampfac, int kerevalmeth,
+                                                int debug, int showwarn, int dim)
 /* Initializes spreader kernel parameters given desired NUFFT tolerance eps,
    upsampling factor (=sigma in paper, or R in Dutt-Rokhlin), ker eval meth
    (either 0:exp(sqrt()), 1: Horner ppval), and some debug-level flags.
@@ -2239,11 +2240,12 @@ int setup_spreader(finufft_spread_opts &opts, T eps, double upsampfac, int kerev
 
   return ier;
 }
-template int setup_spreader<float>(finufft_spread_opts &opts, float eps, double upsampfac,
-                                   int kerevalmeth, int debug, int showwarn, int dim);
-template int setup_spreader<double>(finufft_spread_opts &opts, double eps,
-                                    double upsampfac, int kerevalmeth, int debug,
-                                    int showwarn, int dim);
+template FINUFFT_EXPORT int FINUFFT_CDECL setup_spreader<float>(
+    finufft_spread_opts &opts, float eps, double upsampfac, int kerevalmeth, int debug,
+    int showwarn, int dim);
+template FINUFFT_EXPORT int FINUFFT_CDECL setup_spreader<double>(
+    finufft_spread_opts &opts, double eps, double upsampfac, int kerevalmeth, int debug,
+    int showwarn, int dim);
 
 template<typename T>
 T evaluate_kernel(T x, const finufft_spread_opts &opts)
