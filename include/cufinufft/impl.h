@@ -262,65 +262,65 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
     } break;
     }
 
-    cufftHandle fftplan;
-    cufftResult_t cufft_status;
-    switch (d_plan->dim) {
-    case 1: {
-      int n[]       = {(int)nf1};
-      int inembed[] = {(int)nf1};
-
-      cufft_status = cufftPlanMany(&fftplan, 1, n, inembed, 1, inembed[0], inembed, 1,
-                                   inembed[0], cufft_type<T>(), batchsize);
-    } break;
-    case 2: {
-      int n[]       = {(int)nf2, (int)nf1};
-      int inembed[] = {(int)nf2, (int)nf1};
-
-      cufft_status =
-          cufftPlanMany(&fftplan, 2, n, inembed, 1, inembed[0] * inembed[1], inembed, 1,
-                        inembed[0] * inembed[1], cufft_type<T>(), batchsize);
-    } break;
-    case 3: {
-      int n[]       = {(int)nf3, (int)nf2, (int)nf1};
-      int inembed[] = {(int)nf3, (int)nf2, (int)nf1};
-
-      cufft_status = cufftPlanMany(
-          &fftplan, 3, n, inembed, 1, inembed[0] * inembed[1] * inembed[2], inembed, 1,
-          inembed[0] * inembed[1] * inembed[2], cufft_type<T>(), batchsize);
-    } break;
-    }
-
-    if (cufft_status != CUFFT_SUCCESS) {
-      fprintf(stderr, "[%s] cufft makeplan error: %s", __func__,
-              cufftGetErrorString(cufft_status));
-      ier = FINUFFT_ERR_CUDA_FAILURE;
-      goto finalize;
-    }
-    cufftSetStream(fftplan, stream);
-
-    d_plan->fftplan = fftplan;
-
-    // compute up to 3 * NQUAD precomputed values on CPU
-    T fseries_precomp_phase[3 * MAX_NQUAD];
-    T fseries_precomp_f[3 * MAX_NQUAD];
-    thrust::device_vector<T> d_fseries_precomp_phase(3 * MAX_NQUAD);
-    thrust::device_vector<T> d_fseries_precomp_f(3 * MAX_NQUAD);
-    onedim_fseries_kernel_precomp<T>(d_plan->nf1, fseries_precomp_f,
-                                     fseries_precomp_phase, d_plan->spopts);
-    if (d_plan->dim > 1)
-      onedim_fseries_kernel_precomp<T>(d_plan->nf2, fseries_precomp_f + MAX_NQUAD,
-                                       fseries_precomp_phase + MAX_NQUAD, d_plan->spopts);
-    if (d_plan->dim > 2)
-      onedim_fseries_kernel_precomp<T>(d_plan->nf3, fseries_precomp_f + 2 * MAX_NQUAD,
-                                       fseries_precomp_phase + 2 * MAX_NQUAD,
-                                       d_plan->spopts);
-    // copy the precomputed data to the device using thrust
-    thrust::copy(fseries_precomp_phase, fseries_precomp_phase + 3 * MAX_NQUAD,
-                 d_fseries_precomp_phase.begin());
-    thrust::copy(fseries_precomp_f, fseries_precomp_f + 3 * MAX_NQUAD,
-                 d_fseries_precomp_f.begin());
     if(!d_plan->opts.gpu_spreadinterponly) {
-    // the full fseries is done on the GPU here
+        cufftHandle fftplan;
+        cufftResult_t cufft_status;
+        switch (d_plan->dim) {
+        case 1: {
+          int n[]       = {(int)nf1};
+          int inembed[] = {(int)nf1};
+
+          cufft_status = cufftPlanMany(&fftplan, 1, n, inembed, 1, inembed[0], inembed, 1,
+                                       inembed[0], cufft_type<T>(), batchsize);
+        } break;
+        case 2: {
+          int n[]       = {(int)nf2, (int)nf1};
+          int inembed[] = {(int)nf2, (int)nf1};
+
+          cufft_status =
+              cufftPlanMany(&fftplan, 2, n, inembed, 1, inembed[0] * inembed[1], inembed, 1,
+                            inembed[0] * inembed[1], cufft_type<T>(), batchsize);
+        } break;
+        case 3: {
+          int n[]       = {(int)nf3, (int)nf2, (int)nf1};
+          int inembed[] = {(int)nf3, (int)nf2, (int)nf1};
+
+          cufft_status = cufftPlanMany(
+              &fftplan, 3, n, inembed, 1, inembed[0] * inembed[1] * inembed[2], inembed, 1,
+              inembed[0] * inembed[1] * inembed[2], cufft_type<T>(), batchsize);
+        } break;
+        }
+
+        if (cufft_status != CUFFT_SUCCESS) {
+          fprintf(stderr, "[%s] cufft makeplan error: %s", __func__,
+                  cufftGetErrorString(cufft_status));
+          ier = FINUFFT_ERR_CUDA_FAILURE;
+          goto finalize;
+        }
+        cufftSetStream(fftplan, stream);
+
+        d_plan->fftplan = fftplan;
+
+        // compute up to 3 * NQUAD precomputed values on CPU
+        T fseries_precomp_phase[3 * MAX_NQUAD];
+        T fseries_precomp_f[3 * MAX_NQUAD];
+        thrust::device_vector<T> d_fseries_precomp_phase(3 * MAX_NQUAD);
+        thrust::device_vector<T> d_fseries_precomp_f(3 * MAX_NQUAD);
+        onedim_fseries_kernel_precomp<T>(d_plan->nf1, fseries_precomp_f,
+                                         fseries_precomp_phase, d_plan->spopts);
+        if (d_plan->dim > 1)
+          onedim_fseries_kernel_precomp<T>(d_plan->nf2, fseries_precomp_f + MAX_NQUAD,
+                                           fseries_precomp_phase + MAX_NQUAD, d_plan->spopts);
+        if (d_plan->dim > 2)
+          onedim_fseries_kernel_precomp<T>(d_plan->nf3, fseries_precomp_f + 2 * MAX_NQUAD,
+                                           fseries_precomp_phase + 2 * MAX_NQUAD,
+                                           d_plan->spopts);
+        // copy the precomputed data to the device using thrust
+        thrust::copy(fseries_precomp_phase, fseries_precomp_phase + 3 * MAX_NQUAD,
+                     d_fseries_precomp_phase.begin());
+        thrust::copy(fseries_precomp_f, fseries_precomp_f + 3 * MAX_NQUAD,
+                     d_fseries_precomp_f.begin());
+        // the full fseries is done on the GPU here
         if ((ier = fseries_kernel_compute(
                  d_plan->dim, d_plan->nf1, d_plan->nf2, d_plan->nf3,
                  d_fseries_precomp_f.data().get(), d_fseries_precomp_phase.data().get(),
