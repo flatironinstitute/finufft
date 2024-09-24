@@ -31,22 +31,28 @@ namespace finufft {
 namespace spreadinterp {
 
 // things external (spreadinterp) interface needs...
+template<typename T>
 FINUFFT_EXPORT int FINUFFT_CDECL spreadinterp(
-    UBIGINT N1, UBIGINT N2, UBIGINT N3, FLT *data_uniform, UBIGINT N, FLT *kx, FLT *ky,
-    FLT *kz, FLT *data_nonuniform, const finufft_spread_opts &opts);
+    UBIGINT N1, UBIGINT N2, UBIGINT N3, T *data_uniform, UBIGINT N, T *kx, T *ky, T *kz,
+    T *data_nonuniform, const finufft_spread_opts &opts);
+template<typename T>
 FINUFFT_EXPORT int FINUFFT_CDECL spreadcheck(UBIGINT N1, UBIGINT N2, UBIGINT N3,
-                                             UBIGINT N, FLT *kx, FLT *ky, FLT *kz,
+                                             UBIGINT N, T *kx, T *ky, T *kz,
                                              const finufft_spread_opts &opts);
+template<typename T>
 FINUFFT_EXPORT int FINUFFT_CDECL indexSort(BIGINT *sort_indices, UBIGINT N1, UBIGINT N2,
-                                           UBIGINT N3, UBIGINT N, FLT *kx, FLT *ky,
-                                           FLT *kz, const finufft_spread_opts &opts);
+                                           UBIGINT N3, UBIGINT N, T *kx, T *ky, T *kz,
+                                           const finufft_spread_opts &opts);
+template<typename T>
 FINUFFT_EXPORT int FINUFFT_CDECL spreadinterpSorted(
     const BIGINT *sort_indices, UBIGINT N1, UBIGINT N2, UBIGINT N3,
-    FLT *FINUFFT_RESTRICT data_uniform, UBIGINT N, FLT *FINUFFT_RESTRICT kx,
-    FLT *FINUFFT_RESTRICT ky, FLT *FINUFFT_RESTRICT kz,
-    FLT *FINUFFT_RESTRICT data_nonuniform, const finufft_spread_opts &opts, int did_sort);
-FINUFFT_EXPORT FLT FINUFFT_CDECL evaluate_kernel(FLT x, const finufft_spread_opts &opts);
-FINUFFT_EXPORT int FINUFFT_CDECL setup_spreader(finufft_spread_opts &opts, FLT eps,
+    T *FINUFFT_RESTRICT data_uniform, UBIGINT N, T *FINUFFT_RESTRICT kx,
+    T *FINUFFT_RESTRICT ky, T *FINUFFT_RESTRICT kz, T *FINUFFT_RESTRICT data_nonuniform,
+    const finufft_spread_opts &opts, int did_sort);
+template<typename T>
+FINUFFT_EXPORT T FINUFFT_CDECL evaluate_kernel(T x, const finufft_spread_opts &opts);
+template<typename T>
+FINUFFT_EXPORT int FINUFFT_CDECL setup_spreader(finufft_spread_opts &opts, T eps,
                                                 double upsampfac, int kerevalmeth,
                                                 int debug, int showwarn, int dim);
 
