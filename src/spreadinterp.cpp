@@ -1621,8 +1621,9 @@ static void get_subgrid(BIGINT &offset1, BIGINT &offset2, BIGINT &offset3,
 
 // ==========================================================================
 template<typename T>
-int spreadinterp(UBIGINT N1, UBIGINT N2, UBIGINT N3, T *data_uniform, UBIGINT M, T *kx,
-                 T *ky, T *kz, T *data_nonuniform, const finufft_spread_opts &opts)
+FINUFFT_EXPORT int FINUFFT_CDECL spreadinterp(
+    UBIGINT N1, UBIGINT N2, UBIGINT N3, T *data_uniform, UBIGINT M, T *kx, T *ky, T *kz,
+    T *data_nonuniform, const finufft_spread_opts &opts)
 /* ------------Spreader/interpolator for 1, 2, or 3 dimensions --------------
    If opts.spread_direction=1, evaluate, in the 1D case,
 
@@ -1702,12 +1703,12 @@ int spreadinterp(UBIGINT N1, UBIGINT N2, UBIGINT N3, T *data_uniform, UBIGINT M,
   return 0;
 }
 
-template int spreadinterp(UBIGINT N1, UBIGINT N2, UBIGINT N3, float *data_uniform,
-                          UBIGINT M, float *kx, float *ky, float *kz,
-                          float *data_nonuniform, const finufft_spread_opts &opts);
-template int spreadinterp(UBIGINT N1, UBIGINT N2, UBIGINT N3, double *data_uniform,
-                          UBIGINT M, double *kx, double *ky, double *kz,
-                          double *data_nonuniform, const finufft_spread_opts &opts);
+template FINUFFT_EXPORT int FINUFFT_CDECL spreadinterp<float>(
+    UBIGINT N1, UBIGINT N2, UBIGINT N3, float *data_uniform, UBIGINT M, float *kx,
+    float *ky, float *kz, float *data_nonuniform, const finufft_spread_opts &opts);
+template FINUFFT_EXPORT int FINUFFT_CDECL spreadinterp<double>(
+    UBIGINT N1, UBIGINT N2, UBIGINT N3, double *data_uniform, UBIGINT M, double *kx,
+    double *ky, double *kz, double *data_nonuniform, const finufft_spread_opts &opts);
 
 static constexpr uint8_t ndims_from_Ns(const UBIGINT N1, const UBIGINT N2,
                                        const UBIGINT N3)
@@ -1742,10 +1743,11 @@ int spreadcheck(UBIGINT N1, UBIGINT N2, UBIGINT N3, UBIGINT M, T *kx, T *ky, T *
   }
   return 0;
 }
-template int spreadcheck(UBIGINT N1, UBIGINT N2, UBIGINT N3, UBIGINT M, float *kx,
-                         float *ky, float *kz, const finufft_spread_opts &opts);
-template int spreadcheck(UBIGINT N1, UBIGINT N2, UBIGINT N3, UBIGINT M, double *kx,
-                         double *ky, double *kz, const finufft_spread_opts &opts);
+template int spreadcheck<float>(UBIGINT N1, UBIGINT N2, UBIGINT N3, UBIGINT M, float *kx,
+                                float *ky, float *kz, const finufft_spread_opts &opts);
+template int spreadcheck<double>(UBIGINT N1, UBIGINT N2, UBIGINT N3, UBIGINT M,
+                                 double *kx, double *ky, double *kz,
+                                 const finufft_spread_opts &opts);
 
 template<typename T>
 int indexSort(BIGINT *sort_indices, UBIGINT N1, UBIGINT N2, UBIGINT N3, UBIGINT M, T *kx,
@@ -1824,12 +1826,12 @@ int indexSort(BIGINT *sort_indices, UBIGINT N1, UBIGINT N2, UBIGINT N3, UBIGINT 
   }
   return did_sort;
 }
-template int indexSort(BIGINT *sort_indices, UBIGINT N1, UBIGINT N2, UBIGINT N3,
-                       UBIGINT M, float *kx, float *ky, float *kz,
-                       const finufft_spread_opts &opts);
-template int indexSort(BIGINT *sort_indices, UBIGINT N1, UBIGINT N2, UBIGINT N3,
-                       UBIGINT M, double *kx, double *ky, double *kz,
-                       const finufft_spread_opts &opts);
+template int indexSort<float>(BIGINT *sort_indices, UBIGINT N1, UBIGINT N2, UBIGINT N3,
+                              UBIGINT M, float *kx, float *ky, float *kz,
+                              const finufft_spread_opts &opts);
+template int indexSort<double>(BIGINT *sort_indices, UBIGINT N1, UBIGINT N2, UBIGINT N3,
+                               UBIGINT M, double *kx, double *ky, double *kz,
+                               const finufft_spread_opts &opts);
 
 // --------------------------------------------------------------------------
 template<typename T>
@@ -2130,18 +2132,18 @@ int spreadinterpSorted(const BIGINT *sort_indices, const UBIGINT N1, const UBIGI
 
   return 0;
 }
-template int spreadinterpSorted(const BIGINT *sort_indices, const UBIGINT N1,
+template int spreadinterpSorted(<float> const BIGINT *sort_indices, const UBIGINT N1,
                                 const UBIGINT N2, const UBIGINT N3, float *data_uniform,
                                 const UBIGINT M, float *FINUFFT_RESTRICT kx,
                                 float *FINUFFT_RESTRICT ky, float *FINUFFT_RESTRICT kz,
                                 float *FINUFFT_RESTRICT data_nonuniform,
                                 const finufft_spread_opts &opts, int did_sort);
-template int spreadinterpSorted(const BIGINT *sort_indices, const UBIGINT N1,
-                                const UBIGINT N2, const UBIGINT N3, double *data_uniform,
-                                const UBIGINT M, double *FINUFFT_RESTRICT kx,
-                                double *FINUFFT_RESTRICT ky, double *FINUFFT_RESTRICT kz,
-                                double *FINUFFT_RESTRICT data_nonuniform,
-                                const finufft_spread_opts &opts, int did_sort);
+template int spreadinterpSorted<double>(
+    const BIGINT *sort_indices, const UBIGINT N1, const UBIGINT N2, const UBIGINT N3,
+    double *data_uniform, const UBIGINT M, double *FINUFFT_RESTRICT kx,
+    double *FINUFFT_RESTRICT ky, double *FINUFFT_RESTRICT kz,
+    double *FINUFFT_RESTRICT data_nonuniform, const finufft_spread_opts &opts,
+    int did_sort);
 
 ///////////////////////////////////////////////////////////////////////////
 
@@ -2237,10 +2239,11 @@ int setup_spreader(finufft_spread_opts &opts, T eps, double upsampfac, int kerev
 
   return ier;
 }
-template int setup_spreader(finufft_spread_opts &opts, float eps, double upsampfac,
-                            int kerevalmeth, int debug, int showwarn, int dim);
-template int setup_spreader(finufft_spread_opts &opts, double eps, double upsampfac,
-                            int kerevalmeth, int debug, int showwarn, int dim);
+template int setup_spreader<float>(finufft_spread_opts &opts, float eps, double upsampfac,
+                                   int kerevalmeth, int debug, int showwarn, int dim);
+template int setup_spreader<double>(finufft_spread_opts &opts, double eps,
+                                    double upsampfac, int kerevalmeth, int debug,
+                                    int showwarn, int dim);
 
 template<typename T>
 T evaluate_kernel(T x, const finufft_spread_opts &opts)
@@ -2259,7 +2262,7 @@ T evaluate_kernel(T x, const finufft_spread_opts &opts)
     return exp((T)opts.ES_beta * (sqrt((T)1.0 - (T)opts.ES_c * x * x) - (T)1.0));
 }
 
-template float evaluate_kernel(float x, const finufft_spread_opts &opts);
-template double evaluate_kernel(double x, const finufft_spread_opts &opts);
+template float evaluate_kernel<float>(float x, const finufft_spread_opts &opts);
+template double evaluate_kernel<double>(double x, const finufft_spread_opts &opts);
 
 } // namespace finufft::spreadinterp
