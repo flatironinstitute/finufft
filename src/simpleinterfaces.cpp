@@ -31,12 +31,12 @@ static int invokeGuruInterface(int n_dims, int type, int n_transf, BIGINT nj, FL
 // Helper layer between simple interfaces (with opts) and the guru functions.
 // Author: Andrea Malleo, 2019.
 {
-  FINUFFT_PLAN plan;
+  FINUFFT_PLAN plan = nullptr;
   int ier = FINUFFT_MAKEPLAN(type, n_dims, n_modes.data(), iflag, n_transf, eps, &plan,
                              popts); // popts (ptr to opts) can be NULL
   if (ier > 1) {                     // since 1 (a warning) still allows proceeding...
     fprintf(stderr, "FINUFFT invokeGuru: plan error (ier=%d)!\n", ier);
-    delete plan;
+    FINUFFT_DESTROY(plan);
     return ier;
   }
 

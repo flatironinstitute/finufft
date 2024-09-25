@@ -7,7 +7,6 @@
 #ifndef SPREADINTERP_H
 #define SPREADINTERP_H
 
-#include <finufft/defs.h>
 #include <finufft_spread_opts.h>
 
 /* Bitwise debugging timing flag (TF) defs; see finufft_spread_opts.flags.

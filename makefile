@@ -31,7 +31,7 @@ PYTHON = python3
 #           they allow gcc to vectorize the code more effectively
 CFLAGS := -O3 -funroll-loops -march=native -fcx-limited-range -ffp-contract=fast\
 		  -fno-math-errno -fno-signed-zeros -fno-trapping-math -fassociative-math\
-		  -freciprocal-math -fmerge-all-constants -ftree-vectorize $(CFLAGS)
+		  -freciprocal-math -fmerge-all-constants -ftree-vectorize $(CFLAGS) -Wfatal-errors
 FFLAGS := $(CFLAGS) $(FFLAGS)
 CXXFLAGS := $(CFLAGS) $(CXXFLAGS)
 # FFTW base name, and math linking...
@@ -138,17 +138,17 @@ ABSDYNLIB = $(FINUFFT)$(DYNLIB)
 SOBJS =
 # their single-prec versions
 SOBJSF = $(SOBJS:%.o=%_32.o)
-# precision-dependent spreader object files (compiled & linked only once)...
+# precision-independent spreader object files (compiled & linked only once)...
 SOBJS_PI = src/utils_precindep.o src/spreadinterp.o
 # spreader dual-precision objs
 SOBJSD = $(SOBJS) $(SOBJSF) $(SOBJS_PI)
 
 # double-prec library object files that also need single precision...
-OBJS = $(SOBJS) src/finufft.o src/simpleinterfaces.o fortran/finufftfort.o src/fft.o
+OBJS = $(SOBJS) src/finufft.o src/simpleinterfaces.o fortran/finufftfort.o
 # their single-prec versions
 OBJSF = $(OBJS:%.o=%_32.o)
-# precision-dependent library object files (compiled & linked only once)...
-OBJS_PI = $(SOBJS_PI) contrib/legendre_rule_fast.o
+# precision-independent library object files (compiled & linked only once)...
+OBJS_PI = $(SOBJS_PI) contrib/legendre_rule_fast.o src/fft.o src/finufft_core.o
 # all lib dual-precision objs (note DUCC_OBJS empty if unused)
 OBJSD = $(OBJS) $(OBJSF) $(OBJS_PI) $(DUCC_OBJS)
 
@@ -435,7 +435,7 @@ endif
 
 # python ---------------------------------------------------------------------
 python: $(STATICLIB) $(DYNLIB)
-	FINUFFT_DIR=$(FINUFFT) $(PYTHON) -m pip -v install python/finufft
+	FINUFFT_DIR=$(FINUFFT) $(PYTHON) -m pip -v install --break-system-packages python/finufft
 # note to devs: if trouble w/ NumPy, use: pip install ./python --no-deps
 	$(PYTHON) python/finufft/test/run_accuracy_tests.py
 	$(PYTHON) python/finufft/examples/simple1d1.py

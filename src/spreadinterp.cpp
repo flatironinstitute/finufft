@@ -2162,6 +2162,7 @@ FINUFFT_EXPORT int FINUFFT_CDECL setup_spreader(finufft_spread_opts &opts, T eps
    spreading must not proceed Barnett 2017. debug, loosened eps logic 6/14/20.
 */
 {
+  constexpr T EPSILON = std::numeric_limits<T>::epsilon();
   if (upsampfac != 2.0 && upsampfac != 1.25) { // nonstandard sigma
     if (kerevalmeth == 1) {
       fprintf(stderr,

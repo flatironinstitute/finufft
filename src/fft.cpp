@@ -7,7 +7,7 @@ using namespace std;
 #include "ducc0/fft/fftnd_impl.h"
 #endif
 
-std::vector<int> gridsize_for_fft(FINUFFT_PLAN p) {
+template<typename TF> std::vector<int> gridsize_for_fft(FINUFFT_PLAN_T<TF> *p) {
   // local helper func returns a new int array of length dim, extracted from
   // the finufft plan, that fftw_plan_many_dft needs as its 2nd argument.
   if (p->dim == 1) return {(int)p->nf1};
@@ -15,8 +15,10 @@ std::vector<int> gridsize_for_fft(FINUFFT_PLAN p) {
   // if (p->dim == 3)
   return {(int)p->nf3, (int)p->nf2, (int)p->nf1};
 }
+template std::vector<int> gridsize_for_fft<float>(FINUFFT_PLAN_T<float> *p);
+template std::vector<int> gridsize_for_fft<double>(FINUFFT_PLAN_T<double> *p);
 
-void do_fft(FINUFFT_PLAN p) {
+template<typename TF> void do_fft(FINUFFT_PLAN_T<TF> *p) {
 #ifdef FINUFFT_USE_DUCC0
   size_t nthreads = min<size_t>(MY_OMP_GET_MAX_THREADS(), p->opts.nthreads);
   const auto ns   = gridsize_for_fft(p);
@@ -106,3 +108,5 @@ void do_fft(FINUFFT_PLAN p) {
   p->fftPlan->execute(); // if thisBatchSize<batchSize it wastes some flops
 #endif
 }
+template void do_fft<float>(FINUFFT_PLAN_T<float> *p);
+template void do_fft<double>(FINUFFT_PLAN_T<double> *p);
