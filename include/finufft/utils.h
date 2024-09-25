@@ -5,6 +5,9 @@
 #define UTILS_H
 
 #include "finufft/finufft_core.h"
+//  for CNTime...
+//  using chrono since the interface is portable between linux and windows
+#include <chrono>
 
 namespace finufft {
 namespace utils {
@@ -85,7 +88,33 @@ FINUFFT_EXPORT void FINUFFT_CDECL arraywidcen(BIGINT n, T *a, T *w, T *c)
   }
 }
 
+FINUFFT_EXPORT BIGINT FINUFFT_CDECL next235even(BIGINT n);
+
+// jfm's timer class
+class FINUFFT_EXPORT CNTime {
+public:
+  void start();
+  double restart();
+  double elapsedsec();
+
+private:
+  double initial;
+};
+
+// openmp helpers
+int get_num_threads_parallel_block();
+
 } // namespace utils
 } // namespace finufft
+
+// thread-safe rand number generator for Windows platform
+#ifdef _WIN32
+#include <random>
+namespace finufft {
+namespace utils {
+FINUFFT_EXPORT int FINUFFT_CDECL rand_r(unsigned int *seedp);
+} // namespace utils
+} // namespace finufft
+#endif
 
 #endif // UTILS_H

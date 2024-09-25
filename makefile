@@ -134,7 +134,7 @@ STATICLIB = lib-static/$(LIBNAME).a
 ABSDYNLIB = $(FINUFFT)$(DYNLIB)
 
 # spreader dual-precision objs
-SOBJSD = src/utils_precindep.o src/spreadinterp.o
+SOBJSD = src/utils.o src/spreadinterp.o
 
 # precision-independent library object files (compiled & linked only once)...
 OBJS_PI = $(SOBJSD) contrib/legendre_rule_fast.o src/fft.o src/finufft_core.o src/simpleinterfaces.o fortran/finufftfort.o
@@ -261,10 +261,10 @@ test/%: test/%.cpp $(DYNLIB)
 test/%f: test/%.cpp $(DYNLIB)
 	$(CXX) $(CXXFLAGS) ${LDFLAGS} -DSINGLE $< $(ABSDYNLIB) $(LIBSFFT) -o $@
 # low-level tests that are cleaner if depend on only specific objects...
-test/testutils: test/testutils.cpp src/utils_precindep.o
-	$(CXX) $(CXXFLAGS) ${LDFLAGS} test/testutils.cpp src/utils_precindep.o $(LIBS) -o test/testutils
-test/testutilsf: test/testutils.cpp src/utils_precindep.o
-	$(CXX) $(CXXFLAGS) ${LDFLAGS} -DSINGLE test/testutils.cpp src/utils_precindep.o $(LIBS) -o test/testutilsf
+test/testutils: test/testutils.cpp src/utils.o
+	$(CXX) $(CXXFLAGS) ${LDFLAGS} test/testutils.cpp src/utils.o $(LIBS) -o test/testutils
+test/testutilsf: test/testutils.cpp src/utils.o
+	$(CXX) $(CXXFLAGS) ${LDFLAGS} -DSINGLE test/testutils.cpp src/utils.o $(LIBS) -o test/testutilsf
 
 # make sure all double-prec test executables ready for testing
 TESTS := $(basename $(wildcard test/*.cpp))

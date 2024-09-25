@@ -3,7 +3,6 @@
 #include <finufft/defs.h>
 #include <finufft/spreadinterp.h>
 #include <finufft/utils.h>
-#include <finufft/utils_precindep.h>
 
 #include "ker_horner_allw_loop_constexpr.h"
 #include "ker_lowupsampfac_horner_allw_loop_constexpr.h"

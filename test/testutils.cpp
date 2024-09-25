@@ -1,4 +1,4 @@
-/* unit tests for utils & utils_precindep modules.
+/* unit tests for utils module.
 
    Usage: ./testutils{f}
 
@@ -10,8 +10,8 @@
 
    Suggested compile (double/float versions):
    g++ -std=c++14 -fopenmp testutils.cpp -I../include ../src/utils.o
-   ../src/utils_precindep.o -o testutils -lgomp g++ -std=c++14 -fopenmp testutils.cpp
-   -I../include ../src/utils_32.o ../src/utils_precindep.o -o testutilsf -lgomp -DSINGLE
+   ../src/utils.o -o testutils -lgomp g++ -std=c++14 -fopenmp testutils.cpp
+   -I../include ../src/utils.o -o testutilsf -lgomp -DSINGLE
 */
 
 // This switches FLT macro from double to float if SINGLE is defined, etc...

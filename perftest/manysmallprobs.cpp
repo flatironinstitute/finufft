@@ -3,7 +3,7 @@
 #include "finufft/defs.h"
 
 // private access to timer
-#include "finufft/utils_precindep.h"
+#include "finufft/utils.h"
 using namespace finufft::utils;
 
 #include <complex>

@@ -2,7 +2,6 @@
 #include <finufft/finufft_core.h>
 #include <finufft/spreadinterp.h>
 #include <finufft/utils.h>
-#include <finufft/utils_precindep.h>
 
 #include "../contrib/legendre_rule_fast.h"
 #include <cmath>

@@ -254,7 +254,7 @@ if(FINUFFT_USE_CPU)
     add_library(
       finufft SHARED
       src/spreadinterp.cpp
-      src/utils_precindep.cpp
+      src/utils.cpp
       contrib/legendre_rule_fast.cpp
       src/fft.cpp
       src/finufft_core.cpp
@@ -264,7 +264,7 @@ if(FINUFFT_USE_CPU)
     add_library(
       finufft STATIC
       src/spreadinterp.cpp
-      src/utils_precindep.cpp
+      src/utils.cpp
       contrib/legendre_rule_fast.cpp
       src/fft.cpp
       src/finufft_core.cpp
