@@ -133,24 +133,13 @@ STATICLIB = lib-static/$(LIBNAME).a
 # absolute path to the .so, useful for linking so executables portable...
 ABSDYNLIB = $(FINUFFT)$(DYNLIB)
 
-# spreader is subset of the library with self-contained testing, hence own objs:
-# double-prec spreader object files that also need single precision...
-SOBJS =
-# their single-prec versions
-SOBJSF = $(SOBJS:%.o=%_32.o)
-# precision-independent spreader object files (compiled & linked only once)...
-SOBJS_PI = src/utils_precindep.o src/spreadinterp.o
 # spreader dual-precision objs
-SOBJSD = $(SOBJS) $(SOBJSF) $(SOBJS_PI)
+SOBJSD = src/utils_precindep.o src/spreadinterp.o
 
-# double-prec library object files that also need single precision...
-OBJS = $(SOBJS) src/finufft.o src/simpleinterfaces.o fortran/finufftfort.o
-# their single-prec versions
-OBJSF = $(OBJS:%.o=%_32.o)
 # precision-independent library object files (compiled & linked only once)...
-OBJS_PI = $(SOBJS_PI) contrib/legendre_rule_fast.o src/fft.o src/finufft_core.o
+OBJS_PI = $(SOBJSD) contrib/legendre_rule_fast.o src/fft.o src/finufft_core.o src/simpleinterfaces.o fortran/finufftfort.o
 # all lib dual-precision objs (note DUCC_OBJS empty if unused)
-OBJSD = $(OBJS) $(OBJSF) $(OBJS_PI) $(DUCC_OBJS)
+OBJSD = $(OBJS_PI) $(DUCC_OBJS)
 
 .PHONY: usage lib examples test perftest spreadtest spreadtestall fortran matlab octave all mex python clean objclean pyclean mexclean wheel docker-wheel gurutime docs setup setupclean
 
@@ -190,12 +179,8 @@ HEADERS = $(wildcard include/*.h include/finufft/*.h) $(DUCC_HEADERS)
 # implicit rules for objects (note -o ensures writes to correct dir)
 %.o: %.cpp $(HEADERS)
 	$(CXX) -c $(CXXFLAGS) $< -o $@
-%_32.o: %.cpp $(HEADERS)
-	$(CXX) -DSINGLE -c $(CXXFLAGS) $< -o $@
 %.o: %.c $(HEADERS)
 	$(CC) -c $(CFLAGS) $< -o $@
-%_32.o: %.c $(HEADERS)
-	$(CC) -DSINGLE -c $(CFLAGS) $< -o $@
 %.o: %.f
 	$(FC) -c $(FFLAGS) $< -o $@
 %_32.o: %.f
@@ -324,14 +309,14 @@ ST=perftest/spreadtestnd
 STA=perftest/spreadtestndall
 STF=$(ST)f
 STAF=$(STA)f
-$(ST): $(ST).cpp $(SOBJS) $(SOBJS_PI)
-	$(CXX) $(CXXFLAGS) ${LDFLAGS} $< $(SOBJS) $(SOBJS_PI) $(LIBS) -o $@
-$(STF): $(ST).cpp $(SOBJSF) $(SOBJS_PI)
-	$(CXX) $(CXXFLAGS) ${LDFLAGS} -DSINGLE $< $(SOBJSF) $(SOBJS_PI) $(LIBS) -o $@
-$(STA): $(STA).cpp $(SOBJS) $(SOBJS_PI)
-	$(CXX) $(CXXFLAGS) ${LDFLAGS} $< $(SOBJS) $(SOBJS_PI) $(LIBS) -o $@
-$(STAF): $(STA).cpp $(SOBJSF) $(SOBJS_PI)
-	$(CXX) $(CXXFLAGS) ${LDFLAGS} -DSINGLE $< $(SOBJSF) $(SOBJS_PI) $(LIBS) -o $@
+$(ST): $(ST).cpp $(SOBJSD)
+	$(CXX) $(CXXFLAGS) ${LDFLAGS} $< $(SOBJSD) $(LIBS) -o $@
+$(STF): $(ST).cpp $(SOBJSD)
+	$(CXX) $(CXXFLAGS) ${LDFLAGS} -DSINGLE $< $(SOBJSD) $(LIBS) -o $@
+$(STA): $(STA).cpp $(SOBJSD)
+	$(CXX) $(CXXFLAGS) ${LDFLAGS} $< $(SOBJSD) $(LIBS) -o $@
+$(STAF): $(STA).cpp $(SOBJSD)
+	$(CXX) $(CXXFLAGS) ${LDFLAGS} -DSINGLE $< $(SOBJSD) $(LIBS) -o $@
 spreadtest: $(ST) $(STF)
 # run one thread per core... (escape the $ to get single $ in bash; one big cmd)
 	(export OMP_NUM_THREADS=$$(perftest/mynumcores.sh) ;\
