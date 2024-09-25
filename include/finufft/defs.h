@@ -279,7 +279,7 @@ struct FINUFFT_PLAN_S { // the main plan object, fully C++
   type3params<FLT> t3P;     // groups together type 3 shift, scale, phase, parameters
   FINUFFT_PLAN innerT2plan; // ptr used for type 2 in step 2 of type 3
 
-  // other internal structs; each is C-compatible of course
+  // other internal structs
   std::unique_ptr<Finufft_FFT_plan<FLT>> fftPlan;
   finufft_opts opts; // this and spopts could be made ptrs
   finufft_spread_opts spopts;
