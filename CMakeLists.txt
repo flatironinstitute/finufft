@@ -121,8 +121,7 @@ endif()
 
 # This set of sources is compiled twice, once in single precision and once in
 # double precision The single precision compilation is done with -DSINGLE
-set(FINUFFT_PRECISION_DEPENDENT_SOURCES src/finufft.cpp
-                                        src/simpleinterfaces.cpp)
+set(FINUFFT_PRECISION_DEPENDENT_SOURCES)
 
 # If we're building for Fortran, make sure we also include the translation
 # layer.
@@ -261,12 +260,14 @@ if(FINUFFT_USE_CPU)
     add_library(
       finufft SHARED
       src/spreadinterp.cpp src/utils_precindep.cpp
-      contrib/legendre_rule_fast.cpp src/fft.cpp src/finufft_core.cpp)
+      contrib/legendre_rule_fast.cpp src/fft.cpp src/finufft_core.cp
+      src/simpleinterfaces.cpp)
   else()
     add_library(
       finufft STATIC
       src/spreadinterp.cpp src/utils_precindep.cpp
-      contrib/legendre_rule_fast.cpp src/fft.cpp src/finufft_core.cpp)
+      contrib/legendre_rule_fast.cpp src/fft.cpp src/finufft_core.cpp
+      src/simpleinterfaces.cpp)
   endif()
   target_link_libraries(finufft PRIVATE finufft_f32 finufft_f64)
   set_finufft_options(finufft)

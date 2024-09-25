@@ -5,7 +5,6 @@
 
 #include <cstdint>
 
-#include "finufft/defs.h"
 #include "finufft/utils_precindep.h"
 using namespace std;
 

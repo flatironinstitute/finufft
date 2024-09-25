@@ -1,5 +1,6 @@
 // public header
 #include "finufft.h"
+#include "finufft/defs.h"
 
 // private access to timer
 #include "finufft/utils_precindep.h"
