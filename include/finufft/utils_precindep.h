@@ -4,7 +4,7 @@
 #ifndef UTILS_PRECINDEP_H
 #define UTILS_PRECINDEP_H
 
-// #include "defs.h"
+#include "finufft/finufft_core.h"
 //  for CNTime...
 //  using chrono since the interface is portable between linux and windows
 #include <chrono>

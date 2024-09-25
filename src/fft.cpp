@@ -34,9 +34,9 @@ template<typename TF> void do_fft(FINUFFT_PLAN_T<TF> *p) {
     arrdims.push_back(size_t(ns[2]));
     axes.push_back(3);
   }
-  ducc0::vfmav<CPX> data(p->fwBatch, arrdims);
+  ducc0::vfmav<std::complex<TF>> data(p->fwBatch, arrdims);
 #ifdef FINUFFT_NO_DUCC0_TWEAKS
-  ducc0::c2c(data, data, axes, p->fftSign < 0, FLT(1), nthreads);
+  ducc0::c2c(data, data, axes, p->fftSign < 0, TF(1), nthreads);
 #else
   /* For type 1 NUFFTs, only the low-frequency parts of the output fine grid are
      going to be used, and for type 2 NUFFTs, the high frequency parts of the
@@ -47,10 +47,10 @@ template<typename TF> void do_fft(FINUFFT_PLAN_T<TF> *p) {
      of all 1D FFTs, and for the last remaining axis the factor is
      1/oversampling_factor^2. */
   if (p->dim == 1)        // 1D: no chance for FFT shortcuts
-    ducc0::c2c(data, data, axes, p->fftSign < 0, FLT(1), nthreads);
+    ducc0::c2c(data, data, axes, p->fftSign < 0, TF(1), nthreads);
   else if (p->dim == 2) { // 2D: do partial FFTs
     if (p->ms < 2)        // something is weird, do standard FFT
-      ducc0::c2c(data, data, axes, p->fftSign < 0, FLT(1), nthreads);
+      ducc0::c2c(data, data, axes, p->fftSign < 0, TF(1), nthreads);
     else {
       size_t y_lo = size_t((p->ms + 1) / 2);
       size_t y_hi = size_t(ns[1] - p->ms / 2);
@@ -60,17 +60,17 @@ template<typename TF> void do_fft(FINUFFT_PLAN_T<TF> *p) {
       auto sub2 = ducc0::subarray(data, {{}, {}, {y_hi, ducc0::MAXIDX}});
       if (p->type == 1) // spreading, not all parts of the output array are needed
         // do axis 2 in full
-        ducc0::c2c(data, data, {2}, p->fftSign < 0, FLT(1), nthreads);
+        ducc0::c2c(data, data, {2}, p->fftSign < 0, TF(1), nthreads);
       // do only parts of axis 1
-      ducc0::c2c(sub1, sub1, {1}, p->fftSign < 0, FLT(1), nthreads);
-      ducc0::c2c(sub2, sub2, {1}, p->fftSign < 0, FLT(1), nthreads);
+      ducc0::c2c(sub1, sub1, {1}, p->fftSign < 0, TF(1), nthreads);
+      ducc0::c2c(sub2, sub2, {1}, p->fftSign < 0, TF(1), nthreads);
       if (p->type == 2) // interpolation, parts of the input array are zero
         // do axis 2 in full
-        ducc0::c2c(data, data, {2}, p->fftSign < 0, FLT(1), nthreads);
+        ducc0::c2c(data, data, {2}, p->fftSign < 0, TF(1), nthreads);
     }
   } else {                          // 3D
     if ((p->ms < 2) || (p->mt < 2)) // something is weird, do standard FFT
-      ducc0::c2c(data, data, axes, p->fftSign < 0, FLT(1), nthreads);
+      ducc0::c2c(data, data, axes, p->fftSign < 0, TF(1), nthreads);
     else {
       size_t z_lo = size_t((p->ms + 1) / 2);
       size_t z_hi = size_t(ns[2] - p->ms / 2);
@@ -84,22 +84,22 @@ template<typename TF> void do_fft(FINUFFT_PLAN_T<TF> *p) {
       auto sub6   = ducc0::subarray(sub2, {{}, {}, {y_hi, ducc0::MAXIDX}, {}});
       if (p->type == 1) { // spreading, not all parts of the output array are needed
         // do axis 3 in full
-        ducc0::c2c(data, data, {3}, p->fftSign < 0, FLT(1), nthreads);
+        ducc0::c2c(data, data, {3}, p->fftSign < 0, TF(1), nthreads);
         // do only parts of axis 2
-        ducc0::c2c(sub1, sub1, {2}, p->fftSign < 0, FLT(1), nthreads);
-        ducc0::c2c(sub2, sub2, {2}, p->fftSign < 0, FLT(1), nthreads);
+        ducc0::c2c(sub1, sub1, {2}, p->fftSign < 0, TF(1), nthreads);
+        ducc0::c2c(sub2, sub2, {2}, p->fftSign < 0, TF(1), nthreads);
       }
       // do even smaller parts of axis 1
-      ducc0::c2c(sub3, sub3, {1}, p->fftSign < 0, FLT(1), nthreads);
-      ducc0::c2c(sub4, sub4, {1}, p->fftSign < 0, FLT(1), nthreads);
-      ducc0::c2c(sub5, sub5, {1}, p->fftSign < 0, FLT(1), nthreads);
-      ducc0::c2c(sub6, sub6, {1}, p->fftSign < 0, FLT(1), nthreads);
+      ducc0::c2c(sub3, sub3, {1}, p->fftSign < 0, TF(1), nthreads);
+      ducc0::c2c(sub4, sub4, {1}, p->fftSign < 0, TF(1), nthreads);
+      ducc0::c2c(sub5, sub5, {1}, p->fftSign < 0, TF(1), nthreads);
+      ducc0::c2c(sub6, sub6, {1}, p->fftSign < 0, TF(1), nthreads);
       if (p->type == 2) { // interpolation, parts of the input array are zero
         // do only parts of axis 2
-        ducc0::c2c(sub1, sub1, {2}, p->fftSign < 0, FLT(1), nthreads);
-        ducc0::c2c(sub2, sub2, {2}, p->fftSign < 0, FLT(1), nthreads);
+        ducc0::c2c(sub1, sub1, {2}, p->fftSign < 0, TF(1), nthreads);
+        ducc0::c2c(sub2, sub2, {2}, p->fftSign < 0, TF(1), nthreads);
         // do axis 3 in full
-        ducc0::c2c(data, data, {3}, p->fftSign < 0, FLT(1), nthreads);
+        ducc0::c2c(data, data, {3}, p->fftSign < 0, TF(1), nthreads);
       }
     }
   }
