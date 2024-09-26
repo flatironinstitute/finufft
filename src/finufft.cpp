@@ -26,10 +26,10 @@ int FINUFFT_EXECUTE(FINUFFT_PLAN p, CPX *cj, CPX *fk) {
 int FINUFFT_DESTROY(FINUFFT_PLAN p)
 // Free everything we allocated inside of finufft_plan pointed to by p.
 // Also must not crash if called immediately after finufft_makeplan.
-// Thus either each thing free'd here is guaranteed to be NULL or correctly
+// Thus either each thing free'd here is guaranteed to be nullptr or correctly
 // allocated.
 {
-  if (!p) // NULL ptr, so not a ptr to a plan, report error
+  if (!p) // nullptr, so not a ptr to a plan, report error
     return 1;
 
   delete reinterpret_cast<FINUFFT_PLAN_T<FLT> *>(p);

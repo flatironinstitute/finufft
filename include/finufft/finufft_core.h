@@ -184,11 +184,11 @@ template<typename TF> struct FINUFFT_PLAN_T { // the main plan object, fully C++
   TF *S = nullptr, *T = nullptr, *U = nullptr; // pointers to user's target NU pts arrays
                                                // (no new allocs)
   std::vector<TC> prephase;                    // pre-phase, for all input NU pts
-  std::vector<TC> deconv;  // reciprocal of kernel FT, phase, all output NU pts
-  std::vector<TC> CpBatch; // working array of prephased strengths
-  TF *Sp = nullptr, *Tp = nullptr, *Up = nullptr; // internal primed targs (s'_k, etc),
-                                                  // allocated
-  type3params<TF> t3P; // groups together type 3 shift, scale, phase, parameters
+  std::vector<TC> deconv;     // reciprocal of kernel FT, phase, all output NU pts
+  std::vector<TC> CpBatch;    // working array of prephased strengths
+  std::vector<TF> Sp, Tp, Up; // internal primed targs (s'_k, etc),
+                              // allocated
+  type3params<TF> t3P;        // groups together type 3 shift, scale, phase, parameters
   FINUFFT_PLAN_T<TF> *innerT2plan = nullptr; // ptr used for type 2 in step 2 of type 3
 
   // other internal structs

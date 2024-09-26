@@ -232,7 +232,7 @@ static void onedim_fseries_kernel(BIGINT nf, std::vector<T> &fwkerhalf,
 }
 
 template<typename T>
-static void onedim_nuft_kernel(BIGINT nk, T *k, std::vector<T> &phihat,
+static void onedim_nuft_kernel(BIGINT nk, const std::vector<T> &k, std::vector<T> &phihat,
                                finufft_spread_opts opts)
 /*
   Approximates exact 1D Fourier transform of cnufftspread's real symmetric
@@ -543,7 +543,7 @@ template<typename TF>
 int finufft_makeplan_t(int type, int dim, const BIGINT *n_modes, int iflag, int ntrans,
                        TF tol, FINUFFT_PLAN_T<TF> **pp, finufft_opts *opts)
 // Populates the fields of finufft_plan which is pointed to by "pp".
-// opts is ptr to a finufft_opts to set options, or NULL to use defaults.
+// opts is ptr to a finufft_opts to set options, or nullptr to use defaults.
 // For some of the fields (if "auto" selected) here choose the actual setting.
 // For types 1,2 allocates memory for internal working arrays,
 // evaluates spreading kernel coefficients, and instantiates the fftw_plan
@@ -552,7 +552,7 @@ int finufft_makeplan_t(int type, int dim, const BIGINT *n_modes, int iflag, int 
   p   = new FINUFFT_PLAN_T<TF>; // allocate fresh plan struct
   *pp = p;                      // pass out plan as ptr to plan struct
 
-  if (opts == NULL)             // use default opts
+  if (!opts)                    // use default opts
     finufft_default_opts_t(&(p->opts));
   else                          // or read from what's passed in
     p->opts = *opts;            // keep a deep copy; changing *opts now has no effect
@@ -654,9 +654,9 @@ int finufft_makeplan_t(int type, int dim, const BIGINT *n_modes, int iflag, int 
     return ier;
 
   // set others as defaults (or unallocated for arrays)...
-  p->X   = NULL;
-  p->Y   = NULL;
-  p->Z   = NULL;
+  p->X   = nullptr;
+  p->Y   = nullptr;
+  p->Z   = nullptr;
   p->nf1 = 1;
   p->nf2 = 1;
   p->nf3 = 1; // crucial to leave as 1 for unused dims
@@ -752,11 +752,8 @@ int finufft_makeplan_t(int type, int dim, const BIGINT *n_modes, int iflag, int 
 
     if (p->opts.debug) printf("[%s] %dd%d: ntrans=%d\n", __func__, dim, type, ntrans);
     // in case destroy occurs before setpts, need safe dummy ptrs/plans...
-    p->fwBatch     = NULL;
-    p->Sp          = NULL;
-    p->Tp          = NULL;
-    p->Up          = NULL;
-    p->innerT2plan = NULL;
+    p->fwBatch     = nullptr;
+    p->innerT2plan = nullptr;
     // Type 3 will call finufft_makeplan for type 2; no need to init FFTW
     // Note we don't even know nj or nk yet, so can't do anything else!
   }
@@ -884,20 +881,17 @@ int finufft_setpts_t(FINUFFT_PLAN_T<TF> *p, BIGINT nj, TF *xj, TF *yj, TF *zj, B
     // alloc rescaled NU src pts x'_j (in X etc), rescaled NU targ pts s'_k ...
     // FIXME: should use realloc
     if (p->X) free(p->X);
-    if (p->Sp) free(p->Sp);
-    p->X  = (TF *)malloc(sizeof(TF) * nj);
-    p->Sp = (TF *)malloc(sizeof(TF) * nk);
+    p->X = (TF *)malloc(sizeof(TF) * nj);
+    p->Sp.resize(nk);
     if (d > 1) {
       if (p->Y) free(p->Y);
-      if (p->Tp) free(p->Tp);
-      p->Y  = (TF *)malloc(sizeof(TF) * nj);
-      p->Tp = (TF *)malloc(sizeof(TF) * nk);
+      p->Y = (TF *)malloc(sizeof(TF) * nj);
+      p->Tp.resize(nk);
     }
     if (d > 2) {
       if (p->Z) free(p->Z);
-      if (p->Up) free(p->Up);
-      p->Z  = (TF *)malloc(sizeof(TF) * nj);
-      p->Up = (TF *)malloc(sizeof(TF) * nk);
+      p->Z = (TF *)malloc(sizeof(TF) * nj);
+      p->Up.resize(nk);
     }
 
     // always shift as use gam to rescale x_j to x'_j, etc (twist iii)...
@@ -1005,8 +999,9 @@ int finufft_setpts_t(FINUFFT_PLAN_T<TF> *p, BIGINT nj, TF *xj, TF *yj, TF *zj, B
               __func__, ier);
       return ier;
     }
-    ier = finufft_setpts_t<TF>(p->innerT2plan, nk, p->Sp, p->Tp, p->Up, 0, NULL, NULL,
-                               NULL); // note nk = # output points (not nj)
+    ier = finufft_setpts_t<TF>(p->innerT2plan, nk, p->Sp.data(), p->Tp.data(),
+                               p->Up.data(), 0, nullptr, nullptr,
+                               nullptr); // note nk = # output points (not nj)
     if (ier > 1) {
       fprintf(stderr, "[%s t3]: inner type 2 setpts failed, ier=%d!\n", __func__, ier);
       return ier;
@@ -1177,16 +1172,13 @@ template int finufft_execute_t<double>(
 template<typename TF> FINUFFT_PLAN_T<TF>::~FINUFFT_PLAN_T() {
   // Free everything we allocated inside of finufft_plan pointed to by p.
   // Also must not crash if called immediately after finufft_makeplan.
-  // Thus either each thing free'd here is guaranteed to be NULL or correctly
+  // Thus either each thing free'd here is guaranteed to be nullptr or correctly
   // allocated.
   if (fftPlan) fftPlan->free(fwBatch); // free the big FFTW (or t3 spread) working array
   if (type == 1 || type == 2) {
   } else {                             // free the stuff alloc for type 3 only
     delete innerT2plan;
-    innerT2plan = nullptr;             // if NULL, ignore its error code
-    free(Sp);
-    free(Tp);
-    free(Up);
+    innerT2plan = nullptr;
     free(X);
     free(Y);
     free(Z);
