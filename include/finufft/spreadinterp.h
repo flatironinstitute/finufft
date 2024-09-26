@@ -39,14 +39,14 @@ FINUFFT_EXPORT int FINUFFT_CDECL spreadcheck(UBIGINT N1, UBIGINT N2, UBIGINT N3,
                                              UBIGINT N, T *kx, T *ky, T *kz,
                                              const finufft_spread_opts &opts);
 template<typename T>
-FINUFFT_EXPORT int FINUFFT_CDECL indexSort(BIGINT *sort_indices, UBIGINT N1, UBIGINT N2,
-                                           UBIGINT N3, UBIGINT N, T *kx, T *ky, T *kz,
-                                           const finufft_spread_opts &opts);
+FINUFFT_EXPORT int FINUFFT_CDECL indexSort(std::vector<BIGINT> &sort_indices, UBIGINT N1,
+                                           UBIGINT N2, UBIGINT N3, UBIGINT N, T *kx,
+                                           T *ky, T *kz, const finufft_spread_opts &opts);
 template<typename T>
 FINUFFT_EXPORT int FINUFFT_CDECL spreadinterpSorted(
-    const BIGINT *sort_indices, const UBIGINT N1, const UBIGINT N2, const UBIGINT N3,
-    T *data_uniform, const UBIGINT M, T *FINUFFT_RESTRICT kx, T *FINUFFT_RESTRICT ky,
-    T *FINUFFT_RESTRICT kz, T *FINUFFT_RESTRICT data_nonuniform,
+    const std::vector<BIGINT> &sort_indices, const UBIGINT N1, const UBIGINT N2,
+    const UBIGINT N3, T *data_uniform, const UBIGINT M, T *FINUFFT_RESTRICT kx,
+    T *FINUFFT_RESTRICT ky, T *FINUFFT_RESTRICT kz, T *FINUFFT_RESTRICT data_nonuniform,
     const finufft_spread_opts &opts, int did_sort);
 template<typename T>
 FINUFFT_EXPORT T FINUFFT_CDECL evaluate_kernel(T x, const finufft_spread_opts &opts);

@@ -1401,9 +1401,10 @@ static void add_wrapped_subgrid(BIGINT offset1, BIGINT offset2, BIGINT offset3,
 }
 
 template<typename T>
-static void bin_sort_singlethread(
-    BIGINT *ret, UBIGINT M, const T *kx, const T *ky, const T *kz, UBIGINT N1, UBIGINT N2,
-    UBIGINT N3, double bin_size_x, double bin_size_y, double bin_size_z, int debug)
+static void bin_sort_singlethread(std::vector<BIGINT> &ret, UBIGINT M, const T *kx,
+                                  const T *ky, const T *kz, UBIGINT N1, UBIGINT N2,
+                                  UBIGINT N3, double bin_size_x, double bin_size_y,
+                                  double bin_size_z, int debug)
 /* Returns permutation of all nonuniform points with good RAM access,
  * ie less cache misses for spreading, in 1D, 2D, or 3D. Single-threaded version
  *
@@ -1475,9 +1476,10 @@ static void bin_sort_singlethread(
 }
 
 template<typename T>
-static void bin_sort_multithread(
-    BIGINT *ret, UBIGINT M, T *kx, T *ky, T *kz, UBIGINT N1, UBIGINT N2, UBIGINT N3,
-    double bin_size_x, double bin_size_y, double bin_size_z, int debug, int nthr)
+static void bin_sort_multithread(std::vector<BIGINT> &ret, UBIGINT M, T *kx, T *ky, T *kz,
+                                 UBIGINT N1, UBIGINT N2, UBIGINT N3, double bin_size_x,
+                                 double bin_size_y, double bin_size_z, int debug,
+                                 int nthr)
 /* Mostly-OpenMP'ed version of bin_sort.
    For documentation see: bin_sort_singlethread.
    Caution: when M (# NU pts) << N (# U pts), is SLOWER than single-thread.
@@ -1690,15 +1692,10 @@ FINUFFT_EXPORT int FINUFFT_CDECL spreadinterp(
 {
   int ier = spreadcheck(N1, N2, N3, M, kx, ky, kz, opts);
   if (ier) return ier;
-  BIGINT *sort_indices = (BIGINT *)malloc(sizeof(BIGINT) * M);
-  if (!sort_indices) {
-    fprintf(stderr, "%s failed to allocate sort_indices!\n", __func__);
-    return FINUFFT_ERR_SPREAD_ALLOC;
-  }
+  std::vector<BIGINT> sort_indices(M);
   int did_sort = indexSort(sort_indices, N1, N2, N3, M, kx, ky, kz, opts);
   spreadinterpSorted<T>(sort_indices, N1, N2, N3, data_uniform, M, kx, ky, kz,
                         data_nonuniform, opts, did_sort);
-  free(sort_indices);
   return 0;
 }
 
@@ -1749,8 +1746,8 @@ template int spreadcheck<double>(UBIGINT N1, UBIGINT N2, UBIGINT N3, UBIGINT M,
                                  const finufft_spread_opts &opts);
 
 template<typename T>
-int indexSort(BIGINT *sort_indices, UBIGINT N1, UBIGINT N2, UBIGINT N3, UBIGINT M, T *kx,
-              T *ky, T *kz, const finufft_spread_opts &opts)
+int indexSort(std::vector<BIGINT> &sort_indices, UBIGINT N1, UBIGINT N2, UBIGINT N3,
+              UBIGINT M, T *kx, T *ky, T *kz, const finufft_spread_opts &opts)
 /* This makes a decision whether or not to sort the NU pts (influenced by
    opts.sort), and if yes, calls either single- or multi-threaded bin sort,
    writing reordered index list to sort_indices. If decided not to sort, the
@@ -1825,17 +1822,17 @@ int indexSort(BIGINT *sort_indices, UBIGINT N1, UBIGINT N2, UBIGINT N3, UBIGINT 
   }
   return did_sort;
 }
-template int indexSort<float>(BIGINT *sort_indices, UBIGINT N1, UBIGINT N2, UBIGINT N3,
-                              UBIGINT M, float *kx, float *ky, float *kz,
+template int indexSort<float>(std::vector<BIGINT> &sort_indices, UBIGINT N1, UBIGINT N2,
+                              UBIGINT N3, UBIGINT M, float *kx, float *ky, float *kz,
                               const finufft_spread_opts &opts);
-template int indexSort<double>(BIGINT *sort_indices, UBIGINT N1, UBIGINT N2, UBIGINT N3,
-                               UBIGINT M, double *kx, double *ky, double *kz,
+template int indexSort<double>(std::vector<BIGINT> &sort_indices, UBIGINT N1, UBIGINT N2,
+                               UBIGINT N3, UBIGINT M, double *kx, double *ky, double *kz,
                                const finufft_spread_opts &opts);
 
 // --------------------------------------------------------------------------
 template<typename T>
-static int spreadSorted(const BIGINT *sort_indices, UBIGINT N1, UBIGINT N2, UBIGINT N3,
-                        T *FINUFFT_RESTRICT data_uniform, UBIGINT M,
+static int spreadSorted(const std::vector<BIGINT> &sort_indices, UBIGINT N1, UBIGINT N2,
+                        UBIGINT N3, T *FINUFFT_RESTRICT data_uniform, UBIGINT M,
                         T *FINUFFT_RESTRICT kx, T *FINUFFT_RESTRICT ky,
                         T *FINUFFT_RESTRICT kz, const T *data_nonuniform,
                         const finufft_spread_opts &opts, int did_sort)
@@ -1961,8 +1958,8 @@ static int spreadSorted(const BIGINT *sort_indices, UBIGINT N1, UBIGINT N2, UBIG
 // --------------------------------------------------------------------------
 template<typename T, uint16_t ns, uint16_t kerevalmeth>
 FINUFFT_NEVER_INLINE static int interpSorted_kernel(
-    const BIGINT *sort_indices, const UBIGINT N1, const UBIGINT N2, const UBIGINT N3,
-    const T *data_uniform, const UBIGINT M, T *FINUFFT_RESTRICT kx,
+    const std::vector<BIGINT> &sort_indices, const UBIGINT N1, const UBIGINT N2,
+    const UBIGINT N3, const T *data_uniform, const UBIGINT M, T *FINUFFT_RESTRICT kx,
     T *FINUFFT_RESTRICT ky, T *FINUFFT_RESTRICT kz, T *FINUFFT_RESTRICT data_nonuniform,
     const finufft_spread_opts &opts)
 // Interpolate to NU pts in sorted order from a uniform grid.
@@ -2069,10 +2066,10 @@ FINUFFT_NEVER_INLINE static int interpSorted_kernel(
 
 template<typename T, uint16_t NS>
 static int interpSorted_dispatch(
-    const BIGINT *sort_indices, const UBIGINT N1, const UBIGINT N2, const UBIGINT N3,
-    T *FINUFFT_RESTRICT data_uniform, const UBIGINT M, T *FINUFFT_RESTRICT kx,
-    T *FINUFFT_RESTRICT ky, T *FINUFFT_RESTRICT kz, T *FINUFFT_RESTRICT data_nonuniform,
-    const finufft_spread_opts &opts) {
+    const std::vector<BIGINT> &sort_indices, const UBIGINT N1, const UBIGINT N2,
+    const UBIGINT N3, T *FINUFFT_RESTRICT data_uniform, const UBIGINT M,
+    T *FINUFFT_RESTRICT kx, T *FINUFFT_RESTRICT ky, T *FINUFFT_RESTRICT kz,
+    T *FINUFFT_RESTRICT data_nonuniform, const finufft_spread_opts &opts) {
   static_assert(MIN_NSPREAD <= NS && NS <= MAX_NSPREAD,
                 "NS must be in the range (MIN_NSPREAD, MAX_NSPREAD)");
   if constexpr (NS == MIN_NSPREAD) { // Base case
@@ -2100,19 +2097,19 @@ static int interpSorted_dispatch(
 }
 
 template<typename T>
-static int interpSorted(const BIGINT *sort_indices, const UBIGINT N1, const UBIGINT N2,
-                        const UBIGINT N3, T *FINUFFT_RESTRICT data_uniform,
-                        const UBIGINT M, T *FINUFFT_RESTRICT kx, T *FINUFFT_RESTRICT ky,
-                        T *FINUFFT_RESTRICT kz, T *FINUFFT_RESTRICT data_nonuniform,
-                        const finufft_spread_opts &opts) {
+static int interpSorted(
+    const std::vector<BIGINT> &sort_indices, const UBIGINT N1, const UBIGINT N2,
+    const UBIGINT N3, T *FINUFFT_RESTRICT data_uniform, const UBIGINT M,
+    T *FINUFFT_RESTRICT kx, T *FINUFFT_RESTRICT ky, T *FINUFFT_RESTRICT kz,
+    T *FINUFFT_RESTRICT data_nonuniform, const finufft_spread_opts &opts) {
   return interpSorted_dispatch<T, MAX_NSPREAD>(sort_indices, N1, N2, N3, data_uniform, M,
                                                kx, ky, kz, data_nonuniform, opts);
 }
 
 template<typename T>
-int spreadinterpSorted(const BIGINT *sort_indices, const UBIGINT N1, const UBIGINT N2,
-                       const UBIGINT N3, T *data_uniform, const UBIGINT M,
-                       T *FINUFFT_RESTRICT kx, T *FINUFFT_RESTRICT ky,
+int spreadinterpSorted(const std::vector<BIGINT> &sort_indices, const UBIGINT N1,
+                       const UBIGINT N2, const UBIGINT N3, T *data_uniform,
+                       const UBIGINT M, T *FINUFFT_RESTRICT kx, T *FINUFFT_RESTRICT ky,
                        T *FINUFFT_RESTRICT kz, T *FINUFFT_RESTRICT data_nonuniform,
                        const finufft_spread_opts &opts, int did_sort)
 /* Logic to select the main spreading (dir=1) vs interpolation (dir=2) routine.
@@ -2132,14 +2129,14 @@ int spreadinterpSorted(const BIGINT *sort_indices, const UBIGINT N1, const UBIGI
   return 0;
 }
 template int spreadinterpSorted<float>(
-    const BIGINT *sort_indices, const UBIGINT N1, const UBIGINT N2, const UBIGINT N3,
-    float *data_uniform, const UBIGINT M, float *FINUFFT_RESTRICT kx,
+    const std::vector<BIGINT> &sort_indices, const UBIGINT N1, const UBIGINT N2,
+    const UBIGINT N3, float *data_uniform, const UBIGINT M, float *FINUFFT_RESTRICT kx,
     float *FINUFFT_RESTRICT ky, float *FINUFFT_RESTRICT kz,
     float *FINUFFT_RESTRICT data_nonuniform, const finufft_spread_opts &opts,
     int did_sort);
 template int spreadinterpSorted<double>(
-    const BIGINT *sort_indices, const UBIGINT N1, const UBIGINT N2, const UBIGINT N3,
-    double *data_uniform, const UBIGINT M, double *FINUFFT_RESTRICT kx,
+    const std::vector<BIGINT> &sort_indices, const UBIGINT N1, const UBIGINT N2,
+    const UBIGINT N3, double *data_uniform, const UBIGINT M, double *FINUFFT_RESTRICT kx,
     double *FINUFFT_RESTRICT ky, double *FINUFFT_RESTRICT kz,
     double *FINUFFT_RESTRICT data_nonuniform, const finufft_spread_opts &opts,
     int did_sort);

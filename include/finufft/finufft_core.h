@@ -145,36 +145,36 @@ template<typename TF> struct FINUFFT_PLAN_T { // the main plan object, fully C++
   FINUFFT_PLAN_T &operator=(const FINUFFT_PLAN_T &) = delete;
   ~FINUFFT_PLAN_T();
 
-  int type;              // transform type (Rokhlin naming): 1,2 or 3
-  int dim;               // overall dimension: 1,2 or 3
-  int ntrans;            // how many transforms to do at once (vector or "many" mode)
-  BIGINT nj;             // num of NU pts in type 1,2 (for type 3, num input x pts)
-  BIGINT nk;             // number of NU freq pts (type 3 only)
-  TF tol;                // relative user tolerance
-  int batchSize;         // # strength vectors to group together for FFTW, etc
-  int nbatch;            // how many batches done to cover all ntrans vectors
+  int type;                // transform type (Rokhlin naming): 1,2 or 3
+  int dim;                 // overall dimension: 1,2 or 3
+  int ntrans;              // how many transforms to do at once (vector or "many" mode)
+  BIGINT nj;               // num of NU pts in type 1,2 (for type 3, num input x pts)
+  BIGINT nk;               // number of NU freq pts (type 3 only)
+  TF tol;                  // relative user tolerance
+  int batchSize;           // # strength vectors to group together for FFTW, etc
+  int nbatch;              // how many batches done to cover all ntrans vectors
 
-  BIGINT ms;             // number of modes in x (1) dir (historical CMCL name) = N1
-  BIGINT mt;             // number of modes in y (2) direction = N2
-  BIGINT mu;             // number of modes in z (3) direction = N3
-  BIGINT N;              // total # modes (prod of above three)
+  BIGINT ms;               // number of modes in x (1) dir (historical CMCL name) = N1
+  BIGINT mt;               // number of modes in y (2) direction = N2
+  BIGINT mu;               // number of modes in z (3) direction = N3
+  BIGINT N;                // total # modes (prod of above three)
 
-  BIGINT nf1;            // size of internal fine grid in x (1) direction
-  BIGINT nf2;            // " y (2)
-  BIGINT nf3;            // " z (3)
-  BIGINT nf;             // total # fine grid points (product of the above three)
+  BIGINT nf1;              // size of internal fine grid in x (1) direction
+  BIGINT nf2;              // " y (2)
+  BIGINT nf3;              // " z (3)
+  BIGINT nf;               // total # fine grid points (product of the above three)
 
-  int fftSign;           // sign in exponential for NUFFT defn, guaranteed to be +-1
+  int fftSign;             // sign in exponential for NUFFT defn, guaranteed to be +-1
 
-  TF *phiHat1 = nullptr; // FT of kernel in t1,2, on x-axis mode grid
-  TF *phiHat2 = nullptr; // " y-axis.
-  TF *phiHat3 = nullptr; // " z-axis.
+  std::vector<TF> phiHat1; // FT of kernel in t1,2, on x-axis mode grid
+  std::vector<TF> phiHat2; // " y-axis.
+  std::vector<TF> phiHat3; // " z-axis.
 
-  TC *fwBatch = nullptr; // (batches of) fine grid(s) for FFTW to plan
-                         // & act on. Usually the largest working array
+  TC *fwBatch = nullptr;   // (batches of) fine grid(s) for FFTW to plan
+                           // & act on. Usually the largest working array
 
-  BIGINT *sortIndices = nullptr; // precomputed NU pt permutation, speeds spread/interp
-  bool didSort;                  // whether binsorting used (false: identity perm used)
+  std::vector<BIGINT> sortIndices; // precomputed NU pt permutation, speeds spread/interp
+  bool didSort;                    // whether binsorting used (false: identity perm used)
 
   TF *X = nullptr, *Y = nullptr, *Z = nullptr; // for t1,2: ptr to user-supplied NU pts
                                                // (no new allocs). for t3: allocated as
@@ -183,9 +183,9 @@ template<typename TF> struct FINUFFT_PLAN_T { // the main plan object, fully C++
   // type 3 specific
   TF *S = nullptr, *T = nullptr, *U = nullptr; // pointers to user's target NU pts arrays
                                                // (no new allocs)
-  TC *prephase = nullptr;                      // pre-phase, for all input NU pts
-  TC *deconv   = nullptr; // reciprocal of kernel FT, phase, all output NU pts
-  TC *CpBatch  = nullptr; // working array of prephased strengths
+  std::vector<TC> prephase;                    // pre-phase, for all input NU pts
+  std::vector<TC> deconv;  // reciprocal of kernel FT, phase, all output NU pts
+  std::vector<TC> CpBatch; // working array of prephased strengths
   TF *Sp = nullptr, *Tp = nullptr, *Up = nullptr; // internal primed targs (s'_k, etc),
                                                   // allocated
   type3params<TF> t3P; // groups together type 3 shift, scale, phase, parameters
