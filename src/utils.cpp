@@ -33,9 +33,9 @@ BIGINT next235even(BIGINT n)
 // ----------------------- helpers for timing (always stay double prec) ------
 
 void CNTime::start() {
-  initial = std::chrono::duration_cast<std::chrono::microseconds>(
-                std::chrono::steady_clock::now().time_since_epoch())
-                .count() *
+  initial = double(std::chrono::duration_cast<std::chrono::microseconds>(
+                       std::chrono::steady_clock::now().time_since_epoch())
+                       .count()) *
             1e-6;
 }
 
@@ -53,7 +53,7 @@ double CNTime::elapsedsec()
   std::uint64_t now = std::chrono::duration_cast<std::chrono::microseconds>(
                           std::chrono::steady_clock::now().time_since_epoch())
                           .count();
-  const double nowsec = now * 1e-6;
+  const double nowsec = double(now) * 1e-6;
   return nowsec - initial;
 }
 
@@ -75,7 +75,7 @@ int get_num_threads_parallel_block()
 // ---------- thread-safe rand number generator for Windows platform ---------
 // (note this is used by macros in defs.h, and supplied in linux/macosx)
 #ifdef _WIN32
-int rand_r(unsigned int *seedp)
+int rand_r(unsigned int * /*seedp*/)
 // Libin Lu, 6/18/20
 {
   std::random_device rd;

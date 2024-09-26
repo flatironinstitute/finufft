@@ -195,6 +195,9 @@ template<typename TF> struct FINUFFT_PLAN_T { // the main plan object, fully C++
   std::unique_ptr<Finufft_FFT_plan<TF>> fftPlan;
   finufft_opts opts; // this and spopts could be made ptrs
   finufft_spread_opts spopts;
+
+  int setpts(BIGINT nj, TF *xj, TF *yj, TF *zj, BIGINT nk, TF *s, TF *t, TF *u);
+  int execute(std::complex<TF> *cj, std::complex<TF> *fk);
 };
 
 void finufft_default_opts_t(finufft_opts *o);

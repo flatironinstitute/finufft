@@ -46,7 +46,7 @@ void finufft_setpts_(finufft_plan *plan, BIGINT *M, double *xj, double *yj, doub
     return;
   }
   int nk_safe = 0; // catches the case where user passes NULL in
-  if (nk) nk_safe = *nk;
+  if (nk) nk_safe = int(*nk);
   *ier = finufft_setpts(*plan, *M, xj, yj, zj, nk_safe, s, t, u);
 }
 
@@ -213,7 +213,7 @@ void finufftf_setpts_(finufftf_plan *plan, BIGINT *M, float *xj, float *yj, floa
     return;
   }
   int nk_safe = 0; // catches the case where user passes NULL in
-  if (nk) nk_safe = *nk;
+  if (nk) nk_safe = int(*nk);
   *ier = finufftf_setpts(*plan, *M, xj, yj, zj, nk_safe, s, t, u);
 }
 

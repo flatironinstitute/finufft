@@ -768,18 +768,12 @@ template int finufft_makeplan_t<double>(int type, int dim, const BIGINT *n_modes
 
 // SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS
 template<typename TF>
-int finufft_setpts_t(FINUFFT_PLAN_T<TF> *p, BIGINT nj, TF *xj, TF *yj, TF *zj, BIGINT nk,
-                     TF *s, TF *t, TF *u)
-/* For type 1,2: just checks and (possibly) sorts the NU xyz points, in prep for
-   spreading. (The last 4 arguments are ignored.)
-   For type 3: allocates internal working arrays, scales/centers the NU points
-   and NU target freqs (stu), evaluates spreading kernel FT at all target freqs.
-*/
-{
-  int d = p->dim; // abbrev for spatial dim
+int FINUFFT_PLAN_T<TF>::setpts(BIGINT nj, TF *xj, TF *yj, TF *zj, BIGINT nk, TF *s, TF *t,
+                               TF *u) {
+  int d = dim; // abbrev for spatial dim
   CNTime timer;
   timer.start();
-  p->nj = nj; // the user only now chooses how many NU (x,y,z) pts
+  this->nj = nj; // the user only now chooses how many NU (x,y,z) pts
   if (nj < 0) {
     fprintf(stderr, "[%s] nj (%lld) cannot be negative!\n", __func__, (long long)nj);
     return FINUFFT_ERR_NUM_NU_PTS_INVALID;
@@ -788,23 +782,22 @@ int finufft_setpts_t(FINUFFT_PLAN_T<TF> *p, BIGINT nj, TF *xj, TF *yj, TF *zj, B
     return FINUFFT_ERR_NUM_NU_PTS_INVALID;
   }
 
-  if (p->type != 3) { // ------------------ TYPE 1,2 SETPTS -------------------
-                      // (all we can do is check and maybe bin-sort the NU pts)
-    p->X    = xj;     // plan must keep pointers to user's fixed NU pts
-    p->Y    = yj;
-    p->Z    = zj;
-    int ier = spreadcheck(p->nf1, p->nf2, p->nf3, p->nj, xj, yj, zj, p->spopts);
-    if (p->opts.debug > 1)
-      printf("[%s] spreadcheck (%d):\t%.3g s\n", __func__, p->spopts.chkbnds,
+  if (type != 3) { // ------------------ TYPE 1,2 SETPTS -------------------
+                   // (all we can do is check and maybe bin-sort the NU pts)
+    X       = xj;  // plan must keep pointers to user's fixed NU pts
+    Y       = yj;
+    Z       = zj;
+    int ier = spreadcheck(nf1, nf2, nf3, nj, xj, yj, zj, spopts);
+    if (opts.debug > 1)
+      printf("[%s] spreadcheck (%d):\t%.3g s\n", __func__, spopts.chkbnds,
              timer.elapsedsec());
     if (ier) // no warnings allowed here
       return ier;
     timer.restart();
-    p->sortIndices.resize(p->nj);
-    p->didSort =
-        indexSort(p->sortIndices, p->nf1, p->nf2, p->nf3, p->nj, xj, yj, zj, p->spopts);
-    if (p->opts.debug)
-      printf("[%s] sort (didSort=%d):\t\t%.3g s\n", __func__, p->didSort,
+    sortIndices.resize(nj);
+    didSort = indexSort(sortIndices, nf1, nf2, nf3, nj, xj, yj, zj, spopts);
+    if (opts.debug)
+      printf("[%s] sort (didSort=%d):\t\t%.3g s\n", __func__, didSort,
              timer.elapsedsec());
 
   } else { // ------------------------- TYPE 3 SETPTS -----------------------
@@ -817,199 +810,207 @@ int finufft_setpts_t(FINUFFT_PLAN_T<TF> *p, BIGINT nj, TF *xj, TF *yj, TF *zj, B
       fprintf(stderr, "[%s] nk (%lld) exceeds MAX_NU_PTS\n", __func__, (long long)nk);
       return FINUFFT_ERR_NUM_NU_PTS_INVALID;
     }
-    p->nk = nk; // user set # targ freq pts
-    p->S  = s;  // keep pointers to user's input target pts
-    p->T  = t;
-    p->U  = u;
+    this->nk = nk; // user set # targ freq pts
+    S        = s;  // keep pointers to user's input target pts
+    T        = t;
+    U        = u;
 
     // pick x, s intervals & shifts & # fine grid pts (nf) in each dim...
     TF S1, S2, S3; // get half-width X, center C, which contains {x_j}...
-    arraywidcen(nj, xj, &(p->t3P.X1), &(p->t3P.C1));
-    arraywidcen(nk, s, &S1, &(p->t3P.D1)); // same D, S, but for {s_k}
-    set_nhg_type3(S1, p->t3P.X1, p->opts, p->spopts, &(p->nf1), &(p->t3P.h1),
-                  &(p->t3P.gam1));         // applies twist i)
-    p->t3P.C2 = 0.0;                       // their defaults if dim 2 unused, etc
-    p->t3P.D2 = 0.0;
+    arraywidcen(nj, xj, &(t3P.X1), &(t3P.C1));
+    arraywidcen(nk, s, &S1, &(t3P.D1)); // same D, S, but for {s_k}
+    set_nhg_type3(S1, t3P.X1, opts, spopts, &(nf1), &(t3P.h1),
+                  &(t3P.gam1));         // applies twist i)
+    t3P.C2 = 0.0;                       // their defaults if dim 2 unused, etc
+    t3P.D2 = 0.0;
     if (d > 1) {
-      arraywidcen(nj, yj, &(p->t3P.X2), &(p->t3P.C2)); // {y_j}
-      arraywidcen(nk, t, &S2, &(p->t3P.D2));           // {t_k}
-      set_nhg_type3(S2, p->t3P.X2, p->opts, p->spopts, &(p->nf2), &(p->t3P.h2),
-                    &(p->t3P.gam2));
+      arraywidcen(nj, yj, &(t3P.X2), &(t3P.C2)); // {y_j}
+      arraywidcen(nk, t, &S2, &(t3P.D2));        // {t_k}
+      set_nhg_type3(S2, t3P.X2, opts, spopts, &(nf2), &(t3P.h2), &(t3P.gam2));
     }
-    p->t3P.C3 = 0.0;
-    p->t3P.D3 = 0.0;
+    t3P.C3 = 0.0;
+    t3P.D3 = 0.0;
     if (d > 2) {
-      arraywidcen(nj, zj, &(p->t3P.X3), &(p->t3P.C3)); // {z_j}
-      arraywidcen(nk, u, &S3, &(p->t3P.D3));           // {u_k}
-      set_nhg_type3(S3, p->t3P.X3, p->opts, p->spopts, &(p->nf3), &(p->t3P.h3),
-                    &(p->t3P.gam3));
+      arraywidcen(nj, zj, &(t3P.X3), &(t3P.C3)); // {z_j}
+      arraywidcen(nk, u, &S3, &(t3P.D3));        // {u_k}
+      set_nhg_type3(S3, t3P.X3, opts, spopts, &(nf3), &(t3P.h3), &(t3P.gam3));
     }
 
-    if (p->opts.debug) { // report on choices of shifts, centers, etc...
+    if (opts.debug) { // report on choices of shifts, centers, etc...
       printf("\tM=%lld N=%lld\n", (long long)nj, (long long)nk);
-      printf("\tX1=%.3g C1=%.3g S1=%.3g D1=%.3g gam1=%g nf1=%lld h1=%.3g\t\n", p->t3P.X1,
-             p->t3P.C1, S1, p->t3P.D1, p->t3P.gam1, (long long)p->nf1, p->t3P.h1);
+      printf("\tX1=%.3g C1=%.3g S1=%.3g D1=%.3g gam1=%g nf1=%lld h1=%.3g\t\n", t3P.X1,
+             t3P.C1, S1, t3P.D1, t3P.gam1, (long long)nf1, t3P.h1);
       if (d > 1)
-        printf("\tX2=%.3g C2=%.3g S2=%.3g D2=%.3g gam2=%g nf2=%lld h2=%.3g\n", p->t3P.X2,
-               p->t3P.C2, S2, p->t3P.D2, p->t3P.gam2, (long long)p->nf2, p->t3P.h2);
+        printf("\tX2=%.3g C2=%.3g S2=%.3g D2=%.3g gam2=%g nf2=%lld h2=%.3g\n", t3P.X2,
+               t3P.C2, S2, t3P.D2, t3P.gam2, (long long)nf2, t3P.h2);
       if (d > 2)
-        printf("\tX3=%.3g C3=%.3g S3=%.3g D3=%.3g gam3=%g nf3=%lld h3=%.3g\n", p->t3P.X3,
-               p->t3P.C3, S3, p->t3P.D3, p->t3P.gam3, (long long)p->nf3, p->t3P.h3);
+        printf("\tX3=%.3g C3=%.3g S3=%.3g D3=%.3g gam3=%g nf3=%lld h3=%.3g\n", t3P.X3,
+               t3P.C3, S3, t3P.D3, t3P.gam3, (long long)nf3, t3P.h3);
     }
-    p->nf = p->nf1 * p->nf2 * p->nf3; // fine grid total number of points
-    if (p->nf * p->batchSize > MAX_NF) {
+    nf = nf1 * nf2 * nf3; // fine grid total number of points
+    if (nf * batchSize > MAX_NF) {
       fprintf(stderr,
               "[%s t3] fwBatch would be bigger than MAX_NF, not attempting malloc!\n",
               __func__);
       return FINUFFT_ERR_MAXNALLOC;
     }
-    p->fftPlan->free(p->fwBatch);
-    p->fwBatch = p->fftPlan->alloc_complex(p->nf * p->batchSize); // maybe big workspace
+    fftPlan->free(fwBatch);
+    fwBatch = fftPlan->alloc_complex(nf * batchSize); // maybe big workspace
 
-    p->CpBatch.resize(nj * p->batchSize);                         // batch c' work
+    CpBatch.resize(nj * batchSize);                   // batch c' work
 
-    if (p->opts.debug)
+    if (opts.debug)
       printf("[%s t3] widcen, batch %.2fGB alloc:\t%.3g s\n", __func__,
-             (double)1E-09 * sizeof(std::complex<TF>) * (p->nf + nj) * p->batchSize,
+             (double)1E-09 * sizeof(std::complex<TF>) * (nf + nj) * batchSize,
              timer.elapsedsec());
-    if (!p->fwBatch) {
+    if (!fwBatch) {
       fprintf(stderr, "[%s t3] malloc fail for fwBatch or CpBatch!\n", __func__);
       return FINUFFT_ERR_ALLOC;
     }
-    // printf("fwbatch, cpbatch ptrs: %llx %llx\n",p->fwBatch,p->CpBatch);
+    // printf("fwbatch, cpbatch ptrs: %llx %llx\n",fwBatch,CpBatch);
 
     // alloc rescaled NU src pts x'_j (in X etc), rescaled NU targ pts s'_k ...
     // FIXME: should use realloc
-    if (p->X) free(p->X);
-    p->X = (TF *)malloc(sizeof(TF) * nj);
-    p->Sp.resize(nk);
+    if (X) free(X);
+    X = (TF *)malloc(sizeof(TF) * nj);
+    Sp.resize(nk);
     if (d > 1) {
-      if (p->Y) free(p->Y);
-      p->Y = (TF *)malloc(sizeof(TF) * nj);
-      p->Tp.resize(nk);
+      if (Y) free(Y);
+      Y = (TF *)malloc(sizeof(TF) * nj);
+      Tp.resize(nk);
     }
     if (d > 2) {
-      if (p->Z) free(p->Z);
-      p->Z = (TF *)malloc(sizeof(TF) * nj);
-      p->Up.resize(nk);
+      if (Z) free(Z);
+      Z = (TF *)malloc(sizeof(TF) * nj);
+      Up.resize(nk);
     }
 
     // always shift as use gam to rescale x_j to x'_j, etc (twist iii)...
-    TF ig1 = 1.0 / p->t3P.gam1, ig2 = 0.0, ig3 = 0.0; // "reciprocal-math" optim
-    if (d > 1) ig2 = 1.0 / p->t3P.gam2;
-    if (d > 2) ig3 = 1.0 / p->t3P.gam3;
-#pragma omp parallel for num_threads(p->opts.nthreads) schedule(static)
+    TF ig1 = 1.0 / t3P.gam1, ig2 = 0.0, ig3 = 0.0; // "reciprocal-math" optim
+    if (d > 1) ig2 = 1.0 / t3P.gam2;
+    if (d > 2) ig3 = 1.0 / t3P.gam3;
+#pragma omp parallel for num_threads(opts.nthreads) schedule(static)
     for (BIGINT j = 0; j < nj; ++j) {
-      p->X[j] = (xj[j] - p->t3P.C1) * ig1; // rescale x_j
-      if (d > 1) // (ok to do inside loop because of branch predict)
-        p->Y[j] = (yj[j] - p->t3P.C2) * ig2;          // rescale y_j
-      if (d > 2) p->Z[j] = (zj[j] - p->t3P.C3) * ig3; // rescale z_j
+      X[j] = (xj[j] - t3P.C1) * ig1;   // rescale x_j
+      if (d > 1)                       // (ok to do inside loop because of branch predict)
+        Y[j] = (yj[j] - t3P.C2) * ig2; // rescale y_j
+      if (d > 2) Z[j] = (zj[j] - t3P.C3) * ig3; // rescale z_j
     }
 
     // set up prephase array...
     std::complex<TF> imasign =
-        (p->fftSign >= 0) ? std::complex<TF>(0, 1) : std::complex<TF>(0, -1); // +-i
-    p->prephase.resize(nj);
-    if (p->t3P.D1 != 0.0 || p->t3P.D2 != 0.0 || p->t3P.D3 != 0.0) {
-#pragma omp parallel for num_threads(p->opts.nthreads) schedule(static)
+        (fftSign >= 0) ? std::complex<TF>(0, 1) : std::complex<TF>(0, -1); // +-i
+    prephase.resize(nj);
+    if (t3P.D1 != 0.0 || t3P.D2 != 0.0 || t3P.D3 != 0.0) {
+#pragma omp parallel for num_threads(opts.nthreads) schedule(static)
       for (BIGINT j = 0; j < nj; ++j) { // ... loop over src NU locs
-        TF phase = p->t3P.D1 * xj[j];
-        if (d > 1) phase += p->t3P.D2 * yj[j];
-        if (d > 2) phase += p->t3P.D3 * zj[j];
-        p->prephase[j] = cos(phase) + imasign * sin(phase); // Euler
-                                                            // e^{+-i.phase}
+        TF phase = t3P.D1 * xj[j];
+        if (d > 1) phase += t3P.D2 * yj[j];
+        if (d > 2) phase += t3P.D3 * zj[j];
+        prephase[j] = cos(phase) + imasign * sin(phase); // Euler
+                                                         // e^{+-i.phase}
       }
     } else
       for (BIGINT j = 0; j < nj; ++j)
-        p->prephase[j] = (std::complex<TF>)1.0; // *** or keep flag so no mult in exec??
+        prephase[j] = (std::complex<TF>)1.0; // *** or keep flag so no mult in exec??
 
-        // rescale the target s_k etc to s'_k etc...
-#pragma omp parallel for num_threads(p->opts.nthreads) schedule(static)
+                                             // rescale the target s_k etc to s'_k etc...
+#pragma omp parallel for num_threads(opts.nthreads) schedule(static)
     for (BIGINT k = 0; k < nk; ++k) {
-      p->Sp[k] = p->t3P.h1 * p->t3P.gam1 * (s[k] - p->t3P.D1);   // so |s'_k| < pi/R
+      Sp[k] = t3P.h1 * t3P.gam1 * (s[k] - t3P.D1);   // so |s'_k| < pi/R
       if (d > 1)
-        p->Tp[k] = p->t3P.h2 * p->t3P.gam2 * (t[k] - p->t3P.D2); // so |t'_k| <
-                                                                 // pi/R
+        Tp[k] = t3P.h2 * t3P.gam2 * (t[k] - t3P.D2); // so |t'_k| <
+                                                     // pi/R
       if (d > 2)
-        p->Up[k] = p->t3P.h3 * p->t3P.gam3 * (u[k] - p->t3P.D3); // so |u'_k| <
-                                                                 // pi/R
+        Up[k] = t3P.h3 * t3P.gam3 * (u[k] - t3P.D3); // so |u'_k| <
+                                                     // pi/R
     }
     // (old STEP 3a) Compute deconvolution post-factors array (per targ pt)...
     // (exploits that FT separates because kernel is prod of 1D funcs)
-    p->deconv.resize(nk);
-    std::vector<TF> phiHatk1(nk);                       // don't confuse w/ p->phiHat
-    onedim_nuft_kernel(nk, p->Sp, phiHatk1, p->spopts); // fill phiHat1
+    deconv.resize(nk);
+    std::vector<TF> phiHatk1(nk);                 // don't confuse w/ phiHat
+    onedim_nuft_kernel(nk, Sp, phiHatk1, spopts); // fill phiHat1
     std::vector<TF> phiHatk2, phiHatk3;
     if (d > 1) {
       phiHatk2.resize(nk);
-      onedim_nuft_kernel(nk, p->Tp, phiHatk2, p->spopts); // fill phiHat2
+      onedim_nuft_kernel(nk, Tp, phiHatk2, spopts); // fill phiHat2
     }
     if (d > 2) {
       phiHatk3.resize(nk);
-      onedim_nuft_kernel(nk, p->Up, phiHatk3, p->spopts); // fill phiHat3
+      onedim_nuft_kernel(nk, Up, phiHatk3, spopts); // fill phiHat3
     }
-    int Cfinite =
-        isfinite(p->t3P.C1) && isfinite(p->t3P.C2) && isfinite(p->t3P.C3); // C can be nan
-                                                                           // or inf if
-                                                                           // M=0, no
-                                                                           // input NU pts
-    int Cnonzero = p->t3P.C1 != 0.0 || p->t3P.C2 != 0.0 || p->t3P.C3 != 0.0; // cen
-#pragma omp parallel for num_threads(p->opts.nthreads) schedule(static)
+    int Cfinite = isfinite(t3P.C1) && isfinite(t3P.C2) && isfinite(t3P.C3); // C can be
+                                                                            // nan or inf
+                                                                            // if M=0, no
+                                                                            // input NU
+                                                                            // pts
+    int Cnonzero = t3P.C1 != 0.0 || t3P.C2 != 0.0 || t3P.C3 != 0.0;         // cen
+#pragma omp parallel for num_threads(opts.nthreads) schedule(static)
     for (BIGINT k = 0; k < nk; ++k) { // .... loop over NU targ freqs
       TF phiHat = phiHatk1[k];
       if (d > 1) phiHat *= phiHatk2[k];
       if (d > 2) phiHat *= phiHatk3[k];
-      p->deconv[k] = (std::complex<TF>)(1.0 / phiHat);
+      deconv[k] = (std::complex<TF>)(1.0 / phiHat);
       if (Cfinite && Cnonzero) {
-        TF phase = (s[k] - p->t3P.D1) * p->t3P.C1;
-        if (d > 1) phase += (t[k] - p->t3P.D2) * p->t3P.C2;
-        if (d > 2) phase += (u[k] - p->t3P.D3) * p->t3P.C3;
-        p->deconv[k] *= cos(phase) + imasign * sin(phase); // Euler e^{+-i.phase}
+        TF phase = (s[k] - t3P.D1) * t3P.C1;
+        if (d > 1) phase += (t[k] - t3P.D2) * t3P.C2;
+        if (d > 2) phase += (u[k] - t3P.D3) * t3P.C3;
+        deconv[k] *= cos(phase) + imasign * sin(phase); // Euler e^{+-i.phase}
       }
     }
-    if (p->opts.debug)
+    if (opts.debug)
       printf("[%s t3] phase & deconv factors:\t%.3g s\n", __func__, timer.elapsedsec());
 
     // Set up sort for spreading Cp (from primed NU src pts X, Y, Z) to fw...
     timer.restart();
-    p->sortIndices.resize(p->nj);
-    p->didSort = indexSort(p->sortIndices, p->nf1, p->nf2, p->nf3, p->nj, p->X, p->Y,
-                           p->Z, p->spopts);
-    if (p->opts.debug)
-      printf("[%s t3] sort (didSort=%d):\t\t%.3g s\n", __func__, p->didSort,
+    sortIndices.resize(nj);
+    didSort = indexSort(sortIndices, nf1, nf2, nf3, nj, X, Y, Z, spopts);
+    if (opts.debug)
+      printf("[%s t3] sort (didSort=%d):\t\t%.3g s\n", __func__, didSort,
              timer.elapsedsec());
 
     // Plan and setpts once, for the (repeated) inner type 2 finufft call...
     timer.restart();
-    BIGINT t2nmodes[]   = {p->nf1, p->nf2, p->nf3};  // t2 input is actually fw
-    finufft_opts t2opts = p->opts;                   // deep copy, since not ptrs
-    t2opts.modeord      = 0;                         // needed for correct t3!
-    t2opts.debug        = max(0, p->opts.debug - 1); // don't print as much detail
-    t2opts.spread_debug = max(0, p->opts.spread_debug - 1);
-    t2opts.showwarn     = 0;                         // so don't see warnings 2x
+    BIGINT t2nmodes[]   = {nf1, nf2, nf3};        // t2 input is actually fw
+    finufft_opts t2opts = opts;                   // deep copy, since not ptrs
+    t2opts.modeord      = 0;                      // needed for correct t3!
+    t2opts.debug        = max(0, opts.debug - 1); // don't print as much detail
+    t2opts.spread_debug = max(0, opts.spread_debug - 1);
+    t2opts.showwarn     = 0;                      // so don't see warnings 2x
     // (...could vary other t2opts here?)
-    if (p->innerT2plan) {
-      delete p->innerT2plan;
-      p->innerT2plan = nullptr;
+    if (innerT2plan) {
+      delete innerT2plan;
+      innerT2plan = nullptr;
     }
-    int ier = finufft_makeplan_t<TF>(2, d, t2nmodes, p->fftSign, p->batchSize, p->tol,
-                                     &p->innerT2plan, &t2opts);
+    int ier = finufft_makeplan_t<TF>(2, d, t2nmodes, fftSign, batchSize, tol,
+                                     &innerT2plan, &t2opts);
     if (ier > 1) { // if merely warning, still proceed
       fprintf(stderr, "[%s t3]: inner type 2 plan creation failed with ier=%d!\n",
               __func__, ier);
       return ier;
     }
-    ier = finufft_setpts_t<TF>(p->innerT2plan, nk, p->Sp.data(), p->Tp.data(),
-                               p->Up.data(), 0, nullptr, nullptr,
+    ier = finufft_setpts_t<TF>(innerT2plan, nk, Sp.data(), Tp.data(), Up.data(), 0,
+                               nullptr, nullptr,
                                nullptr); // note nk = # output points (not nj)
     if (ier > 1) {
       fprintf(stderr, "[%s t3]: inner type 2 setpts failed, ier=%d!\n", __func__, ier);
       return ier;
     }
-    if (p->opts.debug)
+    if (opts.debug)
       printf("[%s t3] inner t2 plan & setpts: \t%.3g s\n", __func__, timer.elapsedsec());
   }
   return 0;
+}
+template<typename TF>
+int finufft_setpts_t(FINUFFT_PLAN_T<TF> *p, BIGINT nj, TF *xj, TF *yj, TF *zj, BIGINT nk,
+                     TF *s, TF *t, TF *u)
+/* For type 1,2: just checks and (possibly) sorts the NU xyz points, in prep for
+   spreading. (The last 4 arguments are ignored.)
+   For type 3: allocates internal working arrays, scales/centers the NU points
+   and NU target freqs (stu), evaluates spreading kernel FT at all target freqs.
+*/
+{
+  return p->setpts(nj, xj, yj, zj, nk, s, t, u);
 }
 template int finufft_setpts_t<float>(FINUFFT_PLAN_T<float> *p, BIGINT nj, float *xj,
                                      float *yj, float *zj, BIGINT nk, float *s, float *t,
@@ -1022,7 +1023,7 @@ template int finufft_setpts_t<double>(FINUFFT_PLAN_T<double> *p, BIGINT nj, doub
 
 // EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
 template<typename TF>
-int finufft_execute_t(FINUFFT_PLAN_T<TF> *p, std::complex<TF> *cj, std::complex<TF> *fk) {
+int FINUFFT_PLAN_T<TF>::execute(std::complex<TF> *cj, std::complex<TF> *fk) {
   /* See ../docs/cguru.doc for current documentation.
 
    For given (stack of) weights cj or coefficients fk, performs NUFFTs with
@@ -1038,52 +1039,52 @@ int finufft_execute_t(FINUFFT_PLAN_T<TF> *p, std::complex<TF> *cj, std::complex<
   CNTime timer;
   timer.start();
 
-  if (p->type != 3) { // --------------------- TYPE 1,2 EXEC ------------------
+  if (type != 3) { // --------------------- TYPE 1,2 EXEC ------------------
 
     double t_sprint = 0.0, t_fft = 0.0, t_deconv = 0.0; // accumulated timing
-    if (p->opts.debug)
-      printf("[%s] start ntrans=%d (%d batches, bsize=%d)...\n", __func__, p->ntrans,
-             p->nbatch, p->batchSize);
+    if (opts.debug)
+      printf("[%s] start ntrans=%d (%d batches, bsize=%d)...\n", __func__, ntrans, nbatch,
+             batchSize);
 
-    for (int b = 0; b * p->batchSize < p->ntrans; b++) { // .....loop b over batches
+    for (int b = 0; b * batchSize < ntrans; b++) { // .....loop b over batches
 
       // current batch is either batchSize, or possibly truncated if last one
-      int thisBatchSize     = min(p->ntrans - b * p->batchSize, p->batchSize);
-      int bB                = b * p->batchSize; // index of vector, since batchsizes same
-      std::complex<TF> *cjb = cj + bB * p->nj;  // point to batch of weights
-      std::complex<TF> *fkb = fk + bB * p->N;   // point to batch of mode coeffs
-      if (p->opts.debug > 1)
+      int thisBatchSize     = min(ntrans - b * batchSize, batchSize);
+      int bB                = b * batchSize; // index of vector, since batchsizes same
+      std::complex<TF> *cjb = cj + bB * nj;  // point to batch of weights
+      std::complex<TF> *fkb = fk + bB * N;   // point to batch of mode coeffs
+      if (opts.debug > 1)
         printf("[%s] start batch %d (size %d):\n", __func__, b, thisBatchSize);
 
       // STEP 1: (varies by type)
       timer.restart();
-      if (p->type == 1) { // type 1: spread NU pts p->X, weights cj, to fw grid
-        spreadinterpSortedBatch<TF>(thisBatchSize, p, cjb);
+      if (type == 1) { // type 1: spread NU pts X, weights cj, to fw grid
+        spreadinterpSortedBatch<TF>(thisBatchSize, this, cjb);
         t_sprint += timer.elapsedsec();
       } else { //  type 2: amplify Fourier coeffs fk into 0-padded fw
-        deconvolveBatch<TF>(thisBatchSize, p, fkb);
+        deconvolveBatch<TF>(thisBatchSize, this, fkb);
         t_deconv += timer.elapsedsec();
       }
 
       // STEP 2: call the FFT on this batch
       timer.restart();
-      do_fft(p);
+      do_fft(this);
       t_fft += timer.elapsedsec();
-      if (p->opts.debug > 1) printf("\tFFT exec:\t\t%.3g s\n", timer.elapsedsec());
+      if (opts.debug > 1) printf("\tFFT exec:\t\t%.3g s\n", timer.elapsedsec());
 
       // STEP 3: (varies by type)
       timer.restart();
-      if (p->type == 1) { // type 1: deconvolve (amplify) fw and shuffle to fk
-        deconvolveBatch<TF>(thisBatchSize, p, fkb);
+      if (type == 1) { // type 1: deconvolve (amplify) fw and shuffle to fk
+        deconvolveBatch<TF>(thisBatchSize, this, fkb);
         t_deconv += timer.elapsedsec();
       } else { // type 2: interpolate unif fw grid to NU target pts
-        spreadinterpSortedBatch<TF>(thisBatchSize, p, cjb);
+        spreadinterpSortedBatch<TF>(thisBatchSize, this, cjb);
         t_sprint += timer.elapsedsec();
       }
     } // ........end b loop
 
-    if (p->opts.debug) { // report total times in their natural order...
-      if (p->type == 1) {
+    if (opts.debug) { // report total times in their natural order...
+      if (type == 1) {
         printf("[%s] done. tot spread:\t\t%.3g s\n", __func__, t_sprint);
         printf("               tot FFT:\t\t\t\t%.3g s\n", t_fft);
         printf("               tot deconvolve:\t\t\t%.3g s\n", t_deconv);
@@ -1102,56 +1103,56 @@ int finufft_execute_t(FINUFFT_PLAN_T<TF> *p, std::complex<TF> *cj, std::complex<
 
     double t_pre = 0.0, t_spr = 0.0, t_t2 = 0.0,
            t_deconv = 0.0; // accumulated timings
-    if (p->opts.debug)
-      printf("[%s t3] start ntrans=%d (%d batches, bsize=%d)...\n", __func__, p->ntrans,
-             p->nbatch, p->batchSize);
+    if (opts.debug)
+      printf("[%s t3] start ntrans=%d (%d batches, bsize=%d)...\n", __func__, ntrans,
+             nbatch, batchSize);
 
-    for (int b = 0; b * p->batchSize < p->ntrans; b++) { // .....loop b over batches
+    for (int b = 0; b * batchSize < ntrans; b++) { // .....loop b over batches
 
       // batching and pointers to this batch, identical to t1,2 above...
-      int thisBatchSize     = min(p->ntrans - b * p->batchSize, p->batchSize);
-      int bB                = b * p->batchSize;
-      std::complex<TF> *cjb = cj + bB * p->nj; // batch of input strengths
-      std::complex<TF> *fkb = fk + bB * p->nk; // batch of output strengths
-      if (p->opts.debug > 1)
+      int thisBatchSize     = min(ntrans - b * batchSize, batchSize);
+      int bB                = b * batchSize;
+      std::complex<TF> *cjb = cj + bB * nj; // batch of input strengths
+      std::complex<TF> *fkb = fk + bB * nk; // batch of output strengths
+      if (opts.debug > 1)
         printf("[%s t3] start batch %d (size %d):\n", __func__, b, thisBatchSize);
 
       // STEP 0: pre-phase (possibly) the c_j input strengths into c'_j batch...
       timer.restart();
-#pragma omp parallel for num_threads(p->opts.nthreads) // or p->batchSize?
+#pragma omp parallel for num_threads(opts.nthreads) // or batchSize?
       for (int i = 0; i < thisBatchSize; i++) {
-        BIGINT ioff = i * p->nj;
-        for (BIGINT j = 0; j < p->nj; ++j) {
-          p->CpBatch[ioff + j] = p->prephase[j] * cjb[ioff + j];
+        BIGINT ioff = i * nj;
+        for (BIGINT j = 0; j < nj; ++j) {
+          CpBatch[ioff + j] = prephase[j] * cjb[ioff + j];
         }
       }
       t_pre += timer.elapsedsec();
 
       // STEP 1: spread c'_j batch (x'_j NU pts) into fw batch grid...
       timer.restart();
-      p->spopts.spread_direction = 1;                                   // spread
-      spreadinterpSortedBatch<TF>(thisBatchSize, p, p->CpBatch.data()); // p->X are primed
+      spopts.spread_direction = 1;                                      // spread
+      spreadinterpSortedBatch<TF>(thisBatchSize, this, CpBatch.data()); // X are primed
       t_spr += timer.elapsedsec();
 
       // STEP 2: type 2 NUFFT from fw batch to user output fk array batch...
       timer.restart();
       // illegal possible shrink of ntrans *after* plan for smaller last batch:
-      p->innerT2plan->ntrans = thisBatchSize; // do not try this at home!
+      innerT2plan->ntrans = thisBatchSize; // do not try this at home!
       /* (alarming that FFT not shrunk, but safe, because t2's fwBatch array
      still the same size, as Andrea explained; just wastes a few flops) */
-      finufft_execute_t(p->innerT2plan, fkb, p->fwBatch);
+      finufft_execute_t(innerT2plan, fkb, fwBatch);
       t_t2 += timer.elapsedsec();
       // STEP 3: apply deconvolve (precomputed 1/phiHat(targ_k), phasing too)...
       timer.restart();
-#pragma omp parallel for num_threads(p->opts.nthreads)
+#pragma omp parallel for num_threads(opts.nthreads)
       for (int i = 0; i < thisBatchSize; i++) {
-        BIGINT ioff = i * p->nk;
-        for (BIGINT k = 0; k < p->nk; ++k) fkb[ioff + k] *= p->deconv[k];
+        BIGINT ioff = i * nk;
+        for (BIGINT k = 0; k < nk; ++k) fkb[ioff + k] *= deconv[k];
       }
       t_deconv += timer.elapsedsec();
     } // ........end b loop
 
-    if (p->opts.debug) { // report total times in their natural order...
+    if (opts.debug) { // report total times in their natural order...
       printf("[%s t3] done. tot prephase:\t\t%.3g s\n", __func__, t_pre);
       printf("                  tot spread:\t\t\t%.3g s\n", t_spr);
       printf("                  tot type 2:\t\t\t%.3g s\n", t_t2);
@@ -1162,6 +1163,22 @@ int finufft_execute_t(FINUFFT_PLAN_T<TF> *p, std::complex<TF> *cj, std::complex<
   // int)k,(double)real(fk[k]),(double)imag(fk[k]));  // debug
 
   return 0;
+}
+template<typename TF>
+int finufft_execute_t(FINUFFT_PLAN_T<TF> *p, std::complex<TF> *cj, std::complex<TF> *fk) {
+  /* See ../docs/cguru.doc for current documentation.
+
+   For given (stack of) weights cj or coefficients fk, performs NUFFTs with
+   existing (sorted) NU pts and existing plan.
+   For type 1 and 3: cj is input, fk is output.
+   For type 2: fk is input, cj is output.
+   Performs spread/interp, pre/post deconvolve, and FFT as appropriate
+   for each of the 3 types.
+   For cases of ntrans>1, performs work in blocks of size up to batchSize.
+   Return value 0 (no error diagnosis yet).
+   Barnett 5/20/20, based on Malleo 2019.
+*/
+  return p->execute(cj, fk);
 }
 template int finufft_execute_t<float>(FINUFFT_PLAN_T<float> *p, std::complex<float> *cj,
                                       std::complex<float> *fk);
@@ -1175,8 +1192,7 @@ template<typename TF> FINUFFT_PLAN_T<TF>::~FINUFFT_PLAN_T() {
   // Thus either each thing free'd here is guaranteed to be nullptr or correctly
   // allocated.
   if (fftPlan) fftPlan->free(fwBatch); // free the big FFTW (or t3 spread) working array
-  if (type == 1 || type == 2) {
-  } else {                             // free the stuff alloc for type 3 only
+  if (type == 3) {
     delete innerT2plan;
     innerT2plan = nullptr;
     free(X);
