@@ -1,6 +1,5 @@
 // Spreading/interpolating module within FINUFFT.
 
-#include <finufft/defs.h>
 #include <finufft/spreadinterp.h>
 #include <finufft/utils.h>
 
@@ -2206,7 +2205,7 @@ FINUFFT_EXPORT int FINUFFT_CDECL setup_spreader(finufft_spread_opts &opts, T eps
   if (upsampfac == 2.0)                    // standard sigma (see SISC paper)
     ns = std::ceil(-log10(eps / (T)10.0)); // 1 digit per power of 10
   else                                     // custom sigma
-    ns = std::ceil(-log(eps) / (PI * sqrt(1.0 - 1.0 / upsampfac))); // formula, gam=1
+    ns = std::ceil(-log(eps) / (T(M_PI) * sqrt(1.0 - 1.0 / upsampfac))); // formula, gam=1
   ns = max(2, ns);        // (we don't have ns=1 version yet)
   if (ns > MAX_NSPREAD) { // clip to fit allocated arrays, Horner rules
     if (showwarn)
@@ -2228,7 +2227,8 @@ FINUFFT_EXPORT int FINUFFT_CDECL setup_spreader(finufft_spread_opts &opts, T eps
   if (ns == 4) betaoverns = 2.38;
   if (upsampfac != 2.0) { // again, override beta for custom sigma
     T gamma    = 0.97;    // must match devel/gen_all_horner_C_code.m !
-    betaoverns = gamma * PI * (1.0 - 1.0 / (2 * upsampfac)); // formula based on cutoff
+    betaoverns = gamma * T(M_PI) * (1.0 - 1.0 / (2 * upsampfac)); // formula based on
+                                                                  // cutoff
   }
   opts.ES_beta = betaoverns * ns; // set the kernel beta parameter
   if (debug)

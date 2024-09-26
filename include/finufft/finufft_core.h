@@ -95,6 +95,17 @@ inline constexpr BIGINT MAX_NF = BIGINT(1e12);
 // values for M = nj (also nk in type 3)...
 inline constexpr BIGINT MAX_NU_PTS = BIGINT(1e14);
 
+// MR: In the longer term I suggest to move
+// away from M_PI, which was never part of the standard.
+// Perhaps a constexpr pi in the namespace finufft, or a constexpr finufft_pi
+// if no namespaces are used?
+// In C++20 these constants will be part of the language, and the problem will go away.
+#ifndef M_PI // Windows apparently doesn't have this const
+#define M_PI 3.14159265358979329
+#endif
+#define M_1_2PI 0.159154943091895336
+#define M_2PI   6.28318530717958648
+
 // ----- OpenMP macros which also work when omp not present -----
 // Allows compile-time switch off of openmp, so compilation without any openmp
 // is done (Note: _OPENMP is automatically set by -fopenmp compile flag)
