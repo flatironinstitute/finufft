@@ -7,6 +7,7 @@ differentiated by 'f' suffix.
 """
 import ctypes
 import pathlib
+import re
 from ctypes.util import find_library
 from ctypes import c_double
 from ctypes import c_float
@@ -19,17 +20,32 @@ import os
 import platform
 from numpy.ctypeslib import ndpointer
 
-from packaging.version import Version
-
 c_int_p = ctypes.POINTER(c_int)
 c_float_p = ctypes.POINTER(c_float)
 c_double_p = ctypes.POINTER(c_double)
 c_longlong_p = ctypes.POINTER(c_longlong)
 
+# The packaging module is not distributed in Python 3.12, so this is to avoid a dependency on `packging.version.Version`
+def meets_minimum_major_minor_version(version, requires_major, requires_minor):
+    version_info = (
+        re
+        .match(
+            r"^\s*(?P<major>[0-9]+)\.(?P<minor>[0-9]+)\.?(?P<patch>[0-9]+)?(?P<pre_release>[a-z0-9\s\-]+)?\s*$", 
+            version
+        )
+        .groupdict()
+    )
+    version_info["major"] = int(version_info["major"])
+    version_info["minor"] = int(version_info["minor"])
+    return (
+        (version_info["major"] > requires_major)
+    or  (version_info["major"] == requires_major and version_info["minor"] >= requires_minor)
+    )
+
 # numpy.distutils has a bug that changes the logging level from under us. As a
 # workaround, we save it and reset it later. This only happens on older
 # versions of NumPy, so let's check the version before doing this.
-reset_log_level = Version(np.__version__) < Version("1.25")
+reset_log_level = not meets_minimum_major_minor_version(np.__version__, 1, 25)
 
 if reset_log_level:
     import logging
