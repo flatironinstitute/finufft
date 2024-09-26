@@ -149,7 +149,8 @@ template<typename TF> struct FINUFFT_PLAN_T { // the main plan object, fully C++
 
   // These default and delete specifications just state the obvious,
   // but are here to silence compiler warnings.
-  FINUFFT_PLAN_T() = default;
+  FINUFFT_PLAN_T(int type, int dim, const BIGINT *n_modes, int iflag, int ntrans, TF tol,
+                 finufft_opts *opts, int &ier);
   // Copy construction and assignent are already deleted implicitly
   // because of the unique_ptr member.
   FINUFFT_PLAN_T(const FINUFFT_PLAN_T &)            = delete;

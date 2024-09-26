@@ -136,10 +136,8 @@ ABSDYNLIB = $(FINUFFT)$(DYNLIB)
 # spreader dual-precision objs
 SOBJSD = src/utils.o src/spreadinterp.o
 
-# precision-independent library object files (compiled & linked only once)...
-OBJS_PI = $(SOBJSD) contrib/legendre_rule_fast.o src/fft.o src/finufft_core.o src/simpleinterfaces.o fortran/finufftfort.o
 # all lib dual-precision objs (note DUCC_OBJS empty if unused)
-OBJSD = $(OBJS_PI) $(DUCC_OBJS)
+OBJSD = $(SOBJSD) contrib/legendre_rule_fast.o src/fft.o src/finufft_core.o src/simpleinterfaces.o fortran/finufftfort.o $(DUCC_OBJS)
 
 .PHONY: usage lib examples test perftest spreadtest spreadtestall fortran matlab octave all mex python clean objclean pyclean mexclean wheel docker-wheel gurutime docs setup setupclean
 

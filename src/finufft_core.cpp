@@ -540,6 +540,218 @@ void finufft_default_opts_t(finufft_opts *o)
 
 // PPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPP
 template<typename TF>
+FINUFFT_PLAN_T<TF>::FINUFFT_PLAN_T(int type_, int dim_, const BIGINT *n_modes, int iflag,
+                                   int ntrans_, TF tol_, finufft_opts *opts_, int &ier)
+    : type(type_), dim(dim_), ntrans(ntrans_), tol(tol_)
+// Populates the fields of finufft_plan which is pointed to by "pp".
+// opts is ptr to a finufft_opts to set options, or nullptr to use defaults.
+// For some of the fields (if "auto" selected) here choose the actual setting.
+// For types 1,2 allocates memory for internal working arrays,
+// evaluates spreading kernel coefficients, and instantiates the fftw_plan
+{
+  if (!opts_)      // use default opts
+    finufft_default_opts_t(&opts);
+  else             // or read from what's passed in
+    opts = *opts_; // keep a deep copy; changing *opts now has no effect
+
+  if (opts.debug)  // do a hello world
+    printf("[%s] new plan: FINUFFT version " FINUFFT_VER " .................\n",
+           __func__);
+
+  fftPlan = std::make_unique<Finufft_FFT_plan<TF>>(
+      opts.fftw_lock_fun, opts.fftw_unlock_fun, opts.fftw_lock_data);
+
+  if ((type != 1) && (type != 2) && (type != 3)) {
+    fprintf(stderr, "[%s] Invalid type (%d), should be 1, 2 or 3.\n", __func__, type);
+    throw int(FINUFFT_ERR_TYPE_NOTVALID);
+  }
+  if ((dim != 1) && (dim != 2) && (dim != 3)) {
+    fprintf(stderr, "[%s] Invalid dim (%d), should be 1, 2 or 3.\n", __func__, dim);
+    throw int(FINUFFT_ERR_DIM_NOTVALID);
+  }
+  if (ntrans < 1) {
+    fprintf(stderr, "[%s] ntrans (%d) should be at least 1.\n", __func__, ntrans);
+    throw int(FINUFFT_ERR_NTRANS_NOTVALID);
+  }
+  if (!opts.fftw_lock_fun != !opts.fftw_unlock_fun) {
+    fprintf(stderr, "[%s] fftw_(un)lock functions should be both null or both set\n",
+            __func__);
+    throw int(FINUFFT_ERR_LOCK_FUNS_INVALID);
+  }
+
+  // get stuff from args...
+  fftSign = (iflag >= 0) ? 1 : -1; // clean up flag input
+
+                                   // choose overall # threads...
+#ifdef _OPENMP
+  int ompmaxnthr = MY_OMP_GET_MAX_THREADS();
+  int nthr       = ompmaxnthr; // default: use as many as OMP gives us
+  // (the above could be set, or suggested set, to 1 for small enough problems...)
+  if (opts.nthreads > 0) {
+    nthr = opts.nthreads; // user override, now without limit
+    if (opts.showwarn && (nthr > ompmaxnthr))
+      fprintf(stderr,
+              "%s warning: using opts.nthreads=%d, more than the %d OpenMP claims "
+              "available; note large nthreads can be slower.\n",
+              __func__, nthr, ompmaxnthr);
+  }
+#else
+  int nthr = 1; // always 1 thread (avoid segfault)
+  if (opts.nthreads > 1)
+    fprintf(stderr,
+            "%s warning: opts.nthreads=%d but library is single-threaded; ignoring!\n",
+            __func__, opts.nthreads);
+#endif
+  opts.nthreads = nthr; // store actual # thr planned for
+  // (this sets/limits all downstream spread/interp, 1dkernel, and FFT thread counts...)
+
+  // choose batchSize for types 1,2 or 3... (uses int ceil(b/a)=1+(b-1)/a trick)
+  if (opts.maxbatchsize == 0) {                        // logic to auto-set best batchsize
+    nbatch    = 1 + (ntrans - 1) / nthr;               // min # batches poss
+    batchSize = 1 + (ntrans - 1) / nbatch;             // then cut # thr in each b
+  } else {                                             // batchSize override by user
+    batchSize = min(opts.maxbatchsize, ntrans);
+    nbatch    = 1 + (ntrans - 1) / batchSize;          // resulting # batches
+  }
+  if (opts.spread_thread == 0) opts.spread_thread = 2; // our auto choice
+  if (opts.spread_thread != 1 && opts.spread_thread != 2) {
+    fprintf(stderr, "[%s] illegal opts.spread_thread!\n", __func__);
+    throw int(FINUFFT_ERR_SPREAD_THREAD_NOTVALID);
+  }
+
+  if (type != 3) {                   // read in user Fourier mode array sizes...
+    ms = n_modes[0];
+    mt = (dim > 1) ? n_modes[1] : 1; // leave as 1 for unused dims
+    mu = (dim > 2) ? n_modes[2] : 1;
+    N  = ms * mt * mu;               // N = total # modes
+  }
+
+  // heuristic to choose default upsampfac... (currently two poss)
+  if (opts.upsampfac == 0.0) {            // indicates auto-choose
+    opts.upsampfac = 2.0;                 // default, and need for tol small
+    if (tol >= (TF)1E-9) {                // the tol sigma=5/4 can reach
+      if (type == 3)                      // could move to setpts, more known?
+        opts.upsampfac = 1.25;            // faster b/c smaller RAM & FFT
+      else if ((dim == 1 && N > 10000000) || (dim == 2 && N > 300000) ||
+               (dim == 3 && N > 3000000)) // type 1,2 heuristic cutoffs, double,
+                                          // typ tol, 12-core xeon
+        opts.upsampfac = 1.25;
+    }
+    if (opts.debug > 1)
+      printf("[%s] set auto upsampfac=%.2f\n", __func__, opts.upsampfac);
+  }
+  // use opts to choose and write into plan's spread options...
+  ier = setup_spreader_for_nufft(spopts, tol, opts, dim);
+  if (ier > 1) // proceed if success or warning
+    throw int(ier);
+
+  // set others as defaults (or unallocated for arrays)...
+  X   = nullptr;
+  Y   = nullptr;
+  Z   = nullptr;
+  nf1 = 1;
+  nf2 = 1;
+  nf3 = 1; // crucial to leave as 1 for unused dims
+
+  //  ------------------------ types 1,2: planning needed ---------------------
+  if (type == 1 || type == 2) {
+
+    int nthr_fft = nthr; // give FFTW all threads (or use o.spread_thread?)
+                         // Note: batchSize not used since might be only 1.
+
+    spopts.spread_direction = type;
+
+    constexpr TF EPSILON = std::numeric_limits<TF>::epsilon();
+    if (opts.showwarn) { // user warn round-off error...
+      if (EPSILON * ms > 1.0)
+        fprintf(stderr, "%s warning: rounding err predicted eps_mach*N1 = %.3g > 1 !\n",
+                __func__, (double)(EPSILON * ms));
+      if (EPSILON * mt > 1.0)
+        fprintf(stderr, "%s warning: rounding err predicted eps_mach*N2 = %.3g > 1 !\n",
+                __func__, (double)(EPSILON * mt));
+      if (EPSILON * mu > 1.0)
+        fprintf(stderr, "%s warning: rounding err predicted eps_mach*N3 = %.3g > 1 !\n",
+                __func__, (double)(EPSILON * mu));
+    }
+
+    // determine fine grid sizes, sanity check..
+    int nfier = set_nf_type12(ms, opts, spopts, &nf1);
+    if (nfier) throw nfier; // nf too big; we're done
+    phiHat1.resize(nf1 / 2 + 1);
+    if (dim > 1) {
+      nfier = set_nf_type12(mt, opts, spopts, &nf2);
+      if (nfier) throw nfier;
+      phiHat2.resize(nf2 / 2 + 1);
+    }
+    if (dim > 2) {
+      nfier = set_nf_type12(mu, opts, spopts, &nf3);
+      if (nfier) throw nfier;
+      phiHat3.resize(nf3 / 2 + 1);
+    }
+
+    if (opts.debug) { // "long long" here is to avoid warnings with printf...
+      printf("[%s] %dd%d: (ms,mt,mu)=(%lld,%lld,%lld) "
+             "(nf1,nf2,nf3)=(%lld,%lld,%lld)\n               ntrans=%d nthr=%d "
+             "batchSize=%d ",
+             __func__, dim, type, (long long)ms, (long long)mt, (long long)mu,
+             (long long)nf1, (long long)nf2, (long long)nf3, ntrans, nthr, batchSize);
+      if (batchSize == 1) // spread_thread has no effect in this case
+        printf("\n");
+      else
+        printf(" spread_thread=%d\n", opts.spread_thread);
+    }
+
+    // STEP 0: get Fourier coeffs of spreading kernel along each fine grid dim
+    CNTime timer;
+    timer.start();
+    onedim_fseries_kernel(nf1, phiHat1, spopts);
+    if (dim > 1) onedim_fseries_kernel(nf2, phiHat2, spopts);
+    if (dim > 2) onedim_fseries_kernel(nf3, phiHat3, spopts);
+    if (opts.debug)
+      printf("[%s] kernel fser (ns=%d):\t\t%.3g s\n", __func__, spopts.nspread,
+             timer.elapsedsec());
+
+    nf = nf1 * nf2 * nf3; // fine grid total number of points
+    if (nf * batchSize > MAX_NF) {
+      fprintf(stderr,
+              "[%s] fwBatch would be bigger than MAX_NF, not attempting malloc!\n",
+              __func__);
+      // FIXME: this error causes memory leaks. We should free phiHat1, phiHat2, phiHat3
+      throw int(FINUFFT_ERR_MAXNALLOC);
+    }
+
+    timer.restart();
+    fwBatch = fftPlan->alloc_complex(nf * batchSize); // the big workspace
+    if (opts.debug)
+      printf("[%s] fwBatch %.2fGB alloc:   \t%.3g s\n", __func__,
+             (double)1E-09 * sizeof(std::complex<TF>) * nf * batchSize,
+             timer.elapsedsec());
+    if (!fwBatch) { // we don't catch all such mallocs, just this big one
+      fprintf(stderr, "[%s] FFTW malloc failed for fwBatch (working fine grids)!\n",
+              __func__);
+      throw int(FINUFFT_ERR_ALLOC);
+    }
+
+    timer.restart(); // plan the FFTW
+    const auto ns = gridsize_for_fft(this);
+    fftPlan->plan(ns, batchSize, fwBatch, fftSign, opts.fftw, nthr_fft);
+    if (opts.debug)
+      printf("[%s] FFT plan (mode %d, nthr=%d):\t%.3g s\n", __func__, opts.fftw, nthr_fft,
+             timer.elapsedsec());
+
+  } else { // -------------------------- type 3 (no planning) ------------
+
+    if (opts.debug) printf("[%s] %dd%d: ntrans=%d\n", __func__, dim, type, ntrans);
+    // in case destroy occurs before setpts, need safe dummy ptrs/plans...
+    fwBatch     = nullptr;
+    innerT2plan = nullptr;
+    // Type 3 will call finufft_makeplan for type 2; no need to init FFTW
+    // Note we don't even know nj or nk yet, so can't do anything else!
+  }
+  if (ier > 1) throw int(ier); // report setup_spreader status (could be warning)
+}
+
+template<typename TF>
 int finufft_makeplan_t(int type, int dim, const BIGINT *n_modes, int iflag, int ntrans,
                        TF tol, FINUFFT_PLAN_T<TF> **pp, finufft_opts *opts)
 // Populates the fields of finufft_plan which is pointed to by "pp".
@@ -548,216 +760,14 @@ int finufft_makeplan_t(int type, int dim, const BIGINT *n_modes, int iflag, int 
 // For types 1,2 allocates memory for internal working arrays,
 // evaluates spreading kernel coefficients, and instantiates the fftw_plan
 {
-  FINUFFT_PLAN_T<TF> *p;
-  p   = new FINUFFT_PLAN_T<TF>; // allocate fresh plan struct
-  *pp = p;                      // pass out plan as ptr to plan struct
-
-  if (!opts)                    // use default opts
-    finufft_default_opts_t(&(p->opts));
-  else                          // or read from what's passed in
-    p->opts = *opts;            // keep a deep copy; changing *opts now has no effect
-
-  if (p->opts.debug)            // do a hello world
-    printf("[%s] new plan: FINUFFT version " FINUFFT_VER " .................\n",
-           __func__);
-
-  p->fftPlan = std::make_unique<Finufft_FFT_plan<TF>>(
-      p->opts.fftw_lock_fun, p->opts.fftw_unlock_fun, p->opts.fftw_lock_data);
-
-  if ((type != 1) && (type != 2) && (type != 3)) {
-    fprintf(stderr, "[%s] Invalid type (%d), should be 1, 2 or 3.\n", __func__, type);
-    return FINUFFT_ERR_TYPE_NOTVALID;
+  *pp     = nullptr;
+  int ier = 0;
+  try {
+    *pp = new FINUFFT_PLAN_T<TF>(type, dim, n_modes, iflag, ntrans, tol, opts, ier);
+  } catch (int errcode) {
+    return errcode;
   }
-  if ((dim != 1) && (dim != 2) && (dim != 3)) {
-    fprintf(stderr, "[%s] Invalid dim (%d), should be 1, 2 or 3.\n", __func__, dim);
-    return FINUFFT_ERR_DIM_NOTVALID;
-  }
-  if (ntrans < 1) {
-    fprintf(stderr, "[%s] ntrans (%d) should be at least 1.\n", __func__, ntrans);
-    return FINUFFT_ERR_NTRANS_NOTVALID;
-  }
-  if (!p->opts.fftw_lock_fun != !p->opts.fftw_unlock_fun) {
-    fprintf(stderr, "[%s] fftw_(un)lock functions should be both null or both set\n",
-            __func__);
-    return FINUFFT_ERR_LOCK_FUNS_INVALID;
-    ;
-  }
-
-  // get stuff from args...
-  p->type    = type;
-  p->dim     = dim;
-  p->ntrans  = ntrans;
-  p->tol     = tol;
-  p->fftSign = (iflag >= 0) ? 1 : -1; // clean up flag input
-
-                                      // choose overall # threads...
-#ifdef _OPENMP
-  int ompmaxnthr = MY_OMP_GET_MAX_THREADS();
-  int nthr       = ompmaxnthr; // default: use as many as OMP gives us
-  // (the above could be set, or suggested set, to 1 for small enough problems...)
-  if (p->opts.nthreads > 0) {
-    nthr = p->opts.nthreads; // user override, now without limit
-    if (p->opts.showwarn && (nthr > ompmaxnthr))
-      fprintf(stderr,
-              "%s warning: using opts.nthreads=%d, more than the %d OpenMP claims "
-              "available; note large nthreads can be slower.\n",
-              __func__, nthr, ompmaxnthr);
-  }
-#else
-  int nthr = 1; // always 1 thread (avoid segfault)
-  if (p->opts.nthreads > 1)
-    fprintf(stderr,
-            "%s warning: opts.nthreads=%d but library is single-threaded; ignoring!\n",
-            __func__, p->opts.nthreads);
-#endif
-  p->opts.nthreads = nthr; // store actual # thr planned for
-  // (this sets/limits all downstream spread/interp, 1dkernel, and FFT thread counts...)
-
-  // choose batchSize for types 1,2 or 3... (uses int ceil(b/a)=1+(b-1)/a trick)
-  if (p->opts.maxbatchsize == 0) {                  // logic to auto-set best batchsize
-    p->nbatch    = 1 + (ntrans - 1) / nthr;         // min # batches poss
-    p->batchSize = 1 + (ntrans - 1) / p->nbatch;    // then cut # thr in each b
-  } else {                                          // batchSize override by user
-    p->batchSize = min(p->opts.maxbatchsize, ntrans);
-    p->nbatch    = 1 + (ntrans - 1) / p->batchSize; // resulting # batches
-  }
-  if (p->opts.spread_thread == 0) p->opts.spread_thread = 2; // our auto choice
-  if (p->opts.spread_thread != 1 && p->opts.spread_thread != 2) {
-    fprintf(stderr, "[%s] illegal opts.spread_thread!\n", __func__);
-    return FINUFFT_ERR_SPREAD_THREAD_NOTVALID;
-  }
-
-  if (type != 3) {                      // read in user Fourier mode array sizes...
-    p->ms = n_modes[0];
-    p->mt = (dim > 1) ? n_modes[1] : 1; // leave as 1 for unused dims
-    p->mu = (dim > 2) ? n_modes[2] : 1;
-    p->N  = p->ms * p->mt * p->mu;      // N = total # modes
-  }
-
-  // heuristic to choose default upsampfac... (currently two poss)
-  if (p->opts.upsampfac == 0.0) {            // indicates auto-choose
-    p->opts.upsampfac = 2.0;                 // default, and need for tol small
-    if (tol >= (TF)1E-9) {                   // the tol sigma=5/4 can reach
-      if (type == 3)                         // could move to setpts, more known?
-        p->opts.upsampfac = 1.25;            // faster b/c smaller RAM & FFT
-      else if ((dim == 1 && p->N > 10000000) || (dim == 2 && p->N > 300000) ||
-               (dim == 3 && p->N > 3000000)) // type 1,2 heuristic cutoffs, double,
-                                             // typ tol, 12-core xeon
-        p->opts.upsampfac = 1.25;
-    }
-    if (p->opts.debug > 1)
-      printf("[%s] set auto upsampfac=%.2f\n", __func__, p->opts.upsampfac);
-  }
-  // use opts to choose and write into plan's spread options...
-  int ier = setup_spreader_for_nufft(p->spopts, tol, p->opts, dim);
-  if (ier > 1) // proceed if success or warning
-    return ier;
-
-  // set others as defaults (or unallocated for arrays)...
-  p->X   = nullptr;
-  p->Y   = nullptr;
-  p->Z   = nullptr;
-  p->nf1 = 1;
-  p->nf2 = 1;
-  p->nf3 = 1; // crucial to leave as 1 for unused dims
-
-  //  ------------------------ types 1,2: planning needed ---------------------
-  if (type == 1 || type == 2) {
-
-    int nthr_fft = nthr; // give FFTW all threads (or use o.spread_thread?)
-                         // Note: batchSize not used since might be only 1.
-
-    p->spopts.spread_direction = type;
-
-    constexpr TF EPSILON = std::numeric_limits<TF>::epsilon();
-    if (p->opts.showwarn) { // user warn round-off error...
-      if (EPSILON * p->ms > 1.0)
-        fprintf(stderr, "%s warning: rounding err predicted eps_mach*N1 = %.3g > 1 !\n",
-                __func__, (double)(EPSILON * p->ms));
-      if (EPSILON * p->mt > 1.0)
-        fprintf(stderr, "%s warning: rounding err predicted eps_mach*N2 = %.3g > 1 !\n",
-                __func__, (double)(EPSILON * p->mt));
-      if (EPSILON * p->mu > 1.0)
-        fprintf(stderr, "%s warning: rounding err predicted eps_mach*N3 = %.3g > 1 !\n",
-                __func__, (double)(EPSILON * p->mu));
-    }
-
-    // determine fine grid sizes, sanity check..
-    int nfier = set_nf_type12(p->ms, p->opts, p->spopts, &(p->nf1));
-    if (nfier) return nfier; // nf too big; we're done
-    p->phiHat1.resize(p->nf1 / 2 + 1);
-    if (dim > 1) {
-      nfier = set_nf_type12(p->mt, p->opts, p->spopts, &(p->nf2));
-      if (nfier) return nfier;
-      p->phiHat2.resize(p->nf2 / 2 + 1);
-    }
-    if (dim > 2) {
-      nfier = set_nf_type12(p->mu, p->opts, p->spopts, &(p->nf3));
-      if (nfier) return nfier;
-      p->phiHat3.resize(p->nf3 / 2 + 1);
-    }
-
-    if (p->opts.debug) { // "long long" here is to avoid warnings with printf...
-      printf("[%s] %dd%d: (ms,mt,mu)=(%lld,%lld,%lld) "
-             "(nf1,nf2,nf3)=(%lld,%lld,%lld)\n               ntrans=%d nthr=%d "
-             "batchSize=%d ",
-             __func__, dim, type, (long long)p->ms, (long long)p->mt, (long long)p->mu,
-             (long long)p->nf1, (long long)p->nf2, (long long)p->nf3, ntrans, nthr,
-             p->batchSize);
-      if (p->batchSize == 1) // spread_thread has no effect in this case
-        printf("\n");
-      else
-        printf(" spread_thread=%d\n", p->opts.spread_thread);
-    }
-
-    // STEP 0: get Fourier coeffs of spreading kernel along each fine grid dim
-    CNTime timer;
-    timer.start();
-    onedim_fseries_kernel(p->nf1, p->phiHat1, p->spopts);
-    if (dim > 1) onedim_fseries_kernel(p->nf2, p->phiHat2, p->spopts);
-    if (dim > 2) onedim_fseries_kernel(p->nf3, p->phiHat3, p->spopts);
-    if (p->opts.debug)
-      printf("[%s] kernel fser (ns=%d):\t\t%.3g s\n", __func__, p->spopts.nspread,
-             timer.elapsedsec());
-
-    p->nf = p->nf1 * p->nf2 * p->nf3; // fine grid total number of points
-    if (p->nf * p->batchSize > MAX_NF) {
-      fprintf(stderr,
-              "[%s] fwBatch would be bigger than MAX_NF, not attempting malloc!\n",
-              __func__);
-      // FIXME: this error causes memory leaks. We should free phiHat1, phiHat2, phiHat3
-      return FINUFFT_ERR_MAXNALLOC;
-    }
-
-    timer.restart();
-    p->fwBatch = p->fftPlan->alloc_complex(p->nf * p->batchSize); // the big workspace
-    if (p->opts.debug)
-      printf("[%s] fwBatch %.2fGB alloc:   \t%.3g s\n", __func__,
-             (double)1E-09 * sizeof(std::complex<TF>) * p->nf * p->batchSize,
-             timer.elapsedsec());
-    if (!p->fwBatch) { // we don't catch all such mallocs, just this big one
-      fprintf(stderr, "[%s] FFTW malloc failed for fwBatch (working fine grids)!\n",
-              __func__);
-      return FINUFFT_ERR_ALLOC;
-    }
-
-    timer.restart(); // plan the FFTW
-    const auto ns = gridsize_for_fft(p);
-    p->fftPlan->plan(ns, p->batchSize, p->fwBatch, p->fftSign, p->opts.fftw, nthr_fft);
-    if (p->opts.debug)
-      printf("[%s] FFT plan (mode %d, nthr=%d):\t%.3g s\n", __func__, p->opts.fftw,
-             nthr_fft, timer.elapsedsec());
-
-  } else { // -------------------------- type 3 (no planning) ------------
-
-    if (p->opts.debug) printf("[%s] %dd%d: ntrans=%d\n", __func__, dim, type, ntrans);
-    // in case destroy occurs before setpts, need safe dummy ptrs/plans...
-    p->fwBatch     = nullptr;
-    p->innerT2plan = nullptr;
-    // Type 3 will call finufft_makeplan for type 2; no need to init FFTW
-    // Note we don't even know nj or nk yet, so can't do anything else!
-  }
-  return ier; // report setup_spreader status (could be warning)
+  return ier;
 }
 template int finufft_makeplan_t<float>(int type, int dim, const BIGINT *n_modes,
                                        int iflag, int ntrans, float tol,
@@ -871,17 +881,17 @@ int FINUFFT_PLAN_T<TF>::setpts(BIGINT nj, TF *xj, TF *yj, TF *zj, BIGINT nk, TF 
 
     // alloc rescaled NU src pts x'_j (in X etc), rescaled NU targ pts s'_k ...
     // FIXME: should use realloc
-    if (X) free(X);
-    X = (TF *)malloc(sizeof(TF) * nj);
+    if (X) delete[] X;
+    X = new TF[nj];
     Sp.resize(nk);
     if (d > 1) {
-      if (Y) free(Y);
-      Y = (TF *)malloc(sizeof(TF) * nj);
+      if (Y) delete[] Y;
+      Y = new TF[nj];
       Tp.resize(nk);
     }
     if (d > 2) {
-      if (Z) free(Z);
-      Z = (TF *)malloc(sizeof(TF) * nj);
+      if (Z) delete[] Z;
+      Z = new TF[nj];
       Up.resize(nk);
     }
 
@@ -1195,9 +1205,9 @@ template<typename TF> FINUFFT_PLAN_T<TF>::~FINUFFT_PLAN_T() {
   if (type == 3) {
     delete innerT2plan;
     innerT2plan = nullptr;
-    free(X);
-    free(Y);
-    free(Z);
+    delete[] X;
+    delete[] Y;
+    delete[] Z;
   }
 }
 template FINUFFT_PLAN_T<float>::~FINUFFT_PLAN_T();
