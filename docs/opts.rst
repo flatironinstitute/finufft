@@ -54,10 +54,11 @@ Here are their default settings (from ``src/finufft.cpp:finufft_default_opts``):
 
 As for quick advice, the main options you'll want to play with are:
 
+- ``upsampfac`` to trade-off between spread/interpolate vs FFT speed and RAM
 - ``modeord`` to flip ("fftshift") the Fourier mode ordering
 - ``debug`` to look at timing output (to determine if your problem is spread/interpolation dominated, vs FFT dominated)
 - ``nthreads`` to run with a different number of threads than the current maximum available through OpenMP (a large number can sometimes be detrimental, and very small problems can sometimes run faster on 1 thread)
-- ``fftw`` to try slower plan modes which give faster transforms. The next natural one to try is ``FFTW_MEASURE`` (look at the FFTW3 docs)
+- ``fftw`` to try slower FFTW plan modes which give faster transforms. The next natural one to try is ``FFTW_MEASURE`` (look at the FFTW3 docs)
 
 See :ref:`Troubleshooting <trouble>` for good advice on trying options, and read the full options descriptions below.
 
@@ -158,9 +159,9 @@ There is thus little reason for the nonexpert to mess with this option.
 * ``spread_kerpad=1`` : pad to next multiple of four
 
 
-**upsampfac**: This is the internal real factor by which the FFT (fine grid)
+**upsampfac**: This is the internal factor, greater than 1, by which the FFT (fine grid)
 is chosen larger than
-the number of requested modes in each dimension, for type 1 and 2 transforms. It must be greater than 1.
+the number of requested modes in each dimension, for type 1 and 2 transforms. For type 3 transforms this factor gets squared, due to type 2 nested in a type-1-style spreading operation, so has even more effect.
 We have built efficient kernels
 for only two settings that are greater than 1, as follows. Otherwise, setting it to zero chooses a good heuristic:
 
