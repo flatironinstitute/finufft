@@ -1,3 +1,5 @@
+.. _c_gpu:
+
 C interface (GPU)
 =================
 
@@ -311,8 +313,9 @@ while ``modeord=1`` selects FFT-style ordering starting at zero and wrapping ove
 
 **gpu_device_id**: Sets the GPU device ID. Leave at default unless you know what you're doing. [To be documented]
 
-**gpu_spreadinterponly**: if ``0`` do the NUFFT as intended. If ``1``, omit the FFT and kernel FT deconvolution steps and return garbage answers.
-Nonzero value can be used *only* with `upsampfac=1` and `kerevalmeth=1` for using cufinufft for only spread and interpolate mode. This has applications into estimating the density compensation, which is conventionally used in MRI. (See [MRI-NUFFT](https://mind-inria.github.io/mri-nufft/nufft.html))
+**gpu_spreadinterponly**: if ``0`` do the NUFFT as intended. If ``1``, omit the FFT and deconvolution (diagonal division by kernel Fourier transform) steps, which returns *garbage answers as a NUFFT*, but allows advanced users to perform an isolated spreading or interpolation using the usual type 1 or type 2 ``cufinufft`` interface. To do this, the nonzero flag value must be used *only* with ``upsampfac=1.0`` (since the input and output grids are the same size, and neither represents Fourier coefficients), and ``kerevalmeth=1``. The known use-case here is estimating so-called density compensation, conventionally used in MRI. (See [MRI-NUFFT](https://mind-inria.github.io/mri-nufft/nufft.html)) Please note that this flag is also internally used by type 3 transforms (which was its original use case).
+
+
 
 
 Algorithm performance options
@@ -323,7 +326,7 @@ Algorithm performance options
 * ``gpu_method=0`` : makes an automatic choice of one of the below methods, based on our heuristics.
 
 * ``gpu_method=1`` : uses a nonuniform points-driven method, either unsorted which is referred to as GM in our paper, or sorted which is called GM-sort in our paper, depending on option ``gpu_sort`` below
-  
+
 * ``gpu_method=2`` : for spreading only, ie, type 1 transforms, uses a shared memory output-block driven method, referred to as SM in our paper. Has no effect for interpolation (type 2 transforms)
 
 * ``gpu_method>2`` : (various upsupported experimental methods due to Melody Shih, not for regular users. Eg ``3`` tests an idea of Paul Springer's to group NU points when spreading, ``4`` is a block gather method of possible interest.)
