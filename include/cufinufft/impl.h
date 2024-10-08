@@ -108,9 +108,9 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
     d_plan->mt = nmodes[1];
     d_plan->mu = nmodes[2];
     if (d_plan->opts.debug) {
-        printf("[cufinufft] (ms,mt,mu): %d %d %d\n", d_plan->ms, d_plan->mt, d_plan->mu);
+      printf("[cufinufft] (ms,mt,mu): %d %d %d\n", d_plan->ms, d_plan->mt, d_plan->mu);
     }
-  } else {
+  } else { // type 3 turns its outer type 1 into spreading-only
     d_plan->opts.gpu_spreadinterponly = 1;
   }
 
@@ -157,9 +157,9 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
   }
   if (d_plan->opts.gpu_spreadinterponly) {
     // XNOR implementation below with boolean logic.
-    if ((d_plan->opts.upsampfac !=1) == (type != 3)) {
-        ier = FINUFFT_ERR_SPREADONLY_UPSAMP_INVALID;
-        goto finalize;
+    if ((d_plan->opts.upsampfac != 1) == (type != 3)) {
+      ier = FINUFFT_ERR_SPREADONLY_UPSAMP_INVALID;
+      goto finalize;
     }
   }
   /* Setup Spreader */
@@ -262,74 +262,75 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
     } break;
     }
 
-    // We dont need any cuFFT plans or kernel values if we are only spreading / interpolating
-    if(!d_plan->opts.gpu_spreadinterponly) {
-        cufftHandle fftplan;
-        cufftResult_t cufft_status;
-        switch (d_plan->dim) {
-        case 1: {
-          int n[]       = {(int)nf1};
-          int inembed[] = {(int)nf1};
+    // We dont need any cuFFT plans or kernel values if we are only spreading /
+    // interpolating
+    if (!d_plan->opts.gpu_spreadinterponly) {
+      cufftHandle fftplan;
+      cufftResult_t cufft_status;
+      switch (d_plan->dim) {
+      case 1: {
+        int n[]       = {(int)nf1};
+        int inembed[] = {(int)nf1};
 
-          cufft_status = cufftPlanMany(&fftplan, 1, n, inembed, 1, inembed[0], inembed, 1,
-                                       inembed[0], cufft_type<T>(), batchsize);
-        } break;
-        case 2: {
-          int n[]       = {(int)nf2, (int)nf1};
-          int inembed[] = {(int)nf2, (int)nf1};
+        cufft_status = cufftPlanMany(&fftplan, 1, n, inembed, 1, inembed[0], inembed, 1,
+                                     inembed[0], cufft_type<T>(), batchsize);
+      } break;
+      case 2: {
+        int n[]       = {(int)nf2, (int)nf1};
+        int inembed[] = {(int)nf2, (int)nf1};
 
-          cufft_status =
-              cufftPlanMany(&fftplan, 2, n, inembed, 1, inembed[0] * inembed[1], inembed, 1,
-                            inembed[0] * inembed[1], cufft_type<T>(), batchsize);
-        } break;
-        case 3: {
-          int n[]       = {(int)nf3, (int)nf2, (int)nf1};
-          int inembed[] = {(int)nf3, (int)nf2, (int)nf1};
+        cufft_status =
+            cufftPlanMany(&fftplan, 2, n, inembed, 1, inembed[0] * inembed[1], inembed, 1,
+                          inembed[0] * inembed[1], cufft_type<T>(), batchsize);
+      } break;
+      case 3: {
+        int n[]       = {(int)nf3, (int)nf2, (int)nf1};
+        int inembed[] = {(int)nf3, (int)nf2, (int)nf1};
 
-          cufft_status = cufftPlanMany(
-              &fftplan, 3, n, inembed, 1, inembed[0] * inembed[1] * inembed[2], inembed, 1,
-              inembed[0] * inembed[1] * inembed[2], cufft_type<T>(), batchsize);
-        } break;
-        }
+        cufft_status = cufftPlanMany(
+            &fftplan, 3, n, inembed, 1, inembed[0] * inembed[1] * inembed[2], inembed, 1,
+            inembed[0] * inembed[1] * inembed[2], cufft_type<T>(), batchsize);
+      } break;
+      }
 
-        if (cufft_status != CUFFT_SUCCESS) {
-          fprintf(stderr, "[%s] cufft makeplan error: %s", __func__,
-                  cufftGetErrorString(cufft_status));
-          ier = FINUFFT_ERR_CUDA_FAILURE;
-          goto finalize;
-        }
-        cufftSetStream(fftplan, stream);
+      if (cufft_status != CUFFT_SUCCESS) {
+        fprintf(stderr, "[%s] cufft makeplan error: %s", __func__,
+                cufftGetErrorString(cufft_status));
+        ier = FINUFFT_ERR_CUDA_FAILURE;
+        goto finalize;
+      }
+      cufftSetStream(fftplan, stream);
 
-        d_plan->fftplan = fftplan;
+      d_plan->fftplan = fftplan;
 
-        // compute up to 3 * NQUAD precomputed values on CPU
-        T fseries_precomp_phase[3 * MAX_NQUAD];
-        T fseries_precomp_f[3 * MAX_NQUAD];
-        thrust::device_vector<T> d_fseries_precomp_phase(3 * MAX_NQUAD);
-        thrust::device_vector<T> d_fseries_precomp_f(3 * MAX_NQUAD);
-        onedim_fseries_kernel_precomp<T>(d_plan->nf1, fseries_precomp_f,
-                                         fseries_precomp_phase, d_plan->spopts);
-        if (d_plan->dim > 1)
-          onedim_fseries_kernel_precomp<T>(d_plan->nf2, fseries_precomp_f + MAX_NQUAD,
-                                           fseries_precomp_phase + MAX_NQUAD, d_plan->spopts);
-        if (d_plan->dim > 2)
-          onedim_fseries_kernel_precomp<T>(d_plan->nf3, fseries_precomp_f + 2 * MAX_NQUAD,
-                                           fseries_precomp_phase + 2 * MAX_NQUAD,
-                                           d_plan->spopts);
-        // copy the precomputed data to the device using thrust
-        thrust::copy(fseries_precomp_phase, fseries_precomp_phase + 3 * MAX_NQUAD,
-                     d_fseries_precomp_phase.begin());
-        thrust::copy(fseries_precomp_f, fseries_precomp_f + 3 * MAX_NQUAD,
-                     d_fseries_precomp_f.begin());
-        // the full fseries is done on the GPU here
-        if ((ier = fseries_kernel_compute(
-                 d_plan->dim, d_plan->nf1, d_plan->nf2, d_plan->nf3,
-                 d_fseries_precomp_f.data().get(), d_fseries_precomp_phase.data().get(),
-                 d_plan->fwkerhalf1, d_plan->fwkerhalf2, d_plan->fwkerhalf3,
-                 d_plan->spopts.nspread, stream)))
-          goto finalize;
+      // compute up to 3 * NQUAD precomputed values on CPU
+      T fseries_precomp_phase[3 * MAX_NQUAD];
+      T fseries_precomp_f[3 * MAX_NQUAD];
+      thrust::device_vector<T> d_fseries_precomp_phase(3 * MAX_NQUAD);
+      thrust::device_vector<T> d_fseries_precomp_f(3 * MAX_NQUAD);
+      onedim_fseries_kernel_precomp<T>(d_plan->nf1, fseries_precomp_f,
+                                       fseries_precomp_phase, d_plan->spopts);
+      if (d_plan->dim > 1)
+        onedim_fseries_kernel_precomp<T>(d_plan->nf2, fseries_precomp_f + MAX_NQUAD,
+                                         fseries_precomp_phase + MAX_NQUAD,
+                                         d_plan->spopts);
+      if (d_plan->dim > 2)
+        onedim_fseries_kernel_precomp<T>(d_plan->nf3, fseries_precomp_f + 2 * MAX_NQUAD,
+                                         fseries_precomp_phase + 2 * MAX_NQUAD,
+                                         d_plan->spopts);
+      // copy the precomputed data to the device using thrust
+      thrust::copy(fseries_precomp_phase, fseries_precomp_phase + 3 * MAX_NQUAD,
+                   d_fseries_precomp_phase.begin());
+      thrust::copy(fseries_precomp_f, fseries_precomp_f + 3 * MAX_NQUAD,
+                   d_fseries_precomp_f.begin());
+      // the full fseries is done on the GPU here
+      if ((ier = fseries_kernel_compute(
+               d_plan->dim, d_plan->nf1, d_plan->nf2, d_plan->nf3,
+               d_fseries_precomp_f.data().get(), d_fseries_precomp_phase.data().get(),
+               d_plan->fwkerhalf1, d_plan->fwkerhalf2, d_plan->fwkerhalf3,
+               d_plan->spopts.nspread, stream)))
+        goto finalize;
     }
-    
   }
 finalize:
   if (ier > 1) {
@@ -760,8 +761,8 @@ int cufinufft_setpts_impl(int M, T *d_kx, T *d_ky, T *d_kz, int N, T *d_s, T *d_
           thrust::cuda::par.on(stream), phase_iterator, phase_iterator + N,
           d_plan->deconv, d_plan->deconv,
           [c1, c2, c3, d1, d2, d3, realsign] __host__ __device__(
-              const thrust::tuple<T, T, T> tuple,
-              cuda_complex<T> deconv) -> cuda_complex<T> {
+              const thrust::tuple<T, T, T> tuple, cuda_complex<T> deconv)
+              -> cuda_complex<T> {
             // d2 and d3 are 0 if dim < 2 and dim < 3
             const auto phase = c1 * (thrust::get<0>(tuple) + d1) +
                                c2 * (thrust::get<1>(tuple) + d2) +
