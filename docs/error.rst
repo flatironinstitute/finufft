@@ -29,7 +29,7 @@ has the following meanings (see codes in ``include/finufft_errors.h``):
   18 size of bins for subprob/blockgather invalid
   19 GPU shmem too small for subprob/blockgather parameters
   20 invalid number of nonuniform points: nj or nk negative, or too big (see defs.h)
-  23 invalid upsampfac set while using gpu_spreadinterponly mode.
+  23 invalid upsampfac set while using gpu_spreadinterponly mode
 
 When ``ier=1`` (warning only) the transform(s) is/are still completed, at the smallest epsilon achievable, so, with that caveat, the answer should still be usable.
 
