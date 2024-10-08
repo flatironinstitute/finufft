@@ -721,6 +721,82 @@ FLT evaluate_kernel(FLT x, const finufft_spread_opts &opts)
     return exp((FLT)opts.ES_beta * (sqrt((FLT)1.0 - (FLT)opts.ES_c * x * x) - (FLT)1.0));
 }
 
+template<uint8_t ns, uint8_t upsampfact>
+FLT evaluate_kernel_horner_kernel(FLT x, const finufft_spread_opts &opts)
+/* Templated ES ("exp sqrt") kernel evaluation at single real argument:
+      phi(x) = exp(beta.(sqrt(1 - (2x/n_s)^2) - 1)),    for |x| < nspread/2
+   using generated piecewise polynomial approximation to the kernel.
+*/
+{
+  if (abs(x) >= (FLT)opts.ES_halfwidth) {
+    // if spreading/FT careful, shouldn't need this if, but causes no speed hit
+    return 0.0;
+  } else {
+    static constexpr auto horner_coeffs = []() constexpr noexcept {
+      if constexpr (upsampfact == 200) {
+        return get_horner_coeffs_200<FLT, ns>();
+      } else if constexpr (upsampfact == 125) {
+        return get_horner_coeffs_125<FLT, ns>();
+      }
+    }();
+    static constexpr auto nc = horner_coeffs.size();
+    FLT res                  = 0.0;
+    for (uint8_t i = 0; i < ns; i++) {
+      if (x > -opts.ES_halfwidth + i && x <= -opts.ES_halfwidth + i + 1) {
+        FLT z = std::fma(FLT(2.0), x - FLT(i), FLT(ns - 1));
+        for (uint8_t j = 0; j < nc; ++j) {
+          res = std::fma(res, z, horner_coeffs[j][i]);
+        }
+        break;
+      }
+    }
+    return res;
+  }
+}
+
+template<uint8_t ns>
+FLT evaluate_kernel_horner_dispatch(FLT x, const finufft_spread_opts &opts) {
+  /* Template dispatcher ES ("exp sqrt") kernel evaluation at single real argument:
+        phi(x) = exp(beta.(sqrt(1 - (2x/n_s)^2) - 1)),    for |x| < nspread/2
+     using generated piecewise polynomial approximation to the kernel.
+  */
+  static_assert(MIN_NSPREAD <= ns && ns <= MAX_NSPREAD,
+                "ns must be in the range (MIN_NSPREAD, MAX_NSPREAD)");
+  if constexpr (ns == MIN_NSPREAD) { // Base case
+    if (opts.upsampfac == 2.0) {
+      return evaluate_kernel_horner_kernel<MIN_NSPREAD, 200>(x, opts);
+    } else if (opts.upsampfac == 1.25) {
+      return evaluate_kernel_horner_kernel<MIN_NSPREAD, 125>(x, opts);
+    } else {
+      fprintf(stderr, "[%s] upsampfac (%lf) not supported!\n", __func__, opts.upsampfac);
+      return 0.0;
+    }
+  } else {
+    if (opts.nspread == ns) {
+      if (opts.upsampfac == 2.0) {
+        return evaluate_kernel_horner_kernel<ns, 200>(x, opts);
+      } else if (opts.upsampfac == 1.25) {
+        return evaluate_kernel_horner_kernel<ns, 125>(x, opts);
+      } else {
+        fprintf(stderr, "[%s] upsampfac (%lf) not supported!\n", __func__,
+                opts.upsampfac);
+        return 0.0;
+      }
+    } else {
+      return evaluate_kernel_horner_dispatch<ns - 1>(x, opts);
+    }
+  }
+}
+
+FLT evaluate_kernel_horner(FLT x, const finufft_spread_opts &opts)
+/* ES ("exp sqrt") kernel evaluation at single real argument:
+      phi(x) = exp(beta.(sqrt(1 - (2x/n_s)^2) - 1)),    for |x| < nspread/2
+   using generated piecewise polynomial approximation to the kernel.
+*/
+{
+  return evaluate_kernel_horner_dispatch<MAX_NSPREAD>(x, opts);
+}
+
 template<uint8_t ns>
 void set_kernel_args(FLT *args, FLT x) noexcept
 // Fills vector args[] with kernel arguments x, x+1, ..., x+ns-1.
