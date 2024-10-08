@@ -14,6 +14,7 @@
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
+#include <iostream>
 #include <vector>
 
 using namespace std;
@@ -73,8 +74,8 @@ static FINUFFT_ALWAYS_INLINE auto ker_eval(FLT *FINUFFT_RESTRICT ker,
                                            const V... elems) noexcept;
 static FINUFFT_ALWAYS_INLINE FLT fold_rescale(FLT x, UBIGINT N) noexcept;
 template<class simd_type>
-FINUFFT_ALWAYS_INLINE static simd_type fold_rescale(const simd_type &x,
-                                                    UBIGINT N) noexcept;
+static FINUFFT_ALWAYS_INLINE simd_type fold_rescale(const simd_type &x,
+                                                    const BIGINT N) noexcept;
 static FINUFFT_ALWAYS_INLINE void set_kernel_args(
     FLT *args, FLT x, const finufft_spread_opts &opts) noexcept;
 static FINUFFT_ALWAYS_INLINE void evaluate_kernel_vector(
@@ -114,6 +115,10 @@ static void bin_sort_singlethread(BIGINT *ret, UBIGINT M, const FLT *kx, const F
                                   const FLT *kz, UBIGINT N1, UBIGINT N2, UBIGINT N3,
                                   double bin_size_x, double bin_size_y, double bin_size_z,
                                   int debug);
+static void bin_sort_singlethread_vector(BIGINT *ret, UBIGINT M, const FLT *kx,
+                                         const FLT *ky, const FLT *kz, UBIGINT N1,
+                                         UBIGINT N2, UBIGINT N3, double bin_size_x,
+                                         double bin_size_y, double bin_size_z, int debug);
 void bin_sort_multithread(BIGINT *ret, UBIGINT M, FLT *kx, FLT *ky, FLT *kz, UBIGINT N1,
                           UBIGINT N2, UBIGINT N3, double bin_size_x, double bin_size_y,
                           double bin_size_z, int debug, int nthr);
@@ -296,8 +301,8 @@ int indexSort(BIGINT *sort_indices, UBIGINT N1, UBIGINT N2, UBIGINT N3, UBIGINT 
     if (sort_nthr == 0) // multithreaded auto choice: when N>>M, one thread is better!
       sort_nthr = (10 * M > N) ? maxnthr : 1; // heuristic
     if (sort_nthr == 1)
-      bin_sort_singlethread(sort_indices, M, kx, ky, kz, N1, N2, N3, bin_size_x,
-                            bin_size_y, bin_size_z, sort_debug);
+      bin_sort_singlethread_vector(sort_indices, M, kx, ky, kz, N1, N2, N3, bin_size_x,
+                                   bin_size_y, bin_size_z, sort_debug);
     else // sort_nthr>1, user fixes # threads (>=2)
       bin_sort_multithread(sort_indices, M, kx, ky, kz, N1, N2, N3, bin_size_x,
                            bin_size_y, bin_size_z, sort_debug, sort_nthr);
@@ -1838,6 +1843,177 @@ void add_wrapped_subgrid(BIGINT offset1, BIGINT offset2, BIGINT offset3,
         accumulate(out[j + o], in[j]);
       }
     }
+  }
+}
+
+template<typename simd_type, std::size_t... Is>
+static FINUFFT_ALWAYS_INLINE simd_type make_incremented_vectors(
+    std::index_sequence<Is...>) {
+  return simd_type{Is...}; // Creates a SIMD vector with the index sequence
+}
+
+template<std::size_t N, typename simd_type>
+static FINUFFT_ALWAYS_INLINE bool has_duplicates_impl(const simd_type &vec) noexcept {
+
+  if constexpr (N == simd_type::size) {
+    return false;
+  } else {
+    const auto duplicates =
+        (xsimd::rotate_right<N>(vec) == vec) != xsimd::batch_bool<bool>(false);
+    if (duplicates) {
+      return true;
+    }
+    return has_duplicates_impl<N + 1>(vec);
+  }
+}
+
+template<typename simd_type>
+static FINUFFT_ALWAYS_INLINE bool has_duplicates(const simd_type &vec) noexcept {
+  return has_duplicates_impl<1, simd_type>(vec);
+}
+
+void bin_sort_singlethread_vector(
+    BIGINT *ret, const UBIGINT M, const FLT *kx, const FLT *ky, const FLT *kz,
+    const UBIGINT N1, const UBIGINT N2, const UBIGINT N3, const double bin_size_x,
+    const double bin_size_y, const double bin_size_z, const int debug)
+/* Returns permutation of all nonuniform points with good RAM access,
+ * ie less cache misses for spreading, in 1D, 2D, or 3D. Single-threaded version
+ *
+ * This is achieved by binning into cuboids (of given bin_size within the
+ * overall box domain), then reading out the indices within
+ * these bins in a Cartesian cuboid ordering (x fastest, y med, z slowest).
+ * Finally the permutation is inverted, so that the good ordering is: the
+ * NU pt of index ret[0], the NU pt of index ret[1],..., NU pt of index ret[M-1]
+ *
+ * Inputs: M - number of input NU points.
+ *         kx,ky,kz - length-M arrays of real coords of NU pts in [-pi, pi).
+ *                    Points outside this range are folded into it.
+ *         N1,N2,N3 - integer sizes of overall box (N2=N3=1 for 1D, N3=1 for 2D)
+ *         bin_size_x,y,z - what binning box size to use in each dimension
+ *                    (in rescaled coords where ranges are [0,Ni] ).
+ *                    For 1D, only bin_size_x is used; for 2D, it & bin_size_y.
+ * Output:
+ *         writes to ret a vector list of indices, each in the range 0,..,M-1.
+ *         Thus, ret must have been preallocated for M BIGINTs.
+ *
+ * Notes: I compared RAM usage against declaring an internal vector and passing
+ * back; the latter used more RAM and was slower.
+ * Avoided the bins array, as in JFM's spreader of 2016,
+ * tidied up, early 2017, Barnett.
+ * Timings (2017): 3s for M=1e8 NU pts on 1 core of i7; 5s on 1 core of xeon.
+ * Simplified by Martin Reinecke, 6/19/23 (no apparent effect on speed).
+ */
+{
+  using simd_type                 = xsimd::batch<FLT>;
+  using int_simd_type             = xsimd::batch<xsimd::as_integer_t<FLT>>;
+  using arch_t                    = simd_type::arch_type;
+  static constexpr auto simd_size = simd_type::size;
+  static constexpr auto alignment = arch_t::alignment();
+
+  static constexpr auto to_array = [](const auto &vec) constexpr noexcept {
+    using T = decltype(std::decay_t<decltype(vec)>());
+    alignas(alignment) std::array<typename T::value_type, T::size> array{};
+    vec.store_aligned(array.data());
+    return array;
+  };
+
+  const auto isky = (N2 > 1), iskz = (N3 > 1); // ky,kz avail? (cannot access if not)
+  // here the +1 is needed to allow round-off error causing i1=N1/bin_size_x,
+  // for kx near +pi, ie foldrescale gives N1 (exact arith would be 0 to N1-1).
+  // Note that round-off near kx=-pi stably rounds negative to i1=0.
+  const auto nbins1             = BIGINT(FLT(N1) / bin_size_x + 1);
+  const auto nbins2             = isky ? BIGINT(FLT(N2) / bin_size_y + 1) : 1;
+  const auto nbins3             = iskz ? BIGINT(FLT(N3) / bin_size_z + 1) : 1;
+  const auto nbins              = nbins1 * nbins2 * nbins3;
+  const auto inv_bin_size_x     = FLT(1.0 / bin_size_x);
+  const auto inv_bin_size_y     = FLT(1.0 / bin_size_y);
+  const auto inv_bin_size_z     = FLT(1.0 / bin_size_z);
+  const auto inv_bin_size_x_vec = simd_type(1.0 / bin_size_x);
+  const auto inv_bin_size_y_vec = simd_type(1.0 / bin_size_y);
+  const auto inv_bin_size_z_vec = simd_type(1.0 / bin_size_z);
+  const auto zero               = to_int(simd_type(0));
+  const auto increment =
+      to_int(make_incremented_vectors<simd_type>(std::make_index_sequence<simd_size>{}));
+
+  // count how many pts in each bin
+  alignas(alignment) std::vector<xsimd::as_integer_t<FLT>> counts(nbins + simd_size, 0);
+  const auto simd_M = M & (-simd_size); // round down to simd_size multiple
+  UBIGINT i{};
+  for (i = 0; i < simd_M; i += simd_size) {
+    const auto i1 = xsimd::to_int(
+        fold_rescale(simd_type::load_unaligned(kx + i), N1) * inv_bin_size_x_vec);
+    const auto i2 =
+        isky ? xsimd::to_int(fold_rescale(simd_type::load_unaligned(ky + i), N2) *
+                             inv_bin_size_y_vec)
+             : zero;
+    const auto i3 =
+        iskz ? xsimd::to_int(fold_rescale(simd_type::load_unaligned(kz + i), N3) *
+                             inv_bin_size_z_vec)
+             : zero;
+    const auto bin = i1 + nbins1 * (i2 + nbins2 * i3);
+    if (has_duplicates(bin)) {
+      const auto bin_array = to_array(bin);
+      for (int j = 0; j < simd_size; j++) {
+        ++counts[bin_array[j]];
+      }
+    } else {
+      const auto bins      = int_simd_type::gather(counts.data(), bin);
+      const auto incr_bins = xsimd::incr(bins);
+      incr_bins.scatter(counts.data(), bin);
+    }
+  }
+
+  for (; i < M; i++) {
+    // find the bin index in however many dims are needed
+    const auto i1  = BIGINT(fold_rescale(kx[i], N1) * inv_bin_size_x);
+    const auto i2  = isky ? BIGINT(fold_rescale(ky[i], N2) * inv_bin_size_y) : 0;
+    const auto i3  = iskz ? BIGINT(fold_rescale(kz[i], N3) * inv_bin_size_z) : 0;
+    const auto bin = i1 + nbins1 * (i2 + nbins2 * i3);
+    ++counts[bin];
+  }
+
+  // compute the offsets directly in the counts array (no offset array)
+  BIGINT current_offset = 0;
+  for (i = 0; i < nbins; i++) {
+    BIGINT tmp = counts[i];
+    counts[i]  = current_offset; // Reinecke's cute replacement of counts[i]
+    current_offset += tmp;
+  } // (counts now contains the index offsets for each bin)
+
+  for (i = 0; i < simd_M; i += simd_size) {
+    const auto i1 = xsimd::to_int(
+        fold_rescale(simd_type::load_unaligned(kx + i), N1) * inv_bin_size_x_vec);
+    const auto i2 =
+        isky ? xsimd::to_int(fold_rescale(simd_type::load_unaligned(ky + i), N2) *
+                             inv_bin_size_y_vec)
+             : zero;
+    const auto i3 =
+        iskz ? xsimd::to_int(fold_rescale(simd_type::load_unaligned(kz + i), N3) *
+                             inv_bin_size_z_vec)
+             : zero;
+    const auto bin = i1 + nbins1 * (i2 + nbins2 * i3);
+    if (has_duplicates(bin)) {
+      const auto bin_array = to_array(to_int(bin));
+      for (int j = 0; j < simd_size; j++) {
+        ret[counts[bin_array[j]]] = j + i;
+        counts[bin_array[j]]++;
+      }
+    } else {
+      const auto bins      = decltype(bin)::gather(counts.data(), bin);
+      const auto incr_bins = xsimd::incr(bins);
+      incr_bins.scatter(counts.data(), bin);
+      const auto result = increment + int_simd_type(i);
+      result.scatter(ret, bins);
+    }
+  }
+  for (; i < M; i++) {
+    // find the bin index (again! but better than using RAM)
+    const auto i1    = BIGINT(fold_rescale(kx[i], N1) * inv_bin_size_x);
+    const auto i2    = isky ? BIGINT(fold_rescale(ky[i], N2) * inv_bin_size_y) : 0;
+    const auto i3    = iskz ? BIGINT(fold_rescale(kz[i], N3) * inv_bin_size_z) : 0;
+    const auto bin   = i1 + nbins1 * (i2 + nbins2 * i3);
+    ret[counts[bin]] = i; // fill the inverse map on the fly
+    ++counts[bin];        // update the offsets
   }
 }
 
