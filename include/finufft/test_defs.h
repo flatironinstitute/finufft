@@ -17,7 +17,6 @@
 
 // convenient private finufft internals (must come after finufft.h)
 #include <finufft/utils.h>
-#include <finufft/utils_precindep.h>
 // prec-switching (via SINGLE) to set up FLT, CPX, BIGINT, FINUFFT1D1, etc...
 #include <finufft/defs.h>
 
