@@ -159,19 +159,18 @@ There is thus little reason for the nonexpert to mess with this option.
 * ``spread_kerpad=1`` : pad to next multiple of four
 
 
-**upsampfac**: This is the internal factor, greater than 1, by which the FFT (fine grid)
+**upsampfac**: This is the internal factor by which the FFT (fine grid)
 is chosen larger than
-the number of requested modes in each dimension, for type 1 and 2 transforms. For type 3 transforms this factor gets squared, due to type 2 nested in a type-1-style spreading operation, so has even more effect.
+the number of requested modes in each dimension, for type 1 and 2 transforms. For type 3 transforms this factor gets squared, due to type 2 nested in a type-1-spreading operation, so has even more influence.
 We have built efficient kernels
-for only two settings that are greater than 1, as follows. Otherwise, setting it to zero chooses a good heuristic:
+for only two settings, as follows. Otherwise, setting it to zero chooses a good heuristic:
 
-* ``upsampfac=0.0`` : use heuristics to choose ``upsampfac`` as one of the below values exceeding 1, and use this value internally. The value chosen is visible in the text output via setting ``debug>=2``. This setting is recommended for basic users; however, if you seek more performance it is quick to try the other of the values exceeding 1.
+* ``upsampfac=0.0`` : use heuristics to choose ``upsampfac`` as one of the below values, and use this value internally. The value chosen is visible in the text output via setting ``debug>=2``. This setting is recommended for basic users; however, if you seek more performance it is quick to try the other of the values.
 
 * ``upsampfac=2.0`` : standard setting of upsampling. Due to kernel width restrictions, this is necessary if you need to exceed 9 digits of accuracy.
 
 * ``upsampfac=1.25`` : low-upsampling option, with lower RAM, smaller FFTs, but wider spreading kernel. The latter can be much faster than the standard when the number of nonuniform points is similar or smaller to the number of modes, and/or if low accuracy is required. It is especially much (2 to 3 times) faster for type 3 transforms. However, the kernel widths :math:`w` are about 50% larger in each dimension, which can lead to slower spreading (it can also be faster due to the smaller size of the fine grid). Because the kernel width is limited to 16, currently, thus only 9-digit accuracy can currently be reached when using ``upsampfac=1.25``.
 
-* ``upsampfac=1.0`` : an obscure advanced setting peculiar to a "spread/interpolate only" mode specific to the GPU (see :ref:`GPU usage<c_gpu>`), which does not even in fact execute a NUFFT. Thus, do not use this unless you know what you are doing!
 
 **spread_thread**: in the case of multiple transforms per call (``ntr>1``, or the "many" interfaces), controls how multithreading is used to spread/interpolate each batch of data.
 
