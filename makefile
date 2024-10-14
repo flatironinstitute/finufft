@@ -268,6 +268,10 @@ test/testutilsf: test/testutils.cpp src/utils.o
 
 # make sure all double-prec test executables ready for testing
 TESTS := $(basename $(wildcard test/*.cpp))
+# kill off FFTW-specific tests if it's not the FFT we build with...
+ifeq ($(FFT),DUCC)
+  TESTS := $(filter-out $(basename $(wildcard test/*fftw*.cpp)),$(TESTS))
+endif
 # also need single-prec
 TESTS += $(TESTS:%=%f)
 test: $(TESTS)

@@ -8,4 +8,5 @@ c     Also see ../fortran/finufftfort.cpp.  Barnett 5/29/20. One prec 7/2/20.
          real*8 upsampfac
          integer spread_thread,maxbatchsize,showwarn,nthreads,
      $        spread_nthr_atomic,spread_max_sp_size
+         integer fftw_lock_fun,fftw_unlock_fun,fftw_lock_data
       end type
