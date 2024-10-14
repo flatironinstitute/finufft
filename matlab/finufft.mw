@@ -51,7 +51,7 @@ $ #include <math.h>
 
 % .........................................................................
 % This C++ code overwrites any properties of finufft_opts *oc with any valid
-% fields in the matlab struct *om.
+% fields in the matlab struct *om. Note: fftw_{un}lock stuff not included.
 %
 $ void copy_finufft_opts(const mxArray* om, finufft_opts *oc) {
 $   if(!mxIsStruct(om))
