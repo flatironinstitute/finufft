@@ -178,7 +178,8 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
   }
 
   cufinufft_setup_binsize<T>(type, d_plan->spopts.nspread, dim, &d_plan->opts);
-  if (ier = cudaGetLastError(), ier != cudaSuccess) {
+  if (cudaGetLastError() != cudaSuccess) {
+    ier = FINUFFT_ERR_CUDA_FAILURE;
     goto finalize;
   }
   if (d_plan->opts.debug) {
