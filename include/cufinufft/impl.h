@@ -74,7 +74,7 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
   using namespace cufinufft::common;
   int ier;
   if (type < 1 || type > 3) {
-    fprintf(stderr, "[%s] Invalid type (%d): should be 1 or 2.\n", __func__, type);
+    fprintf(stderr, "[%s] Invalid type (%d): should be 1, 2, or 3.\n", __func__, type);
     return FINUFFT_ERR_TYPE_NOTVALID;
   }
   if (ntransf < 1) {
