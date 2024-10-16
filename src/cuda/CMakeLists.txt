@@ -58,6 +58,7 @@ set_target_properties(
              CUDA_SEPARABLE_COMPILATION ON
              CUDA_STANDARD 17
              CUDA_STANDARD_REQUIRED ON
+             WINDOWS_EXPORT_ALL_SYMBOLS ON
              ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
 target_compile_features(cufinufft PRIVATE cxx_std_17)
 target_compile_options(cufinufft PRIVATE ${FINUFFT_CUDA_FLAGS})
