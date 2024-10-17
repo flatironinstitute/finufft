@@ -228,7 +228,8 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
     }
   }
 
-  if ((ier = cudaGetLastError())) {
+  if (cudaGetLastError() != cudaSuccess) {
+    ier = FINUFFT_ERR_CUDA_FAILURE;
     goto finalize;
   }
 
