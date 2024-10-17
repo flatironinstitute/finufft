@@ -801,7 +801,7 @@ int cufinufft_setpts_impl(int M, T *d_kx, T *d_ky, T *d_kz, int N, T *d_s, T *d_
     int t2modes[]               = {d_plan->nf1, d_plan->nf2, d_plan->nf3};
     cufinufft_opts t2opts       = d_plan->opts;
     t2opts.gpu_spreadinterponly = 0;
-    t2opts.gpu_method           = 1;
+    t2opts.gpu_method           = 0;
     // Safe to ignore the return value here?
     if (d_plan->t2_plan) cufinufft_destroy_impl(d_plan->t2_plan);
     // check that maxbatchsize is correct
