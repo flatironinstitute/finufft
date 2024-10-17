@@ -198,8 +198,9 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
   }
 
   // Default to method 1 for type 3.
-  if (type == 3 && d_plan->opts.gpu_method == 0)
+  if (type == 3 && d_plan->opts.gpu_method == 0) {
       d_plan->opts.gpu_method = 1;
+  }
 
   if (type == 1 || type == 2) {
     CUFINUFFT_BIGINT nf1 = 1, nf2 = 1, nf3 = 1;
