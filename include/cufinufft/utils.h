@@ -9,12 +9,21 @@
 
 #include <cuda_runtime.h>
 
+#ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN
+#define NOMINMAX
+#include <windows.h>
+#else
 #include <sys/time.h>
+#endif
 
 #include <cuda.h>
 #include <type_traits>
 
 #include <thrust/extrema.h>
+
+#define _USE_MATH_DEFINES
+#include <math.h>
 
 #if !defined(__CUDA_ARCH__) || __CUDA_ARCH__ >= 600 || defined(__clang__)
 #else
@@ -95,7 +104,11 @@ public:
   double elapsedsec();
 
 private:
+#ifdef _WIN32
+  LARGE_INTEGER initial, frequency;
+#else
   struct timeval initial;
+#endif
 };
 
 // ahb math helpers
@@ -118,8 +131,8 @@ template<typename T> T infnorm(int n, std::complex<T> *a) {
  */
 
 template<typename T>
-static __forceinline__ __device__ void atomicAddComplexShared(cuda_complex<T> *address,
-                                                              cuda_complex<T> res) {
+static __forceinline__ __device__ void atomicAddComplexShared(
+    cuda_complex<T> *address, cuda_complex<T> res) {
   const auto raw_address = reinterpret_cast<T *>(address);
   atomicAdd(raw_address, res.x);
   atomicAdd(raw_address + 1, res.y);
@@ -131,8 +144,8 @@ static __forceinline__ __device__ void atomicAddComplexShared(cuda_complex<T> *a
  * on shared memory are supported so we leverage them
  */
 template<typename T>
-static __forceinline__ __device__ void atomicAddComplexGlobal(cuda_complex<T> *address,
-                                                              cuda_complex<T> res) {
+static __forceinline__ __device__ void atomicAddComplexGlobal(
+    cuda_complex<T> *address, cuda_complex<T> res) {
   if constexpr (
       std::is_same_v<cuda_complex<T>, float2> && COMPUTE_CAPABILITY_90_OR_HIGHER) {
     atomicAdd(address, res);
