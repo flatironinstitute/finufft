@@ -758,6 +758,14 @@ int finufft_makeplan_t(int type, int dim, const BIGINT *n_modes, int iflag, int 
   }
   return ier; // report setup_spreader status (could be warning)
 }
+
+// For this function and the following ones (i.e. everything that is accessible
+// from outside), we need to state for which data types we want the template
+// to be instantiated. At the current location in the code, the compiler knows
+// how exactly it can construct the function "finufft_makeplan_t" for any given
+// type TF, but it doesn't know for which types it actually should do so.
+// The following two statements instruct it to do that for TF=float and
+// TF=double.
 template int finufft_makeplan_t<float>(int type, int dim, const BIGINT *n_modes,
                                        int iflag, int ntrans, float tol,
                                        FINUFFT_PLAN_T<float> **pp, finufft_opts *opts);
