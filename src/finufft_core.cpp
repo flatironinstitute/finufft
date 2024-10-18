@@ -80,8 +80,8 @@ namespace common {
 
 static constexpr double PI = 3.14159265358979329;
 
-static int set_nf_type12(BIGINT ms, finufft_opts opts, finufft_spread_opts spopts,
-                         BIGINT *nf)
+static int set_nf_type12(BIGINT ms, const finufft_opts &opts,
+                         const finufft_spread_opts &spopts, BIGINT *nf)
 // Type 1 & 2 recipe for how to set 1d size of upsampled array, nf, given opts
 // and requested number of Fourier modes ms. Returns 0 if success, else an
 // error code if nf was unreasonably big (& tell the world).
@@ -101,8 +101,8 @@ static int set_nf_type12(BIGINT ms, finufft_opts opts, finufft_spread_opts spopt
 }
 
 template<typename T>
-static int setup_spreader_for_nufft(finufft_spread_opts &spopts, T eps, finufft_opts opts,
-                                    int dim)
+static int setup_spreader_for_nufft(finufft_spread_opts &spopts, T eps,
+                                    const finufft_opts &opts, int dim)
 // Set up the spreader parameters given eps, and pass across various nufft
 // options. Return status of setup_spreader. Uses pass-by-ref. Barnett 10/30/17
 {
@@ -127,8 +127,8 @@ static int setup_spreader_for_nufft(finufft_spread_opts &spopts, T eps, finufft_
 }
 
 template<typename T>
-static void set_nhg_type3(T S, T X, finufft_opts opts, finufft_spread_opts spopts,
-                          BIGINT *nf, T *h, T *gam)
+static void set_nhg_type3(T S, T X, const finufft_opts &opts,
+                          const finufft_spread_opts &spopts, BIGINT *nf, T *h, T *gam)
 /* sets nf, h (upsampled grid spacing), and gamma (x_j rescaling factor),
    for type 3 only.
    Inputs:
@@ -167,7 +167,7 @@ static void set_nhg_type3(T S, T X, finufft_opts opts, finufft_spread_opts spopt
 
 template<typename T>
 static void onedim_fseries_kernel(BIGINT nf, std::vector<T> &fwkerhalf,
-                                  finufft_spread_opts opts)
+                                  const finufft_spread_opts &opts)
 /*
   Approximates exact Fourier series coeffs of cnufftspread's real symmetric
   kernel, directly via q-node quadrature on Euler-Fourier formula, exploiting
@@ -232,7 +232,7 @@ static void onedim_fseries_kernel(BIGINT nf, std::vector<T> &fwkerhalf,
 
 template<typename T>
 static void onedim_nuft_kernel(BIGINT nk, const std::vector<T> &k, std::vector<T> &phihat,
-                               finufft_spread_opts opts)
+                               const finufft_spread_opts &opts)
 /*
   Approximates exact 1D Fourier transform of cnufftspread's real symmetric
   kernel, directly via q-node quadrature on Euler-Fourier formula, exploiting
