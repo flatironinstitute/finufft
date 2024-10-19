@@ -12,7 +12,6 @@
 #include <memory>
 #include <vector>
 
-using namespace std;
 using namespace finufft;
 using namespace finufft::utils;
 using namespace finufft::spreadinterp;
@@ -81,8 +80,8 @@ namespace common {
 
 static constexpr double PI = 3.14159265358979329;
 
-static int set_nf_type12(BIGINT ms, finufft_opts opts, finufft_spread_opts spopts,
-                         BIGINT *nf)
+static int set_nf_type12(BIGINT ms, const finufft_opts &opts,
+                         const finufft_spread_opts &spopts, BIGINT *nf)
 // Type 1 & 2 recipe for how to set 1d size of upsampled array, nf, given opts
 // and requested number of Fourier modes ms. Returns 0 if success, else an
 // error code if nf was unreasonably big (& tell the world).
@@ -102,8 +101,8 @@ static int set_nf_type12(BIGINT ms, finufft_opts opts, finufft_spread_opts spopt
 }
 
 template<typename T>
-static int setup_spreader_for_nufft(finufft_spread_opts &spopts, T eps, finufft_opts opts,
-                                    int dim)
+static int setup_spreader_for_nufft(finufft_spread_opts &spopts, T eps,
+                                    const finufft_opts &opts, int dim)
 // Set up the spreader parameters given eps, and pass across various nufft
 // options. Return status of setup_spreader. Uses pass-by-ref. Barnett 10/30/17
 {
@@ -128,8 +127,8 @@ static int setup_spreader_for_nufft(finufft_spread_opts &spopts, T eps, finufft_
 }
 
 template<typename T>
-static void set_nhg_type3(T S, T X, finufft_opts opts, finufft_spread_opts spopts,
-                          BIGINT *nf, T *h, T *gam)
+static void set_nhg_type3(T S, T X, const finufft_opts &opts,
+                          const finufft_spread_opts &spopts, BIGINT *nf, T *h, T *gam)
 /* sets nf, h (upsampled grid spacing), and gamma (x_j rescaling factor),
    for type 3 only.
    Inputs:
@@ -150,12 +149,12 @@ static void set_nhg_type3(T S, T X, finufft_opts opts, finufft_spread_opts spopt
       Xsafe = 1.0;
       Ssafe = 1.0;
     } else
-      Xsafe = max(Xsafe, 1 / S);
+      Xsafe = std::max(Xsafe, 1 / S);
   else
-    Ssafe = max(Ssafe, 1 / X);
+    Ssafe = std::max(Ssafe, 1 / X);
   // use the safe X and S...
   auto nfd = T(2.0 * opts.upsampfac * Ssafe * Xsafe / PI + nss);
-  if (!isfinite(nfd)) nfd = 0.0; // use T to catch inf
+  if (!std::isfinite(nfd)) nfd = 0.0; // use T to catch inf
   *nf = (BIGINT)nfd;
   // printf("initial nf=%lld, ns=%d\n",*nf,spopts.nspread);
   //  catch too small nf, and nan or +-inf, otherwise spread fails...
@@ -168,7 +167,7 @@ static void set_nhg_type3(T S, T X, finufft_opts opts, finufft_spread_opts spopt
 
 template<typename T>
 static void onedim_fseries_kernel(BIGINT nf, std::vector<T> &fwkerhalf,
-                                  finufft_spread_opts opts)
+                                  const finufft_spread_opts &opts)
 /*
   Approximates exact Fourier series coeffs of cnufftspread's real symmetric
   kernel, directly via q-node quadrature on Euler-Fourier formula, exploiting
@@ -206,20 +205,21 @@ static void onedim_fseries_kernel(BIGINT nf, std::vector<T> &fwkerhalf,
   for (int n = 0; n < q; ++n) {      // set up nodes z_n and vals f_n
     z[n] *= J2;                      // rescale nodes
     f[n] = J2 * (T)w[n] * evaluate_kernel((T)z[n], opts); // vals & quadr wei
-    a[n] = -exp(2 * PI * std::complex<double>(0, 1) * z[n] / double(nf)); // phase winding
-                                                                          // rates
+    a[n] = -std::exp(2 * PI * std::complex<double>(0, 1) * z[n] / double(nf)); // phase
+                                                                               // winding
+                                                                               // rates
   }
-  BIGINT nout = nf / 2 + 1;                       // how many values we're writing to
-  int nt      = min(nout, (BIGINT)opts.nthreads); // how many chunks
-  std::vector<BIGINT> brk(nt + 1);                // start indices for each thread
-  for (int t = 0; t <= nt; ++t)                   // split nout mode indices btw threads
+  BIGINT nout = nf / 2 + 1;                            // how many values we're writing to
+  int nt      = std::min(nout, (BIGINT)opts.nthreads); // how many chunks
+  std::vector<BIGINT> brk(nt + 1);                     // start indices for each thread
+  for (int t = 0; t <= nt; ++t) // split nout mode indices btw threads
     brk[t] = (BIGINT)(0.5 + nout * t / (double)nt);
 #pragma omp parallel num_threads(nt)
   {                                                // each thread gets own chunk to do
     int t = MY_OMP_GET_THREAD_NUM();
     std::complex<T> aj[MAX_NQUAD];                 // phase rotator for this thread
     for (int n = 0; n < q; ++n)
-      aj[n] = pow(a[n], (T)brk[t]);                // init phase factors for chunk
+      aj[n] = std::pow(a[n], (T)brk[t]);           // init phase factors for chunk
     for (BIGINT j = brk[t]; j < brk[t + 1]; ++j) { // loop along output array
       T x = 0.0;                                   // accumulator for answer at this j
       for (int n = 0; n < q; ++n) {
@@ -233,7 +233,7 @@ static void onedim_fseries_kernel(BIGINT nf, std::vector<T> &fwkerhalf,
 
 template<typename T>
 static void onedim_nuft_kernel(BIGINT nk, const std::vector<T> &k, std::vector<T> &phihat,
-                               finufft_spread_opts opts)
+                               const finufft_spread_opts &opts)
 /*
   Approximates exact 1D Fourier transform of cnufftspread's real symmetric
   kernel, directly via q-node quadrature on Euler-Fourier formula, exploiting
@@ -610,7 +610,7 @@ FINUFFT_PLAN_T<TF>::FINUFFT_PLAN_T(int type_, int dim_, const BIGINT *n_modes, i
     nbatch    = 1 + (ntrans - 1) / nthr;               // min # batches poss
     batchSize = 1 + (ntrans - 1) / nbatch;             // then cut # thr in each b
   } else {                                             // batchSize override by user
-    batchSize = min(opts.maxbatchsize, ntrans);
+    batchSize = std::min(opts.maxbatchsize, ntrans);
     nbatch    = 1 + (ntrans - 1) / batchSize;          // resulting # batches
   }
   if (opts.spread_thread == 0) opts.spread_thread = 2; // our auto choice
@@ -769,6 +769,14 @@ int finufft_makeplan_t(int type, int dim, const BIGINT *n_modes, int iflag, int 
   }
   return ier;
 }
+
+// For this function and the following ones (i.e. everything that is accessible
+// from outside), we need to state for which data types we want the template
+// to be instantiated. At the current location in the code, the compiler knows
+// how exactly it can construct the function "finufft_makeplan_t" for any given
+// type TF, but it doesn't know for which types it actually should do so.
+// The following two statements instruct it to do that for TF=float and
+// TF=double.
 template int finufft_makeplan_t<float>(int type, int dim, const BIGINT *n_modes,
                                        int iflag, int ntrans, float tol,
                                        FINUFFT_PLAN_T<float> **pp, finufft_opts *opts);
@@ -917,8 +925,8 @@ int FINUFFT_PLAN_T<TF>::setpts(BIGINT nj, TF *xj, TF *yj, TF *zj, BIGINT nk, TF 
         TF phase = t3P.D1 * xj[j];
         if (d > 1) phase += t3P.D2 * yj[j];
         if (d > 2) phase += t3P.D3 * zj[j];
-        prephase[j] = cos(phase) + imasign * sin(phase); // Euler
-                                                         // e^{+-i.phase}
+        prephase[j] = std::cos(phase) + imasign * std::sin(phase); // Euler
+                                                                   // e^{+-i.phase}
       }
     } else
       for (BIGINT j = 0; j < nj; ++j)
@@ -949,12 +957,16 @@ int FINUFFT_PLAN_T<TF>::setpts(BIGINT nj, TF *xj, TF *yj, TF *zj, BIGINT nk, TF 
       phiHatk3.resize(nk);
       onedim_nuft_kernel(nk, Up, phiHatk3, spopts); // fill phiHat3
     }
-    int Cfinite = isfinite(t3P.C1) && isfinite(t3P.C2) && isfinite(t3P.C3); // C can be
-                                                                            // nan or inf
-                                                                            // if M=0, no
-                                                                            // input NU
-                                                                            // pts
-    int Cnonzero = t3P.C1 != 0.0 || t3P.C2 != 0.0 || t3P.C3 != 0.0;         // cen
+    int Cfinite =
+        std::isfinite(t3P.C1) && std::isfinite(t3P.C2) && std::isfinite(t3P.C3); // C can
+                                                                                 // be nan
+                                                                                 // or inf
+                                                                                 // if
+                                                                                 // M=0,
+                                                                                 // no
+                                                                                 // input
+                                                                                 // NU pts
+    int Cnonzero = t3P.C1 != 0.0 || t3P.C2 != 0.0 || t3P.C3 != 0.0;              // cen
 #pragma omp parallel for num_threads(opts.nthreads) schedule(static)
     for (BIGINT k = 0; k < nk; ++k) { // .... loop over NU targ freqs
       TF phiHat = phiHatk1[k];
@@ -965,7 +977,7 @@ int FINUFFT_PLAN_T<TF>::setpts(BIGINT nj, TF *xj, TF *yj, TF *zj, BIGINT nk, TF 
         TF phase = (s[k] - t3P.D1) * t3P.C1;
         if (d > 1) phase += (t[k] - t3P.D2) * t3P.C2;
         if (d > 2) phase += (u[k] - t3P.D3) * t3P.C3;
-        deconv[k] *= cos(phase) + imasign * sin(phase); // Euler e^{+-i.phase}
+        deconv[k] *= std::cos(phase) + imasign * std::sin(phase); // Euler e^{+-i.phase}
       }
     }
     if (opts.debug)
@@ -981,12 +993,12 @@ int FINUFFT_PLAN_T<TF>::setpts(BIGINT nj, TF *xj, TF *yj, TF *zj, BIGINT nk, TF 
 
     // Plan and setpts once, for the (repeated) inner type 2 finufft call...
     timer.restart();
-    BIGINT t2nmodes[]   = {nf1, nf2, nf3};        // t2 input is actually fw
-    finufft_opts t2opts = opts;                   // deep copy, since not ptrs
-    t2opts.modeord      = 0;                      // needed for correct t3!
-    t2opts.debug        = max(0, opts.debug - 1); // don't print as much detail
-    t2opts.spread_debug = max(0, opts.spread_debug - 1);
-    t2opts.showwarn     = 0;                      // so don't see warnings 2x
+    BIGINT t2nmodes[]   = {nf1, nf2, nf3};             // t2 input is actually fw
+    finufft_opts t2opts = opts;                        // deep copy, since not ptrs
+    t2opts.modeord      = 0;                           // needed for correct t3!
+    t2opts.debug        = std::max(0, opts.debug - 1); // don't print as much detail
+    t2opts.spread_debug = std::max(0, opts.spread_debug - 1);
+    t2opts.showwarn     = 0;                           // so don't see warnings 2x
     // (...could vary other t2opts here?)
     if (innerT2plan) {
       delete innerT2plan;
@@ -1059,7 +1071,7 @@ int FINUFFT_PLAN_T<TF>::execute(std::complex<TF> *cj, std::complex<TF> *fk) {
     for (int b = 0; b * batchSize < ntrans; b++) { // .....loop b over batches
 
       // current batch is either batchSize, or possibly truncated if last one
-      int thisBatchSize     = min(ntrans - b * batchSize, batchSize);
+      int thisBatchSize     = std::min(ntrans - b * batchSize, batchSize);
       int bB                = b * batchSize; // index of vector, since batchsizes same
       std::complex<TF> *cjb = cj + bB * nj;  // point to batch of weights
       std::complex<TF> *fkb = fk + bB * N;   // point to batch of mode coeffs
@@ -1120,7 +1132,7 @@ int FINUFFT_PLAN_T<TF>::execute(std::complex<TF> *cj, std::complex<TF> *fk) {
     for (int b = 0; b * batchSize < ntrans; b++) { // .....loop b over batches
 
       // batching and pointers to this batch, identical to t1,2 above...
-      int thisBatchSize     = min(ntrans - b * batchSize, batchSize);
+      int thisBatchSize     = std::min(ntrans - b * batchSize, batchSize);
       int bB                = b * batchSize;
       std::complex<TF> *cjb = cj + bB * nj; // batch of input strengths
       std::complex<TF> *fkb = fk + bB * nk; // batch of output strengths

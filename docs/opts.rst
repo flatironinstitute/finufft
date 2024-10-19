@@ -54,10 +54,11 @@ Here are their default settings (from ``src/finufft.cpp:finufft_default_opts``):
 
 As for quick advice, the main options you'll want to play with are:
 
+- ``upsampfac`` to trade-off between spread/interpolate vs FFT speed and RAM
 - ``modeord`` to flip ("fftshift") the Fourier mode ordering
 - ``debug`` to look at timing output (to determine if your problem is spread/interpolation dominated, vs FFT dominated)
 - ``nthreads`` to run with a different number of threads than the current maximum available through OpenMP (a large number can sometimes be detrimental, and very small problems can sometimes run faster on 1 thread)
-- ``fftw`` to try slower plan modes which give faster transforms. The next natural one to try is ``FFTW_MEASURE`` (look at the FFTW3 docs)
+- ``fftw`` to try slower FFTW plan modes which give faster transforms. The next natural one to try is ``FFTW_MEASURE`` (look at the FFTW3 docs)
 
 See :ref:`Troubleshooting <trouble>` for good advice on trying options, and read the full options descriptions below.
 
@@ -158,17 +159,18 @@ There is thus little reason for the nonexpert to mess with this option.
 * ``spread_kerpad=1`` : pad to next multiple of four
 
 
-**upsampfac**: This is the internal real factor by which the FFT (fine grid)
+**upsampfac**: This is the internal factor by which the FFT (fine grid)
 is chosen larger than
-the number of requested modes in each dimension, for type 1 and 2 transforms.
+the number of requested modes in each dimension, for type 1 and 2 transforms. For type 3 transforms this factor gets squared, due to type 2 nested in a type-1-spreading operation, so has even more influence.
 We have built efficient kernels
 for only two settings, as follows. Otherwise, setting it to zero chooses a good heuristic:
 
-* ``upsampfac=0.0`` : use heuristics to choose ``upsampfac`` as one of the below values, and use this value internally. The value chosen is visible in the text output via setting ``debug>=2``. This setting is recommended for basic users; however, if you seek more performance it is quick to try the other of the below.
+* ``upsampfac=0.0`` : use heuristics to choose ``upsampfac`` as one of the below values, and use this value internally. The value chosen is visible in the text output via setting ``debug>=2``. This setting is recommended for basic users; however, if you seek more performance it is quick to try the other of the values.
 
-* ``upsampfac=2.0`` : standard setting of upsampling. This is necessary if you need to exceed 9 digits of accuracy.
+* ``upsampfac=2.0`` : standard setting of upsampling. Due to kernel width restrictions, this is necessary if you need to exceed 9 digits of accuracy.
 
 * ``upsampfac=1.25`` : low-upsampling option, with lower RAM, smaller FFTs, but wider spreading kernel. The latter can be much faster than the standard when the number of nonuniform points is similar or smaller to the number of modes, and/or if low accuracy is required. It is especially much (2 to 3 times) faster for type 3 transforms. However, the kernel widths :math:`w` are about 50% larger in each dimension, which can lead to slower spreading (it can also be faster due to the smaller size of the fine grid). Because the kernel width is limited to 16, currently, thus only 9-digit accuracy can currently be reached when using ``upsampfac=1.25``.
+
 
 **spread_thread**: in the case of multiple transforms per call (``ntr>1``, or the "many" interfaces), controls how multithreading is used to spread/interpolate each batch of data.
 

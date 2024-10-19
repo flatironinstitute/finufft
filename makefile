@@ -133,11 +133,11 @@ STATICLIB = lib-static/$(LIBNAME).a
 # absolute path to the .so, useful for linking so executables portable...
 ABSDYNLIB = $(FINUFFT)$(DYNLIB)
 
-# spreader dual-precision objs
-SOBJSD = src/utils.o src/spreadinterp.o
+# spreader objs
+SOBJS = src/utils.o src/spreadinterp.o
 
 # all lib dual-precision objs (note DUCC_OBJS empty if unused)
-OBJSD = $(SOBJSD) contrib/legendre_rule_fast.o src/fft.o src/finufft_core.o src/simpleinterfaces.o fortran/finufftfort.o $(DUCC_OBJS)
+OBJS = $(SOBJS) contrib/legendre_rule_fast.o src/fft.o src/finufft_core.o src/simpleinterfaces.o fortran/finufftfort.o $(DUCC_OBJS)
 
 .PHONY: usage lib examples test perftest spreadtest spreadtestall fortran matlab octave all mex python clean objclean pyclean mexclean wheel docker-wheel gurutime docs setup setupclean
 
@@ -197,17 +197,17 @@ src/spreadinterp.o: $(SHEAD)
 # lib -----------------------------------------------------------------------
 # build library with double/single prec both bundled in...
 lib: $(STATICLIB) $(DYNLIB)
-$(STATICLIB): $(OBJSD)
-	ar rcs $(STATICLIB) $(OBJSD)
+$(STATICLIB): $(OBJS)
+	ar rcs $(STATICLIB) $(OBJS)
 ifeq ($(OMP),OFF)
 	@echo "$(STATICLIB) built, single-thread version"
 else
 	@echo "$(STATICLIB) built, multithreaded version"
 endif
-$(DYNLIB): $(OBJSD)
+$(DYNLIB): $(OBJS)
 # using *absolute* path in the -o here is needed to make portable executables
 # when compiled against it, in mac OSX, strangely...
-	$(CXX) -shared ${LDFLAGS} $(OMPFLAGS) $(OBJSD) -o $(ABSDYNLIB) $(LIBSFFT)
+	$(CXX) -shared ${LDFLAGS} $(OMPFLAGS) $(OBJS) -o $(ABSDYNLIB) $(LIBSFFT)
 ifeq ($(OMP),OFF)
 	@echo "$(DYNLIB) built, single-thread version"
 else
@@ -266,6 +266,10 @@ test/testutilsf: test/testutils.cpp src/utils.o
 
 # make sure all double-prec test executables ready for testing
 TESTS := $(basename $(wildcard test/*.cpp))
+# kill off FFTW-specific tests if it's not the FFT we build with...
+ifeq ($(FFT),DUCC)
+  TESTS := $(filter-out $(basename $(wildcard test/*fftw*.cpp)),$(TESTS))
+endif
 # also need single-prec
 TESTS += $(TESTS:%=%f)
 test: $(TESTS)
@@ -307,14 +311,14 @@ ST=perftest/spreadtestnd
 STA=perftest/spreadtestndall
 STF=$(ST)f
 STAF=$(STA)f
-$(ST): $(ST).cpp $(SOBJSD)
-	$(CXX) $(CXXFLAGS) ${LDFLAGS} $< $(SOBJSD) $(LIBS) -o $@
-$(STF): $(ST).cpp $(SOBJSD)
-	$(CXX) $(CXXFLAGS) ${LDFLAGS} -DSINGLE $< $(SOBJSD) $(LIBS) -o $@
-$(STA): $(STA).cpp $(SOBJSD)
-	$(CXX) $(CXXFLAGS) ${LDFLAGS} $< $(SOBJSD) $(LIBS) -o $@
-$(STAF): $(STA).cpp $(SOBJSD)
-	$(CXX) $(CXXFLAGS) ${LDFLAGS} -DSINGLE $< $(SOBJSD) $(LIBS) -o $@
+$(ST): $(ST).cpp $(SOBJS)
+	$(CXX) $(CXXFLAGS) ${LDFLAGS} $< $(SOBJS) $(LIBS) -o $@
+$(STF): $(ST).cpp $(SOBJS)
+	$(CXX) $(CXXFLAGS) ${LDFLAGS} -DSINGLE $< $(SOBJS) $(LIBS) -o $@
+$(STA): $(STA).cpp $(SOBJS)
+	$(CXX) $(CXXFLAGS) ${LDFLAGS} $< $(SOBJS) $(LIBS) -o $@
+$(STAF): $(STA).cpp $(SOBJS)
+	$(CXX) $(CXXFLAGS) ${LDFLAGS} -DSINGLE $< $(SOBJS) $(LIBS) -o $@
 spreadtest: $(ST) $(STF)
 # run one thread per core... (escape the $ to get single $ in bash; one big cmd)
 	(export OMP_NUM_THREADS=$$(perftest/mynumcores.sh) ;\
@@ -418,7 +422,7 @@ endif
 
 # python ---------------------------------------------------------------------
 python: $(STATICLIB) $(DYNLIB)
-	FINUFFT_DIR=$(FINUFFT) $(PYTHON) -m pip -v install --break-system-packages python/finufft
+	FINUFFT_DIR=$(FINUFFT) $(PYTHON) -m pip -v install python/finufft
 # note to devs: if trouble w/ NumPy, use: pip install ./python --no-deps
 	$(PYTHON) python/finufft/test/run_accuracy_tests.py
 	$(PYTHON) python/finufft/examples/simple1d1.py

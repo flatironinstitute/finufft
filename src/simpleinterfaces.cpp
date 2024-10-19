@@ -20,37 +20,42 @@ using namespace std;
    ---------------------------------------------------------------------------
 */
 
+using f32  = float;
+using f64  = double;
+using c64  = std::complex<float>;
+using c128 = std::complex<double>;
+using i64  = BIGINT;
+
 void finufft_default_opts(finufft_opts *o) { finufft_default_opts_t(o); }
 void finufftf_default_opts(finufft_opts *o) { finufft_default_opts_t(o); }
 
-int finufft_makeplan(int type, int dim, const BIGINT *n_modes, int iflag, int ntrans,
-                     double tol, finufft_plan *pp, finufft_opts *opts) {
-  return finufft_makeplan_t<double>(type, dim, n_modes, iflag, ntrans, tol,
-                                    reinterpret_cast<FINUFFT_PLAN_T<double> **>(pp),
-                                    opts);
+int finufft_makeplan(int type, int dim, const i64 *n_modes, int iflag, int ntrans,
+                     f64 tol, finufft_plan *pp, finufft_opts *opts) {
+  return finufft_makeplan_t<f64>(type, dim, n_modes, iflag, ntrans, tol,
+                                 reinterpret_cast<FINUFFT_PLAN_T<f64> **>(pp), opts);
 }
-int finufftf_makeplan(int type, int dim, const BIGINT *n_modes, int iflag, int ntrans,
-                      float tol, finufftf_plan *pp, finufft_opts *opts) {
-  return finufft_makeplan_t<float>(type, dim, n_modes, iflag, ntrans, tol,
-                                   reinterpret_cast<FINUFFT_PLAN_T<float> **>(pp), opts);
-}
-
-int finufft_setpts(finufft_plan p, BIGINT nj, double *xj, double *yj, double *zj,
-                   BIGINT nk, double *s, double *t, double *u) {
-  return finufft_setpts_t<double>(reinterpret_cast<FINUFFT_PLAN_T<double> *>(p), nj, xj,
-                                  yj, zj, nk, s, t, u);
-}
-int finufftf_setpts(finufftf_plan p, BIGINT nj, float *xj, float *yj, float *zj,
-                    BIGINT nk, float *s, float *t, float *u) {
-  return finufft_setpts_t<float>(reinterpret_cast<FINUFFT_PLAN_T<float> *>(p), nj, xj, yj,
-                                 zj, nk, s, t, u);
+int finufftf_makeplan(int type, int dim, const i64 *n_modes, int iflag, int ntrans,
+                      f32 tol, finufftf_plan *pp, finufft_opts *opts) {
+  return finufft_makeplan_t<f32>(type, dim, n_modes, iflag, ntrans, tol,
+                                 reinterpret_cast<FINUFFT_PLAN_T<f32> **>(pp), opts);
 }
 
-int finufft_execute(finufft_plan p, std::complex<double> *cj, std::complex<double> *fk) {
-  return finufft_execute_t<double>(reinterpret_cast<FINUFFT_PLAN_T<double> *>(p), cj, fk);
+int finufft_setpts(finufft_plan p, i64 nj, f64 *xj, f64 *yj, f64 *zj, i64 nk, f64 *s,
+                   f64 *t, f64 *u) {
+  return finufft_setpts_t<f64>(reinterpret_cast<FINUFFT_PLAN_T<f64> *>(p), nj, xj, yj, zj,
+                               nk, s, t, u);
 }
-int finufftf_execute(finufftf_plan p, std::complex<float> *cj, std::complex<float> *fk) {
-  return finufft_execute_t<float>(reinterpret_cast<FINUFFT_PLAN_T<float> *>(p), cj, fk);
+int finufftf_setpts(finufftf_plan p, i64 nj, f32 *xj, f32 *yj, f32 *zj, i64 nk, f32 *s,
+                    f32 *t, f32 *u) {
+  return finufft_setpts_t<f32>(reinterpret_cast<FINUFFT_PLAN_T<f32> *>(p), nj, xj, yj, zj,
+                               nk, s, t, u);
+}
+
+int finufft_execute(finufft_plan p, c128 *cj, c128 *fk) {
+  return finufft_execute_t<f64>(reinterpret_cast<FINUFFT_PLAN_T<f64> *>(p), cj, fk);
+}
+int finufftf_execute(finufftf_plan p, c64 *cj, c64 *fk) {
+  return finufft_execute_t<f32>(reinterpret_cast<FINUFFT_PLAN_T<f32> *>(p), cj, fk);
 }
 
 int finufft_destroy(finufft_plan p)
@@ -62,7 +67,7 @@ int finufft_destroy(finufft_plan p)
   if (!p) // nullptr ptr, so not a ptr to a plan, report error
     return 1;
 
-  delete reinterpret_cast<FINUFFT_PLAN_T<double> *>(p);
+  delete reinterpret_cast<FINUFFT_PLAN_T<f64> *>(p);
   p = nullptr;
   return 0; // success
 }
@@ -75,7 +80,7 @@ int finufftf_destroy(finufftf_plan p)
   if (!p) // nullptr ptr, so not a ptr to a plan, report error
     return 1;
 
-  delete reinterpret_cast<FINUFFT_PLAN_T<float> *>(p);
+  delete reinterpret_cast<FINUFFT_PLAN_T<f32> *>(p);
   p = nullptr;
   return 0; // success
 }
@@ -85,10 +90,10 @@ namespace finufft {
 namespace common {
 
 template<typename T>
-static int invokeGuruInterface(int n_dims, int type, int n_transf, BIGINT nj, T *xj,
-                               T *yj, T *zj, std::complex<T> *cj, int iflag, T eps,
-                               const std::array<BIGINT, 3> &n_modes, BIGINT nk, T *s,
-                               T *t, T *u, std::complex<T> *fk, finufft_opts *popts)
+static int guruCall(int n_dims, int type, int n_transf, i64 nj, T *xj, T *yj, T *zj,
+                    std::complex<T> *cj, int iflag, T eps,
+                    const std::array<i64, 3> &n_modes, i64 nk, T *s, T *t, T *u,
+                    std::complex<T> *fk, finufft_opts *popts)
 // Helper layer between simple interfaces (with opts) and the guru functions.
 // Author: Andrea Malleo, 2019.
 {
@@ -127,94 +132,84 @@ using namespace finufft::common;
 
 // Dimension 1111111111111111111111111111111111111111111111111111111111111111
 
-int finufft1d1many(int n_transf, BIGINT nj, double *xj, std::complex<double> *cj,
-                   int iflag, double eps, BIGINT ms, std::complex<double> *fk,
-                   finufft_opts *opts)
+int finufft1d1many(int n_transf, i64 nj, f64 *xj, c128 *cj, int iflag, f64 eps, i64 ms,
+                   c128 *fk, finufft_opts *opts)
 // Type-1 1D complex nonuniform FFT for many vectors. See ../docs/usage.rst
 {
-  return invokeGuruInterface<double>(1, 1, n_transf, nj, xj, nullptr, nullptr, cj, iflag,
-                                     eps, {ms, 1, 1}, 0, nullptr, nullptr, nullptr, fk,
-                                     opts);
+  return guruCall<f64>(1, 1, n_transf, nj, xj, nullptr, nullptr, cj, iflag, eps,
+                       {ms, 1, 1}, 0, nullptr, nullptr, nullptr, fk, opts);
 }
-int finufftf1d1many(int n_transf, BIGINT nj, float *xj, std::complex<float> *cj,
-                    int iflag, float eps, BIGINT ms, std::complex<float> *fk,
-                    finufft_opts *opts)
+int finufftf1d1many(int n_transf, i64 nj, f32 *xj, c64 *cj, int iflag, f32 eps, i64 ms,
+                    c64 *fk, finufft_opts *opts)
 // Type-1 1D complex nonuniform FFT for many vectors. See ../docs/usage.rst
 {
-  return invokeGuruInterface<float>(1, 1, n_transf, nj, xj, nullptr, nullptr, cj, iflag,
-                                    eps, {ms, 1, 1}, 0, nullptr, nullptr, nullptr, fk,
-                                    opts);
+  return guruCall<f32>(1, 1, n_transf, nj, xj, nullptr, nullptr, cj, iflag, eps,
+                       {ms, 1, 1}, 0, nullptr, nullptr, nullptr, fk, opts);
 }
 
-int finufft1d1(BIGINT nj, double *xj, std::complex<double> *cj, int iflag, double eps,
-               BIGINT ms, std::complex<double> *fk, finufft_opts *opts)
+int finufft1d1(i64 nj, f64 *xj, c128 *cj, int iflag, f64 eps, i64 ms, c128 *fk,
+               finufft_opts *opts)
 //  Type-1 1D complex nonuniform FFT. See ../docs/usage.rst
 {
   return finufft1d1many(1, nj, xj, cj, iflag, eps, ms, fk, opts);
 }
-int finufftf1d1(BIGINT nj, float *xj, std::complex<float> *cj, int iflag, float eps,
-                BIGINT ms, std::complex<float> *fk, finufft_opts *opts)
+int finufftf1d1(i64 nj, f32 *xj, c64 *cj, int iflag, f32 eps, i64 ms, c64 *fk,
+                finufft_opts *opts)
 //  Type-1 1D complex nonuniform FFT. See ../docs/usage.rst
 {
   return finufftf1d1many(1, nj, xj, cj, iflag, eps, ms, fk, opts);
 }
 
-int finufft1d2many(int n_transf, BIGINT nj, double *xj, std::complex<double> *cj,
-                   int iflag, double eps, BIGINT ms, std::complex<double> *fk,
-                   finufft_opts *opts)
+int finufft1d2many(int n_transf, i64 nj, f64 *xj, c128 *cj, int iflag, f64 eps, i64 ms,
+                   c128 *fk, finufft_opts *opts)
 //  Type-2 1D complex nonuniform FFT, many vectors. See ../docs/usage.rst
 {
-  return invokeGuruInterface<double>(1, 2, n_transf, nj, xj, nullptr, nullptr, cj, iflag,
-                                     eps, {ms, 1, 1}, 0, nullptr, nullptr, nullptr, fk,
-                                     opts);
+  return guruCall<f64>(1, 2, n_transf, nj, xj, nullptr, nullptr, cj, iflag, eps,
+                       {ms, 1, 1}, 0, nullptr, nullptr, nullptr, fk, opts);
 }
-int finufftf1d2many(int n_transf, BIGINT nj, float *xj, std::complex<float> *cj,
-                    int iflag, float eps, BIGINT ms, std::complex<float> *fk,
-                    finufft_opts *opts)
+int finufftf1d2many(int n_transf, i64 nj, f32 *xj, c64 *cj, int iflag, f32 eps, i64 ms,
+                    c64 *fk, finufft_opts *opts)
 //  Type-2 1D complex nonuniform FFT, many vectors. See ../docs/usage.rst
 {
-  return invokeGuruInterface<float>(1, 2, n_transf, nj, xj, nullptr, nullptr, cj, iflag,
-                                    eps, {ms, 1, 1}, 0, nullptr, nullptr, nullptr, fk,
-                                    opts);
+  return guruCall<f32>(1, 2, n_transf, nj, xj, nullptr, nullptr, cj, iflag, eps,
+                       {ms, 1, 1}, 0, nullptr, nullptr, nullptr, fk, opts);
 }
 
-int finufft1d2(BIGINT nj, double *xj, std::complex<double> *cj, int iflag, double eps,
-               BIGINT ms, std::complex<double> *fk, finufft_opts *opts)
+int finufft1d2(i64 nj, f64 *xj, c128 *cj, int iflag, f64 eps, i64 ms, c128 *fk,
+               finufft_opts *opts)
 //  Type-2 1D complex nonuniform FFT. See ../docs/usage.rst
 {
   return finufft1d2many(1, nj, xj, cj, iflag, eps, ms, fk, opts);
 }
-int finufftf1d2(BIGINT nj, float *xj, std::complex<float> *cj, int iflag, float eps,
-                BIGINT ms, std::complex<float> *fk, finufft_opts *opts)
+int finufftf1d2(i64 nj, f32 *xj, c64 *cj, int iflag, f32 eps, i64 ms, c64 *fk,
+                finufft_opts *opts)
 //  Type-2 1D complex nonuniform FFT. See ../docs/usage.rst
 {
   return finufftf1d2many(1, nj, xj, cj, iflag, eps, ms, fk, opts);
 }
 
-int finufft1d3many(int n_transf, BIGINT nj, double *xj, std::complex<double> *cj,
-                   int iflag, double eps, BIGINT nk, double *s, std::complex<double> *fk,
-                   finufft_opts *opts)
+int finufft1d3many(int n_transf, i64 nj, f64 *xj, c128 *cj, int iflag, f64 eps, i64 nk,
+                   f64 *s, c128 *fk, finufft_opts *opts)
 // Type-3 1D complex nonuniform FFT, many vectors. See ../docs/usage.rst
 {
-  return invokeGuruInterface<double>(1, 3, n_transf, nj, xj, nullptr, nullptr, cj, iflag,
-                                     eps, {0, 0, 0}, nk, s, nullptr, nullptr, fk, opts);
+  return guruCall<f64>(1, 3, n_transf, nj, xj, nullptr, nullptr, cj, iflag, eps,
+                       {0, 0, 0}, nk, s, nullptr, nullptr, fk, opts);
 }
-int finufftf1d3many(int n_transf, BIGINT nj, float *xj, std::complex<float> *cj,
-                    int iflag, float eps, BIGINT nk, float *s, std::complex<float> *fk,
-                    finufft_opts *opts)
+int finufftf1d3many(int n_transf, i64 nj, f32 *xj, c64 *cj, int iflag, f32 eps, i64 nk,
+                    f32 *s, c64 *fk, finufft_opts *opts)
 // Type-3 1D complex nonuniform FFT, many vectors. See ../docs/usage.rst
 {
-  return invokeGuruInterface<float>(1, 3, n_transf, nj, xj, nullptr, nullptr, cj, iflag,
-                                    eps, {0, 0, 0}, nk, s, nullptr, nullptr, fk, opts);
+  return guruCall<f32>(1, 3, n_transf, nj, xj, nullptr, nullptr, cj, iflag, eps,
+                       {0, 0, 0}, nk, s, nullptr, nullptr, fk, opts);
 }
-int finufft1d3(BIGINT nj, double *xj, std::complex<double> *cj, int iflag, double eps,
-               BIGINT nk, double *s, std::complex<double> *fk, finufft_opts *opts)
+int finufft1d3(i64 nj, f64 *xj, c128 *cj, int iflag, f64 eps, i64 nk, f64 *s, c128 *fk,
+               finufft_opts *opts)
 // Type-3 1D complex nonuniform FFT. See ../docs/usage.rst
 {
   return finufft1d3many(1, nj, xj, cj, iflag, eps, nk, s, fk, opts);
 }
-int finufftf1d3(BIGINT nj, float *xj, std::complex<float> *cj, int iflag, float eps,
-                BIGINT nk, float *s, std::complex<float> *fk, finufft_opts *opts)
+int finufftf1d3(i64 nj, f32 *xj, c64 *cj, int iflag, f32 eps, i64 nk, f32 *s, c64 *fk,
+                finufft_opts *opts)
 // Type-3 1D complex nonuniform FFT. See ../docs/usage.rst
 {
   return finufftf1d3many(1, nj, xj, cj, iflag, eps, nk, s, fk, opts);
@@ -222,94 +217,82 @@ int finufftf1d3(BIGINT nj, float *xj, std::complex<float> *cj, int iflag, float 
 
 // Dimension 22222222222222222222222222222222222222222222222222222222222222222
 
-int finufft2d1many(int n_transf, BIGINT nj, double *xj, double *yj,
-                   std::complex<double> *c, int iflag, double eps, BIGINT ms, BIGINT mt,
-                   std::complex<double> *fk, finufft_opts *opts)
+int finufft2d1many(int n_transf, i64 nj, f64 *xj, f64 *yj, c128 *c, int iflag, f64 eps,
+                   i64 ms, i64 mt, c128 *fk, finufft_opts *opts)
 //  Type-1 2D complex nonuniform FFT, many vectors. See ../docs/usage.rst
 {
-  return invokeGuruInterface<double>(2, 1, n_transf, nj, xj, yj, nullptr, c, iflag, eps,
-                                     {ms, mt, 1}, 0, nullptr, nullptr, nullptr, fk, opts);
+  return guruCall<f64>(2, 1, n_transf, nj, xj, yj, nullptr, c, iflag, eps, {ms, mt, 1}, 0,
+                       nullptr, nullptr, nullptr, fk, opts);
 }
-int finufftf2d1many(int n_transf, BIGINT nj, float *xj, float *yj, std::complex<float> *c,
-                    int iflag, float eps, BIGINT ms, BIGINT mt, std::complex<float> *fk,
-                    finufft_opts *opts)
+int finufftf2d1many(int n_transf, i64 nj, f32 *xj, f32 *yj, c64 *c, int iflag, f32 eps,
+                    i64 ms, i64 mt, c64 *fk, finufft_opts *opts)
 //  Type-1 2D complex nonuniform FFT, many vectors. See ../docs/usage.rst
 {
-  return invokeGuruInterface<float>(2, 1, n_transf, nj, xj, yj, nullptr, c, iflag, eps,
-                                    {ms, mt, 1}, 0, nullptr, nullptr, nullptr, fk, opts);
+  return guruCall<f32>(2, 1, n_transf, nj, xj, yj, nullptr, c, iflag, eps, {ms, mt, 1}, 0,
+                       nullptr, nullptr, nullptr, fk, opts);
 }
-int finufft2d1(BIGINT nj, double *xj, double *yj, std::complex<double> *cj, int iflag,
-               double eps, BIGINT ms, BIGINT mt, std::complex<double> *fk,
-               finufft_opts *opts)
+int finufft2d1(i64 nj, f64 *xj, f64 *yj, c128 *cj, int iflag, f64 eps, i64 ms, i64 mt,
+               c128 *fk, finufft_opts *opts)
 //  Type-1 2D complex nonuniform FFT. See ../docs/usage.rst
 {
   return finufft2d1many(1, nj, xj, yj, cj, iflag, eps, ms, mt, fk, opts);
 }
-int finufftf2d1(BIGINT nj, float *xj, float *yj, std::complex<float> *cj, int iflag,
-                float eps, BIGINT ms, BIGINT mt, std::complex<float> *fk,
-                finufft_opts *opts)
+int finufftf2d1(i64 nj, f32 *xj, f32 *yj, c64 *cj, int iflag, f32 eps, i64 ms, i64 mt,
+                c64 *fk, finufft_opts *opts)
 //  Type-1 2D complex nonuniform FFT. See ../docs/usage.rst
 {
   return finufftf2d1many(1, nj, xj, yj, cj, iflag, eps, ms, mt, fk, opts);
 }
 
-int finufft2d2many(int n_transf, BIGINT nj, double *xj, double *yj,
-                   std::complex<double> *c, int iflag, double eps, BIGINT ms, BIGINT mt,
-                   std::complex<double> *fk, finufft_opts *opts)
+int finufft2d2many(int n_transf, i64 nj, f64 *xj, f64 *yj, c128 *c, int iflag, f64 eps,
+                   i64 ms, i64 mt, c128 *fk, finufft_opts *opts)
 //  Type-2 2D complex nonuniform FFT, many vectors.  See ../docs/usage.rst
 {
-  return invokeGuruInterface<double>(2, 2, n_transf, nj, xj, yj, nullptr, c, iflag, eps,
-                                     {ms, mt, 1}, 0, nullptr, nullptr, nullptr, fk, opts);
+  return guruCall<f64>(2, 2, n_transf, nj, xj, yj, nullptr, c, iflag, eps, {ms, mt, 1}, 0,
+                       nullptr, nullptr, nullptr, fk, opts);
 }
-int finufftf2d2many(int n_transf, BIGINT nj, float *xj, float *yj, std::complex<float> *c,
-                    int iflag, float eps, BIGINT ms, BIGINT mt, std::complex<float> *fk,
-                    finufft_opts *opts)
+int finufftf2d2many(int n_transf, i64 nj, f32 *xj, f32 *yj, c64 *c, int iflag, f32 eps,
+                    i64 ms, i64 mt, c64 *fk, finufft_opts *opts)
 //  Type-2 2D complex nonuniform FFT, many vectors.  See ../docs/usage.rst
 {
-  return invokeGuruInterface<float>(2, 2, n_transf, nj, xj, yj, nullptr, c, iflag, eps,
-                                    {ms, mt, 1}, 0, nullptr, nullptr, nullptr, fk, opts);
+  return guruCall<f32>(2, 2, n_transf, nj, xj, yj, nullptr, c, iflag, eps, {ms, mt, 1}, 0,
+                       nullptr, nullptr, nullptr, fk, opts);
 }
-int finufft2d2(BIGINT nj, double *xj, double *yj, std::complex<double> *cj, int iflag,
-               double eps, BIGINT ms, BIGINT mt, std::complex<double> *fk,
-               finufft_opts *opts)
+int finufft2d2(i64 nj, f64 *xj, f64 *yj, c128 *cj, int iflag, f64 eps, i64 ms, i64 mt,
+               c128 *fk, finufft_opts *opts)
 //  Type-2 2D complex nonuniform FFT.  See ../docs/usage.rst
 {
   return finufft2d2many(1, nj, xj, yj, cj, iflag, eps, ms, mt, fk, opts);
 }
-int finufftf2d2(BIGINT nj, float *xj, float *yj, std::complex<float> *cj, int iflag,
-                float eps, BIGINT ms, BIGINT mt, std::complex<float> *fk,
-                finufft_opts *opts)
+int finufftf2d2(i64 nj, f32 *xj, f32 *yj, c64 *cj, int iflag, f32 eps, i64 ms, i64 mt,
+                c64 *fk, finufft_opts *opts)
 //  Type-2 2D complex nonuniform FFT.  See ../docs/usage.rst
 {
   return finufftf2d2many(1, nj, xj, yj, cj, iflag, eps, ms, mt, fk, opts);
 }
 
-int finufft2d3many(int n_transf, BIGINT nj, double *xj, double *yj,
-                   std::complex<double> *cj, int iflag, double eps, BIGINT nk, double *s,
-                   double *t, std::complex<double> *fk, finufft_opts *opts)
+int finufft2d3many(int n_transf, i64 nj, f64 *xj, f64 *yj, c128 *cj, int iflag, f64 eps,
+                   i64 nk, f64 *s, f64 *t, c128 *fk, finufft_opts *opts)
 // Type-3 2D complex nonuniform FFT, many vectors.  See ../docs/usage.rst
 {
-  return invokeGuruInterface<double>(2, 3, n_transf, nj, xj, yj, nullptr, cj, iflag, eps,
-                                     {0, 0, 0}, nk, s, t, nullptr, fk, opts);
+  return guruCall<f64>(2, 3, n_transf, nj, xj, yj, nullptr, cj, iflag, eps, {0, 0, 0}, nk,
+                       s, t, nullptr, fk, opts);
 }
-int finufftf2d3many(int n_transf, BIGINT nj, float *xj, float *yj,
-                    std::complex<float> *cj, int iflag, float eps, BIGINT nk, float *s,
-                    float *t, std::complex<float> *fk, finufft_opts *opts)
+int finufftf2d3many(int n_transf, i64 nj, f32 *xj, f32 *yj, c64 *cj, int iflag, f32 eps,
+                    i64 nk, f32 *s, f32 *t, c64 *fk, finufft_opts *opts)
 // Type-3 2D complex nonuniform FFT, many vectors.  See ../docs/usage.rst
 {
-  return invokeGuruInterface<float>(2, 3, n_transf, nj, xj, yj, nullptr, cj, iflag, eps,
-                                    {0, 0, 0}, nk, s, t, nullptr, fk, opts);
+  return guruCall<f32>(2, 3, n_transf, nj, xj, yj, nullptr, cj, iflag, eps, {0, 0, 0}, nk,
+                       s, t, nullptr, fk, opts);
 }
-int finufft2d3(BIGINT nj, double *xj, double *yj, std::complex<double> *cj, int iflag,
-               double eps, BIGINT nk, double *s, double *t, std::complex<double> *fk,
-               finufft_opts *opts)
+int finufft2d3(i64 nj, f64 *xj, f64 *yj, c128 *cj, int iflag, f64 eps, i64 nk, f64 *s,
+               f64 *t, c128 *fk, finufft_opts *opts)
 // Type-3 2D complex nonuniform FFT.  See ../docs/usage.rst
 {
   return finufft2d3many(1, nj, xj, yj, cj, iflag, eps, nk, s, t, fk, opts);
 }
-int finufftf2d3(BIGINT nj, float *xj, float *yj, std::complex<float> *cj, int iflag,
-                float eps, BIGINT nk, float *s, float *t, std::complex<float> *fk,
-                finufft_opts *opts)
+int finufftf2d3(i64 nj, f32 *xj, f32 *yj, c64 *cj, int iflag, f32 eps, i64 nk, f32 *s,
+                f32 *t, c64 *fk, finufft_opts *opts)
 // Type-3 2D complex nonuniform FFT.  See ../docs/usage.rst
 {
   return finufftf2d3many(1, nj, xj, yj, cj, iflag, eps, nk, s, t, fk, opts);
@@ -317,96 +300,82 @@ int finufftf2d3(BIGINT nj, float *xj, float *yj, std::complex<float> *cj, int if
 
 // Dimension 3333333333333333333333333333333333333333333333333333333333333333
 
-int finufft3d1many(int n_transf, BIGINT nj, double *xj, double *yj, double *zj,
-                   std::complex<double> *cj, int iflag, double eps, BIGINT ms, BIGINT mt,
-                   BIGINT mu, std::complex<double> *fk, finufft_opts *opts)
+int finufft3d1many(int n_transf, i64 nj, f64 *xj, f64 *yj, f64 *zj, c128 *cj, int iflag,
+                   f64 eps, i64 ms, i64 mt, i64 mu, c128 *fk, finufft_opts *opts)
 // Type-1 3D complex nonuniform FFT, many vectors.  See ../docs/usage.rst
 {
-  return invokeGuruInterface<double>(3, 1, n_transf, nj, xj, yj, zj, cj, iflag, eps,
-                                     {ms, mt, mu}, 0, nullptr, nullptr, nullptr, fk,
-                                     opts);
+  return guruCall<f64>(3, 1, n_transf, nj, xj, yj, zj, cj, iflag, eps, {ms, mt, mu}, 0,
+                       nullptr, nullptr, nullptr, fk, opts);
 }
-int finufftf3d1many(int n_transf, BIGINT nj, float *xj, float *yj, float *zj,
-                    std::complex<float> *cj, int iflag, float eps, BIGINT ms, BIGINT mt,
-                    BIGINT mu, std::complex<float> *fk, finufft_opts *opts)
+int finufftf3d1many(int n_transf, i64 nj, f32 *xj, f32 *yj, f32 *zj, c64 *cj, int iflag,
+                    f32 eps, i64 ms, i64 mt, i64 mu, c64 *fk, finufft_opts *opts)
 // Type-1 3D complex nonuniform FFT, many vectors.  See ../docs/usage.rst
 {
-  return invokeGuruInterface<float>(3, 1, n_transf, nj, xj, yj, zj, cj, iflag, eps,
-                                    {ms, mt, mu}, 0, nullptr, nullptr, nullptr, fk, opts);
+  return guruCall<f32>(3, 1, n_transf, nj, xj, yj, zj, cj, iflag, eps, {ms, mt, mu}, 0,
+                       nullptr, nullptr, nullptr, fk, opts);
 }
-int finufft3d1(BIGINT nj, double *xj, double *yj, double *zj, std::complex<double> *cj,
-               int iflag, double eps, BIGINT ms, BIGINT mt, BIGINT mu,
-               std::complex<double> *fk, finufft_opts *opts)
+int finufft3d1(i64 nj, f64 *xj, f64 *yj, f64 *zj, c128 *cj, int iflag, f64 eps, i64 ms,
+               i64 mt, i64 mu, c128 *fk, finufft_opts *opts)
 //  Type-1 3D complex nonuniform FFT.   See ../docs/usage.rst
 {
   return finufft3d1many(1, nj, xj, yj, zj, cj, iflag, eps, ms, mt, mu, fk, opts);
 }
-int finufftf3d1(BIGINT nj, float *xj, float *yj, float *zj, std::complex<float> *cj,
-                int iflag, float eps, BIGINT ms, BIGINT mt, BIGINT mu,
-                std::complex<float> *fk, finufft_opts *opts)
+int finufftf3d1(i64 nj, f32 *xj, f32 *yj, f32 *zj, c64 *cj, int iflag, f32 eps, i64 ms,
+                i64 mt, i64 mu, c64 *fk, finufft_opts *opts)
 //  Type-1 3D complex nonuniform FFT.   See ../docs/usage.rst
 {
   return finufftf3d1many(1, nj, xj, yj, zj, cj, iflag, eps, ms, mt, mu, fk, opts);
 }
 
-int finufft3d2many(int n_transf, BIGINT nj, double *xj, double *yj, double *zj,
-                   std::complex<double> *cj, int iflag, double eps, BIGINT ms, BIGINT mt,
-                   BIGINT mu, std::complex<double> *fk, finufft_opts *opts)
+int finufft3d2many(int n_transf, i64 nj, f64 *xj, f64 *yj, f64 *zj, c128 *cj, int iflag,
+                   f64 eps, i64 ms, i64 mt, i64 mu, c128 *fk, finufft_opts *opts)
 // Type-2 3D complex nonuniform FFT, many vectors.   See ../docs/usage.rst
 {
-  return invokeGuruInterface<double>(3, 2, n_transf, nj, xj, yj, zj, cj, iflag, eps,
-                                     {ms, mt, mu}, 0, nullptr, nullptr, nullptr, fk,
-                                     opts);
+  return guruCall<f64>(3, 2, n_transf, nj, xj, yj, zj, cj, iflag, eps, {ms, mt, mu}, 0,
+                       nullptr, nullptr, nullptr, fk, opts);
 }
-int finufftf3d2many(int n_transf, BIGINT nj, float *xj, float *yj, float *zj,
-                    std::complex<float> *cj, int iflag, float eps, BIGINT ms, BIGINT mt,
-                    BIGINT mu, std::complex<float> *fk, finufft_opts *opts)
+int finufftf3d2many(int n_transf, i64 nj, f32 *xj, f32 *yj, f32 *zj, c64 *cj, int iflag,
+                    f32 eps, i64 ms, i64 mt, i64 mu, c64 *fk, finufft_opts *opts)
 // Type-2 3D complex nonuniform FFT, many vectors.   See ../docs/usage.rst
 {
-  return invokeGuruInterface<float>(3, 2, n_transf, nj, xj, yj, zj, cj, iflag, eps,
-                                    {ms, mt, mu}, 0, nullptr, nullptr, nullptr, fk, opts);
+  return guruCall<f32>(3, 2, n_transf, nj, xj, yj, zj, cj, iflag, eps, {ms, mt, mu}, 0,
+                       nullptr, nullptr, nullptr, fk, opts);
 }
-int finufft3d2(BIGINT nj, double *xj, double *yj, double *zj, std::complex<double> *cj,
-               int iflag, double eps, BIGINT ms, BIGINT mt, BIGINT mu,
-               std::complex<double> *fk, finufft_opts *opts)
+int finufft3d2(i64 nj, f64 *xj, f64 *yj, f64 *zj, c128 *cj, int iflag, f64 eps, i64 ms,
+               i64 mt, i64 mu, c128 *fk, finufft_opts *opts)
 // Type-2 3D complex nonuniform FFT.   See ../docs/usage.rst
 {
   return finufft3d2many(1, nj, xj, yj, zj, cj, iflag, eps, ms, mt, mu, fk, opts);
 }
-int finufftf3d2(BIGINT nj, float *xj, float *yj, float *zj, std::complex<float> *cj,
-                int iflag, float eps, BIGINT ms, BIGINT mt, BIGINT mu,
-                std::complex<float> *fk, finufft_opts *opts)
+int finufftf3d2(i64 nj, f32 *xj, f32 *yj, f32 *zj, c64 *cj, int iflag, f32 eps, i64 ms,
+                i64 mt, i64 mu, c64 *fk, finufft_opts *opts)
 // Type-2 3D complex nonuniform FFT.   See ../docs/usage.rst
 {
   return finufftf3d2many(1, nj, xj, yj, zj, cj, iflag, eps, ms, mt, mu, fk, opts);
 }
 
-int finufft3d3many(int n_transf, BIGINT nj, double *xj, double *yj, double *zj,
-                   std::complex<double> *cj, int iflag, double eps, BIGINT nk, double *s,
-                   double *t, double *u, std::complex<double> *fk, finufft_opts *opts)
+int finufft3d3many(int n_transf, i64 nj, f64 *xj, f64 *yj, f64 *zj, c128 *cj, int iflag,
+                   f64 eps, i64 nk, f64 *s, f64 *t, f64 *u, c128 *fk, finufft_opts *opts)
 //  Type-3 3D complex nonuniform FFT, many vectors.   See ../docs/usage.rst
 {
-  return invokeGuruInterface<double>(3, 3, n_transf, nj, xj, yj, zj, cj, iflag, eps,
-                                     {0, 0, 0}, nk, s, t, u, fk, opts);
+  return guruCall<f64>(3, 3, n_transf, nj, xj, yj, zj, cj, iflag, eps, {0, 0, 0}, nk, s,
+                       t, u, fk, opts);
 }
-int finufftf3d3many(int n_transf, BIGINT nj, float *xj, float *yj, float *zj,
-                    std::complex<float> *cj, int iflag, float eps, BIGINT nk, float *s,
-                    float *t, float *u, std::complex<float> *fk, finufft_opts *opts)
+int finufftf3d3many(int n_transf, i64 nj, f32 *xj, f32 *yj, f32 *zj, c64 *cj, int iflag,
+                    f32 eps, i64 nk, f32 *s, f32 *t, f32 *u, c64 *fk, finufft_opts *opts)
 //  Type-3 3D complex nonuniform FFT, many vectors.   See ../docs/usage.rst
 {
-  return invokeGuruInterface<float>(3, 3, n_transf, nj, xj, yj, zj, cj, iflag, eps,
-                                    {0, 0, 0}, nk, s, t, u, fk, opts);
+  return guruCall<f32>(3, 3, n_transf, nj, xj, yj, zj, cj, iflag, eps, {0, 0, 0}, nk, s,
+                       t, u, fk, opts);
 }
-int finufft3d3(BIGINT nj, double *xj, double *yj, double *zj, std::complex<double> *cj,
-               int iflag, double eps, BIGINT nk, double *s, double *t, double *u,
-               std::complex<double> *fk, finufft_opts *opts)
+int finufft3d3(i64 nj, f64 *xj, f64 *yj, f64 *zj, c128 *cj, int iflag, f64 eps, i64 nk,
+               f64 *s, f64 *t, f64 *u, c128 *fk, finufft_opts *opts)
 //  Type-3 3D complex nonuniform FFT.   See ../docs/usage.rst
 {
   return finufft3d3many(1, nj, xj, yj, zj, cj, iflag, eps, nk, s, t, u, fk, opts);
 }
-int finufftf3d3(BIGINT nj, float *xj, float *yj, float *zj, std::complex<float> *cj,
-                int iflag, float eps, BIGINT nk, float *s, float *t, float *u,
-                std::complex<float> *fk, finufft_opts *opts)
+int finufftf3d3(i64 nj, f32 *xj, f32 *yj, f32 *zj, c64 *cj, int iflag, f32 eps, i64 nk,
+                f32 *s, f32 *t, f32 *u, c64 *fk, finufft_opts *opts)
 //  Type-3 3D complex nonuniform FFT.   See ../docs/usage.rst
 {
   return finufftf3d3many(1, nj, xj, yj, zj, cj, iflag, eps, nk, s, t, u, fk, opts);
