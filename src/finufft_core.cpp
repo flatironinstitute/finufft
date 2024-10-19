@@ -205,8 +205,9 @@ static void onedim_fseries_kernel(BIGINT nf, std::vector<T> &fwkerhalf,
   for (int n = 0; n < q; ++n) {      // set up nodes z_n and vals f_n
     z[n] *= J2;                      // rescale nodes
     f[n] = J2 * (T)w[n] * evaluate_kernel((T)z[n], opts); // vals & quadr wei
-    a[n] = -exp(2 * PI * std::complex<double>(0, 1) * z[n] / double(nf)); // phase winding
-                                                                          // rates
+    a[n] = -std::exp(2 * PI * std::complex<double>(0, 1) * z[n] / double(nf)); // phase
+                                                                               // winding
+                                                                               // rates
   }
   BIGINT nout = nf / 2 + 1;                            // how many values we're writing to
   int nt      = std::min(nout, (BIGINT)opts.nthreads); // how many chunks
@@ -218,7 +219,7 @@ static void onedim_fseries_kernel(BIGINT nf, std::vector<T> &fwkerhalf,
     int t = MY_OMP_GET_THREAD_NUM();
     std::complex<T> aj[MAX_NQUAD];                 // phase rotator for this thread
     for (int n = 0; n < q; ++n)
-      aj[n] = pow(a[n], (T)brk[t]);                // init phase factors for chunk
+      aj[n] = std::pow(a[n], (T)brk[t]);           // init phase factors for chunk
     for (BIGINT j = brk[t]; j < brk[t + 1]; ++j) { // loop along output array
       T x = 0.0;                                   // accumulator for answer at this j
       for (int n = 0; n < q; ++n) {

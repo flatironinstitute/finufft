@@ -26,8 +26,6 @@
 
 // All indexing in library that potentially can exceed 2^31 uses 64-bit signed.
 // This includes all calling arguments (eg M,N) that could be huge someday.
-// using BIGINT  = int64_t;
-// using UBIGINT = uint64_t;
 // Precision-independent real and complex types, for private lib/test compile
 #ifdef SINGLE
 using FLT = float;
