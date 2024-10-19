@@ -257,7 +257,7 @@ if(FINUFFT_USE_CPU)
       src/utils.cpp
       contrib/legendre_rule_fast.cpp
       src/fft.cpp
-      src/finufft_core.cpp
+      src/finufft.cpp
       src/simpleinterfaces.cpp
       fortran/finufftfort.cpp)
   else()
@@ -267,7 +267,7 @@ if(FINUFFT_USE_CPU)
       src/utils.cpp
       contrib/legendre_rule_fast.cpp
       src/fft.cpp
-      src/finufft_core.cpp
+      src/finufft.cpp
       src/simpleinterfaces.cpp
       fortran/finufftfort.cpp)
   endif()
