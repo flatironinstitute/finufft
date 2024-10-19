@@ -14,8 +14,8 @@ namespace utils {
 
 // ahb's low-level array helpers
 template<typename T>
-FINUFFT_EXPORT T FINUFFT_CDECL relerrtwonorm(BIGINT n, std::complex<T> *a,
-                                             std::complex<T> *b)
+FINUFFT_EXPORT T FINUFFT_CDECL relerrtwonorm(BIGINT n, const std::complex<T> *a,
+                                             const std::complex<T> *b)
 // ||a-b||_2 / ||a||_2
 {
   T err = 0.0, nrm = 0.0;
@@ -26,8 +26,8 @@ FINUFFT_EXPORT T FINUFFT_CDECL relerrtwonorm(BIGINT n, std::complex<T> *a,
   return sqrt(err / nrm);
 }
 template<typename T>
-FINUFFT_EXPORT T FINUFFT_CDECL errtwonorm(BIGINT n, std::complex<T> *a,
-                                          std::complex<T> *b)
+FINUFFT_EXPORT T FINUFFT_CDECL errtwonorm(BIGINT n, const std::complex<T> *a,
+                                          const std::complex<T> *b)
 // ||a-b||_2
 {
   T err = 0.0; // compute error 2-norm
@@ -35,7 +35,7 @@ FINUFFT_EXPORT T FINUFFT_CDECL errtwonorm(BIGINT n, std::complex<T> *a,
   return sqrt(err);
 }
 template<typename T>
-FINUFFT_EXPORT T FINUFFT_CDECL twonorm(BIGINT n, std::complex<T> *a)
+FINUFFT_EXPORT T FINUFFT_CDECL twonorm(BIGINT n, const std::complex<T> *a)
 // ||a||_2
 {
   T nrm = 0.0;
@@ -43,7 +43,7 @@ FINUFFT_EXPORT T FINUFFT_CDECL twonorm(BIGINT n, std::complex<T> *a)
   return sqrt(nrm);
 }
 template<typename T>
-FINUFFT_EXPORT T FINUFFT_CDECL infnorm(BIGINT n, std::complex<T> *a)
+FINUFFT_EXPORT T FINUFFT_CDECL infnorm(BIGINT n, const std::complex<T> *a)
 // ||a||_infty
 {
   T nrm = 0.0;
@@ -51,7 +51,7 @@ FINUFFT_EXPORT T FINUFFT_CDECL infnorm(BIGINT n, std::complex<T> *a)
   return sqrt(nrm);
 }
 template<typename T>
-FINUFFT_EXPORT void FINUFFT_CDECL arrayrange(BIGINT n, T *a, T *lo, T *hi)
+FINUFFT_EXPORT void FINUFFT_CDECL arrayrange(BIGINT n, const T *a, T *lo, T *hi)
 // With a a length-n array, writes out min(a) to lo and max(a) to hi,
 // so that all a values lie in [lo,hi].
 // If n==0, lo and hi are not finite.
@@ -64,10 +64,10 @@ FINUFFT_EXPORT void FINUFFT_CDECL arrayrange(BIGINT n, T *a, T *lo, T *hi)
   }
 }
 template<typename T>
-FINUFFT_EXPORT void FINUFFT_CDECL arraywidcen(BIGINT n, T *a, T *w, T *c)
+FINUFFT_EXPORT void FINUFFT_CDECL arraywidcen(BIGINT n, const T *a, T *w, T *c)
 // Writes out w = half-width and c = center of an interval enclosing all a[n]'s
 // Only chooses a nonzero center if this increases w by less than fraction
-// ARRAYWIDCEN_GROWFRAC defined in defs.h.
+// ARRAYWIDCEN_GROWFRAC defined in finufft_core.h.
 // This prevents rephasings which don't grow nf by much. 6/8/17
 // If n==0, w and c are not finite.
 {

@@ -181,12 +181,10 @@ HEADERS = $(wildcard include/*.h include/finufft/*.h) $(DUCC_HEADERS)
 	$(CC) -c $(CFLAGS) $< -o $@
 %.o: %.f
 	$(FC) -c $(FFLAGS) $< -o $@
-%_32.o: %.f
-	$(FC) -DSINGLE -c $(FFLAGS) $< -o $@
 
 # spreadinterp include auto-generated code, xsimd header-only dependency;
 # if FFT=DUCC also setup ducc with fft.h dependency on $(DUCC_SETUP)...
-# Note src/spreadinterp.cpp includes finufft/defs.h which includes finufft/fft.h
+# Note src/spreadinterp.cpp includes finufft/finufft_core.h which includes finufft/fft.h
 # so fftw/ducc header needed for spreadinterp, though spreadinterp should not
 # depend on fftw/ducc directly?
 include/finufft/fft.h: $(DUCC_SETUP)

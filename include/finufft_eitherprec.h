@@ -4,8 +4,7 @@
 /* Devnotes.
  1)  Since everything here is exposed to the public interface, macros must be
  safe, eg FINUFFTsomething.
- 2)  They will clobber any prior macros starting FINUFFT*, so in the lib/test
- sources finufft.h must be included before defs.h
+ 2)  They will clobber any prior macros starting FINUFFT*
  3) for debug of header macros, see finufft.h
 */
 

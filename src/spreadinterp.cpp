@@ -2153,8 +2153,9 @@ FINUFFT_EXPORT int FINUFFT_CDECL setup_spreader(finufft_spread_opts &opts, T eps
    opts. dim is spatial dimension (1,2, or 3). See finufft.cpp:finufft_plan() for where
    upsampfac is set. Must call this before any kernel evals done, otherwise segfault
    likely. Returns: 0  : success FINUFFT_WARN_EPS_TOO_SMALL : requested eps cannot be
-   achieved, but proceed with best possible eps otherwise : failure (see codes in defs.h);
-   spreading must not proceed Barnett 2017. debug, loosened eps logic 6/14/20.
+   achieved, but proceed with best possible eps otherwise : failure (see codes in
+   finufft_errors.h); spreading must not proceed Barnett 2017. debug, loosened eps logic
+   6/14/20.
 */
 {
   constexpr T EPSILON = std::numeric_limits<T>::epsilon();

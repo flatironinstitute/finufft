@@ -11,15 +11,12 @@
 // for omp rand filling
 #define TEST_RANDCHUNK 1000000
 
-// the public interface: since this clobbers FINUFFT* macros, must be included
-// *before* private defs.h...
+// the public interface
 #include <finufft.h>
 
-// convenient private finufft internals (must come after finufft.h)
-#include <finufft/utils.h>
-// prec-switching (via SINGLE) to set up FLT, CPX, BIGINT, FINUFFT1D1, etc...
-#include <finufft.h>
+// convenient private finufft internals
 #include <finufft/finufft_core.h>
+#include <finufft/utils.h>
 #include <memory>
 
 // --------------- Private data types for compilation in either prec ---------
@@ -27,8 +24,7 @@
 
 // All indexing in library that potentially can exceed 2^31 uses 64-bit signed.
 // This includes all calling arguments (eg M,N) that could be huge someday.
-// using BIGINT  = int64_t;
-// using UBIGINT = uint64_t;
+
 // Precision-independent real and complex types, for private lib/test compile
 #ifdef SINGLE
 using FLT = float;
@@ -50,7 +46,7 @@ using CPX = std::complex<FLT>;
 // Random numbers: crappy unif random number generator in [0,1).
 // These macros should probably be replaced by modern C++ std lib or random123.
 // (RAND_MAX is in stdlib.h)
-#include <stdlib.h>
+#include <cstdlib>
 static inline FLT rand01 [[maybe_unused]] () { return FLT(rand()) / FLT(RAND_MAX); }
 // unif[-1,1]:
 static inline FLT randm11 [[maybe_unused]] () { return 2 * rand01() - FLT(1); }
@@ -83,8 +79,6 @@ static inline CPX crandm11r [[maybe_unused]] (unsigned int *x) {
 // Prec-switching name macros (respond to SINGLE), used in lib & test sources
 // and the plan object below.
 // Note: crucially, these are now indep of macros used to gen public finufft.h!
-// However, some overlap in name (FINUFFTIFY*, FINUFFT_PLAN*), meaning
-// finufft.h cannot be included after defs.h since it undefs these overlaps :(
 #ifdef SINGLE
 // a macro to prepend finufft or finufftf to a string without a space.
 // The 2nd level of indirection is needed for safety, see:
@@ -124,15 +118,13 @@ static inline CPX crandm11r [[maybe_unused]] (unsigned int *x) {
 // --------  FINUFFT's plan object, prec-switching version ------------------
 // NB: now private (the public C++ or C etc user sees an opaque pointer to it)
 
-#include <finufft/fft.h> // (must come after complex.h)
+#include <finufft/fft.h>
 struct FINUFFT_PLAN_S : public FINUFFT_PLAN_T<FLT> {};
 
 // std stuff for tester src
 #include <cstdio>
 #include <iomanip>
 #include <iostream>
-#include <math.h>
-#include <stdlib.h>
 #include <vector>
 
 #endif // TEST_DEFS_H
