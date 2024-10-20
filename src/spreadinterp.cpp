@@ -222,13 +222,6 @@ static FINUFFT_ALWAYS_INLINE T fold_rescale(const T x, const UBIGINT N) noexcept
   return (result - floor(result)) * T(N);
 }
 
-template<typename T, class simd_type>
-static FINUFFT_ALWAYS_INLINE simd_type fold_rescale(const simd_type &x,
-                                                    const BIGINT N) noexcept {
-  const simd_type x2pi   = T(M_1_2PI);
-  const simd_type result = xsimd::fma(x, x2pi, simd_type(0.5));
-  return (result - xsimd::floor(result)) * simd_type(T(N));
-}
 template<typename T, uint8_t ns>
 static void set_kernel_args(T *args, T x) noexcept
 // Fills vector args[] with kernel arguments x, x+1, ..., x+ns-1.
