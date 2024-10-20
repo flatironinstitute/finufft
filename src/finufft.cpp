@@ -26,7 +26,7 @@ using namespace finufft::quadrature;
 
    As of v1.2 these replace the old hand-coded separate 9 finufft?d?() functions
    and the two finufft2d?many() functions. The (now 18) simple C++ interfaces
-   are in simpleinterfaces.cpp.
+   are in c_interface.cpp.
 
 Algorithm summaries taken from old finufft?d?() documentation, Feb-Jun 2017:
 

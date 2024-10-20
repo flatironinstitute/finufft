@@ -258,7 +258,7 @@ if(FINUFFT_USE_CPU)
       contrib/legendre_rule_fast.cpp
       src/fft.cpp
       src/finufft.cpp
-      src/simpleinterfaces.cpp
+      src/c_interface.cpp
       fortran/finufftfort.cpp)
   else()
     add_library(
@@ -268,7 +268,7 @@ if(FINUFFT_USE_CPU)
       contrib/legendre_rule_fast.cpp
       src/fft.cpp
       src/finufft.cpp
-      src/simpleinterfaces.cpp
+      src/c_interface.cpp
       fortran/finufftfort.cpp)
   endif()
   set_finufft_options(finufft)

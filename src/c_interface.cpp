@@ -129,246 +129,176 @@ using namespace finufft::common;
 // Dimension 1111111111111111111111111111111111111111111111111111111111111111
 
 int finufft1d1many(int n_transf, i64 nj, f64 *xj, c128 *cj, int iflag, f64 eps, i64 ms,
-                   c128 *fk, finufft_opts *opts)
-// Type-1 1D complex nonuniform FFT for many vectors. See ../docs/usage.rst
-{
+                   c128 *fk, finufft_opts *opts) {
   return guru<f64>(1, 1, n_transf, nj, {xj}, cj, iflag, eps, {ms, 1, 1}, 0, {}, fk, opts);
 }
 int finufftf1d1many(int n_transf, i64 nj, f32 *xj, c64 *cj, int iflag, f32 eps, i64 ms,
-                    c64 *fk, finufft_opts *opts)
-// Type-1 1D complex nonuniform FFT for many vectors. See ../docs/usage.rst
-{
+                    c64 *fk, finufft_opts *opts) {
   return guru<f32>(1, 1, n_transf, nj, {xj}, cj, iflag, eps, {ms, 1, 1}, 0, {}, fk, opts);
 }
 
 int finufft1d1(i64 nj, f64 *xj, c128 *cj, int iflag, f64 eps, i64 ms, c128 *fk,
-               finufft_opts *opts)
-//  Type-1 1D complex nonuniform FFT. See ../docs/usage.rst
-{
+               finufft_opts *opts) {
   return finufft1d1many(1, nj, xj, cj, iflag, eps, ms, fk, opts);
 }
 int finufftf1d1(i64 nj, f32 *xj, c64 *cj, int iflag, f32 eps, i64 ms, c64 *fk,
-                finufft_opts *opts)
-//  Type-1 1D complex nonuniform FFT. See ../docs/usage.rst
-{
+                finufft_opts *opts) {
   return finufftf1d1many(1, nj, xj, cj, iflag, eps, ms, fk, opts);
 }
 
 int finufft1d2many(int n_transf, i64 nj, f64 *xj, c128 *cj, int iflag, f64 eps, i64 ms,
-                   c128 *fk, finufft_opts *opts)
-//  Type-2 1D complex nonuniform FFT, many vectors. See ../docs/usage.rst
-{
+                   c128 *fk, finufft_opts *opts) {
   return guru<f64>(1, 2, n_transf, nj, {xj}, cj, iflag, eps, {ms, 1, 1}, 0, {}, fk, opts);
 }
 int finufftf1d2many(int n_transf, i64 nj, f32 *xj, c64 *cj, int iflag, f32 eps, i64 ms,
-                    c64 *fk, finufft_opts *opts)
-//  Type-2 1D complex nonuniform FFT, many vectors. See ../docs/usage.rst
-{
+                    c64 *fk, finufft_opts *opts) {
   return guru<f32>(1, 2, n_transf, nj, {xj}, cj, iflag, eps, {ms, 1, 1}, 0, {}, fk, opts);
 }
 
 int finufft1d2(i64 nj, f64 *xj, c128 *cj, int iflag, f64 eps, i64 ms, c128 *fk,
-               finufft_opts *opts)
-//  Type-2 1D complex nonuniform FFT. See ../docs/usage.rst
-{
+               finufft_opts *opts) {
   return finufft1d2many(1, nj, xj, cj, iflag, eps, ms, fk, opts);
 }
 int finufftf1d2(i64 nj, f32 *xj, c64 *cj, int iflag, f32 eps, i64 ms, c64 *fk,
-                finufft_opts *opts)
-//  Type-2 1D complex nonuniform FFT. See ../docs/usage.rst
-{
+                finufft_opts *opts) {
   return finufftf1d2many(1, nj, xj, cj, iflag, eps, ms, fk, opts);
 }
 
 int finufft1d3many(int n_transf, i64 nj, f64 *xj, c128 *cj, int iflag, f64 eps, i64 nk,
-                   f64 *s, c128 *fk, finufft_opts *opts)
-// Type-3 1D complex nonuniform FFT, many vectors. See ../docs/usage.rst
-{
+                   f64 *s, c128 *fk, finufft_opts *opts) {
   return guru<f64>(1, 3, n_transf, nj, {xj}, cj, iflag, eps, {0, 0, 0}, nk, {s}, fk,
                    opts);
 }
 int finufftf1d3many(int n_transf, i64 nj, f32 *xj, c64 *cj, int iflag, f32 eps, i64 nk,
-                    f32 *s, c64 *fk, finufft_opts *opts)
-// Type-3 1D complex nonuniform FFT, many vectors. See ../docs/usage.rst
-{
+                    f32 *s, c64 *fk, finufft_opts *opts) {
   return guru<f32>(1, 3, n_transf, nj, {xj}, cj, iflag, eps, {0, 0, 0}, nk, {s}, fk,
                    opts);
 }
 int finufft1d3(i64 nj, f64 *xj, c128 *cj, int iflag, f64 eps, i64 nk, f64 *s, c128 *fk,
-               finufft_opts *opts)
-// Type-3 1D complex nonuniform FFT. See ../docs/usage.rst
-{
+               finufft_opts *opts) {
   return finufft1d3many(1, nj, xj, cj, iflag, eps, nk, s, fk, opts);
 }
 int finufftf1d3(i64 nj, f32 *xj, c64 *cj, int iflag, f32 eps, i64 nk, f32 *s, c64 *fk,
-                finufft_opts *opts)
-// Type-3 1D complex nonuniform FFT. See ../docs/usage.rst
-{
+                finufft_opts *opts) {
   return finufftf1d3many(1, nj, xj, cj, iflag, eps, nk, s, fk, opts);
 }
 
 // Dimension 22222222222222222222222222222222222222222222222222222222222222222
 
 int finufft2d1many(int n_transf, i64 nj, f64 *xj, f64 *yj, c128 *c, int iflag, f64 eps,
-                   i64 ms, i64 mt, c128 *fk, finufft_opts *opts)
-//  Type-1 2D complex nonuniform FFT, many vectors. See ../docs/usage.rst
-{
+                   i64 ms, i64 mt, c128 *fk, finufft_opts *opts) {
   return guru<f64>(2, 1, n_transf, nj, {xj, yj}, c, iflag, eps, {ms, mt, 1}, 0, {}, fk,
                    opts);
 }
 int finufftf2d1many(int n_transf, i64 nj, f32 *xj, f32 *yj, c64 *c, int iflag, f32 eps,
-                    i64 ms, i64 mt, c64 *fk, finufft_opts *opts)
-//  Type-1 2D complex nonuniform FFT, many vectors. See ../docs/usage.rst
-{
+                    i64 ms, i64 mt, c64 *fk, finufft_opts *opts) {
   return guru<f32>(2, 1, n_transf, nj, {xj, yj}, c, iflag, eps, {ms, mt, 1}, 0, {}, fk,
                    opts);
 }
 int finufft2d1(i64 nj, f64 *xj, f64 *yj, c128 *cj, int iflag, f64 eps, i64 ms, i64 mt,
-               c128 *fk, finufft_opts *opts)
-//  Type-1 2D complex nonuniform FFT. See ../docs/usage.rst
-{
+               c128 *fk, finufft_opts *opts) {
   return finufft2d1many(1, nj, xj, yj, cj, iflag, eps, ms, mt, fk, opts);
 }
 int finufftf2d1(i64 nj, f32 *xj, f32 *yj, c64 *cj, int iflag, f32 eps, i64 ms, i64 mt,
-                c64 *fk, finufft_opts *opts)
-//  Type-1 2D complex nonuniform FFT. See ../docs/usage.rst
-{
+                c64 *fk, finufft_opts *opts) {
   return finufftf2d1many(1, nj, xj, yj, cj, iflag, eps, ms, mt, fk, opts);
 }
 
 int finufft2d2many(int n_transf, i64 nj, f64 *xj, f64 *yj, c128 *c, int iflag, f64 eps,
-                   i64 ms, i64 mt, c128 *fk, finufft_opts *opts)
-//  Type-2 2D complex nonuniform FFT, many vectors.  See ../docs/usage.rst
-{
+                   i64 ms, i64 mt, c128 *fk, finufft_opts *opts) {
   return guru<f64>(2, 2, n_transf, nj, {xj, yj}, c, iflag, eps, {ms, mt, 1}, 0, {}, fk,
                    opts);
 }
 int finufftf2d2many(int n_transf, i64 nj, f32 *xj, f32 *yj, c64 *c, int iflag, f32 eps,
-                    i64 ms, i64 mt, c64 *fk, finufft_opts *opts)
-//  Type-2 2D complex nonuniform FFT, many vectors.  See ../docs/usage.rst
-{
+                    i64 ms, i64 mt, c64 *fk, finufft_opts *opts) {
   return guru<f32>(2, 2, n_transf, nj, {xj, yj}, c, iflag, eps, {ms, mt, 1}, 0, {}, fk,
                    opts);
 }
 int finufft2d2(i64 nj, f64 *xj, f64 *yj, c128 *cj, int iflag, f64 eps, i64 ms, i64 mt,
-               c128 *fk, finufft_opts *opts)
-//  Type-2 2D complex nonuniform FFT.  See ../docs/usage.rst
-{
+               c128 *fk, finufft_opts *opts) {
   return finufft2d2many(1, nj, xj, yj, cj, iflag, eps, ms, mt, fk, opts);
 }
 int finufftf2d2(i64 nj, f32 *xj, f32 *yj, c64 *cj, int iflag, f32 eps, i64 ms, i64 mt,
-                c64 *fk, finufft_opts *opts)
-//  Type-2 2D complex nonuniform FFT.  See ../docs/usage.rst
-{
+                c64 *fk, finufft_opts *opts) {
   return finufftf2d2many(1, nj, xj, yj, cj, iflag, eps, ms, mt, fk, opts);
 }
 
 int finufft2d3many(int n_transf, i64 nj, f64 *xj, f64 *yj, c128 *cj, int iflag, f64 eps,
-                   i64 nk, f64 *s, f64 *t, c128 *fk, finufft_opts *opts)
-// Type-3 2D complex nonuniform FFT, many vectors.  See ../docs/usage.rst
-{
+                   i64 nk, f64 *s, f64 *t, c128 *fk, finufft_opts *opts) {
   return guru<f64>(2, 3, n_transf, nj, {xj, yj}, cj, iflag, eps, {0, 0, 0}, nk, {s, t},
                    fk, opts);
 }
 int finufftf2d3many(int n_transf, i64 nj, f32 *xj, f32 *yj, c64 *cj, int iflag, f32 eps,
-                    i64 nk, f32 *s, f32 *t, c64 *fk, finufft_opts *opts)
-// Type-3 2D complex nonuniform FFT, many vectors.  See ../docs/usage.rst
-{
+                    i64 nk, f32 *s, f32 *t, c64 *fk, finufft_opts *opts) {
   return guru<f32>(2, 3, n_transf, nj, {xj, yj}, cj, iflag, eps, {0, 0, 0}, nk, {s, t},
                    fk, opts);
 }
 int finufft2d3(i64 nj, f64 *xj, f64 *yj, c128 *cj, int iflag, f64 eps, i64 nk, f64 *s,
-               f64 *t, c128 *fk, finufft_opts *opts)
-// Type-3 2D complex nonuniform FFT.  See ../docs/usage.rst
-{
+               f64 *t, c128 *fk, finufft_opts *opts) {
   return finufft2d3many(1, nj, xj, yj, cj, iflag, eps, nk, s, t, fk, opts);
 }
 int finufftf2d3(i64 nj, f32 *xj, f32 *yj, c64 *cj, int iflag, f32 eps, i64 nk, f32 *s,
-                f32 *t, c64 *fk, finufft_opts *opts)
-// Type-3 2D complex nonuniform FFT.  See ../docs/usage.rst
-{
+                f32 *t, c64 *fk, finufft_opts *opts) {
   return finufftf2d3many(1, nj, xj, yj, cj, iflag, eps, nk, s, t, fk, opts);
 }
 
 // Dimension 3333333333333333333333333333333333333333333333333333333333333333
 
 int finufft3d1many(int n_transf, i64 nj, f64 *xj, f64 *yj, f64 *zj, c128 *cj, int iflag,
-                   f64 eps, i64 ms, i64 mt, i64 mu, c128 *fk, finufft_opts *opts)
-// Type-1 3D complex nonuniform FFT, many vectors.  See ../docs/usage.rst
-{
+                   f64 eps, i64 ms, i64 mt, i64 mu, c128 *fk, finufft_opts *opts) {
   return guru<f64>(3, 1, n_transf, nj, {xj, yj, zj}, cj, iflag, eps, {ms, mt, mu}, 0, {},
                    fk, opts);
 }
 int finufftf3d1many(int n_transf, i64 nj, f32 *xj, f32 *yj, f32 *zj, c64 *cj, int iflag,
-                    f32 eps, i64 ms, i64 mt, i64 mu, c64 *fk, finufft_opts *opts)
-// Type-1 3D complex nonuniform FFT, many vectors.  See ../docs/usage.rst
-{
+                    f32 eps, i64 ms, i64 mt, i64 mu, c64 *fk, finufft_opts *opts) {
   return guru<f32>(3, 1, n_transf, nj, {xj, yj, zj}, cj, iflag, eps, {ms, mt, mu}, 0, {},
                    fk, opts);
 }
 int finufft3d1(i64 nj, f64 *xj, f64 *yj, f64 *zj, c128 *cj, int iflag, f64 eps, i64 ms,
-               i64 mt, i64 mu, c128 *fk, finufft_opts *opts)
-//  Type-1 3D complex nonuniform FFT.   See ../docs/usage.rst
-{
+               i64 mt, i64 mu, c128 *fk, finufft_opts *opts) {
   return finufft3d1many(1, nj, xj, yj, zj, cj, iflag, eps, ms, mt, mu, fk, opts);
 }
 int finufftf3d1(i64 nj, f32 *xj, f32 *yj, f32 *zj, c64 *cj, int iflag, f32 eps, i64 ms,
-                i64 mt, i64 mu, c64 *fk, finufft_opts *opts)
-//  Type-1 3D complex nonuniform FFT.   See ../docs/usage.rst
-{
+                i64 mt, i64 mu, c64 *fk, finufft_opts *opts) {
   return finufftf3d1many(1, nj, xj, yj, zj, cj, iflag, eps, ms, mt, mu, fk, opts);
 }
 
 int finufft3d2many(int n_transf, i64 nj, f64 *xj, f64 *yj, f64 *zj, c128 *cj, int iflag,
-                   f64 eps, i64 ms, i64 mt, i64 mu, c128 *fk, finufft_opts *opts)
-// Type-2 3D complex nonuniform FFT, many vectors.   See ../docs/usage.rst
-{
+                   f64 eps, i64 ms, i64 mt, i64 mu, c128 *fk, finufft_opts *opts) {
   return guru<f64>(3, 2, n_transf, nj, {xj, yj, zj}, cj, iflag, eps, {ms, mt, mu}, 0, {},
                    fk, opts);
 }
 int finufftf3d2many(int n_transf, i64 nj, f32 *xj, f32 *yj, f32 *zj, c64 *cj, int iflag,
-                    f32 eps, i64 ms, i64 mt, i64 mu, c64 *fk, finufft_opts *opts)
-// Type-2 3D complex nonuniform FFT, many vectors.   See ../docs/usage.rst
-{
+                    f32 eps, i64 ms, i64 mt, i64 mu, c64 *fk, finufft_opts *opts) {
   return guru<f32>(3, 2, n_transf, nj, {xj, yj, zj}, cj, iflag, eps, {ms, mt, mu}, 0, {},
                    fk, opts);
 }
 int finufft3d2(i64 nj, f64 *xj, f64 *yj, f64 *zj, c128 *cj, int iflag, f64 eps, i64 ms,
-               i64 mt, i64 mu, c128 *fk, finufft_opts *opts)
-// Type-2 3D complex nonuniform FFT.   See ../docs/usage.rst
-{
+               i64 mt, i64 mu, c128 *fk, finufft_opts *opts) {
   return finufft3d2many(1, nj, xj, yj, zj, cj, iflag, eps, ms, mt, mu, fk, opts);
 }
 int finufftf3d2(i64 nj, f32 *xj, f32 *yj, f32 *zj, c64 *cj, int iflag, f32 eps, i64 ms,
-                i64 mt, i64 mu, c64 *fk, finufft_opts *opts)
-// Type-2 3D complex nonuniform FFT.   See ../docs/usage.rst
-{
+                i64 mt, i64 mu, c64 *fk, finufft_opts *opts) {
   return finufftf3d2many(1, nj, xj, yj, zj, cj, iflag, eps, ms, mt, mu, fk, opts);
 }
 
 int finufft3d3many(int n_transf, i64 nj, f64 *xj, f64 *yj, f64 *zj, c128 *cj, int iflag,
-                   f64 eps, i64 nk, f64 *s, f64 *t, f64 *u, c128 *fk, finufft_opts *opts)
-//  Type-3 3D complex nonuniform FFT, many vectors.   See ../docs/usage.rst
-{
+                   f64 eps, i64 nk, f64 *s, f64 *t, f64 *u, c128 *fk,
+                   finufft_opts *opts) {
   return guru<f64>(3, 3, n_transf, nj, {xj, yj, zj}, cj, iflag, eps, {0, 0, 0}, nk,
                    {s, t, u}, fk, opts);
 }
 int finufftf3d3many(int n_transf, i64 nj, f32 *xj, f32 *yj, f32 *zj, c64 *cj, int iflag,
-                    f32 eps, i64 nk, f32 *s, f32 *t, f32 *u, c64 *fk, finufft_opts *opts)
-//  Type-3 3D complex nonuniform FFT, many vectors.   See ../docs/usage.rst
-{
+                    f32 eps, i64 nk, f32 *s, f32 *t, f32 *u, c64 *fk,
+                    finufft_opts *opts) {
   return guru<f32>(3, 3, n_transf, nj, {xj, yj, zj}, cj, iflag, eps, {0, 0, 0}, nk,
                    {s, t, u}, fk, opts);
 }
 int finufft3d3(i64 nj, f64 *xj, f64 *yj, f64 *zj, c128 *cj, int iflag, f64 eps, i64 nk,
-               f64 *s, f64 *t, f64 *u, c128 *fk, finufft_opts *opts)
-//  Type-3 3D complex nonuniform FFT.   See ../docs/usage.rst
-{
+               f64 *s, f64 *t, f64 *u, c128 *fk, finufft_opts *opts) {
   return finufft3d3many(1, nj, xj, yj, zj, cj, iflag, eps, nk, s, t, u, fk, opts);
 }
 int finufftf3d3(i64 nj, f32 *xj, f32 *yj, f32 *zj, c64 *cj, int iflag, f32 eps, i64 nk,
-                f32 *s, f32 *t, f32 *u, c64 *fk, finufft_opts *opts)
-//  Type-3 3D complex nonuniform FFT.   See ../docs/usage.rst
-{
+                f32 *s, f32 *t, f32 *u, c64 *fk, finufft_opts *opts) {
   return finufftf3d3many(1, nj, xj, yj, zj, cj, iflag, eps, nk, s, t, u, fk, opts);
 }
