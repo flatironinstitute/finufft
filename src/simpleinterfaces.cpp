@@ -42,20 +42,18 @@ int finufftf_makeplan(int type, int dim, const i64 *n_modes, int iflag, int ntra
 
 int finufft_setpts(finufft_plan p, i64 nj, f64 *xj, f64 *yj, f64 *zj, i64 nk, f64 *s,
                    f64 *t, f64 *u) {
-  return finufft_setpts_t<f64>(reinterpret_cast<FINUFFT_PLAN_T<f64> *>(p), nj, xj, yj, zj,
-                               nk, s, t, u);
+  return reinterpret_cast<FINUFFT_PLAN_T<f64> *>(p)->setpts(nj, xj, yj, zj, nk, s, t, u);
 }
 int finufftf_setpts(finufftf_plan p, i64 nj, f32 *xj, f32 *yj, f32 *zj, i64 nk, f32 *s,
                     f32 *t, f32 *u) {
-  return finufft_setpts_t<f32>(reinterpret_cast<FINUFFT_PLAN_T<f32> *>(p), nj, xj, yj, zj,
-                               nk, s, t, u);
+  return reinterpret_cast<FINUFFT_PLAN_T<f32> *>(p)->setpts(nj, xj, yj, zj, nk, s, t, u);
 }
 
 int finufft_execute(finufft_plan p, c128 *cj, c128 *fk) {
-  return finufft_execute_t<f64>(reinterpret_cast<FINUFFT_PLAN_T<f64> *>(p), cj, fk);
+  return reinterpret_cast<FINUFFT_PLAN_T<f64> *>(p)->execute(cj, fk);
 }
 int finufftf_execute(finufftf_plan p, c64 *cj, c64 *fk) {
-  return finufft_execute_t<f32>(reinterpret_cast<FINUFFT_PLAN_T<f32> *>(p), cj, fk);
+  return reinterpret_cast<FINUFFT_PLAN_T<f32> *>(p)->execute(cj, fk);
 }
 
 int finufft_destroy(finufft_plan p)
@@ -68,7 +66,6 @@ int finufft_destroy(finufft_plan p)
     return 1;
 
   delete reinterpret_cast<FINUFFT_PLAN_T<f64> *>(p);
-  p = nullptr;
   return 0; // success
 }
 int finufftf_destroy(finufftf_plan p)
@@ -81,7 +78,6 @@ int finufftf_destroy(finufftf_plan p)
     return 1;
 
   delete reinterpret_cast<FINUFFT_PLAN_T<f32> *>(p);
-  p = nullptr;
   return 0; // success
 }
 // Helper layer ...........................................................
@@ -107,14 +103,14 @@ static int guruCall(int n_dims, int type, int n_transf, i64 nj, T *xj, T *yj, T 
     return ier;
   }
 
-  int ier2 = finufft_setpts_t<T>(plan, nj, xj, yj, zj, nk, s, t, u);
+  int ier2 = plan->setpts(nj, xj, yj, zj, nk, s, t, u);
   if (ier2 > 1) {
     fprintf(stderr, "FINUFFT invokeGuru: setpts error (ier=%d)!\n", ier2);
     delete plan;
     return ier2;
   }
 
-  int ier3 = finufft_execute_t<T>(plan, cj, fk);
+  int ier3 = plan->execute(cj, fk);
   if (ier3 > 1) {
     fprintf(stderr, "FINUFFT invokeGuru: execute error (ier=%d)!\n", ier3);
     delete plan;

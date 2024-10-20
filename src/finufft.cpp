@@ -1011,9 +1011,8 @@ int FINUFFT_PLAN_T<TF>::setpts(BIGINT nj, TF *xj, TF *yj, TF *zj, BIGINT nk, TF 
               __func__, ier);
       return ier;
     }
-    ier = finufft_setpts_t<TF>(innerT2plan, nk, Sp.data(), Tp.data(), Up.data(), 0,
-                               nullptr, nullptr,
-                               nullptr); // note nk = # output points (not nj)
+    ier = innerT2plan->setpts(nk, Sp.data(), Tp.data(), Up.data(), 0, nullptr, nullptr,
+                              nullptr); // note nk = # output points (not nj)
     if (ier > 1) {
       fprintf(stderr, "[%s t3]: inner type 2 setpts failed, ier=%d!\n", __func__, ier);
       return ier;
@@ -1023,23 +1022,10 @@ int FINUFFT_PLAN_T<TF>::setpts(BIGINT nj, TF *xj, TF *yj, TF *zj, BIGINT nk, TF 
   }
   return 0;
 }
-template<typename TF>
-int finufft_setpts_t(FINUFFT_PLAN_T<TF> *p, BIGINT nj, TF *xj, TF *yj, TF *zj, BIGINT nk,
-                     TF *s, TF *t, TF *u)
-/* For type 1,2: just checks and (possibly) sorts the NU xyz points, in prep for
-   spreading. (The last 4 arguments are ignored.)
-   For type 3: allocates internal working arrays, scales/centers the NU points
-   and NU target freqs (stu), evaluates spreading kernel FT at all target freqs.
-*/
-{
-  return p->setpts(nj, xj, yj, zj, nk, s, t, u);
-}
-template int finufft_setpts_t<float>(FINUFFT_PLAN_T<float> *p, BIGINT nj, float *xj,
-                                     float *yj, float *zj, BIGINT nk, float *s, float *t,
-                                     float *u);
-template int finufft_setpts_t<double>(FINUFFT_PLAN_T<double> *p, BIGINT nj, double *xj,
-                                      double *yj, double *zj, BIGINT nk, double *s,
-                                      double *t, double *u);
+template int FINUFFT_PLAN_T<float>::setpts(BIGINT nj, float *xj, float *yj, float *zj,
+                                           BIGINT nk, float *s, float *t, float *u);
+template int FINUFFT_PLAN_T<double>::setpts(BIGINT nj, double *xj, double *yj, double *zj,
+                                            BIGINT nk, double *s, double *t, double *u);
 
 // ............ end setpts ..................................................
 
@@ -1162,7 +1148,7 @@ int FINUFFT_PLAN_T<TF>::execute(std::complex<TF> *cj, std::complex<TF> *fk) {
       innerT2plan->ntrans = thisBatchSize; // do not try this at home!
       /* (alarming that FFT not shrunk, but safe, because t2's fwBatch array
      still the same size, as Andrea explained; just wastes a few flops) */
-      finufft_execute_t(innerT2plan, fkb, fwBatch);
+      innerT2plan->execute(fkb, fwBatch);
       t_t2 += timer.elapsedsec();
       // STEP 3: apply deconvolve (precomputed 1/phiHat(targ_k), phasing too)...
       timer.restart();
@@ -1186,26 +1172,10 @@ int FINUFFT_PLAN_T<TF>::execute(std::complex<TF> *cj, std::complex<TF> *fk) {
 
   return 0;
 }
-template<typename TF>
-int finufft_execute_t(FINUFFT_PLAN_T<TF> *p, std::complex<TF> *cj, std::complex<TF> *fk) {
-  /* See ../docs/cguru.doc for current documentation.
-
-   For given (stack of) weights cj or coefficients fk, performs NUFFTs with
-   existing (sorted) NU pts and existing plan.
-   For type 1 and 3: cj is input, fk is output.
-   For type 2: fk is input, cj is output.
-   Performs spread/interp, pre/post deconvolve, and FFT as appropriate
-   for each of the 3 types.
-   For cases of ntrans>1, performs work in blocks of size up to batchSize.
-   Return value 0 (no error diagnosis yet).
-   Barnett 5/20/20, based on Malleo 2019.
-*/
-  return p->execute(cj, fk);
-}
-template int finufft_execute_t<float>(FINUFFT_PLAN_T<float> *p, std::complex<float> *cj,
-                                      std::complex<float> *fk);
-template int finufft_execute_t<double>(
-    FINUFFT_PLAN_T<double> *p, std::complex<double> *cj, std::complex<double> *fk);
+template int FINUFFT_PLAN_T<float>::execute(std::complex<float> *cj,
+                                            std::complex<float> *fk);
+template int FINUFFT_PLAN_T<double>::execute(std::complex<double> *cj,
+                                             std::complex<double> *fk);
 
 // DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD
 template<typename TF> FINUFFT_PLAN_T<TF>::~FINUFFT_PLAN_T() {

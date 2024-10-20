@@ -216,10 +216,5 @@ void finufft_default_opts_t(finufft_opts *o);
 template<typename TF>
 int finufft_makeplan_t(int type, int dim, const BIGINT *n_modes, int iflag, int ntrans,
                        TF tol, FINUFFT_PLAN_T<TF> **pp, finufft_opts *opts);
-template<typename TF>
-int finufft_setpts_t(FINUFFT_PLAN_T<TF> *p, BIGINT nj, TF *xj, TF *yj, TF *zj, BIGINT nk,
-                     TF *s, TF *t, TF *u);
-template<typename TF>
-int finufft_execute_t(FINUFFT_PLAN_T<TF> *p, std::complex<TF> *cj, std::complex<TF> *fk);
 
 #endif // FINUFFT_CORE_H
