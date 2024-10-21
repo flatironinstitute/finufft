@@ -169,7 +169,7 @@ if(FINUFFT_USE_CPU)
   set(XTL_VERSION 0.7.7)
   set(XSIMD_VERSION 13.0.0)
   # using latest ducc0 version for now as it fixes MacOS GCC build
-  set(DUCC0_VERSION b0beb85e03982344a31ebb119758d7aa3ef5d362)
+  set(DUCC0_VERSION ducc0_0_35_0)
   set(FINUFFT_FFTW_LIBRARIES)
   include(cmake/setupXSIMD.cmake)
   if(FINUFFT_USE_DUCC0)

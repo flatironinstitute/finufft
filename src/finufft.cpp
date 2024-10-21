@@ -65,10 +65,6 @@ Algorithm summaries taken from old finufft?d?() documentation, Feb-Jun 2017:
 
 Design notes for guru interface implementation:
 
-* Since finufft_plan is C-compatible, we need to use malloc/free for its
-  allocatable arrays, keeping it quite low-level. We can't use std::vector
-  since that would only survive in the scope of each function.
-
 * Thread-safety: FINUFFT plans are passed as pointers, so it has no global
   state apart from that associated with FFTW (and the did_fftw_init).
 */
@@ -93,8 +89,8 @@ static int set_nf_type12(BIGINT ms, const finufft_opts &opts,
     return 0;
   } else {
     fprintf(stderr,
-            "[%s] nf=%.3g exceeds MAX_NF of %.3g, so exit without attempting even a "
-            "malloc\n",
+            "[%s] nf=%.3g exceeds MAX_NF of %.3g, so exit without attempting "
+            "memory allocation\n",
             __func__, (double)*nf, (double)MAX_NF);
     return FINUFFT_ERR_MAXNALLOC;
   }
@@ -713,9 +709,10 @@ FINUFFT_PLAN_T<TF>::FINUFFT_PLAN_T(int type_, int dim_, const BIGINT *n_modes, i
 
     nf = nf1 * nf2 * nf3; // fine grid total number of points
     if (nf * batchSize > MAX_NF) {
-      fprintf(stderr,
-              "[%s] fwBatch would be bigger than MAX_NF, not attempting malloc!\n",
-              __func__);
+      fprintf(
+          stderr,
+          "[%s] fwBatch would be bigger than MAX_NF, not attempting memory allocation!\n",
+          __func__);
       // FIXME: this error causes memory leaks. We should free phiHat1, phiHat2, phiHat3
       throw int(FINUFFT_ERR_MAXNALLOC);
     }
@@ -726,8 +723,8 @@ FINUFFT_PLAN_T<TF>::FINUFFT_PLAN_T(int type_, int dim_, const BIGINT *n_modes, i
       printf("[%s] fwBatch %.2fGB alloc:   \t%.3g s\n", __func__,
              (double)1E-09 * sizeof(std::complex<TF>) * nf * batchSize,
              timer.elapsedsec());
-    if (!fwBatch) { // we don't catch all such mallocs, just this big one
-      fprintf(stderr, "[%s] FFTW malloc failed for fwBatch (working fine grids)!\n",
+    if (!fwBatch) { // we don't catch all such allocs, just this big one
+      fprintf(stderr, "[%s] FFT allocation failed for fwBatch (working fine grids)!\n",
               __func__);
       throw int(FINUFFT_ERR_ALLOC);
     }
@@ -868,7 +865,8 @@ int FINUFFT_PLAN_T<TF>::setpts(BIGINT nj, TF *xj, TF *yj, TF *zj, BIGINT nk, TF 
     nf = nf1 * nf2 * nf3; // fine grid total number of points
     if (nf * batchSize > MAX_NF) {
       fprintf(stderr,
-              "[%s t3] fwBatch would be bigger than MAX_NF, not attempting malloc!\n",
+              "[%s t3] fwBatch would be bigger than MAX_NF, not attempting memory "
+              "allocation!\n",
               __func__);
       return FINUFFT_ERR_MAXNALLOC;
     }
@@ -882,7 +880,7 @@ int FINUFFT_PLAN_T<TF>::setpts(BIGINT nj, TF *xj, TF *yj, TF *zj, BIGINT nk, TF 
              (double)1E-09 * sizeof(std::complex<TF>) * (nf + nj) * batchSize,
              timer.elapsedsec());
     if (!fwBatch) {
-      fprintf(stderr, "[%s t3] malloc fail for fwBatch or CpBatch!\n", __func__);
+      fprintf(stderr, "[%s t3] allocation fail for fwBatch or CpBatch!\n", __func__);
       return FINUFFT_ERR_ALLOC;
     }
     // printf("fwbatch, cpbatch ptrs: %llx %llx\n",fwBatch,CpBatch);

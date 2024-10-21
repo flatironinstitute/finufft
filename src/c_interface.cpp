@@ -12,8 +12,6 @@ using namespace std;
    As of v1.2 these simply invoke the guru interface, through a helper layer.
    See ../docs/usage.rst or http://finufft.readthedocs.io for documentation
    all routines here.
-   This compiles in either double or single precision (based on -DSINGLE),
-   producing functions finufft?d?{many} or finufftf?1?{many} respectively.
 
    Authors: Andrea Malleo and Alex Barnett, 2019-2020.
    Safe namespacing, Barnett, May 2022.
@@ -82,9 +80,6 @@ int finufftf_destroy(finufftf_plan p)
 }
 // Helper layer ...........................................................
 
-namespace finufft {
-namespace common {
-
 template<typename T>
 static int guru(int n_dims, int type, int n_transf, i64 nj, const std::array<T *, 3> &xyz,
                 std::complex<T> *cj, int iflag, T eps, const std::array<i64, 3> &n_modes,
@@ -120,11 +115,6 @@ static int guru(int n_dims, int type, int n_transf, i64 nj, const std::array<T *
   delete plan;
   return max(max(ier, ier2), ier3); // in case any one gave a (positive!) warning
 }
-
-} // namespace common
-} // namespace finufft
-
-using namespace finufft::common;
 
 // Dimension 1111111111111111111111111111111111111111111111111111111111111111
 

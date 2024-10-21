@@ -66,7 +66,7 @@ XSIMD_DIR := $(DEPS_ROOT)/xsimd
 
 # DUCC sources optional dependency repo
 DUCC_URL := https://gitlab.mpcdf.mpg.de/mtr/ducc.git
-DUCC_VERSION := ducc0_0_34_0
+DUCC_VERSION := ducc0_0_35_0
 DUCC_DIR := $(DEPS_ROOT)/ducc
 # this dummy file used as empty target by make...
 DUCC_COOKIE := $(DUCC_DIR)/.finufft_has_ducc
@@ -420,7 +420,7 @@ endif
 
 # python ---------------------------------------------------------------------
 python: $(STATICLIB) $(DYNLIB)
-	FINUFFT_DIR=$(FINUFFT) $(PYTHON) -m pip -v install python/finufft
+	FINUFFT_DIR=$(FINUFFT) $(PYTHON) -m pip -v install --user --break-system-packages python/finufft
 # note to devs: if trouble w/ NumPy, use: pip install ./python --no-deps
 	$(PYTHON) python/finufft/test/run_accuracy_tests.py
 	$(PYTHON) python/finufft/examples/simple1d1.py
