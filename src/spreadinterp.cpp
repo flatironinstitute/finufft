@@ -1806,8 +1806,8 @@ int indexSort(std::vector<BIGINT> &sort_indices, UBIGINT N1, UBIGINT N2, UBIGINT
     did_sort = 1;
   } else {
 #pragma omp parallel for num_threads(maxnthr) schedule(static, 1000000)
-    for (UBIGINT i = 0; i < M; i++) // here omp helps xeon, hinders i7
-      sort_indices[i] = i;          // the identity permutation
+    for (BIGINT i = 0; i < BIGINT(M); i++) // here omp helps xeon, hinders i7
+      sort_indices[i] = i;                 // the identity permutation
     if (opts.debug)
       printf("\tnot sorted (sort=%d): \t%.3g s\n", (int)opts.sort, timer.elapsedsec());
   }
@@ -1884,9 +1884,10 @@ static int spreadSorted(const std::vector<BIGINT> &sort_indices, UBIGINT N1, UBI
     {
       // local copies of NU pts and data for each subproblem
       std::vector<T> kx0{}, ky0{}, kz0{}, dd0{}, du0{};
-#pragma omp for schedule(dynamic, 1)               // each is big
-      for (UBIGINT isub = 0; isub < nb; isub++) {  // Main loop through the subproblems
-        const auto M0 = brk[isub + 1] - brk[isub]; // # NU pts in this subproblem
+#pragma omp for schedule(dynamic, 1)                     // each is big
+      for (BIGINT isub = 0; isub < BIGINT(nb); isub++) { // Main loop through the
+                                                         // subproblems
+        const auto M0 = brk[isub + 1] - brk[isub];       // # NU pts in this subproblem
         // copy the location and data vectors for the nonuniform points
         kx0.resize(M0);
         ky0.resize(M0 * (N2 > 1));
@@ -1990,7 +1991,7 @@ FINUFFT_NEVER_INLINE static int interpSorted_kernel(
     // main loop over NU trgs, interp each from U
     // (note: windows omp doesn't like unsigned loop vars)
 #pragma omp for schedule(dynamic, 1000) // assign threads to NU targ pts:
-    for (UBIGINT i = 0; i < M; i += CHUNKSIZE) {
+    for (BIGINT i = 0; i < BIGINT(M); i += CHUNKSIZE) {
       // Setup buffers for this chunk
       const UBIGINT bufsize = (i + CHUNKSIZE > M) ? M - i : CHUNKSIZE;
       for (UBIGINT ibuf = 0; ibuf < bufsize; ibuf++) {
