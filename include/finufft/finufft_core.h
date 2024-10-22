@@ -201,7 +201,8 @@ template<typename TF> struct FINUFFT_PLAN_T { // the main plan object, fully C++
   std::vector<TF> Sp, Tp, Up; // internal primed targs (s'_k, etc),
                               // allocated
   type3params<TF> t3P;        // groups together type 3 shift, scale, phase, parameters
-  FINUFFT_PLAN_T<TF> *innerT2plan = nullptr; // ptr used for type 2 in step 2 of type 3
+  std::unique_ptr<FINUFFT_PLAN_T<TF>> innerT2plan; // ptr used for type 2 in step 2 of
+                                                   // type 3
 
   // other internal structs
   std::unique_ptr<Finufft_FFT_plan<TF>> fftPlan;

@@ -713,7 +713,6 @@ FINUFFT_PLAN_T<TF>::FINUFFT_PLAN_T(int type_, int dim_, const BIGINT *n_modes, i
           stderr,
           "[%s] fwBatch would be bigger than MAX_NF, not attempting memory allocation!\n",
           __func__);
-      // FIXME: this error causes memory leaks. We should free phiHat1, phiHat2, phiHat3
       throw int(FINUFFT_ERR_MAXNALLOC);
     }
 
@@ -831,7 +830,7 @@ int FINUFFT_PLAN_T<TF>::setpts(BIGINT nj, TF *xj, TF *yj, TF *zj, BIGINT nk, TF 
     U        = u;
 
     // pick x, s intervals & shifts & # fine grid pts (nf) in each dim...
-    TF S1, S2, S3; // get half-width X, center C, which contains {x_j}...
+    TF S1 = 0, S2 = 0, S3 = 0; // get half-width X, center C, which contains {x_j}...
     arraywidcen(nj, xj, &(t3P.X1), &(t3P.C1));
     arraywidcen(nk, s, &S1, &(t3P.D1)); // same D, S, but for {s_k}
     set_nhg_type3(S1, t3P.X1, opts, spopts, &(nf1), &(t3P.h1),
@@ -928,9 +927,9 @@ int FINUFFT_PLAN_T<TF>::setpts(BIGINT nj, TF *xj, TF *yj, TF *zj, BIGINT nk, TF 
       }
     } else
       for (BIGINT j = 0; j < nj; ++j)
-        prephase[j] = (std::complex<TF>)1.0; // *** or keep flag so no mult in exec??
+        prephase[j] = {1, 0}; // *** or keep flag so no mult in exec??
 
-                                             // rescale the target s_k etc to s'_k etc...
+                              // rescale the target s_k etc to s'_k etc...
 #pragma omp parallel for num_threads(opts.nthreads) schedule(static)
     for (BIGINT k = 0; k < nk; ++k) {
       Sp[k] = t3P.h1 * t3P.gam1 * (s[k] - t3P.D1);   // so |s'_k| < pi/R
@@ -955,16 +954,9 @@ int FINUFFT_PLAN_T<TF>::setpts(BIGINT nj, TF *xj, TF *yj, TF *zj, BIGINT nk, TF 
       phiHatk3.resize(nk);
       onedim_nuft_kernel(nk, Up, phiHatk3, spopts); // fill phiHat3
     }
-    int Cfinite =
-        std::isfinite(t3P.C1) && std::isfinite(t3P.C2) && std::isfinite(t3P.C3); // C can
-                                                                                 // be nan
-                                                                                 // or inf
-                                                                                 // if
-                                                                                 // M=0,
-                                                                                 // no
-                                                                                 // input
-                                                                                 // NU pts
-    int Cnonzero = t3P.C1 != 0.0 || t3P.C2 != 0.0 || t3P.C3 != 0.0;              // cen
+    // C can be nan or inf if M=0, no input NU pts
+    int Cfinite = std::isfinite(t3P.C1) && std::isfinite(t3P.C2) && std::isfinite(t3P.C3);
+    int Cnonzero = t3P.C1 != 0.0 || t3P.C2 != 0.0 || t3P.C3 != 0.0; // cen
 #pragma omp parallel for num_threads(opts.nthreads) schedule(static)
     for (BIGINT k = 0; k < nk; ++k) { // .... loop over NU targ freqs
       TF phiHat = phiHatk1[k];
@@ -998,12 +990,11 @@ int FINUFFT_PLAN_T<TF>::setpts(BIGINT nj, TF *xj, TF *yj, TF *zj, BIGINT nk, TF 
     t2opts.spread_debug = std::max(0, opts.spread_debug - 1);
     t2opts.showwarn     = 0;                           // so don't see warnings 2x
     // (...could vary other t2opts here?)
-    if (innerT2plan) {
-      delete innerT2plan;
-      innerT2plan = nullptr;
-    }
-    int ier = finufft_makeplan_t<TF>(2, d, t2nmodes, fftSign, batchSize, tol,
-                                     &innerT2plan, &t2opts);
+    // MR: temporary hack, until we have figured out the C++ interface.
+    FINUFFT_PLAN_T<TF> *tmpplan;
+    int ier = finufft_makeplan_t<TF>(2, d, t2nmodes, fftSign, batchSize, tol, &tmpplan,
+                                     &t2opts);
+    innerT2plan.reset(tmpplan);
     if (ier > 1) { // if merely warning, still proceed
       fprintf(stderr, "[%s t3]: inner type 2 plan creation failed with ier=%d!\n",
               __func__, ier);
@@ -1181,10 +1172,8 @@ template<typename TF> FINUFFT_PLAN_T<TF>::~FINUFFT_PLAN_T() {
   // Also must not crash if called immediately after finufft_makeplan.
   // Thus either each thing free'd here is guaranteed to be nullptr or correctly
   // allocated.
-  if (fftPlan) fftPlan->free(fwBatch); // free the big FFTW (or t3 spread) working array
+  if (fftPlan) fftPlan->free(fwBatch); // free the big FFT (or t3 spread) working array
   if (type == 3) {
-    delete innerT2plan;
-    innerT2plan = nullptr;
     delete[] X;
     delete[] Y;
     delete[] Z;

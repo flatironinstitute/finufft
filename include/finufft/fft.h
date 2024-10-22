@@ -10,6 +10,9 @@ template<typename T> class Finufft_FFT_plan {
 public:
   [[maybe_unused]] Finufft_FFT_plan(void (*)(void *) = nullptr,
                                     void (*)(void *) = nullptr, void * = nullptr) {}
+  // deleting these operations to be consistent with the FFTW plans (seel below)
+  Finufft_FFT_plan(const Finufft_FFT_plan &)            = delete;
+  Finufft_FFT_plan &operator=(const Finufft_FFT_plan &) = delete;
   [[maybe_unused]] void plan(const std::vector<int> & /*dims*/, size_t /*batchSize*/,
                              std::complex<T> * /*ptr*/, int /*sign*/, int /*options*/,
                              int /*nthreads*/) {}
@@ -63,11 +66,15 @@ public:
 #endif
     unlock();
   }
+  // we have raw pointers in the object (the FFTW plan).
+  // If we allow copying those, we end up destroying the plans multiple times.
+  Finufft_FFT_plan(const Finufft_FFT_plan &) = delete;
   [[maybe_unused]] ~Finufft_FFT_plan() {
     lock();
     fftwf_destroy_plan(plan_);
     unlock();
   }
+  Finufft_FFT_plan &operator=(const Finufft_FFT_plan &) = delete;
 
   void plan
       [[maybe_unused]] (const std::vector<int> &dims, size_t batchSize,
@@ -131,11 +138,13 @@ public:
 #endif
     unlock();
   }
+  Finufft_FFT_plan(const Finufft_FFT_plan &) = delete;
   [[maybe_unused]] ~Finufft_FFT_plan() {
     lock();
     fftw_destroy_plan(plan_);
     unlock();
   }
+  Finufft_FFT_plan &operator=(const Finufft_FFT_plan &) = delete;
 
   void plan
       [[maybe_unused]] (const std::vector<int> &dims, size_t batchSize,
