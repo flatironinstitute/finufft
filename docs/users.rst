@@ -100,7 +100,8 @@ For the latest see: Google Scholar `FINUFFT citations <https://scholar.google.co
 
 #. Heisenberg voxelization (HVOX) for inteferometry of spherical sky maps in radio-astronomy, by Kashani, Simeoni, et al. (2023) https://arxiv.org/abs/2306.06007 https://github.com/matthieumeo/hvox
 
-#. Sriramkrishnan Muralikrishnan at the Jülich Supercomputing Centre is running cufinufft on 6144 A100 GPUs (the NERSC-9 supercomputer), for a particle-in-Fourier method for plasma simulations. https://pasc23.pasc-conference.org/presentation/?id=msa167&sess=sess154
+#. Sriramkrishnan Muralikrishnan at the Jülich Supercomputing Centre is running cufinufft on 6144 A100 GPUs (the NERSC-9 supercomputer), for a particle-in-Fourier method for plasma (Vlasov-Poisson) simulations, https://pasc23.pasc-conference.org/presentation/?id=msa167&sess=sess154 https://arxiv.org/abs/2407.00485
+The CPU code is also used for Vlasov-Poisson, https://www.sciencedirect.com/science/article/pii/S0021999124006387
 
 #. Related to that, FINUFFT is being used for a better-converging Fourier approach to the Immersed Boundary method of Peskin and his group at NYU. Zhe Chen and Charles Peskin, https://arxiv.org/abs/2302.08694
 
