@@ -1,6 +1,6 @@
 #include <finufft/defs.h>
 #include <finufft/spreadinterp.h>
-#include <finufft/utils_precindep.h>
+#include <finufft/utils.h>
 
 #include <cmath>
 #include <cstdio>

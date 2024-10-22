@@ -1,86 +1,89 @@
-// Low-level array manipulations, timer, and OMP helpers, that need separate
-// single/double routines (FLT must be an arg). Others are in utils_precindep
+// Low-level array manipulations, timer, and OMP helpers, that are precision-
+// independent (no FLT allowed in argument lists). Others are in utils.cpp
 
-// For self-test see ../test/testutils.cpp        Barnett 2017-2020.
+// For self-test see ../test/testutils.cpp.      Barnett 2017-2020.
+
+#include <cstdint>
 
 #include "finufft/utils.h"
-#include "finufft/defs.h"
+using namespace std;
 
 namespace finufft {
 namespace utils {
 
-// ------------ complex array utils ---------------------------------
-
-FLT relerrtwonorm(BIGINT n, CPX *a, CPX *b)
-// ||a-b||_2 / ||a||_2
+BIGINT next235even(BIGINT n)
+// finds even integer not less than n, with prime factors no larger than 5
+// (ie, "smooth"). Adapted from fortran in hellskitchen.  Barnett 2/9/17
+// changed INT64 type 3/28/17. Runtime is around n*1e-11 sec for big n.
 {
-  FLT err = 0.0, nrm = 0.0;
-  for (BIGINT m = 0; m < n; ++m) {
-    nrm += real(conj(a[m]) * a[m]);
-    CPX diff = a[m] - b[m];
-    err += real(conj(diff) * diff);
+  if (n <= 2) return 2;
+  if (n % 2 == 1) n += 1;                // even
+  BIGINT nplus  = n - 2;                 // to cancel out the +=2 at start of loop
+  BIGINT numdiv = 2;                     // a dummy that is >1
+  while (numdiv > 1) {
+    nplus += 2;                          // stays even
+    numdiv = nplus;
+    while (numdiv % 2 == 0) numdiv /= 2; // remove all factors of 2,3,5...
+    while (numdiv % 3 == 0) numdiv /= 3;
+    while (numdiv % 5 == 0) numdiv /= 5;
   }
-  return sqrt(err / nrm);
-}
-FLT errtwonorm(BIGINT n, CPX *a, CPX *b)
-// ||a-b||_2
-{
-  FLT err = 0.0; // compute error 2-norm
-  for (BIGINT m = 0; m < n; ++m) {
-    CPX diff = a[m] - b[m];
-    err += real(conj(diff) * diff);
-  }
-  return sqrt(err);
-}
-FLT twonorm(BIGINT n, CPX *a)
-// ||a||_2
-{
-  FLT nrm = 0.0;
-  for (BIGINT m = 0; m < n; ++m) nrm += real(conj(a[m]) * a[m]);
-  return sqrt(nrm);
-}
-FLT infnorm(BIGINT n, CPX *a)
-// ||a||_infty
-{
-  FLT nrm = 0.0;
-  for (BIGINT m = 0; m < n; ++m) {
-    FLT aa = real(conj(a[m]) * a[m]);
-    if (aa > nrm) nrm = aa;
-  }
-  return sqrt(nrm);
+  return nplus;
 }
 
-// ------------ real array utils ---------------------------------
+// ----------------------- helpers for timing (always stay double prec) ------
 
-void arrayrange(BIGINT n, FLT *a, FLT *lo, FLT *hi)
-// With a a length-n array, writes out min(a) to lo and max(a) to hi,
-// so that all a values lie in [lo,hi].
-// If n==0, lo and hi are not finite.
-{
-  *lo = INFINITY;
-  *hi = -INFINITY;
-  for (BIGINT m = 0; m < n; ++m) {
-    if (a[m] < *lo) *lo = a[m];
-    if (a[m] > *hi) *hi = a[m];
-  }
+void CNTime::start() {
+  initial = double(std::chrono::duration_cast<std::chrono::microseconds>(
+                       std::chrono::steady_clock::now().time_since_epoch())
+                       .count()) *
+            1e-6;
 }
 
-void arraywidcen(BIGINT n, FLT *a, FLT *w, FLT *c)
-// Writes out w = half-width and c = center of an interval enclosing all a[n]'s
-// Only chooses a nonzero center if this increases w by less than fraction
-// ARRAYWIDCEN_GROWFRAC defined in defs.h.
-// This prevents rephasings which don't grow nf by much. 6/8/17
-// If n==0, w and c are not finite.
+double CNTime::restart()
+// Barnett changed to returning in sec
 {
-  FLT lo, hi;
-  arrayrange(n, a, &lo, &hi);
-  *w = (hi - lo) / 2;
-  *c = (hi + lo) / 2;
-  if (std::abs(*c) < ARRAYWIDCEN_GROWFRAC * (*w)) {
-    *w += std::abs(*c);
-    *c = 0.0;
-  }
+  double delta = elapsedsec();
+  start();
+  return delta;
 }
+
+double CNTime::elapsedsec()
+// returns answers as double, in seconds, to microsec accuracy. Barnett 5/22/18
+{
+  std::uint64_t now = std::chrono::duration_cast<std::chrono::microseconds>(
+                          std::chrono::steady_clock::now().time_since_epoch())
+                          .count();
+  const double nowsec = double(now) * 1e-6;
+  return nowsec - initial;
+}
+
+// -------------------------- openmp helpers -------------------------------
+int get_num_threads_parallel_block()
+// return how many threads an omp parallel block would use.
+// omp_get_max_threads() does not report this; consider case of NESTED=0.
+// Why is there no such routine?   Barnett 5/22/20
+{
+  int nth_used;
+#pragma omp parallel
+  {
+#pragma omp single
+    nth_used = MY_OMP_GET_NUM_THREADS();
+  }
+  return nth_used;
+}
+
+// ---------- thread-safe rand number generator for Windows platform ---------
+// (note this is used by macros in defs.h, and supplied in linux/macosx)
+#ifdef _WIN32
+int rand_r(unsigned int * /*seedp*/)
+// Libin Lu, 6/18/20
+{
+  std::random_device rd;
+  std::default_random_engine generator(rd());
+  std::uniform_int_distribution<int> distribution(0, RAND_MAX);
+  return distribution(generator);
+}
+#endif
 
 } // namespace utils
 } // namespace finufft

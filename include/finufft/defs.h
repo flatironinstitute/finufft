@@ -18,6 +18,7 @@
 // public header gives access to f_opts, f_spread_opts, f_plan...
 // (and clobbers FINUFFT* macros; watch out!)
 #include <finufft.h>
+#include <finufft/finufft_core.h>
 #include <memory>
 
 // --------------- Private data types for compilation in either prec ---------
@@ -25,8 +26,6 @@
 
 // All indexing in library that potentially can exceed 2^31 uses 64-bit signed.
 // This includes all calling arguments (eg M,N) that could be huge someday.
-using BIGINT  = int64_t;
-using UBIGINT = uint64_t;
 // Precision-independent real and complex types, for private lib/test compile
 #ifdef SINGLE
 using FLT = float;
@@ -35,59 +34,6 @@ using FLT = double;
 #endif
 #include <complex> // we define C++ complex type only
 using CPX = std::complex<FLT>;
-
-// inline macro, to force inlining of small functions
-// this avoids the use of macros to implement functions
-#if defined(_MSC_VER)
-#define FINUFFT_ALWAYS_INLINE __forceinline inline
-#define FINUFFT_NEVER_INLINE  __declspec(noinline)
-#define FINUFFT_RESTRICT      __restrict
-#define FINUFFT_UNREACHABLE   __assume(0)
-#define FINUFFT_UNLIKELY(x)   (x)
-#define FINUFFT_LIKELY(x)     (x)
-#elif defined(__GNUC__) || defined(__clang__)
-#define FINUFFT_ALWAYS_INLINE __attribute__((always_inline)) inline
-#define FINUFFT_NEVER_INLINE  __attribute__((noinline))
-#define FINUFFT_RESTRICT      __restrict__
-#define FINUFFT_UNREACHABLE   __builtin_unreachable()
-#define FINUFFT_UNLIKELY(x)   __builtin_expect(!!(x), 0)
-#define FINUFFT_LIKELY(x)     __builtin_expect(!!(x), 1)
-#else
-#define FINUFFT_ALWAYS_INLINE inline
-#define FINUFFT_NEVER_INLINE
-#define FINUFFT_RESTRICT
-#define FINUFFT_UNREACHABLE
-#define FINUFFT_UNLIKELY(x) (x)
-#define FINUFFT_LIKELY(x)   (x)
-#endif
-
-// ------------- Library-wide algorithm parameter settings ----------------
-
-// Library version (is a string)
-#define FINUFFT_VER "2.3.0"
-
-// Smallest possible kernel spread width per dimension, in fine grid points
-// (used only in spreadinterp.cpp)
-inline constexpr int MIN_NSPREAD = 2;
-
-// Largest possible kernel spread width per dimension, in fine grid points
-// (used only in spreadinterp.cpp)
-inline constexpr int MAX_NSPREAD = 16;
-
-// Fraction growth cut-off in utils:arraywidcen, sets when translate in type-3
-inline constexpr double ARRAYWIDCEN_GROWFRAC = 0.1;
-
-// Max number of positive quadr nodes for kernel FT (used only in common.cpp)
-inline constexpr int MAX_NQUAD = 100;
-
-// Internal (nf1 etc) array allocation size that immediately raises error.
-// (Note: next235 takes 1s for 1e11, so it is also to prevent hang here.)
-// Increase this if you need >10TB (!) RAM...
-inline constexpr BIGINT MAX_NF = BIGINT(1e12);
-
-// Maximum allowed number M of NU points; useful to catch incorrectly cast int32
-// values for M = nj (also nk in type 3)...
-inline constexpr BIGINT MAX_NU_PTS = BIGINT(1e14);
 
 // -------------- Math consts (not in math.h) and useful math macros ----------
 #include <cmath>
@@ -107,13 +53,6 @@ inline constexpr BIGINT MAX_NU_PTS = BIGINT(1e14);
 #define M_2PI   6.28318530717958648
 // to avoid mixed precision operators in eg i*pi, an either-prec PI...
 #define PI      FLT(M_PI)
-
-// machine epsilon for decisions of achievable tolerance...
-#ifdef SINGLE
-#define EPSILON (float)6e-08
-#else
-#define EPSILON (double)1.1e-16
-#endif
 
 // Random numbers: crappy unif random number generator in [0,1).
 // These macros should probably be replaced by modern C++ std lib or random123.
@@ -146,32 +85,6 @@ static inline FLT randm11r [[maybe_unused]] (unsigned int *x) {
 static inline CPX crandm11r [[maybe_unused]] (unsigned int *x) {
   return randm11r(x) + IMA * randm11r(x);
 }
-#endif
-
-// ----- OpenMP macros which also work when omp not present -----
-// Allows compile-time switch off of openmp, so compilation without any openmp
-// is done (Note: _OPENMP is automatically set by -fopenmp compile flag)
-#ifdef _OPENMP
-#include <omp.h>
-// point to actual omp utils
-static inline int MY_OMP_GET_NUM_THREADS [[maybe_unused]] () {
-  return omp_get_num_threads();
-}
-static inline int MY_OMP_GET_MAX_THREADS [[maybe_unused]] () {
-  return omp_get_max_threads();
-}
-static inline int MY_OMP_GET_THREAD_NUM [[maybe_unused]] () {
-  return omp_get_thread_num();
-}
-static inline void MY_OMP_SET_NUM_THREADS [[maybe_unused]] (int x) {
-  omp_set_num_threads(x);
-}
-#else
-// non-omp safe dummy versions of omp utils...
-static inline int MY_OMP_GET_NUM_THREADS [[maybe_unused]] () { return 1; }
-static inline int MY_OMP_GET_MAX_THREADS [[maybe_unused]] () { return 1; }
-static inline int MY_OMP_GET_THREAD_NUM [[maybe_unused]] () { return 0; }
-static inline void MY_OMP_SET_NUM_THREADS [[maybe_unused]] (int) {}
 #endif
 
 // Prec-switching name macros (respond to SINGLE), used in lib & test sources
@@ -219,70 +132,6 @@ static inline void MY_OMP_SET_NUM_THREADS [[maybe_unused]] (int) {}
 // NB: now private (the public C++ or C etc user sees an opaque pointer to it)
 
 #include <finufft/fft.h> // (must come after complex.h)
-
-// group together a bunch of type 3 rescaling/centering/phasing parameters:
-template<typename T> struct type3params {
-  T X1, C1, D1, h1, gam1; // x dim: X=halfwid C=center D=freqcen h,gam=rescale
-  T X2, C2, D2, h2, gam2; // y
-  T X3, C3, D3, h3, gam3; // z
-};
-
-struct FINUFFT_PLAN_S { // the main plan object, fully C++
-  // These default and delete specifications just state the obvious,
-  // but are here to silence compiler warnings.
-  FINUFFT_PLAN_S() = default;
-  // Copy construction and assignent are already deleted implicitly
-  // because of the unique_ptr member.
-  FINUFFT_PLAN_S(const FINUFFT_PLAN_S &)            = delete;
-  FINUFFT_PLAN_S &operator=(const FINUFFT_PLAN_S &) = delete;
-
-  int type;            // transform type (Rokhlin naming): 1,2 or 3
-  int dim;             // overall dimension: 1,2 or 3
-  int ntrans;          // how many transforms to do at once (vector or "many" mode)
-  BIGINT nj;           // num of NU pts in type 1,2 (for type 3, num input x pts)
-  BIGINT nk;           // number of NU freq pts (type 3 only)
-  FLT tol;             // relative user tolerance
-  int batchSize;       // # strength vectors to group together for FFTW, etc
-  int nbatch;          // how many batches done to cover all ntrans vectors
-
-  BIGINT ms;           // number of modes in x (1) dir (historical CMCL name) = N1
-  BIGINT mt;           // number of modes in y (2) direction = N2
-  BIGINT mu;           // number of modes in z (3) direction = N3
-  BIGINT N;            // total # modes (prod of above three)
-
-  BIGINT nf1;          // size of internal fine grid in x (1) direction
-  BIGINT nf2;          // " y (2)
-  BIGINT nf3;          // " z (3)
-  BIGINT nf;           // total # fine grid points (product of the above three)
-
-  int fftSign;         // sign in exponential for NUFFT defn, guaranteed to be +-1
-
-  FLT *phiHat1;        // FT of kernel in t1,2, on x-axis mode grid
-  FLT *phiHat2;        // " y-axis.
-  FLT *phiHat3;        // " z-axis.
-
-  CPX *fwBatch;        // (batches of) fine grid(s) for FFTW to plan
-                       // & act on. Usually the largest working array
-
-  BIGINT *sortIndices; // precomputed NU pt permutation, speeds spread/interp
-  bool didSort;        // whether binsorting used (false: identity perm used)
-
-  FLT *X, *Y, *Z;      // for t1,2: ptr to user-supplied NU pts (no new allocs).
-                       // for t3: allocated as "primed" (scaled) src pts x'_j, etc
-
-  // type 3 specific
-  FLT *S, *T, *U;           // pointers to user's target NU pts arrays (no new allocs)
-  CPX *prephase;            // pre-phase, for all input NU pts
-  CPX *deconv;              // reciprocal of kernel FT, phase, all output NU pts
-  CPX *CpBatch;             // working array of prephased strengths
-  FLT *Sp, *Tp, *Up;        // internal primed targs (s'_k, etc), allocated
-  type3params<FLT> t3P;     // groups together type 3 shift, scale, phase, parameters
-  FINUFFT_PLAN innerT2plan; // ptr used for type 2 in step 2 of type 3
-
-  // other internal structs; each is C-compatible of course
-  std::unique_ptr<Finufft_FFT_plan<FLT>> fftPlan;
-  finufft_opts opts; // this and spopts could be made ptrs
-  finufft_spread_opts spopts;
-};
+struct FINUFFT_PLAN_S : public FINUFFT_PLAN_T<FLT> {};
 
 #endif // DEFS_H
