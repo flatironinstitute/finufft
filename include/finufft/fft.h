@@ -171,19 +171,22 @@ public:
 
 #endif
 
-#include <finufft/defs.h>
+#include <finufft/finufft_core.h>
 
 static inline void finufft_fft_forget_wisdom [[maybe_unused]] () {
-  Finufft_FFT_plan<FLT>::forget_wisdom();
+  Finufft_FFT_plan<float>::forget_wisdom();
+  Finufft_FFT_plan<double>::forget_wisdom();
 }
 static inline void finufft_fft_cleanup [[maybe_unused]] () {
-  Finufft_FFT_plan<FLT>::cleanup();
+  Finufft_FFT_plan<float>::cleanup();
+  Finufft_FFT_plan<double>::cleanup();
 }
 static inline void finufft_fft_cleanup_threads [[maybe_unused]] () {
-  Finufft_FFT_plan<FLT>::cleanup_threads();
+  Finufft_FFT_plan<float>::cleanup_threads();
+  Finufft_FFT_plan<double>::cleanup_threads();
 }
-
-std::vector<int> gridsize_for_fft(FINUFFT_PLAN p);
-void do_fft(FINUFFT_PLAN p);
+template<typename TF> struct FINUFFT_PLAN_T;
+template<typename TF> std::vector<int> gridsize_for_fft(FINUFFT_PLAN_T<TF> *p);
+template<typename TF> void do_fft(FINUFFT_PLAN_T<TF> *p);
 
 #endif // FINUFFT_INCLUDE_FINUFFT_FFT_H
