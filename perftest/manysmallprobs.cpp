@@ -1,6 +1,6 @@
 // public header
 #include "finufft.h"
-#include "finufft/defs.h"
+#include "finufft/test_defs.h"
 
 // private access to timer
 #include "finufft/utils.h"

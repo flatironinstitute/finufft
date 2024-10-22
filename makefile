@@ -66,7 +66,7 @@ XSIMD_DIR := $(DEPS_ROOT)/xsimd
 
 # DUCC sources optional dependency repo
 DUCC_URL := https://gitlab.mpcdf.mpg.de/mtr/ducc.git
-DUCC_VERSION := ducc0_0_34_0
+DUCC_VERSION := ducc0_0_35_0
 DUCC_DIR := $(DEPS_ROOT)/ducc
 # this dummy file used as empty target by make...
 DUCC_COOKIE := $(DUCC_DIR)/.finufft_has_ducc
@@ -137,7 +137,7 @@ ABSDYNLIB = $(FINUFFT)$(DYNLIB)
 SOBJS = src/utils.o src/spreadinterp.o
 
 # all lib dual-precision objs (note DUCC_OBJS empty if unused)
-OBJS = $(SOBJS) contrib/legendre_rule_fast.o src/fft.o src/finufft_core.o src/simpleinterfaces.o fortran/finufftfort.o $(DUCC_OBJS)
+OBJS = $(SOBJS) contrib/legendre_rule_fast.o src/fft.o src/finufft.o src/c_interface.o fortran/finufftfort.o $(DUCC_OBJS)
 
 .PHONY: usage lib examples test perftest spreadtest spreadtestall fortran matlab octave all mex python clean objclean pyclean mexclean wheel docker-wheel gurutime docs setup setupclean
 
@@ -181,12 +181,10 @@ HEADERS = $(wildcard include/*.h include/finufft/*.h) $(DUCC_HEADERS)
 	$(CC) -c $(CFLAGS) $< -o $@
 %.o: %.f
 	$(FC) -c $(FFLAGS) $< -o $@
-%_32.o: %.f
-	$(FC) -DSINGLE -c $(FFLAGS) $< -o $@
 
 # spreadinterp include auto-generated code, xsimd header-only dependency;
 # if FFT=DUCC also setup ducc with fft.h dependency on $(DUCC_SETUP)...
-# Note src/spreadinterp.cpp includes finufft/defs.h which includes finufft/fft.h
+# Note src/spreadinterp.cpp includes finufft/finufft_core.h which includes finufft/fft.h
 # so fftw/ducc header needed for spreadinterp, though spreadinterp should not
 # depend on fftw/ducc directly?
 include/finufft/fft.h: $(DUCC_SETUP)

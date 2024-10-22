@@ -95,6 +95,17 @@ inline constexpr BIGINT MAX_NF = BIGINT(1e12);
 // values for M = nj (also nk in type 3)...
 inline constexpr BIGINT MAX_NU_PTS = BIGINT(1e14);
 
+// MR: In the longer term I suggest to move
+// away from M_PI, which was never part of the standard.
+// Perhaps a constexpr pi in the namespace finufft, or a constexpr finufft_pi
+// if no namespaces are used?
+// In C++20 these constants will be part of the language, and the problem will go away.
+#ifndef M_PI // Windows apparently doesn't have this const
+#define M_PI 3.14159265358979329
+#endif
+#define M_1_2PI 0.159154943091895336
+#define M_2PI   6.28318530717958648
+
 // ----- OpenMP macros which also work when omp not present -----
 // Allows compile-time switch off of openmp, so compilation without any openmp
 // is done (Note: _OPENMP is automatically set by -fopenmp compile flag)
@@ -138,7 +149,8 @@ template<typename TF> struct FINUFFT_PLAN_T { // the main plan object, fully C++
 
   // These default and delete specifications just state the obvious,
   // but are here to silence compiler warnings.
-  FINUFFT_PLAN_T() = default;
+  FINUFFT_PLAN_T(int type, int dim, const BIGINT *n_modes, int iflag, int ntrans, TF tol,
+                 finufft_opts *opts, int &ier);
   // Copy construction and assignent are already deleted implicitly
   // because of the unique_ptr member.
   FINUFFT_PLAN_T(const FINUFFT_PLAN_T &)            = delete;
@@ -189,7 +201,8 @@ template<typename TF> struct FINUFFT_PLAN_T { // the main plan object, fully C++
   std::vector<TF> Sp, Tp, Up; // internal primed targs (s'_k, etc),
                               // allocated
   type3params<TF> t3P;        // groups together type 3 shift, scale, phase, parameters
-  FINUFFT_PLAN_T<TF> *innerT2plan = nullptr; // ptr used for type 2 in step 2 of type 3
+  std::unique_ptr<FINUFFT_PLAN_T<TF>> innerT2plan; // ptr used for type 2 in step 2 of
+                                                   // type 3
 
   // other internal structs
   std::unique_ptr<Finufft_FFT_plan<TF>> fftPlan;
@@ -204,10 +217,5 @@ void finufft_default_opts_t(finufft_opts *o);
 template<typename TF>
 int finufft_makeplan_t(int type, int dim, const BIGINT *n_modes, int iflag, int ntrans,
                        TF tol, FINUFFT_PLAN_T<TF> **pp, finufft_opts *opts);
-template<typename TF>
-int finufft_setpts_t(FINUFFT_PLAN_T<TF> *p, BIGINT nj, TF *xj, TF *yj, TF *zj, BIGINT nk,
-                     TF *s, TF *t, TF *u);
-template<typename TF>
-int finufft_execute_t(FINUFFT_PLAN_T<TF> *p, std::complex<TF> *cj, std::complex<TF> *fk);
 
 #endif // FINUFFT_CORE_H

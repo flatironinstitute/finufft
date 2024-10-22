@@ -1,6 +1,5 @@
 // Spreading/interpolating module within FINUFFT.
 
-#include <finufft/defs.h>
 #include <finufft/spreadinterp.h>
 #include <finufft/utils.h>
 
@@ -9,6 +8,7 @@
 
 #include <xsimd/xsimd.hpp>
 
+#include <cinttypes>
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
@@ -164,7 +164,7 @@ constexpr std::array<std::array<T, PaddedM>, N> pad_2D_array_with_zeros(
     const std::array<std::array<T, M>, N> &input) noexcept {
   constexpr auto pad_with_zeros = [](const auto &input) constexpr noexcept {
     std::array<T, PaddedM> padded{0};
-    for (auto i = 0; i < input.size(); ++i) {
+    for (size_t i = 0; i < input.size(); ++i) {
       padded[i] = input[i];
     }
     return padded;
@@ -187,20 +187,21 @@ FINUFFT_NEVER_INLINE
 void print_subgrid_info(int ndims, BIGINT offset1, BIGINT offset2, BIGINT offset3,
                         UBIGINT padded_size1, UBIGINT size1, UBIGINT size2, UBIGINT size3,
                         UBIGINT M0) {
-  printf("size1 %ld, padded_size1 %ld\n", size1, padded_size1);
+  printf("size1 %" PRIu64 ", padded_size1 %" PRIu64 "\n", size1, padded_size1);
   switch (ndims) {
   case 1:
-    printf("\tsubgrid: off %lld\t siz %lld\t #NU %lld\n", (long long)offset1,
-           (long long)padded_size1, (long long)M0);
+    printf("\tsubgrid: off %" PRId64 "\t siz %" PRIu64 "\t #NU %" PRIu64 "\n", offset1,
+           padded_size1, M0);
     break;
   case 2:
-    printf("\tsubgrid: off %lld,%lld\t siz %lld,%lld\t #NU %lld\n", (long long)offset1,
-           (long long)offset2, (long long)padded_size1, (long long)size2, (long long)M0);
+    printf("\tsubgrid: off %" PRId64 ",%" PRId64 "\t siz %" PRIu64 ",%" PRIu64
+           "\t #NU %" PRIu64 "\n",
+           offset1, offset2, padded_size1, size2, M0);
     break;
   case 3:
-    printf("\tsubgrid: off %lld,%lld,%lld\t siz %lld,%lld,%lld\t #NU %lld\n",
-           (long long)offset1, (long long)offset2, (long long)offset3,
-           (long long)padded_size1, (long long)size2, (long long)size3, (long long)M0);
+    printf("\tsubgrid: off %" PRId64 ",%" PRId64 ",%" PRId64 "\t siz %" PRIu64 ",%" PRIu64
+           ",%" PRIu64 "\t #NU %" PRIu64 "\n",
+           offset1, offset2, offset3, padded_size1, size2, size3, M0);
     break;
   default:
     printf("Invalid number of dimensions: %d\n", ndims);
@@ -223,13 +224,6 @@ static FINUFFT_ALWAYS_INLINE T fold_rescale(const T x, const UBIGINT N) noexcept
   return (result - floor(result)) * T(N);
 }
 
-template<typename T, class simd_type>
-static FINUFFT_ALWAYS_INLINE simd_type fold_rescale(const simd_type &x,
-                                                    const BIGINT N) noexcept {
-  const simd_type x2pi   = T(M_1_2PI);
-  const simd_type result = xsimd::fma(x, x2pi, simd_type(0.5));
-  return (result - xsimd::floor(result)) * simd_type(T(N));
-}
 template<typename T, uint8_t ns>
 static void set_kernel_args(T *args, T x) noexcept
 // Fills vector args[] with kernel arguments x, x+1, ..., x+ns-1.
@@ -400,7 +394,7 @@ static void interp_line_wrap(T *FINUFFT_RESTRICT target, const T *du, const T *k
       out[0] = std::fma(du[2 * j], ker[dx], out[0]);
       out[1] = std::fma(du[2 * j + 1], ker[dx], out[1]);
     }
-  } else if (i1 + ns >= N1) { // wraps at right
+  } else if (i1 + ns >= BIGINT(N1)) { // wraps at right
     for (uint8_t dx = 0; dx < N1 - i1; ++dx, ++j) {
       out[0] = std::fma(du[2 * j], ker[dx], out[0]);
       out[1] = std::fma(du[2 * j + 1], ker[dx], out[1]);
@@ -446,14 +440,13 @@ static void interp_line(T *FINUFFT_RESTRICT target, const T *du, const T *ker, B
 */
   using arch_t                       = typename simd_type::arch_type;
   static constexpr auto padding      = get_padding<T, 2 * ns>();
-  static constexpr auto alignment    = arch_t::alignment();
   static constexpr auto simd_size    = simd_type::size;
   static constexpr auto regular_part = (2 * ns + padding) & (-(2 * simd_size));
   std::array<T, 2> out{0};
   const auto j = i1;
   // removing the wrapping leads up to 10% speedup in certain cases
   // moved the wrapping to another function to reduce instruction cache pressure
-  if (i1 < 0 || i1 + ns >= N1 || i1 + ns + (padding + 1) / 2 >= N1) {
+  if (i1 < 0 || i1 + ns >= BIGINT(N1) || i1 + ns + (padding + 1) / 2 >= BIGINT(N1)) {
     return interp_line_wrap<T, ns>(target, du, ker, i1, N1);
   } else { // doesn't wrap
     // logic largely similar to spread 1D kernel, please see the explanation there
@@ -519,7 +512,7 @@ static void interp_square_wrap(T *FINUFFT_RESTRICT target, const T *du, const T 
   std::array<T, 2> out{0};
   using arch_t                    = typename simd_type::arch_type;
   static constexpr auto alignment = arch_t::alignment();
-  if (i1 >= 0 && i1 + ns <= N1 && i2 >= 0 && i2 + ns <= N2) {
+  if (i1 >= 0 && i1 + ns <= BIGINT(N1) && i2 >= 0 && i2 + ns <= BIGINT(N2)) {
     // store a horiz line (interleaved real,imag)
     alignas(alignment) std::array<T, 2 * ns> line{0};
     // add remaining const-y lines to the line (expensive inner loop)
@@ -539,10 +532,10 @@ static void interp_square_wrap(T *FINUFFT_RESTRICT target, const T *du, const T 
     auto x = i1, y = i2;                // initialize coords
     for (uint8_t d{0}; d < ns; d++) {   // set up ptr lists
       if (x < 0) x += BIGINT(N1);
-      if (x >= N1) x -= BIGINT(N1);
+      if (x >= BIGINT(N1)) x -= BIGINT(N1);
       j1[d] = x++;
       if (y < 0) y += BIGINT(N2);
-      if (y >= N2) y -= BIGINT(N2);
+      if (y >= BIGINT(N2)) y -= BIGINT(N2);
       j2[d] = y++;
     }
     for (uint8_t dy{0}; dy < ns; dy++) { // use the pts lists
@@ -598,11 +591,10 @@ static void interp_square(T *FINUFFT_RESTRICT target, const T *du, const T *ker1
   // no wrapping: avoid ptrs
   using arch_t                          = typename simd_type::arch_type;
   static constexpr auto padding         = get_padding<T, 2 * ns>();
-  static constexpr auto alignment       = arch_t::alignment();
   static constexpr auto simd_size       = simd_type::size;
   static constexpr uint8_t line_vectors = (2 * ns + padding) / simd_size;
-  if (i1 >= 0 && i1 + ns <= N1 && i2 >= 0 && i2 + ns <= N2 &&
-      (i1 + ns + (padding + 1) / 2 < N1)) {
+  if (i1 >= 0 && i1 + ns <= BIGINT(N1) && i2 >= 0 && i2 + ns <= BIGINT(N2) &&
+      (i1 + ns + (padding + 1) / 2 < BIGINT(N1))) {
     const auto line = [du, N1, i1 = UBIGINT(i1), i2 = UBIGINT(i2),
                        ker2]() constexpr noexcept {
       // new array du_pts to store the du values for the current y line
@@ -666,9 +658,9 @@ static void interp_cube_wrapped(T *FINUFFT_RESTRICT target, const T *du, const T
    */
   using arch_t                    = typename simd_type::arch_type;
   static constexpr auto alignment = arch_t::alignment();
-  const auto in_bounds_1          = (i1 >= 0) & (i1 + ns <= N1);
-  const auto in_bounds_2          = (i2 >= 0) & (i2 + ns <= N2);
-  const auto in_bounds_3          = (i3 >= 0) & (i3 + ns <= N3);
+  const auto in_bounds_1          = (i1 >= 0) & (i1 + ns <= BIGINT(N1));
+  const auto in_bounds_2          = (i2 >= 0) & (i2 + ns <= BIGINT(N2));
+  const auto in_bounds_3          = (i3 >= 0) & (i3 + ns <= BIGINT(N3));
   std::array<T, 2> out{0};
   // case no wrapping needed but padding spills over du array.
   // Hence, no explicit vectorization but the code is still faster
@@ -701,13 +693,13 @@ static void interp_cube_wrapped(T *FINUFFT_RESTRICT target, const T *du, const T
     auto x = i1, y = i2, z = i3;                                 // initialize coords
     for (uint8_t d{0}; d < ns; d++) {                            // set up ptr lists
       if (x < 0) x += BIGINT(N1);
-      if (x >= N1) x -= BIGINT(N1);
+      if (x >= BIGINT(N1)) x -= BIGINT(N1);
       j1[d] = x++;
       if (y < 0) y += BIGINT(N2);
-      if (y >= N2) y -= BIGINT(N2);
+      if (y >= BIGINT(N2)) y -= BIGINT(N2);
       j2[d] = y++;
       if (z < 0) z += BIGINT(N3);
-      if (z >= N3) z -= BIGINT(N3);
+      if (z >= BIGINT(N3)) z -= BIGINT(N3);
       j3[d] = z++;
     }
     for (uint8_t dz{0}; dz < ns; dz++) {     // use the pts lists
@@ -763,15 +755,14 @@ static void interp_cube(T *FINUFFT_RESTRICT target, const T *du, const T *ker1,
 {
   using arch_t                          = typename simd_type::arch_type;
   static constexpr auto padding         = get_padding<T, 2 * ns>();
-  static constexpr auto alignment       = arch_t::alignment();
   static constexpr auto simd_size       = simd_type::size;
-  static constexpr auto ker23_size      = (ns + simd_size - 1) & -simd_size;
   static constexpr uint8_t line_vectors = (2 * ns + padding) / simd_size;
-  const auto in_bounds_1                = (i1 >= 0) & (i1 + ns <= N1);
-  const auto in_bounds_2                = (i2 >= 0) & (i2 + ns <= N2);
-  const auto in_bounds_3                = (i3 >= 0) & (i3 + ns <= N3);
+  const auto in_bounds_1                = (i1 >= 0) & (i1 + ns <= BIGINT(N1));
+  const auto in_bounds_2                = (i2 >= 0) & (i2 + ns <= BIGINT(N2));
+  const auto in_bounds_3                = (i3 >= 0) & (i3 + ns <= BIGINT(N3));
   std::array<T, 2> out{0};
-  if (in_bounds_1 && in_bounds_2 && in_bounds_3 && (i1 + ns + (padding + 1) / 2 < N1)) {
+  if (in_bounds_1 && in_bounds_2 && in_bounds_3 &&
+      (i1 + ns + (padding + 1) / 2 < BIGINT(N1))) {
     const auto line = [N1, N2, i1 = UBIGINT(i1), i2 = UBIGINT(i2), i3 = UBIGINT(i3), ker2,
                        ker3, du]() constexpr noexcept {
       std::array<simd_type, line_vectors> line{0};
@@ -844,7 +835,7 @@ static FINUFFT_ALWAYS_INLINE auto ker_eval(
    */
   const std::array inputs{elems...};
   // compile time loop, no performance overhead
-  for (auto i = 0; i < sizeof...(elems); ++i) {
+  for (size_t i = 0; i < sizeof...(elems); ++i) {
     // compile time branch no performance overhead
     if constexpr (kerevalmeth == 1) {
       if (opts.upsampfac == 2.0) {
@@ -1365,27 +1356,27 @@ static void add_wrapped_subgrid(BIGINT offset1, BIGINT offset2, BIGINT offset3,
   };
 
   BIGINT y = offset2, z = offset3; // fill wrapped ptr lists in slower dims y,z...
-  for (int i = 0; i < size2; ++i) {
+  for (UBIGINT i = 0; i < size2; ++i) {
     if (y < 0) y += BIGINT(N2);
-    if (y >= N2) y -= BIGINT(N2);
+    if (y >= BIGINT(N2)) y -= BIGINT(N2);
     o2[i] = y++;
   }
-  for (int i = 0; i < size3; ++i) {
+  for (UBIGINT i = 0; i < size3; ++i) {
     if (z < 0) z += BIGINT(N3);
-    if (z >= N3) z -= BIGINT(N3);
+    if (z >= BIGINT(N3)) z -= BIGINT(N3);
     o3[i] = z++;
   }
   UBIGINT nlo = (offset1 < 0) ? -offset1 : 0; // # wrapping below in x
   UBIGINT nhi = (offset1 + size1 > N1) ? offset1 + size1 - N1 : 0; // " above in x
   // this triple loop works in all dims
-  for (int dz = 0; dz < size3; dz++) {               // use ptr lists in each axis
+  for (UBIGINT dz = 0; dz < size3; dz++) {           // use ptr lists in each axis
     const auto oz = N1 * N2 * o3[dz];                // offset due to z (0 in <3D)
-    for (int dy = 0; dy < size2; dy++) {
+    for (UBIGINT dy = 0; dy < size2; dy++) {
       const auto oy              = N1 * o2[dy] + oz; // off due to y & z (0 in 1D)
       auto *FINUFFT_RESTRICT out = data_uniform + 2 * oy;
       const auto in = du0 + 2 * padded_size1 * (dy + size2 * dz); // ptr to subgrid array
       auto o        = 2 * (offset1 + N1);                         // 1d offset for output
-      for (auto j = 0; j < 2 * nlo; j++) { // j is really dx/2 (since re,im parts)
+      for (UBIGINT j = 0; j < 2 * nlo; j++) { // j is really dx/2 (since re,im parts)
         accumulate(out[j + o], in[j]);
       }
       o = 2 * offset1;
@@ -1447,7 +1438,7 @@ static void bin_sort_singlethread(std::vector<BIGINT> &ret, UBIGINT M, const T *
   // count how many pts in each bin
   std::vector<BIGINT> counts(nbins, 0);
 
-  for (auto i = 0; i < M; i++) {
+  for (UBIGINT i = 0; i < M; i++) {
     // find the bin index in however many dims are needed
     const auto i1  = BIGINT(fold_rescale<T>(kx[i], N1) * inv_bin_size_x);
     const auto i2  = isky ? BIGINT(fold_rescale<T>(ky[i], N2) * inv_bin_size_y) : 0;
@@ -1464,7 +1455,7 @@ static void bin_sort_singlethread(std::vector<BIGINT> &ret, UBIGINT M, const T *
     current_offset += tmp;
   } // (counts now contains the index offsets for each bin)
 
-  for (auto i = 0; i < M; i++) {
+  for (UBIGINT i = 0; i < M; i++) {
     // find the bin index (again! but better than using RAM)
     const auto i1    = BIGINT(fold_rescale<T>(kx[i], N1) * inv_bin_size_x);
     const auto i2    = isky ? BIGINT(fold_rescale<T>(ky[i], N2) * inv_bin_size_y) : 0;
@@ -1726,7 +1717,7 @@ int spreadcheck(UBIGINT N1, UBIGINT N2, UBIGINT N3, UBIGINT M, T *kx, T *ky, T *
 */
 {
   // INPUT CHECKING & REPORTING .... cuboid not too small for spreading?
-  int minN = 2 * opts.nspread;
+  UBIGINT minN = UBIGINT(2 * opts.nspread);
   if (N1 < minN || (N2 > 1 && N2 < minN) || (N3 > 1 && N3 < minN)) {
     fprintf(stderr,
             "%s error: one or more non-trivial box dims is less than 2.nspread!\n",
@@ -1815,8 +1806,8 @@ int indexSort(std::vector<BIGINT> &sort_indices, UBIGINT N1, UBIGINT N2, UBIGINT
     did_sort = 1;
   } else {
 #pragma omp parallel for num_threads(maxnthr) schedule(static, 1000000)
-    for (BIGINT i = 0; i < M; i++) // here omp helps xeon, hinders i7
-      sort_indices[i] = i;         // the identity permutation
+    for (BIGINT i = 0; i < BIGINT(M); i++) // here omp helps xeon, hinders i7
+      sort_indices[i] = i;                 // the identity permutation
     if (opts.debug)
       printf("\tnot sorted (sort=%d): \t%.3g s\n", (int)opts.sort, timer.elapsedsec());
   }
@@ -1887,21 +1878,22 @@ static int spreadSorted(const std::vector<BIGINT> &sort_indices, UBIGINT N1, UBI
       printf("\tnthr big: switching add_wrapped OMP from critical to atomic (!)\n");
 
     std::vector<UBIGINT> brk(nb + 1); // NU index breakpoints defining nb subproblems
-    for (int p = 0; p <= nb; ++p) brk[p] = (M * p + nb - 1) / nb;
+    for (UBIGINT p = 0; p <= nb; ++p) brk[p] = (M * p + nb - 1) / nb;
 
 #pragma omp parallel num_threads(nthr)
     {
       // local copies of NU pts and data for each subproblem
       std::vector<T> kx0{}, ky0{}, kz0{}, dd0{}, du0{};
-#pragma omp for schedule(dynamic, 1)               // each is big
-      for (int isub = 0; isub < nb; isub++) {      // Main loop through the subproblems
-        const auto M0 = brk[isub + 1] - brk[isub]; // # NU pts in this subproblem
+#pragma omp for schedule(dynamic, 1)                     // each is big
+      for (BIGINT isub = 0; isub < BIGINT(nb); isub++) { // Main loop through the
+                                                         // subproblems
+        const auto M0 = brk[isub + 1] - brk[isub];       // # NU pts in this subproblem
         // copy the location and data vectors for the nonuniform points
         kx0.resize(M0);
         ky0.resize(M0 * (N2 > 1));
         kz0.resize(M0 * (N3 > 1));
         dd0.resize(2 * M0);                            // complex strength data
-        for (auto j = 0; j < M0; j++) {                // todo: can avoid this copying?
+        for (UBIGINT j = 0; j < M0; j++) {             // todo: can avoid this copying?
           const auto kk = sort_indices[j + brk[isub]]; // NU pt from subprob index list
           kx0[j]        = fold_rescale<T>(kx[kk], N1);
           if (N2 > 1) ky0[j] = fold_rescale<T>(ky[kk], N2);
@@ -1950,7 +1942,8 @@ static int spreadSorted(const std::vector<BIGINT> &sort_indices, UBIGINT N1, UBI
       } // end main loop over subprobs
     }
     if (opts.debug)
-      printf("\tt1 fancy spread: \t%.3g s (%ld subprobs)\n", timer.elapsedsec(), nb);
+      printf("\tt1 fancy spread: \t%.3g s (%" PRIu64 " subprobs)\n", timer.elapsedsec(),
+             nb);
   } // end of choice of which t1 spread type to use
   return 0;
 };
@@ -1998,10 +1991,10 @@ FINUFFT_NEVER_INLINE static int interpSorted_kernel(
     // main loop over NU trgs, interp each from U
     // (note: windows omp doesn't like unsigned loop vars)
 #pragma omp for schedule(dynamic, 1000) // assign threads to NU targ pts:
-    for (BIGINT i = 0; i < M; i += CHUNKSIZE) {
+    for (BIGINT i = 0; i < BIGINT(M); i += CHUNKSIZE) {
       // Setup buffers for this chunk
       const UBIGINT bufsize = (i + CHUNKSIZE > M) ? M - i : CHUNKSIZE;
-      for (int ibuf = 0; ibuf < bufsize; ibuf++) {
+      for (UBIGINT ibuf = 0; ibuf < bufsize; ibuf++) {
         UBIGINT j    = sort_indices[i + ibuf];
         jlist[ibuf]  = j;
         xjlist[ibuf] = fold_rescale<T>(kx[j], N1);
@@ -2010,7 +2003,7 @@ FINUFFT_NEVER_INLINE static int interpSorted_kernel(
       }
 
       // Loop over targets in chunk
-      for (int ibuf = 0; ibuf < bufsize; ibuf++) {
+      for (UBIGINT ibuf = 0; ibuf < bufsize; ibuf++) {
         const auto xj = xjlist[ibuf];
         const auto yj = (ndims > 1) ? yjlist[ibuf] : 0;
         const auto zj = (ndims > 2) ? zjlist[ibuf] : 0;
@@ -2052,7 +2045,7 @@ FINUFFT_NEVER_INLINE static int interpSorted_kernel(
       } // end loop over targets in chunk
 
       // Copy result buffer to output array
-      for (int ibuf = 0; ibuf < bufsize; ibuf++) {
+      for (UBIGINT ibuf = 0; ibuf < bufsize; ibuf++) {
         const UBIGINT j            = jlist[ibuf];
         data_nonuniform[2 * j]     = outbuf[2 * ibuf];
         data_nonuniform[2 * j + 1] = outbuf[2 * ibuf + 1];
@@ -2154,8 +2147,9 @@ FINUFFT_EXPORT int FINUFFT_CDECL setup_spreader(finufft_spread_opts &opts, T eps
    opts. dim is spatial dimension (1,2, or 3). See finufft.cpp:finufft_plan() for where
    upsampfac is set. Must call this before any kernel evals done, otherwise segfault
    likely. Returns: 0  : success FINUFFT_WARN_EPS_TOO_SMALL : requested eps cannot be
-   achieved, but proceed with best possible eps otherwise : failure (see codes in defs.h);
-   spreading must not proceed Barnett 2017. debug, loosened eps logic 6/14/20.
+   achieved, but proceed with best possible eps otherwise : failure (see codes in
+   finufft_errors.h); spreading must not proceed Barnett 2017. debug, loosened eps logic
+   6/14/20.
 */
 {
   constexpr T EPSILON = std::numeric_limits<T>::epsilon();
@@ -2206,7 +2200,7 @@ FINUFFT_EXPORT int FINUFFT_CDECL setup_spreader(finufft_spread_opts &opts, T eps
   if (upsampfac == 2.0)                    // standard sigma (see SISC paper)
     ns = std::ceil(-log10(eps / (T)10.0)); // 1 digit per power of 10
   else                                     // custom sigma
-    ns = std::ceil(-log(eps) / (PI * sqrt(1.0 - 1.0 / upsampfac))); // formula, gam=1
+    ns = std::ceil(-log(eps) / (T(M_PI) * sqrt(1.0 - 1.0 / upsampfac))); // formula, gam=1
   ns = max(2, ns);        // (we don't have ns=1 version yet)
   if (ns > MAX_NSPREAD) { // clip to fit allocated arrays, Horner rules
     if (showwarn)
@@ -2228,7 +2222,8 @@ FINUFFT_EXPORT int FINUFFT_CDECL setup_spreader(finufft_spread_opts &opts, T eps
   if (ns == 4) betaoverns = 2.38;
   if (upsampfac != 2.0) { // again, override beta for custom sigma
     T gamma    = 0.97;    // must match devel/gen_all_horner_C_code.m !
-    betaoverns = gamma * PI * (1.0 - 1.0 / (2 * upsampfac)); // formula based on cutoff
+    betaoverns = gamma * T(M_PI) * (1.0 - 1.0 / (2 * upsampfac)); // formula based on
+                                                                  // cutoff
   }
   opts.ES_beta = betaoverns * ns; // set the kernel beta parameter
   if (debug)
