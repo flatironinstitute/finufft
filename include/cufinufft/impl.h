@@ -74,7 +74,7 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
   using namespace cufinufft::common;
   int ier;
   if (type < 1 || type > 3) {
-    fprintf(stderr, "[%s] Invalid type (%d): should be 1 or 2.\n", __func__, type);
+    fprintf(stderr, "[%s] Invalid type (%d): should be 1, 2, or 3.\n", __func__, type);
     return FINUFFT_ERR_TYPE_NOTVALID;
   }
   if (ntransf < 1) {
@@ -178,7 +178,8 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
   }
 
   cufinufft_setup_binsize<T>(type, d_plan->spopts.nspread, dim, &d_plan->opts);
-  if (ier = cudaGetLastError(), ier != cudaSuccess) {
+  if (cudaGetLastError() != cudaSuccess) {
+    ier = FINUFFT_ERR_CUDA_FAILURE;
     goto finalize;
   }
   if (d_plan->opts.debug) {
@@ -196,6 +197,42 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
     printf("[cufinufft] shared memory required for the spreader: %ld\n", mem_required);
   }
 
+
+  // dynamically request the maximum amount of shared memory available
+  // for the spreader
+
+  /* Automatically set GPU method. */
+  if (d_plan->opts.gpu_method == 0) {
+    /* For type 1, we default to method 2 (SM) since this is generally faster
+     * if there is enough shared memory available. Otherwise, we default to GM.
+     * Type 3 inherits this behavior since the outer plan here is also a type 1.
+     *
+     * For type 2, we always default to method 1 (GM).
+     */
+    if (type == 2) {
+      d_plan->opts.gpu_method = 1;
+    } else {
+      // query the device for the amount of shared memory available
+      int shared_mem_per_block{};
+      cudaDeviceGetAttribute(&shared_mem_per_block,
+                             cudaDevAttrMaxSharedMemoryPerBlockOptin, device_id);
+      // compute the amount of shared memory required for the method
+      const auto shared_mem_required = shared_memory_required<T>(
+          dim, d_plan->spopts.nspread, d_plan->opts.gpu_binsizex,
+          d_plan->opts.gpu_binsizey, d_plan->opts.gpu_binsizez);
+      if ((shared_mem_required > shared_mem_per_block)) {
+        d_plan->opts.gpu_method = 1;
+      } else {
+        d_plan->opts.gpu_method = 2;
+      }
+    }
+  }
+
+  if (cudaGetLastError() != cudaSuccess) {
+    ier = FINUFFT_ERR_CUDA_FAILURE;
+    goto finalize;
+  }
+
   if (type == 1 || type == 2) {
     CUFINUFFT_BIGINT nf1 = 1, nf2 = 1, nf3 = 1;
     set_nf_type12(d_plan->ms, d_plan->opts, d_plan->spopts, &nf1,
@@ -206,39 +243,6 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
     if (dim > 2)
       set_nf_type12(d_plan->mu, d_plan->opts, d_plan->spopts, &nf3,
                     d_plan->opts.gpu_obinsizez);
-
-    // dynamically request the maximum amount of shared memory available
-    // for the spreader
-
-    /* Automatically set GPU method. */
-    if (d_plan->opts.gpu_method == 0) {
-      /* For type 1, we default to method 2 (SM) since this is generally faster
-       * if there is enough shared memory available. Otherwise, we default to GM.
-       *
-       * For type 2, we always default to method 1 (GM).
-       */
-      if (type == 2) {
-        d_plan->opts.gpu_method = 1;
-      } else {
-        // query the device for the amount of shared memory available
-        int shared_mem_per_block{};
-        cudaDeviceGetAttribute(&shared_mem_per_block,
-                               cudaDevAttrMaxSharedMemoryPerBlockOptin, device_id);
-        // compute the amount of shared memory required for the method
-        const auto shared_mem_required = shared_memory_required<T>(
-            dim, d_plan->spopts.nspread, d_plan->opts.gpu_binsizex,
-            d_plan->opts.gpu_binsizey, d_plan->opts.gpu_binsizez);
-        if ((shared_mem_required > shared_mem_per_block)) {
-          d_plan->opts.gpu_method = 1;
-        } else {
-          d_plan->opts.gpu_method = 2;
-        }
-      }
-    }
-
-    if ((ier = cudaGetLastError())) {
-      goto finalize;
-    }
 
     d_plan->nf1 = nf1;
     d_plan->nf2 = nf2;
@@ -795,7 +799,7 @@ int cufinufft_setpts_impl(int M, T *d_kx, T *d_ky, T *d_kz, int N, T *d_s, T *d_
     int t2modes[]               = {d_plan->nf1, d_plan->nf2, d_plan->nf3};
     cufinufft_opts t2opts       = d_plan->opts;
     t2opts.gpu_spreadinterponly = 0;
-    t2opts.gpu_method           = 1;
+    t2opts.gpu_method           = 0;
     // Safe to ignore the return value here?
     if (d_plan->t2_plan) cufinufft_destroy_impl(d_plan->t2_plan);
     // check that maxbatchsize is correct
