@@ -21,4 +21,7 @@ Tweaks should be done here, and see instructions there for resulting acc test.
 Another code that has to match ../src/spreadinterp.cpp is:
 reverse_engineer_tol.m
 
-Barnett 7/22/24
+Re measuring overall accuracy, to compare kernels, make matlab, and run:
+matlab/test/fig_accuracy.m
+
+Barnett 8/20/24

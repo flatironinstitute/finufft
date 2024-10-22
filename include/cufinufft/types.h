@@ -8,20 +8,24 @@
 #include <finufft_spread_opts.h>
 #include <type_traits>
 
-#include <complex.h>
+#include <cuComplex.h>
 
 #define CUFINUFFT_BIGINT int
 
-// Ugly trick to map a template to a fixed type, here cuda_complex<T>
-template<typename T> struct cuda_complex_impl;
-template<> struct cuda_complex_impl<float> {
-  using type = cuFloatComplex;
-};
-template<> struct cuda_complex_impl<double> {
-  using type = cuDoubleComplex;
-};
-
-template<typename T> using cuda_complex = typename cuda_complex_impl<T>::type;
+// Marco Barbone 8/5/2924, replaced the ugly trick with std::conditional
+// to define cuda_complex
+// by using std::conditional and std::is_same, we can define cuda_complex
+// if T is float, cuda_complex<T> is cuFloatComplex
+// if T is double, cuda_complex<T> is cuDoubleComplex
+// where cuFloatComplex and cuDoubleComplex are defined in cuComplex.h
+// TODO: migrate to cuda/std/complex and remove this
+//       Issue: cufft seems not to support cuda::std::complex
+//       A reinterpret_cast should be enough
+template<typename T>
+using cuda_complex = typename std::conditional<
+    std::is_same<T, float>::value, cuFloatComplex,
+    typename std::conditional<std::is_same<T, double>::value, cuDoubleComplex,
+                              void>::type>::type;
 
 template<typename T> struct cufinufft_plan_t {
   cufinufft_opts opts;
@@ -37,7 +41,7 @@ template<typename T> struct cufinufft_plan_t {
   CUFINUFFT_BIGINT mt;
   CUFINUFFT_BIGINT mu;
   int ntransf;
-  int maxbatchsize;
+  int batchsize;
   int iflag;
   int supports_pools;
 
@@ -46,12 +50,38 @@ template<typename T> struct cufinufft_plan_t {
   T *fwkerhalf2;
   T *fwkerhalf3;
 
+  // for type 1,2 it is a pointer to kx, ky, kz (no new allocs), for type 3 it
+  // for t3: allocated as "primed" (scaled) src pts x'_j, etc
   T *kx;
   T *ky;
   T *kz;
+  cuda_complex<T> *CpBatch; // working array of prephased strengths
+  cuda_complex<T> *fwbatch;
+
+  // no allocs here
   cuda_complex<T> *c;
   cuda_complex<T> *fw;
   cuda_complex<T> *fk;
+
+  // Type 3 specific
+  struct {
+    T X1, C1, S1, D1, h1, gam1; // x dim: X=halfwid C=center D=freqcen h,gam=rescale,
+                                // s=interval
+    T X2, C2, S2, D2, h2, gam2; // y
+    T X3, C3, S3, D3, h3, gam3; // z
+  } type3_params;
+  int N;                        // number of NU freq pts (type 3 only)
+  CUFINUFFT_BIGINT nf;
+  T *d_Sp;
+  T *d_Tp;
+  T *d_Up;
+  T tol;
+  // inner type 2 plan for type 3
+  cufinufft_plan_t<T> *t2_plan;
+  // new allocs.
+  // FIXME: convert to device vectors to use resize
+  cuda_complex<T> *prephase; // pre-phase, for all input NU pts
+  cuda_complex<T> *deconv;   // reciprocal of kernel FT, phase, all output NU pts
 
   // Arrays that used in subprob method
   int *idxnupts;        // length: #nupts, index of the nupts in the bin-sorted order
@@ -66,18 +96,14 @@ template<typename T> struct cufinufft_plan_t {
   int *numnupts;
   int *subprob_to_nupts;
 
-  // Temporary variables to do fseries precomputation
-  std::complex<double> fseries_precomp_a[3 * MAX_NQUAD];
-  T fseries_precomp_f[3 * MAX_NQUAD];
-
   cufftHandle fftplan;
   cudaStream_t stream;
 };
 
-template<typename T> static cufftType_t cufft_type();
-template<> inline cufftType_t cufft_type<float>() { return CUFFT_C2C; }
+template<typename T> constexpr static inline cufftType_t cufft_type();
+template<> constexpr inline cufftType_t cufft_type<float>() { return CUFFT_C2C; }
 
-template<> inline cufftType_t cufft_type<double>() { return CUFFT_Z2Z; }
+template<> constexpr inline cufftType_t cufft_type<double>() { return CUFFT_Z2Z; }
 
 static inline cufftResult cufft_ex(cufftHandle plan, cufftComplex *idata,
                                    cufftComplex *odata, int direction) {

@@ -1,10 +1,7 @@
 #include <cmath>
 #include <cstdio>
-#include <cstdlib>
-#include <limits>
 #include <vector>
 
-#include <cufinufft/defs.h>
 #include <cufinufft/spreadinterp.h>
 #include <cufinufft/utils.h>
 
@@ -29,8 +26,9 @@ int setup_spreader(finufft_spread_opts &opts, T eps, T upsampfac, int kerevalmet
               __func__, upsampfac);
       return FINUFFT_ERR_HORNER_WRONG_BETA;
     }
-    if (upsampfac <= 1.0) {
-      fprintf(stderr, "[%s] error: upsampfac=%.3g is <=1.0\n", __func__, upsampfac);
+    // Upsampfac == 1.0 is valid for spreadinterponly mode.
+    if (upsampfac < 1.0) {
+      fprintf(stderr, "[%s] error: upsampfac=%.3g is <1.0\n", __func__, upsampfac);
       return FINUFFT_ERR_UPSAMPFAC_TOO_SMALL;
     }
     // calling routine must abort on above errors, since opts is garbage!
@@ -44,8 +42,7 @@ int setup_spreader(finufft_spread_opts &opts, T eps, T upsampfac, int kerevalmet
   opts.upsampfac        = upsampfac;
 
   // as in FINUFFT v2.0, allow too-small-eps by truncating to eps_mach...
-  int ier = 0;
-
+  int ier             = 0;
   constexpr T EPSILON = std::numeric_limits<T>::epsilon();
   if (eps < EPSILON) {
     fprintf(stderr, "setup_spreader: warning, increasing tol=%.3g to eps_mach=%.3g.\n",

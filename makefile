@@ -31,7 +31,7 @@ PYTHON = python3
 #           they allow gcc to vectorize the code more effectively
 CFLAGS := -O3 -funroll-loops -march=native -fcx-limited-range -ffp-contract=fast\
 		  -fno-math-errno -fno-signed-zeros -fno-trapping-math -fassociative-math\
-		  -freciprocal-math -fmerge-all-constants -ftree-vectorize $(CFLAGS)
+		  -freciprocal-math -fmerge-all-constants -ftree-vectorize $(CFLAGS) -Wfatal-errors
 FFLAGS := $(CFLAGS) $(FFLAGS)
 CXXFLAGS := $(CFLAGS) $(CXXFLAGS)
 # FFTW base name, and math linking...
@@ -133,24 +133,11 @@ STATICLIB = lib-static/$(LIBNAME).a
 # absolute path to the .so, useful for linking so executables portable...
 ABSDYNLIB = $(FINUFFT)$(DYNLIB)
 
-# spreader is subset of the library with self-contained testing, hence own objs:
-# double-prec spreader object files that also need single precision...
-SOBJS = src/spreadinterp.o src/utils.o
-# their single-prec versions
-SOBJSF = $(SOBJS:%.o=%_32.o)
-# precision-dependent spreader object files (compiled & linked only once)...
-SOBJS_PI = src/utils_precindep.o
-# spreader dual-precision objs
-SOBJSD = $(SOBJS) $(SOBJSF) $(SOBJS_PI)
+# spreader objs
+SOBJS = src/utils.o src/spreadinterp.o
 
-# double-prec library object files that also need single precision...
-OBJS = $(SOBJS) src/finufft.o src/simpleinterfaces.o fortran/finufftfort.o src/fft.o
-# their single-prec versions
-OBJSF = $(OBJS:%.o=%_32.o)
-# precision-dependent library object files (compiled & linked only once)...
-OBJS_PI = $(SOBJS_PI) contrib/legendre_rule_fast.o
 # all lib dual-precision objs (note DUCC_OBJS empty if unused)
-OBJSD = $(OBJS) $(OBJSF) $(OBJS_PI) $(DUCC_OBJS)
+OBJS = $(SOBJS) contrib/legendre_rule_fast.o src/fft.o src/finufft_core.o src/simpleinterfaces.o fortran/finufftfort.o $(DUCC_OBJS)
 
 .PHONY: usage lib examples test perftest spreadtest spreadtestall fortran matlab octave all mex python clean objclean pyclean mexclean wheel docker-wheel gurutime docs setup setupclean
 
@@ -190,12 +177,8 @@ HEADERS = $(wildcard include/*.h include/finufft/*.h) $(DUCC_HEADERS)
 # implicit rules for objects (note -o ensures writes to correct dir)
 %.o: %.cpp $(HEADERS)
 	$(CXX) -c $(CXXFLAGS) $< -o $@
-%_32.o: %.cpp $(HEADERS)
-	$(CXX) -DSINGLE -c $(CXXFLAGS) $< -o $@
 %.o: %.c $(HEADERS)
 	$(CC) -c $(CFLAGS) $< -o $@
-%_32.o: %.c $(HEADERS)
-	$(CC) -DSINGLE -c $(CFLAGS) $< -o $@
 %.o: %.f
 	$(FC) -c $(FFLAGS) $< -o $@
 %_32.o: %.f
@@ -209,23 +192,22 @@ HEADERS = $(wildcard include/*.h include/finufft/*.h) $(DUCC_HEADERS)
 include/finufft/fft.h: $(DUCC_SETUP)
 SHEAD = $(wildcard src/*.h) $(XSIMD_DIR)/include/xsimd/xsimd.hpp
 src/spreadinterp.o: $(SHEAD)
-src/spreadinterp_32.o: $(SHEAD)
 
 
 # lib -----------------------------------------------------------------------
 # build library with double/single prec both bundled in...
 lib: $(STATICLIB) $(DYNLIB)
-$(STATICLIB): $(OBJSD)
-	ar rcs $(STATICLIB) $(OBJSD)
+$(STATICLIB): $(OBJS)
+	ar rcs $(STATICLIB) $(OBJS)
 ifeq ($(OMP),OFF)
 	@echo "$(STATICLIB) built, single-thread version"
 else
 	@echo "$(STATICLIB) built, multithreaded version"
 endif
-$(DYNLIB): $(OBJSD)
+$(DYNLIB): $(OBJS)
 # using *absolute* path in the -o here is needed to make portable executables
 # when compiled against it, in mac OSX, strangely...
-	$(CXX) -shared ${LDFLAGS} $(OMPFLAGS) $(OBJSD) -o $(ABSDYNLIB) $(LIBSFFT)
+	$(CXX) -shared ${LDFLAGS} $(OMPFLAGS) $(OBJS) -o $(ABSDYNLIB) $(LIBSFFT)
 ifeq ($(OMP),OFF)
 	@echo "$(DYNLIB) built, single-thread version"
 else
@@ -277,13 +259,17 @@ test/%: test/%.cpp $(DYNLIB)
 test/%f: test/%.cpp $(DYNLIB)
 	$(CXX) $(CXXFLAGS) ${LDFLAGS} -DSINGLE $< $(ABSDYNLIB) $(LIBSFFT) -o $@
 # low-level tests that are cleaner if depend on only specific objects...
-test/testutils: test/testutils.cpp src/utils.o src/utils_precindep.o
-	$(CXX) $(CXXFLAGS) ${LDFLAGS} test/testutils.cpp src/utils.o src/utils_precindep.o $(LIBS) -o test/testutils
-test/testutilsf: test/testutils.cpp src/utils_32.o src/utils_precindep.o
-	$(CXX) $(CXXFLAGS) ${LDFLAGS} -DSINGLE test/testutils.cpp src/utils_32.o src/utils_precindep.o $(LIBS) -o test/testutilsf
+test/testutils: test/testutils.cpp src/utils.o
+	$(CXX) $(CXXFLAGS) ${LDFLAGS} test/testutils.cpp src/utils.o $(LIBS) -o test/testutils
+test/testutilsf: test/testutils.cpp src/utils.o
+	$(CXX) $(CXXFLAGS) ${LDFLAGS} -DSINGLE test/testutils.cpp src/utils.o $(LIBS) -o test/testutilsf
 
 # make sure all double-prec test executables ready for testing
 TESTS := $(basename $(wildcard test/*.cpp))
+# kill off FFTW-specific tests if it's not the FFT we build with...
+ifeq ($(FFT),DUCC)
+  TESTS := $(filter-out $(basename $(wildcard test/*fftw*.cpp)),$(TESTS))
+endif
 # also need single-prec
 TESTS += $(TESTS:%=%f)
 test: $(TESTS)
@@ -325,14 +311,14 @@ ST=perftest/spreadtestnd
 STA=perftest/spreadtestndall
 STF=$(ST)f
 STAF=$(STA)f
-$(ST): $(ST).cpp $(SOBJS) $(SOBJS_PI)
-	$(CXX) $(CXXFLAGS) ${LDFLAGS} $< $(SOBJS) $(SOBJS_PI) $(LIBS) -o $@
-$(STF): $(ST).cpp $(SOBJSF) $(SOBJS_PI)
-	$(CXX) $(CXXFLAGS) ${LDFLAGS} -DSINGLE $< $(SOBJSF) $(SOBJS_PI) $(LIBS) -o $@
-$(STA): $(STA).cpp $(SOBJS) $(SOBJS_PI)
-	$(CXX) $(CXXFLAGS) ${LDFLAGS} $< $(SOBJS) $(SOBJS_PI) $(LIBS) -o $@
-$(STAF): $(STA).cpp $(SOBJSF) $(SOBJS_PI)
-	$(CXX) $(CXXFLAGS) ${LDFLAGS} -DSINGLE $< $(SOBJSF) $(SOBJS_PI) $(LIBS) -o $@
+$(ST): $(ST).cpp $(SOBJS)
+	$(CXX) $(CXXFLAGS) ${LDFLAGS} $< $(SOBJS) $(LIBS) -o $@
+$(STF): $(ST).cpp $(SOBJS)
+	$(CXX) $(CXXFLAGS) ${LDFLAGS} -DSINGLE $< $(SOBJS) $(LIBS) -o $@
+$(STA): $(STA).cpp $(SOBJS)
+	$(CXX) $(CXXFLAGS) ${LDFLAGS} $< $(SOBJS) $(LIBS) -o $@
+$(STAF): $(STA).cpp $(SOBJS)
+	$(CXX) $(CXXFLAGS) ${LDFLAGS} -DSINGLE $< $(SOBJS) $(LIBS) -o $@
 spreadtest: $(ST) $(STF)
 # run one thread per core... (escape the $ to get single $ in bash; one big cmd)
 	(export OMP_NUM_THREADS=$$(perftest/mynumcores.sh) ;\

@@ -38,7 +38,7 @@ minimum-version = "0.4"
 # Setuptools-style build caching in a local directory
 build-dir = "build/{wheel_tag}"
 
-# Tell skbuild to look for the CMakeLists.txt file two directories up.
+# Tell skbuild to where to find CMakeLists.txt.
 cmake.source-dir = "../../"
 cmake.targets = ["cufinufft"]
 cmake.define = {"FINUFFT_BUILD_PYTHON" = "ON", "FINUFFT_USE_CUDA" = "ON", "FINUFFT_USE_CPU" = "OFF"}
@@ -47,6 +47,27 @@ wheel.packages = ["cufinufft"]
 
 # Indicate that we don't depend on the CPython API
 wheel.py-api = "py3"
+
+sdist.exclude = [".*",
+                 "CMakePresets.json",
+                 "contributing.md",
+                 "CHANGELOG",
+                 "devel",
+                 "docs",
+                 "examples",
+                 "fortran",
+                 "Jenkinsfile",
+                 "lib*",
+                 "make*",
+                 "matlab",
+                 "perftest",
+                 "test",
+                 "tools",
+                 "tutorial",
+                 "python/finufft",
+                 "python/cufinufft/tests",
+                 "src"]
+sdist.include = ["src/cuda"]
 
 [tool.scikit-build.metadata.version]
 # Instead of hardcoding the version here, extract it from the source files.

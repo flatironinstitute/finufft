@@ -51,7 +51,7 @@ $ #include <math.h>
 
 % .........................................................................
 % This C++ code overwrites any properties of finufft_opts *oc with any valid
-% fields in the matlab struct *om.
+% fields in the matlab struct *om. Note: fftw_{un}lock stuff not included.
 %
 $ void copy_finufft_opts(const mxArray* om, finufft_opts *oc) {
 $   if(!mxIsStruct(om))
@@ -150,7 +150,7 @@ classdef finufft_plan < handle
           plan.floatprec = opts.floatprec;
         end
       end
-      
+
       n_modes = ones(3,1);         % is dummy for type 3
       if type==3
         if length(n_modes_or_dim)~=1
@@ -179,7 +179,7 @@ classdef finufft_plan < handle
       plan.n_trans = n_trans;
       % Note the peculiarity that mwrap only accepts a double for n_trans, even
       % though it's declared int. It complains, also with int64 for nj, etc :(
-      
+
       % replace in finufft_opts struct whichever fields are in incoming opts...
       # copy_finufft_opts(mxArray opts, finufft_opts* o);
       if strcmp(plan.floatprec,'double')

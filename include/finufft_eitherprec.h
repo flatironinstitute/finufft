@@ -24,7 +24,6 @@
 
 // decide which kind of complex numbers FINUFFT_CPX is (four options)
 #ifdef __cplusplus
-#define _USE_MATH_DEFINES
 #include <complex> // C++ type
 #define FINUFFT_COMPLEXIFY(X) std::complex<X>
 #else
@@ -87,8 +86,8 @@ typedef struct FINUFFT_PLAN_S *FINUFFT_PLAN;
 
 FINUFFT_EXPORT void FINUFFT_CDECL FINUFFTIFY(_default_opts)(finufft_opts *o);
 FINUFFT_EXPORT int FINUFFT_CDECL FINUFFTIFY(_makeplan)(
-    int type, int dim, FINUFFT_BIGINT *n_modes, int iflag, int n_transf, FINUFFT_FLT tol,
-    FINUFFT_PLAN *plan, finufft_opts *o);
+    int type, int dim, const FINUFFT_BIGINT *n_modes, int iflag, int n_transf,
+    FINUFFT_FLT tol, FINUFFT_PLAN *plan, finufft_opts *o);
 FINUFFT_EXPORT int FINUFFT_CDECL FINUFFTIFY(_setpts)(
     FINUFFT_PLAN plan, FINUFFT_BIGINT M, FINUFFT_FLT *xj, FINUFFT_FLT *yj,
     FINUFFT_FLT *zj, FINUFFT_BIGINT N, FINUFFT_FLT *s, FINUFFT_FLT *t, FINUFFT_FLT *u);
@@ -183,4 +182,3 @@ FINUFFT_EXPORT int FINUFFT_CDECL FINUFFTIFY(3d3many)(
 #undef FINUFFT_CPX
 #undef FINUFFT_PLAN
 #undef FINUFFT_PLAN_S
-#undef FINUFFT_TYPE3PARAMS

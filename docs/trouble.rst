@@ -66,6 +66,8 @@ If FINUFFT is slow (eg, less than $10^6$ to $10^7$ nonuniform points per second,
 
   which compares the stack of transforms to the same transforms performed individually. For single precision tests, append ``f`` to the executable name in both of the above examples. The command line options for each tester can be seen by executing without any options.
 
+- Compare your timings against those reported on our :ref:`performance <performance>` page, for similar problem parameters, and read the information on that page.
+
 - Try reducing the number of threads, either those available via OpenMP, or via ``opts.nthreads``, perhaps down to 1 thread, to make sure you are not having collisions between threads, or slowdown due to thread overheads. Hyperthreading (more threads than physical cores) rarely helps much. Thread collisions are possible if large problems are run with a large number of (say more than 64) threads. Another case causing slowness is very many repetitions of small problems; see ``test/manysmallprobs`` which exceeds $10^7$ points/sec with one thread via the guru interface, but can get ridiculously slower with many threads; see https://github.com/flatironinstitute/finufft/issues/86
 
 - Try setting a crude tolerance, eg ``tol=1e-3``. How many digits do you actually need? This has a big effect in higher dimensions, since the number of flops scales like $(\log 1/\epsilon)^d$, but not quite as big an effect as this scaling would suggest, because in higher dimensions the flops/RAM ratio is higher.
@@ -73,13 +75,13 @@ If FINUFFT is slow (eg, less than $10^6$ to $10^7$ nonuniform points per second,
 - If type 3, make sure your choice of points does not have a massive *space-bandwidth product* (ie, product of the volumes of the smallest $d$-dimension axes-aligned cuboids enclosing the nonuniform source and the target points); see Remark 5 of our `SISC paper <https://arxiv.org/abs/1808.06736>`_.
   In short, if the spreads of $\mathbf{x}_j$ and of $\mathbf{s}_k$ are both big, you may be in trouble.
   This can lead to enormous fine grids and hence slow FFTs. Set ``opts.debug=1`` to examine the ``nf1``, etc, fine grid sizes being chosen, and the array allocation sizes. If they are huge, consider direct summation, as discussed :ref:`here <need>`.
-  
+
 - The timing of the first FFTW call is complicated, depending on the FFTW flags (plan mode) used. This is really an
   `FFTW planner flag usage <http://www.fftw.org/fftw3_doc/Planner-Flags.html#Planner-Flags>`_ question.
   Such issues are known, and modes benchmarked in other documentation, eg for 2D in `poppy <https://poppy-optics.readthedocs.io/en/stable/fft_optimization.html>`_. In short, using more expensive FFTW planning modes like ``FFTW_MEASURE`` can give better performance for repeated FFTW calls, but be **much** more expensive in the first (planning) call. This is why we choose ``FFTW_ESTIMATE`` as our default ``opts.fftw`` option.
 
 - Check that you are not using too much RAM, hence swapping to hard disk or SSD. The multithreaded type-1 spreader can use up to another fine grid's worth of storage in the form of subgrids. If RAM is too large, try overriding ``opts.spread_max_sp_size`` to a nonzero value smaller than the default value set in ``src/spreadinterp.cpp:setup_spreader()``, to reduce RAM. However, note that this may slow it down, because we have built in a decent heuristic for the default.
-    
+
 - Make sure you did not override ``opts.spread_sort``, which if set to zero
   does no sorting, which can give very slow RAM access if the nonuniform points
   are ordered poorly (eg randomly) in larger 2D or 3D problems.
@@ -114,7 +116,7 @@ If cuFINUFFT is slow (eg, less than $10^8$ nonuniform points per second), here i
 - There is not currently a ``debug`` option for ``cufinufft``, so the above timing of a test problem on your hardware is a good option. You could place timers around the various ``cufinufft`` calls in your own code, just as in our test codes.
 
 
-  
+
 Crash (segfault) issues and advice
 ****************************************
 
@@ -127,14 +129,14 @@ Crash (segfault) issues and advice
 - Maybe you have switched off nonuniform point bounds checking (``opts.chkbnds=0``) for a little extra speed? Try switching it on again to catch illegal coordinates.
 
 - Thread-safety: are you calling FINUFFT from inside a multithreaded block of code without setting ``opts.nthreads=1``? If ``gdb`` indicates crashes during FFTW calls, this is another sign.
-  
+
 - To isolate where a crash is occurring, set ``opts.debug`` to 1 or 2, and check the text output of the various stages. With a debug setting of 2 or above, when ``ntrans>1`` a large amount of text can be generated.
-    
+
 - To diagnose problems with the spread/interpolation stage, similarly setting ``opts.spread_debug`` to 1 or 2 will print even more output. Here the setting 2 generates a large amount of output even for a single transform.
 
 - For the GPU code, did you run out of GPU memory? Keep track of this with ``nvidia-smi``.
 
-  
+
 Other known issues with library or interfaces
 **********************************************
 
@@ -150,7 +152,7 @@ are discussed before the problem is fixed in a release.
 
 Bug reports
 ***********
-  
+
 If you think you have found a new bug, and have read the above, please
 file a new issue on the github project page,
 https://github.com/flatironinstitute/finufft/issues.
