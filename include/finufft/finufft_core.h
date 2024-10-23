@@ -171,10 +171,10 @@ template<typename TF> struct FINUFFT_PLAN_T { // the main plan object, fully C++
   BIGINT mu;               // number of modes in z (3) direction = N3
   BIGINT N;                // total # modes (prod of above three)
 
-  BIGINT nf1;              // size of internal fine grid in x (1) direction
-  BIGINT nf2;              // " y (2)
-  BIGINT nf3;              // " z (3)
-  BIGINT nf;               // total # fine grid points (product of the above three)
+  BIGINT nf1 = 1;          // size of internal fine grid in x (1) direction
+  BIGINT nf2 = 1;          // " y (2)
+  BIGINT nf3 = 1;          // " z (3)
+  BIGINT nf  = 1;          // total # fine grid points (product of the above three)
 
   int fftSign;             // sign in exponential for NUFFT defn, guaranteed to be +-1
 
@@ -182,15 +182,18 @@ template<typename TF> struct FINUFFT_PLAN_T { // the main plan object, fully C++
   std::vector<TF> phiHat2; // " y-axis.
   std::vector<TF> phiHat3; // " z-axis.
 
-  TC *fwBatch = nullptr;   // (batches of) fine grid(s) for FFTW to plan
-                           // & act on. Usually the largest working array
+  TC *fwBatch = nullptr;   // (batches of) fine grid(s) for the FFT to plan
+                           // & act on. Usually the largest working array.
+                           // Unfortunately this can't be a vector, since
+                           // in the presence of FFTW it must be allocated
+                           // by fftw_malloc.
 
   std::vector<BIGINT> sortIndices; // precomputed NU pt permutation, speeds spread/interp
   bool didSort;                    // whether binsorting used (false: identity perm used)
 
   TF *X = nullptr, *Y = nullptr, *Z = nullptr; // for t1,2: ptr to user-supplied NU pts
-                                               // (no new allocs). for t3: allocated as
-                                               // "primed" (scaled) src pts x'_j, etc
+                                               // (no new allocs). for t3: points to
+                                               // "primed" (scaled) Xp, Yp, Zp
 
   // type 3 specific
   TF *S = nullptr, *T = nullptr, *U = nullptr; // pointers to user's target NU pts arrays
@@ -198,8 +201,8 @@ template<typename TF> struct FINUFFT_PLAN_T { // the main plan object, fully C++
   std::vector<TC> prephase;                    // pre-phase, for all input NU pts
   std::vector<TC> deconv;     // reciprocal of kernel FT, phase, all output NU pts
   std::vector<TC> CpBatch;    // working array of prephased strengths
-  std::vector<TF> Sp, Tp, Up; // internal primed targs (s'_k, etc),
-                              // allocated
+  std::vector<TF> Xp, Yp, Zp; // internal primed NU points (x'_j, etc)
+  std::vector<TF> Sp, Tp, Up; // internal primed targs (s'_k, etc)
   type3params<TF> t3P;        // groups together type 3 shift, scale, phase, parameters
   std::unique_ptr<FINUFFT_PLAN_T<TF>> innerT2plan; // ptr used for type 2 in step 2 of
                                                    // type 3

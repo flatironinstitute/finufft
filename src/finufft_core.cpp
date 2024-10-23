@@ -641,18 +641,10 @@ FINUFFT_PLAN_T<TF>::FINUFFT_PLAN_T(int type_, int dim_, const BIGINT *n_modes, i
   if (ier > 1) // proceed if success or warning
     throw int(ier);
 
-  // set others as defaults (or unallocated for arrays)...
-  X   = nullptr;
-  Y   = nullptr;
-  Z   = nullptr;
-  nf1 = 1;
-  nf2 = 1;
-  nf3 = 1; // crucial to leave as 1 for unused dims
-
   //  ------------------------ types 1,2: planning needed ---------------------
   if (type == 1 || type == 2) {
 
-    int nthr_fft = nthr; // give FFTW all threads (or use o.spread_thread?)
+    int nthr_fft = nthr; // give FFT all threads (or use o.spread_thread?)
                          // Note: batchSize not used since might be only 1.
 
     spopts.spread_direction = type;
@@ -885,18 +877,19 @@ int FINUFFT_PLAN_T<TF>::setpts(BIGINT nj, TF *xj, TF *yj, TF *zj, BIGINT nk, TF 
     // printf("fwbatch, cpbatch ptrs: %llx %llx\n",fwBatch,CpBatch);
 
     // alloc rescaled NU src pts x'_j (in X etc), rescaled NU targ pts s'_k ...
-    // FIXME: should use realloc
-    if (X) delete[] X;
-    X = new TF[nj];
+    // We do this by resizing Xp, Yp, and Zp, and pointing X, Y, Z to their data;
+    // this avoids any need for explicit cleanup.
+    Xp.resize(nj);
+    X = Xp.data();
     Sp.resize(nk);
     if (d > 1) {
-      if (Y) delete[] Y;
-      Y = new TF[nj];
+      Yp.resize(nj);
+      Y = Yp.data();
       Tp.resize(nk);
     }
     if (d > 2) {
-      if (Z) delete[] Z;
-      Z = new TF[nj];
+      Zp.resize(nj);
+      Z = Zp.data();
       Up.resize(nk);
     }
 
@@ -1173,11 +1166,6 @@ template<typename TF> FINUFFT_PLAN_T<TF>::~FINUFFT_PLAN_T() {
   // Thus either each thing free'd here is guaranteed to be nullptr or correctly
   // allocated.
   if (fftPlan) fftPlan->free(fwBatch); // free the big FFT (or t3 spread) working array
-  if (type == 3) {
-    delete[] X;
-    delete[] Y;
-    delete[] Z;
-  }
 }
 template FINUFFT_PLAN_T<float>::~FINUFFT_PLAN_T();
 template FINUFFT_PLAN_T<double>::~FINUFFT_PLAN_T();
