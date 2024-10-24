@@ -4,8 +4,7 @@
 /* Devnotes.
  1)  Since everything here is exposed to the public interface, macros must be
  safe, eg FINUFFTsomething.
- 2)  They will clobber any prior macros starting FINUFFT*, so in the lib/test
- sources finufft.h must be included before defs.h
+ 2)  They will clobber any prior macros starting FINUFFT*
  3) for debug of header macros, see finufft.h
 */
 
@@ -82,7 +81,7 @@ extern "C" {
 typedef struct FINUFFT_PLAN_S *FINUFFT_PLAN;
 
 // ------------------ the guru interface ------------------------------------
-// (sources in finufft.cpp)
+// (sources in c_interface.cpp)
 
 FINUFFT_EXPORT void FINUFFT_CDECL FINUFFTIFY(_default_opts)(finufft_opts *o);
 FINUFFT_EXPORT int FINUFFT_CDECL FINUFFTIFY(_makeplan)(
@@ -96,7 +95,7 @@ FINUFFT_EXPORT int FINUFFT_CDECL FINUFFTIFY(_execute)(
 FINUFFT_EXPORT int FINUFFT_CDECL FINUFFTIFY(_destroy)(FINUFFT_PLAN plan);
 
 // ----------------- the 18 simple interfaces -------------------------------
-// (sources in simpleinterfaces.cpp)
+// (sources in c_interface.cpp)
 
 FINUFFT_EXPORT int FINUFFT_CDECL FINUFFTIFY(1d1)(
     FINUFFT_BIGINT nj, FINUFFT_FLT *xj, FINUFFT_CPX *cj, int iflag, FINUFFT_FLT eps,

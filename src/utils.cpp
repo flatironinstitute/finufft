@@ -73,7 +73,7 @@ int get_num_threads_parallel_block()
 }
 
 // ---------- thread-safe rand number generator for Windows platform ---------
-// (note this is used by macros in defs.h, and supplied in linux/macosx)
+// (note this is used by macros in test_defs.h, and supplied in linux/macosx)
 #ifdef _WIN32
 int rand_r(unsigned int * /*seedp*/)
 // Libin Lu, 6/18/20

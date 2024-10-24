@@ -103,7 +103,7 @@ int main(int argc, char *argv[]) {
     printf("1d1 M<0:\twrong err code %d\n", ier);
     return 1;
   }
-  int64_t Mhuge = (int64_t)(1e16); // cf defs.h MAX_NU_PTS
+  int64_t Mhuge = (int64_t)(1e16); // cf finufft_core.h MAX_NU_PTS
   ier           = FINUFFT1D1(Mhuge, x, c, +1, acc, 0, F, &opts);
   if (ier != FINUFFT_ERR_NUM_NU_PTS_INVALID) {
     printf("1d1 M huge:\twrong err code %d\n", ier);

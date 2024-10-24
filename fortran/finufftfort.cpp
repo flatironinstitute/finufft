@@ -21,13 +21,19 @@
 #include <finufft.h>
 #include <finufft/finufft_core.h>
 
+using f32  = float;
+using f64  = double;
+using c64  = std::complex<float>;
+using c128 = std::complex<double>;
+using i64  = BIGINT;
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 // --------------------- guru interface from fortran ------------------------
-void finufft_makeplan_(int *type, int *n_dims, BIGINT *n_modes, int *iflag, int *n_transf,
-                       double *tol, finufft_plan *plan, finufft_opts *o, int *ier) {
+void finufft_makeplan_(int *type, int *n_dims, i64 *n_modes, int *iflag, int *n_transf,
+                       f64 *tol, finufft_plan *plan, finufft_opts *o, int *ier) {
   if (!plan)
     fprintf(stderr,
             "%s fortran: plan must be allocated as at least the size of a C pointer "
@@ -39,8 +45,8 @@ void finufft_makeplan_(int *type, int *n_dims, BIGINT *n_modes, int *iflag, int 
   }
 }
 
-void finufft_setpts_(finufft_plan *plan, BIGINT *M, double *xj, double *yj, double *zj,
-                     BIGINT *nk, double *s, double *t, double *u, int *ier) {
+void finufft_setpts_(finufft_plan *plan, i64 *M, f64 *xj, f64 *yj, f64 *zj, i64 *nk,
+                     f64 *s, f64 *t, f64 *u, int *ier) {
   if (!*plan) {
     fprintf(stderr, "%s fortran: finufft_plan unallocated!", __func__);
     return;
@@ -50,8 +56,7 @@ void finufft_setpts_(finufft_plan *plan, BIGINT *M, double *xj, double *yj, doub
   *ier = finufft_setpts(*plan, *M, xj, yj, zj, nk_safe, s, t, u);
 }
 
-void finufft_execute_(finufft_plan *plan, std::complex<double> *weights,
-                      std::complex<double> *result, int *ier) {
+void finufft_execute_(finufft_plan *plan, c128 *weights, c128 *result, int *ier) {
   if (!plan)
     fprintf(stderr, "%s fortran: finufft_plan unallocated!", __func__);
   else
@@ -77,124 +82,104 @@ void finufft_default_opts_(finufft_opts *o) {
 
 // -------------- simple and many-vector interfaces --------------------
 // --- 1D ---
-void finufft1d1_(BIGINT *nj, double *xj, std::complex<double> *cj, int *iflag,
-                 double *eps, BIGINT *ms, std::complex<double> *fk, finufft_opts *o,
-                 int *ier) {
+void finufft1d1_(i64 *nj, f64 *xj, c128 *cj, int *iflag, f64 *eps, i64 *ms, c128 *fk,
+                 finufft_opts *o, int *ier) {
   *ier = finufft1d1(*nj, xj, cj, *iflag, *eps, *ms, fk, o);
 }
 
-void finufft1d1many_(int *ntransf, BIGINT *nj, double *xj, std::complex<double> *cj,
-                     int *iflag, double *eps, BIGINT *ms, std::complex<double> *fk,
-                     finufft_opts *o, int *ier) {
+void finufft1d1many_(int *ntransf, i64 *nj, f64 *xj, c128 *cj, int *iflag, f64 *eps,
+                     i64 *ms, c128 *fk, finufft_opts *o, int *ier) {
   *ier = finufft1d1many(*ntransf, *nj, xj, cj, *iflag, *eps, *ms, fk, o);
 }
 
-void finufft1d2_(BIGINT *nj, double *xj, std::complex<double> *cj, int *iflag,
-                 double *eps, BIGINT *ms, std::complex<double> *fk, finufft_opts *o,
-                 int *ier) {
+void finufft1d2_(i64 *nj, f64 *xj, c128 *cj, int *iflag, f64 *eps, i64 *ms, c128 *fk,
+                 finufft_opts *o, int *ier) {
   *ier = finufft1d2(*nj, xj, cj, *iflag, *eps, *ms, fk, o);
 }
 
-void finufft1d2many_(int *ntransf, BIGINT *nj, double *xj, std::complex<double> *cj,
-                     int *iflag, double *eps, BIGINT *ms, std::complex<double> *fk,
-                     finufft_opts *o, int *ier) {
+void finufft1d2many_(int *ntransf, i64 *nj, f64 *xj, c128 *cj, int *iflag, f64 *eps,
+                     i64 *ms, c128 *fk, finufft_opts *o, int *ier) {
   *ier = finufft1d2many(*ntransf, *nj, xj, cj, *iflag, *eps, *ms, fk, o);
 }
 
-void finufft1d3_(BIGINT *nj, double *x, std::complex<double> *c, int *iflag, double *eps,
-                 BIGINT *nk, double *s, std::complex<double> *f, finufft_opts *o,
-                 int *ier) {
+void finufft1d3_(i64 *nj, f64 *x, c128 *c, int *iflag, f64 *eps, i64 *nk, f64 *s, c128 *f,
+                 finufft_opts *o, int *ier) {
   *ier = finufft1d3(*nj, x, c, *iflag, *eps, *nk, s, f, o);
 }
 
-void finufft1d3many_(int *ntransf, BIGINT *nj, double *x, std::complex<double> *c,
-                     int *iflag, double *eps, BIGINT *nk, double *s,
-                     std::complex<double> *f, finufft_opts *o, int *ier) {
+void finufft1d3many_(int *ntransf, i64 *nj, f64 *x, c128 *c, int *iflag, f64 *eps,
+                     i64 *nk, f64 *s, c128 *f, finufft_opts *o, int *ier) {
   *ier = finufft1d3many(*ntransf, *nj, x, c, *iflag, *eps, *nk, s, f, o);
 }
 
 // --- 2D ---
-void finufft2d1_(BIGINT *nj, double *xj, double *yj, std::complex<double> *cj, int *iflag,
-                 double *eps, BIGINT *ms, BIGINT *mt, std::complex<double> *fk,
-                 finufft_opts *o, int *ier) {
+void finufft2d1_(i64 *nj, f64 *xj, f64 *yj, c128 *cj, int *iflag, f64 *eps, i64 *ms,
+                 i64 *mt, c128 *fk, finufft_opts *o, int *ier) {
   *ier = finufft2d1(*nj, xj, yj, cj, *iflag, *eps, *ms, *mt, fk, o);
 }
-void finufft2d1many_(int *ntransf, BIGINT *nj, double *xj, double *yj,
-                     std::complex<double> *cj, int *iflag, double *eps, BIGINT *ms,
-                     BIGINT *mt, std::complex<double> *fk, finufft_opts *o, int *ier) {
+void finufft2d1many_(int *ntransf, i64 *nj, f64 *xj, f64 *yj, c128 *cj, int *iflag,
+                     f64 *eps, i64 *ms, i64 *mt, c128 *fk, finufft_opts *o, int *ier) {
   *ier = finufft2d1many(*ntransf, *nj, xj, yj, cj, *iflag, *eps, *ms, *mt, fk, o);
 }
 
-void finufft2d2_(BIGINT *nj, double *xj, double *yj, std::complex<double> *cj, int *iflag,
-                 double *eps, BIGINT *ms, BIGINT *mt, std::complex<double> *fk,
-                 finufft_opts *o, int *ier) {
+void finufft2d2_(i64 *nj, f64 *xj, f64 *yj, c128 *cj, int *iflag, f64 *eps, i64 *ms,
+                 i64 *mt, c128 *fk, finufft_opts *o, int *ier) {
   *ier = finufft2d2(*nj, xj, yj, cj, *iflag, *eps, *ms, *mt, fk, o);
 }
-void finufft2d2many_(int *ntransf, BIGINT *nj, double *xj, double *yj,
-                     std::complex<double> *cj, int *iflag, double *eps, BIGINT *ms,
-                     BIGINT *mt, std::complex<double> *fk, finufft_opts *o, int *ier) {
+void finufft2d2many_(int *ntransf, i64 *nj, f64 *xj, f64 *yj, c128 *cj, int *iflag,
+                     f64 *eps, i64 *ms, i64 *mt, c128 *fk, finufft_opts *o, int *ier) {
   *ier = finufft2d2many(*ntransf, *nj, xj, yj, cj, *iflag, *eps, *ms, *mt, fk, o);
 }
 
-void finufft2d3_(BIGINT *nj, double *x, double *y, std::complex<double> *c, int *iflag,
-                 double *eps, BIGINT *nk, double *s, double *t, std::complex<double> *f,
-                 finufft_opts *o, int *ier) {
+void finufft2d3_(i64 *nj, f64 *x, f64 *y, c128 *c, int *iflag, f64 *eps, i64 *nk, f64 *s,
+                 f64 *t, c128 *f, finufft_opts *o, int *ier) {
   *ier = finufft2d3(*nj, x, y, c, *iflag, *eps, *nk, s, t, f, o);
 }
 
-void finufft2d3many_(int *ntransf, BIGINT *nj, double *x, double *y,
-                     std::complex<double> *c, int *iflag, double *eps, BIGINT *nk,
-                     double *s, double *t, std::complex<double> *f, finufft_opts *o,
-                     int *ier) {
+void finufft2d3many_(int *ntransf, i64 *nj, f64 *x, f64 *y, c128 *c, int *iflag, f64 *eps,
+                     i64 *nk, f64 *s, f64 *t, c128 *f, finufft_opts *o, int *ier) {
   *ier = finufft2d3many(*ntransf, *nj, x, y, c, *iflag, *eps, *nk, s, t, f, o);
 }
 
 // --- 3D ---
-void finufft3d1_(BIGINT *nj, double *xj, double *yj, double *zj, std::complex<double> *cj,
-                 int *iflag, double *eps, BIGINT *ms, BIGINT *mt, BIGINT *mu,
-                 std::complex<double> *fk, finufft_opts *o, int *ier) {
+void finufft3d1_(i64 *nj, f64 *xj, f64 *yj, f64 *zj, c128 *cj, int *iflag, f64 *eps,
+                 i64 *ms, i64 *mt, i64 *mu, c128 *fk, finufft_opts *o, int *ier) {
   *ier = finufft3d1(*nj, xj, yj, zj, cj, *iflag, *eps, *ms, *mt, *mu, fk, o);
 }
 
-void finufft3d1many_(int *ntransf, BIGINT *nj, double *xj, double *yj, double *zj,
-                     std::complex<double> *cj, int *iflag, double *eps, BIGINT *ms,
-                     BIGINT *mt, BIGINT *mu, std::complex<double> *fk, finufft_opts *o,
-                     int *ier) {
+void finufft3d1many_(int *ntransf, i64 *nj, f64 *xj, f64 *yj, f64 *zj, c128 *cj,
+                     int *iflag, f64 *eps, i64 *ms, i64 *mt, i64 *mu, c128 *fk,
+                     finufft_opts *o, int *ier) {
   *ier =
       finufft3d1many(*ntransf, *nj, xj, yj, zj, cj, *iflag, *eps, *ms, *mt, *mu, fk, o);
 }
 
-void finufft3d2_(BIGINT *nj, double *xj, double *yj, double *zj, std::complex<double> *cj,
-                 int *iflag, double *eps, BIGINT *ms, BIGINT *mt, BIGINT *mu,
-                 std::complex<double> *fk, finufft_opts *o, int *ier) {
+void finufft3d2_(i64 *nj, f64 *xj, f64 *yj, f64 *zj, c128 *cj, int *iflag, f64 *eps,
+                 i64 *ms, i64 *mt, i64 *mu, c128 *fk, finufft_opts *o, int *ier) {
   *ier = finufft3d2(*nj, xj, yj, zj, cj, *iflag, *eps, *ms, *mt, *mu, fk, o);
 }
 
-void finufft3d2many_(int *ntransf, BIGINT *nj, double *xj, double *yj, double *zj,
-                     std::complex<double> *cj, int *iflag, double *eps, BIGINT *ms,
-                     BIGINT *mt, BIGINT *mu, std::complex<double> *fk, finufft_opts *o,
-                     int *ier) {
+void finufft3d2many_(int *ntransf, i64 *nj, f64 *xj, f64 *yj, f64 *zj, c128 *cj,
+                     int *iflag, f64 *eps, i64 *ms, i64 *mt, i64 *mu, c128 *fk,
+                     finufft_opts *o, int *ier) {
   *ier =
       finufft3d2many(*ntransf, *nj, xj, yj, zj, cj, *iflag, *eps, *ms, *mt, *mu, fk, o);
 }
 
-void finufft3d3_(BIGINT *nj, double *x, double *y, double *z, std::complex<double> *c,
-                 int *iflag, double *eps, BIGINT *nk, double *s, double *t, double *u,
-                 std::complex<double> *f, finufft_opts *o, int *ier) {
+void finufft3d3_(i64 *nj, f64 *x, f64 *y, f64 *z, c128 *c, int *iflag, f64 *eps, i64 *nk,
+                 f64 *s, f64 *t, f64 *u, c128 *f, finufft_opts *o, int *ier) {
   *ier = finufft3d3(*nj, x, y, z, c, *iflag, *eps, *nk, s, t, u, f, o);
 }
 
-void finufft3d3many_(int *ntransf, BIGINT *nj, double *x, double *y, double *z,
-                     std::complex<double> *c, int *iflag, double *eps, BIGINT *nk,
-                     double *s, double *t, double *u, std::complex<double> *f,
-                     finufft_opts *o, int *ier) {
+void finufft3d3many_(int *ntransf, i64 *nj, f64 *x, f64 *y, f64 *z, c128 *c, int *iflag,
+                     f64 *eps, i64 *nk, f64 *s, f64 *t, f64 *u, c128 *f, finufft_opts *o,
+                     int *ier) {
   *ier = finufft3d3many(*ntransf, *nj, x, y, z, c, *iflag, *eps, *nk, s, t, u, f, o);
 }
 
 // --------------------- guru interface from fortran ------------------------
-void finufftf_makeplan_(int *type, int *n_dims, BIGINT *n_modes, int *iflag,
-                        int *n_transf, float *tol, finufftf_plan *plan, finufft_opts *o,
-                        int *ier) {
+void finufftf_makeplan_(int *type, int *n_dims, i64 *n_modes, int *iflag, int *n_transf,
+                        f32 *tol, finufftf_plan *plan, finufft_opts *o, int *ier) {
   if (!plan)
     fprintf(stderr,
             "%s fortran: plan must be allocated as at least the size of a C pointer "
@@ -206,8 +191,8 @@ void finufftf_makeplan_(int *type, int *n_dims, BIGINT *n_modes, int *iflag,
   }
 }
 
-void finufftf_setpts_(finufftf_plan *plan, BIGINT *M, float *xj, float *yj, float *zj,
-                      BIGINT *nk, float *s, float *t, float *u, int *ier) {
+void finufftf_setpts_(finufftf_plan *plan, i64 *M, f32 *xj, f32 *yj, f32 *zj, i64 *nk,
+                      f32 *s, f32 *t, f32 *u, int *ier) {
   if (!*plan) {
     fprintf(stderr, "%s fortran: finufft_plan unallocated!", __func__);
     return;
@@ -217,8 +202,7 @@ void finufftf_setpts_(finufftf_plan *plan, BIGINT *M, float *xj, float *yj, floa
   *ier = finufftf_setpts(*plan, *M, xj, yj, zj, nk_safe, s, t, u);
 }
 
-void finufftf_execute_(finufftf_plan *plan, std::complex<float> *weights,
-                       std::complex<float> *result, int *ier) {
+void finufftf_execute_(finufftf_plan *plan, c64 *weights, c64 *result, int *ier) {
   if (!plan)
     fprintf(stderr, "%s fortran: finufft_plan unallocated!", __func__);
   else
@@ -244,115 +228,98 @@ void finufftf_default_opts_(finufft_opts *o) {
 
 // -------------- simple and many-vector interfaces --------------------
 // --- 1D ---
-void finufftf1d1_(BIGINT *nj, float *xj, std::complex<float> *cj, int *iflag, float *eps,
-                  BIGINT *ms, std::complex<float> *fk, finufft_opts *o, int *ier) {
+void finufftf1d1_(i64 *nj, f32 *xj, c64 *cj, int *iflag, f32 *eps, i64 *ms, c64 *fk,
+                  finufft_opts *o, int *ier) {
   *ier = finufftf1d1(*nj, xj, cj, *iflag, *eps, *ms, fk, o);
 }
 
-void finufftf1d1many_(int *ntransf, BIGINT *nj, float *xj, std::complex<float> *cj,
-                      int *iflag, float *eps, BIGINT *ms, std::complex<float> *fk,
-                      finufft_opts *o, int *ier) {
+void finufftf1d1many_(int *ntransf, i64 *nj, f32 *xj, c64 *cj, int *iflag, f32 *eps,
+                      i64 *ms, c64 *fk, finufft_opts *o, int *ier) {
   *ier = finufftf1d1many(*ntransf, *nj, xj, cj, *iflag, *eps, *ms, fk, o);
 }
 
-void finufftf1d2_(BIGINT *nj, float *xj, std::complex<float> *cj, int *iflag, float *eps,
-                  BIGINT *ms, std::complex<float> *fk, finufft_opts *o, int *ier) {
+void finufftf1d2_(i64 *nj, f32 *xj, c64 *cj, int *iflag, f32 *eps, i64 *ms, c64 *fk,
+                  finufft_opts *o, int *ier) {
   *ier = finufftf1d2(*nj, xj, cj, *iflag, *eps, *ms, fk, o);
 }
 
-void finufftf1d2many_(int *ntransf, BIGINT *nj, float *xj, std::complex<float> *cj,
-                      int *iflag, float *eps, BIGINT *ms, std::complex<float> *fk,
-                      finufft_opts *o, int *ier) {
+void finufftf1d2many_(int *ntransf, i64 *nj, f32 *xj, c64 *cj, int *iflag, f32 *eps,
+                      i64 *ms, c64 *fk, finufft_opts *o, int *ier) {
   *ier = finufftf1d2many(*ntransf, *nj, xj, cj, *iflag, *eps, *ms, fk, o);
 }
 
-void finufftf1d3_(BIGINT *nj, float *x, std::complex<float> *c, int *iflag, float *eps,
-                  BIGINT *nk, float *s, std::complex<float> *f, finufft_opts *o,
-                  int *ier) {
+void finufftf1d3_(i64 *nj, f32 *x, c64 *c, int *iflag, f32 *eps, i64 *nk, f32 *s, c64 *f,
+                  finufft_opts *o, int *ier) {
   *ier = finufftf1d3(*nj, x, c, *iflag, *eps, *nk, s, f, o);
 }
 
-void finufftf1d3many_(int *ntransf, BIGINT *nj, float *x, std::complex<float> *c,
-                      int *iflag, float *eps, BIGINT *nk, float *s,
-                      std::complex<float> *f, finufft_opts *o, int *ier) {
+void finufftf1d3many_(int *ntransf, i64 *nj, f32 *x, c64 *c, int *iflag, f32 *eps,
+                      i64 *nk, f32 *s, c64 *f, finufft_opts *o, int *ier) {
   *ier = finufftf1d3many(*ntransf, *nj, x, c, *iflag, *eps, *nk, s, f, o);
 }
 
 // --- 2D ---
-void finufftf2d1_(BIGINT *nj, float *xj, float *yj, std::complex<float> *cj, int *iflag,
-                  float *eps, BIGINT *ms, BIGINT *mt, std::complex<float> *fk,
-                  finufft_opts *o, int *ier) {
+void finufftf2d1_(i64 *nj, f32 *xj, f32 *yj, c64 *cj, int *iflag, f32 *eps, i64 *ms,
+                  i64 *mt, c64 *fk, finufft_opts *o, int *ier) {
   *ier = finufftf2d1(*nj, xj, yj, cj, *iflag, *eps, *ms, *mt, fk, o);
 }
-void finufftf2d1many_(int *ntransf, BIGINT *nj, float *xj, float *yj,
-                      std::complex<float> *cj, int *iflag, float *eps, BIGINT *ms,
-                      BIGINT *mt, std::complex<float> *fk, finufft_opts *o, int *ier) {
+void finufftf2d1many_(int *ntransf, i64 *nj, f32 *xj, f32 *yj, c64 *cj, int *iflag,
+                      f32 *eps, i64 *ms, i64 *mt, c64 *fk, finufft_opts *o, int *ier) {
   *ier = finufftf2d1many(*ntransf, *nj, xj, yj, cj, *iflag, *eps, *ms, *mt, fk, o);
 }
 
-void finufftf2d2_(BIGINT *nj, float *xj, float *yj, std::complex<float> *cj, int *iflag,
-                  float *eps, BIGINT *ms, BIGINT *mt, std::complex<float> *fk,
-                  finufft_opts *o, int *ier) {
+void finufftf2d2_(i64 *nj, f32 *xj, f32 *yj, c64 *cj, int *iflag, f32 *eps, i64 *ms,
+                  i64 *mt, c64 *fk, finufft_opts *o, int *ier) {
   *ier = finufftf2d2(*nj, xj, yj, cj, *iflag, *eps, *ms, *mt, fk, o);
 }
-void finufftf2d2many_(int *ntransf, BIGINT *nj, float *xj, float *yj,
-                      std::complex<float> *cj, int *iflag, float *eps, BIGINT *ms,
-                      BIGINT *mt, std::complex<float> *fk, finufft_opts *o, int *ier) {
+void finufftf2d2many_(int *ntransf, i64 *nj, f32 *xj, f32 *yj, c64 *cj, int *iflag,
+                      f32 *eps, i64 *ms, i64 *mt, c64 *fk, finufft_opts *o, int *ier) {
   *ier = finufftf2d2many(*ntransf, *nj, xj, yj, cj, *iflag, *eps, *ms, *mt, fk, o);
 }
 
-void finufftf2d3_(BIGINT *nj, float *x, float *y, std::complex<float> *c, int *iflag,
-                  float *eps, BIGINT *nk, float *s, float *t, std::complex<float> *f,
-                  finufft_opts *o, int *ier) {
+void finufftf2d3_(i64 *nj, f32 *x, f32 *y, c64 *c, int *iflag, f32 *eps, i64 *nk, f32 *s,
+                  f32 *t, c64 *f, finufft_opts *o, int *ier) {
   *ier = finufftf2d3(*nj, x, y, c, *iflag, *eps, *nk, s, t, f, o);
 }
 
-void finufftf2d3many_(int *ntransf, BIGINT *nj, float *x, float *y,
-                      std::complex<float> *c, int *iflag, float *eps, BIGINT *nk,
-                      float *s, float *t, std::complex<float> *f, finufft_opts *o,
-                      int *ier) {
+void finufftf2d3many_(int *ntransf, i64 *nj, f32 *x, f32 *y, c64 *c, int *iflag, f32 *eps,
+                      i64 *nk, f32 *s, f32 *t, c64 *f, finufft_opts *o, int *ier) {
   *ier = finufftf2d3many(*ntransf, *nj, x, y, c, *iflag, *eps, *nk, s, t, f, o);
 }
 
 // --- 3D ---
-void finufftf3d1_(BIGINT *nj, float *xj, float *yj, float *zj, std::complex<float> *cj,
-                  int *iflag, float *eps, BIGINT *ms, BIGINT *mt, BIGINT *mu,
-                  std::complex<float> *fk, finufft_opts *o, int *ier) {
+void finufftf3d1_(i64 *nj, f32 *xj, f32 *yj, f32 *zj, c64 *cj, int *iflag, f32 *eps,
+                  i64 *ms, i64 *mt, i64 *mu, c64 *fk, finufft_opts *o, int *ier) {
   *ier = finufftf3d1(*nj, xj, yj, zj, cj, *iflag, *eps, *ms, *mt, *mu, fk, o);
 }
 
-void finufftf3d1many_(int *ntransf, BIGINT *nj, float *xj, float *yj, float *zj,
-                      std::complex<float> *cj, int *iflag, float *eps, BIGINT *ms,
-                      BIGINT *mt, BIGINT *mu, std::complex<float> *fk, finufft_opts *o,
-                      int *ier) {
+void finufftf3d1many_(int *ntransf, i64 *nj, f32 *xj, f32 *yj, f32 *zj, c64 *cj,
+                      int *iflag, f32 *eps, i64 *ms, i64 *mt, i64 *mu, c64 *fk,
+                      finufft_opts *o, int *ier) {
   *ier =
       finufftf3d1many(*ntransf, *nj, xj, yj, zj, cj, *iflag, *eps, *ms, *mt, *mu, fk, o);
 }
 
-void finufftf3d2_(BIGINT *nj, float *xj, float *yj, float *zj, std::complex<float> *cj,
-                  int *iflag, float *eps, BIGINT *ms, BIGINT *mt, BIGINT *mu,
-                  std::complex<float> *fk, finufft_opts *o, int *ier) {
+void finufftf3d2_(i64 *nj, f32 *xj, f32 *yj, f32 *zj, c64 *cj, int *iflag, f32 *eps,
+                  i64 *ms, i64 *mt, i64 *mu, c64 *fk, finufft_opts *o, int *ier) {
   *ier = finufftf3d2(*nj, xj, yj, zj, cj, *iflag, *eps, *ms, *mt, *mu, fk, o);
 }
 
-void finufftf3d2many_(int *ntransf, BIGINT *nj, float *xj, float *yj, float *zj,
-                      std::complex<float> *cj, int *iflag, float *eps, BIGINT *ms,
-                      BIGINT *mt, BIGINT *mu, std::complex<float> *fk, finufft_opts *o,
-                      int *ier) {
+void finufftf3d2many_(int *ntransf, i64 *nj, f32 *xj, f32 *yj, f32 *zj, c64 *cj,
+                      int *iflag, f32 *eps, i64 *ms, i64 *mt, i64 *mu, c64 *fk,
+                      finufft_opts *o, int *ier) {
   *ier =
       finufftf3d2many(*ntransf, *nj, xj, yj, zj, cj, *iflag, *eps, *ms, *mt, *mu, fk, o);
 }
 
-void finufftf3d3_(BIGINT *nj, float *x, float *y, float *z, std::complex<float> *c,
-                  int *iflag, float *eps, BIGINT *nk, float *s, float *t, float *u,
-                  std::complex<float> *f, finufft_opts *o, int *ier) {
+void finufftf3d3_(i64 *nj, f32 *x, f32 *y, f32 *z, c64 *c, int *iflag, f32 *eps, i64 *nk,
+                  f32 *s, f32 *t, f32 *u, c64 *f, finufft_opts *o, int *ier) {
   *ier = finufftf3d3(*nj, x, y, z, c, *iflag, *eps, *nk, s, t, u, f, o);
 }
 
-void finufftf3d3many_(int *ntransf, BIGINT *nj, float *x, float *y, float *z,
-                      std::complex<float> *c, int *iflag, float *eps, BIGINT *nk,
-                      float *s, float *t, float *u, std::complex<float> *f,
-                      finufft_opts *o, int *ier) {
+void finufftf3d3many_(int *ntransf, i64 *nj, f32 *x, f32 *y, f32 *z, c64 *c, int *iflag,
+                      f32 *eps, i64 *nk, f32 *s, f32 *t, f32 *u, c64 *f, finufft_opts *o,
+                      int *ier) {
   *ier = finufftf3d3many(*ntransf, *nj, x, y, z, c, *iflag, *eps, *nk, s, t, u, f, o);
 }
 

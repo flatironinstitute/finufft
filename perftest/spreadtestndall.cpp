@@ -1,5 +1,5 @@
-#include <finufft/defs.h>
 #include <finufft/spreadinterp.h>
+#include <finufft/test_defs.h>
 #include <finufft/utils.h>
 
 #include <cmath>

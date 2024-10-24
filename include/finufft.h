@@ -2,8 +2,7 @@
 
 // This contains both single and double precision user-facing commands.
 // "macro-safe" rewrite, including the plan object, Barnett 5/21/22-6/7/22.
-// They will clobber any prior macros starting FINUFFT*, so in the lib/test
-// sources finufft.h must be included before defs.h
+// They will clobber any prior macros starting FINUFFT*.
 
 /* Devnotes.
    A) Two precisions done by including the "either precision" headers twice.
