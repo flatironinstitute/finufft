@@ -1,0 +1,97 @@
+spreadtestnd output:
+what CPUs do I have?...
+(I'm in a linux OS)
+model name	: AMD Ryzen 7 4800H with Radeon Graphics
+Architecture:                         x86_64
+CPU op-mode(s):                       32-bit, 64-bit
+Address sizes:                        48 bits physical, 48 bits virtual
+Byte Order:                           Little Endian
+CPU(s):                               16
+On-line CPU(s) list:                  0-15
+Vendor ID:                            AuthenticAMD
+Model name:                           AMD Ryzen 7 4800H with Radeon Graphics
+CPU family:                           23
+Model:                                96
+Thread(s) per core:                   2
+Core(s) per socket:                   8
+Socket(s):                            1
+Stepping:                             1
+Frequency boost:                      enabled
+CPU(s) scaling MHz:                   64%
+CPU max MHz:                          2900,0000
+CPU min MHz:                          1400,0000
+BogoMIPS:                             5789,17
+Flags:                                fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush mmx fxsr sse sse2 ht syscall nx mmxext fxsr_opt pdpe1gb rdtscp lm constant_tsc rep_good nopl xtopology nonstop_tsc cpuid extd_apicid aperfmperf rapl pni pclmulqdq monitor ssse3 fma cx16 sse4_1 sse4_2 movbe popcnt aes xsave avx f16c rdrand lahf_lm cmp_legacy svm extapic cr8_legacy abm sse4a misalignsse 3dnowprefetch osvw ibs skinit wdt tce topoext perfctr_core perfctr_nb bpext perfctr_llc mwaitx cpb cat_l3 cdp_l3 hw_pstate ssbd mba ibrs ibpb stibp vmmcall fsgsbase bmi1 avx2 smep bmi2 cqm rdt_a rdseed adx smap clflushopt clwb sha_ni xsaveopt xsavec xgetbv1 cqm_llc cqm_occup_llc cqm_mbm_total cqm_mbm_local clzero irperf xsaveerptr rdpru wbnoinvd cppc arat npt lbrv svm_lock nrip_save tsc_scale vmcb_clean flushbyasid decodeassists pausefilter pfthreshold avic v_vmsave_vmload vgif v_spec_ctrl umip rdpid overflow_recov succor smca
+Virtualization:                       AMD-V
+L1d cache:                            256 KiB (8 instances)
+L1i cache:                            256 KiB (8 instances)
+L2 cache:                             4 MiB (8 instances)
+L3 cache:                             8 MiB (2 instances)
+NUMA node(s):                         1
+NUMA node0 CPU(s):                    0-15
+Vulnerability Gather data sampling:   Not affected
+Vulnerability Itlb multihit:          Not affected
+Vulnerability L1tf:                   Not affected
+Vulnerability Mds:                    Not affected
+Vulnerability Meltdown:               Not affected
+Vulnerability Mmio stale data:        Not affected
+Vulnerability Reg file data sampling: Not affected
+Vulnerability Retbleed:               Mitigation; untrained return thunk; SMT enabled with STIBP protection
+Vulnerability Spec rstack overflow:   Mitigation; Safe RET
+Vulnerability Spec store bypass:      Mitigation; Speculative Store Bypass disabled via prctl
+Vulnerability Spectre v1:             Mitigation; usercopy/swapgs barriers and __user pointer sanitization
+Vulnerability Spectre v2:             Mitigation; Retpolines; IBPB conditional; STIBP always-on; RSB filling; PBRSB-eIBRS Not affected; BHI Not affected
+Vulnerability Srbds:                  Not affected
+Vulnerability Tsx async abort:        Not affected
+
+single-precision 8-thread tests: #NU = 1e6, #U = 1e6, tol = 1e-6...
+making random data...
+spreadinterp 1D, 1e+06 U pts, dir=1, tol=1e-06: nspread=7
+    1e+06 NU pts in 0.0109 s 	9.14e+07 pts/s 	6.4e+08 spread pts/s
+    rel err in total over grid:      1.31e-05
+making more random NU pts...
+spreadinterp 1D, 1e+06 U pts, dir=2, tol=1e-06: nspread=7
+    1e+06 NU pts in 0.00645 s 	1.55e+08 pts/s 	1.09e+09 spread pts/s
+    max rel err in values at NU pts: 1.23e-06
+making random data...
+spreadinterp 2D, 1e+06 U pts, dir=1, tol=1e-06: nspread=7
+    1e+06 NU pts in 0.0202 s 	4.94e+07 pts/s 	2.42e+09 spread pts/s
+    rel err in total over grid:      2.96e-05
+making more random NU pts...
+spreadinterp 2D, 1e+06 U pts, dir=2, tol=1e-06: nspread=7
+    1e+06 NU pts in 0.0114 s 	8.76e+07 pts/s 	4.29e+09 spread pts/s
+    max rel err in values at NU pts: 2.41e-06
+making random data...
+spreadinterp 3D, 1e+06 U pts, dir=1, tol=1e-06: nspread=7
+    1e+06 NU pts in 0.0343 s 	2.92e+07 pts/s 	1e+10 spread pts/s
+    rel err in total over grid:      1.33e-05
+making more random NU pts...
+spreadinterp 3D, 1e+06 U pts, dir=2, tol=1e-06: nspread=7
+    1e+06 NU pts in 0.0227 s 	4.4e+07 pts/s 	1.51e+10 spread pts/s
+    max rel err in values at NU pts: 3.63e-06
+
+single-precision 1-thread tests: #NU = 1e6, #U = 1e6, tol = 1e-6...
+making random data...
+spreadinterp 1D, 1e+06 U pts, dir=1, tol=1e-06: nspread=7
+    1e+06 NU pts in 0.026 s 	3.85e+07 pts/s 	2.7e+08 spread pts/s
+    rel err in total over grid:      3.33e-05
+making more random NU pts...
+spreadinterp 1D, 1e+06 U pts, dir=2, tol=1e-06: nspread=7
+    1e+06 NU pts in 0.0335 s 	2.99e+07 pts/s 	2.09e+08 spread pts/s
+    max rel err in values at NU pts: 1.23e-06
+making random data...
+spreadinterp 2D, 1e+06 U pts, dir=1, tol=1e-06: nspread=7
+    1e+06 NU pts in 0.0492 s 	2.03e+07 pts/s 	9.97e+08 spread pts/s
+    rel err in total over grid:      5.51e-06
+making more random NU pts...
+spreadinterp 2D, 1e+06 U pts, dir=2, tol=1e-06: nspread=7
+    1e+06 NU pts in 0.0555 s 	1.8e+07 pts/s 	8.83e+08 spread pts/s
+    max rel err in values at NU pts: 2.3e-06
+making random data...
+spreadinterp 3D, 1e+06 U pts, dir=1, tol=1e-06: nspread=7
+    1e+06 NU pts in 0.109 s 	9.15e+06 pts/s 	3.14e+09 spread pts/s
+    rel err in total over grid:      3.83e-06
+making more random NU pts...
+spreadinterp 3D, 1e+06 U pts, dir=2, tol=1e-06: nspread=7
+    1e+06 NU pts in 0.133 s 	7.53e+06 pts/s 	2.58e+09 spread pts/s
+    max rel err in values at NU pts: 3.82e-06

@@ -74,8 +74,6 @@ Design notes for guru interface implementation:
 namespace finufft {
 namespace common {
 
-static constexpr double PI = 3.14159265358979329;
-
 static int set_nf_type12(BIGINT ms, const finufft_opts &opts,
                          const finufft_spread_opts &spopts, BIGINT *nf)
 // Type 1 & 2 recipe for how to set 1d size of upsampled array, nf, given opts
@@ -444,8 +442,9 @@ static int spreadinterpSortedBatch(int batchSize, FINUFFT_PLAN_T<T> *p,
 #endif
 #pragma omp parallel for num_threads(nthr_outer)
   for (int i = 0; i < batchSize; i++) {
-    std::complex<T> *fwi = p->fwBatch + i * p->nf; // start of i'th fw array in wkspace
-    std::complex<T> *ci  = cBatch + i * p->nj;     // start of i'th c array in cBatch
+    std::complex<T> *fwi = p->fwBatch.data() + i * p->nf; // start of i'th fw array in
+                                                          // wkspace
+    std::complex<T> *ci = cBatch + i * p->nj; // start of i'th c array in cBatch
     spreadinterpSorted(p->sortIndices, p->nf1, p->nf2, p->nf3, (T *)fwi, p->nj, p->X,
                        p->Y, p->Z, (T *)ci, p->spopts, p->didSort);
   }
@@ -468,8 +467,9 @@ static int deconvolveBatch(int batchSize, FINUFFT_PLAN_T<T> *p, std::complex<T> 
   // since deconvolveshuffle?d are single-thread, omp par seems to help here...
 #pragma omp parallel for num_threads(batchSize)
   for (int i = 0; i < batchSize; i++) {
-    std::complex<T> *fwi = p->fwBatch + i * p->nf; // start of i'th fw array in wkspace
-    std::complex<T> *fki = fkBatch + i * p->N;     // start of i'th fk array in fkBatch
+    std::complex<T> *fwi = p->fwBatch.data() + i * p->nf; // start of i'th fw array in
+                                                          // wkspace
+    std::complex<T> *fki = fkBatch + i * p->N; // start of i'th fk array in fkBatch
 
     // Call routine from common.cpp for the dim; prefactors hardcoded to 1.0...
     if (p->dim == 1)
@@ -709,20 +709,15 @@ FINUFFT_PLAN_T<TF>::FINUFFT_PLAN_T(int type_, int dim_, const BIGINT *n_modes, i
     }
 
     timer.restart();
-    fwBatch = fftPlan->alloc_complex(nf * batchSize); // the big workspace
+    fwBatch.resize(nf * batchSize); // the big workspace
     if (opts.debug)
       printf("[%s] fwBatch %.2fGB alloc:   \t%.3g s\n", __func__,
              (double)1E-09 * sizeof(std::complex<TF>) * nf * batchSize,
              timer.elapsedsec());
-    if (!fwBatch) { // we don't catch all such allocs, just this big one
-      fprintf(stderr, "[%s] FFT allocation failed for fwBatch (working fine grids)!\n",
-              __func__);
-      throw int(FINUFFT_ERR_ALLOC);
-    }
 
     timer.restart(); // plan the FFTW
     const auto ns = gridsize_for_fft(this);
-    fftPlan->plan(ns, batchSize, fwBatch, fftSign, opts.fftw, nthr_fft);
+    fftPlan->plan(ns, batchSize, fwBatch.data(), fftSign, opts.fftw, nthr_fft);
     if (opts.debug)
       printf("[%s] FFT plan (mode %d, nthr=%d):\t%.3g s\n", __func__, opts.fftw, nthr_fft,
              timer.elapsedsec());
@@ -730,9 +725,6 @@ FINUFFT_PLAN_T<TF>::FINUFFT_PLAN_T(int type_, int dim_, const BIGINT *n_modes, i
   } else { // -------------------------- type 3 (no planning) ------------
 
     if (opts.debug) printf("[%s] %dd%d: ntrans=%d\n", __func__, dim, type, ntrans);
-    // in case destroy occurs before setpts, need safe dummy ptrs/plans...
-    fwBatch     = nullptr;
-    innerT2plan = nullptr;
     // Type 3 will call finufft_makeplan for type 2; no need to init FFTW
     // Note we don't even know nj or nk yet, so can't do anything else!
   }
@@ -861,19 +853,14 @@ int FINUFFT_PLAN_T<TF>::setpts(BIGINT nj, TF *xj, TF *yj, TF *zj, BIGINT nk, TF 
               __func__);
       return FINUFFT_ERR_MAXNALLOC;
     }
-    fftPlan->free(fwBatch);
-    fwBatch = fftPlan->alloc_complex(nf * batchSize); // maybe big workspace
+    fwBatch.resize(nf * batchSize); // maybe big workspace
 
-    CpBatch.resize(nj * batchSize);                   // batch c' work
+    CpBatch.resize(nj * batchSize); // batch c' work
 
     if (opts.debug)
       printf("[%s t3] widcen, batch %.2fGB alloc:\t%.3g s\n", __func__,
              (double)1E-09 * sizeof(std::complex<TF>) * (nf + nj) * batchSize,
              timer.elapsedsec());
-    if (!fwBatch) {
-      fprintf(stderr, "[%s t3] allocation fail for fwBatch or CpBatch!\n", __func__);
-      return FINUFFT_ERR_ALLOC;
-    }
     // printf("fwbatch, cpbatch ptrs: %llx %llx\n",fwBatch,CpBatch);
 
     // alloc rescaled NU src pts x'_j (in X etc), rescaled NU targ pts s'_k ...
@@ -1130,7 +1117,7 @@ int FINUFFT_PLAN_T<TF>::execute(std::complex<TF> *cj, std::complex<TF> *fk) {
       innerT2plan->ntrans = thisBatchSize; // do not try this at home!
       /* (alarming that FFT not shrunk, but safe, because t2's fwBatch array
      still the same size, as Andrea explained; just wastes a few flops) */
-      innerT2plan->execute(fkb, fwBatch);
+      innerT2plan->execute(fkb, fwBatch.data());
       t_t2 += timer.elapsedsec();
       // STEP 3: apply deconvolve (precomputed 1/phiHat(targ_k), phasing too)...
       timer.restart();
@@ -1165,7 +1152,6 @@ template<typename TF> FINUFFT_PLAN_T<TF>::~FINUFFT_PLAN_T() {
   // Also must not crash if called immediately after finufft_makeplan.
   // Thus either each thing free'd here is guaranteed to be nullptr or correctly
   // allocated.
-  if (fftPlan) fftPlan->free(fwBatch); // free the big FFT (or t3 spread) working array
 }
 template FINUFFT_PLAN_T<float>::~FINUFFT_PLAN_T();
 template FINUFFT_PLAN_T<double>::~FINUFFT_PLAN_T();

@@ -40,7 +40,7 @@ int main(int argc, char *argv[])
   double *x          = (double *)malloc(sizeof(double) * M);
   complex<double> *c = (complex<double> *)malloc(sizeof(complex<double>) * M);
   for (int j = 0; j < M; ++j) {
-    x[j] = M_PI * (2 * ((double)rand() / RAND_MAX) - 1); // uniform random in [-pi,pi]
+    x[j] = PI * (2 * ((double)rand() / RAND_MAX) - 1); // uniform random in [-pi,pi]
     c[j] =
         2 * ((double)rand() / RAND_MAX) - 1 + I * (2 * ((double)rand() / RAND_MAX) - 1);
   }
@@ -52,8 +52,8 @@ int main(int argc, char *argv[])
   timer.start();
   for (int r = 0; r < reps; ++r) { // call the NUFFT (with iflag=+1):
     // printf("rep %d\n",r);
-    x[0] = M_PI * (-1.0 + 2 * (double)r / (double)reps); // one source jiggles around
-    c[0] = (1.0 + I) * (double)r / (double)reps;         // one coeff also jiggles
+    x[0] = PI * (-1.0 + 2 * (double)r / (double)reps); // one source jiggles around
+    c[0] = (1.0 + I) * (double)r / (double)reps;       // one coeff also jiggles
     ier  = finufft1d1(M, x, c, +1, acc, N, F, NULL);
   }
   // (note this can't use the many-vectors interface since the NU change)
@@ -72,7 +72,7 @@ int main(int argc, char *argv[])
   int ntransf  = 1;                // since we do one at a time (neq reps)
   finufft_makeplan(1, 1, Ns, +1, ntransf, acc, &plan, &opts);
   for (int r = 0; r < reps; ++r) { // set the pts and execute
-    x[0] = M_PI * (-1.0 + 2 * (double)r / (double)reps); // one source jiggles around
+    x[0] = PI * (-1.0 + 2 * (double)r / (double)reps); // one source jiggles around
     // (of course if most sources *were* in fact fixed, use ZGEMM for them!)
     finufft_setpts(plan, M, x, NULL, NULL, 0, NULL, NULL, NULL);
     c[0] = (1.0 + I) * (double)r / (double)reps; // one coeff also jiggles

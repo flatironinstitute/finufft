@@ -135,9 +135,9 @@ int main(int argc, char *argv[])
     unsigned int se = MY_OMP_GET_THREAD_NUM(); // needed for parallel random #s
 #pragma omp for schedule(dynamic, TEST_RANDCHUNK)
     for (BIGINT j = 0; j < M; ++j) {
-      x[j] = M_PI * randm11r(&se);
-      if (y) y[j] = M_PI * randm11r(&se);
-      if (z) z[j] = M_PI * randm11r(&se);
+      x[j] = PI * randm11r(&se);
+      if (y) y[j] = PI * randm11r(&se);
+      if (z) z[j] = PI * randm11r(&se);
     }
 #pragma omp for schedule(dynamic, TEST_RANDCHUNK)
     for (BIGINT i = 0; i < ntransf * M; i++) // random strengths

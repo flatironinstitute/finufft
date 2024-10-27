@@ -63,9 +63,9 @@ int main(int argc, char *argv[]) {
     unsigned int se = MY_OMP_GET_THREAD_NUM();
 #pragma omp for schedule(static, TEST_RANDCHUNK)
     for (BIGINT j = 0; j < M; ++j) {
-      x[j] = M_PI * randm11r(&se);
-      y[j] = M_PI * randm11r(&se);
-      z[j] = M_PI * randm11r(&se);
+      x[j] = PI * randm11r(&se);
+      y[j] = PI * randm11r(&se);
+      z[j] = PI * randm11r(&se);
     }
 #pragma omp for schedule(static, TEST_RANDCHUNK)
     for (BIGINT j = 0; j < ntransf * M; ++j) {
@@ -205,9 +205,9 @@ int main(int argc, char *argv[]) {
     unsigned int se = MY_OMP_GET_THREAD_NUM();
 #pragma omp for schedule(static, TEST_RANDCHUNK)
     for (BIGINT j = 0; j < M; ++j) {
-      x[j] = 2.0 + M_PI * randm11r(&se);  // new x_j srcs, offset from origin
-      y[j] = -3.0 + M_PI * randm11r(&se); // " y_j
-      z[j] = 1.0 + M_PI * randm11r(&se);  // " z_j
+      x[j] = 2.0 + PI * randm11r(&se);  // new x_j srcs, offset from origin
+      y[j] = -3.0 + PI * randm11r(&se); // " y_j
+      z[j] = 1.0 + PI * randm11r(&se);  // " z_j
     }
   }
   FLT *s_freq = (FLT *)malloc(sizeof(FLT) * N); // targ freqs (1-cmpt)

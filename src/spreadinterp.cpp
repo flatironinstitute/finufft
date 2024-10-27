@@ -219,7 +219,7 @@ void print_subgrid_info(int ndims, BIGINT offset1, BIGINT offset2, BIGINT offset
 */
 template<typename T>
 static FINUFFT_ALWAYS_INLINE T fold_rescale(const T x, const UBIGINT N) noexcept {
-  static constexpr const T x2pi = T(M_1_2PI);
+  static constexpr const T x2pi = T(INV_2PI);
   const T result                = x * x2pi + T(0.5);
   return (result - floor(result)) * T(N);
 }
@@ -2200,7 +2200,7 @@ FINUFFT_EXPORT int FINUFFT_CDECL setup_spreader(finufft_spread_opts &opts, T eps
   if (upsampfac == 2.0)                    // standard sigma (see SISC paper)
     ns = std::ceil(-log10(eps / (T)10.0)); // 1 digit per power of 10
   else                                     // custom sigma
-    ns = std::ceil(-log(eps) / (T(M_PI) * sqrt(1.0 - 1.0 / upsampfac))); // formula, gam=1
+    ns = std::ceil(-log(eps) / (T(PI) * sqrt(1.0 - 1.0 / upsampfac))); // formula, gam=1
   ns = max(2, ns);        // (we don't have ns=1 version yet)
   if (ns > MAX_NSPREAD) { // clip to fit allocated arrays, Horner rules
     if (showwarn)
@@ -2222,8 +2222,8 @@ FINUFFT_EXPORT int FINUFFT_CDECL setup_spreader(finufft_spread_opts &opts, T eps
   if (ns == 4) betaoverns = 2.38;
   if (upsampfac != 2.0) { // again, override beta for custom sigma
     T gamma    = 0.97;    // must match devel/gen_all_horner_C_code.m !
-    betaoverns = gamma * T(M_PI) * (1.0 - 1.0 / (2 * upsampfac)); // formula based on
-                                                                  // cutoff
+    betaoverns = gamma * T(PI) * (1.0 - 1.0 / (2 * upsampfac)); // formula based on
+                                                                // cutoff
   }
   opts.ES_beta = betaoverns * ns; // set the kernel beta parameter
   if (debug)
@@ -2278,7 +2278,7 @@ T evaluate_kernel_horner_kernel(T x, const finufft_spread_opts &opts)
       }
     }();
     static constexpr auto nc = horner_coeffs.size();
-    T res                  = 0.0;
+    T res                    = 0.0;
     for (uint8_t i = 0; i < ns; i++) {
       if (x > -opts.ES_halfwidth + i && x <= -opts.ES_halfwidth + i + 1) {
         T z = std::fma(T(2.0), x - T(i), T(ns - 1));

@@ -61,6 +61,7 @@
 
 #include <finufft_errors.h>
 #include <memory>
+#include <xsimd/xsimd.hpp>
 
 // All indexing in library that potentially can exceed 2^31 uses 64-bit signed.
 // This includes all calling arguments (eg M,N) that could be huge someday.
@@ -95,16 +96,9 @@ inline constexpr BIGINT MAX_NF = BIGINT(1e12);
 // values for M = nj (also nk in type 3)...
 inline constexpr BIGINT MAX_NU_PTS = BIGINT(1e14);
 
-// MR: In the longer term I suggest to move
-// away from M_PI, which was never part of the standard.
-// Perhaps a constexpr pi in the namespace finufft, or a constexpr finufft_pi
-// if no namespaces are used?
-// In C++20 these constants will be part of the language, and the problem will go away.
-#ifndef M_PI // Windows apparently doesn't have this const
-#define M_PI 3.14159265358979329
-#endif
-#define M_1_2PI 0.159154943091895336
-#define M_2PI   6.28318530717958648
+// We define our own PI here because M_PI is not actually part of standard C++
+inline constexpr double PI      = 3.14159265358979329;
+inline constexpr double INV_2PI = 0.159154943091895336;
 
 // ----- OpenMP macros which also work when omp not present -----
 // Allows compile-time switch off of openmp, so compilation without any openmp
@@ -182,11 +176,10 @@ template<typename TF> struct FINUFFT_PLAN_T { // the main plan object, fully C++
   std::vector<TF> phiHat2; // " y-axis.
   std::vector<TF> phiHat3; // " z-axis.
 
-  TC *fwBatch = nullptr;   // (batches of) fine grid(s) for the FFT to plan
-                           // & act on. Usually the largest working array.
-                           // Unfortunately this can't be a vector, since
-                           // in the presence of FFTW it must be allocated
-                           // by fftw_malloc.
+  std::vector<TC, xsimd::aligned_allocator<TC, 64>> fwBatch; // (batches of) fine grid(s)
+                                                             // for the FFT to plan & act
+                                                             // on. Usually the largest
+                                                             // working array.
 
   std::vector<BIGINT> sortIndices; // precomputed NU pt permutation, speeds spread/interp
   bool didSort;                    // whether binsorting used (false: identity perm used)

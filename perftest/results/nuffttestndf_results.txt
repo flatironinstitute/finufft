@@ -1,0 +1,103 @@
+nuffttestnd output:
+what CPUs do I have?...
+(I'm in a linux OS)
+model name	: AMD Ryzen 7 4800H with Radeon Graphics
+Architecture:                         x86_64
+CPU op-mode(s):                       32-bit, 64-bit
+Address sizes:                        48 bits physical, 48 bits virtual
+Byte Order:                           Little Endian
+CPU(s):                               16
+On-line CPU(s) list:                  0-15
+Vendor ID:                            AuthenticAMD
+Model name:                           AMD Ryzen 7 4800H with Radeon Graphics
+CPU family:                           23
+Model:                                96
+Thread(s) per core:                   2
+Core(s) per socket:                   8
+Socket(s):                            1
+Stepping:                             1
+Frequency boost:                      enabled
+CPU(s) scaling MHz:                   71%
+CPU max MHz:                          2900,0000
+CPU min MHz:                          1400,0000
+BogoMIPS:                             5789,17
+Flags:                                fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush mmx fxsr sse sse2 ht syscall nx mmxext fxsr_opt pdpe1gb rdtscp lm constant_tsc rep_good nopl xtopology nonstop_tsc cpuid extd_apicid aperfmperf rapl pni pclmulqdq monitor ssse3 fma cx16 sse4_1 sse4_2 movbe popcnt aes xsave avx f16c rdrand lahf_lm cmp_legacy svm extapic cr8_legacy abm sse4a misalignsse 3dnowprefetch osvw ibs skinit wdt tce topoext perfctr_core perfctr_nb bpext perfctr_llc mwaitx cpb cat_l3 cdp_l3 hw_pstate ssbd mba ibrs ibpb stibp vmmcall fsgsbase bmi1 avx2 smep bmi2 cqm rdt_a rdseed adx smap clflushopt clwb sha_ni xsaveopt xsavec xgetbv1 cqm_llc cqm_occup_llc cqm_mbm_total cqm_mbm_local clzero irperf xsaveerptr rdpru wbnoinvd cppc arat npt lbrv svm_lock nrip_save tsc_scale vmcb_clean flushbyasid decodeassists pausefilter pfthreshold avic v_vmsave_vmload vgif v_spec_ctrl umip rdpid overflow_recov succor smca
+Virtualization:                       AMD-V
+L1d cache:                            256 KiB (8 instances)
+L1i cache:                            256 KiB (8 instances)
+L2 cache:                             4 MiB (8 instances)
+L3 cache:                             8 MiB (2 instances)
+NUMA node(s):                         1
+NUMA node0 CPU(s):                    0-15
+Vulnerability Gather data sampling:   Not affected
+Vulnerability Itlb multihit:          Not affected
+Vulnerability L1tf:                   Not affected
+Vulnerability Mds:                    Not affected
+Vulnerability Meltdown:               Not affected
+Vulnerability Mmio stale data:        Not affected
+Vulnerability Reg file data sampling: Not affected
+Vulnerability Retbleed:               Mitigation; untrained return thunk; SMT enabled with STIBP protection
+Vulnerability Spec rstack overflow:   Mitigation; Safe RET
+Vulnerability Spec store bypass:      Mitigation; Speculative Store Bypass disabled via prctl
+Vulnerability Spectre v1:             Mitigation; usercopy/swapgs barriers and __user pointer sanitization
+Vulnerability Spectre v2:             Mitigation; Retpolines; IBPB conditional; STIBP always-on; RSB filling; PBRSB-eIBRS Not affected; BHI Not affected
+Vulnerability Srbds:                  Not affected
+Vulnerability Tsx async abort:        Not affected
+
+single-precision 8-thread tests: size = 1e6, tol = 1e-6...
+test 1d type 1:
+	1000000 NU pts to 1000000 modes in 0.0366 s 	2.73e+07 NU pts/s
+	one mode: rel err in F[370000] is 0.00314
+test 1d type 2:
+	1000000 modes to 1000000 NU pts in 0.0222 s 	4.5e+07 NU pts/s
+	one targ: rel err in c[500000] is 0.0043
+test 1d type 3:
+	1000000 NU to 1000000 NU in 0.101 s        	1.98e+07 tot NU pts/s
+	one targ: rel err in F[500000] is -nan
+test 2d type 1:
+	1000000 NU pts to (500,2000) modes in 0.0346 s 	2.89e+07 NU pts/s
+	one mode: rel err in F[185,520] is 8.9e-07
+test 2d type 2:
+	(500,2000) modes to 1000000 NU pts in 0.0228 s 	4.39e+07 NU pts/s
+	one targ: rel err in c[500000] is 4.24e-05
+test 2d type 3:
+	1000000 NU to 1000000 NU in 0.127 s         	1.57e+07 tot NU pts/s
+	one targ: rel err in F[500000] is 9.8e-05
+test 3d type 1:
+     1000000 NU pts to (100,200,50) modes in 0.143 s 	6.97e+06 NU pts/s
+	one mode: rel err in F[37,52,-19] is 4.7e-06
+test 3d type 2:
+     (100,200,50) modes to 1000000 NU pts in 0.0707 s 	1.41e+07 NU pts/s
+	one targ: rel err in c[500000] is 3.65e-06
+test 3d type 3:
+	1000000 NU to 1000000 NU in 0.233 s         	8.58e+06 tot NU pts/s
+	one targ: rel err in F[500000] is 1.36e-05
+
+single-precision 1-thread tests: size = 1e6, tol = 1e-6...
+test 1d type 1:
+	1000000 NU pts to 1000000 modes in 0.0709 s 	1.41e+07 NU pts/s
+	one mode: rel err in F[370000] is 0.00294
+test 1d type 2:
+	1000000 modes to 1000000 NU pts in 0.0722 s 	1.39e+07 NU pts/s
+	one targ: rel err in c[500000] is 0.00389
+test 1d type 3:
+	1000000 NU to 1000000 NU in 0.288 s        	6.95e+06 tot NU pts/s
+	one targ: rel err in F[500000] is 0.0235
+test 2d type 1:
+	1000000 NU pts to (500,2000) modes in 0.0868 s 	1.15e+07 NU pts/s
+	one mode: rel err in F[185,520] is 1.53e-06
+test 2d type 2:
+	(500,2000) modes to 1000000 NU pts in 0.0869 s 	1.15e+07 NU pts/s
+	one targ: rel err in c[500000] is 3.15e-05
+test 2d type 3:
+	1000000 NU to 1000000 NU in 0.466 s         	4.29e+06 tot NU pts/s
+	one targ: rel err in F[500000] is 5.02e-05
+test 3d type 1:
+     1000000 NU pts to (100,200,50) modes in 0.259 s 	3.86e+06 NU pts/s
+	one mode: rel err in F[37,52,-19] is 5.01e-06
+test 3d type 2:
+     (100,200,50) modes to 1000000 NU pts in 0.247 s 	4.05e+06 NU pts/s
+	one targ: rel err in c[500000] is 3.27e-06
+test 3d type 3:
+	1000000 NU to 1000000 NU in 0.961 s         	2.08e+06 tot NU pts/s
+	one targ: rel err in F[500000] is 1.32e-05

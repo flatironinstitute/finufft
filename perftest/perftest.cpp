@@ -190,9 +190,9 @@ template<typename T> void run_test(test_options_t &test_opts) {
 
   // Making data
   for (int64_t i = 0; i < M; i++) {
-    x[i] = M_PI * randm11(); // x in [-pi,pi)
-    y[i] = M_PI * randm11();
-    z[i] = M_PI * randm11();
+    x[i] = PI * randm11(); // x in [-pi,pi)
+    y[i] = PI * randm11();
+    z[i] = PI * randm11();
   }
   for (int64_t i = M; i < M * ntransf; ++i) {
     int64_t j = i % M;
@@ -218,9 +218,9 @@ template<typename T> void run_test(test_options_t &test_opts) {
       c[i].imag(randm11());
     }
     for (int i = 0; i < N * ntransf; i++) {
-      s[i] = M_PI * randm11() * test_opts.bandwidth;
-      t[i] = M_PI * randm11() * test_opts.bandwidth;
-      u[i] = M_PI * randm11() * test_opts.bandwidth;
+      s[i] = PI * randm11() * test_opts.bandwidth;
+      t[i] = PI * randm11() * test_opts.bandwidth;
+      u[i] = PI * randm11() * test_opts.bandwidth;
     }
 
   } else {

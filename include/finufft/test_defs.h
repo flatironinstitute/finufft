@@ -40,9 +40,6 @@ using CPX = std::complex<FLT>;
 // either-precision unit imaginary number...
 #define IMA (CPX(0.0, 1.0))
 
-// to avoid mixed precision operators in eg i*pi, an either-prec PI...
-#define PI  FLT(M_PI)
-
 // Random numbers: crappy unif random number generator in [0,1).
 // These macros should probably be replaced by modern C++ std lib or random123.
 // (RAND_MAX is in stdlib.h)

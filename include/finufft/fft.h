@@ -16,10 +16,6 @@ public:
   [[maybe_unused]] void plan(const std::vector<int> & /*dims*/, size_t /*batchSize*/,
                              std::complex<T> * /*ptr*/, int /*sign*/, int /*options*/,
                              int /*nthreads*/) {}
-  [[maybe_unused]] static std::complex<T> *alloc_complex(size_t N) {
-    return new std::complex<T>[N];
-  }
-  [[maybe_unused]] static void free(std::complex<T> *ptr) { delete[] ptr; }
 
   [[maybe_unused]] static void forget_wisdom() {}
   [[maybe_unused]] static void cleanup() {}
@@ -91,12 +87,6 @@ public:
                                 1, int(nf), sign, unsigned(options));
     unlock();
   }
-  static std::complex<float> *alloc_complex [[maybe_unused]] (size_t N) {
-    return reinterpret_cast<std::complex<float> *>(fftwf_alloc_complex(N));
-  }
-  static void free [[maybe_unused]] (std::complex<float> *ptr) {
-    if (ptr) fftwf_free(reinterpret_cast<fftwf_complex *>(ptr));
-  }
   void execute [[maybe_unused]] () { fftwf_execute(plan_); }
 
   static void forget_wisdom [[maybe_unused]] () { fftwf_forget_wisdom(); }
@@ -160,12 +150,6 @@ public:
                                reinterpret_cast<fftw_complex *>(ptr), nullptr, 1, int(nf),
                                sign, unsigned(options));
     unlock();
-  }
-  static std::complex<double> *alloc_complex [[maybe_unused]] (size_t N) {
-    return reinterpret_cast<std::complex<double> *>(fftw_alloc_complex(N));
-  }
-  static void free [[maybe_unused]] (std::complex<double> *ptr) {
-    fftw_free(reinterpret_cast<fftw_complex *>(ptr));
   }
   void execute [[maybe_unused]] () { fftw_execute(plan_); }
 

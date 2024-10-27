@@ -34,7 +34,7 @@ template<typename TF> void do_fft(FINUFFT_PLAN_T<TF> *p) {
     arrdims.push_back(size_t(ns[2]));
     axes.push_back(3);
   }
-  ducc0::vfmav<std::complex<TF>> data(p->fwBatch, arrdims);
+  ducc0::vfmav<std::complex<TF>> data(p->fwBatch.data(), arrdims);
 #ifdef FINUFFT_NO_DUCC0_TWEAKS
   ducc0::c2c(data, data, axes, p->fftSign < 0, TF(1), nthreads);
 #else
