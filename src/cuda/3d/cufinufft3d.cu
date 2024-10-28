@@ -144,7 +144,6 @@ int cufinufft3d3_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
   cuda_complex<T> *d_cstart;
   cuda_complex<T> *d_fkstart;
   const auto stream = d_plan->stream;
-  printf("[cufinufft] d_plan->ntransf = %d\n", d_plan->ntransf);
   for (int i = 0; i * d_plan->batchsize < d_plan->ntransf; i++) {
     int blksize = min(d_plan->ntransf - i * d_plan->batchsize, d_plan->batchsize);
     d_cstart    = d_c + i * d_plan->batchsize * d_plan->M;
