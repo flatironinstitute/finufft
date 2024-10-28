@@ -112,14 +112,25 @@ class Plan:
         else:
             raise TypeError("Expected complex64 or complex128.")
 
-        if isinstance(n_modes, numbers.Integral):
-            n_modes = (n_modes,)
-        elif isinstance(n_modes, collections.abc.Iterable):
-            n_modes = tuple(n_modes)
+        if nufft_type == 3:
+            if isinstance(n_modes, numbers.Integral):
+                dim = n_modes
+                n_modes = (1,) * dim     # Ignored, can be anything
+            else:
+                raise ValueError("Type 3 plan must have n_modes_or_dim equal to the dimension")
         else:
-            raise ValueError(f"Invalid n_modes '{n_modes}'")
+            if isinstance(n_modes, numbers.Integral):
+                n_modes = (n_modes,)
+            elif isinstance(n_modes, collections.abc.Iterable):
+                n_modes = tuple(n_modes)
+            else:
+                raise ValueError(f"Invalid n_modes '{n_modes}'")
+            dim = len(n_modes)
 
-        self.dim = len(n_modes)
+        if dim not in [1, 2, 3]:
+            raise ValueError("Only dimensions 1, 2, and 3 supported")
+
+        self.dim = dim
         self.type = nufft_type
         self.isign = isign
         self.eps = float(eps)
@@ -218,6 +229,17 @@ class Plan:
 
         M = _compat.get_array_size(_x)
 
+        if self.type == 3:
+            _s = _ensure_array_type(s, "s", self.real_dtype)
+            _t = _ensure_array_type(t, "t", self.real_dtype)
+            _u = _ensure_array_type(u, "u", self.real_dtype)
+
+            _s, _t, _u = _ensure_valid_pts(_s, _t, _u, self.dim)
+
+            N = _compat.get_array_size(_s)
+        else:
+            N = 0
+
         # Because FINUFFT/cufinufft are internally column major,
         #   we will reorder the pts axes. Reordering references
         #   save us from having to actually transpose signal data
@@ -235,15 +257,31 @@ class Plan:
         if self.dim >= 2:
             fpts_axes.insert(0, _compat.get_array_ptr(_y))
             self._references.append(_y)
-
         if self.dim >= 3:
             fpts_axes.insert(0, _compat.get_array_ptr(_z))
             self._references.append(_z)
 
+        # Do the same for type 3
+        if self.type == 3:
+            fpts_axes_t3 = [_compat.get_array_ptr(_s), None, None]
+            self._references.append(_s)
+            if self.dim >= 2:
+                fpts_axes_t3.insert(0, _compat.get_array_ptr(_t))
+                self._references.append(_t)
+
+            if self.dim >= 3:
+                fpts_axes_t3.insert(0, _compat.get_array_ptr(_u))
+                self._references.append(_u)
+        else:
+            fpts_axes_t3 = [None] * 3
+
         # Then take three items off the stack as our reordered axis.
-        ier = self._setpts(self._plan, M, *fpts_axes[:3], 0, None, None, None)
+        ier = self._setpts(self._plan,
+                           M, *fpts_axes[:3],
+                           N, *fpts_axes_t3[:3])
 
         self.nj = M
+        self.nk = N
 
         if ier != 0:
             raise RuntimeError('Error setting non-uniform points.')
@@ -280,6 +318,9 @@ class Plan:
         elif self.type == 2:
             req_data_shape = (self.n_trans, *self.n_modes)
             req_out_shape = (self.nj,)
+        elif self.type == 3:
+            req_data_shape = (self.n_trans, self.nj)
+            req_out_shape = (self.nk,)
 
         _data, data_shape = _ensure_array_shape(_data, "data", req_data_shape,
                                                 allow_reshape=True)
@@ -295,7 +336,7 @@ class Plan:
         else:
             _out = _ensure_array_shape(_out, "out", req_out_shape)
 
-        if self.type == 1:
+        if self.type in [1, 3]:
             ier = self._exec_plan(self._plan, _compat.get_array_ptr(_data),
                     _compat.get_array_ptr(_out))
         elif self.type == 2:
