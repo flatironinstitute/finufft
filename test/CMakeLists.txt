@@ -13,11 +13,13 @@ set(TESTS
 foreach(TEST ${TESTS})
   add_executable(${TEST} ${TEST}.cpp)
   target_compile_features(${TEST} PRIVATE cxx_std_17)
+  target_link_libraries(${TEST} PRIVATE xsimd)
   finufft_link_test(${TEST})
 
   add_executable(${TEST}f ${TEST}.cpp)
   target_compile_definitions(${TEST}f PRIVATE -DSINGLE)
   target_compile_features(${TEST}f PRIVATE cxx_std_17)
+  target_link_libraries(${TEST}f PRIVATE xsimd)
   finufft_link_test(${TEST}f)
 endforeach()
 
