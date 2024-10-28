@@ -175,7 +175,7 @@ usage:
 HEADERS = $(wildcard include/*.h include/finufft/*.h) $(DUCC_HEADERS)
 
 # implicit rules for objects (note -o ensures writes to correct dir)
-%.o: %.cpp $(HEADERS)
+%.o: %.cpp $(HEADERS) $(XSIMD_DIR)/include/xsimd/xsimd.hpp
 	$(CXX) -c $(CXXFLAGS) $< -o $@
 %.o: %.c $(HEADERS)
 	$(CC) -c $(CFLAGS) $< -o $@
