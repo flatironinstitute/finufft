@@ -117,9 +117,10 @@ ifneq ($(OMP),OFF)
   MFLAGS += $(MOMPFLAGS)
   OFLAGS += $(OOMPFLAGS)
   LIBS += $(OMPLIBS)
+  LIBSFFT += $(OMPLIBS)
 # fftw3 multithreaded libs...
   ifneq ($(FFT),DUCC)
-    LIBSFFT += -l$(FFTWNAME)_$(FFTWOMPSUFFIX) -l$(FFTWNAME)f_$(FFTWOMPSUFFIX) $(OMPLIBS)
+    LIBSFFT += -l$(FFTWNAME)_$(FFTWOMPSUFFIX) -l$(FFTWNAME)f_$(FFTWOMPSUFFIX)
   endif
 endif
 
