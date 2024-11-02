@@ -98,6 +98,8 @@ ifeq ($(FFT),DUCC)
   DUCC_SRCS := $(DUCC_OBJS:.o=.cc)
 # FINUFFT's switchable FFT done via this compile directive...
   CXXFLAGS += -DFINUFFT_USE_DUCC0
+# tell Python skbuild also to use DUCC (note wrapping in quotes)...
+  PY_CMAKE_ARGS := "-DFINUFFT_USE_DUCC0=ON"
 else
 # link against FFTW3 single-threaded (leaves DUCC_OBJS and DUCC_SETUP undef)
   LIBSFFT += -l$(FFTWNAME) -l$(FFTWNAME)f
@@ -115,9 +117,10 @@ ifneq ($(OMP),OFF)
   MFLAGS += $(MOMPFLAGS)
   OFLAGS += $(OOMPFLAGS)
   LIBS += $(OMPLIBS)
+  LIBSFFT += $(OMPLIBS)
 # fftw3 multithreaded libs...
   ifneq ($(FFT),DUCC)
-    LIBSFFT += -l$(FFTWNAME)_$(FFTWOMPSUFFIX) -l$(FFTWNAME)f_$(FFTWOMPSUFFIX) $(OMPLIBS)
+    LIBSFFT += -l$(FFTWNAME)_$(FFTWOMPSUFFIX) -l$(FFTWNAME)f_$(FFTWOMPSUFFIX)
   endif
 endif
 
@@ -420,7 +423,8 @@ endif
 
 # python ---------------------------------------------------------------------
 python: $(STATICLIB) $(DYNLIB)
-	FINUFFT_DIR=$(FINUFFT) $(PYTHON) -m pip -v install python/finufft
+# note use of CMAKE_ARGS which needs quotes; see scikit-build docs...
+	FINUFFT_DIR=$(FINUFFT) CMAKE_ARGS=$(PY_CMAKE_ARGS) $(PYTHON) -m pip -v install python/finufft
 # note to devs: if trouble w/ NumPy, use: pip install ./python --no-deps
 	$(PYTHON) python/finufft/test/run_accuracy_tests.py
 	$(PYTHON) python/finufft/examples/simple1d1.py
