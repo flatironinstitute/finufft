@@ -219,8 +219,7 @@ void print_subgrid_info(int ndims, BIGINT offset1, BIGINT offset2, BIGINT offset
 */
 template<typename T>
 static FINUFFT_ALWAYS_INLINE T fold_rescale(const T x, const UBIGINT N) noexcept {
-  static constexpr const T x2pi = T(INV_2PI);
-  const T result                = x * x2pi + T(0.5);
+  const T result = x * T(INV_2PI) + T(0.5);
   return (result - floor(result)) * T(N);
 }
 
