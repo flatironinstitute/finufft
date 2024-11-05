@@ -548,7 +548,7 @@ FINUFFT_PLAN_T<TF>::FINUFFT_PLAN_T(int type_, int dim_, const BIGINT *n_modes, i
   if (!opts_)      // use default opts
     finufft_default_opts_t(&opts);
   else             // or read from what's passed in
-    opts = *opts_; // keep a deep copy; changing *opts now has no effect
+    opts = *opts_; // keep a deep copy; changing *opts_ now has no effect
 
   if (opts.debug)  // do a hello world
     printf("[%s] new plan: FINUFFT version " FINUFFT_VER " .................\n",
@@ -907,9 +907,9 @@ int FINUFFT_PLAN_T<TF>::setpts(BIGINT nj, TF *xj, TF *yj, TF *zj, BIGINT nk, TF 
       }
     } else
       for (BIGINT j = 0; j < nj; ++j)
-        prephase[j] = {1, 0}; // *** or keep flag so no mult in exec??
+        prephase[j] = {1.0, 0.0}; // *** or keep flag so no mult in exec??
 
-                              // rescale the target s_k etc to s'_k etc...
+                                  // rescale the target s_k etc to s'_k etc...
 #pragma omp parallel for num_threads(opts.nthreads) schedule(static)
     for (BIGINT k = 0; k < nk; ++k) {
       Sp[k] = t3P.h1 * t3P.gam1 * (s[k] - t3P.D1);   // so |s'_k| < pi/R

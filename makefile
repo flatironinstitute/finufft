@@ -175,10 +175,10 @@ usage:
 	@echo "Also see docs/install.rst and docs/README"
 
 # collect headers for implicit depends (we don't separate public from private)
-HEADERS = $(wildcard include/*.h include/finufft/*.h) $(DUCC_HEADERS)
+HEADERS = $(wildcard include/*.h include/finufft/*.h)
 
 # implicit rules for objects (note -o ensures writes to correct dir)
-%.o: %.cpp $(HEADERS) $(XSIMD_DIR)/include/xsimd/xsimd.hpp
+%.o: %.cpp $(HEADERS)
 	$(CXX) -c $(CXXFLAGS) $< -o $@
 %.o: %.c $(HEADERS)
 	$(CC) -c $(CFLAGS) $< -o $@
@@ -194,6 +194,9 @@ include/finufft/fft.h: $(DUCC_SETUP)
 SHEAD = $(wildcard src/*.h) $(XSIMD_DIR)/include/xsimd/xsimd.hpp
 src/spreadinterp.o: $(SHEAD)
 
+# we need xsimd functionality in finufft_core.h, which is included by many other
+# files, so make sure we install xsimd before we prcess any of those files.
+include/finufft/finufft_core.h: $(XSIMD_DIR)/include/xsimd/xsimd.hpp
 
 # lib -----------------------------------------------------------------------
 # build library with double/single prec both bundled in...
