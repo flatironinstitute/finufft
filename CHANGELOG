@@ -1,8 +1,9 @@
 List of features / changes made / release notes, in reverse chronological order.
 If not stated, FINUFFT is assumed (cuFINUFFT <=1.3 is listed separately).
 
-Master (11/5/24)
+V 2.3.1 (11/5/24)
 
+* various bugfixes (DUCC+Python, Python dtype chk, Fortran lock)
 * Large re-org of CPU lib code to remove C-style macros (Martin Reinecke)
   PR 558: de-macroize FFT (FFT plan now a class), and OMP funcs.
   PR 567: replace dual-pass compilation to .o and _32.o by C++ templating.
@@ -21,6 +22,7 @@ Master (11/5/24)
   (onedim_* funcs), to unify ker eval. PR 541, Libin Lu. Not yet exploited.
 * Support and docs for opts.gpu_spreadinterponly=1 for MRI "density compensation
   estimation" type 1&2 use-case with upsampfac=1.0 PR564 (Chaithya G R).
+* Simplify building of Python source distributions. PR 555 (J Anden).
 * reduced roundoff error in a[n] phase calc in CPU onedim_fseries_kernel().
    PR534 (Barnett).
 * GPU code type 1,2 also reduced round-off error in phases, to match CPU code;
