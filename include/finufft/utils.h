@@ -20,6 +20,7 @@ FINUFFT_EXPORT T FINUFFT_CDECL relerrtwonorm(BIGINT n, const std::complex<T> *a,
 {
   T err = 0.0, nrm = 0.0;
   for (BIGINT m = 0; m < n; ++m) {
+    // note std::norm here & below is |a|^2 ("field norm") not usual |a| ...
     nrm += std::norm(a[m]);
     err += std::norm(a[m] - b[m]);
   }
