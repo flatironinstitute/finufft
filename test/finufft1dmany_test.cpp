@@ -56,7 +56,7 @@ int main(int argc, char *argv[]) {
     unsigned int se = MY_OMP_GET_THREAD_NUM();
 #pragma omp for schedule(static, TEST_RANDCHUNK)
     for (BIGINT j = 0; j < M; ++j) {
-      x[j] = M_PI * randm11r(&se);
+      x[j] = PI * randm11r(&se);
     }
 #pragma omp for schedule(static, TEST_RANDCHUNK)
     for (BIGINT j = 0; j < ntransf * M; ++j) {
@@ -179,9 +179,9 @@ int main(int argc, char *argv[]) {
   {
     unsigned int se = MY_OMP_GET_THREAD_NUM();
 #pragma omp for schedule(static, TEST_RANDCHUNK)
-    for (BIGINT j = 0; j < M; ++j) x[j] = 2.0 + PI * randm11r(&se); // new x_j srcs
+    for (BIGINT j = 0; j < M; ++j) x[j] = 2.0 + FLT(PI) * randm11r(&se); // new x_j srcs
   }
-  FLT *s = (FLT *)malloc(sizeof(FLT) * N);                          // targ freqs
+  FLT *s = (FLT *)malloc(sizeof(FLT) * N);                               // targ freqs
   FLT S  = (FLT)N / 2; // choose freq range sim to type 1
 #pragma omp parallel
   {

@@ -168,8 +168,7 @@ if(FINUFFT_USE_CPU)
   set(FFTW_VERSION 3.3.10)
   set(XTL_VERSION 0.7.7)
   set(XSIMD_VERSION 13.0.0)
-  # using latest ducc0 version for now as it fixes MacOS GCC build
-  set(DUCC0_VERSION b0beb85e03982344a31ebb119758d7aa3ef5d362)
+  set(DUCC0_VERSION ducc0_0_35_0)
   set(FINUFFT_FFTW_LIBRARIES)
   include(cmake/setupXSIMD.cmake)
   if(FINUFFT_USE_DUCC0)
@@ -199,7 +198,7 @@ function(finufft_link_test target)
   if(FINUFFT_USE_DUCC0)
     target_compile_definitions(${target} PRIVATE FINUFFT_USE_DUCC0)
   endif()
-  target_link_libraries(${target} PRIVATE finufft ${FINUFFT_FFTLIBS})
+  target_link_libraries(${target} PRIVATE finufft xsimd ${FINUFFT_FFTLIBS})
   if(FINUFFT_USE_OPENMP)
     target_link_libraries(${target} PRIVATE OpenMP::OpenMP_CXX)
     target_link_options(${target} PRIVATE ${OpenMP_CXX_FLAGS})
@@ -258,7 +257,7 @@ if(FINUFFT_USE_CPU)
       contrib/legendre_rule_fast.cpp
       src/fft.cpp
       src/finufft_core.cpp
-      src/simpleinterfaces.cpp
+      src/c_interface.cpp
       fortran/finufftfort.cpp)
   else()
     add_library(
@@ -268,7 +267,7 @@ if(FINUFFT_USE_CPU)
       contrib/legendre_rule_fast.cpp
       src/fft.cpp
       src/finufft_core.cpp
-      src/simpleinterfaces.cpp
+      src/c_interface.cpp
       fortran/finufftfort.cpp)
   endif()
   set_finufft_options(finufft)

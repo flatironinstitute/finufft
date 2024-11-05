@@ -10,13 +10,12 @@ template<typename T> class Finufft_FFT_plan {
 public:
   [[maybe_unused]] Finufft_FFT_plan(void (*)(void *) = nullptr,
                                     void (*)(void *) = nullptr, void * = nullptr) {}
+  // deleting these operations to be consistent with the FFTW plans (seel below)
+  Finufft_FFT_plan(const Finufft_FFT_plan &)            = delete;
+  Finufft_FFT_plan &operator=(const Finufft_FFT_plan &) = delete;
   [[maybe_unused]] void plan(const std::vector<int> & /*dims*/, size_t /*batchSize*/,
                              std::complex<T> * /*ptr*/, int /*sign*/, int /*options*/,
                              int /*nthreads*/) {}
-  [[maybe_unused]] static std::complex<T> *alloc_complex(size_t N) {
-    return new std::complex<T>[N];
-  }
-  [[maybe_unused]] static void free(std::complex<T> *ptr) { delete[] ptr; }
 
   [[maybe_unused]] static void forget_wisdom() {}
   [[maybe_unused]] static void cleanup() {}
@@ -63,11 +62,15 @@ public:
 #endif
     unlock();
   }
+  // we have raw pointers in the object (the FFTW plan).
+  // If we allow copying those, we end up destroying the plans multiple times.
+  Finufft_FFT_plan(const Finufft_FFT_plan &) = delete;
   [[maybe_unused]] ~Finufft_FFT_plan() {
     lock();
     fftwf_destroy_plan(plan_);
     unlock();
   }
+  Finufft_FFT_plan &operator=(const Finufft_FFT_plan &) = delete;
 
   void plan
       [[maybe_unused]] (const std::vector<int> &dims, size_t batchSize,
@@ -83,12 +86,6 @@ public:
                                 int(nf), reinterpret_cast<fftwf_complex *>(ptr), nullptr,
                                 1, int(nf), sign, unsigned(options));
     unlock();
-  }
-  static std::complex<float> *alloc_complex [[maybe_unused]] (size_t N) {
-    return reinterpret_cast<std::complex<float> *>(fftwf_alloc_complex(N));
-  }
-  static void free [[maybe_unused]] (std::complex<float> *ptr) {
-    if (ptr) fftwf_free(reinterpret_cast<fftwf_complex *>(ptr));
   }
   void execute [[maybe_unused]] () { fftwf_execute(plan_); }
 
@@ -131,11 +128,13 @@ public:
 #endif
     unlock();
   }
+  Finufft_FFT_plan(const Finufft_FFT_plan &) = delete;
   [[maybe_unused]] ~Finufft_FFT_plan() {
     lock();
     fftw_destroy_plan(plan_);
     unlock();
   }
+  Finufft_FFT_plan &operator=(const Finufft_FFT_plan &) = delete;
 
   void plan
       [[maybe_unused]] (const std::vector<int> &dims, size_t batchSize,
@@ -151,12 +150,6 @@ public:
                                reinterpret_cast<fftw_complex *>(ptr), nullptr, 1, int(nf),
                                sign, unsigned(options));
     unlock();
-  }
-  static std::complex<double> *alloc_complex [[maybe_unused]] (size_t N) {
-    return reinterpret_cast<std::complex<double> *>(fftw_alloc_complex(N));
-  }
-  static void free [[maybe_unused]] (std::complex<double> *ptr) {
-    fftw_free(reinterpret_cast<fftw_complex *>(ptr));
   }
   void execute [[maybe_unused]] () { fftw_execute(plan_); }
 

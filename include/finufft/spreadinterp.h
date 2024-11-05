@@ -1,12 +1,13 @@
 // Defines interface to spreading/interpolation code.
 
-// Devnotes: see defs.h for definition of MAX_NSPREAD (as of 9/24/18).
+// Devnotes: see finufft_core.h for definition of MAX_NSPREAD
 // RESCALE macro moved to spreadinterp.cpp, 7/15/20.
 // finufft_spread_opts renamed 6/7/22.
 
 #ifndef SPREADINTERP_H
 #define SPREADINTERP_H
 
+#include <finufft/finufft_core.h>
 #include <finufft_spread_opts.h>
 
 /* Bitwise debugging timing flag (TF) defs; see finufft_spread_opts.flags.
