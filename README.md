@@ -8,7 +8,7 @@
 Principal author **Alex H. Barnett** (abarnett@flatironinstitute.org),
 main co-developers Jeremy F. Magland,
 Ludvig af Klinteberg, Yu-hsuan "Melody" Shih, Libin Lu,
-Joakim Andén, Marco Barbone, and Robert Blackwell;
+Joakim Andén, Marco Barbone, Robert Blackwell, and Martin Reinecke;
 see `docs/ackn.rst` for full list of contributors.
 ​
 <img align="right" src="docs/logo.png" width="350">
