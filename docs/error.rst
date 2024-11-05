@@ -10,7 +10,7 @@ has the following meanings (see codes in ``include/finufft_errors.h``):
 ::
 
   1  requested tolerance epsilon too small to achieve (warning only)
-  2  stopped due to needing internal array size >MAX_NF (defined in defs.h)
+  2  stopped due to needing internal array size >MAX_NF (defined in finufft_core.h)
   3  spreader: fine grid too small compared to spread (kernel) width
   4  spreader: [DEPRECATED]
   5  spreader: array allocation error
@@ -28,7 +28,7 @@ has the following meanings (see codes in ``include/finufft_errors.h``):
   17 invalid spread/interp method for dim (attempt to blockgather in 1D, e.g.)
   18 size of bins for subprob/blockgather invalid
   19 GPU shmem too small for subprob/blockgather parameters
-  20 invalid number of nonuniform points: nj or nk negative, or too big (see defs.h)
+  20 invalid number of nonuniform points: nj or nk negative, or too big (see finufft_core.h)
   23 invalid upsampfac set while using gpu_spreadinterponly mode
 
 When ``ier=1`` (warning only) the transform(s) is/are still completed, at the smallest epsilon achievable, so, with that caveat, the answer should still be usable.
@@ -46,16 +46,16 @@ Large internal arrays
 
 In case your input parameters demand the allocation of very large arrays, an
 internal check is done to see if their size exceeds a rather generous internal
-limit, set in ``defs.h`` as ``MAX_NF``. The current value in the source code is
+limit, set in ``include/finufft/finufft_core.h`` as ``MAX_NF``. The current value in the source code is
 ``1e12``, which corresponds to about 10TB for double precision.
 Allocations beyond this cause a graceful exit with error code ``2`` as above.
 Such a large allocation can be due to enormous ``N`` (in types 1 or 2), or ``M``,
 but also large values of the space-bandwidth product (loosely, range of :math:`\mathbf{x}_j` points times range of :math:`\mathbf{k}_j` points) for type 3 transforms; see Remark 5 in :ref:`reference FIN <refs>`.
 Note that mallocs smaller than this, but which still exceed available RAM, may cause segfaults as usual. For simplicity of code, we do not do error checking on every malloc or STL vector creation in the code, and neither is this recommended in modern style guides.
 If you have a large-RAM machine and want to exceed the above hard-coded limit, you will need
-to edit ``defs.h`` and recompile.
+to edit ``finufft_core.h`` and recompile.
 
 Similar sanity checks are done on the numbers of nonuniform points, and it is
 (barely) conceivable that you could want to
 increase ``MAX_NU_PTS`` beyond its current value
-of ``1e14`` in ``defs.h``, and recompile.
+of ``1e14`` in ``finufft_core.h``, and recompile.

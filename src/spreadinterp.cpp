@@ -2143,7 +2143,7 @@ FINUFFT_EXPORT int FINUFFT_CDECL setup_spreader(finufft_spread_opts &opts, T eps
    upsampling factor (=sigma in paper, or R in Dutt-Rokhlin), ker eval meth
    (either 0:exp(sqrt()), 1: Horner ppval), and some debug-level flags.
    Also sets all default options in finufft_spread_opts. See finufft_spread_opts.h for
-   opts. dim is spatial dimension (1,2, or 3). See finufft.cpp:finufft_plan() for where
+   opts. dim is spatial dimension (1,2, or 3). See finufft_core:finufft_plan() for where
    upsampfac is set. Must call this before any kernel evals done, otherwise segfault
    likely. Returns: 0  : success FINUFFT_WARN_EPS_TOO_SMALL : requested eps cannot be
    achieved, but proceed with best possible eps otherwise : failure (see codes in

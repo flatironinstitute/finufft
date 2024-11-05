@@ -5,7 +5,7 @@
 #ifndef FINUFFT_OPTS_H
 #define FINUFFT_OPTS_H
 
-typedef struct finufft_opts { // defaults see finufft.cpp:finufft_default_opts()
+typedef struct finufft_opts { // defaults see finufft_core.cpp:finufft_default_opts_t()
   // sphinx tag (don't remove): @opts_start
   // FINUFFT options:
   // data handling opts...
