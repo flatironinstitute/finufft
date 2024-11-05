@@ -28,6 +28,9 @@ using namespace finufft::quadrature;
    and the two finufft2d?many() functions. The (now 18) simple C++ interfaces
    are in c_interface.cpp.
 
+   As of v2.3.1 the plan object is a class with constructor and methods.
+   (mostly done by Martin Reinecke, 2024).
+
 Algorithm summaries taken from old finufft?d?() documentation, Feb-Jun 2017:
 
    TYPE 1:
@@ -66,7 +69,7 @@ Algorithm summaries taken from old finufft?d?() documentation, Feb-Jun 2017:
 Design notes for guru interface implementation:
 
 * Thread-safety: FINUFFT plans are passed as pointers, so it has no global
-  state apart from that associated with FFTW (and the did_fftw_init).
+  state apart from (if FFTW used) that associated with FFTW (and did_fftw_init).
 */
 
 // ---------- local math routines (were in common.cpp; no need now): --------
@@ -187,6 +190,7 @@ static void onedim_fseries_kernel(BIGINT nf, std::vector<T> &fwkerhalf,
 
   Barnett 2/7/17. openmp (since slow vs fftw in 1D large-N case) 3/3/18.
   Fixed num_threads 7/20/20. Reduced rounding error in a[n] calc 8/20/24.
+  To do (Nov 2024): replace evaluate_kernel by evaluate_kernel_horner.
  */
 {
   T J2 = opts.nspread / 2.0; // J/2, half-width of ker z-support
@@ -245,7 +249,8 @@ static void onedim_nuft_kernel(BIGINT nk, const std::vector<T> &k, std::vector<T
   Outputs:
   phihat - real Fourier transform evaluated at freqs (alloc for nk Ts)
 
-  Barnett 2/8/17. openmp since cos slow 2/9/17
+  Barnett 2/8/17. openmp since cos slow 2/9/17.
+  To do (Nov 2024): replace evaluate_kernel by evaluate_kernel_horner.
  */
 {
   T J2 = opts.nspread / 2.0; // J/2, half-width of ker z-support
@@ -539,11 +544,12 @@ template<typename TF>
 FINUFFT_PLAN_T<TF>::FINUFFT_PLAN_T(int type_, int dim_, const BIGINT *n_modes, int iflag,
                                    int ntrans_, TF tol_, finufft_opts *opts_, int &ier)
     : type(type_), dim(dim_), ntrans(ntrans_), tol(tol_)
-// Populates the fields of finufft_plan which is pointed to by "pp".
+// Constructor for finufft_plan object.
 // opts is ptr to a finufft_opts to set options, or nullptr to use defaults.
 // For some of the fields (if "auto" selected) here choose the actual setting.
 // For types 1,2 allocates memory for internal working arrays,
-// evaluates spreading kernel coefficients, and instantiates the fftw_plan
+// evaluates spreading kernel coefficients, and does FFT plan if needed.
+// ier is an output written to pass out warning codes (errors now thrown in C++ style).
 {
   if (!opts_)      // use default opts
     finufft_default_opts_t(&opts);
@@ -734,11 +740,8 @@ FINUFFT_PLAN_T<TF>::FINUFFT_PLAN_T(int type_, int dim_, const BIGINT *n_modes, i
 template<typename TF>
 int finufft_makeplan_t(int type, int dim, const BIGINT *n_modes, int iflag, int ntrans,
                        TF tol, FINUFFT_PLAN_T<TF> **pp, finufft_opts *opts)
-// Populates the fields of finufft_plan which is pointed to by "pp".
-// opts is ptr to a finufft_opts to set options, or nullptr to use defaults.
-// For some of the fields (if "auto" selected) here choose the actual setting.
-// For types 1,2 allocates memory for internal working arrays,
-// evaluates spreading kernel coefficients, and instantiates the fftw_plan
+// C-API wrapper around the C++ constructor. Writes a pointer to the plan in *pp.
+// Returns ier (warning or error codes as per C interface).
 {
   *pp     = nullptr;
   int ier = 0;
@@ -756,7 +759,7 @@ int finufft_makeplan_t(int type, int dim, const BIGINT *n_modes, int iflag, int 
 // how exactly it can construct the function "finufft_makeplan_t" for any given
 // type TF, but it doesn't know for which types it actually should do so.
 // The following two statements instruct it to do that for TF=float and
-// TF=double.
+// TF=double :  (Reinecke, Sept 2024)
 template int finufft_makeplan_t<float>(int type, int dim, const BIGINT *n_modes,
                                        int iflag, int ntrans, float tol,
                                        FINUFFT_PLAN_T<float> **pp, finufft_opts *opts);
@@ -768,6 +771,8 @@ template int finufft_makeplan_t<double>(int type, int dim, const BIGINT *n_modes
 template<typename TF>
 int FINUFFT_PLAN_T<TF>::setpts(BIGINT nj, TF *xj, TF *yj, TF *zj, BIGINT nk, TF *s, TF *t,
                                TF *u) {
+  // Method function to set NU points and do precomputations. Barnett 2020.
+  // See ../docs/cguru.doc for current documentation.
   int d = dim; // abbrev for spatial dim
   CNTime timer;
   timer.start();
@@ -1148,10 +1153,7 @@ template int FINUFFT_PLAN_T<double>::execute(std::complex<double> *cj,
 
 // DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD
 template<typename TF> FINUFFT_PLAN_T<TF>::~FINUFFT_PLAN_T() {
-  // Free everything we allocated inside of finufft_plan pointed to by p.
-  // Also must not crash if called immediately after finufft_makeplan.
-  // Thus either each thing free'd here is guaranteed to be nullptr or correctly
-  // allocated.
+  // Destructor for plan object. All deallocations are simply automatic now.
 }
 template FINUFFT_PLAN_T<float>::~FINUFFT_PLAN_T();
 template FINUFFT_PLAN_T<double>::~FINUFFT_PLAN_T();

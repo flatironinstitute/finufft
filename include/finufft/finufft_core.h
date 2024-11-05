@@ -137,7 +137,7 @@ template<typename T> struct type3params {
   T X3, C3, D3, h3, gam3; // z
 };
 
-template<typename TF> struct FINUFFT_PLAN_T { // the main plan object, fully C++
+template<typename TF> struct FINUFFT_PLAN_T { // the main plan class, fully C++
 
   using TC = std::complex<TF>;
 
@@ -176,20 +176,19 @@ template<typename TF> struct FINUFFT_PLAN_T { // the main plan object, fully C++
   std::vector<TF> phiHat2; // " y-axis.
   std::vector<TF> phiHat3; // " z-axis.
 
-  std::vector<TC, xsimd::aligned_allocator<TC, 64>> fwBatch; // (batches of) fine grid(s)
-                                                             // for the FFT to plan & act
-                                                             // on. Usually the largest
-                                                             // working array.
+  // fwBatch: (batches of) fine working grid(s) for the FFT to plan & act on.
+  // Usually the largest internal array. Its allocator is 64-byte (cache-line) aligned:
+  std::vector<TC, xsimd::aligned_allocator<TC, 64>> fwBatch;
 
   std::vector<BIGINT> sortIndices; // precomputed NU pt permutation, speeds spread/interp
   bool didSort;                    // whether binsorting used (false: identity perm used)
 
-  TF *X = nullptr, *Y = nullptr, *Z = nullptr; // for t1,2: ptr to user-supplied NU pts
-                                               // (no new allocs). for t3: points to
-                                               // "primed" (scaled) Xp, Yp, Zp
+  // for t1,2: ptr to user-supplied NU pts (no new allocs).
+  // for t3: will become ptr to internally allocated "primed" (scaled) Xp, Yp, Zp vecs.
+  TF *X = nullptr, *Y = nullptr, *Z = nullptr;
 
   // type 3 specific
-  TF *S = nullptr, *T = nullptr, *U = nullptr; // pointers to user's target NU pts arrays
+  TF *S = nullptr, *T = nullptr, *U = nullptr; // ptrs to user's target NU-point arrays
                                                // (no new allocs)
   std::vector<TC> prephase;                    // pre-phase, for all input NU pts
   std::vector<TC> deconv;     // reciprocal of kernel FT, phase, all output NU pts
@@ -205,6 +204,7 @@ template<typename TF> struct FINUFFT_PLAN_T { // the main plan object, fully C++
   finufft_opts opts; // this and spopts could be made ptrs
   finufft_spread_opts spopts;
 
+  // Remaining actions (not create/delete) in guru interface are now methods...
   int setpts(BIGINT nj, TF *xj, TF *yj, TF *zj, BIGINT nk, TF *s, TF *t, TF *u);
   int execute(std::complex<TF> *cj, std::complex<TF> *fk);
 };
