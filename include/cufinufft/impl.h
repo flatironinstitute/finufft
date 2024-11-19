@@ -107,6 +107,11 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
   auto &stream = d_plan->stream = (cudaStream_t)d_plan->opts.gpu_stream;
   using namespace cufinufft::common;
 
+  CUFINUFFT_BIGINT nf1 = 1, nf2 = 1, nf3 = 1;
+
+  int fftsign      = (iflag >= 0) ? 1 : -1;
+  int maxbatchsize = opts ? opts->gpu_maxbatchsize : 0;
+
   if (d_plan->opts.gpu_spreadinterponly && d_plan->opts.upsampfac != 1) {
     ier = FINUFFT_ERR_SPREADONLY_UPSAMP_INVALID;
     goto finalize;
@@ -129,7 +134,6 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
   cufinufft_setup_binsize<T>(type, d_plan->spopts.nspread, dim, &d_plan->opts);
   RETURN_IF_CUDA_ERROR
 
-  CUFINUFFT_BIGINT nf1 = 1, nf2 = 1, nf3 = 1;
   set_nf_type12(d_plan->ms, d_plan->opts, d_plan->spopts, &nf1,
                 d_plan->opts.gpu_obinsizex);
   if (dim > 1)
@@ -169,14 +173,11 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
     }
   }
 
-  int fftsign = (iflag >= 0) ? 1 : -1;
-
-  d_plan->nf1      = nf1;
-  d_plan->nf2      = nf2;
-  d_plan->nf3      = nf3;
-  d_plan->iflag    = fftsign;
-  d_plan->ntransf  = ntransf;
-  int maxbatchsize = opts ? opts->gpu_maxbatchsize : 0;
+  d_plan->nf1     = nf1;
+  d_plan->nf2     = nf2;
+  d_plan->nf3     = nf3;
+  d_plan->iflag   = fftsign;
+  d_plan->ntransf = ntransf;
   if (maxbatchsize == 0)                 // implies: use a heuristic.
     maxbatchsize = std::min(ntransf, 8); // heuristic from test codes
   d_plan->maxbatchsize = maxbatchsize;
