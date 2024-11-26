@@ -530,6 +530,7 @@ void finufft_default_opts_t(finufft_opts *o)
   o->spread_kerpad      = 1;
   o->upsampfac          = 0.0;
   o->spread_thread      = 0;
+  o->spreadinterponly = 0;
   o->maxbatchsize       = 0;
   o->spread_nthr_atomic = -1;
   o->spread_max_sp_size = 0;
@@ -1047,7 +1048,8 @@ int FINUFFT_PLAN_T<TF>::execute(std::complex<TF> *cj, std::complex<TF> *fk) {
         deconvolveBatch<TF>(thisBatchSize, this, fkb);
         t_deconv += timer.elapsedsec();
       }
-
+      if (opts.spreadinterponly)
+        continue;
       // STEP 2: call the FFT on this batch
       timer.restart();
       do_fft(this);
