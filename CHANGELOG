@@ -1,9 +1,10 @@
 List of features / changes made / release notes, in reverse chronological order.
 If not stated, FINUFFT is assumed (cuFINUFFT <=1.3 is listed separately).
 
-V 2.3.1 (11/5/24)
+Master (11/29/24)
 
-* various bugfixes (DUCC+Python, Python dtype chk, Fortran lock)
+* exit codes of many-vector tests now insensitive to one-mode randomness.
+* various bugfixes (DUCC+Python, Python dtype chk, Fortran opts)
 * Large re-org of CPU lib code to remove C-style macros (Martin Reinecke)
   PR 558: de-macroize FFT (FFT plan now a class), and OMP funcs.
   PR 567: replace dual-pass compilation to .o and _32.o by C++ templating.
