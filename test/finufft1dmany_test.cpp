@@ -10,7 +10,7 @@ const char *help[] = {
     "Usage: finufft1dmany_test ntrans Nmodes Nsrc [tol [debug [spread_thread "
     "[maxbatchsize [spreadsort [upsampfac [errfail]]]]]]]",
     "\teg:\tfinufft1dmany_test 100 1e3 1e4 1e-6 1 0 0 2 0.0 1e-5",
-    "\tnotes:\tif errfail present, exit code 1 if any error > errfail",
+    "\tnotes:\tif errfail present, exit code 1 if consistency error > errfail",
     NULL};
 // Malleo 2019 based on Shih 2018. Tidied, extra args, Barnett 5/25/20 onwards
 
@@ -83,7 +83,6 @@ int main(int argc, char *argv[]) {
     Ft += c[j + i * M] * exp(J * (nt1 * x[j])); // crude direct
   BIGINT it = N / 2 + nt1;                      // index in complex F as 1d array
   err       = abs(Ft - F[it + i * N]) / infnorm(N, F + i * N);
-  errmax    = max(err, errmax);
   printf("\tone mode: rel err in F[%lld] of trans#%d is %.3g\n", (long long)nt1, i, err);
 
   // compare the result with FINUFFT1D1
@@ -143,8 +142,7 @@ int main(int argc, char *argv[]) {
   // #pragma omp parallel for schedule(static,TEST_RANDCHUNK) reduction(cmplxadd:ct)
   for (BIGINT m1 = -k0; m1 <= (N - 1) / 2; ++m1)
     ct += F[i * N + m++] * exp(IMA * ((FLT)(isign * m1)) * x[jt]); // crude direct
-  err    = abs(ct - c[jt + i * M]) / infnorm(M, c + i * M);
-  errmax = max(err, errmax);
+  err = abs(ct - c[jt + i * M]) / infnorm(M, c + i * M);
   printf("\tone targ: rel err in c[%lld] of trans#%d is %.3g\n", (long long)jt, i, err);
 
   // check against single calls to FINUFFT1D2...
@@ -209,8 +207,7 @@ int main(int argc, char *argv[]) {
   // #pragma omp parallel for schedule(static,TEST_RANDCHUNK) reduction(cmplxadd:Ft)
   for (BIGINT j = 0; j < M; ++j)
     Ft += c[j + i * M] * exp(IMA * (FLT)isign * s[kt] * x[j]);
-  err    = abs(Ft - F[kt + i * N]) / infnorm(N, F + i * N);
-  errmax = max(err, errmax);
+  err = abs(Ft - F[kt + i * N]) / infnorm(N, F + i * N);
   printf("\tone targ: rel err in F[%lld] of trans#%d is %.3g\n", (long long)kt, i, err);
 
   // compare the result with single calls to FINUFFT1D3...

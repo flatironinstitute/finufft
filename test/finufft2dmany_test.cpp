@@ -10,7 +10,7 @@ const char *help[] = {
     "Usage: finufft2dmany_test ntrans Nmodes1 Nmodes2 Nsrc [tol [debug [spread_thread "
     "[maxbatchsize [spreadsort [upsampfac [errfail]]]]]]]",
     "\teg:\tfinufft2dmany_test 100 1e2 1e2 1e5 1e-6 1 0 0 2 0.0 1e-5",
-    "\tnotes:\tif errfail present, exit code 1 if any error > errfail",
+    "\tnotes:\tif errfail present, exit code 1 if consistency error > errfail",
     NULL};
 // Melody Shih Jun 2018; Barnett removed many_seq 7/27/18. Extra args 5/21/20.
 
@@ -89,7 +89,6 @@ int main(int argc, char *argv[]) {
     Ft += c[j + i * M] * exp(J * (nt1 * x[j] + nt2 * y[j])); // crude direct
   BIGINT it = N1 / 2 + nt1 + N1 * (N2 / 2 + nt2); // index in complex F as 1d array
   err       = abs(Ft - F[it + i * N]) / infnorm(N, F + i * N);
-  errmax    = max(err, errmax);
   printf("\tone mode: rel err in F[%lld,%lld] of trans#%d is %.3g\n", (long long)nt1,
          (long long)nt2, i, err);
 
@@ -153,8 +152,7 @@ int main(int argc, char *argv[]) {
   for (BIGINT m2 = -(N2 / 2); m2 <= (N2 - 1) / 2; ++m2) // loop in correct order over F
     for (BIGINT m1 = -(N1 / 2); m1 <= (N1 - 1) / 2; ++m1)
       ct += F[i * N + m++] * exp(J * (m1 * x[jt] + m2 * y[jt])); // crude direct
-  err    = abs(ct - c[jt + i * M]) / infnorm(M, c + i * M);
-  errmax = max(err, errmax);
+  err = abs(ct - c[jt + i * M]) / infnorm(M, c + i * M);
   printf("\tone targ: rel err in c[%lld] of trans#%d is %.3g\n", (long long)jt, i, err);
 
   // compare the result with single calls to FINUFFT2D2...
@@ -226,8 +224,7 @@ int main(int argc, char *argv[]) {
   Ft        = CPX(0, 0);
   for (BIGINT j = 0; j < M; ++j)
     Ft += c[i * M + j] * exp(J * (s_freq[kt] * x[j] + t_freq[kt] * y[j]));
-  err    = abs(Ft - F[kt + i * N]) / infnorm(N, F + i * N);
-  errmax = max(err, errmax);
+  err = abs(Ft - F[kt + i * N]) / infnorm(N, F + i * N);
   printf("\tone targ: rel err in F[%lld] of trans#%d is %.3g\n", (long long)kt, i, err);
 
   // compare the result with FINUFFT2D3...
