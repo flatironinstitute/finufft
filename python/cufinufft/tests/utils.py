@@ -65,6 +65,16 @@ def type2_problem(dtype, shape, M, n_trans=()):
     return k, fk
 
 
+def type3_problem(dtype, dim, n_source_pts, n_target_pts, n_trans=()):
+    real_dtype = _real_dtype(dtype)
+
+    source_pts = gen_nu_pts(n_source_pts, dim=dim).astype(real_dtype)
+    source_coefs = gen_nonuniform_data(n_source_pts, n_trans=n_trans).astype(dtype)
+    target_pts = gen_nu_pts(n_target_pts, dim=dim).astype(real_dtype)
+
+    return source_pts, source_coefs, target_pts
+
+
 def make_grid(shape):
     dim = len(shape)
     shape = shape
@@ -97,6 +107,17 @@ def direct_type2(fk, k, dim):
     return c
 
 
+def direct_type3(source_pts, source_coefs, target_pts, ind):
+    target_pt = target_pts[:, ind[-1]]
+    target_pt = target_pt[:, np.newaxis]
+
+    _source_coef = source_coefs[ind[:-1]]
+
+    target_coef = np.sum(np.exp(1j * np.sum(target_pt * source_pts, axis=0)) * _source_coef)
+
+    return target_coef
+
+
 def verify_type1(k, c, fk, tol):
     dim = fk.ndim - (c.ndim - 1)
 
@@ -126,6 +147,25 @@ def verify_type2(k, fk, c, tol):
     type2_rel_err = np.linalg.norm(c_target - c_est) / np.linalg.norm(c_target)
 
     assert type2_rel_err < 25 * tol
+
+
+def verify_type3(source_pts, source_coef, target_pts, target_coef, tol):
+    dim = source_pts.shape[0]
+
+    n_source_pts = source_pts.shape[-1]
+    n_target_pts = target_pts.shape[-1]
+    n_tr = source_coef.shape[:-1]
+
+    assert target_coef.shape == n_tr + (n_target_pts,)
+
+    ind = (int(0.1789 * n_target_pts),)
+
+    target_est = target_coef[ind]
+    target_true = direct_type3(source_pts, source_coef, target_pts, ind)
+
+    type3_rel_err = np.linalg.norm(target_est - target_true) / np.linalg.norm(target_true)
+
+    assert type3_rel_err < 100 * tol
 
 
 def transfer_funcs(module_name):
