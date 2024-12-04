@@ -25,7 +25,14 @@ CUFINUFFT_BIGINT next235beven(CUFINUFFT_BIGINT n, CUFINUFFT_BIGINT b)
 
 // ----------------------- helpers for timing (always stay double prec)...
 
-void CNTime::start() { gettimeofday(&initial, 0); }
+void CNTime::start() {
+#ifdef _WIN32
+  QueryPerformanceFrequency(&frequency);
+  QueryPerformanceCounter(&initial);
+#else
+  gettimeofday(&initial, 0);
+#endif
+}
 
 double CNTime::restart()
 // Barnett changed to returning in sec
@@ -38,11 +45,17 @@ double CNTime::restart()
 double CNTime::elapsedsec()
 // returns answers as double, in seconds, to microsec accuracy. Barnett 5/22/18
 {
+#ifdef _WIN32
+  LARGE_INTEGER now;
+  QueryPerformanceCounter(&now);
+  return static_cast<double>(now.QuadPart - initial.QuadPart) / frequency.QuadPart;
+#else
   struct timeval now;
   gettimeofday(&now, 0);
   double nowsec     = (double)now.tv_sec + 1e-6 * now.tv_usec;
   double initialsec = (double)initial.tv_sec + 1e-6 * initial.tv_usec;
   return nowsec - initialsec;
+#endif
 }
 
 } // namespace utils
