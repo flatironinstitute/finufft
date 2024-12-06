@@ -530,6 +530,7 @@ void finufft_default_opts_t(finufft_opts *o)
   o->spread_kerpad      = 1;
   o->upsampfac          = 0.0;
   o->spread_thread      = 0;
+  o->spreadinterponly = 0;
   o->maxbatchsize       = 0;
   o->spread_nthr_atomic = -1;
   o->spread_max_sp_size = 0;
@@ -560,8 +561,9 @@ FINUFFT_PLAN_T<TF>::FINUFFT_PLAN_T(int type_, int dim_, const BIGINT *n_modes, i
     printf("[%s] new plan: FINUFFT version " FINUFFT_VER " .................\n",
            __func__);
 
-  fftPlan = std::make_unique<Finufft_FFT_plan<TF>>(
-      opts.fftw_lock_fun, opts.fftw_unlock_fun, opts.fftw_lock_data);
+  if (!opts.spreadinterponly) // Dont make plans if only spread or interpolate
+    fftPlan = std::make_unique<Finufft_FFT_plan<TF>>(
+        opts.fftw_lock_fun, opts.fftw_unlock_fun, opts.fftw_lock_data);
 
   if ((type != 1) && (type != 2) && (type != 3)) {
     fprintf(stderr, "[%s] Invalid type (%d), should be 1, 2 or 3.\n", __func__, type);
@@ -668,66 +670,72 @@ FINUFFT_PLAN_T<TF>::FINUFFT_PLAN_T(int type_, int dim_, const BIGINT *n_modes, i
                 __func__, (double)(EPSILON * mu));
     }
 
-    // determine fine grid sizes, sanity check..
     int nfier = set_nf_type12(ms, opts, spopts, &nf1);
     if (nfier) throw nfier; // nf too big; we're done
-    phiHat1.resize(nf1 / 2 + 1);
     if (dim > 1) {
       nfier = set_nf_type12(mt, opts, spopts, &nf2);
       if (nfier) throw nfier;
-      phiHat2.resize(nf2 / 2 + 1);
     }
     if (dim > 2) {
       nfier = set_nf_type12(mu, opts, spopts, &nf3);
       if (nfier) throw nfier;
-      phiHat3.resize(nf3 / 2 + 1);
     }
+    if(!opts.spreadinterponly) // We dont need fseries if it is spreadinterponly.
+    {
+      // determine fine grid sizes, sanity check..
+      phiHat1.resize(nf1 / 2 + 1);
+      if (dim > 1) {
+        phiHat2.resize(nf2 / 2 + 1);
+      }
+      if (dim > 2) {
+        phiHat3.resize(nf3 / 2 + 1);
+      }
 
-    if (opts.debug) { // "long long" here is to avoid warnings with printf...
-      printf("[%s] %dd%d: (ms,mt,mu)=(%lld,%lld,%lld) "
-             "(nf1,nf2,nf3)=(%lld,%lld,%lld)\n               ntrans=%d nthr=%d "
-             "batchSize=%d ",
-             __func__, dim, type, (long long)ms, (long long)mt, (long long)mu,
-             (long long)nf1, (long long)nf2, (long long)nf3, ntrans, nthr, batchSize);
-      if (batchSize == 1) // spread_thread has no effect in this case
-        printf("\n");
-      else
-        printf(" spread_thread=%d\n", opts.spread_thread);
+      if (opts.debug) { // "long long" here is to avoid warnings with printf...
+        printf("[%s] %dd%d: (ms,mt,mu)=(%lld,%lld,%lld) "
+               "(nf1,nf2,nf3)=(%lld,%lld,%lld)\n               ntrans=%d nthr=%d "
+               "batchSize=%d ",
+               __func__, dim, type, (long long)ms, (long long)mt, (long long)mu,
+               (long long)nf1, (long long)nf2, (long long)nf3, ntrans, nthr, batchSize);
+        if (batchSize == 1) // spread_thread has no effect in this case
+          printf("\n");
+        else
+          printf(" spread_thread=%d\n", opts.spread_thread);
+      }
+
+      // STEP 0: get Fourier coeffs of spreading kernel along each fine grid dim
+      CNTime timer;
+      timer.start();
+      onedim_fseries_kernel(nf1, phiHat1, spopts);
+      if (dim > 1) onedim_fseries_kernel(nf2, phiHat2, spopts);
+      if (dim > 2) onedim_fseries_kernel(nf3, phiHat3, spopts);
+      if (opts.debug)
+        printf("[%s] kernel fser (ns=%d):\t\t%.3g s\n", __func__, spopts.nspread,
+               timer.elapsedsec());
+
+      nf = nf1 * nf2 * nf3; // fine grid total number of points
+      if (nf * batchSize > MAX_NF) {
+        fprintf(
+            stderr,
+            "[%s] fwBatch would be bigger than MAX_NF, not attempting memory allocation!\n",
+            __func__);
+        throw int(FINUFFT_ERR_MAXNALLOC);
+      }  
+      
+      timer.restart();
+      fwBatch.resize(nf * batchSize); // the big workspace
+      if (opts.debug)
+        printf("[%s] fwBatch %.2fGB alloc:   \t%.3g s\n", __func__,
+               (double)1E-09 * sizeof(std::complex<TF>) * nf * batchSize,
+               timer.elapsedsec());
+
+      timer.restart(); // plan the FFTW
+      const auto ns = gridsize_for_fft(this);
+      fftPlan->plan(ns, batchSize, fwBatch.data(), fftSign, opts.fftw, nthr_fft);
+      if (opts.debug)
+        printf("[%s] FFT plan (mode %d, nthr=%d):\t%.3g s\n", __func__, opts.fftw, nthr_fft,
+               timer.elapsedsec());
     }
-
-    // STEP 0: get Fourier coeffs of spreading kernel along each fine grid dim
-    CNTime timer;
-    timer.start();
-    onedim_fseries_kernel(nf1, phiHat1, spopts);
-    if (dim > 1) onedim_fseries_kernel(nf2, phiHat2, spopts);
-    if (dim > 2) onedim_fseries_kernel(nf3, phiHat3, spopts);
-    if (opts.debug)
-      printf("[%s] kernel fser (ns=%d):\t\t%.3g s\n", __func__, spopts.nspread,
-             timer.elapsedsec());
-
-    nf = nf1 * nf2 * nf3; // fine grid total number of points
-    if (nf * batchSize > MAX_NF) {
-      fprintf(
-          stderr,
-          "[%s] fwBatch would be bigger than MAX_NF, not attempting memory allocation!\n",
-          __func__);
-      throw int(FINUFFT_ERR_MAXNALLOC);
-    }
-
-    timer.restart();
-    fwBatch.resize(nf * batchSize); // the big workspace
-    if (opts.debug)
-      printf("[%s] fwBatch %.2fGB alloc:   \t%.3g s\n", __func__,
-             (double)1E-09 * sizeof(std::complex<TF>) * nf * batchSize,
-             timer.elapsedsec());
-
-    timer.restart(); // plan the FFTW
-    const auto ns = gridsize_for_fft(this);
-    fftPlan->plan(ns, batchSize, fwBatch.data(), fftSign, opts.fftw, nthr_fft);
-    if (opts.debug)
-      printf("[%s] FFT plan (mode %d, nthr=%d):\t%.3g s\n", __func__, opts.fftw, nthr_fft,
-             timer.elapsedsec());
-
   } else { // -------------------------- type 3 (no planning) ------------
 
     if (opts.debug) printf("[%s] %dd%d: ntrans=%d\n", __func__, dim, type, ntrans);
@@ -1041,19 +1049,30 @@ int FINUFFT_PLAN_T<TF>::execute(std::complex<TF> *cj, std::complex<TF> *fk) {
       // STEP 1: (varies by type)
       timer.restart();
       if (type == 1) { // type 1: spread NU pts X, weights cj, to fw grid
+        if (opts.spreadinterponly)
+          wrapArrayInVector(fkb, thisBatchSize*N, this->fwBatch);
         spreadinterpSortedBatch<TF>(thisBatchSize, this, cjb);
         t_sprint += timer.elapsedsec();
-      } else { //  type 2: amplify Fourier coeffs fk into 0-padded fw
+        // Stop here if it is spread interp only.
+        if (opts.spreadinterponly)
+        {
+          releaseVectorWrapper(this->fwBatch);
+          continue;
+        }
+      } else if(!opts.spreadinterponly) { //  type 2: amplify Fourier coeffs fk into 0-padded fw, but dont do it if it is spread interp only.
         deconvolveBatch<TF>(thisBatchSize, this, fkb);
         t_deconv += timer.elapsedsec();
       }
-
-      // STEP 2: call the FFT on this batch
-      timer.restart();
-      do_fft(this);
-      t_fft += timer.elapsedsec();
-      if (opts.debug > 1) printf("\tFFT exec:\t\t%.3g s\n", timer.elapsedsec());
-
+      if (!opts.spreadinterponly) // Do FFT only if its not spread interp only.
+      {
+        // STEP 2: call the FFT on this batch
+        timer.restart();
+        do_fft(this);
+        t_fft += timer.elapsedsec();
+        if (opts.debug > 1) printf("\tFFT exec:\t\t%.3g s\n", timer.elapsedsec());
+      }
+      else
+        wrapArrayInVector(fkb, thisBatchSize*N, this->fwBatch);
       // STEP 3: (varies by type)
       timer.restart();
       if (type == 1) { // type 1: deconvolve (amplify) fw and shuffle to fk
@@ -1063,6 +1082,9 @@ int FINUFFT_PLAN_T<TF>::execute(std::complex<TF> *cj, std::complex<TF> *fk) {
         spreadinterpSortedBatch<TF>(thisBatchSize, this, cjb);
         t_sprint += timer.elapsedsec();
       }
+      // Release the fwBatch vector to prevent double freeing of memory.
+      if(opts.spreadinterponly)
+        releaseVectorWrapper(this->fwBatch);
     } // ........end b loop
 
     if (opts.debug) { // report total times in their natural order...
