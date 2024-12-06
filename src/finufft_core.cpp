@@ -670,20 +670,24 @@ FINUFFT_PLAN_T<TF>::FINUFFT_PLAN_T(int type_, int dim_, const BIGINT *n_modes, i
                 __func__, (double)(EPSILON * mu));
     }
 
+    int nfier = set_nf_type12(ms, opts, spopts, &nf1);
+    if (nfier) throw nfier; // nf too big; we're done
+    if (dim > 1) {
+      nfier = set_nf_type12(mt, opts, spopts, &nf2);
+      if (nfier) throw nfier;
+    }
+    if (dim > 2) {
+      nfier = set_nf_type12(mu, opts, spopts, &nf3);
+      if (nfier) throw nfier;
+    }
     if(!opts.spreadinterponly) // We dont need fseries if it is spreadinterponly.
     {
       // determine fine grid sizes, sanity check..
-      int nfier = set_nf_type12(ms, opts, spopts, &nf1);
-      if (nfier) throw nfier; // nf too big; we're done
       phiHat1.resize(nf1 / 2 + 1);
       if (dim > 1) {
-        nfier = set_nf_type12(mt, opts, spopts, &nf2);
-        if (nfier) throw nfier;
         phiHat2.resize(nf2 / 2 + 1);
       }
       if (dim > 2) {
-        nfier = set_nf_type12(mu, opts, spopts, &nf3);
-        if (nfier) throw nfier;
         phiHat3.resize(nf3 / 2 + 1);
       }
 
@@ -1046,14 +1050,15 @@ int FINUFFT_PLAN_T<TF>::execute(std::complex<TF> *cj, std::complex<TF> *fk) {
       timer.restart();
       if (type == 1) { // type 1: spread NU pts X, weights cj, to fw grid
         if (opts.spreadinterponly)
-        {
           wrapArrayInVector(fkb, thisBatchSize*N, this->fwBatch);
-        }
         spreadinterpSortedBatch<TF>(thisBatchSize, this, cjb);
         t_sprint += timer.elapsedsec();
         // Stop here if it is spread interp only.
         if (opts.spreadinterponly)
+        {
+          releaseVectorWrapper(this->fwBatch);
           continue;
+        }
       } else if(!opts.spreadinterponly) { //  type 2: amplify Fourier coeffs fk into 0-padded fw, but dont do it if it is spread interp only.
         deconvolveBatch<TF>(thisBatchSize, this, fkb);
         t_deconv += timer.elapsedsec();
@@ -1067,7 +1072,7 @@ int FINUFFT_PLAN_T<TF>::execute(std::complex<TF> *cj, std::complex<TF> *fk) {
         if (opts.debug > 1) printf("\tFFT exec:\t\t%.3g s\n", timer.elapsedsec());
       }
       else
-        wrapArrayInVector(cjb, thisBatchSize*nj, this->fwBatch);
+        wrapArrayInVector(fkb, thisBatchSize*N, this->fwBatch);
       // STEP 3: (varies by type)
       timer.restart();
       if (type == 1) { // type 1: deconvolve (amplify) fw and shuffle to fk
@@ -1080,7 +1085,6 @@ int FINUFFT_PLAN_T<TF>::execute(std::complex<TF> *cj, std::complex<TF> *fk) {
       // Release the fwBatch vector to prevent double freeing of memory.
       if(opts.spreadinterponly)
         releaseVectorWrapper(this->fwBatch);
-  
     } // ........end b loop
 
     if (opts.debug) { // report total times in their natural order...
