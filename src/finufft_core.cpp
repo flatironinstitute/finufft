@@ -1042,6 +1042,10 @@ int FINUFFT_PLAN_T<TF>::execute(std::complex<TF> *cj, std::complex<TF> *fk) {
       // STEP 1: (varies by type)
       timer.restart();
       if (type == 1) { // type 1: spread NU pts X, weights cj, to fw grid
+        if (opts.spreadinterponly)
+        {
+          wrapArrayInVector(fkb, thisBatchSize*N, this->fwBatch);
+        }
         spreadinterpSortedBatch<TF>(thisBatchSize, this, cjb);
         t_sprint += timer.elapsedsec();
         // Stop here if it is spread interp only.
@@ -1059,6 +1063,8 @@ int FINUFFT_PLAN_T<TF>::execute(std::complex<TF> *cj, std::complex<TF> *fk) {
         t_fft += timer.elapsedsec();
         if (opts.debug > 1) printf("\tFFT exec:\t\t%.3g s\n", timer.elapsedsec());
       }
+      else
+        wrapArrayInVector(cjb, thisBatchSize*nj, this->fwBatch);
       // STEP 3: (varies by type)
       timer.restart();
       if (type == 1) { // type 1: deconvolve (amplify) fw and shuffle to fk
@@ -1068,6 +1074,10 @@ int FINUFFT_PLAN_T<TF>::execute(std::complex<TF> *cj, std::complex<TF> *fk) {
         spreadinterpSortedBatch<TF>(thisBatchSize, this, cjb);
         t_sprint += timer.elapsedsec();
       }
+      // Release the fwBatch vector to prevent double freeing of memory.
+      if(opts.spreadinterponly)
+        releaseVectorWrapper(this->fwBatch);
+  
     } // ........end b loop
 
     if (opts.debug) { // report total times in their natural order...
