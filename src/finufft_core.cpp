@@ -670,35 +670,35 @@ FINUFFT_PLAN_T<TF>::FINUFFT_PLAN_T(int type_, int dim_, const BIGINT *n_modes, i
                 __func__, (double)(EPSILON * mu));
     }
 
-    // determine fine grid sizes, sanity check..
-    int nfier = set_nf_type12(ms, opts, spopts, &nf1);
-    if (nfier) throw nfier; // nf too big; we're done
-    phiHat1.resize(nf1 / 2 + 1);
-    if (dim > 1) {
-      nfier = set_nf_type12(mt, opts, spopts, &nf2);
-      if (nfier) throw nfier;
-      phiHat2.resize(nf2 / 2 + 1);
-    }
-    if (dim > 2) {
-      nfier = set_nf_type12(mu, opts, spopts, &nf3);
-      if (nfier) throw nfier;
-      phiHat3.resize(nf3 / 2 + 1);
-    }
-
-    if (opts.debug) { // "long long" here is to avoid warnings with printf...
-      printf("[%s] %dd%d: (ms,mt,mu)=(%lld,%lld,%lld) "
-             "(nf1,nf2,nf3)=(%lld,%lld,%lld)\n               ntrans=%d nthr=%d "
-             "batchSize=%d ",
-             __func__, dim, type, (long long)ms, (long long)mt, (long long)mu,
-             (long long)nf1, (long long)nf2, (long long)nf3, ntrans, nthr, batchSize);
-      if (batchSize == 1) // spread_thread has no effect in this case
-        printf("\n");
-      else
-        printf(" spread_thread=%d\n", opts.spread_thread);
-    }
-
     if(!opts.spreadinterponly) // We dont need fseries if it is spreadinterponly.
     {
+      // determine fine grid sizes, sanity check..
+      int nfier = set_nf_type12(ms, opts, spopts, &nf1);
+      if (nfier) throw nfier; // nf too big; we're done
+      phiHat1.resize(nf1 / 2 + 1);
+      if (dim > 1) {
+        nfier = set_nf_type12(mt, opts, spopts, &nf2);
+        if (nfier) throw nfier;
+        phiHat2.resize(nf2 / 2 + 1);
+      }
+      if (dim > 2) {
+        nfier = set_nf_type12(mu, opts, spopts, &nf3);
+        if (nfier) throw nfier;
+        phiHat3.resize(nf3 / 2 + 1);
+      }
+
+      if (opts.debug) { // "long long" here is to avoid warnings with printf...
+        printf("[%s] %dd%d: (ms,mt,mu)=(%lld,%lld,%lld) "
+               "(nf1,nf2,nf3)=(%lld,%lld,%lld)\n               ntrans=%d nthr=%d "
+               "batchSize=%d ",
+               __func__, dim, type, (long long)ms, (long long)mt, (long long)mu,
+               (long long)nf1, (long long)nf2, (long long)nf3, ntrans, nthr, batchSize);
+        if (batchSize == 1) // spread_thread has no effect in this case
+          printf("\n");
+        else
+          printf(" spread_thread=%d\n", opts.spread_thread);
+      }
+
       // STEP 0: get Fourier coeffs of spreading kernel along each fine grid dim
       CNTime timer;
       timer.start();
