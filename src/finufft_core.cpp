@@ -1044,18 +1044,21 @@ int FINUFFT_PLAN_T<TF>::execute(std::complex<TF> *cj, std::complex<TF> *fk) {
       if (type == 1) { // type 1: spread NU pts X, weights cj, to fw grid
         spreadinterpSortedBatch<TF>(thisBatchSize, this, cjb);
         t_sprint += timer.elapsedsec();
-      } else { //  type 2: amplify Fourier coeffs fk into 0-padded fw
+        // Stop here if it is spread interp only.
+        if (opts.spreadinterponly)
+          continue;
+      } else if(!opts.spreadinterponly) { //  type 2: amplify Fourier coeffs fk into 0-padded fw, but dont do it if it is spread interp only.
         deconvolveBatch<TF>(thisBatchSize, this, fkb);
         t_deconv += timer.elapsedsec();
       }
-      if (opts.spreadinterponly)
-        continue;
-      // STEP 2: call the FFT on this batch
-      timer.restart();
-      do_fft(this);
-      t_fft += timer.elapsedsec();
-      if (opts.debug > 1) printf("\tFFT exec:\t\t%.3g s\n", timer.elapsedsec());
-
+      if (!opts.spreadinterponly) // Do FFT only if its not spread interp only.
+      {
+        // STEP 2: call the FFT on this batch
+        timer.restart();
+        do_fft(this);
+        t_fft += timer.elapsedsec();
+        if (opts.debug > 1) printf("\tFFT exec:\t\t%.3g s\n", timer.elapsedsec());
+      }
       // STEP 3: (varies by type)
       timer.restart();
       if (type == 1) { // type 1: deconvolve (amplify) fw and shuffle to fk
