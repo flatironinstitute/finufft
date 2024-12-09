@@ -62,6 +62,7 @@
 #include <finufft_errors.h>
 #include <memory>
 #include <xsimd/xsimd.hpp>
+#include <span>
 
 // All indexing in library that potentially can exceed 2^31 uses 64-bit signed.
 // This includes all calling arguments (eg M,N) that could be huge someday.
