@@ -16,7 +16,9 @@ Other recommended NUFFT libraries
 
 - `PyNUFFT <https://github.com/jyhmiinlin/pynufft>`_ Python code supporting CPU and GPU operation. We have not compared against FINUFFT yet.
 
-  
-Also see the summary of library performances in our paper [FIN] in the
-:ref:`references <refs>`.
-  
+- `NonuniformFFTs.jl <https://jipolanco.github.io/NonuniformFFTs.jl/dev/>`_ native Julia code for types 1 and 2 only (CPU and GPU via KernelAbstractions), by Juan Polanco, 2024. Close to our CPU performance, and can beat it in the case of real data via a custom real transform. On the GPU claims their shared-memory type 1 implementation beats ours; to be investigated further. Has a good `benchmarks page <https://jipolanco.github.io/NonuniformFFTs.jl/dev/benchmarks/>`_ comparing (cu)FINUFFT at 6-digit accuracy, CPU and GPU.
+
+- `NFFT.jl <github.com/JuliaMath/NFFT.jl>`_ native Julia implementation for type 1 and 2 only, by Tobias Knopp and coworkers, starting around 2022. See :ref:`page on Julia <julia>`.
+
+
+A comparison of some library performances (as of 2019) was in our paper [FIN] in the :ref:`references <refs>`.
