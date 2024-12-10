@@ -12,22 +12,6 @@
 namespace finufft {
 namespace utils {
 
-// Simple helper to wrap pointer in std::vector and release it later
-template <class T>
-void wrapArrayInVector( T *sourceArray, size_t arraySize, std::vector<T, xsimd::aligned_allocator<T, 64> > &targetVector ) {
-  typename std::_Vector_base<T, xsimd::aligned_allocator<T, 64> >::_Vector_impl *vectorPtr =
-    (typename std::_Vector_base<T, xsimd::aligned_allocator<T, 64> >::_Vector_impl *)((void *) &targetVector);
-  vectorPtr->_M_start = sourceArray;
-  vectorPtr->_M_finish = vectorPtr->_M_end_of_storage = vectorPtr->_M_start + arraySize;
-}
-
-template <class T>
-void releaseVectorWrapper( std::vector<T, xsimd::aligned_allocator<T, 64> > &targetVector ) {
-  typename std::_Vector_base<T, xsimd::aligned_allocator<T, 64> >::_Vector_impl *vectorPtr =
-        (typename std::_Vector_base<T, xsimd::aligned_allocator<T, 64> >::_Vector_impl *)((void *) &targetVector);
-  vectorPtr->_M_start = vectorPtr->_M_finish = vectorPtr->_M_end_of_storage = NULL;
-}
-
 // ahb's low-level array helpers
 template<typename T>
 FINUFFT_EXPORT T FINUFFT_CDECL relerrtwonorm(BIGINT n, const std::complex<T> *a,
