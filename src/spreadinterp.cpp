@@ -2160,7 +2160,7 @@ FINUFFT_EXPORT int FINUFFT_CDECL setup_spreader(finufft_spread_opts &opts, T eps
               upsampfac);
       return FINUFFT_ERR_HORNER_WRONG_BETA;
     }
-    if (upsampfac <= 1.0) { // no digits would result
+    if (upsampfac < 1.0) { // no digits would result
       fprintf(stderr, "FINUFFT setup_spreader: error, upsampfac=%.3g is <=1.0\n",
               upsampfac);
       return FINUFFT_ERR_UPSAMPFAC_TOO_SMALL;
