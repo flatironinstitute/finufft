@@ -448,7 +448,7 @@ static int spreadinterpSortedBatch(int batchSize, FINUFFT_PLAN_T<T> *p,
 #endif
 #pragma omp parallel for num_threads(nthr_outer)
   for (int i = 0; i < batchSize; i++) {
-    std::complex<T> *fwi = p->fwBatch.data() + i * p->nf; // start of i'th fw array in
+    std::complex<T> *fwi = p->fwBatch.data() + i * p->nf(); // start of i'th fw array in
                                                           // wkspace
     std::complex<T> *ci = cBatch + i * p->nj; // start of i'th c array in cBatch
     spreadinterpSorted(p->sortIndices, p->nf123[0], p->nf123[1], p->nf123[2], (T *)fwi,
@@ -474,7 +474,7 @@ static int deconvolveBatch(int batchSize, FINUFFT_PLAN_T<T> *p, std::complex<T> 
   // since deconvolveshuffle?d are single-thread, omp par seems to help here...
 #pragma omp parallel for num_threads(batchSize)
   for (int i = 0; i < batchSize; i++) {
-    std::complex<T> *fwi = p->fwBatch.data() + i * p->nf; // start of i'th fw array in
+    std::complex<T> *fwi = p->fwBatch.data() + i * p->nf(); // start of i'th fw array in
                                                           // wkspace
     std::complex<T> *fki = fkBatch + i * p->N(); // start of i'th fk array in fkBatch
 
@@ -694,8 +694,7 @@ FINUFFT_PLAN_T<TF>::FINUFFT_PLAN_T(int type_, int dim_, const BIGINT *n_modes, i
       printf("[%s] kernel fser (ns=%d):\t\t%.3g s\n", __func__, spopts.nspread,
              timer.elapsedsec());
 
-    nf = nf123[0] * nf123[1] * nf123[2]; // fine grid total number of points
-    if (nf * batchSize > MAX_NF) {
+    if (nf() * batchSize > MAX_NF) {
       fprintf(
           stderr,
           "[%s] fwBatch would be bigger than MAX_NF, not attempting memory allocation!\n",
@@ -704,10 +703,10 @@ FINUFFT_PLAN_T<TF>::FINUFFT_PLAN_T(int type_, int dim_, const BIGINT *n_modes, i
     }
 
     timer.restart();
-    fwBatch.resize(nf * batchSize); // the big workspace
+    fwBatch.resize(nf() * batchSize); // the big workspace
     if (opts.debug)
       printf("[%s] fwBatch %.2fGB alloc:   \t%.3g s\n", __func__,
-             (double)1E-09 * sizeof(std::complex<TF>) * nf * batchSize,
+             (double)1E-09 * sizeof(std::complex<TF>) * nf() * batchSize,
              timer.elapsedsec());
 
     timer.restart(); // plan the FFTW
@@ -823,21 +822,20 @@ int FINUFFT_PLAN_T<TF>::setpts(BIGINT nj, TF *xj, TF *yj, TF *zj, BIGINT nk, TF 
     for (int idim = dim; idim < 3; ++idim)
       t3P.C[idim] = t3P.D[idim] = 0.0;   // their defaults if dim 2 unused, etc
 
-    nf = nf123[0] * nf123[1] * nf123[2]; // fine grid total number of points
-    if (nf * batchSize > MAX_NF) {
+    if (nf() * batchSize > MAX_NF) {
       fprintf(stderr,
               "[%s t3] fwBatch would be bigger than MAX_NF, not attempting memory "
               "allocation!\n",
               __func__);
       return FINUFFT_ERR_MAXNALLOC;
     }
-    fwBatch.resize(nf * batchSize); // maybe big workspace
+    fwBatch.resize(nf() * batchSize); // maybe big workspace
 
     CpBatch.resize(nj * batchSize); // batch c' work
 
     if (opts.debug)
       printf("[%s t3] widcen, batch %.2fGB alloc:\t%.3g s\n", __func__,
-             (double)1E-09 * sizeof(std::complex<TF>) * (nf + nj) * batchSize,
+             (double)1E-09 * sizeof(std::complex<TF>) * (nf() + nj) * batchSize,
              timer.elapsedsec());
     // printf("fwbatch, cpbatch ptrs: %llx %llx\n",fwBatch,CpBatch);
 

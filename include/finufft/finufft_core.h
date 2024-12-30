@@ -164,7 +164,7 @@ template<typename TF> struct FINUFFT_PLAN_T { // the main plan class, fully C++
 
   std::array<UBIGINT, 3> nf123{1, 1, 1}; // size of internal fine grid in x/y/z
                                          // direction
-  UBIGINT nf = 1; // total # fine grid points (product of the above three)
+  inline UBIGINT nf() const { return nf123[0]*nf123[1]*nf123[2]; } // total # fine grid points (product of the above three)
 
   int fftSign;    // sign in exponential for NUFFT defn, guaranteed to be +-1
 
