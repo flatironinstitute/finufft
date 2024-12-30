@@ -160,11 +160,11 @@ template<typename TF> struct FINUFFT_PLAN_T { // the main plan class, fully C++
 
   std::array<UBIGINT, 3> mstu; // number of modes in x/y/z dir (historical CMCL name) =
                                // N1/N2/N3
-  inline UBIGINT N() const { return mstu[0]*mstu[1]*mstu[2]; } // total # modes (prod of above three)
+  UBIGINT N() const { return mstu[0]*mstu[1]*mstu[2]; } // total # modes (prod of above three)
 
   std::array<UBIGINT, 3> nf123{1, 1, 1}; // size of internal fine grid in x/y/z
                                          // direction
-  inline UBIGINT nf() const { return nf123[0]*nf123[1]*nf123[2]; } // total # fine grid points (product of the above three)
+  UBIGINT nf() const { return nf123[0]*nf123[1]*nf123[2]; } // total # fine grid points (product of the above three)
 
   int fftSign;    // sign in exponential for NUFFT defn, guaranteed to be +-1
 
