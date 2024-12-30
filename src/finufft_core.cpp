@@ -476,7 +476,7 @@ static int deconvolveBatch(int batchSize, FINUFFT_PLAN_T<T> *p, std::complex<T> 
   for (int i = 0; i < batchSize; i++) {
     std::complex<T> *fwi = p->fwBatch.data() + i * p->nf; // start of i'th fw array in
                                                           // wkspace
-    std::complex<T> *fki = fkBatch + i * p->N; // start of i'th fk array in fkBatch
+    std::complex<T> *fki = fkBatch + i * p->N(); // start of i'th fk array in fkBatch
 
     // Call routine from common.cpp for the dim; prefactors hardcoded to 1.0...
     if (p->dim == 1)
@@ -625,10 +625,8 @@ FINUFFT_PLAN_T<TF>::FINUFFT_PLAN_T(int type_, int dim_, const BIGINT *n_modes, i
   }
 
   if (type != 3) { // read in user Fourier mode array sizes...
-    N = 1;
     for (int idim = 0; idim < 3; ++idim) {
       mstu[idim] = (idim < dim) ? n_modes[idim] : 1;
-      N *= mstu[idim];
     }
   }
 
@@ -638,8 +636,8 @@ FINUFFT_PLAN_T<TF>::FINUFFT_PLAN_T(int type_, int dim_, const BIGINT *n_modes, i
     if (tol >= (TF)1E-9) {                // the tol sigma=5/4 can reach
       if (type == 3)                      // could move to setpts, more known?
         opts.upsampfac = 1.25;            // faster b/c smaller RAM & FFT
-      else if ((dim == 1 && N > 10000000) || (dim == 2 && N > 300000) ||
-               (dim == 3 && N > 3000000)) // type 1,2 heuristic cutoffs, double,
+      else if ((dim == 1 && N() > 10000000) || (dim == 2 && N() > 300000) ||
+               (dim == 3 && N() > 3000000)) // type 1,2 heuristic cutoffs, double,
                                           // typ tol, 12-core xeon
         opts.upsampfac = 1.25;
     }
@@ -993,7 +991,7 @@ int FINUFFT_PLAN_T<TF>::execute(std::complex<TF> *cj, std::complex<TF> *fk) {
       int thisBatchSize     = std::min(ntrans - b * batchSize, batchSize);
       int bB                = b * batchSize; // index of vector, since batchsizes same
       std::complex<TF> *cjb = cj + bB * nj;  // point to batch of weights
-      std::complex<TF> *fkb = fk + bB * N;   // point to batch of mode coeffs
+      std::complex<TF> *fkb = fk + bB * N();   // point to batch of mode coeffs
       if (opts.debug > 1)
         printf("[%s] start batch %d (size %d):\n", __func__, b, thisBatchSize);
 
