@@ -3,6 +3,7 @@ If not stated, FINUFFT is assumed (cuFINUFFT <=1.3 is listed separately).
 
 Master, working towards V 2.4.0 (1/7/25)
 
+* classic GNU makefile settings make.inc.* tidied to make-platforms/ (Barnett)
 * unified separate-dim arrays (eg X,Y,Z->XYZ), simplifiying core (Reinecke #592)
 * exit codes of many-vector tests now insensitive to one-mode randomness
   (Barnett)

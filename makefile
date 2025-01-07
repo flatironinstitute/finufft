@@ -5,9 +5,9 @@
 # FINUFFT and its various language interfaces and examples.
 # Users should not need to edit this makefile (doing so would make it hard to
 # stay up to date with the repo version). Rather, in order to change
-# OS/environment-specific compilers and flags, create the file make.inc, which
+# OS/platform-specific compilers and flags, create the file make.inc, which
 # overrides the defaults below (which are for an ubuntu linux/GCC system).
-# See docs/install.rst, and make.inc.* for examples.
+# Read docs/install.rst, and make-platforms/make.inc.* for examples.
 
 # Barnett 2017-2020. Malleo's expansion for guru interface, summer 2019.
 # Barnett tidying Feb, May 2020. Libin Lu edits, 2020.
@@ -80,7 +80,6 @@ DUCC_CXXFLAGS := -fPIC -std=c++17 -ffast-math
 FINUFFT = $(dir $(realpath $(firstword $(MAKEFILE_LIST))))
 
 # For your OS, override the above by setting make variables in make.inc ...
-# (Please look in make.inc.* for ideas)
 -include make.inc
 
 # Now come flags that should be added, whatever user overrode in make.inc.
@@ -149,7 +148,7 @@ default: usage
 all: test perftest lib examples fortran matlab octave python
 
 usage:
-	@echo "Makefile for FINUFFT library. Please specify your task:"
+	@echo "Makefile for FINUFFT CPU library. Please specify your task:"
 	@echo " make lib - build the main library (in lib/ and lib-static/)"
 	@echo " make examples - compile and run all codes in examples/"
 	@echo " make test - compile and run quick math validation tests"

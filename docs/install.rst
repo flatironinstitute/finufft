@@ -6,7 +6,7 @@ Installation
 There are two main routes to compile the CPU library from source:
 via CMake (the recommended modern way, being more platform-independent, and also the
 only way to build the GPU library),
-or via a GNU ``makefile`` (which has various settings for linux, OSX, Windows).
+or via a GNU ``makefile`` (which has settings for platforms on linux, OSX, Windows).
 We currently support both, and detail them in that order in the text below.
 The only requirement is a C/C++ compiler supporting OpenMP and the C++17
 standard.
@@ -134,7 +134,7 @@ Here are our CMake build options, showing name, explanatory text, and default va
    :end-before: @cmake_opts_end
 
 For convenience we also provide a number of `cmake presets <https://cmake.org/cmake/help/latest/manual/cmake-presets.7.html>`_
-for various options and compilers, in ``CMakePresets.json`` (this will grow to replace the old ``make.inc.*`` site files).
+for various platforms, options and compilers, in ``CMakePresets.json``.
 For example, to configure, build and test the development preset (which builds tests and examples), from ``build`` do:
 
 .. code-block:: bash
@@ -167,19 +167,19 @@ Classic GNU make based route
 ----------------------------
 
 Below we deal with the three standard OSes in order: 1) **linux**, 2) **Mac OSX**, 3) **Windows**.
-We have some users contributing settings for other OSes, for instance
-PowerPC. The general procedure to download, then compile for such a special setup is, illustrating with the PowerPC case::
+We have some users contributing settings for other platforms, for instance
+PowerPC. The general procedure to download, then compile for a particular platform is, illustrating with the PowerPC case::
 
   git clone https://github.com/flatironinstitute/finufft.git
   cd finufft
-  cp make.inc.powerpc make.inc
+  cp make-platforms/make.inc.powerpc make.inc
   make test -j
 
-Have a look for ``make.inc.*`` to see what is available, and/or edit your ``make.inc`` based on looking in the ``makefile`` and quirks of your local setup. We have continuous integration which tests the default (linux) settings in this ``makefile``, plus those in three OS-specific setup files, currently::
+Have a look in ``make-platforms/`` to see what is available, and/or edit your ``make.inc`` based on looking in the ``makefile`` and quirks of your local platform. We have continuous integration which tests the default (linux) settings in this ``makefile``, plus those in three OS-specific settings, currently::
 
-  make.inc.macosx_clang
-  make.inc.macosx_gcc-12
-  make.inc.windows_msys
+  make-platforms/make.inc.macosx_clang
+  make-platforms/make.inc.macosx_gcc-12
+  make-platforms/make.inc.windows_msys
 
 Thus, those are the recommended files for OSX or Windows users to try as their ``make.inc``.
 If there is an error in testing on what you consider a standard set-up,
@@ -365,11 +365,11 @@ Once you have downloaded FINUFFT from github, go to its top directory.
 You now need to decide if you will be wanting to call FINUFFT from
 MATLAB (and currently have MATLAB installed). If so, do::
 
-  cp make.inc.macosx_clang_matlab make.inc
+  cp make-platforms/make.inc.macosx_clang_matlab make.inc
 
 Else if you don't have MATLAB, do::
 
-  cp make.inc.macosx_clang make.inc
+  cp make-platforms/make.inc.macosx_clang make.inc
 
 .. note::
 
@@ -400,7 +400,7 @@ The GCC route
 This is less recommended, unless you need to link from ``gfortran``, when it
 appears to be essential. The basic idea is::
 
-  cp make.inc.macosx_gcc-12 make.inc
+  cp make-platforms/make.inc.macosx_gcc-12 make.inc
   make test -j
   make fortran
 
@@ -440,7 +440,7 @@ We have users who have adjusted the makefile to work - at least to some extent -
 
 More generally, please make sure to have a recent version of Mingw at hand, preferably with a 64bit version of gnu-make like the WinLibs standalone build of GCC and MinGW-w64 for Windows. Note that most MinGW-w64 distributions, such as TDM-GCC, do not feature the 64bit gnu-make. Fortunately, this limitation is only relevant to run the tests. To prepare the build of the static and dynamic libraries run::
 
-  copy make.inc.windows_mingw make.inc
+  copy make-platforms/make.inc.windows_mingw make.inc
 
 Subsequently, open this ``make.inc`` file with the text editor of your choice and assign the parent directories of the FFTW header file to ``FFTW_H_DIR``, of the FFTW libraries to ``FFTW_LIB_DIR``, and of the GCC OpenMP library lgomp.dll to ``LGOMP_DIR``. Note that you need the last-mentioned only if you plan to build the MEX-interface for MATLAB. Now, you should be able to run::
 
@@ -457,7 +457,7 @@ In a similar fashion, the examples can now be build with ``make examples``. This
 For users who work with Windows using MSYS and MinGW compilers, please
 try::
 
-  cp make.inc.windows_msys make.inc
+  cp make-platforms/make.inc.windows_msys make.inc
   make test -j
 
 Also see https://github.com/flatironinstitute/finufft/issues

@@ -2,7 +2,7 @@ $ErrorActionPreference = "Stop"
 Set-Variable -Name MSYSTEM -Value MINGW64
 
 # Setup the make.inc file
-Copy-Item -Path make.inc.windows_msys -Destination make.inc
+Copy-Item -Path make-platforms\make.inc.windows_msys -Destination make.inc
 
 # call make
 Set-Variable repo_root -Value ([IO.Path]::Combine($PSScriptRoot, '..', '..'))
