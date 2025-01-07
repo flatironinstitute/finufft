@@ -1,9 +1,11 @@
 List of features / changes made / release notes, in reverse chronological order.
 If not stated, FINUFFT is assumed (cuFINUFFT <=1.3 is listed separately).
 
-Master (11/29/24)
+Master, working towards V 2.4.0 (1/7/25)
 
-* exit codes of many-vector tests now insensitive to one-mode randomness.
+* unified separate-dim arrays (eg X,Y,Z->XYZ), simplifiying core (Reinecke #592)
+* exit codes of many-vector tests now insensitive to one-mode randomness
+  (Barnett)
 * various bugfixes (DUCC+Python, Python dtype chk, Fortran opts)
 * Large re-org of CPU lib code to remove C-style macros (Martin Reinecke)
   PR 558: de-macroize FFT (FFT plan now a class), and OMP funcs.
@@ -21,8 +23,6 @@ Master (11/29/24)
   Note: tests still use macros (test_defs.h). And C++ interface will solidify.
 * Single-argument spreading kernel Horner evaluator available for deconv step
   (onedim_* funcs), to unify ker eval. PR 541, Libin Lu. Not yet exploited.
-* Support and docs for opts.gpu_spreadinterponly=1 for MRI "density compensation
-  estimation" type 1&2 use-case with upsampfac=1.0 PR564 (Chaithya G R).
 * Simplify building of Python source distributions. PR 555 (J Anden).
 * reduced roundoff error in a[n] phase calc in CPU onedim_fseries_kernel().
    PR534 (Barnett).
@@ -38,6 +38,11 @@ Master (11/29/24)
 * Add options for user-provided FFTW locker (PR548, Blackwell). These options
   can be be used to prevent crashes when a user is creating/destroying FFTW
   plans and FINUFFT plans in threads simultaneously.
+
+V 2.3.1 (11/25/24) minor update release (continued support on 2.3.X branch)
+
+* Support and docs for opts.gpu_spreadinterponly=1 for MRI "density compensation
+  estimation" type 1&2 use-case with upsampfac=1.0 PR564 (Chaithya G R).
 
 V 2.3.0 (9/5/24)
 

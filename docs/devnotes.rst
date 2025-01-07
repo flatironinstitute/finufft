@@ -11,7 +11,7 @@ Developer notes
 
   - ``CMakeLists.txt`` for cmake
   - ``docs/conf.py`` for sphinx
-  - ``docs/install.rst`` cmake git tags
+  - ``docs/install.rst`` cmake git tags (3 places)
   - ``python/finufft/finufft/__init__.py`` for the python pkg version
   - ``python/cufinufft/cufinufft/__init__.py`` for the GPU python pkg version
   - ``include/finufft/finufft_core.h`` for debug output
