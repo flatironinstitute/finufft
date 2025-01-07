@@ -450,9 +450,9 @@ static int spreadinterpSortedBatch(int batchSize, FINUFFT_PLAN_T<T> *p,
     std::complex<T> *fwi = p->fwBatch.data() + i * p->nf(); // start of i'th fw array in
                                                             // wkspace
     std::complex<T> *ci = cBatch + i * p->nj; // start of i'th c array in cBatch
-    spreadinterpSorted(p->sortIndices, p->nfdim[0], p->nfdim[1], p->nfdim[2], (T *)fwi,
-                       p->nj, p->XYZ[0], p->XYZ[1], p->XYZ[2], (T *)ci, p->spopts,
-                       p->didSort);
+    spreadinterpSorted(p->sortIndices, (UBIGINT)p->nfdim[0], (UBIGINT)p->nfdim[1],
+                       (UBIGINT)p->nfdim[2], (T *)fwi, (UBIGINT)p->nj, p->XYZ[0],
+                       p->XYZ[1], p->XYZ[2], (T *)ci, p->spopts, p->didSort);
   }
   return 0;
 }
@@ -477,7 +477,7 @@ static int deconvolveBatch(int batchSize, FINUFFT_PLAN_T<T> *p, std::complex<T> 
                                                             // wkspace
     std::complex<T> *fki = fkBatch + i * p->N(); // start of i'th fk array in fkBatch
 
-    // Call routine from common.cpp for the dim; prefactors hardcoded to 1.0...
+    // pick dim-specific routine from above; note prefactors hardcoded to 1.0...
     if (p->dim == 1)
       deconvolveshuffle1d(p->spopts.spread_direction, T(1), p->phiHat[0], p->mstu[0],
                           (T *)fki, p->nfdim[0], fwi, p->opts.modeord);
@@ -657,11 +657,13 @@ FINUFFT_PLAN_T<TF>::FINUFFT_PLAN_T(int type_, int dim_, const BIGINT *n_modes, i
     spopts.spread_direction = type;
 
     constexpr TF EPSILON = std::numeric_limits<TF>::epsilon();
-    if (opts.showwarn) { // user warn round-off error...
+    if (opts.showwarn) { // user warn round-off error (due to prob condition #)...
       for (int idim = 0; idim < dim; ++idim)
         if (EPSILON * mstu[idim] > 1.0)
-          fprintf(stderr, "%s warning: rounding err predicted eps_mach*N1 = %.3g > 1 !\n",
-                  __func__, (double)(EPSILON * mstu[idim]));
+          fprintf(stderr,
+                  "%s warning: rounding err (due to cond # of prob) eps_mach*N%d = %.3g "
+                  "> 1 !\n",
+                  __func__, idim, (double)(EPSILON * mstu[idim]));
     }
 
     // determine fine grid sizes, sanity check..
@@ -806,17 +808,16 @@ int FINUFFT_PLAN_T<TF>::setpts(BIGINT nj, TF *xj, TF *yj, TF *zj, BIGINT nk, TF 
 
     // pick x, s intervals & shifts & # fine grid pts (nf) in each dim...
     std::array<TF, 3> S = {0, 0, 0};
+    if (opts.debug) printf("\tM=%lld N=%lld\n", (long long)nj, (long long)nk);
     for (int idim = 0; idim < dim; ++idim) {
       arraywidcen(nj, XYZ_in[idim], &(t3P.X[idim]), &(t3P.C[idim]));
       arraywidcen(nk, STU_in[idim], &S[idim], &(t3P.D[idim])); // same D, S, but for {s_k}
       set_nhg_type3(S[idim], t3P.X[idim], opts, spopts, &(nfdim[idim]), &(t3P.h[idim]),
                     &(t3P.gam[idim]));                         // applies twist i)
-      if (opts.debug) { // report on choices of shifts, centers, etc...
-        printf("\tM=%lld N=%lld\n", (long long)nj, (long long)nk);
-        printf("\tX1=%.3g C1=%.3g S1=%.3g D1=%.3g gam1=%g nf1=%lld h1=%.3g\t\n",
-               t3P.X[idim], t3P.C[idim], S[idim], t3P.D[idim], t3P.gam[idim],
-               (long long)nfdim[idim], t3P.h[idim]);
-      }
+      if (opts.debug) // report on choices of shifts, centers, etc...
+        printf("\tX%d=%.3g C%d=%.3g S%d=%.3g D%d=%.3g gam%d=%g nf%d=%lld h%d=%.3g\t\n",
+               idim, t3P.X[idim], idim, t3P.C[idim], idim, S[idim], idim, t3P.D[idim],
+               idim, t3P.gam[idim], idim, (long long)nfdim[idim], idim, t3P.h[idim]);
     }
     for (int idim = dim; idim < 3; ++idim)
       t3P.C[idim] = t3P.D[idim] = 0.0; // their defaults if dim 2 unused, etc
