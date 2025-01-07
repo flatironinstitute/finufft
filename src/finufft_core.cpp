@@ -77,17 +77,16 @@ Design notes for guru interface implementation:
 namespace finufft {
 namespace common {
 
-static int set_nf_type12(UBIGINT ms, const finufft_opts &opts,
-                         const finufft_spread_opts &spopts, UBIGINT *nf)
+static int set_nf_type12(BIGINT ms, const finufft_opts &opts,
+                         const finufft_spread_opts &spopts, BIGINT *nf)
 // Type 1 & 2 recipe for how to set 1d size of upsampled array, nf, given opts
 // and requested number of Fourier modes ms. Returns 0 if success, else an
 // error code if nf was unreasonably big (& tell the world).
 {
   *nf = BIGINT(opts.upsampfac * double(ms)); // manner of rounding not crucial
-  if (*nf < UBIGINT(2 * spopts.nspread))
-    *nf = UBIGINT(2 * spopts.nspread);       // otherwise spread fails
+  if (*nf < 2 * spopts.nspread) *nf = 2 * spopts.nspread; // otherwise spread fails
   if (*nf < MAX_NF) {
-    *nf = next235even(*nf);                  // expensive at huge nf
+    *nf = next235even(*nf);                               // expensive at huge nf
     return 0;
   } else {
     fprintf(stderr,
@@ -126,7 +125,7 @@ static int setup_spreader_for_nufft(finufft_spread_opts &spopts, T eps,
 
 template<typename T>
 static void set_nhg_type3(T S, T X, const finufft_opts &opts,
-                          const finufft_spread_opts &spopts, UBIGINT *nf, T *h, T *gam)
+                          const finufft_spread_opts &spopts, BIGINT *nf, T *h, T *gam)
 /* sets nf, h (upsampled grid spacing), and gamma (x_j rescaling factor),
    for type 3 only.
    Inputs:
@@ -152,11 +151,11 @@ static void set_nhg_type3(T S, T X, const finufft_opts &opts,
     Ssafe = std::max(Ssafe, 1 / X);
   // use the safe X and S...
   auto nfd = T(2.0 * opts.upsampfac * Ssafe * Xsafe / PI + nss);
-  if (!std::isfinite(nfd)) nfd = 0.0; // use T to catch inf
+  if (!std::isfinite(nfd)) nfd = 0.0;
   *nf = (BIGINT)nfd;
   // printf("initial nf=%lld, ns=%d\n",*nf,spopts.nspread);
   //  catch too small nf, and nan or +-inf, otherwise spread fails...
-  if (*nf < UBIGINT(2 * spopts.nspread)) *nf = UBIGINT(2 * spopts.nspread);
+  if (*nf < 2 * spopts.nspread) *nf = 2 * spopts.nspread;
   if (*nf < MAX_NF)                               // otherwise will fail anyway
     *nf = next235even(*nf);                       // expensive at huge nf
   *h   = T(2.0 * PI / *nf);                       // upsampled grid spacing
@@ -449,9 +448,9 @@ static int spreadinterpSortedBatch(int batchSize, FINUFFT_PLAN_T<T> *p,
 #pragma omp parallel for num_threads(nthr_outer)
   for (int i = 0; i < batchSize; i++) {
     std::complex<T> *fwi = p->fwBatch.data() + i * p->nf(); // start of i'th fw array in
-                                                          // wkspace
+                                                            // wkspace
     std::complex<T> *ci = cBatch + i * p->nj; // start of i'th c array in cBatch
-    spreadinterpSorted(p->sortIndices, p->nf123[0], p->nf123[1], p->nf123[2], (T *)fwi,
+    spreadinterpSorted(p->sortIndices, p->nfdim[0], p->nfdim[1], p->nfdim[2], (T *)fwi,
                        p->nj, p->XYZ[0], p->XYZ[1], p->XYZ[2], (T *)ci, p->spopts,
                        p->didSort);
   }
@@ -475,21 +474,21 @@ static int deconvolveBatch(int batchSize, FINUFFT_PLAN_T<T> *p, std::complex<T> 
 #pragma omp parallel for num_threads(batchSize)
   for (int i = 0; i < batchSize; i++) {
     std::complex<T> *fwi = p->fwBatch.data() + i * p->nf(); // start of i'th fw array in
-                                                          // wkspace
+                                                            // wkspace
     std::complex<T> *fki = fkBatch + i * p->N(); // start of i'th fk array in fkBatch
 
     // Call routine from common.cpp for the dim; prefactors hardcoded to 1.0...
     if (p->dim == 1)
       deconvolveshuffle1d(p->spopts.spread_direction, T(1), p->phiHat[0], p->mstu[0],
-                          (T *)fki, p->nf123[0], fwi, p->opts.modeord);
+                          (T *)fki, p->nfdim[0], fwi, p->opts.modeord);
     else if (p->dim == 2)
       deconvolveshuffle2d(p->spopts.spread_direction, T(1), p->phiHat[0], p->phiHat[1],
-                          p->mstu[0], p->mstu[1], (T *)fki, p->nf123[0], p->nf123[1], fwi,
+                          p->mstu[0], p->mstu[1], (T *)fki, p->nfdim[0], p->nfdim[1], fwi,
                           p->opts.modeord);
     else
       deconvolveshuffle3d(p->spopts.spread_direction, T(1), p->phiHat[0], p->phiHat[1],
                           p->phiHat[2], p->mstu[0], p->mstu[1], p->mstu[2], (T *)fki,
-                          p->nf123[0], p->nf123[1], p->nf123[2], fwi, p->opts.modeord);
+                          p->nfdim[0], p->nfdim[1], p->nfdim[2], fwi, p->opts.modeord);
   }
   return 0;
 }
@@ -631,14 +630,14 @@ FINUFFT_PLAN_T<TF>::FINUFFT_PLAN_T(int type_, int dim_, const BIGINT *n_modes, i
   }
 
   // heuristic to choose default upsampfac... (currently two poss)
-  if (opts.upsampfac == 0.0) {            // indicates auto-choose
-    opts.upsampfac = 2.0;                 // default, and need for tol small
-    if (tol >= (TF)1E-9) {                // the tol sigma=5/4 can reach
-      if (type == 3)                      // could move to setpts, more known?
-        opts.upsampfac = 1.25;            // faster b/c smaller RAM & FFT
+  if (opts.upsampfac == 0.0) {              // indicates auto-choose
+    opts.upsampfac = 2.0;                   // default, and need for tol small
+    if (tol >= (TF)1E-9) {                  // the tol sigma=5/4 can reach
+      if (type == 3)                        // could move to setpts, more known?
+        opts.upsampfac = 1.25;              // faster b/c smaller RAM & FFT
       else if ((dim == 1 && N() > 10000000) || (dim == 2 && N() > 300000) ||
                (dim == 3 && N() > 3000000)) // type 1,2 heuristic cutoffs, double,
-                                          // typ tol, 12-core xeon
+                                            // typ tol, 12-core xeon
         opts.upsampfac = 1.25;
     }
     if (opts.debug > 1)
@@ -667,9 +666,9 @@ FINUFFT_PLAN_T<TF>::FINUFFT_PLAN_T(int type_, int dim_, const BIGINT *n_modes, i
 
     // determine fine grid sizes, sanity check..
     for (int idim = 0; idim < dim; ++idim) {
-      int nfier = set_nf_type12(mstu[idim], opts, spopts, &nf123[idim]);
+      int nfier = set_nf_type12(mstu[idim], opts, spopts, &nfdim[idim]);
       if (nfier) throw nfier; // nf too big; we're done
-      phiHat[idim].resize(nf123[idim] / 2 + 1);
+      phiHat[idim].resize(nfdim[idim] / 2 + 1);
     }
 
     if (opts.debug) { // "long long" here is to avoid warnings with printf...
@@ -677,8 +676,8 @@ FINUFFT_PLAN_T<TF>::FINUFFT_PLAN_T(int type_, int dim_, const BIGINT *n_modes, i
              "(nf1,nf2,nf3)=(%lld,%lld,%lld)\n               ntrans=%d nthr=%d "
              "batchSize=%d ",
              __func__, dim, type, (long long)mstu[0], (long long)mstu[1],
-             (long long)mstu[2], (long long)nf123[0], (long long)nf123[1],
-             (long long)nf123[2], ntrans, nthr, batchSize);
+             (long long)mstu[2], (long long)nfdim[0], (long long)nfdim[1],
+             (long long)nfdim[2], ntrans, nthr, batchSize);
       if (batchSize == 1) // spread_thread has no effect in this case
         printf("\n");
       else
@@ -689,7 +688,7 @@ FINUFFT_PLAN_T<TF>::FINUFFT_PLAN_T(int type_, int dim_, const BIGINT *n_modes, i
     CNTime timer;
     timer.start();
     for (int idim = 0; idim < dim; ++idim)
-      onedim_fseries_kernel(nf123[idim], phiHat[idim], spopts);
+      onedim_fseries_kernel(nfdim[idim], phiHat[idim], spopts);
     if (opts.debug)
       printf("[%s] kernel fser (ns=%d):\t\t%.3g s\n", __func__, spopts.nspread,
              timer.elapsedsec());
@@ -776,7 +775,7 @@ int FINUFFT_PLAN_T<TF>::setpts(BIGINT nj, TF *xj, TF *yj, TF *zj, BIGINT nk, TF 
   if (type != 3) {          // ------------------ TYPE 1,2 SETPTS -------------------
                             // (all we can do is check and maybe bin-sort the NU pts)
     XYZ     = {xj, yj, zj}; // plan must keep pointers to user's fixed NU pts
-    int ier = spreadcheck(nf123[0], nf123[1], nf123[2], nj, xj, yj, zj, spopts);
+    int ier = spreadcheck(nfdim[0], nfdim[1], nfdim[2], nj, xj, yj, zj, spopts);
     if (opts.debug > 1)
       printf("[%s] spreadcheck (%d):\t%.3g s\n", __func__, spopts.chkbnds,
              timer.elapsedsec());
@@ -785,7 +784,7 @@ int FINUFFT_PLAN_T<TF>::setpts(BIGINT nj, TF *xj, TF *yj, TF *zj, BIGINT nk, TF 
     timer.restart();
     sortIndices.resize(nj);
     didSort =
-        indexSort(sortIndices, nf123[0], nf123[1], nf123[2], nj, xj, yj, zj, spopts);
+        indexSort(sortIndices, nfdim[0], nfdim[1], nfdim[2], nj, xj, yj, zj, spopts);
     if (opts.debug)
       printf("[%s] sort (didSort=%d):\t\t%.3g s\n", __func__, didSort,
              timer.elapsedsec());
@@ -810,17 +809,17 @@ int FINUFFT_PLAN_T<TF>::setpts(BIGINT nj, TF *xj, TF *yj, TF *zj, BIGINT nk, TF 
     for (int idim = 0; idim < dim; ++idim) {
       arraywidcen(nj, XYZ_in[idim], &(t3P.X[idim]), &(t3P.C[idim]));
       arraywidcen(nk, STU_in[idim], &S[idim], &(t3P.D[idim])); // same D, S, but for {s_k}
-      set_nhg_type3(S[idim], t3P.X[idim], opts, spopts, &(nf123[idim]), &(t3P.h[idim]),
+      set_nhg_type3(S[idim], t3P.X[idim], opts, spopts, &(nfdim[idim]), &(t3P.h[idim]),
                     &(t3P.gam[idim]));                         // applies twist i)
       if (opts.debug) { // report on choices of shifts, centers, etc...
         printf("\tM=%lld N=%lld\n", (long long)nj, (long long)nk);
         printf("\tX1=%.3g C1=%.3g S1=%.3g D1=%.3g gam1=%g nf1=%lld h1=%.3g\t\n",
                t3P.X[idim], t3P.C[idim], S[idim], t3P.D[idim], t3P.gam[idim],
-               (long long)nf123[idim], t3P.h[idim]);
+               (long long)nfdim[idim], t3P.h[idim]);
       }
     }
     for (int idim = dim; idim < 3; ++idim)
-      t3P.C[idim] = t3P.D[idim] = 0.0;   // their defaults if dim 2 unused, etc
+      t3P.C[idim] = t3P.D[idim] = 0.0; // their defaults if dim 2 unused, etc
 
     if (nf() * batchSize > MAX_NF) {
       fprintf(stderr,
@@ -831,7 +830,7 @@ int FINUFFT_PLAN_T<TF>::setpts(BIGINT nj, TF *xj, TF *yj, TF *zj, BIGINT nk, TF 
     }
     fwBatch.resize(nf() * batchSize); // maybe big workspace
 
-    CpBatch.resize(nj * batchSize); // batch c' work
+    CpBatch.resize(nj * batchSize);   // batch c' work
 
     if (opts.debug)
       printf("[%s t3] widcen, batch %.2fGB alloc:\t%.3g s\n", __func__,
@@ -909,7 +908,7 @@ int FINUFFT_PLAN_T<TF>::setpts(BIGINT nj, TF *xj, TF *yj, TF *zj, BIGINT nk, TF 
     // Set up sort for spreading Cp (from primed NU src pts X, Y, Z) to fw...
     timer.restart();
     sortIndices.resize(nj);
-    didSort = indexSort(sortIndices, nf123[0], nf123[1], nf123[2], nj, XYZ[0], XYZ[1],
+    didSort = indexSort(sortIndices, nfdim[0], nfdim[1], nfdim[2], nj, XYZ[0], XYZ[1],
                         XYZ[2], spopts);
     if (opts.debug)
       printf("[%s t3] sort (didSort=%d):\t\t%.3g s\n", __func__, didSort,
@@ -917,17 +916,12 @@ int FINUFFT_PLAN_T<TF>::setpts(BIGINT nj, TF *xj, TF *yj, TF *zj, BIGINT nk, TF 
 
     // Plan and setpts once, for the (repeated) inner type 2 finufft call...
     timer.restart();
-    BIGINT t2nmodes[] = {BIGINT(nf123[0]), BIGINT(nf123[1]),
-                         BIGINT(nf123[2])};            // t2
-                                                       // input
-                                                       // is
-                                                       // actually
-                                                       // fw
-    finufft_opts t2opts = opts;                        // deep copy, since not ptrs
-    t2opts.modeord      = 0;                           // needed for correct t3!
-    t2opts.debug        = std::max(0, opts.debug - 1); // don't print as much detail
+    BIGINT t2nmodes[]   = {nfdim[0], nfdim[1], nfdim[2]}; // t2's input actually fw
+    finufft_opts t2opts = opts;                           // deep copy, since not ptrs
+    t2opts.modeord      = 0;                              // needed for correct t3!
+    t2opts.debug        = std::max(0, opts.debug - 1);    // don't print as much detail
     t2opts.spread_debug = std::max(0, opts.spread_debug - 1);
-    t2opts.showwarn     = 0;                           // so don't see warnings 2x
+    t2opts.showwarn     = 0;                              // so don't see warnings 2x
     // (...could vary other t2opts here?)
     // MR: temporary hack, until we have figured out the C++ interface.
     FINUFFT_PLAN_T<TF> *tmpplan;
@@ -989,7 +983,7 @@ int FINUFFT_PLAN_T<TF>::execute(std::complex<TF> *cj, std::complex<TF> *fk) {
       int thisBatchSize     = std::min(ntrans - b * batchSize, batchSize);
       int bB                = b * batchSize; // index of vector, since batchsizes same
       std::complex<TF> *cjb = cj + bB * nj;  // point to batch of weights
-      std::complex<TF> *fkb = fk + bB * N();   // point to batch of mode coeffs
+      std::complex<TF> *fkb = fk + bB * N(); // point to batch of mode coeffs
       if (opts.debug > 1)
         printf("[%s] start batch %d (size %d):\n", __func__, b, thisBatchSize);
 

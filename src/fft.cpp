@@ -10,10 +10,10 @@ using namespace std;
 template<typename TF> std::vector<int> gridsize_for_fft(FINUFFT_PLAN_T<TF> *p) {
   // local helper func returns a new int array of length dim, extracted from
   // the finufft plan, that fftw_plan_many_dft needs as its 2nd argument.
-  if (p->dim == 1) return {(int)p->nf123[0]};
-  if (p->dim == 2) return {(int)p->nf123[1], (int)p->nf123[0]};
+  if (p->dim == 1) return {(int)p->nfdim[0]};
+  if (p->dim == 2) return {(int)p->nfdim[1], (int)p->nfdim[0]};
   // if (p->dim == 3)
-  return {(int)p->nf123[2], (int)p->nf123[1], (int)p->nf123[0]};
+  return {(int)p->nfdim[2], (int)p->nfdim[1], (int)p->nfdim[0]};
 }
 template std::vector<int> gridsize_for_fft<float>(FINUFFT_PLAN_T<float> *p);
 template std::vector<int> gridsize_for_fft<double>(FINUFFT_PLAN_T<double> *p);

@@ -149,26 +149,27 @@ template<typename TF> struct FINUFFT_PLAN_T { // the main plan class, fully C++
   FINUFFT_PLAN_T &operator=(const FINUFFT_PLAN_T &) = delete;
   ~FINUFFT_PLAN_T();
 
-  int type;      // transform type (Rokhlin naming): 1,2 or 3
-  int dim;       // overall dimension: 1,2 or 3
-  int ntrans;    // how many transforms to do at once (vector or "many" mode)
-  BIGINT nj;     // num of NU pts in type 1,2 (for type 3, num input x pts)
-  BIGINT nk;     // number of NU freq pts (type 3 only)
-  TF tol;        // relative user tolerance
-  int batchSize; // # strength vectors to group together for FFTW, etc
-  int nbatch;    // how many batches done to cover all ntrans vectors
+  int type;                   // transform type (Rokhlin naming): 1,2 or 3
+  int dim;                    // overall dimension: 1,2 or 3
+  int ntrans;                 // how many transforms to do at once (vector or "many" mode)
+  BIGINT nj;                  // num of NU pts in type 1,2 (for type 3, num input x pts)
+  BIGINT nk;                  // number of NU freq pts (type 3 only)
+  TF tol;                     // relative user tolerance
+  int batchSize;              // # strength vectors to group together for FFTW, etc
+  int nbatch;                 // how many batches done to cover all ntrans vectors
 
-  std::array<UBIGINT, 3> mstu; // number of modes in x/y/z dir (historical CMCL name) =
-                               // N1/N2/N3
-  UBIGINT N() const { return mstu[0]*mstu[1]*mstu[2]; } // total # modes (prod of above three)
+  std::array<BIGINT, 3> mstu; // number of modes in x,y,z directions
+                              // (historical CMCL names are N1, N2, N3)
+  // func for total # modes (prod of above three)...
+  BIGINT N() const { return mstu[0] * mstu[1] * mstu[2]; }
 
-  std::array<UBIGINT, 3> nf123{1, 1, 1}; // size of internal fine grid in x/y/z
-                                         // direction
-  UBIGINT nf() const { return nf123[0]*nf123[1]*nf123[2]; } // total # fine grid points (product of the above three)
+  std::array<BIGINT, 3> nfdim{1, 1, 1}; // internal fine grid size in x,y,z directions
+  // func to return total # fine grid points...
+  BIGINT nf() const { return nfdim[0] * nfdim[1] * nfdim[2]; }
 
-  int fftSign;    // sign in exponential for NUFFT defn, guaranteed to be +-1
+  int fftSign; // sign in exponential for NUFFT defn, guaranteed to be +-1
 
-  std::array<std::vector<TF>, 3> phiHat; // FT of kernel in t1,2, on x/y/z-axis mode grid
+  std::array<std::vector<TF>, 3> phiHat; // FT of kernel in t1,2, on x,y,z-axis mode grid
 
   // fwBatch: (batches of) fine working grid(s) for the FFT to plan & act on.
   // Usually the largest internal array. Its allocator is 64-byte (cache-line) aligned:
@@ -178,7 +179,7 @@ template<typename TF> struct FINUFFT_PLAN_T { // the main plan class, fully C++
   bool didSort;                    // whether binsorting used (false: identity perm used)
 
   // for t1,2: ptr to user-supplied NU pts (no new allocs).
-  // for t3: will become ptr to internally allocated "primed" (scaled) Xp, Yp, Zp vecs.
+  // for t3: will become ptr to internally allocated "primed" (scaled) Xp, Yp, Zp vecs
   std::array<TF *, 3> XYZ = {nullptr, nullptr, nullptr};
 
   // type 3 specific
