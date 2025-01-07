@@ -47,7 +47,7 @@ For a minimally complete test code demonstrating the above see
 ``fortran/examples/simple1d1.f``.
 
 .. note::
-   
+
    Higher-dimensional arrays are stored in Fortran ordering
    with $x$ (``N1``) the fastest direction, and, in the vectorized
    ("many") calls, the transform number is slowest (transforms are
@@ -63,7 +63,7 @@ compile (eg using GCC/linux) and link such a program against the FINUFFT
 static library, one must list dependent libraries by hand::
 
   gfortran -I../../include simple1d1.f -o simple1d1 ../../lib-static/libfinufft.a -lfftw3 -lfftw3_omp -lgomp -lstdc++
-  
+
 Then to execute run ``./simple1d1``. Alternatively, a smaller executable results by
 linking against the dynamic (``.so``) library (which links all dependent libraries)::
 
@@ -73,7 +73,7 @@ where ``$FINUFFT`` must be replaced by (or be an environment variable set to) th
 Note the use of ``rpath`` to make an executable that may be run from, or moved to, any directory.
 Alternatively you may want to compile with ``g++`` and use ``-lgfortran`` at the end of the compile statement instead of ``-lstdc++``.
 In Mac OSX, replace ``fftw3_omp`` by ``fftw3_threads``, and if you use
-clang, ``-lgomp`` by ``-lomp``. See ``makefile`` and ``make.inc.*``.
+clang, ``-lgomp`` by ``-lomp``. See ``makefile`` and ``make-platforms/*``.
 
 .. note ::
  Our simple interface is designed to be a near drop-in replacement for the native f90 `CMCL libraries of Greengard-Lee <http://www.cims.nyu.edu/cmcl/nufft/nufft.html>`_. The differences are: i) we added a penultimate argument in the list which allows options to be changed, and ii) our normalization differs for type 1 transforms (divide FINUFFT output by $M$ to match CMCL output).
@@ -89,14 +89,14 @@ it to FINUFFT, for instance
 
       include 'finufft.fh'
       type(finufft_opts) opts
- 
+
  !    (...declare, allocate, and fill stuff as above...)
 
       call finufft_default_opts(opts)
       opts%debug = 2
       opts%upsampfac = 1.25d0
       call finufft1d1(M,xj,cj,iflag,tol,N,fk,opts,ier)
- 
+
 See ``fortran/examples/simple1d1.f`` for the complete code,
 and below for the complete list of Fortran subroutines available,
 and more complicated examples.
@@ -135,7 +135,7 @@ These routines and arguments are, in double-precision:
       complex*16, allocatable :: cj(:), fk(:)
       type(finufft_opts) opts
 
- !    simple interface   
+ !    simple interface
       call finufft1d1(M,xj,cj,iflag,tol,N1,fk,opts,ier)
       call finufft1d2(M,xj,cj,iflag,tol,N1,fk,opts,ier)
       call finufft1d3(M,xj,cj,iflag,tol,Nk,sk,fk,opts,ier)

@@ -5,7 +5,7 @@ set -e -x
 cd /io/
 
 # Replace native compilation flags with more generic ones.
-cp make.inc.manylinux make.inc
+cp make-platforms/make.inc.manylinux make.inc
 
 # Clean up the build and make the library.
 make clean
@@ -31,7 +31,7 @@ pys=(${pys[@]//*35*/})
 
 for PYBIN in "${pys[@]}"; do
     "${PYBIN}/pip" install auditwheel wheel twine numpy
-    "${PYBIN}/pip" wheel /io/python -w python/wheelhouse    
+    "${PYBIN}/pip" wheel /io/python -w python/wheelhouse
 done
 
 for whl in python/wheelhouse/$package_name-*.whl; do
