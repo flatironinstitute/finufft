@@ -10,10 +10,10 @@ using namespace std;
 template<typename TF> std::vector<int> gridsize_for_fft(FINUFFT_PLAN_T<TF> *p) {
   // local helper func returns a new int array of length dim, extracted from
   // the finufft plan, that fftw_plan_many_dft needs as its 2nd argument.
-  if (p->dim == 1) return {(int)p->nf1};
-  if (p->dim == 2) return {(int)p->nf2, (int)p->nf1};
+  if (p->dim == 1) return {(int)p->nf123[0]};
+  if (p->dim == 2) return {(int)p->nf123[1], (int)p->nf123[0]};
   // if (p->dim == 3)
-  return {(int)p->nf3, (int)p->nf2, (int)p->nf1};
+  return {(int)p->nf123[2], (int)p->nf123[1], (int)p->nf123[0]};
 }
 template std::vector<int> gridsize_for_fft<float>(FINUFFT_PLAN_T<float> *p);
 template std::vector<int> gridsize_for_fft<double>(FINUFFT_PLAN_T<double> *p);
@@ -49,11 +49,11 @@ template<typename TF> void do_fft(FINUFFT_PLAN_T<TF> *p) {
   if (p->dim == 1)        // 1D: no chance for FFT shortcuts
     ducc0::c2c(data, data, axes, p->fftSign < 0, TF(1), nthreads);
   else if (p->dim == 2) { // 2D: do partial FFTs
-    if (p->ms < 2)        // something is weird, do standard FFT
+    if (p->mstu[0] < 2)   // something is weird, do standard FFT
       ducc0::c2c(data, data, axes, p->fftSign < 0, TF(1), nthreads);
     else {
-      size_t y_lo = size_t((p->ms + 1) / 2);
-      size_t y_hi = size_t(ns[1] - p->ms / 2);
+      size_t y_lo = size_t((p->mstu[0] + 1) / 2);
+      size_t y_hi = size_t(ns[1] - p->mstu[0] / 2);
       // the next line is analogous to the Python statement "sub1 = data[:, :, :y_lo]"
       auto sub1 = ducc0::subarray(data, {{}, {}, {0, y_lo}});
       // the next line is analogous to the Python statement "sub2 = data[:, :, y_hi:]"
@@ -68,14 +68,14 @@ template<typename TF> void do_fft(FINUFFT_PLAN_T<TF> *p) {
         // do axis 2 in full
         ducc0::c2c(data, data, {2}, p->fftSign < 0, TF(1), nthreads);
     }
-  } else {                          // 3D
-    if ((p->ms < 2) || (p->mt < 2)) // something is weird, do standard FFT
+  } else {                                    // 3D
+    if ((p->mstu[0] < 2) || (p->mstu[1] < 2)) // something is weird, do standard FFT
       ducc0::c2c(data, data, axes, p->fftSign < 0, TF(1), nthreads);
     else {
-      size_t z_lo = size_t((p->ms + 1) / 2);
-      size_t z_hi = size_t(ns[2] - p->ms / 2);
-      size_t y_lo = size_t((p->mt + 1) / 2);
-      size_t y_hi = size_t(ns[1] - p->mt / 2);
+      size_t z_lo = size_t((p->mstu[0] + 1) / 2);
+      size_t z_hi = size_t(ns[2] - p->mstu[0] / 2);
+      size_t y_lo = size_t((p->mstu[1] + 1) / 2);
+      size_t y_hi = size_t(ns[1] - p->mstu[1] / 2);
       auto sub1   = ducc0::subarray(data, {{}, {}, {}, {0, z_lo}});
       auto sub2   = ducc0::subarray(data, {{}, {}, {}, {z_hi, ducc0::MAXIDX}});
       auto sub3   = ducc0::subarray(sub1, {{}, {}, {0, y_lo}, {}});
