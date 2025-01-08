@@ -157,7 +157,7 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
   }
   if (d_plan->opts.gpu_spreadinterponly) {
     // XNOR implementation below with boolean logic.
-    if ((d_plan->opts.upsampfac != 1) == (type != 3)) {
+    if ((d_plan->opts.upsampfac != 1.0) == (type != 3)) {
       ier = FINUFFT_ERR_SPREADONLY_UPSAMP_INVALID;
       goto finalize;
     }
@@ -196,7 +196,6 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
                                   d_plan->opts.gpu_binsizey, d_plan->opts.gpu_binsizez);
     printf("[cufinufft] shared memory required for the spreader: %ld\n", mem_required);
   }
-
 
   // dynamically request the maximum amount of shared memory available
   // for the spreader
@@ -765,8 +764,8 @@ int cufinufft_setpts_impl(int M, T *d_kx, T *d_ky, T *d_kz, int N, T *d_s, T *d_
           thrust::cuda::par.on(stream), phase_iterator, phase_iterator + N,
           d_plan->deconv, d_plan->deconv,
           [c1, c2, c3, d1, d2, d3, realsign] __host__ __device__(
-              const thrust::tuple<T, T, T> tuple, cuda_complex<T> deconv)
-              -> cuda_complex<T> {
+              const thrust::tuple<T, T, T> tuple,
+              cuda_complex<T> deconv) -> cuda_complex<T> {
             // d2 and d3 are 0 if dim < 2 and dim < 3
             const auto phase = c1 * (thrust::get<0>(tuple) + d1) +
                                c2 * (thrust::get<1>(tuple) + d2) +

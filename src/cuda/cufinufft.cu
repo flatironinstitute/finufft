@@ -99,8 +99,6 @@ void cufinufft_default_opts(cufinufft_opts *opts)
     The resulting struct may then be passed (instead of NULL) to the last
     argument of cufinufft_plan().
 
-    Options with prefix "gpu_" are used for gpu code.
-
     Notes:
     1) Values set in this function for different type and dimensions are preferable
     based on experiments. User can experiment with different settings by
@@ -112,17 +110,15 @@ void cufinufft_default_opts(cufinufft_opts *opts)
 {
   // sphinx tag (don't remove): @gpu_defopts_start
   // data handling opts...
-  opts->modeord       = 0;
-  opts->gpu_device_id = 0;
-
-  // diagnostic opts...
+  opts->modeord              = 0;
+  opts->gpu_device_id        = 0;
   opts->gpu_spreadinterponly = 0;
 
   // algorithm performance opts...
   opts->gpu_method         = 0;
   opts->gpu_sort           = 1;
   opts->gpu_kerevalmeth    = 1;
-  opts->upsampfac          = 0;
+  opts->upsampfac          = 0.0;
   opts->gpu_maxsubprobsize = 1024;
   opts->gpu_obinsizex      = 0;
   opts->gpu_obinsizey      = 0;

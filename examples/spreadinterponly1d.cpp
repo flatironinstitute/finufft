@@ -1,0 +1,83 @@
+// this is all you must include for the finufft lib...
+#include <finufft.h>
+
+// also used in this example...
+#include <cassert>
+#include <chrono>
+#include <complex>
+#include <cstdio>
+#include <stdlib.h>
+#include <vector>
+using namespace std;
+using namespace std::chrono;
+
+int main(int argc, char *argv[])
+/* Example of double-prec spread/interp only tasks, with basic math test (total mass,
+   ie testing the zero-frequency component). A better math test would be,
+   ironically, to use this spreader/interpolator as part of a NUFFT :)
+   Complex I/O arrays, but kernel is real.  Barnett 1/8/25
+   See: spreadtestnd for demos of non-FINUFFT interface to spread/interp module.
+
+   Compile and run (static library case):
+
+   g++ spreadinterponly1d.cpp -I../include ../lib-static/libfinufft.a -o
+   spreadinterponly1d -lfftw3 -lfftw3_omp && ./spreadinterponly1d
+*/
+{
+  int M = 1e7; // number of nonuniform points
+  int N = 1e7; // size of regular grid
+  finufft_opts opts;
+  finufft_default_opts(&opts);
+  opts.spreadinterponly = 1;    // task: the following two control kernel used...
+  double tol            = 1e-9; // tolerance for (real) kernel shape design only
+  opts.upsampfac        = 2.0;  // pretend upsampling factor (really no upsampling)
+  // opts.spread_kerevalmeth = 0;  // would be needed for nonstd upsampfacs
+
+  complex<double> I = complex<double>(0.0, 1.0); // the imaginary unit
+  vector<double> x(M);                           // input
+  vector<complex<double>> c(M);                  // input
+  vector<complex<double>> F(N);                  // output (spread to this array)
+
+  // first spread M=1 single unit-strength at the origin, to get its total mass...
+  x[0]       = 0.0;
+  c[0]       = 1.0;
+  int unused = 1;
+  int ier    = finufft1d1(1, &x[0], &c[0], unused, tol, N, &F[0], &opts);
+  if (ier > 1) return ier;
+  complex<double> kersum = 0.0;
+  for (auto Fk : F) kersum += Fk; // kernel mass
+
+  // Now generate random nonuniform points (x) and complex strengths (c)...
+  for (int j = 0; j < M; ++j) {
+    x[j] = M_PI * (2 * ((double)rand() / RAND_MAX) - 1); // uniform random in [-pi,pi)
+    c[j] =
+        2 * ((double)rand() / RAND_MAX) - 1 + I * (2 * ((double)rand() / RAND_MAX) - 1);
+  }
+
+  opts.debug = 1;
+  auto t0    = steady_clock::now(); // now spread with all M pts... (dir=1)
+  ier        = finufft1d1(M, &x[0], &c[0], unused, tol, N, &F[0], &opts);
+  double t   = (steady_clock::now() - t0) / 1.0s;
+  if (ier > 1) return ier;
+  complex<double> csum = 0.0; // tot input strength
+  for (auto cj : c) csum += cj;
+  complex<double> mass = 0.0; // tot output mass
+  for (auto Fk : F) mass += Fk;
+  double relerr = abs(mass - kersum * csum) / abs(mass);
+  printf("1D spread-only, double-prec, %.3g s (%.3g NU pt/sec), ier=%d, mass err %.3g\n",
+         t, M / t, ier, relerr);
+
+  for (auto &Fk : F) Fk = complex<double>{1.0, 0.0}; // unit grid input
+  opts.debug = 0;
+  t0         = steady_clock::now(); // now interp to all M pts...  (dir=2)
+  ier        = finufft1d2(M, &x[0], &c[0], unused, tol, N, &F[0], &opts);
+  t          = (steady_clock::now() - t0) / 1.0s;
+  if (ier > 1) return ier;
+  csum = 0.0; // tot output
+  for (auto cj : c) csum += cj;
+  double maxerr = 0.0;
+  for (auto cj : c) maxerr = max(maxerr, abs(cj - kersum));
+  printf("1D interp-only, double-prec, %.3g s (%.3g NU pt/sec), ier=%d, max err %.3g\n",
+         t, M / t, ier, maxerr / abs(kersum));
+  return 0;
+}

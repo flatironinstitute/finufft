@@ -652,27 +652,42 @@ FINUFFT_PLAN_T<TF>::FINUFFT_PLAN_T(int type_, int dim_, const BIGINT *n_modes, i
                          // Note: batchSize not used since might be only 1.
 
     spopts.spread_direction = type;
+    constexpr TF EPSILON    = std::numeric_limits<TF>::epsilon();
 
-    constexpr TF EPSILON = std::numeric_limits<TF>::epsilon();
-    if (opts.showwarn) { // user warn round-off error (due to prob condition #)...
-      for (int idim = 0; idim < dim; ++idim)
-        if (EPSILON * mstu[idim] > 1.0)
-          fprintf(stderr,
-                  "%s warning: rounding err (due to cond # of prob) eps_mach*N%d = %.3g "
-                  "> 1 !\n",
-                  __func__, idim, (double)(EPSILON * mstu[idim]));
-    }
+    if (opts.spreadinterponly) { // (unusual case of no NUFFT, just report)
 
-    // determine fine grid sizes, sanity check them...
-    for (int idim = 0; idim < dim; ++idim) {
-      int nfier = set_nf_type12(mstu[idim], opts, spopts, &nfdim[idim]);
-      if (nfier) throw nfier; // nf too big; we're done
-    }
+      // spreadinterp grid will simply be the user's "mode" grid...
+      for (int idim = 0; idim < dim; ++idim) nfdim[idim] = mstu[idim];
 
-    if (!opts.spreadinterponly) { // ..... eval Fourier series, alloc workspace .....
+      if (opts.debug) { // "long long" here is to avoid warnings with printf...
+        printf("[%s] %dd spreadinterponly(dir=%d): (ms,mt,mu)=(%lld,%lld,%lld)"
+               "\n               ntrans=%d nthr=%d batchSize=%d kernel width ns=%d",
+               __func__, dim, type, (long long)mstu[0], (long long)mstu[1],
+               (long long)mstu[2], ntrans, nthr, batchSize, spopts.nspread);
+        if (batchSize == 1) // spread_thread has no effect in this case
+          printf("\n");
+        else
+          printf(" spread_thread=%d\n", opts.spread_thread);
+      }
 
-      for (int idim = 0; idim < dim; ++idim)
+    } else { // ..... usual NUFFT: eval Fourier series, alloc workspace .....
+
+      if (opts.showwarn) { // user warn round-off error (due to prob condition #)...
+        for (int idim = 0; idim < dim; ++idim)
+          if (EPSILON * mstu[idim] > 1.0)
+            fprintf(
+                stderr,
+                "%s warning: rounding err (due to cond # of prob) eps_mach*N%d = %.3g "
+                "> 1 !\n",
+                __func__, idim, (double)(EPSILON * mstu[idim]));
+      }
+
+      // determine fine grid sizes, sanity check, then alloc...
+      for (int idim = 0; idim < dim; ++idim) {
+        int nfier = set_nf_type12(mstu[idim], opts, spopts, &nfdim[idim]);
+        if (nfier) throw nfier;                   // nf too big; we're done
         phiHat[idim].resize(nfdim[idim] / 2 + 1); // alloc fseries
+      }
 
       if (opts.debug) { // "long long" here is to avoid warnings with printf...
         printf("[%s] %dd%d: (ms,mt,mu)=(%lld,%lld,%lld) "
@@ -1018,7 +1033,8 @@ int FINUFFT_PLAN_T<TF>::execute(std::complex<TF> *cj, std::complex<TF> *fk) {
         spreadinterpSortedBatch<TF>(thisBatchSize, this, fwBatch_or_fkb, cjb);
         t_sprint += timer.elapsedsec();
       }
-      // Release the fwBatch vector to prevent double freeing of memory (explain!)
+      // Release the fwBatch vector to prevent double freeing of memory (explain or
+      // delete!)
     } // ........end b loop
 
     if (opts.debug) { // report total times in their natural order...
