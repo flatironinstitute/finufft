@@ -12,16 +12,22 @@ using namespace std;
 using namespace std::chrono;
 
 int main(int argc, char *argv[])
-/* Example of double-prec spread/interp only tasks, with basic math test (total mass,
-   ie testing the zero-frequency component). A better math test would be,
-   ironically, to use this spreader/interpolator as part of a NUFFT :)
+/* Example of double-prec spread/interp only tasks, with basic math tests.
    Complex I/O arrays, but kernel is real.  Barnett 1/8/25
-   See: spreadtestnd for demos of non-FINUFFT interface to spread/interp module.
+   The math tests are:
+   1) for spread, check sum of spread kernel masses is as expected from one
+   times the strengths (ie testing the zero-frequency component in NUFFT).
+   2) for interp, check each interp kernel mass is the same as from one.
+   Without knowing the kernel, this is about all that can be done.
+   (Better math tests would be, ironically, to wrap the spreader/interpolator
+   into a NUFFT and test that :) But we already have that in FINUFFT.)
 
    Compile and run (static library case):
 
    g++ spreadinterponly1d.cpp -I../include ../lib-static/libfinufft.a -o
    spreadinterponly1d -lfftw3 -lfftw3_omp && ./spreadinterponly1d
+
+   See: spreadtestnd for usage of internal (non FINUFFT-API) spread/interp.
 */
 {
   int M = 1e7; // number of nonuniform points
