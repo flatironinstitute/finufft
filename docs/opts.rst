@@ -92,8 +92,6 @@ Data handling options
 
   .. note:: The index *sets* are the same in the two ``modeord`` choices; their ordering differs only by a cyclic shift. The FFT ordering cyclically shifts the CMCL indices $\mbox{floor}(N/2)$ to the left (often called an "fftshift").
 
-**chkbnds**: [DEPRECATED] has no effect.
-
 
 Diagnostic options
 ~~~~~~~~~~~~~~~~~~~~~~~

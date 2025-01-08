@@ -31,7 +31,6 @@
      opts.maxbatchsize:  for ntrans>1 only. max blocking size, or 0 for auto.
      opts.nthreads:   number of threads, or 0: use all available (default)
      opts.modeord: 0 (CMCL increasing mode ordering, default), 1 (FFT ordering)
-     opts.chkbnds: [DEPRECATED] has no effect
    Outputs:
      f     size-ms complex column vector of Fourier coefficients, or, if
            ntrans>1, a matrix of size (ms,ntrans).
@@ -78,7 +77,6 @@
      opts.maxbatchsize:  for ntrans>1 only. max blocking size, or 0 for auto.
      opts.nthreads:   number of threads, or 0: use all available (default)
      opts.modeord: 0 (CMCL increasing mode ordering, default), 1 (FFT ordering)
-     opts.chkbnds: [DEPRECATED] has no effect
   Outputs:
      c     complex column vector of nj answers at targets, or,
            if ntrans>1, matrix of size (nj,ntrans).
@@ -175,7 +173,6 @@
      opts.maxbatchsize:  for ntrans>1 only. max blocking size, or 0 for auto.
      opts.nthreads:   number of threads, or 0: use all available (default)
      opts.modeord: 0 (CMCL increasing mode ordering, default), 1 (FFT ordering)
-     opts.chkbnds: [DEPRECATED] has no effect
    Outputs:
      f     size (ms,mt) complex matrix of Fourier coefficients
            (ordering given by opts.modeord in each dimension; ms fast, mt slow),
@@ -225,7 +222,6 @@
      opts.maxbatchsize:  for ntrans>1 only. max blocking size, or 0 for auto.
      opts.nthreads:   number of threads, or 0: use all available (default)
      opts.modeord: 0 (CMCL increasing mode ordering, default), 1 (FFT ordering)
-     opts.chkbnds: [DEPRECATED] has no effect
   Outputs:
      c     complex column vector of nj answers at targets, or,
            if ntrans>1, matrix of size (nj,ntrans).
@@ -325,7 +321,6 @@
      opts.maxbatchsize:  for ntrans>1 only. max blocking size, or 0 for auto.
      opts.nthreads:   number of threads, or 0: use all available (default)
      opts.modeord: 0 (CMCL increasing mode ordering, default), 1 (FFT ordering)
-     opts.chkbnds: [DEPRECATED] has no effect
    Outputs:
      f     size (ms,mt,mu) complex array of Fourier coefficients
            (ordering given by opts.modeord in each dimension; ms fastest, mu
@@ -377,7 +372,6 @@
      opts.maxbatchsize:  for ntrans>1 only. max blocking size, or 0 for auto.
      opts.nthreads:   number of threads, or 0: use all available (default)
      opts.modeord: 0 (CMCL increasing mode ordering, default), 1 (FFT ordering)
-     opts.chkbnds: [DEPRECATED] has no effect
   Outputs:
      c     complex column vector of nj answers at targets, or,
            if ntrans>1, matrix of size (nj,ntrans).
@@ -477,7 +471,7 @@
  Creates a finufft_plan MATLAB object in the guru interface to FINUFFT, of
   type 1, 2 or 3, and with given numbers of Fourier modes (unless type 3).
 
- Inputs: 
+ Inputs:
      type            transform type: 1, 2, or 3
      n_modes_or_dim  if type is 1 or 2, the number of Fourier modes in each
                      dimension: [ms] in 1D, [ms mt] in 2D, or [ms mt mu] in 3D.
@@ -499,7 +493,6 @@
      opts.floatprec: library precision to use, 'double' (default) or 'single'.
      for type 1 and 2 only, the following opts fields are also relevant:
      opts.modeord: 0 (CMCL increasing mode ordering, default), 1 (FFT ordering)
-     opts.chkbnds: [DEPRECATED] has no effect
  Outputs:
      plan            finufft_plan object (opaque pointer)
 
@@ -591,6 +584,3 @@
 
  This deallocates all stored FFTW plans, nonuniform point sorting arrays,
   kernel Fourier transforms arrays, etc.
-
-
-

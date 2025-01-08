@@ -30,7 +30,6 @@
 %     opts.maxbatchsize:  for ntrans>1 only. max blocking size, or 0 for auto.
 %     opts.nthreads:   number of threads, or 0: use all available (default)
 %     opts.modeord: 0 (CMCL increasing mode ordering, default), 1 (FFT ordering)
-%     opts.chkbnds: [DEPRECATED] has no effect
 %  Outputs:
 %     c     complex column vector of nj answers at targets, or,
 %           if ntrans>1, matrix of size (nj,ntrans).

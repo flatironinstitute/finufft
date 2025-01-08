@@ -383,9 +383,9 @@ FE32 := $(filter-out %/simple1d1_f90f, $(FE64:%=%f))
 FE = $(FE64) $(FE32)
 
 # fortran target pattern match (no longer runs executables)
-$(FE_DIR)/%: $(FE_DIR)/%.f $(CMCLOBJS) $(DYNLIB)
+$(FE_DIR)/%: $(FE_DIR)/%.f $(CMCLOBJS) $(DYNLIB) include/finufft.fh
 	$(FC) $(FFLAGS) ${LDFLAGS} $< $(CMCLOBJS) $(ABSDYNLIB) $(FLINK) -o $@
-$(FE_DIR)/%f: $(FE_DIR)/%f.f $(CMCLOBJS) $(DYNLIB)
+$(FE_DIR)/%f: $(FE_DIR)/%f.f $(CMCLOBJS) $(DYNLIB) include/finufft.fh
 	$(FC) $(FFLAGS) ${LDFLAGS} $< $(CMCLOBJS) $(ABSDYNLIB) $(FLINK) -o $@
 # fortran90 lone demo
 $(FE_DIR)/simple1d1_f90: $(FE_DIR)/simple1d1.f90 include/finufft_mod.f90 $(CMCLOBJS) $(DYNLIB)
@@ -519,6 +519,7 @@ ifneq ($(MINGW),ON)
 	rm -f $(EXAMPLES) $(FE) $(ST) $(STF) $(STA) $(STAF) $(GTT) $(GTTF)
 	rm -f perftest/manysmallprobs perftest/big2d2f
 	rm -f examples/core test/core perftest/core $(FE_DIR)/core
+	rm -f fortran/examples/finufft_mod.mod
 else
   # Windows-WSL clean up...
 	del $(subst /,\,$(STATICLIB)), $(subst /,\,$(DYNLIB))
@@ -528,6 +529,7 @@ else
 	for %%f in ($(subst /,\, $(EXAMPLES)), $(subst /,\,$(FE)), $(subst /,\,$(ST)), $(subst /,\,$(STF)), $(subst /,\,$(STA)), $(subst /,\,$(STAF)), $(subst /,\,$(GTT)), $(subst /,\,$(GTTF))) do ((if exist %%f del %%f) & (if exist %%f.exe del %%f.exe))
 	del perftest\manysmallprobs, perftest\big2d2f
 	del examples\core, test\core, perftest\core, $(subst /,\, $(FE_DIR))\core
+	del fortran\examples\finufft_mod.mod
 endif
 
 

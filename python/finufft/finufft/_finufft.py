@@ -72,7 +72,6 @@ class FinufftOpts(ctypes.Structure):
 
 
 FinufftOpts._fields_ = [('modeord', c_int),
-                      ('chkbnds', c_int),
                       ('debug', c_int),
                       ('spread_debug', c_int),
                       ('showwarn', c_int),

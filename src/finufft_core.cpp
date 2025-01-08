@@ -110,16 +110,11 @@ static int setup_spreader_for_nufft(finufft_spread_opts &spopts, T eps,
   spopts.debug    = opts.spread_debug;
   spopts.sort     = opts.spread_sort;   // could make dim or CPU choices here?
   spopts.kerpad   = opts.spread_kerpad; // (only applies to kerevalmeth=0)
-  spopts.chkbnds  = opts.chkbnds;
   spopts.nthreads = opts.nthreads;      // 0 passed in becomes omp max by here
   if (opts.spread_nthr_atomic >= 0)     // overrides
     spopts.atomic_threshold = opts.spread_nthr_atomic;
   if (opts.spread_max_sp_size > 0)      // overrides
     spopts.max_subproblem_size = opts.spread_max_sp_size;
-  if (opts.chkbnds != 1)                // deprecated default value hardcoded here
-    fprintf(stderr,
-            "[%s] opts.chkbnds is deprecated; ignoring change from default value.\n",
-            __func__);
   return ier;
 }
 
@@ -515,7 +510,6 @@ void finufft_default_opts_t(finufft_opts *o)
 {
   // sphinx tag (don't remove): @defopts_start
   o->modeord = 0;
-  o->chkbnds = 1;
 
   o->debug        = 0;
   o->spread_debug = 0;
@@ -778,10 +772,7 @@ int FINUFFT_PLAN_T<TF>::setpts(BIGINT nj, TF *xj, TF *yj, TF *zj, BIGINT nk, TF 
                             // (all we can do is check and maybe bin-sort the NU pts)
     XYZ     = {xj, yj, zj}; // plan must keep pointers to user's fixed NU pts
     int ier = spreadcheck(nfdim[0], nfdim[1], nfdim[2], nj, xj, yj, zj, spopts);
-    if (opts.debug > 1)
-      printf("[%s] spreadcheck (%d):\t%.3g s\n", __func__, spopts.chkbnds,
-             timer.elapsedsec());
-    if (ier) // no warnings allowed here
+    if (ier)                // no warnings allowed here
       return ier;
     timer.restart();
     sortIndices.resize(nj);

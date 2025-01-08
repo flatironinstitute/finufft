@@ -126,8 +126,6 @@ Crash (segfault) issues and advice
 
 - If you use C++/C/Fortran and changed the options struct values, did you forget to call ``finufft_default_opts`` first?
 
-- Maybe you have switched off nonuniform point bounds checking (``opts.chkbnds=0``) for a little extra speed? Try switching it on again to catch illegal coordinates.
-
 - Thread-safety: are you calling FINUFFT from inside a multithreaded block of code without setting ``opts.nthreads=1``? If ``gdb`` indicates crashes during FFTW calls, this is another sign.
 
 - To isolate where a crash is occurring, set ``opts.debug`` to 1 or 2, and check the text output of the various stages. With a debug setting of 2 or above, when ``ntrans>1`` a large amount of text can be generated.
@@ -143,7 +141,7 @@ Other known issues with library or interfaces
 The master list is the github issues for the project page,
 https://github.com/flatironinstitute/finufft/issues.
 
-A secondary and more speculative list is in the ``TODO`` text file.
+A secondary and more speculative list is in the ``devel/TODO`` text file.
 
 Please look through those issue topics, since sometimes workarounds
 are discussed before the problem is fixed in a release.

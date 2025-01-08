@@ -28,7 +28,6 @@
 %     opts.maxbatchsize:  for ntrans>1 only. max blocking size, or 0 for auto.
 %     opts.nthreads:   number of threads, or 0: use all available (default)
 %     opts.modeord: 0 (CMCL increasing mode ordering, default), 1 (FFT ordering)
-%     opts.chkbnds: [DEPRECATED] has no effect
 %  Outputs:
 %     c     complex column vector of nj answers at targets, or,
 %           if ntrans>1, matrix of size (nj,ntrans).
@@ -53,4 +52,3 @@ if ms==1, ms=n_transf; n_transf=1; end     % allow a single row vec as valid f
 p = finufft_plan(2,ms,isign,n_transf,eps,o);
 p.setpts(x,[],[]);
 c = p.execute(f);
-
