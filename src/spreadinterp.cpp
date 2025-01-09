@@ -2136,19 +2136,22 @@ template int spreadinterpSorted<double>(
 ///////////////////////////////////////////////////////////////////////////
 
 template<typename T>
-FINUFFT_EXPORT int FINUFFT_CDECL setup_spreader(finufft_spread_opts &opts, T eps,
-                                                double upsampfac, int kerevalmeth,
-                                                int debug, int showwarn, int dim)
+FINUFFT_EXPORT int FINUFFT_CDECL setup_spreader(
+    finufft_spread_opts &opts, T eps, double upsampfac, int kerevalmeth, int debug,
+    int showwarn, int dim, int spreadinterponly)
 /* Initializes spreader kernel parameters given desired NUFFT tolerance eps,
    upsampling factor (=sigma in paper, or R in Dutt-Rokhlin), ker eval meth
    (either 0:exp(sqrt()), 1: Horner ppval), and some debug-level flags.
    Also sets all default options in finufft_spread_opts. See finufft_spread_opts.h for
    opts. dim is spatial dimension (1,2, or 3). See finufft_core:finufft_plan() for where
    upsampfac is set. Must call this before any kernel evals done, otherwise segfault
-   likely. Returns: 0  : success FINUFFT_WARN_EPS_TOO_SMALL : requested eps cannot be
-   achieved, but proceed with best possible eps otherwise : failure (see codes in
-   finufft_errors.h); spreading must not proceed Barnett 2017. debug, loosened eps logic
-   6/14/20.
+   likely.
+   Returns: 0  : success
+            FINUFFT_WARN_EPS_TOO_SMALL : requested eps cannot be achieved,
+                                         but proceed with best possible eps
+            otherwise : failure (see codes in finufft_errors.h); spreading must
+                        not proceed
+   Barnett 2017. debug, loosened eps logic 6/14/20.
 */
 {
   constexpr T EPSILON = std::numeric_limits<T>::epsilon();
@@ -2160,13 +2163,13 @@ FINUFFT_EXPORT int FINUFFT_CDECL setup_spreader(finufft_spread_opts &opts, T eps
               upsampfac);
       return FINUFFT_ERR_HORNER_WRONG_BETA;
     }
-    if (upsampfac < 1.0) { // no digits would result
-      fprintf(stderr, "FINUFFT setup_spreader: error, upsampfac=%.3g is < 1.0\n",
+    if (upsampfac <= 1.0) { // no digits would result, ns infinite
+      fprintf(stderr, "FINUFFT setup_spreader: error, upsampfac=%.3g is <= 1.0\n",
               upsampfac);
       return FINUFFT_ERR_UPSAMPFAC_TOO_SMALL;
     }
-    // calling routine must abort on above errors, since opts is garbage!
-    if (showwarn && upsampfac > 4.0)
+    // calling routine must abort on above errors, since (spread)opts is garbage!
+    if (showwarn && !spreadinterponly && upsampfac > 4.0)
       fprintf(stderr,
               "FINUFFT setup_spreader warning: upsampfac=%.3g way too large to be "
               "beneficial.\n",
@@ -2233,10 +2236,10 @@ FINUFFT_EXPORT int FINUFFT_CDECL setup_spreader(finufft_spread_opts &opts, T eps
 }
 template FINUFFT_EXPORT int FINUFFT_CDECL setup_spreader<float>(
     finufft_spread_opts &opts, float eps, double upsampfac, int kerevalmeth, int debug,
-    int showwarn, int dim);
+    int showwarn, int dim, int spreadinterponly);
 template FINUFFT_EXPORT int FINUFFT_CDECL setup_spreader<double>(
     finufft_spread_opts &opts, double eps, double upsampfac, int kerevalmeth, int debug,
-    int showwarn, int dim);
+    int showwarn, int dim, int spreadinterponly);
 
 template<typename T>
 T evaluate_kernel(T x, const finufft_spread_opts &opts)

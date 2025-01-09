@@ -105,7 +105,7 @@ static int setup_spreader_for_nufft(finufft_spread_opts &spopts, T eps,
 {
   // this calls spreadinterp.cpp...
   int ier = setup_spreader(spopts, eps, opts.upsampfac, opts.spread_kerevalmeth,
-                           opts.spread_debug, opts.showwarn, dim);
+                           opts.spread_debug, opts.showwarn, dim, opts.spreadinterponly);
   // override various spread opts from their defaults...
   spopts.debug    = opts.spread_debug;
   spopts.sort     = opts.spread_sort;   // could make dim or CPU choices here?
@@ -1004,7 +1004,7 @@ int FINUFFT_PLAN_T<TF>::execute(std::complex<TF> *cj, std::complex<TF> *fk) {
 
       // STEP 1: (varies by type)
       timer.restart();
-      // usually spread/interp to/from fwBatch (if spreadinterponly to/from user grid)
+      // usually spread/interp to/from fwBatch (vs spreadinterponly: to/from user grid)
       std::complex<TF> *fwBatch_or_fkb =
           opts.spreadinterponly ? fkb : this->fwBatch.data();
       if (type == 1) { // type 1: spread NU pts X, weights cj, to fw grid
