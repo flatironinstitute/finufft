@@ -1033,8 +1033,6 @@ int FINUFFT_PLAN_T<TF>::execute(std::complex<TF> *cj, std::complex<TF> *fk) {
         spreadinterpSortedBatch<TF>(thisBatchSize, this, fwBatch_or_fkb, cjb);
         t_sprint += timer.elapsedsec();
       }
-      // Release the fwBatch vector to prevent double freeing of memory (explain or
-      // delete!)
     } // ........end b loop
 
     if (opts.debug) { // report total times in their natural order...

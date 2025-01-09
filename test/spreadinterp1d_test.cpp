@@ -11,6 +11,8 @@
 */
 #include <finufft/test_defs.h>
 using namespace std;
+using namespace finufft::utils;
+
 const char *help[] = {"Tester for FINUFFT in 1d, spread/interp only, either precision.",
                       "",
                       "Usage: spreadinterp1d_test Ngrid Nsrc [tol [debug [spread_sort "
@@ -72,7 +74,7 @@ int main(int argc, char *argv[]) {
     }
   }
   printf("spread-only test 1d:\n"); // ............................................
-  finufft::utils::CNTime timer;
+  CNTime timer;
   timer.start();                    // c input, F output...
   ier      = FINUFFT1D1(M, x.data(), c.data(), unused, tol, N, F.data(), &opts);
   double t = timer.elapsedsec();
