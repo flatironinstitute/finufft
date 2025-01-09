@@ -62,9 +62,9 @@ If FINUFFT is slow (eg, less than $10^6$ to $10^7$ nonuniform points per second,
   Extract the relevant transform type (all three types are included), and compare its timing and throughput to your own. Usually the fact that these tests use random NU point distributions does not affect the speed that much compared to typical applications.
   If you instead use the vectorized ("many") interface for a stack of, say, 50 such transforms, use::
 
-    OMP_NUMTHREADS=8 test/finufft2d_test 500 500 1e6 1e-5
+    OMP_NUMTHREADS=8 test/finufft2dmany_test 50 500 500 1e6 1e-5
 
-  which compares the stack of transforms to the same transforms performed individually. For single precision tests, append ``f`` to the executable name in both of the above examples. The command line options for each tester can be seen by executing without any options.
+  which compares the stack of transforms to the same transforms performed individually (showing a 2x speedup on my laptop). For single precision tests, append ``f`` to the executable name in both of the above examples. The command line options for each tester can be seen by executing without any options.
 
 - Compare your timings against those reported on our :ref:`performance <performance>` page, for similar problem parameters, and read the information on that page.
 
