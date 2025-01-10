@@ -22,9 +22,13 @@ is written in C++, OpenMP, and calls
 `FFTW <http://www.fftw.org>`_.
 It has been developed since 2017 at the `Center for Computational Mathematics
 <https://www.simonsfoundation.org/flatiron/center-for-computational-mathematics/>`_ at the `Flatiron Institute <https://www.simonsfoundation.org/flatiron>`_,
+a division of the `Simons Foundation <https://www.simonsfoundation.org>`_,
 by :ref:`Alex Barnett and others<ackn>`,
 and is released under an
-`Apache v2 license <https://github.com/flatironinstitute/finufft/blob/master/LICENSE>`_. Here is a `project overview <https://users.flatironinstitute.org/~ahb/notes/finufft-project-summary-2023.pdf>`_.
+`Apache v2 license <https://github.com/flatironinstitute/finufft/blob/master/LICENSE>`_. Here is a `project overview from 2023 <https://users.flatironinstitute.org/~ahb/notes/finufft-project-summary-2023.pdf>`_.
+
+.. image:: FIlogo_200.png
+    :width: 30%
 
 What does FINUFFT do?
 -----------------------
