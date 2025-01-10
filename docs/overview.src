@@ -4,7 +4,7 @@
    needed for latex. Apparently the next label is needed for eq:1d1 to work:
 
 .. image:: logo.png
-    :width: 35%
+    :width: 33%
 .. image:: spreadpic.png
     :width: 41%
 .. image:: FIlogo_200.png
