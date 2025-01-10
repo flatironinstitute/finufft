@@ -4,9 +4,11 @@
    needed for latex. Apparently the next label is needed for eq:1d1 to work:
 
 .. image:: logo.png
-    :width: 45%
+    :width: 35%
 .. image:: spreadpic.png
-    :width: 54%
+    :width: 41%
+.. image:: FIlogo_200.png
+    :width: 23%
 
 `FINUFFT <https://github.com/flatironinstitute/finufft>`_ is a library to compute efficiently the three most common types of nonuniform fast Fourier transform
 (NUFFT) to a specified precision, in one, two, or three dimensions,
@@ -26,10 +28,6 @@ a division of the `Simons Foundation <https://www.simonsfoundation.org>`_,
 by :ref:`Alex Barnett and others<ackn>`,
 and is released under an
 `Apache v2 license <https://github.com/flatironinstitute/finufft/blob/master/LICENSE>`_. Here is a `project overview from 2023 <https://users.flatironinstitute.org/~ahb/notes/finufft-project-summary-2023.pdf>`_.
-
-.. image:: FIlogo_200.png
-    :width: 25%
-    :align: right
 
 What does FINUFFT do?
 -----------------------
