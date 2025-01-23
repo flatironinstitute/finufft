@@ -14,11 +14,13 @@ foreach(TEST ${TESTS})
   add_executable(${TEST} ${TEST}.cpp)
   target_compile_features(${TEST} PRIVATE cxx_std_17)
   finufft_link_test(${TEST})
+  target_include_directories(${TEST} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 
   add_executable(${TEST}f ${TEST}.cpp)
   target_compile_definitions(${TEST}f PRIVATE -DSINGLE)
   target_compile_features(${TEST}f PRIVATE cxx_std_17)
   finufft_link_test(${TEST}f)
+  target_include_directories(${TEST} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 endforeach()
 
 # copy the DLLs to the build directory so that the tests can find them there fix
@@ -32,6 +34,7 @@ if(FINUFFT_USE_DUCC0)
 endif()
 target_compile_features(testutils PRIVATE cxx_std_17)
 finufft_link_test(testutils)
+target_include_directories(testutils PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 add_test(
   NAME run_testutils
   COMMAND testutils
