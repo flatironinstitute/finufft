@@ -66,8 +66,8 @@ int get_num_threads_parallel_block();
 #ifdef _WIN32
 #include <random>
 namespace finufft {
-namespace common {
+namespace utils {
 int rand_r(unsigned int *seedp);
-} // namespace common
+} // namespace utils
 } // namespace finufft
 #endif
