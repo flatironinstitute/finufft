@@ -117,7 +117,7 @@ class Plan:
                 dim = n_modes
                 n_modes = (1,) * dim     # Ignored, can be anything
             else:
-                raise ValueError("Type 3 plan must have n_modes_or_dim equal to the dimension")
+                raise ValueError("For a type 3 plan, n_modes_or_dim must be a single number, the dimension")
         else:
             if isinstance(n_modes, numbers.Integral):
                 n_modes = (n_modes,)
