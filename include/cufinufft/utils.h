@@ -7,17 +7,8 @@
 #include <cuComplex.h>
 #include <cufinufft/types.h>
 
-#include <cuda_runtime.h>
-
-#ifdef _WIN32
-#define WIN32_LEAN_AND_MEAN
-#define NOMINMAX
-#include <windows.h>
-#else
-#include <sys/time.h>
-#endif
-
 #include <cuda.h>
+#include <cuda_runtime.h>
 #include <type_traits>
 
 #include <thrust/extrema.h>
