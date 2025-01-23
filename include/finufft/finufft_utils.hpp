@@ -14,7 +14,8 @@
 namespace finufft::utils {
 
 template<typename T>
-FINUFFT_ALWAYS_INLINE void arrayrange(BIGINT n, const T *a, T *lo, T *hi)
+FINUFFT_EXPORT FINUFFT_ALWAYS_INLINE void FINUFFT_CDECL arrayrange(BIGINT n, const T *a,
+                                                                   T *lo, T *hi)
 // With a a length-n array, writes out min(a) to lo and max(a) to hi,
 // so that all a values lie in [lo,hi].
 // If n==0, lo and hi are not finite.
@@ -27,7 +28,8 @@ FINUFFT_ALWAYS_INLINE void arrayrange(BIGINT n, const T *a, T *lo, T *hi)
   }
 }
 template<typename T>
-FINUFFT_ALWAYS_INLINE void arraywidcen(BIGINT n, const T *a, T *w, T *c)
+FINUFFT_EXPORT FINUFFT_ALWAYS_INLINE void FINUFFT_CDECL arraywidcen(BIGINT n, const T *a,
+                                                                    T *w, T *c)
 // Writes out w = half-width and c = center of an interval enclosing all a[n]'s
 // Only chooses a nonzero center if this increases w by less than fraction
 // ARRAYWIDCEN_GROWFRAC defined in finufft_core.h.
@@ -44,7 +46,7 @@ FINUFFT_ALWAYS_INLINE void arraywidcen(BIGINT n, const T *a, T *w, T *c)
   }
 }
 
-BIGINT next235even(BIGINT n);
+FINUFFT_EXPORT BIGINT next235even(BIGINT n);
 
 // jfm's timer class
 class FINUFFT_EXPORT CNTime {
@@ -67,7 +69,7 @@ int get_num_threads_parallel_block();
 #include <random>
 namespace finufft {
 namespace utils {
-int rand_r(unsigned int *seedp);
+FINUFFT_EXPORT int FINUFFT_CDECL rand_r(unsigned int *seedp);
 } // namespace utils
 } // namespace finufft
 #endif
