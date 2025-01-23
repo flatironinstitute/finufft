@@ -22,8 +22,10 @@
 
 #include <thrust/extrema.h>
 
+#ifndef _USE_MATH_DEFINES
 #define _USE_MATH_DEFINES
-#include <math.h>
+#endif
+#include <cmath>
 
 #if !defined(__CUDA_ARCH__) || __CUDA_ARCH__ >= 600 || defined(__clang__)
 #else
@@ -94,21 +96,6 @@ private:
     cudaGetDevice(&device);
     return device;
   }
-};
-
-// jfm timer class
-class CNTime {
-public:
-  void start();
-  double restart();
-  double elapsedsec();
-
-private:
-#ifdef _WIN32
-  LARGE_INTEGER initial, frequency;
-#else
-  struct timeval initial;
-#endif
 };
 
 // ahb math helpers

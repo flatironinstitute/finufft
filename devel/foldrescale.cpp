@@ -1,7 +1,6 @@
-#include "finufft/defs.h"
+#include "finufft/test_defs.h"
 #include <benchmark/benchmark.h>
 #include <cmath>
-#include <immintrin.h>
 #include <iostream>
 #include <random>
 // no vectorize
@@ -17,22 +16,22 @@
    This should be done in C++ not as a macro, someday.
 */
 #define FOLDRESCALE(x, N, p)                                                \
-  (p ? (x + (x >= -PI ? (x < PI ? PI : -PI) : 3 * PI)) * ((FLT)M_1_2PI * N) \
+  (p ? (x + (x >= -PI ? (x < PI ? PI : -PI) : 3 * PI)) * ((FLT)INV_2PI * N) \
      : (x >= 0.0 ? (x < (FLT)N ? x : x - (FLT)N) : x + (FLT)N))
 
 #define FOLDRESCALE04(x, N, p)                                                       \
-  (p ? ((x * FLT(M_1_2PI) + FLT(0.5)) - floor(x * FLT(M_1_2PI) + FLT(0.5))) * FLT(N) \
+  (p ? ((x * FLT(INV_2PI) + FLT(0.5)) - floor(x * FLT(INV_2PI) + FLT(0.5))) * FLT(N) \
      : ((x / FLT(N)) - floor(x / FLT(N))) * FLT(N))
 
 #define FOLDRESCALE05(x, N, p)                                                       \
-  FLT(N) * (p ? ((x * FLT(M_1_2PI) + FLT(0.5)) - floor(x * FLT(M_1_2PI) + FLT(0.5))) \
+  FLT(N) * (p ? ((x * FLT(INV_2PI) + FLT(0.5)) - floor(x * FLT(INV_2PI) + FLT(0.5))) \
               : ((x / FLT(N)) - floor(x / FLT(N))))
 
 inline __attribute__((always_inline)) FLT foldRescale00(FLT x, BIGINT N, bool p) {
   FLT result;
   FLT fN = FLT(N);
   if (p) {
-    static constexpr FLT x2pi = FLT(M_1_2PI);
+    static constexpr FLT x2pi = FLT(INV_2PI);
     result                    = x * x2pi + FLT(0.5);
     result -= floor(result);
   } else {
@@ -44,14 +43,14 @@ inline __attribute__((always_inline)) FLT foldRescale00(FLT x, BIGINT N, bool p)
 }
 
 inline __attribute__((always_inline)) FLT foldRescale01(FLT x, BIGINT N, bool p) {
-  return p ? (x + (x >= -PI ? (x < PI ? PI : -PI) : 3 * PI)) * ((FLT)M_1_2PI * N)
+  return p ? (x + (x >= -PI ? (x < PI ? PI : -PI) : 3 * PI)) * ((FLT)INV_2PI * N)
            : (x >= 0.0 ? (x < (FLT)N ? x : x - (FLT)N) : x + (FLT)N);
 }
 
 template<bool p>
 inline __attribute__((always_inline)) FLT foldRescale02(FLT x, BIGINT N) {
   if constexpr (p) {
-    return (x + (x >= -PI ? (x < PI ? PI : -PI) : 3 * PI)) * ((FLT)M_1_2PI * N);
+    return (x + (x >= -PI ? (x < PI ? PI : -PI) : 3 * PI)) * ((FLT)INV_2PI * N);
   } else {
     return (x >= 0.0 ? (x < (FLT)N ? x : x - (FLT)N) : x + (FLT)N);
   }
@@ -62,7 +61,7 @@ inline __attribute__((always_inline)) FLT foldRescale03(FLT x, BIGINT N) {
   FLT result;
   FLT fN = FLT(N);
   if constexpr (p) {
-    static constexpr FLT x2pi = FLT(M_1_2PI);
+    static constexpr FLT x2pi = FLT(INV_2PI);
     result                    = std::fma(x, x2pi, FLT(0.5));
     result -= floor(result);
   } else {
@@ -72,7 +71,6 @@ inline __attribute__((always_inline)) FLT foldRescale03(FLT x, BIGINT N) {
   }
   return result * fN;
 }
-
 
 static std::mt19937_64 gen;
 static std::uniform_real_distribution<> dis(-10, 10);
@@ -184,7 +182,6 @@ static void BM_FoldRescale05N(benchmark::State &state) {
     benchmark::DoNotOptimize(FOLDRESCALE05(x, N, notPirange));
   }
 }
-
 
 BENCHMARK(BM_BASELINE)->Iterations(10000000);
 BENCHMARK(BM_FoldRescaleMacro)->Iterations(1000000);
