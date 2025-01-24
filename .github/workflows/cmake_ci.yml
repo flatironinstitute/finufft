@@ -53,15 +53,29 @@ jobs:
         run: |
           sudo apt update
           sudo apt install -y libfftw3-dev
-      - name: Force Synchronous PDB Writes
-        if: runner.os == 'Windows'
-        env:
-          CXXFLAGS: /FS
-          CFLAGS: /FS
-        run: echo "Windows-specific environment variables set for /FS"
-      - name: Configure Cmake
+      - name: Configure CMake
         run: |
-          cmake -S . -B ./build -G Ninja -DCMAKE_C_COMPILER_LAUNCHER=sccache -DCMAKE_CXX_COMPILER_LAUNCHER=sccache -DCMAKE_BUILD_TYPE:STRING=${{matrix.build_type}} -DFINUFFT_ARCH_FLAGS=${{ matrix.arch_flags }} -DFINUFFT_BUILD_TESTS=ON -DFINUFFT_STATIC_LINKING=${{matrix.finufft_static_linking}} -DFINUFFT_USE_DUCC0=${{ matrix.ducc_fft }}
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            cmake -S . -B ./build -G Ninja \
+              -DCMAKE_CXX_FLAGS="/FS" \
+              -DCMAKE_C_FLAGS="/FS" \
+              -DCMAKE_C_COMPILER_LAUNCHER=sccache \
+              -DCMAKE_CXX_COMPILER_LAUNCHER=sccache \
+              -DCMAKE_BUILD_TYPE:STRING=${{ matrix.build_type }} \
+              -DFINUFFT_ARCH_FLAGS=${{ matrix.arch_flags }} \
+              -DFINUFFT_BUILD_TESTS=ON \
+              -DFINUFFT_STATIC_LINKING=${{ matrix.finufft_static_linking }} \
+              -DFINUFFT_USE_DUCC0=${{ matrix.ducc_fft }}
+          else
+            cmake -S . -B ./build -G Ninja \
+              -DCMAKE_C_COMPILER_LAUNCHER=sccache \
+              -DCMAKE_CXX_COMPILER_LAUNCHER=sccache \
+              -DCMAKE_BUILD_TYPE:STRING=${{ matrix.build_type }} \
+              -DFINUFFT_ARCH_FLAGS=${{ matrix.arch_flags }} \
+              -DFINUFFT_BUILD_TESTS=ON \
+              -DFINUFFT_STATIC_LINKING=${{ matrix.finufft_static_linking }} \
+              -DFINUFFT_USE_DUCC0=${{ matrix.ducc_fft }}
+          fi
       - name: Build
         run: |
           cmake --build ./build --config ${{matrix.build_type}}
