@@ -51,13 +51,7 @@ else()
     cufinufft PROPERTIES POSITION_INDEPENDENT_CODE
                          ${FINUFFT_POSITION_INDEPENDENT_CODE})
 endif()
-generate_export_header(
-  cufinufft EXPORT_FILE_NAME
-  "${CMAKE_CURRENT_BINARY_DIR}/include/cufinufft_export.h" BASE_NAME
-  "cufinufft")
-target_include_directories(
-  cufinufft PUBLIC ${CUFINUFFT_INCLUDE_DIRS}
-                   "${CMAKE_CURRENT_BINARY_DIR}/include")
+target_include_directories(cufinufft PUBLIC ${CUFINUFFT_INCLUDE_DIRS})
 
 set_target_properties(
   cufinufft
@@ -65,9 +59,7 @@ set_target_properties(
              CUDA_SEPARABLE_COMPILATION ON
              CUDA_STANDARD 17
              CUDA_STANDARD_REQUIRED ON
-             CXX_VISIBILITY_PRESET hidden
-             C_VISIBILITY_PRESET hidden
-             VISIBILITY_INLINES_HIDDEN ON
+             WINDOWS_EXPORT_ALL_SYMBOLS ON
              ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
 target_compile_features(cufinufft PRIVATE cxx_std_17)
 target_compile_options(cufinufft PRIVATE ${FINUFFT_CUDA_FLAGS})
