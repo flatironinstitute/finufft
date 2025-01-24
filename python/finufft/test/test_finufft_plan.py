@@ -238,3 +238,34 @@ def test_finufft_plan_errors():
 
     with pytest.raises(RuntimeError, match="transform type invalid"):
         plan = Plan(4, (8,))
+
+
+def test_finufft_plan_properties():
+    # Make sure properties work properly
+    nufft_type = 2
+    n_modes = (8, 8)
+    n_trans = 2
+    dtype = np.complex64
+
+    plan = Plan(nufft_type, n_modes, n_trans, dtype=dtype)
+
+    assert plan.type == nufft_type
+    assert tuple(plan.n_modes) == n_modes
+    assert plan.dim == len(n_modes)
+    assert plan.n_trans == n_trans
+    assert plan.dtype == dtype
+
+    with pytest.raises(AttributeError):
+        plan.type = 1
+
+    with pytest.raises(AttributeError):
+        plan.n_modes = (4, 4)
+
+    with pytest.raises(AttributeError):
+        plan.dim = 1
+
+    with pytest.raises(AttributeError):
+        plan.n_trans = 1
+
+    with pytest.raises(AttributeError):
+        plan.dtype = np.float64
