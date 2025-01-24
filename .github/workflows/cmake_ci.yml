@@ -10,12 +10,14 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
       - name: Generate matrix
         id: generate_matrix
         run: |
           echo "MACOSX_DEPLOYMENT_TARGET=11.0" >> $GITHUB_ENV
           MATRIX=$(python3 ${{ github.workspace }}/.github/workflows/generate_cmake_matrix.py)
           echo "matrix=$MATRIX" >> $GITHUB_OUTPUT
+
   cmake-ci:
     runs-on: ${{ matrix.os }}
     needs: prepare
@@ -25,15 +27,19 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
       - name: Run sccache-cache
         uses: mozilla-actions/sccache-action@v0.0.5
+
       - name: Run sccache-cache only on non-release runs
         if: github.event_name != 'release' && github.event_name != 'workflow_dispatch'
         uses: mozilla-actions/sccache-action@v0.0.5
+
       - name: Set Rust caching env vars only on non-release runs
         if: github.event_name != 'release' && github.event_name != 'workflow_dispatch'
         run: |
           echo "SCCACHE_GHA_ENABLED=true" >> $GITHUB_ENV
+
       - name: Setup Cpp
         uses: aminya/setup-cpp@v1
         with:
@@ -44,47 +50,42 @@ jobs:
           vcpkg: false
           cppcheck: false
           clangtidy: false
-      - name: Set min macOS version and install fftw
+
+      - name: Install fftw on macOS
         if: runner.os == 'macOS'
         run: |
           brew install fftw
-      - name: Install fftw
-        if: runner.os == 'linux'
+
+      - name: Install fftw on Linux
+        if: runner.os == 'Linux'
         run: |
-          sudo apt update
-          sudo apt install -y libfftw3-dev
-      - name: Configure CMake Windows
-        if: matrix.toolchain == 'msvc'
+          sudo apt update && sudo apt install -y libfftw3-dev
+
+      - name: Configure CMake
         run: |
-            cmake -S . -B ./build -G Ninja \
-              -DCMAKE_CXX_FLAGS="/FS" \
-              -DCMAKE_C_FLAGS="/FS" \
-              -DCMAKE_C_COMPILER_LAUNCHER=sccache \
-              -DCMAKE_CXX_COMPILER_LAUNCHER=sccache \
-              -DCMAKE_BUILD_TYPE:STRING=${{ matrix.build_type }} \
-              -DFINUFFT_ARCH_FLAGS=${{ matrix.arch_flags }} \
-              -DFINUFFT_BUILD_TESTS=ON \
-              -DFINUFFT_STATIC_LINKING=${{ matrix.finufft_static_linking }} \
-              -DFINUFFT_USE_DUCC0=${{ matrix.ducc_fft }}
-      - name: Configure CMake Linux and MacOS
-        if: runner.toolchain != 'msvc'
-        run: |
-            cmake -S . -B ./build -G Ninja \
-              -DCMAKE_C_COMPILER_LAUNCHER=sccache \
-              -DCMAKE_CXX_COMPILER_LAUNCHER=sccache \
-              -DCMAKE_BUILD_TYPE:STRING=${{ matrix.build_type }} \
-              -DFINUFFT_ARCH_FLAGS=${{ matrix.arch_flags }} \
-              -DFINUFFT_BUILD_TESTS=ON \
-              -DFINUFFT_STATIC_LINKING=${{ matrix.finufft_static_linking }} \
-              -DFINUFFT_USE_DUCC0=${{ matrix.ducc_fft }}
+          CMAKE_FLAGS="-DCMAKE_C_COMPILER_LAUNCHER=sccache \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=sccache \
+            -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
+            -DFINUFFT_ARCH_FLAGS=${{ matrix.arch_flags }} \
+            -DFINUFFT_BUILD_TESTS=ON \
+            -DFINUFFT_STATIC_LINKING=${{ matrix.finufft_static_linking }} \
+            -DFINUFFT_USE_DUCC0=${{ matrix.ducc_fft }}"
+
+          # Add MSVC-specific flags
+          if [ "${{ matrix.toolchain }}" == "msvc" ]; then
+            CMAKE_FLAGS="$CMAKE_FLAGS -DCMAKE_CXX_FLAGS=/FS -DCMAKE_C_FLAGS=/FS"
+          fi
+
+          cmake -S . -B ./build -G Ninja $CMAKE_FLAGS
+
       - name: Build
         run: |
-          cmake --build ./build --config ${{matrix.build_type}}
+          cmake --build ./build --config ${{ matrix.build_type }}
 
       - name: Test
         working-directory: ./build
         run: |
-          ctest -C ${{matrix.build_type}} --output-on-failure
+          ctest -C ${{ matrix.build_type }} --output-on-failure
 
       - name: Set up Python
         if: matrix.finufft_static_linking
@@ -98,8 +99,7 @@ jobs:
           MACOSX_DEPLOYMENT_TARGET: 13
         shell: bash
         run: |
-          python3 -m pip install \
-            --verbose \
+          python3 -m pip install --verbose \
             -C cmake.define.CMAKE_BUILD_TYPE=${{ matrix.build_type }} \
             -C cmake.define.FINUFFT_ARCH_FLAGS=${{ matrix.arch_flags }} \
             -C cmake.define.FINUFFT_USE_DUCC0=${{ matrix.ducc_fft }} \
