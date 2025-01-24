@@ -54,7 +54,7 @@ jobs:
           sudo apt update
           sudo apt install -y libfftw3-dev
       - name: Configure CMake Windows
-        if: runner.os == 'Windows'
+        if: matrix.toolchain == 'msvc'
         run: |
             cmake -S . -B ./build -G Ninja \
               -DCMAKE_CXX_FLAGS="/FS" \
@@ -67,7 +67,7 @@ jobs:
               -DFINUFFT_STATIC_LINKING=${{ matrix.finufft_static_linking }} \
               -DFINUFFT_USE_DUCC0=${{ matrix.ducc_fft }}
       - name: Configure CMake Linux and MacOS
-        if: runner.os != 'Windows'
+        if: runner.toolchain != 'msvc'
         run: |
             cmake -S . -B ./build -G Ninja \
               -DCMAKE_C_COMPILER_LAUNCHER=sccache \
