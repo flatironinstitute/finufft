@@ -146,6 +146,26 @@ class Plan:
         #   we want to keep around for life of instance.
         self._references = []
 
+    @property
+    def type(self):
+        return self._type
+
+    @property
+    def dtype(self):
+        return self._dtype
+
+    @property
+    def dim(self):
+        return self._dim
+
+    @property
+    def n_modes(self):
+        return self._n_modes
+
+    @property
+    def n_trans(self):
+        return self._n_trans
+
     @staticmethod
     def _default_opts():
         """
