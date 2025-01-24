@@ -45,6 +45,15 @@ endif()
 
 include(cmake/utils.cmake)
 
+if(DEFINED ENV{GITHUB_ACTIONS} AND ENV{GITHUB_ACTIONS} EQUAL "true")
+  message("CMake is being executed inside a GitHub workflow")
+  # if msvc use FS flag
+  if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+    message("Added /FS flag to MSVC compiler options to speed up compilation")
+    add_compile_options(/FS)
+  endif()
+endif()
+
 set(FINUFFT_CXX_FLAGS_RELEASE
     -funroll-loops
     -ffp-contract=fast
