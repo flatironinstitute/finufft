@@ -1,4 +1,3 @@
-
 file(GLOB example_src "*.cpp")
 
 foreach(srcfile ${example_src})
@@ -7,4 +6,5 @@ foreach(srcfile ${example_src})
   add_executable(${executable} ${srcfile})
   target_include_directories(${executable} PUBLIC ${CUFINUFFT_INCLUDE_DIRS})
   target_link_libraries(${executable} cufinufft)
+  target_compile_features(${executable} PRIVATE cxx_std_17)
 endforeach()

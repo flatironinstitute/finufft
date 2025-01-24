@@ -34,7 +34,7 @@
 % Creates a finufft_plan MATLAB object in the guru interface to FINUFFT, of
 %  type 1, 2 or 3, and with given numbers of Fourier modes (unless type 3).
 %
-% Inputs: 
+% Inputs:
 %     type            transform type: 1, 2, or 3
 %     n_modes_or_dim  if type is 1 or 2, the number of Fourier modes in each
 %                     dimension: [ms] in 1D, [ms mt] in 2D, or [ms mt mu] in 3D.
@@ -56,7 +56,6 @@
 %     opts.floatprec: library precision to use, 'double' (default) or 'single'.
 %     for type 1 and 2 only, the following opts fields are also relevant:
 %     opts.modeord: 0 (CMCL increasing mode ordering, default), 1 (FFT ordering)
-%     opts.chkbnds: [DEPRECATED] has no effect
 % Outputs:
 %     plan            finufft_plan object (opaque pointer)
 %
@@ -185,7 +184,7 @@ classdef finufft_plan < handle
           plan.floatprec = opts.floatprec;
         end
       end
-      
+
       n_modes = ones(3,1);         % is dummy for type 3
       if type==3
         if length(n_modes_or_dim)~=1
@@ -220,7 +219,7 @@ finufft(mex_id_, o);
       plan.n_trans = n_trans;
       % Note the peculiarity that mwrap only accepts a double for n_trans, even
       % though it's declared int. It complains, also with int64 for nj, etc :(
-      
+
       % replace in finufft_opts struct whichever fields are in incoming opts...
       mex_id_ = 'copy_finufft_opts(i mxArray, i finufft_opts*)';
 finufft(mex_id_, opts, o);

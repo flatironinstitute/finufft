@@ -52,13 +52,6 @@ __global__ void map_b_into_subprob_1d(int *d_subprob_to_bin, int *d_subprobstart
   }
 }
 
-__global__ void trivial_global_sort_index_1d(int M, int *index) {
-  for (int i = threadIdx.x + blockIdx.x * blockDim.x; i < M;
-       i += gridDim.x * blockDim.x) {
-    index[i] = i;
-  }
-}
-
 /* spreadinterp 2d */
 __global__ void calc_subprob_2d(int *bin_size, int *num_subprob, int maxsubprobsize,
                                 int numbins) {
@@ -75,13 +68,6 @@ __global__ void map_b_into_subprob_2d(int *d_subprob_to_bin, int *d_subprobstart
     for (int j = 0; j < d_numsubprob[i]; j++) {
       d_subprob_to_bin[d_subprobstartpts[i] + j] = i;
     }
-  }
-}
-
-__global__ void trivial_global_sort_index_2d(int M, int *index) {
-  for (int i = threadIdx.x + blockIdx.x * blockDim.x; i < M;
-       i += gridDim.x * blockDim.x) {
-    index[i] = i;
   }
 }
 
@@ -125,13 +111,6 @@ __global__ void map_b_into_subprob_3d_v1(int *d_subprob_to_obin, int *d_subprobs
     for (int j = 0; j < d_numsubprob[i]; j++) {
       d_subprob_to_obin[d_subprobstartpts[i] + j] = i;
     }
-  }
-}
-
-__global__ void trivial_global_sort_index_3d(int M, int *index) {
-  for (int i = threadIdx.x + blockIdx.x * blockDim.x; i < M;
-       i += gridDim.x * blockDim.x) {
-    index[i] = i;
   }
 }
 

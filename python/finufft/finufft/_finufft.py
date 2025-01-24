@@ -19,10 +19,21 @@ import os
 import platform
 from numpy.ctypeslib import ndpointer
 
+from packaging.version import Version
+
 c_int_p = ctypes.POINTER(c_int)
 c_float_p = ctypes.POINTER(c_float)
 c_double_p = ctypes.POINTER(c_double)
 c_longlong_p = ctypes.POINTER(c_longlong)
+
+# numpy.distutils has a bug that changes the logging level from under us. As a
+# workaround, we save it and reset it later. This only happens on older
+# versions of NumPy, so let's check the version before doing this.
+reset_log_level = Version(np.__version__) < Version("1.25")
+
+if reset_log_level:
+    import logging
+    log_level = logging.root.level
 
 # TODO: See if there is a way to improve this so it is less hacky.
 lib = None
@@ -39,6 +50,9 @@ for lib_name in library_names:
     except OSError:
         # Paranoid, in case lib is set to something and then an exception is thrown
         lib = None
+
+if reset_log_level:
+    logging.root.setLevel(log_level)
 
 if lib is None:
     # If that fails, try to load the library from the system path.
@@ -58,7 +72,6 @@ class FinufftOpts(ctypes.Structure):
 
 
 FinufftOpts._fields_ = [('modeord', c_int),
-                      ('chkbnds', c_int),
                       ('debug', c_int),
                       ('spread_debug', c_int),
                       ('showwarn', c_int),
@@ -71,7 +84,10 @@ FinufftOpts._fields_ = [('modeord', c_int),
                       ('spread_thread', c_int),
                       ('maxbatchsize', c_int),
                       ('spread_nthr_atomic', c_int),
-                      ('spread_max_sp_size', c_int)]
+                      ('spread_max_sp_size', c_int),
+                      ('fftw_lock_fun', c_void_p),
+                      ('fftw_unlock_fun', c_void_p),
+                      ('fftw_lock_data', c_void_p)]
 
 
 FinufftPlan = c_void_p

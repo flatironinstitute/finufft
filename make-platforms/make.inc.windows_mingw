@@ -1,6 +1,6 @@
 MINGW=ON
 # libm not available on Windows? Has to be removed from LIBS to build MATLAB mex file. Does not interfere with library build
-LIBS= 
+LIBS=
 # please set these paths
 FFTW_H_DIR=
 FFTW_LIB_DIR=

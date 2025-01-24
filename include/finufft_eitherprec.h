@@ -4,8 +4,7 @@
 /* Devnotes.
  1)  Since everything here is exposed to the public interface, macros must be
  safe, eg FINUFFTsomething.
- 2)  They will clobber any prior macros starting FINUFFT*, so in the lib/test
- sources finufft.h must be included before defs.h
+ 2)  They will clobber any prior macros starting FINUFFT*
  3) for debug of header macros, see finufft.h
 */
 
@@ -24,7 +23,6 @@
 
 // decide which kind of complex numbers FINUFFT_CPX is (four options)
 #ifdef __cplusplus
-#define _USE_MATH_DEFINES
 #include <complex> // C++ type
 #define FINUFFT_COMPLEXIFY(X) std::complex<X>
 #else
@@ -83,12 +81,12 @@ extern "C" {
 typedef struct FINUFFT_PLAN_S *FINUFFT_PLAN;
 
 // ------------------ the guru interface ------------------------------------
-// (sources in finufft.cpp)
+// (sources in c_interface.cpp)
 
 FINUFFT_EXPORT void FINUFFT_CDECL FINUFFTIFY(_default_opts)(finufft_opts *o);
 FINUFFT_EXPORT int FINUFFT_CDECL FINUFFTIFY(_makeplan)(
-    int type, int dim, FINUFFT_BIGINT *n_modes, int iflag, int n_transf, FINUFFT_FLT tol,
-    FINUFFT_PLAN *plan, finufft_opts *o);
+    int type, int dim, const FINUFFT_BIGINT *n_modes, int iflag, int n_transf,
+    FINUFFT_FLT tol, FINUFFT_PLAN *plan, finufft_opts *o);
 FINUFFT_EXPORT int FINUFFT_CDECL FINUFFTIFY(_setpts)(
     FINUFFT_PLAN plan, FINUFFT_BIGINT M, FINUFFT_FLT *xj, FINUFFT_FLT *yj,
     FINUFFT_FLT *zj, FINUFFT_BIGINT N, FINUFFT_FLT *s, FINUFFT_FLT *t, FINUFFT_FLT *u);
@@ -97,7 +95,7 @@ FINUFFT_EXPORT int FINUFFT_CDECL FINUFFTIFY(_execute)(
 FINUFFT_EXPORT int FINUFFT_CDECL FINUFFTIFY(_destroy)(FINUFFT_PLAN plan);
 
 // ----------------- the 18 simple interfaces -------------------------------
-// (sources in simpleinterfaces.cpp)
+// (sources in c_interface.cpp)
 
 FINUFFT_EXPORT int FINUFFT_CDECL FINUFFTIFY(1d1)(
     FINUFFT_BIGINT nj, FINUFFT_FLT *xj, FINUFFT_CPX *cj, int iflag, FINUFFT_FLT eps,
@@ -183,4 +181,3 @@ FINUFFT_EXPORT int FINUFFT_CDECL FINUFFTIFY(3d3many)(
 #undef FINUFFT_CPX
 #undef FINUFFT_PLAN
 #undef FINUFFT_PLAN_S
-#undef FINUFFT_TYPE3PARAMS

@@ -19,6 +19,7 @@ Major code contributions (loosely in chronological order) by:
 * Joakim Andén - python, MATLAB/FFTW issues, dual-precision, performance tests, GPU python/docs/tests
 * Robert Blackwell - atomic OMP add_wrapped_subgrid, GPU version merge
 * Marco Barbone - SIMD kernel manual vectorization, benchmarking, foldrescale, Cmake/packaging, Windows, GPU optimization
+* Martin Reinecke - SIMD kernel and interp auto-vectorization, binsort, switchable FFT to DUCC0, de-macro-izing; good ideas
 
 Other significant code contributions by:
 
@@ -27,7 +28,6 @@ Other significant code contributions by:
 * David Stein - python wrappers, finding "pi-1ULP" spreadcheck error
 * Garrett Wright - dual-precision build, py packaging, GPU version
 * Wenda Zhou - Cmake build, code review, professionalization, SIMD ideas
-* Martin Reinecke - SIMD kernel and interp auto-vectorization, binsort, switchable FFT to DUCC0; many good ideas
 
 Testing, bug reports, helpful discussions:
 

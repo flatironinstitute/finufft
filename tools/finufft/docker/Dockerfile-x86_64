@@ -7,7 +7,7 @@
 # instead of building from source.
 
 
-FROM quay.io/pypa/manylinux2010_x86_64
+FROM quay.io/pypa/manylinux2010_x86_64:2024-09-09-f386546
 LABEL maintainer "Libin Lu"
 
 RUN set -e -x

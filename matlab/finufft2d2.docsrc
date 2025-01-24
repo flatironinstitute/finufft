@@ -17,8 +17,8 @@
 %           If a 3D array, 3rd dimension sets ntrans, and each of ntrans
 %           matrices is transformed with the same nonuniform targets.
 ISIGNEPS
-OPTS
 OPTS12
+OPTS
 %  Outputs:
 %     c     complex column vector of nj answers at targets, or,
 %           if ntrans>1, matrix of size (nj,ntrans).

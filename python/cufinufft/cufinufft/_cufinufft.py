@@ -11,6 +11,9 @@ import warnings
 import importlib.util
 import pathlib
 import numpy as np
+from ctypes.util import find_library
+
+from packaging.version import Version
 
 from ctypes import c_double
 from ctypes import c_int
@@ -21,6 +24,16 @@ from ctypes import c_void_p
 c_int64_p = ctypes.POINTER(c_int64)
 c_float_p = ctypes.POINTER(c_float)
 c_double_p = ctypes.POINTER(c_double)
+
+
+# numpy.distutils has a bug that changes the logging level from under us. As a
+# workaround, we save it and reset it later. This only happens on older
+# versions of NumPy, so let's check the version before doing this.
+reset_log_level = Version(np.__version__) < Version("1.25")
+
+if reset_log_level:
+    import logging
+    log_level = logging.root.level
 
 lib = None
 # Try to load the library as installed in the Python package.
@@ -33,6 +46,9 @@ for lib_name in library_names:
     except OSError:
         # Paranoid, in case lib is set to something and then an exception is thrown
         lib = None
+
+if reset_log_level:
+    logging.root.setLevel(log_level)
 
 if lib is None:
     # If that fails, try to load the library from the system path.
@@ -100,14 +116,14 @@ _make_planf.restypes = c_int
 
 _set_pts = lib.cufinufft_setpts
 _set_pts.argtypes = [
-    c_void_p, c_int64, c_void_p, c_void_p, c_void_p, ctypes.c_int, c_double_p,
-    c_double_p, c_double_p]
+    c_void_p, c_int64, c_void_p, c_void_p, c_void_p, ctypes.c_int64, c_void_p,
+    c_void_p, c_void_p]
 _set_pts.restype = c_int
 
 _set_ptsf = lib.cufinufftf_setpts
 _set_ptsf.argtypes = [
-    c_void_p, c_int64, c_void_p, c_void_p, c_void_p, ctypes.c_int, c_float_p,
-    c_float_p, c_float_p]
+    c_void_p, c_int64, c_void_p, c_void_p, c_void_p, ctypes.c_int64, c_void_p,
+    c_void_p, c_void_p]
 _set_ptsf.restype = c_int
 
 _exec_plan = lib.cufinufft_execute

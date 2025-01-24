@@ -1,15 +1,15 @@
-#include <iomanip>
 #include <iostream>
 
 #include <cuComplex.h>
 #include <cufinufft/contrib/helper_cuda.h>
 
+#include "spreadinterp3d.cuh"
+#include <cufinufft/common.h>
 #include <cufinufft/memtransfer.h>
 #include <cufinufft/spreadinterp.h>
 
-#include "spreadinterp3d.cuh"
-
 using namespace cufinufft::memtransfer;
+using namespace cufinufft::common;
 
 namespace cufinufft {
 namespace spreadinterp {
@@ -50,10 +50,7 @@ int cuinterp3d(cufinufft_plan_t<T> *d_plan, int blksize)
 template<typename T>
 int cuinterp3d_nuptsdriven(int nf1, int nf2, int nf3, int M, cufinufft_plan_t<T> *d_plan,
                            int blksize) {
-  auto &stream = d_plan->stream;
-
-  dim3 threadsPerBlock;
-  dim3 blocks;
+  const auto stream = d_plan->stream;
 
   int ns    = d_plan->spopts.nspread; // psi's support in terms of number of cells
   T es_c    = d_plan->spopts.ES_c;
@@ -68,10 +65,8 @@ int cuinterp3d_nuptsdriven(int nf1, int nf2, int nf3, int M, cufinufft_plan_t<T>
   cuda_complex<T> *d_c  = d_plan->c;
   cuda_complex<T> *d_fw = d_plan->fw;
 
-  threadsPerBlock.x = 16;
-  threadsPerBlock.y = 1;
-  blocks.x          = (M + threadsPerBlock.x - 1) / threadsPerBlock.x;
-  blocks.y          = 1;
+  const dim3 threadsPerBlock{16, 1, 1};
+  const dim3 blocks{(M + threadsPerBlock.x - 1) / threadsPerBlock.x, 1, 1};
 
   if (d_plan->opts.gpu_kerevalmeth) {
     for (int t = 0; t < blksize; t++) {
@@ -123,19 +118,16 @@ int cuinterp3d_subprob(int nf1, int nf2, int nf3, int M, cufinufft_plan_t<T> *d_
   int *d_subprob_to_bin  = d_plan->subprob_to_bin;
   int totalnumsubprob    = d_plan->totalnumsubprob;
 
-  T sigma                  = d_plan->spopts.upsampfac;
-  T es_c                   = d_plan->spopts.ES_c;
-  T es_beta                = d_plan->spopts.ES_beta;
-  size_t sharedplanorysize = (bin_size_x + 2 * ceil(ns / 2.0)) *
-                             (bin_size_y + 2 * ceil(ns / 2.0)) *
-                             (bin_size_z + 2 * ceil(ns / 2.0)) * sizeof(cuda_complex<T>);
-  if (sharedplanorysize > 49152) {
-    std::cerr << "[cuinterp3d_subprob] error: not enough shared memory\n";
-    return FINUFFT_ERR_INSUFFICIENT_SHMEM;
-  }
+  T sigma   = d_plan->spopts.upsampfac;
+  T es_c    = d_plan->spopts.ES_c;
+  T es_beta = d_plan->spopts.ES_beta;
+  const auto sharedplanorysize =
+      shared_memory_required<T>(3, d_plan->spopts.nspread, d_plan->opts.gpu_binsizex,
+                                d_plan->opts.gpu_binsizey, d_plan->opts.gpu_binsizez);
 
   for (int t = 0; t < blksize; t++) {
     if (d_plan->opts.gpu_kerevalmeth == 1) {
+      cufinufft_set_shared_memory(interp_3d_subprob<T, 1>, 3, *d_plan);
       interp_3d_subprob<T, 1><<<totalnumsubprob, 256, sharedplanorysize, stream>>>(
           d_kx, d_ky, d_kz, d_c + t * M, d_fw + t * nf1 * nf2 * nf3, M, ns, nf1, nf2, nf3,
           es_c, es_beta, sigma, d_binstartpts, d_binsize, bin_size_x, bin_size_y,
@@ -143,6 +135,7 @@ int cuinterp3d_subprob(int nf1, int nf2, int nf3, int M, cufinufft_plan_t<T> *d_
           numbins[0], numbins[1], numbins[2], d_idxnupts);
       RETURN_IF_CUDA_ERROR
     } else {
+      cufinufft_set_shared_memory(interp_3d_subprob<T, 0>, 3, *d_plan);
       interp_3d_subprob<T, 0><<<totalnumsubprob, 256, sharedplanorysize, stream>>>(
           d_kx, d_ky, d_kz, d_c + t * M, d_fw + t * nf1 * nf2 * nf3, M, ns, nf1, nf2, nf3,
           es_c, es_beta, sigma, d_binstartpts, d_binsize, bin_size_x, bin_size_y,

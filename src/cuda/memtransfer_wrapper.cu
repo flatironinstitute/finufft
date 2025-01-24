@@ -20,11 +20,11 @@ int allocgpumem1d_plan(cufinufft_plan_t<T> *d_plan)
 */
 {
   utils::WithCudaDevice device_swapper(d_plan->opts.gpu_device_id);
-  auto &stream = d_plan->stream;
+  const auto stream = d_plan->stream;
 
-  int ier;
+  int ier{0};
   int nf1          = d_plan->nf1;
-  int maxbatchsize = d_plan->maxbatchsize;
+  int maxbatchsize = d_plan->batchsize;
 
   switch (d_plan->opts.gpu_method) {
   case 1: {
@@ -59,6 +59,7 @@ int allocgpumem1d_plan(cufinufft_plan_t<T> *d_plan)
       goto finalize;
   } break;
   default:
+    ier = FINUFFT_ERR_METHOD_NOTVALID;
     std::cerr << "err: invalid method " << std::endl;
   }
 
@@ -90,8 +91,8 @@ int allocgpumem1d_nupts(cufinufft_plan_t<T> *d_plan)
 */
 {
   utils::WithCudaDevice device_swapper(d_plan->opts.gpu_device_id);
-  auto &stream = d_plan->stream;
-  int ier;
+  const auto stream = d_plan->stream;
+  int ier{0};
 
   int M = d_plan->M;
   CUDA_FREE_AND_NULL(d_plan->sortidx, stream, d_plan->supports_pools);
@@ -135,12 +136,12 @@ int allocgpumem2d_plan(cufinufft_plan_t<T> *d_plan)
 */
 {
   utils::WithCudaDevice device_swapper(d_plan->opts.gpu_device_id);
-  auto &stream = d_plan->stream;
-  int ier;
+  const auto stream = d_plan->stream;
+  int ier{0};
 
   int nf1          = d_plan->nf1;
   int nf2          = d_plan->nf2;
-  int maxbatchsize = d_plan->maxbatchsize;
+  int maxbatchsize = d_plan->batchsize;
 
   switch (d_plan->opts.gpu_method) {
   case 1: {
@@ -180,6 +181,7 @@ int allocgpumem2d_plan(cufinufft_plan_t<T> *d_plan)
       goto finalize;
   } break;
   default:
+    ier = FINUFFT_ERR_METHOD_NOTVALID;
     std::cerr << "[allocgpumem2d_plan] error: invalid method\n";
   }
 
@@ -213,8 +215,8 @@ int allocgpumem2d_nupts(cufinufft_plan_t<T> *d_plan)
 */
 {
   utils::WithCudaDevice device_swapper(d_plan->opts.gpu_device_id);
-  auto &stream = d_plan->stream;
-  int ier;
+  const auto stream = d_plan->stream;
+  int ier{0};
 
   const int M = d_plan->M;
 
@@ -240,6 +242,7 @@ int allocgpumem2d_nupts(cufinufft_plan_t<T> *d_plan)
       goto finalize;
   } break;
   default:
+    ier = FINUFFT_ERR_METHOD_NOTVALID;
     std::cerr << "[allocgpumem2d_nupts] error: invalid method\n";
   }
 
@@ -258,13 +261,13 @@ int allocgpumem3d_plan(cufinufft_plan_t<T> *d_plan)
 */
 {
   utils::WithCudaDevice device_swapper(d_plan->opts.gpu_device_id);
-  auto &stream = d_plan->stream;
-  int ier;
+  const auto stream = d_plan->stream;
+  int ier{0};
 
   int nf1          = d_plan->nf1;
   int nf2          = d_plan->nf2;
   int nf3          = d_plan->nf3;
-  int maxbatchsize = d_plan->maxbatchsize;
+  int maxbatchsize = d_plan->batchsize;
 
   switch (d_plan->opts.gpu_method) {
   case 1: {
@@ -337,6 +340,7 @@ int allocgpumem3d_plan(cufinufft_plan_t<T> *d_plan)
       goto finalize;
   } break;
   default:
+    ier = FINUFFT_ERR_METHOD_NOTVALID;
     std::cerr << "[allocgpumem3d_plan] error: invalid method\n";
   }
 
@@ -360,7 +364,11 @@ int allocgpumem3d_plan(cufinufft_plan_t<T> *d_plan)
   }
 
 finalize:
-  if (ier) freegpumemory(d_plan);
+  if (ier) {
+    std::cerr << "[allocgpumem3d_plan] error:"
+              << cudaGetErrorString(static_cast<cudaError_t>(ier)) << std::endl;
+    freegpumemory(d_plan);
+  }
 
   return ier;
 }
@@ -374,8 +382,8 @@ int allocgpumem3d_nupts(cufinufft_plan_t<T> *d_plan)
 */
 {
   utils::WithCudaDevice device_swapper(d_plan->opts.gpu_device_id);
-  auto &stream = d_plan->stream;
-  int ier;
+  const auto stream = d_plan->stream;
+  int ier{0};
   int M = d_plan->M;
 
   CUDA_FREE_AND_NULL(d_plan->sortidx, stream, d_plan->supports_pools);
@@ -405,6 +413,7 @@ int allocgpumem3d_nupts(cufinufft_plan_t<T> *d_plan)
       goto finalize;
   } break;
   default:
+    ier = FINUFFT_ERR_METHOD_NOTVALID;
     std::cerr << "[allocgpumem3d_nupts] error: invalid method\n";
   }
 
@@ -423,13 +432,15 @@ void freegpumemory(cufinufft_plan_t<T> *d_plan)
 */
 {
   utils::WithCudaDevice device_swapper(d_plan->opts.gpu_device_id);
-  auto &stream = d_plan->stream;
-
-  CUDA_FREE_AND_NULL(d_plan->fw, stream, d_plan->supports_pools);
+  // Fixes a crash whewre the plan itself is deleted before the stream
+  const auto stream = d_plan->stream;
+  // Dont clear fw if spreadinterponly for type 1 and 2 as fw belongs to original program (it is d_fk)
+  if(!d_plan->opts.gpu_spreadinterponly || d_plan->type == 3)
+    CUDA_FREE_AND_NULL(d_plan->fw, stream, d_plan->supports_pools);
   CUDA_FREE_AND_NULL(d_plan->fwkerhalf1, stream, d_plan->supports_pools);
   CUDA_FREE_AND_NULL(d_plan->fwkerhalf2, stream, d_plan->supports_pools);
   CUDA_FREE_AND_NULL(d_plan->fwkerhalf3, stream, d_plan->supports_pools);
-
+  
   CUDA_FREE_AND_NULL(d_plan->idxnupts, stream, d_plan->supports_pools);
   CUDA_FREE_AND_NULL(d_plan->sortidx, stream, d_plan->supports_pools);
   CUDA_FREE_AND_NULL(d_plan->numsubprob, stream, d_plan->supports_pools);
@@ -440,6 +451,21 @@ void freegpumemory(cufinufft_plan_t<T> *d_plan)
 
   CUDA_FREE_AND_NULL(d_plan->numnupts, stream, d_plan->supports_pools);
   CUDA_FREE_AND_NULL(d_plan->numsubprob, stream, d_plan->supports_pools);
+
+  if (d_plan->type != 3) {
+    return;
+  }
+
+  CUDA_FREE_AND_NULL(d_plan->kx, stream, d_plan->supports_pools);
+  CUDA_FREE_AND_NULL(d_plan->d_Sp, stream, d_plan->supports_pools);
+  CUDA_FREE_AND_NULL(d_plan->ky, stream, d_plan->supports_pools);
+  CUDA_FREE_AND_NULL(d_plan->d_Tp, stream, d_plan->supports_pools);
+  CUDA_FREE_AND_NULL(d_plan->kz, stream, d_plan->supports_pools);
+  CUDA_FREE_AND_NULL(d_plan->d_Up, stream, d_plan->supports_pools);
+  CUDA_FREE_AND_NULL(d_plan->prephase, stream, d_plan->supports_pools);
+  CUDA_FREE_AND_NULL(d_plan->deconv, stream, d_plan->supports_pools);
+  CUDA_FREE_AND_NULL(d_plan->fwbatch, stream, d_plan->supports_pools);
+  CUDA_FREE_AND_NULL(d_plan->CpBatch, stream, d_plan->supports_pools);
 }
 
 template int allocgpumem1d_plan<float>(cufinufft_plan_t<float> *d_plan);

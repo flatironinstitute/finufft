@@ -14,12 +14,12 @@ int main() {
   std::vector<CPX> F(N);              // alloc output mode coeffs
 
   // Make the input data....................................
-  srand(42);                                               // seed
-  std::vector<FLT> x(M);                                   // NU pts locs
-  std::vector<CPX> c(M);                                   // strengths
+  srand(42);                                             // seed (fixed)
+  std::vector<FLT> x(M);                                 // NU pts locs
+  std::vector<CPX> c(M);                                 // strengths
   for (BIGINT j = 0; j < M; ++j) {
-    x[j] = M_PI * (2 * ((FLT)rand() / (FLT)RAND_MAX) - 1); // uniform random in
-                                                           // [-pi,pi)
+    x[j] = PI * (2 * ((FLT)rand() / (FLT)RAND_MAX) - 1); // uniform random in
+                                                         // [-pi,pi)
     c[j] = 2 * ((FLT)rand() / (FLT)RAND_MAX) - 1 +
            I * (2 * ((FLT)rand() / (FLT)RAND_MAX) - 1);
   }

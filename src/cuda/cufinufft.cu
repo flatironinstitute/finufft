@@ -6,7 +6,13 @@
 #include <cufinufft.h>
 #include <cufinufft/impl.h>
 
-inline bool is_invalid_mode_array(int dim, const int64_t *modes64, int32_t modes32[3]) {
+inline bool is_invalid_mode_array(int type, int dim, const int64_t *modes64,
+                                  int32_t modes32[3]) {
+  if (type == 3) {
+    modes32[0] = modes32[1] = modes32[2] = 1;
+    return false;
+  }
+
   int64_t tot_size = 1;
   for (int i = 0; i < dim; ++i) {
     if (modes64[i] > std::numeric_limits<int32_t>::max()) return true;
@@ -28,7 +34,9 @@ int cufinufftf_makeplan(int type, int dim, const int64_t *nmodes, int iflag, int
   }
 
   int nmodes32[3];
-  if (is_invalid_mode_array(dim, nmodes, nmodes32)) return FINUFFT_ERR_NDATA_NOTVALID;
+  if (is_invalid_mode_array(type, dim, nmodes, nmodes32)) {
+    return FINUFFT_ERR_NDATA_NOTVALID;
+  }
 
   return cufinufft_makeplan_impl(type, dim, nmodes32, iflag, ntransf, tol,
                                  (cufinufft_plan_t<float> **)d_plan_ptr, opts);
@@ -42,7 +50,9 @@ int cufinufft_makeplan(int type, int dim, const int64_t *nmodes, int iflag, int 
   }
 
   int nmodes32[3];
-  if (is_invalid_mode_array(dim, nmodes, nmodes32)) return FINUFFT_ERR_NDATA_NOTVALID;
+  if (is_invalid_mode_array(type, dim, nmodes, nmodes32)) {
+    return FINUFFT_ERR_NDATA_NOTVALID;
+  }
 
   return cufinufft_makeplan_impl(type, dim, nmodes32, iflag, ntransf, tol,
                                  (cufinufft_plan_t<double> **)d_plan_ptr, opts);
@@ -102,26 +112,27 @@ void cufinufft_default_opts(cufinufft_opts *opts)
 {
   // sphinx tag (don't remove): @gpu_defopts_start
   // data handling opts...
-  opts->modeord = 0;
+  opts->modeord       = 0;
   opts->gpu_device_id = 0;
 
   // diagnostic opts...
   opts->gpu_spreadinterponly = 0;
 
   // algorithm performance opts...
-  opts->gpu_method = 0;
-  opts->gpu_sort = 1;
-  opts->gpu_kerevalmeth = 1;
-  opts->upsampfac = 2.0;
+  opts->gpu_method         = 0;
+  opts->gpu_sort           = 1;
+  opts->gpu_kerevalmeth    = 1;
+  opts->upsampfac          = 0;
   opts->gpu_maxsubprobsize = 1024;
-  opts->gpu_obinsizex      = -1;
-  opts->gpu_obinsizey      = -1;
-  opts->gpu_obinsizez      = -1;
-  opts->gpu_binsizex = -1;
-  opts->gpu_binsizey = -1;
-  opts->gpu_binsizez = -1;
-  opts->gpu_maxbatchsize = 0;
-  opts->gpu_stream       = cudaStreamDefault;
+  opts->gpu_obinsizex      = 0;
+  opts->gpu_obinsizey      = 0;
+  opts->gpu_obinsizez      = 0;
+  opts->gpu_binsizex       = 0;
+  opts->gpu_binsizey       = 0;
+  opts->gpu_binsizez       = 0;
+  opts->gpu_maxbatchsize   = 0;
+  opts->debug              = 0;
+  opts->gpu_stream         = cudaStreamDefault;
   // sphinx tag (don't remove): @gpu_defopts_end
 }
 }

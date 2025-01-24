@@ -1,11 +1,23 @@
 c     Fortran header recreating finufft_opts struct in fortran (f90 style).
 c     This must be kept synchronized with finufft_opts.h, matching its order.
-c     Also see ../fortran/finufftfort.cpp.  Barnett 5/29/20. One prec 7/2/20.
+c     Also see finufft_mod.f90 and ../fortran/finufftfort.cpp.
+c     Barnett 5/29/20. One prec 7/2/20. Fix ordering bug 11/29/24.
+c     erase chkbnds 1/7/25.
 
       type finufft_opts
-         integer debug, spread_debug,spread_sort,spread_kerevalmeth,
-     $        spread_kerpad,chkbnds,fftw,modeord
-         real*8 upsampfac
-         integer spread_thread,maxbatchsize,showwarn,nthreads,
-     $        spread_nthr_atomic,spread_max_sp_size
+
+c     data handling opts...
+      integer modeord
+
+c     diagnostic opts...
+      integer debug, spread_debug, showwarn
+
+c     alg performance opts...
+      integer nthreads, fftw, spread_sort, spread_kerevalmeth
+      integer spread_kerpad
+      real*8 upsampfac
+      integer spread_thread, maxbatchsize, spread_nthr_atomic
+      integer spread_max_sp_size
+      integer fftw_lock_fun, fftw_unlock_fun, fftw_lock_data
+
       end type

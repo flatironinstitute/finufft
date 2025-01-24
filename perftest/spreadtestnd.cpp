@@ -1,7 +1,6 @@
-#include <finufft/defs.h>
 #include <finufft/spreadinterp.h>
+#include <finufft/test_defs.h>
 #include <finufft/utils.h>
-#include <finufft/utils_precindep.h>
 
 #include <math.h>
 #include <stdio.h>
@@ -181,10 +180,10 @@ int main(int argc, char *argv[])
     unsigned int se = MY_OMP_GET_THREAD_NUM(); // needed for parallel random #s
 #pragma omp for schedule(dynamic, 1000000) reduction(+ : strre, strim)
     for (BIGINT i = 0; i < M; ++i) {
-      kx[i] = randm11r(&se) * 3 * M_PI;
+      kx[i] = randm11r(&se) * 3 * PI;
       // kx[i]=2.0*kx[i] - 50.0;      //// to test folding within +-1 period
-      if (d > 1) ky[i] = randm11r(&se) * 3 * M_PI; // only fill needed coords
-      if (d > 2) kz[i] = randm11r(&se) * 3 * M_PI;
+      if (d > 1) ky[i] = randm11r(&se) * 3 * PI; // only fill needed coords
+      if (d > 2) kz[i] = randm11r(&se) * 3 * PI;
       d_nonuniform[i * 2]     = randm11r(&se);
       d_nonuniform[i * 2 + 1] = randm11r(&se);
       strre += d_nonuniform[2 * i];
@@ -249,9 +248,9 @@ int main(int argc, char *argv[])
 #pragma omp for schedule(dynamic, 1000000)
     for (BIGINT i = 0; i < M; ++i) {           // random target pts
       // kx[i]=10+.9*rand01r(&s)*N;   // or if want to keep ns away from edges
-      kx[i] = randm11r(&se) * 3 * M_PI;
-      if (d > 1) ky[i] = randm11r(&se) * 3 * M_PI;
-      if (d > 2) kz[i] = randm11r(&se) * 3 * M_PI;
+      kx[i] = randm11r(&se) * 3 * PI;
+      if (d > 1) ky[i] = randm11r(&se) * 3 * PI;
+      if (d > 2) kz[i] = randm11r(&se) * 3 * PI;
     }
   }
 

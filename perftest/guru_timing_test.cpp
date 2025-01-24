@@ -135,9 +135,9 @@ int main(int argc, char *argv[])
     unsigned int se = MY_OMP_GET_THREAD_NUM(); // needed for parallel random #s
 #pragma omp for schedule(dynamic, TEST_RANDCHUNK)
     for (BIGINT j = 0; j < M; ++j) {
-      x[j] = M_PI * randm11r(&se);
-      if (y) y[j] = M_PI * randm11r(&se);
-      if (z) z[j] = M_PI * randm11r(&se);
+      x[j] = PI * randm11r(&se);
+      if (y) y[j] = PI * randm11r(&se);
+      if (z) z[j] = PI * randm11r(&se);
     }
 #pragma omp for schedule(dynamic, TEST_RANDCHUNK)
     for (BIGINT i = 0; i < ntransf * M; i++) // random strengths
@@ -145,9 +145,9 @@ int main(int argc, char *argv[])
   }
 
   // Andrea found the following are needed to get reliable independent timings:
-  FFTW_CLEANUP();
-  FFTW_CLEANUP_THREADS();
-  FFTW_FORGET_WISDOM();
+  finufft_fft_cleanup();
+  finufft_fft_cleanup_threads();
+  finufft_fft_forget_wisdom();
   // std::this_thread::sleep_for(std::chrono::seconds(1));
   sleep(tsleep);
 
@@ -271,8 +271,8 @@ double finufftFunnel(CPX *cStart, CPX *fStart, FLT *x, FLT *y, FLT *z, FINUFFT_P
 
     case 1:
       timer.restart();
-      ier = FINUFFT1D1(plan->nj, x, cStart, plan->fftSign, plan->tol, plan->ms, fStart,
-                       popts);
+      ier = FINUFFT1D1(plan->nj, x, cStart, plan->fftSign, plan->tol, plan->mstu[0],
+                       fStart, popts);
       t   = timer.elapsedsec();
       if (ier)
         return fail;
@@ -281,8 +281,8 @@ double finufftFunnel(CPX *cStart, CPX *fStart, FLT *x, FLT *y, FLT *z, FINUFFT_P
 
     case 2:
       timer.restart();
-      ier = FINUFFT1D2(plan->nj, x, cStart, plan->fftSign, plan->tol, plan->ms, fStart,
-                       popts);
+      ier = FINUFFT1D2(plan->nj, x, cStart, plan->fftSign, plan->tol, plan->mstu[0],
+                       fStart, popts);
       t   = timer.elapsedsec();
       if (ier)
         return fail;
@@ -291,8 +291,8 @@ double finufftFunnel(CPX *cStart, CPX *fStart, FLT *x, FLT *y, FLT *z, FINUFFT_P
 
     case 3:
       timer.restart();
-      ier = FINUFFT1D3(plan->nj, x, cStart, plan->fftSign, plan->tol, plan->nk, plan->S,
-                       fStart, popts);
+      ier = FINUFFT1D3(plan->nj, x, cStart, plan->fftSign, plan->tol, plan->nk,
+                       plan->STU[0], fStart, popts);
       t   = timer.elapsedsec();
       if (ier)
         return fail;
@@ -308,8 +308,8 @@ double finufftFunnel(CPX *cStart, CPX *fStart, FLT *x, FLT *y, FLT *z, FINUFFT_P
 
     case 1:
       timer.restart();
-      ier = FINUFFT2D1(plan->nj, x, y, cStart, plan->fftSign, plan->tol, plan->ms,
-                       plan->mt, fStart, popts);
+      ier = FINUFFT2D1(plan->nj, x, y, cStart, plan->fftSign, plan->tol, plan->mstu[0],
+                       plan->mstu[1], fStart, popts);
       t   = timer.elapsedsec();
       if (ier)
         return fail;
@@ -318,8 +318,8 @@ double finufftFunnel(CPX *cStart, CPX *fStart, FLT *x, FLT *y, FLT *z, FINUFFT_P
 
     case 2:
       timer.restart();
-      ier = FINUFFT2D2(plan->nj, x, y, cStart, plan->fftSign, plan->tol, plan->ms,
-                       plan->mt, fStart, popts);
+      ier = FINUFFT2D2(plan->nj, x, y, cStart, plan->fftSign, plan->tol, plan->mstu[0],
+                       plan->mstu[1], fStart, popts);
       t   = timer.elapsedsec();
       if (ier)
         return fail;
@@ -329,7 +329,7 @@ double finufftFunnel(CPX *cStart, CPX *fStart, FLT *x, FLT *y, FLT *z, FINUFFT_P
     case 3:
       timer.restart();
       ier = FINUFFT2D3(plan->nj, x, y, cStart, plan->fftSign, plan->tol, plan->nk,
-                       plan->S, plan->T, fStart, popts);
+                       plan->STU[0], plan->STU[1], fStart, popts);
       t   = timer.elapsedsec();
       if (ier)
         return fail;
@@ -345,8 +345,8 @@ double finufftFunnel(CPX *cStart, CPX *fStart, FLT *x, FLT *y, FLT *z, FINUFFT_P
 
     case 1:
       timer.restart();
-      ier = FINUFFT3D1(plan->nj, x, y, z, cStart, plan->fftSign, plan->tol, plan->ms,
-                       plan->mt, plan->mu, fStart, popts);
+      ier = FINUFFT3D1(plan->nj, x, y, z, cStart, plan->fftSign, plan->tol, plan->mstu[0],
+                       plan->mstu[1], plan->mstu[2], fStart, popts);
       t   = timer.elapsedsec();
       if (ier)
         return fail;
@@ -355,8 +355,8 @@ double finufftFunnel(CPX *cStart, CPX *fStart, FLT *x, FLT *y, FLT *z, FINUFFT_P
 
     case 2:
       timer.restart();
-      ier = FINUFFT3D2(plan->nj, x, y, z, cStart, plan->fftSign, plan->tol, plan->ms,
-                       plan->mt, plan->mu, fStart, popts);
+      ier = FINUFFT3D2(plan->nj, x, y, z, cStart, plan->fftSign, plan->tol, plan->mstu[0],
+                       plan->mstu[1], plan->mstu[2], fStart, popts);
       t   = timer.elapsedsec();
       if (ier)
         return fail;
@@ -366,7 +366,7 @@ double finufftFunnel(CPX *cStart, CPX *fStart, FLT *x, FLT *y, FLT *z, FINUFFT_P
     case 3:
       timer.restart();
       ier = FINUFFT3D3(plan->nj, x, y, z, cStart, plan->fftSign, plan->tol, plan->nk,
-                       plan->S, plan->T, plan->U, fStart, popts);
+                       plan->STU[0], plan->STU[1], plan->STU[2], fStart, popts);
       t   = timer.elapsedsec();
       if (ier)
         return fail;
@@ -399,7 +399,7 @@ double many_simple_calls(CPX *c, CPX *F, FLT *x, FLT *y, FLT *z, FINUFFT_PLAN pl
 
   for (int k = 0; k < plan->ntrans; k++) {
     cStart = c + plan->nj * k;
-    fStart = F + plan->ms * plan->mt * plan->mu * k;
+    fStart = F + plan->mstu[0] * plan->mstu[1] * plan->mstu[2] * k;
 
     // printf("k=%d, debug=%d.................\n",k, plan->opts.debug);
     if (k != 0) { // prevent massive debug output

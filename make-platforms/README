@@ -1,0 +1,7 @@
+This directory contains platform-specific variable settings for the
+GNU makefile. They are used by CI.
+
+Please copy one of these up to ../make.inc and possibly modify for
+your needs.
+
+Barnett 1/7/25

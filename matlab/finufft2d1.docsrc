@@ -20,8 +20,8 @@
 ISIGNEPS
 %     ms,mt  number of Fourier modes requested in x & y; each may be even or odd.
 %            In either case the mode range is integers lying in [-m/2, (m-1)/2]
-OPTS
 OPTS12
+OPTS
 %   Outputs:
 %     f     size (ms,mt) complex matrix of Fourier coefficients
 %           (ordering given by opts.modeord in each dimension; ms fast, mt slow),

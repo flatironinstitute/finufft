@@ -1,22 +1,70 @@
 List of features / changes made / release notes, in reverse chronological order.
 If not stated, FINUFFT is assumed (cuFINUFFT <=1.3 is listed separately).
 
-V 2.3.0beta (7/24/24)
+Master, using release name V 2.4.0 (1/7/25)
 
-* python build modernized to pyproject.toml (both CPU and GPU).
-  PRs 507 (Anden, Lu, Barbone)
-* switchable FFT: either FFTW or DUCC0 (latter need no plan stage; also it is
+* fully removed chkbnds option (opts and spreadopts) (Barnett)
+* classic GNU makefile settings make.inc.* tidied to make-platforms/ (Barnett)
+* unified separate-dim arrays (eg X,Y,Z->XYZ), simplifiying core (Reinecke #592)
+* exit codes of many-vector tests now insensitive to one-mode randomness
+  (Barnett)
+* various bugfixes (DUCC+Python, Python dtype chk, Fortran opts)
+* Large re-org of CPU lib code to remove C-style macros (Martin Reinecke)
+  PR 558: de-macroize FFT (FFT plan now a class), and OMP funcs.
+  PR 567: replace dual-pass compilation to .o and _32.o by C++ templating.
+  - all FLT/CPX macros replaced by templating in main lib (not in test codes).
+  - finufft_plan changed from struct to class, with setpts/exec methods.
+  - spreadinterp reversed order of funcs to avoid fwd declarations.
+  - finufft.cpp and defs.h replaced by finufft_core.{h,cpp}.
+  PR 584: follow-up, more idiomatic C++.
+  - simplify finufft_core internals via class members instead of struct fields.
+  - all array allocations std::vectors or xsimd-aligned, removing FFT's allocs.
+  - math consts such as PI change from macros to templated static consts.
+  - C++ style error handling ("throw") replaces ier, except in C-API wrapper.
+  - simpleinterfaces -> c_interfaces. Shorthands for types ("using f64=" etc).
+  Note: tests still use macros (test_defs.h). And C++ interface will solidify.
+* Single-argument spreading kernel Horner evaluator available for deconv step
+  (onedim_* funcs), to unify ker eval. PR 541, Libin Lu. Not yet exploited.
+* Simplify building of Python source distributions. PR 555 (J Anden).
+* reduced roundoff error in a[n] phase calc in CPU onedim_fseries_kernel().
+   PR534 (Barnett).
+* GPU code type 1,2 also reduced round-off error in phases, to match CPU code;
+  rationalized onedim_{fseries,nuft}_* GPU codes to match CPU (Barbone, Barnett)
+* Added type 3 in 1D, 2D, and 3D, in the GPU library cufinufft. PR #517, Barbone
+  - Removed the CPU fseries computation (used for benchmark, no longer needed)
+  - Added complex arithmetic support for cuda_complex type
+  - Added tests for type 3 in 1D, 2D, and 3D and cuda_complex arithmetic
+  - Minor fixes on the GPU code:
+    a) removed memory leaks in case of errors
+    b) renamed maxbatchsize to batchsize
+* Add options for user-provided FFTW locker (PR548, Blackwell). These options
+  can be be used to prevent crashes when a user is creating/destroying FFTW
+  plans and FINUFFT plans in threads simultaneously.
+
+V 2.3.1 (11/25/24) minor update release (continued support on 2.3.X branch)
+
+* Support and docs for opts.gpu_spreadinterponly=1 for MRI "density compensation
+  estimation" type 1&2 use-case with upsampfac=1.0 PR564 (Chaithya G R).
+
+V 2.3.0 (9/5/24)
+
+* Switched C++ standards from C++14 to C++17, allowing various templating
+  improvements (Barbone).
+* Python build modernized to pyproject.toml (for both CPU and GPU).
+  PR 507 (Anden, Lu, Barbone). Compiles from source for the local build.
+* Switchable FFT: either FFTW or DUCC0 (latter needs no plan stage; also it is
   used to exploit sparsity pattern to achieve FFT speedups 1-3x in 2D and 3D).
-  PR463, Martin Reinecke.
+  PR463, Martin Reinecke. Both CMake and makefile includes this DUCC0 option
+  (makefile PR511 by Barnett; CMake by Barbone).
 * ES kernel rescaled to max value 1, reduced poly degrees for upsampfac=1.25,
   cleaner Horner coefficient generation PR499 (fixes fp32 overflow issue #454).
 * Major manual acceleration of spread/interp kernels via XSIMD header-only lib,
   kernel evaluation, templating by ns with AVX-width-dependent decisions.
   Up to 80% faster, dep on compiler. (Marco Barbone with help from Libin Lu).
-  PRs 459, 471, 502.
-  NOTE: introduces new dependency (XSIMD), added to cMake and makefile.
+  A large chunk (many weeks) of work: PRs 459, 471, 502.
+  NOTE: introduces new dependency (XSIMD), added to CMake and makefile.
 * Exploiting even/odd symmetry for 10% faster xsimd-accel kernel poly eval
-  Libin Lu based on idea of Martin Reinecke (PR477,492,493).
+  (Libin Lu based on idea of Martin Reinecke; PR477,492,493).
 * new test/finufft3dkernel_test checks kerevalmeth=0 and 1 agree to tolerance
   PR 473 (M Barbone).
 * new perftest/compare_spreads.jl compares two spreadinterp libs (A Barnett).
@@ -47,11 +95,31 @@ V 2.3.0beta (7/24/24)
   any 32-bit integers to 64-bit when calling cufinufft(f)_setpts. Note that
   internally, 32-bit integers are still used, so calling cufinufft with more
   than 2e9 points will fail. This restriction may be lifted in the future.
-* cmake build system revamped completely, more modern practices.
-  It auto selects compiler flags based on the supported ones on all operating systems.
-  Added support for Windows (llvm, msvc), Linux (llvm, gcc) and MacOS (llvm, gcc).
-* cmake support for both ducc0 and fftw
-* cmake adding nvcc and msvc optimization flags
+* CMake build system revamped completely, using more modern practices (Barbone).
+  It now auto-selects compiler flags based on those supported on all OSes, and
+  has support for Windows (llvm, msvc), Linux (llvm, gcc) and MacOS (llvm, gcc).
+* CMake added nvcc and msvc optimization flags.
+* sphinx local doc build also using CMake. (Barbone)
+* updated install docs, including for DUCC0 FFT and new python build.
+* updated install docs (Barnett)
+* Major acceleration effort for the GPU library cufinufft (M Barbone, PR488):
+  - binsize is now a function of the shared memory available where possible.
+  - GM 1D sorts using thrust::sort instead of bin-sort.
+  - uses the new normalized Horner coefficients and added support for
+    upsampfac=1.25 on GPU, for first time.
+  - new compile flags for extra-vectorization, flushing single
+    precision denormals to 0 and using fma where possible.
+  -  using intrinsics (eg FMA) in foldrescale and other places to increase
+    performance
+  - using SM90 float2 vector atomicAdd where supported
+  - make default binsize = 0
+* overide single-output relative error by l2 relative error in exit codes of
+  test/finufft?d_test.cpp to reduce CI fails due to random numbers on some
+  platforms in single-prec (with DUCC, etc). (Barnett PR516)
+* fix GPU segfault due to stream deletion as pointer not value (Barbone PR520)
+* new performance-tracking doc page comparing releases (Barbone) #527
+* fix various Py 3.8 wheel and numpy distutils logging issues #549 #545
+* Cmake option to control -fPIC in static build; default now ON (as v2.2) #551
 
 V 2.2.0 (12/12/23)
 

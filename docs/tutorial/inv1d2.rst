@@ -41,7 +41,7 @@ The linear system to solve is
 .. math:: \sum_{-N/2\le k<N/2} e^{ik x_j} f_k = y_j
   \qquad \mbox{for } j=1,\dots,M.
   :label: linsys
-          
+
 This is formally overdetermined ($M>N$), although it may still
 be ill-conditioned when the distribution of sample points $\{x_j\}$ has large gaps.
 The above jittered point choice has no gaps larger than about 0.8 wavelengths
@@ -143,7 +143,7 @@ We now use a pair of padded FFTs in a function (see ``tutorial/applyToep.m`` for
 
 .. note::
 
-   Since FFTs are periodic, the minimum length that padded FFTs can be to correctly compute the central $N$ entries of the nonperiodic convolution of a length $N$ vector with a length $2N-1$ vector is $2N-1$. However, for $N=3\times 10^5$, $2N-1=599999$ is prime! Its FFT is several times slower than one of length $2N$. Thus we choose $2N$ as the padded length; a more optimized code might pad to the next 5-smooth even number above $2N-1$, using, eg, `next235even <https://github.com/flatironinstitute/finufft/blob/9a1fae7ab1c2f6b1e51c8907b4d6483d5b55f716/src/utils_precindep.cpp#L15>`_.
+   Since FFTs are periodic, the minimum length that padded FFTs can be to correctly compute the central $N$ entries of the nonperiodic convolution of a length $N$ vector with a length $2N-1$ vector is $2N-1$. However, for $N=3\times 10^5$, $2N-1=599999$ is prime! Its FFT is several times slower than one of length $2N$. Thus we choose $2N$ as the padded length; a more optimized code might pad to the next 5-smooth even number above $2N-1$, using, eg, `next235even <https://github.com/flatironinstitute/finufft/blob/master/src/utils.cpp#L14>`_.
 
 The solver command with this matvec is:
 
@@ -163,7 +163,7 @@ The conditioning of the inverse NUFFT problem is set by the nonuniform (sample) 
 .. code-block:: matlab
 
   x = 2*pi*rand(M,1);
-                
+
 We use the Toeplitz FFT matvec (method 2 above), and now find that CG
 reaches the requested ``relres<1e-6`` in a huge 1461 iterations
 (the large count implying poor conditioning), taking 35 seconds. The above error
@@ -200,7 +200,7 @@ any node-free gap measured in Nyquist wavelengths. This
 partially explains the ill-conditioning observed above.
 
 ..  note::
-    
+
   The coefficient and $f(x)$ reconstruction error could be reduced in the above demo (without changing the conditioning) by reducing the residual (ie, setting a smaller CG stopping criterion); however, the ``1e-6`` relative residual stopping value used already presumes that the data were at least 6-digit accurate (0.0001% measurement error), which is already a stretch in any practical problem. In short, it is not meaningful to demand residuals much lower than the data measurement error.
 
 Two ways to change the problem to reduce ill-conditioning include:

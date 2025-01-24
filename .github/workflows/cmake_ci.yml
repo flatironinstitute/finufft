@@ -64,3 +64,33 @@ jobs:
         working-directory: ./build
         run: |
           ctest -C ${{matrix.build_type}} --output-on-failure
+
+      - name: Set up Python
+        if: matrix.finufft_static_linking
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Build Python wheels
+        if: matrix.finufft_static_linking
+        env:
+          MACOSX_DEPLOYMENT_TARGET: 13
+        shell: bash
+        run: |
+          python3 -m pip install \
+            --verbose \
+            -C cmake.define.CMAKE_BUILD_TYPE=${{ matrix.build_type }} \
+            -C cmake.define.FINUFFT_ARCH_FLAGS=${{ matrix.arch_flags }} \
+            -C cmake.define.FINUFFT_USE_DUCC0=${{ matrix.ducc_fft }} \
+            python/finufft
+
+      - name: Install pytest
+        if: matrix.finufft_static_linking
+        run: |
+          python3 -m pip install --upgrade pip
+          python3 -m pip install pytest
+
+      - name: Test Python package
+        if: matrix.finufft_static_linking
+        run: |
+          python3 -m pytest python/finufft/test

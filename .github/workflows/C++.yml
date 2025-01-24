@@ -39,7 +39,7 @@ jobs:
     - name: Install omp and fftw
       run: |
         brew install libomp fftw
-        cp make.inc.macosx_clang make.inc
+        cp make-platforms/make.inc.macosx_clang make.inc
 
     - name: Compile C++ code
       run: |
@@ -58,7 +58,7 @@ jobs:
     - name: Install gcc and fftw
       run: |
         brew install gcc@12 fftw
-        cp make.inc.macosx_gcc-12 make.inc
+        cp make-platforms/make.inc.macosx_gcc-12 make.inc
 
     - name: Compile C++ code
       run: |
@@ -88,5 +88,5 @@ jobs:
           fftw:p
     - name: Compile C++ code
       run: |
-        cp make.inc.windows_msys make.inc
+        cp make-platforms/make.inc.windows_msys make.inc
         make spreadtestall && make lib && make test

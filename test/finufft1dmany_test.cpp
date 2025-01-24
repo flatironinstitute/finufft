@@ -10,7 +10,7 @@ const char *help[] = {
     "Usage: finufft1dmany_test ntrans Nmodes Nsrc [tol [debug [spread_thread "
     "[maxbatchsize [spreadsort [upsampfac [errfail]]]]]]]",
     "\teg:\tfinufft1dmany_test 100 1e3 1e4 1e-6 1 0 0 2 0.0 1e-5",
-    "\tnotes:\tif errfail present, exit code 1 if any error > errfail",
+    "\tnotes:\tif errfail present, exit code 1 if consistency error > errfail",
     NULL};
 // Malleo 2019 based on Shih 2018. Tidied, extra args, Barnett 5/25/20 onwards
 
@@ -56,7 +56,7 @@ int main(int argc, char *argv[]) {
     unsigned int se = MY_OMP_GET_THREAD_NUM();
 #pragma omp for schedule(static, TEST_RANDCHUNK)
     for (BIGINT j = 0; j < M; ++j) {
-      x[j] = M_PI * randm11r(&se);
+      x[j] = PI * randm11r(&se);
     }
 #pragma omp for schedule(static, TEST_RANDCHUNK)
     for (BIGINT j = 0; j < ntransf * M; ++j) {
@@ -83,11 +83,10 @@ int main(int argc, char *argv[]) {
     Ft += c[j + i * M] * exp(J * (nt1 * x[j])); // crude direct
   BIGINT it = N / 2 + nt1;                      // index in complex F as 1d array
   err       = abs(Ft - F[it + i * N]) / infnorm(N, F + i * N);
-  errmax    = max(err, errmax);
   printf("\tone mode: rel err in F[%lld] of trans#%d is %.3g\n", (long long)nt1, i, err);
 
   // compare the result with FINUFFT1D1
-  FFTW_FORGET_WISDOM();
+  finufft_fft_forget_wisdom();
   CPX *F_1d1 = (CPX *)malloc(sizeof(CPX) * N * ntransf);
   CPX *Fstart;
   CPX *cstart;
@@ -118,7 +117,7 @@ int main(int argc, char *argv[]) {
   free(F_1d1);
 
   printf("test 1d2 many vs repeated single: ------------------------------------\n");
-  FFTW_FORGET_WISDOM();
+  finufft_fft_forget_wisdom();
 
 #pragma omp parallel
   {
@@ -143,12 +142,11 @@ int main(int argc, char *argv[]) {
   // #pragma omp parallel for schedule(static,TEST_RANDCHUNK) reduction(cmplxadd:ct)
   for (BIGINT m1 = -k0; m1 <= (N - 1) / 2; ++m1)
     ct += F[i * N + m++] * exp(IMA * ((FLT)(isign * m1)) * x[jt]); // crude direct
-  err    = abs(ct - c[jt + i * M]) / infnorm(M, c + i * M);
-  errmax = max(err, errmax);
+  err = abs(ct - c[jt + i * M]) / infnorm(M, c + i * M);
   printf("\tone targ: rel err in c[%lld] of trans#%d is %.3g\n", (long long)jt, i, err);
 
   // check against single calls to FINUFFT1D2...
-  FFTW_FORGET_WISDOM();
+  finufft_fft_forget_wisdom();
   CPX *c_1d2 = (CPX *)malloc(sizeof(CPX) * M * ntransf);
   timer.restart();
   for (BIGINT j = 0; j < ntransf; j++) {
@@ -173,15 +171,15 @@ int main(int argc, char *argv[]) {
   free(c_1d2);
 
   printf("test 1d3 many vs repeated single: ------------------------------------\n");
-  FFTW_FORGET_WISDOM();
+  finufft_fft_forget_wisdom();
 
 #pragma omp parallel
   {
     unsigned int se = MY_OMP_GET_THREAD_NUM();
 #pragma omp for schedule(static, TEST_RANDCHUNK)
-    for (BIGINT j = 0; j < M; ++j) x[j] = 2.0 + PI * randm11r(&se); // new x_j srcs
+    for (BIGINT j = 0; j < M; ++j) x[j] = 2.0 + FLT(PI) * randm11r(&se); // new x_j srcs
   }
-  FLT *s = (FLT *)malloc(sizeof(FLT) * N);                          // targ freqs
+  FLT *s = (FLT *)malloc(sizeof(FLT) * N);                               // targ freqs
   FLT S  = (FLT)N / 2; // choose freq range sim to type 1
 #pragma omp parallel
   {
@@ -209,12 +207,11 @@ int main(int argc, char *argv[]) {
   // #pragma omp parallel for schedule(static,TEST_RANDCHUNK) reduction(cmplxadd:Ft)
   for (BIGINT j = 0; j < M; ++j)
     Ft += c[j + i * M] * exp(IMA * (FLT)isign * s[kt] * x[j]);
-  err    = abs(Ft - F[kt + i * N]) / infnorm(N, F + i * N);
-  errmax = max(err, errmax);
+  err = abs(Ft - F[kt + i * N]) / infnorm(N, F + i * N);
   printf("\tone targ: rel err in F[%lld] of trans#%d is %.3g\n", (long long)kt, i, err);
 
   // compare the result with single calls to FINUFFT1D3...
-  FFTW_FORGET_WISDOM();
+  finufft_fft_forget_wisdom();
   CPX *f_1d3 = (CPX *)malloc(sizeof(CPX) * N * ntransf);
   timer.restart();
   for (int k = 0; k < ntransf; k++) {

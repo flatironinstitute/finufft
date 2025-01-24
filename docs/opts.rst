@@ -20,17 +20,17 @@ to the simple, vectorized, or guru makeplan routines.
 Recall how to do this from C++:
 
 .. code-block:: C++
-                
+
   // (... set up M,x,c,tol,N, and allocate F here...)
-  finufft_opts* opts;
-  finufft_default_opts(opts);
-  opts->debug = 1;
-  int ier = finufft1d1(M,x,c,+1,tol,N,F,opts);
+  finufft_opts opts;
+  finufft_default_opts(&opts);
+  opts.debug = 1;
+  int ier = finufft1d1(M,x,c,+1,tol,N,F,&opts);
 
 This setting produces more timing output to ``stdout``.
 
 .. warning::
-   
+
  In C/C++ and Fortran, don't forget to call the command which sets default options
  (``finufft_default_opts`` or ``finufftf_default_opts``)
  before you start changing them and passing them to FINUFFT.
@@ -46,18 +46,19 @@ Here is a 1-line summary of each option, taken from the code
    :start-after: @opts_start
    :end-before: @opts_end
 
-Here are their default settings (from ``src/finufft.cpp:finufft_default_opts``):
+Here are their default settings (from ``src/finufft_core.cpp:finufft_default_opts``):
 
-.. literalinclude:: ../src/finufft.cpp
+.. literalinclude:: ../src/finufft_core.cpp
    :start-after: @defopts_start
    :end-before: @defopts_end
-  
+
 As for quick advice, the main options you'll want to play with are:
-  
+
+- ``upsampfac`` to trade-off between spread/interpolate vs FFT speed and RAM
 - ``modeord`` to flip ("fftshift") the Fourier mode ordering
 - ``debug`` to look at timing output (to determine if your problem is spread/interpolation dominated, vs FFT dominated)
 - ``nthreads`` to run with a different number of threads than the current maximum available through OpenMP (a large number can sometimes be detrimental, and very small problems can sometimes run faster on 1 thread)
-- ``fftw`` to try slower plan modes which give faster transforms. The next natural one to try is ``FFTW_MEASURE`` (look at the FFTW3 docs)
+- ``fftw`` to try slower FFTW plan modes which give faster transforms. The next natural one to try is ``FFTW_MEASURE`` (look at the FFTW3 docs)
 
 See :ref:`Troubleshooting <trouble>` for good advice on trying options, and read the full options descriptions below.
 
@@ -91,8 +92,6 @@ Data handling options
 
   .. note:: The index *sets* are the same in the two ``modeord`` choices; their ordering differs only by a cyclic shift. The FFT ordering cyclically shifts the CMCL indices $\mbox{floor}(N/2)$ to the left (often called an "fftshift").
 
-**chkbnds**: [DEPRECATED] has no effect.
-  
 
 Diagnostic options
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -100,7 +99,7 @@ Diagnostic options
 **debug**: Controls the amount of overall debug/timing output to stdout.
 
 * ``debug=0`` : silent
-  
+
 * ``debug=1`` : print some information
 
 * ``debug=2`` : prints more information
@@ -113,11 +112,11 @@ Diagnostic options
 
   * ``spread_debug=2`` : prints lots. This can print thousands of lines since it includes one line per *subproblem*.
 
-   
+
 **showwarn**: Whether to print warnings (these go to stderr).
-    
+
 * ``showwarn=0`` : suppresses such warnings
-  
+
 * ``showwarn=1`` : prints warnings
 
 
@@ -158,34 +157,109 @@ There is thus little reason for the nonexpert to mess with this option.
 * ``spread_kerpad=1`` : pad to next multiple of four
 
 
-**upsampfac**: This is the internal real factor by which the FFT (fine grid)
+**upsampfac**: This is the internal factor by which the FFT (fine grid)
 is chosen larger than
-the number of requested modes in each dimension, for type 1 and 2 transforms.
+the number of requested modes in each dimension, for type 1 and 2 transforms. For type 3 transforms this factor gets squared, due to type 2 nested in a type-1-spreading operation, so has even more influence.
 We have built efficient kernels
 for only two settings, as follows. Otherwise, setting it to zero chooses a good heuristic:
 
-* ``upsampfac=0.0`` : use heuristics to choose ``upsampfac`` as one of the below values, and use this value internally. The value chosen is visible in the text output via setting ``debug>=2``. This setting is recommended for basic users; however, if you seek more performance it is quick to try the other of the below.
+* ``upsampfac=0.0`` : use heuristics to choose ``upsampfac`` as one of the below values, and use this value internally. The value chosen is visible in the text output via setting ``debug>=2``. This setting is recommended for basic users; however, if you seek more performance it is quick to try the other of the values.
 
-* ``upsampfac=2.0`` : standard setting of upsampling. This is necessary if you need to exceed 9 digits of accuracy.
+* ``upsampfac=2.0`` : standard setting of upsampling. Due to kernel width restrictions, this is necessary if you need to exceed 9 digits of accuracy.
 
 * ``upsampfac=1.25`` : low-upsampling option, with lower RAM, smaller FFTs, but wider spreading kernel. The latter can be much faster than the standard when the number of nonuniform points is similar or smaller to the number of modes, and/or if low accuracy is required. It is especially much (2 to 3 times) faster for type 3 transforms. However, the kernel widths :math:`w` are about 50% larger in each dimension, which can lead to slower spreading (it can also be faster due to the smaller size of the fine grid). Because the kernel width is limited to 16, currently, thus only 9-digit accuracy can currently be reached when using ``upsampfac=1.25``.
+
 
 **spread_thread**: in the case of multiple transforms per call (``ntr>1``, or the "many" interfaces), controls how multithreading is used to spread/interpolate each batch of data.
 
 * ``spread_thread=0`` : makes an automatic choice between the below. Recommended.
-  
+
 * ``spread_thread=1`` : acts on each vector in the batch in sequence, using multithreaded spread/interpolate on that vector. It can be slightly better than ``2`` for large problems.
-    
+
 * ``spread_thread=2`` : acts on all vectors in a batch (of size chosen typically to be the number of threads) simultaneously, assigning each a thread which performs a single-threaded spread/interpolate.  It is much better than ``1`` for all but large problems. (Historical note: this was used by Melody Shih for the original "2dmany" interface in 2018.)
 
   .. note::
-  
+
     Historical note: A former option ``3`` has been removed. This was like ``2`` except allowing nested OMP parallelism, so multi-threaded spread-interpolate was used for each of the vectors in a batch in parallel. This was used by Andrea Malleo in 2019. We have not yet found a case where this beats both ``1`` and ``2``, hence removed it due to complications with changing the OMP nesting state in both old and new OMP versions.
 
-     
+
 **maxbatchsize**:  in the case of multiple transforms per call (``ntr>1``, or the "many" interfaces), set the largest batch size of data vectors.
 Here ``0`` makes an automatic choice. If you are unhappy with this, then for small problems it should equal the number of threads, while for large problems it appears that ``1`` often better (since otherwise too much simultaneous RAM movement occurs). Some further work is needed to optimize this parameter.
 
 **spread_nthr_atomic**: if non-negative: for numbers of threads up to this value, an OMP critical block for ``add_wrapped_subgrid`` is used in spreading (type 1 transforms). Above this value, instead OMP atomic writes are used, which scale better for large thread numbers. If negative, the heuristic default in the spreader is used, set in ``src/spreadinterp.cpp:setup_spreader()``.
 
 **spread_max_sp_size**: if positive, overrides the maximum subproblem (chunking) size for multithreaded spreading (type 1 transforms). Otherwise the default in the spreader is used, set in ``src/spreadinterp.cpp:setup_spreader()``, which we believe is a decent heuristic for Intel i7 and xeon machines.
+
+
+Thread safety options (advanced)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+By default, with FFTW as the FFT library, FINUFFT is thread safe so long as no other threads are calling FFTW plan creation/destruction routines independently of FINUFFT. If these FFTW routines are called outside of FINUFFT, then the program is liable to crash. In most cases, the calling program can simply call the FFTW routine ``fftw_make_planner_thread_safe()`` before threading out and thread safety will be maintained. However, in instances where this is less desirable, we provide a means to provide your own FFTW locking mechanism. The following example code should exercise FFTW thread safety, and can be built with ``c++ thread_test.cpp -o thread_test -lfinufft -lfftw3_threads -lfftw3 -fopenmp -std=c++11``, assuming the finufft include and library paths are set.
+
+.. code-block:: C++
+
+
+  // thread_test.cpp
+  #include <vector>
+  #include <mutex>
+  #include <complex>
+
+  #include <fftw3.h>
+  #include <finufft.h>
+  #include <omp.h>
+
+  using namespace std;
+
+  constexpr int N = 65384;
+
+  void locker(void *lck) { reinterpret_cast<recursive_mutex *>(lck)->lock(); }
+  void unlocker(void *lck) { reinterpret_cast<recursive_mutex *>(lck)->unlock(); }
+
+  int main() {
+    int64_t Ns[3]; // guru describes mode array by vector [N1,N2..]
+    Ns[0] = N;
+    recursive_mutex lck;
+
+    finufft_opts opts;
+    finufft_default_opts(&opts);
+    opts.nthreads = 1;
+    opts.debug = 0;
+    opts.fftw_lock_fun = locker;
+    opts.fftw_unlock_fun = unlocker;
+    opts.fftw_lock_data = reinterpret_cast<void *>(&lck);
+
+    // random nonuniform points (x) and complex strengths (c)
+    vector<complex<double>> c(N);
+
+    // init FFTW threads
+    fftw_init_threads();
+
+    // FFTW and FINUFFT execution using OpenMP parallelization
+    #pragma omp parallel for
+    for (int j = 0; j < 100; ++j) {
+      // allocate output array for FFTW...
+      vector<complex<double>> F1(N);
+
+      // FFTW plan
+      lck.lock();
+      fftw_plan_with_nthreads(1);
+      fftw_plan plan = fftw_plan_dft_1d(N, reinterpret_cast<fftw_complex*>(c.data()),
+                                        reinterpret_cast<fftw_complex*>(F1.data()),
+                                        FFTW_FORWARD, FFTW_ESTIMATE);
+      fftw_destroy_plan(plan);
+      lck.unlock();
+
+      // FINUFFT plan
+      finufft_plan nufftplan;
+      finufft_makeplan(1, 1, Ns, 1, 1, 1e-6, &nufftplan, &opts);
+      finufft_destroy(nufftplan);
+    }
+
+    return 0;
+  }
+
+**fftw_lock_fun**:  ``void (fun*)(void *)`` C-style callback function to lock calls to FFTW plan manipulation routines. A ``nullptr`` or ``0`` value will be ignored. If non-null, ``fftw_unlock_fun`` must also be set.
+
+**fftw_unlock_fun**: ``void (fun*)(void *)`` C-style callback function to unlock calls to FFTW plan manipulation routines. A ``nullptr`` or ``0`` value will be ignored. If non-null, ``fftw_lock_fun`` must also be set.
+
+**fftw_lock_data**:  ``void *data`` pointer, typically to the lock object itself. Pointer will be passed to ``fftw_lock_fun`` and ``fftw_unlock_fun`` if they are set.

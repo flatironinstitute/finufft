@@ -1,3 +1,5 @@
+.. _julia:
+
 Julia interfaces (CPU and GPU)
 ==============================
 
@@ -5,7 +7,7 @@ Principal author Ludvig af Klinteberg and others have built and maintain `FINUFF
 The Julia package installation automatically downloads pre-built CPU binaries of the FINUFFT library for Linux, macOS, Windows and FreeBSD (for a full list see `finufft_jll <https://github.com/JuliaBinaryWrappers/finufft_jll.jl>`_), and the GPU binary for Linux (see `cufinufft_jll <https://github.com/JuliaBinaryWrappers/cufinufft_jll.jl>`_).
 
 `FINUFFT.jl` has itself been wrapped as part of `NFFT.jl <https://juliamath.github.io/NFFT.jl/dev/performance/>`_, which contains an "abstract" interface
-to any NUFFT in Julia, with FINUFFT as an example.
+to any NUFFT in Julia, with FINUFFT as an example. This was by Tobias Knopp and coworkers, starting around 2022.
 Their
 `performance comparison page <https://juliamath.github.io/NFFT.jl/dev/performance/>`_
 show that FINUFFT matches their native Julia implementation for speed of type 1

@@ -10,7 +10,7 @@ const char *help[] = {
     "Usage: finufft3dmany_test ntrans Nmodes1 Nmodes2 Nmodes3 Nsrc [tol [debug "
     "[spread_thread [maxbatchsize [spreadsort [upsampfac [errfail]]]]]]]",
     "\teg:\tfinufft3dmany_test 100 50 50 50 1e5 1e-3 1 0 0 2 0.0 1e-2",
-    "\tnotes:\tif errfail present, exit code 1 if any error > errfail",
+    "\tnotes:\tif errfail present, exit code 1 if consistency error > errfail",
     NULL};
 // Malleo 2019 based on Shih 2018. Tidied, extra args, Barnett 5/25/20.
 
@@ -63,9 +63,9 @@ int main(int argc, char *argv[]) {
     unsigned int se = MY_OMP_GET_THREAD_NUM();
 #pragma omp for schedule(static, TEST_RANDCHUNK)
     for (BIGINT j = 0; j < M; ++j) {
-      x[j] = M_PI * randm11r(&se);
-      y[j] = M_PI * randm11r(&se);
-      z[j] = M_PI * randm11r(&se);
+      x[j] = PI * randm11r(&se);
+      y[j] = PI * randm11r(&se);
+      z[j] = PI * randm11r(&se);
     }
 #pragma omp for schedule(static, TEST_RANDCHUNK)
     for (BIGINT j = 0; j < ntransf * M; ++j) {
@@ -97,13 +97,12 @@ int main(int argc, char *argv[]) {
                                                                              // complex
                                                                              // F as 1d
                                                                              // array
-  err    = abs(Ft - F[it + i * N]) / infnorm(N, F + i * N);
-  errmax = max(err, errmax);
+  err = abs(Ft - F[it + i * N]) / infnorm(N, F + i * N);
   printf("\tone mode: rel err in F[%lld,%lld,%lld] of trans#%d is %.3g\n", (long long)nt1,
          (long long)nt2, (long long)nt3, i, err);
 
   // compare the result with FINUFFT3D1
-  FFTW_FORGET_WISDOM();
+  finufft_fft_forget_wisdom();
   finufft_opts simpleopts = opts;
   simpleopts.debug        = 0; // don't output timing for calls of FINUFFT3D1
   simpleopts.spread_debug = 0;
@@ -142,7 +141,7 @@ int main(int argc, char *argv[]) {
 #pragma omp for schedule(static, TEST_RANDCHUNK)
     for (BIGINT m = 0; m < N * ntransf; ++m) F[m] = crandm11r(&se);
   }
-  FFTW_FORGET_WISDOM();
+  finufft_fft_forget_wisdom();
   timer.restart();
   ier = FINUFFT3D2MANY(ntransf, M, x, y, z, c, isign, tol, N1, N2, N3, F, &opts);
   ti  = timer.elapsedsec();
@@ -167,11 +166,10 @@ int main(int argc, char *argv[]) {
       }
     }
   }
-  err    = abs(ct - c[jt + i * M]) / infnorm(M, c + i * M);
-  errmax = max(err, errmax);
+  err = abs(ct - c[jt + i * M]) / infnorm(M, c + i * M);
   printf("\tone targ: rel err in c[%lld] of trans#%d is %.3g\n", (long long)jt, i, err);
 
-  FFTW_FORGET_WISDOM();
+  finufft_fft_forget_wisdom();
   // compare the result with FINUFFT3D2...
   CPX *c_3d2 = (CPX *)malloc(sizeof(CPX) * M * ntransf);
   timer.restart();
@@ -198,16 +196,16 @@ int main(int argc, char *argv[]) {
   free(c_3d2);
 
   printf("test 3d3 many vs repeated single: ------------------------------------\n");
-  FFTW_FORGET_WISDOM();
+  finufft_fft_forget_wisdom();
   // reuse the strengths c, interpret N as number of targs:
 #pragma omp parallel
   {
     unsigned int se = MY_OMP_GET_THREAD_NUM();
 #pragma omp for schedule(static, TEST_RANDCHUNK)
     for (BIGINT j = 0; j < M; ++j) {
-      x[j] = 2.0 + M_PI * randm11r(&se);  // new x_j srcs, offset from origin
-      y[j] = -3.0 + M_PI * randm11r(&se); // " y_j
-      z[j] = 1.0 + M_PI * randm11r(&se);  // " z_j
+      x[j] = 2.0 + PI * randm11r(&se);  // new x_j srcs, offset from origin
+      y[j] = -3.0 + PI * randm11r(&se); // " y_j
+      z[j] = 1.0 + PI * randm11r(&se);  // " z_j
     }
   }
   FLT *s_freq = (FLT *)malloc(sizeof(FLT) * N); // targ freqs (1-cmpt)
@@ -246,11 +244,10 @@ int main(int argc, char *argv[]) {
   for (BIGINT j = 0; j < M; ++j)
     Ft += c[i * M + j] *
           exp(J * (s_freq[kt] * x[j] + t_freq[kt] * y[j] + u_freq[kt] * z[j]));
-  err    = abs(Ft - F[kt + i * N]) / infnorm(N, F + i * N);
-  errmax = max(err, errmax);
+  err = abs(Ft - F[kt + i * N]) / infnorm(N, F + i * N);
   printf("\t one targ: rel err in F[%lld] of trans#%d is %.3g\n", (long long)kt, i, err);
 
-  FFTW_FORGET_WISDOM();
+  finufft_fft_forget_wisdom();
   // compare the result with FINUFFT3D3...
   CPX *f_3d3 = (CPX *)malloc(sizeof(CPX) * N * ntransf);
   timer.restart();
