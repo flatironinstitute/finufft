@@ -48,7 +48,8 @@ include(cmake/utils.cmake)
 if(DEFINED ENV{GITHUB_ACTIONS} AND ENV{GITHUB_ACTIONS} EQUAL "true")
   message("CMake is being executed inside a GitHub workflow")
   # if msvc use FS flag
-  if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+  if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC" AND CMAKE_C_COMPILER_LAUNCHER
+                                               STREQUAL "sccache")
     message("Added /FS flag to MSVC compiler options to speed up compilation")
     add_compile_options(/FS)
   endif()
