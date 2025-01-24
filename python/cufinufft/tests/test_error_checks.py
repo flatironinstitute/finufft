@@ -147,10 +147,8 @@ def test_dtype_errors():
     with pytest.raises(TypeError, match="Expected complex64 or complex128") as err:
         Plan(1, (8, 8), dtype="uint8")
 
-
-def test_dtype_warnings():
-    with pytest.warns(DeprecationWarning, match="Converting to complex64") as record:
+    with pytest.raises(TypeError, match="Expected complex64 or complex128") as err:
         Plan(1, (8, 8), dtype="float32")
 
-    with pytest.warns(DeprecationWarning, match="Converting to complex128") as record:
+    with pytest.raises(TypeError, match="Expected complex64 or complex128") as err:
         Plan(1, (8, 8), dtype="float64")
