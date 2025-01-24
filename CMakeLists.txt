@@ -7,6 +7,7 @@ project(
 # windows MSVC runtime flags policy
 cmake_policy(SET CMP0091 NEW)
 
+include(GenerateExportHeader)
 include(CMakeDependentOption)
 
 # cmake-format: off
@@ -234,7 +235,10 @@ function(set_finufft_options target)
   set_target_properties(
     ${target}
     PROPERTIES MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>"
-               POSITION_INDEPENDENT_CODE ${FINUFFT_POSITION_INDEPENDENT_CODE})
+               POSITION_INDEPENDENT_CODE ${FINUFFT_POSITION_INDEPENDENT_CODE}
+               CXX_VISIBILITY_PRESET hidden
+               C_VISIBILITY_PRESET hidden
+               VISIBILITY_INLINES_HIDDEN ON)
   enable_asan(${target})
   if(FINUFFT_USE_OPENMP)
     target_link_libraries(${target} PRIVATE OpenMP::OpenMP_CXX)
@@ -263,7 +267,11 @@ if(FINUFFT_USE_CPU)
     add_library(finufft STATIC ${FINUFFT_SOURCES})
   endif()
   set_finufft_options(finufft)
-
+  generate_export_header(
+    finufft EXPORT_FILE_NAME
+    "${CMAKE_CURRENT_BINARY_DIR}/include/finufft_export.h" BASE_NAME "finufft")
+  target_include_directories(finufft
+                             PUBLIC "${CMAKE_CURRENT_BINARY_DIR}/include")
   if(WIN32 AND FINUFFT_SHARED_LINKING)
     target_compile_definitions(finufft PRIVATE dll_EXPORTS FINUFFT_DLL)
   endif()

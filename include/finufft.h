@@ -24,9 +24,9 @@
 #define FINUFFT_H
 
 // prec-indep stuff. both these are thus made public-facing
+#include <finufft_export.h>
 #include <finufft_opts.h>
 #include <finufft_spread_opts.h>
-
 // Public error numbers
 #include <finufft_errors.h>
 

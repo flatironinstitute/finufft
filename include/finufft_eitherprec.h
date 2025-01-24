@@ -7,7 +7,6 @@
  2)  They will clobber any prior macros starting FINUFFT*
  3) for debug of header macros, see finufft.h
 */
-
 // Local precision-switching macros to make the public interface...
 #ifdef FINUFFT_SINGLE
 // macro to prepend finufft or finufftf to a string without a space.
@@ -48,15 +47,15 @@
    these defines.The main reason is that if msvc changes the way it deals
    with it in the future we just need to update cmake for it to work
    instead of having a check on the msvc version. */
-#if defined(FINUFFT_DLL) && (defined(_WIN32) || defined(__WIN32__))
-#if defined(dll_EXPORTS)
-#define FINUFFT_EXPORT __declspec(dllexport)
-#else
-#define FINUFFT_EXPORT __declspec(dllimport)
-#endif
-#else
-#define FINUFFT_EXPORT
-#endif
+// #if defined(FINUFFT_DLL) && (defined(_WIN32) || defined(__WIN32__))
+// #if defined(dll_EXPORTS)
+// #define FINUFFT_EXPORT __declspec(dllexport)
+// #else
+// #define FINUFFT_EXPORT __declspec(dllimport)
+// #endif
+// #else
+// #define FINUFFT_EXPORT
+// #endif
 
 /* specify calling convention (Windows only)
    The cdecl calling convention is actually not the default in all but a very
