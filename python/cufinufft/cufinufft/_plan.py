@@ -85,18 +85,6 @@ class Plan:
         # Setup type bound methods
         self.dtype = np.dtype(dtype)
 
-        if self.dtype == np.float64:
-            warnings.warn("Real dtypes are currently deprecated and will be "
-                          "removed in version 2.3. Converting to complex128.",
-                          DeprecationWarning)
-            self.dtype = np.complex128
-
-        if self.dtype == np.float32:
-            warnings.warn("Real dtypes are currently deprecated and will be "
-                          "removed in version 2.3. Converting to complex64.",
-                          DeprecationWarning)
-            self.dtype = np.complex64
-
         if self.dtype == np.complex128:
             self._make_plan = _make_plan
             self._setpts = _set_pts
