@@ -267,7 +267,7 @@ public:
     Outputs:
     phihat - real Fourier transform evaluated at freq k
    */
-  T operator()(T k) {
+  FINUFFT_ALWAYS_INLINE T operator()(T k) {
     T x = 0;
     for (size_t n = 0; n < z.size(); ++n)
       x += f[n] * 2 * cos(k * z[n]); // pos & neg freq pair.  use T cos!
