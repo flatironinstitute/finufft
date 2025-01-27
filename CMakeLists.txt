@@ -45,16 +45,6 @@ endif()
 
 include(cmake/utils.cmake)
 
-if(DEFINED ENV{GITHUB_ACTIONS} AND ENV{GITHUB_ACTIONS} EQUAL "true")
-  message("CMake is being executed inside a GitHub workflow")
-  # if msvc use FS flag
-  if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC" AND CMAKE_C_COMPILER_LAUNCHER
-                                               STREQUAL "sccache")
-    message("Added /FS flag to MSVC compiler options to speed up compilation")
-    add_compile_options(/FS)
-  endif()
-endif()
-
 set(FINUFFT_CXX_FLAGS_RELEASE
     -funroll-loops
     -ffp-contract=fast
@@ -93,6 +83,7 @@ set(FINUFFT_CXX_FLAGS_DEBUG
     -Wall
     -Wno-sign-compare
     -Wno-unknown-pragmas)
+
 filter_supported_compiler_flags(FINUFFT_CXX_FLAGS_DEBUG FINUFFT_CXX_FLAGS_DEBUG)
 message(STATUS "FINUFFT Debug flags: ${FINUFFT_CXX_FLAGS_DEBUG}")
 list(APPEND FINUFFT_CXX_FLAGS_RELWITHDEBINFO ${FINUFFT_CXX_FLAGS_RELEASE}

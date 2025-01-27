@@ -53,18 +53,22 @@ jobs:
         run: |
           sudo apt update
           sudo apt install -y libfftw3-dev
+      - name : MSVC force FS
+        if : matrix.toolchain == 'msvc'
+        run: |
+          echo "CFLAGS=/FS" >> $GITHUB_ENV
+          echo "CXXFLAGS=/FS" >> $GITHUB_ENV
+          echo "FFLAGS=/FS" >> $GITHUB_ENV
       - name: Configure Cmake
         run: |
           cmake -S . -B ./build -G Ninja -DCMAKE_C_COMPILER_LAUNCHER=sccache -DCMAKE_CXX_COMPILER_LAUNCHER=sccache -DCMAKE_BUILD_TYPE:STRING=${{matrix.build_type}} -DFINUFFT_ARCH_FLAGS=${{ matrix.arch_flags }} -DFINUFFT_BUILD_TESTS=ON -DFINUFFT_STATIC_LINKING=${{matrix.finufft_static_linking}} -DFINUFFT_USE_DUCC0=${{ matrix.ducc_fft }}
       - name: Build
         run: |
           cmake --build ./build --config ${{matrix.build_type}}
-
       - name: Test
         working-directory: ./build
         run: |
           ctest -C ${{matrix.build_type}} --output-on-failure
-
       - name: Set up Python
         if: matrix.finufft_static_linking
         uses: actions/setup-python@v5
