@@ -79,7 +79,6 @@ set(FINUFFT_CXX_FLAGS_DEBUG
     -g3
     -ggdb
     -ggdb3
-    /Zi
     -Wall
     -Wno-sign-compare
     -Wno-unknown-pragmas)
@@ -90,9 +89,9 @@ if(DEFINED ENV{GITHUB_ACTIONS})
     # if msvc use FS flag
     if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC" AND NOT CMAKE_BUILD_TYPE STREQUAL
                                                  "Release")
-      message("Remove /Zi flag from MSVC flags to support sccache")
-      string(REPLACE "/Zi" "/Z7" FINUFFT_CXX_FLAGS_DEBUG
-                     "${FINUFFT_CXX_FLAGS_DEBUG}")
+      set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT
+          "$<$<CONFIG:Debug,RelWithDebInfo>:Embedded>")
+      message("CMAKE_MSVC_DEBUG_INFORMATION_FORMAT TO Embedded")
     endif()
   endif()
 else()
