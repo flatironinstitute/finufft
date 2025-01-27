@@ -25,15 +25,9 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      - name: Run sccache-cache
-        uses: mozilla-actions/sccache-action@v0.0.5
       - name: Run sccache-cache only on non-release runs
         if: github.event_name != 'release' && github.event_name != 'workflow_dispatch'
-        uses: mozilla-actions/sccache-action@v0.0.5
-      - name: Set Rust caching env vars only on non-release runs
-        if: github.event_name != 'release' && github.event_name != 'workflow_dispatch'
-        run: |
-          echo "SCCACHE_GHA_ENABLED=true" >> $GITHUB_ENV
+        uses: mozilla-actions/sccache-action@v0.0.7
       - name: Setup Cpp
         uses: aminya/setup-cpp@v1
         with:
