@@ -83,51 +83,6 @@ set(FINUFFT_CXX_FLAGS_DEBUG
     -Wno-sign-compare
     -Wno-unknown-pragmas)
 
-if(DEFINED ENV{GITHUB_ACTIONS})
-  if($ENV{GITHUB_ACTIONS} STREQUAL "true")
-    message("CMake is being executed inside a GitHub workflow")
-    # if msvc use FS flag
-    if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC" AND NOT CMAKE_BUILD_TYPE STREQUAL
-                                                 "Release")
-      set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT
-          "$<$<CONFIG:Debug,RelWithDebInfo>:Embedded>")
-      message("CMAKE_MSVC_DEBUG_INFORMATION_FORMAT TO Embedded")
-    endif()
-  endif()
-else()
-  message("CMake is NOT being executed inside a GitHub workflow")
-  # env variable is:
-  message(STATUS "ENV{GITHUB_ACTIONS}: $ENV{GITHUB_ACTIONS}")
-endif()
-filter_supported_compiler_flags(FINUFFT_CXX_FLAGS_DEBUG FINUFFT_CXX_FLAGS_DEBUG)
-message(STATUS "FINUFFT Debug flags: ${FINUFFT_CXX_FLAGS_DEBUG}")
-list(APPEND FINUFFT_CXX_FLAGS_RELWITHDEBINFO ${FINUFFT_CXX_FLAGS_RELEASE}
-     ${FINUFFT_CXX_FLAGS_DEBUG})
-message(
-  STATUS "FINUFFT RelWithDebInfo flags: ${FINUFFT_CXX_FLAGS_RELWITHDEBINFO}")
-
-if(FINUFFT_ARCH_FLAGS STREQUAL "native")
-  set(FINUFFT_ARCH_FLAGS
-      -march=native
-      CACHE STRING "" FORCE)
-  filter_supported_compiler_flags(FINUFFT_ARCH_FLAGS FINUFFT_ARCH_FLAGS)
-  if(NOT FINUFFT_ARCH_FLAGS)
-    set(FINUFFT_ARCH_FLAGS
-        -mtune=native
-        CACHE STRING "" FORCE)
-    filter_supported_compiler_flags(FINUFFT_ARCH_FLAGS FINUFFT_ARCH_FLAGS)
-  endif()
-  if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
-    # -march=native emulation for MSVC
-    check_arch_support()
-  endif()
-  if(NOT FINUFFT_ARCH_FLAGS)
-    message(WARNING "No architecture flags are supported by the compiler.")
-  else()
-    message(STATUS "FINUFFT Arch flags: ${FINUFFT_ARCH_FLAGS}")
-  endif()
-endif()
-
 # Set default build type to Release
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE
@@ -386,6 +341,7 @@ message(STATUS "  FINUFFT_FFTW_LIBRARIES: ${FINUFFT_FFTW_LIBRARIES}")
 message(STATUS "  FINUFFT_ARCH_FLAGS: ${FINUFFT_ARCH_FLAGS}")
 message(STATUS "  FINUFFT_USE_DUCC0: ${FINUFFT_USE_DUCC0}")
 # cmake-format: on
+
 if(FINUFFT_ENABLE_INSTALL)
   include(GNUInstallDirs)
   install(TARGETS ${INSTALL_TARGETS} PUBLIC_HEADER)
