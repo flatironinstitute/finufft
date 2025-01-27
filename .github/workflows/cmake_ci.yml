@@ -23,11 +23,12 @@ jobs:
       fail-fast: false
       matrix: ${{ fromJSON(needs.prepare.outputs.matrix) }}
     steps:
-      - name: Setup cache
-        uses: actions/cache@v4
-        with:
-          path: ${{matrix.cache_path}}
-          key: "default"
+      - name: Create CPM cache directory UNIX
+        if: runner.os != 'Windows'
+        run: mkdir -p ${{ matrix.cache_path }}
+      - name: Create CPM cache directory Windows
+        if: runner.os == 'Windows'
+        run: mkdir ${{ matrix.cache_path }}
       - name: Checkout code
         uses: actions/checkout@v4
       - name: Run sccache-cache only on non-release runs
