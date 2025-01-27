@@ -388,11 +388,13 @@ if(DEFINED ENV{GITHUB_ACTIONS})
            OR type STREQUAL "SHARED_LIBRARY"
            OR type STREQUAL "STATIC_LIBRARY")
           message(STATUS "Target ${target} is of type ${type}")
-          # replace /Zi with /Z7 in all targets
+          # remove /Zi from all targets
           get_target_property(flags ${target} COMPILE_FLAGS)
-          string(REPLACE "/Zi" "/Z7" flags ${flags})
-          set_target_properties(${target} PROPERTIES COMPILE_FLAGS ${flags})
-          message(STATUS "Replaced /Zi with /Z7 in target ${target}")
+          if(flags)
+            string(REMOVE "/Zi" flags ${flags})
+            set_target_properties(${target} PROPERTIES COMPILE_FLAGS ${flags})
+            message(STATUS "Removed /Zi from target ${target}")
+          endif()
         endif()
       endforeach()
     endif()
