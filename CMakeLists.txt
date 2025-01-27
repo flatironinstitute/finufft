@@ -91,8 +91,8 @@ if(DEFINED ENV{GITHUB_ACTIONS})
     if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC" AND NOT CMAKE_BUILD_TYPE STREQUAL
                                                  "Release")
       message("Remove /Zi flag from MSVC flags to support sccache")
-      string(REPLACE "/Zi" "/Z7" CMAKE_CXX_FLAGS_DEBUG
-                     "${CMAKE_CXX_FLAGS_DEBUG}")
+      string(REPLACE "/Zi" "/Z7" FINUFFT_CXX_FLAGS_DEBUG
+                     "${FINUFFT_CXX_FLAGS_DEBUG}")
     endif()
   endif()
 else()
