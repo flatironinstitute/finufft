@@ -1,14 +1,12 @@
 #include <finufft/fft.h>
 #include <finufft/finufft_core.h>
+#include <finufft/finufft_utils.hpp>
 #include <finufft/spreadinterp.h>
-#include <finufft/utils.h>
 
 #include "../contrib/legendre_rule_fast.h"
 #include <cmath>
 #include <cstdio>
-#include <cstdlib>
 #include <iomanip>
-#include <iostream>
 #include <memory>
 #include <vector>
 
@@ -75,7 +73,7 @@ Design notes for guru interface implementation:
 // ---------- local math routines (were in common.cpp; no need now): --------
 
 namespace finufft {
-namespace common {
+namespace utils {
 
 static int set_nf_type12(BIGINT ms, const finufft_opts &opts,
                          const finufft_spread_opts &spopts, BIGINT *nf)
@@ -364,11 +362,11 @@ static void deconvolveshuffle2d(int dir, T prefac, const std::vector<T> &ker1,
       fw[j] = 0.0;
   for (BIGINT k2 = 0; k2 <= k2max; ++k2, pp += 2 * ms)               // non-neg y-freqs
     // point fk and fw to the start of this y value's row (2* is for complex):
-    common::deconvolveshuffle1d(dir, prefac / ker2[k2], ker1, ms, fk + pp, nf1,
-                                &fw[nf1 * k2], modeord);
+    utils::deconvolveshuffle1d(dir, prefac / ker2[k2], ker1, ms, fk + pp, nf1,
+                               &fw[nf1 * k2], modeord);
   for (BIGINT k2 = k2min; k2 < 0; ++k2, pn += 2 * ms) // neg y-freqs
-    common::deconvolveshuffle1d(dir, prefac / ker2[-k2], ker1, ms, fk + pn, nf1,
-                                &fw[nf1 * (nf2 + k2)], modeord);
+    utils::deconvolveshuffle1d(dir, prefac / ker2[-k2], ker1, ms, fk + pn, nf1,
+                               &fw[nf1 * (nf2 + k2)], modeord);
 }
 
 template<typename T>
@@ -409,11 +407,11 @@ static void deconvolveshuffle3d(int dir, T prefac, std::vector<T> &ker1,
       fw[j] = 0.0;
   for (BIGINT k3 = 0; k3 <= k3max; ++k3, pp += 2 * ms * mt)        // non-neg z-freqs
     // point fk and fw to the start of this z value's plane (2* is for complex):
-    common::deconvolveshuffle2d(dir, prefac / ker3[k3], ker1, ker2, ms, mt, fk + pp, nf1,
-                                nf2, &fw[np * k3], modeord);
+    utils::deconvolveshuffle2d(dir, prefac / ker3[k3], ker1, ker2, ms, mt, fk + pp, nf1,
+                               nf2, &fw[np * k3], modeord);
   for (BIGINT k3 = k3min; k3 < 0; ++k3, pn += 2 * ms * mt) // neg z-freqs
-    common::deconvolveshuffle2d(dir, prefac / ker3[-k3], ker1, ker2, ms, mt, fk + pn, nf1,
-                                nf2, &fw[np * (nf3 + k3)], modeord);
+    utils::deconvolveshuffle2d(dir, prefac / ker3[-k3], ker1, ker2, ms, mt, fk + pn, nf1,
+                               nf2, &fw[np * (nf3 + k3)], modeord);
 }
 
 // --------- batch helper functions for t1,2 exec: ---------------------------
@@ -488,12 +486,12 @@ static int deconvolveBatch(int batchSize, FINUFFT_PLAN_T<T> *p, std::complex<T> 
   return 0;
 }
 
-} // namespace common
+} // namespace utils
 } // namespace finufft
 
 // --------------- rest is the 5 user guru (plan) interface drivers: ---------
 // (not namespaced since have safe names finufft{f}_* )
-using namespace finufft::common; // accesses routines defined above
+using namespace finufft::utils; // accesses routines defined above
 
 // Marco Barbone: 5.8.2024
 // These are user-facing.

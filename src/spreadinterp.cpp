@@ -1,7 +1,7 @@
 // Spreading/interpolating module within FINUFFT.
 
+#include <finufft/finufft_utils.hpp>
 #include <finufft/spreadinterp.h>
-#include <finufft/utils.h>
 
 #include "ker_horner_allw_loop_constexpr.h"
 #include "ker_lowupsampfac_horner_allw_loop_constexpr.h"

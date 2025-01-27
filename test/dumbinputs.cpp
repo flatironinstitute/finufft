@@ -34,12 +34,12 @@
 */
 
 // This switches FLT macro from double to float if SINGLE is defined, etc...
-#include "directft/dirft1d.cpp"
-#include "directft/dirft2d.cpp"
-#include "directft/dirft3d.cpp"
+#include "utils/dirft1d.hpp"
+#include "utils/dirft2d.hpp"
+#include "utils/norms.hpp"
 #include <finufft/test_defs.h>
+
 using namespace std;
-using namespace finufft::utils; // for twonorm, etc
 
 int main(int argc, char *argv[]) {
   int M = 100;    // number of nonuniform points

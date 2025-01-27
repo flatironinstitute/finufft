@@ -5,11 +5,11 @@
 
 #include <cstdint>
 
-#include "finufft/utils.h"
+#include <finufft/finufft_utils.hpp>
+
 using namespace std;
 
-namespace finufft {
-namespace utils {
+namespace finufft::utils {
 
 BIGINT next235even(BIGINT n)
 // finds even integer not less than n, with prime factors no larger than 5
@@ -47,7 +47,7 @@ double CNTime::restart()
   return delta;
 }
 
-double CNTime::elapsedsec()
+double CNTime::elapsedsec() const
 // returns answers as double, in seconds, to microsec accuracy. Barnett 5/22/18
 {
   std::uint64_t now = std::chrono::duration_cast<std::chrono::microseconds>(
@@ -85,5 +85,4 @@ int rand_r(unsigned int * /*seedp*/)
 }
 #endif
 
-} // namespace utils
-} // namespace finufft
+} // namespace finufft::utils

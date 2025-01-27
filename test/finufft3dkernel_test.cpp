@@ -1,6 +1,9 @@
 #include <finufft/test_defs.h>
 // this enforces recompilation, responding to SINGLE...
-#include "directft/dirft3d.cpp"
+#include "finufft/finufft_utils.hpp"
+#include "utils/dirft3d.hpp"
+#include "utils/norms.hpp"
+
 using namespace std;
 using namespace finufft::utils;
 

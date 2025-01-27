@@ -16,7 +16,6 @@
 
 // convenient private finufft internals
 #include <finufft/finufft_core.h>
-#include <finufft/utils.h>
 #include <memory>
 
 // --------------- Private data types for compilation in either prec ---------

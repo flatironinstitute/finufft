@@ -1,15 +1,16 @@
+
+#include <complex>
+
 // public header
 #include "finufft.h"
 #include "finufft/test_defs.h"
 
 // private access to timer
-#include "finufft/utils.h"
-using namespace finufft::utils;
+#include "finufft/finufft_utils.hpp"
 
-#include <complex>
-#include <stdio.h>
-#include <stdlib.h>
 using namespace std;
+
+using namespace finufft::utils;
 
 int main(int argc, char *argv[])
 /* What is small-problem cost of FINUFFT library from C++, using plain
@@ -48,7 +49,7 @@ int main(int argc, char *argv[])
   complex<double> *F = (complex<double> *)malloc(sizeof(complex<double>) * N);
 
   printf("repeatedly calling the simple interface: --------------------- \n");
-  finufft::utils::CNTime timer;
+  CNTime timer;
   timer.start();
   for (int r = 0; r < reps; ++r) { // call the NUFFT (with iflag=+1):
     // printf("rep %d\n",r);

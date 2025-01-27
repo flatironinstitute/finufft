@@ -7,14 +7,18 @@
 #include <cuComplex.h>
 #include <cufinufft/types.h>
 
-#include <cuda_runtime.h>
-
-#include <sys/time.h>
-
 #include <cuda.h>
+#include <cuda_runtime.h>
 #include <type_traits>
 
 #include <thrust/extrema.h>
+
+#include <cufinufft_export.h>
+
+#ifndef _USE_MATH_DEFINES
+#define _USE_MATH_DEFINES
+#endif
+#include <cmath>
 
 #if !defined(__CUDA_ARCH__) || __CUDA_ARCH__ >= 600 || defined(__clang__)
 #else
@@ -87,19 +91,8 @@ private:
   }
 };
 
-// jfm timer class
-class CNTime {
-public:
-  void start();
-  double restart();
-  double elapsedsec();
-
-private:
-  struct timeval initial;
-};
-
 // ahb math helpers
-CUFINUFFT_BIGINT next235beven(CUFINUFFT_BIGINT n, CUFINUFFT_BIGINT b);
+CUFINUFFT_EXPORT CUFINUFFT_BIGINT next235beven(CUFINUFFT_BIGINT n, CUFINUFFT_BIGINT b);
 
 template<typename T> T infnorm(int n, std::complex<T> *a) {
   T nrm = 0.0;
