@@ -36,7 +36,7 @@ combinations = [
 
 def get_cache_path(platform):
     if platform == "ubuntu-22.04":
-        return "~/.cache/"
+        return "~/.cache"
     elif platform == "windows-2022":
         return "~\AppData\Local"
     elif platform == "macos-13":

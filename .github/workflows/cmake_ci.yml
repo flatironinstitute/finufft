@@ -23,12 +23,6 @@ jobs:
       fail-fast: false
       matrix: ${{ fromJSON(needs.prepare.outputs.matrix) }}
     steps:
-      - name: Create CPM cache directory UNIX
-        if: runner.os != 'Windows'
-        run: mkdir -p ${{ matrix.cache_path }}
-      - name: Create CPM cache directory Windows
-        if: runner.os == 'Windows'
-        run: mkdir ${{ matrix.cache_path }}
       - name: Checkout code
         uses: actions/checkout@v4
       - name: Run sccache-cache only on non-release runs
@@ -62,7 +56,7 @@ jobs:
         run: |
           cmake -S . -B ./build -G Ninja -DCMAKE_C_COMPILER_LAUNCHER=sccache -DCMAKE_CXX_COMPILER_LAUNCHER=sccache -DCMAKE_BUILD_TYPE:STRING=${{matrix.build_type}} -DFINUFFT_ARCH_FLAGS=${{ matrix.arch_flags }} -DFINUFFT_BUILD_TESTS=ON -DFINUFFT_STATIC_LINKING=${{matrix.finufft_static_linking}} -DFINUFFT_USE_DUCC0=${{ matrix.ducc_fft }}
         env:
-          CPM_SOURCE_CACHE: ${{ matrix.cache_path }}
+          CPM_SOURCE_CACHE: ${{ github.workspace }}
       - name: Build
         run: |
           cmake --build ./build --config ${{matrix.build_type}}
@@ -82,7 +76,7 @@ jobs:
         if: matrix.finufft_static_linking
         env:
           MACOSX_DEPLOYMENT_TARGET: 13
-          CPM_SOURCE_CACHE: ${{ matrix.cache_path }}
+          CPM_SOURCE_CACHE: ${{ github.workspace }}
         shell: bash
         run: |
           python3 -m pip install \
