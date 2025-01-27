@@ -62,6 +62,7 @@ jobs:
         working-directory: ./build
         run: |
           ctest -C ${{matrix.build_type}} --output-on-failure
+
       - name: Set up Python
         if: matrix.finufft_static_linking
         uses: actions/setup-python@v5
