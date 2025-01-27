@@ -225,53 +225,54 @@ static void onedim_fseries_kernel(BIGINT nf, std::vector<T> &fwkerhalf,
 }
 
 template<typename T> class KernelFseries {
-  private:
-    std::vector<T> z, f;
+private:
+  std::vector<T> z, f;
 
-  public:
-    /*
-      Approximates exact 1D Fourier transform of cnufftspread's real symmetric
-      kernel, directly via q-node quadrature on Euler-Fourier formula, exploiting
-      narrowness of kernel. Evaluates at set of arbitrary freqs k in [-pi, pi),
-      for a kernel with x measured in grid-spacings. (See previous routine for
-      FT definition).
-    
-      Inputs:
-      opts - spreading opts object, needed to eval kernel (must be already set up)
-    
-      Barnett 2/8/17. openmp since cos slow 2/9/17.
-      To do (Nov 2024): replace evaluate_kernel by evaluate_kernel_horner.
-     */
-    KernelFseries(const finufft_spread_opts &opts) {
-      T J2 = opts.nspread / 2.0; // J/2, half-width of ker z-support
-      // # quadr nodes in z (from 0 to J/2; reflections will be added)...
-      int q = (int)(2 + 2.0 * J2); // > pi/2 ratio.  cannot exceed MAX_NQUAD
-      if (opts.debug) printf("q (# ker FT quadr pts) = %d\n", q);
-      std::vector<double> Z(2*q), W(2*q);
-      legendre_compute_glr(2 * q, Z.data(), W.data()); // only half the nodes used, eg on (0,1)
-      z.resize(q);
-      f.resize(q);
-      for (int n = 0; n < q; ++n) {
-        z[n] = T(Z[n]*J2);                           // quadr nodes for [0,J/2]
-        f[n] = J2 * T(W[n]) * evaluate_kernel(z[n], opts); // w/ quadr weights
-      }
+public:
+  /*
+    Approximates exact 1D Fourier transform of cnufftspread's real symmetric
+    kernel, directly via q-node quadrature on Euler-Fourier formula, exploiting
+    narrowness of kernel. Evaluates at set of arbitrary freqs k in [-pi, pi),
+    for a kernel with x measured in grid-spacings. (See previous routine for
+    FT definition).
+
+    Inputs:
+    opts - spreading opts object, needed to eval kernel (must be already set up)
+
+    Barnett 2/8/17. openmp since cos slow 2/9/17.
+    To do (Nov 2024): replace evaluate_kernel by evaluate_kernel_horner.
+   */
+  KernelFseries(const finufft_spread_opts &opts) {
+    T J2 = opts.nspread / 2.0; // J/2, half-width of ker z-support
+    // # quadr nodes in z (from 0 to J/2; reflections will be added)...
+    int q = (int)(2 + 2.0 * J2); // > pi/2 ratio.  cannot exceed MAX_NQUAD
+    if (opts.debug) printf("q (# ker FT quadr pts) = %d\n", q);
+    std::vector<double> Z(2 * q), W(2 * q);
+    legendre_compute_glr(2 * q, Z.data(), W.data()); // only half the nodes used, eg on
+                                                     // (0,1)
+    z.resize(q);
+    f.resize(q);
+    for (int n = 0; n < q; ++n) {
+      z[n] = T(Z[n] * J2);                               // quadr nodes for [0,J/2]
+      f[n] = J2 * T(W[n]) * evaluate_kernel(z[n], opts); // w/ quadr weights
     }
+  }
 
-    /*
-      Evaluates the Fourier transform of te kernel at a single point.
+  /*
+    Evaluates the Fourier transform of te kernel at a single point.
 
-      Inputs:
-      k - frequency, dual to the kernel's natural argument, ie exp(i.k.z)
+    Inputs:
+    k - frequency, dual to the kernel's natural argument, ie exp(i.k.z)
 
-      Outputs:
-      phihat - real Fourier transform evaluated at freq k
-     */
-    T operator()(T k) {
-      T x = 0;
-      for (size_t n = 0; n < z.size(); ++n)
-        x += f[n] * 2 * cos(k * z[n]); // pos & neg freq pair.  use T cos!
-      return x;
-    }
+    Outputs:
+    phihat - real Fourier transform evaluated at freq k
+   */
+  T operator()(T k) {
+    T x = 0;
+    for (size_t n = 0; n < z.size(); ++n)
+      x += f[n] * 2 * cos(k * z[n]); // pos & neg freq pair.  use T cos!
+    return x;
+  }
 };
 
 template<typename T>
@@ -880,19 +881,17 @@ int FINUFFT_PLAN_T<TF>::setpts(BIGINT nj, TF *xj, TF *yj, TF *zj, BIGINT nk, TF 
 #pragma omp parallel for num_threads(opts.nthreads) schedule(static)
     for (BIGINT k = 0; k < nk; ++k) { // .... loop over NU targ freqs
       TF phiHat = 1;
-      TF phase = 0;
+      TF phase  = 0;
       for (int idim = 0; idim < dim; ++idim) {
         auto tSTUin = STU_in[idim][k];
         // rescale the target s_k etc to s'_k etc...
-        auto tSTUp =
-          t3P.h[idim] * t3P.gam[idim] * (tSTUin - t3P.D[idim]); // so |s'_k| < pi/R
+        auto tSTUp = t3P.h[idim] * t3P.gam[idim] * (tSTUin - t3P.D[idim]); // so |s'_k| <
+                                                                           // pi/R
         phiHat *= fseries(tSTUp);
-        if (do_phase)
-          phase += (tSTUin - t3P.D[idim]) * t3P.C[idim];
+        if (do_phase) phase += (tSTUin - t3P.D[idim]) * t3P.C[idim];
         STUp[idim][k] = tSTUp;
       }
-      deconv[k] = do_phase ? std::polar(TF(1)/phiHat, isign * phase)
-                           : TF(1)/phiHat;
+      deconv[k] = do_phase ? std::polar(TF(1) / phiHat, isign * phase) : TF(1) / phiHat;
     }
     if (opts.debug)
       printf("[%s t3] phase & deconv factors:\t%.3g s\n", __func__, timer.elapsedsec());
