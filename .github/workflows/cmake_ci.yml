@@ -27,7 +27,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ${{matrix.cache_path}}
-          key: "default"
+          key: "shared"
       - name: Set CPM_SOURCE_CACHE
         run: |
           echo "CPM_SOURCE_CACHE=${{ matrix.cache_path }} >> $GITHUB_ENV"
