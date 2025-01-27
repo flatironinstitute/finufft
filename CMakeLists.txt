@@ -83,6 +83,23 @@ set(FINUFFT_CXX_FLAGS_DEBUG
     -Wall
     -Wno-sign-compare
     -Wno-unknown-pragmas)
+
+if(DEFINED ENV{GITHUB_ACTIONS})
+  if($ENV{GITHUB_ACTIONS} STREQUAL "true")
+    message("CMake is being executed inside a GitHub workflow")
+    # if msvc use FS flag
+    if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC" AND NOT CMAKE_BUILD_TYPE STREQUAL
+                                                 "Release")
+      message("Remove /Zi flag from MSVC flags to support sccache")
+      string(REPLACE "/Zi" "/Z7" CMAKE_CXX_FLAGS_DEBUG
+                     "${CMAKE_CXX_FLAGS_DEBUG}")
+    endif()
+  endif()
+else()
+  message("CMake is NOT being executed inside a GitHub workflow")
+  # env variable is:
+  message(STATUS "ENV{GITHUB_ACTIONS}: $ENV{GITHUB_ACTIONS}")
+endif()
 filter_supported_compiler_flags(FINUFFT_CXX_FLAGS_DEBUG FINUFFT_CXX_FLAGS_DEBUG)
 message(STATUS "FINUFFT Debug flags: ${FINUFFT_CXX_FLAGS_DEBUG}")
 list(APPEND FINUFFT_CXX_FLAGS_RELWITHDEBINFO ${FINUFFT_CXX_FLAGS_RELEASE}
@@ -348,64 +365,6 @@ endif()
 
 if(FINUFFT_BUILD_PYTHON)
   add_subdirectory(python)
-endif()
-
-# fix for sccache on msvc on github actions
-if(DEFINED ENV{GITHUB_ACTIONS})
-  if($ENV{GITHUB_ACTIONS} STREQUAL "true")
-    message("CMake is being executed inside a GitHub workflow")
-    # if msvc use FS flag
-    if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC" AND NOT CMAKE_BUILD_TYPE STREQUAL
-                                                 "Release")
-      message("Remove /Zi flag from MSVC flags to support sccache")
-      function(get_all_targets var)
-        set(targets)
-        get_all_targets_recursive(targets ${CMAKE_CURRENT_SOURCE_DIR})
-        set(${var}
-            ${targets}
-            PARENT_SCOPE)
-      endfunction()
-
-      macro(get_all_targets_recursive targets dir)
-        get_property(
-          subdirectories
-          DIRECTORY ${dir}
-          PROPERTY SUBDIRECTORIES)
-        foreach(subdir ${subdirectories})
-          get_all_targets_recursive(${targets} ${subdir})
-        endforeach()
-        get_property(
-          current_targets
-          DIRECTORY ${dir}
-          PROPERTY BUILDSYSTEM_TARGETS)
-        list(APPEND ${targets} ${current_targets})
-      endmacro()
-      get_all_targets(all_targets)
-      foreach(target ${all_targets})
-        get_target_property(type ${target} TYPE)
-        # if type is not INTERFACE_LIBRARY
-        if(type STREQUAL "EXECUTABLE"
-           OR type STREQUAL "SHARED_LIBRARY"
-           OR type STREQUAL "STATIC_LIBRARY")
-          message(STATUS "Target ${target} is of type ${type}")
-          # remove /Zi from all targets
-          get_target_property(flags ${target} COMPILE_OPTIONS)
-          if(flags)
-            message(STATUS "compile flags: ${flags}")
-            list(TRANSFORM flags REPLACE "/Zi" "/Z7")
-            set_target_properties(${target} PROPERTIES COMPILE_OPTIONS
-                                                       "${flags}")
-            message(
-              STATUS "Removed /Zi from target ${target} new flags: ${flags}")
-          endif()
-        endif()
-      endforeach()
-    endif()
-  endif()
-else()
-  message("CMake is NOT being executed inside a GitHub workflow")
-  # env variable is:
-  message(STATUS "ENV{GITHUB_ACTIONS}: $ENV{GITHUB_ACTIONS}")
 endif()
 
 # cmake-format: off
