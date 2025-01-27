@@ -350,6 +350,59 @@ if(FINUFFT_BUILD_PYTHON)
   add_subdirectory(python)
 endif()
 
+# fix for sccache on msvc on github actions
+if(DEFINED ENV{GITHUB_ACTIONS})
+  if($ENV{GITHUB_ACTIONS} STREQUAL "true")
+    message("CMake is being executed inside a GitHub workflow")
+    # if msvc use FS flag
+    if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC" AND NOT CMAKE_BUILD_TYPE STREQUAL
+                                                 "Release")
+      message("Adding /FS flag to MSVC compiler options to support sccache")
+      function(get_all_targets var)
+        set(targets)
+        get_all_targets_recursive(targets ${CMAKE_CURRENT_SOURCE_DIR})
+        set(${var}
+            ${targets}
+            PARENT_SCOPE)
+      endfunction()
+
+      macro(get_all_targets_recursive targets dir)
+        get_property(
+          subdirectories
+          DIRECTORY ${dir}
+          PROPERTY SUBDIRECTORIES)
+        foreach(subdir ${subdirectories})
+          get_all_targets_recursive(${targets} ${subdir})
+        endforeach()
+        get_property(
+          current_targets
+          DIRECTORY ${dir}
+          PROPERTY BUILDSYSTEM_TARGETS)
+        list(APPEND ${targets} ${current_targets})
+      endmacro()
+      get_all_targets(all_targets)
+      foreach(target ${all_targets})
+        get_target_property(type ${target} TYPE)
+        # if type is not INTERFACE_LIBRARY
+        if(type STREQUAL "EXECUTABLE"
+           OR type STREQUAL "SHARED_LIBRARY"
+           OR type STREQUAL "STATIC_LIBRARY")
+          message(STATUS "Target ${target} is of type ${type}")
+          # replace /Zi with /Z7 in all targets
+          get_target_property(flags ${target} COMPILE_FLAGS)
+          string(REPLACE "/Zi" "/Z7" flags ${flags})
+          set_target_properties(${target} PROPERTIES COMPILE_FLAGS ${flags})
+          message(STATUS "Replaced /Zi with /Z7 in target ${target}")
+        endif()
+      endforeach()
+    endif()
+  endif()
+else()
+  message("CMake is NOT being executed inside a GitHub workflow")
+  # env variable is:
+  message(STATUS "ENV{GITHUB_ACTIONS}: $ENV{GITHUB_ACTIONS}")
+endif()
+
 # cmake-format: off
 message(STATUS "FINUFFT configuration summary:")
 message(STATUS "  CMAKE_BUILD_TYPE: ${CMAKE_BUILD_TYPE}")
@@ -396,54 +449,4 @@ if(FINUFFT_ENABLE_INSTALL)
       PATTERN "README" EXCLUDE
       PATTERN "CMakeLists.txt" EXCLUDE)
   endif()
-endif()
-
-# fix for sccache on msvc on github actions
-if(DEFINED ENV{GITHUB_ACTIONS})
-  if($ENV{GITHUB_ACTIONS} STREQUAL "true")
-    message("CMake is being executed inside a GitHub workflow")
-    # if msvc use FS flag
-    if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC" AND NOT CMAKE_BUILD_TYPE STREQUAL
-                                                 "Release")
-      message("Adding /FS flag to MSVC compiler options to support sccache")
-      function(get_all_targets var)
-        set(targets)
-        get_all_targets_recursive(targets ${CMAKE_CURRENT_SOURCE_DIR})
-        set(${var}
-            ${targets}
-            PARENT_SCOPE)
-      endfunction()
-
-      macro(get_all_targets_recursive targets dir)
-        get_property(
-          subdirectories
-          DIRECTORY ${dir}
-          PROPERTY SUBDIRECTORIES)
-        foreach(subdir ${subdirectories})
-          get_all_targets_recursive(${targets} ${subdir})
-        endforeach()
-        get_property(
-          current_targets
-          DIRECTORY ${dir}
-          PROPERTY BUILDSYSTEM_TARGETS)
-        list(APPEND ${targets} ${current_targets})
-      endmacro()
-      get_all_targets(all_targets)
-      foreach(target ${all_targets})
-        get_target_property(type ${target} TYPE)
-        # if type is not INTERFACE_LIBRARY
-        if(type STREQUAL "EXECUTABLE"
-           OR type STREQUAL "SHARED_LIBRARY"
-           OR type STREQUAL "STATIC_LIBRARY")
-          message(STATUS "Target ${target} is of type ${type}")
-          set_target_properties(${target} PROPERTIES COMPILE_FLAGS "/FS")
-          message(STATUS "Added /FS flag to target ${target}")
-        endif()
-      endforeach()
-    endif()
-  endif()
-else()
-  message("CMake is NOT being executed inside a GitHub workflow")
-  # env variable is:
-  message(STATUS "ENV{GITHUB_ACTIONS}: $ENV{GITHUB_ACTIONS}")
 endif()
