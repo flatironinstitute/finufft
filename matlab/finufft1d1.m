@@ -18,6 +18,7 @@
 %     ms    number of Fourier modes computed, may be even or odd;
 %           in either case, mode range is integers lying in [-ms/2, (ms-1)/2]
 %     opts.modeord: 0 (CMCL increasing mode ordering, default), 1 (FFT ordering)
+%     opts.spreadinterponly: 0 (perform NUFFT, default), 1 (only spread/interp)
 %     opts   optional struct with optional fields controlling the following:
 %     opts.debug:   0 (silent, default), 1 (timing breakdown), 2 (debug info).
 %     opts.spread_debug: spreader: 0 (no text, default), 1 (some), or 2 (lots)

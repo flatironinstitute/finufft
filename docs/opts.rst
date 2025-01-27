@@ -92,6 +92,21 @@ Data handling options
 
   .. note:: The index *sets* are the same in the two ``modeord`` choices; their ordering differs only by a cyclic shift. The FFT ordering cyclically shifts the CMCL indices $\mbox{floor}(N/2)$ to the left (often called an "fftshift").
 
+**spreadinterponly**: [only has effect for type 1 or 2.] If ``0`` do the NUFFT as intended.
+If ``1``, omit the FFT and deconvolution (diagonal division by kernel Fourier transform) steps, thus
+returning *garbage answers as a NUFFT*, but allowing experts to perform an isolated
+spreading (if type 1) or interpolation (if type 2) by hijacking the usual FINUFFT API.
+The kernel (width and shape parameter)
+is determined by ``tol`` and ``opts.upsampfac``, just as it would be in an actual NUFFT.
+However, the kernel is not accessible in any other way, leaving the user to figure out how to
+make use of this interface to extract the actual kernel function.
+This provides a convenient (if slightly hacky) interface to our ``spreadinterp`` module
+(looping over multiple vectors if ``ntransf>1``).
+The known use-case here is estimating so-called density compensation, conventionally used in
+MRI (see `MRI-NUFFT <https://mind-inria.github.io/mri-nufft/nufft.html>`_),
+although it might also be useful in spectral Ewald.
+
+
 
 Diagnostic options
 ~~~~~~~~~~~~~~~~~~~~~~~

@@ -7,7 +7,7 @@ c     erase chkbnds 1/7/25.
       type finufft_opts
 
 c     data handling opts...
-      integer modeord
+      integer modeord, spreadinterponly
 
 c     diagnostic opts...
       integer debug, spread_debug, showwarn

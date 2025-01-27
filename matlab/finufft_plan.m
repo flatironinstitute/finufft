@@ -56,6 +56,7 @@
 %     opts.floatprec: library precision to use, 'double' (default) or 'single'.
 %     for type 1 and 2 only, the following opts fields are also relevant:
 %     opts.modeord: 0 (CMCL increasing mode ordering, default), 1 (FFT ordering)
+%     opts.spreadinterponly: 0 (perform NUFFT, default), 1 (only spread/interp)
 % Outputs:
 %     plan            finufft_plan object (opaque pointer)
 %

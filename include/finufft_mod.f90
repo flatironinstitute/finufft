@@ -8,7 +8,7 @@ use iso_c_binding
 type finufft_opts
 
    ! data handling opts...
-   integer(kind=C_INT) :: modeord
+   integer(kind=C_INT) :: modeord, spreadinterponly
 
    ! diagnostic opts...
    integer(kind=C_INT) :: debug, spread_debug, showwarn

@@ -52,11 +52,12 @@ FINUFFT_EXPORT int FINUFFT_CDECL spreadinterpSorted(
 template<typename T>
 FINUFFT_EXPORT T FINUFFT_CDECL evaluate_kernel(T x, const finufft_spread_opts &opts);
 template<typename T>
-FINUFFT_EXPORT T FINUFFT_CDECL evaluate_kernel_horner(T x, const finufft_spread_opts &opts);
+FINUFFT_EXPORT T FINUFFT_CDECL evaluate_kernel_horner(T x,
+                                                      const finufft_spread_opts &opts);
 template<typename T>
-FINUFFT_EXPORT int FINUFFT_CDECL setup_spreader(finufft_spread_opts &opts, T eps,
-                                                double upsampfac, int kerevalmeth,
-                                                int debug, int showwarn, int dim);
+FINUFFT_EXPORT int FINUFFT_CDECL setup_spreader(
+    finufft_spread_opts &opts, T eps, double upsampfac, int kerevalmeth, int debug,
+    int showwarn, int dim, int spreadinterponly);
 
 } // namespace spreadinterp
 } // namespace finufft
