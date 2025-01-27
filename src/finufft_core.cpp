@@ -259,7 +259,7 @@ public:
   }
 
   /*
-    Evaluates the Fourier transform of te kernel at a single point.
+    Evaluates the Fourier transform of the kernel at a single point.
 
     Inputs:
     k - frequency, dual to the kernel's natural argument, ie exp(i.k.z)
