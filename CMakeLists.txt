@@ -441,4 +441,9 @@ if(DEFINED ENV{GITHUB_ACTIONS} AND ENV{GITHUB_ACTIONS} EQUAL "true")
       endif()
     endforeach()
   endif()
+else()
+  message("CMake is NOT being executed inside a GitHub workflow")
+  # env variable is:
+  message(STATUS "ENV{GITHUB_ACTIONS}: $ENV{GITHUB_ACTIONS}")
+
 endif()
