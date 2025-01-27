@@ -83,6 +83,24 @@ set(FINUFFT_CXX_FLAGS_DEBUG
     -Wall
     -Wno-sign-compare
     -Wno-unknown-pragmas)
+
+# Check if we are in a GitHub workflow
+if(DEFINED ENV{GITHUB_ACTIONS})
+  if($ENV{GITHUB_ACTIONS} STREQUAL "true")
+    message("CMake is being executed inside a GitHub workflow")
+    # if msvc use Z7 flag
+    if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC" AND NOT CMAKE_BUILD_TYPE STREQUAL
+                                                 "Release")
+      message(
+        "Replacing /Zi with /Z7 flag to MSVC compiler options to support sccache"
+      )
+      # replace /Zi with /Z7 in FINUFFT_CXX_FLAGS_DEBUG
+      string(REPLACE "/Zi" "/Z7" FINUFFT_CXX_FLAGS_DEBUG
+                     "${FINUFFT_CXX_FLAGS_DEBUG}")
+    endif()
+  endif()
+endif()
+
 filter_supported_compiler_flags(FINUFFT_CXX_FLAGS_DEBUG FINUFFT_CXX_FLAGS_DEBUG)
 message(STATUS "FINUFFT Debug flags: ${FINUFFT_CXX_FLAGS_DEBUG}")
 list(APPEND FINUFFT_CXX_FLAGS_RELWITHDEBINFO ${FINUFFT_CXX_FLAGS_RELEASE}
