@@ -91,6 +91,12 @@ def test_finufft_plan_errors():
     with pytest.raises(RuntimeError, match="must be single or double"):
         Plan(1, (8, 8), dtype="uint32")
 
+    with pytest.raises(RuntimeError, match="must be single or double"):
+        Plan(1, (8, 8), dtype="float32")
+
+    with pytest.raises(RuntimeError, match="must be single or double"):
+        Plan(1, (8, 8), dtype="float64")
+
     with pytest.warns(Warning, match="finufft_opts does not have"):
         Plan(1, (8, 8), foo="bar")
 

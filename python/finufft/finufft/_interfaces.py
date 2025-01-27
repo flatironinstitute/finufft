@@ -103,18 +103,6 @@ class Plan:
 
         dtype = np.dtype(dtype)
 
-        if dtype == np.float64:
-            warnings.warn("Real dtypes are currently deprecated and will be "
-                          "removed in version 2.3. Converting to complex128.",
-                          DeprecationWarning)
-            dtype = np.complex128
-
-        if dtype == np.float32:
-            warnings.warn("Real dtypes are currently deprecated and will be "
-                          "removed in version 2.3. Converting to complex64.",
-                          DeprecationWarning)
-            dtype = np.complex64
-
         is_single = is_single_dtype(dtype)
 
         # construct plan based on precision type and eps default value
