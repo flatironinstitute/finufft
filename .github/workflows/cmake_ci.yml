@@ -32,6 +32,7 @@ jobs:
         if: github.event_name != 'release' && github.event_name != 'workflow_dispatch'
         run: |
           echo "SCCACHE_GHA_ENABLED=true" >> $GITHUB_ENV
+          echo "SCCACHE_GHA_VERSION=0" >> $GITHUB_ENV
       - name: Setup Cpp
         uses: aminya/setup-cpp@v1
         with:
