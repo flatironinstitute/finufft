@@ -40,6 +40,10 @@ Master, using release name V 2.4.0 (1/7/25)
 * Add options for user-provided FFTW locker (PR548, Blackwell). These options
   can be be used to prevent crashes when a user is creating/destroying FFTW
   plans and FINUFFT plans in threads simultaneously.
+* Make attributes private in Python Plan classes and allow read-only access to
+them using properties.
+* Remove possibility to supply real dtypes to Plan interfaces. Now only complex
+  dtypes are supported.
 
 V 2.3.1 (11/25/24) minor update release (continued support on 2.3.X branch)
 
