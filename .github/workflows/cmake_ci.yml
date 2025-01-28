@@ -4,7 +4,7 @@ on: [push, pull_request]
 
 jobs:
   prepare:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     outputs:
       matrix: ${{ steps.generate_matrix.outputs.matrix }}
     steps:
@@ -15,17 +15,30 @@ jobs:
         run: |
           MATRIX=$(python3 ${{ github.workspace }}/.github/workflows/generate_cmake_matrix.py)
           echo "matrix=$MATRIX" >> $GITHUB_OUTPUT
+  cache:
+    runs-on: [ubuntu-22.04, windows-2022]
+    steps:
+      - name: create cache directory
+        run: |
           mkdir -p cpm
       - name: Setup Cpp
         if: steps.cache.outputs.cache-hit != 'true'
         uses: aminya/setup-cpp@v1
         with:
           cmake : true
-      - name: Download dependencies in cache
-        if: steps.cache.outputs.cache-hit != 'true'
+      - name: Download dependencies in cache linux
+        if: steps.cache.outputs.cache-hit != 'true' && runner.os == 'Linux'
         run: |
           cmake -S . -B ./build
           rm -rf build
+          cmake -S . -B ./build -DFINUFFT_USE_DUCC0=ON
+        env:
+          CPM_SOURCE_CACHE: cpm
+      - name: Download dependencies in cache windows
+        if: steps.cache.outputs.cache-hit != 'true' && runner.os != 'Linux'
+        run: |
+          cmake -S . -B ./build
+          rmdir /s /q build
           cmake -S . -B ./build -DFINUFFT_USE_DUCC0=ON
         env:
           CPM_SOURCE_CACHE: cpm
@@ -37,7 +50,7 @@ jobs:
           path: cpm
   cmake-ci:
     runs-on: ${{ matrix.os }}
-    needs: prepare
+    needs: [prepare, cache]
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(needs.prepare.outputs.matrix) }}
