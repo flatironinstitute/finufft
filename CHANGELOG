@@ -40,6 +40,8 @@ Master, using release name V 2.4.0 (1/7/25)
 * Add options for user-provided FFTW locker (PR548, Blackwell). These options
   can be be used to prevent crashes when a user is creating/destroying FFTW
   plans and FINUFFT plans in threads simultaneously.
+* Added support for sccache in github actions.
+  Caching cmake dependencies so to avoid downloading fftw, xsimd, etc. every time.
 
 V 2.3.1 (11/25/24) minor update release (continued support on 2.3.X branch)
 

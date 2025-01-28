@@ -33,17 +33,6 @@ combinations = [
     })
 ]
 
-
-def get_cache_path(platform):
-    if platform == "ubuntu-22.04":
-        return "cpm"
-    elif platform == "windows-2022":
-        return "cpm"
-    elif platform == "macos-13":
-        return "cpm"
-    else:
-        raise ValueError(f"Unknown platform: {platform}")
-
 def get_c_compiler(toolchain):
     if "gcc" in toolchain:
         return "gcc"
@@ -81,7 +70,6 @@ for platform, value in combinations:
                             "c_compiler": get_c_compiler(toolchain),
                             "cxx_compiler": get_cxx_compiler(toolchain),
                             "ducc_fft": ducc,
-                            # "cache_path": get_cache_path(platform)
                         })
 json_str = json.dumps(matrix, ensure_ascii=False)
 print(json_str)
