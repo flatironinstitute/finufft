@@ -44,9 +44,9 @@ jobs:
       - name: Download dependencies in cache windows
         if: steps.cache.outputs.cache-hit != 'true' && runner.os != 'Linux'
         run: |
-          cmake -S . -B ./build
-          rmdir /s /q build
-          cmake -S . -B ./build -DFINUFFT_USE_DUCC0=ON
+          cmake -S . -B build
+          rd /s /q build
+          cmake -S . -B build -DFINUFFT_USE_DUCC0=ON
         env:
           CPM_SOURCE_CACHE: cpm
       - name: Cache dependencies
