@@ -28,9 +28,9 @@ jobs:
       - name: Setup Cache
         uses: actions/cache@v4
         with:
-          key: default
-          path: ${{ matrix.cache_path }}
-          restore-keys: default
+          key: 'default'
+          path: CPM
+          enableCrossOsArchive: true
       - name: Run sccache-cache only on non-release runs
         if: github.event_name != 'release' && github.event_name != 'workflow_dispatch'
         uses: mozilla-actions/sccache-action@v0.0.7
@@ -62,7 +62,7 @@ jobs:
         run: |
           cmake -S . -B ./build -G Ninja -DCMAKE_C_COMPILER_LAUNCHER=sccache -DCMAKE_CXX_COMPILER_LAUNCHER=sccache -DCMAKE_BUILD_TYPE:STRING=${{matrix.build_type}} -DFINUFFT_ARCH_FLAGS=${{ matrix.arch_flags }} -DFINUFFT_BUILD_TESTS=ON -DFINUFFT_STATIC_LINKING=${{matrix.finufft_static_linking}} -DFINUFFT_USE_DUCC0=${{ matrix.ducc_fft }}
         env:
-          CPM_SOURCE_CACHE: ${{ matrix.cache_path }}
+          CPM_SOURCE_CACHE: CPM
       - name: Build
         run: |
           cmake --build ./build --config ${{matrix.build_type}}
@@ -73,7 +73,7 @@ jobs:
           ctest -C ${{matrix.build_type}} --output-on-failure
 
       - name: Set up Python
-        if: matrix.finufft_static_linking
+        if: matrix.finufft_static_linking == 'off'
         uses: actions/setup-python@v5
         with:
           python-version: '3.10'
@@ -82,7 +82,7 @@ jobs:
         if: matrix.finufft_static_linking == 'off'
         env:
           MACOSX_DEPLOYMENT_TARGET: 13
-          CPM_SOURCE_CACHE: ${{ matrix.cache_path }}
+          CPM_SOURCE_CACHE: CPM
         shell: bash
         run: |
           python3 -m pip install \
