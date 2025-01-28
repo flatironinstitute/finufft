@@ -17,12 +17,6 @@ jobs:
           MATRIX=$(python3 ${{ github.workspace }}/.github/workflows/generate_cmake_matrix.py)
           echo "matrix=$MATRIX" >> $GITHUB_OUTPUT
           mkdir -p cpm
-      - name: Cache dependencies
-        uses: actions/cache/save@v4
-        with:
-          key: cmake-cache-${{ hashFiles('${{ github.workspace }}/CMakeLists.txt', '${{ github.workspace }}/cmake/**') }}
-          enableCrossOsArchive: true
-          path: cpm
       - name: Setup Cpp
         if: steps.cache.outputs.cache-hit != 'true'
         uses: aminya/setup-cpp@v1
@@ -36,6 +30,13 @@ jobs:
           cmake -S . -B ./build -DFINUFFT_USE_DUCC0=ON
         env:
           CPM_SOURCE_CACHE: cpm
+      - name: Cache dependencies
+        uses: actions/cache/save@v4
+        with:
+          key: cpm-cache-00-${{ hashFiles('${{ github.workspace }}/CMakeLists.txt', '${{ github.workspace }}/cmake/**') }}
+          enableCrossOsArchive: true
+          path: cpm
+
   cmake-ci:
     runs-on: ${{ matrix.os }}
     needs: prepare
@@ -48,8 +49,8 @@ jobs:
       - name: Restore Cache
         uses: actions/cache/restore@v4
         with:
-          key: cmake-cache-${{ hashFiles('CMakeLists.txt', 'cmake/**') }}
-          path: CPM
+          key: cpm-cache-00-${{ hashFiles('${{ github.workspace }}/CMakeLists.txt', '${{ github.workspace }}/cmake/**') }}
+          path: cpm
           enableCrossOsArchive: true
       - name: Run sccache-cache only on non-release runs
         if: github.event_name != 'release' && github.event_name != 'workflow_dispatch'
