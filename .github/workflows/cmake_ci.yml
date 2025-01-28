@@ -23,6 +23,8 @@ jobs:
          - windows-2022
     runs-on: ${{ matrix.os }}
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
       - name: create cache directory
         run: |
           mkdir -p cpm
