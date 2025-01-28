@@ -13,7 +13,7 @@ jobs:
       - name: Generate matrix
         id: generate_matrix
         run: |
-          MATRIX=$(python3 **/.github/workflows/generate_cmake_matrix.py)
+          MATRIX=$(python3 ${{ github.workspace }}/.github/workflows/generate_cmake_matrix.py)
           echo "matrix=$MATRIX" >> $GITHUB_OUTPUT
           mkdir -p cpm
       - name: Setup Cpp
