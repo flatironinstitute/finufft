@@ -33,7 +33,7 @@ jobs:
       - name: Cache dependencies
         uses: actions/cache/save@v4
         with:
-          key: cpm-cache-00-${{ hashFiles('${{ github.workspace }}/CMakeLists.txt', '${{ github.workspace }}/cmake/**') }}
+          key: cpm-cache-00-${{ hashFiles('**/CMakeLists.txt', '**/cmake/*') }}
           enableCrossOsArchive: true
           path: cpm
 
@@ -49,7 +49,7 @@ jobs:
       - name: Restore Cache
         uses: actions/cache/restore@v4
         with:
-          key: cpm-cache-00-${{ hashFiles('${{ github.workspace }}/CMakeLists.txt', '${{ github.workspace }}/cmake/**') }}
+          key: cpm-cache-00-${{ hashFiles('**/CMakeLists.txt', '**/cmake/*') }}
           path: cpm
           enableCrossOsArchive: true
       - name: Run sccache-cache only on non-release runs
