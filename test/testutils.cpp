@@ -15,7 +15,11 @@
 */
 
 // This switches FLT macro from double to float if SINGLE is defined, etc...
+
+#include "finufft/finufft_utils.hpp"
+#include "utils/norms.hpp"
 #include <finufft/test_defs.h>
+
 using namespace finufft::utils;
 
 int main(int argc, char *argv[]) {

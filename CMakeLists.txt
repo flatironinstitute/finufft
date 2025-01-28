@@ -264,27 +264,19 @@ function(set_finufft_options target)
 endfunction()
 
 if(FINUFFT_USE_CPU)
+  set(FINUFFT_SOURCES
+      src/spreadinterp.cpp
+      contrib/legendre_rule_fast.cpp
+      src/fft.cpp
+      src/finufft_core.cpp
+      src/c_interface.cpp
+      src/finufft_utils.cpp
+      fortran/finufftfort.cpp)
   # Main finufft libraries
   if(NOT FINUFFT_STATIC_LINKING)
-    add_library(
-      finufft SHARED
-      src/spreadinterp.cpp
-      src/utils.cpp
-      contrib/legendre_rule_fast.cpp
-      src/fft.cpp
-      src/finufft_core.cpp
-      src/c_interface.cpp
-      fortran/finufftfort.cpp)
+    add_library(finufft SHARED ${FINUFFT_SOURCES})
   else()
-    add_library(
-      finufft STATIC
-      src/spreadinterp.cpp
-      src/utils.cpp
-      contrib/legendre_rule_fast.cpp
-      src/fft.cpp
-      src/finufft_core.cpp
-      src/c_interface.cpp
-      fortran/finufftfort.cpp)
+    add_library(finufft STATIC ${FINUFFT_SOURCES})
   endif()
   set_finufft_options(finufft)
 

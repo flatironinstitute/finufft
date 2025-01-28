@@ -166,3 +166,33 @@ def test_opts(to_gpu, to_cpu, shape=(8, 8, 8), M=32, tol=1e-3):
     fk = to_cpu(fk_gpu)
 
     utils.verify_type1(k, c, fk, tol)
+
+
+def test_cufinufft_plan_properties():
+    nufft_type = 2
+    n_modes = (8, 8)
+    n_trans = 2
+    dtype = np.complex64
+
+    plan = Plan(nufft_type, n_modes, n_trans, dtype=dtype)
+
+    assert plan.type == nufft_type
+    assert tuple(plan.n_modes) == n_modes
+    assert plan.dim == len(n_modes)
+    assert plan.n_trans == n_trans
+    assert plan.dtype == dtype
+
+    with pytest.raises(AttributeError):
+        plan.type = 1
+
+    with pytest.raises(AttributeError):
+        plan.n_modes = (4, 4)
+
+    with pytest.raises(AttributeError):
+        plan.dim = 1
+
+    with pytest.raises(AttributeError):
+        plan.n_trans = 1
+
+    with pytest.raises(AttributeError):
+        plan.dtype = np.float64

@@ -7,14 +7,16 @@
 #include <cuComplex.h>
 #include <cufinufft/types.h>
 
-#include <cuda_runtime.h>
-
-#include <sys/time.h>
-
 #include <cuda.h>
+#include <cuda_runtime.h>
 #include <type_traits>
 
 #include <thrust/extrema.h>
+
+#ifndef _USE_MATH_DEFINES
+#define _USE_MATH_DEFINES
+#endif
+#include <cmath>
 
 #if !defined(__CUDA_ARCH__) || __CUDA_ARCH__ >= 600 || defined(__clang__)
 #else
@@ -87,17 +89,6 @@ private:
   }
 };
 
-// jfm timer class
-class CNTime {
-public:
-  void start();
-  double restart();
-  double elapsedsec();
-
-private:
-  struct timeval initial;
-};
-
 // ahb math helpers
 CUFINUFFT_BIGINT next235beven(CUFINUFFT_BIGINT n, CUFINUFFT_BIGINT b);
 
@@ -118,8 +109,8 @@ template<typename T> T infnorm(int n, std::complex<T> *a) {
  */
 
 template<typename T>
-static __forceinline__ __device__ void atomicAddComplexShared(cuda_complex<T> *address,
-                                                              cuda_complex<T> res) {
+static __forceinline__ __device__ void atomicAddComplexShared(
+    cuda_complex<T> *address, cuda_complex<T> res) {
   const auto raw_address = reinterpret_cast<T *>(address);
   atomicAdd(raw_address, res.x);
   atomicAdd(raw_address + 1, res.y);
@@ -131,8 +122,8 @@ static __forceinline__ __device__ void atomicAddComplexShared(cuda_complex<T> *a
  * on shared memory are supported so we leverage them
  */
 template<typename T>
-static __forceinline__ __device__ void atomicAddComplexGlobal(cuda_complex<T> *address,
-                                                              cuda_complex<T> res) {
+static __forceinline__ __device__ void atomicAddComplexGlobal(
+    cuda_complex<T> *address, cuda_complex<T> res) {
   if constexpr (
       std::is_same_v<cuda_complex<T>, float2> && COMPUTE_CAPABILITY_90_OR_HIGHER) {
     atomicAdd(address, res);
