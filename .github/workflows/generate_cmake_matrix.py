@@ -36,11 +36,11 @@ combinations = [
 
 def get_cache_path(platform):
     if platform == "ubuntu-22.04":
-        return "~/.cache/cpm"
+        return "~/cpm"
     elif platform == "windows-2022":
-        return "~\AppData\Local\cpm"
+        return "~\cpm"
     elif platform == "macos-13":
-        return "~/Library/Caches/cpm"
+        return "~/cpm"
     else:
         raise ValueError(f"Unknown platform: {platform}")
 
