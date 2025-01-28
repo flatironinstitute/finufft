@@ -4,6 +4,7 @@ If not stated, FINUFFT is assumed (cuFINUFFT <=1.3 is listed separately).
 
 V 2.3.2 (2/12/25) support release
 
+* Fixed missing dependency on `packaging` in the Python `cufinufft` package.
 * Increase cufinufft 1d cmake test size and fix 1d spreader subprob sm kernel.
 
 V 2.3.1 (11/25/24, minor support release)
