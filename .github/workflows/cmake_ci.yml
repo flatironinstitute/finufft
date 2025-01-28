@@ -16,6 +16,21 @@ jobs:
           echo "MACOSX_DEPLOYMENT_TARGET=11.0" >> $GITHUB_ENV
           MATRIX=$(python3 ${{ github.workspace }}/.github/workflows/generate_cmake_matrix.py)
           echo "matrix=$MATRIX" >> $GITHUB_OUTPUT
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Setup Cpp
+        uses: aminya/setup-cpp@v1
+        with:
+          cmake : true
+      - name: Cache dependencies
+        uses: actions/cache/save@v4
+        with:
+          key: 'default'
+          path: CPM
+      - name: Download dependencies in cache
+        run: |
+          cmake -S . -B ./build
+          cmake -S . -B ./build -DFINUFFT_USE_DUCC0=ON
   cmake-ci:
     runs-on: ${{ matrix.os }}
     needs: prepare
@@ -25,8 +40,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      - name: Setup Cache
-        uses: actions/cache@v4
+      - name: Restore Cache
+        uses: actions/cache/restore@v4
         with:
           key: 'default'
           path: CPM
@@ -62,7 +77,7 @@ jobs:
         run: |
           cmake -S . -B ./build -G Ninja -DCMAKE_C_COMPILER_LAUNCHER=sccache -DCMAKE_CXX_COMPILER_LAUNCHER=sccache -DCMAKE_BUILD_TYPE:STRING=${{matrix.build_type}} -DFINUFFT_ARCH_FLAGS=${{ matrix.arch_flags }} -DFINUFFT_BUILD_TESTS=ON -DFINUFFT_STATIC_LINKING=${{matrix.finufft_static_linking}} -DFINUFFT_USE_DUCC0=${{ matrix.ducc_fft }}
         env:
-          CPM_SOURCE_CACHE: CPM
+          CPM_SOURCE_CACHE: ${{ matrix.cache_path }}
       - name: Build
         run: |
           cmake --build ./build --config ${{matrix.build_type}}
@@ -82,7 +97,7 @@ jobs:
         if: matrix.finufft_static_linking == 'off'
         env:
           MACOSX_DEPLOYMENT_TARGET: 13
-          CPM_SOURCE_CACHE: CPM
+          CPM_SOURCE_CACHE: ${{ matrix.cache_path }}
         shell: bash
         run: |
           python3 -m pip install \
