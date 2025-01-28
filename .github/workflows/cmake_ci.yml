@@ -16,14 +16,13 @@ jobs:
           echo "MACOSX_DEPLOYMENT_TARGET=11.0" >> $GITHUB_ENV
           MATRIX=$(python3 ${{ github.workspace }}/.github/workflows/generate_cmake_matrix.py)
           echo "matrix=$MATRIX" >> $GITHUB_OUTPUT
+      - name: Checkout code
+        uses: actions/checkout@v4
       - name: Cache dependencies
         uses: actions/cache/save@v4
         with:
           key: cmake-cache-${{ hashFiles('CMakeLists.txt', 'cmake/**') }}
           path: CPM
-      - name: Checkout code
-        if: steps.cache.outputs.cache-hit != 'true'
-        uses: actions/checkout@v4
       - name: Setup Cpp
         if: steps.cache.outputs.cache-hit != 'true'
         uses: aminya/setup-cpp@v1
