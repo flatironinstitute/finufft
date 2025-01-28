@@ -16,21 +16,26 @@ jobs:
           echo "MACOSX_DEPLOYMENT_TARGET=11.0" >> $GITHUB_ENV
           MATRIX=$(python3 ${{ github.workspace }}/.github/workflows/generate_cmake_matrix.py)
           echo "matrix=$MATRIX" >> $GITHUB_OUTPUT
-      - name: Checkout code
-        uses: actions/checkout@v4
-      - name: Setup Cpp
-        uses: aminya/setup-cpp@v1
-        with:
-          cmake : true
       - name: Cache dependencies
         uses: actions/cache/save@v4
         with:
-          key: 'default'
+          key: cmake-cache-${{ hashFiles('CMakeLists.txt', 'cmake/**') }}
           path: CPM
+      - name: Checkout code
+        if: steps.cache.outputs.cache-hit != 'true'
+        uses: actions/checkout@v4
+      - name: Setup Cpp
+        if: steps.cache.outputs.cache-hit != 'true'
+        uses: aminya/setup-cpp@v1
+        with:
+          cmake : true
       - name: Download dependencies in cache
+        if: steps.cache.outputs.cache-hit != 'true'
         run: |
           cmake -S . -B ./build
           cmake -S . -B ./build -DFINUFFT_USE_DUCC0=ON
+        env:
+          CPM_SOURCE_CACHE: CPM
   cmake-ci:
     runs-on: ${{ matrix.os }}
     needs: prepare
@@ -43,7 +48,7 @@ jobs:
       - name: Restore Cache
         uses: actions/cache/restore@v4
         with:
-          key: 'default'
+          key: cmake-cache-${{ hashFiles('CMakeLists.txt', 'cmake/**') }}
           path: CPM
           enableCrossOsArchive: true
       - name: Run sccache-cache only on non-release runs
