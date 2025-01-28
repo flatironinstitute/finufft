@@ -16,14 +16,12 @@ jobs:
           echo "MACOSX_DEPLOYMENT_TARGET=11.0" >> $GITHUB_ENV
           MATRIX=$(python3 ${{ github.workspace }}/.github/workflows/generate_cmake_matrix.py)
           echo "matrix=$MATRIX" >> $GITHUB_OUTPUT
-      - name: Checkout code
-        uses: actions/checkout@v4
       - name: Cache dependencies
         uses: actions/cache/save@v4
         with:
-          key: cmake-cache-${{ hashFiles('CMakeLists.txt', 'cmake/**') }}
+          key: cmake-cache-${{ hashFiles('${{ github.workspace }}/CMakeLists.txt', '${{ github.workspace }}/cmake/**') }}
           enableCrossOsArchive: true
-          path: ${GITHUB_WORKSPACE}/CPM
+          path: cpm
       - name: Setup Cpp
         if: steps.cache.outputs.cache-hit != 'true'
         uses: aminya/setup-cpp@v1
@@ -33,9 +31,10 @@ jobs:
         if: steps.cache.outputs.cache-hit != 'true'
         run: |
           cmake -S . -B ./build
+          rm -rf build
           cmake -S . -B ./build -DFINUFFT_USE_DUCC0=ON
         env:
-          CPM_SOURCE_CACHE: ${GITHUB_WORKSPACE}/CPM
+          CPM_SOURCE_CACHE: cpm
   cmake-ci:
     runs-on: ${{ matrix.os }}
     needs: prepare
@@ -49,7 +48,7 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           key: cmake-cache-${{ hashFiles('CMakeLists.txt', 'cmake/**') }}
-          path: ${GITHUB_WORKSPACE}/CPM
+          path: CPM
           enableCrossOsArchive: true
       - name: Run sccache-cache only on non-release runs
         if: github.event_name != 'release' && github.event_name != 'workflow_dispatch'
@@ -82,7 +81,7 @@ jobs:
         run: |
           cmake -S . -B ./build -G Ninja -DCMAKE_C_COMPILER_LAUNCHER=sccache -DCMAKE_CXX_COMPILER_LAUNCHER=sccache -DCMAKE_BUILD_TYPE:STRING=${{matrix.build_type}} -DFINUFFT_ARCH_FLAGS=${{ matrix.arch_flags }} -DFINUFFT_BUILD_TESTS=ON -DFINUFFT_STATIC_LINKING=${{matrix.finufft_static_linking}} -DFINUFFT_USE_DUCC0=${{ matrix.ducc_fft }}
         env:
-          CPM_SOURCE_CACHE: ${GITHUB_WORKSPACE}/CPM
+          CPM_SOURCE_CACHE: cpm
       - name: Build
         run: |
           cmake --build ./build --config ${{matrix.build_type}}
@@ -102,7 +101,7 @@ jobs:
         if: matrix.finufft_static_linking == 'off'
         env:
           MACOSX_DEPLOYMENT_TARGET: 13
-          CPM_SOURCE_CACHE: ${GITHUB_WORKSPACE}/CPM
+          CPM_SOURCE_CACHE: cpm
         shell: bash
         run: |
           python3 -m pip install \
