@@ -13,8 +13,7 @@ jobs:
       - name: Generate matrix
         id: generate_matrix
         run: |
-          echo "MACOSX_DEPLOYMENT_TARGET=11.0" >> $GITHUB_ENV
-          MATRIX=$(python3 ${{ github.workspace }}/.github/workflows/generate_cmake_matrix.py)
+          MATRIX=$(python3 **/.github/workflows/generate_cmake_matrix.py)
           echo "matrix=$MATRIX" >> $GITHUB_OUTPUT
           mkdir -p cpm
       - name: Setup Cpp
@@ -33,10 +32,9 @@ jobs:
       - name: Cache dependencies
         uses: actions/cache/save@v4
         with:
-          key: cpm-cache-00-${{ hashFiles('**/CMakeLists.txt', '**/cmake/*') }}
+          key: cpm-cache-00-${{ hashFiles('CMakeLists.txt', 'cmake/*') }}
           enableCrossOsArchive: true
           path: cpm
-
   cmake-ci:
     runs-on: ${{ matrix.os }}
     needs: prepare
@@ -49,9 +47,9 @@ jobs:
       - name: Restore Cache
         uses: actions/cache/restore@v4
         with:
-          key: cpm-cache-00-${{ hashFiles('**/CMakeLists.txt', '**/cmake/*') }}
-          path: cpm
+          key: cpm-cache-00-${{ hashFiles('CMakeLists.txt', 'cmake/*') }}
           enableCrossOsArchive: true
+          path: cpm
       - name: Run sccache-cache only on non-release runs
         if: github.event_name != 'release' && github.event_name != 'workflow_dispatch'
         uses: mozilla-actions/sccache-action@v0.0.7
