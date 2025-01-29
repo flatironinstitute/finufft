@@ -15,6 +15,29 @@ jobs:
         run: |
           MATRIX=$(python3 ${{ github.workspace }}/.github/workflows/generate_cmake_matrix.py)
           echo "matrix=$MATRIX" >> $GITHUB_OUTPUT
+  pip-requirements:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          cache : 'pip'
+          python-version: '3.10'
+      - name: Generate requirements.txt
+        run: |
+          pip install --upgrade pip
+          pip install pip-tools
+          pip-compile --all-build-deps python/finufft/pyproject.toml -o requirements.txt
+          echo pytest >> requirements.txt
+          sed -i -E 's/(==|>=|<=|>|<|~=|!=).*//' requirements.txt
+          cat requirements.txt
+      - name: Upload requirements.txt
+        uses: actions/upload-artifact@v4
+        with:
+          name: requirements
+          path: requirements.txt
   cache:
     strategy:
       matrix:
@@ -28,6 +51,13 @@ jobs:
       - name: create cache directory
         run: |
           mkdir -p cpm
+      - name: Check if cache exists
+        id: cache
+        uses: actions/cache@v4
+        with:
+          key: cpm-cache-00-${{ hashFiles('CMakeLists.txt', 'cmake/*') }}
+          enableCrossOsArchive: true
+          path: cpm
       - name: Setup Cpp
         if: steps.cache.outputs.cache-hit != 'true'
         uses: aminya/setup-cpp@v1
@@ -57,7 +87,7 @@ jobs:
           path: cpm
   cmake-ci:
     runs-on: ${{ matrix.os }}
-    needs: [prepare, cache]
+    needs: [prepare, cache, pip-requirements]
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(needs.prepare.outputs.matrix) }}
@@ -70,6 +100,10 @@ jobs:
           key: cpm-cache-00-${{ hashFiles('CMakeLists.txt', 'cmake/*') }}
           enableCrossOsArchive: true
           path: cpm
+      - name: Download requirements.txt
+        uses: actions/download-artifact@v4
+        with:
+          name: requirements
       - name: Run sccache-cache only on non-release runs
         if: github.event_name != 'release' && github.event_name != 'workflow_dispatch'
         uses: mozilla-actions/sccache-action@v0.0.7
@@ -105,18 +139,17 @@ jobs:
       - name: Build
         run: |
           cmake --build ./build --config ${{matrix.build_type}}
-
       - name: Test
         working-directory: ./build
         run: |
           ctest -C ${{matrix.build_type}} --output-on-failure
-
       - name: Set up Python
         if: matrix.finufft_static_linking == 'off'
         uses: actions/setup-python@v5
         with:
           python-version: '3.10'
-
+          cache: 'pip'
+          cache-dependency-path: requirements.txt
       - name: Build Python wheels
         if: matrix.finufft_static_linking == 'off'
         env:
@@ -124,6 +157,8 @@ jobs:
           CPM_SOURCE_CACHE: cpm
         shell: bash
         run: |
+          python3 -m pip install --upgrade pip
+          python3 -m pip install -r requirements.txt
           python3 -m pip install \
             --verbose \
             -C cmake.define.CMAKE_BUILD_TYPE=${{ matrix.build_type }} \
@@ -131,15 +166,18 @@ jobs:
             -C cmake.define.FINUFFT_USE_DUCC0=${{ matrix.ducc_fft }} \
             -C cmake.define.CMAKE_CXX_COMPILER_LAUNCHER=sccache \
             -C cmake.define.CMAKE_C_COMPILER_LAUNCHER=sccache \
+            -C cmake.define.CMAKE_GENERATOR=Ninja \
+            -C cmake.define.CMAKE_GENERATOR_PLATFORM= \
             python/finufft
-
-      - name: Install pytest
-        if: matrix.finufft_static_linking == 'off'
-        run: |
-          python3 -m pip install --upgrade pip
-          python3 -m pip install pytest
-
       - name: Test Python package
         if: matrix.finufft_static_linking == 'off'
         run: |
           python3 -m pytest python/finufft/test
+  cleanup:
+    runs-on: ubuntu-22.04
+    needs: cmake-ci
+    steps:
+      - name: Artifact cleanup
+        uses: geekyeggo/delete-artifact@v5
+        with:
+          name: requirements
