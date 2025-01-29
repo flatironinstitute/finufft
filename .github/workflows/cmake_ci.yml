@@ -28,6 +28,13 @@ jobs:
       - name: create cache directory
         run: |
           mkdir -p cpm
+      - name: Check if cache exists
+        id: cache
+        uses: actions/cache@v4
+        with:
+          key: cpm-cache-00-${{ hashFiles('CMakeLists.txt', 'cmake/*') }}
+          enableCrossOsArchive: true
+          path: cpm
       - name: Setup Cpp
         if: steps.cache.outputs.cache-hit != 'true'
         uses: aminya/setup-cpp@v1
