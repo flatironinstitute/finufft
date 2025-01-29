@@ -31,6 +31,8 @@ jobs:
           pip install pip-tools
           pip-compile --all-build-deps python/finufft/pyproject.toml -o requirements.txt
           echo pytest >> requirements.txt
+          sed -i -E 's/(==|>=|<=|>|<|~=|!=).*//' requirements.txt
+          cat requirements.txt
       - name: Upload requirements.txt
         uses: actions/upload-artifact@v4
         with:
