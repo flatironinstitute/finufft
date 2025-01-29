@@ -79,10 +79,26 @@ set(FINUFFT_CXX_FLAGS_DEBUG
     -g3
     -ggdb
     -ggdb3
-    /Zi
     -Wall
     -Wno-sign-compare
     -Wno-unknown-pragmas)
+
+if(DEFINED ENV{GITHUB_ACTIONS})
+  if($ENV{GITHUB_ACTIONS} STREQUAL "true")
+    message("CMake is being executed inside a GitHub workflow")
+    # if msvc use FS flag
+    if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC" AND NOT CMAKE_BUILD_TYPE STREQUAL
+                                                 "Release")
+      set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT
+          "$<$<CONFIG:Debug,RelWithDebInfo>:Embedded>")
+      message("CMAKE_MSVC_DEBUG_INFORMATION_FORMAT TO Embedded")
+    endif()
+  endif()
+else()
+  message("CMake is NOT being executed inside a GitHub workflow")
+  # env variable is:
+  message(STATUS "ENV{GITHUB_ACTIONS}: $ENV{GITHUB_ACTIONS}")
+endif()
 filter_supported_compiler_flags(FINUFFT_CXX_FLAGS_DEBUG FINUFFT_CXX_FLAGS_DEBUG)
 message(STATUS "FINUFFT Debug flags: ${FINUFFT_CXX_FLAGS_DEBUG}")
 list(APPEND FINUFFT_CXX_FLAGS_RELWITHDEBINFO ${FINUFFT_CXX_FLAGS_RELEASE}

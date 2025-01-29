@@ -33,7 +33,6 @@ combinations = [
     })
 ]
 
-
 def get_c_compiler(toolchain):
     if "gcc" in toolchain:
         return "gcc"
@@ -70,7 +69,7 @@ for platform, value in combinations:
                             "build_type": build,
                             "c_compiler": get_c_compiler(toolchain),
                             "cxx_compiler": get_cxx_compiler(toolchain),
-                            "ducc_fft": ducc
+                            "ducc_fft": ducc,
                         })
 json_str = json.dumps(matrix, ensure_ascii=False)
 print(json_str)
