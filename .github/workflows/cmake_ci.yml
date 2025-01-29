@@ -4,7 +4,7 @@ on: [push, pull_request]
 
 jobs:
   prepare:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     outputs:
       matrix: ${{ steps.generate_matrix.outputs.matrix }}
     steps:
@@ -13,18 +13,71 @@ jobs:
       - name: Generate matrix
         id: generate_matrix
         run: |
-          echo "MACOSX_DEPLOYMENT_TARGET=11.0" >> $GITHUB_ENV
           MATRIX=$(python3 ${{ github.workspace }}/.github/workflows/generate_cmake_matrix.py)
           echo "matrix=$MATRIX" >> $GITHUB_OUTPUT
+  cache:
+    strategy:
+      matrix:
+        os:
+         - ubuntu-22.04
+         - windows-2022
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: create cache directory
+        run: |
+          mkdir -p cpm
+      - name: Setup Cpp
+        if: steps.cache.outputs.cache-hit != 'true'
+        uses: aminya/setup-cpp@v1
+        with:
+          cmake : true
+      - name: Download dependencies in cache linux
+        if: steps.cache.outputs.cache-hit != 'true' && runner.os == 'Linux'
+        run: |
+          cmake -S . -B ./build
+          rm -rf build
+          cmake -S . -B ./build -DFINUFFT_USE_DUCC0=ON
+        env:
+          CPM_SOURCE_CACHE: cpm
+      - name: Download dependencies in cache windows
+        if: steps.cache.outputs.cache-hit != 'true' && runner.os != 'Linux'
+        run: |
+          cmake -S . -B build
+          rm build -r -force
+          cmake -S . -B build -DFINUFFT_USE_DUCC0=ON
+        env:
+          CPM_SOURCE_CACHE: cpm
+      - name: Cache dependencies
+        uses: actions/cache/save@v4
+        with:
+          key: cpm-cache-00-${{ hashFiles('CMakeLists.txt', 'cmake/*') }}
+          enableCrossOsArchive: true
+          path: cpm
   cmake-ci:
     runs-on: ${{ matrix.os }}
-    needs: prepare
+    needs: [prepare, cache]
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(needs.prepare.outputs.matrix) }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+      - name: Restore Cache
+        uses: actions/cache/restore@v4
+        with:
+          key: cpm-cache-00-${{ hashFiles('CMakeLists.txt', 'cmake/*') }}
+          enableCrossOsArchive: true
+          path: cpm
+      - name: Run sccache-cache only on non-release runs
+        if: github.event_name != 'release' && github.event_name != 'workflow_dispatch'
+        uses: mozilla-actions/sccache-action@v0.0.7
+      - name: Set caching env vars only on non-release runs
+        if: github.event_name != 'release' && github.event_name != 'workflow_dispatch'
+        run: |
+          echo "SCCACHE_GHA_ENABLED=true" >> $GITHUB_ENV
+          echo "SCCACHE_GHA_VERSION=0" >> $GITHUB_ENV
       - name: Setup Cpp
         uses: aminya/setup-cpp@v1
         with:
@@ -46,7 +99,9 @@ jobs:
           sudo apt install -y libfftw3-dev
       - name: Configure Cmake
         run: |
-          cmake -S . -B ./build -G Ninja -DCMAKE_BUILD_TYPE:STRING=${{matrix.build_type}} -DFINUFFT_ARCH_FLAGS=${{ matrix.arch_flags }} -DFINUFFT_BUILD_TESTS=ON -DFINUFFT_STATIC_LINKING=${{matrix.finufft_static_linking}} -DFINUFFT_USE_DUCC0=${{ matrix.ducc_fft }}
+          cmake -S . -B ./build -G Ninja -DCMAKE_C_COMPILER_LAUNCHER=sccache -DCMAKE_CXX_COMPILER_LAUNCHER=sccache -DCMAKE_BUILD_TYPE:STRING=${{matrix.build_type}} -DFINUFFT_ARCH_FLAGS=${{ matrix.arch_flags }} -DFINUFFT_BUILD_TESTS=ON -DFINUFFT_STATIC_LINKING=${{matrix.finufft_static_linking}} -DFINUFFT_USE_DUCC0=${{ matrix.ducc_fft }}
+        env:
+          CPM_SOURCE_CACHE: cpm
       - name: Build
         run: |
           cmake --build ./build --config ${{matrix.build_type}}
@@ -57,15 +112,16 @@ jobs:
           ctest -C ${{matrix.build_type}} --output-on-failure
 
       - name: Set up Python
-        if: matrix.finufft_static_linking
+        if: matrix.finufft_static_linking == 'off'
         uses: actions/setup-python@v5
         with:
           python-version: '3.10'
 
       - name: Build Python wheels
-        if: matrix.finufft_static_linking
+        if: matrix.finufft_static_linking == 'off'
         env:
           MACOSX_DEPLOYMENT_TARGET: 13
+          CPM_SOURCE_CACHE: cpm
         shell: bash
         run: |
           python3 -m pip install \
@@ -73,15 +129,17 @@ jobs:
             -C cmake.define.CMAKE_BUILD_TYPE=${{ matrix.build_type }} \
             -C cmake.define.FINUFFT_ARCH_FLAGS=${{ matrix.arch_flags }} \
             -C cmake.define.FINUFFT_USE_DUCC0=${{ matrix.ducc_fft }} \
+            -C cmake.define.CMAKE_CXX_COMPILER_LAUNCHER=sccache \
+            -C cmake.define.CMAKE_C_COMPILER_LAUNCHER=sccache \
             python/finufft
 
       - name: Install pytest
-        if: matrix.finufft_static_linking
+        if: matrix.finufft_static_linking == 'off'
         run: |
           python3 -m pip install --upgrade pip
           python3 -m pip install pytest
 
       - name: Test Python package
-        if: matrix.finufft_static_linking
+        if: matrix.finufft_static_linking == 'off'
         run: |
           python3 -m pytest python/finufft/test
