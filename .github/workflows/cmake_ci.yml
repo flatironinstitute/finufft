@@ -105,12 +105,10 @@ jobs:
       - name: Build
         run: |
           cmake --build ./build --config ${{matrix.build_type}}
-
       - name: Test
         working-directory: ./build
         run: |
           ctest -C ${{matrix.build_type}} --output-on-failure
-
       - name: Set up Python
         if: matrix.finufft_static_linking == 'off'
         uses: actions/setup-python@v5
@@ -122,6 +120,7 @@ jobs:
           pip install pip-tools
           pip-compile --all-build-deps python/finufft/pyproject.toml -o requirements.txt
           pip install -r requirements.txt
+          pip install pytest
       - name: Build Python wheels
         if: matrix.finufft_static_linking == 'off'
         env:
@@ -137,12 +136,6 @@ jobs:
             -C cmake.define.CMAKE_CXX_COMPILER_LAUNCHER=sccache \
             -C cmake.define.CMAKE_C_COMPILER_LAUNCHER=sccache \
             python/finufft
-
-      - name: Install pytest
-        if: matrix.finufft_static_linking == 'off'
-        run: |
-          python3 -m pip install --upgrade pip
-          python3 -m pip install pytest
 
       - name: Test Python package
         if: matrix.finufft_static_linking == 'off'
