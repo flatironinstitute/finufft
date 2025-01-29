@@ -172,3 +172,11 @@ jobs:
         if: matrix.finufft_static_linking == 'off'
         run: |
           python3 -m pytest python/finufft/test
+  cleanup:
+    runs-on: ubuntu-22.04
+    needs: cmake-ci
+    steps:
+      - name: Artifact cleanup
+        uses: geekyeggo/delete-artifact@v5
+        with:
+          name: requirements
