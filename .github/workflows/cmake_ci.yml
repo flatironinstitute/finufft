@@ -155,6 +155,7 @@ jobs:
         env:
           MACOSX_DEPLOYMENT_TARGET: 13
           CPM_SOURCE_CACHE: cpm
+          CMAKE_GENERATOR: Ninja
         shell: bash
         run: |
           python3 -m pip install --upgrade pip
@@ -166,9 +167,7 @@ jobs:
             -C cmake.define.FINUFFT_USE_DUCC0=${{ matrix.ducc_fft }} \
             -C cmake.define.CMAKE_CXX_COMPILER_LAUNCHER=sccache \
             -C cmake.define.CMAKE_C_COMPILER_LAUNCHER=sccache \
-            -C cmake.define.CMAKE_GENERATOR=Ninja
             python/finufft
-
       - name: Test Python package
         if: matrix.finufft_static_linking == 'off'
         run: |
