@@ -2,6 +2,8 @@ List of features / changes made / release notes, in reverse chronological order.
 If not stated, FINUFFT is assumed (cuFINUFFT <=1.3 is listed separately).
 
 Master, using release name V 2.4.0 (1/7/25)
+* PR617: Caching pip dependencies in github actions.
+  Forcing Ninja when building python on Windows.
 * PR614: Added support for sccache in github actions.
   Caching cmake dependencies so to avoid downloading fftw, xsimd, etc. every time.
 * fully removed chkbnds option (opts and spreadopts) (Barnett)
