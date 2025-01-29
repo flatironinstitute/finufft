@@ -161,11 +161,12 @@ jobs:
           python3 -m pip install -r requirements.txt
           python3 -m pip install \
             --verbose \
-            -C cmake.define.CMAKE_BUILD_TYPE=${{ matrix.build_type }} \
+            -C =${{ matrix.build_type }} \
             -C cmake.define.FINUFFT_ARCH_FLAGS=${{ matrix.arch_flags }} \
             -C cmake.define.FINUFFT_USE_DUCC0=${{ matrix.ducc_fft }} \
             -C cmake.define.CMAKE_CXX_COMPILER_LAUNCHER=sccache \
             -C cmake.define.CMAKE_C_COMPILER_LAUNCHER=sccache \
+            -C cmake.define.CMAKE_GENERATOR=Ninja \
             python/finufft
 
       - name: Test Python package
