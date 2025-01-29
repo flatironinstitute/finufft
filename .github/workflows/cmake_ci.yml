@@ -166,7 +166,7 @@ jobs:
             -C cmake.define.FINUFFT_USE_DUCC0=${{ matrix.ducc_fft }} \
             -C cmake.define.CMAKE_CXX_COMPILER_LAUNCHER=sccache \
             -C cmake.define.CMAKE_C_COMPILER_LAUNCHER=sccache \
-            -C cmake.define.CMAKE_GENERATOR=Ninja \
+            -C cmake.define.CMAKE_GENERATOR=Ninja
             python/finufft
 
       - name: Test Python package
