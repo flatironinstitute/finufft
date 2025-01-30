@@ -1,20 +1,18 @@
 repos:
   - repo: https://github.com/pre-commit/mirrors-clang-format
-    rev: 'v18.1.8'
+    rev: 'v19.1.7'
     hooks:
       - id: clang-format
         types_or: [c++, c, cuda]
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v2.3.0
+    rev: v5.0.0
     hooks:
       - id: check-yaml
       - id: end-of-file-fixer
       - id: trailing-whitespace
-  - repo: https://github.com/cheshirekow/cmake-format-precommit
-    rev: v0.6.13
+      - id: check-illegal-windows-names
+      - id: mixed-line-ending
+  - repo: https://github.com/BlankSpruce/gersemi
+    rev: 0.18.2
     hooks:
-    - id: cmake-format
-    additional_dependencies: [pyyaml]
-    args: [--line-width=180]
-    types: [file]
-    files: (\.cmake|CMakeLists.txt)(.in)?$
+      - id: gersemi
