@@ -31,9 +31,9 @@ __global__ void spread_1d_nuptsdriven(const T *x, const cuda_complex<T> *c,
     const auto [xstart, xend] = interval(ns, x_rescaled);
     const T x1                = (T)xstart - x_rescaled;
     if constexpr (KEREVALMETH == 1)
-      eval_kernel_vec_horner(ker1, x1, ns, sigma);
+      eval_kernel_vec_horner<T, ns>(ker1, x1, sigma);
     else
-      eval_kernel_vec(ker1, x1, ns, es_c, es_beta);
+      eval_kernel_vec<T, ns>(ker1, x1, es_c, es_beta);
 
     for (auto xx = xstart; xx <= xend; xx++) {
       auto ix          = xx < 0 ? xx + nf1 : (xx > nf1 - 1 ? xx - nf1 : xx);
@@ -119,9 +119,9 @@ __global__ void spread_1d_subprob(
     const auto [xstart, xend] = interval(ns, x_rescaled);
     const T x1                = T(xstart + xoffset) - x_rescaled;
     if constexpr (KEREVALMETH == 1)
-      eval_kernel_vec_horner(ker1, x1, ns, sigma);
+      eval_kernel_vec_horner<T, ns>(ker1, x1, sigma);
     else
-      eval_kernel_vec(ker1, x1, ns, es_c, es_beta);
+      eval_kernel_vec<T, ns>(ker1, x1, es_c, es_beta);
     for (int xx = xstart; xx <= xend; xx++) {
       const auto ix = xx + ns_2;
       if (ix >= (bin_size_x + ns_2) || ix < 0) break;
@@ -159,9 +159,9 @@ __global__ void interp_1d_nuptsdriven(const T *x, cuda_complex<T> *c,
 
     const T x1 = (T)xstart - x_rescaled;
     if constexpr (KEREVALMETH == 1)
-      eval_kernel_vec_horner(ker1, x1, ns, sigma);
+      eval_kernel_vec_horner<T, ns>(ker1, x1, sigma);
     else
-      eval_kernel_vec(ker1, x1, ns, es_c, es_beta);
+      eval_kernel_vec<T, ns>(ker1, x1, es_c, es_beta);
     for (int xx = xstart; xx <= xend; xx++) {
       int ix            = xx < 0 ? xx + nf1 : (xx > nf1 - 1 ? xx - nf1 : xx);
       const T kervalue1 = ker1[xx - xstart];

@@ -33,11 +33,11 @@ __global__ void spread_2d_nupts_driven(const T *x, const T *y, const cuda_comple
     const auto y1 = (T)ystart - y_rescaled;
 
     if constexpr (KEREVALMETH == 1) {
-      eval_kernel_vec_horner(ker1, x1, ns, sigma);
-      eval_kernel_vec_horner(ker2, y1, ns, sigma);
+      eval_kernel_vec_horner<T, ns>(ker1, x1, sigma);
+      eval_kernel_vec_horner<T, ns>(ker2, y1, sigma);
     } else {
-      eval_kernel_vec(ker1, x1, ns, es_c, es_beta);
-      eval_kernel_vec(ker2, y1, ns, es_c, es_beta);
+      eval_kernel_vec<T, ns>(ker1, x1, es_c, es_beta);
+      eval_kernel_vec<T, ns>(ker2, y1, es_c, es_beta);
     }
 
     for (auto yy = ystart; yy <= yend; yy++) {
@@ -154,11 +154,11 @@ __global__ void spread_2d_subprob(
     yend -= yoffset;
 
     if constexpr (KEREVALMETH == 1) {
-      eval_kernel_vec_horner(ker1, x1, ns, sigma);
-      eval_kernel_vec_horner(ker2, y1, ns, sigma);
+      eval_kernel_vec_horner<T, ns>(ker1, x1, sigma);
+      eval_kernel_vec_horner<T, ns>(ker2, y1, sigma);
     } else {
-      eval_kernel_vec(ker1, x1, ns, es_c, es_beta);
-      eval_kernel_vec(ker2, y1, ns, es_c, es_beta);
+      eval_kernel_vec<T, ns>(ker1, x1, es_c, es_beta);
+      eval_kernel_vec<T, ns>(ker2, y1, es_c, es_beta);
     }
 
     for (int yy = ystart; yy <= yend; yy++) {
@@ -212,11 +212,11 @@ __global__ void interp_2d_nupts_driven(const T *x, const T *y, cuda_complex<T> *
     T y1 = (T)ystart - y_rescaled;
 
     if constexpr (KEREVALMETH == 1) {
-      eval_kernel_vec_horner(ker1, x1, ns, sigma);
-      eval_kernel_vec_horner(ker2, y1, ns, sigma);
+      eval_kernel_vec_horner<T, ns>(ker1, x1, sigma);
+      eval_kernel_vec_horner<T, ns>(ker2, y1, sigma);
     } else {
-      eval_kernel_vec(ker1, x1, ns, es_c, es_beta);
-      eval_kernel_vec(ker2, y1, ns, es_c, es_beta);
+      eval_kernel_vec<T, ns>(ker1, x1, es_c, es_beta);
+      eval_kernel_vec<T, ns>(ker2, y1, es_c, es_beta);
     }
 
     cuda_complex<T> cnow{0, 0};
@@ -295,11 +295,11 @@ __global__ void interp_2d_subprob(
     yend -= yoffset;
 
     if constexpr (KEREVALMETH == 1) {
-      eval_kernel_vec_horner(ker1, x1, ns, sigma);
-      eval_kernel_vec_horner(ker2, y1, ns, sigma);
+      eval_kernel_vec_horner<T, ns>(ker1, x1, sigma);
+      eval_kernel_vec_horner<T, ns>(ker2, y1, sigma);
     } else {
-      eval_kernel_vec(ker1, x1, ns, es_c, es_beta);
-      eval_kernel_vec(ker2, y1, ns, es_c, es_beta);
+      eval_kernel_vec<T, ns>(ker1, x1, es_c, es_beta);
+      eval_kernel_vec<T, ns>(ker2, y1, es_c, es_beta);
     }
 
     for (int yy = ystart; yy <= yend; yy++) {
