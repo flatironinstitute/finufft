@@ -38,6 +38,19 @@ struct Spread1DDispatcher {
 
 // Updated cuspread1d using generic dispatch
 template<typename T> int cuspread1d(cufinufft_plan_t<T> *d_plan, int blksize) {
+  /*
+    A wrapper for different spreading methods.
+
+    Methods available:
+        (1) Non-uniform points driven
+        (2) Subproblem
+
+    Melody Shih 11/21/21
+
+    Now the function is updated to dispatch based on ns. This is to avoid alloca which
+    it seems slower according to the MRI community.
+    Marco Barbone 01/30/25
+ */
   return launch_dispatch_ns<Spread1DDispatcher, T>(Spread1DDispatcher(),
                                                    d_plan->spopts.nspread, d_plan->nf1,
                                                    d_plan->M, d_plan, blksize);

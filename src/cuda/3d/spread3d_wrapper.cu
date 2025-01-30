@@ -39,6 +39,20 @@ struct Spread3DDispatcher {
 
 // Updated cuspread3d using generic dispatch
 template<typename T> int cuspread3d(cufinufft_plan_t<T> *d_plan, int blksize) {
+  /*
+    A wrapper for different spreading methods.
+
+    Methods available:
+        (1) Non-uniform points driven
+        (2) Subproblem
+        (4) Block gather
+
+    Melody Shih 07/25/19
+
+    Now the function is updated to dispatch based on ns. This is to avoid alloca which
+    it seems slower according to the MRI community.
+    Marco Barbone 01/30/25
+  */
   return launch_dispatch_ns<Spread3DDispatcher, T>(
       Spread3DDispatcher(), d_plan->spopts.nspread, d_plan->nf1, d_plan->nf2, d_plan->nf3,
       d_plan->M, d_plan, blksize);

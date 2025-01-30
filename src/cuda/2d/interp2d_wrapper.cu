@@ -32,6 +32,19 @@ struct Interp2DDispatcher {
 
 // Updated cuinterp2d using generic dispatch
 template<typename T> int cuinterp2d(cufinufft_plan_t<T> *d_plan, int blksize) {
+  /*
+    A wrapper for different interpolation methods.
+
+    Methods available:
+        (1) Non-uniform points driven
+        (2) Subproblem
+
+    Melody Shih 07/25/19
+
+    Now the function is updated to dispatch based on ns. This is to avoid alloca which
+    it seems slower according to the MRI community.
+    Marco Barbone 01/30/25
+  */
   return launch_dispatch_ns<Interp2DDispatcher, T>(
       Interp2DDispatcher(), d_plan->spopts.nspread, d_plan->nf1, d_plan->nf2, d_plan->M,
       d_plan, blksize);
