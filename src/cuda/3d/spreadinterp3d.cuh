@@ -77,21 +77,13 @@ __global__ void calc_inverse_of_global_sort_index_3d(
 }
 
 /* Kernels for NUptsdriven method */
-template<typename T, int KEREVALMETH>
-__global__ void spread_3d_nupts_driven(const T *x, const T *y, const T *z,
-                                       const cuda_complex<T> *c, cuda_complex<T> *fw,
-                                       int M, int ns, int nf1, int nf2, int nf3, T es_c,
-                                       T es_beta, T sigma, const int *idxnupts) {
-#if ALLOCA_SUPPORTED
-  auto ker                = (T *)alloca(sizeof(T) * ns * 3);
-  auto *__restrict__ ker1 = ker;
-  auto *__restrict__ ker2 = ker + ns;
-  auto *__restrict__ ker3 = ker + ns + ns;
-#else
-  T ker1[MAX_NSPREAD];
-  T ker2[MAX_NSPREAD];
-  T ker3[MAX_NSPREAD];
-#endif
+template<typename T, int KEREVALMETH, int ns>
+__global__ void spread_3d_nupts_driven(
+    const T *x, const T *y, const T *z, const cuda_complex<T> *c, cuda_complex<T> *fw,
+    int M, int nf1, int nf2, int nf3, T es_c, T es_beta, T sigma, const int *idxnupts) {
+  T ker1[ns];
+  T ker2[ns];
+  T ker3[ns];
   for (int i = blockDim.x * blockIdx.x + threadIdx.x; i < M;
        i += blockDim.x * gridDim.x) {
     const auto x_rescaled = fold_rescale(x[idxnupts[i]], nf1);
@@ -137,13 +129,12 @@ __global__ void spread_3d_nupts_driven(const T *x, const T *y, const T *z,
 }
 
 /* Kernels for Subprob method */
-template<typename T, int KEREVALMETH>
+template<typename T, int KEREVALMETH, int ns>
 __global__ void spread_3d_subprob(
-    T *x, T *y, T *z, cuda_complex<T> *c, cuda_complex<T> *fw, int M, int ns, int nf1,
-    int nf2, int nf3, T sigma, T es_c, T es_beta, int *binstartpts, int *bin_size,
-    int bin_size_x, int bin_size_y, int bin_size_z, int *subprob_to_bin,
-    int *subprobstartpts, int *numsubprob, int maxsubprobsize, int nbinx, int nbiny,
-    int nbinz, int *idxnupts) {
+    T *x, T *y, T *z, cuda_complex<T> *c, cuda_complex<T> *fw, int M, int nf1, int nf2,
+    int nf3, T sigma, T es_c, T es_beta, int *binstartpts, int *bin_size, int bin_size_x,
+    int bin_size_y, int bin_size_z, int *subprob_to_bin, int *subprobstartpts,
+    int *numsubprob, int maxsubprobsize, int nbinx, int nbiny, int nbinz, int *idxnupts) {
   extern __shared__ char sharedbuf[];
   auto fwshared = (cuda_complex<T> *)sharedbuf;
 
@@ -167,16 +158,10 @@ __global__ void spread_3d_subprob(
     fwshared[i] = {0, 0};
   }
   __syncthreads();
-#if ALLOCA_SUPPORTED
-  auto ker                = (T *)alloca(sizeof(T) * ns * 3);
-  auto *__restrict__ ker1 = ker;
-  auto *__restrict__ ker2 = ker + ns;
-  auto *__restrict__ ker3 = ker + ns + ns;
-#else
-  T ker1[MAX_NSPREAD];
-  T ker2[MAX_NSPREAD];
-  T ker3[MAX_NSPREAD];
-#endif
+
+  T ker1[ns];
+  T ker2[ns];
+  T ker3[ns];
 
   for (int i = threadIdx.x; i < nupts; i += blockDim.x) {
     const int nuptsidx    = idxnupts[ptstart + i];
@@ -310,13 +295,13 @@ __global__ void calc_inverse_of_global_sort_index_ghost(
   }
 }
 
-template<typename T, int KEREVALMETH>
+template<typename T, int KEREVALMETH, int ns>
 __global__ void spread_3d_block_gather(
     const T *x, const T *y, const T *z, const cuda_complex<T> *c, cuda_complex<T> *fw,
-    int M, int ns, int nf1, int nf2, int nf3, T es_c, T es_beta, T sigma,
-    const int *binstartpts, int obin_size_x, int obin_size_y, int obin_size_z,
-    int binsperobin, int *subprob_to_bin, const int *subprobstartpts, int maxsubprobsize,
-    int nobinx, int nobiny, int nobinz, const int *idxnupts) {
+    int M, int nf1, int nf2, int nf3, T es_c, T es_beta, T sigma, const int *binstartpts,
+    int obin_size_x, int obin_size_y, int obin_size_z, int binsperobin,
+    int *subprob_to_bin, const int *subprobstartpts, int maxsubprobsize, int nobinx,
+    int nobiny, int nobinz, const int *idxnupts) {
   extern __shared__ char sharedbuf[];
   cuda_complex<T> *fwshared = (cuda_complex<T> *)sharedbuf;
   const int subpidx         = blockIdx.x;
@@ -335,16 +320,10 @@ __global__ void spread_3d_block_gather(
 
   const int N = obin_size_x * obin_size_y * obin_size_z;
 
-#if ALLOCA_SUPPORTED
-  auto ker                = (T *)alloca(sizeof(T) * ns * 3);
-  auto *__restrict__ ker1 = ker;
-  auto *__restrict__ ker2 = ker + ns;
-  auto *__restrict__ ker3 = ker + ns + ns;
-#else
-  T ker1[MAX_NSPREAD];
-  T ker2[MAX_NSPREAD];
-  T ker3[MAX_NSPREAD];
-#endif
+  T ker1[ns];
+  T ker2[ns];
+  T ker3[ns];
+
   for (int i = threadIdx.x; i < N; i += blockDim.x) {
     fwshared[i] = {0, 0};
   }
@@ -431,20 +410,15 @@ __global__ void spread_3d_block_gather(
 
 /* ---------------------- 3d Interpolation Kernels ---------------------------*/
 /* Kernels for NUptsdriven Method */
-template<typename T, int KEREVALMETH>
+template<typename T, int KEREVALMETH, int ns>
 __global__ void interp_3d_nupts_driven(
     const T *x, const T *y, const T *z, cuda_complex<T> *c, const cuda_complex<T> *fw,
-    int M, int ns, int nf1, int nf2, int nf3, T es_c, T es_beta, T sigma, int *idxnupts) {
-#if ALLOCA_SUPPORTED
-  auto ker                = (T *)alloca(sizeof(T) * ns * 3);
-  auto *__restrict__ ker1 = ker;
-  auto *__restrict__ ker2 = ker + ns;
-  auto *__restrict__ ker3 = ker + ns + ns;
-#else
-  T ker1[MAX_NSPREAD];
-  T ker2[MAX_NSPREAD];
-  T ker3[MAX_NSPREAD];
-#endif
+    int M, int nf1, int nf2, int nf3, T es_c, T es_beta, T sigma, int *idxnupts) {
+
+  T ker1[ns];
+  T ker2[ns];
+  T ker3[ns];
+
   cuda_complex<T> cnow{};
   for (int i = blockDim.x * blockIdx.x + threadIdx.x; i < M;
        i += blockDim.x * gridDim.x) {
@@ -495,27 +469,19 @@ __global__ void interp_3d_nupts_driven(
 }
 
 /* Kernels for SubProb Method */
-template<typename T, int KEREVALMETH>
+template<typename T, int KEREVALMETH, int ns>
 __global__ void interp_3d_subprob(
     const T *x, const T *y, const T *z, cuda_complex<T> *c, const cuda_complex<T> *fw,
-    int M, int ns, int nf1, int nf2, int nf3, T es_c, T es_beta, T sigma,
-    const int *binstartpts, const int *bin_size, int bin_size_x, int bin_size_y,
-    int bin_size_z, const int *subprob_to_bin, const int *subprobstartpts,
-    const int *numsubprob, int maxsubprobsize, int nbinx, int nbiny, int nbinz,
-    const int *idxnupts) {
+    int M, int nf1, int nf2, int nf3, T es_c, T es_beta, T sigma, const int *binstartpts,
+    const int *bin_size, int bin_size_x, int bin_size_y, int bin_size_z,
+    const int *subprob_to_bin, const int *subprobstartpts, const int *numsubprob,
+    int maxsubprobsize, int nbinx, int nbiny, int nbinz, const int *idxnupts) {
   extern __shared__ char sharedbuf[];
   auto fwshared = (cuda_complex<T> *)sharedbuf;
 
-#if ALLOCA_SUPPORTED
-  auto ker                = (T *)alloca(sizeof(T) * ns * 3);
-  auto *__restrict__ ker1 = ker;
-  auto *__restrict__ ker2 = ker + ns;
-  auto *__restrict__ ker3 = ker + ns + ns;
-#else
-  T ker1[MAX_NSPREAD];
-  T ker2[MAX_NSPREAD];
-  T ker3[MAX_NSPREAD];
-#endif
+  T ker1[ns];
+  T ker2[ns];
+  T ker3[ns];
 
   const auto subpidx     = blockIdx.x;
   const auto bidx        = subprob_to_bin[subpidx];
