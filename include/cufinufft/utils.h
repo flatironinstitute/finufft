@@ -10,8 +10,11 @@
 #include <cuda.h>
 #include <cuda_runtime.h>
 #include <type_traits>
+#include <utility> // for std::forward
 
 #include <thrust/extrema.h>
+
+#include <finufft_errors.h>
 
 #ifndef _USE_MATH_DEFINES
 #define _USE_MATH_DEFINES
@@ -109,8 +112,8 @@ template<typename T> T infnorm(int n, std::complex<T> *a) {
  */
 
 template<typename T>
-static __forceinline__ __device__ void atomicAddComplexShared(
-    cuda_complex<T> *address, cuda_complex<T> res) {
+static __forceinline__ __device__ void atomicAddComplexShared(cuda_complex<T> *address,
+                                                              cuda_complex<T> res) {
   const auto raw_address = reinterpret_cast<T *>(address);
   atomicAdd(raw_address, res.x);
   atomicAdd(raw_address + 1, res.y);
@@ -122,8 +125,8 @@ static __forceinline__ __device__ void atomicAddComplexShared(
  * on shared memory are supported so we leverage them
  */
 template<typename T>
-static __forceinline__ __device__ void atomicAddComplexGlobal(
-    cuda_complex<T> *address, cuda_complex<T> res) {
+static __forceinline__ __device__ void atomicAddComplexGlobal(cuda_complex<T> *address,
+                                                              cuda_complex<T> res) {
   if constexpr (
       std::is_same_v<cuda_complex<T>, float2> && COMPUTE_CAPABILITY_90_OR_HIGHER) {
     atomicAdd(address, res);
@@ -189,6 +192,28 @@ auto set_nhg_type3(T S, T X, const cufinufft_opts &opts,
   auto h   = 2 * T(M_PI) / nf;                       // upsampled grid spacing
   auto gam = T(nf) / (2.0 * opts.upsampfac * Ssafe); // x scale fac to x'
   return std::make_tuple(nf, h, gam);
+}
+
+// Generalized dispatcher for any function requiring ns-based dispatch
+template<typename Func, typename T, int ns, typename... Args>
+int dispatch_ns(Func &&func, int target_ns, Args &&...args) {
+  if constexpr (ns > MAX_NSPREAD) {
+    return FINUFFT_ERR_METHOD_NOTVALID; // Stop recursion
+  } else {
+    if (target_ns == ns) {
+      return std::forward<Func>(func).template operator()<ns>(
+          std::forward<Args>(args)...);
+    }
+    return dispatch_ns<Func, T, ns + 1>(std::forward<Func>(func), target_ns,
+                                        std::forward<Args>(args)...);
+  }
+}
+
+// Wrapper function that starts the dispatch recursion
+template<typename Func, typename T, typename... Args>
+int launch_dispatch_ns(Func &&func, int target_ns, Args &&...args) {
+  return dispatch_ns<Func, T, MIN_NSPREAD>(std::forward<Func>(func), target_ns,
+                                           std::forward<Args>(args)...);
 }
 
 } // namespace utils

@@ -18,18 +18,12 @@ namespace spreadinterp {
 /* ------------------------ 1d Spreading Kernels ----------------------------*/
 /* Kernels for NUptsdriven Method */
 
-template<typename T, int KEREVALMETH>
+template<typename T, int KEREVALMETH, int ns>
 __global__ void spread_1d_nuptsdriven(const T *x, const cuda_complex<T> *c,
-                                      cuda_complex<T> *fw, int M, int ns, int nf1, T es_c,
+                                      cuda_complex<T> *fw, int M, int nf1, T es_c,
                                       T es_beta, T sigma, const int *idxnupts) {
   // dynamic stack allocation to reduce stack usage
-#if ALLOCA_SUPPORTED
-  auto ker                = (T *)alloca(sizeof(T) * ns);
-  auto *__restrict__ ker1 = ker;
-#else
-  T ker1[MAX_NSPREAD];
-#endif
-
+  T ker1[ns];
   for (int i = blockDim.x * blockIdx.x + threadIdx.x; i < M;
        i += blockDim.x * gridDim.x) {
     const auto x_rescaled     = fold_rescale(x[idxnupts[i]], nf1);
@@ -89,12 +83,12 @@ __global__ void calc_inverse_of_global_sort_idx_1d(
   }
 }
 
-template<typename T, int KEREVALMETH>
+template<typename T, int KEREVALMETH, int ns>
 __global__ void spread_1d_subprob(
-    const T *x, const cuda_complex<T> *c, cuda_complex<T> *fw, int M, uint8_t ns, int nf1,
-    T es_c, T es_beta, T sigma, const int *binstartpts, const int *bin_size,
-    int bin_size_x, const int *subprob_to_bin, const int *subprobstartpts,
-    const int *numsubprob, int maxsubprobsize, int nbinx, int *idxnupts) {
+    const T *x, const cuda_complex<T> *c, cuda_complex<T> *fw, int M, int nf1, T es_c,
+    T es_beta, T sigma, const int *binstartpts, const int *bin_size, int bin_size_x,
+    const int *subprob_to_bin, const int *subprobstartpts, const int *numsubprob,
+    int maxsubprobsize, int nbinx, int *idxnupts) {
   extern __shared__ char sharedbuf[];
   auto *__restrict__ fwshared = (cuda_complex<T> *)sharedbuf;
 
@@ -108,12 +102,7 @@ __global__ void spread_1d_subprob(
   const int N       = bin_size_x + 2 * ns_2;
 
   // dynamic stack allocation
-#if ALLOCA_SUPPORTED
-  auto ker                = (T *)alloca(sizeof(T) * ns);
-  auto *__restrict__ ker1 = ker;
-#else
-  T ker1[MAX_NSPREAD];
-#endif
+  T ker1[ns];
 
   for (int i = threadIdx.x; i < N; i += blockDim.x) {
     fwshared[i] = {0, 0};
@@ -154,17 +143,13 @@ __global__ void spread_1d_subprob(
 
 /* --------------------- 1d Interpolation Kernels ----------------------------*/
 /* Kernels for NUptsdriven Method */
-template<typename T, int KEREVALMETH>
+template<typename T, int KEREVALMETH, int ns>
 __global__ void interp_1d_nuptsdriven(const T *x, cuda_complex<T> *c,
-                                      const cuda_complex<T> *fw, int M, int ns, int nf1,
-                                      T es_c, T es_beta, T sigma, const int *idxnupts) {
+                                      const cuda_complex<T> *fw, int M, int nf1, T es_c,
+                                      T es_beta, T sigma, const int *idxnupts) {
   // dynamic stack allocation
-#if ALLOCA_SUPPORTED
-  auto ker                = (T *)alloca(sizeof(T) * ns);
-  auto *__restrict__ ker1 = ker;
-#else
-  T ker1[MAX_NSPREAD];
-#endif
+  T ker1[ns];
+
   for (int i = blockDim.x * blockIdx.x + threadIdx.x; i < M;
        i += blockDim.x * gridDim.x) {
     const T x_rescaled        = fold_rescale(x[idxnupts[i]], nf1);
