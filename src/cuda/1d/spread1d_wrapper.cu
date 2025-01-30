@@ -266,13 +266,11 @@ int cuspread1d_subprob(int nf1, int M, cufinufft_plan_t<T> *d_plan, int blksize)
                                 d_plan->opts.gpu_binsizey, d_plan->opts.gpu_binsizez);
 
   if (d_plan->opts.gpu_kerevalmeth) {
+    if (const auto finufft_err =
+            cufinufft_set_shared_memory(spread_1d_subprob<T, 1, ns>, 1, *d_plan) != 0) {
+      return FINUFFT_ERR_INSUFFICIENT_SHMEM;
+    }
     for (int t = 0; t < blksize; t++) {
-
-      if (const auto finufft_err =
-              cufinufft_set_shared_memory(spread_1d_subprob<T, 1, ns>, 1, *d_plan) != 0) {
-        return FINUFFT_ERR_INSUFFICIENT_SHMEM;
-      }
-      RETURN_IF_CUDA_ERROR
       spread_1d_subprob<T, 1, ns><<<totalnumsubprob, 256, sharedplanorysize, stream>>>(
           d_kx, d_c + t * M, d_fw + t * nf1, M, nf1, es_c, es_beta, sigma, d_binstartpts,
           d_binsize, bin_size_x, d_subprob_to_bin, d_subprobstartpts, d_numsubprob,
@@ -280,12 +278,11 @@ int cuspread1d_subprob(int nf1, int M, cufinufft_plan_t<T> *d_plan, int blksize)
       RETURN_IF_CUDA_ERROR
     }
   } else {
+    if (const auto finufft_err =
+            cufinufft_set_shared_memory(spread_1d_subprob<T, 0, ns>, 1, *d_plan) != 0) {
+      return FINUFFT_ERR_INSUFFICIENT_SHMEM;
+    }
     for (int t = 0; t < blksize; t++) {
-      if (const auto finufft_err =
-              cufinufft_set_shared_memory(spread_1d_subprob<T, 0, ns>, 1, *d_plan) != 0) {
-        return FINUFFT_ERR_INSUFFICIENT_SHMEM;
-      }
-      RETURN_IF_CUDA_ERROR
       spread_1d_subprob<T, 0, ns><<<totalnumsubprob, 256, sharedplanorysize, stream>>>(
           d_kx, d_c + t * M, d_fw + t * nf1, M, nf1, es_c, es_beta, sigma, d_binstartpts,
           d_binsize, bin_size_x, d_subprob_to_bin, d_subprobstartpts, d_numsubprob,

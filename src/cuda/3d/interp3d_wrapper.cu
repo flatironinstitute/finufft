@@ -127,17 +127,25 @@ int cuinterp3d_subprob(int nf1, int nf2, int nf3, int M, cufinufft_plan_t<T> *d_
       shared_memory_required<T>(3, d_plan->spopts.nspread, d_plan->opts.gpu_binsizex,
                                 d_plan->opts.gpu_binsizey, d_plan->opts.gpu_binsizez);
 
-  for (int t = 0; t < blksize; t++) {
-    if (d_plan->opts.gpu_kerevalmeth == 1) {
-      cufinufft_set_shared_memory(interp_3d_subprob<T, 1, ns>, 3, *d_plan);
+  if (d_plan->opts.gpu_kerevalmeth == 1) {
+    if (const auto finufft_err =
+            cufinufft_set_shared_memory(interp_3d_subprob<T, 1, ns>, 3, *d_plan)) {
+      return finufft_err;
+    }
+    for (int t = 0; t < blksize; t++) {
       interp_3d_subprob<T, 1, ns><<<totalnumsubprob, 256, sharedplanorysize, stream>>>(
           d_kx, d_ky, d_kz, d_c + t * M, d_fw + t * nf1 * nf2 * nf3, M, nf1, nf2, nf3,
           es_c, es_beta, sigma, d_binstartpts, d_binsize, bin_size_x, bin_size_y,
           bin_size_z, d_subprob_to_bin, d_subprobstartpts, d_numsubprob, maxsubprobsize,
           numbins[0], numbins[1], numbins[2], d_idxnupts);
       RETURN_IF_CUDA_ERROR
-    } else {
-      cufinufft_set_shared_memory(interp_3d_subprob<T, 0, ns>, 3, *d_plan);
+    }
+  } else {
+    if (const auto finufft_err =
+            cufinufft_set_shared_memory(interp_3d_subprob<T, 0, ns>, 3, *d_plan)) {
+      return finufft_err;
+    }
+    for (int t = 0; t < blksize; t++) {
       interp_3d_subprob<T, 0, ns><<<totalnumsubprob, 256, sharedplanorysize, stream>>>(
           d_kx, d_ky, d_kz, d_c + t * M, d_fw + t * nf1 * nf2 * nf3, M, nf1, nf2, nf3,
           es_c, es_beta, sigma, d_binstartpts, d_binsize, bin_size_x, bin_size_y,
