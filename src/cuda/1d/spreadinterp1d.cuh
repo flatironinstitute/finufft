@@ -22,7 +22,6 @@ template<typename T, int KEREVALMETH, int ns>
 __global__ void spread_1d_nuptsdriven(const T *x, const cuda_complex<T> *c,
                                       cuda_complex<T> *fw, int M, int nf1, T es_c,
                                       T es_beta, T sigma, const int *idxnupts) {
-  // dynamic stack allocation to reduce stack usage
   T ker1[ns];
   for (int i = blockDim.x * blockIdx.x + threadIdx.x; i < M;
        i += blockDim.x * gridDim.x) {
@@ -101,7 +100,6 @@ __global__ void spread_1d_subprob(
   const auto ns_2   = (ns + 1) / 2;
   const int N       = bin_size_x + 2 * ns_2;
 
-  // dynamic stack allocation
   T ker1[ns];
 
   for (int i = threadIdx.x; i < N; i += blockDim.x) {
@@ -147,7 +145,7 @@ template<typename T, int KEREVALMETH, int ns>
 __global__ void interp_1d_nuptsdriven(const T *x, cuda_complex<T> *c,
                                       const cuda_complex<T> *fw, int M, int nf1, T es_c,
                                       T es_beta, T sigma, const int *idxnupts) {
-  // dynamic stack allocation
+
   T ker1[ns];
 
   for (int i = blockDim.x * blockIdx.x + threadIdx.x; i < M;

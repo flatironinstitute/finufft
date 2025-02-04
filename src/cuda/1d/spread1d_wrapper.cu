@@ -43,7 +43,6 @@ template<typename T> int cuspread1d(cufinufft_plan_t<T> *d_plan, int blksize) {
 
     Methods available:
         (1) Non-uniform points driven
-        (2) Subproblem
 
     Melody Shih 11/21/21
 
