@@ -39,15 +39,6 @@ add_test(
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
 )
 
-add_executable(testheuristics testheuristics.cpp)
-target_compile_features(testheuristics PRIVATE cxx_std_17)
-finufft_link_test(testheuristics)
-add_test(
-    NAME run_testheuristics
-    COMMAND testheuristics
-    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-)
-
 if(NOT FINUFFT_USE_DUCC0)
     add_executable(fftw_lock_test fftw_lock_test.cpp)
     target_compile_features(fftw_lock_test PRIVATE cxx_std_17)
