@@ -92,7 +92,10 @@ Data handling options
 
   .. note:: The index *sets* are the same in the two ``modeord`` choices; their ordering differs only by a cyclic shift. The FFT ordering cyclically shifts the CMCL indices $\mbox{floor}(N/2)$ to the left (often called an "fftshift").
 
-**spreadinterponly**: [only has effect for type 1 or 2.] If ``0`` do
+.. _sionly:
+
+**spreadinterponly**: [only has effect for type 1 or 2.] For experts only!
+If ``0`` do
 the NUFFT as intended.  If ``1``, omit the FFT and deconvolution
 (diagonal division by kernel Fourier transform) steps, thus returning
 *garbage answers as a NUFFT*, but allowing experts to perform solely

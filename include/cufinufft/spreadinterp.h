@@ -72,7 +72,8 @@ static inline T evaluate_kernel(T x, const finufft_spread_opts &opts)
 }
 
 template<typename T>
-int setup_spreader(finufft_spread_opts &opts, T eps, T upsampfac, int kerevalmeth);
+int setup_spreader(finufft_spread_opts &opts, T eps, T upsampfac, int kerevalmeth,
+                   int spreadinterponly);
 
 template<typename T>
 static __forceinline__ __device__ T evaluate_kernel(T x, T es_c, T es_beta, int ns)
