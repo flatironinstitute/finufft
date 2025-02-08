@@ -87,7 +87,7 @@ int setup_spreader(finufft_spread_opts &opts, T eps, T upsampfac, int kerevalmet
 }
 
 template int setup_spreader(finufft_spread_opts &opts, float eps, float upsampfac,
-                            int kerevalmeth, int debug, int spreadinterponly));
+                            int kerevalmeth, int debug, int spreadinterponly);
 template int setup_spreader(finufft_spread_opts &opts, double eps, double upsampfac,
                             int kerevalmeth, int debug, int spreadinterponly));
 template float evaluate_kernel(float x, const finufft_spread_opts &opts);
