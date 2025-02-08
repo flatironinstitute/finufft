@@ -227,13 +227,15 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
 
   if (type == 1 || type == 2) {
     CUFINUFFT_BIGINT nf1 = 1, nf2 = 1, nf3 = 1;
-    if (opts.gpu_spreadinterponly) { // spread/interp grid is the user "mode" sizes
+    if (d_plan->opts.gpu_spreadinterponly) {
+      // spread/interp grid is precisely the user "mode" sizes, no upsampling
       nf1 = d_plan->ms;
       if (dim > 1) nf2 = d_plan->mt;
       if (dim > 2) nf3 = d_plan->mu;
-      if (d_plan->opts.debug)
+      if (d_plan->opts.debug) {
         printf("[cufinufft] spreadinterponly mode: (nf1,nf2,nf3) = (%d, %d, %d)\n", nf1,
                nf2, nf3);
+      }
     } else { // usual NUFFT with fine grid using upsampling
       set_nf_type12(d_plan->ms, d_plan->opts, d_plan->spopts, &nf1,
                     d_plan->opts.gpu_obinsizex);
@@ -246,7 +248,6 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
       if (d_plan->opts.debug)
         printf("[cufinufft] (nf1,nf2,nf3) = (%d, %d, %d)\n", nf1, nf2, nf3);
     }
-
     d_plan->nf1 = nf1;
     d_plan->nf2 = nf2;
     d_plan->nf3 = nf3;
@@ -764,8 +765,8 @@ int cufinufft_setpts_impl(int M, T *d_kx, T *d_ky, T *d_kz, int N, T *d_s, T *d_
           thrust::cuda::par.on(stream), phase_iterator, phase_iterator + N,
           d_plan->deconv, d_plan->deconv,
           [c1, c2, c3, d1, d2, d3, realsign] __host__ __device__(
-              const thrust::tuple<T, T, T> tuple,
-              cuda_complex<T> deconv) -> cuda_complex<T> {
+              const thrust::tuple<T, T, T> tuple, cuda_complex<T> deconv)
+              -> cuda_complex<T> {
             // d2 and d3 are 0 if dim < 2 and dim < 3
             const auto phase = c1 * (thrust::get<0>(tuple) + d1) +
                                c2 * (thrust::get<1>(tuple) + d2) +
