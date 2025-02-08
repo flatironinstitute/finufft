@@ -12,7 +12,7 @@ namespace spreadinterp {
 
 template<typename T>
 int setup_spreader(finufft_spread_opts &opts, T eps, T upsampfac, int kerevalmeth,
-                   int spreadinterponly)
+                   int debug, int spreadinterponly)
 // Initializes spreader kernel parameters given desired NUFFT tolerance eps,
 // upsampling factor (=sigma in paper, or R in Dutt-Rokhlin), and ker eval meth
 // (etiher 0:exp(sqrt()), 1: Horner ppval).
@@ -80,13 +80,16 @@ int setup_spreader(finufft_spread_opts &opts, T eps, T upsampfac, int kerevalmet
                                                               // cutoff
   }
   opts.ES_beta = betaoverns * (T)ns; // set the kernel beta parameter
+  if (debug)
+    printf("[%s] (kerevalmeth=%d) eps=%.3g sigma=%.3g: chose ns=%d beta=%.3g\n", __func__,
+           kerevalmeth, (double)eps, (double)upsampfac, ns, opts.ES_beta);
   return ier;
 }
 
 template int setup_spreader(finufft_spread_opts &opts, float eps, float upsampfac,
-                            int kerevalmeth, int spreadinterponly));
+                            int kerevalmeth, int debug, int spreadinterponly));
 template int setup_spreader(finufft_spread_opts &opts, double eps, double upsampfac,
-                            int kerevalmeth, int spreadinterponly));
+                            int kerevalmeth, int debug, int spreadinterponly));
 template float evaluate_kernel(float x, const finufft_spread_opts &opts);
 template double evaluate_kernel(double x, const finufft_spread_opts &opts);
 
