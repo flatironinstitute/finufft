@@ -107,6 +107,44 @@ def test_type2(to_gpu, to_cpu, dtype, shape, M, tol, output_arg, contiguous, mod
         utils.verify_type2(k, fk, c, tol)
 
 
+@pytest.mark.parametrize("dtype", DTYPES)
+@pytest.mark.parametrize("dim", list(set(len(shape) for shape in SHAPES)))
+@pytest.mark.parametrize("n_source_pts", MS)
+@pytest.mark.parametrize("n_target_pts", MS)
+@pytest.mark.parametrize("output_arg", OUTPUT_ARGS)
+def test_type3(to_gpu, to_cpu, dtype, dim, n_source_pts, n_target_pts, output_arg):
+    if dtype == np.float32 and dim >= 2 and min(n_source_pts, n_target_pts) > 4000:
+        pytest.xfail("Garbage result for larger numbers of pts in single precision type 3")
+        # Strangely, this does not reproduce if we isolate the single case. To
+        # trigger it, we must run many other tests preceding this test case.
+        # So it's related to some global state of the library.
+
+    complex_dtype = utils._complex_dtype(dtype)
+
+    source_pts, source_coefs, target_pts = utils.type3_problem(complex_dtype,
+            dim, n_source_pts, n_target_pts)
+
+    plan = Plan(3, dim, dtype=complex_dtype)
+
+    source_pts_gpu = to_gpu(source_pts)
+    target_pts_gpu = to_gpu(target_pts)
+
+    source_coefs_gpu = to_gpu(source_coefs)
+
+    plan.setpts(*source_pts_gpu, *((None,) * (3 - dim)), *target_pts_gpu)
+
+    if not output_arg:
+        target_coefs_gpu = plan.execute(source_coefs_gpu)
+    else:
+        target_coefs_gpu = _compat.array_empty_like(source_coefs_gpu,
+                n_target_pts, dtype=complex_dtype)
+        plan.execute(source_coefs_gpu, out=target_coefs_gpu)
+
+    target_coefs = to_cpu(target_coefs_gpu)
+
+    utils.verify_type3(source_pts, source_coefs, target_pts, target_coefs, 1e-6)
+
+
 def test_opts(to_gpu, to_cpu, shape=(8, 8, 8), M=32, tol=1e-3):
     dtype = np.float32
 
@@ -128,3 +166,33 @@ def test_opts(to_gpu, to_cpu, shape=(8, 8, 8), M=32, tol=1e-3):
     fk = to_cpu(fk_gpu)
 
     utils.verify_type1(k, c, fk, tol)
+
+
+def test_cufinufft_plan_properties():
+    nufft_type = 2
+    n_modes = (8, 8)
+    n_trans = 2
+    dtype = np.complex64
+
+    plan = Plan(nufft_type, n_modes, n_trans, dtype=dtype)
+
+    assert plan.type == nufft_type
+    assert tuple(plan.n_modes) == n_modes
+    assert plan.dim == len(n_modes)
+    assert plan.n_trans == n_trans
+    assert plan.dtype == dtype
+
+    with pytest.raises(AttributeError):
+        plan.type = 1
+
+    with pytest.raises(AttributeError):
+        plan.n_modes = (4, 4)
+
+    with pytest.raises(AttributeError):
+        plan.dim = 1
+
+    with pytest.raises(AttributeError):
+        plan.n_trans = 1
+
+    with pytest.raises(AttributeError):
+        plan.dtype = np.float64

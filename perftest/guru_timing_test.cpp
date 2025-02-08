@@ -1,4 +1,6 @@
+#include "finufft/finufft_utils.hpp"
 #include <finufft/test_defs.h>
+
 // for sleep call
 #if defined(WIN32) || defined(_WIN32) || defined(__WIN32) && !defined(__CYGWIN__)
 #include <Windows.h>
@@ -154,7 +156,7 @@ int main(int argc, char *argv[])
   printf("FINUFFT %dd%d use guru interface to do %d calls together:-------------------\n",
          ndim, type, ntransf);
   FINUFFT_PLAN plan;                // instantiate a finufft_plan
-  finufft::utils::CNTime timer;
+  CNTime timer;
   timer.start();                    // Guru Step 1
   BIGINT n_modes[3] = {N1, N2, N3}; // #modes per dimension (ignored for t3)
   int ier = FINUFFT_MAKEPLAN(type, ndim, n_modes, isign, ntransf, tol, &plan, &opts);
@@ -258,7 +260,7 @@ double finufftFunnel(CPX *cStart, CPX *fStart, FLT *x, FLT *y, FLT *z, FINUFFT_P
    Malleo 2019; xyz passed in by Barnett 5/26/20 to prevent X_orig fields.
 */
 {
-  finufft::utils::CNTime timer;
+  CNTime timer;
   timer.start();
   int ier             = 0;
   double t            = 0;

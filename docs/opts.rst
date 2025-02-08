@@ -124,7 +124,7 @@ Diagnostic options
 
 * ``debug=0`` : silent
 
-* ``debug=1`` : print some information
+* ``debug=1`` : prints some information
 
 * ``debug=2`` : prints more information
 

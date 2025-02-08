@@ -103,18 +103,6 @@ class Plan:
 
         dtype = np.dtype(dtype)
 
-        if dtype == np.float64:
-            warnings.warn("Real dtypes are currently deprecated and will be "
-                          "removed in version 2.3. Converting to complex128.",
-                          DeprecationWarning)
-            dtype = np.complex128
-
-        if dtype == np.float32:
-            warnings.warn("Real dtypes are currently deprecated and will be "
-                          "removed in version 2.3. Converting to complex64.",
-                          DeprecationWarning)
-            dtype = np.complex64
-
         is_single = is_single_dtype(dtype)
 
         # construct plan based on precision type and eps default value
@@ -156,19 +144,38 @@ class Plan:
             err_handler(ier)
 
         # set C++ side plan as inner_plan
-        self.inner_plan = plan
+        self._inner_plan = plan
 
         # set properties
-        self.type = nufft_type
-        self.dim = dim
-        self.n_modes = n_modes
-        self.n_trans = n_trans
+        self._type = nufft_type
+        self._dim = dim
+        self._n_modes = n_modes
+        self._n_trans = n_trans
 
         if is_single:
-            self.dtype = np.dtype("complex64")
+            self._dtype = np.dtype("complex64")
         else:
-            self.dtype = np.dtype("complex128")
+            self._dtype = np.dtype("complex128")
 
+    @property
+    def type(self):
+        return self._type
+
+    @property
+    def dtype(self):
+        return self._dtype
+
+    @property
+    def dim(self):
+        return self._dim
+
+    @property
+    def n_modes(self):
+        return self._n_modes
+
+    @property
+    def n_trans(self):
+        return self._n_trans
 
     ### setpts
     def setpts(self,x=None,y=None,z=None,s=None,t=None,u=None):
@@ -199,7 +206,7 @@ class Plan:
                     points (target for type 3).
         """
 
-        real_dtype = _get_real_dtype(self.dtype)
+        real_dtype = _get_real_dtype(self._dtype)
 
         self._xj = _ensure_array_type(x, "x", real_dtype)
         self._yj = _ensure_array_type(y, "y", real_dtype)
@@ -209,17 +216,17 @@ class Plan:
         self._u = _ensure_array_type(u, "u", real_dtype)
 
         # valid sizes
-        dim = self.dim
-        tp = self.type
-        (self.nj, self.nk) = valid_setpts(tp, dim, self._xj, self._yj, self._zj, self._s, self._t, self._u)
+        dim = self._dim
+        tp = self._type
+        (self._nj, self._nk) = valid_setpts(tp, dim, self._xj, self._yj, self._zj, self._s, self._t, self._u)
 
         # call set pts for single prec plan
-        if self.dim == 1:
-            ier = self._setpts(self.inner_plan, self.nj, self._xj, self._yj, self._zj, self.nk, self._s, self._t, self._u)
-        elif self.dim == 2:
-            ier = self._setpts(self.inner_plan, self.nj, self._yj, self._xj, self._zj, self.nk, self._t, self._s, self._u)
-        elif self.dim == 3:
-            ier = self._setpts(self.inner_plan, self.nj, self._zj, self._yj, self._xj, self.nk, self._u, self._t, self._s)
+        if self._dim == 1:
+            ier = self._setpts(self._inner_plan, self._nj, self._xj, self._yj, self._zj, self._nk, self._s, self._t, self._u)
+        elif self._dim == 2:
+            ier = self._setpts(self._inner_plan, self._nj, self._yj, self._xj, self._zj, self._nk, self._t, self._s, self._u)
+        elif self._dim == 3:
+            ier = self._setpts(self._inner_plan, self._nj, self._zj, self._yj, self._xj, self._nk, self._u, self._t, self._s)
 
         if ier != 0:
             err_handler(ier)
@@ -246,17 +253,17 @@ class Plan:
             complex[n_modes], complex[n_tr, n_modes], complex[M], or complex[n_tr, M]: The output array of the transform(s).
         """
 
-        _data = _ensure_array_type(data, "data", self.dtype)
-        _out = _ensure_array_type(out, "out", self.dtype, output=True)
+        _data = _ensure_array_type(data, "data", self._dtype)
+        _out = _ensure_array_type(out, "out", self._dtype, output=True)
 
-        tp = self.type
-        n_trans = self.n_trans
-        nj = self.nj
-        nk = self.nk
-        dim = self.dim
+        tp = self._type
+        n_trans = self._n_trans
+        nj = self._nj
+        nk = self._nk
+        dim = self._dim
 
         if tp==1 or tp==2:
-            ms, mt, mu = [*self.n_modes, *([1]*(3-len(self.n_modes)))]
+            ms, mt, mu = [*self._n_modes, *([1]*(3-len(self._n_modes)))]
 
         # input shape and size check
         if tp==2:
@@ -276,19 +283,19 @@ class Plan:
         # allocate out if None
         if out is None:
             if tp==1:
-                _out = np.zeros([*data.shape[:-1], *self.n_modes[::-1]], dtype=self.dtype, order='C')
+                _out = np.zeros([*data.shape[:-1], *self._n_modes[::-1]], dtype=self._dtype, order='C')
             if tp==2:
-                _out = np.zeros([*data.shape[:-dim], nj], dtype=self.dtype, order='C')
+                _out = np.zeros([*data.shape[:-dim], nj], dtype=self._dtype, order='C')
             if tp==3:
-                _out = np.zeros([*data.shape[:-1], nk], dtype=self.dtype, order='C')
+                _out = np.zeros([*data.shape[:-1], nk], dtype=self._dtype, order='C')
 
         # call execute based on type and precision type
         if tp==1 or tp==3:
-            ier = self._execute(self.inner_plan,
+            ier = self._execute(self._inner_plan,
                                 _data.ctypes.data_as(c_void_p),
                                 _out.ctypes.data_as(c_void_p))
         elif tp==2:
-            ier = self._execute(self.inner_plan,
+            ier = self._execute(self._inner_plan,
                                 _out.ctypes.data_as(c_void_p),
                                 _data.ctypes.data_as(c_void_p))
 
@@ -301,7 +308,7 @@ class Plan:
 
     def __del__(self):
         destroy(self)
-        self.inner_plan = None
+        self._inner_plan = None
 ### End of Plan class definition
 
 
@@ -503,8 +510,8 @@ def setkwopts(opt,**kwargs):
 
 ### destroy
 def destroy(plan):
-    if hasattr(plan, "inner_plan"):
-        ier = plan._destroy(plan.inner_plan)
+    if hasattr(plan, "_inner_plan"):
+        ier = plan._destroy(plan._inner_plan)
 
         if ier != 0:
             err_handler(ier)

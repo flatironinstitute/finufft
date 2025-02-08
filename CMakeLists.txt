@@ -79,10 +79,26 @@ set(FINUFFT_CXX_FLAGS_DEBUG
     -g3
     -ggdb
     -ggdb3
-    /Zi
     -Wall
     -Wno-sign-compare
     -Wno-unknown-pragmas)
+
+if(DEFINED ENV{GITHUB_ACTIONS})
+  if($ENV{GITHUB_ACTIONS} STREQUAL "true")
+    message("CMake is being executed inside a GitHub workflow")
+    # if msvc use FS flag
+    if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC" AND NOT CMAKE_BUILD_TYPE STREQUAL
+                                                 "Release")
+      set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT
+          "$<$<CONFIG:Debug,RelWithDebInfo>:Embedded>")
+      message("CMAKE_MSVC_DEBUG_INFORMATION_FORMAT TO Embedded")
+    endif()
+  endif()
+else()
+  message("CMake is NOT being executed inside a GitHub workflow")
+  # env variable is:
+  message(STATUS "ENV{GITHUB_ACTIONS}: $ENV{GITHUB_ACTIONS}")
+endif()
 filter_supported_compiler_flags(FINUFFT_CXX_FLAGS_DEBUG FINUFFT_CXX_FLAGS_DEBUG)
 message(STATUS "FINUFFT Debug flags: ${FINUFFT_CXX_FLAGS_DEBUG}")
 list(APPEND FINUFFT_CXX_FLAGS_RELWITHDEBINFO ${FINUFFT_CXX_FLAGS_RELEASE}
@@ -147,7 +163,7 @@ function(enable_asan target)
   endif()
 endfunction()
 
-set(CPM_DOWNLOAD_VERSION 0.40.2)
+set(CPM_DOWNLOAD_VERSION 0.40.5)
 include(cmake/setupCPM.cmake)
 
 if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
@@ -167,8 +183,8 @@ if(FINUFFT_USE_CPU)
   endif()
   set(FFTW_VERSION 3.3.10)
   set(XTL_VERSION 0.7.7)
-  set(XSIMD_VERSION 13.0.0)
-  set(DUCC0_VERSION ducc0_0_35_0)
+  set(XSIMD_VERSION 13.1.0)
+  set(DUCC0_VERSION ducc0_0_36_0)
   set(FINUFFT_FFTW_LIBRARIES)
   include(cmake/setupXSIMD.cmake)
   if(FINUFFT_USE_DUCC0)
@@ -248,27 +264,19 @@ function(set_finufft_options target)
 endfunction()
 
 if(FINUFFT_USE_CPU)
+  set(FINUFFT_SOURCES
+      src/spreadinterp.cpp
+      contrib/legendre_rule_fast.cpp
+      src/fft.cpp
+      src/finufft_core.cpp
+      src/c_interface.cpp
+      src/finufft_utils.cpp
+      fortran/finufftfort.cpp)
   # Main finufft libraries
   if(NOT FINUFFT_STATIC_LINKING)
-    add_library(
-      finufft SHARED
-      src/spreadinterp.cpp
-      src/utils.cpp
-      contrib/legendre_rule_fast.cpp
-      src/fft.cpp
-      src/finufft_core.cpp
-      src/c_interface.cpp
-      fortran/finufftfort.cpp)
+    add_library(finufft SHARED ${FINUFFT_SOURCES})
   else()
-    add_library(
-      finufft STATIC
-      src/spreadinterp.cpp
-      src/utils.cpp
-      contrib/legendre_rule_fast.cpp
-      src/fft.cpp
-      src/finufft_core.cpp
-      src/c_interface.cpp
-      fortran/finufftfort.cpp)
+    add_library(finufft STATIC ${FINUFFT_SOURCES})
   endif()
   set_finufft_options(finufft)
 
