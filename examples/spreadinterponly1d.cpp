@@ -13,12 +13,14 @@ using namespace std::chrono;
 
 int main(int argc, char *argv[])
 /* Example of double-prec spread/interp only tasks, with basic math tests.
-   Complex I/O arrays, but kernel is real.  Barnett 1/8/25
+   Complex I/O arrays, but recall the kernel is real.  Barnett 1/8/25.
+
    The math tests are:
-   1) for spread, check sum of spread kernel masses is as expected from one
-   times the strengths (ie testing the zero-frequency component in NUFFT).
+   1) for spread, check sum of spread kernel masses is as expected from sum
+   of strengths (ie testing the zero-frequency component in NUFFT).
    2) for interp, check each interp kernel mass is the same as from one.
-   Without knowing the kernel, this is about all that can be done.
+
+   Without knowing the kernel, this is about all that can be done!
    (Better math tests would be, ironically, to wrap the spreader/interpolator
    into a NUFFT and test that :) But we already have that in FINUFFT.)
 
