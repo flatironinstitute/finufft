@@ -227,23 +227,30 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
 
   if (type == 1 || type == 2) {
     CUFINUFFT_BIGINT nf1 = 1, nf2 = 1, nf3 = 1;
-    set_nf_type12(d_plan->ms, d_plan->opts, d_plan->spopts, &nf1,
-                  d_plan->opts.gpu_obinsizex);
-    if (dim > 1)
-      set_nf_type12(d_plan->mt, d_plan->opts, d_plan->spopts, &nf2,
-                    d_plan->opts.gpu_obinsizey);
-    if (dim > 2)
-      set_nf_type12(d_plan->mu, d_plan->opts, d_plan->spopts, &nf3,
-                    d_plan->opts.gpu_obinsizez);
+    if (opts.gpu_spreadinterponly) { // spread/interp grid is the user "mode" sizes
+      nf1 = d_plan->ms;
+      if (dim > 1) nf2 = d_plan->mt;
+      if (dim > 2) nf3 = d_plan->mu;
+      if (d_plan->opts.debug)
+        printf("[cufinufft] spreadinterponly mode: (nf1,nf2,nf3) = (%d, %d, %d)\n", nf1,
+               nf2, nf3);
+    } else { // usual NUFFT with fine grid using upsampling
+      set_nf_type12(d_plan->ms, d_plan->opts, d_plan->spopts, &nf1,
+                    d_plan->opts.gpu_obinsizex);
+      if (dim > 1)
+        set_nf_type12(d_plan->mt, d_plan->opts, d_plan->spopts, &nf2,
+                      d_plan->opts.gpu_obinsizey);
+      if (dim > 2)
+        set_nf_type12(d_plan->mu, d_plan->opts, d_plan->spopts, &nf3,
+                      d_plan->opts.gpu_obinsizez);
+      if (d_plan->opts.debug)
+        printf("[cufinufft] (nf1,nf2,nf3) = (%d, %d, %d)\n", nf1, nf2, nf3);
+    }
 
     d_plan->nf1 = nf1;
     d_plan->nf2 = nf2;
     d_plan->nf3 = nf3;
     d_plan->nf  = nf1 * nf2 * nf3;
-    if (d_plan->opts.debug) {
-      printf("[cufinufft] (nf1,nf2,nf3) = (%d, %d, %d)\n", d_plan->nf1, d_plan->nf2,
-             d_plan->nf3);
-    }
 
     using namespace cufinufft::memtransfer;
     switch (d_plan->dim) {
