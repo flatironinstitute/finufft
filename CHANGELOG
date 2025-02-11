@@ -5,6 +5,7 @@ Master, using release name V 2.4.0 (2/8/25)
 
 * CPU opts.spreadinterponly (experts only), and GPU, logic and docs changed so
   upsampfac controls kernel shape properly. Add C++/MATLAB demos. #602 (Barnett)
+* PR618: removing alloca and using kernel dispatch on the GPU (Barbone)
 * PR617: Caching pip dependencies in github actions.
   Forcing Ninja when building python on Windows.
 * PR614: Added support for sccache in github actions.

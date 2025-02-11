@@ -20,35 +20,39 @@ using namespace cufinufft::memtransfer;
 namespace cufinufft {
 namespace spreadinterp {
 
-template<typename T>
-int cuspread1d(cufinufft_plan_t<T> *d_plan, int blksize)
-/*
+// Functor to handle function selection (nuptsdriven vs subprob)
+struct Spread1DDispatcher {
+  template<int ns, typename T>
+  int operator()(int nf1, int M, cufinufft_plan_t<T> *d_plan, int blksize) const {
+    switch (d_plan->opts.gpu_method) {
+    case 1:
+      return cuspread1d_nuptsdriven<T, ns>(nf1, M, d_plan, blksize);
+    case 2:
+      return cuspread1d_subprob<T, ns>(nf1, M, d_plan, blksize);
+    default:
+      std::cerr << "[cuspread1d] error: incorrect method, should be 1 or 2\n";
+      return FINUFFT_ERR_METHOD_NOTVALID;
+    }
+  }
+};
+
+// Updated cuspread1d using generic dispatch
+template<typename T> int cuspread1d(cufinufft_plan_t<T> *d_plan, int blksize) {
+  /*
     A wrapper for different spreading methods.
 
     Methods available:
-    (1) Non-uniform points driven
-    (2) Subproblem
+        (1) Non-uniform points driven
 
     Melody Shih 11/21/21
-*/
-{
-  int nf1 = d_plan->nf1;
-  int M   = d_plan->M;
 
-  int ier;
-  switch (d_plan->opts.gpu_method) {
-  case 1: {
-    ier = cuspread1d_nuptsdriven<T>(nf1, M, d_plan, blksize);
-  } break;
-  case 2: {
-    ier = cuspread1d_subprob<T>(nf1, M, d_plan, blksize);
-  } break;
-  default:
-    std::cerr << "[cuspread1d] error: incorrect method, should be 1 or 2\n";
-    ier = FINUFFT_ERR_METHOD_NOTVALID;
-  }
-
-  return ier;
+    Now the function is updated to dispatch based on ns. This is to avoid alloca which
+    it seems slower according to the MRI community.
+    Marco Barbone 01/30/25
+ */
+  return launch_dispatch_ns<Spread1DDispatcher, T>(Spread1DDispatcher(),
+                                                   d_plan->spopts.nspread, d_plan->nf1,
+                                                   d_plan->M, d_plan, blksize);
 }
 
 template<typename T> struct cmp : public thrust::binary_function<int, int, bool> {
@@ -117,13 +121,12 @@ int cuspread1d_nuptsdriven_prop(int nf1, int M, cufinufft_plan_t<T> *d_plan) {
   return 0;
 }
 
-template<typename T>
+template<typename T, int ns>
 int cuspread1d_nuptsdriven(int nf1, int M, cufinufft_plan_t<T> *d_plan, int blksize) {
   auto &stream = d_plan->stream;
   dim3 threadsPerBlock;
   dim3 blocks;
 
-  int ns          = d_plan->spopts.nspread; // psi's support in terms of number of cells
   int *d_idxnupts = d_plan->idxnupts;
   T es_c          = d_plan->spopts.ES_c;
   T es_beta       = d_plan->spopts.ES_beta;
@@ -140,16 +143,14 @@ int cuspread1d_nuptsdriven(int nf1, int M, cufinufft_plan_t<T> *d_plan, int blks
 
   if (d_plan->opts.gpu_kerevalmeth) {
     for (int t = 0; t < blksize; t++) {
-      spread_1d_nuptsdriven<T, 1><<<blocks, threadsPerBlock, 0, stream>>>(
-          d_kx, d_c + t * M, d_fw + t * nf1, M, ns, nf1, es_c, es_beta, sigma,
-          d_idxnupts);
+      spread_1d_nuptsdriven<T, 1, ns><<<blocks, threadsPerBlock, 0, stream>>>(
+          d_kx, d_c + t * M, d_fw + t * nf1, M, nf1, es_c, es_beta, sigma, d_idxnupts);
       RETURN_IF_CUDA_ERROR
     }
   } else {
     for (int t = 0; t < blksize; t++) {
-      spread_1d_nuptsdriven<T, 0><<<blocks, threadsPerBlock, 0, stream>>>(
-          d_kx, d_c + t * M, d_fw + t * nf1, M, ns, nf1, es_c, es_beta, sigma,
-          d_idxnupts);
+      spread_1d_nuptsdriven<T, 0, ns><<<blocks, threadsPerBlock, 0, stream>>>(
+          d_kx, d_c + t * M, d_fw + t * nf1, M, nf1, es_c, es_beta, sigma, d_idxnupts);
       RETURN_IF_CUDA_ERROR
     }
   }
@@ -233,13 +234,11 @@ int cuspread1d_subprob_prop(int nf1, int M, cufinufft_plan_t<T> *d_plan)
   return 0;
 }
 
-template<typename T>
+template<typename T, int ns>
 int cuspread1d_subprob(int nf1, int M, cufinufft_plan_t<T> *d_plan, int blksize) {
-  auto &stream = d_plan->stream;
-
-  int ns    = d_plan->spopts.nspread; // psi's support in terms of number of cells
-  T es_c    = d_plan->spopts.ES_c;
-  T es_beta = d_plan->spopts.ES_beta;
+  auto &stream       = d_plan->stream;
+  T es_c             = d_plan->spopts.ES_c;
+  T es_beta          = d_plan->spopts.ES_beta;
   int maxsubprobsize = d_plan->opts.gpu_maxsubprobsize;
 
   // assume that bin_size_x > ns/2;
@@ -266,30 +265,27 @@ int cuspread1d_subprob(int nf1, int M, cufinufft_plan_t<T> *d_plan, int blksize)
                                 d_plan->opts.gpu_binsizey, d_plan->opts.gpu_binsizez);
 
   if (d_plan->opts.gpu_kerevalmeth) {
+    if (const auto finufft_err =
+            cufinufft_set_shared_memory(spread_1d_subprob<T, 1, ns>, 1, *d_plan) != 0) {
+      return FINUFFT_ERR_INSUFFICIENT_SHMEM;
+    }
     for (int t = 0; t < blksize; t++) {
-
-      if (const auto finufft_err =
-              cufinufft_set_shared_memory(spread_1d_subprob<T, 1>, 1, *d_plan) != 0) {
-        return FINUFFT_ERR_INSUFFICIENT_SHMEM;
-      }
-      RETURN_IF_CUDA_ERROR
-      spread_1d_subprob<T, 1><<<totalnumsubprob, 256, sharedplanorysize, stream>>>(
-          d_kx, d_c + t * M, d_fw + t * nf1, M, ns, nf1, es_c, es_beta, sigma,
-          d_binstartpts, d_binsize, bin_size_x, d_subprob_to_bin, d_subprobstartpts,
-          d_numsubprob, maxsubprobsize, numbins, d_idxnupts);
+      spread_1d_subprob<T, 1, ns><<<totalnumsubprob, 256, sharedplanorysize, stream>>>(
+          d_kx, d_c + t * M, d_fw + t * nf1, M, nf1, es_c, es_beta, sigma, d_binstartpts,
+          d_binsize, bin_size_x, d_subprob_to_bin, d_subprobstartpts, d_numsubprob,
+          maxsubprobsize, numbins, d_idxnupts);
       RETURN_IF_CUDA_ERROR
     }
   } else {
+    if (const auto finufft_err =
+            cufinufft_set_shared_memory(spread_1d_subprob<T, 0, ns>, 1, *d_plan) != 0) {
+      return FINUFFT_ERR_INSUFFICIENT_SHMEM;
+    }
     for (int t = 0; t < blksize; t++) {
-      if (const auto finufft_err =
-              cufinufft_set_shared_memory(spread_1d_subprob<T, 0>, 1, *d_plan) != 0) {
-        return FINUFFT_ERR_INSUFFICIENT_SHMEM;
-      }
-      RETURN_IF_CUDA_ERROR
-      spread_1d_subprob<T, 0><<<totalnumsubprob, 256, sharedplanorysize, stream>>>(
-          d_kx, d_c + t * M, d_fw + t * nf1, M, ns, nf1, es_c, es_beta, sigma,
-          d_binstartpts, d_binsize, bin_size_x, d_subprob_to_bin, d_subprobstartpts,
-          d_numsubprob, maxsubprobsize, numbins, d_idxnupts);
+      spread_1d_subprob<T, 0, ns><<<totalnumsubprob, 256, sharedplanorysize, stream>>>(
+          d_kx, d_c + t * M, d_fw + t * nf1, M, nf1, es_c, es_beta, sigma, d_binstartpts,
+          d_binsize, bin_size_x, d_subprob_to_bin, d_subprobstartpts, d_numsubprob,
+          maxsubprobsize, numbins, d_idxnupts);
       RETURN_IF_CUDA_ERROR
     }
   }
