@@ -103,8 +103,8 @@ For experts only.
 * If ``1``, omit the FFT and deconvolution
   (diagonal division by kernel Fourier transform) steps, thus returning
   *garbage answers as a NUFFT*, but allowing experts to perform solely
-  spreading (if type 1) or solely interpolation (if type 2) by hijacking
-  the usual FINUFFT API.  The spreading is onto the grid of the
+  spreading (if type 1) or solely interpolation (if type 2) via
+  the FINUFFT API.  The spreading is onto the grid of the
   user-given size (``N1`` in x, ``N2`` in y, etc), with grid points
   located at coordinates $\{-\pi, -\pi+h, \dots, \pi-h\}$ in each
   dimension, where $h = 2\pi/N$ is the spacing for that dimension ($N$
