@@ -57,6 +57,10 @@ pipeline {
     '''
     sh '''#!/bin/bash -ex
       source $HOME/bin/activate
+        python -c "import cufinufft"
+    '''
+    sh '''#!/bin/bash -ex
+      source $HOME/bin/activate
       python3 -m pip install --no-cache-dir --upgrade pycuda cupy-cuda112 numba
       python3 -m pip install --no-cache-dir torch==1.12.1+cu113 -f https://download.pytorch.org/whl/torch_stable.html
       python3 -m pip install --no-cache-dir pytest pytest-mock

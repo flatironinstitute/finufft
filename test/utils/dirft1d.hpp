@@ -1,5 +1,4 @@
-#include <finufft/dirft.h>
-#include <finufft/finufft_core.h>
+#include "finufft/finufft_core.h"
 #include <iostream>
 
 // This is basically a port of dirft1d.f from CMCL package, except with

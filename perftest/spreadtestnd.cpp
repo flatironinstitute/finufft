@@ -1,14 +1,16 @@
+#include "finufft/finufft_utils.hpp"
 #include <finufft/spreadinterp.h>
 #include <finufft/test_defs.h>
-#include <finufft/utils.h>
 
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <vector>
 
+#include "finufft/finufft_utils.hpp"
 using namespace finufft::spreadinterp;
-using namespace finufft::utils; // for timer
+using namespace std;
+using namespace finufft::utils;
 
 void usage() {
   printf("usage: spreadtestnd dims [M N [tol [sort [flags [debug [kerpad [kerevalmeth "
@@ -131,7 +133,7 @@ int main(int argc, char *argv[])
   std::vector<FLT> d_uniform(2 * Ng);                        // Re and Im
 
   finufft_spread_opts opts;
-  int ier_set = setup_spreader(opts, (FLT)tol, upsampfac, kerevalmeth, debug, 1, d);
+  int ier_set = setup_spreader(opts, (FLT)tol, upsampfac, kerevalmeth, debug, 1, d, 1);
   if (ier_set > 1) { // exit gracefully if can't set up.
     printf("error when setting up spreader (ier_set=%d)!\n", ier_set);
     return ier_set;

@@ -1,6 +1,6 @@
+#include "finufft/finufft_utils.hpp"
 #include <finufft/spreadinterp.h>
 #include <finufft/test_defs.h>
-#include <finufft/utils.h>
 
 #include <cmath>
 #include <cstdio>
@@ -140,7 +140,7 @@ int main(int argc, char *argv[])
   for (int digits = 2; digits < max_digits; digits++) {
     const auto tol = 10.0 * pow(10.0, -digits);
     printf("digits=%d, tol = %.3g\n", digits, FLT(tol));
-    int ier_set = setup_spreader(opts, tol, upsampfac, kerevalmeth, debug, 1, d);
+    int ier_set = setup_spreader(opts, tol, upsampfac, kerevalmeth, debug, 1, d, 1);
 
     if (ier_set > 1) { // exit gracefully if can't set up.
       printf("error when setting up spreader (ier_set=%d)!\n", ier_set);

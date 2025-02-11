@@ -14,9 +14,9 @@
 // the public interface
 #include <finufft.h>
 
-// convenient private finufft internals
+// convenient private finufft internals that tests need
 #include <finufft/finufft_core.h>
-#include <finufft/utils.h>
+#include <finufft/finufft_utils.hpp>
 #include <memory>
 
 // --------------- Private data types for compilation in either prec ---------

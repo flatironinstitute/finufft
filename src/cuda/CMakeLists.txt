@@ -19,11 +19,9 @@ set(PRECISION_DEPENDENT_SRC
     common.cu)
 
 set(CUFINUFFT_INCLUDE_DIRS
-    ${PROJECT_SOURCE_DIR}/include
-    ${PROJECT_SOURCE_DIR}/contrib
+    ${PROJECT_SOURCE_DIR}/include ${PROJECT_SOURCE_DIR}/contrib
     $<TARGET_PROPERTY:CUDA::cudart,INTERFACE_INCLUDE_DIRECTORIES>
-    $<TARGET_PROPERTY:CUDA::cufft,INTERFACE_INCLUDE_DIRECTORIES>
-    $<TARGET_PROPERTY:CUDA::nvToolsExt,INTERFACE_INCLUDE_DIRECTORIES>)
+    $<TARGET_PROPERTY:CUDA::cufft,INTERFACE_INCLUDE_DIRECTORIES>)
 
 set(CUFINUFFT_INCLUDE_DIRS
     ${CUFINUFFT_INCLUDE_DIRS}
@@ -43,41 +41,20 @@ set(FINUFFT_CUDA_FLAGS
     >
     >)
 
-add_library(cufinufft_common_objects OBJECT ${PRECISION_INDEPENDENT_SRC})
-target_include_directories(cufinufft_common_objects
-                           PUBLIC ${CUFINUFFT_INCLUDE_DIRS})
-set_target_properties(
-  cufinufft_common_objects
-  PROPERTIES POSITION_INDEPENDENT_CODE ${FINUFFT_POSITION_INDEPENDENT_CODE}
-             CUDA_ARCHITECTURES "${FINUFFT_CUDA_ARCHITECTURES}"
-             CUDA_SEPARABLE_COMPILATION ON
-             CUDA_STANDARD 17
-             CUDA_STANDARD_REQUIRED ON)
-target_compile_features(cufinufft_common_objects PRIVATE cxx_std_17)
-target_compile_options(cufinufft_common_objects PRIVATE ${FINUFFT_CUDA_FLAGS})
-
-add_library(cufinufft_objects OBJECT ${PRECISION_DEPENDENT_SRC})
-target_include_directories(cufinufft_objects PUBLIC ${CUFINUFFT_INCLUDE_DIRS})
-set_target_properties(
-  cufinufft_objects
-  PROPERTIES POSITION_INDEPENDENT_CODE ${FINUFFT_POSITION_INDEPENDENT_CODE}
-             CUDA_ARCHITECTURES "${FINUFFT_CUDA_ARCHITECTURES}"
-             CUDA_SEPARABLE_COMPILATION ON
-             CUDA_STANDARD 17
-             CUDA_STANDARD_REQUIRED ON)
-target_compile_features(cufinufft_objects PRIVATE cxx_std_17)
-target_compile_options(cufinufft_objects PRIVATE ${FINUFFT_CUDA_FLAGS})
-
 if(FINUFFT_SHARED_LINKING)
-  add_library(cufinufft SHARED $<TARGET_OBJECTS:cufinufft_common_objects>
-                               $<TARGET_OBJECTS:cufinufft_objects>)
+  add_library(cufinufft SHARED ${PRECISION_INDEPENDENT_SRC}
+                               ${PRECISION_DEPENDENT_SRC})
 else()
-  add_library(cufinufft STATIC $<TARGET_OBJECTS:cufinufft_common_objects>
-                               $<TARGET_OBJECTS:cufinufft_objects>)
+  add_library(cufinufft STATIC ${PRECISION_INDEPENDENT_SRC}
+                               ${PRECISION_DEPENDENT_SRC})
   set_target_properties(
     cufinufft PROPERTIES POSITION_INDEPENDENT_CODE
                          ${FINUFFT_POSITION_INDEPENDENT_CODE})
 endif()
+target_include_directories(cufinufft PUBLIC ${CUFINUFFT_INCLUDE_DIRS})
+# set target build location
+set_target_properties(cufinufft PROPERTIES LIBRARY_OUTPUT_DIRECTORY
+                                           "${PROJECT_BINARY_DIR}")
 
 set_target_properties(
   cufinufft
@@ -85,15 +62,14 @@ set_target_properties(
              CUDA_SEPARABLE_COMPILATION ON
              CUDA_STANDARD 17
              CUDA_STANDARD_REQUIRED ON
+             WINDOWS_EXPORT_ALL_SYMBOLS ON
              ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
 target_compile_features(cufinufft PRIVATE cxx_std_17)
 target_compile_options(cufinufft PRIVATE ${FINUFFT_CUDA_FLAGS})
-if(WIN32)
-  target_link_libraries(cufinufft PUBLIC CUDA::cudart CUDA::cufft
-                                         CUDA::nvToolsExt)
+if(WIN32 OR (BUILD_TESTING AND FINUFFT_BUILD_TESTS))
+  target_link_libraries(cufinufft PUBLIC CUDA::cudart CUDA::cufft)
 else()
-  target_link_libraries(cufinufft PUBLIC CUDA::cudart_static CUDA::cufft_static
-                                         CUDA::nvToolsExt)
+  target_link_libraries(cufinufft PUBLIC CUDA::cudart_static CUDA::cufft_static)
 endif()
 
 file(GLOB CUFINUFFT_PUBLIC_HEADERS "${CMAKE_SOURCE_DIR}/include/cufinufft*.h")

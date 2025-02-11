@@ -161,9 +161,10 @@ int nuft_kernel_compute(int dim, int nf1, int nf2, int nf3, T *d_f, T *d_z, T *d
 template<typename T>
 int setup_spreader_for_nufft(finufft_spread_opts &spopts, T eps, cufinufft_opts opts)
 // Set up the spreader parameters given eps, and pass across various nufft
-// options. Report status of setup_spreader.  Barnett 10/30/17
+// options. Report status of setup_spreader. Just a wrapper following the CPU code.
 {
-  int ier = setup_spreader(spopts, eps, (T)opts.upsampfac, opts.gpu_kerevalmeth);
+  int ier = setup_spreader(spopts, eps, (T)opts.upsampfac, opts.gpu_kerevalmeth,
+                           opts.debug, opts.gpu_spreadinterponly);
   return ier;
 }
 
