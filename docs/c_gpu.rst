@@ -315,8 +315,8 @@ while ``modeord=1`` selects FFT-style ordering starting at zero and wrapping ove
 
 **gpu_device_id**: Sets the GPU device ID. Leave at default unless you know what you're doing. [To be documented]
 
-**gpu_spreadinterponly**: [Only has effect for type 1 or 2.] For experts only! If ``0`` do the NUFFT as intended. If ``1``, do *only* spreading (if ``type=1``) or *only* interpolation (if ``type=2``), using kernel shape parameters set by ``tol`` and ``upsampfac``; the result is not upsampled and is not a NUFFT.
-It is analogous to the CPU option named :ref:`spreadinterponly<sionly>` (please read that documentation.) [This flag is also internally used for GPU type 3 transforms, although it was originally a debug flag.]
+**gpu_spreadinterponly**: [Only has effect for type 1 or 2.] For experts only. If ``0`` do the NUFFT as intended. If ``1``, do *only* spreading (if ``type=1``) or *only* interpolation (if ``type=2``), using kernel shape parameters set by ``tol`` and ``upsampfac``; the result is not upsampled and is not a NUFFT.
+It is analogous to the CPU option named :ref:`spreadinterponly<sionly>` (please read that documentation!). [This flag is also internally used for GPU type 3 transforms, although it was originally a debug flag.]
 
 
 Algorithm performance options
