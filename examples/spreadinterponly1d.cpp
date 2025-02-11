@@ -50,7 +50,7 @@ int main(int argc, char *argv[])
   x[0]       = 0.0;
   c[0]       = 1.0;
   int unused = 1;
-  int ier    = finufft1d1(1, &x[0], &c[0], unused, tol, N, &F[0], &opts); // warm-up
+  int ier = finufft1d1(1, x.data(), c.data(), unused, tol, N, F.data(), &opts); // warm-up
   if (ier > 1) return ier;
   complex<double> kersum = 0.0;
   for (auto Fk : F) kersum += Fk; // kernel mass
@@ -64,8 +64,8 @@ int main(int argc, char *argv[])
 
   opts.debug = 1;
   auto t0    = steady_clock::now(); // now spread with all M pts... (dir=1)
-  ier        = finufft1d1(M, &x[0], &c[0], unused, tol, N, &F[0], &opts); // do it
-  double t   = (steady_clock::now() - t0) / 1.0s;
+  ier      = finufft1d1(M, x.data(), c.data(), unused, tol, N, F.data(), &opts); // do it
+  double t = (steady_clock::now() - t0) / 1.0s;
   if (ier > 1) return ier;
   complex<double> csum = 0.0; // tot input strength
   for (auto cj : c) csum += cj;
@@ -78,8 +78,8 @@ int main(int argc, char *argv[])
   for (auto &Fk : F) Fk = complex<double>{1.0, 0.0}; // unit grid input
   opts.debug = 0;
   t0         = steady_clock::now(); // now interp to all M pts...  (dir=2)
-  ier        = finufft1d2(M, &x[0], &c[0], unused, tol, N, &F[0], &opts); // do it
-  t          = (steady_clock::now() - t0) / 1.0s;
+  ier = finufft1d2(M, x.data(), c.data(), unused, tol, N, F.data(), &opts); // do it
+  t   = (steady_clock::now() - t0) / 1.0s;
   if (ier > 1) return ier;
   csum = 0.0; // tot output
   for (auto cj : c) csum += cj;
