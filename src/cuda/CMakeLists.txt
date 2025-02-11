@@ -52,6 +52,9 @@ else()
                          ${FINUFFT_POSITION_INDEPENDENT_CODE})
 endif()
 target_include_directories(cufinufft PUBLIC ${CUFINUFFT_INCLUDE_DIRS})
+# set target build location
+set_target_properties(cufinufft PROPERTIES LIBRARY_OUTPUT_DIRECTORY
+                                           "${PROJECT_BINARY_DIR}")
 
 set_target_properties(
   cufinufft
