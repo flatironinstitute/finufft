@@ -315,9 +315,8 @@ while ``modeord=1`` selects FFT-style ordering starting at zero and wrapping ove
 
 **gpu_device_id**: Sets the GPU device ID. Leave at default unless you know what you're doing. [To be documented]
 
-**gpu_spreadinterponly**: If ``0`` do the NUFFT as intended. If ``1``, omit the FFT and deconvolution (diagonal division by kernel Fourier transform) steps, which returns *garbage answers as a NUFFT*, but allows advanced users to perform an isolated spreading or interpolation using the usual type 1 or type 2 ``cufinufft`` interface. To do this, the nonzero flag value must be used *only* with ``upsampfac=1.0`` (since no upsampling takes place), and ``kerevalmeth=1``. The known use-case here is estimating so-called density compensation, conventionally used in MRI (see `MRI-NUFFT <https://mind-inria.github.io/mri-nufft/nufft.html>`_), although it might also be useful in spectral Ewald. Please note that this flag is also internally used by type 3 transforms (although it was originally a debug flag).
-
-
+**gpu_spreadinterponly**: [Only has effect for type 1 or 2.] For experts only. If ``0`` do the NUFFT as intended. If ``1``, do *only* spreading (if ``type=1``) or *only* interpolation (if ``type=2``), using kernel shape parameters set by ``tol`` and ``upsampfac``; the result is not upsampled and is not a NUFFT.
+It is analogous to the CPU option named :ref:`spreadinterponly<sionly>` (please read that documentation!). [This flag is also internally used for GPU type 3 transforms, although it was originally a debug flag.]
 
 
 Algorithm performance options

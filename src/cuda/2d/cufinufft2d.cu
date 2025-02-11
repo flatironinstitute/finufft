@@ -43,9 +43,9 @@ int cufinufft2d1_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
     d_cstart    = d_c + i * d_plan->batchsize * d_plan->M;
     d_fkstart   = d_fk + i * d_plan->batchsize * d_plan->ms * d_plan->mt;
     d_plan->c   = d_cstart;
-    d_plan->fk  = d_fkstart;
+    d_plan->fk  = d_fkstart;  // so deconvolve will write into user output f
     if (d_plan->opts.gpu_spreadinterponly)
-        d_plan->fw = d_fkstart;
+      d_plan->fw = d_fkstart; // spread directly into user output f
 
     // this is needed
     if ((ier = checkCudaErrors(cudaMemsetAsync(
@@ -57,10 +57,8 @@ int cufinufft2d1_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
     // Step 1: Spread
     if ((ier = cuspread2d<T>(d_plan, blksize))) return ier;
 
-    // if spreadonly, skip the rest
-    if (d_plan->opts.gpu_spreadinterponly)
-        continue;
-    
+    if (d_plan->opts.gpu_spreadinterponly) continue; // skip steps 2 and 3
+
     // Step 2: FFT
     cufftResult cufft_status =
         cufft_ex(d_plan->fftplan, d_plan->fw, d_plan->fw, d_plan->iflag);
@@ -108,21 +106,20 @@ int cufinufft2d2_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
 
     // Skip steps 1 and 2 if interponly
     if (!d_plan->opts.gpu_spreadinterponly) {
-        // Step 1: amplify Fourier coeffs fk and copy into upsampled array fw
-        if (d_plan->opts.modeord == 0) {
-          if ((ier = cudeconvolve2d<T, 0>(d_plan, blksize))) return ier;
-        } else {
-          if ((ier = cudeconvolve2d<T, 1>(d_plan, blksize))) return ier;
-        }
+      // Step 1: amplify Fourier coeffs fk and copy into upsampled array fw
+      if (d_plan->opts.modeord == 0) {
+        if ((ier = cudeconvolve2d<T, 0>(d_plan, blksize))) return ier;
+      } else {
+        if ((ier = cudeconvolve2d<T, 1>(d_plan, blksize))) return ier;
+      }
 
-        // Step 2: FFT
-        cufftResult cufft_status =
-            cufft_ex(d_plan->fftplan, d_plan->fw, d_plan->fw, d_plan->iflag);
-        if (cufft_status != CUFFT_SUCCESS) return FINUFFT_ERR_CUDA_FAILURE;
-    }
-    else
-        d_plan->fw = d_fkstart;
-    
+      // Step 2: FFT
+      cufftResult cufft_status =
+          cufft_ex(d_plan->fftplan, d_plan->fw, d_plan->fw, d_plan->iflag);
+      if (cufft_status != CUFFT_SUCCESS) return FINUFFT_ERR_CUDA_FAILURE;
+    } else
+      d_plan->fw = d_fkstart; // interpolate directly from user input f
+
     // Step 3: Interpolate
     if ((ier = cuinterp2d<T>(d_plan, blksize))) return ier;
   }
