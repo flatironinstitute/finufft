@@ -105,7 +105,8 @@ __global__ void spread_1d_subprob(
   const int nupts   = min(maxsubprobsize, bin_size[bidx] - binsubp_idx * maxsubprobsize);
   const int xoffset = (bidx % nbinx) * bin_size_x;
   const auto ns_2   = (ns + 1) / 2;
-  const int N       = bin_size_x + 2 * ns_2;
+  const auto rounded_ns = ns_2 * 2;
+  const int N       = bin_size_x + rounded_ns;
 
   // dynamic stack allocation
 #if ALLOCA_SUPPORTED
@@ -127,15 +128,18 @@ __global__ void spread_1d_subprob(
     const auto idx            = ptstart + i;
     const auto x_rescaled     = fold_rescale(x[idxnupts[idx]], nf1);
     const auto cnow           = c[idxnupts[idx]];
-    const auto [xstart, xend] = interval(ns, x_rescaled);
-    const T x1                = T(xstart + xoffset) - x_rescaled;
+    auto [xstart, xend] = interval(ns, x_rescaled);
+    const T x1                = T(xstart) - x_rescaled;
+    xstart -= xoffset;
+    xend -= xoffset;
+
     if constexpr (KEREVALMETH == 1)
       eval_kernel_vec_horner(ker1, x1, ns, sigma);
     else
       eval_kernel_vec(ker1, x1, ns, es_c, es_beta);
     for (int xx = xstart; xx <= xend; xx++) {
       const auto ix = xx + ns_2;
-      if (ix >= (bin_size_x + ns_2) || ix < 0) break;
+      if (ix >= (bin_size_x + rounded_ns) || ix < 0) break;
       const cuda_complex<T> result{cnow.x * ker1[xx - xstart],
                                    cnow.y * ker1[xx - xstart]};
       atomicAddComplexShared<T>(fwshared + ix, result);

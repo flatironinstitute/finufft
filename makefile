@@ -417,7 +417,8 @@ octave: matlab/finufft.cpp $(STATICLIB)
 mex: matlab/finufft.mw
 ifneq ($(MINGW),ON)
 	(cd matlab ;\
-	$(MWRAP) -mex finufft -c finufft.cpp -mb -cppcomplex finufft.mw)
+	$(MWRAP) -mex finufft -c finufft.cpp -mb -cppcomplex finufft.mw ;\
+	$(MWRAP) -mex cufinufft -c cufinufft.cu -mb -cppcomplex -gpu cufinufft.mw)
 else
 	(cd matlab & $(MWRAP) -mex finufft -c finufft.cpp -mb -cppcomplex finufft.mw)
 endif
