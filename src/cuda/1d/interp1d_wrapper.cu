@@ -10,41 +10,46 @@
 namespace cufinufft {
 namespace spreadinterp {
 
-template<typename T>
-int cuinterp1d(cufinufft_plan_t<T> *d_plan, int blksize)
-/*
-    A wrapper for different interpolation methods.
-
-    Methods available:
-    (1) Non-uniform points driven
-    (2) Subproblem
-
-    Melody Shih 11/21/21
-*/
-{
-  int nf1 = d_plan->nf1;
-  int M   = d_plan->M;
-
-  int ier;
-  switch (d_plan->opts.gpu_method) {
-  case 1: {
-    ier = cuinterp1d_nuptsdriven<T>(nf1, M, d_plan, blksize);
-  } break;
-  default:
-    std::cerr << "[cuinterp1d] error: incorrect method, should be 1" << std::endl;
-    ier = FINUFFT_ERR_METHOD_NOTVALID;
+// Functor to handle function selection (nuptsdriven vs subprob)
+struct Interp1DDispatcher {
+  template<int ns, typename T>
+  int operator()(int nf1, int M, cufinufft_plan_t<T> *d_plan, int blksize) const {
+    switch (d_plan->opts.gpu_method) {
+    case 1:
+      return cuinterp1d_nuptsdriven<T, ns>(nf1, M, d_plan, blksize);
+    default:
+      std::cerr << "[cuinterp1d] error: incorrect method, should be 1\n";
+      return FINUFFT_ERR_METHOD_NOTVALID;
+    }
   }
+};
 
-  return ier;
+// Updated cuinterp1d using generic dispatch
+template<typename T> int cuinterp1d(cufinufft_plan_t<T> *d_plan, int blksize) {
+  /*
+   A wrapper for different interpolation methods.
+
+   Methods available:
+      (1) Non-uniform points driven
+      (2) Subproblem
+
+   Melody Shih 11/21/21
+
+   Now the function is updated to dispatch based on ns. This is to avoid alloca which
+   it seems slower according to the MRI community.
+   Marco Barbone 01/30/25
+  */
+  return launch_dispatch_ns<Interp1DDispatcher, T>(Interp1DDispatcher(),
+                                                   d_plan->spopts.nspread, d_plan->nf1,
+                                                   d_plan->M, d_plan, blksize);
 }
 
-template<typename T>
+template<typename T, int ns>
 int cuinterp1d_nuptsdriven(int nf1, int M, cufinufft_plan_t<T> *d_plan, int blksize) {
   auto &stream = d_plan->stream;
   dim3 threadsPerBlock;
   dim3 blocks;
 
-  int ns          = d_plan->spopts.nspread; // psi's support in terms of number of cells
   T es_c          = d_plan->spopts.ES_c;
   T es_beta       = d_plan->spopts.ES_beta;
   T sigma         = d_plan->opts.upsampfac;
@@ -61,16 +66,14 @@ int cuinterp1d_nuptsdriven(int nf1, int M, cufinufft_plan_t<T> *d_plan, int blks
 
   if (d_plan->opts.gpu_kerevalmeth) {
     for (int t = 0; t < blksize; t++) {
-      interp_1d_nuptsdriven<T, 1><<<blocks, threadsPerBlock, 0, stream>>>(
-          d_kx, d_c + t * M, d_fw + t * nf1, M, ns, nf1, es_c, es_beta, sigma,
-          d_idxnupts);
+      interp_1d_nuptsdriven<T, 1, ns><<<blocks, threadsPerBlock, 0, stream>>>(
+          d_kx, d_c + t * M, d_fw + t * nf1, M, nf1, es_c, es_beta, sigma, d_idxnupts);
       RETURN_IF_CUDA_ERROR
     }
   } else {
     for (int t = 0; t < blksize; t++) {
-      interp_1d_nuptsdriven<T, 0><<<blocks, threadsPerBlock, 0, stream>>>(
-          d_kx, d_c + t * M, d_fw + t * nf1, M, ns, nf1, es_c, es_beta, sigma,
-          d_idxnupts);
+      interp_1d_nuptsdriven<T, 0, ns><<<blocks, threadsPerBlock, 0, stream>>>(
+          d_kx, d_c + t * M, d_fw + t * nf1, M, nf1, es_c, es_beta, sigma, d_idxnupts);
       RETURN_IF_CUDA_ERROR
     }
   }
