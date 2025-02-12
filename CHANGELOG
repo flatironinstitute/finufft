@@ -53,6 +53,10 @@ Master, using release name V 2.4.0 (2/11/25)
   plans and FINUFFT plans in threads simultaneously.
 * Fixed missing dependency on `packaging` in the Python `cufinufft` package.
 
+V 2.3.2 (2/11/25) minor update release (continued support on 2.3.X branch)
+
+* Increase cufinufft 1d cmake test size and fix 1d spreader subprob sm kernel.
+
 V 2.3.1 (11/25/24) minor update release (continued support on 2.3.X branch)
 
 * Support and docs for opts.gpu_spreadinterponly=1 for MRI "density compensation
