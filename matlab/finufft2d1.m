@@ -33,6 +33,7 @@
 %     opts.maxbatchsize:  for ntrans>1 only. max blocking size, or 0 for auto.
 %     opts.nthreads:   number of threads, or 0: use all available (default)
 %     opts.modeord: 0 (CMCL increasing mode ordering, default), 1 (FFT ordering)
+%     opts.spreadinterponly: 0 (perform NUFFT, default), 1 (only spread/interp)
 %   Outputs:
 %     f     size (ms,mt) complex matrix of Fourier coefficients
 %           (ordering given by opts.modeord in each dimension; ms fast, mt slow),

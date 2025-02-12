@@ -31,6 +31,7 @@
      opts.maxbatchsize:  for ntrans>1 only. max blocking size, or 0 for auto.
      opts.nthreads:   number of threads, or 0: use all available (default)
      opts.modeord: 0 (CMCL increasing mode ordering, default), 1 (FFT ordering)
+     opts.spreadinterponly: 0 (perform NUFFT, default), 1 (only spread/interp)
    Outputs:
      f     size-ms complex column vector of Fourier coefficients, or, if
            ntrans>1, a matrix of size (ms,ntrans).
@@ -77,6 +78,7 @@
      opts.maxbatchsize:  for ntrans>1 only. max blocking size, or 0 for auto.
      opts.nthreads:   number of threads, or 0: use all available (default)
      opts.modeord: 0 (CMCL increasing mode ordering, default), 1 (FFT ordering)
+     opts.spreadinterponly: 0 (perform NUFFT, default), 1 (only spread/interp)
   Outputs:
      c     complex column vector of nj answers at targets, or,
            if ntrans>1, matrix of size (nj,ntrans).
@@ -173,6 +175,7 @@
      opts.maxbatchsize:  for ntrans>1 only. max blocking size, or 0 for auto.
      opts.nthreads:   number of threads, or 0: use all available (default)
      opts.modeord: 0 (CMCL increasing mode ordering, default), 1 (FFT ordering)
+     opts.spreadinterponly: 0 (perform NUFFT, default), 1 (only spread/interp)
    Outputs:
      f     size (ms,mt) complex matrix of Fourier coefficients
            (ordering given by opts.modeord in each dimension; ms fast, mt slow),
@@ -222,6 +225,7 @@
      opts.maxbatchsize:  for ntrans>1 only. max blocking size, or 0 for auto.
      opts.nthreads:   number of threads, or 0: use all available (default)
      opts.modeord: 0 (CMCL increasing mode ordering, default), 1 (FFT ordering)
+     opts.spreadinterponly: 0 (perform NUFFT, default), 1 (only spread/interp)
   Outputs:
      c     complex column vector of nj answers at targets, or,
            if ntrans>1, matrix of size (nj,ntrans).
@@ -321,6 +325,7 @@
      opts.maxbatchsize:  for ntrans>1 only. max blocking size, or 0 for auto.
      opts.nthreads:   number of threads, or 0: use all available (default)
      opts.modeord: 0 (CMCL increasing mode ordering, default), 1 (FFT ordering)
+     opts.spreadinterponly: 0 (perform NUFFT, default), 1 (only spread/interp)
    Outputs:
      f     size (ms,mt,mu) complex array of Fourier coefficients
            (ordering given by opts.modeord in each dimension; ms fastest, mu
@@ -372,6 +377,7 @@
      opts.maxbatchsize:  for ntrans>1 only. max blocking size, or 0 for auto.
      opts.nthreads:   number of threads, or 0: use all available (default)
      opts.modeord: 0 (CMCL increasing mode ordering, default), 1 (FFT ordering)
+     opts.spreadinterponly: 0 (perform NUFFT, default), 1 (only spread/interp)
   Outputs:
      c     complex column vector of nj answers at targets, or,
            if ntrans>1, matrix of size (nj,ntrans).
@@ -493,6 +499,7 @@
      opts.floatprec: library precision to use, 'double' (default) or 'single'.
      for type 1 and 2 only, the following opts fields are also relevant:
      opts.modeord: 0 (CMCL increasing mode ordering, default), 1 (FFT ordering)
+     opts.spreadinterponly: 0 (perform NUFFT, default), 1 (only spread/interp)
  Outputs:
      plan            finufft_plan object (opaque pointer)
 

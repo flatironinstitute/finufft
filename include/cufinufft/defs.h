@@ -6,6 +6,7 @@
 // upper bound on w, ie nspread, even when padded (see evaluate_kernel_vector); also for
 // common
 #define MAX_NSPREAD          16
+#define MIN_NSPREAD          2
 
 // max number of positive quadr nodes
 #define MAX_NQUAD            100

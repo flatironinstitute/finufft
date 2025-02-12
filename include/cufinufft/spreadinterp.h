@@ -72,10 +72,11 @@ static inline T evaluate_kernel(T x, const finufft_spread_opts &opts)
 }
 
 template<typename T>
-int setup_spreader(finufft_spread_opts &opts, T eps, T upsampfac, int kerevalmeth);
+int setup_spreader(finufft_spread_opts &opts, T eps, T upsampfac, int kerevalmeth,
+                   int debug, int spreadinterponly);
 
-template<typename T>
-static __forceinline__ __device__ T evaluate_kernel(T x, T es_c, T es_beta, int ns)
+template<typename T, int ns>
+static __forceinline__ __device__ T evaluate_kernel(T x, T es_c, T es_beta)
 /* ES ("exp sqrt") kernel evaluation at single real argument:
    phi(x) = exp(beta.sqrt(1 - (2x/n_s)^2)),    for |x| < nspread/2
    related to an asymptotic approximation to the Kaiser--Bessel, itself an
@@ -88,9 +89,8 @@ static __forceinline__ __device__ T evaluate_kernel(T x, T es_c, T es_beta, int 
              : 0.0;
 }
 
-template<typename T>
-static __device__ void eval_kernel_vec_horner(T *ker, const T x, const int w,
-                                              const double upsampfac)
+template<typename T, int w>
+static __device__ void eval_kernel_vec_horner(T *ker, const T x, const double upsampfac)
 /* Fill ker[] with Horner piecewise poly approx to [-w/2,w/2] ES kernel eval at
    x_j = x + j,  for j=0,..,w-1.  Thus x in [-w/2,-w/2+1].   w is aka ns.
    This is the current evaluation method, since it's faster (except i7 w=16).
@@ -109,11 +109,11 @@ static __device__ void eval_kernel_vec_horner(T *ker, const T x, const int w,
   }
 }
 
-template<typename T>
-static __inline__ __device__ void eval_kernel_vec(T *ker, const T x, const int w,
-                                                  const T es_c, const T es_beta) {
+template<typename T, int w>
+static __inline__ __device__ void eval_kernel_vec(T *ker, const T x, const T es_c,
+                                                  const T es_beta) {
   for (int i = 0; i < w; i++) {
-    ker[i] = evaluate_kernel(abs(x + i), es_c, es_beta, w);
+    ker[i] = evaluate_kernel<T, w>(abs(x + i), es_c, es_beta);
   }
 }
 
@@ -129,53 +129,53 @@ template<typename T> int cuinterp3d(cufinufft_plan_t<T> *d_plan, int blksize);
 // Wrappers for methods of spreading
 template<typename T>
 int cuspread1d_nuptsdriven_prop(int nf1, int M, cufinufft_plan_t<T> *d_plan);
-template<typename T>
+template<typename T, int ns>
 int cuspread1d_nuptsdriven(int nf1, int M, cufinufft_plan_t<T> *d_plan, int blksize);
 template<typename T>
 int cuspread1d_subprob_prop(int nf1, int M, cufinufft_plan_t<T> *d_plan);
-template<typename T>
+template<typename T, int ns>
 int cuspread1d_subprob(int nf1, int M, cufinufft_plan_t<T> *d_plan, int blksize);
 
 template<typename T>
 int cuspread2d_nuptsdriven_prop(int nf1, int nf2, int M, cufinufft_plan_t<T> *d_plan);
-template<typename T>
+template<typename T, int ns>
 int cuspread2d_nuptsdriven(int nf1, int nf2, int M, cufinufft_plan_t<T> *d_plan,
                            int blksize);
 template<typename T>
 int cuspread2d_subprob_prop(int nf1, int nf2, int M, cufinufft_plan_t<T> *d_plan);
-template<typename T>
+template<typename T, int ns>
 int cuspread2d_subprob(int nf1, int nf2, int m, cufinufft_plan_t<T> *d_plan, int blksize);
 template<typename T>
 int cuspread3d_nuptsdriven_prop(int nf1, int nf2, int nf3, int M,
                                 cufinufft_plan_t<T> *d_plan);
-template<typename T>
+template<typename T, int ns>
 int cuspread3d_nuptsdriven(int nf1, int nf2, int nf3, int M, cufinufft_plan_t<T> *d_plan,
                            int blksize);
 template<typename T>
 int cuspread3d_blockgather_prop(int nf1, int nf2, int nf3, int M,
                                 cufinufft_plan_t<T> *d_plan);
-template<typename T>
+template<typename T, int ns>
 int cuspread3d_blockgather(int nf1, int nf2, int nf3, int M, cufinufft_plan_t<T> *d_plan,
                            int blksize);
 template<typename T>
 int cuspread3d_subprob_prop(int nf1, int nf2, int nf3, int M,
                             cufinufft_plan_t<T> *d_plan);
-template<typename T>
+template<typename T, int ns>
 int cuspread3d_subprob(int nf1, int nf2, int nf3, int M, cufinufft_plan_t<T> *d_plan,
                        int blksize);
 
 // Wrappers for methods of interpolation
-template<typename T>
+template<typename T, int ns>
 int cuinterp1d_nuptsdriven(int nf1, int M, cufinufft_plan_t<T> *d_plan, int blksize);
-template<typename T>
+template<typename T, int ns>
 int cuinterp2d_nuptsdriven(int nf1, int nf2, int M, cufinufft_plan_t<T> *d_plan,
                            int blksize);
-template<typename T>
+template<typename T, int ns>
 int cuinterp2d_subprob(int nf1, int nf2, int M, cufinufft_plan_t<T> *d_plan, int blksize);
-template<typename T>
+template<typename T, int ns>
 int cuinterp3d_nuptsdriven(int nf1, int nf2, int nf3, int M, cufinufft_plan_t<T> *d_plan,
                            int blksize);
-template<typename T>
+template<typename T, int ns>
 int cuinterp3d_subprob(int nf1, int nf2, int nf3, int M, cufinufft_plan_t<T> *d_plan,
                        int blksize);
 

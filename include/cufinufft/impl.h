@@ -155,13 +155,6 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
       printf("[cufinufft] upsampfac automatically set to %.3g\n", d_plan->opts.upsampfac);
     }
   }
-  if (d_plan->opts.gpu_spreadinterponly) {
-    // XNOR implementation below with boolean logic.
-    if ((d_plan->opts.upsampfac != 1) == (type != 3)) {
-      ier = FINUFFT_ERR_SPREADONLY_UPSAMP_INVALID;
-      goto finalize;
-    }
-  }
   /* Setup Spreader */
   if ((ier = setup_spreader_for_nufft(d_plan->spopts, tol, d_plan->opts)) > 1) {
     // can return FINUFFT_WARN_EPS_TOO_SMALL=1, which is OK
@@ -196,7 +189,6 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
                                   d_plan->opts.gpu_binsizey, d_plan->opts.gpu_binsizez);
     printf("[cufinufft] shared memory required for the spreader: %ld\n", mem_required);
   }
-
 
   // dynamically request the maximum amount of shared memory available
   // for the spreader
@@ -235,23 +227,31 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
 
   if (type == 1 || type == 2) {
     CUFINUFFT_BIGINT nf1 = 1, nf2 = 1, nf3 = 1;
-    set_nf_type12(d_plan->ms, d_plan->opts, d_plan->spopts, &nf1,
-                  d_plan->opts.gpu_obinsizex);
-    if (dim > 1)
-      set_nf_type12(d_plan->mt, d_plan->opts, d_plan->spopts, &nf2,
-                    d_plan->opts.gpu_obinsizey);
-    if (dim > 2)
-      set_nf_type12(d_plan->mu, d_plan->opts, d_plan->spopts, &nf3,
-                    d_plan->opts.gpu_obinsizez);
-
+    if (d_plan->opts.gpu_spreadinterponly) {
+      // spread/interp grid is precisely the user "mode" sizes, no upsampling
+      nf1 = d_plan->ms;
+      if (dim > 1) nf2 = d_plan->mt;
+      if (dim > 2) nf3 = d_plan->mu;
+      if (d_plan->opts.debug) {
+        printf("[cufinufft] spreadinterponly mode: (nf1,nf2,nf3) = (%d, %d, %d)\n", nf1,
+               nf2, nf3);
+      }
+    } else { // usual NUFFT with fine grid using upsampling
+      set_nf_type12(d_plan->ms, d_plan->opts, d_plan->spopts, &nf1,
+                    d_plan->opts.gpu_obinsizex);
+      if (dim > 1)
+        set_nf_type12(d_plan->mt, d_plan->opts, d_plan->spopts, &nf2,
+                      d_plan->opts.gpu_obinsizey);
+      if (dim > 2)
+        set_nf_type12(d_plan->mu, d_plan->opts, d_plan->spopts, &nf3,
+                      d_plan->opts.gpu_obinsizez);
+      if (d_plan->opts.debug)
+        printf("[cufinufft] (nf1,nf2,nf3) = (%d, %d, %d)\n", nf1, nf2, nf3);
+    }
     d_plan->nf1 = nf1;
     d_plan->nf2 = nf2;
     d_plan->nf3 = nf3;
     d_plan->nf  = nf1 * nf2 * nf3;
-    if (d_plan->opts.debug) {
-      printf("[cufinufft] (nf1,nf2,nf3) = (%d, %d, %d)\n", d_plan->nf1, d_plan->nf2,
-             d_plan->nf3);
-    }
 
     using namespace cufinufft::memtransfer;
     switch (d_plan->dim) {
