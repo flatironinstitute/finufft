@@ -11,8 +11,8 @@ foreach(srcfile ${test_src})
   endif()
   target_compile_features(${executable} PUBLIC cxx_std_17)
   set_target_properties(
-    ${executable} PROPERTIES LINKER_LANGUAGE CUDA CUDA_ARCHITECTURES
-                                                  "${FINUFFT_CUDA_ARCHITECTURES}")
+    ${executable} PROPERTIES LINKER_LANGUAGE CUDA
+                             CUDA_ARCHITECTURES "${FINUFFT_CUDA_ARCHITECTURES}")
   message(STATUS "Adding test ${executable}"
                  " with CUDA_ARCHITECTURES=${FINUFFT_CUDA_ARCHITECTURES}"
                  " and INCLUDE=${CUFINUFFT_INCLUDE_DIRS}")
@@ -20,15 +20,15 @@ endforeach()
 
 function(add_tests PREC REQ_TOL CHECK_TOL UPSAMP)
   add_test(NAME cufinufft1d1_test_GM_${PREC}_${UPSAMP}
-           COMMAND cufinufft1d_test 1 1 1e2 2e2 ${REQ_TOL} ${CHECK_TOL} ${PREC}
+           COMMAND cufinufft1d_test 1 1 2e3 4e3 ${REQ_TOL} ${CHECK_TOL} ${PREC}
                    ${UPSAMP})
 
   add_test(NAME cufinufft1d1_test_SM_${PREC}_${UPSAMP}
-           COMMAND cufinufft1d_test 2 1 1e2 2e2 ${REQ_TOL} ${CHECK_TOL} ${PREC}
+           COMMAND cufinufft1d_test 2 1 2e3 4e3 ${REQ_TOL} ${CHECK_TOL} ${PREC}
                    ${UPSAMP})
 
   add_test(NAME cufinufft1d2_test_GM_${PREC}_${UPSAMP}
-           COMMAND cufinufft1d_test 1 2 1e2 2e2 ${REQ_TOL} ${CHECK_TOL} ${PREC}
+           COMMAND cufinufft1d_test 1 2 2e3 4e3 ${REQ_TOL} ${CHECK_TOL} ${PREC}
                    ${UPSAMP})
 
   add_test(NAME cufinufft2d1_test_GM_${PREC}_${UPSAMP}
