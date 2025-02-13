@@ -44,9 +44,14 @@
 function f = finufft1d3(x,c,isign,eps,s,o)
 
 if nargin<6, o.dummy=1; end
-valid_setpts(3,1,x,[],[],s,[],[]);
-o.floatprec=class(x);                      % should be 'double' or 'single'
+if_gpuarray = isgpuarray(x);
+valid_setpts(is_gpuarray,3,1,x,[],[],s,[],[]);
+o.floatprec=underlyingType(x);                      % should be 'double' or 'single'
 n_transf = valid_ntr(x,c);
-p = finufft_plan(3,1,isign,n_transf,eps,o);
+if is_gpuarray
+  p = cufinufft_plan(3,1,isign,n_transf,eps,o);
+else
+  p = finufft_plan(3,1,isign,n_transf,eps,o);
+end
 p.setpts(x,[],[],s,[],[]);
 f = p.execute(c);

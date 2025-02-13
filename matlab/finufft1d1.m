@@ -47,9 +47,14 @@
 function f = finufft1d1(x,c,isign,eps,ms,o)
 
 if nargin<6, o.dummy=1; end            % make a dummy options struct
-valid_setpts(1,1,x,[],[]);
-o.floatprec=class(x);                  % should be 'double' or 'single'
+is_gpuarray = isgpuarray(x);
+valid_setpts(is_gpuarray,1,1,x);
+o.floatprec=underlyingType(x);         % should be 'double' or 'single'
 n_transf = valid_ntr(x,c);
-p = finufft_plan(1,ms,isign,n_transf,eps,o);
-p.setpts(x,[],[]);
+if is_gpuarray
+  p = cufinufft_plan(1,ms,isign,n_transf,eps,o);
+else
+  p = finufft_plan(1,ms,isign,n_transf,eps,o);
+end
+p.setpts(x);
 f = p.execute(c);

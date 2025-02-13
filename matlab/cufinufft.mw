@@ -178,13 +178,13 @@ classdef cufinufft_plan < handle
       else
         emp = gpuArray(single([]));
       end
-      if nargin<3, yj=emp; end
-      if nargin<4, zj=emp; end
-      if nargin<5, s=emp; end
-      if nargin<6, t=emp; end
-      if nargin<7, u=emp; end
+      if nargin<3 || numel(yj)==0, yj=emp; end
+      if nargin<4 || numel(zj)==0, zj=emp; end
+      if nargin<5 || numel(s)==0, s=emp; end
+      if nargin<6 || numel(t)==0, t=emp; end
+      if nargin<7 || numel(u)==0, u=emp; end
       % get number(s) of NU pts (also validates the NU pt array sizes)...
-      [nj, nk] = valid_setpts(plan.type, plan.dim, xj, yj, zj, s, t, u);
+      [nj, nk] = valid_setpts(1,plan.type, plan.dim, xj, yj, zj, s, t, u);
       plan.nj = nj;            % save to avoid having to query the C++ plan
       plan.nk = nk;            % "
       % Force MATLAB to preserve the memory of xj/yj/zj by storing them as class
@@ -204,6 +204,11 @@ classdef cufinufft_plan < handle
 
     function result = execute(plan, data_in)
     % EXECUTE   execute single or many-vector FINUFFT transforms in a plan.
+
+      % check if data_in is gpuArray
+      if ~isgpuarray(data_in)
+        error('FINUFFT:badDataDevice','input data must be a gpuArray');
+      end
 
       % get shape info from the matlab-side plan (since can't pass "dot"
       % variables like a.b as mwrap sizes, too)...
