@@ -14,7 +14,7 @@ If you would like to compile from source, you can tell ``pip`` to compile the li
 
 This will often result in improved performance since the build will be optimized for your particular architecture.
 In particular, it can take advantage of newer CUDA features if you have a recent version of CUDA installed.
-Note that ``cufinufft`` has to be specified twice (first as an argument to ``--no-binary`` and second as the package the is to be installed).
+Note that ``cufinufft`` has to be specified twice (first as an argument to ``--no-binary`` and second as the package that is to be installed).
 
 *Note*: The interface to cuFINUFFT has changed between versions 1.3 and 2.2.
 Please see :ref:`Migration to cuFINUFFT v2.2<cufinufft_migration>` for details.
