@@ -4,7 +4,17 @@ Python interface (GPU)
 Quick-start examples
 --------------------
 
-As mentioned in the :ref:`Python GPU installation instructions <install-python-gpu>`, the easiest way to install the Python interface for cuFINUFFT is to run ``pip install cufinufft``.
+As mentioned in the :ref:`Python GPU installation instructions <install-python-gpu>`, the easiest way to install the Python interface for cuFINUFFT is to run::
+
+  pip install cufinufft
+
+If you would like to compile from source, you can tell ``pip`` to compile the library from source with the option ``--no-binary`` using the command::
+
+  pip install --no-binary cufinufft cufinufft
+
+This will often result in improved performance since the build will be optimized for your particular architecture.
+In particular, it can take advantage of newer CUDA features if you have a recent version of CUDA installed.
+Note that ``cufinufft`` has to be specified twice (first as an argument to ``--no-binary`` and second as the package that is to be installed).
 
 *Note*: The interface to cuFINUFFT has changed between versions 1.3 and 2.2.
 Please see :ref:`Migration to cuFINUFFT v2.2<cufinufft_migration>` for details.
