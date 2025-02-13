@@ -44,6 +44,13 @@ norm(f-fg)/norm(f)
 %f(1:10)
 %fg(1:10)
 
+% check the error of one output...
+nt = ceil(0.37*N);                              % pick a mode index
+t = ceil(0.7*ntrans);                           % pick a transform in stack
+fe = sum(c(M*(t-1)+(1:M)).*exp(1i*isign*nt*x));        % exact
+of1 = floor(N/2) + 1 + N*(t-1);                        % mode index offset
+fprintf('rel err in F[%d] is %.3g\n',nt,abs(fe-fg(nt+of1))/norm(fg,Inf))
+
 % if you do not want to do more transforms of this size, clean up...
 delete(plan);
 delete(plang);
