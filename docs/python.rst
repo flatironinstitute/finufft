@@ -14,7 +14,7 @@ If you would like to compile from source, you can tell ``pip`` to compile the li
   pip install --no-binary finufft finufft
 
 By default, this will use the ``-march=native`` flag when compiling the library, which should result in improved performance.
-Note that ``finufft`` has to be specified twice (first as an argument to ``--no-binary`` and second as the package the is to be installed). This option also allows you to switch out the default FFT library (FFTW) for DUCC0 using::
+Note that ``finufft`` has to be specified twice (first as an argument to ``--no-binary`` and second as the package that is to be installed). This option also allows you to switch out the default FFT library (FFTW) for DUCC0 using::
 
   pip install --no-binary finufft finufft --config-settings=cmake.define.FINUFFT_USE_DUCC0=ON finufft
 
