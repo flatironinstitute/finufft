@@ -50,7 +50,7 @@
 function c = finufft3d2(x,y,z,isign,eps,f,o)
 
 if nargin<7, o.dummy=1; end
-is_gpuarray = isgpuarray(x);
+is_gpuarray = finufft_isgpuarray(x);
 valid_setpts(is_gpuarray,2,3,x,y,z);
 o.floatprec=underlyingType(x);             % should be 'double' or 'single'
 [ms,mt,mu,n_transf] = size(f);             % if f 3D array, n_transf=1

@@ -15,7 +15,6 @@ jobs:
         with:
           release: R2023b
           cache: true
-          products: Parallel_Computing_Toolbox
       - name: Generate Windows mex file
         if: runner.os == 'Windows'
         run: |

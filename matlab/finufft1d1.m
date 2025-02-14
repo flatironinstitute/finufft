@@ -47,7 +47,7 @@
 function f = finufft1d1(x,c,isign,eps,ms,o)
 
 if nargin<6, o.dummy=1; end            % make a dummy options struct
-is_gpuarray = isgpuarray(x);
+is_gpuarray = finufft_isgpuarray(x);
 valid_setpts(is_gpuarray,1,1,x);
 o.floatprec=underlyingType(x);         % should be 'double' or 'single'
 n_transf = valid_ntr(x,c);

@@ -48,7 +48,7 @@
 function c = finufft2d2(x,y,isign,eps,f,o)
 
 if nargin<6, o.dummy=1; end
-is_gpuarray = isgpuarray(x);
+is_gpuarray = finufft_isgpuarray(x);
 valid_setpts(is_gpuarray,2,2,x,y);
 o.floatprec=underlyingType(x);             % should be 'double' or 'single'
 [ms,mt,n_transf] = size(f);                % if f 2D array, n_transf=1

@@ -52,7 +52,7 @@
 function f = finufft2d1(x,y,c,isign,eps,ms,mt,o)
 
 if nargin<8, o.dummy=1; end
-is_gpuarray = isgpuarray(x);
+is_gpuarray = finufft_isgpuarray(x);
 valid_setpts(is_gpuarray,1,2,x,y);
 o.floatprec = underlyingType(x);                      % should be 'double' or 'single'
 n_transf = valid_ntr(x,c);

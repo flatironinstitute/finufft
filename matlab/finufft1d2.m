@@ -46,7 +46,7 @@
 function c = finufft1d2(x,isign,eps,f,o)
 
 if nargin<5, o.dummy=1; end
-is_gpuarray = isgpuarray(x);
+is_gpuarray = finufft_isgpuarray(x);
 valid_setpts(is_gpuarray,2,1,x);
 o.floatprec=underlyingType(x);             % should be 'double' or 'single'
 [ms,n_transf]=size(f);                     % if f a col vec, n_transf=1, but...

@@ -46,7 +46,7 @@
 function f = finufft3d3(x,y,z,c,isign,eps,s,t,u,o)
 
 if nargin<10, o.dummy=1; end
-is_gpuarray = isgpuarray(x);
+is_gpuarray = finufft_isgpuarray(x);
 valid_setpts(is_gpuarray,3,3,x,y,z,s,t,u);
 o.floatprec=underlyingType(x);                      % should be 'double' or 'single'
 n_transf = valid_ntr(x,c);
