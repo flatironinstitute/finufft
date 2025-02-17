@@ -23,24 +23,36 @@ COMPILATION INSTRUCTIONS for each example
 To compile any example directly, working in this directory, one may use
 (taking simple1d1 as our example) one of the following. We assume a Linux/GNU
 environment. -lm is not always needed. Please read all the options below.
+For all C language examples (*c.c and *cf.c), use gcc (not g++) and append:
+-lstdc++
 
-Multi-threaded dynamic FINUFFT lib:
+DYNAMIC FINUFFT LIBRARY:
+
+Multi-threaded:
 g++ -fopenmp simple1d1.cpp -I../include ../lib/libfinufft.so -o simple1d1 -lm
 
-Single-threaded dynamic FINUFFT lib:
+Single-threaded:
 g++ simple1d1.cpp -I../include ../lib/libfinufft.so -o simple1d1 -lm
 
-Multi-threaded static FINUFFT lib (add -static also to make a static executable):
+If you want a completely portable executable:
+g++ -fopenmp simple1d1.cpp -o simple1d1 -I../include -Wl,-rpath,$FINUFFT/lib/ -lfinufft
+where ``$FINUFFT`` must be replaced by (or be an environment variable
+set to) the absolute install path for the FINUFFT repository. Notice
+how ``rpath`` was used to make an executable that may be called from,
+or moved to, anywhere.
+
+STATIC FINUFFT LIBRARY:
+
+Multi-threaded:
 g++ -fopenmp simple1d1.cpp -I../include ../lib-static/libfinufft.a -o simple1d1 -lm
 
-Single-threaded static FINUFFT lib (add -static also to make a static executable):
+Single-threaded:
 g++ simple1d1.cpp -I../include ../lib-static/libfinufft.a -o simple1d1 -lm
 
 For static linking, if the default FFTW3 used (not FFTW=DUCC make option), append
 these libraries to compile command:  -lfftw3 -lfftw3_omp -lfftw3f -lfftw3f_omp
 You may omit the _omp ones here of course if single-threaded.
-
-For C language examples (*c.c and *cf.c), use gcc (not g++) and append:  -lstdc++
+Add -static also to make the executable itself static.
 
 
 Alex Barnett 12/6/17; 7/1/20; 2/17/25.
