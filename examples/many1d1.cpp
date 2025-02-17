@@ -10,13 +10,7 @@ using namespace std;
 int main(int argc, char *argv[])
 /* Example of calling the vectorized FINUFFT library from C++, using STL
    double complex vectors, with a math test.
-
-   Compile with:
-   g++ -fopenmp many1d1.cpp -I../include ../lib-static/libfinufft.a -o many1d1 -lfftw3
-   -lfftw3_omp -lm or if you have built a single-core version: g++ many1d1.cpp
-   -I../include ../lib-static/libfinufft.a -o many1d1 -lfftw3 -lm
-
-   Usage: ./many1d1
+   To compile, see README.  Usage: ./many1d1
 */
 {
   int ntrans         = 3;                // how many stacked transforms to do

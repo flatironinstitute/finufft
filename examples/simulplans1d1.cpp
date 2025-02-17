@@ -1,3 +1,12 @@
+/* Demo two simultaneous FINUFFT plans (A,B) being handled in C++ without
+   interacting (or at least without crashing; note that FFTW initialization
+   is the only global state of FINUFFT library).
+   Using STL double complex vectors, with a math test.
+   To compile, see README in this directory. Also see ../docs/cex.rst
+   Edited from guru1d1, Barnett 2/15/22
+   Usage: ./simulplans1d1
+*/
+
 // this is all you must include for the finufft lib...
 #include <finufft.h>
 
@@ -36,18 +45,7 @@ double chk1d1(int n, vector<double> &x, vector<complex<double>> &c,
   return abs(F[nout] - Ftest) / Fmax;
 }
 
-int main(int argc, char *argv[])
-/* Demo two simultaneous FINUFFT plans (A,B) being handled in C++ without
-   interacting (or at least without crashing; note that FFTW initialization
-   is the only global state of FINUFFT library).
-   Using STL double complex vectors, with a math test.
-   Edited from guru1d1, Barnett 2/15/22
-
-   Compile & run:
-   g++ -fopenmp simulplans1d1.cpp -I../include ../lib-static/libfinufft.a -o simulplans1d1
-   -lfftw3 -lfftw3_omp -lm && ./simulplans1d1
-*/
-{
+int main(int argc, char *argv[]) {
   double tol = 1e-9;         // desired accuracy for both plans
   int type = 1, dim = 1;     // 1d1
   int64_t Ns[3];             // guru describes mode array by vector [N1,N2..]

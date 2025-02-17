@@ -13,13 +13,7 @@ int main(int argc, char *argv[])
 /* Example of calling the FINUFFT library from C++, using STL
    single complex vectors, with a math test.
    (See simple1d1 for double-precision version.)
-
-   Compile with:
-   g++ -fopenmp simple1d1f.cpp -I../include ../lib-static/libfinufft.a -o simple1d1f
-   -lfftw3f -lfftw3f_omp -lm or if you have built a single-core version: g++
-   simple1d1f.cpp -I../include ../lib-static/libfinufft.a -o simple1d1f -lfftw3f -lm
-
-   Usage: ./simple1d1f
+   To compile, see README. Usage: ./simple1d1f
 */
 {
   int M              = 1e5;  // number of nonuniform points

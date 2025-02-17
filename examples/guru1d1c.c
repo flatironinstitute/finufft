@@ -10,14 +10,7 @@
 int main(int argc, char *argv[])
 /* Example calling guru interface to FINUFFT library from C, using
    C complex type, with a math check. Barnett 6/22/20.
-
-   Compile on linux with:
-   gcc-7 -fopenmp guru1d1c.c -I../include ../lib-static/libfinufft.a -o guru1d1c  -lfftw3
-   -lfftw3_omp -lm -lstdc++
-
-   Or if you have built a single-core library, remove -fopenmp and -lfftw3_omp
-
-   Usage: ./guru1d1c.  See also: guru1d1
+   To compile, see README.  Usage: ./guru1d1c.  See also: guru1d1
 */
 {
   int M      = 1e6;      // number of nonuniform points
