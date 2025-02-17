@@ -1,16 +1,13 @@
-
 #include <complex>
 
 // public header
 #include "finufft.h"
-#include "finufft/test_defs.h"
 
-// private access to timer
-#include "finufft/finufft_utils.hpp"
+// private access to timer, etc
+#include "finufft/test_defs.h"
+using namespace finufft::utils;
 
 using namespace std;
-
-using namespace finufft::utils;
 
 int main(int argc, char *argv[])
 /* What is small-problem cost of FINUFFT library from C++, using plain
