@@ -17,14 +17,7 @@ int main(int argc, char *argv[])
 /* Example calling guru C++ interface to FINUFFT library, single-prec, passing
    pointers to STL vectors of C++ float complex numbers, with a math check.
    Barnett 7/5/20
-
-   Compile on linux with:
-   g++-7 -std=c++14 -fopenmp guru1d1f.cpp -I../include ../lib-static/libfinufft.a -o
-   guru1d1f  -lfftw3f -lfftw3f_omp -lm
-
-   Or if you have built a single-core library, remove -fopenmp and -lfftw3f_omp
-
-   Usage: ./guru1d1f
+   To compile, see README.  Usage: ./guru1d1f
 */
 {
   int M     = 1e5;                // number of nonuniform points

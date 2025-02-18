@@ -345,7 +345,7 @@ bigtest: perftest/big2d2f
 
 PERFEXECS := $(basename $(wildcard test/finufft?d_test.cpp))
 PERFEXECS += $(PERFEXECS:%=%f)
-perftest: $(ST) $(STF) $(PERFEXECS) spreadtestndall bigtest
+perftest: $(ST) $(STF) $(PERFEXECS) spreadtestndall bigtest gurutime manysmallprobs
 # here the tee cmd copies output to screen. 2>&1 grabs both stdout and stderr...
 	(cd perftest ;\
 	./spreadtestnd.sh 2>&1 | tee results/spreadtestnd_results.txt ;\
@@ -360,10 +360,9 @@ gurutime: $(GTT) $(GTTF)
 	for i in $(GTT) $(GTTF); do $$i 100 1 2 1e2 1e2 0 1e6 1e-3 1 0 0 2; done
 
 # This was for a CCQ application... (zgemm was 10x faster! double-prec only)
-perftest/manysmallprobs: perftest/manysmallprobs.cpp $(STATICLIB)
-	$(CXX) $(CXXFLAGS) ${LDFLAGS} $< $(STATICLIB) $(LIBSFFT) -o $@
-	@echo "manysmallprobs: single-thread..."
-	OMP_NUM_THREADS=1 $@
+manysmallprobs: perftest/manysmallprobs
+	@echo "run manysmallprobs, double-prec, single-thread..."
+	OMP_NUM_THREADS=1 perftest/manysmallprobs
 
 
 
