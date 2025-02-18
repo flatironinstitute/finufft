@@ -461,7 +461,8 @@ static int spreadinterpSortedBatch(int batchSize, const FINUFFT_PLAN_T<T> &p,
 
 template<typename T>
 static int deconvolveBatch(int batchSize, const FINUFFT_PLAN_T<T> &p,
-                           std::complex<T> *fkBatch, std::complex<T> *fwBatch)
+                           std::complex<T> *fkBatch, std::complex<T> *fwBatch,
+                           bool adjoint)
 /*
   Type 1: deconvolves (amplifies) from each interior fw array in fwBatch
   into each output array fk in fkBatch.
@@ -474,6 +475,8 @@ static int deconvolveBatch(int batchSize, const FINUFFT_PLAN_T<T> &p,
 */
 {
   // since deconvolveshuffle?d are single-thread, omp par seems to help here...
+  int dir = p.spopts.spread_direction;
+  if (adjoint) dir = 3 - dir;
 #pragma omp parallel for num_threads(batchSize)
   for (int i = 0; i < batchSize; i++) {
     std::complex<T> *fwi = fwBatch + i * p.nf(); // start of i'th fw array in
@@ -482,16 +485,15 @@ static int deconvolveBatch(int batchSize, const FINUFFT_PLAN_T<T> &p,
 
     // pick dim-specific routine from above; note prefactors hardcoded to 1.0...
     if (p.dim == 1)
-      deconvolveshuffle1d(p.spopts.spread_direction, T(1), p.phiHat[0], p.mstu[0],
-                          (T *)fki, p.nfdim[0], fwi, p.opts.modeord);
-    else if (p.dim == 2)
-      deconvolveshuffle2d(p.spopts.spread_direction, T(1), p.phiHat[0], p.phiHat[1],
-                          p.mstu[0], p.mstu[1], (T *)fki, p.nfdim[0], p.nfdim[1], fwi,
+      deconvolveshuffle1d(dir, T(1), p.phiHat[0], p.mstu[0], (T *)fki, p.nfdim[0], fwi,
                           p.opts.modeord);
+    else if (p.dim == 2)
+      deconvolveshuffle2d(dir, T(1), p.phiHat[0], p.phiHat[1], p.mstu[0], p.mstu[1],
+                          (T *)fki, p.nfdim[0], p.nfdim[1], fwi, p.opts.modeord);
     else
-      deconvolveshuffle3d(p.spopts.spread_direction, T(1), p.phiHat[0], p.phiHat[1],
-                          p.phiHat[2], p.mstu[0], p.mstu[1], p.mstu[2], (T *)fki,
-                          p.nfdim[0], p.nfdim[1], p.nfdim[2], fwi, p.opts.modeord);
+      deconvolveshuffle3d(dir, T(1), p.phiHat[0], p.phiHat[1], p.phiHat[2], p.mstu[0],
+                          p.mstu[1], p.mstu[2], (T *)fki, p.nfdim[0], p.nfdim[1],
+                          p.nfdim[2], fwi, p.opts.modeord);
   }
   return 0;
 }
@@ -1004,7 +1006,7 @@ int FINUFFT_PLAN_T<TF>::execute(std::complex<TF> *cj, std::complex<TF> *fk,
           continue;
       } else if (!opts.spreadinterponly) {
         // amplify Fourier coeffs fk into 0-padded fw
-        deconvolveBatch<TF>(thisBatchSize, *this, fkb, fwBatch.data());
+        deconvolveBatch<TF>(thisBatchSize, *this, fkb, fwBatch.data(), adjoint);
         t_deconv += timer.elapsedsec();
       }
       if (!opts.spreadinterponly) { // Do FFT unless spread/interp only...
@@ -1018,7 +1020,7 @@ int FINUFFT_PLAN_T<TF>::execute(std::complex<TF> *cj, std::complex<TF> *fk,
       // STEP 3: (varies by type)
       timer.restart();
       if ((type == 1) != adjoint) { // deconvolve (amplify) fw and shuffle to fk
-        deconvolveBatch<TF>(thisBatchSize, *this, fkb, fwBatch.data());
+        deconvolveBatch<TF>(thisBatchSize, *this, fkb, fwBatch.data(), adjoint);
         t_deconv += timer.elapsedsec();
       } else { // interpolate unif fw grid to NU target pts
         spreadinterpSortedBatch<TF>(thisBatchSize, *this, fwBatch_or_fkb, cjb, adjoint);
@@ -1085,6 +1087,7 @@ int FINUFFT_PLAN_T<TF>::execute(std::complex<TF> *cj, std::complex<TF> *fk,
         // STEP 2: type 2 NUFFT from fw batch to user output fk array batch...
         timer.restart();
         // illegal possible shrink of ntrans *after* plan for smaller last batch:
+        // MR FIXME: this breaks immutability!
         innerT2plan->ntrans = thisBatchSize; // do not try this at home!
         /* (alarming that FFT not shrunk, but safe, because t2's fwBatch array
        still the same size, as Andrea explained; just wastes a few flops) */

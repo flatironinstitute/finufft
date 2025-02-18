@@ -197,6 +197,9 @@ template<typename TF> struct FINUFFT_PLAN_T { // the main plan class, fully C++
   // Remaining actions (not create/delete) in guru interface are now methods...
   int setpts(BIGINT nj, TF *xj, TF *yj, TF *zj, BIGINT nk, TF *s, TF *t, TF *u);
   int execute(std::complex<TF> *cj, std::complex<TF> *fk, bool adjoint = false) const;
+  int execute_adjoint(std::complex<TF> *cj, std::complex<TF> *fk) const {
+    return execute(cj, fk, true);
+  }
 };
 
 void finufft_default_opts_t(finufft_opts *o);
