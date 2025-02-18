@@ -39,12 +39,12 @@ In order to configure cuFINUFFT for a specific compute capability, use the ``CMA
 To find out your own device's compute capability without having to look it up on the web, use:
 
 .. code-block:: bash
-                
+
     nvidia-smi --query-gpu=compute_cap --format=csv,noheader
 
 This will return a text string such as ``8.6`` which would incidate
 ``sm_86`` architecture, thus to use ``CMAKE_CUDA_ARCHITECTURES=86``.
-    
+
 
 Testing
 -------
@@ -92,3 +92,35 @@ Assuming ``pytest`` is installed (otherwise, just run ``pip install pytest``), y
 
 In contrast to the C interface tests, these check for correctness, so a successful test run signifies that the library is working correctly.
 Note that you can specify other framework (``pycuda``, ``torch``, or ``numba``) for testing using the ``--framework`` argument.
+
+
+Matlab interface
+----------------
+
+.. _install-matlab-gpu:
+
+In addition to the Python interface, cuFINUFFT also comes with a Matlab interface. To install this, you first build the shared library.
+For example, assuming in the root directory of finufft, then run
+
+.. code-block:: bash
+
+    cmake -S . -B build -D FINUFFT_USE_CUDA=ON -D FINUFFT_STATIC_LINKING=OFF -D CMAKE_VERBOSE_MAKEFILE:BOOL=ON -D FINUFFT_CUDA_ARCHITECTURES="60;70;80;90"
+
+You may adjust ``FINUFFT_CUDA_ARCHITECTURES`` to generate the code for different compute capabilities.
+Then build the binary library
+
+.. code-block:: bash
+
+    cmake --build build
+
+Then, to compile the Matlab mexcuda file, open matlab in finufft root directory and run
+
+.. code-block:: matlab
+
+    mexcuda -v 'LINKLIBS=$LINKLIBS -Wl,-rpath,/absolute/path/to/finufft/build -Lbuild -lcufinufft' matlab/cufinufft.cu -Iinclude -DR2008OO -largeArrayDims -output matlab/cufinufft
+
+``-Lbuild`` specifies the relative path where ``libcufinufft.so`` is during linking stage. ``-Wl,-rpath,/absolute/path/to/finufft/build`` specifies the absolute path where ``libcufinufft.so`` is so that Matlab can find it during runtime, change ``/absolute/path/to/finufft/build`` accordingly. You may remove ``-Wl,-rpath,/absolute/path/to/finufft/build``, you then need to export `LD_LIBRARY_PATH` to include path to `libcufinufft.so` so that Matlab can find it during runtime.
+
+.. note::
+
+    Depending on your Matlab version, mexcuda compiles the CUDA code using the NVIDIA nvcc compiler installed with MATLAB, if the Matlab default one does not work, you may specify the location of nvcc on your system by storing it in the environment variable MW_NVCC_PATH, ``setenv("MW_NVCC_PATH","/path/to/CUDA/bin")`` and ``setenv("MW_ALLOW_ANY_CUDA","true")``. You may also check `toolbox/parallel/gpu/extern/src/mex/glnxa64/nvcc_g++.xml` to see how Matlab finds the nvcc compiler.

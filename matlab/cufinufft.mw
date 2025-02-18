@@ -11,17 +11,27 @@
 %
 %
 % Hints for linux/GNU build (see ../makefile for definitive build):
-% first build libcufinufft.so
-% cmake -S . -B build -D FINUFFT_USE_CUDA=ON -D FINUFFT_STATIC_LINKING=OFF -D CMAKE_VERBOSE_MAKEFILE:BOOL=ON -D FINUFFT_CUDA_ARCHITECTURES="60;70;80"
+% Firstly, we need to build libcufinufft.so using cmake.
+% Assuming we are in the root directory of finufft and want to generate libcufinufft.so inside build:
+% cmake -S . -B build -D FINUFFT_USE_CUDA=ON -D FINUFFT_STATIC_LINKING=OFF -D CMAKE_VERBOSE_MAKEFILE:BOOL=ON -D FINUFFT_CUDA_ARCHITECTURES="60;70;80;90"
+% You may adjust the FINUFFT_CUDA_ARCHITECTURES to generate the code you want.
+% Then build the binary library:
 % cmake --build build --verbose
-% To generate the MEX C++ file, run:
 %
+% For users who are familiar with mwrap, to generate the MEX C++ file, run:
 % mwrap -mex cufinufft -c cufinufft.cu -mb -cppcomplex cufinufft.mw
+% For now, before merged to offical repo,
+% you may need the forked mwrap version to support gpuArray
+% https://github.com/lu1and10/mwrap/tree/gpu
 %
-% Then to compile for matlab:
-% mexcuda -v matlab/cufinufft.cu build/src/cuda/libcufinufft.so -Iinclude -DR2008OO -largeArrayDims -output matlab/cufinufft
-
-% export LD_LIBRARY_PATH to include where libcufinufft.so is if dylink cufinufft
+% Then to compile for matlab, open matlab in finufft root directory and run:
+% mexcuda -v 'LINKLIBS=$LINKLIBS -Wl,-rpath,/absolute/path/to/finufft/build -Lbuild -lcufinufft' matlab/cufinufft.cu -Iinclude -DR2008OO -largeArrayDims -output matlab/cufinufft
+% '-Lbuild' specifies the relative path where libcufinufft.so is when linking.
+% '-Wl,-rpath,/absolute/path/to/finufft/build' specifies the absolute path where libcufinufft.so is.
+% You may remove '-Wl,-rpath,/absolute/path/to/finufft/build',
+% while you then need to export LD_LIBRARY_PATH to include path to libcufinufft.so
+% to make generated mex file find libcufinufft.so at runtime.
+% To support mexcuda do static linking need more investigation.
 
 % both precisions...
 $ #include <cufinufft.h>
