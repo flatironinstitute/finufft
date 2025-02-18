@@ -88,6 +88,10 @@ public:
     unlock();
   }
   void execute [[maybe_unused]] () { fftwf_execute(plan_); }
+  void execute [[maybe_unused]] (std::complex<float> *data) {
+    fftwf_execute_dft(plan_, reinterpret_cast<fftwf_complex *>(data),
+                      reinterpret_cast<fftwf_complex *>(data));
+  }
 
   static void forget_wisdom [[maybe_unused]] () { fftwf_forget_wisdom(); }
   static void cleanup [[maybe_unused]] () { fftwf_cleanup(); }
@@ -152,6 +156,10 @@ public:
     unlock();
   }
   void execute [[maybe_unused]] () { fftw_execute(plan_); }
+  void execute [[maybe_unused]] (std::complex<double> *data) {
+    fftw_execute_dft(plan_, reinterpret_cast<fftw_complex *>(data),
+                     reinterpret_cast<fftw_complex *>(data));
+  }
 
   static void forget_wisdom [[maybe_unused]] () { fftw_forget_wisdom(); }
   static void cleanup [[maybe_unused]] () { fftw_cleanup(); }
@@ -179,7 +187,8 @@ static inline void finufft_fft_cleanup_threads [[maybe_unused]] () {
   Finufft_FFT_plan<double>::cleanup_threads();
 }
 template<typename TF> struct FINUFFT_PLAN_T;
-template<typename TF> std::vector<int> gridsize_for_fft(FINUFFT_PLAN_T<TF> *p);
-template<typename TF> void do_fft(FINUFFT_PLAN_T<TF> *p);
+template<typename TF> std::vector<int> gridsize_for_fft(const FINUFFT_PLAN_T<TF> &p);
+template<typename TF>
+void do_fft(const FINUFFT_PLAN_T<TF> &p, std::complex<TF> *fwBatch, bool adjoint);
 
 #endif // FINUFFT_INCLUDE_FINUFFT_FFT_H

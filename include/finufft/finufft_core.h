@@ -171,10 +171,6 @@ template<typename TF> struct FINUFFT_PLAN_T { // the main plan class, fully C++
 
   std::array<std::vector<TF>, 3> phiHat; // FT of kernel in t1,2, on x,y,z-axis mode grid
 
-  // fwBatch: (batches of) fine working grid(s) for the FFT to plan & act on.
-  // Usually the largest internal array. Its allocator is 64-byte (cache-line) aligned:
-  std::vector<TC, xsimd::aligned_allocator<TC, 64>> fwBatch;
-
   std::vector<BIGINT> sortIndices; // precomputed NU pt permutation, speeds spread/interp
   bool didSort;                    // whether binsorting used (false: identity perm used)
 
@@ -187,7 +183,6 @@ template<typename TF> struct FINUFFT_PLAN_T { // the main plan class, fully C++
                                                          // arrays (no new allocs)
   std::vector<TC> prephase; // pre-phase, for all input NU pts
   std::vector<TC> deconv;   // reciprocal of kernel FT, phase, all output NU pts
-  std::vector<TC> CpBatch;  // working array of prephased strengths
   std::array<std::vector<TF>, 3> XYZp; // internal primed NU points (x'_j, etc)
   std::array<std::vector<TF>, 3> STUp; // internal primed targs (s'_k, etc)
   type3params<TF> t3P; // groups together type 3 shift, scale, phase, parameters
@@ -201,7 +196,7 @@ template<typename TF> struct FINUFFT_PLAN_T { // the main plan class, fully C++
 
   // Remaining actions (not create/delete) in guru interface are now methods...
   int setpts(BIGINT nj, TF *xj, TF *yj, TF *zj, BIGINT nk, TF *s, TF *t, TF *u);
-  int execute(std::complex<TF> *cj, std::complex<TF> *fk);
+  int execute(std::complex<TF> *cj, std::complex<TF> *fk, bool adjoint = false) const;
 };
 
 void finufft_default_opts_t(finufft_opts *o);

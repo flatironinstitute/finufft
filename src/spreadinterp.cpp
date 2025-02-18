@@ -1685,7 +1685,7 @@ FINUFFT_EXPORT int FINUFFT_CDECL spreadinterp(
   std::vector<BIGINT> sort_indices(M);
   int did_sort = indexSort(sort_indices, N1, N2, N3, M, kx, ky, kz, opts);
   spreadinterpSorted<T>(sort_indices, N1, N2, N3, data_uniform, M, kx, ky, kz,
-                        data_nonuniform, opts, did_sort);
+                        data_nonuniform, opts, did_sort, false);
   return 0;
 }
 
@@ -2103,14 +2103,15 @@ int spreadinterpSorted(const std::vector<BIGINT> &sort_indices, const UBIGINT N1
                        const UBIGINT N2, const UBIGINT N3, T *data_uniform,
                        const UBIGINT M, T *FINUFFT_RESTRICT kx, T *FINUFFT_RESTRICT ky,
                        T *FINUFFT_RESTRICT kz, T *FINUFFT_RESTRICT data_nonuniform,
-                       const finufft_spread_opts &opts, int did_sort)
+                       const finufft_spread_opts &opts, int did_sort, bool adjoint)
 /* Logic to select the main spreading (dir=1) vs interpolation (dir=2) routine.
    See spreadinterp() above for inputs arguments and definitions.
    Return value should always be 0 (no error reporting).
    Split out by Melody Shih, Jun 2018; renamed Barnett 5/20/20.
 */
 {
-  if (opts.spread_direction == 1) // ========= direction 1 (spreading) =======
+  if ((opts.spread_direction == 1) != adjoint) // ========= direction 1 (spreading)
+                                               // =======
     spreadSorted(sort_indices, N1, N2, N3, data_uniform, M, kx, ky, kz, data_nonuniform,
                  opts, did_sort);
 
@@ -2125,13 +2126,13 @@ template int spreadinterpSorted<float>(
     const UBIGINT N3, float *data_uniform, const UBIGINT M, float *FINUFFT_RESTRICT kx,
     float *FINUFFT_RESTRICT ky, float *FINUFFT_RESTRICT kz,
     float *FINUFFT_RESTRICT data_nonuniform, const finufft_spread_opts &opts,
-    int did_sort);
+    int did_sort, bool adjoint);
 template int spreadinterpSorted<double>(
     const std::vector<BIGINT> &sort_indices, const UBIGINT N1, const UBIGINT N2,
     const UBIGINT N3, double *data_uniform, const UBIGINT M, double *FINUFFT_RESTRICT kx,
     double *FINUFFT_RESTRICT ky, double *FINUFFT_RESTRICT kz,
     double *FINUFFT_RESTRICT data_nonuniform, const finufft_spread_opts &opts,
-    int did_sort);
+    int did_sort, bool adjoint);
 
 ///////////////////////////////////////////////////////////////////////////
 
