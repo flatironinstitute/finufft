@@ -17,13 +17,8 @@
 using cufinufft::utils::infnorm;
 
 template<typename T>
-int run_test(int method, int type, int N1, int M, T tol, T checktol, int iflag,
-             double upsampfac) {
+int run_test(int N1, int M, T tol, T checktol, int iflag, double upsampfac) {
   // tol and upsamplefac are used to determine the kernel
-  if (type < 1 || type > 3) {
-    std::cerr << "Only type 1, 2 are supported\n";
-    return 1;
-  }
 
   std::cout << std::scientific << std::setprecision(3);
   int ier{};
@@ -108,6 +103,7 @@ int run_test(int method, int type, int N1, int M, T tol, T checktol, int iflag,
 
   printf("spread-only test 1d:\n"); // ............................................
 
+  cudaDeviceSynchronize();
   cudaEventRecord(start);
 
   ier = cufinufft_makeplan_impl<T>(1, dim, nmodes, iflag, ntransf, tol, &dplan, &opts);
@@ -123,6 +119,7 @@ int run_test(int method, int type, int N1, int M, T tol, T checktol, int iflag,
   }
   ier = cufinufft_execute_impl<T>((cuda_complex<T> *)d_c.data().get(),
                                   (cuda_complex<T> *)d_fk.data().get(), dplan);
+
   if (ier != 0) {
     printf("err: cufinufft1d_exec (ier=%d)\n", ier);
     return ier;
@@ -132,6 +129,7 @@ int run_test(int method, int type, int N1, int M, T tol, T checktol, int iflag,
   cudaEventRecord(stop);
   cudaEventSynchronize(stop);
   cudaEventElapsedTime(&milliseconds, start, stop);
+
   printf("\t%lld NU pts spread to %lld grid in %.3g s \t%.3g NU pts/s\n",
          static_cast<long long>(M), static_cast<long long>(N1), milliseconds / 1000,
          T(M) / (milliseconds / 1000));
@@ -148,6 +146,7 @@ int run_test(int method, int type, int N1, int M, T tol, T checktol, int iflag,
   std::fill(fk.begin(), fk.end(), thrust::complex<T>(T(1), T(0)));
   d_fk = fk;
 
+  cudaDeviceSynchronize();
   cudaEventRecord(start);
 
   ier = cufinufft_makeplan_impl<T>(2, dim, nmodes, iflag, ntransf, tol, &dplan, &opts);
@@ -161,17 +160,20 @@ int run_test(int method, int type, int N1, int M, T tol, T checktol, int iflag,
     printf("err: cufinufft_setpts (ier=%d)\n", ier);
     return ier;
   }
+
   ier = cufinufft_execute_impl<T>((cuda_complex<T> *)d_c.data().get(),
                                   (cuda_complex<T> *)d_fk.data().get(), dplan);
+
   if (ier != 0) {
     printf("err: cufinufft1d_exec (ier=%d)\n", ier);
     return ier;
   }
   cufinufft_destroy_impl(dplan);
 
-  cudaEventRecord(stop);
   cudaEventSynchronize(stop);
+  cudaEventRecord(stop);
   cudaEventElapsedTime(&milliseconds, start, stop);
+
   printf("\t%lld NU pts interp from %lld grid in %.3g s \t%.3g NU pts/s\n",
          static_cast<long long>(M), static_cast<long long>(N1), milliseconds / 1000,
          T(M) / (milliseconds / 1000));
@@ -183,20 +185,25 @@ int run_test(int method, int type, int N1, int M, T tol, T checktol, int iflag,
   for (auto cj : c) sup_err = std::max(sup_err, abs(cj - kersum));
   const auto rel_sup_err = sup_err / thrust::abs(kersum);
   printf("\trel sup err %.3g\n", rel_sup_err);
-  auto rel_error = std::max(rel_mass_err, rel_sup_err);
+
+  cudaEventDestroy(start);
+  cudaEventDestroy(stop);
+
+  const auto rel_error = std::max(rel_mass_err, rel_sup_err);
   return std::isnan(rel_error) || rel_error > checktol;
 }
 
 int main(int argc, char *argv[]) {
   if (argc != 7) {
-    fprintf(stderr, "Usage: cufinufft1d_test N1 M tol checktol prec upsampfac\n"
-                    "Arguments:\n"
-                    "  N1: Number of fourier modes\n"
-                    "  M: The number of non-uniform points\n"
-                    "  tol: NUFFT tolerance\n"
-                    "  checktol:  relative error to pass test\n"
-                    "  precision: f or d\n"
-                    "  upsampfac: upsampling factor\n");
+    fprintf(stderr,
+            "Usage: cufinufft1dspreadinterponly_test N1 M tol checktol prec upsampfac\n"
+            "Arguments:\n"
+            "  N1: Number of fourier modes\n"
+            "  M: The number of non-uniform points\n"
+            "  tol: NUFFT tolerance\n"
+            "  checktol:  relative error to pass test\n"
+            "  precision: f or d\n"
+            "  upsampfac: upsampling factor\n");
     return 1;
   }
   const int N1           = atof(argv[1]);
@@ -207,9 +214,9 @@ int main(int argc, char *argv[]) {
   const char prec        = argv[5][0];
   const double upsampfac = atof(argv[6]);
   if (prec == 'f')
-    return run_test<float>(1, 1, N1, M, tol, checktol, iflag, upsampfac);
+    return run_test<float>(N1, M, tol, checktol, iflag, upsampfac);
   else if (prec == 'd')
-    return run_test<double>(1, 1, N1, M, tol, checktol, iflag, upsampfac);
+    return run_test<double>(N1, M, tol, checktol, iflag, upsampfac);
   else
     return -1;
 }
