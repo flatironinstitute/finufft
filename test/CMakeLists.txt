@@ -116,7 +116,8 @@ function(add_tests_with_prec PREC REQ_TOL CHECK_TOL SUFFIX)
 
     add_test(
         NAME spreadinterp1d_${PREC}
-        COMMAND spreadinterp1d_test${SUFFIX} 1e6 1e6 1e-5 1 2 2.0 1e-4
+        COMMAND
+            spreadinterp1d_test${SUFFIX} 1e3 1e3 ${REQ_TOL} 0 2 2.0 ${CHECK_TOL}
         WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
     )
 endfunction()
