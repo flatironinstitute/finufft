@@ -263,6 +263,6 @@ add_tests(double 1e-8 1e-7 1.25)
 # the tests and allow them to run in the future we should add the precision to
 # the test
 add_tests(float 1e-5 2e-4 0.f)
-add_tests(double 1e-12 1e-11 0)
-add_tests(float 1e-5 2e-4 0.f)
+add_tests(double 1e-12 1e-11 0.f)
+add_tests(float 1e-5 2e-4 0.)
 add_tests(double 1e-8 1e-7 0.)
