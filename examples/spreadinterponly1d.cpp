@@ -24,11 +24,7 @@ int main(int argc, char *argv[])
    (Better math tests would be, ironically, to wrap the spreader/interpolator
    into a NUFFT and test that :) But we already have that in FINUFFT.)
 
-   Compile and run (static library case):
-
-   g++ spreadinterponly1d.cpp -I../include ../lib-static/libfinufft.a -o
-   spreadinterponly1d -lfftw3 -lfftw3_omp && ./spreadinterponly1d
-
+   To compile, see README. Usage: ./spreadinterponly1d
    See: spreadtestnd for usage of internal (non FINUFFT-API) spread/interp.
 */
 {
