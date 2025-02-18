@@ -154,7 +154,7 @@ def verify_type1(pts, coefs, shape, sig_est, tol):
 
     type1_rel_err = np.linalg.norm(fk_target - fk_est) / np.linalg.norm(fk_target)
 
-    assert type1_rel_err < 25 * tol
+    np.testing.assert_allclose(type1_rel_err, 0, rtol=0, atol=25*tol)
 
 
 def verify_type2(pts, sig, coefs_est, tol):
@@ -172,7 +172,7 @@ def verify_type2(pts, sig, coefs_est, tol):
 
     type2_rel_err = np.linalg.norm(c_target - c_est) / np.linalg.norm(c_target)
 
-    assert type2_rel_err < 25 * tol
+    np.testing.assert_allclose(type2_rel_err, 0, rtol=0, atol=25*tol)
 
 
 def verify_type3(source_pts, source_coef, target_pts, target_coef, tol):
@@ -191,4 +191,4 @@ def verify_type3(source_pts, source_coef, target_pts, target_coef, tol):
 
     type3_rel_err = np.linalg.norm(target_est - target_true) / np.linalg.norm(target_true)
 
-    assert type3_rel_err < 100 * tol
+    np.testing.assert_allclose(type3_rel_err, 0, rtol=0, atol=100*tol)
