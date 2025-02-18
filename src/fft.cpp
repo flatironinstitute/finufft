@@ -36,13 +36,14 @@ void do_fft(const FINUFFT_PLAN_T<TF> &p, std::complex<TF> *fwBatch, bool adjoint
     arrdims.push_back(size_t(ns[2]));
     axes.push_back(3);
   }
-  bool forward = (p.fftSign < 0) != adjoint;
+  bool forward   = (p.fftSign < 0) != adjoint;
+  bool spreading = (p.type == 1) != adjoint;
   ducc0::vfmav<std::complex<TF>> data(fwBatch, arrdims); // FIXME
 #ifdef FINUFFT_NO_DUCC0_TWEAKS
   ducc0::c2c(data, data, axes, forward, TF(1), nthreads);
 #else
-  /* For type 1 NUFFTs, only the low-frequency parts of the output fine grid are
-     going to be used, and for type 2 NUFFTs, the high frequency parts of the
+  /* When spreading, only the low-frequency parts of the output fine grid are
+     going to be used, and when interpolating, the high frequency parts of the
      input fine grid are zero by definition. This can be used to reduce the
      total FFT work for 2D and 3D NUFFTs. One of the FFT axes always has to be
      transformed fully (that's why there is no savings for 1D NUFFTs), for the
@@ -61,13 +62,13 @@ void do_fft(const FINUFFT_PLAN_T<TF> &p, std::complex<TF> *fwBatch, bool adjoint
       auto sub1 = ducc0::subarray(data, {{}, {}, {0, y_lo}});
       // the next line is analogous to the Python statement "sub2 = data[:, :, y_hi:]"
       auto sub2 = ducc0::subarray(data, {{}, {}, {y_hi, ducc0::MAXIDX}});
-      if (p.type == 1) // spreading, not all parts of the output array are needed
+      if (spreading) // spreading, not all parts of the output array are needed
         // do axis 2 in full
         ducc0::c2c(data, data, {2}, forward, TF(1), nthreads);
       // do only parts of axis 1
       ducc0::c2c(sub1, sub1, {1}, forward, TF(1), nthreads);
       ducc0::c2c(sub2, sub2, {1}, forward, TF(1), nthreads);
-      if (p.type == 2) // interpolation, parts of the input array are zero
+      if (!spreading) // interpolation, parts of the input array are zero
         // do axis 2 in full
         ducc0::c2c(data, data, {2}, forward, TF(1), nthreads);
     }
@@ -85,7 +86,7 @@ void do_fft(const FINUFFT_PLAN_T<TF> &p, std::complex<TF> *fwBatch, bool adjoint
       auto sub4   = ducc0::subarray(sub1, {{}, {}, {y_hi, ducc0::MAXIDX}, {}});
       auto sub5   = ducc0::subarray(sub2, {{}, {}, {0, y_lo}, {}});
       auto sub6   = ducc0::subarray(sub2, {{}, {}, {y_hi, ducc0::MAXIDX}, {}});
-      if (p.type == 1) { // spreading, not all parts of the output array are needed
+      if (spreading) { // spreading, not all parts of the output array are needed
         // do axis 3 in full
         ducc0::c2c(data, data, {3}, forward, TF(1), nthreads);
         // do only parts of axis 2
@@ -97,7 +98,7 @@ void do_fft(const FINUFFT_PLAN_T<TF> &p, std::complex<TF> *fwBatch, bool adjoint
       ducc0::c2c(sub4, sub4, {1}, forward, TF(1), nthreads);
       ducc0::c2c(sub5, sub5, {1}, forward, TF(1), nthreads);
       ducc0::c2c(sub6, sub6, {1}, forward, TF(1), nthreads);
-      if (p.type == 2) { // interpolation, parts of the input array are zero
+      if (!spreading) { // interpolation, parts of the input array are zero
         // do only parts of axis 2
         ducc0::c2c(sub1, sub1, {2}, forward, TF(1), nthreads);
         ducc0::c2c(sub2, sub2, {2}, forward, TF(1), nthreads);
