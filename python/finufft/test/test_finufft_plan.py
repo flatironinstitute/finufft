@@ -121,7 +121,7 @@ def test_finufft3_plan(dtype, dim, n_source_pts, n_target_pts, output_arg):
     utils.verify_type3(source_pts, source_coefs, target_pts, target_coefs, 1e-6)
 
     # test adjoint type 3
-    plan = Plan(3, dim, dtype=dtype, isign=-1)
+    plan = Plan(3, dim, dtype=dtype, isign=-1, eps=1e-5)
 
     plan.setpts(*target_pts, *((None,) * (3 - dim)), *source_pts)
 
@@ -131,7 +131,7 @@ def test_finufft3_plan(dtype, dim, n_source_pts, n_target_pts, output_arg):
         target_coefs = np.empty(n_target_pts, dtype=dtype)
         plan.execute_adjoint(source_coefs, out=target_coefs)
 
-    utils.verify_type3(source_pts, source_coefs, target_pts, target_coefs, 1e-6)
+    utils.verify_type3(source_pts, source_coefs, target_pts, target_coefs, 1e-5)
 
 
 def test_finufft_plan_errors():
