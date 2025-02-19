@@ -549,7 +549,8 @@ void finufft_default_opts_t(finufft_opts *o)
 // PPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPP
 template<typename TF>
 FINUFFT_PLAN_T<TF>::FINUFFT_PLAN_T(int type_, int dim_, const BIGINT *n_modes, int iflag,
-                                   int ntrans_, TF tol_, finufft_opts *opts_, int &ier)
+                                   int ntrans_, TF tol_, const finufft_opts *opts_,
+                                   int &ier)
     : type(type_), dim(dim_), ntrans(ntrans_), tol(tol_)
 // Constructor for finufft_plan object.
 // opts is ptr to a finufft_opts to set options, or nullptr to use defaults.
@@ -748,7 +749,7 @@ FINUFFT_PLAN_T<TF>::FINUFFT_PLAN_T(int type_, int dim_, const BIGINT *n_modes, i
 
 template<typename TF>
 int finufft_makeplan_t(int type, int dim, const BIGINT *n_modes, int iflag, int ntrans,
-                       TF tol, FINUFFT_PLAN_T<TF> **pp, finufft_opts *opts)
+                       TF tol, FINUFFT_PLAN_T<TF> **pp, const finufft_opts *opts)
 // C-API wrapper around the C++ constructor. Writes a pointer to the plan in *pp.
 // Returns ier (warning or error codes as per C interface).
 {
@@ -769,17 +770,17 @@ int finufft_makeplan_t(int type, int dim, const BIGINT *n_modes, int iflag, int 
 // type TF, but it doesn't know for which types it actually should do so.
 // The following two statements instruct it to do that for TF=float and
 // TF=double :  (Reinecke, Sept 2024)
-template int finufft_makeplan_t<float>(int type, int dim, const BIGINT *n_modes,
-                                       int iflag, int ntrans, float tol,
-                                       FINUFFT_PLAN_T<float> **pp, finufft_opts *opts);
-template int finufft_makeplan_t<double>(int type, int dim, const BIGINT *n_modes,
-                                        int iflag, int ntrans, double tol,
-                                        FINUFFT_PLAN_T<double> **pp, finufft_opts *opts);
+template int finufft_makeplan_t<float>(
+    int type, int dim, const BIGINT *n_modes, int iflag, int ntrans, float tol,
+    FINUFFT_PLAN_T<float> **pp, const finufft_opts *opts);
+template int finufft_makeplan_t<double>(
+    int type, int dim, const BIGINT *n_modes, int iflag, int ntrans, double tol,
+    FINUFFT_PLAN_T<double> **pp, const finufft_opts *opts);
 
 // SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS
 template<typename TF>
-int FINUFFT_PLAN_T<TF>::setpts(BIGINT nj, TF *xj, TF *yj, TF *zj, BIGINT nk, TF *s, TF *t,
-                               TF *u) {
+int FINUFFT_PLAN_T<TF>::setpts(BIGINT nj, const TF *xj, const TF *yj, const TF *zj,
+                               BIGINT nk, const TF *s, const TF *t, const TF *u) {
   // Method function to set NU points and do precomputations. Barnett 2020.
   // See ../docs/cguru.doc for current documentation.
   int d = dim; // abbrev for spatial dim
@@ -811,8 +812,8 @@ int FINUFFT_PLAN_T<TF>::setpts(BIGINT nj, TF *xj, TF *yj, TF *zj, BIGINT nk, TF 
   } else { // ------------------------- TYPE 3 SETPTS -----------------------
            // (here we can precompute pre/post-phase factors and plan the t2)
 
-    std::array<TF *, 3> XYZ_in{xj, yj, zj};
-    std::array<TF *, 3> STU_in{s, t, u};
+    std::array<const TF *, 3> XYZ_in{xj, yj, zj};
+    std::array<const TF *, 3> STU_in{s, t, u};
     if (nk < 0) {
       fprintf(stderr, "[%s] nk (%lld) cannot be negative!\n", __func__, (long long)nk);
       return FINUFFT_ERR_NUM_NU_PTS_INVALID;
@@ -862,7 +863,7 @@ int FINUFFT_PLAN_T<TF>::setpts(BIGINT nj, TF *xj, TF *yj, TF *zj, BIGINT nk, TF 
 #pragma omp parallel for num_threads(opts.nthreads) schedule(static)
     for (BIGINT j = 0; j < nj; ++j) {
       for (int idim = 0; idim < dim; ++idim)
-        XYZ[idim][j] = (XYZ_in[idim][j] - t3P.C[idim]) * ig[idim]; // rescale x_j
+        XYZp[idim][j] = (XYZ_in[idim][j] - t3P.C[idim]) * ig[idim]; // rescale x_j
     }
 
     // set up prephase array...
@@ -947,10 +948,12 @@ int FINUFFT_PLAN_T<TF>::setpts(BIGINT nj, TF *xj, TF *yj, TF *zj, BIGINT nk, TF 
   }
   return 0;
 }
-template int FINUFFT_PLAN_T<float>::setpts(BIGINT nj, float *xj, float *yj, float *zj,
-                                           BIGINT nk, float *s, float *t, float *u);
-template int FINUFFT_PLAN_T<double>::setpts(BIGINT nj, double *xj, double *yj, double *zj,
-                                            BIGINT nk, double *s, double *t, double *u);
+template int FINUFFT_PLAN_T<float>::setpts(BIGINT nj, const float *xj, const float *yj,
+                                           const float *zj, BIGINT nk, const float *s,
+                                           const float *t, const float *u);
+template int FINUFFT_PLAN_T<double>::setpts(BIGINT nj, const double *xj, const double *yj,
+                                            const double *zj, BIGINT nk, const double *s,
+                                            const double *t, const double *u);
 
 // ............ end setpts ..................................................
 

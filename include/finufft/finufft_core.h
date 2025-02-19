@@ -139,10 +139,10 @@ template<typename TF> struct FINUFFT_PLAN_T { // the main plan class, fully C++
 
   using TC = std::complex<TF>;
 
-  // These default and delete specifications just state the obvious,
-  // but are here to silence compiler warnings.
   FINUFFT_PLAN_T(int type, int dim, const BIGINT *n_modes, int iflag, int ntrans, TF tol,
-                 finufft_opts *opts, int &ier);
+                 const finufft_opts *opts, int &ier);
+  // These delete specifications just state the obvious,
+  // but are here to silence compiler warnings.
   // Copy construction and assignent are already deleted implicitly
   // because of the unique_ptr member.
   FINUFFT_PLAN_T(const FINUFFT_PLAN_T &)            = delete;
@@ -176,11 +176,12 @@ template<typename TF> struct FINUFFT_PLAN_T { // the main plan class, fully C++
 
   // for t1,2: ptr to user-supplied NU pts (no new allocs).
   // for t3: will become ptr to internally allocated "primed" (scaled) Xp, Yp, Zp vecs
-  std::array<TF *, 3> XYZ = {nullptr, nullptr, nullptr};
+  std::array<const TF *, 3> XYZ = {nullptr, nullptr, nullptr};
 
   // type 3 specific
-  std::array<TF *, 3> STU = {nullptr, nullptr, nullptr}; // ptrs to user's target NU-point
-                                                         // arrays (no new allocs)
+  std::array<const TF *, 3> STU = {nullptr, nullptr, nullptr}; // ptrs to user's target
+                                                               // NU-point arrays (no new
+                                                               // allocs)
   std::vector<TC> prephase; // pre-phase, for all input NU pts
   std::vector<TC> deconv;   // reciprocal of kernel FT, phase, all output NU pts
   std::array<std::vector<TF>, 3> XYZp; // internal primed NU points (x'_j, etc)
@@ -195,7 +196,8 @@ template<typename TF> struct FINUFFT_PLAN_T { // the main plan class, fully C++
   finufft_spread_opts spopts;
 
   // Remaining actions (not create/delete) in guru interface are now methods...
-  int setpts(BIGINT nj, TF *xj, TF *yj, TF *zj, BIGINT nk, TF *s, TF *t, TF *u);
+  int setpts(BIGINT nj, const TF *xj, const TF *yj, const TF *zj, BIGINT nk, const TF *s,
+             const TF *t, const TF *u);
   int execute(std::complex<TF> *cj, std::complex<TF> *fk, bool adjoint = false) const;
   int execute_adjoint(std::complex<TF> *cj, std::complex<TF> *fk) const {
     return execute(cj, fk, true);
@@ -205,6 +207,6 @@ template<typename TF> struct FINUFFT_PLAN_T { // the main plan class, fully C++
 void finufft_default_opts_t(finufft_opts *o);
 template<typename TF>
 int finufft_makeplan_t(int type, int dim, const BIGINT *n_modes, int iflag, int ntrans,
-                       TF tol, FINUFFT_PLAN_T<TF> **pp, finufft_opts *opts);
+                       TF tol, FINUFFT_PLAN_T<TF> **pp, const finufft_opts *opts);
 
 #endif // FINUFFT_CORE_H
