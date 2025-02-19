@@ -189,6 +189,7 @@ static inline void finufft_fft_cleanup_threads [[maybe_unused]] () {
 template<typename TF> struct FINUFFT_PLAN_T;
 template<typename TF> std::vector<int> gridsize_for_fft(const FINUFFT_PLAN_T<TF> &p);
 template<typename TF>
-void do_fft(const FINUFFT_PLAN_T<TF> &p, std::complex<TF> *fwBatch, bool adjoint);
+void do_fft(const FINUFFT_PLAN_T<TF> &p, std::complex<TF> *fwBatch, int ntrans_actual,
+            bool adjoint);
 
 #endif // FINUFFT_INCLUDE_FINUFFT_FFT_H
