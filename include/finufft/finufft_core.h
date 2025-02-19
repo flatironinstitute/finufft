@@ -59,9 +59,9 @@
 #define FINUFFT_LIKELY(x)   (x)
 #endif
 
+#include <array>
 #include <finufft_errors.h>
 #include <memory>
-#include <xsimd/xsimd.hpp>
 
 // All indexing in library that potentially can exceed 2^31 uses 64-bit signed.
 // This includes all calling arguments (eg M,N) that could be huge someday.
@@ -187,8 +187,8 @@ template<typename TF> struct FINUFFT_PLAN_T { // the main plan class, fully C++
   std::array<std::vector<TF>, 3> XYZp; // internal primed NU points (x'_j, etc)
   std::array<std::vector<TF>, 3> STUp; // internal primed targs (s'_k, etc)
   type3params<TF> t3P; // groups together type 3 shift, scale, phase, parameters
-  std::unique_ptr<FINUFFT_PLAN_T<TF>> innerT2plan; // ptr used for type 2 in step 2 of
-                                                   // type 3
+  std::unique_ptr<const FINUFFT_PLAN_T<TF>> innerT2plan; // ptr used for type 2 in step 2
+                                                         // of type 3
 
   // other internal structs
   std::unique_ptr<Finufft_FFT_plan<TF>> fftPlan;
@@ -198,10 +198,10 @@ template<typename TF> struct FINUFFT_PLAN_T { // the main plan class, fully C++
   // Remaining actions (not create/delete) in guru interface are now methods...
   int setpts(BIGINT nj, const TF *xj, const TF *yj, const TF *zj, BIGINT nk, const TF *s,
              const TF *t, const TF *u);
-  int execute(std::complex<TF> *cj, std::complex<TF> *fk, bool adjoint = false) const;
-  int execute_adjoint(std::complex<TF> *cj, std::complex<TF> *fk) const {
-    return execute(cj, fk, true);
-  }
+  int execute_internal(TC *cj, TC *fk, bool adjoint = false, int ntrans_actual = -1,
+                       TC *aligned_scratch = nullptr, size_t scratch_size = 0) const;
+  int execute(TC *cj, TC *fk) const { return execute_internal(cj, fk, false); }
+  int execute_adjoint(TC *cj, TC *fk) const { return execute_internal(cj, fk, true); }
 };
 
 void finufft_default_opts_t(finufft_opts *o);

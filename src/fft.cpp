@@ -19,13 +19,15 @@ template std::vector<int> gridsize_for_fft<float>(const FINUFFT_PLAN_T<float> &p
 template std::vector<int> gridsize_for_fft<double>(const FINUFFT_PLAN_T<double> &p);
 
 template<typename TF>
-void do_fft(const FINUFFT_PLAN_T<TF> &p, std::complex<TF> *fwBatch, bool adjoint) {
+void do_fft(const FINUFFT_PLAN_T<TF> &p, std::complex<TF> *fwBatch, int ntrans_actual,
+            bool adjoint) {
 #ifdef FINUFFT_USE_DUCC0
   size_t nthreads = min<size_t>(MY_OMP_GET_MAX_THREADS(), p.opts.nthreads);
   const auto ns   = gridsize_for_fft(p);
   vector<size_t> arrdims, axes;
-  // FIXME: use thisBatchsize if it is smaller than p.batchSize!
-  arrdims.push_back(size_t(p.batchSize));
+  // ntrans_actual may be smaller than batchSize, which we can use
+  // to our advantage with ducc FFT.
+  arrdims.push_back(size_t(ntrans_actual));
   arrdims.push_back(size_t(ns[0]));
   axes.push_back(1);
   if (p.dim >= 2) {
@@ -118,6 +120,7 @@ void do_fft(const FINUFFT_PLAN_T<TF> &p, std::complex<TF> *fwBatch, bool adjoint
 #endif
 }
 template void do_fft<float>(const FINUFFT_PLAN_T<float> &p, std::complex<float> *fwBatch,
-                            bool adjoint);
+                            int ntrans_actual, bool adjoint);
 template void do_fft<double>(const FINUFFT_PLAN_T<double> &p,
-                             std::complex<double> *fwBatch, bool adjoint);
+                             std::complex<double> *fwBatch, int ntrans_actual,
+                             bool adjoint);

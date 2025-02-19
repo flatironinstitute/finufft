@@ -9,6 +9,7 @@
 #include <iomanip>
 #include <memory>
 #include <vector>
+#include <xsimd/xsimd.hpp>
 
 using namespace finufft;
 using namespace finufft::utils;
@@ -930,15 +931,15 @@ int FINUFFT_PLAN_T<TF>::setpts(BIGINT nj, const TF *xj, const TF *yj, const TF *
     FINUFFT_PLAN_T<TF> *tmpplan;
     int ier = finufft_makeplan_t<TF>(2, d, t2nmodes, fftSign, batchSize, tol, &tmpplan,
                                      &t2opts);
-    innerT2plan.reset(tmpplan);
     if (ier > 1) { // if merely warning, still proceed
       fprintf(stderr, "[%s t3]: inner type 2 plan creation failed with ier=%d!\n",
               __func__, ier);
       return ier;
     }
-    ier = innerT2plan->setpts(nk, STUp[0].data(), STUp[1].data(), STUp[2].data(), 0,
-                              nullptr, nullptr,
-                              nullptr); // note nk = # output points (not nj)
+    ier = tmpplan->setpts(nk, STUp[0].data(), STUp[1].data(), STUp[2].data(), 0, nullptr,
+                          nullptr,
+                          nullptr); // note nk = # output points (not nj)
+    innerT2plan.reset(tmpplan);
     if (ier > 1) {
       fprintf(stderr, "[%s t3]: inner type 2 setpts failed, ier=%d!\n", __func__, ier);
       return ier;
@@ -959,8 +960,8 @@ template int FINUFFT_PLAN_T<double>::setpts(BIGINT nj, const double *xj, const d
 
 // EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
 template<typename TF>
-int FINUFFT_PLAN_T<TF>::execute(std::complex<TF> *cj, std::complex<TF> *fk,
-                                bool adjoint) const {
+int FINUFFT_PLAN_T<TF>::execute_internal(TC *cj, TC *fk, bool adjoint, int ntrans_actual,
+                                         TC *aligned_scratch, size_t scratch_size) const {
   /* See ../docs/cguru.doc for current documentation.
 
    For given (stack of) weights cj or coefficients fk, performs NUFFTs with
@@ -980,28 +981,34 @@ int FINUFFT_PLAN_T<TF>::execute(std::complex<TF> *cj, std::complex<TF> *fk,
   CNTime timer;
   timer.start();
 
+  // if no number of actual transforms has been specified, use the default
+  if (ntrans_actual <= 0) ntrans_actual = ntrans;
+
   if (type != 3) { // --------------------- TYPE 1,2 EXEC ------------------
 
     double t_sprint = 0.0, t_fft = 0.0, t_deconv = 0.0; // accumulated timing
     if (opts.debug)
-      printf("[%s] start ntrans=%d (%d batches, bsize=%d)...\n", __func__, ntrans, nbatch,
-             batchSize);
+      printf("[%s] start ntrans=%d (%d batches, bsize=%d)...\n", __func__, ntrans_actual,
+             nbatch, batchSize);
     // allocate temporary buffers
-    std::vector<TC, xsimd::aligned_allocator<TC, 64>> fwBatch(nf() * batchSize);
-    for (int b = 0; b * batchSize < ntrans; b++) { // .....loop b over batches
+    bool scratch_provided = scratch_size >= size_t(nf() * batchSize);
+    std::vector<TC, xsimd::aligned_allocator<TC, 64>> fwBatch_(
+        scratch_provided ? 0 : nf() * batchSize);
+    TC *fwBatch = scratch_provided ? aligned_scratch : fwBatch_.data();
+    for (int b = 0; b * batchSize < ntrans_actual; b++) { // .....loop b over batches
 
       // current batch is either batchSize, or possibly truncated if last one
-      int thisBatchSize     = std::min(ntrans - b * batchSize, batchSize);
-      int bB                = b * batchSize; // index of vector, since batchsizes same
-      std::complex<TF> *cjb = cj + bB * nj;  // point to batch of user weights
-      std::complex<TF> *fkb = fk + bB * N(); // point to batch of user mode coeffs
+      int thisBatchSize = std::min(ntrans_actual - b * batchSize, batchSize);
+      int bB            = b * batchSize; // index of vector, since batchsizes same
+      TC *cjb           = cj + bB * nj;  // point to batch of user weights
+      TC *fkb           = fk + bB * N(); // point to batch of user mode coeffs
       if (opts.debug > 1)
         printf("[%s] start batch %d (size %d):\n", __func__, b, thisBatchSize);
 
       // STEP 1: (varies by type)
       timer.restart();
       // usually spread/interp to/from fwBatch (vs spreadinterponly: to/from user grid)
-      std::complex<TF> *fwBatch_or_fkb = opts.spreadinterponly ? fkb : fwBatch.data();
+      TC *fwBatch_or_fkb = opts.spreadinterponly ? fkb : fwBatch;
       if ((type == 1) != adjoint) { // spread NU pts X, weights cj, to fw grid
         spreadinterpSortedBatch<TF>(thisBatchSize, *this, fwBatch_or_fkb, cjb, adjoint);
         t_sprint += timer.elapsedsec();
@@ -1009,21 +1016,21 @@ int FINUFFT_PLAN_T<TF>::execute(std::complex<TF> *cj, std::complex<TF> *fk,
           continue;
       } else if (!opts.spreadinterponly) {
         // amplify Fourier coeffs fk into 0-padded fw
-        deconvolveBatch<TF>(thisBatchSize, *this, fkb, fwBatch.data(), adjoint);
+        deconvolveBatch<TF>(thisBatchSize, *this, fkb, fwBatch, adjoint);
         t_deconv += timer.elapsedsec();
       }
       if (!opts.spreadinterponly) { // Do FFT unless spread/interp only...
         // STEP 2: call the FFT on this batch
         timer.restart();
 
-        do_fft(*this, fwBatch.data(), adjoint);
+        do_fft(*this, fwBatch, thisBatchSize, adjoint);
         t_fft += timer.elapsedsec();
         if (opts.debug > 1) printf("\tFFT exec:\t\t%.3g s\n", timer.elapsedsec());
       }
       // STEP 3: (varies by type)
       timer.restart();
       if ((type == 1) != adjoint) { // deconvolve (amplify) fw and shuffle to fk
-        deconvolveBatch<TF>(thisBatchSize, *this, fkb, fwBatch.data(), adjoint);
+        deconvolveBatch<TF>(thisBatchSize, *this, fkb, fwBatch, adjoint);
         t_deconv += timer.elapsedsec();
       } else { // interpolate unif fw grid to NU target pts
         spreadinterpSortedBatch<TF>(thisBatchSize, *this, fwBatch_or_fkb, cjb, adjoint);
@@ -1052,20 +1059,41 @@ int FINUFFT_PLAN_T<TF>::execute(std::complex<TF> *cj, std::complex<TF> *fk,
     double t_pre = 0.0, t_spr = 0.0, t_t2 = 0.0,
            t_deconv = 0.0; // accumulated timings
     if (opts.debug)
-      printf("[%s t3] start ntrans=%d (%d batches, bsize=%d)...\n", __func__, ntrans,
-             nbatch, batchSize);
+      printf("[%s t3] start ntrans=%d (%d batches, bsize=%d)...\n", __func__,
+             ntrans_actual, nbatch, batchSize);
 
     // allocate temporary buffers
-    std::vector<TC> CpBatch((adjoint ? nk : nj) * batchSize);
-    std::vector<TC, xsimd::aligned_allocator<TC, 64>> fwBatch(nf() * batchSize);
+    // we are trying to be clever here and re-use memory whenever possible
+    std::vector<TC, xsimd::aligned_allocator<TC, 64>> buf1, buf2, buf3;
+    TC *CpBatch, *fwBatch, *fwBatch_inner;
+    if (!adjoint) { // we can combine CpBatch and fwBatch_inner!
+      buf1.resize(std::max(nj * batchSize, innerT2plan->nf() * innerT2plan->batchSize));
+      CpBatch = fwBatch_inner = buf1.data();
+      buf2.resize(nf() * batchSize);
+      fwBatch = buf2.data();
+    } else { // we may be able to combine CpBatch and fwBatch!
+      if (innerT2plan->batchSize >= batchSize) {
+        buf1.resize(std::max(nk * batchSize, nf() * batchSize));
+        CpBatch = fwBatch = buf1.data();
+        buf2.resize(innerT2plan->nf() * innerT2plan->batchSize);
+        fwBatch_inner = buf2.data();
+      } else {
+        buf1.resize(nk * batchSize);
+        CpBatch = buf1.data();
+        buf2.resize(nf() * batchSize);
+        fwBatch = buf2.data();
+        buf3.resize(innerT2plan->nf() * innerT2plan->batchSize);
+        fwBatch_inner = buf3.data();
+      }
+    }
 
-    for (int b = 0; b * batchSize < ntrans; b++) { // .....loop b over batches
+    for (int b = 0; b * batchSize < ntrans_actual; b++) { // .....loop b over batches
 
       // batching and pointers to this batch, identical to t1,2 above...
-      int thisBatchSize     = std::min(ntrans - b * batchSize, batchSize);
-      int bB                = b * batchSize;
-      std::complex<TF> *cjb = cj + bB * nj; // batch of input strengths
-      std::complex<TF> *fkb = fk + bB * nk; // batch of output strengths
+      int thisBatchSize = std::min(ntrans_actual - b * batchSize, batchSize);
+      int bB            = b * batchSize;
+      TC *cjb           = cj + bB * nj; // batch of input strengths
+      TC *fkb           = fk + bB * nk; // batch of output strengths
       if (opts.debug > 1)
         printf("[%s t3] start batch %d (size %d):\n", __func__, b, thisBatchSize);
 
@@ -1083,18 +1111,16 @@ int FINUFFT_PLAN_T<TF>::execute(std::complex<TF> *cj, std::complex<TF> *fk,
 
         // STEP 1: spread c'_j batch (x'_j NU pts) into internal fw batch grid...
         timer.restart();
-        spreadinterpSortedBatch<TF>(thisBatchSize, *this, fwBatch.data(), CpBatch.data(),
-                                    adjoint); // X are primed  // FIXME
+        spreadinterpSortedBatch<TF>(thisBatchSize, *this, fwBatch, CpBatch,
+                                    adjoint); // X are primed
         t_spr += timer.elapsedsec();
 
         // STEP 2: type 2 NUFFT from fw batch to user output fk array batch...
         timer.restart();
-        // illegal possible shrink of ntrans *after* plan for smaller last batch:
-        // MR FIXME: this breaks immutability!
-        innerT2plan->ntrans = thisBatchSize; // do not try this at home!
         /* (alarming that FFT not shrunk, but safe, because t2's fwBatch array
        still the same size, as Andrea explained; just wastes a few flops) */
-        innerT2plan->execute(fkb, fwBatch.data(), adjoint); // FIXME
+        innerT2plan->execute_internal(fkb, fwBatch, adjoint, thisBatchSize, fwBatch_inner,
+                                      innerT2plan->nf() * innerT2plan->batchSize);
         t_t2 += timer.elapsedsec();
         // STEP 3: apply deconvolve (precomputed 1/phiHat(targ_k), phasing too)...
         timer.restart();
@@ -1117,13 +1143,13 @@ int FINUFFT_PLAN_T<TF>::execute(std::complex<TF> *cj, std::complex<TF> *fk,
         t_deconv += timer.elapsedsec();
         // STEP 1: adjoint type 2 (i.e. type 1) NUFFT from CpBatch to fwBatch...
         timer.restart();
-        // illegal possible shrink of ntrans *after* plan for smaller last batch:
-        innerT2plan->ntrans = thisBatchSize; // do not try this at home!
-        innerT2plan->execute(CpBatch.data(), fwBatch.data(), adjoint);
+        innerT2plan->execute_internal(CpBatch, fwBatch, adjoint, thisBatchSize,
+                                      fwBatch_inner,
+                                      innerT2plan->nf() * innerT2plan->batchSize);
         t_t2 += timer.elapsedsec();
         // STEP 2: interpolate fwBatch into user output array ...
         timer.restart();
-        spreadinterpSortedBatch<TF>(thisBatchSize, *this, fwBatch.data(), cjb,
+        spreadinterpSortedBatch<TF>(thisBatchSize, *this, fwBatch, cjb,
                                     adjoint); // X are primed
         t_spr += timer.elapsedsec();
         // STEP 3: post-phase (possibly) the c_j output strengths (in place) ...
@@ -1151,10 +1177,12 @@ int FINUFFT_PLAN_T<TF>::execute(std::complex<TF> *cj, std::complex<TF> *fk,
 
   return 0;
 }
-template int FINUFFT_PLAN_T<float>::execute(std::complex<float> *cj,
-                                            std::complex<float> *fk, bool adjoint) const;
-template int FINUFFT_PLAN_T<double>::execute(
-    std::complex<double> *cj, std::complex<double> *fk, bool adjoint) const;
+template int FINUFFT_PLAN_T<float>::execute_internal(
+    std::complex<float> *cj, std::complex<float> *fk, bool adjoint, int ntrans_actual,
+    std::complex<float> *aligned_scratch, size_t scratch_size) const;
+template int FINUFFT_PLAN_T<double>::execute_internal(
+    std::complex<double> *cj, std::complex<double> *fk, bool adjoint, int ntrans_actual,
+    std::complex<double> *aligned_scratch, size_t scratch_size) const;
 
 // DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD
 template<typename TF> FINUFFT_PLAN_T<TF>::~FINUFFT_PLAN_T() {
