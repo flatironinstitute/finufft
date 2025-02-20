@@ -422,12 +422,14 @@ static void deconvolveshuffle3d(int dir, T prefac, const std::vector<T> &ker1,
                                nf2, &fw[np * (nf3 + k3)], modeord);
 }
 
+} // namespace utils
+} // namespace finufft
+
 // --------- batch helper functions for t1,2 exec: ---------------------------
 
 template<typename T>
-static int spreadinterpSortedBatch(int batchSize, const FINUFFT_PLAN_T<T> &p,
-                                   std::complex<T> *fwBatch, std::complex<T> *cBatch,
-                                   bool adjoint)
+int FINUFFT_PLAN_T<T>::spreadinterpSortedBatch(
+    int batchSize, std::complex<T> *fwBatch, std::complex<T> *cBatch, bool adjoint) const
 /*
   Spreads (or interpolates) a batch of batchSize strength vectors in cBatch
   to (or from) the batch of fine working grids fwBatch, using the same set of
@@ -446,61 +448,58 @@ static int spreadinterpSortedBatch(int batchSize, const FINUFFT_PLAN_T<T> &p,
   // omp_sets_nested deprecated, so don't use; assume not nested for 2 to work.
   // But when nthr_outer=1 here, omp par inside the loop sees all threads...
 #ifdef _OPENMP
-  int nthr_outer = p.opts.spread_thread == 1 ? 1 : batchSize;
+  int nthr_outer = opts.spread_thread == 1 ? 1 : batchSize;
 #endif
 #pragma omp parallel for num_threads(nthr_outer)
   for (int i = 0; i < batchSize; i++) {
-    std::complex<T> *fwi = fwBatch + i * p.nf(); // start of i'th fw array in
-                                                 // fwBatch workspace or user array
-    std::complex<T> *ci = cBatch + i * p.nj;     // start of i'th c array in cBatch
-    spreadinterpSorted(p.sortIndices, (UBIGINT)p.nfdim[0], (UBIGINT)p.nfdim[1],
-                       (UBIGINT)p.nfdim[2], (T *)fwi, (UBIGINT)p.nj, p.XYZ[0], p.XYZ[1],
-                       p.XYZ[2], (T *)ci, p.spopts, p.didSort, adjoint);
+    std::complex<T> *fwi = fwBatch + i * nf(); // start of i'th fw array in
+                                               // fwBatch workspace or user array
+    std::complex<T> *ci = cBatch + i * nj;     // start of i'th c array in cBatch
+    spreadinterpSorted(sortIndices, (UBIGINT)nfdim[0], (UBIGINT)nfdim[1],
+                       (UBIGINT)nfdim[2], (T *)fwi, (UBIGINT)nj, XYZ[0], XYZ[1], XYZ[2],
+                       (T *)ci, spopts, didSort, adjoint);
   }
   return 0;
 }
 
 template<typename T>
-static int deconvolveBatch(int batchSize, const FINUFFT_PLAN_T<T> &p,
-                           std::complex<T> *fkBatch, std::complex<T> *fwBatch,
-                           bool adjoint)
+int FINUFFT_PLAN_T<T>::deconvolveBatch(int batchSize, std::complex<T> *fkBatch,
+                                       std::complex<T> *fwBatch, bool adjoint) const
 /*
   Type 1: deconvolves (amplifies) from each interior fw array in fwBatch
   into each output array fk in fkBatch.
   Type 2: deconvolves from user-supplied input fk to 0-padded interior fw,
   again looping over fk in fkBatch and fw in fwBatch.
-  The direction (spread vs interpolate) is set by p.spopts.spread_direction.
+  The direction (spread vs interpolate) is set by spopts.spread_direction
+  and the adjoint parameter.
   This is mostly a loop calling deconvolveshuffle?d for the needed dim, batchSize
   times.
   Barnett 5/21/20, simplified from Malleo 2019 (eg t3 logic won't be in here)
 */
 {
   // since deconvolveshuffle?d are single-thread, omp par seems to help here...
-  int dir = p.spopts.spread_direction;
+  int dir = spopts.spread_direction;
   if (adjoint) dir = 3 - dir;
 #pragma omp parallel for num_threads(batchSize)
   for (int i = 0; i < batchSize; i++) {
-    std::complex<T> *fwi = fwBatch + i * p.nf(); // start of i'th fw array in
-                                                 // wkspace
-    std::complex<T> *fki = fkBatch + i * p.N();  // start of i'th fk array in fkBatch
+    std::complex<T> *fwi = fwBatch + i * nf(); // start of i'th fw array in
+                                               // wkspace
+    std::complex<T> *fki = fkBatch + i * N();  // start of i'th fk array in fkBatch
 
     // pick dim-specific routine from above; note prefactors hardcoded to 1.0...
-    if (p.dim == 1)
-      deconvolveshuffle1d(dir, T(1), p.phiHat[0], p.mstu[0], (T *)fki, p.nfdim[0], fwi,
-                          p.opts.modeord);
-    else if (p.dim == 2)
-      deconvolveshuffle2d(dir, T(1), p.phiHat[0], p.phiHat[1], p.mstu[0], p.mstu[1],
-                          (T *)fki, p.nfdim[0], p.nfdim[1], fwi, p.opts.modeord);
+    if (dim == 1)
+      deconvolveshuffle1d(dir, T(1), phiHat[0], mstu[0], (T *)fki, nfdim[0], fwi,
+                          opts.modeord);
+    else if (dim == 2)
+      deconvolveshuffle2d(dir, T(1), phiHat[0], phiHat[1], mstu[0], mstu[1], (T *)fki,
+                          nfdim[0], nfdim[1], fwi, opts.modeord);
     else
-      deconvolveshuffle3d(dir, T(1), p.phiHat[0], p.phiHat[1], p.phiHat[2], p.mstu[0],
-                          p.mstu[1], p.mstu[2], (T *)fki, p.nfdim[0], p.nfdim[1],
-                          p.nfdim[2], fwi, p.opts.modeord);
+      deconvolveshuffle3d(dir, T(1), phiHat[0], phiHat[1], phiHat[2], mstu[0], mstu[1],
+                          mstu[2], (T *)fki, nfdim[0], nfdim[1], nfdim[2], fwi,
+                          opts.modeord);
   }
   return 0;
 }
-
-} // namespace utils
-} // namespace finufft
 
 // --------------- rest is the five user guru (plan) interface drivers: ---------
 // (not namespaced since have safe names finufft{f}_* )
@@ -1010,13 +1009,13 @@ int FINUFFT_PLAN_T<TF>::execute_internal(TC *cj, TC *fk, bool adjoint, int ntran
       // usually spread/interp to/from fwBatch (vs spreadinterponly: to/from user grid)
       TC *fwBatch_or_fkb = opts.spreadinterponly ? fkb : fwBatch;
       if ((type == 1) != adjoint) { // spread NU pts X, weights cj, to fw grid
-        spreadinterpSortedBatch<TF>(thisBatchSize, *this, fwBatch_or_fkb, cjb, adjoint);
+        spreadinterpSortedBatch(thisBatchSize, fwBatch_or_fkb, cjb, adjoint);
         t_sprint += timer.elapsedsec();
         if (opts.spreadinterponly) // we're done (skip to next iteration of loop)
           continue;
       } else if (!opts.spreadinterponly) {
         // amplify Fourier coeffs fk into 0-padded fw
-        deconvolveBatch<TF>(thisBatchSize, *this, fkb, fwBatch, adjoint);
+        deconvolveBatch(thisBatchSize, fkb, fwBatch, adjoint);
         t_deconv += timer.elapsedsec();
       }
       if (!opts.spreadinterponly) { // Do FFT unless spread/interp only...
@@ -1030,10 +1029,10 @@ int FINUFFT_PLAN_T<TF>::execute_internal(TC *cj, TC *fk, bool adjoint, int ntran
       // STEP 3: (varies by type)
       timer.restart();
       if ((type == 1) != adjoint) { // deconvolve (amplify) fw and shuffle to fk
-        deconvolveBatch<TF>(thisBatchSize, *this, fkb, fwBatch, adjoint);
+        deconvolveBatch(thisBatchSize, fkb, fwBatch, adjoint);
         t_deconv += timer.elapsedsec();
       } else { // interpolate unif fw grid to NU target pts
-        spreadinterpSortedBatch<TF>(thisBatchSize, *this, fwBatch_or_fkb, cjb, adjoint);
+        spreadinterpSortedBatch(thisBatchSize, fwBatch_or_fkb, cjb, adjoint);
         t_sprint += timer.elapsedsec();
       }
     } // ........end b loop
@@ -1111,8 +1110,8 @@ int FINUFFT_PLAN_T<TF>::execute_internal(TC *cj, TC *fk, bool adjoint, int ntran
 
         // STEP 1: spread c'_j batch (x'_j NU pts) into internal fw batch grid...
         timer.restart();
-        spreadinterpSortedBatch<TF>(thisBatchSize, *this, fwBatch, CpBatch,
-                                    adjoint); // X are primed
+        spreadinterpSortedBatch(thisBatchSize, fwBatch, CpBatch,
+                                adjoint); // X are primed
         t_spr += timer.elapsedsec();
 
         // STEP 2: type 2 NUFFT from fw batch to user output fk array batch...
@@ -1149,8 +1148,8 @@ int FINUFFT_PLAN_T<TF>::execute_internal(TC *cj, TC *fk, bool adjoint, int ntran
         t_t2 += timer.elapsedsec();
         // STEP 2: interpolate fwBatch into user output array ...
         timer.restart();
-        spreadinterpSortedBatch<TF>(thisBatchSize, *this, fwBatch, cjb,
-                                    adjoint); // X are primed
+        spreadinterpSortedBatch(thisBatchSize, fwBatch, cjb,
+                                adjoint); // X are primed
         t_spr += timer.elapsedsec();
         // STEP 3: post-phase (possibly) the c_j output strengths (in place) ...
         timer.restart();

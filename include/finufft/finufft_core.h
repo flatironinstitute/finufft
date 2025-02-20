@@ -137,29 +137,37 @@ template<typename T> struct type3params {
 
 template<typename TF> struct FINUFFT_PLAN_T { // the main plan class, fully C++
 
+private:
   using TC = std::complex<TF>;
 
-  FINUFFT_PLAN_T(int type, int dim, const BIGINT *n_modes, int iflag, int ntrans, TF tol,
-                 const finufft_opts *opts, int &ier);
+  int spreadinterpSortedBatch(int batchSize, std::complex<TF> *fwBatch,
+                              std::complex<TF> *cBatch, bool adjoint) const;
+  int deconvolveBatch(int batchSize, std::complex<TF> *fkBatch, std::complex<TF> *fwBatch,
+                      bool adjoint) const;
+
   // These delete specifications just state the obvious,
   // but are here to silence compiler warnings.
   // Copy construction and assignent are already deleted implicitly
   // because of the unique_ptr member.
   FINUFFT_PLAN_T(const FINUFFT_PLAN_T &)            = delete;
   FINUFFT_PLAN_T &operator=(const FINUFFT_PLAN_T &) = delete;
-  ~FINUFFT_PLAN_T();
 
-  int type;                   // transform type (Rokhlin naming): 1,2 or 3
-  int dim;                    // overall dimension: 1,2 or 3
-  int ntrans;                 // how many transforms to do at once (vector or "many" mode)
-  BIGINT nj;                  // num of NU pts in type 1,2 (for type 3, num input x pts)
-  BIGINT nk;                  // number of NU freq pts (type 3 only)
-  TF tol;                     // relative user tolerance
-  int batchSize;              // # strength vectors to group together for FFTW, etc
-  int nbatch;                 // how many batches done to cover all ntrans vectors
+public:
+  int type; // transform type (Rokhlin naming): 1,2 or 3
+  int dim;  // overall dimension: 1,2 or 3
 
+private:
+  int ntrans;    // how many transforms to do at once (vector or "many" mode)
+  BIGINT nj;     // num of NU pts in type 1,2 (for type 3, num input x pts)
+  BIGINT nk;     // number of NU freq pts (type 3 only)
+  TF tol;        // relative user tolerance
+  int batchSize; // # strength vectors to group together for FFTW, etc
+  int nbatch;    // how many batches done to cover all ntrans vectors
+
+public:
   std::array<BIGINT, 3> mstu; // number of modes in x,y,z directions
                               // (historical CMCL names are N1, N2, N3)
+
   // func for total # modes (prod of above three)...
   BIGINT N() const { return mstu[0] * mstu[1] * mstu[2]; }
 
@@ -169,6 +177,7 @@ template<typename TF> struct FINUFFT_PLAN_T { // the main plan class, fully C++
 
   int fftSign; // sign in exponential for NUFFT defn, guaranteed to be +-1
 
+private:
   std::array<std::vector<TF>, 3> phiHat; // FT of kernel in t1,2, on x,y,z-axis mode grid
 
   std::vector<BIGINT> sortIndices; // precomputed NU pt permutation, speeds spread/interp
@@ -192,14 +201,25 @@ template<typename TF> struct FINUFFT_PLAN_T { // the main plan class, fully C++
 
   // other internal structs
   std::unique_ptr<Finufft_FFT_plan<TF>> fftPlan;
+
+public:
   finufft_opts opts; // this and spopts could be made ptrs
+
+private:
   finufft_spread_opts spopts;
+
+  int execute_internal(TC *cj, TC *fk, bool adjoint = false, int ntrans_actual = -1,
+                       TC *aligned_scratch = nullptr, size_t scratch_size = 0) const;
+
+public:
+  FINUFFT_PLAN_T(int type, int dim, const BIGINT *n_modes, int iflag, int ntrans, TF tol,
+                 const finufft_opts *opts, int &ier);
+  ~FINUFFT_PLAN_T();
 
   // Remaining actions (not create/delete) in guru interface are now methods...
   int setpts(BIGINT nj, const TF *xj, const TF *yj, const TF *zj, BIGINT nk, const TF *s,
              const TF *t, const TF *u);
-  int execute_internal(TC *cj, TC *fk, bool adjoint = false, int ntrans_actual = -1,
-                       TC *aligned_scratch = nullptr, size_t scratch_size = 0) const;
+
   int execute(TC *cj, TC *fk) const { return execute_internal(cj, fk, false); }
   int execute_adjoint(TC *cj, TC *fk) const { return execute_internal(cj, fk, true); }
 };
