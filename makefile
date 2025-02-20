@@ -426,7 +426,7 @@ endif
 # python ---------------------------------------------------------------------
 python: $(STATICLIB) $(DYNLIB)
 # note use of CMAKE_ARGS which needs quotes; see scikit-build docs...
-	FINUFFT_DIR=$(FINUFFT) CMAKE_ARGS=$(PY_CMAKE_ARGS) $(PYTHON) -m pip -v install --break-system-packages python/finufft
+	FINUFFT_DIR=$(FINUFFT) CMAKE_ARGS=$(PY_CMAKE_ARGS) $(PYTHON) -m pip -v install python/finufft
 # note to devs: if trouble w/ NumPy, use: pip install ./python --no-deps
 	$(PYTHON) python/finufft/test/run_accuracy_tests.py
 	$(PYTHON) python/finufft/examples/simple1d1.py
