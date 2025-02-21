@@ -631,11 +631,14 @@ FINUFFT_PLAN_T<TF>::FINUFFT_PLAN_T(int type_, int dim_, const BIGINT *n_modes, i
   }
 
   // heuristic to choose default upsampfac... (currently two poss)
-  if (opts.upsampfac == 0.0) {                     // indicates auto-choose
-    const auto density = nj / (N() > 0 ? N() : 1); // dumbinputs allows N()==0
-    opts.upsampfac     = bestUpsamplingFactor<TF>(density, dim, type, tol);
+  if (opts.upsampfac == 0.0) {                                   // indicates auto-choose
+    const auto density = double(nj) / double(N() > 0 ? N() : 1); // dumbinputs allows
+                                                                 // N()==0
+    opts.upsampfac = bestUpsamplingFactor<TF>(opts.nthreads, density, dim, type, tol);
     if (opts.debug > 1)
-      printf("[%s] set auto upsampfac=%.2f\n", __func__, opts.upsampfac);
+      printf("[%s] threads %d, density %.3g, dim %d, nufft type %d, tol %.3g: auto "
+             "upsampfac=%.2f\n",
+             __func__, opts.nthreads, density, dim, type, tol, opts.upsampfac);
   }
   // use opts to choose and write into plan's spread options...
   ier = setup_spreader_for_nufft(spopts, tol, opts, dim);

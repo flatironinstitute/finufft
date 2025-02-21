@@ -6,7 +6,6 @@ import matplotlib.pyplot as plt
 import os
 import pandas as pd
 import sys
-import threading
 
 sys.stdout.reconfigure(line_buffering=True)  # Ensures auto-flushing
 
@@ -24,7 +23,7 @@ def benchmark_function(func, *args, runs=5, **kwargs):
     stdev_runtime = statistics.stdev(runtimes) if runs > 1 else 0.0
     return avg_runtime, stdev_runtime
 
-
+# cache functiojn results with decorator
 def generate_random_data(nufft_type, nufft_sizes, num_pts, dtype):
     """Generates random NUFFT input data in the correct dtype."""
     dim = len(nufft_sizes)
@@ -36,7 +35,7 @@ def generate_random_data(nufft_type, nufft_sizes, num_pts, dtype):
     x = [np.array(2 * np.pi * rng.random(num_pts) - np.pi, dtype=dtype) for _ in range(dim)]
     c = np.array(rng.random(num_pts) + 1j * rng.random(num_pts), dtype=complex_dtype)
 
-    f = (rng.standard_normal(nufft_sizes, dtype=dtype) + 1j * rng.standard_normal(nufft_sizes, dtype=dtype)) if nufft_type == 2 else None
+    f = rng.standard_normal(nufft_sizes, dtype=dtype) + 1j * rng.standard_normal(nufft_sizes, dtype=dtype) if nufft_type == 2 else None
     d = [np.array(2 * np.pi * rng.random(num_pts) - np.pi, dtype=dtype) for _ in range(dim)] if nufft_type == 3 else None
     return x, c, f, d
 
@@ -160,7 +159,7 @@ for n_threads in reversed([16, 1]):
 
 
     test_cases = []
-    for nufft_type in [1, 2]:
+    for nufft_type in [2, 1]:
             for size, desc in [(size_1d, "1D"), (size_2d, "2D"), (size_3d, "3D")]:
                 for num_pts in reversed(num_pts_range(np.prod(size))):
                     test_cases.append({
