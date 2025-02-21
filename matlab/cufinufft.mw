@@ -1,47 +1,40 @@
-% finufft.mw
-% MWrap MEX interface descriptor file for FINUFFT, using the new guru interface.
+% cufinufft.mw
+% MWrap MEX interface descriptor file for cuFINUFFT, using the guru interface.
 % This provides an object-oriented style interface to the guru interface, by
-% mirroring the finufft_plan C++ object with a matlab object "finufft_plan".
+% mirroring the cufinufft_plan C++ object with a matlab object "cufinufft_plan".
 % The OO use makes it compatible only with MATLAB R2008a or later, and octave
-% version 4.4 or later.
+% version 4.4 or later. mexcuda in Matlab introduced in R2015b
 %
 % To match the object name, generated matlab interface is (and must be) called
-% finufft_plan.m; see Path Folders here:
+% cufinufft_plan.m; see Path Folders here:
 % https://www.mathworks.com/help/matlab/matlab_oop/organizing-classes-in-folders.html
 %
+%
 % Hints for linux/GNU build (see ../makefile for definitive build):
-% To generate the MEX C++ file, run these both:
+% Firstly, we need to build libcufinufft.so using cmake.
+% Assuming we are in the root directory of finufft and want to generate libcufinufft.so inside build:
+% cmake -S . -B build -D FINUFFT_USE_CUDA=ON -D FINUFFT_STATIC_LINKING=OFF -D CMAKE_VERBOSE_MAKEFILE:BOOL=ON -D FINUFFT_CUDA_ARCHITECTURES="60;70;80;90"
+% You may adjust the FINUFFT_CUDA_ARCHITECTURES to generate the code you want.
+% Then build the binary library:
+% cmake --build build --verbose
 %
-% mwrap -list -mex finufft -cppcomplex -mb finufft.mw
-% mwrap -mex finufft -c finufft.cpp -cppcomplex finufft.mw
+% For users who are familiar with mwrap, to generate the MEX C++ file, run:
+% mwrap -mex cufinufft -c cufinufft.cu -mb -cppcomplex cufinufft.mw
+% For now, before merged to offical repo,
+% you may need the forked mwrap version to support gpuArray
+% https://github.com/lu1and10/mwrap/tree/gpu
 %
-% Then to compile for matlab:
-% mex finufft.cpp ../lib/libfinufft.a -largeArrayDims -DR2008OO -lfftw3_omp -lfftw3 -lgomp -lm
-% Although you may have to replace -lgomp w/ Matlab's libiomp5 to prevent crashes.
-% And to compile for octave:
-% mkoctfile --mex finufft.cpp ../lib/libfinufft.a -DR2008OO -lfftw3_omp -lfftw3 -lgomp -lm
-% Don't forget to add this directory to your matlab/octave path.
-%
-% See also: finufft?d?.m in this directory for the simple/many interfaces which
-% call finufft_plan.m, or test/guru1dtest.m for direct example.
-%
-% Notes:
-%  0) see mwrap's documentation for how this type of .mw file works:
-%     https://github.com/zgimbutas/mwrap
-%  1) Double and single precision (via floatprec opt).
-%  2) in the FINUFFT library, BIGINT type must be int64_t, as is default.
-%     Since int64_t is hardwired in the below, MEX will break otherwise.
-%  3) only compatible with FINUFFT version>=1.2; supercedes old simple/many
-%     interfaces.
-%  4) after mwrap generates finufft_plan.m from this file, documentation is
-%     prepended to finufft_plan.m (etc) by running ./addmhelp.sh
-%
-% Main author: Libin Lu, started May 2020; edits, ier, docs etc by Alex Barnett.
-% 7/14/20 switched finufft{f}_plan to be ptr to struct.
-% 7/19/20 Alex made opaque C++ plan version storing param info on matlab side.
+% Then to compile for matlab, open matlab in finufft root directory and run:
+% mexcuda -v 'LINKLIBS=$LINKLIBS -Wl,-rpath,/absolute/path/to/finufft/build -Lbuild -lcufinufft' matlab/cufinufft.cu -Iinclude -DR2008OO -largeArrayDims -output matlab/cufinufft
+% '-Lbuild' specifies the relative path where libcufinufft.so is when linking.
+% '-Wl,-rpath,/absolute/path/to/finufft/build' specifies the absolute path where libcufinufft.so is.
+% You may remove '-Wl,-rpath,/absolute/path/to/finufft/build',
+% while you then need to export LD_LIBRARY_PATH to include path to libcufinufft.so
+% to make generated mex file find libcufinufft.so at runtime.
+% To support mexcuda do static linking need more investigation.
 
 % both precisions...
-$ #include <finufft.h>
+$ #include <cufinufft.h>
 
 $ #include <mex.h>
 $ #include <iostream>
@@ -50,10 +43,10 @@ $ #include <math.h>
 
 
 % .........................................................................
-% This C++ code overwrites any properties of finufft_opts *oc with any valid
+% This C++ code overwrites any properties of cufinufft_opts *oc with any valid
 % fields in the matlab struct *om. Note: fftw_{un}lock stuff not included.
 %
-$ void copy_finufft_opts(const mxArray* om, finufft_opts *oc) {
+$ void copy_cufinufft_opts(const mxArray* om, cufinufft_opts *oc) {
 $   if(!mxIsStruct(om))
 $     mexErrMsgIdAndTxt("FINUFFT:inputNotStruct","opts input must be a structure.");
 $   mwIndex idx = 0;
@@ -66,20 +59,14 @@ $     fname[ifield] = mxGetFieldNameByNumber(om,ifield);
 $     if (strcmp(fname[ifield],"debug") == 0) {
 $       oc->debug = (int)round(*mxGetPr(mxGetFieldByNumber(om,idx,ifield)));
 $     }
-$     else if (strcmp(fname[ifield],"spread_debug") == 0) {
-$       oc->spread_debug = (int)round(*mxGetPr(mxGetFieldByNumber(om,idx,ifield)));
+$     else if (strcmp(fname[ifield],"gpu_sort") == 0) {
+$       oc->gpu_sort = (int)round(*mxGetPr(mxGetFieldByNumber(om,idx,ifield)));
 $     }
-$     else if (strcmp(fname[ifield],"spread_sort") == 0) {
-$       oc->spread_sort = (int)round(*mxGetPr(mxGetFieldByNumber(om,idx,ifield)));
+$     else if (strcmp(fname[ifield],"gpu_kerevalmeth") == 0) {
+$       oc->gpu_kerevalmeth = (int)round(*mxGetPr(mxGetFieldByNumber(om,idx,ifield)));
 $     }
-$     else if (strcmp(fname[ifield],"spread_kerevalmeth") == 0) {
-$       oc->spread_kerevalmeth = (int)round(*mxGetPr(mxGetFieldByNumber(om,idx,ifield)));
-$     }
-$     else if (strcmp(fname[ifield],"spread_kerpad") == 0) {
-$       oc->spread_kerpad = (int)round(*mxGetPr(mxGetFieldByNumber(om,idx,ifield)));
-$     }
-$     else if (strcmp(fname[ifield],"fftw") == 0) {
-$       oc->fftw = (int)round(*mxGetPr(mxGetFieldByNumber(om,idx,ifield)));
+$     else if (strcmp(fname[ifield],"gpu_spreadinterponly") == 0) {
+$       oc->gpu_spreadinterponly = (int)round(*mxGetPr(mxGetFieldByNumber(om,idx,ifield)));
 $     }
 $     else if (strcmp(fname[ifield],"modeord") == 0) {
 $       oc->modeord = (int)round(*mxGetPr(mxGetFieldByNumber(om,idx,ifield)));
@@ -87,23 +74,26 @@ $     }
 $     else if (strcmp(fname[ifield],"upsampfac") == 0) {
 $       oc->upsampfac = (double)*mxGetPr(mxGetFieldByNumber(om,idx,ifield));
 $     }
-$     else if (strcmp(fname[ifield],"spread_thread") == 0) {
-$       oc->spread_thread = (int)round(*mxGetPr(mxGetFieldByNumber(om,idx,ifield)));
+$     else if (strcmp(fname[ifield],"gpu_maxbatchsize") == 0) {
+$       oc->gpu_maxbatchsize = (int)round(*mxGetPr(mxGetFieldByNumber(om,idx,ifield)));
 $     }
-$     else if (strcmp(fname[ifield],"maxbatchsize") == 0) {
-$       oc->maxbatchsize = (int)round(*mxGetPr(mxGetFieldByNumber(om,idx,ifield)));
+$     else if (strcmp(fname[ifield],"gpu_maxsubprobsize") == 0) {
+$       oc->gpu_maxsubprobsize = (int)round(*mxGetPr(mxGetFieldByNumber(om,idx,ifield)));
 $     }
-$     else if (strcmp(fname[ifield],"nthreads") == 0) {
-$       oc->nthreads = (int)round(*mxGetPr(mxGetFieldByNumber(om,idx,ifield)));
+$     else if (strcmp(fname[ifield],"gpu_method") == 0) {
+$       oc->gpu_method = (int)round(*mxGetPr(mxGetFieldByNumber(om,idx,ifield)));
 $     }
-$     else if (strcmp(fname[ifield],"spread_nthr_atomic") == 0) {
-$       oc->spread_nthr_atomic = (int)round(*mxGetPr(mxGetFieldByNumber(om,idx,ifield)));
+$     else if (strcmp(fname[ifield],"gpu_binsizex") == 0) {
+$       oc->gpu_binsizex = (int)round(*mxGetPr(mxGetFieldByNumber(om,idx,ifield)));
 $     }
-$     else if (strcmp(fname[ifield],"spread_max_sp_size") == 0) {
-$       oc->spread_max_sp_size = (int)round(*mxGetPr(mxGetFieldByNumber(om,idx,ifield)));
+$     else if (strcmp(fname[ifield],"gpu_binsizey") == 0) {
+$       oc->gpu_binsizey = (int)round(*mxGetPr(mxGetFieldByNumber(om,idx,ifield)));
 $     }
-$     else if (strcmp(fname[ifield],"spreadinterponly") == 0) {
-$       oc->spreadinterponly = (int)round(*mxGetPr(mxGetFieldByNumber(om,idx,ifield)));
+$     else if (strcmp(fname[ifield],"gpu_binsizez") == 0) {
+$       oc->gpu_binsizez = (int)round(*mxGetPr(mxGetFieldByNumber(om,idx,ifield)));
+$     }
+$     else if (strcmp(fname[ifield],"gpu_device_id") == 0) {
+$       oc->gpu_device_id = (int)round(*mxGetPr(mxGetFieldByNumber(om,idx,ifield)));
 $     }
 $     else
 $       continue;
@@ -111,15 +101,9 @@ $   }
 $   mxFree(fname);
 $ }
 
-$ void finufft_mex_setup() {
-$   /* Forces MATLAB to properly initialize their FFTW library. */
-$   mexEvalString("fft(1:8);");
-$ }
+@ cufinufft_plan.m --------------------------------------------
 
-
-@ finufft_plan.m --------------------------------------------
-
-classdef finufft_plan < handle
+classdef cufinufft_plan < handle
 
   properties
     % this is a special property that MWrap uses as an opaque pointer to C++
@@ -141,7 +125,7 @@ classdef finufft_plan < handle
 
   methods
 
-    function plan = finufft_plan(type, n_modes_or_dim, iflag, n_trans, tol, opts)
+    function plan = cufinufft_plan(type, n_modes_or_dim, iflag, n_trans, tol, opts)
     % FINUFFT_PLAN   create guru plan object for one/many general nonuniform FFTs.
 
       plan.floatprec='double';                      % set precision: default
@@ -166,14 +150,13 @@ classdef finufft_plan < handle
       end
       % (checks of type, dim will occur in the C++ library, so omit them above)
 
-      # finufft_mex_setup();
-      # finufft_opts* o = new finufft_opts();
+      # cufinufft_opts* o = new cufinufft_opts();
       if strcmp(plan.floatprec,'double')
-        # finufft_plan* p = new finufft_plan();
-        # finufft_default_opts(finufft_opts* o);
+        # cufinufft_plan* p = new cufinufft_plan();
+        # cufinufft_default_opts(cufinufft_opts* o);
       else
-        # finufftf_plan* p = new finufftf_plan();
-        # finufftf_default_opts(finufft_opts* o);
+        # cufinufftf_plan* p = new cufinufftf_plan();
+        # cufinufft_default_opts(cufinufft_opts* o);
       end
       plan.mwptr = p;   % crucial: save the opaque ptr (p.12 of MWrap manual)
       plan.dim = dim;   % save other stuff to avoid having to access via C++...
@@ -183,16 +166,16 @@ classdef finufft_plan < handle
       % Note the peculiarity that mwrap only accepts a double for n_trans, even
       % though it's declared int. It complains, also with int64 for nj, etc :(
 
-      % replace in finufft_opts struct whichever fields are in incoming opts...
-      # copy_finufft_opts(mxArray opts, finufft_opts* o);
+      % replace in cufinufft_opts struct whichever fields are in incoming opts...
+      # copy_cufinufft_opts(mxArray opts, cufinufft_opts* o);
       if strcmp(plan.floatprec,'double')
         tol = double(tol);   % scalar type must match for mwrap>=0.33.11
-        # int ier = finufft_makeplan(int type, int dim, int64_t[3] n_modes, int iflag, int n_trans, double tol, finufft_plan* plan, finufft_opts* o);
+        # int ier = cufinufft_makeplan(int type, int dim, int64_t[3] n_modes, int iflag, int n_trans, double tol, cufinufft_plan* plan, cufinufft_opts* o);
       else
         tol = single(tol);   % ditto
-        # int ier = finufftf_makeplan(int type, int dim, int64_t[3] n_modes, int iflag, int n_trans, float tol, finufftf_plan* plan, finufft_opts* o);
+        # int ier = cufinufftf_makeplan(int type, int dim, int64_t[3] n_modes, int iflag, int n_trans, float tol, cufinufftf_plan* plan, cufinufft_opts* o);
       end
-      # delete(finufft_opts* o);
+      # delete(cufinufft_opts* o);
       errhandler(ier);             % convert C++ codes to matlab-style errors
     end
 
@@ -201,17 +184,17 @@ classdef finufft_plan < handle
 
       % fill missing inputs with empties of correct type
       if strcmp(plan.floatprec,'double')
-        emp = double([]);
+        emp = gpuArray(double([]));
       else
-        emp = single([]);
+        emp = gpuArray(single([]));
       end
-      if nargin<3, yj=emp; end
-      if nargin<4, zj=emp; end
-      if nargin<5, s=emp; end
-      if nargin<6, t=emp; end
-      if nargin<7, u=emp; end
+      if nargin<3 || numel(yj)==0, yj=emp; end
+      if nargin<4 || numel(zj)==0, zj=emp; end
+      if nargin<5 || numel(s)==0, s=emp; end
+      if nargin<6 || numel(t)==0, t=emp; end
+      if nargin<7 || numel(u)==0, u=emp; end
       % get number(s) of NU pts (also validates the NU pt array sizes)...
-      [nj, nk] = valid_setpts(0, plan.type, plan.dim, xj, yj, zj, s, t, u);
+      [nj, nk] = valid_setpts(1,plan.type, plan.dim, xj, yj, zj, s, t, u);
       plan.nj = nj;            % save to avoid having to query the C++ plan
       plan.nk = nk;            % "
       % Force MATLAB to preserve the memory of xj/yj/zj by storing them as class
@@ -222,9 +205,9 @@ classdef finufft_plan < handle
       plan.yj = yj;
       plan.zj = zj;
       if strcmp(plan.floatprec,'double')
-        # int ier = finufft_setpts(finufft_plan plan, int64_t nj, double[] xj, double[] yj, double[] zj, int64_t nk, double[] s, double[] t, double[] u);
+        # int ier = cufinufft_setpts(cufinufft_plan plan, int nj, gpu double[] xj, gpu double[] yj, gpu double[] zj, int nk, gpu double[] s, gpu double[] t, gpu double[] u);
       else
-        # int ier = finufftf_setpts(finufftf_plan plan, int64_t nj, float[] xj, float[] yj, float[] zj, int64_t nk, float[] s, float[] t, float[] u);
+        # int ier = cufinufftf_setpts(cufinufftf_plan plan, int nj, gpu float[] xj, gpu float[] yj, gpu float[] zj, int nk, gpu float[] s, gpu float[] t, gpu float[] u);
       end
       errhandler(ier);
     end
@@ -233,8 +216,8 @@ classdef finufft_plan < handle
     % EXECUTE   execute single or many-vector FINUFFT transforms in a plan.
 
       % check if data_in is gpuArray
-      if finufft_isgpuarray(data_in)
-        error('FINUFFT:badDataDevice','input data must be a cpuArray');
+      if ~finufft_isgpuarray(data_in)
+        error('FINUFFT:badDataDevice','input data must be a gpuArray');
       end
 
       % get shape info from the matlab-side plan (since can't pass "dot"
@@ -256,23 +239,23 @@ classdef finufft_plan < handle
       end
       if plan.type == 1
         if strcmp(plan.floatprec,'double')
-          # int ier = finufft_execute(finufft_plan plan, dcomplex[] data_in, output dcomplex[ncoeffs] result);
+          # int ier = cufinufft_execute(cufinufft_plan plan, gpu dcomplex[] data_in, gpu output dcomplex[ncoeffs] result);
         else
-          # int ier = finufftf_execute(finufftf_plan plan, fcomplex[] data_in, output fcomplex[ncoeffs] result);
+          # int ier = cufinufftf_execute(cufinufftf_plan plan, gpu fcomplex[] data_in, gpu output fcomplex[ncoeffs] result);
         end
         % make modes output correct shape; when d<3 squeeze removes unused dims...
         result = squeeze(reshape(result, [ms mt mu n_trans]));
       elseif plan.type == 2
         if strcmp(plan.floatprec,'double')
-          # int ier = finufft_execute(finufft_plan plan, output dcomplex[nj, n_trans] result, dcomplex[] data_in);
+          # int ier = cufinufft_execute(cufinufft_plan plan, gpu output dcomplex[nj, n_trans] result, gpu dcomplex[] data_in);
         else
-          # int ier = finufftf_execute(finufftf_plan plan, output fcomplex[nj, n_trans] result, fcomplex[] data_in);
+          # int ier = cufinufftf_execute(cufinufftf_plan plan, gpu output fcomplex[nj, n_trans] result, gpu fcomplex[] data_in);
         end
       elseif plan.type == 3
         if strcmp(plan.floatprec,'double')
-          # int ier = finufft_execute(finufft_plan plan, dcomplex[] data_in, output dcomplex[nk, n_trans] result);
+          # int ier = cufinufft_execute(cufinufft_plan plan, gpu dcomplex[] data_in, gpu output dcomplex[nk, n_trans] result);
         else
-          # int ier = finufftf_execute(finufftf_plan plan, fcomplex[] data_in, output fcomplex[nk, n_trans] result);
+          # int ier = cufinufftf_execute(cufinufftf_plan plan, gpu fcomplex[] data_in, gpu output fcomplex[nk, n_trans] result);
         end
       end
       errhandler(ier);
@@ -284,9 +267,9 @@ classdef finufft_plan < handle
     % plan goes out of scope.
       if ~isempty(plan.mwptr)    % catch octave's allowance of >1 deletings!
         if strcmp(plan.floatprec,'double')
-          # finufft_destroy(finufft_plan plan);
+          # cufinufft_destroy(cufinufft_plan plan);
         else
-          # finufftf_destroy(finufftf_plan plan);
+          # cufinufftf_destroy(cufinufftf_plan plan);
         end
         plan.mwptr = '';         % we use to mean "destroyed on the C++ side"
       end
