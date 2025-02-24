@@ -974,6 +974,27 @@ int FINUFFT_PLAN_T<TF>::execute_internal(TC *cj, TC *fk, bool adjoint, int ntran
    For cases of ntrans>1, performs work in blocks of size up to batchSize.
    Return value 0 (no error diagnosis yet).
    Barnett 5/20/20, based on Malleo 2019.
+
+   Additional parameters introducd by MR, 02/2025
+
+   adjoint: if false, behave as before; if true, compute the adjoint of the
+     planned transform, i.e.:
+     - if type is 1, perform an analogous type 2 with opposite isign
+     - if type is 2, perform an analogous type 1 with opposite isign
+     - if type is 3, perform the planned transform "backwards" and with opposite isign
+
+   ntrans_actual:
+     Helper variable for specifying the nubr of transforms to execute in one go
+     when calling the "inner" NUFFT during type 3 plan execution
+     - <= 0: behave as before
+     - 0 < ntrans_actual <= batchSize: instead of doing ntrans transforms,
+         perform only ntrans_actual
+
+   scratch_size, aligned_scratch:
+     Helpers to avoid repeated allocation/deallocation of scrach space in the
+     "inner" NUFFT during type 3 plan execution
+     If scratch_size>0. then aligned_scratch points to FFTW-aligned storage with
+     at least scratch_size entries. This can be used as scratch space.
 */
   CNTime timer;
   timer.start();
