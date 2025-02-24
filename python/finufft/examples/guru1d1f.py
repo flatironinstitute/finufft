@@ -20,7 +20,7 @@ n_modes[0] = N
 strt = time.time()
 
 #plan
-plan = fp.Plan(1,(N,),dtype='single')
+plan = fp.Plan(1,(N,),dtype='complex64')
 
 #set pts
 plan.setpts(x)

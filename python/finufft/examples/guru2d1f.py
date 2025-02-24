@@ -34,7 +34,7 @@ nufft_type = 1
 
 # instantiate the plan (note n_trans must be set here), also setting tolerance:
 t0 = time.time()
-plan = finufft.Plan(nufft_type, (N1, N2), eps=1e-4, n_trans=K, dtype='float32')
+plan = finufft.Plan(nufft_type, (N1, N2), eps=1e-4, n_trans=K, dtype='complex64')
 
 # set the nonuniform points
 plan.setpts(x, y)
