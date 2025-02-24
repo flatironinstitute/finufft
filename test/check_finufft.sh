@@ -101,7 +101,7 @@ if [[ $E -eq 0 ]]; then echo passed; elif [[ $E -eq $SIGSEGV ]]; then echo crash
 
 ((N++))
 T=spreadinterp1d_test$PRECSUF
-./$T$FEX 1e2 2e2 $FINUFFT_REQ_TOL 0 2 2.0 2>$DIR/$T.err.out | tee $DIR/$T.out
+./$T$FEX 1e2 2e2 $FINUFFT_REQ_TOL 0 2 2.0 $CHECK_TOL 2>$DIR/$T.err.out | tee $DIR/$T.out
 E=${PIPESTATUS[0]}
 if [[ $E -eq 0 ]]; then echo passed; elif [[ $E -eq $SIGSEGV ]]; then echo crashed; ((CRASHES++)); else echo failed; ((FAILS++)); fi
 

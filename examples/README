@@ -1,14 +1,58 @@
 This directory contains examples calling FINUFFT from C++ (the .cpp files)
-and from C (the .c files), in double and in single precision.
+and from C (the .c files), in double and single precision.
 
-They are compiled by commands in ../makefile via "make examples".
+Single vs double precision source codes are separate: the suffix "f"
+which distinguishes simple1d1f.cpp from simple1d1.cpp indicates
+single-precision as opposed to double-precision. No fancy macros are
+used to build these files, so that the user can see how to use them as
+clearly as possible.
 
-Single vs double precision source codes are separate:
-the suffix "f" which distinguishes simple1d1f.cpp from simple1d1.cpp
-indicates single-precision as opposed to double-precision.
+The suffix "c" indicates a C language (as opposed to C++) demo.
+(For calling from Fortran, see the demos in ../fortran/examples)
 
-The suffix "c" indicates a C (as opposed to C++) demo.
+For each example, an exit code 0 indicates success, otherwise failure, usually
+taken from FINUFFT's exit code. These examples do not perform pass-fail math
+tests, rather simply report errors to stdout. The user must check error by eye.
 
-For calling from Fortran, see the demos in ../fortran/examples
+They are compiled in ../makefile via the task "make examples", or...
 
-Alex Barnett 12/6/17; 7/1/20.
+
+COMPILATION INSTRUCTIONS for each example
+-----------------------------------------
+
+To compile any example directly, working in this directory, one may use
+(taking simple1d1 as our example) one of the following. We assume a Linux/GNU
+environment. -lm is not always needed. Please read all the options below.
+For all C language examples (*c.c and *cf.c), use gcc (not g++) and append:
+-lstdc++
+
+DYNAMIC FINUFFT LIBRARY:
+
+Multi-threaded:
+g++ -fopenmp simple1d1.cpp -I../include ../lib/libfinufft.so -o simple1d1 -lm
+
+Single-threaded:
+g++ simple1d1.cpp -I../include ../lib/libfinufft.so -o simple1d1 -lm
+
+If you want a completely portable executable:
+g++ -fopenmp simple1d1.cpp -o simple1d1 -I../include -Wl,-rpath,$FINUFFT/lib/ -lfinufft
+where ``$FINUFFT`` must be replaced by (or be an environment variable
+set to) the absolute install path for the FINUFFT repository. Notice
+how ``rpath`` was used to make an executable that may be called from,
+or moved to, anywhere.
+
+STATIC FINUFFT LIBRARY:
+
+Multi-threaded:
+g++ -fopenmp simple1d1.cpp -I../include ../lib-static/libfinufft.a -o simple1d1 -lm
+
+Single-threaded:
+g++ simple1d1.cpp -I../include ../lib-static/libfinufft.a -o simple1d1 -lm
+
+For static linking, if the default FFTW3 used (not FFTW=DUCC make option), append
+these libraries to compile command:  -lfftw3 -lfftw3_omp -lfftw3f -lfftw3f_omp
+You may omit the _omp ones here of course if single-threaded.
+Add -static also to make the executable itself static.
+
+
+Alex Barnett 12/6/17; 7/1/20; 2/17/25.

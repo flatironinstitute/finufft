@@ -1,13 +1,8 @@
 /* Demonstrate guru FINUFFT interface performing a stack of 1d type 1
    transforms in a single execute call. See guru1d1.cpp for other guru
-   features demonstrated.
-
-   Compile on linux with (or use the ../makefile):
-   g++ -fopenmp gurumany1d1.cpp -I../include ../lib/libfinufft.so -o gurumany1d1
-
+   features demonstrated. Barnett 11/22/23
+   To compile, see README.
    Usage: ./gurumany1d1           (exit code 0 indicates success)
-
-   Barnett 11/22/23
 */
 
 // this is all you must include for the finufft lib...

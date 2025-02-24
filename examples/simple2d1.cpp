@@ -12,13 +12,7 @@ int main(int argc, char *argv[]) {
 
   /* Simple 2D type-1 example of calling the FINUFFT library from C++, using plain
      arrays of C++ complex numbers, with a math test. Double precision version.
-
-     Compile multithreaded with
-     g++ -fopenmp simple2d1.cpp -I ../src ../lib-static/libfinufft.a -o simple2d1 -lfftw3
-     -lfftw3_omp -lm single core with: g++ simple2d1.cpp -I ../src
-     ../lib-static/libfinufft.a -o simple2d1 -lfftw3 -lm
-
-     Usage:  ./simple2d1
+     To compile, see README. Usage:  ./simple2d1
   */
 
   int M      = 1e6;  // number of nonuniform points
