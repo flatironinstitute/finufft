@@ -18,12 +18,12 @@ foreach(srcfile ${test_src})
         ${executable}
         PROPERTIES
             LINKER_LANGUAGE CUDA
-            CUDA_ARCHITECTURES "${FINUFFT_CUDA_ARCHITECTURES}"
+            CUDA_ARCHITECTURES "${CMAKE_CUDA_ARCHITECTURES}"
     )
     message(
         STATUS
         "Adding test ${executable}"
-        " with CUDA_ARCHITECTURES=${FINUFFT_CUDA_ARCHITECTURES}"
+        " with CUDA_ARCHITECTURES=${CMAKE_CUDA_ARCHITECTURES}"
         " and INCLUDE=${CUFINUFFT_INCLUDE_DIRS}"
     )
 endforeach()
