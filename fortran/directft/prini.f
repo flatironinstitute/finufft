@@ -132,7 +132,7 @@ c
         do 1200 i=1,1000
 c
         if(a(i) .eq. ast) goto 1400
-        c(i)=a(i)       
+        c(i)=a(i)
         iadd=i
  1200 continue
 c

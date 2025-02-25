@@ -45,7 +45,7 @@ library.....
  - jax waiting on this
  - ask Robert: unclear why some fftw_free or alloc are mutexed and not others?
  - ahb tested w/ all make tasks.]
- 
+
 GPU: PR 330: deal w/ cuda streams     - difficult for ahb to test
  - jax waiting on this
  - multicoil MRI users have opinions
@@ -55,7 +55,7 @@ remove obsolete bkw-compat (nufft_opts) ?
 
 wrappers....
 
-Libin to fix (1,M) vs (M,) Py issue #367 
+Libin to fix (1,M) vs (M,) Py issue #367
 
 [Libin did PR for #359, but not closed? I tested py and closed]
 
@@ -141,4 +141,3 @@ CI is not mentioned.
 #569 ? onedim_fseries_kernel  ... was not brought in
 
 Can I kill .travis.yml ? (3 yrs old - what's it for?)
-

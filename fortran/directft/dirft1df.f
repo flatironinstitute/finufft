@@ -1,4 +1,4 @@
-cc Copyright (C) 2004-2009: Leslie Greengard and June-Yub Lee 
+cc Copyright (C) 2004-2009: Leslie Greengard and June-Yub Lee
 cc Contact: greengard@cims.nyu.edu
 cc
 cc This software is being released under a FreeBSD license
@@ -14,7 +14,7 @@ c ----------------------------------------------------------------------
 c     direct computation of nonuniform FFT
 c
 c                   nj
-c     fk(k1)    =  SUM cj(j) exp(+/-i k1 xj(j)) 
+c     fk(k1)    =  SUM cj(j) exp(+/-i k1 xj(j))
 c                  j=1
 c
 c     for -ms/2 <= k1 <= (ms-1)/2
@@ -65,8 +65,8 @@ c***********************************************************************
 c ----------------------------------------------------------------------
 c     direct computation of nonuniform FFT
 c
-c     cj(j) = SUM   fk(k1) exp(+/-i k1 xj(j)) 
-c             k1  
+c     cj(j) = SUM   fk(k1) exp(+/-i k1 xj(j))
+c             k1
 c                            for j = 1,...,nj
 c
 c     where -ms/2 <= k1 <= (ms-1)/2
@@ -110,8 +110,8 @@ c ----------------------------------------------------------------------
 c     direct computation of nonuniform FFT
 c
 c              nj
-c     fk(k) = SUM cj(j) exp(+/-i s(k) xj(j)) 
-c             j=1                   
+c     fk(k) = SUM cj(j) exp(+/-i s(k) xj(j))
+c             j=1
 c
 c                    for k = 1, ..., nk
 c

@@ -10,7 +10,7 @@ namespace cufinufft {
 namespace spreadinterp {
 
 template<typename T>
-static __forceinline__ __device__ constexpr T cudaFMA(const T a, const T b, const T c) {
+static constexpr __forceinline__ __device__ T cudaFMA(const T a, const T b, const T c) {
   if constexpr (std::is_same_v<T, float>) {
     // fused multiply-add, round to nearest even
     return __fmaf_rn(a, b, c);

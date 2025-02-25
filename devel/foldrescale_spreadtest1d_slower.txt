@@ -68,4 +68,3 @@ spreadinterp 1D, 8e+06 U pts, dir=2, tol=1e-06: nspread=7
 	t2 spreading loop: 	0.197 s
     8e+06 NU pts in 0.205 s 	3.9e+07 pts/s 	2.73e+08 spread pts/s
     max rel err in values at NU pts: 1.13e-06
-

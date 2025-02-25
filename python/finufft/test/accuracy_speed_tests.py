@@ -137,7 +137,7 @@ def accuracy_speed_tests(num_nonuniform_points,num_uniform_points,eps):
 		Xest[ii]=np.sum(fk[dtest,:,:] * np.exp(1j*(Ks*xj[ii]+Kt*yj[ii])))
 		Xtrue[ii]=cj[dtest,ii]
 	print_report('finufft2d2many',elapsed,Xest,Xtrue,ndata*nj)
-	
+
 	# 2d3
 	x=np.random.rand(nj)*2*math.pi-math.pi
 	y=np.random.rand(nj)*2*math.pi-math.pi

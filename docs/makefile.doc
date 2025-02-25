@@ -1,4 +1,5 @@
-Makefile for FINUFFT library. Please specify your task:
+make[1]: Entering directory '/home/marco/repos/finufft'
+Makefile for FINUFFT CPU library. Please specify your task:
  make lib - build the main library (in lib/ and lib-static/)
  make examples - compile and run all codes in examples/
  make test - compile and run quick math validation tests
@@ -22,3 +23,4 @@ Make options:
  You must at least 'make objclean' before changing such options!
 
 Also see docs/install.rst and docs/README
+make[1]: Leaving directory '/home/marco/repos/finufft'

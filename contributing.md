@@ -1,4 +1,4 @@
-This repository is formatted according to the .clang-format in the root directory. 
+This repository is formatted according to the .clang-format in the root directory.
 Please enable the reformatting hook before committing your changes.
 See [pre-commit](https://pre-commit.com/) for more information.
 A quick summary:

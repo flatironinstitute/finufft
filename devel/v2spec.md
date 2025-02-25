@@ -47,7 +47,7 @@ int finufft1d1(BIGINT nj,FLT* xj,CPX* cj,int iflag,FLT eps,BIGINT ms,
   return ier;
 }
 
-int invokeGuruInterface(int n_dims, int type, int n_transf, BIGINT nj, 
+int invokeGuruInterface(int n_dims, int type, int n_transf, BIGINT nj,
 FLT* xj,FLT *yj, FLT *zj, CPX* cj,int iflag, FLT eps, BIGINT *n_modes, BIGINT nk, FLT *s, FLT *t,  FLT *u,  CPX* fk, nufft_opts *opts_ptr)
 {
   finufft_plan plan;
@@ -158,7 +158,7 @@ finufft.destroy(plan)
 N=2    # now N is interpreted as the dim ? or have separate dim argument??
 plan = finufft.plan(3, N, ntransf, isign, tol)
 # (set x,y, sx, sy)
-finufft.set_nu_pts(plan, x,y,None, sx,sy,None)  # here sx,sy,sz are output NU  
+finufft.set_nu_pts(plan, x,y,None, sx,sy,None)  # here sx,sy,sz are output NU
 finufft.execute(plan, c, f)    # reads c and writes to f.
 # note c, f size must match ntransf
 finufft.destroy(plan)

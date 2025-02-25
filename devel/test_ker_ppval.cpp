@@ -61,9 +61,9 @@ static inline void evaluate_kernel_vector(FLT *ker, const FLT *args, const FLT b
 {
 #pragma omp simd
   for (int i = 0; i < w; i++) ker[i] = exp(beta * sqrt((FLT)1.0 - c * args[i] * args[i]));
-    // gcc 5.4 can't simd the combined loop, hence we split the
-    // out-of-support test to subsequent loop...
-    // This check loop prevents getting 0.2s (600 Meval/s):
+  // gcc 5.4 can't simd the combined loop, hence we split the
+  // out-of-support test to subsequent loop...
+  // This check loop prevents getting 0.2s (600 Meval/s):
 #pragma omp simd
   for (int i = 0; i < w; i++)
     if (fabs(args[i]) >= (FLT)w / 2) // note fabs not abs!
