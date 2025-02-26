@@ -590,8 +590,8 @@ FINUFFT_PLAN_T<TF>::FINUFFT_PLAN_T(int type_, int dim_, const BIGINT *n_modes, i
 
 #ifdef _OPENMP
   // choose overall # threads...
-  int ompmaxnthr = MY_OMP_GET_MAX_THREADS();
-  int nthr       = ompmaxnthr; // default: use as many as OMP gives us
+  int ompmaxnthr = getPhysicalCoreCount();
+  int nthr       = ompmaxnthr; // default: use as many physical cores as possible
   // (the above could be set, or suggested set, to 1 for small enough problems...)
   if (opts.nthreads > 0) {
     nthr = opts.nthreads; // user override, now without limit
@@ -609,6 +609,9 @@ FINUFFT_PLAN_T<TF>::FINUFFT_PLAN_T(int type_, int dim_, const BIGINT *n_modes, i
             __func__, opts.nthreads);
 #endif
   opts.nthreads = nthr; // store actual # thr planned for
+  if (opts.debug > 1) {
+    printf("[%s] opts.nthreads=%d\n", __func__, nthr);
+  }
   // (this sets/limits all downstream spread/interp, 1dkernel, and FFT thread counts...)
 
   // choose batchSize for types 1,2 or 3... (uses int ceil(b/a)=1+(b-1)/a trick)

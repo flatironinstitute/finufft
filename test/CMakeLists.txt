@@ -36,11 +36,10 @@ target_compile_features(testutils PRIVATE cxx_std_17)
 finufft_link_test(testutils)
 add_test(NAME run_testutils COMMAND testutils WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
 
-if(NOT FINUFFT_USE_DUCC0)
+if(NOT FINUFFT_USE_DUCC0 AND FINUFFT_USE_OPENMP)
     add_executable(fftw_lock_test fftw_lock_test.cpp)
     target_compile_features(fftw_lock_test PRIVATE cxx_std_17)
     finufft_link_test(fftw_lock_test)
-
     add_test(NAME run_fftw_lock_test COMMAND fftw_lock_test WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
 endif()
 

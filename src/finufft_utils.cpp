@@ -4,6 +4,19 @@
 // For self-test see ../test/testutils.cpp.      Barnett 2017-2020.
 
 #include <cstdint>
+#include <iostream>
+#include <string>
+
+#if defined(_WIN32)
+#include <vector>
+#include <windows.h>
+#elif defined(__APPLE__)
+#include <sys/sysctl.h>
+#include <sys/types.h>
+#elif defined(__linux__)
+#include <fstream>
+#include <set>
+#endif
 
 #include <finufft/finufft_utils.hpp>
 
@@ -55,6 +68,102 @@ double CNTime::elapsedsec() const
                           .count();
   const double nowsec = double(now) * 1e-6;
   return nowsec - initial;
+}
+
+// Returns the number of physical CPU cores (excluding hyper-threaded logical cores)
+int getPhysicalCoreCount() {
+  int physicalCoreCount = 0;
+
+#if defined(_WIN32)
+  // Determine the size of the buffer.
+  DWORD bufferSize = 0;
+  if (GetLogicalProcessorInformation(nullptr, &bufferSize) == FALSE &&
+      GetLastError() != ERROR_INSUFFICIENT_BUFFER) {
+    // Leave physicalCoreCount as 0 if the call fails.
+    return physicalCoreCount;
+  }
+
+  // Calculate the number of entries and allocate a vector.
+  size_t entryCount = bufferSize / sizeof(SYSTEM_LOGICAL_PROCESSOR_INFORMATION);
+  std::vector<SYSTEM_LOGICAL_PROCESSOR_INFORMATION> procInfo(entryCount);
+  if (GetLogicalProcessorInformation(procInfo.data(), &bufferSize) != FALSE) {
+    for (const auto &info : procInfo) {
+      if (info.Relationship == RelationProcessorCore) ++physicalCoreCount;
+    }
+  }
+
+#elif defined(__APPLE__)
+  // Retrieve the number of physical cores using sysctl.
+  int cores   = 0;
+  size_t size = sizeof(cores);
+  if (sysctlbyname("hw.physicalcpu", &cores, &size, nullptr, 0) == 0)
+    physicalCoreCount = static_cast<unsigned int>(cores);
+
+#elif defined(__linux__)
+  // Parse /proc/cpuinfo to count unique (physical id, core id) pairs.
+  std::ifstream cpuinfo("/proc/cpuinfo");
+  if (!cpuinfo.is_open()) return physicalCoreCount;
+
+  std::set<std::string> coreSet;
+  std::string line;
+  int physicalId = -1, coreId = -1;
+  bool foundPhysical = false, foundCore = false;
+
+  while (std::getline(cpuinfo, line)) {
+    // An empty line indicates the end of a processor block.
+    if (line.empty()) {
+      if (foundPhysical && foundCore)
+        coreSet.insert(std::to_string(physicalId) + "-" + std::to_string(coreId));
+      // Reset for the next processor block.
+      foundPhysical = foundCore = false;
+      physicalId = coreId = -1;
+    } else {
+      auto colonPos = line.find(':');
+      if (colonPos == std::string::npos) continue;
+      std::string key   = line.substr(0, colonPos);
+      std::string value = line.substr(colonPos + 1);
+      // Trim whitespace.
+      key.erase(key.find_last_not_of(" \t") + 1);
+      value.erase(0, value.find_first_not_of(" \t"));
+
+      if (key == "physical id") {
+        physicalId    = std::stoi(value);
+        foundPhysical = true;
+      } else if (key == "core id") {
+        coreId    = std::stoi(value);
+        foundCore = true;
+      }
+    }
+  }
+  // In case the file doesn't end with an empty line.
+  if (foundPhysical && foundCore)
+    coreSet.insert(std::to_string(physicalId) + "-" + std::to_string(coreId));
+
+  if (!coreSet.empty()) {
+    physicalCoreCount = static_cast<unsigned int>(coreSet.size());
+  } else {
+    // Fallback: try reading "cpu cores" from the first processor block.
+    cpuinfo.clear();
+    cpuinfo.seekg(0, std::ios::beg);
+    while (std::getline(cpuinfo, line)) {
+      auto colonPos = line.find(':');
+      if (colonPos != std::string::npos) {
+        std::string key   = line.substr(0, colonPos);
+        std::string value = line.substr(colonPos + 1);
+        key.erase(key.find_last_not_of(" \t") + 1);
+        value.erase(0, value.find_first_not_of(" \t"));
+        if (key == "cpu cores") {
+          physicalCoreCount = static_cast<unsigned int>(std::stoi(value));
+          break;
+        }
+      }
+    }
+  }
+#endif
+  if (physicalCoreCount == 0) {
+    return MY_OMP_GET_MAX_THREADS();
+  }
+  return physicalCoreCount;
 }
 
 // -------------------------- openmp helpers -------------------------------

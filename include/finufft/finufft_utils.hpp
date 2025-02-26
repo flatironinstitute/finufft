@@ -12,7 +12,6 @@
 //  using chrono since the interface is portable between linux and windows
 
 namespace finufft::utils {
-
 template<typename T>
 FINUFFT_EXPORT FINUFFT_ALWAYS_INLINE void FINUFFT_CDECL arrayrange(BIGINT n, const T *a,
                                                                    T *lo, T *hi)
@@ -59,8 +58,9 @@ private:
   double initial;
 };
 
-// openmp helpers
-int get_num_threads_parallel_block();
+FINUFFT_NEVER_INLINE int getPhysicalCoreCount();
+
+FINUFFT_NEVER_INLINE int get_num_threads_parallel_block();
 
 } // namespace finufft::utils
 
