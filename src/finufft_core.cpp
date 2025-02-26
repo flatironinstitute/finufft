@@ -1081,7 +1081,9 @@ int FINUFFT_PLAN_T<TF>::execute_internal(TC *cj, TC *fk, bool adjoint, int ntran
              ntrans_actual, nbatch, batchSize);
 
     // allocate temporary buffers
-    // we are trying to be clever here and re-use memory whenever possible
+    // We are trying to be clever here and re-use memory whenever possible.
+    // Also, we allocate the memory for the "inner" NUFFT here as well,
+    // so that it doesn't need to be reallocated for every batch.
     std::vector<TC, xsimd::aligned_allocator<TC, 64>> buf1, buf2, buf3;
     TC *CpBatch, *fwBatch, *fwBatch_inner;
     if (!adjoint) { // we can combine CpBatch and fwBatch_inner!
@@ -1090,6 +1092,8 @@ int FINUFFT_PLAN_T<TF>::execute_internal(TC *cj, TC *fk, bool adjoint, int ntran
       buf2.resize(nf() * batchSize);
       fwBatch = buf2.data();
     } else { // we may be able to combine CpBatch and fwBatch!
+      // This only works if the inner plan performs our calls (that we do once
+      // per batch) without doing any of its own batching ...
       if (innerT2plan->batchSize >= batchSize) {
         buf1.resize(std::max(nk * batchSize, nf() * batchSize));
         CpBatch = fwBatch = buf1.data();
