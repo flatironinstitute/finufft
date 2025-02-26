@@ -25,8 +25,6 @@ option(FINUFFT_BUILD_DOCS "Whether to build the FINUFFT documentation" OFF)
 # if FINUFFT_USE_DUCC0 is ON, the following options are ignored
 set(FINUFFT_FFTW_LIBRARIES "DEFAULT" CACHE STRING "Specify a custom FFTW library")
 set(FINUFFT_FFTW_SUFFIX "OpenMP" CACHE STRING "Suffix for FFTW libraries (e.g. OpenMP, Threads etc.)")
-# if FINUFFT_USE_CUDA is OFF, the following options are ignored
-set(CMAKE_CUDA_ARCHITECTURES "native" CACHE STRING "CUDA architectures to build for (e.g. 60;70;75;)")
 # if FINUFFT_USE_CPU is OFF, the following options are ignored
 set(FINUFFT_ARCH_FLAGS "native" CACHE STRING "Compiler flags for specifying target architecture, defaults to -march=native")
 # sphinx tag (don't remove): @cmake_opts_end
