@@ -26,7 +26,7 @@ option(FINUFFT_BUILD_DOCS "Whether to build the FINUFFT documentation" OFF)
 set(FINUFFT_FFTW_LIBRARIES "DEFAULT" CACHE STRING "Specify a custom FFTW library")
 set(FINUFFT_FFTW_SUFFIX "OpenMP" CACHE STRING "Suffix for FFTW libraries (e.g. OpenMP, Threads etc.)")
 # if FINUFFT_USE_CUDA is OFF, the following options are ignored
-set(FINUFFT_CUDA_ARCHITECTURES "native" CACHE STRING "CUDA architectures to build for (e.g. 60;70;75;)")
+set(CMAKE_CUDA_ARCHITECTURES "native" CACHE STRING "CUDA architectures to build for (e.g. 60;70;75;)")
 # if FINUFFT_USE_CPU is OFF, the following options are ignored
 set(FINUFFT_ARCH_FLAGS "native" CACHE STRING "Compiler flags for specifying target architecture, defaults to -march=native")
 # sphinx tag (don't remove): @cmake_opts_end
@@ -77,7 +77,8 @@ set(FINUFFT_CXX_FLAGS_DEBUG
     -ggdb
     -ggdb3
     -Wall
-    -Wno-sign-compare
+    -Wextra
+    -Wpedantic
     -Wno-unknown-pragmas
 )
 
@@ -208,7 +209,12 @@ function(finufft_link_test target)
     endif()
     enable_asan(${target})
     target_compile_features(${target} PRIVATE cxx_std_17)
-    set_target_properties(${target} PROPERTIES MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+    set_target_properties(
+        ${target}
+        PROPERTIES
+            MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>"
+            POSITION_INDEPENDENT_CODE ${FINUFFT_POSITION_INDEPENDENT_CODE}
+    )
     # disable deprecated warnings for tests if supported
     if(FINUFFT_HAS_NO_DEPRECATED_DECLARATIONS)
         target_compile_options(${target} PRIVATE -Wno-deprecated-declarations)
@@ -277,15 +283,12 @@ if(FINUFFT_USE_CPU)
 endif()
 
 if(FINUFFT_USE_CUDA)
-    if(NOT DEFINED FINUFFT_CUDA_ARCHITECTURES)
-        if(DEFINED CMAKE_CUDA_ARCHITECTURES)
-            set(FINUFFT_CUDA_ARCHITECTURES "{$CMAKE_CUDA_ARCHITECTURES}")
-        else()
-            message(
-                "FINUFFT WARNING: No CUDA architecture supplied via '-DFINUFFT_CUDA_ARCHITECTURES=...', defaulting to 'native'"
-            )
-            message("See: https://developer.nvidia.com/cuda-gpus for more details on what architecture to supply.")
-        endif()
+    if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
+        message(
+            WARNING
+            "FINUFFT WARNING: No CUDA architecture supplied via '-DCMAKE_CUDA_ARCHITECTURES=...', defaulting to 'native'"
+        )
+        message(WARNING "See: https://developer.nvidia.com/cuda-gpus for more details on what architecture to supply.")
     endif()
     enable_language(CUDA)
     find_package(CUDAToolkit REQUIRED)
@@ -348,6 +351,7 @@ message(STATUS "  FINUFFT_FFTW_SUFFIX: ${FINUFFT_FFTW_SUFFIX}")
 message(STATUS "  FINUFFT_FFTW_LIBRARIES: ${FINUFFT_FFTW_LIBRARIES}")
 message(STATUS "  FINUFFT_ARCH_FLAGS: ${FINUFFT_ARCH_FLAGS}")
 message(STATUS "  FINUFFT_USE_DUCC0: ${FINUFFT_USE_DUCC0}")
+message(STATUS "  CMAKE_CUDA_ARCHITECTURES: ${CMAKE_CUDA_ARCHITECTURES}")
 # gersemi: on
 
 if(FINUFFT_ENABLE_INSTALL)
