@@ -1,23 +1,16 @@
 /* This is a 2D type-2 demo calling single-threaded FINUFFT inside an OpenMP
    loop, to show thread-safety with independent transforms, one per thread.
-   It is based on a test code of Penfe,
-   submitted github Issue #72. Unlike threadsafe1d1, it does not test the math;
+   It is based on a test code of Penfe, submitted GitHub Issue #72.
+   Unlike threadsafe1d1, it does not test the math;
    it is the shell of an application from multi-coil/slice MRI reconstruction.
    Note that since the NU pts are the same in each slice, in fact a vectorized
    multithreaded transform could do all these slices together, and faster.
-
-   To compile (note uses threads rather than omp version of FFTW3):
-
-   g++ -fopenmp threadsafe2d2f.cpp -I../include ../lib/libfinufft.so -o threadsafe2d2f -g
-   -Wall
-
+   Barnett, tidied 11/22/23.
+   To compile, see README.  Usage:
    ./threadsafe2d2f                                   <-- use all threads
    OMP_NUM_THREADS=1 ./threadsafe2d2f                 <-- sequential, 1 thread
-
    Expected output is 50 lines, each showing exit code 0. It's ok if they're
    mangled due to threads writing to stdout simultaneously.
-
-   Barnett, tidied 11/22/23
 */
 
 // this is all you must include for the finufft lib...

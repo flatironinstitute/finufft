@@ -18,13 +18,7 @@ int main(int argc, char *argv[])
 /* Example calling guru C++ interface to FINUFFT library, passing
    pointers to STL vectors of C++ double complex numbers, with a math check.
    Barnett 2/27/20
-
-   Compile on linux with (or see ../makefile):
-   g++ -std=c++14 -fopenmp guru1d1.cpp -I../include ../lib-static/libfinufft.a -o guru1d1
-   -lfftw3 -lfftw3_omp -lm
-
-   Or if you have built a single-thread library, remove -fopenmp and -lfftw3_omp
-
+   To compile see README. Also see ../docs/cex.rst
    Usage: ./guru1d1
 */
 {
