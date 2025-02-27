@@ -40,7 +40,6 @@ if(NOT FINUFFT_USE_DUCC0)
     add_executable(fftw_lock_test fftw_lock_test.cpp)
     target_compile_features(fftw_lock_test PRIVATE cxx_std_17)
     finufft_link_test(fftw_lock_test)
-
     add_test(NAME run_fftw_lock_test COMMAND fftw_lock_test WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
 endif()
 
