@@ -48,7 +48,7 @@ df['% Diff'] = abs(df['Time_2.0'] - df['Time_1.25']) / df['Time_1.25']
 df = df[df['% Diff'] >= .05]
 
 # keep rows where n_threads is 1
-df = df[df['n_threads'] == 1]
+df = df[df['n_threads'] == 16]
 # drop time columns
 df.drop(columns=['Time_2.0', 'Time_1.25', 'n_threads'], inplace=True)
 df.drop(columns=['% Diff', 'Size', 'Num_pts', 'Volume', 'Unnamed: 0'], inplace=True)

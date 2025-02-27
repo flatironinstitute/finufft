@@ -142,7 +142,7 @@ def plot_benchmark_results(results, epsilons, upsampfacs, title, density):
 upsampfacs = [2.0, 1.25]
 runs = 5
 
-for n_threads in reversed([16, 1]):
+for n_threads in reversed([16]):
     # total_elements = 100**3 if n_threads == 1 else 216**3
     total_elements = 100**3 if n_threads == 1 else 216**3
     # Select test dimensions for 1D, 2D, and 3D
