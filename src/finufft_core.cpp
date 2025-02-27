@@ -1,6 +1,7 @@
 #include <finufft/fft.h>
 #include <finufft/finufft_core.h>
 #include <finufft/finufft_utils.hpp>
+#include <finufft/heuristics.hpp>
 #include <finufft/spreadinterp.h>
 
 #include "../contrib/legendre_rule_fast.h"
@@ -14,6 +15,7 @@ using namespace finufft;
 using namespace finufft::utils;
 using namespace finufft::spreadinterp;
 using namespace finufft::quadrature;
+using namespace finufft::heuristics;
 
 /* Computational core for FINUFFT.
 
@@ -268,7 +270,7 @@ public:
   FINUFFT_ALWAYS_INLINE T operator()(T k) {
     T x = 0;
     for (size_t n = 0; n < z.size(); ++n)
-      x += f[n] * 2 * cos(k * z[n]); // pos & neg freq pair.  use T cos!
+      x += f[n] * 2 * std::cos(k * z[n]); // pos & neg freq pair.  use T cos!
     return x;
   }
 };
@@ -632,18 +634,14 @@ FINUFFT_PLAN_T<TF>::FINUFFT_PLAN_T(int type_, int dim_, const BIGINT *n_modes, i
   }
 
   // heuristic to choose default upsampfac... (currently two poss)
-  if (opts.upsampfac == 0.0) {              // indicates auto-choose
-    opts.upsampfac = 2.0;                   // default, and need for tol small
-    if (tol >= (TF)1E-9) {                  // the tol sigma=5/4 can reach
-      if (type == 3)                        // could move to setpts, more known?
-        opts.upsampfac = 1.25;              // faster b/c smaller RAM & FFT
-      else if ((dim == 1 && N() > 10000000) || (dim == 2 && N() > 300000) ||
-               (dim == 3 && N() > 3000000)) // type 1,2 heuristic cutoffs, double,
-                                            // typ tol, 12-core xeon
-        opts.upsampfac = 1.25;
-    }
+  if (opts.upsampfac == 0.0) {                                   // indicates auto-choose
+    const auto density = double(nj) / double(N() > 0 ? N() : 1); // dumbinputs allows
+                                                                 // N()==0
+    opts.upsampfac = bestUpsamplingFactor<TF>(opts.nthreads, density, dim, type, tol);
     if (opts.debug > 1)
-      printf("[%s] set auto upsampfac=%.2f\n", __func__, opts.upsampfac);
+      printf("[%s] threads %d, density %.3g, dim %d, nufft type %d, tol %.3g: auto "
+             "upsampfac=%.2f\n",
+             __func__, opts.nthreads, density, dim, type, tol, opts.upsampfac);
   }
   // use opts to choose and write into plan's spread options...
   ier = setup_spreader_for_nufft(spopts, tol, opts, dim);
