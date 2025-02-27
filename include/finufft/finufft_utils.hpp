@@ -58,7 +58,7 @@ private:
   double initial;
 };
 
-FINUFFT_NEVER_INLINE int getPhysicalCoreCount();
+FINUFFT_NEVER_INLINE int getOptimalThreadCount();
 
 FINUFFT_NEVER_INLINE int get_num_threads_parallel_block();
 

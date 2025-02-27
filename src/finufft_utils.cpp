@@ -7,6 +7,8 @@
 #include <iostream>
 #include <string>
 
+#include <finufft/finufft_utils.hpp>
+
 #if defined(_WIN32)
 #include <vector>
 #include <windows.h>
@@ -14,11 +16,13 @@
 #include <sys/sysctl.h>
 #include <sys/types.h>
 #elif defined(__linux__)
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE // Enable GNU extensions for sched_getaffinity
+#endif
 #include <fstream>
+#include <sched.h>
 #include <set>
 #endif
-
-#include <finufft/finufft_utils.hpp>
 
 using namespace std;
 
@@ -70,16 +74,15 @@ double CNTime::elapsedsec() const
   return nowsec - initial;
 }
 
-// Returns the number of physical CPU cores (excluding hyper-threaded logical cores)
-int getPhysicalCoreCount() {
+#if defined(_WIN32)
+// Returns the number of physical CPU cores on Windows (excluding hyper-threaded cores)
+static int getPhysicalCoreCount() {
   int physicalCoreCount = 0;
 
-#if defined(_WIN32)
-  // Determine the size of the buffer.
+  // Determine the required buffer size.
   DWORD bufferSize = 0;
   if (GetLogicalProcessorInformation(nullptr, &bufferSize) == FALSE &&
       GetLastError() != ERROR_INSUFFICIENT_BUFFER) {
-    // Leave physicalCoreCount as 0 if the call fails.
     return physicalCoreCount;
   }
 
@@ -92,17 +95,54 @@ int getPhysicalCoreCount() {
     }
   }
 
+  if (physicalCoreCount == 0) {
+    return MY_OMP_GET_MAX_THREADS();
+  }
+  return physicalCoreCount;
+}
+
+static int getAllowedCoreCount() {
+  DWORD_PTR processMask, systemMask;
+  if (!GetProcessAffinityMask(GetCurrentProcess(), &processMask, &systemMask)) {
+    return 0; // API call failed (should rarely happen for the current process)
+  }
+  // Count bits in processMask
+  int count = 0;
+  while (processMask) {
+    count += static_cast<int>(processMask & 1U);
+    processMask >>= 1;
+  }
+  return count;
+}
+
 #elif defined(__APPLE__)
-  // Retrieve the number of physical cores using sysctl.
-  int cores   = 0;
-  size_t size = sizeof(cores);
-  if (sysctlbyname("hw.physicalcpu", &cores, &size, nullptr, 0) == 0)
-    physicalCoreCount = static_cast<unsigned int>(cores);
+
+// Returns the number of physical CPU cores on macOS (excluding hyper-threaded cores)
+static int getPhysicalCoreCount() {
+  int physicalCoreCount = 0;
+  int cores             = 0;
+  size_t size           = sizeof(cores);
+  if (sysctlbyname("hw.physicalcpu", &cores, &size, nullptr, 0) == 0) {
+    physicalCoreCount = cores;
+  }
+
+  if (physicalCoreCount == 0) {
+    return MY_OMP_GET_MAX_THREADS();
+  }
+  return physicalCoreCount;
+}
+
+static int getAllowedCoreCount() {
+  // MacOS does not support CPU affinity, so we return the maximum number of threads.
+  return MY_OMP_GET_MAX_THREADS();
+}
 
 #elif defined(__linux__)
-  // Parse /proc/cpuinfo to count unique (physical id, core id) pairs.
+// Returns the number of physical CPU cores on Linux (excluding hyper-threaded cores)
+static int getPhysicalCoreCount() {
+  int physicalCoreCount = 0;
   std::ifstream cpuinfo("/proc/cpuinfo");
-  if (!cpuinfo.is_open()) return physicalCoreCount;
+  if (!cpuinfo.is_open()) return MY_OMP_GET_MAX_THREADS();
 
   std::set<std::string> coreSet;
   std::string line;
@@ -140,7 +180,7 @@ int getPhysicalCoreCount() {
     coreSet.insert(std::to_string(physicalId) + "-" + std::to_string(coreId));
 
   if (!coreSet.empty()) {
-    physicalCoreCount = static_cast<unsigned int>(coreSet.size());
+    physicalCoreCount = static_cast<int>(coreSet.size());
   } else {
     // Fallback: try reading "cpu cores" from the first processor block.
     cpuinfo.clear();
@@ -153,17 +193,52 @@ int getPhysicalCoreCount() {
         key.erase(key.find_last_not_of(" \t") + 1);
         value.erase(0, value.find_first_not_of(" \t"));
         if (key == "cpu cores") {
-          physicalCoreCount = static_cast<unsigned int>(std::stoi(value));
+          physicalCoreCount = std::stoi(value);
           break;
         }
       }
     }
   }
-#endif
+
   if (physicalCoreCount == 0) {
     return MY_OMP_GET_MAX_THREADS();
   }
   return physicalCoreCount;
+}
+
+static int getAllowedCoreCount() {
+  cpu_set_t cpuSet;
+  CPU_ZERO(&cpuSet);
+  if (sched_getaffinity(0, sizeof(cpu_set_t), &cpuSet) != 0) {
+    return 0; // Error (e.g., not supported or failed)
+  }
+  int count = 0;
+  for (int cpu = 0; cpu < CPU_SETSIZE; ++cpu) {
+    if (CPU_ISSET(cpu, &cpuSet)) {
+      ++count;
+    }
+  }
+  return count;
+}
+
+#else
+
+#warning "Unknown platform. Impossible to detect the number of physical cores."
+// Fallback version if none of the above platforms is detected.
+static int getPhysicalCoreCount() { return MY_OMP_GET_MAX_THREADS(); }
+static int getAllowedCoreCount() { return MY_OMP_GET_MAX_THREADS(); }
+
+#endif
+
+int getOptimalThreadCount() {
+  // if the user has set the OMP_NUM_THREADS environment variable, use that value
+  const auto OMP_THREADS = std::getenv("OMP_NUM_THREADS");
+  if (OMP_THREADS) {
+    return std::stoi(OMP_THREADS);
+  }
+  // otherwise, use the min between number of physical cores or the number of allowed
+  // cores (e.g. by taskset)
+  return std::min(getPhysicalCoreCount(), getAllowedCoreCount());
 }
 
 // -------------------------- openmp helpers -------------------------------

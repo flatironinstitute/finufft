@@ -590,17 +590,18 @@ FINUFFT_PLAN_T<TF>::FINUFFT_PLAN_T(int type_, int dim_, const BIGINT *n_modes, i
 
 #ifdef _OPENMP
   // choose overall # threads...
-  int ompmaxnthr = getPhysicalCoreCount();
+  int ompmaxnthr = getOptimalThreadCount();
   int nthr       = ompmaxnthr; // default: use as many physical cores as possible
   // (the above could be set, or suggested set, to 1 for small enough problems...)
   if (opts.nthreads > 0) {
     nthr = opts.nthreads; // user override, now without limit
     if (opts.showwarn && (nthr > ompmaxnthr))
       fprintf(stderr,
-              "%s warning: using opts.nthreads=%d, more than the %d OpenMP claims "
+              "%s warning: using opts.nthreads=%d, more than the %d physically cores "
               "available; note large nthreads can be slower.\n",
               __func__, nthr, ompmaxnthr);
   }
+
 #else
   int nthr = 1; // always 1 thread (avoid segfault)
   if (opts.nthreads > 1)
@@ -611,6 +612,14 @@ FINUFFT_PLAN_T<TF>::FINUFFT_PLAN_T(int type_, int dim_, const BIGINT *n_modes, i
   opts.nthreads = nthr; // store actual # thr planned for
   if (opts.debug > 1) {
     printf("[%s] opts.nthreads=%d\n", __func__, nthr);
+  }
+
+  if (opts.nthreads == 0) {
+    fprintf(stderr,
+            "[%s] error: detecting physical corers failed. Please specify the number "
+            "of cores to use\n",
+            __func__);
+    throw int(FINUFFT_ERR_NTHREADS_NOTVALID);
   }
   // (this sets/limits all downstream spread/interp, 1dkernel, and FFT thread counts...)
 
