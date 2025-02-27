@@ -238,7 +238,9 @@ int getOptimalThreadCount() {
   }
   // otherwise, use the min between number of physical cores or the number of allowed
   // cores (e.g. by taskset)
-  return xsimd::min(getPhysicalCoreCount(), getAllowedCoreCount());
+  const auto physicalCores = getPhysicalCoreCount();
+  const auto allowedCores  = getAllowedCoreCount();
+  return std::min(physicalCores, allowedCores);
 }
 
 // -------------------------- openmp helpers -------------------------------
