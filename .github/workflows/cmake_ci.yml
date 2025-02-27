@@ -44,6 +44,7 @@ jobs:
         os:
          - ubuntu-22.04
          - windows-2022
+         - macos-13
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout code
@@ -55,7 +56,7 @@ jobs:
         id: cache
         uses: actions/cache@v4
         with:
-          key: cpm-cache-00-${{ hashFiles('CMakeLists.txt', 'cmake/*') }}
+          key: cpm-cache-00-${{ matrix.os }}-${{ hashFiles('CMakeLists.txt', 'cmake/*') }}
           enableCrossOsArchive: true
           path: cpm
       - name: Setup Cpp
@@ -82,7 +83,7 @@ jobs:
       - name: Cache dependencies
         uses: actions/cache/save@v4
         with:
-          key: cpm-cache-00-${{ hashFiles('CMakeLists.txt', 'cmake/*') }}
+          key: cpm-cache-00-${{ matrix.os }}-${{ hashFiles('CMakeLists.txt', 'cmake/*') }}
           enableCrossOsArchive: true
           path: cpm
   cmake-ci:
@@ -97,7 +98,7 @@ jobs:
       - name: Restore Cache
         uses: actions/cache/restore@v4
         with:
-          key: cpm-cache-00-${{ hashFiles('CMakeLists.txt', 'cmake/*') }}
+          key: cpm-cache-00-${{ matrix.os }}-${{ hashFiles('CMakeLists.txt', 'cmake/*') }}
           enableCrossOsArchive: true
           path: cpm
       - name: Download requirements.txt
