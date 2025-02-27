@@ -3,6 +3,8 @@
 
 // For self-test see ../test/testutils.cpp.      Barnett 2017-2020.
 
+#include <finufft/finufft_utils.hpp>
+
 #include <cstdint>
 #include <iostream>
 #include <string>
@@ -22,10 +24,7 @@
 #include <set>
 #endif
 
-#include <finufft/finufft_utils.hpp>
-
 namespace finufft::utils {
-
 BIGINT next235even(BIGINT n)
 // finds even integer not less than n, with prime factors no larger than 5
 // (ie, "smooth"). Adapted from fortran in hellskitchen.  Barnett 2/9/17
@@ -72,6 +71,7 @@ double CNTime::elapsedsec() const
   return nowsec - initial;
 }
 
+namespace {
 #if defined(_WIN32)
 // Returns the number of physical CPU cores on Windows (excluding hyper-threaded cores)
 static int getPhysicalCoreCount() {
@@ -228,6 +228,8 @@ static int getAllowedCoreCount() { return MY_OMP_GET_MAX_THREADS(); }
 
 #endif
 
+} // namespace
+
 int getOptimalThreadCount() {
   // if the user has set the OMP_NUM_THREADS environment variable, use that value
   const auto OMP_THREADS = std::getenv("OMP_NUM_THREADS");
@@ -236,7 +238,7 @@ int getOptimalThreadCount() {
   }
   // otherwise, use the min between number of physical cores or the number of allowed
   // cores (e.g. by taskset)
-  return std::min(getPhysicalCoreCount(), getAllowedCoreCount());
+  return xsimd::min(getPhysicalCoreCount(), getAllowedCoreCount());
 }
 
 // -------------------------- openmp helpers -------------------------------
