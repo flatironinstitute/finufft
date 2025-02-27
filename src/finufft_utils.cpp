@@ -7,8 +7,6 @@
 #include <iostream>
 #include <string>
 
-#include <finufft/finufft_utils.hpp>
-
 #if defined(_WIN32)
 #include <vector>
 #include <windows.h>
@@ -24,7 +22,7 @@
 #include <set>
 #endif
 
-using namespace std;
+#include <finufft/finufft_utils.hpp>
 
 namespace finufft::utils {
 
