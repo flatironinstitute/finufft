@@ -240,7 +240,10 @@ int getOptimalThreadCount() {
   // cores (e.g. by taskset)
   const auto physicalCores = getPhysicalCoreCount();
   const auto allowedCores  = getAllowedCoreCount();
-  return std::min(physicalCores, allowedCores);
+  if (physicalCores < allowedCores) {
+    return physicalCores;
+  }
+  return allowedCores;
 }
 
 // -------------------------- openmp helpers -------------------------------
