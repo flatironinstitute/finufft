@@ -10,8 +10,11 @@
 #include <cuda.h>
 #include <cuda_runtime.h>
 #include <type_traits>
+#include <utility> // for std::forward
 
 #include <thrust/extrema.h>
+
+#include <finufft_errors.h>
 
 #ifndef _USE_MATH_DEFINES
 #define _USE_MATH_DEFINES
@@ -46,18 +49,6 @@ template<typename T> __forceinline__ __device__ auto interval(const int ns, cons
   const auto xend   = int(std::floor(x + T(ns) * T(.5)));
   return int2{xstart, xend};
 }
-
-// Define a macro to check if NVCC version is >= 11.3
-#if defined(__CUDACC_VER_MAJOR__) && defined(__CUDACC_VER_MINOR__)
-#if (__CUDACC_VER_MAJOR__ > 11) || \
-    (__CUDACC_VER_MAJOR__ == 11 && __CUDACC_VER_MINOR__ >= 3 && __CUDA_ARCH__ >= 600)
-#define ALLOCA_SUPPORTED 1
-// windows compatibility
-#if __has_include(<malloc.h>)
-#include <malloc.h>
-#endif
-#endif
-#endif
 
 #if defined(__CUDA_ARCH__)
 #if __CUDA_ARCH__ >= 900
@@ -189,6 +180,28 @@ auto set_nhg_type3(T S, T X, const cufinufft_opts &opts,
   auto h   = 2 * T(M_PI) / nf;                       // upsampled grid spacing
   auto gam = T(nf) / (2.0 * opts.upsampfac * Ssafe); // x scale fac to x'
   return std::make_tuple(nf, h, gam);
+}
+
+// Generalized dispatcher for any function requiring ns-based dispatch
+template<typename Func, typename T, int ns, typename... Args>
+int dispatch_ns(Func &&func, int target_ns, Args &&...args) {
+  if constexpr (ns > MAX_NSPREAD) {
+    return FINUFFT_ERR_METHOD_NOTVALID; // Stop recursion
+  } else {
+    if (target_ns == ns) {
+      return std::forward<Func>(func).template operator()<ns>(
+          std::forward<Args>(args)...);
+    }
+    return dispatch_ns<Func, T, ns + 1>(std::forward<Func>(func), target_ns,
+                                        std::forward<Args>(args)...);
+  }
+}
+
+// Wrapper function that starts the dispatch recursion
+template<typename Func, typename T, typename... Args>
+int launch_dispatch_ns(Func &&func, int target_ns, Args &&...args) {
+  return dispatch_ns<Func, T, MIN_NSPREAD>(std::forward<Func>(func), target_ns,
+                                           std::forward<Args>(args)...);
 }
 
 } // namespace utils

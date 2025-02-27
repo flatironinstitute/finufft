@@ -302,10 +302,10 @@ int main(int argc, char *argv[]) {
         std::cout << "Valid options:\n"
                      "    --prec <char>\n"
                      "           float or double precision. i.e. 'f' or 'd'\n"
-                     "           default: " << default_opts.prec << "\n" << 
+                     "           default: " << default_opts.prec << "\n" <<
                      "    --type <int>\n"
                      "           type of transform. 1 or 2\n"
-                     "           default: " << default_opts.type << "\n" << 
+                     "           default: " << default_opts.type << "\n" <<
                      "    --n_runs <int>\n"
                      "           number of runs to average performance over\n"
                      "           default: " << default_opts.n_runs << "\n" <<

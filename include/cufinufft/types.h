@@ -100,10 +100,10 @@ template<typename T> struct cufinufft_plan_t {
   cudaStream_t stream;
 };
 
-template<typename T> constexpr static inline cufftType_t cufft_type();
-template<> constexpr inline cufftType_t cufft_type<float>() { return CUFFT_C2C; }
+template<typename T> static inline constexpr cufftType_t cufft_type();
+template<> inline constexpr cufftType_t cufft_type<float>() { return CUFFT_C2C; }
 
-template<> constexpr inline cufftType_t cufft_type<double>() { return CUFFT_Z2Z; }
+template<> inline constexpr cufftType_t cufft_type<double>() { return CUFFT_Z2Z; }
 
 static inline cufftResult cufft_ex(cufftHandle plan, cufftComplex *idata,
                                    cufftComplex *odata, int direction) {

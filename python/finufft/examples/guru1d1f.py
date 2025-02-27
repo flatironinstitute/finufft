@@ -19,20 +19,20 @@ n_modes[0] = N
 
 strt = time.time()
 
-#plan
-plan = fp.Plan(1,(N,),dtype='single')
+# plan, using proper specifier for single-precision transform
+plan = fp.Plan(1,(N,),dtype='complex64')
 
-#set pts
+# set pts
 plan.setpts(x)
 
-#exec
+# exec
 plan.execute(c,F)
 
-#timing
+# timing
 print("Finished nufft in {0:.2g} seconds. Checking..."
       .format(time.time()-strt))
 
-#check error
+# check error
 n = 143      # mode to check
 Ftest = 0.0
 # this is so slow...

@@ -133,7 +133,7 @@ int main(int argc, char *argv[])
   std::vector<FLT> d_uniform(2 * Ng);                        // Re and Im
 
   finufft_spread_opts opts;
-  int ier_set = setup_spreader(opts, (FLT)tol, upsampfac, kerevalmeth, debug, 1, d);
+  int ier_set = setup_spreader(opts, (FLT)tol, upsampfac, kerevalmeth, debug, 1, d, 1);
   if (ier_set > 1) { // exit gracefully if can't set up.
     printf("error when setting up spreader (ier_set=%d)!\n", ier_set);
     return ier_set;

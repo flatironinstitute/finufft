@@ -18,7 +18,7 @@ Also of interest (but not yet demonstrated below) is:
 
  * the forward NFFT transform (a.k.a. type 2)
  * the nonuniform to nonuniform NNFFT (a.k.a. type 3)
-   
+
  .. note:: The NFFT3 library can do more things---real-valued data, sphere, rotation group, hyperbolic cross, inverse transforms---none of which FINUFFT can yet do directly (although our three transforms can be used as components in such tasks). We do not address those here.
 
 Migrating a 2D adjoint transform (type 1) in C from NFFT3 to FINUFFT

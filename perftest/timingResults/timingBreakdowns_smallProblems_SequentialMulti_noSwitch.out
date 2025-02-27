@@ -3,7 +3,7 @@ modes = [1e4,1,1,1e2,1e2,1,1e1,1e1,1e1]
 
 n_trials:
 [  1  10 100   1  10 100   1  10 100]
-dimensions: 
+dimensions:
 [1 1 1 2 2 2 3 3 3]
 
 

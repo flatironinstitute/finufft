@@ -32,7 +32,7 @@ their defaults, for instance:
 
 .. code-block:: matlab
 
-  o.modeord = 1;                      % choose FFT-style output mode ordering  
+  o.modeord = 1;                      % choose FFT-style output mode ordering
   f = finufft1d1(x,c,+1,1e-12,N,o);   % do it
 
 The above usage we call the "simple" interface. There is also a "vectorized"
@@ -75,7 +75,7 @@ Here we use the guru interface to repeat the first demo above:
   delete(plan);                       % don't forget to clean up
 
 .. warning::
-     
+
    If an existing array is passed to ``setpts``, then this array must not be altered before ``execute`` is called! This is because, in order to save RAM (allowing larger problems to be solved), internally FINUFFT stores only *pointers* to ``x`` (etc), rather than unnecessarily duplicating this data. This is not true if an *expression* such as ``-x`` or ``2*pi*rand(M,1)`` is passed to ``setpts``, since in those cases the ``plan`` object does make internal copies, as per MATLAB's usual shallow-copy argument passing.
 
 Finally, we demo a 2D type 1 transform using the simple interface. Let's
@@ -124,5 +124,5 @@ MATLAB path via something like ``addpath FINUFFT/matlab``, then
 .. literalinclude:: ../matlab/Contents.m
 
 The individual commands have the following help documentation:
-                    
+
 .. include:: matlabhelp.doc

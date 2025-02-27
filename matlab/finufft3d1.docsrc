@@ -22,8 +22,8 @@ ISIGNEPS
 %     ms,mt,mu  number of Fourier modes requested in x,y and z; each may be
 %           even or odd.
 %           In either case the mode range is integers lying in [-m/2, (m-1)/2]
-OPTS12
 OPTS
+OPTS12
 %   Outputs:
 %     f     size (ms,mt,mu) complex array of Fourier coefficients
 %           (ordering given by opts.modeord in each dimension; ms fastest, mu

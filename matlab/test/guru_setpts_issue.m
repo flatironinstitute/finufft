@@ -36,7 +36,7 @@ for k = 1:100
     yy = -y;
     plan.setpts(xx, yy);
     vals3 = plan.execute(coeffs);
-    
+
     if ( any(isnan(vals2)) || norm(vals - vals2) > tol )
         warning('Something went wrong during run #%i', k);
         fprintf('norm(vals - vals2) = %g\n', norm(vals - vals2));

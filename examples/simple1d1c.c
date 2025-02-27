@@ -11,14 +11,7 @@
 int main(int argc, char *argv[])
 /* Simple example of calling the FINUFFT library from C, using C complex type,
    with a math test. Double-precision. C99 style. opts is struct not ptr to it.
-
-   Compile with:
-   gcc -fopenmp example1d1c.c -I../include ../lib-static/libfinufft.a -o example1d1c
-   -lfftw3 -lfftw3_omp -lm -lstdc++ or if you have built a single-core version: gcc
-   example1d1c.c -I../include ../lib-static/libfinufft.a -o example1d1c -lfftw3 -lm
-   -lstdc++
-
-   Usage: ./example1d1c
+   To compile see README. Usage: ./simple1d1c
 */
 {
   int M      = 1e6;  // number of nonuniform points

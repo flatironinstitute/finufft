@@ -1,11 +1,20 @@
 List of features / changes made / release notes, in reverse chronological order.
 If not stated, FINUFFT is assumed (cuFINUFFT <=1.3 is listed separately).
 
-Master, using release name V 2.4.0 (1/7/25)
+Master, using release name V 2.4.0 (2/11/25)
+
+* Added GPU spread interp only test. Added CPU spread interp only test to cmake
+* Make attributes private in Python Plan classes and allow read-only access to
+  them using properties (Andén #608).
+* Remove possibility to supply real dtypes to Plan interfaces. Now only complex
+  dtypes are supported (Andén #606).
+* CPU opts.spreadinterponly (experts only), and GPU, logic and docs changed so
+  upsampfac controls kernel shape properly. Add C++/MATLAB demos. #602 (Barnett)
+* PR618: removing alloca and using kernel dispatch on the GPU (Barbone)
 * PR617: Caching pip dependencies in github actions.
   Forcing Ninja when building python on Windows.
 * PR614: Added support for sccache in github actions.
-  Caching cmake dependencies so to avoid downloading fftw, xsimd, etc. every time.
+  Caching cmake dependencies so to avoid downloading fftw, xsimd, etc every time
 * fully removed chkbnds option (opts and spreadopts) (Barnett)
 * classic GNU makefile settings make.inc.* tidied to make-platforms/ (Barnett)
 * unified separate-dim arrays (eg X,Y,Z->XYZ), simplifiying core (Reinecke #592)
@@ -44,6 +53,10 @@ Master, using release name V 2.4.0 (1/7/25)
   can be be used to prevent crashes when a user is creating/destroying FFTW
   plans and FINUFFT plans in threads simultaneously.
 * Fixed missing dependency on `packaging` in the Python `cufinufft` package.
+
+V 2.3.2 (2/11/25) minor update release (continued support on 2.3.X branch)
+
+* Increase cufinufft 1d cmake test size and fix 1d spreader subprob sm kernel.
 
 V 2.3.1 (11/25/24) minor update release (continued support on 2.3.X branch)
 

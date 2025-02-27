@@ -51,7 +51,7 @@ def runCommand(cmd):
     status, output = commands.getstatusoutput(cmd)
     print output
     return output
-    
+
 # Test runner
 def runTests():
     print "Running tests..."
@@ -70,7 +70,7 @@ def runTests():
             interp_speed = max(interp_speed, mi.group("speed"))
             interp_err = max(interp_err, mi.group("err"))
             spread_speed = max(spread_speed, ms.group("speed"))
-            spread_err = max(spread_err, ms.group("err"))            
+            spread_err = max(spread_err, ms.group("err"))
         results.append({"cmd":cmd,
                         "interp_speed":interp_speed,
                         "interp_err":interp_err,
@@ -90,7 +90,7 @@ def checkoutandmake(commit):
         runCommand("git checkout %s" % commit)
     print "Making..."
     print commands.getoutput("make clean test/spreadtestnd " + makeflags)
-    
+
 def restore(commit, home):
     if commit == "local":
         # We just tested local, so do nothing
@@ -98,16 +98,16 @@ def restore(commit, home):
     else:
         # Return home and pop stash
         print "Checking out %s and popping stash..." % home
-        runCommand("git checkout %s" % home)        
+        runCommand("git checkout %s" % home)
         runCommand("git stash pop")
-    
-# Run tests    
-print "* Testing %s" % commit_A    
+
+# Run tests
+print "* Testing %s" % commit_A
 checkoutandmake(commit_A)
 res_A = runTests()
 restore(commit_A, home)
 
-print "* Testing %s" % commit_B    
+print "* Testing %s" % commit_B
 checkoutandmake(commit_B)
 res_B = runTests()
 restore(commit_B, home)
@@ -132,10 +132,10 @@ for idx,params in enumerate(tests):
 
     spread_speedup = float(res_B[idx]["spread_speed"]) / float(res_A[idx]["spread_speed"])*100 - 100
     spread_sign = "+" if spread_speedup > 0 else ""
-    spread_speedup = spread_sign + "%.1f" % spread_speedup + "%"    
-    interp_speedup = float(res_B[idx]["interp_speed"]) / float(res_A[idx]["interp_speed"])*100 - 100   
+    spread_speedup = spread_sign + "%.1f" % spread_speedup + "%"
+    interp_speedup = float(res_B[idx]["interp_speed"]) / float(res_A[idx]["interp_speed"])*100 - 100
     interp_sign = "+" if interp_speedup > 0 else ""
-    interp_speedup = interp_sign + "%.1f" % interp_speedup + "%"    
+    interp_speedup = interp_sign + "%.1f" % interp_speedup + "%"
     print format % ("", spread_speedup, interp_speedup, "", "")
 
     print ""

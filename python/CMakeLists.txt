@@ -1,23 +1,20 @@
 if(FINUFFT_USE_CPU)
-  if(WIN32)
-    install(
-      TARGETS finufft
-      LIBRARY DESTINATION finufft
-      RUNTIME DESTINATION finufft)
-  else()
-    install(TARGETS finufft LIBRARY DESTINATION finufft)
-  endif()
+    if(WIN32)
+        install(TARGETS finufft LIBRARY DESTINATION finufft RUNTIME DESTINATION finufft)
+    else()
+        install(TARGETS finufft LIBRARY DESTINATION finufft)
+    endif()
 endif()
 
 if(FINUFFT_USE_CUDA)
-  install(TARGETS cufinufft LIBRARY DESTINATION cufinufft)
+    install(TARGETS cufinufft LIBRARY DESTINATION cufinufft)
 endif()
 
 # Warn if the user invokes CMake directly
 if(NOT SKBUILD)
-  message(
-    WARNING
-      "\
+    message(
+        WARNING
+        "\
   This CMake file is meant to be executed using 'scikit-build-core'.
   Running it directly will almost certainly not produce the desired
   result. If you are a user trying to install this package, use the
@@ -38,5 +35,6 @@ if(NOT SKBUILD)
   =====================================================================
   You may optionally add -Ceditable.rebuild=true to auto-rebuild when
   the package is imported. Otherwise, you need to rerun the above
-  after editing C++ files.")
+  after editing C++ files."
+    )
 endif()

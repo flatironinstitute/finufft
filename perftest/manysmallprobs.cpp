@@ -1,16 +1,13 @@
-
 #include <complex>
 
 // public header
 #include "finufft.h"
-#include "finufft/test_defs.h"
 
-// private access to timer
-#include "finufft/finufft_utils.hpp"
+// private access to timer, etc
+#include "finufft/test_defs.h"
+using namespace finufft::utils;
 
 using namespace std;
-
-using namespace finufft::utils;
 
 int main(int argc, char *argv[])
 /* What is small-problem cost of FINUFFT library from C++, using plain
@@ -18,15 +15,17 @@ int main(int argc, char *argv[])
    for Xi Chen question. Updated to also demo guru interface and compare speed.
    6/7/22 made deterministic changes so check answer matches both ways.
 
-   g++ -fopenmp manysmallprobs.cpp ../lib-static/libfinufft.a -o manysmallprobs  -lfftw3
-   -lfftw3_omp -lm # multithreaded is much slower, due to overhead of starting threads?...
+   g++ -fopenmp manysmallprobs.cpp -I../include ../lib-static/libfinufft.a \
+   -o manysmallprobs -lfftw3 -lfftw3_omp -lfftw3f -lfftw3f_omp -lm
+
    export OMP_NUM_THREADS=1
+   # multithreaded is ridiculously slow, due to overhead of starting threads?
    time ./manysmallprobs
 
+   Old (2017) timings:
    simple interface: about 1.2s on single core. Ie, throughput 3.3e6 NU pts/sec.
    guru interface: about 0.24s on single core. Ie, throughput 1.7e7 NU pts/sec.
-
-   But why is multi-thread so much slower? (thread start-up time?)
+   Note that ZGEMM on stacked vectors is 10x faster than FINUFFT for this size!
 */
 {
   int M      = 2e2;                              // number of nonuniform points

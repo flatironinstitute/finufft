@@ -133,19 +133,6 @@ Here are our CMake build options, showing name, explanatory text, and default va
    :start-after: @cmake_opts_start
    :end-before: @cmake_opts_end
 
-For convenience we also provide a number of `cmake presets <https://cmake.org/cmake/help/latest/manual/cmake-presets.7.html>`_
-for various platforms, options and compilers, in ``CMakePresets.json``.
-For example, to configure, build and test the development preset (which builds tests and examples), from ``build`` do:
-
-.. code-block:: bash
-
-  cmake -S . -B build --preset dev            # dev is the name of the preset
-  cmake --build build
-  ctest --test-dir build
-
-From other CMake projects, to use ``finufft`` as a library after building as above, simply add this repository as a subdirectory using
-``add_subdirectory``, and use ``target_link_library(your_executable finufft)``.
-
 Notes on compiler flags for various systems
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -159,8 +146,6 @@ These apply to CMake (as above), or GNU make (as below).
 .. warning::
 
   Intel compilers (unlike GPU compilers) currently engage ``fastmath`` behavior with ``-O2`` or ``-O3``. This may interfere with our use of ``std::isfinite`` in our source and test codes. For this reason in the Intel presets ``icx`` and ``icc`` have set ``-fp-model=strict``. You may get more speed if you remove this flag, or try ``-fno-finite-math-only``.
-
-
 
 
 Classic GNU make based route

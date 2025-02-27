@@ -15,8 +15,8 @@
 %           (with mode ordering given by opts.modeord). If a matrix, each
 %           of ntrans columns is transformed with the same nonuniform targets.
 ISIGNEPS
-OPTS12
 OPTS
+OPTS12
 %  Outputs:
 %     c     complex column vector of nj answers at targets, or,
 %           if ntrans>1, matrix of size (nj,ntrans).

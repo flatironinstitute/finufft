@@ -53,7 +53,7 @@ Compare this to a naive calculation (which serves to remind us exactly what sum 
   norm(c-cn,inf)
 
 ::
-                
+
   Elapsed time is 11.679265 seconds.
   ans =
         1.76508266507874e-11
@@ -69,10 +69,10 @@ multithreaded summation. (Naive summation with reversed loop order is even worse
 
 .. image:: ../pics/fser1d.png
    :width: 90%
- 
+
 See the full code `tutorial/serieseval1d.m <https://github.com/flatironinstitute/finufft/blob/master/tutorial/serieseval1d.m>`_ which also shows
 how to evaluate the same series on a uniform grid via the plain FFT.
-           
+
 2D Fourier series
 ~~~~~~~~~~~~~~~~~
 
@@ -104,7 +104,7 @@ target points you like:
 ::
 
   Elapsed time is 0.092743 seconds.
-     
+
 1 million modes to 1 million points in 92 milliseconds on a laptop is decent.
 We check the math (using a relative error measure) at just one (generic) point:
 
@@ -113,12 +113,12 @@ We check the math (using a relative error measure) at just one (generic) point:
   j = 1;                        % do math check on 1st target...
   c1 = sum(sum(fk.*exp(1i*(k1*x(j)+k2*y(j)))));
   abs(c1-c(j)) / norm(c,inf)
-                
+
 ::
-                    
+
   ans =
         2.30520830208365e-10
-            
+
 Finally we use a colored scatter plot to show the first $10\%$ of the points in the square, and see samples of the underlying random field (reminiscent of WMAP microwave background data):
 
 .. code-block:: matlab
@@ -126,9 +126,8 @@ Finally we use a colored scatter plot to show the first $10\%$ of the points in 
   jplot = 1:1e5;           % indices to plot
   scatter(x(jplot),y(jplot),1.0,real(c(jplot)),'filled'); axis tight equal
   xlabel('x'); ylabel('y'); colorbar; title('Re f(x,y)');
-                
+
 .. image:: ../pics/fser2d.png
    :width: 70%
- 
-See the full code `tutorial/serieseval2d.m <https://github.com/flatironinstitute/finufft/blob/master/tutorial/serieseval2d.m>`_.
 
+See the full code `tutorial/serieseval2d.m <https://github.com/flatironinstitute/finufft/blob/master/tutorial/serieseval2d.m>`_.

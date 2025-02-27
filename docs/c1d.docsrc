@@ -4,7 +4,7 @@ int @F1d1(int64_t M, double* x, complex<double>* c, int iflag, double eps, int64
 @t
               M-1
      f[k1] =  SUM c[j] exp(+/-i k1 x(j))  for -N1/2 <= k1 <= (N1-1)/2
-              j=0            
+              j=0
 
   Inputs:
 @nt
@@ -28,7 +28,7 @@ int @F1d2(int64_t M, double* x, complex<double>* c, int iflag, double eps, int64
   1D complex nonuniform FFT of type 2 (uniform to nonuniform).
 @t
      c[j] = SUM   f[k1] exp(+/-i k1 x[j])      for j = 0,...,M-1
-             k1 
+             k1
      where the sum is over integers -N1/2 <= k1 <= (N1-1)/2.
 
   Inputs:
