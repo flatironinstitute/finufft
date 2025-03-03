@@ -39,12 +39,14 @@ In order to configure cuFINUFFT for a specific compute capability, use the ``CMA
 To find out your own device's compute capability without having to look it up on the web, use:
 
 .. code-block:: bash
-                
+
     nvidia-smi --query-gpu=compute_cap --format=csv,noheader
 
 This will return a text string such as ``8.6`` which would incidate
 ``sm_86`` architecture, thus to use ``CMAKE_CUDA_ARCHITECTURES=86``.
-    
+
+Note that by default the ``CMAKE_CUDA_ARCHITECTURES`` flag is set to ``native``, which means that the code will be compiled for the compute capability of the GPU on which the code is being compiled.
+This might not be portable so it is recommended to set this flag explicitly when building for multiple systems. A good alternative is ``all-major`` which will compile for all major compute capabilities.
 
 Testing
 -------

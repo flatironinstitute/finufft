@@ -11,7 +11,7 @@ import searchForTimeMetrics as stm
 '''
 A script to run a seris of finufftGuru_tests with varying parameters
 Captures the stdout, parses it for timing statistics, and graphs speedup
-ratio trends. 
+ratio trends.
 '''
 
 
@@ -26,7 +26,7 @@ debug = 1
 modes = [1e6,1,1,1e3,1e3,1,1e2,1e2,1e2]
 
 dimensions = [1,2,3]
-types = [1,2,3] 
+types = [1,2,3]
 #n_trials=[1,10,100]
 n_trials = [1,10]
 
@@ -84,20 +84,20 @@ fftT3_New =[]
 for dim in dimensions:
     for ftype in types:
         for trial in n_trials:
-            
-            print( "./finufftGuru_test "+ str(trial)+ " " + str(ftype)+  " " +str(dim)+ " " + 
-                                  str(modes[3*(dim-1)])+ " " + str(modes[3*(dim-1)+1])+ " " +  str(modes[3*(dim-1)+2])+ " " + 
-                                  str(M_srcpts)+  " " + str(tolerance) + " " + str(debug)); 
+
+            print( "./finufftGuru_test "+ str(trial)+ " " + str(ftype)+  " " +str(dim)+ " " +
+                                  str(modes[3*(dim-1)])+ " " + str(modes[3*(dim-1)+1])+ " " +  str(modes[3*(dim-1)+2])+ " " +
+                                  str(M_srcpts)+  " " + str(tolerance) + " " + str(debug));
             #execute the test for this set of parameters
-            out =  subprocess.run(["./finufftGuru_test", str(trial), str(ftype), str(dim), 
-                                  str(modes[3*(dim-1)]),str(modes[3*(dim-1)+1]),  str(modes[3*(dim-1)+2]), 
-                                  str(M_srcpts), str(tolerance), str(debug)], 
+            out =  subprocess.run(["./finufftGuru_test", str(trial), str(ftype), str(dim),
+                                  str(modes[3*(dim-1)]),str(modes[3*(dim-1)+1]),  str(modes[3*(dim-1)+2]),
+                                  str(M_srcpts), str(tolerance), str(debug)],
                                  stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
             strOut = out.stdout.decode() #convert bytes to string
             print(strOut)
 
-            
+
             #parse the output and syphon into data arrays
 
             ###############################################################################
@@ -133,12 +133,12 @@ for dim in dimensions:
                 totalTimeT3Ratio.append(totalSpeedup)
 
             ###############################################################################
-                
-            #spread (old) / [sort+spread]  (new)            
+
+            #spread (old) / [sort+spread]  (new)
             newSort = stm.sumAllTime('(.*finufft_setpts.*sort)(.*)', strOut)
 
             #collect spreading if any
-            newSpread = stm.extractTime('(.*finufft.*exec.*spread)(.*)' , strOut) 
+            newSpread = stm.extractTime('(.*finufft.*exec.*spread)(.*)' , strOut)
 
             #collect interp if any
             newInterp = stm.extractTime('(.*finufft.*exec.*interp)(.*)',strOut)
@@ -166,7 +166,7 @@ for dim in dimensions:
             #fftw_plan(old) / fftw_plan(new)
             planSciNotString = '(\(\d+\)[ \t]+)(\d*.?\d*e-\d* s)'
             planDecimalMatchString= '(\(\d+\)[ \t]+)(\d*\.?\d* s)'
-            planWholeNumberMatchString= '(\(\d+\)[ \t]+)(\d+ s)' 
+            planWholeNumberMatchString= '(\(\d+\)[ \t]+)(\d+ s)'
 
             #collect new fftw_plan time
             new_fftwPlan=0
@@ -178,12 +178,12 @@ for dim in dimensions:
                 if(not fftwPlanVal):
                     fftwPlanVal = re.search(wholeNumberMatchString, lineMatch.group(0))
                 new_fftwPlan = float(fftwPlanVal.group(2).split('s')[0])  #strip off s
-            new_fftwPlan = round(new_fftwPlan,5)    
+            new_fftwPlan = round(new_fftwPlan,5)
 
             #collect the fftw_plan timings for each trial of old
             isInitial = True
             initialLookup = 0
-            totalOldfftwPlan=0   
+            totalOldfftwPlan=0
             lineMatch = re.findall('(?<!\[make plan\] )fftw plan \(64\).*', strOut) #all fftw plan lines that don't include "make plan" indicating old implm.
             if(lineMatch):
                 for match in lineMatch:
@@ -196,13 +196,13 @@ for dim in dimensions:
                     if(isInitial): #Capture the first fftwplan output - indicating initial construction time
                         initalLookup = oldfftwPlanVal
                         isInitial = False
-                    
+
                     totalOldfftwPlan = totalOldfftwPlan + oldfftwPlanVal
             totalOldfftwPlan = round(totalOldfftwPlan,5)
-            
+
             #These plan ratios include the initial old implementation plan construction!!
             fftwPlanRatio = round(totalOldfftwPlan/new_fftwPlan,5)
-            
+
             if(ftype == 1):
                 fftwPlanT1Ratio.append(fftwPlanRatio)
                 fftwPlanT1_New.append(new_fftwPlan)
@@ -218,7 +218,7 @@ for dim in dimensions:
                 fftwPlanT3_New.append(new_fftwPlan)
                 fftwPlanT3_Old.append(totalOldfftwPlan)
                 fftwPlanT3_Old_initial.append(initialLookup)
-            
+
             ###############################################################################
             #fftw_exec(old) / fftw_exec(new)
 
@@ -226,10 +226,10 @@ for dim in dimensions:
             new_fft = stm.extractTime("(.*finufft_exec.*fft)(.*)" , strOut)
 
             #collect the fftw_exec timings for each trial of old
-            totalOldfft = stm.sumAllTime("(.*fft \(\d+ threads\))(.*)",strOut) 
+            totalOldfft = stm.sumAllTime("(.*fft \(\d+ threads\))(.*)",strOut)
 
             fftRatio = round(totalOldfft/new_fft,5)
-            
+
             if(ftype == 1):
                 fftT1Ratio.append(fftRatio)
                 fftT1_New.append(new_fft)
@@ -243,11 +243,11 @@ for dim in dimensions:
                 fftT3_New.append(new_fft)
                 fftT3_Old.append(totalOldfft)
 
-            
+
             ###############################################################################
 
 
-#Construct the bar graph 
+#Construct the bar graph
 barWidth = 0.25
 barDepth = 0.25
 
@@ -255,7 +255,7 @@ _t1ys = dimensions
 _t2ys = [y + barWidth for y in _t1ys]
 _t3ys = [y + barWidth for y in _t2ys]
 
-_t1xs = n_trials 
+_t1xs = n_trials
 _t2xs = [x + barDepth for x in _t1xs]
 _t3xs = [x + barDepth for x in _t2xs]
 
@@ -272,7 +272,7 @@ print("n_trials:" )
 print(t1x)
 print("dimensions: ")
 print(t1y)
-    
+
 zbot = np.zeros(len(t1x))
 widths = [barWidth]*len(t1x)
 depths = [barDepth]*len(t1x)
@@ -285,7 +285,7 @@ t3_proxy = plt.Rectangle((0,0),1,1,fc="g")
 
 
 ##################TotalSpeed BAR GRAPH####################################################
-print("##################Total Time####################################################") 
+print("##################Total Time####################################################")
 print("\n")
 print("Raw T1 Total Time New " + str(totalTimeT1_New))
 print("Raw T1 Total Time Old " + str(totalTimeT1_Old))
@@ -316,7 +316,7 @@ plt.yticks([y+barWidth+1 for y in range(len(t1y))], ['1', '2', '3'])
 plt.title('totalOldTime/totalNewTime')
 
 
-#### Speed Statistics SANS Initial Planning Time 
+#### Speed Statistics SANS Initial Planning Time
 
 TotalSpeedRatioSansPlanT1 = (np.array(totalTimeT1_Old) - np.array(fftwPlanT1_Old_initial))/(np.array(totalTimeT1_New) - np.array(fftwPlanT1_New))
 TotalSpeedRatioSansPlanT2 = (np.array(totalTimeT2_Old) - np.array(fftwPlanT2_Old_initial))/(np.array(totalTimeT2_New) - np.array(fftwPlanT2_New))
@@ -334,7 +334,7 @@ print("T3: " + str(TotalSpeedRatioSansPlanT3))
 
 
 ##################SPREADING BAR GRAPH####################################################
-print("##################SPREADING####################################################") 
+print("##################SPREADING####################################################")
 print("\n")
 print("Raw T1 Spreading New" + str(spreadT1_New))
 print("Raw T1 Spreading Old" + str(spreadT1_Old))
@@ -435,15 +435,3 @@ plt.title('totalOldFFtwExec/NewFftwExec')
 plt.show()
 
 fig.savefig('timing_breakdowns_rusty_node.png')
-
-
-
-
-
-
-
-
-
-
-
-

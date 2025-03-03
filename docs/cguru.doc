@@ -1,16 +1,16 @@
 ::
- 
- int finufft_makeplan(int type, int dim, int64_t* nmodes, int iflag, int ntr, double eps, 
+
+ int finufft_makeplan(int type, int dim, int64_t* nmodes, int iflag, int ntr, double eps,
  finufft_plan* plan, finufft_opts* opts)
- int finufftf_makeplan(int type, int dim, int64_t* nmodes, int iflag, int ntr, float eps, 
+ int finufftf_makeplan(int type, int dim, int64_t* nmodes, int iflag, int ntr, float eps,
  finufftf_plan* plan, finufftf_opts* opts)
- 
+
    Make a plan to perform one or more general transforms.
- 
+
    Under the hood, for type 1 and 2, this does FFTW planning and kernel Fourier
    transform precomputation. For type 3, this does very little, since the FFT
    sizes are not yet known.
- 
+
  Inputs:
       type   type of transform (1,2, or 3)
       dim    spatial dimension (1,2, or 3)
@@ -22,36 +22,36 @@
      eps    desired relative precision; smaller is slower. This can be chosen
             from 1e-1 down to ~ 1e-14 (in double precision) or 1e-6 (in single)
      opts   pointer to options struct (see opts.rst), or NULL for defaults
- 
+
    Outputs:
       plan   plan object (under the hood this is a pointer to another struct)
      return value  0: success, 1: success but warning, >1: error (see error.rst)
- 
+
    Notes:
       * All available threads are planned by default (but see opts.nthreads)
       * The vectorized (many vector) plan, ie ntrans>1, can be much faster
         than repeated calls with the same nonuniform points.
         Note that here the I/O data ordering is stacked rather than interleaved.
       * For more details about the fields in the opts pointer, see opts.rst
- 
- 
+
+
 ::
- 
- int finufft_setpts(finufft_plan plan, int64_t M, double* x, double* y, double* z, int64_t 
+
+ int finufft_setpts(finufft_plan plan, int64_t M, double* x, double* y, double* z, int64_t
  N, double* s, double* t, double* z)
- int finufftf_setpts(finufftf_plan plan, int64_t M, float* x, float* y, float* z, int64_t 
+ int finufftf_setpts(finufftf_plan plan, int64_t M, float* x, float* y, float* z, int64_t
  N, float* s, float* t, float* z)
- 
+
    Input nonuniform points with coordinates x (and possibly y, and possibly z),
    and, if type 3, nonuniform frequency target coordinates s (and possibly t,
    and possibly u), into an existing plan. If type is 1 or 2 then the last four
    arguments are ignored. Unused dimensions are ignored.
- 
+
    Under the hood, for type 1 or 2, this routine bin-sorts the points (storing
    just the permutation rather than new copies of the coordinates). For type
    3 it also bin-sorts the frequencies, chooses two levels of grid sizes, then
    plans the inner type 2 call (interpolation and FFTW).
- 
+
    Inputs:
       M      number of nonuniform spatial points (used by all types)
       x      nonuniform point x-coordinates (length M real array)
@@ -66,13 +66,13 @@
              ignored otherwise
       u      if dim>2, nonuniform frequency z-coordinates (length N real array),
              ignored otherwise
- 
+
    Input/Outputs:
       plan   plan object
- 
+
    Outputs:
      return value  0: success, 1: success but warning, >1: error (see error.rst)
- 
+
    Notes:
      * The coordinates in x (and if nonempty, y and z) can be any real numbers.
        For type 1 and 2 transforms, their definitions imply that that the
@@ -87,22 +87,22 @@
        sizes is not too large (it controls the internal fine grid size).
      * The coordinates pointed to by any used arrays x, y, z, s, t, u must
        not be changed between this call and the below execute call!
- 
- 
+
+
 ::
- 
+
  int finufft_execute(finufft_plan plan, complex<double>* c, complex<double>* f)
  int finufftf_execute(finufftf_plan plan, complex<float>* c, complex<float>* f)
- 
+
    Perform one or more NUFFT transforms using previously entered nonuniform
    points and an existing plan. To summarize, this maps
      type 1: c -> f
-     type 2: f -> c      
+     type 2: f -> c
      type 3: c -> f
- 
+
    Inputs:
         plan   plan object
- 
+
    Input/Outputs:
         c      For types 1 and 3, the input strengths at the nonuniform point
                sources (size M*ntr complex array).
@@ -116,28 +116,28 @@
                respectively).
                If type 3, the output values at the nonuniform frequency targets
                (size N*ntr complex array).
-               
+
    Outputs:
      return value  0: success, 1: success but warning, >1: error (see error.rst)
- 
+
    Notes:
      * The contents of the arrays x, y, z, s, t, u must not have changed since
        the finufft_setpts call that read them. The execution rereads them
        (this way of doing business saves RAM).
      * f and c are contiguous Fortran-style arrays with the transform number,
        if ntr>1, being the "slowest" (outer) dimension.
- 
- 
+
+
 ::
- 
+
  int finufft_destroy(finufft_plan plan)
  int finufftf_destroy(finufftf_plan plan)
- 
+
    Deallocate a plan object. This must be used upon clean-up, or before reusing
    a plan in another call to finufft_makeplan.
- 
+
    Inputs/Outputs:
         plan   plan object
- 
+
    Outputs:
      return value  0: success, 1: success but warning, >1: error (see error.rst)

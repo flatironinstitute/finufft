@@ -8,7 +8,7 @@ Timings in sec:
 single-thread:
 
 	t1		t2
-		
+
 	GCC	ICC	GCC	ICC
 
 1d	2.7	1.7	3.3	2.7
@@ -22,4 +22,3 @@ single-thread:
 3d	.82	.62	.76	.58
 
 Note: sorting a bit slower under ICC, but spreading is faster.
-

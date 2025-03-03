@@ -111,7 +111,7 @@ spreadinterp 1D, 1e+06 U pts, dir=2, tol=0.1: nspread=2
 
 1D Concl: single-thread 7% speedup interp (dir=2) - none to do with sorting
                         5% speedup spread dir=1.
-          multi-thread  no significant change (~1% level).       
+          multi-thread  no significant change (~1% level).
 
 Also noted: PR #440 compile time for spreadinterp.o is 10x longer than before (~5 sec)
 
@@ -144,7 +144,7 @@ spreadinterp 3D, 1e+06 U pts, dir=2, tol=0.1: nspread=2
 	t2 spreading loop: 	0.752 s
     1e+07 NU pts in 0.892 s 	1.12e+07 pts/s 	8.97e+07 spread pts/s
     max rel err in values at NU pts: 0.315
-    
+
 (base) alex@ross /home/alex/numerics/finufft> OMP_NUM_THREADS=8 perftest/spreadtestnd 3 1e8 1e6 1e-1 2 0 1
 setup_spreader (kerevalmeth=1) eps=0.1 sigma=2: chose ns=2 beta=4.4
 	sorted (1 threads):	1.7e-05 s
@@ -195,7 +195,7 @@ spreadinterp 3D, 1e+06 U pts, dir=2, tol=0.1: nspread=2
 	t2 spreading loop: 	0.687 s
     1e+07 NU pts in 0.829 s 	1.21e+07 pts/s 	9.65e+07 spread pts/s
     max rel err in values at NU pts: 0.315
-    
+
 (base) alex@ross /home/alex/numerics/finufft> OMP_NUM_THREADS=8 perftest/spreadtestnd 3 1e8 1e6 1e-1 2 0 1
 setup_spreader (kerevalmeth=1) eps=0.1 sigma=2: chose ns=2 beta=4.4
 	sorted (1 threads):	1.8e-05 s
@@ -226,4 +226,3 @@ concl: single-thread: spread no change; interp is 9% faster
 Overall: only affects single-core perf, and by 9% or less.
 
 (Of course, advantage of no 3pi-restriction is good too)
-

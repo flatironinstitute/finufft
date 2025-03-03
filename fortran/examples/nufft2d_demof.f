@@ -16,7 +16,7 @@ c     ../../lib-static/libfinufftf.a -lstdc++ -lfftw3f -lfftw3f_omp -lm -fopenmp
 c
       program nufft2d_demof
       implicit none
-      
+
 c     our fortran-header, always needed
       include 'finufft.fh'
 c
@@ -108,7 +108,7 @@ c
          print *, ' ier = ',ier
          call errcomp(fk0,fk1,nk,err)
          print *, ' type 3 error = ',err
-      enddo 
+      enddo
       stop
       end
 c

@@ -83,4 +83,3 @@ These
 may be a useful introduction to FINUFFT and applications.
 
 Yu-Hsuan (Melody) Shih's PDSEC2021 20-minute presentation video on cuFINUFFT is here: https://www.youtube.com/watch?v=PnW6ehMyHxM
-

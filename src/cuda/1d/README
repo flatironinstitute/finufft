@@ -5,10 +5,10 @@
   This file contains all the GPU kernels for 1d spreading, interpolation.
 
 - interp1d_wrapper.cu
-  Wrappers for 1d interpolations. One method is implemented: 
-    (1) nonuniform driven, 
-    
+  Wrappers for 1d interpolations. One method is implemented:
+    (1) nonuniform driven,
+
 - spread1d_wrapper.cu
-  Wrappers for 1d spreading. Two methods are implemented: 
-    (1) nonuniform driven, 
-    (2) subproblem 
+  Wrappers for 1d spreading. Two methods are implemented:
+    (1) nonuniform driven,
+    (2) subproblem
