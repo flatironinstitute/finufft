@@ -63,7 +63,7 @@ int main(int argc, char *argv[]) {
   CPX kersum = 0.0;
   for (auto Fk : F) kersum += Fk; // one kernel mass
 
-    // generate random nonuniform points (x) and complex strengths (c)
+  // generate random nonuniform points (x) and complex strengths (c)
 #pragma omp parallel
   {
     unsigned int se = MY_OMP_GET_THREAD_NUM();   // needed for parallel random #s

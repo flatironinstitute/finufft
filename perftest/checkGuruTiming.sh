@@ -31,10 +31,8 @@ do
 	    modeNum2=${modes[index+1]}
 	    modeNum3=${modes[index+2]}
 
-	    echo "./guru_timing_test ${n_trials} ${type} ${dimension} ${modeNum1} ${modeNum2} ${modeNum3} ${srcpts} ${tolerance} ${debug}"				 
+	    echo "./guru_timing_test ${n_trials} ${type} ${dimension} ${modeNum1} ${modeNum2} ${modeNum3} ${srcpts} ${tolerance} ${debug}"
 	    ./guru_timing_test ${n_trials} ${type} ${dimension} ${modeNum1} ${modeNum2} ${modeNum3} ${srcpts} ${tolerance} ${debug}
 	done
     done
 done
-
-			       

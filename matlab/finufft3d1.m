@@ -50,7 +50,6 @@
 %  * For more details about the opts fields, see ../docs/opts.rst
 %  * See ERRHANDLER, VALID_* and FINUFFT_PLAN for possible warning/error IDs.
 %  * Full documentation is online at http://finufft.readthedocs.io
-
 function f = finufft3d1(x,y,z,c,isign,eps,ms,mt,mu,o)
 
 if nargin<10, o.dummy=1; end

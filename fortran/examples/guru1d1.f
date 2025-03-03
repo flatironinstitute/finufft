@@ -4,7 +4,7 @@ c     Double-precision only.
 c     Legacy-style: f77, plus dynamic allocation & derived types from f90.
 
 c     To compile (linux/GCC) from this directory, use eg (paste to one line):
-      
+
 c     gfortran -fopenmp -I../../include -I/usr/include guru1d1.f
 c     ../../lib/libfinufft.so -lfftw3 -lfftw3_omp -lgomp -lstdc++ -o guru1d1
 
@@ -30,15 +30,15 @@ c     note some inputs are int (int*4) but others BIGINT (int*8)
       integer ttype,dim,ntrans
 c     to pass null pointers to unused arguments...
       real*8, pointer :: dummy => null()
-      
+
 c     this is what you use as the "opaque" ptr to ptr to finufft_plan...
       integer*8 plan
 c     this is how you create the options struct in fortran...
       type(finufft_opts) opts
 c     or this is if you want default opts, make a null pointer...
       type(finufft_opts), pointer :: defopts => null()
-      
-      
+
+
 c     how many nonuniform pts
       M = 1000000
 c     how many modes (not too much since FFTW_MEASURE slow later)
@@ -83,7 +83,7 @@ c     Do it: reads cj (strengths), writes fk (mode coeffs) and ier (status)
       endif
       call finufft_destroy(plan,ier)
 
-      
+
 c     math test: single output mode with given freq (not array index) k
       ktest = N/3
       fktest = dcmplx(0,0)
@@ -133,6 +133,6 @@ c     change the NU pts then do another transform w/ existing strengths...
          print *,'failed! ier=',ier
       endif
       call finufft_destroy(plan,ier)
-      
+
       stop
       end

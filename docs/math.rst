@@ -15,7 +15,7 @@ Type 1 and type 2 involve the Fourier "modes" (Fourier series coefficients)
 with integer frequency indices lying in the Cartesian product set
 
 .. math::
-   
+
    K = K_{N_1,\dots,N_d} := K_{N_1} \times K_{N_2} \times \dots \times K_{N_d}~,
 
 where
@@ -40,21 +40,21 @@ Then the **type 1** (nonuniform to uniform, aka "adjoint") NUFFT evaluates
 
 .. math::
   :label: 1
-   
+
   f_\mathbf{k} := \sum_{j=1}^M c_j e^{\pm i \mathbf{k}\cdot \mathbf{x}_j}
   \qquad \mbox{for } \mathbf{k} \in K
 
-  
+
 This can be viewed as evaluating a set of
 Fourier series coefficients due to sources
-with strengths $c_j$ at the arbitrary locations $\mathbf{x}_j$.	  
+with strengths $c_j$ at the arbitrary locations $\mathbf{x}_j$.
 Either sign of the imaginary unit in the exponential can be chosen in the interface. Note that our normalization differs from that of references [DR,GL].
 
 The **type 2** (U to NU, aka "forward") NUFFT evaluates
 
 .. math::
    :label: 2
-	   
+
    c_j := \sum_{\mathbf{k}\in K} f_\mathbf{k} e^{\pm i \mathbf{k}\cdot \mathbf{x}_j}
    \qquad \mbox{for } j=1,\ldots,M
 
@@ -83,7 +83,7 @@ Then the type 3 transform evaluates:
 
 .. math::
   :label: 3
-   
+
   f_k := \sum_{j=1}^M c_j e^{\pm i \mathbf{s}_k\cdot \mathbf{x}_j}
    \qquad \mbox{for } k=1,\ldots,N
 

@@ -30,4 +30,3 @@ figure; loglog(tols,errs,'+'); hold on; plot(tols,tols,'-');
 axis tight; xlabel('tol'); ylabel('err');
 %title(sprintf('1d1: (maxerr)/||c||_1, M=%d, N=%d\n',M,N));
 title(sprintf('1d1: ||\tilde f - f||_2/||f||_2, M=%d, N=%d\n',M,N));
-

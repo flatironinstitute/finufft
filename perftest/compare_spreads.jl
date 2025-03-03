@@ -15,7 +15,7 @@ function run_spread(repo,dim,M,N,tols,nthr,prec)
     if prec==Float64
         exec = "$repo/perftest/spreadtestnd"
     elseif prec==Float32
-        exec = "$repo/perftest/spreadtestndf"    
+        exec = "$repo/perftest/spreadtestndf"
     else error("prec not known!")
     end
     times = zeros(2,length(tols))     # spread col 1; interp col 2
@@ -82,9 +82,9 @@ if compute
         ts[:,i,ntolsd+1:end,2] = run_spread(repo2,dim,M,N,tolsf,nthr,Float32)
         println(ts[:,i,:,:])
     end
-    #tolstr = [[@sprintf "%.0e" tol for tol=tolsd]; [@sprintf "%.0ef" tol for tol=tolsf]] 
+    #tolstr = [[@sprintf "%.0e" tol for tol=tolsd]; [@sprintf "%.0ef" tol for tol=tolsf]]
     # strings for w (nspread) for plotting...
-    wstr = [[@sprintf "%d" -log10(tol)+1 for tol=tolsd]; [@sprintf "%df" -log10(tol)+1 for tol=tolsf]] 
+    wstr = [[@sprintf "%d" -log10(tol)+1 for tol=tolsd]; [@sprintf "%df" -log10(tol)+1 for tol=tolsf]]
     jldsave("$(fnam).jld2"; fnam,ts,wstr,dims,M,N,tolsd,tolsf,nthr)    # save all
     plot_all(fnam,ts,wstr,dims,M,N,nthr)
 else

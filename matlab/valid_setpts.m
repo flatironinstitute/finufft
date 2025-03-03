@@ -26,7 +26,7 @@ if dim>1
     if ~isvector(t), error('FINUFFT:badTshape','FINUFFT t must be a vector'); end
     if numel(t)~=nk, error('FINUFFT:badTlen','FINUFFT t must have same length as s'); end
   end
-end              
+end
 if dim>2
   if ~isvector(z), error('FINUFFT:badZshape','FINUFFT z must be a vector'); end
   if numel(z)~=nj, error('FINUFFT:badZlen','FINUFFT z must have same length as x'); end
@@ -34,4 +34,4 @@ if dim>2
     if ~isvector(u), error('FINUFFT:badUshape','FINUFFT u must be a vector'); end
     if numel(u)~=nk, error('FINUFFT:badUlen','FINUFFT u must have same length as s'); end
   end
-end   
+end

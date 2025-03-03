@@ -4,7 +4,7 @@ c     Double-precision (see simple1d1f.f for single).
 c     Legacy-style: f77, plus dynamic allocation & derived types from f90.
 
 c     To compile (linux/GCC) from this directory, use eg (paste to one line):
-      
+
 c     gfortran -fopenmp -I../../include simple1d1.f -o simple1d1
 c     ../../lib/libfinufft.so -lfftw3 -lfftw3_omp -lgomp -lstdc++
 
@@ -12,7 +12,7 @@ c     Alex Barnett and Libin Lu 5/28/20, fix ptrs 10/6/21
 
       program simple1d1
       implicit none
-      
+
 c     our fortran-header, always needed
       include 'finufft.fh'
 
@@ -29,7 +29,7 @@ c     this is how you create the options struct in fortran...
       type(finufft_opts) opts
 c     or this is if you want default opts, make a null pointer...
       type(finufft_opts), pointer :: defopts => null()
-      
+
 c     how many nonuniform pts
       M = 2000000
 c     how many modes
@@ -77,7 +77,7 @@ c     compute inf norm of fk coeffs for use in rel err
       ktestindex = ktest + N/2 + 1
       print '("rel err for mode k=",i10," is ",e10.2)',ktest,
      $     cdabs(fk(ktestindex)-fktest)/fmax
-      
+
 c     do another transform, but now first setting some options...
       print *,''
       print *, 'setting new options, rerun simple interface...'
@@ -96,6 +96,6 @@ c     fields of derived type opts may be queried/set as usual...
       else
          print *,'failed! ier=',ier
       endif
-      
+
       stop
       end

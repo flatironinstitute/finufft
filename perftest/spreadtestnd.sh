@@ -23,7 +23,7 @@ else
     PREC=double
     ST=./spreadtestnd
 fi
-   
+
 echo
 export OMP_NUM_THREADS=$TESTTHREADS
 echo "$PREC-precision $OMP_NUM_THREADS-thread tests: #NU = $M, #U = $N, tol = $TOL..."

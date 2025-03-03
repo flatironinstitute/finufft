@@ -28,7 +28,7 @@ c     our fortran-header, always needed
       complex*16, allocatable :: cj(:),cj0(:),cj1(:),fk0(:),fk1(:)
 c     for default opts, make a null pointer...
       type(finufft_opts), pointer :: defopts => null()
-      
+
 c
 c     --------------------------------------------------
 c     create some test data
@@ -122,7 +122,7 @@ c     -----------------------
          print *, ' ier = ',ier
          call errcomp(fk0,fk1,nk,err)
          print *, ' type 3 error = ',err
-      enddo 
+      enddo
       stop
       end
 c

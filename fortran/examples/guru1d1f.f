@@ -4,7 +4,7 @@ c     Single-precision only.
 c     Legacy-style: f77, plus dynamic allocation & derived types from f90.
 
 c     To compile (linux/GCC) from this directory, use eg (paste to one line):
-      
+
 c     gfortran-9 -fopenmp -I../../include -I/usr/include guru1d1f.f
 c     -L../../lib -lfinufftf -o guru1d1f
 
@@ -37,7 +37,7 @@ c     this is how you create the options struct in fortran...
       type(finufft_opts) opts
 c     or this is if you want default opts, make a null pointer...
       type(finufft_opts), pointer :: defopts => null()
-   
+
 c     how many nonuniform pts
       M = 200000
 c     how many modes (not too much since FFTW_MEASURE slow later)
@@ -82,7 +82,7 @@ c     Do it: reads cj (strengths), writes fk (mode coeffs) and ier (status)
       endif
       call finufftf_destroy(plan,ier)
 
-      
+
 c     math test: single output mode with given freq (not array index) k
       ktest = N/3
       fktest = cmplx(0,0)
@@ -132,6 +132,6 @@ c     change the NU pts then do another transform w/ existing strengths...
          print *,'failed! ier=',ier
       endif
       call finufftf_destroy(plan,ier)
-      
+
       stop
       end
