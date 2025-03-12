@@ -203,6 +203,8 @@ private:
   std::unique_ptr<Finufft_FFT_plan<TF>> fftPlan;
 
 public:
+  const Finufft_FFT_plan<TF> &getFFTPlan() const { return *fftPlan; }
+
   finufft_opts opts; // this and spopts could be made ptrs
 
 private:
