@@ -111,7 +111,7 @@ jobs:
           echo "SCCACHE_GHA_ENABLED=true" >> $GITHUB_ENV
           echo "SCCACHE_GHA_VERSION=0" >> $GITHUB_ENV
       - name: Setup Cpp
-        uses: aminya/setup-cpp@v1
+        uses: aminya/setup-cpp@v1.1.1
         with:
           compiler: ${{ matrix.toolchain }}
           vcvarsall: ${{ contains(matrix.os, 'windows') }}
