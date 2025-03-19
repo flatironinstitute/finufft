@@ -1,0 +1,30 @@
+name: Build cuFINUFFT Python wheels
+
+on: [push, pull_request]
+
+jobs:
+  build_wheels_linux:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build wheels
+        uses: pypa/cibuildwheel@v2.19.2
+        with:
+          package-dir: 'python/cufinufft'
+        env:
+          CIBW_BEFORE_ALL_LINUX: |
+            # See: https://stackoverflow.com/questions/77197213/cibuildwheel-and-cuda
+            yum-config-manager --add-repo https://developer.download.nvidia.com/compute/cuda/repos/rhel7/x86_64/cuda-rhel7.repo
+            rpm --import https://developer.download.nvidia.com/compute/cuda/repos/rhel7/x86_64/D42D0685.pub
+            yum clean all
+            yum -y install cuda-toolkit-11-4
+            /usr/local/cuda/bin/nvcc --version
+          CIBW_ENVIRONMENT_LINUX: >
+            CUDACXX=/usr/local/cuda/bin/nvcc
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cibw-wheels-ubuntu-latest
+          path: ./wheelhouse/*.whl

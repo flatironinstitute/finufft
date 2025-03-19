@@ -73,3 +73,13 @@ sdist.include = ["src/cuda"]
 # Instead of hardcoding the version here, extract it from the source files.
 provider = "scikit_build_core.metadata.regex"
 input = "cufinufft/__init__.py"
+
+[tool.cibuildwheel]
+# Make sure we see what's going on.
+build-verbosity = 1
+# Skip building for PyPi and musllinux.
+skip = "pp* *musllinux*"
+
+[tool.cibuildwheel.linux]
+archs = "x86_64"
+config-settings = {"cmake.define.FINUFFT_ARCH_FLAGS" = "-march=x86-64", "cmake.define.CMAKE_VERBOSE_MAKEFILE" = "ON", "cmake.define.CMAKE_CUDA_ARCHITECTURES" = "50;60;70;80", "cmake.define.CMAKE_CUDA_FLAGS" ="-Wno-deprecated-gpu-targets"}
