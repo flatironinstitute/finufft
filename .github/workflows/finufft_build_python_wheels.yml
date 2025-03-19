@@ -1,4 +1,4 @@
-name: Build and test Python wheels
+name: Build and test FINUFFT Python wheels
 
 on: [push, pull_request]
 
