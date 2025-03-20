@@ -26,5 +26,5 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: cibw-wheels-ubuntu-latest
+          name: cufinufft-wheels-ubuntu-latest
           path: ./wheelhouse/*.whl

@@ -37,7 +37,7 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: cibw-wheels-${{ matrix.os }}
+          name: finufft-wheels-${{ matrix.os }}
           path: ./wheelhouse/*.whl
 
   build_wheels_macos_arm64:
@@ -68,7 +68,7 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: cibw-wheels-macos-arm64
+          name: finufft-wheels-macos-arm64
           path: ./wheelhouse/*.whl
 
   build_wheels_win:
@@ -95,5 +95,5 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: cibw-wheels-windows
+          name: finufft-wheels-windows
           path: ./wheelhouse/*.whl
