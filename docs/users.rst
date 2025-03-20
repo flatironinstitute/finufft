@@ -116,8 +116,7 @@ Papers or codes using our new ES window (kernel spreading) function, but not the
 
 #. Martin Reinecke: codes for radio astronomy reconstruction including https://gitlab.mpcdf.mpg.de/mtr/ducc
 
-#. Aref Hashemi et al, "Computing hydrodynamic interactions in confined doubly-periodic geometries in linear time," J. Chem. Phys. 158(15): 154101 (2023).
-DOI:10.1063/5.0141371.  https://arxiv.org/abs/2210.01837
+#. Aref Hashemi et al, "Computing hydrodynamic interactions in confined doubly-periodic geometries in linear time," J. Chem. Phys. 158(15): 154101 (2023). DOI:10.1063/5.0141371.  https://arxiv.org/abs/2210.01837
 
 
 Papers influenced by other aspects of FINUFFT:
