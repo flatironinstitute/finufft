@@ -982,14 +982,14 @@ int FINUFFT_PLAN_T<TF>::execute_internal(TC *cj, TC *fk, bool adjoint, int ntran
      - if type is 3, perform the planned transform "backwards" and with opposite isign
 
    ntrans_actual:
-     Helper variable for specifying the nubr of transforms to execute in one go
-     when calling the "inner" NUFFT during type 3 plan execution
+     Helper variable for specifying the number of transforms to execute in one
+     go when calling the "inner" NUFFT during type 3 plan execution
      - <= 0: behave as before
      - 0 < ntrans_actual <= batchSize: instead of doing ntrans transforms,
          perform only ntrans_actual
 
    scratch_size, aligned_scratch:
-     Helpers to avoid repeated allocation/deallocation of scrach space in the
+     Helpers to avoid repeated allocation/deallocation of scratch space in the
      "inner" NUFFT during type 3 plan execution
      If scratch_size>0. then aligned_scratch points to FFTW-aligned storage with
      at least scratch_size entries. This can be used as scratch space.
