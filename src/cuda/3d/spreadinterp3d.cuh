@@ -206,8 +206,8 @@ __global__ void spread_3d_subprob(
         for (int xx = xstart; xx <= xend; xx++) {
           const int ix = xx + ns_2;
           if (ix >= (bin_size_x + (int)rounded_ns) || ix < 0) break;
-          const int outidx = ix + iy * (bin_size_x + rounded_ns) +
-                             iz * (bin_size_x + rounded_ns) * (bin_size_y + rounded_ns);
+          const int outidx = iz + iy * (bin_size_x + rounded_ns) +
+                             ix * (bin_size_y + rounded_ns) * (bin_size_z + rounded_ns);
           const auto kervalue = ker1[xx - xstart] * kervalue2 * kervalue3;
           const cuda_complex<T> res{cnow.x * kervalue, cnow.y * kervalue};
           atomicAddComplexShared<T>(fwshared + outidx, res);
