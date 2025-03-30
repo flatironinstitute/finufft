@@ -1,0 +1,2 @@
+%     isign if >=0, uses + sign in exponential, otherwise - sign.
+%     eps   relative precision requested (generally between 1e-15 and 1e-1)

@@ -5,6 +5,7 @@
 # prepend these comment doc help blocks onto .m matlab codes.
 # Warning: overwrites all m-files, stripping first % or empty lines; careful!
 # Barnett 6/12/20, simplified.
+# 3/30/25: also calls GPU doc gen script.
 
 # stage 1: flesh out *.docsrc (input i) to *.docexp (output o)...
 for i in *.docsrc
@@ -62,3 +63,6 @@ done
 rm -f *.docexp
 
 # debug note: to debug, best to echo "$stuff" 1>&2   so it goes to stderr.
+
+# call GPU doc gen
+(cd @gpuArray; ./genmhelp.sh)
