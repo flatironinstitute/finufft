@@ -340,7 +340,7 @@ Algorithm performance options
 
 **gpu_maxsubprobsize**: maximum number of NU points to be handled in a single subproblem in the spreading SM method (``gpu_method=2`` only)
 
-**gpu_{o}binsize{x,y,z}**: various bisizes for sorting (GM-sort) or SM subproblem methods. Values of ``-1`` trigger the heuristically set default values. Leave at default unless you know what you're doing. [To be documented]
+**gpu_{o}binsize{x,y,z}**: various binsizes for sorting (GM-sort) or SM subproblem methods. Values of ``-1`` trigger the heuristically set default values. Leave at default unless you know what you're doing. [To be documented]
 
 **gpu_maxbatchsize**: ``0`` use heuristically defined batch size for vectorized (many-transforms with same NU points) interface, else set this batch size.
 
