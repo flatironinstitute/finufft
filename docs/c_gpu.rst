@@ -326,17 +326,17 @@ Algorithm performance options
 
 * ``gpu_method=0`` : makes an automatic choice of one of the below methods, based on our heuristics.
 
-* ``gpu_method=1`` : uses a nonuniform points-driven method, either unsorted which is referred to as GM in our paper, or sorted which is called GM-sort in our paper, depending on option ``gpu_sort`` below
+* ``gpu_method=1`` : uses a nonuniform points-driven method, either unsorted which is referred to as GM in our paper, or sorted which is called GM-sort in our paper, depending on option ``gpu_sort`` below.
 
-* ``gpu_method=2`` : for spreading only, ie, type 1 transforms, uses a shared memory output-block driven method, referred to as SM in our paper. Has no effect for interpolation (type 2 transforms)
+* ``gpu_method=2`` : for spreading only, ie, type 1 transforms, uses a shared memory output-block driven method, referred to as SM in our paper. Has no effect for interpolation (type 2 transforms).
 
 * ``gpu_method>2`` : (various upsupported experimental methods due to Melody Shih, not for regular users. Eg ``3`` tests an idea of Paul Springer's to group NU points when spreading, ``4`` is a block gather method of possible interest.)
 
 **gpu_sort**: ``0`` do not sort nonuniform points, ``1`` do sort nonuniform points. Only has an effect when ``gpu_method=1`` (or if this method has been internally chosen when ``gpu_method=0``). Unlike the CPU code, there is no auto-choice since in our experience sorting is fast and always helps. It is possible for structured NU point inputs that ``gpu_sort=0`` may be the faster.
 
-**gpu_kerevalmeth**: ``0`` use direct (reference) kernel evaluation, which is not recommended for speed (however, it allows nonstandard ``opts.upsampfac`` to be used). ``1`` use Horner piecewise polynomial evaluation (recommended, and enforces ``upsampfac=2.0``)
+**gpu_kerevalmeth**: ``0`` use direct (reference) kernel evaluation, which is not recommended for speed (however, it allows nonstandard ``opts.upsampfac`` to be used). ``1`` use Horner piecewise polynomial evaluation (recommended, only valid for ``upsampfac=2.0`` or ``1.25``).
 
-**upsampfac**: set upsampling factor. For the recommended ``kerevalmeth=1`` you must choose the standard ``upsampfac=2.0``. If you are willing to risk a slower kernel evaluation, you may set any ``upsampfac>1.0``, but this is experimental and unsupported. Finally, ``upsampfac=1.0`` is an advanced GPU setting only to be paired with the "spread/interpolate only" mode triggered by setting ``gpu_spreadinterponly=1`` (see options above); do not use this unless you know what you are doing!
+**upsampfac**: set upsampling factor. For the recommended ``gpu_kerevalmeth=1`` you must choose the standard ``upsampfac=2.0``. If you are willing to risk a slower kernel evaluation, you may set any ``upsampfac>1.0``, but this is experimental and unsupported. Finally, ``upsampfac=1.0`` is an advanced GPU setting only to be paired with the "spread/interpolate only" mode triggered by setting ``gpu_spreadinterponly=1`` (see options above); do not use this unless you know what you are doing!
 
 **gpu_maxsubprobsize**: maximum number of NU points to be handled in a single subproblem in the spreading SM method (``gpu_method=2`` only)
 
