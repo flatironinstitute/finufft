@@ -1,9 +1,8 @@
 % cufinufft.mw
 % MWrap MEX interface descriptor file for cuFINUFFT, using the guru interface.
-% This provides an object-oriented style interface to the guru interface, by
+% This provides an object-oriented style interface to the guru GPU interface, by
 % mirroring the cufinufft_plan C++ object with a matlab object "cufinufft_plan".
-% The OO use makes it compatible only with MATLAB R2008a or later, and octave
-% version 4.4 or later. mexcuda in Matlab introduced in R2015b
+% MATLAB R2015b or later is needed since this is when mexcuda was introduced.
 %
 % To match the object name, generated matlab interface is (and must be) called
 % cufinufft_plan.m; see Path Folders here:
@@ -31,7 +30,7 @@
 % You may remove '-Wl,-rpath,/absolute/path/to/finufft/build',
 % while you then need to export LD_LIBRARY_PATH to include path to libcufinufft.so
 % to make generated mex file find libcufinufft.so at runtime.
-% To support mexcuda do static linking need more investigation.
+% To support mexcuda with static linking need more investigation.
 
 % both precisions...
 $ #include <cufinufft.h>
