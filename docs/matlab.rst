@@ -1,9 +1,12 @@
+.. _matlab:
+
 MATLAB/octave interfaces
 ========================
 
 .. note::
 
-   See the :ref:`installation page <install>` for how to build these interfaces, or look `here <http://users.flatironinstitute.org/~ahb/codes/finufft-binaries>`_.
+   See the :ref:`installation page <install>` for how to build these interfaces.
+
 
 Quick-start examples
 ~~~~~~~~~~~~~~~~~~~~
