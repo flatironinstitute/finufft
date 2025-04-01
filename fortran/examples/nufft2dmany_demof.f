@@ -7,7 +7,7 @@ c     Leslie Greengard and June-Yub Lee. See: cmcl_license.txt.
 c
 c     Vectorized (many data vectors) demo type 1,2 by Melody Shih, 2018,
 c     type 3 & single-prec by Alex Barnett, 2020. Based on nufft2d_demo.f.
-c     Also see: ../README.     
+c     Also see: ../README.
 c
 c     Compile with, eg (GCC, multithreaded; paste to a single line):
 c
@@ -17,7 +17,7 @@ c
 c     Note: you must link to single-precision build of FINUFFT
       program nufft2dmany_demof
       implicit none
-      
+
 c     our fortran-header, always needed
       include 'finufft.fh'
 c
@@ -86,7 +86,7 @@ c     -----------------------
 c     call 2D Type 1 method
 c     -----------------------
 c
-         call finufftf2d1many(ntrans,nj,xj,yj,cj,iflag, 
+         call finufftf2d1many(ntrans,nj,xj,yj,cj,iflag,
      &                         eps,ms,mt,fk1,defopts,ier)
          do d = 1, ntrans
             call dirft2d1f(nj,xj,yj,cj(1+(d-1)*nj:d*nj),iflag,ms,mt,
@@ -129,7 +129,7 @@ c     -----------------------
             maxerr = max(maxerr,err)
          enddo
          print *, ' max type 3 error = ',err
-      enddo 
+      enddo
       stop
       end
 c

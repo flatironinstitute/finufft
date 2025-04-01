@@ -434,13 +434,14 @@ void freegpumemory(cufinufft_plan_t<T> *d_plan)
   utils::WithCudaDevice device_swapper(d_plan->opts.gpu_device_id);
   // Fixes a crash whewre the plan itself is deleted before the stream
   const auto stream = d_plan->stream;
-  // Dont clear fw if spreadinterponly for type 1 and 2 as fw belongs to original program (it is d_fk)
-  if(!d_plan->opts.gpu_spreadinterponly || d_plan->type == 3)
+  // Dont clear fw if spreadinterponly for type 1 and 2 as fw belongs to original program
+  // (it is d_fk)
+  if (!d_plan->opts.gpu_spreadinterponly || d_plan->type == 3)
     CUDA_FREE_AND_NULL(d_plan->fw, stream, d_plan->supports_pools);
   CUDA_FREE_AND_NULL(d_plan->fwkerhalf1, stream, d_plan->supports_pools);
   CUDA_FREE_AND_NULL(d_plan->fwkerhalf2, stream, d_plan->supports_pools);
   CUDA_FREE_AND_NULL(d_plan->fwkerhalf3, stream, d_plan->supports_pools);
-  
+
   CUDA_FREE_AND_NULL(d_plan->idxnupts, stream, d_plan->supports_pools);
   CUDA_FREE_AND_NULL(d_plan->sortidx, stream, d_plan->supports_pools);
   CUDA_FREE_AND_NULL(d_plan->numsubprob, stream, d_plan->supports_pools);

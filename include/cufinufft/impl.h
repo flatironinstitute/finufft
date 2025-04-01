@@ -611,23 +611,23 @@ int cufinufft_setpts_impl(int M, T *d_kx, T *d_ky, T *d_kz, int N, T *d_s, T *d_
   if (d_plan->dim > 0) {
     const auto ig1 = T(1) / d_plan->type3_params.gam1;
     const auto C1  = -d_plan->type3_params.C1;
-    thrust::transform(
-        thrust::cuda::par.on(stream), d_kx, d_kx + M, d_plan->kx,
-        [ig1, C1] __host__ __device__(const T x) -> T { return (x + C1) * ig1; });
+    thrust::transform(thrust::cuda::par.on(stream), d_kx, d_kx + M, d_plan->kx,
+                      [ig1, C1] __host__
+                      __device__(const T x) -> T { return (x + C1) * ig1; });
   }
   if (d_plan->dim > 1) {
     const auto ig2 = T(1) / d_plan->type3_params.gam2;
     const auto C2  = -d_plan->type3_params.C2;
-    thrust::transform(
-        thrust::cuda::par.on(stream), d_ky, d_ky + M, d_plan->ky,
-        [ig2, C2] __host__ __device__(const T x) -> T { return (x + C2) * ig2; });
+    thrust::transform(thrust::cuda::par.on(stream), d_ky, d_ky + M, d_plan->ky,
+                      [ig2, C2] __host__
+                      __device__(const T x) -> T { return (x + C2) * ig2; });
   }
   if (d_plan->dim > 2) {
     const auto ig3 = T(1) / d_plan->type3_params.gam3;
     const auto C3  = -d_plan->type3_params.C3;
-    thrust::transform(
-        thrust::cuda::par.on(stream), d_kz, d_kz + M, d_plan->kz,
-        [ig3, C3] __host__ __device__(const T x) -> T { return (x + C3) * ig3; });
+    thrust::transform(thrust::cuda::par.on(stream), d_kz, d_kz + M, d_plan->kz,
+                      [ig3, C3] __host__
+                      __device__(const T x) -> T { return (x + C3) * ig3; });
   }
   if (d_plan->type3_params.D1 != 0 || d_plan->type3_params.D2 != 0 ||
       d_plan->type3_params.D3 != 0) {
@@ -646,8 +646,8 @@ int cufinufft_setpts_impl(int M, T *d_kx, T *d_ky, T *d_kz, int N, T *d_s, T *d_
     const auto realsign = d_plan->iflag >= 0 ? T(1) : T(-1);
     thrust::transform(
         thrust::cuda::par.on(stream), iterator, iterator + M, d_plan->prephase,
-        [D1, D2, D3, realsign] __host__ __device__(
-            const thrust::tuple<T, T, T> &tuple) -> cuda_complex<T> {
+        [D1, D2, D3, realsign] __host__
+        __device__(const thrust::tuple<T, T, T> &tuple) -> cuda_complex<T> {
           const auto x = thrust::get<0>(tuple);
           const auto y = thrust::get<1>(tuple);
           const auto z = thrust::get<2>(tuple);
@@ -667,23 +667,23 @@ int cufinufft_setpts_impl(int M, T *d_kx, T *d_ky, T *d_kz, int N, T *d_s, T *d_
   if (d_plan->dim > 0) {
     const auto scale = d_plan->type3_params.h1 * d_plan->type3_params.gam1;
     const auto D1    = -d_plan->type3_params.D1;
-    thrust::transform(
-        thrust::cuda::par.on(stream), d_s, d_s + N, d_plan->d_Sp,
-        [scale, D1] __host__ __device__(const T s) -> T { return scale * (s + D1); });
+    thrust::transform(thrust::cuda::par.on(stream), d_s, d_s + N, d_plan->d_Sp,
+                      [scale, D1] __host__
+                      __device__(const T s) -> T { return scale * (s + D1); });
   }
   if (d_plan->dim > 1) {
     const auto scale = d_plan->type3_params.h2 * d_plan->type3_params.gam2;
     const auto D2    = -d_plan->type3_params.D2;
-    thrust::transform(
-        thrust::cuda::par.on(stream), d_t, d_t + N, d_plan->d_Tp,
-        [scale, D2] __host__ __device__(const T t) -> T { return scale * (t + D2); });
+    thrust::transform(thrust::cuda::par.on(stream), d_t, d_t + N, d_plan->d_Tp,
+                      [scale, D2] __host__
+                      __device__(const T t) -> T { return scale * (t + D2); });
   }
   if (d_plan->dim > 2) {
     const auto scale = d_plan->type3_params.h3 * d_plan->type3_params.gam3;
     const auto D3    = -d_plan->type3_params.D3;
-    thrust::transform(
-        thrust::cuda::par.on(stream), d_u, d_u + N, d_plan->d_Up,
-        [scale, D3] __host__ __device__(const T u) -> T { return scale * (u + D3); });
+    thrust::transform(thrust::cuda::par.on(stream), d_u, d_u + N, d_plan->d_Up,
+                      [scale, D3] __host__
+                      __device__(const T u) -> T { return scale * (u + D3); });
   }
   { // here we declare phi_hat1, phi_hat2, and phi_hat3
     // and the precomputed data for the fseries kernel
@@ -738,16 +738,16 @@ int cufinufft_setpts_impl(int M, T *d_kx, T *d_ky, T *d_kz, int N, T *d_s, T *d_
                            dim > 1 ? phi_hat2.begin() : phi_hat1.begin(),
                            // to avoid out of bounds access, use phi_hat1 if dim < 3
                            dim > 2 ? phi_hat3.begin() : phi_hat1.begin()));
-    thrust::transform(
-        thrust::cuda::par.on(stream), phi_hat_iterator, phi_hat_iterator + N,
-        d_plan->deconv,
-        [dim] __host__ __device__(const thrust::tuple<T, T, T> tuple) -> cuda_complex<T> {
-          auto phiHat = thrust::get<0>(tuple);
-          // in case dim < 2 or dim < 3, multiply by 1
-          phiHat *= (dim > 1) ? thrust::get<1>(tuple) : T(1);
-          phiHat *= (dim > 2) ? thrust::get<2>(tuple) : T(1);
-          return {T(1) / phiHat, T(0)};
-        });
+    thrust::transform(thrust::cuda::par.on(stream), phi_hat_iterator,
+                      phi_hat_iterator + N, d_plan->deconv,
+                      [dim] __host__
+                      __device__(const thrust::tuple<T, T, T> tuple) -> cuda_complex<T> {
+                        auto phiHat = thrust::get<0>(tuple);
+                        // in case dim < 2 or dim < 3, multiply by 1
+                        phiHat *= (dim > 1) ? thrust::get<1>(tuple) : T(1);
+                        phiHat *= (dim > 2) ? thrust::get<2>(tuple) : T(1);
+                        return {T(1) / phiHat, T(0)};
+                      });
 
     if (is_c_finite && is_c_nonzero) {
       const auto c1       = d_plan->type3_params.C1;
@@ -764,9 +764,9 @@ int cufinufft_setpts_impl(int M, T *d_kx, T *d_ky, T *d_kz, int N, T *d_s, T *d_
       thrust::transform(
           thrust::cuda::par.on(stream), phase_iterator, phase_iterator + N,
           d_plan->deconv, d_plan->deconv,
-          [c1, c2, c3, d1, d2, d3, realsign] __host__ __device__(
-              const thrust::tuple<T, T, T> tuple, cuda_complex<T> deconv)
-              -> cuda_complex<T> {
+          [c1, c2, c3, d1, d2, d3, realsign] __host__
+          __device__(const thrust::tuple<T, T, T> tuple, cuda_complex<T> deconv)
+          -> cuda_complex<T> {
             // d2 and d3 are 0 if dim < 2 and dim < 3
             const auto phase = c1 * (thrust::get<0>(tuple) + d1) +
                                c2 * (thrust::get<1>(tuple) + d2) +

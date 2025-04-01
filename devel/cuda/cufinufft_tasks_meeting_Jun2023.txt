@@ -114,8 +114,3 @@ Low priority, unless it helps rewrite gpu code.
   MKL is faster a bit than FFTW, not worth including.
    Pocketfft is not as fast (ducc.FFT is better). M Reinecke.
    kissFFT terrible & inaccurate.
-
-
-
-
-

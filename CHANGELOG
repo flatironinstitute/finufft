@@ -5,6 +5,11 @@ Master, using release name V 2.4.0 (4/1/25)
 
 * MATLAB GPU interface (MEX CUDA) via gpuArrays, PR 634 (mostly Libin Lu,
   some docs/examples/tests by Barnett).
+* Tweaked choice of upsampfact to use a density based heuristic for type 1 and 2
+  in the CPU library. This gives a significant speedup for some cases.
+* Removed FINUFFT_CUDA_ARCHITECTURES flag, as it was unnecessary duplication.
+* Enabled LTO for finufft, nvcc support is flaky at the moment.
+* Added GPU spread interp only test. Added CPU spread interp only test to cmake
 * Make attributes private in Python Plan classes and allow read-only access to
   them using properties (Andén #608).
 * Remove possibility to supply real dtypes to Plan interfaces. Now only complex

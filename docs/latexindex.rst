@@ -8,7 +8,7 @@
 
 :orphan:
 
-   
+
 Flatiron Institute Nonuniform Fast Fourier Transform
 =====================================================
 
@@ -16,23 +16,23 @@ Flatiron Institute Nonuniform Fast Fourier Transform
    numbering. Note that ch.1 is now the overview (unlike in index.rst):
 
 .. toctree::
-	   
+
    overview
    install
    dirs
    math
-   cex           
+   cex
    c
    opts
    error
    trouble
    tut
-   fortran          
+   fortran
    matlab
    python
    julia
    changelog
-   devnotes           
+   devnotes
    related
    users
    ackn

@@ -150,7 +150,6 @@
 %  kernel Fourier transforms arrays, etc.
 %
 %
-
 classdef finufft_plan < handle
 
   properties

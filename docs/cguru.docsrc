@@ -83,7 +83,7 @@ int @G_execute(finufft_plan plan, complex<double>* c, complex<double>* f)
   Perform one or more NUFFT transforms using previously entered nonuniform
   points and an existing plan. To summarize, this maps
     type 1: c -> f
-    type 2: f -> c      
+    type 2: f -> c
     type 3: c -> f
 
   Inputs:
@@ -102,7 +102,7 @@ int @G_execute(finufft_plan plan, complex<double>* c, complex<double>* f)
               respectively).
               If type 3, the output values at the nonuniform frequency targets
               (size N*ntr complex array).
-              
+
   Outputs:
 @r
 

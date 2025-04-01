@@ -3,7 +3,7 @@ import re
 
 decimalMatchString = "\d+\.?\d+" #regular expression to match a decimal number
 sciNotString = "(\d*.?\d*e-\d* s)" #regular expression to match a number in scientific notation
-wholeNumberMatchString = "\d+" 
+wholeNumberMatchString = "\d+"
 
 
 #search string needs to have two groupings! (one for everything besides) (time s)
@@ -25,12 +25,10 @@ def sumAllTime(searchString, strOut):
     lineMatch = re.findall(searchString,strOut)
     for match in lineMatch:
         val = re.search(sciNotString, match[1])
-        if(not val): #search failed, try decimal format 
+        if(not val): #search failed, try decimal format
             val = re.search(decimalMatchString, match[1])
         if(not val):
             val = re.search(wholeNumberMatchString, match[1])
         newVal = newVal + float(val.group(0).split('s')[0].strip()) #trim off " s"
     newVal = round(newVal,5)
     return newVal
-
-

@@ -5,18 +5,18 @@
 
 ! To compile (linux/GCC) from this directory, note the module also has to be
 ! compiled, eg:
-      
+
 ! gfortran -fopenmp ../../include/finufft_mod.f90 simple1d1.f90 -o simple1d1_f90 ../../lib/libfinufft.so -lfftw3 -lfftw3_omp -lgomp -lstdc++
 
 ! Alex Barnett, to demo Reinhard Neder f90 module, 1/20/23.
 
 program simple1d1
-  
+
   ! use the module (which happens to live in ../../include)
   use finufft_mod
-  
+
   implicit none
-  
+
   ! note some inputs are int (int*4) but others BIGINT (int*8)
   integer ier,iflag
   integer*8 N,ktest,M,j,k,ktestindex,t1,t2,crate
@@ -25,12 +25,12 @@ program simple1d1
   parameter (pi=3.141592653589793238462643383279502884197d0)
   complex*16, allocatable :: cj(:),fk(:)
   complex*16 fktest
-  
+
   ! this is how you create the options struct in fortran...
   type(finufft_opts) opts
   ! or this is if you want default opts, make a null pointer...
   type(finufft_opts), pointer :: defopts => null()
-  
+
   ! how many nonuniform pts
   M = 2000000
   ! how many modes
@@ -46,7 +46,7 @@ program simple1d1
      xj(j) = pi * dcos(pi*j/M)
      cj(j) = dcmplx( dsin((100d0*j)/M), dcos(1.0+(50d0*j)/M))
   enddo
-  
+
   call system_clock(t1)
   ! mandatory parameters to FINUFFT: sign of +-i in NUFFT
   iflag = 1
@@ -62,7 +62,7 @@ program simple1d1
   else
      print *,'failed! ier=',ier
   endif
-  
+
   ! math test: single output mode with given freq (not array index) k
   ktest = N/3
   fktest = dcmplx(0,0)
@@ -78,7 +78,7 @@ program simple1d1
   ktestindex = ktest + N/2 + 1
   print '("rel err for mode k=",i10," is ",e10.2)',ktest, &
        cdabs(fk(ktestindex)-fktest)/fmax
-      
+
   ! do another transform, but now first setting some options...
   print *,''
   print *, 'setting new options, rerun simple interface...'
@@ -97,6 +97,6 @@ program simple1d1
   else
      print *,'failed! ier=',ier
   endif
-  
+
   stop
 end program simple1d1

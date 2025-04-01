@@ -30,4 +30,12 @@ SpaceAfterLogicalNot: false
 SpaceAfterTemplateKeyword: false
 TabWidth: 2
 UseTab: Never
+AttributeMacros: ['__host__', '__device__', '__global__', '__forceinline__']
+QualifierOrder:
+  - static
+  - inline
+  - constexpr
+  - const
+  - type
+QualifierAlignment: Custom
 ...

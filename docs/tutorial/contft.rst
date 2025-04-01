@@ -72,7 +72,7 @@ Notice :eq:`fint` is simply a type 3 NUFFT with strengths $c_j = f(x_j) w_j$,
 so we evaluate it by calling FINUFFT (this takes 0.1 sec) then plot the resulting FT at its target $k$ points:
 
 .. code-block:: matlab
-           
+
   tol = 1e-10;
   fhat = finufft1d3(xj, f(xj).*wj, +1, tol, k);
   plot(k, [real(fhat),imag(fhat)], '.');
@@ -152,7 +152,7 @@ you will have to shift (by it to this specific offset, then post-multiply
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The above $f$ was merely discontinuous. But you can now go further and easily
-replace $(x_j,w_j)$ by a rule that is accurate for 
+replace $(x_j,w_j)$ by a rule that is accurate for
 a function with known singularities. Eg, say $f(x) = x^{-1/2}g(x)$ where $g$ is smooth
 on $[0,1]$, then the change of variable $x=y^2$ means
 that $\int_0^1 f(x) dx = \int_0^1 2y f(y) dy$, the latter having a
@@ -182,7 +182,7 @@ This exhibits rapid convergence kinking in at a slightly higher $N$, while $\hat
 now has even slower decay (which one can check is $|k|^{-1/2}$):
 
 .. code-block:: matlab
-                
+
                        180         0.208975054515039
                        200      3.04233050928417e-05
                        220       1.9202016281569e-10
@@ -221,7 +221,7 @@ Since $g$ is smooth, this will have spectral convergence in $n$ and $m$.
 Here is a fresh code to make this quadrature over $\Omega$:
 
 .. code-block:: matlab
-                
+
  g = @(t) 1 + 0.3*cos(3*t);                             % boundary shape
  n = 280;                                               % # theta nodes
  t = 2*pi*(1:n)/n; wt = (2*pi/n);                       % theta nodes, const weights
@@ -235,7 +235,7 @@ Here is a fresh code to make this quadrature over $\Omega$:
    wj(jj) = wt*r^2*xr.*wr;            % theta weight times rule for r.dr on (0,r)
  end
  plot([bx bx(1)],[by by(1)],'-'); hold on; plot(xj,yj,'.');
-                
+
 .. image:: ../pics/contft2dnodes.png
    :width: 50%
 
@@ -257,7 +257,7 @@ become the source strengths. We also image the result on a log scale:
 
 .. image:: ../pics/contft2dans.png
    :width: 70%
-             
+
 Thus we have computed the 2D FT of a discontinous function on a million-point grid to around 10-digit accuracy in 0.05 sec (the FINUFFT transform time).
 Note that, as with 1D discontinuous functions, the decay with $k:=|{\bf k}|$ is slow (it is like $1/k$).
 See the full code `tutorial/contft2d.m <https://github.com/flatironinstitute/finufft/blob/master/tutorial/contft2d.m>`_ also for the study that shows that, for the above ``kmax``, convergence to the tolerance has occurred by ``n=280`` and ``m=70``, needing $N=19600$ nodes. A more efficient set would vary ``m`` with $\theta$.
@@ -271,7 +271,7 @@ See the full code `tutorial/contft2d.m <https://github.com/flatironinstitute/fin
    If a downstream planar detector is very distant (the Fraunhofer diffraction limit),
    and the angles of scattering are small,
    then $|\hat{f}|^2$ is a good model for the detected scattered intensity.
-                
+
 
 Further reading
 ~~~~~~~~~~~~~~~~
@@ -289,4 +289,3 @@ be on a regular grid. They also can be useful for known singularities
 Kirchhoff approximation and Fraunhofer diffraction in optics:
 
 * M. Born and E. Wolf, *Principles of Optics*, 6th edition. Section 8.3.
-

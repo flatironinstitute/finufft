@@ -18,7 +18,7 @@ the Flatiron Institute, advised by Alex Barnett.
 This folder contains the main source files of the GPU implementations.
 
 - cufinufft.cu
-  Four main stages of cufinufft API. 
+  Four main stages of cufinufft API.
   (1) cufinufft_makeplan, (2) cufinufft_setpts, (3) cufinufft_execute, (4) cufinufft_destroy.
   Also, cufinufft_default_opts may precede stage 1.
 

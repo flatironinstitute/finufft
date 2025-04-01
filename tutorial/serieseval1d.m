@@ -43,5 +43,5 @@ yi = L*(0:Mp-1)/Mp;           % spatial grid corresp to the FFT eval
 hold on; plot(yi,real(fi),'r.'); legend('NU pts','unif pts');   % eye norm is ok
 
 % math check: send the unif pts into NUFFT and compare answers
-ci = finufft1d2(yi * (2*pi/L),+1,tol,fk); 
+ci = finufft1d2(yi * (2*pi/L),+1,tol,fk);
 fprintf('max error on %d unif test pts; %.3g\n',Mp,norm(fi-ci,inf))

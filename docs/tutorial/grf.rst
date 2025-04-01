@@ -10,7 +10,7 @@ invariant.
 It is also known as a Gaussian process prior.
 Given a GRF model,
 it is important to be able to 1) draw independent samples from the GRF
-at a given set of target points, 
+at a given set of target points,
 and 2) compute the log likelihood (under the model) of a given function values at a given set of target points.
 We focus on the first application. (For the second, see reference at the
 bottom of this page.)
@@ -53,7 +53,7 @@ For background on Gaussian random fields, aka, Gaussian processes,
 see:
 
   * C E Rasmussen & C K I Williams, *Gaussian Processes for Machine Learning*, the MIT Press, 2006. http://www.GaussianProcess.org/gpml
-    
+
   * Fast Direct Methods for Gaussian Processes,
     Sivaram Ambikasaran, Daniel Foreman-Mackey, Leslie Greengard,
     David W. Hogg, and Michael O’Neil. arxiv:1403.6015 (2015)
