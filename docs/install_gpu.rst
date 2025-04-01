@@ -124,3 +124,7 @@ Then, to compile the MATLAB mexcuda executable, open MATLAB in the FINUFFT root 
 .. note::
 
     Depending on your MATLAB version, ``mexcuda`` compiles the CUDA code using the NVIDIA ``nvcc`` compiler installed with MATLAB. It the MATLAB default one does not work, you may specify the location of ``nvcc`` on your system by storing it in the environment variable ``MW_NVCC_PATH``, eg via ``setenv("MW_NVCC_PATH","/path/to/CUDA/bin")`` and ``setenv("MW_ALLOW_ANY_CUDA","true")``. You may also check `toolbox/parallel/gpu/extern/src/mex/glnxa64/nvcc_g++.xml` to see how MATLAB finds the ``nvcc`` compiler.
+
+.. note::
+
+   We do not have a ``makefile`` task for building the MATLAB GPU interface, since ``libcufinufft.so`` is built in CMake instead of the makefile. A CMake mexcuda task for the above is on the to-do list.
