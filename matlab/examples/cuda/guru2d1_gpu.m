@@ -18,20 +18,24 @@ cg = gpuArray.randn(M,ntrans)+1i*gpuArray.randn(M,ntrans);
 
 opts.debug = 1;              % set options then plan the transform...
 opts.floatprec = 'double';   % tells it to make a double-precision plan
+opts.gpu_method = 2;         % "SM" method
 
-disp('starting...'), tic     % just time CUFINUFFT, not the data creation
-opts.gpu_method = 1;
+dev = gpuDevice();           % needed for timing
+disp('starting...'), tic     % time CUFINUFFT, not the data creation
 plang = cufinufft_plan(type,n_modes,isign,ntrans,tol,opts);
 
 plang.setpts(xg,yg);                                 % send in NU pts
 
 fg = plang.execute(cg);                              % do the transform
 
-tgpu = toc;
+wait(dev); tgpu = toc;                               % since GPU async
 fprintf('done in %.3g s: throughput (excl. H<->D) is %.3g NUpt/s\n',...
         tgpu, ntrans*M/tgpu)
 
-% check the error of only one output...
+% if you do not want to do more transforms of this size, clean up...
+delete(plang);
+
+% check the error of only one output, also using GPU...
 t = ceil(0.7*ntrans);                             % pick a transform in stack
 if ntrans>1, ct = cg(:,t); ft = fg(:,:,t); else, ct = cg; ft = fg; end
 nt1 = ceil(0.37*N1); nt2 = ceil(-0.41*N2);        % pick a mode index
@@ -39,6 +43,3 @@ fe = sum(ct.*exp(1i*isign*(nt1*xg+nt2*yg)));      % exact ans to working prec
 of1 = floor(N1/2)+1; of2 = floor(N2/2)+1;         % mode index offsets
 fprintf('2D type-1: rel err in F[%d,%d] is %.3g\n', nt1, nt2,...
         abs(fe-ft(nt1+of1,nt2+of2))/norm(ft(:),Inf) )  % careful: not mat norm
-
-% if you do not want to do more transforms of this size, clean up...
-delete(plang);

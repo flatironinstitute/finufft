@@ -4,8 +4,7 @@
 # It expands .docsrc into .docexp using tags, then
 # prepend these comment doc help blocks onto .m matlab codes.
 # Warning: overwrites all m-files, stripping first % or empty lines; careful!
-# Barnett 6/12/20, simplified.
-# 3/30/25: also calls GPU doc gen script.
+# Barnett 6/12/20, simplified. 4/1/25, added GPU codes.
 
 # stage 1: flesh out *.docsrc (input i) to *.docexp (output o)...
 for i in *.docsrc
