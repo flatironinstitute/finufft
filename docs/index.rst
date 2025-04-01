@@ -32,6 +32,7 @@ Documentation contents
    tut
    fortran
    matlab
+   matlab_gpu
    python
    python_gpu
    julia
