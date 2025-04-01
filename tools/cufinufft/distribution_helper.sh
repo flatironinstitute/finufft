@@ -33,9 +33,10 @@ docker exec ${image_name} \
     python3 -m pip wheel \
     --verbose \
     /io/python/cufinufft \
-    --config-settings=cmake.define.FINUFFT_CUDA_ARCHITECTURES="50;60;70;80" \
+    --config-settings=cmake.define.CMAKE_CUDA_ARCHITECTURES="50;60;70;80" \
     --config-settings=cmake.define.CMAKE_CUDA_FLAGS="-Wno-deprecated-gpu-targets" \
     --config-settings=cmake.define.FINUFFT_ARCH_FLAGS="" \
+    --config-settings=cmake.define.CIBUILDWHEEL=ON \
     --config-settings=cmake.define.CMAKE_VERBOSE_MAKEFILE=ON \
     --no-deps \
     --wheel-dir /io/wheelhouse
@@ -45,6 +46,7 @@ wheel_name=$(docker exec ${image_name} bash -c 'ls /io/wheelhouse/cufinufft-*-li
 echo "# Repair the wheels"
 docker exec ${image_name} \
     python3 -m auditwheel repair \
+    --exclude libcufft-058fdf74.so.10.4.1.152 --exclude libcudart-72c5e614.so.11.2.152 \
     ${wheel_name} \
     --plat manylinux2014_x86_64 \
     --wheel-dir /io/wheelhouse/
