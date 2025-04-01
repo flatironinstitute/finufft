@@ -95,8 +95,8 @@ y direction. The source points are in the square of side length $2\pi$:
 The resulting output ``f`` is indeed size 1000 by 500. The first dimension
 (number of rows) corresponds to the x input coordinate, and the second to y.
 
-If you need to change the definition of the period from $2\pi$, simply
-linearly rescale your points before sending them to FINUFFT.
+If you need to change the definition of the period from $2\pi$, you cannot;
+instead linearly rescale your points before sending them to FINUFFT.
 
 .. note::
 
@@ -126,6 +126,6 @@ MATLAB path via something like ``addpath FINUFFT/matlab``, then
 
 .. literalinclude:: ../matlab/Contents.m
 
-The individual commands have the following help documentation:
+The individual CPU commands have the following help documentation:
                     
 .. include:: matlabhelp.doc
