@@ -90,4 +90,4 @@ repair-wheel-command = "auditwheel repair -w {dest_dir} {wheel}"
 before-build = "pip install delvewheel"
 # CIBW doesn't do vendoring of DLLs on Windows by default, so we have to
 # install delvewheel and run it.
-repair-wheel-command = "delvewheel repair -v --analyze-existing -w {dest_dir} {wheel}"
+repair-wheel-command = "delvewheel repair -v --exclude cudart64_110.dll;cufft64_10.dll --analyze-existing -w {dest_dir} {wheel}"
