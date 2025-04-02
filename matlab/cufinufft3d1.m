@@ -1,22 +1,28 @@
-% FINUFFT1D1   1D complex nonuniform FFT of type 1 (nonuniform to uniform).
+% FINUFFT3D1   3D complex nonuniform FFT of type 1 (nonuniform to uniform).
 %
-% f = finufft1d1(x,c,isign,eps,ms)
-% f = finufft1d1(x,c,isign,eps,ms,opts)
+% f = finufft3d1(x,y,z,c,isign,eps,ms,mt,mu)
+% f = finufft3d1(x,y,z,c,isign,eps,ms,mt,mu,opts)
 %
 % This computes, to relative precision eps, via a fast algorithm:
 %
-%               nj
-%     f(k1) =  SUM c[j] exp(+/-i k1 x(j))  for -ms/2 <= k1 <= (ms-1)/2
-%              j=1
+%                       nj
+%     f[k1,k2,k3] =    SUM  c[j] exp(+-i (k1 x[j] + k2 y[j] + k3 z[j]))
+%                      j=1
+%
+%     for -ms/2 <= k1 <= (ms-1)/2,  -mt/2 <= k2 <= (mt-1)/2,
+%         -mu/2 <= k3 <= (mu-1)/2.
+%
 %   Inputs:
-%     x     length-nj vector of real-valued locations of nonuniform sources
+%     x,y,z real-valued coordinates of nonuniform sources,
+%           each a length-nj vector
 %     c     length-nj complex vector of source strengths. If numel(c)>nj,
 %           expects a stack of vectors (eg, a nj*ntrans matrix) each of which is
 %           transformed with the same source locations.
 %     isign if >=0, uses + sign in exponential, otherwise - sign.
 %     eps   relative precision requested (generally between 1e-15 and 1e-1)
-%     ms    number of Fourier modes computed, may be even or odd;
-%           in either case, mode range is integers lying in [-ms/2, (ms-1)/2]
+%     ms,mt,mu  number of Fourier modes requested in x,y and z; each may be
+%           even or odd.
+%           In either case the mode range is integers lying in [-m/2, (m-1)/2]
 %     opts   optional struct with optional fields controlling the following:
 %     opts.debug:   0 (silent, default), 1 (timing breakdown), 2 (debug info).
 %     opts.spread_debug: spreader: 0 (no text, default), 1 (some), or 2 (lots)
@@ -31,8 +37,9 @@
 %     opts.modeord: 0 (CMCL increasing mode ordering, default), 1 (FFT ordering)
 %     opts.spreadinterponly: 0 (perform NUFFT, default), 1 (only spread/interp)
 %   Outputs:
-%     f     size-ms complex column vector of Fourier coefficients, or, if
-%           ntrans>1, a matrix of size (ms,ntrans).
+%     f     size (ms,mt,mu) complex array of Fourier coefficients
+%           (ordering given by opts.modeord in each dimension; ms fastest, mu
+%           slowest), or, if ntrans>1, a 4D array of size (ms,mt,mu,ntrans).
 %
 % Notes:
 %  * The vectorized (many vector) interface, ie ntrans>1, can be much faster
@@ -43,11 +50,11 @@
 %  * For more details about the opts fields, see ../docs/opts.rst
 %  * See ERRHANDLER, VALID_* and FINUFFT_PLAN for possible warning/error IDs.
 %  * Full documentation is online at http://finufft.readthedocs.io
-function f = finufft1d1(x,c,isign,eps,ms,o)
+function f = cufinufft3d1(x,y,z,c,isign,eps,ms,mt,mu,o)
 
-valid_setpts(false,1,1,x);
-o.floatprec=underlyingType(x);         % should be 'double' or 'single'
+valid_setpts(true,1,3,x,y,z);
+o.floatprec=underlyingType(x);                      % should be 'double' or 'single'
 n_transf = valid_ntr(x,c);
-p = finufft_plan(1,ms,isign,n_transf,eps,o);
-p.setpts(x);
+p = cufinufft_plan(1,[ms;mt;mu],isign,n_transf,eps,o);
+p.setpts(x,y,z);
 f = p.execute(c);

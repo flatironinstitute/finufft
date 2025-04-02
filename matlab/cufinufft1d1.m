@@ -43,11 +43,11 @@
 %  * For more details about the opts fields, see ../docs/opts.rst
 %  * See ERRHANDLER, VALID_* and FINUFFT_PLAN for possible warning/error IDs.
 %  * Full documentation is online at http://finufft.readthedocs.io
-function f = finufft1d1(x,c,isign,eps,ms,o)
+function f = cufinufft1d1(x,c,isign,eps,ms,o)
 
-valid_setpts(false,1,1,x);
+valid_setpts(true,1,1,x);
 o.floatprec=underlyingType(x);         % should be 'double' or 'single'
 n_transf = valid_ntr(x,c);
-p = finufft_plan(1,ms,isign,n_transf,eps,o);
+p = cufinufft_plan(1,ms,isign,n_transf,eps,o);
 p.setpts(x);
 f = p.execute(c);

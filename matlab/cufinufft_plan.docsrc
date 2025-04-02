@@ -41,10 +41,10 @@
 %                     Its length sets the dimension, which must be 1, 2 or 3.
 %                     If type is 3, in contrast, its *value* fixes the dimension
 ISIGNEPS
-OPTS
+GOPTS
 %     opts.floatprec: library precision to use, 'double' (default) or 'single'.
 %     for type 1 and 2 only, the following opts fields are also relevant:
-OPTS12
+GOPTS12
 % Outputs:
 %     plan            cufinufft_plan object (opaque pointer)
 %

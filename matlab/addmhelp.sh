@@ -31,6 +31,18 @@ do
                 # notes for the simple/many interfaces, not guru
                 cat notes.docbit
                 ;;
+            GOPTS)
+                # GPU opts descriptions common to all routines
+                cat gopts.docbit
+                ;;
+            GOPTS12)
+                # GPU just opts for types 1,2, not type 3
+                cat gopts12.docbit
+                ;;
+            GNOTES)
+                # GPU notes for the simple/many interfaces, not guru
+                cat gnotes.docbit
+                ;;
             *)
                 # all else is piped through
                 echo "$line"
@@ -41,7 +53,7 @@ do
 done
 
 # stage 2: prepend doc to needed .m files after first stripping any top % block
-for mfile in finufft?d?.m finufft_plan.m
+for mfile in finufft?d?.m finufft_plan.m cufinufft?d?.m cufinufft_plan.m
 do
     o=${mfile/.m/.docexp}
     # read from .m (skipping leading % or empty lines), appending to .docexp:
@@ -62,6 +74,3 @@ done
 rm -f *.docexp
 
 # debug note: to debug, best to echo "$stuff" 1>&2   so it goes to stderr.
-
-# call GPU doc gen
-(cd @gpuArray; ./genmhelp.sh)

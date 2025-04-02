@@ -1,22 +1,21 @@
-% FINUFFT1D1   1D complex nonuniform FFT of type 1 (nonuniform to uniform).
+% FINUFFT1D2   1D complex nonuniform FFT of type 2 (uniform to nonuniform).
 %
-% f = finufft1d1(x,c,isign,eps,ms)
-% f = finufft1d1(x,c,isign,eps,ms,opts)
+% c = finufft1d2(x,isign,eps,f)
+% c = finufft1d2(x,isign,eps,f,opts)
 %
 % This computes, to relative precision eps, via a fast algorithm:
 %
-%               nj
-%     f(k1) =  SUM c[j] exp(+/-i k1 x(j))  for -ms/2 <= k1 <= (ms-1)/2
-%              j=1
-%   Inputs:
+%    c[j] = SUM   f[k1] exp(+/-i k1 x[j])      for j = 1,...,nj
+%            k1
+%     where sum is over -ms/2 <= k1 <= (ms-1)/2.
+%
+%  Inputs:
 %     x     length-nj vector of real-valued locations of nonuniform sources
-%     c     length-nj complex vector of source strengths. If numel(c)>nj,
-%           expects a stack of vectors (eg, a nj*ntrans matrix) each of which is
-%           transformed with the same source locations.
+%     f     complex Fourier coefficients. If a vector, length sets ms
+%           (with mode ordering given by opts.modeord). If a matrix, each
+%           of ntrans columns is transformed with the same nonuniform targets.
 %     isign if >=0, uses + sign in exponential, otherwise - sign.
 %     eps   relative precision requested (generally between 1e-15 and 1e-1)
-%     ms    number of Fourier modes computed, may be even or odd;
-%           in either case, mode range is integers lying in [-ms/2, (ms-1)/2]
 %     opts   optional struct with optional fields controlling the following:
 %     opts.debug:   0 (silent, default), 1 (timing breakdown), 2 (debug info).
 %     opts.spread_debug: spreader: 0 (no text, default), 1 (some), or 2 (lots)
@@ -30,9 +29,9 @@
 %     opts.nthreads:   number of threads, or 0: use all available (default)
 %     opts.modeord: 0 (CMCL increasing mode ordering, default), 1 (FFT ordering)
 %     opts.spreadinterponly: 0 (perform NUFFT, default), 1 (only spread/interp)
-%   Outputs:
-%     f     size-ms complex column vector of Fourier coefficients, or, if
-%           ntrans>1, a matrix of size (ms,ntrans).
+%  Outputs:
+%     c     complex column vector of nj answers at targets, or,
+%           if ntrans>1, matrix of size (nj,ntrans).
 %
 % Notes:
 %  * The vectorized (many vector) interface, ie ntrans>1, can be much faster
@@ -43,11 +42,12 @@
 %  * For more details about the opts fields, see ../docs/opts.rst
 %  * See ERRHANDLER, VALID_* and FINUFFT_PLAN for possible warning/error IDs.
 %  * Full documentation is online at http://finufft.readthedocs.io
-function f = finufft1d1(x,c,isign,eps,ms,o)
+function c = cufinufft1d2(x,isign,eps,f,o)
 
-valid_setpts(false,1,1,x);
-o.floatprec=underlyingType(x);         % should be 'double' or 'single'
-n_transf = valid_ntr(x,c);
-p = finufft_plan(1,ms,isign,n_transf,eps,o);
+valid_setpts(true,2,1,x);
+o.floatprec=underlyingType(x);             % should be 'double' or 'single'
+[ms,n_transf]=size(f);                     % if f a col vec, n_transf=1, but...
+if ms==1, ms=n_transf; n_transf=1; end     % allow a single row vec as valid f
+p = cufinufft_plan(2,ms,isign,n_transf,eps,o);
 p.setpts(x);
-f = p.execute(c);
+c = p.execute(f);

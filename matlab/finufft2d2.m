@@ -46,15 +46,9 @@
 %  * Full documentation is online at http://finufft.readthedocs.io
 function c = finufft2d2(x,y,isign,eps,f,o)
 
-if nargin<6, o.dummy=1; end
-is_gpuarray = finufft_isgpuarray(x);
-valid_setpts(is_gpuarray,2,2,x,y);
+valid_setpts(false,2,2,x,y);
 o.floatprec=underlyingType(x);             % should be 'double' or 'single'
 [ms,mt,n_transf] = size(f);                % if f 2D array, n_transf=1
-if is_gpuarray
-  p = cufinufft_plan(2,[ms;mt],isign,n_transf,eps,o);
-else
-  p = finufft_plan(2,[ms;mt],isign,n_transf,eps,o);
-end
+p = finufft_plan(2,[ms;mt],isign,n_transf,eps,o);
 p.setpts(x,y);
 c = p.execute(f);

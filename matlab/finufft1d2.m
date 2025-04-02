@@ -44,16 +44,10 @@
 %  * Full documentation is online at http://finufft.readthedocs.io
 function c = finufft1d2(x,isign,eps,f,o)
 
-if nargin<5, o.dummy=1; end
-is_gpuarray = finufft_isgpuarray(x);
-valid_setpts(is_gpuarray,2,1,x);
+valid_setpts(false,2,1,x);
 o.floatprec=underlyingType(x);             % should be 'double' or 'single'
 [ms,n_transf]=size(f);                     % if f a col vec, n_transf=1, but...
 if ms==1, ms=n_transf; n_transf=1; end     % allow a single row vec as valid f
-if is_gpuarray
-  p = cufinufft_plan(2,ms,isign,n_transf,eps,o);
-else
-  p = finufft_plan(2,ms,isign,n_transf,eps,o);
-end
+p = finufft_plan(2,ms,isign,n_transf,eps,o);
 p.setpts(x);
 c = p.execute(f);
