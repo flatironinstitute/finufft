@@ -166,7 +166,6 @@ jobs:
             -C cmake.define.CMAKE_C_COMPILER_LAUNCHER=sccache \
             -C cmake.define.CMAKE_GENERATOR=Ninja \
             -C cmake.define.CMAKE_GENERATOR_PLATFORM= \
-            -C cmake.define.DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
             python/finufft
       - name: Test Python package
         if: matrix.finufft_static_linking == 'off'
