@@ -42,6 +42,8 @@
 %  * For more details about the opts fields, see ../docs/opts.rst
 %  * See ERRHANDLER, VALID_* and FINUFFT_PLAN for possible warning/error IDs.
 %  * Full documentation is online at http://finufft.readthedocs.io
+%
+% See also FINUFFT_PLAN.
 function f = finufft3d3(x,y,z,c,isign,eps,s,t,u,o)
 
 valid_setpts(false,3,3,x,y,z,s,t,u);

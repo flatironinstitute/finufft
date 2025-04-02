@@ -44,7 +44,7 @@
 %  * See ERRHANDLER, VALID_* and CUFINUFFT_PLAN for possible warning/error IDs.
 %  * Full documentation is online at http://finufft.readthedocs.io
 %
-% See also CUFINUFFT_PLAN
+% See also CUFINUFFT_PLAN.
 function f = cufinufft2d3(x,y,c,isign,eps,s,t,o)
 
 valid_setpts(true,3,2,x,y,[],s,t,[]);

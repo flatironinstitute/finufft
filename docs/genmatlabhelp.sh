@@ -27,7 +27,7 @@ OUT=matlabgpuhelp.doc
 > $OUT
 
 # dump the matlab comment blocks
-for i in ../matlab/@gpuArray/finufft?d?.m ../matlab/@gpuArray/cufinufft_plan.m
+for i in ../matlab/cufinufft?d?.m ../matlab/cufinufft_plan.m
 do
     printf "::\n\n" >> $OUT
     sed -n '/^%/p' $i | sed 's/^.//' >> $OUT

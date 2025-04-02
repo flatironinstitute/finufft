@@ -46,6 +46,8 @@
   * See ERRHANDLER, VALID_* and FINUFFT_PLAN for possible warning/error IDs.
   * Full documentation is online at http://finufft.readthedocs.io
 
+ See also FINUFFT_PLAN.
+
 ::
 
  FINUFFT1D2   1D complex nonuniform FFT of type 2 (uniform to nonuniform).
@@ -93,6 +95,8 @@
   * See ERRHANDLER, VALID_* and FINUFFT_PLAN for possible warning/error IDs.
   * Full documentation is online at http://finufft.readthedocs.io
 
+ See also FINUFFT_PLAN.
+
 ::
 
  FINUFFT1D3   1D complex nonuniform FFT of type 3 (nonuniform to nonuniform).
@@ -137,6 +141,8 @@
   * For more details about the opts fields, see ../docs/opts.rst
   * See ERRHANDLER, VALID_* and FINUFFT_PLAN for possible warning/error IDs.
   * Full documentation is online at http://finufft.readthedocs.io
+
+ See also FINUFFT_PLAN.
 
 ::
 
@@ -191,6 +197,8 @@
   * See ERRHANDLER, VALID_* and FINUFFT_PLAN for possible warning/error IDs.
   * Full documentation is online at http://finufft.readthedocs.io
 
+ See also FINUFFT_PLAN.
+
 ::
 
  FINUFFT2D2   2D complex nonuniform FFT of type 2 (uniform to nonuniform).
@@ -240,6 +248,8 @@
   * See ERRHANDLER, VALID_* and FINUFFT_PLAN for possible warning/error IDs.
   * Full documentation is online at http://finufft.readthedocs.io
 
+ See also FINUFFT_PLAN.
+
 ::
 
  FINUFFT2D3   2D complex nonuniform FFT of type 3 (nonuniform to nonuniform).
@@ -285,6 +295,8 @@
   * For more details about the opts fields, see ../docs/opts.rst
   * See ERRHANDLER, VALID_* and FINUFFT_PLAN for possible warning/error IDs.
   * Full documentation is online at http://finufft.readthedocs.io
+
+ See also FINUFFT_PLAN.
 
 ::
 
@@ -341,6 +353,8 @@
   * See ERRHANDLER, VALID_* and FINUFFT_PLAN for possible warning/error IDs.
   * Full documentation is online at http://finufft.readthedocs.io
 
+ See also FINUFFT_PLAN.
+
 ::
 
  FINUFFT3D2   3D complex nonuniform FFT of type 2 (uniform to nonuniform).
@@ -392,6 +406,8 @@
   * See ERRHANDLER, VALID_* and FINUFFT_PLAN for possible warning/error IDs.
   * Full documentation is online at http://finufft.readthedocs.io
 
+ See also FINUFFT_PLAN.
+
 ::
 
  FINUFFT3D3   3D complex nonuniform FFT of type 3 (nonuniform to nonuniform).
@@ -438,6 +454,8 @@
   * For more details about the opts fields, see ../docs/opts.rst
   * See ERRHANDLER, VALID_* and FINUFFT_PLAN for possible warning/error IDs.
   * Full documentation is online at http://finufft.readthedocs.io
+
+ See also FINUFFT_PLAN.
 
 ::
 
