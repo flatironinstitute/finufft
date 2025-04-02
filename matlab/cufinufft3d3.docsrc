@@ -1,7 +1,7 @@
-% FINUFFT3D3   GPU 3D complex nonuniform FFT of type 3 (nonuniform to nonuniform).
+% CUFINUFFT3D3   GPU 3D complex nonuniform FFT, type 3 (nonuniform to nonuniform).
 %
-% f = finufft3d3(x,y,z,c,isign,eps,s,t,u)
-% f = finufft3d3(x,y,z,c,isign,eps,s,t,u,opts)
+% f = cufinufft3d3(x,y,z,c,isign,eps,s,t,u)
+% f = cufinufft3d3(x,y,z,c,isign,eps,s,t,u,opts)
 %
 % This computes on the GPU, to relative precision eps, via a fast algorithm:
 %
@@ -17,9 +17,9 @@
 ISIGNEPS
 %     s,t,u  frequency coordinates of nonuniform targets in R^3,
 %           each a length-nk vector.
-OPTS
+GOPTS
 %   Outputs:
 %     f     length-nk complex vector of values at targets, or, if ntrans>1,
 %           a matrix of size (nk,ntrans)
 %
-NOTES
+GNOTES

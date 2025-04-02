@@ -1,7 +1,7 @@
-% FINUFFT1D2   GPU 1D complex nonuniform FFT of type 2 (uniform to nonuniform).
+% CUFINUFFT1D2   GPU 1D complex nonuniform FFT, type 2 (uniform to nonuniform).
 %
-% c = finufft1d2(x,isign,eps,f)
-% c = finufft1d2(x,isign,eps,f,opts)
+% c = cufinufft1d2(x,isign,eps,f)
+% c = cufinufft1d2(x,isign,eps,f,opts)
 %
 % This computes on the GPU, to relative precision eps, via a fast algorithm:
 %
@@ -15,10 +15,10 @@
 %           (with mode ordering given by opts.modeord). If a matrix, each
 %           of ntrans columns is transformed with the same nonuniform targets.
 ISIGNEPS
-OPTS
-OPTS12
+GOPTS
+GOPTS12
 %  Outputs:
 %     c     complex column vector of nj answers at targets, or,
 %           if ntrans>1, matrix of size (nj,ntrans).
 %
-NOTES
+GNOTES

@@ -52,8 +52,8 @@ GOPTS12
 %  * For type 1 and 2, this does the cuFFT planning and kernel-FT precompute.
 %  * For type 3, this does very little, since cuFFT sizes are not yet known.
 %  * The vectorized (many vector) plan, ie ntrans>1, can be faster
-%    than repeated calls with the same nonuniform points. Note that here the I/O
-%    data ordering is stacked not interleaved. See ../docs/matlab_gpu.rst
+%    than repeated calls with the same nonuniform points. Note that here the
+%    I/O data ordering is stacked not interleaved. See ../docs/matlab_gpu.rst
 %  * For more details about the opts fields, see ../docs/c_gpu.rst
 %
 %

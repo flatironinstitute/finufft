@@ -1,7 +1,7 @@
-% FINUFFT3D1   GPU 3D complex nonuniform FFT of type 1 (nonuniform to uniform).
+% CUFINUFFT3D1   GPU 3D complex nonuniform FFT, type 1 (nonuniform to uniform).
 %
-% f = finufft3d1(x,y,z,c,isign,eps,ms,mt,mu)
-% f = finufft3d1(x,y,z,c,isign,eps,ms,mt,mu,opts)
+% f = cufinufft3d1(x,y,z,c,isign,eps,ms,mt,mu)
+% f = cufinufft3d1(x,y,z,c,isign,eps,ms,mt,mu,opts)
 %
 % This computes on the GPU, to relative precision eps, via a fast algorithm:
 %
@@ -22,11 +22,11 @@ ISIGNEPS
 %     ms,mt,mu  number of Fourier modes requested in x,y and z; each may be
 %           even or odd.
 %           In either case the mode range is integers lying in [-m/2, (m-1)/2]
-OPTS
-OPTS12
+GOPTS
+GOPTS12
 %   Outputs:
 %     f     size (ms,mt,mu) complex array of Fourier coefficients
 %           (ordering given by opts.modeord in each dimension; ms fastest, mu
 %           slowest), or, if ntrans>1, a 4D array of size (ms,mt,mu,ntrans).
 %
-NOTES
+GNOTES

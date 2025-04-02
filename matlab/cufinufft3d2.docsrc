@@ -1,7 +1,7 @@
-% FINUFFT3D2   GPU 3D complex nonuniform FFT of type 2 (uniform to nonuniform).
+% CUFINUFFT3D2   GPU 3D complex nonuniform FFT, type 2 (uniform to nonuniform).
 %
-% c = finufft3d2(x,y,z,isign,eps,f)
-% c = finufft3d2(x,y,z,isign,eps,f,opts)
+% c = cufinufft3d2(x,y,z,isign,eps,f)
+% c = cufinufft3d2(x,y,z,isign,eps,f,opts)
 %
 % This computes on the GPU, to relative precision eps, via a fast algorithm:
 %
@@ -19,10 +19,10 @@
 %           If a 4D array, 4th dimension sets ntrans, and each of ntrans
 %           3D arrays is transformed with the same nonuniform targets.
 ISIGNEPS
-OPTS
-OPTS12
+GOPTS
+GOPTS12
 %  Outputs:
 %     c     complex column vector of nj answers at targets, or,
 %           if ntrans>1, matrix of size (nj,ntrans).
 %
-NOTES
+GNOTES
