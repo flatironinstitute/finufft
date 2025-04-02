@@ -14,11 +14,11 @@ MATLAB's Parallel Computing Toolbox. This is a commercial product;
 we do not currently have an Octave solution for GPU.
 
 
-Quick-start examples
-~~~~~~~~~~~~~~~~~~~~
+Quick-start example
+~~~~~~~~~~~~~~~~~~~
 
 Here we jump straight into a
-2D type 1 transform using the simple interface in single precision. Let's
+2D type 1 transform using the simple interface, in single precision. Let's
 request a rectangular output Fourier mode array of 10000 modes in the x direction but 5000 in the
 y direction. We create 100 millions source points directly on the GPU, with coordinates lying in the square of side length $2\pi$:
 
@@ -36,6 +36,8 @@ The resulting output ``f`` is a complex single-precision ``gpuArray`` of size
 10000 by 5000. The first dimension
 (number of rows) corresponds to the x input coordinate, and the second to y.
 Here see a throughput of about 0.5 billion points/sec (on my A6000).
+For the full code that also verifies one of the outputs,
+see `simple1d1f_gpu.m <https://github.com/flatironinstitute/finufft/tree/master/matlab/examples/cuda/simple1d1f_gpu.m>`_.
 
 .. note::
 
@@ -60,7 +62,7 @@ instead linearly rescale your points before sending them to FINUFFT.
    To perform single-precision transforms, send in single-precision data.
    In contrast, precision in the guru interface is set with the ``cufinufft_plan`` option string ``opts.floatprec``, either ``'double'`` (the default), or ``'single'``.
 
-For examples of using the cuFINUFFT guru (plan) interface, see
+For several examples of using the cuFINUFFT guru (plan) interface, see
 `examples in the repo <https://github.com/flatironinstitute/finufft/tree/master/matlab/examples/cuda>`_.
 
 
@@ -68,8 +70,8 @@ Full documentation of GPU interface
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Here are the help documentation strings for all MATLAB GPU interfaces.
-The interfaces are the same as the GPU ones prepended with "cu".
-The options descriptions are rather abbreviated;
+The interfaces are the same as the GPU ones except preceded by "cu".
+The options descriptions are rather abbreviated in the below;
 for full documentation see :ref:`opts_gpu`.
 Informative warnings and errors are raised in MATLAB style with unique
 codes (see ``../matlab/errhandler.m``, ``../matlab/cufinufft.mw``, and
