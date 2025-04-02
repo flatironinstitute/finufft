@@ -105,7 +105,7 @@ jobs:
         with:
           name: requirements
       - name: Run sccache-cache
-        uses: mozilla-actions/sccache-action@v0.0.7
+        uses: mozilla-actions/sccache-action@v0.0.9
       - name: Set caching env vars
         run: |
           echo "SCCACHE_GHA_ENABLED=true" >> $GITHUB_ENV
@@ -123,7 +123,7 @@ jobs:
       - name: Set min macOS version and install fftw
         if: runner.os == 'macOS'
         run: |
-          brew install fftw libomp 
+          brew install fftw libomp
       - name: Install fftw
         if: runner.os == 'linux'
         run: |
@@ -166,6 +166,7 @@ jobs:
             -C cmake.define.CMAKE_C_COMPILER_LAUNCHER=sccache \
             -C cmake.define.CMAKE_GENERATOR=Ninja \
             -C cmake.define.CMAKE_GENERATOR_PLATFORM= \
+            -C cmake.define.DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
             python/finufft
       - name: Test Python package
         if: matrix.finufft_static_linking == 'off'
