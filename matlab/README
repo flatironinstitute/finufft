@@ -29,7 +29,13 @@ See: https://github.com/zgimbutas/mwrap
 The simple interfaces finufft?d?.m are short wrappers to the
 finufft_plan.m object methods.
 
-As of v2.4, an analogous pattern is used for GPU, prepending names by "cu".
+As of v2.4, an analogous pattern is used for GPU, prepending names by "cu",
+and using a 2025 new release of MWrap.
+
+The @gpuArray/ folder is experimental and allows overloading of the
+finufft?d? commands to the GPU versions when their first argument is a
+gpuArray. This follows TMW style; however, since the gpuArray class is
+"closed", this may remain an experimental feature.
 
 
 * Documentation generation:
