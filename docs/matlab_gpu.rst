@@ -5,19 +5,22 @@ MATLAB GPU interfaces
 
    See the :ref:`MATLAB GPU installation page <install-matlab-gpu>` for how to build these interfaces.
 
-We follow the :ref:`MATLAB/Octave CPU tutorial page <matlab>`, which
-you should to read first, to learn about the simple interfaces and
+We in 2025 we added MATLAB Parallel Computing Toolbox ``gpuArray`` interfaces to
+CUFINUFFT, our GPU library.
+Here we follow the :ref:`MATLAB/Octave CPU tutorial page <matlab>`, which
+you should to read first, to learn the basics of the interfaces and
 array indexing.
-The key fact is that our CUDA FINUFFT (aka CUFINUFFT) MATLAB interface
+The key change for the GPU user
+is that our CUDA FINUFFT (aka CUFINUFFT) MATLAB interface
 acts on ``gpuArray`` objects for the main I/O data arrays, and this requires
-MATLAB's Parallel Computing Toolbox. This is a commercial product;
-we do not currently have an Octave solution for GPU.
+MATLAB's Parallel Computing Toolbox. This is a commercial product,
+and we do not currently have an Octave solution for the GPU.
 
 
 Quick-start example
 ~~~~~~~~~~~~~~~~~~~
 
-Here we jump straight into a
+We jump straight into a
 2D type 1 transform using the simple interface, in single precision. Let's
 request a rectangular output Fourier mode array of 10000 modes in the x direction but 5000 in the
 y direction. We create 100 millions source points directly on the GPU, with coordinates lying in the square of side length $2\pi$:
@@ -35,13 +38,15 @@ y direction. We create 100 millions source points directly on the GPU, with coor
 The resulting output ``f`` is a complex single-precision ``gpuArray`` of size
 10000 by 5000. The first dimension
 (number of rows) corresponds to the x input coordinate, and the second to y.
-Here see a throughput of about 0.5 billion points/sec (on my A6000).
-For the full code that also verifies one of the outputs,
+If you need to change the definition of the period from $2\pi$, you cannot;
+instead linearly rescale your points before sending them to FINUFFT.
+The above shows a throughput of about 0.5 billion points/sec (on my A6000).
+For the full example code that also verifies one of the outputs,
 see `simple1d1f_gpu.m <https://github.com/flatironinstitute/finufft/tree/master/matlab/examples/cuda/simple1d1f_gpu.m>`_.
 
 .. note::
 
-   Timing GPU functions in MATLAB is misleading when using plain ``tic`` and ``toc``, because of asynchronous computation: the ``toc`` is executed before the ``gpuArray`` function has actually completed. For correct timings, use the following idea:
+   Timing GPU functions in MATLAB is misleading when using plain ``tic`` and ``toc``, because of asynchronous computation: the ``toc`` is often executed before the ``gpuArray`` function has actually completed! For correct timings, use the following pattern:
 
    .. code-block:: matlab
 		   
@@ -50,9 +55,6 @@ see `simple1d1f_gpu.m <https://github.com/flatironinstitute/finufft/tree/master/
      f = cufinufft2d1(x,y,c,+1,tol,N1,N2);
      wait(dev)
      toc
-
-If you need to change the definition of the period from $2\pi$, you cannot;
-instead linearly rescale your points before sending them to FINUFFT.
 
 .. note::
 
@@ -74,8 +76,8 @@ The interfaces are the same as the GPU ones except preceded by "cu".
 The options descriptions are rather abbreviated in the below;
 for full documentation see :ref:`opts_gpu`.
 Informative warnings and errors are raised in MATLAB style with unique
-codes (see ``../matlab/errhandler.m``, ``../matlab/cufinufft.mw``, and
-``../valid_*.m``).
+codes (see sources ``errhandler.m``, ``cufinufft.mw``, and
+``valid_*.m`` `here <https://github.com/flatironinstitute/finufft/tree/master/matlab/`_).
 The low-level :ref:`error number codes <error>` are not used.
 
 The individual GPU commands have the full help documentation:

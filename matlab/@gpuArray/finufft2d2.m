@@ -2,4 +2,4 @@
 %
 % See CUFINUFFT2D2
 function c = finufft2d2(varargin)
-c = finufft2d2(varargin{:});
+c = cufinufft2d2(varargin{:});
