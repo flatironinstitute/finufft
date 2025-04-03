@@ -114,7 +114,7 @@ void do_fft(const FINUFFT_PLAN_T<TF> &p, std::complex<TF> *fwBatch, int ntrans_a
   // FIXME: the "adjoint" emulation is a crude band-aid
   if (adjoint)
     for (BIGINT i = 0; i < ntrans_actual * p.nf(); ++i) fwBatch[i] = conj(fwBatch[i]);
-  p.fftPlan->execute(fwBatch); // if thisBatchSize<batchSize it wastes some flops
+  p.getFFTPlan().execute(fwBatch); // if thisBatchSize<batchSize it wastes some flops
   if (adjoint)
     for (BIGINT i = 0; i < ntrans_actual * p.nf(); ++i) fwBatch[i] = conj(fwBatch[i]);
 #endif
