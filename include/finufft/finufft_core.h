@@ -1,6 +1,12 @@
 #ifndef FINUFFT_CORE_H
 #define FINUFFT_CORE_H
 
+#include <xsimd/xsimd.hpp>
+
+#include <array>
+#include <finufft_errors.h>
+#include <memory>
+
 /* IMPORTANT: for Windows compilers, you should add a line
         #define FINUFFT_DLL
    here if you are compiling/using FINUFFT as a DLL,
@@ -58,10 +64,6 @@
 #define FINUFFT_UNLIKELY(x) (x)
 #define FINUFFT_LIKELY(x)   (x)
 #endif
-
-#include <array>
-#include <finufft_errors.h>
-#include <memory>
 
 // All indexing in library that potentially can exceed 2^31 uses 64-bit signed.
 // This includes all calling arguments (eg M,N) that could be huge someday.
