@@ -123,3 +123,5 @@ for precdev=precdevs  % ......... loop precisions & devices
   if err>errcheck, error('error fail'); end
 
 end     % ..........................
+
+disp('fullmathtest passed.')
