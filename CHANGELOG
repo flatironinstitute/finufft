@@ -5,8 +5,6 @@ Master, using release name V 2.4.0 (2/11/25)
 
 * Added functionality for adjoint execution of FINUFFT plans (Reinecke #633,
   addresses #566 and #571).
-* Tweaked choice of upsampfact to use a density based heuristic for type 1 and 2
-  in the CPU library. This gives a significant speedup for some cases.
 * Removed FINUFFT_CUDA_ARCHITECTURES flag, as it was unnecessary duplication.
 * Enabled LTO for finufft, nvcc support is flaky at the moment.
 * Added GPU spread interp only test. Added CPU spread interp only test to cmake
