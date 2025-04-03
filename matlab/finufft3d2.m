@@ -51,7 +51,7 @@
 function c = finufft3d2(x,y,z,isign,eps,f,o)
 
 valid_setpts(false,2,3,x,y,z);
-o.floatprec=underlyingType(x);             % should be 'double' or 'single'
+o.floatprec=class(x);
 [ms,mt,mu,n_transf] = size(f);             % if f 3D array, n_transf=1
 p = finufft_plan(2,[ms;mt;mu],isign,n_transf,eps,o);
 p.setpts(x,y,z);

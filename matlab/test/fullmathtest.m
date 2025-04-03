@@ -2,11 +2,15 @@
 % many-vector option (ntrans).
 % For type 3 the space-bandwidth product chosen so FFT size roughly same as
 % that in the type 1 and 2 cases.
-% Short runtime (1 sec).
+% Short runtime (~1 sec).
 % Barnett 4/2/25.
 clear
+
 isign   = +1;     % sign of imaginary unit in exponential
-if canUseGPU(), precdevs='sdSD'; else precdevs='sd'; end
+if exist('cufinufft')==3 && exist('canUseGPU') && canUseGPU() % .mex exists?
+  precdevs='sdSD';                                            % CPU+GPU
+else precdevs='sd'; end                                       % CPU only
+
 for precdev=precdevs  % ......... loop precisions & devices
                       %  s=single, d=double; sd = CPU, SD = GPU
   if sum(precdev=='sd')

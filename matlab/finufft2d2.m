@@ -49,7 +49,7 @@
 function c = finufft2d2(x,y,isign,eps,f,o)
 
 valid_setpts(false,2,2,x,y);
-o.floatprec=underlyingType(x);             % should be 'double' or 'single'
+o.floatprec=class(x);                      % should be 'double' or 'single'
 [ms,mt,n_transf] = size(f);                % if f 2D array, n_transf=1
 p = finufft_plan(2,[ms;mt],isign,n_transf,eps,o);
 p.setpts(x,y);
