@@ -20,7 +20,7 @@ case "${unameOut}" in
         # not sure this is correct...
         echo "$NUMBER_OF_PROCESSORS"
         ;;
-    *)        
+    *)
 	echo "I'm in an unknown or unsupported operating system: ${unameOut}" >&2
         ;;
 esac

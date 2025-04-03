@@ -16,7 +16,7 @@ c     ../../lib-static/libfinufft.a -lstdc++ -lfftw3 -lfftw3_omp -lm -fopenmp
 c
       program nufft1d_demo
       implicit none
-      
+
 c     our fortran-header, always needed
       include 'finufft.fh'
 c

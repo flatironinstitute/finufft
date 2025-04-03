@@ -30,7 +30,7 @@ static inline void evaluate_kernel_vector(FLT *__restrict__ ker,
 #pragma omp simd
   for (int i = 0; i < N; i++) // Loop 1: Compute exponential arguments
     ker[i] = beta * sqrt(1.0 - c * args[i] * args[i]);
-    // ker[i] = beta * (1.0 - c*args[i]*args[i]);   // no-sqrt version
+  // ker[i] = beta * (1.0 - c*args[i]*args[i]);   // no-sqrt version
 
 #pragma omp simd
   for (int i = 0; i < N; i++) // Loop 2: Compute exponentials

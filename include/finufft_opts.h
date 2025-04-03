@@ -9,8 +9,10 @@ typedef struct finufft_opts { // defaults see finufft_core.cpp:finufft_default_o
   // sphinx tag (don't remove): @opts_start
   // FINUFFT options:
   // data handling opts...
-  int modeord; // (type 1,2 only): 0 CMCL-style increasing mode order
-               //                  1 FFT-style mode order
+  int modeord;          // (type 1,2 only): 0 CMCL-style increasing mode order
+                        //                  1 FFT-style mode order
+  int spreadinterponly; // (type 1,2 only): 0 do actual NUFFT
+                        // 1 only spread (if type 1) or interpolate (type 2)
 
   // diagnostic opts...
   int debug;        // 0 silent, 1 some timing/debug, or 2 more

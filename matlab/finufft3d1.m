@@ -23,7 +23,6 @@
 %     ms,mt,mu  number of Fourier modes requested in x,y and z; each may be
 %           even or odd.
 %           In either case the mode range is integers lying in [-m/2, (m-1)/2]
-%     opts.modeord: 0 (CMCL increasing mode ordering, default), 1 (FFT ordering)
 %     opts   optional struct with optional fields controlling the following:
 %     opts.debug:   0 (silent, default), 1 (timing breakdown), 2 (debug info).
 %     opts.spread_debug: spreader: 0 (no text, default), 1 (some), or 2 (lots)
@@ -35,6 +34,8 @@
 %     opts.spread_thread:   for ntrans>1 only. 0:auto, 1:seq multi, 2:par, etc
 %     opts.maxbatchsize:  for ntrans>1 only. max blocking size, or 0 for auto.
 %     opts.nthreads:   number of threads, or 0: use all available (default)
+%     opts.modeord: 0 (CMCL increasing mode ordering, default), 1 (FFT ordering)
+%     opts.spreadinterponly: 0 (perform NUFFT, default), 1 (only spread/interp)
 %   Outputs:
 %     f     size (ms,mt,mu) complex array of Fourier coefficients
 %           (ordering given by opts.modeord in each dimension; ms fastest, mu
@@ -49,7 +50,6 @@
 %  * For more details about the opts fields, see ../docs/opts.rst
 %  * See ERRHANDLER, VALID_* and FINUFFT_PLAN for possible warning/error IDs.
 %  * Full documentation is online at http://finufft.readthedocs.io
-
 function f = finufft3d1(x,y,z,c,isign,eps,ms,mt,mu,o)
 
 if nargin<10, o.dummy=1; end

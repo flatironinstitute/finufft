@@ -42,7 +42,6 @@
 %  * For more details about the opts fields, see ../docs/opts.rst
 %  * See ERRHANDLER, VALID_* and FINUFFT_PLAN for possible warning/error IDs.
 %  * Full documentation is online at http://finufft.readthedocs.io
-
 function f = finufft3d3(x,y,z,c,isign,eps,s,t,u,o)
 
 if nargin<10, o.dummy=1; end
@@ -52,4 +51,3 @@ n_transf = valid_ntr(x,c);
 p = finufft_plan(3,3,isign,n_transf,eps,o);
 p.setpts(x,y,z,s,t,u);
 f = p.execute(c);
-

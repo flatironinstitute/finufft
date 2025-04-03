@@ -134,7 +134,7 @@ static const char *cufftGetErrorString(cufftResult error) {
 }
 
 template<typename T>
-int check(T result, char const *const func, const char *const file, int const line) {
+int check(T result, const char *const func, const char *const file, const int line) {
   if (result) {
     fprintf(stderr, "CUDA error at %s:%d code=%d(%s) \"%s\" \n", file, line,
             static_cast<unsigned int>(result), _cudaGetErrorEnum(result), func);

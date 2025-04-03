@@ -1,5 +1,5 @@
 function C = ker_ppval_coeff_mat(w,d,be,o)
-% KER_PPVAL_COEFF_MAT  matrix of piecewise poly ES kernel coeffs 
+% KER_PPVAL_COEFF_MAT  matrix of piecewise poly ES kernel coeffs
 %
 % C = ker_ppval_coeff_mat(w,nterms,beta,opts)
 %
@@ -77,4 +77,3 @@ for sigma = [2.0, 1.25]                   % upsampfacs
             w,d,tol,maxerr,maxerr/tol)
   end
 end
-

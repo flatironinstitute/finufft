@@ -38,7 +38,7 @@ then set default values by passing a pointer (here ``opts``) to the following::
 
  void finufft_default_opts(finufft_opts* opts)
  void finufftf_default_opts(finufft_opts* opts)
-   
+
   Set values in a NUFFT options struct to their default values.
 
 Be sure to use the first version for double-precision and the second for single-precision. You may then change options with, for example, ``opts->debug=1;``
@@ -73,9 +73,9 @@ with the word "many" in the function name) perform ``ntr`` transforms with the s
 
 
 .. _guru:
-             
+
 Guru plan interface
--------------------                   
+-------------------
 
 This provides more flexibility than the simple or vectorized interfaces.
 Any transform requires (at least)
@@ -90,4 +90,3 @@ Keep in mind that ``setpts`` retains *pointers* to the user's list of nonuniform
   The ``plan`` object (type ``finufft{f}_plan``) is an opaque pointer; the public interface specifies no more details that that. Under the hood in our library the plan happens to point to a C++ object of type ``finufft{f}_plan_s``, whose internal details the library user should not attempt to access, nor to rely on.
 
 .. include:: cguru.doc
-                    

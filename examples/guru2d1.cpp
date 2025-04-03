@@ -7,17 +7,10 @@
 using namespace std;
 
 int main(int argc, char *argv[]) {
-
   /* 2D type 1 guru interface example of calling the FINUFFT library from C++,
      using STL double complex vectors, with a math test. Similar to simple2d1
      except illustrates the guru interface.
-
-     Compile multithreaded with
-     g++ -fopenmp guru2d1.cpp -I ../src ../lib-static/libfinufft.a -o guru2d1 -lfftw3
-     -lfftw3_omp -lm single core with: g++ guru2d1.cpp -I ../src
-     ../lib-static/libfinufft.a -o guru2d1 -lfftw3 -lm
-
-     Usage:  ./guru2d1
+     To compile, see README.  Usage: ./guru2d1
   */
   int M      = 1e6;  // number of nonuniform points
   int N      = 1e6;  // approximate total number of modes (N1*N2)

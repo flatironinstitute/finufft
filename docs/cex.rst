@@ -13,14 +13,14 @@ in double precision from C++, using STL complex vectors.
 First include our header, and some others needed for the demo:
 
 .. code-block:: C++
-  
+
   #include "finufft.h"
   #include <vector>
   #include <complex>
   #include <stdlib.h>
 
 We need nonuniform points ``x`` and complex strengths ``c``. Let's create random ones for now:
-  
+
 .. code-block:: C++
 
   int M = 1e7;                                   // number of nonuniform points
@@ -36,7 +36,7 @@ With ``N`` as the desired number of Fourier mode coefficients,
 allocate their output array:
 
 .. code-block:: C++
-  
+
   int N = 1e6;                                   // number of output modes
   vector<complex<double> > F(N);
 
@@ -68,12 +68,12 @@ put default values in a ``finufft_opts`` struct,
 make your changes, then pass the pointer to FINUFFT:
 
 .. code-block:: C++
-  
+
   finufft_opts* opts = new finufft_opts;
   finufft_default_opts(opts);
   opts->debug = 1;                                // prints timing/debug info
   int ier = finufft1d1(M,&x[0],&c[0],+1,tol,N,&F[0],opts);
-  
+
 .. warning::
    - Without the ``finufft_default_opts`` call, options may take on arbitrary values which may cause a crash.
    - Note that, as of version 2.0, ``opts`` is passed as a pointer in both places.
@@ -83,14 +83,17 @@ replace the tag ``finufft`` by ``finufftf`` in each command; see ``examples/simp
 
 From the ``examples/`` directory, to compile on a linux/GCC system, linking to the static library, use eg::
 
-  g++ simple1d1.cpp -o simple1d1 -I../include ../lib-static/libfinufft.a -lfftw3_omp -lfftw3
+  g++ -fopenmp simple1d1.cpp -o simple1d1 -I../include ../lib-static/libfinufft.a -lfftw3_omp -lfftw3 -lfftw3f_omp -lfftw3f
 
-Executing ``./simple1d1`` should now work. Better is instead to link to the dynamic shared (``.so``) library, via eg::
+Executing ``./simple1d1`` should now work (exit code ``0`` and displaying a small error).
+If you used ``FFT=DUCC`` you can of course drop the linking of the four ``fftw3`` libraries.
+Better is instead to link to the dynamic shared (``.so``) library, via eg::
 
-  g++ simple1d1.cpp -o simple1d1 -I../include -Wl,-rpath,$FINUFFT/lib/ -lfinufft
-  
+  g++ -fopenmp simple1d1.cpp -o simple1d1 -I../include -Wl,-rpath,$FINUFFT/lib/ -lfinufft
+
 where ``$FINUFFT`` must be replaced by (or be an environment variable set to) the absolute install path for this repository.
-Notice how ``rpath`` was used to make an executable that may be called from, or moved to, anywhere.
+Notice how ``rpath`` is used to make an executable that may be called from, or moved to, anywhere.
+See ``examples/README`` for general compilation instructions for the examples.
 The ``examples`` and ``test`` directories are good places to see further
 usage examples. The documentation for all 18 simple interfaces,
 and the more flexible guru interface, is further down this page.
@@ -122,14 +125,15 @@ above code, with options setting, becomes:
   finufft_default_opts(&opts);          // set default opts (must do this)
   opts.debug = 2;                       // more debug/timing to stdout
   int ier = finufft1d1(M,x,c,+1,1e-9,N,F,&opts);
-                
+
   // (now do something with F here!...)
-                
+
   free(x); free(c); free(F);
-                
+
 See ``examples/simple1d1c.c`` and ``examples/simple1d1cf.c`` for
 double- and single-precision C examples, including the math check to insure
-the correct indexing of output modes.
+the correct indexing of output modes. Don't forget to compile your C code with
+``-lstdc++`` when linking against FINUFFT.
 
 
 2D example in C++
