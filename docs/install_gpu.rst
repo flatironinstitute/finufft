@@ -125,6 +125,11 @@ Then, to compile the MATLAB mexcuda executable, open MATLAB in the FINUFFT root 
 
 ``-Lbuild`` specifies the relative path where ``libcufinufft.so`` is placed during the linking stage. ``-Wl,-rpath,/absolute/path/to/finufft/build`` specifies the absolute path where ``libcufinufft.so`` is, so that MATLAB can find it during runtime; change ``/absolute/path/to/finufft/build`` accordingly. You may remove ``-Wl,-rpath,/absolute/path/to/finufft/build``, you then need to export `LD_LIBRARY_PATH` to include path to `libcufinufft.so` so that MATLAB can find it during runtime.
 
+You should now test your installation by opening MATLAB, then
+``addpath matlab`` then ``run matlab/test/fullmathtest``, which should
+complete CPU and GPU tests in a couple of seconds (it assumes the CPU interface
+is also compiled).
+
 .. note::
 
     Depending on your MATLAB version, ``mexcuda`` compiles the CUDA code using the NVIDIA ``nvcc`` compiler installed with MATLAB. It the MATLAB default one does not work, you may specify the location of ``nvcc`` on your system by storing it in the environment variable ``MW_NVCC_PATH``, eg via ``setenv("MW_NVCC_PATH","/path/to/CUDA/bin")`` and ``setenv("MW_ALLOW_ANY_CUDA","true")``. You may also check `toolbox/parallel/gpu/extern/src/mex/glnxa64/nvcc_g++.xml` to see how MATLAB finds the ``nvcc`` compiler.
