@@ -23,15 +23,7 @@ jobs:
       - name: Prepare
         run: |
           sudo apt update
-          sudo apt install -y libfftw3-dev
-          sudo apt-get install -y valgrind
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.13'
-      - name: install Valgrind CI
-        run: |
-          pip install ValgrindCI
+          sudo apt install -y libfftw3-dev jq valgrind
       - name: Configure Cmake
         run: |
           cmake -S . -B ./build -G Ninja -DCMAKE_BUILD_TYPE:STRING=RelWithDebInfo -DFINUFFT_BUILD_TESTS=ON -DFINUFFT_ENABLE_SANITIZERS=ON -DFINUFFT_STATIC_LINKING=OFF
@@ -41,10 +33,25 @@ jobs:
       - name: Test
         working-directory: ./build
         run: |
-          valgrind --tool=memcheck --undef-value-errors=yes --xml=yes --xml-file=valgrind_output.xml --track-fds=no ctest -C RelWithDebInfo --output-on-failure
-          echo "Valgrind Summary:"
-          valgrind-ci valgrind_output.xml --summary
-          valgrind-ci valgrind_output.xml --source-dir=$(pwd)/.. --output-dir=valgrind-report
+          ctest --show-only=json-v1 > ctest_tests.json
+          # Loop over all test entries
+          jq -c '.tests[]' ctest_tests.json | while read -r test; do
+            name=$(echo "$test" | jq -r '.name')
+            command=$(echo "$test" | jq -r '.command | @sh')
+
+            echo -e "\n▶ Running test: $name"
+            echo "   Command: $command"
+
+            # Eval to reconstruct command array safely
+            eval "cmd=( $command )"
+
+            valgrind \
+            --leak-check=full \
+            --track-origins=yes \
+            --errors-for-leak-kinds=all \
+            --show-leak-kinds=all \
+            "${cmd[@]}"
+          done
       - name: Upload Valgrind report as artifact
         uses: actions/upload-artifact@v4
         with:
