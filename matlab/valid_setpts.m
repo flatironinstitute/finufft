@@ -12,7 +12,7 @@ function [nj, nk] = valid_setpts(is_gpuarray,type,dim,x,y,z,s,t,u)
 
 % Barnett 6/19/20, split out from guru so simple ints can check before plan.
 % s,t,u are only checked for type 3.
-% note that isvector([]) is false, finufft_isgpuarray([]) is false, finufft_isgpuarray(gpuArray([])) if true.
+% note that isvector([]) is false, finufft_isgpuarray([]) is false, finufft_isgpuarray(gpuArray([])) is true.
 if ~isvector(x), error('FINUFFT:badXshape','FINUFFT x must be a vector'); end
 if finufft_isgpuarray(x) ~= is_gpuarray, error('FINUFFT:badDataDevice', 'input data must be on the specified device'); end
 nj = numel(x);
