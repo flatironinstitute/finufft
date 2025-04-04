@@ -34,6 +34,7 @@ jobs:
         run: |
           ctest --show-only=json-v1 > ctest_tests.json
           # Loop over all test entries
+          exec 3>&1
           jq -c '.tests[]' ctest_tests.json | while read -r test; do
             name=$(echo "$test" | jq -r '.name')
             command=$(echo "$test" | jq -r '.command | @sh')
@@ -44,5 +45,12 @@ jobs:
             # Eval to reconstruct command array safely
             eval "cmd=( $command )"
 
-            valgrind "${cmd[@]}"
+            valgrind --undef-value-errors=yes --errors-for-leak-kinds=definite --error-exitcode=1 --log-fd=3 "${cmd[@]}"  > /dev/null 2>&1
+
+            # Check valgrind exit code
+            status=$?
+            if [[ $status -ne 0 ]]; then
+              echo "❌ Valgrind detected errors in test: $name"
+              exit $status
+            fi
           done
