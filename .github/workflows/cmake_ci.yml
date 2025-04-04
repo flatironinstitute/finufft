@@ -105,7 +105,7 @@ jobs:
         with:
           name: requirements
       - name: Run sccache-cache
-        uses: mozilla-actions/sccache-action@v0.0.7
+        uses: mozilla-actions/sccache-action@v0.0.9
       - name: Set caching env vars
         run: |
           echo "SCCACHE_GHA_ENABLED=true" >> $GITHUB_ENV
@@ -123,7 +123,7 @@ jobs:
       - name: Set min macOS version and install fftw
         if: runner.os == 'macOS'
         run: |
-          brew install fftw libomp 
+          brew install fftw libomp
       - name: Install fftw
         if: runner.os == 'linux'
         run: |
