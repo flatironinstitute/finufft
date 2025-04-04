@@ -26,7 +26,7 @@ jobs:
           sudo apt install -y libfftw3-dev jq valgrind
       - name: Configure Cmake
         run: |
-          cmake -S . -B ./build -G Ninja -DCMAKE_BUILD_TYPE:STRING=RelWithDebInfo -DFINUFFT_BUILD_TESTS=ON -DFINUFFT_ENABLE_SANITIZERS=ON -DFINUFFT_STATIC_LINKING=OFF
+          cmake -S . -B ./build -G Ninja -DCMAKE_BUILD_TYPE:STRING=RelWithDebInfo -DFINUFFT_BUILD_TESTS=ON -DFINUFFT_ENABLE_SANITIZERS=ON
       - name: Build
         run: |
           cmake --build ./build --config RelWithDebInfo
