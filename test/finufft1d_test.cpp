@@ -180,7 +180,6 @@ int main(int argc, char *argv[]) {
     free(Ft);
   } else
     errmax = max(err, errmax);
-
   free(x);
   free(c);
   free(F);
