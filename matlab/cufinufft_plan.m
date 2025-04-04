@@ -34,7 +34,7 @@
 % Creates a cufinufft_plan MATLAB object in the interface to GPU FINUFFT, of
 %  type 1, 2 or 3, and with given numbers of Fourier modes (unless type 3).
 %
-% Inputs: 
+% Inputs:
 %     type            transform type: 1, 2, or 3
 %     n_modes_or_dim  if type is 1 or 2, the number of Fourier modes in each
 %                     dimension: [ms] in 1D, [ms mt] in 2D, or [ms mt mu] in 3D.
@@ -48,10 +48,9 @@
 %     opts.gpu_method:  0 (auto, default), 1 (GM or GM-sort), 2 (SM).
 %     opts.gpu_sort:  0 (do not sort NU pts), 1 (sort when GM method, default).
 %     opts.gpu_kerevalmeth:  0 (slow reference). 1 (Horner ppoly, default).
-%     opts.gpu_maxsubproblemsize:  max # NU pts per subprob (gpu_method=2 only).
+%     opts.gpu_maxsubprobsize:  max # NU pts per subprob (gpu_method=2 only).
 %     opts.gpu_binsize{x,y,z}:  various binsizes in GM-sort/SM (for experts).
-%     opts.gpu_maxbatchsize:   0 (auto, default), or many-vector batch size. 
-%     opts.gpu_stream:  CUDA stream, allows H2D/D2H while computing (experts).
+%     opts.gpu_maxbatchsize:   0 (auto, default), or many-vector batch size.
 %     opts.gpu_device_id:  sets the GPU device ID (experts only).
 %     opts.floatprec: library precision to use, 'double' (default) or 'single'.
 %     for type 1 and 2 only, the following opts fields are also relevant:
