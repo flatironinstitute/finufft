@@ -44,9 +44,6 @@ int main(int argc, char *argv[]) {
   cout << scientific << setprecision(15);
 
   FLT *x = (FLT *)malloc(sizeof(FLT) * M); // NU pts
-  x[10] += 1.0; // make sure x[10] is not 0, to test that we don't crash
-  std::cout << "x[10] = " << x[10] << std::endl;
-  x      = (FLT *)malloc(sizeof(FLT) * M); // NU pts
   CPX *c = (CPX *)malloc(sizeof(CPX) * M); // strengths
   CPX *F = (CPX *)malloc(sizeof(CPX) * N); // mode ampls
 #pragma omp parallel
