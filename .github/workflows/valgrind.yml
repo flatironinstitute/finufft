@@ -21,9 +21,9 @@ jobs:
           clangtidy: false
       - name: Prepare
         run: |
-          apt update
-          apt install -y libfftw3-dev
-          apt-get install -y valgrind
+          sudo apt update
+          sudo apt install -y libfftw3-dev
+          sudo apt-get install -y valgrind
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
