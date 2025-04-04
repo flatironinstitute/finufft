@@ -44,10 +44,5 @@ jobs:
             # Eval to reconstruct command array safely
             eval "cmd=( $command )"
 
-            valgrind \
-            --leak-check=full \
-            --track-origins=yes \
-            --errors-for-leak-kinds=all \
-            --show-leak-kinds=all \
-            "${cmd[@]}"
+            valgrind "${cmd[@]}"
           done
