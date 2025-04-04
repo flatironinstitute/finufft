@@ -19,14 +19,13 @@ jobs:
           vcpkg: false
           cppcheck: false
           clangtidy: false
-          sccache: true
       - name: Prepare
         run: |
           sudo apt update
           sudo apt install -y libfftw3-dev jq valgrind
       - name: Configure Cmake
         run: |
-          cmake -S . -B ./build -G Ninja -DCMAKE_BUILD_TYPE:STRING=RelWithDebInfo -DFINUFFT_BUILD_TESTS=ON -DFINUFFT_ENABLE_SANITIZERS=ON
+          cmake -S . -B ./build -G Ninja -DCMAKE_BUILD_TYPE:STRING=RelWithDebInfo -DFINUFFT_BUILD_TESTS=ON -DFINUFFT_ENABLE_SANITIZERS=OFF
       - name: Build
         run: |
           cmake --build ./build --config RelWithDebInfo
@@ -52,8 +51,3 @@ jobs:
             --show-leak-kinds=all \
             "${cmd[@]}"
           done
-      - name: Upload Valgrind report as artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: valgrind-report
-          path: ./build/valgrind-report
