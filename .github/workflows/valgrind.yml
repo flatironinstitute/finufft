@@ -1,0 +1,52 @@
+name: Valgrind memcheck
+
+on: [push, pull_request]
+
+jobs:
+  valgrind:
+    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Setup Cpp
+        uses: aminya/setup-cpp@v1.1.1
+        with:
+          compiler: gcc
+          cmake: true
+          ninja: true
+          vcpkg: false
+          cppcheck: false
+          clangtidy: false
+      - name: Prepare
+        run: |
+          apt update
+          apt install -y libfftw3-dev
+          apt-get install -y valgrind
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: install Valgrind CI
+        run: |
+          pip install ValgrindCI
+      - name: Configure Cmake
+        run: |
+          cmake -S . -B ./build -G Ninja -DCMAKE_BUILD_TYPE:STRING=RelWithDebInfo  -DFINUFFT_BUILD_TESTS=ON -DFINUFFT_ENABLE_SANITIZERS=ON
+      - name: Build
+        run: |
+          cmake --build ./build --config RelWithDebInfo
+      - name: Test
+        working-directory: ./build
+        run: |
+          valgrind --track-fds=no ctest -C RelWithDebInfo --output-on-failure
+          valgrind --tool=memcheck --xml=yes --xml-file=valgrind_output.xml ./build/your_binary
+          echo "Valgrind Summary:"
+          valgrind-ci valgrind_output.xml --summary
+          valgrind-ci valgrind_output.xml --source-dir=$(pwd)/.. --output-dir=valgrind-report
+      - name: Upload Valgrind report as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: valgrind-report
+          path: ./build/valgrind-report
