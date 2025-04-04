@@ -19,6 +19,7 @@ jobs:
           vcpkg: false
           cppcheck: false
           clangtidy: false
+          sccache: true
       - name: Prepare
         run: |
           sudo apt update
@@ -33,15 +34,14 @@ jobs:
           pip install ValgrindCI
       - name: Configure Cmake
         run: |
-          cmake -S . -B ./build -G Ninja -DCMAKE_BUILD_TYPE:STRING=RelWithDebInfo  -DFINUFFT_BUILD_TESTS=ON -DFINUFFT_ENABLE_SANITIZERS=ON
+          cmake -S . -B ./build -G Ninja -DCMAKE_BUILD_TYPE:STRING=RelWithDebInfo -DFINUFFT_BUILD_TESTS=ON -DFINUFFT_ENABLE_SANITIZERS=ON
       - name: Build
         run: |
           cmake --build ./build --config RelWithDebInfo
       - name: Test
         working-directory: ./build
         run: |
-          valgrind --track-fds=no ctest -C RelWithDebInfo --output-on-failure
-          valgrind --tool=memcheck --xml=yes --xml-file=valgrind_output.xml ./build/your_binary
+          valgrind --tool=memcheck --xml=yes --xml-file=valgrind_output.xml --track-fds=no ctest -C RelWithDebInfo --output-on-failure
           echo "Valgrind Summary:"
           valgrind-ci valgrind_output.xml --summary
           valgrind-ci valgrind_output.xml --source-dir=$(pwd)/.. --output-dir=valgrind-report
