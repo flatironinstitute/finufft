@@ -108,9 +108,9 @@ For example, assuming in the root directory of FINUFFT, then run
 
 .. code-block:: bash
 
-    cmake -S . -B build -D FINUFFT_USE_CUDA=ON -D FINUFFT_STATIC_LINKING=OFF -D CMAKE_VERBOSE_MAKEFILE:BOOL=ON -D FINUFFT_CUDA_ARCHITECTURES="60;70;80;90"
+    cmake -S . -B build -D FINUFFT_USE_CUDA=ON -D FINUFFT_STATIC_LINKING=OFF -D CMAKE_VERBOSE_MAKEFILE:BOOL=ON -D CMAKE_CUDA_ARCHITECTURES="60;70;80;90"
 
-You may adjust ``FINUFFT_CUDA_ARCHITECTURES`` to generate the code for different compute capabilities.
+You may adjust ``CMAKE_CUDA_ARCHITECTURES`` to generate the code for different compute capabilities, e.g., use ``all-major`` which will compile for all major compute capabilities.
 Then build the binary library
 
 .. code-block:: bash
@@ -132,7 +132,7 @@ is also compiled).
 
 .. note::
 
-    Depending on your MATLAB version, ``mexcuda`` compiles the CUDA code using the NVIDIA ``nvcc`` compiler installed with MATLAB. It the MATLAB default one does not work, you may specify the location of ``nvcc`` on your system by storing it in the environment variable ``MW_NVCC_PATH``, eg via ``setenv("MW_NVCC_PATH","/path/to/CUDA/bin")`` and ``setenv("MW_ALLOW_ANY_CUDA","true")``. You may also check `toolbox/parallel/gpu/extern/src/mex/glnxa64/nvcc_g++.xml` to see how MATLAB finds the ``nvcc`` compiler.
+    Depending on your MATLAB version, ``mexcuda`` compiles the CUDA code using the NVIDIA ``nvcc`` compiler installed with MATLAB. If the MATLAB default one does not work, you may specify the location of ``nvcc`` on your system by storing it in the environment variable ``MW_NVCC_PATH``, eg via ``setenv("MW_NVCC_PATH","/path/to/CUDA/bin")`` and ``setenv("MW_ALLOW_ANY_CUDA","true")``. You may also check `toolbox/parallel/gpu/extern/src/mex/glnxa64/nvcc_g++.xml` to see how MATLAB finds the ``nvcc`` compiler.
 
 .. note::
 
