@@ -198,17 +198,17 @@ classdef finufft_plan < handle
 
       mex_id_ = 'finufft_mex_setup()';
 finufft(mex_id_);
-      mex_id_ = 'o finufft_opts* = new()';
+      mex_id_ = 'c o finufft_opts* = new()';
 [o] = finufft(mex_id_);
       if strcmp(plan.floatprec,'double')
-        mex_id_ = 'o finufft_plan* = new()';
+        mex_id_ = 'c o finufft_plan* = new()';
 [p] = finufft(mex_id_);
-        mex_id_ = 'finufft_default_opts(i finufft_opts*)';
+        mex_id_ = 'finufft_default_opts(c i finufft_opts*)';
 finufft(mex_id_, o);
       else
-        mex_id_ = 'o finufftf_plan* = new()';
+        mex_id_ = 'c o finufftf_plan* = new()';
 [p] = finufft(mex_id_);
-        mex_id_ = 'finufftf_default_opts(i finufft_opts*)';
+        mex_id_ = 'finufftf_default_opts(c i finufft_opts*)';
 finufft(mex_id_, o);
       end
       plan.mwptr = p;   % crucial: save the opaque ptr (p.12 of MWrap manual)
@@ -220,18 +220,18 @@ finufft(mex_id_, o);
       % though it's declared int. It complains, also with int64 for nj, etc :(
 
       % replace in finufft_opts struct whichever fields are in incoming opts...
-      mex_id_ = 'copy_finufft_opts(i mxArray, i finufft_opts*)';
+      mex_id_ = 'copy_finufft_opts(c i mxArray, c i finufft_opts*)';
 finufft(mex_id_, opts, o);
       if strcmp(plan.floatprec,'double')
         tol = double(tol);   % scalar type must match for mwrap>=0.33.11
-        mex_id_ = 'o int = finufft_makeplan(i int, i int, i int64_t[x], i int, i int, i double, i finufft_plan*, i finufft_opts*)';
+        mex_id_ = 'c o int = finufft_makeplan(c i int, c i int, c i int64_t[x], c i int, c i int, c i double, c i finufft_plan*, c i finufft_opts*)';
 [ier] = finufft(mex_id_, type, dim, n_modes, iflag, n_trans, tol, plan, o, 3);
       else
         tol = single(tol);   % ditto
-        mex_id_ = 'o int = finufftf_makeplan(i int, i int, i int64_t[x], i int, i int, i float, i finufftf_plan*, i finufft_opts*)';
+        mex_id_ = 'c o int = finufftf_makeplan(c i int, c i int, c i int64_t[x], c i int, c i int, c i float, c i finufftf_plan*, c i finufft_opts*)';
 [ier] = finufft(mex_id_, type, dim, n_modes, iflag, n_trans, tol, plan, o, 3);
       end
-      mex_id_ = 'delete(i finufft_opts*)';
+      mex_id_ = 'delete(c i finufft_opts*)';
 finufft(mex_id_, o);
       errhandler(ier);             % convert C++ codes to matlab-style errors
     end
@@ -251,7 +251,7 @@ finufft(mex_id_, o);
       if nargin<6, t=emp; end
       if nargin<7, u=emp; end
       % get number(s) of NU pts (also validates the NU pt array sizes)...
-      [nj, nk] = valid_setpts(plan.type, plan.dim, xj, yj, zj, s, t, u);
+      [nj, nk] = valid_setpts(0, plan.type, plan.dim, xj, yj, zj, s, t, u);
       plan.nj = nj;            % save to avoid having to query the C++ plan
       plan.nk = nk;            % "
       % Force MATLAB to preserve the memory of xj/yj/zj by storing them as class
@@ -262,10 +262,10 @@ finufft(mex_id_, o);
       plan.yj = yj;
       plan.zj = zj;
       if strcmp(plan.floatprec,'double')
-        mex_id_ = 'o int = finufft_setpts(i finufft_plan, i int64_t, i double[], i double[], i double[], i int64_t, i double[], i double[], i double[])';
+        mex_id_ = 'c o int = finufft_setpts(c i finufft_plan, c i int64_t, c i double[], c i double[], c i double[], c i int64_t, c i double[], c i double[], c i double[])';
 [ier] = finufft(mex_id_, plan, nj, xj, yj, zj, nk, s, t, u);
       else
-        mex_id_ = 'o int = finufftf_setpts(i finufftf_plan, i int64_t, i float[], i float[], i float[], i int64_t, i float[], i float[], i float[])';
+        mex_id_ = 'c o int = finufftf_setpts(c i finufftf_plan, c i int64_t, c i float[], c i float[], c i float[], c i int64_t, c i float[], c i float[], c i float[])';
 [ier] = finufft(mex_id_, plan, nj, xj, yj, zj, nk, s, t, u);
       end
       errhandler(ier);
@@ -273,6 +273,11 @@ finufft(mex_id_, o);
 
     function result = execute(plan, data_in)
     % EXECUTE   execute single or many-vector FINUFFT transforms in a plan.
+
+      % check if data_in is gpuArray
+      if finufft_isgpuarray(data_in)
+        error('FINUFFT:badDataDevice','input data must be a cpuArray');
+      end
 
       % get shape info from the matlab-side plan (since can't pass "dot"
       % variables like a.b as mwrap sizes, too)...
@@ -293,28 +298,28 @@ finufft(mex_id_, o);
       end
       if plan.type == 1
         if strcmp(plan.floatprec,'double')
-          mex_id_ = 'o int = finufft_execute(i finufft_plan, i dcomplex[], o dcomplex[x])';
+          mex_id_ = 'c o int = finufft_execute(c i finufft_plan, c i dcomplex[], c o dcomplex[x])';
 [ier, result] = finufft(mex_id_, plan, data_in, ncoeffs);
         else
-          mex_id_ = 'o int = finufftf_execute(i finufftf_plan, i fcomplex[], o fcomplex[x])';
+          mex_id_ = 'c o int = finufftf_execute(c i finufftf_plan, c i fcomplex[], c o fcomplex[x])';
 [ier, result] = finufft(mex_id_, plan, data_in, ncoeffs);
         end
         % make modes output correct shape; when d<3 squeeze removes unused dims...
         result = squeeze(reshape(result, [ms mt mu n_trans]));
       elseif plan.type == 2
         if strcmp(plan.floatprec,'double')
-          mex_id_ = 'o int = finufft_execute(i finufft_plan, o dcomplex[xx], i dcomplex[])';
+          mex_id_ = 'c o int = finufft_execute(c i finufft_plan, c o dcomplex[xx], c i dcomplex[])';
 [ier, result] = finufft(mex_id_, plan, data_in, nj, n_trans);
         else
-          mex_id_ = 'o int = finufftf_execute(i finufftf_plan, o fcomplex[xx], i fcomplex[])';
+          mex_id_ = 'c o int = finufftf_execute(c i finufftf_plan, c o fcomplex[xx], c i fcomplex[])';
 [ier, result] = finufft(mex_id_, plan, data_in, nj, n_trans);
         end
       elseif plan.type == 3
         if strcmp(plan.floatprec,'double')
-          mex_id_ = 'o int = finufft_execute(i finufft_plan, i dcomplex[], o dcomplex[xx])';
+          mex_id_ = 'c o int = finufft_execute(c i finufft_plan, c i dcomplex[], c o dcomplex[xx])';
 [ier, result] = finufft(mex_id_, plan, data_in, nk, n_trans);
         else
-          mex_id_ = 'o int = finufftf_execute(i finufftf_plan, i fcomplex[], o fcomplex[xx])';
+          mex_id_ = 'c o int = finufftf_execute(c i finufftf_plan, c i fcomplex[], c o fcomplex[xx])';
 [ier, result] = finufft(mex_id_, plan, data_in, nk, n_trans);
         end
       end
@@ -327,10 +332,10 @@ finufft(mex_id_, o);
     % plan goes out of scope.
       if ~isempty(plan.mwptr)    % catch octave's allowance of >1 deletings!
         if strcmp(plan.floatprec,'double')
-          mex_id_ = 'finufft_destroy(i finufft_plan)';
+          mex_id_ = 'finufft_destroy(c i finufft_plan)';
 finufft(mex_id_, plan);
         else
-          mex_id_ = 'finufftf_destroy(i finufftf_plan)';
+          mex_id_ = 'finufftf_destroy(c i finufftf_plan)';
 finufft(mex_id_, plan);
         end
         plan.mwptr = '';         % we use to mean "destroyed on the C++ side"
