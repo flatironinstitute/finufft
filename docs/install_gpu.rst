@@ -108,7 +108,7 @@ For example, assuming in the root directory of FINUFFT, then run
 
 .. code-block:: bash
 
-    cmake -S . -B build -D FINUFFT_USE_CUDA=ON -D FINUFFT_STATIC_LINKING=OFF -D CMAKE_VERBOSE_MAKEFILE:BOOL=ON -D CMAKE_CUDA_ARCHITECTURES="60;70;80;90"
+    cmake -S . -B build -D FINUFFT_USE_CUDA=ON -D FINUFFT_STATIC_LINKING=OFF -D CMAKE_VERBOSE_MAKEFILE:BOOL=ON -D CMAKE_CUDA_ARCHITECTURES=native
 
 You may adjust ``CMAKE_CUDA_ARCHITECTURES`` to generate the code for different compute capabilities, e.g., use ``all-major`` which will compile for all major compute capabilities.
 Then build the binary library
@@ -117,7 +117,7 @@ Then build the binary library
 
     cmake --build build
 
-Then, to compile the MATLAB mexcuda executable, open MATLAB in the FINUFFT root directory and run
+Then, to compile (on Linux or OSX platforms, at least) the MATLAB mexcuda executable, open MATLAB in the FINUFFT root directory and run
 
 .. code-block:: matlab
 
@@ -127,8 +127,7 @@ Then, to compile the MATLAB mexcuda executable, open MATLAB in the FINUFFT root 
 
 You should now test your installation by opening MATLAB, then
 ``addpath matlab`` then ``run matlab/test/fullmathtest``, which should
-complete CPU and GPU tests in a couple of seconds (it assumes the CPU interface
-is also compiled).
+complete CPU (if present) and GPU tests in a couple of seconds.
 
 .. note::
 
@@ -136,4 +135,4 @@ is also compiled).
 
 .. note::
 
-   We do not have a ``makefile`` task for building the MATLAB GPU interface, since ``libcufinufft.so`` is built in CMake instead of the makefile. A CMake mexcuda task for the above is on the to-do list.
+   We do not have a ``makefile`` task for building the MATLAB GPU interface, since ``libcufinufft.so`` is built in CMake instead of the makefile. A CMake mexcuda task for the above, and the Windows commands, are on the to-do list.

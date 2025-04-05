@@ -1,15 +1,21 @@
-% MATLAB GPU FINUFFT library math test, both precisions, both devices,
-% many-vector option (ntrans).
+% MATLAB CPU/GPU FINUFFT library math test, both precisions, both devices,
+% many-vector option (ntr).
 % For type 3 the space-bandwidth product chosen so FFT size roughly same as
 % that in the type 1 and 2 cases.
-% Short runtime (~1 sec).
+% Short runtime (~1 sec per device).
 % Barnett 4/2/25.
 clear
 
-isign   = +1;     % sign of imaginary unit in exponential
-if exist('cufinufft')==3 && exist('canUseGPU') && canUseGPU() % .mex exists?
-  precdevs='sdSD';                                            % CPU+GPU
-else precdevs='sd'; end                                       % CPU only
+precdevs = '';
+if exist('finufft')==3                                        % CPU .mex exist?
+  precdevs = [precdevs 'sd'];                                 % add CPU
+end
+if exist('cufinufft')==3 && exist('canUseGPU') && canUseGPU() % GPU .mex exist?
+  precdevs = [precdevs 'SD'];                                 % add GPU
+end
+if isempty(precdevs)
+  warning('Found neither CPU nor GPU MEX files; testing nothing!');
+end
 
 for precdev=precdevs  % ......... loop precisions & devices
                       %  s=single, d=double; sd = CPU, SD = GPU
@@ -33,6 +39,7 @@ for precdev=precdevs  % ......... loop precisions & devices
   M       = 1e3;    % # of NU pts (in all dims, and for type 3 targs too)
   Ntot    = 1e3;    % # of modes (approx total, used in all dims)
   ntr = 3;          % # transforms
+  isign   = +1;     % sign of imaginary unit in exponential
   % various opts
   o.debug = 0;      % choose 1 for timing breakdown text output
   o.upsampfac=0;    % 0 (auto), 2.0 (default), or 1.25 (low-RAM, small-FFT)
