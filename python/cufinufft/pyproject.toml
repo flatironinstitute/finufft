@@ -78,7 +78,7 @@ input = "cufinufft/__init__.py"
 [tool.cibuildwheel]
 # Necessary to see build output from the actual compilation
 build-verbosity = 1
-skip = "cp36-* cp37-* cp-38* pp37-* *-manylinux_i686 *_ppc64le *_s390x *_universal2"
+skip = "cp36-* cp37-* cp-38* pp* *-manylinux_i686 *_ppc64le *_s390x *_universal2"
 config-settings = {"cmake.define.CMAKE_CUDA_ARCHITECTURES" = "50;60;70;80", "cmake.define.CIBUILDWHEEL" = "ON"}
 
 [tool.cibuildwheel.linux]
