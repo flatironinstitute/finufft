@@ -240,18 +240,18 @@ std::size_t shared_memory_required(int dim, int ns, int bin_size_x, int bin_size
   int adjusted_ns = bin_size_x + ((ns + 1) / 2) * 2;
 
   if (dim == 1) {
-    return adjusted_ns * sizeof(cuda_complex<T>);
+    return bin_size_x * ns * sizeof(cuda_complex<T>);
   }
 
   adjusted_ns *= (bin_size_y + ((ns + 1) / 2) * 2);
 
   if (dim == 2) {
-    return adjusted_ns * sizeof(cuda_complex<T>);
+    return bin_size_y * ns * sizeof(cuda_complex<T>);
   }
 
   adjusted_ns *= (bin_size_z + ((ns + 1) / 2) * 2);
 
-  return adjusted_ns * sizeof(cuda_complex<T>);
+  return bin_size_z * ns * sizeof(cuda_complex<T>);
 }
 
 // Function to find bin_size_x == bin_size_y

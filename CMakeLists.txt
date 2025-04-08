@@ -191,7 +191,6 @@ if(FINUFFT_USE_CPU)
         find_package(OpenMP COMPONENTS C CXX REQUIRED)
     endif()
 endif()
-
 # check if -Wno-deprecated-declarations is supported
 check_cxx_compiler_flag(-Wno-deprecated-declarations FINUFFT_HAS_NO_DEPRECATED_DECLARATIONS)
 
@@ -284,13 +283,14 @@ if(FINUFFT_USE_CUDA)
     if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
         message(
             WARNING
-            "FINUFFT WARNING: No CUDA architecture supplied via '-DCMAKE_CUDA_ARCHITECTURES=...', defaulting to 'native'"
+            "FINUFFT WARNING: No CUDA architecture supplied via '-DCMAKE_CUDA_ARCHITECTURES=...', defaulting to 'native' See: https://developer.nvidia.com/cuda-gpus for more details on what architecture to supply."
         )
-        message(WARNING "See: https://developer.nvidia.com/cuda-gpus for more details on what architecture to supply.")
         set(CMAKE_CUDA_ARCHITECTURES "native")
     endif()
     enable_language(CUDA)
     find_package(CUDAToolkit REQUIRED)
+    set(FINUFFT_MDSPAN_VERSION 0.6.0)
+    include(cmake/setupMDSPAN.cmake)
     add_subdirectory(src/cuda)
     if(BUILD_TESTING AND FINUFFT_BUILD_TESTS)
         add_subdirectory(perftest/cuda)

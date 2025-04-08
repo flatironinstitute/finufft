@@ -1,15 +1,12 @@
+#pragma once
+
 #include <cmath>
-#include <iostream>
-
-#include <cuda.h>
-#include <cufinufft/contrib/helper_cuda.h>
-
-#include <cuda_runtime.h>
-#include <cufinufft/defs.h>
 #include <cufinufft/precision_independent.h>
 #include <cufinufft/spreadinterp.h>
 #include <cufinufft/types.h>
 #include <cufinufft/utils.h>
+#include <experimental/mdspan>
+#include <iostream>
 
 using namespace cufinufft::utils;
 
@@ -17,6 +14,8 @@ namespace cufinufft {
 namespace spreadinterp {
 /* ---------------------- 3d Spreading Kernels -------------------------------*/
 /* Kernels for bin sort NUpts */
+
+namespace stdex = std::experimental;
 
 template<typename T>
 __global__ void calc_bin_size_noghost_3d(int M, int nf1, int nf2, int nf3, int bin_size_x,
@@ -136,8 +135,7 @@ __global__ void spread_3d_subprob(
     int bin_size_y, int bin_size_z, int *subprob_to_bin, int *subprobstartpts,
     int *numsubprob, int maxsubprobsize, int nbinx, int nbiny, int nbinz, int *idxnupts) {
   extern __shared__ char sharedbuf[];
-  auto fwshared = (cuda_complex<T> *)sharedbuf;
-
+  auto fwshared         = (cuda_complex<T> *)sharedbuf;
   const int bidx        = subprob_to_bin[blockIdx.x];
   const int binsubp_idx = blockIdx.x - subprobstartpts[bidx];
   const int ptstart     = binstartpts[bidx] + binsubp_idx * maxsubprobsize;
@@ -153,6 +151,8 @@ __global__ void spread_3d_subprob(
 
   const int N =
       (bin_size_x + rounded_ns) * (bin_size_y + rounded_ns) * (bin_size_z + rounded_ns);
+  auto span = stdex::mdspan<cuda_complex<T>, stdex::dextents<int, 4>>(
+      fwshared, nupts, bin_size_x, bin_size_y, bin_size_z);
 
   for (int i = threadIdx.x; i < N; i += blockDim.x) {
     fwshared[i] = {0, 0};
@@ -196,21 +196,23 @@ __global__ void spread_3d_subprob(
     }
 
     for (int zz = zstart; zz <= zend; zz++) {
-      const T kervalue3 = ker3[zz - zstart];
-      const int iz      = zz + ns_2;
-      if (iz >= (bin_size_z + (int)rounded_ns) || iz < 0) break;
+      const auto kervalue3 = ker3[zz - zstart];
+      // const auto iz      = zz + ns_2;
+      // if (iz >= (bin_size_z + (int)rounded_ns) || iz < 0) break;
       for (int yy = ystart; yy <= yend; yy++) {
-        const T kervalue2 = ker2[yy - ystart];
-        const int iy      = yy + ns_2;
-        if (iy >= (bin_size_y + (int)rounded_ns) || iy < 0) break;
+        const auto kervalue2 = ker2[yy - ystart];
+        // const auto iy      = yy + ns_2;
+        // if (iy >= (bin_size_y + (int)rounded_ns) || iy < 0) break;
         for (int xx = xstart; xx <= xend; xx++) {
-          const int ix = xx + ns_2;
-          if (ix >= (bin_size_x + (int)rounded_ns) || ix < 0) break;
-          const int outidx = iz + iy * (bin_size_x + rounded_ns) +
-                             ix * (bin_size_y + rounded_ns) * (bin_size_z + rounded_ns);
+          // const auto ix = xx + ns_2;
+          // if (ix >= (bin_size_x + (int)rounded_ns) || ix < 0) break;
+          // const auto outidx = ix + iy * (bin_size_x + rounded_ns) +
+          // iz * (bin_size_x + rounded_ns) * (bin_size_y + rounded_ns);
           const auto kervalue = ker1[xx - xstart] * kervalue2 * kervalue3;
           const cuda_complex<T> res{cnow.x * kervalue, cnow.y * kervalue};
-          atomicAddComplexShared<T>(fwshared + outidx, res);
+          span(i, xx, yy, zz).x += res.x;
+          span(i, xx, yy, zz).y += res.y;
+          // atomicAddComplexShared<T>(fwshared + outidx, res);
         }
       }
     }
