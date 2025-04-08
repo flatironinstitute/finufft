@@ -15,7 +15,6 @@ jobs:
           - [ macos-13, macosx_x86_64 ]
           - [ macos-14, macosx_arm64 ]
           - [ windows-2019, win_amd64 ]
-        python: [ "cp38", "cp39", "cp310", "cp311", "cp312", "cp313" ] # exclude pp313t for now
     steps:
       - uses: actions/checkout@v4
       - name: Install dependencies
@@ -28,7 +27,7 @@ jobs:
           # This particular install of mingw64 *is not* in the path by default
           # (another one at c:\mingw64 is, however), so we add it to the path.
           echo "c:\msys64\mingw64\bin;" >> $env:GITHUB_PATH
-      - name: Build wheels ${{ matrix.python }}-${{ matrix.buildplat[1] }}
+      - name: Build ${{ matrix.buildplat[1] }} wheels
         uses: pypa/cibuildwheel@v2.22.0
         with:
           package-dir: 'python/finufft'
@@ -42,8 +41,8 @@ jobs:
             CFLAGS="-I$(brew --prefix libomp)/include"
             LDFLAGS="-L$(brew --prefix libomp)/lib"
             MACOSX_DEPLOYMENT_TARGET=${{ matrix.buildplat[0] == 'macos-14' && '14' || '13' }}
-          CIBW_BUILD: ${{ matrix.python }}-${{ matrix.buildplat[1] }}
+          CIBW_BUILD: '*-${{ matrix.buildplat[1] }}'
       - uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.python }}-${{ matrix.buildplat[1] }}
+          name: finufft-wheels-${{ matrix.buildplat[1] }}
           path: ./wheelhouse/*.whl
