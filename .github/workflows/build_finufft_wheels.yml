@@ -4,7 +4,7 @@ on: [ push, pull_request ]
 
 jobs:
   build_wheels:
-    name: Build finufft wheels on ${{ matrix.buildplat[0] }}
+    name: Build finufft wheels on ${{ matrix.buildplat[1] }}
     runs-on: ${{ matrix.buildplat[0] }}
     strategy:
 #      fail-fast: false
