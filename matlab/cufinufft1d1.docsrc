@@ -1,0 +1,25 @@
+% CUFINUFFT1D1   GPU 1D complex nonuniform FFT, type 1 (nonuniform to uniform).
+%
+% f = cufinufft1d1(x,c,isign,eps,ms)
+% f = cufinufft1d1(x,c,isign,eps,ms,opts)
+%
+% This computes on the GPU, to relative precision eps, via a fast algorithm:
+%
+%               nj
+%     f(k1) =  SUM c[j] exp(+/-i k1 x(j))  for -ms/2 <= k1 <= (ms-1)/2
+%              j=1
+%   Inputs:
+%     x     length-nj vector of real-valued locations of nonuniform sources
+%     c     length-nj complex vector of source strengths. If numel(c)>nj,
+%           expects a stack of vectors (eg, a nj*ntrans matrix) each of which is
+%           transformed with the same source locations.
+ISIGNEPS
+%     ms    number of Fourier modes computed, may be even or odd;
+%           in either case, mode range is integers lying in [-ms/2, (ms-1)/2]
+GOPTS
+GOPTS12
+%   Outputs:
+%     f     size-ms complex column vector of Fourier coefficients, or, if
+%           ntrans>1, a matrix of size (ms,ntrans).
+%
+GNOTES

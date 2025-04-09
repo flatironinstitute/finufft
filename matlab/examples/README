@@ -1,4 +1,7 @@
-MATLAB/octave example drivers for FINUFFT.
+MATLAB/octave example drivers for FINUFFT (CPU and GPU versions)
+
+This directory contains example codes for MATLAB/Octave users of FINUFFT.
+The GPU examples are in cuda/ (these are MATLAB-only).
 
 Please also see:
 

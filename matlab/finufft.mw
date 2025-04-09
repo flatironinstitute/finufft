@@ -211,7 +211,7 @@ classdef finufft_plan < handle
       if nargin<6, t=emp; end
       if nargin<7, u=emp; end
       % get number(s) of NU pts (also validates the NU pt array sizes)...
-      [nj, nk] = valid_setpts(plan.type, plan.dim, xj, yj, zj, s, t, u);
+      [nj, nk] = valid_setpts(0, plan.type, plan.dim, xj, yj, zj, s, t, u);
       plan.nj = nj;            % save to avoid having to query the C++ plan
       plan.nk = nk;            % "
       % Force MATLAB to preserve the memory of xj/yj/zj by storing them as class
@@ -231,6 +231,11 @@ classdef finufft_plan < handle
 
     function result = execute(plan, data_in)
     % EXECUTE   execute single or many-vector FINUFFT transforms in a plan.
+
+      % check if data_in is gpuArray
+      if finufft_isgpuarray(data_in)
+        error('FINUFFT:badDataDevice','input data must be a cpuArray');
+      end
 
       % get shape info from the matlab-side plan (since can't pass "dot"
       % variables like a.b as mwrap sizes, too)...

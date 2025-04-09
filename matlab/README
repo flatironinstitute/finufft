@@ -1,9 +1,11 @@
-MATLAB/octave interfaces to FINUFFT.
+MATLAB/Octave interfaces to FINUFFT CPU, and MATLAB GPU interfaces
 
 See Contents.m for a list of commands available.
 See comments headers in *.m for usage of each command.
-See ../docs/matlab.rst for local human-readable help
+See ../docs/matlab.rst and ../docs/matlab_gpu.rst for local human-readable
+help.
 For online help see: http://finufft.readthedocs.io/en/latest/matlab.html
+And for GPU see: http://finufft.readthedocs.io/en/latest/matlab_gpu.html
 
 
 
@@ -27,19 +29,27 @@ See: https://github.com/zgimbutas/mwrap
 The simple interfaces finufft?d?.m are short wrappers to the
 finufft_plan.m object methods.
 
+As of v2.4, an analogous pattern is used for GPU, prepending names by "cu",
+and using a 2025 new release of MWrap.
+
+The @gpuArray/ folder is experimental and allows overloading of the
+finufft?d? commands to the GPU versions when their first argument is a
+gpuArray. This follows TMW style; however, since the gpuArray class is
+"closed", this may remain an experimental feature.
+
 
 * Documentation generation:
 
 The source of MATLAB documentation is *.docsrc, which are matlab comment
 blocks, plus tokens indicating insertion of the repeated text blocks *.docbit.
 This is a simple custom format.
-To generate the docs, and prepend them to all the f*.m files, run:
+To generate the docs, and prepend them to all the f*.m and cuf*.m files run:
   ./addmhelp.sh
 in which the list of tokens is defined.
-Note that the f*.m files should have no % comment block after the function
+Note that the {cu}f*.m files should have no % comment block after the function
 definitions; the script adds the help comments at the start of each m-file.
 
 Once *.m contains the updated help comments, and you have edited Contents.m
 by hand (it is not auto-generated), one should then run
   ../docs/genmatlabhelp.sh
-to update .rst web doc source.
+to update .rst web doc source (for CPU and GPU)

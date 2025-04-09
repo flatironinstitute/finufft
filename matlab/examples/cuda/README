@@ -1,0 +1,9 @@
+MATLAB GPU FINUFFT example codes. All data I/O are gpuArrays.
+
+Double-precision demos have filenames *_gpu.m
+Single-precision are *f_gpu.m
+
+Unlike the CPU codes in the above directory, these are not compatible
+with Octave.
+
+Libin Lu & Alex Barnett, March 2025.

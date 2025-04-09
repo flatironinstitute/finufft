@@ -48,12 +48,13 @@
 %  * For more details about the opts fields, see ../docs/opts.rst
 %  * See ERRHANDLER, VALID_* and FINUFFT_PLAN for possible warning/error IDs.
 %  * Full documentation is online at http://finufft.readthedocs.io
+%
+% See also FINUFFT_PLAN.
 function f = finufft2d1(x,y,c,isign,eps,ms,mt,o)
 
-if nargin<8, o.dummy=1; end
-valid_setpts(1,2,x,y,[]);
-o.floatprec=class(x);                      % should be 'double' or 'single'
+valid_setpts(false,1,2,x,y);
+o.floatprec = class(x);                      % should be 'double' or 'single'
 n_transf = valid_ntr(x,c);
 p = finufft_plan(1,[ms;mt],isign,n_transf,eps,o);
-p.setpts(x,y,[]);
+p.setpts(x,y);
 f = p.execute(c);

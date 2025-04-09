@@ -118,7 +118,7 @@ For experts only.
   convenient interface to our ``spreadinterp`` module
   (including looping over multiple vectors, if ``ntransf>1``).
 
-  .. note:: The known use-case of ``spreadinterponly=1`` is estimating so-called density compensation weights, conventionally used in MRI (see `MRI-NUFFT<https://mind-inria.github.io/mri-nufft/nufft.html>`_). It may also be useful in spectral Ewald or other scientific applications.
+  .. note:: The known use-case of ``spreadinterponly=1`` is estimating so-called density compensation weights, conventionally used in MRI (see `MRI-NUFFT <https://mind-inria.github.io/mri-nufft/nufft.html>`_). It may also be useful in spectral Ewald or other scientific applications.
 
 
 
@@ -223,7 +223,8 @@ Here ``0`` makes an automatic choice. If you are unhappy with this, then for sma
 Thread safety options (advanced)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-By default, with FFTW as the FFT library, FINUFFT is thread safe so long as no other threads are calling FFTW plan creation/destruction routines independently of FINUFFT. If these FFTW routines are called outside of FINUFFT, then the program is liable to crash. In most cases, the calling program can simply call the FFTW routine ``fftw_make_planner_thread_safe()`` before threading out and thread safety will be maintained. However, in instances where this is less desirable, we provide a means to provide your own FFTW locking mechanism. The following example code should exercise FFTW thread safety, and can be built with ``c++ thread_test.cpp -o thread_test -lfinufft -lfftw3_threads -lfftw3 -fopenmp -std=c++11``, assuming the finufft include and library paths are set.
+With DUCC0 as the FFT, there are no thread safety issues.
+However, with FFTW as the FFT library, FINUFFT is thread safe so long as no other threads are calling FFTW plan creation/destruction routines independently of FINUFFT. If these FFTW routines are called outside of FINUFFT, then the program is liable to crash. In most cases, the calling program can simply call the FFTW routine ``fftw_make_planner_thread_safe()`` before threading out and thread safety will be maintained. However, in instances where this is less desirable, we provide a means to provide your own FFTW locking mechanism. The following example code should exercise FFTW thread safety, and can be built with ``c++ thread_test.cpp -o thread_test -lfinufft -lfftw3_threads -lfftw3 -fopenmp -std=c++11``, assuming the finufft include and library paths are set.
 
 .. code-block:: C++
 

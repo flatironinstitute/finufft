@@ -8,4 +8,4 @@ __all__ = ["nufft1d1", "nufft1d2",
            "nufft3d1", "nufft3d2",
            "Plan"]
 
-__version__ = '2.4.0'
+__version__ = '2.4.0beta1'

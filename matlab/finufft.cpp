@@ -31,9 +31,9 @@
   THE SOFTWARE.
 */
 
-#include <stddef.h>
 #include <stdio.h>
 #include <string.h>
+#include <stddef.h>
 
 #include <mex.h>
 
@@ -41,10 +41,20 @@
 #include <matrix.h>
 #endif
 
+
 /*
  * Records for call profile.
  */
-int *mexprofrecord_ = NULL;
+int* mexprofrecord_= NULL;
+
+double mxWrapGetChar(const mxArray* a, const char** e)
+{
+    if (!a || mxGetClassID(a) != mxCHAR_CLASS || mxGetM(a)*mxGetN(a) != 1) {
+        *e = "Invalid char argument";
+        return 0;
+    }
+    return (char) (*mxGetChars(a));
+}
 
 /*
  * Support routines for copying data into and out of the MEX stubs, R2018a
@@ -52,421 +62,502 @@ int *mexprofrecord_ = NULL;
 
 #if MX_HAS_INTERLEAVED_COMPLEX
 
-void *mxWrapGetP(const mxArray *a, const char *fmt, const char **e) {
-  void *p = NULL;
+void* mxWrapGetP(const mxArray* a, const char* fmt, const char** e)
+{
+    void* p = NULL;
 #ifdef R2008OO
-  mxArray *ap;
+    mxArray* ap;
 #endif
-  if (mxGetClassID(a) == mxDOUBLE_CLASS && mxIsComplex(a)) {
-    if (mxGetM(a) * mxGetN(a) == 1 && (*mxGetComplexDoubles(a)).real == 0) return NULL;
-  }
-  if (mxGetClassID(a) == mxDOUBLE_CLASS && !mxIsComplex(a)) {
-    if (mxGetM(a) * mxGetN(a) == 1 && *mxGetDoubles(a) == 0) return NULL;
-  }
-  if (mxIsChar(a)) {
-    char pbuf[128];
-    mxGetString(a, pbuf, sizeof(pbuf));
-    sscanf(pbuf, fmt, &p);
-  }
+    if (mxGetClassID(a) == mxDOUBLE_CLASS && mxIsComplex(a) )
+    {
+        if( mxGetM(a)*mxGetN(a) == 1 && (*mxGetComplexDoubles(a)).real == 0 )
+        return NULL;
+    }
+    if (mxGetClassID(a) == mxDOUBLE_CLASS && !mxIsComplex(a) )
+    {
+        if( mxGetM(a)*mxGetN(a) == 1 && *mxGetDoubles(a) == 0)
+        return NULL;
+    }
+    if (mxIsChar(a)) {
+        char pbuf[128];
+        mxGetString(a, pbuf, sizeof(pbuf));
+        sscanf(pbuf, fmt, &p);
+    } 
 #ifdef R2008OO
-  else if (ap = mxGetProperty(a, 0, "mwptr")) {
-    return mxWrapGetP(ap, fmt, e);
-  }
+    else if (ap = mxGetProperty(a, 0, "mwptr")) {
+        return mxWrapGetP(ap, fmt, e);
+    }
 #endif
-  if (p == 0) *e = "Invalid pointer";
-  return p;
+    if (p == 0)
+        *e = "Invalid pointer";
+    return p;
 }
 
-mxArray *mxWrapCreateP(void *p, const char *fmt) {
-  if (p == 0) {
-    mxArray *z       = mxCreateDoubleMatrix(1, 1, mxREAL);
-    *mxGetDoubles(z) = 0;
-    return z;
-  } else {
-    char pbuf[128];
-    sprintf(pbuf, fmt, p);
-    return mxCreateString(pbuf);
-  }
+mxArray* mxWrapCreateP(void* p, const char* fmt)
+{
+    if (p == 0) {
+        mxArray* z = mxCreateDoubleMatrix(1,1, mxREAL);
+        *mxGetDoubles(z) = 0;
+        return z;
+    } else {
+        char pbuf[128];
+        sprintf(pbuf, fmt, p);
+        return mxCreateString(pbuf);
+    }
 }
 
-mxArray *mxWrapStrncpy(const char *s) {
-  if (s) {
-    return mxCreateString(s);
-  } else {
-    mxArray *z       = mxCreateDoubleMatrix(1, 1, mxREAL);
-    *mxGetDoubles(z) = 0;
-    return z;
-  }
+mxArray* mxWrapStrncpy(const char* s)
+{
+    if (s) {
+        return mxCreateString(s);
+    } else {
+        mxArray* z = mxCreateDoubleMatrix(1,1, mxREAL);
+        *mxGetDoubles(z) = 0;
+        return z;
+    }
 }
 
-char *mxWrapGetString(const mxArray *a, const char **e) {
-  char *s;
-  mwSize slen;
-  if (!a || (!mxIsChar(a) && mxGetM(a) * mxGetN(a) > 0)) {
-    *e = "Invalid string argument";
-    return NULL;
-  }
-  slen = mxGetM(a) * mxGetN(a) + 1;
-  s    = (char *)mxMalloc(slen);
-  if (mxGetM(a) * mxGetN(a) == 0)
-    *s = 0;
-  else
-    mxGetString(a, s, slen);
-  return s;
+char* mxWrapGetString(const mxArray* a, const char** e)
+{
+    char* s;
+    mwSize slen;
+    if (!a || (!mxIsChar(a) && mxGetM(a)*mxGetN(a) > 0)) {
+        *e = "Invalid string argument";
+        return NULL;
+    }
+    slen = mxGetM(a)*mxGetN(a) + 1;
+    s = (char*) mxMalloc(slen);
+    if (mxGetM(a)*mxGetN(a) == 0)
+        *s = 0;
+    else
+        mxGetString(a, s, slen);
+    return s;
 }
 
-double mxWrapGetScalar(const mxArray *a, const char **e) {
-  if (!a || mxGetClassID(a) != mxDOUBLE_CLASS || mxGetM(a) * mxGetN(a) != 1) {
-    *e = "Invalid scalar argument";
-    return 0;
-  }
-  if (mxIsComplex(a))
-    return (double)(*mxGetComplexDoubles(a)).real;
-  else
-    return (double)(*mxGetDoubles(a));
+
+double mxWrapGetScalar(const mxArray* a, const char** e)
+{
+    if (!a || mxGetClassID(a) != mxDOUBLE_CLASS || mxGetM(a)*mxGetN(a) != 1) {
+        *e = "Invalid scalar argument";
+        return 0;
+    }
+    if( mxIsComplex(a) )
+      return (double) (*mxGetComplexDoubles(a)).real;
+    else
+      return (double) (*mxGetDoubles(a));
 }
 
-#define mxWrapGetArrayDef(func, T)                               \
-  T *func(const mxArray *a, const char **e) {                    \
-    T *array;                                                    \
-    mwSize arraylen;                                             \
-    mwIndex i;                                                   \
-    T *p;                                                        \
-    double *q;                                                   \
-    mxComplexDouble *z;                                          \
-    if (!a || mxGetClassID(a) != mxDOUBLE_CLASS) {               \
-      *e = "Invalid array argument, mxDOUBLE_CLASS expected";    \
-      return 0;                                                  \
-    }                                                            \
-    arraylen = mxGetM(a) * mxGetN(a);                            \
-    array    = (T *)mxMalloc(mxGetM(a) * mxGetN(a) * sizeof(T)); \
-    p        = array;                                            \
-    if (mxIsComplex(a)) {                                        \
-      z = mxGetComplexDoubles(a);                                \
-      for (i = 0; i < arraylen; ++i) *p++ = (T)(*z++).real;      \
-    } else {                                                     \
-      q = mxGetDoubles(a);                                       \
-      for (i = 0; i < arraylen; ++i) *p++ = (T)(*q++);           \
-    }                                                            \
-    return array;                                                \
-  }
+#define mxWrapGetArrayDef(func, T) \
+T* func(const mxArray* a, const char** e)     \
+{ \
+    T* array; \
+    mwSize arraylen; \
+    mwIndex i; \
+    T* p; \
+    double* q; \
+    mxComplexDouble* z; \
+    if (!a || mxGetClassID(a) != mxDOUBLE_CLASS) { \
+        *e = "Invalid array argument, mxDOUBLE_CLASS expected"; \
+        return 0; \
+    } \
+    arraylen = mxGetM(a)*mxGetN(a); \
+    array = (T*) mxMalloc(mxGetM(a)*mxGetN(a) * sizeof(T)); \
+    p = array; \
+    if( mxIsComplex(a) ) \
+      { \
+	z = mxGetComplexDoubles(a);	   \
+	for (i = 0; i < arraylen; ++i)		\
+	  *p++ = (T) (*z++).real;			\
+      } \
+    else \
+      {				   \
+	q = mxGetDoubles(a);	   \
+	for (i = 0; i < arraylen; ++i)		\
+	  *p++ = (T) (*q++);			\
+      } \
+    return array; \
+}
 
-#define mxWrapCopyDef(func, T)                            \
-  void func(mxArray *a, const T *q, mwSize n) {           \
-    mwIndex i;                                            \
-    double *p;                                            \
-    mxComplexDouble *z;                                   \
-    if (mxIsComplex(a)) {                                 \
-      z = mxGetComplexDoubles(a);                         \
-      for (i = 0; i < n; ++i) (*z++).real = (double)*q++; \
-      (*z++).imag = 0;                                    \
-    } else {                                              \
-      p = mxGetDoubles(a);                                \
-      for (i = 0; i < n; ++i) *p++ = (double)*q++;        \
-    }                                                     \
-  }
 
-#define mxWrapReturnDef(func, T)                       \
-  mxArray *func(const T *q, mwSize m, mwSize n) {      \
-    mwIndex i;                                         \
-    double *p;                                         \
-    if (!q) {                                          \
-      return mxCreateDoubleMatrix(0, 0, mxREAL);       \
-    } else {                                           \
-      mxArray *a = mxCreateDoubleMatrix(m, n, mxREAL); \
-      p          = mxGetDoubles(a);                    \
-      for (i = 0; i < m * n; ++i) *p++ = (double)*q++; \
-      return a;                                        \
-    }                                                  \
-  }
+#define mxWrapCopyDef(func, T) \
+void func(mxArray* a, const T* q, mwSize n) \
+{ \
+    mwIndex i; \
+    double* p;	\
+    mxComplexDouble* z; \
+    if( mxIsComplex(a) ) \
+      { \
+	z = mxGetComplexDoubles(a);	   \
+	for (i = 0; i < n; ++i)		\
+	  (*z++).real = (double) *q++;	\
+	  (*z++).imag = 0;	\
+      } \
+    else \
+      {				   \
+	p = mxGetDoubles(a);	   \
+	for (i = 0; i < n; ++i)		\
+	  *p++ = (double) *q++;		\
+      } \
+}
 
-#define mxWrapGetScalarZDef(func, T, ZT, setz)                                         \
-  void func(T *z, const mxArray *a) {                                                  \
-    if (mxIsComplex(a)) {                                                              \
-      setz(z, (ZT)(*mxGetComplexDoubles(a)).real, (ZT)(*mxGetComplexDoubles(a)).imag); \
-    } else {                                                                           \
-      setz(z, (ZT)(*mxGetComplexDoubles(a)).real, (ZT)0);                              \
-    }                                                                                  \
-  }
 
-#define mxWrapGetArrayZDef(func, T, ZT, setz)                    \
-  T *func(const mxArray *a, const char **e) {                    \
-    T *array;                                                    \
-    mwSize arraylen;                                             \
-    mwIndex i;                                                   \
-    T *p;                                                        \
-    double *q;                                                   \
-    mxComplexDouble *z;                                          \
-    if (!a || mxGetClassID(a) != mxDOUBLE_CLASS) {               \
-      *e = "Invalid array argument, mxDOUBLE_CLASS expected";    \
-      return 0;                                                  \
-    }                                                            \
-    arraylen = mxGetM(a) * mxGetN(a);                            \
-    array    = (T *)mxMalloc(mxGetM(a) * mxGetN(a) * sizeof(T)); \
-    p        = array;                                            \
-    if (mxIsComplex(a)) {                                        \
-      z = mxGetComplexDoubles(a);                                \
-      for (i = 0; i < arraylen; ++i) {                           \
-        setz(p, (ZT)(*z).real, (ZT)(*z).imag);                   \
-        ++p;                                                     \
-        ++z;                                                     \
-      }                                                          \
-    } else {                                                     \
-      q = mxGetDoubles(a);                                       \
-      for (i = 0; i < arraylen; ++i) {                           \
-        setz(p, (ZT)(*q), (ZT)0);                                \
-        ++p;                                                     \
-        ++q;                                                     \
-      }                                                          \
-    }                                                            \
-    return array;                                                \
-  }
+#define mxWrapReturnDef(func, T) \
+mxArray* func(const T* q, mwSize m, mwSize n) \
+{ \
+    mwIndex i; \
+    double* p; \
+    if (!q) { \
+        return mxCreateDoubleMatrix(0,0, mxREAL); \
+    } else { \
+        mxArray* a = mxCreateDoubleMatrix(m,n, mxREAL); \
+        p = mxGetDoubles(a); \
+        for (i = 0; i < m*n; ++i) \
+	  *p++ = (double) *q++;	  \
+        return a; \
+    } \
+}
 
-#define mxWrapCopyZDef(func, T, freal, fimag)     \
-  void func(mxArray *a, const T *q, mwSize n) {   \
-    mwIndex i;                                    \
-    double *p;                                    \
-    mxComplexDouble *z;                           \
-    if (mxIsComplex(a)) {                         \
-      z = mxGetComplexDoubles(a);                 \
-      for (i = 0; i < n; ++i) {                   \
-        (*z).real = freal(*q);                    \
-        (*z).imag = fimag(*q);                    \
-        ++z;                                      \
-        ++q;                                      \
-      }                                           \
-    } else {                                      \
-      p = mxGetDoubles(a);                        \
-      for (i = 0; i < n; ++i) *p++ = freal(*q++); \
-    }                                             \
-  }
 
-#define mxWrapReturnZDef(func, T, freal, fimag)           \
-  mxArray *func(const T *q, mwSize m, mwSize n) {         \
-    mwIndex i;                                            \
-    mxComplexDouble *p;                                   \
-    if (!q) {                                             \
-      return mxCreateDoubleMatrix(0, 0, mxCOMPLEX);       \
-    } else {                                              \
-      mxArray *a = mxCreateDoubleMatrix(m, n, mxCOMPLEX); \
-      p          = mxGetComplexDoubles(a);                \
-      for (i = 0; i < m * n; ++i) {                       \
-        (*p).real = freal(*q);                            \
-        (*p).imag = fimag(*q);                            \
-        ++p;                                              \
-        ++q;                                              \
-      }                                                   \
-      return a;                                           \
-    }                                                     \
-  }
+#define mxWrapGetScalarZDef(func, T, ZT, setz)	\
+void func(T* z, const mxArray* a) \
+{ \
+    if( mxIsComplex(a) ) \
+      { \
+  setz(z, (ZT) (*mxGetComplexDoubles(a)).real, (ZT) (*mxGetComplexDoubles(a)).imag); \
+      } \
+    else \
+      {				   \
+  setz(z, (ZT) (*mxGetComplexDoubles(a)).real, (ZT) 0);	\
+      } \
+}
 
-void *mxWrapGetP_single(const mxArray *a, const char *fmt, const char **e) {
-  void *p = NULL;
+
+#define mxWrapGetArrayZDef(func, T, ZT, setz)      \
+T* func(const mxArray* a, const char** e)     \
+{ \
+    T* array; \
+    mwSize arraylen; \
+    mwIndex i; \
+    T* p; \
+    double* q; \
+    mxComplexDouble* z; \
+    if (!a || mxGetClassID(a) != mxDOUBLE_CLASS) { \
+        *e = "Invalid array argument, mxDOUBLE_CLASS expected"; \
+        return 0; \
+    } \
+    arraylen = mxGetM(a)*mxGetN(a); \
+    array = (T*) mxMalloc(mxGetM(a)*mxGetN(a) * sizeof(T)); \
+    p = array; \
+    if( mxIsComplex(a) ) \
+      { \
+	z = mxGetComplexDoubles(a);	   \
+	for (i = 0; i < arraylen; ++i) {	\
+	  setz(p, (ZT) (*z).real, (ZT) (*z).imag);	\
+  	  ++p; ++z; }					\
+      } \
+    else \
+      {				   \
+	q = mxGetDoubles(a);	   \
+	for (i = 0; i < arraylen; ++i)	{	\
+	  setz(p, (ZT) (*q), (ZT) 0 );		\
+          ++p; ++q; }			\
+      }						\
+    return array; \
+}
+
+
+#define mxWrapCopyZDef(func, T, freal, fimag)	    \
+void func(mxArray* a, const T* q, mwSize n) \
+{ \
+    mwIndex i; \
+    double* p;	\
+    mxComplexDouble* z; \
+    if( mxIsComplex(a) ) \
+      { \
+	z = mxGetComplexDoubles(a);	   \
+	for (i = 0; i < n; ++i)	{		\
+          (*z).real = freal(*q);			\
+	  (*z).imag = fimag(*q);			\
+	  ++z; ++q; 	}			\
+      } \
+    else \
+      {				   \
+	p = mxGetDoubles(a);	   \
+	for (i = 0; i < n; ++i)		\
+	  *p++ = freal(*q++);		\
+      } \
+}
+
+
+#define mxWrapReturnZDef(func, T, freal, fimag)	      \
+mxArray* func(const T* q, mwSize m, mwSize n) \
+{ \
+    mwIndex i; \
+    mxComplexDouble* p; \
+    if (!q) { \
+        return mxCreateDoubleMatrix(0,0, mxCOMPLEX); \
+    } else { \
+        mxArray* a = mxCreateDoubleMatrix(m,n, mxCOMPLEX); \
+        p = mxGetComplexDoubles(a); \
+        for (i = 0; i < m*n; ++i) {	  \
+          (*p).real = freal(*q);			\
+	  (*p).imag = fimag(*q);			\
+	  ++p; ++q; 	}			\
+        return a; \
+    } \
+}
+
+
+
+
+
+
+void* mxWrapGetP_single(const mxArray* a, const char* fmt, const char** e)
+{
+    void* p = NULL;
 #ifdef R2008OO
-  mxArray *ap;
+    mxArray* ap;
 #endif
-  if (mxGetClassID(a) == mxSINGLE_CLASS && mxIsComplex(a)) {
-    if (mxGetM(a) * mxGetN(a) == 1 && (*mxGetComplexSingles(a)).real == 0) return NULL;
-  }
-  if (mxGetClassID(a) == mxSINGLE_CLASS && !mxIsComplex(a)) {
-    if (mxGetM(a) * mxGetN(a) == 1 && *mxGetSingles(a) == 0) return NULL;
-  }
-  if (mxIsChar(a)) {
-    char pbuf[128];
-    mxGetString(a, pbuf, sizeof(pbuf));
-    sscanf(pbuf, fmt, &p);
-  }
+    if (mxGetClassID(a) == mxSINGLE_CLASS && mxIsComplex(a) )
+    {
+        if( mxGetM(a)*mxGetN(a) == 1 && (*mxGetComplexSingles(a)).real == 0 )
+        return NULL;
+    }
+    if (mxGetClassID(a) == mxSINGLE_CLASS && !mxIsComplex(a) )
+    {
+        if( mxGetM(a)*mxGetN(a) == 1 && *mxGetSingles(a) == 0)
+        return NULL;
+    }
+    if (mxIsChar(a)) {
+        char pbuf[128];
+        mxGetString(a, pbuf, sizeof(pbuf));
+        sscanf(pbuf, fmt, &p);
+    } 
 #ifdef R2008OO
-  else if (ap = mxGetProperty(a, 0, "mwptr")) {
-    return mxWrapGetP(ap, fmt, e);
-  }
+    else if (ap = mxGetProperty(a, 0, "mwptr")) {
+        return mxWrapGetP(ap, fmt, e);
+    }
 #endif
-  if (p == 0) *e = "Invalid pointer";
-  return p;
+    if (p == 0)
+        *e = "Invalid pointer";
+    return p;
 }
 
-mxArray *mxWrapCreateP_single(void *p, const char *fmt) {
-  if (p == 0) {
-    mxArray *z       = mxCreateNumericMatrix(1, 1, mxSINGLE_CLASS, mxREAL);
-    *mxGetSingles(z) = 0;
-    return z;
-  } else {
-    char pbuf[128];
-    sprintf(pbuf, fmt, p);
-    return mxCreateString(pbuf);
-  }
+mxArray* mxWrapCreateP_single(void* p, const char* fmt)
+{
+    if (p == 0) {
+        mxArray* z = mxCreateNumericMatrix(1,1, mxSINGLE_CLASS, mxREAL);
+        *mxGetSingles(z) = 0;
+        return z;
+    } else {
+        char pbuf[128];
+        sprintf(pbuf, fmt, p);
+        return mxCreateString(pbuf);
+    }
 }
 
-mxArray *mxWrapStrncpy_single(const char *s) {
-  if (s) {
-    return mxCreateString(s);
-  } else {
-    mxArray *z       = mxCreateNumericMatrix(1, 1, mxSINGLE_CLASS, mxREAL);
-    *mxGetSingles(z) = 0;
-    return z;
-  }
+mxArray* mxWrapStrncpy_single(const char* s)
+{
+    if (s) {
+        return mxCreateString(s);
+    } else {
+        mxArray* z = mxCreateNumericMatrix(1,1, mxSINGLE_CLASS, mxREAL);
+        *mxGetSingles(z) = 0;
+        return z;
+    }
 }
 
-char *mxWrapGetString_single(const mxArray *a, const char **e) {
-  char *s;
-  mwSize slen;
-  if (!a || (!mxIsChar(a) && mxGetM(a) * mxGetN(a) > 0)) {
-    *e = "Invalid string argument";
-    return NULL;
-  }
-  slen = mxGetM(a) * mxGetN(a) + 1;
-  s    = (char *)mxMalloc(slen);
-  if (mxGetM(a) * mxGetN(a) == 0)
-    *s = 0;
-  else
-    mxGetString(a, s, slen);
-  return s;
+float mxWrapGetScalar_single(const mxArray* a, const char** e)
+{
+    if (!a || mxGetClassID(a) != mxSINGLE_CLASS || mxGetM(a)*mxGetN(a) != 1) {
+        *e = "Invalid scalar argument";
+        return 0;
+    }
+    if( mxIsComplex(a) )
+      return (float) (*mxGetComplexSingles(a)).real;
+    else
+      return (float) (*mxGetSingles(a));
 }
 
-float mxWrapGetScalar_single(const mxArray *a, const char **e) {
-  if (!a || mxGetClassID(a) != mxSINGLE_CLASS || mxGetM(a) * mxGetN(a) != 1) {
-    *e = "Invalid scalar argument";
-    return 0;
-  }
-  if (mxIsComplex(a))
-    return (float)(*mxGetComplexSingles(a)).real;
-  else
-    return (float)(*mxGetSingles(a));
+
+char* mxWrapGetString_single(const mxArray* a, const char** e)
+{
+    char* s;
+    mwSize slen;
+    if (!a || (!mxIsChar(a) && mxGetM(a)*mxGetN(a) > 0)) {
+        *e = "Invalid string argument";
+        return NULL;
+    }
+    slen = mxGetM(a)*mxGetN(a) + 1;
+    s = (char*) mxMalloc(slen);
+    if (mxGetM(a)*mxGetN(a) == 0)
+        *s = 0;
+    else
+        mxGetString(a, s, slen);
+    return s;
 }
 
-#define mxWrapGetArrayDef_single(func, T)                        \
-  T *func(const mxArray *a, const char **e) {                    \
-    T *array;                                                    \
-    mwSize arraylen;                                             \
-    mwIndex i;                                                   \
-    T *p;                                                        \
-    float *q;                                                    \
-    mxComplexSingle *z;                                          \
-    if (!a || mxGetClassID(a) != mxSINGLE_CLASS) {               \
-      *e = "Invalid array argument, mxSINGLE_CLASS expected";    \
-      return 0;                                                  \
-    }                                                            \
-    arraylen = mxGetM(a) * mxGetN(a);                            \
-    array    = (T *)mxMalloc(mxGetM(a) * mxGetN(a) * sizeof(T)); \
-    p        = array;                                            \
-    if (mxIsComplex(a)) {                                        \
-      z = mxGetComplexSingles(a);                                \
-      for (i = 0; i < arraylen; ++i) *p++ = (T)(*z++).real;      \
-    } else {                                                     \
-      q = mxGetSingles(a);                                       \
-      for (i = 0; i < arraylen; ++i) *p++ = (T)(*q++);           \
-    }                                                            \
-    return array;                                                \
-  }
+#define mxWrapGetArrayDef_single(func, T) \
+T* func(const mxArray* a, const char** e)     \
+{ \
+    T* array; \
+    mwSize arraylen; \
+    mwIndex i; \
+    T* p; \
+    float* q; \
+    mxComplexSingle* z; \
+    if (!a || mxGetClassID(a) != mxSINGLE_CLASS) { \
+        *e = "Invalid array argument, mxSINGLE_CLASS expected"; \
+        return 0; \
+    } \
+    arraylen = mxGetM(a)*mxGetN(a); \
+    array = (T*) mxMalloc(mxGetM(a)*mxGetN(a) * sizeof(T)); \
+    p = array; \
+    if( mxIsComplex(a) ) \
+      { \
+	z = mxGetComplexSingles(a);	   \
+	for (i = 0; i < arraylen; ++i)		\
+	  *p++ = (T) (*z++).real;			\
+      } \
+    else \
+      {				   \
+	q = mxGetSingles(a);	   \
+	for (i = 0; i < arraylen; ++i)		\
+	  *p++ = (T) (*q++);			\
+      } \
+    return array; \
+}
 
-#define mxWrapCopyDef_single(func, T)                    \
-  void func(mxArray *a, const T *q, mwSize n) {          \
-    mwIndex i;                                           \
-    float *p;                                            \
-    mxComplexSingle *z;                                  \
-    if (mxIsComplex(a)) {                                \
-      z = mxGetComplexSingles(a);                        \
-      for (i = 0; i < n; ++i) (*z++).real = (float)*q++; \
-      (*z++).imag = 0;                                   \
-    } else {                                             \
-      p = mxGetSingles(a);                               \
-      for (i = 0; i < n; ++i) *p++ = (float)*q++;        \
-    }                                                    \
-  }
 
-#define mxWrapReturnDef_single(func, T)                                 \
-  mxArray *func(const T *q, mwSize m, mwSize n) {                       \
-    mwIndex i;                                                          \
-    float *p;                                                           \
-    if (!q) {                                                           \
-      return mxCreateNumericMatrix(0, 0, mxSINGLE_CLASS, mxREAL);       \
-    } else {                                                            \
-      mxArray *a = mxCreateNumericMatrix(m, n, mxSINGLE_CLASS, mxREAL); \
-      p          = mxGetSingles(a);                                     \
-      for (i = 0; i < m * n; ++i) *p++ = (float)*q++;                   \
-      return a;                                                         \
-    }                                                                   \
-  }
+#define mxWrapCopyDef_single(func, T) \
+void func(mxArray* a, const T* q, mwSize n) \
+{ \
+    mwIndex i; \
+    float* p;	\
+    mxComplexSingle* z; \
+    if( mxIsComplex(a) ) \
+      { \
+	z = mxGetComplexSingles(a);	   \
+	for (i = 0; i < n; ++i)		\
+	  (*z++).real = (float) *q++;	\
+	  (*z++).imag = 0;	\
+      } \
+    else \
+      {				   \
+	p = mxGetSingles(a);	   \
+	for (i = 0; i < n; ++i)		\
+	  *p++ = (float) *q++;		\
+      } \
+}
 
-#define mxWrapGetScalarZDef_single(func, T, ZT, setz)                                  \
-  void func(T *z, const mxArray *a) {                                                  \
-    if (mxIsComplex(a)) {                                                              \
-      setz(z, (ZT)(*mxGetComplexSingles(a)).real, (ZT)(*mxGetComplexSingles(a)).imag); \
-    } else {                                                                           \
-      setz(z, (ZT)(*mxGetComplexSingles(a)).real, (ZT)0);                              \
-    }                                                                                  \
-  }
 
-#define mxWrapGetArrayZDef_single(func, T, ZT, setz)             \
-  T *func(const mxArray *a, const char **e) {                    \
-    T *array;                                                    \
-    mwSize arraylen;                                             \
-    mwIndex i;                                                   \
-    T *p;                                                        \
-    float *q;                                                    \
-    mxComplexSingle *z;                                          \
-    if (!a || mxGetClassID(a) != mxSINGLE_CLASS) {               \
-      *e = "Invalid array argument, mxSINGLE_CLASS expected";    \
-      return 0;                                                  \
-    }                                                            \
-    arraylen = mxGetM(a) * mxGetN(a);                            \
-    array    = (T *)mxMalloc(mxGetM(a) * mxGetN(a) * sizeof(T)); \
-    p        = array;                                            \
-    if (mxIsComplex(a)) {                                        \
-      z = mxGetComplexSingles(a);                                \
-      for (i = 0; i < arraylen; ++i) {                           \
-        setz(p, (ZT)(*z).real, (ZT)(*z).imag);                   \
-        ++p;                                                     \
-        ++z;                                                     \
-      }                                                          \
-    } else {                                                     \
-      q = mxGetSingles(a);                                       \
-      for (i = 0; i < arraylen; ++i) {                           \
-        setz(p, (ZT)(*q), (ZT)0);                                \
-        ++p;                                                     \
-        ++q;                                                     \
-      }                                                          \
-    }                                                            \
-    return array;                                                \
-  }
+#define mxWrapReturnDef_single(func, T) \
+mxArray* func(const T* q, mwSize m, mwSize n) \
+{ \
+    mwIndex i; \
+    float* p; \
+    if (!q) { \
+        return mxCreateNumericMatrix(0,0, mxSINGLE_CLASS, mxREAL); \
+    } else { \
+        mxArray* a = mxCreateNumericMatrix(m,n, mxSINGLE_CLASS, mxREAL); \
+        p = mxGetSingles(a); \
+        for (i = 0; i < m*n; ++i) \
+	  *p++ = (float) *q++;	  \
+        return a; \
+    } \
+}
 
-#define mxWrapCopyZDef_single(func, T, freal, fimag) \
-  void func(mxArray *a, const T *q, mwSize n) {      \
-    mwIndex i;                                       \
-    float *p;                                        \
-    mxComplexSingle *z;                              \
-    if (mxIsComplex(a)) {                            \
-      z = mxGetComplexSingles(a);                    \
-      for (i = 0; i < n; ++i) {                      \
-        (*z).real = freal(*q);                       \
-        (*z).imag = fimag(*q);                       \
-        ++z;                                         \
-        ++q;                                         \
-      }                                              \
-    } else {                                         \
-      p = mxGetSingles(a);                           \
-      for (i = 0; i < n; ++i) *p++ = freal(*q++);    \
-    }                                                \
-  }
 
-#define mxWrapReturnZDef_single(func, T, freal, fimag)                     \
-  mxArray *func(const T *q, mwSize m, mwSize n) {                          \
-    mwIndex i;                                                             \
-    mxComplexSingle *p;                                                    \
-    if (!q) {                                                              \
-      return mxCreateNumericMatrix(0, 0, mxSINGLE_CLASS, mxCOMPLEX);       \
-    } else {                                                               \
-      mxArray *a = mxCreateNumericMatrix(m, n, mxSINGLE_CLASS, mxCOMPLEX); \
-      p          = mxGetComplexSingles(a);                                 \
-      for (i = 0; i < m * n; ++i) {                                        \
-        (*p).real = freal(*q);                                             \
-        (*p).imag = fimag(*q);                                             \
-        ++p;                                                               \
-        ++q;                                                               \
-      }                                                                    \
-      return a;                                                            \
-    }                                                                      \
-  }
+#define mxWrapGetScalarZDef_single(func, T, ZT, setz)	\
+void func(T* z, const mxArray* a) \
+{ \
+    if( mxIsComplex(a) ) \
+      { \
+  setz(z, (ZT) (*mxGetComplexSingles(a)).real, (ZT) (*mxGetComplexSingles(a)).imag); \
+      } \
+    else \
+      {				   \
+  setz(z, (ZT) (*mxGetComplexSingles(a)).real, (ZT) 0);	\
+      } \
+}
+
+
+#define mxWrapGetArrayZDef_single(func, T, ZT, setz)      \
+T* func(const mxArray* a, const char** e)     \
+{ \
+    T* array; \
+    mwSize arraylen; \
+    mwIndex i; \
+    T* p; \
+    float* q; \
+    mxComplexSingle* z; \
+    if (!a || mxGetClassID(a) != mxSINGLE_CLASS) { \
+        *e = "Invalid array argument, mxSINGLE_CLASS expected"; \
+        return 0; \
+    } \
+    arraylen = mxGetM(a)*mxGetN(a); \
+    array = (T*) mxMalloc(mxGetM(a)*mxGetN(a) * sizeof(T)); \
+    p = array; \
+    if( mxIsComplex(a) ) \
+      { \
+	z = mxGetComplexSingles(a);	   \
+	for (i = 0; i < arraylen; ++i) {	\
+	  setz(p, (ZT) (*z).real, (ZT) (*z).imag);	\
+  	  ++p; ++z; }					\
+      } \
+    else \
+      {				   \
+	q = mxGetSingles(a);	   \
+	for (i = 0; i < arraylen; ++i)	{	\
+	  setz(p, (ZT) (*q), (ZT) 0 );		\
+          ++p; ++q; }			\
+      }						\
+    return array; \
+}
+
+
+#define mxWrapCopyZDef_single(func, T, freal, fimag)	    \
+void func(mxArray* a, const T* q, mwSize n) \
+{ \
+    mwIndex i; \
+    float* p;	\
+    mxComplexSingle* z; \
+    if( mxIsComplex(a) ) \
+      { \
+	z = mxGetComplexSingles(a);	   \
+	for (i = 0; i < n; ++i)	{		\
+          (*z).real = freal(*q);			\
+	  (*z).imag = fimag(*q);			\
+	  ++z; ++q; 	}			\
+      } \
+    else \
+      {				   \
+	p = mxGetSingles(a);	   \
+	for (i = 0; i < n; ++i)		\
+	  *p++ = freal(*q++);		\
+      } \
+}
+
+
+#define mxWrapReturnZDef_single(func, T, freal, fimag)	      \
+mxArray* func(const T* q, mwSize m, mwSize n) \
+{ \
+    mwIndex i; \
+    mxComplexSingle* p; \
+    if (!q) { \
+        return mxCreateNumericMatrix(0,0, mxSINGLE_CLASS, mxCOMPLEX); \
+    } else { \
+        mxArray* a = mxCreateNumericMatrix(m,n, mxSINGLE_CLASS, mxCOMPLEX); \
+        p = mxGetComplexSingles(a); \
+        for (i = 0; i < m*n; ++i) {	  \
+          (*p).real = freal(*q);			\
+	  (*p).imag = fimag(*q);			\
+	  ++p; ++q; 	}			\
+        return a; \
+    } \
+}
+
+
 
 #else
 
@@ -474,1535 +565,1858 @@ float mxWrapGetScalar_single(const mxArray *a, const char **e) {
  * Support routines for copying data into and out of the MEX stubs, -R2017b
  */
 
-void *mxWrapGetP(const mxArray *a, const char *fmt, const char **e) {
-  void *p = 0;
+void* mxWrapGetP(const mxArray* a, const char* fmt, const char** e)
+{
+    void* p = 0;
 #ifdef R2008OO
-  mxArray *ap;
+    mxArray* ap;
 #endif
-  if (mxGetClassID(a) == mxDOUBLE_CLASS && mxGetM(a) * mxGetN(a) == 1 && *mxGetPr(a) == 0)
+    if (mxGetClassID(a) == mxDOUBLE_CLASS && 
+        mxGetM(a)*mxGetN(a) == 1 && *mxGetPr(a) == 0)
+        return p;
+    if (mxIsChar(a)) {
+        char pbuf[128];
+        mxGetString(a, pbuf, sizeof(pbuf));
+        sscanf(pbuf, fmt, &p);
+    } 
+#ifdef R2008OO
+    else if (ap = mxGetProperty(a, 0, "mwptr")) {
+        return mxWrapGetP(ap, fmt, e);
+    }
+#endif
+    if (p == 0)
+        *e = "Invalid pointer";
     return p;
-  if (mxIsChar(a)) {
-    char pbuf[128];
-    mxGetString(a, pbuf, sizeof(pbuf));
-    sscanf(pbuf, fmt, &p);
-  }
+}
+
+mxArray* mxWrapCreateP(void* p, const char* fmt)
+{
+    if (p == 0) {
+        mxArray* z = mxCreateDoubleMatrix(1,1, mxREAL);
+        *mxGetPr(z) = 0;
+        return z;
+    } else {
+        char pbuf[128];
+        sprintf(pbuf, fmt, p);
+        return mxCreateString(pbuf);
+    }
+}
+
+mxArray* mxWrapStrncpy(const char* s)
+{
+    if (s) {
+        return mxCreateString(s);
+    } else {
+        mxArray* z = mxCreateDoubleMatrix(1,1, mxREAL);
+        *mxGetPr(z) = 0;
+        return z;
+    }
+}
+
+double mxWrapGetScalar(const mxArray* a, const char** e)
+{
+    if (!a || mxGetClassID(a) != mxDOUBLE_CLASS || mxGetM(a)*mxGetN(a) != 1) {
+        *e = "Invalid scalar argument";
+        return 0;
+    }
+    return *mxGetPr(a);
+}
+
+char* mxWrapGetString(const mxArray* a, const char** e)
+{
+    char* s;
+    mwSize slen;
+    if (!a || (!mxIsChar(a) && mxGetM(a)*mxGetN(a) > 0)) {
+        *e = "Invalid string argument";
+        return NULL;
+    }
+    slen = mxGetM(a)*mxGetN(a) + 1;
+    s = (char*) mxMalloc(slen);
+    if (mxGetM(a)*mxGetN(a) == 0)
+        *s = 0;
+    else
+        mxGetString(a, s, slen);
+    return s;
+}
+
+
+#define mxWrapGetArrayDef(func, T) \
+T* func(const mxArray* a, const char** e)     \
+{ \
+    T* array; \
+    mwSize arraylen; \
+    mwIndex i; \
+    T* p; \
+    double* q; \
+    if (!a || mxGetClassID(a) != mxDOUBLE_CLASS) { \
+        *e = "Invalid array argument, mxDOUBLE_CLASS expected"; \
+        return 0; \
+    } \
+    arraylen = mxGetM(a)*mxGetN(a); \
+    array = (T*) mxMalloc(mxGetM(a)*mxGetN(a) * sizeof(T)); \
+    p = array; \
+    q = mxGetPr(a); \
+    for (i = 0; i < arraylen; ++i) \
+        *p++ = (T) (*q++); \
+    return array; \
+}
+
+
+#define mxWrapCopyDef(func, T) \
+void func(mxArray* a, const T* q, mwSize n) \
+{ \
+    mwIndex i; \
+    double* p = mxGetPr(a); \
+    for (i = 0; i < n; ++i) \
+        *p++ = *q++; \
+}
+
+
+#define mxWrapReturnDef(func, T) \
+mxArray* func(const T* q, mwSize m, mwSize n) \
+{ \
+    mwIndex i; \
+    double* p; \
+    if (!q) { \
+        return mxCreateDoubleMatrix(0,0, mxREAL); \
+    } else { \
+        mxArray* a = mxCreateDoubleMatrix(m,n, mxREAL); \
+        p = mxGetPr(a); \
+        for (i = 0; i < m*n; ++i) \
+            *p++ = *q++; \
+        return a; \
+    } \
+}
+
+
+#define mxWrapGetScalarZDef(func, T, ZT, setz) \
+void func(T* z, const mxArray* a) \
+{ \
+    double* pr = mxGetPr(a); \
+    double* pi = mxGetPi(a); \
+    setz(z, (ZT) *pr, (pi ? (ZT) *pi : (ZT) 0)); \
+}
+
+
+#define mxWrapGetArrayZDef(func, T, ZT, setz) \
+T* func(const mxArray* a, const char** e) \
+{ \
+    T* array; \
+    mwSize arraylen; \
+    mwIndex i; \
+    T* p; \
+    double* qr; \
+    double* qi; \
+    if (!a || mxGetClassID(a) != mxDOUBLE_CLASS) { \
+        *e = "Invalid array argument, mxDOUBLE_CLASS expected"; \
+        return 0; \
+    } \
+    arraylen = mxGetM(a)*mxGetN(a); \
+    array = (T*) mxMalloc(mxGetM(a)*mxGetN(a) * sizeof(T)); \
+    p = array; \
+    qr = mxGetPr(a); \
+    qi = mxGetPi(a); \
+    for (i = 0; i < arraylen; ++i) { \
+        ZT val_qr = *qr++; \
+        ZT val_qi = (qi ? (ZT) *qi++ : (ZT) 0); \
+        setz(p, val_qr, val_qi); \
+        ++p; \
+    } \
+    return array; \
+}
+
+
+#define mxWrapCopyZDef(func, T, real, imag) \
+void func(mxArray* a, const T* q, mwSize n) \
+{ \
+    mwIndex i; \
+    double* pr = mxGetPr(a); \
+    double* pi = mxGetPi(a); \
+    for (i = 0; i < n; ++i) { \
+        *pr++ = real(*q); \
+        *pi++ = imag(*q); \
+        ++q; \
+    } \
+}
+
+
+#define mxWrapReturnZDef(func, T, real, imag) \
+mxArray* func(const T* q, mwSize m, mwSize n) \
+{ \
+    mwIndex i; \
+    double* pr; \
+    double* pi; \
+    if (!q) { \
+        return mxCreateDoubleMatrix(0,0, mxCOMPLEX); \
+    } else { \
+        mxArray* a = mxCreateDoubleMatrix(m,n, mxCOMPLEX); \
+        pr = mxGetPr(a); \
+        pi = mxGetPi(a); \
+        for (i = 0; i < m*n; ++i) { \
+            *pr++ = real(*q); \
+            *pi++ = imag(*q); \
+            ++q; \
+        } \
+        return a; \
+    } \
+}
+
+
+
+
+
+
+void* mxWrapGetP_single(const mxArray* a, const char* fmt, const char** e)
+{
+    void* p = 0;
 #ifdef R2008OO
-  else if (ap = mxGetProperty(a, 0, "mwptr")) {
-    return mxWrapGetP(ap, fmt, e);
-  }
+    mxArray* ap;
 #endif
-  if (p == 0) *e = "Invalid pointer";
-  return p;
-}
-
-mxArray *mxWrapCreateP(void *p, const char *fmt) {
-  if (p == 0) {
-    mxArray *z  = mxCreateDoubleMatrix(1, 1, mxREAL);
-    *mxGetPr(z) = 0;
-    return z;
-  } else {
-    char pbuf[128];
-    sprintf(pbuf, fmt, p);
-    return mxCreateString(pbuf);
-  }
-}
-
-mxArray *mxWrapStrncpy(const char *s) {
-  if (s) {
-    return mxCreateString(s);
-  } else {
-    mxArray *z  = mxCreateDoubleMatrix(1, 1, mxREAL);
-    *mxGetPr(z) = 0;
-    return z;
-  }
-}
-
-double mxWrapGetScalar(const mxArray *a, const char **e) {
-  if (!a || mxGetClassID(a) != mxDOUBLE_CLASS || mxGetM(a) * mxGetN(a) != 1) {
-    *e = "Invalid scalar argument";
-    return 0;
-  }
-  return *mxGetPr(a);
-}
-
-char *mxWrapGetString(const mxArray *a, const char **e) {
-  char *s;
-  mwSize slen;
-  if (!a || (!mxIsChar(a) && mxGetM(a) * mxGetN(a) > 0)) {
-    *e = "Invalid string argument";
-    return NULL;
-  }
-  slen = mxGetM(a) * mxGetN(a) + 1;
-  s    = (char *)mxMalloc(slen);
-  if (mxGetM(a) * mxGetN(a) == 0)
-    *s = 0;
-  else
-    mxGetString(a, s, slen);
-  return s;
-}
-
-#define mxWrapGetArrayDef(func, T)                               \
-  T *func(const mxArray *a, const char **e) {                    \
-    T *array;                                                    \
-    mwSize arraylen;                                             \
-    mwIndex i;                                                   \
-    T *p;                                                        \
-    double *q;                                                   \
-    if (!a || mxGetClassID(a) != mxDOUBLE_CLASS) {               \
-      *e = "Invalid array argument, mxDOUBLE_CLASS expected";    \
-      return 0;                                                  \
-    }                                                            \
-    arraylen = mxGetM(a) * mxGetN(a);                            \
-    array    = (T *)mxMalloc(mxGetM(a) * mxGetN(a) * sizeof(T)); \
-    p        = array;                                            \
-    q        = mxGetPr(a);                                       \
-    for (i = 0; i < arraylen; ++i) *p++ = (T)(*q++);             \
-    return array;                                                \
-  }
-
-#define mxWrapCopyDef(func, T)                  \
-  void func(mxArray *a, const T *q, mwSize n) { \
-    mwIndex i;                                  \
-    double *p = mxGetPr(a);                     \
-    for (i = 0; i < n; ++i) *p++ = *q++;        \
-  }
-
-#define mxWrapReturnDef(func, T)                       \
-  mxArray *func(const T *q, mwSize m, mwSize n) {      \
-    mwIndex i;                                         \
-    double *p;                                         \
-    if (!q) {                                          \
-      return mxCreateDoubleMatrix(0, 0, mxREAL);       \
-    } else {                                           \
-      mxArray *a = mxCreateDoubleMatrix(m, n, mxREAL); \
-      p          = mxGetPr(a);                         \
-      for (i = 0; i < m * n; ++i) *p++ = *q++;         \
-      return a;                                        \
-    }                                                  \
-  }
-
-#define mxWrapGetScalarZDef(func, T, ZT, setz)    \
-  void func(T *z, const mxArray *a) {             \
-    double *pr = mxGetPr(a);                      \
-    double *pi = mxGetPi(a);                      \
-    setz(z, (ZT) * pr, (pi ? (ZT) * pi : (ZT)0)); \
-  }
-
-#define mxWrapGetArrayZDef(func, T, ZT, setz)                    \
-  T *func(const mxArray *a, const char **e) {                    \
-    T *array;                                                    \
-    mwSize arraylen;                                             \
-    mwIndex i;                                                   \
-    T *p;                                                        \
-    double *qr;                                                  \
-    double *qi;                                                  \
-    if (!a || mxGetClassID(a) != mxDOUBLE_CLASS) {               \
-      *e = "Invalid array argument, mxDOUBLE_CLASS expected";    \
-      return 0;                                                  \
-    }                                                            \
-    arraylen = mxGetM(a) * mxGetN(a);                            \
-    array    = (T *)mxMalloc(mxGetM(a) * mxGetN(a) * sizeof(T)); \
-    p        = array;                                            \
-    qr       = mxGetPr(a);                                       \
-    qi       = mxGetPi(a);                                       \
-    for (i = 0; i < arraylen; ++i) {                             \
-      ZT val_qr = *qr++;                                         \
-      ZT val_qi = (qi ? (ZT) * qi++ : (ZT)0);                    \
-      setz(p, val_qr, val_qi);                                   \
-      ++p;                                                       \
-    }                                                            \
-    return array;                                                \
-  }
-
-#define mxWrapCopyZDef(func, T, real, imag)     \
-  void func(mxArray *a, const T *q, mwSize n) { \
-    mwIndex i;                                  \
-    double *pr = mxGetPr(a);                    \
-    double *pi = mxGetPi(a);                    \
-    for (i = 0; i < n; ++i) {                   \
-      *pr++ = real(*q);                         \
-      *pi++ = imag(*q);                         \
-      ++q;                                      \
-    }                                           \
-  }
-
-#define mxWrapReturnZDef(func, T, real, imag)             \
-  mxArray *func(const T *q, mwSize m, mwSize n) {         \
-    mwIndex i;                                            \
-    double *pr;                                           \
-    double *pi;                                           \
-    if (!q) {                                             \
-      return mxCreateDoubleMatrix(0, 0, mxCOMPLEX);       \
-    } else {                                              \
-      mxArray *a = mxCreateDoubleMatrix(m, n, mxCOMPLEX); \
-      pr         = mxGetPr(a);                            \
-      pi         = mxGetPi(a);                            \
-      for (i = 0; i < m * n; ++i) {                       \
-        *pr++ = real(*q);                                 \
-        *pi++ = imag(*q);                                 \
-        ++q;                                              \
-      }                                                   \
-      return a;                                           \
-    }                                                     \
-  }
-
-void *mxWrapGetP_single(const mxArray *a, const char *fmt, const char **e) {
-  void *p = 0;
+    if (mxGetClassID(a) == mxSINGLE_CLASS && 
+        mxGetM(a)*mxGetN(a) == 1 && *((float*)mxGetData(a)) == 0)
+        return p;
+    if (mxIsChar(a)) {
+        char pbuf[128];
+        mxGetString(a, pbuf, sizeof(pbuf));
+        sscanf(pbuf, fmt, &p);
+    } 
 #ifdef R2008OO
-  mxArray *ap;
+    else if (ap = mxGetProperty(a, 0, "mwptr")) {
+        return mxWrapGetP(ap, fmt, e);
+    }
 #endif
-  if (mxGetClassID(a) == mxSINGLE_CLASS && mxGetM(a) * mxGetN(a) == 1 &&
-      *((float *)mxGetData(a)) == 0)
+    if (p == 0)
+        *e = "Invalid pointer";
     return p;
-  if (mxIsChar(a)) {
-    char pbuf[128];
-    mxGetString(a, pbuf, sizeof(pbuf));
-    sscanf(pbuf, fmt, &p);
-  }
-#ifdef R2008OO
-  else if (ap = mxGetProperty(a, 0, "mwptr")) {
-    return mxWrapGetP(ap, fmt, e);
-  }
-#endif
-  if (p == 0) *e = "Invalid pointer";
-  return p;
 }
 
-mxArray *mxWrapCreateP_single(void *p, const char *fmt) {
-  if (p == 0) {
-    mxArray *z               = mxCreateNumericMatrix(1, 1, mxSINGLE_CLASS, mxREAL);
-    *((float *)mxGetData(z)) = 0;
-    return z;
-  } else {
-    char pbuf[128];
-    sprintf(pbuf, fmt, p);
-    return mxCreateString(pbuf);
-  }
+mxArray* mxWrapCreateP_single(void* p, const char* fmt)
+{
+    if (p == 0) {
+        mxArray* z = mxCreateNumericMatrix(1,1, mxSINGLE_CLASS, mxREAL);
+        *((float*)mxGetData(z)) = 0;
+        return z;
+    } else {
+        char pbuf[128];
+        sprintf(pbuf, fmt, p);
+        return mxCreateString(pbuf);
+    }
 }
-mxArray *mxWrapStrncpy_single(const char *s) {
-  if (s) {
-    return mxCreateString(s);
-  } else {
-    mxArray *z               = mxCreateNumericMatrix(1, 1, mxSINGLE_CLASS, mxREAL);
-    *((float *)mxGetData(z)) = 0;
-    return z;
-  }
-}
-
-float mxWrapGetScalar_single(const mxArray *a, const char **e) {
-  if (!a || mxGetClassID(a) != mxSINGLE_CLASS || mxGetM(a) * mxGetN(a) != 1) {
-    *e = "Invalid scalar argument";
-    return 0;
-  }
-  return *((float *)mxGetData(a));
+mxArray* mxWrapStrncpy_single(const char* s)
+{
+    if (s) {
+        return mxCreateString(s);
+    } else {
+        mxArray* z = mxCreateNumericMatrix(1,1, mxSINGLE_CLASS, mxREAL);
+        *((float*)mxGetData(z)) = 0;
+        return z;
+    }
 }
 
-char *mxWrapGetString_single(const mxArray *a, const char **e) {
-  char *s;
-  mwSize slen;
-  if (!a || (!mxIsChar(a) && mxGetM(a) * mxGetN(a) > 0)) {
-    *e = "Invalid string argument, mxSINGLE_CLASS expected";
-    return NULL;
-  }
-  slen = mxGetM(a) * mxGetN(a) + 1;
-  s    = (char *)mxMalloc(slen);
-  if (mxGetM(a) * mxGetN(a) == 0)
-    *s = 0;
-  else
-    mxGetString(a, s, slen);
-  return s;
+float mxWrapGetScalar_single(const mxArray* a, const char** e)
+{
+    if (!a || mxGetClassID(a) != mxSINGLE_CLASS || mxGetM(a)*mxGetN(a) != 1) {
+        *e = "Invalid scalar argument";
+        return 0;
+    }
+    return *((float*)mxGetData(a));
 }
 
-#define mxWrapGetArrayDef_single(func, T)                        \
-  T *func(const mxArray *a, const char **e) {                    \
-    T *array;                                                    \
-    mwSize arraylen;                                             \
-    mwIndex i;                                                   \
-    T *p;                                                        \
-    float *q;                                                    \
-    if (!a || mxGetClassID(a) != mxSINGLE_CLASS) {               \
-      *e = "Invalid array argument, mxSINGLE_CLASS expected";    \
-      return 0;                                                  \
-    }                                                            \
-    arraylen = mxGetM(a) * mxGetN(a);                            \
-    array    = (T *)mxMalloc(mxGetM(a) * mxGetN(a) * sizeof(T)); \
-    p        = array;                                            \
-    q        = (float *)mxGetData(a);                            \
-    for (i = 0; i < arraylen; ++i) *p++ = (T)(*q++);             \
-    return array;                                                \
-  }
+char* mxWrapGetString_single(const mxArray* a, const char** e)
+{
+    char* s;
+    mwSize slen;
+    if (!a || (!mxIsChar(a) && mxGetM(a)*mxGetN(a) > 0)) {
+        *e = "Invalid string argument, mxSINGLE_CLASS expected";
+        return NULL;
+    }
+    slen = mxGetM(a)*mxGetN(a) + 1;
+    s = (char*) mxMalloc(slen);
+    if (mxGetM(a)*mxGetN(a) == 0)
+        *s = 0;
+    else
+        mxGetString(a, s, slen);
+    return s;
+}
 
-#define mxWrapCopyDef_single(func, T)           \
-  void func(mxArray *a, const T *q, mwSize n) { \
-    mwIndex i;                                  \
-    float *p = (float *)mxGetData(a);           \
-    for (i = 0; i < n; ++i) *p++ = *q++;        \
-  }
 
-#define mxWrapReturnDef_single(func, T)                                 \
-  mxArray *func(const T *q, mwSize m, mwSize n) {                       \
-    mwIndex i;                                                          \
-    float *p;                                                           \
-    if (!q) {                                                           \
-      return mxCreateNumericMatrix(0, 0, mxSINGLE_CLASS, mxREAL);       \
-    } else {                                                            \
-      mxArray *a = mxCreateNumericMatrix(m, n, mxSINGLE_CLASS, mxREAL); \
-      p          = (float *)mxGetData(a);                               \
-      for (i = 0; i < m * n; ++i) *p++ = *q++;                          \
-      return a;                                                         \
-    }                                                                   \
-  }
+#define mxWrapGetArrayDef_single(func, T) \
+T* func(const mxArray* a, const char** e)     \
+{ \
+    T* array; \
+    mwSize arraylen; \
+    mwIndex i; \
+    T* p; \
+    float* q; \
+    if (!a || mxGetClassID(a) != mxSINGLE_CLASS) { \
+        *e = "Invalid array argument, mxSINGLE_CLASS expected"; \
+        return 0; \
+    } \
+    arraylen = mxGetM(a)*mxGetN(a); \
+    array = (T*) mxMalloc(mxGetM(a)*mxGetN(a) * sizeof(T)); \
+    p = array; \
+    q = (float*) mxGetData(a);	   \
+    for (i = 0; i < arraylen; ++i) \
+        *p++ = (T) (*q++); \
+    return array; \
+}
+
+
+#define mxWrapCopyDef_single(func, T) \
+void func(mxArray* a, const T* q, mwSize n) \
+{ \
+    mwIndex i; \
+    float* p = (float*) mxGetData(a);		\
+    for (i = 0; i < n; ++i) \
+        *p++ = *q++; \
+}
+
+
+#define mxWrapReturnDef_single(func, T) \
+mxArray* func(const T* q, mwSize m, mwSize n) \
+{ \
+    mwIndex i; \
+    float* p; \
+    if (!q) { \
+      return mxCreateNumericMatrix(0,0, mxSINGLE_CLASS, mxREAL); \
+    } else { \
+        mxArray* a = mxCreateNumericMatrix(m,n, mxSINGLE_CLASS, mxREAL);\
+        p = (float*) mxGetData(a);				\
+        for (i = 0; i < m*n; ++i) \
+            *p++ = *q++; \
+        return a; \
+    } \
+}
+
 
 #define mxWrapGetScalarZDef_single(func, T, ZT, setz) \
-  void func(T *z, const mxArray *a) {                 \
-    float *pr = (float *)mxGetData(a);                \
-    float *pi = (float *)mxGetImagData(a);            \
-    setz(z, (ZT) * pr, (pi ? (ZT) * pi : (ZT)0));     \
-  }
+void func(T* z, const mxArray* a) \
+{ \
+    float* pr = (float*) mxGetData(a);		\
+    float* pi = (float*) mxGetImagData(a);		 \
+    setz(z, (ZT) *pr, (pi ? (ZT) *pi : (ZT) 0)); \
+}
 
-#define mxWrapGetArrayZDef_single(func, T, ZT, setz)             \
-  T *func(const mxArray *a, const char **e) {                    \
-    T *array;                                                    \
-    mwSize arraylen;                                             \
-    mwIndex i;                                                   \
-    T *p;                                                        \
-    float *qr;                                                   \
-    float *qi;                                                   \
-    if (!a || mxGetClassID(a) != mxSINGLE_CLASS) {               \
-      *e = "Invalid array argument, mxSINGLE_CLASS expected";    \
-      return 0;                                                  \
-    }                                                            \
-    arraylen = mxGetM(a) * mxGetN(a);                            \
-    array    = (T *)mxMalloc(mxGetM(a) * mxGetN(a) * sizeof(T)); \
-    p        = array;                                            \
-    qr       = (float *)mxGetData(a);                            \
-    qi       = (float *)mxGetImagData(a);                        \
-    for (i = 0; i < arraylen; ++i) {                             \
-      ZT val_qr = *qr++;                                         \
-      ZT val_qi = (qi ? (ZT) * qi++ : (ZT)0);                    \
-      setz(p, val_qr, val_qi);                                   \
-      ++p;                                                       \
-    }                                                            \
-    return array;                                                \
-  }
+
+#define mxWrapGetArrayZDef_single(func, T, ZT, setz) \
+T* func(const mxArray* a, const char** e) \
+{ \
+    T* array; \
+    mwSize arraylen; \
+    mwIndex i; \
+    T* p; \
+    float* qr; \
+    float* qi; \
+    if (!a || mxGetClassID(a) != mxSINGLE_CLASS) { \
+        *e = "Invalid array argument, mxSINGLE_CLASS expected"; \
+        return 0; \
+    } \
+    arraylen = mxGetM(a)*mxGetN(a); \
+    array = (T*) mxMalloc(mxGetM(a)*mxGetN(a) * sizeof(T)); \
+    p = array; \
+    qr = (float*) mxGetData(a);			\
+    qi = (float*) mxGetImagData(a);			\
+    for (i = 0; i < arraylen; ++i) { \
+        ZT val_qr = *qr++; \
+        ZT val_qi = (qi ? (ZT) *qi++ : (ZT) 0); \
+        setz(p, val_qr, val_qi); \
+        ++p; \
+    } \
+    return array; \
+}
+
 
 #define mxWrapCopyZDef_single(func, T, real, imag) \
-  void func(mxArray *a, const T *q, mwSize n) {    \
-    mwIndex i;                                     \
-    float *pr = (float *)mxGetData(a);             \
-    float *pi = (float *)mxGetImagData(a);         \
-    for (i = 0; i < n; ++i) {                      \
-      *pr++ = real(*q);                            \
-      *pi++ = imag(*q);                            \
-      ++q;                                         \
-    }                                              \
-  }
+void func(mxArray* a, const T* q, mwSize n) \
+{ \
+    mwIndex i; \
+    float* pr = (float*) mxGetData(a);		\
+    float* pi = (float*) mxGetImagData(a);		\
+    for (i = 0; i < n; ++i) { \
+        *pr++ = real(*q); \
+        *pi++ = imag(*q); \
+        ++q; \
+    } \
+}
 
-#define mxWrapReturnZDef_single(func, T, real, imag)                       \
-  mxArray *func(const T *q, mwSize m, mwSize n) {                          \
-    mwIndex i;                                                             \
-    float *pr;                                                             \
-    float *pi;                                                             \
-    if (!q) {                                                              \
-      return mxCreateNumericMatrix(0, 0, mxSINGLE_CLASS, mxCOMPLEX);       \
-    } else {                                                               \
-      mxArray *a = mxCreateNumericMatrix(m, n, mxSINGLE_CLASS, mxCOMPLEX); \
-      pr         = (float *)mxGetData(a);                                  \
-      pi         = (float *)mxGetImagData(a);                              \
-      for (i = 0; i < m * n; ++i) {                                        \
-        *pr++ = real(*q);                                                  \
-        *pi++ = imag(*q);                                                  \
-        ++q;                                                               \
-      }                                                                    \
-      return a;                                                            \
-    }                                                                      \
-  }
+
+#define mxWrapReturnZDef_single(func, T, real, imag) \
+mxArray* func(const T* q, mwSize m, mwSize n) \
+{ \
+    mwIndex i; \
+    float* pr; \
+    float* pi; \
+    if (!q) { \
+      return mxCreateNumericMatrix(0,0, mxSINGLE_CLASS, mxCOMPLEX); \
+    } else { \
+        mxArray* a = mxCreateNumericMatrix(m,n, mxSINGLE_CLASS, mxCOMPLEX);\
+        pr = (float*) mxGetData(a);					\
+        pi = (float*) mxGetImagData(a);					\
+        for (i = 0; i < m*n; ++i) { \
+            *pr++ = real(*q); \
+            *pi++ = imag(*q); \
+            ++q; \
+        } \
+        return a; \
+    } \
+}
+
+
+
+
 
 #endif
+
+#define mxWrapGetGPUArrayDef(func, T) \
+T* func(const mxArray* a, const char** e)     \
+{ \
+    T* array; \
+    mwSize arraylen; \
+    mwIndex i; \
+    T* p; \
+    double* q; \
+    if (!a || mxGetClassID(a) != mxDOUBLE_CLASS) { \
+        *e = "Invalid array argument, mxDOUBLE_CLASS expected"; \
+        return 0; \
+    } \
+    arraylen = mxGetM(a)*mxGetN(a); \
+    array = (T*) mxMalloc(mxGetM(a)*mxGetN(a) * sizeof(T)); \
+    p = array; \
+    q = mxGetPr(a); \
+    for (i = 0; i < arraylen; ++i) \
+        *p++ = (T) (*q++); \
+    return array; \
+}
+
+
+#define mxWrapCopyGPUArrayDef(func, T) \
+void func(mxArray* a, const T* q, mwSize n) \
+{ \
+    mwIndex i; \
+    double* p = mxGetPr(a); \
+    for (i = 0; i < n; ++i) \
+        *p++ = *q++; \
+}
+
+
+#define mxWrapReturnGPUArrayDef(func, T) \
+mxArray* func(const T* q, mwSize m, mwSize n) \
+{ \
+    mwIndex i; \
+    double* p; \
+    if (!q) { \
+        return mxCreateDoubleMatrix(0,0, mxREAL); \
+    } else { \
+        mxArray* a = mxCreateDoubleMatrix(m,n, mxREAL); \
+        p = mxGetPr(a); \
+        for (i = 0; i < m*n; ++i) \
+            *p++ = *q++; \
+        return a; \
+    } \
+}
+
+#define mxWrapReturnGPUArrayPDef(func, T) \
+T* func(const T* q, mwSize m, mwSize n) \
+{ \
+    mwIndex i; \
+    double* p; \
+    if (!q) { \
+        return mxCreateDoubleMatrix(0,0, mxREAL); \
+    } else { \
+        mxArray* a = mxCreateDoubleMatrix(m,n, mxREAL); \
+        p = mxGetPr(a); \
+        for (i = 0; i < m*n; ++i) \
+            *p++ = *q++; \
+        return a; \
+    } \
+}
+
+#define mxWrapGetGPUArrayDef_single(func, T) \
+T* func(const mxArray* a, const char** e)     \
+{ \
+    T* array; \
+    mwSize arraylen; \
+    mwIndex i; \
+    T* p; \
+    double* q; \
+    if (!a || mxGetClassID(a) != mxDOUBLE_CLASS) { \
+        *e = "Invalid array argument, mxDOUBLE_CLASS expected"; \
+        return 0; \
+    } \
+    arraylen = mxGetM(a)*mxGetN(a); \
+    array = (T*) mxMalloc(mxGetM(a)*mxGetN(a) * sizeof(T)); \
+    p = array; \
+    q = mxGetPr(a); \
+    for (i = 0; i < arraylen; ++i) \
+        *p++ = (T) (*q++); \
+    return array; \
+}
+
+
+#define mxWrapCopyGPUArrayDef_single(func, T) \
+void func(mxArray* a, const T* q, mwSize n) \
+{ \
+    mwIndex i; \
+    double* p = mxGetPr(a); \
+    for (i = 0; i < n; ++i) \
+        *p++ = *q++; \
+}
+
+
+#define mxWrapReturnGPUArrayDef_single(func, T) \
+mxArray* func(const T* q, mwSize m, mwSize n) \
+{ \
+    mwIndex i; \
+    double* p; \
+    if (!q) { \
+        return mxCreateDoubleMatrix(0,0, mxREAL); \
+    } else { \
+        mxArray* a = mxCreateDoubleMatrix(m,n, mxREAL); \
+        p = mxGetPr(a); \
+        for (i = 0; i < m*n; ++i) \
+            *p++ = *q++; \
+        return a; \
+    } \
+}
+
+#define mxWrapReturnGPUArrayPDef_single(func, T) \
+T* func(const T* q, mwSize m, mwSize n) \
+{ \
+    mwIndex i; \
+    double* p; \
+    if (!q) { \
+        return mxCreateDoubleMatrix(0,0, mxREAL); \
+    } else { \
+        mxArray* a = mxCreateDoubleMatrix(m,n, mxREAL); \
+        p = mxGetPr(a); \
+        for (i = 0; i < m*n; ++i) \
+            *p++ = *q++; \
+        return a; \
+    } \
+}
 
 #include <complex>
 
 typedef std::complex<double> dcomplex;
-#define real_dcomplex(z)       std::real(z)
-#define imag_dcomplex(z)       std::imag(z)
-#define setz_dcomplex(z, r, i) *z = dcomplex(r, i)
+#define real_dcomplex(z) std::real(z)
+#define imag_dcomplex(z) std::imag(z)
+#define setz_dcomplex(z,r,i)  *z = dcomplex(r,i)
 
 typedef std::complex<float> fcomplex;
-#define real_fcomplex(z)       std::real(z)
-#define imag_fcomplex(z)       std::imag(z)
-#define setz_fcomplex(z, r, i) *z = fcomplex(r, i)
+#define real_fcomplex(z) std::real(z)
+#define imag_fcomplex(z) std::imag(z)
+#define setz_fcomplex(z,r,i)  *z = fcomplex(r,i)
 
-#include <cstring>
-#include <finufft.h>
-#include <iostream>
-#include <math.h>
-#include <mex.h>
-void copy_finufft_opts(const mxArray *om, finufft_opts *oc) {
-  if (!mxIsStruct(om))
-    mexErrMsgIdAndTxt("FINUFFT:inputNotStruct", "opts input must be a structure.");
-  mwIndex idx = 0;
-  int ifield, nfields;
-  const char **fname;
-  nfields = mxGetNumberOfFields(om);
-  fname   = (const char **)mxCalloc(nfields, sizeof(*fname));
-  for (ifield = 0; ifield < nfields; ifield++) {
-    fname[ifield] = mxGetFieldNameByNumber(om, ifield);
-    if (strcmp(fname[ifield], "debug") == 0) {
-      oc->debug = (int)round(*mxGetPr(mxGetFieldByNumber(om, idx, ifield)));
-    } else if (strcmp(fname[ifield], "spread_debug") == 0) {
-      oc->spread_debug = (int)round(*mxGetPr(mxGetFieldByNumber(om, idx, ifield)));
-    } else if (strcmp(fname[ifield], "spread_sort") == 0) {
-      oc->spread_sort = (int)round(*mxGetPr(mxGetFieldByNumber(om, idx, ifield)));
-    } else if (strcmp(fname[ifield], "spread_kerevalmeth") == 0) {
-      oc->spread_kerevalmeth = (int)round(*mxGetPr(mxGetFieldByNumber(om, idx, ifield)));
-    } else if (strcmp(fname[ifield], "spread_kerpad") == 0) {
-      oc->spread_kerpad = (int)round(*mxGetPr(mxGetFieldByNumber(om, idx, ifield)));
-    } else if (strcmp(fname[ifield], "fftw") == 0) {
-      oc->fftw = (int)round(*mxGetPr(mxGetFieldByNumber(om, idx, ifield)));
-    } else if (strcmp(fname[ifield], "modeord") == 0) {
-      oc->modeord = (int)round(*mxGetPr(mxGetFieldByNumber(om, idx, ifield)));
-    } else if (strcmp(fname[ifield], "upsampfac") == 0) {
-      oc->upsampfac = (double)*mxGetPr(mxGetFieldByNumber(om, idx, ifield));
-    } else if (strcmp(fname[ifield], "spread_thread") == 0) {
-      oc->spread_thread = (int)round(*mxGetPr(mxGetFieldByNumber(om, idx, ifield)));
-    } else if (strcmp(fname[ifield], "maxbatchsize") == 0) {
-      oc->maxbatchsize = (int)round(*mxGetPr(mxGetFieldByNumber(om, idx, ifield)));
-    } else if (strcmp(fname[ifield], "nthreads") == 0) {
-      oc->nthreads = (int)round(*mxGetPr(mxGetFieldByNumber(om, idx, ifield)));
-    } else if (strcmp(fname[ifield], "spread_nthr_atomic") == 0) {
-      oc->spread_nthr_atomic = (int)round(*mxGetPr(mxGetFieldByNumber(om, idx, ifield)));
-    } else if (strcmp(fname[ifield], "spread_max_sp_size") == 0) {
-      oc->spread_max_sp_size = (int)round(*mxGetPr(mxGetFieldByNumber(om, idx, ifield)));
-    } else if (strcmp(fname[ifield], "spreadinterponly") == 0) {
-      oc->spreadinterponly = (int)round(*mxGetPr(mxGetFieldByNumber(om, idx, ifield)));
-    } else
-      continue;
-  }
-  mxFree(fname);
-}
-void finufft_mex_setup() {
-  /* Forces MATLAB to properly initialize their FFTW library. */
-  mexEvalString("fft(1:8);");
-}
+ #include <finufft.h>
+ #include <mex.h>
+ #include <iostream>
+ #include <cstring>
+ #include <math.h>
+ void copy_finufft_opts(const mxArray* om, finufft_opts *oc) {
+   if(!mxIsStruct(om))
+     mexErrMsgIdAndTxt("FINUFFT:inputNotStruct","opts input must be a structure.");
+   mwIndex idx = 0;
+   int ifield, nfields;
+   const char **fname;
+   nfields = mxGetNumberOfFields(om);
+   fname = (const char**)mxCalloc(nfields, sizeof(*fname));
+   for(ifield=0; ifield<nfields; ifield++) {
+     fname[ifield] = mxGetFieldNameByNumber(om,ifield);
+     if (strcmp(fname[ifield],"debug") == 0) {
+       oc->debug = (int)round(*mxGetPr(mxGetFieldByNumber(om,idx,ifield)));
+     }
+     else if (strcmp(fname[ifield],"spread_debug") == 0) {
+       oc->spread_debug = (int)round(*mxGetPr(mxGetFieldByNumber(om,idx,ifield)));
+     }
+     else if (strcmp(fname[ifield],"spread_sort") == 0) {
+       oc->spread_sort = (int)round(*mxGetPr(mxGetFieldByNumber(om,idx,ifield)));
+     }
+     else if (strcmp(fname[ifield],"spread_kerevalmeth") == 0) {
+       oc->spread_kerevalmeth = (int)round(*mxGetPr(mxGetFieldByNumber(om,idx,ifield)));
+     }
+     else if (strcmp(fname[ifield],"spread_kerpad") == 0) {
+       oc->spread_kerpad = (int)round(*mxGetPr(mxGetFieldByNumber(om,idx,ifield)));
+     }
+     else if (strcmp(fname[ifield],"fftw") == 0) {
+       oc->fftw = (int)round(*mxGetPr(mxGetFieldByNumber(om,idx,ifield)));
+     }
+     else if (strcmp(fname[ifield],"modeord") == 0) {
+       oc->modeord = (int)round(*mxGetPr(mxGetFieldByNumber(om,idx,ifield)));
+     }
+     else if (strcmp(fname[ifield],"upsampfac") == 0) {
+       oc->upsampfac = (double)*mxGetPr(mxGetFieldByNumber(om,idx,ifield));
+     }
+     else if (strcmp(fname[ifield],"spread_thread") == 0) {
+       oc->spread_thread = (int)round(*mxGetPr(mxGetFieldByNumber(om,idx,ifield)));
+     }
+     else if (strcmp(fname[ifield],"maxbatchsize") == 0) {
+       oc->maxbatchsize = (int)round(*mxGetPr(mxGetFieldByNumber(om,idx,ifield)));
+     }
+     else if (strcmp(fname[ifield],"nthreads") == 0) {
+       oc->nthreads = (int)round(*mxGetPr(mxGetFieldByNumber(om,idx,ifield)));
+     }
+     else if (strcmp(fname[ifield],"spread_nthr_atomic") == 0) {
+       oc->spread_nthr_atomic = (int)round(*mxGetPr(mxGetFieldByNumber(om,idx,ifield)));
+     }
+     else if (strcmp(fname[ifield],"spread_max_sp_size") == 0) {
+       oc->spread_max_sp_size = (int)round(*mxGetPr(mxGetFieldByNumber(om,idx,ifield)));
+     }
+     else if (strcmp(fname[ifield],"spreadinterponly") == 0) {
+       oc->spreadinterponly = (int)round(*mxGetPr(mxGetFieldByNumber(om,idx,ifield)));
+     }
+     else
+       continue;
+   }
+   mxFree(fname);
+ }
+ void finufft_mex_setup() {
+   /* Forces MATLAB to properly initialize their FFTW library. */
+   mexEvalString("fft(1:8);");
+ }
+
+
 
 /* Array copier definitions */
-mxWrapGetArrayDef(mxWrapGetArray_bool, bool) mxWrapCopyDef(mxWrapCopy_bool, bool) mxWrapReturnDef(
-    mxWrapReturn_bool,
-    bool) mxWrapGetArrayDef_single(mxWrapGetArray_single_bool,
-                                   bool) mxWrapCopyDef_single(mxWrapCopy_single_bool,
-                                                              bool) mxWrapReturnDef_single(mxWrapReturn_single_bool,
-                                                                                           bool)
-    mxWrapGetArrayDef(mxWrapGetArray_char, char) mxWrapCopyDef(mxWrapCopy_char, char) mxWrapReturnDef(
-        mxWrapReturn_char,
-        char) mxWrapGetArrayDef_single(mxWrapGetArray_single_char,
-                                       char) mxWrapCopyDef_single(mxWrapCopy_single_char,
-                                                                  char)
-        mxWrapReturnDef_single(mxWrapReturn_single_char, char) mxWrapGetArrayDef(
-            mxWrapGetArray_double,
-            double) mxWrapCopyDef(mxWrapCopy_double,
-                                  double) mxWrapReturnDef(mxWrapReturn_double,
-                                                          double) mxWrapGetArrayDef_single(mxWrapGetArray_single_double,
-                                                                                           double)
-            mxWrapCopyDef_single(mxWrapCopy_single_double, double) mxWrapReturnDef_single(
-                mxWrapReturn_single_double,
-                double) mxWrapGetArrayDef(mxWrapGetArray_float,
-                                          float) mxWrapCopyDef(mxWrapCopy_float,
-                                                               float) mxWrapReturnDef(mxWrapReturn_float,
-                                                                                      float)
-                mxWrapGetArrayDef_single(mxWrapGetArray_single_float, float) mxWrapCopyDef_single(
-                    mxWrapCopy_single_float,
-                    float) mxWrapReturnDef_single(mxWrapReturn_single_float,
-                                                  float) mxWrapGetArrayDef(mxWrapGetArray_int,
-                                                                           int)
-                    mxWrapCopyDef(mxWrapCopy_int, int) mxWrapReturnDef(mxWrapReturn_int, int) mxWrapGetArrayDef_single(
-                        mxWrapGetArray_single_int,
-                        int) mxWrapCopyDef_single(mxWrapCopy_single_int,
-                                                  int) mxWrapReturnDef_single(mxWrapReturn_single_int,
-                                                                              int) mxWrapGetArrayDef(mxWrapGetArray_int64_t,
-                                                                                                     int64_t)
-                        mxWrapCopyDef(mxWrapCopy_int64_t, int64_t) mxWrapReturnDef(mxWrapReturn_int64_t, int64_t) mxWrapGetArrayDef_single(
-                            mxWrapGetArray_single_int64_t,
-                            int64_t) mxWrapCopyDef_single(mxWrapCopy_single_int64_t,
-                                                          int64_t) mxWrapReturnDef_single(mxWrapReturn_single_int64_t,
-                                                                                          int64_t)
-                            mxWrapGetArrayDef(mxWrapGetArray_long, long) mxWrapCopyDef(mxWrapCopy_long, long) mxWrapReturnDef(
-                                mxWrapReturn_long,
-                                long) mxWrapGetArrayDef_single(mxWrapGetArray_single_long,
-                                                               long) mxWrapCopyDef_single(mxWrapCopy_single_long,
-                                                                                          long)
-                                mxWrapReturnDef_single(mxWrapReturn_single_long, long) mxWrapGetArrayDef(
-                                    mxWrapGetArray_ptrdiff_t,
-                                    ptrdiff_t) mxWrapCopyDef(mxWrapCopy_ptrdiff_t,
-                                                             ptrdiff_t) mxWrapReturnDef(mxWrapReturn_ptrdiff_t, ptrdiff_t)
-                                    mxWrapGetArrayDef_single(mxWrapGetArray_single_ptrdiff_t, ptrdiff_t) mxWrapCopyDef_single(
-                                        mxWrapCopy_single_ptrdiff_t,
-                                        ptrdiff_t) mxWrapReturnDef_single(mxWrapReturn_single_ptrdiff_t,
-                                                                          ptrdiff_t)
-                                        mxWrapGetArrayDef(mxWrapGetArray_short, short) mxWrapCopyDef(
-                                            mxWrapCopy_short,
-                                            short) mxWrapReturnDef(mxWrapReturn_short,
-                                                                   short) mxWrapGetArrayDef_single(mxWrapGetArray_single_short,
-                                                                                                   short)
-                                            mxWrapCopyDef_single(mxWrapCopy_single_short, short) mxWrapReturnDef_single(
-                                                mxWrapReturn_single_short,
-                                                short) mxWrapGetArrayDef(mxWrapGetArray_size_t,
-                                                                         size_t) mxWrapCopyDef(mxWrapCopy_size_t, size_t)
-                                                mxWrapReturnDef(mxWrapReturn_size_t, size_t) mxWrapGetArrayDef_single(
-                                                    mxWrapGetArray_single_size_t,
-                                                    size_t) mxWrapCopyDef_single(mxWrapCopy_single_size_t, size_t)
-                                                    mxWrapReturnDef_single(mxWrapReturn_single_size_t, size_t) mxWrapGetScalarZDef(
-                                                        mxWrapGetScalar_fcomplex,
-                                                        fcomplex, float,
-                                                        setz_fcomplex) mxWrapGetArrayZDef(mxWrapGetArray_fcomplex, fcomplex, float, setz_fcomplex)
-                                                        mxWrapCopyZDef(mxWrapCopy_fcomplex, fcomplex, real_fcomplex, imag_fcomplex) mxWrapReturnZDef(
-                                                            mxWrapReturn_fcomplex,
-                                                            fcomplex, real_fcomplex,
-                                                            imag_fcomplex)
-                                                            mxWrapGetScalarZDef_single(
-                                                                mxWrapGetScalar_single_fcomplex,
-                                                                fcomplex, float,
-                                                                setz_fcomplex) mxWrapGetArrayZDef_single(mxWrapGetArray_single_fcomplex,
-                                                                                                         fcomplex,
-                                                                                                         float, setz_fcomplex)
-                                                                mxWrapCopyZDef_single(
-                                                                    mxWrapCopy_single_fcomplex,
-                                                                    fcomplex,
-                                                                    real_fcomplex,
-                                                                    imag_fcomplex)
-                                                                    mxWrapReturnZDef_single(
-                                                                        mxWrapReturn_single_fcomplex,
-                                                                        fcomplex,
-                                                                        real_fcomplex,
-                                                                        imag_fcomplex) mxWrapGetScalarZDef(mxWrapGetScalar_dcomplex,
-                                                                                                           dcomplex,
-                                                                                                           double,
-                                                                                                           setz_dcomplex)
-                                                                        mxWrapGetArrayZDef(
-                                                                            mxWrapGetArray_dcomplex,
-                                                                            dcomplex,
-                                                                            double,
-                                                                            setz_dcomplex)
-                                                                            mxWrapCopyZDef(
-                                                                                mxWrapCopy_dcomplex,
-                                                                                dcomplex,
-                                                                                real_dcomplex,
-                                                                                imag_dcomplex)
-                                                                                mxWrapReturnZDef(
-                                                                                    mxWrapReturn_dcomplex,
-                                                                                    dcomplex,
-                                                                                    real_dcomplex,
-                                                                                    imag_dcomplex)
-                                                                                    mxWrapGetScalarZDef_single(
-                                                                                        mxWrapGetScalar_single_dcomplex,
-                                                                                        dcomplex,
-                                                                                        double,
-                                                                                        setz_dcomplex)
-                                                                                        mxWrapGetArrayZDef_single(
-                                                                                            mxWrapGetArray_single_dcomplex,
-                                                                                            dcomplex,
-                                                                                            double,
-                                                                                            setz_dcomplex)
-                                                                                            mxWrapCopyZDef_single(
-                                                                                                mxWrapCopy_single_dcomplex,
-                                                                                                dcomplex,
-                                                                                                real_dcomplex,
-                                                                                                imag_dcomplex)
-                                                                                                mxWrapReturnZDef_single(
-                                                                                                    mxWrapReturn_single_dcomplex,
-                                                                                                    dcomplex,
-                                                                                                    real_dcomplex,
-                                                                                                    imag_dcomplex)
+mxWrapGetArrayDef(mxWrapGetArray_bool, bool)
+mxWrapCopyDef    (mxWrapCopy_bool,     bool)
+mxWrapReturnDef  (mxWrapReturn_bool,   bool)
+mxWrapGetArrayDef_single(mxWrapGetArray_single_bool, bool)
+mxWrapCopyDef_single    (mxWrapCopy_single_bool,     bool)
+mxWrapReturnDef_single  (mxWrapReturn_single_bool,   bool)
+mxWrapGetArrayDef(mxWrapGetArray_char, char)
+mxWrapCopyDef    (mxWrapCopy_char,     char)
+mxWrapReturnDef  (mxWrapReturn_char,   char)
+mxWrapGetArrayDef_single(mxWrapGetArray_single_char, char)
+mxWrapCopyDef_single    (mxWrapCopy_single_char,     char)
+mxWrapReturnDef_single  (mxWrapReturn_single_char,   char)
+mxWrapGetArrayDef(mxWrapGetArray_double, double)
+mxWrapCopyDef    (mxWrapCopy_double,     double)
+mxWrapReturnDef  (mxWrapReturn_double,   double)
+mxWrapGetArrayDef_single(mxWrapGetArray_single_double, double)
+mxWrapCopyDef_single    (mxWrapCopy_single_double,     double)
+mxWrapReturnDef_single  (mxWrapReturn_single_double,   double)
+mxWrapGetArrayDef(mxWrapGetArray_float, float)
+mxWrapCopyDef    (mxWrapCopy_float,     float)
+mxWrapReturnDef  (mxWrapReturn_float,   float)
+mxWrapGetArrayDef_single(mxWrapGetArray_single_float, float)
+mxWrapCopyDef_single    (mxWrapCopy_single_float,     float)
+mxWrapReturnDef_single  (mxWrapReturn_single_float,   float)
+mxWrapGetArrayDef(mxWrapGetArray_int, int)
+mxWrapCopyDef    (mxWrapCopy_int,     int)
+mxWrapReturnDef  (mxWrapReturn_int,   int)
+mxWrapGetArrayDef_single(mxWrapGetArray_single_int, int)
+mxWrapCopyDef_single    (mxWrapCopy_single_int,     int)
+mxWrapReturnDef_single  (mxWrapReturn_single_int,   int)
+mxWrapGetArrayDef(mxWrapGetArray_int64_t, int64_t)
+mxWrapCopyDef    (mxWrapCopy_int64_t,     int64_t)
+mxWrapReturnDef  (mxWrapReturn_int64_t,   int64_t)
+mxWrapGetArrayDef_single(mxWrapGetArray_single_int64_t, int64_t)
+mxWrapCopyDef_single    (mxWrapCopy_single_int64_t,     int64_t)
+mxWrapReturnDef_single  (mxWrapReturn_single_int64_t,   int64_t)
+mxWrapGetArrayDef(mxWrapGetArray_long, long)
+mxWrapCopyDef    (mxWrapCopy_long,     long)
+mxWrapReturnDef  (mxWrapReturn_long,   long)
+mxWrapGetArrayDef_single(mxWrapGetArray_single_long, long)
+mxWrapCopyDef_single    (mxWrapCopy_single_long,     long)
+mxWrapReturnDef_single  (mxWrapReturn_single_long,   long)
+mxWrapGetArrayDef(mxWrapGetArray_ptrdiff_t, ptrdiff_t)
+mxWrapCopyDef    (mxWrapCopy_ptrdiff_t,     ptrdiff_t)
+mxWrapReturnDef  (mxWrapReturn_ptrdiff_t,   ptrdiff_t)
+mxWrapGetArrayDef_single(mxWrapGetArray_single_ptrdiff_t, ptrdiff_t)
+mxWrapCopyDef_single    (mxWrapCopy_single_ptrdiff_t,     ptrdiff_t)
+mxWrapReturnDef_single  (mxWrapReturn_single_ptrdiff_t,   ptrdiff_t)
+mxWrapGetArrayDef(mxWrapGetArray_short, short)
+mxWrapCopyDef    (mxWrapCopy_short,     short)
+mxWrapReturnDef  (mxWrapReturn_short,   short)
+mxWrapGetArrayDef_single(mxWrapGetArray_single_short, short)
+mxWrapCopyDef_single    (mxWrapCopy_single_short,     short)
+mxWrapReturnDef_single  (mxWrapReturn_single_short,   short)
+mxWrapGetArrayDef(mxWrapGetArray_size_t, size_t)
+mxWrapCopyDef    (mxWrapCopy_size_t,     size_t)
+mxWrapReturnDef  (mxWrapReturn_size_t,   size_t)
+mxWrapGetArrayDef_single(mxWrapGetArray_single_size_t, size_t)
+mxWrapCopyDef_single    (mxWrapCopy_single_size_t,     size_t)
+mxWrapReturnDef_single  (mxWrapReturn_single_size_t,   size_t)
+mxWrapGetScalarZDef(mxWrapGetScalar_fcomplex, fcomplex,
+                    float, setz_fcomplex)
+mxWrapGetArrayZDef (mxWrapGetArray_fcomplex, fcomplex,
+                    float, setz_fcomplex)
+mxWrapCopyZDef     (mxWrapCopy_fcomplex, fcomplex,
+                    real_fcomplex, imag_fcomplex)
+mxWrapReturnZDef   (mxWrapReturn_fcomplex, fcomplex,
+                    real_fcomplex, imag_fcomplex)
+mxWrapGetScalarZDef_single(mxWrapGetScalar_single_fcomplex, fcomplex,
+                    float, setz_fcomplex)
+mxWrapGetArrayZDef_single (mxWrapGetArray_single_fcomplex, fcomplex,
+                    float, setz_fcomplex)
+mxWrapCopyZDef_single     (mxWrapCopy_single_fcomplex, fcomplex,
+                    real_fcomplex, imag_fcomplex)
+mxWrapReturnZDef_single   (mxWrapReturn_single_fcomplex, fcomplex,
+                    real_fcomplex, imag_fcomplex)
+mxWrapGetScalarZDef(mxWrapGetScalar_dcomplex, dcomplex,
+                    double, setz_dcomplex)
+mxWrapGetArrayZDef (mxWrapGetArray_dcomplex, dcomplex,
+                    double, setz_dcomplex)
+mxWrapCopyZDef     (mxWrapCopy_dcomplex, dcomplex,
+                    real_dcomplex, imag_dcomplex)
+mxWrapReturnZDef   (mxWrapReturn_dcomplex, dcomplex,
+                    real_dcomplex, imag_dcomplex)
+mxWrapGetScalarZDef_single(mxWrapGetScalar_single_dcomplex, dcomplex,
+                    double, setz_dcomplex)
+mxWrapGetArrayZDef_single (mxWrapGetArray_single_dcomplex, dcomplex,
+                    double, setz_dcomplex)
+mxWrapCopyZDef_single     (mxWrapCopy_single_dcomplex, dcomplex,
+                    real_dcomplex, imag_dcomplex)
+mxWrapReturnZDef_single   (mxWrapReturn_single_dcomplex, dcomplex,
+                    real_dcomplex, imag_dcomplex)
 
-    /* ---- finufft.mw: 169 ----
-     * finufft_mex_setup();
-     */
-    static const char *stubids1_ = "finufft_mex_setup()";
+/* ---- finufft.mw: 169 ----
+ * finufft_mex_setup();
+ */
+static const char* stubids1_ = "finufft_mex_setup()";
 
-void mexStub1(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
-  const char *mw_err_txt_ = 0;
-  if (mexprofrecord_) mexprofrecord_[1]++;
-  finufft_mex_setup();
+void mexStub1(int nlhs, mxArray* plhs[],
+              int nrhs, const mxArray* prhs[])
+{
+    const char* mw_err_txt_ = 0;
+    if (mexprofrecord_)
+        mexprofrecord_[1]++;
+    finufft_mex_setup();
 
 mw_err_label:
-  if (mw_err_txt_) mexErrMsgTxt(mw_err_txt_);
+    if (mw_err_txt_)
+        mexErrMsgTxt(mw_err_txt_);
 }
 
 /* ---- finufft.mw: 170 ----
  * finufft_opts* o = new();
  */
-static const char *stubids2_ = "o finufft_opts* = new()";
+static const char* stubids2_ = "c o finufft_opts* = new()";
 
-void mexStub2(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
-  const char *mw_err_txt_ = 0;
-  finufft_opts *out0_     = 0; /* o          */
+void mexStub2(int nlhs, mxArray* plhs[],
+              int nrhs, const mxArray* prhs[])
+{
+    const char* mw_err_txt_ = 0;
+    finufft_opts*  out0_=0; /* o          */
 
-  if (mexprofrecord_) mexprofrecord_[2]++;
-  out0_   = new finufft_opts();
-  plhs[0] = mxWrapCreateP(out0_, "finufft_opts:%p");
+    if (mexprofrecord_)
+        mexprofrecord_[2]++;
+    out0_ = new finufft_opts();
+    plhs[0] = mxWrapCreateP(out0_, "finufft_opts:%p");
 
 mw_err_label:
-  if (mw_err_txt_) mexErrMsgTxt(mw_err_txt_);
+    if (mw_err_txt_)
+        mexErrMsgTxt(mw_err_txt_);
 }
 
 /* ---- finufft.mw: 172 ----
  * finufft_plan* p = new();
  */
-static const char *stubids3_ = "o finufft_plan* = new()";
+static const char* stubids3_ = "c o finufft_plan* = new()";
 
-void mexStub3(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
-  const char *mw_err_txt_ = 0;
-  finufft_plan *out0_     = 0; /* p          */
+void mexStub3(int nlhs, mxArray* plhs[],
+              int nrhs, const mxArray* prhs[])
+{
+    const char* mw_err_txt_ = 0;
+    finufft_plan*  out0_=0; /* p          */
 
-  if (mexprofrecord_) mexprofrecord_[3]++;
-  out0_   = new finufft_plan();
-  plhs[0] = mxWrapCreateP(out0_, "finufft_plan:%p");
+    if (mexprofrecord_)
+        mexprofrecord_[3]++;
+    out0_ = new finufft_plan();
+    plhs[0] = mxWrapCreateP(out0_, "finufft_plan:%p");
 
 mw_err_label:
-  if (mw_err_txt_) mexErrMsgTxt(mw_err_txt_);
+    if (mw_err_txt_)
+        mexErrMsgTxt(mw_err_txt_);
 }
 
 /* ---- finufft.mw: 173 ----
  * finufft_default_opts(finufft_opts* o);
  */
-static const char *stubids4_ = "finufft_default_opts(i finufft_opts*)";
+static const char* stubids4_ = "finufft_default_opts(c i finufft_opts*)";
 
-void mexStub4(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
-  const char *mw_err_txt_ = 0;
-  finufft_opts *in0_      = 0; /* o          */
+void mexStub4(int nlhs, mxArray* plhs[],
+              int nrhs, const mxArray* prhs[])
+{
+    const char* mw_err_txt_ = 0;
+    finufft_opts*  in0_ =0; /* o          */
 
-  in0_ = (finufft_opts *)mxWrapGetP(prhs[0], "finufft_opts:%p", &mw_err_txt_);
-  if (mw_err_txt_) goto mw_err_label;
-  if (mexprofrecord_) mexprofrecord_[4]++;
-  finufft_default_opts(in0_);
+    in0_ = (finufft_opts*) mxWrapGetP(prhs[0], "finufft_opts:%p", &mw_err_txt_);
+    if (mw_err_txt_)
+        goto mw_err_label;
+
+    if (mexprofrecord_)
+        mexprofrecord_[4]++;
+    finufft_default_opts(in0_);
 
 mw_err_label:
-  if (mw_err_txt_) mexErrMsgTxt(mw_err_txt_);
+    if (mw_err_txt_)
+        mexErrMsgTxt(mw_err_txt_);
 }
 
 /* ---- finufft.mw: 175 ----
  * finufftf_plan* p = new();
  */
-static const char *stubids5_ = "o finufftf_plan* = new()";
+static const char* stubids5_ = "c o finufftf_plan* = new()";
 
-void mexStub5(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
-  const char *mw_err_txt_ = 0;
-  finufftf_plan *out0_    = 0; /* p          */
+void mexStub5(int nlhs, mxArray* plhs[],
+              int nrhs, const mxArray* prhs[])
+{
+    const char* mw_err_txt_ = 0;
+    finufftf_plan*  out0_=0; /* p          */
 
-  if (mexprofrecord_) mexprofrecord_[5]++;
-  out0_   = new finufftf_plan();
-  plhs[0] = mxWrapCreateP(out0_, "finufftf_plan:%p");
+    if (mexprofrecord_)
+        mexprofrecord_[5]++;
+    out0_ = new finufftf_plan();
+    plhs[0] = mxWrapCreateP(out0_, "finufftf_plan:%p");
 
 mw_err_label:
-  if (mw_err_txt_) mexErrMsgTxt(mw_err_txt_);
+    if (mw_err_txt_)
+        mexErrMsgTxt(mw_err_txt_);
 }
 
 /* ---- finufft.mw: 176 ----
  * finufftf_default_opts(finufft_opts* o);
  */
-static const char *stubids6_ = "finufftf_default_opts(i finufft_opts*)";
+static const char* stubids6_ = "finufftf_default_opts(c i finufft_opts*)";
 
-void mexStub6(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
-  const char *mw_err_txt_ = 0;
-  finufft_opts *in0_      = 0; /* o          */
+void mexStub6(int nlhs, mxArray* plhs[],
+              int nrhs, const mxArray* prhs[])
+{
+    const char* mw_err_txt_ = 0;
+    finufft_opts*  in0_ =0; /* o          */
 
-  in0_ = (finufft_opts *)mxWrapGetP(prhs[0], "finufft_opts:%p", &mw_err_txt_);
-  if (mw_err_txt_) goto mw_err_label;
-  if (mexprofrecord_) mexprofrecord_[6]++;
-  finufftf_default_opts(in0_);
+    in0_ = (finufft_opts*) mxWrapGetP(prhs[0], "finufft_opts:%p", &mw_err_txt_);
+    if (mw_err_txt_)
+        goto mw_err_label;
+
+    if (mexprofrecord_)
+        mexprofrecord_[6]++;
+    finufftf_default_opts(in0_);
 
 mw_err_label:
-  if (mw_err_txt_) mexErrMsgTxt(mw_err_txt_);
+    if (mw_err_txt_)
+        mexErrMsgTxt(mw_err_txt_);
 }
 
 /* ---- finufft.mw: 187 ----
  * copy_finufft_opts(mxArray opts, finufft_opts* o);
  */
-static const char *stubids7_ = "copy_finufft_opts(i mxArray, i finufft_opts*)";
+static const char* stubids7_ = "copy_finufft_opts(c i mxArray, c i finufft_opts*)";
 
-void mexStub7(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
-  const char *mw_err_txt_ = 0;
-  const mxArray *in0_;    /* opts       */
-  finufft_opts *in1_ = 0; /* o          */
+void mexStub7(int nlhs, mxArray* plhs[],
+              int nrhs, const mxArray* prhs[])
+{
+    const char* mw_err_txt_ = 0;
+    const mxArray*  in0_;    /* opts       */
+    finufft_opts*  in1_ =0; /* o          */
 
-  in0_ = prhs[0];
-  in1_ = (finufft_opts *)mxWrapGetP(prhs[1], "finufft_opts:%p", &mw_err_txt_);
-  if (mw_err_txt_) goto mw_err_label;
-  if (mexprofrecord_) mexprofrecord_[7]++;
-  copy_finufft_opts(in0_, in1_);
+    in0_ = prhs[0];
+
+    in1_ = (finufft_opts*) mxWrapGetP(prhs[1], "finufft_opts:%p", &mw_err_txt_);
+    if (mw_err_txt_)
+        goto mw_err_label;
+
+    if (mexprofrecord_)
+        mexprofrecord_[7]++;
+    copy_finufft_opts(in0_, in1_);
 
 mw_err_label:
-  if (mw_err_txt_) mexErrMsgTxt(mw_err_txt_);
+    if (mw_err_txt_)
+        mexErrMsgTxt(mw_err_txt_);
 }
 
 /* ---- finufft.mw: 190 ----
- * int ier = finufft_makeplan(int type, int dim, int64_t[3] n_modes, int iflag, int
- * n_trans, double tol, finufft_plan* plan, finufft_opts* o);
+ * int ier = finufft_makeplan(int type, int dim, int64_t[3] n_modes, int iflag, int n_trans, double tol, finufft_plan* plan, finufft_opts* o);
  */
-static const char *stubids8_ = "o int = finufft_makeplan(i int, i int, i int64_t[x], i "
-                               "int, i int, i double, i finufft_plan*, i finufft_opts*)";
+static const char* stubids8_ = "c o int = finufft_makeplan(c i int, c i int, c i int64_t[x], c i int, c i int, c i double, c i finufft_plan*, c i finufft_opts*)";
 
-void mexStub8(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
-  const char *mw_err_txt_ = 0;
-  int in0_;               /* type       */
-  int in1_;               /* dim        */
-  int64_t *in2_ = 0;      /* n_modes    */
-  int in3_;               /* iflag      */
-  int in4_;               /* n_trans    */
-  double in5_;            /* tol        */
-  finufft_plan *in6_ = 0; /* plan       */
-  finufft_opts *in7_ = 0; /* o          */
-  int out0_;              /* ier        */
-  mwSize dim8_;           /* 3          */
+void mexStub8(int nlhs, mxArray* plhs[],
+              int nrhs, const mxArray* prhs[])
+{
+    const char* mw_err_txt_ = 0;
+    int         in0_;    /* type       */
+    int         in1_;    /* dim        */
+    int64_t*    in2_ =0; /* n_modes    */
+    int         in3_;    /* iflag      */
+    int         in4_;    /* n_trans    */
+    double      in5_;    /* tol        */
+    finufft_plan*  in6_ =0; /* plan       */
+    finufft_opts*  in7_ =0; /* o          */
+    int         out0_;   /* ier        */
+    mwSize      dim8_;   /* 3          */
 
-  dim8_ = (mwSize)mxWrapGetScalar(prhs[8], &mw_err_txt_);
+    dim8_ = (mwSize) mxWrapGetScalar(prhs[8], &mw_err_txt_);
 
-  if (mxGetM(prhs[2]) * mxGetN(prhs[2]) != dim8_) {
-    mw_err_txt_ = "Bad argument size: n_modes";
-    goto mw_err_label;
-  }
+    if (mxGetM(prhs[2])*mxGetN(prhs[2]) != dim8_) {
+        mw_err_txt_ = "Bad argument size: n_modes";        goto mw_err_label;
+    }
 
-  if (mxGetClassID(prhs[0]) != mxDOUBLE_CLASS)
-    mw_err_txt_ = "Invalid scalar argument, mxDOUBLE_CLASS expected";
-  if (mw_err_txt_) goto mw_err_label;
-  in0_ = (int)mxWrapGetScalar(prhs[0], &mw_err_txt_);
-  if (mw_err_txt_) goto mw_err_label;
-  if (mxGetClassID(prhs[1]) != mxDOUBLE_CLASS)
-    mw_err_txt_ = "Invalid scalar argument, mxDOUBLE_CLASS expected";
-  if (mw_err_txt_) goto mw_err_label;
-  in1_ = (int)mxWrapGetScalar(prhs[1], &mw_err_txt_);
-  if (mw_err_txt_) goto mw_err_label;
-  if (mxGetM(prhs[2]) * mxGetN(prhs[2]) != 0) {
-    in2_ = mxWrapGetArray_int64_t(prhs[2], &mw_err_txt_);
+    if( mxGetClassID(prhs[0]) != mxDOUBLE_CLASS )
+        mw_err_txt_ = "Invalid scalar argument, mxDOUBLE_CLASS expected";
     if (mw_err_txt_) goto mw_err_label;
-  } else
-    in2_ = NULL;
-  if (mxGetClassID(prhs[3]) != mxDOUBLE_CLASS)
-    mw_err_txt_ = "Invalid scalar argument, mxDOUBLE_CLASS expected";
-  if (mw_err_txt_) goto mw_err_label;
-  in3_ = (int)mxWrapGetScalar(prhs[3], &mw_err_txt_);
-  if (mw_err_txt_) goto mw_err_label;
-  if (mxGetClassID(prhs[4]) != mxDOUBLE_CLASS)
-    mw_err_txt_ = "Invalid scalar argument, mxDOUBLE_CLASS expected";
-  if (mw_err_txt_) goto mw_err_label;
-  in4_ = (int)mxWrapGetScalar(prhs[4], &mw_err_txt_);
-  if (mw_err_txt_) goto mw_err_label;
-  if (mxGetClassID(prhs[5]) != mxDOUBLE_CLASS)
-    mw_err_txt_ = "Invalid scalar argument, mxDOUBLE_CLASS expected";
-  if (mw_err_txt_) goto mw_err_label;
-  in5_ = (double)mxWrapGetScalar(prhs[5], &mw_err_txt_);
-  if (mw_err_txt_) goto mw_err_label;
-  in6_ = (finufft_plan *)mxWrapGetP(prhs[6], "finufft_plan:%p", &mw_err_txt_);
-  if (mw_err_txt_) goto mw_err_label;
-  in7_ = (finufft_opts *)mxWrapGetP(prhs[7], "finufft_opts:%p", &mw_err_txt_);
-  if (mw_err_txt_) goto mw_err_label;
-  if (mexprofrecord_) mexprofrecord_[8]++;
-  out0_ = finufft_makeplan(in0_, in1_, in2_, in3_, in4_, in5_, in6_, in7_);
+    in0_ = (int) mxWrapGetScalar(prhs[0], &mw_err_txt_);
+    if (mw_err_txt_)
+        goto mw_err_label;
+
+    if( mxGetClassID(prhs[1]) != mxDOUBLE_CLASS )
+        mw_err_txt_ = "Invalid scalar argument, mxDOUBLE_CLASS expected";
+    if (mw_err_txt_) goto mw_err_label;
+    in1_ = (int) mxWrapGetScalar(prhs[1], &mw_err_txt_);
+    if (mw_err_txt_)
+        goto mw_err_label;
+
+    if (mxGetM(prhs[2])*mxGetN(prhs[2]) != 0) {
+        in2_ = mxWrapGetArray_int64_t(prhs[2], &mw_err_txt_);
+        if (mw_err_txt_)
+            goto mw_err_label;
+    } else
+        in2_ = NULL;
+
+    if( mxGetClassID(prhs[3]) != mxDOUBLE_CLASS )
+        mw_err_txt_ = "Invalid scalar argument, mxDOUBLE_CLASS expected";
+    if (mw_err_txt_) goto mw_err_label;
+    in3_ = (int) mxWrapGetScalar(prhs[3], &mw_err_txt_);
+    if (mw_err_txt_)
+        goto mw_err_label;
+
+    if( mxGetClassID(prhs[4]) != mxDOUBLE_CLASS )
+        mw_err_txt_ = "Invalid scalar argument, mxDOUBLE_CLASS expected";
+    if (mw_err_txt_) goto mw_err_label;
+    in4_ = (int) mxWrapGetScalar(prhs[4], &mw_err_txt_);
+    if (mw_err_txt_)
+        goto mw_err_label;
+
+    if( mxGetClassID(prhs[5]) != mxDOUBLE_CLASS )
+        mw_err_txt_ = "Invalid scalar argument, mxDOUBLE_CLASS expected";
+    if (mw_err_txt_) goto mw_err_label;
+    in5_ = (double) mxWrapGetScalar(prhs[5], &mw_err_txt_);
+    if (mw_err_txt_)
+        goto mw_err_label;
+
+    in6_ = (finufft_plan*) mxWrapGetP(prhs[6], "finufft_plan:%p", &mw_err_txt_);
+    if (mw_err_txt_)
+        goto mw_err_label;
+
+    in7_ = (finufft_opts*) mxWrapGetP(prhs[7], "finufft_opts:%p", &mw_err_txt_);
+    if (mw_err_txt_)
+        goto mw_err_label;
+
+    if (mexprofrecord_)
+        mexprofrecord_[8]++;
+    out0_ = finufft_makeplan(in0_, in1_, in2_, in3_, in4_, in5_, in6_, in7_);
 #if MX_HAS_INTERLEAVED_COMPLEX
-  plhs[0]                = mxCreateDoubleMatrix(1, 1, mxREAL);
-  *mxGetDoubles(plhs[0]) = out0_;
+    plhs[0] = mxCreateDoubleMatrix(1, 1, mxREAL);
+    *mxGetDoubles(plhs[0]) = out0_;
 #else
-  plhs[0]           = mxCreateDoubleMatrix(1, 1, mxREAL);
-  *mxGetPr(plhs[0]) = out0_;
+    plhs[0] = mxCreateDoubleMatrix(1, 1, mxREAL);
+    *mxGetPr(plhs[0]) = out0_;
 #endif
 
 mw_err_label:
-  if (in2_) mxFree(in2_);
-  if (mw_err_txt_) mexErrMsgTxt(mw_err_txt_);
+    if (in2_)  mxFree(in2_);
+    if (mw_err_txt_)
+        mexErrMsgTxt(mw_err_txt_);
 }
 
 /* ---- finufft.mw: 193 ----
- * int ier = finufftf_makeplan(int type, int dim, int64_t[3] n_modes, int iflag, int
- * n_trans, float tol, finufftf_plan* plan, finufft_opts* o);
+ * int ier = finufftf_makeplan(int type, int dim, int64_t[3] n_modes, int iflag, int n_trans, float tol, finufftf_plan* plan, finufft_opts* o);
  */
-static const char *stubids9_ = "o int = finufftf_makeplan(i int, i int, i int64_t[x], i "
-                               "int, i int, i float, i finufftf_plan*, i finufft_opts*)";
+static const char* stubids9_ = "c o int = finufftf_makeplan(c i int, c i int, c i int64_t[x], c i int, c i int, c i float, c i finufftf_plan*, c i finufft_opts*)";
 
-void mexStub9(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
-  const char *mw_err_txt_ = 0;
-  int in0_;                /* type       */
-  int in1_;                /* dim        */
-  int64_t *in2_ = 0;       /* n_modes    */
-  int in3_;                /* iflag      */
-  int in4_;                /* n_trans    */
-  float in5_;              /* tol        */
-  finufftf_plan *in6_ = 0; /* plan       */
-  finufft_opts *in7_  = 0; /* o          */
-  int out0_;               /* ier        */
-  mwSize dim8_;            /* 3          */
+void mexStub9(int nlhs, mxArray* plhs[],
+              int nrhs, const mxArray* prhs[])
+{
+    const char* mw_err_txt_ = 0;
+    int         in0_;    /* type       */
+    int         in1_;    /* dim        */
+    int64_t*    in2_ =0; /* n_modes    */
+    int         in3_;    /* iflag      */
+    int         in4_;    /* n_trans    */
+    float       in5_;    /* tol        */
+    finufftf_plan*  in6_ =0; /* plan       */
+    finufft_opts*  in7_ =0; /* o          */
+    int         out0_;   /* ier        */
+    mwSize      dim8_;   /* 3          */
 
-  dim8_ = (mwSize)mxWrapGetScalar(prhs[8], &mw_err_txt_);
+    dim8_ = (mwSize) mxWrapGetScalar(prhs[8], &mw_err_txt_);
 
-  if (mxGetM(prhs[2]) * mxGetN(prhs[2]) != dim8_) {
-    mw_err_txt_ = "Bad argument size: n_modes";
-    goto mw_err_label;
-  }
+    if (mxGetM(prhs[2])*mxGetN(prhs[2]) != dim8_) {
+        mw_err_txt_ = "Bad argument size: n_modes";        goto mw_err_label;
+    }
 
-  if (mxGetClassID(prhs[0]) != mxDOUBLE_CLASS)
-    mw_err_txt_ = "Invalid scalar argument, mxDOUBLE_CLASS expected";
-  if (mw_err_txt_) goto mw_err_label;
-  in0_ = (int)mxWrapGetScalar(prhs[0], &mw_err_txt_);
-  if (mw_err_txt_) goto mw_err_label;
-  if (mxGetClassID(prhs[1]) != mxDOUBLE_CLASS)
-    mw_err_txt_ = "Invalid scalar argument, mxDOUBLE_CLASS expected";
-  if (mw_err_txt_) goto mw_err_label;
-  in1_ = (int)mxWrapGetScalar(prhs[1], &mw_err_txt_);
-  if (mw_err_txt_) goto mw_err_label;
-  if (mxGetM(prhs[2]) * mxGetN(prhs[2]) != 0) {
-    in2_ = mxWrapGetArray_int64_t(prhs[2], &mw_err_txt_);
+    if( mxGetClassID(prhs[0]) != mxDOUBLE_CLASS )
+        mw_err_txt_ = "Invalid scalar argument, mxDOUBLE_CLASS expected";
     if (mw_err_txt_) goto mw_err_label;
-  } else
-    in2_ = NULL;
-  if (mxGetClassID(prhs[3]) != mxDOUBLE_CLASS)
-    mw_err_txt_ = "Invalid scalar argument, mxDOUBLE_CLASS expected";
-  if (mw_err_txt_) goto mw_err_label;
-  in3_ = (int)mxWrapGetScalar(prhs[3], &mw_err_txt_);
-  if (mw_err_txt_) goto mw_err_label;
-  if (mxGetClassID(prhs[4]) != mxDOUBLE_CLASS)
-    mw_err_txt_ = "Invalid scalar argument, mxDOUBLE_CLASS expected";
-  if (mw_err_txt_) goto mw_err_label;
-  in4_ = (int)mxWrapGetScalar(prhs[4], &mw_err_txt_);
-  if (mw_err_txt_) goto mw_err_label;
-  if (mxGetClassID(prhs[5]) != mxSINGLE_CLASS)
-    mw_err_txt_ = "Invalid scalar argument, mxSINGLE_CLASS expected";
-  if (mw_err_txt_) goto mw_err_label;
-  in5_ = (float)mxWrapGetScalar_single(prhs[5], &mw_err_txt_);
-  if (mw_err_txt_) goto mw_err_label;
-  in6_ = (finufftf_plan *)mxWrapGetP(prhs[6], "finufftf_plan:%p", &mw_err_txt_);
-  if (mw_err_txt_) goto mw_err_label;
-  in7_ = (finufft_opts *)mxWrapGetP(prhs[7], "finufft_opts:%p", &mw_err_txt_);
-  if (mw_err_txt_) goto mw_err_label;
-  if (mexprofrecord_) mexprofrecord_[9]++;
-  out0_ = finufftf_makeplan(in0_, in1_, in2_, in3_, in4_, in5_, in6_, in7_);
+    in0_ = (int) mxWrapGetScalar(prhs[0], &mw_err_txt_);
+    if (mw_err_txt_)
+        goto mw_err_label;
+
+    if( mxGetClassID(prhs[1]) != mxDOUBLE_CLASS )
+        mw_err_txt_ = "Invalid scalar argument, mxDOUBLE_CLASS expected";
+    if (mw_err_txt_) goto mw_err_label;
+    in1_ = (int) mxWrapGetScalar(prhs[1], &mw_err_txt_);
+    if (mw_err_txt_)
+        goto mw_err_label;
+
+    if (mxGetM(prhs[2])*mxGetN(prhs[2]) != 0) {
+        in2_ = mxWrapGetArray_int64_t(prhs[2], &mw_err_txt_);
+        if (mw_err_txt_)
+            goto mw_err_label;
+    } else
+        in2_ = NULL;
+
+    if( mxGetClassID(prhs[3]) != mxDOUBLE_CLASS )
+        mw_err_txt_ = "Invalid scalar argument, mxDOUBLE_CLASS expected";
+    if (mw_err_txt_) goto mw_err_label;
+    in3_ = (int) mxWrapGetScalar(prhs[3], &mw_err_txt_);
+    if (mw_err_txt_)
+        goto mw_err_label;
+
+    if( mxGetClassID(prhs[4]) != mxDOUBLE_CLASS )
+        mw_err_txt_ = "Invalid scalar argument, mxDOUBLE_CLASS expected";
+    if (mw_err_txt_) goto mw_err_label;
+    in4_ = (int) mxWrapGetScalar(prhs[4], &mw_err_txt_);
+    if (mw_err_txt_)
+        goto mw_err_label;
+
+    if( mxGetClassID(prhs[5]) != mxSINGLE_CLASS )
+        mw_err_txt_ = "Invalid scalar argument, mxSINGLE_CLASS expected";
+    if (mw_err_txt_) goto mw_err_label;
+    in5_ = (float) mxWrapGetScalar_single(prhs[5], &mw_err_txt_);
+    if (mw_err_txt_)
+        goto mw_err_label;
+
+    in6_ = (finufftf_plan*) mxWrapGetP(prhs[6], "finufftf_plan:%p", &mw_err_txt_);
+    if (mw_err_txt_)
+        goto mw_err_label;
+
+    in7_ = (finufft_opts*) mxWrapGetP(prhs[7], "finufft_opts:%p", &mw_err_txt_);
+    if (mw_err_txt_)
+        goto mw_err_label;
+
+    if (mexprofrecord_)
+        mexprofrecord_[9]++;
+    out0_ = finufftf_makeplan(in0_, in1_, in2_, in3_, in4_, in5_, in6_, in7_);
 #if MX_HAS_INTERLEAVED_COMPLEX
-  plhs[0]                = mxCreateDoubleMatrix(1, 1, mxREAL);
-  *mxGetDoubles(plhs[0]) = out0_;
+    plhs[0] = mxCreateDoubleMatrix(1, 1, mxREAL);
+    *mxGetDoubles(plhs[0]) = out0_;
 #else
-  plhs[0]           = mxCreateDoubleMatrix(1, 1, mxREAL);
-  *mxGetPr(plhs[0]) = out0_;
+    plhs[0] = mxCreateDoubleMatrix(1, 1, mxREAL);
+    *mxGetPr(plhs[0]) = out0_;
 #endif
 
 mw_err_label:
-  if (in2_) mxFree(in2_);
-  if (mw_err_txt_) mexErrMsgTxt(mw_err_txt_);
+    if (in2_)  mxFree(in2_);
+    if (mw_err_txt_)
+        mexErrMsgTxt(mw_err_txt_);
 }
 
 /* ---- finufft.mw: 195 ----
  * delete(finufft_opts* o);
  */
-static const char *stubids10_ = "delete(i finufft_opts*)";
+static const char* stubids10_ = "delete(c i finufft_opts*)";
 
-void mexStub10(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
-  const char *mw_err_txt_ = 0;
-  finufft_opts *in0_      = 0; /* o          */
+void mexStub10(int nlhs, mxArray* plhs[],
+              int nrhs, const mxArray* prhs[])
+{
+    const char* mw_err_txt_ = 0;
+    finufft_opts*  in0_ =0; /* o          */
 
-  in0_ = (finufft_opts *)mxWrapGetP(prhs[0], "finufft_opts:%p", &mw_err_txt_);
-  if (mw_err_txt_) goto mw_err_label;
-  if (mexprofrecord_) mexprofrecord_[10]++;
-  delete (in0_);
+    in0_ = (finufft_opts*) mxWrapGetP(prhs[0], "finufft_opts:%p", &mw_err_txt_);
+    if (mw_err_txt_)
+        goto mw_err_label;
+
+    if (mexprofrecord_)
+        mexprofrecord_[10]++;
+    delete(in0_);
 
 mw_err_label:
-  if (mw_err_txt_) mexErrMsgTxt(mw_err_txt_);
+    if (mw_err_txt_)
+        mexErrMsgTxt(mw_err_txt_);
 }
 
 /* ---- finufft.mw: 225 ----
- * int ier = finufft_setpts(finufft_plan plan, int64_t nj, double[] xj, double[] yj,
- * double[] zj, int64_t nk, double[] s, double[] t, double[] u);
+ * int ier = finufft_setpts(finufft_plan plan, int64_t nj, double[] xj, double[] yj, double[] zj, int64_t nk, double[] s, double[] t, double[] u);
  */
-static const char *stubids11_ =
-    "o int = finufft_setpts(i finufft_plan, i int64_t, i double[], i double[], i "
-    "double[], i int64_t, i double[], i double[], i double[])";
+static const char* stubids11_ = "c o int = finufft_setpts(c i finufft_plan, c i int64_t, c i double[], c i double[], c i double[], c i int64_t, c i double[], c i double[], c i double[])";
 
-void mexStub11(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
-  const char *mw_err_txt_ = 0;
-  finufft_plan *in0_      = 0; /* plan       */
-  int64_t in1_;                /* nj         */
-  double *in2_ = 0;            /* xj         */
-  double *in3_ = 0;            /* yj         */
-  double *in4_ = 0;            /* zj         */
-  int64_t in5_;                /* nk         */
-  double *in6_ = 0;            /* s          */
-  double *in7_ = 0;            /* t          */
-  double *in8_ = 0;            /* u          */
-  int out0_;                   /* ier        */
+void mexStub11(int nlhs, mxArray* plhs[],
+              int nrhs, const mxArray* prhs[])
+{
+    const char* mw_err_txt_ = 0;
+    finufft_plan*  in0_ =0; /* plan       */
+    int64_t     in1_;    /* nj         */
+    double*     in2_ =0; /* xj         */
+    double*     in3_ =0; /* yj         */
+    double*     in4_ =0; /* zj         */
+    int64_t     in5_;    /* nk         */
+    double*     in6_ =0; /* s          */
+    double*     in7_ =0; /* t          */
+    double*     in8_ =0; /* u          */
+    int         out0_;   /* ier        */
 
-  in0_ = (finufft_plan *)mxWrapGetP(prhs[0], "finufft_plan:%p", &mw_err_txt_);
-  if (mw_err_txt_) goto mw_err_label;
-  if (mxGetClassID(prhs[1]) != mxDOUBLE_CLASS)
-    mw_err_txt_ = "Invalid scalar argument, mxDOUBLE_CLASS expected";
-  if (mw_err_txt_) goto mw_err_label;
-  in1_ = (int64_t)mxWrapGetScalar(prhs[1], &mw_err_txt_);
-  if (mw_err_txt_) goto mw_err_label;
-  if (mxGetM(prhs[2]) * mxGetN(prhs[2]) != 0) {
-    if (mxGetClassID(prhs[2]) != mxDOUBLE_CLASS)
-      mw_err_txt_ = "Invalid array argument, mxDOUBLE_CLASS expected";
+    in0_ = (finufft_plan*) mxWrapGetP(prhs[0], "finufft_plan:%p", &mw_err_txt_);
+    if (mw_err_txt_)
+        goto mw_err_label;
+
+    if( mxGetClassID(prhs[1]) != mxDOUBLE_CLASS )
+        mw_err_txt_ = "Invalid scalar argument, mxDOUBLE_CLASS expected";
     if (mw_err_txt_) goto mw_err_label;
+    in1_ = (int64_t) mxWrapGetScalar(prhs[1], &mw_err_txt_);
+    if (mw_err_txt_)
+        goto mw_err_label;
+
+    if (mxGetM(prhs[2])*mxGetN(prhs[2]) != 0) {
+        if( mxGetClassID(prhs[2]) != mxDOUBLE_CLASS )
+            mw_err_txt_ = "Invalid array argument, mxDOUBLE_CLASS expected";
+        if (mw_err_txt_) goto mw_err_label;
 #if MX_HAS_INTERLEAVED_COMPLEX
-    in2_ = mxGetDoubles(prhs[2]);
+        in2_ = mxGetDoubles(prhs[2]);
 #else
-    in2_ = mxGetPr(prhs[2]);
+        in2_ = mxGetPr(prhs[2]);
 #endif
-  } else
-    in2_ = NULL;
-  if (mxGetM(prhs[3]) * mxGetN(prhs[3]) != 0) {
-    if (mxGetClassID(prhs[3]) != mxDOUBLE_CLASS)
-      mw_err_txt_ = "Invalid array argument, mxDOUBLE_CLASS expected";
+    } else
+        in2_ = NULL;
+
+    if (mxGetM(prhs[3])*mxGetN(prhs[3]) != 0) {
+        if( mxGetClassID(prhs[3]) != mxDOUBLE_CLASS )
+            mw_err_txt_ = "Invalid array argument, mxDOUBLE_CLASS expected";
+        if (mw_err_txt_) goto mw_err_label;
+#if MX_HAS_INTERLEAVED_COMPLEX
+        in3_ = mxGetDoubles(prhs[3]);
+#else
+        in3_ = mxGetPr(prhs[3]);
+#endif
+    } else
+        in3_ = NULL;
+
+    if (mxGetM(prhs[4])*mxGetN(prhs[4]) != 0) {
+        if( mxGetClassID(prhs[4]) != mxDOUBLE_CLASS )
+            mw_err_txt_ = "Invalid array argument, mxDOUBLE_CLASS expected";
+        if (mw_err_txt_) goto mw_err_label;
+#if MX_HAS_INTERLEAVED_COMPLEX
+        in4_ = mxGetDoubles(prhs[4]);
+#else
+        in4_ = mxGetPr(prhs[4]);
+#endif
+    } else
+        in4_ = NULL;
+
+    if( mxGetClassID(prhs[5]) != mxDOUBLE_CLASS )
+        mw_err_txt_ = "Invalid scalar argument, mxDOUBLE_CLASS expected";
     if (mw_err_txt_) goto mw_err_label;
+    in5_ = (int64_t) mxWrapGetScalar(prhs[5], &mw_err_txt_);
+    if (mw_err_txt_)
+        goto mw_err_label;
+
+    if (mxGetM(prhs[6])*mxGetN(prhs[6]) != 0) {
+        if( mxGetClassID(prhs[6]) != mxDOUBLE_CLASS )
+            mw_err_txt_ = "Invalid array argument, mxDOUBLE_CLASS expected";
+        if (mw_err_txt_) goto mw_err_label;
 #if MX_HAS_INTERLEAVED_COMPLEX
-    in3_ = mxGetDoubles(prhs[3]);
+        in6_ = mxGetDoubles(prhs[6]);
 #else
-    in3_ = mxGetPr(prhs[3]);
+        in6_ = mxGetPr(prhs[6]);
 #endif
-  } else
-    in3_ = NULL;
-  if (mxGetM(prhs[4]) * mxGetN(prhs[4]) != 0) {
-    if (mxGetClassID(prhs[4]) != mxDOUBLE_CLASS)
-      mw_err_txt_ = "Invalid array argument, mxDOUBLE_CLASS expected";
-    if (mw_err_txt_) goto mw_err_label;
+    } else
+        in6_ = NULL;
+
+    if (mxGetM(prhs[7])*mxGetN(prhs[7]) != 0) {
+        if( mxGetClassID(prhs[7]) != mxDOUBLE_CLASS )
+            mw_err_txt_ = "Invalid array argument, mxDOUBLE_CLASS expected";
+        if (mw_err_txt_) goto mw_err_label;
 #if MX_HAS_INTERLEAVED_COMPLEX
-    in4_ = mxGetDoubles(prhs[4]);
+        in7_ = mxGetDoubles(prhs[7]);
 #else
-    in4_ = mxGetPr(prhs[4]);
+        in7_ = mxGetPr(prhs[7]);
 #endif
-  } else
-    in4_ = NULL;
-  if (mxGetClassID(prhs[5]) != mxDOUBLE_CLASS)
-    mw_err_txt_ = "Invalid scalar argument, mxDOUBLE_CLASS expected";
-  if (mw_err_txt_) goto mw_err_label;
-  in5_ = (int64_t)mxWrapGetScalar(prhs[5], &mw_err_txt_);
-  if (mw_err_txt_) goto mw_err_label;
-  if (mxGetM(prhs[6]) * mxGetN(prhs[6]) != 0) {
-    if (mxGetClassID(prhs[6]) != mxDOUBLE_CLASS)
-      mw_err_txt_ = "Invalid array argument, mxDOUBLE_CLASS expected";
-    if (mw_err_txt_) goto mw_err_label;
+    } else
+        in7_ = NULL;
+
+    if (mxGetM(prhs[8])*mxGetN(prhs[8]) != 0) {
+        if( mxGetClassID(prhs[8]) != mxDOUBLE_CLASS )
+            mw_err_txt_ = "Invalid array argument, mxDOUBLE_CLASS expected";
+        if (mw_err_txt_) goto mw_err_label;
 #if MX_HAS_INTERLEAVED_COMPLEX
-    in6_ = mxGetDoubles(prhs[6]);
+        in8_ = mxGetDoubles(prhs[8]);
 #else
-    in6_ = mxGetPr(prhs[6]);
+        in8_ = mxGetPr(prhs[8]);
 #endif
-  } else
-    in6_ = NULL;
-  if (mxGetM(prhs[7]) * mxGetN(prhs[7]) != 0) {
-    if (mxGetClassID(prhs[7]) != mxDOUBLE_CLASS)
-      mw_err_txt_ = "Invalid array argument, mxDOUBLE_CLASS expected";
-    if (mw_err_txt_) goto mw_err_label;
+    } else
+        in8_ = NULL;
+
+    if (!in0_) {
+        mw_err_txt_ = "Argument plan cannot be null";
+        goto mw_err_label;
+    }
+    if (mexprofrecord_)
+        mexprofrecord_[11]++;
+    out0_ = finufft_setpts(*in0_, in1_, in2_, in3_, in4_, in5_, in6_, in7_, in8_);
 #if MX_HAS_INTERLEAVED_COMPLEX
-    in7_ = mxGetDoubles(prhs[7]);
+    plhs[0] = mxCreateDoubleMatrix(1, 1, mxREAL);
+    *mxGetDoubles(plhs[0]) = out0_;
 #else
-    in7_ = mxGetPr(prhs[7]);
-#endif
-  } else
-    in7_ = NULL;
-  if (mxGetM(prhs[8]) * mxGetN(prhs[8]) != 0) {
-    if (mxGetClassID(prhs[8]) != mxDOUBLE_CLASS)
-      mw_err_txt_ = "Invalid array argument, mxDOUBLE_CLASS expected";
-    if (mw_err_txt_) goto mw_err_label;
-#if MX_HAS_INTERLEAVED_COMPLEX
-    in8_ = mxGetDoubles(prhs[8]);
-#else
-    in8_ = mxGetPr(prhs[8]);
-#endif
-  } else
-    in8_ = NULL;
-  if (!in0_) {
-    mw_err_txt_ = "Argument plan cannot be null";
-    goto mw_err_label;
-  }
-  if (mexprofrecord_) mexprofrecord_[11]++;
-  out0_ = finufft_setpts(*in0_, in1_, in2_, in3_, in4_, in5_, in6_, in7_, in8_);
-#if MX_HAS_INTERLEAVED_COMPLEX
-  plhs[0]                = mxCreateDoubleMatrix(1, 1, mxREAL);
-  *mxGetDoubles(plhs[0]) = out0_;
-#else
-  plhs[0]           = mxCreateDoubleMatrix(1, 1, mxREAL);
-  *mxGetPr(plhs[0]) = out0_;
+    plhs[0] = mxCreateDoubleMatrix(1, 1, mxREAL);
+    *mxGetPr(plhs[0]) = out0_;
 #endif
 
 mw_err_label:
-  if (mw_err_txt_) mexErrMsgTxt(mw_err_txt_);
+    if (mw_err_txt_)
+        mexErrMsgTxt(mw_err_txt_);
 }
 
 /* ---- finufft.mw: 227 ----
- * int ier = finufftf_setpts(finufftf_plan plan, int64_t nj, float[] xj, float[] yj,
- * float[] zj, int64_t nk, float[] s, float[] t, float[] u);
+ * int ier = finufftf_setpts(finufftf_plan plan, int64_t nj, float[] xj, float[] yj, float[] zj, int64_t nk, float[] s, float[] t, float[] u);
  */
-static const char *stubids12_ =
-    "o int = finufftf_setpts(i finufftf_plan, i int64_t, i float[], i float[], i "
-    "float[], i int64_t, i float[], i float[], i float[])";
+static const char* stubids12_ = "c o int = finufftf_setpts(c i finufftf_plan, c i int64_t, c i float[], c i float[], c i float[], c i int64_t, c i float[], c i float[], c i float[])";
 
-void mexStub12(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
-  const char *mw_err_txt_ = 0;
-  finufftf_plan *in0_     = 0; /* plan       */
-  int64_t in1_;                /* nj         */
-  float *in2_ = 0;             /* xj         */
-  float *in3_ = 0;             /* yj         */
-  float *in4_ = 0;             /* zj         */
-  int64_t in5_;                /* nk         */
-  float *in6_ = 0;             /* s          */
-  float *in7_ = 0;             /* t          */
-  float *in8_ = 0;             /* u          */
-  int out0_;                   /* ier        */
+void mexStub12(int nlhs, mxArray* plhs[],
+              int nrhs, const mxArray* prhs[])
+{
+    const char* mw_err_txt_ = 0;
+    finufftf_plan*  in0_ =0; /* plan       */
+    int64_t     in1_;    /* nj         */
+    float*      in2_ =0; /* xj         */
+    float*      in3_ =0; /* yj         */
+    float*      in4_ =0; /* zj         */
+    int64_t     in5_;    /* nk         */
+    float*      in6_ =0; /* s          */
+    float*      in7_ =0; /* t          */
+    float*      in8_ =0; /* u          */
+    int         out0_;   /* ier        */
 
-  in0_ = (finufftf_plan *)mxWrapGetP(prhs[0], "finufftf_plan:%p", &mw_err_txt_);
-  if (mw_err_txt_) goto mw_err_label;
-  if (mxGetClassID(prhs[1]) != mxDOUBLE_CLASS)
-    mw_err_txt_ = "Invalid scalar argument, mxDOUBLE_CLASS expected";
-  if (mw_err_txt_) goto mw_err_label;
-  in1_ = (int64_t)mxWrapGetScalar(prhs[1], &mw_err_txt_);
-  if (mw_err_txt_) goto mw_err_label;
-  if (mxGetM(prhs[2]) * mxGetN(prhs[2]) != 0) {
-    if (mxGetClassID(prhs[2]) != mxSINGLE_CLASS)
-      mw_err_txt_ = "Invalid array argument, mxSINGLE_CLASS expected";
+    in0_ = (finufftf_plan*) mxWrapGetP(prhs[0], "finufftf_plan:%p", &mw_err_txt_);
+    if (mw_err_txt_)
+        goto mw_err_label;
+
+    if( mxGetClassID(prhs[1]) != mxDOUBLE_CLASS )
+        mw_err_txt_ = "Invalid scalar argument, mxDOUBLE_CLASS expected";
     if (mw_err_txt_) goto mw_err_label;
+    in1_ = (int64_t) mxWrapGetScalar(prhs[1], &mw_err_txt_);
+    if (mw_err_txt_)
+        goto mw_err_label;
+
+    if (mxGetM(prhs[2])*mxGetN(prhs[2]) != 0) {
+        if( mxGetClassID(prhs[2]) != mxSINGLE_CLASS )
+            mw_err_txt_ = "Invalid array argument, mxSINGLE_CLASS expected";
+        if (mw_err_txt_) goto mw_err_label;
 #if MX_HAS_INTERLEAVED_COMPLEX
-    in2_ = mxGetSingles(prhs[2]);
+        in2_ = mxGetSingles(prhs[2]);
 #else
-    in2_ = (float *)mxGetData(prhs[2]);
+        in2_ = (float*) mxGetData(prhs[2]);
 #endif
-  } else
-    in2_ = NULL;
-  if (mxGetM(prhs[3]) * mxGetN(prhs[3]) != 0) {
-    if (mxGetClassID(prhs[3]) != mxSINGLE_CLASS)
-      mw_err_txt_ = "Invalid array argument, mxSINGLE_CLASS expected";
+    } else
+        in2_ = NULL;
+
+    if (mxGetM(prhs[3])*mxGetN(prhs[3]) != 0) {
+        if( mxGetClassID(prhs[3]) != mxSINGLE_CLASS )
+            mw_err_txt_ = "Invalid array argument, mxSINGLE_CLASS expected";
+        if (mw_err_txt_) goto mw_err_label;
+#if MX_HAS_INTERLEAVED_COMPLEX
+        in3_ = mxGetSingles(prhs[3]);
+#else
+        in3_ = (float*) mxGetData(prhs[3]);
+#endif
+    } else
+        in3_ = NULL;
+
+    if (mxGetM(prhs[4])*mxGetN(prhs[4]) != 0) {
+        if( mxGetClassID(prhs[4]) != mxSINGLE_CLASS )
+            mw_err_txt_ = "Invalid array argument, mxSINGLE_CLASS expected";
+        if (mw_err_txt_) goto mw_err_label;
+#if MX_HAS_INTERLEAVED_COMPLEX
+        in4_ = mxGetSingles(prhs[4]);
+#else
+        in4_ = (float*) mxGetData(prhs[4]);
+#endif
+    } else
+        in4_ = NULL;
+
+    if( mxGetClassID(prhs[5]) != mxDOUBLE_CLASS )
+        mw_err_txt_ = "Invalid scalar argument, mxDOUBLE_CLASS expected";
     if (mw_err_txt_) goto mw_err_label;
+    in5_ = (int64_t) mxWrapGetScalar(prhs[5], &mw_err_txt_);
+    if (mw_err_txt_)
+        goto mw_err_label;
+
+    if (mxGetM(prhs[6])*mxGetN(prhs[6]) != 0) {
+        if( mxGetClassID(prhs[6]) != mxSINGLE_CLASS )
+            mw_err_txt_ = "Invalid array argument, mxSINGLE_CLASS expected";
+        if (mw_err_txt_) goto mw_err_label;
 #if MX_HAS_INTERLEAVED_COMPLEX
-    in3_ = mxGetSingles(prhs[3]);
+        in6_ = mxGetSingles(prhs[6]);
 #else
-    in3_ = (float *)mxGetData(prhs[3]);
+        in6_ = (float*) mxGetData(prhs[6]);
 #endif
-  } else
-    in3_ = NULL;
-  if (mxGetM(prhs[4]) * mxGetN(prhs[4]) != 0) {
-    if (mxGetClassID(prhs[4]) != mxSINGLE_CLASS)
-      mw_err_txt_ = "Invalid array argument, mxSINGLE_CLASS expected";
-    if (mw_err_txt_) goto mw_err_label;
+    } else
+        in6_ = NULL;
+
+    if (mxGetM(prhs[7])*mxGetN(prhs[7]) != 0) {
+        if( mxGetClassID(prhs[7]) != mxSINGLE_CLASS )
+            mw_err_txt_ = "Invalid array argument, mxSINGLE_CLASS expected";
+        if (mw_err_txt_) goto mw_err_label;
 #if MX_HAS_INTERLEAVED_COMPLEX
-    in4_ = mxGetSingles(prhs[4]);
+        in7_ = mxGetSingles(prhs[7]);
 #else
-    in4_ = (float *)mxGetData(prhs[4]);
+        in7_ = (float*) mxGetData(prhs[7]);
 #endif
-  } else
-    in4_ = NULL;
-  if (mxGetClassID(prhs[5]) != mxDOUBLE_CLASS)
-    mw_err_txt_ = "Invalid scalar argument, mxDOUBLE_CLASS expected";
-  if (mw_err_txt_) goto mw_err_label;
-  in5_ = (int64_t)mxWrapGetScalar(prhs[5], &mw_err_txt_);
-  if (mw_err_txt_) goto mw_err_label;
-  if (mxGetM(prhs[6]) * mxGetN(prhs[6]) != 0) {
-    if (mxGetClassID(prhs[6]) != mxSINGLE_CLASS)
-      mw_err_txt_ = "Invalid array argument, mxSINGLE_CLASS expected";
-    if (mw_err_txt_) goto mw_err_label;
+    } else
+        in7_ = NULL;
+
+    if (mxGetM(prhs[8])*mxGetN(prhs[8]) != 0) {
+        if( mxGetClassID(prhs[8]) != mxSINGLE_CLASS )
+            mw_err_txt_ = "Invalid array argument, mxSINGLE_CLASS expected";
+        if (mw_err_txt_) goto mw_err_label;
 #if MX_HAS_INTERLEAVED_COMPLEX
-    in6_ = mxGetSingles(prhs[6]);
+        in8_ = mxGetSingles(prhs[8]);
 #else
-    in6_ = (float *)mxGetData(prhs[6]);
+        in8_ = (float*) mxGetData(prhs[8]);
 #endif
-  } else
-    in6_ = NULL;
-  if (mxGetM(prhs[7]) * mxGetN(prhs[7]) != 0) {
-    if (mxGetClassID(prhs[7]) != mxSINGLE_CLASS)
-      mw_err_txt_ = "Invalid array argument, mxSINGLE_CLASS expected";
-    if (mw_err_txt_) goto mw_err_label;
+    } else
+        in8_ = NULL;
+
+    if (!in0_) {
+        mw_err_txt_ = "Argument plan cannot be null";
+        goto mw_err_label;
+    }
+    if (mexprofrecord_)
+        mexprofrecord_[12]++;
+    out0_ = finufftf_setpts(*in0_, in1_, in2_, in3_, in4_, in5_, in6_, in7_, in8_);
 #if MX_HAS_INTERLEAVED_COMPLEX
-    in7_ = mxGetSingles(prhs[7]);
+    plhs[0] = mxCreateDoubleMatrix(1, 1, mxREAL);
+    *mxGetDoubles(plhs[0]) = out0_;
 #else
-    in7_ = (float *)mxGetData(prhs[7]);
-#endif
-  } else
-    in7_ = NULL;
-  if (mxGetM(prhs[8]) * mxGetN(prhs[8]) != 0) {
-    if (mxGetClassID(prhs[8]) != mxSINGLE_CLASS)
-      mw_err_txt_ = "Invalid array argument, mxSINGLE_CLASS expected";
-    if (mw_err_txt_) goto mw_err_label;
-#if MX_HAS_INTERLEAVED_COMPLEX
-    in8_ = mxGetSingles(prhs[8]);
-#else
-    in8_ = (float *)mxGetData(prhs[8]);
-#endif
-  } else
-    in8_ = NULL;
-  if (!in0_) {
-    mw_err_txt_ = "Argument plan cannot be null";
-    goto mw_err_label;
-  }
-  if (mexprofrecord_) mexprofrecord_[12]++;
-  out0_ = finufftf_setpts(*in0_, in1_, in2_, in3_, in4_, in5_, in6_, in7_, in8_);
-#if MX_HAS_INTERLEAVED_COMPLEX
-  plhs[0]                = mxCreateDoubleMatrix(1, 1, mxREAL);
-  *mxGetDoubles(plhs[0]) = out0_;
-#else
-  plhs[0]           = mxCreateDoubleMatrix(1, 1, mxREAL);
-  *mxGetPr(plhs[0]) = out0_;
+    plhs[0] = mxCreateDoubleMatrix(1, 1, mxREAL);
+    *mxGetPr(plhs[0]) = out0_;
 #endif
 
 mw_err_label:
-  if (mw_err_txt_) mexErrMsgTxt(mw_err_txt_);
+    if (mw_err_txt_)
+        mexErrMsgTxt(mw_err_txt_);
 }
 
-/* ---- finufft.mw: 254 ----
- * int ier = finufft_execute(finufft_plan plan, dcomplex[] data_in, output
- * dcomplex[ncoeffs] result);
+/* ---- finufft.mw: 259 ----
+ * int ier = finufft_execute(finufft_plan plan, dcomplex[] data_in, output dcomplex[ncoeffs] result);
  */
-static const char *stubids13_ =
-    "o int = finufft_execute(i finufft_plan, i dcomplex[], o dcomplex[x])";
+static const char* stubids13_ = "c o int = finufft_execute(c i finufft_plan, c i dcomplex[], c o dcomplex[x])";
 
-void mexStub13(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
-  const char *mw_err_txt_ = 0;
-  finufft_plan *in0_      = 0; /* plan       */
-  dcomplex *in1_          = 0; /* data_in    */
-  int out0_;                   /* ier        */
-  dcomplex *out1_ = 0;         /* result     */
-  mwSize dim2_;                /* ncoeffs    */
+void mexStub13(int nlhs, mxArray* plhs[],
+              int nrhs, const mxArray* prhs[])
+{
+    const char* mw_err_txt_ = 0;
+    finufft_plan*  in0_ =0; /* plan       */
+    dcomplex*   in1_ =0; /* data_in    */
+    int         out0_;   /* ier        */
+    dcomplex*   out1_=0; /* result     */
+    mwSize      dim2_;   /* ncoeffs    */
 
-  dim2_ = (mwSize)mxWrapGetScalar(prhs[2], &mw_err_txt_);
+    dim2_ = (mwSize) mxWrapGetScalar(prhs[2], &mw_err_txt_);
 
-  in0_ = (finufft_plan *)mxWrapGetP(prhs[0], "finufft_plan:%p", &mw_err_txt_);
-  if (mw_err_txt_) goto mw_err_label;
-  if (mxGetM(prhs[1]) * mxGetN(prhs[1]) != 0) {
-    if (mxGetClassID(prhs[1]) != mxDOUBLE_CLASS)
-      mw_err_txt_ = "Invalid array argument, mxDOUBLE_CLASS expected";
-    if (mw_err_txt_) goto mw_err_label;
-    in1_ = mxWrapGetArray_dcomplex(prhs[1], &mw_err_txt_);
-    if (mw_err_txt_) goto mw_err_label;
-  } else
-    in1_ = NULL;
-  if (!in0_) {
-    mw_err_txt_ = "Argument plan cannot be null";
-    goto mw_err_label;
-  }
-  out1_ = (dcomplex *)mxMalloc(dim2_ * sizeof(dcomplex));
-  if (mexprofrecord_) mexprofrecord_[13]++;
-  out0_ = finufft_execute(*in0_, in1_, out1_);
+    in0_ = (finufft_plan*) mxWrapGetP(prhs[0], "finufft_plan:%p", &mw_err_txt_);
+    if (mw_err_txt_)
+        goto mw_err_label;
+
+    if (mxGetM(prhs[1])*mxGetN(prhs[1]) != 0) {
+        if( mxGetClassID(prhs[1]) != mxDOUBLE_CLASS )
+            mw_err_txt_ = "Invalid array argument, mxDOUBLE_CLASS expected";
+        if (mw_err_txt_) goto mw_err_label;
+        in1_ = mxWrapGetArray_dcomplex(prhs[1], &mw_err_txt_);
+        if (mw_err_txt_)
+            goto mw_err_label;
+    } else
+        in1_ = NULL;
+
+    if (!in0_) {
+        mw_err_txt_ = "Argument plan cannot be null";
+        goto mw_err_label;
+    }
+    out1_ = (dcomplex*) mxMalloc(dim2_*sizeof(dcomplex));
+    if (mexprofrecord_)
+        mexprofrecord_[13]++;
+    out0_ = finufft_execute(*in0_, in1_, out1_);
 #if MX_HAS_INTERLEAVED_COMPLEX
-  plhs[0]                = mxCreateDoubleMatrix(1, 1, mxREAL);
-  *mxGetDoubles(plhs[0]) = out0_;
+    plhs[0] = mxCreateDoubleMatrix(1, 1, mxREAL);
+    *mxGetDoubles(plhs[0]) = out0_;
 #else
-  plhs[0]           = mxCreateDoubleMatrix(1, 1, mxREAL);
-  *mxGetPr(plhs[0]) = out0_;
+    plhs[0] = mxCreateDoubleMatrix(1, 1, mxREAL);
+    *mxGetPr(plhs[0]) = out0_;
 #endif
-  plhs[1] = mxCreateDoubleMatrix(dim2_, 1, mxCOMPLEX);
-  mxWrapCopy_dcomplex(plhs[1], out1_, dim2_);
+    plhs[1] = mxCreateDoubleMatrix(dim2_, 1, mxCOMPLEX);
+    mxWrapCopy_dcomplex(plhs[1], out1_, dim2_);
 
 mw_err_label:
-  if (in1_) mxFree(in1_);
-  if (out1_) mxFree(out1_);
-  if (mw_err_txt_) mexErrMsgTxt(mw_err_txt_);
+    if (in1_)  mxFree(in1_);
+    if (out1_) mxFree(out1_);
+    if (mw_err_txt_)
+        mexErrMsgTxt(mw_err_txt_);
 }
 
-/* ---- finufft.mw: 256 ----
- * int ier = finufftf_execute(finufftf_plan plan, fcomplex[] data_in, output
- * fcomplex[ncoeffs] result);
+/* ---- finufft.mw: 261 ----
+ * int ier = finufftf_execute(finufftf_plan plan, fcomplex[] data_in, output fcomplex[ncoeffs] result);
  */
-static const char *stubids14_ =
-    "o int = finufftf_execute(i finufftf_plan, i fcomplex[], o fcomplex[x])";
+static const char* stubids14_ = "c o int = finufftf_execute(c i finufftf_plan, c i fcomplex[], c o fcomplex[x])";
 
-void mexStub14(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
-  const char *mw_err_txt_ = 0;
-  finufftf_plan *in0_     = 0; /* plan       */
-  fcomplex *in1_          = 0; /* data_in    */
-  int out0_;                   /* ier        */
-  fcomplex *out1_ = 0;         /* result     */
-  mwSize dim2_;                /* ncoeffs    */
+void mexStub14(int nlhs, mxArray* plhs[],
+              int nrhs, const mxArray* prhs[])
+{
+    const char* mw_err_txt_ = 0;
+    finufftf_plan*  in0_ =0; /* plan       */
+    fcomplex*   in1_ =0; /* data_in    */
+    int         out0_;   /* ier        */
+    fcomplex*   out1_=0; /* result     */
+    mwSize      dim2_;   /* ncoeffs    */
 
-  dim2_ = (mwSize)mxWrapGetScalar(prhs[2], &mw_err_txt_);
+    dim2_ = (mwSize) mxWrapGetScalar(prhs[2], &mw_err_txt_);
 
-  in0_ = (finufftf_plan *)mxWrapGetP(prhs[0], "finufftf_plan:%p", &mw_err_txt_);
-  if (mw_err_txt_) goto mw_err_label;
-  if (mxGetM(prhs[1]) * mxGetN(prhs[1]) != 0) {
-    if (mxGetClassID(prhs[1]) != mxSINGLE_CLASS)
-      mw_err_txt_ = "Invalid array argument, mxSINGLE_CLASS expected";
-    if (mw_err_txt_) goto mw_err_label;
-    in1_ = mxWrapGetArray_single_fcomplex(prhs[1], &mw_err_txt_);
-    if (mw_err_txt_) goto mw_err_label;
-  } else
-    in1_ = NULL;
-  if (!in0_) {
-    mw_err_txt_ = "Argument plan cannot be null";
-    goto mw_err_label;
-  }
-  out1_ = (fcomplex *)mxMalloc(dim2_ * sizeof(fcomplex));
-  if (mexprofrecord_) mexprofrecord_[14]++;
-  out0_ = finufftf_execute(*in0_, in1_, out1_);
+    in0_ = (finufftf_plan*) mxWrapGetP(prhs[0], "finufftf_plan:%p", &mw_err_txt_);
+    if (mw_err_txt_)
+        goto mw_err_label;
+
+    if (mxGetM(prhs[1])*mxGetN(prhs[1]) != 0) {
+        if( mxGetClassID(prhs[1]) != mxSINGLE_CLASS )
+            mw_err_txt_ = "Invalid array argument, mxSINGLE_CLASS expected";
+        if (mw_err_txt_) goto mw_err_label;
+        in1_ = mxWrapGetArray_single_fcomplex(prhs[1], &mw_err_txt_);
+        if (mw_err_txt_)
+            goto mw_err_label;
+    } else
+        in1_ = NULL;
+
+    if (!in0_) {
+        mw_err_txt_ = "Argument plan cannot be null";
+        goto mw_err_label;
+    }
+    out1_ = (fcomplex*) mxMalloc(dim2_*sizeof(fcomplex));
+    if (mexprofrecord_)
+        mexprofrecord_[14]++;
+    out0_ = finufftf_execute(*in0_, in1_, out1_);
 #if MX_HAS_INTERLEAVED_COMPLEX
-  plhs[0]                = mxCreateDoubleMatrix(1, 1, mxREAL);
-  *mxGetDoubles(plhs[0]) = out0_;
+    plhs[0] = mxCreateDoubleMatrix(1, 1, mxREAL);
+    *mxGetDoubles(plhs[0]) = out0_;
 #else
-  plhs[0]           = mxCreateDoubleMatrix(1, 1, mxREAL);
-  *mxGetPr(plhs[0]) = out0_;
+    plhs[0] = mxCreateDoubleMatrix(1, 1, mxREAL);
+    *mxGetPr(plhs[0]) = out0_;
 #endif
-  plhs[1] = mxCreateNumericMatrix(dim2_, 1, mxSINGLE_CLASS, mxCOMPLEX);
-  mxWrapCopy_single_fcomplex(plhs[1], out1_, dim2_);
+    plhs[1] = mxCreateNumericMatrix(dim2_, 1, mxSINGLE_CLASS, mxCOMPLEX);
+    mxWrapCopy_single_fcomplex(plhs[1], out1_, dim2_);
 
 mw_err_label:
-  if (in1_) mxFree(in1_);
-  if (out1_) mxFree(out1_);
-  if (mw_err_txt_) mexErrMsgTxt(mw_err_txt_);
+    if (in1_)  mxFree(in1_);
+    if (out1_) mxFree(out1_);
+    if (mw_err_txt_)
+        mexErrMsgTxt(mw_err_txt_);
 }
 
-/* ---- finufft.mw: 262 ----
- * int ier = finufft_execute(finufft_plan plan, output dcomplex[nj, n_trans] result,
- * dcomplex[] data_in);
+/* ---- finufft.mw: 267 ----
+ * int ier = finufft_execute(finufft_plan plan, output dcomplex[nj, n_trans] result, dcomplex[] data_in);
  */
-static const char *stubids15_ =
-    "o int = finufft_execute(i finufft_plan, o dcomplex[xx], i dcomplex[])";
+static const char* stubids15_ = "c o int = finufft_execute(c i finufft_plan, c o dcomplex[xx], c i dcomplex[])";
 
-void mexStub15(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
-  const char *mw_err_txt_ = 0;
-  finufft_plan *in0_      = 0; /* plan       */
-  dcomplex *in1_          = 0; /* data_in    */
-  int out0_;                   /* ier        */
-  dcomplex *out1_ = 0;         /* result     */
-  mwSize dim2_;                /* nj         */
-  mwSize dim3_;                /* n_trans    */
+void mexStub15(int nlhs, mxArray* plhs[],
+              int nrhs, const mxArray* prhs[])
+{
+    const char* mw_err_txt_ = 0;
+    finufft_plan*  in0_ =0; /* plan       */
+    dcomplex*   in1_ =0; /* data_in    */
+    int         out0_;   /* ier        */
+    dcomplex*   out1_=0; /* result     */
+    mwSize      dim2_;   /* nj         */
+    mwSize      dim3_;   /* n_trans    */
 
-  dim2_ = (mwSize)mxWrapGetScalar(prhs[2], &mw_err_txt_);
-  dim3_ = (mwSize)mxWrapGetScalar(prhs[3], &mw_err_txt_);
+    dim2_ = (mwSize) mxWrapGetScalar(prhs[2], &mw_err_txt_);
+    dim3_ = (mwSize) mxWrapGetScalar(prhs[3], &mw_err_txt_);
 
-  in0_ = (finufft_plan *)mxWrapGetP(prhs[0], "finufft_plan:%p", &mw_err_txt_);
-  if (mw_err_txt_) goto mw_err_label;
-  if (mxGetM(prhs[1]) * mxGetN(prhs[1]) != 0) {
-    if (mxGetClassID(prhs[1]) != mxDOUBLE_CLASS)
-      mw_err_txt_ = "Invalid array argument, mxDOUBLE_CLASS expected";
-    if (mw_err_txt_) goto mw_err_label;
-    in1_ = mxWrapGetArray_dcomplex(prhs[1], &mw_err_txt_);
-    if (mw_err_txt_) goto mw_err_label;
-  } else
-    in1_ = NULL;
-  if (!in0_) {
-    mw_err_txt_ = "Argument plan cannot be null";
-    goto mw_err_label;
-  }
-  out1_ = (dcomplex *)mxMalloc(dim2_ * dim3_ * sizeof(dcomplex));
-  if (mexprofrecord_) mexprofrecord_[15]++;
-  out0_ = finufft_execute(*in0_, out1_, in1_);
+    in0_ = (finufft_plan*) mxWrapGetP(prhs[0], "finufft_plan:%p", &mw_err_txt_);
+    if (mw_err_txt_)
+        goto mw_err_label;
+
+    if (mxGetM(prhs[1])*mxGetN(prhs[1]) != 0) {
+        if( mxGetClassID(prhs[1]) != mxDOUBLE_CLASS )
+            mw_err_txt_ = "Invalid array argument, mxDOUBLE_CLASS expected";
+        if (mw_err_txt_) goto mw_err_label;
+        in1_ = mxWrapGetArray_dcomplex(prhs[1], &mw_err_txt_);
+        if (mw_err_txt_)
+            goto mw_err_label;
+    } else
+        in1_ = NULL;
+
+    if (!in0_) {
+        mw_err_txt_ = "Argument plan cannot be null";
+        goto mw_err_label;
+    }
+    out1_ = (dcomplex*) mxMalloc(dim2_*dim3_*sizeof(dcomplex));
+    if (mexprofrecord_)
+        mexprofrecord_[15]++;
+    out0_ = finufft_execute(*in0_, out1_, in1_);
 #if MX_HAS_INTERLEAVED_COMPLEX
-  plhs[0]                = mxCreateDoubleMatrix(1, 1, mxREAL);
-  *mxGetDoubles(plhs[0]) = out0_;
+    plhs[0] = mxCreateDoubleMatrix(1, 1, mxREAL);
+    *mxGetDoubles(plhs[0]) = out0_;
 #else
-  plhs[0]           = mxCreateDoubleMatrix(1, 1, mxREAL);
-  *mxGetPr(plhs[0]) = out0_;
+    plhs[0] = mxCreateDoubleMatrix(1, 1, mxREAL);
+    *mxGetPr(plhs[0]) = out0_;
 #endif
-  plhs[1] = mxCreateDoubleMatrix(dim2_, dim3_, mxCOMPLEX);
-  mxWrapCopy_dcomplex(plhs[1], out1_, dim2_ * dim3_);
+    plhs[1] = mxCreateDoubleMatrix(dim2_, dim3_, mxCOMPLEX);
+    mxWrapCopy_dcomplex(plhs[1], out1_, dim2_*dim3_);
 
 mw_err_label:
-  if (out1_) mxFree(out1_);
-  if (in1_) mxFree(in1_);
-  if (mw_err_txt_) mexErrMsgTxt(mw_err_txt_);
+    if (out1_) mxFree(out1_);
+    if (in1_)  mxFree(in1_);
+    if (mw_err_txt_)
+        mexErrMsgTxt(mw_err_txt_);
 }
 
-/* ---- finufft.mw: 264 ----
- * int ier = finufftf_execute(finufftf_plan plan, output fcomplex[nj, n_trans] result,
- * fcomplex[] data_in);
+/* ---- finufft.mw: 269 ----
+ * int ier = finufftf_execute(finufftf_plan plan, output fcomplex[nj, n_trans] result, fcomplex[] data_in);
  */
-static const char *stubids16_ =
-    "o int = finufftf_execute(i finufftf_plan, o fcomplex[xx], i fcomplex[])";
+static const char* stubids16_ = "c o int = finufftf_execute(c i finufftf_plan, c o fcomplex[xx], c i fcomplex[])";
 
-void mexStub16(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
-  const char *mw_err_txt_ = 0;
-  finufftf_plan *in0_     = 0; /* plan       */
-  fcomplex *in1_          = 0; /* data_in    */
-  int out0_;                   /* ier        */
-  fcomplex *out1_ = 0;         /* result     */
-  mwSize dim2_;                /* nj         */
-  mwSize dim3_;                /* n_trans    */
+void mexStub16(int nlhs, mxArray* plhs[],
+              int nrhs, const mxArray* prhs[])
+{
+    const char* mw_err_txt_ = 0;
+    finufftf_plan*  in0_ =0; /* plan       */
+    fcomplex*   in1_ =0; /* data_in    */
+    int         out0_;   /* ier        */
+    fcomplex*   out1_=0; /* result     */
+    mwSize      dim2_;   /* nj         */
+    mwSize      dim3_;   /* n_trans    */
 
-  dim2_ = (mwSize)mxWrapGetScalar(prhs[2], &mw_err_txt_);
-  dim3_ = (mwSize)mxWrapGetScalar(prhs[3], &mw_err_txt_);
+    dim2_ = (mwSize) mxWrapGetScalar(prhs[2], &mw_err_txt_);
+    dim3_ = (mwSize) mxWrapGetScalar(prhs[3], &mw_err_txt_);
 
-  in0_ = (finufftf_plan *)mxWrapGetP(prhs[0], "finufftf_plan:%p", &mw_err_txt_);
-  if (mw_err_txt_) goto mw_err_label;
-  if (mxGetM(prhs[1]) * mxGetN(prhs[1]) != 0) {
-    if (mxGetClassID(prhs[1]) != mxSINGLE_CLASS)
-      mw_err_txt_ = "Invalid array argument, mxSINGLE_CLASS expected";
-    if (mw_err_txt_) goto mw_err_label;
-    in1_ = mxWrapGetArray_single_fcomplex(prhs[1], &mw_err_txt_);
-    if (mw_err_txt_) goto mw_err_label;
-  } else
-    in1_ = NULL;
-  if (!in0_) {
-    mw_err_txt_ = "Argument plan cannot be null";
-    goto mw_err_label;
-  }
-  out1_ = (fcomplex *)mxMalloc(dim2_ * dim3_ * sizeof(fcomplex));
-  if (mexprofrecord_) mexprofrecord_[16]++;
-  out0_ = finufftf_execute(*in0_, out1_, in1_);
+    in0_ = (finufftf_plan*) mxWrapGetP(prhs[0], "finufftf_plan:%p", &mw_err_txt_);
+    if (mw_err_txt_)
+        goto mw_err_label;
+
+    if (mxGetM(prhs[1])*mxGetN(prhs[1]) != 0) {
+        if( mxGetClassID(prhs[1]) != mxSINGLE_CLASS )
+            mw_err_txt_ = "Invalid array argument, mxSINGLE_CLASS expected";
+        if (mw_err_txt_) goto mw_err_label;
+        in1_ = mxWrapGetArray_single_fcomplex(prhs[1], &mw_err_txt_);
+        if (mw_err_txt_)
+            goto mw_err_label;
+    } else
+        in1_ = NULL;
+
+    if (!in0_) {
+        mw_err_txt_ = "Argument plan cannot be null";
+        goto mw_err_label;
+    }
+    out1_ = (fcomplex*) mxMalloc(dim2_*dim3_*sizeof(fcomplex));
+    if (mexprofrecord_)
+        mexprofrecord_[16]++;
+    out0_ = finufftf_execute(*in0_, out1_, in1_);
 #if MX_HAS_INTERLEAVED_COMPLEX
-  plhs[0]                = mxCreateDoubleMatrix(1, 1, mxREAL);
-  *mxGetDoubles(plhs[0]) = out0_;
+    plhs[0] = mxCreateDoubleMatrix(1, 1, mxREAL);
+    *mxGetDoubles(plhs[0]) = out0_;
 #else
-  plhs[0]           = mxCreateDoubleMatrix(1, 1, mxREAL);
-  *mxGetPr(plhs[0]) = out0_;
+    plhs[0] = mxCreateDoubleMatrix(1, 1, mxREAL);
+    *mxGetPr(plhs[0]) = out0_;
 #endif
-  plhs[1] = mxCreateNumericMatrix(dim2_, dim3_, mxSINGLE_CLASS, mxCOMPLEX);
-  mxWrapCopy_single_fcomplex(plhs[1], out1_, dim2_ * dim3_);
+    plhs[1] = mxCreateNumericMatrix(dim2_, dim3_, mxSINGLE_CLASS, mxCOMPLEX);
+    mxWrapCopy_single_fcomplex(plhs[1], out1_, dim2_*dim3_);
 
 mw_err_label:
-  if (out1_) mxFree(out1_);
-  if (in1_) mxFree(in1_);
-  if (mw_err_txt_) mexErrMsgTxt(mw_err_txt_);
+    if (out1_) mxFree(out1_);
+    if (in1_)  mxFree(in1_);
+    if (mw_err_txt_)
+        mexErrMsgTxt(mw_err_txt_);
 }
 
-/* ---- finufft.mw: 268 ----
- * int ier = finufft_execute(finufft_plan plan, dcomplex[] data_in, output dcomplex[nk,
- * n_trans] result);
+/* ---- finufft.mw: 273 ----
+ * int ier = finufft_execute(finufft_plan plan, dcomplex[] data_in, output dcomplex[nk, n_trans] result);
  */
-static const char *stubids17_ =
-    "o int = finufft_execute(i finufft_plan, i dcomplex[], o dcomplex[xx])";
+static const char* stubids17_ = "c o int = finufft_execute(c i finufft_plan, c i dcomplex[], c o dcomplex[xx])";
 
-void mexStub17(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
-  const char *mw_err_txt_ = 0;
-  finufft_plan *in0_      = 0; /* plan       */
-  dcomplex *in1_          = 0; /* data_in    */
-  int out0_;                   /* ier        */
-  dcomplex *out1_ = 0;         /* result     */
-  mwSize dim2_;                /* nk         */
-  mwSize dim3_;                /* n_trans    */
+void mexStub17(int nlhs, mxArray* plhs[],
+              int nrhs, const mxArray* prhs[])
+{
+    const char* mw_err_txt_ = 0;
+    finufft_plan*  in0_ =0; /* plan       */
+    dcomplex*   in1_ =0; /* data_in    */
+    int         out0_;   /* ier        */
+    dcomplex*   out1_=0; /* result     */
+    mwSize      dim2_;   /* nk         */
+    mwSize      dim3_;   /* n_trans    */
 
-  dim2_ = (mwSize)mxWrapGetScalar(prhs[2], &mw_err_txt_);
-  dim3_ = (mwSize)mxWrapGetScalar(prhs[3], &mw_err_txt_);
+    dim2_ = (mwSize) mxWrapGetScalar(prhs[2], &mw_err_txt_);
+    dim3_ = (mwSize) mxWrapGetScalar(prhs[3], &mw_err_txt_);
 
-  in0_ = (finufft_plan *)mxWrapGetP(prhs[0], "finufft_plan:%p", &mw_err_txt_);
-  if (mw_err_txt_) goto mw_err_label;
-  if (mxGetM(prhs[1]) * mxGetN(prhs[1]) != 0) {
-    if (mxGetClassID(prhs[1]) != mxDOUBLE_CLASS)
-      mw_err_txt_ = "Invalid array argument, mxDOUBLE_CLASS expected";
-    if (mw_err_txt_) goto mw_err_label;
-    in1_ = mxWrapGetArray_dcomplex(prhs[1], &mw_err_txt_);
-    if (mw_err_txt_) goto mw_err_label;
-  } else
-    in1_ = NULL;
-  if (!in0_) {
-    mw_err_txt_ = "Argument plan cannot be null";
-    goto mw_err_label;
-  }
-  out1_ = (dcomplex *)mxMalloc(dim2_ * dim3_ * sizeof(dcomplex));
-  if (mexprofrecord_) mexprofrecord_[17]++;
-  out0_ = finufft_execute(*in0_, in1_, out1_);
+    in0_ = (finufft_plan*) mxWrapGetP(prhs[0], "finufft_plan:%p", &mw_err_txt_);
+    if (mw_err_txt_)
+        goto mw_err_label;
+
+    if (mxGetM(prhs[1])*mxGetN(prhs[1]) != 0) {
+        if( mxGetClassID(prhs[1]) != mxDOUBLE_CLASS )
+            mw_err_txt_ = "Invalid array argument, mxDOUBLE_CLASS expected";
+        if (mw_err_txt_) goto mw_err_label;
+        in1_ = mxWrapGetArray_dcomplex(prhs[1], &mw_err_txt_);
+        if (mw_err_txt_)
+            goto mw_err_label;
+    } else
+        in1_ = NULL;
+
+    if (!in0_) {
+        mw_err_txt_ = "Argument plan cannot be null";
+        goto mw_err_label;
+    }
+    out1_ = (dcomplex*) mxMalloc(dim2_*dim3_*sizeof(dcomplex));
+    if (mexprofrecord_)
+        mexprofrecord_[17]++;
+    out0_ = finufft_execute(*in0_, in1_, out1_);
 #if MX_HAS_INTERLEAVED_COMPLEX
-  plhs[0]                = mxCreateDoubleMatrix(1, 1, mxREAL);
-  *mxGetDoubles(plhs[0]) = out0_;
+    plhs[0] = mxCreateDoubleMatrix(1, 1, mxREAL);
+    *mxGetDoubles(plhs[0]) = out0_;
 #else
-  plhs[0]           = mxCreateDoubleMatrix(1, 1, mxREAL);
-  *mxGetPr(plhs[0]) = out0_;
+    plhs[0] = mxCreateDoubleMatrix(1, 1, mxREAL);
+    *mxGetPr(plhs[0]) = out0_;
 #endif
-  plhs[1] = mxCreateDoubleMatrix(dim2_, dim3_, mxCOMPLEX);
-  mxWrapCopy_dcomplex(plhs[1], out1_, dim2_ * dim3_);
+    plhs[1] = mxCreateDoubleMatrix(dim2_, dim3_, mxCOMPLEX);
+    mxWrapCopy_dcomplex(plhs[1], out1_, dim2_*dim3_);
 
 mw_err_label:
-  if (in1_) mxFree(in1_);
-  if (out1_) mxFree(out1_);
-  if (mw_err_txt_) mexErrMsgTxt(mw_err_txt_);
+    if (in1_)  mxFree(in1_);
+    if (out1_) mxFree(out1_);
+    if (mw_err_txt_)
+        mexErrMsgTxt(mw_err_txt_);
 }
 
-/* ---- finufft.mw: 270 ----
- * int ier = finufftf_execute(finufftf_plan plan, fcomplex[] data_in, output fcomplex[nk,
- * n_trans] result);
+/* ---- finufft.mw: 275 ----
+ * int ier = finufftf_execute(finufftf_plan plan, fcomplex[] data_in, output fcomplex[nk, n_trans] result);
  */
-static const char *stubids18_ =
-    "o int = finufftf_execute(i finufftf_plan, i fcomplex[], o fcomplex[xx])";
+static const char* stubids18_ = "c o int = finufftf_execute(c i finufftf_plan, c i fcomplex[], c o fcomplex[xx])";
 
-void mexStub18(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
-  const char *mw_err_txt_ = 0;
-  finufftf_plan *in0_     = 0; /* plan       */
-  fcomplex *in1_          = 0; /* data_in    */
-  int out0_;                   /* ier        */
-  fcomplex *out1_ = 0;         /* result     */
-  mwSize dim2_;                /* nk         */
-  mwSize dim3_;                /* n_trans    */
+void mexStub18(int nlhs, mxArray* plhs[],
+              int nrhs, const mxArray* prhs[])
+{
+    const char* mw_err_txt_ = 0;
+    finufftf_plan*  in0_ =0; /* plan       */
+    fcomplex*   in1_ =0; /* data_in    */
+    int         out0_;   /* ier        */
+    fcomplex*   out1_=0; /* result     */
+    mwSize      dim2_;   /* nk         */
+    mwSize      dim3_;   /* n_trans    */
 
-  dim2_ = (mwSize)mxWrapGetScalar(prhs[2], &mw_err_txt_);
-  dim3_ = (mwSize)mxWrapGetScalar(prhs[3], &mw_err_txt_);
+    dim2_ = (mwSize) mxWrapGetScalar(prhs[2], &mw_err_txt_);
+    dim3_ = (mwSize) mxWrapGetScalar(prhs[3], &mw_err_txt_);
 
-  in0_ = (finufftf_plan *)mxWrapGetP(prhs[0], "finufftf_plan:%p", &mw_err_txt_);
-  if (mw_err_txt_) goto mw_err_label;
-  if (mxGetM(prhs[1]) * mxGetN(prhs[1]) != 0) {
-    if (mxGetClassID(prhs[1]) != mxSINGLE_CLASS)
-      mw_err_txt_ = "Invalid array argument, mxSINGLE_CLASS expected";
-    if (mw_err_txt_) goto mw_err_label;
-    in1_ = mxWrapGetArray_single_fcomplex(prhs[1], &mw_err_txt_);
-    if (mw_err_txt_) goto mw_err_label;
-  } else
-    in1_ = NULL;
-  if (!in0_) {
-    mw_err_txt_ = "Argument plan cannot be null";
-    goto mw_err_label;
-  }
-  out1_ = (fcomplex *)mxMalloc(dim2_ * dim3_ * sizeof(fcomplex));
-  if (mexprofrecord_) mexprofrecord_[18]++;
-  out0_ = finufftf_execute(*in0_, in1_, out1_);
+    in0_ = (finufftf_plan*) mxWrapGetP(prhs[0], "finufftf_plan:%p", &mw_err_txt_);
+    if (mw_err_txt_)
+        goto mw_err_label;
+
+    if (mxGetM(prhs[1])*mxGetN(prhs[1]) != 0) {
+        if( mxGetClassID(prhs[1]) != mxSINGLE_CLASS )
+            mw_err_txt_ = "Invalid array argument, mxSINGLE_CLASS expected";
+        if (mw_err_txt_) goto mw_err_label;
+        in1_ = mxWrapGetArray_single_fcomplex(prhs[1], &mw_err_txt_);
+        if (mw_err_txt_)
+            goto mw_err_label;
+    } else
+        in1_ = NULL;
+
+    if (!in0_) {
+        mw_err_txt_ = "Argument plan cannot be null";
+        goto mw_err_label;
+    }
+    out1_ = (fcomplex*) mxMalloc(dim2_*dim3_*sizeof(fcomplex));
+    if (mexprofrecord_)
+        mexprofrecord_[18]++;
+    out0_ = finufftf_execute(*in0_, in1_, out1_);
 #if MX_HAS_INTERLEAVED_COMPLEX
-  plhs[0]                = mxCreateDoubleMatrix(1, 1, mxREAL);
-  *mxGetDoubles(plhs[0]) = out0_;
+    plhs[0] = mxCreateDoubleMatrix(1, 1, mxREAL);
+    *mxGetDoubles(plhs[0]) = out0_;
 #else
-  plhs[0]           = mxCreateDoubleMatrix(1, 1, mxREAL);
-  *mxGetPr(plhs[0]) = out0_;
+    plhs[0] = mxCreateDoubleMatrix(1, 1, mxREAL);
+    *mxGetPr(plhs[0]) = out0_;
 #endif
-  plhs[1] = mxCreateNumericMatrix(dim2_, dim3_, mxSINGLE_CLASS, mxCOMPLEX);
-  mxWrapCopy_single_fcomplex(plhs[1], out1_, dim2_ * dim3_);
+    plhs[1] = mxCreateNumericMatrix(dim2_, dim3_, mxSINGLE_CLASS, mxCOMPLEX);
+    mxWrapCopy_single_fcomplex(plhs[1], out1_, dim2_*dim3_);
 
 mw_err_label:
-  if (in1_) mxFree(in1_);
-  if (out1_) mxFree(out1_);
-  if (mw_err_txt_) mexErrMsgTxt(mw_err_txt_);
+    if (in1_)  mxFree(in1_);
+    if (out1_) mxFree(out1_);
+    if (mw_err_txt_)
+        mexErrMsgTxt(mw_err_txt_);
 }
 
-/* ---- finufft.mw: 282 ----
+/* ---- finufft.mw: 287 ----
  * finufft_destroy(finufft_plan plan);
  */
-static const char *stubids19_ = "finufft_destroy(i finufft_plan)";
+static const char* stubids19_ = "finufft_destroy(c i finufft_plan)";
 
-void mexStub19(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
-  const char *mw_err_txt_ = 0;
-  finufft_plan *in0_      = 0; /* plan       */
+void mexStub19(int nlhs, mxArray* plhs[],
+              int nrhs, const mxArray* prhs[])
+{
+    const char* mw_err_txt_ = 0;
+    finufft_plan*  in0_ =0; /* plan       */
 
-  in0_ = (finufft_plan *)mxWrapGetP(prhs[0], "finufft_plan:%p", &mw_err_txt_);
-  if (mw_err_txt_) goto mw_err_label;
-  if (!in0_) {
-    mw_err_txt_ = "Argument plan cannot be null";
-    goto mw_err_label;
-  }
-  if (mexprofrecord_) mexprofrecord_[19]++;
-  finufft_destroy(*in0_);
+    in0_ = (finufft_plan*) mxWrapGetP(prhs[0], "finufft_plan:%p", &mw_err_txt_);
+    if (mw_err_txt_)
+        goto mw_err_label;
+
+    if (!in0_) {
+        mw_err_txt_ = "Argument plan cannot be null";
+        goto mw_err_label;
+    }
+    if (mexprofrecord_)
+        mexprofrecord_[19]++;
+    finufft_destroy(*in0_);
 
 mw_err_label:
-  if (mw_err_txt_) mexErrMsgTxt(mw_err_txt_);
+    if (mw_err_txt_)
+        mexErrMsgTxt(mw_err_txt_);
 }
 
-/* ---- finufft.mw: 284 ----
+/* ---- finufft.mw: 289 ----
  * finufftf_destroy(finufftf_plan plan);
  */
-static const char *stubids20_ = "finufftf_destroy(i finufftf_plan)";
+static const char* stubids20_ = "finufftf_destroy(c i finufftf_plan)";
 
-void mexStub20(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
-  const char *mw_err_txt_ = 0;
-  finufftf_plan *in0_     = 0; /* plan       */
+void mexStub20(int nlhs, mxArray* plhs[],
+              int nrhs, const mxArray* prhs[])
+{
+    const char* mw_err_txt_ = 0;
+    finufftf_plan*  in0_ =0; /* plan       */
 
-  in0_ = (finufftf_plan *)mxWrapGetP(prhs[0], "finufftf_plan:%p", &mw_err_txt_);
-  if (mw_err_txt_) goto mw_err_label;
-  if (!in0_) {
-    mw_err_txt_ = "Argument plan cannot be null";
-    goto mw_err_label;
-  }
-  if (mexprofrecord_) mexprofrecord_[20]++;
-  finufftf_destroy(*in0_);
+    in0_ = (finufftf_plan*) mxWrapGetP(prhs[0], "finufftf_plan:%p", &mw_err_txt_);
+    if (mw_err_txt_)
+        goto mw_err_label;
+
+    if (!in0_) {
+        mw_err_txt_ = "Argument plan cannot be null";
+        goto mw_err_label;
+    }
+    if (mexprofrecord_)
+        mexprofrecord_[20]++;
+    finufftf_destroy(*in0_);
 
 mw_err_label:
-  if (mw_err_txt_) mexErrMsgTxt(mw_err_txt_);
+    if (mw_err_txt_)
+        mexErrMsgTxt(mw_err_txt_);
 }
 
 /* ----
  */
-void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
-  char id[512];
-  if (nrhs == 0) {
-    mexPrintf("Mex function installed\n");
-    return;
-  }
+void mexFunction(int nlhs, mxArray* plhs[],
+                 int nrhs, const mxArray* prhs[])
+{
+    char id[1024];
+    if (nrhs == 0) {
+        mexPrintf("Mex function installed\n");
+        return;
+    }
 
-  if (mxGetString(prhs[0], id, sizeof(id)) != 0)
-    mexErrMsgTxt("Identifier should be a string");
-  else if (strcmp(id, stubids1_) == 0)
-    mexStub1(nlhs, plhs, nrhs - 1, prhs + 1);
-  else if (strcmp(id, stubids2_) == 0)
-    mexStub2(nlhs, plhs, nrhs - 1, prhs + 1);
-  else if (strcmp(id, stubids3_) == 0)
-    mexStub3(nlhs, plhs, nrhs - 1, prhs + 1);
-  else if (strcmp(id, stubids4_) == 0)
-    mexStub4(nlhs, plhs, nrhs - 1, prhs + 1);
-  else if (strcmp(id, stubids5_) == 0)
-    mexStub5(nlhs, plhs, nrhs - 1, prhs + 1);
-  else if (strcmp(id, stubids6_) == 0)
-    mexStub6(nlhs, plhs, nrhs - 1, prhs + 1);
-  else if (strcmp(id, stubids7_) == 0)
-    mexStub7(nlhs, plhs, nrhs - 1, prhs + 1);
-  else if (strcmp(id, stubids8_) == 0)
-    mexStub8(nlhs, plhs, nrhs - 1, prhs + 1);
-  else if (strcmp(id, stubids9_) == 0)
-    mexStub9(nlhs, plhs, nrhs - 1, prhs + 1);
-  else if (strcmp(id, stubids10_) == 0)
-    mexStub10(nlhs, plhs, nrhs - 1, prhs + 1);
-  else if (strcmp(id, stubids11_) == 0)
-    mexStub11(nlhs, plhs, nrhs - 1, prhs + 1);
-  else if (strcmp(id, stubids12_) == 0)
-    mexStub12(nlhs, plhs, nrhs - 1, prhs + 1);
-  else if (strcmp(id, stubids13_) == 0)
-    mexStub13(nlhs, plhs, nrhs - 1, prhs + 1);
-  else if (strcmp(id, stubids14_) == 0)
-    mexStub14(nlhs, plhs, nrhs - 1, prhs + 1);
-  else if (strcmp(id, stubids15_) == 0)
-    mexStub15(nlhs, plhs, nrhs - 1, prhs + 1);
-  else if (strcmp(id, stubids16_) == 0)
-    mexStub16(nlhs, plhs, nrhs - 1, prhs + 1);
-  else if (strcmp(id, stubids17_) == 0)
-    mexStub17(nlhs, plhs, nrhs - 1, prhs + 1);
-  else if (strcmp(id, stubids18_) == 0)
-    mexStub18(nlhs, plhs, nrhs - 1, prhs + 1);
-  else if (strcmp(id, stubids19_) == 0)
-    mexStub19(nlhs, plhs, nrhs - 1, prhs + 1);
-  else if (strcmp(id, stubids20_) == 0)
-    mexStub20(nlhs, plhs, nrhs - 1, prhs + 1);
-  else if (strcmp(id, "*profile on*") == 0) {
-    if (!mexprofrecord_) {
-      mexprofrecord_ = (int *)malloc(21 * sizeof(int));
-      mexLock();
-    }
-    memset(mexprofrecord_, 0, 21 * sizeof(int));
-  } else if (strcmp(id, "*profile off*") == 0) {
-    if (mexprofrecord_) {
-      free(mexprofrecord_);
-      mexUnlock();
-    }
-    mexprofrecord_ = NULL;
-  } else if (strcmp(id, "*profile report*") == 0) {
-    if (!mexprofrecord_) mexPrintf("Profiler inactive\n");
-    mexPrintf("%d calls to finufft.mw:169\n", mexprofrecord_[1]);
-    mexPrintf("%d calls to finufft.mw:170\n", mexprofrecord_[2]);
-    mexPrintf("%d calls to finufft.mw:172\n", mexprofrecord_[3]);
-    mexPrintf("%d calls to finufft.mw:173\n", mexprofrecord_[4]);
-    mexPrintf("%d calls to finufft.mw:175\n", mexprofrecord_[5]);
-    mexPrintf("%d calls to finufft.mw:176\n", mexprofrecord_[6]);
-    mexPrintf("%d calls to finufft.mw:187\n", mexprofrecord_[7]);
-    mexPrintf("%d calls to finufft.mw:190\n", mexprofrecord_[8]);
-    mexPrintf("%d calls to finufft.mw:193\n", mexprofrecord_[9]);
-    mexPrintf("%d calls to finufft.mw:195\n", mexprofrecord_[10]);
-    mexPrintf("%d calls to finufft.mw:225\n", mexprofrecord_[11]);
-    mexPrintf("%d calls to finufft.mw:227\n", mexprofrecord_[12]);
-    mexPrintf("%d calls to finufft.mw:254\n", mexprofrecord_[13]);
-    mexPrintf("%d calls to finufft.mw:256\n", mexprofrecord_[14]);
-    mexPrintf("%d calls to finufft.mw:262\n", mexprofrecord_[15]);
-    mexPrintf("%d calls to finufft.mw:264\n", mexprofrecord_[16]);
-    mexPrintf("%d calls to finufft.mw:268\n", mexprofrecord_[17]);
-    mexPrintf("%d calls to finufft.mw:270\n", mexprofrecord_[18]);
-    mexPrintf("%d calls to finufft.mw:282\n", mexprofrecord_[19]);
-    mexPrintf("%d calls to finufft.mw:284\n", mexprofrecord_[20]);
-  } else if (strcmp(id, "*profile log*") == 0) {
-    FILE *logfp;
-    if (nrhs != 2 || mxGetString(prhs[1], id, sizeof(id)) != 0)
-      mexErrMsgTxt("Must have two string arguments");
-    logfp = fopen(id, "w+");
-    if (!logfp) mexErrMsgTxt("Cannot open log for output");
-    if (!mexprofrecord_) fprintf(logfp, "Profiler inactive\n");
-    fprintf(logfp, "%d calls to finufft.mw:169\n", mexprofrecord_[1]);
-    fprintf(logfp, "%d calls to finufft.mw:170\n", mexprofrecord_[2]);
-    fprintf(logfp, "%d calls to finufft.mw:172\n", mexprofrecord_[3]);
-    fprintf(logfp, "%d calls to finufft.mw:173\n", mexprofrecord_[4]);
-    fprintf(logfp, "%d calls to finufft.mw:175\n", mexprofrecord_[5]);
-    fprintf(logfp, "%d calls to finufft.mw:176\n", mexprofrecord_[6]);
-    fprintf(logfp, "%d calls to finufft.mw:187\n", mexprofrecord_[7]);
-    fprintf(logfp, "%d calls to finufft.mw:190\n", mexprofrecord_[8]);
-    fprintf(logfp, "%d calls to finufft.mw:193\n", mexprofrecord_[9]);
-    fprintf(logfp, "%d calls to finufft.mw:195\n", mexprofrecord_[10]);
-    fprintf(logfp, "%d calls to finufft.mw:225\n", mexprofrecord_[11]);
-    fprintf(logfp, "%d calls to finufft.mw:227\n", mexprofrecord_[12]);
-    fprintf(logfp, "%d calls to finufft.mw:254\n", mexprofrecord_[13]);
-    fprintf(logfp, "%d calls to finufft.mw:256\n", mexprofrecord_[14]);
-    fprintf(logfp, "%d calls to finufft.mw:262\n", mexprofrecord_[15]);
-    fprintf(logfp, "%d calls to finufft.mw:264\n", mexprofrecord_[16]);
-    fprintf(logfp, "%d calls to finufft.mw:268\n", mexprofrecord_[17]);
-    fprintf(logfp, "%d calls to finufft.mw:270\n", mexprofrecord_[18]);
-    fprintf(logfp, "%d calls to finufft.mw:282\n", mexprofrecord_[19]);
-    fprintf(logfp, "%d calls to finufft.mw:284\n", mexprofrecord_[20]);
-    fclose(logfp);
-  } else
-    mexErrMsgTxt("Unknown identifier");
+
+
+    if (mxGetString(prhs[0], id, sizeof(id)) != 0)
+        mexErrMsgTxt("Identifier should be a string");
+    else if (strcmp(id, stubids1_) == 0)
+        mexStub1(nlhs,plhs, nrhs-1,prhs+1);
+    else if (strcmp(id, stubids2_) == 0)
+        mexStub2(nlhs,plhs, nrhs-1,prhs+1);
+    else if (strcmp(id, stubids3_) == 0)
+        mexStub3(nlhs,plhs, nrhs-1,prhs+1);
+    else if (strcmp(id, stubids4_) == 0)
+        mexStub4(nlhs,plhs, nrhs-1,prhs+1);
+    else if (strcmp(id, stubids5_) == 0)
+        mexStub5(nlhs,plhs, nrhs-1,prhs+1);
+    else if (strcmp(id, stubids6_) == 0)
+        mexStub6(nlhs,plhs, nrhs-1,prhs+1);
+    else if (strcmp(id, stubids7_) == 0)
+        mexStub7(nlhs,plhs, nrhs-1,prhs+1);
+    else if (strcmp(id, stubids8_) == 0)
+        mexStub8(nlhs,plhs, nrhs-1,prhs+1);
+    else if (strcmp(id, stubids9_) == 0)
+        mexStub9(nlhs,plhs, nrhs-1,prhs+1);
+    else if (strcmp(id, stubids10_) == 0)
+        mexStub10(nlhs,plhs, nrhs-1,prhs+1);
+    else if (strcmp(id, stubids11_) == 0)
+        mexStub11(nlhs,plhs, nrhs-1,prhs+1);
+    else if (strcmp(id, stubids12_) == 0)
+        mexStub12(nlhs,plhs, nrhs-1,prhs+1);
+    else if (strcmp(id, stubids13_) == 0)
+        mexStub13(nlhs,plhs, nrhs-1,prhs+1);
+    else if (strcmp(id, stubids14_) == 0)
+        mexStub14(nlhs,plhs, nrhs-1,prhs+1);
+    else if (strcmp(id, stubids15_) == 0)
+        mexStub15(nlhs,plhs, nrhs-1,prhs+1);
+    else if (strcmp(id, stubids16_) == 0)
+        mexStub16(nlhs,plhs, nrhs-1,prhs+1);
+    else if (strcmp(id, stubids17_) == 0)
+        mexStub17(nlhs,plhs, nrhs-1,prhs+1);
+    else if (strcmp(id, stubids18_) == 0)
+        mexStub18(nlhs,plhs, nrhs-1,prhs+1);
+    else if (strcmp(id, stubids19_) == 0)
+        mexStub19(nlhs,plhs, nrhs-1,prhs+1);
+    else if (strcmp(id, stubids20_) == 0)
+        mexStub20(nlhs,plhs, nrhs-1,prhs+1);
+    else if (strcmp(id, "*profile on*") == 0) {
+        if (!mexprofrecord_) {
+            mexprofrecord_ = (int*) malloc(21 * sizeof(int));
+            mexLock();
+        }
+        memset(mexprofrecord_, 0, 21 * sizeof(int));
+    } else if (strcmp(id, "*profile off*") == 0) {
+        if (mexprofrecord_) {
+            free(mexprofrecord_);
+            mexUnlock();
+        }
+        mexprofrecord_ = NULL;
+    } else if (strcmp(id, "*profile report*") == 0) {
+        if (!mexprofrecord_)
+            mexPrintf("Profiler inactive\n");
+        mexPrintf("%d calls to finufft.mw:169\n", mexprofrecord_[1]);
+        mexPrintf("%d calls to finufft.mw:170\n", mexprofrecord_[2]);
+        mexPrintf("%d calls to finufft.mw:172\n", mexprofrecord_[3]);
+        mexPrintf("%d calls to finufft.mw:173\n", mexprofrecord_[4]);
+        mexPrintf("%d calls to finufft.mw:175\n", mexprofrecord_[5]);
+        mexPrintf("%d calls to finufft.mw:176\n", mexprofrecord_[6]);
+        mexPrintf("%d calls to finufft.mw:187\n", mexprofrecord_[7]);
+        mexPrintf("%d calls to finufft.mw:190\n", mexprofrecord_[8]);
+        mexPrintf("%d calls to finufft.mw:193\n", mexprofrecord_[9]);
+        mexPrintf("%d calls to finufft.mw:195\n", mexprofrecord_[10]);
+        mexPrintf("%d calls to finufft.mw:225\n", mexprofrecord_[11]);
+        mexPrintf("%d calls to finufft.mw:227\n", mexprofrecord_[12]);
+        mexPrintf("%d calls to finufft.mw:259\n", mexprofrecord_[13]);
+        mexPrintf("%d calls to finufft.mw:261\n", mexprofrecord_[14]);
+        mexPrintf("%d calls to finufft.mw:267\n", mexprofrecord_[15]);
+        mexPrintf("%d calls to finufft.mw:269\n", mexprofrecord_[16]);
+        mexPrintf("%d calls to finufft.mw:273\n", mexprofrecord_[17]);
+        mexPrintf("%d calls to finufft.mw:275\n", mexprofrecord_[18]);
+        mexPrintf("%d calls to finufft.mw:287\n", mexprofrecord_[19]);
+        mexPrintf("%d calls to finufft.mw:289\n", mexprofrecord_[20]);
+    } else if (strcmp(id, "*profile log*") == 0) {
+        FILE* logfp;
+        if (nrhs != 2 || mxGetString(prhs[1], id, sizeof(id)) != 0)
+            mexErrMsgTxt("Must have two string arguments");
+        logfp = fopen(id, "w+");
+        if (!logfp)
+            mexErrMsgTxt("Cannot open log for output");
+        if (!mexprofrecord_)
+            fprintf(logfp, "Profiler inactive\n");
+        fprintf(logfp, "%d calls to finufft.mw:169\n", mexprofrecord_[1]);
+        fprintf(logfp, "%d calls to finufft.mw:170\n", mexprofrecord_[2]);
+        fprintf(logfp, "%d calls to finufft.mw:172\n", mexprofrecord_[3]);
+        fprintf(logfp, "%d calls to finufft.mw:173\n", mexprofrecord_[4]);
+        fprintf(logfp, "%d calls to finufft.mw:175\n", mexprofrecord_[5]);
+        fprintf(logfp, "%d calls to finufft.mw:176\n", mexprofrecord_[6]);
+        fprintf(logfp, "%d calls to finufft.mw:187\n", mexprofrecord_[7]);
+        fprintf(logfp, "%d calls to finufft.mw:190\n", mexprofrecord_[8]);
+        fprintf(logfp, "%d calls to finufft.mw:193\n", mexprofrecord_[9]);
+        fprintf(logfp, "%d calls to finufft.mw:195\n", mexprofrecord_[10]);
+        fprintf(logfp, "%d calls to finufft.mw:225\n", mexprofrecord_[11]);
+        fprintf(logfp, "%d calls to finufft.mw:227\n", mexprofrecord_[12]);
+        fprintf(logfp, "%d calls to finufft.mw:259\n", mexprofrecord_[13]);
+        fprintf(logfp, "%d calls to finufft.mw:261\n", mexprofrecord_[14]);
+        fprintf(logfp, "%d calls to finufft.mw:267\n", mexprofrecord_[15]);
+        fprintf(logfp, "%d calls to finufft.mw:269\n", mexprofrecord_[16]);
+        fprintf(logfp, "%d calls to finufft.mw:273\n", mexprofrecord_[17]);
+        fprintf(logfp, "%d calls to finufft.mw:275\n", mexprofrecord_[18]);
+        fprintf(logfp, "%d calls to finufft.mw:287\n", mexprofrecord_[19]);
+        fprintf(logfp, "%d calls to finufft.mw:289\n", mexprofrecord_[20]);
+        fclose(logfp);
+    } else
+        mexErrMsgTxt("Unknown identifier");
 }
+

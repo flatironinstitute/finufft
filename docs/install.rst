@@ -284,8 +284,8 @@ See :ref:`below<install-python>` for python compilation.
 
 ``make matlab`` to compile the MEX interface to matlab,
 then within MATLAB add the ``matlab`` directory to your path,
-cd to ``matlab/test`` and run ``check_finufft`` which should run for 3 secs
-and print a bunch of errors of typical size ``1e-6``.
+cd to ``matlab/test`` and run ``fullmathtest`` which should run for 1 second
+and pass.
 
 .. note::
 
@@ -366,7 +366,7 @@ Whichever you picked, now try ``make test -j``, and clang should compile and you
 you should now ``make matlab``. You may need to do ``make matlab -j``; see
 https://github.com/flatironinstitute/finufft/issues/157 which needs attention.
 To test, open MATLAB, ``addpath matlab``,
-``cd matlab/test``, and ``check_finufft``, which should complete in around 3 seconds.
+``cd matlab/test``, and ``fullmathtest``, which should pass in about 1 second.
 
 .. note::
 

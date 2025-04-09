@@ -4,7 +4,7 @@
 # It expands .docsrc into .docexp using tags, then
 # prepend these comment doc help blocks onto .m matlab codes.
 # Warning: overwrites all m-files, stripping first % or empty lines; careful!
-# Barnett 6/12/20, simplified.
+# Barnett 6/12/20, simplified. 4/1/25, added GPU codes.
 
 # stage 1: flesh out *.docsrc (input i) to *.docexp (output o)...
 for i in *.docsrc
@@ -31,6 +31,18 @@ do
                 # notes for the simple/many interfaces, not guru
                 cat notes.docbit
                 ;;
+            GOPTS)
+                # GPU opts descriptions common to all routines
+                cat gopts.docbit
+                ;;
+            GOPTS12)
+                # GPU just opts for types 1,2, not type 3
+                cat gopts12.docbit
+                ;;
+            GNOTES)
+                # GPU notes for the simple/many interfaces, not guru
+                cat gnotes.docbit
+                ;;
             *)
                 # all else is piped through
                 echo "$line"
@@ -41,7 +53,7 @@ do
 done
 
 # stage 2: prepend doc to needed .m files after first stripping any top % block
-for mfile in finufft?d?.m finufft_plan.m
+for mfile in finufft?d?.m finufft_plan.m cufinufft?d?.m cufinufft_plan.m
 do
     o=${mfile/.m/.docexp}
     # read from .m (skipping leading % or empty lines), appending to .docexp:

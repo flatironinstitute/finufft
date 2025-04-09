@@ -1,9 +1,12 @@
-MATLAB/octave interfaces
+.. _matlab:
+
+MATLAB/Octave interfaces
 ========================
 
 .. note::
 
-   See the :ref:`installation page <install>` for how to build these interfaces, or look `here <http://users.flatironinstitute.org/~ahb/codes/finufft-binaries>`_.
+   See the :ref:`installation page <install>` for how to build these interfaces.
+
 
 Quick-start examples
 ~~~~~~~~~~~~~~~~~~~~
@@ -92,13 +95,13 @@ y direction. The source points are in the square of side length $2\pi$:
 The resulting output ``f`` is indeed size 1000 by 500. The first dimension
 (number of rows) corresponds to the x input coordinate, and the second to y.
 
-If you need to change the definition of the period from $2\pi$, simply
-linearly rescale your points before sending them to FINUFFT.
+If you need to change the definition of the period from $2\pi$, you cannot;
+instead linearly rescale your points before sending them to FINUFFT.
 
 .. note::
 
    Under the hood FINUFFT has double- and single-precision libraries.
-   The simple and vectorized MATLAB/octave interfaces infer which to call by checking the class of its input arrays, which must all match (ie, all must be ``double`` or all must be ``single``).
+   The simple and vectorized MATLAB/Octave interfaces infer which to call by checking the class of its input arrays, which must all match (ie, all must be ``double`` or all must be ``single``).
    Since by default MATLAB arrays are double-precision, this is the precision that all of the above examples run in.
    To perform single-precision transforms, send in single-precision data.
    In contrast, precision in the guru interface is set with the ``finufft_plan`` option string ``o.floatprec``, either ``'double'`` (the default), or ``'single'``.
@@ -110,7 +113,8 @@ See
 Full documentation
 ~~~~~~~~~~~~~~~~~~
 
-Here are the help documentation strings for all MATLAB/octave interfaces.
+Here are the help documentation strings for all MATLAB/Octave interfaces
+(including GPU interfaces which may not be available in your installation).
 They only abbreviate the options (for full documentation see :ref:`opts`).
 Informative warnings and errors are raised in MATLAB style with unique
 codes (see ``../matlab/errhandler.m``, ``../matlab/finufft.mw``, and
@@ -123,6 +127,6 @@ MATLAB path via something like ``addpath FINUFFT/matlab``, then
 
 .. literalinclude:: ../matlab/Contents.m
 
-The individual commands have the following help documentation:
+The individual CPU commands have the following help documentation:
 
 .. include:: matlabhelp.doc
