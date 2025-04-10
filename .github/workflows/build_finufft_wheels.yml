@@ -1,0 +1,48 @@
+name: Build and test finufft Python wheels
+
+on: [ push, pull_request ]
+
+jobs:
+  build_wheels:
+    name: Build finufft wheels on ${{ matrix.buildplat[1] }}
+    runs-on: ${{ matrix.buildplat[0] }}
+    strategy:
+#      fail-fast: false
+      matrix:
+        buildplat:
+          - [ ubuntu-22.04, manylinux_x86_64 ]
+          - [ ubuntu-22.04, musllinux_x86_64 ]
+          - [ macos-13, macosx_x86_64 ]
+          - [ macos-14, macosx_arm64 ]
+          - [ windows-2019, win_amd64 ]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        if: ${{ runner.os == 'Windows' }}
+        run: |
+          # Here we install the mingw64 versions of gcc and FFTW that we will
+          # use to compile the library. We also need pkg-config so that cmake
+          # can easily find FFTW when configurating the build.
+          c:\msys64\usr\bin\pacman.exe -Sy --noconfirm mingw-w64-x86_64-gcc mingw-w64-x86_64-fftw mingw-w64-x86_64-pkgconf
+          # This particular install of mingw64 *is not* in the path by default
+          # (another one at c:\mingw64 is, however), so we add it to the path.
+          echo "c:\msys64\mingw64\bin;" >> $env:GITHUB_PATH
+      - name: Build ${{ matrix.buildplat[1] }} wheels
+        uses: pypa/cibuildwheel@v2.22.0
+        with:
+          package-dir: 'python/finufft'
+        env:
+          CIBW_ARCHS_LINUX: x86_64
+          CIBW_BEFORE_ALL_MACOS: |
+            brew install llvm libomp
+          CIBW_ENVIRONMENT_MACOS: >
+            CC=$(brew --prefix llvm)/bin/clang
+            CXX=$(brew --prefix llvm)/bin/clang++
+            CFLAGS="-I$(brew --prefix libomp)/include"
+            LDFLAGS="-L$(brew --prefix libomp)/lib"
+            MACOSX_DEPLOYMENT_TARGET=${{ matrix.buildplat[0] == 'macos-14' && '14' || '13' }}
+          CIBW_BUILD: '*-${{ matrix.buildplat[1] }}'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: finufft-wheels-${{ matrix.buildplat[1] }}
+          path: ./wheelhouse/*.whl

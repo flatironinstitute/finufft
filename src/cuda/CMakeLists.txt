@@ -17,12 +17,7 @@ set(PRECISION_DEPENDENT_SRC
     common.cu
 )
 
-set(CUFINUFFT_INCLUDE_DIRS
-    ${PROJECT_SOURCE_DIR}/include
-    ${PROJECT_SOURCE_DIR}/contrib
-    $<TARGET_PROPERTY:CUDA::cudart,INTERFACE_INCLUDE_DIRECTORIES>
-    $<TARGET_PROPERTY:CUDA::cufft,INTERFACE_INCLUDE_DIRECTORIES>
-)
+set(CUFINUFFT_INCLUDE_DIRS ${PROJECT_SOURCE_DIR}/include ${PROJECT_SOURCE_DIR}/contrib)
 
 set(CUFINUFFT_INCLUDE_DIRS ${CUFINUFFT_INCLUDE_DIRS} PARENT_SCOPE)
 
@@ -33,9 +28,7 @@ set(FINUFFT_CUDA_FLAGS
     -ftz=true
     -fmad=true
     -restrict
-    --extra-device-vectorization
-    -Xnvlink
-    --strip-all>
+    --extra-device-vectorization>
 )
 
 if(FINUFFT_SHARED_LINKING)
@@ -62,8 +55,8 @@ set_target_properties(
 )
 target_compile_features(cufinufft PRIVATE cxx_std_17)
 target_compile_options(cufinufft PRIVATE ${FINUFFT_CUDA_FLAGS})
-if(WIN32 OR (BUILD_TESTING AND FINUFFT_BUILD_TESTS) OR env{CIBUILDWHEEL})
-    target_link_libraries(cufinufft PUBLIC CUDA::cudart CUDA::cufft)
+if(WIN32 OR (BUILD_TESTING AND FINUFFT_BUILD_TESTS) OR CIBUILDWHEEL)
+    target_link_libraries(cufinufft PUBLIC CUDA::cufft CUDA::cudart)
 else()
     target_link_libraries(cufinufft PUBLIC CUDA::cudart_static CUDA::cufft_static)
 endif()
