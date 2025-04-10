@@ -33,7 +33,9 @@ struct Spread3DDispatcher {
     case 4:
       return cuspread3d_blockgather<T, ns>(nf1, nf2, nf3, M, d_plan, blksize);
     default:
-      std::cerr << "[cuspread3d] error: incorrect method, should be 1, 2, or 4\n";
+      std::cerr << "[cuspread3d] error: invalid method " +
+                       std::to_string(d_plan->opts.gpu_method) +
+                       ", should be 1, 2, or 4\n";
       return FINUFFT_ERR_METHOD_NOTVALID;
     }
   }
@@ -573,7 +575,46 @@ int cuspread3d_subprob(int nf1, int nf2, int nf3, int M, cufinufft_plan_t<T> *d_
 
 template<typename T, int ns>
 int cuspread3d_output_driven(int nf1, int nf2, int nf3, int M,
-                             cufinufft_plan_t<T> *d_plan, int blksize) {}
+                             cufinufft_plan_t<T> *d_plan, int blksize) {
+  auto &stream = d_plan->stream;
+
+  dim3 threadsPerBlock;
+  dim3 blocks;
+
+  T sigma   = d_plan->spopts.upsampfac;
+  T es_c    = d_plan->spopts.ES_c;
+  T es_beta = d_plan->spopts.ES_beta;
+
+  int *d_idxnupts       = d_plan->idxnupts;
+  T *d_kx               = d_plan->kx;
+  T *d_ky               = d_plan->ky;
+  T *d_kz               = d_plan->kz;
+  cuda_complex<T> *d_c  = d_plan->c;
+  cuda_complex<T> *d_fw = d_plan->fw;
+
+  threadsPerBlock.x = 16;
+  threadsPerBlock.y = 1;
+  blocks.x          = (M + threadsPerBlock.x - 1) / threadsPerBlock.x;
+  blocks.y          = 1;
+
+  if (d_plan->opts.gpu_kerevalmeth == 1) {
+    for (int t = 0; t < blksize; t++) {
+      spread_3d_output_driven<T, 1, ns><<<blocks, threadsPerBlock, 0, stream>>>(
+          d_kx, d_ky, d_kz, d_c + t * M, d_fw + t * nf1 * nf2 * nf3, M, nf1, nf2, nf3,
+          es_c, es_beta, sigma, d_idxnupts);
+      RETURN_IF_CUDA_ERROR
+    }
+  } else {
+    for (int t = 0; t < blksize; t++) {
+      spread_3d_output_driven<T, 0, ns><<<blocks, threadsPerBlock, 0, stream>>>(
+          d_kx, d_ky, d_kz, d_c + t * M, d_fw + t * nf1 * nf2 * nf3, M, nf1, nf2, nf3,
+          es_c, es_beta, sigma, d_idxnupts);
+      RETURN_IF_CUDA_ERROR
+    }
+  }
+
+  return 0;
+}
 
 template int cuspread3d<float>(cufinufft_plan_t<float> *d_plan, int blksize);
 template int cuspread3d<double>(cufinufft_plan_t<double> *d_plan, int blksize);
