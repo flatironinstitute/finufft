@@ -83,7 +83,7 @@ static int set_nf_type12(BIGINT ms, const finufft_opts &opts,
 // and requested number of Fourier modes ms. Returns 0 if success, else an
 // error code if nf was unreasonably big (& tell the world).
 {
-  *nf = BIGINT(opts.upsampfac * double(ms)); // manner of rounding not crucial
+  *nf = BIGINT(std::ceil(opts.upsampfac * double(ms))); // round up to handle small cases
   if (*nf < 2 * spopts.nspread) *nf = 2 * spopts.nspread; // otherwise spread fails
   if (*nf < MAX_NF) {
     *nf = next235even(*nf);                               // expensive at huge nf
