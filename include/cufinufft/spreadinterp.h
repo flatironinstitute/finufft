@@ -123,6 +123,7 @@ template<typename T> int cuinterp1d(cufinufft_plan_t<T> *d_plan, int blksize);
 
 template<typename T> int cuspread2d(cufinufft_plan_t<T> *d_plan, int blksize);
 template<typename T> int cuinterp2d(cufinufft_plan_t<T> *d_plan, int blksize);
+
 template<typename T> int cuspread3d(cufinufft_plan_t<T> *d_plan, int blksize);
 template<typename T> int cuinterp3d(cufinufft_plan_t<T> *d_plan, int blksize);
 
@@ -163,6 +164,10 @@ int cuspread3d_subprob_prop(int nf1, int nf2, int nf3, int M,
 template<typename T, int ns>
 int cuspread3d_subprob(int nf1, int nf2, int nf3, int M, cufinufft_plan_t<T> *d_plan,
                        int blksize);
+
+template<typename T, int ns>
+int cuspread3d_output_driven(int nf1, int nf2, int nf3, int M,
+                             cufinufft_plan_t<T> *d_plan, int blksize);
 
 // Wrappers for methods of interpolation
 template<typename T, int ns>

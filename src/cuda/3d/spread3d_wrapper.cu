@@ -28,6 +28,8 @@ struct Spread3DDispatcher {
       return cuspread3d_nuptsdriven<T, ns>(nf1, nf2, nf3, M, d_plan, blksize);
     case 2:
       return cuspread3d_subprob<T, ns>(nf1, nf2, nf3, M, d_plan, blksize);
+    case 3:
+      return cuspread3d_output_driven<T, ns>(nf1, nf2, nf3, M, d_plan, blksize);
     case 4:
       return cuspread3d_blockgather<T, ns>(nf1, nf2, nf3, M, d_plan, blksize);
     default:
@@ -568,6 +570,10 @@ int cuspread3d_subprob(int nf1, int nf2, int nf3, int M, cufinufft_plan_t<T> *d_
 
   return 0;
 }
+
+template<typename T, int ns>
+int cuspread3d_output_driven(int nf1, int nf2, int nf3, int M,
+                             cufinufft_plan_t<T> *d_plan, int blksize) {}
 
 template int cuspread3d<float>(cufinufft_plan_t<float> *d_plan, int blksize);
 template int cuspread3d<double>(cufinufft_plan_t<double> *d_plan, int blksize);

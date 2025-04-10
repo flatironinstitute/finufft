@@ -240,18 +240,18 @@ std::size_t shared_memory_required(int dim, int ns, int bin_size_x, int bin_size
   int adjusted_ns = bin_size_x + ((ns + 1) / 2) * 2;
 
   if (dim == 1) {
-    return bin_size_x * ns * sizeof(cuda_complex<T>);
+    return adjusted_ns * sizeof(cuda_complex<T>);
   }
 
   adjusted_ns *= (bin_size_y + ((ns + 1) / 2) * 2);
 
   if (dim == 2) {
-    return bin_size_y * ns * sizeof(cuda_complex<T>);
+    return adjusted_ns * sizeof(cuda_complex<T>);
   }
 
   adjusted_ns *= (bin_size_z + ((ns + 1) / 2) * 2);
 
-  return bin_size_z * ns * sizeof(cuda_complex<T>);
+  return adjusted_ns * sizeof(cuda_complex<T>);
 }
 
 // Function to find bin_size_x == bin_size_y
@@ -283,18 +283,20 @@ void cufinufft_setup_binsize(int type, int ns, int dim, cufinufft_opts *opts) {
   // handle them.
   // TODO: This can still be improved some sizes are hardcoded still
   int shared_mem_per_block{}, device_id{};
-  cudaGetDevice(&device_id);
-  cudaDeviceGetAttribute(&shared_mem_per_block, cudaDevAttrMaxSharedMemoryPerBlockOptin,
-                         device_id);
   switch (dim) {
   case 1: {
     if (opts->gpu_binsizex == 0) {
+      cudaGetDevice(&device_id);
+      cudaDeviceGetAttribute(&shared_mem_per_block,
+                             cudaDevAttrMaxSharedMemoryPerBlockOptin, device_id);
       // CUDA error handled by the caller not checking them here.
       // use 1/6 of the shared memory for the binsize
       // From experiments on multiple GPUs this gives the best tradeoff.
       // It is within 90% of the maximum performance for all GPUs tested.
-      const auto binsize = find_bin_size<T>(shared_mem_per_block / 6, dim, ns);
-      opts->gpu_binsizex = binsize;
+      shared_mem_per_block /= 6;
+      const int bin_size =
+          shared_mem_per_block / sizeof(cuda_complex<T>) - ((ns + 1) / 2) * 2;
+      opts->gpu_binsizex = bin_size;
     }
     opts->gpu_binsizey = 1;
     opts->gpu_binsizez = 1;
@@ -303,9 +305,16 @@ void cufinufft_setup_binsize(int type, int ns, int dim, cufinufft_opts *opts) {
     if (opts->gpu_binsizex == 0 || opts->gpu_binsizey == 0) {
       switch (opts->gpu_method) {
       case 0:
-      case 2:
+      case 2: {
+        opts->gpu_binsizex = 32;
+        opts->gpu_binsizey = 32;
+      } break;
       case 1: {
+        cudaGetDevice(&device_id);
+        cudaDeviceGetAttribute(&shared_mem_per_block,
+                               cudaDevAttrMaxSharedMemoryPerBlockOptin, device_id);
         const auto binsize = find_bin_size<T>(shared_mem_per_block, dim, ns);
+        // in 2D 1/6 is too small, it gets slower because of the excessive padding
         opts->gpu_binsizex = binsize;
         opts->gpu_binsizey = binsize;
       } break;
@@ -317,13 +326,12 @@ void cufinufft_setup_binsize(int type, int ns, int dim, cufinufft_opts *opts) {
     switch (opts->gpu_method) {
     case 0:
     case 1:
+    case 3:
     case 2: {
       if (opts->gpu_binsizex == 0 || opts->gpu_binsizey == 0 || opts->gpu_binsizez == 0) {
-        shared_mem_per_block /= 2;
-        const auto binsize = find_bin_size<T>(shared_mem_per_block, dim, ns);
-        opts->gpu_binsizex = binsize;
-        opts->gpu_binsizey = binsize;
-        opts->gpu_binsizez = binsize;
+        opts->gpu_binsizex = 16;
+        opts->gpu_binsizey = 16;
+        opts->gpu_binsizez = 2;
       }
     } break;
     case 4: {

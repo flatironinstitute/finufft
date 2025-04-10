@@ -134,6 +134,11 @@ function(add_tests PREC REQ_TOL CHECK_TOL UPSAMP)
         COMMAND cufinufft3d_test 1 1 2 5 10 20 ${REQ_TOL} ${CHECK_TOL} ${PREC} ${UPSAMP}
     )
 
+    add_test(
+        NAME cufinufft3d1_test_OD_${PREC}_${UPSAMP}
+        COMMAND cufinufft3d_test 3 1 2 5 10 20 ${REQ_TOL} ${CHECK_TOL} ${PREC} ${UPSAMP}
+    )
+
     if(${PREC} STREQUAL "float")
         add_test(
             NAME cufinufft3d1_test_SM_${PREC}_${UPSAMP}

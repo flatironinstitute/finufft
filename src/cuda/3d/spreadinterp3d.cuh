@@ -127,6 +127,58 @@ __global__ void spread_3d_nupts_driven(
   }
 }
 
+/* Kernels for NUptsdriven method */
+template<typename T, int KEREVALMETH, int ns>
+__global__ void spread_3d_output_driven(
+    const T *x, const T *y, const T *z, const cuda_complex<T> *c, cuda_complex<T> *fw,
+    int M, int nf1, int nf2, int nf3, T es_c, T es_beta, T sigma, const int *idxnupts) {
+  T ker1[ns];
+  T ker2[ns];
+  T ker3[ns];
+  for (int i = blockDim.x * blockIdx.x + threadIdx.x; i < M;
+       i += blockDim.x * gridDim.x) {
+    const auto x_rescaled = fold_rescale(x[idxnupts[i]], nf1);
+    const auto y_rescaled = fold_rescale(y[idxnupts[i]], nf2);
+    const auto z_rescaled = fold_rescale(z[idxnupts[i]], nf3);
+
+    const auto [xstart, xend] = interval(ns, x_rescaled);
+    const auto [ystart, yend] = interval(ns, y_rescaled);
+    const auto [zstart, zend] = interval(ns, z_rescaled);
+
+    const auto x1 = T(xstart) - x_rescaled;
+    const auto y1 = T(ystart) - y_rescaled;
+    const auto z1 = T(zstart) - z_rescaled;
+
+    if constexpr (KEREVALMETH == 1) {
+      eval_kernel_vec_horner<T, ns>(ker1, x1, sigma);
+      eval_kernel_vec_horner<T, ns>(ker2, y1, sigma);
+      eval_kernel_vec_horner<T, ns>(ker3, z1, sigma);
+    } else {
+      eval_kernel_vec<T, ns>(ker1, x1, es_c, es_beta);
+      eval_kernel_vec<T, ns>(ker2, y1, es_c, es_beta);
+      eval_kernel_vec<T, ns>(ker3, z1, es_c, es_beta);
+    }
+
+    for (int zz = zstart; zz <= zend; zz++) {
+      const auto ker3val = ker3[zz - zstart];
+      for (int yy = ystart; yy <= yend; yy++) {
+        const auto ker2val = ker2[yy - ystart];
+        for (int xx = xstart; xx <= xend; xx++) {
+          const int ix        = xx < 0 ? xx + nf1 : (xx > nf1 - 1 ? xx - nf1 : xx);
+          const int iy        = yy < 0 ? yy + nf2 : (yy > nf2 - 1 ? yy - nf2 : yy);
+          const int iz        = zz < 0 ? zz + nf3 : (zz > nf3 - 1 ? zz - nf3 : zz);
+          const int outidx    = ix + iy * nf1 + iz * nf1 * nf2;
+          const auto ker1val  = ker1[xx - xstart];
+          const auto kervalue = ker1val * ker2val * ker3val;
+          const cuda_complex<T> res{c[idxnupts[i]].x * kervalue,
+                                    c[idxnupts[i]].y * kervalue};
+          atomicAddComplexGlobal<T>(fw + outidx, res);
+        }
+      }
+    }
+  }
+}
+
 /* Kernels for Subprob method */
 template<typename T, int KEREVALMETH, int ns>
 __global__ void spread_3d_subprob(
@@ -135,7 +187,8 @@ __global__ void spread_3d_subprob(
     int bin_size_y, int bin_size_z, int *subprob_to_bin, int *subprobstartpts,
     int *numsubprob, int maxsubprobsize, int nbinx, int nbiny, int nbinz, int *idxnupts) {
   extern __shared__ char sharedbuf[];
-  auto fwshared         = (cuda_complex<T> *)sharedbuf;
+  auto fwshared = (cuda_complex<T> *)sharedbuf;
+
   const int bidx        = subprob_to_bin[blockIdx.x];
   const int binsubp_idx = blockIdx.x - subprobstartpts[bidx];
   const int ptstart     = binstartpts[bidx] + binsubp_idx * maxsubprobsize;
@@ -151,8 +204,6 @@ __global__ void spread_3d_subprob(
 
   const int N =
       (bin_size_x + rounded_ns) * (bin_size_y + rounded_ns) * (bin_size_z + rounded_ns);
-  auto span = stdex::mdspan<cuda_complex<T>, stdex::dextents<int, 4>>(
-      fwshared, nupts, bin_size_x, bin_size_y, bin_size_z);
 
   for (int i = threadIdx.x; i < N; i += blockDim.x) {
     fwshared[i] = {0, 0};
@@ -196,23 +247,21 @@ __global__ void spread_3d_subprob(
     }
 
     for (int zz = zstart; zz <= zend; zz++) {
-      const auto kervalue3 = ker3[zz - zstart];
-      // const auto iz      = zz + ns_2;
-      // if (iz >= (bin_size_z + (int)rounded_ns) || iz < 0) break;
+      const T kervalue3 = ker3[zz - zstart];
+      const int iz      = zz + ns_2;
+      if (iz >= (bin_size_z + (int)rounded_ns) || iz < 0) break;
       for (int yy = ystart; yy <= yend; yy++) {
-        const auto kervalue2 = ker2[yy - ystart];
-        // const auto iy      = yy + ns_2;
-        // if (iy >= (bin_size_y + (int)rounded_ns) || iy < 0) break;
+        const T kervalue2 = ker2[yy - ystart];
+        const int iy      = yy + ns_2;
+        if (iy >= (bin_size_y + (int)rounded_ns) || iy < 0) break;
         for (int xx = xstart; xx <= xend; xx++) {
-          // const auto ix = xx + ns_2;
-          // if (ix >= (bin_size_x + (int)rounded_ns) || ix < 0) break;
-          // const auto outidx = ix + iy * (bin_size_x + rounded_ns) +
-          // iz * (bin_size_x + rounded_ns) * (bin_size_y + rounded_ns);
+          const int ix = xx + ns_2;
+          if (ix >= (bin_size_x + (int)rounded_ns) || ix < 0) break;
+          const int outidx = ix + iy * (bin_size_x + rounded_ns) +
+                             iz * (bin_size_x + rounded_ns) * (bin_size_y + rounded_ns);
           const auto kervalue = ker1[xx - xstart] * kervalue2 * kervalue3;
           const cuda_complex<T> res{cnow.x * kervalue, cnow.y * kervalue};
-          span(i, xx, yy, zz).x += res.x;
-          span(i, xx, yy, zz).y += res.y;
-          // atomicAddComplexShared<T>(fwshared + outidx, res);
+          atomicAddComplexShared<T>(fwshared + outidx, res);
         }
       }
     }
