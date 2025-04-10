@@ -172,13 +172,13 @@ classdef cufinufft_plan < handle
   methods
 
     function plan = cufinufft_plan(type, n_modes_or_dim, iflag, n_trans, tol, opts)
-    % FINUFFT_PLAN   create guru plan object for one/many general nonuniform FFTs.
+    % CUFINUFFT_PLAN   create guru plan object for one/many general nonuniform FFTs.
 
       plan.floatprec='double';                      % set precision: default
       if nargin<6, opts = []; end
       if isfield(opts,'floatprec')                  % a matlab-only option
         if ~strcmp(opts.floatprec,'single') && ~strcmp(opts.floatprec,'double')
-          error('FINUFFT:badFloatPrec','FINUFFT plan opts.floatprec must be single or double');
+          error('FINUFFT:badFloatPrec','CUFINUFFT plan opts.floatprec must be single or double');
         else
           plan.floatprec = opts.floatprec;
         end
@@ -187,7 +187,7 @@ classdef cufinufft_plan < handle
       n_modes = ones(3,1);         % is dummy for type 3
       if type==3
         if length(n_modes_or_dim)~=1
-          error('FINUFFT:badT3dim', 'FINUFFT type 3 plan n_modes_or_dim must be one number, the dimension');
+          error('FINUFFT:badT3dim', 'CUFINUFFT type 3 plan n_modes_or_dim must be one number, the dimension');
         end
         dim = n_modes_or_dim;      % interpret as dim
       else
@@ -235,7 +235,7 @@ cufinufft(mex_id_, o);
     end
 
     function setpts(plan, xj, yj, zj, s, t, u)
-    % SETPTS   process nonuniform points for general FINUFFT transform(s).
+    % SETPTS   process nonuniform points for general GPU FINUFFT transform(s).
 
       % fill missing inputs with empties of correct type
       if strcmp(plan.floatprec,'double')
@@ -270,7 +270,7 @@ cufinufft(mex_id_, o);
     end
 
     function result = execute(plan, data_in)
-    % EXECUTE   execute single or many-vector FINUFFT transforms in a plan.
+    % EXECUTE   execute single or many-vector GPU FINUFFT transforms in a plan.
 
       % check if data_in is gpuArray
       if ~finufft_isgpuarray(data_in)
@@ -292,7 +292,7 @@ cufinufft(mex_id_, o);
         ninputs = n_trans*nj;
       end
       if numel(data_in)~=ninputs
-        error('FINUFFT:badDataInSize','FINUFFT numel(data_in) must be n_trans times number of NU pts (type 1, 3) or Fourier modes (type 2)');
+        error('FINUFFT:badDataInSize','CUFINUFFT numel(data_in) must be n_trans times number of NU pts (type 1, 3) or Fourier modes (type 2)');
       end
       if plan.type == 1
         if strcmp(plan.floatprec,'double')
@@ -326,7 +326,7 @@ cufinufft(mex_id_, o);
 
     function delete(plan)
     % This does clean-up (deallocation) of the C++ struct before the matlab
-    % object deletes. It is automatically called by MATLAB and octave if the
+    % object deletes. It is automatically called by MATLAB if the
     % plan goes out of scope.
       if ~isempty(plan.mwptr)    % catch octave's allowance of >1 deletings!
         if strcmp(plan.floatprec,'double')

@@ -1,6 +1,7 @@
 % FINUFFT_PLAN   is a class which wraps the guru interface to FINUFFT.
 %
-%  Full documentation is online at http://finufft.readthedocs.io
+%  Full documentation is given in ../finufft-manual.pdf and online at
+%  http://finufft.readthedocs.io
 %  Also see examples in the matlab/examples and matlab/test directories.
 %
 % PROPERTIES
