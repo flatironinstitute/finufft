@@ -103,7 +103,7 @@ for precdev=precdevs  % ......... loop precisions & devices
   if err>errcheck, error('error fail'); end
 
   % ------------------------------------------------- 3D --------------
-  N1 = round((2*Ntot)^(1/3)); N1 = round(Ntot^(1/3)); N3 = round(Ntot/N1/N2);
+  N1 = round((2*Ntot)^(1/3)); N2 = round(Ntot^(1/3)); N3 = round(Ntot/N1/N2);
 
   kx = (ceil(-N1/2):floor((N1-1)/2))';         % modes in each dim
   ky = (ceil(-N2/2):floor((N2-1)/2))';
