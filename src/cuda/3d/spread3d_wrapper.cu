@@ -592,23 +592,36 @@ int cuspread3d_output_driven(int nf1, int nf2, int nf3, int M,
   cuda_complex<T> *d_c  = d_plan->c;
   cuda_complex<T> *d_fw = d_plan->fw;
 
-  threadsPerBlock.x = 16;
-  threadsPerBlock.y = 1;
+  int shared_mem_per_block{};
+  const int device_id = d_plan->opts.gpu_device_id;
+  cudaDeviceGetAttribute(&shared_mem_per_block, cudaDevAttrMaxSharedMemoryPerBlockOptin,
+                         device_id);
+  // round down to multiple of 16
+  const int np = (shared_mem_per_block / (sizeof(cuda_complex<T>) * ns * ns * ns)) & -16;
+  std::cout << "[cuspread3d_output_driven] np = " << np << std::endl;
+  const auto shared_mem_required = sizeof(cuda_complex<T>) * ns * ns * ns * np;
+  cudaFuncSetAttribute(spread_3d_output_driven<T, 1, ns>,
+                       cudaFuncAttributeMaxDynamicSharedMemorySize, shared_mem_required);
+  threadsPerBlock.x = std::min(np, M);
+  threadsPerBlock.y = ns;
   blocks.x          = (M + threadsPerBlock.x - 1) / threadsPerBlock.x;
   blocks.y          = 1;
 
   if (d_plan->opts.gpu_kerevalmeth == 1) {
+
     for (int t = 0; t < blksize; t++) {
-      spread_3d_output_driven<T, 1, ns><<<blocks, threadsPerBlock, 0, stream>>>(
-          d_kx, d_ky, d_kz, d_c + t * M, d_fw + t * nf1 * nf2 * nf3, M, nf1, nf2, nf3,
-          es_c, es_beta, sigma, d_idxnupts);
+      spread_3d_output_driven<T, 1, ns>
+          <<<blocks, threadsPerBlock, shared_mem_required, stream>>>(
+              d_kx, d_ky, d_kz, d_c + t * M, d_fw + t * nf1 * nf2 * nf3, M, nf1, nf2, nf3,
+              es_c, es_beta, sigma, d_idxnupts);
       RETURN_IF_CUDA_ERROR
     }
   } else {
     for (int t = 0; t < blksize; t++) {
-      spread_3d_output_driven<T, 0, ns><<<blocks, threadsPerBlock, 0, stream>>>(
-          d_kx, d_ky, d_kz, d_c + t * M, d_fw + t * nf1 * nf2 * nf3, M, nf1, nf2, nf3,
-          es_c, es_beta, sigma, d_idxnupts);
+      spread_3d_output_driven<T, 0, ns>
+          <<<blocks, threadsPerBlock, shared_mem_required, stream>>>(
+              d_kx, d_ky, d_kz, d_c + t * M, d_fw + t * nf1 * nf2 * nf3, M, nf1, nf2, nf3,
+              es_c, es_beta, sigma, d_idxnupts);
       RETURN_IF_CUDA_ERROR
     }
   }

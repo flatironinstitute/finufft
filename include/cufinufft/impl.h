@@ -423,6 +423,10 @@ Notes: the type T means either single or double, matching the
         (ier = cuspread1d_subprob_prop<T>(nf1, M, d_plan)))
       fprintf(stderr, "error: cuspread1d_subprob_prop, method(%d)\n",
               d_plan->opts.gpu_method);
+    if (d_plan->opts.gpu_method == 3 &&
+        (ier = cuspread1d_nuptsdriven_prop<T>(nf1, M, d_plan)))
+      fprintf(stderr, "error: cuspread1d_nupts_prop, method(%d)\n",
+              d_plan->opts.gpu_method);
   } break;
   case 2: {
     if (d_plan->opts.gpu_method == 1 &&
@@ -432,6 +436,10 @@ Notes: the type T means either single or double, matching the
     if (d_plan->opts.gpu_method == 2 &&
         (ier = cuspread2d_subprob_prop<T>(nf1, nf2, M, d_plan)))
       fprintf(stderr, "error: cuspread2d_subprob_prop, method(%d)\n",
+              d_plan->opts.gpu_method);
+    if (d_plan->opts.gpu_method == 3 &&
+        (ier = cuspread2d_nuptsdriven_prop<T>(nf1, nf2, M, d_plan)))
+      fprintf(stderr, "error: cuspread2d_nupts_prop, method(%d)\n",
               d_plan->opts.gpu_method);
   } break;
   case 3: {

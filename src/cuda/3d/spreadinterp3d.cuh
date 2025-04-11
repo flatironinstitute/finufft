@@ -106,7 +106,6 @@ __global__ void spread_3d_nupts_driven(
       eval_kernel_vec<T, ns>(ker2, y1, es_c, es_beta);
       eval_kernel_vec<T, ns>(ker3, z1, es_c, es_beta);
     }
-
     for (int zz = zstart; zz <= zend; zz++) {
       const auto ker3val = ker3[zz - zstart];
       for (int yy = ystart; yy <= yend; yy++) {
@@ -132,6 +131,11 @@ template<typename T, int KEREVALMETH, int ns>
 __global__ void spread_3d_output_driven(
     const T *x, const T *y, const T *z, const cuda_complex<T> *c, cuda_complex<T> *fw,
     int M, int nf1, int nf2, int nf3, T es_c, T es_beta, T sigma, const int *idxnupts) {
+  extern __shared__ char sharedbuf[];
+  auto fwshared = (cuda_complex<T> *)sharedbuf;
+  auto span     = stdex::mdspan<cuda_complex<T>, stdex::dextents<int, 4>>(
+      fwshared, blockDim.x, ns, ns, ns);
+
   T ker1[ns];
   T ker2[ns];
   T ker3[ns];
@@ -159,20 +163,28 @@ __global__ void spread_3d_output_driven(
       eval_kernel_vec<T, ns>(ker3, z1, es_c, es_beta);
     }
 
-    for (int zz = zstart; zz <= zend; zz++) {
-      const auto ker3val = ker3[zz - zstart];
-      for (int yy = ystart; yy <= yend; yy++) {
-        const auto ker2val = ker2[yy - ystart];
-        for (int xx = xstart; xx <= xend; xx++) {
-          const int ix        = xx < 0 ? xx + nf1 : (xx > nf1 - 1 ? xx - nf1 : xx);
-          const int iy        = yy < 0 ? yy + nf2 : (yy > nf2 - 1 ? yy - nf2 : yy);
-          const int iz        = zz < 0 ? zz + nf3 : (zz > nf3 - 1 ? zz - nf3 : zz);
-          const int outidx    = ix + iy * nf1 + iz * nf1 * nf2;
-          const auto ker1val  = ker1[xx - xstart];
+    for (int zz = 0; zz < ns; zz++) {
+      const auto ker3val = ker3[zz];
+      for (int yy = 0; yy < ns; yy++) {
+        const auto ker2val = ker2[yy];
+        for (int xx = 0; xx < ns; xx++) {
+          const auto ker1val  = evaluate_kernel<T, ns>(ker1[xx], es_c, es_beta);
           const auto kervalue = ker1val * ker2val * ker3val;
           const cuda_complex<T> res{c[idxnupts[i]].x * kervalue,
                                     c[idxnupts[i]].y * kervalue};
-          atomicAddComplexGlobal<T>(fw + outidx, res);
+          span(threadIdx.x, zz, yy, xx) = res;
+        }
+      }
+    }
+    for (int zz = zstart; zz <= zend; zz++) {
+      for (int yy = ystart; yy <= yend; yy++) {
+        for (int xx = xstart; xx <= xend; xx++) {
+          const int ix     = xx < 0 ? xx + nf1 : (xx > nf1 - 1 ? xx - nf1 : xx);
+          const int iy     = yy < 0 ? yy + nf2 : (yy > nf2 - 1 ? yy - nf2 : yy);
+          const int iz     = zz < 0 ? zz + nf3 : (zz > nf3 - 1 ? zz - nf3 : zz);
+          const int outidx = ix + iy * nf1 + iz * nf1 * nf2;
+          atomicAddComplexGlobal<T>(
+              fw + outidx, span(threadIdx.x, zz - zstart, yy - ystart, xx - xstart));
         }
       }
     }
