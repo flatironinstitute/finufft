@@ -479,6 +479,8 @@ static int deconvolveBatch(int batchSize, const FINUFFT_PLAN_T<T> &p,
 {
   // since deconvolveshuffle?d are single-thread, omp par seems to help here...
   int dir = p.spopts.spread_direction;
+  // Quick and dirty way to change direction 1 into direction 2 and vice versa
+  // if adjoint operation is requested.
   if (adjoint) dir = 3 - dir;
 #pragma omp parallel for num_threads(batchSize)
   for (int i = 0; i < batchSize; i++) {
