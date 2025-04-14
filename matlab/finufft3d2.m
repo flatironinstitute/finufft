@@ -46,11 +46,12 @@
 %  * For more details about the opts fields, see ../docs/opts.rst
 %  * See ERRHANDLER, VALID_* and FINUFFT_PLAN for possible warning/error IDs.
 %  * Full documentation is online at http://finufft.readthedocs.io
+%
+% See also FINUFFT_PLAN.
 function c = finufft3d2(x,y,z,isign,eps,f,o)
 
-if nargin<7, o.dummy=1; end
-valid_setpts(2,3,x,y,z);
-o.floatprec=class(x);                      % should be 'double' or 'single'
+valid_setpts(false,2,3,x,y,z);
+o.floatprec=class(x);
 [ms,mt,mu,n_transf] = size(f);             % if f 3D array, n_transf=1
 p = finufft_plan(2,[ms;mt;mu],isign,n_transf,eps,o);
 p.setpts(x,y,z);

@@ -44,12 +44,13 @@
 %  * For more details about the opts fields, see ../docs/opts.rst
 %  * See ERRHANDLER, VALID_* and FINUFFT_PLAN for possible warning/error IDs.
 %  * Full documentation is online at http://finufft.readthedocs.io
+%
+% See also FINUFFT_PLAN.
 function c = finufft2d2(x,y,isign,eps,f,o)
 
-if nargin<6, o.dummy=1; end
-valid_setpts(2,2,x,y,[]);
+valid_setpts(false,2,2,x,y);
 o.floatprec=class(x);                      % should be 'double' or 'single'
 [ms,mt,n_transf] = size(f);                % if f 2D array, n_transf=1
 p = finufft_plan(2,[ms;mt],isign,n_transf,eps,o);
-p.setpts(x,y,[]);
+p.setpts(x,y);
 c = p.execute(f);
