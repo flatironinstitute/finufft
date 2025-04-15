@@ -226,6 +226,13 @@ public:
 
   int execute(TC *cj, TC *fk) const { return execute_internal(cj, fk, false); }
   int execute_adjoint(TC *cj, TC *fk) const { return execute_internal(cj, fk, true); }
+
+  // accessors for reading the internal state of the plan
+  BIGINT Nj() const { return nj; }
+  BIGINT Nk() const { return nk; }
+  TF Tol() const { return tol; }
+  int Ntrans() const { return ntrans; }
+  const std::array<const TF *, 3> &getSTU() const { return STU; }
 };
 
 void finufft_default_opts_t(finufft_opts *o);

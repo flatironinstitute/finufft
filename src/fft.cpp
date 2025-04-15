@@ -112,6 +112,11 @@ void do_fft(const FINUFFT_PLAN_T<TF> &p, std::complex<TF> *fwBatch, int ntrans_a
 #endif
 #else
   // FIXME: the "adjoint" emulation is a crude band-aid
+  // Since we only hae the FFTW plan for the non-adjoint direction,
+  // we make use of the identity
+  //   FFT_adj(x) = conj(FFT(conj(x)))
+  // This requires two additional passes over the array, and is therefore
+  // somewhat slower.
   if (adjoint)
     for (BIGINT i = 0; i < ntrans_actual * p.nf(); ++i) fwBatch[i] = conj(fwBatch[i]);
   p.getFFTPlan().execute(fwBatch); // if thisBatchSize<batchSize it wastes some flops
