@@ -188,6 +188,7 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
         shared_memory_required<T>(dim, d_plan->spopts.nspread, d_plan->opts.gpu_binsizex,
                                   d_plan->opts.gpu_binsizey, d_plan->opts.gpu_binsizez);
     printf("[cufinufft] shared memory required for the spreader: %ld\n", mem_required);
+    printf("[cufinufft] gpu_Np = %ld\n", d_plan->opts.gpu_np);
   }
 
   // dynamically request the maximum amount of shared memory available
@@ -452,7 +453,7 @@ Notes: the type T means either single or double, matching the
       fprintf(stderr, "error: cuspread3d_subprob_prop, method(%d)\n",
               d_plan->opts.gpu_method);
     if (d_plan->opts.gpu_method == 3 &&
-        (ier = cuspread3d_nuptsdriven_prop<T>(nf1, nf2, nf3, M, d_plan)))
+        (ier = cuspread3d_subprob_prop<T>(nf1, nf2, nf3, M, d_plan)))
       fprintf(stderr, "error: cuspread3d_nuptsdriven_prop, method(%d)\n",
               d_plan->opts.gpu_method);
     if (d_plan->opts.gpu_method == 4 &&

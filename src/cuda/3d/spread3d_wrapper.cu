@@ -609,7 +609,8 @@ int cuspread3d_output_driven(int nf1, int nf2, int nf3, int M,
   T es_beta = d_plan->spopts.ES_beta;
   const auto sharedplanorysize =
       shared_memory_required<T>(3, d_plan->spopts.nspread, d_plan->opts.gpu_binsizex,
-                                d_plan->opts.gpu_binsizey, d_plan->opts.gpu_binsizez);
+                                d_plan->opts.gpu_binsizey, d_plan->opts.gpu_binsizez) +
+      d_plan->opts.gpu_np * sizeof(T) * ns; // accounting for the batching here
   if (d_plan->opts.gpu_kerevalmeth) {
     if (const auto finufft_err =
             cufinufft_set_shared_memory(spread_3d_output_driven<T, 1, ns>, 3, *d_plan) !=
@@ -617,7 +618,7 @@ int cuspread3d_output_driven(int nf1, int nf2, int nf3, int M,
       return FINUFFT_ERR_INSUFFICIENT_SHMEM;
     }
     for (int t = 0; t < blksize; t++) {
-      spread_3d_output_driven<T, 1, ns>
+      spread_3d_output_driven<T, 0, ns>
           <<<totalnumsubprob, 256, sharedplanorysize, stream>>>(
               d_kx, d_ky, d_kz, d_c + t * M, d_fw + t * nf1 * nf2 * nf3, M, nf1, nf2, nf3,
               sigma, es_c, es_beta, d_binstartpts, d_binsize, bin_size_x, bin_size_y,
