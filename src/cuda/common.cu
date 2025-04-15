@@ -258,21 +258,12 @@ std::size_t shared_memory_required(int dim, int ns, int bin_size_x, int bin_size
 // where bin_size_x * bin_size_y * bin_size_z < mem_size
 // TODO: this can be done without a loop by using a direct formula
 template<typename T> int find_bin_size(std::size_t mem_size, int dim, int ns) {
-  int binsize = 1; // Start with the smallest possible bin size
-  while (true) {
-    // Calculate the shared memory required for the current bin_size_x and bin_size_y
-    std::size_t required_memory =
-        shared_memory_required<T>(dim, ns, binsize, binsize, binsize);
-
-    // Check if the required memory is less than the available memory
-    if (required_memory > mem_size) {
-      // If the condition is met, return the current bin_size_x
-      return binsize - 1;
-    }
-
-    // Increment bin_size_x for the next iteration
-    binsize++;
-  }
+  const auto elements        = float(mem_size) / sizeof(cuda_complex<T>);
+  const auto padded_bin_size = std::floor(std::pow(elements, 1.0 / dim));
+  const auto bin_size        = static_cast<int>(padded_bin_size) - ns - ns % 2;
+  // TODO: over one dimension we could increase this a bit maybe the shape should not be
+  // uniform
+  return bin_size - 1;
 }
 
 template<typename T>
@@ -283,67 +274,31 @@ void cufinufft_setup_binsize(int type, int ns, int dim, cufinufft_opts *opts) {
   // handle them.
   // TODO: This can still be improved some sizes are hardcoded still
   int shared_mem_per_block{}, device_id{};
-  switch (dim) {
-  case 1: {
-    if (opts->gpu_binsizex == 0) {
-      cudaGetDevice(&device_id);
-      cudaDeviceGetAttribute(&shared_mem_per_block,
-                             cudaDevAttrMaxSharedMemoryPerBlockOptin, device_id);
-      // CUDA error handled by the caller not checking them here.
-      // use 1/6 of the shared memory for the binsize
-      // From experiments on multiple GPUs this gives the best tradeoff.
-      // It is within 90% of the maximum performance for all GPUs tested.
-      shared_mem_per_block /= 6;
-      const int bin_size =
-          shared_mem_per_block / sizeof(cuda_complex<T>) - ((ns + 1) / 2) * 2;
-      opts->gpu_binsizex = bin_size;
-    }
-    opts->gpu_binsizey = 1;
-    opts->gpu_binsizez = 1;
-  } break;
-  case 2: {
-    if (opts->gpu_binsizex == 0 || opts->gpu_binsizey == 0) {
-      switch (opts->gpu_method) {
-      case 0:
-      case 2: {
-        opts->gpu_binsizex = 32;
-        opts->gpu_binsizey = 32;
-      } break;
-      case 1: {
-        cudaGetDevice(&device_id);
-        cudaDeviceGetAttribute(&shared_mem_per_block,
-                               cudaDevAttrMaxSharedMemoryPerBlockOptin, device_id);
-        const auto binsize = find_bin_size<T>(shared_mem_per_block, dim, ns);
-        // in 2D 1/6 is too small, it gets slower because of the excessive padding
-        opts->gpu_binsizex = binsize;
-        opts->gpu_binsizey = binsize;
-      } break;
-      }
-    }
-    opts->gpu_binsizez = 1;
-  } break;
-  case 3: {
-    switch (opts->gpu_method) {
-    case 0:
-    case 1:
-    case 3:
-    case 2: {
-      if (opts->gpu_binsizex == 0 || opts->gpu_binsizey == 0 || opts->gpu_binsizez == 0) {
-        opts->gpu_binsizex = 16;
-        opts->gpu_binsizey = 16;
-        opts->gpu_binsizez = 2;
-      }
-    } break;
-    case 4: {
-      opts->gpu_obinsizex = (opts->gpu_obinsizex == 0) ? 8 : opts->gpu_obinsizex;
-      opts->gpu_obinsizey = (opts->gpu_obinsizey == 0) ? 8 : opts->gpu_obinsizey;
-      opts->gpu_obinsizez = (opts->gpu_obinsizez == 0) ? 8 : opts->gpu_obinsizez;
-      opts->gpu_binsizex  = (opts->gpu_binsizex == 0) ? 4 : opts->gpu_binsizex;
-      opts->gpu_binsizey  = (opts->gpu_binsizey == 0) ? 4 : opts->gpu_binsizey;
-      opts->gpu_binsizez  = (opts->gpu_binsizez == 0) ? 4 : opts->gpu_binsizez;
-    } break;
-    }
-  } break;
+  cudaGetDevice(&device_id);
+  cudaDeviceGetAttribute(&shared_mem_per_block, cudaDevAttrMaxSharedMemoryPerBlockOptin,
+                         device_id);
+  const auto binsize = find_bin_size<T>(shared_mem_per_block, dim, ns);
+  // in 2D 1/6 is too small, it gets slower because of the excessive padding
+  switch (opts->gpu_method) {
+  case 1:
+  case 2:
+  case 0: {
+    opts->gpu_binsizex = opts->gpu_binsizex == 0 ? binsize : opts->gpu_binsizex;
+    opts->gpu_binsizey = opts->gpu_binsizey == 0 ? binsize : opts->gpu_binsizey;
+    opts->gpu_binsizez = opts->gpu_binsizez == 0 ? binsize : opts->gpu_binsizez;
+    opts->gpu_binsizey = dim > 1 ? opts->gpu_binsizey : 1;
+    opts->gpu_binsizez = dim > 2 ? opts->gpu_binsizez : 1;
+    break;
+  }
+  case 4: {
+    opts->gpu_obinsizex = (opts->gpu_obinsizex == 0) ? 8 : opts->gpu_obinsizex;
+    opts->gpu_obinsizey = (opts->gpu_obinsizey == 0) ? 8 : opts->gpu_obinsizey;
+    opts->gpu_obinsizez = (opts->gpu_obinsizez == 0) ? 8 : opts->gpu_obinsizez;
+    opts->gpu_binsizex  = (opts->gpu_binsizex == 0) ? 4 : opts->gpu_binsizex;
+    opts->gpu_binsizey  = (opts->gpu_binsizey == 0) ? 4 : opts->gpu_binsizey;
+    opts->gpu_binsizez  = (opts->gpu_binsizez == 0) ? 4 : opts->gpu_binsizez;
+    break;
+  }
   }
 }
 

@@ -8,11 +8,11 @@
 #include <cufinufft/types.h>
 
 #include <cuda.h>
+#include <cuda/atomic>
 #include <cuda_runtime.h>
+#include <thrust/extrema.h>
 #include <type_traits>
 #include <utility> // for std::forward
-
-#include <thrust/extrema.h>
 
 #include <finufft_errors.h>
 
@@ -100,11 +100,11 @@ template<typename T> T infnorm(int n, std::complex<T> *a) {
  */
 
 template<typename T>
-static __forceinline__ __device__ void atomicAddComplexShared(
-    cuda_complex<T> *address, cuda_complex<T> res) {
+static __forceinline__ __device__ void atomicAddComplexShared(cuda_complex<T> *address,
+                                                              cuda_complex<T> res) {
   const auto raw_address = reinterpret_cast<T *>(address);
-  atomicAdd(raw_address, res.x);
-  atomicAdd(raw_address + 1, res.y);
+  atomicAdd_block(raw_address, res.x);
+  atomicAdd_block(raw_address + 1, res.y);
 }
 
 /**
@@ -113,13 +113,15 @@ static __forceinline__ __device__ void atomicAddComplexShared(
  * on shared memory are supported so we leverage them
  */
 template<typename T>
-static __forceinline__ __device__ void atomicAddComplexGlobal(
-    cuda_complex<T> *address, cuda_complex<T> res) {
+static __forceinline__ __device__ void atomicAddComplexGlobal(cuda_complex<T> *address,
+                                                              cuda_complex<T> res) {
   if constexpr (
       std::is_same_v<cuda_complex<T>, float2> && COMPUTE_CAPABILITY_90_OR_HIGHER) {
     atomicAdd(address, res);
   } else {
-    atomicAddComplexShared<T>(address, res);
+    const auto raw_address = reinterpret_cast<T *>(address);
+    atomicAdd(raw_address, res.x);
+    atomicAdd(raw_address + 1, res.y);
   }
 }
 

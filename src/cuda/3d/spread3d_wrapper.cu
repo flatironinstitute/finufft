@@ -578,54 +578,69 @@ int cuspread3d_output_driven(int nf1, int nf2, int nf3, int M,
                              cufinufft_plan_t<T> *d_plan, int blksize) {
   auto &stream = d_plan->stream;
 
-  dim3 threadsPerBlock;
-  dim3 blocks;
+  int maxsubprobsize = d_plan->opts.gpu_maxsubprobsize;
 
-  T sigma   = d_plan->spopts.upsampfac;
-  T es_c    = d_plan->spopts.ES_c;
-  T es_beta = d_plan->spopts.ES_beta;
+  // assume that bin_size_x > ns/2;
+  int bin_size_x = d_plan->opts.gpu_binsizex;
+  int bin_size_y = d_plan->opts.gpu_binsizey;
+  int bin_size_z = d_plan->opts.gpu_binsizez;
+  int numbins[3];
+  numbins[0] = ceil((T)nf1 / bin_size_x);
+  numbins[1] = ceil((T)nf2 / bin_size_y);
+  numbins[2] = ceil((T)nf3 / bin_size_z);
 
-  int *d_idxnupts       = d_plan->idxnupts;
   T *d_kx               = d_plan->kx;
   T *d_ky               = d_plan->ky;
   T *d_kz               = d_plan->kz;
   cuda_complex<T> *d_c  = d_plan->c;
   cuda_complex<T> *d_fw = d_plan->fw;
 
-  int shared_mem_per_block{};
-  const int device_id = d_plan->opts.gpu_device_id;
-  cudaDeviceGetAttribute(&shared_mem_per_block, cudaDevAttrMaxSharedMemoryPerBlockOptin,
-                         device_id);
-  // round down to multiple of 16
-  const int np = (shared_mem_per_block / (sizeof(cuda_complex<T>) * ns * ns * ns)) & -16;
-  std::cout << "[cuspread3d_output_driven] np = " << np << std::endl;
-  const auto shared_mem_required = sizeof(cuda_complex<T>) * ns * ns * ns * np;
-  cudaFuncSetAttribute(spread_3d_output_driven<T, 1, ns>,
-                       cudaFuncAttributeMaxDynamicSharedMemorySize, shared_mem_required);
-  threadsPerBlock.x = std::min(np, M);
-  threadsPerBlock.y = ns;
-  blocks.x          = (M + threadsPerBlock.x - 1) / threadsPerBlock.x;
-  blocks.y          = 1;
+  int *d_binsize         = d_plan->binsize;
+  int *d_binstartpts     = d_plan->binstartpts;
+  int *d_numsubprob      = d_plan->numsubprob;
+  int *d_subprobstartpts = d_plan->subprobstartpts;
+  int *d_idxnupts        = d_plan->idxnupts;
 
-  if (d_plan->opts.gpu_kerevalmeth == 1) {
+  int totalnumsubprob   = d_plan->totalnumsubprob;
+  int *d_subprob_to_bin = d_plan->subprob_to_bin;
 
+  T sigma   = d_plan->spopts.upsampfac;
+  T es_c    = d_plan->spopts.ES_c;
+  T es_beta = d_plan->spopts.ES_beta;
+  const auto sharedplanorysize =
+      shared_memory_required<T>(3, d_plan->spopts.nspread, d_plan->opts.gpu_binsizex,
+                                d_plan->opts.gpu_binsizey, d_plan->opts.gpu_binsizez);
+  if (d_plan->opts.gpu_kerevalmeth) {
+    if (const auto finufft_err =
+            cufinufft_set_shared_memory(spread_3d_output_driven<T, 1, ns>, 3, *d_plan) !=
+            0) {
+      return FINUFFT_ERR_INSUFFICIENT_SHMEM;
+    }
     for (int t = 0; t < blksize; t++) {
       spread_3d_output_driven<T, 1, ns>
-          <<<blocks, threadsPerBlock, shared_mem_required, stream>>>(
+          <<<totalnumsubprob, 256, sharedplanorysize, stream>>>(
               d_kx, d_ky, d_kz, d_c + t * M, d_fw + t * nf1 * nf2 * nf3, M, nf1, nf2, nf3,
-              es_c, es_beta, sigma, d_idxnupts);
+              sigma, es_c, es_beta, d_binstartpts, d_binsize, bin_size_x, bin_size_y,
+              bin_size_z, d_subprob_to_bin, d_subprobstartpts, d_numsubprob,
+              maxsubprobsize, numbins[0], numbins[1], numbins[2], d_idxnupts);
       RETURN_IF_CUDA_ERROR
     }
   } else {
+    if (const auto finufft_err =
+            cufinufft_set_shared_memory(spread_3d_output_driven<T, 0, ns>, 3, *d_plan) !=
+            0) {
+      return FINUFFT_ERR_INSUFFICIENT_SHMEM;
+    }
     for (int t = 0; t < blksize; t++) {
       spread_3d_output_driven<T, 0, ns>
-          <<<blocks, threadsPerBlock, shared_mem_required, stream>>>(
+          <<<totalnumsubprob, 256, sharedplanorysize, stream>>>(
               d_kx, d_ky, d_kz, d_c + t * M, d_fw + t * nf1 * nf2 * nf3, M, nf1, nf2, nf3,
-              es_c, es_beta, sigma, d_idxnupts);
+              sigma, es_c, es_beta, d_binstartpts, d_binsize, bin_size_x, bin_size_y,
+              bin_size_z, d_subprob_to_bin, d_subprobstartpts, d_numsubprob,
+              maxsubprobsize, numbins[0], numbins[1], numbins[2], d_idxnupts);
       RETURN_IF_CUDA_ERROR
     }
   }
-
   return 0;
 }
 
