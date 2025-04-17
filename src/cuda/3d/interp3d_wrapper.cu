@@ -120,12 +120,12 @@ int cuinterp3d_subprob(int nf1, int nf2, int nf3, int M, cufinufft_plan_t<T> *d_
   int *d_subprob_to_bin  = d_plan->subprob_to_bin;
   int totalnumsubprob    = d_plan->totalnumsubprob;
 
-  T sigma   = d_plan->spopts.upsampfac;
-  T es_c    = d_plan->spopts.ES_c;
-  T es_beta = d_plan->spopts.ES_beta;
-  const auto sharedplanorysize =
-      shared_memory_required<T>(3, d_plan->spopts.nspread, d_plan->opts.gpu_binsizex,
-                                d_plan->opts.gpu_binsizey, d_plan->opts.gpu_binsizez);
+  T sigma                      = d_plan->spopts.upsampfac;
+  T es_c                       = d_plan->spopts.ES_c;
+  T es_beta                    = d_plan->spopts.ES_beta;
+  const auto sharedplanorysize = shared_memory_required<T>(
+      3, d_plan->spopts.nspread, d_plan->opts.gpu_binsizex, d_plan->opts.gpu_binsizey,
+      d_plan->opts.gpu_binsizez, d_plan->opts.gpu_np);
 
   if (d_plan->opts.gpu_kerevalmeth == 1) {
     if (const auto finufft_err =

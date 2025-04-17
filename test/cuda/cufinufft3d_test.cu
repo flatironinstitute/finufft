@@ -109,13 +109,13 @@ int run_test(int method, int type, int N1, int N2, int N3, int M, T tol, T check
   cufinufft_opts opts;
   cufinufft_default_opts(&opts);
 
-  opts.gpu_method       = method;
-  opts.gpu_kerevalmeth  = 1;
-  opts.gpu_maxbatchsize = 1;
-  opts.upsampfac        = upsampfac;
-  opts.debug            = 2;
-  int nmodes[3]         = {N1, N2, N3};
-  int ntransf           = 1;
+  opts.gpu_method      = method;
+  opts.gpu_kerevalmeth = 1;
+  // opts.gpu_maxbatchsize = 0;
+  opts.upsampfac = upsampfac;
+  opts.debug     = 2;
+  int nmodes[3]  = {N1, N2, N3};
+  int ntransf    = 1;
   cudaEventRecord(start);
   ier = cufinufft_makeplan_impl(type, dim, nmodes, iflag, ntransf, tol, &dplan, &opts);
   if (ier != 0) {
@@ -177,20 +177,28 @@ int run_test(int method, int type, int N1, int N2, int N3, int M, T tol, T check
 
   T rel_error = std::numeric_limits<T>::max();
   if (type == 1) {
-    int nt1 = (int)(0.37 * N1), nt2 = (int)(0.26 * N2),
-        nt3               = (int)(0.13 * N3); // choose some mode index to check
-    thrust::complex<T> Ft = thrust::complex<T>(0, 0), J = thrust::complex<T>(0.0, iflag);
-    for (int j = 0; j < M; ++j)
-      Ft += c[j] * exp(J * (nt1 * x[j] + nt2 * y[j] + nt3 * z[j])); // crude direct
+    auto check_mode = [&](int nt1, int nt2, int nt3) {
+      // build the imaginary unit J
+      thrust::complex<T> Ft{0, 0}, J{T(0), T(iflag)};
+      // direct summation
+      for (int j = 0; j < M; ++j) {
+        Ft += c[j] * exp(J * (nt1 * x[j] + nt2 * y[j] + nt3 * z[j]));
+      }
+      // flatten 3D index into 1D
+      int it = (N1 / 2 + nt1) + N1 * (N2 / 2 + nt2) + N1 * N2 * (N3 / 2 + nt3);
+      // compute relative error
+      T rel_error =
+          abs(Ft - fk[it]) / infnorm(N1, reinterpret_cast<std::complex<T> *>(fk.data()));
+      printf("[gpu   ] one mode: rel err in F[%d,%d,%d] is %.3g\n", nt1, nt2, nt3,
+             rel_error);
+      return rel_error;
+    };
 
-    int it = N1 / 2 + nt1 + N1 * (N2 / 2 + nt2) + N1 * N2 * (N3 / 2 + nt3); // index
-                                                                            // in
-                                                                            // complex
-                                                                            // F as 1d
-                                                                            // array
-    rel_error = abs(Ft - fk[it]) / infnorm(N1, (std::complex<T> *)fk.data());
-    printf("[gpu   ] one mode: rel err in F[%d,%d,%d] is %.3g\n", nt1, nt2, nt3,
-           rel_error);
+    // usage examples:
+    int nt1 = int(0.37 * N1), nt2 = int(0.26 * N2), nt3 = int(0.13 * N3);
+
+    T err = check_mode(nt1, nt2, nt3);
+    err   = std::max(err, check_mode(0, 0, 0));
   } else if (type == 2) {
     int jt                = M / 2; // check arbitrary choice of one targ pt
     thrust::complex<T> J  = thrust::complex<T>(0, iflag);

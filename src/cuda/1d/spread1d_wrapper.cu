@@ -260,9 +260,9 @@ int cuspread1d_subprob(int nf1, int M, cufinufft_plan_t<T> *d_plan, int blksize)
 
   T sigma = d_plan->opts.upsampfac;
 
-  const auto sharedplanorysize =
-      shared_memory_required<T>(1, d_plan->spopts.nspread, d_plan->opts.gpu_binsizex,
-                                d_plan->opts.gpu_binsizey, d_plan->opts.gpu_binsizez);
+  const auto sharedplanorysize = shared_memory_required<T>(
+      1, d_plan->spopts.nspread, d_plan->opts.gpu_binsizex, d_plan->opts.gpu_binsizey,
+      d_plan->opts.gpu_binsizez, d_plan->opts.gpu_np);
 
   if (d_plan->opts.gpu_kerevalmeth) {
     if (const auto finufft_err =

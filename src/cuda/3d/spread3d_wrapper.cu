@@ -536,12 +536,12 @@ int cuspread3d_subprob(int nf1, int nf2, int nf3, int M, cufinufft_plan_t<T> *d_
   int totalnumsubprob   = d_plan->totalnumsubprob;
   int *d_subprob_to_bin = d_plan->subprob_to_bin;
 
-  T sigma   = d_plan->spopts.upsampfac;
-  T es_c    = d_plan->spopts.ES_c;
-  T es_beta = d_plan->spopts.ES_beta;
-  const auto sharedplanorysize =
-      shared_memory_required<T>(3, d_plan->spopts.nspread, d_plan->opts.gpu_binsizex,
-                                d_plan->opts.gpu_binsizey, d_plan->opts.gpu_binsizez);
+  T sigma                      = d_plan->spopts.upsampfac;
+  T es_c                       = d_plan->spopts.ES_c;
+  T es_beta                    = d_plan->spopts.ES_beta;
+  const auto sharedplanorysize = shared_memory_required<T>(
+      3, d_plan->spopts.nspread, d_plan->opts.gpu_binsizex, d_plan->opts.gpu_binsizey,
+      d_plan->opts.gpu_binsizez, d_plan->opts.gpu_np);
   if (d_plan->opts.gpu_kerevalmeth) {
     if (const auto finufft_err =
             cufinufft_set_shared_memory(spread_3d_subprob<T, 1, ns>, 3, *d_plan) != 0) {
@@ -604,26 +604,29 @@ int cuspread3d_output_driven(int nf1, int nf2, int nf3, int M,
   int totalnumsubprob   = d_plan->totalnumsubprob;
   int *d_subprob_to_bin = d_plan->subprob_to_bin;
 
-  T sigma   = d_plan->spopts.upsampfac;
-  T es_c    = d_plan->spopts.ES_c;
-  T es_beta = d_plan->spopts.ES_beta;
-  const auto sharedplanorysize =
-      shared_memory_required<T>(3, d_plan->spopts.nspread, d_plan->opts.gpu_binsizex,
-                                d_plan->opts.gpu_binsizey, d_plan->opts.gpu_binsizez) +
-      d_plan->opts.gpu_np * sizeof(T) * ns; // accounting for the batching here
+  const auto np = d_plan->opts.gpu_np;
+  printf("np: %d\n", np);
+
+  T sigma                      = d_plan->spopts.upsampfac;
+  T es_c                       = d_plan->spopts.ES_c;
+  T es_beta                    = d_plan->spopts.ES_beta;
+  const auto sharedplanorysize = shared_memory_required<T>(
+      3, ns, d_plan->opts.gpu_binsizex, d_plan->opts.gpu_binsizey,
+      d_plan->opts.gpu_binsizez, d_plan->opts.gpu_np);
   if (d_plan->opts.gpu_kerevalmeth) {
     if (const auto finufft_err =
-            cufinufft_set_shared_memory(spread_3d_output_driven<T, 1, ns>, 3, *d_plan) !=
-            0) {
+            cudaFuncSetAttribute(spread_3d_output_driven<T, 1, ns>,
+                                 cudaFuncAttributeMaxDynamicSharedMemorySize,
+                                 sharedplanorysize) != 0) {
       return FINUFFT_ERR_INSUFFICIENT_SHMEM;
     }
     for (int t = 0; t < blksize; t++) {
-      spread_3d_output_driven<T, 0, ns>
+      spread_3d_output_driven<T, 1, ns>
           <<<totalnumsubprob, 256, sharedplanorysize, stream>>>(
               d_kx, d_ky, d_kz, d_c + t * M, d_fw + t * nf1 * nf2 * nf3, M, nf1, nf2, nf3,
               sigma, es_c, es_beta, d_binstartpts, d_binsize, bin_size_x, bin_size_y,
               bin_size_z, d_subprob_to_bin, d_subprobstartpts, d_numsubprob,
-              maxsubprobsize, numbins[0], numbins[1], numbins[2], d_idxnupts);
+              maxsubprobsize, numbins[0], numbins[1], numbins[2], d_idxnupts, np);
       RETURN_IF_CUDA_ERROR
     }
   } else {
@@ -634,11 +637,12 @@ int cuspread3d_output_driven(int nf1, int nf2, int nf3, int M,
     }
     for (int t = 0; t < blksize; t++) {
       spread_3d_output_driven<T, 0, ns>
-          <<<totalnumsubprob, 256, sharedplanorysize, stream>>>(
+          <<<totalnumsubprob, 16, sharedplanorysize, stream>>>(
               d_kx, d_ky, d_kz, d_c + t * M, d_fw + t * nf1 * nf2 * nf3, M, nf1, nf2, nf3,
               sigma, es_c, es_beta, d_binstartpts, d_binsize, bin_size_x, bin_size_y,
               bin_size_z, d_subprob_to_bin, d_subprobstartpts, d_numsubprob,
-              maxsubprobsize, numbins[0], numbins[1], numbins[2], d_idxnupts);
+              maxsubprobsize, numbins[0], numbins[1], numbins[2], d_idxnupts,
+              d_plan->opts.gpu_np);
       RETURN_IF_CUDA_ERROR
     }
   }

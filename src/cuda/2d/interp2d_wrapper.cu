@@ -122,10 +122,10 @@ int cuinterp2d_subprob(int nf1, int nf2, int M, cufinufft_plan_t<T> *d_plan,
   int *d_subprob_to_bin  = d_plan->subprob_to_bin;
   int totalnumsubprob    = d_plan->totalnumsubprob;
 
-  T sigma = d_plan->opts.upsampfac;
-  const auto sharedplanorysize =
-      shared_memory_required<T>(2, d_plan->spopts.nspread, d_plan->opts.gpu_binsizex,
-                                d_plan->opts.gpu_binsizey, d_plan->opts.gpu_binsizez);
+  T sigma                      = d_plan->opts.upsampfac;
+  const auto sharedplanorysize = shared_memory_required<T>(
+      2, d_plan->spopts.nspread, d_plan->opts.gpu_binsizex, d_plan->opts.gpu_binsizey,
+      d_plan->opts.gpu_binsizez, d_plan->opts.gpu_np);
 
   if (d_plan->opts.gpu_kerevalmeth) {
     if (const auto finufft_err =

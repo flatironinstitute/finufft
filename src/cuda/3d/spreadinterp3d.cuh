@@ -1,5 +1,5 @@
 #pragma once
-
+#define MDSPAN_ENABLE_CHECKS
 #include <cmath>
 #include <cuda/std/mdspan>
 #include <cufinufft/contrib/helper_math.h>
@@ -130,9 +130,12 @@ __global__ void spread_3d_output_driven(
     T *x, T *y, T *z, cuda_complex<T> *c, cuda_complex<T> *fw, int M, int nf1, int nf2,
     int nf3, T sigma, T es_c, T es_beta, int *binstartpts, int *bin_size, int bin_size_x,
     int bin_size_y, int bin_size_z, int *subprob_to_bin, int *subprobstartpts,
-    int *numsubprob, int maxsubprobsize, int nbinx, int nbiny, int nbinz, int *idxnupts) {
+    int *numsubprob, int maxsubprobsize, int nbinx, int nbiny, int nbinz, int *idxnupts,
+    int np) {
   extern __shared__ char sharedbuf[];
-  auto fwshared = (cuda_complex<T> *)sharedbuf;
+  char *ptr = sharedbuf;
+  using mdspan_t =
+      cuda::std::mdspan<T, cuda::std::extents<int, cuda::std::dynamic_extent, 3, ns>>;
 
   const int bidx        = subprob_to_bin[blockIdx.x];
   const int binsubp_idx = blockIdx.x - subprobstartpts[bidx];
@@ -143,94 +146,143 @@ __global__ void spread_3d_output_driven(
   const int yoffset = ((bidx / nbinx) % nbiny) * bin_size_y;
   const int zoffset = (bidx / (nbinx * nbiny)) * bin_size_z;
 
-  const T ns_2f         = ns * T(.5);
-  const auto ns_2       = (ns + 1) / 2;
-  const auto rounded_ns = ns_2 * 2;
+  // print all the variables above for debug
 
-  const int N =
-      (bin_size_x + rounded_ns) * (bin_size_y + rounded_ns) * (bin_size_z + rounded_ns);
+  static constexpr auto ns_2f      = T(ns * .5);
+  static constexpr auto ns_2       = (ns + 1) / 2;
+  static constexpr auto rounded_ns = ns_2 * 2;
+  const auto padded_size_x         = bin_size_x + rounded_ns;
+  const auto padded_size_y         = bin_size_y + rounded_ns;
+  const auto padded_size_z         = bin_size_z + rounded_ns;
 
-  for (int i = threadIdx.x; i < N; i += blockDim.x) {
-    fwshared[i] = {0, 0};
+  // using mdspan_t =
+  //     cuda::std::mdspan<T, cuda::std::extents<int, cuda::std::dynamic_extent, 3, ns>>;
+  // auto window_vals = mdspan_t((T *)sharedbuf, np);
+  // // sharedbuf + size of window_vals in bytes
+  // // Offset pointer into sharedbuf after window_vals
+  // // Create span using pointer + size
+  //
+  // auto vp_sm = cuda::std::span<cuda_complex<T>>(
+  //     reinterpret_cast<cuda_complex<T> *>(window_vals.data_handle() +
+  //     window_vals.size()), np);
+
+  // auto u_local = cuda::std::mdspan<cuda_complex<T>, cuda::std::dextents<int, 3>>(
+  // reinterpret_cast<cuda_complex<T> *>(vp_sm.data() + vp_sm.size()), padded_size_z,
+  // padded_size_y, padded_size_x);
+  auto u_local = cuda::std::mdspan<cuda_complex<T>, cuda::std::dextents<int, 3>>(
+      reinterpret_cast<cuda_complex<T> *>(ptr), padded_size_z, padded_size_y,
+      padded_size_x);
+  // set u_local to zero
+  for (int i = threadIdx.x; i < u_local.size(); i += blockDim.x) {
+    u_local.data_handle()[i] = {0, 0};
   }
   __syncthreads();
 
-  T ker1[ns];
-  T ker2[ns];
-  T ker3[ns];
+  for (int batch_begin = 0; batch_begin < nupts; batch_begin += np) {
+    const auto batch_size = min(np, nupts - batch_begin);
+    // for (int i = threadIdx.x; i < batch_size; i += blockDim.x) {
+    //   const int nuptsidx = idxnupts[ptstart + i];
+    //   // index of the current point within the batch
+    //   const auto x_rescaled = fold_rescale(x[nuptsidx], nf1);
+    //   const auto y_rescaled = fold_rescale(y[nuptsidx], nf2);
+    //   const auto z_rescaled = fold_rescale(z[nuptsidx], nf3);
+    //   vp_sm[i]              = c[nuptsidx];
+    //   auto [xstart, xend]   = interval(ns, x_rescaled);
+    //   auto [ystart, yend]   = interval(ns, y_rescaled);
+    //   auto [zstart, zend]   = interval(ns, z_rescaled);
+    //   const T x1            = T(xstart) - x_rescaled;
+    //   const T y1            = T(ystart) - y_rescaled;
+    //   const T z1            = T(zstart) - z_rescaled;
+    //   if constexpr (KEREVALMETH == 1) {
+    //     eval_kernel_vec_horner<T, ns>(&window_vals(i, 0, 0), x1, sigma);
+    //     eval_kernel_vec_horner<T, ns>(&window_vals(i, 1, 0), y1, sigma);
+    //     eval_kernel_vec_horner<T, ns>(&window_vals(i, 2, 0), z1, sigma);
+    //   } else {
+    //     eval_kernel_vec<T, ns>(&window_vals(i, 0, 0), x1, es_c, es_beta);
+    //     eval_kernel_vec<T, ns>(&window_vals(i, 1, 0), y1, es_c, es_beta);
+    //     eval_kernel_vec<T, ns>(&window_vals(i, 2, 0), z1, es_c, es_beta);
+    //   }
+    // }
+    // __syncthreads();
 
-  for (int i = threadIdx.x; i < nupts; i += blockDim.x) {
-    const int nuptsidx    = idxnupts[ptstart + i];
-    const auto x_rescaled = fold_rescale(x[nuptsidx], nf1);
-    const auto y_rescaled = fold_rescale(y[nuptsidx], nf2);
-    const auto z_rescaled = fold_rescale(z[nuptsidx], nf3);
-    const auto cnow       = c[nuptsidx];
-    auto [xstart, xend]   = interval(ns, x_rescaled);
-    auto [ystart, yend]   = interval(ns, y_rescaled);
-    auto [zstart, zend]   = interval(ns, z_rescaled);
+    for (auto i = 0; i < batch_size; i++) {
+      // strength from shared memory
+      const int nuptsidx = idxnupts[ptstart + i];
+      const auto cnow    = c[nuptsidx];
+      // const auto cnow       = vp_sm[i];
+      const auto x_rescaled = fold_rescale(x[nuptsidx], nf1);
+      const auto y_rescaled = fold_rescale(y[nuptsidx], nf2);
+      const auto z_rescaled = fold_rescale(z[nuptsidx], nf3);
+      auto [xstart, xend]   = interval(ns, x_rescaled);
+      auto [ystart, yend]   = interval(ns, y_rescaled);
+      auto [zstart, zend]   = interval(ns, z_rescaled);
 
-    const T x1 = T(xstart) - x_rescaled;
-    const T y1 = T(ystart) - y_rescaled;
-    const T z1 = T(zstart) - z_rescaled;
+      const T x1 = T(xstart) - x_rescaled;
+      const T y1 = T(ystart) - y_rescaled;
+      const T z1 = T(zstart) - z_rescaled;
 
-    xstart -= xoffset;
-    ystart -= yoffset;
-    zstart -= zoffset;
+      xstart -= xoffset;
+      ystart -= yoffset;
+      zstart -= zoffset;
 
-    xend -= xoffset;
-    yend -= yoffset;
-    zend -= zoffset;
+      const int sizex = ns;            // true span in X
+      const int sizey = ns;            // true span in Y
+      const int sizez = ns;            // true span in Z
+      const int plane = sizex * sizey; // #cells per Z‐slice
+      const int total = plane * sizez; // total #cells
 
-    if constexpr (KEREVALMETH == 1) {
-      eval_kernel_vec_horner<T, ns>(ker1, x1, sigma);
-      eval_kernel_vec_horner<T, ns>(ker2, y1, sigma);
-      eval_kernel_vec_horner<T, ns>(ker3, z1, sigma);
-    } else {
-      eval_kernel_vec<T, ns>(ker1, x1, es_c, es_beta);
-      eval_kernel_vec<T, ns>(ker2, y1, es_c, es_beta);
-      eval_kernel_vec<T, ns>(ker3, z1, es_c, es_beta);
-    }
+      for (int idx = threadIdx.x; idx < ns * ns * ns; idx += blockDim.x) {
+        // decompose idx using `plane`
+        const int zz   = idx / plane;
+        const int rem1 = idx - zz * plane;
+        const int yy   = rem1 / sizex;
+        const int xx   = rem1 - yy * sizex;
 
-    for (int zz = zstart; zz <= zend; zz++) {
-      const T kervalue3 = ker3[zz - zstart];
-      const int iz      = zz + ns_2;
-      if (iz >= (bin_size_z + (int)rounded_ns) || iz < 0) break;
-      for (int yy = ystart; yy <= yend; yy++) {
-        const T kervalue2 = ker2[yy - ystart];
-        const int iy      = yy + ns_2;
-        if (iy >= (bin_size_y + (int)rounded_ns) || iy < 0) break;
-        for (int xx = xstart; xx <= xend; xx++) {
-          const int ix = xx + ns_2;
-          if (ix >= (bin_size_x + (int)rounded_ns) || ix < 0) break;
-          const int outidx = ix + iy * (bin_size_x + rounded_ns) +
-                             iz * (bin_size_x + rounded_ns) * (bin_size_y + rounded_ns);
-          const auto kervalue = ker1[xx - xstart] * kervalue2 * kervalue3;
-          const cuda_complex<T> res{cnow.x * kervalue, cnow.y * kervalue};
-          atomicAddComplexShared<T>(fwshared + outidx, res);
-        }
+        // recover global coords
+        const int real_zz = zstart + zz;
+        const int real_yy = ystart + yy;
+        const int real_xx = xstart + xx;
+
+        // padded indices
+        const int iz = real_zz + ns_2;
+        const int iy = real_yy + ns_2;
+        const int ix = real_xx + ns_2;
+
+        // bounds guard
+        // if (iz < 0 || iz >= padded_size_x) continue;
+        // if (iy < 0 || iy >= padded_size_y) continue;
+        // if (ix < 0 || ix >= padded_size_z) continue;
+
+        // separable window weights
+        // const auto kervalue =
+        // window_vals(i, 0, xx) * window_vals(i, 1, yy) * window_vals(i, 2, zz);
+        const auto kervalue = evaluate_kernel<T, ns>(abs(x1 + xx), es_c, es_beta) *
+                              evaluate_kernel<T, ns>(abs(y1 + yy), es_c, es_beta) *
+                              evaluate_kernel<T, ns>(abs(z1 + zz), es_c, es_beta);
+        // accumulate
+        const cuda_complex<T> res{cnow.x * kervalue, cnow.y * kervalue};
+        u_local(iz, iy, ix).x += res.x;
+        u_local(iz, iy, ix).y += res.y;
       }
+      __syncthreads();
     }
   }
-  __syncthreads();
-
-  /* write to global memory */
+  const auto N = padded_size_x * padded_size_y * padded_size_z;
   for (int n = threadIdx.x; n < N; n += blockDim.x) {
-    const int i = n % (bin_size_x + rounded_ns);
-    const int j = (n / (bin_size_x + rounded_ns)) % (bin_size_y + rounded_ns);
-    const int k = n / ((bin_size_x + rounded_ns) * (bin_size_y + rounded_ns));
+    const int i = n % (padded_size_x);
+    const int j = (n / (padded_size_x)) % (padded_size_y);
+    const int k = n / ((padded_size_x) * (padded_size_y));
 
     int ix = xoffset - ns_2 + i;
     int iy = yoffset - ns_2 + j;
     int iz = zoffset - ns_2 + k;
 
     if (ix < (nf1 + ns_2) && iy < (nf2 + ns_2) && iz < (nf3 + ns_2)) {
-      ix                  = ix < 0 ? ix + nf1 : (ix > nf1 - 1 ? ix - nf1 : ix);
-      iy                  = iy < 0 ? iy + nf2 : (iy > nf2 - 1 ? iy - nf2 : iy);
-      iz                  = iz < 0 ? iz + nf3 : (iz > nf3 - 1 ? iz - nf3 : iz);
-      const int outidx    = ix + iy * nf1 + iz * nf1 * nf2;
-      const int sharedidx = i + j * (bin_size_x + rounded_ns) +
-                            k * (bin_size_x + rounded_ns) * (bin_size_y + rounded_ns);
-      atomicAddComplexGlobal<T>(fw + outidx, fwshared[sharedidx]);
+      ix               = ix < 0 ? ix + nf1 : (ix > nf1 - 1 ? ix - nf1 : ix);
+      iy               = iy < 0 ? iy + nf2 : (iy > nf2 - 1 ? iy - nf2 : iy);
+      iz               = iz < 0 ? iz + nf3 : (iz > nf3 - 1 ? iz - nf3 : iz);
+      const int outidx = ix + iy * nf1 + iz * nf1 * nf2;
+      atomicAddComplexGlobal<T>(fw + outidx, u_local(k, j, i));
     }
   }
 }
@@ -305,14 +357,14 @@ __global__ void spread_3d_subprob(
     for (int zz = zstart; zz <= zend; zz++) {
       const T kervalue3 = ker3[zz - zstart];
       const int iz      = zz + ns_2;
-      if (iz >= (bin_size_z + (int)rounded_ns) || iz < 0) break;
+      if (iz >= (bin_size_z + rounded_ns) || iz < 0) break;
       for (int yy = ystart; yy <= yend; yy++) {
         const T kervalue2 = ker2[yy - ystart];
         const int iy      = yy + ns_2;
-        if (iy >= (bin_size_y + (int)rounded_ns) || iy < 0) break;
+        if (iy >= (bin_size_y + rounded_ns) || iy < 0) break;
         for (int xx = xstart; xx <= xend; xx++) {
           const int ix = xx + ns_2;
-          if (ix >= (bin_size_x + (int)rounded_ns) || ix < 0) break;
+          if (ix >= (bin_size_x + rounded_ns) || ix < 0) break;
           const int outidx = ix + iy * (bin_size_x + rounded_ns) +
                              iz * (bin_size_x + rounded_ns) * (bin_size_y + rounded_ns);
           const auto kervalue = ker1[xx - xstart] * kervalue2 * kervalue3;
@@ -651,7 +703,6 @@ __global__ void interp_3d_subprob(
 
     if constexpr (KEREVALMETH == 1) {
       eval_kernel_vec_horner<T, ns>(ker1, x1, sigma);
-
       eval_kernel_vec_horner<T, ns>(ker2, y1, sigma);
       eval_kernel_vec_horner<T, ns>(ker3, z1, sigma);
     } else {
