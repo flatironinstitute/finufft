@@ -165,6 +165,14 @@ __global__ void spread_1d_output_driven(
       __syncthreads();
     }
   }
+  /* write to global memory */
+  for (int k = threadIdx.x; k < u_local.size(); k += blockDim.x) {
+    auto ix = xoffset - ns_2 + k;
+    if (ix < (nf1 + ns_2)) {
+      ix = ix < 0 ? ix + nf1 : (ix > nf1 - 1 ? ix - nf1 : ix);
+      atomicAddComplexGlobal<T>(fw + ix, u_local[k]);
+    }
+  }
 }
 
 template<typename T, int KEREVALMETH, int ns>
