@@ -569,7 +569,6 @@ int cuspread3d_subprob(int nf1, int nf2, int nf3, int M, cufinufft_plan_t<T> *d_
       RETURN_IF_CUDA_ERROR
     }
   }
-
   return 0;
 }
 
@@ -615,18 +614,21 @@ int cuspread3d_output_driven(int nf1, int nf2, int nf3, int M,
       d_plan->opts.gpu_binsizez, d_plan->opts.gpu_np);
   if (d_plan->opts.gpu_kerevalmeth) {
     if (const auto finufft_err =
-            cudaFuncSetAttribute(spread_3d_output_driven<T, 1, ns>,
-                                 cudaFuncAttributeMaxDynamicSharedMemorySize,
-                                 sharedplanorysize) != 0) {
+            cufinufft_set_shared_memory(spread_3d_output_driven<T, 1, ns>, 3, *d_plan) !=
+            0) {
       return FINUFFT_ERR_INSUFFICIENT_SHMEM;
     }
+    cudaFuncSetSharedMemConfig(spread_3d_output_driven<T, 1, ns>,
+                               cudaSharedMemBankSizeEightByte);
+    RETURN_IF_CUDA_ERROR
     for (int t = 0; t < blksize; t++) {
       spread_3d_output_driven<T, 1, ns>
-          <<<totalnumsubprob, 256, sharedplanorysize, stream>>>(
-              d_kx, d_ky, d_kz, d_c + t * M, d_fw + t * nf1 * nf2 * nf3, M, nf1, nf2, nf3,
-              sigma, es_c, es_beta, d_binstartpts, d_binsize, bin_size_x, bin_size_y,
-              bin_size_z, d_subprob_to_bin, d_subprobstartpts, d_numsubprob,
-              maxsubprobsize, numbins[0], numbins[1], numbins[2], d_idxnupts, np);
+          <<<totalnumsubprob, min(256, max(ns * ns * ns, np)), sharedplanorysize,
+             stream>>>(d_kx, d_ky, d_kz, d_c + t * M, d_fw + t * nf1 * nf2 * nf3, M, nf1,
+                       nf2, nf3, sigma, es_c, es_beta, d_binstartpts, d_binsize,
+                       bin_size_x, bin_size_y, bin_size_z, d_subprob_to_bin,
+                       d_subprobstartpts, d_numsubprob, maxsubprobsize, numbins[0],
+                       numbins[1], numbins[2], d_idxnupts, np);
       RETURN_IF_CUDA_ERROR
     }
   } else {
@@ -635,14 +637,17 @@ int cuspread3d_output_driven(int nf1, int nf2, int nf3, int M,
             0) {
       return FINUFFT_ERR_INSUFFICIENT_SHMEM;
     }
+    cudaFuncSetSharedMemConfig(spread_3d_output_driven<T, 0, ns>,
+                               cudaSharedMemBankSizeEightByte);
+    RETURN_IF_CUDA_ERROR
     for (int t = 0; t < blksize; t++) {
       spread_3d_output_driven<T, 0, ns>
-          <<<totalnumsubprob, 16, sharedplanorysize, stream>>>(
-              d_kx, d_ky, d_kz, d_c + t * M, d_fw + t * nf1 * nf2 * nf3, M, nf1, nf2, nf3,
-              sigma, es_c, es_beta, d_binstartpts, d_binsize, bin_size_x, bin_size_y,
-              bin_size_z, d_subprob_to_bin, d_subprobstartpts, d_numsubprob,
-              maxsubprobsize, numbins[0], numbins[1], numbins[2], d_idxnupts,
-              d_plan->opts.gpu_np);
+          <<<totalnumsubprob, min(256, max(ns * ns * ns, np)), sharedplanorysize,
+             stream>>>(d_kx, d_ky, d_kz, d_c + t * M, d_fw + t * nf1 * nf2 * nf3, M, nf1,
+                       nf2, nf3, sigma, es_c, es_beta, d_binstartpts, d_binsize,
+                       bin_size_x, bin_size_y, bin_size_z, d_subprob_to_bin,
+                       d_subprobstartpts, d_numsubprob, maxsubprobsize, numbins[0],
+                       numbins[1], numbins[2], d_idxnupts, d_plan->opts.gpu_np);
       RETURN_IF_CUDA_ERROR
     }
   }

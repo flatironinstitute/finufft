@@ -1,6 +1,7 @@
 #pragma once
 #define MDSPAN_ENABLE_CHECKS
 #include <cmath>
+#include <cuda/std/complex>
 #include <cuda/std/mdspan>
 #include <cufinufft/contrib/helper_math.h>
 #include <cufinufft/precision_independent.h>
@@ -134,6 +135,14 @@ __global__ void spread_3d_output_driven(
     int np) {
   extern __shared__ char sharedbuf[];
 
+  static constexpr auto ns_2f      = T(ns * .5);
+  static constexpr auto ns_2       = (ns + 1) / 2;
+  static constexpr auto rounded_ns = ns_2 * 2;
+
+  const auto padded_size_x = bin_size_x + rounded_ns;
+  const auto padded_size_y = bin_size_y + rounded_ns;
+  const auto padded_size_z = bin_size_z + rounded_ns;
+
   const int bidx        = subprob_to_bin[blockIdx.x];
   const int binsubp_idx = blockIdx.x - subprobstartpts[bidx];
   const int ptstart     = binstartpts[bidx] + binsubp_idx * maxsubprobsize;
@@ -142,16 +151,6 @@ __global__ void spread_3d_output_driven(
   const int xoffset = (bidx % nbinx) * bin_size_x;
   const int yoffset = ((bidx / nbinx) % nbiny) * bin_size_y;
   const int zoffset = (bidx / (nbinx * nbiny)) * bin_size_z;
-
-  // print all the variables above for debug
-
-  static constexpr auto ns_2f      = T(ns * .5);
-  static constexpr auto ns_2       = (ns + 1) / 2;
-  static constexpr auto rounded_ns = ns_2 * 2;
-
-  const auto padded_size_x = bin_size_x + rounded_ns;
-  const auto padded_size_y = bin_size_y + rounded_ns;
-  const auto padded_size_z = bin_size_z + rounded_ns;
 
   using mdspan_t =
       cuda::std::mdspan<T, cuda::std::extents<int, cuda::std::dynamic_extent, 3, ns>>;
@@ -208,14 +207,14 @@ __global__ void spread_3d_output_driven(
 
     for (auto i = 0; i < batch_size; i++) {
       // strength from shared memory
-      const auto cnow                     = vp_sm[i];
-      const auto [xstart, ystart, zstart] = shift[i];
-
       static constexpr int sizex = ns;            // true span in X
       static constexpr int sizey = ns;            // true span in Y
       static constexpr int sizez = ns;            // true span in Z
       static constexpr int plane = sizex * sizey; // #cells per Z‐slice
       static constexpr int total = plane * sizez; // total #cells
+
+      const auto cnow                     = vp_sm[i];
+      const auto [xstart, ystart, zstart] = shift[i];
 
       for (int idx = threadIdx.x; idx < total; idx += blockDim.x) {
         // decompose idx using `plane`
@@ -234,11 +233,6 @@ __global__ void spread_3d_output_driven(
         const int iy = real_yy + ns_2;
         const int ix = real_xx + ns_2;
 
-        // bounds guard
-        if (iz < 0 || iz >= padded_size_x) continue;
-        if (iy < 0 || iy >= padded_size_y) continue;
-        if (ix < 0 || ix >= padded_size_z) continue;
-
         // separable window weights
         const auto kervalue =
             window_vals(i, 0, xx) * window_vals(i, 1, yy) * window_vals(i, 2, zz);
@@ -249,8 +243,7 @@ __global__ void spread_3d_output_driven(
 
         // accumulate
         const cuda_complex<T> res{cnow.x * kervalue, cnow.y * kervalue};
-        u_local(iz, iy, ix).x += res.x;
-        u_local(iz, iy, ix).y += res.y;
+        u_local(iz, iy, ix) += res;
       }
       __syncthreads();
     }

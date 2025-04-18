@@ -288,8 +288,6 @@ void cufinufft_setup_binsize(int type, int ns, int dim, cufinufft_opts *opts) {
     break;
   }
   case 3: {
-    // cudaDeviceGetAttribute(&shared_mem_per_block,
-    // cudaDevAttrMaxSharedMemoryPerBlockOptin, device_id);
     // opts->gpu_np this way is at least 16.
     const auto shmem_per_point = shared_memory_per_point<T>(dim, ns);
     const auto min_np_shmem    = shared_memory_per_point<T>(dim, ns) * opts->gpu_np;
