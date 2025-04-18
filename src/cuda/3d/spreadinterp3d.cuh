@@ -133,9 +133,6 @@ __global__ void spread_3d_output_driven(
     int *numsubprob, int maxsubprobsize, int nbinx, int nbiny, int nbinz, int *idxnupts,
     int np) {
   extern __shared__ char sharedbuf[];
-  char *ptr = sharedbuf;
-  using mdspan_t =
-      cuda::std::mdspan<T, cuda::std::extents<int, cuda::std::dynamic_extent, 3, ns>>;
 
   const int bidx        = subprob_to_bin[blockIdx.x];
   const int binsubp_idx = blockIdx.x - subprobstartpts[bidx];
@@ -151,27 +148,26 @@ __global__ void spread_3d_output_driven(
   static constexpr auto ns_2f      = T(ns * .5);
   static constexpr auto ns_2       = (ns + 1) / 2;
   static constexpr auto rounded_ns = ns_2 * 2;
-  const auto padded_size_x         = bin_size_x + rounded_ns;
-  const auto padded_size_y         = bin_size_y + rounded_ns;
-  const auto padded_size_z         = bin_size_z + rounded_ns;
 
-  // using mdspan_t =
-  //     cuda::std::mdspan<T, cuda::std::extents<int, cuda::std::dynamic_extent, 3, ns>>;
-  // auto window_vals = mdspan_t((T *)sharedbuf, np);
-  // // sharedbuf + size of window_vals in bytes
-  // // Offset pointer into sharedbuf after window_vals
-  // // Create span using pointer + size
-  //
-  // auto vp_sm = cuda::std::span<cuda_complex<T>>(
-  //     reinterpret_cast<cuda_complex<T> *>(window_vals.data_handle() +
-  //     window_vals.size()), np);
+  const auto padded_size_x = bin_size_x + rounded_ns;
+  const auto padded_size_y = bin_size_y + rounded_ns;
+  const auto padded_size_z = bin_size_z + rounded_ns;
 
-  // auto u_local = cuda::std::mdspan<cuda_complex<T>, cuda::std::dextents<int, 3>>(
-  // reinterpret_cast<cuda_complex<T> *>(vp_sm.data() + vp_sm.size()), padded_size_z,
-  // padded_size_y, padded_size_x);
+  using mdspan_t =
+      cuda::std::mdspan<T, cuda::std::extents<int, cuda::std::dynamic_extent, 3, ns>>;
+  auto window_vals = mdspan_t((T *)sharedbuf, np);
+  // sharedbuf + size of window_vals in bytes
+  // Offset pointer into sharedbuf after window_vals
+  // Create span using pointer + size
+
+  auto vp_sm = cuda::std::span<cuda_complex<T>>(
+      reinterpret_cast<cuda_complex<T> *>(window_vals.data_handle() + window_vals.size()),
+      np);
+
   auto u_local = cuda::std::mdspan<cuda_complex<T>, cuda::std::dextents<int, 3>>(
-      reinterpret_cast<cuda_complex<T> *>(ptr), padded_size_z, padded_size_y,
-      padded_size_x);
+      reinterpret_cast<cuda_complex<T> *>(vp_sm.data() + vp_sm.size()), padded_size_z,
+      padded_size_y, padded_size_x);
+
   // set u_local to zero
   for (int i = threadIdx.x; i < u_local.size(); i += blockDim.x) {
     u_local.data_handle()[i] = {0, 0};
@@ -180,36 +176,35 @@ __global__ void spread_3d_output_driven(
 
   for (int batch_begin = 0; batch_begin < nupts; batch_begin += np) {
     const auto batch_size = min(np, nupts - batch_begin);
-    // for (int i = threadIdx.x; i < batch_size; i += blockDim.x) {
-    //   const int nuptsidx = idxnupts[ptstart + i];
-    //   // index of the current point within the batch
-    //   const auto x_rescaled = fold_rescale(x[nuptsidx], nf1);
-    //   const auto y_rescaled = fold_rescale(y[nuptsidx], nf2);
-    //   const auto z_rescaled = fold_rescale(z[nuptsidx], nf3);
-    //   vp_sm[i]              = c[nuptsidx];
-    //   auto [xstart, xend]   = interval(ns, x_rescaled);
-    //   auto [ystart, yend]   = interval(ns, y_rescaled);
-    //   auto [zstart, zend]   = interval(ns, z_rescaled);
-    //   const T x1            = T(xstart) - x_rescaled;
-    //   const T y1            = T(ystart) - y_rescaled;
-    //   const T z1            = T(zstart) - z_rescaled;
-    //   if constexpr (KEREVALMETH == 1) {
-    //     eval_kernel_vec_horner<T, ns>(&window_vals(i, 0, 0), x1, sigma);
-    //     eval_kernel_vec_horner<T, ns>(&window_vals(i, 1, 0), y1, sigma);
-    //     eval_kernel_vec_horner<T, ns>(&window_vals(i, 2, 0), z1, sigma);
-    //   } else {
-    //     eval_kernel_vec<T, ns>(&window_vals(i, 0, 0), x1, es_c, es_beta);
-    //     eval_kernel_vec<T, ns>(&window_vals(i, 1, 0), y1, es_c, es_beta);
-    //     eval_kernel_vec<T, ns>(&window_vals(i, 2, 0), z1, es_c, es_beta);
-    //   }
-    // }
-    // __syncthreads();
+    for (int i = threadIdx.x; i < batch_size; i += blockDim.x) {
+      const int nuptsidx = idxnupts[ptstart + i + batch_begin];
+      // index of the current point within the batch
+      const auto x_rescaled = fold_rescale(x[nuptsidx], nf1);
+      const auto y_rescaled = fold_rescale(y[nuptsidx], nf2);
+      const auto z_rescaled = fold_rescale(z[nuptsidx], nf3);
+      vp_sm[i]              = c[nuptsidx];
+      auto [xstart, xend]   = interval(ns, x_rescaled);
+      auto [ystart, yend]   = interval(ns, y_rescaled);
+      auto [zstart, zend]   = interval(ns, z_rescaled);
+      const T x1            = T(xstart) - x_rescaled;
+      const T y1            = T(ystart) - y_rescaled;
+      const T z1            = T(zstart) - z_rescaled;
+      if constexpr (KEREVALMETH == 1) {
+        eval_kernel_vec_horner<T, ns>(&window_vals(i, 0, 0), x1, sigma);
+        eval_kernel_vec_horner<T, ns>(&window_vals(i, 1, 0), y1, sigma);
+        eval_kernel_vec_horner<T, ns>(&window_vals(i, 2, 0), z1, sigma);
+      } else {
+        eval_kernel_vec<T, ns>(&window_vals(i, 0, 0), x1, es_c, es_beta);
+        eval_kernel_vec<T, ns>(&window_vals(i, 1, 0), y1, es_c, es_beta);
+        eval_kernel_vec<T, ns>(&window_vals(i, 2, 0), z1, es_c, es_beta);
+      }
+    }
+    __syncthreads();
 
     for (auto i = 0; i < batch_size; i++) {
       // strength from shared memory
-      const int nuptsidx = idxnupts[ptstart + i];
-      const auto cnow    = c[nuptsidx];
-      // const auto cnow       = vp_sm[i];
+      const int nuptsidx    = idxnupts[ptstart + i + batch_begin];
+      const auto cnow       = vp_sm[i];
       const auto x_rescaled = fold_rescale(x[nuptsidx], nf1);
       const auto y_rescaled = fold_rescale(y[nuptsidx], nf2);
       const auto z_rescaled = fold_rescale(z[nuptsidx], nf3);
@@ -225,13 +220,13 @@ __global__ void spread_3d_output_driven(
       ystart -= yoffset;
       zstart -= zoffset;
 
-      const int sizex = ns;            // true span in X
-      const int sizey = ns;            // true span in Y
-      const int sizez = ns;            // true span in Z
-      const int plane = sizex * sizey; // #cells per Z‐slice
-      const int total = plane * sizez; // total #cells
+      static constexpr int sizex = ns;            // true span in X
+      static constexpr int sizey = ns;            // true span in Y
+      static constexpr int sizez = ns;            // true span in Z
+      static constexpr int plane = sizex * sizey; // #cells per Z‐slice
+      static constexpr int total = plane * sizez; // total #cells
 
-      for (int idx = threadIdx.x; idx < ns * ns * ns; idx += blockDim.x) {
+      for (int idx = threadIdx.x; idx < total; idx += blockDim.x) {
         // decompose idx using `plane`
         const int zz   = idx / plane;
         const int rem1 = idx - zz * plane;
@@ -249,16 +244,18 @@ __global__ void spread_3d_output_driven(
         const int ix = real_xx + ns_2;
 
         // bounds guard
-        // if (iz < 0 || iz >= padded_size_x) continue;
-        // if (iy < 0 || iy >= padded_size_y) continue;
-        // if (ix < 0 || ix >= padded_size_z) continue;
+        if (iz < 0 || iz >= padded_size_x) continue;
+        if (iy < 0 || iy >= padded_size_y) continue;
+        if (ix < 0 || ix >= padded_size_z) continue;
 
         // separable window weights
-        // const auto kervalue =
-        // window_vals(i, 0, xx) * window_vals(i, 1, yy) * window_vals(i, 2, zz);
-        const auto kervalue = evaluate_kernel<T, ns>(abs(x1 + xx), es_c, es_beta) *
-                              evaluate_kernel<T, ns>(abs(y1 + yy), es_c, es_beta) *
-                              evaluate_kernel<T, ns>(abs(z1 + zz), es_c, es_beta);
+        const auto kervalue =
+            window_vals(i, 0, xx) * window_vals(i, 1, yy) * window_vals(i, 2, zz);
+        // One could use the kernel here directly
+        // const auto kervalue = evaluate_kernel<T, ns>(abs(x1 + xx), es_c, es_beta) *
+        // evaluate_kernel<T, ns>(abs(y1 + yy), es_c, es_beta) *
+        // evaluate_kernel<T, ns>(abs(z1 + zz), es_c, es_beta);
+
         // accumulate
         const cuda_complex<T> res{cnow.x * kervalue, cnow.y * kervalue};
         u_local(iz, iy, ix).x += res.x;
@@ -267,8 +264,7 @@ __global__ void spread_3d_output_driven(
       __syncthreads();
     }
   }
-  const auto N = padded_size_x * padded_size_y * padded_size_z;
-  for (int n = threadIdx.x; n < N; n += blockDim.x) {
+  for (int n = threadIdx.x; n < u_local.size(); n += blockDim.x) {
     const int i = n % (padded_size_x);
     const int j = (n / (padded_size_x)) % (padded_size_y);
     const int k = n / ((padded_size_x) * (padded_size_y));
