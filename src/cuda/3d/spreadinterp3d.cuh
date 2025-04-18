@@ -160,12 +160,14 @@ __global__ void spread_3d_output_driven(
   // Offset pointer into sharedbuf after window_vals
   // Create span using pointer + size
 
-  auto vp_sm = cuda::std::span<cuda_complex<T>>(
+  auto vp_sm = cuda::std::span(
       reinterpret_cast<cuda_complex<T> *>(window_vals.data_handle() + window_vals.size()),
       np);
 
+  auto shift = cuda::std::span(reinterpret_cast<int3 *>(vp_sm.data() + vp_sm.size()), np);
+
   auto u_local = cuda::std::mdspan<cuda_complex<T>, cuda::std::dextents<int, 3>>(
-      reinterpret_cast<cuda_complex<T> *>(vp_sm.data() + vp_sm.size()), padded_size_z,
+      reinterpret_cast<cuda_complex<T> *>(shift.data() + shift.size()), padded_size_z,
       padded_size_y, padded_size_x);
 
   // set u_local to zero
@@ -189,6 +191,9 @@ __global__ void spread_3d_output_driven(
       const T x1            = T(xstart) - x_rescaled;
       const T y1            = T(ystart) - y_rescaled;
       const T z1            = T(zstart) - z_rescaled;
+
+      shift[i] = {xstart - xoffset, ystart - yoffset, zstart - zoffset};
+
       if constexpr (KEREVALMETH == 1) {
         eval_kernel_vec_horner<T, ns>(&window_vals(i, 0, 0), x1, sigma);
         eval_kernel_vec_horner<T, ns>(&window_vals(i, 1, 0), y1, sigma);
@@ -203,22 +208,8 @@ __global__ void spread_3d_output_driven(
 
     for (auto i = 0; i < batch_size; i++) {
       // strength from shared memory
-      const int nuptsidx    = idxnupts[ptstart + i + batch_begin];
-      const auto cnow       = vp_sm[i];
-      const auto x_rescaled = fold_rescale(x[nuptsidx], nf1);
-      const auto y_rescaled = fold_rescale(y[nuptsidx], nf2);
-      const auto z_rescaled = fold_rescale(z[nuptsidx], nf3);
-      auto [xstart, xend]   = interval(ns, x_rescaled);
-      auto [ystart, yend]   = interval(ns, y_rescaled);
-      auto [zstart, zend]   = interval(ns, z_rescaled);
-
-      const T x1 = T(xstart) - x_rescaled;
-      const T y1 = T(ystart) - y_rescaled;
-      const T z1 = T(zstart) - z_rescaled;
-
-      xstart -= xoffset;
-      ystart -= yoffset;
-      zstart -= zoffset;
+      const auto cnow                     = vp_sm[i];
+      const auto [xstart, ystart, zstart] = shift[i];
 
       static constexpr int sizex = ns;            // true span in X
       static constexpr int sizey = ns;            // true span in Y

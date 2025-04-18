@@ -233,27 +233,22 @@ void onedim_nuft_kernel_precomp(T *f, T *z, finufft_spread_opts opts) {
   }
 }
 
+template<typename T> std::size_t shared_memory_per_point(int dim, int ns) {
+  return ns * sizeof(T) * dim       // kernel evaluations
+         + sizeof(int) * dim        // indexes
+         + sizeof(cuda_complex<T>); // strength
+}
+
+// Marco: 4/18/25 not 100% happy of having np here, but the alternatives seem worse to me
 template<typename T>
 std::size_t shared_memory_required(int dim, int ns, int bin_size_x, int bin_size_y,
                                    int bin_size_z, int np) {
-  const auto shmem_per_point = ns * sizeof(T) * dim +   // the kernel evaluations
-                               sizeof(cuda_complex<T>); // the strength
-  // Helper to compute the shared memory required for the spreader when using SM
-  int adjusted_ns = bin_size_x + ((ns + 1) / 2) * 2;
-
-  if (dim == 1) {
-    return adjusted_ns * sizeof(cuda_complex<T>) + shmem_per_point * np;
-  }
-
-  adjusted_ns *= (bin_size_y + ((ns + 1) / 2) * 2);
-
-  if (dim == 2) {
-    return adjusted_ns * sizeof(cuda_complex<T>) + shmem_per_point * np;
-  }
-
-  adjusted_ns *= (bin_size_z + ((ns + 1) / 2) * 2);
-
-  return adjusted_ns * sizeof(cuda_complex<T>) + shmem_per_point * np;
+  const auto shmem_per_point = shared_memory_per_point<T>(dim, ns);
+  const int ns_2             = (ns + 1) / 2;
+  std::size_t grid_size      = bin_size_x + 2 * ns_2;
+  if (dim >= 2) grid_size *= bin_size_y + 2 * ns_2;
+  if (dim == 3) grid_size *= bin_size_z + 2 * ns_2;
+  return grid_size * sizeof(cuda_complex<T>) + shmem_per_point * np;
 }
 
 // Function to find bin_size_x == bin_size_y
@@ -295,25 +290,32 @@ void cufinufft_setup_binsize(int type, int ns, int dim, cufinufft_opts *opts) {
   case 3: {
     // cudaDeviceGetAttribute(&shared_mem_per_block,
     // cudaDevAttrMaxSharedMemoryPerBlockOptin, device_id);
-    // shared_mem_per_block -= 1024;
-    const auto shmem_per_np    = shared_memory_required<T>(1, ns, 0, 0, 0, opts->gpu_np);
-    const auto shmem_per_point = shared_memory_required<T>(1, ns, 0, 0, 0, 1);
-    binsize = find_bin_size<T>(shared_mem_per_block - shmem_per_np, dim, ns);
-    const auto shmem_required =
-        shared_memory_required<T>(dim, ns, binsize, binsize, binsize, 1);
-    // 3 * sizeof(int); // the indexes
     // opts->gpu_np this way is at least 16.
+    const auto shmem_per_point = shared_memory_per_point<T>(dim, ns);
+    const auto min_np_shmem    = shared_memory_per_point<T>(dim, ns) * opts->gpu_np;
+    binsize = find_bin_size<T>(shared_mem_per_block - min_np_shmem, dim, ns);
+    const auto shmem_required =
+        shared_memory_required<T>(dim, ns, binsize, binsize, binsize, 0);
     const auto shmem_left = shared_mem_per_block - shmem_required;
-
-    const auto max_np = ((shmem_left) / shmem_per_point) & -16;
+    const auto max_np     = ((shmem_left) / shmem_per_point) & -16;
     if (opts->debug) {
-      if (shared_memory_required<T>(dim, ns, binsize, binsize, binsize, max_np) >
-          shared_mem_per_block) {
-        throw std::runtime_error("[cufinufft] ERROR REQUESTING TOO MUCH SHMEM");
+      const int required_shmem =
+          shared_memory_required<T>(dim, ns, binsize, binsize, binsize, max_np);
+      printf("[cufinufft] Shared memory required: %d bytes (limit: %d bytes)\n",
+             required_shmem, shared_mem_per_block);
+
+      printf("[cufinufft]   min_np_shmem     = %d\n", min_np_shmem);
+      printf("[cufinufft]   shmem_per_point  = %d\n", shmem_per_point);
+      printf("[cufinufft]   shmem_required   = %d\n", shmem_required);
+      printf("[cufinufft]   shmem_left       = %d\n", shmem_left);
+      printf("[cufinufft]   max_np           = %d\n", max_np);
+      printf("[cufinufft]   binsize          = %d\n", binsize);
+
+      if (required_shmem > shared_mem_per_block) {
+        throw std::runtime_error("[cufinufft] ERROR: Requested too much shared memory.");
       }
-      printf("[cufinufft] shared memory required %d\n",
-             shared_memory_required<T>(dim, ns, binsize, binsize, binsize, max_np));
     }
+
     opts->gpu_np       = max_np;
     opts->gpu_binsizex = binsize;
     opts->gpu_binsizey = binsize;
@@ -362,7 +364,8 @@ template std::size_t shared_memory_required<float>(
     int dim, int ns, int bin_size_x, int bin_size_y, int bin_size_z, int np);
 template std::size_t shared_memory_required<double>(
     int dim, int ns, int bin_size_x, int bin_size_y, int bin_size_z, int np);
-
+template std::size_t shared_memory_per_point<float>(int dim, int ns);
+template std::size_t shared_memory_per_point<double>(int dim, int ns);
 template void cufinufft_setup_binsize<float>(int type, int ns, int dim,
                                              cufinufft_opts *opts);
 template void cufinufft_setup_binsize<double>(int type, int ns, int dim,
