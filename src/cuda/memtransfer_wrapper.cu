@@ -58,6 +58,25 @@ int allocgpumem1d_plan(cufinufft_plan_t<T> *d_plan)
                                                  d_plan->supports_pools))))
       goto finalize;
   } break;
+  case 3: {
+    int numbins = ceil((T)nf1 / d_plan->opts.gpu_binsizex);
+    if ((ier =
+             checkCudaErrors(cudaMallocWrapper(&d_plan->numsubprob, numbins * sizeof(int),
+                                               stream, d_plan->supports_pools))))
+      goto finalize;
+    if ((ier = checkCudaErrors(cudaMallocWrapper(&d_plan->binsize, numbins * sizeof(int),
+                                                 stream, d_plan->supports_pools))))
+      goto finalize;
+    if ((ier = checkCudaErrors(
+             cudaMallocWrapper(&d_plan->binstartpts, numbins * sizeof(int), stream,
+                               d_plan->supports_pools))))
+      goto finalize;
+    if ((ier = checkCudaErrors(cudaMallocWrapper(&d_plan->subprobstartpts,
+                                                 (numbins + 1) * sizeof(int),
+                                                 stream,
+                                                 d_plan->supports_pools))))
+      goto finalize;
+  } break;
   default:
     ier = FINUFFT_ERR_METHOD_NOTVALID;
     std::cerr << "err: invalid method " << std::endl;
@@ -116,6 +135,14 @@ int allocgpumem1d_nupts(cufinufft_plan_t<T> *d_plan)
                                                  stream, d_plan->supports_pools))))
       goto finalize;
   } break;
+  case 3: {
+    if ((ier = checkCudaErrors(cudaMallocWrapper(&d_plan->idxnupts, M * sizeof(int),
+                                                 stream, d_plan->supports_pools))))
+      goto finalize;
+    if ((ier = checkCudaErrors(cudaMallocWrapper(&d_plan->sortidx, M * sizeof(int),
+                                                 stream, d_plan->supports_pools))))
+      goto finalize;
+  } break;
   default:
     std::cerr << "[allocgpumem1d_nupts] error: invalid method\n";
     ier = FINUFFT_ERR_METHOD_NOTVALID;
@@ -160,6 +187,27 @@ int allocgpumem2d_plan(cufinufft_plan_t<T> *d_plan)
     }
   } break;
   case 2: {
+    int64_t numbins[2];
+    numbins[0] = ceil((T)nf1 / d_plan->opts.gpu_binsizex);
+    numbins[1] = ceil((T)nf2 / d_plan->opts.gpu_binsizey);
+    if ((ier = checkCudaErrors(
+             cudaMallocWrapper(&d_plan->numsubprob, numbins[0] * numbins[1] * sizeof(int),
+                               stream, d_plan->supports_pools))))
+      goto finalize;
+    if ((ier = checkCudaErrors(
+             cudaMallocWrapper(&d_plan->binsize, numbins[0] * numbins[1] * sizeof(int),
+                               stream, d_plan->supports_pools))))
+      goto finalize;
+    if ((ier = checkCudaErrors(cudaMallocWrapper(&d_plan->binstartpts,
+                                                 numbins[0] * numbins[1] * sizeof(int),
+                                                 stream, d_plan->supports_pools))))
+      goto finalize;
+    if ((ier = checkCudaErrors(cudaMallocWrapper(
+             &d_plan->subprobstartpts, (numbins[0] * numbins[1] + 1) * sizeof(int),
+             stream, d_plan->supports_pools))))
+      goto finalize;
+  } break;
+  case 3: {
     int64_t numbins[2];
     numbins[0] = ceil((T)nf1 / d_plan->opts.gpu_binsizex);
     numbins[1] = ceil((T)nf2 / d_plan->opts.gpu_binsizey);
@@ -234,6 +282,14 @@ int allocgpumem2d_nupts(cufinufft_plan_t<T> *d_plan)
       goto finalize;
   } break;
   case 2: {
+    if ((ier = checkCudaErrors(cudaMallocWrapper(&d_plan->idxnupts, M * sizeof(int),
+                                                 stream, d_plan->supports_pools))))
+      goto finalize;
+    if ((ier = checkCudaErrors(cudaMallocWrapper(&d_plan->sortidx, M * sizeof(int),
+                                                 stream, d_plan->supports_pools))))
+      goto finalize;
+  } break;
+  case 3: {
     if ((ier = checkCudaErrors(cudaMallocWrapper(&d_plan->idxnupts, M * sizeof(int),
                                                  stream, d_plan->supports_pools))))
       goto finalize;

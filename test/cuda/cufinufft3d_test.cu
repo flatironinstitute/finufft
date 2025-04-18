@@ -177,28 +177,17 @@ int run_test(int method, int type, int N1, int N2, int N3, int M, T tol, T check
 
   T rel_error = std::numeric_limits<T>::max();
   if (type == 1) {
-    auto check_mode = [&](int nt1, int nt2, int nt3) {
-      // build the imaginary unit J
-      thrust::complex<T> Ft{0, 0}, J{T(0), T(iflag)};
-      // direct summation
-      for (int j = 0; j < M; ++j) {
-        Ft += c[j] * exp(J * (nt1 * x[j] + nt2 * y[j] + nt3 * z[j]));
-      }
-      // flatten 3D index into 1D
-      int it = (N1 / 2 + nt1) + N1 * (N2 / 2 + nt2) + N1 * N2 * (N3 / 2 + nt3);
-      // compute relative error
-      T rel_error =
-          abs(Ft - fk[it]) / infnorm(N1, reinterpret_cast<std::complex<T> *>(fk.data()));
-      printf("[gpu   ] one mode: rel err in F[%d,%d,%d] is %.3g\n", nt1, nt2, nt3,
-             rel_error);
-      return rel_error;
-    };
+    int nt1 = (int)(0.37 * N1), nt2 = (int)(0.26 * N2),
+        nt3               = (int)(0.13 * N3); // choose some mode index to check
+    thrust::complex<T> Ft = thrust::complex<T>(0, 0), J = thrust::complex<T>(0.0, iflag);
+    for (int j = 0; j < M; ++j)
+      Ft += c[j] * exp(J * (nt1 * x[j] + nt2 * y[j] + nt3 * z[j])); // crude direct
 
-    // usage examples:
-    int nt1 = int(0.37 * N1), nt2 = int(0.26 * N2), nt3 = int(0.13 * N3);
-
-    T err = check_mode(nt1, nt2, nt3);
-    err   = std::max(err, check_mode(0, 0, 0));
+    int it = N1 / 2 + nt1 + N1 * (N2 / 2 + nt2) + N1 * N2 * (N3 / 2 + nt3); // index
+    // in complex F as 1d array
+    rel_error = abs(Ft - fk[it]) / infnorm(N1, (std::complex<T> *)fk.data());
+    printf("[gpu   ] one mode: rel err in F[%d,%d,%d] is %.3g\n", nt1, nt2, nt3,
+           rel_error);
   } else if (type == 2) {
     int jt                = M / 2; // check arbitrary choice of one targ pt
     thrust::complex<T> J  = thrust::complex<T>(0, iflag);
@@ -236,7 +225,8 @@ int main(int argc, char *argv[]) {
             "Arguments:\n"
             "  method: One of\n"
             "    1: nupts driven,\n"
-            "    2: sub-problem, or\n"
+            "    2: sub-problem, \n"
+            "    3: output driven, \n"
             "    4: block gather.\n"
             "  type: Type of transform (1, 2, 3)"
             "  N1, N2, N3: The size of the 3D array\n"

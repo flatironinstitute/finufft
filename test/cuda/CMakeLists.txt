@@ -40,6 +40,11 @@ function(add_tests PREC REQ_TOL CHECK_TOL UPSAMP)
     )
 
     add_test(
+        NAME cufinufft1d1_test_OD_${PREC}_${UPSAMP}
+        COMMAND cufinufft1d_test 3 1 2e3 4e3 ${REQ_TOL} ${CHECK_TOL} ${PREC} ${UPSAMP}
+    )
+
+    add_test(
         NAME cufinufft1d2_test_auto_${PREC}_${UPSAMP}
         COMMAND cufinufft1d_test 0 2 2e3 4e3 ${REQ_TOL} ${CHECK_TOL} ${PREC} ${UPSAMP}
     )
@@ -75,6 +80,11 @@ function(add_tests PREC REQ_TOL CHECK_TOL UPSAMP)
     )
 
     add_test(
+        NAME cufinufft2d1_test_OD_${PREC}_${UPSAMP}
+        COMMAND cufinufft2d_test 3 1 1e2 2e2 2e4 ${REQ_TOL} ${CHECK_TOL} ${PREC} ${UPSAMP}
+    )
+
+    add_test(
         NAME cufinufft2d2_test_auto_${PREC}_${UPSAMP}
         COMMAND cufinufft2d_test 0 2 1e2 2e2 2e4 ${REQ_TOL} ${CHECK_TOL} ${PREC} ${UPSAMP}
     )
@@ -83,6 +93,11 @@ function(add_tests PREC REQ_TOL CHECK_TOL UPSAMP)
         NAME cufinufft2d2_test_SM_${PREC}_${UPSAMP}
         COMMAND cufinufft2d_test 2 2 1e2 2e2 2e4 ${REQ_TOL} ${CHECK_TOL} ${PREC} ${UPSAMP}
     )
+
+    #    add_test(
+    #            NAME cufinufft2d2_test_OD_${PREC}_${UPSAMP}
+    #            COMMAND cufinufft2d_test 3 2 1e2 2e2 2e4 ${REQ_TOL} ${CHECK_TOL} ${PREC} ${UPSAMP}
+    #    )
 
     add_test(
         NAME cufinufft2d3_test_auto_${PREC}_${UPSAMP}
@@ -95,6 +110,11 @@ function(add_tests PREC REQ_TOL CHECK_TOL UPSAMP)
     )
 
     add_test(
+        NAME cufinufft2d3_test_OD_${PREC}_${UPSAMP}
+        COMMAND cufinufft2d_test 3 3 1e2 2e2 2e4 ${REQ_TOL} ${CHECK_TOL} ${PREC} ${UPSAMP}
+    )
+
+    add_test(
         NAME cufinufft2d1many_test_GM_${PREC}_${UPSAMP}
         COMMAND cufinufft2dmany_test 1 1 1e2 2e2 5 0 2e4 ${REQ_TOL} ${CHECK_TOL} ${PREC} ${UPSAMP}
     )
@@ -102,6 +122,10 @@ function(add_tests PREC REQ_TOL CHECK_TOL UPSAMP)
     add_test(
         NAME cufinufft2d1many_test_SM_${PREC}_${UPSAMP}
         COMMAND cufinufft2dmany_test 2 1 1e2 2e2 5 0 2e4 ${REQ_TOL} ${CHECK_TOL} ${PREC} ${UPSAMP}
+    )
+    add_test(
+        NAME cufinufft2d1many_test_OD_${PREC}_${UPSAMP}
+        COMMAND cufinufft2dmany_test 3 1 1e2 2e2 5 0 2e4 ${REQ_TOL} ${CHECK_TOL} ${PREC} ${UPSAMP}
     )
 
     add_test(
@@ -113,6 +137,10 @@ function(add_tests PREC REQ_TOL CHECK_TOL UPSAMP)
         NAME cufinufft2d2many_test_SM_${PREC}_${UPSAMP}
         COMMAND cufinufft2dmany_test 2 2 1e2 2e2 5 0 2e4 ${REQ_TOL} ${CHECK_TOL} ${PREC} ${UPSAMP}
     )
+    #    add_test(
+    #            NAME cufinufft2d2many_test_OD_${PREC}_${UPSAMP}
+    #            COMMAND cufinufft2dmany_test 3 2 1e2 2e2 5 0 2e4 ${REQ_TOL} ${CHECK_TOL} ${PREC} ${UPSAMP}
+    #    )
 
     add_test(
         NAME cufinufft2d3many_test_GM_${PREC}_${UPSAMP}
@@ -125,6 +153,11 @@ function(add_tests PREC REQ_TOL CHECK_TOL UPSAMP)
     )
 
     add_test(
+        NAME cufinufft2d3many_test_OD_${PREC}_${UPSAMP}
+        COMMAND cufinufft2dmany_test 3 3 1e2 2e2 5 0 2e4 ${REQ_TOL} ${CHECK_TOL} ${PREC} ${UPSAMP}
+    )
+
+    add_test(
         NAME cufinufft3d1_test_auto_${PREC}_${UPSAMP}
         COMMAND cufinufft3d_test 0 1 2 5 10 20 ${REQ_TOL} ${CHECK_TOL} ${PREC} ${UPSAMP}
     )
@@ -134,10 +167,13 @@ function(add_tests PREC REQ_TOL CHECK_TOL UPSAMP)
         COMMAND cufinufft3d_test 1 1 2 5 10 20 ${REQ_TOL} ${CHECK_TOL} ${PREC} ${UPSAMP}
     )
 
-    add_test(
-        NAME cufinufft3d1_test_OD_${PREC}_${UPSAMP}
-        COMMAND cufinufft3d_test 3 1 2 5 10 20 ${REQ_TOL} ${CHECK_TOL} ${PREC} ${UPSAMP}
-    )
+    # can be done only if req_tol is >= 1e-11
+    if(${REQ_TOL} GREATER 1e-11 AND ${UPSAMP} EQUAL 2.0 OR ${REQ_TOL} GREATER 1e-7 AND ${UPSAMP} EQUAL 2.0)
+        add_test(
+            NAME cufinufft3d1_test_OD_${PREC}_${UPSAMP}
+            COMMAND cufinufft3d_test 3 1 2 5 10 20 ${REQ_TOL} ${CHECK_TOL} ${PREC} ${UPSAMP}
+        )
+    endif()
 
     if(${PREC} STREQUAL "float")
         add_test(

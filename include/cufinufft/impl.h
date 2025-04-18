@@ -102,7 +102,7 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
   }
   d_plan->dim                   = dim;
   d_plan->opts.gpu_maxbatchsize = std::max(d_plan->opts.gpu_maxbatchsize, 1);
-  d_plan->opts.gpu_np           = opts->gpu_method == 3 ? opts->gpu_np : 0;
+  d_plan->opts.gpu_np           = d_plan->opts.gpu_method == 3 ? d_plan->opts.gpu_np : 0;
 
   if (type != 3) {
     d_plan->ms = nmodes[0];
@@ -426,7 +426,7 @@ Notes: the type T means either single or double, matching the
       fprintf(stderr, "error: cuspread1d_subprob_prop, method(%d)\n",
               d_plan->opts.gpu_method);
     if (d_plan->opts.gpu_method == 3 &&
-        (ier = cuspread1d_nuptsdriven_prop<T>(nf1, M, d_plan)))
+        (ier = cuspread1d_subprob_prop<T>(nf1, M, d_plan)))
       fprintf(stderr, "error: cuspread1d_nupts_prop, method(%d)\n",
               d_plan->opts.gpu_method);
   } break;
@@ -440,7 +440,7 @@ Notes: the type T means either single or double, matching the
       fprintf(stderr, "error: cuspread2d_subprob_prop, method(%d)\n",
               d_plan->opts.gpu_method);
     if (d_plan->opts.gpu_method == 3 &&
-        (ier = cuspread2d_nuptsdriven_prop<T>(nf1, nf2, M, d_plan)))
+        (ier = cuspread2d_subprob_prop<T>(nf1, nf2, M, d_plan)))
       fprintf(stderr, "error: cuspread2d_nupts_prop, method(%d)\n",
               d_plan->opts.gpu_method);
   } break;
