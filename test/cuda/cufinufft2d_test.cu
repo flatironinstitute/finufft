@@ -15,7 +15,10 @@
 #include <thrust/device_vector.h>
 #include <thrust/host_vector.h>
 
-using cufinufft::utils::infnorm;
+#include "../utils/dirft2d.hpp"
+#include "../utils/norms.hpp"
+
+constexpr auto TEST_BIGPROB = 1e8;
 
 template<typename T>
 int run_test(int method, int type, int N1, int N2, int M, T tol, T checktol, int iflag,
@@ -175,9 +178,15 @@ int run_test(int method, int type, int N1, int N2, int M, T tol, T checktol, int
       Ft += c[j] * exp(J * (nt1 * x[j] + nt2 * y[j])); // crude direct
     const int it = N1 / 2 + nt1 + N1 * (N2 / 2 + nt2); // index in complex F as 1d
                                                        // array
-
     rel_error = abs(Ft - fk[it]) / infnorm(N1, (std::complex<T> *)fk.data());
     printf("[gpu   ] one mode: rel err in F[%d,%d] is %.3g\n", nt1, nt2, rel_error);
+    if (type == 1 && static_cast<int64_t>(M) * N1 * N2 <= TEST_BIGPROB) {
+      std::vector<thrust::complex<T>> Ft(N1 * N2);
+      dirft2d1(M, x, y, c, iflag, N1, N2, Ft);
+      T err     = relerrtwonorm(N1 * N2, Ft, fk);
+      rel_error = std::max(err, rel_error);
+      printf("[gpu   ]\tdirft2d: rel l2-err of result F is %.3g\n", err);
+    }
   } else if (type == 2) {
     int jt                = M / 2; // check arbitrary choice of one targ pt
     thrust::complex<T> J  = thrust::complex<T>(0, iflag);
@@ -190,6 +199,14 @@ int run_test(int method, int type, int N1, int N2, int M, T tol, T checktol, int
 
     rel_error = abs(c[jt] - ct) / infnorm(M, (std::complex<T> *)c.data());
     printf("[gpu   ] one targ: rel err in c[%d] is %.3g\n", jt, rel_error);
+    if (type == 2 && static_cast<int64_t>(M) * N1 * N2 <= TEST_BIGPROB) {
+      std::vector<thrust::complex<T>> ct(M);
+      dirft2d2(M, x, y, ct, iflag, N1, N2, fk);
+      T err     = relerrtwonorm(M, ct, c);
+      rel_error = std::max(err, rel_error);
+      printf("[gpu   ]\tdirft2d: rel l2-err of result c is %.3g\n", err);
+    }
+
   } else if (type == 3) {
     int jt                = (N1 * N2) / 2; // check arbitrary choice of one targ pt
     thrust::complex<T> J  = thrust::complex<T>(0, iflag);
@@ -200,6 +217,13 @@ int run_test(int method, int type, int N1, int N2, int M, T tol, T checktol, int
     }
     rel_error = abs(Ft - fk[jt]) / infnorm(N1 * N2, (std::complex<T> *)fk.data());
     printf("[gpu   ] one mode: rel err in F[%d] is %.3g\n", jt, rel_error);
+    if (type == 3 && static_cast<int64_t>(M) * N1 * N2 <= TEST_BIGPROB) {
+      std::vector<thrust::complex<T>> Ft(N1 * N2);
+      dirft2d3(M, x, y, c, iflag, N1 * N2, s, t, Ft);
+      T err     = relerrtwonorm(N1 * N2, Ft, fk);
+      rel_error = std::max(err, rel_error);
+      printf("[gpu   ]\tdirft2d: rel l2-err of result F is %.3g\n", err);
+    }
   }
   return std::isnan(rel_error) || rel_error > checktol;
 }
