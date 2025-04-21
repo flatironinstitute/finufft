@@ -21,6 +21,8 @@ constexpr auto TEST_BIGPROB = 1e8;
 template<typename T>
 int run_test(int method, int type, int N1, int M, T tol, T checktol, int iflag,
              double upsampfac) {
+  // print all the input for debugging
+
   std::cout << std::scientific << std::setprecision(3);
   int ier;
 
@@ -76,8 +78,6 @@ int run_test(int method, int type, int N1, int M, T tol, T checktol, int iflag,
   else if (type == 3)
     d_c = c;
 
-  cudaDeviceSynchronize();
-
   cudaEvent_t start, stop;
   float milliseconds = 0;
   float totaltime    = 0;
@@ -90,11 +90,14 @@ int run_test(int method, int type, int N1, int M, T tol, T checktol, int iflag,
     int nf1 = 1;
     cufftHandle fftplan;
     cufftPlan1d(&fftplan, nf1, cufft_type<T>(), 1);
+    cufftDestroy(fftplan);
   }
   cudaEventRecord(stop);
   cudaEventSynchronize(stop);
   cudaEventElapsedTime(&milliseconds, start, stop);
   printf("[time  ] dummy warmup call to CUFFT\t %.3g s\n", milliseconds / 1000);
+
+  cudaDeviceSynchronize();
 
   // now to the test...
   cufinufft_plan_t<T> *dplan;
@@ -177,9 +180,6 @@ int run_test(int method, int type, int N1, int M, T tol, T checktol, int iflag,
   else if (type == 3)
     fk = d_fk;
 
-  // otherwise test timing is off
-  cudaDeviceSynchronize();
-
   T rel_error = std::numeric_limits<T>::max();
   if (type == 1) {
     int nt1                = 0.37 * N1; // choose some mode index to check
@@ -232,6 +232,9 @@ int run_test(int method, int type, int N1, int M, T tol, T checktol, int iflag,
     }
   }
 
+  if (rel_error > checktol) {
+    printf("[gpu   ]\t err%.3g > checktol %.3g\n", rel_error, checktol);
+  }
   return std::isnan(rel_error) || rel_error > checktol;
 }
 

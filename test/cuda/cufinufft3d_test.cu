@@ -86,6 +86,8 @@ int run_test(int method, int type, int N1, int N2, int N3, int M, T tol, T check
   else if (type == 3)
     d_c = c;
 
+  cudaDeviceSynchronize();
+
   cudaEvent_t start, stop;
   float milliseconds = 0;
   float totaltime    = 0;
@@ -98,11 +100,14 @@ int run_test(int method, int type, int N1, int N2, int N3, int M, T tol, T check
     int nf1 = 1;
     cufftHandle fftplan;
     cufftPlan1d(&fftplan, nf1, cufft_type<T>(), 1);
+    cufftDestroy(fftplan);
   }
   cudaEventRecord(stop);
   cudaEventSynchronize(stop);
   cudaEventElapsedTime(&milliseconds, start, stop);
   printf("[time  ] dummy warmup call to CUFFT\t %.3g s\n", milliseconds / 1000);
+
+  cudaDeviceSynchronize();
 
   // now to the test...
   cufinufft_plan_t<T> *dplan;
@@ -240,6 +245,10 @@ int run_test(int method, int type, int N1, int N2, int N3, int M, T tol, T check
       rel_error = std::max(err, rel_error);
       printf("[gpu   ]\tdirft3d: rel l2-err of result F is %.3g\n", err);
     }
+  }
+
+  if (rel_error > checktol) {
+    printf("[gpu   ]\terr %.3e > checktol %.3e\n", rel_error, checktol);
   }
 
   return std::isnan(rel_error) || rel_error > checktol;
