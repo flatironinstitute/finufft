@@ -27,16 +27,7 @@ set(CUFINUFFT_INCLUDE_DIRS
 set(CUFINUFFT_INCLUDE_DIRS ${CUFINUFFT_INCLUDE_DIRS} PARENT_SCOPE)
 
 # flush denormals to zero and enable verbose PTXAS output
-set(FINUFFT_CUDA_FLAGS
-    $<$<COMPILE_LANGUAGE:CUDA>:
-    --extended-lambda
-    -ftz=true
-    -fmad=true
-    -restrict
-    --extra-device-vectorization
-    -Xnvlink
-    --strip-all>
-)
+set(FINUFFT_CUDA_FLAGS $<$<COMPILE_LANGUAGE:CUDA>: --extended-lambda --extra-device-vectorization>)
 
 if(FINUFFT_SHARED_LINKING)
     add_library(cufinufft SHARED ${PRECISION_INDEPENDENT_SRC} ${PRECISION_DEPENDENT_SRC})
@@ -68,6 +59,7 @@ if(WIN32 OR (BUILD_TESTING AND FINUFFT_BUILD_TESTS) OR env{CIBUILDWHEEL})
 else()
     target_link_libraries(cufinufft PUBLIC CUDA::cudart_static CUDA::cufft_static)
 endif()
+target_link_libraries(cufinufft PRIVATE mdspan span)
 
 # disable deprecated warnings for tests if supported
 if(FINUFFT_HAS_NO_DEPRECATED_DECLARATIONS)

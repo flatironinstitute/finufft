@@ -1,19 +1,25 @@
 #pragma once
-#define MDSPAN_ENABLE_CHECKS
 #include <cmath>
-#include <cuda/std/complex>
-#include <cuda/std/mdspan>
+#include <dd/span.hpp>
+#include <experimental/mdspan>
+
 #include <cufinufft/contrib/helper_math.h>
 #include <cufinufft/precision_independent.h>
 #include <cufinufft/spreadinterp.h>
 #include <cufinufft/types.h>
 #include <cufinufft/utils.h>
-#include <iostream>
 
 using namespace cufinufft::utils;
 
 namespace cufinufft {
 namespace spreadinterp {
+
+using dd::span;
+using std::experimental::dextents;
+using std::experimental::dynamic_extent;
+using std::experimental::extents;
+using std::experimental::mdspan;
+
 /* ---------------------- 3d Spreading Kernels -------------------------------*/
 /* Kernels for bin sort NUpts */
 
@@ -152,20 +158,19 @@ __global__ void spread_3d_output_driven(
   const int yoffset = ((bidx / nbinx) % nbiny) * bin_size_y;
   const int zoffset = (bidx / (nbinx * nbiny)) * bin_size_z;
 
-  using mdspan_t =
-      cuda::std::mdspan<T, cuda::std::extents<int, cuda::std::dynamic_extent, 3, ns>>;
+  using mdspan_t   = mdspan<T, extents<int, dynamic_extent, 3, ns>>;
   auto window_vals = mdspan_t((T *)sharedbuf, np);
   // sharedbuf + size of window_vals in bytes
   // Offset pointer into sharedbuf after window_vals
   // Create span using pointer + size
 
-  auto vp_sm = cuda::std::span(
+  auto vp_sm = span(
       reinterpret_cast<cuda_complex<T> *>(window_vals.data_handle() + window_vals.size()),
       np);
 
-  auto shift = cuda::std::span(reinterpret_cast<int3 *>(vp_sm.data() + vp_sm.size()), np);
+  auto shift = span(reinterpret_cast<int3 *>(vp_sm.data() + vp_sm.size()), np);
 
-  auto u_local = cuda::std::mdspan<cuda_complex<T>, cuda::std::dextents<int, 3>>(
+  auto u_local = mdspan<cuda_complex<T>, dextents<int, 3>>(
       reinterpret_cast<cuda_complex<T> *>(shift.data() + shift.size()), padded_size_z,
       padded_size_y, padded_size_x);
 

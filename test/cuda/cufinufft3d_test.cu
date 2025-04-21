@@ -121,7 +121,6 @@ int run_test(int method, int type, int N1, int N2, int N3, int M, T tol, T check
   opts.gpu_kerevalmeth = 1;
   // opts.gpu_maxbatchsize = 0;
   opts.upsampfac = upsampfac;
-  opts.debug     = 2;
   int nmodes[3]  = {N1, N2, N3};
   int ntransf    = 1;
   cudaEventRecord(start);
