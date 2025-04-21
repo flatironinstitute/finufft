@@ -397,7 +397,8 @@ fortran: $(FE)
 
 
 # matlab ----------------------------------------------------------------------
-# matlab .mex* executable... (matlab is so slow to start, not worth testing it)
+# matlab .mex* executable... (matlab is so slow to start, and bad at batch
+# scripting [can get stuck inside], not worth testing it here; user must test)
 matlab: matlab/finufft.cpp $(STATICLIB)
 	$(MEX) $< $(STATICLIB) $(INCL) $(MFLAGS) $(LIBSFFT) -output matlab/finufft
 
@@ -406,6 +407,7 @@ octave: matlab/finufft.cpp $(STATICLIB)
 	(cd matlab; $(MKOCTFILE) --mex finufft.cpp -I../include ../$(STATICLIB) $(OFLAGS) $(LIBSFFT) -output finufft)
 	@echo "Running octave interface tests; please wait a few seconds..."
 	(cd matlab ;\
+	$(OCTAVE) test/fullmathtest.m ;\
 	$(OCTAVE) test/check_finufft.m ;\
 	$(OCTAVE) test/check_finufft_single.m ;\
 	$(OCTAVE) examples/guru1d1.m ;\
@@ -416,7 +418,8 @@ octave: matlab/finufft.cpp $(STATICLIB)
 mex: matlab/finufft.mw
 ifneq ($(MINGW),ON)
 	(cd matlab ;\
-	$(MWRAP) -mex finufft -c finufft.cpp -mb -cppcomplex finufft.mw)
+	$(MWRAP) -mex finufft -c finufft.cpp -mb -cppcomplex finufft.mw ;\
+	$(MWRAP) -mex cufinufft -c cufinufft.cu -mb -cppcomplex -gpu cufinufft.mw)
 else
 	(cd matlab & $(MWRAP) -mex finufft -c finufft.cpp -mb -cppcomplex finufft.mw)
 endif

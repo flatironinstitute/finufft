@@ -62,6 +62,7 @@ template<typename T> __forceinline__ __device__ auto interval(const int ns, cons
 
 namespace cufinufft {
 namespace utils {
+
 class WithCudaDevice {
 public:
   explicit WithCudaDevice(const int device) : orig_device_{get_orig_device()} {

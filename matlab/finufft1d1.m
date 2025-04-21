@@ -43,12 +43,13 @@
 %  * For more details about the opts fields, see ../docs/opts.rst
 %  * See ERRHANDLER, VALID_* and FINUFFT_PLAN for possible warning/error IDs.
 %  * Full documentation is online at http://finufft.readthedocs.io
+%
+% See also FINUFFT_PLAN.
 function f = finufft1d1(x,c,isign,eps,ms,o)
 
-if nargin<6, o.dummy=1; end            % make a dummy options struct
-valid_setpts(1,1,x,[],[]);
-o.floatprec=class(x);                  % should be 'double' or 'single'
+valid_setpts(false,1,1,x);
+o.floatprec=class(x);                      % should be 'double' or 'single'
 n_transf = valid_ntr(x,c);
 p = finufft_plan(1,ms,isign,n_transf,eps,o);
-p.setpts(x,[],[]);
+p.setpts(x);
 f = p.execute(c);

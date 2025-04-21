@@ -83,7 +83,7 @@ static int set_nf_type12(BIGINT ms, const finufft_opts &opts,
 // and requested number of Fourier modes ms. Returns 0 if success, else an
 // error code if nf was unreasonably big (& tell the world).
 {
-  *nf = BIGINT(opts.upsampfac * double(ms)); // manner of rounding not crucial
+  *nf = BIGINT(std::ceil(opts.upsampfac * double(ms))); // round up to handle small cases
   if (*nf < 2 * spopts.nspread) *nf = 2 * spopts.nspread; // otherwise spread fails
   if (*nf < MAX_NF) {
     *nf = next235even(*nf);                               // expensive at huge nf
@@ -646,10 +646,11 @@ FINUFFT_PLAN_T<TF>::FINUFFT_PLAN_T(int type_, int dim_, const BIGINT *n_modes, i
   }
 
   // heuristic to choose default upsampfac... (currently two poss)
-  if (opts.upsampfac == 0.0) {                                   // indicates auto-choose
-    const auto density = double(nj) / double(N() > 0 ? N() : 1); // dumbinputs allows
-                                                                 // N()==0
-    opts.upsampfac = bestUpsamplingFactor<TF>(opts.nthreads, density, dim, type, tol);
+  if (opts.upsampfac == 0.0) { // init to auto choice
+    // Let assume density=1 as the average use case.
+    // TODO: make a decision on how to choose density properly.
+    const auto density = TF{1};
+    opts.upsampfac     = bestUpsamplingFactor<TF>(opts.nthreads, density, dim, type, tol);
     if (opts.debug > 1)
       printf("[%s] threads %d, density %.3g, dim %d, nufft type %d, tol %.3g: auto "
              "upsampfac=%.2f\n",
