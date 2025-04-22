@@ -19,7 +19,7 @@ jobs:
         if: ${{ matrix.buildplat[0] == 'windows-2019' }}
         uses: Jimver/cuda-toolkit@v0.2.21
         with:
-          cuda: '11.4.0'
+          cuda: '12.4.0'
       - name: Build ${{ matrix.buildplat[1] }} wheels
         uses: pypa/cibuildwheel@v2.22.0
         with:
@@ -32,7 +32,7 @@ jobs:
             if command -v yum &> /dev/null; then
               yum install -y epel-release
               yum-config-manager --add-repo https://developer.download.nvidia.com/compute/cuda/repos/rhel7/x86_64/cuda-rhel7.repo
-              yum install -y cuda-11-4
+              yum install -y cuda-12-4
             else
               echo "Unsupported package manager. Exiting."
               exit 1
