@@ -38,10 +38,11 @@ for precdev=precdevs  % ......... loop precisions & devices
   % choose small problems suitable for direct NUDFT computation...
   M       = 1e3;    % # of NU pts (in all dims, and for type 3 targs too)
   Ntot    = 1e3;    % # of modes (approx total, used in all dims)
-  ntr = 3;          % # transforms
+  ntr     = 3;      % # transforms
   isign   = +1;     % sign of imaginary unit in exponential
   % various opts
   o.debug = 0;      % choose 1 for timing breakdown text output
+  o.spread_debug=0; % spread-specific debug info
   o.upsampfac=0;    % 0 (auto), 2.0 (default), or 1.25 (low-RAM, small-FFT)
   fprintf('%s\tprec=%s\ttol=%.3g, M=%d, Ntot=%d, ntrans=%d\n',...
           devname, prec, tol, M, Ntot, ntr)
