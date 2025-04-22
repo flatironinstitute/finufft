@@ -84,10 +84,10 @@ config-settings = {"cmake.define.CMAKE_CUDA_ARCHITECTURES" = "50;60;70;80", "cma
 [tool.cibuildwheel.linux]
 manylinux-x86_64-image = "manylinux2014"
 manylinux-aarch64-image = "manylinux2014"
-repair-wheel-command = "auditwheel -v repair --exclude libcudart.so.10 --exclude libcufft.so.11.0 -w {dest_dir} {wheel}"
+repair-wheel-command = "auditwheel -v repair --exclude libcudart.so.12 --exclude libcufft.so.11 -w {dest_dir} {wheel}"
 
 [tool.cibuildwheel.windows]
 before-build = "pip install delvewheel"
 # CIBW doesn't do vendoring of DLLs on Windows by default, so we have to
 # install delvewheel and run it.
-repair-wheel-command = "delvewheel repair -v --exclude cudart64_110.dll;cufft64_10.dll --analyze-existing -w {dest_dir} {wheel}"
+repair-wheel-command = "delvewheel repair -v --exclude cudart64_12.dll;cufft64_11.dll --analyze-existing -w {dest_dir} {wheel}"
