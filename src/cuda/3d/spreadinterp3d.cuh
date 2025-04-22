@@ -221,13 +221,9 @@ __global__ void spread_3d_output_driven(
       const auto cnow                     = vp_sm[i];
       const auto [xstart, ystart, zstart] = shift[i];
 
-      for (int idx = threadIdx.x; idx < total; idx += blockDim.x) {
+      for (auto [xx, yy, zz] :
+           ndrange<unsigned>(threadIdx.x, blockDim.x, sizex, sizey, sizez)) {
         // decompose idx using `plane`
-        const int zz   = idx / plane;
-        const int rem1 = idx - zz * plane;
-        const int yy   = rem1 / sizex;
-        const int xx   = rem1 - yy * sizex;
-
         // recover global coords
         const int real_zz = zstart + zz;
         const int real_yy = ystart + yy;
