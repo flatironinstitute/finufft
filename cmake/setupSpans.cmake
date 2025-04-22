@@ -14,7 +14,7 @@ CPMAddPackage(
     NAME
     span
     GITHUB_REPOSITORY
-    DiamonDinoia/span
+    DiamonDinoia/cuda-span
     GIT_TAG
-    e53094544c66c5156e21be19a521cf0ab2962058
+    ac4f156
 )
