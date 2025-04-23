@@ -3,6 +3,7 @@ If not stated, FINUFFT is assumed (cuFINUFFT <=1.3 is listed separately).
 
 Master, using release name V 2.4.0 (4/23/25)
 
+* fix CMake MATLAB build (final *.m copy), PR 667 (Barnett).
 * fixed empty-opts bug in MATLAB/Octave for {cu}finufft, PR 666 (Barnett).
 * MATLAB/Octave unified fullmathtest.m (Barnett).
 * MATLAB GPU interface (MEX CUDA) via gpuArrays, PR 634 (mostly Libin Lu;

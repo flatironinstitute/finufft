@@ -133,6 +133,12 @@ Here are our CMake build options, showing name, explanatory text, and default va
    :start-after: @cmake_opts_start
    :end-before: @cmake_opts_end
 
+
+After a CMake MATLAB build, the MEX executable and associated M-files will be in ``build/matlab``. There is currently no CTest for MATLAB. Instead, open MATLAB by hand, add this ``build/matlab`` directory to your path,
+cd to ``matlab/test`` and run ``fullmathtest`` which should run for 1 second
+and pass.
+
+
 Notes on compiler flags for various systems
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
