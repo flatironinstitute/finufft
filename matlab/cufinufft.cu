@@ -1118,7 +1118,8 @@ typedef std::complex<float> fcomplex;
  #include <math.h>
  void copy_cufinufft_opts(const mxArray* om, cufinufft_opts *oc) {
    if(!mxIsStruct(om))
-     mexErrMsgIdAndTxt("FINUFFT:inputNotStruct","opts input must be a structure.");
+     mexErrMsgIdAndTxt("FINUFFT:inputNotStruct",
+                       "copy_cufinufft_opts: opts input must be a structure.");
    mwIndex idx = 0;
    int ifield, nfields;
    const char **fname;
@@ -1327,7 +1328,7 @@ mxWrapCopyZDef_single     (mxWrapCopy_single_dcomplex, dcomplex,
 mxWrapReturnZDef_single   (mxWrapReturn_single_dcomplex, dcomplex,
                     real_dcomplex, imag_dcomplex)
 
-/* ---- cufinufft.mw: 152 ----
+/* ---- cufinufft.mw: 153 ----
  * cufinufft_opts* o = new();
  */
 static const char* stubids1_ = "c o cufinufft_opts* = new()";
@@ -1348,7 +1349,7 @@ mw_err_label:
         mexErrMsgTxt(mw_err_txt_);
 }
 
-/* ---- cufinufft.mw: 154 ----
+/* ---- cufinufft.mw: 155 ----
  * cufinufft_plan* p = new();
  */
 static const char* stubids2_ = "c o cufinufft_plan* = new()";
@@ -1369,9 +1370,9 @@ mw_err_label:
         mexErrMsgTxt(mw_err_txt_);
 }
 
-/* ---- cufinufft.mw: 155 ----
+/* ---- cufinufft.mw: 156 ----
  * cufinufft_default_opts(cufinufft_opts* o);
- * Also at cufinufft.mw: 158
+ * Also at cufinufft.mw: 159
  */
 static const char* stubids3_ = "cufinufft_default_opts(c i cufinufft_opts*)";
 
@@ -1394,7 +1395,7 @@ mw_err_label:
         mexErrMsgTxt(mw_err_txt_);
 }
 
-/* ---- cufinufft.mw: 157 ----
+/* ---- cufinufft.mw: 158 ----
  * cufinufftf_plan* p = new();
  */
 static const char* stubids4_ = "c o cufinufftf_plan* = new()";
@@ -1415,7 +1416,7 @@ mw_err_label:
         mexErrMsgTxt(mw_err_txt_);
 }
 
-/* ---- cufinufft.mw: 169 ----
+/* ---- cufinufft.mw: 170 ----
  * copy_cufinufft_opts(mxArray opts, cufinufft_opts* o);
  */
 static const char* stubids6_ = "copy_cufinufft_opts(c i mxArray, c i cufinufft_opts*)";
@@ -1442,7 +1443,7 @@ mw_err_label:
         mexErrMsgTxt(mw_err_txt_);
 }
 
-/* ---- cufinufft.mw: 172 ----
+/* ---- cufinufft.mw: 173 ----
  * int ier = cufinufft_makeplan(int type, int dim, int64_t[3] n_modes, int iflag, int n_trans, double tol, cufinufft_plan* plan, cufinufft_opts* o);
  */
 static const char* stubids7_ = "c o int = cufinufft_makeplan(c i int, c i int, c i int64_t[x], c i int, c i int, c i double, c i cufinufft_plan*, c i cufinufft_opts*)";
@@ -1535,7 +1536,7 @@ mw_err_label:
         mexErrMsgTxt(mw_err_txt_);
 }
 
-/* ---- cufinufft.mw: 175 ----
+/* ---- cufinufft.mw: 176 ----
  * int ier = cufinufftf_makeplan(int type, int dim, int64_t[3] n_modes, int iflag, int n_trans, float tol, cufinufftf_plan* plan, cufinufft_opts* o);
  */
 static const char* stubids8_ = "c o int = cufinufftf_makeplan(c i int, c i int, c i int64_t[x], c i int, c i int, c i float, c i cufinufftf_plan*, c i cufinufft_opts*)";
@@ -1628,7 +1629,7 @@ mw_err_label:
         mexErrMsgTxt(mw_err_txt_);
 }
 
-/* ---- cufinufft.mw: 177 ----
+/* ---- cufinufft.mw: 178 ----
  * delete(cufinufft_opts* o);
  */
 static const char* stubids9_ = "delete(c i cufinufft_opts*)";
@@ -1652,7 +1653,7 @@ mw_err_label:
         mexErrMsgTxt(mw_err_txt_);
 }
 
-/* ---- cufinufft.mw: 207 ----
+/* ---- cufinufft.mw: 208 ----
  * int ier = cufinufft_setpts(cufinufft_plan plan, int nj, gpu double[] xj, gpu double[] yj, gpu double[] zj, int nk, gpu double[] s, gpu double[] t, gpu double[] u);
  */
 static const char* stubids10_ = "c o int = cufinufft_setpts(c i cufinufft_plan, c i int, g i double[], g i double[], g i double[], c i int, g i double[], g i double[], g i double[])";
@@ -1764,7 +1765,7 @@ mw_err_label:
         mexErrMsgTxt(mw_err_txt_);
 }
 
-/* ---- cufinufft.mw: 209 ----
+/* ---- cufinufft.mw: 210 ----
  * int ier = cufinufftf_setpts(cufinufftf_plan plan, int nj, gpu float[] xj, gpu float[] yj, gpu float[] zj, int nk, gpu float[] s, gpu float[] t, gpu float[] u);
  */
 static const char* stubids11_ = "c o int = cufinufftf_setpts(c i cufinufftf_plan, c i int, g i float[], g i float[], g i float[], c i int, g i float[], g i float[], g i float[])";
@@ -1876,7 +1877,7 @@ mw_err_label:
         mexErrMsgTxt(mw_err_txt_);
 }
 
-/* ---- cufinufft.mw: 241 ----
+/* ---- cufinufft.mw: 242 ----
  * int ier = cufinufft_execute(cufinufft_plan plan, gpu dcomplex[] data_in, gpu output dcomplex[ncoeffs] result);
  */
 static const char* stubids12_ = "c o int = cufinufft_execute(c i cufinufft_plan, g i dcomplex[], g o dcomplex[x])";
@@ -1934,7 +1935,7 @@ mw_err_label:
         mexErrMsgTxt(mw_err_txt_);
 }
 
-/* ---- cufinufft.mw: 243 ----
+/* ---- cufinufft.mw: 244 ----
  * int ier = cufinufftf_execute(cufinufftf_plan plan, gpu fcomplex[] data_in, gpu output fcomplex[ncoeffs] result);
  */
 static const char* stubids13_ = "c o int = cufinufftf_execute(c i cufinufftf_plan, g i fcomplex[], g o fcomplex[x])";
@@ -1992,7 +1993,7 @@ mw_err_label:
         mexErrMsgTxt(mw_err_txt_);
 }
 
-/* ---- cufinufft.mw: 249 ----
+/* ---- cufinufft.mw: 250 ----
  * int ier = cufinufft_execute(cufinufft_plan plan, gpu output dcomplex[nj, n_trans] result, gpu dcomplex[] data_in);
  */
 static const char* stubids14_ = "c o int = cufinufft_execute(c i cufinufft_plan, g o dcomplex[xx], g i dcomplex[])";
@@ -2052,7 +2053,7 @@ mw_err_label:
         mexErrMsgTxt(mw_err_txt_);
 }
 
-/* ---- cufinufft.mw: 251 ----
+/* ---- cufinufft.mw: 252 ----
  * int ier = cufinufftf_execute(cufinufftf_plan plan, gpu output fcomplex[nj, n_trans] result, gpu fcomplex[] data_in);
  */
 static const char* stubids15_ = "c o int = cufinufftf_execute(c i cufinufftf_plan, g o fcomplex[xx], g i fcomplex[])";
@@ -2112,7 +2113,7 @@ mw_err_label:
         mexErrMsgTxt(mw_err_txt_);
 }
 
-/* ---- cufinufft.mw: 255 ----
+/* ---- cufinufft.mw: 256 ----
  * int ier = cufinufft_execute(cufinufft_plan plan, gpu dcomplex[] data_in, gpu output dcomplex[nk, n_trans] result);
  */
 static const char* stubids16_ = "c o int = cufinufft_execute(c i cufinufft_plan, g i dcomplex[], g o dcomplex[xx])";
@@ -2172,7 +2173,7 @@ mw_err_label:
         mexErrMsgTxt(mw_err_txt_);
 }
 
-/* ---- cufinufft.mw: 257 ----
+/* ---- cufinufft.mw: 258 ----
  * int ier = cufinufftf_execute(cufinufftf_plan plan, gpu fcomplex[] data_in, gpu output fcomplex[nk, n_trans] result);
  */
 static const char* stubids17_ = "c o int = cufinufftf_execute(c i cufinufftf_plan, g i fcomplex[], g o fcomplex[xx])";
@@ -2232,7 +2233,7 @@ mw_err_label:
         mexErrMsgTxt(mw_err_txt_);
 }
 
-/* ---- cufinufft.mw: 269 ----
+/* ---- cufinufft.mw: 270 ----
  * cufinufft_destroy(cufinufft_plan plan);
  */
 static const char* stubids18_ = "cufinufft_destroy(c i cufinufft_plan)";
@@ -2260,7 +2261,7 @@ mw_err_label:
         mexErrMsgTxt(mw_err_txt_);
 }
 
-/* ---- cufinufft.mw: 271 ----
+/* ---- cufinufft.mw: 272 ----
  * cufinufftf_destroy(cufinufftf_plan plan);
  */
 static const char* stubids19_ = "cufinufftf_destroy(c i cufinufftf_plan)";
@@ -2355,24 +2356,24 @@ void mexFunction(int nlhs, mxArray* plhs[],
     } else if (strcmp(id, "*profile report*") == 0) {
         if (!mexprofrecord_)
             mexPrintf("Profiler inactive\n");
-        mexPrintf("%d calls to cufinufft.mw:152\n", mexprofrecord_[1]);
-        mexPrintf("%d calls to cufinufft.mw:154\n", mexprofrecord_[2]);
-        mexPrintf("%d calls to cufinufft.mw:155 (cufinufft.mw:158)\n", mexprofrecord_[3]);
-        mexPrintf("%d calls to cufinufft.mw:157\n", mexprofrecord_[4]);
-        mexPrintf("%d calls to cufinufft.mw:169\n", mexprofrecord_[6]);
-        mexPrintf("%d calls to cufinufft.mw:172\n", mexprofrecord_[7]);
-        mexPrintf("%d calls to cufinufft.mw:175\n", mexprofrecord_[8]);
-        mexPrintf("%d calls to cufinufft.mw:177\n", mexprofrecord_[9]);
-        mexPrintf("%d calls to cufinufft.mw:207\n", mexprofrecord_[10]);
-        mexPrintf("%d calls to cufinufft.mw:209\n", mexprofrecord_[11]);
-        mexPrintf("%d calls to cufinufft.mw:241\n", mexprofrecord_[12]);
-        mexPrintf("%d calls to cufinufft.mw:243\n", mexprofrecord_[13]);
-        mexPrintf("%d calls to cufinufft.mw:249\n", mexprofrecord_[14]);
-        mexPrintf("%d calls to cufinufft.mw:251\n", mexprofrecord_[15]);
-        mexPrintf("%d calls to cufinufft.mw:255\n", mexprofrecord_[16]);
-        mexPrintf("%d calls to cufinufft.mw:257\n", mexprofrecord_[17]);
-        mexPrintf("%d calls to cufinufft.mw:269\n", mexprofrecord_[18]);
-        mexPrintf("%d calls to cufinufft.mw:271\n", mexprofrecord_[19]);
+        mexPrintf("%d calls to cufinufft.mw:153\n", mexprofrecord_[1]);
+        mexPrintf("%d calls to cufinufft.mw:155\n", mexprofrecord_[2]);
+        mexPrintf("%d calls to cufinufft.mw:156 (cufinufft.mw:159)\n", mexprofrecord_[3]);
+        mexPrintf("%d calls to cufinufft.mw:158\n", mexprofrecord_[4]);
+        mexPrintf("%d calls to cufinufft.mw:170\n", mexprofrecord_[6]);
+        mexPrintf("%d calls to cufinufft.mw:173\n", mexprofrecord_[7]);
+        mexPrintf("%d calls to cufinufft.mw:176\n", mexprofrecord_[8]);
+        mexPrintf("%d calls to cufinufft.mw:178\n", mexprofrecord_[9]);
+        mexPrintf("%d calls to cufinufft.mw:208\n", mexprofrecord_[10]);
+        mexPrintf("%d calls to cufinufft.mw:210\n", mexprofrecord_[11]);
+        mexPrintf("%d calls to cufinufft.mw:242\n", mexprofrecord_[12]);
+        mexPrintf("%d calls to cufinufft.mw:244\n", mexprofrecord_[13]);
+        mexPrintf("%d calls to cufinufft.mw:250\n", mexprofrecord_[14]);
+        mexPrintf("%d calls to cufinufft.mw:252\n", mexprofrecord_[15]);
+        mexPrintf("%d calls to cufinufft.mw:256\n", mexprofrecord_[16]);
+        mexPrintf("%d calls to cufinufft.mw:258\n", mexprofrecord_[17]);
+        mexPrintf("%d calls to cufinufft.mw:270\n", mexprofrecord_[18]);
+        mexPrintf("%d calls to cufinufft.mw:272\n", mexprofrecord_[19]);
     } else if (strcmp(id, "*profile log*") == 0) {
         FILE* logfp;
         if (nrhs != 2 || mxGetString(prhs[1], id, sizeof(id)) != 0)
@@ -2382,24 +2383,24 @@ void mexFunction(int nlhs, mxArray* plhs[],
             mexErrMsgTxt("Cannot open log for output");
         if (!mexprofrecord_)
             fprintf(logfp, "Profiler inactive\n");
-        fprintf(logfp, "%d calls to cufinufft.mw:152\n", mexprofrecord_[1]);
-        fprintf(logfp, "%d calls to cufinufft.mw:154\n", mexprofrecord_[2]);
-        fprintf(logfp, "%d calls to cufinufft.mw:155 (cufinufft.mw:158)\n", mexprofrecord_[3]);
-        fprintf(logfp, "%d calls to cufinufft.mw:157\n", mexprofrecord_[4]);
-        fprintf(logfp, "%d calls to cufinufft.mw:169\n", mexprofrecord_[6]);
-        fprintf(logfp, "%d calls to cufinufft.mw:172\n", mexprofrecord_[7]);
-        fprintf(logfp, "%d calls to cufinufft.mw:175\n", mexprofrecord_[8]);
-        fprintf(logfp, "%d calls to cufinufft.mw:177\n", mexprofrecord_[9]);
-        fprintf(logfp, "%d calls to cufinufft.mw:207\n", mexprofrecord_[10]);
-        fprintf(logfp, "%d calls to cufinufft.mw:209\n", mexprofrecord_[11]);
-        fprintf(logfp, "%d calls to cufinufft.mw:241\n", mexprofrecord_[12]);
-        fprintf(logfp, "%d calls to cufinufft.mw:243\n", mexprofrecord_[13]);
-        fprintf(logfp, "%d calls to cufinufft.mw:249\n", mexprofrecord_[14]);
-        fprintf(logfp, "%d calls to cufinufft.mw:251\n", mexprofrecord_[15]);
-        fprintf(logfp, "%d calls to cufinufft.mw:255\n", mexprofrecord_[16]);
-        fprintf(logfp, "%d calls to cufinufft.mw:257\n", mexprofrecord_[17]);
-        fprintf(logfp, "%d calls to cufinufft.mw:269\n", mexprofrecord_[18]);
-        fprintf(logfp, "%d calls to cufinufft.mw:271\n", mexprofrecord_[19]);
+        fprintf(logfp, "%d calls to cufinufft.mw:153\n", mexprofrecord_[1]);
+        fprintf(logfp, "%d calls to cufinufft.mw:155\n", mexprofrecord_[2]);
+        fprintf(logfp, "%d calls to cufinufft.mw:156 (cufinufft.mw:159)\n", mexprofrecord_[3]);
+        fprintf(logfp, "%d calls to cufinufft.mw:158\n", mexprofrecord_[4]);
+        fprintf(logfp, "%d calls to cufinufft.mw:170\n", mexprofrecord_[6]);
+        fprintf(logfp, "%d calls to cufinufft.mw:173\n", mexprofrecord_[7]);
+        fprintf(logfp, "%d calls to cufinufft.mw:176\n", mexprofrecord_[8]);
+        fprintf(logfp, "%d calls to cufinufft.mw:178\n", mexprofrecord_[9]);
+        fprintf(logfp, "%d calls to cufinufft.mw:208\n", mexprofrecord_[10]);
+        fprintf(logfp, "%d calls to cufinufft.mw:210\n", mexprofrecord_[11]);
+        fprintf(logfp, "%d calls to cufinufft.mw:242\n", mexprofrecord_[12]);
+        fprintf(logfp, "%d calls to cufinufft.mw:244\n", mexprofrecord_[13]);
+        fprintf(logfp, "%d calls to cufinufft.mw:250\n", mexprofrecord_[14]);
+        fprintf(logfp, "%d calls to cufinufft.mw:252\n", mexprofrecord_[15]);
+        fprintf(logfp, "%d calls to cufinufft.mw:256\n", mexprofrecord_[16]);
+        fprintf(logfp, "%d calls to cufinufft.mw:258\n", mexprofrecord_[17]);
+        fprintf(logfp, "%d calls to cufinufft.mw:270\n", mexprofrecord_[18]);
+        fprintf(logfp, "%d calls to cufinufft.mw:272\n", mexprofrecord_[19]);
         fclose(logfp);
     } else
         mexErrMsgTxt("Unknown identifier");
