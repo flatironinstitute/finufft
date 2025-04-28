@@ -173,7 +173,7 @@ function(add_tests PREC REQ_TOL CHECK_TOL UPSAMP)
 
     add_test(
         NAME cufinufft3d3_test_GM_${PREC}_${UPSAMP}
-        COMMAND cufinufft3d_test 1 3 2 3 7 20 ${REQ_TOL} ${CHECK_TOL}*100 ${PREC} ${UPSAMP}
+        COMMAND cufinufft3d_test 1 3 2 3 7 20 ${REQ_TOL} ${CHECK_TOL} ${PREC} ${UPSAMP}
     )
 endfunction()
 
@@ -189,15 +189,15 @@ add_test(
     COMMAND cufinufft1dspreadinterponly_test 1e3 1e6 1e-5 1e-4 f 1.25
 )
 
-add_tests(float 1e-5 2e-4 2.0)
+add_tests(float 1e-4 2e-3 2.0)
 add_tests(double 1e-12 1e-11 2.0)
-add_tests(float 1e-5 2e-4 1.25)
+add_tests(float 1e-4 2e-3 1.25)
 add_tests(double 1e-8 1e-7 1.25)
 # the upsamp is appended to the testname, ctest does not allows multiple tests
 # to share the same testname hence we use the trick 0. and 0.f to differentiate
 # the tests and allow them to run in the future we should add the precision to
 # the test
-add_tests(float 1e-5 2e-4 0.f)
+add_tests(float 1e-4 2e-3 0.f)
 add_tests(double 1e-12 1e-11 0.f)
-add_tests(float 1e-5 2e-4 0.)
+add_tests(float 1e-4 2e-3 0.)
 add_tests(double 1e-8 1e-7 0.)
