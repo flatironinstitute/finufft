@@ -44,10 +44,12 @@ __inline__ __device__ double atomicAdd(double *address, double val) {
 /**
  * It computes the stard and end point of the spreading window given the center x and the
  * width ns.
+ * TODO: We should move to (md)spans and (nd)ranges to avoid xend.
+ *       It is also safer on bounds.
  */
 template<typename T> __forceinline__ __device__ auto interval(const int ns, const T x) {
   const auto xstart = int(std::ceil(x - T(ns) * T(.5)));
-  const auto xend   = int(std::floor(x + T(ns) * T(.5)));
+  const auto xend   = xstart + ns - 1;
   return int2{xstart, xend};
 }
 
