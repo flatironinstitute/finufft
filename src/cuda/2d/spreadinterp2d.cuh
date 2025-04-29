@@ -4,10 +4,8 @@
 
 #include <cufinufft/contrib/helper_cuda.h>
 #include <cufinufft/contrib/helper_math.h>
-#include <dd/span.hpp>
-#include <experimental/mdspan>
-#include <thrust/extrema.h>
 
+#include <cuda/std/mdspan>
 #include <cufinufft/spreadinterp.h>
 #include <cufinufft/utils.h>
 using namespace cufinufft::utils;
@@ -15,11 +13,11 @@ using namespace cufinufft::utils;
 namespace cufinufft {
 namespace spreadinterp {
 
-using dd::span;
-using std::experimental::dextents;
-using std::experimental::dynamic_extent;
-using std::experimental::extents;
-using std::experimental::mdspan;
+using cuda::std::dextents;
+using cuda::std::dynamic_extent;
+using cuda::std::extents;
+using cuda::std::mdspan;
+using cuda::std::span;
 
 /* ------------------------ 2d Spreading Kernels ----------------------------*/
 /* Kernels for NUptsdriven Method */

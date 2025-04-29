@@ -50,16 +50,16 @@ set_target_properties(
         INTERPROCEDURAL_OPTIMIZATION
             OFF # LTO is not supported for CUDA for now
         POSITION_INDEPENDENT_CODE ${FINUFFT_POSITION_INDEPENDENT_CODE}
+        LINKER_LANGUAGE CUDA
 )
 target_compile_features(cufinufft PRIVATE cxx_std_17)
 target_compile_options(cufinufft PRIVATE ${FINUFFT_CUDA_FLAGS})
-target_link_libraries(cufinufft PRIVATE mdspan)
 if(WIN32 OR (BUILD_TESTING AND FINUFFT_BUILD_TESTS) OR env{CIBUILDWHEEL})
     target_link_libraries(cufinufft PUBLIC CUDA::cudart CUDA::cufft)
 else()
     target_link_libraries(cufinufft PUBLIC CUDA::cudart_static CUDA::cufft_static)
 endif()
-target_link_libraries(cufinufft PRIVATE mdspan span)
+target_link_libraries(cufinufft PRIVATE CCCL::CCCL)
 
 # disable deprecated warnings for tests if supported
 if(FINUFFT_HAS_NO_DEPRECATED_DECLARATIONS)

@@ -1,7 +1,6 @@
 #pragma once
 #include <cmath>
-#include <dd/span.hpp>
-#include <experimental/mdspan>
+#include <cuda/std/mdspan>
 
 #include <cufinufft/contrib/helper_math.h>
 #include <cufinufft/precision_independent.h>
@@ -14,11 +13,11 @@ using namespace cufinufft::utils;
 namespace cufinufft {
 namespace spreadinterp {
 
-using dd::span;
-using std::experimental::dextents;
-using std::experimental::dynamic_extent;
-using std::experimental::extents;
-using std::experimental::mdspan;
+using cuda::std::dextents;
+using cuda::std::dynamic_extent;
+using cuda::std::extents;
+using cuda::std::mdspan;
+using cuda::std::span;
 
 /* ---------------------- 3d Spreading Kernels -------------------------------*/
 /* Kernels for bin sort NUpts */
