@@ -17,6 +17,8 @@ see `docs/ackn.rst` for full list of contributors.
 
 This is a lightweight CPU library to compute the three standard types of nonuniform FFT to a specified precision, in one, two, or three dimensions. It is written in C++ with interfaces to C, Fortran, MATLAB/octave, Python, and (in a separate [repository](https://github.com/ludvigak/FINUFFT.jl)) Julia. It now also integrates the GPU CUDA library cuFINUFFT.
 
+[![GH star history chart](https://api.star-history.com/svg?repos=flatironinstitute/finufft&type=Date)](https://www.star-history.com/#flatironinstitute/finufft&Date)
+
 Docs and installation
 ---------------------
 
