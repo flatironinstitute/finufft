@@ -3,7 +3,10 @@
 [![Actions status](https://github.com/flatironinstitute/finufft/workflows/C++%20Build/badge.svg)](https://github.com/flatironinstitute/finufft/actions)
 [![Read the Docs](https://readthedocs.org/projects/finufft/badge)](https://finufft.readthedocs.io)
 &nbsp;
-[Python wrapper: ![PyPI - Downloads](https://img.shields.io/pypi/dm/finufft)](https://pypi.org/project/finufft)
+[![PyPI - Downloads](https://img.shields.io/pypi/dm/finufft)](https://pypi.org/project/finufft)
+[![PyPI - Downloads](https://img.shields.io/pypi/dm/cufinufft)](https://pypi.org/project/cufinufft)
+&nbsp;
+[GH star graph](https://www.star-history.com/#flatironinstitute/finufft&Date)
 
 Principal author **Alex H. Barnett** (abarnett@flatironinstitute.org),
 main co-developers Jeremy F. Magland,
@@ -16,8 +19,6 @@ see `docs/ackn.rst` for full list of contributors.
 <img align="right" src="docs/spreadpic.png" width="400"/>
 
 This is a lightweight CPU library to compute the three standard types of nonuniform FFT to a specified precision, in one, two, or three dimensions. It is written in C++ with interfaces to C, Fortran, MATLAB/octave, Python, and (in a separate [repository](https://github.com/ludvigak/FINUFFT.jl)) Julia. It now also integrates the GPU CUDA library cuFINUFFT.
-
-[![GH star history chart](https://api.star-history.com/svg?repos=flatironinstitute/finufft&type=Date)](https://www.star-history.com/#flatironinstitute/finufft&Date)
 
 Docs and installation
 ---------------------
