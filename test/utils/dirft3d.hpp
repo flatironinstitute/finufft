@@ -7,10 +7,18 @@
 #include <thrust/complex.h>
 #endif
 
-// ------------------------------------------------------------
+// This is basically a port of dirft2d.f from CMCL package, except with
+// the 1/nj prefactors for type-1 removed.
+
+// Direct computation of 3D type-1 nonuniform FFT. Interface same as finufft3d1.
 // 3D Type-1 NUFFT, direct:
 //   f[k1,k2,k3] = Σ_j c[j] exp(i * iflag * (k1 x[j] + k2 y[j] + k3 z[j]))
-// ------------------------------------------------------------
+//   for -ms/2 <= k1 <= (ms-1)/2,  -mt/2 <= k2 <= (mt-1)/2,
+//       -mu/2 <= k3 <= (mu-1)/2,
+//   The output array is in increasing k1 ordering (fast), then increasing
+//   k2 ordering (medium), then increasing k3 (fast). If iflag>0 the + sign is
+//   used, otherwise the - sign is used, in the exponential.
+// Uses winding trick.  Barnett 2/1/17
 template<typename BIGINT,
          typename XYZArr, // x[j], y[j], z[j] → FLT
          typename CArr,   // c[j]             → Complex<FLT>
@@ -64,9 +72,17 @@ void dirft3d1(BIGINT nj,
   }
 }
 
-// ------------------------------------------------------------
+// Direct computation of 3D type-2 nonuniform FFT. Interface same as finufft3d2
 // 3D Type-2 NUFFT, direct:
 //   c[j] = Σ_k1,k2,k3 f[k1,k2,k3] exp(i * iflag * (k1 x[j] + k2 y[j] + k3 z[j]))
+//                 for j = 0,...,nj-1
+// where sum is over -ms/2 <= k1 <= (ms-1)/2,  -mt/2 <= k2 <= (mt-1)/2,
+//           -mu/2 <= k3 <= (mu-1)/2.
+// The input array is in increasing k1 ordering (fast), then increasing
+// k2 ordering (medium), then increasing k3 (fast).
+// If iflag>0 the + sign is used, otherwise the - sign is used, in the
+// exponential.
+// Uses winding trick.  Barnett 2/1/17
 // ------------------------------------------------------------
 template<typename BIGINT, typename XYZArr, typename CArr, typename FArr>
 void dirft3d2(BIGINT nj,
