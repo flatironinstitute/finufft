@@ -158,8 +158,9 @@ __global__ void spread_3d_output_driven(
   const int yoffset = ((bidx / nbinx) % nbiny) * bin_size_y;
   const int zoffset = (bidx / (nbinx * nbiny)) * bin_size_z;
 
-  using mdspan_t   = mdspan<T, extents<int, dynamic_extent, 3, ns>>;
-  auto window_vals = mdspan_t((T *)sharedbuf, np);
+  using mdspan_t           = mdspan<T, extents<int, dynamic_extent, 3, ns>>;
+  auto window_vals         = mdspan_t((T *)sharedbuf, np);
+  const auto c_window_vals = mdspan_t((T *)sharedbuf, np);
   // sharedbuf + size of window_vals in bytes
   // Offset pointer into sharedbuf after window_vals
   // Create span using pointer + size
@@ -183,12 +184,12 @@ __global__ void spread_3d_output_driven(
   for (int batch_begin = 0; batch_begin < nupts; batch_begin += np) {
     const auto batch_size = min(np, nupts - batch_begin);
     for (int i = threadIdx.x; i < batch_size; i += blockDim.x) {
-      const int nuptsidx = idxnupts[ptstart + i + batch_begin];
+      const int nuptsidx = __ldg(idxnupts + ptstart + i + batch_begin);
       // index of the current point within the batch
-      const auto x_rescaled = fold_rescale(x[nuptsidx], nf1);
-      const auto y_rescaled = fold_rescale(y[nuptsidx], nf2);
-      const auto z_rescaled = fold_rescale(z[nuptsidx], nf3);
-      vp_sm[i]              = c[nuptsidx];
+      const auto x_rescaled = fold_rescale(__ldg(x + nuptsidx), nf1);
+      const auto y_rescaled = fold_rescale(__ldg(y + nuptsidx), nf2);
+      const auto z_rescaled = fold_rescale(__ldg(z + nuptsidx), nf3);
+      vp_sm[i]              = __ldca(c + nuptsidx);
       auto [xstart, xend]   = interval(ns, x_rescaled);
       auto [ystart, yend]   = interval(ns, y_rescaled);
       auto [zstart, zend]   = interval(ns, z_rescaled);
@@ -221,8 +222,13 @@ __global__ void spread_3d_output_driven(
       const auto cnow                     = vp_sm[i];
       const auto [xstart, ystart, zstart] = shift[i];
 
-      for (auto [xx, yy, zz] :
-           ndrange<unsigned>(threadIdx.x, blockDim.x, sizex, sizey, sizez)) {
+      for (int idx = threadIdx.x; idx < total; idx += blockDim.x) {
+        // decompose idx using `plane`
+        const int zz   = idx / plane;
+        const int rem1 = idx - zz * plane;
+        const int yy   = rem1 / sizex;
+        const int xx   = rem1 - yy * sizex;
+
         // decompose idx using `plane`
         // recover global coords
         const int real_zz = zstart + zz;
@@ -236,7 +242,7 @@ __global__ void spread_3d_output_driven(
 
         // separable window weights
         const auto kervalue =
-            window_vals(i, 0, xx) * window_vals(i, 1, yy) * window_vals(i, 2, zz);
+            c_window_vals(i, 0, xx) * c_window_vals(i, 1, yy) * c_window_vals(i, 2, zz);
         // One could use the kernel here directly
         // const auto kervalue = evaluate_kernel<T, ns>(abs(x1 + xx), es_c, es_beta) *
         // evaluate_kernel<T, ns>(abs(y1 + yy), es_c, es_beta) *
