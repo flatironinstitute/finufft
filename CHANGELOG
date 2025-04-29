@@ -1,8 +1,13 @@
 List of features / changes made / release notes, in reverse chronological order.
 If not stated, FINUFFT is assumed (cuFINUFFT <=1.3 is listed separately).
 
-Master, using release name V 2.4.0 (4/23/25)
+Master, using release name V 2.4.0 (4/30/25)
 
+* Template dirft, norms to remove finufft dependency
+  Aligned cufinufft tests with finufft tests to test entire transforms.
+  Fixed off-by-one error in cufinufft that was undetected for a long time.
+  Fix timing tests so that setpts no longer included in H2D transfer.
+* MATLAB GPU interface (MEX CUDA) via gpuArrays, PR 634 (mostly Libin Lu,
 * Update CUDA version to 12.4 for cufinufft (Andén).
 * Binary Python wheels for Windows and musllinux (Barbone).
 * fix CMake MATLAB build (final *.m copy), PR 667 (Barnett).
