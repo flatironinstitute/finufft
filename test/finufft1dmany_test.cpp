@@ -240,5 +240,9 @@ int main(int argc, char *argv[]) {
   free(s);
   free(c);
   free(F);
-  return (errmax > errfail);
+  if (isnan(errmax) || (errmax > errfail)) {
+    printf("\tfailed! err %.3g > errfail %.3g\n", errmax, errfail);
+    return 1;
+  } else
+    return 0;
 }
