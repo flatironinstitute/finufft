@@ -1,0 +1,47 @@
+name: Build cufinufft Python wheels
+
+on: [push, pull_request]
+
+jobs:
+  build_wheels:
+    name: Build cufinufft wheels on ${{ matrix.buildplat[0] }}
+    runs-on: ${{ matrix.buildplat[0] }}
+    strategy:
+      fail-fast: false
+      matrix:
+        buildplat:
+          - [ ubuntu-22.04, manylinux_x86_64 ]
+          - [ windows-2019, win_amd64 ]
+        python: [ "cp38", "cp39", "cp310", "cp311", "cp312", "cp313" ] # exclude pp313t for now
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ilammy/msvc-dev-cmd@v1
+      - name: Setup CUDA
+        if: ${{ matrix.buildplat[0] == 'windows-2019' }}
+        uses: Jimver/cuda-toolkit@v0.2.21
+        with:
+          cuda: '11.4.0'
+      - name: Build wheels ${{ matrix.python }}-${{ matrix.buildplat[1] }}
+        uses: pypa/cibuildwheel@v2.22.0
+        with:
+          package-dir: 'python/cufinufft'
+        env:
+          CIBW_BUILD: ${{ matrix.python }}-${{ matrix.buildplat[1] }}
+          CIBW_TEST_COMMAND: "echo 'Wheel installed'"
+          CIBW_BUILD_FRONTEND: "pip; args: --no-deps"
+          CIBW_BEFORE_ALL_LINUX: |
+            if command -v yum &> /dev/null; then
+              yum install -y epel-release
+              yum-config-manager --add-repo https://developer.download.nvidia.com/compute/cuda/repos/rhel7/x86_64/cuda-rhel7.repo
+              yum install -y cuda-11-4
+            else
+              echo "Unsupported package manager. Exiting."
+              exit 1
+            fi
+          CIBW_ENVIRONMENT_LINUX: PATH=$PATH:/usr/local/cuda/bin LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/cuda/lib64
+          CIBW_ARCHS_LINUX: x86_64
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.python }}-${{ matrix.buildplat[1] }}
+          path: ./wheelhouse/*.whl
