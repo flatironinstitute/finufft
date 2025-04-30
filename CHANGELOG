@@ -3,21 +3,31 @@ If not stated, FINUFFT is assumed (cuFINUFFT <=1.3 is listed separately).
 
 Master, using release name V 2.4.0 (4/30/25)
 
-* Template dirft, norms to remove finufft dependency
-  Aligned cufinufft tests with finufft tests to test entire transforms.
-  Fixed off-by-one error in cufinufft that was undetected for a long time.
+* PR #662 (Barbone):
+  Direct calc (dirft) templated, norms computed by hand in tests, to remove
+  finufft dependency for cufinufft math tests.
+  Aligned cufinufft tests with finufft tests to test entire transform output.
   Fix timing tests so that setpts no longer included in H2D transfer.
-* MATLAB GPU interface (MEX CUDA) via gpuArrays, PR 634 (mostly Libin Lu,
+* Found and fixed obscure off-by-one bug in cufinufft that could result in
+  decreased accuracy or undefined output. The bug has been present since 2019
+  (!) but was very hard to trigger, requiring a NU pt to fall on a gridpoint to
+  float accuracy, causing ns+1 instead of ns kerval elements to be accessed
+  in spreadinterp. Prior to summer v2.3 this could only error if ns=16;
+  it became more likely in v2.3 due to shortening kerval cuda arrays to ns.
+  Introduction of type 3 on GPU triggered it more often due to alignment of
+  extremal NU pts on grid. We only observed it at tol=1e-8, upsampfac=1.25.
+  We believe it is unlikely to have affected many recent t1,2 GPU results.
+  We will post a Discussion on this. PR #662 (found by: Lu, Barbone, Barnett).
 * Update CUDA version to 12.4 for cufinufft (Andén).
 * Binary Python wheels for Windows and musllinux (Barbone).
 * fix CMake MATLAB build (final *.m copy), PR 667 (Barnett).
 * fixed empty-opts bug in MATLAB/Octave for {cu}finufft, PR 666 (Barnett).
-* MATLAB/Octave unified fullmathtest.m (Barnett).
+* MATLAB/Octave unified fullmathtest.m for CPU and/or GPU (Barnett).
 * MATLAB GPU interface (MEX CUDA) via gpuArrays, PR 634 (mostly Libin Lu;
   docs/examples/tests/interfaces by Barnett).
 * Tweaked choice of upsampfac to use a density based heuristic for type 1 and 2
   in the CPU library. This gives a significant speedup for some cases.
-  For now this assumes density = 1 (to revisit).  Barbone. PR #638 & 652.
+  For now we assume density=1.0 (to revisit).  Barbone. PR #638 & 652.
 * Removed FINUFFT_CUDA_ARCHITECTURES flag, as it was unnecessary duplication.
 * Enabled LTO for finufft (nvcc support is flaky at the moment). Barbone.
 * Added GPU spreadinterp-only test. Added CPU spreadinterp-only test to cmake
@@ -73,7 +83,7 @@ Master, using release name V 2.4.0 (4/30/25)
 
 V 2.3.2 (2/11/25) minor update release (continued support on 2.3.X branch)
 
-* Increase cufinufft 1d cmake test size and fix 1d spreader subprob sm kernel.
+* Increase cufinufft 1d cmake test size and fix 1d spreader subprob SM kernel.
 
 V 2.3.1 (11/25/24) minor update release (continued support on 2.3.X branch)
 
