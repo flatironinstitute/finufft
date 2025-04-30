@@ -17,7 +17,7 @@ jobs:
       - uses: ilammy/msvc-dev-cmd@v1
       - name: Setup CUDA
         if: ${{ matrix.buildplat[0] == 'windows-2019' }}
-        uses: Jimver/cuda-toolkit@v0.2.21
+        uses: Jimver/cuda-toolkit@v0.2.23
         with:
           cuda: '12.4.0'
       - name: Build ${{ matrix.buildplat[1] }} wheels

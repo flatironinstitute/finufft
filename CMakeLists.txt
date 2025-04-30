@@ -158,7 +158,7 @@ set(FFTW_VERSION "3.3.10" CACHE STRING "Version of FFTW to use")
 set(XTL_VERSION "0.7.7" CACHE STRING "Version of xtl to use")
 set(XSIMD_VERSION "13.2.0" CACHE STRING "Version of xsimd to use")
 set(DUCC0_VERSION "ducc0_0_36_0" CACHE STRING "Version of ducc0 to use")
-set(FINUFFT_CCCL_VERSION "2.8.0" CACHE STRING "Version of FINUFFT-cccl to use")
+set(FINUFFT_CCCL_VERSION "2.8.3" CACHE STRING "Version of FINUFFT-cccl to use")
 
 include(cmake/setupCPM.cmake)
 
