@@ -54,7 +54,7 @@ set_target_properties(
 )
 target_compile_features(cufinufft PRIVATE cxx_std_17)
 target_compile_options(cufinufft PRIVATE ${FINUFFT_CUDA_FLAGS})
-if(WIN32 OR (BUILD_TESTING AND FINUFFT_BUILD_TESTS) OR env{CIBUILDWHEEL})
+if(WIN32 OR (BUILD_TESTING AND FINUFFT_BUILD_TESTS) OR CIBUILDWHEEL)
     target_link_libraries(cufinufft PUBLIC CUDA::cudart CUDA::cufft)
 else()
     target_link_libraries(cufinufft PUBLIC CUDA::cudart_static CUDA::cufft_static)

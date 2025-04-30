@@ -173,13 +173,11 @@ void set_nf_type12(CUFINUFFT_BIGINT ms, cufinufft_opts opts, finufft_spread_opts
 // type 1 & 2 recipe for how to set 1d size of upsampled array, nf, given opts
 // and requested number of Fourier modes ms.
 {
-  *nf = (CUFINUFFT_BIGINT)(opts.upsampfac * ms);
+  // round up to handle small cases
+  *nf = static_cast<CUFINUFFT_BIGINT>(std::ceil(opts.upsampfac * ms));
   if (*nf < 2 * spopts.nspread) *nf = 2 * spopts.nspread; // otherwise spread fails
   if (*nf < MAX_NF) {                                     // otherwise will fail anyway
-    if (opts.gpu_method == 4)                             // expensive at huge nf
-      *nf = utils::next235beven(*nf, bs);
-    else
-      *nf = utils::next235beven(*nf, 1);
+    *nf = utils::next235beven(*nf, opts.gpu_method == 4 ? bs : 1); // expensive at huge nf
   }
 }
 

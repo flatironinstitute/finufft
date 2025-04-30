@@ -47,7 +47,8 @@ $ #include <math.h>
 %
 $ void copy_cufinufft_opts(const mxArray* om, cufinufft_opts *oc) {
 $   if(!mxIsStruct(om))
-$     mexErrMsgIdAndTxt("FINUFFT:inputNotStruct","opts input must be a structure.");
+$     mexErrMsgIdAndTxt("FINUFFT:inputNotStruct",
+$                       "copy_cufinufft_opts: opts input must be a structure.");
 $   mwIndex idx = 0;
 $   int ifield, nfields;
 $   const char **fname;
@@ -128,7 +129,7 @@ classdef cufinufft_plan < handle
     % CUFINUFFT_PLAN   create guru plan object for one/many general nonuniform FFTs.
 
       plan.floatprec='double';                      % set precision: default
-      if nargin<6, opts = []; end
+      if nargin<6, opts = struct(); end
       if isfield(opts,'floatprec')                  % a matlab-only option
         if ~strcmp(opts.floatprec,'single') && ~strcmp(opts.floatprec,'double')
           error('FINUFFT:badFloatPrec','CUFINUFFT plan opts.floatprec must be single or double');

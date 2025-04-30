@@ -8,6 +8,9 @@
 #include <thrust/complex.h>
 #endif
 
+// NOTE: not using std::func but just func for thrust::complex compatibility
+// AHB utilities, MB templated them.
+
 // ----------------------------------------------------------------------------
 // Compute ||a–b||₂ / ||a||₂
 // ----------------------------------------------------------------------------
@@ -15,83 +18,68 @@ template<typename BIGINT,
          typename ArrA, // supports ArrA[i] -> complex-like
          typename ArrB  // supports ArrB[i] -> same complex-like
          >
-auto relerrtwonorm(BIGINT n, ArrA aArr, ArrB bArr) -> decltype(aArr[0].real()) {
-  using Complex = std::decay_t<decltype(aArr[0])>;
-  using FLT     = decltype(aArr[0].real());
+auto relerrtwonorm(BIGINT n, ArrA a, ArrB b) -> decltype(a[0].real()) {
+  using Complex = std::decay_t<decltype(a[0])>;
+  using FLT     = decltype(a[0].real());
 
-  static_assert(std::is_floating_point<FLT>::value,
+  static_assert(std::is_floating_point_v<FLT>,
                 "relerrtwonorm: value_type must be floating point");
-  static_assert(std::is_same<Complex, std::decay_t<decltype(bArr[0])>>::value,
+  static_assert(std::is_same_v<Complex, std::decay_t<decltype(b[0])>>,
                 "relerrtwonorm: array element types must match");
 
-  FLT err = FLT{0}, nrm = FLT{0};
-  for (BIGINT i = 0; i < n; ++i) {
-    auto ai = aArr[i], bi = bArr[i];
-    FLT dr = ai.real() - bi.real(), di = ai.imag() - bi.imag();
-    err += dr * dr + di * di;
-    FLT ar = ai.real(), ai_im = ai.imag();
-    nrm += ar * ar + ai_im * ai_im;
+  FLT err = 0.0, nrm = 0.0;
+  for (BIGINT m = 0; m < n; ++m) {
+    // note std::norm here & below is |a|^2 ("field norm") not usual |a| ...
+    nrm += norm(a[m]);
+    err += norm(a[m] - b[m]);
   }
-  return std::sqrt(err / nrm);
+  return sqrt(err / nrm);
 }
 
 // ----------------------------------------------------------------------------
 // Compute ||a–b||₂
 // ----------------------------------------------------------------------------
 template<typename BIGINT, typename ArrA, typename ArrB>
-auto errtwonorm(BIGINT n, ArrA aArr, ArrB bArr) -> decltype(aArr[0].real()) {
-  using Complex = std::decay_t<decltype(aArr[0])>;
-  using FLT     = decltype(aArr[0].real());
+auto errtwonorm(BIGINT n, ArrA a, ArrB b) -> decltype(a[0].real()) {
+  using Complex = std::decay_t<decltype(a[0])>;
+  using FLT     = decltype(a[0].real());
 
-  static_assert(std::is_floating_point<FLT>::value,
+  static_assert(std::is_floating_point_v<FLT>,
                 "errtwonorm: value_type must be floating point");
-  static_assert(std::is_same<Complex, std::decay_t<decltype(bArr[0])>>::value,
+  static_assert(std::is_same_v<Complex, std::decay_t<decltype(b[0])>>,
                 "errtwonorm: array element types must match");
 
-  FLT err = FLT{0};
-  for (BIGINT i = 0; i < n; ++i) {
-    auto ai = aArr[i], bi = bArr[i];
-    FLT dr = ai.real() - bi.real(), di = ai.imag() - bi.imag();
-    err += dr * dr + di * di;
-  }
-  return std::sqrt(err);
+  FLT err = 0.0; // compute error 2-norm
+  for (BIGINT m = 0; m < n; ++m) err += norm(a[m] - b[m]);
+  return sqrt(err);
 }
 
 // ----------------------------------------------------------------------------
 // Compute ||a||₂
 // ----------------------------------------------------------------------------
 template<typename BIGINT, typename ArrA>
-auto twonorm(BIGINT n, ArrA aArr) -> decltype(aArr[0].real()) {
-  using FLT = decltype(aArr[0].real());
+auto twonorm(BIGINT n, ArrA a) -> decltype(a[0].real()) {
+  using FLT = decltype(a[0].real());
 
-  static_assert(std::is_floating_point<FLT>::value,
+  static_assert(std::is_floating_point_v<FLT>,
                 "twonorm: value_type must be floating point");
 
-  FLT nrm = FLT{0};
-  for (BIGINT i = 0; i < n; ++i) {
-    auto ai = aArr[i];
-    FLT ar = ai.real(), ai_im = ai.imag();
-    nrm += ar * ar + ai_im * ai_im;
-  }
-  return std::sqrt(nrm);
+  FLT nrm = 0.0;
+  for (BIGINT m = 0; m < n; ++m) nrm += norm(a[m]);
+  return sqrt(nrm);
 }
 
 // ----------------------------------------------------------------------------
 // Compute ||a||_∞
 // ----------------------------------------------------------------------------
 template<typename BIGINT, typename ArrA>
-auto infnorm(BIGINT n, ArrA aArr) -> decltype(aArr[0].real()) {
-  using FLT = decltype(aArr[0].real());
+auto infnorm(BIGINT n, ArrA a) -> decltype(a[0].real()) {
+  using FLT = decltype(a[0].real());
 
-  static_assert(std::is_floating_point<FLT>::value,
+  static_assert(std::is_floating_point_v<FLT>,
                 "infnorm: value_type must be floating point");
 
-  FLT maxv = FLT{0};
-  for (BIGINT i = 0; i < n; ++i) {
-    auto ai = aArr[i];
-    FLT ar = ai.real(), ai_im = ai.imag();
-    FLT mag2 = ar * ar + ai_im * ai_im;
-    maxv     = std::max(maxv, mag2);
-  }
-  return std::sqrt(maxv);
+  FLT nrm = 0.0;
+  for (BIGINT m = 0; m < n; ++m) nrm = std::max(nrm, norm(a[m]));
+  return sqrt(nrm);
 }

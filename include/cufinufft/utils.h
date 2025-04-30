@@ -22,6 +22,10 @@
 #endif
 #include <cmath>
 
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
+
 #if !defined(__CUDA_ARCH__) || __CUDA_ARCH__ >= 600 || defined(__clang__)
 #else
 __inline__ __device__ double atomicAdd(double *address, double val) {
