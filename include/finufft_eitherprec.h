@@ -92,6 +92,8 @@ FINUFFT_EXPORT int FINUFFT_CDECL FINUFFTIFY(_setpts)(
     FINUFFT_FLT *zj, FINUFFT_BIGINT N, FINUFFT_FLT *s, FINUFFT_FLT *t, FINUFFT_FLT *u);
 FINUFFT_EXPORT int FINUFFT_CDECL FINUFFTIFY(_execute)(
     FINUFFT_PLAN plan, FINUFFT_CPX *weights, FINUFFT_CPX *result);
+FINUFFT_EXPORT int FINUFFT_CDECL FINUFFTIFY(_execute_adjoint)(
+    FINUFFT_PLAN plan, FINUFFT_CPX *weights, FINUFFT_CPX *result);
 FINUFFT_EXPORT int FINUFFT_CDECL FINUFFTIFY(_destroy)(FINUFFT_PLAN plan);
 
 // ----------------- the 18 simple interfaces -------------------------------

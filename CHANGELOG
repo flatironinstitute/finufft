@@ -3,6 +3,8 @@ If not stated, FINUFFT is assumed (cuFINUFFT <=1.3 is listed separately).
 
 Master, using release name V 2.4.0 (4/23/25)
 
+* Added functionality for adjoint execution of FINUFFT plans (Reinecke #633,
+  addresses #566 and #571).
 * Update CUDA version to 12.4 for cufinufft (Andén).
 * Binary Python wheels for Windows and musllinux (Barbone).
 * fix CMake MATLAB build (final *.m copy), PR 667 (Barnett).
