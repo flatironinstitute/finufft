@@ -11,7 +11,6 @@
 #include <cuda/atomic>
 #include <cuda_runtime.h>
 #include <thrust/extrema.h>
-#include <thrust/tuple.h>
 #include <type_traits>
 #include <utility> // for std::forward
 
@@ -43,6 +42,11 @@ __inline__ __device__ double atomicAdd(double *address, double val) {
 
   return __longlong_as_double(old);
 }
+
+template<typename T> atomicAdd_block(T *address, T value) {
+  return atomicAdd(address, value);
+}
+
 #endif
 
 /**
@@ -110,13 +114,8 @@ template<typename T>
 static __forceinline__ __device__ void atomicAddComplexShared(
     cuda_complex<T> *address, const cuda_complex<T> &res) {
   auto raw_address = reinterpret_cast<T *>(address);
-#if defined(__CUDA_ARCH__) && __CUDA_ARCH__ >= 600
   atomicAdd_block(raw_address, res.x);
   atomicAdd_block(raw_address + 1, res.y);
-#else
-  atomicAdd(raw_address, res.x);
-  atomicAdd(raw_address + 1, res.y);
-#endif
 }
 
 /**
@@ -125,8 +124,8 @@ static __forceinline__ __device__ void atomicAddComplexShared(
  * on shared memory are supported so we leverage them
  */
 template<typename T>
-static __forceinline__ __device__ void atomicAddComplexGlobal(cuda_complex<T> *address,
-                                                              cuda_complex<T> res) {
+static __forceinline__ __device__ void atomicAddComplexGlobal(
+    cuda_complex<T> *address, cuda_complex<T> res) {
   if constexpr (
       std::is_same_v<cuda_complex<T>, float2> && COMPUTE_CAPABILITY_90_OR_HIGHER) {
     atomicAdd(address, res);
