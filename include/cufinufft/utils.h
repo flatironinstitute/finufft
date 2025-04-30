@@ -43,7 +43,7 @@ __inline__ __device__ double atomicAdd(double *address, double val) {
   return __longlong_as_double(old);
 }
 
-template<typename T> atomicAdd_block(T *address, T value) {
+template<typename T> auto atomicAdd_block(T *address, T value) {
   return atomicAdd(address, value);
 }
 
