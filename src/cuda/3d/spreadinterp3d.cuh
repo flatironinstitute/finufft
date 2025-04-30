@@ -157,9 +157,9 @@ __global__ void spread_3d_output_driven(
   const int yoffset = ((bidx / nbinx) % nbiny) * bin_size_y;
   const int zoffset = (bidx / (nbinx * nbiny)) * bin_size_z;
 
-  using mdspan_t           = mdspan<T, extents<int, dynamic_extent, 3, ns>>;
-  auto window_vals         = mdspan_t((T *)sharedbuf, np);
-  const auto c_window_vals = mdspan_t((T *)sharedbuf, np);
+  auto window_vals = mdspan<T, extents<int, dynamic_extent, 3, ns>>((T *)sharedbuf, np);
+  const auto c_window_vals =
+      mdspan<T, extents<const int, dynamic_extent, 3, ns>>((T *)sharedbuf, np);
   // sharedbuf + size of window_vals in bytes
   // Offset pointer into sharedbuf after window_vals
   // Create span using pointer + size
@@ -189,9 +189,9 @@ __global__ void spread_3d_output_driven(
       const auto y_rescaled = fold_rescale(__ldg(y + nuptsidx), nf2);
       const auto z_rescaled = fold_rescale(__ldg(z + nuptsidx), nf3);
       vp_sm[i]              = __ldca(c + nuptsidx);
-      auto [xstart, xend]   = interval(ns, x_rescaled);
-      auto [ystart, yend]   = interval(ns, y_rescaled);
-      auto [zstart, zend]   = interval(ns, z_rescaled);
+      const auto xstart     = int(std::ceil(x_rescaled - ns_2f));
+      const auto ystart     = int(std::ceil(y_rescaled - ns_2f));
+      const auto zstart     = int(std::ceil(z_rescaled - ns_2f));
       const T x1            = T(xstart) - x_rescaled;
       const T y1            = T(ystart) - y_rescaled;
       const T z1            = T(zstart) - z_rescaled;
@@ -242,14 +242,8 @@ __global__ void spread_3d_output_driven(
         // separable window weights
         const auto kervalue =
             c_window_vals(i, 0, xx) * c_window_vals(i, 1, yy) * c_window_vals(i, 2, zz);
-        // One could use the kernel here directly
-        // const auto kervalue = evaluate_kernel<T, ns>(abs(x1 + xx), es_c, es_beta) *
-        // evaluate_kernel<T, ns>(abs(y1 + yy), es_c, es_beta) *
-        // evaluate_kernel<T, ns>(abs(z1 + zz), es_c, es_beta);
-
         // accumulate
-        const cuda_complex<T> res{cnow.x * kervalue, cnow.y * kervalue};
-        u_local(iz, iy, ix) += res;
+        u_local(iz, iy, ix) += {cnow * kervalue};
       }
       __syncthreads();
     }

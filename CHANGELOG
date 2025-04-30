@@ -3,6 +3,10 @@ If not stated, FINUFFT is assumed (cuFINUFFT <=1.3 is listed separately).
 
 Master, using release name V 2.4.0 (4/30/25)
 
+* Adding OutputDriven paralleism to cufinufft (Barbone)
+
+Master, using release name V 2.4.0 (4/30/25)
+
 * Template dirft, norms to remove finufft dependency
   Aligned cufinufft tests with finufft tests to test entire transforms.
   Fixed off-by-one error in cufinufft that was undetected for a long time.
