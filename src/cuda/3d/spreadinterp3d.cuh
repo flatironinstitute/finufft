@@ -159,7 +159,7 @@ __global__ void spread_3d_output_driven(
 
   auto window_vals = mdspan<T, extents<int, dynamic_extent, 3, ns>>((T *)sharedbuf, np);
   const auto c_window_vals =
-      mdspan<T, extents<const int, dynamic_extent, 3, ns>>((T *)sharedbuf, np);
+      mdspan<const T, extents<int, dynamic_extent, 3, ns>>((T *)sharedbuf, np);
   // sharedbuf + size of window_vals in bytes
   // Offset pointer into sharedbuf after window_vals
   // Create span using pointer + size
