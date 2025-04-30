@@ -42,7 +42,7 @@ build-dir = "build/{wheel_tag}"
 cmake.source-dir = "../../"
 cmake.targets = ["finufft"]
 cmake.define = {"FINUFFT_BUILD_PYTHON" = "ON"}
-
+cmake.args = ["-G Ninja"]
 wheel.packages = ["finufft"]
 
 # Indicate that we don't depend on the CPython API
@@ -76,8 +76,7 @@ input = "finufft/__init__.py"
 [tool.cibuildwheel]
 # Necessary to see build output from the actual compilation
 build-verbosity = 1
-# Not building for PyPy and musllinux for now.
-skip = "pp* *musllinux*"
+skip = "cp36-* cp37-* cp-38* pp* *-manylinux_i686 *_ppc64le *_s390x *_universal2"
 test-requires = ["pytest", "pytest-mock"]
 test-command = "pytest {project}/python/finufft/test"
 
@@ -88,23 +87,22 @@ config-settings = {"cmake.define.FINUFFT_ARCH_FLAGS" = "-march=x86-64", "cmake.d
 # TODO: CIBW crashes when we try to make config-settings above into a table. Why?
 
 [tool.cibuildwheel.linux]
-archs = "x86_64"
-before-all = "yum install -y fftw3-devel"
+manylinux-x86_64-image = "manylinux2014"
+manylinux-aarch64-image = "manylinux2014"
+musllinux-x86_64-image = "musllinux_1_1"
 
 [tool.cibuildwheel.windows]
-archs = "AMD64"
 before-build = "pip install delvewheel"
 # CIBW doesn't do vendoring of DLLs on Windows by default, so we have to
 # install delvewheel and run it.
 repair-wheel-command = "delvewheel repair -v --analyze-existing -w {dest_dir} {wheel}"
-# Need to repeat this here as the platform-specific config-settings overwrite
-# the general ones.
-# The last setting is required to force cmake to avoid using MSVC (the
-# default). By setting the generator to Ninja, cmake will pick gcc (mingw64) as
-# the compiler.
-config-settings = {"cmake.define.FINUFFT_ARCH_FLAGS" = "-march=x86-64", "cmake.define.CMAKE_VERBOSE_MAKEFILE" = "ON", "cmake.args" = "-G Ninja"}
 
 [[tool.cibuildwheel.overrides]]
+select = "cp310-*"
+manylinux-x86_64-image = "manylinux_2_28"
+musllinux-x86_64-image = "musllinux_1_2"
+
+# Override for ARM64 builds
+[[tool.cibuildwheel.overrides]]
 select = "*arm64*"
-# Don't enforce x84_64 when building on arm64.
-config-settings = {"cmake.define.FINUFFT_ARCH_FLAGS" = "-mcpu=apple-m3", "cmake.define.CMAKE_VERBOSE_MAKEFILE" = "ON"}
+config-settings = { "cmake.define.FINUFFT_ARCH_FLAGS" = "", "cmake.define.CMAKE_VERBOSE_MAKEFILE" = "ON" }

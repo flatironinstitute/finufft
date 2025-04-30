@@ -3,7 +3,10 @@
 [![Actions status](https://github.com/flatironinstitute/finufft/workflows/C++%20Build/badge.svg)](https://github.com/flatironinstitute/finufft/actions)
 [![Read the Docs](https://readthedocs.org/projects/finufft/badge)](https://finufft.readthedocs.io)
 &nbsp;
-[Python wrapper: ![PyPI - Downloads](https://img.shields.io/pypi/dm/finufft)](https://pypi.org/project/finufft)
+[![PyPI - Downloads](https://img.shields.io/pypi/dm/finufft)](https://pypi.org/project/finufft)
+[![PyPI - Downloads](https://img.shields.io/pypi/dm/cufinufft)](https://pypi.org/project/cufinufft)
+&nbsp;
+[GH star graph](https://www.star-history.com/#flatironinstitute/finufft&Date)
 
 Principal author **Alex H. Barnett** (abarnett@flatironinstitute.org),
 main co-developers Jeremy F. Magland,
