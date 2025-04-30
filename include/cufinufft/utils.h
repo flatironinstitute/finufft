@@ -43,15 +43,14 @@ __inline__ __device__ double atomicAdd(double *address, double val) {
   return __longlong_as_double(old);
 }
 
-static template<typename T>
-__forceinline__ __device__ auto atomicAdd_block(T *address, T value) {
-  return atomicAdd(address, value);
+template<typename T> __forceinline__ __device__ auto atomicAdd_block(T *address, T val) {
+  return atomicAdd(address, val);
 }
 
 #endif
 
 /**
- * It computes the stard and end point of the spreading window given the center x and the
+ * It computes the start and end point of the spreading window given the center x and the
  * width ns.
  * TODO: We should move to (md)spans and (nd)ranges to avoid xend.
  *       It is also safer on bounds.
@@ -125,8 +124,8 @@ static __forceinline__ __device__ void atomicAddComplexShared(
  * on shared memory are supported so we leverage them
  */
 template<typename T>
-static __forceinline__ __device__ void atomicAddComplexGlobal(cuda_complex<T> *address,
-                                                              cuda_complex<T> res) {
+static __forceinline__ __device__ void atomicAddComplexGlobal(
+    cuda_complex<T> *address, cuda_complex<T> res) {
   if constexpr (
       std::is_same_v<cuda_complex<T>, float2> && COMPUTE_CAPABILITY_90_OR_HIGHER) {
     atomicAdd(address, res);
