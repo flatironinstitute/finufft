@@ -14,7 +14,16 @@ jobs:
           - [ windows-2019, win_amd64 ]
     steps:
       - uses: actions/checkout@v4
-      - uses: ilammy/msvc-dev-cmd@v1
+      - name: Setup Cpp
+        if: ${{ matrix.buildplat[0] == 'windows-2019' }}
+        uses: aminya/setup-cpp@v1.1.1
+        with:
+          compiler: msvc
+          vcvarsall: true
+          cmake: true
+          ninja: true
+          vcpkg: false
+          cppcheck: false
       - name: Setup CUDA
         if: ${{ matrix.buildplat[0] == 'windows-2019' }}
         uses: Jimver/cuda-toolkit@v0.2.23
