@@ -18,7 +18,7 @@ jobs:
         if: ${{ matrix.buildplat[0] == 'windows-2022' }}
         uses: aminya/setup-cpp@v1.1.1
         with:
-          compiler: msvc
+          compiler: msvc-2022
           vcvarsall: true
           cmake: true
           ninja: true

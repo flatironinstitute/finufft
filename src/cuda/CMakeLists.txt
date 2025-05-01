@@ -27,12 +27,7 @@ set(CUFINUFFT_INCLUDE_DIRS
 set(CUFINUFFT_INCLUDE_DIRS ${CUFINUFFT_INCLUDE_DIRS} PARENT_SCOPE)
 
 # flush denormals to zero and enable verbose PTXAS output
-set(FINUFFT_CUDA_FLAGS
-    $<$<COMPILE_LANGUAGE:CUDA>:
-    --extended-lambda
-    --expt-relaxed-constexpr
-    --extra-device-vectorization>
-)
+set(FINUFFT_CUDA_FLAGS $<$<COMPILE_LANGUAGE:CUDA>: --extended-lambda --extra-device-vectorization>)
 
 if(FINUFFT_SHARED_LINKING)
     add_library(cufinufft SHARED ${PRECISION_INDEPENDENT_SRC} ${PRECISION_DEPENDENT_SRC})
@@ -53,7 +48,7 @@ set_target_properties(
         INTERPROCEDURAL_OPTIMIZATION
             OFF # LTO is not supported for CUDA for now
         POSITION_INDEPENDENT_CODE ${FINUFFT_POSITION_INDEPENDENT_CODE}
-    #        LINKER_LANGUAGE CUDA
+        LINKER_LANGUAGE CUDA
 )
 
 if(DEFINED ENV{GITHUB_ACTIONS} AND "$ENV{GITHUB_ACTIONS}" STREQUAL "true" AND MSVC)
