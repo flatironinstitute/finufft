@@ -56,7 +56,12 @@ set_target_properties(
     #        LINKER_LANGUAGE CUDA
 )
 
-target_compile_features(cufinufft PRIVATE cxx_std_17 cuda_std_17)
+if(DEFINED ENV{GITHUB_ACTIONS} AND "$ENV{GITHUB_ACTIONS}" STREQUAL "true" AND MSVC)
+    message(STATUS "GITHUB_ACTIONS on Windows using c++20 for cufinufft")
+    target_compile_features(cufinufft PRIVATE cxx_std_20 cuda_std_20)
+else()
+    target_compile_features(cufinufft PRIVATE cxx_std_17 cuda_std_17)
+endif()
 target_compile_options(cufinufft PRIVATE ${FINUFFT_CUDA_FLAGS})
 
 if(WIN32 OR (BUILD_TESTING AND FINUFFT_BUILD_TESTS) OR CIBUILDWHEEL)
@@ -65,7 +70,7 @@ else()
     target_link_libraries(cufinufft PUBLIC CUDA::cudart_static CUDA::cufft_static)
 endif()
 if(${CCCL_LIB})
-    target_link_libraries(cufinufft PRIVATE ${CCCL_LIB})
+    target_link_libraries(cufinufft PRIVATE CCCL::CCCL)
 endif()
 # disable deprecated warnings for tests if supported
 if(FINUFFT_HAS_NO_DEPRECATED_DECLARATIONS)
