@@ -54,8 +54,12 @@ set_target_properties(
         POSITION_INDEPENDENT_CODE ${FINUFFT_POSITION_INDEPENDENT_CODE}
         LINKER_LANGUAGE CUDA
 )
+
 target_compile_features(cufinufft PRIVATE cxx_std_17)
 target_compile_options(cufinufft PRIVATE ${FINUFFT_CUDA_FLAGS})
+if(MSVC)
+    target_compile_options(cufinufft PRIVATE /std:c++17)
+endif()
 if(WIN32 OR (BUILD_TESTING AND FINUFFT_BUILD_TESTS) OR CIBUILDWHEEL)
     target_link_libraries(cufinufft PUBLIC CUDA::cudart CUDA::cufft)
 else()
