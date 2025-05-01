@@ -326,7 +326,7 @@ template<typename T>
 double bestUpsamplingFactor(const int nthreads, const double density, const int dim,
                             const int nufftType, const double epsilon) {
   // 1) For epsilons <= 1e-9, 1.25 is not supported
-  if (epsilon <= 1.0e-9) {
+  if (epsilon <= 1.0e-9 || epsilon <= std::numeric_limits<T>::epsilon() * 100) {
     return 2.0;
   }
 
