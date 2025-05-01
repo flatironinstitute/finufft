@@ -27,7 +27,12 @@ set(CUFINUFFT_INCLUDE_DIRS
 set(CUFINUFFT_INCLUDE_DIRS ${CUFINUFFT_INCLUDE_DIRS} PARENT_SCOPE)
 
 # flush denormals to zero and enable verbose PTXAS output
-set(FINUFFT_CUDA_FLAGS $<$<COMPILE_LANGUAGE:CUDA>: --extended-lambda --extra-device-vectorization>)
+set(FINUFFT_CUDA_FLAGS
+    $<$<COMPILE_LANGUAGE:CUDA>:
+    --extended-lambda
+    --expt-relaxed-constexpr
+    --extra-device-vectorization>
+)
 
 if(FINUFFT_SHARED_LINKING)
     add_library(cufinufft SHARED ${PRECISION_INDEPENDENT_SRC} ${PRECISION_DEPENDENT_SRC})
@@ -43,30 +48,25 @@ set_target_properties(
     PROPERTIES
         CUDA_ARCHITECTURES "${CMAKE_CUDA_ARCHITECTURES}"
         CUDA_SEPARABLE_COMPILATION ON
-        CUDA_STANDARD 17
-        CXX_STANDARD 17
-        CXX_STANDARD_REQUIRED ON
-        CUDA_STANDARD_REQUIRED ON
         WINDOWS_EXPORT_ALL_SYMBOLS ON
         ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}"
         INTERPROCEDURAL_OPTIMIZATION
             OFF # LTO is not supported for CUDA for now
         POSITION_INDEPENDENT_CODE ${FINUFFT_POSITION_INDEPENDENT_CODE}
-        LINKER_LANGUAGE CUDA
+    #        LINKER_LANGUAGE CUDA
 )
 
-target_compile_features(cufinufft PRIVATE cxx_std_17)
+target_compile_features(cufinufft PRIVATE cxx_std_17 cuda_std_17)
 target_compile_options(cufinufft PRIVATE ${FINUFFT_CUDA_FLAGS})
-if(MSVC)
-    target_compile_options(cufinufft PRIVATE /std:c++17)
-endif()
+
 if(WIN32 OR (BUILD_TESTING AND FINUFFT_BUILD_TESTS) OR CIBUILDWHEEL)
     target_link_libraries(cufinufft PUBLIC CUDA::cudart CUDA::cufft)
 else()
     target_link_libraries(cufinufft PUBLIC CUDA::cudart_static CUDA::cufft_static)
 endif()
-target_link_libraries(cufinufft PRIVATE CCCL::CCCL)
-
+if(${CCCL_LIB})
+    target_link_libraries(cufinufft PRIVATE ${CCCL_LIB})
+endif()
 # disable deprecated warnings for tests if supported
 if(FINUFFT_HAS_NO_DEPRECATED_DECLARATIONS)
     target_compile_options(cufinufft PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:-Wno-deprecated-declarations>)

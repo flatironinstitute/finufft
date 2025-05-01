@@ -1,8 +1,8 @@
 #pragma once
+
+#include <cuda/std/mdspan>
+
 #include <cmath>
-#if defined(__CUDACC__)
-#include <cuda/std/initializer_list>
-#endif
 
 #include <cufinufft/contrib/helper_math.h>
 #include <cufinufft/precision_independent.h>
