@@ -259,64 +259,73 @@ template<typename T> int find_bin_size(std::size_t mem_size, int dim, int ns) {
   //       maybe the shape should not be uniform
   return bin_size;
 }
-
 template<typename T>
 void cufinufft_setup_binsize(int type, int ns, int dim, cufinufft_opts *opts) {
-  // Marco Barbone 07/26/24. Using the shared memory available on the device, to
-  // determine the optimal binsize for the spreader.
-  // WARNING: This function does not check for CUDA errors, the caller should check and
-  // handle them.
   int shared_mem_per_block{}, device_id{};
   cudaGetDevice(&device_id);
   cudaDeviceGetAttribute(&shared_mem_per_block, cudaDevAttrMaxSharedMemoryPerBlock,
                          device_id);
-  switch (opts->gpu_method) {
-  case 1:
+
+  auto try_find_binsize = [&](int shmem) -> int {
+    return find_bin_size<T>(shmem, dim, ns);
+  };
+
+  auto set_binsizes_if_unset = [&](int binsize) {
+    if (binsize <= 1) return;
+
+    opts->gpu_binsizex = opts->gpu_binsizex == 0 ? binsize : opts->gpu_binsizex;
+    opts->gpu_binsizey =
+        (dim < 2) ? 1 : (opts->gpu_binsizey == 0 ? binsize : opts->gpu_binsizey);
+    opts->gpu_binsizez =
+        (dim < 3) ? 1 : (opts->gpu_binsizez == 0 ? binsize : opts->gpu_binsizez);
+  };
+
+  auto ensure_optin_shmem = [&]() {
     cudaDeviceGetAttribute(&shared_mem_per_block, cudaDevAttrMaxSharedMemoryPerBlockOptin,
                            device_id);
-  case 2:
-  case 0: {
-    const auto binsize = find_bin_size<T>(shared_mem_per_block, dim, ns);
-    if (binsize > 1) {
-      opts->gpu_binsizex = opts->gpu_binsizex == 0 ? binsize : opts->gpu_binsizex;
-      opts->gpu_binsizey = opts->gpu_binsizey == 0 ? binsize : opts->gpu_binsizey;
-      opts->gpu_binsizez = opts->gpu_binsizez == 0 ? binsize : opts->gpu_binsizez;
-      opts->gpu_binsizey = dim < 2 ? 1 : opts->gpu_binsizey;
-      opts->gpu_binsizez = dim < 3 ? 1 : opts->gpu_binsizez;
-    } else {
-      // fallback to default values if the uniform bin size is too small
-      opts->gpu_binsizex = opts->gpu_binsizex == 0 ? 16 : opts->gpu_binsizex;
-      opts->gpu_binsizey = opts->gpu_binsizey == 0 ? 16 : opts->gpu_binsizey;
-      opts->gpu_binsizez = opts->gpu_binsizez == 0 ? 2 : opts->gpu_binsizez;
+  };
+
+  switch (opts->gpu_method) {
+  case 1: {
+    ensure_optin_shmem();
+    int binsize = try_find_binsize(shared_mem_per_block);
+    set_binsizes_if_unset(binsize);
+    break;
+  }
+  case 2: {
+    int binsize = try_find_binsize(shared_mem_per_block);
+    if (binsize < 1) {
+      ensure_optin_shmem();
+      binsize = try_find_binsize(shared_mem_per_block);
     }
+    if (binsize < 1) {
+      throw std::runtime_error(
+          "[cufinufft] ERROR: Not enough shared memory for the number of points.");
+    }
+    set_binsizes_if_unset(binsize);
     break;
   }
   case 3: {
-    // opts->gpu_np this way is at least 16.
-    const auto shmem_per_point = shared_memory_per_point<T>(dim, ns);
-    const auto min_np_shmem    = shared_memory_per_point<T>(dim, ns) * opts->gpu_np;
+    const int shmem_per_point = shared_memory_per_point<T>(dim, ns);
+    const int min_np_shmem    = shmem_per_point * opts->gpu_np;
+    int binsize               = try_find_binsize(shared_mem_per_block - min_np_shmem);
 
-    auto binsize = find_bin_size<T>(shared_mem_per_block - min_np_shmem, dim, ns);
-    if (binsize < 0) {
-      cudaDeviceGetAttribute(&shared_mem_per_block,
-                             cudaDevAttrMaxSharedMemoryPerBlockOptin, device_id);
-      binsize = find_bin_size<T>(shared_mem_per_block - min_np_shmem, dim, ns);
-      if (binsize < 0) {
+    if (binsize < 1) {
+      ensure_optin_shmem();
+      binsize = try_find_binsize(shared_mem_per_block - min_np_shmem);
+      if (binsize < 1) {
         throw std::runtime_error(
             "[cufinufft] ERROR: Not enough shared memory for the number of points.");
       }
     }
-    // fallback to default values if the uniform bin size is too small
-    opts->gpu_binsizex = opts->gpu_binsizex == 0 ? binsize : opts->gpu_binsizex;
-    opts->gpu_binsizey = opts->gpu_binsizey == 0 ? binsize : opts->gpu_binsizey;
-    opts->gpu_binsizez = opts->gpu_binsizez == 0 ? binsize : opts->gpu_binsizez;
-    opts->gpu_binsizey = dim < 2 ? 1 : opts->gpu_binsizey;
-    opts->gpu_binsizez = dim < 3 ? 1 : opts->gpu_binsizez;
 
-    const auto shmem_required = shared_memory_required<T>(
+    set_binsizes_if_unset(binsize);
+
+    const int shmem_required = shared_memory_required<T>(
         dim, ns, opts->gpu_binsizex, opts->gpu_binsizey, opts->gpu_binsizez, 0);
-    const auto shmem_left = shared_mem_per_block - shmem_required;
-    const auto max_np     = ((shmem_left) / shmem_per_point) & static_cast<unsigned>(-16);
+    const int shmem_left = shared_mem_per_block - shmem_required;
+    const int max_np     = (shmem_left / shmem_per_point) & static_cast<unsigned>(-16);
+
     if (opts->debug) {
       const int required_shmem = shared_memory_required<T>(
           dim, ns, opts->gpu_binsizex, opts->gpu_binsizey, opts->gpu_binsizez, max_np);
@@ -329,20 +338,20 @@ void cufinufft_setup_binsize(int type, int ns, int dim, cufinufft_opts *opts) {
       printf("[cufinufft]   min_np           = %d\n", opts->gpu_np);
       printf("[cufinufft]   max_np           = %d\n", max_np);
       printf("[cufinufft]   found bin size   = %d\n", binsize);
-      printf("[cufinufft]   binsizex         = %d\n", opts->gpu_binsizex);
-      if (dim > 1) printf("[cufinufft]   binsizey         = %d\n", opts->gpu_binsizey);
-      if (dim > 2) printf("[cufinufft]   binsizez         = %d\n", opts->gpu_binsizez);
+      printf("[cufinufft]   binsize         = %d\n", opts->gpu_binsizex);
       assert(required_shmem < shared_mem_per_block);
     }
+
     opts->gpu_np = max_np;
-  } break;
+    break;
+  }
   case 4: {
-    opts->gpu_obinsizex = (opts->gpu_obinsizex == 0) ? 8 : opts->gpu_obinsizex;
-    opts->gpu_obinsizey = (opts->gpu_obinsizey == 0) ? 8 : opts->gpu_obinsizey;
-    opts->gpu_obinsizez = (opts->gpu_obinsizez == 0) ? 8 : opts->gpu_obinsizez;
-    opts->gpu_binsizex  = (opts->gpu_binsizex == 0) ? 4 : opts->gpu_binsizex;
-    opts->gpu_binsizey  = (opts->gpu_binsizey == 0) ? 4 : opts->gpu_binsizey;
-    opts->gpu_binsizez  = (opts->gpu_binsizez == 0) ? 4 : opts->gpu_binsizez;
+    opts->gpu_obinsizex = opts->gpu_obinsizex == 0 ? 8 : opts->gpu_obinsizex;
+    opts->gpu_obinsizey = opts->gpu_obinsizey == 0 ? 8 : opts->gpu_obinsizey;
+    opts->gpu_obinsizez = opts->gpu_obinsizez == 0 ? 8 : opts->gpu_obinsizez;
+    opts->gpu_binsizex  = opts->gpu_binsizex == 0 ? 4 : opts->gpu_binsizex;
+    opts->gpu_binsizey  = opts->gpu_binsizey == 0 ? 4 : opts->gpu_binsizey;
+    opts->gpu_binsizez  = opts->gpu_binsizez == 0 ? 4 : opts->gpu_binsizez;
     break;
   }
   }

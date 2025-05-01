@@ -170,8 +170,22 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
     printf("[cufinufft] spreader options:\n");
     printf("[cufinufft] nspread: %d\n", d_plan->spopts.nspread);
   }
-
+  /* Automatically set GPU method. */
+  if (d_plan->opts.gpu_method == 0) {
+    /* For type 1, we default to method 2 (SM) since this is generally faster
+     * if there is enough shared memory available. Otherwise, we default to GM.
+     * Type 3 inherits this behavior since the outer plan here is also a type 1.
+     */
+    // query the device for the amount of shared memory available
+    try {
+      d_plan->opts.gpu_method = dim > 1 ? 2 : 1; // default to shared memory
+      cufinufft_setup_binsize<T>(type, d_plan->spopts.nspread, dim, &d_plan->opts);
+    } catch (const std::runtime_error) {
+      d_plan->opts.gpu_method = 1; // default to GM
+    }
+  }
   cufinufft_setup_binsize<T>(type, d_plan->spopts.nspread, dim, &d_plan->opts);
+
   if (cudaGetLastError() != cudaSuccess) {
     ier = FINUFFT_ERR_CUDA_FAILURE;
     goto finalize;
@@ -194,33 +208,6 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
 
   // dynamically request the maximum amount of shared memory available
   // for the spreader
-
-  /* Automatically set GPU method. */
-  if (d_plan->opts.gpu_method == 0) {
-    /* For type 1, we default to method 2 (SM) since this is generally faster
-     * if there is enough shared memory available. Otherwise, we default to GM.
-     * Type 3 inherits this behavior since the outer plan here is also a type 1.
-     *
-     * For type 2, we always default to method 1 (GM).
-     */
-    if (type == 2) {
-      d_plan->opts.gpu_method = 1;
-    } else {
-      // query the device for the amount of shared memory available
-      int shared_mem_per_block{};
-      cudaDeviceGetAttribute(&shared_mem_per_block,
-                             cudaDevAttrMaxSharedMemoryPerBlockOptin, device_id);
-      // compute the amount of shared memory required for the method
-      const auto shared_mem_required = shared_memory_required<T>(
-          dim, d_plan->spopts.nspread, d_plan->opts.gpu_binsizex,
-          d_plan->opts.gpu_binsizey, d_plan->opts.gpu_binsizez, d_plan->opts.gpu_np);
-      if ((shared_mem_required > shared_mem_per_block)) {
-        d_plan->opts.gpu_method = 1;
-      } else {
-        d_plan->opts.gpu_method = 2;
-      }
-    }
-  }
 
   if (cudaGetLastError() != cudaSuccess) {
     ier = FINUFFT_ERR_CUDA_FAILURE;
