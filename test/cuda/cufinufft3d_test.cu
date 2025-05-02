@@ -119,7 +119,6 @@ int run_test(int method, int type, int N1, int N2, int N3, int M, T tol, T check
 
   opts.gpu_method      = method;
   opts.gpu_kerevalmeth = 1;
-  opts.debug           = 2;
   opts.upsampfac       = upsampfac;
   int nmodes[3]        = {N1, N2, N3};
   int ntransf          = 1;
@@ -134,7 +133,6 @@ int run_test(int method, int type, int N1, int N2, int N3, int M, T tol, T check
   cudaEventElapsedTime(&milliseconds, start, stop);
   totaltime += milliseconds;
   printf("[time  ] cufinufft plan:\t\t %.3g s\n", milliseconds / 1000);
-  printf("gpu method is %d\n", dplan->opts.gpu_method);
   cudaEventRecord(start);
   ier = cufinufft_setpts_impl<T>(M, d_x.data().get(), d_y.data().get(), d_z.data().get(),
                                  N1 * N2 * N3, d_s.data().get(), d_t.data().get(),
@@ -148,7 +146,6 @@ int run_test(int method, int type, int N1, int N2, int N3, int M, T tol, T check
   cudaEventElapsedTime(&milliseconds, start, stop);
   totaltime += milliseconds;
   printf("[time  ] cufinufft setNUpts:\t\t %.3g s\n", milliseconds / 1000);
-  printf("gpu method is %d\n", dplan->opts.gpu_method);
   cudaEventRecord(start);
   ier = cufinufft_execute_impl<T>((cuda_complex<T> *)d_c.data().get(),
                                   (cuda_complex<T> *)d_fk.data().get(), dplan);

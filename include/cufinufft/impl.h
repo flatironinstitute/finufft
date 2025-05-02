@@ -178,7 +178,7 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
      */
     // query the device for the amount of shared memory available
     try {
-      d_plan->opts.gpu_method = dim > 1 ? 2 : 1; // default to shared memory
+      d_plan->opts.gpu_method = type == 1 ? 2 : 1; // default to shared memory for type 1
       cufinufft_setup_binsize<T>(type, d_plan->spopts.nspread, dim, &d_plan->opts);
     } catch (const std::runtime_error) {
       d_plan->opts.gpu_method = 1; // default to GM
@@ -766,8 +766,8 @@ int cufinufft_setpts_impl(int M, T *d_kx, T *d_ky, T *d_kz, int N, T *d_s, T *d_
           thrust::cuda::par.on(stream), phase_iterator, phase_iterator + N,
           d_plan->deconv, d_plan->deconv,
           [c1, c2, c3, d1, d2, d3, realsign] __host__
-          __device__(const thrust::tuple<T, T, T> tuple, cuda_complex<T> deconv)
-          -> cuda_complex<T> {
+          __device__(const thrust::tuple<T, T, T> tuple,
+                     cuda_complex<T> deconv) -> cuda_complex<T> {
             // d2 and d3 are 0 if dim < 2 and dim < 3
             const auto phase = c1 * (thrust::get<0>(tuple) + d1) +
                                c2 * (thrust::get<1>(tuple) + d2) +
