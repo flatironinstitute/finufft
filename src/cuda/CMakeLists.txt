@@ -27,11 +27,9 @@ set(CUFINUFFT_INCLUDE_DIRS
 set(CUFINUFFT_INCLUDE_DIRS ${CUFINUFFT_INCLUDE_DIRS} PARENT_SCOPE)
 
 # flush denormals to zero and enable verbose PTXAS output
-set(FINUFFT_CUDA_FLAGS
-    $<$<AND:$<COMPILE_LANGUAGE:CUDA>,$<CXX_COMPILER_ID:MSVC>>:
-    --extended-lambda
-    --extra-device-vectorization>
-)
+if(CMAKE_CUDA_COMPILER_ID STREQUAL "NVIDIA")
+    list(APPEND FINUFFT_CUDA_FLAGS $<$<COMPILE_LANGUAGE:CUDA>:--extended-lambda --extra-device-vectorization>)
+endif()
 
 if(FINUFFT_SHARED_LINKING)
     add_library(cufinufft SHARED ${PRECISION_INDEPENDENT_SRC} ${PRECISION_DEPENDENT_SRC})
