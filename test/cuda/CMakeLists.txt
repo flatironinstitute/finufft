@@ -5,17 +5,13 @@ foreach(srcfile ${test_src})
     get_filename_component(executable ${executable} NAME)
     add_executable(${executable} ${srcfile})
     target_include_directories(${executable} PUBLIC ${CUFINUFFT_INCLUDE_DIRS})
-    target_compile_options(${executable} PUBLIC $<$<COMPILE_LANGUAGE:CUDA>:--extended-lambda>)
     find_library(MathLib m)
     target_link_libraries(${executable} cufinufft CUDA::cufft CUDA::cudart)
     if(MathLib)
         target_link_libraries(${executable} ${MathLib})
     endif()
     target_compile_features(${executable} PUBLIC cxx_std_17)
-    set_target_properties(
-        ${executable}
-        PROPERTIES LINKER_LANGUAGE CUDA CUDA_ARCHITECTURES "${CMAKE_CUDA_ARCHITECTURES}"
-    )
+    set_target_properties(${executable} PROPERTIES LINKER_LANGUAGE CUDA CUDA_ARCHITECTURES ${CMAKE_CUDA_ARCHITECTURES})
     message(
         STATUS
         "Adding test ${executable}"

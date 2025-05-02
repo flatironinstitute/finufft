@@ -18,6 +18,8 @@ import numpy as np
 import os
 import platform
 from numpy.ctypeslib import ndpointer
+import logging
+
 
 from packaging.version import Version
 
@@ -35,37 +37,38 @@ if reset_log_level:
     import logging
     log_level = logging.root.level
 
-# TODO: See if there is a way to improve this so it is less hacky.
 lib = None
-# Try to load finufft installed from the python package.
+log_level = logging.root.level
+reset_log_level = logging.getLogger().getEffectiveLevel() != logging.NOTSET
+
+# Try to load local libfinufft.so next to this file
 path = pathlib.Path(__file__).parent.resolve()
-# Ignoring the exceptions to avoid the print
-# exception, during the process of an exception another exception occurred
-# unix systems have lib prefix, non unix systems do not
-library_names = ['libfinufft', 'finufft']
-for lib_name in library_names:
-    try:
-        lib = np.ctypeslib.load_library(lib_name, path)
-        break
-    except OSError:
-        # Paranoid, in case lib is set to something and then an exception is thrown
-        lib = None
+for lib_name in ['libfinufft', 'finufft']:
+    candidate = path / f"{lib_name}.so"
+    if candidate.exists():
+        try:
+            lib = ctypes.CDLL(str(candidate))
+            break
+        except OSError:
+            lib = None
+
+# Try system path as fallback
+if lib is None:
+    libname = find_library('finufft')
+    if libname:
+        try:
+            lib = ctypes.CDLL(libname)
+        except OSError:
+            lib = None
 
 if reset_log_level:
     logging.root.setLevel(log_level)
 
 if lib is None:
-    # If that fails, try to load the library from the system path.
-    libname = find_library('finufft')
-    if libname is not None:
-        lib = ctypes.cdll.LoadLibrary(libname)
-        # we probably should add a version check and trow a warning if the version is different
-    else:
-        # if that does not work, finufft is not installed correctly.
-        raise ImportError('Failed to find a suitable finufft library. '
-                          'Please check your installation, '
-                          'finufft does not seem to be installed correctly.')
-
+    raise ImportError(
+        'Failed to find a suitable finufft library. '
+        'Please check your installation.'
+    )
 
 class FinufftOpts(ctypes.Structure):
     pass

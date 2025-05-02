@@ -27,7 +27,11 @@ set(CUFINUFFT_INCLUDE_DIRS
 set(CUFINUFFT_INCLUDE_DIRS ${CUFINUFFT_INCLUDE_DIRS} PARENT_SCOPE)
 
 # flush denormals to zero and enable verbose PTXAS output
-set(FINUFFT_CUDA_FLAGS $<$<COMPILE_LANGUAGE:CUDA>: --extended-lambda --extra-device-vectorization>)
+set(FINUFFT_CUDA_FLAGS
+    $<$<AND:$<COMPILE_LANGUAGE:CUDA>,$<CXX_COMPILER_ID:MSVC>>:
+    --extended-lambda
+    --extra-device-vectorization>
+)
 
 if(FINUFFT_SHARED_LINKING)
     add_library(cufinufft SHARED ${PRECISION_INDEPENDENT_SRC} ${PRECISION_DEPENDENT_SRC})
@@ -41,10 +45,10 @@ set_target_properties(cufinufft PROPERTIES LIBRARY_OUTPUT_DIRECTORY "${PROJECT_B
 set_target_properties(
     cufinufft
     PROPERTIES
-        CUDA_ARCHITECTURES "${CMAKE_CUDA_ARCHITECTURES}"
+        CUDA_ARCHITECTURES ${CMAKE_CUDA_ARCHITECTURES}
         CUDA_SEPARABLE_COMPILATION ON
         WINDOWS_EXPORT_ALL_SYMBOLS ON
-        ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}"
+        ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}
         INTERPROCEDURAL_OPTIMIZATION
             OFF # LTO is not supported for CUDA for now
         POSITION_INDEPENDENT_CODE ${FINUFFT_POSITION_INDEPENDENT_CODE}
@@ -57,7 +61,7 @@ if(DEFINED ENV{GITHUB_ACTIONS} AND "$ENV{GITHUB_ACTIONS}" STREQUAL "true" AND MS
 else()
     target_compile_features(cufinufft PRIVATE cxx_std_17 cuda_std_17)
 endif()
-target_compile_options(cufinufft PRIVATE ${FINUFFT_CUDA_FLAGS})
+target_compile_options(cufinufft PUBLIC ${FINUFFT_CUDA_FLAGS})
 
 if(WIN32 OR (BUILD_TESTING AND FINUFFT_BUILD_TESTS) OR CIBUILDWHEEL)
     target_link_libraries(cufinufft PUBLIC CUDA::cudart CUDA::cufft)

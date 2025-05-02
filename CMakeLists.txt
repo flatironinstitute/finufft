@@ -287,7 +287,13 @@ if(FINUFFT_USE_CUDA)
             WARNING
             "FINUFFT WARNING: No CUDA architecture supplied via '-DCMAKE_CUDA_ARCHITECTURES=...', defaulting to 'native' See: https://developer.nvidia.com/cuda-gpus for more details on what architecture to supply."
         )
-        set(CMAKE_CUDA_ARCHITECTURES "native")
+        detect_cuda_architecture()
+    endif()
+    if(CMAKE_CUDA_ARCHITECTURES MATCHES "compute_")
+        message(
+            FATAL_ERROR
+            "CMAKE_CUDA_ARCHITECTURES must be a list of integers like 70;75;86, not strings like compute_89"
+        )
     endif()
     enable_language(CUDA)
     find_package(CUDAToolkit REQUIRED)

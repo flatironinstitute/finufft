@@ -29,7 +29,7 @@ classifiers = [
     "Operating System :: POSIX :: Linux",
     "Operating System :: MacOS :: MacOS X",
     "Operating System :: Microsoft :: Windows"
-    ]
+]
 dynamic = ["version"]
 
 [tool.scikit-build]
@@ -44,29 +44,30 @@ cmake.targets = ["finufft"]
 cmake.define = {"FINUFFT_BUILD_PYTHON" = "ON"}
 cmake.args = ["-G Ninja"]
 wheel.packages = ["finufft"]
+editable.mode = "redirect"
 
 # Indicate that we don't depend on the CPython API
 wheel.py-api = "py3"
 
 sdist.exclude = [".*",
-                 "CMakePresets.json",
-                 "contributing.md",
-                 "CHANGELOG",
-                 "devel",
-                 "docs",
-                 "examples",
-                 "fortran",
-                 "Jenkinsfile",
-                 "lib*",
-                 "make*",
-                 "matlab",
-                 "perftest",
-                 "test",
-                 "tools",
-                 "tutorial",
-                 "include/cufinufft*",
-                 "python/cufinufft",
-                 "src/cuda"]
+    "CMakePresets.json",
+    "contributing.md",
+    "CHANGELOG",
+    "devel",
+    "docs",
+    "examples",
+    "fortran",
+    "Jenkinsfile",
+    "lib*",
+    "make*",
+    "matlab",
+    "perftest",
+    "test",
+    "tools",
+    "tutorial",
+    "include/cufinufft*",
+    "python/cufinufft",
+    "src/cuda"]
 
 [tool.scikit-build.metadata.version]
 # Instead of hardcoding the version here, extract it from the source files.
