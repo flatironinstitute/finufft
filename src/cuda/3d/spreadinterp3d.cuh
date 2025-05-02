@@ -560,12 +560,12 @@ __global__ void interp_3d_nupts_driven(
   T ker2[ns];
   T ker3[ns];
 
-  cuda_complex<T> cnow{};
   for (int i = blockDim.x * blockIdx.x + threadIdx.x; i < M;
        i += blockDim.x * gridDim.x) {
-    const auto x_rescaled = fold_rescale(x[idxnupts[i]], nf1);
-    const auto y_rescaled = fold_rescale(y[idxnupts[i]], nf2);
-    const auto z_rescaled = fold_rescale(z[idxnupts[i]], nf3);
+    const auto nuptsidx   = __ldg(idxnupts + i);
+    const auto x_rescaled = fold_rescale(__ldg(x + nuptsidx), nf1);
+    const auto y_rescaled = fold_rescale(__ldg(y + nuptsidx), nf2);
+    const auto z_rescaled = fold_rescale(__ldg(z + nuptsidx), nf3);
 
     const auto [xstart, xend] = interval(ns, x_rescaled);
     const auto [ystart, yend] = interval(ns, y_rescaled);
@@ -574,11 +574,6 @@ __global__ void interp_3d_nupts_driven(
     const T x1 = T(xstart) - x_rescaled;
     const T y1 = T(ystart) - y_rescaled;
     const T z1 = T(zstart) - z_rescaled;
-
-    // having cnow allocated to 0 inside the loop breaks type 3 spread
-    // are we doing a buffer overflow somewhere?
-    cnow.x = T(0);
-    cnow.y = T(0);
 
     if constexpr (KEREVALMETH == 1) {
       eval_kernel_vec_horner<T, ns>(ker1, x1, sigma);
@@ -590,18 +585,19 @@ __global__ void interp_3d_nupts_driven(
       eval_kernel_vec<T, ns>(ker3, z1, es_c, es_beta);
     }
 
+    cuda_complex<T> cnow{0, 0};
     for (int zz = zstart; zz <= zend; zz++) {
       const auto kervalue3 = ker3[zz - zstart];
       const auto iz        = zz < 0 ? zz + nf3 : (zz > nf3 - 1 ? zz - nf3 : zz);
       for (int yy = ystart; yy <= yend; yy++) {
         const auto kervalue2 = ker2[yy - ystart];
-        int iy               = yy < 0 ? yy + nf2 : (yy > nf2 - 1 ? yy - nf2 : yy);
+        const int iy         = yy < 0 ? yy + nf2 : (yy > nf2 - 1 ? yy - nf2 : yy);
         for (int xx = xstart; xx <= xend; xx++) {
           const auto ix        = xx < 0 ? xx + nf1 : (xx > nf1 - 1 ? xx - nf1 : xx);
           const auto inidx     = ix + iy * nf1 + iz * nf2 * nf1;
           const auto kervalue1 = ker1[xx - xstart];
-          cnow.x += fw[inidx].x * kervalue1 * kervalue2 * kervalue3;
-          cnow.y += fw[inidx].y * kervalue1 * kervalue2 * kervalue3;
+          const auto kervalue  = kervalue1 * kervalue2 * kervalue3;
+          cnow += {fw[inidx] * kervalue};
         }
       }
     }
@@ -704,8 +700,8 @@ __global__ void interp_3d_subprob(
           const auto outidx = ix + iy * (bin_size_x + rounded_ns) +
                               iz * (bin_size_x + rounded_ns) * (bin_size_y + rounded_ns);
           const auto kervalue1 = ker1[xx - xstart];
-          cnow.x += fwshared[outidx].x * kervalue1 * kervalue2 * kervalue3;
-          cnow.y += fwshared[outidx].y * kervalue1 * kervalue2 * kervalue3;
+          const auto kervalue  = kervalue1 * kervalue2 * kervalue3;
+          cnow += {fwshared[outidx] * kervalue};
         }
       }
     }
