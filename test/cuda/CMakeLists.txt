@@ -11,7 +11,10 @@ foreach(srcfile ${test_src})
         target_link_libraries(${executable} ${MathLib})
     endif()
     target_compile_features(${executable} PUBLIC cxx_std_17)
-    set_target_properties(${executable} PROPERTIES LINKER_LANGUAGE CUDA CUDA_ARCHITECTURES ${CMAKE_CUDA_ARCHITECTURES})
+    set_target_properties(
+        ${executable}
+        PROPERTIES LINKER_LANGUAGE CUDA CUDA_ARCHITECTURES "${CMAKE_CUDA_ARCHITECTURES}"
+    )
     message(
         STATUS
         "Adding test ${executable}"
