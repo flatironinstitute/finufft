@@ -24,7 +24,7 @@ The process follows three main stages:
 
 1. **Per-thread kernel evaluation:**
 
-   Each thread computes the spreading kernel (e.g., Gaussian or ES) at a single NUFFT point.
+   Each thread computes the spreading kernel at a single NUFFT point.
    Kernel values are stored into shared memory (`window_vals`) in a batched layout,
    allowing reuse by all threads in the block.
    `window_vals` is a 3D array with shape `(Np, D, ns)`, where `Np` is the number of NUFFT points.
