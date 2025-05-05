@@ -102,8 +102,3 @@ This hybrid parallelization combines **per-point parallelism** (step 1) and **sp
 - Threads collaborate rather than compete on shared memory access.
 - Batching (`Np`) controls memory footprint and allows tuning for hardware constraints.
 - Synchronization barriers ensure correctness before accessing shared buffers.
-
-This approach is particularly effective for:
-
-- Small to moderate `ns` (kernel width)
-- High NUFFT point density (where batching amortizes kernel evaluation)
