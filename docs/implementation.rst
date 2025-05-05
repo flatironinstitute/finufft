@@ -65,7 +65,7 @@ The process follows three main stages:
 
      .. code-block:: none
 
-        for point = 0 to NumPoints
+        for point = 0 to NumPoints, point+=np
           ...
           parallel for i = 0 to pow(ns, D)
             ...
