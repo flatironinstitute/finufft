@@ -11,21 +11,21 @@ jobs:
       matrix:
         buildplat:
           - [ ubuntu-22.04, manylinux_x86_64 ]
-          - [ windows-2019, win_amd64 ]
+          - [ windows-2022, win_amd64 ]
     steps:
       - uses: actions/checkout@v4
       - name: Setup Cpp
-        if: ${{ matrix.buildplat[0] == 'windows-2019' }}
+        if: ${{ matrix.buildplat[0] == 'windows-2022' }}
         uses: aminya/setup-cpp@v1.1.1
         with:
-          compiler: msvc-2019
+          compiler: msvc-2022
           vcvarsall: true
           cmake: true
           ninja: true
           vcpkg: false
           cppcheck: false
       - name: Setup CUDA
-        if: ${{ matrix.buildplat[0] == 'windows-2019' }}
+        if: ${{ matrix.buildplat[0] == 'windows-2022' }}
         uses: Jimver/cuda-toolkit@v0.2.23
         with:
           cuda: '12.4.0'
