@@ -254,8 +254,12 @@ if(FINUFFT_USE_CPU)
         src/finufft_core.cpp
         src/c_interface.cpp
         src/finufft_utils.cpp
-        fortran/finufftfort.cpp
     )
+
+    if(FINUFFT_BUILD_FORTRAN)
+        list(APPEND FINUFFT_SOURCES fortran/finufftfort.cpp)
+    endif()
+
     # Main finufft libraries
     if(NOT FINUFFT_STATIC_LINKING)
         add_library(finufft SHARED ${FINUFFT_SOURCES})
