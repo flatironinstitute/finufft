@@ -132,7 +132,8 @@ __global__ void spread_3d_nupts_driven(
     }
   }
 }
-/* Kernels for NUptsdriven method */
+
+/* Kernels for Output Driven method */
 template<typename T, int KEREVALMETH, int ns>
 __global__ void spread_3d_output_driven(
     T *x, T *y, T *z, cuda_complex<T> *c, cuda_complex<T> *fw, int M, int nf1, int nf2,

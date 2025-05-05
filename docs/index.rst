@@ -39,6 +39,7 @@ Documentation contents
    changelog
    nfft_migr
    cufinufft_migration
+   implementation
    devnotes
    related
    users

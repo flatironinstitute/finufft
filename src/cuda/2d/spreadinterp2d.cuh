@@ -297,8 +297,7 @@ __global__ void spread_2d_output_driven(
         const auto kervalue = window_vals(i, 0, xx) * window_vals(i, 1, yy);
 
         // accumulate
-        const cuda_complex<T> res{cnow.x * kervalue, cnow.y * kervalue};
-        u_local(iy, ix) += res;
+        u_local(iy, ix) += {cnow * kervalue};
       }
       __syncthreads();
     }
