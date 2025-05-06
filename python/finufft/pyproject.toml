@@ -66,7 +66,8 @@ sdist.exclude = [".*",
                  "tutorial",
                  "include/cufinufft*",
                  "python/cufinufft",
-                 "src/cuda"]
+                 "src/cuda",
+                 "wheelhouse"]
 
 [tool.scikit-build.metadata.version]
 # Instead of hardcoding the version here, extract it from the source files.
