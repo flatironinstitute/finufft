@@ -418,7 +418,7 @@ int cuspread3d_blockgather(int nf1, int nf2, int nf3, int M, cufinufft_plan_t<T>
 template<typename T>
 int cuspread3d_subprob_prop(int nf1, int nf2, int nf3, int M,
                             cufinufft_plan_t<T> *d_plan) {
-  auto &stream = d_plan->stream;
+  const auto stream = d_plan->stream;
 
   int maxsubprobsize = d_plan->opts.gpu_maxsubprobsize;
   int bin_size_x     = d_plan->opts.gpu_binsizex;
@@ -604,7 +604,6 @@ int cuspread3d_output_driven(int nf1, int nf2, int nf3, int M,
   int *d_subprob_to_bin = d_plan->subprob_to_bin;
 
   const auto np = d_plan->opts.gpu_np;
-  printf("np: %d\n", np);
 
   T sigma                      = d_plan->spopts.upsampfac;
   T es_c                       = d_plan->spopts.ES_c;

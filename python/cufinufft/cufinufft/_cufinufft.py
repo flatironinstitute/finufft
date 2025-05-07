@@ -78,7 +78,9 @@ def _get_NufftOpts():
         ('gpu_maxbatchsize', c_int),
         ('gpu_device_id', c_int),
         ('gpu_stream', c_void_p),
-        ('modeord', c_int)
+        ('modeord', c_int),
+        ('gpu_np', c_int),
+        ('debug', c_int)
     ]
     return fields
 

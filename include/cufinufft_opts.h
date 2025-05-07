@@ -22,8 +22,6 @@ typedef struct cufinufft_opts { // see cufinufft_default_opts() for defaults
 
   int gpu_maxbatchsize;
 
-  int gpu_np; // batch_size for Output Driven
-
   /* multi-gpu support */
   int gpu_device_id;
 
@@ -31,6 +29,8 @@ typedef struct cufinufft_opts { // see cufinufft_default_opts() for defaults
 
   int modeord; // (type 1,2 only): 0 CMCL-style increasing mode order
                //                  1 FFT-style mode order
+
+  int gpu_np;  // batch_size for Output Driven
 
   int debug;   // 0: no debug, 1: debug
 } cufinufft_opts;

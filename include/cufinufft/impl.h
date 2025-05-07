@@ -442,7 +442,7 @@ Notes: the type T means either single or double, matching the
               d_plan->opts.gpu_method);
     if (d_plan->opts.gpu_method == 3 &&
         (ier = cuspread3d_subprob_prop<T>(nf1, nf2, nf3, M, d_plan)))
-      fprintf(stderr, "error: cuspread3d_nuptsdriven_prop, method(%d)\n",
+      fprintf(stderr, "error: cuspread3d_outputdriven_prop, method(%d)\n",
               d_plan->opts.gpu_method);
     if (d_plan->opts.gpu_method == 4 &&
         (ier = cuspread3d_blockgather_prop<T>(nf1, nf2, nf3, M, d_plan)))

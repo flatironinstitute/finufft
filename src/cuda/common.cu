@@ -298,10 +298,6 @@ void cufinufft_setup_binsize(int type, int ns, int dim, cufinufft_opts *opts) {
       ensure_optin_shmem();
       binsize = try_find_binsize(shared_mem_per_block);
     }
-    if (binsize < 1) {
-      throw std::runtime_error(
-          "[cufinufft] ERROR: Not enough shared memory for the number of points.");
-    }
     set_binsizes_if_unset(binsize);
     break;
   }
