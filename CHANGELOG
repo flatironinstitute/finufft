@@ -1,6 +1,10 @@
 List of features / changes made / release notes, in reverse chronological order.
 If not stated, FINUFFT is assumed (cuFINUFFT <=1.3 is listed separately).
 
+Master, using release name V 2.5.0 (4/30/25)
+
+* Adding OutputDriven parallelism to cufinufft (Barbone)
+
 Master, using release name V 2.4.0 (4/30/25)
 
 * PR #662 (Barbone):
