@@ -193,7 +193,7 @@ int run_test(int method, int type, int N1, int M, T tol, T checktol, int iflag,
       std::vector<thrust::complex<T>> Ft(N1);
       dirft1d1(M, x, c, iflag, N1, Ft);
       const auto err = relerrtwonorm(N1, Ft, fk);
-      rel_error      = max(err, rel_error);
+      rel_error      = std::max(err, rel_error);
       printf("[gpu   ]\tdirft1d: rel l2-err of result F is %.3g\n", err);
     }
   } else if (type == 2) {
@@ -209,7 +209,7 @@ int run_test(int method, int type, int N1, int M, T tol, T checktol, int iflag,
       std::vector<thrust::complex<T>> ct(M);
       dirft1d2(M, x, ct, iflag, N1, fk); // direct type-2
       const auto err = relerrtwonorm(M, ct, c);
-      rel_error      = max(err, rel_error);
+      rel_error      = std::max(err, rel_error);
       printf("[gpu   ]\tdirft1d: rel l2-err of result c is %.3g\n", err);
     }
 
@@ -227,7 +227,7 @@ int run_test(int method, int type, int N1, int M, T tol, T checktol, int iflag,
       std::vector<thrust::complex<T>> Ft(N1);
       dirft1d3(M, x, c, iflag, N1, s, Ft); // direct type-3
       const auto err = relerrtwonorm(N1, Ft, fk);
-      rel_error      = max(err, rel_error);
+      rel_error      = std::max(err, rel_error);
       printf("[gpu   ]\tdirft1d: rel l2-err of result F is %.3g\n", err);
     }
   }
