@@ -1,11 +1,10 @@
 #pragma once
 
+#include <cmath>
 #include <cuda/std/mdspan>
 
-#include <cmath>
 #include <cufinufft/contrib/helper_cuda.h>
 #include <cufinufft/contrib/helper_math.h>
-
 #include <cufinufft/spreadinterp.h>
 #include <cufinufft/utils.h>
 

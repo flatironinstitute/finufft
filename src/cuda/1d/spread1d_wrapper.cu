@@ -1,21 +1,22 @@
 #include <cassert>
-#include <cufinufft/contrib/helper_cuda.h>
 #include <iostream>
 
-#include <cuComplex.h>
 #include <thrust/device_ptr.h>
-#include <thrust/scan.h>
+#include <thrust/sequence.h>
+#include <thrust/sort.h>
+
+#include <cuComplex.h>
 
 #include <cufinufft/common.h>
+#include <cufinufft/contrib/helper_cuda.h>
 #include <cufinufft/memtransfer.h>
 #include <cufinufft/precision_independent.h>
 #include <cufinufft/spreadinterp.h>
 
+#include "spreadinterp1d.cuh"
+
 using namespace cufinufft::common;
 using namespace cufinufft::memtransfer;
-
-#include "spreadinterp1d.cuh"
-#include <thrust/sort.h>
 
 namespace cufinufft {
 namespace spreadinterp {
@@ -57,18 +58,6 @@ template<typename T> int cuspread1d(cufinufft_plan_t<T> *d_plan, int blksize) {
                                                    d_plan->M, d_plan, blksize);
 }
 
-template<typename T> struct cmp : public thrust::binary_function<int, int, bool> {
-
-  cmp(const T *kx) : kx(kx) {}
-
-  __host__ __device__ bool operator()(const int a, const int b) const {
-    return fold_rescale(kx[a], 1) < fold_rescale(kx[b], 1);
-  }
-
-private:
-  const T *kx;
-};
-
 template<typename T>
 int cuspread1d_nuptsdriven_prop(int nf1, int M, cufinufft_plan_t<T> *d_plan) {
   auto &stream = d_plan->stream;
@@ -76,8 +65,11 @@ int cuspread1d_nuptsdriven_prop(int nf1, int M, cufinufft_plan_t<T> *d_plan) {
     int *d_idxnupts = d_plan->idxnupts;
     thrust::sequence(thrust::cuda::par.on(stream), d_idxnupts, d_idxnupts + M);
     RETURN_IF_CUDA_ERROR
+    const T *kx_ptr = d_plan->kx;
     thrust::sort(thrust::cuda::par.on(stream), d_idxnupts, d_idxnupts + M,
-                 cmp{d_plan->kx});
+                 [=] __host__ __device__(int a, int b) {
+                   return fold_rescale(kx_ptr[a], 1) < fold_rescale(kx_ptr[b], 1);
+                 });
     RETURN_IF_CUDA_ERROR
     return 0;
   }
