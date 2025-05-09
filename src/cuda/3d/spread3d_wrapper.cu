@@ -622,12 +622,12 @@ int cuspread3d_output_driven(int nf1, int nf2, int nf3, int M,
     RETURN_IF_CUDA_ERROR
     for (int t = 0; t < blksize; t++) {
       spread_3d_output_driven<T, 1, ns>
-          <<<totalnumsubprob, min(256, max(ns * ns * ns, np)), sharedplanorysize,
-             stream>>>(d_kx, d_ky, d_kz, d_c + t * M, d_fw + t * nf1 * nf2 * nf3, M, nf1,
-                       nf2, nf3, sigma, es_c, es_beta, d_binstartpts, d_binsize,
-                       bin_size_x, bin_size_y, bin_size_z, d_subprob_to_bin,
-                       d_subprobstartpts, d_numsubprob, maxsubprobsize, numbins[0],
-                       numbins[1], numbins[2], d_idxnupts, np);
+          <<<totalnumsubprob, std::min(256, std::max(ns * ns * ns, np)),
+             sharedplanorysize, stream>>>(
+              d_kx, d_ky, d_kz, d_c + t * M, d_fw + t * nf1 * nf2 * nf3, M, nf1, nf2, nf3,
+              sigma, es_c, es_beta, d_binstartpts, d_binsize, bin_size_x, bin_size_y,
+              bin_size_z, d_subprob_to_bin, d_subprobstartpts, d_numsubprob,
+              maxsubprobsize, numbins[0], numbins[1], numbins[2], d_idxnupts, np);
       RETURN_IF_CUDA_ERROR
     }
   } else {
@@ -641,12 +641,13 @@ int cuspread3d_output_driven(int nf1, int nf2, int nf3, int M,
     RETURN_IF_CUDA_ERROR
     for (int t = 0; t < blksize; t++) {
       spread_3d_output_driven<T, 0, ns>
-          <<<totalnumsubprob, min(256, max(ns * ns * ns, np)), sharedplanorysize,
-             stream>>>(d_kx, d_ky, d_kz, d_c + t * M, d_fw + t * nf1 * nf2 * nf3, M, nf1,
-                       nf2, nf3, sigma, es_c, es_beta, d_binstartpts, d_binsize,
-                       bin_size_x, bin_size_y, bin_size_z, d_subprob_to_bin,
-                       d_subprobstartpts, d_numsubprob, maxsubprobsize, numbins[0],
-                       numbins[1], numbins[2], d_idxnupts, d_plan->opts.gpu_np);
+          <<<totalnumsubprob, std::min(256, std::max(ns * ns * ns, np)),
+             sharedplanorysize, stream>>>(
+              d_kx, d_ky, d_kz, d_c + t * M, d_fw + t * nf1 * nf2 * nf3, M, nf1, nf2, nf3,
+              sigma, es_c, es_beta, d_binstartpts, d_binsize, bin_size_x, bin_size_y,
+              bin_size_z, d_subprob_to_bin, d_subprobstartpts, d_numsubprob,
+              maxsubprobsize, numbins[0], numbins[1], numbins[2], d_idxnupts,
+              d_plan->opts.gpu_np);
       RETURN_IF_CUDA_ERROR
     }
   }

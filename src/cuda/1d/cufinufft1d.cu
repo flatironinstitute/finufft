@@ -145,7 +145,7 @@ int cufinufft1d3_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
   cuda_complex<T> *d_fkstart;
   const auto stream = d_plan->stream;
   for (int i = 0; i * d_plan->batchsize < d_plan->ntransf; i++) {
-    int blksize = min(d_plan->ntransf - i * d_plan->batchsize, d_plan->batchsize);
+    int blksize = std::min(d_plan->ntransf - i * d_plan->batchsize, d_plan->batchsize);
     d_cstart    = d_c + i * d_plan->batchsize * d_plan->M;
     d_fkstart   = d_fk + i * d_plan->batchsize * d_plan->N;
     // setting input for spreader

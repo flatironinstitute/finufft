@@ -5,6 +5,7 @@
 #include <cmath>
 
 #include <cufinufft/contrib/helper_math.h>
+#include <cufinufft/intrinsics.h>
 #include <cufinufft/precision_independent.h>
 #include <cufinufft/spreadinterp.h>
 #include <cufinufft/types.h>
@@ -186,12 +187,12 @@ __global__ void spread_3d_output_driven(
   for (int batch_begin = 0; batch_begin < nupts; batch_begin += np) {
     const auto batch_size = min(np, nupts - batch_begin);
     for (int i = threadIdx.x; i < batch_size; i += blockDim.x) {
-      const int nuptsidx = __ldg(idxnupts + ptstart + i + batch_begin);
+      const int nuptsidx = loadReadOnly(idxnupts + ptstart + i + batch_begin);
       // index of the current point within the batch
-      const auto x_rescaled = fold_rescale(__ldg(x + nuptsidx), nf1);
-      const auto y_rescaled = fold_rescale(__ldg(y + nuptsidx), nf2);
-      const auto z_rescaled = fold_rescale(__ldg(z + nuptsidx), nf3);
-      vp_sm[i]              = __ldca(c + nuptsidx);
+      const auto x_rescaled = fold_rescale(loadReadOnly(x + nuptsidx), nf1);
+      const auto y_rescaled = fold_rescale(loadReadOnly(y + nuptsidx), nf2);
+      const auto z_rescaled = fold_rescale(loadReadOnly(z + nuptsidx), nf3);
+      vp_sm[i]              = loadCacheStreaming(c + nuptsidx);
       const auto xstart     = int(std::ceil(x_rescaled - ns_2f));
       const auto ystart     = int(std::ceil(y_rescaled - ns_2f));
       const auto zstart     = int(std::ceil(z_rescaled - ns_2f));
@@ -563,10 +564,10 @@ __global__ void interp_3d_nupts_driven(
 
   for (int i = blockDim.x * blockIdx.x + threadIdx.x; i < M;
        i += blockDim.x * gridDim.x) {
-    const auto nuptsidx   = __ldg(idxnupts + i);
-    const auto x_rescaled = fold_rescale(__ldg(x + nuptsidx), nf1);
-    const auto y_rescaled = fold_rescale(__ldg(y + nuptsidx), nf2);
-    const auto z_rescaled = fold_rescale(__ldg(z + nuptsidx), nf3);
+    const auto nuptsidx   = loadReadOnly(idxnupts + i);
+    const auto x_rescaled = fold_rescale(loadReadOnly(x + nuptsidx), nf1);
+    const auto y_rescaled = fold_rescale(loadReadOnly(y + nuptsidx), nf2);
+    const auto z_rescaled = fold_rescale(loadReadOnly(z + nuptsidx), nf3);
 
     const auto [xstart, xend] = interval(ns, x_rescaled);
     const auto [ystart, yend] = interval(ns, y_rescaled);
