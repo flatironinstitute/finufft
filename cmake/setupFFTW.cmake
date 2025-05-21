@@ -81,11 +81,16 @@ if(FINUFFT_FFTW_LIBRARIES STREQUAL DEFAULT OR FINUFFT_FFTW_LIBRARIES STREQUAL DO
 
         target_include_directories(fftw3 PUBLIC $<BUILD_INTERFACE:${fftw3_SOURCE_DIR}/api>)
     else()
-        set(FINUFFT_FFTW_LIBRARIES
-            "FFTW::Float"
-            "FFTW::Double"
-            "FFTW::Float${FINUFFT_FFTW_SUFFIX}"
-            "FFTW::Double${FINUFFT_FFTW_SUFFIX}"
-        )
+        # link against single thread fftw
+        set(FINUFFT_FFTW_LIBRARIES "FFTW::Float" "FFTW::Double")
+        # default behavior
+        if(FINUFFT_FFTW_SUFFIX STREQUAL "DEFAULT")
+            if(FINUFFT_USE_OPENMP)
+                list(APPEND FINUFFT_FFTW_LIBRARIES "FFTW::FloatOpenMP" "FFTW::DoubleOpenMP")
+            endif()
+        else()
+            # user override
+            list(APPEND FINUFFT_FFTW_LIBRARIES "FFTW::Float${FINUFFT_FFTW_SUFFIX}" "FFTW::Double${FINUFFT_FFTW_SUFFIX}")
+        endif()
     endif()
 endif()
