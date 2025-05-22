@@ -46,6 +46,7 @@ Testing, bug reports, helpful discussions:
 * Vladimir Rokhlin - piecewise polynomial approximation on complex boxes
 * Reinhard Neder - fortran90 demo using finufft as module, OSX build
 * Vineet Bansal - py packaging
+* Juan Ignacio Polanco - cuFINUFFT output driven
 
 Logo design: `Sherry Choi <http://www.sherrychoi.com>`_ with input
 from Alex Barnett and Lucy Reading-Ikkanda.
