@@ -22,17 +22,14 @@ def nufft3d1(x, y, z, data, n_modes=None, out=None, eps=1e-6, isign=1,
 def nufft3d2(x, y, z, data, out=None, eps=1e-6, isign=-1, **kwargs):
     return _invoke_plan(3, 2, x, y, z, data, None, None, None, out, isign, eps, None, kwargs)
 
-# Then nufft3d3 is as simple as:
 def nufft3d3(x, y, z, data, s, t, u, out=None, eps=1e-6, isign=1, **kwargs):
     return _invoke_plan(3, 3, x, y, z, data, s, t, u, out, isign, eps, None,  kwargs)
 
-# For 2d3:
 def nufft2d3(x, y, data, s, t, out=None, eps=1e-6, isign=1, **kwargs):
-    return _invoke_plan(2, 3, x, y, None, data, s, t, out, isign, eps, None, kwargs)
+    return _invoke_plan(2, 3, x, y, None, data, s, t, None, out, isign, eps, None, kwargs)
 
-# For 1d3:
 def nufft1d3(x, data, s, out=None, eps=1e-6, isign=1, **kwargs):
-    return _invoke_plan(1, 3, x, None, None, data, s, out, isign, eps, None,  kwargs)
+    return _invoke_plan(1, 3, x, None, None, data, s, None, None, out, isign, eps, None,  kwargs)
 
 def _invoke_plan(dim, nufft_type, x, y, z, data, s, t, u,  out, isign, eps,
         n_modes=None, kwargs=None):
