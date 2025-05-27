@@ -43,7 +43,7 @@ def _invoke_plan(dim, nufft_type, x, y, z, data, s, t, u,  out, isign, eps,
         n_modes = data.shape[-dim:]
         
     if nufft_type == 3:
-        plan = Plan(nufft_type, dim, eps=eps, isign=isign, dtype=dtype, **kwargs)
+        plan = Plan(nufft_type, dim, n_trans = n_trans,  eps=eps, isign=isign, dtype=dtype, **kwargs)
     else:
         plan = Plan(nufft_type, n_modes, n_trans, eps, isign, dtype, **kwargs)
 
@@ -58,7 +58,7 @@ def _invoke_plan(dim, nufft_type, x, y, z, data, s, t, u,  out, isign, eps,
 
 
 def _get_ntrans(dim, nufft_type, data):
-    if nufft_type == 1:
+    if ((nufft_type == 1) | (nufft_type == 3)):
         expect_dim = 1
     else:
         expect_dim = dim
