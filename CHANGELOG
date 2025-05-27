@@ -30,6 +30,8 @@ V 2.4.0 (5/27/25)
 * Tweaked choice of upsampfac to use a density based heuristic for type 1 and 2
   in the CPU library. This gives a significant speedup for some cases.
   For now we assume density=1.0 (to revisit).  Barbone. PR #638 & 652.
+  Since 2.4.0-rc1 we changed the heuristic to avoid usf=1.25 when within 2
+  digits of machine prec, to prevent accuracy loss in single prec (#671).
 * Removed FINUFFT_CUDA_ARCHITECTURES flag, as it was unnecessary duplication.
 * Enabled LTO for finufft (nvcc support is flaky at the moment). Barbone.
 * Added GPU spreadinterp-only test. Added CPU spreadinterp-only test to cmake
