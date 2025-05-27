@@ -84,3 +84,39 @@ def test_simple_type2(to_gpu, to_cpu, dtype, shape, n_trans, M, tol, output_arg)
     c = to_cpu(c_gpu)
 
     utils.verify_type2(k, fk, c, tol)
+
+
+@pytest.mark.parametrize("dtype", DTYPES)
+@pytest.mark.parametrize("dim", list(set(len(shape) for shape in SHAPES)))
+@pytest.mark.parametrize("n_source_pts", MS)
+@pytest.mark.parametrize("n_target_pts", MS)
+@pytest.mark.parametrize("n_trans", N_TRANS)
+@pytest.mark.parametrize("tol", TOLS)
+@pytest.mark.parametrize("output_arg", OUTPUT_ARGS)
+def test_cufinufft3_simple(to_gpu, to_cpu, dtype, dim, n_source_pts, n_target_pts, n_trans, tol, output_arg):
+    complex_dtype = utils._complex_dtype(dtype)
+    
+    fun = {1: cufinufft.nufft1d3,
+           2: cufinufft.nufft2d3,
+           3: cufinufft.nufft3d3}[dim]
+
+    source_pts, source_coefs, target_pts = utils.type3_problem(
+        complex_dtype, dim, n_source_pts, n_target_pts, n_trans
+    )
+
+
+    source_pts_gpu = to_gpu(source_pts) 
+    source_coefs_gpu = to_gpu(source_coefs)
+    target_pts_gpu = to_gpu(target_pts)
+
+    if output_arg:
+        target_coefs_gpu = _compat.array_empty_like(
+            source_coefs_gpu, n_trans + (n_target_pts,), dtype=complex_dtype)
+        
+        fun(*source_pts_gpu, source_coefs_gpu, *target_pts_gpu, out=target_coefs_gpu, eps=tol)
+    else: 
+        target_coefs_gpu = fun(*source_pts_gpu, source_coefs_gpu, *target_pts_gpu, eps=tol)
+
+    target_coefs = to_cpu(target_coefs_gpu)
+
+    utils.verify_type3(source_pts, source_coefs, target_pts, target_coefs, tol)

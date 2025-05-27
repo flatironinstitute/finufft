@@ -22,6 +22,9 @@ def _real_dtype(complex_dtype):
 
     return real_dtype
 
+def gen_coef_ind(n_pts, n_tr):
+    ind = tuple(np.random.randint(0, n) for n in n_tr + (n_pts,))
+    return ind
 
 def gen_nu_pts(M, dim=3, seed=0):
     np.random.seed(seed)
@@ -155,10 +158,8 @@ def verify_type3(source_pts, source_coef, target_pts, target_coef, tol):
     n_source_pts = source_pts.shape[-1]
     n_target_pts = target_pts.shape[-1]
     n_tr = source_coef.shape[:-1]
-
     assert target_coef.shape == n_tr + (n_target_pts,)
-
-    ind = (int(0.1789 * n_target_pts),)
+    ind = gen_coef_ind(n_target_pts, n_tr)
 
     target_est = target_coef[ind]
     target_true = direct_type3(source_pts, source_coef, target_pts, ind)
