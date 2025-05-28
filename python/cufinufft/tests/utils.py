@@ -23,7 +23,7 @@ def _real_dtype(complex_dtype):
     return real_dtype
 
 def gen_coef_ind(n_pts, n_tr):
-    ind = tuple(np.random.randint(0, n) for n in n_tr + (n_pts,))
+    ind = tuple(n-1 for n in n_tr + (int(0.1789 *n_pts),))
     return ind
 
 def gen_nu_pts(M, dim=3, seed=0):
