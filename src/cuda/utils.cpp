@@ -26,6 +26,7 @@ CUFINUFFT_BIGINT next235beven(CUFINUFFT_BIGINT n, CUFINUFFT_BIGINT b)
 
 void gaussquad(int n, double *xgl, double *wgl) {
   // copied from FINUFFT/src/finufft_utils.cpp; see that for explanation.
+  // Note: M_PI needed not PI; defined in utils.h
 
   double x = 0, dx = 0;
   int convcount = 0;
@@ -34,8 +35,8 @@ void gaussquad(int n, double *xgl, double *wgl) {
   xgl[n / 2] = 0;                   // If odd number of nodes, middle node is 0
   for (int i = 0; i < n / 2; i++) { // Loop through nodes
     convcount = 0;
-    x         = cos((2 * i + 1) * PI / (2 * n)); // Initial guess: Chebyshev node
-    while (true) {                               // Newton iteration
+    x         = cos((2 * i + 1) * M_PI / (2 * n)); // Initial guess: Chebyshev node
+    while (true) {                                 // Newton iteration
       auto [p, dp] = leg_eval(n, x);
       dx           = -p / dp;
       x += dx; // Newton step
