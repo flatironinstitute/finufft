@@ -3,7 +3,7 @@ If not stated, FINUFFT is assumed (cuFINUFFT <=1.3 is listed separately).
 
 
 * replaced LGPL-licensed Gauss-Legendre quadrature code by Apache2-licensed
-  code adapted from Jason Kaye's cppdlr. CPU only for now. PR #692 (Barnett).
+  code adapted from Jason Kaye's cppdlr. CPU and GPU. PR #692 (Barnett).
 
 V 2.4.0 (5/27/25)
 

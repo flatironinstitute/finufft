@@ -14,8 +14,6 @@
 #include <cufinufft/spreadinterp.h>
 #include <cufinufft/utils.h>
 
-#include <legendre_rule_fast.h>
-
 namespace cufinufft {
 namespace common {
 using namespace cufinufft::spreadinterp;
@@ -205,10 +203,9 @@ void onedim_fseries_kernel_precomp(CUFINUFFT_BIGINT nf, T *f, T *phase,
   const auto q = (int)(2 + 3.0 * J2); // matches CPU code
   double z[2 * MAX_NQUAD];
   double w[2 * MAX_NQUAD];
-  finufft::quadrature::legendre_compute_glr(2 * q, z, w); // only half the nodes used,
-  // eg on (0,1)
-  for (int n = 0; n < q; ++n) { // set up nodes z_n and vals f_n
-    z[n] *= J2;                 // rescale nodes
+  cufinufft::utils::gaussquad(2 * q, z, w); // only half the nodes used, for (0,1)
+  for (int n = 0; n < q; ++n) {             // set up nodes z_n and vals f_n
+    z[n] *= J2;                             // rescale nodes
     f[n]     = J2 * w[n] * evaluate_kernel((T)z[n], opts); // vals & quadr wei
     phase[n] = T(2.0 * M_PI * z[n] / T(nf));               // phase winding rates
   }
@@ -222,9 +219,7 @@ void onedim_nuft_kernel_precomp(T *f, T *z, finufft_spread_opts opts) {
   int q = (int)(2 + 2.0 * J2); // matches CPU code
   double z_local[2 * MAX_NQUAD];
   double w_local[2 * MAX_NQUAD];
-  finufft::quadrature::legendre_compute_glr(2 * q, z_local, w_local); // only half the
-                                                                      // nodes used, eg on
-                                                                      // (0,1)
+  cufinufft::utils::gaussquad(2 * q, z_local, w_local);   // half the nodes, (0,1)
   for (int n = 0; n < q; ++n) {                           // set up nodes z_n and vals f_n
     z[n] = J2 * T(z_local[n]);                            // rescale nodes
     f[n] = J2 * w_local[n] * evaluate_kernel(z[n], opts); // vals & quadr wei
