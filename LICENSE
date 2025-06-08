@@ -19,9 +19,8 @@ limitations under the License.
 ------
 
 Certain parts of this repository are contributed by others.
-For their license info, see:
+For their license info (which are both BSD-like), see:
 
-contrib/legendre_rule_fast.license
 fortran/cmcl_license.txt
 tutorial/utils/lgwt.m
 

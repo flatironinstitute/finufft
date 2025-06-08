@@ -98,7 +98,6 @@ std::tuple<double, double> leg_eval(int n, double x) {
   if (n == 1) {
     return {x, 1.0};
   }
-
   // Three-term recurrence and formula for derivative
   double p0 = 0.0, p1 = 1.0, p2 = x;
   for (int i = 1; i < n; i++) {
