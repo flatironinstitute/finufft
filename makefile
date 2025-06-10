@@ -139,7 +139,7 @@ ABSDYNLIB = $(FINUFFT)$(DYNLIB)
 SOBJS = src/finufft_utils.o src/spreadinterp.o
 
 # all lib dual-precision objs (note DUCC_OBJS empty if unused)
-OBJS = $(SOBJS) contrib/legendre_rule_fast.o src/fft.o src/finufft_core.o src/c_interface.o fortran/finufftfort.o $(DUCC_OBJS)
+OBJS = $(SOBJS) src/fft.o src/finufft_core.o src/c_interface.o fortran/finufftfort.o $(DUCC_OBJS)
 
 .PHONY: usage lib examples test perftest spreadtest spreadtestall fortran matlab octave all mex python clean objclean pyclean mexclean wheel docker-wheel gurutime docs setup setupclean
 

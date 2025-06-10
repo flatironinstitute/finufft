@@ -249,7 +249,6 @@ endfunction()
 if(FINUFFT_USE_CPU)
     set(FINUFFT_SOURCES
         src/spreadinterp.cpp
-        contrib/legendre_rule_fast.cpp
         src/fft.cpp
         src/finufft_core.cpp
         src/c_interface.cpp

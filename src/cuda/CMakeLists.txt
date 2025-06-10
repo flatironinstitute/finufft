@@ -1,4 +1,4 @@
-set(PRECISION_INDEPENDENT_SRC precision_independent.cu utils.cpp ${PROJECT_SOURCE_DIR}/contrib/legendre_rule_fast.cpp)
+set(PRECISION_INDEPENDENT_SRC precision_independent.cu utils.cpp)
 
 set(PRECISION_DEPENDENT_SRC
     spreadinterp.cpp
