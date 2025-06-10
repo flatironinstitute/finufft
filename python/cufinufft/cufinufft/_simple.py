@@ -58,7 +58,7 @@ def _invoke_plan(dim, nufft_type, x, y, z, data, s, t, u,  out, isign, eps,
 
 
 def _get_ntrans(dim, nufft_type, data):
-    if ((nufft_type == 1) | (nufft_type == 3)):
+    if nufft_type in [1, 3]:
         expect_dim = 1
     else:
         expect_dim = dim

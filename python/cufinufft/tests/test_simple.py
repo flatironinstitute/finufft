@@ -120,3 +120,4 @@ def test_cufinufft3_simple(to_gpu, to_cpu, dtype, dim, n_source_pts, n_target_pt
     target_coefs = to_cpu(target_coefs_gpu)
 
     utils.verify_type3(source_pts, source_coefs, target_pts, target_coefs, tol)
+    
