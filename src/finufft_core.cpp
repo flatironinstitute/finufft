@@ -589,7 +589,7 @@ FINUFFT_PLAN_T<TF>::FINUFFT_PLAN_T(int type_, int dim_, const BIGINT *n_modes, i
 
 #ifdef _OPENMP
   // choose overall # threads...
-  int ompmaxnthr = getCachedOptimalThreadCount(); // get # phys cores (cached)
+  int ompmaxnthr = getCachedOptimalThreadCount();
   int nthr       = ompmaxnthr; // default: use as many physical cores as possible
   // (the above could be set, or suggested set, to 1 for small enough problems...)
   if (opts.nthreads > 0) {
