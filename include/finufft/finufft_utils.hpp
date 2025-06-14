@@ -63,12 +63,6 @@ private:
 
 FINUFFT_NEVER_INLINE int getOptimalThreadCount();
 
-// Wrapper to cache the optimal thread count using a static variable.
-inline int getCachedOptimalThreadCount() {
-  static const int cached_value = getOptimalThreadCount();
-  return cached_value;
-}
-
 FINUFFT_NEVER_INLINE int get_num_threads_parallel_block();
 
 } // namespace finufft::utils

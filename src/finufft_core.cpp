@@ -541,6 +541,12 @@ void finufft_default_opts_t(finufft_opts *o)
   // sphinx tag (don't remove): @defopts_end
 }
 
+// Wrapper to cache the optimal thread count using a static variable.
+int getCachedOptimalThreadCount() {
+  static const int cached_value = getOptimalThreadCount();
+  return cached_value;
+}
+
 // PPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPP
 template<typename TF>
 FINUFFT_PLAN_T<TF>::FINUFFT_PLAN_T(int type_, int dim_, const BIGINT *n_modes, int iflag,
