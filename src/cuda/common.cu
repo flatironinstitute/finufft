@@ -14,8 +14,6 @@
 #include <cufinufft/spreadinterp.h>
 #include <cufinufft/utils.h>
 
-#include <legendre_rule_fast.h>
-
 namespace cufinufft {
 namespace common {
 using namespace cufinufft::spreadinterp;
@@ -23,10 +21,9 @@ using std::max;
 
 /** Kernel for computing approximations of exact Fourier series coeffs of
  *  cnufftspread's real symmetric kernel.
- * phase, f are intermediate results from function onedim_fseries_kernel_precomp()
- * (see cufinufft/contrib/common.cpp for description)
+ * phase, f are intermediate results from function onedim_fseries_kernel_precomp().
  * this is the equispaced frequency case, used by type 1 & 2, matching
- * onedim_fseries_kernel in CPU code
+ * onedim_fseries_kernel in CPU code. Used by functions below in this file.
  */
 template<typename T>
 __global__ void cu_fseries_kernel_compute(int nf1, int nf2, int nf3, T *f, T *phase,
@@ -65,10 +62,9 @@ __global__ void cu_fseries_kernel_compute(int nf1, int nf2, int nf3, T *f, T *ph
 
 /** Kernel for computing approximations of exact Fourier series coeffs of
  *  cnufftspread's real symmetric kernel.
- * a , f are intermediate results from function onedim_fseries_kernel_precomp()
- * (see cufinufft/contrib/common.cpp for description)
+ * a , f are intermediate results from function onedim_fseries_kernel_precomp().
  * this is the arbitrary frequency case (hence the extra kx, ky, kx arguments), used by
- * type 3, matching onedim_nuft_kernel in CPU code
+ * type 3, matching onedim_nuft_kernel in CPU code. Used by functions below in this file.
  */
 template<typename T>
 __global__ void cu_nuft_kernel_compute(int nf1, int nf2, int nf3, T *f, T *z, T *kx,
@@ -173,13 +169,11 @@ void set_nf_type12(CUFINUFFT_BIGINT ms, cufinufft_opts opts, finufft_spread_opts
 // type 1 & 2 recipe for how to set 1d size of upsampled array, nf, given opts
 // and requested number of Fourier modes ms.
 {
-  *nf = (CUFINUFFT_BIGINT)(opts.upsampfac * ms);
+  // round up to handle small cases
+  *nf = static_cast<CUFINUFFT_BIGINT>(std::ceil(opts.upsampfac * ms));
   if (*nf < 2 * spopts.nspread) *nf = 2 * spopts.nspread; // otherwise spread fails
   if (*nf < MAX_NF) {                                     // otherwise will fail anyway
-    if (opts.gpu_method == 4)                             // expensive at huge nf
-      *nf = utils::next235beven(*nf, bs);
-    else
-      *nf = utils::next235beven(*nf, 1);
+    *nf = utils::next235beven(*nf, opts.gpu_method == 4 ? bs : 1); // expensive at huge nf
   }
 }
 
@@ -207,10 +201,9 @@ void onedim_fseries_kernel_precomp(CUFINUFFT_BIGINT nf, T *f, T *phase,
   const auto q = (int)(2 + 3.0 * J2); // matches CPU code
   double z[2 * MAX_NQUAD];
   double w[2 * MAX_NQUAD];
-  finufft::quadrature::legendre_compute_glr(2 * q, z, w); // only half the nodes used,
-  // eg on (0,1)
-  for (int n = 0; n < q; ++n) { // set up nodes z_n and vals f_n
-    z[n] *= J2;                 // rescale nodes
+  cufinufft::utils::gaussquad(2 * q, z, w); // only half the nodes used, for (0,1)
+  for (int n = 0; n < q; ++n) {             // set up nodes z_n and vals f_n
+    z[n] *= J2;                             // rescale nodes
     f[n]     = J2 * w[n] * evaluate_kernel((T)z[n], opts); // vals & quadr wei
     phase[n] = T(2.0 * M_PI * z[n] / T(nf));               // phase winding rates
   }
@@ -224,9 +217,7 @@ void onedim_nuft_kernel_precomp(T *f, T *z, finufft_spread_opts opts) {
   int q = (int)(2 + 2.0 * J2); // matches CPU code
   double z_local[2 * MAX_NQUAD];
   double w_local[2 * MAX_NQUAD];
-  finufft::quadrature::legendre_compute_glr(2 * q, z_local, w_local); // only half the
-                                                                      // nodes used, eg on
-                                                                      // (0,1)
+  cufinufft::utils::gaussquad(2 * q, z_local, w_local);   // half the nodes, (0,1)
   for (int n = 0; n < q; ++n) {                           // set up nodes z_n and vals f_n
     z[n] = J2 * T(z_local[n]);                            // rescale nodes
     f[n] = J2 * w_local[n] * evaluate_kernel(z[n], opts); // vals & quadr wei

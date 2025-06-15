@@ -325,8 +325,9 @@ static double bestUpsamplingFactorMultithread(const double density, const int di
 template<typename T>
 double bestUpsamplingFactor(const int nthreads, const double density, const int dim,
                             const int nufftType, const double epsilon) {
-  // 1) For epsilons <= 1e-9, 1.25 is not supported
-  if (epsilon <= 1.0e-9) {
+  // 1) For epsilons <= 1e-9, 1.25 is not supported.
+  //    We also prevent 1.25 being used when within 2 digits of eps_mach
+  if (epsilon <= 1.0e-9 || epsilon <= std::numeric_limits<T>::epsilon() * 100) {
     return 2.0;
   }
 
