@@ -87,8 +87,8 @@ public:
                                 1, int(nf), sign, unsigned(options));
     unlock();
   }
-  void execute [[maybe_unused]] () { fftwf_execute(plan_); }
-  void execute [[maybe_unused]] (std::complex<float> *data) {
+  void execute [[maybe_unused]] () const { fftwf_execute(plan_); }
+  void execute [[maybe_unused]] (std::complex<float> *data) const {
     fftwf_execute_dft(plan_, reinterpret_cast<fftwf_complex *>(data),
                       reinterpret_cast<fftwf_complex *>(data));
   }
@@ -155,8 +155,8 @@ public:
                                sign, unsigned(options));
     unlock();
   }
-  void execute [[maybe_unused]] () { fftw_execute(plan_); }
-  void execute [[maybe_unused]] (std::complex<double> *data) {
+  void execute [[maybe_unused]] () const { fftw_execute(plan_); }
+  void execute [[maybe_unused]] (std::complex<double> *data) const {
     fftw_execute_dft(plan_, reinterpret_cast<fftw_complex *>(data),
                      reinterpret_cast<fftw_complex *>(data));
   }
