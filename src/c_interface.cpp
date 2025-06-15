@@ -53,6 +53,12 @@ int finufft_execute(finufft_plan p, c128 *cj, c128 *fk) {
 int finufftf_execute(finufftf_plan p, c64 *cj, c64 *fk) {
   return reinterpret_cast<FINUFFT_PLAN_T<f32> *>(p)->execute(cj, fk);
 }
+int finufft_execute_adjoint(finufft_plan p, c128 *cj, c128 *fk) {
+  return reinterpret_cast<FINUFFT_PLAN_T<f64> *>(p)->execute_adjoint(cj, fk);
+}
+int finufftf_execute_adjoint(finufftf_plan p, c64 *cj, c64 *fk) {
+  return reinterpret_cast<FINUFFT_PLAN_T<f32> *>(p)->execute_adjoint(cj, fk);
+}
 
 int finufft_destroy(finufft_plan p)
 // Free everything we allocated inside of finufft_plan pointed to by p.
