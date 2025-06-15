@@ -14,7 +14,6 @@ Main library source:
 - ``src/cuda/`` : main library CUDA GPU sources
 - ``include/`` : public library API header files
 - ``include/{cu}finufft`` : private header files
-- ``contrib/`` : 3rd-party codes in the main library
 - ``lib/`` : dynamic (``.so``) library will be built here by GNU make
 - ``lib-static/`` : static (``.a``) library will be built here by GNU make
 

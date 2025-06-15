@@ -1,8 +1,8 @@
-function n_transf = valid_ntr(x,c);
+function n_transf = valid_ntr(x,c)
 % VALID_NTR   deduce n_transforms and validate the size of c, for types 1 and 3.
 %             also check for array device consistency.
 
-if finufft_isgpuarray(x) ~= finufft_isgpuarray(c)
+if isa(x, 'gpuArray') ~= isa(c, 'gpuArray')
   error('FINUFFT:mixedDevice','FINUFFT: x and c must be both on GPU or CPU');
 end
 

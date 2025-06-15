@@ -4,7 +4,6 @@
 #include <finufft/heuristics.hpp>
 #include <finufft/spreadinterp.h>
 
-#include "../contrib/legendre_rule_fast.h"
 #include <cmath>
 #include <cstdio>
 #include <iomanip>
@@ -15,7 +14,6 @@
 using namespace finufft;
 using namespace finufft::utils;
 using namespace finufft::spreadinterp;
-using namespace finufft::quadrature;
 using namespace finufft::heuristics;
 
 /* Computational core for FINUFFT.
@@ -194,10 +192,10 @@ static void onedim_fseries_kernel(BIGINT nf, std::vector<T> &fwkerhalf,
   int q = (int)(2 + 3.0 * J2); // not sure why so large? cannot exceed MAX_NQUAD
   T f[MAX_NQUAD];
   double z[2 * MAX_NQUAD], w[2 * MAX_NQUAD];
-  legendre_compute_glr(2 * q, z, w); // only half the nodes used, eg on (0,1)
+  gaussquad(2 * q, z, w);       // only half the nodes used, eg on (0,1)
   std::complex<T> a[MAX_NQUAD];
-  for (int n = 0; n < q; ++n) {      // set up nodes z_n and vals f_n
-    z[n] *= J2;                      // rescale nodes
+  for (int n = 0; n < q; ++n) { // set up nodes z_n and vals f_n
+    z[n] *= J2;                 // rescale nodes
     f[n] = J2 * (T)w[n] * evaluate_kernel((T)z[n], opts); // vals & quadr wei
     a[n] = -std::exp(2 * PI * std::complex<double>(0, 1) * z[n] / double(nf)); // phase
                                                                                // winding
@@ -249,8 +247,7 @@ public:
     int q = (int)(2 + 2.0 * J2); // > pi/2 ratio.  cannot exceed MAX_NQUAD
     if (opts.debug) printf("q (# ker FT quadr pts) = %d\n", q);
     std::vector<double> Z(2 * q), W(2 * q);
-    legendre_compute_glr(2 * q, Z.data(), W.data()); // only half the nodes used, eg on
-                                                     // (0,1)
+    gaussquad(2 * q, Z.data(), W.data()); // only half the nodes used, for (0,1)
     z.resize(q);
     f.resize(q);
     for (int n = 0; n < q; ++n) {

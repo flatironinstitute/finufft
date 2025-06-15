@@ -1,20 +1,43 @@
 List of features / changes made / release notes, in reverse chronological order.
 If not stated, FINUFFT is assumed (cuFINUFFT <=1.3 is listed separately).
 
-Master, using release name V 2.4.0 (4/23/25)
 
 * Added functionality for adjoint execution of FINUFFT plans (Reinecke #633,
   addresses #566 and #571).
+* replaced LGPL-licensed Gauss-Legendre quadrature code by Apache2-licensed
+  code adapted from Jason Kaye's cppdlr. CPU and GPU. PR #692 (Barnett).
+
+V 2.4.0 (5/27/25)
+
+* slight accuracy improvements for small N by use of ceil in nf choice
+  (Barbone & Barnett a0bde26).
+* PR #662 (Barbone):
+  Direct calc (dirft) templated, norms computed by hand in tests, to remove
+  finufft dependency for cufinufft math tests.
+  Aligned cufinufft tests with finufft tests to test entire transform output.
+  Fix timing tests so that setpts no longer included in H2D transfer.
+* Found and fixed obscure off-by-one bug in cufinufft that could result in
+  decreased accuracy or undefined output. The bug has been present since 2019
+  (!) but was very hard to trigger, requiring a NU pt to fall on a gridpoint to
+  float accuracy, causing ns+1 instead of ns kerval elements to be accessed
+  in spreadinterp. Prior to summer v2.3 this could only error if ns=16;
+  it became more likely in v2.3 due to shortening kerval cuda arrays to ns.
+  Introduction of type 3 on GPU triggered it more often due to alignment of
+  extremal NU pts on grid. We only observed it at tol=1e-8, upsampfac=1.25.
+  We believe it is unlikely to have affected many recent t1,2 GPU results.
+  We will post a Discussion on this. PR #662 (found by: Lu, Barbone, Barnett).
 * Update CUDA version to 12.4 for cufinufft (Andén).
 * Binary Python wheels for Windows and musllinux (Barbone).
 * fix CMake MATLAB build (final *.m copy), PR 667 (Barnett).
 * fixed empty-opts bug in MATLAB/Octave for {cu}finufft, PR 666 (Barnett).
-* MATLAB/Octave unified fullmathtest.m (Barnett).
+* MATLAB/Octave unified fullmathtest.m for CPU and/or GPU (Barnett).
 * MATLAB GPU interface (MEX CUDA) via gpuArrays, PR 634 (mostly Libin Lu;
-  docs/examples/tests/interfaces by Barnett).
+  docs/examples/tests/interfaces by Barnett; sped up by Fortunato).
 * Tweaked choice of upsampfac to use a density based heuristic for type 1 and 2
   in the CPU library. This gives a significant speedup for some cases.
-  For now this assumes density = 1 (to revisit).  Barbone. PR #638 & 652.
+  For now we assume density=1.0 (to revisit).  Barbone. PR #638 & 652.
+  Since 2.4.0-rc1 we changed the heuristic to avoid usf=1.25 when within 2
+  digits of machine prec, to prevent accuracy loss in single prec (#671).
 * Removed FINUFFT_CUDA_ARCHITECTURES flag, as it was unnecessary duplication.
 * Enabled LTO for finufft (nvcc support is flaky at the moment). Barbone.
 * Added GPU spreadinterp-only test. Added CPU spreadinterp-only test to cmake
@@ -70,7 +93,7 @@ Master, using release name V 2.4.0 (4/23/25)
 
 V 2.3.2 (2/11/25) minor update release (continued support on 2.3.X branch)
 
-* Increase cufinufft 1d cmake test size and fix 1d spreader subprob sm kernel.
+* Increase cufinufft 1d cmake test size and fix 1d spreader subprob SM kernel.
 
 V 2.3.1 (11/25/24) minor update release (continued support on 2.3.X branch)
 

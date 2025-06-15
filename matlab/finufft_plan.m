@@ -125,7 +125,7 @@ finufft(mex_id_, o);
     % EXECUTE   execute single or many-vector FINUFFT transforms in a plan.
 
       % check if data_in is gpuArray
-      if finufft_isgpuarray(data_in)
+      if isa(data_in, 'gpuArray')
         error('FINUFFT:badDataDevice','input data must be a cpuArray');
       end
 
