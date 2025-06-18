@@ -54,11 +54,11 @@ Now we do the FFT solve, using a loop to check convergence with respect to
 
 We observe spectral convergence to 14 digits::
 
-  n=40:		  u(0,0) = 1.551906153625019e-03
-  n=60:		  u(0,0) = 1.549852227637310e-03
-  n=80:		  u(0,0) = 1.549852190998226e-03
-  n=100:		u(0,0) = 1.549852191075839e-03
-  n=120:		u(0,0) = 1.549852191075829e-03
+  n=40:         u(0,0) = 1.551906153625019e-03
+  n=60:         u(0,0) = 1.549852227637310e-03
+  n=80:         u(0,0) = 1.549852190998226e-03
+  n=100:        u(0,0) = 1.549852191075839e-03
+  n=120:        u(0,0) = 1.549852191075829e-03
 
 Here we plot the FFT solution:
 
