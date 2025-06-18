@@ -47,6 +47,7 @@ Testing, bug reports, helpful discussions, contributions:
 * Reinhard Neder - fortran90 demo using finufft as module, OSX build
 * Vineet Bansal - py packaging
 * Jason Kaye - Gauss-Legendre quadrature code from cppdlr
+* Julius Herb - Poisson equation tutorial in Python
 
 Logo design: `Sherry Choi <http://www.sherrychoi.com>`_ with input
 from Alex Barnett and Lucy Reading-Ikkanda.

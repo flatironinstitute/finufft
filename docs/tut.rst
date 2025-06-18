@@ -15,6 +15,7 @@ in MATLAB (they should work on versions at least back to R2017a).
    tutorial/serieseval
    tutorial/contft
    tutorial/peripois2d
+   tutorial/peripois2d_python
    tutorial/grf
    tutorial/inv1d2
 
