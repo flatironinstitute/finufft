@@ -154,7 +154,7 @@ To solve on this grid, replace step 1 above by evaluating the Euler-Fourier form
       kfilter[Nk//2,:] = 0
       kfilter[:,Nk//2] = 0                  # kill Nk/2 modes since non-symm
       u = finufft.nufft2d2(xx.ravel(), yy.ravel(), (kfilter * fhat),
-                          isign=-1, eps=eps, modeord=1).real.reshape((n,n))  # eval filt F series @ NU
+                          isign=-1, eps=tol, modeord=1).real.reshape((n,n))  # eval filt F series @ NU
       print(f"n={n}:\t\tNk={Nk}\tu(0,0) = {u[0,0]:.15e}")   # check conv at a point
 
 Here a convergence parameter (``Nk = 0.5*n``) had to be set to

@@ -115,7 +115,7 @@ for n in range(80, 240 + 40, 40):         # convergence study of grid points per
     kfilter[Nk//2,:] = 0
     kfilter[:,Nk//2] = 0                  # kill Nk/2 modes since non-symm
     u = finufft.nufft2d2(xx.ravel(), yy.ravel(), (kfilter * fhat),
-                         isign=-1, eps=eps, modeord=1).real.reshape((n,n))  # eval filt F series @ NU
+                         isign=-1, eps=tol, modeord=1).real.reshape((n,n))  # eval filt F series @ NU
     print(f"n={n}:\t\tNk={Nk}\tu(0,0) = {u[0,0]:.15e}")   # check conv at a point
 
 # %%
