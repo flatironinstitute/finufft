@@ -1,5 +1,4 @@
 #include <cmath>
-#include <complex.h>
 #include <complex>
 #include <cufinufft/contrib/helper_cuda.h>
 #include <iomanip>

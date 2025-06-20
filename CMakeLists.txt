@@ -159,7 +159,7 @@ set(XTL_VERSION "0.7.7" CACHE STRING "Version of xtl to use")
 set(XSIMD_VERSION "13.2.0" CACHE STRING "Version of xsimd to use")
 set(DUCC0_VERSION "ducc0_0_36_0" CACHE STRING "Version of ducc0 to use")
 set(FINUFFT_CUDA11_CCCL_VERSION "2.8.4" CACHE STRING "Version of FINUFFT-cccl for cuda 11 to use")
-set(FINUFFT_CUDA12_CCCL_VERSION "3.0.0-rc2" CACHE STRING "Version of FINUFFT-cccl for cuda 12 to use")
+set(FINUFFT_CUDA12_CCCL_VERSION "3.0.0-rc7" CACHE STRING "Version of FINUFFT-cccl for cuda 12 to use")
 include(cmake/setupCPM.cmake)
 
 if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)

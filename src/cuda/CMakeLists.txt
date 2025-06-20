@@ -66,7 +66,7 @@ if(WIN32 OR (BUILD_TESTING AND FINUFFT_BUILD_TESTS) OR CIBUILDWHEEL)
 else()
     target_link_libraries(cufinufft PUBLIC CUDA::cudart_static CUDA::cufft_static)
 endif()
-target_link_libraries(cufinufft PRIVATE CCCL::CCCL)
+target_link_libraries(cufinufft PUBLIC CCCL::CCCL)
 # disable deprecated warnings for tests if supported
 if(FINUFFT_HAS_NO_DEPRECATED_DECLARATIONS)
     target_compile_options(cufinufft PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:-Wno-deprecated-declarations>)
