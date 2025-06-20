@@ -69,7 +69,8 @@ int cuinterp2d_nuptsdriven(int nf1, int nf2, int M, cufinufft_plan_t<T> *d_plan,
   cuda_complex<T> *d_c  = d_plan->c;
   cuda_complex<T> *d_fw = d_plan->fw;
 
-  threadsPerBlock.x = std::min(optimal_block_threads(), (unsigned)M);
+  threadsPerBlock.x =
+      std::min(optimal_block_threads(d_plan->opts.gpu_device_id), (unsigned)M);
   threadsPerBlock.y = 1;
   blocks.x          = (M + threadsPerBlock.x - 1) / threadsPerBlock.x;
   blocks.y          = 1;
