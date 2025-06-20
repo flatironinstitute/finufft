@@ -229,11 +229,11 @@ __global__ void spread_2d_output_driven(
   // Offset pointer into sharedbuf after ker_evals
   // Create span using pointer + size
 
-  auto vp_sm = span(
+  auto nupts_sm = span(
       reinterpret_cast<cuda_complex<T> *>(ker_evals.data_handle() + ker_evals.size()),
       np);
 
-  auto shift = span(reinterpret_cast<int2 *>(vp_sm.data() + vp_sm.size()), np);
+  auto shift = span(reinterpret_cast<int2 *>(nupts_sm.data() + nupts_sm.size()), np);
 
   auto local_subgrid = mdspan<cuda_complex<T>, dextents<int, 2>>(
       reinterpret_cast<cuda_complex<T> *>(shift.data() + shift.size()), padded_size_y,
@@ -252,7 +252,7 @@ __global__ void spread_2d_output_driven(
       // index of the current point within the batch
       const auto x_rescaled = fold_rescale(x[nuptsidx], nf1);
       const auto y_rescaled = fold_rescale(y[nuptsidx], nf2);
-      vp_sm[i]              = c[nuptsidx];
+      nupts_sm[i]           = c[nuptsidx];
       auto [xstart, xend]   = interval(ns, x_rescaled);
       auto [ystart, yend]   = interval(ns, y_rescaled);
       const T x1            = T(xstart) - x_rescaled;
@@ -276,7 +276,7 @@ __global__ void spread_2d_output_driven(
     for (auto i = 0; i < batch_size; i++) {
       // strength from shared memory
       static constexpr int sizex  = ns; // true span in X
-      const auto cnow             = vp_sm[i];
+      const auto cnow             = nupts_sm[i];
       const auto [xstart, ystart] = shift[i];
       static constexpr auto total = ns * ns;
 

@@ -168,11 +168,11 @@ __global__ void spread_3d_output_driven(
   // Offset pointer into sharedbuf after ker_evals
   // Create span using pointer + size
 
-  auto vp_sm = span(
+  auto nupts_sm = span(
       reinterpret_cast<cuda_complex<T> *>(ker_evals.data_handle() + ker_evals.size()),
       np);
 
-  auto shift = span(reinterpret_cast<int3 *>(vp_sm.data() + vp_sm.size()), np);
+  auto shift = span(reinterpret_cast<int3 *>(nupts_sm.data() + nupts_sm.size()), np);
 
   auto local_subgrid = mdspan<cuda_complex<T>, dextents<int, 3>>(
       reinterpret_cast<cuda_complex<T> *>(shift.data() + shift.size()), padded_size_z,
@@ -192,7 +192,7 @@ __global__ void spread_3d_output_driven(
       const auto x_rescaled = fold_rescale(loadReadOnly(x + nuptsidx), nf1);
       const auto y_rescaled = fold_rescale(loadReadOnly(y + nuptsidx), nf2);
       const auto z_rescaled = fold_rescale(loadReadOnly(z + nuptsidx), nf3);
-      vp_sm[i]              = loadCacheStreaming(c + nuptsidx);
+      nupts_sm[i]           = loadCacheStreaming(c + nuptsidx);
       const auto xstart     = int(std::ceil(x_rescaled - ns_2f));
       const auto ystart     = int(std::ceil(y_rescaled - ns_2f));
       const auto zstart     = int(std::ceil(z_rescaled - ns_2f));
@@ -222,7 +222,7 @@ __global__ void spread_3d_output_driven(
       static constexpr int plane = sizex * sizey; // #cells per Z‐slice
       static constexpr int total = plane * sizez; // total #cells
 
-      const auto cnow                     = vp_sm[i];
+      const auto cnow                     = nupts_sm[i];
       const auto [xstart, ystart, zstart] = shift[i];
 
       for (int idx = threadIdx.x; idx < total; idx += blockDim.x) {
