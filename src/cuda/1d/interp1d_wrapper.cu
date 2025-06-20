@@ -59,10 +59,10 @@ int cuinterp1d_nuptsdriven(int nf1, int M, cufinufft_plan_t<T> *d_plan, int blks
   cuda_complex<T> *d_c  = d_plan->c;
   cuda_complex<T> *d_fw = d_plan->fw;
 
-  threadsPerBlock.x = threadsPerBlock.x = std::min(256u, (unsigned)M);
-  threadsPerBlock.y                     = 1;
-  blocks.x                              = (M + threadsPerBlock.x - 1) / threadsPerBlock.x;
-  blocks.y                              = 1;
+  threadsPerBlock.x = std::min(optimal_block_threads(), (unsigned)M);
+  threadsPerBlock.y = 1;
+  blocks.x          = (M + threadsPerBlock.x - 1) / threadsPerBlock.x;
+  blocks.y          = 1;
 
   if (d_plan->opts.gpu_kerevalmeth) {
     for (int t = 0; t < blksize; t++) {

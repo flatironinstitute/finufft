@@ -13,7 +13,7 @@ namespace cufinufft {
  * multiple threads, improving cache efficiency and reducing memory latency.
  */
 template<typename T> __device__ __forceinline__ T loadReadOnly(const T *ptr) {
-#ifdef __CUDA_ARCH__
+#ifdef __NVCC__
   return __ldg(ptr);
 #else
   return *ptr;

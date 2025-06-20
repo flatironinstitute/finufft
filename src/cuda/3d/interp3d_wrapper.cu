@@ -68,7 +68,7 @@ int cuinterp3d_nuptsdriven(int nf1, int nf2, int nf3, int M, cufinufft_plan_t<T>
   cuda_complex<T> *d_c  = d_plan->c;
   cuda_complex<T> *d_fw = d_plan->fw;
 
-  const dim3 threadsPerBlock{std::min(256u, (unsigned)M), 1u, 1u};
+  const dim3 threadsPerBlock{std::min(optimal_block_threads(), (unsigned)M), 1u, 1u};
   const dim3 blocks{(M + threadsPerBlock.x - 1) / threadsPerBlock.x, 1, 1};
 
   if (d_plan->opts.gpu_kerevalmeth) {

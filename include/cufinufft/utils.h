@@ -124,8 +124,8 @@ static __forceinline__ __device__ void atomicAddComplexShared(
  * on shared memory are supported so we leverage them
  */
 template<typename T>
-static __forceinline__ __device__ void atomicAddComplexGlobal(
-    cuda_complex<T> *address, cuda_complex<T> res) {
+static __forceinline__ __device__ void atomicAddComplexGlobal(cuda_complex<T> *address,
+                                                              cuda_complex<T> res) {
   if constexpr (
       std::is_same_v<cuda_complex<T>, float2> && COMPUTE_CAPABILITY_90_OR_HIGHER) {
     atomicAdd(address, res);
@@ -215,6 +215,29 @@ template<typename Func, typename T, typename... Args>
 int launch_dispatch_ns(Func &&func, int target_ns, Args &&...args) {
   return dispatch_ns<Func, T, MIN_NSPREAD>(std::forward<Func>(func), target_ns,
                                            std::forward<Args>(args)...);
+}
+
+/**
+ * Return an architecture-specific “good enough” thread-block size.
+ * – Each branch is resolved at compile time (if-constexpr + __CUDA_ARCH__).
+ * – Host-only translation units get the fall-back value.
+ * Rationale (rule-of-thumb):
+ *   SM 9x / 8x : 16 warps  = 256 threads
+ *   SM 7x      :  8 warps  = 128 threads
+ *   SM 6x-     :  4 warps  = 64 threads
+ */
+constexpr unsigned optimal_block_threads() noexcept {
+#if defined(__CUDA_ARCH__)
+  if constexpr (__CUDA_ARCH__ >= 800)      // Ampere (SM 80/86)  Hopper (SM 90+)
+    return 256;                            // 16 warps
+  else if constexpr (__CUDA_ARCH__ >= 700) // Volta/Turing (SM 70-75)
+    return 128;                            // 8 warps
+  else
+    return 64;                             // 4 warps
+#else
+  // Host code path – pick a safe generic value
+  return 0;
+#endif
 }
 
 } // namespace utils
