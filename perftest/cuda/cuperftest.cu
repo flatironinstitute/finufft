@@ -34,6 +34,7 @@ struct test_options_t {
   int method;
   int sort;
   double tol;
+  int debug;
 
   test_options_t(int argc, char *argv[]) {
     std::unordered_map<std::string, std::string> options_map;
@@ -42,21 +43,22 @@ struct test_options_t {
       int option_index = 0;
 
       // clang-format off
-            static struct option long_options[] {
-                {"prec", required_argument, 0, 0},
-                {"type", required_argument, 0, 0},
-                {"n_runs", required_argument, 0, 0},
-                {"N1", required_argument, 0, 0},
-                {"N2", required_argument, 0, 0},
-                {"N3", required_argument, 0, 0},
-                {"M", required_argument, 0, 0},
-                {"ntransf", required_argument, 0, 0},
-                {"tol", required_argument, 0, 0},
-                {"method", required_argument, 0, 0},
-                {"kerevalmethod", required_argument, 0, 0},
-                {"sort", required_argument, 0, 0},
-                {0, 0, 0, 0},
-            };
+      static struct option long_options[] {
+          {"prec", required_argument, 0, 0},
+          {"type", required_argument, 0, 0},
+          {"n_runs", required_argument, 0, 0},
+          {"N1", required_argument, 0, 0},
+          {"N2", required_argument, 0, 0},
+          {"N3", required_argument, 0, 0},
+          {"M", required_argument, 0, 0},
+          {"ntransf", required_argument, 0, 0},
+          {"tol", required_argument, 0, 0},
+          {"method", required_argument, 0, 0},
+          {"kerevalmethod", required_argument, 0, 0},
+          {"sort", required_argument, 0, 0},
+          {"debug", required_argument, 0, 0},
+          {0, 0, 0, 0},
+      };
       // clang-format on
 
       int c = getopt_long(argc, argv, "", long_options, &option_index);
@@ -84,6 +86,7 @@ struct test_options_t {
     kerevalmethod = std::stoi(get_or(options_map, "kerevalmethod", "1"));
     sort          = std::stoi(get_or(options_map, "sort", "1"));
     tol           = std::stof(get_or(options_map, "tol", "1E-5"));
+    debug         = std::stof(get_or(options_map, "debug", "0"));
   }
 
   friend std::ostream &operator<<(std::ostream &outs, const test_options_t &opts) {
@@ -98,7 +101,8 @@ struct test_options_t {
                 << "# method = " << opts.method << "\n"
                 << "# kerevalmethod = " << opts.kerevalmethod << "\n"
                 << "# sort = " << opts.sort << "\n"
-                << "# tol = " << opts.tol << "\n";
+                << "# tol = " << opts.tol << "\n"
+                << "# debug = " << opts.debug << "\n";
   }
 };
 
@@ -233,6 +237,7 @@ template<typename T> void run_test(test_options_t &test_opts) {
   opts.gpu_method      = test_opts.method;
   opts.gpu_sort        = test_opts.sort;
   opts.gpu_kerevalmeth = test_opts.kerevalmethod;
+  opts.debug           = test_opts.debug;
 
   cufinufft_plan_t<T> *dplan;
   CudaTimer h2d_timer, makeplan_timer, setpts_timer, execute_timer, d2h_timer,
@@ -299,51 +304,56 @@ int main(int argc, char *argv[]) {
   if (argc == 2 && (std::string(argv[1]) == "--help" || std::string(argv[1]) == "-h")) {
     test_options_t default_opts(0, nullptr);
     // clang-format off
-        std::cout << "Valid options:\n"
-                     "    --prec <char>\n"
-                     "           float or double precision. i.e. 'f' or 'd'\n"
-                     "           default: " << default_opts.prec << "\n" <<
-                     "    --type <int>\n"
-                     "           type of transform. 1 or 2\n"
-                     "           default: " << default_opts.type << "\n" <<
-                     "    --n_runs <int>\n"
-                     "           number of runs to average performance over\n"
-                     "           default: " << default_opts.n_runs << "\n" <<
-                     "    --N1 <int>\n"
-                     "           number of modes in first dimension. Scientific notation accepted (i.e. 1E6)\n"
-                     "           default: " << default_opts.N[0] << "\n" <<
-                     "    --N2 <int>\n"
-                     "           number of modes in second dimension. Scientific notation accepted (i.e. 1E6)\n"
-                     "           default: " << default_opts.N[1] << "\n" <<
-                     "    --N3 <int>\n"
-                     "           number of modes in third dimension. Scientific notation accepted (i.e. 1E6)\n"
-                     "           default: " << default_opts.N[2] << "\n" <<
-                     "    --M <int>\n"
-                     "           number of non-uniform points. Scientific notation accepted (i.e. 1E6)\n"
-                     "           default: " << default_opts.M << "\n" <<
-                     "    --ntransf <int>\n"
-                     "           number of transforms to do simultaneously\n"
-                     "           default: " << default_opts.ntransf << "\n" <<
-                     "    --tol <float>\n"
-                     "           NUFFT tolerance. Scientific notation accepted (i.e. 1.2E-7)\n"
-                     "           default: " << default_opts.tol << "\n" <<
-                     "    --method <int>\n"
-                     "           NUFFT method\n"
-                     "               1: nupts driven\n"
-                     "               2: sub-problem\n"
-                     "               4: block-gather\n"
-                     "           Note that not all methods are compatible with all dim/type combinations\n"
-                     "           default: " << default_opts.method << "\n" <<
-                     "    --kerevalmeth <int>\n"
-                     "           kernel evaluation method\n"
-                     "               0: Exponential of square root\n"
-                     "               1: Horner evaluation\n"
-                     "           default: " << default_opts.kerevalmethod << "\n" <<
-                     "    --sort: <int>\n"
-                     "           sort strategy\n"
-                     "               0: do not sort the points\n"
-                     "               1: sort the points\n"
-                     "           default: " << default_opts.sort << "\n";
+    std::cout << "Valid options:\n"
+                 "    --prec <char>\n"
+                 "           float or double precision. i.e. 'f' or 'd'\n"
+                 "           default: " << default_opts.prec << "\n" <<
+                 "    --type <int>\n"
+                 "           type of transform. 1 or 2\n"
+                 "           default: " << default_opts.type << "\n" <<
+                 "    --n_runs <int>\n"
+                 "           number of runs to average performance over\n"
+                 "           default: " << default_opts.n_runs << "\n" <<
+                 "    --N1 <int>\n"
+                 "           number of modes in first dimension. Scientific notation accepted (i.e. 1E6)\n"
+                 "           default: " << default_opts.N[0] << "\n" <<
+                 "    --N2 <int>\n"
+                 "           number of modes in second dimension. Scientific notation accepted (i.e. 1E6)\n"
+                 "           default: " << default_opts.N[1] << "\n" <<
+                 "    --N3 <int>\n"
+                 "           number of modes in third dimension. Scientific notation accepted (i.e. 1E6)\n"
+                 "           default: " << default_opts.N[2] << "\n" <<
+                 "    --M <int>\n"
+                 "           number of non-uniform points. Scientific notation accepted (i.e. 1E6)\n"
+                 "           default: " << default_opts.M << "\n" <<
+                 "    --ntransf <int>\n"
+                 "           number of transforms to do simultaneously\n"
+                 "           default: " << default_opts.ntransf << "\n" <<
+                 "    --tol <float>\n"
+                 "           NUFFT tolerance. Scientific notation accepted (i.e. 1.2E-7)\n"
+                 "           default: " << default_opts.tol << "\n" <<
+                 "    --method <int>\n"
+                 "           NUFFT method\n"
+                 "               1: nupts driven\n"
+                 "               2: sub-problem\n"
+                 "               3: output-driven subproblem (experimental)\n"
+                 "           Note that not all methods are compatible with all dim/type combinations\n"
+                 "           default: " << default_opts.method << "\n" <<
+                 "    --kerevalmeth <int>\n"
+                 "           kernel evaluation method\n"
+                 "               0: Exponential of square root\n"
+                 "               1: Horner evaluation\n"
+                 "           default: " << default_opts.kerevalmethod << "\n" <<
+                 "    --sort: <int>\n"
+                 "           sort strategy\n"
+                 "               0: do not sort the points\n"
+                 "               1: sort the points\n"
+                 "           default: " << default_opts.sort << "\n" <<
+                 "    --debug: <int>\n"
+                 "           print cufinufft debug info\n"
+                 "               0: do not print debug info\n"
+                 "               1: print debug info\n"
+                 "           default: " << default_opts.debug << "\n";
     // clang-format on
     return 0;
   }
