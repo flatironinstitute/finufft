@@ -52,13 +52,12 @@ int cufinufft_set_shared_memory(V *kernel, const int dim,
   /**
    * WARNING: this function does not handle cuda errors. The caller should check them.
    */
-  int device_id{}, shared_mem_per_block{};
-  cudaGetDevice(&device_id);
+  int shared_mem_per_block{};
   const auto shared_mem_required = shared_memory_required<T>(
       dim, d_plan.spopts.nspread, d_plan.opts.gpu_binsizex, d_plan.opts.gpu_binsizey,
       d_plan.opts.gpu_binsizez, d_plan.opts.gpu_np);
   cudaDeviceGetAttribute(&shared_mem_per_block, cudaDevAttrMaxSharedMemoryPerBlockOptin,
-                         device_id);
+                         d_plan.opts.gpu_device_id);
   if (shared_mem_required > shared_mem_per_block) {
     fprintf(stderr,
             "Error: Shared memory required per block is %zu bytes, but the device "

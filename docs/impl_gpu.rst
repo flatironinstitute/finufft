@@ -25,17 +25,17 @@ The process follows three main stages:
 1. **Per-thread kernel evaluation:**
 
    Each thread computes the spreading kernel at a single NUFFT point.
-   Kernel values are stored into shared memory (`window_vals`) in a batched layout,
+   Kernel values are stored into shared memory (`ker_evals`) in a batched layout,
    allowing reuse by all threads in the block.
-   `window_vals` is a 3D array with shape `(Np, D, ns)`, where `Np` is the number of NUFFT points.
+   `ker_evals` is a 3D array with shape `(Np, dim, ns)`, where `Np` is the number of NUFFT points.
    Using CUDA parallelism it is possible to evaluate all the kernel values in parallel accessing
-   `window_vals(thread.id, Dimension, 0)`. The third parameter is always 0 because `eval_kernel_vec`
+   `ker_evals(thread.id, dim, 0)`. The third parameter is always 0 because `eval_kernel_vec`
    takes a pointer and writes `ns` values in one go.
    This corresponds to:
 
    .. code-block:: cpp
 
-      eval_kernel_vec<T, ns>(&window_vals(i, 0, 0), x1, es_c, es_beta);
+      eval_kernel_vec<T, ns>(&ker_evals(i, 0, 0), x1, es_c, es_beta);
 
 2. **Thread-cooperative accumulation in shared memory:**
 
@@ -67,30 +67,31 @@ The process follows three main stages:
 
         for point = 0 to NumPoints, point+=np
           ...
-          parallel for i = 0 to pow(ns, D)
+          parallel for i = 0 to pow(ns, dim)
             ...
           ...
 
      The parallelism is flipped: SM parallelizes the outer loop (over points), while
      Output-driven parallelizes the inner loop (over the kernel values).
-     There is no collision because `u_local` is accessed by `(ix, iy, iz)` — and these
+     There is no collision because `local_subgrid` is accessed by `(ix, iy, iz)` — and these
      are unique per thread as determined by the thread ID.
      This removes the need for `AtomicAdd` on the local subgrid.
 
 3. **Atomic addition to global memory:**
 
-   Unchanged from SM: once all points have been processed and accumulated into `u_local`,
+   Unchanged from SM: once all points have been processed and accumulated into `local_subgrid`,
    the block performs an atomic write to global memory (`fw`). Since this step is
    amortized over many points, its overhead is negligible.
 
 Memory Organization
 ~~~~~~~~~~~~~~~~~~~
 
-- `window_vals`:
-  Stores kernel weights in shape `(Np, D, ns)`. Threads access only their assigned batch rows.
+- `ker_evals`:
+  Stores kernel weights in shape `(Np, dim, ns)`. Threads access only their assigned batch rows.
 
-- `u_local`:
-  A padded shared-memory grid with shape :math:`(bin\_size + 2M)^D`.
+- `local_subgrid`:
+  A padded shared-memory grid with shape :math:`(bin\_size + padding)^{dim}`.
+  Where passing is :math:`padding = 2((ns+1)/2)`.
   Threads write to disjoint sections during accumulation to avoid races.
 
 Design Insights

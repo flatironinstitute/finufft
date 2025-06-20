@@ -106,24 +106,24 @@ __global__ void spread_1d_output_driven(
 
   const int xoffset = (bidx % nbinx) * bin_size_x;
 
-  using mdspan_t   = mdspan<T, extents<int, dynamic_extent, ns>>;
-  auto window_vals = mdspan_t((T *)sharedbuf, np);
-  // sharedbuf + size of window_vals in bytes
-  // Offset pointer into sharedbuf after window_vals
+  using mdspan_t = mdspan<T, extents<int, dynamic_extent, ns>>;
+  auto ker_evals = mdspan_t((T *)sharedbuf, np);
+  // sharedbuf + size of ker_evals in bytes
+  // Offset pointer into sharedbuf after ker_evals
   // Create span using pointer + size
 
   auto vp_sm = span(
-      reinterpret_cast<cuda_complex<T> *>(window_vals.data_handle() + window_vals.size()),
+      reinterpret_cast<cuda_complex<T> *>(ker_evals.data_handle() + ker_evals.size()),
       np);
 
   auto shift = span(reinterpret_cast<int *>(vp_sm.data() + vp_sm.size()), np);
 
-  auto u_local = span<cuda_complex<T>>(
+  auto local_subgrid = span<cuda_complex<T>>(
       reinterpret_cast<cuda_complex<T> *>(shift.data() + shift.size()), padded_size_x);
 
-  // set u_local to zero
-  for (int i = threadIdx.x; i < u_local.size(); i += blockDim.x) {
-    u_local[i] = {0, 0};
+  // set local_subgrid to zero
+  for (int i = threadIdx.x; i < local_subgrid.size(); i += blockDim.x) {
+    local_subgrid[i] = {0, 0};
   }
   __syncthreads();
 
@@ -140,9 +140,9 @@ __global__ void spread_1d_output_driven(
       shift[i] = xstart - xoffset;
 
       if constexpr (KEREVALMETH == 1) {
-        eval_kernel_vec_horner<T, ns>(&window_vals(i, 0), x1, sigma);
+        eval_kernel_vec_horner<T, ns>(&ker_evals(i, 0), x1, sigma);
       } else {
-        eval_kernel_vec<T, ns>(&window_vals(i, 0), x1, es_c, es_beta);
+        eval_kernel_vec<T, ns>(&ker_evals(i, 0), x1, es_c, es_beta);
       }
     }
     __syncthreads();
@@ -156,21 +156,21 @@ __global__ void spread_1d_output_driven(
       for (int idx = threadIdx.x; idx < total; idx += blockDim.x) {
         const int ix = xstart + idx + ns_2;
         // separable window weights
-        const auto kervalue = window_vals(i, idx);
+        const auto kervalue = ker_evals(i, idx);
 
         // accumulate
         const cuda_complex<T> res{cnow.x * kervalue, cnow.y * kervalue};
-        u_local[ix] += res;
+        local_subgrid[ix] += res;
       }
       __syncthreads();
     }
   }
   /* write to global memory */
-  for (int k = threadIdx.x; k < u_local.size(); k += blockDim.x) {
+  for (int k = threadIdx.x; k < local_subgrid.size(); k += blockDim.x) {
     auto ix = xoffset - ns_2 + k;
     if (ix < (nf1 + ns_2)) {
       ix = ix < 0 ? ix + nf1 : (ix > nf1 - 1 ? ix - nf1 : ix);
-      atomicAddComplexGlobal<T>(fw + ix, u_local[k]);
+      atomicAddComplexGlobal<T>(fw + ix, local_subgrid[k]);
     }
   }
 }

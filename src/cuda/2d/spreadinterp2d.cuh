@@ -223,25 +223,25 @@ __global__ void spread_2d_output_driven(
   const int xoffset = (bidx % nbinx) * bin_size_x;
   const int yoffset = ((bidx / nbinx) % nbiny) * bin_size_y;
 
-  using mdspan_t   = mdspan<T, extents<int, dynamic_extent, 2, ns>>;
-  auto window_vals = mdspan_t((T *)sharedbuf, np);
-  // sharedbuf + size of window_vals in bytes
-  // Offset pointer into sharedbuf after window_vals
+  using mdspan_t = mdspan<T, extents<int, dynamic_extent, 2, ns>>;
+  auto ker_evals = mdspan_t((T *)sharedbuf, np);
+  // sharedbuf + size of ker_evals in bytes
+  // Offset pointer into sharedbuf after ker_evals
   // Create span using pointer + size
 
   auto vp_sm = span(
-      reinterpret_cast<cuda_complex<T> *>(window_vals.data_handle() + window_vals.size()),
+      reinterpret_cast<cuda_complex<T> *>(ker_evals.data_handle() + ker_evals.size()),
       np);
 
   auto shift = span(reinterpret_cast<int2 *>(vp_sm.data() + vp_sm.size()), np);
 
-  auto u_local = mdspan<cuda_complex<T>, dextents<int, 2>>(
+  auto local_subgrid = mdspan<cuda_complex<T>, dextents<int, 2>>(
       reinterpret_cast<cuda_complex<T> *>(shift.data() + shift.size()), padded_size_y,
       padded_size_x);
 
-  // set u_local to zero
-  for (int i = threadIdx.x; i < u_local.size(); i += blockDim.x) {
-    u_local.data_handle()[i] = {0, 0};
+  // set local_subgrid to zero
+  for (int i = threadIdx.x; i < local_subgrid.size(); i += blockDim.x) {
+    local_subgrid.data_handle()[i] = {0, 0};
   }
   __syncthreads();
 
@@ -264,11 +264,11 @@ __global__ void spread_2d_output_driven(
       };
 
       if constexpr (KEREVALMETH == 1) {
-        eval_kernel_vec_horner<T, ns>(&window_vals(i, 0, 0), x1, sigma);
-        eval_kernel_vec_horner<T, ns>(&window_vals(i, 1, 0), y1, sigma);
+        eval_kernel_vec_horner<T, ns>(&ker_evals(i, 0, 0), x1, sigma);
+        eval_kernel_vec_horner<T, ns>(&ker_evals(i, 1, 0), y1, sigma);
       } else {
-        eval_kernel_vec<T, ns>(&window_vals(i, 0, 0), x1, es_c, es_beta);
-        eval_kernel_vec<T, ns>(&window_vals(i, 1, 0), y1, es_c, es_beta);
+        eval_kernel_vec<T, ns>(&ker_evals(i, 0, 0), x1, es_c, es_beta);
+        eval_kernel_vec<T, ns>(&ker_evals(i, 1, 0), y1, es_c, es_beta);
       }
     }
     __syncthreads();
@@ -294,15 +294,15 @@ __global__ void spread_2d_output_driven(
         const int ix = real_xx + ns_2;
 
         // separable window weights
-        const auto kervalue = window_vals(i, 0, xx) * window_vals(i, 1, yy);
+        const auto kervalue = ker_evals(i, 0, xx) * ker_evals(i, 1, yy);
 
         // accumulate
-        u_local(iy, ix) += {cnow * kervalue};
+        local_subgrid(iy, ix) += {cnow * kervalue};
       }
       __syncthreads();
     }
   }
-  for (int n = threadIdx.x; n < u_local.size(); n += blockDim.x) {
+  for (int n = threadIdx.x; n < local_subgrid.size(); n += blockDim.x) {
     const int i = n % (padded_size_x);
     const int j = n / (padded_size_x);
 
@@ -313,7 +313,7 @@ __global__ void spread_2d_output_driven(
       ix               = ix < 0 ? ix + nf1 : (ix > nf1 - 1 ? ix - nf1 : ix);
       iy               = iy < 0 ? iy + nf2 : (iy > nf2 - 1 ? iy - nf2 : iy);
       const int outidx = ix + iy * nf1;
-      atomicAddComplexGlobal<T>(fw + outidx, u_local(j, i));
+      atomicAddComplexGlobal<T>(fw + outidx, local_subgrid(j, i));
     }
   }
 }
