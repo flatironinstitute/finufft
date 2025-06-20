@@ -113,12 +113,6 @@ def test_type2(to_gpu, to_cpu, dtype, shape, M, tol, output_arg, contiguous, mod
 @pytest.mark.parametrize("n_target_pts", MS)
 @pytest.mark.parametrize("output_arg", OUTPUT_ARGS)
 def test_type3(to_gpu, to_cpu, dtype, dim, n_source_pts, n_target_pts, output_arg):
-    if dtype == np.float32 and dim >= 2 and min(n_source_pts, n_target_pts) > 4000:
-        pytest.xfail("Garbage result for larger numbers of pts in single precision type 3")
-        # Strangely, this does not reproduce if we isolate the single case. To
-        # trigger it, we must run many other tests preceding this test case.
-        # So it's related to some global state of the library.
-
     complex_dtype = utils._complex_dtype(dtype)
 
     source_pts, source_coefs, target_pts = utils.type3_problem(complex_dtype,

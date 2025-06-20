@@ -69,7 +69,8 @@ int cuinterp2d_nuptsdriven(int nf1, int nf2, int M, cufinufft_plan_t<T> *d_plan,
   cuda_complex<T> *d_c  = d_plan->c;
   cuda_complex<T> *d_fw = d_plan->fw;
 
-  threadsPerBlock.x = 32;
+  threadsPerBlock.x =
+      std::min(optimal_block_threads(d_plan->opts.gpu_device_id), (unsigned)M);
   threadsPerBlock.y = 1;
   blocks.x          = (M + threadsPerBlock.x - 1) / threadsPerBlock.x;
   blocks.y          = 1;
@@ -122,10 +123,10 @@ int cuinterp2d_subprob(int nf1, int nf2, int M, cufinufft_plan_t<T> *d_plan,
   int *d_subprob_to_bin  = d_plan->subprob_to_bin;
   int totalnumsubprob    = d_plan->totalnumsubprob;
 
-  T sigma = d_plan->opts.upsampfac;
-  const auto sharedplanorysize =
-      shared_memory_required<T>(2, d_plan->spopts.nspread, d_plan->opts.gpu_binsizex,
-                                d_plan->opts.gpu_binsizey, d_plan->opts.gpu_binsizez);
+  T sigma                      = d_plan->opts.upsampfac;
+  const auto sharedplanorysize = shared_memory_required<T>(
+      2, d_plan->spopts.nspread, d_plan->opts.gpu_binsizex, d_plan->opts.gpu_binsizey,
+      d_plan->opts.gpu_binsizez, d_plan->opts.gpu_np);
 
   if (d_plan->opts.gpu_kerevalmeth) {
     if (const auto finufft_err =
