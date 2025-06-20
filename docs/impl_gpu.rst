@@ -25,17 +25,17 @@ The process follows three main stages:
 1. **Per-thread kernel evaluation:**
 
    Each thread computes the spreading kernel at a single NUFFT point.
-   Kernel values are stored into shared memory (`ker_evals`) in a batched layout,
+   Kernel values are stored into shared memory (`kerevals`) in a batched layout,
    allowing reuse by all threads in the block.
-   `ker_evals` is a 3D array with shape `(Np, dim, ns)`, where `Np` is the number of NUFFT points.
+   `kerevals` is a 3D array with shape `(Np, dim, ns)`, where `Np` is the number of NUFFT points.
    Using CUDA parallelism it is possible to evaluate all the kernel values in parallel accessing
-   `ker_evals(thread.id, dim, 0)`. The third parameter is always 0 because `eval_kernel_vec`
+   `kerevals(thread.id, dim, 0)`. The third parameter is always 0 because `eval_kernel_vec`
    takes a pointer and writes `ns` values in one go.
    This corresponds to:
 
    .. code-block:: cpp
 
-      eval_kernel_vec<T, ns>(&ker_evals(i, 0, 0), x1, es_c, es_beta);
+      eval_kernel_vec<T, ns>(&kerevals(i, 0, 0), x1, es_c, es_beta);
 
 2. **Thread-cooperative accumulation in shared memory:**
 
@@ -86,7 +86,7 @@ The process follows three main stages:
 Memory Organization
 ~~~~~~~~~~~~~~~~~~~
 
-- `ker_evals`:
+- `kerevals`:
   Stores kernel weights in shape `(Np, dim, ns)`. Threads access only their assigned batch rows.
 
 - `local_subgrid`:

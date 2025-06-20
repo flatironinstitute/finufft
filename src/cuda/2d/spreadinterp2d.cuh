@@ -224,13 +224,13 @@ __global__ void spread_2d_output_driven(
   const int yoffset = ((bidx / nbinx) % nbiny) * bin_size_y;
 
   using mdspan_t = mdspan<T, extents<int, dynamic_extent, 2, ns>>;
-  auto ker_evals = mdspan_t((T *)sharedbuf, np);
-  // sharedbuf + size of ker_evals in bytes
-  // Offset pointer into sharedbuf after ker_evals
+  auto kerevals = mdspan_t((T *)sharedbuf, np);
+  // sharedbuf + size of kerevals in bytes
+  // Offset pointer into sharedbuf after kerevals
   // Create span using pointer + size
 
   auto nupts_sm = span(
-      reinterpret_cast<cuda_complex<T> *>(ker_evals.data_handle() + ker_evals.size()),
+      reinterpret_cast<cuda_complex<T> *>(kerevals.data_handle() + kerevals.size()),
       np);
 
   auto shift = span(reinterpret_cast<int2 *>(nupts_sm.data() + nupts_sm.size()), np);
@@ -264,11 +264,11 @@ __global__ void spread_2d_output_driven(
       };
 
       if constexpr (KEREVALMETH == 1) {
-        eval_kernel_vec_horner<T, ns>(&ker_evals(i, 0, 0), x1, sigma);
-        eval_kernel_vec_horner<T, ns>(&ker_evals(i, 1, 0), y1, sigma);
+        eval_kernel_vec_horner<T, ns>(&kerevals(i, 0, 0), x1, sigma);
+        eval_kernel_vec_horner<T, ns>(&kerevals(i, 1, 0), y1, sigma);
       } else {
-        eval_kernel_vec<T, ns>(&ker_evals(i, 0, 0), x1, es_c, es_beta);
-        eval_kernel_vec<T, ns>(&ker_evals(i, 1, 0), y1, es_c, es_beta);
+        eval_kernel_vec<T, ns>(&kerevals(i, 0, 0), x1, es_c, es_beta);
+        eval_kernel_vec<T, ns>(&kerevals(i, 1, 0), y1, es_c, es_beta);
       }
     }
     __syncthreads();
@@ -294,7 +294,7 @@ __global__ void spread_2d_output_driven(
         const int ix = real_xx + ns_2;
 
         // separable window weights
-        const auto kervalue = ker_evals(i, 0, xx) * ker_evals(i, 1, yy);
+        const auto kervalue = kerevals(i, 0, xx) * kerevals(i, 1, yy);
 
         // accumulate
         local_subgrid(iy, ix) += {cnow * kervalue};

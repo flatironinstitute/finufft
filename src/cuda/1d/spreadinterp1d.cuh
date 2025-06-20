@@ -107,13 +107,13 @@ __global__ void spread_1d_output_driven(
   const int xoffset = (bidx % nbinx) * bin_size_x;
 
   using mdspan_t = mdspan<T, extents<int, dynamic_extent, ns>>;
-  auto ker_evals = mdspan_t((T *)sharedbuf, np);
-  // sharedbuf + size of ker_evals in bytes
-  // Offset pointer into sharedbuf after ker_evals
+  auto kerevals = mdspan_t((T *)sharedbuf, np);
+  // sharedbuf + size of kerevals in bytes
+  // Offset pointer into sharedbuf after kerevals
   // Create span using pointer + size
 
   auto nupts_sm = span(
-      reinterpret_cast<cuda_complex<T> *>(ker_evals.data_handle() + ker_evals.size()),
+      reinterpret_cast<cuda_complex<T> *>(kerevals.data_handle() + kerevals.size()),
       np);
 
   auto shift = span(reinterpret_cast<int *>(nupts_sm.data() + nupts_sm.size()), np);
@@ -140,9 +140,9 @@ __global__ void spread_1d_output_driven(
       shift[i] = xstart - xoffset;
 
       if constexpr (KEREVALMETH == 1) {
-        eval_kernel_vec_horner<T, ns>(&ker_evals(i, 0), x1, sigma);
+        eval_kernel_vec_horner<T, ns>(&kerevals(i, 0), x1, sigma);
       } else {
-        eval_kernel_vec<T, ns>(&ker_evals(i, 0), x1, es_c, es_beta);
+        eval_kernel_vec<T, ns>(&kerevals(i, 0), x1, es_c, es_beta);
       }
     }
     __syncthreads();
@@ -156,7 +156,7 @@ __global__ void spread_1d_output_driven(
       for (int idx = threadIdx.x; idx < total; idx += blockDim.x) {
         const int ix = xstart + idx + ns_2;
         // separable window weights
-        const auto kervalue = ker_evals(i, idx);
+        const auto kervalue = kerevals(i, idx);
 
         // accumulate
         const cuda_complex<T> res{cnow.x * kervalue, cnow.y * kervalue};

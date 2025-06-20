@@ -161,15 +161,15 @@ __global__ void spread_3d_output_driven(
   const int yoffset = ((bidx / nbinx) % nbiny) * bin_size_y;
   const int zoffset = (bidx / (nbinx * nbiny)) * bin_size_z;
 
-  auto ker_evals = mdspan<T, extents<int, dynamic_extent, 3, ns>>((T *)sharedbuf, np);
-  const auto c_ker_evals =
+  auto kerevals = mdspan<T, extents<int, dynamic_extent, 3, ns>>((T *)sharedbuf, np);
+  const auto c_kerevals =
       mdspan<const T, extents<int, dynamic_extent, 3, ns>>((T *)sharedbuf, np);
-  // sharedbuf + size of ker_evals in bytes
-  // Offset pointer into sharedbuf after ker_evals
+  // sharedbuf + size of kerevals in bytes
+  // Offset pointer into sharedbuf after kerevals
   // Create span using pointer + size
 
   auto nupts_sm = span(
-      reinterpret_cast<cuda_complex<T> *>(ker_evals.data_handle() + ker_evals.size()),
+      reinterpret_cast<cuda_complex<T> *>(kerevals.data_handle() + kerevals.size()),
       np);
 
   auto shift = span(reinterpret_cast<int3 *>(nupts_sm.data() + nupts_sm.size()), np);
@@ -203,13 +203,13 @@ __global__ void spread_3d_output_driven(
       shift[i] = {xstart - xoffset, ystart - yoffset, zstart - zoffset};
 
       if constexpr (KEREVALMETH == 1) {
-        eval_kernel_vec_horner<T, ns>(&ker_evals(i, 0, 0), x1, sigma);
-        eval_kernel_vec_horner<T, ns>(&ker_evals(i, 1, 0), y1, sigma);
-        eval_kernel_vec_horner<T, ns>(&ker_evals(i, 2, 0), z1, sigma);
+        eval_kernel_vec_horner<T, ns>(&kerevals(i, 0, 0), x1, sigma);
+        eval_kernel_vec_horner<T, ns>(&kerevals(i, 1, 0), y1, sigma);
+        eval_kernel_vec_horner<T, ns>(&kerevals(i, 2, 0), z1, sigma);
       } else {
-        eval_kernel_vec<T, ns>(&ker_evals(i, 0, 0), x1, es_c, es_beta);
-        eval_kernel_vec<T, ns>(&ker_evals(i, 1, 0), y1, es_c, es_beta);
-        eval_kernel_vec<T, ns>(&ker_evals(i, 2, 0), z1, es_c, es_beta);
+        eval_kernel_vec<T, ns>(&kerevals(i, 0, 0), x1, es_c, es_beta);
+        eval_kernel_vec<T, ns>(&kerevals(i, 1, 0), y1, es_c, es_beta);
+        eval_kernel_vec<T, ns>(&kerevals(i, 2, 0), z1, es_c, es_beta);
       }
     }
     __syncthreads();
@@ -245,7 +245,7 @@ __global__ void spread_3d_output_driven(
 
         // separable window weights
         const auto kervalue =
-            c_ker_evals(i, 0, xx) * c_ker_evals(i, 1, yy) * c_ker_evals(i, 2, zz);
+            c_kerevals(i, 0, xx) * c_kerevals(i, 1, yy) * c_kerevals(i, 2, zz);
         // accumulate
         local_subgrid(iz, iy, ix) += {cnow * kervalue};
       }
