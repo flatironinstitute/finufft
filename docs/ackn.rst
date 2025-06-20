@@ -29,7 +29,7 @@ Other significant code contributions by:
 * Garrett Wright - dual-precision build, py packaging, GPU version
 * Wenda Zhou - Cmake build, code review, professionalization, SIMD ideas
 
-Testing, bug reports, helpful discussions:
+Testing, bug reports, helpful discussions, contributions:
 
 * Dan Fortunato - MATLAB setpts temp array bug and fix
 * Hannah Lawrence - user testing and finding bugs
@@ -46,6 +46,7 @@ Testing, bug reports, helpful discussions:
 * Vladimir Rokhlin - piecewise polynomial approximation on complex boxes
 * Reinhard Neder - fortran90 demo using finufft as module, OSX build
 * Vineet Bansal - py packaging
+* Jason Kaye - Gauss-Legendre quadrature code from cppdlr
 * Juan Ignacio Polanco - cuFINUFFT output driven
 
 Logo design: `Sherry Choi <http://www.sherrychoi.com>`_ with input

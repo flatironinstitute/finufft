@@ -123,7 +123,7 @@ cufinufft(mex_id_, o);
     % EXECUTE   execute single or many-vector GPU FINUFFT transforms in a plan.
 
       % check if data_in is gpuArray
-      if ~finufft_isgpuarray(data_in)
+      if ~isa(data_in, 'gpuArray')
         error('FINUFFT:badDataDevice','input data must be a gpuArray');
       end
 

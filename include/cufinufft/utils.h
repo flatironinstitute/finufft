@@ -90,8 +90,10 @@ private:
   }
 };
 
-// ahb math helpers
+// math helpers whose source is in src/cuda/utils.cpp
 CUFINUFFT_BIGINT next235beven(CUFINUFFT_BIGINT n, CUFINUFFT_BIGINT b);
+void gaussquad(int n, double *xgl, double *wgl);
+std::tuple<double, double> leg_eval(int n, double x);
 
 template<typename T> T infnorm(int n, std::complex<T> *a) {
   T nrm = 0.0;
@@ -111,7 +113,7 @@ template<typename T> T infnorm(int n, std::complex<T> *a) {
 template<typename T>
 static __forceinline__ __device__ void atomicAddComplexShared(
     cuda_complex<T> *address, const cuda_complex<T> &res) {
-  auto raw_address = reinterpret_cast<T *>(address);
+  const auto raw_address = reinterpret_cast<T *>(address);
   atomicAdd_block(raw_address, res.x);
   atomicAdd_block(raw_address + 1, res.y);
 }
@@ -122,8 +124,8 @@ static __forceinline__ __device__ void atomicAddComplexShared(
  * on shared memory are supported so we leverage them
  */
 template<typename T>
-static __forceinline__ __device__ void atomicAddComplexGlobal(cuda_complex<T> *address,
-                                                              cuda_complex<T> res) {
+static __forceinline__ __device__ void atomicAddComplexGlobal(
+    cuda_complex<T> *address, cuda_complex<T> res) {
   if constexpr (
       std::is_same_v<cuda_complex<T>, float2> && COMPUTE_CAPABILITY_90_OR_HIGHER) {
     atomicAdd(address, res);

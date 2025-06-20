@@ -110,6 +110,9 @@ jobs:
         run: |
           echo "SCCACHE_GHA_ENABLED=true" >> $GITHUB_ENV
           echo "SCCACHE_GHA_VERSION=0" >> $GITHUB_ENV
+      - name: Set up sccache on Windows
+        if: runner.os == 'Windows'
+        run: Add-Content -Path $env:GITHUB_ENV -Value "SCCACHE_GHA_ENABLED=true"
       - name: Setup Cpp
         uses: aminya/setup-cpp@v1.1.1
         with:
