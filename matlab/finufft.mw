@@ -55,7 +55,8 @@ $ #include <math.h>
 %
 $ void copy_finufft_opts(const mxArray* om, finufft_opts *oc) {
 $   if(!mxIsStruct(om))
-$     mexErrMsgIdAndTxt("FINUFFT:inputNotStruct","opts input must be a structure.");
+$     mexErrMsgIdAndTxt("FINUFFT:inputNotStruct",
+$                       "copy_finufft_opts: opts input must be a structure.");
 $   mwIndex idx = 0;
 $   int ifield, nfields;
 $   const char **fname;
@@ -102,6 +103,9 @@ $     }
 $     else if (strcmp(fname[ifield],"spread_max_sp_size") == 0) {
 $       oc->spread_max_sp_size = (int)round(*mxGetPr(mxGetFieldByNumber(om,idx,ifield)));
 $     }
+$     else if (strcmp(fname[ifield],"spreadinterponly") == 0) {
+$       oc->spreadinterponly = (int)round(*mxGetPr(mxGetFieldByNumber(om,idx,ifield)));
+$     }
 $     else
 $       continue;
 $   }
@@ -142,7 +146,7 @@ classdef finufft_plan < handle
     % FINUFFT_PLAN   create guru plan object for one/many general nonuniform FFTs.
 
       plan.floatprec='double';                      % set precision: default
-      if nargin<6, opts = []; end
+      if nargin<6, opts = struct(); end
       if isfield(opts,'floatprec')                  % a matlab-only option
         if ~strcmp(opts.floatprec,'single') && ~strcmp(opts.floatprec,'double')
           error('FINUFFT:badFloatPrec','FINUFFT plan opts.floatprec must be single or double');
@@ -208,7 +212,7 @@ classdef finufft_plan < handle
       if nargin<6, t=emp; end
       if nargin<7, u=emp; end
       % get number(s) of NU pts (also validates the NU pt array sizes)...
-      [nj, nk] = valid_setpts(plan.type, plan.dim, xj, yj, zj, s, t, u);
+      [nj, nk] = valid_setpts(0, plan.type, plan.dim, xj, yj, zj, s, t, u);
       plan.nj = nj;            % save to avoid having to query the C++ plan
       plan.nk = nk;            % "
       % Force MATLAB to preserve the memory of xj/yj/zj by storing them as class
@@ -228,6 +232,11 @@ classdef finufft_plan < handle
 
     function result = execute(plan, data_in)
     % EXECUTE   execute single or many-vector FINUFFT transforms in a plan.
+
+      % check if data_in is gpuArray
+      if isa(data_in, 'gpuArray')
+        error('FINUFFT:badDataDevice','input data must be a cpuArray');
+      end
 
       % get shape info from the matlab-side plan (since can't pass "dot"
       % variables like a.b as mwrap sizes, too)...

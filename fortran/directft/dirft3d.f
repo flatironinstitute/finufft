@@ -1,8 +1,8 @@
-cc Copyright (C) 2004-2009: Leslie Greengard and June-Yub Lee 
+cc Copyright (C) 2004-2009: Leslie Greengard and June-Yub Lee
 cc Contact: greengard@cims.nyu.edu
-cc 
+cc
 cc This software is being released under a FreeBSD license
-cc (see license.txt in this directory). 
+cc (see license.txt in this directory).
 cc
 ************************************************************************
       subroutine dirft3d1(nj,xj,yj,zj,cj,iflag,ms,mt,mu,fk)
@@ -18,7 +18,7 @@ c     fk(k1,k2,k3) =  SUM cj(j) exp(+/-i k1 xj(j)) *
 c                     j=1       exp(+/-i k2 yj(j)) *
 c                                 exp(+/-i k3 zj(j))
 c
-c     for -ms/2 <= k1 <= (ms-1)/2, 
+c     for -ms/2 <= k1 <= (ms-1)/2,
 c         -mt/2 <= k2 <= (mt-1)/2
 c         -mu/2 <= k3 <= (mu-1)/2
 c
@@ -120,13 +120,13 @@ c ----------------------------------------------------------------------
 c     direct computation of nonuniform FFT
 c
 c
-c     cj(j) = SUM SUM SUM  fk(k1,k2,k3) exp(+/-i k1 xj(j)) * 
+c     cj(j) = SUM SUM SUM  fk(k1,k2,k3) exp(+/-i k1 xj(j)) *
 c             k1  k2  k3                exp(+/-i k2 yj(j))
 c                                       exp(+/-i k3 zj(j))
 c
 c                            for j = 1,...,nj
 c
-c     where -ms/2 <= k1 <= (ms-1)/2 
+c     where -ms/2 <= k1 <= (ms-1)/2
 c           -mt/2 <= k2 <= (mt-1)/2
 c           -mu/2 <= k3 <= (mu-1)/2
 c
@@ -274,4 +274,3 @@ c
          enddo
       enddo
       end
-

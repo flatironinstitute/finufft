@@ -354,7 +354,6 @@ int main(int argc, char *argv[]) {
                  "               0: do not print debug info\n"
                  "               1: print debug info\n"
                  "           default: " << default_opts.debug << "\n";
->>>>>>> Stashed changes
     // clang-format on
     return 0;
   }

@@ -39,7 +39,7 @@ else        % iterative solve of normal eqns, each iteration a padded FFT
   [f,flag,relres,iter] = pcg(@(f) applyToep(f,vhat), rhs, 1e-6, N);
   fprintf('CG-Toep relres %.3g done in %d iters, %.3g s\n', relres,iter,toc)
 end
-  
+
 yrecon = finufft1d2(x,+1,tol,f);
 fprintf('\trel l2 resid of Af=y: %.3g\n', norm(yrecon-y)/norm(y))
 fprintf('\trel l2 coeff err: %.3g\n', norm(f-ftrue)/norm(ftrue))

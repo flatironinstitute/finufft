@@ -1,0 +1,56 @@
+name: Valgrind memcheck
+
+on: [push, pull_request]
+
+jobs:
+  valgrind:
+    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Setup Cpp
+        uses: aminya/setup-cpp@v1.1.1
+        with:
+          compiler: gcc
+          cmake: true
+          ninja: true
+          vcpkg: false
+          cppcheck: false
+          clangtidy: false
+      - name: Prepare
+        run: |
+          sudo apt update
+          sudo apt install -y libfftw3-dev jq valgrind
+      - name: Configure Cmake
+        run: |
+          cmake -S . -B ./build -G Ninja -DCMAKE_BUILD_TYPE:STRING=RelWithDebInfo -DFINUFFT_BUILD_TESTS=ON -DFINUFFT_ENABLE_SANITIZERS=OFF
+      - name: Build
+        run: |
+          cmake --build ./build --config RelWithDebInfo
+      - name: Test
+        working-directory: ./build
+        run: |
+          ctest --show-only=json-v1 > ctest_tests.json
+          # Loop over all test entries
+          exec 3>&1
+          jq -c '.tests[]' ctest_tests.json | while read -r test; do
+            name=$(echo "$test" | jq -r '.name')
+            command=$(echo "$test" | jq -r '.command | @sh')
+
+            echo -e "\n▶ Running test: $name"
+            echo "   Command: $command"
+
+            # Eval to reconstruct command array safely
+            eval "cmd=( $command )"
+
+            valgrind --undef-value-errors=yes --errors-for-leak-kinds=definite --error-exitcode=1 --log-fd=3 "${cmd[@]}"  > /dev/null 2>&1
+
+            # Check valgrind exit code
+            status=$?
+            if [[ $status -ne 0 ]]; then
+              echo "❌ Valgrind detected errors in test: $name"
+              exit $status
+            fi
+          done

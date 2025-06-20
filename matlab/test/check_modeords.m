@@ -23,7 +23,7 @@ o.modeord = 1;
 f1 = finufft3d1(x,y,z,c,isign,eps,N1,N2,N3,o);
 f1 = fftshift(f1);  % handles odd dimension lengths Ns same as we do
 fprintf('\t modeord=1 vs 0: max error = %g\n',norm(f1(:)-f(:),Inf))
-% it's still a mystery how there can be any nonzero difference here - 
+% it's still a mystery how there can be any nonzero difference here -
 %  maybe the compiler is reordering the calcs, so roundoff appears, somehow?
 
 f = randn(N1,N2,N3)+1i*randn(N1,N2,N3);

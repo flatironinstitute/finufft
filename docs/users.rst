@@ -93,15 +93,13 @@ For the latest see: Google Scholar `FINUFFT citations <https://scholar.google.co
 
 #. Johannes Blaschke, Jeff Donatelli, Jamie Sethian, and collaborators at the `ExaFEL <https://lcls.slac.stanford.edu/exafel>`_ coherent light source use FINUFFT and cuFINUFFT to accelerate single-particle X-ray imaging.  See preprint by Chang, Slaughter, Donatelli, et al: https://arxiv.org/abs/2109.05339
 
-#. A. Harness, S. Shaklan, P. Willems, N. J. Kasdin, K. Balasubramanian, V. White, K. Yee, P. Dumont, R. Muller, S. Vuong, M. Galvin,
-   "Optical experiments and model validation of perturbed starshade designs," Proc. SPIE 11823, Techniques and Instrumentation for Detection of Exoplanets X, 1182312 (1 September 2021); https://doi.org/10.1117/12.2595409
+#. A. Harness, S. Shaklan, P. Willems, N. J. Kasdin, K. Balasubramanian, V. White, K. Yee, P. Dumont, R. Muller, S. Vuong, M. Galvin, "Optical experiments and model validation of perturbed starshade designs," Proc. SPIE 11823, Techniques and Instrumentation for Detection of Exoplanets X, 1182312 (1 September 2021); https://doi.org/10.1117/12.2595409
 
 #. Chang, P., Pienaar, E., & Gebbie, T. (2020). "Malliavin--Mancino Estimators Implemented with Nonuniform Fast Fourier Transforms." SIAM J. Sci. Comput. 42(6), B1378–B1403. https://doi.org/10.1137/20m1325903
 
 #. Heisenberg voxelization (HVOX) for inteferometry of spherical sky maps in radio-astronomy, by Kashani, Simeoni, et al. (2023) https://arxiv.org/abs/2306.06007 https://github.com/matthieumeo/hvox
 
-#. Sriramkrishnan Muralikrishnan at the Jülich Supercomputing Centre is running cufinufft on 6144 A100 GPUs (the NERSC-9 supercomputer), for a particle-in-Fourier method for plasma (Vlasov-Poisson) simulations, https://pasc23.pasc-conference.org/presentation/?id=msa167&sess=sess154 https://arxiv.org/abs/2407.00485
-The CPU code is also used for Vlasov-Poisson, https://www.sciencedirect.com/science/article/pii/S0021999124006387
+#. Sriramkrishnan Muralikrishnan at the Jülich Supercomputing Centre is running cufinufft on 6144 A100 GPUs (the NERSC-9 supercomputer), for a particle-in-Fourier method for plasma (Vlasov-Poisson) simulations, https://pasc23.pasc-conference.org/presentation/?id=msa167&sess=sess154 https://arxiv.org/abs/2407.00485  The CPU code is also used for Vlasov-Poisson, https://www.sciencedirect.com/science/article/pii/S0021999124006387
 
 #. Related to that, FINUFFT is being used for a better-converging Fourier approach to the Immersed Boundary method of Peskin and his group at NYU. Zhe Chen and Charles Peskin, https://arxiv.org/abs/2302.08694
 
@@ -116,8 +114,7 @@ Papers or codes using our new ES window (kernel spreading) function, but not the
 
 #. Martin Reinecke: codes for radio astronomy reconstruction including https://gitlab.mpcdf.mpg.de/mtr/ducc
 
-#. Aref Hashemi et al, "Computing hydrodynamic interactions in confined doubly-periodic geometries in linear time," J. Chem. Phys. 158(15): 154101 (2023).
-DOI:10.1063/5.0141371.  https://arxiv.org/abs/2210.01837
+#. Aref Hashemi et al, "Computing hydrodynamic interactions in confined doubly-periodic geometries in linear time," J. Chem. Phys. 158(15): 154101 (2023). DOI:10.1063/5.0141371.  https://arxiv.org/abs/2210.01837
 
 
 Papers influenced by other aspects of FINUFFT:

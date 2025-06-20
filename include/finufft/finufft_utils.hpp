@@ -3,13 +3,12 @@
 
 #pragma once
 
-#include <chrono>
 #include <cmath>
+//  for CNTime...
+//  (use chrono since the interface is portable between linux and windows)
+#include <chrono>
 
 #include "finufft_core.h"
-
-//  for CNTime...
-//  using chrono since the interface is portable between linux and windows
 
 namespace finufft::utils {
 
@@ -46,7 +45,10 @@ FINUFFT_EXPORT FINUFFT_ALWAYS_INLINE void FINUFFT_CDECL arraywidcen(BIGINT n, co
   }
 }
 
+// routines in finufft_utils.cpp ...
 FINUFFT_EXPORT BIGINT next235even(BIGINT n);
+FINUFFT_EXPORT void gaussquad(int n, double *xgl, double *wgl);
+FINUFFT_EXPORT std::tuple<double, double> leg_eval(int n, double x);
 
 // jfm's timer class
 class FINUFFT_EXPORT CNTime {
@@ -59,8 +61,9 @@ private:
   double initial;
 };
 
-// openmp helpers
-int get_num_threads_parallel_block();
+FINUFFT_NEVER_INLINE int getOptimalThreadCount();
+
+FINUFFT_NEVER_INLINE int get_num_threads_parallel_block();
 
 } // namespace finufft::utils
 

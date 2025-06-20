@@ -1,9 +1,9 @@
 #include <finufft/fft.h>
 #include <finufft/finufft_core.h>
 #include <finufft/finufft_utils.hpp>
+#include <finufft/heuristics.hpp>
 #include <finufft/spreadinterp.h>
 
-#include "../contrib/legendre_rule_fast.h"
 #include <cmath>
 #include <cstdio>
 #include <iomanip>
@@ -13,7 +13,7 @@
 using namespace finufft;
 using namespace finufft::utils;
 using namespace finufft::spreadinterp;
-using namespace finufft::quadrature;
+using namespace finufft::heuristics;
 
 /* Computational core for FINUFFT.
 
@@ -81,7 +81,7 @@ static int set_nf_type12(BIGINT ms, const finufft_opts &opts,
 // and requested number of Fourier modes ms. Returns 0 if success, else an
 // error code if nf was unreasonably big (& tell the world).
 {
-  *nf = BIGINT(opts.upsampfac * double(ms)); // manner of rounding not crucial
+  *nf = BIGINT(std::ceil(opts.upsampfac * double(ms))); // round up to handle small cases
   if (*nf < 2 * spopts.nspread) *nf = 2 * spopts.nspread; // otherwise spread fails
   if (*nf < MAX_NF) {
     *nf = next235even(*nf);                               // expensive at huge nf
@@ -103,7 +103,7 @@ static int setup_spreader_for_nufft(finufft_spread_opts &spopts, T eps,
 {
   // this calls spreadinterp.cpp...
   int ier = setup_spreader(spopts, eps, opts.upsampfac, opts.spread_kerevalmeth,
-                           opts.spread_debug, opts.showwarn, dim);
+                           opts.spread_debug, opts.showwarn, dim, opts.spreadinterponly);
   // override various spread opts from their defaults...
   spopts.debug    = opts.spread_debug;
   spopts.sort     = opts.spread_sort;   // could make dim or CPU choices here?
@@ -191,10 +191,10 @@ static void onedim_fseries_kernel(BIGINT nf, std::vector<T> &fwkerhalf,
   int q = (int)(2 + 3.0 * J2); // not sure why so large? cannot exceed MAX_NQUAD
   T f[MAX_NQUAD];
   double z[2 * MAX_NQUAD], w[2 * MAX_NQUAD];
-  legendre_compute_glr(2 * q, z, w); // only half the nodes used, eg on (0,1)
+  gaussquad(2 * q, z, w);       // only half the nodes used, eg on (0,1)
   std::complex<T> a[MAX_NQUAD];
-  for (int n = 0; n < q; ++n) {      // set up nodes z_n and vals f_n
-    z[n] *= J2;                      // rescale nodes
+  for (int n = 0; n < q; ++n) { // set up nodes z_n and vals f_n
+    z[n] *= J2;                 // rescale nodes
     f[n] = J2 * (T)w[n] * evaluate_kernel((T)z[n], opts); // vals & quadr wei
     a[n] = -std::exp(2 * PI * std::complex<double>(0, 1) * z[n] / double(nf)); // phase
                                                                                // winding
@@ -246,8 +246,7 @@ public:
     int q = (int)(2 + 2.0 * J2); // > pi/2 ratio.  cannot exceed MAX_NQUAD
     if (opts.debug) printf("q (# ker FT quadr pts) = %d\n", q);
     std::vector<double> Z(2 * q), W(2 * q);
-    legendre_compute_glr(2 * q, Z.data(), W.data()); // only half the nodes used, eg on
-                                                     // (0,1)
+    gaussquad(2 * q, Z.data(), W.data()); // only half the nodes used, for (0,1)
     z.resize(q);
     f.resize(q);
     for (int n = 0; n < q; ++n) {
@@ -268,7 +267,7 @@ public:
   FINUFFT_ALWAYS_INLINE T operator()(T k) {
     T x = 0;
     for (size_t n = 0; n < z.size(); ++n)
-      x += f[n] * 2 * cos(k * z[n]); // pos & neg freq pair.  use T cos!
+      x += f[n] * 2 * std::cos(k * z[n]); // pos & neg freq pair.  use T cos!
     return x;
   }
 };
@@ -425,18 +424,19 @@ static void deconvolveshuffle3d(int dir, T prefac, std::vector<T> &ker1,
 
 template<typename T>
 static int spreadinterpSortedBatch(int batchSize, FINUFFT_PLAN_T<T> *p,
-                                   std::complex<T> *cBatch)
+                                   std::complex<T> *fwBatch, std::complex<T> *cBatch)
 /*
   Spreads (or interpolates) a batch of batchSize strength vectors in cBatch
-  to (or from) the batch of fine working grids p->fwBatch, using the same set of
+  to (or from) the batch of fine working grids fwBatch, using the same set of
   (index-sorted) NU points p->X,Y,Z for each vector in the batch.
   The direction (spread vs interpolate) is set by p->spopts.spread_direction.
   Returns 0 (no error reporting for now).
   Notes:
-  1) cBatch is already assumed to have the correct offset, ie here we
-   read from the start of cBatch (unlike Malleo). fwBatch also has zero offset
+  1) cBatch (c_j I/O) is already assumed to have the correct offset, ie here we
+   read from the start of cBatch (unlike Malleo). fwBatch also has zero offset.
   2) this routine is a batched version of spreadinterpSorted in spreadinterp.cpp
   Barnett 5/19/20, based on Malleo 2019.
+  ChaithyaGR 1/7/25: new arg fwBatch (won't be p->fwBatch if spreadinterponly=1)
 */
 {
   // opts.spread_thread: 1 sequential multithread, 2 parallel single-thread.
@@ -447,9 +447,9 @@ static int spreadinterpSortedBatch(int batchSize, FINUFFT_PLAN_T<T> *p,
 #endif
 #pragma omp parallel for num_threads(nthr_outer)
   for (int i = 0; i < batchSize; i++) {
-    std::complex<T> *fwi = p->fwBatch.data() + i * p->nf(); // start of i'th fw array in
-                                                            // wkspace
-    std::complex<T> *ci = cBatch + i * p->nj; // start of i'th c array in cBatch
+    std::complex<T> *fwi = fwBatch + i * p->nf(); // start of i'th fw array in
+                                                  // fwBatch workspace or user array
+    std::complex<T> *ci = cBatch + i * p->nj;     // start of i'th c array in cBatch
     spreadinterpSorted(p->sortIndices, (UBIGINT)p->nfdim[0], (UBIGINT)p->nfdim[1],
                        (UBIGINT)p->nfdim[2], (T *)fwi, (UBIGINT)p->nj, p->XYZ[0],
                        p->XYZ[1], p->XYZ[2], (T *)ci, p->spopts, p->didSort);
@@ -465,7 +465,7 @@ static int deconvolveBatch(int batchSize, FINUFFT_PLAN_T<T> *p, std::complex<T> 
   Type 2: deconvolves from user-supplied input fk to 0-padded interior fw,
   again looping over fk in fkBatch and fw in p->fwBatch.
   The direction (spread vs interpolate) is set by p->spopts.spread_direction.
-  This is mostly a loop calling deconvolveshuffle?d for the needed dim batchSize
+  This is mostly a loop calling deconvolveshuffle?d for the needed dim, batchSize
   times.
   Barnett 5/21/20, simplified from Malleo 2019 (eg t3 logic won't be in here)
 */
@@ -496,7 +496,7 @@ static int deconvolveBatch(int batchSize, FINUFFT_PLAN_T<T> *p, std::complex<T> 
 } // namespace utils
 } // namespace finufft
 
-// --------------- rest is the 5 user guru (plan) interface drivers: ---------
+// --------------- rest is the five user guru (plan) interface drivers: ---------
 // (not namespaced since have safe names finufft{f}_* )
 using namespace finufft::utils; // accesses routines defined above
 
@@ -514,7 +514,8 @@ void finufft_default_opts_t(finufft_opts *o)
 // Sphinx sucks the below code block into the web docs, hence keep it clean...
 {
   // sphinx tag (don't remove): @defopts_start
-  o->modeord = 0;
+  o->modeord          = 0;
+  o->spreadinterponly = 0;
 
   o->debug        = 0;
   o->spread_debug = 0;
@@ -561,9 +562,15 @@ FINUFFT_PLAN_T<TF>::FINUFFT_PLAN_T(int type_, int dim_, const BIGINT *n_modes, i
     printf("[%s] new plan: FINUFFT version " FINUFFT_VER " .................\n",
            __func__);
 
-  fftPlan = std::make_unique<Finufft_FFT_plan<TF>>(
-      opts.fftw_lock_fun, opts.fftw_unlock_fun, opts.fftw_lock_data);
-
+  if (!opts.spreadinterponly) { // Don't make FFTW plan if only spread/interpolate
+    fftPlan = std::make_unique<Finufft_FFT_plan<TF>>(
+        opts.fftw_lock_fun, opts.fftw_unlock_fun, opts.fftw_lock_data);
+    if (!opts.fftw_lock_fun != !opts.fftw_unlock_fun) {
+      fprintf(stderr, "[%s] fftw_(un)lock functions should be both null or both set\n",
+              __func__);
+      throw int(FINUFFT_ERR_LOCK_FUNS_INVALID);
+    }
+  }
   if ((type != 1) && (type != 2) && (type != 3)) {
     fprintf(stderr, "[%s] Invalid type (%d), should be 1, 2 or 3.\n", __func__, type);
     throw int(FINUFFT_ERR_TYPE_NOTVALID);
@@ -576,28 +583,24 @@ FINUFFT_PLAN_T<TF>::FINUFFT_PLAN_T(int type_, int dim_, const BIGINT *n_modes, i
     fprintf(stderr, "[%s] ntrans (%d) should be at least 1.\n", __func__, ntrans);
     throw int(FINUFFT_ERR_NTRANS_NOTVALID);
   }
-  if (!opts.fftw_lock_fun != !opts.fftw_unlock_fun) {
-    fprintf(stderr, "[%s] fftw_(un)lock functions should be both null or both set\n",
-            __func__);
-    throw int(FINUFFT_ERR_LOCK_FUNS_INVALID);
-  }
 
   // get stuff from args...
   fftSign = (iflag >= 0) ? 1 : -1; // clean up flag input
 
-                                   // choose overall # threads...
 #ifdef _OPENMP
-  int ompmaxnthr = MY_OMP_GET_MAX_THREADS();
-  int nthr       = ompmaxnthr; // default: use as many as OMP gives us
+  // choose overall # threads...
+  int ompmaxnthr = getOptimalThreadCount();
+  int nthr       = ompmaxnthr; // default: use as many physical cores as possible
   // (the above could be set, or suggested set, to 1 for small enough problems...)
   if (opts.nthreads > 0) {
     nthr = opts.nthreads; // user override, now without limit
     if (opts.showwarn && (nthr > ompmaxnthr))
       fprintf(stderr,
-              "%s warning: using opts.nthreads=%d, more than the %d OpenMP claims "
+              "%s warning: using opts.nthreads=%d, more than the %d physically cores "
               "available; note large nthreads can be slower.\n",
               __func__, nthr, ompmaxnthr);
   }
+
 #else
   int nthr = 1; // always 1 thread (avoid segfault)
   if (opts.nthreads > 1)
@@ -606,6 +609,17 @@ FINUFFT_PLAN_T<TF>::FINUFFT_PLAN_T(int type_, int dim_, const BIGINT *n_modes, i
             __func__, opts.nthreads);
 #endif
   opts.nthreads = nthr; // store actual # thr planned for
+  if (opts.debug > 1) {
+    printf("[%s] opts.nthreads=%d\n", __func__, nthr);
+  }
+
+  if (opts.nthreads == 0) {
+    fprintf(stderr,
+            "[%s] error: detecting physical corers failed. Please specify the number "
+            "of cores to use\n",
+            __func__);
+    throw int(FINUFFT_ERR_NTHREADS_NOTVALID);
+  }
   // (this sets/limits all downstream spread/interp, 1dkernel, and FFT thread counts...)
 
   // choose batchSize for types 1,2 or 3... (uses int ceil(b/a)=1+(b-1)/a trick)
@@ -629,18 +643,15 @@ FINUFFT_PLAN_T<TF>::FINUFFT_PLAN_T(int type_, int dim_, const BIGINT *n_modes, i
   }
 
   // heuristic to choose default upsampfac... (currently two poss)
-  if (opts.upsampfac == 0.0) {              // indicates auto-choose
-    opts.upsampfac = 2.0;                   // default, and need for tol small
-    if (tol >= (TF)1E-9) {                  // the tol sigma=5/4 can reach
-      if (type == 3)                        // could move to setpts, more known?
-        opts.upsampfac = 1.25;              // faster b/c smaller RAM & FFT
-      else if ((dim == 1 && N() > 10000000) || (dim == 2 && N() > 300000) ||
-               (dim == 3 && N() > 3000000)) // type 1,2 heuristic cutoffs, double,
-                                            // typ tol, 12-core xeon
-        opts.upsampfac = 1.25;
-    }
+  if (opts.upsampfac == 0.0) { // init to auto choice
+    // Let assume density=1 as the average use case.
+    // TODO: make a decision on how to choose density properly.
+    const auto density = TF{1};
+    opts.upsampfac     = bestUpsamplingFactor<TF>(opts.nthreads, density, dim, type, tol);
     if (opts.debug > 1)
-      printf("[%s] set auto upsampfac=%.2f\n", __func__, opts.upsampfac);
+      printf("[%s] threads %d, density %.3g, dim %d, nufft type %d, tol %.3g: auto "
+             "upsampfac=%.2f\n",
+             __func__, opts.nthreads, density, dim, type, tol, opts.upsampfac);
   }
   // use opts to choose and write into plan's spread options...
   ier = setup_spreader_for_nufft(spopts, tol, opts, dim);
@@ -654,67 +665,87 @@ FINUFFT_PLAN_T<TF>::FINUFFT_PLAN_T(int type_, int dim_, const BIGINT *n_modes, i
                          // Note: batchSize not used since might be only 1.
 
     spopts.spread_direction = type;
+    constexpr TF EPSILON    = std::numeric_limits<TF>::epsilon();
 
-    constexpr TF EPSILON = std::numeric_limits<TF>::epsilon();
-    if (opts.showwarn) { // user warn round-off error (due to prob condition #)...
+    if (opts.spreadinterponly) { // (unusual case of no NUFFT, just report)
+
+      // spreadinterp grid will simply be the user's "mode" grid...
+      for (int idim = 0; idim < dim; ++idim) nfdim[idim] = mstu[idim];
+
+      if (opts.debug) { // "long long" here is to avoid warnings with printf...
+        printf("[%s] %dd spreadinterponly(dir=%d): (ms,mt,mu)=(%lld,%lld,%lld)"
+               "\n               ntrans=%d nthr=%d batchSize=%d kernel width ns=%d",
+               __func__, dim, type, (long long)mstu[0], (long long)mstu[1],
+               (long long)mstu[2], ntrans, nthr, batchSize, spopts.nspread);
+        if (batchSize == 1) // spread_thread has no effect in this case
+          printf("\n");
+        else
+          printf(" spread_thread=%d\n", opts.spread_thread);
+      }
+
+    } else { // ..... usual NUFFT: eval Fourier series, alloc workspace .....
+
+      if (opts.showwarn) { // user warn round-off error (due to prob condition #)...
+        for (int idim = 0; idim < dim; ++idim)
+          if (EPSILON * mstu[idim] > 1.0)
+            fprintf(
+                stderr,
+                "%s warning: rounding err (due to cond # of prob) eps_mach*N%d = %.3g "
+                "> 1 !\n",
+                __func__, idim, (double)(EPSILON * mstu[idim]));
+      }
+
+      // determine fine grid sizes, sanity check, then alloc...
+      for (int idim = 0; idim < dim; ++idim) {
+        int nfier = set_nf_type12(mstu[idim], opts, spopts, &nfdim[idim]);
+        if (nfier) throw nfier;                   // nf too big; we're done
+        phiHat[idim].resize(nfdim[idim] / 2 + 1); // alloc fseries
+      }
+
+      if (opts.debug) { // "long long" here is to avoid warnings with printf...
+        printf("[%s] %dd%d: (ms,mt,mu)=(%lld,%lld,%lld) "
+               "(nf1,nf2,nf3)=(%lld,%lld,%lld)\n               ntrans=%d nthr=%d "
+               "batchSize=%d ",
+               __func__, dim, type, (long long)mstu[0], (long long)mstu[1],
+               (long long)mstu[2], (long long)nfdim[0], (long long)nfdim[1],
+               (long long)nfdim[2], ntrans, nthr, batchSize);
+        if (batchSize == 1) // spread_thread has no effect in this case
+          printf("\n");
+        else
+          printf(" spread_thread=%d\n", opts.spread_thread);
+      }
+
+      // STEP 0: get Fourier coeffs of spreading kernel along each fine grid dim
+      CNTime timer;
+      timer.start();
       for (int idim = 0; idim < dim; ++idim)
-        if (EPSILON * mstu[idim] > 1.0)
-          fprintf(stderr,
-                  "%s warning: rounding err (due to cond # of prob) eps_mach*N%d = %.3g "
-                  "> 1 !\n",
-                  __func__, idim, (double)(EPSILON * mstu[idim]));
+        onedim_fseries_kernel(nfdim[idim], phiHat[idim], spopts);
+      if (opts.debug)
+        printf("[%s] kernel fser (ns=%d):\t\t%.3g s\n", __func__, spopts.nspread,
+               timer.elapsedsec());
+
+      if (nf() * batchSize > MAX_NF) {
+        fprintf(stderr,
+                "[%s] fwBatch would be bigger than MAX_NF, not attempting memory "
+                "allocation!\n",
+                __func__);
+        throw int(FINUFFT_ERR_MAXNALLOC);
+      }
+
+      timer.restart();
+      fwBatch.resize(nf() * batchSize); // the big workspace (batch of fine grids)
+      if (opts.debug)
+        printf("[%s] fwBatch %.2fGB alloc:   \t%.3g s\n", __func__,
+               (double)1E-09 * sizeof(std::complex<TF>) * nf() * batchSize,
+               timer.elapsedsec());
+
+      timer.restart(); // plan the FFTW (to act in-place on the workspace fwBatch)
+      const auto ns = gridsize_for_fft(this);
+      fftPlan->plan(ns, batchSize, fwBatch.data(), fftSign, opts.fftw, nthr_fft);
+      if (opts.debug)
+        printf("[%s] FFT plan (mode %d, nthr=%d):\t%.3g s\n", __func__, opts.fftw,
+               nthr_fft, timer.elapsedsec());
     }
-
-    // determine fine grid sizes, sanity check..
-    for (int idim = 0; idim < dim; ++idim) {
-      int nfier = set_nf_type12(mstu[idim], opts, spopts, &nfdim[idim]);
-      if (nfier) throw nfier; // nf too big; we're done
-      phiHat[idim].resize(nfdim[idim] / 2 + 1);
-    }
-
-    if (opts.debug) { // "long long" here is to avoid warnings with printf...
-      printf("[%s] %dd%d: (ms,mt,mu)=(%lld,%lld,%lld) "
-             "(nf1,nf2,nf3)=(%lld,%lld,%lld)\n               ntrans=%d nthr=%d "
-             "batchSize=%d ",
-             __func__, dim, type, (long long)mstu[0], (long long)mstu[1],
-             (long long)mstu[2], (long long)nfdim[0], (long long)nfdim[1],
-             (long long)nfdim[2], ntrans, nthr, batchSize);
-      if (batchSize == 1) // spread_thread has no effect in this case
-        printf("\n");
-      else
-        printf(" spread_thread=%d\n", opts.spread_thread);
-    }
-
-    // STEP 0: get Fourier coeffs of spreading kernel along each fine grid dim
-    CNTime timer;
-    timer.start();
-    for (int idim = 0; idim < dim; ++idim)
-      onedim_fseries_kernel(nfdim[idim], phiHat[idim], spopts);
-    if (opts.debug)
-      printf("[%s] kernel fser (ns=%d):\t\t%.3g s\n", __func__, spopts.nspread,
-             timer.elapsedsec());
-
-    if (nf() * batchSize > MAX_NF) {
-      fprintf(
-          stderr,
-          "[%s] fwBatch would be bigger than MAX_NF, not attempting memory allocation!\n",
-          __func__);
-      throw int(FINUFFT_ERR_MAXNALLOC);
-    }
-
-    timer.restart();
-    fwBatch.resize(nf() * batchSize); // the big workspace
-    if (opts.debug)
-      printf("[%s] fwBatch %.2fGB alloc:   \t%.3g s\n", __func__,
-             (double)1E-09 * sizeof(std::complex<TF>) * nf() * batchSize,
-             timer.elapsedsec());
-
-    timer.restart(); // plan the FFTW
-    const auto ns = gridsize_for_fft(this);
-    fftPlan->plan(ns, batchSize, fwBatch.data(), fftSign, opts.fftw, nthr_fft);
-    if (opts.debug)
-      printf("[%s] FFT plan (mode %d, nthr=%d):\t%.3g s\n", __func__, opts.fftw, nthr_fft,
-             timer.elapsedsec());
 
   } else { // -------------------------- type 3 (no planning) ------------
 
@@ -971,34 +1002,40 @@ int FINUFFT_PLAN_T<TF>::execute(std::complex<TF> *cj, std::complex<TF> *fk) {
       // current batch is either batchSize, or possibly truncated if last one
       int thisBatchSize     = std::min(ntrans - b * batchSize, batchSize);
       int bB                = b * batchSize; // index of vector, since batchsizes same
-      std::complex<TF> *cjb = cj + bB * nj;  // point to batch of weights
-      std::complex<TF> *fkb = fk + bB * N(); // point to batch of mode coeffs
+      std::complex<TF> *cjb = cj + bB * nj;  // point to batch of user weights
+      std::complex<TF> *fkb = fk + bB * N(); // point to batch of user mode coeffs
       if (opts.debug > 1)
         printf("[%s] start batch %d (size %d):\n", __func__, b, thisBatchSize);
 
       // STEP 1: (varies by type)
       timer.restart();
+      // usually spread/interp to/from fwBatch (vs spreadinterponly: to/from user grid)
+      std::complex<TF> *fwBatch_or_fkb =
+          opts.spreadinterponly ? fkb : this->fwBatch.data();
       if (type == 1) { // type 1: spread NU pts X, weights cj, to fw grid
-        spreadinterpSortedBatch<TF>(thisBatchSize, this, cjb);
+        spreadinterpSortedBatch<TF>(thisBatchSize, this, fwBatch_or_fkb, cjb);
         t_sprint += timer.elapsedsec();
-      } else { //  type 2: amplify Fourier coeffs fk into 0-padded fw
+        if (opts.spreadinterponly) // we're done (skip to next iteration of loop)
+          continue;
+      } else if (!opts.spreadinterponly) {
+        // type 2: amplify Fourier coeffs fk into 0-padded fw
         deconvolveBatch<TF>(thisBatchSize, this, fkb);
         t_deconv += timer.elapsedsec();
       }
-
-      // STEP 2: call the FFT on this batch
-      timer.restart();
-      do_fft(this);
-      t_fft += timer.elapsedsec();
-      if (opts.debug > 1) printf("\tFFT exec:\t\t%.3g s\n", timer.elapsedsec());
-
+      if (!opts.spreadinterponly) { // Do FFT unless spread/interp only...
+        // STEP 2: call the FFT on this batch
+        timer.restart();
+        do_fft(this);
+        t_fft += timer.elapsedsec();
+        if (opts.debug > 1) printf("\tFFT exec:\t\t%.3g s\n", timer.elapsedsec());
+      }
       // STEP 3: (varies by type)
       timer.restart();
       if (type == 1) { // type 1: deconvolve (amplify) fw and shuffle to fk
         deconvolveBatch<TF>(thisBatchSize, this, fkb);
         t_deconv += timer.elapsedsec();
       } else { // type 2: interpolate unif fw grid to NU target pts
-        spreadinterpSortedBatch<TF>(thisBatchSize, this, cjb);
+        spreadinterpSortedBatch<TF>(thisBatchSize, this, fwBatch_or_fkb, cjb);
         t_sprint += timer.elapsedsec();
       }
     } // ........end b loop
@@ -1048,10 +1085,11 @@ int FINUFFT_PLAN_T<TF>::execute(std::complex<TF> *cj, std::complex<TF> *fk) {
       }
       t_pre += timer.elapsedsec();
 
-      // STEP 1: spread c'_j batch (x'_j NU pts) into fw batch grid...
+      // STEP 1: spread c'_j batch (x'_j NU pts) into internal fw batch grid...
       timer.restart();
-      spopts.spread_direction = 1;                                      // spread
-      spreadinterpSortedBatch<TF>(thisBatchSize, this, CpBatch.data()); // X are primed
+      spopts.spread_direction = 1;                 // spread
+      spreadinterpSortedBatch<TF>(thisBatchSize, this, this->fwBatch.data(),
+                                  CpBatch.data()); // X are primed
       t_spr += timer.elapsedsec();
 
       // STEP 2: type 2 NUFFT from fw batch to user output fk array batch...

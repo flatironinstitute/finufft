@@ -1,0 +1,24 @@
+% CUFINUFFT2D3   GPU 2D complex nonuniform FFT, type 3 (nonuniform to nonuniform).
+%
+% f = cufinufft2d3(x,y,c,isign,eps,s,t)
+% f = cufinufft2d3(x,y,c,isign,eps,s,t,opts)
+%
+% This computes on the GPU, to relative precision eps, via a fast algorithm:
+%
+%              nj
+%     f[k]  =  SUM   c[j] exp(+-i (s[k] x[j] + t[k] y[j])),  for k = 1, ..., nk
+%              j=1
+%   Inputs:
+%     x,y   coordinates of nonuniform sources in R^2, each a length-nj vector.
+%     c     length-nj complex vector of source strengths. If numel(c)>nj,
+%           expects a stack of vectors (eg, a nj*ntrans matrix) each of which is
+%           transformed with the same source and target locations.
+ISIGNEPS
+%     s,t   frequency coordinates of nonuniform targets in R^2,
+%           each a length-nk vector.
+GOPTS
+%   Outputs:
+%     f     length-nk complex vector of values at targets, or, if ntrans>1,
+%           a matrix of size (nk,ntrans)
+%
+GNOTES

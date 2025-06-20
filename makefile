@@ -139,7 +139,7 @@ ABSDYNLIB = $(FINUFFT)$(DYNLIB)
 SOBJS = src/finufft_utils.o src/spreadinterp.o
 
 # all lib dual-precision objs (note DUCC_OBJS empty if unused)
-OBJS = $(SOBJS) contrib/legendre_rule_fast.o src/fft.o src/finufft_core.o src/c_interface.o fortran/finufftfort.o $(DUCC_OBJS)
+OBJS = $(SOBJS) src/fft.o src/finufft_core.o src/c_interface.o fortran/finufftfort.o $(DUCC_OBJS)
 
 .PHONY: usage lib examples test perftest spreadtest spreadtestall fortran matlab octave all mex python clean objclean pyclean mexclean wheel docker-wheel gurutime docs setup setupclean
 
@@ -345,7 +345,7 @@ bigtest: perftest/big2d2f
 
 PERFEXECS := $(basename $(wildcard test/finufft?d_test.cpp))
 PERFEXECS += $(PERFEXECS:%=%f)
-perftest: $(ST) $(STF) $(PERFEXECS) spreadtestndall bigtest
+perftest: $(ST) $(STF) $(PERFEXECS) spreadtestndall bigtest gurutime manysmallprobs
 # here the tee cmd copies output to screen. 2>&1 grabs both stdout and stderr...
 	(cd perftest ;\
 	./spreadtestnd.sh 2>&1 | tee results/spreadtestnd_results.txt ;\
@@ -360,10 +360,9 @@ gurutime: $(GTT) $(GTTF)
 	for i in $(GTT) $(GTTF); do $$i 100 1 2 1e2 1e2 0 1e6 1e-3 1 0 0 2; done
 
 # This was for a CCQ application... (zgemm was 10x faster! double-prec only)
-perftest/manysmallprobs: perftest/manysmallprobs.cpp $(STATICLIB)
-	$(CXX) $(CXXFLAGS) ${LDFLAGS} $< $(STATICLIB) $(LIBSFFT) -o $@
-	@echo "manysmallprobs: single-thread..."
-	OMP_NUM_THREADS=1 $@
+manysmallprobs: perftest/manysmallprobs
+	@echo "run manysmallprobs, double-prec, single-thread..."
+	OMP_NUM_THREADS=1 perftest/manysmallprobs
 
 
 
@@ -398,7 +397,8 @@ fortran: $(FE)
 
 
 # matlab ----------------------------------------------------------------------
-# matlab .mex* executable... (matlab is so slow to start, not worth testing it)
+# matlab .mex* executable... (matlab is so slow to start, and bad at batch
+# scripting [can get stuck inside], not worth testing it here; user must test)
 matlab: matlab/finufft.cpp $(STATICLIB)
 	$(MEX) $< $(STATICLIB) $(INCL) $(MFLAGS) $(LIBSFFT) -output matlab/finufft
 
@@ -407,6 +407,7 @@ octave: matlab/finufft.cpp $(STATICLIB)
 	(cd matlab; $(MKOCTFILE) --mex finufft.cpp -I../include ../$(STATICLIB) $(OFLAGS) $(LIBSFFT) -output finufft)
 	@echo "Running octave interface tests; please wait a few seconds..."
 	(cd matlab ;\
+	$(OCTAVE) test/fullmathtest.m ;\
 	$(OCTAVE) test/check_finufft.m ;\
 	$(OCTAVE) test/check_finufft_single.m ;\
 	$(OCTAVE) examples/guru1d1.m ;\
@@ -417,7 +418,8 @@ octave: matlab/finufft.cpp $(STATICLIB)
 mex: matlab/finufft.mw
 ifneq ($(MINGW),ON)
 	(cd matlab ;\
-	$(MWRAP) -mex finufft -c finufft.cpp -mb -cppcomplex finufft.mw)
+	$(MWRAP) -mex finufft -c finufft.cpp -mb -cppcomplex finufft.mw ;\
+	$(MWRAP) -mex cufinufft -c cufinufft.cu -mb -cppcomplex -gpu cufinufft.mw)
 else
 	(cd matlab & $(MWRAP) -mex finufft -c finufft.cpp -mb -cppcomplex finufft.mw)
 endif
@@ -537,12 +539,12 @@ endif
 objclean:
 ifneq ($(MINGW),ON)
   # non-Windows-WSL... (note: cleans DUCC objects regardless of FFT choice)
-	rm -f src/*.o test/directft/*.o test/*.o examples/*.o matlab/*.o contrib/*.o
+	rm -f src/*.o test/directft/*.o test/*.o examples/*.o matlab/*.o
 	rm -f fortran/*.o $(FE_DIR)/*.o $(FD)/*.o finufft_mod.mod
 	rm -f $(DUCC_SRC)/infra/*.o $(DUCC_SRC)/math/*.o
 else
   # Windows-WSL...
-	for /d %%d in (src,test\directfttest,examples,matlab,contrib) do (for %%f in (%%d\*.o) do (del %%f))
+	for /d %%d in (src,test\directfttest,examples,matlab) do (for %%f in (%%d\*.o) do (del %%f))
 	for /d %%d in (fortran,$(subst /,\, $(FE_DIR)),$(subst /,\, $(FD))) do (for %%f in (%%d\*.o) do (del %%f))
   # *** to del DUCC *.o
 endif

@@ -8,10 +8,12 @@
    June 2023: switched to pass-fail tests within the executable (more clear,
    and platform-indep, than having to compare the text output)
 
-   Suggested compile (double/float versions):
-   g++ -std=c++14 -fopenmp testutils.cpp -I../include ../src/utils.o
-   ../src/utils.o -o testutils -lgomp g++ -std=c++14 -fopenmp testutils.cpp
-   -I../include ../src/utils.o -o testutilsf -lgomp -DSINGLE
+   Suggested compile. double-prec:
+   g++ -std=c++17 -fopenmp testutils.cpp -I../include ../src/utils.o
+       ../src/utils.o -o testutils -lgomp
+   single-prec:
+   g++ -std=c++17 -fopenmp testutils.cpp
+       -I../include ../src/utils.o -o testutilsf -lgomp -DSINGLE
 */
 
 // This switches FLT macro from double to float if SINGLE is defined, etc...
@@ -47,12 +49,30 @@ int main(int argc, char *argv[]) {
       return 1;
     }
   }
-
-  // various old devel expts and comments...
+  // various old devel expts and comments for next235even...
   // printf("starting huge next235even...\n");   // 1e11 takes 1 sec
   // BIGINT n=(BIGINT)120573851963;
   // printf("next235even(%ld) =\t%ld\n",n,next235even(n));
   // double* a; printf("%g\n",a[0]);  // do deliberate segfault for bash debug!
+
+  // test Gauss-Legendre quadrature...
+  const int n = 16;
+  std::vector<double> x(n), w(n);
+  gaussquad(n, x.data(), w.data());
+  auto f = [](double x) {
+    return sin(4 * x + 1.0) + 0.3;
+  }; // a test func f(x)
+  auto fp = [](double x) {
+    return 4 * cos(4 * x + 1.0);
+  }; // its deriv f'(x)
+  double I = 0;
+  for (int i = 0; i < n; ++i) I += w[i] * fp(x[i]);
+  double Iex = f(1.0) - f(-1.0);
+  double err = std::abs(I - Iex);
+  if (err > 1e-14) { // for the above func, err should be 4e-14
+    printf("fail: gaussquad error %g\n", err);
+    return 1;
+  }
 
   // test vector norms and norm difference routines... now pass-fail 6/16/23
   BIGINT M = 1e4;

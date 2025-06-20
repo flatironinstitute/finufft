@@ -19,7 +19,7 @@ back on the original grid. Here is a MATLAB demo in $d=2$ dimensions.
 Firstly we set up a smooth function, periodic up to machine precision:
 
 .. code-block:: matlab
-  
+
   w0 = 0.1;  % width of bumps
   src = @(x,y) exp(-0.5*((x-1).^2+(y-2).^2)/w0^2)-exp(-0.5*((x-3).^2+(y-5).^2)/w0^2);
 
@@ -27,7 +27,7 @@ Now we do the FFT solve, using a loop to check convergence with respect to
 ``n`` the number of grid points in each dimension:
 
 .. code-block:: matlab
-  
+
   ns = 40:20:120;              % convergence study of grid points per side
   for i=1:numel(ns), n = ns(i);
     x = 2*pi*(0:n-1)/n;        % grid
@@ -55,7 +55,7 @@ We observe spectral convergence to 14 digits::
 Here we plot the FFT solution:
 
 .. code-block:: matlab
-  
+
   figure; subplot(1,2,1); imagesc(x,x,f'); colorbar('southoutside');
   axis xy equal tight; title('source term f'); xlabel('x'); ylabel('y');
   subplot(1,2,2); imagesc(x,x,u'); colorbar('southoutside');
@@ -63,7 +63,7 @@ Here we plot the FFT solution:
 
 .. image:: ../pics/pois_fft.png
    :width: 90%
-           
+
 Now let's say you wish to do a similar Poisson solve on a **non-Cartesian grid** covering the same
 domain. There are two cases: a) the grid is unstructured and you do
 not know the weights of a quadrature scheme, or b) you do know the weights
@@ -72,7 +72,7 @@ structured, such as arising from a different coordinate system or an adaptive su
 $j=1,\dots, M$, and
 weights $w_j$ such that, for all smooth functions $f$,
 
-.. math::   
+.. math::
   \int_{[0,2\pi)^d} f(x) dx \approx \sum_{j=1}^M f(x_j) w_j
 
 holds to sufficient accuracy. We consider case b) only.
@@ -82,7 +82,7 @@ diffeomorphism from $[0,2\pi)^2$ to itself to define a distorted mesh
 Jacobian):
 
 .. code-block:: matlab
-  
+
   map = @(t,s) [t + 0.5*sin(t) + 0.2*sin(2*s); s + 0.3*sin(2*s) + 0.3*sin(s-t)];
   mapJ = @(t,s) [1 + 0.5*cos(t), 0.4*cos(2*s); ...
                 -0.3*cos(s-t),  1+0.6*cos(2*s)+0.3*cos(s-t)]; % its 2x2 Jacobian
@@ -102,7 +102,7 @@ noting that it covers the domain when periodically extended:
 
 .. image:: ../pics/pois_nugrid.png
    :width: 40%
-           
+
 To solve on this grid, replace step 1 above by evaluating the Euler-Fourier formula using the quadrature scheme, which needs a type-1 NUFFT, and step 3 (evaluation on the nonuniform grid) by a type-2 NUFFT. Step 2 (the frequency filter) remains the same. Here is the demo code:
 
 .. code-block:: matlab
@@ -129,7 +129,7 @@ To solve on this grid, replace step 1 above by evaluating the Euler-Fourier form
     u = reshape(real(u),[n n]);
     fprintf('n=%d:\tNk=%d\tu(0,0) = %.15e\n',n,Nk,u(1,1))  % check conv at same pt
   end
-            
+
 Here a convergence parameter (``Nk = 0.5*n``) had to be set to
 choose how many modes to trust with the quadrature. Thus ``n`` is about
 twice what it needed to be in the uniform case, accounting for the stretching
@@ -145,13 +145,13 @@ and matches the FFT solution at the test point to 12 relative digits::
 
 .. image:: ../pics/pois_nufft.png
    :width: 90%
-           
+
 Finally, here is the decay of the modes $\hat{f}_k$ on a log plot, for the
 FFT and NUFFT versions. They are identical down to the level ``tol``:
 
 .. image:: ../pics/pois_fhat.png
    :width: 90%
-           
+
 The full code is at
 `tutorial/poisson2dnuquad.m <https://github.com/flatironinstitute/finufft/blob/master/tutorial/poisson2dnuquad.m>`_.
 

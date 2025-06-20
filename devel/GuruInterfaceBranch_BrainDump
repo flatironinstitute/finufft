@@ -19,7 +19,7 @@ the makefile line "CFLAGS += -I include" ensures all headers inside of this "inc
 available to a file if they are referred to with the former syntax.
 
 |nufft_opts.h| : Additional parameter spread_scheme {0:Sequential Multithreaded, 1: Nested Multithreaded}.
-	         The default spread_scheme is set to 0. 
+	         The default spread_scheme is set to 0.
 
 **Src Directory**
 
@@ -45,14 +45,14 @@ available to a file if they are referred to with the former syntax.
               1) finufft_default_opts(): identical to original version + extra spreading_scheme parameter set default to 0 : sequential
 	      	 		         multithreaded scheme. Set to 1 to switch to simultaneous single threaded with nested at
 					 the end. Description of schemes below.
-					 
+
               2) finufft_makeplan(): sets the fields of the plan struct.
 
 	      	 		     ==================================Types 1 + 2=============================================
 	      	 		     Allocates the internal fw array that is the workspace for fftw_execute(). For cases where
 				     n_trans > 1, user supplied c and F arrays are stacked arrays of size M*n_transf and N*n_transf
 				     respectively. Because finufft_exec() performs its steps in batches of size threadBlkSize
-				     (a parameter for this function)  Internal arrays like fw (and cpj, see finufft_exec) are still 
+				     (a parameter for this function)  Internal arrays like fw (and cpj, see finufft_exec) are still
 				     stacked, but only threadBlkSize times. I.e. in 1d fw is of size nf1*threadBlkSize.
 				     Sets of weights are spread to the uniform grid threadBlkSize at a time. This holds true for all
 				     n_transf >= threadBlkSize. If n_transf < threadBlkSize, then internal arrays are only stacked
@@ -68,9 +68,9 @@ available to a file if they are referred to with the former syntax.
 				     to not run into trouble, however the contents of the array at the end are garbage- never filled
 				     in with sets of spread/interpolated weights. They are not read out either, so there is no effect.
 				     This course was chosen instead of creating a new fftw_plan on the last round with a different
-				     "how_many" and calling fftw_exec on the new plan. 
-				     
-              3) finufft_setpts():  sets the coordinate pointers with the provided pts. 
+				     "how_many" and calling fftw_exec on the new plan.
+
+              3) finufft_setpts():  sets the coordinate pointers with the provided pts.
 
 	      	 		     ==================================Type 1 + 2================================================
 
@@ -89,15 +89,15 @@ available to a file if they are referred to with the former syntax.
 
 				    The target frequencies are scaled, and the spreading kernel fourier weights are computed. PhiHat
 				    is the name of the array in the finufft_plan struct referred to as fwker for type 1+2 and fkker
-				    in type 3 in older code. 
-				  
-	      	 		   
+				    in type 3 in older code.
+
+
               4) finufft_exec(): Main body for both types is contained in a loop over the number of batches.
 	      	 		 Inside are calls to spread, interp, deconvolve, prephase as appropriate for type, and fftw_exec.
 	      	                 nBatches = ceil(n_transf/threadBlkSize). The number of sets in a batch is equal to
 				 min(threadBlkSize, n_transf). Where n_transf > threadBlkSize, i.e. nBatches > 1,
 				 for the last batch, the number of sets in the batch is modulus n_transf/threadBlkSize.
-				 The number of sets in a batch is the number times that the spread, interpolated, deconvolve, 
+				 The number of sets in a batch is the number times that the spread, interpolated, deconvolve,
  				 and prephase routines execute. Thus there are no extra calls to any of these functions on the
 				 last loop of execution. Recall that this is not the case for fftw_exec - internally it will do
 				 more work than necessary on the last round if nBatches > 1.
@@ -134,10 +134,10 @@ available to a file if they are referred to with the former syntax.
 				  because the type 2 n_transf is always less than or equal to the threadBlkSize. On the last
 				  type 3 execute batch, the interior type 2 n_transf field must be set to the modulus of
 				  n_transf/threadBlkSize, because the cj and fk arrays provided by the user are only the
-				  stacked to {M,N}*n_transf, so extra work at the end would try to access outside of allocated memory. 
+				  stacked to {M,N}*n_transf, so extra work at the end would try to access outside of allocated memory.
 
 
-	      5) finnuft_destroy(): releases all memory allocated internally by finufft and calls fftw_destroy on the plan. 
+	      5) finnuft_destroy(): releases all memory allocated internally by finufft and calls fftw_destroy on the plan.
 
 
 **Test Directory**
@@ -149,7 +149,7 @@ available to a file if they are referred to with the former syntax.
 
 |dumbinputs| : has been expanded to check bad inputs across the extended legacy interface
 
-|finufftGuru_test| : Main demo code for the guru interface and test program executable. 
+|finufftGuru_test| : Main demo code for the guru interface and test program executable.
 
                      Note on Usage: spread_scheme parameter after the debug that allows user to choose sequential multithreaded
                      spread vs simultaneous single threaded+nested last. Default is sequential multithreaded spread/interp.
@@ -173,7 +173,7 @@ available to a file if they are referred to with the former syntax.
 
 			 if n_trials = [1,10,100] at the top of the script
 			 pattern of any given printed array: [dim1_1trial, dim1_10trials, dim1_100trials, dim2_1trial, etc ]
-			 
+
 			 Run this on a rusty node and you should find total time ratios ~>= 1 for *almost* all of the big problems
 			 defaulted in this script, indicating that the old implementation took longer than the new.
 
@@ -185,7 +185,7 @@ available to a file if they are referred to with the former syntax.
 			 n_trials grows, evidence for completion of a primary goal: reduce finufft_plan retrieval overhead time
 			 in repeated executions. ***
 
-			 fftw_exec times are printed last. Same sanity check as above applies. 
+			 fftw_exec times are printed last. Same sanity check as above applies.
 
 |spreadingSchemeStats.py| : this script runs a single small problem and a single large problem for the two spreading schemes.
 			    See #4 of Timing Questions and Conclusions for further information on the schemes. The output of
@@ -204,11 +204,11 @@ available to a file if they are referred to with the former syntax.
    The file timingResults/timingBreakdowns_largeProblems.out contain stats reported from timingBreakdowns.py for a problem size 1e7.
    The files timingResults/timingBreakdowns_smallProblems_* contain stats reported for timingBreaddowns.py for a problem of size 1e4.
    All of these show a decrease in time spent in fftw_plan linearly proportional to the number of transforms computed.
-   
+
 2) Speedup due to non-repeated sorting?
    The Spreading results section in timingResults/timingBreakdowns_sortingDominates.out, run with M = 1e7 and N = 1e4,
-   provides good evidence for the guru speedup due to time advantage of single sort over repeated sort. 
-   
+   provides good evidence for the guru speedup due to time advantage of single sort over repeated sort.
+
 3) FFTW and single vs many plan and execution?
    Does FFTW do better performing one fftw_execute many times in a loop or a single time over many sets?
    For large problems, many execution looks better than repeated single, however trials
@@ -252,7 +252,7 @@ available to a file if they are referred to with the former syntax.
    investigation. The code being referred to is identical in spreadAllSetsInBatch and interpAllSetsInBatch in finufft.cpp.
    The lines beginning at the declaration of the n_outerThreads variable down to #pragma omp parallel before the for-loop, and then
    the three lines at the bottom that reset nested to 0.
-   
+
 
 **Testing Gotchas...BEWARE**
 1) |FFTW library clean slate|: Even with fftw_destoy_plan(&plan) [inside of finufft_destroy] and fftw_forget_wisdom()

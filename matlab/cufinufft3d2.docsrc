@@ -1,0 +1,28 @@
+% CUFINUFFT3D2   GPU 3D complex nonuniform FFT, type 2 (uniform to nonuniform).
+%
+% c = cufinufft3d2(x,y,z,isign,eps,f)
+% c = cufinufft3d2(x,y,z,isign,eps,f,opts)
+%
+% This computes on the GPU, to relative precision eps, via a fast algorithm:
+%
+%    c[j] =   SUM   f[k1,k2,k3] exp(+/-i (k1 x[j] + k2 y[j] + k3 z[j]))
+%           k1,k2,k3
+%                            for j = 1,..,nj
+%     where sum is over -ms/2 <= k1 <= (ms-1)/2, -mt/2 <= k2 <= (mt-1)/2,
+%                       -mu/2 <= k3 <= (mu-1)/2.
+%
+%  Inputs:
+%     x,y,z real-valued coordinates of nonuniform targets,
+%           each a vector of length nj
+%     f     complex Fourier coefficient array, whose size sets (ms,mt,mu).
+%           (Mode ordering given by opts.modeord, in each dimension.)
+%           If a 4D array, 4th dimension sets ntrans, and each of ntrans
+%           3D arrays is transformed with the same nonuniform targets.
+ISIGNEPS
+GOPTS
+GOPTS12
+%  Outputs:
+%     c     complex column vector of nj answers at targets, or,
+%           if ntrans>1, matrix of size (nj,ntrans).
+%
+GNOTES

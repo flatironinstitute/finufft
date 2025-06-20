@@ -5,11 +5,11 @@
   This file contains all the GPU kernels for 2d spreading, interpolation.
 
 - interp2d_wrapper.cu
-  Wrappers for 2d interpolations. Two methods are implemented: 
-    (1) nonuniform driven, 
+  Wrappers for 2d interpolations. Two methods are implemented:
+    (1) nonuniform driven,
     (2) subproblem
-    
+
 - spread2d_wrapper.cu
-  Wrappers for 2d spreading. Three methods are implemented: 
-    (1) nonuniform driven, 
-    (2) subproblem, 
+  Wrappers for 2d spreading. Three methods are implemented:
+    (1) nonuniform driven,
+    (2) subproblem,

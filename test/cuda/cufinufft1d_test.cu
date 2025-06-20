@@ -4,21 +4,25 @@
 #include <iostream>
 #include <random>
 
-#include <cufinufft.h>
-
-#include <cufinufft/contrib/helper_cuda.h>
-#include <cufinufft/impl.h>
-#include <cufinufft/utils.h>
-
 #include <thrust/complex.h>
 #include <thrust/device_vector.h>
 #include <thrust/host_vector.h>
 
-using cufinufft::utils::infnorm;
+#include <cufinufft.h>
+
+#include "../utils/dirft1d.hpp"
+#include "../utils/norms.hpp"
+#include <cufinufft/contrib/helper_cuda.h>
+#include <cufinufft/impl.h>
+#include <cufinufft/utils.h>
+
+constexpr auto TEST_BIGPROB = 1e8;
 
 template<typename T>
 int run_test(int method, int type, int N1, int M, T tol, T checktol, int iflag,
              double upsampfac) {
+  // print all the input for debugging
+
   std::cout << std::scientific << std::setprecision(3);
   int ier;
 
@@ -86,11 +90,14 @@ int run_test(int method, int type, int N1, int M, T tol, T checktol, int iflag,
     int nf1 = 1;
     cufftHandle fftplan;
     cufftPlan1d(&fftplan, nf1, cufft_type<T>(), 1);
+    cufftDestroy(fftplan);
   }
   cudaEventRecord(stop);
   cudaEventSynchronize(stop);
   cudaEventElapsedTime(&milliseconds, start, stop);
   printf("[time  ] dummy warmup call to CUFFT\t %.3g s\n", milliseconds / 1000);
+
+  cudaDeviceSynchronize();
 
   // now to the test...
   cufinufft_plan_t<T> *dplan;
@@ -175,34 +182,59 @@ int run_test(int method, int type, int N1, int M, T tol, T checktol, int iflag,
 
   T rel_error = std::numeric_limits<T>::max();
   if (type == 1) {
-    int nt1               = 0.37 * N1; // choose some mode index to check
-    thrust::complex<T> Ft = thrust::complex<T>(0, 0), J = thrust::complex<T>(0.0, iflag);
-    for (int j = 0; j < M; ++j) Ft += c[j] * exp(J * (nt1 * x[j])); // crude direct
-    int it = N1 / 2 + nt1; // index in complex F as 1d array
-
-    rel_error = abs(Ft - fk[it]) / infnorm(N1, (std::complex<T> *)fk.data());
+    int nt1                = 0.37 * N1; // choose some mode index to check
+    thrust::complex<T> Ftp = thrust::complex<T>(0, 0), J = thrust::complex<T>(0.0, iflag);
+    for (int j = 0; j < M; ++j) Ftp += c[j] * exp(J * (nt1 * x[j])); // crude direct
+    int it    = N1 / 2 + nt1; // index in complex F as 1d array
+    rel_error = abs(Ftp - fk[it]) / infnorm(N1, fk);
     printf("[gpu   ] one mode: rel err in F[%d] is %.3g\n", nt1, rel_error);
+    if (static_cast<double>(M) * N1 <= TEST_BIGPROB) {
+      // also full direct eval
+      std::vector<thrust::complex<T>> Ft(N1);
+      dirft1d1(M, x, c, iflag, N1, Ft);
+      const auto err = relerrtwonorm(N1, Ft, fk);
+      rel_error      = max(err, rel_error);
+      printf("[gpu   ]\tdirft1d: rel l2-err of result F is %.3g\n", err);
+    }
   } else if (type == 2) {
-    int jt                = M / 2; // check arbitrary choice of one targ pt
-    thrust::complex<T> J  = thrust::complex<T>(0, iflag);
-    thrust::complex<T> ct = thrust::complex<T>(0, 0);
-    int m                 = 0;
+    int jt                 = M / 2; // check arbitrary choice of one targ pt
+    thrust::complex<T> J   = thrust::complex<T>(0, iflag);
+    thrust::complex<T> ctp = thrust::complex<T>(0, 0);
+    int m                  = 0;
     for (int m1 = -(N1 / 2); m1 <= (N1 - 1) / 2; ++m1)
-      ct += fk[m++] * exp(J * (m1 * x[jt])); // crude direct
-    rel_error = abs(c[jt] - ct) / infnorm(M, (std::complex<T> *)c.data());
+      ctp += fk[m++] * exp(J * (m1 * x[jt])); // crude direct
+    rel_error = abs(c[jt] - ctp) / infnorm(M, (std::complex<T> *)c.data());
     printf("[gpu   ] one targ: rel err in c[%d] is %.3g\n", jt, rel_error);
+    if (static_cast<double>(M) * N1 <= TEST_BIGPROB) {
+      std::vector<thrust::complex<T>> ct(M);
+      dirft1d2(M, x, ct, iflag, N1, fk); // direct type-2
+      const auto err = relerrtwonorm(M, ct, c);
+      rel_error      = max(err, rel_error);
+      printf("[gpu   ]\tdirft1d: rel l2-err of result c is %.3g\n", err);
+    }
+
   } else if (type == 3) {
-    int jt                = (N1) / 2; // check arbitrary choice of one targ pt
-    thrust::complex<T> J  = thrust::complex<T>(0, iflag);
-    thrust::complex<T> Ft = thrust::complex<T>(0, 0);
+    int jt                 = (N1) / 2; // check arbitrary choice of one targ pt
+    thrust::complex<T> J   = thrust::complex<T>(0, iflag);
+    thrust::complex<T> Ftp = thrust::complex<T>(0, 0);
 
     for (int j = 0; j < M; ++j) {
-      Ft += c[j] * exp(J * (x[j] * s[jt]));
+      Ftp += c[j] * exp(J * (x[j] * s[jt]));
     }
-    rel_error = abs(Ft - fk[jt]) / infnorm(N1, (std::complex<T> *)fk.data());
+    rel_error = abs(Ftp - fk[jt]) / infnorm(N1, (std::complex<T> *)fk.data());
     printf("[gpu   ] one mode: rel err in F[%d] is %.3g\n", jt, rel_error);
+    if (static_cast<double>(M) * N1 <= TEST_BIGPROB) {
+      std::vector<thrust::complex<T>> Ft(N1);
+      dirft1d3(M, x, c, iflag, N1, s, Ft); // direct type-3
+      const auto err = relerrtwonorm(N1, Ft, fk);
+      rel_error      = max(err, rel_error);
+      printf("[gpu   ]\tdirft1d: rel l2-err of result F is %.3g\n", err);
+    }
   }
 
+  if (rel_error > checktol) {
+    printf("[gpu   ]\t err%.3g > checktol %.3g\n", rel_error, checktol);
+  }
   return std::isnan(rel_error) || rel_error > checktol;
 }
 

@@ -55,7 +55,7 @@ jobs:
         id: cache
         uses: actions/cache@v4
         with:
-          key: cpm-cache-00-${{ hashFiles('CMakeLists.txt', 'cmake/*') }}
+          key: cpm-cache-00-${{ runner.os == 'windows' && 'windows-' || '' }}${{ hashFiles('CMakeLists.txt', 'cmake/*') }}
           enableCrossOsArchive: true
           path: cpm
       - name: Setup Cpp
@@ -82,7 +82,7 @@ jobs:
       - name: Cache dependencies
         uses: actions/cache/save@v4
         with:
-          key: cpm-cache-00-${{ hashFiles('CMakeLists.txt', 'cmake/*') }}
+          key: cpm-cache-00-${{ runner.os == 'windows' && 'windows-' || '' }}${{ hashFiles('CMakeLists.txt', 'cmake/*') }}
           enableCrossOsArchive: true
           path: cpm
   cmake-ci:
@@ -97,23 +97,24 @@ jobs:
       - name: Restore Cache
         uses: actions/cache/restore@v4
         with:
-          key: cpm-cache-00-${{ hashFiles('CMakeLists.txt', 'cmake/*') }}
+          key: cpm-cache-00-${{ runner.os == 'windows' && 'windows-' || '' }}${{ hashFiles('CMakeLists.txt', 'cmake/*') }}
           enableCrossOsArchive: true
           path: cpm
       - name: Download requirements.txt
         uses: actions/download-artifact@v4
         with:
           name: requirements
-      - name: Run sccache-cache only on non-release runs
-        if: github.event_name != 'release' && github.event_name != 'workflow_dispatch'
-        uses: mozilla-actions/sccache-action@v0.0.7
-      - name: Set caching env vars only on non-release runs
-        if: github.event_name != 'release' && github.event_name != 'workflow_dispatch'
+      - name: Run sccache-cache
+        uses: mozilla-actions/sccache-action@v0.0.9
+      - name: Set caching env vars
         run: |
           echo "SCCACHE_GHA_ENABLED=true" >> $GITHUB_ENV
           echo "SCCACHE_GHA_VERSION=0" >> $GITHUB_ENV
+      - name: Set up sccache on Windows
+        if: runner.os == 'Windows'
+        run: Add-Content -Path $env:GITHUB_ENV -Value "SCCACHE_GHA_ENABLED=true"
       - name: Setup Cpp
-        uses: aminya/setup-cpp@v1
+        uses: aminya/setup-cpp@v1.1.1
         with:
           compiler: ${{ matrix.toolchain }}
           vcvarsall: ${{ contains(matrix.os, 'windows') }}
@@ -125,7 +126,7 @@ jobs:
       - name: Set min macOS version and install fftw
         if: runner.os == 'macOS'
         run: |
-          brew install fftw
+          brew install fftw libomp
       - name: Install fftw
         if: runner.os == 'linux'
         run: |
@@ -133,7 +134,7 @@ jobs:
           sudo apt install -y libfftw3-dev
       - name: Configure Cmake
         run: |
-          cmake -S . -B ./build -G Ninja -DCMAKE_C_COMPILER_LAUNCHER=sccache -DCMAKE_CXX_COMPILER_LAUNCHER=sccache -DCMAKE_BUILD_TYPE:STRING=${{matrix.build_type}} -DFINUFFT_ARCH_FLAGS=${{ matrix.arch_flags }} -DFINUFFT_BUILD_TESTS=ON -DFINUFFT_STATIC_LINKING=${{matrix.finufft_static_linking}} -DFINUFFT_USE_DUCC0=${{ matrix.ducc_fft }}
+          cmake -S . -B ./build -G Ninja -DCMAKE_C_COMPILER_LAUNCHER=sccache -DCMAKE_CXX_COMPILER_LAUNCHER=sccache -DCMAKE_BUILD_TYPE:STRING=${{matrix.build_type}} -DFINUFFT_ARCH_FLAGS=${{ matrix.arch_flags }} -DFINUFFT_BUILD_TESTS=ON -DFINUFFT_STATIC_LINKING=${{matrix.finufft_static_linking}} -DFINUFFT_USE_DUCC0=${{ matrix.ducc_fft }} -DFINUFFT_ENABLE_SANITIZERS=${{matrix.build_type == 'Debug'}}
         env:
           CPM_SOURCE_CACHE: cpm
       - name: Build

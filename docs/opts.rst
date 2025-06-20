@@ -92,6 +92,35 @@ Data handling options
 
   .. note:: The index *sets* are the same in the two ``modeord`` choices; their ordering differs only by a cyclic shift. The FFT ordering cyclically shifts the CMCL indices $\mbox{floor}(N/2)$ to the left (often called an "fftshift").
 
+.. _sionly:
+
+**spreadinterponly**: [only has effect for type 1 or 2.]
+Controls whether a NUFFT is performed, or only spreading or interpolation.
+For experts only.
+
+* If ``0`` do the NUFFT as intended.
+
+* If ``1``, omit the FFT and deconvolution
+  (diagonal division by kernel Fourier transform) steps, thus returning
+  *garbage answers as a NUFFT*, but allowing experts to perform solely
+  spreading (if type 1) or solely interpolation (if type 2) via
+  the FINUFFT API.  The spreading is onto the grid of the
+  user-given size (``N1`` in x, ``N2`` in y, etc), with grid points
+  located at coordinates $\{-\pi, -\pi+h, \dots, \pi-h\}$ in each
+  dimension, where $h = 2\pi/N$ is the spacing for that dimension ($N$
+  here meaning ``N1``, etc). Interpolation is from that same grid.  The
+  kernel (width and shape parameter) is determined by ``tol`` and
+  ``opts.upsampfac``, just as it would be in an actual NUFFT. Note that
+  the upsampling factor here only controls the kernel; the grid size
+  never differs from ``N1``, etc.  The kernel is not directly
+  accessible, leaving the user to figure out how to make use of this
+  interface to extract the actual kernel function.  This provides a
+  convenient interface to our ``spreadinterp`` module
+  (including looping over multiple vectors, if ``ntransf>1``).
+
+  .. note:: The known use-case of ``spreadinterponly=1`` is estimating so-called density compensation weights, conventionally used in MRI (see `MRI-NUFFT <https://mind-inria.github.io/mri-nufft/nufft.html>`_). It may also be useful in spectral Ewald or other scientific applications.
+
+
 
 Diagnostic options
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -100,7 +129,7 @@ Diagnostic options
 
 * ``debug=0`` : silent
 
-* ``debug=1`` : print some information
+* ``debug=1`` : prints some information
 
 * ``debug=2`` : prints more information
 
@@ -194,7 +223,8 @@ Here ``0`` makes an automatic choice. If you are unhappy with this, then for sma
 Thread safety options (advanced)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-By default, with FFTW as the FFT library, FINUFFT is thread safe so long as no other threads are calling FFTW plan creation/destruction routines independently of FINUFFT. If these FFTW routines are called outside of FINUFFT, then the program is liable to crash. In most cases, the calling program can simply call the FFTW routine ``fftw_make_planner_thread_safe()`` before threading out and thread safety will be maintained. However, in instances where this is less desirable, we provide a means to provide your own FFTW locking mechanism. The following example code should exercise FFTW thread safety, and can be built with ``c++ thread_test.cpp -o thread_test -lfinufft -lfftw3_threads -lfftw3 -fopenmp -std=c++11``, assuming the finufft include and library paths are set.
+With DUCC0 as the FFT, there are no thread safety issues.
+However, with FFTW as the FFT library, FINUFFT is thread safe so long as no other threads are calling FFTW plan creation/destruction routines independently of FINUFFT. If these FFTW routines are called outside of FINUFFT, then the program is liable to crash. In most cases, the calling program can simply call the FFTW routine ``fftw_make_planner_thread_safe()`` before threading out and thread safety will be maintained. However, in instances where this is less desirable, we provide a means to provide your own FFTW locking mechanism. The following example code should exercise FFTW thread safety, and can be built with ``c++ thread_test.cpp -o thread_test -lfinufft -lfftw3_threads -lfftw3 -fopenmp -std=c++11``, assuming the finufft include and library paths are set.
 
 .. code-block:: C++
 

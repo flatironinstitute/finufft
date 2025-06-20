@@ -197,5 +197,9 @@ int main(int argc, char *argv[]) {
   free(F);
   free(s);
   free(t);
-  return (errmax > errfail);
+  if (isnan(errmax) || (errmax > errfail)) {
+    printf("\tfailed! err %.3g > errfail %.3g\n", errmax, errfail);
+    return 1;
+  } else
+    return 0;
 }

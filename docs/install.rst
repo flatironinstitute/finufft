@@ -133,18 +133,11 @@ Here are our CMake build options, showing name, explanatory text, and default va
    :start-after: @cmake_opts_start
    :end-before: @cmake_opts_end
 
-For convenience we also provide a number of `cmake presets <https://cmake.org/cmake/help/latest/manual/cmake-presets.7.html>`_
-for various platforms, options and compilers, in ``CMakePresets.json``.
-For example, to configure, build and test the development preset (which builds tests and examples), from ``build`` do:
 
-.. code-block:: bash
+After a CMake MATLAB build, the MEX executable and associated M-files will be in ``build/matlab``. There is currently no CTest for MATLAB. Instead, open MATLAB by hand, add this ``build/matlab`` directory to your path,
+cd to ``matlab/test`` and run ``fullmathtest`` which should run for 1 second
+and pass.
 
-  cmake -S . -B build --preset dev            # dev is the name of the preset
-  cmake --build build
-  ctest --test-dir build
-
-From other CMake projects, to use ``finufft`` as a library after building as above, simply add this repository as a subdirectory using
-``add_subdirectory``, and use ``target_link_library(your_executable finufft)``.
 
 Notes on compiler flags for various systems
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -159,8 +152,6 @@ These apply to CMake (as above), or GNU make (as below).
 .. warning::
 
   Intel compilers (unlike GPU compilers) currently engage ``fastmath`` behavior with ``-O2`` or ``-O3``. This may interfere with our use of ``std::isfinite`` in our source and test codes. For this reason in the Intel presets ``icx`` and ``icc`` have set ``-fp-model=strict``. You may get more speed if you remove this flag, or try ``-fno-finite-math-only``.
-
-
 
 
 Classic GNU make based route
@@ -299,8 +290,8 @@ See :ref:`below<install-python>` for python compilation.
 
 ``make matlab`` to compile the MEX interface to matlab,
 then within MATLAB add the ``matlab`` directory to your path,
-cd to ``matlab/test`` and run ``check_finufft`` which should run for 3 secs
-and print a bunch of errors of typical size ``1e-6``.
+cd to ``matlab/test`` and run ``fullmathtest`` which should run for 1 second
+and pass.
 
 .. note::
 
@@ -381,7 +372,7 @@ Whichever you picked, now try ``make test -j``, and clang should compile and you
 you should now ``make matlab``. You may need to do ``make matlab -j``; see
 https://github.com/flatironinstitute/finufft/issues/157 which needs attention.
 To test, open MATLAB, ``addpath matlab``,
-``cd matlab/test``, and ``check_finufft``, which should complete in around 3 seconds.
+``cd matlab/test``, and ``fullmathtest``, which should pass in about 1 second.
 
 .. note::
 
