@@ -1,5 +1,6 @@
 set(EXAMPLES
     guru1d1
+    guru2d1_adjoint
     guru1d1f
     guru2d1
     many1d1
