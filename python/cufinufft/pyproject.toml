@@ -37,6 +37,7 @@ dynamic = ["version"]
 minimum-version = "0.4"
 # Setuptools-style build caching in a local directory
 build-dir = "build/{wheel_tag}"
+editable.mode = "redirect"
 
 # Tell skbuild to where to find CMakeLists.txt.
 cmake.source-dir = "../../"

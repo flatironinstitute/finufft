@@ -7,12 +7,10 @@
 #include <cuComplex.h>
 #include <cufinufft/types.h>
 
-#include <cuda.h>
 #include <cuda_runtime.h>
+#include <thrust/extrema.h>
 #include <type_traits>
 #include <utility> // for std::forward
-
-#include <thrust/extrema.h>
 
 #include <finufft_errors.h>
 
@@ -42,10 +40,15 @@ __inline__ __device__ double atomicAdd(double *address, double val) {
 
   return __longlong_as_double(old);
 }
+
+template<typename T> __forceinline__ __device__ auto atomicAdd_block(T *address, T val) {
+  return atomicAdd(address, val);
+}
+
 #endif
 
 /**
- * It computes the stard and end point of the spreading window given the center x and the
+ * It computes the start and end point of the spreading window given the center x and the
  * width ns.
  * TODO: We should move to (md)spans and (nd)ranges to avoid xend.
  *       It is also safer on bounds.
@@ -107,13 +110,12 @@ template<typename T> T infnorm(int n, std::complex<T> *a) {
  * cuda does not support atomic operations
  * on complex numbers on shared memory directly
  */
-
 template<typename T>
-static __forceinline__ __device__ void atomicAddComplexShared(cuda_complex<T> *address,
-                                                              cuda_complex<T> res) {
+static __forceinline__ __device__ void atomicAddComplexShared(
+    cuda_complex<T> *address, const cuda_complex<T> &res) {
   const auto raw_address = reinterpret_cast<T *>(address);
-  atomicAdd(raw_address, res.x);
-  atomicAdd(raw_address + 1, res.y);
+  atomicAdd_block(raw_address, res.x);
+  atomicAdd_block(raw_address + 1, res.y);
 }
 
 /**
@@ -122,13 +124,15 @@ static __forceinline__ __device__ void atomicAddComplexShared(cuda_complex<T> *a
  * on shared memory are supported so we leverage them
  */
 template<typename T>
-static __forceinline__ __device__ void atomicAddComplexGlobal(cuda_complex<T> *address,
-                                                              cuda_complex<T> res) {
+static __forceinline__ __device__ void atomicAddComplexGlobal(
+    cuda_complex<T> *address, cuda_complex<T> res) {
   if constexpr (
       std::is_same_v<cuda_complex<T>, float2> && COMPUTE_CAPABILITY_90_OR_HIGHER) {
     atomicAdd(address, res);
   } else {
-    atomicAddComplexShared<T>(address, res);
+    auto raw_address = reinterpret_cast<T *>(address);
+    atomicAdd(raw_address, res.x);
+    atomicAdd(raw_address + 1, res.y);
   }
 }
 
@@ -211,6 +215,25 @@ template<typename Func, typename T, typename... Args>
 int launch_dispatch_ns(Func &&func, int target_ns, Args &&...args) {
   return dispatch_ns<Func, T, MIN_NSPREAD>(std::forward<Func>(func), target_ns,
                                            std::forward<Args>(args)...);
+}
+
+/**
+ * Return an architecture-specific “good enough” thread-block size.
+ * – Each branch is resolved at compile time (if-constexpr + __CUDA_ARCH__).
+ * – Host-only translation units get the fall-back value.
+ * Rationale (rule-of-thumb):
+ *   SM 9x / 8x : 16 warps  = 256 threads
+ *   SM 7x      :  8 warps  = 128 threads
+ *   SM 6x-     :  4 warps  = 64 threads
+ */
+inline unsigned optimal_block_threads(int device) noexcept {
+  cudaGetDevice(&device);
+  cudaDeviceProp prop;
+  cudaGetDeviceProperties(&prop, device);
+  int major = prop.major;
+  if (major >= 8) return 256;
+  if (major >= 7) return 128;
+  return 64;
 }
 
 } // namespace utils

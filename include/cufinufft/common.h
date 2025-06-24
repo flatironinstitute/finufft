@@ -41,7 +41,7 @@ void onedim_nuft_kernel_precomp(T *f, T *zout, finufft_spread_opts opts);
 
 template<typename T>
 std::size_t shared_memory_required(int dim, int ns, int bin_size_x, int bin_size_y,
-                                   int bin_size_z);
+                                   int bin_size_z, int np);
 
 template<typename T>
 void cufinufft_setup_binsize(int type, int ns, int dim, cufinufft_opts *opts);
@@ -52,13 +52,12 @@ int cufinufft_set_shared_memory(V *kernel, const int dim,
   /**
    * WARNING: this function does not handle cuda errors. The caller should check them.
    */
-  int device_id{}, shared_mem_per_block{};
-  cudaGetDevice(&device_id);
-  const auto shared_mem_required =
-      shared_memory_required<T>(dim, d_plan.spopts.nspread, d_plan.opts.gpu_binsizex,
-                                d_plan.opts.gpu_binsizey, d_plan.opts.gpu_binsizez);
+  int shared_mem_per_block{};
+  const auto shared_mem_required = shared_memory_required<T>(
+      dim, d_plan.spopts.nspread, d_plan.opts.gpu_binsizex, d_plan.opts.gpu_binsizey,
+      d_plan.opts.gpu_binsizez, d_plan.opts.gpu_np);
   cudaDeviceGetAttribute(&shared_mem_per_block, cudaDevAttrMaxSharedMemoryPerBlockOptin,
-                         device_id);
+                         d_plan.opts.gpu_device_id);
   if (shared_mem_required > shared_mem_per_block) {
     fprintf(stderr,
             "Error: Shared memory required per block is %zu bytes, but the device "

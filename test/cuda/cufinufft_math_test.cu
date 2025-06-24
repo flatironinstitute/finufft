@@ -124,6 +124,25 @@ template<typename T> int testRandomOperations() {
                            "div complex<" + std::string(typeid(T).name()) + "> scalar<" +
                                std::string(typeid(T).name()) + ">"))
       return 1;
+    // Test complex += complex
+    cuda_complex<T> result_add_assign = a;
+    result_add_assign += b;
+    std::complex<T> expected_add_assign = std_a;
+    expected_add_assign += std_b;
+    if (!compareComplexAbs(result_add_assign, expected_add_assign,
+                           "add_assign complex<" + std::string(typeid(T).name()) +
+                               "> += complex<" + std::string(typeid(T).name()) + ">"))
+      return 1;
+
+    // Test complex += scalar
+    cuda_complex<T> result_add_scalar_assign = a;
+    result_add_scalar_assign += scalar;
+    std::complex<T> expected_add_scalar_assign = std_a;
+    expected_add_scalar_assign += scalar;
+    if (!compareComplexRel(result_add_scalar_assign, expected_add_scalar_assign,
+                           "add_assign complex<" + std::string(typeid(T).name()) +
+                               "> += scalar<" + std::string(typeid(T).name()) + ">"))
+      return 1;
   }
   return 0;
 }
