@@ -7,7 +7,7 @@ from cufinufft import _compat
 
 import utils
 
-DTYPES = [np.float32, np.float64]
+DTYPES = [np.complex64, np.complex128]
 SHAPES = [(16,), (16, 16), (16, 16, 16)]
 N_TRANS = [(), (1,), (2,)]
 MS = [256, 1024, 4096]
@@ -21,8 +21,7 @@ OUTPUT_ARGS = [False, True]
 @pytest.mark.parametrize("tol", TOLS)
 @pytest.mark.parametrize("output_arg", OUTPUT_ARGS)
 def test_simple_type1(to_gpu, to_cpu, dtype, shape, n_trans, M, tol, output_arg):
-    real_dtype = dtype
-    complex_dtype = utils._complex_dtype(dtype)
+    real_dtype = utils._real_dtype(dtype)
 
     dim = len(shape)
 
@@ -41,7 +40,7 @@ def test_simple_type1(to_gpu, to_cpu, dtype, shape, n_trans, M, tol, output_arg)
         # batch, (1, N1, ...) for batch of size one, and (n, N1, ...) for
         # batch of size n.
         fk_gpu = _compat.array_empty_like(c_gpu, n_trans + shape,
-                dtype=complex_dtype)
+                dtype=dtype)
 
         fun(*k_gpu, c_gpu, out=fk_gpu, eps=tol)
     else:
@@ -59,8 +58,7 @@ def test_simple_type1(to_gpu, to_cpu, dtype, shape, n_trans, M, tol, output_arg)
 @pytest.mark.parametrize("tol", TOLS)
 @pytest.mark.parametrize("output_arg", OUTPUT_ARGS)
 def test_simple_type2(to_gpu, to_cpu, dtype, shape, n_trans, M, tol, output_arg):
-    real_dtype = dtype
-    complex_dtype = utils._complex_dtype(dtype)
+    real_dtype = utils._real_dtype(dtype)
 
     dim = len(shape)
 
@@ -75,7 +73,7 @@ def test_simple_type2(to_gpu, to_cpu, dtype, shape, n_trans, M, tol, output_arg)
 
     if output_arg:
         c_gpu = _compat.array_empty_like(fk_gpu, n_trans + (M,),
-                dtype=complex_dtype)
+                dtype=dtype)
 
         fun(*k_gpu, fk_gpu, eps=tol, out=c_gpu)
     else:
