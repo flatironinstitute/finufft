@@ -41,9 +41,9 @@ def _invoke_plan(dim, nufft_type, x, y, z, data, s, t, u,  out, isign, eps,
         n_modes = out.shape[-dim:]
     if nufft_type == 2:
         n_modes = data.shape[-dim:]
-        
+
     if nufft_type == 3:
-        plan = Plan(nufft_type, dim, n_trans = n_trans,  eps=eps, isign=isign, dtype=dtype, **kwargs)
+        plan = Plan(nufft_type, dim, n_trans, eps, isign, dtype, **kwargs)
     else:
         plan = Plan(nufft_type, n_modes, n_trans, eps, isign, dtype, **kwargs)
 
