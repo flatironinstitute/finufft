@@ -8,7 +8,7 @@ import utils
 
 # NOTE: Tests below fail for tolerance 1e-4 (error executing plan).
 
-DTYPES = [np.float32, np.float64]
+DTYPES = [np.complex64, np.complex128]
 SHAPES = [(16,), (16, 16), (16, 16, 16), (19,), (17, 19), (17, 19, 24)]
 MS = [256, 1024, 4096]
 TOLS = [1e-3, 1e-6]
@@ -24,14 +24,12 @@ MODEORDS = [0, 1]
 @pytest.mark.parametrize("output_arg", OUTPUT_ARGS)
 @pytest.mark.parametrize("modeord", MODEORDS)
 def test_type1(to_gpu, to_cpu, dtype, shape, M, tol, output_arg, modeord):
-    complex_dtype = utils._complex_dtype(dtype)
-
     k, c = utils.type1_problem(dtype, shape, M)
 
     k_gpu = to_gpu(k)
     c_gpu = to_gpu(c)
 
-    plan = Plan(1, shape, eps=tol, dtype=complex_dtype, modeord=modeord)
+    plan = Plan(1, shape, eps=tol, dtype=dtype, modeord=modeord)
 
     # Since k_gpu is an array of shape (dim, M), this will expand to
     # plan.setpts(k_gpu[0], ..., k_gpu[dim]), allowing us to handle all
@@ -39,7 +37,7 @@ def test_type1(to_gpu, to_cpu, dtype, shape, M, tol, output_arg, modeord):
     plan.setpts(*k_gpu)
 
     if output_arg:
-        fk_gpu = _compat.array_empty_like(c_gpu, shape, dtype=complex_dtype)
+        fk_gpu = _compat.array_empty_like(c_gpu, shape, dtype=dtype)
         plan.execute(c_gpu, out=fk_gpu)
     else:
         fk_gpu = plan.execute(c_gpu)
@@ -59,11 +57,9 @@ def test_type1(to_gpu, to_cpu, dtype, shape, M, tol, output_arg, modeord):
 @pytest.mark.parametrize("contiguous", CONTIGUOUS)
 @pytest.mark.parametrize("modeord", MODEORDS)
 def test_type2(to_gpu, to_cpu, dtype, shape, M, tol, output_arg, contiguous, modeord):
-    complex_dtype = utils._complex_dtype(dtype)
-
     k, fk = utils.type2_problem(dtype, shape, M)
 
-    plan = Plan(2, shape, eps=tol, dtype=complex_dtype, modeord=modeord)
+    plan = Plan(2, shape, eps=tol, dtype=dtype, modeord=modeord)
 
     check_result = True
 
@@ -96,7 +92,7 @@ def test_type2(to_gpu, to_cpu, dtype, shape, M, tol, output_arg, contiguous, mod
     plan.setpts(*k_gpu)
 
     if output_arg:
-        c_gpu = _compat.array_empty_like(fk_gpu, (M,), dtype=complex_dtype)
+        c_gpu = _compat.array_empty_like(fk_gpu, (M,), dtype=dtype)
         _execute(fk_gpu, out=c_gpu)
     else:
         c_gpu = _execute(fk_gpu)
@@ -119,12 +115,10 @@ def test_type3(to_gpu, to_cpu, dtype, dim, n_source_pts, n_target_pts, output_ar
         # trigger it, we must run many other tests preceding this test case.
         # So it's related to some global state of the library.
 
-    complex_dtype = utils._complex_dtype(dtype)
-
-    source_pts, source_coefs, target_pts = utils.type3_problem(complex_dtype,
+    source_pts, source_coefs, target_pts = utils.type3_problem(dtype,
             dim, n_source_pts, n_target_pts)
 
-    plan = Plan(3, dim, dtype=complex_dtype)
+    plan = Plan(3, dim, dtype=dtype)
 
     source_pts_gpu = to_gpu(source_pts)
     target_pts_gpu = to_gpu(target_pts)
@@ -137,7 +131,7 @@ def test_type3(to_gpu, to_cpu, dtype, dim, n_source_pts, n_target_pts, output_ar
         target_coefs_gpu = plan.execute(source_coefs_gpu)
     else:
         target_coefs_gpu = _compat.array_empty_like(source_coefs_gpu,
-                n_target_pts, dtype=complex_dtype)
+                n_target_pts, dtype=dtype)
         plan.execute(source_coefs_gpu, out=target_coefs_gpu)
 
     target_coefs = to_cpu(target_coefs_gpu)
@@ -146,17 +140,15 @@ def test_type3(to_gpu, to_cpu, dtype, dim, n_source_pts, n_target_pts, output_ar
 
 
 def test_opts(to_gpu, to_cpu, shape=(8, 8, 8), M=32, tol=1e-3):
-    dtype = np.float32
-
-    complex_dtype = utils._complex_dtype(dtype)
+    dtype = np.complex64
 
     k, c = utils.type1_problem(dtype, shape, M)
 
     k_gpu = to_gpu(k)
     c_gpu = to_gpu(c)
-    fk_gpu = _compat.array_empty_like(c_gpu, shape, dtype=complex_dtype)
+    fk_gpu = _compat.array_empty_like(c_gpu, shape, dtype=dtype)
 
-    plan = Plan(1, shape, eps=tol, dtype=complex_dtype, gpu_sort=False,
+    plan = Plan(1, shape, eps=tol, dtype=dtype, gpu_sort=False,
                      gpu_maxsubprobsize=10)
 
     plan.setpts(k_gpu[0], k_gpu[1], k_gpu[2])
