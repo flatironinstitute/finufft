@@ -48,6 +48,7 @@ Testing, bug reports, helpful discussions, contributions:
 * Vineet Bansal - py packaging
 * Jason Kaye - Gauss-Legendre quadrature code from cppdlr
 * Juan Ignacio Polanco - cuFINUFFT output driven
+* Julius Herb - Poisson equation tutorial in Python
 
 Logo design: `Sherry Choi <http://www.sherrychoi.com>`_ with input
 from Alex Barnett and Lucy Reading-Ikkanda.
