@@ -7,8 +7,9 @@ The following are instructive demos of using FINUFFT for a variety of
 spectrally-related tasks arising in
 scientific computing and signal/image processing. We will slowly grow the
 list (contact us to add one).
-For conciseness of code, and ease of writing, they are currently
-in MATLAB (they should work on versions at least back to R2017a).
+For conciseness of code, and ease of writing, they are
+in MATLAB (and should work on versions at least back to R2017a),
+unless otherwise stated.
 
 .. toctree::
 

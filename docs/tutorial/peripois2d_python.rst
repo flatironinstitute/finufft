@@ -3,6 +3,8 @@
 Periodic Poisson solve on non-Cartesian quadrature grid (Python)
 ================================================================
 
+This is a Python translation of :ref:`this MATLAB tutorial<peripois2d>`.
+
 It is standard to use the FFT as a fast solver for the Poisson
 equation on a periodic domain, say $[0,2\pi)^d$. Namely, given $f$,
 find $u$ satisfying
@@ -15,7 +17,7 @@ a regular Cartesian mesh, three steps are needed.
 The first takes an FFT to approximate
 the Fourier series coefficient array of $f$, the second divides by $\|k\|^2$,
 and the third uses another FFT to evaluate the Fourier series for $u$
-back on the original grid. Here is a MATLAB demo in $d=2$ dimensions.
+back on the original grid. Here is a Python demo in $d=2$ dimensions.
 First, we have to import some packages:
 
 .. code-block:: python
