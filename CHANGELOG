@@ -1,9 +1,13 @@
 List of features / changes made / release notes, in reverse chronological order.
 If not stated, FINUFFT is assumed (cuFINUFFT <=1.3 is listed separately).
 
+Master (working towards v2.5.0), 6/24/25
 
 * Added functionality for adjoint execution of FINUFFT plans (Reinecke #633,
   addresses #566 and #571).
+* Python version of 2D Poisson solve tutorial (Julius Herb, #700).
+* Cached the optimal thread number (# physical cores) to reduce system call
+  overhead in repeated small transforms (YuWei-CH, #697, fixing #693).
 * replaced LGPL-licensed Gauss-Legendre quadrature code by Apache2-licensed
   code adapted from Jason Kaye's cppdlr. CPU and GPU. PR #692 (Barnett).
 
@@ -38,6 +42,8 @@ V 2.4.0 (5/27/25)
   For now we assume density=1.0 (to revisit).  Barbone. PR #638 & 652.
   Since 2.4.0-rc1 we changed the heuristic to avoid usf=1.25 when within 2
   digits of machine prec, to prevent accuracy loss in single prec (#671).
+* Get optimal threads as # physical cores, no hyperthreading (Barbone #641),
+  fixing Issue #596.
 * Removed FINUFFT_CUDA_ARCHITECTURES flag, as it was unnecessary duplication.
 * Enabled LTO for finufft (nvcc support is flaky at the moment). Barbone.
 * Added GPU spreadinterp-only test. Added CPU spreadinterp-only test to cmake
