@@ -16,6 +16,7 @@
 %   finufft_plan - create guru plan object for one/many general nonuniform FFTs.
 %   setpts       - process nonuniform points for general FINUFFT transform(s).
 %   execute      - execute single or many-vector FINUFFT transforms in a plan.
+%   execute_adjoint - execute adjoint of planned transform(s).
 %
 % General notes:
 %  * use delete(plan) to remove a plan after use.
@@ -143,7 +144,43 @@
 %    plan stage using opts.floatprec, otherwise an error is raised.
 %
 %
-% 4) To deallocate (delete) a nonuniform FFT plan, use delete(plan)
+% 4) EXECUTE_ADJOINT   execute adjoint of planned transform(s).
+%
+% result = plan.execute_adjoint(data_in);
+%
+%  Perform the adjoint of the planned transform(s) that plan.execute would
+%  perform (see above documentation for EXECUTE). This is convenient in the
+%  common case of needing forward-adjoint transform pairs for the same set of
+%  nonuniform points.
+%  The adjoint of a type 1 is a type 2 of opposite isign, and vice versa.
+%  The adjoint of a type 3 is a type 3 of opposite isign and flipped input
+%  and output.
+%
+% Inputs:
+%     plan     finufft_plan object
+%     data_in  strengths (adjoint type 2 and 3) or Fourier coefficients
+%              (adjoint type 1) vector, matrix, or array of appropriate size.
+%              For adjoint type 1, in 1D this is length-ms, in 2D size (ms,mt),
+%              or in 3D size (ms,mt,mu), or each of these with an extra last
+%              dimension ntrans if ntrans>1. For adjoint types 2 and 3, it is
+%              a column vector of length M (for type 2, the length of xj),
+%              or nk (for type 3, the length of s). If ntrans>1 its is a stack
+%              of such objects, ie, it has an extra last dimension ntrans.
+% Outputs:
+%     result   strengths (adjoint of type 1 or 3) or Fourier coefficients
+%              (adjoint of type 2) vector, matrix, or array of appropriate size.
+%              For adjoint of type 1 and 3, this is either a length-M vector
+%              (where M is the length of xj), or an (M,ntrans) matrix when
+%              ntrans>1. For adjoint of type 2, in 1D this is
+%              length-ms, in 2D size (ms,mt), or in 3D size (ms,mt,mu), or
+%              each of these with an extra last dimension ntrans if ntrans>1.
+%
+% Notes:
+%  * The precision (double/single) of all inputs must match that chosen at the
+%    plan stage using opts.floatprec, otherwise an error is raised.
+%
+%
+% 5) To deallocate (delete) a nonuniform FFT plan, use delete(plan)
 %
 % This deallocates all stored FFTW plans, nonuniform point sorting arrays,
 %  kernel Fourier transforms arrays, etc.
