@@ -449,20 +449,30 @@ struct EvalKernelVecHornerHelper {
     }
   };
 
-  //==============================================================================
-  //  Functor #5: Horner chain for non-symmetric path
-  //==============================================================================
+  //=============================================================================
+  // Functor 5a: unroll blocks for coefficient j = jj + 1
+  //=============================================================================
+  template<std::size_t jj> struct HornerChainBlock {
+    batch_t *k_blk;
+    const batch_t &zv;
+
+    template<std::size_t b> FINUFFT_ALWAYS_INLINE void operator()() const noexcept {
+      constexpr std::size_t j = jj + 1;
+      constexpr std::size_t i = b * simd_size;
+      const T *coeff_ptr      = padded_coeffs[j].data();
+      k_blk[b] = xsimd::fma(k_blk[b], zv, batch_t::load_aligned(coeff_ptr + i));
+    }
+  };
+
+  //=============================================================================
+  // Functor 5b: dispatch unrolled block loop for each j
+  //=============================================================================
   struct HornerChain {
     batch_t *k_blk;
     const batch_t &zv;
 
     template<std::size_t jj> FINUFFT_ALWAYS_INLINE void operator()() const noexcept {
-      constexpr std::size_t j = jj + 1u;
-      const T *coeff_ptr      = padded_coeffs[j].data();
-      for (std::size_t b = 0; b < num_blks_ns; ++b) {
-        std::size_t i = b * simd_size;
-        k_blk[b]      = xsimd::fma(k_blk[b], zv, batch_t::load_aligned(coeff_ptr + i));
-      }
+      unroll_loop_ct<num_blks_ns>(HornerChainBlock<jj>{k_blk, zv});
     }
   };
 
