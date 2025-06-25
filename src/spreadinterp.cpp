@@ -484,8 +484,9 @@ struct EvalKernelVecHornerHelper {
   static FINUFFT_ALWAYS_INLINE void eval(T *ker, T x,
                                          const finufft_spread_opts & /*opts*/) noexcept {
     // scale into [-1,1]
-    const batch_t zv{std::fma(T(2.0), x, T(w - 1))};
-    const batch_t z2v{zv * zv};
+    const auto z = std::fma(T(2.0), x, T(w - 1));
+    const batch_t zv{z};
+    const batch_t z2v{z * z};
 
     if constexpr (use_ker_sym) {
       // 1) init
