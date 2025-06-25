@@ -38,9 +38,11 @@ void do_fft(const FINUFFT_PLAN_T<TF> &p, std::complex<TF> *fwBatch, int ntrans_a
     arrdims.push_back(size_t(ns[2]));
     axes.push_back(3);
   }
+  // in DUCC0, "forward=true/false" corresponds to an FFT exponent sign of -/+.
+  // Analogous to FFTW, transforms are not normalized in either direction.
   bool forward   = (p.fftSign < 0) != adjoint;
   bool spreading = (p.type == 1) != adjoint;
-  ducc0::vfmav<std::complex<TF>> data(fwBatch, arrdims); // FIXME
+  ducc0::vfmav<std::complex<TF>> data(fwBatch, arrdims);
 #ifdef FINUFFT_NO_DUCC0_TWEAKS
   ducc0::c2c(data, data, axes, forward, TF(1), nthreads);
 #else
