@@ -53,7 +53,7 @@ with the word "many" in the function name) perform ``ntr`` transforms with the s
 
 .. note::
 
-  The motivations for the vectorized interface (and guru interface, see below) are as follows. 1) It is more efficient to bin-sort the nonuniform points only once if there are not to change between transforms. 2) For small problems, certain start-up costs cause repeated calls to the simple interface to be slower than necessary.  In particular, we note that FFTW takes around 0.1 ms per thread to look up stored wisdom, which for small problems (of order 10000 or less input and output data) can, sadly, dominate the runtime.
+  The motivations for the vectorized interface (and guru interface, see below) include the following. 1) It is more efficient to bin-sort the nonuniform points only once if there are not to change between transforms. 2) For small problems, certain start-up costs cause repeated calls to the simple interface to be slower than necessary.  In particular, we note that FFTW takes around 0.1 ms per thread to look up stored wisdom, which for small problems (of order 10000 or less input and output data) can, sadly, dominate the runtime.
 
 
 1D transforms
@@ -77,13 +77,19 @@ with the word "many" in the function name) perform ``ntr`` transforms with the s
 Guru plan interface
 -------------------
 
-This provides more flexibility than the simple or vectorized interfaces.
+This provides more flexibility than either simple or vectorized interfaces.
 Any transform requires (at least)
-calling the following four functions in order. However, within this
-sequence one may insert repeated ``execute`` calls, or another ``setpts``
-followed by more ``execute`` calls, as long as the transform sizes (and number of transforms ``ntr``) are
+calling four of the following five functions in order. However, within this
+sequence one may insert repeated ``execute`` and/or ``execute_adjoint`` calls,
+or another ``setpts``
+followed by more ``execute`` and/or ``execute_adjoint`` calls, as long as the transform sizes (and number of transforms ``ntr``) are
 consistent with those that have been set in the ``plan`` and in ``setpts``.
-Keep in mind that ``setpts`` retains *pointers* to the user's list of nonuniform points, rather than copying these points; thus the user must not change their nonuniform point arrays until after any ``execute`` calls that use them.
+Keep in mind that ``setpts`` retains *pointers* to the user's list of nonuniform points, rather than copying these points; thus the user must not change their nonuniform point arrays until after any ``execute`` or ``execute_adjoint`` calls that use them.
+
+The goal of the ``execute_adjoint`` feature (fully supported in v2.5.0)
+is to allow the
+common use-case of transform and adjoint transform pairs to be accessible
+via a single plan stage and a single setpts call.
 
 .. note::
 

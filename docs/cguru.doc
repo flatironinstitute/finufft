@@ -137,9 +137,9 @@
    Perform one or more NUFFT transforms using previously entered nonuniform
    points and the *adjoint* of the existing planned transform. The point is to
    enable transforms and their adjoints to be accessible via a single plan.
-   Recall that the adjoint of a type 1 is a type 2 with opposite isign, and
-   vice versa. The adjoint of a type 3 is a type 3 with opposite isign.
-   To summarize, this operation maps
+   Recall that the adjoint of a type 1 is a type 2 of opposite isign, and
+   vice versa. The adjoint of a type 3 is a type 3 of opposite isign and
+   flipped input and output. To summarize, this operation maps
      adjoint of type 1: f -> c
      adjoint of type 2: c -> f
      adjoint of type 3: f -> c
