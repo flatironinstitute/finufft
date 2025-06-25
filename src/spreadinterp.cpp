@@ -361,7 +361,7 @@ struct EvalKernelVecHornerHelper {
     batch_t *odd_blk;
     batch_t *even_blk;
 
-    template<std::size_t b> void operator()() const noexcept {
+    template<std::size_t b> FINUFFT_ALWAYS_INLINE void operator()() const noexcept {
       constexpr std::size_t i = b * simd_size;
       if constexpr (if_odd_deg) {
         odd_blk[b] = batch_t::load_aligned(padded_coeffs[0].data() + i);
@@ -372,24 +372,36 @@ struct EvalKernelVecHornerHelper {
     }
   };
 
-  //==============================================================================
-  //  Functor #2: do one Horner “pair” (j and j+1) across all blocks
-  //==============================================================================
+  //=======================================================================
+  // Functor #2a: inner-loop unroller for a given pair index p
+  //=======================================================================
+  template<std::size_t p> struct ChainPairBlocks {
+    batch_t *odd_blk;
+    batch_t *even_blk;
+    const batch_t &z2v;
+
+    template<std::size_t b> FINUFFT_ALWAYS_INLINE void operator()() const noexcept {
+      constexpr auto j   = std::size_t(1 + if_odd_deg + 2 * p);
+      const T *odd_p     = padded_coeffs[j].data();
+      const T *even_p    = padded_coeffs[j + 1].data();
+      constexpr auto idx = b * simd_size;
+
+      odd_blk[b]  = xsimd::fma(odd_blk[b], z2v, batch_t::load_aligned(odd_p + idx));
+      even_blk[b] = xsimd::fma(even_blk[b], z2v, batch_t::load_aligned(even_p + idx));
+    }
+  };
+
+  //=======================================================================
+  // Functor #2b: outer-loop over pair indices, invokes ChainPairBlocks<p>
+  //=======================================================================
   struct ChainPair {
     batch_t *odd_blk;
     batch_t *even_blk;
     const batch_t &z2v;
 
-    template<std::size_t p> void operator()() const noexcept {
-      constexpr std::size_t j = std::size_t(1u + if_odd_deg + p * 2u);
-      const T *odd_ptr        = padded_coeffs[j].data();
-      const T *even_ptr       = padded_coeffs[j + 1].data();
-
-      for (std::size_t b = 0; b < num_blks; ++b) {
-        std::size_t idx = b * simd_size;
-        odd_blk[b]  = xsimd::fma(odd_blk[b], z2v, batch_t::load_aligned(odd_ptr + idx));
-        even_blk[b] = xsimd::fma(even_blk[b], z2v, batch_t::load_aligned(even_ptr + idx));
-      }
+    template<std::size_t p> FINUFFT_ALWAYS_INLINE void operator()() const noexcept {
+      // unroll inner blocks for this pair p
+      unroll_loop_ct<num_blks>(ChainPairBlocks<p>{odd_blk, even_blk, z2v});
     }
   };
 
@@ -404,7 +416,7 @@ struct EvalKernelVecHornerHelper {
     const batch_t &zv;
     T *ker;
 
-    template<std::size_t b> void operator()() const noexcept {
+    template<std::size_t b> FINUFFT_ALWAYS_INLINE void operator()() const noexcept {
       constexpr std::size_t i = b * simd_size;
       constexpr int off       = int(offset_start) - int(i);
 
@@ -431,8 +443,7 @@ struct EvalKernelVecHornerHelper {
   //==============================================================================
   struct LoadBase {
     batch_t *k_blk;
-
-    template<std::size_t b> void operator()() const noexcept {
+    template<std::size_t b> FINUFFT_ALWAYS_INLINE void operator()() const noexcept {
       constexpr std::size_t i = b * simd_size;
       k_blk[b]                = batch_t::load_aligned(padded_coeffs[0].data() + i);
     }
@@ -445,7 +456,7 @@ struct EvalKernelVecHornerHelper {
     batch_t *k_blk;
     const batch_t &zv;
 
-    template<std::size_t jj> void operator()() const noexcept {
+    template<std::size_t jj> FINUFFT_ALWAYS_INLINE void operator()() const noexcept {
       constexpr std::size_t j = jj + 1u;
       const T *coeff_ptr      = padded_coeffs[j].data();
       for (std::size_t b = 0; b < num_blks_ns; ++b) {
@@ -461,8 +472,7 @@ struct EvalKernelVecHornerHelper {
   struct StoreFinal {
     batch_t *k_blk;
     T *ker;
-
-    template<std::size_t b> void operator()() const noexcept {
+    template<std::size_t b> FINUFFT_ALWAYS_INLINE void operator()() const noexcept {
       constexpr std::size_t i = b * simd_size;
       k_blk[b].store_aligned(ker + i);
     }
