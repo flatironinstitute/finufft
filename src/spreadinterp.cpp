@@ -343,8 +343,8 @@ Two upsampfacs implemented. Params must match ref formula. Barnett 4/24/18 */
     constexpr uint8_t if_odd_degree = ((nc + 1) % 2);
     constexpr uint8_t offset_start  = tail ? w - tail : w - simd_size;
     constexpr uint8_t end_idx       = (w + (tail > 0)) / 2;
-    constexpr size_t num_blks       = (end_idx + simd_size - 1) / simd_size;
-    constexpr size_t num_pairs      = (nc - if_odd_degree) / 2;
+    constexpr uint8_t num_blks      = (end_idx + simd_size - 1) / simd_size;
+    constexpr uint8_t num_pairs     = (nc - if_odd_degree) / 2;
 
     const simd_type zv{z};
     const auto z2v = zv * zv;
@@ -366,7 +366,7 @@ Two upsampfacs implemented. Params must match ref formula. Barnett 4/24/18 */
 
     // 1) initialize j=0 layer
     unroll_loop_ct<num_blks>([&]<std::size_t b>() {
-      constexpr size_t i = b * simd_size;
+      constexpr uint8_t i = b * simd_size;
       if constexpr (if_odd_degree) {
         k_odd_blk[b] = simd_type::load_aligned(padded_coeffs[0].data() + i);
       } else {
@@ -377,9 +377,9 @@ Two upsampfacs implemented. Params must match ref formula. Barnett 4/24/18 */
 
     // 2) chain up odd/even pairs (outer-unrolled on pairs)
     unroll_loop_ct<num_pairs>([&]<std::size_t p>() {
-      constexpr size_t j = 1 + if_odd_degree + p * 2;
-      const T *odd_ptr   = padded_coeffs[j].data();
-      const T *even_ptr  = padded_coeffs[j + 1].data();
+      constexpr uint8_t j     = 1 + if_odd_degree + p * 2;
+      constexpr auto odd_ptr  = padded_coeffs[j].data();
+      constexpr auto even_ptr = padded_coeffs[j + 1].data();
 
       // inner-unrolled over blocks to hide latency
       unroll_loop_ct<num_blks>([&]<std::size_t b>() {
@@ -393,10 +393,10 @@ Two upsampfacs implemented. Params must match ref formula. Barnett 4/24/18 */
 
     // 3) final Horner step + symmetric store
     unroll_loop_ct<num_blks>([&]<std::size_t b>() {
-      constexpr size_t i = b * simd_size;
-      constexpr int off  = offset_start - int(i);
-      auto odd           = k_odd_blk[b];
-      auto even          = k_even_blk[b];
+      constexpr uint8_t i = b * simd_size;
+      constexpr auto off  = offset_start - int(i);
+      const auto odd      = k_odd_blk[b];
+      const auto even     = k_even_blk[b];
 
       // left half
       xsimd::fma(odd, zv, even).store_aligned(ker + i);
@@ -417,25 +417,32 @@ Two upsampfacs implemented. Params must match ref formula. Barnett 4/24/18 */
   // ────────────────────────────────────────────────────────────────────────────
   else {
     // non-symmetric path – same double-unroll structure
-    constexpr size_t num_blks_ns = (w + simd_size - 1) / simd_size;
+    constexpr uint8_t num_blks_ns = (w + simd_size - 1) / simd_size;
     const simd_type zv{z};
 
     std::array<simd_type, num_blks_ns> k_blk{};
     unroll_loop_ct<num_blks_ns>([&]<std::size_t b>() {
-      constexpr size_t i = b * simd_size;
-      k_blk[b]           = simd_type::load_aligned(padded_coeffs[0].data() + i);
+      constexpr uint8_t i = b * simd_size;
+      k_blk[b]            = simd_type::load_aligned(padded_coeffs[0].data() + i);
     });
 
-    for (uint8_t j = 1; j < nc; ++j) {
-      const T *coeff_ptr = padded_coeffs[j].data();
-      unroll_loop_ct<num_blks_ns>([&]<std::size_t b>() {
+    static constexpr uint8_t num_coef_minus1 = (nc > 1 ? nc - 1 : 0);
+
+    // 2) chain each remaining coefficient, outer‐unrolled over j=1…nc-1
+    unroll_loop_ct<num_coef_minus1>([&]<std::size_t jj>() noexcept {
+      // jj runs 0…(nc-2), so map it to j=jj+1
+      constexpr uint8_t j      = jj + 1;
+      constexpr auto coeff_ptr = padded_coeffs[j].data();
+
+      // inner‐unrolled across blocks
+      unroll_loop_ct<num_blks_ns>([&]<std::size_t b>() noexcept {
         constexpr size_t i = b * simd_size;
         k_blk[b] = xsimd::fma(k_blk[b], zv, simd_type::load_aligned(coeff_ptr + i));
       });
-    }
+    });
 
     unroll_loop_ct<num_blks_ns>([&]<std::size_t b>() {
-      constexpr size_t i = b * simd_size;
+      constexpr uint8_t i = b * simd_size;
       k_blk[b].store_aligned(ker + i);
     });
   }
