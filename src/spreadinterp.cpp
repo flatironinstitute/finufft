@@ -377,9 +377,9 @@ Two upsampfacs implemented. Params must match ref formula. Barnett 4/24/18 */
 
     // 2) chain up odd/even pairs (outer-unrolled on pairs)
     unroll_loop_ct<num_pairs>([&]<std::size_t p>() {
-      static constexpr uint8_t j     = 1 + if_odd_degree + p * 2;
-      static constexpr auto odd_ptr  = padded_coeffs[j].data();
-      static constexpr auto even_ptr = padded_coeffs[j + 1].data();
+      static constexpr uint8_t j = 1 + if_odd_degree + p * 2;
+      const auto odd_ptr         = padded_coeffs[j].data();
+      const auto even_ptr        = padded_coeffs[j + 1].data();
 
       // inner-unrolled over blocks to hide latency
       unroll_loop_ct<num_blks>([&]<std::size_t b>() {
