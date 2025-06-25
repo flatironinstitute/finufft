@@ -73,8 +73,8 @@ DUCC_COOKIE := $(DUCC_DIR)/.finufft_has_ducc
 # for internal DUCC compile...
 DUCC_INCL := -I$(DUCC_DIR)/src
 DUCC_SRC := $(DUCC_DIR)/src/ducc0
-# for DUCC objects compile only (not our objects)...  *** check flags, pthreads?:
-DUCC_CXXFLAGS := -fPIC -std=c++17 -ffast-math
+# for DUCC objects compile only (not our objects)...
+DUCC_CXXFLAGS := -fPIC -std=c++17 -ffast-math $(CXXFLAGS)
 
 # absolute path of this makefile, ie FINUFFT's top-level directory...
 FINUFFT = $(dir $(realpath $(firstword $(MAKEFILE_LIST))))
