@@ -276,6 +276,36 @@ static void evaluate_kernel_vector(T *ker, T *args,
     if (abs(args[i]) >= (T)opts.ES_halfwidth) ker[i] = 0.0;
 }
 
+template<typename F, std::size_t... Is>
+FINUFFT_ALWAYS_INLINE constexpr void unroll_loop_impl(F &&func,
+                                                      std::index_sequence<Is...>) {
+  (func(Is), ...); // C++17 fold expression for comma operator
+}
+
+template<std::size_t Count, typename F>
+FINUFFT_ALWAYS_INLINE constexpr void unroll_loop(F &&func) {
+  unroll_loop_impl(std::forward<F>(func), std::make_index_sequence<Count>{});
+}
+
+//-----------------------------------------------------------------------------
+// 1) Core unroller that calls f.template operator()<I>()
+//-----------------------------------------------------------------------------
+template<std::size_t... Is, typename F>
+FINUFFT_ALWAYS_INLINE constexpr void unroll_loop_ct_impl(
+    F &&f, std::index_sequence<Is...>) noexcept {
+  // the comma‐fold here expands to:
+  //   (f.template operator()<0>(), f.template operator()<1>(), …)
+  ((void)f.template operator()<Is>(), ...);
+}
+
+//-----------------------------------------------------------------------------
+// 2) Public entry point: unroll_loop_ct<Count>(f)
+//-----------------------------------------------------------------------------
+template<std::size_t Count, typename F>
+FINUFFT_ALWAYS_INLINE constexpr void unroll_loop_ct(F &&f) noexcept {
+  unroll_loop_ct_impl(std::forward<F>(f), std::make_index_sequence<Count>{});
+}
+
 template<typename T, uint8_t w, uint8_t upsampfact,
          class simd_type =
              xsimd::make_sized_batch_t<T, find_optimal_simd_width<T, w>()>> // aka ns
@@ -308,14 +338,18 @@ Two upsampfacs implemented. Params must match ref formula. Barnett 4/24/18 */
 
   // use kernel symmetry trick if w > simd_size
   if constexpr (use_ker_sym) {
-    static constexpr uint8_t tail          = w % simd_size;
-    static constexpr uint8_t if_odd_degree = ((nc + 1) % 2);
-    static constexpr uint8_t offset_start  = tail ? w - tail : w - simd_size;
-    static constexpr uint8_t end_idx       = (w + (tail > 0)) / 2;
+    // compile-time constants for symmetry
+    constexpr uint8_t tail          = w % simd_size;
+    constexpr uint8_t if_odd_degree = ((nc + 1) % 2);
+    constexpr uint8_t offset_start  = tail ? w - tail : w - simd_size;
+    constexpr uint8_t end_idx       = (w + (tail > 0)) / 2;
+    constexpr size_t num_blks       = (end_idx + simd_size - 1) / simd_size;
+    constexpr size_t num_pairs      = (nc - if_odd_degree) / 2;
+
     const simd_type zv{z};
     const auto z2v = zv * zv;
 
-    // some xsimd constant for shuffle or inverse
+    // compile-time shuffle mask for the “right half”
     static constexpr auto shuffle_batch = []() constexpr noexcept {
       if constexpr (tail) {
         return xsimd::make_batch_constant<xsimd::as_unsigned_integer_t<T>, arch_t,
@@ -326,49 +360,84 @@ Two upsampfacs implemented. Params must match ref formula. Barnett 4/24/18 */
       }
     }();
 
-    // process simd vecs
-    simd_type k_prev, k_sym{0};
-    for (uint8_t i{0}, offset = offset_start; i < end_idx;
-         i += simd_size, offset -= simd_size) {
-      auto k_odd = [i]() constexpr noexcept {
-        if constexpr (if_odd_degree) {
-          return simd_type::load_aligned(padded_coeffs[0].data() + i);
-        } else {
-          return simd_type{0};
-        }
-      }();
-      auto k_even = simd_type::load_aligned(padded_coeffs[if_odd_degree].data() + i);
-      for (uint8_t j{1 + if_odd_degree}; j < nc; j += 2) {
-        const auto cji_odd  = simd_type::load_aligned(padded_coeffs[j].data() + i);
-        const auto cji_even = simd_type::load_aligned(padded_coeffs[j + 1].data() + i);
-        k_odd               = xsimd::fma(k_odd, z2v, cji_odd);
-        k_even              = xsimd::fma(k_even, z2v, cji_even);
+    // per-block accumulators
+    std::array<simd_type, num_blks> k_odd_blk{}, k_even_blk{};
+    simd_type k_prev{0}, k_sym{0};
+
+    // 1) initialize j=0 layer
+    unroll_loop_ct<num_blks>([&]<std::size_t b>() {
+      constexpr size_t i = b * simd_size;
+      if constexpr (if_odd_degree) {
+        k_odd_blk[b] = simd_type::load_aligned(padded_coeffs[0].data() + i);
+      } else {
+        k_odd_blk[b] = simd_type{0};
       }
-      // left part
-      xsimd::fma(k_odd, zv, k_even).store_aligned(ker + i);
-      // right part symmetric to the left part
-      if (offset >= end_idx) {
+      k_even_blk[b] = simd_type::load_aligned(padded_coeffs[if_odd_degree].data() + i);
+    });
+
+    // 2) chain up odd/even pairs (outer-unrolled on pairs)
+    unroll_loop_ct<num_pairs>([&]<std::size_t p>() {
+      constexpr size_t j = 1 + if_odd_degree + p * 2;
+      const T *odd_ptr   = padded_coeffs[j].data();
+      const T *even_ptr  = padded_coeffs[j + 1].data();
+
+      // inner-unrolled over blocks to hide latency
+      unroll_loop_ct<num_blks>([&]<std::size_t b>() {
+        constexpr size_t i = b * simd_size;
+        k_odd_blk[b] =
+            xsimd::fma(k_odd_blk[b], z2v, simd_type::load_aligned(odd_ptr + i));
+        k_even_blk[b] =
+            xsimd::fma(k_even_blk[b], z2v, simd_type::load_aligned(even_ptr + i));
+      });
+    });
+
+    // 3) final Horner step + symmetric store
+    unroll_loop_ct<num_blks>([&]<std::size_t b>() {
+      constexpr size_t i = b * simd_size;
+      constexpr int off  = offset_start - int(i);
+      auto odd           = k_odd_blk[b];
+      auto even          = k_even_blk[b];
+
+      // left half
+      xsimd::fma(odd, zv, even).store_aligned(ker + i);
+
+      // right half (compile-time check on off >= end_idx)
+      if constexpr (off >= int(end_idx)) {
         if constexpr (tail) {
-          // to use aligned store, we need shuffle the previous k_sym and current k_sym
           k_prev = k_sym;
-          k_sym  = xsimd::fnma(k_odd, zv, k_even);
-          xsimd::shuffle(k_sym, k_prev, shuffle_batch).store_aligned(ker + offset);
+          k_sym  = xsimd::fnma(odd, zv, even);
+          xsimd::shuffle(k_sym, k_prev, shuffle_batch).store_aligned(ker + off);
         } else {
-          xsimd::swizzle(xsimd::fnma(k_odd, zv, k_even), shuffle_batch)
-              .store_aligned(ker + offset);
+          xsimd::swizzle(xsimd::fnma(odd, zv, even), shuffle_batch)
+              .store_aligned(ker + off);
         }
       }
+    });
+  }
+  // ────────────────────────────────────────────────────────────────────────────
+  else {
+    // non-symmetric path – same double-unroll structure
+    constexpr size_t num_blks_ns = (w + simd_size - 1) / simd_size;
+    const simd_type zv{z};
+
+    std::array<simd_type, num_blks_ns> k_blk{};
+    unroll_loop_ct<num_blks_ns>([&]<std::size_t b>() {
+      constexpr size_t i = b * simd_size;
+      k_blk[b]           = simd_type::load_aligned(padded_coeffs[0].data() + i);
+    });
+
+    for (uint8_t j = 1; j < nc; ++j) {
+      const T *coeff_ptr = padded_coeffs[j].data();
+      unroll_loop_ct<num_blks_ns>([&]<std::size_t b>() {
+        constexpr size_t i = b * simd_size;
+        k_blk[b] = xsimd::fma(k_blk[b], zv, simd_type::load_aligned(coeff_ptr + i));
+      });
     }
-  } else {
-    const simd_type zv(z);
-    for (uint8_t i = 0; i < w; i += simd_size) {
-      auto k = simd_type::load_aligned(padded_coeffs[0].data() + i);
-      for (uint8_t j = 1; j < nc; ++j) {
-        const auto cji = simd_type::load_aligned(padded_coeffs[j].data() + i);
-        k              = xsimd::fma(k, zv, cji);
-      }
-      k.store_aligned(ker + i);
-    }
+
+    unroll_loop_ct<num_blks_ns>([&]<std::size_t b>() {
+      constexpr size_t i = b * simd_size;
+      k_blk[b].store_aligned(ker + i);
+    });
   }
 }
 
