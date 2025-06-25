@@ -306,146 +306,207 @@ FINUFFT_ALWAYS_INLINE constexpr void unroll_loop_ct(F &&f) noexcept {
   unroll_loop_ct_impl(std::forward<F>(f), std::make_index_sequence<Count>{});
 }
 
+//==============================================================================
+//  A C++17-compatible, zero-copy, fully unrolled Horner evaluator for FINUFFT
+//==============================================================================
+
 template<typename T, uint8_t w, uint8_t upsampfact,
-         class simd_type =
-             xsimd::make_sized_batch_t<T, find_optimal_simd_width<T, w>()>> // aka ns
-static FINUFFT_ALWAYS_INLINE void eval_kernel_vec_Horner(
-    T *FINUFFT_RESTRICT ker, T x, const finufft_spread_opts &opts) noexcept
-/* Fill ker[] with Horner piecewise poly approx to [-w/2,w/2] ES kernel eval at
-x_j = x + j,  for j=0,..,w-1.  Thus x in [-w/2,-w/2+1].   w is aka ns.
-This is the current evaluation method, since it's faster (except i7 w=16).
-Two upsampfacs implemented. Params must match ref formula. Barnett 4/24/18 */
+         class simd_type = xsimd::make_sized_batch_t<T, find_optimal_simd_width<T, w>()>>
+struct EvalKernelVecHornerHelper {
+  // –– static setup ––//
+  using batch_t                          = simd_type;
+  using arch_t                           = typename batch_t::arch_type;
+  static constexpr std::size_t simd_size = batch_t::size;
+  static constexpr std::size_t padded_ns = (w + simd_size - 1) & ~(simd_size - 1);
 
-{
-  // scale so local grid offset z in[-1,1]
-  const T z                           = std::fma(T(2.0), x, T(w - 1));
-  using arch_t                        = typename simd_type::arch_type;
-  static constexpr auto alignment     = arch_t::alignment();
-  static constexpr auto simd_size     = simd_type::size;
-  static constexpr auto padded_ns     = (w + simd_size - 1) & ~(simd_size - 1);
   static constexpr auto horner_coeffs = []() constexpr noexcept {
-    if constexpr (upsampfact == 200) {
+    if constexpr (upsampfact == 200)
       return get_horner_coeffs_200<T, w>();
-    } else if constexpr (upsampfact == 125) {
+    else
       return get_horner_coeffs_125<T, w>();
-    }
   }();
-  static constexpr auto nc          = horner_coeffs.size();
-  static constexpr auto use_ker_sym = (simd_size < w);
+  static constexpr std::size_t nc = horner_coeffs.size();
 
-  alignas(alignment) static constexpr auto padded_coeffs =
+  // –– symmetric-kernel constants ––//
+  static constexpr bool use_ker_sym     = (simd_size < w);
+  static constexpr uint8_t tail         = w % simd_size;
+  static constexpr uint8_t if_odd_deg   = ((nc + 1) % 2);
+  static constexpr uint8_t offset_start = tail ? w - tail : w - simd_size;
+  static constexpr uint8_t end_idx      = (w + (tail > 0)) / 2;
+  static constexpr uint8_t num_blks     = (end_idx + simd_size - 1) / simd_size;
+  static constexpr uint8_t num_pairs    = (nc - if_odd_deg) / 2;
+
+  // –– non-symmetric constants ––//
+  static constexpr uint8_t num_blks_ns     = (w + simd_size - 1) / simd_size;
+  static constexpr uint8_t num_coef_minus1 = (nc > 1 ? nc - 1 : 0);
+
+  // –– padded coefficient array ––//
+  alignas(arch_t::alignment()) static constexpr auto padded_coeffs =
       pad_2D_array_with_zeros<T, nc, w, padded_ns>(horner_coeffs);
 
-  // use kernel symmetry trick if w > simd_size
-  if constexpr (use_ker_sym) {
-    // compile-time constants for symmetry
-    static constexpr uint8_t tail          = w % simd_size;
-    static constexpr uint8_t if_odd_degree = ((nc + 1) % 2);
-    static constexpr uint8_t offset_start  = tail ? w - tail : w - simd_size;
-    static constexpr uint8_t end_idx       = (w + (tail > 0)) / 2;
-    static constexpr uint8_t num_blks      = (end_idx + simd_size - 1) / simd_size;
-    static constexpr uint8_t num_pairs     = (nc - if_odd_degree) / 2;
+  // –– shuffle mask for symmetric path ––//
+  static constexpr auto shuffle_batch = []() constexpr noexcept {
+    if constexpr (tail)
+      return xsimd::make_batch_constant<xsimd::as_unsigned_integer_t<T>, arch_t,
+                                        shuffle_index<tail>>();
+    else
+      return xsimd::make_batch_constant<xsimd::as_unsigned_integer_t<T>, arch_t,
+                                        reverse_index<simd_size>>();
+  }();
 
-    const simd_type zv{z};
-    const simd_type z2v{z * z};
+  //==============================================================================
+  //  Functor #1: initialize each block’s odd/even accumulators
+  //==============================================================================
+  struct InitBlock {
+    batch_t *odd_blk;
+    batch_t *even_blk;
 
-    // compile-time shuffle mask for the “right half”
-    static constexpr auto shuffle_batch = []() constexpr noexcept {
-      if constexpr (tail) {
-        return xsimd::make_batch_constant<xsimd::as_unsigned_integer_t<T>, arch_t,
-                                          shuffle_index<tail>>();
+    template<std::size_t b> void operator()() const noexcept {
+      constexpr std::size_t i = b * simd_size;
+      if constexpr (if_odd_deg) {
+        odd_blk[b] = batch_t::load_aligned(padded_coeffs[0].data() + i);
       } else {
-        return xsimd::make_batch_constant<xsimd::as_unsigned_integer_t<T>, arch_t,
-                                          reverse_index<simd_size>>();
+        odd_blk[b] = batch_t{0};
       }
-    }();
+      even_blk[b] = batch_t::load_aligned(padded_coeffs[if_odd_deg].data() + i);
+    }
+  };
 
-    // per-block accumulators
-    std::array<simd_type, num_blks> k_odd_blk{}, k_even_blk{};
-    simd_type k_prev{0}, k_sym{0};
+  //==============================================================================
+  //  Functor #2: do one Horner “pair” (j and j+1) across all blocks
+  //==============================================================================
+  struct ChainPair {
+    batch_t *odd_blk;
+    batch_t *even_blk;
+    const batch_t &z2v;
 
-    // 1) initialize j=0 layer
-    unroll_loop_ct<num_blks>([&]<std::size_t b>() {
-      constexpr uint8_t i = b * simd_size;
-      if constexpr (if_odd_degree) {
-        k_odd_blk[b] = simd_type::load_aligned(padded_coeffs[0].data() + i);
-      } else {
-        k_odd_blk[b] = simd_type{0};
+    template<std::size_t p> void operator()() const noexcept {
+      constexpr std::size_t j = std::size_t(1u + if_odd_deg + p * 2u);
+      const T *odd_ptr        = padded_coeffs[j].data();
+      const T *even_ptr       = padded_coeffs[j + 1].data();
+
+      for (std::size_t b = 0; b < num_blks; ++b) {
+        std::size_t idx = b * simd_size;
+        odd_blk[b]  = xsimd::fma(odd_blk[b], z2v, batch_t::load_aligned(odd_ptr + idx));
+        even_blk[b] = xsimd::fma(even_blk[b], z2v, batch_t::load_aligned(even_ptr + idx));
       }
-      k_even_blk[b] = simd_type::load_aligned(padded_coeffs[if_odd_degree].data() + i);
-    });
+    }
+  };
 
-    // 2) chain up odd/even pairs (outer-unrolled on pairs)
-    unroll_loop_ct<num_pairs>([&]<std::size_t p>() {
-      static constexpr uint8_t j = 1 + if_odd_degree + p * 2;
-      const auto odd_ptr         = padded_coeffs[j].data();
-      const auto even_ptr        = padded_coeffs[j + 1].data();
+  //==============================================================================
+  //  Functor #3: final Horner step + symmetric store for each block
+  //==============================================================================
+  struct FinalSymStore {
+    batch_t *odd_blk;
+    batch_t *even_blk;
+    batch_t &k_prev;
+    batch_t &k_sym;
+    const batch_t &zv;
+    T *ker;
 
-      // inner-unrolled over blocks to hide latency
-      unroll_loop_ct<num_blks>([&]<std::size_t b>() {
-        constexpr size_t i = b * simd_size;
-        k_odd_blk[b] =
-            xsimd::fma(k_odd_blk[b], z2v, simd_type::load_aligned(odd_ptr + i));
-        k_even_blk[b] =
-            xsimd::fma(k_even_blk[b], z2v, simd_type::load_aligned(even_ptr + i));
-      });
-    });
+    template<std::size_t b> void operator()() const noexcept {
+      constexpr std::size_t i = b * simd_size;
+      constexpr int off       = int(offset_start) - int(i);
 
-    // 3) final Horner step + symmetric store
-    unroll_loop_ct<num_blks>([&]<std::size_t b>() {
-      static constexpr uint8_t i = b * simd_size;
-      static constexpr auto off  = offset_start - int(i);
-      const auto odd             = k_odd_blk[b];
-      const auto even            = k_even_blk[b];
+      const auto &odd  = odd_blk[b];
+      const auto &even = even_blk[b];
+      auto v           = xsimd::fma(odd, zv, even);
+      v.store_aligned(ker + i);
 
-      // left half
-      xsimd::fma(odd, zv, even).store_aligned(ker + i);
-
-      // right half (compile-time check on off >= end_idx)
       if constexpr (off >= int(end_idx)) {
+        auto fn = xsimd::fnma(odd, zv, even);
         if constexpr (tail) {
           k_prev = k_sym;
-          k_sym  = xsimd::fnma(odd, zv, even);
+          k_sym  = fn;
           xsimd::shuffle(k_sym, k_prev, shuffle_batch).store_aligned(ker + off);
         } else {
-          xsimd::swizzle(xsimd::fnma(odd, zv, even), shuffle_batch)
-              .store_aligned(ker + off);
+          xsimd::swizzle(fn, shuffle_batch).store_aligned(ker + off);
         }
       }
-    });
-  }
-  // ────────────────────────────────────────────────────────────────────────────
-  else {
-    // non-symmetric path – same double-unroll structure
-    constexpr uint8_t num_blks_ns = (w + simd_size - 1) / simd_size;
-    const simd_type zv{z};
+    }
+  };
 
-    std::array<simd_type, num_blks_ns> k_blk{};
-    unroll_loop_ct<num_blks_ns>([&]<std::size_t b>() {
-      constexpr uint8_t i = b * simd_size;
-      k_blk[b]            = simd_type::load_aligned(padded_coeffs[0].data() + i);
-    });
+  //==============================================================================
+  //  Functor #4: load base layer for non-symmetric path
+  //==============================================================================
+  struct LoadBase {
+    batch_t *k_blk;
 
-    static constexpr uint8_t num_coef_minus1 = (nc > 1 ? nc - 1 : 0);
+    template<std::size_t b> void operator()() const noexcept {
+      constexpr std::size_t i = b * simd_size;
+      k_blk[b]                = batch_t::load_aligned(padded_coeffs[0].data() + i);
+    }
+  };
 
-    // 2) chain each remaining coefficient, outer‐unrolled over j=1…nc-1
-    unroll_loop_ct<num_coef_minus1>([&]<std::size_t jj>() noexcept {
-      // jj runs 0…(nc-2), so map it to j=jj+1
-      constexpr uint8_t j      = jj + 1;
-      constexpr auto coeff_ptr = padded_coeffs[j].data();
+  //==============================================================================
+  //  Functor #5: Horner chain for non-symmetric path
+  //==============================================================================
+  struct HornerChain {
+    batch_t *k_blk;
+    const batch_t &zv;
 
-      // inner‐unrolled across blocks
-      unroll_loop_ct<num_blks_ns>([&]<std::size_t b>() noexcept {
-        constexpr size_t i = b * simd_size;
-        k_blk[b] = xsimd::fma(k_blk[b], zv, simd_type::load_aligned(coeff_ptr + i));
-      });
-    });
+    template<std::size_t jj> void operator()() const noexcept {
+      constexpr std::size_t j = jj + 1u;
+      const T *coeff_ptr      = padded_coeffs[j].data();
+      for (std::size_t b = 0; b < num_blks_ns; ++b) {
+        std::size_t i = b * simd_size;
+        k_blk[b]      = xsimd::fma(k_blk[b], zv, batch_t::load_aligned(coeff_ptr + i));
+      }
+    }
+  };
 
-    unroll_loop_ct<num_blks_ns>([&]<std::size_t b>() {
-      constexpr uint8_t i = b * simd_size;
+  //==============================================================================
+  //  Functor #6: final store for non-symmetric path
+  //==============================================================================
+  struct StoreFinal {
+    batch_t *k_blk;
+    T *ker;
+
+    template<std::size_t b> void operator()() const noexcept {
+      constexpr std::size_t i = b * simd_size;
       k_blk[b].store_aligned(ker + i);
-    });
+    }
+  };
+
+  //==============================================================================
+  //  The actual eval() entrypoint
+  //==============================================================================
+  static FINUFFT_ALWAYS_INLINE void eval(T *ker, T x,
+                                         const finufft_spread_opts & /*opts*/) noexcept {
+    // scale into [-1,1]
+    const batch_t zv{std::fma(T(2.0), x, T(w - 1))};
+    const batch_t z2v{zv * zv};
+
+    if constexpr (use_ker_sym) {
+      // 1) init
+      batch_t odd_blk[num_blks], even_blk[num_blks];
+      unroll_loop_ct<num_blks>(InitBlock{odd_blk, even_blk});
+
+      // 2) chain pairs
+      unroll_loop_ct<num_pairs>(ChainPair{odd_blk, even_blk, z2v});
+
+      // 3) final symmetric store
+      batch_t k_prev{0}, k_sym{0};
+      unroll_loop_ct<num_blks>(FinalSymStore{odd_blk, even_blk, k_prev, k_sym, zv, ker});
+
+    } else {
+      // non-symmetric
+      batch_t k_blk[num_blks_ns];
+      unroll_loop_ct<num_blks_ns>(LoadBase{k_blk});
+
+      unroll_loop_ct<num_coef_minus1>(HornerChain{k_blk, zv});
+
+      unroll_loop_ct<num_blks_ns>(StoreFinal{k_blk, ker});
+    }
   }
+};
+
+//==============================================================================
+//  Public API (exactly as before)
+template<typename T, uint8_t w, uint8_t upsampfact, class simd_type>
+static FINUFFT_ALWAYS_INLINE void eval_kernel_vec_Horner(
+    T *FINUFFT_RESTRICT ker, T x, const finufft_spread_opts &opts) noexcept {
+  EvalKernelVecHornerHelper<T, w, upsampfact, simd_type>::eval(ker, x, opts);
 }
 
 template<typename T, uint8_t ns>
