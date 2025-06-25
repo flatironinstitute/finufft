@@ -116,15 +116,12 @@ It is often 10x faster than the CPU code, and up to 100x
 faster than other established GPU NUFFT codes,
 as the above graph indicates (see [S21] in our :ref:`references<refs>`).
 This is achieved in part by developing a type 1 algorithm that exploits
-fast GPU shared memory, which
-requires hand-tuned choices of bin-sizes due to the small memory size
-(49kB per thread block).
-Both double and single precision are supported, and a Python interface.
-Please see sections of this documentation labeled "GPU".
-In 2023 we added dimension 1, and merged cuFINUFFT into the FINUFFT repository.
-Further unification of the interfaces, underlying algorithm, and
-completion of type 3 on the GPU are still in progress.
-
+fast GPU shared memory.
+We have since added dimension 1 and type 3 transforms,
+and merged cuFINUFFT into the FINUFFT repository.
+Both double and single precision are supported, and Python and MATLAB
+interfaces. Please see sections of this documentation labeled "GPU".
+Ongoing unification of the GPU and CPU interfaces continues.
 
 .. _need:
 
