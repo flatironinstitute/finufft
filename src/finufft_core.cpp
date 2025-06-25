@@ -1023,8 +1023,8 @@ int FINUFFT_PLAN_T<TF>::execute_internal(TC *cj, TC *fk, bool adjoint, int ntran
 
     double t_sprint = 0.0, t_fft = 0.0, t_deconv = 0.0; // accumulated timing
     if (opts.debug)
-      printf("[%s] start ntrans=%d (%d batches, bsize=%d)...\n", __func__, ntrans_actual,
-             nbatch, batchSize);
+      printf("[%s] start%s ntrans=%d (%d batches, bsize=%d)...\n", "execute",
+             adjoint ? " adjoint" : "", ntrans_actual, nbatch, batchSize);
     // allocate temporary buffers
     bool scratch_provided = scratch_size >= size_t(nf() * batchSize);
     std::vector<TC, xsimd::aligned_allocator<TC, 64>> fwBatch_(
@@ -1038,7 +1038,7 @@ int FINUFFT_PLAN_T<TF>::execute_internal(TC *cj, TC *fk, bool adjoint, int ntran
       TC *cjb           = cj + bB * nj;  // point to batch of user weights
       TC *fkb           = fk + bB * N(); // point to batch of user mode coeffs
       if (opts.debug > 1)
-        printf("[%s] start batch %d (size %d):\n", __func__, b, thisBatchSize);
+        printf("[%s] start batch %d (size %d):\n", "execute", b, thisBatchSize);
 
       // STEP 1: (varies by type)
       timer.restart();
@@ -1074,14 +1074,14 @@ int FINUFFT_PLAN_T<TF>::execute_internal(TC *cj, TC *fk, bool adjoint, int ntran
     } // ........end b loop
 
     if (opts.debug) { // report total times in their natural order...
-      if (type == 1) {
-        printf("[%s] done. tot spread:\t\t%.3g s\n", __func__, t_sprint);
-        printf("               tot FFT:\t\t\t\t%.3g s\n", t_fft);
-        printf("               tot deconvolve:\t\t\t%.3g s\n", t_deconv);
+      if ((type == 1) != adjoint) {
+        printf("[%s] done. tot spread:\t\t%.3g s\n", "execute", t_sprint);
+        printf("                tot FFT:\t\t%.3g s\n", t_fft);
+        printf("                tot deconvolve:\t\t%.3g s\n", t_deconv);
       } else {
-        printf("[%s] done. tot deconvolve:\t\t%.3g s\n", __func__, t_deconv);
-        printf("               tot FFT:\t\t\t\t%.3g s\n", t_fft);
-        printf("               tot interp:\t\t\t%.3g s\n", t_sprint);
+        printf("[%s] done. tot deconvolve:\t\t%.3g s\n", "execute", t_deconv);
+        printf("                tot FFT:\t\t%.3g s\n", t_fft);
+        printf("                tot interp:\t\t%.3g s\n", t_sprint);
       }
     }
   }
@@ -1091,11 +1091,11 @@ int FINUFFT_PLAN_T<TF>::execute_internal(TC *cj, TC *fk, bool adjoint, int ntran
     // for (BIGINT j=0;j<10;++j) printf("\tcj[%ld]=%.15g+%.15gi\n",(long
     // int)j,(double)real(cj[j]),(double)imag(cj[j]));  // debug
 
-    double t_pre = 0.0, t_spr = 0.0, t_t2 = 0.0,
+    double t_phase = 0.0, t_sprint = 0.0, t_inner = 0.0,
            t_deconv = 0.0; // accumulated timings
     if (opts.debug)
-      printf("[%s t3] start ntrans=%d (%d batches, bsize=%d)...\n", __func__,
-             ntrans_actual, nbatch, batchSize);
+      printf("[%s t3] start%s ntrans=%d (%d batches, bsize=%d)...\n", "execute",
+             adjoint ? " adjoint" : "", ntrans_actual, nbatch, batchSize);
 
     // allocate temporary buffers
     // We are trying to be clever here and re-use memory whenever possible.
@@ -1134,7 +1134,7 @@ int FINUFFT_PLAN_T<TF>::execute_internal(TC *cj, TC *fk, bool adjoint, int ntran
       TC *cjb           = cj + bB * nj; // batch of input strengths
       TC *fkb           = fk + bB * nk; // batch of output strengths
       if (opts.debug > 1)
-        printf("[%s t3] start batch %d (size %d):\n", __func__, b, thisBatchSize);
+        printf("[%s t3] start batch %d (size %d):\n", "execute", b, thisBatchSize);
 
       if (!adjoint) {
         // STEP 0: pre-phase (possibly) the c_j input strengths into c'_j batch...
@@ -1146,13 +1146,13 @@ int FINUFFT_PLAN_T<TF>::execute_internal(TC *cj, TC *fk, bool adjoint, int ntran
             CpBatch[ioff + j] = prephase[j] * cjb[ioff + j];
           }
         }
-        t_pre += timer.elapsedsec();
+        t_phase += timer.elapsedsec();
 
         // STEP 1: spread c'_j batch (x'_j NU pts) into internal fw batch grid...
         timer.restart();
         spreadinterpSortedBatch(thisBatchSize, fwBatch, CpBatch,
                                 adjoint); // X are primed
-        t_spr += timer.elapsedsec();
+        t_sprint += timer.elapsedsec();
 
         // STEP 2: type 2 NUFFT from fw batch to user output fk array batch...
         timer.restart();
@@ -1160,7 +1160,7 @@ int FINUFFT_PLAN_T<TF>::execute_internal(TC *cj, TC *fk, bool adjoint, int ntran
        still the same size, as Andrea explained; just wastes a few flops) */
         innerT2plan->execute_internal(fkb, fwBatch, adjoint, thisBatchSize, fwBatch_inner,
                                       innerT2plan->nf() * innerT2plan->batchSize);
-        t_t2 += timer.elapsedsec();
+        t_inner += timer.elapsedsec();
         // STEP 3: apply deconvolve (precomputed 1/phiHat(targ_k), phasing too)...
         timer.restart();
 #pragma omp parallel for num_threads(opts.nthreads)
@@ -1185,12 +1185,12 @@ int FINUFFT_PLAN_T<TF>::execute_internal(TC *cj, TC *fk, bool adjoint, int ntran
         innerT2plan->execute_internal(CpBatch, fwBatch, adjoint, thisBatchSize,
                                       fwBatch_inner,
                                       innerT2plan->nf() * innerT2plan->batchSize);
-        t_t2 += timer.elapsedsec();
+        t_inner += timer.elapsedsec();
         // STEP 2: interpolate fwBatch into user output array ...
         timer.restart();
         spreadinterpSortedBatch(thisBatchSize, fwBatch, cjb,
                                 adjoint); // X are primed
-        t_spr += timer.elapsedsec();
+        t_sprint += timer.elapsedsec();
         // STEP 3: post-phase (possibly) the c_j output strengths (in place) ...
         timer.restart();
 #pragma omp parallel for num_threads(opts.nthreads) // or batchSize?
@@ -1200,15 +1200,22 @@ int FINUFFT_PLAN_T<TF>::execute_internal(TC *cj, TC *fk, bool adjoint, int ntran
             cjb[ioff + j] *= conj(prephase[j]); // FIXME
           }
         }
-        t_pre += timer.elapsedsec();
+        t_phase += timer.elapsedsec();
       }
     } // ........end b loop
 
     if (opts.debug) { // report total times in their natural order...
-      printf("[%s t3] done. tot prephase:\t\t%.3g s\n", __func__, t_pre);
-      printf("                  tot spread:\t\t\t%.3g s\n", t_spr);
-      printf("                  tot type 2:\t\t\t%.3g s\n", t_t2);
-      printf("                  tot deconvolve:\t\t%.3g s\n", t_deconv);
+      if (!adjoint) {
+        printf("[%s t3] done. tot prephase:\t%.3g s\n", "execute", t_phase);
+        printf("                   tot spread:\t\t%.3g s\n", t_sprint);
+        printf("                   tot inner NUFFT:\t%.3g s\n", t_inner);
+        printf("                   tot deconvolve:\t%.3g s\n", t_deconv);
+      } else {
+        printf("[%s t3] done. tot deconvolve:\t%.3g s\n", "execute", t_deconv);
+        printf("                   tot inner NUFFT:\t%.3g s\n", t_inner);
+        printf("                   tot interp:\t\t%.3g s\n", t_sprint);
+        printf("                   tot postphase:\t%.3g s\n", t_phase);
+      }
     }
   }
   // for (BIGINT k=0;k<10;++k) printf("\tfk[%ld]=%.15g+%.15gi\n",(long

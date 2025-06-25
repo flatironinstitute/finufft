@@ -38,7 +38,7 @@ private:
     static std::mutex mut_;
     return mut_;
   }
-  fftwf_plan plan_;
+  fftwf_plan plan_, plan_adj_;
 
   void (*fftw_lock_fun)(void *);   // Function ptr that locks the FFTW planner
   void (*fftw_unlock_fun)(void *); // Function ptr that unlocks the FFTW planner
@@ -50,8 +50,8 @@ public:
   [[maybe_unused]] Finufft_FFT_plan(void (*fftw_lock_fun_)(void *)   = nullptr,
                                     void (*fftw_unlock_fun_)(void *) = nullptr,
                                     void *lock_data_                 = nullptr)
-      : plan_(nullptr), fftw_lock_fun(fftw_lock_fun_), fftw_unlock_fun(fftw_unlock_fun_),
-        lock_data(lock_data_) {
+      : plan_(nullptr), plan_adj_(nullptr), fftw_lock_fun(fftw_lock_fun_),
+        fftw_unlock_fun(fftw_unlock_fun_), lock_data(lock_data_) {
     lock();
 #ifdef _OPENMP
     static bool initialized = false;
@@ -62,12 +62,13 @@ public:
 #endif
     unlock();
   }
-  // we have raw pointers in the object (the FFTW plan).
+  // we have raw pointers in the object (the FFTW plans).
   // If we allow copying those, we end up destroying the plans multiple times.
   Finufft_FFT_plan(const Finufft_FFT_plan &) = delete;
   [[maybe_unused]] ~Finufft_FFT_plan() {
     lock();
     fftwf_destroy_plan(plan_);
+    fftwf_destroy_plan(plan_adj_);
     unlock();
   }
   Finufft_FFT_plan &operator=(const Finufft_FFT_plan &) = delete;
@@ -81,15 +82,22 @@ public:
 #ifdef _OPENMP
     fftwf_plan_with_nthreads(nthreads);
 #endif
-    plan_ = fftwf_plan_many_dft(int(dims.size()), dims.data(), int(batchSize),
-                                reinterpret_cast<fftwf_complex *>(ptr), nullptr, 1,
-                                int(nf), reinterpret_cast<fftwf_complex *>(ptr), nullptr,
-                                1, int(nf), sign, unsigned(options));
+    plan_     = fftwf_plan_many_dft(int(dims.size()), dims.data(), int(batchSize),
+                                    reinterpret_cast<fftwf_complex *>(ptr), nullptr, 1,
+                                    int(nf), reinterpret_cast<fftwf_complex *>(ptr), nullptr,
+                                    1, int(nf), sign, unsigned(options));
+    plan_adj_ = fftwf_plan_many_dft(int(dims.size()), dims.data(), int(batchSize),
+                                    reinterpret_cast<fftwf_complex *>(ptr), nullptr, 1,
+                                    int(nf), reinterpret_cast<fftwf_complex *>(ptr),
+                                    nullptr, 1, int(nf), -sign, unsigned(options));
     unlock();
   }
-  void execute [[maybe_unused]] () const { fftwf_execute(plan_); }
   void execute [[maybe_unused]] (std::complex<float> *data) const {
     fftwf_execute_dft(plan_, reinterpret_cast<fftwf_complex *>(data),
+                      reinterpret_cast<fftwf_complex *>(data));
+  }
+  void execute_adjoint [[maybe_unused]] (std::complex<float> *data) const {
+    fftwf_execute_dft(plan_adj_, reinterpret_cast<fftwf_complex *>(data),
                       reinterpret_cast<fftwf_complex *>(data));
   }
 
@@ -108,7 +116,7 @@ private:
     static std::mutex mut_;
     return mut_;
   }
-  fftw_plan plan_;
+  fftw_plan plan_, plan_adj_;
 
   void (*fftw_lock_fun)(void *);   // Function ptr that locks the FFTW planner
   void (*fftw_unlock_fun)(void *); // Function ptr that unlocks the FFTW planner
@@ -120,8 +128,8 @@ public:
   [[maybe_unused]] Finufft_FFT_plan(void (*fftw_lock_fun_)(void *)   = nullptr,
                                     void (*fftw_unlock_fun_)(void *) = nullptr,
                                     void *lock_data_                 = nullptr)
-      : plan_(nullptr), fftw_lock_fun(fftw_lock_fun_), fftw_unlock_fun(fftw_unlock_fun_),
-        lock_data(lock_data_) {
+      : plan_(nullptr), plan_adj_(nullptr), fftw_lock_fun(fftw_lock_fun_),
+        fftw_unlock_fun(fftw_unlock_fun_), lock_data(lock_data_) {
     lock();
 #ifdef _OPENMP
     static bool initialized = false;
@@ -136,6 +144,7 @@ public:
   [[maybe_unused]] ~Finufft_FFT_plan() {
     lock();
     fftw_destroy_plan(plan_);
+    fftw_destroy_plan(plan_adj_);
     unlock();
   }
   Finufft_FFT_plan &operator=(const Finufft_FFT_plan &) = delete;
@@ -149,15 +158,22 @@ public:
 #ifdef _OPENMP
     fftw_plan_with_nthreads(nthreads);
 #endif
-    plan_ = fftw_plan_many_dft(int(dims.size()), dims.data(), int(batchSize),
-                               reinterpret_cast<fftw_complex *>(ptr), nullptr, 1, int(nf),
-                               reinterpret_cast<fftw_complex *>(ptr), nullptr, 1, int(nf),
-                               sign, unsigned(options));
+    plan_     = fftw_plan_many_dft(int(dims.size()), dims.data(), int(batchSize),
+                                   reinterpret_cast<fftw_complex *>(ptr), nullptr, 1, int(nf),
+                                   reinterpret_cast<fftw_complex *>(ptr), nullptr, 1, int(nf),
+                                   sign, unsigned(options));
+    plan_adj_ = fftw_plan_many_dft(int(dims.size()), dims.data(), int(batchSize),
+                                   reinterpret_cast<fftw_complex *>(ptr), nullptr, 1,
+                                   int(nf), reinterpret_cast<fftw_complex *>(ptr),
+                                   nullptr, 1, int(nf), -sign, unsigned(options));
     unlock();
   }
-  void execute [[maybe_unused]] () const { fftw_execute(plan_); }
   void execute [[maybe_unused]] (std::complex<double> *data) const {
     fftw_execute_dft(plan_, reinterpret_cast<fftw_complex *>(data),
+                     reinterpret_cast<fftw_complex *>(data));
+  }
+  void execute_adjoint [[maybe_unused]] (std::complex<double> *data) const {
+    fftw_execute_dft(plan_adj_, reinterpret_cast<fftw_complex *>(data),
                      reinterpret_cast<fftw_complex *>(data));
   }
 
