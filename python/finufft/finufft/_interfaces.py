@@ -309,6 +309,30 @@ class Plan:
 
     ### execute_adjoint
     def execute_adjoint(self,data,out=None):
+        r"""
+        Execute the plan in the adjoint direction
+
+        Performs the adjoint transform to the NUFFT specified at plan
+        instantiation with the points set by ``setpts``.
+        The adjoint execution basically applies the NUFFT "backwards" and
+        with opposite `isign`.
+        The inputs must have the same shape and type the outputs of a normal
+        ``execute`` call would have.
+        Conversely, the shape and type of the output corresponds to the
+        input of an ``execute`` call.
+        If ``n_trans`` is greater than one,
+        ``n_trans`` inputs are expected, stacked along the first axis.
+
+        Args:
+            data    (complex[M], complex[n_tr, M], complex[n_modes], or complex[n_tr, n_modes]): The input source strengths
+                    (type 2 and 3) or source modes (type 1).
+            out     (complex[n_modes], complex[n_tr, n_modes], complex[M], or complex[n_tr, M], optional): The array where the
+                    output is stored. Must be of the right size.
+
+        Returns:
+            complex[n_modes], complex[n_tr, n_modes], complex[M], or complex[n_tr, M]: The output array of the transform(s).
+        """
+
         _data = _ensure_array_type(data, "data", self._dtype)
         _out = _ensure_array_type(out, "out", self._dtype, output=True)
 
