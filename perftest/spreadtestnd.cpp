@@ -153,7 +153,7 @@ int main(int argc, char *argv[])
   d_nonuniform[0]       = 1.0;
   d_nonuniform[1]       = 0.0; // unit strength
   kx[0] = ky[0] = kz[0] = 0.0; // at center (probably doesn't matter); domain is
-                               // [-pi,pi)^d
+                               [-pi,pi)^d
   int ier = spreadinterp(N,
                          N2,
                          N3,

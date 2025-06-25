@@ -339,15 +339,15 @@ Two upsampfacs implemented. Params must match ref formula. Barnett 4/24/18 */
   // use kernel symmetry trick if w > simd_size
   if constexpr (use_ker_sym) {
     // compile-time constants for symmetry
-    constexpr uint8_t tail          = w % simd_size;
-    constexpr uint8_t if_odd_degree = ((nc + 1) % 2);
-    constexpr uint8_t offset_start  = tail ? w - tail : w - simd_size;
-    constexpr uint8_t end_idx       = (w + (tail > 0)) / 2;
-    constexpr uint8_t num_blks      = (end_idx + simd_size - 1) / simd_size;
-    constexpr uint8_t num_pairs     = (nc - if_odd_degree) / 2;
+    static constexpr uint8_t tail          = w % simd_size;
+    static constexpr uint8_t if_odd_degree = ((nc + 1) % 2);
+    static constexpr uint8_t offset_start  = tail ? w - tail : w - simd_size;
+    static constexpr uint8_t end_idx       = (w + (tail > 0)) / 2;
+    static constexpr uint8_t num_blks      = (end_idx + simd_size - 1) / simd_size;
+    static constexpr uint8_t num_pairs     = (nc - if_odd_degree) / 2;
 
     const simd_type zv{z};
-    const auto z2v = zv * zv;
+    const simd_type z2v{z * z};
 
     // compile-time shuffle mask for the “right half”
     static constexpr auto shuffle_batch = []() constexpr noexcept {
@@ -377,9 +377,9 @@ Two upsampfacs implemented. Params must match ref formula. Barnett 4/24/18 */
 
     // 2) chain up odd/even pairs (outer-unrolled on pairs)
     unroll_loop_ct<num_pairs>([&]<std::size_t p>() {
-      constexpr uint8_t j     = 1 + if_odd_degree + p * 2;
-      constexpr auto odd_ptr  = padded_coeffs[j].data();
-      constexpr auto even_ptr = padded_coeffs[j + 1].data();
+      static constexpr uint8_t j     = 1 + if_odd_degree + p * 2;
+      static constexpr auto odd_ptr  = padded_coeffs[j].data();
+      static constexpr auto even_ptr = padded_coeffs[j + 1].data();
 
       // inner-unrolled over blocks to hide latency
       unroll_loop_ct<num_blks>([&]<std::size_t b>() {
@@ -393,10 +393,10 @@ Two upsampfacs implemented. Params must match ref formula. Barnett 4/24/18 */
 
     // 3) final Horner step + symmetric store
     unroll_loop_ct<num_blks>([&]<std::size_t b>() {
-      constexpr uint8_t i = b * simd_size;
-      constexpr auto off  = offset_start - int(i);
-      const auto odd      = k_odd_blk[b];
-      const auto even     = k_even_blk[b];
+      static constexpr uint8_t i = b * simd_size;
+      static constexpr auto off  = offset_start - int(i);
+      const auto odd             = k_odd_blk[b];
+      const auto even            = k_even_blk[b];
 
       // left half
       xsimd::fma(odd, zv, even).store_aligned(ker + i);
