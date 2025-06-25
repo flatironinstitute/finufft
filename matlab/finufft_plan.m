@@ -176,6 +176,63 @@ finufft(mex_id_, o);
       errhandler(ier);
     end
 
+    function result = execute_adjoint(plan, data_in)
+    % EXECUTE_ADJOINT   execute adjoint of the planned FINUFFT transform(s).
+
+      % check if data_in is gpuArray
+      if isa(data_in, 'gpuArray')
+        error('FINUFFT:badDataDevice','input data must be a cpuArray');
+      end
+
+      % get shape info from the matlab-side plan (since can't pass "dot"
+      % variables like a.b as mwrap sizes, too)...
+      ms = plan.n_modes(1); mt = plan.n_modes(2); mu = plan.n_modes(3);
+      nj = plan.nj; nk = plan.nk; n_trans = plan.n_trans;
+
+      % check data input length...
+      if plan.type==1 || plan.type==2
+        ncoeffs = ms*mt*mu*n_trans;    % total # Fourier coeffs
+      end
+      if plan.type==1
+        ninputs = ncoeffs;        % adjoint of type 1
+      elseif plan.type==2
+        ninputs = n_trans*nj;     % adjoint of type 2
+      else
+        ninputs = n_trans*nk;     % adjoint of type 3
+      end
+      if numel(data_in)~=ninputs
+        error('FINUFFT:badDataInSize','FINUFFT numel(data_in) must be n_trans times number of NU pts (adjoint of type 2) or Fourier modes (adjoint of type 1,3)');
+      end
+      if plan.type == 1           % adjoint of type 1 has same data flow as (forward) type 2
+        if strcmp(plan.floatprec,'double')
+          mex_id_ = 'c o int = finufft_execute_adjoint(c i finufft_plan, c o dcomplex[xx], c i dcomplex[])';
+[ier, result] = finufft(mex_id_, plan, data_in, nj, n_trans);
+        else
+          mex_id_ = 'c o int = finufftf_execute_adjoint(c i finufftf_plan, c o fcomplex[xx], c i fcomplex[])';
+[ier, result] = finufft(mex_id_, plan, data_in, nj, n_trans);
+        end
+      elseif plan.type == 2           % adjoint of type 2 has same data flow as (forward) type 1
+        if strcmp(plan.floatprec,'double')
+          mex_id_ = 'c o int = finufft_execute_adjoint(c i finufft_plan, c i dcomplex[], c o dcomplex[x])';
+[ier, result] = finufft(mex_id_, plan, data_in, ncoeffs);
+        else
+          mex_id_ = 'c o int = finufftf_execute_adjoint(c i finufftf_plan, c i fcomplex[], c o fcomplex[x])';
+[ier, result] = finufft(mex_id_, plan, data_in, ncoeffs);
+        end
+        % make modes output correct shape; when d<3 squeeze removes unused dims...
+        result = squeeze(reshape(result, [ms mt mu n_trans]));
+      elseif plan.type == 3           % adjoint of type 3 has reversed data flow of type 3
+        if strcmp(plan.floatprec,'double')
+          mex_id_ = 'c o int = finufft_execute(c i finufft_plan, c o dcomplex[xx], c i dcomplex[])';
+[ier, result] = finufft(mex_id_, plan, data_in, nj, n_trans);
+        else
+          mex_id_ = 'c o int = finufftf_execute(c i finufftf_plan, c o fcomplex[xx], c i fcomplex[])';
+[ier, result] = finufft(mex_id_, plan, data_in, nj, n_trans);
+        end
+      end
+      errhandler(ier);
+    end
+
     function delete(plan)
     % This does clean-up (deallocation) of the C++ struct before the matlab
     % object deletes. It is automatically called by MATLAB and octave if the
