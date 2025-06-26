@@ -73,8 +73,8 @@ DUCC_COOKIE := $(DUCC_DIR)/.finufft_has_ducc
 # for internal DUCC compile...
 DUCC_INCL := -I$(DUCC_DIR)/src
 DUCC_SRC := $(DUCC_DIR)/src/ducc0
-# for DUCC objects compile only (not our objects)...  *** check flags, pthreads?:
-DUCC_CXXFLAGS := -fPIC -std=c++17 -ffast-math
+# for DUCC objects compile only (not our objects)...
+DUCC_CXXFLAGS := -fPIC -std=c++17 -ffast-math $(CXXFLAGS)
 
 # absolute path of this makefile, ie FINUFFT's top-level directory...
 FINUFFT = $(dir $(realpath $(firstword $(MAKEFILE_LIST))))
@@ -414,14 +414,15 @@ octave: matlab/finufft.cpp $(STATICLIB)
 	$(OCTAVE) examples/guru1d1_single.m)
 
 # for experts: force rebuilds fresh MEX (matlab/octave) gateway
-# matlab/finufft.cpp via mwrap (needs recent version of mwrap >= 0.33.10)...
-mex: matlab/finufft.mw
+# matlab/{cu}finufft.cpp via mwrap (needs recent version of mwrap >= 1.2)...
+mex: matlab/finufft.mw matlab/cufinufft.mw
 ifneq ($(MINGW),ON)
 	(cd matlab ;\
 	$(MWRAP) -mex finufft -c finufft.cpp -mb -cppcomplex finufft.mw ;\
 	$(MWRAP) -mex cufinufft -c cufinufft.cu -mb -cppcomplex -gpu cufinufft.mw)
 else
 	(cd matlab & $(MWRAP) -mex finufft -c finufft.cpp -mb -cppcomplex finufft.mw)
+	(cd matlab & $(MWRAP) -mex cufinufft -c cufinufft.cu -mb -cppcomplex -gpu cufinufft.mw)
 endif
 
 
