@@ -161,6 +161,7 @@ These routines and arguments are, in double-precision:
       call finufft_makeplan(type,dim,n_modes,iflag,ntrans,tol,plan,opts,ier)
       call finufft_setpts(plan,M,xj,yj,zj,Nk,sk,yk,uk,ier)
       call finufft_execute(plan,cj,fk,ier)
+      call finufft_execute_adjoint(plan,cj,fk,ier)
       call finufft_destroy(plan,ier)
 
 The single-precision (ie, ``real*4`` and ``complex*8``)
@@ -178,6 +179,7 @@ Each has a math test to check the correctness of some or all outputs::
 
   simple1d1.f        - 1D type 1, simple interface, default and various opts
   guru1d1.f          - 1D type 1, guru interface, default and various opts
+  guru1d2_adjoint.f  - 1D type 2 adjoint, guru interface, default and various opts
   nufft1d_demo.f     - 1D types 1,2,3, minimally changed from CMCL demo codes
   nufft2d_demo.f     - 2D "
   nufft3d_demo.f     - 3D "
