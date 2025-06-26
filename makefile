@@ -411,7 +411,8 @@ octave: matlab/finufft.cpp $(STATICLIB)
 	$(OCTAVE) test/check_finufft.m ;\
 	$(OCTAVE) test/check_finufft_single.m ;\
 	$(OCTAVE) examples/guru1d1.m ;\
-	$(OCTAVE) examples/guru1d1_single.m)
+	$(OCTAVE) examples/guru1d1_single.m ;\
+	$(OCTAVE) examples/guru1d1_adjoint.m)
 
 # for experts: force rebuilds fresh MEX (matlab/octave) gateway
 # matlab/{cu}finufft.cpp via mwrap (needs recent version of mwrap >= 1.2)...
