@@ -332,7 +332,7 @@ class Plan:
 
         _data, data_shape = _ensure_array_shape(_data, "data", req_data_shape,
                                                 allow_reshape=True)
-        if self._type == 1:
+        if self._type in [1, 3]:
             batch_shape = data_shape[:-1]
         else:
             batch_shape = data_shape[:-self._dim]
