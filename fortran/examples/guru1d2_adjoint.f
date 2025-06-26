@@ -89,7 +89,7 @@ c     math test: single output mode with given freq (not array index) k
       fktest = dcmplx(0,0)
       do j=1,M
          fktest = fktest + cj(j) * dcmplx( dcos(ktest*xj(j)),
-     $        dsin(iflag*ktest*xj(j)) )
+     $        dsin(-iflag*ktest*xj(j)) )
       enddo
 c     compute inf norm of fk coeffs for use in rel err
       fmax = 0
