@@ -375,9 +375,9 @@ FD = fortran/directft
 CMCLOBJS = $(FD)/dirft1d.o $(FD)/dirft2d.o $(FD)/dirft3d.o $(FD)/dirft1df.o $(FD)/dirft2df.o $(FD)/dirft3df.o $(FD)/prini.o
 # build examples list...
 FE_DIR = fortran/examples
-FE64 = $(FE_DIR)/simple1d1 $(FE_DIR)/simple1d1_f90 $(FE_DIR)/guru1d1 $(FE_DIR)/nufft1d_demo $(FE_DIR)/nufft2d_demo $(FE_DIR)/nufft3d_demo $(FE_DIR)/nufft2dmany_demo
-# add the "f" single-prec suffix to all examples except the f90 one...
-FE32 := $(filter-out %/simple1d1_f90f, $(FE64:%=%f))
+FE64 = $(FE_DIR)/simple1d1 $(FE_DIR)/simple1d1_f90 $(FE_DIR)/guru1d1 $(FE_DIR)/guru1d1_adjoint $(FE_DIR)/nufft1d_demo $(FE_DIR)/nufft2d_demo $(FE_DIR)/nufft3d_demo $(FE_DIR)/nufft2dmany_demo
+# add the "f" single-prec suffix to all examples except double-prec only ones...
+FE32 := $(filter-out %/simple1d1_f90f %/guru1d1_adjointf, $(FE64:%=%f))
 # list of all fortran examples
 FE = $(FE64) $(FE32)
 
