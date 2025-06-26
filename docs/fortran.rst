@@ -179,7 +179,8 @@ Each has a math test to check the correctness of some or all outputs::
 
   simple1d1.f        - 1D type 1, simple interface, default and various opts
   guru1d1.f          - 1D type 1, guru interface, default and various opts
-  guru1d2_adjoint.f  - 1D type 2 adjoint, guru interface, default and various opts
+  guru1d1_adjoint.f  - adjoint of 1D type 1, guru interface, default opts
+  guru1d2_adjoint.f  - adjoint of 1D type 2, guru interface, default and various opts
   nufft1d_demo.f     - 1D types 1,2,3, minimally changed from CMCL demo codes
   nufft2d_demo.f     - 2D "
   nufft3d_demo.f     - 3D "
