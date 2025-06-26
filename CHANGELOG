@@ -5,6 +5,9 @@ Master (working towards v2.5.0), 6/24/25
 
 * Added functionality for adjoint execution of FINUFFT plans (Reinecke #633,
   addresses #566 and #571).
+  Work arrays are now only allocated during plan execution, reducing overall
+  memory consumption.
+  A single plan can now safely be executed by several threads concurrently.
 * Python version of 2D Poisson solve tutorial (Julius Herb, #700).
 * Cached the optimal thread number (# physical cores) to reduce system call
   overhead in repeated small transforms (YuWei-CH, #697, fixing #693).
