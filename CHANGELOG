@@ -9,6 +9,9 @@ Master (working towards v2.5.0), 6/24/25
 * replaced LGPL-licensed Gauss-Legendre quadrature code by Apache2-licensed
   code adapted from Jason Kaye's cppdlr. CPU and GPU. PR #692 (Barnett).
 
+V 2.4.1 (6/27/25)
+* Fix cufinufft importing bug found by @fzimmermann89 (Barbone, issue #707, PR #708)
+
 V 2.4.0 (5/27/25)
 
 * slight accuracy improvements for small N by use of ceil in nf choice
