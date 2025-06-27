@@ -129,11 +129,13 @@ class Plan:
             self._makeplan = _finufft._makeplanf
             self._setpts = _finufft._setptsf
             self._execute = _finufft._executef
+            self._execute_adjoint = _finufft._execute_adjointf
             self._destroy = _finufft._destroyf
         else:
             self._makeplan = _finufft._makeplan
             self._setpts = _finufft._setpts
             self._execute = _finufft._execute
+            self._execute_adjoint = _finufft._execute_adjoint
             self._destroy = _finufft._destroy
 
         ier = self._makeplan(nufft_type, dim, n_modes, isign, n_trans, eps,
@@ -298,6 +300,86 @@ class Plan:
             ier = self._execute(self._inner_plan,
                                 _out.ctypes.data_as(c_void_p),
                                 _data.ctypes.data_as(c_void_p))
+
+        # check error
+        if ier != 0:
+            err_handler(ier)
+
+        return _out
+
+    ### execute_adjoint
+    def execute_adjoint(self,data,out=None):
+        r"""
+        Execute the plan in the adjoint direction
+
+        Performs the adjoint transform to the NUFFT specified at plan
+        instantiation with the points set by ``setpts``.
+        The adjoint execution basically applies the NUFFT "backwards" and
+        with opposite `isign`.
+        The inputs must have the same shape and type the outputs of a normal
+        ``execute`` call would have.
+        Conversely, the shape and type of the output corresponds to the
+        input of an ``execute`` call.
+        If ``n_trans`` is greater than one,
+        ``n_trans`` inputs are expected, stacked along the first axis.
+
+        Args:
+            data    (complex[M], complex[n_tr, M], complex[n_modes], or complex[n_tr, n_modes]): The input source strengths
+                    (type 2 and 3) or source modes (type 1).
+            out     (complex[n_modes], complex[n_tr, n_modes], complex[M], or complex[n_tr, M], optional): The array where the
+                    output is stored. Must be of the right size.
+
+        Returns:
+            complex[n_modes], complex[n_tr, n_modes], complex[M], or complex[n_tr, M]: The output array of the transform(s).
+        """
+
+        _data = _ensure_array_type(data, "data", self._dtype)
+        _out = _ensure_array_type(out, "out", self._dtype, output=True)
+
+        tp = self._type
+        n_trans = self._n_trans
+        nj = self._nj
+        nk = self._nk
+        dim = self._dim
+
+        if tp==1 or tp==2:
+            ms, mt, mu = [*self._n_modes, *([1]*(3-len(self._n_modes)))]
+
+        # input shape and size check
+        if tp==1:
+            valid_fshape(data.shape,n_trans,dim,ms,mt,mu,None,2)
+        if tp==2:
+            valid_cshape(data.shape,nj,n_trans)
+        if tp==3:
+            valid_cshape(data.shape,nk,n_trans)
+
+        # out shape and size check
+        if out is not None:
+            if tp==1:
+                valid_cshape(out.shape,nj,n_trans)
+            if tp==2:
+                valid_fshape(out.shape,n_trans,dim,ms,mt,mu,None,1)
+            if tp==3:
+                valid_cshape(out.shape,nj,n_trans)
+
+        # allocate out if None
+        if out is None:
+            if tp==1:
+                _out = np.ones([*data.shape[:-dim], nj], dtype=self._dtype, order='C')
+            if tp==2:
+                _out = 2*np.ones([*data.shape[:-1], *self._n_modes[::-1]], dtype=self._dtype, order='C')
+            if tp==3:
+                _out = 3*np.ones([*data.shape[:-1], nj], dtype=self._dtype, order='C')
+
+        # call execute based on type and precision type
+        if tp==1 or tp==3:
+            ier = self._execute_adjoint(self._inner_plan,
+                                        _out.ctypes.data_as(c_void_p),
+                                        _data.ctypes.data_as(c_void_p))
+        elif tp==2:
+            ier = self._execute_adjoint(self._inner_plan,
+                                        _data.ctypes.data_as(c_void_p),
+                                        _out.ctypes.data_as(c_void_p))
 
         # check error
         if ier != 0:

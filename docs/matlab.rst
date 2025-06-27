@@ -54,12 +54,14 @@ interface. For smaller transform sizes the acceleration factor of this vectorize
 
 If you want yet more control, consider using the "guru" interface.
 This can be faster than fresh calls to the simple or vectorized interfaces
-for the same number of transforms, for reasons such as this:
+for the same number of transforms, since
 the nonuniform points can be changed between transforms, without forcing
 FFTW to look up a previously stored plan.
 Usually, such an acceleration is only important when doing
 repeated small transforms, where "small" means each transform takes of
 order 0.01 sec or less.
+The guru interface is also very convenient for applying forward-adjoint
+transform pairs, common in imaging or optimization applications.
 Here we use the guru interface to repeat the first demo above:
 
 .. code-block:: matlab
@@ -74,12 +76,12 @@ Here we use the guru interface to repeat the first demo above:
   c = randn(M,1)+1i*randn(M,1);       % iid random complex data (row or col vec)
   f = plan.execute(c);                % do the transform (0.008 sec, ie, faster)
   % ...one could now change the points with setpts, and/or do new transforms
-  % with new c data...
+  % ...with new c data, and/or do adjoint transforms with new data...
   delete(plan);                       % don't forget to clean up
 
 .. warning::
 
-   If an existing array is passed to ``setpts``, then this array must not be altered before ``execute`` is called! This is because, in order to save RAM (allowing larger problems to be solved), internally FINUFFT stores only *pointers* to ``x`` (etc), rather than unnecessarily duplicating this data. This is not true if an *expression* such as ``-x`` or ``2*pi*rand(M,1)`` is passed to ``setpts``, since in those cases the ``plan`` object does make internal copies, as per MATLAB's usual shallow-copy argument passing.
+   If an existing array is passed to ``setpts``, then this array must not be altered before ``execute`` or ``execute_adjoint`` is called! This is because, in order to save RAM (allowing larger problems to be solved), internally FINUFFT stores only *pointers* to ``x`` (etc), rather than unnecessarily duplicating this data. This is not true if an *expression* such as ``-x`` or ``2*pi*rand(M,1)`` is passed to ``setpts``, since in those cases the ``plan`` object does make internal copies, as per MATLAB's usual shallow-copy argument passing.
 
 Finally, we demo a 2D type 1 transform using the simple interface. Let's
 request a rectangular Fourier mode array of 1000 modes in the x direction but 500 in the
