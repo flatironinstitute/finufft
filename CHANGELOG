@@ -3,6 +3,7 @@ If not stated, FINUFFT is assumed (cuFINUFFT <=1.3 is listed separately).
 
 Master (working towards v2.5.0), 6/24/25
 
+* Update Python cufinufft unit tests to use complex dtypes (Andén, #705).
 * Python version of 2D Poisson solve tutorial (Julius Herb, #700).
 * Cached the optimal thread number (# physical cores) to reduce system call
   overhead in repeated small transforms (YuWei-CH, #697, fixing #693).
