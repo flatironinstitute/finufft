@@ -21,8 +21,6 @@ OUTPUT_ARGS = [False, True]
 @pytest.mark.parametrize("tol", TOLS)
 @pytest.mark.parametrize("output_arg", OUTPUT_ARGS)
 def test_simple_type1(to_gpu, to_cpu, dtype, shape, n_trans, M, tol, output_arg):
-    real_dtype = utils._real_dtype(dtype)
-
     dim = len(shape)
 
     # Select which function to call based on dimension.
@@ -58,8 +56,6 @@ def test_simple_type1(to_gpu, to_cpu, dtype, shape, n_trans, M, tol, output_arg)
 @pytest.mark.parametrize("tol", TOLS)
 @pytest.mark.parametrize("output_arg", OUTPUT_ARGS)
 def test_simple_type2(to_gpu, to_cpu, dtype, shape, n_trans, M, tol, output_arg):
-    real_dtype = utils._real_dtype(dtype)
-
     dim = len(shape)
 
     fun = {1: cufinufft.nufft1d2,
