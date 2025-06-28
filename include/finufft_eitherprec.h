@@ -55,7 +55,7 @@
 #define FINUFFT_EXPORT __declspec(dllimport)
 #endif
 #else
-#define FINUFFT_EXPORT
+#define FINUFFT_EXPORT __attribute__((visibility("default")))
 #endif
 
 /* specify calling convention (Windows only)

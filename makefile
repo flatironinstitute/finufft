@@ -31,7 +31,7 @@ PYTHON = python3
 #           they allow gcc to vectorize the code more effectively
 CFLAGS := -O3 -funroll-loops -march=native -fcx-limited-range -ffp-contract=fast\
 		  -fno-math-errno -fno-signed-zeros -fno-trapping-math -fassociative-math\
-		  -freciprocal-math -fmerge-all-constants -ftree-vectorize $(CFLAGS) -Wfatal-errors
+		  -freciprocal-math -fmerge-all-constants -ftree-vectorize $(CFLAGS) -Wfatal-errors -fvisibility=hidden
 FFLAGS := $(CFLAGS) $(FFLAGS)
 CXXFLAGS := $(CFLAGS) $(CXXFLAGS)
 # FFTW base name, and math linking...
