@@ -181,6 +181,8 @@ HEADERS = $(wildcard include/*.h include/finufft/*.h)
 	$(CXX) -c $(CXXFLAGS) $< -o $@
 src/%.o: src/%.cpp $(HEADERS)
 	$(CXX) -DFINUFFT_DLL -Ddll_EXPORTS -c $(CXXFLAGS) $< -o $@
+fortran/%.o: fortran/%.cpp $(HEADERS)
+	$(CXX) -DFINUFFT_DLL -Ddll_EXPORTS -c $(CXXFLAGS) $< -o $@
 %.o: %.c $(HEADERS)
 	$(CC) -c $(CFLAGS) $< -o $@
 %.o: %.f
