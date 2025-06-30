@@ -29,7 +29,7 @@ PYTHON = python3
 #        3) we use simply-expanded (:=) makefile variables, otherwise confusing
 #        4) the extra math flags are for speed, but they do not impact accuracy;
 #           they allow gcc to vectorize the code more effectively
-CFLAGS := -O3 -funroll-loops -march=native -fcx-limited-range -ffp-contract=fast\
+CFLAGS := -DFINUFFT_DLL -O3 -funroll-loops -march=native -fcx-limited-range -ffp-contract=fast\
 		  -fno-math-errno -fno-signed-zeros -fno-trapping-math -fassociative-math\
 		  -freciprocal-math -fmerge-all-constants -ftree-vectorize $(CFLAGS) -Wfatal-errors -fvisibility=hidden
 FFLAGS := $(CFLAGS) $(FFLAGS)
