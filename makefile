@@ -31,7 +31,7 @@ PYTHON = python3
 #           they allow gcc to vectorize the code more effectively
 CFLAGS := -O3 -funroll-loops -march=native -fcx-limited-range -ffp-contract=fast\
 		  -fno-math-errno -fno-signed-zeros -fno-trapping-math -fassociative-math\
-		  -freciprocal-math -fmerge-all-constants -ftree-vectorize $(CFLAGS) -Wfatal-errors
+		  -freciprocal-math -fmerge-all-constants -ftree-vectorize $(CFLAGS) -Wfatal-errors -fvisibility=hidden
 FFLAGS := $(CFLAGS) $(FFLAGS)
 CXXFLAGS := $(CFLAGS) $(CXXFLAGS)
 # FFTW base name, and math linking...
@@ -179,6 +179,10 @@ HEADERS = $(wildcard include/*.h include/finufft/*.h)
 # implicit rules for objects (note -o ensures writes to correct dir)
 %.o: %.cpp $(HEADERS)
 	$(CXX) -c $(CXXFLAGS) $< -o $@
+src/%.o: src/%.cpp $(HEADERS)
+	$(CXX) -DFINUFFT_DLL -Ddll_EXPORTS -c $(CXXFLAGS) $< -o $@
+fortran/%.o: fortran/%.cpp $(HEADERS)
+	$(CXX) -DFINUFFT_DLL -Ddll_EXPORTS -c $(CXXFLAGS) $< -o $@
 %.o: %.c $(HEADERS)
 	$(CC) -c $(CFLAGS) $< -o $@
 %.o: %.f
