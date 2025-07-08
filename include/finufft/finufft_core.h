@@ -72,7 +72,7 @@ using UBIGINT = uint64_t;
 // ------------- Library-wide algorithm parameter settings ----------------
 
 // Library version (is a string)
-#define FINUFFT_VER "2.4.1"
+#define FINUFFT_VER "2.5.0dev"
 
 // Smallest possible kernel spread width per dimension, in fine grid points
 // (used only in spreadinterp.cpp)
