@@ -50,6 +50,7 @@ Testing, bug reports, helpful discussions, contributions:
 * Julius Herb - Poisson equation tutorial in Python
 * Felix F. Zimmermann - Python dependency issues in cufinufft
 * Yuwei Sun - Available thread count fix
+* Maxim Ermenko - CUDA type 3 simple interface in Python
 
 Logo design: `Sherry Choi <http://www.sherrychoi.com>`_ with input
 from Alex Barnett and Lucy Reading-Ikkanda.

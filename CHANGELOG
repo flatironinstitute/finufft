@@ -12,6 +12,7 @@ V 2.4.1 7/8/25
 * replaced LGPL-licensed Gauss-Legendre quadrature code by Apache2-licensed
   code adapted from Jason Kaye's cppdlr. CPU and GPU. PR #692 (Barnett).
 * Fix cufinufft importing bug found by @fzimmermann89 (Barbone, issue #707, PR #708)
+* Python simple interface for CUDA type 3 (Maxim Ermenko, #685)
 
 V 2.4.0 (5/27/25)
 
