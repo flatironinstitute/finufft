@@ -3,14 +3,14 @@ If not stated, FINUFFT is assumed (cuFINUFFT <=1.3 is listed separately).
 
 Master (working towards v2.5.0), 6/24/25
 
+V 2.4.1 7/8/25
+
 * Update Python cufinufft unit tests to use complex dtypes (Andén, #705).
 * Python version of 2D Poisson solve tutorial (Julius Herb, #700).
 * Cached the optimal thread number (# physical cores) to reduce system call
   overhead in repeated small transforms (YuWei-CH, #697, fixing #693).
 * replaced LGPL-licensed Gauss-Legendre quadrature code by Apache2-licensed
   code adapted from Jason Kaye's cppdlr. CPU and GPU. PR #692 (Barnett).
-
-V 2.4.1 (6/27/25)
 * Fix cufinufft importing bug found by @fzimmermann89 (Barbone, issue #707, PR #708)
 
 V 2.4.0 (5/27/25)
