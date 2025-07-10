@@ -52,6 +52,9 @@ set(FINUFFT_CXX_FLAGS_RELEASE
     -ftree-vectorize
     -fimplicit-constexpr
     -fcx-limited-range
+    -frename-registers
+    -fmodulo-sched
+    -fmodulo-sched-allow-regmoves
     -O3
     /Ox
     /fp:contract
