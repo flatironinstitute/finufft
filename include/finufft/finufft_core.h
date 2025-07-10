@@ -3,6 +3,7 @@
 
 #include <xsimd/xsimd.hpp>
 
+#include <array>
 #include <finufft_errors.h>
 #include <memory>
 
