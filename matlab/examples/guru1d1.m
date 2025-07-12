@@ -1,11 +1,12 @@
 % MATLAB/octave demo script of guru interface to FINUFFT, 1D type 1.
 % Lu 5/11/2020. Barnett added timing, tweaked.
+% For demo of its adjoint see guru1d1_adjoint.m
 clear
 
 % set required parameters...
 isign   = +1;     % sign of imaginary unit in exponential
 tol     = 1e-9;   % requested accuracy
-M       = 1e6;
+M       = 3e6;    % NU pts
 N       = 1e6;    % # of modes (approx total, used in all dims)
 type = 1;
 n_modes = N;      % n_dims inferred from length of this
@@ -13,6 +14,7 @@ ntrans = 2;
 
 x = pi*(2*rand(1,M)-1);                         % choose NU points
 c = randn(1,M*ntrans)+1i*randn(1,M*ntrans);     % choose stack of strengths
+                                                % (or use size (M,ntrans))
 
 disp('starting...'), tic     % just time FINUFFT not the data creation
 opts.debug=2;    % set options then plan the transform...

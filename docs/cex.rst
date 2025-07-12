@@ -236,6 +236,8 @@ previous wisdom which would be significant when doing many small transforms.
 You may also send in a new
 set of stacked strength data (for type 1 and 3, or coefficients for type 2),
 reusing the existing FFTW plan and sorted points.
+Finally, you may execute *adjoints* of the planned transforms without
+re-planning, making forward-adjoint transform pairs very convenient.
 Now we redo the above 2D type 1 C++ example with the guru interface.
 
 One first makes a plan giving transform parameters, but no data:
@@ -254,6 +256,7 @@ One first makes a plan giving transform parameters, but no data:
   // step 3: do the planned transform to the c strength data, output to F...
   finufft_execute(plan, &c[0], &F[0]);
   // ... you could now send in new points, and/or do transforms with new c data
+  // ... or even adjoint transforms with the same points but now mapping F to c.
   // ...
   // step 4: when done, free the memory used by the plan...
   finufft_destroy(plan);
@@ -264,14 +267,15 @@ is that the ``int64_t`` type (aka ``long long int``)
 is needed since the Fourier coefficient dimensions are passed as an array.
 
 .. warning::
-  You must not change the nonuniform point arrays (here ``x``, ``y``) between passing them to ``finufft_setpts`` and performing ``finufft_execute``. The latter call expects these arrays to be unchanged. We chose this style of interface since it saves RAM and time (by avoiding unnecessary duplication), allowing the largest possible problems to be solved.
+  You must not change the nonuniform point arrays (here ``x``, ``y``) between passing them to ``finufft_setpts`` and performing ``finufft_execute`` or ``finufft_execute_adjoint``. The last two calls expect these arrays to be unchanged. We chose this style of interface since it saves RAM and time (by avoiding unnecessary duplication), allowing the largest possible problems to be solved.
 
 .. warning::
   You must destroy a plan before making a new plan using the same
   plan object, otherwise a memory leak results.
 
-The complete code with a math test is in ``examples/guru2d1.cpp``, and for
-more examples see ``examples/guru1d1*.c*``
+The complete code with a math test is in ``examples/guru2d1.cpp``,
+the demo of an adjoint execution is in ``examples/guru2d1_adjoint.cpp``,
+and for more examples see ``examples/guru1d1*.c*``
 
 Using the guru interface to perform a vectorized transform (multiple 1D type 1
 transforms each with the same nonuniform points) is demonstrated in
