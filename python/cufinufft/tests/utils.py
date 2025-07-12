@@ -46,21 +46,21 @@ def gen_nonuniform_data(M, seed=0, n_trans=()):
 
 
 def type1_problem(dtype, shape, M, n_trans=()):
-    complex_dtype = _complex_dtype(dtype)
+    real_dtype = _real_dtype(dtype)
     dim = len(shape)
 
-    k = gen_nu_pts(M, dim=dim).astype(dtype)
-    c = gen_nonuniform_data(M, n_trans=n_trans).astype(complex_dtype)
+    k = gen_nu_pts(M, dim=dim).astype(real_dtype)
+    c = gen_nonuniform_data(M, n_trans=n_trans).astype(dtype)
 
     return k, c
 
 
 def type2_problem(dtype, shape, M, n_trans=()):
-    complex_dtype = _complex_dtype(dtype)
+    real_dtype = _real_dtype(dtype)
     dim = len(shape)
 
-    k = gen_nu_pts(M, dim=dim).astype(dtype)
-    fk = gen_uniform_data(n_trans + shape).astype(complex_dtype)
+    k = gen_nu_pts(M, dim=dim).astype(real_dtype)
+    fk = gen_uniform_data(n_trans + shape).astype(dtype)
 
     return k, fk
 
