@@ -54,7 +54,7 @@ struct select_odd {
 
 // this finds the largest SIMD instruction set that can handle N elements
 // void otherwise -> compile error
-template<class T, uint8_t N, uint8_t K = N> static constexpr auto BestSIMDHelper() {
+template<class T, uint8_t N, uint8_t K = N> constexpr auto BestSIMDHelper() {
   if constexpr (N % K == 0) { // returns void in the worst case
     return xsimd::make_sized_batch<T, K>{};
   } else {
