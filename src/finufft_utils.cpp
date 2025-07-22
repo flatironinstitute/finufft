@@ -219,7 +219,7 @@ unsigned count_allowed_cores_linux() {
 }
 #endif
 
-int getPhysicalCoreCount(int debug) {
+unsigned getPhysicalCoreCount(int debug) {
 #ifdef _WIN32
   unsigned n = count_physical_cores_win();
 #elif defined(__APPLE__)
@@ -233,7 +233,7 @@ int getPhysicalCoreCount(int debug) {
   return n;
 }
 
-int getAllowedCoreCount(int debug) {
+unsigned getAllowedCoreCount(int debug) {
 #ifdef _WIN32
   unsigned n = count_allowed_cores_win();
 #elif defined(__APPLE__)
@@ -249,7 +249,7 @@ int getAllowedCoreCount(int debug) {
 
 } // namespace
 
-int getOptimalThreadCount(int debug) {
+unsigned getOptimalThreadCount(int debug) {
   if (const auto v = std::getenv("OMP_NUM_THREADS")) {
     try {
       return std::stoi(v);
@@ -259,8 +259,8 @@ int getOptimalThreadCount(int debug) {
       std::cerr << "[FINUFFT_PLAN_T] Using default thread count instead.\n";
     }
   }
-  const auto physical = std::max(0, getPhysicalCoreCount(debug));
-  const auto allowed  = std::max(0, getAllowedCoreCount(debug));
+  const auto physical = getPhysicalCoreCount(debug);
+  const auto allowed  = getAllowedCoreCount(debug);
   const auto optimal  = std::min(physical, allowed);
   return optimal ? optimal : MY_OMP_GET_MAX_THREADS();
 }

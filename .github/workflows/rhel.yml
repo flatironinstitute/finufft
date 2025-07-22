@@ -13,8 +13,7 @@ jobs:
           - registry.access.redhat.com/ubi7/ubi:latest
           - registry.access.redhat.com/ubi8/ubi:latest
           - registry.access.redhat.com/ubi9/ubi:latest
-        build_type:
-          - Release
+        build_type: [Release]
     container:
       image: ${{ matrix.image }}
 
@@ -25,10 +24,12 @@ jobs:
           if grep -q 'VERSION_ID="7' /etc/os-release; then
             yum install -y epel-release centos-release-scl devtoolset-9 cmake3 fftw-devel git make
             echo CMAKE=cmake3 >> $GITHUB_ENV
-            echo "PATH=$PATH"             >> $GITHUB_ENV
-            echo "CC=$CC"                 >> $GITHUB_ENV
-            echo "CXX=$CXX"               >> $GITHUB_ENV
-            echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH" >> $GITHUB_ENV
+            printenv | while IFS='=' read -r name value; do
+              # Escape special characters (esp. newlines)
+              echo "$name<<EOF" >> "$GITHUB_ENV"
+              echo "$value" >> "$GITHUB_ENV"
+              echo "EOF" >> "$GITHUB_ENV"
+            done
           else
             dnf install -y gcc gcc-c++ cmake fftw-devel git make
             echo CMAKE=cmake >> $GITHUB_ENV

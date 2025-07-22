@@ -61,7 +61,7 @@ private:
   double initial;
 };
 
-FINUFFT_NEVER_INLINE int getOptimalThreadCount(int debug);
+FINUFFT_NEVER_INLINE unsigned getOptimalThreadCount(int debug);
 
 } // namespace finufft::utils
 
