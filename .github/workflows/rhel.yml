@@ -19,15 +19,26 @@ jobs:
       - name: Install dependencies (GCC, CMake, FFTW, OpenMP)
         run: |
           echo "Configuring for RHEL/CentOS $MAJOR_VERSION"
+
           if [ "$MAJOR_VERSION" = "7" ]; then
-            # Switch to Vault repos for EOL CentOS 7
+            # 1) Patch CentOS-Base to Vault
             sed -i 's|^mirrorlist=|#mirrorlist=|g' /etc/yum.repos.d/CentOS-Base.repo
             sed -i 's|^#baseurl=|baseurl=|g'   /etc/yum.repos.d/CentOS-Base.repo
             sed -i 's|mirror.centos.org|vault.centos.org|g' /etc/yum.repos.d/CentOS-Base.repo
             yum clean all && yum makecache
 
-            # Enable SCL & EPEL, install devtoolset-9, cmake3, fftw, git, make
+            # 2) Enable SCL & EPEL
             yum install -y epel-release centos-release-scl
+
+            # 3) Patch *all* repos (including sclo-rh) to Vault
+            for f in /etc/yum.repos.d/*.repo; do
+              sed -i 's|^mirrorlist=|#mirrorlist=|g' "$f"
+              sed -i 's|^#baseurl=|baseurl=|g' "$f"
+              sed -i 's|mirror.centos.org|vault.centos.org|g' "$f"
+            done
+            yum clean all && yum makecache
+
+            # 4) Install devtoolset-9 & tools
             yum install -y devtoolset-9 cmake3 fftw-devel git make
             source scl_source enable devtoolset-9
             echo "PATH=/opt/rh/devtoolset-9/root/usr/bin:$PATH" >> $GITHUB_ENV
