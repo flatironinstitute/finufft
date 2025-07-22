@@ -1,0 +1,56 @@
+name: Build and Test FINUFFT on RHEL/CentOS+
+
+on: [push, pull_request]
+
+jobs:
+  build-matrix:
+    name: Build ${{ matrix.build_type }} on ${{ matrix.os }}
+    runs-on: ubuntu-18.04
+    strategy:
+      matrix:
+        os: ["centos:7", "rockylinux:8", "rockylinux:9"]
+    container:
+      image: ${{ matrix.os }}
+    steps:
+      - name: Detect major OS version
+        run: |
+          source /etc/os-release
+          echo "MAJOR_VERSION=${VERSION_ID%%.*}" >> $GITHUB_ENV
+      - name: Install dependencies (GCC, CMake, FFTW, OpenMP)
+        run: |
+          echo "Configuring for RHEL/CentOS $MAJOR_VERSION"
+          if [ "$MAJOR_VERSION" = "7" ]; then
+            # Switch to Vault repos for EOL CentOS 7
+            sed -i 's|^mirrorlist=|#mirrorlist=|g' /etc/yum.repos.d/CentOS-Base.repo
+            sed -i 's|^#baseurl=|baseurl=|g'   /etc/yum.repos.d/CentOS-Base.repo
+            sed -i 's|mirror.centos.org|vault.centos.org|g' /etc/yum.repos.d/CentOS-Base.repo
+            yum clean all && yum makecache
+
+            # Enable SCL & EPEL, install devtoolset-9, cmake3, fftw, git, make
+            yum install -y epel-release centos-release-scl
+            yum install -y devtoolset-9 cmake3 fftw-devel git make
+            source scl_source enable devtoolset-9
+            echo "PATH=/opt/rh/devtoolset-9/root/usr/bin:$PATH" >> $GITHUB_ENV
+            echo "CMAKE=cmake3" >> $GITHUB_ENV
+
+          elif [ "$MAJOR_VERSION" = "8" ] || [ "$MAJOR_VERSION" = "9" ]; then
+            # Native DNF on Rocky/CentOS 8 & 9
+            dnf install -y gcc gcc-c++ cmake fftw-devel git make
+            echo "CMAKE=cmake" >> $GITHUB_ENV
+
+          else
+            echo "Unsupported OS major version: $MAJOR_VERSION"
+            exit 1
+          fi
+      - name: Checkout source
+        uses: actions/checkout@v4
+      - name: Configure (C++17, FFTW, OpenMP)
+        run: |
+          $CMAKE -S . -B build -DFINUFFT_BUILD_TESTS=ON
+      - name: Build
+        run: |
+          cmake --build ./build --config ${{ matrix.build_type }}
+      - name: Test
+        working-directory: ./build
+        run: |
+          ctest -C ${{ matrix.build_type }} --output-on-failure
