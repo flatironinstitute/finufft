@@ -44,6 +44,7 @@ jobs:
           SHA: ${{ github.sha }}
           TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          git config --global --add safe.directory "$(pwd)"
           git init
           git remote add origin https://x-access-token:${TOKEN}@github.com/${REPO}.git
           git fetch --depth=1 origin ${SHA}
