@@ -16,22 +16,26 @@
 #include <set>
 #include <vector>
 
-#ifdef _OPENMP
 #ifdef _WIN32
 #include <intrin.h>
 #include <windows.h>
 #elif defined(__linux__)
+#if defined(__x86_64__) || defined(__i386__)
 #include <cpuid.h>
+#endif
 #include <dirent.h>
 #include <pthread.h>
 #include <sched.h>
 #include <sys/stat.h>
 #include <unistd.h>
 #elif defined(__APPLE__)
+#if defined(__x86_64__) || defined(__i386__)
 #include <cpuid.h>
+#endif
 #include <sys/sysctl.h>
 #include <sys/types.h>
 #else
+#if defined(__x86_64__) || defined(__i386__)
 #include <cpuid.h>
 #endif
 #endif

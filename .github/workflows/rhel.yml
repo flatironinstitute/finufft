@@ -25,6 +25,7 @@ jobs:
           if grep -q 'VERSION_ID="7' /etc/os-release; then
             yum install -y epel-release centos-release-scl devtoolset-9 cmake3 fftw-devel git make
             echo CMAKE=cmake3 >> $GITHUB_ENV
+            echo "source /opt/rh/devtoolset-9/enable" >> $GITHUB_ENV
           else
             dnf install -y gcc gcc-c++ cmake fftw-devel git make
             echo CMAKE=cmake >> $GITHUB_ENV
@@ -35,10 +36,6 @@ jobs:
 
       - name: Configure (C++17, FFTW, OpenMP)
         run: |
-          if grep -q 'VERSION_ID="7' /etc/os-release; then
-            scl enable devtoolset-9 bash
-            alias cmake=cmake3
-          fi
           $CMAKE -S . -B build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DFINUFFT_BUILD_TESTS=ON
 
       - name: Build
