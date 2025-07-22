@@ -141,6 +141,13 @@ static unsigned count_physical_cores_win() {
   }
   return static_cast<unsigned>(core_ids.size());
 }
+#else
+static unsigned count_physical_cores_win() {
+  // Fallback: use logical processor count as a proxy
+  SYSTEM_INFO sysinfo;
+  GetSystemInfo(&sysinfo);
+  return sysinfo.dwNumberOfProcessors;
+}
 #endif
 static unsigned count_allowed_cores_win() {
   DWORD_PTR processMask = 0, systemMask = 0;
