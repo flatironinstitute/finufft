@@ -10,7 +10,6 @@
 #include <cmath>
 #include <cstdint>
 #include <cstdlib>
-#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <random>
@@ -23,8 +22,10 @@
 #include <windows.h>
 #elif defined(__linux__)
 #include <cpuid.h>
+#include <dirent.h>
 #include <pthread.h>
 #include <sched.h>
+#include <sys/stat.h>
 #include <unistd.h>
 #elif defined(__APPLE__)
 #include <cpuid.h>
@@ -243,18 +244,48 @@ unsigned physical_cores_sysctl() {
 
 #ifdef __linux__
 unsigned physical_cores_sysfs() {
-  std::set<std::pair<int, int>> uniq;
-  for (const auto &e : std::filesystem::directory_iterator("/sys/devices/system/cpu")) {
-    if (!e.is_directory()) continue;
-    auto fn = e.path().filename().string();
-    if (fn.rfind("cpu", 0) != 0) continue;
-    int c = -1, cl = -1;
-    std::ifstream f1(e.path() / "topology/core_id"), f2(e.path() / "topology/cluster_id");
-    if (f1) f1 >> c;
-    if (f2) f2 >> cl;
-    if (c >= 0) uniq.emplace(cl, c);
+  const char *base = "/sys/devices/system/cpu";
+  DIR *dir         = opendir(base);
+  if (!dir) {
+    // Could not open directory
+    return 0;
   }
-  return unsigned(uniq.size());
+
+  std::set<std::pair<int, int>> uniq;
+  dirent *entry{nullptr};
+  while ((entry = readdir(dir)) != nullptr) {
+    // Skip "." and ".."
+    if (entry->d_name[0] == '.') continue;
+
+    // Only consider entries that look like "cpuN"
+    std::string name(entry->d_name);
+    if (name.size() < 4 || name.compare(0, 3, "cpu") != 0) continue;
+
+    // Build full path to the CPU directory
+    std::string cpu_path = std::string(base) + "/" + name;
+
+    // Ensure it's actually a directory
+    struct stat st{};
+    if (stat(cpu_path.c_str(), &st) < 0 || !S_ISDIR(st.st_mode)) continue;
+
+    // Read core_id and cluster_id
+    int core_id = -1, cluster_id = -1;
+    {
+      std::ifstream ifs(cpu_path + "/topology/core_id");
+      if (ifs) ifs >> core_id;
+    }
+    {
+      std::ifstream ifs(cpu_path + "/topology/cluster_id");
+      if (ifs) ifs >> cluster_id;
+    }
+
+    if (core_id >= 0 && cluster_id >= 0) {
+      uniq.emplace(cluster_id, core_id);
+    }
+  }
+
+  closedir(dir);
+  return static_cast<unsigned>(uniq.size());
 }
 #endif
 
@@ -299,7 +330,7 @@ int getPhysicalCoreCount(int debug = 0) {
 #elif defined(__APPLE__)
   unsigned n = physical_cores_posix();
   if (n) {
-    debug_print"cpuid_posix", n);
+    debug_print("cpuid_posix", n);
     return int(n);
   }
   n = physical_cores_sysctl();

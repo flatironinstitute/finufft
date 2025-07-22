@@ -1,66 +1,47 @@
-name: Build and Test FINUFFT on RHEL/CentOS+
+name: Build and Test FINUFFT on Red Hat UBI
 
-on: [push, pull_request]
+on: [ push, pull_request ]
 
 jobs:
   build-matrix:
-    name: Build ${{ matrix.build_type }} on ${{ matrix.os }}
+    name: ${{ matrix.build_type }} on ${{ matrix.image }}
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        os: ["centos:7", "rockylinux:8", "rockylinux:9"]
+        # Use UBI 7, 8, and 9 images from the free registry.access.redhat.com
+        image:
+          - registry.access.redhat.com/ubi7/ubi:latest
+          - registry.access.redhat.com/ubi8/ubi:latest
+          - registry.access.redhat.com/ubi9/ubi:latest
+        build_type:
+          - Release
     container:
-      image: ${{ matrix.os }}
+      image: ${{ matrix.image }}
+
     steps:
-      - name: Detect major OS version
+      - name: Install development tools
         run: |
-          source /etc/os-release
-          echo "MAJOR_VERSION=${VERSION_ID%%.*}" >> $GITHUB_ENV
-      - name: Install dependencies (GCC, CMake, FFTW, OpenMP)
-        run: |
-          echo "Configuring for RHEL/CentOS $MAJOR_VERSION"
-
-          if [ "$MAJOR_VERSION" = "7" ]; then
-            # 1) Patch CentOS-Base to Vault
-            sed -i 's|^mirrorlist=|#mirrorlist=|g' /etc/yum.repos.d/CentOS-Base.repo
-            sed -i 's|^#baseurl=|baseurl=|g'   /etc/yum.repos.d/CentOS-Base.repo
-            sed -i 's|mirror.centos.org|vault.centos.org|g' /etc/yum.repos.d/CentOS-Base.repo
-            yum clean all && yum makecache
-
-            # 2) Enable SCL & EPEL
-            yum install -y epel-release centos-release-scl
-
-            # 3) Patch *all* repos (including sclo-rh) to Vault
-            for f in /etc/yum.repos.d/*.repo; do
-              sed -i 's|^mirrorlist=|#mirrorlist=|g' "$f"
-              sed -i 's|^#baseurl=|baseurl=|g' "$f"
-              sed -i 's|mirror.centos.org|vault.centos.org|g' "$f"
-            done
-            yum clean all && yum makecache
-
-            # 4) Install devtoolset-9 & tools
-            yum install -y devtoolset-9 cmake3 fftw-devel git make
+          # UBI 7 uses yum, UBI 8/9 use dnf
+          if grep -q 'VERSION_ID="7' /etc/os-release; then
+            yum install -y epel-release centos-release-scl devtoolset-9 cmake3 fftw-devel git make
             source scl_source enable devtoolset-9
-            echo "PATH=/opt/rh/devtoolset-9/root/usr/bin:$PATH" >> $GITHUB_ENV
-            echo "CMAKE=cmake3" >> $GITHUB_ENV
-
-          elif [ "$MAJOR_VERSION" = "8" ] || [ "$MAJOR_VERSION" = "9" ]; then
-            # Native DNF on Rocky/CentOS 8 & 9
-            dnf install -y gcc gcc-c++ cmake fftw-devel git make
-            echo "CMAKE=cmake" >> $GITHUB_ENV
-
+            echo CMAKE=cmake3 >> $GITHUB_ENV
           else
-            echo "Unsupported OS major version: $MAJOR_VERSION"
-            exit 1
+            dnf install -y gcc gcc-c++ cmake fftw-devel git make
+            echo CMAKE=cmake >> $GITHUB_ENV
           fi
+
       - name: Checkout source
         uses: actions/checkout@v4
+
       - name: Configure (C++17, FFTW, OpenMP)
         run: |
-          $CMAKE -S . -B build -DFINUFFT_BUILD_TESTS=ON
+          $CMAKE -S . -B build -DCMAKE_BUILD_TYPE=Release -DFINUFFT_BUILD_TESTS=ON
+
       - name: Build
         run: |
           cmake --build ./build --config Release
+
       - name: Test
         working-directory: ./build
         run: |
