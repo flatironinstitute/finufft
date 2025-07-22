@@ -94,18 +94,13 @@ double CNTime::elapsedsec() const {
 
 #ifdef _OPENMP
 
-namespace {
-
 // --- Windows ---
 #ifdef _WIN32
 #include <windows.h>
-#undef min
-#undef max
-
 #if defined(__i386__) || defined(__x86_64__)
 #include <intrin.h>
-bool cpuid_subleaf(uint32_t leaf, uint32_t sub, uint32_t &eax, uint32_t &ebx,
-                   uint32_t &ecx, uint32_t &edx) {
+static bool cpuid_subleaf(uint32_t leaf, uint32_t sub, uint32_t &eax, uint32_t &ebx,
+                          uint32_t &ecx, uint32_t &edx) {
   int r[4];
   __cpuidex(r, static_cast<int>(leaf), static_cast<int>(sub));
   eax = static_cast<uint32_t>(r[0]);
@@ -123,7 +118,7 @@ struct AffinityGuard {
   }
   ~AffinityGuard() { SetThreadAffinityMask(th, orig); }
 };
-unsigned count_physical_cores_win() {
+static unsigned count_physical_cores_win() {
   uint32_t a = 0, b = 0, c = 0, d = 0;
   cpuid_subleaf(1, 0, a, b, c, d);
   const unsigned logical = (b >> 16) & 0xFF;
@@ -147,7 +142,7 @@ unsigned count_physical_cores_win() {
   return static_cast<unsigned>(core_ids.size());
 }
 #endif
-unsigned count_allowed_cores_win() {
+static unsigned count_allowed_cores_win() {
   DWORD_PTR processMask = 0, systemMask = 0;
   if (GetProcessAffinityMask(GetCurrentProcess(), &processMask, &systemMask)) {
     unsigned cnt = 0;
@@ -161,7 +156,7 @@ unsigned count_allowed_cores_win() {
 // --- macOS ---
 #ifdef __APPLE__
 #include <sys/sysctl.h>
-unsigned count_physical_cores_mac() {
+static unsigned count_physical_cores_mac() {
   int n     = 0;
   size_t sz = sizeof(n);
   if (!sysctlbyname("hw.physicalcpu", &n, &sz, nullptr, 0) && n > 0) return n;
@@ -215,14 +210,14 @@ unsigned count_physical_cores_linux() {
   return static_cast<unsigned>(core_ids.size());
 }
 #endif
-unsigned count_allowed_cores_linux() {
+static unsigned count_allowed_cores_linux() {
   cpu_set_t cpus;
   if (sched_getaffinity(0, sizeof(cpus), &cpus) == 0) return CPU_COUNT(&cpus);
   return 0;
 }
 #endif
 
-unsigned getPhysicalCoreCount(int debug) {
+static unsigned getPhysicalCoreCount(int debug) {
 #ifdef _WIN32
   unsigned n = count_physical_cores_win();
 #elif defined(__APPLE__)
@@ -236,7 +231,7 @@ unsigned getPhysicalCoreCount(int debug) {
   return n;
 }
 
-unsigned getAllowedCoreCount(int debug) {
+static unsigned getAllowedCoreCount(int debug) {
 #ifdef _WIN32
   unsigned n = count_allowed_cores_win();
 #elif defined(__APPLE__)
@@ -250,7 +245,12 @@ unsigned getAllowedCoreCount(int debug) {
   return n;
 }
 
-} // namespace
+#ifdef min
+#undef min
+#endif
+#ifdef max
+#undef max
+#endif
 
 unsigned getOptimalThreadCount(int debug) {
   if (const auto v = std::getenv("OMP_NUM_THREADS")) {
