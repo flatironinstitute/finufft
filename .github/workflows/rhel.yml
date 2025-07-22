@@ -26,7 +26,7 @@ jobs:
           # UBI 7 uses yum, UBI 8/9 use dnf
           if grep -q 'VERSION_ID="7' /etc/os-release; then
             yum install -y epel-release centos-release-scl devtoolset-9 cmake3 fftw-devel git make
-            source /opt/rh/devtoolset-9/enable
+            scl enable gcc-toolset-9 bash
             echo CMAKE=cmake3 >> $GITHUB_ENV
             printenv | while IFS='=' read -r name value; do
               # Escape special characters (esp. newlines)
