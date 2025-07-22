@@ -13,16 +13,25 @@ jobs:
           - registry.access.redhat.com/ubi7/ubi:latest
           - registry.access.redhat.com/ubi8/ubi:latest
           - registry.access.redhat.com/ubi9/ubi:latest
-        build_type: [Release]
+          - almalinux:8
+          - almalinux:latest
+          - rockylinux:8
+          - rockylinux:latest
+        build_type: [ Release ]
     container:
       image: ${{ matrix.image }}
 
     steps:
+      - if: ${{ matrix.image != 'registry.access.redhat.com/ubi7/ubi:latest' }}
+        uses: actions/checkout@v4
+      - if: ${{ matrix.image == 'registry.access.redhat.com/ubi7/ubi:latest' }}
+        uses: actions/checkout@v3
       - name: Install development tools
         run: |
           # UBI 7 uses yum, UBI 8/9 use dnf
           if grep -q 'VERSION_ID="7' /etc/os-release; then
             yum install -y epel-release centos-release-scl devtoolset-9 cmake3 fftw-devel git make
+            source /opt/rh/devtoolset-9/enable
             echo CMAKE=cmake3 >> $GITHUB_ENV
             printenv | while IFS='=' read -r name value; do
               # Escape special characters (esp. newlines)
@@ -34,10 +43,6 @@ jobs:
             dnf install -y gcc gcc-c++ cmake fftw-devel git make
             echo CMAKE=cmake >> $GITHUB_ENV
           fi
-
-      - name: Checkout source
-        uses: actions/checkout@v4
-
       - name: Configure (C++17, FFTW, OpenMP)
         run: |
           $CMAKE -S . -B build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DFINUFFT_BUILD_TESTS=ON
