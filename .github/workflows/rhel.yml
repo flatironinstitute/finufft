@@ -10,6 +10,7 @@ jobs:
       matrix:
         # Use UBI 7, 8, and 9 images from the free registry.access.redhat.com
         image:
+          # this is too old for checkout@v3
           - registry.access.redhat.com/ubi7/ubi:latest
           - registry.access.redhat.com/ubi8/ubi:latest
           - registry.access.redhat.com/ubi9/ubi:latest
@@ -23,7 +24,7 @@ jobs:
       - if: ${{ matrix.image != 'registry.access.redhat.com/ubi7/ubi:latest' }}
         uses: actions/checkout@v4
       - if: ${{ matrix.image == 'registry.access.redhat.com/ubi7/ubi:latest' }}
-        uses: actions/checkout@v3
+        uses: actions/checkout@v2.0.0
       - name: Install development tools
         run: |
           # UBI 7 uses yum, UBI 8/9 use dnf
