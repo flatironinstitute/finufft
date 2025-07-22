@@ -99,6 +99,9 @@ namespace {
 // --- Windows ---
 #ifdef _WIN32
 #include <windows.h>
+#undef min
+#undef max
+
 #if defined(__i386__) || defined(__x86_64__)
 #include <intrin.h>
 bool cpuid_subleaf(uint32_t leaf, uint32_t sub, uint32_t &eax, uint32_t &ebx,
