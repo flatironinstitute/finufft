@@ -21,10 +21,6 @@ jobs:
       image: ${{ matrix.image }}
 
     steps:
-      - if: ${{ matrix.image != 'registry.access.redhat.com/ubi7/ubi:latest' }}
-        uses: actions/checkout@v4
-      - if: ${{ matrix.image == 'registry.access.redhat.com/ubi7/ubi:latest' }}
-        uses: actions/checkout@v2.0.0
       - name: Install development tools
         run: |
           # UBI 7 uses yum, UBI 8/9 use dnf
@@ -42,6 +38,16 @@ jobs:
             dnf install -y gcc gcc-c++ cmake fftw-devel git make
             echo CMAKE=cmake >> $GITHUB_ENV
           fi
+      - name: Clone repo
+        env:
+          REPO: ${{ github.repository }}
+          SHA: ${{ github.sha }}
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git init
+          git remote add origin https://x-access-token:${TOKEN}@github.com/${REPO}.git
+          git fetch --depth=1 origin ${SHA}
+          git checkout FETCH_HEAD
       - name: Configure (C++17, FFTW, OpenMP)
         run: |
           $CMAKE -S . -B build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DFINUFFT_BUILD_TESTS=ON
