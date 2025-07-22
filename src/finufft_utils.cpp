@@ -3,29 +3,39 @@
 
 // For self-test see ../test/testutils.cpp
 
-#include <finufft/finufft_utils.hpp>
+#include "finufft/finufft_utils.hpp"
 
+#include <algorithm>
+#include <chrono>
+#include <cmath>
 #include <cstdint>
+#include <cstdlib>
+#include <filesystem>
+#include <fstream>
 #include <iostream>
-#include <string>
-
-#if defined(_WIN32)
+#include <random>
+#include <set>
 #include <vector>
+
+#ifdef _OPENMP
+#ifdef _WIN32
+#include <intrin.h>
 #include <windows.h>
+#elif defined(__linux__)
+#include <cpuid.h>
+#include <pthread.h>
+#include <sched.h>
+#include <unistd.h>
 #elif defined(__APPLE__)
+#include <cpuid.h>
 #include <sys/sysctl.h>
 #include <sys/types.h>
-#elif defined(__linux__)
-#ifndef _GNU_SOURCE
-#define _GNU_SOURCE // Enable GNU extensions for sched_getaffinity
+#else
+#include <cpuid.h>
 #endif
-#include <fstream>
-#include <sched.h>
-#include <set>
 #endif
 
 namespace finufft::utils {
-
 BIGINT next235even(BIGINT n)
 // finds even integer not less than n, with prime factors no larger than 5
 // (ie, "smooth"). Adapted from fortran in hellskitchen.  Barnett 2/9/17
@@ -81,7 +91,7 @@ void gaussquad(int n, double *xgl, double *wgl) {
   for (int i = 0; i < n / 2 + 1; i++) {
     auto [junk1, dp] = leg_eval(n, xgl[i]);
     auto [p, junk2]  = leg_eval(n + 1, xgl[i]); // This is a bit inefficient, but who
-                                                // cares...
+    // cares...
     wgl[i]         = -2 / ((n + 1) * dp * p);
     wgl[n - i - 1] = wgl[i];
   }
@@ -134,207 +144,242 @@ double CNTime::elapsedsec() const
   const double nowsec = double(now) * 1e-6;
   return nowsec - initial;
 }
-
+#ifdef _OPENMP
 namespace {
-#if defined(_WIN32)
-// Returns the number of physical CPU cores on Windows (excluding hyper-threaded cores)
-static int getPhysicalCoreCount() {
-  int physicalCoreCount = 0;
 
-  // Determine the required buffer size.
-  DWORD bufferSize = 0;
-  if (GetLogicalProcessorInformation(nullptr, &bufferSize) == FALSE &&
-      GetLastError() != ERROR_INSUFFICIENT_BUFFER) {
-    return physicalCoreCount;
-  }
+bool cpuid_subleaf(uint32_t leaf,
+                   uint32_t sub,
+                   uint32_t &eax,
+                   uint32_t &ebx,
+                   uint32_t &ecx,
+                   uint32_t &edx) {
+#ifdef _WIN32
+  int r[4];
+  __cpuidex(r, int(leaf), int(sub));
+  eax = r[0];
+  ebx = r[1];
+  ecx = r[2];
+  edx = r[3];
+  return true;
+#else
+  return __get_cpuid_count(leaf, sub, &eax, &ebx, &ecx, &edx);
+#endif
+}
 
-  // Calculate the number of entries and allocate a vector.
-  size_t entryCount = bufferSize / sizeof(SYSTEM_LOGICAL_PROCESSOR_INFORMATION);
-  std::vector<SYSTEM_LOGICAL_PROCESSOR_INFORMATION> procInfo(entryCount);
-  if (GetLogicalProcessorInformation(procInfo.data(), &bufferSize) != FALSE) {
-    for (const auto &info : procInfo) {
-      if (info.Relationship == RelationProcessorCore) ++physicalCoreCount;
+#ifdef _WIN32
+unsigned physical_cores_windows() {
+  uint32_t a, b, c, d;
+  cpuid_subleaf(1, 0, a, b, c, d);
+  unsigned logical = (b >> 16) & 0xFF;
+  HANDLE th        = GetCurrentThread();
+  DWORD_PTR orig   = SetThreadAffinityMask(th, ~DWORD_PTR(0));
+  if (!orig) orig = 1;
+  std::set<unsigned> cores;
+  for (unsigned i = 0; i < logical; ++i) {
+    SetThreadAffinityMask(th, DWORD_PTR(1) << i);
+    cpuid_subleaf(1, 0, a, b, c, d);
+    unsigned apic  = (b >> 24) & 0xFF;
+    uint32_t shift = 0;
+    for (uint32_t lvl = 0;; ++lvl) {
+      if (!cpuid_subleaf(0x0B, lvl, a, b, c, d)) break;
+      uint32_t t = (c >> 8) & 0xFF;
+      if (t == 1) {
+        shift = a & 0x1F;
+        break;
+      }
+      if (t == 0) break;
     }
+    cores.insert(shift ? (apic >> shift) : apic);
   }
-
-  if (physicalCoreCount == 0) {
-    return MY_OMP_GET_MAX_THREADS();
-  }
-  return physicalCoreCount;
+  SetThreadAffinityMask(th, orig);
+  return unsigned(cores.size());
 }
+#endif
 
-static int getAllowedCoreCount() {
-  DWORD_PTR processMask, systemMask;
-  if (!GetProcessAffinityMask(GetCurrentProcess(), &processMask, &systemMask)) {
-    return 0; // API call failed (should rarely happen for the current process)
-  }
-  // Count bits in processMask
-  int count = 0;
-  while (processMask) {
-    count += static_cast<int>(processMask & 1U);
-    processMask >>= 1;
-  }
-  return count;
+#if !defined(_WIN32)
+void pin_cpu(unsigned idx) {
+  cpu_set_t s;
+  CPU_ZERO(&s);
+  CPU_SET(idx, &s);
+  pthread_setaffinity_np(pthread_self(), sizeof(s), &s);
 }
+unsigned physical_cores_posix() {
+  uint32_t a, b, c, d;
+  cpuid_subleaf(1, 0, a, b, c, d);
+  unsigned logical = (b >> 16) & 0xFF;
+  cpu_set_t orig;
+  pthread_getaffinity_np(pthread_self(), sizeof(orig), &orig);
+  std::set<unsigned> cores;
+  for (unsigned i = 0; i < logical; ++i) {
+    pin_cpu(i);
+    cpuid_subleaf(1, 0, a, b, c, d);
+    unsigned apic  = (b >> 24) & 0xFF;
+    uint32_t shift = 0;
+    for (uint32_t lvl = 0;; ++lvl) {
+      if (!cpuid_subleaf(0x0B, lvl, a, b, c, d)) break;
+      uint32_t t = (c >> 8) & 0xFF;
+      if (t == 1) {
+        shift = a & 0x1F;
+        break;
+      }
+      if (t == 0) break;
+    }
+    cores.insert(shift ? (apic >> shift) : apic);
+  }
+  pthread_setaffinity_np(pthread_self(), sizeof(orig), &orig);
+  return unsigned(cores.size());
+}
+#endif
 
+#ifdef __APPLE__
+unsigned physical_cores_sysctl() {
+  int cores = 0;
+  size_t sz = sizeof(cores);
+  if (!sysctlbyname("hw.physicalcpu", &cores, &sz, nullptr, 0) && cores > 0)
+    return unsigned(cores);
+  return 0;
+}
+#endif
+
+#ifdef __linux__
+unsigned physical_cores_sysfs() {
+  std::set<std::pair<int, int>> uniq;
+  for (const auto &e : std::filesystem::directory_iterator("/sys/devices/system/cpu")) {
+    if (!e.is_directory()) continue;
+    auto fn = e.path().filename().string();
+    if (fn.rfind("cpu", 0) != 0) continue;
+    int c = -1, cl = -1;
+    std::ifstream f1(e.path() / "topology/core_id"), f2(e.path() / "topology/cluster_id");
+    if (f1) f1 >> c;
+    if (f2) f2 >> cl;
+    if (c >= 0) uniq.emplace(cl, c);
+  }
+  return unsigned(uniq.size());
+}
+#endif
+
+#ifdef _WIN32
+unsigned physical_cores_winapi() {
+  DWORD len = 0;
+  GetLogicalProcessorInformationEx(RelationProcessorCore, nullptr, &len);
+  std::vector<uint8_t> buf(len);
+  if (!GetLogicalProcessorInformationEx(
+          RelationProcessorCore,
+          reinterpret_cast<PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX>(buf.data()),
+          &len))
+    return 0;
+  unsigned cnt = 0;
+  for (uint8_t *p = buf.data(); p < buf.data() + len;) {
+    auto *info = reinterpret_cast<PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX>(p);
+    if (info->Relationship == RelationProcessorCore) ++cnt;
+    p += info->Size;
+  }
+  return cnt;
+}
+#endif
+
+// --------------------------------------------------------------------------
+// Public wrapper (all debug prints consolidated here)
+// --------------------------------------------------------------------------
+int getPhysicalCoreCount(int debug) {
+  auto dbg = [debug](const char *method, unsigned val) {
+    if (debug > 1) std::cout << "[FINUFFT_PLAN_T] " << method << " cores=" << val << "\n";
+  };
+#ifdef _WIN32
+  unsigned n = physical_cores_windows();
+  if (n) {
+    dbg("cpuid_win", n);
+    return int(n);
+  }
+  n = physical_cores_winapi();
+  if (n) {
+    dbg("winapi", n);
+    return int(n);
+  }
 #elif defined(__APPLE__)
-
-// Returns the number of physical CPU cores on macOS (excluding hyper-threaded cores)
-static int getPhysicalCoreCount() {
-  int physicalCoreCount = 0;
-  int cores             = 0;
-  size_t size           = sizeof(cores);
-  if (sysctlbyname("hw.physicalcpu", &cores, &size, nullptr, 0) == 0) {
-    physicalCoreCount = cores;
+  unsigned n = physical_cores_posix();
+  if (n) {
+    dbg("cpuid_posix", n);
+    return int(n);
   }
-
-  if (physicalCoreCount == 0) {
-    return MY_OMP_GET_MAX_THREADS();
+  n = physical_cores_sysctl();
+  if (n) {
+    dbg("sysctl", n);
+    return int(n);
   }
-  return physicalCoreCount;
-}
-
-static int getAllowedCoreCount() {
-  // MacOS does not support CPU affinity, so we return the maximum number of threads.
+#elif defined(__linux__)
+  unsigned n = physical_cores_posix();
+  if (n) {
+    dbg("cpuid_posix", n);
+    return int(n);
+  }
+  n = physical_cores_sysfs();
+  if (n) {
+    dbg("sysfs", n);
+    return int(n);
+  }
+#else
+  unsigned n = 0;
+#endif
+  dbg("OMP_fallback", MY_OMP_GET_MAX_THREADS());
   return MY_OMP_GET_MAX_THREADS();
 }
 
+// --------------------------------------------------------------------------
+// Allowed cores (process affinity)
+// --------------------------------------------------------------------------
+int getAllowedCoreCount() {
+#ifdef _WIN32
+  DWORD_PTR pm = 0, sm = 0;
+  if (!GetProcessAffinityMask(GetCurrentProcess(), &pm, &sm)) return 0;
+  int cnt = 0;
+  while (pm) {
+    cnt += int(pm & 1);
+    pm >>= 1;
+  }
+  return cnt;
+#elif defined(__APPLE__)
+  return getPhysicalCoreCount();
 #elif defined(__linux__)
-// Returns the number of physical CPU cores on Linux (excluding hyper-threaded cores)
-static int getPhysicalCoreCount() {
-  int physicalCoreCount = 0;
-  std::ifstream cpuinfo("/proc/cpuinfo");
-  if (!cpuinfo.is_open()) return MY_OMP_GET_MAX_THREADS();
-
-  std::set<std::string> coreSet;
-  std::string line;
-  int physicalId = -1, coreId = -1;
-  bool foundPhysical = false, foundCore = false;
-
-  while (std::getline(cpuinfo, line)) {
-    // An empty line indicates the end of a processor block.
-    if (line.empty()) {
-      if (foundPhysical && foundCore)
-        coreSet.insert(std::to_string(physicalId) + "-" + std::to_string(coreId));
-      // Reset for the next processor block.
-      foundPhysical = foundCore = false;
-      physicalId = coreId = -1;
-    } else {
-      auto colonPos = line.find(':');
-      if (colonPos == std::string::npos) continue;
-      std::string key   = line.substr(0, colonPos);
-      std::string value = line.substr(colonPos + 1);
-      // Trim whitespace.
-      key.erase(key.find_last_not_of(" \t") + 1);
-      value.erase(0, value.find_first_not_of(" \t"));
-
-      if (key == "physical id") {
-        physicalId    = std::stoi(value);
-        foundPhysical = true;
-      } else if (key == "core id") {
-        coreId    = std::stoi(value);
-        foundCore = true;
-      }
-    }
-  }
-  // In case the file doesn't end with an empty line.
-  if (foundPhysical && foundCore)
-    coreSet.insert(std::to_string(physicalId) + "-" + std::to_string(coreId));
-
-  if (!coreSet.empty()) {
-    physicalCoreCount = static_cast<int>(coreSet.size());
-  } else {
-    // Fallback: try reading "cpu cores" from the first processor block.
-    cpuinfo.clear();
-    cpuinfo.seekg(0, std::ios::beg);
-    while (std::getline(cpuinfo, line)) {
-      auto colonPos = line.find(':');
-      if (colonPos != std::string::npos) {
-        std::string key   = line.substr(0, colonPos);
-        std::string value = line.substr(colonPos + 1);
-        key.erase(key.find_last_not_of(" \t") + 1);
-        value.erase(0, value.find_first_not_of(" \t"));
-        if (key == "cpu cores") {
-          physicalCoreCount = std::stoi(value);
-          break;
-        }
-      }
-    }
-  }
-
-  if (physicalCoreCount == 0) {
-    return MY_OMP_GET_MAX_THREADS();
-  }
-  return physicalCoreCount;
-}
-
-static int getAllowedCoreCount() {
-  cpu_set_t cpuSet;
-  CPU_ZERO(&cpuSet);
-  if (sched_getaffinity(0, sizeof(cpu_set_t), &cpuSet) != 0) {
-    return 0; // Error (e.g., not supported or failed)
-  }
-  int count = 0;
-  for (int cpu = 0; cpu < CPU_SETSIZE; ++cpu) {
-    if (CPU_ISSET(cpu, &cpuSet)) {
-      ++count;
-    }
-  }
-  return count;
-}
-
+  cpu_set_t cs;
+  CPU_ZERO(&cs);
+  if (sched_getaffinity(0, sizeof(cs), &cs) != 0) return 0;
+  int cnt = 0;
+  for (int i = 0; i < CPU_SETSIZE; ++i)
+    if (CPU_ISSET(i, &cs)) ++cnt;
+  return cnt;
 #else
-
-#warning "Unknown platform. Impossible to detect the number of physical cores."
-// Fallback version if none of the above platforms is detected.
-static int getPhysicalCoreCount() { return MY_OMP_GET_MAX_THREADS(); }
-static int getAllowedCoreCount() { return MY_OMP_GET_MAX_THREADS(); }
+  return getPhysicalCoreCount();
+#endif
+}
+} // namespace
+// --------------------------------------------------------------------------
+// Optimal thread count heuristic
+// --------------------------------------------------------------------------
+int getOptimalThreadCount(int debug = 0) {
+  if (const auto v = std::getenv("OMP_NUM_THREADS")) {
+    try {
+      return std::stoi(v);
+    } catch (...) {
+      std::cerr << "[FINUFFT_PLAN_T] OMP_NUM_THREADS env var is not a valid integer: "
+                << v << "\n";
+      std::cerr << "[FINUFFT_PLAN_T] Using default thread count instead.\n";
+    }
+  }
+  const auto physical_threads = std::max(0, getPhysicalCoreCount(debug));
+  const auto allowed_threads  = std::max(0, getAllowedCoreCount());
+  auto optimal                = std::min(physical_threads, allowed_threads);
+  if (optimal == 0) optimal = MY_OMP_GET_MAX_THREADS();
+  return optimal;
+}
 
 #endif
 
-} // namespace
-
-int getOptimalThreadCount() {
-  // if the user has set the OMP_NUM_THREADS environment variable, use that value
-  const auto OMP_THREADS = std::getenv("OMP_NUM_THREADS");
-  if (OMP_THREADS) {
-    return std::stoi(OMP_THREADS);
-  }
-  // otherwise, use the min between number of physical cores or the number of allowed
-  // cores (e.g. by taskset)
-  const auto physicalCores = getPhysicalCoreCount();
-  const auto allowedCores  = getAllowedCoreCount();
-  if (physicalCores < allowedCores) {
-    return physicalCores;
-  }
-  return allowedCores;
-}
-
-// -------------------------- openmp helpers -------------------------------
-int get_num_threads_parallel_block()
-// return how many threads an omp parallel block would use.
-// omp_get_max_threads() does not report this; consider case of NESTED=0.
-// Why is there no such routine?   Barnett 5/22/20
-{
-  int nth_used;
-#pragma omp parallel
-  {
-#pragma omp single
-    nth_used = MY_OMP_GET_NUM_THREADS();
-  }
-  return nth_used;
-}
-
-// ---------- thread-safe rand number generator for Windows platform ---------
-// (note this is used by macros in test_defs.h, and supplied in linux/macosx)
 #ifdef _WIN32
-int rand_r(unsigned int * /*seedp*/)
-// Libin Lu, 6/18/20
-{
-  std::random_device rd;
-  std::default_random_engine generator(rd());
-  std::uniform_int_distribution<int> distribution(0, RAND_MAX);
-  return distribution(generator);
+int rand_r(unsigned *seedp) {
+  std::mt19937_64 gen(*seedp);
+  *seedp = gen();
+  return int(gen() & 0x7FFFFFFF);
 }
 #endif
 

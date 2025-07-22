@@ -5,7 +5,7 @@ on: [push, pull_request]
 jobs:
   build-matrix:
     name: Build ${{ matrix.build_type }} on ${{ matrix.os }}
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-latest
     strategy:
       matrix:
         os: ["centos:7", "rockylinux:8", "rockylinux:9"]

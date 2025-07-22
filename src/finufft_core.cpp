@@ -542,10 +542,12 @@ void finufft_default_opts_t(finufft_opts *o)
 }
 
 // Wrapper to cache the optimal thread count using a static variable.
-int getCachedOptimalThreadCount() {
-  static const int cached_value = getOptimalThreadCount();
+#ifdef _OPENMP
+int getCachedOptimalThreadCount(const int debug) {
+  static const int cached_value = getOptimalThreadCount(debug);
   return cached_value;
 }
+#endif
 
 // PPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPP
 template<typename TF>
@@ -595,7 +597,7 @@ FINUFFT_PLAN_T<TF>::FINUFFT_PLAN_T(int type_, int dim_, const BIGINT *n_modes, i
 
 #ifdef _OPENMP
   // choose overall # threads...
-  int ompmaxnthr = getCachedOptimalThreadCount();
+  int ompmaxnthr = getCachedOptimalThreadCount(opts.debug);
   int nthr       = ompmaxnthr; // default: use as many physical cores as possible
   // (the above could be set, or suggested set, to 1 for small enough problems...)
   if (opts.nthreads > 0) {
