@@ -282,46 +282,46 @@ unsigned physical_cores_winapi() {
 // Public wrapper (all debug prints consolidated here)
 // --------------------------------------------------------------------------
 int getPhysicalCoreCount(int debug) {
-  auto dbg = [debug](const char *method, unsigned val) {
+  const auto debug_print = [debug](const char *method, unsigned val) {
     if (debug > 1) std::cout << "[FINUFFT_PLAN_T] " << method << " cores=" << val << "\n";
   };
 #ifdef _WIN32
   unsigned n = physical_cores_windows();
   if (n) {
-    dbg("cpuid_win", n);
+    debug_print("cpuid_win", n);
     return int(n);
   }
   n = physical_cores_winapi();
   if (n) {
-    dbg("winapi", n);
+    debug_print("winapi", n);
     return int(n);
   }
 #elif defined(__APPLE__)
   unsigned n = physical_cores_posix();
   if (n) {
-    dbg("cpuid_posix", n);
+    debug_print"cpuid_posix", n);
     return int(n);
   }
   n = physical_cores_sysctl();
   if (n) {
-    dbg("sysctl", n);
+    debug_print("sysctl", n);
     return int(n);
   }
 #elif defined(__linux__)
   unsigned n = physical_cores_posix();
   if (n) {
-    dbg("cpuid_posix", n);
+    debug_print("cpuid_posix", n);
     return int(n);
   }
   n = physical_cores_sysfs();
   if (n) {
-    dbg("sysfs", n);
+    debug_print("sysfs", n);
     return int(n);
   }
 #else
   unsigned n = 0;
 #endif
-  dbg("OMP_fallback", MY_OMP_GET_MAX_THREADS());
+  debug_print("OMP_fallback", MY_OMP_GET_MAX_THREADS());
   return MY_OMP_GET_MAX_THREADS();
 }
 
@@ -352,10 +352,9 @@ int getAllowedCoreCount() {
   return getPhysicalCoreCount();
 #endif
 }
+
 } // namespace
-// --------------------------------------------------------------------------
-// Optimal thread count heuristic
-// --------------------------------------------------------------------------
+
 int getOptimalThreadCount(int debug = 0) {
   if (const auto v = std::getenv("OMP_NUM_THREADS")) {
     try {
