@@ -15,8 +15,6 @@ jobs:
           - registry.access.redhat.com/ubi9/ubi:latest
           - almalinux:8
           - almalinux:latest
-          - rockylinux:8
-          - rockylinux:latest
         build_type: [ Release ]
     container:
       image: ${{ matrix.image }}
