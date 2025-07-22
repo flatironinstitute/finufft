@@ -197,7 +197,7 @@ unsigned physical_cores_windows() {
 }
 #endif
 
-#if !defined(_WIN32)
+#if defined(__linux__)
 void pin_cpu(unsigned idx) {
   cpu_set_t s;
   CPU_ZERO(&s);
@@ -328,12 +328,7 @@ int getPhysicalCoreCount(int debug = 0) {
     return int(n);
   }
 #elif defined(__APPLE__)
-  unsigned n = physical_cores_posix();
-  if (n) {
-    debug_print("cpuid_posix", n);
-    return int(n);
-  }
-  n = physical_cores_sysctl();
+  unsigned n = physical_cores_sysctl();
   if (n) {
     debug_print("sysctl", n);
     return int(n);

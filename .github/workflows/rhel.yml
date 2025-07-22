@@ -24,7 +24,6 @@ jobs:
           # UBI 7 uses yum, UBI 8/9 use dnf
           if grep -q 'VERSION_ID="7' /etc/os-release; then
             yum install -y epel-release centos-release-scl devtoolset-9 cmake3 fftw-devel git make
-            source scl_source enable devtoolset-9
             echo CMAKE=cmake3 >> $GITHUB_ENV
           else
             dnf install -y gcc gcc-c++ cmake fftw-devel git make
@@ -36,13 +35,17 @@ jobs:
 
       - name: Configure (C++17, FFTW, OpenMP)
         run: |
-          $CMAKE -S . -B build -DCMAKE_BUILD_TYPE=Release -DFINUFFT_BUILD_TESTS=ON
+          if grep -q 'VERSION_ID="7' /etc/os-release; then
+            scl enable devtoolset-9 bash
+            alias cmake=cmake3
+          fi
+          $CMAKE -S . -B build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DFINUFFT_BUILD_TESTS=ON
 
       - name: Build
         run: |
-          cmake --build ./build --config Release
+          $CMAKE --build ./build --config ${{ matrix.build_type }}
 
       - name: Test
         working-directory: ./build
         run: |
-          ctest -C Release --output-on-failure
+          ctest -C ${{ matrix.build_type }} --output-on-failure
