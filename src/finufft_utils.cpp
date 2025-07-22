@@ -281,7 +281,7 @@ unsigned physical_cores_winapi() {
 // --------------------------------------------------------------------------
 // Public wrapper (all debug prints consolidated here)
 // --------------------------------------------------------------------------
-int getPhysicalCoreCount(int debug) {
+int getPhysicalCoreCount(int debug = 0) {
   const auto debug_print = [debug](const char *method, unsigned val) {
     if (debug > 1) std::cout << "[FINUFFT_PLAN_T] " << method << " cores=" << val << "\n";
   };
