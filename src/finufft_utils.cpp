@@ -302,16 +302,8 @@ int getOptimalThreadCount() {
   }
   // otherwise, use the min between number of physical cores or the number of allowed
   // cores (e.g. by taskset)
-  const auto physicalCores = [] {
-    try {
-      return getPhysicalCoreCount();
-    } catch (const std::exception &e) {
-      std::cerr << "Error getting physical core count: " << e.what() << "\n";
-      return MY_OMP_GET_MAX_THREADS(); // Fallback to max threads if error occurs
-    }
-  }();
-
-  const auto allowedCores = getAllowedCoreCount();
+  const auto physicalCores = getPhysicalCoreCount();
+  const auto allowedCores  = getAllowedCoreCount();
   if (physicalCores < allowedCores) {
     return physicalCores;
   }

@@ -49,8 +49,8 @@ jobs:
           $CMAKE -S . -B build -DFINUFFT_BUILD_TESTS=ON
       - name: Build
         run: |
-          cmake --build ./build --config ${{ matrix.build_type }}
+          cmake --build ./build --config Release
       - name: Test
         working-directory: ./build
         run: |
-          ctest -C ${{ matrix.build_type }} --output-on-failure
+          ctest -C Release --output-on-failure
