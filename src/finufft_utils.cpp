@@ -137,6 +137,7 @@ double CNTime::elapsedsec() const
   return nowsec - initial;
 }
 
+#ifdef _OPENMP
 namespace {
 #if defined(_WIN32)
 // Returns the number of physical CPU cores on Windows (excluding hyper-threaded cores)
@@ -289,31 +290,36 @@ unsigned getAllowedCoreCount() { return MY_OMP_GET_MAX_THREADS(); }
 
 unsigned getOptimalThreadCount() {
   // if the user has set the OMP_NUM_THREADS environment variable, use that value
-  const auto OMP_THREADS = std::getenv("OMP_NUM_THREADS");
-  if (OMP_THREADS) {
+  static const auto cached_threads = [] {
+    const auto OMP_THREADS = std::getenv("OMP_NUM_THREADS");
+    if (OMP_THREADS) {
+      try {
+        return std::stoi(OMP_THREADS);
+      } catch (...) {
+        std::cerr << "Invalid OMP_NUM_THREADS value: " << OMP_THREADS
+                  << ". using default thread count." << std::endl;
+      }
+    }
+    // otherwise, use the min between number of physical cores or the number of allowed
+    // cores (e.g. by taskset)
     try {
-      return std::stoi(OMP_THREADS);
-    } catch (...) {
-      std::cerr << "Invalid OMP_NUM_THREADS value: " << OMP_THREADS
-                << ". using default thread count." << std::endl;
+      const auto physicalCores = getPhysicalCoreCount();
+      const auto allowedCores  = getAllowedCoreCount();
+      if (physicalCores < allowedCores) {
+        return physicalCores;
+      }
+      return allowedCores;
+    } catch (const std::exception &e) {
+      std::cerr << "Error determining optimal thread count: " << e.what()
+                << ". Using OpenMP default thread count." << std::endl;
     }
-  }
-  // otherwise, use the min between number of physical cores or the number of allowed
-  // cores (e.g. by taskset)
-  try {
-    const auto physicalCores = getPhysicalCoreCount();
-    const auto allowedCores  = getAllowedCoreCount();
-    if (physicalCores < allowedCores) {
-      return physicalCores;
-    }
-    return allowedCores;
-  } catch (const std::exception &e) {
-    std::cerr << "Error determining optimal thread count: " << e.what()
-              << ". Using OpenMP default thread count." << std::endl;
-  }
-  return MY_OMP_GET_MAX_THREADS();
+    return MY_OMP_GET_MAX_THREADS();
+  }();
+
+  return cached_threads;
 }
 
+#endif // _OPENMP
 // ---------- thread-safe rand number generator for Windows platform ---------
 // (note this is used by macros in test_defs.h, and supplied in linux/macosx)
 #ifdef _WIN32
