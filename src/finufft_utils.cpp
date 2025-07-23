@@ -97,7 +97,7 @@ double CNTime::elapsedsec() const {
 // --- Windows ---
 #ifdef _WIN32
 #include <windows.h>
-#if defined(__i386__) || defined(__x86_64__)
+#if defined(__i386__) || defined(__x86_64__) || defined(_M_IX86) || defined(_M_X64)
 static unsigned count_physical_cores_win() {
   DWORD length = 0;
   GetLogicalProcessorInformationEx(RelationProcessorCore, nullptr, &length);
@@ -136,7 +136,7 @@ static unsigned count_physical_cores_win() {
 }
 #else
 // on ARM there is no hyperthreading so we can use the logical count directly
-static unsigned count_physical_cores_win() { MY_OMP_GET_MAX_THREADS(); }
+static unsigned count_physical_cores_win() { return MY_OMP_GET_MAX_THREADS(); }
 #endif
 static unsigned count_allowed_cores_win() {
   DWORD_PTR processMask = 0, systemMask = 0;
