@@ -209,114 +209,56 @@ unsigned getAllowedCoreCount() {
 #elif defined(__linux__)
 // Returns the number of physical CPU cores on Linux (excluding hyper-threaded cores)
 unsigned getPhysicalCoreCount() {
-  enum class TopoMethod { Leaf1F, Leaf0B, Unsupported };
-  // Check CPUID support (via EFLAGS ID bit)
-  const bool has_cpuid = [] {
-#if defined(__i386__)
-    uint32_t eflags;
-    __asm__ volatile("pushfl\n\t"
-                     "popl %%eax\n\t"
-                     "movl %%eax, %%ecx\n\t"
-                     "xorl $0x200000, %%eax\n\t"
-                     "pushl %%eax\n\t"
-                     "popfl\n\t"
-                     "pushfl\n\t"
-                     "popl %%eax\n\t"
-                     "xorl %%ecx, %%eax\n\t"
-                     : "=a"(eflags)
-                     :
-                     : "ecx");
-    return (eflags & 0x200000);
-#else
-    uint64_t eflags;
-    __asm__ volatile("pushfq\n\t"
-                     "pop %%rax\n\t"
-                     "mov %%rax, %%rcx\n\t"
-                     "xor $0x200000, %%rax\n\t"
-                     "push %%rax\n\t"
-                     "popfq\n\t"
-                     "pushfq\n\t"
-                     "pop %%rax\n\t"
-                     "xor %%rcx, %%rax\n\t"
-                     : "=a"(eflags)
-                     :
-                     : "rcx");
-    return (eflags & 0x200000);
-#endif
-  }();
-  if (!has_cpuid) {
-    return MY_OMP_GET_MAX_THREADS(); // fallback if CPUID is not supported
-  }
-
-  // CPUID wrapper
-  auto cpuid_subleaf = [](uint32_t leaf, uint32_t subleaf, uint32_t &eax, uint32_t &ebx,
-                          uint32_t &ecx, uint32_t &edx) -> bool {
-    uint32_t max_leaf = __get_cpuid_max(0, nullptr);
-    if (leaf > max_leaf) return false;
-    __cpuid_count(leaf, subleaf, eax, ebx, ecx, edx);
-    return true;
-  };
-
-  // Detect 0x1F vs 0x0B
-  auto detect_topology_method = [&]() -> TopoMethod {
-    uint32_t a, b, c, d;
-    if (!cpuid_subleaf(0, 0, a, b, c, d)) return TopoMethod::Unsupported;
-    uint32_t max_leaf = a;
-
-    if (max_leaf >= 0x1F) {
-      cpuid_subleaf(0x1F, 0, a, b, c, d);
-      if (((c >> 8) & 0xFF) != 0) return TopoMethod::Leaf1F;
-    }
-    if (max_leaf >= 0x0B) {
-      cpuid_subleaf(0x0B, 0, a, b, c, d);
-      if (((c >> 8) & 0xFF) != 0) return TopoMethod::Leaf0B;
-    }
-    return TopoMethod::Unsupported;
-  };
-
-  // Pin thread to specific logical CPU
-  auto pin_cpu = [](unsigned idx) -> bool {
-    cpu_set_t s;
-    CPU_ZERO(&s);
-    CPU_SET(idx, &s);
-    return pthread_setaffinity_np(pthread_self(), sizeof(s), &s) == 0;
-  };
-
-  // Get logical processor count
-  uint32_t eax, ebx, ecx, edx;
-  if (!cpuid_subleaf(1, 0, eax, ebx, ecx, edx)) return 0;
-  const unsigned logical = (ebx >> 16) & 0xFF;
-
-  cpu_set_t original;
-  pthread_getaffinity_np(pthread_self(), sizeof(original), &original);
-
-  TopoMethod method = detect_topology_method();
-  if (method == TopoMethod::Unsupported) return 0;
-
-  std::set<unsigned> core_ids;
-  for (unsigned i = 0; i < logical; ++i) {
-    if (!pin_cpu(i)) continue;
-    cpuid_subleaf(1, 0, eax, ebx, ecx, edx);
-    const unsigned apic = (ebx >> 24) & 0xFF;
-
-    uint32_t shift = 0;
-    for (uint32_t level = 0;; ++level) {
-      const uint32_t leaf = (method == TopoMethod::Leaf1F ? 0x1F : 0x0B);
-      if (!cpuid_subleaf(leaf, level, eax, ebx, ecx, edx)) break;
-      const uint32_t type = (ecx >> 8) & 0xFF;
-      if (type == 1) {
-        shift = eax & 0x1F;
-        break;
+  // Parse strings like "0-3,5,7-9" → {0,1,2,3,5,7,8,9}
+  auto parseCpuList = [](const std::string &s) {
+    std::vector<int> cpus;
+    std::istringstream iss(s);
+    for (std::string tok; std::getline(iss, tok, ',');) {
+      auto dash = tok.find('-');
+      if (dash == std::string::npos) {
+        cpus.push_back(std::stoi(tok));
+      } else {
+        int start = std::stoi(tok.substr(0, dash));
+        int end   = std::stoi(tok.substr(dash + 1));
+        for (int i = start; i <= end; ++i) cpus.push_back(i);
       }
-      if (type == 0) break;
     }
+    return cpus;
+  };
 
-    const unsigned core_id = shift ? (apic >> shift) : apic;
-    core_ids.insert(core_id);
+  // Read a single integer from the given sysfs file
+  auto readInt = [&](const std::string &path, int &out) -> bool {
+    std::ifstream f(path);
+    if (!f.is_open()) return false;
+    f >> out;
+    return !f.fail();
+  };
+
+  // 1) Read list of present CPUs
+  std::ifstream presentF("/sys/devices/system/cpu/present");
+  if (!presentF.is_open()) {
+    return omp_get_max_threads();
+  }
+  std::string presentLine;
+  std::getline(presentF, presentLine);
+  auto cpus = parseCpuList(presentLine);
+
+  // 2) For each CPU, read its package & core IDs
+  std::set<std::pair<int, int>> physicalCores;
+  for (int cpu : cpus) {
+    std::string topoBase =
+        "/sys/devices/system/cpu/cpu" + std::to_string(cpu) + "/topology/";
+    int pkg = -1, core = -1;
+    if (!readInt(topoBase + "physical_package_id", pkg)) continue;
+    if (!readInt(topoBase + "core_id", core)) continue;
+    physicalCores.emplace(pkg, core);
   }
 
-  pthread_setaffinity_np(pthread_self(), sizeof(original), &original);
-  return !core_ids.empty() ? core_ids.size() : MY_OMP_GET_MAX_THREADS();
+  // 3) Return count if successful, else fallback
+  if (!physicalCores.empty()) {
+    return static_cast<unsigned>(physicalCores.size());
+  }
+  return omp_get_max_threads();
 }
 
 unsigned getAllowedCoreCount() {
