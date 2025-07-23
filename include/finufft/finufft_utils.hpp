@@ -62,7 +62,7 @@ private:
 };
 
 #ifdef _OPENMP
-FINUFFT_NEVER_INLINE unsigned getOptimalThreadCount(int debug);
+FINUFFT_NEVER_INLINE unsigned getOptimalThreadCount();
 #endif
 
 } // namespace finufft::utils
