@@ -19,9 +19,7 @@
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE // Enable GNU extensions for sched_getaffinity
 #endif
-#include <cpuid.h>
 #include <fstream>
-#include <pthread.h>
 #include <sched.h>
 #include <set>
 #endif
