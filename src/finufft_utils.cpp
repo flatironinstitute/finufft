@@ -209,7 +209,14 @@ unsigned getAllowedCoreCount() {
 
 #elif defined(__linux__)
 // Returns the number of physical CPU cores on Linux (excluding hyper-threaded cores)
+// Compatibility:
+// - Linux kernels 2.6 and later (provides /sys/devices/system/cpu topology interface)
+// - Any CPU architecture supported by the kernel (Intel, AMD, ARM, POWER, etc.)
+// - Works in containers or cgroups (reflects host topology)
 unsigned getPhysicalCoreCount() {
+  // only x86_64 and x86_32 architectures support HT (hyper-threading)
+  // in all other cases, we assume no HT and return MY_OMP_GET_MAX_THREADS()
+#if defined(__i386__) || defined(__x86_64__)
   // Parse strings like "0-3,5,7-9" → {0,1,2,3,5,7,8,9}
   auto parseCpuList = [](const std::string &s) {
     std::vector<int> cpus;
@@ -238,7 +245,7 @@ unsigned getPhysicalCoreCount() {
   // 1) Read list of present CPUs
   std::ifstream presentF("/sys/devices/system/cpu/present");
   if (!presentF.is_open()) {
-    return omp_get_max_threads();
+    return MY_OMP_GET_MAX_THREADS();
   }
   std::string presentLine;
   std::getline(presentF, presentLine);
@@ -259,7 +266,9 @@ unsigned getPhysicalCoreCount() {
   if (!physicalCores.empty()) {
     return static_cast<unsigned>(physicalCores.size());
   }
-  return omp_get_max_threads();
+#endif
+  // in ARM and RISKV we only need this
+  return MY_OMP_GET_MAX_THREADS();
 }
 
 unsigned getAllowedCoreCount() {
@@ -290,7 +299,7 @@ unsigned getAllowedCoreCount() { return MY_OMP_GET_MAX_THREADS(); }
 
 unsigned getOptimalThreadCount() {
   // if the user has set the OMP_NUM_THREADS environment variable, use that value
-  static const auto cached_threads = [] {
+  static const auto cached_threads = []() -> unsigned {
     const auto OMP_THREADS = std::getenv("OMP_NUM_THREADS");
     if (OMP_THREADS) {
       try {
