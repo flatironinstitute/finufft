@@ -8,7 +8,9 @@
    Test tolerances are hard-wired in this code, not via cmd line.
    Subtlety is that adjointness is subject to round-off, which is amplified
    by the r_dyn dynamic range, per dimension. That can get bad for USF=1.25.
-   See discussion of "Repeatability" in docs/trouble.rst
+   It also appears to vary with platform (macos-13 CI forced us to abandon
+   allowederr = 1e-13 in favor of 1e-12).
+   See discussions "Repeatability" and "Adjointness" in docs/trouble.rst
 */
 
 using namespace std;
@@ -28,7 +30,7 @@ int main() {
   string name    = "adjointnessf";
 #else
   FLT tol        = 1e-12; // requested transform tol (USF=2 guaranteed)
-  FLT allowederr = 1e-13; // 1e3*epsmach (for USF=2, r_dyn^3<1e3)
+  FLT allowederr = 1e-12; // 1e4*epsmach (USF=2 r_dyn^3<1e3, but macos-13 fails)
   string name    = "adjointness";
 #endif
 
