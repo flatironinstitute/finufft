@@ -14,19 +14,10 @@ jobs:
           - [ windows-2022, win_amd64 ]
     steps:
       - uses: actions/checkout@v4
-      - name: Setup Cpp
-        if: ${{ matrix.buildplat[0] == 'windows-2022' }}
-        uses: aminya/setup-cpp@v1.1.1
-        with:
-          compiler: msvc-2022
-          vcvarsall: true
-          cmake: true
-          ninja: true
-          vcpkg: false
-          cppcheck: false
+      - uses: ilammy/msvc-dev-cmd@v1
       - name: Setup CUDA
         if: ${{ matrix.buildplat[0] == 'windows-2022' }}
-        uses: Jimver/cuda-toolkit@v0.2.26
+        uses: Jimver/cuda-toolkit@v0.2.21
         with:
           cuda: '12.4.0'
       - name: Build ${{ matrix.buildplat[1] }} wheels
