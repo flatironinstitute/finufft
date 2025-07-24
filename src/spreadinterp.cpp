@@ -276,100 +276,258 @@ static void evaluate_kernel_vector(T *ker, T *args,
     if (abs(args[i]) >= (T)opts.ES_halfwidth) ker[i] = 0.0;
 }
 
+template<typename F, std::size_t... Is>
+FINUFFT_ALWAYS_INLINE constexpr void unroll_loop_impl(F &&func,
+                                                      std::index_sequence<Is...>) {
+  (func(Is), ...); // C++17 fold expression for comma operator
+}
+
+template<std::size_t Count, typename F>
+FINUFFT_ALWAYS_INLINE constexpr void unroll_loop(F &&func) {
+  unroll_loop_impl(std::forward<F>(func), std::make_index_sequence<Count>{});
+}
+
+//-----------------------------------------------------------------------------
+// 1) Core unroller that calls f.template operator()<I>()
+//-----------------------------------------------------------------------------
+template<std::size_t... Is, typename F>
+FINUFFT_ALWAYS_INLINE constexpr void unroll_loop_ct_impl(
+    F &&f, std::index_sequence<Is...>) noexcept {
+  // the comma‐fold here expands to:
+  //   (f.template operator()<0>(), f.template operator()<1>(), …)
+  ((void)f.template operator()<Is>(), ...);
+}
+
+//-----------------------------------------------------------------------------
+// 2) Public entry point: unroll_loop_ct<Count>(f)
+//-----------------------------------------------------------------------------
+template<std::size_t Count, typename F>
+FINUFFT_ALWAYS_INLINE constexpr void unroll_loop_ct(F &&f) noexcept {
+  unroll_loop_ct_impl(std::forward<F>(f), std::make_index_sequence<Count>{});
+}
+
+//==============================================================================
+//  A C++17-compatible, zero-copy, fully unrolled Horner evaluator for FINUFFT
+//==============================================================================
+
 template<typename T, uint8_t w, uint8_t upsampfact,
-         class simd_type =
-             xsimd::make_sized_batch_t<T, find_optimal_simd_width<T, w>()>> // aka ns
-static FINUFFT_ALWAYS_INLINE void eval_kernel_vec_Horner(
-    T *FINUFFT_RESTRICT ker, T x, const finufft_spread_opts &opts) noexcept
-/* Fill ker[] with Horner piecewise poly approx to [-w/2,w/2] ES kernel eval at
-x_j = x + j,  for j=0,..,w-1.  Thus x in [-w/2,-w/2+1].   w is aka ns.
-This is the current evaluation method, since it's faster (except i7 w=16).
-Two upsampfacs implemented. Params must match ref formula. Barnett 4/24/18 */
+         class simd_type = xsimd::make_sized_batch_t<T, find_optimal_simd_width<T, w>()>>
+struct EvalKernelVecHornerHelper {
+  // –– static setup ––//
+  using batch_t                          = simd_type;
+  using arch_t                           = typename batch_t::arch_type;
+  static constexpr std::size_t simd_size = batch_t::size;
+  static constexpr std::size_t padded_ns = (w + simd_size - 1) & ~(simd_size - 1);
 
-{
-  // scale so local grid offset z in[-1,1]
-  const T z                           = std::fma(T(2.0), x, T(w - 1));
-  using arch_t                        = typename simd_type::arch_type;
-  static constexpr auto alignment     = arch_t::alignment();
-  static constexpr auto simd_size     = simd_type::size;
-  static constexpr auto padded_ns     = (w + simd_size - 1) & ~(simd_size - 1);
   static constexpr auto horner_coeffs = []() constexpr noexcept {
-    if constexpr (upsampfact == 200) {
+    if constexpr (upsampfact == 200)
       return get_horner_coeffs_200<T, w>();
-    } else if constexpr (upsampfact == 125) {
+    else
       return get_horner_coeffs_125<T, w>();
-    }
   }();
-  static constexpr auto nc          = horner_coeffs.size();
-  static constexpr auto use_ker_sym = (simd_size < w);
+  static constexpr std::size_t nc = horner_coeffs.size();
 
-  alignas(alignment) static constexpr auto padded_coeffs =
+  // –– symmetric-kernel constants ––//
+  static constexpr bool use_ker_sym     = (simd_size < w);
+  static constexpr uint8_t tail         = w % simd_size;
+  static constexpr uint8_t if_odd_deg   = ((nc + 1) % 2);
+  static constexpr uint8_t offset_start = tail ? w - tail : w - simd_size;
+  static constexpr uint8_t end_idx      = (w + (tail > 0)) / 2;
+  static constexpr uint8_t num_blks     = (end_idx + simd_size - 1) / simd_size;
+  static constexpr uint8_t num_pairs    = (nc - if_odd_deg) / 2;
+
+  // –– non-symmetric constants ––//
+  static constexpr uint8_t num_blks_ns     = (w + simd_size - 1) / simd_size;
+  static constexpr uint8_t num_coef_minus1 = (nc > 1 ? nc - 1 : 0);
+
+  // –– padded coefficient array ––//
+  alignas(arch_t::alignment()) static constexpr auto padded_coeffs =
       pad_2D_array_with_zeros<T, nc, w, padded_ns>(horner_coeffs);
 
-  // use kernel symmetry trick if w > simd_size
-  if constexpr (use_ker_sym) {
-    static constexpr uint8_t tail          = w % simd_size;
-    static constexpr uint8_t if_odd_degree = ((nc + 1) % 2);
-    static constexpr uint8_t offset_start  = tail ? w - tail : w - simd_size;
-    static constexpr uint8_t end_idx       = (w + (tail > 0)) / 2;
-    const simd_type zv{z};
-    const auto z2v = zv * zv;
+  // –– shuffle mask for symmetric path ––//
+  static constexpr auto shuffle_batch = []() constexpr noexcept {
+    if constexpr (tail)
+      return xsimd::make_batch_constant<xsimd::as_unsigned_integer_t<T>, arch_t,
+                                        shuffle_index<tail>>();
+    else
+      return xsimd::make_batch_constant<xsimd::as_unsigned_integer_t<T>, arch_t,
+                                        reverse_index<simd_size>>();
+  }();
 
-    // some xsimd constant for shuffle or inverse
-    static constexpr auto shuffle_batch = []() constexpr noexcept {
-      if constexpr (tail) {
-        return xsimd::make_batch_constant<xsimd::as_unsigned_integer_t<T>, arch_t,
-                                          shuffle_index<tail>>();
+  //==============================================================================
+  //  Functor #1: initialize each block’s odd/even accumulators
+  //==============================================================================
+  struct InitBlock {
+    batch_t *odd_blk;
+    batch_t *even_blk;
+
+    template<std::size_t b> FINUFFT_ALWAYS_INLINE void operator()() const noexcept {
+      constexpr std::size_t i = b * simd_size;
+      if constexpr (if_odd_deg) {
+        odd_blk[b] = batch_t::load_aligned(padded_coeffs[0].data() + i);
       } else {
-        return xsimd::make_batch_constant<xsimd::as_unsigned_integer_t<T>, arch_t,
-                                          reverse_index<simd_size>>();
+        odd_blk[b] = batch_t{0};
       }
-    }();
+      even_blk[b] = batch_t::load_aligned(padded_coeffs[if_odd_deg].data() + i);
+    }
+  };
 
-    // process simd vecs
-    simd_type k_prev, k_sym{0};
-    for (uint8_t i{0}, offset = offset_start; i < end_idx;
-         i += simd_size, offset -= simd_size) {
-      auto k_odd = [i]() constexpr noexcept {
-        if constexpr (if_odd_degree) {
-          return simd_type::load_aligned(padded_coeffs[0].data() + i);
-        } else {
-          return simd_type{0};
-        }
-      }();
-      auto k_even = simd_type::load_aligned(padded_coeffs[if_odd_degree].data() + i);
-      for (uint8_t j{1 + if_odd_degree}; j < nc; j += 2) {
-        const auto cji_odd  = simd_type::load_aligned(padded_coeffs[j].data() + i);
-        const auto cji_even = simd_type::load_aligned(padded_coeffs[j + 1].data() + i);
-        k_odd               = xsimd::fma(k_odd, z2v, cji_odd);
-        k_even              = xsimd::fma(k_even, z2v, cji_even);
-      }
-      // left part
-      xsimd::fma(k_odd, zv, k_even).store_aligned(ker + i);
-      // right part symmetric to the left part
-      if (offset >= end_idx) {
+  //=======================================================================
+  // Functor #2a: inner-loop unroller for a given pair index p
+  //=======================================================================
+  template<std::size_t p> struct ChainPairBlocks {
+    batch_t *odd_blk;
+    batch_t *even_blk;
+    const batch_t &z2v;
+
+    template<std::size_t b> FINUFFT_ALWAYS_INLINE void operator()() const noexcept {
+      constexpr auto j   = std::size_t(1 + if_odd_deg + 2 * p);
+      const T *odd_p     = padded_coeffs[j].data();
+      const T *even_p    = padded_coeffs[j + 1].data();
+      constexpr auto idx = b * simd_size;
+
+      odd_blk[b]  = xsimd::fma(odd_blk[b], z2v, batch_t::load_aligned(odd_p + idx));
+      even_blk[b] = xsimd::fma(even_blk[b], z2v, batch_t::load_aligned(even_p + idx));
+    }
+  };
+
+  //=======================================================================
+  // Functor #2b: outer-loop over pair indices, invokes ChainPairBlocks<p>
+  //=======================================================================
+  struct ChainPair {
+    batch_t *odd_blk;
+    batch_t *even_blk;
+    const batch_t &z2v;
+
+    template<std::size_t p> FINUFFT_ALWAYS_INLINE void operator()() const noexcept {
+      // unroll inner blocks for this pair p
+      unroll_loop_ct<num_blks>(ChainPairBlocks<p>{odd_blk, even_blk, z2v});
+    }
+  };
+
+  //==============================================================================
+  //  Functor #3: final Horner step + symmetric store for each block
+  //==============================================================================
+  struct FinalSymStore {
+    batch_t *odd_blk;
+    batch_t *even_blk;
+    batch_t &k_prev;
+    batch_t &k_sym;
+    const batch_t &zv;
+    T *ker;
+
+    template<std::size_t b> FINUFFT_ALWAYS_INLINE void operator()() const noexcept {
+      constexpr std::size_t i = b * simd_size;
+      constexpr int off       = int(offset_start) - int(i);
+
+      const auto &odd  = odd_blk[b];
+      const auto &even = even_blk[b];
+      auto v           = xsimd::fma(odd, zv, even);
+      v.store_aligned(ker + i);
+
+      if constexpr (off >= int(end_idx)) {
+        auto fn = xsimd::fnma(odd, zv, even);
         if constexpr (tail) {
-          // to use aligned store, we need shuffle the previous k_sym and current k_sym
           k_prev = k_sym;
-          k_sym  = xsimd::fnma(k_odd, zv, k_even);
-          xsimd::shuffle(k_sym, k_prev, shuffle_batch).store_aligned(ker + offset);
+          k_sym  = fn;
+          xsimd::shuffle(k_sym, k_prev, shuffle_batch).store_aligned(ker + off);
         } else {
-          xsimd::swizzle(xsimd::fnma(k_odd, zv, k_even), shuffle_batch)
-              .store_aligned(ker + offset);
+          xsimd::swizzle(fn, shuffle_batch).store_aligned(ker + off);
         }
       }
     }
-  } else {
-    const simd_type zv(z);
-    for (uint8_t i = 0; i < w; i += simd_size) {
-      auto k = simd_type::load_aligned(padded_coeffs[0].data() + i);
-      for (uint8_t j = 1; j < nc; ++j) {
-        const auto cji = simd_type::load_aligned(padded_coeffs[j].data() + i);
-        k              = xsimd::fma(k, zv, cji);
-      }
-      k.store_aligned(ker + i);
+  };
+
+  //==============================================================================
+  //  Functor #4: load base layer for non-symmetric path
+  //==============================================================================
+  struct LoadBase {
+    batch_t *k_blk;
+    template<std::size_t b> FINUFFT_ALWAYS_INLINE void operator()() const noexcept {
+      constexpr std::size_t i = b * simd_size;
+      k_blk[b]                = batch_t::load_aligned(padded_coeffs[0].data() + i);
+    }
+  };
+
+  //=============================================================================
+  // Functor 5a: unroll blocks for coefficient j = jj + 1
+  //=============================================================================
+  template<std::size_t jj> struct HornerChainBlock {
+    batch_t *k_blk;
+    const batch_t &zv;
+
+    template<std::size_t b> FINUFFT_ALWAYS_INLINE void operator()() const noexcept {
+      constexpr std::size_t j = jj + 1;
+      constexpr std::size_t i = b * simd_size;
+      const T *coeff_ptr      = padded_coeffs[j].data();
+      k_blk[b] = xsimd::fma(k_blk[b], zv, batch_t::load_aligned(coeff_ptr + i));
+    }
+  };
+
+  //=============================================================================
+  // Functor 5b: dispatch unrolled block loop for each j
+  //=============================================================================
+  struct HornerChain {
+    batch_t *k_blk;
+    const batch_t &zv;
+
+    template<std::size_t jj> FINUFFT_ALWAYS_INLINE void operator()() const noexcept {
+      unroll_loop_ct<num_blks_ns>(HornerChainBlock<jj>{k_blk, zv});
+    }
+  };
+
+  //==============================================================================
+  //  Functor #6: final store for non-symmetric path
+  //==============================================================================
+  struct StoreFinal {
+    batch_t *k_blk;
+    T *ker;
+    template<std::size_t b> FINUFFT_ALWAYS_INLINE void operator()() const noexcept {
+      constexpr std::size_t i = b * simd_size;
+      k_blk[b].store_aligned(ker + i);
+    }
+  };
+
+  //==============================================================================
+  //  The actual eval() entrypoint
+  //==============================================================================
+  static FINUFFT_ALWAYS_INLINE void eval(T *ker, T x,
+                                         const finufft_spread_opts & /*opts*/) noexcept {
+    // scale into [-1,1]
+    const auto z = std::fma(T(2.0), x, T(w - 1));
+    const batch_t zv{z};
+    const batch_t z2v{z * z};
+
+    if constexpr (use_ker_sym) {
+      // 1) init
+      batch_t odd_blk[num_blks], even_blk[num_blks];
+      unroll_loop_ct<num_blks>(InitBlock{odd_blk, even_blk});
+
+      // 2) chain pairs
+      unroll_loop_ct<num_pairs>(ChainPair{odd_blk, even_blk, z2v});
+
+      // 3) final symmetric store
+      batch_t k_prev{0}, k_sym{0};
+      unroll_loop_ct<num_blks>(FinalSymStore{odd_blk, even_blk, k_prev, k_sym, zv, ker});
+
+    } else {
+      // non-symmetric
+      batch_t k_blk[num_blks_ns];
+      unroll_loop_ct<num_blks_ns>(LoadBase{k_blk});
+
+      unroll_loop_ct<num_coef_minus1>(HornerChain{k_blk, zv});
+
+      unroll_loop_ct<num_blks_ns>(StoreFinal{k_blk, ker});
     }
   }
+};
+
+//==============================================================================
+//  Public API (exactly as before)
+template<typename T, uint8_t w, uint8_t upsampfact, class simd_type>
+static FINUFFT_ALWAYS_INLINE void eval_kernel_vec_Horner(
+    T *FINUFFT_RESTRICT ker, T x, const finufft_spread_opts &opts) noexcept {
+  EvalKernelVecHornerHelper<T, w, upsampfact, simd_type>::eval(ker, x, opts);
 }
 
 template<typename T, uint8_t ns>
