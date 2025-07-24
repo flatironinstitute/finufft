@@ -35,7 +35,7 @@ struct Spread3DDispatcher {
     default:
       std::cerr << "[cuspread3d] error: invalid method " +
                        std::to_string(d_plan->opts.gpu_method) +
-                       ", should be 1, 2, or 4\n";
+                       ", should be 1, 2, 3 or 4\n";
       return FINUFFT_ERR_METHOD_NOTVALID;
     }
   }

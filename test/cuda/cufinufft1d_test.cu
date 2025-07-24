@@ -244,6 +244,8 @@ int main(int argc, char *argv[]) {
                     "Arguments:\n"
                     "  method: One of\n"
                     "    1: nupts driven\n"
+                    "    2: sub-problem, or\n"
+                    "    3: output driven\n"
                     "  type: Type of transform (1, 2, 3)\n"
                     "  N1: Number of fourier modes\n"
                     "  M: The number of non-uniform points\n"

@@ -334,7 +334,7 @@ Algorithm performance options
 
 * ``gpu_method=2`` : for spreading only, ie, type 1 transforms, uses a shared memory output-block driven method, referred to as SM in our paper. Has no effect for interpolation (type 2 transforms).
 
-* ``gpu_method=3`` : for spreading only, ie, type 1 transforms, uses a shared memory output-block driven method with a different algorithm.
+* ``gpu_method=3`` : for spreading only, ie, type 1 transforms, uses a shared memory output-block driven method with a different algorithm referred as OD.
 
 * ``gpu_method>3`` : (various upsupported experimental methods due to Melody Shih, not for regular users. (``4`` is a block gather method of possible interest.)
 

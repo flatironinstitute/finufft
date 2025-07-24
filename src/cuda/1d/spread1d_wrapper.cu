@@ -33,7 +33,7 @@ struct Spread1DDispatcher {
     case 3:
       return cuspread1d_output_driven<T, ns>(nf1, M, d_plan, blksize);
     default:
-      std::cerr << "[cuspread1d] error: incorrect method, should be 1 or 2\n";
+      std::cerr << "[cuspread1d] error: incorrect method, should be 1, 2 or 3\n";
       return FINUFFT_ERR_METHOD_NOTVALID;
     }
   }

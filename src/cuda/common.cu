@@ -254,8 +254,7 @@ template<typename T> int find_bin_size(std::size_t mem_size, int dim, int ns) {
 }
 template<typename T>
 void cufinufft_setup_binsize(int type, int ns, int dim, cufinufft_opts *opts) {
-  int shared_mem_per_block{}, device_id{};
-  cudaGetDevice(&device_id);
+  int shared_mem_per_block{}, device_id{opts->gpu_device_id};
   cudaDeviceGetAttribute(&shared_mem_per_block, cudaDevAttrMaxSharedMemoryPerBlock,
                          device_id);
 
