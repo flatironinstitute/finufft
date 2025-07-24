@@ -102,6 +102,7 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
   }
   d_plan->dim                   = dim;
   d_plan->opts.gpu_maxbatchsize = std::max(d_plan->opts.gpu_maxbatchsize, 1);
+  d_plan->opts.gpu_np           = d_plan->opts.gpu_method == 3 ? d_plan->opts.gpu_np : 0;
 
   if (type != 3) {
     d_plan->ms = nmodes[0];
@@ -169,8 +170,22 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
     printf("[cufinufft] spreader options:\n");
     printf("[cufinufft] nspread: %d\n", d_plan->spopts.nspread);
   }
-
+  /* Automatically set GPU method. */
+  if (d_plan->opts.gpu_method == 0) {
+    /* For type 1, we default to method 2 (SM) since this is generally faster
+     * if there is enough shared memory available. Otherwise, we default to GM.
+     * Type 3 inherits this behavior since the outer plan here is also a type 1.
+     */
+    // query the device for the amount of shared memory available
+    try {
+      d_plan->opts.gpu_method = type == 1 ? 2 : 1; // default to shared memory for type 1
+      cufinufft_setup_binsize<T>(type, d_plan->spopts.nspread, dim, &d_plan->opts);
+    } catch (const std::runtime_error) {
+      d_plan->opts.gpu_method = 1; // default to GM
+    }
+  }
   cufinufft_setup_binsize<T>(type, d_plan->spopts.nspread, dim, &d_plan->opts);
+
   if (cudaGetLastError() != cudaSuccess) {
     ier = FINUFFT_ERR_CUDA_FAILURE;
     goto finalize;
@@ -184,41 +199,15 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
     int shared_mem_per_block{};
     cudaDeviceGetAttribute(&shared_mem_per_block, cudaDevAttrMaxSharedMemoryPerBlockOptin,
                            device_id);
-    const auto mem_required =
-        shared_memory_required<T>(dim, d_plan->spopts.nspread, d_plan->opts.gpu_binsizex,
-                                  d_plan->opts.gpu_binsizey, d_plan->opts.gpu_binsizez);
+    const auto mem_required = shared_memory_required<T>(
+        dim, d_plan->spopts.nspread, d_plan->opts.gpu_binsizex, d_plan->opts.gpu_binsizey,
+        d_plan->opts.gpu_binsizez, d_plan->opts.gpu_np);
     printf("[cufinufft] shared memory required for the spreader: %ld\n", mem_required);
+    printf("[cufinufft] gpu_Np = %ld\n", d_plan->opts.gpu_np);
   }
 
   // dynamically request the maximum amount of shared memory available
   // for the spreader
-
-  /* Automatically set GPU method. */
-  if (d_plan->opts.gpu_method == 0) {
-    /* For type 1, we default to method 2 (SM) since this is generally faster
-     * if there is enough shared memory available. Otherwise, we default to GM.
-     * Type 3 inherits this behavior since the outer plan here is also a type 1.
-     *
-     * For type 2, we always default to method 1 (GM).
-     */
-    if (type == 2) {
-      d_plan->opts.gpu_method = 1;
-    } else {
-      // query the device for the amount of shared memory available
-      int shared_mem_per_block{};
-      cudaDeviceGetAttribute(&shared_mem_per_block,
-                             cudaDevAttrMaxSharedMemoryPerBlockOptin, device_id);
-      // compute the amount of shared memory required for the method
-      const auto shared_mem_required = shared_memory_required<T>(
-          dim, d_plan->spopts.nspread, d_plan->opts.gpu_binsizex,
-          d_plan->opts.gpu_binsizey, d_plan->opts.gpu_binsizez);
-      if ((shared_mem_required > shared_mem_per_block)) {
-        d_plan->opts.gpu_method = 1;
-      } else {
-        d_plan->opts.gpu_method = 2;
-      }
-    }
-  }
 
   if (cudaGetLastError() != cudaSuccess) {
     ier = FINUFFT_ERR_CUDA_FAILURE;
@@ -423,6 +412,10 @@ Notes: the type T means either single or double, matching the
         (ier = cuspread1d_subprob_prop<T>(nf1, M, d_plan)))
       fprintf(stderr, "error: cuspread1d_subprob_prop, method(%d)\n",
               d_plan->opts.gpu_method);
+    if (d_plan->opts.gpu_method == 3 &&
+        (ier = cuspread1d_subprob_prop<T>(nf1, M, d_plan)))
+      fprintf(stderr, "error: cuspread1d_nupts_prop, method(%d)\n",
+              d_plan->opts.gpu_method);
   } break;
   case 2: {
     if (d_plan->opts.gpu_method == 1 &&
@@ -433,6 +426,10 @@ Notes: the type T means either single or double, matching the
         (ier = cuspread2d_subprob_prop<T>(nf1, nf2, M, d_plan)))
       fprintf(stderr, "error: cuspread2d_subprob_prop, method(%d)\n",
               d_plan->opts.gpu_method);
+    if (d_plan->opts.gpu_method == 3 &&
+        (ier = cuspread2d_subprob_prop<T>(nf1, nf2, M, d_plan)))
+      fprintf(stderr, "error: cuspread2d_nupts_prop, method(%d)\n",
+              d_plan->opts.gpu_method);
   } break;
   case 3: {
     if (d_plan->opts.gpu_method == 1 &&
@@ -442,6 +439,10 @@ Notes: the type T means either single or double, matching the
     if (d_plan->opts.gpu_method == 2 &&
         (ier = cuspread3d_subprob_prop<T>(nf1, nf2, nf3, M, d_plan)))
       fprintf(stderr, "error: cuspread3d_subprob_prop, method(%d)\n",
+              d_plan->opts.gpu_method);
+    if (d_plan->opts.gpu_method == 3 &&
+        (ier = cuspread3d_subprob_prop<T>(nf1, nf2, nf3, M, d_plan)))
+      fprintf(stderr, "error: cuspread3d_outputdriven_prop, method(%d)\n",
               d_plan->opts.gpu_method);
     if (d_plan->opts.gpu_method == 4 &&
         (ier = cuspread3d_blockgather_prop<T>(nf1, nf2, nf3, M, d_plan)))
@@ -765,8 +766,8 @@ int cufinufft_setpts_impl(int M, T *d_kx, T *d_ky, T *d_kz, int N, T *d_s, T *d_
           thrust::cuda::par.on(stream), phase_iterator, phase_iterator + N,
           d_plan->deconv, d_plan->deconv,
           [c1, c2, c3, d1, d2, d3, realsign] __host__
-          __device__(const thrust::tuple<T, T, T> tuple, cuda_complex<T> deconv)
-          -> cuda_complex<T> {
+          __device__(const thrust::tuple<T, T, T> tuple,
+                     cuda_complex<T> deconv) -> cuda_complex<T> {
             // d2 and d3 are 0 if dim < 2 and dim < 3
             const auto phase = c1 * (thrust::get<0>(tuple) + d1) +
                                c2 * (thrust::get<1>(tuple) + d2) +

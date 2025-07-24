@@ -86,3 +86,30 @@ else()
     message(WARNING "LTO is not supported: ${LTO_ERROR}")
     set(FINUFFT_INTERPROCEDURAL_OPTIMIZATION FALSE)
 endif()
+
+function(detect_cuda_architecture)
+    find_program(NVIDIA_SMI_EXECUTABLE nvidia-smi)
+
+    if(NVIDIA_SMI_EXECUTABLE)
+        execute_process(
+            COMMAND ${NVIDIA_SMI_EXECUTABLE} --query-gpu=compute_cap --format=csv,noheader
+            OUTPUT_VARIABLE compute_cap
+            OUTPUT_STRIP_TRAILING_WHITESPACE
+            ERROR_QUIET
+        )
+
+        if(compute_cap MATCHES "^[0-9]+\\.[0-9]+$")
+            string(REPLACE "." "" arch "${compute_cap}")
+            message(STATUS "Detected CUDA compute capability: ${compute_cap} (sm_${arch})")
+
+            # Pass as list of integers, not string
+            set(CMAKE_CUDA_ARCHITECTURES ${arch} PARENT_SCOPE)
+        else()
+            message(WARNING "Failed to parse compute capability: '${compute_cap}', defaulting to 70")
+            set(CMAKE_CUDA_ARCHITECTURES 70 PARENT_SCOPE)
+        endif()
+    else()
+        message(WARNING "nvidia-smi not found, defaulting CMAKE_CUDA_ARCHITECTURES to 70")
+        set(CMAKE_CUDA_ARCHITECTURES 70 PARENT_SCOPE)
+    endif()
+endfunction()

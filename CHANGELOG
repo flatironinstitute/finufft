@@ -15,6 +15,7 @@ V 2.4.1 7/8/25
 * Python version of 2D Poisson solve tutorial (Julius Herb, #700).
 * Cached the optimal thread number (# physical cores) to reduce system call
   overhead in repeated small transforms (YuWei-CH, #697, fixing #693).
+* Adding OutputDriven parallelism to cufinufft (Barbone)
 * replaced LGPL-licensed Gauss-Legendre quadrature code by Apache2-licensed
   code adapted from Jason Kaye's cppdlr. CPU and GPU. PR #692 (Barnett).
 * Fix cufinufft importing bug found by @fzimmermann89 (Barbone, issue #707, PR #708)

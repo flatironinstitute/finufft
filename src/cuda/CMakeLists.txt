@@ -27,16 +27,9 @@ set(CUFINUFFT_INCLUDE_DIRS
 set(CUFINUFFT_INCLUDE_DIRS ${CUFINUFFT_INCLUDE_DIRS} PARENT_SCOPE)
 
 # flush denormals to zero and enable verbose PTXAS output
-set(FINUFFT_CUDA_FLAGS
-    $<$<COMPILE_LANGUAGE:CUDA>:
-    --extended-lambda
-    -ftz=true
-    -fmad=true
-    -restrict
-    --extra-device-vectorization
-    -Xnvlink
-    --strip-all>
-)
+if(CMAKE_CUDA_COMPILER_ID STREQUAL "NVIDIA")
+    list(APPEND FINUFFT_CUDA_FLAGS $<$<COMPILE_LANGUAGE:CUDA>:--extended-lambda --extra-device-vectorization>)
+endif()
 
 if(FINUFFT_SHARED_LINKING)
     add_library(cufinufft SHARED ${PRECISION_INDEPENDENT_SRC} ${PRECISION_DEPENDENT_SRC})
@@ -52,22 +45,28 @@ set_target_properties(
     PROPERTIES
         CUDA_ARCHITECTURES "${CMAKE_CUDA_ARCHITECTURES}"
         CUDA_SEPARABLE_COMPILATION ON
-        CUDA_STANDARD 17
-        CUDA_STANDARD_REQUIRED ON
         WINDOWS_EXPORT_ALL_SYMBOLS ON
         ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}"
         INTERPROCEDURAL_OPTIMIZATION
             OFF # LTO is not supported for CUDA for now
         POSITION_INDEPENDENT_CODE ${FINUFFT_POSITION_INDEPENDENT_CODE}
+        LINKER_LANGUAGE CUDA
 )
-target_compile_features(cufinufft PRIVATE cxx_std_17)
-target_compile_options(cufinufft PRIVATE ${FINUFFT_CUDA_FLAGS})
+
+if(DEFINED ENV{GITHUB_ACTIONS} AND "$ENV{GITHUB_ACTIONS}" STREQUAL "true" AND MSVC)
+    message(STATUS "GITHUB_ACTIONS on Windows using c++20 for cufinufft")
+    target_compile_features(cufinufft PRIVATE cxx_std_20 cuda_std_20)
+else()
+    target_compile_features(cufinufft PRIVATE cxx_std_17 cuda_std_17)
+endif()
+target_compile_options(cufinufft PUBLIC ${FINUFFT_CUDA_FLAGS})
+
 if(WIN32 OR (BUILD_TESTING AND FINUFFT_BUILD_TESTS) OR CIBUILDWHEEL)
     target_link_libraries(cufinufft PUBLIC CUDA::cudart CUDA::cufft)
 else()
     target_link_libraries(cufinufft PUBLIC CUDA::cudart_static CUDA::cufft_static)
 endif()
-
+target_link_libraries(cufinufft PUBLIC CCCL::CCCL)
 # disable deprecated warnings for tests if supported
 if(FINUFFT_HAS_NO_DEPRECATED_DECLARATIONS)
     target_compile_options(cufinufft PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:-Wno-deprecated-declarations>)

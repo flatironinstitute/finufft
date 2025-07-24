@@ -224,116 +224,124 @@ void onedim_nuft_kernel_precomp(T *f, T *z, finufft_spread_opts opts) {
   }
 }
 
+template<typename T> std::size_t shared_memory_per_point(int dim, int ns) {
+  return ns * sizeof(T) * dim       // kernel evaluations
+         + sizeof(int) * dim        // indexes
+         + sizeof(cuda_complex<T>); // strength
+}
+
+// Marco: 4/18/25 not 100% happy of having np here, but the alternatives seem worse to me
 template<typename T>
 std::size_t shared_memory_required(int dim, int ns, int bin_size_x, int bin_size_y,
-                                   int bin_size_z) {
-  // Helper to compute the shared memory required for the spreader when using SM
-  int adjusted_ns = bin_size_x + ((ns + 1) / 2) * 2;
-
-  if (dim == 1) {
-    return adjusted_ns * sizeof(cuda_complex<T>);
-  }
-
-  adjusted_ns *= (bin_size_y + ((ns + 1) / 2) * 2);
-
-  if (dim == 2) {
-    return adjusted_ns * sizeof(cuda_complex<T>);
-  }
-
-  adjusted_ns *= (bin_size_z + ((ns + 1) / 2) * 2);
-
-  return adjusted_ns * sizeof(cuda_complex<T>);
+                                   int bin_size_z, int np) {
+  const auto shmem_per_point = shared_memory_per_point<T>(dim, ns);
+  const int ns_2             = (ns + 1) / 2;
+  std::size_t grid_size      = bin_size_x + 2 * ns_2;
+  if (dim > 1) grid_size *= bin_size_y + 2 * ns_2;
+  if (dim > 2) grid_size *= bin_size_z + 2 * ns_2;
+  return grid_size * sizeof(cuda_complex<T>) + shmem_per_point * np;
 }
 
 // Function to find bin_size_x == bin_size_y
 // where bin_size_x * bin_size_y * bin_size_z < mem_size
-// TODO: this can be done without a loop by using a direct formula
 template<typename T> int find_bin_size(std::size_t mem_size, int dim, int ns) {
-  int binsize = 1; // Start with the smallest possible bin size
-  while (true) {
-    // Calculate the shared memory required for the current bin_size_x and bin_size_y
-    std::size_t required_memory =
-        shared_memory_required<T>(dim, ns, binsize, binsize, binsize);
-
-    // Check if the required memory is less than the available memory
-    if (required_memory > mem_size) {
-      // If the condition is met, return the current bin_size_x
-      return binsize - 1;
-    }
-
-    // Increment bin_size_x for the next iteration
-    binsize++;
-  }
+  const auto elements        = mem_size / sizeof(cuda_complex<T>);
+  const auto padded_bin_size = int(std::floor(std::pow(elements, 1.0 / dim)));
+  const auto bin_size        = padded_bin_size - (2 * (ns + 1) / 2);
+  // TODO: over one dimension we could increase this a bit
+  //       maybe the shape should not be uniform
+  return bin_size;
 }
-
 template<typename T>
 void cufinufft_setup_binsize(int type, int ns, int dim, cufinufft_opts *opts) {
-  // Marco Barbone 07/26/24. Using the shared memory available on the device, to
-  // determine the optimal binsize for the spreader.
-  // WARNING: This function does not check for CUDA errors, the caller should check and
-  // handle them.
-  // TODO: This can still be improved some sizes are hardcoded still
-  int shared_mem_per_block{}, device_id{};
-  switch (dim) {
+  int shared_mem_per_block{}, device_id{opts->gpu_device_id};
+  cudaDeviceGetAttribute(&shared_mem_per_block, cudaDevAttrMaxSharedMemoryPerBlock,
+                         device_id);
+
+  auto try_find_binsize = [&](int shmem) -> int {
+    return find_bin_size<T>(shmem, dim, ns);
+  };
+
+  auto set_binsizes_if_unset = [&](int binsize) {
+    if (binsize <= 1) return;
+
+    opts->gpu_binsizex = opts->gpu_binsizex == 0 ? binsize : opts->gpu_binsizex;
+    opts->gpu_binsizey =
+        (dim < 2) ? 1 : (opts->gpu_binsizey == 0 ? binsize : opts->gpu_binsizey);
+    opts->gpu_binsizez =
+        (dim < 3) ? 1 : (opts->gpu_binsizez == 0 ? binsize : opts->gpu_binsizez);
+  };
+
+  auto ensure_optin_shmem = [&]() {
+    cudaDeviceGetAttribute(&shared_mem_per_block, cudaDevAttrMaxSharedMemoryPerBlockOptin,
+                           device_id);
+  };
+
+  switch (opts->gpu_method) {
   case 1: {
-    if (opts->gpu_binsizex == 0) {
-      cudaGetDevice(&device_id);
-      cudaDeviceGetAttribute(&shared_mem_per_block,
-                             cudaDevAttrMaxSharedMemoryPerBlockOptin, device_id);
-      // CUDA error handled by the caller not checking them here.
-      // use 1/6 of the shared memory for the binsize
-      // From experiments on multiple GPUs this gives the best tradeoff.
-      // It is within 90% of the maximum performance for all GPUs tested.
-      shared_mem_per_block /= 6;
-      const int bin_size =
-          shared_mem_per_block / sizeof(cuda_complex<T>) - ((ns + 1) / 2) * 2;
-      opts->gpu_binsizex = bin_size;
-    }
-    opts->gpu_binsizey = 1;
-    opts->gpu_binsizez = 1;
-  } break;
+    ensure_optin_shmem();
+    int binsize = try_find_binsize(shared_mem_per_block);
+    set_binsizes_if_unset(binsize);
+    break;
+  }
   case 2: {
-    if (opts->gpu_binsizex == 0 || opts->gpu_binsizey == 0) {
-      switch (opts->gpu_method) {
-      case 0:
-      case 2: {
-        opts->gpu_binsizex = 32;
-        opts->gpu_binsizey = 32;
-      } break;
-      case 1: {
-        cudaGetDevice(&device_id);
-        cudaDeviceGetAttribute(&shared_mem_per_block,
-                               cudaDevAttrMaxSharedMemoryPerBlockOptin, device_id);
-        const auto binsize = find_bin_size<T>(shared_mem_per_block, dim, ns);
-        // in 2D 1/6 is too small, it gets slower because of the excessive padding
-        opts->gpu_binsizex = binsize;
-        opts->gpu_binsizey = binsize;
-      } break;
-      }
+    int binsize = try_find_binsize(shared_mem_per_block);
+    if (binsize < 1) {
+      ensure_optin_shmem();
+      binsize = try_find_binsize(shared_mem_per_block);
     }
-    opts->gpu_binsizez = 1;
-  } break;
+    set_binsizes_if_unset(binsize);
+    break;
+  }
   case 3: {
-    switch (opts->gpu_method) {
-    case 0:
-    case 1:
-    case 2: {
-      if (opts->gpu_binsizex == 0 || opts->gpu_binsizey == 0 || opts->gpu_binsizez == 0) {
-        opts->gpu_binsizex = 16;
-        opts->gpu_binsizey = 16;
-        opts->gpu_binsizez = 2;
+    const int shmem_per_point = shared_memory_per_point<T>(dim, ns);
+    const int min_np_shmem    = shmem_per_point * opts->gpu_np;
+    int binsize               = try_find_binsize(shared_mem_per_block - min_np_shmem);
+
+    if (binsize < 1) {
+      ensure_optin_shmem();
+      binsize = try_find_binsize(shared_mem_per_block - min_np_shmem);
+      if (binsize < 1) {
+        throw std::runtime_error(
+            "[cufinufft] ERROR: Not enough shared memory for the number of points.");
       }
-    } break;
-    case 4: {
-      opts->gpu_obinsizex = (opts->gpu_obinsizex == 0) ? 8 : opts->gpu_obinsizex;
-      opts->gpu_obinsizey = (opts->gpu_obinsizey == 0) ? 8 : opts->gpu_obinsizey;
-      opts->gpu_obinsizez = (opts->gpu_obinsizez == 0) ? 8 : opts->gpu_obinsizez;
-      opts->gpu_binsizex  = (opts->gpu_binsizex == 0) ? 4 : opts->gpu_binsizex;
-      opts->gpu_binsizey  = (opts->gpu_binsizey == 0) ? 4 : opts->gpu_binsizey;
-      opts->gpu_binsizez  = (opts->gpu_binsizez == 0) ? 4 : opts->gpu_binsizez;
-    } break;
     }
-  } break;
+
+    set_binsizes_if_unset(binsize);
+
+    const int shmem_required = shared_memory_required<T>(
+        dim, ns, opts->gpu_binsizex, opts->gpu_binsizey, opts->gpu_binsizez, 0);
+    const int shmem_left = shared_mem_per_block - shmem_required;
+    const int max_np     = (shmem_left / shmem_per_point) & static_cast<unsigned>(-16);
+
+    if (opts->debug) {
+      const int required_shmem = shared_memory_required<T>(
+          dim, ns, opts->gpu_binsizex, opts->gpu_binsizey, opts->gpu_binsizez, max_np);
+      printf("[cufinufft] Shared memory required: %d bytes (limit: %d bytes)\n",
+             required_shmem, shared_mem_per_block);
+      printf("[cufinufft]   min_np_shmem     = %d\n", min_np_shmem);
+      printf("[cufinufft]   shmem_per_point  = %d\n", shmem_per_point);
+      printf("[cufinufft]   shmem_required   = %d\n", shmem_required);
+      printf("[cufinufft]   shmem_left       = %d\n", shmem_left);
+      printf("[cufinufft]   min_np           = %d\n", opts->gpu_np);
+      printf("[cufinufft]   max_np           = %d\n", max_np);
+      printf("[cufinufft]   found bin size   = %d\n", binsize);
+      printf("[cufinufft]   binsize         = %d\n", opts->gpu_binsizex);
+      assert(required_shmem < shared_mem_per_block);
+    }
+
+    opts->gpu_np = max_np;
+    break;
+  }
+  case 4: {
+    opts->gpu_obinsizex = opts->gpu_obinsizex == 0 ? 8 : opts->gpu_obinsizex;
+    opts->gpu_obinsizey = opts->gpu_obinsizey == 0 ? 8 : opts->gpu_obinsizey;
+    opts->gpu_obinsizez = opts->gpu_obinsizez == 0 ? 8 : opts->gpu_obinsizez;
+    opts->gpu_binsizex  = opts->gpu_binsizex == 0 ? 4 : opts->gpu_binsizex;
+    opts->gpu_binsizey  = opts->gpu_binsizey == 0 ? 4 : opts->gpu_binsizey;
+    opts->gpu_binsizez  = opts->gpu_binsizez == 0 ? 4 : opts->gpu_binsizez;
+    break;
+  }
   }
 }
 
@@ -364,11 +372,12 @@ template int nuft_kernel_compute<double>(
     double *d_ky, double *d_kz, double *d_fwkerhalf1, double *d_fwkerhalf2,
     double *d_fwkerhalf3, int ns, cudaStream_t stream);
 
-template std::size_t shared_memory_required<float>(int dim, int ns, int bin_size_x,
-                                                   int bin_size_y, int bin_size_z);
-template std::size_t shared_memory_required<double>(int dim, int ns, int bin_size_x,
-                                                    int bin_size_y, int bin_size_z);
-
+template std::size_t shared_memory_required<float>(
+    int dim, int ns, int bin_size_x, int bin_size_y, int bin_size_z, int np);
+template std::size_t shared_memory_required<double>(
+    int dim, int ns, int bin_size_x, int bin_size_y, int bin_size_z, int np);
+template std::size_t shared_memory_per_point<float>(int dim, int ns);
+template std::size_t shared_memory_per_point<double>(int dim, int ns);
 template void cufinufft_setup_binsize<float>(int type, int ns, int dim,
                                              cufinufft_opts *opts);
 template void cufinufft_setup_binsize<double>(int type, int ns, int dim,

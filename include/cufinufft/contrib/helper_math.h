@@ -170,4 +170,28 @@ __host__ __device__ __forceinline__ cuFloatComplex operator/(
   return make_cuFloatComplex((a * cuCrealf(b)) / denom, (-a * cuCimagf(b)) / denom);
 }
 
+__host__ __device__ __forceinline__ cuDoubleComplex &operator+=(
+    cuDoubleComplex &a, const cuDoubleComplex &b) noexcept {
+  a = cuCadd(a, b);
+  return a;
+}
+
+__host__ __device__ __forceinline__ cuDoubleComplex &operator+=(cuDoubleComplex &a,
+                                                                double b) noexcept {
+  a.x += b;
+  return a;
+}
+
+__host__ __device__ __forceinline__ cuFloatComplex &operator+=(
+    cuFloatComplex &a, const cuFloatComplex &b) noexcept {
+  a = cuCaddf(a, b);
+  return a;
+}
+
+__host__ __device__ __forceinline__ cuFloatComplex &operator+=(cuFloatComplex &a,
+                                                               float b) noexcept {
+  a.x += b;
+  return a;
+}
+
 #endif // FINUFFT_INCLUDE_CUFINUFFT_CONTRIB_HELPER_MATH_H
