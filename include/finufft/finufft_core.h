@@ -3,6 +3,7 @@
 
 #include <xsimd/xsimd.hpp>
 
+#include <array>
 #include <finufft_errors.h>
 #include <memory>
 
@@ -72,7 +73,7 @@ using UBIGINT = uint64_t;
 // ------------- Library-wide algorithm parameter settings ----------------
 
 // Library version (is a string)
-#define FINUFFT_VER "2.4.0"
+#define FINUFFT_VER "2.5.0dev"
 
 // Smallest possible kernel spread width per dimension, in fine grid points
 // (used only in spreadinterp.cpp)
@@ -172,10 +173,6 @@ template<typename TF> struct FINUFFT_PLAN_T { // the main plan class, fully C++
 
   std::array<std::vector<TF>, 3> phiHat; // FT of kernel in t1,2, on x,y,z-axis mode grid
 
-  // fwBatch: (batches of) fine working grid(s) for the FFT to plan & act on.
-  // Usually the largest internal array. Its allocator is 64-byte (cache-line) aligned:
-  std::vector<TC, xsimd::aligned_allocator<TC, 64>> fwBatch;
-
   std::vector<BIGINT> sortIndices; // precomputed NU pt permutation, speeds spread/interp
   bool didSort;                    // whether binsorting used (false: identity perm used)
 
@@ -188,12 +185,11 @@ template<typename TF> struct FINUFFT_PLAN_T { // the main plan class, fully C++
                                                          // arrays (no new allocs)
   std::vector<TC> prephase; // pre-phase, for all input NU pts
   std::vector<TC> deconv;   // reciprocal of kernel FT, phase, all output NU pts
-  std::vector<TC> CpBatch;  // working array of prephased strengths
   std::array<std::vector<TF>, 3> XYZp; // internal primed NU points (x'_j, etc)
   std::array<std::vector<TF>, 3> STUp; // internal primed targs (s'_k, etc)
   type3params<TF> t3P; // groups together type 3 shift, scale, phase, parameters
-  std::unique_ptr<FINUFFT_PLAN_T<TF>> innerT2plan; // ptr used for type 2 in step 2 of
-                                                   // type 3
+  std::unique_ptr<const FINUFFT_PLAN_T<TF>> innerT2plan; // ptr used for type 2 in step 2
+                                                         // of type 3
 
   // other internal structs
   std::unique_ptr<Finufft_FFT_plan<TF>> fftPlan;
@@ -202,7 +198,10 @@ template<typename TF> struct FINUFFT_PLAN_T { // the main plan class, fully C++
 
   // Remaining actions (not create/delete) in guru interface are now methods...
   int setpts(BIGINT nj, TF *xj, TF *yj, TF *zj, BIGINT nk, TF *s, TF *t, TF *u);
-  int execute(std::complex<TF> *cj, std::complex<TF> *fk);
+  int execute_internal(TC *cj, TC *fk, bool adjoint = false, int ntrans_actual = -1,
+                       TC *aligned_scratch = nullptr, size_t scratch_size = 0) const;
+  int execute(TC *cj, TC *fk) const { return execute_internal(cj, fk, false); }
+  int execute_adjoint(TC *cj, TC *fk) const { return execute_internal(cj, fk, true); }
 };
 
 void finufft_default_opts_t(finufft_opts *o);

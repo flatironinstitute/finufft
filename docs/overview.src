@@ -64,8 +64,7 @@ See our :ref:`tutorials and demos<tut>` pages
 and the :ref:`related works<related>`
 for examples of how to use the NUFFT in applications.
 In fact, there are several application areas where it has been overlooked
-that the needed computation is simply a NUFFT
-(eg, particle-mesh Ewald in molecular dynamics).
+that the needed computation is simply a NUFFT.
 
 Why FINUFFT? Features and comparison against other CPU NUFFT libraries
 ----------------------------------------------------------------------
@@ -93,7 +92,7 @@ Our main features are:
 
 * **Automated kernel parameters**. Unlike many competitors, we do not force the user to worry about kernel choice or parameters. The user simply requests a desired relative accuracy, then FINUFFT chooses parameters to target this accuracy as fast as possible.
 
-* **Simplicity**. We provide interfaces that perform a NUFFT with a single command---just like an FFT---from seven common languages/environments. For advanced users we also have "many vector" interfaces that can be much faster than repeated calls to the simple interface with the same points. Finally (like NFFT3) we have a "guru" interface for maximum flexibility, in all of these languages.
+* **Simplicity**. We provide interfaces that perform a NUFFT with a single command---just like an FFT---from seven common languages/environments. For advanced users we also have "many vector" interfaces that can be much faster than repeated calls to the simple interface with the same points. Finally (like NFFT3) we have a "guru" interface for maximum flexibility and convenient forward-adjoint transform pairs, in all of these languages.
 
 For technical details on much of the above see our :ref:`papers <refs>`.
 Note that there are other tasks (eg, transforms on spheres, inverse NUFFTs)
@@ -116,15 +115,12 @@ It is often 10x faster than the CPU code, and up to 100x
 faster than other established GPU NUFFT codes,
 as the above graph indicates (see [S21] in our :ref:`references<refs>`).
 This is achieved in part by developing a type 1 algorithm that exploits
-fast GPU shared memory, which
-requires hand-tuned choices of bin-sizes due to the small memory size
-(49kB per thread block).
-Both double and single precision are supported, and a Python interface.
-Please see sections of this documentation labeled "GPU".
-In 2023 we added dimension 1, and merged cuFINUFFT into the FINUFFT repository.
-Further unification of the interfaces, underlying algorithm, and
-completion of type 3 on the GPU are still in progress.
-
+fast GPU shared memory.
+We have since added dimension 1 and type 3 transforms,
+and merged cuFINUFFT into the FINUFFT repository.
+Both double and single precision are supported, and Python and MATLAB
+interfaces. Please see sections of this documentation labeled "GPU".
+Ongoing unification of the GPU and CPU interfaces continues.
 
 .. _need:
 

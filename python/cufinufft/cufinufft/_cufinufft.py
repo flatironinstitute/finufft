@@ -36,30 +36,34 @@ if reset_log_level:
     log_level = logging.root.level
 
 lib = None
-# Try to load the library as installed in the Python package.
+# Try to load the library as installed in the Python package
 path = pathlib.Path(__file__).parent.resolve()
 library_names = ["libcufinufft", "cufinufft"]
-for lib_name in library_names:
-    try:
-        lib = np.ctypeslib.load_library(lib_name, path)
-        break
-    except OSError:
-        # Paranoid, in case lib is set to something and then an exception is thrown
-        lib = None
 
 if reset_log_level:
     logging.root.setLevel(log_level)
 
-if lib is None:
-    # If that fails, try to load the library from the system path.
-    libname = find_library('cufinufft')
-    if libname is not None:
-        lib = ctypes.cdll.LoadLibrary(libname)
-        # we probably should add a version check and trow a warning if the version is different
-    else:
-        # if that does not work, cufinufft is not installed correctly.
-        raise ImportError("Failed to find a suitable cufinufft library.")
+# First attempt: try from package directory
+for lib_name in library_names:
+    try:
+        lib = np.ctypeslib.load_library(lib_name, path)
+        break
+    except (OSError, AttributeError):
+        pass
 
+# Second attempt: try from system path
+if lib is None:
+    libname = find_library('cufinufft')
+    if libname is None:
+        raise ImportError("Could not find cufinufft library in system path")
+    try:
+        lib = ctypes.cdll.LoadLibrary(libname)
+    except (OSError, AttributeError) as e:
+        raise ImportError(f"Found cufinufft library at {libname}, but failed to load it: {e}")
+
+# Safety check - if somehow we still don't have a library
+if lib is None:
+    raise ImportError("Failed to load cufinufft library")
 
 def _get_NufftOpts():
     fields = [

@@ -46,21 +46,21 @@ def gen_nonuniform_data(M, seed=0, n_trans=()):
 
 
 def type1_problem(dtype, shape, M, n_trans=()):
-    complex_dtype = _complex_dtype(dtype)
+    real_dtype = _real_dtype(dtype)
     dim = len(shape)
 
-    k = gen_nu_pts(M, dim=dim).astype(dtype)
-    c = gen_nonuniform_data(M, n_trans=n_trans).astype(complex_dtype)
+    k = gen_nu_pts(M, dim=dim).astype(real_dtype)
+    c = gen_nonuniform_data(M, n_trans=n_trans).astype(dtype)
 
     return k, c
 
 
 def type2_problem(dtype, shape, M, n_trans=()):
-    complex_dtype = _complex_dtype(dtype)
+    real_dtype = _real_dtype(dtype)
     dim = len(shape)
 
-    k = gen_nu_pts(M, dim=dim).astype(dtype)
-    fk = gen_uniform_data(n_trans + shape).astype(complex_dtype)
+    k = gen_nu_pts(M, dim=dim).astype(real_dtype)
+    fk = gen_uniform_data(n_trans + shape).astype(dtype)
 
     return k, fk
 
@@ -108,12 +108,10 @@ def direct_type2(fk, k, dim):
 
 
 def direct_type3(source_pts, source_coefs, target_pts, ind):
-    target_pt = target_pts[:, ind[-1]]
+    target_pt = target_pts[:, ind]
     target_pt = target_pt[:, np.newaxis]
 
-    _source_coef = source_coefs[ind[:-1]]
-
-    target_coef = np.sum(np.exp(1j * np.sum(target_pt * source_pts, axis=0)) * _source_coef)
+    target_coef = np.sum(np.exp(1j * np.sum(target_pt * source_pts, axis=0)) * source_coefs, -1)
 
     return target_coef
 
@@ -155,12 +153,10 @@ def verify_type3(source_pts, source_coef, target_pts, target_coef, tol):
     n_source_pts = source_pts.shape[-1]
     n_target_pts = target_pts.shape[-1]
     n_tr = source_coef.shape[:-1]
-
     assert target_coef.shape == n_tr + (n_target_pts,)
+    ind = int(0.1789 * n_target_pts)
 
-    ind = (int(0.1789 * n_target_pts),)
-
-    target_est = target_coef[ind]
+    target_est = target_coef[..., ind]
     target_true = direct_type3(source_pts, source_coef, target_pts, ind)
 
     type3_rel_err = np.linalg.norm(target_est - target_true) / np.linalg.norm(target_true)
