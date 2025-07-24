@@ -14,7 +14,7 @@
 
    Barnett 2/17/17. Single prec 4/5/17. Libin Lu & Alex Barnett, May 2020.
    Garrett Wright dual-prec 6/28/20.
-   Barnett safe-header, cleaned up, 6/7/22.
+   Barnett safe-header, cleaned up, 6/7/22. execute_adjoint Barnett 6/26/25.
 */
 
 // public header
@@ -61,6 +61,13 @@ void finufft_execute_(finufft_plan *plan, c128 *weights, c128 *result, int *ier)
     fprintf(stderr, "%s fortran: finufft_plan unallocated!", __func__);
   else
     *ier = finufft_execute(*plan, weights, result);
+}
+
+void finufft_execute_adjoint_(finufft_plan *plan, c128 *weights, c128 *result, int *ier) {
+  if (!plan)
+    fprintf(stderr, "%s fortran: finufft_plan unallocated!", __func__);
+  else
+    *ier = finufft_execute_adjoint(*plan, weights, result);
 }
 
 void finufft_destroy_(finufft_plan *plan, int *ier) {
@@ -207,6 +214,13 @@ void finufftf_execute_(finufftf_plan *plan, c64 *weights, c64 *result, int *ier)
     fprintf(stderr, "%s fortran: finufft_plan unallocated!", __func__);
   else
     *ier = finufftf_execute(*plan, weights, result);
+}
+
+void finufftf_execute_adjoint_(finufftf_plan *plan, c64 *weights, c64 *result, int *ier) {
+  if (!plan)
+    fprintf(stderr, "%s fortran: finufft_plan unallocated!", __func__);
+  else
+    *ier = finufftf_execute_adjoint(*plan, weights, result);
 }
 
 void finufftf_destroy_(finufftf_plan *plan, int *ier) {

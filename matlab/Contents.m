@@ -16,6 +16,7 @@
 %   finufft_plan - create guru plan object for one/many general nonuniform FFTs.
 %   finufft_plan.setpts   - process nonuniform points for general transform(s).
 %   finufft_plan.execute  - do single or many-vector transforms in a plan.
+%   finufft_plan.execute_adjoint - do adjoint of planned transform(s).
 %
 % If the GPU interface is installed (needs Parallel Computing Toolbox), the
 % following are also available:

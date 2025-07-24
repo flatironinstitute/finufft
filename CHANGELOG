@@ -3,6 +3,12 @@ If not stated, FINUFFT is assumed (cuFINUFFT <=1.3 is listed separately).
 
 Master (working towards v2.5.0), 7/8/25
 
+* Added functionality for adjoint execution of FINUFFT plans (Reinecke #633,
+  addresses #566 and #571).
+  Work arrays are now only allocated during plan execution, reducing overall
+  memory consumption.
+  A single plan can now safely be executed by several threads concurrently.
+
 V 2.4.1 7/8/25
 
 * Update Python cufinufft unit tests to use complex dtypes (Andén, #705).

@@ -38,6 +38,21 @@ def test_finufft1_plan(dtype, shape, n_pts, output_arg, modeord):
 
     utils.verify_type1(pts, coefs, shape, sig, 1e-6)
 
+    # test adjoint type 2
+    plan = Plan(2, shape, dtype=dtype, modeord=modeord)
+
+    plan.setpts(*pts)
+
+    if not output_arg:
+        sig = plan.execute_adjoint(coefs)
+    else:
+        plan.execute_adjoint(coefs, out=sig)
+
+    if modeord == 1:
+        sig = np.fft.fftshift(sig)
+
+    utils.verify_type1(pts, coefs, shape, sig, 1e-6)
+
 
 @pytest.mark.parametrize("dtype", DTYPES)
 @pytest.mark.parametrize("shape", SHAPES)
@@ -64,6 +79,18 @@ def test_finufft2_plan(dtype, shape, n_pts, output_arg, modeord):
 
     utils.verify_type2(pts, sig, coefs, 1e-6)
 
+    # test adjoint type 1
+    plan = Plan(1, shape, dtype=dtype, modeord=modeord)
+
+    plan.setpts(*pts)
+
+    if not output_arg:
+        coefs = plan.execute_adjoint(_sig)
+    else:
+        plan.execute_adjoint(_sig, out=coefs)
+
+    utils.verify_type2(pts, sig, coefs, 1e-6)
+
 
 @pytest.mark.parametrize("dtype", DTYPES)
 @pytest.mark.parametrize("dim", list(set(len(shape) for shape in SHAPES)))
@@ -85,6 +112,18 @@ def test_finufft3_plan(dtype, dim, n_source_pts, n_target_pts, output_arg):
         plan.execute(source_coefs, out=target_coefs)
 
     utils.verify_type3(source_pts, source_coefs, target_pts, target_coefs, 1e-6)
+
+    # test adjoint type 3
+    plan = Plan(3, dim, dtype=dtype, isign=-1, eps=1e-5)
+
+    plan.setpts(*target_pts, *((None,) * (3 - dim)), *source_pts)
+
+    if not output_arg:
+        target_coefs = plan.execute_adjoint(source_coefs)
+    else:
+        plan.execute_adjoint(source_coefs, out=target_coefs)
+
+    utils.verify_type3(source_pts, source_coefs, target_pts, target_coefs, 1e-5)
 
 
 def test_finufft_plan_errors():
