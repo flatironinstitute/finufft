@@ -170,11 +170,11 @@ Given the user's desired dimension, number of Fourier modes in each direction, s
 
     Inputs:
 
-    type            type of the transform, 1 or 2 (note: 3 is not implemented yet)
-    dim             overall dimension of the transform, 2 or 3 (note: 1 is not implemented
-                    yet)
+    type            type of the transform, 1, 2 or 3
+    dim             overall dimension of the transform, 1, 2 or 3
     nmodes          a length-dim integer array: nmodes[d] is the number of Fourier modes in
                     (zero-indexed) direction d. Specifically,
+                    in 1D: nmodes[0]=N1,
                     in 2D: nmodes[0]=N1, nmodes[1]=N2,
                     in 3D: nmodes[0]=N1, nmodes[1]=N2, nmodes[2]=N3.
     iflag           if >=0, uses + sign in complex exponential, otherwise - sign
@@ -256,9 +256,13 @@ The result is written into whichever array was not the input (the roles of these
              (size M*ntransf complex array).
              If type 2, the output values at the nonuniform point targets
              (size M*ntransf complex array).
+             If type 3, the input strengths at the nonuniform point sources
+             (size M*ntransf complex array).
     f        If type 1, the output Fourier mode coefficients (size N1*N2*ntransf
              or N1*N2*N3*ntransf complex array, when dim = 2 or 3 respectively).
              If type 2, the input Fourier mode coefficients (size N1*N2*ntransf
+             or N1*N2*N3*ntransf complex array, when dim = 2 or 3 respectively).
+             If type 3, the output Fourier mode coefficients (size N1*N2*ntransf
              or N1*N2*N3*ntransf complex array, when dim = 2 or 3 respectively).
 
     Returns:
@@ -330,7 +334,9 @@ Algorithm performance options
 
 * ``gpu_method=2`` : for spreading only, ie, type 1 transforms, uses a shared memory output-block driven method, referred to as SM in our paper. Has no effect for interpolation (type 2 transforms).
 
-* ``gpu_method>2`` : (various upsupported experimental methods due to Melody Shih, not for regular users. Eg ``3`` tests an idea of Paul Springer's to group NU points when spreading, ``4`` is a block gather method of possible interest.)
+* ``gpu_method=3`` : for spreading only, ie, type 1 transforms, uses a shared memory output-block driven method with a different algorithm referred as OD.
+
+* ``gpu_method>3`` : (various upsupported experimental methods due to Melody Shih, not for regular users. (``4`` is a block gather method of possible interest.)
 
 **gpu_sort**: ``0`` do not sort nonuniform points, ``1`` do sort nonuniform points. Only has an effect when ``gpu_method=1`` (or if this method has been internally chosen when ``gpu_method=0``). Unlike the CPU code, there is no auto-choice since in our experience sorting is fast and always helps. It is possible for structured NU point inputs that ``gpu_sort=0`` may be the faster.
 
@@ -344,8 +350,9 @@ Algorithm performance options
 
 **gpu_maxbatchsize**: ``0`` use heuristically defined batch size for vectorized (many-transforms with same NU points) interface, else set this batch size.
 
-**gpu_stream**: CUDA stream to use. Leave at default unless you know what you're doing. [To be documented]
+**gpu_stream**: CUDA stream to use. Leave at default unless you know what you're doing.
 
+**gpu_np**: Min batch size used for ``method 3`` (OD). It has to be a multiple of 16. It controls ho much of shared memory is left as GPU cache instead of being manually populated. Default is usually best.
 
 For all GPU option default values we refer to the source code in
 ``src/cuda/cufinufft.cu:cufinufft_default_opts``):

@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.19...3.30)
+cmake_minimum_required(VERSION 3.19...3.31)
 project(FINUFFT VERSION 2.5.0 LANGUAGES C CXX)
 
 # windows MSVC runtime flags policy
@@ -153,7 +153,21 @@ function(enable_asan target)
     endif()
 endfunction()
 
-set(CPM_DOWNLOAD_VERSION 0.40.5)
+set(CPM_DOWNLOAD_VERSION "0.40.5" CACHE STRING "Version of CPM.cmake to use")
+set(FFTW_VERSION "3.3.10" CACHE STRING "Version of FFTW to use")
+set(XTL_VERSION "0.7.7" CACHE STRING "Version of xtl to use")
+set(XSIMD_VERSION "13.2.0" CACHE STRING "Version of xsimd to use")
+set(DUCC0_VERSION "ducc0_0_36_0" CACHE STRING "Version of ducc0 to use")
+set(CUDA11_CCCL_VERSION "2.8.5" CACHE STRING "Version of FINUFFT-cccl for cuda 11 to use")
+set(CUDA12_CCCL_VERSION "3.0.1" CACHE STRING "Version of FINUFFT-cccl for cuda 12 to use")
+mark_as_advanced(CPM_DOWNLOAD_VERSION)
+mark_as_advanced(FFTW_VERSION)
+mark_as_advanced(XTL_VERSION)
+mark_as_advanced(XSIMD_VERSION)
+mark_as_advanced(DUCC0_VERSION)
+mark_as_advanced(CUDA11_CCCL_VERSION)
+mark_as_advanced(CUDA12_CCCL_VERSION)
+
 include(cmake/setupCPM.cmake)
 
 if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
@@ -171,10 +185,6 @@ if(FINUFFT_USE_CPU)
     if((APPLE) AND (CMAKE_CXX_COMPILER_ID STREQUAL "GNU"))
         add_link_options("-ld_classic")
     endif()
-    set(FFTW_VERSION 3.3.10)
-    set(XTL_VERSION 0.7.7)
-    set(XSIMD_VERSION 13.2.0)
-    set(DUCC0_VERSION ducc0_0_36_0)
     set(FINUFFT_FFTW_LIBRARIES)
     include(cmake/setupXSIMD.cmake)
     if(FINUFFT_USE_DUCC0)
@@ -191,7 +201,6 @@ if(FINUFFT_USE_CPU)
         find_package(OpenMP COMPONENTS C CXX REQUIRED)
     endif()
 endif()
-
 # check if -Wno-deprecated-declarations is supported
 check_cxx_compiler_flag(-Wno-deprecated-declarations FINUFFT_HAS_NO_DEPRECATED_DECLARATIONS)
 
@@ -287,13 +296,19 @@ if(FINUFFT_USE_CUDA)
     if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
         message(
             WARNING
-            "FINUFFT WARNING: No CUDA architecture supplied via '-DCMAKE_CUDA_ARCHITECTURES=...', defaulting to 'native'"
+            "FINUFFT WARNING: No CUDA architecture supplied via '-DCMAKE_CUDA_ARCHITECTURES=...', defaulting to 'native' See: https://developer.nvidia.com/cuda-gpus for more details on what architecture to supply."
         )
-        message(WARNING "See: https://developer.nvidia.com/cuda-gpus for more details on what architecture to supply.")
-        set(CMAKE_CUDA_ARCHITECTURES "native")
+        detect_cuda_architecture()
+    endif()
+    if(CMAKE_CUDA_ARCHITECTURES MATCHES "compute_")
+        message(
+            FATAL_ERROR
+            "CMAKE_CUDA_ARCHITECTURES must be a list of integers like 70;75;86, not strings like compute_89"
+        )
     endif()
     enable_language(CUDA)
     find_package(CUDAToolkit REQUIRED)
+    include(cmake/setupCCCL.cmake)
     add_subdirectory(src/cuda)
     if(BUILD_TESTING AND FINUFFT_BUILD_TESTS)
         add_subdirectory(perftest/cuda)

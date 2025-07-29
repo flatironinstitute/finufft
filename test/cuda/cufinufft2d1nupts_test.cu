@@ -212,6 +212,7 @@ int main(int argc, char *argv[]) {
                     "  method: One of\n"
                     "    1: nupts driven,\n"
                     "    2: sub-problem, or\n"
+                    "    3: output driven\n"
                     "  precision: f or d\n");
     return 1;
   }
