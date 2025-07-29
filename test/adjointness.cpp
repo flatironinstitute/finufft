@@ -1,36 +1,45 @@
+#include "utils/norms.hpp"
 #include <finufft/test_defs.h>
 
 /* Test that execute_adjoint applies the adjoint of execute, in the
    guru interface, for all types and dimensions.
    We use the test_defs macros, as with other C-interface tests.
-   Barnett 7/22/25 - 7/23/25.
+   Barnett 7/23/25. More stable relative error denom, discussion 7/29/25.
 
    Test tolerances are hard-wired in this code, not via cmd line.
    Subtlety is that adjointness is subject to round-off, which is amplified
-   by the r_dyn dynamic range, per dimension. That can get bad for USF=1.25.
-   It also appears to vary with platform (macos-13 CI forced us to abandon
-   allowederr = 1e-13 in favor of 1e-12).
+   by the r_dyn dynamic range, per dimension. That can get bad for USF=1.25,
+   esp in type 3 (eg by default if eps~1e-8 in double prec).
    See discussions "Repeatability" and "Adjointness" in docs/trouble.rst
+
+   Discussion of the "correct" denominator to claim "relative" err in (f,F)-(C,c):
+   ||Ferr||_2/||F||_2 is our NUFFT metric, as per our SISC 2019 FINUFFT paper.
+   Expect err in (f,F) ~ ||f||_2.(error in one entry of F), by rotational
+   invariance in C^N (where N is really Nused the number of modes).
+   And (err in one entry of F) ~ ||Ferr||_2 / sqrt(N). Combining with the metric
+   above, explains our choice denom = ||f||.||F||/sqrt(N) to give a rel measure
+   of adjointness error. Has much less fluctuation than old denom=(f,F) which it
+   turned out had zero-mean Gaussian pdf (=> fat-tailed pdf of reciprocal, bad!)
 */
 
 using namespace std;
 
 int main() {
 
-  BIGINT Ns[3] = {300, 40, 6}; // modes per dim, smallish probs (~1e5 max)
-  BIGINT M     = 100000;       // NU pts, smallish, but enough so rand err small
+  BIGINT Ns[3] = {200, 40, 6}; // modes per dim, smallish probs (~1e5 max)
+  BIGINT M     = 50000;        // NU pts, smallish, but enough so rand err small
   int isign    = +1;
   int ntr      = 1;            // how many transforms (one for now)
   finufft_opts opts;
   FINUFFT_DEFAULT_OPTS(&opts);
   // opts.upsampfac = 1.25;    // experts use to override default USF
 #ifdef SINGLE
-  FLT tol        = 1e-5; // requested transform tol (adj err worse near epsmach)
-  FLT allowederr = 1e-4; // 1e3*epsmach due to USF=1.25 larger r_dyn
+  FLT tol        = 1e-6; // requested transform tol (small enough to force USF=2)
+  FLT allowederr = 1e-4; // ~1e3*epsmach (allow USF=1.25 larger r_dyn)
   string name    = "adjointnessf";
 #else
-  FLT tol        = 1e-12; // requested transform tol (USF=2 guaranteed)
-  FLT allowederr = 1e-12; // 1e4*epsmach (USF=2 r_dyn^3<1e3, but macos-13 fails)
+  FLT tol        = 1e-12; // requested transform tol (eps<=1e-9 => USF=2 guaranteed)
+  FLT allowederr = 1e-10; // ~1e6*epsmach (USF=2 r_dyn^3<1e3, but allow USF=1.25)
   string name    = "adjointness";
 #endif
 
@@ -90,19 +99,24 @@ int main() {
       FINUFFT_DESTROY(plan);
 
       // measure scalar error (f,F) - (C,c), should vanish by adjointness...
-      CPX ipc = 0.0, ipf = 0.0;            // results for (C,c) and (f,F)
+      CPX ipc = 0.0, ipf = 0.0;           // inner-prod results for (C,c) and (f,F)
       for (int i = 0; i < M; i++) ipc += conj(C[i]) * c[i];
-      int Nused = (type == 3) ? Nmax : N;  // how many modes or freqs used
+      int Nused = (type == 3) ? Nmax : N; // how many modes or freqs used
       for (int j = 0; j < Nused; j++) ipf += conj(f[j]) * F[j];
-      FLT err = abs(ipc - ipf) / abs(ipc); // scale rel to innerprod size
-      cout << " adj rel err " << err << endl;
+
+      // denominator for rel error (twonorm in utils.hpp), see discussion at top:
+      // FLT denom = twonorm(M,C.data()) * twonorm(M,c.data()) / sqrt(M);  // v sim
+      FLT denom = twonorm(Nused, F.data()) * twonorm(Nused, f.data()) / sqrt(Nused);
+      FLT err   = abs(ipc - ipf) / denom;     // scale rel to norms of vectors in ipc
+      cout << " adj rel err " << err << endl; // "\t denom=" << denom << endl;
       errmax = max(err, errmax);
     }
   }
 
   // report and exit code
   if (errmax > allowederr || iermax > 0) {
-    cout << name << " failed! (allowederr=" << allowederr << ")" << endl;
+    cout << name << " failed! (allowederr=" << allowederr << ", iermax=" << iermax << ")"
+         << endl;
     return 1;
   } else {
     cout << name << " passed" << endl;
