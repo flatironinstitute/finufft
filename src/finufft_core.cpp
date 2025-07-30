@@ -547,12 +547,6 @@ void finufft_default_opts_t(finufft_opts *o)
   // sphinx tag (don't remove): @defopts_end
 }
 
-// Wrapper to cache the optimal thread count using a static variable.
-int getCachedOptimalThreadCount() {
-  static const int cached_value = getOptimalThreadCount();
-  return cached_value;
-}
-
 // PPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPP
 template<typename TF>
 FINUFFT_PLAN_T<TF>::FINUFFT_PLAN_T(int type_, int dim_, const BIGINT *n_modes, int iflag,
@@ -600,9 +594,13 @@ FINUFFT_PLAN_T<TF>::FINUFFT_PLAN_T(int type_, int dim_, const BIGINT *n_modes, i
   // get stuff from args...
   fftSign = (iflag >= 0) ? 1 : -1; // clean up flag input
 
+  CNTime timer{};
+  if (opts.debug > 1) {
+    timer.start();
+  }
 #ifdef _OPENMP
   // choose overall # threads...
-  int ompmaxnthr = getCachedOptimalThreadCount();
+  int ompmaxnthr = static_cast<int>(getOptimalThreadCount());
   int nthr       = ompmaxnthr; // default: use as many physical cores as possible
   // (the above could be set, or suggested set, to 1 for small enough problems...)
   if (opts.nthreads > 0) {
@@ -632,6 +630,11 @@ FINUFFT_PLAN_T<TF>::FINUFFT_PLAN_T(int type_, int dim_, const BIGINT *n_modes, i
             __func__);
     throw int(FINUFFT_ERR_NTHREADS_NOTVALID);
   }
+  if (opts.debug > 1) {
+    const auto sec = timer.elapsedsec();
+    fprintf(stdout, "[%s] detected %d threads in %.3g sec.\n", __func__, nthr, sec);
+  }
+
   // (this sets/limits all downstream spread/interp, 1dkernel, and FFT thread counts...)
 
   // choose batchSize for types 1,2 or 3... (uses int ceil(b/a)=1+(b-1)/a trick)
@@ -728,8 +731,7 @@ FINUFFT_PLAN_T<TF>::FINUFFT_PLAN_T(int type_, int dim_, const BIGINT *n_modes, i
       }
 
       // STEP 0: get Fourier coeffs of spreading kernel along each fine grid dim
-      CNTime timer;
-      timer.start();
+      timer.restart();
       for (int idim = 0; idim < dim; ++idim)
         onedim_fseries_kernel(nfdim[idim], phiHat[idim], spopts);
       if (opts.debug)
