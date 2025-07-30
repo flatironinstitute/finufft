@@ -365,11 +365,11 @@ class Plan:
         # allocate out if None
         if out is None:
             if tp==1:
-                _out = np.ones([*data.shape[:-dim], nj], dtype=self._dtype, order='C')
+                _out = np.empty([*data.shape[:-dim], nj], dtype=self._dtype, order='C')
             if tp==2:
-                _out = 2*np.ones([*data.shape[:-1], *self._n_modes[::-1]], dtype=self._dtype, order='C')
+                _out = np.empty([*data.shape[:-1], *self._n_modes[::-1]], dtype=self._dtype, order='C')
             if tp==3:
-                _out = 3*np.ones([*data.shape[:-1], nj], dtype=self._dtype, order='C')
+                _out = np.empty([*data.shape[:-1], nj], dtype=self._dtype, order='C')
 
         # call execute based on type and precision type
         if tp==1 or tp==3:
