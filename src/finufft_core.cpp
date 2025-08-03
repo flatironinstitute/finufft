@@ -144,7 +144,7 @@ static void set_nhg_type3(T S, T X, const finufft_opts &opts,
   else
     Ssafe = std::max(Ssafe, 1 / X);
   // use the safe X and S...
-  auto nfd = T(2.0 * opts.upsampfac * Ssafe * Xsafe / PI + nss);
+  auto nfd = T(2.0 * opts.upsampfac * Ssafe * Xsafe / ::finufft::common::PI + nss);
   if (!std::isfinite(nfd)) nfd = 0.0;
   *nf = (BIGINT)nfd;
   // printf("initial nf=%lld, ns=%d\n",*nf,spopts.nspread);
@@ -152,7 +152,7 @@ static void set_nhg_type3(T S, T X, const finufft_opts &opts,
   if (*nf < 2 * spopts.nspread) *nf = 2 * spopts.nspread;
   if (*nf < MAX_NF)                               // otherwise will fail anyway
     *nf = next235even(*nf);                       // expensive at huge nf
-  *h   = T(2.0 * PI / *nf);                       // upsampled grid spacing
+  *h   = T(2.0 * ::finufft::common::PI / *nf);    // upsampled grid spacing
   *gam = T(*nf / (2.0 * opts.upsampfac * Ssafe)); // x scale fac to x'
 }
 
@@ -190,16 +190,17 @@ static void onedim_fseries_kernel(BIGINT nf, std::vector<T> &fwkerhalf,
   T J2 = opts.nspread / 2.0; // J/2, half-width of ker z-support
   // # quadr nodes in z (from 0 to J/2; reflections will be added)...
   int q = (int)(2 + 3.0 * J2); // not sure why so large? cannot exceed MAX_NQUAD
-  T f[MAX_NQUAD];
-  double z[2 * MAX_NQUAD], w[2 * MAX_NQUAD];
-  gaussquad(2 * q, z, w);       // only half the nodes used, eg on (0,1)
-  std::complex<T> a[MAX_NQUAD];
-  for (int n = 0; n < q; ++n) { // set up nodes z_n and vals f_n
-    z[n] *= J2;                 // rescale nodes
+  T f[::finufft::common::MAX_NQUAD];
+  double z[2 * ::finufft::common::MAX_NQUAD], w[2 * ::finufft::common::MAX_NQUAD];
+  finufft::common::gaussquad(2 * q, z, w); // only half the nodes used, eg on (0,1)
+  std::complex<T> a[::finufft::common::MAX_NQUAD];
+  for (int n = 0; n < q; ++n) {            // set up nodes z_n and vals f_n
+    z[n] *= J2;                            // rescale nodes
     f[n] = J2 * (T)w[n] * evaluate_kernel((T)z[n], opts); // vals & quadr wei
-    a[n] = -std::exp(2 * PI * std::complex<double>(0, 1) * z[n] / double(nf)); // phase
-                                                                               // winding
-                                                                               // rates
+    a[n] = -std::exp(2 * ::finufft::common::PI * std::complex<double>(0, 1) * z[n] /
+                     double(nf));                         // phase
+                                                          // winding
+                                                          // rates
   }
   BIGINT nout = nf / 2 + 1;                            // how many values we're writing to
   int nt      = std::min(nout, (BIGINT)opts.nthreads); // how many chunks
@@ -207,16 +208,16 @@ static void onedim_fseries_kernel(BIGINT nf, std::vector<T> &fwkerhalf,
   for (int t = 0; t <= nt; ++t) // split nout mode indices btw threads
     brk[t] = (BIGINT)(0.5 + nout * t / (double)nt);
 #pragma omp parallel num_threads(nt)
-  {                                                // each thread gets own chunk to do
+  {                                                   // each thread gets own chunk to do
     int t = MY_OMP_GET_THREAD_NUM();
-    std::complex<T> aj[MAX_NQUAD];                 // phase rotator for this thread
+    std::complex<T> aj[::finufft::common::MAX_NQUAD]; // phase rotator for this thread
     for (int n = 0; n < q; ++n)
-      aj[n] = std::pow(a[n], (T)brk[t]);           // init phase factors for chunk
-    for (BIGINT j = brk[t]; j < brk[t + 1]; ++j) { // loop along output array
-      T x = 0.0;                                   // accumulator for answer at this j
+      aj[n] = std::pow(a[n], (T)brk[t]);              // init phase factors for chunk
+    for (BIGINT j = brk[t]; j < brk[t + 1]; ++j) {    // loop along output array
+      T x = 0.0;                                      // accumulator for answer at this j
       for (int n = 0; n < q; ++n) {
-        x += f[n] * 2 * real(aj[n]);               // include the negative freq
-        aj[n] *= a[n];                             // wind the phases
+        x += f[n] * 2 * real(aj[n]);                  // include the negative freq
+        aj[n] *= a[n];                                // wind the phases
       }
       fwkerhalf[j] = x;
     }
@@ -247,7 +248,8 @@ public:
     int q = (int)(2 + 2.0 * J2); // > pi/2 ratio.  cannot exceed MAX_NQUAD
     if (opts.debug) printf("q (# ker FT quadr pts) = %d\n", q);
     std::vector<double> Z(2 * q), W(2 * q);
-    gaussquad(2 * q, Z.data(), W.data()); // only half the nodes used, for (0,1)
+    finufft::common::gaussquad(2 * q, Z.data(), W.data()); // only half the nodes used,
+                                                           // for (0,1)
     z.resize(q);
     f.resize(q);
     for (int n = 0; n < q; ++n) {

@@ -303,24 +303,30 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
       d_plan->fftplan = fftplan;
 
       // compute up to 3 * NQUAD precomputed values on CPU
-      T fseries_precomp_phase[3 * MAX_NQUAD];
-      T fseries_precomp_f[3 * MAX_NQUAD];
-      thrust::device_vector<T> d_fseries_precomp_phase(3 * MAX_NQUAD);
-      thrust::device_vector<T> d_fseries_precomp_f(3 * MAX_NQUAD);
+      T fseries_precomp_phase[3 * ::finufft::common::MAX_NQUAD];
+      T fseries_precomp_f[3 * ::finufft::common::MAX_NQUAD];
+      thrust::device_vector<T> d_fseries_precomp_phase(3 * ::finufft::common::MAX_NQUAD);
+      thrust::device_vector<T> d_fseries_precomp_f(3 * ::finufft::common::MAX_NQUAD);
       onedim_fseries_kernel_precomp<T>(d_plan->nf1, fseries_precomp_f,
                                        fseries_precomp_phase, d_plan->spopts);
       if (d_plan->dim > 1)
-        onedim_fseries_kernel_precomp<T>(d_plan->nf2, fseries_precomp_f + MAX_NQUAD,
-                                         fseries_precomp_phase + MAX_NQUAD,
-                                         d_plan->spopts);
+        onedim_fseries_kernel_precomp<T>(
+            d_plan->nf2,
+            fseries_precomp_f + ::finufft::common::MAX_NQUAD,
+            fseries_precomp_phase + ::finufft::common::MAX_NQUAD,
+            d_plan->spopts);
       if (d_plan->dim > 2)
-        onedim_fseries_kernel_precomp<T>(d_plan->nf3, fseries_precomp_f + 2 * MAX_NQUAD,
-                                         fseries_precomp_phase + 2 * MAX_NQUAD,
-                                         d_plan->spopts);
+        onedim_fseries_kernel_precomp<T>(
+            d_plan->nf3,
+            fseries_precomp_f + 2 * ::finufft::common::MAX_NQUAD,
+            fseries_precomp_phase + 2 * ::finufft::common::MAX_NQUAD,
+            d_plan->spopts);
       // copy the precomputed data to the device using thrust
-      thrust::copy(fseries_precomp_phase, fseries_precomp_phase + 3 * MAX_NQUAD,
+      thrust::copy(fseries_precomp_phase,
+                   fseries_precomp_phase + 3 * ::finufft::common::MAX_NQUAD,
                    d_fseries_precomp_phase.begin());
-      thrust::copy(fseries_precomp_f, fseries_precomp_f + 3 * MAX_NQUAD,
+      thrust::copy(fseries_precomp_f,
+                   fseries_precomp_f + 3 * ::finufft::common::MAX_NQUAD,
                    d_fseries_precomp_f.begin());
       // the full fseries is done on the GPU here
       if ((ier = fseries_kernel_compute(
@@ -696,10 +702,10 @@ int cufinufft_setpts_impl(int M, T *d_kx, T *d_ky, T *d_kz, int N, T *d_s, T *d_
     // and the precomputed data for the fseries kernel
     using namespace cufinufft::common;
 
-    std::array<T, 3 * MAX_NQUAD> nuft_precomp_z{};
-    std::array<T, 3 * MAX_NQUAD> nuft_precomp_f{};
-    thrust::device_vector<T> d_nuft_precomp_z(3 * MAX_NQUAD);
-    thrust::device_vector<T> d_nuft_precomp_f(3 * MAX_NQUAD);
+    std::array<T, 3 * ::finufft::common::MAX_NQUAD> nuft_precomp_z{};
+    std::array<T, 3 * ::finufft::common::MAX_NQUAD> nuft_precomp_f{};
+    thrust::device_vector<T> d_nuft_precomp_z(3 * ::finufft::common::MAX_NQUAD);
+    thrust::device_vector<T> d_nuft_precomp_f(3 * ::finufft::common::MAX_NQUAD);
     thrust::device_vector<T> phi_hat1, phi_hat2, phi_hat3;
     if (d_plan->dim > 0) {
       phi_hat1.resize(N);
@@ -713,14 +719,15 @@ int cufinufft_setpts_impl(int M, T *d_kx, T *d_ky, T *d_kz, int N, T *d_s, T *d_
     onedim_nuft_kernel_precomp<T>(nuft_precomp_f.data(), nuft_precomp_z.data(),
                                   d_plan->spopts);
     if (d_plan->dim > 1) {
-      onedim_nuft_kernel_precomp<T>(nuft_precomp_f.data() + MAX_NQUAD,
-                                    nuft_precomp_z.data() + MAX_NQUAD,
+      onedim_nuft_kernel_precomp<T>(nuft_precomp_f.data() + ::finufft::common::MAX_NQUAD,
+                                    nuft_precomp_z.data() + ::finufft::common::MAX_NQUAD,
                                     d_plan->spopts);
     }
     if (d_plan->dim > 2) {
-      onedim_nuft_kernel_precomp<T>(nuft_precomp_f.data() + 2 * MAX_NQUAD,
-                                    nuft_precomp_z.data() + 2 * MAX_NQUAD,
-                                    d_plan->spopts);
+      onedim_nuft_kernel_precomp<T>(
+          nuft_precomp_f.data() + 2 * ::finufft::common::MAX_NQUAD,
+          nuft_precomp_z.data() + 2 * ::finufft::common::MAX_NQUAD,
+          d_plan->spopts);
     }
     // copy the precomputed data to the device using thrust
     thrust::copy(nuft_precomp_z.begin(), nuft_precomp_z.end(), d_nuft_precomp_z.begin());
@@ -772,8 +779,8 @@ int cufinufft_setpts_impl(int M, T *d_kx, T *d_ky, T *d_kz, int N, T *d_s, T *d_
           thrust::cuda::par.on(stream), phase_iterator, phase_iterator + N,
           d_plan->deconv, d_plan->deconv,
           [c1, c2, c3, d1, d2, d3, realsign] __host__
-          __device__(const thrust::tuple<T, T, T> tuple,
-                     cuda_complex<T> deconv) -> cuda_complex<T> {
+          __device__(const thrust::tuple<T, T, T> tuple, cuda_complex<T> deconv)
+          -> cuda_complex<T> {
             // d2 and d3 are 0 if dim < 2 and dim < 3
             const auto phase = c1 * (thrust::get<0>(tuple) + d1) +
                                c2 * (thrust::get<1>(tuple) + d2) +

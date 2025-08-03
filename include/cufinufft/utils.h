@@ -12,16 +12,13 @@
 #include <type_traits>
 #include <utility> // for std::forward
 
+#include <common/common.h>
 #include <finufft_errors.h>
 
 #ifndef _USE_MATH_DEFINES
 #define _USE_MATH_DEFINES
 #endif
 #include <cmath>
-
-#ifndef M_PI
-#define M_PI 3.14159265358979323846
-#endif
 
 #if !defined(__CUDA_ARCH__) || __CUDA_ARCH__ >= 600 || defined(__clang__)
 #else
@@ -90,10 +87,8 @@ private:
   }
 };
 
-// math helpers whose source is in src/cuda/utils.cpp
-CUFINUFFT_BIGINT next235beven(CUFINUFFT_BIGINT n, CUFINUFFT_BIGINT b);
-void gaussquad(int n, double *xgl, double *wgl);
-std::tuple<double, double> leg_eval(int n, double x);
+// math helpers whose source is in src/utils.cpp
+long next235beven(long n, long b);
 
 template<typename T> T infnorm(int n, std::complex<T> *a) {
   T nrm = 0.0;
@@ -124,8 +119,8 @@ static __forceinline__ __device__ void atomicAddComplexShared(
  * on shared memory are supported so we leverage them
  */
 template<typename T>
-static __forceinline__ __device__ void atomicAddComplexGlobal(
-    cuda_complex<T> *address, cuda_complex<T> res) {
+static __forceinline__ __device__ void atomicAddComplexGlobal(cuda_complex<T> *address,
+                                                              cuda_complex<T> res) {
   if constexpr (
       std::is_same_v<cuda_complex<T>, float2> && COMPUTE_CAPABILITY_90_OR_HIGHER) {
     atomicAdd(address, res);
@@ -150,14 +145,14 @@ template<typename T> auto arrayrange(int n, T *a, cudaStream_t stream) {
 
 // Writes out w = half-width and c = center of an interval enclosing all a[n]'s
 // Only chooses a nonzero center if this increases w by less than fraction
-// ARRAYWIDCEN_GROWFRAC defined in defs.h.
+// ARRAYWIDCEN_GROWFRAC defined in common/constants.h.
 // This prevents rephasings which don't grow nf by much. 6/8/17
 // If n==0, w and c are not finite.
 template<typename T> auto arraywidcen(int n, T *a, cudaStream_t stream) {
   const auto [lo, hi] = arrayrange(n, a, stream);
   auto w              = (hi - lo) / 2;
   auto c              = (hi + lo) / 2;
-  if (std::abs(c) < ARRAYWIDCEN_GROWFRAC * w) {
+  if (std::abs(c) < ::finufft::common::ARRAYWIDCEN_GROWFRAC * w) {
     w += std::abs(c);
     c = 0.0;
   }
@@ -180,7 +175,7 @@ auto set_nhg_type3(T S, T X, const cufinufft_opts &opts,
   else
     Ssafe = std::max(Ssafe, T(1) / X);
   // use the safe X and S...
-  T nfd = 2.0 * opts.upsampfac * Ssafe * Xsafe / M_PI + nss;
+  T nfd = 2.0 * opts.upsampfac * Ssafe * Xsafe / finufft::common::PI + nss;
   if (!std::isfinite(nfd)) nfd = 0.0; // use FLT to catch inf
   auto nf = (int)nfd;
   // printf("initial nf=%lld, ns=%d\n",*nf,spopts.nspread);
@@ -190,7 +185,7 @@ auto set_nhg_type3(T S, T X, const cufinufft_opts &opts,
     nf = utils::next235beven(nf, 1); // expensive at huge nf
   // Note: b is 1 because type 3 uses a type 2 plan, so it should not need the extra
   // condition that seems to be used by Block Gather as type 2 are only GM-sort
-  auto h   = 2 * T(M_PI) / nf;                       // upsampled grid spacing
+  auto h   = 2 * T(finufft::common::PI) / nf;        // upsampled grid spacing
   auto gam = T(nf) / (2.0 * opts.upsampfac * Ssafe); // x scale fac to x'
   return std::make_tuple(nf, h, gam);
 }
@@ -198,7 +193,7 @@ auto set_nhg_type3(T S, T X, const cufinufft_opts &opts,
 // Generalized dispatcher for any function requiring ns-based dispatch
 template<typename Func, typename T, int ns, typename... Args>
 int dispatch_ns(Func &&func, int target_ns, Args &&...args) {
-  if constexpr (ns > MAX_NSPREAD) {
+  if constexpr (ns > ::finufft::common::MAX_NSPREAD) {
     return FINUFFT_ERR_METHOD_NOTVALID; // Stop recursion
   } else {
     if (target_ns == ns) {
@@ -213,8 +208,8 @@ int dispatch_ns(Func &&func, int target_ns, Args &&...args) {
 // Wrapper function that starts the dispatch recursion
 template<typename Func, typename T, typename... Args>
 int launch_dispatch_ns(Func &&func, int target_ns, Args &&...args) {
-  return dispatch_ns<Func, T, MIN_NSPREAD>(std::forward<Func>(func), target_ns,
-                                           std::forward<Args>(args)...);
+  return dispatch_ns<Func, T, ::finufft::common::MIN_NSPREAD>(
+      std::forward<Func>(func), target_ns, std::forward<Args>(args)...);
 }
 
 /**

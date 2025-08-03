@@ -6,6 +6,7 @@
 #include <limits>
 #include <random>
 
+#include <common/common.h>
 #include <cufinufft.h>
 
 #include <cufinufft/impl.h>
@@ -16,6 +17,7 @@
 #include <thrust/host_vector.h>
 
 using cufinufft::utils::infnorm;
+using ::finufft::common::PI;
 
 template<typename T>
 int run_test(int method, int type, int N1, int N2, int ntransf, int maxbatchsize, int M,
@@ -40,8 +42,8 @@ int run_test(int method, int type, int N1, int N2, int ntransf, int maxbatchsize
 
   // Making data
   for (int i = 0; i < M; i++) {
-    x[i] = M_PI * randm11(); // x in [-pi,pi)
-    y[i] = M_PI * randm11();
+    x[i] = PI * randm11(); // x in [-pi,pi)
+    y[i] = PI * randm11();
   }
   if (type == 1) {
     for (int i = 0; i < ntransf * M; i++) {
@@ -61,8 +63,8 @@ int run_test(int method, int type, int N1, int N2, int ntransf, int maxbatchsize
     s.resize(N1 * N2);
     t.resize(N1 * N2);
     for (int i = 0; i < N1 * N2; i++) {
-      s[i] = M_PI * randm11();
-      t[i] = M_PI * randm11();
+      s[i] = PI * randm11();
+      t[i] = PI * randm11();
     }
     d_s = s;
     d_t = t;

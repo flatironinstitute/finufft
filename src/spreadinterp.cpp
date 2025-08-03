@@ -127,7 +127,7 @@ template<class T> uint8_t get_padding(uint8_t ns) {
   // return the padding as a function of the number of elements
   // 2 * MAX_NSPREAD is the maximum number of elements that we can have
   // that's why is hardcoded here
-  return get_padding_helper<T, 2 * MAX_NSPREAD>(ns);
+  return get_padding_helper<T, 2 * ::finufft::common::MAX_NSPREAD>(ns);
 }
 template<class T, uint8_t N>
 using BestSIMD = typename decltype(BestSIMDHelper<T, N, xsimd::batch<T>::size>())::type;
@@ -219,7 +219,7 @@ void print_subgrid_info(int ndims, BIGINT offset1, BIGINT offset2, BIGINT offset
 */
 template<typename T>
 static FINUFFT_ALWAYS_INLINE T fold_rescale(const T x, const UBIGINT N) noexcept {
-  const T result = x * T(INV_2PI) + T(0.5);
+  const T result = x * T(::finufft::common::INV_2PI) + T(0.5);
   return (result - floor(result)) * T(N);
 }
 
@@ -838,18 +838,21 @@ static FINUFFT_ALWAYS_INLINE auto ker_eval(
     // compile time branch no performance overhead
     if constexpr (kerevalmeth == 1) {
       if (opts.upsampfac == 2.0) {
-        eval_kernel_vec_Horner<T, ns, 200, simd_type>(ker + (i * MAX_NSPREAD), inputs[i],
-                                                      opts);
+        eval_kernel_vec_Horner<T, ns, 200, simd_type>(
+            ker + (i * ::finufft::common::MAX_NSPREAD), inputs[i], opts);
       }
       if (opts.upsampfac == 1.25) {
-        eval_kernel_vec_Horner<T, ns, 125, simd_type>(ker + (i * MAX_NSPREAD), inputs[i],
-                                                      opts);
+        eval_kernel_vec_Horner<T, ns, 125, simd_type>(
+            ker + (i * ::finufft::common::MAX_NSPREAD), inputs[i], opts);
       }
     }
     if constexpr (kerevalmeth == 0) {
-      alignas(simd_type::arch_type::alignment()) std::array<T, MAX_NSPREAD> kernel_args{};
+      alignas(simd_type::arch_type::alignment())
+          std::array<T, ::finufft::common::MAX_NSPREAD>
+              kernel_args{};
       set_kernel_args<T, ns>(kernel_args.data(), inputs[i]);
-      evaluate_kernel_vector<T, ns>(ker + (i * MAX_NSPREAD), kernel_args.data(), opts);
+      evaluate_kernel_vector<T, ns>(ker + (i * ::finufft::common::MAX_NSPREAD),
+                                    kernel_args.data(), opts);
     }
   }
   return ker;
@@ -887,7 +890,7 @@ FINUFFT_NEVER_INLINE void spread_subproblem_1d_kernel(
   static constexpr auto ns2       = ns * T(0.5); // half spread width
   // something weird here. Reversing ker{0} and std fill causes ker
   // to be zeroed inside the loop GCC uses AVX, clang AVX2
-  alignas(alignment) std::array<T, MAX_NSPREAD> ker{0};
+  alignas(alignment) std::array<T, ::finufft::common::MAX_NSPREAD> ker{0};
   std::fill(du, du + 2 * size1, 0); // zero output
   // no padding needed if MAX_NSPREAD is 16
   // the largest read is 16 floats with avx512
@@ -1004,22 +1007,20 @@ static void spread_subproblem_1d_dispatch(
    it generates the following code:
    if (ns == MAX_NSPREAD) {
      if (opts.kerevalmeth) {
-       return spread_subproblem_1d_kernel<MAX_NSPREAD, true>(off1, size1, du, M, kx, dd,
-       opts);
-    } else {
-       return spread_subproblem_1d_kernel<MAX_NSPREAD, false>(off1, size1, du, M, kx, dd,
-       opts);
-   }
+       return spread_subproblem_1d_kernel<::finufft::common::MAX_NSPREAD, true>(off1,
+  size1, du, M, kx, dd, opts); } else { return
+  spread_subproblem_1d_kernel<::finufft::common::MAX_NSPREAD, false>(off1, size1, du, M,
+  kx, dd, opts);
+    }
    if (ns == MAX_NSPREAD-1) {
      if (opts.kerevalmeth) {
-       return spread_subproblem_1d_kernel<MAX_NSPREAD-1, true>(off1, size1, du, M, kx, dd,
-       opts);
-     } else {
-       return spread_subproblem_1d_kernel<MAX_NSPREAD-1, false>(off1, size1, du, M, kx,
-       dd, opts);
-     }
-   }
-   ...
+       return spread_subproblem_1d_kernel<::finufft::common::MAX_NSPREAD-1, true>(off1,
+  size1, du, M, kx, dd, opts); } else { return
+  spread_subproblem_1d_kernel<::finufft::common::MAX_NSPREAD-1, false>(off1, size1, du, M,
+  kx, dd, opts);
+    }
+  }
+  ...
    NOTE: using a big MAX_NSPREAD will generate a lot of code
          if MAX_NSPREAD gets too large it will crash the compiler with a compile time
          stack overflow. Older compiler will just throw an internal error without
@@ -1027,15 +1028,16 @@ static void spread_subproblem_1d_dispatch(
          This is a known issue with template metaprogramming.
          If you increased MAX_NSPREAD and the code does not compile, try reducing it.
   */
-  static_assert(MIN_NSPREAD <= NS && NS <= MAX_NSPREAD,
-                "NS must be in the range (MIN_NSPREAD, MAX_NSPREAD)");
-  if constexpr (NS == MIN_NSPREAD) { // Base case
+  static_assert(
+      ::finufft::common::MIN_NSPREAD <= NS && NS <= ::finufft::common::MAX_NSPREAD,
+      "NS must be in the range (MIN_NSPREAD, MAX_NSPREAD)");
+  if constexpr (NS == ::finufft::common::MIN_NSPREAD) { // Base case
     if (opts.kerevalmeth)
-      return spread_subproblem_1d_kernel<T, MIN_NSPREAD, true>(off1, size1, du, M, kx, dd,
-                                                               opts);
+      return spread_subproblem_1d_kernel<T, ::finufft::common::MIN_NSPREAD, true>(
+          off1, size1, du, M, kx, dd, opts);
     else {
-      return spread_subproblem_1d_kernel<T, MIN_NSPREAD, false>(off1, size1, du, M, kx,
-                                                                dd, opts);
+      return spread_subproblem_1d_kernel<T, ::finufft::common::MIN_NSPREAD, false>(
+          off1, size1, du, M, kx, dd, opts);
     }
   } else {
     if (opts.nspread == NS) {
@@ -1062,7 +1064,8 @@ static void spread_subproblem_1d(BIGINT off1, UBIGINT size1, T *du, UBIGINT M, T
    For algoritmic details see spread_subproblem_1d_kernel.
 */
 {
-  spread_subproblem_1d_dispatch<T, MAX_NSPREAD>(off1, size1, du, M, kx, dd, opts);
+  spread_subproblem_1d_dispatch<T, ::finufft::common::MAX_NSPREAD>(off1, size1, du, M, kx,
+                                                                   dd, opts);
 }
 
 template<typename T, uint8_t ns, bool kerevalmeth>
@@ -1086,7 +1089,7 @@ FINUFFT_NEVER_INLINE static void spread_subproblem_2d_kernel(
   // Kernel values stored in consecutive memory. This allows us to compute
   // values in all three directions in a single kernel evaluation call.
   static constexpr auto ns2 = ns * T(0.5);  // half spread width
-  alignas(alignment) std::array<T, 2 * MAX_NSPREAD> kernel_values{0};
+  alignas(alignment) std::array<T, 2 * ::finufft::common::MAX_NSPREAD> kernel_values{0};
   std::fill(du, du + 2 * size1 * size2, 0); // initialized to 0 due to the padding
   for (uint64_t pt = 0; pt < M; pt++) {     // loop over NU pts
     const auto dd_pt = initialize_complex_register<simd_type>(dd[pt * 2], dd[pt * 2 + 1]);
@@ -1097,7 +1100,7 @@ FINUFFT_NEVER_INLINE static void spread_subproblem_2d_kernel(
     const auto x2 = (T)std::ceil(ky[pt] - ns2) - ky[pt];
     ker_eval<ns, kerevalmeth, T, simd_type>(kernel_values.data(), opts, x1, x2);
     const auto *ker1 = kernel_values.data();
-    const auto *ker2 = kernel_values.data() + MAX_NSPREAD;
+    const auto *ker2 = kernel_values.data() + ::finufft::common::MAX_NSPREAD;
     // Combine kernel with complex source value to simplify inner loop
     // here 2* is because of complex
     static constexpr uint8_t kerval_vectors = (2 * ns + padding) / simd_size;
@@ -1163,15 +1166,16 @@ void spread_subproblem_2d_dispatch(
     const BIGINT off1, const BIGINT off2, const UBIGINT size1, const UBIGINT size2,
     T *FINUFFT_RESTRICT du, const UBIGINT M, const T *kx, const T *ky, const T *dd,
     const finufft_spread_opts &opts) {
-  static_assert(MIN_NSPREAD <= NS && NS <= MAX_NSPREAD,
-                "NS must be in the range (MIN_NSPREAD, MAX_NSPREAD)");
-  if constexpr (NS == MIN_NSPREAD) { // Base case
+  static_assert(
+      ::finufft::common::MIN_NSPREAD <= NS && NS <= ::finufft::common::MAX_NSPREAD,
+      "NS must be in the range (MIN_NSPREAD, MAX_NSPREAD)");
+  if constexpr (NS == ::finufft::common::MIN_NSPREAD) { // Base case
     if (opts.kerevalmeth)
-      return spread_subproblem_2d_kernel<T, MIN_NSPREAD, true>(off1, off2, size1, size2,
-                                                               du, M, kx, ky, dd, opts);
+      return spread_subproblem_2d_kernel<T, ::finufft::common::MIN_NSPREAD, true>(
+          off1, off2, size1, size2, du, M, kx, ky, dd, opts);
     else {
-      return spread_subproblem_2d_kernel<T, MIN_NSPREAD, false>(off1, off2, size1, size2,
-                                                                du, M, kx, ky, dd, opts);
+      return spread_subproblem_2d_kernel<T, ::finufft::common::MIN_NSPREAD, false>(
+          off1, off2, size1, size2, du, M, kx, ky, dd, opts);
     }
   } else {
     if (opts.nspread == NS) {
@@ -1202,8 +1206,8 @@ static void spread_subproblem_2d(BIGINT off1, BIGINT off2, UBIGINT size1, UBIGIN
    For algoritmic details see spread_subproblem_1d_kernel.
 */
 {
-  spread_subproblem_2d_dispatch<T, MAX_NSPREAD>(off1, off2, size1, size2, du, M, kx, ky,
-                                                dd, opts);
+  spread_subproblem_2d_dispatch<T, ::finufft::common::MAX_NSPREAD>(
+      off1, off2, size1, size2, du, M, kx, ky, dd, opts);
 }
 
 template<typename T, uint8_t ns, bool kerevalmeth>
@@ -1219,7 +1223,7 @@ FINUFFT_NEVER_INLINE void spread_subproblem_3d_kernel(
   static constexpr auto alignment = arch_t::alignment();
 
   static constexpr auto ns2 = ns * T(0.5); // half spread width
-  alignas(alignment) std::array<T, 3 * MAX_NSPREAD> kernel_values{0};
+  alignas(alignment) std::array<T, 3 * ::finufft::common::MAX_NSPREAD> kernel_values{0};
   std::fill(du, du + 2 * size1 * size2 * size3, 0);
 
   for (uint64_t pt = 0; pt < M; pt++) { // loop over NU pts
@@ -1234,8 +1238,8 @@ FINUFFT_NEVER_INLINE void spread_subproblem_3d_kernel(
 
     ker_eval<ns, kerevalmeth, T, simd_type>(kernel_values.data(), opts, x1, x2, x3);
     const auto *ker1 = kernel_values.data();
-    const auto *ker2 = kernel_values.data() + MAX_NSPREAD;
-    const auto *ker3 = kernel_values.data() + 2 * MAX_NSPREAD;
+    const auto *ker2 = kernel_values.data() + ::finufft::common::MAX_NSPREAD;
+    const auto *ker3 = kernel_values.data() + 2 * ::finufft::common::MAX_NSPREAD;
     // Combine kernel with complex source value to simplify inner loop
     // here 2* is because of complex
     // kerval_vectors is the number of SIMD iterations needed to compute all the elements
@@ -1287,14 +1291,15 @@ void spread_subproblem_3d_dispatch(BIGINT off1, BIGINT off2, BIGINT off3, UBIGIN
                                    UBIGINT size2, UBIGINT size3, T *du, UBIGINT M,
                                    const T *kx, const T *ky, const T *kz, const T *dd,
                                    const finufft_spread_opts &opts) noexcept {
-  static_assert(MIN_NSPREAD <= NS && NS <= MAX_NSPREAD,
-                "NS must be in the range (MIN_NSPREAD, MAX_NSPREAD)");
-  if constexpr (NS == MIN_NSPREAD) { // Base case
+  static_assert(
+      ::finufft::common::MIN_NSPREAD <= NS && NS <= ::finufft::common::MAX_NSPREAD,
+      "NS must be in the range (MIN_NSPREAD, MAX_NSPREAD)");
+  if constexpr (NS == ::finufft::common::MIN_NSPREAD) { // Base case
     if (opts.kerevalmeth)
-      return spread_subproblem_3d_kernel<T, MIN_NSPREAD, true>(
+      return spread_subproblem_3d_kernel<T, ::finufft::common::MIN_NSPREAD, true>(
           off1, off2, off3, size1, size2, size3, du, M, kx, ky, kz, dd, opts);
     else {
-      return spread_subproblem_3d_kernel<T, MIN_NSPREAD, false>(
+      return spread_subproblem_3d_kernel<T, ::finufft::common::MIN_NSPREAD, false>(
           off1, off2, off3, size1, size2, size3, du, M, kx, ky, kz, dd, opts);
     }
   } else {
@@ -1325,8 +1330,8 @@ dd (size M complex) are complex source strengths
 du (size size1*size2*size3) is uniform complex output array
 */
 {
-  spread_subproblem_3d_dispatch<T, MAX_NSPREAD>(off1, off2, off3, size1, size2, size3, du,
-                                                M, kx, ky, kz, dd, opts);
+  spread_subproblem_3d_dispatch<T, ::finufft::common::MAX_NSPREAD>(
+      off1, off2, off3, size1, size2, size3, du, M, kx, ky, kz, dd, opts);
 }
 
 template<typename T, bool thread_safe>
@@ -1981,10 +1986,11 @@ FINUFFT_NEVER_INLINE static int interpSorted_kernel(
     alignas(alignment) T xjlist[CHUNKSIZE], yjlist[CHUNKSIZE], zjlist[CHUNKSIZE];
     alignas(alignment) T outbuf[2 * CHUNKSIZE];
     // Kernels: static alloc is faster, so we do it for up to 3D...
-    alignas(alignment) std::array<T, 3 * MAX_NSPREAD> kernel_values{0};
+    alignas(alignment) std::array<T, 3 * ::finufft::common::MAX_NSPREAD> kernel_values{0};
     auto *FINUFFT_RESTRICT ker1 = kernel_values.data();
-    auto *FINUFFT_RESTRICT ker2 = kernel_values.data() + MAX_NSPREAD;
-    auto *FINUFFT_RESTRICT ker3 = kernel_values.data() + 2 * MAX_NSPREAD;
+    auto *FINUFFT_RESTRICT ker2 = kernel_values.data() + ::finufft::common::MAX_NSPREAD;
+    auto *FINUFFT_RESTRICT ker3 =
+        kernel_values.data() + 2 * ::finufft::common::MAX_NSPREAD;
 
     // Loop over interpolation chunks
     // main loop over NU trgs, interp each from U
@@ -2062,14 +2068,15 @@ static int interpSorted_dispatch(
     const UBIGINT N3, T *FINUFFT_RESTRICT data_uniform, const UBIGINT M,
     T *FINUFFT_RESTRICT kx, T *FINUFFT_RESTRICT ky, T *FINUFFT_RESTRICT kz,
     T *FINUFFT_RESTRICT data_nonuniform, const finufft_spread_opts &opts) {
-  static_assert(MIN_NSPREAD <= NS && NS <= MAX_NSPREAD,
-                "NS must be in the range (MIN_NSPREAD, MAX_NSPREAD)");
-  if constexpr (NS == MIN_NSPREAD) { // Base case
+  static_assert(
+      ::finufft::common::MIN_NSPREAD <= NS && NS <= ::finufft::common::MAX_NSPREAD,
+      "NS must be in the range (MIN_NSPREAD, MAX_NSPREAD)");
+  if constexpr (NS == ::finufft::common::MIN_NSPREAD) { // Base case
     if (opts.kerevalmeth)
-      return interpSorted_kernel<T, MIN_NSPREAD, true>(
+      return interpSorted_kernel<T, ::finufft::common::MIN_NSPREAD, true>(
           sort_indices, N1, N2, N3, data_uniform, M, kx, ky, kz, data_nonuniform, opts);
     else {
-      return interpSorted_kernel<T, MIN_NSPREAD, false>(
+      return interpSorted_kernel<T, ::finufft::common::MIN_NSPREAD, false>(
           sort_indices, N1, N2, N3, data_uniform, M, kx, ky, kz, data_nonuniform, opts);
     }
   } else {
@@ -2094,8 +2101,8 @@ static int interpSorted(
     const UBIGINT N3, T *FINUFFT_RESTRICT data_uniform, const UBIGINT M,
     T *FINUFFT_RESTRICT kx, T *FINUFFT_RESTRICT ky, T *FINUFFT_RESTRICT kz,
     T *FINUFFT_RESTRICT data_nonuniform, const finufft_spread_opts &opts) {
-  return interpSorted_dispatch<T, MAX_NSPREAD>(sort_indices, N1, N2, N3, data_uniform, M,
-                                               kx, ky, kz, data_nonuniform, opts);
+  return interpSorted_dispatch<T, ::finufft::common::MAX_NSPREAD>(
+      sort_indices, N1, N2, N3, data_uniform, M, kx, ky, kz, data_nonuniform, opts);
 }
 
 template<typename T>
@@ -2203,15 +2210,17 @@ FINUFFT_EXPORT int FINUFFT_CDECL setup_spreader(
   if (upsampfac == 2.0)                    // standard sigma (see SISC paper)
     ns = std::ceil(-log10(eps / (T)10.0)); // 1 digit per power of 10
   else                                     // custom sigma
-    ns = std::ceil(-log(eps) / (T(PI) * sqrt(1.0 - 1.0 / upsampfac))); // formula, gam=1
-  ns = max(2, ns);        // (we don't have ns=1 version yet)
-  if (ns > MAX_NSPREAD) { // clip to fit allocated arrays, Horner rules
+    ns = std::ceil(
+        -log(eps) / (T(::finufft::common::PI) * sqrt(1.0 - 1.0 / upsampfac))); // formula,
+                                                                               // gam=1
+  ns = max(2, ns);                           // (we don't have ns=1 version yet)
+  if (ns > ::finufft::common::MAX_NSPREAD) { // clip to fit allocated arrays, Horner rules
     if (showwarn)
       fprintf(stderr,
               "%s warning: at upsampfac=%.3g, tol=%.3g would need kernel width ns=%d; "
               "clipping to max %d.\n",
-              __func__, upsampfac, (double)eps, ns, MAX_NSPREAD);
-    ns  = MAX_NSPREAD;
+              __func__, upsampfac, (double)eps, ns, ::finufft::common::MAX_NSPREAD);
+    ns  = ::finufft::common::MAX_NSPREAD;
     ier = FINUFFT_WARN_EPS_TOO_SMALL;
   }
   opts.nspread = ns;
@@ -2224,9 +2233,10 @@ FINUFFT_EXPORT int FINUFFT_CDECL setup_spreader(
   if (ns == 3) betaoverns = 2.26;
   if (ns == 4) betaoverns = 2.38;
   if (upsampfac != 2.0) { // again, override beta for custom sigma
-    T gamma    = 0.97;    // must match devel/gen_all_horner_C_code.m !
-    betaoverns = gamma * T(PI) * (1.0 - 1.0 / (2 * upsampfac)); // formula based on
-                                                                // cutoff
+    T gamma = 0.97;       // must match devel/gen_all_horner_C_code.m !
+    betaoverns =
+        gamma * T(::finufft::common::PI) * (1.0 - 1.0 / (2 * upsampfac)); // formula based
+                                                                          // on cutoff
   }
   opts.ES_beta = betaoverns * ns; // set the kernel beta parameter
   if (debug)
@@ -2301,13 +2311,16 @@ T evaluate_kernel_horner_dispatch(T x, const finufft_spread_opts &opts) {
         phi(x) = exp(beta.(sqrt(1 - (2x/n_s)^2) - 1)),    for |x| < nspread/2
      using generated piecewise polynomial approximation to the kernel.
   */
-  static_assert(MIN_NSPREAD <= ns && ns <= MAX_NSPREAD,
-                "ns must be in the range (MIN_NSPREAD, MAX_NSPREAD)");
-  if constexpr (ns == MIN_NSPREAD) { // Base case
+  static_assert(
+      ::finufft::common::MIN_NSPREAD <= ns && ns <= ::finufft::common::MAX_NSPREAD,
+      "ns must be in the range (MIN_NSPREAD, MAX_NSPREAD)");
+  if constexpr (ns == ::finufft::common::MIN_NSPREAD) { // Base case
     if (opts.upsampfac == 2.0) {
-      return evaluate_kernel_horner_kernel<T, MIN_NSPREAD, 200>(x, opts);
+      return evaluate_kernel_horner_kernel<T, ::finufft::common::MIN_NSPREAD, 200>(x,
+                                                                                   opts);
     } else if (opts.upsampfac == 1.25) {
-      return evaluate_kernel_horner_kernel<T, MIN_NSPREAD, 125>(x, opts);
+      return evaluate_kernel_horner_kernel<T, ::finufft::common::MIN_NSPREAD, 125>(x,
+                                                                                   opts);
     } else {
       fprintf(stderr, "[%s] upsampfac (%lf) not supported!\n", __func__, opts.upsampfac);
       return 0.0;
@@ -2336,7 +2349,7 @@ T evaluate_kernel_horner(T x, const finufft_spread_opts &opts)
    using generated piecewise polynomial approximation to the kernel.
 */
 {
-  return evaluate_kernel_horner_dispatch<T, MAX_NSPREAD>(x, opts);
+  return evaluate_kernel_horner_dispatch<T, ::finufft::common::MAX_NSPREAD>(x, opts);
 }
 
 template float evaluate_kernel_horner<float>(float x, const finufft_spread_opts &opts);

@@ -1,4 +1,4 @@
-set(PRECISION_INDEPENDENT_SRC precision_independent.cu utils.cpp)
+set(PRECISION_INDEPENDENT_SRC precision_independent.cu)
 
 set(PRECISION_DEPENDENT_SRC
     spreadinterp.cpp
@@ -15,6 +15,7 @@ set(PRECISION_DEPENDENT_SRC
     deconvolve_wrapper.cu
     cufinufft.cu
     common.cu
+    ../utils.cpp
 )
 
 set(CUFINUFFT_INCLUDE_DIRS

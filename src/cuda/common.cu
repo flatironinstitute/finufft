@@ -1,8 +1,6 @@
 #include <algorithm>
 #include <iomanip>
 #include <iostream>
-#include <limits>
-#include <vector>
 
 #include <cuComplex.h>
 #include <cuda.h>
@@ -10,7 +8,6 @@
 #include <cufinufft/common.h>
 #include <cufinufft/contrib/helper_cuda.h>
 #include <cufinufft/defs.h>
-#include <cufinufft/precision_independent.h>
 #include <cufinufft/spreadinterp.h>
 #include <cufinufft/utils.h>
 
@@ -32,8 +29,8 @@ __global__ void cu_fseries_kernel_compute(int nf1, int nf2, int nf3, T *f, T *ph
   T J2  = ns / 2.0;
   int q = (int)(2 + 3.0 * J2);
   int nf;
-  T *phaset = phase + threadIdx.y * MAX_NQUAD;
-  T *ft     = f + threadIdx.y * MAX_NQUAD;
+  T *phaset = phase + threadIdx.y * ::finufft::common::MAX_NQUAD;
+  T *ft     = f + threadIdx.y * ::finufft::common::MAX_NQUAD;
   T *oarr;
   // standard parallelism pattern in cuda. using a 2D grid, this allows to leverage more
   // threads as the parallelism is x*y*z
@@ -73,8 +70,8 @@ __global__ void cu_nuft_kernel_compute(int nf1, int nf2, int nf3, T *f, T *z, T 
   T J2  = ns / 2.0;
   int q = (int)(2 + 2.0 * J2);
   int nf;
-  T *at = z + threadIdx.y * MAX_NQUAD;
-  T *ft = f + threadIdx.y * MAX_NQUAD;
+  T *at = z + threadIdx.y * ::finufft::common::MAX_NQUAD;
+  T *ft = f + threadIdx.y * ::finufft::common::MAX_NQUAD;
   T *oarr, *k;
   // standard parallelism pattern in cuda. using a 2D grid, this allows to leverage more
   // threads as the parallelism is x*y*z
@@ -199,13 +196,13 @@ void onedim_fseries_kernel_precomp(CUFINUFFT_BIGINT nf, T *f, T *phase,
   T J2 = opts.nspread / 2.0; // J/2, half-width of ker z-support
   // # quadr nodes in z (from 0 to J/2; reflections will be added)...
   const auto q = (int)(2 + 3.0 * J2); // matches CPU code
-  double z[2 * MAX_NQUAD];
-  double w[2 * MAX_NQUAD];
-  cufinufft::utils::gaussquad(2 * q, z, w); // only half the nodes used, for (0,1)
-  for (int n = 0; n < q; ++n) {             // set up nodes z_n and vals f_n
-    z[n] *= J2;                             // rescale nodes
-    f[n]     = J2 * w[n] * evaluate_kernel((T)z[n], opts); // vals & quadr wei
-    phase[n] = T(2.0 * M_PI * z[n] / T(nf));               // phase winding rates
+  double z[2 * ::finufft::common::MAX_NQUAD];
+  double w[2 * ::finufft::common::MAX_NQUAD];
+  finufft::common::gaussquad(2 * q, z, w); // only half the nodes used, for (0,1)
+  for (int n = 0; n < q; ++n) {            // set up nodes z_n and vals f_n
+    z[n] *= J2;                            // rescale nodes
+    f[n]     = J2 * w[n] * evaluate_kernel((T)z[n], opts);    // vals & quadr wei
+    phase[n] = T(2.0 * ::finufft::common::PI * z[n] / T(nf)); // phase winding rates
   }
 }
 
@@ -215,9 +212,9 @@ void onedim_nuft_kernel_precomp(T *f, T *z, finufft_spread_opts opts) {
   T J2 = opts.nspread / 2.0; // J/2, half-width of ker z-support
   // # quadr nodes in z (from 0 to J/2; reflections will be added)...
   int q = (int)(2 + 2.0 * J2); // matches CPU code
-  double z_local[2 * MAX_NQUAD];
-  double w_local[2 * MAX_NQUAD];
-  cufinufft::utils::gaussquad(2 * q, z_local, w_local);   // half the nodes, (0,1)
+  double z_local[2 * ::finufft::common::MAX_NQUAD];
+  double w_local[2 * ::finufft::common::MAX_NQUAD];
+  finufft::common::gaussquad(2 * q, z_local, w_local);    // half the nodes, (0,1)
   for (int n = 0; n < q; ++n) {                           // set up nodes z_n and vals f_n
     z[n] = J2 * T(z_local[n]);                            // rescale nodes
     f[n] = J2 * w_local[n] * evaluate_kernel(z[n], opts); // vals & quadr wei

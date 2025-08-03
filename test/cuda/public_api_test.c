@@ -6,6 +6,8 @@
 
 #include <complex.h>
 
+static const double PI = 3.141592653589793238462643383279502884;
+
 int test_float(int M, int N) {
   // Size of the grid as an array.
   int64_t modes[1] = {N};
@@ -36,7 +38,7 @@ int test_float(int M, int N) {
   srand(0);
 
   for (int j = 0; j < M; ++j) {
-    x[j] = 2 * M_PI * (((float)rand()) / RAND_MAX - 1);
+    x[j] = 2 * PI * (((float)rand()) / RAND_MAX - 1);
     c[j] =
         (2 * ((float)rand()) / RAND_MAX - 1) + I * (2 * ((float)rand()) / RAND_MAX - 1);
   }
@@ -123,7 +125,7 @@ int test_double(int M, int N) {
   srand(0);
 
   for (int j = 0; j < M; ++j) {
-    x[j] = 2 * M_PI * (((double)rand()) / RAND_MAX - 1);
+    x[j] = 2 * PI * (((double)rand()) / RAND_MAX - 1);
     c[j] =
         (2 * ((double)rand()) / RAND_MAX - 1) + I * (2 * ((double)rand()) / RAND_MAX - 1);
   }
