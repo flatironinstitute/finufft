@@ -19,6 +19,8 @@ Output Driven
 The **output-driven spreading strategy** is designed to reduce global memory traffic and
 exploit shared memory locality. A CUDA block corresponds to a spatial tile in the output
 grid, and shared memory is used to accumulate updates from multiple nonuniform points.
+The original approach was developed by Juan Ignacio Polanco in
+`NonuniformFFTs.jl <https://github.com/jipolanco/NonuniformFFTs.jl>`_.
 
 The process follows three main stages:
 

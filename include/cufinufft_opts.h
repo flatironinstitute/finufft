@@ -1,6 +1,9 @@
 #ifndef __CUFINUFFT_OPTS_H__
 #define __CUFINUFFT_OPTS_H__
 
+// python/cufinufft/cufinufft/_cufinufft.py and matlab/cufinufft.mw
+// must be kept in sync with this struct
+
 typedef struct cufinufft_opts { // see cufinufft_default_opts() for defaults
   double upsampfac; // upsampling ratio sigma, only 2.0 (standard) is implemented
                     /* following options are for gpu */
