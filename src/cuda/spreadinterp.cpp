@@ -11,8 +11,8 @@ namespace cufinufft {
 namespace spreadinterp {
 
 template<typename T>
-int setup_spreader(finufft_spread_opts &opts, T eps, T upsampfac, int kerevalmeth,
-                   int debug, int spreadinterponly)
+int setup_spreader(finufft_spread_opts &opts, T eps, T upsampfac,
+                   int kerevalmeth, int debug, int spreadinterponly)
 // Initializes spreader kernel parameters given desired NUFFT tolerance eps,
 // upsampling factor (=sigma in paper, or R in Dutt-Rokhlin), and ker eval meth
 // (etiher 0:exp(sqrt()), 1: Horner ppval).

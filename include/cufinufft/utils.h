@@ -7,13 +7,16 @@
 #include <cuComplex.h>
 #include <cufinufft/types.h>
 
+#include <array>
 #include <cuda_runtime.h>
 #include <thrust/extrema.h>
+#include <tuple>
 #include <type_traits>
 #include <utility> // for std::forward
 
 #include <common/common.h>
 #include <finufft_errors.h>
+#include <utils/dispatcher.h>
 
 #ifndef _USE_MATH_DEFINES
 #define _USE_MATH_DEFINES
@@ -190,26 +193,14 @@ auto set_nhg_type3(T S, T X, const cufinufft_opts &opts,
   return std::make_tuple(nf, h, gam);
 }
 
-// Generalized dispatcher for any function requiring ns-based dispatch
-template<typename Func, typename T, int ns, typename... Args>
-int dispatch_ns(Func &&func, int target_ns, Args &&...args) {
-  if constexpr (ns > ::finufft::common::MAX_NSPREAD) {
-    return FINUFFT_ERR_METHOD_NOTVALID; // Stop recursion
-  } else {
-    if (target_ns == ns) {
-      return std::forward<Func>(func).template operator()<ns>(
-          std::forward<Args>(args)...);
-    }
-    return dispatch_ns<Func, T, ns + 1>(std::forward<Func>(func), target_ns,
-                                        std::forward<Args>(args)...);
-  }
-}
-
-// Wrapper function that starts the dispatch recursion
+// Wrapper around the generic dispatcher for nspread-based dispatch
 template<typename Func, typename T, typename... Args>
 int launch_dispatch_ns(Func &&func, int target_ns, Args &&...args) {
-  return dispatch_ns<Func, T, ::finufft::common::MIN_NSPREAD>(
-      std::forward<Func>(func), target_ns, std::forward<Args>(args)...);
+  using NsSeq = finufft::utils::make_range<::finufft::common::MIN_NSPREAD,
+                                           ::finufft::common::MAX_NSPREAD>;
+  std::array<int, 1> vals{target_ns};
+  return finufft::utils::dispatch(std::forward<Func>(func), vals,
+                                  std::make_tuple(NsSeq{}), std::forward<Args>(args)...);
 }
 
 /**
