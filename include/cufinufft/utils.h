@@ -16,7 +16,6 @@
 
 #include <common/common.h>
 #include <finufft_errors.h>
-#include <utils/dispatcher.h>
 
 #ifndef _USE_MATH_DEFINES
 #define _USE_MATH_DEFINES
@@ -196,11 +195,11 @@ auto set_nhg_type3(T S, T X, const cufinufft_opts &opts,
 // Wrapper around the generic dispatcher for nspread-based dispatch
 template<typename Func, typename T, typename... Args>
 int launch_dispatch_ns(Func &&func, int target_ns, Args &&...args) {
-  using NsSeq = finufft::utils::make_range<::finufft::common::MIN_NSPREAD,
-                                           ::finufft::common::MAX_NSPREAD>;
+  using NsSeq = finufft::common::make_range<::finufft::common::MIN_NSPREAD,
+                                            ::finufft::common::MAX_NSPREAD>;
   std::array<int, 1> vals{target_ns};
-  return finufft::utils::dispatch(std::forward<Func>(func), vals,
-                                  std::make_tuple(NsSeq{}), std::forward<Args>(args)...);
+  return finufft::common::dispatch(std::forward<Func>(func), vals,
+                                   std::make_tuple(NsSeq{}), std::forward<Args>(args)...);
 }
 
 /**

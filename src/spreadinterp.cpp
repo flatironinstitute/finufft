@@ -2,7 +2,6 @@
 
 #include <finufft/finufft_utils.hpp>
 #include <finufft/spreadinterp.h>
-#include <utils/dispatcher.h>
 
 #include "ker_horner_allw_loop_constexpr.h"
 #include "ker_lowupsampfac_horner_allw_loop_constexpr.h"
@@ -1024,11 +1023,11 @@ template<typename T>
 static void spread_subproblem_1d(BIGINT off1, UBIGINT size1, T *du, UBIGINT M, T *kx,
                                  T *dd, const finufft_spread_opts &opts) noexcept {
   SpreadSubproblem1dCaller<T> caller{off1, size1, du, M, kx, dd, opts};
-  using NsSeq = utils::make_range<::finufft::common::MIN_NSPREAD,
+  using NsSeq = common::make_range<::finufft::common::MIN_NSPREAD,
                                   ::finufft::common::MAX_NSPREAD>;
   using KerSeq = std::make_integer_sequence<int, common::KEREVAL_METHODS>;
   std::array<int, 2> vals{opts.nspread, opts.kerevalmeth};
-  utils::dispatch(caller, vals, std::make_tuple(NsSeq{}, KerSeq{}));
+  common::dispatch(caller, vals, std::make_tuple(NsSeq{}, KerSeq{}));
 }
 
 template<typename T, int ns, int kerevalmeth>
@@ -1159,11 +1158,11 @@ static void spread_subproblem_2d(BIGINT off1, BIGINT off2, UBIGINT size1, UBIGIN
 */
 {
   SpreadSubproblem2dCaller<T> caller{off1, off2, size1, size2, du, M, kx, ky, dd, opts};
-  using NsSeq = utils::make_range<::finufft::common::MIN_NSPREAD,
+  using NsSeq = common::make_range<::finufft::common::MIN_NSPREAD,
                                   ::finufft::common::MAX_NSPREAD>;
   using KerSeq = std::make_integer_sequence<int, common::KEREVAL_METHODS>;
   std::array<int, 2> vals{opts.nspread, opts.kerevalmeth};
-  utils::dispatch(caller, vals, std::make_tuple(NsSeq{}, KerSeq{}));
+  common::dispatch(caller, vals, std::make_tuple(NsSeq{}, KerSeq{}));
 }
 
 template<typename T, int ns, int kerevalmeth>
@@ -1278,11 +1277,11 @@ du (size size1*size2*size3) is uniform complex output array
 {
   SpreadSubproblem3dCaller<T> caller{off1, off2, off3, size1, size2, size3, du, M, kx, ky,
                                      kz, dd, opts};
-  using NsSeq = utils::make_range<::finufft::common::MIN_NSPREAD,
+  using NsSeq = common::make_range<::finufft::common::MIN_NSPREAD,
                                   ::finufft::common::MAX_NSPREAD>;
   using KerSeq = std::make_integer_sequence<int, common::KEREVAL_METHODS>;
   std::array<int, 2> vals{opts.nspread, opts.kerevalmeth};
-  utils::dispatch(caller, vals, std::make_tuple(NsSeq{}, KerSeq{}));
+  common::dispatch(caller, vals, std::make_tuple(NsSeq{}, KerSeq{}));
 }
 
 template<typename T, bool thread_safe>
@@ -2037,11 +2036,11 @@ static int interpSorted(const std::vector<BIGINT> &sort_indices, const UBIGINT N
                         const finufft_spread_opts &opts) {
   InterpSortedCaller<T> caller{sort_indices, N1, N2, N3, data_uniform, M, kx, ky, kz,
                                data_nonuniform, opts};
-  using NsSeq = utils::make_range<::finufft::common::MIN_NSPREAD,
+  using NsSeq = common::make_range<::finufft::common::MIN_NSPREAD,
                                   ::finufft::common::MAX_NSPREAD>;
   using KerSeq = std::make_integer_sequence<int, common::KEREVAL_METHODS>;
   std::array<int, 2> vals{opts.nspread, opts.kerevalmeth};
-  return utils::dispatch(caller, vals, std::make_tuple(NsSeq{}, KerSeq{}));
+  return common::dispatch(caller, vals, std::make_tuple(NsSeq{}, KerSeq{}));
 }
 
 template<typename T>
