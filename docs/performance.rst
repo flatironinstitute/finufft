@@ -18,7 +18,7 @@ If none of the following examples is of any help for your specific use case, par
 This `GitHub discussion <https://github.com/flatironinstitute/finufft/discussions/452>`_ includes a snapshot of performance of the spreader/interpolator alone, for different compilers, and gives more insight on which one might be fastest for a specific CPU.
 
 The CPU used for all benchmarks below is: Intel(R) Xeon(R) w5-3435X.
-The compiler is GCC 13.2.0.
+The compiler is GCC 14.2.0
 The compiler flags are the ones used by default in the ``CMakeLists.txt`` of the version tested; we only impose a Release build and ``-march=native``.
 In the below graphs, the title includes the following parameters used:
  - type: transform type (1, 2 or 3)
