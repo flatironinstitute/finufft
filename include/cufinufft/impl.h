@@ -707,8 +707,7 @@ int cufinufft_setpts_impl(int M, T *d_kx, T *d_ky, T *d_kz, int N, T *d_s, T *d_
                                   d_plan->spopts);
     if (d_plan->dim > 1) {
       onedim_nuft_kernel_precomp<T>(nuft_precomp_f.data() + MAX_NQUAD,
-                                    nuft_precomp_z.data() + MAX_NQUAD,
-                                    d_plan->spopts);
+                                    nuft_precomp_z.data() + MAX_NQUAD, d_plan->spopts);
     }
     if (d_plan->dim > 2) {
       onedim_nuft_kernel_precomp<T>(nuft_precomp_f.data() + 2 * MAX_NQUAD,
@@ -765,8 +764,8 @@ int cufinufft_setpts_impl(int M, T *d_kx, T *d_ky, T *d_kz, int N, T *d_s, T *d_
           thrust::cuda::par.on(stream), phase_iterator, phase_iterator + N,
           d_plan->deconv, d_plan->deconv,
           [c1, c2, c3, d1, d2, d3, realsign] __host__
-          __device__(const thrust::tuple<T, T, T> tuple, cuda_complex<T> deconv)
-          -> cuda_complex<T> {
+          __device__(const thrust::tuple<T, T, T> tuple,
+                     cuda_complex<T> deconv) -> cuda_complex<T> {
             // d2 and d3 are 0 if dim < 2 and dim < 3
             const auto phase = c1 * (thrust::get<0>(tuple) + d1) +
                                c2 * (thrust::get<1>(tuple) + d2) +

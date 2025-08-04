@@ -52,10 +52,9 @@ int allocgpumem1d_plan(cufinufft_plan_t<T> *d_plan)
              cudaMallocWrapper(&d_plan->binstartpts, numbins * sizeof(int), stream,
                                d_plan->supports_pools))))
       goto finalize;
-    if ((ier = checkCudaErrors(cudaMallocWrapper(&d_plan->subprobstartpts,
-                                                 (numbins + 1) * sizeof(int),
-                                                 stream,
-                                                 d_plan->supports_pools))))
+    if ((ier = checkCudaErrors(
+             cudaMallocWrapper(&d_plan->subprobstartpts, (numbins + 1) * sizeof(int),
+                               stream, d_plan->supports_pools))))
       goto finalize;
   } break;
   default:
@@ -65,10 +64,8 @@ int allocgpumem1d_plan(cufinufft_plan_t<T> *d_plan)
 
   if (!d_plan->opts.gpu_spreadinterponly) {
     if ((ier = checkCudaErrors(
-             cudaMallocWrapper(&d_plan->fw,
-                               maxbatchsize * nf1 * sizeof(cuda_complex<T>),
-                               stream,
-                               d_plan->supports_pools))))
+             cudaMallocWrapper(&d_plan->fw, maxbatchsize * nf1 * sizeof(cuda_complex<T>),
+                               stream, d_plan->supports_pools))))
       goto finalize;
     if ((ier = checkCudaErrors(
              cudaMallocWrapper(&d_plan->fwkerhalf1, (nf1 / 2 + 1) * sizeof(T), stream,

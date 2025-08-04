@@ -256,20 +256,19 @@ int run_test(int method, int type, int N1, int N2, int N3, int M, T tol, T check
 
 int main(int argc, char *argv[]) {
   if (argc != 11) {
-    fprintf(stderr,
-            "Usage: cufinufft3d1_test method type N1 N2 N3 M tol checktol prec\n"
-            "Arguments:\n"
-            "  method: One of\n"
-            "    1: nupts driven,\n"
-            "    2: sub-problem, or\n"
-            "    4: block gather.\n"
-            "  type: Type of transform (1, 2, 3)"
-            "  N1, N2, N3: The size of the 3D array\n"
-            "  M: The number of non-uniform points\n"
-            "  tol: NUFFT tolerance\n"
-            "  checktol:  relative error to pass test\n"
-            "  prec:  'f' or 'd' (float/double)\n"
-            "  upsamplefac: upsampling factor\n");
+    fprintf(stderr, "Usage: cufinufft3d1_test method type N1 N2 N3 M tol checktol prec\n"
+                    "Arguments:\n"
+                    "  method: One of\n"
+                    "    1: nupts driven,\n"
+                    "    2: sub-problem, or\n"
+                    "    4: block gather.\n"
+                    "  type: Type of transform (1, 2, 3)"
+                    "  N1, N2, N3: The size of the 3D array\n"
+                    "  M: The number of non-uniform points\n"
+                    "  tol: NUFFT tolerance\n"
+                    "  checktol:  relative error to pass test\n"
+                    "  prec:  'f' or 'd' (float/double)\n"
+                    "  upsamplefac: upsampling factor\n");
     return 1;
   }
   const int method       = atoi(argv[1]);
