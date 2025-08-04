@@ -1,6 +1,9 @@
 #pragma once
 
+#include <array>
 #include <tuple>
+#include <type_traits>
+#include <utility>
 
 namespace finufft {
 namespace common {
@@ -19,6 +22,11 @@ struct offset_seq<Offset, std::integer_sequence<int, I...>> {
 template<int Start, int End>
 using make_range =
     typename offset_seq<Start, std::make_integer_sequence<int, End - Start + 1>>::type;
+
+template<typename Seq> struct DispatchParam {
+  int runtime_val;
+  Seq seq;
+};
 
 // Cartesian product over integer sequences.
 // Invokes f.template operator()<...>() for each combination of values.
@@ -47,42 +55,92 @@ template<typename F, typename... Seq> void product(F &f, Seq...) {
 }
 
 // Helper functor invoked for each combination to check runtime values
-template<typename Func, std::size_t N, typename ArgTuple> struct DispatcherCaller {
+template<typename Func, std::size_t N, typename ArgTuple, typename ResultType>
+struct DispatcherCaller {
   Func &func;
   const std::array<int, N> &vals;
   ArgTuple &args;
   bool matched = false;
-  int result   = 0;
+  std::conditional_t<std::is_void_v<ResultType>, char, ResultType> result{};
   template<int... Params> void operator()() {
     if (matched) return;
     std::array<int, sizeof...(Params)> p{Params...};
     if (p == vals) {
-      result = std::apply(
-          [&](auto &&...a) {
-            return func.template operator()<Params...>(std::forward<decltype(a)>(a)...);
-          },
-          args);
+      if constexpr (std::is_void_v<ResultType>) {
+        std::apply(
+            [&](auto &&...a) {
+              func.template operator()<Params...>(std::forward<decltype(a)>(a)...);
+            },
+            args);
+      } else {
+        result = std::apply(
+            [&](auto &&...a) {
+              return func.template operator()<Params...>(std::forward<decltype(a)>(a)...);
+            },
+            args);
+      }
       matched = true;
     }
   }
 };
 
+template<typename Seq> struct seq_first;
+template<int I0, int... I>
+struct seq_first<std::integer_sequence<int, I0, I...>> : std::integral_constant<int, I0> {
+};
+
+template<typename Tuple, std::size_t... I>
+auto extract_vals_impl(const Tuple &t, std::index_sequence<I...>) {
+  return std::array<int, sizeof...(I)>{std::get<I>(t).runtime_val...};
+}
+template<typename Tuple> auto extract_vals(const Tuple &t) {
+  using T = std::remove_reference_t<Tuple>;
+  return extract_vals_impl(t, std::make_index_sequence<std::tuple_size_v<T>>{});
+}
+
+template<typename Tuple, std::size_t... I>
+auto extract_seqs_impl(const Tuple &t, std::index_sequence<I...>) {
+  return std::make_tuple(std::get<I>(t).seq...);
+}
+template<typename Tuple> auto extract_seqs(const Tuple &t) {
+  using T = std::remove_reference_t<Tuple>;
+  return extract_seqs_impl(t, std::make_index_sequence<std::tuple_size_v<T>>{});
+}
+
+template<typename Func, typename ArgTuple, typename... Seq>
+struct dispatch_result_helper {
+  template<std::size_t... I>
+  static auto test(std::index_sequence<I...>)
+      -> decltype(std::declval<Func>().template operator()<seq_first<Seq>::value...>(
+          std::get<I>(std::declval<ArgTuple>())...));
+  using type = decltype(test(std::make_index_sequence<std::tuple_size_v<ArgTuple>>{}));
+};
+template<typename Func, typename ArgTuple, typename SeqTuple> struct dispatch_result;
+template<typename Func, typename ArgTuple, typename... Seq>
+struct dispatch_result<Func, ArgTuple, std::tuple<Seq...>> {
+  using type = typename dispatch_result_helper<Func, ArgTuple, Seq...>::type;
+};
+template<typename Func, typename ArgTuple, typename SeqTuple>
+using dispatch_result_t = typename dispatch_result<Func, ArgTuple, SeqTuple>::type;
+
 } // namespace detail
 
 // Generic dispatcher mapping runtime ints to template parameters.
-// vals contains the runtime values corresponding to each sequence.
+// params is a tuple of DispatchParam holding runtime values and sequences.
 // When a match is found, the functor is invoked with those template parameters
-// and its result returned. Otherwise, zero is returned.
-template<typename Func, std::size_t N, typename SeqTuple, typename... Args>
-int dispatch(Func &&func, const std::array<int, N> &vals, SeqTuple &&seqs,
-             Args &&...args) {
-  using tuple_t = std::remove_reference_t<SeqTuple>;
-  static_assert(N == std::tuple_size<tuple_t>::value, "vals size must match sequences");
-  auto arg_tuple = std::forward_as_tuple(std::forward<Args>(args)...);
-  detail::DispatcherCaller<Func, N, decltype(arg_tuple)> caller{func, vals, arg_tuple};
-  std::apply([&](auto &&...s) { detail::product(caller, s...); },
-             std::forward<SeqTuple>(seqs));
-  return caller.result;
+// and its result returned. Otherwise, the default-constructed result is returned.
+template<typename Func, typename ParamTuple, typename... Args>
+decltype(auto) dispatch(Func &&func, ParamTuple &&params, Args &&...args) {
+  using tuple_t           = std::remove_reference_t<ParamTuple>;
+  constexpr std::size_t N = std::tuple_size_v<tuple_t>;
+  auto vals               = detail::extract_vals(params);
+  auto seqs               = detail::extract_seqs(params);
+  auto arg_tuple          = std::forward_as_tuple(std::forward<Args>(args)...);
+  using result_t = detail::dispatch_result_t<Func, decltype(arg_tuple), decltype(seqs)>;
+  detail::DispatcherCaller<Func, N, decltype(arg_tuple), result_t> caller{func, vals,
+                                                                          arg_tuple};
+  std::apply([&](auto &&...s) { detail::product(caller, s...); }, seqs);
+  if constexpr (!std::is_void_v<result_t>) return caller.result;
 }
 
 } // namespace common

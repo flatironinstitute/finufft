@@ -194,12 +194,13 @@ auto set_nhg_type3(T S, T X, const cufinufft_opts &opts,
 
 // Wrapper around the generic dispatcher for nspread-based dispatch
 template<typename Func, typename T, typename... Args>
-int launch_dispatch_ns(Func &&func, int target_ns, Args &&...args) {
+auto launch_dispatch_ns(Func &&func, int target_ns, Args &&...args) {
   using NsSeq = finufft::common::make_range<::finufft::common::MIN_NSPREAD,
                                             ::finufft::common::MAX_NSPREAD>;
-  std::array<int, 1> vals{target_ns};
-  return finufft::common::dispatch(std::forward<Func>(func), vals,
-                                   std::make_tuple(NsSeq{}), std::forward<Args>(args)...);
+  auto params =
+      std::make_tuple(finufft::common::DispatchParam<NsSeq>{target_ns, NsSeq{}});
+  return finufft::common::dispatch(std::forward<Func>(func), params,
+                                   std::forward<Args>(args)...);
 }
 
 /**
