@@ -25,9 +25,3 @@ repos:
         # Optional: Include additional validations from SchemaStore
         additional_dependencies: ["validate-pyproject-schema-store[all]"]
         files: ^python/(finufft|cufinufft)/pyproject\.toml$
-  - repo: https://github.com/LilSpazJoekp/docstrfmt
-    rev: v1.10.0
-    hooks:
-      - id: docstrfmt
-        language_version: python3
-        types_or: [ rst ] # only needed if you want to include txt files.
