@@ -135,6 +135,7 @@ int run_test(int method, int type, int N1, int N2, int N3, int M, T tol, T check
   cudaEventElapsedTime(&milliseconds, start, stop);
   totaltime += milliseconds;
   printf("[time  ] cufinufft plan:\t\t %.3g s\n", milliseconds / 1000);
+
   cudaEventRecord(start);
   ier = cufinufft_setpts_impl<T>(M, d_x.data().get(), d_y.data().get(), d_z.data().get(),
                                  N1 * N2 * N3, d_s.data().get(), d_t.data().get(),
@@ -148,6 +149,7 @@ int run_test(int method, int type, int N1, int N2, int N3, int M, T tol, T check
   cudaEventElapsedTime(&milliseconds, start, stop);
   totaltime += milliseconds;
   printf("[time  ] cufinufft setNUpts:\t\t %.3g s\n", milliseconds / 1000);
+
   cudaEventRecord(start);
   ier = cufinufft_execute_impl<T>((cuda_complex<T> *)d_c.data().get(),
                                   (cuda_complex<T> *)d_fk.data().get(), dplan);
@@ -190,7 +192,10 @@ int run_test(int method, int type, int N1, int N2, int N3, int M, T tol, T check
       Ft += c[j] * exp(J * (nt1 * x[j] + nt2 * y[j] + nt3 * z[j])); // crude direct
 
     int it = N1 / 2 + nt1 + N1 * (N2 / 2 + nt2) + N1 * N2 * (N3 / 2 + nt3); // index
-    // in complex F as 1d array
+                                                                            // in
+                                                                            // complex
+                                                                            // F as 1d
+                                                                            // array
     rel_error = abs(Ft - fk[it]) / infnorm(N1, (std::complex<T> *)fk.data());
     printf("[gpu   ] one mode: rel err in F[%d,%d,%d] is %.3g\n", nt1, nt2, nt3,
            rel_error);
@@ -251,21 +256,20 @@ int run_test(int method, int type, int N1, int N2, int N3, int M, T tol, T check
 
 int main(int argc, char *argv[]) {
   if (argc != 11) {
-    fprintf(stderr,
-            "Usage: cufinufft3d1_test method type N1 N2 N3 M tol checktol prec\n"
-            "Arguments:\n"
-            "  method: One of\n"
-            "    1: nupts driven,\n"
-            "    2: sub-problem, \n"
-            "    3: output driven, \n"
-            "    4: block gather.\n"
-            "  type: Type of transform (1, 2, 3)"
-            "  N1, N2, N3: The size of the 3D array\n"
-            "  M: The number of non-uniform points\n"
-            "  tol: NUFFT tolerance\n"
-            "  checktol:  relative error to pass test\n"
-            "  prec:  'f' or 'd' (float/double)\n"
-            "  upsamplefac: upsampling factor\n");
+    fprintf(stderr, "Usage: cufinufft3d1_test method type N1 N2 N3 M tol checktol prec\n"
+                    "Arguments:\n"
+                    "  method: One of\n"
+                    "    1: nupts driven,\n"
+                    "    2: sub-problem, \n"
+                    "    3: output driven, \n"
+                    "    4: block gather.\n"
+                    "  type: Type of transform (1, 2, 3)"
+                    "  N1, N2, N3: The size of the 3D array\n"
+                    "  M: The number of non-uniform points\n"
+                    "  tol: NUFFT tolerance\n"
+                    "  checktol:  relative error to pass test\n"
+                    "  prec:  'f' or 'd' (float/double)\n"
+                    "  upsamplefac: upsampling factor\n");
     return 1;
   }
   const int method       = atoi(argv[1]);
