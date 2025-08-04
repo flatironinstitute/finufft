@@ -35,9 +35,8 @@ template<typename T>
 FINUFFT_EXPORT int FINUFFT_CDECL spreadinterp(
     UBIGINT N1, UBIGINT N2, UBIGINT N3, T *data_uniform, UBIGINT M, T *kx, T *ky, T *kz,
     T *data_nonuniform, const finufft_spread_opts &opts);
-template<typename T>
+
 FINUFFT_EXPORT int FINUFFT_CDECL spreadcheck(UBIGINT N1, UBIGINT N2, UBIGINT N3,
-                                             UBIGINT N, T *kx, T *ky, T *kz,
                                              const finufft_spread_opts &opts);
 template<typename T>
 FINUFFT_EXPORT int FINUFFT_CDECL indexSort(std::vector<BIGINT> &sort_indices, UBIGINT N1,

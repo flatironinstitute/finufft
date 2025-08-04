@@ -817,7 +817,7 @@ int FINUFFT_PLAN_T<TF>::setpts(BIGINT nj, TF *xj, TF *yj, TF *zj, BIGINT nk, TF 
   if (type != 3) {          // ------------------ TYPE 1,2 SETPTS -------------------
                             // (all we can do is check and maybe bin-sort the NU pts)
     XYZ     = {xj, yj, zj}; // plan must keep pointers to user's fixed NU pts
-    int ier = spreadcheck(nfdim[0], nfdim[1], nfdim[2], nj, xj, yj, zj, spopts);
+    int ier = spreadcheck(nfdim[0], nfdim[1], nfdim[2], spopts);
     if (ier)                // no warnings allowed here
       return ier;
     timer.restart();
