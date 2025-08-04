@@ -1,9 +1,10 @@
 repos:
   - repo: https://github.com/pre-commit/mirrors-clang-format
-    rev: 'v19.1.7'
+    rev: 'v20.1.8'
     hooks:
       - id: clang-format
         types_or: [c++, c, cuda]
+        files: \.(c|cc|h|hpp|cu|cuh)$
         exclude: '(^|/)(matlab/.*)$'
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v5.0.0
@@ -14,13 +15,19 @@ repos:
       - id: check-illegal-windows-names
       - id: mixed-line-ending
   - repo: https://github.com/BlankSpruce/gersemi
-    rev: 0.19.1
+    rev: 0.21.0
     hooks:
       - id: gersemi
   - repo: https://github.com/abravalheri/validate-pyproject
-    rev: v0.23  # Use the latest stable version
+    rev: v0.24.1
     hooks:
       - id: validate-pyproject
         # Optional: Include additional validations from SchemaStore
         additional_dependencies: ["validate-pyproject-schema-store[all]"]
         files: ^python/(finufft|cufinufft)/pyproject\.toml$
+  - repo: https://github.com/LilSpazJoekp/docstrfmt
+    rev: v1.10.0
+    hooks:
+      - id: docstrfmt
+        language_version: python3
+        types_or: [ rst ] # only needed if you want to include txt files.

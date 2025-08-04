@@ -714,8 +714,7 @@ int cufinufft_setpts_impl(int M, T *d_kx, T *d_ky, T *d_kz, int N, T *d_s, T *d_
                                   d_plan->spopts);
     if (d_plan->dim > 1) {
       onedim_nuft_kernel_precomp<T>(nuft_precomp_f.data() + MAX_NQUAD,
-                                    nuft_precomp_z.data() + MAX_NQUAD,
-                                    d_plan->spopts);
+                                    nuft_precomp_z.data() + MAX_NQUAD, d_plan->spopts);
     }
     if (d_plan->dim > 2) {
       onedim_nuft_kernel_precomp<T>(nuft_precomp_f.data() + 2 * MAX_NQUAD,

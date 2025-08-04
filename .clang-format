@@ -14,14 +14,14 @@ AllowShortLoopsOnASingleLine: true
 BreakBeforeBraces: Attach
 BreakBeforeBinaryOperators: None
 ColumnLimit: 90
-ExperimentalAutoDetectBinPacking: true
+ExperimentalAutoDetectBinPacking: false  # <--- safer default for .cu/.cuh
 FixNamespaceComments: true
 IndentWidth: 2
 MaxEmptyLinesToKeep: 1
 NamespaceIndentation: None
-ReflowComments: true
+ReflowComments: IndentOnly
 PenaltyBreakComment: 1
-PenaltyBreakOpenParenthesis: 1  # modified; was 0
+PenaltyBreakOpenParenthesis: 1
 SortIncludes: CaseSensitive
 SortUsingDeclarations: true
 SpacesBeforeTrailingComments: 1

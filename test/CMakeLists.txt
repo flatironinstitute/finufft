@@ -95,9 +95,8 @@ function(add_tests_with_prec PREC REQ_TOL CHECK_TOL SUFFIX)
         COMMAND spreadinterp1d_test${SUFFIX} 1e3 1e3 ${REQ_TOL} 0 2 2.0 ${CHECK_TOL}
         WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
     )
-    
-    add_test(NAME run_adjointness_${PREC} COMMAND adjointness${SUFFIX} WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
 
+    add_test(NAME run_adjointness_${PREC} COMMAND adjointness${SUFFIX} WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
 endfunction()
 
 # use above function to actually add the tests, with certain requested and check

@@ -20,12 +20,8 @@ template<typename BIGINT,
          typename CArr, // cArr[j] yields Complex<FLT>
          typename FArr  // fArr[m] yields Complex<FLT>
          >
-void dirft1d1(const BIGINT nj,
-              const XArr &x,
-              const CArr &c,
-              const int iflag,
-              const BIGINT ms,
-              FArr &fArr) {
+void dirft1d1(const BIGINT nj, const XArr &x, const CArr &c, const int iflag,
+              const BIGINT ms, FArr &fArr) {
   using Complex = std::decay_t<decltype(c[0])>;
   using FLT     = typename Complex::value_type;
 
@@ -63,11 +59,7 @@ template<typename BIGINT,
          typename CArr, // cArr[j] yields Complex<FLT>
          typename FArr  // fArr[m] yields Complex<FLT>
          >
-void dirft1d2(const BIGINT nj,
-              const XArr &x,
-              CArr &c,
-              const int iflag,
-              const BIGINT ms,
+void dirft1d2(const BIGINT nj, const XArr &x, CArr &c, const int iflag, const BIGINT ms,
               const FArr &f) {
   using Complex = std::decay_t<decltype(c[0])>;
   using FLT     = typename Complex::value_type;
@@ -107,13 +99,8 @@ template<typename BIGINT,
          typename SArr, // sArr[k] yields real FLT
          typename FArr  // fArr[k] yields Complex<FLT>
          >
-void dirft1d3(const BIGINT nj,
-              const XArr &x,
-              const CArr &c,
-              const int iflag,
-              const BIGINT nk,
-              const SArr &sArr,
-              FArr &f) {
+void dirft1d3(const BIGINT nj, const XArr &x, const CArr &c, const int iflag,
+              const BIGINT nk, const SArr &sArr, FArr &f) {
   using Complex = std::decay_t<decltype(c[0])>;
   using FLT     = typename Complex::value_type;
 

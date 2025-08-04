@@ -1,4 +1,5 @@
 #include <cmath>
+#include <complex.h>
 #include <complex>
 #include <cufinufft/contrib/helper_cuda.h>
 #include <iomanip>
@@ -132,6 +133,7 @@ int run_test(int method, int type, int N1, int N2, int N3, int M, T tol, T check
   cudaEventElapsedTime(&milliseconds, start, stop);
   totaltime += milliseconds;
   printf("[time  ] cufinufft plan:\t\t %.3g s\n", milliseconds / 1000);
+
   cudaEventRecord(start);
   ier = cufinufft_setpts_impl<T>(M, d_x.data().get(), d_y.data().get(), d_z.data().get(),
                                  N1 * N2 * N3, d_s.data().get(), d_t.data().get(),
@@ -145,6 +147,7 @@ int run_test(int method, int type, int N1, int N2, int N3, int M, T tol, T check
   cudaEventElapsedTime(&milliseconds, start, stop);
   totaltime += milliseconds;
   printf("[time  ] cufinufft setNUpts:\t\t %.3g s\n", milliseconds / 1000);
+
   cudaEventRecord(start);
   ier = cufinufft_execute_impl<T>((cuda_complex<T> *)d_c.data().get(),
                                   (cuda_complex<T> *)d_fk.data().get(), dplan);
@@ -187,7 +190,10 @@ int run_test(int method, int type, int N1, int N2, int N3, int M, T tol, T check
       Ft += c[j] * exp(J * (nt1 * x[j] + nt2 * y[j] + nt3 * z[j])); // crude direct
 
     int it = N1 / 2 + nt1 + N1 * (N2 / 2 + nt2) + N1 * N2 * (N3 / 2 + nt3); // index
-    // in complex F as 1d array
+                                                                            // in
+                                                                            // complex
+                                                                            // F as 1d
+                                                                            // array
     rel_error = abs(Ft - fk[it]) / infnorm(N1, (std::complex<T> *)fk.data());
     printf("[gpu   ] one mode: rel err in F[%d,%d,%d] is %.3g\n", nt1, nt2, nt3,
            rel_error);
