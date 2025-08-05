@@ -5,13 +5,15 @@
 #include <type_traits>
 #include <utility>
 
+#include "defines.h"
+
 namespace finufft {
 namespace common {
 
-void gaussquad(int n, double *xgl, double *wgl);
+FINUFFT_EXPORT void FINUFFT_CDECL gaussquad(int n, double *xgl, double *wgl);
 std::tuple<double, double> leg_eval(int n, double x);
 
-// helper to generate integer sequence in range [Start, End]
+// helper to generate the integer sequence in range [Start, End]
 template<int Offset, typename Seq> struct offset_seq;
 
 template<int Offset, int... I>
