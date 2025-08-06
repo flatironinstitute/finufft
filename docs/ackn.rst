@@ -47,7 +47,7 @@ Testing, bug reports, helpful discussions, contributions:
 * Reinhard Neder - fortran90 demo using finufft as module, OSX build
 * Vineet Bansal - py packaging
 * Jason Kaye - Gauss-Legendre quadrature code from cppdlr
-* Juan Ignacio Polanco - cuFINUFFT output driven
+* Juan Ignacio Polanco - GPU output driven idea, discussions
 * Julius Herb - Poisson equation tutorial in Python
 * Felix F. Zimmermann - Python dependency issues in cufinufft
 * Yuwei Sun - Available thread count fix
@@ -57,5 +57,5 @@ Logo design: `Sherry Choi <http://www.sherrychoi.com>`_ with input
 from Alex Barnett and Lucy Reading-Ikkanda.
 
 We are also indebted to the authors of other NUFFT codes
-such as NFFT3, CMCL NUFFT, MIRT, BART, DUCC0, etc, upon whose interfaces, code,
-and algorithms we have built.
+such as NFFT3, CMCL NUFFT, MIRT, BART, DUCC0, NonuniformFFTs.jl, etc,
+upon whose interfaces, code, and algorithms we have built.
