@@ -155,7 +155,7 @@ int main(int argc, char *argv[])
 
   printf("FINUFFT %dd%d use guru interface to do %d calls together:-------------------\n",
          ndim, type, ntransf);
-  FINUFFT_PLAN_S *plan;             // instantiate a finufft_plan
+  FINUFFT_PLAN plan;                // instantiate a finufft_plan
   CNTime timer;
   timer.start();                    // Guru Step 1
   BIGINT n_modes[3] = {N1, N2, N3}; // #modes per dimension (ignored for t3)
