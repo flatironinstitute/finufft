@@ -95,6 +95,9 @@ $     }
 $     else if (strcmp(fname[ifield],"gpu_device_id") == 0) {
 $       oc->gpu_device_id = (int)round(*mxGetPr(mxGetFieldByNumber(om,idx,ifield)));
 $     }
+$     else if (strcmp(fname[ifield],"gpu_np") == 0) {
+$       oc->gpu_np = (int)round(*mxGetPr(mxGetFieldByNumber(om,idx,ifield)));
+$     }
 $     else
 $       continue;
 $   }
