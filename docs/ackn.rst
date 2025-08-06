@@ -47,7 +47,6 @@ Testing, bug reports, helpful discussions, contributions:
 * Reinhard Neder - fortran90 demo using finufft as module, OSX build
 * Vineet Bansal - py packaging
 * Jason Kaye - Gauss-Legendre quadrature code from cppdlr
-* Juan Ignacio Polanco - cuFINUFFT output driven
 * Julius Herb - Poisson equation tutorial in Python
 * Felix F. Zimmermann - Python dependency issues in cufinufft
 * Yuwei Sun - Available thread count fix
