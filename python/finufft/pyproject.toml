@@ -44,6 +44,7 @@ cmake.targets = ["finufft"]
 cmake.define = {"FINUFFT_BUILD_PYTHON" = "ON"}
 cmake.args = ["-G Ninja"]
 wheel.packages = ["finufft"]
+editable.mode = "redirect"
 
 # Indicate that we don't depend on the CPython API
 wheel.py-api = "py3"

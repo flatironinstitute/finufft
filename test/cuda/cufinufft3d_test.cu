@@ -1,5 +1,4 @@
 #include <cmath>
-#include <complex.h>
 #include <complex>
 #include <cufinufft/contrib/helper_cuda.h>
 #include <iomanip>
@@ -117,13 +116,11 @@ int run_test(int method, int type, int N1, int N2, int N3, int M, T tol, T check
   cufinufft_opts opts;
   cufinufft_default_opts(&opts);
 
-  opts.gpu_method       = method;
-  opts.gpu_kerevalmeth  = 1;
-  opts.gpu_maxbatchsize = 1;
-  opts.upsampfac        = upsampfac;
-  int nmodes[3]         = {N1, N2, N3};
-  int ntransf           = 1;
-
+  opts.gpu_method      = method;
+  opts.gpu_kerevalmeth = 1;
+  opts.upsampfac       = upsampfac;
+  int nmodes[3]        = {N1, N2, N3};
+  int ntransf          = 1;
   cudaEventRecord(start);
   ier = cufinufft_makeplan_impl(type, dim, nmodes, iflag, ntransf, tol, &dplan, &opts);
   if (ier != 0) {
@@ -260,7 +257,8 @@ int main(int argc, char *argv[]) {
                     "Arguments:\n"
                     "  method: One of\n"
                     "    1: nupts driven,\n"
-                    "    2: sub-problem, or\n"
+                    "    2: sub-problem, \n"
+                    "    3: output driven, \n"
                     "    4: block gather.\n"
                     "  type: Type of transform (1, 2, 3)"
                     "  N1, N2, N3: The size of the 3D array\n"
