@@ -352,7 +352,7 @@ Algorithm performance options
 
 **gpu_stream**: CUDA stream to use. Leave at default unless you know what you're doing.
 
-**gpu_np**: Min batch size used for ``method 3`` (OD). It has to be a multiple of 16. It controls ho much of shared memory is left as GPU cache instead of being manually populated. Default is usually best.
+**gpu_np**: Min batch size used for ``method 3`` (output-driven, OD). It has to be a multiple of 16. It controls how much of shared memory is left as GPU cache instead of being manually populated. Default (16) is usually best.
 
 For all GPU option default values we refer to the source code in
 ``src/cuda/cufinufft.cu:cufinufft_default_opts``):
