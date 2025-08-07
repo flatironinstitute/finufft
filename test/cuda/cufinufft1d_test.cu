@@ -8,6 +8,7 @@
 #include <thrust/device_vector.h>
 #include <thrust/host_vector.h>
 
+#include <common/common.h>
 #include <cufinufft.h>
 
 #include "../utils/dirft1d.hpp"
@@ -17,6 +18,8 @@
 #include <cufinufft/utils.h>
 
 constexpr auto TEST_BIGPROB = 1e8;
+
+using ::finufft::common::PI;
 
 template<typename T>
 int run_test(int method, int type, int N1, int M, T tol, T checktol, int iflag,
@@ -42,7 +45,7 @@ int run_test(int method, int type, int N1, int M, T tol, T checktol, int iflag,
 
   // Making data
   for (int i = 0; i < M; i++) {
-    x[i] = M_PI * randm11(); // x in [-pi,pi)
+    x[i] = PI * randm11(); // x in [-pi,pi)
   }
 
   if (type == 1) {
