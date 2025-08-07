@@ -8,11 +8,11 @@
 
 #include <xsimd/xsimd.hpp>
 
+#include <array>
 #include <cinttypes>
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
-#include <array>
 #include <vector>
 
 using namespace std;
@@ -79,8 +79,7 @@ template<class T, uint8_t N> constexpr auto find_optimal_simd_width() {
   uint8_t optimal_simd_width = min_simd_width<T>();
   uint8_t min_iterations     = (N + optimal_simd_width - 1) / optimal_simd_width;
   for (uint8_t simd_width = optimal_simd_width;
-       simd_width <= xsimd::batch<T, xsimd::best_arch>::size;
-       simd_width *= 2) {
+       simd_width <= xsimd::batch<T, xsimd::best_arch>::size; simd_width *= 2) {
     uint8_t iterations = (N + simd_width - 1) / simd_width;
     if (iterations < min_iterations) {
       min_iterations     = iterations;
@@ -280,9 +279,9 @@ static void evaluate_kernel_vector(T *ker, T *args,
 template<typename T, uint8_t w, uint8_t upsampfact,
          class simd_type =
              xsimd::make_sized_batch_t<T, find_optimal_simd_width<T, w>()>> // aka ns
-static FINUFFT_ALWAYS_INLINE void eval_kernel_vec_Horner(
-    T *FINUFFT_RESTRICT ker, T x,
-    const finufft_spread_opts &opts [[maybe_unused]]) noexcept
+static FINUFFT_ALWAYS_INLINE void eval_kernel_vec_Horner(T *FINUFFT_RESTRICT ker, T x,
+                                                         const finufft_spread_opts &opts
+                                                         [[maybe_unused]]) noexcept
 /* Fill ker[] with Horner piecewise poly approx to [-w/2,w/2] ES kernel eval at
 x_j = x + j,  for j=0,..,w-1.  Thus x in [-w/2,-w/2+1].   w is aka ns.
 This is the current evaluation method, since it's faster (except i7 w=16).
@@ -1002,8 +1001,7 @@ FINUFFT_NEVER_INLINE void spread_subproblem_1d_kernel(
 
 namespace {
 
-template<typename T>
-struct SpreadSubproblem1dCaller {
+template<typename T> struct SpreadSubproblem1dCaller {
   BIGINT off1;
   UBIGINT size1;
   T *du;
@@ -1023,11 +1021,11 @@ template<typename T>
 static void spread_subproblem_1d(BIGINT off1, UBIGINT size1, T *du, UBIGINT M, T *kx,
                                  T *dd, const finufft_spread_opts &opts) noexcept {
   SpreadSubproblem1dCaller<T> caller{off1, size1, du, M, kx, dd, opts};
-  using NsSeq = common::make_range<::finufft::common::MIN_NSPREAD,
-                                  ::finufft::common::MAX_NSPREAD>;
+  using NsSeq =
+      common::make_range<::finufft::common::MIN_NSPREAD, ::finufft::common::MAX_NSPREAD>;
   using KerSeq = std::make_integer_sequence<int, common::KEREVAL_METHODS>;
-  auto params = std::make_tuple(common::DispatchParam<NsSeq>{opts.nspread, NsSeq{}},
-                                common::DispatchParam<KerSeq>{opts.kerevalmeth, KerSeq{}});
+  auto params  = std::make_tuple(common::DispatchParam<NsSeq>{opts.nspread},
+                                 common::DispatchParam<KerSeq>{opts.kerevalmeth});
   common::dispatch(caller, params);
 }
 
@@ -1126,8 +1124,7 @@ FINUFFT_NEVER_INLINE static void spread_subproblem_2d_kernel(
 
 namespace {
 
-template<typename T>
-struct SpreadSubproblem2dCaller {
+template<typename T> struct SpreadSubproblem2dCaller {
   BIGINT off1, off2;
   UBIGINT size1, size2;
   T *du;
@@ -1159,11 +1156,11 @@ static void spread_subproblem_2d(BIGINT off1, BIGINT off2, UBIGINT size1, UBIGIN
 */
 {
   SpreadSubproblem2dCaller<T> caller{off1, off2, size1, size2, du, M, kx, ky, dd, opts};
-  using NsSeq = common::make_range<::finufft::common::MIN_NSPREAD,
-                                  ::finufft::common::MAX_NSPREAD>;
+  using NsSeq =
+      common::make_range<::finufft::common::MIN_NSPREAD, ::finufft::common::MAX_NSPREAD>;
   using KerSeq = std::make_integer_sequence<int, common::KEREVAL_METHODS>;
-  auto params = std::make_tuple(common::DispatchParam<NsSeq>{opts.nspread, NsSeq{}},
-                                common::DispatchParam<KerSeq>{opts.kerevalmeth, KerSeq{}});
+  auto params  = std::make_tuple(common::DispatchParam<NsSeq>{opts.nspread},
+                                 common::DispatchParam<KerSeq>{opts.kerevalmeth});
   common::dispatch(caller, params);
 }
 
@@ -1245,8 +1242,7 @@ FINUFFT_NEVER_INLINE void spread_subproblem_3d_kernel(
 
 namespace {
 
-template<typename T>
-struct SpreadSubproblem3dCaller {
+template<typename T> struct SpreadSubproblem3dCaller {
   BIGINT off1, off2, off3;
   UBIGINT size1, size2, size3;
   T *du;
@@ -1277,13 +1273,13 @@ dd (size M complex) are complex source strengths
 du (size size1*size2*size3) is uniform complex output array
 */
 {
-  SpreadSubproblem3dCaller<T> caller{off1, off2, off3, size1, size2, size3, du, M, kx, ky,
-                                     kz, dd, opts};
-  using NsSeq = common::make_range<::finufft::common::MIN_NSPREAD,
-                                  ::finufft::common::MAX_NSPREAD>;
+  SpreadSubproblem3dCaller<T> caller{off1, off2, off3, size1, size2, size3, du,
+                                     M,    kx,   ky,   kz,    dd,    opts};
+  using NsSeq =
+      common::make_range<::finufft::common::MIN_NSPREAD, ::finufft::common::MAX_NSPREAD>;
   using KerSeq = std::make_integer_sequence<int, common::KEREVAL_METHODS>;
-  auto params = std::make_tuple(common::DispatchParam<NsSeq>{opts.nspread, NsSeq{}},
-                                common::DispatchParam<KerSeq>{opts.kerevalmeth, KerSeq{}});
+  auto params  = std::make_tuple(common::DispatchParam<NsSeq>{opts.nspread},
+                                 common::DispatchParam<KerSeq>{opts.kerevalmeth});
   common::dispatch(caller, params);
 }
 
@@ -1424,11 +1420,10 @@ static void bin_sort_singlethread(std::vector<BIGINT> &ret, UBIGINT M, const T *
 }
 
 template<typename T>
-static void bin_sort_multithread(std::vector<BIGINT> &ret, UBIGINT M, T *kx, T *ky,
-                                 T *kz, UBIGINT N1, UBIGINT N2, UBIGINT N3,
-                                 double bin_size_x, double bin_size_y,
-                                 double bin_size_z, int debug [[maybe_unused]],
-                                 int nthr)
+static void bin_sort_multithread(std::vector<BIGINT> &ret, UBIGINT M, T *kx, T *ky, T *kz,
+                                 UBIGINT N1, UBIGINT N2, UBIGINT N3, double bin_size_x,
+                                 double bin_size_y, double bin_size_z,
+                                 int debug [[maybe_unused]], int nthr)
 /* Mostly-OpenMP'ed version of bin_sort.
    For documentation see: bin_sort_singlethread.
    Caution: when M (# NU pts) << N (# U pts), is SLOWER than single-thread.
@@ -2011,8 +2006,7 @@ FINUFFT_NEVER_INLINE static int interpSorted_kernel(
 
 namespace {
 
-template<typename T>
-struct InterpSortedCaller {
+template<typename T> struct InterpSortedCaller {
   const std::vector<BIGINT> &sort_indices;
   UBIGINT N1, N2, N3;
   T *data_uniform;
@@ -2024,26 +2018,25 @@ struct InterpSortedCaller {
   const finufft_spread_opts &opts;
   template<int NS, int KM> int operator()() const {
     return interpSorted_kernel<T, NS, KM>(sort_indices, N1, N2, N3, data_uniform, M, kx,
-                                         ky, kz, data_nonuniform, opts);
+                                          ky, kz, data_nonuniform, opts);
   }
 };
 
 } // namespace
 
 template<typename T>
-static int interpSorted(const std::vector<BIGINT> &sort_indices, const UBIGINT N1,
-                        const UBIGINT N2, const UBIGINT N3,
-                        T *FINUFFT_RESTRICT data_uniform, const UBIGINT M,
-                        T *FINUFFT_RESTRICT kx, T *FINUFFT_RESTRICT ky,
-                        T *FINUFFT_RESTRICT kz, T *FINUFFT_RESTRICT data_nonuniform,
-                        const finufft_spread_opts &opts) {
-  InterpSortedCaller<T> caller{sort_indices, N1, N2, N3, data_uniform, M, kx, ky, kz,
+static int interpSorted(
+    const std::vector<BIGINT> &sort_indices, const UBIGINT N1, const UBIGINT N2,
+    const UBIGINT N3, T *FINUFFT_RESTRICT data_uniform, const UBIGINT M,
+    T *FINUFFT_RESTRICT kx, T *FINUFFT_RESTRICT ky, T *FINUFFT_RESTRICT kz,
+    T *FINUFFT_RESTRICT data_nonuniform, const finufft_spread_opts &opts) {
+  InterpSortedCaller<T> caller{sort_indices,    N1,  N2, N3, data_uniform, M, kx, ky, kz,
                                data_nonuniform, opts};
-  using NsSeq = common::make_range<::finufft::common::MIN_NSPREAD,
-                                  ::finufft::common::MAX_NSPREAD>;
+  using NsSeq =
+      common::make_range<::finufft::common::MIN_NSPREAD, ::finufft::common::MAX_NSPREAD>;
   using KerSeq = std::make_integer_sequence<int, common::KEREVAL_METHODS>;
-  auto params = std::make_tuple(common::DispatchParam<NsSeq>{opts.nspread, NsSeq{}},
-                                common::DispatchParam<KerSeq>{opts.kerevalmeth, KerSeq{}});
+  auto params  = std::make_tuple(common::DispatchParam<NsSeq>{opts.nspread},
+                                 common::DispatchParam<KerSeq>{opts.kerevalmeth});
   return common::dispatch(caller, params);
 }
 
@@ -2087,8 +2080,8 @@ template int spreadinterpSorted<double>(
 
 template<typename T>
 FINUFFT_EXPORT int FINUFFT_CDECL setup_spreader(
-    finufft_spread_opts &opts, T eps, double upsampfac, int kerevalmeth,
-    int debug, int showwarn, int dim, int spreadinterponly)
+    finufft_spread_opts &opts, T eps, double upsampfac, int kerevalmeth, int debug,
+    int showwarn, int dim, int spreadinterponly)
 /* Initializes spreader kernel parameters given desired NUFFT tolerance eps,
    upsampling factor (=sigma in paper, or R in Dutt-Rokhlin), ker eval meth
    (either 0:exp(sqrt()), 1: Horner ppval), and some debug-level flags.
@@ -2188,11 +2181,11 @@ FINUFFT_EXPORT int FINUFFT_CDECL setup_spreader(
   return ier;
 }
 template FINUFFT_EXPORT int FINUFFT_CDECL setup_spreader<float>(
-    finufft_spread_opts &opts, float eps, double upsampfac, int kerevalmeth,
-    int debug, int showwarn, int dim, int spreadinterponly);
+    finufft_spread_opts &opts, float eps, double upsampfac, int kerevalmeth, int debug,
+    int showwarn, int dim, int spreadinterponly);
 template FINUFFT_EXPORT int FINUFFT_CDECL setup_spreader<double>(
-    finufft_spread_opts &opts, double eps, double upsampfac, int kerevalmeth,
-    int debug, int showwarn, int dim, int spreadinterponly);
+    finufft_spread_opts &opts, double eps, double upsampfac, int kerevalmeth, int debug,
+    int showwarn, int dim, int spreadinterponly);
 
 template<typename T>
 T evaluate_kernel(T x, const finufft_spread_opts &opts)

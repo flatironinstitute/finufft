@@ -27,7 +27,7 @@ using make_range =
 
 template<typename Seq> struct DispatchParam {
   int runtime_val;
-  Seq seq;
+  using seq_type = Seq;
 };
 
 // Cartesian product over integer sequences.
@@ -62,11 +62,9 @@ struct DispatcherCaller {
   Func &func;
   const std::array<int, N> &vals;
   ArgTuple &args;
-  bool matched = false;
   std::conditional_t<std::is_void_v<ResultType>, char, ResultType> result{};
   template<int... Params> void operator()() {
-    if (matched) return;
-    std::array<int, sizeof...(Params)> p{Params...};
+    static constexpr std::array<int, sizeof...(Params)> p{Params...};
     if (p == vals) {
       if constexpr (std::is_void_v<ResultType>) {
         std::apply(
@@ -81,7 +79,6 @@ struct DispatcherCaller {
             },
             args);
       }
-      matched = true;
     }
   }
 };
@@ -102,7 +99,8 @@ template<typename Tuple> auto extract_vals(const Tuple &t) {
 
 template<typename Tuple, std::size_t... I>
 auto extract_seqs_impl(const Tuple &t, std::index_sequence<I...>) {
-  return std::make_tuple(std::get<I>(t).seq...);
+  using T = std::remove_reference_t<Tuple>;
+  return std::make_tuple(typename std::tuple_element_t<I, T>::seq_type{}...);
 }
 template<typename Tuple> auto extract_seqs(const Tuple &t) {
   using T = std::remove_reference_t<Tuple>;

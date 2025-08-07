@@ -197,8 +197,7 @@ template<typename Func, typename T, typename... Args>
 auto launch_dispatch_ns(Func &&func, int target_ns, Args &&...args) {
   using NsSeq = finufft::common::make_range<::finufft::common::MIN_NSPREAD,
                                             ::finufft::common::MAX_NSPREAD>;
-  auto params =
-      std::make_tuple(finufft::common::DispatchParam<NsSeq>{target_ns, NsSeq{}});
+  auto params = std::make_tuple(finufft::common::DispatchParam<NsSeq>{target_ns});
   return finufft::common::dispatch(std::forward<Func>(func), params,
                                    std::forward<Args>(args)...);
 }
