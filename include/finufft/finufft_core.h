@@ -4,66 +4,9 @@
 #include <xsimd/xsimd.hpp>
 
 #include <array>
+#include <common/common.h>
 #include <finufft_errors.h>
 #include <memory>
-
-/* IMPORTANT: for Windows compilers, you should add a line
-        #define FINUFFT_DLL
-   here if you are compiling/using FINUFFT as a DLL,
-   in order to do the proper importing/exporting, or
-   alternatively compile with -DFINUFFT_DLL or the equivalent
-   command-line flag.  This is not necessary under MinGW/Cygwin, where
-   libtool does the imports/exports automatically.
-   Alternatively use include(GenerateExportHeader) and
-   generate_export_header(finufft) to auto generate an header containing
-   these defines.The main reason is that if msvc changes the way it deals
-   with it in the future we just need to update cmake for it to work
-   instead of having a check on the msvc version. */
-#if defined(FINUFFT_DLL) && (defined(_WIN32) || defined(__WIN32__))
-#if defined(dll_EXPORTS)
-#define FINUFFT_EXPORT __declspec(dllexport)
-#else
-#define FINUFFT_EXPORT __declspec(dllimport)
-#endif
-#else
-#define FINUFFT_EXPORT
-#endif
-
-/* specify calling convention (Windows only)
-   The cdecl calling convention is actually not the default in all but a very
-   few C/C++ compilers.
-   If the user code changes the default compiler calling convention, may need
-   this when generating DLL. */
-#if defined(_WIN32) || defined(__WIN32__)
-#define FINUFFT_CDECL __cdecl
-#else
-#define FINUFFT_CDECL
-#endif
-
-// inline macro, to force inlining of small functions
-// this avoids the use of macros to implement functions
-#if defined(_MSC_VER)
-#define FINUFFT_ALWAYS_INLINE __forceinline inline
-#define FINUFFT_NEVER_INLINE  __declspec(noinline)
-#define FINUFFT_RESTRICT      __restrict
-#define FINUFFT_UNREACHABLE   __assume(0)
-#define FINUFFT_UNLIKELY(x)   (x)
-#define FINUFFT_LIKELY(x)     (x)
-#elif defined(__GNUC__) || defined(__clang__)
-#define FINUFFT_ALWAYS_INLINE __attribute__((always_inline)) inline
-#define FINUFFT_NEVER_INLINE  __attribute__((noinline))
-#define FINUFFT_RESTRICT      __restrict__
-#define FINUFFT_UNREACHABLE   __builtin_unreachable()
-#define FINUFFT_UNLIKELY(x)   __builtin_expect(!!(x), 0)
-#define FINUFFT_LIKELY(x)     __builtin_expect(!!(x), 1)
-#else
-#define FINUFFT_ALWAYS_INLINE inline
-#define FINUFFT_NEVER_INLINE
-#define FINUFFT_RESTRICT
-#define FINUFFT_UNREACHABLE
-#define FINUFFT_UNLIKELY(x) (x)
-#define FINUFFT_LIKELY(x)   (x)
-#endif
 
 // All indexing in library that potentially can exceed 2^31 uses 64-bit signed.
 // This includes all calling arguments (eg M,N) that could be huge someday.
@@ -75,20 +18,6 @@ using UBIGINT = uint64_t;
 // Library version (is a string)
 #define FINUFFT_VER "2.5.0dev"
 
-// Smallest possible kernel spread width per dimension, in fine grid points
-// (used only in spreadinterp.cpp)
-inline constexpr int MIN_NSPREAD = 2;
-
-// Largest possible kernel spread width per dimension, in fine grid points
-// (used only in spreadinterp.cpp)
-inline constexpr int MAX_NSPREAD = 16;
-
-// Fraction growth cut-off in utils:arraywidcen, sets when translate in type-3
-inline constexpr double ARRAYWIDCEN_GROWFRAC = 0.1;
-
-// Max number of positive quadr nodes for kernel FT (used only in common.cpp)
-inline constexpr int MAX_NQUAD = 100;
-
 // Internal (nf1 etc) array allocation size that immediately raises error.
 // (Note: next235 takes 1s for 1e11, so it is also to prevent hang here.)
 // Increase this if you need >10TB (!) RAM...
@@ -97,10 +26,6 @@ inline constexpr BIGINT MAX_NF = BIGINT(1e12);
 // Maximum allowed number M of NU points; useful to catch incorrectly cast int32
 // values for M = nj (also nk in type 3)...
 inline constexpr BIGINT MAX_NU_PTS = BIGINT(1e14);
-
-// We define our own PI here because M_PI is not actually part of standard C++
-inline constexpr double PI      = 3.14159265358979329;
-inline constexpr double INV_2PI = 0.159154943091895336;
 
 // ----- OpenMP macros which also work when omp not present -----
 // Allows compile-time switch off of openmp, so compilation without any openmp

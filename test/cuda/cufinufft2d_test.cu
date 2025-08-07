@@ -6,6 +6,7 @@
 #include <limits>
 #include <random>
 
+#include <common/common.h>
 #include <cufinufft.h>
 
 #include <cufinufft/impl.h>
@@ -19,6 +20,8 @@
 #include "../utils/norms.hpp"
 
 constexpr auto TEST_BIGPROB = 1e8;
+
+using ::finufft::common::PI;
 
 template<typename T>
 int run_test(int method, int type, int N1, int N2, int M, T tol, T checktol, int iflag,
@@ -39,8 +42,8 @@ int run_test(int method, int type, int N1, int N2, int M, T tol, T checktol, int
 
   // Making data
   for (int i = 0; i < M; i++) {
-    x[i] = M_PI * randm11(); // x in [-pi,pi)
-    y[i] = M_PI * randm11();
+    x[i] = PI * randm11(); // x in [-pi,pi)
+    y[i] = PI * randm11();
   }
   if (type == 1) {
     for (int i = 0; i < M; i++) {
