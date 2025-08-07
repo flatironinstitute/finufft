@@ -131,6 +131,10 @@ complete CPU (if present) and GPU tests in a couple of seconds.
 
 .. note::
 
+   Before trying the above, certainly make sure you are able to ``mexcuda``, and then test, the MathWorks-supplied test code ``mexGPUExample.cu`` as per https://www.mathworks.com/help/parallel-computing/run-mex-functions-containing-cuda-code.html This may involve changing your GCC or CUDA versions.
+
+.. note::
+
     Depending on your MATLAB version, ``mexcuda`` compiles the CUDA code using the NVIDIA ``nvcc`` compiler installed with MATLAB. If the MATLAB default one does not work, you may specify the location of ``nvcc`` on your system by storing it in the environment variable ``MW_NVCC_PATH``, eg via ``setenv("MW_NVCC_PATH","/path/to/CUDA/bin")`` and ``setenv("MW_ALLOW_ANY_CUDA","true")``. You may also check `toolbox/parallel/gpu/extern/src/mex/glnxa64/nvcc_g++.xml` to see how MATLAB finds the ``nvcc`` compiler.
 
 .. note::

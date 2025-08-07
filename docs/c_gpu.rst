@@ -308,7 +308,7 @@ To create such a structure, use:
     cufinufft_opts opts;
     cufinufft_default_opts(&opts);
 
-Then you may change fields of ``opts`` by hand, finally pass ``&opts`` in as the last argument to ``cufinufft_makeplan`` or ``cufinufftf_makeplan``. Here are the options, with the important user-controllable ones documented. For their default values, see below.
+Then you may change fields of ``opts`` by hand, finally pass ``&opts`` in as the last argument to ``cufinufft_makeplan`` or ``cufinufftf_makeplan``. Here are the options, with the important user-controllable ones documented. For their default values, scroll to the bottom.
 
 Data handling options
 ~~~~~~~~~~~~~~~~~~~~~
@@ -352,7 +352,11 @@ Algorithm performance options
 
 **gpu_stream**: CUDA stream to use. Leave at default unless you know what you're doing.
 
-**gpu_np**: Min batch size used for ``method 3`` (OD). It has to be a multiple of 16. It controls ho much of shared memory is left as GPU cache instead of being manually populated. Default is usually best.
+**gpu_np**: Min batch size used for ``method 3`` (output-driven, OD). It has to be a multiple of 16. It controls how much of shared memory is left as GPU cache instead of being manually populated. Default is usually best.
+
+
+Default options for GPU
+~~~~~~~~~~~~~~~~~~~~~~~
 
 For all GPU option default values we refer to the source code in
 ``src/cuda/cufinufft.cu:cufinufft_default_opts``):
