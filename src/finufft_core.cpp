@@ -1142,11 +1142,10 @@ int FINUFFT_PLAN_T<TF>::execute_internal(TC *cj, TC *fk, bool adjoint, int ntran
         // STEP 0: pre-phase (possibly) the c_j input strengths into c'_j batch...
         timer.restart();
 #pragma omp parallel for num_threads(opts.nthreads) // or batchSize?
-        for (int i = 0; i < thisBatchSize; i++) {
-          BIGINT ioff = i * nj;
-          for (BIGINT j = 0; j < nj; ++j) {
-            CpBatch[ioff + j] = prephase[j] * cjb[ioff + j];
-          }
+        for (BIGINT j = 0; j < nj; ++j) {
+          auto phase = prephase[j];
+          for (int i = 0; i < thisBatchSize; i++)
+            CpBatch[i * nj + j] = phase * cjb[i * nj + j];
         }
         t_phase += timer.elapsedsec();
 
@@ -1166,21 +1165,17 @@ int FINUFFT_PLAN_T<TF>::execute_internal(TC *cj, TC *fk, bool adjoint, int ntran
         // STEP 3: apply deconvolve (precomputed 1/phiHat(targ_k), phasing too)...
         timer.restart();
 #pragma omp parallel for num_threads(opts.nthreads)
-        for (int i = 0; i < thisBatchSize; i++) {
-          BIGINT ioff = i * nk;
-          for (BIGINT k = 0; k < nk; ++k) fkb[ioff + k] *= deconv[k];
-        }
+        for (BIGINT k = 0; k < nk; ++k)
+          for (int i = 0; i < thisBatchSize; i++) fkb[i * nk + k] *= deconv[k];
         t_deconv += timer.elapsedsec();
       } else { // adjoint mode
         // STEP 0: apply deconvolve (precomputed 1/phiHat(targ_k), conjugate phasing
         // too)... write output into CpBatch
         timer.restart();
 #pragma omp parallel for num_threads(opts.nthreads)
-        for (int i = 0; i < thisBatchSize; i++) {
-          BIGINT ioff = i * nk;
-          for (BIGINT k = 0; k < nk; ++k)
-            CpBatch[ioff + k] = fkb[ioff + k] * conj(deconv[k]);
-        }
+        for (BIGINT k = 0; k < nk; ++k)
+          for (int i = 0; i < thisBatchSize; i++)
+            CpBatch[i * nk + k] = fkb[i * nk + k] * conj(deconv[k]);
         t_deconv += timer.elapsedsec();
         // STEP 1: adjoint type 2 (i.e. type 1) NUFFT from CpBatch to fwBatch...
         timer.restart();
@@ -1196,11 +1191,9 @@ int FINUFFT_PLAN_T<TF>::execute_internal(TC *cj, TC *fk, bool adjoint, int ntran
         // STEP 3: post-phase (possibly) the c_j output strengths (in place) ...
         timer.restart();
 #pragma omp parallel for num_threads(opts.nthreads) // or batchSize?
-        for (int i = 0; i < thisBatchSize; i++) {
-          BIGINT ioff = i * nj;
-          for (BIGINT j = 0; j < nj; ++j) {
-            cjb[ioff + j] *= conj(prephase[j]); // FIXME
-          }
+        for (BIGINT j = 0; j < nj; ++j) {
+          auto phase = conj(prephase[j]);
+          for (int i = 0; i < thisBatchSize; i++) cjb[i * nj + j] *= phase;
         }
         t_phase += timer.elapsedsec();
       }
