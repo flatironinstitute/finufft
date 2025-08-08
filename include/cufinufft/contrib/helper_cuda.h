@@ -28,10 +28,7 @@
 #ifndef COMMON_HELPER_CUDA_H_
 #define COMMON_HELPER_CUDA_H_
 
-#include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <cstdio>
 
 #include <finufft_errors.h>
 
@@ -46,15 +43,14 @@ static const char *_cudaGetErrorEnum(cudaError_t error) {
 #define checkCudaErrors(val) check((val), #val, __FILE__, __LINE__)
 
 template<typename T>
-static inline cudaError_t cudaMallocWrapper(T **devPtr, size_t size, cudaStream_t stream,
-                                            int pool_supported) {
+static cudaError_t cudaMallocWrapper(T **devPtr, size_t size, cudaStream_t stream,
+                                     int pool_supported) {
   return pool_supported ? cudaMallocAsync(devPtr, size, stream)
                         : cudaMalloc(devPtr, size);
 }
 
 template<typename T>
-static inline cudaError_t cudaFreeWrapper(T *devPtr, cudaStream_t stream,
-                                          int pool_supported) {
+static cudaError_t cudaFreeWrapper(T *devPtr, cudaStream_t stream, int pool_supported) {
   return pool_supported ? cudaFreeAsync(devPtr, stream) : cudaFree(devPtr);
 }
 
@@ -108,14 +104,8 @@ static const char *cufftGetErrorString(cufftResult error) {
   case CUFFT_UNALIGNED_DATA:
     return "CUFFT_UNALIGNED_DATA";
 
-  case CUFFT_INCOMPLETE_PARAMETER_LIST:
-    return "CUFFT_INCOMPLETE_PARAMETER_LIST";
-
   case CUFFT_INVALID_DEVICE:
     return "CUFFT_INVALID_DEVICE";
-
-  case CUFFT_PARSE_ERROR:
-    return "CUFFT_PARSE_ERROR";
 
   case CUFFT_NO_WORKSPACE:
     return "CUFFT_NO_WORKSPACE";
@@ -123,11 +113,20 @@ static const char *cufftGetErrorString(cufftResult error) {
   case CUFFT_NOT_IMPLEMENTED:
     return "CUFFT_NOT_IMPLEMENTED";
 
+  case CUFFT_NOT_SUPPORTED:
+    return "CUFFT_NOT_SUPPORTED";
+
+// they are deprecated in 12.9 removed in 13
+#if __CUDACC_VER_MAJOR__ < 13
   case CUFFT_LICENSE_ERROR:
     return "CUFFT_LICENSE_ERROR";
 
-  case CUFFT_NOT_SUPPORTED:
-    return "CUFFT_NOT_SUPPORTED";
+  case CUFFT_PARSE_ERROR:
+    return "CUFFT_PARSE_ERROR";
+
+  case CUFFT_INCOMPLETE_PARAMETER_LIST:
+    return "CUFFT_INCOMPLETE_PARAMETER_LIST";
+#endif
   }
 
   return "<unknown>";
