@@ -23,16 +23,8 @@ template<typename BIGINT,
          typename XYZArr, // x[j], y[j], z[j] → FLT
          typename CArr,   // c[j]             → Complex<FLT>
          typename FArr>   // f[m]             → Complex<FLT>
-void dirft3d1(BIGINT nj,
-              const XYZArr &x,
-              const XYZArr &y,
-              const XYZArr &z,
-              const CArr &c,
-              int iflag,
-              BIGINT ms,
-              BIGINT mt,
-              BIGINT mu,
-              FArr &f) {
+void dirft3d1(BIGINT nj, const XYZArr &x, const XYZArr &y, const XYZArr &z, const CArr &c,
+              int iflag, BIGINT ms, BIGINT mt, BIGINT mu, FArr &f) {
   using Complex = std::decay_t<decltype(c[0])>;
   using FLT     = typename Complex::value_type;
 
@@ -85,16 +77,8 @@ void dirft3d1(BIGINT nj,
 // Uses winding trick.  Barnett 2/1/17
 // ------------------------------------------------------------
 template<typename BIGINT, typename XYZArr, typename CArr, typename FArr>
-void dirft3d2(BIGINT nj,
-              const XYZArr &x,
-              const XYZArr &y,
-              const XYZArr &z,
-              CArr &c,
-              int iflag,
-              BIGINT ms,
-              BIGINT mt,
-              BIGINT mu,
-              const FArr &f) {
+void dirft3d2(BIGINT nj, const XYZArr &x, const XYZArr &y, const XYZArr &z, CArr &c,
+              int iflag, BIGINT ms, BIGINT mt, BIGINT mu, const FArr &f) {
   using Complex = std::decay_t<decltype(c[0])>;
   using FLT     = typename Complex::value_type;
 
@@ -137,16 +121,8 @@ void dirft3d2(BIGINT nj,
 //   f[k] = Σ_j c[j] exp(i * iflag * (s[k] x[j] + t[k] y[j] + u[k] z[j]))
 // ------------------------------------------------------------
 template<typename BIGINT, typename XYZArr, typename CArr, typename STUArr, typename FArr>
-void dirft3d3(BIGINT nj,
-              const XYZArr &x,
-              const XYZArr &y,
-              const XYZArr &z,
-              const CArr &c,
-              int iflag,
-              BIGINT nk,
-              const STUArr &s,
-              const STUArr &t,
-              const STUArr &u,
+void dirft3d3(BIGINT nj, const XYZArr &x, const XYZArr &y, const XYZArr &z, const CArr &c,
+              int iflag, BIGINT nk, const STUArr &s, const STUArr &t, const STUArr &u,
               FArr &f) {
   using Complex = std::decay_t<decltype(c[0])>;
   using FLT     = typename Complex::value_type;

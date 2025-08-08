@@ -19,8 +19,8 @@ template std::vector<int> gridsize_for_fft<float>(const FINUFFT_PLAN_T<float> &p
 template std::vector<int> gridsize_for_fft<double>(const FINUFFT_PLAN_T<double> &p);
 
 template<typename TF>
-void do_fft(const FINUFFT_PLAN_T<TF> &p, std::complex<TF> *fwBatch, int ntrans_actual,
-            bool adjoint) {
+void do_fft(const FINUFFT_PLAN_T<TF> &p, std::complex<TF> *fwBatch,
+            int ntrans_actual [[maybe_unused]], bool adjoint) {
 #ifdef FINUFFT_USE_DUCC0
   size_t nthreads = min<size_t>(MY_OMP_GET_MAX_THREADS(), p.opts.nthreads);
   const auto ns   = gridsize_for_fft(p);

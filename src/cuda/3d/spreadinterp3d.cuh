@@ -1,11 +1,11 @@
+#pragma once
+
+#include <cuda/std/mdspan>
+
 #include <cmath>
-#include <iostream>
 
-#include <cuda.h>
-#include <cufinufft/contrib/helper_cuda.h>
-
-#include <cuda_runtime.h>
-#include <cufinufft/defs.h>
+#include <cufinufft/contrib/helper_math.h>
+#include <cufinufft/intrinsics.h>
 #include <cufinufft/precision_independent.h>
 #include <cufinufft/spreadinterp.h>
 #include <cufinufft/types.h>
@@ -15,6 +15,13 @@ using namespace cufinufft::utils;
 
 namespace cufinufft {
 namespace spreadinterp {
+
+using cuda::std::dextents;
+using cuda::std::dynamic_extent;
+using cuda::std::extents;
+using cuda::std::mdspan;
+using cuda::std::span;
+
 /* ---------------------- 3d Spreading Kernels -------------------------------*/
 /* Kernels for bin sort NUpts */
 
@@ -76,7 +83,6 @@ __global__ void calc_inverse_of_global_sort_index_3d(
   }
 }
 
-/* Kernels for NUptsdriven method */
 template<typename T, int KEREVALMETH, int ns>
 __global__ void spread_3d_nupts_driven(
     const T *x, const T *y, const T *z, const cuda_complex<T> *c, cuda_complex<T> *fw,
@@ -124,6 +130,143 @@ __global__ void spread_3d_nupts_driven(
           atomicAddComplexGlobal<T>(fw + outidx, res);
         }
       }
+    }
+  }
+}
+
+/* Kernels for Output Driven method */
+template<typename T, int KEREVALMETH, int ns>
+__global__ void spread_3d_output_driven(
+    T *x, T *y, T *z, cuda_complex<T> *c, cuda_complex<T> *fw, int M, int nf1, int nf2,
+    int nf3, T sigma, T es_c, T es_beta, int *binstartpts, int *bin_size, int bin_size_x,
+    int bin_size_y, int bin_size_z, int *subprob_to_bin, int *subprobstartpts,
+    int *numsubprob, int maxsubprobsize, int nbinx, int nbiny, int nbinz, int *idxnupts,
+    int np) {
+  extern __shared__ char sharedbuf[];
+
+  static constexpr auto ns_2f      = T(ns * .5);
+  static constexpr auto ns_2       = (ns + 1) / 2;
+  static constexpr auto rounded_ns = ns_2 * 2;
+
+  const auto padded_size_x = bin_size_x + rounded_ns;
+  const auto padded_size_y = bin_size_y + rounded_ns;
+  const auto padded_size_z = bin_size_z + rounded_ns;
+
+  const int bidx        = subprob_to_bin[blockIdx.x];
+  const int binsubp_idx = blockIdx.x - subprobstartpts[bidx];
+  const int ptstart     = binstartpts[bidx] + binsubp_idx * maxsubprobsize;
+  const int nupts = min(maxsubprobsize, bin_size[bidx] - binsubp_idx * maxsubprobsize);
+
+  const int xoffset = (bidx % nbinx) * bin_size_x;
+  const int yoffset = ((bidx / nbinx) % nbiny) * bin_size_y;
+  const int zoffset = (bidx / (nbinx * nbiny)) * bin_size_z;
+
+  auto kerevals = mdspan<T, extents<int, dynamic_extent, 3, ns>>((T *)sharedbuf, np);
+  const auto c_kerevals =
+      mdspan<const T, extents<int, dynamic_extent, 3, ns>>((T *)sharedbuf, np);
+  // sharedbuf + size of kerevals in bytes
+  // Offset pointer into sharedbuf after kerevals
+  // Create span using pointer + size
+
+  auto nupts_sm = span(
+      reinterpret_cast<cuda_complex<T> *>(kerevals.data_handle() + kerevals.size()),
+      np);
+
+  auto shift = span(reinterpret_cast<int3 *>(nupts_sm.data() + nupts_sm.size()), np);
+
+  auto local_subgrid = mdspan<cuda_complex<T>, dextents<int, 3>>(
+      reinterpret_cast<cuda_complex<T> *>(shift.data() + shift.size()), padded_size_z,
+      padded_size_y, padded_size_x);
+
+  // set local_subgrid to zero
+  for (int i = threadIdx.x; i < local_subgrid.size(); i += blockDim.x) {
+    local_subgrid.data_handle()[i] = {0, 0};
+  }
+  __syncthreads();
+
+  for (int batch_begin = 0; batch_begin < nupts; batch_begin += np) {
+    const auto batch_size = min(np, nupts - batch_begin);
+    for (int i = threadIdx.x; i < batch_size; i += blockDim.x) {
+      const int nuptsidx = loadReadOnly(idxnupts + ptstart + i + batch_begin);
+      // index of the current point within the batch
+      const auto x_rescaled = fold_rescale(loadReadOnly(x + nuptsidx), nf1);
+      const auto y_rescaled = fold_rescale(loadReadOnly(y + nuptsidx), nf2);
+      const auto z_rescaled = fold_rescale(loadReadOnly(z + nuptsidx), nf3);
+      nupts_sm[i]           = loadCacheStreaming(c + nuptsidx);
+      const auto xstart     = int(std::ceil(x_rescaled - ns_2f));
+      const auto ystart     = int(std::ceil(y_rescaled - ns_2f));
+      const auto zstart     = int(std::ceil(z_rescaled - ns_2f));
+      const T x1            = T(xstart) - x_rescaled;
+      const T y1            = T(ystart) - y_rescaled;
+      const T z1            = T(zstart) - z_rescaled;
+
+      shift[i] = {xstart - xoffset, ystart - yoffset, zstart - zoffset};
+
+      if constexpr (KEREVALMETH == 1) {
+        eval_kernel_vec_horner<T, ns>(&kerevals(i, 0, 0), x1, sigma);
+        eval_kernel_vec_horner<T, ns>(&kerevals(i, 1, 0), y1, sigma);
+        eval_kernel_vec_horner<T, ns>(&kerevals(i, 2, 0), z1, sigma);
+      } else {
+        eval_kernel_vec<T, ns>(&kerevals(i, 0, 0), x1, es_c, es_beta);
+        eval_kernel_vec<T, ns>(&kerevals(i, 1, 0), y1, es_c, es_beta);
+        eval_kernel_vec<T, ns>(&kerevals(i, 2, 0), z1, es_c, es_beta);
+      }
+    }
+    __syncthreads();
+
+    for (auto i = 0; i < batch_size; i++) {
+      // strength from shared memory
+      static constexpr int sizex = ns;            // true span in X
+      static constexpr int sizey = ns;            // true span in Y
+      static constexpr int sizez = ns;            // true span in Z
+      static constexpr int plane = sizex * sizey; // #cells per Z‐slice
+      static constexpr int total = plane * sizez; // total #cells
+
+      const auto cnow                     = nupts_sm[i];
+      const auto [xstart, ystart, zstart] = shift[i];
+
+      for (int idx = threadIdx.x; idx < total; idx += blockDim.x) {
+        // decompose idx using `plane`
+        const int zz   = idx / plane;
+        const int rem1 = idx - zz * plane;
+        const int yy   = rem1 / sizex;
+        const int xx   = rem1 - yy * sizex;
+
+        // decompose idx using `plane`
+        // recover global coords
+        const int real_zz = zstart + zz;
+        const int real_yy = ystart + yy;
+        const int real_xx = xstart + xx;
+
+        // padded indices
+        const int iz = real_zz + ns_2;
+        const int iy = real_yy + ns_2;
+        const int ix = real_xx + ns_2;
+
+        // separable window weights
+        const auto kervalue =
+            c_kerevals(i, 0, xx) * c_kerevals(i, 1, yy) * c_kerevals(i, 2, zz);
+        // accumulate
+        local_subgrid(iz, iy, ix) += {cnow * kervalue};
+      }
+      __syncthreads();
+    }
+  }
+  for (int n = threadIdx.x; n < local_subgrid.size(); n += blockDim.x) {
+    const int i = n % (padded_size_x);
+    const int j = (n / (padded_size_x)) % (padded_size_y);
+    const int k = n / ((padded_size_x) * (padded_size_y));
+
+    int ix = xoffset - ns_2 + i;
+    int iy = yoffset - ns_2 + j;
+    int iz = zoffset - ns_2 + k;
+
+    if (ix < (nf1 + ns_2) && iy < (nf2 + ns_2) && iz < (nf3 + ns_2)) {
+      ix               = ix < 0 ? ix + nf1 : (ix > nf1 - 1 ? ix - nf1 : ix);
+      iy               = iy < 0 ? iy + nf2 : (iy > nf2 - 1 ? iy - nf2 : iy);
+      iz               = iz < 0 ? iz + nf3 : (iz > nf3 - 1 ? iz - nf3 : iz);
+      const int outidx = ix + iy * nf1 + iz * nf1 * nf2;
+      atomicAddComplexGlobal<T>(fw + outidx, local_subgrid(k, j, i));
     }
   }
 }
@@ -198,14 +341,14 @@ __global__ void spread_3d_subprob(
     for (int zz = zstart; zz <= zend; zz++) {
       const T kervalue3 = ker3[zz - zstart];
       const int iz      = zz + ns_2;
-      if (iz >= (bin_size_z + (int)rounded_ns) || iz < 0) break;
+      if (iz >= (bin_size_z + rounded_ns) || iz < 0) break;
       for (int yy = ystart; yy <= yend; yy++) {
         const T kervalue2 = ker2[yy - ystart];
         const int iy      = yy + ns_2;
-        if (iy >= (bin_size_y + (int)rounded_ns) || iy < 0) break;
+        if (iy >= (bin_size_y + rounded_ns) || iy < 0) break;
         for (int xx = xstart; xx <= xend; xx++) {
           const int ix = xx + ns_2;
-          if (ix >= (bin_size_x + (int)rounded_ns) || ix < 0) break;
+          if (ix >= (bin_size_x + rounded_ns) || ix < 0) break;
           const int outidx = ix + iy * (bin_size_x + rounded_ns) +
                              iz * (bin_size_x + rounded_ns) * (bin_size_y + rounded_ns);
           const auto kervalue = ker1[xx - xstart] * kervalue2 * kervalue3;
@@ -419,12 +562,12 @@ __global__ void interp_3d_nupts_driven(
   T ker2[ns];
   T ker3[ns];
 
-  cuda_complex<T> cnow{};
   for (int i = blockDim.x * blockIdx.x + threadIdx.x; i < M;
        i += blockDim.x * gridDim.x) {
-    const auto x_rescaled = fold_rescale(x[idxnupts[i]], nf1);
-    const auto y_rescaled = fold_rescale(y[idxnupts[i]], nf2);
-    const auto z_rescaled = fold_rescale(z[idxnupts[i]], nf3);
+    const auto nuptsidx   = loadReadOnly(idxnupts + i);
+    const auto x_rescaled = fold_rescale(loadReadOnly(x + nuptsidx), nf1);
+    const auto y_rescaled = fold_rescale(loadReadOnly(y + nuptsidx), nf2);
+    const auto z_rescaled = fold_rescale(loadReadOnly(z + nuptsidx), nf3);
 
     const auto [xstart, xend] = interval(ns, x_rescaled);
     const auto [ystart, yend] = interval(ns, y_rescaled);
@@ -433,11 +576,6 @@ __global__ void interp_3d_nupts_driven(
     const T x1 = T(xstart) - x_rescaled;
     const T y1 = T(ystart) - y_rescaled;
     const T z1 = T(zstart) - z_rescaled;
-
-    // having cnow allocated to 0 inside the loop breaks type 3 spread
-    // are we doing a buffer overflow somewhere?
-    cnow.x = T(0);
-    cnow.y = T(0);
 
     if constexpr (KEREVALMETH == 1) {
       eval_kernel_vec_horner<T, ns>(ker1, x1, sigma);
@@ -449,18 +587,19 @@ __global__ void interp_3d_nupts_driven(
       eval_kernel_vec<T, ns>(ker3, z1, es_c, es_beta);
     }
 
+    cuda_complex<T> cnow{0, 0};
     for (int zz = zstart; zz <= zend; zz++) {
       const auto kervalue3 = ker3[zz - zstart];
       const auto iz        = zz < 0 ? zz + nf3 : (zz > nf3 - 1 ? zz - nf3 : zz);
       for (int yy = ystart; yy <= yend; yy++) {
         const auto kervalue2 = ker2[yy - ystart];
-        int iy               = yy < 0 ? yy + nf2 : (yy > nf2 - 1 ? yy - nf2 : yy);
+        const int iy         = yy < 0 ? yy + nf2 : (yy > nf2 - 1 ? yy - nf2 : yy);
         for (int xx = xstart; xx <= xend; xx++) {
           const auto ix        = xx < 0 ? xx + nf1 : (xx > nf1 - 1 ? xx - nf1 : xx);
           const auto inidx     = ix + iy * nf1 + iz * nf2 * nf1;
           const auto kervalue1 = ker1[xx - xstart];
-          cnow.x += fw[inidx].x * kervalue1 * kervalue2 * kervalue3;
-          cnow.y += fw[inidx].y * kervalue1 * kervalue2 * kervalue3;
+          const auto kervalue  = kervalue1 * kervalue2 * kervalue3;
+          cnow += {fw[inidx] * kervalue};
         }
       }
     }
@@ -544,7 +683,6 @@ __global__ void interp_3d_subprob(
 
     if constexpr (KEREVALMETH == 1) {
       eval_kernel_vec_horner<T, ns>(ker1, x1, sigma);
-
       eval_kernel_vec_horner<T, ns>(ker2, y1, sigma);
       eval_kernel_vec_horner<T, ns>(ker3, z1, sigma);
     } else {
@@ -564,8 +702,8 @@ __global__ void interp_3d_subprob(
           const auto outidx = ix + iy * (bin_size_x + rounded_ns) +
                               iz * (bin_size_x + rounded_ns) * (bin_size_y + rounded_ns);
           const auto kervalue1 = ker1[xx - xstart];
-          cnow.x += fwshared[outidx].x * kervalue1 * kervalue2 * kervalue3;
-          cnow.y += fwshared[outidx].y * kervalue1 * kervalue2 * kervalue3;
+          const auto kervalue  = kervalue1 * kervalue2 * kervalue3;
+          cnow += {fwshared[outidx] * kervalue};
         }
       }
     }

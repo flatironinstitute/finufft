@@ -80,9 +80,7 @@ class Params:
     tol: float
 
 
-thread_num = int(os.cpu_count())
-
-versions = ['v2.2.0', 'v2.3.0']
+versions = ['v2.2.0', 'v2.3.0', 'v2.4.0']
 fft_lib = ['fftw', 'ducc']
 upsamp = ['1.25', '2.00']
 transform = ['3', '2', '1']
@@ -92,8 +90,8 @@ ParamList = [
     Params('d', 1e4, 1, 1, 1, 1, 1e7, 1e-9),
     Params('f', 320, 320, 1, 1, 1, 1e7, 1e-5),
     Params('d', 320, 320, 1, 1, 1, 1e7, 1e-9),
-    Params('f', 320, 320, 1, thread_num, thread_num, 1e7, 1e-5),
-    Params('d', 192, 192, 128, 1, thread_num, 1e7, 1e-7),
+    Params('f', 320, 320, 1, 0, 0, 1e7, 1e-5),
+    Params('d', 192, 192, 128, 1, 0, 1e7, 1e-7),
 ]
 fft_params = Params('d', 250, 250, 250, 1, 1, 1e2, 1e-7)
 

@@ -23,14 +23,8 @@ template<typename BIGINT,
          typename CArr,  // c[j]       → Complex<FLT>
          typename FArr   // f[m]       → Complex<FLT>
          >
-void dirft2d1(BIGINT nj,
-              const XYArr &x,
-              const XYArr &y,
-              const CArr &c,
-              int iflag,
-              BIGINT ms,
-              BIGINT mt,
-              FArr &f) {
+void dirft2d1(BIGINT nj, const XYArr &x, const XYArr &y, const CArr &c, int iflag,
+              BIGINT ms, BIGINT mt, FArr &f) {
   using Complex = std::decay_t<decltype(c[0])>;
   using FLT     = typename Complex::value_type;
 
@@ -71,14 +65,8 @@ void dirft2d1(BIGINT nj,
 // exponential.
 // Uses winding trick.  Barnett 1/26/17
 template<typename BIGINT, typename XYArr, typename CArr, typename FArr>
-void dirft2d2(BIGINT nj,
-              const XYArr &x,
-              const XYArr &y,
-              CArr &c,
-              int iflag,
-              BIGINT ms,
-              BIGINT mt,
-              const FArr &f) {
+void dirft2d2(BIGINT nj, const XYArr &x, const XYArr &y, CArr &c, int iflag, BIGINT ms,
+              BIGINT mt, const FArr &f) {
   using Complex = std::decay_t<decltype(c[0])>;
   using FLT     = typename Complex::value_type;
 
@@ -117,15 +105,8 @@ void dirft2d2(BIGINT nj,
 //  If iflag>0 the + sign is used, otherwise the - sign is used, in the
 //  exponential. Simple brute force.  Barnett 1/26/17
 template<typename BIGINT, typename XYArr, typename CArr, typename STArr, typename FArr>
-void dirft2d3(BIGINT nj,
-              const XYArr &x,
-              const XYArr &y,
-              const CArr &c,
-              int iflag,
-              BIGINT nk,
-              const STArr &s,
-              const STArr &t,
-              FArr &f) {
+void dirft2d3(BIGINT nj, const XYArr &x, const XYArr &y, const CArr &c, int iflag,
+              BIGINT nk, const STArr &s, const STArr &t, FArr &f) {
   using Complex = std::decay_t<decltype(c[0])>;
   using FLT     = typename Complex::value_type;
 

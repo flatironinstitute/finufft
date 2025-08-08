@@ -34,7 +34,7 @@ struct zip_hi {
   }
 };
 template<unsigned cap> struct reverse_index {
-  static constexpr unsigned get(unsigned index, const unsigned size) {
+  static constexpr unsigned get(unsigned index, const unsigned /*size*/) {
     return index < cap ? (cap - 1 - index) : index;
   }
 };
@@ -280,7 +280,8 @@ template<typename T, uint8_t w, uint8_t upsampfact,
          class simd_type =
              xsimd::make_sized_batch_t<T, find_optimal_simd_width<T, w>()>> // aka ns
 static FINUFFT_ALWAYS_INLINE void eval_kernel_vec_Horner(
-    T *FINUFFT_RESTRICT ker, T x, const finufft_spread_opts &opts) noexcept
+    T *FINUFFT_RESTRICT ker, T x,
+    const finufft_spread_opts &opts [[maybe_unused]]) noexcept
 /* Fill ker[] with Horner piecewise poly approx to [-w/2,w/2] ES kernel eval at
 x_j = x + j,  for j=0,..,w-1.  Thus x in [-w/2,-w/2+1].   w is aka ns.
 This is the current evaluation method, since it's faster (except i7 w=16).
@@ -1394,7 +1395,7 @@ template<typename T>
 static void bin_sort_singlethread(std::vector<BIGINT> &ret, UBIGINT M, const T *kx,
                                   const T *ky, const T *kz, UBIGINT N1, UBIGINT N2,
                                   UBIGINT N3, double bin_size_x, double bin_size_y,
-                                  double bin_size_z, int debug)
+                                  double bin_size_z, int debug [[maybe_unused]])
 /* Returns permutation of all nonuniform points with good RAM access,
  * ie less cache misses for spreading, in 1D, 2D, or 3D. Single-threaded version
  *
@@ -1469,7 +1470,7 @@ template<typename T>
 static void bin_sort_multithread(std::vector<BIGINT> &ret, UBIGINT M, const T *kx,
                                  const T *ky, const T *kz, UBIGINT N1, UBIGINT N2,
                                  UBIGINT N3, double bin_size_x, double bin_size_y,
-                                 double bin_size_z, int debug, int nthr)
+                                 double bin_size_z, int debug [[maybe_unused]], int nthr)
 /* Mostly-OpenMP'ed version of bin_sort.
    For documentation see: bin_sort_singlethread.
    Caution: when M (# NU pts) << N (# U pts), is SLOWER than single-thread.
@@ -1681,7 +1682,7 @@ FINUFFT_EXPORT int FINUFFT_CDECL spreadinterp(
    Tidy, Barnett 5/20/20. Tidy doc, Barnett 10/22/20.
 */
 {
-  int ier = spreadcheck(N1, N2, N3, M, kx, ky, kz, opts);
+  int ier = spreadcheck(N1, N2, N3, opts);
   if (ier) return ier;
   std::vector<BIGINT> sort_indices(M);
   int did_sort = indexSort(sort_indices, N1, N2, N3, M, kx, ky, kz, opts);
@@ -1699,7 +1700,7 @@ template FINUFFT_EXPORT int FINUFFT_CDECL spreadinterp<double>(
     const double *ky, const double *kz, double *data_nonuniform,
     const finufft_spread_opts &opts);
 
-static constexpr uint8_t ndims_from_Ns(const UBIGINT N1, const UBIGINT N2,
+static constexpr uint8_t ndims_from_Ns(const UBIGINT /*N1*/, const UBIGINT N2,
                                        const UBIGINT N3)
 /* rule for getting number of spreading dimensions from the list of Ns per dim.
    Split out, Barnett 7/26/18
@@ -1708,9 +1709,7 @@ static constexpr uint8_t ndims_from_Ns(const UBIGINT N1, const UBIGINT N2,
   return 1 + (N2 > 1) + (N3 > 1);
 }
 
-template<typename T>
-int spreadcheck(UBIGINT N1, UBIGINT N2, UBIGINT N3, UBIGINT M, const T *kx, const T *ky,
-                const T *kz, const finufft_spread_opts &opts)
+int spreadcheck(UBIGINT N1, UBIGINT N2, UBIGINT N3, const finufft_spread_opts &opts)
 /* This does just the input checking and reporting for the spreader.
    See spreadinterp() for input arguments and meaning of returned value.
    Split out by Melody Shih, Jun 2018. Finiteness chk Barnett 7/30/18.
@@ -1732,12 +1731,6 @@ int spreadcheck(UBIGINT N1, UBIGINT N2, UBIGINT N3, UBIGINT M, const T *kx, cons
   }
   return 0;
 }
-template int spreadcheck<float>(UBIGINT N1, UBIGINT N2, UBIGINT N3, UBIGINT M,
-                                const float *kx, const float *ky, const float *kz,
-                                const finufft_spread_opts &opts);
-template int spreadcheck<double>(UBIGINT N1, UBIGINT N2, UBIGINT N3, UBIGINT M,
-                                 const double *kx, const double *ky, const double *kz,
-                                 const finufft_spread_opts &opts);
 
 template<typename T>
 int indexSort(std::vector<BIGINT> &sort_indices, UBIGINT N1, UBIGINT N2, UBIGINT N3,

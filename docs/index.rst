@@ -39,6 +39,7 @@ Documentation contents
    changelog
    nfft_migr
    cufinufft_migration
+   impl_gpu
    devnotes
    related
    users
