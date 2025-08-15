@@ -1,3 +1,5 @@
+# Written by Kaya Unalmis and Barnett on 08/15/25 for tutorial.
+
 import numpy as np
 import finufft as fi
 import pytest
@@ -19,7 +21,7 @@ def nufft1d2(x, f, domain=(0, 2 * np.pi), rfft_axis=None, eps=1e-6):
         Default is to assume no real FFT was performed.
         If given assumes ``f`` has coefficients along that axis
         such that the real part of the function can be recovered
-        from ∑ₙ fₙ exp(i n θ) for n > 0.
+        from ∑ₙ fₙ exp(i n θ) for n >= 0.
     eps : float
         Precision requested. Default is ``1e-6``.
 
@@ -70,7 +72,7 @@ def nufft2d2(
         Default is to assume no real FFT was performed.
         If given assumes ``f`` has coefficients along that axis
         such that the real part of the function can be recovered
-        from ∑ₙ fₙ exp(i n θ) for n > 0.
+        from ∑ₙ fₙ exp(i n θ) for n >= 0.
     eps : float
         Precision requested. Default is ``1e-6``.
 
