@@ -58,7 +58,7 @@ def nufft2d2(
     y : np.ndarray
         Real query points of coordinate in ``domain_y`` where interpolation is desired.
         The coordinates stored here must be the same coordinate enumerated across axis
-        ``-2`` of ``f``.
+        ``-1`` of ``f``.
     f : np.ndarray
         Fourier coefficients e.g. ``f=fft2(c,norm="forward")``.
     domain_x : tuple[float]
