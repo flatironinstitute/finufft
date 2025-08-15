@@ -19,7 +19,7 @@ def nufft1d2r(x, f, **kwargs):
     Returns
     -------
     cq : np.ndarray
-        Complex function value at query points.
+        Real function value at query points.
 
     """
     rfft_axis = -1
