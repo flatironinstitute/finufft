@@ -262,6 +262,7 @@ if(FINUFFT_USE_CPU)
         src/finufft_core.cpp
         src/c_interface.cpp
         src/finufft_utils.cpp
+        src/utils.cpp
     )
 
     if(FINUFFT_BUILD_FORTRAN)

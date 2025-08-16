@@ -4,6 +4,7 @@
 #include <iostream>
 #include <random>
 
+#include <common/common.h>
 #include <cufinufft.h>
 
 #include <cufinufft/contrib/helper_cuda.h>
@@ -15,6 +16,7 @@
 #include <thrust/host_vector.h>
 
 using cufinufft::utils::infnorm;
+using ::finufft::common::PI;
 
 template<typename T>
 int run_test(int N1, int M, T tol, T checktol, int iflag, double upsampfac) {
@@ -90,7 +92,7 @@ int run_test(int N1, int M, T tol, T checktol, int iflag, double upsampfac) {
 
   // Making data
   for (int i = 0; i < M; i++) {
-    x[i] = M_PI * randm11(); // x in [-pi,pi)
+    x[i] = PI * randm11(); // x in [-pi,pi)
   }
 
   for (int i = 0; i < M; i++) {
