@@ -22,11 +22,9 @@ def nufft1d2r(x, f, **kwargs):
         Real function value at query points.
 
     """
-    rfft_axis = -1
-    s = f.shape[rfft_axis] // 2
+    s = f.shape[-1] // 2
     s = np.exp(1j * s * x)
-    f = np.fft.ifftshift(f, axes=rfft_axis)
-    return np.real(fi.nufft1d2(x, f, isign=1, modeord=1, **kwargs) * s)
+    return np.real(fi.nufft1d2(x, f, isign=1, modeord=0, **kwargs) * s)
 
 
 def nufft2d2r(x, y, f, rfft_axis=-1, **kwargs):
