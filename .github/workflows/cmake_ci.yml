@@ -15,6 +15,7 @@ jobs:
         run: |
           MATRIX=$(python3 ${{ github.workspace }}/.github/workflows/generate_cmake_matrix.py)
           echo "matrix=$MATRIX" >> $GITHUB_OUTPUT
+
   pip-requirements:
     runs-on: ubuntu-22.04
     steps:
@@ -23,7 +24,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          cache : 'pip'
+          cache: 'pip'
           python-version: '3.10'
       - name: Generate requirements.txt
         run: |
@@ -38,53 +39,56 @@ jobs:
         with:
           name: requirements
           path: requirements.txt
+
   cache:
     strategy:
       matrix:
         os:
-         - ubuntu-22.04
-         - windows-2022
+          - ubuntu-22.04
+          - windows-2022
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
       - name: create cache directory
-        run: |
-          mkdir -p cpm
+        shell: bash
+        run: mkdir -p "cpm"
       - name: Check if cache exists
         id: cache
         uses: actions/cache@v4
         with:
-          key: cpm-cache-00-${{ runner.os == 'windows' && 'windows-' || '' }}${{ hashFiles('CMakeLists.txt', 'cmake/*') }}
+          key: cpm-cache-00-${{ runner.os == 'windows' && 'windows-' || '' }}${{ hashFiles('**/CMakeLists.txt', 'cmake/**') }}
           enableCrossOsArchive: true
           path: cpm
       - name: Setup Cpp
         if: steps.cache.outputs.cache-hit != 'true'
         uses: aminya/setup-cpp@v1
         with:
-          cmake : true
+          cmake: true
       - name: Download dependencies in cache linux
         if: steps.cache.outputs.cache-hit != 'true' && runner.os == 'Linux'
         run: |
-          cmake -S . -B ./build
+          cmake -S . -B ./build -DCPM_SOURCE_CACHE="cpm"
           rm -rf build
-          cmake -S . -B ./build -DFINUFFT_USE_DUCC0=ON
+          cmake -S . -B ./build -DFINUFFT_USE_DUCC0=ON -DCPM_SOURCE_CACHE="cpm"
         env:
           CPM_SOURCE_CACHE: cpm
       - name: Download dependencies in cache windows
         if: steps.cache.outputs.cache-hit != 'true' && runner.os != 'Linux'
         run: |
-          cmake -S . -B build
+          cmake -S . -B build -DCPM_SOURCE_CACHE="cpm"
           rm build -r -force
-          cmake -S . -B build -DFINUFFT_USE_DUCC0=ON
+          cmake -S . -B build -DFINUFFT_USE_DUCC0=ON -DCPM_SOURCE_CACHE="cpm"
         env:
           CPM_SOURCE_CACHE: cpm
       - name: Cache dependencies
+        if: steps.cache.outputs.cache-hit != 'true'
         uses: actions/cache/save@v4
         with:
-          key: cpm-cache-00-${{ runner.os == 'windows' && 'windows-' || '' }}${{ hashFiles('CMakeLists.txt', 'cmake/*') }}
+          key: cpm-cache-00-${{ runner.os == 'windows' && 'windows-' || '' }}${{ hashFiles('**/CMakeLists.txt', 'cmake/**') }}
           enableCrossOsArchive: true
           path: cpm
+
   cmake-ci:
     runs-on: ${{ matrix.os }}
     needs: [prepare, cache, pip-requirements]
@@ -94,27 +98,34 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
       - name: Restore Cache
         uses: actions/cache/restore@v4
         with:
-          key: cpm-cache-00-${{ runner.os == 'windows' && 'windows-' || '' }}${{ hashFiles('CMakeLists.txt', 'cmake/*') }}
+          key: cpm-cache-00-${{ runner.os == 'windows' && 'windows-' || '' }}${{ hashFiles('**/CMakeLists.txt', 'cmake/**') }}
           enableCrossOsArchive: true
           path: cpm
+
       - name: Download requirements.txt
         uses: actions/download-artifact@v4
         with:
           name: requirements
+
+      # Manual sccache setup (action + env)
       - name: Run sccache-cache
         uses: mozilla-actions/sccache-action@v0.0.9
+
       - name: Set caching env vars
         run: |
           echo "SCCACHE_GHA_ENABLED=true" >> $GITHUB_ENV
           echo "SCCACHE_GHA_VERSION=0" >> $GITHUB_ENV
+
       - name: Set up sccache on Windows
         if: runner.os == 'Windows'
         run: Add-Content -Path $env:GITHUB_ENV -Value "SCCACHE_GHA_ENABLED=true"
+
       - name: Setup Cpp
-        uses: aminya/setup-cpp@v1.1.1
+        uses: aminya/setup-cpp@v1
         with:
           compiler: ${{ matrix.toolchain }}
           vcvarsall: ${{ contains(matrix.os, 'windows') }}
@@ -123,57 +134,136 @@ jobs:
           vcpkg: false
           cppcheck: false
           clangtidy: false
-      - name: Set min macOS version and install fftw
+
+      - name: Install fftw (macOS) & select deployment targets
         if: runner.os == 'macOS'
         run: |
           brew install fftw libomp
-      - name: Install fftw
-        if: runner.os == 'linux'
+          echo "LDFLAGS=-L$(brew --prefix libomp)/lib" >> $GITHUB_ENV
+          echo "CPPFLAGS=-I$(brew --prefix libomp)/include" >> $GITHUB_ENV
+          echo "LIBRARY_PATH=$(brew --prefix libomp)/lib" >> $GITHUB_ENV
+          echo "DYLD_LIBRARY_PATH=$(brew --prefix libomp)/lib" >> $GITHUB_ENV
+          echo "CMAKE_PREFIX_PATH=$(brew --prefix):$(brew --prefix libomp)" >> $GITHUB_ENV
+          major=$(sw_vers -productVersion | cut -d. -f1)
+          if (( major >= 14 )); then
+            echo "MAC_TARGETS=12 13 14" >> $GITHUB_ENV
+          else
+            echo "MAC_TARGETS=12 13" >> $GITHUB_ENV
+          fi
+          echo "CMAKE_OSX_SYSROOT=$(xcrun --sdk macosx --show-sdk-path)" >> $GITHUB_ENV
+
+      - name: Install fftw (Linux)
+        if: runner.os == 'Linux'
         run: |
           sudo apt update
           sudo apt install -y libfftw3-dev
-      - name: Configure Cmake
-        run: |
-          cmake -S . -B ./build -G Ninja -DCMAKE_C_COMPILER_LAUNCHER=sccache -DCMAKE_CXX_COMPILER_LAUNCHER=sccache -DCMAKE_BUILD_TYPE:STRING=${{matrix.build_type}} -DFINUFFT_ARCH_FLAGS=${{ matrix.arch_flags }} -DFINUFFT_BUILD_TESTS=ON -DFINUFFT_STATIC_LINKING=${{matrix.finufft_static_linking}} -DFINUFFT_USE_DUCC0=${{ matrix.ducc_fft }} -DFINUFFT_ENABLE_SANITIZERS=${{matrix.build_type == 'Debug'}}
-        env:
-          CPM_SOURCE_CACHE: cpm
-      - name: Build
-        run: |
-          cmake --build ./build --config ${{matrix.build_type}}
-      - name: Test
-        working-directory: ./build
-        run: |
-          ctest -C ${{matrix.build_type}} --output-on-failure
+
       - name: Set up Python
-        if: matrix.finufft_static_linking == 'off'
         uses: actions/setup-python@v5
         with:
           python-version: '3.10'
           cache: 'pip'
           cache-dependency-path: requirements.txt
-      - name: Build Python wheels
-        if: matrix.finufft_static_linking == 'off'
-        env:
-          MACOSX_DEPLOYMENT_TARGET: 13
-          CPM_SOURCE_CACHE: cpm
-        shell: bash
+
+      - name: Install Python requirements
         run: |
           python3 -m pip install --upgrade pip
           python3 -m pip install -r requirements.txt
-          python3 -m pip install \
-            --verbose \
-            -C cmake.define.CMAKE_BUILD_TYPE=${{ matrix.build_type }} \
-            -C cmake.define.FINUFFT_ARCH_FLAGS=${{ matrix.arch_flags }} \
-            -C cmake.define.FINUFFT_USE_DUCC0=${{ matrix.ducc_fft }} \
-            -C cmake.define.CMAKE_CXX_COMPILER_LAUNCHER=sccache \
-            -C cmake.define.CMAKE_C_COMPILER_LAUNCHER=sccache \
-            -C cmake.define.CMAKE_GENERATOR=Ninja \
-            -C cmake.define.CMAKE_GENERATOR_PLATFORM= \
-            python/finufft
-      - name: Test Python package
-        if: matrix.finufft_static_linking == 'off'
+
+      - name: Build and test configurations
+        shell: bash
+        env:
+          CPM_SOURCE_CACHE: cpm
         run: |
-          python3 -m pytest python/finufft/test
+          set -euo pipefail
+
+          # If MAC_TARGETS is empty/unset (Linux/Windows), iterate once with empty target.
+          targets=(${MAC_TARGETS:-})
+          if [[ ${#targets[@]} -eq 0 ]]; then
+            targets=("")   # one empty element -> one iteration
+          fi
+
+          # Config matrix:
+          # - Linux/macOS: DUCC0 {On,Off} × BuildType {Release,Debug}  (FFTW available)
+          # - Windows:     DUCC0 {On} × BuildType {Release,Debug}      (FFTW disabled)
+          if [[ "$RUNNER_OS" == "Windows" ]]; then
+            configs=(
+              "build_type=Release ducc_fft=On"
+              "build_type=Debug ducc_fft=On"
+            )
+            cmake_fftw_flag="-DFINUFFT_USE_FFTW=OFF"
+            pip_fftw_flag="-C cmake.define.FINUFFT_USE_FFTW=OFF"
+          else
+            configs=(
+              "build_type=Release ducc_fft=On"
+              "build_type=Release ducc_fft=Off"
+              "build_type=Debug ducc_fft=On"
+              "build_type=Debug ducc_fft=Off"
+            )
+            cmake_fftw_flag=""
+            pip_fftw_flag=""
+          fi
+
+          # Architecture flags by toolchain/OS
+          if [[ "${{ matrix.toolchain }}" == "msvc" ]]; then
+            arch_flags=("/arch:AVX2" "/arch:SSE2" "native")
+          elif [[ "$RUNNER_OS" == "Linux" ]]; then
+            arch_flags=("-march=x86-64" "-march=x86-64-v2" "-march=x86-64-v3" "-march=native")
+          else
+            arch_flags=("native")
+          fi
+
+          for target in "${targets[@]}"; do
+            sdk="${CMAKE_OSX_SYSROOT:-}"
+            cmake_osx="-DCMAKE_OSX_DEPLOYMENT_TARGET=${target} ${sdk:+-DCMAKE_OSX_SYSROOT=${sdk}}"
+            pip_osx="-C cmake.define.CMAKE_OSX_DEPLOYMENT_TARGET=${target} ${sdk:+-C cmake.define.CMAKE_OSX_SYSROOT=${sdk}}"
+            echo ">>> Using MACOSX_DEPLOYMENT_TARGET='${target}' (SDK='${sdk:-<unset>}') on $RUNNER_OS"
+
+            for arch in "${arch_flags[@]}"; do
+              arch_dir=$(echo "$arch" | tr -c 'A-Za-z0-9' '_')
+              for cfg in "${configs[@]}"; do
+                eval "$cfg"
+                ttag=${target:+t${target}_}
+                build_dir="build_${build_type}_${ducc_fft}_${ttag}${arch_dir}"
+                rm -rf "$build_dir" && mkdir -p "$build_dir"
+                cmake -S . -B "$build_dir" -G Ninja \
+                  -DCPM_SOURCE_CACHE="cpm" \
+                  -DCMAKE_C_COMPILER_LAUNCHER=sccache \
+                  -DCMAKE_CXX_COMPILER_LAUNCHER=sccache \
+                  -DCMAKE_BUILD_TYPE=$build_type \
+                  -DFINUFFT_ARCH_FLAGS=$arch \
+                  -DFINUFFT_USE_DUCC0=$ducc_fft \
+                  ${cmake_fftw_flag} \
+                  -DFINUFFT_BUILD_TESTS=ON \
+                  -DCMAKE_MSVC_DEBUG_INFORMATION_FORMAT=Embedded \
+                  -DCMAKE_POLICY_DEFAULT_CMP0141=NEW \
+                  ${cmake_osx}
+                cmake --build "$build_dir" --config "$build_type"
+                (cd "$build_dir" && ctest -C "$build_type" --output-on-failure)
+
+                # Build & test Python package with matching CMake options
+                python3 -m pip install \
+                  --verbose \
+                  -C cmake.define.CMAKE_BUILD_TYPE=$build_type \
+                  -C cmake.define.FINUFFT_ARCH_FLAGS=$arch \
+                  -C cmake.define.FINUFFT_USE_DUCC0=$ducc_fft \
+                  ${pip_fftw_flag} \
+                  -C cmake.define.CPM_SOURCE_CACHE=cpm \
+                  -C cmake.define.CMAKE_CXX_COMPILER_LAUNCHER=sccache \
+                  -C cmake.define.CMAKE_C_COMPILER_LAUNCHER=sccache \
+                  -C cmake.define.CMAKE_GENERATOR=Ninja \
+                  -C cmake.define.CMAKE_GENERATOR_PLATFORM= \
+                  -C cmake.define.CMAKE_MSVC_DEBUG_INFORMATION_FORMAT=Embedded \
+                  -C cmake.define.CMAKE_POLICY_DEFAULT_CMP0141=NEW \
+                  ${pip_osx} \
+                  python/finufft
+
+                python3 -m pytest python/finufft/test
+                rm -rf "$build_dir"
+              done
+            done
+          done
+
   cleanup:
     runs-on: ubuntu-22.04
     needs: cmake-ci

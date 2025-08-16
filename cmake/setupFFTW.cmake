@@ -12,6 +12,7 @@ CPMAddPackage(
 )
 
 list(APPEND CMAKE_MODULE_PATH "${findfftw_SOURCE_DIR}")
+set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH}" PARENT_SCOPE)
 
 if(FINUFFT_FFTW_LIBRARIES STREQUAL DEFAULT OR FINUFFT_FFTW_LIBRARIES STREQUAL DOWNLOAD)
     find_package(FFTW)
@@ -24,6 +25,10 @@ if(FINUFFT_FFTW_LIBRARIES STREQUAL DEFAULT OR FINUFFT_FFTW_LIBRARIES STREQUAL DO
         CPMAddPackage(
             NAME
             fftw3
+            URL
+            "http://www.fftw.org/fftw-${FFTW_VERSION}.tar.gz"
+            URL_HASH
+            "MD5=8ccbf6a5ea78a16dbc3e1306e234cc5c"
             OPTIONS
             "ENABLE_SSE2 ON"
             "ENABLE_AVX ON"
@@ -32,19 +37,16 @@ if(FINUFFT_FFTW_LIBRARIES STREQUAL DEFAULT OR FINUFFT_FFTW_LIBRARIES STREQUAL DO
             "BUILD_SHARED_LIBS OFF"
             "ENABLE_THREADS ${FINUFFT_USE_THREADS}"
             "ENABLE_OPENMP ${FINUFFT_USE_OPENMP}"
-            URL
-            "http://www.fftw.org/fftw-${FFTW_VERSION}.tar.gz"
-            URL_HASH
-            "MD5=8ccbf6a5ea78a16dbc3e1306e234cc5c"
-            EXCLUDE_FROM_ALL
-            YES
-            GIT_SHALLOW
-            YES
+            "CMAKE_POLICY_VERSION_MINIMUM 3.10"
         )
 
         CPMAddPackage(
             NAME
             fftw3f
+            URL
+            "http://www.fftw.org/fftw-${FFTW_VERSION}.tar.gz"
+            URL_HASH
+            "MD5=8ccbf6a5ea78a16dbc3e1306e234cc5c"
             OPTIONS
             "ENABLE_SSE2 ON"
             "ENABLE_AVX ON"
@@ -54,14 +56,7 @@ if(FINUFFT_FFTW_LIBRARIES STREQUAL DEFAULT OR FINUFFT_FFTW_LIBRARIES STREQUAL DO
             "BUILD_SHARED_LIBS OFF"
             "ENABLE_THREADS ${FINUFFT_USE_THREADS}"
             "ENABLE_OPENMP ${FINUFFT_USE_OPENMP}"
-            URL
-            "http://www.fftw.org/fftw-${FFTW_VERSION}.tar.gz"
-            URL_HASH
-            "MD5=8ccbf6a5ea78a16dbc3e1306e234cc5c"
-            EXCLUDE_FROM_ALL
-            YES
-            GIT_SHALLOW
-            YES
+            "CMAKE_POLICY_VERSION_MINIMUM 3.10"
         )
         set(FINUFFT_FFTW_LIBRARIES fftw3 fftw3f)
         if(FINUFFT_USE_THREADS)
@@ -74,8 +69,8 @@ if(FINUFFT_FFTW_LIBRARIES STREQUAL DEFAULT OR FINUFFT_FFTW_LIBRARIES STREQUAL DO
             set_target_properties(
                 ${element}
                 PROPERTIES
-                    MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>"
                     POSITION_INDEPENDENT_CODE ${FINUFFT_POSITION_INDEPENDENT_CODE}
+                    CMAKE_MSVC_DEBUG_INFORMATION_FORMAT Embedded
             )
         endforeach()
 
