@@ -1,4 +1,6 @@
 # Written by Kaya Unalmis following discussion with Barnett on 08/15/25.
+# [Note added by Barnett: some of the notation used here differs from
+# the standard notation of FINUFFT docs. However it is a nice demo.]
 
 import numpy as np
 import finufft as fi

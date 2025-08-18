@@ -1,7 +1,11 @@
 .. _realinterp1d:
 
-Fast Fourier interpolation of 1D real-valued function at arbitrary points
-=========================================================================
+Fast Fourier interpolation of a real-valued function at arbitrary points
+========================================================================
+
+1D
+~~
+
 
 This is a Python variant of the previous 1D MATLAB demo, but illustrating
 a trick for **real-valued** functions.
@@ -63,9 +67,7 @@ When run this gives:
 
 which shows that both schemes work.
 See the full code `tutorial/realinterp1d.py <https://github.com/flatironinstitute/finufft/blob/master/tutorial/realinterp1d.py>`_.
-See the full code `tutorial/realinterp2d.py <https://github.com/flatironinstitute/finufft/blob/master/tutorial/realinterp2d.py>`_.
 This arose from Discussion https://github.com/flatironinstitute/finufft/discussions/720
-
 
 .. note::
 
@@ -73,3 +75,13 @@ This arose from Discussion https://github.com/flatironinstitute/finufft/discussi
     efficiency gain on the nonuniform point side,
     possibly motivating real-valued NUFFT variants. Since the decisions about
     real-valued interfaces become elaborate, we leave this for future work.
+
+2D
+~~
+
+A demo (including a ``pytest`` framework) for the 2D version of the above
+1D code has been written by Kaya Unalmis, arising from the above discussion.
+The idea in 2D is to use the above trick for one of the dimensions, then
+perform the usual complex evaluation in the other dimension;
+this is somewhat neater than using Hermitian inversion symmetry in 2D.
+The code is at `tutorial/realinterp2d.py <https://github.com/flatironinstitute/finufft/blob/master/tutorial/realinterp2d.py>`_.
