@@ -63,6 +63,7 @@ When run this gives:
 
 which shows that both schemes work.
 See the full code `tutorial/realinterp1d.py <https://github.com/flatironinstitute/finufft/blob/master/tutorial/realinterp1d.py>`_.
+See the full code `tutorial/realinterp2d.py <https://github.com/flatironinstitute/finufft/blob/master/tutorial/realinterp2d.py>`_.
 This arose from Discussion https://github.com/flatironinstitute/finufft/discussions/720
 
 
@@ -72,10 +73,3 @@ This arose from Discussion https://github.com/flatironinstitute/finufft/discussi
     efficiency gain on the nonuniform point side,
     possibly motivating real-valued NUFFT variants. Since the decisions about
     real-valued interfaces become elaborate, we leave this for future work.
-
-Notes about the 2D case:
-``numpy.rfft2`` seems to have a different output
-size than ``rfft``.
-One can still only save a factor of two in the ``nufft2d2`` input array size (hence FFT size), just as in 1D. It would need a rectangular (``N/2`` by ``N``) array, where ``N ``is the number of regular samples per dimension.
-Special handling the origin and the zero-index cases will be needed
-to recreate the effect of the full reflected Hermitian-symmetric coefficient array. Please contribute a demo.
