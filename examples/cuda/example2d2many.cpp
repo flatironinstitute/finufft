@@ -5,16 +5,13 @@
 #include <complex>
 #include <iomanip>
 #include <iostream>
-#include <math.h>
+#include <cmath>
 #include <random>
 
+#include "../test/utils/norms.hpp"
 #include <cufinufft.h>
-#include <cufinufft/utils.h>
 
 #include <cuda_runtime.h>
-
-// FIXME: This isn't actually public, though maybe it should be?
-using cufinufft::utils::infnorm;
 
 int main(int argc, char *argv[])
 /*

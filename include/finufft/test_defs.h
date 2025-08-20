@@ -118,7 +118,6 @@ static inline CPX crandm11r [[maybe_unused]] (unsigned int *x) {
 // --------  FINUFFT's plan object, prec-switching version ------------------
 // NB: now private (the public C++ or C etc user sees an opaque pointer to it)
 
-#include <finufft/fft.h>
 struct FINUFFT_PLAN_S : public FINUFFT_PLAN_T<FLT> {};
 
 // std stuff for tester src
