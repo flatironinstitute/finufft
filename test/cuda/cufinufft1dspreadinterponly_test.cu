@@ -15,7 +15,8 @@
 #include <thrust/device_vector.h>
 #include <thrust/host_vector.h>
 
-using cufinufft::utils::infnorm;
+#include "../utils/norms.hpp"
+
 using ::finufft::common::PI;
 
 template<typename T>
