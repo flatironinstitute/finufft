@@ -4,7 +4,7 @@
 #include <cstdint>
 #include <iostream>
 #include <type_traits>
-#include <xsimd/xsimd.hpp>
+#include <finufft/xsimd.hpp>
 
 template<class T, uint16_t N, uint16_t K = N> static constexpr auto BestSIMDHelper();
 

@@ -10,6 +10,7 @@ set(TESTS
     finufft3dmany_test
     finufft3dkernel_test
     spreadinterp1d_test
+    spread_simd_test
     adjointness
 )
 
@@ -38,9 +39,11 @@ finufft_link_test(testutils)
 add_test(NAME run_testutils COMMAND testutils WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
 
 if(NOT FINUFFT_USE_DUCC0 AND FINUFFT_USE_OPENMP)
+    find_package(OpenMP COMPONENTS CXX REQUIRED)
     add_executable(fftw_lock_test fftw_lock_test.cpp)
     target_compile_features(fftw_lock_test PRIVATE cxx_std_17)
     finufft_link_test(fftw_lock_test)
+    target_link_libraries(fftw_lock_test PRIVATE OpenMP::OpenMP_CXX)
     add_test(NAME run_fftw_lock_test COMMAND fftw_lock_test WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
 endif()
 
@@ -95,6 +98,8 @@ function(add_tests_with_prec PREC REQ_TOL CHECK_TOL SUFFIX)
         COMMAND spreadinterp1d_test${SUFFIX} 1e3 1e3 ${REQ_TOL} 0 2 2.0 ${CHECK_TOL}
         WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
     )
+
+    add_test(NAME spread_simd_${PREC} COMMAND spread_simd_test${SUFFIX} WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
 
     add_test(NAME run_adjointness_${PREC} COMMAND adjointness${SUFFIX} WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
 endfunction()

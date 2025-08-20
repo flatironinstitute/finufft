@@ -16,6 +16,7 @@ typedef struct finufft_spread_opts {
   int kerevalmeth;         // 0: direct exp(sqrt()), or 1: Horner ppval, fastest
   int kerpad;              // 0: no pad w to mult of 4, 1: do pad
                            // (this helps SIMD for kerevalmeth=0, eg on i7).
+  int simd;                // 1 scalar, 2 manual vectorization
   int nthreads;            // # threads for spreadinterp (0: use max avail)
   int sort_threads;        // # threads for sort (0: auto-choice up to nthreads)
   int max_subproblem_size; // # pts per t1 subprob; sets extra RAM per thread

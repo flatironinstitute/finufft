@@ -7,6 +7,7 @@
 #include <iostream>
 #include <random>
 
+#include <common/common.h>
 #include <cufinufft.h>
 
 #include <cufinufft/impl.h>
@@ -16,7 +17,9 @@
 #include <thrust/device_vector.h>
 #include <thrust/host_vector.h>
 
-using cufinufft::utils::infnorm;
+#include "../utils/norms.hpp"
+
+using ::finufft::common::PI;
 
 template<typename T> int run_test(int method) {
   int N1 = 100;
@@ -49,15 +52,15 @@ template<typename T> int run_test(int method) {
 
   // Making data
   for (int i = 0; i < M1; i++) {
-    x1[i] = M_PI * randm11(); // x in [-pi,pi)
-    y1[i] = M_PI * randm11();
+    x1[i] = PI * randm11(); // x in [-pi,pi)
+    y1[i] = PI * randm11();
     c1[i].real(randm11());
     c1[i].imag(randm11());
   }
 
   for (int i = 0; i < M2; i++) {
-    x2[i] = M_PI * randm11(); // x in [-pi,pi)
-    y2[i] = M_PI * randm11();
+    x2[i] = PI * randm11(); // x in [-pi,pi)
+    y2[i] = PI * randm11();
     c2[i].real(randm11());
     c2[i].imag(randm11());
   }

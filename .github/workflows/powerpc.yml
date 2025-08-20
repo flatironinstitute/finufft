@@ -1,0 +1,78 @@
+name: PowerPC cross-compilation build
+
+on:
+  # Weekly schedule (Sunday 00:00 UTC)
+  schedule:
+    - cron: "0 0 * * 0"
+
+  # On tag push
+  push:
+    tags:
+      - 'v*'
+  # Manual trigger (with an optional deploy toggle)
+  workflow_dispatch:
+    inputs:
+      deploy:
+        description: "Deploy after build?"
+        type: boolean
+        required: false
+        default: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    name: '${{ matrix.target.arch }}, ${{ matrix.sys.compiler }} ${{ matrix.sys.version }}'
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          - { platform: 'ppc64le', arch: 'ppc64le', dir: 'powerpc64le-linux-gnu', flags: '-maltivec -mvsx -mcpu=power10' }
+          - { platform: 'ppc64',   arch: 'ppc64',   dir: 'powerpc64-linux-gnu',   flags: '-maltivec -mvsx -mcpu=power10' }
+        sys:
+          - { compiler: 'gcc', version: '12' }
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Apt setup (cross toolchains, qemu, ninja)
+        run: |
+          sudo apt-get update
+          sudo apt-get --no-install-suggests --no-install-recommends install \
+            g++-${{ matrix.sys.version }}-${{ matrix.target.dir }} \
+            g++-${{ matrix.sys.version }}-multilib \
+            qemu-user \
+            ninja-build
+          sudo update-alternatives --remove-all ${{ matrix.target.dir }}-gcc || true
+          sudo update-alternatives --remove-all ${{ matrix.target.dir }}-g++ || true
+          sudo update-alternatives --install /usr/bin/${{ matrix.target.dir }}-gcc ${{ matrix.target.dir }}-gcc /usr/bin/${{ matrix.target.dir }}-gcc-${{ matrix.sys.version }} 20
+          sudo update-alternatives --install /usr/bin/${{ matrix.target.dir }}-g++ ${{ matrix.target.dir }}-g++ /usr/bin/${{ matrix.target.dir }}-g++-${{ matrix.sys.version }} 20
+
+      - name: Configure (RelWithDebInfo, DUCC0 + examples + tests, no Fortran)
+        shell: bash
+        env:
+          CC:  ${{ matrix.target.dir }}-gcc
+          CXX: ${{ matrix.target.dir }}-g++
+        run: |
+          cmake -S . -B build -G Ninja \
+            -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+            -DCMAKE_C_COMPILER="${CC}" \
+            -DCMAKE_CXX_COMPILER="${CXX}" \
+            -DCMAKE_C_FLAGS="${{ matrix.target.flags }}" \
+            -DCMAKE_CXX_FLAGS="${{ matrix.target.flags }}" \
+            -DCMAKE_SYSTEM_NAME=Linux \
+            -DCMAKE_SYSTEM_PROCESSOR=${{ matrix.target.arch }} \
+            -DCMAKE_CROSSCOMPILING_EMULATOR="qemu-${{ matrix.target.platform }};-cpu;power10;-L;/usr/${{ matrix.target.dir }}/" \
+            -DFINUFFT_USE_DUCC0=ON \
+            -DFINUFFT_BUILD_EXAMPLES=ON \
+            -DFINUFFT_BUILD_TESTS=ON \
+            -DFINUFFT_ARCH_FLAGS=
+
+      - name: Build
+        shell: bash
+        run: cmake --build build --config RelWithDebInfo --parallel
+
+      - name: Test
+        shell: bash
+        # With CMAKE_CROSSCOMPILING_EMULATOR set, tests run via QEMU automatically.
+        run: ctest --test-dir build --output-on-failure
