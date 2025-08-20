@@ -1,10 +1,12 @@
-cmake_minimum_required(VERSION 3.19...3.31)
+cmake_minimum_required(VERSION 3.24...3.31)
+cmake_policy(VERSION 3.24)
 project(FINUFFT VERSION 2.5.0 LANGUAGES C CXX)
 
-# windows MSVC runtime flags policy
-cmake_policy(SET CMP0091 NEW)
-
 include(CMakeDependentOption)
+
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE Release CACHE STRING "Set the default build type to Release" FORCE)
+endif()
 
 # gersemi: off
 # All options go here sphinx tag (don't remove): @cmake_opts_start
@@ -39,283 +41,50 @@ cmake_dependent_option(FINUFFT_INTERPROCEDURAL_OPTIMIZATION "LTO should be the o
 option(FINUFFT_IWYU_VERBOSE "Verbose IWYU tool output" ON)
 # gersemi: on
 
+# Use the folder that contains this CMakeLists.txt, not the project root
+list(PREPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake")
+
 # When building shared libraries, we need to build with -fPIC in all cases
 if(FINUFFT_SHARED_LINKING)
     set(FINUFFT_POSITION_INDEPENDENT_CODE ON)
 endif()
 
-include(cmake/utils.cmake)
-
-set(FINUFFT_CXX_FLAGS_RELEASE
-    -funroll-loops
-    -ffp-contract=fast
-    -fno-math-errno
-    -fno-signed-zeros
-    -fno-trapping-math
-    -fassociative-math
-    -freciprocal-math
-    -fmerge-all-constants
-    -ftree-vectorize
-    -fimplicit-constexpr
-    -fcx-limited-range
-    -O3
-    /Ox
-    /fp:contract
-    /fp:except-
-    /GF
-    /GY
-    /GS-
-    /Ob
-    /Oi
-    /Ot
-    /Oy
-)
-
-filter_supported_compiler_flags(FINUFFT_CXX_FLAGS_RELEASE FINUFFT_CXX_FLAGS_RELEASE)
-message(STATUS "FINUFFT Release flags: ${FINUFFT_CXX_FLAGS_RELEASE}")
-set(FINUFFT_CXX_FLAGS_RELWITHDEBINFO ${FINUFFT_CXX_FLAGS_RELEASE})
-
-set(FINUFFT_CXX_FLAGS_DEBUG
-    -g
-    -g3
-    -ggdb
-    -ggdb3
-    -Wall
-    -Wextra
-    -Wpedantic
-    -Wno-unknown-pragmas
-)
-
-if(DEFINED ENV{GITHUB_ACTIONS})
-    if($ENV{GITHUB_ACTIONS} STREQUAL "true")
-        message("CMake is being executed inside a GitHub workflow")
-        # if msvc use FS flag
-        if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC" AND NOT CMAKE_BUILD_TYPE STREQUAL "Release")
-            set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT "$<$<CONFIG:Debug,RelWithDebInfo>:Embedded>")
-            message("CMAKE_MSVC_DEBUG_INFORMATION_FORMAT TO Embedded")
-        endif()
-    endif()
-else()
-    message("CMake is NOT being executed inside a GitHub workflow")
-    # env variable is:
-    message(STATUS "ENV{GITHUB_ACTIONS}: $ENV{GITHUB_ACTIONS}")
-endif()
-filter_supported_compiler_flags(FINUFFT_CXX_FLAGS_DEBUG FINUFFT_CXX_FLAGS_DEBUG)
-message(STATUS "FINUFFT Debug flags: ${FINUFFT_CXX_FLAGS_DEBUG}")
-list(APPEND FINUFFT_CXX_FLAGS_RELWITHDEBINFO ${FINUFFT_CXX_FLAGS_RELEASE} ${FINUFFT_CXX_FLAGS_DEBUG})
-message(STATUS "FINUFFT RelWithDebInfo flags: ${FINUFFT_CXX_FLAGS_RELWITHDEBINFO}")
-
-if(FINUFFT_ARCH_FLAGS STREQUAL "native")
-    set(FINUFFT_ARCH_FLAGS -march=native CACHE STRING "" FORCE)
-    filter_supported_compiler_flags(FINUFFT_ARCH_FLAGS FINUFFT_ARCH_FLAGS)
-    if(NOT FINUFFT_ARCH_FLAGS)
-        set(FINUFFT_ARCH_FLAGS -mtune=native CACHE STRING "" FORCE)
-        filter_supported_compiler_flags(FINUFFT_ARCH_FLAGS FINUFFT_ARCH_FLAGS)
-    endif()
-    if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
-        # -march=native emulation for MSVC
-        check_arch_support()
-    endif()
-    if(NOT FINUFFT_ARCH_FLAGS)
-        message(WARNING "No architecture flags are supported by the compiler.")
-    else()
-        message(STATUS "FINUFFT Arch flags: ${FINUFFT_ARCH_FLAGS}")
-    endif()
+if(FINUFFT_MATLAB_INSTALL)
+    set(FINUFFT_BUILD_MATLAB ON)
+    set(FINUFFT_ENABLE_INSTALL OFF)
 endif()
 
-# Set default build type to Release
-if(NOT CMAKE_BUILD_TYPE)
-    set(CMAKE_BUILD_TYPE Release CACHE STRING "Set the default build type to Release" FORCE)
-endif()
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-# This set of sources is compiled twice, once in single precision and once in
-# double precision The single precision compilation is done with -DSINGLE
-set(FINUFFT_PRECISION_DEPENDENT_SOURCES)
+include(utils) # finds cmake/utils.cmake
+include(toolchain) # finds cmake/toolchain.cmake
 
-# If we're building for Fortran, make sure we also include the translation
-# layer.
-if(FINUFFT_BUILD_FORTRAN)
-    list(APPEND FINUFFT_PRECISION_DEPENDENT_SOURCES fortran/finufftfort.cpp)
-endif()
-
-# set linker flags for sanitizer
-set(FINUFFT_SANITIZER_FLAGS)
-if(FINUFFT_ENABLE_SANITIZERS)
-    set(FINUFFT_SANITIZER_FLAGS
-        -fsanitize=address
-        -fsanitize=undefined
-        -fsanitize=bounds-strict
-        /fsanitize=address
-        /RTC1
-    )
-    filter_supported_compiler_flags(FINUFFT_SANITIZER_FLAGS FINUFFT_SANITIZER_FLAGS)
-    set(FINUFFT_SANITIZER_FLAGS $<$<CONFIG:Debug,RelWithDebInfo>:${FINUFFT_SANITIZER_FLAGS}>)
-endif()
-# Utility function to enable ASAN on debug builds
-function(enable_asan target)
-    target_compile_options(${target} PRIVATE ${FINUFFT_SANITIZER_FLAGS})
-    if(NOT (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC"))
-        target_link_options(${target} PRIVATE ${FINUFFT_SANITIZER_FLAGS})
-    endif()
-endfunction()
-
-set(CPM_DOWNLOAD_VERSION "0.40.5" CACHE STRING "Version of CPM.cmake to use")
+# Versions for dependencies
+set(CPM_DOWNLOAD_VERSION "0.42.0" CACHE STRING "Version of CPM.cmake to use")
 set(FFTW_VERSION "3.3.10" CACHE STRING "Version of FFTW to use")
-set(XTL_VERSION "0.7.7" CACHE STRING "Version of xtl to use")
 set(XSIMD_VERSION "13.2.0" CACHE STRING "Version of xsimd to use")
-set(DUCC0_VERSION "ducc0_0_36_0" CACHE STRING "Version of ducc0 to use")
+set(DUCC0_VERSION "ducc0_0_38_0" CACHE STRING "Version of ducc0 to use")
 set(CUDA11_CCCL_VERSION "2.8.5" CACHE STRING "Version of FINUFFT-cccl for cuda 11 to use")
-set(CUDA12_CCCL_VERSION "3.0.1" CACHE STRING "Version of FINUFFT-cccl for cuda 12 to use")
-mark_as_advanced(CPM_DOWNLOAD_VERSION)
-mark_as_advanced(FFTW_VERSION)
-mark_as_advanced(XTL_VERSION)
-mark_as_advanced(XSIMD_VERSION)
-mark_as_advanced(DUCC0_VERSION)
-mark_as_advanced(CUDA11_CCCL_VERSION)
-mark_as_advanced(CUDA12_CCCL_VERSION)
+set(CUDA12_CCCL_VERSION "3.0.2" CACHE STRING "Version of FINUFFT-cccl for cuda 12 to use")
 
-include(cmake/setupCPM.cmake)
+mark_as_advanced(
+    CPM_DOWNLOAD_VERSION
+    FFTW_VERSION
+    XTL_VERSION
+    XSIMD_VERSION
+    DUCC0_VERSION
+    CUDA11_CCCL_VERSION
+    CUDA12_CCCL_VERSION
+)
 
-if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
-    include(CTest)
-    if(FINUFFT_BUILD_TESTS)
-        enable_testing()
-    endif()
-    if(FINUFFT_BUILD_DOCS)
-        include(cmake/setupSphinx.cmake)
-    endif()
-endif()
+include(setupCPM)
 
 if(FINUFFT_USE_CPU)
-    # make apple with gnu use old linker, new linker breaks, see issue #360
-    if((APPLE) AND (CMAKE_CXX_COMPILER_ID STREQUAL "GNU"))
-        add_link_options("-ld_classic")
-    endif()
-    set(FINUFFT_FFTW_LIBRARIES)
-    include(cmake/setupXSIMD.cmake)
-    if(FINUFFT_USE_DUCC0)
-        include(cmake/setupDUCC.cmake)
-    else()
-        include(cmake/setupFFTW.cmake)
-    endif()
-    if(FINUFFT_USE_DUCC0)
-        set(FINUFFT_FFTLIBS ducc0)
-    else()
-        set(FINUFFT_FFTLIBS ${FINUFFT_FFTW_LIBRARIES})
-    endif()
-    if(FINUFFT_USE_OPENMP)
-        find_package(OpenMP COMPONENTS C CXX REQUIRED)
-    endif()
-endif()
-# check if -Wno-deprecated-declarations is supported
-check_cxx_compiler_flag(-Wno-deprecated-declarations FINUFFT_HAS_NO_DEPRECATED_DECLARATIONS)
-
-# Utility function to link static/dynamic lib
-function(finufft_link_test target)
-    if(FINUFFT_USE_DUCC0)
-        target_compile_definitions(${target} PRIVATE FINUFFT_USE_DUCC0)
-    endif()
-    target_link_libraries(${target} PRIVATE finufft xsimd ${FINUFFT_FFTLIBS})
-    if(FINUFFT_USE_OPENMP)
-        target_link_libraries(${target} PRIVATE OpenMP::OpenMP_CXX)
-        target_link_options(${target} PRIVATE ${OpenMP_CXX_FLAGS})
-    endif()
-    enable_asan(${target})
-    target_compile_features(${target} PRIVATE cxx_std_17)
-    set_target_properties(
-        ${target}
-        PROPERTIES
-            MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>"
-            POSITION_INDEPENDENT_CODE ${FINUFFT_POSITION_INDEPENDENT_CODE}
-    )
-    # disable deprecated warnings for tests if supported
-    if(FINUFFT_HAS_NO_DEPRECATED_DECLARATIONS)
-        target_compile_options(${target} PRIVATE -Wno-deprecated-declarations)
-    endif()
-endfunction()
-
-# Utility function to set finufft compilation options.
-function(set_finufft_options target)
-    target_compile_features(${target} PRIVATE cxx_std_17)
-    target_compile_options(${target} PRIVATE $<$<CONFIG:Release,RelWithDebInfo>:${FINUFFT_ARCH_FLAGS}>)
-    target_compile_options(${target} PRIVATE $<$<CONFIG:Release>:${FINUFFT_CXX_FLAGS_RELEASE}>)
-    target_compile_options(${target} PRIVATE $<$<CONFIG:RelWithDebInfo>:${FINUFFT_CXX_FLAGS_RELWITHDEBINFO}>)
-    target_compile_options(${target} PRIVATE $<$<CONFIG:Debug>:${FINUFFT_CXX_FLAGS_DEBUG}>)
-    target_include_directories(${target} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
-    target_include_directories(${target} SYSTEM INTERFACE $<INSTALL_INTERFACE:${CMAKE_INSTALL_PREFIX}/include>)
-    set_target_properties(
-        ${target}
-        PROPERTIES
-            MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>"
-            POSITION_INDEPENDENT_CODE ${FINUFFT_POSITION_INDEPENDENT_CODE}
-    )
-    enable_asan(${target})
-    if(FINUFFT_USE_OPENMP)
-        target_link_libraries(${target} PRIVATE OpenMP::OpenMP_CXX)
-        target_link_options(${target} PRIVATE ${OpenMP_CXX_FLAGS})
-    endif()
-    if(FINUFFT_USE_DUCC0)
-        target_compile_definitions(${target} PRIVATE FINUFFT_USE_DUCC0)
-    endif()
-    target_link_libraries(${target} PRIVATE xsimd)
-    target_link_libraries(${target} PRIVATE ${FINUFFT_FFTLIBS})
-endfunction()
-
-if(FINUFFT_USE_CPU)
-    set(FINUFFT_SOURCES
-        src/spreadinterp.cpp
-        src/fft.cpp
-        src/finufft_core.cpp
-        src/c_interface.cpp
-        src/finufft_utils.cpp
-        src/utils.cpp
-    )
-
-    if(FINUFFT_BUILD_FORTRAN)
-        list(APPEND FINUFFT_SOURCES fortran/finufftfort.cpp)
-    endif()
-
-    # Main finufft libraries
-    if(NOT FINUFFT_STATIC_LINKING)
-        add_library(finufft SHARED ${FINUFFT_SOURCES})
-    else()
-        add_library(finufft STATIC ${FINUFFT_SOURCES})
-    endif()
-    set_finufft_options(finufft)
-
-    if(WIN32 AND FINUFFT_SHARED_LINKING)
-        target_compile_definitions(finufft PRIVATE dll_EXPORTS FINUFFT_DLL)
-    endif()
-    find_library(MATH_LIBRARY m)
-    if(MATH_LIBRARY)
-        target_link_libraries(finufft PRIVATE ${MATH_LIBRARY})
-    endif()
-    target_include_directories(finufft PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
-    target_include_directories(finufft SYSTEM INTERFACE $<INSTALL_INTERFACE:${CMAKE_INSTALL_PREFIX}/include>)
-    if(FINUFFT_ENABLE_INSTALL)
-        file(GLOB FINUFFT_PUBLIC_HEADERS "${CMAKE_CURRENT_SOURCE_DIR}/include/finufft*.h")
-        set_target_properties(finufft PROPERTIES PUBLIC_HEADER "${FINUFFT_PUBLIC_HEADERS}")
-    endif()
-    list(APPEND INSTALL_TARGETS finufft)
+    add_subdirectory(src)
 endif()
 
 if(FINUFFT_USE_CUDA)
-    if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
-        message(
-            WARNING
-            "FINUFFT WARNING: No CUDA architecture supplied via '-DCMAKE_CUDA_ARCHITECTURES=...', defaulting to 'native' See: https://developer.nvidia.com/cuda-gpus for more details on what architecture to supply."
-        )
-        detect_cuda_architecture()
-    endif()
-    if(CMAKE_CUDA_ARCHITECTURES MATCHES "compute_")
-        message(
-            FATAL_ERROR
-            "CMAKE_CUDA_ARCHITECTURES must be a list of integers like 70;75;86, not strings like compute_89"
-        )
-    endif()
-    enable_language(CUDA)
-    find_package(CUDAToolkit REQUIRED)
-    include(cmake/setupCCCL.cmake)
+    include(cuda_setup)
     add_subdirectory(src/cuda)
     if(BUILD_TESTING AND FINUFFT_BUILD_TESTS)
         add_subdirectory(perftest/cuda)
@@ -380,7 +149,23 @@ message(STATUS "  CMAKE_CUDA_ARCHITECTURES: ${CMAKE_CUDA_ARCHITECTURES}")
 
 if(FINUFFT_ENABLE_INSTALL)
     include(GNUInstallDirs)
-    install(TARGETS ${INSTALL_TARGETS} PUBLIC_HEADER)
+    include(CMakePackageConfigHelpers)
+    install(TARGETS ${INSTALL_TARGETS} EXPORT finufftTargets PUBLIC_HEADER)
+    install(EXPORT finufftTargets NAMESPACE finufft:: DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/finufft)
+    configure_package_config_file(
+        cmake/finufftConfig.cmake.in
+        ${CMAKE_CURRENT_BINARY_DIR}/finufftConfig.cmake
+        INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/finufft
+    )
+    write_basic_package_version_file(
+        ${CMAKE_CURRENT_BINARY_DIR}/finufftConfigVersion.cmake
+        VERSION ${PROJECT_VERSION}
+        COMPATIBILITY SameMajorVersion
+    )
+    install(
+        FILES ${CMAKE_CURRENT_BINARY_DIR}/finufftConfig.cmake ${CMAKE_CURRENT_BINARY_DIR}/finufftConfigVersion.cmake
+        DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/finufft
+    )
     install(FILES ${PROJECT_SOURCE_DIR}/LICENSE DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/licenses/finufft)
     if(FINUFFT_USE_CPU)
         install(

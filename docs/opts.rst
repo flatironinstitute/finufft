@@ -185,6 +185,12 @@ There is thus little reason for the nonexpert to mess with this option.
 
 * ``spread_kerpad=1`` : pad to next multiple of four
 
+**spread_simd**: implementation used for spreading and interpolation.
+
+* ``spread_simd=0`` : automatic choice (currently same as ``2``)
+* ``spread_simd=1`` : scalar loops without vectorization
+* ``spread_simd=2`` : manual SIMD vectorization
+
 
 **upsampfac**: This is the internal factor by which the FFT (fine grid)
 is chosen larger than
