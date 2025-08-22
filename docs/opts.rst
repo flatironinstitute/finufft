@@ -205,6 +205,13 @@ for only two settings, as follows. Otherwise, setting it to zero chooses a good 
 * ``upsampfac=1.25`` : low-upsampling option, with lower RAM, smaller FFTs, but wider spreading kernel. The latter can be much faster than the standard when the number of nonuniform points is similar or smaller to the number of modes, and/or if low accuracy is required. It is especially much (2 to 3 times) faster for type 3 transforms. However, the kernel widths :math:`w` are about 50% larger in each dimension, which can lead to slower spreading (it can also be faster due to the smaller size of the fine grid). Because the kernel width is limited to 16, currently, thus only 9-digit accuracy can currently be reached when using ``upsampfac=1.25``.
 
 
+**hint_nj**: Estimated number of nonuniform points available at plan time.
+If nonzero, ``makeplan`` uses this estimate to choose ``upsampfac``.
+Each ``setpts`` call recomputes the factor using the actual ``nj`` and
+re-initializes the plan if it changes.  A value of ``0`` defers the choice
+until ``setpts``.  If ``upsampfac`` is set explicitly, ``hint_nj`` is ignored.
+
+
 **spread_thread**: in the case of multiple transforms per call (``ntr>1``, or the "many" interfaces), controls how multithreading is used to spread/interpolate each batch of data.
 
 * ``spread_thread=0`` : makes an automatic choice between the below. Recommended.

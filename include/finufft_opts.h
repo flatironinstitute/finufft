@@ -5,6 +5,8 @@
 #ifndef FINUFFT_OPTS_H
 #define FINUFFT_OPTS_H
 
+#include <stddef.h>
+
 typedef struct finufft_opts { // defaults see finufft_core.cpp:finufft_default_opts_t()
   // sphinx tag (don't remove): @opts_start
   // FINUFFT options:
@@ -27,6 +29,7 @@ typedef struct finufft_opts { // defaults see finufft_core.cpp:finufft_default_o
   int spread_kerpad;      // (exp(sqrt()) only): 0 don't pad kernel to 4n, 1 do
   int spread_simd;        // 0 auto(=2), 1 scalar, 2 manual vectorization
   double upsampfac;       // upsampling ratio sigma: 2.0 std, 1.25 small FFT, 0.0 auto
+  size_t hint_nj;         // estimated nj at plan time; 0 means unknown
   int spread_thread;      // (vectorized ntr>1 only): 0 auto, 1 seq multithreaded,
                           //                          2 parallel single-thread spread
   int maxbatchsize;       // (vectorized ntr>1 only): max transform batch, 0 auto

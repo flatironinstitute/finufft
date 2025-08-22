@@ -12,6 +12,7 @@ from ctypes import c_double
 from ctypes import c_float
 from ctypes import c_int
 from ctypes import c_longlong
+from ctypes import c_size_t
 from ctypes import c_void_p
 
 import numpy as np
@@ -83,6 +84,7 @@ FinufftOpts._fields_ = [('modeord', c_int),
                       ('spread_kerpad', c_int),
                       ('spread_simd', c_int),
                       ('upsampfac', c_double),
+                      ('hint_nj', c_size_t),
                       ('spread_thread', c_int),
                       ('maxbatchsize', c_int),
                       ('spread_nthr_atomic', c_int),

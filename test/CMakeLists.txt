@@ -12,6 +12,7 @@ set(TESTS
     spreadinterp1d_test
     spread_simd_test
     adjointness
+    hint_nj_test
 )
 
 foreach(TEST ${TESTS})
@@ -102,6 +103,8 @@ function(add_tests_with_prec PREC REQ_TOL CHECK_TOL SUFFIX)
     add_test(NAME spread_simd_${PREC} COMMAND spread_simd_test${SUFFIX} WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
 
     add_test(NAME run_adjointness_${PREC} COMMAND adjointness${SUFFIX} WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
+
+    add_test(NAME run_hint_nj_${PREC} COMMAND hint_nj_test${SUFFIX} WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
 endfunction()
 
 # use above function to actually add the tests, with certain requested and check

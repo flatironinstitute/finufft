@@ -121,6 +121,10 @@ template<typename TF> struct FINUFFT_PLAN_T { // the main plan class, fully C++
   finufft_opts opts; // this and spopts could be made ptrs
   finufft_spread_opts spopts;
 
+  bool upsamp_locked;
+
+  int init_spreader_and_fft();
+
   // Remaining actions (not create/delete) in guru interface are now methods...
   int setpts(BIGINT nj, TF *xj, TF *yj, TF *zj, BIGINT nk, TF *s, TF *t, TF *u);
   int execute_internal(TC *cj, TC *fk, bool adjoint = false, int ntrans_actual = -1,

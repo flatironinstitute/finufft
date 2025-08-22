@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <cmath>
 #include <cstdio>
 #include <iomanip>
@@ -541,6 +542,7 @@ void finufft_default_opts_t(finufft_opts *o)
   o->spread_kerpad      = 1;
   o->spread_simd        = 0;
   o->upsampfac          = 0.0;
+  o->hint_nj            = 0;
   o->spread_thread      = 0;
   o->maxbatchsize       = 0;
   o->spread_nthr_atomic = -1;
@@ -552,6 +554,80 @@ void finufft_default_opts_t(finufft_opts *o)
 }
 
 // PPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPP
+template<typename TF> int FINUFFT_PLAN_T<TF>::init_spreader_and_fft() {
+  int ier = setup_spreader_for_nufft(spopts, tol, opts, dim);
+  if (ier > 1) return ier;
+
+  if (type == 1 || type == 2) {
+    int nthr_fft            = opts.nthreads;
+    spopts.spread_direction = type;
+    constexpr TF EPSILON    = std::numeric_limits<TF>::epsilon();
+
+    if (opts.spreadinterponly) {
+      for (int idim = 0; idim < dim; ++idim) nfdim[idim] = mstu[idim];
+      if (opts.debug) {
+        printf("[%s] %dd spreadinterponly(dir=%d): (ms,mt,mu)=(%lld,%lld,%lld)\n         "
+               "      ntrans=%d nthr=%d batchSize=%d kernel width ns=%d",
+               __func__, dim, type, (long long)mstu[0], (long long)mstu[1],
+               (long long)mstu[2], ntrans, opts.nthreads, batchSize, spopts.nspread);
+        if (batchSize == 1)
+          printf("\n");
+        else
+          printf(" spread_thread=%d\n", opts.spread_thread);
+      }
+    } else {
+      if (opts.showwarn) {
+        for (int idim = 0; idim < dim; ++idim)
+          if (EPSILON * mstu[idim] > 1.0)
+            fprintf(stderr,
+                    "%s warning: rounding err (due to cond # of prob) eps_mach*N%d = "
+                    "%.3g > 1 !\n",
+                    __func__, idim, (double)(EPSILON * mstu[idim]));
+      }
+      for (int idim = 0; idim < dim; ++idim) {
+        int nfier = set_nf_type12(mstu[idim], opts, spopts, &nfdim[idim]);
+        if (nfier) return nfier;
+        phiHat[idim].resize(nfdim[idim] / 2 + 1);
+      }
+      if (opts.debug) {
+        printf("[%s] %dd%d: (ms,mt,mu)=(%lld,%lld,%lld) (nf1,nf2,nf3)=(%lld,%lld,%lld)\n "
+               "              ntrans=%d nthr=%d batchSize=%d ",
+               __func__, dim, type, (long long)mstu[0], (long long)mstu[1],
+               (long long)mstu[2], (long long)nfdim[0], (long long)nfdim[1],
+               (long long)nfdim[2], ntrans, opts.nthreads, batchSize);
+        if (batchSize == 1)
+          printf("\n");
+        else
+          printf(" spread_thread=%d\n", opts.spread_thread);
+      }
+      CNTime timer;
+      timer.start();
+      for (int idim = 0; idim < dim; ++idim)
+        onedim_fseries_kernel(nfdim[idim], phiHat[idim], spopts);
+      if (opts.debug)
+        printf("[%s] kernel fser (ns=%d):\t\t%.3g s\n", __func__, spopts.nspread,
+               timer.elapsedsec());
+      if (nf() * batchSize > MAX_NF) {
+        fprintf(
+            stderr,
+            "%s fwBatch would be bigger than MAX_NF, not attempting memory allocation!\n",
+            __func__);
+        return FINUFFT_ERR_MAXNALLOC;
+      }
+      timer.restart();
+      const auto ns = gridsize_for_fft(*this);
+      std::vector<TC, xsimd::aligned_allocator<TC, 64>> fwBatch(nf() * batchSize);
+      fftPlan->plan(ns, batchSize, fwBatch.data(), fftSign, opts.fftw, nthr_fft);
+      if (opts.debug)
+        printf("[%s] FFT plan (mode %d, nthr=%d):\t%.3g s\n", __func__, opts.fftw,
+               nthr_fft, timer.elapsedsec());
+    }
+  } else {
+    if (opts.debug) printf("[%s] %dd%d: ntrans=%d\n", __func__, dim, type, ntrans);
+  }
+  return ier;
+}
+
 template<typename TF>
 FINUFFT_PLAN_T<TF>::FINUFFT_PLAN_T(int type_, int dim_, const BIGINT *n_modes, int iflag,
                                    int ntrans_, TF tol_, finufft_opts *opts_, int &ier)
@@ -660,111 +736,28 @@ FINUFFT_PLAN_T<TF>::FINUFFT_PLAN_T(int type_, int dim_, const BIGINT *n_modes, i
     }
   }
 
-  // heuristic to choose default upsampfac... (currently two poss)
-  if (opts.upsampfac == 0.0) { // init to auto choice
-    // Let assume density=1 as the average use case.
-    // TODO: make a decision on how to choose density properly.
-    const auto density = TF{1};
-    opts.upsampfac     = bestUpsamplingFactor<TF>(opts.nthreads, density, dim, type, tol);
+  upsamp_locked = (opts.upsampfac != 0.0);
+
+  if (tol < std::numeric_limits<TF>::epsilon()) ier = FINUFFT_WARN_EPS_TOO_SMALL;
+
+  if (upsamp_locked) {
+    int ier2 = init_spreader_and_fft();
+    if (ier2 > 1) throw int(ier2);
+    ier = std::max(ier, ier2);
+  } else if (type != 3 && opts.hint_nj > 0) {
+    double density = double(opts.hint_nj) / double(N());
+    opts.upsampfac = bestUpsamplingFactor<TF>(opts.nthreads, density, dim, type, tol);
     if (opts.debug > 1)
-      printf("[%s] threads %d, density %.3g, dim %d, nufft type %d, tol %.3g: auto "
-             "upsampfac=%.2f\n",
-             __func__, opts.nthreads, density, dim, type, tol, opts.upsampfac);
+      printf("[%s] hint_nj=%zu -> auto upsampfac=%.2f\n", __func__, opts.hint_nj,
+             opts.upsampfac);
+    int ier2 = init_spreader_and_fft();
+    if (ier2 > 1) throw int(ier2);
+    ier = std::max(ier, ier2);
+  } else {
+    if (opts.debug > 1)
+      printf("[%s] deferring upsampfac choice until setpts\n", __func__);
   }
-  // use opts to choose and write into plan's spread options...
-  ier = setup_spreader_for_nufft(spopts, tol, opts, dim);
-  if (ier > 1) // proceed if success or warning
-    throw int(ier);
-
-  //  ------------------------ types 1,2: planning needed ---------------------
-  if (type == 1 || type == 2) {
-
-    int nthr_fft = nthr; // give FFT all threads (or use o.spread_thread?)
-                         // Note: batchSize not used since might be only 1.
-
-    spopts.spread_direction = type;
-    constexpr TF EPSILON    = std::numeric_limits<TF>::epsilon();
-
-    if (opts.spreadinterponly) { // (unusual case of no NUFFT, just report)
-
-      // spreadinterp grid will simply be the user's "mode" grid...
-      for (int idim = 0; idim < dim; ++idim) nfdim[idim] = mstu[idim];
-
-      if (opts.debug) { // "long long" here is to avoid warnings with printf...
-        printf("[%s] %dd spreadinterponly(dir=%d): (ms,mt,mu)=(%lld,%lld,%lld)"
-               "\n               ntrans=%d nthr=%d batchSize=%d kernel width ns=%d",
-               __func__, dim, type, (long long)mstu[0], (long long)mstu[1],
-               (long long)mstu[2], ntrans, nthr, batchSize, spopts.nspread);
-        if (batchSize == 1) // spread_thread has no effect in this case
-          printf("\n");
-        else
-          printf(" spread_thread=%d\n", opts.spread_thread);
-      }
-
-    } else { // ..... usual NUFFT: eval Fourier series, alloc workspace .....
-
-      if (opts.showwarn) { // user warn round-off error (due to prob condition #)...
-        for (int idim = 0; idim < dim; ++idim)
-          if (EPSILON * mstu[idim] > 1.0)
-            fprintf(
-                stderr,
-                "%s warning: rounding err (due to cond # of prob) eps_mach*N%d = %.3g "
-                "> 1 !\n",
-                __func__, idim, (double)(EPSILON * mstu[idim]));
-      }
-
-      // determine fine grid sizes, sanity check, then alloc...
-      for (int idim = 0; idim < dim; ++idim) {
-        int nfier = set_nf_type12(mstu[idim], opts, spopts, &nfdim[idim]);
-        if (nfier) throw nfier;                   // nf too big; we're done
-        phiHat[idim].resize(nfdim[idim] / 2 + 1); // alloc fseries
-      }
-
-      if (opts.debug) { // "long long" here is to avoid warnings with printf...
-        printf("[%s] %dd%d: (ms,mt,mu)=(%lld,%lld,%lld) "
-               "(nf1,nf2,nf3)=(%lld,%lld,%lld)\n               ntrans=%d nthr=%d "
-               "batchSize=%d ",
-               __func__, dim, type, (long long)mstu[0], (long long)mstu[1],
-               (long long)mstu[2], (long long)nfdim[0], (long long)nfdim[1],
-               (long long)nfdim[2], ntrans, nthr, batchSize);
-        if (batchSize == 1) // spread_thread has no effect in this case
-          printf("\n");
-        else
-          printf(" spread_thread=%d\n", opts.spread_thread);
-      }
-
-      // STEP 0: get Fourier coeffs of spreading kernel along each fine grid dim
-      timer.restart();
-      for (int idim = 0; idim < dim; ++idim)
-        onedim_fseries_kernel(nfdim[idim], phiHat[idim], spopts);
-      if (opts.debug)
-        printf("[%s] kernel fser (ns=%d):\t\t%.3g s\n", __func__, spopts.nspread,
-               timer.elapsedsec());
-
-      if (nf() * batchSize > MAX_NF) {
-        fprintf(stderr,
-                "[%s] fwBatch would be bigger than MAX_NF, not attempting memory "
-                "allocation!\n",
-                __func__);
-        throw int(FINUFFT_ERR_MAXNALLOC);
-      }
-
-      timer.restart(); // plan the FFTW (to act in-place on the workspace fwBatch)
-      const auto ns = gridsize_for_fft(*this);
-      std::vector<TC, xsimd::aligned_allocator<TC, 64>> fwBatch(nf() * batchSize);
-      fftPlan->plan(ns, batchSize, fwBatch.data(), fftSign, opts.fftw, nthr_fft);
-      if (opts.debug)
-        printf("[%s] FFT plan (mode %d, nthr=%d):\t%.3g s\n", __func__, opts.fftw,
-               nthr_fft, timer.elapsedsec());
-    }
-
-  } else { // -------------------------- type 3 (no planning) ------------
-
-    if (opts.debug) printf("[%s] %dd%d: ntrans=%d\n", __func__, dim, type, ntrans);
-    // Type 3 will call finufft_makeplan for type 2; no need to init FFTW
-    // Note we don't even know nj or nk yet, so can't do anything else!
-  }
-  if (ier > 1) throw int(ier); // report setup_spreader status (could be warning)
+  if (ier > 1) throw int(ier);
 }
 
 template<typename TF>
@@ -803,8 +796,9 @@ int FINUFFT_PLAN_T<TF>::setpts(BIGINT nj, TF *xj, TF *yj, TF *zj, BIGINT nk, TF 
                                TF *u) {
   // Method function to set NU points and do precomputations. Barnett 2020.
   // See ../docs/cguru.doc for current documentation.
-  int d = dim; // abbrev for spatial dim
-  CNTime timer;
+  int d   = dim; // abbrev for spatial dim
+  int ier = 0;
+  CNTime timer{};
   timer.start();
   this->nj = nj; // the user only now chooses how many NU (x,y,z) pts
   if (nj < 0) {
@@ -815,12 +809,37 @@ int FINUFFT_PLAN_T<TF>::setpts(BIGINT nj, TF *xj, TF *yj, TF *zj, BIGINT nk, TF 
     return FINUFFT_ERR_NUM_NU_PTS_INVALID;
   }
 
-  if (type != 3) {          // ------------------ TYPE 1,2 SETPTS -------------------
-                            // (all we can do is check and maybe bin-sort the NU pts)
-    XYZ     = {xj, yj, zj}; // plan must keep pointers to user's fixed NU pts
-    int ier = spreadcheck(nfdim[0], nfdim[1], nfdim[2], spopts);
-    if (ier)                // no warnings allowed here
-      return ier;
+  // Helper to merge statuses: keep the worst (max), return fatal (>1) immediately.
+  auto accumulate_status = [&](int code) -> int {
+    if (code > 1) return code; // fatal
+    ier = std::max(ier, code); // 0 or 1: keep the worst so far
+    return 0;                  // 0 indicates "no fatal error"
+  };
+
+  // Lambda to auto-select upsampfac (if not locked) and init spreader/FFT
+  auto update_upsampfac_and_init = [&]() -> int {
+    if (upsamp_locked) return 0;
+    double density = double(nj) / double(N());
+    double new_usf = bestUpsamplingFactor<TF>(opts.nthreads, density, dim, type, tol);
+    if (opts.upsampfac != new_usf) {
+      const char *updated = opts.upsampfac == 0 ? "" : "updated";
+      opts.upsampfac      = new_usf;
+      if (opts.debug > 1)
+        printf("[setpts] %s upsampfac=%.2f (density=%.3f)\n", updated, opts.upsampfac,
+               density);
+    }
+    return init_spreader_and_fft();
+  };
+
+  if (type != 3) { // ------------------ TYPE 1,2 SETPTS -------------------
+                   // (all we can do is check and maybe bin-sort the NU pts)
+    if (!upsamp_locked) {
+      if (int fatal = accumulate_status(update_upsampfac_and_init())) return fatal;
+    }
+    XYZ = {xj, yj, zj}; // plan must keep pointers to user's fixed NU pts
+    if (const auto err = spreadcheck(nfdim[0], nfdim[1], nfdim[2], spopts)) {
+      return err;       // no warnings allowed here
+    }
     timer.restart();
     sortIndices.resize(nj);
     didSort =
@@ -831,7 +850,6 @@ int FINUFFT_PLAN_T<TF>::setpts(BIGINT nj, TF *xj, TF *yj, TF *zj, BIGINT nk, TF 
 
   } else { // ------------------------- TYPE 3 SETPTS -----------------------
            // (here we can precompute pre/post-phase factors and plan the t2)
-
     std::array<TF *, 3> XYZ_in{xj, yj, zj};
     std::array<TF *, 3> STU_in{s, t, u};
     if (nk < 0) {
@@ -844,21 +862,34 @@ int FINUFFT_PLAN_T<TF>::setpts(BIGINT nj, TF *xj, TF *yj, TF *zj, BIGINT nk, TF 
     this->nk = nk; // user set # targ freq pts
     STU      = {s, t, u};
 
-    // pick x, s intervals & shifts & # fine grid pts (nf) in each dim...
+    // pick x, s intervals & shifts in each dim...
     std::array<TF, 3> S = {0, 0, 0};
     if (opts.debug) printf("\tM=%lld N=%lld\n", (long long)nj, (long long)nk);
     for (int idim = 0; idim < dim; ++idim) {
       arraywidcen(nj, XYZ_in[idim], &(t3P.X[idim]), &(t3P.C[idim]));
-      arraywidcen(nk, STU_in[idim], &S[idim], &(t3P.D[idim])); // same D, S, but for {s_k}
+      arraywidcen(nk, STU_in[idim], &S[idim], &(t3P.D[idim]));
+      // set it here once to compute the density later
+      // set_nhg_type3 will overwrite it
+      mstu[idim] = std::max<BIGINT>(1, (BIGINT)std::ceil(2 * S[idim] * t3P.X[idim] / PI));
+    }
+    for (int idim = dim; idim < 3; ++idim) {
+      t3P.C[idim] = t3P.D[idim] = 0.0;
+      mstu[idim]                = 1;
+    }
+
+    if (!upsamp_locked) {
+      if (int fatal = accumulate_status(update_upsampfac_and_init())) return fatal;
+    }
+
+    for (int idim = 0; idim < dim; ++idim) {
       set_nhg_type3(S[idim], t3P.X[idim], opts, spopts, &(nfdim[idim]), &(t3P.h[idim]),
-                    &(t3P.gam[idim]));                         // applies twist i)
-      if (opts.debug) // report on choices of shifts, centers, etc...
+                    &(t3P.gam[idim]));
+      mstu[idim] = nfdim[idim];
+      if (opts.debug)
         printf("\tX%d=%.3g C%d=%.3g S%d=%.3g D%d=%.3g gam%d=%g nf%d=%lld h%d=%.3g\t\n",
                idim, t3P.X[idim], idim, t3P.C[idim], idim, S[idim], idim, t3P.D[idim],
                idim, t3P.gam[idim], idim, (long long)nfdim[idim], idim, t3P.h[idim]);
     }
-    for (int idim = dim; idim < 3; ++idim)
-      t3P.C[idim] = t3P.D[idim] = 0.0; // their defaults if dim 2 unused, etc
 
     if (nf() * batchSize > MAX_NF) {
       fprintf(stderr,
@@ -944,30 +975,36 @@ int FINUFFT_PLAN_T<TF>::setpts(BIGINT nj, TF *xj, TF *yj, TF *zj, BIGINT nk, TF 
     t2opts.modeord      = 0;                              // needed for correct t3!
     t2opts.debug        = std::max(0, opts.debug - 1);    // don't print as much detail
     t2opts.spread_debug = std::max(0, opts.spread_debug - 1);
-    t2opts.showwarn     = 0;                              // so don't see warnings 2x
+    t2opts.showwarn     = 0;
+    if (!upsamp_locked) t2opts.upsampfac = 0; // I think the inner t2 can decide what is best here?
+    // so don't see warnings 2x
     // (...could vary other t2opts here?)
     // MR: temporary hack, until we have figured out the C++ interface.
     FINUFFT_PLAN_T<TF> *tmpplan;
-    int ier = finufft_makeplan_t<TF>(2, d, t2nmodes, fftSign, batchSize, tol, &tmpplan,
-                                     &t2opts);
-    if (ier > 1) { // if merely warning, still proceed
+    int status = finufft_makeplan_t<TF>(2, d, t2nmodes, fftSign, batchSize, tol, &tmpplan,
+                                        &t2opts);
+    if (status > 1) { // if merely warning, still proceed
       fprintf(stderr, "[%s t3]: inner type 2 plan creation failed with ier=%d!\n",
-              __func__, ier);
-      return ier;
+              __func__, status);
+      return status;
     }
-    ier = tmpplan->setpts(nk, STUp[0].data(), STUp[1].data(), STUp[2].data(), 0, nullptr,
-                          nullptr,
-                          nullptr); // note nk = # output points (not nj)
+    if (int fatal = accumulate_status(status)) return fatal;
+
+    status = tmpplan->setpts(nk, STUp[0].data(), STUp[1].data(), STUp[2].data(), 0,
+                             nullptr, nullptr, nullptr); // note nk = # output points
     innerT2plan.reset(tmpplan);
-    if (ier > 1) {
-      fprintf(stderr, "[%s t3]: inner type 2 setpts failed, ier=%d!\n", __func__, ier);
-      return ier;
+    if (status > 1) {
+      fprintf(stderr, "[%s t3]: inner type 2 setpts failed, ier=%d!\n", __func__, status);
+      return status;
     }
+    if (int fatal = accumulate_status(status)) return fatal;
+
     if (opts.debug)
       printf("[%s t3] inner t2 plan & setpts: \t%.3g s\n", __func__, timer.elapsedsec());
   }
-  return 0;
+  return ier;
 }
+
 template int FINUFFT_PLAN_T<float>::setpts(BIGINT nj, float *xj, float *yj, float *zj,
                                            BIGINT nk, float *s, float *t, float *u);
 template int FINUFFT_PLAN_T<double>::setpts(BIGINT nj, double *xj, double *yj, double *zj,

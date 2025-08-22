@@ -16,6 +16,7 @@ c     alg performance opts...
       integer nthreads, fftw, spread_sort, spread_kerevalmeth
       integer spread_kerpad, spread_simd
       real*8 upsampfac
+      integer*8 hint_nj
       integer spread_thread, maxbatchsize, spread_nthr_atomic
       integer spread_max_sp_size
       integer fftw_lock_fun, fftw_unlock_fun, fftw_lock_data
