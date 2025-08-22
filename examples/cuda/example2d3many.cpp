@@ -9,12 +9,10 @@
 #include <random>
 
 #include <cufinufft.h>
-#include <cufinufft/utils.h>
+
+#include "../test/utils/norms.hpp"
 
 #include <cuda_runtime.h>
-
-// FIXME: This isn't actually public, though maybe it should be?
-using cufinufft::utils::infnorm;
 
 int main(int argc, char *argv[])
 /*

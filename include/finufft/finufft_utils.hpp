@@ -3,12 +3,9 @@
 
 #pragma once
 
-#include <cmath>
-//  for CNTime...
-//  (use chrono since the interface is portable between linux and windows)
-#include <chrono>
-
 #include "finufft_core.h"
+#include <cmath>
+#include <common/common.h>
 
 namespace finufft::utils {
 
@@ -31,7 +28,7 @@ FINUFFT_EXPORT FINUFFT_ALWAYS_INLINE void FINUFFT_CDECL arraywidcen(BIGINT n, co
                                                                     T *w, T *c)
 // Writes out w = half-width and c = center of an interval enclosing all a[n]'s
 // Only chooses a nonzero center if this increases w by less than fraction
-// ARRAYWIDCEN_GROWFRAC defined in finufft_core.h.
+// ARRAYWIDCEN_GROWFRAC defined in common/constants.h.
 // This prevents rephasings which don't grow nf by much. 6/8/17
 // If n==0, w and c are not finite.
 {
@@ -39,7 +36,7 @@ FINUFFT_EXPORT FINUFFT_ALWAYS_INLINE void FINUFFT_CDECL arraywidcen(BIGINT n, co
   arrayrange(n, a, &lo, &hi);
   *w = (hi - lo) / 2;
   *c = (hi + lo) / 2;
-  if (std::abs(*c) < ARRAYWIDCEN_GROWFRAC * (*w)) {
+  if (std::abs(*c) < common::ARRAYWIDCEN_GROWFRAC * (*w)) {
     *w += std::abs(*c);
     *c = 0.0;
   }
@@ -47,8 +44,6 @@ FINUFFT_EXPORT FINUFFT_ALWAYS_INLINE void FINUFFT_CDECL arraywidcen(BIGINT n, co
 
 // routines in finufft_utils.cpp ...
 FINUFFT_EXPORT BIGINT next235even(BIGINT n);
-FINUFFT_EXPORT void gaussquad(int n, double *xgl, double *wgl);
-FINUFFT_EXPORT std::tuple<double, double> leg_eval(int n, double x);
 
 // jfm's timer class
 class FINUFFT_EXPORT CNTime {
