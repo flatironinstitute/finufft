@@ -72,6 +72,7 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
       Marco Barbone 07/26/24. Using SM when shared memory available is enough.
   */
   using namespace cufinufft::common;
+  using namespace finufft::common;
   int ier;
   if (type < 1 || type > 3) {
     fprintf(stderr, "[%s] Invalid type (%d): should be 1, 2, or 3.\n", __func__, type);

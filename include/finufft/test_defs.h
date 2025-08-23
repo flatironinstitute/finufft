@@ -15,6 +15,7 @@
 #include <finufft.h>
 
 // convenient private finufft internals that tests need
+#include <common/common.h>
 #include <finufft/finufft_core.h>
 #include <finufft/finufft_utils.hpp>
 #include <memory>
@@ -36,6 +37,7 @@ using CPX = std::complex<FLT>;
 
 // -------------- Math consts (not in math.h) and useful math macros ----------
 #include <cmath>
+using ::finufft::common::PI;
 
 // either-precision unit imaginary number...
 #define IMA (CPX(0.0, 1.0))
@@ -116,7 +118,6 @@ static inline CPX crandm11r [[maybe_unused]] (unsigned int *x) {
 // --------  FINUFFT's plan object, prec-switching version ------------------
 // NB: now private (the public C++ or C etc user sees an opaque pointer to it)
 
-#include <finufft/fft.h>
 struct FINUFFT_PLAN_S : public FINUFFT_PLAN_T<FLT> {};
 
 // std stuff for tester src
