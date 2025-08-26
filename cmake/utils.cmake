@@ -35,7 +35,7 @@ function(filter_supported_compiler_flags input_flags_var output_flags_var)
     set(${output_flags_var} ${supported_flags} PARENT_SCOPE)
 endfunction()
 
-function(check_arch_support)
+function(check_msvc_arch_support)
     message(STATUS "Checking for AVX, AVX512 and SSE support")
     try_run(
         RUN_RESULT_VAR
