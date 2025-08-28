@@ -332,7 +332,7 @@ double bestUpsamplingFactor(const int nthreads, const double density, const int 
   }
 
   // 2) Special-case for nufftType == 3
-  //    TODO: maybe use the bandwidth here?
+  //    TODO: use the bandwidth to populate the talbe.
   if (nufftType == 3) {
     return 1.25;
   }

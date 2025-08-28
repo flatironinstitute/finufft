@@ -185,6 +185,12 @@ There is thus little reason for the nonexpert to mess with this option.
 
 * ``spread_kerpad=1`` : pad to next multiple of four
 
+**spread_simd**: implementation used for spreading and interpolation.
+
+* ``spread_simd=0`` : automatic choice (currently same as ``2``)
+* ``spread_simd=1`` : scalar loops without vectorization
+* ``spread_simd=2`` : manual SIMD vectorization
+
 
 **upsampfac**: This is the internal factor by which the FFT (fine grid)
 is chosen larger than
@@ -197,6 +203,13 @@ for only two settings, as follows. Otherwise, setting it to zero chooses a good 
 * ``upsampfac=2.0`` : standard setting of upsampling. Due to kernel width restrictions, this is necessary if you need to exceed 9 digits of accuracy.
 
 * ``upsampfac=1.25`` : low-upsampling option, with lower RAM, smaller FFTs, but wider spreading kernel. The latter can be much faster than the standard when the number of nonuniform points is similar or smaller to the number of modes, and/or if low accuracy is required. It is especially much (2 to 3 times) faster for type 3 transforms. However, the kernel widths :math:`w` are about 50% larger in each dimension, which can lead to slower spreading (it can also be faster due to the smaller size of the fine grid). Because the kernel width is limited to 16, currently, thus only 9-digit accuracy can currently be reached when using ``upsampfac=1.25``.
+
+
+**hint_nj**: Estimated number of nonuniform points available at plan time.
+If nonzero, ``makeplan`` uses this estimate to choose ``upsampfac``.
+Each ``setpts`` call recomputes the factor using the actual ``nj`` and
+re-initializes the plan if it changes.  A value of ``0`` defers the choice
+until ``setpts``.  If ``upsampfac`` is set explicitly, ``hint_nj`` is ignored.
 
 
 **spread_thread**: in the case of multiple transforms per call (``ntr>1``, or the "many" interfaces), controls how multithreading is used to spread/interpolate each batch of data.

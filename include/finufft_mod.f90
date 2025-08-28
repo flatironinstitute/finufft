@@ -15,8 +15,9 @@ type finufft_opts
 
    ! alg perf opts...
    integer(kind=C_INT) :: nthreads,fftw,spread_sort,spread_kerevalmeth
-   integer(kind=C_INT) :: spread_kerpad
+   integer(kind=C_INT) :: spread_kerpad, spread_simd
    real(kind=C_DOUBLE) :: upsampfac
+   integer(kind=C_SIZE_T) :: hint_nj
    integer(kind=C_INT) :: spread_thread, maxbatchsize
    integer(kind=C_INT) :: spread_nthr_atomic, spread_max_sp_size
    integer(kind=C_SIZE_T) :: fftw_lock_fun, fftw_unlock_fun, fftw_lock_data

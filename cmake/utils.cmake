@@ -76,40 +76,142 @@ function(copy_dll source_target destination_target)
     unset(DESTINATION_FILE)
 endfunction()
 
-include(CheckIPOSupported)
-check_ipo_supported(RESULT LTO_SUPPORTED OUTPUT LTO_ERROR)
-
-if(LTO_SUPPORTED)
-    message(STATUS "LTO is supported and enabled.")
-    set(FINUFFT_INTERPROCEDURAL_OPTIMIZATION TRUE)
-else()
-    message(WARNING "LTO is not supported: ${LTO_ERROR}")
-    set(FINUFFT_INTERPROCEDURAL_OPTIMIZATION FALSE)
+if(FINUFFT_INTERPROCEDURAL_OPTIMIZATION)
+    include(CheckIPOSupported)
+    check_ipo_supported(RESULT LTO_SUPPORTED OUTPUT LTO_ERROR)
+    if(NOT LTO_SUPPORTED)
+        message(WARNING "IPO is not supported: ${LTO_ERROR}")
+        set(FINUFFT_INTERPROCEDURAL_OPTIMIZATION OFF)
+    else()
+        message(STATUS "IPO is supported, enabling interprocedural optimization")
+    endif()
 endif()
 
-function(detect_cuda_architecture)
-    find_program(NVIDIA_SMI_EXECUTABLE nvidia-smi)
+function(enable_asan target)
+    target_compile_options(${target} PRIVATE ${FINUFFT_SANITIZER_FLAGS})
+    if(NOT (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC"))
+        target_link_options(${target} PRIVATE ${FINUFFT_SANITIZER_FLAGS})
+    endif()
+endfunction()
 
-    if(NVIDIA_SMI_EXECUTABLE)
-        execute_process(
-            COMMAND ${NVIDIA_SMI_EXECUTABLE} --query-gpu=compute_cap --format=csv,noheader
-            OUTPUT_VARIABLE compute_cap
-            OUTPUT_STRIP_TRAILING_WHITESPACE
-            ERROR_QUIET
-        )
+function(finufft_link_test target)
+    target_link_libraries(${target} PRIVATE finufft::finufft)
+    if(FINUFFT_USE_DUCC0)
+        target_compile_definitions(${target} PRIVATE FINUFFT_USE_DUCC0)
+    endif()
+    enable_asan(${target})
+    target_compile_features(${target} PRIVATE cxx_std_17)
+    set_target_properties(${target} PROPERTIES POSITION_INDEPENDENT_CODE ${FINUFFT_POSITION_INDEPENDENT_CODE})
+    if(FINUFFT_HAS_NO_DEPRECATED_DECLARATIONS)
+        target_compile_options(${target} PRIVATE -Wno-deprecated-declarations)
+    endif()
+endfunction()
 
-        if(compute_cap MATCHES "^[0-9]+\\.[0-9]+$")
-            string(REPLACE "." "" arch "${compute_cap}")
-            message(STATUS "Detected CUDA compute capability: ${compute_cap} (sm_${arch})")
+# Requires CMake >= 3.13 (for target_link_options / target_compile_options)
+# Usage:
+#   enable_lto(<target>)        # Clang: ThinLTO, GCC/MSVC/NVCC: full LTO (Clang defaults to Thin)
+#   enable_lto(<target> FULL)   # Force full LTO on Clang
+function(enable_lto target)
+    if(NOT FINUFFT_INTERPROCEDURAL_OPTIMIZATION)
+        return()
+    endif()
+    if(NOT TARGET ${target})
+        message(FATAL_ERROR "enable_lto(): '${target}' is not a target")
+    endif()
 
-            # Pass as list of integers, not string
-            set(CMAKE_CUDA_ARCHITECTURES ${arch} PARENT_SCOPE)
-        else()
-            message(WARNING "Failed to parse compute capability: '${compute_cap}', defaulting to 70")
-            set(CMAKE_CUDA_ARCHITECTURES 70 PARENT_SCOPE)
+    # Optional mode: THIN (default for Clang) or FULL
+    set(_mode "${ARGN}")
+    string(TOLOWER "${_mode}" _mode)
+    if(_mode STREQUAL "full")
+        set(_clang_lto "full")
+    else()
+        set(_clang_lto "thin")
+    endif()
+
+    # Turn on IPO for the target itself (lets CMake add the right flags for that target)
+    set_property(TARGET ${target} PROPERTY INTERPROCEDURAL_OPTIMIZATION ON)
+
+    # Figure out target type (to decide whether to propagate to consumers)
+    get_target_property(_ttype ${target} TYPE)
+    set(_is_lib FALSE)
+    if(
+        _ttype STREQUAL "STATIC_LIBRARY"
+        OR _ttype STREQUAL "SHARED_LIBRARY"
+        OR _ttype STREQUAL "MODULE_LIBRARY"
+        OR _ttype STREQUAL "OBJECT_LIBRARY"
+        OR _ttype STREQUAL "INTERFACE_LIBRARY"
+    )
+        set(_is_lib TRUE)
+    endif()
+
+    # Helper generator expressions
+    set(_C_or_CXX "$<$<OR:$<COMPILE_LANGUAGE:C>,$<COMPILE_LANGUAGE:CXX>>:")
+    set(_CUDA "$<$<COMPILE_LANGUAGE:CUDA>:")
+    set(_cfg "$<$<NOT:$<CONFIG:Debug>>:")
+
+    if(MSVC)
+        # MSVC: /GL for compile, /LTCG for link; disable incremental linking with LTCG
+        if(NOT _ttype STREQUAL "INTERFACE_LIBRARY")
+            target_compile_options(${target} PRIVATE "${_C_or_CXX}${_cfg}/GL>>")
+            target_link_options(${target} PRIVATE $<$<NOT:$<CONFIG:Debug>>:/LTCG /INCREMENTAL:NO>)
+        endif()
+        if(_is_lib)
+            target_compile_options(${target} INTERFACE "${_C_or_CXX}${_cfg}/GL>>")
+            target_link_options(${target} INTERFACE $<$<NOT:$<CONFIG:Debug>>:/LTCG /INCREMENTAL:NO>)
+        endif()
+    elseif(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+        # Clang/AppleClang: prefer ThinLTO by default; lld on non-Apple
+        set(_clang_flag "-flto=${_clang_lto}")
+
+        if(NOT _ttype STREQUAL "INTERFACE_LIBRARY")
+            target_compile_options(${target} PRIVATE "${_C_or_CXX}${_cfg}${_clang_flag}>>")
+            if(APPLE)
+                target_link_options(${target} PRIVATE $<$<NOT:$<CONFIG:Debug>>:${_clang_flag}>)
+            else()
+                target_link_options(${target} PRIVATE $<$<NOT:$<CONFIG:Debug>>:${_clang_flag} -fuse-ld=lld>)
+            endif()
+        endif()
+
+        if(_is_lib)
+            target_compile_options(${target} INTERFACE "${_C_or_CXX}${_cfg}${_clang_flag}>>")
+            if(APPLE)
+                target_link_options(${target} INTERFACE $<$<NOT:$<CONFIG:Debug>>:${_clang_flag}>)
+            else()
+                target_link_options(${target} INTERFACE $<$<NOT:$<CONFIG:Debug>>:${_clang_flag} -fuse-ld=lld>)
+            endif()
+        endif()
+
+        # Prefer llvm-ar/ranlib if available
+        find_program(LLVM_AR NAMES llvm-ar)
+        find_program(LLVM_RANLIB NAMES llvm-ranlib)
+        if(LLVM_AR AND LLVM_RANLIB)
+            set(CMAKE_AR "${LLVM_AR}" PARENT_SCOPE)
+            set(CMAKE_RANLIB "${LLVM_RANLIB}" PARENT_SCOPE)
+        endif()
+    elseif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+        # GCC: -flto; relies on binutils LTO plugin
+        if(NOT _ttype STREQUAL "INTERFACE_LIBRARY")
+            target_compile_options(${target} PRIVATE "${_C_or_CXX}${_cfg}-flto>>")
+            target_link_options(${target} PRIVATE $<$<NOT:$<CONFIG:Debug>>:-flto>)
+        endif()
+        if(_is_lib)
+            target_compile_options(${target} INTERFACE "${_C_or_CXX}${_cfg}-flto>>")
+            target_link_options(${target} INTERFACE $<$<NOT:$<CONFIG:Debug>>:-flto>)
+        endif()
+    elseif(CMAKE_CXX_COMPILER_ID STREQUAL "NVIDIA")
+        # NVCC: use -dlto for device link-time optimization (CUDA >=11.2)
+        if(NOT _ttype STREQUAL "INTERFACE_LIBRARY")
+            target_compile_options(${target} PRIVATE "${_CUDA}${_cfg}-dlto>>")
+            target_link_options(${target} PRIVATE $<$<NOT:$<CONFIG:Debug>>:-dlto>)
+        endif()
+        if(_is_lib)
+            target_compile_options(${target} INTERFACE "${_CUDA}${_cfg}-dlto>>")
+            target_link_options(${target} INTERFACE $<$<NOT:$<CONFIG:Debug>>:-dlto>)
         endif()
     else()
-        message(WARNING "nvidia-smi not found, defaulting CMAKE_CUDA_ARCHITECTURES to 70")
-        set(CMAKE_CUDA_ARCHITECTURES 70 PARENT_SCOPE)
+        message(
+            WARNING
+            "enable_lto(): unknown compiler '${CMAKE_CXX_COMPILER_ID}'. IPO enabled for '${target}', but flags may not propagate."
+        )
     endif()
 endfunction()

@@ -1,6 +1,22 @@
 name: Build cufinufft Python wheels
 
-on: [push, pull_request]
+on:
+  # Weekly schedule (Sunday 00:00 UTC)
+  schedule:
+    - cron: "0 0 * * 0"
+
+  # On tag push
+  push:
+    tags:
+      - 'v*'
+  # Manual trigger (with an optional deploy toggle)
+  workflow_dispatch:
+    inputs:
+      deploy:
+        description: "Deploy after build?"
+        type: boolean
+        required: false
+        default: false
 
 jobs:
   build_wheels:
@@ -17,9 +33,16 @@ jobs:
       - uses: ilammy/msvc-dev-cmd@v1
       - name: Setup CUDA
         if: ${{ matrix.buildplat[0] == 'windows-2022' }}
-        uses: Jimver/cuda-toolkit@v0.2.21
+        uses: Jimver/cuda-toolkit@v0.2.24
         with:
           cuda: '12.4.0'
+          method: 'network'
+          linux-local-args: '["--toolkit"]'
+          log-file-suffix: '${{matrix.os}}-cuda-install.txt'
+          sub-packages: ${{runner.os == 'Linux' && '["nvcc", "cudart"]' || '["nvcc", "cudart", "cufft", "cufft_dev"]'}}
+          non-cuda-sub-packages: ${{runner.os == 'Linux' && '["libcufft","libcufft-dev"]' || '[]'}}
+          use-local-cache: 'false'
+          use-github-cache: 'false' #it is not working at the moment https://github.com/Jimver/cuda-toolkit/issues/390
       - name: Build ${{ matrix.buildplat[1] }} wheels
         uses: pypa/cibuildwheel@v2.22.0
         with:
