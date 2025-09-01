@@ -1,21 +1,21 @@
-#include <finufft/fft.h>
-#include <finufft/finufft_core.h>
-#include <finufft/finufft_utils.hpp>
-#include <finufft/heuristics.hpp>
-#include <finufft/spreadinterp.h>
-
 #include <cmath>
 #include <cstdio>
 #include <iomanip>
 #include <memory>
 #include <vector>
-#include <xsimd/xsimd.hpp>
+
+#include <finufft/fft.h>
+#include <finufft/finufft_core.h>
+#include <finufft/finufft_utils.hpp>
+#include <finufft/heuristics.hpp>
+#include <finufft/spreadinterp.h>
+#include <finufft/xsimd.hpp>
 
 using namespace finufft;
 using namespace finufft::utils;
 using namespace finufft::spreadinterp;
 using namespace finufft::heuristics;
-
+using namespace finufft::common;
 /* Computational core for FINUFFT.
 
    Based on Barnett 2017-2018 finufft?d.cpp containing nine drivers, plus
@@ -109,6 +109,7 @@ static int setup_spreader_for_nufft(finufft_spread_opts &spopts, T eps,
   spopts.debug    = opts.spread_debug;
   spopts.sort     = opts.spread_sort;   // could make dim or CPU choices here?
   spopts.kerpad   = opts.spread_kerpad; // (only applies to kerevalmeth=0)
+  spopts.simd     = (opts.spread_simd == 0) ? 2 : opts.spread_simd;
   spopts.nthreads = opts.nthreads;      // 0 passed in becomes omp max by here
   if (opts.spread_nthr_atomic >= 0)     // overrides
     spopts.atomic_threshold = opts.spread_nthr_atomic;
@@ -247,7 +248,8 @@ public:
     int q = (int)(2 + 2.0 * J2); // > pi/2 ratio.  cannot exceed MAX_NQUAD
     if (opts.debug) printf("q (# ker FT quadr pts) = %d\n", q);
     std::vector<double> Z(2 * q), W(2 * q);
-    gaussquad(2 * q, Z.data(), W.data()); // only half the nodes used, for (0,1)
+    gaussquad(2 * q, Z.data(), W.data()); // only half the nodes used,
+                                          // for (0,1)
     z.resize(q);
     f.resize(q);
     for (int n = 0; n < q; ++n) {
@@ -537,6 +539,7 @@ void finufft_default_opts_t(finufft_opts *o)
   o->spread_sort        = 2;
   o->spread_kerevalmeth = 1;
   o->spread_kerpad      = 1;
+  o->spread_simd        = 0;
   o->upsampfac          = 0.0;
   o->spread_thread      = 0;
   o->maxbatchsize       = 0;

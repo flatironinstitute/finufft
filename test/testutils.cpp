@@ -58,7 +58,7 @@ int main(int argc, char *argv[]) {
   // test Gauss-Legendre quadrature...
   const int n = 16;
   std::vector<double> x(n), w(n);
-  gaussquad(n, x.data(), w.data());
+  finufft::common::gaussquad(n, x.data(), w.data());
   auto f = [](double x) {
     return sin(4 * x + 1.0) + 0.3;
   }; // a test func f(x)
