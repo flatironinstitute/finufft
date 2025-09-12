@@ -359,7 +359,7 @@ Default options for GPU
 ~~~~~~~~~~~~~~~~~~~~~~~
 
 For all GPU option default values we refer to the source code in
-``src/cuda/cufinufft.cu:cufinufft_default_opts``):
+``src/cuda/cufinufft.cu:cufinufft_default_opts``:
 
 .. literalinclude:: ../src/cuda/cufinufft.cu
    :start-after: @gpu_defopts_start
