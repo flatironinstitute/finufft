@@ -43,7 +43,7 @@
 // inline macro, to force inlining of small functions
 // this avoids the use of macros to implement functions
 #if defined(_MSC_VER)
-#define FINUFFT_ALWAYS_INLINE __forceinline inline
+#define FINUFFT_ALWAYS_INLINE __forceinline
 #define FINUFFT_NEVER_INLINE  __declspec(noinline)
 #define FINUFFT_RESTRICT      __restrict
 #define FINUFFT_UNREACHABLE   __assume(0)
