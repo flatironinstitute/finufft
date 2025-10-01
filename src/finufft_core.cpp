@@ -423,12 +423,14 @@ static void deconvolveshuffle3d(int dir, T prefac, const std::vector<T> &ker1,
                                nf2, &fw[np * (nf3 + k3)], modeord);
 }
 
+} // namespace utils
+} // namespace finufft
+
 // --------- batch helper functions for t1,2 exec: ---------------------------
 
 template<typename T>
-static int spreadinterpSortedBatch(int batchSize, const FINUFFT_PLAN_T<T> &p,
-                                   std::complex<T> *fwBatch, std::complex<T> *cBatch,
-                                   bool adjoint)
+int FINUFFT_PLAN_T<T>::spreadinterpSortedBatch(
+    int batchSize, std::complex<T> *fwBatch, std::complex<T> *cBatch, bool adjoint) const
 /*
   Spreads (or interpolates) a batch of batchSize strength vectors in cBatch
   to (or from) the batch of fine working grids fwBatch, using the same set of
@@ -447,63 +449,60 @@ static int spreadinterpSortedBatch(int batchSize, const FINUFFT_PLAN_T<T> &p,
   // omp_sets_nested deprecated, so don't use; assume not nested for 2 to work.
   // But when nthr_outer=1 here, omp par inside the loop sees all threads...
 #ifdef _OPENMP
-  int nthr_outer = p.opts.spread_thread == 1 ? 1 : batchSize;
+  int nthr_outer = opts.spread_thread == 1 ? 1 : batchSize;
 #endif
 #pragma omp parallel for num_threads(nthr_outer)
   for (int i = 0; i < batchSize; i++) {
-    std::complex<T> *fwi = fwBatch + i * p.nf(); // start of i'th fw array in
-                                                 // fwBatch workspace or user array
-    std::complex<T> *ci = cBatch + i * p.nj;     // start of i'th c array in cBatch
-    spreadinterpSorted(p.sortIndices, (UBIGINT)p.nfdim[0], (UBIGINT)p.nfdim[1],
-                       (UBIGINT)p.nfdim[2], (T *)fwi, (UBIGINT)p.nj, p.XYZ[0], p.XYZ[1],
-                       p.XYZ[2], (T *)ci, p.spopts, p.didSort, adjoint);
+    std::complex<T> *fwi = fwBatch + i * nf(); // start of i'th fw array in
+                                               // fwBatch workspace or user array
+    std::complex<T> *ci = cBatch + i * nj;     // start of i'th c array in cBatch
+    spreadinterpSorted(sortIndices, (UBIGINT)nfdim[0], (UBIGINT)nfdim[1],
+                       (UBIGINT)nfdim[2], (T *)fwi, (UBIGINT)nj, XYZ[0], XYZ[1], XYZ[2],
+                       (T *)ci, spopts, didSort, adjoint);
   }
   return 0;
 }
 
 template<typename T>
-static int deconvolveBatch(int batchSize, const FINUFFT_PLAN_T<T> &p,
-                           std::complex<T> *fkBatch, std::complex<T> *fwBatch,
-                           bool adjoint)
+int FINUFFT_PLAN_T<T>::deconvolveBatch(int batchSize, std::complex<T> *fkBatch,
+                                       std::complex<T> *fwBatch, bool adjoint) const
 /*
   Type 1: deconvolves (amplifies) from each interior fw array in fwBatch
   into each output array fk in fkBatch.
   Type 2: deconvolves from user-supplied input fk to 0-padded interior fw,
   again looping over fk in fkBatch and fw in fwBatch.
-  The direction (spread vs interpolate) is set by p.spopts.spread_direction.
+  The direction (spread vs interpolate) is set by spopts.spread_direction
+  and the adjoint parameter.
   This is mostly a loop calling deconvolveshuffle?d for the needed dim, batchSize
   times.
   Barnett 5/21/20, simplified from Malleo 2019 (eg t3 logic won't be in here)
 */
 {
   // since deconvolveshuffle?d are single-thread, omp par seems to help here...
-  int dir = p.spopts.spread_direction;
+  int dir = spopts.spread_direction;
   // Quick and dirty way to change direction 1 into direction 2 and vice versa
   // if adjoint operation is requested.
   if (adjoint) dir = 3 - dir;
 #pragma omp parallel for num_threads(batchSize)
   for (int i = 0; i < batchSize; i++) {
-    std::complex<T> *fwi = fwBatch + i * p.nf(); // start of i'th fw array in
-                                                 // wkspace
-    std::complex<T> *fki = fkBatch + i * p.N();  // start of i'th fk array in fkBatch
+    std::complex<T> *fwi = fwBatch + i * nf(); // start of i'th fw array in
+                                               // wkspace
+    std::complex<T> *fki = fkBatch + i * N();  // start of i'th fk array in fkBatch
 
     // pick dim-specific routine from above; note prefactors hardcoded to 1.0...
-    if (p.dim == 1)
-      deconvolveshuffle1d(dir, T(1), p.phiHat[0], p.mstu[0], (T *)fki, p.nfdim[0], fwi,
-                          p.opts.modeord);
-    else if (p.dim == 2)
-      deconvolveshuffle2d(dir, T(1), p.phiHat[0], p.phiHat[1], p.mstu[0], p.mstu[1],
-                          (T *)fki, p.nfdim[0], p.nfdim[1], fwi, p.opts.modeord);
+    if (dim == 1)
+      deconvolveshuffle1d(dir, T(1), phiHat[0], mstu[0], (T *)fki, nfdim[0], fwi,
+                          opts.modeord);
+    else if (dim == 2)
+      deconvolveshuffle2d(dir, T(1), phiHat[0], phiHat[1], mstu[0], mstu[1], (T *)fki,
+                          nfdim[0], nfdim[1], fwi, opts.modeord);
     else
-      deconvolveshuffle3d(dir, T(1), p.phiHat[0], p.phiHat[1], p.phiHat[2], p.mstu[0],
-                          p.mstu[1], p.mstu[2], (T *)fki, p.nfdim[0], p.nfdim[1],
-                          p.nfdim[2], fwi, p.opts.modeord);
+      deconvolveshuffle3d(dir, T(1), phiHat[0], phiHat[1], phiHat[2], mstu[0], mstu[1],
+                          mstu[2], (T *)fki, nfdim[0], nfdim[1], nfdim[2], fwi,
+                          opts.modeord);
   }
   return 0;
 }
-
-} // namespace utils
-} // namespace finufft
 
 // --------------- rest is the five user guru (plan) interface drivers: ---------
 // (not namespaced since have safe names finufft{f}_* )
@@ -553,7 +552,8 @@ void finufft_default_opts_t(finufft_opts *o)
 // PPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPP
 template<typename TF>
 FINUFFT_PLAN_T<TF>::FINUFFT_PLAN_T(int type_, int dim_, const BIGINT *n_modes, int iflag,
-                                   int ntrans_, TF tol_, finufft_opts *opts_, int &ier)
+                                   int ntrans_, TF tol_, const finufft_opts *opts_,
+                                   int &ier)
     : type(type_), dim(dim_), ntrans(ntrans_), tol(tol_)
 // Constructor for finufft_plan object.
 // opts is ptr to a finufft_opts to set options, or nullptr to use defaults.
@@ -768,7 +768,7 @@ FINUFFT_PLAN_T<TF>::FINUFFT_PLAN_T(int type_, int dim_, const BIGINT *n_modes, i
 
 template<typename TF>
 int finufft_makeplan_t(int type, int dim, const BIGINT *n_modes, int iflag, int ntrans,
-                       TF tol, FINUFFT_PLAN_T<TF> **pp, finufft_opts *opts)
+                       TF tol, FINUFFT_PLAN_T<TF> **pp, const finufft_opts *opts)
 // C-API wrapper around the C++ constructor. Writes a pointer to the plan in *pp.
 // Returns ier (warning or error codes as per C interface).
 {
@@ -789,17 +789,17 @@ int finufft_makeplan_t(int type, int dim, const BIGINT *n_modes, int iflag, int 
 // type TF, but it doesn't know for which types it actually should do so.
 // The following two statements instruct it to do that for TF=float and
 // TF=double :  (Reinecke, Sept 2024)
-template int finufft_makeplan_t<float>(int type, int dim, const BIGINT *n_modes,
-                                       int iflag, int ntrans, float tol,
-                                       FINUFFT_PLAN_T<float> **pp, finufft_opts *opts);
-template int finufft_makeplan_t<double>(int type, int dim, const BIGINT *n_modes,
-                                        int iflag, int ntrans, double tol,
-                                        FINUFFT_PLAN_T<double> **pp, finufft_opts *opts);
+template int finufft_makeplan_t<float>(
+    int type, int dim, const BIGINT *n_modes, int iflag, int ntrans, float tol,
+    FINUFFT_PLAN_T<float> **pp, const finufft_opts *opts);
+template int finufft_makeplan_t<double>(
+    int type, int dim, const BIGINT *n_modes, int iflag, int ntrans, double tol,
+    FINUFFT_PLAN_T<double> **pp, const finufft_opts *opts);
 
 // SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS
 template<typename TF>
-int FINUFFT_PLAN_T<TF>::setpts(BIGINT nj, TF *xj, TF *yj, TF *zj, BIGINT nk, TF *s, TF *t,
-                               TF *u) {
+int FINUFFT_PLAN_T<TF>::setpts(BIGINT nj, const TF *xj, const TF *yj, const TF *zj,
+                               BIGINT nk, const TF *s, const TF *t, const TF *u) {
   // Method function to set NU points and do precomputations. Barnett 2020.
   // See ../docs/cguru.doc for current documentation.
   int d = dim; // abbrev for spatial dim
@@ -831,8 +831,8 @@ int FINUFFT_PLAN_T<TF>::setpts(BIGINT nj, TF *xj, TF *yj, TF *zj, BIGINT nk, TF 
   } else { // ------------------------- TYPE 3 SETPTS -----------------------
            // (here we can precompute pre/post-phase factors and plan the t2)
 
-    std::array<TF *, 3> XYZ_in{xj, yj, zj};
-    std::array<TF *, 3> STU_in{s, t, u};
+    std::array<const TF *, 3> XYZ_in{xj, yj, zj};
+    std::array<const TF *, 3> STU_in{s, t, u};
     if (nk < 0) {
       fprintf(stderr, "[%s] nk (%lld) cannot be negative!\n", __func__, (long long)nk);
       return FINUFFT_ERR_NUM_NU_PTS_INVALID;
@@ -882,7 +882,7 @@ int FINUFFT_PLAN_T<TF>::setpts(BIGINT nj, TF *xj, TF *yj, TF *zj, BIGINT nk, TF 
 #pragma omp parallel for num_threads(opts.nthreads) schedule(static)
     for (BIGINT j = 0; j < nj; ++j) {
       for (int idim = 0; idim < dim; ++idim)
-        XYZ[idim][j] = (XYZ_in[idim][j] - t3P.C[idim]) * ig[idim]; // rescale x_j
+        XYZp[idim][j] = (XYZ_in[idim][j] - t3P.C[idim]) * ig[idim]; // rescale x_j
     }
 
     // set up prephase array...
@@ -967,10 +967,12 @@ int FINUFFT_PLAN_T<TF>::setpts(BIGINT nj, TF *xj, TF *yj, TF *zj, BIGINT nk, TF 
   }
   return 0;
 }
-template int FINUFFT_PLAN_T<float>::setpts(BIGINT nj, float *xj, float *yj, float *zj,
-                                           BIGINT nk, float *s, float *t, float *u);
-template int FINUFFT_PLAN_T<double>::setpts(BIGINT nj, double *xj, double *yj, double *zj,
-                                            BIGINT nk, double *s, double *t, double *u);
+template int FINUFFT_PLAN_T<float>::setpts(BIGINT nj, const float *xj, const float *yj,
+                                           const float *zj, BIGINT nk, const float *s,
+                                           const float *t, const float *u);
+template int FINUFFT_PLAN_T<double>::setpts(BIGINT nj, const double *xj, const double *yj,
+                                            const double *zj, BIGINT nk, const double *s,
+                                            const double *t, const double *u);
 
 // ............ end setpts ..................................................
 
@@ -1047,13 +1049,13 @@ int FINUFFT_PLAN_T<TF>::execute_internal(TC *cj, TC *fk, bool adjoint, int ntran
       // usually spread/interp to/from fwBatch (vs spreadinterponly: to/from user grid)
       TC *fwBatch_or_fkb = opts.spreadinterponly ? fkb : fwBatch;
       if ((type == 1) != adjoint) { // spread NU pts X, weights cj, to fw grid
-        spreadinterpSortedBatch<TF>(thisBatchSize, *this, fwBatch_or_fkb, cjb, adjoint);
+        spreadinterpSortedBatch(thisBatchSize, fwBatch_or_fkb, cjb, adjoint);
         t_sprint += timer.elapsedsec();
         if (opts.spreadinterponly) // we're done (skip to next iteration of loop)
           continue;
       } else if (!opts.spreadinterponly) {
         // amplify Fourier coeffs fk into 0-padded fw
-        deconvolveBatch<TF>(thisBatchSize, *this, fkb, fwBatch, adjoint);
+        deconvolveBatch(thisBatchSize, fkb, fwBatch, adjoint);
         t_deconv += timer.elapsedsec();
       }
       if (!opts.spreadinterponly) { // Do FFT unless spread/interp only...
@@ -1067,10 +1069,10 @@ int FINUFFT_PLAN_T<TF>::execute_internal(TC *cj, TC *fk, bool adjoint, int ntran
       // STEP 3: (varies by type)
       timer.restart();
       if ((type == 1) != adjoint) { // deconvolve (amplify) fw and shuffle to fk
-        deconvolveBatch<TF>(thisBatchSize, *this, fkb, fwBatch, adjoint);
+        deconvolveBatch(thisBatchSize, fkb, fwBatch, adjoint);
         t_deconv += timer.elapsedsec();
       } else { // interpolate unif fw grid to NU target pts
-        spreadinterpSortedBatch<TF>(thisBatchSize, *this, fwBatch_or_fkb, cjb, adjoint);
+        spreadinterpSortedBatch(thisBatchSize, fwBatch_or_fkb, cjb, adjoint);
         t_sprint += timer.elapsedsec();
       }
     } // ........end b loop
@@ -1151,8 +1153,8 @@ int FINUFFT_PLAN_T<TF>::execute_internal(TC *cj, TC *fk, bool adjoint, int ntran
 
         // STEP 1: spread c'_j batch (x'_j NU pts) into internal fw batch grid...
         timer.restart();
-        spreadinterpSortedBatch<TF>(thisBatchSize, *this, fwBatch, CpBatch,
-                                    adjoint); // X are primed
+        spreadinterpSortedBatch(thisBatchSize, fwBatch, CpBatch,
+                                adjoint); // X are primed
         t_sprint += timer.elapsedsec();
 
         // STEP 2: type 2 NUFFT from fw batch to user output fk array batch...
@@ -1185,8 +1187,8 @@ int FINUFFT_PLAN_T<TF>::execute_internal(TC *cj, TC *fk, bool adjoint, int ntran
         t_inner += timer.elapsedsec();
         // STEP 2: interpolate fwBatch into user output array ...
         timer.restart();
-        spreadinterpSortedBatch<TF>(thisBatchSize, *this, fwBatch, cjb,
-                                    adjoint); // X are primed
+        spreadinterpSortedBatch(thisBatchSize, fwBatch, cjb,
+                                adjoint); // X are primed
         t_sprint += timer.elapsedsec();
         // STEP 3: post-phase (possibly) the c_j output strengths (in place) ...
         timer.restart();
