@@ -45,7 +45,7 @@ jobs:
       - name: Run Matlab test
         uses: matlab-actions/run-command@v2
         with:
-          command: addpath(genpath('matlab')), check_finufft
+          command: addpath(genpath('matlab')), fullmathtest
       - name: Upload mex files
         uses: actions/upload-artifact@v4
         with:
