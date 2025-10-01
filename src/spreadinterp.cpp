@@ -8,6 +8,7 @@
 
 #include <xsimd/xsimd.hpp>
 
+#include <array>
 #include <cinttypes>
 #include <cmath>
 #include <cstdio>
@@ -15,7 +16,8 @@
 #include <vector>
 
 using namespace std;
-using namespace finufft::utils; // access to timer
+using namespace finufft::utils;  // access to timer
+using namespace finufft::common; // access to constants and dispatch
 
 namespace finufft::spreadinterp {
 
@@ -43,10 +45,10 @@ template<unsigned cap> struct shuffle_index {
     return index < cap ? (cap - 1 - index) : size + size + cap - 1 - index;
   }
 };
-struct select_even {
+struct [[maybe_unused]] select_even {
   static constexpr unsigned get(unsigned index, unsigned /*size*/) { return index * 2; }
 };
-struct select_odd {
+struct [[maybe_unused]] select_odd {
   static constexpr unsigned get(unsigned index, unsigned /*size*/) {
     return index * 2 + 1;
   }
@@ -78,8 +80,7 @@ template<class T, uint8_t N> constexpr auto find_optimal_simd_width() {
   uint8_t optimal_simd_width = min_simd_width<T>();
   uint8_t min_iterations     = (N + optimal_simd_width - 1) / optimal_simd_width;
   for (uint8_t simd_width = optimal_simd_width;
-       simd_width <= xsimd::batch<T, xsimd::best_arch>::size;
-       simd_width *= 2) {
+       simd_width <= xsimd::batch<T, xsimd::best_arch>::size; simd_width *= 2) {
     uint8_t iterations = (N + simd_width - 1) / simd_width;
     if (iterations < min_iterations) {
       min_iterations     = iterations;
@@ -279,9 +280,9 @@ static void evaluate_kernel_vector(T *ker, T *args,
 template<typename T, uint8_t w, uint8_t upsampfact,
          class simd_type =
              xsimd::make_sized_batch_t<T, find_optimal_simd_width<T, w>()>> // aka ns
-static FINUFFT_ALWAYS_INLINE void eval_kernel_vec_Horner(
-    T *FINUFFT_RESTRICT ker, T x,
-    const finufft_spread_opts &opts [[maybe_unused]]) noexcept
+static FINUFFT_ALWAYS_INLINE void eval_kernel_vec_Horner(T *FINUFFT_RESTRICT ker, T x,
+                                                         const finufft_spread_opts &opts
+                                                         [[maybe_unused]]) noexcept
 /* Fill ker[] with Horner piecewise poly approx to [-w/2,w/2] ES kernel eval at
 x_j = x + j,  for j=0,..,w-1.  Thus x in [-w/2,-w/2+1].   w is aka ns.
 This is the current evaluation method, since it's faster (except i7 w=16).
@@ -812,7 +813,7 @@ static void interp_cube(T *FINUFFT_RESTRICT target, const T *du, const T *ker1,
   target[1] = out[1];
 }
 
-template<uint8_t ns, uint8_t kerevalmeth, class T,
+template<int ns, int kerevalmeth, class T,
          class simd_type = xsimd::make_sized_batch_t<T, find_optimal_simd_width<T, ns>()>,
          typename... V>
 static FINUFFT_ALWAYS_INLINE auto ker_eval(
@@ -856,7 +857,7 @@ static FINUFFT_ALWAYS_INLINE auto ker_eval(
   return ker;
 }
 
-template<typename T, uint8_t ns, bool kerevalmeth>
+template<typename T, int ns, int kerevalmeth>
 FINUFFT_NEVER_INLINE void spread_subproblem_1d_kernel(
     const BIGINT off1, const UBIGINT size1, T *FINUFFT_RESTRICT du, const UBIGINT M,
     const T *const kx, const T *const dd, const finufft_spread_opts &opts) noexcept {
@@ -996,77 +997,36 @@ FINUFFT_NEVER_INLINE void spread_subproblem_1d_kernel(
   }
 }
 
-template<typename T, uint8_t NS>
-static void spread_subproblem_1d_dispatch(
-    const BIGINT off1, const UBIGINT size1, T *FINUFFT_RESTRICT du, const UBIGINT M,
-    const T *kx, const T *dd, const finufft_spread_opts &opts) noexcept {
-  /* this is a dispatch function that will call the correct kernel based on the ns
-   it recursively iterates from MAX_NSPREAD to MIN_NSPREAD
-   it generates the following code:
-   if (ns == MAX_NSPREAD) {
-     if (opts.kerevalmeth) {
-       return spread_subproblem_1d_kernel<MAX_NSPREAD, true>(off1, size1, du, M, kx, dd,
-       opts);
-    } else {
-       return spread_subproblem_1d_kernel<MAX_NSPREAD, false>(off1, size1, du, M, kx, dd,
-       opts);
-   }
-   if (ns == MAX_NSPREAD-1) {
-     if (opts.kerevalmeth) {
-       return spread_subproblem_1d_kernel<MAX_NSPREAD-1, true>(off1, size1, du, M, kx, dd,
-       opts);
-     } else {
-       return spread_subproblem_1d_kernel<MAX_NSPREAD-1, false>(off1, size1, du, M, kx,
-       dd, opts);
-     }
-   }
-   ...
-   NOTE: using a big MAX_NSPREAD will generate a lot of code
-         if MAX_NSPREAD gets too large it will crash the compiler with a compile time
-         stack overflow. Older compiler will just throw an internal error without
-         providing any useful information on the error.
-         This is a known issue with template metaprogramming.
-         If you increased MAX_NSPREAD and the code does not compile, try reducing it.
-  */
-  static_assert(MIN_NSPREAD <= NS && NS <= MAX_NSPREAD,
-                "NS must be in the range (MIN_NSPREAD, MAX_NSPREAD)");
-  if constexpr (NS == MIN_NSPREAD) { // Base case
-    if (opts.kerevalmeth)
-      return spread_subproblem_1d_kernel<T, MIN_NSPREAD, true>(off1, size1, du, M, kx, dd,
-                                                               opts);
-    else {
-      return spread_subproblem_1d_kernel<T, MIN_NSPREAD, false>(off1, size1, du, M, kx,
-                                                                dd, opts);
-    }
-  } else {
-    if (opts.nspread == NS) {
-      if (opts.kerevalmeth) {
-        return spread_subproblem_1d_kernel<T, NS, true>(off1, size1, du, M, kx, dd, opts);
-      } else {
-        return spread_subproblem_1d_kernel<T, NS, false>(off1, size1, du, M, kx, dd,
-                                                         opts);
-      }
-    } else {
-      return spread_subproblem_1d_dispatch<T, NS - 1>(off1, size1, du, M, kx, dd, opts);
-    }
+namespace {
+
+template<typename T> struct SpreadSubproblem1dCaller {
+  BIGINT off1;
+  UBIGINT size1;
+  T *du;
+  UBIGINT M;
+  const T *kx;
+  const T *dd;
+  const finufft_spread_opts &opts;
+  template<int NS, int KM> int operator()() const {
+    spread_subproblem_1d_kernel<T, NS, KM>(off1, size1, du, M, kx, dd, opts);
+    return 0;
   }
-}
+};
+
+} // namespace
 
 template<typename T>
 static void spread_subproblem_1d(BIGINT off1, UBIGINT size1, T *du, UBIGINT M, T *kx,
-                                 T *dd, const finufft_spread_opts &opts) noexcept
-/* spreader from dd (NU) to du (uniform) in 2D without wrapping.
-   See above docs/notes for spread_subproblem_2d.
-   kx,ky (size M) are NU locations in [off+ns/2,off+size-1-ns/2] in both dims.
-   dd (size M complex) are complex source strengths
-   du (size size1*size2) is complex uniform output array
-   For algoritmic details see spread_subproblem_1d_kernel.
-*/
-{
-  spread_subproblem_1d_dispatch<T, MAX_NSPREAD>(off1, size1, du, M, kx, dd, opts);
+                                 T *dd, const finufft_spread_opts &opts) noexcept {
+  SpreadSubproblem1dCaller<T> caller{off1, size1, du, M, kx, dd, opts};
+  using NsSeq  = make_range<MIN_NSPREAD, MAX_NSPREAD>;
+  using KerSeq = std::make_integer_sequence<int, KEREVAL_METHODS>;
+  auto params  = std::make_tuple(DispatchParam<NsSeq>{opts.nspread},
+                                 DispatchParam<KerSeq>{opts.kerevalmeth});
+  dispatch(caller, params);
 }
 
-template<typename T, uint8_t ns, bool kerevalmeth>
+template<typename T, int ns, int kerevalmeth>
 FINUFFT_NEVER_INLINE static void spread_subproblem_2d_kernel(
     const BIGINT off1, const BIGINT off2, const UBIGINT size1, const UBIGINT size2,
     T *FINUFFT_RESTRICT du, const UBIGINT M, const T *kx, const T *ky, const T *dd,
@@ -1159,36 +1119,25 @@ FINUFFT_NEVER_INLINE static void spread_subproblem_2d_kernel(
   }
 }
 
-template<typename T, uint8_t NS>
-void spread_subproblem_2d_dispatch(
-    const BIGINT off1, const BIGINT off2, const UBIGINT size1, const UBIGINT size2,
-    T *FINUFFT_RESTRICT du, const UBIGINT M, const T *kx, const T *ky, const T *dd,
-    const finufft_spread_opts &opts) {
-  static_assert(MIN_NSPREAD <= NS && NS <= MAX_NSPREAD,
-                "NS must be in the range (MIN_NSPREAD, MAX_NSPREAD)");
-  if constexpr (NS == MIN_NSPREAD) { // Base case
-    if (opts.kerevalmeth)
-      return spread_subproblem_2d_kernel<T, MIN_NSPREAD, true>(off1, off2, size1, size2,
-                                                               du, M, kx, ky, dd, opts);
-    else {
-      return spread_subproblem_2d_kernel<T, MIN_NSPREAD, false>(off1, off2, size1, size2,
-                                                                du, M, kx, ky, dd, opts);
-    }
-  } else {
-    if (opts.nspread == NS) {
-      if (opts.kerevalmeth) {
-        return spread_subproblem_2d_kernel<T, NS, true>(off1, off2, size1, size2, du, M,
-                                                        kx, ky, dd, opts);
-      } else {
-        return spread_subproblem_2d_kernel<T, NS, false>(off1, off2, size1, size2, du, M,
-                                                         kx, ky, dd, opts);
-      }
-    } else {
-      return spread_subproblem_2d_dispatch<T, NS - 1>(off1, off2, size1, size2, du, M, kx,
-                                                      ky, dd, opts);
-    }
+namespace {
+
+template<typename T> struct SpreadSubproblem2dCaller {
+  BIGINT off1, off2;
+  UBIGINT size1, size2;
+  T *du;
+  UBIGINT M;
+  const T *kx;
+  const T *ky;
+  const T *dd;
+  const finufft_spread_opts &opts;
+  template<int NS, int KM> int operator()() const {
+    spread_subproblem_2d_kernel<T, NS, KM>(off1, off2, size1, size2, du, M, kx, ky, dd,
+                                           opts);
+    return 0;
   }
-}
+};
+
+} // namespace
 
 template<typename T>
 static void spread_subproblem_2d(BIGINT off1, BIGINT off2, UBIGINT size1, UBIGINT size2,
@@ -1203,11 +1152,15 @@ static void spread_subproblem_2d(BIGINT off1, BIGINT off2, UBIGINT size1, UBIGIN
    For algoritmic details see spread_subproblem_1d_kernel.
 */
 {
-  spread_subproblem_2d_dispatch<T, MAX_NSPREAD>(off1, off2, size1, size2, du, M, kx, ky,
-                                                dd, opts);
+  SpreadSubproblem2dCaller<T> caller{off1, off2, size1, size2, du, M, kx, ky, dd, opts};
+  using NsSeq  = make_range<MIN_NSPREAD, MAX_NSPREAD>;
+  using KerSeq = std::make_integer_sequence<int, KEREVAL_METHODS>;
+  auto params  = std::make_tuple(DispatchParam<NsSeq>{opts.nspread},
+                                 DispatchParam<KerSeq>{opts.kerevalmeth});
+  dispatch(caller, params);
 }
 
-template<typename T, uint8_t ns, bool kerevalmeth>
+template<typename T, int ns, int kerevalmeth>
 FINUFFT_NEVER_INLINE void spread_subproblem_3d_kernel(
     const BIGINT off1, const BIGINT off2, const BIGINT off3, const UBIGINT size1,
     const UBIGINT size2, const UBIGINT size3, T *FINUFFT_RESTRICT du, const UBIGINT M,
@@ -1283,36 +1236,26 @@ FINUFFT_NEVER_INLINE void spread_subproblem_3d_kernel(
   }
 }
 
-template<typename T, uint8_t NS>
-void spread_subproblem_3d_dispatch(BIGINT off1, BIGINT off2, BIGINT off3, UBIGINT size1,
-                                   UBIGINT size2, UBIGINT size3, T *du, UBIGINT M,
-                                   const T *kx, const T *ky, const T *kz, const T *dd,
-                                   const finufft_spread_opts &opts) noexcept {
-  static_assert(MIN_NSPREAD <= NS && NS <= MAX_NSPREAD,
-                "NS must be in the range (MIN_NSPREAD, MAX_NSPREAD)");
-  if constexpr (NS == MIN_NSPREAD) { // Base case
-    if (opts.kerevalmeth)
-      return spread_subproblem_3d_kernel<T, MIN_NSPREAD, true>(
-          off1, off2, off3, size1, size2, size3, du, M, kx, ky, kz, dd, opts);
-    else {
-      return spread_subproblem_3d_kernel<T, MIN_NSPREAD, false>(
-          off1, off2, off3, size1, size2, size3, du, M, kx, ky, kz, dd, opts);
-    }
-  } else {
-    if (opts.nspread == NS) {
-      if (opts.kerevalmeth) {
-        return spread_subproblem_3d_kernel<T, NS, true>(
-            off1, off2, off3, size1, size2, size3, du, M, kx, ky, kz, dd, opts);
-      } else {
-        return spread_subproblem_3d_kernel<T, NS, false>(
-            off1, off2, off3, size1, size2, size3, du, M, kx, ky, kz, dd, opts);
-      }
-    } else {
-      return spread_subproblem_3d_dispatch<T, NS - 1>(off1, off2, off3, size1, size2,
-                                                      size3, du, M, kx, ky, kz, dd, opts);
-    }
+namespace {
+
+template<typename T> struct SpreadSubproblem3dCaller {
+  BIGINT off1, off2, off3;
+  UBIGINT size1, size2, size3;
+  T *du;
+  UBIGINT M;
+  T *kx;
+  T *ky;
+  T *kz;
+  T *dd;
+  const finufft_spread_opts &opts;
+  template<int NS, int KM> int operator()() const {
+    spread_subproblem_3d_kernel<T, NS, KM>(off1, off2, off3, size1, size2, size3, du, M,
+                                           kx, ky, kz, dd, opts);
+    return 0;
   }
-}
+};
+
+} // namespace
 
 template<typename T>
 static void spread_subproblem_3d(BIGINT off1, BIGINT off2, BIGINT off3, UBIGINT size1,
@@ -1326,8 +1269,13 @@ dd (size M complex) are complex source strengths
 du (size size1*size2*size3) is uniform complex output array
 */
 {
-  spread_subproblem_3d_dispatch<T, MAX_NSPREAD>(off1, off2, off3, size1, size2, size3, du,
-                                                M, kx, ky, kz, dd, opts);
+  SpreadSubproblem3dCaller<T> caller{off1, off2, off3, size1, size2, size3, du,
+                                     M,    kx,   ky,   kz,    dd,    opts};
+  using NsSeq  = make_range<MIN_NSPREAD, MAX_NSPREAD>;
+  using KerSeq = std::make_integer_sequence<int, KEREVAL_METHODS>;
+  auto params  = std::make_tuple(DispatchParam<NsSeq>{opts.nspread},
+                                 DispatchParam<KerSeq>{opts.kerevalmeth});
+  dispatch(caller, params);
 }
 
 template<typename T, bool thread_safe>
@@ -1946,7 +1894,7 @@ static int spreadSorted(const std::vector<BIGINT> &sort_indices, UBIGINT N1, UBI
 };
 
 // --------------------------------------------------------------------------
-template<typename T, uint16_t ns, uint16_t kerevalmeth>
+template<typename T, int ns, int kerevalmeth>
 FINUFFT_NEVER_INLINE static int interpSorted_kernel(
     const std::vector<BIGINT> &sort_indices, const UBIGINT N1, const UBIGINT N2,
     const UBIGINT N3, const T *data_uniform, const UBIGINT M,
@@ -2055,48 +2003,39 @@ FINUFFT_NEVER_INLINE static int interpSorted_kernel(
   return 0;
 }
 
-template<typename T, uint16_t NS>
-static int interpSorted_dispatch(
-    const std::vector<BIGINT> &sort_indices, const UBIGINT N1, const UBIGINT N2,
-    const UBIGINT N3, T *FINUFFT_RESTRICT data_uniform, const UBIGINT M,
-    const T *FINUFFT_RESTRICT kx, const T *FINUFFT_RESTRICT ky,
-    const T *FINUFFT_RESTRICT kz, T *FINUFFT_RESTRICT data_nonuniform,
-    const finufft_spread_opts &opts) {
-  static_assert(MIN_NSPREAD <= NS && NS <= MAX_NSPREAD,
-                "NS must be in the range (MIN_NSPREAD, MAX_NSPREAD)");
-  if constexpr (NS == MIN_NSPREAD) { // Base case
-    if (opts.kerevalmeth)
-      return interpSorted_kernel<T, MIN_NSPREAD, true>(
-          sort_indices, N1, N2, N3, data_uniform, M, kx, ky, kz, data_nonuniform, opts);
-    else {
-      return interpSorted_kernel<T, MIN_NSPREAD, false>(
-          sort_indices, N1, N2, N3, data_uniform, M, kx, ky, kz, data_nonuniform, opts);
-    }
-  } else {
-    if (opts.nspread == NS) {
-      if (opts.kerevalmeth) {
-        return interpSorted_kernel<T, NS, true>(sort_indices, N1, N2, N3, data_uniform, M,
-                                                kx, ky, kz, data_nonuniform, opts);
-      } else {
-        return interpSorted_kernel<T, NS, false>(sort_indices, N1, N2, N3, data_uniform,
-                                                 M, kx, ky, kz, data_nonuniform, opts);
-      }
-    } else {
-      return interpSorted_dispatch<T, NS - 1>(sort_indices, N1, N2, N3, data_uniform, M,
-                                              kx, ky, kz, data_nonuniform, opts);
-    }
+namespace {
+
+template<typename T> struct InterpSortedCaller {
+  const std::vector<BIGINT> &sort_indices;
+  UBIGINT N1, N2, N3;
+  T *data_uniform;
+  UBIGINT M;
+  const T *kx;
+  const T *ky;
+  const T *kz;
+  T *data_nonuniform;
+  const finufft_spread_opts &opts;
+  template<int NS, int KM> int operator()() const {
+    return interpSorted_kernel<T, NS, KM>(sort_indices, N1, N2, N3, data_uniform, M, kx,
+                                          ky, kz, data_nonuniform, opts);
   }
-}
+};
+
+} // namespace
 
 template<typename T>
-static int interpSorted(const std::vector<BIGINT> &sort_indices, const UBIGINT N1,
-                        const UBIGINT N2, const UBIGINT N3,
-                        T *FINUFFT_RESTRICT data_uniform, const UBIGINT M,
-                        const T *FINUFFT_RESTRICT kx, const T *FINUFFT_RESTRICT ky,
-                        const T *FINUFFT_RESTRICT kz, T *FINUFFT_RESTRICT data_nonuniform,
-                        const finufft_spread_opts &opts) {
-  return interpSorted_dispatch<T, MAX_NSPREAD>(sort_indices, N1, N2, N3, data_uniform, M,
-                                               kx, ky, kz, data_nonuniform, opts);
+static int interpSorted(
+    const std::vector<BIGINT> &sort_indices, const UBIGINT N1, const UBIGINT N2,
+    const UBIGINT N3, T *FINUFFT_RESTRICT data_uniform, const UBIGINT M,
+    const T *FINUFFT_RESTRICT kx, const T *FINUFFT_RESTRICT ky, const T *FINUFFT_RESTRICT kz,
+    T *FINUFFT_RESTRICT data_nonuniform, const finufft_spread_opts &opts) {
+  InterpSortedCaller<T> caller{sort_indices,    N1,  N2, N3, data_uniform, M, kx, ky, kz,
+                               data_nonuniform, opts};
+  using NsSeq  = make_range<MIN_NSPREAD, MAX_NSPREAD>;
+  using KerSeq = std::make_integer_sequence<int, KEREVAL_METHODS>;
+  auto params  = std::make_tuple(DispatchParam<NsSeq>{opts.nspread},
+                                 DispatchParam<KerSeq>{opts.kerevalmeth});
+  return dispatch(caller, params);
 }
 
 template<typename T>
@@ -2205,7 +2144,8 @@ FINUFFT_EXPORT int FINUFFT_CDECL setup_spreader(
   if (upsampfac == 2.0)                    // standard sigma (see SISC paper)
     ns = std::ceil(-log10(eps / (T)10.0)); // 1 digit per power of 10
   else                                     // custom sigma
-    ns = std::ceil(-log(eps) / (T(PI) * sqrt(1.0 - 1.0 / upsampfac))); // formula, gam=1
+    ns = std::ceil(-log(eps) / (T(PI) * sqrt(1.0 - 1.0 / upsampfac))); // formula,
+                                                                       // gam=1
   ns = max(2, ns);        // (we don't have ns=1 version yet)
   if (ns > MAX_NSPREAD) { // clip to fit allocated arrays, Horner rules
     if (showwarn)
@@ -2227,8 +2167,8 @@ FINUFFT_EXPORT int FINUFFT_CDECL setup_spreader(
   if (ns == 4) betaoverns = 2.38;
   if (upsampfac != 2.0) { // again, override beta for custom sigma
     T gamma    = 0.97;    // must match devel/gen_all_horner_C_code.m !
-    betaoverns = gamma * T(PI) * (1.0 - 1.0 / (2 * upsampfac)); // formula based on
-                                                                // cutoff
+    betaoverns = gamma * T(PI) * (1.0 - 1.0 / (2 * upsampfac)); // formula based
+                                                                // on cutoff
   }
   opts.ES_beta = betaoverns * ns; // set the kernel beta parameter
   if (debug)
@@ -2308,26 +2248,24 @@ T evaluate_kernel_horner_dispatch(T x, const finufft_spread_opts &opts) {
   if constexpr (ns == MIN_NSPREAD) { // Base case
     if (opts.upsampfac == 2.0) {
       return evaluate_kernel_horner_kernel<T, MIN_NSPREAD, 200>(x, opts);
-    } else if (opts.upsampfac == 1.25) {
-      return evaluate_kernel_horner_kernel<T, MIN_NSPREAD, 125>(x, opts);
-    } else {
-      fprintf(stderr, "[%s] upsampfac (%lf) not supported!\n", __func__, opts.upsampfac);
-      return 0.0;
     }
+    if (opts.upsampfac == 1.25) {
+      return evaluate_kernel_horner_kernel<T, MIN_NSPREAD, 125>(x, opts);
+    }
+    fprintf(stderr, "[%s] upsampfac (%lf) not supported!\n", __func__, opts.upsampfac);
+    return 0.0;
   } else {
     if (opts.nspread == ns) {
       if (opts.upsampfac == 2.0) {
         return evaluate_kernel_horner_kernel<T, ns, 200>(x, opts);
-      } else if (opts.upsampfac == 1.25) {
-        return evaluate_kernel_horner_kernel<T, ns, 125>(x, opts);
-      } else {
-        fprintf(stderr, "[%s] upsampfac (%lf) not supported!\n", __func__,
-                opts.upsampfac);
-        return 0.0;
       }
-    } else {
-      return evaluate_kernel_horner_dispatch<T, ns - 1>(x, opts);
+      if (opts.upsampfac == 1.25) {
+        return evaluate_kernel_horner_kernel<T, ns, 125>(x, opts);
+      }
+      fprintf(stderr, "[%s] upsampfac (%lf) not supported!\n", __func__, opts.upsampfac);
+      return 0.0;
     }
+    return evaluate_kernel_horner_dispatch<T, ns - 1>(x, opts);
   }
 }
 
