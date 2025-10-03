@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 
-#include <common/defines.h>
+#include <finufft_common/defines.h>
 #include <cufinufft_opts.h>
 #include <finufft_errors.h>
 

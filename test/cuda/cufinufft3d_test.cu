@@ -5,7 +5,7 @@
 #include <iostream>
 #include <random>
 
-#include <common/common.h>
+#include <finufft_common/common.h>
 #include <cufinufft.h>
 
 #include <cufinufft/impl.h>

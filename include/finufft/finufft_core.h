@@ -5,7 +5,7 @@
 #include <cstdint>
 #include <memory>
 
-#include "common/common.h"
+#include "finufft_common/common.h"
 #include "finufft_errors.h"
 
 // All indexing in library that potentially can exceed 2^31 uses 64-bit signed.
