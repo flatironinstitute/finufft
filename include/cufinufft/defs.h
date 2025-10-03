@@ -1,7 +1,7 @@
 #ifndef CUFINUFFT_DEFS_H
 #define CUFINUFFT_DEFS_H
 
-#include <common/common.h>
+#include <finufft_common/common.h>
 #include <limits>
 
 // FIXME: If cufft ever takes N > INT_MAX...
