@@ -34,6 +34,7 @@ foreach(EXAMPLE ${EXAMPLES_C})
 endforeach()
 
 if(FINUFFT_USE_OPENMP)
+    find_package(OpenMP REQUIRED)
     foreach(EXAMPLE ${EXAMPLES_OPENMP})
         add_executable(${EXAMPLE} ${EXAMPLE}.cpp)
         target_link_libraries(${EXAMPLE} PRIVATE finufft OpenMP::OpenMP_CXX)
