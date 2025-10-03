@@ -1,8 +1,6 @@
 #ifndef FINUFFT_CORE_H
 #define FINUFFT_CORE_H
 
-#include <xsimd/xsimd.hpp>
-
 #include <array>
 #include <common/common.h>
 #include <finufft_errors.h>
