@@ -36,7 +36,7 @@
 // the plan object pointed to... (doesn't need to be even defined here)
 #define FINUFFT_PLAN_S FINUFFTIFY(_plan_s)
 
-#include <common/defines.h>
+#include <finufft_common/defines.h>
 
 ////////////////////////////////////////////////////////////////////
 // PUBLIC METHOD INTERFACES. All are C-style even when used from C++...

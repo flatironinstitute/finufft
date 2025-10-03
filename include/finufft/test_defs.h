@@ -15,7 +15,7 @@
 #include <finufft.h>
 
 // convenient private finufft internals that tests need
-#include <common/common.h>
+#include <finufft_common/common.h>
 #include <finufft/finufft_core.h>
 #include <finufft/finufft_utils.hpp>
 #include <memory>
