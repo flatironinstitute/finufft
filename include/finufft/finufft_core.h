@@ -4,7 +4,7 @@
 #include <xsimd/xsimd.hpp>
 
 #include <array>
-#include <common/common.h>
+#include <finufft_common/common.h>
 #include <finufft_errors.h>
 #include <memory>
 

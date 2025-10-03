@@ -174,7 +174,7 @@ usage:
 	@echo "Also see docs/install.rst and docs/README"
 
 # collect headers for implicit depends (we don't separate public from private)
-HEADERS = $(wildcard include/*.h include/finufft/*.h include/common/*.h)
+HEADERS = $(wildcard include/*.h include/finufft/*.h include/finufft_common/*.h)
 
 # implicit rules for objects (note -o ensures writes to correct dir)
 %.o: %.cpp $(HEADERS)
