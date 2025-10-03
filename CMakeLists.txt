@@ -27,6 +27,7 @@ set(FINUFFT_FFTW_LIBRARIES "DEFAULT" CACHE STRING "Specify a custom FFTW library
 set(FINUFFT_FFTW_SUFFIX "DEFAULT" CACHE STRING "Suffix for FFTW libraries (e.g. OpenMP, Threads etc.) defaults to empty string if OpenMP is disabled, else uses OpenMP. Ignored if DUCC0 is used.")
 # if FINUFFT_USE_CPU is OFF, the following options are ignored
 set(FINUFFT_ARCH_FLAGS "native" CACHE STRING "Compiler flags for specifying target architecture, defaults to -march=native")
+
 # sphinx tag (don't remove): @cmake_opts_end
 cmake_dependent_option(FINUFFT_ENABLE_INSTALL "Disable installation in the case of python builds" ON "NOT FINUFFT_BUILD_PYTHON" OFF)
 cmake_dependent_option(FINUFFT_STATIC_LINKING "Disable static libraries in the case of python builds" ON "NOT FINUFFT_BUILD_PYTHON" OFF)
@@ -84,7 +85,7 @@ if(DEFINED ENV{GITHUB_ACTIONS})
     if($ENV{GITHUB_ACTIONS} STREQUAL "true")
         message("CMake is being executed inside a GitHub workflow")
         # if msvc use FS flag
-        if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC" AND NOT CMAKE_BUILD_TYPE STREQUAL "Release")
+        if(MSVC AND NOT CMAKE_BUILD_TYPE STREQUAL "Release")
             set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT "$<$<CONFIG:Debug,RelWithDebInfo>:Embedded>")
             message("CMAKE_MSVC_DEBUG_INFORMATION_FORMAT TO Embedded")
         endif()
@@ -106,9 +107,9 @@ if(FINUFFT_ARCH_FLAGS STREQUAL "native")
         set(FINUFFT_ARCH_FLAGS -mtune=native CACHE STRING "" FORCE)
         filter_supported_compiler_flags(FINUFFT_ARCH_FLAGS FINUFFT_ARCH_FLAGS)
     endif()
-    if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+    if(MSVC)
         # -march=native emulation for MSVC
-        check_arch_support()
+        check_msvc_arch_support()
     endif()
     if(NOT FINUFFT_ARCH_FLAGS)
         message(WARNING "No architecture flags are supported by the compiler.")
@@ -148,7 +149,7 @@ endif()
 # Utility function to enable ASAN on debug builds
 function(enable_asan target)
     target_compile_options(${target} PRIVATE ${FINUFFT_SANITIZER_FLAGS})
-    if(NOT (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC"))
+    if(NOT MSVC)
         target_link_options(${target} PRIVATE ${FINUFFT_SANITIZER_FLAGS})
     endif()
 endfunction()

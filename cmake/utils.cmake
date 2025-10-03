@@ -2,6 +2,12 @@ include(CheckCXXCompilerFlag)
 
 # Define the function
 function(filter_supported_compiler_flags input_flags_var output_flags_var)
+    if(DEFINED ${output_flags_var}_QUERY)
+        message(STATUS "Using cached ${output_flags_var}: ${${output_flags_var}_RESULT}")
+        set(${output_flags_var} ${${output_flags_var}_RESULT} PARENT_SCOPE)
+        return()
+    endif()
+
     # Create an empty list to store supported flags
     set(supported_flags)
     # Iterate over each flag in the input list
@@ -23,11 +29,13 @@ function(filter_supported_compiler_flags input_flags_var output_flags_var)
         # remove last flag from CMAKE_EXE_LINKER_FLAGS using substring
         set(CMAKE_EXE_LINKER_FLAGS ${ORIGINAL_LINKER_FLAGS})
     endforeach()
-    # Set the output variable to the list of supported flags
+    # Set the output variable to the list of supported flags and cache them
+    set(${output_flags_var}_QUERY "${input_flags_var}" CACHE INTERNAL "")
+    set(${output_flags_var}_RESULT "${supported_flags}" CACHE INTERNAL "")
     set(${output_flags_var} ${supported_flags} PARENT_SCOPE)
 endfunction()
 
-function(check_arch_support)
+function(check_msvc_arch_support)
     message(STATUS "Checking for AVX, AVX512 and SSE support")
     try_run(
         RUN_RESULT_VAR
