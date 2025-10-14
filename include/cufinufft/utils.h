@@ -91,15 +91,6 @@ private:
 // math helpers whose source is in src/utils.cpp
 long next235beven(long n, long b);
 
-template<typename T> T infnorm(int n, std::complex<T> *a) {
-  T nrm = 0.0;
-  for (int m = 0; m < n; ++m) {
-    T aa = real(conj(a[m]) * a[m]);
-    if (aa > nrm) nrm = aa;
-  }
-  return sqrt(nrm);
-}
-
 /**
  * does a complex atomic add on a shared memory address
  * it adds the real and imaginary parts separately

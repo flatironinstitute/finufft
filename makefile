@@ -61,12 +61,12 @@ DEPS_ROOT := deps
 
 # xsimd header-only dependency repo
 XSIMD_URL := https://github.com/xtensor-stack/xsimd.git
-XSIMD_VERSION := 13.0.0
+XSIMD_VERSION := 13.2.0
 XSIMD_DIR := $(DEPS_ROOT)/xsimd
 
 # DUCC sources optional dependency repo
 DUCC_URL := https://gitlab.mpcdf.mpg.de/mtr/ducc.git
-DUCC_VERSION := ducc0_0_35_0
+DUCC_VERSION := ducc0_0_38_0
 DUCC_DIR := $(DEPS_ROOT)/ducc
 # this dummy file used as empty target by make...
 DUCC_COOKIE := $(DUCC_DIR)/.finufft_has_ducc
@@ -457,21 +457,25 @@ docker-wheel:
 # ================== SETUP/COMPILE OF EXTERNAL DEPENDENCIES ===============
 
 define clone_repo
-    @if [ ! -d "$(3)" ]; then \
-        echo "Cloning repository $(1) at tag $(2) into directory $(3)"; \
-        git clone --depth=1 --branch $(2) $(1) $(3); \
-    else \
-        cd $(3) && \
-        CURRENT_VERSION=$$(git describe --tags --abbrev=0) && \
-        if [ "$$CURRENT_VERSION" = "$(2)" ]; then \
-            echo "Directory $(3) already exists and is at the correct version $(2)."; \
-        else \
-            echo "Directory $(3) exists but is at version $$CURRENT_VERSION. Checking out the correct version $(2)."; \
-            git fetch --tags && \
-            git checkout $(2) || { echo "Error: Failed to checkout version $(2) in $(3)."; exit 1; }; \
-        fi; \
-    fi
+	@if [ ! -d "$(3)" ]; then \
+		echo "Cloning repository $(1) at tag $(2) into directory $(3)"; \
+		git clone --no-checkout $(1) $(3) && \
+		cd $(3) && \
+		git fetch origin tag $(2) --force && \
+		git -c advice.detachedHead=false checkout $(2); \
+	else \
+		cd $(3) && \
+		CURRENT_VERSION=$$(git describe --tags --abbrev=0 2>/dev/null || echo ""); \
+		if [ "$$CURRENT_VERSION" = "$(2)" ]; then \
+			echo "Directory $(3) already exists and is at the correct version $(2)."; \
+		else \
+			echo "Directory $(3) exists but is at version $$CURRENT_VERSION. Checking out the correct version $(2)."; \
+			git fetch origin tag $(2) --force && \
+			git -c advice.detachedHead=false checkout $(2) || { echo "Error: Failed to checkout version $(2) in $(3)."; exit 1; }; \
+		fi; \
+	fi
 endef
+
 
 # download: header-only, no compile needed...
 $(XSIMD_DIR)/include/xsimd/xsimd.hpp:

@@ -9,12 +9,12 @@
 #include <random>
 
 #include <cufinufft.h>
-#include <cufinufft/utils.h>
+
+#include "../test/utils/norms.hpp"
 
 #include <cuda_runtime.h>
 
-// FIXME: This isn't actually public, though maybe it should be?
-using cufinufft::utils::infnorm;
+static const double PI = 3.141592653589793238462643383279502884;
 
 int main(int argc, char *argv[])
 /*
@@ -64,8 +64,8 @@ int main(int argc, char *argv[])
   std::uniform_real_distribution<double> distr(-1, 1);
 
   for (int i = 0; i < M; i++) {
-    x[i] = M_PI * distr(eng);
-    y[i] = M_PI * distr(eng);
+    x[i] = PI * distr(eng);
+    y[i] = PI * distr(eng);
   }
 
   for (int i = 0; i < N; i++) {

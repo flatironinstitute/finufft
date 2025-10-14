@@ -11,6 +11,8 @@
 #include <stdlib.h>
 #include <time.h>
 
+static const double PI = 3.141592653589793238462643383279502884;
+
 int main(void) {
   int N[2]   = {300, 200}; // N0, N1 output shape in nfft3 sense
   int M      = 500000;     // num. nonuniform input points
@@ -36,8 +38,8 @@ int main(void) {
 
   // do transform, includes precompute, writing to f_hat...
   for (int j = 0; j < M; ++j) { // change user coords so finufft same as nfft3
-    x[j] *= 2 * M_PI;
-    y[j] *= 2 * M_PI;           // scales from 1-periodic to 2pi-periodic
+    x[j] *= 2 * PI;
+    y[j] *= 2 * PI;             // scales from 1-periodic to 2pi-periodic
   }
   finufft_opts opts;            // opts struct
   finufft_default_opts(&opts);  // set default opts (must start with this)

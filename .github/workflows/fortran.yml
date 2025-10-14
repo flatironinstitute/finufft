@@ -1,0 +1,77 @@
+name: finufft fortran ctest
+
+on:
+  # Weekly schedule (Sunday 00:00 UTC)
+  schedule:
+    - cron: "0 0 * * 0"
+
+  # On tag push
+  push:
+    tags:
+      - 'v*'
+  # Manual trigger (with an optional deploy toggle)
+  workflow_dispatch:
+    inputs:
+      deploy:
+        description: "Deploy after build?"
+        type: boolean
+        required: false
+        default: false
+jobs:
+  build-and-test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ ubuntu-22.04, macos-14, windows-2022 ]
+
+    env:
+      CTEST_OUTPUT_ON_FAILURE: "1"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        # Single, simple Fortran toolchain everywhere (gfortran).
+        # This action also sets FC, and typically CC/CXX to compatible compilers.
+      - name: Setup Fortran
+        id: setup-fortran
+        uses: fortran-lang/setup-fortran@v1
+
+        # CMake + Ninja (uniform across OSes)
+      - name: Setup CMake & Ninja
+        uses: aminya/setup-cpp@v1
+        with:
+          cmake: true
+          ninja: true
+      - name: Install toolchain + FFTW (macOS)
+        if: startsWith(matrix.os, 'macos-')
+        run: |
+          export HOMEBREW_NO_ANALYTICS=1 HOMEBREW_NO_INSTALL_CLEANUP=1
+          brew install libomp
+          {
+            echo "LDFLAGS=-L$(brew --prefix libomp)/lib"
+            echo "CPPFLAGS=-I$(brew --prefix libomp)/include"
+            echo "LIBRARY_PATH=$(brew --prefix libomp)/lib"
+            echo "DYLD_LIBRARY_PATH=$(brew --prefix libomp)/lib"
+            echo "CMAKE_PREFIX_PATH=$(brew --prefix libomp)"
+          } >> "$GITHUB_ENV"
+      - name: Configure (RelWithDebInfo + examples/fortran/tests)
+        shell: bash
+        run: |
+          cmake -S . -B build -G Ninja \
+            -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+            -DCMAKE_C_COMPILER="${CC}" \
+            -DCMAKE_CXX_COMPILER="${CXX}" \
+            -DCMAKE_Fortran_COMPILER="${FC}" \
+            -DFINUFFT_USE_DUCC0=ON \
+            -DFINUFFT_BUILD_EXAMPLES=ON \
+            -DFINUFFT_BUILD_FORTRAN=ON \
+            -DFINUFFT_BUILD_TESTS=ON
+
+      - name: Build
+        shell: bash
+        run: cmake --build build --config RelWithDebInfo --parallel
+
+      - name: Test
+        shell: bash
+        run: ctest --test-dir build --output-on-failure

@@ -25,6 +25,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+static const double PI = 3.141592653589793238462643383279502884;
+
 int main() {
   // Problem size: number of nonuniform points (M) and grid size (N).
   const int M = 100000, N = 10000;
@@ -58,7 +60,7 @@ int main() {
   srand(0);
 
   for (int j = 0; j < M; ++j) {
-    x[j] = 2 * M_PI * (((float)rand()) / RAND_MAX - 1);
+    x[j] = 2 * PI * (((float)rand()) / RAND_MAX - 1);
     c[j] =
         (2 * ((float)rand()) / RAND_MAX - 1) + I * (2 * ((float)rand()) / RAND_MAX - 1);
   }

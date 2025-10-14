@@ -6,6 +6,8 @@
 #include <vector>
 using namespace std;
 
+static const double PI = 3.141592653589793238462643383279502884;
+
 int main(int argc, char *argv[]) {
   /* 2D demo of computing the *adjoint* of the planned transform, needing the
      guru interface.
@@ -30,8 +32,8 @@ int main(int argc, char *argv[]) {
   vector<complex<double>> c(M);
 
   for (int i = 0; i < M; i++) {
-    x[i] = M_PI * (2 * (double)rand() / RAND_MAX - 1); // uniform random in [-pi, pi)
-    y[i] = M_PI * (2 * (double)rand() / RAND_MAX - 1); // uniform random in [-pi, pi)
+    x[i] = PI * (2 * (double)rand() / RAND_MAX - 1); // uniform random in [-pi, pi)
+    y[i] = PI * (2 * (double)rand() / RAND_MAX - 1); // uniform random in [-pi, pi)
     // each component uniform random in [-1,1]
     c[i] =
         2 * ((double)rand() / RAND_MAX - 1) + I * (2 * ((double)rand() / RAND_MAX) - 1);

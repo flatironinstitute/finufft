@@ -9,12 +9,12 @@
 #include <iostream>
 #include <random>
 
+#include "../test/utils/norms.hpp"
 #include <cufinufft.h>
-#include <cufinufft/utils.h>
 
 #include <cuda_runtime.h>
-// FIXME: This isn't actually public, though maybe it should be?
-using cufinufft::utils::infnorm;
+
+static const double PI = 3.141592653589793238462643383279502884;
 
 int main(int argc, char *argv[])
 /*
@@ -60,8 +60,8 @@ int main(int argc, char *argv[])
   std::uniform_real_distribution<float> distr(-1, 1);
 
   for (int i = 0; i < M; i++) {
-    x[i] = M_PI * distr(eng);
-    y[i] = M_PI * distr(eng);
+    x[i] = PI * distr(eng);
+    y[i] = PI * distr(eng);
   }
 
   for (int i = 0; i < M * ntransf; i++) {
@@ -99,7 +99,7 @@ int main(int argc, char *argv[])
     int nt1 = (int)(0.37 * N1), nt2 = (int)(0.26 * N2); // choose some mode index to check
     std::complex<float> Ft = std::complex<float>(0, 0),
                         J  = std::complex<float>(0, 1) * (float)iflag;
-    for (CUFINUFFT_BIGINT j = 0; j < M; ++j)
+    for (auto j = 0UL; j < M; ++j)
       Ft += c[j + i * M] * exp(J * (nt1 * x[j] + nt2 * y[j])); // crude direct
     int it = N1 / 2 + nt1 + N1 * (N2 / 2 + nt2); // index in complex F as 1d array
     printf("[gpu %3d] one mode: abs err in F[%d,%d] is %.3g\n", i, nt1, nt2,
