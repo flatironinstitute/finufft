@@ -39,7 +39,7 @@ endif()
 
 enable_static_analysis(cufinufft)
 add_iwyu_fix_target(cufinufft)
-enable_lto(cufinufft FULL)
+set_property(TARGET ${target} PROPERTY INTERPROCEDURAL_OPTIMIZATION ${FINUFFT_INTERPROCEDURAL_OPTIMIZATION})
 add_library(finufft::cufinufft ALIAS cufinufft)
 target_include_directories(cufinufft PUBLIC ${CUFINUFFT_INCLUDE_DIRS})
 # set target build location

@@ -93,7 +93,7 @@ ifeq ($(FFT),DUCC)
   DUCC_SETUP := $(DUCC_COOKIE)
 # so FINUFFT build can see DUCC headers...
   INCL += $(DUCC_INCL)
-  DUCC_OBJS := $(DUCC_SRC)/infra/string_utils.o $(DUCC_SRC)/infra/threading.o $(DUCC_SRC)/infra/mav.o $(DUCC_SRC)/math/gridding_kernel.o $(DUCC_SRC)/math/gl_integrator.o
+  DUCC_OBJS := $(DUCC_SRC)/infra/string_utils.o $(DUCC_SRC)/infra/threading.o $(DUCC_SRC)/infra/mav.o
   DUCC_SRCS := $(DUCC_OBJS:.o=.cc)
 # FINUFFT's switchable FFT done via this compile directive...
   CXXFLAGS += -DFINUFFT_USE_DUCC0

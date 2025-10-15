@@ -14,6 +14,8 @@
 #include <thrust/device_vector.h>
 #include <thrust/host_vector.h>
 
+static const double PI = 3.141592653589793238462643383279502884;
+
 std::string get_or(const std::unordered_map<std::string, std::string> &m,
                    const std::string &key, const std::string &default_value) {
   auto it = m.find(key);
@@ -200,9 +202,9 @@ template<typename T> void run_test(test_options_t &test_opts) {
 
   // Making data
   for (int64_t i = 0; i < M; i++) {
-    x[i] = M_PI * randm11(); // x in [-pi,pi)
-    y[i] = M_PI * randm11();
-    z[i] = M_PI * randm11();
+    x[i] = PI * randm11(); // x in [-pi,pi)
+    y[i] = PI * randm11();
+    z[i] = PI * randm11();
   }
   for (int64_t i = M; i < M * ntransf; ++i) {
     int64_t j = i % M;

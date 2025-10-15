@@ -18,6 +18,8 @@
 #include <vector>
 using namespace std;
 
+static const double PI = 3.141592653589793238462643383279502884;
+
 void strengths(vector<complex<double>> &c) { // fill random complex array
   for (long unsigned int j = 0; j < c.size(); ++j)
     c[j] =
@@ -65,9 +67,9 @@ int main(int argc, char *argv[]) {
   // generate some random nonuniform points
   vector<double> xA(MA), xB(MB);
   for (int j = 0; j < MA; ++j)
-    xA[j] = M_PI * (2 * ((double)rand() / RAND_MAX) - 1); // uniform random in [-pi,pi)
+    xA[j] = PI * (2 * ((double)rand() / RAND_MAX) - 1); // uniform random in [-pi,pi)
   for (int j = 0; j < MB; ++j)
-    xB[j] = M_PI * (2 * ((double)rand() / RAND_MAX) - 1); // uniform random in [-pi,pi)
+    xB[j] = PI * (2 * ((double)rand() / RAND_MAX) - 1); // uniform random in [-pi,pi)
 
   // note FINUFFT doesn't use std::vector types, so we need to make a pointer...
   finufft_setpts(planA, MA, &xA[0], NULL, NULL, 0, NULL, NULL, NULL);

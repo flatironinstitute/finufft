@@ -7,6 +7,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+static const double PI = 3.141592653589793238462643383279502884;
+
 int main(int argc, char *argv[])
 /* Example calling guru interface to FINUFFT library from C, using
    C complex type, with a math check. Barnett 6/22/20.
@@ -41,7 +43,7 @@ int main(int argc, char *argv[])
   // generate some random nonuniform points
   x = (double *)malloc(sizeof(double) * M);
   for (j = 0; j < M; ++j)
-    x[j] = M_PI * (2 * ((double)rand() / RAND_MAX) - 1); // uniform random in [-pi,pi)
+    x[j] = PI * (2 * ((double)rand() / RAND_MAX) - 1); // uniform random in [-pi,pi)
   finufft_setpts(plan, M, x, NULL, NULL, 0, NULL, NULL, NULL);
 
   // generate some complex strengths

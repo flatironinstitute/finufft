@@ -16,8 +16,6 @@ if(ducc0_ADDED)
         ${ducc0_SOURCE_DIR}/src/ducc0/infra/string_utils.cc
         ${ducc0_SOURCE_DIR}/src/ducc0/infra/threading.cc
         ${ducc0_SOURCE_DIR}/src/ducc0/infra/mav.cc
-        ${ducc0_SOURCE_DIR}/src/ducc0/math/gridding_kernel.cc
-        ${ducc0_SOURCE_DIR}/src/ducc0/math/gl_integrator.cc
     )
     target_include_directories(ducc0 PUBLIC ${ducc0_SOURCE_DIR}/src/)
     target_compile_options(ducc0 PRIVATE $<$<CONFIG:Release,RelWithDebInfo>:${FINUFFT_ARCH_FLAGS}>)

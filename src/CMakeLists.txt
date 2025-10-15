@@ -42,8 +42,6 @@ endif()
 
 enable_static_analysis(finufft)
 add_iwyu_fix_target(finufft)
-enable_lto(finufft FULL)
-
 add_library(finufft::finufft ALIAS finufft)
 
 if(FINUFFT_USE_DUCC0)

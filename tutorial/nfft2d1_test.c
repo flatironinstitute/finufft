@@ -10,6 +10,8 @@
 #include <stdlib.h>
 #include <time.h>
 
+static const double PI = 3.141592653589793238462643383279502884;
+
 int main(void) {
   int N[2] = {300, 200}; // N1, N2 output mode numbers
   int M    = 500000;     // num. nonuniform input points
@@ -39,7 +41,7 @@ int main(void) {
   int i     = kyout + kxout * N[1]; // output index: array ordered x slow, y fast
   double complex f_hat_test = 0.0 + 0.0 * I;
   for (int j = 0; j < M; ++j)       // 2pi fac; p.x array is x interleaved with y...
-    f_hat_test += p.f[j] * cexp(2 * M_PI * I *
+    f_hat_test += p.f[j] * cexp(2 * PI * I *
                                 ((double)kx * p.x[2 * j] + (double)ky * p.x[2 * j + 1]));
   double err = cabs(p.f_hat[i] - f_hat_test) / cabs(f_hat_test);
   printf("2D type 1 (NFFT3) done in %.3g s: f_hat[%d,%d]=%.12g+%.12gi, rel err %.3g\n",

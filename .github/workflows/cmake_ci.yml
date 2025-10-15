@@ -182,23 +182,33 @@ jobs:
             arch_flags=("native")
           fi
 
+          build_dir="build"
+          rm -rf $build_dir
+
           for arch in "${arch_flags[@]}"; do
             arch_dir=$(echo "$arch" | tr -c 'A-Za-z0-9' '_')
             for cfg in "${configs[@]}"; do
               eval "$cfg"
-              build_dir="build_${build_type}_${ducc_fft}_${arch_dir}"
+
+              sanitizers="OFF"
+              if [[ "$build_type" == "Debug" && "$RUNNER_OS" != "Windows" ]]; then
+                sanitizers="ON"
+              fi
 
               cmake -E make_directory "$build_dir"
               cmake -S . -B "$build_dir" \
                 -DCMAKE_BUILD_TYPE=$build_type \
                 -DFINUFFT_ARCH_FLAGS="$arch" \
+                -DFINUFFT_BUILD_EXAMPLES=ON \
+                -DFINUFFT_BUILD_TESTS=ON \
                 -DFINUFFT_USE_DUCC0=$ducc_fft \
+                -DFINUFFT_USE_SANITIZERS=$sanitizers \
                 -DCMAKE_MSVC_DEBUG_INFORMATION_FORMAT=Embedded \
                 -DCMAKE_POLICY_DEFAULT_CMP0141=NEW
                 # CMake will pick the toolchain set by setup-cpp (and macOS brew block for gcc-14).
 
               cmake --build "$build_dir" --config "$build_type"
-              (cd "$build_dir" && ctest -C "$build_type")
+              ctest --test-dir "$build_dir" --output-on-failure
 
               python3 -m pip install \
                 --verbose \

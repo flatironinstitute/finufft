@@ -249,7 +249,7 @@ public:
     if (opts.debug) printf("q (# ker FT quadr pts) = %d\n", q);
     std::vector<double> Z(2 * q), W(2 * q);
     gaussquad(2 * q, Z.data(), W.data()); // only half the nodes used,
-                                          // for (0,1)
+                                                       // for (0,1)
     z.resize(q);
     f.resize(q);
     for (int n = 0; n < q; ++n) {
