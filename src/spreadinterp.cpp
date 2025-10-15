@@ -6,7 +6,7 @@
 #include "ker_horner_allw_loop_constexpr.h"
 #include "ker_lowupsampfac_horner_allw_loop_constexpr.h"
 
-#include <xsimd/xsimd.hpp>
+#include <finufft/xsimd.hpp>
 
 #include <array>
 #include <cinttypes>
@@ -54,8 +54,59 @@ struct [[maybe_unused]] select_odd {
   }
 };
 
-// this finds the largest SIMD instruction set that can handle N elements
-// void otherwise -> compile error
+#if defined(XSIMD_WITH_EMULATED) && XSIMD_WITH_EMULATED
+
+template<class T, uint8_t N = 1> constexpr uint8_t min_simd_width() {
+  return static_cast<uint8_t>(xsimd::batch<T>::size);
+}
+
+template<class T, uint8_t N> constexpr uint8_t find_optimal_simd_width() {
+  return static_cast<uint8_t>(xsimd::batch<T>::size);
+}
+
+template<class T, uint8_t N> constexpr uint8_t GetPaddedSIMDWidth() {
+  return static_cast<uint8_t>(xsimd::batch<T>::size);
+}
+
+template<class T, uint8_t N> using PaddedSIMD = xsimd::batch<T>;
+
+// --- compile-time padding for ns ---
+template<class T, uint8_t ns> constexpr uint8_t get_padding() {
+  constexpr uint8_t width = GetPaddedSIMDWidth<T, ns>();
+  const unsigned w        = width ? width : 1u;
+  const unsigned padded   = ((static_cast<unsigned>(ns) + w - 1u) / w) * w;
+  return static_cast<uint8_t>(padded - ns);
+}
+
+template<class T, uint8_t ns> constexpr uint8_t get_padding_helper(uint8_t runtime_ns) {
+  if constexpr (ns < 2) {
+    return 0;
+  } else {
+    return (runtime_ns == ns)
+               ? get_padding<T, ns>()
+               : get_padding_helper<T, static_cast<uint8_t>(ns - 1)>(runtime_ns);
+  }
+}
+
+template<class T> inline uint8_t get_padding(uint8_t ns) {
+  if (ns == 0) return 0;
+  if (ns > 2 * MAX_NSPREAD) ns = static_cast<uint8_t>(2 * MAX_NSPREAD);
+  return get_padding_helper<T, static_cast<uint8_t>(2 * MAX_NSPREAD)>(ns);
+}
+
+// --- "best SIMD" type selection (trivial in emulated) ---
+template<class T, uint8_t N, uint8_t K = 0>
+static constexpr xsimd::batch<T> BestSIMDHelper() {
+  return {};
+}
+
+template<class T, uint8_t N> using BestSIMD = xsimd::batch<T>;
+
+#else
+// NATIVE BACKENDS
+
+// ---- your original helpers (unchanged) ----
+
 template<class T, uint8_t N, uint8_t K = N> static constexpr auto BestSIMDHelper() {
   if constexpr (N % K == 0) { // returns void in the worst case
     return xsimd::make_sized_batch<T, K>{};
@@ -63,25 +114,28 @@ template<class T, uint8_t N, uint8_t K = N> static constexpr auto BestSIMDHelper
     return BestSIMDHelper<T, N, (K >> 1)>();
   }
 }
+
 template<class T, uint8_t N = 1> constexpr uint8_t min_simd_width() {
   // finds the smallest simd width that can handle N elements
   // simd size is batch size the SIMD width in xsimd terminology
   if constexpr (std::is_void_v<xsimd::make_sized_batch_t<T, N>>) {
-    return min_simd_width<T, N * 2>();
+    return min_simd_width<T, static_cast<uint8_t>(N * 2)>();
   } else {
     return N;
   }
-};
+}
 
-template<class T, uint8_t N> constexpr auto find_optimal_simd_width() {
+template<class T, uint8_t N> constexpr uint8_t find_optimal_simd_width() {
   // finds the smallest simd width that minimizes the number of iterations
   // NOTE: might be suboptimal for some cases 2^N+1 for example
   // in the future we might want to implement a more sophisticated algorithm
   uint8_t optimal_simd_width = min_simd_width<T>();
-  uint8_t min_iterations     = (N + optimal_simd_width - 1) / optimal_simd_width;
+  uint8_t min_iterations =
+      static_cast<uint8_t>((N + optimal_simd_width - 1) / optimal_simd_width);
   for (uint8_t simd_width = optimal_simd_width;
-       simd_width <= xsimd::batch<T, xsimd::best_arch>::size; simd_width *= 2) {
-    uint8_t iterations = (N + simd_width - 1) / simd_width;
+       simd_width <= xsimd::batch<T, xsimd::best_arch>::size;
+       simd_width = static_cast<uint8_t>(simd_width * 2)) {
+    uint8_t iterations = static_cast<uint8_t>((N + simd_width - 1) / simd_width);
     if (iterations < min_iterations) {
       min_iterations     = iterations;
       optimal_simd_width = simd_width;
@@ -90,48 +144,52 @@ template<class T, uint8_t N> constexpr auto find_optimal_simd_width() {
   return optimal_simd_width;
 }
 
-template<class T, uint8_t N> constexpr auto GetPaddedSIMDWidth() {
+template<class T, uint8_t N> constexpr uint8_t GetPaddedSIMDWidth() {
   // helper function to get the SIMD width with padding for the given number of elements
   // that minimizes the number of iterations
   return xsimd::make_sized_batch<T, find_optimal_simd_width<T, N>()>::type::size;
 }
+
 template<class T, uint8_t N>
 using PaddedSIMD = typename xsimd::make_sized_batch<T, GetPaddedSIMDWidth<T, N>()>::type;
+
 template<class T, uint8_t ns> constexpr auto get_padding() {
-  // helper function to get the padding for the given number of elements
-  // ns is known at compile time, rounds ns to the next multiple of the SIMD width
-  // then subtracts ns to get the padding using a bitwise and trick
-  // WARING: this trick works only for power of 2s
-  // SOURCE: Agner Fog's VCL manual
+  // WARING: your original used a PoT bit trick; to be safe, use a generic
+  // ceil-to-multiple:
   constexpr uint8_t width = GetPaddedSIMDWidth<T, ns>();
-  return ((ns + width - 1) & (-width)) - ns;
+  const unsigned w        = width ? width : 1u;
+  const unsigned padded   = ((static_cast<unsigned>(ns) + w - 1u) / w) * w;
+  return static_cast<uint8_t>(padded - ns);
 }
 
+// ---- guard these too (runtime API) ----
 template<class T, uint8_t ns> constexpr auto get_padding_helper(uint8_t runtime_ns) {
-  // helper function to get the padding for the given number of elements where ns is
-  // known at runtime, it uses recursion to find the padding
-  // this allows to avoid having a function with a large number of switch cases
-  // as GetPaddedSIMDWidth requires a compile time value
-  // it cannot be a lambda function because of the template recursion
   if constexpr (ns < 2) {
-    return 0;
+    return static_cast<uint8_t>(0);
   } else {
     if (runtime_ns == ns) {
       return get_padding<T, ns>();
     } else {
-      return get_padding_helper<T, ns - 1>(runtime_ns);
+      return get_padding_helper<T, static_cast<uint8_t>(ns - 1)>(runtime_ns);
     }
   }
 }
 
-template<class T> uint8_t get_padding(uint8_t ns) {
+template<class T> inline uint8_t get_padding(uint8_t ns) {
   // return the padding as a function of the number of elements
   // 2 * MAX_NSPREAD is the maximum number of elements that we can have
   // that's why is hardcoded here
-  return get_padding_helper<T, 2 * MAX_NSPREAD>(ns);
+#ifndef MAX_NSPREAD
+#define MAX_NSPREAD 16
+#endif
+  return get_padding_helper<T, static_cast<uint8_t>(2 * MAX_NSPREAD)>(ns);
 }
+
 template<class T, uint8_t N>
 using BestSIMD = typename decltype(BestSIMDHelper<T, N, xsimd::batch<T>::size>())::type;
+
+#endif // XSIMD_WITH_EMULATED
+
 template<class T, class V, size_t... Is>
 constexpr T generate_sequence_impl(V a, V b, index_sequence<Is...>) noexcept {
   // utility function to generate a sequence of a, b interleaved as function arguments
@@ -182,6 +240,65 @@ template<typename T> FINUFFT_ALWAYS_INLINE auto xsimd_to_array(const T &vec) noe
   alignas(alignment) std::array<typename T::value_type, T::size> array{};
   vec.store_aligned(array.data());
   return array;
+}
+
+// ---- Sum even and odd indices from a plain array ----
+template<typename T, std::size_t N, std::size_t... I>
+FINUFFT_ALWAYS_INLINE constexpr std::array<T, 2> chsum_even_odd_from_array_impl(
+    const std::array<T, N> &a, std::index_sequence<I...>) noexcept {
+  static_assert(N % 2 == 0, "Array size must be even for channel sum.");
+  const T s_even = (T{} + ... + a[I * 2]);
+  const T s_odd  = (T{} + ... + a[I * 2 + 1]);
+  return std::array<T, 2>{s_even, s_odd};
+}
+
+template<typename T, std::size_t N>
+FINUFFT_ALWAYS_INLINE constexpr std::array<T, 2> chsum_even_odd_from_array(
+    const std::array<T, N> &a) noexcept {
+  return chsum_even_odd_from_array_impl<T, N>(a, std::make_index_sequence<N / 2>{});
+}
+
+// ---- Array-based fallback: works for any Batch ----
+template<typename Batch>
+FINUFFT_ALWAYS_INLINE auto chsum_fallback_arrayized(const Batch &v) noexcept
+    -> std::array<typename Batch::value_type, 2> {
+  using T                 = typename Batch::value_type;
+  constexpr std::size_t N = Batch::size;
+  const auto a            = xsimd_to_array(v);
+  return chsum_even_odd_from_array<T, N>(a);
+}
+
+// ---- Main chsum: reduce SIMD lanes into {sum_even_lanes, sum_odd_lanes} ----
+// Recursively adds low/high halves until we reach the base width given by
+// min_simd_width<T>(). If half-width SIMD type is unavailable, we fall back to the array
+// method.
+template<typename Batch>
+FINUFFT_ALWAYS_INLINE auto chsum(const Batch &v) noexcept
+    -> std::array<typename Batch::value_type, 2> {
+  using T         = typename Batch::value_type;
+  constexpr int N = static_cast<int>(Batch::size);
+  static_assert(N % 2 == 0, "SIMD batch size must be even.");
+
+  // Base case determined by the smallest supported SIMD width for T (e.g. 4 for float, 2
+  // for double)
+  constexpr int BASE = static_cast<int>(min_simd_width<T>());
+
+  if constexpr (N <= BASE) {
+    // At or below base width: just sum from an array
+    return chsum_fallback_arrayized(v);
+  } else {
+    using half_t = xsimd::make_sized_batch_t<T, static_cast<std::size_t>(N / 2)>;
+    if constexpr (std::is_void<half_t>::value) {
+      // If we can't form a half-width batch, fall back to array method
+      return chsum_fallback_arrayized(v);
+    } else {
+      // Portable split via stack array, then unaligned loads
+      auto a          = xsimd_to_array(v);
+      const auto low  = half_t::load_unaligned(a.data());
+      const auto high = half_t::load_unaligned(a.data() + (N / 2));
+      return chsum(low + high);
+    }
+  }
 }
 
 FINUFFT_NEVER_INLINE
@@ -277,47 +394,48 @@ static void evaluate_kernel_vector(T *ker, T *args,
     if (abs(args[i]) >= (T)opts.ES_halfwidth) ker[i] = 0.0;
 }
 
-template<typename T, uint8_t w, uint8_t upsampfact,
+template<typename T, std::uint8_t w, std::uint8_t upsampfact,
          class simd_type =
-             xsimd::make_sized_batch_t<T, find_optimal_simd_width<T, w>()>> // aka ns
+             xsimd::make_sized_batch_t<T, find_optimal_simd_width<T, w>()>> // ns = w
 static FINUFFT_ALWAYS_INLINE void eval_kernel_vec_Horner(T *FINUFFT_RESTRICT ker, T x,
                                                          const finufft_spread_opts &opts
-                                                         [[maybe_unused]]) noexcept
-/* Fill ker[] with Horner piecewise poly approx to [-w/2,w/2] ES kernel eval at
-x_j = x + j,  for j=0,..,w-1.  Thus x in [-w/2,-w/2+1].   w is aka ns.
-This is the current evaluation method, since it's faster (except i7 w=16).
-Two upsampfacs implemented. Params must match ref formula. Barnett 4/24/18 */
+                                                         [[maybe_unused]]) noexcept {
+  // scale so local grid offset z in [-1,1]
+  const T z                       = std::fma(T(2.0), x, T(w - 1));
+  using arch_t                    = typename simd_type::arch_type;
+  static constexpr auto alignment = arch_t::alignment();
+  static constexpr auto simd_size = simd_type::size;
+  static constexpr auto padded_ns = (w + simd_size - 1) & ~(simd_size - 1);
 
-{
-  // scale so local grid offset z in[-1,1]
-  const T z                           = std::fma(T(2.0), x, T(w - 1));
-  using arch_t                        = typename simd_type::arch_type;
-  static constexpr auto alignment     = arch_t::alignment();
-  static constexpr auto simd_size     = simd_type::size;
-  static constexpr auto padded_ns     = (w + simd_size - 1) & ~(simd_size - 1);
   static constexpr auto horner_coeffs = []() constexpr noexcept {
     if constexpr (upsampfact == 200) {
       return get_horner_coeffs_200<T, w>();
-    } else if constexpr (upsampfact == 125) {
+    } else { // upsampfact == 125
+      static_assert(upsampfact == 125, "Unsupported upsampfact");
       return get_horner_coeffs_125<T, w>();
     }
   }();
-  static constexpr auto nc          = horner_coeffs.size();
-  static constexpr auto use_ker_sym = (simd_size < w);
+  static constexpr auto nc = horner_coeffs.size();
 
   alignas(alignment) static constexpr auto padded_coeffs =
       pad_2D_array_with_zeros<T, nc, w, padded_ns>(horner_coeffs);
 
-  // use kernel symmetry trick if w > simd_size
+  // Compile-time flag for symmetry path
+  static constexpr bool use_ker_sym = (simd_size < w);
+
+  const simd_type zv{z};
+
   if constexpr (use_ker_sym) {
-    static constexpr uint8_t tail          = w % simd_size;
-    static constexpr uint8_t if_odd_degree = ((nc + 1) % 2);
-    static constexpr uint8_t offset_start  = tail ? w - tail : w - simd_size;
-    static constexpr uint8_t end_idx       = (w + (tail > 0)) / 2;
-    const simd_type zv{z};
+    // ---------------- Symmetry path (compile-time) ----------------
+    static constexpr std::uint8_t tail          = w % simd_size;
+    static constexpr std::uint8_t if_odd_degree = ((nc + 1) % 2);
+    static constexpr std::uint8_t end_idx       = (w + (tail > 0)) / 2; // number of left
+                                                                        // elements
+    static constexpr std::uint8_t offset_start = tail ? (w - tail) : (w - simd_size);
+
     const auto z2v = zv * zv;
 
-    // some xsimd constant for shuffle or inverse
+    // shuffle constant (compile-time)
     static constexpr auto shuffle_batch = []() constexpr noexcept {
       if constexpr (tail) {
         return xsimd::make_batch_constant<xsimd::as_unsigned_integer_t<T>, arch_t,
@@ -328,52 +446,73 @@ Two upsampfacs implemented. Params must match ref formula. Barnett 4/24/18 */
       }
     }();
 
-    // process simd vecs
-    simd_type k_prev, k_sym{0};
-    for (uint8_t i{0}, offset = offset_start; i < end_idx;
-         i += simd_size, offset -= simd_size) {
-      auto k_odd = [i]() constexpr noexcept {
+    simd_type k_prev{}; // used only if tail!=0
+    simd_type k_sym{0};
+
+    // i traverses left half in SIMD chunks; offset mirrors to right side
+    static_loop<0, end_idx, simd_size>([&]([[maybe_unused]] auto I) {
+      constexpr std::int64_t i64    = decltype(I)::value;
+      constexpr std::uint8_t i      = static_cast<std::uint8_t>(i64);
+      constexpr std::uint8_t offset = static_cast<std::uint8_t>(offset_start) - i;
+
+      // Build even/odd Horner lanes (compile-time unrolled)
+      simd_type k_odd = [i]() {
         if constexpr (if_odd_degree) {
-          return simd_type::load_aligned(padded_coeffs[0].data() + i);
+          return simd_type::load_aligned(
+              padded_coeffs[0].data() + static_cast<std::size_t>(i));
         } else {
           return simd_type{0};
         }
       }();
-      auto k_even = simd_type::load_aligned(padded_coeffs[if_odd_degree].data() + i);
-      for (uint8_t j{1 + if_odd_degree}; j < nc; j += 2) {
-        const auto cji_odd  = simd_type::load_aligned(padded_coeffs[j].data() + i);
-        const auto cji_even = simd_type::load_aligned(padded_coeffs[j + 1].data() + i);
-        k_odd               = xsimd::fma(k_odd, z2v, cji_odd);
-        k_even              = xsimd::fma(k_even, z2v, cji_even);
-      }
-      // left part
-      xsimd::fma(k_odd, zv, k_even).store_aligned(ker + i);
-      // right part symmetric to the left part
-      if (offset >= end_idx) {
+      simd_type k_even = simd_type::load_aligned(
+          padded_coeffs[if_odd_degree].data() + static_cast<std::size_t>(i));
+
+      // j runs over coefficient pairs (odd/even), step 2
+      static_loop<1 + if_odd_degree, static_cast<std::int64_t>(nc), 2>([&](auto J) {
+        constexpr auto j   = static_cast<std::size_t>(decltype(J)::value);
+        const auto cji_odd = simd_type::load_aligned(
+            padded_coeffs[j].data() + static_cast<std::size_t>(i));
+        const auto cji_even = simd_type::load_aligned(
+            padded_coeffs[j + 1].data() + static_cast<std::size_t>(i));
+        k_odd  = xsimd::fma(k_odd, z2v, cji_odd);
+        k_even = xsimd::fma(k_even, z2v, cji_even);
+      });
+
+      // left side
+      xsimd::fma(k_odd, zv, k_even).store_aligned(ker + static_cast<std::size_t>(i));
+
+      // mirrored right side
+      if constexpr (offset >= end_idx) {
         if constexpr (tail) {
-          // to use aligned store, we need shuffle the previous k_sym and current k_sym
           k_prev = k_sym;
           k_sym  = xsimd::fnma(k_odd, zv, k_even);
-          xsimd::shuffle(k_sym, k_prev, shuffle_batch).store_aligned(ker + offset);
+          xsimd::shuffle(k_sym, k_prev, shuffle_batch)
+              .store_aligned(ker + static_cast<std::size_t>(offset));
         } else {
           xsimd::swizzle(xsimd::fnma(k_odd, zv, k_even), shuffle_batch)
-              .store_aligned(ker + offset);
+              .store_aligned(ker + static_cast<std::size_t>(offset));
         }
       }
-    }
+    });
+
   } else {
-    const simd_type zv(z);
-    for (uint8_t i = 0; i < w; i += simd_size) {
+    // ---------------- Straight SIMD blocks (compile-time) ----------------
+    static_loop<0, w, simd_size>([&](auto I) {
+      constexpr std::int64_t i64 = decltype(I)::value;
+      constexpr std::size_t i    = static_cast<std::size_t>(i64);
+
       auto k = simd_type::load_aligned(padded_coeffs[0].data() + i);
-      for (uint8_t j = 1; j < nc; ++j) {
-        const auto cji = simd_type::load_aligned(padded_coeffs[j].data() + i);
-        k              = xsimd::fma(k, zv, cji);
-      }
+
+      static_loop<1, static_cast<std::int64_t>(nc), 1>([&](auto J) {
+        constexpr std::size_t j = static_cast<std::size_t>(decltype(J)::value);
+        const auto cji          = simd_type::load_aligned(padded_coeffs[j].data() + i);
+        k                       = xsimd::fma(k, zv, cji);
+      });
+
       k.store_aligned(ker + i);
-    }
+    });
   }
 }
-
 template<typename T, uint8_t ns>
 static void interp_line_wrap(T *FINUFFT_RESTRICT target, const T *du, const T *ker,
                              const BIGINT i1, const UBIGINT N1) {
@@ -478,11 +617,9 @@ static void interp_line(T *FINUFFT_RESTRICT target, const T *du, const T *ker, B
       // optimize the code better
       return res_low + res_hi;
     }();
-    const auto res_array = xsimd_to_array(res);
-    for (uint8_t i{0}; i < simd_size; i += 2) {
-      out[0] += res_array[i];
-      out[1] += res_array[i + 1];
-    }
+    const auto sum = chsum(res); // this is the SIMD channel sum
+    out[0] += sum[0];
+    out[1] += sum[1];
     // this is where the code differs from spread_kernel, the interpolator does an extra
     // reduction step to SIMD elements down to 2 elements
     // This is known as horizontal sum in SIMD terminology
@@ -634,11 +771,9 @@ static void interp_square(T *FINUFFT_RESTRICT target, const T *du, const T *ker1
       }
       return res_low + res_hi;
     }();
-    const auto res_array = xsimd_to_array(res);
-    for (uint8_t i{0}; i < simd_size; i += 2) {
-      out[0] += res_array[i];
-      out[1] += res_array[i + 1];
-    }
+    const auto sum = chsum(res); // this is the SIMD channel sum
+    out[0] += sum[0];
+    out[1] += sum[1];
   } else { // wraps somewhere: use ptr list
     // this is slower than above, but occurs much less often, with fractional
     // rate O(ns/min(N1,N2)). Thus this code doesn't need to be so optimized.
@@ -800,15 +935,397 @@ static void interp_cube(T *FINUFFT_RESTRICT target, const T *du, const T *ker1,
       }
       return res_low + res_hi;
     }();
-    const auto res_array = xsimd_to_array(res);
-    for (uint8_t i{0}; i < simd_size; i += 2) {
-      out[0] += res_array[i];
-      out[1] += res_array[i + 1];
-    }
+    const auto sum = chsum(res); // this is the SIMD channel sum
+    out[0] += sum[0];
+    out[1] += sum[1];
   } else {
     return interp_cube_wrapped<T, ns, simd_type>(target, du, ker1, ker2, ker3, i1, i2, i3,
                                                  N1, N2, N3);
   }
+  target[0] = out[0];
+  target[1] = out[1];
+}
+
+// -----------------------------------------------------------------------------
+// Scalar Horner evaluator (no xsimd).
+// -----------------------------------------------------------------------------
+template<typename T, std::uint8_t w, std::uint8_t upsampfact>
+static FINUFFT_ALWAYS_INLINE void eval_kernel_Horner(
+    T *FINUFFT_RESTRICT ker, T x, const finufft_spread_opts & /*opts*/) noexcept {
+  // Map local grid offset into [-1, 1]
+  const T z = std::fma(T(2), x, T(w - 1));
+
+  // Select coefficient set at compile time
+  constexpr auto horner_coeffs = []() constexpr noexcept {
+    if constexpr (upsampfact == 200) {
+      return get_horner_coeffs_200<T, w>();
+    } else {
+      static_assert(upsampfact == 125, "Unsupported upsampfact");
+      return get_horner_coeffs_125<T, w>();
+    }
+  }();
+  constexpr std::size_t nc = horner_coeffs.size();
+
+  // Plain scalar Horner per tap
+  for (std::size_t i = 0; i < w; ++i) {
+    T k = horner_coeffs[0][i];
+    for (std::size_t j = 1; j < nc; ++j) k = std::fma(k, z, horner_coeffs[j][i]);
+    ker[i] = k;
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Utility: evaluate 1D/2D/3D kernels into contiguous blocks, scalar path only.
+// Writes each kernel (ns entries) into ker + i*MAX_NSPREAD.
+// -----------------------------------------------------------------------------
+template<int ns, int kerevalmeth, class T, typename... V>
+static FINUFFT_ALWAYS_INLINE T *ker_eval_scalar(
+    T *FINUFFT_RESTRICT ker, const finufft_spread_opts &opts, const V... elems) noexcept {
+  static_assert(ns > 0 && ns <= MAX_NSPREAD, "ns out of range");
+  const std::array<T, sizeof...(elems)> inputs{T(elems)...};
+
+  for (std::size_t i = 0; i < inputs.size(); ++i) {
+    if constexpr (kerevalmeth == 1) {
+      // Horner polynomial method (scalar)
+      if (opts.upsampfac == 2.0) {
+        eval_kernel_Horner<T, static_cast<std::uint8_t>(ns), 200>(ker + i * MAX_NSPREAD,
+                                                                  inputs[i], opts);
+      }
+      if (opts.upsampfac == 1.25) {
+        eval_kernel_Horner<T, static_cast<std::uint8_t>(ns), 125>(ker + i * MAX_NSPREAD,
+                                                                  inputs[i], opts);
+      }
+    }
+    if constexpr (kerevalmeth == 0) {
+      // "set_kernel_args + evaluate_vector" path
+      std::array<T, MAX_NSPREAD> kernel_args{};
+      set_kernel_args<T, ns>(kernel_args.data(), inputs[i]);
+      evaluate_kernel_vector<T, ns>(ker + i * MAX_NSPREAD, kernel_args.data(), opts);
+    }
+  }
+  return ker;
+}
+
+// -----------------------------------------------------------------------------
+// 1D spread: NU -> uniform subgrid (no wrapping inside subproblem)
+// -----------------------------------------------------------------------------
+template<typename T, std::uint8_t ns, int kerevalmeth>
+FINUFFT_NEVER_INLINE void spread_subproblem_1d_scalar_kernel(
+    BIGINT off1, BIGINT size1, T *FINUFFT_RESTRICT du, BIGINT M,
+    const T *FINUFFT_RESTRICT kx, const T *FINUFFT_RESTRICT dd,
+    const finufft_spread_opts &opts) {
+  static_assert(ns > 0 && ns <= MAX_NSPREAD, "ns out of range");
+
+  const T ns2 = T(ns) / T(2);
+
+  // zero output subgrid
+  for (BIGINT i = 0; i < 2 * size1; ++i) du[i] = T(0);
+
+  // local storage for kernel values (1D): uses a MAX_NSPREAD stride
+  T kernel_values[MAX_NSPREAD];
+
+  for (BIGINT i = 0; i < M; ++i) {
+    const T re0 = dd[2 * i];
+    const T im0 = dd[2 * i + 1];
+
+    // start index and relative offset
+    BIGINT i1 = (BIGINT)std::ceil(kx[i] - ns2);
+    T x1      = T(i1) - kx[i];
+
+    // clipping safeguard (matches original behavior)
+    if (x1 < -ns2) x1 = -ns2;
+    if (x1 > -ns2 + 1) x1 = -ns2 + 1;
+
+    // evaluate kernel for x1 into kernel_values[0..ns-1]
+    ker_eval_scalar<ns, kerevalmeth, T>(kernel_values, opts, x1);
+
+    // accumulate into subgrid
+    BIGINT j = i1 - off1;
+    for (int dx = 0; dx < int(ns); ++dx) {
+      const T k = kernel_values[dx];
+      du[2 * j] += re0 * k;
+      du[2 * j + 1] += im0 * k;
+      ++j;
+    }
+  }
+}
+
+// -----------------------------------------------------------------------------
+// 2D spread: NU -> uniform subgrid (no wrapping inside subproblem)
+// -----------------------------------------------------------------------------
+template<typename T, std::uint8_t ns, int kerevalmeth>
+FINUFFT_NEVER_INLINE void spread_subproblem_2d_scalar_kernel(
+    BIGINT off1, BIGINT off2, BIGINT size1, BIGINT size2, T *FINUFFT_RESTRICT du,
+    BIGINT M, const T *FINUFFT_RESTRICT kx, const T *FINUFFT_RESTRICT ky,
+    const T *FINUFFT_RESTRICT dd, const finufft_spread_opts &opts) {
+  static_assert(ns > 0 && ns <= MAX_NSPREAD, "ns out of range");
+
+  const T ns2 = T(ns) / T(2);
+
+  // zero output subgrid
+  for (BIGINT i = 0; i < 2 * size1 * size2; ++i) du[i] = T(0);
+
+  // kernel values stored in consecutive MAX_NSPREAD-chunked blocks: [ker1 | ker2]
+  T kernel_values[2 * MAX_NSPREAD];
+  T *ker1 = kernel_values;
+  T *ker2 = kernel_values + MAX_NSPREAD;
+
+  // pre-mul buffer for complex (re,im)
+  T ker1val[2 * ns];
+
+  for (BIGINT i = 0; i < M; ++i) {
+    const T re0 = dd[2 * i];
+    const T im0 = dd[2 * i + 1];
+
+    BIGINT i1  = (BIGINT)std::ceil(kx[i] - ns2);
+    BIGINT i2  = (BIGINT)std::ceil(ky[i] - ns2);
+    const T x1 = T(i1) - kx[i];
+    const T x2 = T(i2) - ky[i];
+
+    // evaluate both dims at once
+    ker_eval_scalar<ns, kerevalmeth, T>(kernel_values, opts, x1, x2);
+
+    // combine ker1 with source to reduce FLOPs in inner loop
+    for (int t = 0; t < int(ns); ++t) {
+      ker1val[2 * t]     = re0 * ker1[t];
+      ker1val[2 * t + 1] = im0 * ker1[t];
+    }
+
+    // critical inner loop
+    for (int dy = 0; dy < int(ns); ++dy) {
+      const BIGINT j = size1 * (i2 - off2 + dy) + (i1 - off1);
+      const T kerval = ker2[dy];
+      T *trg         = du + 2 * j;
+      for (int dx = 0; dx < int(2 * ns); ++dx) {
+        trg[dx] += kerval * ker1val[dx];
+      }
+    }
+  }
+}
+
+// -----------------------------------------------------------------------------
+// 3D spread: NU -> uniform subgrid (no wrapping inside subproblem)
+// -----------------------------------------------------------------------------
+template<typename T, std::uint8_t ns, int kerevalmeth>
+FINUFFT_NEVER_INLINE void spread_subproblem_3d_scalar_kernel(
+    BIGINT off1, BIGINT off2, BIGINT off3, BIGINT size1, BIGINT size2, BIGINT size3,
+    T *FINUFFT_RESTRICT du, BIGINT M, const T *FINUFFT_RESTRICT kx,
+    const T *FINUFFT_RESTRICT ky, const T *FINUFFT_RESTRICT kz,
+    const T *FINUFFT_RESTRICT dd, const finufft_spread_opts &opts) {
+  static_assert(ns > 0 && ns <= MAX_NSPREAD, "ns out of range");
+
+  const T ns2 = T(ns) / T(2);
+
+  // zero output subgrid
+  for (BIGINT i = 0; i < 2 * size1 * size2 * size3; ++i) du[i] = T(0);
+
+  // kernel values stored in consecutive MAX_NSPREAD-chunked blocks: [ker1 | ker2 | ker3]
+  T kernel_values[3 * MAX_NSPREAD];
+  T *ker1 = kernel_values + 0 * MAX_NSPREAD;
+  T *ker2 = kernel_values + 1 * MAX_NSPREAD;
+  T *ker3 = kernel_values + 2 * MAX_NSPREAD;
+
+  // pre-mul buffer for complex (re,im)
+  T ker1val[2 * ns];
+
+  for (BIGINT i = 0; i < M; ++i) {
+    const T re0 = dd[2 * i];
+    const T im0 = dd[2 * i + 1];
+
+    BIGINT i1 = (BIGINT)std::ceil(kx[i] - ns2);
+    BIGINT i2 = (BIGINT)std::ceil(ky[i] - ns2);
+    BIGINT i3 = (BIGINT)std::ceil(kz[i] - ns2);
+
+    const T x1 = T(i1) - kx[i];
+    const T x2 = T(i2) - ky[i];
+    const T x3 = T(i3) - kz[i];
+
+    // evaluate all three dims at once
+    ker_eval_scalar<ns, kerevalmeth, T>(kernel_values, opts, x1, x2, x3);
+
+    // combine ker1 with source to reduce FLOPs in inner loops
+    for (int t = 0; t < int(ns); ++t) {
+      ker1val[2 * t]     = re0 * ker1[t];
+      ker1val[2 * t + 1] = im0 * ker1[t];
+    }
+
+    // critical inner loops
+    for (int dz = 0; dz < int(ns); ++dz) {
+      const BIGINT oz = size1 * size2 * (i3 - off3 + dz);
+      for (int dy = 0; dy < int(ns); ++dy) {
+        const BIGINT j = oz + size1 * (i2 - off2 + dy) + (i1 - off1);
+        const T kerval = ker2[dy] * ker3[dz];
+        T *trg         = du + 2 * j;
+        for (int dx = 0; dx < int(2 * ns); ++dx) {
+          trg[dx] += kerval * ker1val[dx];
+        }
+      }
+    }
+  }
+}
+
+// -----------------------------------------------------------------------------
+// 1D interp: uniform subgrid -> NU (with wrapping)
+// -----------------------------------------------------------------------------
+template<typename T, uint8_t ns>
+FINUFFT_NEVER_INLINE void interp_line_scalar_kernel(T *target, const T *du, const T *ker,
+                                                    BIGINT i1, BIGINT N1) {
+  static_assert(ns > 0, "ns must be positive");
+  static_assert(ns <= MAX_NSPREAD, "ns exceeds MAX_NSPREAD");
+
+  T out[2] = {T(0), T(0)};
+  BIGINT j = i1;
+
+  if (i1 < 0) { // wraps at left
+    j += N1;
+    for (int dx = 0; dx < -i1; ++dx) {
+      out[0] += du[2 * j] * ker[dx];
+      out[1] += du[2 * j + 1] * ker[dx];
+      ++j;
+    }
+    j -= N1;
+    for (int dx = -i1; dx < int(ns); ++dx) {
+      out[0] += du[2 * j] * ker[dx];
+      out[1] += du[2 * j + 1] * ker[dx];
+      ++j;
+    }
+  } else if (i1 + ns >= N1) { // wraps at right
+    for (int dx = 0; dx < int(N1 - i1); ++dx) {
+      out[0] += du[2 * j] * ker[dx];
+      out[1] += du[2 * j + 1] * ker[dx];
+      ++j;
+    }
+    j -= N1;
+    for (int dx = int(N1 - i1); dx < int(ns); ++dx) {
+      out[0] += du[2 * j] * ker[dx];
+      out[1] += du[2 * j + 1] * ker[dx];
+      ++j;
+    }
+  } else { // no wrapping
+    for (int dx = 0; dx < int(ns); ++dx) {
+      out[0] += du[2 * j] * ker[dx];
+      out[1] += du[2 * j + 1] * ker[dx];
+      ++j;
+    }
+  }
+
+  target[0] = out[0];
+  target[1] = out[1];
+}
+
+// -----------------------------------------------------------------------------
+// 2D interp: uniform subgrid -> NU (with wrapping)
+// -----------------------------------------------------------------------------
+template<typename T, uint8_t ns>
+FINUFFT_NEVER_INLINE void interp_square_scalar_kernel(
+    T *target, const T *du, const T *ker1, const T *ker2, BIGINT i1, BIGINT i2, BIGINT N1,
+    BIGINT N2) {
+  static_assert(ns > 0, "ns must be positive");
+  static_assert(ns <= MAX_NSPREAD, "ns exceeds MAX_NSPREAD");
+
+  T out[2] = {T(0), T(0)};
+
+  if (i1 >= 0 && i1 + ns <= N1 && i2 >= 0 && i2 + ns <= N2) {
+    // no wrapping: SIMD/FMA-friendly path
+    T line[2 * ns]; // interleaved real/imag
+    {
+      const T *lptr = du + 2 * (N1 * i2 + i1);
+      for (int l = 0; l < int(2 * ns); ++l) line[l] = ker2[0] * lptr[l];
+    }
+    for (int dy = 1; dy < int(ns); ++dy) {
+      const T *lptr = du + 2 * (N1 * (i2 + dy) + i1);
+      for (int l = 0; l < int(2 * ns); ++l) line[l] += ker2[dy] * lptr[l];
+    }
+    for (int dx = 0; dx < int(ns); ++dx) {
+      out[0] += line[2 * dx] * ker1[dx];
+      out[1] += line[2 * dx + 1] * ker1[dx];
+    }
+  } else {
+    // wrapping path (rare)
+    BIGINT j1[ns], j2[ns];
+    BIGINT x = i1, y = i2;
+    for (int d = 0; d < int(ns); ++d) {
+      if (x < 0) x += N1;
+      if (x >= N1) x -= N1;
+      j1[d] = x++;
+      if (y < 0) y += N2;
+      if (y >= N2) y -= N2;
+      j2[d] = y++;
+    }
+    for (int dy = 0; dy < int(ns); ++dy) {
+      const BIGINT oy = N1 * j2[dy];
+      for (int dx = 0; dx < int(ns); ++dx) {
+        const T k      = ker1[dx] * ker2[dy];
+        const BIGINT j = oy + j1[dx];
+        out[0] += du[2 * j] * k;
+        out[1] += du[2 * j + 1] * k;
+      }
+    }
+  }
+
+  target[0] = out[0];
+  target[1] = out[1];
+}
+
+// -----------------------------------------------------------------------------
+// 3D interp: uniform subgrid -> NU (with wrapping)
+// -----------------------------------------------------------------------------
+template<typename T, uint8_t ns>
+FINUFFT_NEVER_INLINE void interp_cube_scalar_kernel(
+    T *target, const T *du, const T *ker1, const T *ker2, const T *ker3, BIGINT i1,
+    BIGINT i2, BIGINT i3, BIGINT N1, BIGINT N2, BIGINT N3) {
+  static_assert(ns > 0, "ns must be positive");
+  static_assert(ns <= MAX_NSPREAD, "ns exceeds MAX_NSPREAD");
+
+  T out[2] = {T(0), T(0)};
+
+  if (i1 >= 0 && i1 + ns <= N1 && i2 >= 0 && i2 + ns <= N2 && i3 >= 0 && i3 + ns <= N3) {
+    // no wrapping: SIMD/FMA-friendly path
+    T line[2 * ns];
+    for (int l = 0; l < int(2 * ns); ++l) line[l] = T(0);
+
+    for (int dz = 0; dz < int(ns); ++dz) {
+      const BIGINT oz = N1 * N2 * (i3 + dz);
+      for (int dy = 0; dy < int(ns); ++dy) {
+        const T *lptr = du + 2 * (oz + N1 * (i2 + dy) + i1);
+        const T ker23 = ker2[dy] * ker3[dz];
+        for (int l = 0; l < int(2 * ns); ++l) line[l] += lptr[l] * ker23;
+      }
+    }
+    for (int dx = 0; dx < int(ns); ++dx) {
+      out[0] += line[2 * dx] * ker1[dx];
+      out[1] += line[2 * dx + 1] * ker1[dx];
+    }
+  } else {
+    // wrapping path (rare)
+    BIGINT j1[ns], j2[ns], j3[ns];
+    BIGINT x = i1, y = i2, z = i3;
+    for (int d = 0; d < int(ns); ++d) {
+      if (x < 0) x += N1;
+      if (x >= N1) x -= N1;
+      j1[d] = x++;
+      if (y < 0) y += N2;
+      if (y >= N2) y -= N2;
+      j2[d] = y++;
+      if (z < 0) z += N3;
+      if (z >= N3) z -= N3;
+      j3[d] = z++;
+    }
+    for (int dz = 0; dz < int(ns); ++dz) {
+      const BIGINT oz = N1 * N2 * j3[dz];
+      for (int dy = 0; dy < int(ns); ++dy) {
+        const BIGINT oy = oz + N1 * j2[dy];
+        const T ker23   = ker2[dy] * ker3[dz];
+        for (int dx = 0; dx < int(ns); ++dx) {
+          const T k      = ker1[dx] * ker23;
+          const BIGINT j = oy + j1[dx];
+          out[0] += du[2 * j] * k;
+          out[1] += du[2 * j + 1] * k;
+        }
+      }
+    }
+  }
+
   target[0] = out[0];
   target[1] = out[1];
 }
@@ -1008,7 +1525,10 @@ template<typename T> struct SpreadSubproblem1dCaller {
   const T *dd;
   const finufft_spread_opts &opts;
   template<int NS, int KM> int operator()() const {
-    spread_subproblem_1d_kernel<T, NS, KM>(off1, size1, du, M, kx, dd, opts);
+    if (opts.simd == 1)
+      spread_subproblem_1d_scalar_kernel<T, NS, KM>(off1, size1, du, M, kx, dd, opts);
+    else
+      spread_subproblem_1d_kernel<T, NS, KM>(off1, size1, du, M, kx, dd, opts);
     return 0;
   }
 };
@@ -1131,8 +1651,12 @@ template<typename T> struct SpreadSubproblem2dCaller {
   const T *dd;
   const finufft_spread_opts &opts;
   template<int NS, int KM> int operator()() const {
-    spread_subproblem_2d_kernel<T, NS, KM>(off1, off2, size1, size2, du, M, kx, ky, dd,
-                                           opts);
+    if (opts.simd == 1)
+      spread_subproblem_2d_scalar_kernel<T, NS, KM>(off1, off2, size1, size2, du, M, kx,
+                                                    ky, dd, opts);
+    else
+      spread_subproblem_2d_kernel<T, NS, KM>(off1, off2, size1, size2, du, M, kx, ky, dd,
+                                             opts);
     return 0;
   }
 };
@@ -1249,8 +1773,12 @@ template<typename T> struct SpreadSubproblem3dCaller {
   T *dd;
   const finufft_spread_opts &opts;
   template<int NS, int KM> int operator()() const {
-    spread_subproblem_3d_kernel<T, NS, KM>(off1, off2, off3, size1, size2, size3, du, M,
-                                           kx, ky, kz, dd, opts);
+    if (opts.simd == 1)
+      spread_subproblem_3d_scalar_kernel<T, NS, KM>(off1, off2, off3, size1, size2, size3,
+                                                    du, M, kx, ky, kz, dd, opts);
+    else
+      spread_subproblem_3d_kernel<T, NS, KM>(off1, off2, off3, size1, size2, size3, du, M,
+                                             kx, ky, kz, dd, opts);
     return 0;
   }
 };
@@ -1962,25 +2490,47 @@ FINUFFT_NEVER_INLINE static int interpSorted_kernel(
 
         // eval kernel values patch and use to interpolate from uniform data...
         if (!(opts.flags & TF_OMIT_SPREADING)) {
-          switch (ndims) {
-          case 1:
-            ker_eval<ns, kerevalmeth, T, simd_type>(kernel_values.data(), opts, x1);
-            interp_line<T, ns, simd_type>(target, data_uniform, ker1, i1, N1);
-            break;
-          case 2:
-            ker_eval<ns, kerevalmeth, T, simd_type>(kernel_values.data(), opts, x1, x2);
-            interp_square<T, ns, simd_type>(target, data_uniform, ker1, ker2, i1, i2, N1,
-                                            N2);
-            break;
-          case 3:
-            ker_eval<ns, kerevalmeth, T, simd_type>(kernel_values.data(), opts, x1, x2,
-                                                    x3);
-            interp_cube<T, ns, simd_type>(target, data_uniform, ker1, ker2, ker3, i1, i2,
-                                          i3, N1, N2, N3);
-            break;
-          default: // can't get here
-            FINUFFT_UNREACHABLE;
-            break;
+          if (opts.simd == 1) {
+            switch (ndims) {
+            case 1:
+              ker_eval_scalar<ns, kerevalmeth, T>(kernel_values.data(), opts, x1);
+              interp_line_scalar_kernel<T, ns>(target, data_uniform, ker1, i1, N1);
+              break;
+            case 2:
+              ker_eval_scalar<ns, kerevalmeth, T>(kernel_values.data(), opts, x1, x2);
+              interp_square_scalar_kernel<T, ns>(target, data_uniform, ker1, ker2, i1, i2,
+                                                 N1, N2);
+              break;
+            case 3:
+              ker_eval_scalar<ns, kerevalmeth, T>(kernel_values.data(), opts, x1, x2, x3);
+              interp_cube_scalar_kernel<T, ns>(target, data_uniform, ker1, ker2, ker3, i1,
+                                               i2, i3, N1, N2, N3);
+              break;
+            default: // can't get here
+              FINUFFT_UNREACHABLE;
+              break;
+            }
+          } else {
+            switch (ndims) {
+            case 1:
+              ker_eval<ns, kerevalmeth, T, simd_type>(kernel_values.data(), opts, x1);
+              interp_line<T, ns, simd_type>(target, data_uniform, ker1, i1, N1);
+              break;
+            case 2:
+              ker_eval<ns, kerevalmeth, T, simd_type>(kernel_values.data(), opts, x1, x2);
+              interp_square<T, ns, simd_type>(target, data_uniform, ker1, ker2, i1, i2,
+                                              N1, N2);
+              break;
+            case 3:
+              ker_eval<ns, kerevalmeth, T, simd_type>(kernel_values.data(), opts, x1, x2,
+                                                      x3);
+              interp_cube<T, ns, simd_type>(target, data_uniform, ker1, ker2, ker3, i1,
+                                            i2, i3, N1, N2, N3);
+              break;
+            default: // can't get here
+              FINUFFT_UNREACHABLE;
+              break;
+            }
           }
         }
       } // end loop over targets in chunk
@@ -2117,6 +2667,7 @@ FINUFFT_EXPORT int FINUFFT_CDECL setup_spreader(
   opts.sort             = 2; // 2:auto-choice
   opts.kerpad           = 0; // affects only evaluate_kernel_vector
   opts.kerevalmeth      = kerevalmeth;
+  opts.simd             = 2;
   opts.upsampfac        = upsampfac;
   opts.nthreads         = 0; // all avail
   opts.sort_threads     = 0; // 0:auto-choice
