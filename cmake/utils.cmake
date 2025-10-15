@@ -2,6 +2,13 @@ include(CheckCXXCompilerFlag)
 
 # Define the function
 function(filter_supported_compiler_flags input_flags_var output_flags_var)
+    string(MD5 input_hash "${${input_flags_var}}")
+    if(DEFINED SUPPORTED_FLAGS_${input_hash})
+    message(STATUS "Using cached flags for ${input_flags_var}: ${SUPPORTED_FLAGS_${input_hash}}")
+        set(${output_flags_var} ${SUPPORTED_FLAGS_${input_hash}} PARENT_SCOPE)
+        return()
+    endif()
+
     # Create an empty list to store supported flags
     set(supported_flags)
     # Iterate over each flag in the input list
@@ -23,7 +30,8 @@ function(filter_supported_compiler_flags input_flags_var output_flags_var)
         # remove last flag from CMAKE_EXE_LINKER_FLAGS using substring
         set(CMAKE_EXE_LINKER_FLAGS ${ORIGINAL_LINKER_FLAGS})
     endforeach()
-    # Set the output variable to the list of supported flags
+    # Set the output variable to the list of supported flags and cache them
+    set(SUPPORTED_FLAGS_${input_hash} "${supported_flags}" CACHE INTERNAL "")
     set(${output_flags_var} ${supported_flags} PARENT_SCOPE)
 endfunction()
 
