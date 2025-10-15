@@ -35,7 +35,7 @@ function(filter_supported_compiler_flags input_flags_var output_flags_var)
     set(${output_flags_var} ${supported_flags} PARENT_SCOPE)
 endfunction()
 
-function(check_arch_support)
+function(check_msvc_arch_support)
     message(STATUS "Checking for AVX, AVX512 and SSE support")
     try_run(
         RUN_RESULT_VAR
@@ -97,7 +97,7 @@ endif()
 
 function(enable_asan target)
     target_compile_options(${target} PRIVATE ${FINUFFT_SANITIZER_FLAGS})
-    if(NOT (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC"))
+    if(NOT MSVC)
         target_link_options(${target} PRIVATE ${FINUFFT_SANITIZER_FLAGS})
     endif()
 endfunction()
