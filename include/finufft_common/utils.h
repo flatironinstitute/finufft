@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <cstdint>
 #include <tuple>
 #include <type_traits>
 #include <utility>
@@ -100,7 +101,7 @@ template<typename Tuple> auto extract_vals(const Tuple &t) {
 }
 
 template<typename Tuple, std::size_t... I>
-auto extract_seqs_impl(const Tuple &t, std::index_sequence<I...>) {
+auto extract_seqs_impl(const Tuple &, std::index_sequence<I...>) {
   using T = std::remove_reference_t<Tuple>;
   return std::make_tuple(typename std::tuple_element_t<I, T>::seq_type{}...);
 }
@@ -145,5 +146,104 @@ decltype(auto) dispatch(Func &&func, ParamTuple &&params, Args &&...args) {
   if constexpr (!std::is_void_v<result_t>) return caller.result;
 }
 
+// ----------------------------------------------
+// compile-time range length for [Start, Stop) with step Inc
+// ----------------------------------------------
+template<std::int64_t Start, std::int64_t Stop, std::int64_t Inc>
+inline constexpr std::int64_t compute_range_count = [] {
+  static_assert(Inc != 0, "Inc must not be zero");
+  if constexpr (Inc > 0) {
+    const std::int64_t d = Stop - Start;
+    return d > 0 ? ((d + Inc - 1) / Inc) : 0;
+  } else {
+    const std::int64_t d = Start - Stop;
+    const std::int64_t s = -Inc;
+    return d > 0 ? ((d + s - 1) / s) : 0;
+  }
+}();
+
+// ----------------------------------------------
+// low-level emitters (C++17, no templated lambdas)
+// ----------------------------------------------
+template<std::int64_t Start, std::int64_t Inc, class F, std::size_t... Is>
+constexpr void static_loop_impl_block(F &&f, std::index_sequence<Is...>) {
+  (f(std::integral_constant<std::int64_t, Start + static_cast<std::int64_t>(Is) * Inc>{}),
+   ...);
+}
+
+template<std::int64_t Start, std::int64_t Inc, std::int64_t K, class F, std::size_t... Bs>
+constexpr void static_loop_emit_all_blocks(F &&f, std::index_sequence<Bs...>) {
+  static_assert(K > 0, "UNROLL K must be positive");
+  (static_loop_impl_block<Start + static_cast<std::int64_t>(Bs) * K * Inc, Inc>(
+       f, std::make_index_sequence<static_cast<std::size_t>(K)>{}),
+   ...);
+}
+
+// ----------------------------------------------
+// static_loop
+// ----------------------------------------------
+template<std::int64_t Start, std::int64_t Stop, std::int64_t Inc = 1,
+         std::int64_t UNROLL = compute_range_count<Start, Stop, Inc>, class F>
+constexpr void static_loop(F &&f) {
+  static_assert(Inc != 0, "Inc must not be zero");
+
+  constexpr std::int64_t Count = compute_range_count<Start, Stop, Inc>;
+  if constexpr (Count == 0) {
+    // do nothing
+  } else {
+    constexpr std::int64_t k = (UNROLL > 0 ? UNROLL : Count);
+    static_assert(k > 0, "internal: k must be positive");
+    constexpr std::int64_t Blocks = Count / k;
+    constexpr std::int64_t Tail   = Count % k;
+
+    if constexpr (Blocks > 0) {
+      static_loop_emit_all_blocks<Start, Inc, k>(
+          std::forward<F>(f),
+          std::make_index_sequence<static_cast<std::size_t>(Blocks)>{});
+    }
+    if constexpr (Tail > 0) {
+      constexpr std::int64_t TailStart = Start + Blocks * k * Inc;
+      static_loop_impl_block<TailStart, Inc>(
+          std::forward<F>(f), std::make_index_sequence<static_cast<std::size_t>(Tail)>{});
+    }
+  }
+}
+
+// convenience: Stop only => Start=0, Inc=1
+template<std::int64_t Stop, class F> constexpr void static_loop(F &&f) {
+  static_loop<0, Stop, 1, compute_range_count<0, Stop, 1>>(std::forward<F>(f));
+}
+
+// ----------------------------------------------
+// static_for wrappers expecting f.template operator()<I>()
+// keeps C++17 by adapting to integral_constant form above
+// ----------------------------------------------
+namespace detail {
+template<class F> struct as_template_index {
+  F *pf;
+  constexpr explicit as_template_index(F &f) : pf(&f) {}
+  template<std::int64_t I>
+  constexpr void operator()(std::integral_constant<std::int64_t, I>) const {
+    pf->template operator()<I>();
+  }
+};
+template<class T>
+using is_integral_cx = std::integral_constant<bool, std::is_integral_v<T>>;
+} // namespace detail
+
+template<auto Start, auto End, class F> constexpr void static_for(F &&f) {
+  static_assert(detail::is_integral_cx<decltype(Start)>::value &&
+                    detail::is_integral_cx<decltype(End)>::value,
+                "Start/End must be integral constant expressions");
+  static_assert(End >= Start, "End must be >= Start");
+
+  constexpr auto S = static_cast<std::int64_t>(Start);
+  constexpr auto E = static_cast<std::int64_t>(End);
+  static_loop<S, E, 1>(detail::as_template_index<F>{f});
+}
+
+template<auto End, class F> constexpr void static_for(F &&f) {
+  static_for<0, End>(std::forward<F>(f));
+}
 } // namespace common
 } // namespace finufft
