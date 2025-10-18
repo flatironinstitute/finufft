@@ -12,7 +12,7 @@
 #include <type_traits>
 #include <utility> // for std::forward
 
-#include <common/common.h>
+#include <finufft_common/common.h>
 
 #ifndef _USE_MATH_DEFINES
 #define _USE_MATH_DEFINES
@@ -91,15 +91,6 @@ private:
 // math helpers whose source is in src/utils.cpp
 long next235beven(long n, long b);
 
-template<typename T> T infnorm(int n, std::complex<T> *a) {
-  T nrm = 0.0;
-  for (int m = 0; m < n; ++m) {
-    T aa = real(conj(a[m]) * a[m]);
-    if (aa > nrm) nrm = aa;
-  }
-  return sqrt(nrm);
-}
-
 /**
  * does a complex atomic add on a shared memory address
  * it adds the real and imaginary parts separately
@@ -146,7 +137,7 @@ template<typename T> auto arrayrange(int n, T *a, cudaStream_t stream) {
 
 // Writes out w = half-width and c = center of an interval enclosing all a[n]'s
 // Only chooses a nonzero center if this increases w by less than fraction
-// ARRAYWIDCEN_GROWFRAC defined in common/constants.h.
+// ARRAYWIDCEN_GROWFRAC defined in finufft_common/constants.h.
 // This prevents rephasings which don't grow nf by much. 6/8/17
 // If n==0, w and c are not finite.
 template<typename T> auto arraywidcen(int n, T *a, cudaStream_t stream) {

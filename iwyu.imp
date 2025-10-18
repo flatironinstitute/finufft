@@ -1,0 +1,16 @@
+[
+  { "include": [ "@<xsimd/.*>",            "private", "<xsimd/xsimd.hpp>",   "public" ] },
+  { "include": [ "@\"xsimd/.*\"",          "private", "<xsimd/xsimd.hpp>",   "public" ] },
+
+  { "include": [ "@<finufft_common/.*>",   "private", "\"finufft_common/common.h\"", "public" ] },
+  { "include": [ "@\"finufft_common/.*\"", "private", "\"finufft_common/common.h\"", "public" ] },
+
+  { "include": [ "@<thrust/(.*)>",         "private", "<thrust/\\1>",        "public" ] },
+  { "include": [ "@\"thrust/(.*)\"",       "private", "<thrust/\\1>",        "public" ] },
+
+  { "include": [ "@<ducc/(.*)>",           "private", "<ducc/\\1>",          "public" ] },
+  { "include": [ "@\"ducc/(.*)\"",         "private", "<ducc/\\1>",          "public" ] },
+
+  { "include": [ "@<fftw3/.*>",            "private", "<fftw3.h>",           "public" ] },
+  { "include": [ "@\"fftw3/.*\"",          "private", "<fftw3.h>",           "public" ] }
+]

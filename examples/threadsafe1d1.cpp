@@ -10,6 +10,8 @@
 #include <vector>
 using namespace std;
 
+static const double PI = 3.141592653589793238462643383279502884;
+
 int main(int argc, char *argv[])
 /* Demo single-threaded FINUFFT calls from inside a OMP parallel block.
    Adapted from simple1d1.cpp: C++, STL double complex vectors, with math test.
@@ -39,7 +41,7 @@ int main(int argc, char *argv[])
     vector<double> x(M);
     vector<complex<double>> c(M);
     for (int j = 0; j < M; ++j) {
-      x[j] = M_PI * (2 * ((double)rand() / RAND_MAX) - 1); // uniform random in [-pi,pi)
+      x[j] = PI * (2 * ((double)rand() / RAND_MAX) - 1); // uniform random in [-pi,pi)
       c[j] =
           2 * ((double)rand() / RAND_MAX) - 1 + I * (2 * ((double)rand() / RAND_MAX) - 1);
     }

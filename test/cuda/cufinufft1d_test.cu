@@ -8,7 +8,7 @@
 #include <thrust/device_vector.h>
 #include <thrust/host_vector.h>
 
-#include <common/common.h>
+#include <finufft_common/common.h>
 #include <cufinufft.h>
 
 #include "../utils/dirft1d.hpp"

@@ -1,12 +1,12 @@
 #ifndef FINUFFT_CORE_H
 #define FINUFFT_CORE_H
 
-#include <xsimd/xsimd.hpp>
-
 #include <array>
-#include <common/common.h>
-#include <finufft_errors.h>
+#include <cstdint>
 #include <memory>
+
+#include "finufft_common/common.h"
+#include "finufft_errors.h"
 
 // All indexing in library that potentially can exceed 2^31 uses 64-bit signed.
 // This includes all calling arguments (eg M,N) that could be huge someday.

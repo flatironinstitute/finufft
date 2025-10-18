@@ -8,6 +8,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+static const double PI = 3.141592653589793238462643383279502884;
+
 int main(int argc, char *argv[])
 /* Simple example of calling the FINUFFT library from C, using C complex type,
    with a math test. Double-precision. C99 style. opts is struct not ptr to it.
@@ -22,7 +24,7 @@ int main(int argc, char *argv[])
   double *x         = (double *)malloc(sizeof(double) * M);
   double complex *c = (double complex *)malloc(sizeof(double complex) * M);
   for (int j = 0; j < M; ++j) {
-    x[j] = M_PI * (2 * ((double)rand() / RAND_MAX) - 1); // uniform random in [-pi,pi)
+    x[j] = PI * (2 * ((double)rand() / RAND_MAX) - 1); // uniform random in [-pi,pi)
     c[j] =
         2 * ((double)rand() / RAND_MAX) - 1 + I * (2 * ((double)rand() / RAND_MAX) - 1);
   }

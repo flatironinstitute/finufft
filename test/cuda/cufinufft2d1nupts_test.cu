@@ -7,7 +7,7 @@
 #include <iostream>
 #include <random>
 
-#include <common/common.h>
+#include <finufft_common/common.h>
 #include <cufinufft.h>
 
 #include <cufinufft/impl.h>
@@ -17,7 +17,8 @@
 #include <thrust/device_vector.h>
 #include <thrust/host_vector.h>
 
-using cufinufft::utils::infnorm;
+#include "../utils/norms.hpp"
+
 using ::finufft::common::PI;
 
 template<typename T> int run_test(int method) {

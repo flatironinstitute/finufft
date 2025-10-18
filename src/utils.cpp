@@ -1,5 +1,5 @@
 #include <cmath>
-#include <common/common.h>
+#include <finufft_common/common.h>
 
 #ifdef __CUDACC__
 #include <cufinufft/types.h>

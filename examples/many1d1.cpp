@@ -7,6 +7,8 @@
 #include <vector>
 using namespace std;
 
+static const double PI = 3.141592653589793238462643383279502884;
+
 int main(int argc, char *argv[])
 /* Example of calling the vectorized FINUFFT library from C++, using STL
    double complex vectors, with a math test.
@@ -25,7 +27,7 @@ int main(int argc, char *argv[])
   vector<double> x(M);
   vector<complex<double>> c(M * ntrans);
   for (int j = 0; j < M; ++j)
-    x[j] = M_PI * (2 * ((double)rand() / RAND_MAX) - 1); // uniform random in [-pi,pi)
+    x[j] = PI * (2 * ((double)rand() / RAND_MAX) - 1); // uniform random in [-pi,pi)
   for (int j = 0; j < M * ntrans; ++j)                   // fill all ntrans vectors...
     c[j] =
         2 * ((double)rand() / RAND_MAX) - 1 + I * (2 * ((double)rand() / RAND_MAX) - 1);

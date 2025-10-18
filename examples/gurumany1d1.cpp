@@ -18,6 +18,8 @@
 
 // only good for small projects...
 using namespace std;
+
+static const double PI = 3.141592653589793238462643383279502884;
 // allows 1i to be the imaginary unit... (C++14 onwards)
 using namespace std::complex_literals;
 
@@ -36,7 +38,7 @@ int main(int argc, char *argv[]) {
   // generate random nonuniform points and pass to FINUFFT
   vector<double> x(M);
   for (int j = 0; j < M; ++j)
-    x[j] = M_PI * (2 * ((double)rand() / RAND_MAX) - 1); // uniform random in [-pi,pi)
+    x[j] = PI * (2 * ((double)rand() / RAND_MAX) - 1); // uniform random in [-pi,pi)
   finufft_setpts(plan, M, x.data(), NULL, NULL, 0, NULL, NULL, NULL);
 
   // generate ntrans complex strength vectors each of length M (the slow bit!)

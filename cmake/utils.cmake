@@ -2,6 +2,13 @@ include(CheckCXXCompilerFlag)
 
 # Define the function
 function(filter_supported_compiler_flags input_flags_var output_flags_var)
+    string(MD5 input_hash "${${input_flags_var}}")
+    if(DEFINED SUPPORTED_FLAGS_${input_hash})
+    message(STATUS "Using cached flags for ${input_flags_var}: ${SUPPORTED_FLAGS_${input_hash}}")
+        set(${output_flags_var} ${SUPPORTED_FLAGS_${input_hash}} PARENT_SCOPE)
+        return()
+    endif()
+
     # Create an empty list to store supported flags
     set(supported_flags)
     # Iterate over each flag in the input list
@@ -23,11 +30,12 @@ function(filter_supported_compiler_flags input_flags_var output_flags_var)
         # remove last flag from CMAKE_EXE_LINKER_FLAGS using substring
         set(CMAKE_EXE_LINKER_FLAGS ${ORIGINAL_LINKER_FLAGS})
     endforeach()
-    # Set the output variable to the list of supported flags
+    # Set the output variable to the list of supported flags and cache them
+    set(SUPPORTED_FLAGS_${input_hash} "${supported_flags}" CACHE INTERNAL "")
     set(${output_flags_var} ${supported_flags} PARENT_SCOPE)
 endfunction()
 
-function(check_arch_support)
+function(check_msvc_arch_support)
     message(STATUS "Checking for AVX, AVX512 and SSE support")
     try_run(
         RUN_RESULT_VAR
@@ -76,40 +84,33 @@ function(copy_dll source_target destination_target)
     unset(DESTINATION_FILE)
 endfunction()
 
-include(CheckIPOSupported)
-check_ipo_supported(RESULT LTO_SUPPORTED OUTPUT LTO_ERROR)
-
-if(LTO_SUPPORTED)
-    message(STATUS "LTO is supported and enabled.")
-    set(FINUFFT_INTERPROCEDURAL_OPTIMIZATION TRUE)
-else()
-    message(WARNING "LTO is not supported: ${LTO_ERROR}")
-    set(FINUFFT_INTERPROCEDURAL_OPTIMIZATION FALSE)
+if(FINUFFT_INTERPROCEDURAL_OPTIMIZATION)
+    include(CheckIPOSupported)
+    check_ipo_supported(RESULT LTO_SUPPORTED OUTPUT LTO_ERROR)
+    if(NOT LTO_SUPPORTED)
+        message(WARNING "IPO is not supported: ${LTO_ERROR}")
+        set(FINUFFT_INTERPROCEDURAL_OPTIMIZATION OFF)
+    else()
+        message(STATUS "IPO is supported, enabling interprocedural optimization")
+    endif()
 endif()
 
-function(detect_cuda_architecture)
-    find_program(NVIDIA_SMI_EXECUTABLE nvidia-smi)
+function(enable_asan target)
+    target_compile_options(${target} PRIVATE ${FINUFFT_SANITIZER_FLAGS})
+    if(NOT MSVC)
+        target_link_options(${target} PRIVATE ${FINUFFT_SANITIZER_FLAGS})
+    endif()
+endfunction()
 
-    if(NVIDIA_SMI_EXECUTABLE)
-        execute_process(
-            COMMAND ${NVIDIA_SMI_EXECUTABLE} --query-gpu=compute_cap --format=csv,noheader
-            OUTPUT_VARIABLE compute_cap
-            OUTPUT_STRIP_TRAILING_WHITESPACE
-            ERROR_QUIET
-        )
-
-        if(compute_cap MATCHES "^[0-9]+\\.[0-9]+$")
-            string(REPLACE "." "" arch "${compute_cap}")
-            message(STATUS "Detected CUDA compute capability: ${compute_cap} (sm_${arch})")
-
-            # Pass as list of integers, not string
-            set(CMAKE_CUDA_ARCHITECTURES ${arch} PARENT_SCOPE)
-        else()
-            message(WARNING "Failed to parse compute capability: '${compute_cap}', defaulting to 70")
-            set(CMAKE_CUDA_ARCHITECTURES 70 PARENT_SCOPE)
-        endif()
-    else()
-        message(WARNING "nvidia-smi not found, defaulting CMAKE_CUDA_ARCHITECTURES to 70")
-        set(CMAKE_CUDA_ARCHITECTURES 70 PARENT_SCOPE)
+function(finufft_link_test target)
+    target_link_libraries(${target} PRIVATE finufft::finufft)
+    if(FINUFFT_USE_DUCC0)
+        target_compile_definitions(${target} PRIVATE FINUFFT_USE_DUCC0)
+    endif()
+    enable_asan(${target})
+    target_compile_features(${target} PRIVATE cxx_std_17)
+    set_target_properties(${target} PROPERTIES POSITION_INDEPENDENT_CODE ${FINUFFT_POSITION_INDEPENDENT_CODE})
+    if(FINUFFT_HAS_NO_DEPRECATED_DECLARATIONS)
+        target_compile_options(${target} PRIVATE -Wno-deprecated-declarations)
     endif()
 endfunction()
