@@ -40,10 +40,16 @@ jobs:
           cmake: true
           ninja: true
           vcvarsall: true
+      - name: Select Xcode 16.0 (macOS 15 only)
+        if: ${{ runner.os == 'macOS' && matrix.os == 'macos-15' }}
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: '16.0'
       - name: Set macOS deployment target
         if: runner.os == 'macOS'
         shell: bash
         run: |
+          xcodebuild -version
           brew install fftw libomp
           echo "LDFLAGS=-L$(brew --prefix libomp)/lib" >> $GITHUB_ENV
           echo "CPPFLAGS=-I$(brew --prefix libomp)/include" >> $GITHUB_ENV

@@ -36,6 +36,9 @@ jobs:
       - name: Setup Fortran
         id: setup-fortran
         uses: fortran-lang/setup-fortran@v1
+        with:
+          compiler: gcc
+          version: 13
 
         # CMake + Ninja (uniform across OSes)
       - name: Setup CMake & Ninja

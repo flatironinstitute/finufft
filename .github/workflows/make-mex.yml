@@ -44,13 +44,19 @@ jobs:
           sed -i '/  LIBSFFT/a \ \ LIBSFFT := `g++ --print-file-name libfftw3.a` `g++ --print-file-name libfftw3f.a` `g++ --print-file-name libfftw3_omp.a` `g++ --print-file-name libfftw3f_omp.a` `g++ --print-file-name libm.a` `g++ --print-file-name libgomp.a`' makefile
           /c/msys64/usr/bin/make matlab
         shell: C:\msys64\usr\bin\bash.exe {0}
+      - name: Select Xcode 16.0
+        if: runner.os == 'macOS'
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: '16.0'
       - name: Generate macOS mex file
         if: runner.os == 'macOS'
         run: |
+          xcodebuild -version
           brew install fftw libomp
           sed 's/\/Applications\/MATLAB_R20\*\*.app/\/Users\/runner\/hostedtoolcache\/MATLAB\/2023.2.999\/arm64\/MATLAB.app/' make-platforms/make.inc.macosx_arm64 > make.inc
           sed -i -e 's/-lomp//' make.inc
-          sed -i -e 's/  LIBSFFT.*/\ \ LIBSFFT := \/opt\/homebrew\/opt\/fftw\/lib\/libfftw3\.a \/opt\/homebrew\/opt\/fftw\/lib\/libfftw3f\.a \/opt\/homebrew\/opt\/fftw\/lib\/libfftw3_omp.a \/opt\/homebrew\/opt\/fftw\/lib\/libfftw3f_omp\.a -L\/opt\/homebrew\/opt\/libomp\/lib -lomp/' makefile
+          sed -i -e 's/  LIBSFFT.*/\ \ LIBSFFT := \/opt\/homebrew\/opt\/fftw\/lib\/libfftw3\.a \/opt\/homebrew\/opt\/fftw\/lib\/libfftw3f\.a \/opt\/homebrew\/opt\/fftw\/lib\/libfftw3_omp.a \/opt\/homebrew\/opt\/fftw\/lib\/libfftw3f_omp\.a -L\/Users\/runner\/hostedtoolcache\/MATLAB\/2023.2.999\/arm64\/MATLAB.app\/bin\/maca64 -lomp/' makefile
           make matlab
       - name: Generate Linux mex file
         if: runner.os == 'Linux'
