@@ -183,12 +183,15 @@ jobs:
           fi
 
           build_dir="build"
-          rm -rf $build_dir
 
           for arch in "${arch_flags[@]}"; do
             arch_dir=$(echo "$arch" | tr -c 'A-Za-z0-9' '_')
             for cfg in "${configs[@]}"; do
               eval "$cfg"
+
+              # delete the build directory every time
+
+              rm -rf $build_dir
 
               sanitizers="OFF"
               if [[ "$build_type" == "Debug" && "$RUNNER_OS" != "Windows" ]]; then
