@@ -10,7 +10,7 @@
 namespace finufft {
 namespace common {
 
-FINUFFT_EXPORT void FINUFFT_CDECL gaussquad(int n, double *xgl, double *wgl);
+FINUFFT_EXPORT_TEST void gaussquad(int n, double *xgl, double *wgl);
 std::tuple<double, double> leg_eval(int n, double x);
 
 // helper to generate the integer sequence in range [Start, End]

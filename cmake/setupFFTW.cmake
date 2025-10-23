@@ -89,3 +89,6 @@ if(FINUFFT_FFTW_LIBRARIES STREQUAL DEFAULT OR FINUFFT_FFTW_LIBRARIES STREQUAL DO
         endif()
     endif()
 endif()
+
+add_library(finufft_fftlibs INTERFACE)
+target_link_libraries(finufft_fftlibs INTERFACE ${FINUFFT_FFTW_LIBRARIES})

@@ -24,7 +24,11 @@ Master (working towards v2.5.0), 8/13/25
 * cmake: cache query and result for supported compiler flags to speed up
   configuration (Stanimirov #725).
 * move include/common to include/finufft_common (Stanimirov #734)
-
+* Fixed symbol visibility issues so shared libraries export the Fortran wrapper
+  entry points and test helpers consistently on Windows and macOS.  This
+  included tightening default visibility in the makefile, introducing
+  `FINUFFT_EXPORT_TEST` for test-only APIs, and ensuring FFT backends are linked
+  through a dedicated `finufft_fftlibs` interface target. (Barbone, Reinecke #737)
 
 V 2.4.1 7/8/25
 
