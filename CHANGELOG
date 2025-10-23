@@ -9,6 +9,22 @@ Master (working towards v2.5.0), 8/13/25
   Work arrays are now only allocated during plan execution, reducing overall
   memory consumption.
   A single plan can now safely be executed by several threads concurrently.
+* Using c++17 template dispatching for kernels dispatch logic in one place
+  (Barbone, Wentzell #719 addresses #696 & #476).
+* The update overhauls the CMake and MATLAB/CUDA build system for better
+  consistency and performance. It simplifies and unifies configuration,
+  adds developer tools such as cppcheck, IWYU, and clang-tidy, and introduces
+  proper LTO support. The CI pipeline is cleaner and faster, with improved
+  cross-platform compatibility across Linux, Windows, and macOS.
+  Dependencies are updated, MATLAB and CUDA integration is fixed,
+  and reliance on MATLAB OpenMP is removed with revised CUDA/MEX handling.
+  The update also corrects typos, warnings, deployment issues,
+  adds Fortran to CI, and brings support for CMake 4 and CUDA 13.
+  CI generates matlab finufft and cufinufft artifacts now. (Barbone #721)
+* cmake: cache query and result for supported compiler flags to speed up
+  configuration (Stanimirov #725).
+* move include/common to include/finufft_common (Stanimirov #734)
+
 
 V 2.4.1 7/8/25
 
