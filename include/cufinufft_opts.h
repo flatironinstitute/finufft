@@ -1,7 +1,7 @@
 #ifndef __CUFINUFFT_OPTS_H__
 #define __CUFINUFFT_OPTS_H__
 
-// python/cufinufft/cufinufft/_cufinufft.py and matlab/cufinufft.mw
+// python/cufinufft/cufinufft/_cufinufft.py and matlab/cufinufft.mw and FINUFFT.jl/src/types.jl
 // must be kept in sync with this struct
 
 typedef struct cufinufft_opts { // see cufinufft_default_opts() for defaults
