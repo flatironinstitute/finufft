@@ -95,8 +95,10 @@ template<class T, uint8_t N> constexpr auto GetPaddedSIMDWidth() {
   // that minimizes the number of iterations
   return xsimd::make_sized_batch<T, find_optimal_simd_width<T, N>()>::type::size;
 }
+
 template<class T, uint8_t N>
 using PaddedSIMD = typename xsimd::make_sized_batch<T, GetPaddedSIMDWidth<T, N>()>::type;
+
 template<class T, uint8_t ns> constexpr auto get_padding() {
   // helper function to get the padding for the given number of elements
   // ns is known at compile time, rounds ns to the next multiple of the SIMD width
@@ -130,8 +132,10 @@ template<class T> uint8_t get_padding(uint8_t ns) {
   // that's why is hardcoded here
   return get_padding_helper<T, 2 * MAX_NSPREAD>(ns);
 }
+
 template<class T, uint8_t N>
 using BestSIMD = typename decltype(BestSIMDHelper<T, N, xsimd::batch<T>::size>())::type;
+
 template<class T, class V, size_t... Is>
 constexpr T generate_sequence_impl(V a, V b, index_sequence<Is...>) noexcept {
   // utility function to generate a sequence of a, b interleaved as function arguments
@@ -278,43 +282,46 @@ static void evaluate_kernel_vector(T *ker, T *args,
 }
 
 template<typename T, uint8_t w, uint8_t upsampfact,
-         class simd_type =
-             xsimd::make_sized_batch_t<T, find_optimal_simd_width<T, w>()>> // aka ns
+         class simd_type = xsimd::make_sized_batch_t<T, find_optimal_simd_width<T, w>()>>
 static FINUFFT_ALWAYS_INLINE void eval_kernel_vec_Horner(T *FINUFFT_RESTRICT ker, T x,
                                                          const finufft_spread_opts &opts
-                                                         [[maybe_unused]]) noexcept
-/* Fill ker[] with Horner piecewise poly approx to [-w/2,w/2] ES kernel eval at
-x_j = x + j,  for j=0,..,w-1.  Thus x in [-w/2,-w/2+1].   w is aka ns.
-This is the current evaluation method, since it's faster (except i7 w=16).
-Two upsampfacs implemented. Params must match ref formula. Barnett 4/24/18 */
+                                                         [[maybe_unused]]) noexcept {
+  /* Fill ker[] with Horner piecewise poly approx to [-w/2,w/2] ES kernel eval at
+  x_j = x + j,  for j=0,..,w-1.  Thus x in [-w/2,-w/2+1].   w is aka ns.
+  This is the current evaluation method, since it's faster (except i7 w=16).
+  Two upsampfacs implemented. Params must match ref formula. Barnett 4/24/18 */
+  // scale so local grid offset z in [-1,1]
+  const T z                       = std::fma(T(2.0), x, T(w - 1));
+  using arch_t                    = typename simd_type::arch_type;
+  static constexpr auto alignment = arch_t::alignment();
+  static constexpr auto simd_size = simd_type::size;
+  static constexpr auto padded_ns = (w + simd_size - 1) & ~(simd_size - 1);
 
-{
-  // scale so local grid offset z in[-1,1]
-  const T z                           = std::fma(T(2.0), x, T(w - 1));
-  using arch_t                        = typename simd_type::arch_type;
-  static constexpr auto alignment     = arch_t::alignment();
-  static constexpr auto simd_size     = simd_type::size;
-  static constexpr auto padded_ns     = (w + simd_size - 1) & ~(simd_size - 1);
   static constexpr auto horner_coeffs = []() constexpr noexcept {
     if constexpr (upsampfact == 200) {
       return get_horner_coeffs_200<T, w>();
-    } else if constexpr (upsampfact == 125) {
+    } else { // upsampfact == 125
+      // this way we can have a static assert that things went wrong
+      static_assert(upsampfact == 125, "Unsupported upsampfact");
       return get_horner_coeffs_125<T, w>();
     }
   }();
-  static constexpr auto nc          = horner_coeffs.size();
-  static constexpr auto use_ker_sym = (simd_size < w);
+  static constexpr auto nc = horner_coeffs.size();
 
   alignas(alignment) static constexpr auto padded_coeffs =
       pad_2D_array_with_zeros<T, nc, w, padded_ns>(horner_coeffs);
 
   // use kernel symmetry trick if w > simd_size
+  static constexpr bool use_ker_sym = (simd_size < w);
+
+  const simd_type zv{z};
+
   if constexpr (use_ker_sym) {
     static constexpr uint8_t tail          = w % simd_size;
     static constexpr uint8_t if_odd_degree = ((nc + 1) % 2);
-    static constexpr uint8_t offset_start  = tail ? w - tail : w - simd_size;
     static constexpr uint8_t end_idx       = (w + (tail > 0)) / 2;
-    const simd_type zv{z};
+    static constexpr uint8_t offset_start  = tail ? (w - tail) : (w - simd_size);
+
     const auto z2v = zv * zv;
 
     // some xsimd constant for shuffle or inverse
@@ -328,11 +335,11 @@ Two upsampfacs implemented. Params must match ref formula. Barnett 4/24/18 */
       }
     }();
 
-    // process simd vecs
     simd_type k_prev, k_sym{0};
-    for (uint8_t i{0}, offset = offset_start; i < end_idx;
-         i += simd_size, offset -= simd_size) {
-      auto k_odd = [i]() constexpr noexcept {
+
+    static_loop<0, end_idx, simd_size>([&]([[maybe_unused]] const auto i) {
+      constexpr auto offset = static_cast<uint8_t>(offset_start - i);
+      auto k_odd            = [i]() constexpr noexcept {
         if constexpr (if_odd_degree) {
           return simd_type::load_aligned(padded_coeffs[0].data() + i);
         } else {
@@ -340,18 +347,20 @@ Two upsampfacs implemented. Params must match ref formula. Barnett 4/24/18 */
         }
       }();
       auto k_even = simd_type::load_aligned(padded_coeffs[if_odd_degree].data() + i);
-      for (uint8_t j{1 + if_odd_degree}; j < nc; j += 2) {
+
+      static_loop<1 + if_odd_degree, static_cast<std::int64_t>(nc), 2>([&](const auto j) {
         const auto cji_odd  = simd_type::load_aligned(padded_coeffs[j].data() + i);
         const auto cji_even = simd_type::load_aligned(padded_coeffs[j + 1].data() + i);
         k_odd               = xsimd::fma(k_odd, z2v, cji_odd);
         k_even              = xsimd::fma(k_even, z2v, cji_even);
-      }
+      });
+
       // left part
       xsimd::fma(k_odd, zv, k_even).store_aligned(ker + i);
+
       // right part symmetric to the left part
-      if (offset >= end_idx) {
+      if constexpr (offset >= end_idx) {
         if constexpr (tail) {
-          // to use aligned store, we need shuffle the previous k_sym and current k_sym
           k_prev = k_sym;
           k_sym  = xsimd::fnma(k_odd, zv, k_even);
           xsimd::shuffle(k_sym, k_prev, shuffle_batch).store_aligned(ker + offset);
@@ -360,20 +369,21 @@ Two upsampfacs implemented. Params must match ref formula. Barnett 4/24/18 */
               .store_aligned(ker + offset);
         }
       }
-    }
+    });
+
   } else {
-    const simd_type zv(z);
-    for (uint8_t i = 0; i < w; i += simd_size) {
+    static_loop<0, w, simd_size>([&](const auto i) {
       auto k = simd_type::load_aligned(padded_coeffs[0].data() + i);
-      for (uint8_t j = 1; j < nc; ++j) {
+
+      static_loop<1, static_cast<std::int64_t>(nc), 1>([&](const auto j) {
         const auto cji = simd_type::load_aligned(padded_coeffs[j].data() + i);
         k              = xsimd::fma(k, zv, cji);
-      }
+      });
+
       k.store_aligned(ker + i);
-    }
+    });
   }
 }
-
 template<typename T, uint8_t ns>
 static void interp_line_wrap(T *FINUFFT_RESTRICT target, const T *du, const T *ker,
                              const BIGINT i1, const UBIGINT N1) {
