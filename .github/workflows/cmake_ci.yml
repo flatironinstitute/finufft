@@ -177,9 +177,13 @@ jobs:
           if [[ "${{ matrix.toolchain }}" == "msvc" ]]; then
             arch_flags=("/arch:AVX2" "/arch:SSE2" "native")
           elif [[ "$RUNNER_OS" == "Linux" ]]; then
-            arch_flags=("-march=x86-64" "-march=x86-64-v2" "-march=x86-64-v3" "-march=native")
+            arch_flags=("-march=x86-64" "-march=x86-64-v2" "-march=x86-64-v3")
+            flags=$(lscpu | awk -F: 'BEGIN{IGNORECASE=1} $1 ~ /flags/ {print tolower($2)}')
+            if [[ $flags == *avx512f* && $flags == *avx512dq* && $flags == *avx512cd* && $flags == *avx512bw* && $flags == *avx512vl* ]]; then
+              arch_flags+=("-march=x86-64-v4")
+            fi
           else
-            arch_flags=("native")
+           arch_flags=("native")
           fi
 
           build_dir="build"
