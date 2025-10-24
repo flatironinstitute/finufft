@@ -93,7 +93,7 @@ Then CMake will automatically download FINUFFT and link it to your executable.
 CMake based installation and compilation
 ----------------------------------------
 
-Make sure you have ``cmake`` version at least 3.19.
+Make sure you have ``cmake`` version at least 3.24.
 The basic quick download, default building, and test and install
 is then done by:
 

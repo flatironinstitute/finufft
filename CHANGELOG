@@ -1,7 +1,7 @@
 List of features / changes made / release notes, in reverse chronological order.
-If not stated, FINUFFT is assumed (cuFINUFFT <=1.3 is listed separately).
+If not stated, FINUFFT is assumed (old cuFINUFFT <=1.3 is listed separately).
 
-Master (working towards v2.5.0), 8/13/25
+Master (working towards v2.5.0), 10/24/25
 
 * Added real-valued function type-2 interpolation demos (Barnett, Unalmis #722)
 * Added functionality for adjoint execution of FINUFFT plans (Reinecke #633,
@@ -20,11 +20,11 @@ Master (working towards v2.5.0), 8/13/25
   and reliance on MATLAB OpenMP is removed with revised CUDA/MEX handling.
   The update also corrects typos, warnings, deployment issues,
   adds Fortran to CI, and brings support for CMake 4 and CUDA 13.
-  CI generates matlab finufft and cufinufft artifacts now. (Barbone #721)
+  CI generates matlab finufft and cufinufft artifacts now.
+  Now needs cmake>3.24 (Barbone #721)
 * cmake: cache query and result for supported compiler flags to speed up
   configuration (Stanimirov #725).
 * move include/common to include/finufft_common (Stanimirov #734)
-
 
 V 2.4.1 7/8/25
 
