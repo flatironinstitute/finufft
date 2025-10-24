@@ -66,7 +66,7 @@ XSIMD_DIR := $(DEPS_ROOT)/xsimd
 
 # DUCC sources optional dependency repo
 DUCC_URL := https://gitlab.mpcdf.mpg.de/mtr/ducc.git
-DUCC_VERSION := ducc0_0_38_0
+DUCC_VERSION := ducc0_0_39_1
 DUCC_DIR := $(DEPS_ROOT)/ducc
 # this dummy file used as empty target by make...
 DUCC_COOKIE := $(DUCC_DIR)/.finufft_has_ducc
