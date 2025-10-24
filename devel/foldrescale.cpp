@@ -15,6 +15,9 @@
    The macro wins hands-down on i7, even for modern GCC9.
    This should be done in C++ not as a macro, someday.
 */
+
+using finufft::common::INV_2PI;
+
 #define FOLDRESCALE(x, N, p)                                                \
   (p ? (x + (x >= -PI ? (x < PI ? PI : -PI) : 3 * PI)) * ((FLT)INV_2PI * N) \
      : (x >= 0.0 ? (x < (FLT)N ? x : x - (FLT)N) : x + (FLT)N))

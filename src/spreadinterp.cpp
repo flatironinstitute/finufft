@@ -14,8 +14,6 @@
 #include <cstdio>
 #include <cstdlib>
 #include <vector>
-
-using namespace std;
 using namespace finufft::utils;  // access to timer
 using namespace finufft::common; // access to constants and dispatch
 
@@ -133,7 +131,7 @@ template<class T> uint8_t get_padding(uint8_t ns) {
 template<class T, uint8_t N>
 using BestSIMD = typename decltype(BestSIMDHelper<T, N, xsimd::batch<T>::size>())::type;
 template<class T, class V, size_t... Is>
-constexpr T generate_sequence_impl(V a, V b, index_sequence<Is...>) noexcept {
+constexpr T generate_sequence_impl(V a, V b, std::index_sequence<Is...>) noexcept {
   // utility function to generate a sequence of a, b interleaved as function arguments
   return T(((Is % 2 == 0) ? a : b)...);
 }
@@ -221,7 +219,7 @@ void print_subgrid_info(int ndims, BIGINT offset1, BIGINT offset2, BIGINT offset
 template<typename T>
 static FINUFFT_ALWAYS_INLINE T fold_rescale(const T x, const UBIGINT N) noexcept {
   const T result = x * T(INV_2PI) + T(0.5);
-  return (result - floor(result)) * T(N);
+  return (result - std::floor(result)) * T(N);
 }
 
 template<typename T, uint8_t ns>
@@ -258,11 +256,11 @@ static void evaluate_kernel_vector(T *ker, T *args,
     }
     for (int i = 0; i < Npad; i++) { // Loop 1: Compute exponential arguments
       // care! 1.0 is double...
-      ker[i] = b * (sqrt((T)1.0 - c * args[i] * args[i]) - (T)1.0);
+      ker[i] = b * (std::sqrt((T)1.0 - c * args[i] * args[i]) - (T)1.0);
     }
     if (!(opts.flags & TF_OMIT_EVALUATE_EXPONENTIAL))
       for (int i = 0; i < Npad; i++) // Loop 2: Compute exponentials
-        ker[i] = exp(ker[i]);
+        ker[i] = std::exp(ker[i]);
     if (opts.kerpad) {
       // padded part should be zero, in spread_subproblem_nd_kernels, there are
       // out of bound writes to trg arrays
@@ -274,7 +272,7 @@ static void evaluate_kernel_vector(T *ker, T *args,
   }
   // Separate check from arithmetic (Is this really needed? doesn't slow down)
   for (int i = 0; i < N; i++)
-    if (abs(args[i]) >= (T)opts.ES_halfwidth) ker[i] = 0.0;
+    if (std::abs(args[i]) >= (T)opts.ES_halfwidth) ker[i] = 0.0;
 }
 
 template<typename T, uint8_t w, uint8_t upsampfact,
@@ -2144,9 +2142,9 @@ int setup_spreader(
   if (upsampfac == 2.0)                    // standard sigma (see SISC paper)
     ns = std::ceil(-log10(eps / (T)10.0)); // 1 digit per power of 10
   else                                     // custom sigma
-    ns = std::ceil(-log(eps) / (T(PI) * sqrt(1.0 - 1.0 / upsampfac))); // formula,
+    ns = std::ceil(-std::log(eps) / (T(PI) * std::sqrt(1.0 - 1.0 / upsampfac))); // formula,
                                                                        // gam=1
-  ns = max(2, ns);        // (we don't have ns=1 version yet)
+  ns = std::max(2, ns);   // (we don't have ns=1 version yet)
   if (ns > MAX_NSPREAD) { // clip to fit allocated arrays, Horner rules
     if (showwarn)
       fprintf(stderr,
@@ -2195,11 +2193,12 @@ T evaluate_kernel(T x, const finufft_spread_opts &opts)
    Rescaled so max is 1, Barnett 7/21/24
 */
 {
-  if (abs(x) >= (T)opts.ES_halfwidth)
+  if (std::abs(x) >= (T)opts.ES_halfwidth)
     // if spreading/FT careful, shouldn't need this if, but causes no speed hit
     return 0.0;
   else
-    return exp((T)opts.ES_beta * (sqrt((T)1.0 - (T)opts.ES_c * x * x) - (T)1.0));
+    return std::exp((T)opts.ES_beta *
+                    (std::sqrt((T)1.0 - (T)opts.ES_c * x * x) - (T)1.0));
 }
 
 template float evaluate_kernel<float>(float x, const finufft_spread_opts &opts);
@@ -2212,7 +2211,7 @@ T evaluate_kernel_horner_kernel(T x, const finufft_spread_opts &opts)
    using generated piecewise polynomial approximation to the kernel.
 */
 {
-  if (abs(x) >= (T)opts.ES_halfwidth) {
+  if (std::abs(x) >= (T)opts.ES_halfwidth) {
     // if spreading/FT careful, shouldn't need this if, but causes no speed hit
     return 0.0;
   } else {

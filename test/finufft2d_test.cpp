@@ -4,7 +4,10 @@
 #include "utils/dirft2d.hpp"
 #include "utils/norms.hpp"
 
-using namespace std;
+#include <algorithm>
+#include <cmath>
+#include <iomanip>
+#include <iostream>
 using namespace finufft::utils;
 
 const char *help[] = {"Tester for FINUFFT in 2d, all 3 types, either precision.",
@@ -44,7 +47,7 @@ int main(int argc, char *argv[]) {
   }
   if (argc > 8) sscanf(argv[8], "%lf", &errfail);
 
-  cout << scientific << setprecision(15);
+  std::cout << std::scientific << std::setprecision(15);
   BIGINT N = N1 * N2;
 
   FLT *x = (FLT *)malloc(sizeof(FLT) * M); // NU pts x coords
@@ -84,18 +87,18 @@ int main(int argc, char *argv[]) {
     Fti += imag(c[j]) * co + real(c[j]) * si;
   }
   BIGINT it = N1 / 2 + nt1 + N1 * (N2 / 2 + nt2); // index in complex F as 1d array
-  err       = abs(Ftr + IMA * Fti - F[it]) / infnorm(N, F);
+  err       = std::abs(Ftr + IMA * Fti - F[it]) / infnorm(N, F);
   printf("\tone mode: rel err in F[%lld,%lld] is %.3g\n", (long long)nt1, (long long)nt2,
          err);
   if ((int64_t)M * N <= TEST_BIGPROB) { // also check vs full direct eval
     CPX *Ft = (CPX *)malloc(sizeof(CPX) * N);
     dirft2d1(M, x, y, c, isign, N1, N2, Ft);
     err    = relerrtwonorm(N, Ft, F);
-    errmax = max(err, errmax);
+    errmax = std::max(err, errmax);
     printf("\tdirft2d: rel l2-err of result F is %.3g\n", err);
     free(Ft);
   } else
-    errmax = max(err, errmax);
+    errmax = std::max(err, errmax);
 
   printf("test 2d type 2:\n"); // -------------- type 2
 #pragma omp parallel
@@ -119,20 +122,21 @@ int main(int argc, char *argv[]) {
   BIGINT m  = 0;
   for (BIGINT m2 = -(N2 / 2); m2 <= (N2 - 1) / 2; ++m2) // loop in correct order over F
     for (BIGINT m1 = -(N1 / 2); m1 <= (N1 - 1) / 2; ++m1)
-      ct += F[m++] * exp(IMA * (FLT)isign * (m1 * x[jt] + m2 * y[jt])); // crude
+      ct += F[m++] *
+            std::exp(IMA * (FLT)isign * (m1 * x[jt] + m2 * y[jt])); // crude
                                                                         // direct
-  err = abs(ct - c[jt]) / infnorm(M, c);
+  err = std::abs(ct - c[jt]) / infnorm(M, c);
   printf("\tone targ: rel err in c[%lld] is %.3g\n", (long long)jt, err);
   if ((int64_t)M * N <= TEST_BIGPROB) { // also full direct eval
     CPX *ct = (CPX *)malloc(sizeof(CPX) * M);
     dirft2d2(M, x, y, ct, isign, N1, N2, F);
     err    = relerrtwonorm(M, ct, c);
-    errmax = max(err, errmax);
+    errmax = std::max(err, errmax);
     printf("\tdirft2d: rel l2-err of result c is %.3g\n", err);
     // cout<<"c,ct:\n"; for (int j=0;j<M;++j) cout<<c[j]<<"\t"<<ct[j]<<endl;
     free(ct);
   } else
-    errmax = max(err, errmax);
+    errmax = std::max(err, errmax);
 
   printf("test 2d type 3:\n"); // -------------- type 3
                                // reuse the strengths c, interpret N as number of targs:
@@ -177,19 +181,19 @@ int main(int argc, char *argv[]) {
     Ftr += real(c[j]) * co - imag(c[j]) * si; // cpx arith by hand
     Fti += imag(c[j]) * co + real(c[j]) * si;
   }
-  err = abs(Ftr + IMA * Fti - F[kt]) / infnorm(N, F);
+  err = std::abs(Ftr + IMA * Fti - F[kt]) / infnorm(N, F);
   printf("\tone targ: rel err in F[%lld] is %.3g\n", (long long)kt, err);
   if (((int64_t)M) * N <= TEST_BIGPROB) {     // also full direct eval
     CPX *Ft = (CPX *)malloc(sizeof(CPX) * N);
     dirft2d3(M, x, y, c, isign, N, s, t, Ft); // writes to F
     err    = relerrtwonorm(N, Ft, F);
-    errmax = max(err, errmax);
+    errmax = std::max(err, errmax);
     printf("\tdirft2d: rel l2-err of result F is %.3g\n", err);
     // cout<<"s t, F, Ft, F/Ft:\n"; for (int k=0;k<N;++k) cout<<s[k]<<" "<<t[k]<<",
     // "<<F[k]<<",\t"<<Ft[k]<<",\t"<<F[k]/Ft[k]<<endl;
     free(Ft);
   } else
-    errmax = max(err, errmax);
+    errmax = std::max(err, errmax);
 
   free(x);
   free(y);
@@ -197,7 +201,7 @@ int main(int argc, char *argv[]) {
   free(F);
   free(s);
   free(t);
-  if (isnan(errmax) || (errmax > errfail)) {
+  if (std::isnan(errmax) || (errmax > errfail)) {
     printf("\tfailed! err %.3g > errfail %.3g\n", errmax, errfail);
     return 1;
   } else

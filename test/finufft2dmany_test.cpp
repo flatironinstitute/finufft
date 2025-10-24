@@ -3,7 +3,11 @@
 #include "finufft/finufft_utils.hpp"
 #include "utils/dirft2d.hpp"
 #include "utils/norms.hpp"
-using namespace std;
+
+#include <algorithm>
+#include <cmath>
+#include <iomanip>
+#include <iostream>
 using namespace finufft::utils;
 
 const char *help[] = {
@@ -49,7 +53,7 @@ int main(int argc, char *argv[]) {
   }
   if (argc > 11) sscanf(argv[11], "%lf", &errfail);
 
-  cout << scientific << setprecision(15);
+  std::cout << std::scientific << std::setprecision(15);
   BIGINT N = N1 * N2;
 
   FLT *x = (FLT *)malloc(sizeof(FLT) * M);           // NU pts x coords
@@ -88,9 +92,9 @@ int main(int argc, char *argv[]) {
                                                                // to check
   CPX Ft = CPX(0, 0), J = IMA * (FLT)isign;
   for (BIGINT j = 0; j < M; ++j)
-    Ft += c[j + i * M] * exp(J * (nt1 * x[j] + nt2 * y[j])); // crude direct
+    Ft += c[j + i * M] * std::exp(J * (nt1 * x[j] + nt2 * y[j])); // crude direct
   BIGINT it = N1 / 2 + nt1 + N1 * (N2 / 2 + nt2); // index in complex F as 1d array
-  err       = abs(Ft - F[it + i * N]) / infnorm(N, F + i * N);
+  err       = std::abs(Ft - F[it + i * N]) / infnorm(N, F + i * N);
   printf("\tone mode: rel err in F[%lld,%lld] of trans#%d is %.3g\n", (long long)nt1,
          (long long)nt2, i, err);
 
@@ -121,8 +125,8 @@ int main(int argc, char *argv[]) {
   // Check consistency (worst over the ntransf)
   double maxerror = 0.0;
   for (int k = 0; k < ntransf; ++k)
-    maxerror = max(maxerror, (double)relerrtwonorm(N, F_2d1 + k * N, F + k * N));
-  errmax = max(maxerror, errmax);
+    maxerror = std::max(maxerror, (double)relerrtwonorm(N, F_2d1 + k * N, F + k * N));
+  errmax = std::max(maxerror, errmax);
   printf("\tconsistency check: sup ( ||f_many-f||_2 / ||f||_2  ) =  %.3g\n", maxerror);
   free(F_2d1);
 
@@ -153,8 +157,8 @@ int main(int argc, char *argv[]) {
   BIGINT m  = 0;
   for (BIGINT m2 = -(N2 / 2); m2 <= (N2 - 1) / 2; ++m2) // loop in correct order over F
     for (BIGINT m1 = -(N1 / 2); m1 <= (N1 - 1) / 2; ++m1)
-      ct += F[i * N + m++] * exp(J * (m1 * x[jt] + m2 * y[jt])); // crude direct
-  err = abs(ct - c[jt + i * M]) / infnorm(M, c + i * M);
+      ct += F[i * N + m++] * std::exp(J * (m1 * x[jt] + m2 * y[jt])); // crude direct
+  err = std::abs(ct - c[jt + i * M]) / infnorm(M, c + i * M);
   printf("\tone targ: rel err in c[%lld] of trans#%d is %.3g\n", (long long)jt, i, err);
 
   // compare the result with single calls to FINUFFT2D2...
@@ -176,8 +180,8 @@ int main(int argc, char *argv[]) {
 
   maxerror = 0.0; // worst error over the ntransf
   for (int k = 0; k < ntransf; ++k)
-    maxerror = max(maxerror, (double)relerrtwonorm(M, c_2d2 + k * M, c + k * M));
-  errmax = max(maxerror, errmax);
+    maxerror = std::max(maxerror, (double)relerrtwonorm(M, c_2d2 + k * M, c + k * M));
+  errmax = std::max(maxerror, errmax);
   printf("\tconsistency check: sup ( ||c_many-c||_2 / ||c||_2 ) =  %.3g\n", maxerror);
   free(c_2d2);
 
@@ -225,8 +229,8 @@ int main(int argc, char *argv[]) {
   BIGINT kt = N / 4;       // check arbitrary choice of one targ pt
   Ft        = CPX(0, 0);
   for (BIGINT j = 0; j < M; ++j)
-    Ft += c[i * M + j] * exp(J * (s_freq[kt] * x[j] + t_freq[kt] * y[j]));
-  err = abs(Ft - F[kt + i * N]) / infnorm(N, F + i * N);
+    Ft += c[i * M + j] * std::exp(J * (s_freq[kt] * x[j] + t_freq[kt] * y[j]));
+  err = std::abs(Ft - F[kt + i * N]) / infnorm(N, F + i * N);
   printf("\tone targ: rel err in F[%lld] of trans#%d is %.3g\n", (long long)kt, i, err);
 
   // compare the result with FINUFFT2D3...
@@ -250,8 +254,8 @@ int main(int argc, char *argv[]) {
   // check against the old
   maxerror = 0.0; // worst error over the ntransf
   for (int k = 0; k < ntransf; ++k)
-    maxerror = max(maxerror, (double)relerrtwonorm(N, f_2d3 + k * N, F + k * N));
-  errmax = max(maxerror, errmax);
+    maxerror = std::max(maxerror, (double)relerrtwonorm(N, f_2d3 + k * N, F + k * N));
+  errmax = std::max(maxerror, errmax);
   printf("\tconsistency check: sup ( ||f_many-f||_2 / ||f||_2 ) =  %.3g\n", maxerror);
   free(f_2d3);
 
@@ -261,7 +265,7 @@ int main(int argc, char *argv[]) {
   free(F);
   free(s_freq);
   free(t_freq);
-  if (isnan(errmax) || (errmax > errfail)) {
+  if (std::isnan(errmax) || (errmax > errfail)) {
     printf("\tfailed! err %.3g > errfail %.3g\n", errmax, errfail);
     return 1;
   } else

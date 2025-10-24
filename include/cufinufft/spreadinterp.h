@@ -64,11 +64,12 @@ static inline T evaluate_kernel(T x, const finufft_spread_opts &opts)
    approximation to prolate spheroidal wavefunction (PSWF) of order 0.
    This is the "reference implementation", used by eg common/onedim_* 2/17/17 */
 {
-  if (abs(x) >= T(opts.ES_halfwidth))
+  if (std::abs(x) >= T(opts.ES_halfwidth))
     // if spreading/FT careful, shouldn't need this if, but causes no speed hit
     return 0.0;
   else
-    return exp((T)opts.ES_beta * (sqrt((T)1.0 - (T)opts.ES_c * x * x) - (T)1.0));
+    return std::exp(
+        (T)opts.ES_beta * (std::sqrt((T)1.0 - (T)opts.ES_c * x * x) - (T)1.0));
 }
 
 template<typename T>
@@ -84,8 +85,8 @@ static __forceinline__ __device__ T evaluate_kernel(T x, T es_c, T es_beta)
    This is the "reference implementation", used by eg common/onedim_*
     2/17/17 */
 {
-  return abs(x) < ns / T(2.0)
-             ? exp((T)es_beta * (sqrt((T)1.0 - (T)es_c * x * x) - (T)1.0))
+  return std::abs(x) < ns / T(2.0)
+             ? std::exp((T)es_beta * (std::sqrt((T)1.0 - (T)es_c * x * x) - (T)1.0))
              : 0.0;
 }
 
@@ -113,7 +114,7 @@ template<typename T, int w>
 static __inline__ __device__ void eval_kernel_vec(T *ker, const T x, const T es_c,
                                                   const T es_beta) {
   for (int i = 0; i < w; i++) {
-    ker[i] = evaluate_kernel<T, w>(abs(x + i), es_c, es_beta);
+    ker[i] = evaluate_kernel<T, w>(std::abs(x + i), es_c, es_beta);
   }
 }
 

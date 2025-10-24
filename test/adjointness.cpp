@@ -1,6 +1,12 @@
 #include "utils/norms.hpp"
 #include <finufft/test_defs.h>
 
+#include <algorithm>
+#include <cmath>
+#include <iostream>
+#include <string>
+#include <vector>
+
 /* Test that execute_adjoint applies the adjoint of execute, in the
    guru interface, for all types and dimensions.
    We use the test_defs macros, as with other C-interface tests.
@@ -22,7 +28,7 @@
    turned out had zero-mean Gaussian pdf (=> fat-tailed pdf of reciprocal, bad!)
 */
 
-using namespace std;
+
 
 int main() {
 
@@ -36,17 +42,17 @@ int main() {
 #ifdef SINGLE
   FLT tol        = 1e-6; // requested transform tol (small enough to force USF=2)
   FLT allowederr = 1e-4; // ~1e3*epsmach (allow USF=1.25 larger r_dyn)
-  string name    = "adjointnessf";
+  std::string name    = "adjointnessf";
 #else
   FLT tol        = 1e-12; // requested transform tol (eps<=1e-9 => USF=2 guaranteed)
   FLT allowederr = 1e-10; // ~1e6*epsmach (USF=2 r_dyn^3<1e3, but allow USF=1.25)
-  string name    = "adjointness";
+  std::string name    = "adjointness";
 #endif
 
-  cout << "adjointness: making random data...";
+  std::cout << "adjointness: making random data...";
   // generate random non-uniform points on (x,y) and complex strengths (c)
-  vector<FLT> x(M), y(M), z(M);
-  vector<CPX> c(M);
+  std::vector<FLT> x(M), y(M), z(M);
+  std::vector<CPX> c(M);
   for (int i = 0; i < M; i++) {
     x[i] = PI * randm11(); // unif random in [-pi, pi)
     y[i] = PI * randm11();
@@ -56,12 +62,12 @@ int main() {
 
   // generate random mode coeffs (f), enough for any dim up to 3
   BIGINT Nmax = Ns[0] * Ns[1] * Ns[2];
-  vector<CPX> f(Nmax);
+  std::vector<CPX> f(Nmax);
   for (int i = 0; i < Nmax; i++) f[i] = crandm11();
-  cout << " done" << endl;
+  std::cout << " done" << std::endl;
 
   // generate random freq targs for type 3 only (t3 always uses Nmax targs)
-  vector<FLT> s(Nmax), t(Nmax), u(Nmax);
+  std::vector<FLT> s(Nmax), t(Nmax), u(Nmax);
   for (int i = 0; i < Nmax; i++) { // space-bandwidth prod O(Nd) for dim d
     s[i] = Ns[0] / 2 * randm11();  // unif random in [-N1/2,N1/2]
     t[i] = Ns[1] / 2 * randm11();
@@ -69,18 +75,18 @@ int main() {
   }
 
   // allocate output arrays for adjoint testing (Capital denotes output)
-  vector<CPX> C(M);
-  vector<CPX> F(Nmax);
+  std::vector<CPX> C(M);
+  std::vector<CPX> F(Nmax);
   FLT errmax = 0.0; // track worst errors across tests
   int ier, ieradj, iermax = 0;
 
   for (int dim = 1; dim <= 3; ++dim) { // ....... loop over dims
     BIGINT N = 1;                      // compute actual num modes in this dim
     for (int d = 0; d < dim; ++d) N *= Ns[d];
-    cout << "  dim=" << dim << ", M=" << M << " pts, N=" << N << " modes:" << endl;
+    std::cout << "  dim=" << dim << ", M=" << M << " pts, N=" << N << " modes:" << std::endl;
 
     for (int type = 1; type <= 3; ++type) { // .......... loop over types
-      cout << "\ttype " << type << ": ";
+      std::cout << "\ttype " << type << ": ";
       FINUFFT_PLAN plan;
       FINUFFT_MAKEPLAN(type, dim, Ns, isign, ntr, tol, &plan, &opts);
       // always input NU pts and freq targs (latter only used by t3)...
@@ -93,33 +99,35 @@ int main() {
         ier    = FINUFFT_EXECUTE(plan, C.data(), f.data()); // f->C
         ieradj = FINUFFT_EXECUTE_ADJOINT(plan, c.data(), F.data()); // c->F
       }
-      if (ier > 0) cout << "\texecute failure: ier=" << ier << endl;
-      if (ieradj > 0) cout << "\texecute_adjoint failure: ier=" << ieradj << endl;
-      iermax = max(max(ier, ieradj), iermax); // track if something failed
+      if (ier > 0) std::cout << "\texecute failure: ier=" << ier << std::endl;
+      if (ieradj > 0) std::cout << "\texecute_adjoint failure: ier=" << ieradj
+                << std::endl;
+      iermax = std::max(std::max(ier, ieradj), iermax); // track if something failed
       FINUFFT_DESTROY(plan);
 
       // measure scalar error (f,F) - (C,c), should vanish by adjointness...
       CPX ipc = 0.0, ipf = 0.0;           // inner-prod results for (C,c) and (f,F)
-      for (int i = 0; i < M; i++) ipc += conj(C[i]) * c[i];
+      for (int i = 0; i < M; i++) ipc += std::conj(C[i]) * c[i];
       int Nused = (type == 3) ? Nmax : N; // how many modes or freqs used
-      for (int j = 0; j < Nused; j++) ipf += conj(f[j]) * F[j];
+      for (int j = 0; j < Nused; j++) ipf += std::conj(f[j]) * F[j];
 
       // denominator for rel error (twonorm in utils.hpp), see discussion at top:
       // FLT denom = twonorm(M,C.data()) * twonorm(M,c.data()) / sqrt(M);  // v sim
-      FLT denom = twonorm(Nused, F.data()) * twonorm(Nused, f.data()) / sqrt(Nused);
-      FLT err   = abs(ipc - ipf) / denom;     // scale rel to norms of vectors in ipc
-      cout << " adj rel err " << err << endl; // "\t denom=" << denom << endl;
-      errmax = max(err, errmax);
+      FLT denom =
+          twonorm(Nused, F.data()) * twonorm(Nused, f.data()) / std::sqrt(Nused);
+      FLT err   = std::abs(ipc - ipf) / denom;     // scale rel to norms of vectors in ipc
+      std::cout << " adj rel err " << err << std::endl; // "\t denom=" << denom << endl;
+      errmax = std::max(err, errmax);
     }
   }
 
   // report and exit code
   if (errmax > allowederr || iermax > 0) {
-    cout << name << " failed! (allowederr=" << allowederr << ", iermax=" << iermax << ")"
-         << endl;
+    std::cout << name << " failed! (allowederr=" << allowederr << ", iermax=" << iermax
+              << ")" << std::endl;
     return 1;
   } else {
-    cout << name << " passed" << endl;
+    std::cout << name << " passed" << std::endl;
     return 0;
   }
 }

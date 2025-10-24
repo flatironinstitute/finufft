@@ -4,8 +4,8 @@
 #include <iostream>
 #include <random>
 
-#include <finufft_common/common.h>
 #include <cufinufft.h>
+#include <finufft_common/common.h>
 
 #include <cufinufft/contrib/helper_cuda.h>
 #include <cufinufft/impl.h>
@@ -185,7 +185,7 @@ int run_test(int N1, int M, T tol, T checktol, int iflag, double upsampfac) {
 
   csum         = std::accumulate(c.begin(), c.end(), thrust::complex<T>(T(0), T(0)));
   auto sup_err = T(0.0);
-  for (auto cj : c) sup_err = std::max(sup_err, abs(cj - kersum));
+  for (auto cj : c) sup_err = std::max(sup_err, thrust::abs(cj - kersum));
   const auto rel_sup_err = sup_err / thrust::abs(kersum);
   printf("\trel sup err %.3g\n", rel_sup_err);
 

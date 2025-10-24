@@ -4,7 +4,9 @@
 #include "utils/dirft3d.hpp"
 #include "utils/norms.hpp"
 
-using namespace std;
+#include <algorithm>
+#include <iomanip>
+#include <iostream>
 using namespace finufft::utils;
 
 const char *help[] = {
@@ -63,7 +65,7 @@ int main(int argc, char *argv[]) {
   opts0.spread_kerevalmeth = 0;
   opts1.spread_kerevalmeth = 1;
 
-  cout << scientific << setprecision(15);
+  std::cout << std::scientific << std::setprecision(15);
   const BIGINT N = N1 * N2 * N3;
 
   std::vector<FLT> x(M);         // NU pts x coords
@@ -110,7 +112,7 @@ int main(int argc, char *argv[]) {
            (long long)M, (long long)N1, (long long)N2, (long long)N3, ti, M / ti);
 
   err    = relerrtwonorm(N, F0.data(), F1.data());
-  errmax = max(err, errmax);
+  errmax = std::max(err, errmax);
   printf("\ttype 1 rel l2-err in F is %.3g\n", err);
   // copy F0 to F1 so that we can test type 2
   F1 = F0;
@@ -178,7 +180,7 @@ int main(int argc, char *argv[]) {
     printf("\t%lld NU to %lld NU in %.3g s         \t%.3g tot NU pts/s\n", (long long)M,
            (long long)N, ti, (M + N) / ti);
   err    = relerrtwonorm(N, F0.data(), F1.data());
-  errmax = max(err, errmax);
+  errmax = std::max(err, errmax);
   printf("\ttype 3 rel l2-err in F is %.3g\n", err);
   // return 1 if any error exceeds tol
   // or return finufft error code if it is not 0
