@@ -115,9 +115,9 @@ void do_fft(const FINUFFT_PLAN_T<TF> &p, std::complex<TF> *fwBatch,
 #else
   // if thisBatchSize<batchSize it wastes some flops
   if (adjoint)
-    p.fftPlan->execute_adjoint(fwBatch);
+    p.getFFTPlan().execute_adjoint(fwBatch);
   else
-    p.fftPlan->execute(fwBatch);
+    p.getFFTPlan().execute(fwBatch);
 #endif
 }
 template void do_fft<float>(const FINUFFT_PLAN_T<float> &p, std::complex<float> *fwBatch,

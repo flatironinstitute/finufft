@@ -55,10 +55,11 @@ typedef struct FINUFFT_PLAN_S *FINUFFT_PLAN;
 FINUFFT_EXPORT void FINUFFT_CDECL FINUFFTIFY(_default_opts)(finufft_opts *o);
 FINUFFT_EXPORT int FINUFFT_CDECL FINUFFTIFY(_makeplan)(
     int type, int dim, const FINUFFT_BIGINT *n_modes, int iflag, int n_transf,
-    FINUFFT_FLT tol, FINUFFT_PLAN *plan, finufft_opts *o);
+    FINUFFT_FLT tol, FINUFFT_PLAN *plan, const finufft_opts *o);
 FINUFFT_EXPORT int FINUFFT_CDECL FINUFFTIFY(_setpts)(
-    FINUFFT_PLAN plan, FINUFFT_BIGINT M, FINUFFT_FLT *xj, FINUFFT_FLT *yj,
-    FINUFFT_FLT *zj, FINUFFT_BIGINT N, FINUFFT_FLT *s, FINUFFT_FLT *t, FINUFFT_FLT *u);
+    FINUFFT_PLAN plan, FINUFFT_BIGINT M, const FINUFFT_FLT *xj, const FINUFFT_FLT *yj,
+    const FINUFFT_FLT *zj, FINUFFT_BIGINT N, const FINUFFT_FLT *s, const FINUFFT_FLT *t,
+    const FINUFFT_FLT *u);
 FINUFFT_EXPORT int FINUFFT_CDECL FINUFFTIFY(_execute)(
     FINUFFT_PLAN plan, FINUFFT_CPX *weights, FINUFFT_CPX *result);
 FINUFFT_EXPORT int FINUFFT_CDECL FINUFFTIFY(_execute_adjoint)(
@@ -69,76 +70,85 @@ FINUFFT_EXPORT int FINUFFT_CDECL FINUFFTIFY(_destroy)(FINUFFT_PLAN plan);
 // (sources in c_interface.cpp)
 
 FINUFFT_EXPORT int FINUFFT_CDECL FINUFFTIFY(1d1)(
-    FINUFFT_BIGINT nj, FINUFFT_FLT *xj, FINUFFT_CPX *cj, int iflag, FINUFFT_FLT eps,
-    FINUFFT_BIGINT ms, FINUFFT_CPX *fk, finufft_opts *opts);
+    FINUFFT_BIGINT nj, const FINUFFT_FLT *xj, const FINUFFT_CPX *cj, int iflag,
+    FINUFFT_FLT eps, FINUFFT_BIGINT ms, FINUFFT_CPX *fk, const finufft_opts *opts);
 FINUFFT_EXPORT int FINUFFT_CDECL FINUFFTIFY(1d1many)(
-    int ntransf, FINUFFT_BIGINT nj, FINUFFT_FLT *xj, FINUFFT_CPX *cj, int iflag,
-    FINUFFT_FLT eps, FINUFFT_BIGINT ms, FINUFFT_CPX *fk, finufft_opts *opts);
+    int ntransf, FINUFFT_BIGINT nj, const FINUFFT_FLT *xj, const FINUFFT_CPX *cj,
+    int iflag, FINUFFT_FLT eps, FINUFFT_BIGINT ms, FINUFFT_CPX *fk,
+    const finufft_opts *opts);
 
 FINUFFT_EXPORT int FINUFFT_CDECL FINUFFTIFY(1d2)(
-    FINUFFT_BIGINT nj, FINUFFT_FLT *xj, FINUFFT_CPX *cj, int iflag, FINUFFT_FLT eps,
-    FINUFFT_BIGINT ms, FINUFFT_CPX *fk, finufft_opts *opts);
+    FINUFFT_BIGINT nj, const FINUFFT_FLT *xj, FINUFFT_CPX *cj, int iflag, FINUFFT_FLT eps,
+    FINUFFT_BIGINT ms, const FINUFFT_CPX *fk, const finufft_opts *opts);
 FINUFFT_EXPORT int FINUFFT_CDECL FINUFFTIFY(1d2many)(
-    int ntransf, FINUFFT_BIGINT nj, FINUFFT_FLT *xj, FINUFFT_CPX *cj, int iflag,
-    FINUFFT_FLT eps, FINUFFT_BIGINT ms, FINUFFT_CPX *fk, finufft_opts *opts);
+    int ntransf, FINUFFT_BIGINT nj, const FINUFFT_FLT *xj, FINUFFT_CPX *cj, int iflag,
+    FINUFFT_FLT eps, FINUFFT_BIGINT ms, const FINUFFT_CPX *fk, const finufft_opts *opts);
 FINUFFT_EXPORT int FINUFFT_CDECL FINUFFTIFY(1d3)(
-    FINUFFT_BIGINT nj, FINUFFT_FLT *x, FINUFFT_CPX *c, int iflag, FINUFFT_FLT eps,
-    FINUFFT_BIGINT nk, FINUFFT_FLT *s, FINUFFT_CPX *f, finufft_opts *opts);
+    FINUFFT_BIGINT nj, const FINUFFT_FLT *x, const FINUFFT_CPX *c, int iflag,
+    FINUFFT_FLT eps, FINUFFT_BIGINT nk, const FINUFFT_FLT *s, FINUFFT_CPX *f,
+    const finufft_opts *opts);
 FINUFFT_EXPORT int FINUFFT_CDECL FINUFFTIFY(1d3many)(
-    int ntransf, FINUFFT_BIGINT nj, FINUFFT_FLT *x, FINUFFT_CPX *c, int iflag,
-    FINUFFT_FLT eps, FINUFFT_BIGINT nk, FINUFFT_FLT *s, FINUFFT_CPX *f,
-    finufft_opts *opts);
+    int ntransf, FINUFFT_BIGINT nj, const FINUFFT_FLT *x, const FINUFFT_CPX *c, int iflag,
+    FINUFFT_FLT eps, FINUFFT_BIGINT nk, const FINUFFT_FLT *s, FINUFFT_CPX *f,
+    const finufft_opts *opts);
 FINUFFT_EXPORT int FINUFFT_CDECL FINUFFTIFY(2d1)(
-    FINUFFT_BIGINT nj, FINUFFT_FLT *xj, FINUFFT_FLT *yj, FINUFFT_CPX *cj, int iflag,
-    FINUFFT_FLT eps, FINUFFT_BIGINT ms, FINUFFT_BIGINT mt, FINUFFT_CPX *fk,
-    finufft_opts *opts);
+    FINUFFT_BIGINT nj, const FINUFFT_FLT *xj, const FINUFFT_FLT *yj,
+    const FINUFFT_CPX *cj, int iflag, FINUFFT_FLT eps, FINUFFT_BIGINT ms,
+    FINUFFT_BIGINT mt, FINUFFT_CPX *fk, const finufft_opts *opts);
 FINUFFT_EXPORT int FINUFFT_CDECL FINUFFTIFY(2d1many)(
-    int ndata, FINUFFT_BIGINT nj, FINUFFT_FLT *xj, FINUFFT_FLT *yj, FINUFFT_CPX *c,
-    int iflag, FINUFFT_FLT eps, FINUFFT_BIGINT ms, FINUFFT_BIGINT mt, FINUFFT_CPX *fk,
-    finufft_opts *opts);
+    int ndata, FINUFFT_BIGINT nj, const FINUFFT_FLT *xj, const FINUFFT_FLT *yj,
+    const FINUFFT_CPX *c, int iflag, FINUFFT_FLT eps, FINUFFT_BIGINT ms,
+    FINUFFT_BIGINT mt, FINUFFT_CPX *fk, const finufft_opts *opts);
 FINUFFT_EXPORT int FINUFFT_CDECL FINUFFTIFY(2d2)(
-    FINUFFT_BIGINT nj, FINUFFT_FLT *xj, FINUFFT_FLT *yj, FINUFFT_CPX *cj, int iflag,
-    FINUFFT_FLT eps, FINUFFT_BIGINT ms, FINUFFT_BIGINT mt, FINUFFT_CPX *fk,
-    finufft_opts *opts);
+    FINUFFT_BIGINT nj, const FINUFFT_FLT *xj, const FINUFFT_FLT *yj, FINUFFT_CPX *cj,
+    int iflag, FINUFFT_FLT eps, FINUFFT_BIGINT ms, FINUFFT_BIGINT mt,
+    const FINUFFT_CPX *fk, const finufft_opts *opts);
 FINUFFT_EXPORT int FINUFFT_CDECL FINUFFTIFY(2d2many)(
-    int ndata, FINUFFT_BIGINT nj, FINUFFT_FLT *xj, FINUFFT_FLT *yj, FINUFFT_CPX *c,
-    int iflag, FINUFFT_FLT eps, FINUFFT_BIGINT ms, FINUFFT_BIGINT mt, FINUFFT_CPX *fk,
-    finufft_opts *opts);
+    int ndata, FINUFFT_BIGINT nj, const FINUFFT_FLT *xj, const FINUFFT_FLT *yj,
+    FINUFFT_CPX *c, int iflag, FINUFFT_FLT eps, FINUFFT_BIGINT ms, FINUFFT_BIGINT mt,
+    const FINUFFT_CPX *fk, const finufft_opts *opts);
 FINUFFT_EXPORT int FINUFFT_CDECL FINUFFTIFY(2d3)(
-    FINUFFT_BIGINT nj, FINUFFT_FLT *x, FINUFFT_FLT *y, FINUFFT_CPX *cj, int iflag,
-    FINUFFT_FLT eps, FINUFFT_BIGINT nk, FINUFFT_FLT *s, FINUFFT_FLT *t, FINUFFT_CPX *fk,
-    finufft_opts *opts);
+    FINUFFT_BIGINT nj, const FINUFFT_FLT *x, const FINUFFT_FLT *y, const FINUFFT_CPX *cj,
+    int iflag, FINUFFT_FLT eps, FINUFFT_BIGINT nk, const FINUFFT_FLT *s,
+    const FINUFFT_FLT *t, FINUFFT_CPX *fk, const finufft_opts *opts);
 
 FINUFFT_EXPORT int FINUFFT_CDECL FINUFFTIFY(2d3many)(
-    int ntransf, FINUFFT_BIGINT nj, FINUFFT_FLT *x, FINUFFT_FLT *y, FINUFFT_CPX *cj,
-    int iflag, FINUFFT_FLT eps, FINUFFT_BIGINT nk, FINUFFT_FLT *s, FINUFFT_FLT *t,
-    FINUFFT_CPX *fk, finufft_opts *opts);
+    int ntransf, FINUFFT_BIGINT nj, const FINUFFT_FLT *x, const FINUFFT_FLT *y,
+    const FINUFFT_CPX *cj, int iflag, FINUFFT_FLT eps, FINUFFT_BIGINT nk,
+    const FINUFFT_FLT *s, const FINUFFT_FLT *t, FINUFFT_CPX *fk,
+    const finufft_opts *opts);
 
 FINUFFT_EXPORT int FINUFFT_CDECL FINUFFTIFY(3d1)(
-    FINUFFT_BIGINT nj, FINUFFT_FLT *xj, FINUFFT_FLT *yj, FINUFFT_FLT *zj, FINUFFT_CPX *cj,
-    int iflag, FINUFFT_FLT eps, FINUFFT_BIGINT ms, FINUFFT_BIGINT mt, FINUFFT_BIGINT mu,
-    FINUFFT_CPX *fk, finufft_opts *opts);
+    FINUFFT_BIGINT nj, const FINUFFT_FLT *xj, const FINUFFT_FLT *yj,
+    const FINUFFT_FLT *zj, const FINUFFT_CPX *cj, int iflag, FINUFFT_FLT eps,
+    FINUFFT_BIGINT ms, FINUFFT_BIGINT mt, FINUFFT_BIGINT mu, FINUFFT_CPX *fk,
+    const finufft_opts *opts);
 FINUFFT_EXPORT int FINUFFT_CDECL FINUFFTIFY(3d1many)(
-    int ntransfs, FINUFFT_BIGINT nj, FINUFFT_FLT *xj, FINUFFT_FLT *yj, FINUFFT_FLT *zj,
-    FINUFFT_CPX *cj, int iflag, FINUFFT_FLT eps, FINUFFT_BIGINT ms, FINUFFT_BIGINT mt,
-    FINUFFT_BIGINT mu, FINUFFT_CPX *fk, finufft_opts *opts);
+    int ntransfs, FINUFFT_BIGINT nj, const FINUFFT_FLT *xj, const FINUFFT_FLT *yj,
+    const FINUFFT_FLT *zj, const FINUFFT_CPX *cj, int iflag, FINUFFT_FLT eps,
+    FINUFFT_BIGINT ms, FINUFFT_BIGINT mt, FINUFFT_BIGINT mu, FINUFFT_CPX *fk,
+    const finufft_opts *opts);
 
 FINUFFT_EXPORT int FINUFFT_CDECL FINUFFTIFY(3d2)(
-    FINUFFT_BIGINT nj, FINUFFT_FLT *xj, FINUFFT_FLT *yj, FINUFFT_FLT *zj, FINUFFT_CPX *cj,
-    int iflag, FINUFFT_FLT eps, FINUFFT_BIGINT ms, FINUFFT_BIGINT mt, FINUFFT_BIGINT mu,
-    FINUFFT_CPX *fk, finufft_opts *opts);
+    FINUFFT_BIGINT nj, const FINUFFT_FLT *xj, const FINUFFT_FLT *yj,
+    const FINUFFT_FLT *zj, FINUFFT_CPX *cj, int iflag, FINUFFT_FLT eps, FINUFFT_BIGINT ms,
+    FINUFFT_BIGINT mt, FINUFFT_BIGINT mu, const FINUFFT_CPX *fk,
+    const finufft_opts *opts);
 FINUFFT_EXPORT int FINUFFT_CDECL FINUFFTIFY(3d2many)(
-    int ntransf, FINUFFT_BIGINT nj, FINUFFT_FLT *xj, FINUFFT_FLT *yj, FINUFFT_FLT *zj,
-    FINUFFT_CPX *cj, int iflag, FINUFFT_FLT eps, FINUFFT_BIGINT ms, FINUFFT_BIGINT mt,
-    FINUFFT_BIGINT mu, FINUFFT_CPX *fk, finufft_opts *opts);
+    int ntransf, FINUFFT_BIGINT nj, const FINUFFT_FLT *xj, const FINUFFT_FLT *yj,
+    const FINUFFT_FLT *zj, FINUFFT_CPX *cj, int iflag, FINUFFT_FLT eps, FINUFFT_BIGINT ms,
+    FINUFFT_BIGINT mt, FINUFFT_BIGINT mu, const FINUFFT_CPX *fk,
+    const finufft_opts *opts);
 FINUFFT_EXPORT int FINUFFT_CDECL FINUFFTIFY(3d3)(
-    FINUFFT_BIGINT nj, FINUFFT_FLT *x, FINUFFT_FLT *y, FINUFFT_FLT *z, FINUFFT_CPX *cj,
-    int iflag, FINUFFT_FLT eps, FINUFFT_BIGINT nk, FINUFFT_FLT *s, FINUFFT_FLT *t,
-    FINUFFT_FLT *u, FINUFFT_CPX *fk, finufft_opts *opts);
+    FINUFFT_BIGINT nj, const FINUFFT_FLT *x, const FINUFFT_FLT *y, const FINUFFT_FLT *z,
+    const FINUFFT_CPX *cj, int iflag, FINUFFT_FLT eps, FINUFFT_BIGINT nk,
+    const FINUFFT_FLT *s, const FINUFFT_FLT *t, const FINUFFT_FLT *u, FINUFFT_CPX *fk,
+    const finufft_opts *opts);
 FINUFFT_EXPORT int FINUFFT_CDECL FINUFFTIFY(3d3many)(
-    int ntransf, FINUFFT_BIGINT nj, FINUFFT_FLT *x, FINUFFT_FLT *y, FINUFFT_FLT *z,
-    FINUFFT_CPX *cj, int iflag, FINUFFT_FLT eps, FINUFFT_BIGINT nk, FINUFFT_FLT *s,
-    FINUFFT_FLT *t, FINUFFT_FLT *u, FINUFFT_CPX *fk, finufft_opts *opts);
+    int ntransf, FINUFFT_BIGINT nj, const FINUFFT_FLT *x, const FINUFFT_FLT *y,
+    const FINUFFT_FLT *z, const FINUFFT_CPX *cj, int iflag, FINUFFT_FLT eps,
+    FINUFFT_BIGINT nk, const FINUFFT_FLT *s, const FINUFFT_FLT *t, const FINUFFT_FLT *u,
+    FINUFFT_CPX *fk, const finufft_opts *opts);
 
 #ifdef __cplusplus
 }

@@ -92,11 +92,11 @@ public:
                                     nullptr, 1, int(nf), -sign, unsigned(options));
     unlock();
   }
-  void execute [[maybe_unused]] (std::complex<float> *data) {
+  void execute [[maybe_unused]] (std::complex<float> *data) const {
     fftwf_execute_dft(plan_, reinterpret_cast<fftwf_complex *>(data),
                       reinterpret_cast<fftwf_complex *>(data));
   }
-  void execute_adjoint [[maybe_unused]] (std::complex<float> *data) {
+  void execute_adjoint [[maybe_unused]] (std::complex<float> *data) const {
     fftwf_execute_dft(plan_adj_, reinterpret_cast<fftwf_complex *>(data),
                       reinterpret_cast<fftwf_complex *>(data));
   }
@@ -168,11 +168,11 @@ public:
                                    nullptr, 1, int(nf), -sign, unsigned(options));
     unlock();
   }
-  void execute [[maybe_unused]] (std::complex<double> *data) {
+  void execute [[maybe_unused]] (std::complex<double> *data) const {
     fftw_execute_dft(plan_, reinterpret_cast<fftw_complex *>(data),
                      reinterpret_cast<fftw_complex *>(data));
   }
-  void execute_adjoint [[maybe_unused]] (std::complex<double> *data) {
+  void execute_adjoint [[maybe_unused]] (std::complex<double> *data) const {
     fftw_execute_dft(plan_adj_, reinterpret_cast<fftw_complex *>(data),
                      reinterpret_cast<fftw_complex *>(data));
   }

@@ -30,23 +30,27 @@ enum {
 namespace finufft {
 namespace spreadinterp {
 
+// things external (spreadinterp) interface needs...
 template<typename T>
 FINUFFT_EXPORT_TEST int spreadinterp(UBIGINT N1, UBIGINT N2, UBIGINT N3, T *data_uniform,
-                                     UBIGINT M, T *kx, T *ky, T *kz, T *data_nonuniform,
-                                     const finufft_spread_opts &opts);
+                                     UBIGINT M, const T *kx, const T *ky, const T *kz,
+                                     T *data_nonuniform, const finufft_spread_opts &opts);
 template<typename T>
 FINUFFT_EXPORT_TEST int setup_spreader(finufft_spread_opts &opts, T eps, double upsampfac,
                                        int kerevalmeth, int debug, int showwarn, int dim,
                                        int spreadinterponly);
+
 int spreadcheck(UBIGINT N1, UBIGINT N2, UBIGINT N3, const finufft_spread_opts &opts);
 template<typename T>
 int indexSort(std::vector<BIGINT> &sort_indices, UBIGINT N1, UBIGINT N2, UBIGINT N3,
-              UBIGINT N, T *kx, T *ky, T *kz, const finufft_spread_opts &opts);
+              UBIGINT N, const T *kx, const T *ky, const T *kz,
+              const finufft_spread_opts &opts);
 template<typename T>
 int spreadinterpSorted(const std::vector<BIGINT> &sort_indices, const UBIGINT N1,
                        const UBIGINT N2, const UBIGINT N3, T *data_uniform,
-                       const UBIGINT M, T *FINUFFT_RESTRICT kx, T *FINUFFT_RESTRICT ky,
-                       T *FINUFFT_RESTRICT kz, T *FINUFFT_RESTRICT data_nonuniform,
+                       const UBIGINT M, const T *FINUFFT_RESTRICT kx,
+                       const T *FINUFFT_RESTRICT ky, const T *FINUFFT_RESTRICT kz,
+                       T *FINUFFT_RESTRICT data_nonuniform,
                        const finufft_spread_opts &opts, int did_sort, bool adjoint);
 template<typename T> T evaluate_kernel(T x, const finufft_spread_opts &opts);
 template<typename T> T evaluate_kernel_horner(T x, const finufft_spread_opts &opts);
