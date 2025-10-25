@@ -32,8 +32,24 @@ PYTHON = python3
 CFLAGS := -O3 -funroll-loops -march=native -fcx-limited-range -ffp-contract=fast\
 		  -fno-math-errno -fno-signed-zeros -fno-trapping-math -fassociative-math\
 		  -freciprocal-math -fmerge-all-constants -ftree-vectorize $(CFLAGS) -Wfatal-errors
+# do not allow semantic interposition. We do not want the users to override any of the internals
+# it's default in clang but GCC is ELF compliant by default
+CFLAGS += -fno-semantic-interposition
 FFLAGS := $(CFLAGS) $(FFLAGS)
 CXXFLAGS := $(CFLAGS) $(CXXFLAGS)
+
+# fix for exported symbols in test
+OBJFLAGS := -DFINUFFT_BUILD_TESTS -fvisibility=hidden -DFINUFFT_DLL -Ddll_EXPORTS
+
+# Link Time Optimization
+# Works with GCC and Clang. Increases link time, reduces binary size, can speed up hot paths.
+ifneq ($(LTO),OFF)
+  LTOFLAGS := -flto
+  CFLAGS   += $(LTOFLAGS)
+  CXXFLAGS += $(LTOFLAGS)
+  FFLAGS   += $(LTOFLAGS)
+  LDFLAGS  += $(LTOFLAGS)
+endif
 # FFTW base name, and math linking...
 FFTWNAME = fftw3
 # linux default is fftw3_omp, since 10% faster than fftw3_threads...
@@ -169,6 +185,7 @@ usage:
 	@echo "Make options:"
 	@echo " 'make [task] OMP=OFF' for single-threaded (no refs to OpenMP)"
 	@echo " 'make [task] FFT=DUCC' for DUCC0 FFT (otherwise uses FFTW3)"
+	@echo " 'make [task] LTO=OFF' disable link time optimization"
 	@echo " You must at least 'make objclean' before changing such options!"
 	@echo ""
 	@echo "Also see docs/install.rst and docs/README"
@@ -179,6 +196,10 @@ HEADERS = $(wildcard include/*.h include/finufft/*.h include/finufft_common/*.h)
 # implicit rules for objects (note -o ensures writes to correct dir)
 %.o: %.cpp $(HEADERS)
 	$(CXX) -c $(CXXFLAGS) $< -o $@
+src/%.o: src/%.cpp $(HEADERS)
+	$(CXX) $(OBJFLAGS) -c $(CXXFLAGS) $< -o $@
+fortran/%.o: fortran/%.cpp $(HEADERS)
+	$(CXX) $(OBJFLAGS) -c $(CXXFLAGS) $< -o $@
 %.o: %.c $(HEADERS)
 	$(CC) -c $(CFLAGS) $< -o $@
 %.o: %.f

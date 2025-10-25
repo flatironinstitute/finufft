@@ -37,4 +37,8 @@ if(ducc0_ADDED)
         target_link_libraries(ducc0 PRIVATE Threads::Threads)
     endif()
     enable_asan(ducc0)
+    set_target_properties(ducc0 PROPERTIES CXX_VISIBILITY_PRESET hidden VISIBILITY_INLINES_HIDDEN YES)
+
+    add_library(finufft_fftlibs INTERFACE)
+    target_link_libraries(finufft_fftlibs INTERFACE ducc0)
 endif()

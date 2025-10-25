@@ -26,12 +26,18 @@
 #define FINUFFT_EXPORT
 #endif
 
+#ifdef FINUFFT_BUILD_TESTS
+#define FINUFFT_EXPORT_TEST FINUFFT_EXPORT
+#else
+#define FINUFFT_EXPORT_TEST
+#endif
+
 /* specify calling convention (Windows only)
    The cdecl calling convention is actually not the default in all but a very
    few C/C++ compilers.
    If the user code changes the default compiler calling convention, may need
    this when generating DLL. */
-#if defined(_WIN32) || defined(__WIN32__)
+#if defined(_WIN32) || defined(_MSC_VER)
 #define FINUFFT_CDECL __cdecl
 #else
 #define FINUFFT_CDECL

@@ -32,6 +32,7 @@ extern "C" {
 #endif
 
 // --------------------- guru interface from fortran ------------------------
+FINUFFT_EXPORT
 void finufft_makeplan_(int *type, int *n_dims, i64 *n_modes, int *iflag, int *n_transf,
                        f64 *tol, finufft_plan *plan, finufft_opts *o, int *ier) {
   if (!plan)
@@ -45,6 +46,7 @@ void finufft_makeplan_(int *type, int *n_dims, i64 *n_modes, int *iflag, int *n_
   }
 }
 
+FINUFFT_EXPORT
 void finufft_setpts_(finufft_plan *plan, i64 *M, f64 *xj, f64 *yj, f64 *zj, i64 *nk,
                      f64 *s, f64 *t, f64 *u, int *ier) {
   if (!*plan) {
@@ -56,6 +58,7 @@ void finufft_setpts_(finufft_plan *plan, i64 *M, f64 *xj, f64 *yj, f64 *zj, i64 
   *ier = finufft_setpts(*plan, *M, xj, yj, zj, nk_safe, s, t, u);
 }
 
+FINUFFT_EXPORT
 void finufft_execute_(finufft_plan *plan, c128 *weights, c128 *result, int *ier) {
   if (!plan)
     fprintf(stderr, "%s fortran: finufft_plan unallocated!", __func__);
@@ -63,6 +66,7 @@ void finufft_execute_(finufft_plan *plan, c128 *weights, c128 *result, int *ier)
     *ier = finufft_execute(*plan, weights, result);
 }
 
+FINUFFT_EXPORT
 void finufft_execute_adjoint_(finufft_plan *plan, c128 *weights, c128 *result, int *ier) {
   if (!plan)
     fprintf(stderr, "%s fortran: finufft_plan unallocated!", __func__);
@@ -70,6 +74,7 @@ void finufft_execute_adjoint_(finufft_plan *plan, c128 *weights, c128 *result, i
     *ier = finufft_execute_adjoint(*plan, weights, result);
 }
 
+FINUFFT_EXPORT
 void finufft_destroy_(finufft_plan *plan, int *ier) {
   if (!plan)
     fprintf(stderr, "%s fortran: finufft_plan unallocated!", __func__);
@@ -79,6 +84,7 @@ void finufft_destroy_(finufft_plan *plan, int *ier) {
 
 // ------------ use FINUFFT to set the default options ---------------------
 // (Note the finufft_opts is created in f90-style derived types, not here)
+FINUFFT_EXPORT
 void finufft_default_opts_(finufft_opts *o) {
   if (!o)
     fprintf(stderr, "%s fortran: opts must be allocated!\n", __func__);
@@ -89,71 +95,85 @@ void finufft_default_opts_(finufft_opts *o) {
 
 // -------------- simple and many-vector interfaces --------------------
 // --- 1D ---
+FINUFFT_EXPORT
 void finufft1d1_(i64 *nj, f64 *xj, c128 *cj, int *iflag, f64 *eps, i64 *ms, c128 *fk,
                  finufft_opts *o, int *ier) {
   *ier = finufft1d1(*nj, xj, cj, *iflag, *eps, *ms, fk, o);
 }
 
+FINUFFT_EXPORT
 void finufft1d1many_(int *ntransf, i64 *nj, f64 *xj, c128 *cj, int *iflag, f64 *eps,
                      i64 *ms, c128 *fk, finufft_opts *o, int *ier) {
   *ier = finufft1d1many(*ntransf, *nj, xj, cj, *iflag, *eps, *ms, fk, o);
 }
 
+FINUFFT_EXPORT
 void finufft1d2_(i64 *nj, f64 *xj, c128 *cj, int *iflag, f64 *eps, i64 *ms, c128 *fk,
                  finufft_opts *o, int *ier) {
   *ier = finufft1d2(*nj, xj, cj, *iflag, *eps, *ms, fk, o);
 }
 
+FINUFFT_EXPORT
 void finufft1d2many_(int *ntransf, i64 *nj, f64 *xj, c128 *cj, int *iflag, f64 *eps,
                      i64 *ms, c128 *fk, finufft_opts *o, int *ier) {
   *ier = finufft1d2many(*ntransf, *nj, xj, cj, *iflag, *eps, *ms, fk, o);
 }
 
+FINUFFT_EXPORT
 void finufft1d3_(i64 *nj, f64 *x, c128 *c, int *iflag, f64 *eps, i64 *nk, f64 *s, c128 *f,
                  finufft_opts *o, int *ier) {
   *ier = finufft1d3(*nj, x, c, *iflag, *eps, *nk, s, f, o);
 }
 
+FINUFFT_EXPORT
 void finufft1d3many_(int *ntransf, i64 *nj, f64 *x, c128 *c, int *iflag, f64 *eps,
                      i64 *nk, f64 *s, c128 *f, finufft_opts *o, int *ier) {
   *ier = finufft1d3many(*ntransf, *nj, x, c, *iflag, *eps, *nk, s, f, o);
 }
 
 // --- 2D ---
+FINUFFT_EXPORT
 void finufft2d1_(i64 *nj, f64 *xj, f64 *yj, c128 *cj, int *iflag, f64 *eps, i64 *ms,
                  i64 *mt, c128 *fk, finufft_opts *o, int *ier) {
   *ier = finufft2d1(*nj, xj, yj, cj, *iflag, *eps, *ms, *mt, fk, o);
 }
+FINUFFT_EXPORT
 void finufft2d1many_(int *ntransf, i64 *nj, f64 *xj, f64 *yj, c128 *cj, int *iflag,
                      f64 *eps, i64 *ms, i64 *mt, c128 *fk, finufft_opts *o, int *ier) {
   *ier = finufft2d1many(*ntransf, *nj, xj, yj, cj, *iflag, *eps, *ms, *mt, fk, o);
 }
 
+FINUFFT_EXPORT
 void finufft2d2_(i64 *nj, f64 *xj, f64 *yj, c128 *cj, int *iflag, f64 *eps, i64 *ms,
                  i64 *mt, c128 *fk, finufft_opts *o, int *ier) {
   *ier = finufft2d2(*nj, xj, yj, cj, *iflag, *eps, *ms, *mt, fk, o);
 }
+FINUFFT_EXPORT
 void finufft2d2many_(int *ntransf, i64 *nj, f64 *xj, f64 *yj, c128 *cj, int *iflag,
                      f64 *eps, i64 *ms, i64 *mt, c128 *fk, finufft_opts *o, int *ier) {
   *ier = finufft2d2many(*ntransf, *nj, xj, yj, cj, *iflag, *eps, *ms, *mt, fk, o);
 }
 
+FINUFFT_EXPORT
 void finufft2d3_(i64 *nj, f64 *x, f64 *y, c128 *c, int *iflag, f64 *eps, i64 *nk, f64 *s,
                  f64 *t, c128 *f, finufft_opts *o, int *ier) {
   *ier = finufft2d3(*nj, x, y, c, *iflag, *eps, *nk, s, t, f, o);
 }
 
+FINUFFT_EXPORT
 void finufft2d3many_(int *ntransf, i64 *nj, f64 *x, f64 *y, c128 *c, int *iflag, f64 *eps,
                      i64 *nk, f64 *s, f64 *t, c128 *f, finufft_opts *o, int *ier) {
   *ier = finufft2d3many(*ntransf, *nj, x, y, c, *iflag, *eps, *nk, s, t, f, o);
 }
 
 // --- 3D ---
+FINUFFT_EXPORT
 void finufft3d1_(i64 *nj, f64 *xj, f64 *yj, f64 *zj, c128 *cj, int *iflag, f64 *eps,
                  i64 *ms, i64 *mt, i64 *mu, c128 *fk, finufft_opts *o, int *ier) {
   *ier = finufft3d1(*nj, xj, yj, zj, cj, *iflag, *eps, *ms, *mt, *mu, fk, o);
 }
 
+FINUFFT_EXPORT
 void finufft3d1many_(int *ntransf, i64 *nj, f64 *xj, f64 *yj, f64 *zj, c128 *cj,
                      int *iflag, f64 *eps, i64 *ms, i64 *mt, i64 *mu, c128 *fk,
                      finufft_opts *o, int *ier) {
@@ -161,11 +181,13 @@ void finufft3d1many_(int *ntransf, i64 *nj, f64 *xj, f64 *yj, f64 *zj, c128 *cj,
       finufft3d1many(*ntransf, *nj, xj, yj, zj, cj, *iflag, *eps, *ms, *mt, *mu, fk, o);
 }
 
+FINUFFT_EXPORT
 void finufft3d2_(i64 *nj, f64 *xj, f64 *yj, f64 *zj, c128 *cj, int *iflag, f64 *eps,
                  i64 *ms, i64 *mt, i64 *mu, c128 *fk, finufft_opts *o, int *ier) {
   *ier = finufft3d2(*nj, xj, yj, zj, cj, *iflag, *eps, *ms, *mt, *mu, fk, o);
 }
 
+FINUFFT_EXPORT
 void finufft3d2many_(int *ntransf, i64 *nj, f64 *xj, f64 *yj, f64 *zj, c128 *cj,
                      int *iflag, f64 *eps, i64 *ms, i64 *mt, i64 *mu, c128 *fk,
                      finufft_opts *o, int *ier) {
@@ -173,11 +195,13 @@ void finufft3d2many_(int *ntransf, i64 *nj, f64 *xj, f64 *yj, f64 *zj, c128 *cj,
       finufft3d2many(*ntransf, *nj, xj, yj, zj, cj, *iflag, *eps, *ms, *mt, *mu, fk, o);
 }
 
+FINUFFT_EXPORT
 void finufft3d3_(i64 *nj, f64 *x, f64 *y, f64 *z, c128 *c, int *iflag, f64 *eps, i64 *nk,
                  f64 *s, f64 *t, f64 *u, c128 *f, finufft_opts *o, int *ier) {
   *ier = finufft3d3(*nj, x, y, z, c, *iflag, *eps, *nk, s, t, u, f, o);
 }
 
+FINUFFT_EXPORT
 void finufft3d3many_(int *ntransf, i64 *nj, f64 *x, f64 *y, f64 *z, c128 *c, int *iflag,
                      f64 *eps, i64 *nk, f64 *s, f64 *t, f64 *u, c128 *f, finufft_opts *o,
                      int *ier) {
@@ -185,6 +209,7 @@ void finufft3d3many_(int *ntransf, i64 *nj, f64 *x, f64 *y, f64 *z, c128 *c, int
 }
 
 // --------------------- guru interface from fortran ------------------------
+FINUFFT_EXPORT
 void finufftf_makeplan_(int *type, int *n_dims, i64 *n_modes, int *iflag, int *n_transf,
                         f32 *tol, finufftf_plan *plan, finufft_opts *o, int *ier) {
   if (!plan)
@@ -198,6 +223,7 @@ void finufftf_makeplan_(int *type, int *n_dims, i64 *n_modes, int *iflag, int *n
   }
 }
 
+FINUFFT_EXPORT
 void finufftf_setpts_(finufftf_plan *plan, i64 *M, f32 *xj, f32 *yj, f32 *zj, i64 *nk,
                       f32 *s, f32 *t, f32 *u, int *ier) {
   if (!*plan) {
@@ -209,6 +235,7 @@ void finufftf_setpts_(finufftf_plan *plan, i64 *M, f32 *xj, f32 *yj, f32 *zj, i6
   *ier = finufftf_setpts(*plan, *M, xj, yj, zj, nk_safe, s, t, u);
 }
 
+FINUFFT_EXPORT
 void finufftf_execute_(finufftf_plan *plan, c64 *weights, c64 *result, int *ier) {
   if (!plan)
     fprintf(stderr, "%s fortran: finufft_plan unallocated!", __func__);
@@ -216,6 +243,7 @@ void finufftf_execute_(finufftf_plan *plan, c64 *weights, c64 *result, int *ier)
     *ier = finufftf_execute(*plan, weights, result);
 }
 
+FINUFFT_EXPORT
 void finufftf_execute_adjoint_(finufftf_plan *plan, c64 *weights, c64 *result, int *ier) {
   if (!plan)
     fprintf(stderr, "%s fortran: finufft_plan unallocated!", __func__);
@@ -223,6 +251,7 @@ void finufftf_execute_adjoint_(finufftf_plan *plan, c64 *weights, c64 *result, i
     *ier = finufftf_execute_adjoint(*plan, weights, result);
 }
 
+FINUFFT_EXPORT
 void finufftf_destroy_(finufftf_plan *plan, int *ier) {
   if (!plan)
     fprintf(stderr, "%s fortran: finufft_plan unallocated!", __func__);
@@ -232,6 +261,7 @@ void finufftf_destroy_(finufftf_plan *plan, int *ier) {
 
 // ------------ use FINUFFT to set the default options ---------------------
 // (Note the finufft_opts is created in f90-style derived types, not here)
+FINUFFT_EXPORT
 void finufftf_default_opts_(finufft_opts *o) {
   if (!o)
     fprintf(stderr, "%s fortran: opts must be allocated!\n", __func__);
@@ -242,71 +272,85 @@ void finufftf_default_opts_(finufft_opts *o) {
 
 // -------------- simple and many-vector interfaces --------------------
 // --- 1D ---
+FINUFFT_EXPORT
 void finufftf1d1_(i64 *nj, f32 *xj, c64 *cj, int *iflag, f32 *eps, i64 *ms, c64 *fk,
                   finufft_opts *o, int *ier) {
   *ier = finufftf1d1(*nj, xj, cj, *iflag, *eps, *ms, fk, o);
 }
 
+FINUFFT_EXPORT
 void finufftf1d1many_(int *ntransf, i64 *nj, f32 *xj, c64 *cj, int *iflag, f32 *eps,
                       i64 *ms, c64 *fk, finufft_opts *o, int *ier) {
   *ier = finufftf1d1many(*ntransf, *nj, xj, cj, *iflag, *eps, *ms, fk, o);
 }
 
+FINUFFT_EXPORT
 void finufftf1d2_(i64 *nj, f32 *xj, c64 *cj, int *iflag, f32 *eps, i64 *ms, c64 *fk,
                   finufft_opts *o, int *ier) {
   *ier = finufftf1d2(*nj, xj, cj, *iflag, *eps, *ms, fk, o);
 }
 
+FINUFFT_EXPORT
 void finufftf1d2many_(int *ntransf, i64 *nj, f32 *xj, c64 *cj, int *iflag, f32 *eps,
                       i64 *ms, c64 *fk, finufft_opts *o, int *ier) {
   *ier = finufftf1d2many(*ntransf, *nj, xj, cj, *iflag, *eps, *ms, fk, o);
 }
 
+FINUFFT_EXPORT
 void finufftf1d3_(i64 *nj, f32 *x, c64 *c, int *iflag, f32 *eps, i64 *nk, f32 *s, c64 *f,
                   finufft_opts *o, int *ier) {
   *ier = finufftf1d3(*nj, x, c, *iflag, *eps, *nk, s, f, o);
 }
 
+FINUFFT_EXPORT
 void finufftf1d3many_(int *ntransf, i64 *nj, f32 *x, c64 *c, int *iflag, f32 *eps,
                       i64 *nk, f32 *s, c64 *f, finufft_opts *o, int *ier) {
   *ier = finufftf1d3many(*ntransf, *nj, x, c, *iflag, *eps, *nk, s, f, o);
 }
 
 // --- 2D ---
+FINUFFT_EXPORT
 void finufftf2d1_(i64 *nj, f32 *xj, f32 *yj, c64 *cj, int *iflag, f32 *eps, i64 *ms,
                   i64 *mt, c64 *fk, finufft_opts *o, int *ier) {
   *ier = finufftf2d1(*nj, xj, yj, cj, *iflag, *eps, *ms, *mt, fk, o);
 }
+FINUFFT_EXPORT
 void finufftf2d1many_(int *ntransf, i64 *nj, f32 *xj, f32 *yj, c64 *cj, int *iflag,
                       f32 *eps, i64 *ms, i64 *mt, c64 *fk, finufft_opts *o, int *ier) {
   *ier = finufftf2d1many(*ntransf, *nj, xj, yj, cj, *iflag, *eps, *ms, *mt, fk, o);
 }
 
+FINUFFT_EXPORT
 void finufftf2d2_(i64 *nj, f32 *xj, f32 *yj, c64 *cj, int *iflag, f32 *eps, i64 *ms,
                   i64 *mt, c64 *fk, finufft_opts *o, int *ier) {
   *ier = finufftf2d2(*nj, xj, yj, cj, *iflag, *eps, *ms, *mt, fk, o);
 }
+FINUFFT_EXPORT
 void finufftf2d2many_(int *ntransf, i64 *nj, f32 *xj, f32 *yj, c64 *cj, int *iflag,
                       f32 *eps, i64 *ms, i64 *mt, c64 *fk, finufft_opts *o, int *ier) {
   *ier = finufftf2d2many(*ntransf, *nj, xj, yj, cj, *iflag, *eps, *ms, *mt, fk, o);
 }
 
+FINUFFT_EXPORT
 void finufftf2d3_(i64 *nj, f32 *x, f32 *y, c64 *c, int *iflag, f32 *eps, i64 *nk, f32 *s,
                   f32 *t, c64 *f, finufft_opts *o, int *ier) {
   *ier = finufftf2d3(*nj, x, y, c, *iflag, *eps, *nk, s, t, f, o);
 }
 
+FINUFFT_EXPORT
 void finufftf2d3many_(int *ntransf, i64 *nj, f32 *x, f32 *y, c64 *c, int *iflag, f32 *eps,
                       i64 *nk, f32 *s, f32 *t, c64 *f, finufft_opts *o, int *ier) {
   *ier = finufftf2d3many(*ntransf, *nj, x, y, c, *iflag, *eps, *nk, s, t, f, o);
 }
 
 // --- 3D ---
+FINUFFT_EXPORT
 void finufftf3d1_(i64 *nj, f32 *xj, f32 *yj, f32 *zj, c64 *cj, int *iflag, f32 *eps,
                   i64 *ms, i64 *mt, i64 *mu, c64 *fk, finufft_opts *o, int *ier) {
   *ier = finufftf3d1(*nj, xj, yj, zj, cj, *iflag, *eps, *ms, *mt, *mu, fk, o);
 }
 
+FINUFFT_EXPORT
 void finufftf3d1many_(int *ntransf, i64 *nj, f32 *xj, f32 *yj, f32 *zj, c64 *cj,
                       int *iflag, f32 *eps, i64 *ms, i64 *mt, i64 *mu, c64 *fk,
                       finufft_opts *o, int *ier) {
@@ -314,11 +358,13 @@ void finufftf3d1many_(int *ntransf, i64 *nj, f32 *xj, f32 *yj, f32 *zj, c64 *cj,
       finufftf3d1many(*ntransf, *nj, xj, yj, zj, cj, *iflag, *eps, *ms, *mt, *mu, fk, o);
 }
 
+FINUFFT_EXPORT
 void finufftf3d2_(i64 *nj, f32 *xj, f32 *yj, f32 *zj, c64 *cj, int *iflag, f32 *eps,
                   i64 *ms, i64 *mt, i64 *mu, c64 *fk, finufft_opts *o, int *ier) {
   *ier = finufftf3d2(*nj, xj, yj, zj, cj, *iflag, *eps, *ms, *mt, *mu, fk, o);
 }
 
+FINUFFT_EXPORT
 void finufftf3d2many_(int *ntransf, i64 *nj, f32 *xj, f32 *yj, f32 *zj, c64 *cj,
                       int *iflag, f32 *eps, i64 *ms, i64 *mt, i64 *mu, c64 *fk,
                       finufft_opts *o, int *ier) {
@@ -326,11 +372,13 @@ void finufftf3d2many_(int *ntransf, i64 *nj, f32 *xj, f32 *yj, f32 *zj, c64 *cj,
       finufftf3d2many(*ntransf, *nj, xj, yj, zj, cj, *iflag, *eps, *ms, *mt, *mu, fk, o);
 }
 
+FINUFFT_EXPORT
 void finufftf3d3_(i64 *nj, f32 *x, f32 *y, f32 *z, c64 *c, int *iflag, f32 *eps, i64 *nk,
                   f32 *s, f32 *t, f32 *u, c64 *f, finufft_opts *o, int *ier) {
   *ier = finufftf3d3(*nj, x, y, z, c, *iflag, *eps, *nk, s, t, u, f, o);
 }
 
+FINUFFT_EXPORT
 void finufftf3d3many_(int *ntransf, i64 *nj, f32 *x, f32 *y, f32 *z, c64 *c, int *iflag,
                       f32 *eps, i64 *nk, f32 *s, f32 *t, f32 *u, c64 *f, finufft_opts *o,
                       int *ier) {
