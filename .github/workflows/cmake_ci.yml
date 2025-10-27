@@ -15,7 +15,6 @@ jobs:
           python-version: '3.10'
       - name: Generate requirements.txt
         run: |
-          pip install --upgrade pip
           pip install pip-tools
           pip-compile --all-build-deps python/finufft/pyproject.toml -o requirements.txt
           echo pytest >> requirements.txt
