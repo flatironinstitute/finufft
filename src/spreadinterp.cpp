@@ -1562,9 +1562,9 @@ static void get_subgrid(BIGINT &offset1, BIGINT &offset2, BIGINT &offset3,
 
 // ==========================================================================
 template<typename T>
-FINUFFT_EXPORT int FINUFFT_CDECL spreadinterp(
-    UBIGINT N1, UBIGINT N2, UBIGINT N3, T *data_uniform, UBIGINT M, const T *kx,
-    const T *ky, const T *kz, T *data_nonuniform, const finufft_spread_opts &opts)
+int spreadinterp(UBIGINT N1, UBIGINT N2, UBIGINT N3, T *data_uniform, UBIGINT M,
+                 const T *kx, const T *ky, const T *kz, T *data_nonuniform,
+                 const finufft_spread_opts &opts)
 /* ------------Spreader/interpolator for 1, 2, or 3 dimensions --------------
    If opts.spread_direction=1, evaluate, in the 1D case,
 
@@ -1639,11 +1639,11 @@ FINUFFT_EXPORT int FINUFFT_CDECL spreadinterp(
   return 0;
 }
 
-template FINUFFT_EXPORT int FINUFFT_CDECL spreadinterp<float>(
+template FINUFFT_EXPORT_TEST int spreadinterp<float>(
     UBIGINT N1, UBIGINT N2, UBIGINT N3, float *data_uniform, UBIGINT M, const float *kx,
     const float *ky, const float *kz, float *data_nonuniform,
     const finufft_spread_opts &opts);
-template FINUFFT_EXPORT int FINUFFT_CDECL spreadinterp<double>(
+template FINUFFT_EXPORT_TEST int spreadinterp<double>(
     UBIGINT N1, UBIGINT N2, UBIGINT N3, double *data_uniform, UBIGINT M, const double *kx,
     const double *ky, const double *kz, double *data_nonuniform,
     const finufft_spread_opts &opts);
@@ -2078,7 +2078,7 @@ template int spreadinterpSorted<double>(
 ///////////////////////////////////////////////////////////////////////////
 
 template<typename T>
-FINUFFT_EXPORT int FINUFFT_CDECL setup_spreader(
+int setup_spreader(
     finufft_spread_opts &opts, T eps, double upsampfac, int kerevalmeth, int debug,
     int showwarn, int dim, int spreadinterponly)
 /* Initializes spreader kernel parameters given desired NUFFT tolerance eps,
@@ -2177,10 +2177,11 @@ FINUFFT_EXPORT int FINUFFT_CDECL setup_spreader(
 
   return ier;
 }
-template FINUFFT_EXPORT int FINUFFT_CDECL setup_spreader<float>(
+
+template FINUFFT_EXPORT_TEST int setup_spreader<float>(
     finufft_spread_opts &opts, float eps, double upsampfac, int kerevalmeth, int debug,
     int showwarn, int dim, int spreadinterponly);
-template FINUFFT_EXPORT int FINUFFT_CDECL setup_spreader<double>(
+template FINUFFT_EXPORT_TEST int setup_spreader<double>(
     finufft_spread_opts &opts, double eps, double upsampfac, int kerevalmeth, int debug,
     int showwarn, int dim, int spreadinterponly);
 

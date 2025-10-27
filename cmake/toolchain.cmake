@@ -21,6 +21,7 @@ set(FINUFFT_CXX_FLAGS_RELEASE
     -ftree-vectorize
     -fimplicit-constexpr
     -fcx-limited-range
+    -fno-semantic-interposition
     -O3
     /Ox
     /fp:contract
