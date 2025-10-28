@@ -9,7 +9,7 @@
 #include <iomanip>
 #include <memory>
 #include <vector>
-#include <xsimd/xsimd.hpp>
+#include <finufft/xsimd.hpp>
 
 using namespace finufft;
 using namespace finufft::utils;

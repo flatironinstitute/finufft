@@ -6,7 +6,7 @@
 #include "ker_horner_allw_loop_constexpr.h"
 #include "ker_lowupsampfac_horner_allw_loop_constexpr.h"
 
-#include <xsimd/xsimd.hpp>
+#include <finufft/xsimd.hpp>
 
 #include <array>
 #include <cinttypes>
