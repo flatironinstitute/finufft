@@ -1,10 +1,12 @@
 #include <finufft.h>
 
+#include <cmath>
 #include <complex>
+#include <cstdint>
+#include <cstdlib>
 #include <iomanip>
 #include <iostream>
 #include <vector>
-using namespace std;
 
 static const double PI = 3.141592653589793238462643383279502884;
 
@@ -20,34 +22,34 @@ int main(int argc, char *argv[]) {
   finufft_opts opts;
   finufft_default_opts(&opts);
   opts.upsampfac = 1.25;
-  complex<double> I(0.0, 1.0); // the imaginary unit
+  std::complex<double> I(0.0, 1.0); // the imaginary unit
 
   // generate random non-uniform points on (x,y) and complex strengths (c):
-  vector<double> x(M), y(M);
-  vector<complex<double>> c(M);
+  std::vector<double> x(M), y(M);
+  std::vector<std::complex<double>> c(M);
 
   for (int i = 0; i < M; i++) {
-    x[i] = PI * (2 * (double)rand() / RAND_MAX - 1); // uniform random in [-pi, pi)
-    y[i] = PI * (2 * (double)rand() / RAND_MAX - 1); // uniform random in [-pi, pi)
+    x[i] = PI * (2 * (double)std::rand() / RAND_MAX - 1); // uniform random in [-pi, pi)
+    y[i] = PI * (2 * (double)std::rand() / RAND_MAX - 1); // uniform random in [-pi, pi)
     // each component uniform random in [-1,1]
-    c[i] =
-        2 * ((double)rand() / RAND_MAX - 1) + I * (2 * ((double)rand() / RAND_MAX) - 1);
+    c[i] = 2 * ((double)std::rand() / RAND_MAX - 1) +
+           I * (2 * ((double)std::rand() / RAND_MAX) - 1);
   }
 
   // choose numbers of output Fourier coefficients in each dimension
-  int N1 = round(2.0 * sqrt(N));
-  int N2 = round(N / N1);
+  int N1 = (int)std::round(2.0 * std::sqrt(N));
+  int N2 = (int)std::round(N / N1);
 
   // output array for the Fourier modes
-  vector<complex<double>> F(N1 * N2);
+  std::vector<std::complex<double>> F(N1 * N2);
 
   int type = 1, dim = 2, ntrans = 1; // you could also do ntrans>1
   int64_t Ns[] = {N1, N2};           // N1,N2 as 64-bit int array
   // step 1: make a plan...
   finufft_plan plan;
-  int ier = finufft_makeplan(type, dim, Ns, +1, ntrans, tol, &plan, NULL);
+  int ier = finufft_makeplan(type, dim, Ns, +1, ntrans, tol, &plan, nullptr);
   // step 2: send in M nonuniform points (just x, y in this case)...
-  finufft_setpts(plan, M, &x[0], &y[0], NULL, 0, NULL, NULL, NULL);
+  finufft_setpts(plan, M, &x[0], &y[0], nullptr, 0, nullptr, nullptr, nullptr);
   // step 3: do the planned transform to the c strength data, output to F...
   finufft_execute(plan, &c[0], &F[0]);
   // ... you could now send in new points, and/or do transforms with new c data
@@ -55,17 +57,17 @@ int main(int argc, char *argv[]) {
   // step 4: free the memory used by the plan...
   finufft_destroy(plan);
 
-  int k1 = round(0.45 * N1); // check the answer for mode frequency (k1,k2)
-  int k2 = round(-0.35 * N2);
+  int k1 = (int)std::round(0.45 * N1); // check the answer for mode frequency (k1,k2)
+  int k2 = (int)std::round(-0.35 * N2);
 
-  complex<double> Ftest(0, 0);
+  std::complex<double> Ftest(0, 0);
   for (int j = 0; j < M; j++)
-    Ftest += c[j] * exp(I * ((double)k1 * x[j] + (double)k2 * y[j]));
+    Ftest += c[j] * std::exp(I * ((double)k1 * x[j] + (double)k2 * y[j]));
 
   // compute inf norm of F
   double Fmax = 0.0;
   for (int m = 0; m < N1 * N2; m++) {
-    double aF = abs(F[m]);
+    double aF = std::abs(F[m]);
     if (aF > Fmax) Fmax = aF;
   }
 
@@ -75,8 +77,8 @@ int main(int argc, char *argv[]) {
   int indexOut = k1out + k2out * (N1);
 
   // compute relative error
-  double err = abs(F[indexOut] - Ftest) / Fmax;
-  cout << "2D type-1 NUFFT done. ier=" << ier << ", err in F[" << indexOut
-       << "] rel to max(F) is " << setprecision(2) << err << endl;
+  double err = std::abs(F[indexOut] - Ftest) / Fmax;
+  std::cout << "2D type-1 NUFFT done. ier=" << ier << ", err in F[" << indexOut
+            << "] rel to max(F) is " << std::setprecision(2) << err << std::endl;
   return ier;
 }

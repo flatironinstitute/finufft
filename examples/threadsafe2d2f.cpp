@@ -21,7 +21,6 @@
 #include <iostream>
 #include <omp.h>
 #include <vector>
-using namespace std;
 
 int test_finufft(finufft_opts *opts)
 // self-contained small test that one single-prec FINUFFT2D2 has no error/crash

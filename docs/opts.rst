@@ -238,17 +238,15 @@ However, with FFTW as the FFT library, FINUFFT is thread safe so long as no othe
   #include <finufft.h>
   #include <omp.h>
 
-  using namespace std;
-
   constexpr int N = 65384;
 
-  void locker(void *lck) { reinterpret_cast<recursive_mutex *>(lck)->lock(); }
-  void unlocker(void *lck) { reinterpret_cast<recursive_mutex *>(lck)->unlock(); }
+  void locker(void *lck) { reinterpret_cast<std::recursive_mutex *>(lck)->lock(); }
+  void unlocker(void *lck) { reinterpret_cast<std::recursive_mutex *>(lck)->unlock(); }
 
   int main() {
     int64_t Ns[3]; // guru describes mode array by vector [N1,N2..]
     Ns[0] = N;
-    recursive_mutex lck;
+    std::recursive_mutex lck;
 
     finufft_opts opts;
     finufft_default_opts(&opts);
@@ -259,7 +257,7 @@ However, with FFTW as the FFT library, FINUFFT is thread safe so long as no othe
     opts.fftw_lock_data = reinterpret_cast<void *>(&lck);
 
     // random nonuniform points (x) and complex strengths (c)
-    vector<complex<double>> c(N);
+    std::vector<std::complex<double>> c(N);
 
     // init FFTW threads
     fftw_init_threads();
@@ -268,7 +266,7 @@ However, with FFTW as the FFT library, FINUFFT is thread safe so long as no othe
     #pragma omp parallel for
     for (int j = 0; j < 100; ++j) {
       // allocate output array for FFTW...
-      vector<complex<double>> F1(N);
+      std::vector<std::complex<double>> F1(N);
 
       // FFTW plan
       lck.lock();

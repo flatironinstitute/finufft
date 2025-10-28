@@ -6,8 +6,8 @@
 #include <limits>
 #include <random>
 
-#include <finufft_common/common.h>
 #include <cufinufft.h>
+#include <finufft_common/common.h>
 
 #include <cufinufft/impl.h>
 #include <cufinufft/utils.h>
@@ -179,10 +179,10 @@ int run_test(int method, int type, int N1, int N2, int ntransf, int maxbatchsize
                                                         // check
     thrust::complex<T> Ft = thrust::complex<T>(0, 0), J = thrust::complex<T>(0.0, iflag);
     for (int j = 0; j < M; ++j)
-      Ft += c[j + i * M] * exp(J * (nt1 * x[j] + nt2 * y[j])); // crude direct
-    int it = N1 / 2 + nt1 + N1 * (N2 / 2 + nt2); // index in complex F as 1d array
-    rel_error =
-        abs(Ft - fk[it + i * N]) / infnorm(N1, (std::complex<T> *)fk.data() + i * N);
+      Ft += c[j + i * M] * thrust::exp(J * (nt1 * x[j] + nt2 * y[j])); // crude direct
+    int it    = N1 / 2 + nt1 + N1 * (N2 / 2 + nt2); // index in complex F as 1d array
+    rel_error = thrust::abs(Ft - fk[it + i * N]) /
+                infnorm(N1, (std::complex<T> *)fk.data() + i * N);
     printf("[gpu   ] %dth data one mode: rel err in F[%d,%d] is %.3g\n", i, nt1, nt2,
            rel_error);
   } else if (type == 2) {
@@ -195,9 +195,9 @@ int run_test(int method, int type, int N1, int N2, int ntransf, int maxbatchsize
     int m = 0;
     for (int m2 = -(N2 / 2); m2 <= (N2 - 1) / 2; ++m2) // loop in correct order over F
       for (int m1 = -(N1 / 2); m1 <= (N1 - 1) / 2; ++m1)
-        ct += fkstart[m++] * exp(J * (m1 * x[jt] + m2 * y[jt])); // crude direct
+        ct += fkstart[m++] * thrust::exp(J * (m1 * x[jt] + m2 * y[jt])); // crude direct
 
-    rel_error = abs(cstart[jt] - ct) / infnorm(M, (std::complex<T> *)c.data());
+    rel_error = thrust::abs(cstart[jt] - ct) / infnorm(M, (std::complex<T> *)c.data());
     printf("[gpu   ] %dth data one targ: rel err in c[%d] is %.3g\n", t, jt, rel_error);
   } else if (type == 3) {
     int jt                      = (N1 * N2) / 2; // check arbitrary choice of one targ pt
@@ -207,9 +207,10 @@ int run_test(int method, int type, int N1, int N2, int ntransf, int maxbatchsize
     const thrust::complex<T> *cstart = c.data() + (ntransf - 1) * M;
 
     for (int j = 0; j < M; ++j) {
-      Ft += cstart[j] * exp(J * (x[j] * s[jt] + y[j] * t[jt]));
+      Ft += cstart[j] * thrust::exp(J * (x[j] * s[jt] + y[j] * t[jt]));
     }
-    rel_error = abs(Ft - fkstart[jt]) / infnorm(N1 * N2, (std::complex<T> *)fk.data());
+    rel_error =
+        thrust::abs(Ft - fkstart[jt]) / infnorm(N1 * N2, (std::complex<T> *)fk.data());
     printf("[gpu   ] one mode: rel err in F[%d] is %.3g\n", jt, rel_error);
   }
 

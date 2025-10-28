@@ -1,11 +1,10 @@
 // public header
 #include <finufft.h>
 // private headers
+#include <algorithm>
 #include <array>
 #include <cstdio>
 #include <finufft/finufft_core.h> // (must come after complex.h)
-
-using namespace std;
 
 /* ---------------------------------------------------------------------------
    The 18 simple interfaces (= 3 dims * 3 types * {singlecall,many}) to FINUFFT.
@@ -124,7 +123,7 @@ static int guru(
   }
 
   delete plan;
-  return max(max(ier, ier2), ier3); // in case any one gave a (positive!) warning
+  return std::max(std::max(ier, ier2), ier3); // in case any one gave a (positive!) warning
 }
 template<typename T>
 static int guru13(int n_dims, int type, int n_transf, i64 nj,

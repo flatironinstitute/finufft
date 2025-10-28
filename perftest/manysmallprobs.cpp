@@ -1,4 +1,5 @@
 #include <complex>
+#include <vector>
 
 // public header
 #include "finufft.h"
@@ -6,8 +7,6 @@
 // private access to timer, etc
 #include "finufft/test_defs.h"
 using namespace finufft::utils;
-
-using namespace std;
 
 int main(int argc, char *argv[])
 /* What is small-problem cost of FINUFFT library from C++, using plain
@@ -33,36 +32,41 @@ int main(int argc, char *argv[])
   int reps   = 2e4;                              // how many repetitions
   double acc = 1e-6;                             // desired accuracy
 
-  complex<double> I = complex<double>(0.0, 1.0); // the imaginary unit
+  std::complex<double> I = std::complex<double>(0.0, 1.0); // the imaginary unit
   int ier;
 
   // generate some random nonuniform points (x) and complex strengths (c):
-  double *x          = (double *)malloc(sizeof(double) * M);
-  complex<double> *c = (complex<double> *)malloc(sizeof(complex<double>) * M);
+  std::vector<double> x(M);
+  std::vector<std::complex<double>> c(M);
   for (int j = 0; j < M; ++j) {
-    x[j] = PI * (2 * ((double)rand() / RAND_MAX) - 1); // uniform random in [-pi,pi]
-    c[j] =
-        2 * ((double)rand() / RAND_MAX) - 1 + I * (2 * ((double)rand() / RAND_MAX) - 1);
+    x[j] = PI * (2 * (static_cast<double>(std::rand()) / RAND_MAX) - 1); // uniform random in [-pi,pi]
+    c[j] = 2 * (static_cast<double>(std::rand()) / RAND_MAX) - 1 +
+           I * (2 * (static_cast<double>(std::rand()) / RAND_MAX) - 1);
   }
   // allocate output array for the Fourier modes:
-  complex<double> *F = (complex<double> *)malloc(sizeof(complex<double>) * N);
+  std::vector<std::complex<double>> F(N);
 
-  printf("repeatedly calling the simple interface: --------------------- \n");
+  std::printf("repeatedly calling the simple interface: --------------------- \n");
   CNTime timer;
   timer.start();
   for (int r = 0; r < reps; ++r) { // call the NUFFT (with iflag=+1):
     // printf("rep %d\n",r);
-    x[0] = PI * (-1.0 + 2 * (double)r / (double)reps); // one source jiggles around
-    c[0] = (1.0 + I) * (double)r / (double)reps;       // one coeff also jiggles
-    ier  = finufft1d1(M, x, c, +1, acc, N, F, NULL);
+    x[0] = PI * (-1.0 + 2 * static_cast<double>(r) / static_cast<double>(reps)); // one source jiggles around
+    c[0] = (1.0 + I) * static_cast<double>(r) / static_cast<double>(reps);       // one coeff also jiggles
+    ier = finufft1d1(M, x.data(), c.data(), +1, acc, N, F.data(), nullptr);
   }
   // (note this can't use the many-vectors interface since the NU change)
-  complex<double> y = F[0]; // actually use the data so not optimized away
-  printf(
+  std::complex<double> y = F[0]; // actually use the data so not optimized away
+  std::printf(
       "%d reps of 1d1 done in %.3g s,\t%.3g NU pts/s\t(last ier=%d)\nF[0]=%.6g + %.6gi\n",
-      reps, timer.elapsedsec(), reps * M / timer.elapsedsec(), ier, real(y), imag(y));
+      reps,
+      timer.elapsedsec(),
+      reps * M / timer.elapsedsec(),
+      ier,
+      std::real(y),
+      std::imag(y));
 
-  printf("repeatedly executing via the guru interface: -------------------\n");
+  std::printf("repeatedly executing via the guru interface: -------------------\n");
   timer.restart();
   finufft_plan plan;
   finufft_opts opts;
@@ -72,19 +76,21 @@ int main(int argc, char *argv[])
   int ntransf  = 1;                // since we do one at a time (neq reps)
   finufft_makeplan(1, 1, Ns, +1, ntransf, acc, &plan, &opts);
   for (int r = 0; r < reps; ++r) { // set the pts and execute
-    x[0] = PI * (-1.0 + 2 * (double)r / (double)reps); // one source jiggles around
+    x[0] = PI * (-1.0 + 2 * static_cast<double>(r) / static_cast<double>(reps)); // one source jiggles around
     // (of course if most sources *were* in fact fixed, use ZGEMM for them!)
-    finufft_setpts(plan, M, x, NULL, NULL, 0, NULL, NULL, NULL);
-    c[0] = (1.0 + I) * (double)r / (double)reps; // one coeff also jiggles
-    ier  = finufft_execute(plan, c, F);
+    finufft_setpts(plan, M, x.data(), nullptr, nullptr, 0, nullptr, nullptr, nullptr);
+    c[0] = (1.0 + I) * static_cast<double>(r) / static_cast<double>(reps); // one coeff also jiggles
+    ier = finufft_execute(plan, c.data(), F.data());
   }
   finufft_destroy(plan);
   y = F[0];
-  printf(
+  std::printf(
       "%d reps of 1d1 done in %.3g s,\t%.3g NU pts/s\t(last ier=%d)\nF[0]=%.6g + %.6gi\n",
-      reps, timer.elapsedsec(), reps * M / timer.elapsedsec(), ier, real(y), imag(y));
-  free(x);
-  free(c);
-  free(F);
+      reps,
+      timer.elapsedsec(),
+      reps * M / timer.elapsedsec(),
+      ier,
+      std::real(y),
+      std::imag(y));
   return ier;
 }
