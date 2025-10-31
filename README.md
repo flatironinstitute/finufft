@@ -38,13 +38,16 @@ If you prefer to read text files, the source to generate the above documentation
 - `docs/c_gpu.rst`   : documentation of C++/C function API for GPU library
 - `docs/opts.rst`    : optional parameters
 - `docs/error.rst`   : error codes
-- `docs/trouble.rst` : troubleshooting advice
+- `docs/trouble.rst` : troubleshooting and accuracy advice
+- `docs/performance.rst` : CPU timing benchmarks compared to older versions
 - `docs/tut.rst` and `tutorial/*` : tutorial application examples
 - `docs/fortran.rst` : usage examples from Fortran, documentation of interface
 - `docs/matlab.rst` and `docs/matlabhelp.raw` : using the MATLAB/Octave interface
 - `docs/python.rst` and `python/*/_interfaces.py` : using the Python interface
 - `docs/python_gpu.rst` : Python interface to GPU library
 - `docs/julia.rst`   : information for Julia users
+- `docs/nfft_migr.rst` and `docs/cufinufft_migration` : guides for migration
+- `docs/impl_gpu.rst`: implementation notes for GPU code
 - `docs/devnotes.rst`: notes/guide for developers
 - `docs/related.rst` : other recommended NUFFT packages
 - `docs/users.rst`   : some known users of FINUFFT, dependent packages
