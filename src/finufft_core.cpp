@@ -160,7 +160,7 @@ template<typename T>
 static void onedim_fseries_kernel(BIGINT nf, std::vector<T> &fwkerhalf,
                                   const finufft_spread_opts &opts)
 /*
-  Approximates exact Fourier series coeffs of cnufftspread's real symmetric
+  Approximates exact Fourier series coeffs of spreadinterp's real symmetric
   kernel, directly via q-node quadrature on Euler-Fourier formula, exploiting
   narrowness of kernel. Uses phase winding for cheap eval on the regular freq
   grid. Note that this is also the Fourier transform of the non-periodized
@@ -230,7 +230,7 @@ private:
 
 public:
   /*
-    Approximates exact 1D Fourier transform of cnufftspread's real symmetric
+    Approximates exact 1D Fourier transform of spreadinterp's real symmetric
     kernel, directly via q-node quadrature on Euler-Fourier formula, exploiting
     narrowness of kernel. Evaluates at set of arbitrary freqs k in [-pi, pi),
     for a kernel with x measured in grid-spacings. (See previous routine for

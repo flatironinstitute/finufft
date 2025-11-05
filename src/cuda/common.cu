@@ -62,7 +62,7 @@ __global__ void cu_fseries_kernel_compute(int nf1, int nf2, int nf3, T *f, T *ph
  *  cnufftspread's real symmetric kernel.
  * a , f are intermediate results from function onedim_fseries_kernel_precomp().
  * this is the arbitrary frequency case (hence the extra kx, ky, kx arguments), used by
- * type 3, matching onedim_nuft_kernel in CPU code. Used by functions below in this file.
+ * type 3, matching KernelFSeries in CPU code. Used by functions below in this file.
  */
 template<typename T>
 __global__ void cu_nuft_kernel_compute(int nf1, int nf2, int nf3, T *f, T *z, T *kx,
