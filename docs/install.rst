@@ -169,7 +169,7 @@ PowerPC. The general procedure to download, then compile for a particular platfo
 Have a look in ``make-platforms/`` to see what is available, and/or edit your ``make.inc`` based on looking in the ``makefile`` and quirks of your local platform. We have continuous integration which tests the default (linux) settings in this ``makefile``, plus those in three OS-specific settings, currently::
 
   make-platforms/make.inc.macosx_clang
-  make-platforms/make.inc.macosx_gcc-12
+  make-platforms/make.inc.macosx_gcc-14
   make-platforms/make.inc.windows_msys
 
 Thus, those are the recommended files for OSX or Windows users to try as their ``make.inc``.
@@ -391,7 +391,7 @@ The GCC route
 This is less recommended, unless you need to link from ``gfortran``, when it
 appears to be essential. The basic idea is::
 
-  cp make-platforms/make.inc.macosx_gcc-12 make.inc
+  cp make-platforms/make.inc.macosx_gcc-14 make.inc
   make test -j
   make fortran
 
@@ -401,7 +401,7 @@ in your ``make.inc``.
 
 .. note::
 
-   A problem between GCC and the new XCode 15 requires a workaround to add ``LDFLAGS+=-ld64`` to force the old linker to be used. See the above file ``make.inc.macosx_gcc-12``.
+   A problem between GCC and the new XCode 15 requires a workaround to add ``LDFLAGS+=-ld64`` to force the old linker to be used. See the above file ``make.inc.macosx_gcc-14``.
 
 We find python may be built as :ref:`below<install-python>`.
 We found that octave interfaces do not work with GCC; please help.
