@@ -26,7 +26,7 @@ jobs:
   MacOS_clang:
     runs-on: macos-14
     env:
-      MACOSX_DEPLOYMENT_TARGET: 10.15
+      MACOSX_DEPLOYMENT_TARGET: 11.0
 
     steps:
     - uses: actions/checkout@v4
@@ -45,15 +45,15 @@ jobs:
   MacOS_gcc:
     runs-on: macos-14
     env:
-      MACOSX_DEPLOYMENT_TARGET: 10.15
+      MACOSX_DEPLOYMENT_TARGET: 11.0
 
     steps:
     - uses: actions/checkout@v4
 
     - name: Install gcc and fftw
       run: |
-        brew install gcc@12 fftw
-        cp make-platforms/make.inc.macosx_gcc-12 make.inc
+        brew install gcc@14 fftw
+        cp make-platforms/make.inc.macosx_gcc-14 make.inc
 
     - name: Compile C++ code
       run: |

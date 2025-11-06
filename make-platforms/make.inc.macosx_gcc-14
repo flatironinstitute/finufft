@@ -1,31 +1,31 @@
-# Makefile variable overrides for Mac OSX compilation with GCC v.12
+# Makefile variable overrides for Mac OSX compilation with GCC v.14
 #
 # Use this if you'll need to link against gfortran.
 #
 # Barnett 10/27/18. Input from Yu-Hsuan Shih, Amit Moskovich.
-# Lu minor modification for gcc-10 12/06/2020
+# Lu minor modification for gcc-14 11/06/2025
 # Leslie and Dan F found XCode linking problem, workaround 10/5/23.
 
 # By default we use clang/LLVM (which is aliased to /usr/lib/gcc, etc).
 # This make.inc is if you want to override this.
 # Get gcc from brew then use, eg:
-CXX=g++-12
-CC=gcc-12
+CXX=g++-14
+CC=gcc-14
 FC=gfortran
 
 # as in makefile, but with the brew /usr/local/ stuff...
-CFLAGS   += -I src -I/usr/local/include -I/opt/homebrew/include
+CFLAGS   += -I src -I/usr/local/include -I$(shell brew --prefix)/include
 FFLAGS   = $(CFLAGS)
 CXXFLAGS = $(CFLAGS)
-LIBS += -L/usr/local/lib -L/opt/homebrew/lib
+LIBS += -L/usr/local/lib -L$(shell brew --prefix)/lib
 # Workaround to force old linker to be used due to XCode15 (Issue #360):
 LDFLAGS+=-ld64
 
 # If you're getting warning messages of the form:
 #    ld: warning: object file (lib-static/libfinufft.a(finufft1d.o)) was built for
-#    newer OSX version (10.13) than being linked (10.9)
+#    newer OSX version (14.0) than being linked (11.0)
 # Then you can uncomment the following two lines with the older version number
-# (in this example -mmacosx-version-min=10.9)
+# (in this example -mmacosx-version-min=11.0)
 #
 #CFLAGS += "-mmacosx-version-min=<OLDER OSX VERSION NUMBER>"
 
@@ -37,7 +37,7 @@ FFTWOMPSUFFIX=threads
 
 # MATLAB interface:
 # some of these will depend on your FFTW library location...
-MFLAGS += -I/usr/local/include  -I/opt/homebrew/include -L/usr/local/lib -L/opt/homebrew/lib -lm
+MFLAGS += -I/usr/local/include  -I$(shell brew --prefix)/include -L/usr/local/lib -L$(shell brew --prefix)/lib -lm
 # edit for your MATLAB version location...
 MEX = $(shell ls -d /Applications/MATLAB_R20**.app)/bin/mex
 # Also see docs/install.rst for possible edits to MATLAB's MEX XML file.
