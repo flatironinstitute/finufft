@@ -1,31 +1,19 @@
 /*
+  Simple example of the 1D type-1 transform using std::complex.
+  To compile:
+      nvcc -o getting_started getting_started.cpp -lcufinufft
+*/
 
-  Simple example of the 1D type-1 transform. To compile, run
-
-       nvcc -o getting_started getting_started.cpp -lcufinufft
-
-  followed by
-
-       ./getting_started
-
-  with the necessary paths set if the library is not installed in the standard
-  directories. If the library has been compiled in the standard way, this means
-
-       export CPATH="${CPATH:+${CPATH}:}../../include"
-       export LIBRARY_PATH="${LIBRARY_PATH:+${LIBRARY_PATH}:}../../build"
-       export LD_LIBRARY_PATH="${LD_LIBRARY_PATH:+${LD_LIBRARY_PATH}:}../../build"
-
- */
-
-#include <complex.h>
+#include <cmath>
+#include <complex>
+#include <cstdio>
+#include <cstdlib>
 #include <cuComplex.h>
 #include <cuda_runtime.h>
 #include <cufinufft.h>
-#include <math.h>
-#include <stdio.h>
-#include <stdlib.h>
+#include <vector>
 
-static const double PI = 3.141592653589793238462643383279502884;
+static constexpr double PI = 3.141592653589793238462643383279502884;
 
 int main() {
   // Problem size: number of nonuniform points (M) and grid size (N).
@@ -35,9 +23,9 @@ int main() {
   int64_t modes[1] = {N};
 
   // Host pointers: frequencies (x), coefficients (c), and output (f).
-  float *x;
-  float _Complex *c;
-  float _Complex *f;
+  std::vector<float> x(M);
+  std::vector<std::complex<float>> c(M);
+  std::vector<std::complex<float>> f(N);
 
   // Device pointers.
   float *d_x;
@@ -48,71 +36,61 @@ int main() {
 
   // Manual calculation at a single point idx.
   int idx;
-  float _Complex f0;
+  std::complex<float> f0;
 
-  // Allocate the host arrays.
-  x = (float *)malloc(M * sizeof(float));
-  c = (float _Complex *)malloc(M * sizeof(float _Complex));
-  f = (float _Complex *)malloc(N * sizeof(float _Complex));
-
-  // Fill with random numbers. Frequencies must be in the interval [-pi, pi)
-  // while strengths can be any value.
-  srand(0);
-
+  // Fill with random numbers.
+  std::srand(42);
   for (int j = 0; j < M; ++j) {
-    x[j] = 2 * PI * (((float)rand()) / RAND_MAX - 1);
-    c[j] =
-        (2 * ((float)rand()) / RAND_MAX - 1) + I * (2 * ((float)rand()) / RAND_MAX - 1);
+    x[j]     = 2 * PI * ((float)std::rand() / RAND_MAX - 1);
+    float re = 2 * ((float)std::rand()) / RAND_MAX - 1;
+    float im = 2 * ((float)std::rand()) / RAND_MAX - 1;
+    c[j]     = std::complex<float>(re, im);
   }
 
-  // Allocate the device arrays and copy the x and c arrays.
+  // Allocate the device arrays and copy x and c.
   cudaMalloc(&d_x, M * sizeof(float));
-  cudaMalloc(&d_c, M * sizeof(float _Complex));
-  cudaMalloc(&d_f, N * sizeof(float _Complex));
+  cudaMalloc(&d_c, M * sizeof(cuFloatComplex));
+  cudaMalloc(&d_f, N * sizeof(cuFloatComplex));
 
-  cudaMemcpy(d_x, x, M * sizeof(float), cudaMemcpyHostToDevice);
-  cudaMemcpy(d_c, c, M * sizeof(float _Complex), cudaMemcpyHostToDevice);
+  std::vector<cuFloatComplex> c_dev(M);
+  for (int j = 0; j < M; ++j) c_dev[j] = make_cuFloatComplex(c[j].real(), c[j].imag());
 
-  // Make the cufinufft plan for a 1D type-1 transform with six digits of
-  // tolerance.
-  cufinufftf_makeplan(1, 1, modes, 1, 1, 1e-6, &plan, NULL);
+  cudaMemcpy(d_x, x.data(), M * sizeof(float), cudaMemcpyHostToDevice);
+  cudaMemcpy(d_c, c_dev.data(), M * sizeof(cuFloatComplex), cudaMemcpyHostToDevice);
+
+  // Make the cufinufft plan for 1D type-1 transform.
+  cufinufftf_makeplan(1, 1, modes, 1, 1, 1e-6, &plan, nullptr);
 
   // Set the frequencies of the nonuniform points.
-  cufinufftf_setpts(plan, M, d_x, NULL, NULL, 0, NULL, NULL, NULL);
+  cufinufftf_setpts(plan, M, d_x, nullptr, nullptr, 0, nullptr, nullptr, nullptr);
 
   // Actually execute the plan on the given coefficients and store the result
   // in the d_f array.
   cufinufftf_execute(plan, d_c, d_f);
 
   // Copy the result back onto the host.
-  cudaMemcpy(f, d_f, N * sizeof(float _Complex), cudaMemcpyDeviceToHost);
+  cudaMemcpy(f.data(), d_f, N * sizeof(cuFloatComplex), cudaMemcpyDeviceToHost);
 
   // Destroy the plan and free the device arrays after we're done.
   cufinufftf_destroy(plan);
-
   cudaFree(d_x);
   cudaFree(d_c);
   cudaFree(d_f);
 
   // Pick an index to check the result of the calculation.
   idx = 4 * N / 7;
-
-  printf("f[%d] = %lf + %lfi\n", idx, crealf(f[idx]), cimagf(f[idx]));
+  printf("f[%d] = %lf + %lfi\n", idx, std::real(f[idx]), std::imag(f[idx]));
 
   // Calculate the result manually using the formula for the type-1
   // transform.
   f0 = 0;
 
+  std::complex<float> I(-0.0, 1.0);
   for (int j = 0; j < M; ++j) {
-    f0 += c[j] * cexp(I * x[j] * (idx - N / 2));
+    f0 += c[j] * std::exp(I * x[j] * float(idx - N / 2));
   }
 
-  printf("f0[%d] = %lf + %lfi\n", idx, crealf(f0), cimagf(f0));
-
-  // Finally free the host arrays.
-  free(x);
-  free(c);
-  free(f);
+  printf("f0[%d] = %lf + %lfi\n", idx, std::real(f0), std::imag(f0));
 
   return 0;
 }

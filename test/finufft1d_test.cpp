@@ -3,7 +3,12 @@
 #include "finufft/finufft_utils.hpp"
 #include "utils/dirft1d.hpp"
 #include "utils/norms.hpp"
-using namespace std;
+
+#include <algorithm>
+#include <cmath>
+#include <iomanip>
+#include <iostream>
+
 using namespace finufft::utils;
 
 const char *help[] = {
@@ -41,7 +46,7 @@ int main(int argc, char *argv[]) {
   }
   if (argc > 7) sscanf(argv[7], "%lf", &errfail);
 
-  cout << scientific << setprecision(15);
+  std::cout << std::scientific << std::setprecision(15);
 
   FLT *x = (FLT *)malloc(sizeof(FLT) * M); // NU pts
   CPX *c = (CPX *)malloc(sizeof(CPX) * M); // strengths
@@ -62,7 +67,7 @@ int main(int argc, char *argv[]) {
   CNTime timer;
   timer.start();
   int ier = FINUFFT1D1(M, x, c, isign, tol, N, F, &opts);
-  // for (int j=0;j<N;++j) cout<<F[j]<<endl;
+  // for (int j=0;j<N;++j) std::cout<<F[j]<<endl;
   double t = timer.elapsedsec();
   if (ier > 1) {
     printf("error (ier=%d)!\n", ier);
@@ -82,17 +87,17 @@ int main(int argc, char *argv[]) {
     Ftr += real(c[j]) * co - imag(c[j]) * si; // cpx arith by hand
     Fti += imag(c[j]) * co + real(c[j]) * si;
   }
-  err = abs(Ftr + IMA * Fti - F[N / 2 + nt]) / infnorm(N, F);
+  err = std::abs(Ftr + IMA * Fti - F[N / 2 + nt]) / infnorm(N, F);
   printf("\tone mode: rel err in F[%lld] is %.3g\n", (long long)nt, err);
   if (((int64_t)M) * N <= TEST_BIGPROB) { // also full direct eval
     CPX *Ft = (CPX *)malloc(sizeof(CPX) * N);
     dirft1d1(M, x, c, isign, N, Ft);
     err    = relerrtwonorm(N, Ft, F);
-    errmax = max(err, errmax);
+    errmax = std::max(err, errmax);
     printf("\tdirft1d: rel l2-err of result F is %.3g\n", err);
     free(Ft);
   } else
-    errmax = max(err, errmax);
+    errmax = std::max(err, errmax);
 
   printf("test 1d type 2:\n"); // -------------- type 2
 #pragma omp parallel
@@ -117,19 +122,19 @@ int main(int argc, char *argv[]) {
   BIGINT m = 0, k0 = N / 2; // index shift in fk's = mag of most neg freq
   // #pragma omp parallel for schedule(static,TEST_RANDCHUNK) reduction(cmplxadd:ct)
   for (BIGINT m1 = -k0; m1 <= (N - 1) / 2; ++m1)
-    ct += F[m++] * exp(IMA * ((FLT)(isign * m1)) * x[jt]); // crude direct
-  err = abs(ct - c[jt]) / infnorm(M, c);
+    ct += F[m++] * std::exp(IMA * ((FLT)(isign * m1)) * x[jt]); // crude direct
+  err = std::abs(ct - c[jt]) / infnorm(M, c);
   printf("\tone targ: rel err in c[%lld] is %.3g\n", (long long)jt, err);
   if (((int64_t)M) * N <= TEST_BIGPROB) { // also full direct eval
     CPX *ct = (CPX *)malloc(sizeof(CPX) * M);
     dirft1d2(M, x, ct, isign, N, F);
     err    = relerrtwonorm(M, ct, c);
-    errmax = max(err, errmax);
+    errmax = std::max(err, errmax);
     printf("\tdirft1d: rel l2-err of result c is %.3g\n", err);
     // cout<<"c/ct:\n"; for (int j=0;j<M;++j) cout<<c[j]/ct[j]<<endl;
     free(ct);
   } else
-    errmax = max(err, errmax);
+    errmax = std::max(err, errmax);
 
   printf("test 1d type 3:\n"); // -------------- type 3
                                // reuse the strengths c, interpret N as number of targs:
@@ -167,24 +172,24 @@ int main(int argc, char *argv[]) {
     Ftr += real(c[j]) * co - imag(c[j]) * si; // cpx arith by hand
     Fti += imag(c[j]) * co + real(c[j]) * si;
   }
-  err = abs(Ftr + IMA * Fti - F[kt]) / infnorm(N, F);
+  err = std::abs(Ftr + IMA * Fti - F[kt]) / infnorm(N, F);
   printf("\tone targ: rel err in F[%lld] is %.3g\n", (long long)kt, err);
   if (((int64_t)M) * N <= TEST_BIGPROB) { // also full direct eval
     CPX *Ft = (CPX *)malloc(sizeof(CPX) * N);
     dirft1d3(M, x, c, isign, N, s, Ft);   // writes to F
     err    = relerrtwonorm(N, Ft, F);
-    errmax = max(err, errmax);
+    errmax = std::max(err, errmax);
     printf("\tdirft1d: rel l2-err of result F is %.3g\n", err);
     // cout<<"s, F, Ft:\n"; for (int k=0;k<N;++k) cout<<s[k]<<"
     // "<<F[k]<<"\t"<<Ft[k]<<"\t"<<F[k]/Ft[k]<<endl;
     free(Ft);
   } else
-    errmax = max(err, errmax);
+    errmax = std::max(err, errmax);
   free(x);
   free(c);
   free(F);
   free(s);
-  if (isnan(errmax) || (errmax > errfail)) {
+  if (std::isnan(errmax) || (errmax > errfail)) {
     printf("\tfailed! err %.3g > errfail %.3g\n", errmax, errfail);
     return 1;
   } else

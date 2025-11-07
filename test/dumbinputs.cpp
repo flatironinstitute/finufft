@@ -37,9 +37,10 @@
 #include "utils/dirft1d.hpp"
 #include "utils/dirft2d.hpp"
 #include "utils/norms.hpp"
+#include <cmath>
 #include <finufft/test_defs.h>
 
-using namespace std;
+
 
 int main(int argc, char *argv[]) {
   int M = 100;    // number of nonuniform points
@@ -57,13 +58,13 @@ int main(int argc, char *argv[]) {
   FLT *x = (FLT *)malloc(sizeof(FLT) * M);
   CPX *c = (CPX *)malloc(sizeof(CPX) * M);
   for (int j = 0; j < M; ++j) {
-    x[j] = PI * cos((FLT)j); // deterministic
-    c[j] = sin((FLT)1.3 * j) + IMA * cos((FLT)0.9 * j);
+    x[j] = PI * std::cos((FLT)j); // deterministic
+    c[j] = std::sin((FLT)1.3 * j) + IMA * std::cos((FLT)0.9 * j);
   }
   // allocate output array F for Fourier modes, fix some type-3 coords...
   CPX *F = (CPX *)malloc(sizeof(CPX) * NN);
   FLT *s = (FLT *)malloc(sizeof(FLT) * N);
-  for (int k = 0; k < N; ++k) s[k] = 10 * cos(1.2 * k); // normal-sized coords
+  for (int k = 0; k < N; ++k) s[k] = 10 * std::cos(1.2 * k); // normal-sized coords
   FLT *shuge = (FLT *)malloc(sizeof(FLT) * N);
   FLT huge   = 1e12;                                    // no smaller than MAX_NF
   for (int k = 0; k < N; ++k) shuge[k] = huge * s[k];   // some huge coords
@@ -116,7 +117,7 @@ int main(int argc, char *argv[]) {
     return 1;
   }
   for (int k = 0; k < NN; ++k)
-    F[k] = sin((FLT)0.7 * k) + IMA * cos((FLT)0.3 * k); // set F for t2
+    F[k] = std::sin((FLT)0.7 * k) + IMA * std::cos((FLT)0.3 * k); // set F for t2
   ier = FINUFFT1D2(M, x, c, +1, 0, N, F, &opts);
   if (ier != FINUFFT_WARN_EPS_TOO_SMALL) {
     printf("1d2 tol=0:\twrong err code %d\n", ier);
@@ -134,7 +135,7 @@ int main(int argc, char *argv[]) {
     return ier;
   }
   for (int j = 0; j < M; ++j)
-    c[j] = sin((FLT)1.3 * j) + IMA * cos((FLT)0.9 * j); // reset c for t3
+    c[j] = std::sin((FLT)1.3 * j) + IMA * std::cos((FLT)0.9 * j); // reset c for t3
   ier = FINUFFT1D3(M, x, c, +1, 0, N, s, F, &opts);
   if (ier != FINUFFT_WARN_EPS_TOO_SMALL) {
     printf("1d3 tol=0:\twrong err code %d\n", ier);
@@ -165,21 +166,21 @@ int main(int argc, char *argv[]) {
   ier = FINUFFT1D3(1, x, c, +1, acc, N, s, F, &opts); // XK prod formally 0
   dirft1d3(1, x, c, +1, N, s, Fe);
   for (int k = 0; k < N; ++k) F[k] -= Fe[k];          // acc chk
-  FLT err = twonorm(N, F) / sqrt((FLT)N);
+  FLT err = twonorm(N, F) / std::sqrt((FLT)N);
   if (ier || err > 100 * acc) {
     printf("1d3 M=1:\tier=%d nrm(err)=%.3g\n", ier, err);
     return 1;
   }
   ier = FINUFFT1D3(M, x, c, +1, acc, 1, s, F, &opts);
   dirft1d3(M, x, c, +1, 1, s, Fe);
-  err = abs(F[0] - Fe[0]);
+  err = std::abs(F[0] - Fe[0]);
   if (ier || err > 10 * acc) {
     printf("1d3 nk=1:\tier=%d err=%.3g\n", ier, err);
     return 1;
   }
   ier = FINUFFT1D3(1, x, c, +1, acc, 1, s, F, &opts);
   dirft1d3(1, x, c, +1, 1, s, Fe);
-  err = abs(F[0] - Fe[0]);
+  err = std::abs(F[0] - Fe[0]);
   if (ier || err > 10 * acc) {
     printf("1d3 M=nk=1:\tier=%d err=%.3g\n", ier, err);
     return 1;
@@ -193,7 +194,7 @@ int main(int argc, char *argv[]) {
   CPX *cm   = (CPX *)malloc(sizeof(CPX) * M * ndata);
   CPX *Fm   = (CPX *)malloc(sizeof(CPX) * NN * ndata);   // the biggest array
   for (int j = 0; j < M * ndata; ++j)
-    cm[j] = sin((FLT)1.3 * j) + IMA * cos((FLT)0.9 * j); // set cm for 1d1many
+    cm[j] = std::sin((FLT)1.3 * j) + IMA * std::cos((FLT)0.9 * j); // set cm for 1d1many
   ier = FINUFFT1D1MANY(0, M, x, cm, +1, 0, N, Fm, &opts);
   if (ier != FINUFFT_ERR_NTRANS_NOTVALID) {
     printf("1d1many ndata=0:\twrong err code %d\n", ier);
@@ -216,7 +217,7 @@ int main(int argc, char *argv[]) {
     return 1;
   }
   for (int k = 0; k < NN * ndata; ++k)
-    Fm[k] = sin((FLT)0.7 * k) + IMA * cos((FLT)0.3 * k); // set Fm for 1d2many
+    Fm[k] = std::sin((FLT)0.7 * k) + IMA * std::cos((FLT)0.3 * k); // set Fm for 1d2many
   ier = FINUFFT1D2MANY(0, M, x, cm, +1, 0, N, Fm, &opts);
   if (ier != FINUFFT_ERR_NTRANS_NOTVALID) {
     printf("1d2many ndata=0:\twrong err code %d\n", ier);
@@ -239,7 +240,7 @@ int main(int argc, char *argv[]) {
     return ier;
   }
   for (int j = 0; j < M * ndata; ++j)
-    cm[j] = sin((FLT)1.3 * j) + IMA * cos((FLT)0.9 * j); // reset cm for 1d3many
+    cm[j] = std::sin((FLT)1.3 * j) + IMA * std::cos((FLT)0.9 * j); // reset cm for 1d3many
   ier = FINUFFT1D3MANY(0, M, x, cm, +1, acc, N, s, Fm, &opts);
   if (ier != FINUFFT_ERR_NTRANS_NOTVALID) {
     printf("1d3many ndata=0:\twrong err code %d\n", ier);
@@ -261,21 +262,21 @@ int main(int argc, char *argv[]) {
   ier = FINUFFT1D3MANY(ndata, 1, x, cm, +1, acc, N, s, Fm, &opts); // XK prod formally 0
   dirft1d3(1, x, c, +1, N, s, Fe);
   for (int k = 0; k < N; ++k) Fm[k] -= Fe[k];                      // acc chk
-  err = twonorm(N, Fm) / sqrt((FLT)N); // rms, to 5e-5 abs; check just first trial
+  err = twonorm(N, Fm) / std::sqrt((FLT)N); // rms, to 5e-5 abs; check just first trial
   if (ier || err > 100 * acc) {
     printf("1d3many M=1:\tier=%d nrm(err)=%.3g\n", ier, err);
     return 1;
   }
   ier = FINUFFT1D3MANY(ndata, M, x, cm, +1, acc, 1, s, Fm, &opts);
   dirft1d3(M, x, c, +1, 1, s, Fe);
-  err = abs(Fm[0] - Fe[0]);
+  err = std::abs(Fm[0] - Fe[0]);
   if (ier || err > 10 * acc) {
     printf("1d3many nk=1:\tier=%d err=%.3g\n", ier, err);
     return 1;
   }
   ier = FINUFFT1D3MANY(ndata, 1, x, cm, +1, acc, 1, s, Fm, &opts);
   dirft1d3(1, x, c, +1, 1, s, Fe);
-  err = abs(Fm[0] - Fe[0]);
+  err = std::abs(Fm[0] - Fe[0]);
   if (ier || err > 10 * acc) {
     printf("1d3many M=nk=1:\tier=%d err=%.3g\n", ier, err);
     return 1;
@@ -315,7 +316,7 @@ int main(int argc, char *argv[]) {
     return 1;
   }
   for (int k = 0; k < NN; ++k)
-    F[k] = sin((FLT)0.7 * k) + IMA * cos((FLT)0.3 * k); // set F for t2
+    F[k] = std::sin((FLT)0.7 * k) + IMA * std::cos((FLT)0.3 * k); // set F for t2
   ier = FINUFFT2D2(M, x, x, c, +1, 0, N, N, F, &opts);
   if (ier != FINUFFT_WARN_EPS_TOO_SMALL) {
     printf("2d2 tol=0:\twrong err code %d\n", ier);
@@ -345,7 +346,7 @@ int main(int argc, char *argv[]) {
     return ier;
   }
   for (int j = 0; j < M; ++j)
-    c[j] = sin((FLT)1.3 * j) + IMA * cos((FLT)0.9 * j); // reset c for t3
+    c[j] = std::sin((FLT)1.3 * j) + IMA * std::cos((FLT)0.9 * j); // reset c for t3
   ier = FINUFFT2D3(M, x, x, c, +1, 0, N, s, s, F, &opts);
   if (ier != FINUFFT_WARN_EPS_TOO_SMALL) {
     printf("2d3 tol=0:\twrong err code %d\n", ier);
@@ -368,14 +369,14 @@ int main(int argc, char *argv[]) {
     printf("2d3 M=nk=1:\tier=%d\n", ier);
     return ier;
   }
-  for (int k = 0; k < N; ++k) shuge[k] = sqrt(huge) * s[k]; // less huge coords
+  for (int k = 0; k < N; ++k) shuge[k] = std::sqrt(huge) * s[k]; // less huge coords
   ier = FINUFFT2D3(M, x, x, c, +1, acc, N, shuge, shuge, F, &opts);
   if (ier == 0) { // any nonzero code accepted here
     printf("2d3 XK prod too big:\twrong error code %d\n", ier);
     return 1;
   }
   for (int j = 0; j < M * ndata; ++j)
-    cm[j] = sin((FLT)1.3 * j) + IMA * cos((FLT)0.9 * j); // reset cm for 2d1many
+    cm[j] = std::sin((FLT)1.3 * j) + IMA * std::cos((FLT)0.9 * j); // reset cm for 2d1many
   ier = FINUFFT2D1MANY(0, M, x, x, cm, +1, 0, N, N, Fm, &opts);
   if (ier != FINUFFT_ERR_NTRANS_NOTVALID) {
     printf("2d1many ndata=0:\twrong err code %d\n", ier);
@@ -408,7 +409,7 @@ int main(int argc, char *argv[]) {
     return 1;
   }
   for (int k = 0; k < NN * ndata; ++k)
-    Fm[k] = sin((FLT)0.7 * k) + IMA * cos((FLT)0.3 * k); // reset Fm for t2
+    Fm[k] = std::sin((FLT)0.7 * k) + IMA * std::cos((FLT)0.3 * k); // reset Fm for t2
   ier = FINUFFT2D2MANY(0, M, x, x, cm, +1, 0, N, N, Fm, &opts);
   if (ier != FINUFFT_ERR_NTRANS_NOTVALID) {
     printf("2d2many ndata=0:\twrong err code %d\n", ier);
@@ -505,7 +506,7 @@ int main(int argc, char *argv[]) {
     return 1;
   }
   for (int k = 0; k < NN; ++k)
-    F[k] = sin((FLT)0.8 * k) - IMA * cos((FLT)0.3 * k); // set F for t2
+    F[k] = std::sin((FLT)0.8 * k) - IMA * std::cos((FLT)0.3 * k); // set F for t2
   ier = FINUFFT3D2(M, x, x, x, c, +1, 0, N, N, N, F, &opts);
   if (ier != FINUFFT_WARN_EPS_TOO_SMALL) {
     printf("3d2 tol=0:\twrong err code %d\n", ier);
@@ -541,7 +542,7 @@ int main(int argc, char *argv[]) {
     return ier;
   }
   for (int j = 0; j < M; ++j)
-    c[j] = sin((FLT)1.2 * j) - IMA * cos((FLT)0.8 * j); // reset c for t3
+    c[j] = std::sin((FLT)1.2 * j) - IMA * std::cos((FLT)0.8 * j); // reset c for t3
   ier = FINUFFT3D3(M, x, x, x, c, +1, 0, N, s, s, s, F, &opts);
   if (ier != FINUFFT_WARN_EPS_TOO_SMALL) {
     printf("3d3 tol=0:\twrong err code %d\n", ier);
@@ -564,14 +565,15 @@ int main(int argc, char *argv[]) {
     printf("3d3 M=nk=1:\tier=%d\n", ier);
     return ier;
   }
-  for (int k = 0; k < N; ++k) shuge[k] = pow(huge, 1. / 3) * s[k]; // less huge coords
+  for (int k = 0; k < N; ++k)
+    shuge[k] = std::pow(huge, 1. / 3) * s[k]; // less huge coords
   ier = FINUFFT3D3(M, x, x, x, c, +1, acc, N, shuge, shuge, shuge, F, &opts);
   if (ier == 0) { // any nonzero code accepted here
     printf("3d3 XK prod too big:\twrong error code %d\n", ier);
     return 1;
   }
   for (int j = 0; j < M * ndata; ++j)
-    cm[j] = sin(-(FLT)1.2 * j) + IMA * cos((FLT)1.1 * j); // reset cm for 3d1many
+    cm[j] = std::sin(-(FLT)1.2 * j) + IMA * std::cos((FLT)1.1 * j); // reset cm for 3d1many
   ier = FINUFFT3D1MANY(0, M, x, x, x, cm, +1, 0, N, N, N, Fm, &opts);
   if (ier != FINUFFT_ERR_NTRANS_NOTVALID) {
     printf("3d1many ndata=0:\twrong err code %d\n", ier);
@@ -609,7 +611,7 @@ int main(int argc, char *argv[]) {
     return 1;
   }
   for (int k = 0; k < NN * ndata; ++k)
-    Fm[k] = sin((FLT)0.6 * k) - IMA * cos((FLT)0.3 * k); // reset Fm for t2
+    Fm[k] = std::sin((FLT)0.6 * k) - IMA * std::cos((FLT)0.3 * k); // reset Fm for t2
   ier = FINUFFT3D2MANY(0, M, x, x, x, cm, +1, 0, N, N, N, Fm, &opts);
   if (ier != FINUFFT_ERR_NTRANS_NOTVALID) {
     printf("3d2many ndata=0:\twrong err code %d\n", ier);

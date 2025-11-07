@@ -11,17 +11,13 @@
 
 // specific to this demo...
 #include <cassert>
-#include <math.h>
-#include <stdio.h>
-#include <stdlib.h>
+#include <cmath>
+#include <cstdint>
+#include <cstdio>
+#include <cstdlib>
 #include <vector>
 
-// only good for small projects...
-using namespace std;
-
 static const double PI = 3.141592653589793238462643383279502884;
-// allows 1i to be the imaginary unit... (C++14 onwards)
-using namespace std::complex_literals;
 
 int main(int argc, char *argv[]) {
   int M      = 2e5;          // number of nonuniform points
@@ -33,22 +29,23 @@ int main(int argc, char *argv[]) {
   int type = 1, dim = 1;     // 1d1
   int64_t Ns[3] = {N, 0, 0}; // guru describes mode array by vector [N1,N2..]
   finufft_plan plan;         // creates a plan struct (NULL below: default opts)
-  finufft_makeplan(type, dim, Ns, isign, ntrans, tol, &plan, NULL);
+  finufft_makeplan(type, dim, Ns, isign, ntrans, tol, &plan, nullptr);
 
   // generate random nonuniform points and pass to FINUFFT
-  vector<double> x(M);
+  std::vector<double> x(M);
   for (int j = 0; j < M; ++j)
-    x[j] = PI * (2 * ((double)rand() / RAND_MAX) - 1); // uniform random in [-pi,pi)
-  finufft_setpts(plan, M, x.data(), NULL, NULL, 0, NULL, NULL, NULL);
+    x[j] = PI * (2 * ((double)std::rand() / RAND_MAX) - 1); // uniform random in [-pi,pi)
+  finufft_setpts(plan, M, x.data(), nullptr, nullptr, 0, nullptr, nullptr, nullptr);
 
   // generate ntrans complex strength vectors each of length M (the slow bit!)
-  vector<complex<double>> c(M * ntrans); // plain contiguous storage
+  std::vector<std::complex<double>> c(M * ntrans); // plain contiguous storage
+  const std::complex<double> I(0.0, 1.0);
   for (int j = 0; j < M * ntrans; ++j)
-    c[j] =
-        2 * ((double)rand() / RAND_MAX) - 1 + 1i * (2 * ((double)rand() / RAND_MAX) - 1);
+    c[j] = 2 * ((double)std::rand() / RAND_MAX) - 1 +
+           I * (2 * ((double)std::rand() / RAND_MAX) - 1);
 
   // alloc output array for the Fourier modes, then do the transform
-  vector<complex<double>> F(N * ntrans);
+  std::vector<std::complex<double>> F(N * ntrans);
   printf("guru many 1D type-1 double-prec, tol=%.3g, executing %d transforms "
          "(vectorized), each size %d NU pts to %d modes...\n",
          tol, ntrans, M, N);
@@ -63,16 +60,16 @@ int main(int argc, char *argv[]) {
   int trans = 71;                                   // ...testing in just this transform
   assert(k >= -(double)N / 2 && k < (double)N / 2); // ensure meaningful test
   assert(trans >= 0 && trans < ntrans);
-  complex<double> Ftest = complex<double>(0, 0);
+  std::complex<double> Ftest = std::complex<double>(0, 0);
   for (int j = 0; j < M; ++j)
-    Ftest += c[j + M * trans] * exp(1i * (double)k * x[j]); // c offset to trans
+    Ftest += c[j + M * trans] * std::exp(I * (double)k * x[j]); // c offset to trans
   double Fmax = 0.0; // compute inf norm of F for selected transform
   for (int m = 0; m < N; ++m) {
-    double aF = abs(F[m + N * trans]);
+    double aF = std::abs(F[m + N * trans]);
     if (aF > Fmax) Fmax = aF;
   }
   int nout   = k + N / 2 + N * trans; // output index for freq mode k in the trans
-  double err = abs(F[nout] - Ftest) / Fmax;
+  double err = std::abs(F[nout] - Ftest) / Fmax;
   printf("\tdone: ier=%d; for transform %d, rel err in F[%d] is %.3g\n", ier, trans, k,
          err);
 

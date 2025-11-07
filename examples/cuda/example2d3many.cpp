@@ -112,10 +112,10 @@ int main(int argc, char *argv[])
     int jt  = N / 2; // check arbitrary choice of one targ pt
     std::complex<double> J(0, iflag * 1);
     std::complex<double> fkt(0, 0);
-    for (int m = 0; m < M; m++) fkt += cstart[m] * exp(J * (s[jt] * x[m] + t[jt] * y[m]));
+    for (int m = 0; m < M; m++) fkt += cstart[m] * std::exp(J * (s[jt] * x[m] + t[jt] * y[m]));
 
     printf("[gpu %3d] one targ: rel err in c[%d] is %.3g\n", tr, jt,
-           abs(fkstart[jt] - fkt) / infnorm(N, fkstart));
+           std::abs(fkstart[jt] - fkt) / infnorm(N, fkstart));
   }
 
   cudaFreeHost(x);

@@ -8,8 +8,8 @@
 #include <thrust/device_vector.h>
 #include <thrust/host_vector.h>
 
-#include <finufft_common/common.h>
 #include <cufinufft.h>
+#include <finufft_common/common.h>
 
 #include "../utils/dirft1d.hpp"
 #include "../utils/norms.hpp"
@@ -187,9 +187,10 @@ int run_test(int method, int type, int N1, int M, T tol, T checktol, int iflag,
   if (type == 1) {
     int nt1                = 0.37 * N1; // choose some mode index to check
     thrust::complex<T> Ftp = thrust::complex<T>(0, 0), J = thrust::complex<T>(0.0, iflag);
-    for (int j = 0; j < M; ++j) Ftp += c[j] * exp(J * (nt1 * x[j])); // crude direct
-    int it    = N1 / 2 + nt1; // index in complex F as 1d array
-    rel_error = abs(Ftp - fk[it]) / infnorm(N1, fk);
+    for (int j = 0; j < M; ++j)
+      Ftp += c[j] * thrust::exp(J * (nt1 * x[j])); // crude direct
+    int it    = N1 / 2 + nt1;                      // index in complex F as 1d array
+    rel_error = thrust::abs(Ftp - fk[it]) / infnorm(N1, fk);
     printf("[gpu   ] one mode: rel err in F[%d] is %.3g\n", nt1, rel_error);
     if (static_cast<double>(M) * N1 <= TEST_BIGPROB) {
       // also full direct eval
@@ -205,8 +206,8 @@ int run_test(int method, int type, int N1, int M, T tol, T checktol, int iflag,
     thrust::complex<T> ctp = thrust::complex<T>(0, 0);
     int m                  = 0;
     for (int m1 = -(N1 / 2); m1 <= (N1 - 1) / 2; ++m1)
-      ctp += fk[m++] * exp(J * (m1 * x[jt])); // crude direct
-    rel_error = abs(c[jt] - ctp) / infnorm(M, (std::complex<T> *)c.data());
+      ctp += fk[m++] * thrust::exp(J * (m1 * x[jt])); // crude direct
+    rel_error = thrust::abs(c[jt] - ctp) / infnorm(M, (std::complex<T> *)c.data());
     printf("[gpu   ] one targ: rel err in c[%d] is %.3g\n", jt, rel_error);
     if (static_cast<double>(M) * N1 <= TEST_BIGPROB) {
       std::vector<thrust::complex<T>> ct(M);
@@ -222,9 +223,9 @@ int run_test(int method, int type, int N1, int M, T tol, T checktol, int iflag,
     thrust::complex<T> Ftp = thrust::complex<T>(0, 0);
 
     for (int j = 0; j < M; ++j) {
-      Ftp += c[j] * exp(J * (x[j] * s[jt]));
+      Ftp += c[j] * thrust::exp(J * (x[j] * s[jt]));
     }
-    rel_error = abs(Ftp - fk[jt]) / infnorm(N1, (std::complex<T> *)fk.data());
+    rel_error = thrust::abs(Ftp - fk[jt]) / infnorm(N1, (std::complex<T> *)fk.data());
     printf("[gpu   ] one mode: rel err in F[%d] is %.3g\n", jt, rel_error);
     if (static_cast<double>(M) * N1 <= TEST_BIGPROB) {
       std::vector<thrust::complex<T>> Ft(N1);

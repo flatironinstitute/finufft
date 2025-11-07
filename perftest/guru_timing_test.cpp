@@ -1,5 +1,6 @@
 #include "finufft/finufft_utils.hpp"
 #include <finufft/test_defs.h>
+#include <memory>
 
 // for sleep call
 #if defined(WIN32) || defined(_WIN32) || defined(__WIN32) && !defined(__CYGWIN__)
@@ -8,7 +9,6 @@ void sleep(unsigned long seconds) { Sleep(seconds * 1000); }
 #else
 #include <unistd.h>
 #endif
-using namespace std;
 using namespace finufft;
 using namespace finufft::utils;
 
@@ -59,91 +59,108 @@ int main(int argc, char *argv[])
 
   // Collect command line arguments ------------------------------------------
   if (argc < 8 || argc > 14) {
-    fprintf(
+    std::fprintf(
         stderr,
         "Usage: guru_timing_test ntransf type ndim N1 N2 N3 Nsrc [tol [debug "
         "[spread_thread [maxbatchsize [spread_sort "
         "[upsampfac]]]]]]\n\teg:\tguru_timing_test 100 1 2 1e2 1e2 0 1e6 1e-3 1 0 0 2\n");
     return 1;
   }
-  sscanf(argv[1], "%d", &ntransf);
-  sscanf(argv[2], "%d", &type);
-  sscanf(argv[3], "%d", &ndim);
-  sscanf(argv[4], "%lf", &w);
+  std::sscanf(argv[1], "%d", &ntransf);
+  std::sscanf(argv[2], "%d", &type);
+  std::sscanf(argv[3], "%d", &ndim);
+  std::sscanf(argv[4], "%lf", &w);
   N1 = (BIGINT)w;
-  sscanf(argv[5], "%lf", &w);
+  std::sscanf(argv[5], "%lf", &w);
   N2 = (BIGINT)w;
-  sscanf(argv[6], "%lf", &w);
+  std::sscanf(argv[6], "%lf", &w);
   N3 = (BIGINT)w;
-  sscanf(argv[7], "%lf", &w);
+  std::sscanf(argv[7], "%lf", &w);
   M = (BIGINT)w;
-  if (argc > 8) sscanf(argv[8], "%lf", &tol);
-  if (argc > 9) sscanf(argv[9], "%d", &opts.debug);
+  if (argc > 8) std::sscanf(argv[8], "%lf", &tol);
+  if (argc > 9) std::sscanf(argv[9], "%d", &opts.debug);
   opts.spread_debug = (opts.debug > 1) ? 1 : 0; // see output from spreader
-  if (argc > 10) sscanf(argv[10], "%d", &opts.spread_thread);
-  if (argc > 11) sscanf(argv[11], "%d", &opts.maxbatchsize);
-  if (argc > 12) sscanf(argv[12], "%d", &opts.spread_sort);
+  if (argc > 10) std::sscanf(argv[10], "%d", &opts.spread_thread);
+  if (argc > 11) std::sscanf(argv[11], "%d", &opts.maxbatchsize);
+  if (argc > 12) std::sscanf(argv[12], "%d", &opts.spread_sort);
   if (argc > 13) {
-    sscanf(argv[13], "%lf", &w);
+    std::sscanf(argv[13], "%lf", &w);
     opts.upsampfac = (FLT)w;
   }
 
   // Allocate and initialize input -------------------------------------------
-  cout << scientific << setprecision(15);
+  std::cout << std::scientific << std::setprecision(15);
   N2       = (N2 == 0) ? 1 : N2;
   N3       = (N3 == 0) ? 1 : N3;
   BIGINT N = N1 * N2 * N3;
 
-  FLT *s = NULL;
-  FLT *t = NULL;
-  FLT *u = NULL;
+  std::unique_ptr<FLT[]> s;
+  std::unique_ptr<FLT[]> t;
+  std::unique_ptr<FLT[]> u;
   if (type == 3) { // make target freq NU pts for type 3 (N of them)...
-    s      = (FLT *)malloc(sizeof(FLT) * N); // targ freqs (1-cmpt)
-    FLT S1 = (FLT)N1 / 2;
+    s = std::make_unique<FLT[]>(N); // targ freqs (1-cmpt)
+    FLT *s_ptr = s.get();
+    FLT S1     = (FLT)N1 / 2;
 #pragma omp parallel
     {
       unsigned int se = MY_OMP_GET_THREAD_NUM(); // needed for parallel random #s
 #pragma omp for schedule(dynamic, TEST_RANDCHUNK)
       for (BIGINT k = 0; k < N; ++k) {
-        s[k] = S1 * (1.7 + randm11r(&se)); // note the offset, to test type 3.
+        s_ptr[k] = S1 * (1.7 + randm11r(&se)); // note the offset, to test type 3.
       }
-      if (ndim > 1) {
-        t      = (FLT *)malloc(sizeof(FLT) * N); // targ freqs (2-cmpt)
-        FLT S2 = (FLT)N2 / 2;
+    }
+    if (ndim > 1) {
+      t = std::make_unique<FLT[]>(N); // targ freqs (2-cmpt)
+      FLT *t_ptr = t.get();
+      FLT S2     = (FLT)N2 / 2;
+#pragma omp parallel
+      {
+        unsigned int se = MY_OMP_GET_THREAD_NUM(); // needed for parallel random #s
 #pragma omp for schedule(dynamic, TEST_RANDCHUNK)
         for (BIGINT k = 0; k < N; ++k) {
-          t[k] = S2 * (-0.5 + randm11r(&se));
+          t_ptr[k] = S2 * (-0.5 + randm11r(&se));
         }
       }
-      if (ndim > 2) {
-        u      = (FLT *)malloc(sizeof(FLT) * N); // targ freqs (3-cmpt)
-        FLT S3 = (FLT)N3 / 2;
+    }
+    if (ndim > 2) {
+      u = std::make_unique<FLT[]>(N); // targ freqs (3-cmpt)
+      FLT *u_ptr = u.get();
+      FLT S3     = (FLT)N3 / 2;
+#pragma omp parallel
+      {
+        unsigned int se = MY_OMP_GET_THREAD_NUM(); // needed for parallel random #s
 #pragma omp for schedule(dynamic, TEST_RANDCHUNK)
         for (BIGINT k = 0; k < N; ++k) {
-          u[k] = S3 * (0.9 + randm11r(&se));
+          u_ptr[k] = S3 * (0.9 + randm11r(&se));
         }
       }
     }
   }
 
-  CPX *c = (CPX *)malloc(sizeof(CPX) * M * ntransf);             // strengths
-  CPX *F = (CPX *)malloc(sizeof(CPX) * N * ntransf);             // mode ampls
+  auto c = std::make_unique<CPX[]>(M * ntransf); // strengths
+  auto F = std::make_unique<CPX[]>(N * ntransf); // mode ampls
 
-  FLT *x = (FLT *)malloc(sizeof(FLT) * M), *y = NULL, *z = NULL; // NU pts x coords
-  if (ndim > 1) y = (FLT *)malloc(sizeof(FLT) * M);              // NU pts y coords
-  if (ndim > 2) z = (FLT *)malloc(sizeof(FLT) * M);              // NU pts z coords
+  auto x = std::make_unique<FLT[]>(M);
+  std::unique_ptr<FLT[]> y;
+  std::unique_ptr<FLT[]> z; // NU pts coords
+  if (ndim > 1) y = std::make_unique<FLT[]>(M); // NU pts y coords
+  if (ndim > 2) z = std::make_unique<FLT[]>(M); // NU pts z coords
+  FLT *x_ptr = x.get();
+  FLT *y_ptr = y.get();
+  FLT *z_ptr = z.get();
+  CPX *c_ptr = c.get();
 #pragma omp parallel
   {
     unsigned int se = MY_OMP_GET_THREAD_NUM(); // needed for parallel random #s
 #pragma omp for schedule(dynamic, TEST_RANDCHUNK)
     for (BIGINT j = 0; j < M; ++j) {
-      x[j] = PI * randm11r(&se);
-      if (y) y[j] = PI * randm11r(&se);
-      if (z) z[j] = PI * randm11r(&se);
+      x_ptr[j] = PI * randm11r(&se);
+      if (y_ptr) y_ptr[j] = PI * randm11r(&se);
+      if (z_ptr) z_ptr[j] = PI * randm11r(&se);
     }
 #pragma omp for schedule(dynamic, TEST_RANDCHUNK)
     for (BIGINT i = 0; i < ntransf * M; i++) // random strengths
-      c[i] = crandm11r(&se);
+      c_ptr[i] = crandm11r(&se);
   }
 
   // Andrea found the following are needed to get reliable independent timings:
@@ -153,8 +170,11 @@ int main(int argc, char *argv[])
   // std::this_thread::sleep_for(std::chrono::seconds(1));
   sleep(tsleep);
 
-  printf("FINUFFT %dd%d use guru interface to do %d calls together:-------------------\n",
-         ndim, type, ntransf);
+  std::printf(
+      "FINUFFT %dd%d use guru interface to do %d calls together:-------------------\n",
+      ndim,
+      type,
+      ntransf);
   FINUFFT_PLAN plan;                // instantiate a finufft_plan
   CNTime timer;
   timer.start();                    // Guru Step 1
@@ -163,45 +183,63 @@ int main(int argc, char *argv[])
   // (NB: the opts struct can no longer be modified with effect!)
   double plan_t = timer.elapsedsec();
   if (ier > 1) {
-    printf("error (ier=%d)!\n", ier);
+    std::printf("error (ier=%d)!\n", ier);
     return ier;
   } else {
     if (type != 3)
-      printf("\tplan, for %lld modes: \t\t%.3g s\n", (long long)N, plan_t);
+      std::printf("\tplan, for %lld modes: \t\t%.3g s\n", (long long)N, plan_t);
     else
-      printf("\tplan:\t\t\t\t\t%.3g s\n", plan_t);
+      std::printf("\tplan:\t\t\t\t\t%.3g s\n", plan_t);
   }
 
   timer.restart();                                              // Guru Step 2
-  ier           = FINUFFT_SETPTS(plan, M, x, y, z, N, s, t, u); //(t1,2: N,s,t,u ignored)
+  ier = FINUFFT_SETPTS(plan,
+                       M,
+                       x.get(),
+                       y.get(),
+                       z.get(),
+                       N,
+                       s.get(),
+                       t.get(),
+                       u.get()); //(t1,2: N,s,t,u ignored)
   double sort_t = timer.elapsedsec();
   if (ier) {
-    printf("error (ier=%d)!\n", ier);
+    std::printf("error (ier=%d)!\n", ier);
     return ier;
   } else {
     if (type != 3)
-      printf("\tsetpts for %lld NU pts: \t\t%.3g s\n", (long long)M, sort_t);
+      std::printf("\tsetpts for %lld NU pts: \t\t%.3g s\n", (long long)M, sort_t);
     else
-      printf("\tsetpts for %lld + %lld NU pts: \t%.3g s\n", (long long)M, (long long)N,
-             sort_t);
+      std::printf("\tsetpts for %lld + %lld NU pts: \t%.3g s\n",
+                  (long long)M,
+                  (long long)N,
+                  sort_t);
   }
 
   timer.restart(); // Guru Step 3
-  ier           = FINUFFT_EXECUTE(plan, c, F);
+  ier = FINUFFT_EXECUTE(plan, c.get(), F.get());
   double exec_t = timer.elapsedsec();
   if (ier) {
-    printf("error (ier=%d)!\n", ier);
+    std::printf("error (ier=%d)!\n", ier);
     return ier;
   } else
-    printf("\texec \t\t\t\t\t%.3g s\n", exec_t);
+    std::printf("\texec \t\t\t\t\t%.3g s\n", exec_t);
 
   double totalTime = plan_t + sort_t + exec_t;
   if (type != 3)
-    printf("ntr=%d: %lld NU pts to %lld modes in %.3g s \t%.3g NU pts/s\n", ntransf,
-           (long long)M, (long long)N, totalTime, ntransf * M / totalTime);
+    std::printf("ntr=%d: %lld NU pts to %lld modes in %.3g s \t%.3g NU pts/s\n",
+                ntransf,
+                (long long)M,
+                (long long)N,
+                totalTime,
+                ntransf * M / totalTime);
   else
-    printf("ntr=%d: %lld NU pts to %lld NU pts in %.3g s \t%.3g tot NU pts/s\n", ntransf,
-           (long long)M, (long long)N, totalTime, ntransf * (N + M) / totalTime);
+    std::printf("ntr=%d: %lld NU pts to %lld NU pts in %.3g s \t%.3g tot NU pts/s\n",
+                ntransf,
+                (long long)M,
+                (long long)N,
+                totalTime,
+                ntransf * (N + M) / totalTime);
 
   // Comparing timing results with repeated calls to corresponding finufft function...
 
@@ -216,36 +254,40 @@ int main(int argc, char *argv[])
   // std::this_thread::sleep_for(std::chrono::seconds(1)); if c++11 is allowed
   sleep(tsleep); // sleep for one second using linux sleep call
 
-  printf(
+  std::printf(
       "Compare speed of repeated calls to simple interface:------------------------\n");
   // this used to actually call Alex's old (v1.1) src/finufft?d.cpp routines.
   // Since we don't want to ship those, we now call the simple interfaces.
 
-  double simpleTime = many_simple_calls(c, F, x, y, z, plan);
-  if (isnan(simpleTime)) return 1;
+  double simpleTime =
+      many_simple_calls(c.get(), F.get(), x.get(), y.get(), z.get(), plan);
+  if (std::isnan(simpleTime)) return 1;
 
   if (type != 3)
-    printf("%d of:\t%lld NU pts to %lld modes in %.3g s   \t%.3g NU pts/s\n", ntransf,
-           (long long)M, (long long)N, simpleTime, ntransf * M / simpleTime);
+    std::printf("%d of:\t%lld NU pts to %lld modes in %.3g s   \t%.3g NU pts/s\n",
+                ntransf,
+                (long long)M,
+                (long long)N,
+                simpleTime,
+                ntransf * M / simpleTime);
   else
-    printf("%d of:\t%lld NU pts to %lld NU pts in %.3g s  \t%.3g tot NU pts/s\n", ntransf,
-           (long long)M, (long long)N, simpleTime, ntransf * (M + N) / simpleTime);
-  printf("\tspeedup \t T_finufft%dd%d_simple / T_finufft%dd%d = %.3g\n", ndim, type, ndim,
-         type, simpleTime / totalTime);
+    std::printf("%d of:\t%lld NU pts to %lld NU pts in %.3g s  \t%.3g tot NU pts/s\n",
+                ntransf,
+                (long long)M,
+                (long long)N,
+                simpleTime,
+                ntransf * (M + N) / simpleTime);
+  std::printf("\tspeedup \t T_finufft%dd%d_simple / T_finufft%dd%d = %.3g\n",
+              ndim,
+              type,
+              ndim,
+              type,
+              simpleTime / totalTime);
 
   FINUFFT_DESTROY(plan); // Guru Step 4
   // (must be done *after* many_simple_calls, which sneaks a look at the plan!)
   // however, segfaults, maybe because plan->opts.debug changed?
 
-  //---------------------------- Free Memory (no need to test if NULL)
-  free(F);
-  free(c);
-  free(x);
-  free(y);
-  free(z);
-  free(s);
-  free(t);
-  free(u);
   return 0;
 }
 
@@ -411,8 +453,8 @@ double many_simple_calls(CPX *c, CPX *F, FLT *x, FLT *y, FLT *z, FINUFFT_PLAN pl
     }
 
     temp = finufftFunnel(cStart, fStart, x, y, z, plan);
-    if (isnan(temp)) {
-      fprintf(stderr, "[%s] Funnel call to finufft failed!\n", __func__);
+    if (std::isnan(temp)) {
+      std::fprintf(stderr, "[%s] Funnel call to finufft failed!\n", __func__);
       return NAN;
     } else
       time += temp;

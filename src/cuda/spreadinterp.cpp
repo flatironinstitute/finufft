@@ -55,10 +55,10 @@ int setup_spreader(finufft_spread_opts &opts, T eps, T upsampfac,
   }
 
   // Set kernel width w (aka ns) and ES kernel beta parameter, in opts...
-  int ns = std::ceil(-log10(eps / (T)10.0)); // 1 digit per power of ten
+  int ns = std::ceil(-std::log10(eps / (T)10.0)); // 1 digit per power of ten
   if (upsampfac != 2.0)                      // override ns for custom sigma
     ns = std::ceil(
-        -log(eps) / (T(PI) * sqrt(1 - 1 / upsampfac))); // formula,
+        -std::log(eps) / (T(PI) * std::sqrt(1 - 1 / upsampfac))); // formula,
                                                                            // gamma=1
   ns = std::max(2, ns);                      // we don't have ns=1 version yet
   if (ns > MAX_NSPREAD) { // clip to match allocated arrays

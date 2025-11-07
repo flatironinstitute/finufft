@@ -3,17 +3,13 @@
 #include <finufft.h>
 
 // specific to this example...
-#include <math.h>
-#include <stdio.h>
-#include <stdlib.h>
+#include <cmath>
+#include <cstdint>
+#include <cstdio>
+#include <cstdlib>
 #include <vector>
 
-// only good for small projects...
-using namespace std;
-
 static const double PI = 3.141592653589793238462643383279502884;
-// allows 1i to be the imaginary unit... (C++14 onwards)
-using namespace std::complex_literals;
 
 int main(int argc, char *argv[])
 /* Example calling guru C++ interface to FINUFFT library, single-prec, passing
@@ -40,42 +36,44 @@ int main(int argc, char *argv[])
   } else                          // or, NULL here means use default opts...
     finufftf_makeplan(type, dim, Ns, +1, ntransf, tol, &plan, NULL);
 
+  const std::complex<float> I(0.0f, 1.0f);
+
   // generate some random nonuniform points
-  vector<float> x(M);
+  std::vector<float> x(M);
   for (int j = 0; j < M; ++j)
-    x[j] = PI * (2 * ((float)rand() / RAND_MAX) - 1); // uniform random in [-pi,pi)
+    x[j] = PI * (2 * ((float)std::rand() / RAND_MAX) - 1); // uniform random in [-pi,pi)
   // note FINUFFT doesn't use std::vector types, so we need to make a pointer...
-  finufftf_setpts(plan, M, &x[0], NULL, NULL, 0, NULL, NULL, NULL);
+  finufftf_setpts(plan, M, &x[0], nullptr, nullptr, 0, nullptr, nullptr, nullptr);
 
   // generate some complex strengths
-  vector<complex<float>> c(M);
+  std::vector<std::complex<float>> c(M);
   for (int j = 0; j < M; ++j)
-    c[j] =
-        2 * ((float)rand() / RAND_MAX) - 1 + 1if * (2 * ((float)rand() / RAND_MAX) - 1);
+    c[j] = 2 * ((float)std::rand() / RAND_MAX) - 1 +
+           I * (2 * ((float)std::rand() / RAND_MAX) - 1);
 
   // alloc output array for the Fourier modes, then do the transform
-  vector<complex<float>> F(N);
+  std::vector<std::complex<float>> F(N);
   int ier = finufftf_execute(plan, &c[0], &F[0]);
 
   // for fun, do another with same NU pts (no re-sorting), but new strengths...
   for (int j = 0; j < M; ++j)
-    c[j] =
-        2 * ((float)rand() / RAND_MAX) - 1 + 1if * (2 * ((float)rand() / RAND_MAX) - 1);
+    c[j] = 2 * ((float)std::rand() / RAND_MAX) - 1 +
+           I * (2 * ((float)std::rand() / RAND_MAX) - 1);
   ier = finufftf_execute(plan, &c[0], &F[0]);
 
   finufftf_destroy(plan); // done with transforms of this size
 
   // rest is math checking and reporting...
   int n = 12519; // check the answer just for this mode, must be in [-N/2,N/2)
-  complex<float> Ftest = complex<float>(0, 0);
-  for (int j = 0; j < M; ++j) Ftest += c[j] * exp(1if * (float)n * x[j]);
+  std::complex<float> Ftest = std::complex<float>(0, 0);
+  for (int j = 0; j < M; ++j) Ftest += c[j] * std::exp(I * (float)n * x[j]);
   int nout   = n + N / 2; // index in output array for freq mode n
   float Fmax = 0.0;       // compute inf norm of F
   for (int m = 0; m < N; ++m) {
-    float aF = abs(F[m]);
+    float aF = std::abs(F[m]);
     if (aF > Fmax) Fmax = aF;
   }
-  float err = abs(F[nout] - Ftest) / Fmax;
+  float err = std::abs(F[nout] - Ftest) / Fmax;
   printf("guru 1D type-1 single-prec NUFFT done. ier=%d, rel err in F[%d] is %.3g\n", ier,
          n, err);
 

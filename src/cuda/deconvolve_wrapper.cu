@@ -1,3 +1,4 @@
+#include <cstdlib>
 #include <iomanip>
 #include <iostream>
 
@@ -24,7 +25,7 @@ __global__ void deconvolve_1d(int ms, int nf1, cuda_complex<T> *fw, cuda_complex
     if (modeord == 0) {
       pivot1    = i - ms / 2;
       w1        = (pivot1 >= 0) ? pivot1 : nf1 + pivot1;
-      fwkerind1 = abs(pivot1);
+      fwkerind1 = std::abs(pivot1);
     } else {
       pivot1    = i - ms + ms / 2;
       w1        = (pivot1 >= 0) ? nf1 + i - ms : i;
@@ -55,8 +56,8 @@ __global__ void deconvolve_2d(int ms, int mt, int nf1, int nf2, cuda_complex<T> 
       pivot2    = k2 - mt / 2;
       w1        = (pivot1 >= 0) ? pivot1 : nf1 + pivot1;
       w2        = (pivot2 >= 0) ? pivot2 : nf2 + pivot2;
-      fwkerind1 = abs(pivot1);
-      fwkerind2 = abs(pivot2);
+      fwkerind1 = std::abs(pivot1);
+      fwkerind2 = std::abs(pivot2);
     } else {
       pivot1    = k1 - ms + ms / 2;
       pivot2    = k2 - mt + mt / 2;
@@ -95,9 +96,9 @@ __global__ void deconvolve_3d(int ms, int mt, int mu, int nf1, int nf2, int nf3,
       w1        = (pivot1 >= 0) ? pivot1 : nf1 + pivot1;
       w2        = (pivot2 >= 0) ? pivot2 : nf2 + pivot2;
       w3        = (pivot3 >= 0) ? pivot3 : nf3 + pivot3;
-      fwkerind1 = abs(pivot1);
-      fwkerind2 = abs(pivot2);
-      fwkerind3 = abs(pivot3);
+      fwkerind1 = std::abs(pivot1);
+      fwkerind2 = std::abs(pivot2);
+      fwkerind3 = std::abs(pivot3);
     } else {
       pivot1    = k1 - ms + ms / 2;
       pivot2    = k2 - mt + mt / 2;
@@ -129,7 +130,7 @@ __global__ void amplify_1d(int ms, int nf1, cuda_complex<T> *fw, cuda_complex<T>
     if (modeord == 0) {
       pivot1    = i - ms / 2;
       w1        = (pivot1 >= 0) ? pivot1 : nf1 + pivot1;
-      fwkerind1 = abs(pivot1);
+      fwkerind1 = std::abs(pivot1);
     } else {
       pivot1    = i - ms + ms / 2;
       w1        = (pivot1 >= 0) ? nf1 + i - ms : i;
@@ -160,8 +161,8 @@ __global__ void amplify_2d(int ms, int mt, int nf1, int nf2, cuda_complex<T> *fw
       pivot2    = k2 - mt / 2;
       w1        = (pivot1 >= 0) ? pivot1 : nf1 + pivot1;
       w2        = (pivot2 >= 0) ? pivot2 : nf2 + pivot2;
-      fwkerind1 = abs(pivot1);
-      fwkerind2 = abs(pivot2);
+      fwkerind1 = std::abs(pivot1);
+      fwkerind2 = std::abs(pivot2);
     } else {
       pivot1    = k1 - ms + ms / 2;
       pivot2    = k2 - mt + mt / 2;
@@ -200,9 +201,9 @@ __global__ void amplify_3d(int ms, int mt, int mu, int nf1, int nf2, int nf3,
       w1        = (pivot1 >= 0) ? pivot1 : nf1 + pivot1;
       w2        = (pivot2 >= 0) ? pivot2 : nf2 + pivot2;
       w3        = (pivot3 >= 0) ? pivot3 : nf3 + pivot3;
-      fwkerind1 = abs(pivot1);
-      fwkerind2 = abs(pivot2);
-      fwkerind3 = abs(pivot3);
+      fwkerind1 = std::abs(pivot1);
+      fwkerind2 = std::abs(pivot2);
+      fwkerind3 = std::abs(pivot3);
     } else {
       pivot1    = k1 - ms + ms / 2;
       pivot2    = k2 - mt + mt / 2;
