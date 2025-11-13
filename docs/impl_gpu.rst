@@ -1,8 +1,8 @@
-Implementation details
-======================
+GPU code implementation details
+===============================
 
 This file contains detailed explanations of the algorithms and optimization strategies
-used in the library.
+used in the GPU version of the library.
 
 The focus is on clarity and reproducibility of the core computational techniques,
 including spreading/interpolation schemes, memory access patterns, and kernel launch
@@ -10,7 +10,7 @@ structures.
 
 .. note::
 
-   This is a living document. Implementation details are subject to change as
+   This is a living document, started in 2025 (v 2.4.1). Implementation details are subject to change as
    performance and accuracy improvements are integrated.
 
 Output Driven

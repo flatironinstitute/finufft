@@ -382,7 +382,7 @@ int allocgpumem3d_nupts(cufinufft_plan_t<T> *d_plan)
   int M = d_plan->M;
 
   CUDA_FREE_AND_NULL(d_plan->sortidx, stream, d_plan->supports_pools);
-  CUDA_FREE_AND_NULL(d_plan->idxnupts, stream, d_plan->supports_pools)
+  CUDA_FREE_AND_NULL(d_plan->idxnupts, stream, d_plan->supports_pools);
 
   switch (d_plan->opts.gpu_method) {
   case 1: {
