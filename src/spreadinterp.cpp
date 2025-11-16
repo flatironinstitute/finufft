@@ -2,6 +2,7 @@
 
 #include <finufft/finufft_utils.hpp>
 #include <finufft/spreadinterp.h>
+#include <finufft_common/kernel.h>
 
 #include "ker_horner_allw_loop_constexpr.h"
 #include "ker_lowupsampfac_horner_allw_loop_constexpr.h"
@@ -18,11 +19,12 @@
 using namespace std;
 using namespace finufft::utils;  // access to timer
 using namespace finufft::common; // access to constants and dispatch
+using namespace finufft::kernel; // access to kernel evaluation funcs
 
 namespace finufft::spreadinterp {
 
-namespace { // anonymous namespace for internal structs equivalent to declaring everything
-            // static
+namespace {
+// anonymous namespace for internal structs equivalent to declaring everything static
 struct zip_low {
   // helper struct to get the lower half of a SIMD register and zip it with itself
   // it returns index 0, 0, 1, 1, ... N/2, N/2
@@ -280,9 +282,9 @@ static void evaluate_kernel_vector(T *ker, T *args,
 template<typename T, uint8_t w, uint8_t upsampfact,
          class simd_type =
              xsimd::make_sized_batch_t<T, find_optimal_simd_width<T, w>()>> // aka ns
-static FINUFFT_ALWAYS_INLINE void eval_kernel_vec_Horner(T *FINUFFT_RESTRICT ker, T x,
-                                                         const finufft_spread_opts &opts
-                                                         [[maybe_unused]]) noexcept
+static FINUFFT_ALWAYS_INLINE void eval_kernel_vec_Horner(
+    T *FINUFFT_RESTRICT ker, T x, const finufft_spread_opts &opts [[maybe_unused]],
+    const T *horner_coeffs_ptr) noexcept
 /* Fill ker[] with Horner piecewise poly approx to [-w/2,w/2] ES kernel eval at
 x_j = x + j,  for j=0,..,w-1.  Thus x in [-w/2,-w/2+1].   w is aka ns.
 This is the current evaluation method, since it's faster (except i7 w=16).
@@ -290,23 +292,13 @@ Two upsampfacs implemented. Params must match ref formula. Barnett 4/24/18 */
 
 {
   // scale so local grid offset z in[-1,1]
-  const T z                           = std::fma(T(2.0), x, T(w - 1));
-  using arch_t                        = typename simd_type::arch_type;
-  static constexpr auto alignment     = arch_t::alignment();
-  static constexpr auto simd_size     = simd_type::size;
-  static constexpr auto padded_ns     = (w + simd_size - 1) & ~(simd_size - 1);
-  static constexpr auto horner_coeffs = []() constexpr noexcept {
-    if constexpr (upsampfact == 200) {
-      return get_horner_coeffs_200<T, w>();
-    } else if constexpr (upsampfact == 125) {
-      return get_horner_coeffs_125<T, w>();
-    }
-  }();
-  static constexpr auto nc          = horner_coeffs.size();
+  const T z                       = std::fma(T(2.0), x, T(w - 1));
+  using arch_t                    = typename simd_type::arch_type;
+  static constexpr auto simd_size = simd_type::size;
+  static constexpr auto padded_ns = (w + simd_size - 1) & -simd_size;
+  static constexpr auto nc = upsampfact == 200 ? horner_nc_200<w>() : horner_nc_125<w>();
   static constexpr auto use_ker_sym = (simd_size < w);
-
-  alignas(alignment) static constexpr auto padded_coeffs =
-      pad_2D_array_with_zeros<T, nc, w, padded_ns>(horner_coeffs);
+  static constexpr auto stride = padded_ns; // number of kernel positions per degree row
 
   // use kernel symmetry trick if w > simd_size
   if constexpr (use_ker_sym) {
@@ -332,19 +324,21 @@ Two upsampfacs implemented. Params must match ref formula. Barnett 4/24/18 */
     simd_type k_prev, k_sym{0};
     for (uint8_t i{0}, offset = offset_start; i < end_idx;
          i += simd_size, offset -= simd_size) {
-      auto k_odd = [i]() constexpr noexcept {
+      auto k_odd = [i, horner_coeffs_ptr]() constexpr noexcept {
         if constexpr (if_odd_degree) {
-          return simd_type::load_aligned(padded_coeffs[0].data() + i);
+          return simd_type::load_aligned(horner_coeffs_ptr + i);
         } else {
           return simd_type{0};
         }
       }();
-      auto k_even = simd_type::load_aligned(padded_coeffs[if_odd_degree].data() + i);
+      auto k_even =
+          simd_type::load_aligned(horner_coeffs_ptr + if_odd_degree * stride + i);
       for (uint8_t j{1 + if_odd_degree}; j < nc; j += 2) {
-        const auto cji_odd  = simd_type::load_aligned(padded_coeffs[j].data() + i);
-        const auto cji_even = simd_type::load_aligned(padded_coeffs[j + 1].data() + i);
-        k_odd               = xsimd::fma(k_odd, z2v, cji_odd);
-        k_even              = xsimd::fma(k_even, z2v, cji_even);
+        const auto cji_odd = simd_type::load_aligned(horner_coeffs_ptr + j * stride + i);
+        const auto cji_even =
+            simd_type::load_aligned(horner_coeffs_ptr + (j + 1) * stride + i);
+        k_odd  = xsimd::fma(k_odd, z2v, cji_odd);
+        k_even = xsimd::fma(k_even, z2v, cji_even);
       }
       // left part
       xsimd::fma(k_odd, zv, k_even).store_aligned(ker + i);
@@ -364,9 +358,9 @@ Two upsampfacs implemented. Params must match ref formula. Barnett 4/24/18 */
   } else {
     const simd_type zv(z);
     for (uint8_t i = 0; i < w; i += simd_size) {
-      auto k = simd_type::load_aligned(padded_coeffs[0].data() + i);
+      auto k = simd_type::load_aligned(horner_coeffs_ptr + i);
       for (uint8_t j = 1; j < nc; ++j) {
-        const auto cji = simd_type::load_aligned(padded_coeffs[j].data() + i);
+        const auto cji = simd_type::load_aligned(horner_coeffs_ptr + j * stride + i);
         k              = xsimd::fma(k, zv, cji);
       }
       k.store_aligned(ker + i);
@@ -817,7 +811,8 @@ template<int ns, int kerevalmeth, class T,
          class simd_type = xsimd::make_sized_batch_t<T, find_optimal_simd_width<T, ns>()>,
          typename... V>
 static FINUFFT_ALWAYS_INLINE auto ker_eval(
-    T *FINUFFT_RESTRICT ker, const finufft_spread_opts &opts, const V... elems) noexcept {
+    T *FINUFFT_RESTRICT ker, const finufft_spread_opts &opts, const T *horner_coeffs_ptr,
+    const V... elems) noexcept {
   /* Utility function that allows to move the kernel evaluation outside the spreader for
      clarity
      Inputs are:
@@ -841,11 +836,11 @@ static FINUFFT_ALWAYS_INLINE auto ker_eval(
     if constexpr (kerevalmeth == 1) {
       if (opts.upsampfac == 2.0) {
         eval_kernel_vec_Horner<T, ns, 200, simd_type>(ker + (i * MAX_NSPREAD), inputs[i],
-                                                      opts);
+                                                      opts, horner_coeffs_ptr);
       }
       if (opts.upsampfac == 1.25) {
         eval_kernel_vec_Horner<T, ns, 125, simd_type>(ker + (i * MAX_NSPREAD), inputs[i],
-                                                      opts);
+                                                      opts, horner_coeffs_ptr);
       }
     }
     if constexpr (kerevalmeth == 0) {
@@ -860,7 +855,8 @@ static FINUFFT_ALWAYS_INLINE auto ker_eval(
 template<typename T, int ns, int kerevalmeth>
 FINUFFT_NEVER_INLINE void spread_subproblem_1d_kernel(
     const BIGINT off1, const UBIGINT size1, T *FINUFFT_RESTRICT du, const UBIGINT M,
-    const T *const kx, const T *const dd, const finufft_spread_opts &opts) noexcept {
+    const T *const kx, const T *const dd, const finufft_spread_opts &opts,
+    const T *horner_coeffs_ptr) noexcept {
   /* 1D spreader from nonuniform to uniform subproblem grid, without wrapping.
      Inputs:
      off1 - integer offset of left end of du subgrid from that of overall fine
@@ -921,7 +917,7 @@ FINUFFT_NEVER_INLINE void spread_subproblem_1d_kernel(
     }();
     // Libin improvement: pass ker as a parameter and allocate it outside the loop
     // gcc13 + 10% speedup
-    ker_eval<ns, kerevalmeth, T, simd_type>(ker.data(), opts, x1);
+    ker_eval<ns, kerevalmeth, T, simd_type>(ker.data(), opts, horner_coeffs_ptr, x1);
     //    const auto ker = ker_eval<ns, kerevalmeth, T, simd_type>(opts, x1);
     const auto j = i1 - off1; // offset rel to subgrid, starts the output indices
     auto *FINUFFT_RESTRICT trg = du + 2 * j; // restrict helps compiler to vectorize
@@ -1007,8 +1003,10 @@ template<typename T> struct SpreadSubproblem1dCaller {
   const T *kx;
   const T *dd;
   const finufft_spread_opts &opts;
+  const T *horner_coeffs_ptr;
   template<int NS, int KM> int operator()() const {
-    spread_subproblem_1d_kernel<T, NS, KM>(off1, size1, du, M, kx, dd, opts);
+    spread_subproblem_1d_kernel<T, NS, KM>(off1, size1, du, M, kx, dd, opts,
+                                           horner_coeffs_ptr);
     return 0;
   }
 };
@@ -1017,8 +1015,9 @@ template<typename T> struct SpreadSubproblem1dCaller {
 
 template<typename T>
 static void spread_subproblem_1d(BIGINT off1, UBIGINT size1, T *du, UBIGINT M, T *kx,
-                                 T *dd, const finufft_spread_opts &opts) noexcept {
-  SpreadSubproblem1dCaller<T> caller{off1, size1, du, M, kx, dd, opts};
+                                 T *dd, const finufft_spread_opts &opts,
+                                 const T *horner_coeffs_ptr) noexcept {
+  SpreadSubproblem1dCaller<T> caller{off1, size1, du, M, kx, dd, opts, horner_coeffs_ptr};
   using NsSeq  = make_range<MIN_NSPREAD, MAX_NSPREAD>;
   using KerSeq = std::make_integer_sequence<int, KEREVAL_METHODS>;
   auto params  = std::make_tuple(DispatchParam<NsSeq>{opts.nspread},
@@ -1030,7 +1029,7 @@ template<typename T, int ns, int kerevalmeth>
 FINUFFT_NEVER_INLINE static void spread_subproblem_2d_kernel(
     const BIGINT off1, const BIGINT off2, const UBIGINT size1, const UBIGINT size2,
     T *FINUFFT_RESTRICT du, const UBIGINT M, const T *kx, const T *ky, const T *dd,
-    const finufft_spread_opts &opts) noexcept
+    const finufft_spread_opts &opts, const T *horner_coeffs_ptr) noexcept
 /* spreader from dd (NU) to du (uniform) in 2D without wrapping.
    See above docs/notes for spread_subproblem_2d.
    kx,ky (size M) are NU locations in [off+ns/2,off+size-1-ns/2] in both dims.
@@ -1056,7 +1055,8 @@ FINUFFT_NEVER_INLINE static void spread_subproblem_2d_kernel(
     const auto i2 = (BIGINT)std::ceil(ky[pt] - ns2);
     const auto x1 = (T)std::ceil(kx[pt] - ns2) - kx[pt];
     const auto x2 = (T)std::ceil(ky[pt] - ns2) - ky[pt];
-    ker_eval<ns, kerevalmeth, T, simd_type>(kernel_values.data(), opts, x1, x2);
+    ker_eval<ns, kerevalmeth, T, simd_type>(kernel_values.data(), opts, horner_coeffs_ptr,
+                                            x1, x2);
     const auto *ker1 = kernel_values.data();
     const auto *ker2 = kernel_values.data() + MAX_NSPREAD;
     // Combine kernel with complex source value to simplify inner loop
@@ -1130,9 +1130,10 @@ template<typename T> struct SpreadSubproblem2dCaller {
   const T *ky;
   const T *dd;
   const finufft_spread_opts &opts;
+  const T *horner_coeffs_ptr;
   template<int NS, int KM> int operator()() const {
     spread_subproblem_2d_kernel<T, NS, KM>(off1, off2, size1, size2, du, M, kx, ky, dd,
-                                           opts);
+                                           opts, horner_coeffs_ptr);
     return 0;
   }
 };
@@ -1140,10 +1141,10 @@ template<typename T> struct SpreadSubproblem2dCaller {
 } // namespace
 
 template<typename T>
-static void spread_subproblem_2d(BIGINT off1, BIGINT off2, UBIGINT size1, UBIGINT size2,
-                                 T *FINUFFT_RESTRICT du, UBIGINT M, const T *kx,
-                                 const T *ky, const T *dd,
-                                 const finufft_spread_opts &opts) noexcept
+static void spread_subproblem_2d(
+    BIGINT off1, BIGINT off2, UBIGINT size1, UBIGINT size2, T *FINUFFT_RESTRICT du,
+    UBIGINT M, const T *kx, const T *ky, const T *dd, const finufft_spread_opts &opts,
+    const T *horner_coeffs_ptr) noexcept
 /* spreader from dd (NU) to du (uniform) in 2D without wrapping.
    See above docs/notes for spread_subproblem_2d.
    kx,ky (size M) are NU locations in [off+ns/2,off+size-1-ns/2] in both dims.
@@ -1152,7 +1153,8 @@ static void spread_subproblem_2d(BIGINT off1, BIGINT off2, UBIGINT size1, UBIGIN
    For algoritmic details see spread_subproblem_1d_kernel.
 */
 {
-  SpreadSubproblem2dCaller<T> caller{off1, off2, size1, size2, du, M, kx, ky, dd, opts};
+  SpreadSubproblem2dCaller<T> caller{
+      off1, off2, size1, size2, du, M, kx, ky, dd, opts, horner_coeffs_ptr};
   using NsSeq  = make_range<MIN_NSPREAD, MAX_NSPREAD>;
   using KerSeq = std::make_integer_sequence<int, KEREVAL_METHODS>;
   auto params  = std::make_tuple(DispatchParam<NsSeq>{opts.nspread},
@@ -1164,8 +1166,8 @@ template<typename T, int ns, int kerevalmeth>
 FINUFFT_NEVER_INLINE void spread_subproblem_3d_kernel(
     const BIGINT off1, const BIGINT off2, const BIGINT off3, const UBIGINT size1,
     const UBIGINT size2, const UBIGINT size3, T *FINUFFT_RESTRICT du, const UBIGINT M,
-    const T *kx, const T *ky, const T *kz, const T *dd,
-    const finufft_spread_opts &opts) noexcept {
+    const T *kx, const T *ky, const T *kz, const T *dd, const finufft_spread_opts &opts,
+    const T *horner_coeffs_ptr) noexcept {
   using simd_type                 = PaddedSIMD<T, 2 * ns>;
   using arch_t                    = typename simd_type::arch_type;
   static constexpr auto padding   = get_padding<T, 2 * ns>();
@@ -1186,7 +1188,8 @@ FINUFFT_NEVER_INLINE void spread_subproblem_3d_kernel(
     const auto x2 = std::ceil(ky[pt] - ns2) - ky[pt];
     const auto x3 = std::ceil(kz[pt] - ns2) - kz[pt];
 
-    ker_eval<ns, kerevalmeth, T, simd_type>(kernel_values.data(), opts, x1, x2, x3);
+    ker_eval<ns, kerevalmeth, T, simd_type>(kernel_values.data(), opts, horner_coeffs_ptr,
+                                            x1, x2, x3);
     const auto *ker1 = kernel_values.data();
     const auto *ker2 = kernel_values.data() + MAX_NSPREAD;
     const auto *ker3 = kernel_values.data() + 2 * MAX_NSPREAD;
@@ -1248,9 +1251,10 @@ template<typename T> struct SpreadSubproblem3dCaller {
   T *kz;
   T *dd;
   const finufft_spread_opts &opts;
+  const T *horner_coeffs_ptr;
   template<int NS, int KM> int operator()() const {
     spread_subproblem_3d_kernel<T, NS, KM>(off1, off2, off3, size1, size2, size3, du, M,
-                                           kx, ky, kz, dd, opts);
+                                           kx, ky, kz, dd, opts, horner_coeffs_ptr);
     return 0;
   }
 };
@@ -1260,8 +1264,8 @@ template<typename T> struct SpreadSubproblem3dCaller {
 template<typename T>
 static void spread_subproblem_3d(BIGINT off1, BIGINT off2, BIGINT off3, UBIGINT size1,
                                  UBIGINT size2, UBIGINT size3, T *du, UBIGINT M, T *kx,
-                                 T *ky, T *kz, T *dd,
-                                 const finufft_spread_opts &opts) noexcept
+                                 T *ky, T *kz, T *dd, const finufft_spread_opts &opts,
+                                 const T *horner_coeffs_ptr) noexcept
 /* spreader from dd (NU) to du (uniform) in 3D without wrapping.
 See above docs/notes for spread_subproblem_2d.
 kx,ky,kz (size M) are NU locations in [off+ns/2,off+size-1-ns/2] in each dim.
@@ -1269,8 +1273,9 @@ dd (size M complex) are complex source strengths
 du (size size1*size2*size3) is uniform complex output array
 */
 {
-  SpreadSubproblem3dCaller<T> caller{off1, off2, off3, size1, size2, size3, du,
-                                     M,    kx,   ky,   kz,    dd,    opts};
+  SpreadSubproblem3dCaller<T> caller{
+      off1, off2, off3, size1, size2, size3, du,
+      M,    kx,   ky,   kz,    dd,    opts,  horner_coeffs_ptr};
   using NsSeq  = make_range<MIN_NSPREAD, MAX_NSPREAD>;
   using KerSeq = std::make_integer_sequence<int, KEREVAL_METHODS>;
   auto params  = std::make_tuple(DispatchParam<NsSeq>{opts.nspread},
@@ -1561,93 +1566,6 @@ static void get_subgrid(BIGINT &offset1, BIGINT &offset2, BIGINT &offset3,
 }
 
 // ==========================================================================
-template<typename T>
-int spreadinterp(UBIGINT N1, UBIGINT N2, UBIGINT N3, T *data_uniform, UBIGINT M,
-                 const T *kx, const T *ky, const T *kz, T *data_nonuniform,
-                 const finufft_spread_opts &opts)
-/* ------------Spreader/interpolator for 1, 2, or 3 dimensions --------------
-   If opts.spread_direction=1, evaluate, in the 1D case,
-
-                         N1-1
-   data_nonuniform[j] =  SUM phi(kx[j] - n) data_uniform[n],   for j=0...M-1
-                         n=0
-
-   If opts.spread_direction=2, evaluate its transpose, in the 1D case,
-
-                      M-1
-   data_uniform[n] =  SUM phi(kx[j] - n) data_nonuniform[j],   for n=0...N1-1
-                      j=0
-
-   In each case phi is the spreading kernel, which has support
-   [-opts.nspread/2,opts.nspread/2]. In 2D or 3D, the generalization with
-   product of 1D kernels is performed.
-   For 1D set N2=N3=1; for 2D set N3=1; for 3D set N1,N2,N3>1.
-
-   Notes:
-   No particular normalization of the spreading kernel is assumed.
-   Uniform (U) points are centered at coords
-   [0,1,...,N1-1] in 1D, analogously in 2D and 3D. They are stored in x
-   fastest, y medium, z slowest ordering, up to however many
-   dimensions are relevant; note that this is Fortran-style ordering for an
-   array f(x,y,z), but C style for f[z][y][x]. This is to match the Fortran
-   interface of the original CMCL libraries.
-   Non-uniform (NU) points kx,ky,kz are real, and may lie in the central three
-   periods in each coordinate (these are folded into the central period).
-   The finufft_spread_opts struct must have been set up already by calling setup_kernel.
-   It is assumed that 2*opts.nspread < min(N1,N2,N3), so that the kernel
-   only ever wraps once when falls below 0 or off the top of a uniform grid
-   dimension.
-
-   Inputs:
-   N1,N2,N3 - grid sizes in x (fastest), y (medium), z (slowest) respectively.
-              If N2==1, 1D spreading is done. If N3==1, 2D spreading.
-          Otherwise, 3D.
-   M - number of NU pts.
-   kx, ky, kz - length-M real arrays of NU point coordinates (only kx read in
-                1D, only kx and ky read in 2D).
-
-        These should lie in the box -pi<=kx<=pi. Points outside this domain are also
-        correctly folded back into this domain.
-   opts - spread/interp options struct, documented in ../include/finufft_spread_opts.h
-
-   Inputs/Outputs:
-   data_uniform - output values on grid (dir=1) OR input grid data (dir=2)
-   data_nonuniform - input strengths of the sources (dir=1)
-                     OR output values at targets (dir=2)
-   Returned value:
-   0 indicates success; other values have meanings in ../docs/error.rst, with
-   following modifications:
-      3 : one or more non-trivial box dimensions is less than 2.nspread.
-      5 : failed allocate sort indices
-
-   Magland Dec 2016. Barnett openmp version, many speedups 1/16/17-2/16/17
-   error codes 3/13/17. pirange 3/28/17. Rewritten 6/15/17. parallel sort 2/9/18
-   No separate subprob indices in t-1 2/11/18.
-   sort_threads (since for M<<N, multithread sort slower than single) 3/27/18
-   kereval, kerpad 4/24/18
-   Melody Shih split into 3 routines: check, sort, spread. Jun 2018, making
-   this routine just a caller to them. Name change, Barnett 7/27/18
-   Tidy, Barnett 5/20/20. Tidy doc, Barnett 10/22/20.
-*/
-{
-  int ier = spreadcheck(N1, N2, N3, opts);
-  if (ier) return ier;
-  std::vector<BIGINT> sort_indices(M);
-  int did_sort = indexSort(sort_indices, N1, N2, N3, M, kx, ky, kz, opts);
-  spreadinterpSorted<T>(sort_indices, N1, N2, N3, data_uniform, M, kx, ky, kz,
-                        data_nonuniform, opts, did_sort, false);
-  return 0;
-}
-
-template FINUFFT_EXPORT_TEST int spreadinterp<float>(
-    UBIGINT N1, UBIGINT N2, UBIGINT N3, float *data_uniform, UBIGINT M, const float *kx,
-    const float *ky, const float *kz, float *data_nonuniform,
-    const finufft_spread_opts &opts);
-template FINUFFT_EXPORT_TEST int spreadinterp<double>(
-    UBIGINT N1, UBIGINT N2, UBIGINT N3, double *data_uniform, UBIGINT M, const double *kx,
-    const double *ky, const double *kz, double *data_nonuniform,
-    const finufft_spread_opts &opts);
-
 static constexpr uint8_t ndims_from_Ns(const UBIGINT /*N1*/, const UBIGINT N2,
                                        const UBIGINT N3)
 /* rule for getting number of spreading dimensions from the list of Ns per dim.
@@ -1767,11 +1685,11 @@ template int indexSort<double>(std::vector<BIGINT> &sort_indices, UBIGINT N1, UB
 
 // --------------------------------------------------------------------------
 template<typename T>
-static int spreadSorted(const std::vector<BIGINT> &sort_indices, UBIGINT N1, UBIGINT N2,
-                        UBIGINT N3, T *FINUFFT_RESTRICT data_uniform, UBIGINT M,
-                        const T *FINUFFT_RESTRICT kx, const T *FINUFFT_RESTRICT ky,
-                        const T *FINUFFT_RESTRICT kz, const T *data_nonuniform,
-                        const finufft_spread_opts &opts, int did_sort)
+static int spreadSorted(
+    const std::vector<BIGINT> &sort_indices, UBIGINT N1, UBIGINT N2, UBIGINT N3,
+    T *FINUFFT_RESTRICT data_uniform, UBIGINT M, const T *FINUFFT_RESTRICT kx,
+    const T *FINUFFT_RESTRICT ky, const T *FINUFFT_RESTRICT kz, const T *data_nonuniform,
+    const finufft_spread_opts &opts, int did_sort, const T *horner_coeffs_ptr)
 // Spread NU pts in sorted order to a uniform grid. See spreadinterp() for doc.
 {
   CNTime timer{};
@@ -1862,14 +1780,15 @@ static int spreadSorted(const std::vector<BIGINT> &sort_indices, UBIGINT N1, UBI
         if (!(opts.flags & TF_OMIT_SPREADING)) {
           if (ndims == 1)
             spread_subproblem_1d(offset1, padded_size1, du0.data(), M0, kx0.data(),
-                                 dd0.data(), opts);
+                                 dd0.data(), opts, horner_coeffs_ptr);
           else if (ndims == 2)
             spread_subproblem_2d(offset1, offset2, padded_size1, size2, du0.data(), M0,
-                                 kx0.data(), ky0.data(), dd0.data(), opts);
+                                 kx0.data(), ky0.data(), dd0.data(), opts,
+                                 horner_coeffs_ptr);
           else
             spread_subproblem_3d(offset1, offset2, offset3, padded_size1, size2, size3,
                                  du0.data(), M0, kx0.data(), ky0.data(), kz0.data(),
-                                 dd0.data(), opts);
+                                 dd0.data(), opts, horner_coeffs_ptr);
         }
         // do the adding of subgrid to output
         if (!(opts.flags & TF_OMIT_WRITE_TO_GRID)) {
@@ -1900,7 +1819,7 @@ FINUFFT_NEVER_INLINE static int interpSorted_kernel(
     const UBIGINT N3, const T *data_uniform, const UBIGINT M,
     const T *FINUFFT_RESTRICT kx, const T *FINUFFT_RESTRICT ky,
     const T *FINUFFT_RESTRICT kz, T *FINUFFT_RESTRICT data_nonuniform,
-    const finufft_spread_opts &opts)
+    const finufft_spread_opts &opts, const T *horner_coeffs_ptr)
 // Interpolate to NU pts in sorted order from a uniform grid.
 // See spreadinterp() for doc.
 {
@@ -1969,17 +1888,19 @@ FINUFFT_NEVER_INLINE static int interpSorted_kernel(
         if (!(opts.flags & TF_OMIT_SPREADING)) {
           switch (ndims) {
           case 1:
-            ker_eval<ns, kerevalmeth, T, simd_type>(kernel_values.data(), opts, x1);
+            ker_eval<ns, kerevalmeth, T, simd_type>(kernel_values.data(), opts,
+                                                    horner_coeffs_ptr, x1);
             interp_line<T, ns, simd_type>(target, data_uniform, ker1, i1, N1);
             break;
           case 2:
-            ker_eval<ns, kerevalmeth, T, simd_type>(kernel_values.data(), opts, x1, x2);
+            ker_eval<ns, kerevalmeth, T, simd_type>(kernel_values.data(), opts,
+                                                    horner_coeffs_ptr, x1, x2);
             interp_square<T, ns, simd_type>(target, data_uniform, ker1, ker2, i1, i2, N1,
                                             N2);
             break;
           case 3:
-            ker_eval<ns, kerevalmeth, T, simd_type>(kernel_values.data(), opts, x1, x2,
-                                                    x3);
+            ker_eval<ns, kerevalmeth, T, simd_type>(kernel_values.data(), opts,
+                                                    horner_coeffs_ptr, x1, x2, x3);
             interp_cube<T, ns, simd_type>(target, data_uniform, ker1, ker2, ker3, i1, i2,
                                           i3, N1, N2, N3);
             break;
@@ -2015,22 +1936,26 @@ template<typename T> struct InterpSortedCaller {
   const T *kz;
   T *data_nonuniform;
   const finufft_spread_opts &opts;
+  const T *horner_coeffs_ptr;
   template<int NS, int KM> int operator()() const {
     return interpSorted_kernel<T, NS, KM>(sort_indices, N1, N2, N3, data_uniform, M, kx,
-                                          ky, kz, data_nonuniform, opts);
+                                          ky, kz, data_nonuniform, opts,
+                                          horner_coeffs_ptr);
   }
 };
 
 } // namespace
 
 template<typename T>
-static int interpSorted(
-    const std::vector<BIGINT> &sort_indices, const UBIGINT N1, const UBIGINT N2,
-    const UBIGINT N3, T *FINUFFT_RESTRICT data_uniform, const UBIGINT M,
-    const T *FINUFFT_RESTRICT kx, const T *FINUFFT_RESTRICT ky, const T *FINUFFT_RESTRICT kz,
-    T *FINUFFT_RESTRICT data_nonuniform, const finufft_spread_opts &opts) {
-  InterpSortedCaller<T> caller{sort_indices,    N1,  N2, N3, data_uniform, M, kx, ky, kz,
-                               data_nonuniform, opts};
+static int interpSorted(const std::vector<BIGINT> &sort_indices, const UBIGINT N1,
+                        const UBIGINT N2, const UBIGINT N3,
+                        T *FINUFFT_RESTRICT data_uniform, const UBIGINT M,
+                        const T *FINUFFT_RESTRICT kx, const T *FINUFFT_RESTRICT ky,
+                        const T *FINUFFT_RESTRICT kz, T *FINUFFT_RESTRICT data_nonuniform,
+                        const finufft_spread_opts &opts, const T *horner_coeffs_ptr) {
+  InterpSortedCaller<T> caller{
+      sort_indices,     N1, N2, N3, data_uniform, M, kx, ky, kz, data_nonuniform, opts,
+      horner_coeffs_ptr};
   using NsSeq  = make_range<MIN_NSPREAD, MAX_NSPREAD>;
   using KerSeq = std::make_integer_sequence<int, KEREVAL_METHODS>;
   auto params  = std::make_tuple(DispatchParam<NsSeq>{opts.nspread},
@@ -2039,26 +1964,124 @@ static int interpSorted(
 }
 
 template<typename T>
-int spreadinterpSorted(const std::vector<BIGINT> &sort_indices, const UBIGINT N1,
-                       const UBIGINT N2, const UBIGINT N3, T *data_uniform,
-                       const UBIGINT M, const T *FINUFFT_RESTRICT kx,
-                       const T *FINUFFT_RESTRICT ky, const T *FINUFFT_RESTRICT kz,
-                       T *FINUFFT_RESTRICT data_nonuniform,
-                       const finufft_spread_opts &opts, int did_sort, bool adjoint)
-/* Logic to select the main spreading (dir=1) vs interpolation (dir=2) routine.
-   See spreadinterp() above for inputs arguments and definitions.
-   Return value should always be 0 (no error reporting).
-   Split out by Melody Shih, Jun 2018; renamed Barnett 5/20/20.
+int spreadinterpSorted(
+    const std::vector<BIGINT> &sort_indices, const UBIGINT N1, const UBIGINT N2,
+    const UBIGINT N3, T *data_uniform, const UBIGINT M, const T *FINUFFT_RESTRICT kx,
+    const T *FINUFFT_RESTRICT ky, const T *FINUFFT_RESTRICT kz,
+    T *FINUFFT_RESTRICT data_nonuniform, const finufft_spread_opts &opts, int did_sort,
+    bool adjoint, const T *horner_coeffs)
+/* ------------Spreader/interpolator for 1, 2, or 3 dimensions --------------
+  The concrete operation performed depends on both `opts.spread_direction`
+  and the `adjoint` flag passed by the caller. When `adjoint` is false the
+  function implements the semantics of `opts.spread_direction` directly; when
+  `adjoint` is true the semantics are transposed (spread <-> interp swapped).
+
+  For illustration, in the 1D case with `adjoint==false`:
+
+  - If opts.spread_direction==1, the implemented operation is
+
+                 N1-1
+    data_nonuniform[j] =  SUM phi(kx[j] - n) data_uniform[n],   for j=0...M-1
+                 n=0
+
+  - If opts.spread_direction==2, the implemented operation is the transpose
+
+               M-1
+    data_uniform[n] =  SUM phi(kx[j] - n) data_nonuniform[j],   for n=0...N1-1
+               j=0
+
+  When `adjoint==true` the two formulas above are swapped (i.e. the
+  function dispatches to the interpolation implementation when the pair
+  `(opts.spread_direction, adjoint)` indicates it).
+
+   In each case phi is the spreading kernel, which has support
+   [-opts.nspread/2,opts.nspread/2]. In 2D or 3D, the generalization with
+   product of 1D kernels is performed.
+   For 1D set N2=N3=1; for 2D set N3=1; for 3D set N1,N2,N3>1.
+
+   Notes:
+   No particular normalization of the spreading kernel is assumed.
+   Uniform (U) points are centered at coords
+   [0,1,...,N1-1] in 1D, analogously in 2D and 3D. They are stored in x
+   fastest, y medium, z slowest ordering, up to however many
+   dimensions are relevant; note that this is Fortran-style ordering for an
+   array f(x,y,z), but C style for f[z][y][x]. This is to match the Fortran
+   interface of the original CMCL libraries.
+  Non-uniform (NU) points kx,ky,kz are real and are folded into the uniform
+  grid period by the internal `fold_rescale` helper. Historically the code
+  expected points within the central three periods, but `fold_rescale` now
+  accepts arbitrary real inputs and reduces them to the canonical period;
+  very large magnitudes can, however, suffer numerical inaccuracy in the
+  folding operation.
+   The finufft_spread_opts struct must have been set up already by calling setup_kernel.
+  The caller must ensure the grid is large enough for spreading: in normal
+  use this is checked by `spreadcheck(...)` (called from `setpts`) which
+  enforces `2*opts.nspread < min(N1,N2,N3)`. If that condition is violated
+  the check returns an error and spreading must not proceed.
+
+   Inputs:
+  sort_indices - length-M permutation giving the order in which nonuniform
+            points should be processed (typically produced by
+            indexSort/bin_sort). The implementation accesses
+            kx[sort_indices[j]], ky[sort_indices[j]], etc. If no sort
+            was performed, sort_indices should contain the identity
+            permutation (0..M-1).
+  did_sort     - integer flag (0/1) indicating whether a sort was actually
+            performed. This can affect subproblem splitting heuristics
+            inside the routine; callers should pass the return value of
+            indexSort here.
+  adjoint      - if true, request the adjoint (transpose) operation. Concretely
+            this function dispatches to the two internal routines as follows:
+            it calls `spreadSorted(...)` when (opts.spread_direction == 1) !=
+            adjoint, and calls `interpSorted(...)` otherwise. In short,
+            `adjoint` flips whether spreading (uniform->nonuniform) or
+            interpolation (nonuniform->uniform) is performed relative to the
+            meaning of `opts.spread_direction`.
+  horner_coeffs - pointer to Horner-format kernel coefficients (may be
+            nullptr if not used); used when kerevalmeth selects Horner
+            evaluation.
+
+   N1,N2,N3 - grid sizes in x (fastest), y (medium), z (slowest) respectively.
+              If N2==1, 1D spreading is done. If N3==1, 2D spreading.
+          Otherwise, 3D.
+   M - number of NU pts.
+   kx, ky, kz - length-M real arrays of NU point coordinates (only kx read in
+                1D, only kx and ky read in 2D).
+
+        These should lie in the box -pi<=kx<=pi. Points outside this domain are also
+        correctly folded back into this domain.
+   opts - spread/interp options struct, documented in ../include/finufft_spread_opts.h
+
+   Inputs/Outputs:
+   data_uniform - output values on grid (dir=1) OR input grid data (dir=2)
+   data_nonuniform - input strengths of the sources (dir=1)
+                     OR output values at targets (dir=2)
+  Returned value:
+  This wrapper (`spreadinterpSorted`) always returns 0 after dispatching to
+  the sorted spread or interp implementations; input validation and any
+  errors (for example the box-too-small condition or failures in sorting)
+  are performed earlier (see `spreadcheck` called from `setpts` and
+  `indexSort`/`bin_sort`). See ../docs/error.rst and `include/finufft_errors.h`
+  for the global error codes that higher-level callers may receive.
+
+   Magland Dec 2016. Barnett openmp version, many speedups 1/16/17-2/16/17
+   error codes 3/13/17. pirange 3/28/17. Rewritten 6/15/17. parallel sort 2/9/18
+   No separate subprob indices in t-1 2/11/18.
+   sort_threads (since for M<<N, multithread sort slower than single) 3/27/18
+   kereval, kerpad 4/24/18
+   Melody Shih split into 3 routines: check, sort, spread. Jun 2018, making
+   this routine just a caller to them. Name change, Barnett 7/27/18
+   Tidy, Barnett 5/20/20. Tidy doc, Barnett 10/22/20.
 */
 {
   if ((opts.spread_direction == 1) != adjoint) // ========= direction 1 (spreading)
                                                // =======
     spreadSorted(sort_indices, N1, N2, N3, data_uniform, M, kx, ky, kz, data_nonuniform,
-                 opts, did_sort);
+                 opts, did_sort, horner_coeffs);
 
   else // ================= direction 2 (interpolation) ===========
     interpSorted(sort_indices, N1, N2, N3, data_uniform, M, kx, ky, kz, data_nonuniform,
-                 opts);
+                 opts, horner_coeffs);
 
   return 0;
 }
@@ -2067,20 +2090,21 @@ template int spreadinterpSorted<float>(
     const UBIGINT N3, float *data_uniform, const UBIGINT M,
     const float *FINUFFT_RESTRICT kx, const float *FINUFFT_RESTRICT ky,
     const float *FINUFFT_RESTRICT kz, float *FINUFFT_RESTRICT data_nonuniform,
-    const finufft_spread_opts &opts, int did_sort, bool adjoint);
+    const finufft_spread_opts &opts, int did_sort, bool adjoint,
+    const float *horner_coeffs);
 template int spreadinterpSorted<double>(
     const std::vector<BIGINT> &sort_indices, const UBIGINT N1, const UBIGINT N2,
     const UBIGINT N3, double *data_uniform, const UBIGINT M,
     const double *FINUFFT_RESTRICT kx, const double *FINUFFT_RESTRICT ky,
     const double *FINUFFT_RESTRICT kz, double *FINUFFT_RESTRICT data_nonuniform,
-    const finufft_spread_opts &opts, int did_sort, bool adjoint);
+    const finufft_spread_opts &opts, int did_sort, bool adjoint,
+    const double *horner_coeffs);
 
 ///////////////////////////////////////////////////////////////////////////
 
 template<typename T>
-int setup_spreader(
-    finufft_spread_opts &opts, T eps, double upsampfac, int kerevalmeth, int debug,
-    int showwarn, int dim, int spreadinterponly)
+int setup_spreader(finufft_spread_opts &opts, T eps, double upsampfac, int kerevalmeth,
+                   int debug, int showwarn, int dim, int spreadinterponly)
 /* Initializes spreader kernel parameters given desired NUFFT tolerance eps,
    upsampling factor (=sigma in paper, or R in Dutt-Rokhlin), ker eval meth
    (either 0:exp(sqrt()), 1: Horner ppval), and some debug-level flags.
@@ -2184,26 +2208,6 @@ template FINUFFT_EXPORT_TEST int setup_spreader<float>(
 template FINUFFT_EXPORT_TEST int setup_spreader<double>(
     finufft_spread_opts &opts, double eps, double upsampfac, int kerevalmeth, int debug,
     int showwarn, int dim, int spreadinterponly);
-
-template<typename T>
-T evaluate_kernel(T x, const finufft_spread_opts &opts)
-/* ES ("exp sqrt") kernel evaluation at single real argument:
-      phi(x) = exp(beta.(sqrt(1 - (2x/n_s)^2) - 1)),    for |x| < nspread/2
-   related to an asymptotic approximation to the Kaiser--Bessel, itself an
-   approximation to prolate spheroidal wavefunction (PSWF) of order 0.
-   This is the "reference implementation", used by eg finufft/onedim_* 2/17/17.
-   Rescaled so max is 1, Barnett 7/21/24
-*/
-{
-  if (abs(x) >= (T)opts.ES_halfwidth)
-    // if spreading/FT careful, shouldn't need this if, but causes no speed hit
-    return 0.0;
-  else
-    return exp((T)opts.ES_beta * (sqrt((T)1.0 - (T)opts.ES_c * x * x) - (T)1.0));
-}
-
-template float evaluate_kernel<float>(float x, const finufft_spread_opts &opts);
-template double evaluate_kernel<double>(double x, const finufft_spread_opts &opts);
 
 template<typename T, uint8_t ns, uint8_t upsampfact>
 T evaluate_kernel_horner_kernel(T x, const finufft_spread_opts &opts)

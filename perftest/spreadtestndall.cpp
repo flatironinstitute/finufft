@@ -1,47 +1,45 @@
 #include "finufft/finufft_utils.hpp"
-#include <finufft/spreadinterp.h>
 #include <finufft/test_defs.h>
 
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
+#include <numeric>
 #include <vector>
 
-using namespace finufft::spreadinterp;
 using namespace finufft::utils; // for timer
-
-void usage() {
+/* clang-format off */
+void usage(void) {
   printf(
-      "usage: spreadtestnd dims [M N [dir [sort [flags [debug [kerpad [kerevalmeth "
-      "[upsampfac]]]]]]]]\n\twhere "
-      "dims=1,2 or 3\n\tM=# nonuniform pts\n\tN=# uniform pts\n\tdir=spreader direction "
-      "[spread/interpolate]\n\tsort=0 (don't sort NU pts), 1 (do), or 2 (maybe sort; "
-      "default)\n\tflags: expert "
-      "timing flags, 0 is default (see spreadinterp.h)\n\tdebug=0 (less text out), 1 "
-      "(more), 2 (lots)\n\tkerpad=0 "
-      "(no pad to mult of 4), 1 (do, for kerevalmeth=0 only)\n\tkerevalmeth=0 (direct), "
-      "1 (Horner "
-      "ppval)\n\tupsampfac>1; 2 or 1.25 for Horner\n\nexample: ./spreadtestndall 1 1e6 "
-      "1e6 1 2 0 1\n");
+      "usage: spreadtestnd dims [M N [dir [sort [flags [debug [kerpad [kerevalmeth [upsampfac]]]]]]]]\n"
+      "\twhere dims=1,2 or 3\n"
+      "\tM=# nonuniform pts\n"
+      "\tN=# uniform pts\n"
+      "\tdir=spreader direction [spread/interpolate]\n"
+      "\tsort=0 (don't sort NU pts), 1 (do), or 2 (maybe sort; default)\n"
+      "\tflags: expert timing flags, 0 is default (see spreadinterp.h)\n"
+      "\tdebug=0 (less text out), 1 (more), 2 (lots)\n"
+      "\tkerpad=0 (no pad to mult of 4), 1 (do, for kerevalmeth=0 only)\n"
+      "\tkerevalmeth=0 (direct), 1 (Horner ppval)\n"
+      "\tupsampfac>1; 2 or 1.25 for Horner\n"
+      "\n"
+      "example: ./spreadtestndall 1 1e6 1e6 1 2 0 1\n");
 }
+/* clang-format on */
 
 int main(int argc, char *argv[])
-/* Test executable for the 1D, 2D, or 3D C++ spreader, both directions.
- * It checks speed, and basic correctness via the grid sum of the result.
- * See usage() for usage.  Note it currently tests only pirange=0, which is not
- * the use case in finufft, and can differ in speed (see devel/foldrescale*)
+/* Test executable for the 1D, 2D, or 3D spreader, both directions.
+ * This version uses the public FINUFFT guru API to exercise the spreader
+ * behavior and checks correctness via kernel sums.
  *
  * Example: spreadtestndall 3 1e7 1e7 1 1
  *
- * Compilation (also check ../makefile):
- *    g++ spreadtestndall.cpp ../src/spreadinterp.o ../src/utils.o -o spreadtestndall
- * -fPIC -Ofast -funroll-loops -fopenmp
- *
+ * Barbone, using the public fiufft API 11/07/2025
  */
 {
-  int d = 3;             // Cmd line args & their defaults:  default #dims
+  int d = 3;             // Cmd line args & their defaults
   double w;
-  int dir         = 1;   // default (eg 1e-6 has nspread=7)
+  int dir         = 1;   // default: spread (NU->U)
   BIGINT M        = 1e6; // default # NU pts
   BIGINT roughNg  = 1e6; // default # U pts
   int sort        = 2;   // spread_sort
@@ -63,7 +61,7 @@ int main(int argc, char *argv[])
   }
   if (argc > 2) {
     sscanf(argv[2], "%lf", &w);
-    M = (BIGINT)w; // to read "1e6" right!
+    M = (BIGINT)w; // to read "1e6" right
     if (M < 1) {
       printf("M (# NU pts) must be positive!\n");
       usage();
@@ -121,155 +119,137 @@ int main(int argc, char *argv[])
     }
   }
 
-  BIGINT N  = (BIGINT)round(pow(roughNg, 1.0 / d));          // Fourier grid size per dim
-  BIGINT Ng = (BIGINT)pow(N, d);                             // actual total grid points
-  BIGINT N2 = (d >= 2) ? N : 1, N3 = (d == 3) ? N : 1;       // the y and z grid sizes
-  std::vector<FLT> kx(M), ky(1), kz(1), d_nonuniform(2 * M); // NU, Re & Im
-  if (d > 1) ky.resize(M);                                   // only alloc needed coords
+  BIGINT N  = (BIGINT)round(pow(roughNg, 1.0 / d)); // grid size per dim
+  BIGINT Ng = (BIGINT)pow(N, d);                    // total grid points
+
+  // allocate coordinate arrays
+  std::vector<FLT> kx(M), ky(1), kz(1);
+  if (d > 1) ky.resize(M);
   if (d > 2) kz.resize(M);
-  std::vector<FLT> d_uniform(2 * Ng);                        // Re and Im
 
-  finufft_spread_opts opts;
-  const auto max_digits = []() {
-    if (std::is_same<FLT, double>::value) {
-      return 17;
-    } else {
-      return 9;
-    }
-  }();
-  for (int digits = 2; digits < max_digits; digits++) {
-    const auto tol = 10.0 * pow(10.0, -digits);
-    printf("digits=%d, tol = %.3g\n", digits, FLT(tol));
-    int ier_set = setup_spreader(opts, tol, upsampfac, kerevalmeth, debug, 1, d, 1);
+  // use complex arrays for NU strengths and uniform grid values
+  std::vector<CPX> d_nonuniform(M), d_uniform(Ng);
 
-    if (ier_set > 1) { // exit gracefully if can't set up.
-      printf("error when setting up spreader (ier_set=%d)!\n", ier_set);
-      return ier_set;
-    }
-    opts.debug        = debug; // print more diagnostics?
-    opts.sort         = sort;
-    opts.flags        = flags;
-    opts.kerpad       = kerpad;
-    opts.upsampfac    = upsampfac;
-    opts.nthreads     = 0; // max # threads used, or 0 to use what's avail
-    opts.sort_threads = 0;
-    opts.kerpad       = 0;
-    // opts.max_subproblem_size = 1e5;
-    FLT maxerr, ansmod;
+  const auto max_digits = std::is_same_v<FLT, double> ? 17 : 9;
 
-    // spread a single source, only for reference accuracy check...
-    opts.spread_direction = 1;
+  for (int digits = 2; digits < max_digits; ++digits) {
+    const auto tol = (FLT)(10.0 * pow(10.0, -digits));
+    printf("digits=%d, tol = %.3g\n", digits, (double)tol);
 
-    d_nonuniform[0] = 1.0;
-    d_nonuniform[1] = 0.0;            // unit strength
-    kx[0] = ky[0] = kz[0] = PI / 2.0; // at center
-    int ier = spreadinterp(N, N2, N3, d_uniform.data(), 1, kx.data(), ky.data(),
-                           kz.data(), d_nonuniform.data(),
-                           opts); // vector::data officially C++11 but works
-    if (ier != 0) {
-      printf("error when spreading M=1 pt for ref acc check (ier=%d)!\n", ier);
+    // set finufft options from CLI choices
+    finufft_opts fopts;
+    FINUFFT_DEFAULT_OPTS(&fopts);
+    fopts.upsampfac          = upsampfac;
+    fopts.spread_kerevalmeth = kerevalmeth;
+    fopts.spread_sort        = sort;
+    fopts.spread_kerpad      = kerpad;
+    fopts.debug              = debug;
+    fopts.showwarn           = 1;
+    fopts.spreadinterponly   = 1;
+
+    FINUFFT_PLAN plan{};
+    BIGINT nmodes[3] = {N, N, N};
+    int ier          = FINUFFT_MAKEPLAN(dir, d, nmodes, +1, 1, tol, &plan, &fopts);
+    if (ier > 1) {
+      printf("error when creating the plan (ier=%d)!\n", ier);
       return ier;
     }
-    FLT kersumre = 0.0, kersumim = 0.0; // sum kernel on uniform grid
-    for (BIGINT i = 0; i < Ng; ++i) {
-      kersumre += d_uniform[2 * i];
-      kersumim += d_uniform[2 * i + 1]; // in case the kernel isn't real!
+
+    ier = FINUFFT_SETPTS(plan, M, kx.data(), ky.data(), kz.data(), 0, nullptr, nullptr,
+                         nullptr);
+    if (ier != 0) {
+      printf("error when setting NU pts (ier=%d)!\n", ier);
+      FINUFFT_DESTROY(plan);
+      return ier;
     }
 
-    // now do the large-scale test w/ random sources..
+    d_nonuniform.assign(M, CPX(0.0, 0.0));
+    d_uniform.assign(Ng, CPX(0.0, 0.0));
+    kx[0] = ky[0] = kz[0] = (FLT)PI / 2.0; // NU point location (unchanged)
+    auto kersum           = CPX(0.0, 0.0);
+    if (dir == 1) {
+      // type-1 (NU -> U): place unit at NU point, spread to grid and sum grid
+      d_nonuniform[0] = CPX(1.0, 0.0);
+      ier             = FINUFFT_EXECUTE(plan, d_nonuniform.data(), d_uniform.data());
+      if (ier != 0) {
+        printf("error when spreading M=1 pt for ref acc check (ier=%d)!\n", ier);
+        FINUFFT_DESTROY(plan);
+        return ier;
+      }
+      kersum = std::accumulate(d_uniform.begin(), d_uniform.end(), CPX(0.0, 0.0));
+    } else {
+      // type-2 (U -> NU): set uniform grid to ones, interpolate to NU point
+      for (BIGINT i = 0; i < Ng; ++i) d_uniform[i] = CPX(1.0, 0.0);
+      ier = FINUFFT_EXECUTE(plan, d_nonuniform.data(), d_uniform.data());
+      if (ier != 0) {
+        printf("error when interpolating for ref acc check (ier=%d)!\n", ier);
+        FINUFFT_DESTROY(plan);
+        return ier;
+      }
+      // result at the single NU point is the kernel sum
+      kersum = d_nonuniform[0];
+    }
+
+    // now random data for large test
     printf("making random data...\n");
-    FLT strre = 0.0, strim = 0.0; // also sum the strengths
 #pragma omp parallel
     {
-      unsigned int se = MY_OMP_GET_THREAD_NUM(); // needed for parallel random #s
-#pragma omp for schedule(dynamic, 1000000) reduction(+ : strre, strim)
+      unsigned int se = MY_OMP_GET_THREAD_NUM();
+#pragma omp for schedule(dynamic, 1000000)
       for (BIGINT i = 0; i < M; ++i) {
         kx[i] = randm11r(&se) * 3 * PI;
-        // kx[i]=2.0*kx[i] - 50.0;      //// to test folding within +-1 period
-        if (d > 1) ky[i] = randm11r(&se) * 3 * PI; // only fill needed coords
+        if (d > 1) ky[i] = randm11r(&se) * 3 * PI;
         if (d > 2) kz[i] = randm11r(&se) * 3 * PI;
-        d_nonuniform[i * 2]     = randm11r(&se);
-        d_nonuniform[i * 2 + 1] = randm11r(&se);
-        strre += d_nonuniform[2 * i];
-        strim += d_nonuniform[2 * i + 1];
+        d_nonuniform[i] = crandm11r(&se);
       }
     }
+
+    // timing and call spread/interp through FINUFFT execute
     CNTime timer{};
     double t;
-    if (dir == 1) { // test direction 1 (NU -> U spreading) ......................
-      printf("spreadinterp %dD, %.3g U pts, dir=%d, tol=%.3g: nspread=%d\n", d,
-             (double)Ng, opts.spread_direction, tol, opts.nspread);
+
+    if (dir == 1) {
+      printf("spreadinterp %dD, %.3g U pts, dir=%d, tol=%.3g:\n", d, (double)Ng, 1,
+             (double)tol);
       timer.start();
-      ier = spreadinterp(N, N2, N3, d_uniform.data(), M, kx.data(), ky.data(), kz.data(),
-                         d_nonuniform.data(), opts);
+      ier = FINUFFT_EXECUTE(plan, d_nonuniform.data(), d_uniform.data());
       t   = timer.elapsedsec();
       if (ier != 0) {
         printf("error (ier=%d)!\n", ier);
+        FINUFFT_DESTROY(plan);
         return ier;
-      } else
-        printf("    %.3g NU pts in %.3g s \t%.3g pts/s \t%.3g spread pts/s\n", (double)M,
-               t, M / t, pow(opts.nspread, d) * M / t);
-
-      FLT sumre = 0.0, sumim = 0.0; // check spreading accuracy, wrapping
-#pragma omp parallel for reduction(+ : sumre, sumim)
-      for (BIGINT i = 0; i < Ng; ++i) {
-        sumre += d_uniform[2 * i];
-        sumim += d_uniform[2 * i + 1];
       }
-      FLT pre    = kersumre * strre - kersumim * strim; // pred ans, complex mult
-      FLT pim    = kersumim * strre + kersumre * strim;
-      FLT maxerr = std::max(fabs(sumre - pre), fabs(sumim - pim));
-      FLT ansmod = sqrt(sumre * sumre + sumim * sumim);
-      printf("    rel err in total over grid:      %.3g\n", maxerr / ansmod);
-      // note this is weaker than below dir=2 test, but is good indicator that
-      // periodic wrapping is correct
-    }
-    // test direction 2 (U -> NU interpolation) ..............................
-    if (dir == 2) {
+      printf("\t%.3g NU pts in %.3g s \t%.3g pts/s\n", (double)M, t, M / t);
+      // compare grid sum to predicted kersum*sum(c)
+      CPX csum = std::accumulate(d_nonuniform.begin(), d_nonuniform.end(), CPX(0.0, 0.0));
+      CPX mass = std::accumulate(d_uniform.begin(), d_uniform.end(), CPX(0.0, 0.0));
+      FLT relerr = std::abs(mass - kersum * csum) / std::abs(mass);
+      printf("\trel err in total over grid: %.3g\n", relerr);
+
+    } else { // dir == 2: interpolate U->NU via execute_adjoint
       printf("making more random NU pts...\n");
-      for (BIGINT i = 0; i < Ng; ++i) { // unit grid data
-        d_uniform[2 * i]     = 1.0;
-        d_uniform[2 * i + 1] = 0.0;
-      }
-#pragma omp parallel
-      {
-        unsigned int se = MY_OMP_GET_THREAD_NUM(); // needed for parallel random #s
-#pragma omp for schedule(dynamic, 1000000)
-        for (BIGINT i = 0; i < M; ++i) {           // random target pts
-          // kx[i]=10+.9*rand01r(&s)*N;   // or if want to keep ns away from edges
-          kx[i] = randm11r(&se) * 3 * PI;
-          if (d > 1) ky[i] = randm11r(&se) * 3 * PI;
-          if (d > 2) kz[i] = randm11r(&se) * 3 * PI;
-        }
-      }
+      for (BIGINT i = 0; i < Ng; ++i) d_uniform[i] = CPX(1.0, 0.0);
 
-      opts.spread_direction = 2;
-      printf("spreadinterp %dD, %.3g U pts, dir=%d, tol=%.3g: nspread=%d\n", d,
-             (double)Ng, opts.spread_direction, tol, opts.nspread);
+      printf("spreadinterpall %dD, %.3g U pts, dir=%d, tol=%.3g:\n", d, (double)Ng, 2,
+             (double)tol);
       timer.restart();
-      ier = spreadinterp(N, N2, N3, d_uniform.data(), M, kx.data(), ky.data(), kz.data(),
-                         d_nonuniform.data(), opts);
+      ier = FINUFFT_EXECUTE(plan, d_nonuniform.data(), d_uniform.data());
       t   = timer.elapsedsec();
       if (ier != 0) {
         printf("error (ier=%d)!\n", ier);
-        return 1;
-      } else
-        printf("    %.3g NU pts in %.3g s \t%.3g pts/s \t%.3g spread pts/s\n", (double)M,
-               t, M / t, pow(opts.nspread, d) * M / t);
-
-      // math test is worst-case error from pred value (kersum) on interp pts:
-      maxerr = 0.0;
-      for (BIGINT i = 0; i < M; ++i) {
-        FLT err = std::max(fabs(d_nonuniform[2 * i] - kersumre),
-                           fabs(d_nonuniform[2 * i + 1] - kersumim));
-        if (err > maxerr) maxerr = err;
+        FINUFFT_DESTROY(plan);
+        return ier;
       }
-      ansmod = sqrt(kersumre * kersumre + kersumim * kersumim);
-      printf("    max rel err in values at NU pts: %.3g\n", maxerr / ansmod);
-      // this is stronger test than for dir=1, since it tests sum of kernel for
-      // each NU pt. However, it cannot detect reading
-      // from wrong grid pts (they are all unity)
+      printf("\t%.3g NU pts in %.3g s \t%.3g pts/s\n", (double)M, t, M / t);
+      // interp-only test: compute sup error at NU points vs kersum
+      FLT superr = 0.0;
+      for (auto &cj : d_nonuniform) superr = std::max(superr, std::abs(cj - kersum));
+      FLT relsuperr = superr / std::abs(kersum);
+      printf("\trel sup err %.3g\n", relsuperr);
     }
+
+    FINUFFT_DESTROY(plan);
   }
+
   return 0;
 }

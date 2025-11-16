@@ -1,21 +1,24 @@
-#include <finufft/fft.h>
-#include <finufft/finufft_core.h>
-#include <finufft/finufft_utils.hpp>
-#include <finufft/heuristics.hpp>
-#include <finufft/spreadinterp.h>
-
 #include <cmath>
 #include <cstdio>
 #include <iomanip>
 #include <memory>
 #include <vector>
+
+#include <finufft/fft.h>
+#include <finufft/finufft_core.h>
+#include <finufft/finufft_utils.hpp>
+#include <finufft/heuristics.hpp>
+#include <finufft/spreadinterp.h>
 #include <finufft/xsimd.hpp>
+#include <finufft_common/kernel.h>
 
 using namespace finufft;
 using namespace finufft::utils;
 using namespace finufft::spreadinterp;
 using namespace finufft::heuristics;
 using namespace finufft::common;
+using namespace finufft::kernel;
+
 /* Computational core for FINUFFT.
 
    Based on Barnett 2017-2018 finufft?d.cpp containing nine drivers, plus
@@ -152,7 +155,7 @@ static void set_nhg_type3(T S, T X, const finufft_opts &opts,
   if (*nf < 2 * spopts.nspread) *nf = 2 * spopts.nspread;
   if (*nf < MAX_NF)                               // otherwise will fail anyway
     *nf = next235even(*nf);                       // expensive at huge nf
-  *h   = T(2.0 * PI / *nf);    // upsampled grid spacing
+  *h   = T(2.0 * PI / *nf);                       // upsampled grid spacing
   *gam = T(*nf / (2.0 * opts.upsampfac * Ssafe)); // x scale fac to x'
 }
 
@@ -192,15 +195,14 @@ static void onedim_fseries_kernel(BIGINT nf, std::vector<T> &fwkerhalf,
   int q = (int)(2 + 3.0 * J2); // not sure why so large? cannot exceed MAX_NQUAD
   T f[MAX_NQUAD];
   double z[2 * MAX_NQUAD], w[2 * MAX_NQUAD];
-  gaussquad(2 * q, z, w); // only half the nodes used, eg on (0,1)
+  gaussquad(2 * q, z, w);       // only half the nodes used, eg on (0,1)
   std::complex<T> a[MAX_NQUAD];
-  for (int n = 0; n < q; ++n) {            // set up nodes z_n and vals f_n
-    z[n] *= J2;                            // rescale nodes
-    f[n] = J2 * (T)w[n] * evaluate_kernel((T)z[n], opts); // vals & quadr wei
-    a[n] = -std::exp(2 * PI * std::complex<double>(0, 1) * z[n] /
-                     double(nf));                         // phase
-                                                          // winding
-                                                          // rates
+  for (int n = 0; n < q; ++n) { // set up nodes z_n and vals f_n
+    z[n] *= J2;                 // rescale nodes
+    // vals & quadr weighs
+    f[n] = J2 * (T)w[n] * evaluate_kernel((T)z[n], T(opts.ES_beta), T(opts.ES_c));
+    // phase winding rates
+    a[n] = -std::exp(2 * PI * std::complex<double>(0, 1) * z[n] / double(nf));
   }
   BIGINT nout = nf / 2 + 1;                            // how many values we're writing to
   int nt      = std::min(nout, (BIGINT)opts.nthreads); // how many chunks
@@ -208,16 +210,16 @@ static void onedim_fseries_kernel(BIGINT nf, std::vector<T> &fwkerhalf,
   for (int t = 0; t <= nt; ++t) // split nout mode indices btw threads
     brk[t] = (BIGINT)(0.5 + nout * t / (double)nt);
 #pragma omp parallel num_threads(nt)
-  {                                                   // each thread gets own chunk to do
+  {                                                // each thread gets own chunk to do
     int t = MY_OMP_GET_THREAD_NUM();
-    std::complex<T> aj[MAX_NQUAD]; // phase rotator for this thread
+    std::complex<T> aj[MAX_NQUAD];                 // phase rotator for this thread
     for (int n = 0; n < q; ++n)
-      aj[n] = std::pow(a[n], (T)brk[t]);              // init phase factors for chunk
-    for (BIGINT j = brk[t]; j < brk[t + 1]; ++j) {    // loop along output array
-      T x = 0.0;                                      // accumulator for answer at this j
+      aj[n] = std::pow(a[n], (T)brk[t]);           // init phase factors for chunk
+    for (BIGINT j = brk[t]; j < brk[t + 1]; ++j) { // loop along output array
+      T x = 0.0;                                   // accumulator for answer at this j
       for (int n = 0; n < q; ++n) {
-        x += f[n] * 2 * real(aj[n]);                  // include the negative freq
-        aj[n] *= a[n];                                // wind the phases
+        x += f[n] * 2 * real(aj[n]);               // include the negative freq
+        aj[n] *= a[n];                             // wind the phases
       }
       fwkerhalf[j] = x;
     }
@@ -249,12 +251,13 @@ public:
     if (opts.debug) printf("q (# ker FT quadr pts) = %d\n", q);
     std::vector<double> Z(2 * q), W(2 * q);
     gaussquad(2 * q, Z.data(), W.data()); // only half the nodes used,
-                                                           // for (0,1)
+                                          // for (0,1)
     z.resize(q);
     f.resize(q);
     for (int n = 0; n < q; ++n) {
-      z[n] = T(Z[n] * J2);                               // quadr nodes for [0,J/2]
-      f[n] = J2 * T(W[n]) * evaluate_kernel(z[n], opts); // w/ quadr weights
+      z[n] = T(Z[n] * J2); // quadr nodes for [0,J/2]
+      // w/ quadr weights
+      f[n] = J2 * T(W[n]) * evaluate_kernel(z[n], T(opts.ES_beta), T(opts.ES_c));
     }
   }
 
@@ -458,7 +461,7 @@ int FINUFFT_PLAN_T<T>::spreadinterpSortedBatch(
     std::complex<T> *ci = cBatch + i * nj;     // start of i'th c array in cBatch
     spreadinterpSorted(sortIndices, (UBIGINT)nfdim[0], (UBIGINT)nfdim[1],
                        (UBIGINT)nfdim[2], (T *)fwi, (UBIGINT)nj, XYZ[0], XYZ[1], XYZ[2],
-                       (T *)ci, spopts, didSort, adjoint);
+                       (T *)ci, spopts, didSort, adjoint, horner_coeffs.data());
   }
   return 0;
 }
@@ -674,7 +677,7 @@ FINUFFT_PLAN_T<TF>::FINUFFT_PLAN_T(int type_, int dim_, const BIGINT *n_modes, i
   ier = setup_spreader_for_nufft(spopts, tol, opts, dim);
   if (ier > 1) // proceed if success or warning
     throw int(ier);
-
+  precompute_horner_coeffs();
   //  ------------------------ types 1,2: planning needed ---------------------
   if (type == 1 || type == 2) {
 
@@ -764,6 +767,44 @@ FINUFFT_PLAN_T<TF>::FINUFFT_PLAN_T(int type_, int dim_, const BIGINT *n_modes, i
     // Note we don't even know nj or nk yet, so can't do anything else!
   }
   if (ier > 1) throw int(ier); // report setup_spreader status (could be warning)
+}
+
+template<typename TF> void FINUFFT_PLAN_T<TF>::precompute_horner_coeffs() {
+  const auto nspread   = spopts.nspread;
+  const auto upsampfac = opts.upsampfac;
+  const auto max_degree =
+      upsampfac == 2.00 ? horner_nc_200(nspread) : horner_nc_125(nspread);
+  // get the xsimd padding
+  static constexpr auto simd_size = xsimd::batch<TF>::size;
+  const auto padded_ns            = (nspread + simd_size - 1) & -simd_size;
+  // pad degree if desired; keep equal to max_degree for now
+  const auto padded_degree = max_degree;
+  horner_coeffs.fill(0);
+
+  for (int j = 0; j < nspread; ++j) {
+    const auto kernel = [&](const TF x) {
+      // scale manually from -1, 1 to -w/2+j to -w/2+j+1
+      return evaluate_kernel(TF(0.5) * TF(x - nspread + 2 * j + 1),
+                             TF(this->spopts.ES_beta), TF(this->spopts.ES_c));
+    };
+    // disable polyfit scaling
+    static constexpr TF a = -1.0;
+    static constexpr TF b = 1.0;
+    const auto coeffs       = fit_monomials(kernel, max_degree, a, b);
+    // store transposed: for each degree k
+    for (size_t k = 0; k < coeffs.size(); ++k)
+      horner_coeffs[k * padded_ns + j] = coeffs[k];
+  }
+
+  if (opts.debug > 2) {
+    // Print transposed layout: all degree 0 coeffs for intervals, then degree 1, ...
+    for (size_t k = 0; k < padded_degree; ++k) {
+      printf("[%s] degree=%lu: ", __func__, k);
+      for (size_t j = 0; j < padded_ns; ++j) // use padded_ns to show padding as well
+        printf("%g ", horner_coeffs[k * padded_ns + j]);
+      printf("\n");
+    }
+  }
 }
 
 template<typename TF>

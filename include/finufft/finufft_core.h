@@ -7,7 +7,6 @@
 
 #include "finufft_common/common.h"
 #include "finufft_errors.h"
-
 // All indexing in library that potentially can exceed 2^31 uses 64-bit signed.
 // This includes all calling arguments (eg M,N) that could be huge someday.
 using BIGINT  = int64_t;
@@ -129,6 +128,8 @@ private:
   // other internal structs
   std::unique_ptr<Finufft_FFT_plan<TF>> fftPlan;
 
+  alignas(64) std::array<TF, 16 * 19> horner_coeffs{0};
+
 public:
   const Finufft_FFT_plan<TF> &getFFTPlan() const { return *fftPlan; }
 
@@ -139,6 +140,8 @@ private:
 
   int execute_internal(TC *cj, TC *fk, bool adjoint = false, int ntrans_actual = -1,
                        TC *aligned_scratch = nullptr, size_t scratch_size = 0) const;
+
+  void precompute_horner_coeffs();
 
 public:
   FINUFFT_PLAN_T(int type, int dim, const BIGINT *n_modes, int iflag, int ntrans, TF tol,
