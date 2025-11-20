@@ -543,7 +543,7 @@ clean: objclean pyclean
 ifneq ($(MINGW),ON)
   # non-Windows-WSL clean up...
 	rm -f $(STATICLIB) $(DYNLIB)
-	rm -f matlab/*.mex*
+	rm -f matlab/finufft.mex*
 	rm -f $(TESTS) test/results/*.out perftest/results/*.out
 	rm -f $(EXAMPLES) $(FE) $(ST) $(STF) $(STA) $(STAF) $(GTT) $(GTTF)
 	rm -f perftest/manysmallprobs perftest/big2d2f
@@ -552,7 +552,7 @@ ifneq ($(MINGW),ON)
 else
   # Windows-WSL clean up...
 	del $(subst /,\,$(STATICLIB)), $(subst /,\,$(DYNLIB))
-	del matlab\*.mex*
+	del matlab\finufft.mex*
 	for %%f in ($(subst /,\, $(TESTS))) do ((if exist %%f del %%f) & (if exist %%f.exe del %%f.exe))
 	del test\results\*.out perftest\results\*.out
 	for %%f in ($(subst /,\, $(EXAMPLES)), $(subst /,\,$(FE)), $(subst /,\,$(ST)), $(subst /,\,$(STF)), $(subst /,\,$(STA)), $(subst /,\,$(STAF)), $(subst /,\,$(GTT)), $(subst /,\,$(GTTF))) do ((if exist %%f del %%f) & (if exist %%f.exe del %%f.exe))
