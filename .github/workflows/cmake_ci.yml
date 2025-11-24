@@ -99,7 +99,7 @@ jobs:
           - { os: macos-14, toolchain: llvm }
           - { os: macos-14, toolchain: gcc-14 }
           - { os: macos-15, toolchain: llvm }
-#          - { os: macos-15, toolchain: gcc-15 } # it is broken at the moment, but it is not caused by finufft
+          - { os: macos-15, toolchain: gcc-15 }
 
     steps:
       - name: Checkout code
