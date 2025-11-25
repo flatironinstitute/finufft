@@ -41,15 +41,6 @@ CXXFLAGS := $(CFLAGS) $(CXXFLAGS)
 # fix for exported symbols in test
 OBJFLAGS := -DFINUFFT_BUILD_TESTS -fvisibility=hidden -DFINUFFT_DLL -Ddll_EXPORTS
 
-# Link Time Optimization
-# Works with GCC and Clang. Increases link time, reduces binary size, can speed up hot paths.
-ifneq ($(LTO),OFF)
-  LTOFLAGS := -flto
-  CFLAGS   += $(LTOFLAGS)
-  CXXFLAGS += $(LTOFLAGS)
-  FFLAGS   += $(LTOFLAGS)
-  LDFLAGS  += $(LTOFLAGS)
-endif
 # FFTW base name, and math linking...
 FFTWNAME = fftw3
 # linux default is fftw3_omp, since 10% faster than fftw3_threads...
@@ -123,6 +114,15 @@ CXXFLAGS := $(CXXFLAGS) $(INCL) -fPIC -std=c++17
 CFLAGS := $(CFLAGS) $(INCL) -fPIC
 # here /usr/include needed for fftw3.f "fortran header"... (JiriK: no longer)
 FFLAGS := $(FFLAGS) $(INCL) -I/usr/include -fPIC
+# Link time optimization (LTO):
+# (works with GCC, Clang. Increases link time, reduces binary size, can speed up hot paths)
+ifneq ($(LTO),OFF)
+  LTOFLAGS := -flto
+  CFLAGS   += $(LTOFLAGS)
+  CXXFLAGS += $(LTOFLAGS)
+  FFLAGS   += $(LTOFLAGS)
+  LDFLAGS  += $(LTOFLAGS)
+endif
 
 # multi-threaded libs & flags, and req'd flags (OO for new interface)...
 ifneq ($(OMP),OFF)
@@ -325,24 +325,26 @@ endif
 
 # perftest (performance/developer tests) -------------------------------------
 # generic perf test rules...
-perftest/%: perftest/%.cpp $(DYNLIB)
-	$(CXX) $(CXXFLAGS) ${LDFLAGS} $< $(ABSDYNLIB) $(LIBSFFT) -o $@
+perftest/%: perftest/%.cpp $(STATICLIB)
+	$(CXX) $(CXXFLAGS) ${LDFLAGS} $< $(STATICLIB) $(LIBSFFT) -o $@
 perftest/%f: perftest/%.cpp $(DYNLIB)
-	$(CXX) $(CXXFLAGS) ${LDFLAGS} -DSINGLE $< $(ABSDYNLIB) $(LIBSFFT) -o $@
+	$(CXX) $(CXXFLAGS) ${LDFLAGS} -DSINGLE $< $(STATICLIB) $(LIBSFFT) -o $@
 
 # spreader only test, double/single (good for self-contained work on spreader)
 ST=perftest/spreadtestnd
 STA=perftest/spreadtestndall
 STF=$(ST)f
 STAF=$(STA)f
-$(ST): $(ST).cpp $(SOBJS)
-	$(CXX) $(CXXFLAGS) ${LDFLAGS} $< $(SOBJS) $(LIBS) -o $@
-$(STF): $(ST).cpp $(SOBJS)
-	$(CXX) $(CXXFLAGS) ${LDFLAGS} -DSINGLE $< $(SOBJS) $(LIBS) -o $@
-$(STA): $(STA).cpp $(SOBJS)
-	$(CXX) $(CXXFLAGS) ${LDFLAGS} $< $(SOBJS) $(LIBS) -o $@
-$(STAF): $(STA).cpp $(SOBJS)
-	$(CXX) $(CXXFLAGS) ${LDFLAGS} -DSINGLE $< $(SOBJS) $(LIBS) -o $@
+
+$(ST): $(ST).cpp $(STATICLIB)
+	$(CXX) $(CXXFLAGS) ${LDFLAGS} $< $(STATICLIB) $(LIBSFFT) -o $@
+$(STF): $(ST).cpp $(DYNLIB)
+	$(CXX) $(CXXFLAGS) ${LDFLAGS} -DSINGLE $< $(STATICLIB) $(LIBSFFT) -o $@
+$(STA): $(STA).cpp $(DYNLIB)
+	$(CXX) $(CXXFLAGS) ${LDFLAGS} $< $(STATICLIB) $(LIBSFFT) -o $@
+$(STAF): $(STA).cpp $(DYNLIB)
+	$(CXX) $(CXXFLAGS) ${LDFLAGS} -DSINGLE $< $(STATICLIB) $(LIBSFFT) -o $@
+
 spreadtest: $(ST) $(STF)
 # run one thread per core... (escape the $ to get single $ in bash; one big cmd)
 	(export OMP_NUM_THREADS=$$(perftest/mynumcores.sh) ;\

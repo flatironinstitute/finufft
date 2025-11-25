@@ -46,12 +46,12 @@ int indexSort(std::vector<BIGINT> &sort_indices, UBIGINT N1, UBIGINT N2, UBIGINT
               UBIGINT N, const T *kx, const T *ky, const T *kz,
               const finufft_spread_opts &opts);
 template<typename T>
-int spreadinterpSorted(const std::vector<BIGINT> &sort_indices, const UBIGINT N1,
-                       const UBIGINT N2, const UBIGINT N3, T *data_uniform,
-                       const UBIGINT M, const T *FINUFFT_RESTRICT kx,
-                       const T *FINUFFT_RESTRICT ky, const T *FINUFFT_RESTRICT kz,
-                       T *FINUFFT_RESTRICT data_nonuniform,
-                       const finufft_spread_opts &opts, int did_sort, bool adjoint);
+int spreadinterpSorted(
+    const std::vector<BIGINT> &sort_indices, const UBIGINT N1, const UBIGINT N2,
+    const UBIGINT N3, T *data_uniform, const UBIGINT M, const T *FINUFFT_RESTRICT kx,
+    const T *FINUFFT_RESTRICT ky, const T *FINUFFT_RESTRICT kz,
+    T *FINUFFT_RESTRICT data_nonuniform, const finufft_spread_opts &opts, int did_sort,
+    bool adjoint, const T *horner_coeffs);
 template<typename T> T evaluate_kernel(T x, const finufft_spread_opts &opts);
 template<typename T> T evaluate_kernel_horner(T x, const finufft_spread_opts &opts);
 
