@@ -532,7 +532,7 @@ setupclean:
 docs: docs/*.docsrc docs/matlabhelp.doc docs/makecdocs.sh
 	(cd docs; ./makecdocs.sh)
 # get the makefile help strings from make w/o args, stdout...
-	make 1> docs/makefile.doc
+	make --no-print-directory 1> docs/makefile.doc
 docs/matlabhelp.doc: docs/genmatlabhelp.sh matlab/*.sh matlab/*.docsrc matlab/*.docbit matlab/*.m
 	(cd matlab; ./addmhelp.sh)
 	(cd docs; ./genmatlabhelp.sh)
