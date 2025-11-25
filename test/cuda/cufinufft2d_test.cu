@@ -6,8 +6,8 @@
 #include <limits>
 #include <random>
 
-#include <finufft_common/common.h>
 #include <cufinufft.h>
+#include <finufft_common/common.h>
 
 #include <cufinufft/impl.h>
 #include <cufinufft/utils.h>
@@ -181,10 +181,10 @@ int run_test(int method, int type, int N1, int N2, int M, T tol, T checktol, int
     const int nt2         = 0.26 * N2; // choose some mode index to check
     thrust::complex<T> Ft = thrust::complex<T>(0, 0), J = thrust::complex<T>(0.0, iflag);
     for (int j = 0; j < M; ++j)
-      Ft += c[j] * exp(J * (nt1 * x[j] + nt2 * y[j])); // crude direct
-    const int it = N1 / 2 + nt1 + N1 * (N2 / 2 + nt2); // index in complex F as 1d
-                                                       // array
-    rel_error = abs(Ft - fk[it]) / infnorm(N1, (std::complex<T> *)fk.data());
+      Ft += c[j] * thrust::exp(J * (nt1 * x[j] + nt2 * y[j])); // crude direct
+    const int it = N1 / 2 + nt1 + N1 * (N2 / 2 + nt2);         // index in complex F as 1d
+                                                               // array
+    rel_error = thrust::abs(Ft - fk[it]) / infnorm(N1, (std::complex<T> *)fk.data());
     printf("[gpu   ] one mode: rel err in F[%d,%d] is %.3g\n", nt1, nt2, rel_error);
     if (type == 1 && static_cast<int64_t>(M) * N1 * N2 <= TEST_BIGPROB) {
       std::vector<thrust::complex<T>> Ft(N1 * N2);
@@ -201,9 +201,9 @@ int run_test(int method, int type, int N1, int N2, int M, T tol, T checktol, int
     int m = 0;
     for (int m2 = -(N2 / 2); m2 <= (N2 - 1) / 2; ++m2) // loop in correct order over F
       for (int m1 = -(N1 / 2); m1 <= (N1 - 1) / 2; ++m1)
-        ct += fk[m++] * exp(J * (m1 * x[jt] + m2 * y[jt])); // crude direct
+        ct += fk[m++] * thrust::exp(J * (m1 * x[jt] + m2 * y[jt])); // crude direct
 
-    rel_error = abs(c[jt] - ct) / infnorm(M, (std::complex<T> *)c.data());
+    rel_error = thrust::abs(c[jt] - ct) / infnorm(M, (std::complex<T> *)c.data());
     printf("[gpu   ] one targ: rel err in c[%d] is %.3g\n", jt, rel_error);
     if (type == 2 && static_cast<int64_t>(M) * N1 * N2 <= TEST_BIGPROB) {
       std::vector<thrust::complex<T>> ct(M);
@@ -219,9 +219,9 @@ int run_test(int method, int type, int N1, int N2, int M, T tol, T checktol, int
     thrust::complex<T> Ft = thrust::complex<T>(0, 0);
 
     for (int j = 0; j < M; ++j) {
-      Ft += c[j] * exp(J * (x[j] * s[jt] + y[j] * t[jt]));
+      Ft += c[j] * thrust::exp(J * (x[j] * s[jt] + y[j] * t[jt]));
     }
-    rel_error = abs(Ft - fk[jt]) / infnorm(N1 * N2, (std::complex<T> *)fk.data());
+    rel_error = thrust::abs(Ft - fk[jt]) / infnorm(N1 * N2, (std::complex<T> *)fk.data());
     printf("[gpu   ] one mode: rel err in F[%d] is %.3g\n", jt, rel_error);
     if (type == 3 && static_cast<int64_t>(M) * N1 * N2 <= TEST_BIGPROB) {
       std::vector<thrust::complex<T>> Ft(N1 * N2);

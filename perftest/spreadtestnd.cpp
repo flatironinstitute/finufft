@@ -2,25 +2,20 @@
 #include <finufft/spreadinterp.h>
 #include <finufft/test_defs.h>
 
-#include <math.h>
-#include <stdio.h>
-#include <stdlib.h>
+#include <algorithm>
 #include <vector>
-
-#include "finufft/finufft_utils.hpp"
 using namespace finufft::spreadinterp;
-using namespace std;
 using namespace finufft::utils;
 
 void usage() {
-  printf("usage: spreadtestnd dims [M N [tol [sort [flags [debug [kerpad [kerevalmeth "
-         "[upsampfac]]]]]]]]\n\twhere dims=1,2 or 3\n\tM=# nonuniform pts\n\tN=# uniform "
-         "pts\n\ttol=requested accuracy\n\tsort=0 (don't sort NU pts), 1 (do), or 2 "
-         "(maybe sort; default)\n\tflags: expert timing flags, 0 is default (see "
-         "spreadinterp.h)\n\tdebug=0 (less text out), 1 (more), 2 (lots)\n\tkerpad=0 (no "
-         "pad to mult of 4), 1 (do, for kerevalmeth=0 only)\n\tkerevalmeth=0 (direct), 1 "
-         "(Horner ppval)\n\tupsampfac>1; 2 or 1.25 for Horner\n\nexample: ./spreadtestnd "
-         "1 1e6 1e6 1e-6 2 0 1\n");
+  std::printf("usage: spreadtestnd dims [M N [tol [sort [flags [debug [kerpad [kerevalmeth "
+              "[upsampfac]]]]]]]]\n\twhere dims=1,2 or 3\n\tM=# nonuniform pts\n\tN=# uniform "
+              "pts\n\ttol=requested accuracy\n\tsort=0 (don't sort NU pts), 1 (do), or 2 "
+              "(maybe sort; default)\n\tflags: expert timing flags, 0 is default (see "
+              "spreadinterp.h)\n\tdebug=0 (less text out), 1 (more), 2 (lots)\n\tkerpad=0 (no "
+              "pad to mult of 4), 1 (do, for kerevalmeth=0 only)\n\tkerevalmeth=0 (direct), 1 "
+              "(Horner ppval)\n\tupsampfac>1; 2 or 1.25 for Horner\n\nexample: ./spreadtestnd "
+              "1 1e6 1e6 1e-6 2 0 1\n");
 }
 
 int main(int argc, char *argv[])
@@ -57,75 +52,75 @@ int main(int argc, char *argv[])
     usage();
     return (argc > 1);
   }
-  sscanf(argv[1], "%d", &d);
+  std::sscanf(argv[1], "%d", &d);
   if (d < 1 || d > 3) {
-    printf("d must be 1, 2 or 3!\n");
+    std::printf("d must be 1, 2 or 3!\n");
     usage();
     return 1;
   }
   if (argc > 2) {
-    sscanf(argv[2], "%lf", &w);
+    std::sscanf(argv[2], "%lf", &w);
     M = (BIGINT)w; // to read "1e6" right!
     if (M < 1) {
-      printf("M (# NU pts) must be positive!\n");
+      std::printf("M (# NU pts) must be positive!\n");
       usage();
       return 1;
     }
-    sscanf(argv[3], "%lf", &w);
+    std::sscanf(argv[3], "%lf", &w);
     roughNg = (BIGINT)w;
     if (roughNg < 1) {
-      printf("N (# U pts) must be positive!\n");
+      std::printf("N (# U pts) must be positive!\n");
       usage();
       return 1;
     }
   }
-  if (argc > 4) sscanf(argv[4], "%lf", &tol);
+  if (argc > 4) std::sscanf(argv[4], "%lf", &tol);
   if (argc > 5) {
-    sscanf(argv[5], "%d", &sort);
+    std::sscanf(argv[5], "%d", &sort);
     if ((sort != 0) && (sort != 1) && (sort != 2)) {
-      printf("sort must be 0, 1 or 2!\n");
+      std::printf("sort must be 0, 1 or 2!\n");
       usage();
       return 1;
     }
   }
-  if (argc > 6) sscanf(argv[6], "%d", &flags);
+  if (argc > 6) std::sscanf(argv[6], "%d", &flags);
   if (argc > 7) {
-    sscanf(argv[7], "%d", &debug);
+    std::sscanf(argv[7], "%d", &debug);
     if ((debug < 0) || (debug > 2)) {
-      printf("debug must be 0, 1 or 2!\n");
+      std::printf("debug must be 0, 1 or 2!\n");
       usage();
       return 1;
     }
   }
   if (argc > 8) {
-    sscanf(argv[8], "%d", &kerpad);
+    std::sscanf(argv[8], "%d", &kerpad);
     if ((kerpad < 0) || (kerpad > 1)) {
-      printf("kerpad must be 0 or 1!\n");
+      std::printf("kerpad must be 0 or 1!\n");
       usage();
       return 1;
     }
   }
   if (argc > 9) {
-    sscanf(argv[9], "%d", &kerevalmeth);
+    std::sscanf(argv[9], "%d", &kerevalmeth);
     if ((kerevalmeth < 0) || (kerevalmeth > 1)) {
-      printf("kerevalmeth must be 0 or 1!\n");
+      std::printf("kerevalmeth must be 0 or 1!\n");
       usage();
       return 1;
     }
   }
   if (argc > 10) {
-    sscanf(argv[10], "%lf", &w);
+    std::sscanf(argv[10], "%lf", &w);
     upsampfac = (FLT)w;
     if (upsampfac <= 1.0) {
-      printf("upsampfac must be >1.0!\n");
+      std::printf("upsampfac must be >1.0!\n");
       usage();
       return 1;
     }
   }
 
   int dodir1 = true;                                   // control if dir=1 tested at all
-  BIGINT N   = (BIGINT)round(pow(roughNg, 1.0 / d));   // Fourier grid size per dim
-  BIGINT Ng  = (BIGINT)pow(N, d);                      // actual total grid points
+  BIGINT N   = (BIGINT)std::round(std::pow(roughNg, 1.0 / d)); // Fourier grid size per dim
+  BIGINT Ng  = (BIGINT)std::pow(N, d);                          // actual total grid points
   BIGINT N2 = (d >= 2) ? N : 1, N3 = (d == 3) ? N : 1; // the y and z grid sizes
   std::vector<FLT> kx(M), ky(1), kz(1), d_nonuniform(2 * M); // NU, Re & Im
   if (d > 1) ky.resize(M);                                   // only alloc needed coords
@@ -135,7 +130,7 @@ int main(int argc, char *argv[])
   finufft_spread_opts opts;
   int ier_set = setup_spreader(opts, (FLT)tol, upsampfac, kerevalmeth, debug, 1, d, 1);
   if (ier_set > 1) { // exit gracefully if can't set up.
-    printf("error when setting up spreader (ier_set=%d)!\n", ier_set);
+    std::printf("error when setting up spreader (ier_set=%d)!\n", ier_set);
     return ier_set;
   }
   opts.debug        = debug; // print more diagnostics?
@@ -175,7 +170,7 @@ int main(int argc, char *argv[])
   }
 
   // now do the large-scale test w/ random sources..
-  printf("making random data...\n");
+  std::printf("making random data...\n");
   FLT strre = 0.0, strim = 0.0; // also sum the strengths
 #pragma omp parallel
   {
@@ -195,12 +190,12 @@ int main(int argc, char *argv[])
   CNTime timer;
   double t;
   if (dodir1) { // test direction 1 (NU -> U spreading) ......................
-    printf("spreadinterp %dD, %.3g U pts, dir=%d, tol=%.3g: nspread=%d\n",
-           d,
-           (double)Ng,
-           opts.spread_direction,
-           tol,
-           opts.nspread);
+    std::printf("spreadinterp %dD, %.3g U pts, dir=%d, tol=%.3g: nspread=%d\n",
+                d,
+                static_cast<double>(Ng),
+                opts.spread_direction,
+                tol,
+                opts.nspread);
     timer.start();
     ier = spreadinterp(N,
                        N2,
@@ -214,14 +209,14 @@ int main(int argc, char *argv[])
                        opts);
     t   = timer.elapsedsec();
     if (ier != 0) {
-      printf("error (ier=%d)!\n", ier);
+      std::printf("error (ier=%d)!\n", ier);
       return ier;
     } else
-      printf("    %.3g NU pts in %.3g s \t%.3g pts/s \t%.3g spread pts/s\n",
-             (double)M,
-             t,
-             M / t,
-             pow(opts.nspread, d) * M / t);
+      std::printf("    %.3g NU pts in %.3g s \t%.3g pts/s \t%.3g spread pts/s\n",
+                  static_cast<double>(M),
+                  t,
+                  M / t,
+                  std::pow(opts.nspread, d) * M / t);
 
     FLT sumre = 0.0, sumim = 0.0; // check spreading accuracy, wrapping
 #pragma omp parallel for reduction(+ : sumre, sumim)
@@ -231,15 +226,15 @@ int main(int argc, char *argv[])
     }
     FLT pre    = kersumre * strre - kersumim * strim; // pred ans, complex mult
     FLT pim    = kersumim * strre + kersumre * strim;
-    FLT maxerr = std::max(fabs(sumre - pre), fabs(sumim - pim));
-    FLT ansmod = sqrt(sumre * sumre + sumim * sumim);
-    printf("    rel err in total over grid:      %.3g\n", maxerr / ansmod);
+    FLT maxerr = std::max(std::fabs(sumre - pre), std::fabs(sumim - pim));
+    FLT ansmod = std::sqrt(sumre * sumre + sumim * sumim);
+    std::printf("    rel err in total over grid:      %.3g\n", maxerr / ansmod);
     // note this is weaker than below dir=2 test, but is good indicator that
     // periodic wrapping is correct
   }
 
   // test direction 2 (U -> NU interpolation) ..............................
-  printf("making more random NU pts...\n");
+  std::printf("making more random NU pts...\n");
   for (BIGINT i = 0; i < Ng; ++i) { // unit grid data
     d_uniform[2 * i]     = 1.0;
     d_uniform[2 * i + 1] = 0.0;
@@ -257,12 +252,12 @@ int main(int argc, char *argv[])
   }
 
   opts.spread_direction = 2;
-  printf("spreadinterp %dD, %.3g U pts, dir=%d, tol=%.3g: nspread=%d\n",
-         d,
-         (double)Ng,
-         opts.spread_direction,
-         tol,
-         opts.nspread);
+  std::printf("spreadinterp %dD, %.3g U pts, dir=%d, tol=%.3g: nspread=%d\n",
+              d,
+              static_cast<double>(Ng),
+              opts.spread_direction,
+              tol,
+              opts.nspread);
   timer.restart();
   ier = spreadinterp(N,
                      N2,
@@ -276,24 +271,24 @@ int main(int argc, char *argv[])
                      opts);
   t   = timer.elapsedsec();
   if (ier != 0) {
-    printf("error (ier=%d)!\n", ier);
+    std::printf("error (ier=%d)!\n", ier);
     return 1;
   } else
-    printf("    %.3g NU pts in %.3g s \t%.3g pts/s \t%.3g spread pts/s\n",
-           (double)M,
-           t,
-           M / t,
-           pow(opts.nspread, d) * M / t);
+    std::printf("    %.3g NU pts in %.3g s \t%.3g pts/s \t%.3g spread pts/s\n",
+                static_cast<double>(M),
+                t,
+                M / t,
+                std::pow(opts.nspread, d) * M / t);
 
   // math test is worst-case error from pred value (kersum) on interp pts:
   maxerr = 0.0;
   for (BIGINT i = 0; i < M; ++i) {
-    FLT err = std::max(fabs(d_nonuniform[2 * i] - kersumre),
-                       fabs(d_nonuniform[2 * i + 1] - kersumim));
+    FLT err = std::max(std::fabs(d_nonuniform[2 * i] - kersumre),
+                       std::fabs(d_nonuniform[2 * i + 1] - kersumim));
     if (err > maxerr) maxerr = err;
   }
-  ansmod = sqrt(kersumre * kersumre + kersumim * kersumim);
-  printf("    max rel err in values at NU pts: %.3g\n", maxerr / ansmod);
+  ansmod = std::sqrt(kersumre * kersumre + kersumim * kersumim);
+  std::printf("    max rel err in values at NU pts: %.3g\n", maxerr / ansmod);
   // this is stronger test than for dir=1, since it tests sum of kernel for
   // each NU pt. However, it cannot detect reading
   // from wrong grid pts (they are all unity)

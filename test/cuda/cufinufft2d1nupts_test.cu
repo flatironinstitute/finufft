@@ -7,8 +7,8 @@
 #include <iostream>
 #include <random>
 
-#include <finufft_common/common.h>
 #include <cufinufft.h>
+#include <finufft_common/common.h>
 
 #include <cufinufft/impl.h>
 #include <cufinufft/utils.h>
@@ -194,16 +194,16 @@ template<typename T> int run_test(int method) {
   int nt1 = (int)(0.37 * N1), nt2 = (int)(0.26 * N2); // choose some mode index to check
   thrust::complex<T> Ft(0, 0), J(0, iflag);
   for (int j = 0; j < M1; ++j)
-    Ft += c1[j] * exp(J * (nt1 * x1[j] + nt2 * y1[j])); // crude direct
-  int it = N1 / 2 + nt1 + N1 * (N2 / 2 + nt2);          // index in complex F as 1d array
+    Ft += c1[j] * thrust::exp(J * (nt1 * x1[j] + nt2 * y1[j])); // crude direct
+  int it = N1 / 2 + nt1 + N1 * (N2 / 2 + nt2); // index in complex F as 1d array
 
   printf("[gpu   ] one mode: rel err in F[%d,%d] is %.3g (set 1)\n", (int)nt1, (int)nt2,
-         abs(Ft - fk1[it]) / infnorm(N, (std::complex<T> *)fk1.data()));
+         thrust::abs(Ft - fk1[it]) / infnorm(N, (std::complex<T> *)fk1.data()));
   Ft = thrust::complex<T>(0, 0);
   for (int j = 0; j < M2; ++j)
-    Ft += c2[j] * exp(J * (nt1 * x2[j] + nt2 * y2[j])); // crude direct
+    Ft += c2[j] * thrust::exp(J * (nt1 * x2[j] + nt2 * y2[j])); // crude direct
   printf("[gpu   ] one mode: rel err in F[%d,%d] is %.3g (set 2)\n", (int)nt1, (int)nt2,
-         abs(Ft - fk2[it]) / infnorm(N, (std::complex<T> *)fk2.data()));
+         thrust::abs(Ft - fk2[it]) / infnorm(N, (std::complex<T> *)fk2.data()));
 
   return 0;
 }

@@ -109,10 +109,10 @@ int main(int argc, char *argv[])
     int m = 0;
     for (int m2 = -(N2 / 2); m2 <= (N2 - 1) / 2; ++m2) // loop in correct order over F
       for (int m1 = -(N1 / 2); m1 <= (N1 - 1) / 2; ++m1)
-        ct += fkstart[m++] * exp(J * (m1 * x[jt] + m2 * y[jt])); // crude direct
+        ct += fkstart[m++] * std::exp(J * (m1 * x[jt] + m2 * y[jt])); // crude direct
 
     printf("[gpu %3d] one targ: rel err in c[%d] is %.3g\n", t, jt,
-           abs(cstart[jt] - ct) / infnorm(M, c));
+           std::abs(cstart[jt] - ct) / infnorm(M, c));
   }
 
   cudaFreeHost(x);

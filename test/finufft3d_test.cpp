@@ -3,7 +3,11 @@
 #include "finufft/finufft_utils.hpp"
 #include "utils/dirft3d.hpp"
 #include "utils/norms.hpp"
-using namespace std;
+
+#include <algorithm>
+#include <cmath>
+#include <iomanip>
+#include <iostream>
 using namespace finufft::utils;
 
 const char *help[] = {"Tester for FINUFFT in 3d, all 3 types, either precision.",
@@ -47,7 +51,7 @@ int main(int argc, char *argv[]) {
   }
   if (argc > 9) sscanf(argv[9], "%lf", &errfail);
 
-  cout << scientific << setprecision(15);
+  std::cout << std::scientific << std::setprecision(15);
   BIGINT N = N1 * N2 * N3;
 
   FLT *x = (FLT *)malloc(sizeof(FLT) * M); // NU pts x coords
@@ -83,25 +87,25 @@ int main(int argc, char *argv[]) {
          nt3 = (BIGINT)(-0.39 * N3); // choose mode to check
   FLT Ftr = 0, Fti = 0;              // crude direct...
 #pragma omp parallel for schedule(static, TEST_RANDCHUNK) reduction(+ : Ftr, Fti)
-  for (BIGINT j = 0; j < M; ++j) {   // Ft += c[j] * exp(J*(nt1*x[j]+nt2*y[j]+nt3*z[j]))
+  for (BIGINT j = 0; j < M; ++j) {   // Ft += c[j] * std::exp(J*(nt1*x[j]+nt2*y[j]+nt3*z[j]))
     FLT w = (FLT)isign * (nt1 * x[j] + nt2 * y[j] + nt3 * z[j]), co = cos(w), si = sin(w);
     Ftr += real(c[j]) * co - imag(c[j]) * si; // cpx arith by hand
     Fti += imag(c[j]) * co + real(c[j]) * si;
   }
   // index in complex F as 1d array...
   BIGINT it = N1 / 2 + nt1 + N1 * (N2 / 2 + nt2) + N1 * N2 * (N3 / 2 + nt3);
-  err       = abs(Ftr + IMA * Fti - F[it]) / infnorm(N, F);
+  err       = std::abs(Ftr + IMA * Fti - F[it]) / infnorm(N, F);
   printf("\tone mode: rel err in F[%lld,%lld,%lld] is %.3g\n", (long long)nt1,
          (long long)nt2, (long long)nt3, err);
   if ((int64_t)M * N <= TEST_BIGPROB) { // also check vs full direct eval
     CPX *Ft = (CPX *)malloc(sizeof(CPX) * N);
     dirft3d1(M, x, y, z, c, isign, N1, N2, N3, Ft);
     err    = relerrtwonorm(N, Ft, F);
-    errmax = max(err, errmax);
+    errmax = std::max(err, errmax);
     printf("\tdirft3d: rel l2-err of result F is %.3g\n", err);
     free(Ft);
   } else
-    errmax = max(err, errmax);
+    errmax = std::max(err, errmax);
 
   printf("test 3d type 2:\n"); // -------------- type 2
 #pragma omp parallel
@@ -126,18 +130,18 @@ int main(int argc, char *argv[]) {
   for (BIGINT m3 = -(N3 / 2); m3 <= (N3 - 1) / 2; ++m3) // loop in F order
     for (BIGINT m2 = -(N2 / 2); m2 <= (N2 - 1) / 2; ++m2)
       for (BIGINT m1 = -(N1 / 2); m1 <= (N1 - 1) / 2; ++m1)
-        ct += F[m++] * exp(IMA * (FLT)isign * (m1 * x[jt] + m2 * y[jt] + m3 * z[jt]));
-  err = abs(ct - c[jt]) / infnorm(M, c);
+        ct += F[m++] * std::exp(IMA * (FLT)isign * (m1 * x[jt] + m2 * y[jt] + m3 * z[jt]));
+  err = std::abs(ct - c[jt]) / infnorm(M, c);
   printf("\tone targ: rel err in c[%lld] is %.3g\n", (long long)jt, err);
   if ((int64_t)M * N <= TEST_BIGPROB) { // also full direct eval
     CPX *ct = (CPX *)malloc(sizeof(CPX) * M);
     dirft3d2(M, x, y, z, ct, isign, N1, N2, N3, F);
     err    = relerrtwonorm(M, ct, c);
-    errmax = max(err, errmax);
+    errmax = std::max(err, errmax);
     printf("\tdirft3d: rel l2-err of result c is %.3g\n", err);
     free(ct);
   } else
-    errmax = max(err, errmax);
+    errmax = std::max(err, errmax);
 
   printf("test 3d type 3:\n"); // -------------- type 3
                                // reuse the strengths c, interpret N as number of targs:
@@ -187,19 +191,19 @@ int main(int argc, char *argv[]) {
     Ftr += real(c[j]) * co - imag(c[j]) * si; // cpx arith by hand
     Fti += imag(c[j]) * co + real(c[j]) * si;
   }
-  err = abs(Ftr + IMA * Fti - F[kt]) / infnorm(N, F);
+  err = std::abs(Ftr + IMA * Fti - F[kt]) / infnorm(N, F);
   printf("\tone targ: rel err in F[%lld] is %.3g\n", (long long)kt, err);
   if (((int64_t)M) * N <= TEST_BIGPROB) {           // also full direct eval
     CPX *Ft = (CPX *)malloc(sizeof(CPX) * N);
     dirft3d3(M, x, y, z, c, isign, N, s, t, u, Ft); // writes to F
     err    = relerrtwonorm(N, Ft, F);
-    errmax = max(err, errmax);
+    errmax = std::max(err, errmax);
     printf("\tdirft3d: rel l2-err of result F is %.3g\n", err);
     // cout<<"s t u, F, Ft, F/Ft:\n"; for (int k=0;k<N;++k) cout<<s[k]<<" "<<t[k]<<"
     // "<<u[k]<<", "<<F[k]<<",\t"<<Ft[k]<<",\t"<<F[k]/Ft[k]<<endl;
     free(Ft);
   } else
-    errmax = max(err, errmax);
+    errmax = std::max(err, errmax);
 
   free(x);
   free(y);
@@ -209,7 +213,7 @@ int main(int argc, char *argv[]) {
   free(s);
   free(t);
   free(u);
-  if (isnan(errmax) || (errmax > errfail)) {
+  if (std::isnan(errmax) || (errmax > errfail)) {
     printf("\tfailed! err %.3g > errfail %.3g\n", errmax, errfail);
     return 1;
   } else

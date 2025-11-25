@@ -100,12 +100,12 @@ int main(int argc, char *argv[])
     std::complex<float> Ft = std::complex<float>(0, 0),
                         J  = std::complex<float>(0, 1) * (float)iflag;
     for (auto j = 0UL; j < M; ++j)
-      Ft += c[j + i * M] * exp(J * (nt1 * x[j] + nt2 * y[j])); // crude direct
+      Ft += c[j + i * M] * std::exp(J * (nt1 * x[j] + nt2 * y[j])); // crude direct
     int it = N1 / 2 + nt1 + N1 * (N2 / 2 + nt2); // index in complex F as 1d array
     printf("[gpu %3d] one mode: abs err in F[%d,%d] is %.3g\n", i, nt1, nt2,
-           abs(Ft - fk[it + i * N]));
+           std::abs(Ft - fk[it + i * N]));
     printf("[gpu %3d] one mode: rel err in F[%d,%d] is %.3g\n", i, nt1, nt2,
-           abs(Ft - fk[it + i * N]) / infnorm(N, fk + i * N));
+           std::abs(Ft - fk[it + i * N]) / infnorm(N, fk + i * N));
   }
 
   cudaFreeHost(x);

@@ -10,7 +10,10 @@
    Barnett 1/8/25, based on ../examples/spreadinterponly1d and finufft1d_test
 */
 #include <finufft/test_defs.h>
-using namespace std;
+
+#include <algorithm>
+#include <complex>
+#include <vector>
 using namespace finufft::utils;
 
 const char *help[] = {"Tester for FINUFFT in 1d, spread/interp only, either precision.",
@@ -47,9 +50,9 @@ int main(int argc, char *argv[]) {
   }
   if (argc > 7) sscanf(argv[7], "%lf", &errfail);
 
-  vector<FLT> x(M); // NU pts
-  vector<CPX> c(M); // their strengths
-  vector<CPX> F(M); // values on regular I/O grid (not Fourier coeffs for this task!)
+  std::vector<FLT> x(M); // NU pts
+  std::vector<CPX> c(M); // their strengths
+  std::vector<CPX> F(M); // values on regular I/O grid (not Fourier coeffs for this task!)
 
   // first spread M=1 single unit-strength at the origin, to get its total mass...
   x[0]       = 0.0;
@@ -88,12 +91,12 @@ int main(int argc, char *argv[]) {
   for (auto cj : c) csum += cj;
   CPX mass = 0.0; // tot output mass
   for (auto Fk : F) mass += Fk;
-  FLT relerr = abs(mass - kersum * csum) / abs(mass);
+  FLT relerr = std::abs(mass - kersum * csum) / std::abs(mass);
   printf("\trel mass err %.3g\n", relerr);
-  errmax = max(relerr, errmax);
+  errmax = std::max(relerr, errmax);
 
   printf("interp-only test 1d:\n"); // ............................................
-  for (auto &Fk : F) Fk = complex<double>{1.0, 0.0}; // unit grid input
+  for (auto &Fk : F) Fk = std::complex<double>{1.0, 0.0}; // unit grid input
   timer.restart();                                   // F input, c output...
   ier = FINUFFT1D2(M, x.data(), c.data(), unused, tol, N, F.data(), &opts);
   t   = timer.elapsedsec();
@@ -106,10 +109,10 @@ int main(int argc, char *argv[]) {
   csum = 0.0; // tot output
   for (auto cj : c) csum += cj;
   FLT superr = 0.0;
-  for (auto cj : c) superr = max(superr, abs(cj - kersum));
-  FLT relsuperr = superr / abs(kersum);
+  for (auto cj : c) superr = std::max(superr, std::abs(cj - kersum));
+  FLT relsuperr = superr / std::abs(kersum);
   printf("\trel sup err %.3g\n", relsuperr);
-  errmax = max(relsuperr, errmax);
+  errmax = std::max(relsuperr, errmax);
 
   return (errmax > (FLT)errfail);
 }
