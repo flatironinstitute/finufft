@@ -128,7 +128,8 @@ private:
   // other internal structs
   std::unique_ptr<Finufft_FFT_plan<TF>> fftPlan;
 
-  alignas(64) std::array<TF, 16 * 19> horner_coeffs{0};
+  // to clean up these sizes to use defs (max nc may need one):
+  alignas(64) std::array<TF, 16 * 19> horner_coeffs{0}; // 16 = MAX_NSPREAD, 19 = max nc
 
 public:
   const Finufft_FFT_plan<TF> &getFFTPlan() const { return *fftPlan; }
