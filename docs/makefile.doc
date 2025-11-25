@@ -20,6 +20,7 @@ For faster (multicore) compilation, append, for example, -j8
 Make options:
  'make [task] OMP=OFF' for single-threaded (no refs to OpenMP)
  'make [task] FFT=DUCC' for DUCC0 FFT (otherwise uses FFTW3)
+ 'make [task] LTO=OFF' disable link time optimization
  You must at least 'make objclean' before changing such options!
 
 Also see docs/install.rst and docs/README

@@ -51,6 +51,13 @@ and also add them to GitHub's Used By feature):
 #. `FReSCO <https://github.com/martiniani-lab/FReSCo>`_: Fast reciprocal-space correlator, by Aaron Shih, Mathias Kasiulis, and Stefano Martiani. This uses thousands of calls to all three transform types in 2D or 3D, to iteratively adjust nonuniform points until their Fourier transforms match a desired function. Physics Mag. article and movie: https://physics.aps.org/articles/v17/134
 
 
+Python packages depending on FINUFFT
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+For Python only, here is an automatically-generated list:
+https://www.wheelodex.org/projects/finufft/rdepends/
+
+
 Other wrappers to (cu)FINUFFT
 ------------------------------
 
