@@ -10,6 +10,7 @@
    Barnett 1/8/25, based on ../examples/spreadinterponly1d and finufft1d_test
 */
 #include <finufft/test_defs.h>
+#include <numeric>
 using namespace std;
 using namespace finufft::utils;
 
@@ -60,8 +61,7 @@ int main(int argc, char *argv[]) {
     printf("error (ier=%d)!\n", ier);
     return ier;
   }
-  CPX kersum = 0.0;
-  for (auto Fk : F) kersum += Fk; // one kernel mass
+  CPX kersum = std::accumulate(F.begin(), F.end(), CPX(0.0, 0.0)); // one kernel mass
 
   // generate random nonuniform points (x) and complex strengths (c)
 #pragma omp parallel
@@ -84,12 +84,10 @@ int main(int argc, char *argv[]) {
   }
   printf("\t%lld NU pts spread to %lld grid in %.3g s \t%.3g NU pts/s\n", (long long)M,
          (long long)N, t, M / t);
-  CPX csum = 0.0; // tot input strength
-  for (auto cj : c) csum += cj;
-  CPX mass = 0.0; // tot output mass
-  for (auto Fk : F) mass += Fk;
-  FLT relerr = abs(mass - kersum * csum) / abs(mass);
-  printf("\trel mass err %.3g\n", relerr);
+  CPX csum   = std::accumulate(c.begin(), c.end(), CPX(0.0, 0.0)); // tot input strength
+  CPX mass   = std::accumulate(F.begin(), F.end(), CPX(0.0, 0.0)); // tot output mass
+  FLT relerr = std::abs(mass - kersum * csum) / std::abs(mass);
+  printf("\trel err in total over grid: %.3g\n", relerr);
   errmax = max(relerr, errmax);
 
   printf("interp-only test 1d:\n"); // ............................................
@@ -103,12 +101,11 @@ int main(int argc, char *argv[]) {
   }
   printf("\t%lld NU pts interp from %lld grid in %.3g s \t%.3g NU pts/s\n", (long long)M,
          (long long)N, t, M / t);
-  csum = 0.0; // tot output
-  for (auto cj : c) csum += cj;
+  csum       = std::accumulate(c.begin(), c.end(), CPX(0.0, 0.0)); // tot output
   FLT superr = 0.0;
   for (auto cj : c) superr = max(superr, abs(cj - kersum));
-  FLT relsuperr = superr / abs(kersum);
-  printf("\trel sup err %.3g\n", relsuperr);
+  FLT relsuperr = superr / std::abs(kersum);
+  printf("\tmax rel err in values at NU pts: %.3g\n", relsuperr);
   errmax = max(relsuperr, errmax);
 
   return (errmax > (FLT)errfail);
