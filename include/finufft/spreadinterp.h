@@ -19,12 +19,18 @@
     > perftest/spreadtestnd 3 8e6 8e6 1e-6 1 4 0 1 0
     NOTE: non-zero values are for experts only, since
     NUMERICAL OUTPUT MAY BE INCORRECT UNLESS finufft_spread_opts.flags=0 !
+
+Note: currently (master 11/25/25, post-PR #748) there is no way to control these
+flags in spreadtestnd because it uses the public FINUFFT API, which cannot access the
+timing flags. Thus there is no test that uses these flags.
 */
 enum {
-  TF_OMIT_WRITE_TO_GRID        = 1, // don't add subgrids to out grid (dir=1)
-  TF_OMIT_EVALUATE_KERNEL      = 2, // don't evaluate the kernel at all
-  TF_OMIT_EVALUATE_EXPONENTIAL = 4, // omit exp() in kernel (kereval=0 only)
-  TF_OMIT_SPREADING            = 8  // don't interp/spread (dir=1: to subgrids)
+  TF_OMIT_WRITE_TO_GRID   = 1, // don't add subgrids to out grid (dir=1)
+  TF_OMIT_EVALUATE_KERNEL = 2, // don't evaluate the kernel at all (OBSOLETE: Ludvig vec
+                               // only)
+  TF_OMIT_EVALUATE_EXPONENTIAL = 4, // omit exp() in kernel (kereval=0 only; OBSOLETE:
+                                    // Ludvig vec only)
+  TF_OMIT_SPREADING = 8             // don't interp/spread (dir=1: to subgrids)
 };
 
 namespace finufft {

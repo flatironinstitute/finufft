@@ -242,7 +242,7 @@ static void evaluate_kernel_vector(T *ker, T *args,
    Barnett 4/24/18 option to pad to mult of 4 for better SIMD vectorization.
    Rescaled so max is 1, Barnett 7/21/24
 
-   Obsolete (replaced by Horner), but keep around for experimentation since
+   OBSOLETE (replaced by Horner), but keep around for experimentation since
    works for arbitrary beta. Formula must match reference implementation.
 */
 {

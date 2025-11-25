@@ -67,11 +67,10 @@ Algorithm summaries taken from old finufft?d?() documentation, Feb-Jun 2017:
    maxBatchSize (set to max_num_omp_threads) times the RAM is needed, so
    this is good only for small problems.
 
-
 Design notes for guru interface implementation:
+  * Thread-safety: FINUFFT plans are passed as pointers, so it has no global
+    state apart from (if FFTW used) that associated with FFTW (and did_fftw_init).
 
-* Thread-safety: FINUFFT plans are passed as pointers, so it has no global
-  state apart from (if FFTW used) that associated with FFTW (and did_fftw_init).
 */
 
 // ---------- local math routines (were in common.cpp; no need now): --------
@@ -182,8 +181,8 @@ static void onedim_fseries_kernel(BIGINT nf, std::vector<T> &fwkerhalf,
         divided by h = 2pi/n.
         (should be allocated for at least nf/2+1 Ts)
 
-  Compare onedim_dct_kernel which has same interface, but computes DFT of
-  sampled kernel, not quite the same object.
+  [Compare long-gone onedim_dct_kernel which had same interface, but computed DFT
+  of sampled kernel, not quite the same object. This was from 2017-ish.]
 
   Barnett 2/7/17. openmp (since slow vs fftw in 1D large-N case) 3/3/18.
   Fixed num_threads 7/20/20. Reduced rounding error in a[n] calc 8/20/24.
@@ -226,9 +225,9 @@ static void onedim_fseries_kernel(BIGINT nf, std::vector<T> &fwkerhalf,
   }
 }
 
-template<typename T> class KernelFseries {
+template<typename T> class Kernel_onedim_FT {
 private:
-  std::vector<T> z, f;
+  std::vector<T> z, f;         // internal arrays
 
 public:
   /*
@@ -236,7 +235,7 @@ public:
     kernel, directly via q-node quadrature on Euler-Fourier formula, exploiting
     narrowness of kernel. Evaluates at set of arbitrary freqs k in [-pi, pi),
     for a kernel with x measured in grid-spacings. (See previous routine for
-    FT definition).
+    FT definition.). Note: old (pre-2025) name was: onedim_nuft_kernel().
 
     Inputs:
     opts - spreading opts object, needed to eval kernel (must be already set up)
@@ -244,7 +243,9 @@ public:
     Barnett 2/8/17. openmp since cos slow 2/9/17.
     To do (Nov 2024): replace evaluate_kernel by evaluate_kernel_horner.
    */
-  KernelFseries(const finufft_spread_opts &opts) {
+
+  Kernel_onedim_FT(const finufft_spread_opts &opts) {
+    // creator: does initialization of z and f arrays:
     T J2 = opts.nspread / 2.0; // J/2, half-width of ker z-support
     // # quadr nodes in z (from 0 to J/2; reflections will be added)...
     int q = (int)(2 + 2.0 * J2); // > pi/2 ratio.  cannot exceed MAX_NQUAD
@@ -262,7 +263,8 @@ public:
   }
 
   /*
-    Evaluates the Fourier transform of the kernel at a single point.
+    Evaluates the Fourier transform of the kernel at a single point, using
+    the z and f arrays from creation time.
 
     Inputs:
     k - frequency, dual to the kernel's natural argument, ie exp(i.k.z)
@@ -273,7 +275,7 @@ public:
   FINUFFT_ALWAYS_INLINE T operator()(T k) {
     T x = 0;
     for (size_t n = 0; n < z.size(); ++n)
-      x += f[n] * 2 * std::cos(k * z[n]); // pos & neg freq pair.  use T cos!
+      x += f[n] * 2 * std::cos(k * z[n]);    // pos & neg freq pair.  use T cos!
     return x;
   }
 };
@@ -940,7 +942,7 @@ int FINUFFT_PLAN_T<TF>::setpts(BIGINT nj, const TF *xj, const TF *yj, const TF *
       for (BIGINT j = 0; j < nj; ++j)
         prephase[j] = {1.0, 0.0}; // *** or keep flag so no mult in exec??
 
-    KernelFseries<TF> fseries(spopts);
+    Kernel_onedim_FT<TF> onedim_phihat(spopts);   // create a 1D phihat evaluator
     // (old STEP 3a) Compute deconvolution post-factors array (per targ pt)...
     // (exploits that FT separates because kernel is prod of 1D funcs)
     deconv.resize(nk);
@@ -958,7 +960,7 @@ int FINUFFT_PLAN_T<TF>::setpts(BIGINT nj, const TF *xj, const TF *yj, const TF *
         // rescale the target s_k etc to s'_k etc...
         auto tSTUp = t3P.h[idim] * t3P.gam[idim] * (tSTUin - t3P.D[idim]); // so |s'_k| <
                                                                            // pi/R
-        phiHat *= fseries(tSTUp);
+        phiHat *= onedim_phihat(tSTUp);
         if (do_phase) phase += (tSTUin - t3P.D[idim]) * t3P.C[idim];
         STUp[idim][k] = tSTUp;
       }
