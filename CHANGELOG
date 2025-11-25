@@ -1,7 +1,7 @@
 List of features / changes made / release notes, in reverse chronological order.
 If not stated, FINUFFT is assumed (old cuFINUFFT <=1.3 is listed separately).
 
-Master (working towards v2.5.0), 11/16/25
+Master (working towards v2.5.0), 11/25/25
 
 * Added real-valued function type-2 interpolation demos (Barnett, Unalmis #722)
 * Added functionality for adjoint execution of FINUFFT plans (Reinecke #633,
@@ -29,14 +29,14 @@ Master (working towards v2.5.0), 11/16/25
   entry points and test helpers consistently on Windows and macOS.  This
   included tightening default visibility in the makefile, introducing
   `FINUFFT_EXPORT_TEST` for test-only APIs, and ensuring FFT backends are linked
-  through a dedicated `finufft_fftlibs` interface target. (Barbone, Reinecke #737)
-* Kernel polynomial coefficients are now fitted at runtime and the kernel implementation
-  has been moved to kernel.h and integrated into the spread/interp code path,
+  through a dedicated `finufft_fftlibs` interface target. Barbone, Reinecke #737
+* Kernel polynomial coefficients now fitted at runtime, kernel implementation
+  moved to kernel.h and integrated into the spread/interp code path,
   centralizing kernel evaluation and simplifying parameter handling.
   spreadtestnd, spreadtestndall and test_spreadinterponly were updated to use
   the public API and share a unified STL-based implementation for kersum,
-  mass and relative-error checks. This common kernel header also enables reuse
-  by the GPU. (Barbone, Barnett, Lu, PR #748)
+  mass and relative-error checks. This common kernel header will also enable
+  reuse by the GPU. (Barbone, Barnett, Lu, PR #748)
 
 V 2.4.1 7/8/25
 
