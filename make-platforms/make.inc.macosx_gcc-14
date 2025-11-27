@@ -37,7 +37,8 @@ FFTWOMPSUFFIX=threads
 
 # MATLAB interface:
 # some of these will depend on your FFTW library location...
-MFLAGS += -I/usr/local/include  -I$(shell brew --prefix)/include -L/usr/local/lib -L$(shell brew --prefix)/lib -lm
+# add -ld_classic workaround to force mex use old linker due to XCode issue found by Dan F
+MFLAGS += -I/usr/local/include  -I$(shell brew --prefix)/include -L/usr/local/lib -L$(shell brew --prefix)/lib -lm -ld_classic
 # edit for your MATLAB version location...
 MEX = $(shell ls -d /Applications/MATLAB_R20**.app)/bin/mex
 # Also see docs/install.rst for possible edits to MATLAB's MEX XML file.
