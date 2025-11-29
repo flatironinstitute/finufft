@@ -8,8 +8,8 @@ isign   = +1;     % sign of imaginary unit in exponential
 o.debug = 0;      % choose 1 for timing breakdown text output
 
 % use one of these two...
-%tols = 10.^(-1:-0.02:-15); o.upsampfac = 2.0;
-tols = 10.^(-1:-0.02:-10); o.upsampfac=1.25;    % for lowupsampfac
+tols = 10.^(-1:-0.02:-15); o.upsampfac = 2.0;
+%tols = 10.^(-1:-0.02:-10); o.upsampfac=1.25;    % for lowupsampfac
 
 % other expts...
 %tols = 1e-6;
