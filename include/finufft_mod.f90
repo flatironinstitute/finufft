@@ -15,7 +15,9 @@ type finufft_opts
 
    ! alg perf opts...
    integer(kind=C_INT) :: nthreads,fftw,spread_sort,spread_kerevalmeth
+   ! DEPRECATED: spread_kerevalmeth kept for compatibility but ignored by library
    integer(kind=C_INT) :: spread_kerpad
+   ! DEPRECATED: spread_kerpad is ignored
    real(kind=C_DOUBLE) :: upsampfac
    integer(kind=C_INT) :: spread_thread, maxbatchsize
    integer(kind=C_INT) :: spread_nthr_atomic, spread_max_sp_size

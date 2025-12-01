@@ -24,6 +24,8 @@ typedef struct finufft_opts { // defaults see finufft_core.cpp:finufft_default_o
   int fftw;               // plan flags to FFTW (FFTW_ESTIMATE=64, FFTW_MEASURE=0,...)
   int spread_sort;        // spreader: 0 don't sort, 1 do, or 2 heuristic choice
   int spread_kerevalmeth; // spreader: 0 exp(sqrt()), 1 Horner piecewise poly (faster)
+                          // DEPRECATED: this field is retained for compatibility
+                          // but is ignored; Horner evaluation is always used.
   int spread_kerpad;      // (exp(sqrt()) only): 0 don't pad kernel to 4n, 1 do
   double upsampfac;       // upsampling ratio sigma: 2.0 std, 1.25 small FFT, 0.0 auto
   int spread_thread;      // (vectorized ntr>1 only): 0 auto, 1 seq multithreaded,

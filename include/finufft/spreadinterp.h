@@ -10,22 +10,9 @@
 #include <finufft/finufft_core.h>
 #include <finufft_spread_opts.h>
 
-/* Bitwise debugging timing flag (TF) defs; see finufft_spread_opts.flags.
-    This is an unobtrusive way to determine the time contributions of the
-    different components of spreading/interp by selectively leaving them out.
-    For example, running the following two tests shows the effect of the exp()
-    in the kernel evaluation (the last argument is the flag):
-    > perftest/spreadtestnd 3 8e6 8e6 1e-6 1 0 0 1 0
-    > perftest/spreadtestnd 3 8e6 8e6 1e-6 1 4 0 1 0
-    NOTE: non-zero values are for experts only, since
-    NUMERICAL OUTPUT MAY BE INCORRECT UNLESS finufft_spread_opts.flags=0 !
+/* Note: the legacy TF_OMIT_* timing flags were removed.  Timing helpers
+   previously controlled by these flags have been purged from the codebase.
 */
-enum {
-  TF_OMIT_WRITE_TO_GRID        = 1, // don't add subgrids to out grid (dir=1)
-  TF_OMIT_EVALUATE_KERNEL      = 2, // don't evaluate the kernel at all
-  TF_OMIT_EVALUATE_EXPONENTIAL = 4, // omit exp() in kernel (kereval=0 only)
-  TF_OMIT_SPREADING            = 8  // don't interp/spread (dir=1: to subgrids)
-};
 
 namespace finufft {
 namespace spreadinterp {

@@ -226,59 +226,6 @@ static FINUFFT_ALWAYS_INLINE T fold_rescale(const T x, const UBIGINT N) noexcept
   return (result - floor(result)) * T(N);
 }
 
-template<typename T, uint8_t ns>
-static void set_kernel_args(T *args, T x) noexcept
-// Fills vector args[] with kernel arguments x, x+1, ..., x+ns-1.
-// needed for the vectorized kernel eval of Ludvig af K.
-{
-  for (int i = 0; i < ns; i++) args[i] = x + T(i);
-}
-template<typename T, uint8_t N>
-static void evaluate_kernel_vector(T *ker, T *args,
-                                   const finufft_spread_opts &opts) noexcept
-/* Evaluate ES kernel for a vector of N arguments; by Ludvig af K.
-   If opts.kerpad true, args and ker must be allocated for Npad, and args is
-   written to (to pad to length Npad), only first N outputs are correct.
-   Barnett 4/24/18 option to pad to mult of 4 for better SIMD vectorization.
-   Rescaled so max is 1, Barnett 7/21/24
-
-   Obsolete (replaced by Horner), but keep around for experimentation since
-   works for arbitrary beta. Formula must match reference implementation.
-*/
-{
-  T b = (T)opts.ES_beta;
-  T c = (T)opts.ES_c;
-  if (!(opts.flags & TF_OMIT_EVALUATE_KERNEL)) {
-    // Note (by Ludvig af K): Splitting kernel evaluation into two loops
-    // seems to benefit auto-vectorization.
-    // gcc 5.4 vectorizes first loop; gcc 7.2 vectorizes both loops
-    int Npad = N;
-    if (opts.kerpad) {               // since always same branch, no speed hit
-      Npad = 4 * (1 + (N - 1) / 4);  // pad N to mult of 4; help i7 GCC, not xeon
-      for (int i = N; i < Npad; ++i) // pad with 1-3 zeros for safe eval
-        args[i] = 0.0;
-    }
-    for (int i = 0; i < Npad; i++) { // Loop 1: Compute exponential arguments
-      // care! 1.0 is double...
-      ker[i] = b * (sqrt((T)1.0 - c * args[i] * args[i]) - (T)1.0);
-    }
-    if (!(opts.flags & TF_OMIT_EVALUATE_EXPONENTIAL))
-      for (int i = 0; i < Npad; i++) // Loop 2: Compute exponentials
-        ker[i] = exp(ker[i]);
-    if (opts.kerpad) {
-      // padded part should be zero, in spread_subproblem_nd_kernels, there are
-      // out of bound writes to trg arrays
-      for (int i = N; i < Npad; ++i) ker[i] = 0.0;
-    }
-  } else {
-    for (int i = 0; i < N; i++) // dummy for timing only
-      ker[i] = 1.0;
-  }
-  // Separate check from arithmetic (Is this really needed? doesn't slow down)
-  for (int i = 0; i < N; i++)
-    if (abs(args[i]) >= (T)opts.ES_halfwidth) ker[i] = 0.0;
-}
-
 template<typename T, uint8_t w, uint8_t upsampfact,
          class simd_type =
              xsimd::make_sized_batch_t<T, find_optimal_simd_width<T, w>()>> // aka ns
@@ -807,7 +754,7 @@ static void interp_cube(T *FINUFFT_RESTRICT target, const T *du, const T *ker1,
   target[1] = out[1];
 }
 
-template<int ns, int kerevalmeth, class T,
+template<int ns, class T,
          class simd_type = xsimd::make_sized_batch_t<T, find_optimal_simd_width<T, ns>()>,
          typename... V>
 static FINUFFT_ALWAYS_INLINE auto ker_eval(
@@ -824,35 +771,28 @@ static FINUFFT_ALWAYS_INLINE auto ker_eval(
      finufft_spread_opts as Horner needs
      the oversampling factor
      elems = kernel arguments
-     Examples usage is
-     ker_eval<ns,kerevalmeth>(opts, x, y, z) // for 3D or
-     ker_eval<ns, kerevalmeth>(opts, x, y) // for 2D or
-     ker_eval<ns, kerevalmeth>(opts, x) // for 1D
+    Examples usage is
+    ker_eval<ns>(opts, x, y, z) // for 3D or
+    ker_eval<ns>(opts, x, y) // for 2D or
+    ker_eval<ns>(opts, x) // for 1D
    */
   const std::array inputs{elems...};
-  // compile time loop, no performance overhead
+  // Only Horner piecewise-polynomial evaluation is used now. Call Horner
+  // evaluator for each input value (compile-time loop over elements).
   for (size_t i = 0; i < sizeof...(elems); ++i) {
-    // compile time branch no performance overhead
-    if constexpr (kerevalmeth == 1) {
-      if (opts.upsampfac == 2.0) {
-        eval_kernel_vec_Horner<T, ns, 200, simd_type>(ker + (i * MAX_NSPREAD), inputs[i],
-                                                      opts, horner_coeffs_ptr);
-      }
-      if (opts.upsampfac == 1.25) {
-        eval_kernel_vec_Horner<T, ns, 125, simd_type>(ker + (i * MAX_NSPREAD), inputs[i],
-                                                      opts, horner_coeffs_ptr);
-      }
+    if (opts.upsampfac == 2.0) {
+      eval_kernel_vec_Horner<T, ns, 200, simd_type>(ker + (i * MAX_NSPREAD), inputs[i],
+                                                    opts, horner_coeffs_ptr);
     }
-    if constexpr (kerevalmeth == 0) {
-      alignas(simd_type::arch_type::alignment()) std::array<T, MAX_NSPREAD> kernel_args{};
-      set_kernel_args<T, ns>(kernel_args.data(), inputs[i]);
-      evaluate_kernel_vector<T, ns>(ker + (i * MAX_NSPREAD), kernel_args.data(), opts);
+    if (opts.upsampfac == 1.25) {
+      eval_kernel_vec_Horner<T, ns, 125, simd_type>(ker + (i * MAX_NSPREAD), inputs[i],
+                                                    opts, horner_coeffs_ptr);
     }
   }
   return ker;
 }
 
-template<typename T, int ns, int kerevalmeth>
+template<typename T, int ns>
 FINUFFT_NEVER_INLINE void spread_subproblem_1d_kernel(
     const BIGINT off1, const UBIGINT size1, T *FINUFFT_RESTRICT du, const UBIGINT M,
     const T *const kx, const T *const dd, const finufft_spread_opts &opts,
@@ -917,8 +857,8 @@ FINUFFT_NEVER_INLINE void spread_subproblem_1d_kernel(
     }();
     // Libin improvement: pass ker as a parameter and allocate it outside the loop
     // gcc13 + 10% speedup
-    ker_eval<ns, kerevalmeth, T, simd_type>(ker.data(), opts, horner_coeffs_ptr, x1);
-    //    const auto ker = ker_eval<ns, kerevalmeth, T, simd_type>(opts, x1);
+    ker_eval<ns, T, simd_type>(ker.data(), opts, horner_coeffs_ptr, x1);
+    //    const auto ker = ker_eval<ns, T, simd_type>(opts, x1);
     const auto j = i1 - off1; // offset rel to subgrid, starts the output indices
     auto *FINUFFT_RESTRICT trg = du + 2 * j; // restrict helps compiler to vectorize
     // du is padded, so we can use SIMD even if we write more than ns values in du
@@ -1004,9 +944,9 @@ template<typename T> struct SpreadSubproblem1dCaller {
   const T *dd;
   const finufft_spread_opts &opts;
   const T *horner_coeffs_ptr;
-  template<int NS, int KM> int operator()() const {
-    spread_subproblem_1d_kernel<T, NS, KM>(off1, size1, du, M, kx, dd, opts,
-                                           horner_coeffs_ptr);
+  template<int NS> int operator()() const {
+    spread_subproblem_1d_kernel<T, NS>(off1, size1, du, M, kx, dd, opts,
+                                       horner_coeffs_ptr);
     return 0;
   }
 };
@@ -1018,14 +958,12 @@ static void spread_subproblem_1d(BIGINT off1, UBIGINT size1, T *du, UBIGINT M, T
                                  T *dd, const finufft_spread_opts &opts,
                                  const T *horner_coeffs_ptr) noexcept {
   SpreadSubproblem1dCaller<T> caller{off1, size1, du, M, kx, dd, opts, horner_coeffs_ptr};
-  using NsSeq  = make_range<MIN_NSPREAD, MAX_NSPREAD>;
-  using KerSeq = std::make_integer_sequence<int, KEREVAL_METHODS>;
-  auto params  = std::make_tuple(DispatchParam<NsSeq>{opts.nspread},
-                                 DispatchParam<KerSeq>{opts.kerevalmeth});
+  using NsSeq = make_range<MIN_NSPREAD, MAX_NSPREAD>;
+  auto params = std::make_tuple(DispatchParam<NsSeq>{opts.nspread});
   dispatch(caller, params);
 }
 
-template<typename T, int ns, int kerevalmeth>
+template<typename T, int ns>
 FINUFFT_NEVER_INLINE static void spread_subproblem_2d_kernel(
     const BIGINT off1, const BIGINT off2, const UBIGINT size1, const UBIGINT size2,
     T *FINUFFT_RESTRICT du, const UBIGINT M, const T *kx, const T *ky, const T *dd,
@@ -1055,8 +993,7 @@ FINUFFT_NEVER_INLINE static void spread_subproblem_2d_kernel(
     const auto i2 = (BIGINT)std::ceil(ky[pt] - ns2);
     const auto x1 = (T)std::ceil(kx[pt] - ns2) - kx[pt];
     const auto x2 = (T)std::ceil(ky[pt] - ns2) - ky[pt];
-    ker_eval<ns, kerevalmeth, T, simd_type>(kernel_values.data(), opts, horner_coeffs_ptr,
-                                            x1, x2);
+    ker_eval<ns, T, simd_type>(kernel_values.data(), opts, horner_coeffs_ptr, x1, x2);
     const auto *ker1 = kernel_values.data();
     const auto *ker2 = kernel_values.data() + MAX_NSPREAD;
     // Combine kernel with complex source value to simplify inner loop
@@ -1131,9 +1068,9 @@ template<typename T> struct SpreadSubproblem2dCaller {
   const T *dd;
   const finufft_spread_opts &opts;
   const T *horner_coeffs_ptr;
-  template<int NS, int KM> int operator()() const {
-    spread_subproblem_2d_kernel<T, NS, KM>(off1, off2, size1, size2, du, M, kx, ky, dd,
-                                           opts, horner_coeffs_ptr);
+  template<int NS> int operator()() const {
+    spread_subproblem_2d_kernel<T, NS>(off1, off2, size1, size2, du, M, kx, ky, dd, opts,
+                                       horner_coeffs_ptr);
     return 0;
   }
 };
@@ -1155,14 +1092,12 @@ static void spread_subproblem_2d(
 {
   SpreadSubproblem2dCaller<T> caller{
       off1, off2, size1, size2, du, M, kx, ky, dd, opts, horner_coeffs_ptr};
-  using NsSeq  = make_range<MIN_NSPREAD, MAX_NSPREAD>;
-  using KerSeq = std::make_integer_sequence<int, KEREVAL_METHODS>;
-  auto params  = std::make_tuple(DispatchParam<NsSeq>{opts.nspread},
-                                 DispatchParam<KerSeq>{opts.kerevalmeth});
+  using NsSeq = make_range<MIN_NSPREAD, MAX_NSPREAD>;
+  auto params = std::make_tuple(DispatchParam<NsSeq>{opts.nspread});
   dispatch(caller, params);
 }
 
-template<typename T, int ns, int kerevalmeth>
+template<typename T, int ns>
 FINUFFT_NEVER_INLINE void spread_subproblem_3d_kernel(
     const BIGINT off1, const BIGINT off2, const BIGINT off3, const UBIGINT size1,
     const UBIGINT size2, const UBIGINT size3, T *FINUFFT_RESTRICT du, const UBIGINT M,
@@ -1188,8 +1123,7 @@ FINUFFT_NEVER_INLINE void spread_subproblem_3d_kernel(
     const auto x2 = std::ceil(ky[pt] - ns2) - ky[pt];
     const auto x3 = std::ceil(kz[pt] - ns2) - kz[pt];
 
-    ker_eval<ns, kerevalmeth, T, simd_type>(kernel_values.data(), opts, horner_coeffs_ptr,
-                                            x1, x2, x3);
+    ker_eval<ns, T, simd_type>(kernel_values.data(), opts, horner_coeffs_ptr, x1, x2, x3);
     const auto *ker1 = kernel_values.data();
     const auto *ker2 = kernel_values.data() + MAX_NSPREAD;
     const auto *ker3 = kernel_values.data() + 2 * MAX_NSPREAD;
@@ -1252,9 +1186,9 @@ template<typename T> struct SpreadSubproblem3dCaller {
   T *dd;
   const finufft_spread_opts &opts;
   const T *horner_coeffs_ptr;
-  template<int NS, int KM> int operator()() const {
-    spread_subproblem_3d_kernel<T, NS, KM>(off1, off2, off3, size1, size2, size3, du, M,
-                                           kx, ky, kz, dd, opts, horner_coeffs_ptr);
+  template<int NS> int operator()() const {
+    spread_subproblem_3d_kernel<T, NS>(off1, off2, off3, size1, size2, size3, du, M, kx,
+                                       ky, kz, dd, opts, horner_coeffs_ptr);
     return 0;
   }
 };
@@ -1276,10 +1210,8 @@ du (size size1*size2*size3) is uniform complex output array
   SpreadSubproblem3dCaller<T> caller{
       off1, off2, off3, size1, size2, size3, du,
       M,    kx,   ky,   kz,    dd,    opts,  horner_coeffs_ptr};
-  using NsSeq  = make_range<MIN_NSPREAD, MAX_NSPREAD>;
-  using KerSeq = std::make_integer_sequence<int, KEREVAL_METHODS>;
-  auto params  = std::make_tuple(DispatchParam<NsSeq>{opts.nspread},
-                                 DispatchParam<KerSeq>{opts.kerevalmeth});
+  using NsSeq = make_range<MIN_NSPREAD, MAX_NSPREAD>;
+  auto params = std::make_tuple(DispatchParam<NsSeq>{opts.nspread});
   dispatch(caller, params);
 }
 
@@ -1777,31 +1709,28 @@ static int spreadSorted(
         // allocate output data for this subgrid
         du0.resize(2 * padded_size1 * size2 * size3); // complex
         // Spread to subgrid without need for bounds checking or wrapping
-        if (!(opts.flags & TF_OMIT_SPREADING)) {
-          if (ndims == 1)
-            spread_subproblem_1d(offset1, padded_size1, du0.data(), M0, kx0.data(),
-                                 dd0.data(), opts, horner_coeffs_ptr);
-          else if (ndims == 2)
-            spread_subproblem_2d(offset1, offset2, padded_size1, size2, du0.data(), M0,
-                                 kx0.data(), ky0.data(), dd0.data(), opts,
-                                 horner_coeffs_ptr);
-          else
-            spread_subproblem_3d(offset1, offset2, offset3, padded_size1, size2, size3,
-                                 du0.data(), M0, kx0.data(), ky0.data(), kz0.data(),
-                                 dd0.data(), opts, horner_coeffs_ptr);
-        }
-        // do the adding of subgrid to output
-        if (!(opts.flags & TF_OMIT_WRITE_TO_GRID)) {
-          if (nthr > opts.atomic_threshold) { // see above for debug reporting
-            add_wrapped_subgrid<T, true>(offset1, offset2, offset3, padded_size1, size1,
-                                         size2, size3, N1, N2, N3, data_uniform,
-                                         du0.data()); // R Blackwell's atomic version
-          } else {
+        if (ndims == 1)
+          spread_subproblem_1d(offset1, padded_size1, du0.data(), M0, kx0.data(),
+                               dd0.data(), opts, horner_coeffs_ptr);
+        else if (ndims == 2)
+          spread_subproblem_2d(offset1, offset2, padded_size1, size2, du0.data(), M0,
+                               kx0.data(), ky0.data(), dd0.data(), opts,
+                               horner_coeffs_ptr);
+        else
+          spread_subproblem_3d(offset1, offset2, offset3, padded_size1, size2, size3,
+                               du0.data(), M0, kx0.data(), ky0.data(), kz0.data(),
+                               dd0.data(), opts, horner_coeffs_ptr);
+
+        // add subgrid to output (always do this); atomic vs critical chosen
+        if (nthr > opts.atomic_threshold) { // see above for debug reporting
+          add_wrapped_subgrid<T, true>(offset1, offset2, offset3, padded_size1, size1,
+                                       size2, size3, N1, N2, N3, data_uniform,
+                                       du0.data()); // R Blackwell's atomic version
+        } else {
 #pragma omp critical
-            add_wrapped_subgrid<T, false>(offset1, offset2, offset3, padded_size1, size1,
-                                          size2, size3, N1, N2, N3, data_uniform,
-                                          du0.data());
-          }
+          add_wrapped_subgrid<T, false>(offset1, offset2, offset3, padded_size1, size1,
+                                        size2, size3, N1, N2, N3, data_uniform,
+                                        du0.data());
         }
       } // end main loop over subprobs
     }
@@ -1813,7 +1742,7 @@ static int spreadSorted(
 };
 
 // --------------------------------------------------------------------------
-template<typename T, int ns, int kerevalmeth>
+template<typename T, int ns>
 FINUFFT_NEVER_INLINE static int interpSorted_kernel(
     const std::vector<BIGINT> &sort_indices, const UBIGINT N1, const UBIGINT N2,
     const UBIGINT N3, const T *data_uniform, const UBIGINT M,
@@ -1885,29 +1814,26 @@ FINUFFT_NEVER_INLINE static int interpSorted_kernel(
         const auto x3 = (ndims > 2) ? std::ceil(zj - ns2) - zj : 0;
 
         // eval kernel values patch and use to interpolate from uniform data...
-        if (!(opts.flags & TF_OMIT_SPREADING)) {
-          switch (ndims) {
-          case 1:
-            ker_eval<ns, kerevalmeth, T, simd_type>(kernel_values.data(), opts,
-                                                    horner_coeffs_ptr, x1);
-            interp_line<T, ns, simd_type>(target, data_uniform, ker1, i1, N1);
-            break;
-          case 2:
-            ker_eval<ns, kerevalmeth, T, simd_type>(kernel_values.data(), opts,
-                                                    horner_coeffs_ptr, x1, x2);
-            interp_square<T, ns, simd_type>(target, data_uniform, ker1, ker2, i1, i2, N1,
-                                            N2);
-            break;
-          case 3:
-            ker_eval<ns, kerevalmeth, T, simd_type>(kernel_values.data(), opts,
-                                                    horner_coeffs_ptr, x1, x2, x3);
-            interp_cube<T, ns, simd_type>(target, data_uniform, ker1, ker2, ker3, i1, i2,
-                                          i3, N1, N2, N3);
-            break;
-          default: // can't get here
-            FINUFFT_UNREACHABLE;
-            break;
-          }
+        switch (ndims) {
+        case 1:
+          ker_eval<ns, T, simd_type>(kernel_values.data(), opts, horner_coeffs_ptr, x1);
+          interp_line<T, ns, simd_type>(target, data_uniform, ker1, i1, N1);
+          break;
+        case 2:
+          ker_eval<ns, T, simd_type>(kernel_values.data(), opts, horner_coeffs_ptr, x1,
+                                     x2);
+          interp_square<T, ns, simd_type>(target, data_uniform, ker1, ker2, i1, i2, N1,
+                                          N2);
+          break;
+        case 3:
+          ker_eval<ns, T, simd_type>(kernel_values.data(), opts, horner_coeffs_ptr, x1,
+                                     x2, x3);
+          interp_cube<T, ns, simd_type>(target, data_uniform, ker1, ker2, ker3, i1, i2,
+                                        i3, N1, N2, N3);
+          break;
+        default: // can't get here
+          FINUFFT_UNREACHABLE;
+          break;
         }
       } // end loop over targets in chunk
 
@@ -1937,10 +1863,9 @@ template<typename T> struct InterpSortedCaller {
   T *data_nonuniform;
   const finufft_spread_opts &opts;
   const T *horner_coeffs_ptr;
-  template<int NS, int KM> int operator()() const {
-    return interpSorted_kernel<T, NS, KM>(sort_indices, N1, N2, N3, data_uniform, M, kx,
-                                          ky, kz, data_nonuniform, opts,
-                                          horner_coeffs_ptr);
+  template<int NS> int operator()() const {
+    return interpSorted_kernel<T, NS>(sort_indices, N1, N2, N3, data_uniform, M, kx, ky,
+                                      kz, data_nonuniform, opts, horner_coeffs_ptr);
   }
 };
 
@@ -1956,10 +1881,8 @@ static int interpSorted(const std::vector<BIGINT> &sort_indices, const UBIGINT N
   InterpSortedCaller<T> caller{
       sort_indices,     N1, N2, N3, data_uniform, M, kx, ky, kz, data_nonuniform, opts,
       horner_coeffs_ptr};
-  using NsSeq  = make_range<MIN_NSPREAD, MAX_NSPREAD>;
-  using KerSeq = std::make_integer_sequence<int, KEREVAL_METHODS>;
-  auto params  = std::make_tuple(DispatchParam<NsSeq>{opts.nspread},
-                                 DispatchParam<KerSeq>{opts.kerevalmeth});
+  using NsSeq = make_range<MIN_NSPREAD, MAX_NSPREAD>;
+  auto params = std::make_tuple(DispatchParam<NsSeq>{opts.nspread});
   return dispatch(caller, params);
 }
 
@@ -2145,15 +2068,21 @@ int setup_spreader(finufft_spread_opts &opts, T eps, double upsampfac, int kerev
   // write out default finufft_spread_opts (some overridden in setup_spreader_for_nufft)
   opts.spread_direction = 0; // user should always set to 1 or 2 as desired
   opts.sort             = 2; // 2:auto-choice
-  opts.kerpad           = 0; // affects only evaluate_kernel_vector
-  opts.kerevalmeth      = kerevalmeth;
-  opts.upsampfac        = upsampfac;
-  opts.nthreads         = 0; // all avail
-  opts.sort_threads     = 0; // 0:auto-choice
+  opts.kerpad = 0; // affects only evaluate_kernel_vector (kerpad kept for compatibility)
+  // DEPRECATED: incoming `kerevalmeth` argument is ignored; always use Horner
+  if (kerevalmeth != 1 && showwarn)
+    fprintf(stderr,
+            "FINUFFT setup_spreader: warning, kerevalmeth=%d is deprecated and ignored; "
+            "using Horner method\n",
+            kerevalmeth);
+  opts.kerevalmeth  = 1;
+  opts.upsampfac    = upsampfac;
+  opts.nthreads     = 0; // all avail
+  opts.sort_threads = 0; // 0:auto-choice
   // heuristic dir=1 chunking for nthr>>1, typical for intel i7 and skylake...
   opts.max_subproblem_size = (dim == 1) ? 10000 : 100000;
-  opts.flags               = 0; // 0:no timing flags (>0 for experts only)
-  opts.debug               = 0; // 0:no debug output
+  // TF_OMIT_* timing flags removed; no opts.flags field.
+  opts.debug = 0; // 0:no debug output
   // heuristic nthr above which switch OMP critical to atomic (add_wrapped...):
   opts.atomic_threshold = 10; // R Blackwell's value
 

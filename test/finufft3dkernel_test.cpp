@@ -8,7 +8,7 @@ using namespace std;
 using namespace finufft::utils;
 
 const char *help[] = {
-    "Test spread_kerevalmeth=0 & 1 match, for 3 types of 3D transf, either prec.",
+    "Test (deprecated) spread_kerevalmeth option: both methods now use Horner.",
     "Usage: finufft3dkernel_test Nmodes1 Nmodes2 Nmodes3 Nsrc",
     "\t[tol] error tolerance (default 1e-6)",
     "\t[debug] (default 0) 0: silent, 1: text, 2: as 1 but also spreader",
@@ -32,7 +32,8 @@ int main(int argc, char *argv[]) {
   finufft_opts opts0, opts1;
   FINUFFT_DEFAULT_OPTS(&opts0);
   FINUFFT_DEFAULT_OPTS(&opts1);
-  opts0.spread_kerevalmeth = 0;
+  // spread_kerevalmeth is deprecated and ignored; ensure both opts use Horner
+  opts0.spread_kerevalmeth = 1;
   opts1.spread_kerevalmeth = 1;
   // opts.fftw = FFTW_MEASURE;  // change from usual FFTW_ESTIMATE
   // opts.spread_max_sp_size = 3e4; // override test
@@ -59,8 +60,8 @@ int main(int argc, char *argv[]) {
     opts0.upsampfac = (FLT)w;
   }
 
-  opts1                    = opts0;
-  opts0.spread_kerevalmeth = 0;
+  opts1 = opts0;
+  opts0.spread_kerevalmeth = 1;
   opts1.spread_kerevalmeth = 1;
 
   cout << scientific << setprecision(15);
