@@ -186,7 +186,7 @@ static void onedim_fseries_kernel(BIGINT nf, std::vector<T> &fwkerhalf,
 
   Barnett 2/7/17. openmp (since slow vs fftw in 1D large-N case) 3/3/18.
   Fixed num_threads 7/20/20. Reduced rounding error in a[n] calc 8/20/24.
-  To do (Nov 2024): replace evaluate_kernel by evaluate_kernel_horner.
+  11/25/25, replaced evaluate_kernel by evaluate_kernel_horner (math change).
  */
 {
   T J2 = opts.nspread / 2.0; // J/2, half-width of ker z-support
@@ -199,7 +199,7 @@ static void onedim_fseries_kernel(BIGINT nf, std::vector<T> &fwkerhalf,
   for (int n = 0; n < q; ++n) { // set up nodes z_n and vals f_n
     z[n] *= J2;                 // rescale nodes
     // vals & quadr weighs
-    f[n] = J2 * (T)w[n] * evaluate_kernel((T)z[n], T(opts.ES_beta), T(opts.ES_c));
+    f[n] = J2 * (T)w[n] * evaluate_kernel_horner<T>((T)z[n], opts);
     // phase winding rates
     a[n] = -std::exp(2 * PI * std::complex<double>(0, 1) * z[n] / double(nf));
   }
@@ -241,11 +241,11 @@ public:
     opts - spreading opts object, needed to eval kernel (must be already set up)
 
     Barnett 2/8/17. openmp since cos slow 2/9/17.
-    To do (Nov 2024): replace evaluate_kernel by evaluate_kernel_horner.
+    11/25/25, replaced evaluate_kernel by evaluate_kernel_horner (math change).
    */
 
   Kernel_onedim_FT(const finufft_spread_opts &opts) {
-    // creator: does initialization of z and f arrays:
+    // creator: uses slow kernel evals to initialize z and f arrays.
     T J2 = opts.nspread / 2.0; // J/2, half-width of ker z-support
     // # quadr nodes in z (from 0 to J/2; reflections will be added)...
     int q = (int)(2 + 2.0 * J2); // > pi/2 ratio.  cannot exceed MAX_NQUAD
@@ -256,9 +256,8 @@ public:
     z.resize(q);
     f.resize(q);
     for (int n = 0; n < q; ++n) {
-      z[n] = T(Z[n] * J2); // quadr nodes for [0,J/2]
-      // w/ quadr weights
-      f[n] = J2 * T(W[n]) * evaluate_kernel(z[n], T(opts.ES_beta), T(opts.ES_c));
+      z[n] = T(Z[n] * J2);  // quadr nodes for [0,J/2] with weights J2 * w
+      f[n] = J2 * T(W[n]) * evaluate_kernel_horner<T>(z[n], opts);
     }
   }
 
@@ -509,9 +508,53 @@ int FINUFFT_PLAN_T<T>::deconvolveBatch(int batchSize, std::complex<T> *fkBatch,
   return 0;
 }
 
-// --------------- rest is the five user guru (plan) interface drivers: ---------
-// (not namespaced since have safe names finufft{f}_* )
-using namespace finufft::utils; // accesses routines defined above
+// ------------------- piecewise-poly Horner setup utility -----------------
+template<typename TF> void FINUFFT_PLAN_T<TF>::precompute_horner_coeffs() {
+  // Solve for piecewise Horner coeffs for the function kernel.h:evaluate_kernel()
+  // Marco Barbone, Fall 2025.
+  // Seems this function must be defined after the plan, since it's a method.
+  const auto nspread   = spopts.nspread;
+  const auto upsampfac = opts.upsampfac;
+  // "max_degree" really is "number of coeffs" = max degree + 1 ... (to tidy up)
+  const auto max_degree =
+      upsampfac == 2.00 ? horner_nc_200(nspread) : horner_nc_125(nspread);
+  // get the xsimd padding
+  static constexpr auto simd_size = xsimd::batch<TF>::size;
+  const auto padded_ns            = (nspread + simd_size - 1) & -simd_size;
+  // pad degree if desired; keep equal to max_degree for now
+  const auto padded_degree = max_degree;
+  horner_coeffs.fill(0);
+
+  for (int j = 0; j < nspread; ++j) {
+    const auto kernel = [&](const TF x) {
+      // scale manually from -1, 1 to -w/2+j to -w/2+j+1
+      return evaluate_kernel(TF(0.5) * TF(x - nspread + 2 * j + 1),
+                             TF(this->spopts.ES_beta), TF(this->spopts.ES_c));
+    };
+    // disable polyfit scaling
+    static constexpr TF a = -1.0;
+    static constexpr TF b = 1.0;
+    const auto coeffs       = fit_monomials(kernel, max_degree, a, b);
+    // store transposed: for each degree k
+    for (size_t k = 0; k < coeffs.size(); ++k)
+      horner_coeffs[k * padded_ns + j] = coeffs[k];
+  }
+
+  if (opts.debug > 2) {
+    // Print transposed layout: all degree 0 coeffs for intervals, then degree 1, ...
+    for (size_t k = 0; k < padded_degree; ++k) {
+      printf("[%s] degree=%lu: ", __func__, k);
+      for (size_t j = 0; j < padded_ns; ++j) // use padded_ns to show padding as well
+        printf("%g ", horner_coeffs[k * padded_ns + j]);
+      printf("\n");
+    }
+  }
+}
+
+
+// --------------- rest is the five user guru (plan) interface drivers ----------
+// (they are not namespaced since have safe names finufft{f}_* )
+using namespace finufft::utils;      // AHB since already given at top, needed again?
 
 // Marco Barbone: 5.8.2024
 // These are user-facing.
@@ -771,44 +814,8 @@ FINUFFT_PLAN_T<TF>::FINUFFT_PLAN_T(int type_, int dim_, const BIGINT *n_modes, i
   if (ier > 1) throw int(ier); // report setup_spreader status (could be warning)
 }
 
-template<typename TF> void FINUFFT_PLAN_T<TF>::precompute_horner_coeffs() {
-  const auto nspread   = spopts.nspread;
-  const auto upsampfac = opts.upsampfac;
-  const auto max_degree =
-      upsampfac == 2.00 ? horner_nc_200(nspread) : horner_nc_125(nspread);
-  // get the xsimd padding
-  static constexpr auto simd_size = xsimd::batch<TF>::size;
-  const auto padded_ns            = (nspread + simd_size - 1) & -simd_size;
-  // pad degree if desired; keep equal to max_degree for now
-  const auto padded_degree = max_degree;
-  horner_coeffs.fill(0);
 
-  for (int j = 0; j < nspread; ++j) {
-    const auto kernel = [&](const TF x) {
-      // scale manually from -1, 1 to -w/2+j to -w/2+j+1
-      return evaluate_kernel(TF(0.5) * TF(x - nspread + 2 * j + 1),
-                             TF(this->spopts.ES_beta), TF(this->spopts.ES_c));
-    };
-    // disable polyfit scaling
-    static constexpr TF a = -1.0;
-    static constexpr TF b = 1.0;
-    const auto coeffs       = fit_monomials(kernel, max_degree, a, b);
-    // store transposed: for each degree k
-    for (size_t k = 0; k < coeffs.size(); ++k)
-      horner_coeffs[k * padded_ns + j] = coeffs[k];
-  }
-
-  if (opts.debug > 2) {
-    // Print transposed layout: all degree 0 coeffs for intervals, then degree 1, ...
-    for (size_t k = 0; k < padded_degree; ++k) {
-      printf("[%s] degree=%lu: ", __func__, k);
-      for (size_t j = 0; j < padded_ns; ++j) // use padded_ns to show padding as well
-        printf("%g ", horner_coeffs[k * padded_ns + j]);
-      printf("\n");
-    }
-  }
-}
-
+// MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM
 template<typename TF>
 int finufft_makeplan_t(int type, int dim, const BIGINT *n_modes, int iflag, int ntrans,
                        TF tol, FINUFFT_PLAN_T<TF> **pp, const finufft_opts *opts)
