@@ -107,7 +107,8 @@ static int setup_spreader_for_nufft(finufft_spread_opts &spopts, T eps,
 {
   // this calls spreadinterp.cpp...
   int ier = setup_spreader(spopts, eps, opts.upsampfac, opts.spread_kerevalmeth,
-                           opts.spread_debug, opts.showwarn, dim);
+                           opts.spread_debug, opts.showwarn, opts.spreadinterponly,
+                           dim);
   // override various spread opts from their defaults...
   spopts.debug    = opts.spread_debug;
   spopts.sort     = opts.spread_sort; // could make dim or CPU choices here?

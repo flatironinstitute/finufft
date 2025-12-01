@@ -81,8 +81,8 @@ jobs:
       CMAKE_C_COMPILER_LAUNCHER: sccache
       CMAKE_CXX_COMPILER_LAUNCHER: sccache
       CMAKE_CUDA_COMPILER_LAUNCHER: sccache
-      CMAKE_INSTALL_MODE: "SYMLINK"
       CMAKE_EXPORT_COMPILE_COMMANDS: "OFF"
+      SCCACHE_CACHE_SIZE: "5G"
     strategy:
       fail-fast: false
       matrix:
@@ -104,6 +104,11 @@ jobs:
           - { os: macos-15, toolchain: gcc-15 }
 
     steps:
+      - name: Free Disk Space (Ubuntu)
+        if: runner.os == 'Linux'
+        uses: jlumbroso/free-disk-space@main
+        with:
+          tool-cache: false
       - name: Checkout code
         uses: actions/checkout@v4
 

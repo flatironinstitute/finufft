@@ -37,7 +37,7 @@ int main(int argc, char *argv[])
   opts.spreadinterponly = 1;    // task: the following two control kernel used...
   double tol            = 1e-9; // tolerance for (real) kernel shape design only
   opts.upsampfac        = 2.0;  // pretend upsampling factor (really no upsampling)
-  // opts.spread_kerevalmeth = 0;  // would be needed for any nonstd upsampfac
+       // opts.spread_kerevalmeth = 0;  // DEPRECATED: no effect; the library always uses Horner.
 
   complex<double> I = complex<double>(0.0, 1.0); // the imaginary unit
   vector<double> x(M);                           // input

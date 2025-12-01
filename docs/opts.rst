@@ -170,20 +170,9 @@ automatically from call to call in the same executable (incidentally, also in th
 The heuristic bakes in empirical findings such as: generally it is not worth sorting in 1D type 2 transforms, or when the number of nonuniform points is small.
 Feel free to try experimenting here; if you have highly-structured nonuniform point ordering (such as coming from polar-grid or propeller-type MRI k-points) it may be advantageous not to sort.
 
-**spread_kerevalmeth**: Kernel evaluation method in spreader/interpolator.
-This should not be changed from its default value, unless you are an
-expert wanting to compare against outdated
+**spread_kerevalmeth**: Kernel evaluation method in spreader/interpolator. Deprecated — retained only for API compatibility and documentation. The library now always uses the Horner piecewise-polynomial evaluation internally (the historical ``=1`` choice). Setting this field has no effect.
 
-* ``spread_kerevalmeth=0`` : direct evaluation of ``sqrt(exp(beta(1-x*x)))`` in the ES kernel. This is outdated, and it's only possible use could be in exploring upsampling factors :math:`\sigma` different from standard (see below).
-
-* ``spread_kerevalmeth=1`` : use Horner's rule applied to piecewise polynomials with precomputed coefficients. This is faster, less brittle to compiler/glibc/CPU variations, and is the recommended approach. It only works for the standard upsampling factors listed below.
-
-**spread_kerpad**: whether to pad the number of direct kernel evaluations per dimension and per nonuniform point to a multiple of four; this can help SIMD vectorization. It only applies to the (outdated) ``spread_kerevalmeth=0`` choice.
-There is thus little reason for the nonexpert to mess with this option.
-
-* ``spread_kerpad=0`` : do not pad
-
-* ``spread_kerpad=1`` : pad to next multiple of four
+**spread_kerpad**: (Deprecated) This option historically controlled padding to help SIMD vectorization for the removed direct-evaluation method. It is ignored by the library.
 
 
 **upsampfac**: This is the internal factor by which the FFT (fine grid)
