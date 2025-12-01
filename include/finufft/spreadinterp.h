@@ -22,7 +22,8 @@ namespace spreadinterp {
 
 template<typename T>
 FINUFFT_EXPORT_TEST int setup_spreader(finufft_spread_opts &opts, T eps, double upsampfac,
-                                       int kerevalmeth, int debug, int showwarn, int dim);
+                                       int kerevalmeth, int debug, int showwarn,
+                                       int spreadinterponly, int dim);
 
 int spreadcheck(UBIGINT N1, UBIGINT N2, UBIGINT N3, const finufft_spread_opts &opts);
 template<typename T>

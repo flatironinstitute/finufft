@@ -89,6 +89,10 @@ set_target_properties(
 )
 enable_asan(finufft)
 
+if(MSVC)
+    target_compile_options(finufft PRIVATE /bigobj)
+endif()
+
 if(FINUFFT_ENABLE_INSTALL)
     file(GLOB FINUFFT_PUBLIC_HEADERS "${PROJECT_SOURCE_DIR}/include/finufft*.h")
     set_target_properties(finufft PROPERTIES PUBLIC_HEADER "${FINUFFT_PUBLIC_HEADERS}")
