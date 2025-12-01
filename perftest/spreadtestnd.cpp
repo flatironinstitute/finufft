@@ -17,7 +17,7 @@ static void usage() {
     "\tN=# uniform pts (rough total; per-dim N=round(N^(1/d)))\n"
     "\ttol=requested accuracy\n"
     "\tsort=0 (no), 1 (yes), 2 (auto; default)\n"
-    "\tflags: expert timing flags, 0 default (see spreadinterp.h)\n"
+    "\tflags: UNUSED [was expert timing flags, 0 default; see spreadinterp.h]\n"
     "\tspread_debug=0,1,...\n"
     "\tkerpad=0 (no pad), 1 (pad; for kerevalmeth=0 only)\n"
     "\tkerevalmeth=0 (direct), 1 (Horner)\n"
@@ -156,6 +156,8 @@ int main(int argc, char *argv[]) {
   opts.spread_kerpad      = kerpad;
   opts.showwarn           = 1;
   opts.spreadinterponly   = 1;
+  // note there is no way to pass flags to spreadopts.flags via FINUFFT API, hence
+  // flags is UNUSED
 
   BIGINT nmodes[3] = {N, N, N};
 
