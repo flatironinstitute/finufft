@@ -14,7 +14,9 @@ c     diagnostic opts...
 
 c     alg performance opts...
       integer nthreads, fftw, spread_sort, spread_kerevalmeth
+c     DEPRECATED: spread_kerevalmeth kept for ABI compatibility, ignored by library
       integer spread_kerpad
+c     DEPRECATED: spread_kerpad kept for ABI compatibility, ignored by library
       real*8 upsampfac
       integer spread_thread, maxbatchsize, spread_nthr_atomic
       integer spread_max_sp_size

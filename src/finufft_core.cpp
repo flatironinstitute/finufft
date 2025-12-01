@@ -103,18 +103,19 @@ static int setup_spreader_for_nufft(finufft_spread_opts &spopts, T eps,
                                     const finufft_opts &opts, int dim)
 // Set up the spreader parameters given eps, and pass across various nufft
 // options. Return status of setup_spreader. Uses pass-by-ref. Barnett 10/30/17
+// Barbone (Dec/25): ensure legacy kereval/kerpad user opts are treated as no-ops.
 {
   // this calls spreadinterp.cpp...
   int ier = setup_spreader(spopts, eps, opts.upsampfac, opts.spread_kerevalmeth,
                            opts.spread_debug, opts.showwarn, dim, opts.spreadinterponly);
   // override various spread opts from their defaults...
   spopts.debug    = opts.spread_debug;
-  spopts.sort     = opts.spread_sort;   // could make dim or CPU choices here?
-  spopts.kerpad   = opts.spread_kerpad; // (only applies to kerevalmeth=0)
-  spopts.nthreads = opts.nthreads;      // 0 passed in becomes omp max by here
-  if (opts.spread_nthr_atomic >= 0)     // overrides
+  spopts.sort     = opts.spread_sort; // could make dim or CPU choices here?
+  spopts.kerpad   = 0;                // legacy kerpad kept for ABI compatibility
+  spopts.nthreads = opts.nthreads;    // 0 passed in becomes omp max by here
+  if (opts.spread_nthr_atomic >= 0)   // overrides
     spopts.atomic_threshold = opts.spread_nthr_atomic;
-  if (opts.spread_max_sp_size > 0)      // overrides
+  if (opts.spread_max_sp_size > 0)    // overrides
     spopts.max_subproblem_size = opts.spread_max_sp_size;
   return ier;
 }
@@ -160,7 +161,8 @@ static void set_nhg_type3(T S, T X, const finufft_opts &opts,
 
 template<typename T>
 static void onedim_fseries_kernel(BIGINT nf, std::vector<T> &fwkerhalf,
-                                  const finufft_spread_opts &opts)
+                                  const finufft_spread_opts &opts,
+                                  const T *horner_coeffs_ptr, int nc)
 /*
   Approximates exact Fourier series coeffs of spreadinterp's real symmetric
   kernel, directly via q-node quadrature on Euler-Fourier formula, exploiting
@@ -186,7 +188,7 @@ static void onedim_fseries_kernel(BIGINT nf, std::vector<T> &fwkerhalf,
 
   Barnett 2/7/17. openmp (since slow vs fftw in 1D large-N case) 3/3/18.
   Fixed num_threads 7/20/20. Reduced rounding error in a[n] calc 8/20/24.
-  11/25/25, replaced evaluate_kernel by evaluate_kernel_horner (math change).
+  11/25/25, replaced evaluate_kernel by evaluate_kernel_runtime (math change).
  */
 {
   T J2 = opts.nspread / 2.0; // J/2, half-width of ker z-support
@@ -198,8 +200,10 @@ static void onedim_fseries_kernel(BIGINT nf, std::vector<T> &fwkerhalf,
   std::complex<T> a[MAX_NQUAD];
   for (int n = 0; n < q; ++n) { // set up nodes z_n and vals f_n
     z[n] *= J2;                 // rescale nodes
-    // vals & quadr weighs
-    f[n] = J2 * (T)w[n] * evaluate_kernel_horner<T>((T)z[n], opts);
+                                // vals & quadr weighs
+    f[n] = J2 * (T)w[n] *
+           spreadinterp::evaluate_kernel_runtime<T>((T)z[n], opts.nspread, nc,
+                                                    horner_coeffs_ptr, opts);
     // phase winding rates
     a[n] = -std::exp(2 * PI * std::complex<double>(0, 1) * z[n] / double(nf));
   }
@@ -227,7 +231,7 @@ static void onedim_fseries_kernel(BIGINT nf, std::vector<T> &fwkerhalf,
 
 template<typename T> class Kernel_onedim_FT {
 private:
-  std::vector<T> z, f;         // internal arrays
+  std::vector<T> z, f; // internal arrays
 
 public:
   /*
@@ -241,10 +245,10 @@ public:
     opts - spreading opts object, needed to eval kernel (must be already set up)
 
     Barnett 2/8/17. openmp since cos slow 2/9/17.
-    11/25/25, replaced evaluate_kernel by evaluate_kernel_horner (math change).
+    11/25/25, replaced evaluate_kernel by evaluate_kernel_runtime (math change).
    */
 
-  Kernel_onedim_FT(const finufft_spread_opts &opts) {
+  Kernel_onedim_FT(const finufft_spread_opts &opts, const T *horner_coeffs_ptr, int nc) {
     // creator: uses slow kernel evals to initialize z and f arrays.
     T J2 = opts.nspread / 2.0; // J/2, half-width of ker z-support
     // # quadr nodes in z (from 0 to J/2; reflections will be added)...
@@ -256,8 +260,10 @@ public:
     z.resize(q);
     f.resize(q);
     for (int n = 0; n < q; ++n) {
-      z[n] = T(Z[n] * J2);  // quadr nodes for [0,J/2] with weights J2 * w
-      f[n] = J2 * T(W[n]) * evaluate_kernel_horner<T>(z[n], opts);
+      z[n] = T(Z[n] * J2); // quadr nodes for [0,J/2] with weights J2 * w
+      f[n] = J2 * T(W[n]) *
+             spreadinterp::evaluate_kernel_runtime<T>(z[n], opts.nspread, nc,
+                                                      horner_coeffs_ptr, opts);
     }
   }
 
@@ -274,7 +280,7 @@ public:
   FINUFFT_ALWAYS_INLINE T operator()(T k) {
     T x = 0;
     for (size_t n = 0; n < z.size(); ++n)
-      x += f[n] * 2 * std::cos(k * z[n]);    // pos & neg freq pair.  use T cos!
+      x += f[n] * 2 * std::cos(k * z[n]); // pos & neg freq pair.  use T cos!
     return x;
   }
 };
@@ -462,7 +468,7 @@ int FINUFFT_PLAN_T<T>::spreadinterpSortedBatch(
     std::complex<T> *ci = cBatch + i * nj;     // start of i'th c array in cBatch
     spreadinterpSorted(sortIndices, (UBIGINT)nfdim[0], (UBIGINT)nfdim[1],
                        (UBIGINT)nfdim[2], (T *)fwi, (UBIGINT)nj, XYZ[0], XYZ[1], XYZ[2],
-                       (T *)ci, spopts, didSort, adjoint, horner_coeffs.data());
+                       (T *)ci, spopts, didSort, adjoint, horner_coeffs.data(), nc);
   }
   return 0;
 }
@@ -512,17 +518,18 @@ int FINUFFT_PLAN_T<T>::deconvolveBatch(int batchSize, std::complex<T> *fkBatch,
 template<typename TF> void FINUFFT_PLAN_T<TF>::precompute_horner_coeffs() {
   // Solve for piecewise Horner coeffs for the function kernel.h:evaluate_kernel()
   // Marco Barbone, Fall 2025.
-  // Seems this function must be defined after the plan, since it's a method.
   const auto nspread   = spopts.nspread;
   const auto upsampfac = opts.upsampfac;
-  // "max_degree" really is "number of coeffs" = max degree + 1 ... (to tidy up)
-  const auto max_degree =
-      upsampfac == 2.00 ? horner_nc_200(nspread) : horner_nc_125(nspread);
+  // "max_degree" really is "number of coeffs" = max degree + 1.
+  const auto max_degree = upsampfac == 2.00
+                              ? horner_nc_200(static_cast<uint8_t>(nspread))
+                              : horner_nc_125(static_cast<uint8_t>(nspread));
+  nc                    = static_cast<int>(max_degree);
+
   // get the xsimd padding
   static constexpr auto simd_size = xsimd::batch<TF>::size;
   const auto padded_ns            = (nspread + simd_size - 1) & -simd_size;
-  // pad degree if desired; keep equal to max_degree for now
-  const auto padded_degree = max_degree;
+  const auto padded_degree        = max_degree; // could be padded independently
   horner_coeffs.fill(0);
 
   for (int j = 0; j < nspread; ++j) {
@@ -531,30 +538,26 @@ template<typename TF> void FINUFFT_PLAN_T<TF>::precompute_horner_coeffs() {
       return evaluate_kernel(TF(0.5) * TF(x - nspread + 2 * j + 1),
                              TF(this->spopts.ES_beta), TF(this->spopts.ES_c));
     };
-    // disable polyfit scaling
     static constexpr TF a = -1.0;
     static constexpr TF b = 1.0;
-    const auto coeffs       = fit_monomials(kernel, max_degree, a, b);
-    // store transposed: for each degree k
+    const auto coeffs     = fit_monomials(kernel, static_cast<int>(max_degree), a, b);
     for (size_t k = 0; k < coeffs.size(); ++k)
       horner_coeffs[k * padded_ns + j] = coeffs[k];
   }
 
   if (opts.debug > 2) {
-    // Print transposed layout: all degree 0 coeffs for intervals, then degree 1, ...
     for (size_t k = 0; k < padded_degree; ++k) {
-      printf("[%s] degree=%lu: ", __func__, k);
-      for (size_t j = 0; j < padded_ns; ++j) // use padded_ns to show padding as well
+      printf("[%s] degree=%lu: ", __func__, static_cast<unsigned long>(k));
+      for (size_t j = 0; j < padded_ns; ++j)
         printf("%g ", horner_coeffs[k * padded_ns + j]);
       printf("\n");
     }
   }
 }
 
-
 // --------------- rest is the five user guru (plan) interface drivers ----------
 // (they are not namespaced since have safe names finufft{f}_* )
-using namespace finufft::utils;      // AHB since already given at top, needed again?
+using namespace finufft::utils; // AHB since already given at top, needed again?
 
 // Marco Barbone: 5.8.2024
 // These are user-facing.
@@ -783,7 +786,8 @@ FINUFFT_PLAN_T<TF>::FINUFFT_PLAN_T(int type_, int dim_, const BIGINT *n_modes, i
       // STEP 0: get Fourier coeffs of spreading kernel along each fine grid dim
       timer.restart();
       for (int idim = 0; idim < dim; ++idim)
-        onedim_fseries_kernel(nfdim[idim], phiHat[idim], spopts);
+        onedim_fseries_kernel(nfdim[idim], phiHat[idim], spopts, horner_coeffs.data(),
+                              nc);
       if (opts.debug)
         printf("[%s] kernel fser (ns=%d):\t\t%.3g s\n", __func__, spopts.nspread,
                timer.elapsedsec());
@@ -813,7 +817,6 @@ FINUFFT_PLAN_T<TF>::FINUFFT_PLAN_T(int type_, int dim_, const BIGINT *n_modes, i
   }
   if (ier > 1) throw int(ier); // report setup_spreader status (could be warning)
 }
-
 
 // MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM
 template<typename TF>
@@ -949,7 +952,9 @@ int FINUFFT_PLAN_T<TF>::setpts(BIGINT nj, const TF *xj, const TF *yj, const TF *
       for (BIGINT j = 0; j < nj; ++j)
         prephase[j] = {1.0, 0.0}; // *** or keep flag so no mult in exec??
 
-    Kernel_onedim_FT<TF> onedim_phihat(spopts);   // create a 1D phihat evaluator
+    // create a 1D phihat evaluator
+    Kernel_onedim_FT<TF> onedim_phihat(spopts, horner_coeffs.data(), nc);
+
     // (old STEP 3a) Compute deconvolution post-factors array (per targ pt)...
     // (exploits that FT separates because kernel is prod of 1D funcs)
     deconv.resize(nk);

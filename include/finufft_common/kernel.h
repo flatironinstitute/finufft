@@ -57,18 +57,7 @@ template<class T, class F> std::vector<T> fit_monomials(F &&f, int n, T a, T b) 
   return c;
 }
 
-template<uint8_t w> constexpr std::size_t horner_nc_200() noexcept {
-  static_assert(w >= 2 && w <= 16, "w must be in [2,16]");
-  return (w >= 2 && w <= 16) ? (std::size_t)(w + 2 + ((w >= 3 && w <= 7) ? 1 : 0)) : 0;
-}
-
-template<uint8_t w> constexpr std::size_t horner_nc_125() noexcept {
-  static_assert(w >= 2 && w <= 16, "w must be in [2,16]");
-  return static_cast<std::size_t>(w) + 2 - static_cast<std::size_t>(w >= 5) -
-         static_cast<std::size_t>(w >= 8) - static_cast<std::size_t>(w >= 11) -
-         static_cast<std::size_t>(w >= 15);
-}
-
+// Runtime helpers to select Horner polynomial degree given nspread and upsampfac.
 constexpr std::size_t horner_nc_200(uint8_t w) noexcept {
   if (w < 2 || w > 16) return 0;
   return static_cast<std::size_t>(w + 2 + ((w >= 3 && w <= 7) ? 1 : 0));

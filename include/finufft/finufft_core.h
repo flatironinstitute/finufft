@@ -53,6 +53,7 @@ static inline void MY_OMP_SET_NUM_THREADS [[maybe_unused]] (int) {}
 #endif
 
 #include <finufft/fft.h> // (must come after complex.h)
+#include <finufft_common/constants.h>
 #include <finufft_opts.h>
 #include <finufft_spread_opts.h>
 
@@ -89,6 +90,8 @@ private:
   TF tol;        // relative user tolerance
   int batchSize; // # strength vectors to group together for FFTW, etc
   int nbatch;    // how many batches done to cover all ntrans vectors
+
+  int nc = 0;    // number of Horner coefficients used for ES kernel (<= MAX_NC)
 
 public:
   std::array<BIGINT, 3> mstu; // number of modes in x,y,z directions
@@ -128,8 +131,9 @@ private:
   // other internal structs
   std::unique_ptr<Finufft_FFT_plan<TF>> fftPlan;
 
-  // to clean up these sizes to use defs (max nc may need one):
-  alignas(64) std::array<TF, 16 * 19> horner_coeffs{0}; // 16 = MAX_NSPREAD, 19 = max nc
+  // store piecewise Horner coeffs for ES kernel: ns x nc table
+  alignas(64) std::array<TF, finufft::common::MAX_NSPREAD *
+                                 finufft::common::MAX_NC> horner_coeffs{0};
 
 public:
   const Finufft_FFT_plan<TF> &getFFTPlan() const { return *fftPlan; }
