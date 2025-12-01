@@ -8,7 +8,6 @@ set(TESTS
     finufft2dmany_test
     finufft3d_test
     finufft3dmany_test
-    finufft3dkernel_test
     spreadinterp1d_test
     adjointness
 )

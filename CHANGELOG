@@ -37,6 +37,20 @@ Master (working towards v2.5.0), 11/25/25
   the public API and share a unified STL-based implementation for kersum,
   mass and relative-error checks. This common kernel header will also enable
   reuse by the GPU. (Barbone, Barnett, Lu, PR #748)
+* Purged legacy `TF_OMIT_*` timing flags from headers and core source. Timing
+  related omission flags have been removed.
+* Deprecated `kerevalmeth` and `kerpad` (kept for API
+  compatibility but ignored). The library now always uses Horner
+  piecewise-polynomial kernel evaluation internally.
+  Removed legacy vector evaluator `evaluate_kernel_vector` from the core
+  spread/interp implementation; Horner scalar/piecewise evaluation is used
+  exclusively. Updated documentation, examples, and Fortran/C headers to reflect these
+  changes.
+* Clarified Horner-only behavior across the API surface: `setup_spreader`
+  ignores user-provided `kerevalmeth`/`kerpad`, emits explicit warnings, and
+  the spreader CLI now reports that timing flags and kerpad toggles are
+  deprecated no-ops. Added inline changelog breadcrumbs for the touched
+  routines to guide future maintainers. (Barbone)
 
 V 2.4.1 7/8/25
 

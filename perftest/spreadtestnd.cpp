@@ -10,6 +10,7 @@ using namespace finufft::utils;
 
 /* clang-format off */
 static void usage() {
+  // Barbone (Dec/25): Clarify deprecated spreader knobs in CLI help.
   printf(
     "usage: spreadtestnd dims [M N [tol [sort [flags [spread_debug [kerpad [kerevalmeth [upsampfac]]]]]]]]\n"
     "\twhere dims=1,2 or 3\n"
@@ -17,16 +18,17 @@ static void usage() {
     "\tN=# uniform pts (rough total; per-dim N=round(N^(1/d)))\n"
     "\ttol=requested accuracy\n"
     "\tsort=0 (no), 1 (yes), 2 (auto; default)\n"
-    "\tflags: UNUSED [was expert timing flags, 0 default; see spreadinterp.h]\n"
+    "\tflags: DEPRECATED (kept for compatibility, ignored)\n"
     "\tspread_debug=0,1,...\n"
-    "\tkerpad=0 (no pad), 1 (pad; for kerevalmeth=0 only)\n"
-    "\tkerevalmeth=0 (direct), 1 (Horner)\n"
+    "\tkerpad=0 (deprecated no-op; kept for compatibility)\n"
+    "\tkerevalmeth=1 (deprecated no-op; Horner only)\n"
     "\tupsampfac>1; 2 or 1.25 typical for Horner\n"
     "\nexample: ./spreadtestnd 3 8e6 8e6 1e-6 2 0 1\n");
 }
 /* clang-format on */
 
 int main(int argc, char *argv[]) {
+  // Barbone (Dec/25): Warn when deprecated CLI spreader knobs are requested.
   /* Test executable for the 1D, 2D, or 3D C++ spreader, both directions.
  * It checks speed, and basic correctness via the grid sum of the result.
  * See usage() for usage.  Note it currently tests only pirange=0, which is not
@@ -136,6 +138,13 @@ int main(int argc, char *argv[]) {
       return 1;
     }
   }
+
+  if (flags != 0)
+    printf("warning: timing flags are deprecated and ignored.\n");
+  if (kerpad != 0)
+    printf("warning: kerpad is deprecated and ignored.\n");
+  if (kerevalmeth != 1)
+    printf("warning: kerevalmeth is deprecated; Horner evaluation is always used.\n");
 
   // Derive per-dim size and total U-grid size
   const auto N  = (BIGINT)llround(pow((long double)roughNg, 1.0L / (long double)d));
