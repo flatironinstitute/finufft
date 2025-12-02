@@ -107,7 +107,7 @@ static int setup_spreader_for_nufft(finufft_spread_opts &spopts, T eps,
 {
   // this calls spreadinterp.cpp...
   int ier = setup_spreader(spopts, eps, opts.upsampfac, opts.spread_kerevalmeth,
-                           opts.spread_debug, opts.showwarn, dim, opts.spreadinterponly);
+                           opts.spread_debug, opts.showwarn, dim);
   // override various spread opts from their defaults...
   spopts.debug    = opts.spread_debug;
   spopts.sort     = opts.spread_sort; // could make dim or CPU choices here?
@@ -518,38 +518,76 @@ int FINUFFT_PLAN_T<T>::deconvolveBatch(int batchSize, std::complex<T> *fkBatch,
 template<typename TF> void FINUFFT_PLAN_T<TF>::precompute_horner_coeffs() {
   // Solve for piecewise Horner coeffs for the function kernel.h:evaluate_kernel()
   // Marco Barbone, Fall 2025.
-  const auto nspread   = spopts.nspread;
-  const auto upsampfac = opts.upsampfac;
-  // "max_degree" really is "number of coeffs" = max degree + 1.
-  const auto max_degree = upsampfac == 2.00
-                              ? horner_nc_200(static_cast<uint8_t>(nspread))
-                              : horner_nc_125(static_cast<uint8_t>(nspread));
-  nc                    = static_cast<int>(max_degree);
+  const auto nspread = spopts.nspread;
+  // "max_degree" really is "number of coeffs"
+  const auto max_degree = std::max(nspread + 3, MIN_NC);
 
   // get the xsimd padding
   static constexpr auto simd_size = xsimd::batch<TF>::size;
   const auto padded_ns            = (nspread + simd_size - 1) & -simd_size;
-  const auto padded_degree        = max_degree; // could be padded independently
-  horner_coeffs.fill(0);
 
+  horner_coeffs.fill(TF(0));
+
+  // Precompute kernel parameters once
+  const TF beta    = TF(this->spopts.ES_beta);
+  const TF c_param = TF(this->spopts.ES_c);
+
+  nc = MIN_NC;
+
+  // Temporary storage: same transposed layout as horner_coeffs:
+  // [k * padded_ns + j], with k in [0, max_degree), j in [0, padded_ns)
+  std::vector<TF> tmp_coeffs(static_cast<size_t>(max_degree) * padded_ns, TF(0));
+
+  static constexpr TF a = TF(-1.0);
+  static constexpr TF b = TF(1.0);
+
+  // First pass: fit at max_degree, cache coeffs, and determine nc.
+  // horner layout uses "smallest cN first": coeffs[0] is lowest degree term.
   for (int j = 0; j < nspread; ++j) {
-    const auto kernel = [&](const TF x) {
-      // scale manually from -1, 1 to -w/2+j to -w/2+j+1
-      return evaluate_kernel(TF(0.5) * TF(x - nspread + 2 * j + 1),
-                             TF(this->spopts.ES_beta), TF(this->spopts.ES_c));
+    // Map x ∈ [-1, 1] to the physical interval for panel j.
+    // original: 0.5 * (x - nspread + 2*j + 1)
+    const TF shift = TF(2 * j + 1 - nspread);
+
+    const auto kernel = [shift, beta, c_param](TF x) -> TF {
+      const TF t = TF(0.5) * (x + shift);
+      return evaluate_kernel(t, beta, c_param);
     };
-    static constexpr TF a = -1.0;
-    static constexpr TF b = 1.0;
-    const auto coeffs     = fit_monomials(kernel, static_cast<int>(max_degree), a, b);
-    for (size_t k = 0; k < coeffs.size(); ++k)
-      horner_coeffs[k * padded_ns + j] = coeffs[k];
+
+    const auto coeffs = fit_monomials(kernel, static_cast<int>(max_degree), a, b);
+
+    // Cache coefficients in tmp, preserving order:
+    // coeffs[k] corresponds to horner_coeffs[k] (smallest degree first).
+    for (size_t k = 0; k < coeffs.size(); ++k) {
+      tmp_coeffs[k * padded_ns + j] = coeffs[k];
+    }
+
+    // Determine highest index with |c_k| >= tol, so we keep a contiguous prefix
+    // [0..current_nc-1].
+    int current_nc = 0;
+    for (int k = static_cast<int>(coeffs.size()) - 1; k >= 0; --k) {
+      if (std::abs(coeffs[static_cast<size_t>(k)]) >= tol) {
+        current_nc = k + 1; // number of coeffs we actually care about for this panel
+        break;
+      }
+    }
+    if (current_nc > nc) nc = current_nc;
+  }
+
+  // Second pass: copy the first nc coeffs into horner_coeffs (no refit, no reordering).
+  for (int k = 0; k < nc; ++k) {
+    const auto row_offset = static_cast<size_t>(k) * padded_ns;
+    for (size_t j = 0; j < padded_ns; ++j) {
+      horner_coeffs[row_offset + j] = tmp_coeffs[row_offset + j];
+    }
   }
 
   if (opts.debug > 2) {
-    for (size_t k = 0; k < padded_degree; ++k) {
-      printf("[%s] degree=%lu: ", __func__, static_cast<unsigned long>(k));
-      for (size_t j = 0; j < padded_ns; ++j)
-        printf("%g ", horner_coeffs[k * padded_ns + j]);
+    // Print transposed layout: all "index 0" coeffs for intervals, then "index 1", ...
+    // Note: k is the coefficient index in Horner order, with smallest degree first.
+    for (size_t k = 0; k < static_cast<size_t>(nc); ++k) {
+      printf("[%s] idx=%lu: ", __func__, k);
+      for (size_t j = 0; j < padded_ns; ++j) // use padded_ns to show padding as well
+        printf("%g ", static_cast<double>(horner_coeffs[k * padded_ns + j]));
       printf("\n");
     }
   }

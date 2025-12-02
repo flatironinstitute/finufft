@@ -766,8 +766,7 @@ static FINUFFT_ALWAYS_INLINE auto evaluate_kernel_vector(
 template<typename T, int ns, int nc>
 FINUFFT_NEVER_INLINE void spread_subproblem_1d_kernel(
     const BIGINT off1, const UBIGINT size1, T *FINUFFT_RESTRICT du, const UBIGINT M,
-    const T *const kx, const T *const dd, const finufft_spread_opts &opts,
-    const T *horner_coeffs_ptr) noexcept {
+    const T *const kx, const T *const dd, const T *horner_coeffs_ptr) noexcept {
   /* 1D spreader from nonuniform to uniform subproblem grid, without wrapping.
      Inputs:
      off1 - integer offset of left end of du subgrid from that of overall fine
@@ -913,10 +912,9 @@ template<typename T> struct SpreadSubproblem1dCaller {
   UBIGINT M;
   const T *kx;
   const T *dd;
-  const finufft_spread_opts &opts;
   const T *horner_coeffs_ptr;
   template<int NS, int NC> int operator()() const {
-    spread_subproblem_1d_kernel<T, NS, NC>(off1, size1, du, M, kx, dd, opts,
+    spread_subproblem_1d_kernel<T, NS, NC>(off1, size1, du, M, kx, dd,
                                            horner_coeffs_ptr);
     return 0;
   }
@@ -928,7 +926,7 @@ template<typename T>
 static void spread_subproblem_1d(BIGINT off1, UBIGINT size1, T *du, UBIGINT M, T *kx,
                                  T *dd, const finufft_spread_opts &opts,
                                  const T *horner_coeffs_ptr, int nc) noexcept {
-  SpreadSubproblem1dCaller<T> caller{off1, size1, du, M, kx, dd, opts, horner_coeffs_ptr};
+  SpreadSubproblem1dCaller<T> caller{off1, size1, du, M, kx, dd, horner_coeffs_ptr};
   using NsSeq = make_range<MIN_NSPREAD, MAX_NSPREAD>;
   using NcSeq = make_range<MIN_NC, MAX_NC>;
   auto params =
@@ -940,7 +938,7 @@ template<typename T, int ns, int nc>
 FINUFFT_NEVER_INLINE static void spread_subproblem_2d_kernel(
     const BIGINT off1, const BIGINT off2, const UBIGINT size1, const UBIGINT size2,
     T *FINUFFT_RESTRICT du, const UBIGINT M, const T *kx, const T *ky, const T *dd,
-    const finufft_spread_opts &opts, const T *horner_coeffs_ptr) noexcept
+    const T *horner_coeffs_ptr) noexcept
 /* spreader from dd (NU) to du (uniform) in 2D without wrapping.
    See above docs/notes for spread_subproblem_2d.
    kx,ky (size M) are NU locations in [off+ns/2,off+size-1-ns/2] in both dims.
@@ -1040,11 +1038,10 @@ template<typename T> struct SpreadSubproblem2dCaller {
   const T *kx;
   const T *ky;
   const T *dd;
-  const finufft_spread_opts &opts;
   const T *horner_coeffs_ptr;
   template<int NS, int NC> int operator()() const {
     spread_subproblem_2d_kernel<T, NS, NC>(off1, off2, size1, size2, du, M, kx, ky, dd,
-                                           opts, horner_coeffs_ptr);
+                                           horner_coeffs_ptr);
     return 0;
   }
 };
@@ -1064,8 +1061,8 @@ static void spread_subproblem_2d(
    For algoritmic details see spread_subproblem_1d_kernel.
 */
 {
-  SpreadSubproblem2dCaller<T> caller{
-      off1, off2, size1, size2, du, M, kx, ky, dd, opts, horner_coeffs_ptr};
+  SpreadSubproblem2dCaller<T> caller{off1, off2, size1, size2, du,
+                                     M,    kx,   ky,    dd,    horner_coeffs_ptr};
   using NsSeq = make_range<MIN_NSPREAD, MAX_NSPREAD>;
   using NcSeq = make_range<MIN_NC, MAX_NC>;
   auto params =
@@ -1077,8 +1074,7 @@ template<typename T, int ns, int nc>
 FINUFFT_NEVER_INLINE void spread_subproblem_3d_kernel(
     const BIGINT off1, const BIGINT off2, const BIGINT off3, const UBIGINT size1,
     const UBIGINT size2, const UBIGINT size3, T *FINUFFT_RESTRICT du, const UBIGINT M,
-    const T *kx, const T *ky, const T *kz, const T *dd, const finufft_spread_opts &opts,
-    const T *horner_coeffs_ptr) noexcept {
+    const T *kx, const T *ky, const T *kz, const T *dd, const T *horner_coeffs_ptr) noexcept {
   using simd_type                 = PaddedSIMD<T, 2 * ns>;
   using arch_t                    = typename simd_type::arch_type;
   static constexpr auto padding   = get_padding<T, 2 * ns>();
@@ -1161,11 +1157,10 @@ template<typename T> struct SpreadSubproblem3dCaller {
   T *ky;
   T *kz;
   T *dd;
-  const finufft_spread_opts &opts;
   const T *horner_coeffs_ptr;
   template<int NS, int NC> int operator()() const {
     spread_subproblem_3d_kernel<T, NS, NC>(off1, off2, off3, size1, size2, size3, du, M,
-                                           kx, ky, kz, dd, opts, horner_coeffs_ptr);
+                                           kx, ky, kz, dd, horner_coeffs_ptr);
     return 0;
   }
 };
@@ -1184,9 +1179,9 @@ dd (size M complex) are complex source strengths
 du (size size1*size2*size3) is uniform complex output array
 */
 {
-  SpreadSubproblem3dCaller<T> caller{
-      off1, off2, off3, size1, size2, size3, du,
-      M,    kx,   ky,   kz,    dd,    opts,  horner_coeffs_ptr};
+  SpreadSubproblem3dCaller<T> caller{off1,  off2, off3,    size1, size2, size3,
+                                     du,    M,    kx,      ky,    kz,    dd,
+                                     horner_coeffs_ptr};
   using NsSeq = make_range<MIN_NSPREAD, MAX_NSPREAD>;
   using NcSeq = make_range<MIN_NC, MAX_NC>;
   auto params =
@@ -2010,7 +2005,7 @@ template int spreadinterpSorted<double>(
 
 template<typename T>
 int setup_spreader(finufft_spread_opts &opts, T eps, double upsampfac, int kerevalmeth,
-                   int debug, int showwarn, int dim, int spreadinterponly)
+                   int debug, int showwarn, int dim)
 /* Initializes spreader kernel parameters given desired NUFFT tolerance eps,
    upsampling factor (=sigma in paper, or R in Dutt-Rokhlin), and debug flags.
    Horner polynomial evaluation is always used; the kerevalmeth argument is
@@ -2097,11 +2092,11 @@ int setup_spreader(finufft_spread_opts &opts, T eps, double upsampfac, int kerev
 }
 
 template FINUFFT_EXPORT_TEST int setup_spreader<float>(
-    finufft_spread_opts &opts, float eps, double upsampfac, int kerevalmeth, int debug,
-    int showwarn, int dim, int spreadinterponly);
+  finufft_spread_opts &opts, float eps, double upsampfac, int kerevalmeth, int debug,
+  int showwarn, int dim);
 template FINUFFT_EXPORT_TEST int setup_spreader<double>(
-    finufft_spread_opts &opts, double eps, double upsampfac, int kerevalmeth, int debug,
-    int showwarn, int dim, int spreadinterponly);
+  finufft_spread_opts &opts, double eps, double upsampfac, int kerevalmeth, int debug,
+  int showwarn, int dim);
 
 template<typename T>
 T evaluate_kernel_runtime(T x, int ns, int nc, const T *horner_coeffs_ptr,

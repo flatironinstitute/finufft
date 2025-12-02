@@ -3,7 +3,6 @@
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
-#include <cstdint>
 #include <vector>
 
 #include <finufft_common/constants.h>
@@ -55,19 +54,6 @@ template<class T, class F> std::vector<T> fit_monomials(F &&f, int n, T a, T b) 
   }
   std::reverse(c.begin(), c.end());
   return c;
-}
-
-// Runtime helpers to select Horner polynomial degree given nspread and upsampfac.
-constexpr std::size_t horner_nc_200(uint8_t w) noexcept {
-  if (w < 2 || w > 16) return 0;
-  return static_cast<std::size_t>(w + 2 + ((w >= 3 && w <= 7) ? 1 : 0));
-}
-
-constexpr std::size_t horner_nc_125(uint8_t w) noexcept {
-  if (w < 2 || w > 16) return 0;
-  return static_cast<std::size_t>(w) + 2 - static_cast<std::size_t>(w >= 5) -
-         static_cast<std::size_t>(w >= 8) - static_cast<std::size_t>(w >= 11) -
-         static_cast<std::size_t>(w >= 15);
 }
 
 template<typename T> T evaluate_kernel(T x, T beta, T c) {
