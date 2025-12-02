@@ -44,3 +44,9 @@ cufinufft/python/cufinufft/docs/_templates
 /CMakeSettings.json
 /CMakeUserPresets.json
 .~*
+.idea/
+
+#cmake
+cmake-build-*/
+build-*/
+benchmarks-*/

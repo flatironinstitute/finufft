@@ -81,6 +81,8 @@ jobs:
       CMAKE_C_COMPILER_LAUNCHER: sccache
       CMAKE_CXX_COMPILER_LAUNCHER: sccache
       CMAKE_CUDA_COMPILER_LAUNCHER: sccache
+      CMAKE_INSTALL_MODE: "SYMLINK"
+      CMAKE_EXPORT_COMPILE_COMMANDS: "OFF"
     strategy:
       fail-fast: false
       matrix:
