@@ -68,7 +68,7 @@ DEPS_ROOT := deps
 
 # xsimd header-only dependency repo
 XSIMD_URL := https://github.com/xtensor-stack/xsimd.git
-XSIMD_VERSION := 13.2.0
+XSIMD_VERSION := 14.0.0
 XSIMD_DIR := $(DEPS_ROOT)/xsimd
 
 # DUCC sources optional dependency repo
