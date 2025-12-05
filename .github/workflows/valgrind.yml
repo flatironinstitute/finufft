@@ -8,6 +8,7 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
       - name: Setup Cpp
         uses: aminya/setup-cpp@v1.1.1
         with:
@@ -17,38 +18,26 @@ jobs:
           vcpkg: false
           cppcheck: false
           clangtidy: false
+
       - name: Prepare
         run: |
           sudo apt update
-          sudo apt install -y libfftw3-dev jq valgrind
-      - name: Configure Cmake
+          sudo apt install -y libfftw3-dev valgrind
+
+      - name: Configure CMake
         run: |
-          cmake -S . -B ./build -G Ninja -DCMAKE_BUILD_TYPE:STRING=RelWithDebInfo -DFINUFFT_BUILD_TESTS=ON -DFINUFFT_USE_SANITIZERS=OFF
+          cmake -S . -B ./build -G Ninja \
+            -DCMAKE_BUILD_TYPE:STRING=RelWithDebInfo \
+            -DFINUFFT_BUILD_TESTS=ON \
+            -DFINUFFT_USE_SANITIZERS=OFF
+
       - name: Build
-        run: |
-          cmake --build ./build --config RelWithDebInfo
-      - name: Test
+        run: cmake --build ./build --config RelWithDebInfo
+
+      - name: Memcheck (CTest)
         working-directory: ./build
+        env:
+          CTEST_MEMORYCHECK_COMMAND: valgrind
+          CTEST_MEMORYCHECK_COMMAND_OPTIONS: "--leak-check=full --show-leak-kinds=definite,possible --errors-for-leak-kinds=definite"
         run: |
-          ctest --show-only=json-v1 > ctest_tests.json
-          # Loop over all test entries
-          exec 3>&1
-          jq -c '.tests[]' ctest_tests.json | while read -r test; do
-            name=$(echo "$test" | jq -r '.name')
-            command=$(echo "$test" | jq -r '.command | @sh')
-
-            echo -e "\n▶ Running test: $name"
-            echo "   Command: $command"
-
-            # Eval to reconstruct command array safely
-            eval "cmd=( $command )"
-
-            valgrind --undef-value-errors=yes --errors-for-leak-kinds=definite --error-exitcode=1 --log-fd=3 "${cmd[@]}"  > /dev/null 2>&1
-
-            # Check valgrind exit code
-            status=$?
-            if [[ $status -ne 0 ]]; then
-              echo "❌ Valgrind detected errors in test: $name"
-              exit $status
-            fi
-          done
+          ctest -T memcheck --output-on-failure -j
