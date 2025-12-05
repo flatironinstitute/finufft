@@ -79,6 +79,15 @@ public:
     uint64_t nf = 1;
     for (auto i : dims) nf *= i;
     lock();
+    // Destroy existing plans before creating new ones (handles re-planning)
+    if (plan_) {
+      fftwf_destroy_plan(plan_);
+      plan_ = nullptr;
+    }
+    if (plan_adj_) {
+      fftwf_destroy_plan(plan_adj_);
+      plan_adj_ = nullptr;
+    }
 #ifdef _OPENMP
     fftwf_plan_with_nthreads(nthreads);
 #endif
@@ -155,6 +164,15 @@ public:
     uint64_t nf = 1;
     for (auto i : dims) nf *= i;
     lock();
+    // Destroy existing plans before creating new ones (handles re-planning)
+    if (plan_) {
+      fftw_destroy_plan(plan_);
+      plan_ = nullptr;
+    }
+    if (plan_adj_) {
+      fftw_destroy_plan(plan_adj_);
+      plan_adj_ = nullptr;
+    }
 #ifdef _OPENMP
     fftw_plan_with_nthreads(nthreads);
 #endif

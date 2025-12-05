@@ -84,14 +84,16 @@ public:
   int dim;  // overall dimension: 1,2 or 3
 
 private:
-  int ntrans;    // how many transforms to do at once (vector or "many" mode)
-  BIGINT nj;     // num of NU pts in type 1,2 (for type 3, num input x pts)
-  BIGINT nk;     // number of NU freq pts (type 3 only)
-  TF tol;        // relative user tolerance
-  int batchSize; // # strength vectors to group together for FFTW, etc
-  int nbatch;    // how many batches done to cover all ntrans vectors
+  int ntrans;             // how many transforms to do at once (vector or "many" mode)
+  BIGINT nj;              // num of NU pts in type 1,2 (for type 3, num input x pts)
+  BIGINT nk;              // number of NU freq pts (type 3 only)
+  TF tol;                 // relative user tolerance
+  int batchSize;          // # strength vectors to group together for FFTW, etc
+  int nbatch;             // how many batches done to cover all ntrans vectors
 
-  int nc = 0;    // number of Horner coefficients used for ES kernel (<= MAX_NC)
+  int nc             = 0; // number of Horner coefficients used for ES kernel (<= MAX_NC)
+  bool upsamp_locked = false; // true if user specified upsampfac != 0, prevents auto
+                              // update
 
 public:
   std::array<BIGINT, 3> mstu; // number of modes in x,y,z directions
@@ -147,6 +149,10 @@ private:
                        TC *aligned_scratch = nullptr, size_t scratch_size = 0) const;
 
   void precompute_horner_coeffs();
+
+  // Helper to initialize spreader, phiHat (Fourier series), and FFT plan.
+  // Used by constructor (when upsampfac given) and setpts (when upsampfac deferred).
+  int initSpreadAndFFT();
 
 public:
   FINUFFT_PLAN_T(int type, int dim, const BIGINT *n_modes, int iflag, int ntrans, TF tol,
