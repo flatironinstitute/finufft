@@ -2,9 +2,11 @@ CPMAddPackage(
     NAME
     ducc0
     GIT_REPOSITORY
-    https://gitlab.mpcdf.mpg.de/mtr/ducc.git
+    https://github.com/mreineck/ducc.git
     GIT_TAG
     ${DUCC0_VERSION}
+    GIT_SHALLOW
+    YES
     DOWNLOAD_ONLY
     YES
 )
