@@ -72,7 +72,7 @@ XSIMD_VERSION := 14.0.0
 XSIMD_DIR := $(DEPS_ROOT)/xsimd
 
 # DUCC sources optional dependency repo
-DUCC_URL := https://gitlab.mpcdf.mpg.de/mtr/ducc.git
+DUCC_URL := https://github.com/mreineck/ducc.git
 DUCC_VERSION := ducc0_0_39_1
 DUCC_DIR := $(DEPS_ROOT)/ducc
 # this dummy file used as empty target by make...
