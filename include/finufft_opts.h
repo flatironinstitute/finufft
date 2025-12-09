@@ -32,6 +32,8 @@ typedef struct finufft_opts { // defaults see finufft_core.cpp:finufft_default_o
   int spread_nthr_atomic; // if >=0, threads above which spreader OMP critical goes
                           // atomic
   int spread_max_sp_size; // if >0, overrides spreader (dir=1) max subproblem size
+  int spread_function;    // (dev only) 0:DEFAULT, (do not change), there is no guarantee
+                          // what non-zero values do and behaviour can change anytime
                           // sphinx tag (don't remove): @opts_end
 
   // User can provide their own FFTW planner lock functions for thread safety

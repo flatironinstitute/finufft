@@ -107,8 +107,8 @@ static int setup_spreader_for_nufft(finufft_spread_opts &spopts, T eps,
 {
   // this calls spreadinterp.cpp...
   int ier = setup_spreader(spopts, eps, opts.upsampfac, opts.spread_kerevalmeth,
-                           opts.spread_debug, opts.showwarn, opts.spreadinterponly,
-                           dim);
+                           opts.spread_debug, opts.showwarn, opts.spreadinterponly, dim,
+                           opts.spread_function);
   // override various spread opts from their defaults...
   spopts.debug    = opts.spread_debug;
   spopts.sort     = opts.spread_sort; // could make dim or CPU choices here?
@@ -530,8 +530,9 @@ template<typename TF> void FINUFFT_PLAN_T<TF>::precompute_horner_coeffs() {
   horner_coeffs.fill(TF(0));
 
   // Precompute kernel parameters once
-  const TF beta    = TF(this->spopts.ES_beta);
-  const TF c_param = TF(this->spopts.ES_c);
+  const TF beta         = TF(this->spopts.ES_beta);
+  const TF c_param      = TF(this->spopts.ES_c);
+  const int kernel_type = this->spopts.kernel_type;
 
   nc = MIN_NC;
 
@@ -549,9 +550,9 @@ template<typename TF> void FINUFFT_PLAN_T<TF>::precompute_horner_coeffs() {
     // original: 0.5 * (x - nspread + 2*j + 1)
     const TF shift = TF(2 * j + 1 - nspread);
 
-    const auto kernel = [shift, beta, c_param](TF x) -> TF {
+    const auto kernel = [shift, beta, c_param, kernel_type](TF x) -> TF {
       const TF t = TF(0.5) * (x + shift);
-      return evaluate_kernel(t, beta, c_param);
+      return evaluate_kernel(t, beta, c_param, kernel_type);
     };
 
     const auto coeffs = fit_monomials(kernel, static_cast<int>(max_degree), a, b);
@@ -617,7 +618,7 @@ template<typename TF> int FINUFFT_PLAN_T<TF>::initSpreadAndFFT() {
         printf(" spread_thread=%d\n", opts.spread_thread);
     }
 
-  } else { // ..... usual NUFFT: eval Fourier series, alloc workspace .....
+  } else {               // ..... usual NUFFT: eval Fourier series, alloc workspace .....
 
     if (opts.showwarn) { // user warn round-off error (due to prob condition #)...
       for (int idim = 0; idim < dim; ++idim)
@@ -631,8 +632,8 @@ template<typename TF> int FINUFFT_PLAN_T<TF>::initSpreadAndFFT() {
     // determine fine grid sizes, sanity check, then alloc...
     for (int idim = 0; idim < dim; ++idim) {
       int nfier = set_nf_type12(mstu[idim], opts, spopts, &nfdim[idim]);
-      if (nfier) return nfier;                    // nf too big; we're done
-      phiHat[idim].resize(nfdim[idim] / 2 + 1);   // alloc fseries
+      if (nfier) return nfier;                  // nf too big; we're done
+      phiHat[idim].resize(nfdim[idim] / 2 + 1); // alloc fseries
     }
 
     if (opts.debug) { // "long long" here is to avoid warnings with printf...
@@ -665,7 +666,7 @@ template<typename TF> int FINUFFT_PLAN_T<TF>::initSpreadAndFFT() {
     }
 
     timer.restart(); // plan the FFTW (to act in-place on the workspace fwBatch)
-    int nthr_fft = opts.nthreads;
+    int nthr_fft  = opts.nthreads;
     const auto ns = gridsize_for_fft(*this);
     std::vector<TC, xsimd::aligned_allocator<TC, 64>> fwBatch(nf() * batchSize);
     fftPlan->plan(ns, batchSize, fwBatch.data(), fftSign, opts.fftw, nthr_fft);
@@ -715,6 +716,7 @@ void finufft_default_opts_t(finufft_opts *o)
   o->maxbatchsize       = 0;
   o->spread_nthr_atomic = -1;
   o->spread_max_sp_size = 0;
+  o->spread_function    = 0;
   o->fftw_lock_fun      = nullptr;
   o->fftw_unlock_fun    = nullptr;
   o->fftw_lock_data     = nullptr;
@@ -836,8 +838,8 @@ FINUFFT_PLAN_T<TF>::FINUFFT_PLAN_T(int type_, int dim_, const BIGINT *n_modes, i
   // spreader/Horner internals now using the provided upsampfac.
   if (opts.upsampfac != 0.0) {
     upsamp_locked = true; // user explicitly set upsampfac, don't auto-update
-    ier = setup_spreader_for_nufft(spopts, tol, opts, dim);
-    if (ier > 1) // proceed if success or warning
+    ier           = setup_spreader_for_nufft(spopts, tol, opts, dim);
+    if (ier > 1)          // proceed if success or warning
       throw int(ier);
     precompute_horner_coeffs();
 
@@ -910,12 +912,12 @@ int FINUFFT_PLAN_T<TF>::setpts(BIGINT nj, const TF *xj, const TF *yj, const TF *
     return FINUFFT_ERR_NUM_NU_PTS_INVALID;
   }
 
-  if (type != 3) {          // ------------------ TYPE 1,2 SETPTS -------------------
-                            // (all we can do is check and maybe bin-sort the NU pts)
+  if (type != 3) { // ------------------ TYPE 1,2 SETPTS -------------------
+                   // (all we can do is check and maybe bin-sort the NU pts)
     // If upsampfac is not locked by user (auto mode), choose or update it now
     // based on the actual density nj/N(). Re-plan if density changed significantly.
     if (!upsamp_locked) {
-      double density = double(nj) / double(N());
+      double density   = double(nj) / double(N());
       double upsampfac = bestUpsamplingFactor<TF>(opts.nthreads, density, dim, type, tol);
       // Re-plan if this is the first call (upsampfac==0) or if upsampfac changed
       if (upsampfac != opts.upsampfac) {
@@ -1078,8 +1080,9 @@ int FINUFFT_PLAN_T<TF>::setpts(BIGINT nj, const TF *xj, const TF *yj, const TF *
     t2opts.debug        = std::max(0, opts.debug - 1);    // don't print as much detail
     t2opts.spread_debug = std::max(0, opts.spread_debug - 1);
     t2opts.showwarn     = 0;                              // so don't see warnings 2x
-    if (!upsamp_locked) t2opts.upsampfac = 0.0; // if the upsampfac was auto, let inner
-                                                // t2 pick it again (from density=nj/Nf)
+    if (!upsamp_locked)
+      t2opts.upsampfac = 0.0; // if the upsampfac was auto, let inner
+                              // t2 pick it again (from density=nj/Nf)
     // (...could vary other t2opts here?)
     // MR: temporary hack, until we have figured out the C++ interface.
     FINUFFT_PLAN_T<TF> *tmpplan;
