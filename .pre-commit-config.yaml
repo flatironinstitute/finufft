@@ -4,7 +4,7 @@ repos:
     hooks:
       - id: clang-format
         types_or: [c++, c, cuda]
-        files: \.(c|cc|h|hpp|cu|cuh)$
+        files: \.(c|cc|cpp|h|hpp|cu|cuh)$
         exclude: '(^|/)(matlab/.*)$'
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v6.0.0
