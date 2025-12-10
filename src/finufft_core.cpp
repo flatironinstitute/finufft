@@ -523,8 +523,10 @@ template<typename TF> void FINUFFT_PLAN_T<TF>::precompute_horner_coeffs() {
   const auto max_degree = std::max(nspread + 3, MIN_NC);
 
   // get the xsimd padding
-  static constexpr auto simd_size = xsimd::batch<TF>::size;
-  const auto padded_ns            = (nspread + simd_size - 1) & -simd_size;
+  // (must match that used in spreadinterp.cpp), if we change horner simd_width there
+  // we must also change it here
+  const auto simd_size = GetPaddedSIMDWidth<TF>(2 * nspread);
+  const auto padded_ns = (nspread + simd_size - 1) & -simd_size;
 
   horner_coeffs.fill(TF(0));
 
