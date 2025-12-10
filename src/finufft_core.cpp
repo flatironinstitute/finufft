@@ -594,6 +594,88 @@ template<typename TF> void FINUFFT_PLAN_T<TF>::precompute_horner_coeffs() {
   }
 }
 
+// Helper to initialize spreader, phiHat (Fourier series), and FFT plan.
+// Used by constructor (when upsampfac given) and setpts (when upsampfac deferred).
+// Returns 0 on success, or an error code if set_nf_type12 or alloc fails.
+template<typename TF> int FINUFFT_PLAN_T<TF>::initSpreadAndFFT() {
+  CNTime timer{};
+  spopts.spread_direction = type;
+  constexpr TF EPSILON    = std::numeric_limits<TF>::epsilon();
+
+  if (opts.spreadinterponly) { // (unusual case of no NUFFT, just report)
+    // spreadinterp grid will simply be the user's "mode" grid...
+    for (int idim = 0; idim < dim; ++idim) nfdim[idim] = mstu[idim];
+
+    if (opts.debug) { // "long long" here is to avoid warnings with printf...
+      printf("[%s] %dd spreadinterponly(dir=%d): (ms,mt,mu)=(%lld,%lld,%lld)"
+             "\n               ntrans=%d nthr=%d batchSize=%d kernel width ns=%d",
+             __func__, dim, type, (long long)mstu[0], (long long)mstu[1],
+             (long long)mstu[2], ntrans, opts.nthreads, batchSize, spopts.nspread);
+      if (batchSize == 1) // spread_thread has no effect in this case
+        printf("\n");
+      else
+        printf(" spread_thread=%d\n", opts.spread_thread);
+    }
+
+  } else { // ..... usual NUFFT: eval Fourier series, alloc workspace .....
+
+    if (opts.showwarn) { // user warn round-off error (due to prob condition #)...
+      for (int idim = 0; idim < dim; ++idim)
+        if (EPSILON * mstu[idim] > 1.0)
+          fprintf(stderr,
+                  "%s warning: rounding err (due to cond # of prob) eps_mach*N%d = %.3g "
+                  "> 1 !\n",
+                  __func__, idim, (double)(EPSILON * mstu[idim]));
+    }
+
+    // determine fine grid sizes, sanity check, then alloc...
+    for (int idim = 0; idim < dim; ++idim) {
+      int nfier = set_nf_type12(mstu[idim], opts, spopts, &nfdim[idim]);
+      if (nfier) return nfier;                    // nf too big; we're done
+      phiHat[idim].resize(nfdim[idim] / 2 + 1);   // alloc fseries
+    }
+
+    if (opts.debug) { // "long long" here is to avoid warnings with printf...
+      printf("[%s] %dd%d: (ms,mt,mu)=(%lld,%lld,%lld) "
+             "(nf1,nf2,nf3)=(%lld,%lld,%lld)\n               ntrans=%d nthr=%d "
+             "batchSize=%d ",
+             __func__, dim, type, (long long)mstu[0], (long long)mstu[1],
+             (long long)mstu[2], (long long)nfdim[0], (long long)nfdim[1],
+             (long long)nfdim[2], ntrans, opts.nthreads, batchSize);
+      if (batchSize == 1) // spread_thread has no effect in this case
+        printf("\n");
+      else
+        printf(" spread_thread=%d\n", opts.spread_thread);
+    }
+
+    // STEP 0: get Fourier coeffs of spreading kernel along each fine grid dim
+    timer.restart();
+    for (int idim = 0; idim < dim; ++idim)
+      onedim_fseries_kernel(nfdim[idim], phiHat[idim], spopts, horner_coeffs.data(), nc);
+    if (opts.debug)
+      printf("[%s] kernel fser (ns=%d):\t\t%.3g s\n", __func__, spopts.nspread,
+             timer.elapsedsec());
+
+    if (nf() * batchSize > MAX_NF) {
+      fprintf(stderr,
+              "[%s] fwBatch would be bigger than MAX_NF, not attempting memory "
+              "allocation!\n",
+              __func__);
+      return FINUFFT_ERR_MAXNALLOC;
+    }
+
+    timer.restart(); // plan the FFTW (to act in-place on the workspace fwBatch)
+    int nthr_fft = opts.nthreads;
+    const auto ns = gridsize_for_fft(*this);
+    std::vector<TC, xsimd::aligned_allocator<TC, 64>> fwBatch(nf() * batchSize);
+    fftPlan->plan(ns, batchSize, fwBatch.data(), fftSign, opts.fftw, nthr_fft);
+    if (opts.debug)
+      printf("[%s] FFT plan (mode %d, nthr=%d):\t%.3g s\n", __func__, opts.fftw, nthr_fft,
+             timer.elapsedsec());
+  }
+  return 0;
+}
+
 // --------------- rest is the five user guru (plan) interface drivers ----------
 // (they are not namespaced since have safe names finufft{f}_* )
 using namespace finufft::utils; // AHB since already given at top, needed again?
@@ -749,106 +831,28 @@ FINUFFT_PLAN_T<TF>::FINUFFT_PLAN_T(int type_, int dim_, const BIGINT *n_modes, i
     }
   }
 
-  // heuristic to choose default upsampfac... (currently two poss)
-  if (opts.upsampfac == 0.0) { // init to auto choice
-    // Let assume density=1 as the average use case.
-    // TODO: make a decision on how to choose density properly.
-    const auto density = TF{1};
-    opts.upsampfac     = bestUpsamplingFactor<TF>(opts.nthreads, density, dim, type, tol);
-    if (opts.debug > 1)
-      printf("[%s] threads %d, density %.3g, dim %d, nufft type %d, tol %.3g: auto "
-             "upsampfac=%.2f\n",
-             __func__, opts.nthreads, density, dim, type, tol, opts.upsampfac);
-  }
-  // use opts to choose and write into plan's spread options...
-  ier = setup_spreader_for_nufft(spopts, tol, opts, dim);
-  if (ier > 1) // proceed if success or warning
-    throw int(ier);
-  precompute_horner_coeffs();
-  //  ------------------------ types 1,2: planning needed ---------------------
-  if (type == 1 || type == 2) {
+  // heuristic to choose default upsampfac: defer selection to setpts unless
+  // the user explicitly forced a nonzero value in opts. In that case initialize
+  // spreader/Horner internals now using the provided upsampfac.
+  if (opts.upsampfac != 0.0) {
+    upsamp_locked = true; // user explicitly set upsampfac, don't auto-update
+    ier = setup_spreader_for_nufft(spopts, tol, opts, dim);
+    if (ier > 1) // proceed if success or warning
+      throw int(ier);
+    precompute_horner_coeffs();
 
-    int nthr_fft = nthr; // give FFT all threads (or use o.spread_thread?)
-                         // Note: batchSize not used since might be only 1.
-
-    spopts.spread_direction = type;
-    constexpr TF EPSILON    = std::numeric_limits<TF>::epsilon();
-
-    if (opts.spreadinterponly) { // (unusual case of no NUFFT, just report)
-
-      // spreadinterp grid will simply be the user's "mode" grid...
-      for (int idim = 0; idim < dim; ++idim) nfdim[idim] = mstu[idim];
-
-      if (opts.debug) { // "long long" here is to avoid warnings with printf...
-        printf("[%s] %dd spreadinterponly(dir=%d): (ms,mt,mu)=(%lld,%lld,%lld)"
-               "\n               ntrans=%d nthr=%d batchSize=%d kernel width ns=%d",
-               __func__, dim, type, (long long)mstu[0], (long long)mstu[1],
-               (long long)mstu[2], ntrans, nthr, batchSize, spopts.nspread);
-        if (batchSize == 1) // spread_thread has no effect in this case
-          printf("\n");
-        else
-          printf(" spread_thread=%d\n", opts.spread_thread);
-      }
-
-    } else { // ..... usual NUFFT: eval Fourier series, alloc workspace .....
-
-      if (opts.showwarn) { // user warn round-off error (due to prob condition #)...
-        for (int idim = 0; idim < dim; ++idim)
-          if (EPSILON * mstu[idim] > 1.0)
-            fprintf(
-                stderr,
-                "%s warning: rounding err (due to cond # of prob) eps_mach*N%d = %.3g "
-                "> 1 !\n",
-                __func__, idim, (double)(EPSILON * mstu[idim]));
-      }
-
-      // determine fine grid sizes, sanity check, then alloc...
-      for (int idim = 0; idim < dim; ++idim) {
-        int nfier = set_nf_type12(mstu[idim], opts, spopts, &nfdim[idim]);
-        if (nfier) throw nfier;                   // nf too big; we're done
-        phiHat[idim].resize(nfdim[idim] / 2 + 1); // alloc fseries
-      }
-
-      if (opts.debug) { // "long long" here is to avoid warnings with printf...
-        printf("[%s] %dd%d: (ms,mt,mu)=(%lld,%lld,%lld) "
-               "(nf1,nf2,nf3)=(%lld,%lld,%lld)\n               ntrans=%d nthr=%d "
-               "batchSize=%d ",
-               __func__, dim, type, (long long)mstu[0], (long long)mstu[1],
-               (long long)mstu[2], (long long)nfdim[0], (long long)nfdim[1],
-               (long long)nfdim[2], ntrans, nthr, batchSize);
-        if (batchSize == 1) // spread_thread has no effect in this case
-          printf("\n");
-        else
-          printf(" spread_thread=%d\n", opts.spread_thread);
-      }
-
-      // STEP 0: get Fourier coeffs of spreading kernel along each fine grid dim
-      timer.restart();
-      for (int idim = 0; idim < dim; ++idim)
-        onedim_fseries_kernel(nfdim[idim], phiHat[idim], spopts, horner_coeffs.data(),
-                              nc);
-      if (opts.debug)
-        printf("[%s] kernel fser (ns=%d):\t\t%.3g s\n", __func__, spopts.nspread,
-               timer.elapsedsec());
-
-      if (nf() * batchSize > MAX_NF) {
-        fprintf(stderr,
-                "[%s] fwBatch would be bigger than MAX_NF, not attempting memory "
-                "allocation!\n",
-                __func__);
-        throw int(FINUFFT_ERR_MAXNALLOC);
-      }
-
-      timer.restart(); // plan the FFTW (to act in-place on the workspace fwBatch)
-      const auto ns = gridsize_for_fft(*this);
-      std::vector<TC, xsimd::aligned_allocator<TC, 64>> fwBatch(nf() * batchSize);
-      fftPlan->plan(ns, batchSize, fwBatch.data(), fftSign, opts.fftw, nthr_fft);
-      if (opts.debug)
-        printf("[%s] FFT plan (mode %d, nthr=%d):\t%.3g s\n", __func__, opts.fftw,
-               nthr_fft, timer.elapsedsec());
+    //  ------------------------ types 1,2: planning needed ---------------------
+    if (type == 1 || type == 2) {
+      int code = initSpreadAndFFT();
+      if (code) throw code;
     }
+  } else {
+    // If upsampfac was left as 0.0 (auto) we defer setup_spreader to setpts.
+    // However, we must still check if tol is too small to warn the user now.
+    if (tol < std::numeric_limits<TF>::epsilon()) ier = FINUFFT_WARN_EPS_TOO_SMALL;
+  }
 
-  } else { // -------------------------- type 3 (no planning) ------------
+  if (type == 3) { // -------------------------- type 3 (no planning) ------------
 
     if (opts.debug) printf("[%s] %dd%d: ntrans=%d\n", __func__, dim, type, ntrans);
     // Type 3 will call finufft_makeplan for type 2; no need to init FFTW
@@ -908,6 +912,27 @@ int FINUFFT_PLAN_T<TF>::setpts(BIGINT nj, const TF *xj, const TF *yj, const TF *
 
   if (type != 3) {          // ------------------ TYPE 1,2 SETPTS -------------------
                             // (all we can do is check and maybe bin-sort the NU pts)
+    // If upsampfac is not locked by user (auto mode), choose or update it now
+    // based on the actual density nj/N(). Re-plan if density changed significantly.
+    if (!upsamp_locked) {
+      double density = double(nj) / double(N());
+      double upsampfac = bestUpsamplingFactor<TF>(opts.nthreads, density, dim, type, tol);
+      // Re-plan if this is the first call (upsampfac==0) or if upsampfac changed
+      if (upsampfac != opts.upsampfac) {
+        opts.upsampfac = upsampfac;
+        if (opts.debug > 1)
+          printf("[setpts] selected upsampfac=%.2f (density=%.3f, nj=%lld)\n",
+                 opts.upsampfac, density, (long long)nj);
+        int code = setup_spreader_for_nufft(spopts, tol, opts, dim);
+        if (code > 1) return code;
+        precompute_horner_coeffs();
+
+        // Perform the planning steps (first call or re-plan due to density change).
+        code = initSpreadAndFFT();
+        if (code) return code;
+      }
+    }
+
     XYZ     = {xj, yj, zj}; // plan must keep pointers to user's fixed NU pts
     int ier = spreadcheck(nfdim[0], nfdim[1], nfdim[2], spopts);
     if (ier)                // no warnings allowed here
@@ -934,6 +959,21 @@ int FINUFFT_PLAN_T<TF>::setpts(BIGINT nj, const TF *xj, const TF *yj, const TF *
     }
     this->nk = nk; // user set # targ freq pts
     STU      = {s, t, u};
+
+    // For type 3 with deferred upsampfac (not locked by user), pick and persist
+    // an upsamp now using density=1.0 so that subsequent steps (set_nhg_type3 etc.)
+    // have a concrete upsampfac to work with. This choice is persisted so inner
+    // type-2 plans will inherit it.
+    double upsampfac = bestUpsamplingFactor<TF>(opts.nthreads, 1.0, dim, type, tol);
+    if (!upsamp_locked && (upsampfac != opts.upsampfac)) {
+      opts.upsampfac = upsampfac;
+      if (opts.debug > 1)
+        printf("[setpts t3] selected upsampfac=%.2f (density=1 used; persisted)\n",
+               opts.upsampfac);
+      int sier = setup_spreader_for_nufft(spopts, tol, opts, dim);
+      if (sier > 1) return sier;
+      precompute_horner_coeffs();
+    }
 
     // pick x, s intervals & shifts & # fine grid pts (nf) in each dim...
     std::array<TF, 3> S = {0, 0, 0};
@@ -1038,6 +1078,8 @@ int FINUFFT_PLAN_T<TF>::setpts(BIGINT nj, const TF *xj, const TF *yj, const TF *
     t2opts.debug        = std::max(0, opts.debug - 1);    // don't print as much detail
     t2opts.spread_debug = std::max(0, opts.spread_debug - 1);
     t2opts.showwarn     = 0;                              // so don't see warnings 2x
+    if (!upsamp_locked) t2opts.upsampfac = 0.0; // if the upsampfac was auto, let inner
+                                                // t2 pick it again (from density=nj/Nf)
     // (...could vary other t2opts here?)
     // MR: temporary hack, until we have figured out the C++ interface.
     FINUFFT_PLAN_T<TF> *tmpplan;
