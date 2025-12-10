@@ -1,9 +1,14 @@
 repos:
-  - repo: https://github.com/pre-commit/mirrors-clang-format
-    rev: 'v21.1.7'
+  - repo: local
     hooks:
-      - id: clang-format
-        types_or: [c++, c, cuda]
+      - id: git-clang-format-staged
+        name: git clang-format (staged only)
+        entry: git-clang-format --staged
+        language: python
+        additional_dependencies:
+          - clang-format
+        pass_filenames: false
+        types_or: [ c++, c, cuda ]
         files: \.(c|cc|cpp|h|hpp|cu|cuh)$
         exclude: '(^|/)(matlab/.*)$'
   - repo: https://github.com/pre-commit/pre-commit-hooks
