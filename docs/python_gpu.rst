@@ -67,3 +67,9 @@ Full documentation
     :members:
     :member-order: bysource
     :undoc-members:
+    :exclude-members: Plan
+
+.. autoclass:: cufinufft.Plan
+    :members:
+    :member-order: bysource
+    :undoc-members:
