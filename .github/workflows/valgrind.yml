@@ -29,15 +29,15 @@ jobs:
           cmake -S . -B ./build -G Ninja \
             -DCMAKE_BUILD_TYPE:STRING=RelWithDebInfo \
             -DFINUFFT_BUILD_TESTS=ON \
-            -DFINUFFT_USE_SANITIZERS=OFF
+            -DFINUFFT_USE_SANITIZERS=OFF \
+            -DMEMORYCHECK_COMMAND=$(which valgrind) \
+            -DMEMORYCHECK_COMMAND_OPTIONS="--leak-check=full --show-leak-kinds=definite,possible --errors-for-leak-kinds=definite --error-exitcode=1 --track-origins=yes --undef-value-errors=yes" \
+            -DMEMORYCHECK_TYPE=Valgrind
 
       - name: Build
         run: cmake --build ./build --config RelWithDebInfo
 
       - name: Memcheck (CTest)
         working-directory: ./build
-        env:
-          CTEST_MEMORYCHECK_COMMAND: valgrind
-          CTEST_MEMORYCHECK_COMMAND_OPTIONS: "--leak-check=full --show-leak-kinds=definite,possible --errors-for-leak-kinds=definite"
         run: |
           ctest -T memcheck --output-on-failure -j
