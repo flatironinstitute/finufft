@@ -6,6 +6,8 @@
 #include <vector>
 
 #include <finufft_common/constants.h>
+#include <finufft_common/utils.h>
+#include <finufft_spread_opts.h>
 
 namespace finufft::kernel {
 
@@ -56,15 +58,34 @@ template<class T, class F> std::vector<T> fit_monomials(F &&f, int n, T a, T b) 
   return c;
 }
 
-template<typename T> T evaluate_kernel(T x, T beta, T c) {
-  /* ES ("exp sqrt") kernel evaluation at single real argument:
-      phi(x) = exp(beta.(sqrt(1 - (2x/n_s)^2) - 1)),    for |x| < nspread/2
-     related to an asymptotic approximation to the Kaiser--Bessel, itself an
-     approximation to prolate spheroidal wavefunction (PSWF) of order 0.
-     This is the "reference implementation", used by eg finufft/onedim_* 2/17/17.
-     Rescaled so max is 1, Barnett 7/21/24
+template<typename T> T evaluate_kernel(T x, T beta, T c, int kernel_type = 0) {
+  /* Kernel evaluation at single real argument.
+     kernel_type == 0 : ES ("exp sqrt") kernel (default)
+       phi_ES(x) = exp(beta*(sqrt(1 - c*x^2) - 1))
+     kernel_type == 1 : Kaiser--Bessel (KB) kernel
+       phi_KB(x) = I_0(beta*sqrt(1 - c*x^2)) / I_0(beta)
+     Note: `std::cyl_bessel_i` from <cmath> is used for I_0.
+     Rescaled so max is 1.
   */
+  if (kernel_type == 1) {
+    // Kaiser--Bessel (normalized by I0(beta)). Use std::cyl_bessel_i from <cmath>.
+    const T inner        = std::sqrt(T(1) - c * x * x);
+    const T arg          = beta * inner;
+    const double i0_arg  = ::finufft::common::cyl_bessel_i(0, static_cast<double>(arg));
+    const double i0_beta = ::finufft::common::cyl_bessel_i(0, static_cast<double>(beta));
+    return static_cast<T>(i0_arg / i0_beta);
+  }
+
+  // default to ES
   return std::exp(beta * (std::sqrt(T(1) - c * x * x) - T(1)));
 }
+
+FINUFFT_EXPORT int compute_kernel_ns(double upsampfac, double tol, int kernel_type,
+                                     const finufft_spread_opts &opts);
+
+FINUFFT_EXPORT void initialize_kernel_params(finufft_spread_opts &opts, double upsampfac,
+                                             double tol, int kernel_type);
+
+FINUFFT_EXPORT double sigma_max_tol(double upsampfac, int kernel_type, int max_ns);
 
 } // namespace finufft::kernel

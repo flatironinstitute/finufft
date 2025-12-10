@@ -1,6 +1,6 @@
 include(staticAnalysis)
 include(setupIWYU)
-set(PRECISION_INDEPENDENT_SRC precision_independent.cu ../utils.cpp)
+set(PRECISION_INDEPENDENT_SRC precision_independent.cu)
 
 set(PRECISION_DEPENDENT_SRC
     spreadinterp.cpp
@@ -81,7 +81,7 @@ if(FINUFFT_SHARED_LINKING)
     endif()
 endif()
 
-target_link_libraries(cufinufft PRIVATE CUDA::cudart CUDA::cufft)
+target_link_libraries(cufinufft PRIVATE CUDA::cudart CUDA::cufft $<BUILD_INTERFACE:finufft_common>)
 # Expose only when not doing fully static linking
 if(NOT FINUFFT_STATIC_LINKING)
     target_link_libraries(cufinufft PUBLIC CUDA::cudart CUDA::cufft)

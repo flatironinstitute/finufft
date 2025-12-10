@@ -83,6 +83,8 @@ if(FINUFFT_USE_CPU)
     add_subdirectory(src)
 endif()
 
+add_subdirectory(src/common)
+
 if(FINUFFT_USE_CUDA)
     include(cuda_setup)
     add_subdirectory(src/cuda)

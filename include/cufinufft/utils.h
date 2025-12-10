@@ -89,7 +89,7 @@ private:
 };
 
 // math helpers whose source is in src/utils.cpp
-long next235beven(long n, long b);
+FINUFFT_EXPORT long next235beven(long n, long b);
 
 /**
  * does a complex atomic add on a shared memory address

@@ -1,5 +1,19 @@
+
 #include <cmath>
 #include <finufft_common/common.h>
+#include <limits>
+
+// Prefer the standard library's special-math `cyl_bessel_i` when available.
+#if defined(__has_include)
+#if __has_include(<version>)
+#include <version>
+#endif
+#endif
+// Feature-test macro for special math functions (if available in the standard
+// library implementation). Fall back to our series implementation otherwise.
+#if defined(__cpp_lib_math_special_functions)
+#define FINUFFT_HAVE_STD_CYL_BESSEL_I 1
+#endif
 
 #ifdef __CUDACC__
 #include <cufinufft/types.h>
@@ -24,7 +38,7 @@ void gaussquad(int n, double *xgl, double *wgl) {
   for (int i = 0; i < n / 2; i++) { // Loop through nodes
     convcount = 0;
     x         = std::cos((2 * i + 1) * PI / (2 * n)); // Initial guess: Chebyshev node
-    while (true) {                               // Newton iteration
+    while (true) {                                    // Newton iteration
       auto [p, dp] = leg_eval(n, x);
       dx           = -p / dp;
       x += dx; // Newton step
@@ -69,6 +83,34 @@ std::tuple<double, double> leg_eval(int n, double x) {
     p2 = ((2 * i + 1) * x * p1 - i * p0) / (i + 1);
   }
   return {p2, n * (x * p2 - p1) / (x * x - 1)};
+}
+
+double cyl_bessel_i(double nu, double x) noexcept {
+#if defined(FINUFFT_HAVE_STD_CYL_BESSEL_I)
+  return std::cyl_bessel_i(nu, x);
+#else
+  if (x == 0.0) {
+    if (nu == 0.0) return 1.0;
+    return 0.0;
+  }
+
+  const double halfx = x / 2.0;
+  double term        = std::pow(halfx, nu) / std::tgamma(nu + 1.0); // k = 0
+  double sum         = term;
+
+  static constexpr auto eps      = std::numeric_limits<double>::epsilon() * 10.0;
+  static constexpr auto max_iter = 100000;
+
+  for (int k = 1; k < max_iter; ++k) {
+    term *= (halfx * halfx) / (static_cast<double>(k) * (nu + static_cast<double>(k)));
+    sum += term;
+
+    if (std::abs(term) < eps * std::abs(sum)) {
+      break;
+    }
+  }
+  return sum;
+#endif
 }
 
 } // namespace common

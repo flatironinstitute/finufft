@@ -107,7 +107,8 @@ static int setup_spreader_for_nufft(finufft_spread_opts &spopts, T eps,
 {
   // this calls spreadinterp.cpp...
   int ier = setup_spreader(spopts, eps, opts.upsampfac, opts.spread_kerevalmeth,
-                           opts.spread_debug, opts.showwarn, opts.spreadinterponly, dim);
+                           opts.spread_debug, opts.showwarn, opts.spreadinterponly, dim,
+                           opts.spread_function);
   // override various spread opts from their defaults...
   spopts.debug    = opts.spread_debug;
   spopts.sort     = opts.spread_sort; // could make dim or CPU choices here?
@@ -531,8 +532,9 @@ template<typename TF> void FINUFFT_PLAN_T<TF>::precompute_horner_coeffs() {
   horner_coeffs.fill(TF(0));
 
   // Get the kernel parameters once
-  const TF beta    = TF(this->spopts.ES_beta);
-  const TF c_param = TF(this->spopts.ES_c);
+  const TF beta         = TF(this->spopts.ES_beta);
+  const TF c_param      = TF(this->spopts.ES_c);
+  const int kernel_type = this->spopts.kernel_type;
 
   nc = MIN_NC;
 
@@ -550,9 +552,9 @@ template<typename TF> void FINUFFT_PLAN_T<TF>::precompute_horner_coeffs() {
     // original: 0.5 * (x - nspread + 2*j + 1)
     const TF shift = TF(2 * j + 1 - nspread);
 
-    const auto kernel = [shift, beta, c_param](TF x) -> TF {
+    const auto kernel = [shift, beta, c_param, kernel_type](TF x) -> TF {
       const TF t = TF(0.5) * (x + shift);
-      return evaluate_kernel(t, beta, c_param);
+      return evaluate_kernel(t, beta, c_param, kernel_type);
     };
 
     const auto coeffs = fit_monomials(kernel, static_cast<int>(n_coeffs), a, b);
@@ -567,8 +569,8 @@ template<typename TF> void FINUFFT_PLAN_T<TF>::precompute_horner_coeffs() {
     // coeffs[0] is highest degree.
     int used = 0;
     for (size_t k = 0; k < coeffs.size(); ++k) {
-      if (std::abs(coeffs[k]) >= tol * 0.50) { // divide tol by 5 otherwise it fails in
-                                               // some cases
+      if (std::abs(coeffs[k]) >= tol * 0.5) { // divide tol by 2 otherwise it fails in
+                                              // some cases
         used = static_cast<int>(coeffs.size() - k);
         break;
       }
@@ -729,6 +731,7 @@ void finufft_default_opts_t(finufft_opts *o)
   o->maxbatchsize       = 0;
   o->spread_nthr_atomic = -1;
   o->spread_max_sp_size = 0;
+  o->spread_function    = 0;
   o->fftw_lock_fun      = nullptr;
   o->fftw_unlock_fun    = nullptr;
   o->fftw_lock_data     = nullptr;
