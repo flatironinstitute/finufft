@@ -520,31 +520,33 @@ template<typename TF> void FINUFFT_PLAN_T<TF>::precompute_horner_coeffs() {
   // Solve for piecewise Horner coeffs for the function kernel.h:evaluate_kernel()
   // Marco Barbone, Fall 2025.
   const auto nspread = spopts.nspread;
-  // "max_degree" really is "number of coeffs"
-  const auto max_degree = std::max(nspread + 3, MIN_NC);
+  // "number of coeffs"
+  const auto n_coeffs = std::max(nspread + 3, MIN_NC);
 
   // get the xsimd padding
-  static constexpr auto simd_size = xsimd::batch<TF>::size;
-  const auto padded_ns            = (nspread + simd_size - 1) & -simd_size;
+  // (must match that used in spreadinterp.cpp), if we change horner simd_width there
+  // we must also change it here
+  const auto simd_size = GetPaddedSIMDWidth<TF>(2 * nspread);
+  const auto padded_ns = (nspread + simd_size - 1) & -simd_size;
 
   horner_coeffs.fill(TF(0));
 
-  // Precompute kernel parameters once
+  // Get the kernel parameters once
   const TF beta         = TF(this->spopts.ES_beta);
   const TF c_param      = TF(this->spopts.ES_c);
   const int kernel_type = this->spopts.kernel_type;
 
   nc = MIN_NC;
 
-  // Temporary storage: same transposed layout as horner_coeffs:
-  // [k * padded_ns + j], with k in [0, max_degree), j in [0, padded_ns)
-  std::vector<TF> tmp_coeffs(static_cast<size_t>(max_degree) * padded_ns, TF(0));
-
   static constexpr TF a = TF(-1.0);
   static constexpr TF b = TF(1.0);
 
   // First pass: fit at max_degree, cache coeffs, and determine nc.
-  // horner layout uses "smallest cN first": coeffs[0] is lowest degree term.
+  // Note: `fit_monomials()` returns coefficients in descending-degree order
+  // (highest-degree first): coeffs[0] is the highest-degree term. We store
+  // them so that `horner_coeffs[k * padded_ns + j]` holds the k'th Horner
+  // coefficient (k=0 -> highest-degree). `horner_coeffs` was filled with
+  // zeros above, so panels that need fewer coefficients leave the rest as 0.
   for (int j = 0; j < nspread; ++j) {
     // Map x ∈ [-1, 1] to the physical interval for panel j.
     // original: 0.5 * (x - nspread + 2*j + 1)
@@ -555,37 +557,50 @@ template<typename TF> void FINUFFT_PLAN_T<TF>::precompute_horner_coeffs() {
       return evaluate_kernel(t, beta, c_param, kernel_type);
     };
 
-    const auto coeffs = fit_monomials(kernel, static_cast<int>(max_degree), a, b);
+    const auto coeffs = fit_monomials(kernel, static_cast<int>(n_coeffs), a, b);
 
-    // Cache coefficients in tmp, preserving order:
-    // coeffs[k] corresponds to horner_coeffs[k] (smallest degree first).
+    // Cache coefficients directly into final table (transposed/padded):
+    // coeffs[k] is highest->lowest, store at row k for panel j.
     for (size_t k = 0; k < coeffs.size(); ++k) {
-      tmp_coeffs[k * padded_ns + j] = coeffs[k];
+      horner_coeffs[k * padded_ns + j] = coeffs[k];
     }
 
-    // Determine highest index with |c_k| >= tol, so we keep a contiguous prefix
-    // [0..current_nc-1].
-    int current_nc = 0;
-    for (int k = static_cast<int>(coeffs.size()) - 1; k >= 0; --k) {
-      if (std::abs(coeffs[static_cast<size_t>(k)]) >= tol) {
-        current_nc = k + 1; // number of coeffs we actually care about for this panel
+    // Determine effective number of coeffs by skipping leading zeros.
+    // coeffs[0] is highest degree.
+    int used = 0;
+    for (size_t k = 0; k < coeffs.size(); ++k) {
+      if (std::abs(coeffs[k]) >= tol * 0.50) { // divide tol by 5 otherwise it fails in
+                                               // some cases
+        used = static_cast<int>(coeffs.size() - k);
         break;
       }
     }
-    if (current_nc > nc) nc = current_nc;
+    if (used > nc) nc = used;
   }
 
-  // Second pass: copy the first nc coeffs into horner_coeffs (no refit, no reordering).
-  for (int k = 0; k < nc; ++k) {
-    const auto row_offset = static_cast<size_t>(k) * padded_ns;
-    for (size_t j = 0; j < padded_ns; ++j) {
-      horner_coeffs[row_offset + j] = tmp_coeffs[row_offset + j];
+  // If the max required degree (nc) is less than max_degree, we must shift
+  // the coefficients "left" (to lower row indices) so that the significant
+  // coefficients end at row nc-1.
+  if (nc < static_cast<int>(n_coeffs)) {
+    const size_t shift = n_coeffs - nc;
+    for (size_t k = 0; k < static_cast<size_t>(nc); ++k) {
+      const size_t src_row = k + shift;
+      const size_t dst_row = k;
+      for (size_t j = 0; j < padded_ns; ++j) {
+        horner_coeffs[dst_row * padded_ns + j] = horner_coeffs[src_row * padded_ns + j];
+      }
+    }
+    // Zero out the now-unused tail rows for cleanliness
+    for (size_t k = nc; k < static_cast<size_t>(n_coeffs); ++k) {
+      for (size_t j = 0; j < padded_ns; ++j) {
+        horner_coeffs[k * padded_ns + j] = TF(0);
+      }
     }
   }
 
   if (opts.debug > 2) {
     // Print transposed layout: all "index 0" coeffs for intervals, then "index 1", ...
-    // Note: k is the coefficient index in Horner order, with smallest degree first.
+    // Note: k is the coefficient index in Horner order, with highest degree first.
     for (size_t k = 0; k < static_cast<size_t>(nc); ++k) {
       printf("[%s] idx=%lu: ", __func__, k);
       for (size_t j = 0; j < padded_ns; ++j) // use padded_ns to show padding as well

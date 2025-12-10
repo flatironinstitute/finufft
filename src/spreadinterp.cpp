@@ -69,59 +69,16 @@ template<class T, uint8_t N, uint8_t K = N> static constexpr auto BestSIMDHelper
   }
 }
 
-template<class T, uint8_t N = 1> constexpr uint8_t min_simd_width() {
-  // finds the smallest simd width that can handle N elements
-  // simd size is batch size the SIMD width in xsimd terminology
-  if constexpr (std::is_void_v<xsimd::make_sized_batch_t<T, N>>) {
-    return min_simd_width<T, N * 2>();
-  } else {
-    return N;
-  }
-};
-
-template<class T, uint8_t N> constexpr auto find_optimal_simd_width() {
-  // finds the smallest simd width that minimizes the number of iterations
-  // NOTE: might be suboptimal for some cases 2^N+1 for example
-  // in the future we might want to implement a more sophisticated algorithm
-  uint8_t optimal_simd_width = min_simd_width<T>();
-  uint8_t min_iterations     = (N + optimal_simd_width - 1) / optimal_simd_width;
-  for (uint8_t simd_width = optimal_simd_width;
-       simd_width <= xsimd::batch<T, xsimd::best_arch>::size; simd_width *= 2) {
-    uint8_t iterations = (N + simd_width - 1) / simd_width;
-    if (iterations < min_iterations) {
-      min_iterations     = iterations;
-      optimal_simd_width = simd_width;
-    }
-  }
-  return optimal_simd_width;
-}
-
-template<class T, uint8_t N> constexpr auto GetPaddedSIMDWidth() {
-  // helper function to get the SIMD width with padding for the given number of elements
-  // that minimizes the number of iterations
-  return xsimd::make_sized_batch<T, find_optimal_simd_width<T, N>()>::type::size;
-}
-
 template<class T, uint8_t N>
 using PaddedSIMD = typename xsimd::make_sized_batch<T, GetPaddedSIMDWidth<T, N>()>::type;
 
 template<class T, uint8_t ns> constexpr auto get_padding() {
-  // helper function to get the padding for the given number of elements
-  // ns is known at compile time, rounds ns to the next multiple of the SIMD width
-  // then subtracts ns to get the padding using a bitwise and trick
-  // WARING: this trick works only for power of 2s
-  // SOURCE: Agner Fog's VCL manual
   constexpr uint8_t width = GetPaddedSIMDWidth<T, ns>();
   return ((ns + width - 1) & (-width)) - ns;
 }
 
 template<class T, uint8_t ns> constexpr auto get_padding_helper(uint8_t runtime_ns) {
-  // helper function to get the padding for the given number of elements where ns is
-  // known at runtime, it uses recursion to find the padding
-  // this allows to avoid having a function with a large number of switch cases
-  // as GetPaddedSIMDWidth requires a compile time value
-  // it cannot be a lambda function because of the template recursion
-  if constexpr (ns < 2) {
+  if constexpr (ns < finufft::common::MIN_NSPREAD) {
     return 0;
   } else {
     if (runtime_ns == ns) {
@@ -133,12 +90,8 @@ template<class T, uint8_t ns> constexpr auto get_padding_helper(uint8_t runtime_
 }
 
 template<class T> uint8_t get_padding(uint8_t ns) {
-  // return the padding as a function of the number of elements
-  // 2 * MAX_NSPREAD is the maximum number of elements that we can have
-  // that's why is hardcoded here
-  return get_padding_helper<T, 2 * MAX_NSPREAD>(ns);
+  return get_padding_helper<T, 2 * ::finufft::common::MAX_NSPREAD>(ns);
 }
-
 template<class T, uint8_t N>
 using BestSIMD = typename decltype(BestSIMDHelper<T, N, xsimd::batch<T>::size>())::type;
 
