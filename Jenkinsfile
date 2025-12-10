@@ -61,7 +61,7 @@ pipeline {
     '''
     sh '''#!/bin/bash -ex
       source $HOME/bin/activate
-      python3 -m pip install --no-cache-dir --upgrade pycuda cupy-cuda112 numba numba-cuda[cu12]
+      python3 -m pip install --no-cache-dir --upgrade pycuda cupy-cuda112 numba==0.62.1
       python3 -m pip install --no-cache-dir torch==1.12.1+cu113 -f https://download.pytorch.org/whl/torch_stable.html
       python3 -m pip install --no-cache-dir pytest pytest-mock
       python -c "from numba import cuda; cuda.cudadrv.libs.test()"
