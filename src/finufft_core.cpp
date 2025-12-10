@@ -107,8 +107,7 @@ static int setup_spreader_for_nufft(finufft_spread_opts &spopts, T eps,
 {
   // this calls spreadinterp.cpp...
   int ier = setup_spreader(spopts, eps, opts.upsampfac, opts.spread_kerevalmeth,
-                           opts.spread_debug, opts.showwarn, opts.spreadinterponly,
-                           dim);
+                           opts.spread_debug, opts.showwarn, opts.spreadinterponly, dim);
   // override various spread opts from their defaults...
   spopts.debug    = opts.spread_debug;
   spopts.sort     = opts.spread_sort; // could make dim or CPU choices here?
@@ -535,15 +534,19 @@ template<typename TF> void FINUFFT_PLAN_T<TF>::precompute_horner_coeffs() {
 
   nc = MIN_NC;
 
-  // Temporary storage: same transposed layout as horner_coeffs:
-  // [k * padded_ns + j], with k in [0, max_degree), j in [0, padded_ns)
-  std::vector<TF> tmp_coeffs(static_cast<size_t>(max_degree) * padded_ns, TF(0));
+  // Note: no temporary staging buffer needed. We write coefficients
+  // directly into `horner_coeffs`, which was zeroed above. Layout:
+  // [k * padded_ns + j], with k in [0, max_degree), j in [0, padded_ns).
 
   static constexpr TF a = TF(-1.0);
   static constexpr TF b = TF(1.0);
 
   // First pass: fit at max_degree, cache coeffs, and determine nc.
-  // horner layout uses "smallest cN first": coeffs[0] is lowest degree term.
+  // Note: `fit_monomials()` returns coefficients in descending-degree order
+  // (highest-degree first): coeffs[0] is the highest-degree term. We store
+  // them so that `horner_coeffs[k * padded_ns + j]` holds the k'th Horner
+  // coefficient (k=0 -> highest-degree). `horner_coeffs` was filled with
+  // zeros above, so panels that need fewer coefficients leave the rest as 0.
   for (int j = 0; j < nspread; ++j) {
     // Map x ∈ [-1, 1] to the physical interval for panel j.
     // original: 0.5 * (x - nspread + 2*j + 1)
@@ -556,35 +559,48 @@ template<typename TF> void FINUFFT_PLAN_T<TF>::precompute_horner_coeffs() {
 
     const auto coeffs = fit_monomials(kernel, static_cast<int>(max_degree), a, b);
 
-    // Cache coefficients in tmp, preserving order:
-    // coeffs[k] corresponds to horner_coeffs[k] (smallest degree first).
+    // Cache coefficients directly into final table (transposed/padded):
+    // coeffs[k] is highest->lowest, store at row k for panel j.
     for (size_t k = 0; k < coeffs.size(); ++k) {
-      tmp_coeffs[k * padded_ns + j] = coeffs[k];
+      horner_coeffs[k * padded_ns + j] = coeffs[k];
     }
 
-    // Determine highest index with |c_k| >= tol, so we keep a contiguous prefix
-    // [0..current_nc-1].
-    int current_nc = 0;
-    for (int k = static_cast<int>(coeffs.size()) - 1; k >= 0; --k) {
-      if (std::abs(coeffs[static_cast<size_t>(k)]) >= tol) {
-        current_nc = k + 1; // number of coeffs we actually care about for this panel
+    // Determine effective degree (number of coeffs) by skipping leading zeros.
+    // coeffs[0] is highest degree.
+    int used = 0;
+    for (size_t k = 0; k < coeffs.size(); ++k) {
+      if (std::abs(coeffs[k]) >= tol * 0.50) { // divide tol by 5 otherwise it fails in
+                                               // some cases
+        used = static_cast<int>(coeffs.size() - k);
         break;
       }
     }
-    if (current_nc > nc) nc = current_nc;
+    if (used > nc) nc = used;
   }
 
-  // Second pass: copy the first nc coeffs into horner_coeffs (no refit, no reordering).
-  for (int k = 0; k < nc; ++k) {
-    const auto row_offset = static_cast<size_t>(k) * padded_ns;
-    for (size_t j = 0; j < padded_ns; ++j) {
-      horner_coeffs[row_offset + j] = tmp_coeffs[row_offset + j];
+  // If the max required degree (nc) is less than max_degree, we must shift
+  // the coefficients "left" (to lower row indices) so that the significant
+  // coefficients end at row nc-1.
+  if (nc < static_cast<int>(max_degree)) {
+    const size_t shift = max_degree - nc;
+    for (size_t k = 0; k < static_cast<size_t>(nc); ++k) {
+      const size_t src_row = k + shift;
+      const size_t dst_row = k;
+      for (size_t j = 0; j < padded_ns; ++j) {
+        horner_coeffs[dst_row * padded_ns + j] = horner_coeffs[src_row * padded_ns + j];
+      }
+    }
+    // Zero out the now-unused tail rows for cleanliness
+    for (size_t k = nc; k < static_cast<size_t>(max_degree); ++k) {
+      for (size_t j = 0; j < padded_ns; ++j) {
+        horner_coeffs[k * padded_ns + j] = TF(0);
+      }
     }
   }
 
   if (opts.debug > 2) {
     // Print transposed layout: all "index 0" coeffs for intervals, then "index 1", ...
-    // Note: k is the coefficient index in Horner order, with smallest degree first.
+    // Note: k is the coefficient index in Horner order, with highest degree first.
     for (size_t k = 0; k < static_cast<size_t>(nc); ++k) {
       printf("[%s] idx=%lu: ", __func__, k);
       for (size_t j = 0; j < padded_ns; ++j) // use padded_ns to show padding as well
@@ -617,7 +633,7 @@ template<typename TF> int FINUFFT_PLAN_T<TF>::initSpreadAndFFT() {
         printf(" spread_thread=%d\n", opts.spread_thread);
     }
 
-  } else { // ..... usual NUFFT: eval Fourier series, alloc workspace .....
+  } else {               // ..... usual NUFFT: eval Fourier series, alloc workspace .....
 
     if (opts.showwarn) { // user warn round-off error (due to prob condition #)...
       for (int idim = 0; idim < dim; ++idim)
@@ -631,8 +647,8 @@ template<typename TF> int FINUFFT_PLAN_T<TF>::initSpreadAndFFT() {
     // determine fine grid sizes, sanity check, then alloc...
     for (int idim = 0; idim < dim; ++idim) {
       int nfier = set_nf_type12(mstu[idim], opts, spopts, &nfdim[idim]);
-      if (nfier) return nfier;                    // nf too big; we're done
-      phiHat[idim].resize(nfdim[idim] / 2 + 1);   // alloc fseries
+      if (nfier) return nfier;                  // nf too big; we're done
+      phiHat[idim].resize(nfdim[idim] / 2 + 1); // alloc fseries
     }
 
     if (opts.debug) { // "long long" here is to avoid warnings with printf...
@@ -665,7 +681,7 @@ template<typename TF> int FINUFFT_PLAN_T<TF>::initSpreadAndFFT() {
     }
 
     timer.restart(); // plan the FFTW (to act in-place on the workspace fwBatch)
-    int nthr_fft = opts.nthreads;
+    int nthr_fft  = opts.nthreads;
     const auto ns = gridsize_for_fft(*this);
     std::vector<TC, xsimd::aligned_allocator<TC, 64>> fwBatch(nf() * batchSize);
     fftPlan->plan(ns, batchSize, fwBatch.data(), fftSign, opts.fftw, nthr_fft);
@@ -836,8 +852,8 @@ FINUFFT_PLAN_T<TF>::FINUFFT_PLAN_T(int type_, int dim_, const BIGINT *n_modes, i
   // spreader/Horner internals now using the provided upsampfac.
   if (opts.upsampfac != 0.0) {
     upsamp_locked = true; // user explicitly set upsampfac, don't auto-update
-    ier = setup_spreader_for_nufft(spopts, tol, opts, dim);
-    if (ier > 1) // proceed if success or warning
+    ier           = setup_spreader_for_nufft(spopts, tol, opts, dim);
+    if (ier > 1)          // proceed if success or warning
       throw int(ier);
     precompute_horner_coeffs();
 
@@ -910,12 +926,12 @@ int FINUFFT_PLAN_T<TF>::setpts(BIGINT nj, const TF *xj, const TF *yj, const TF *
     return FINUFFT_ERR_NUM_NU_PTS_INVALID;
   }
 
-  if (type != 3) {          // ------------------ TYPE 1,2 SETPTS -------------------
-                            // (all we can do is check and maybe bin-sort the NU pts)
+  if (type != 3) { // ------------------ TYPE 1,2 SETPTS -------------------
+                   // (all we can do is check and maybe bin-sort the NU pts)
     // If upsampfac is not locked by user (auto mode), choose or update it now
     // based on the actual density nj/N(). Re-plan if density changed significantly.
     if (!upsamp_locked) {
-      double density = double(nj) / double(N());
+      double density   = double(nj) / double(N());
       double upsampfac = bestUpsamplingFactor<TF>(opts.nthreads, density, dim, type, tol);
       // Re-plan if this is the first call (upsampfac==0) or if upsampfac changed
       if (upsampfac != opts.upsampfac) {
@@ -1078,8 +1094,9 @@ int FINUFFT_PLAN_T<TF>::setpts(BIGINT nj, const TF *xj, const TF *yj, const TF *
     t2opts.debug        = std::max(0, opts.debug - 1);    // don't print as much detail
     t2opts.spread_debug = std::max(0, opts.spread_debug - 1);
     t2opts.showwarn     = 0;                              // so don't see warnings 2x
-    if (!upsamp_locked) t2opts.upsampfac = 0.0; // if the upsampfac was auto, let inner
-                                                // t2 pick it again (from density=nj/Nf)
+    if (!upsamp_locked)
+      t2opts.upsampfac = 0.0; // if the upsampfac was auto, let inner
+                              // t2 pick it again (from density=nj/Nf)
     // (...could vary other t2opts here?)
     // MR: temporary hack, until we have figured out the C++ interface.
     FINUFFT_PLAN_T<TF> *tmpplan;
