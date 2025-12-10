@@ -20,7 +20,7 @@ c     DEPRECATED: spread_kerpad kept for ABI compatibility, ignored by library
       real*8 upsampfac
       integer spread_thread, maxbatchsize, spread_nthr_atomic
       integer spread_max_sp_size
-      integer spread_kernel
+      integer spread_function
       integer fftw_lock_fun, fftw_unlock_fun, fftw_lock_data
 
       end type

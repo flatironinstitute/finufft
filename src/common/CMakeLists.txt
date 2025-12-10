@@ -5,13 +5,13 @@ cmake_minimum_required(VERSION 3.24)
 set(FINUFFT_COMMON_SOURCES kernel.cpp utils.cpp)
 
 add_library(finufft_common STATIC ${FINUFFT_COMMON_SOURCES})
-add_library(finufft::common ALIAS finufft_common)
 
 # The public include directory is the top-level include/
 target_include_directories(
     finufft_common
     PUBLIC $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include> $<INSTALL_INTERFACE:include>
 )
+set_target_properties(finufft_common PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 # Visibility and compile options consistent with finufft
 if(FINUFFT_SHARED_LINKING)

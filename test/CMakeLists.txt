@@ -46,14 +46,7 @@ if(NOT FINUFFT_USE_DUCC0 AND FINUFFT_USE_OPENMP)
 endif()
 
 # Add ctest definitions that run at both precisions...
-function(
-    add_tests_with_prec
-    PREC
-    REQ_TOL
-    CHECK_TOL
-    SUFFIX
-    MAX_DIGITS
-)
+function(add_tests_with_prec PREC REQ_TOL CHECK_TOL SUFFIX)
     # All of the following should be run at OMP_NUM_THREADS=4 or something small,
     # as in makefile. This prevents them taking a huge time on a, say, 128-core
     # Rome node. ... but I don't know platform-indep way to do that! Does anyone?
@@ -111,5 +104,5 @@ endfunction()
 
 # use above function to actually add the tests, with certain requested and check
 # tols
-add_tests_with_prec(float 1e-5 2e-4 f 5)
-add_tests_with_prec(double 1e-12 1e-11 "" 15)
+add_tests_with_prec(float 1e-5 2e-4 f)
+add_tests_with_prec(double 1e-12 1e-11 "")
