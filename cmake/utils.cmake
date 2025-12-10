@@ -103,7 +103,7 @@ function(enable_asan target)
 endfunction()
 
 function(finufft_link_test target)
-    target_link_libraries(${target} PRIVATE finufft::finufft finufft::common)
+    target_link_libraries(${target} PRIVATE finufft::finufft finufft_common)
     if(FINUFFT_USE_DUCC0)
         target_compile_definitions(${target} PRIVATE FINUFFT_USE_DUCC0)
     endif()
