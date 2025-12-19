@@ -6,11 +6,15 @@ M=1e4; N=1e2;         % keel N small to see close to epsmach; cond # = O(N)
 %M=1e2; N=1e5; % confusion about N vs M controlling err prefac (it's N)
 isign   = +1;     % sign of imaginary unit in exponential
 o.debug = 0;      % choose 1 for timing breakdown text output
+o.spread_function = 0;
 
-% use one of these two...
+% use one of these...
 %tols = 10.^(-1:-0.02:-15); o.upsampfac = 2.0;
 tols = 10.^(-1:-0.02:-10); o.upsampfac=1.25;    % for lowupsampfac
-%tols = 10.^(-1:-0.02:-14); o.upsampfac=1.99;    % for lowupsampfac
+%tols = 10.^(-1:-0.02:-11); o.upsampfac=1.3;    % for lowupsampfac
+
+%tols = 10.^(-1:-0.02:-12); o.upsampfac=1.5;    % intermediate
+%tols = 10.^(-1:-0.02:-14); o.upsampfac=1.99;    % v close to 2
 
 % other expts...
 %tols = 1e-6;
@@ -30,4 +34,4 @@ end
 figure; loglog(tols,errs,'+'); hold on; plot(tols,tols,'-');
 axis tight; xlabel('tol'); ylabel('err');
 %title(sprintf('1d1: (maxerr)/||c||_1, M=%d, N=%d\n',M,N));
-title(sprintf('1d1: ||\tilde f - f||_2/||f||_2, M=%d, N=%d\n',M,N));
+title(sprintf('1d1 \\sigma=%g sf=%d M=%d N=%d: rel 2-norm err in f',o.upsampfac,o.spread_function,M,N));
