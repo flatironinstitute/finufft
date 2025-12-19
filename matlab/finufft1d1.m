@@ -31,6 +31,7 @@
 %     opts.spread_thread:   for ntrans>1 only. 0:auto, 1:seq multi, 2:par, etc
 %     opts.maxbatchsize:  for ntrans>1 only. max blocking size, or 0 for auto.
 %     opts.nthreads:   number of threads, or 0: use all available (default)
+%     opts.spread_function: 0 (default), >0 (nonstandard kernels) [experts only]
 %     opts.modeord: 0 (CMCL increasing mode ordering, default), 1 (FFT ordering)
 %     opts.spreadinterponly: 0 (perform NUFFT, default), 1 (only spread/interp)
 %   Outputs:
