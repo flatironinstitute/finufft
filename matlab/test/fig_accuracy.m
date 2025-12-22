@@ -26,9 +26,9 @@ for t=1:numel(tols)
   f = finufft1d1(x, c, isign, tols(t), N, o);
   [~, id] = lastwarn; toloks(t) = ~strcmp(id, 'FINUFFT:epsTooSmall'); % get warn
   fe = exp(1i*isign*ns*x) * c.';         % exact (note mat fill, matvec)
-  %errs(t) = max(abs(f(:)-fe(:))) / norm(c,1); % eps as in err analysis...
-  %p=2; errs(t) = norm(f(:)-fe(:),p) / norm(c,p);   % ... or p-norm rel to input
-  p=2; errs(t) = norm(f(:)-fe(:),p) / norm(fe(:),p); % ... or rel p-norm
+  %errs(t) = max(abs(f(:)-fe(:))) / norm(c,1);      % eps as in err analysis...
+  %p=2; errs(t) = norm(f(:)-fe(:),p) / norm(c,p);   % ...or p-norm rel to input
+  p=2; errs(t) = norm(f(:)-fe(:),p) / norm(fe(:),p); % ...or rel p-norm
 end
 figure;
 loglog(tols(toloks), errs(toloks), '+'); hold on; plot(tols, tols, 'k-');
