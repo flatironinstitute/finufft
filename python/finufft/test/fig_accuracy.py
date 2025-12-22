@@ -57,3 +57,4 @@ def finufft1d_accuracy_plot(M=10_000, N=100, isign=+1, upsampfac=2.00, seed=42, 
 if __name__ == "__main__":
     # Default: new x,c per tol; set hold_inputs=True to reuse inputs.
     finufft1d_accuracy_plot()
+    #finufft1d_accuracy_plot(upsampfac=1.25)
