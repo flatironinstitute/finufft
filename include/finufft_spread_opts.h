@@ -26,8 +26,7 @@ typedef struct finufft_spread_opts {
   double ES_beta;
   double ES_halfwidth;
   double ES_c;
-  // Kernel selector: 0 = ES (default), 1 = Kaiser--Bessel (KB)
-  int kernel_type; // default 0
+  int kerformula; // kernel function type. 0: default, >0: devs only (unsupported)
 } finufft_spread_opts;
 
 #endif // FINUFFT_SPREAD_OPTS_H

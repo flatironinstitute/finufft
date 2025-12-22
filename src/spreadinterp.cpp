@@ -1999,7 +1999,7 @@ template int spreadinterpSorted<double>(
 
 template<typename T>
 int setup_spreader(finufft_spread_opts &opts, T eps, double upsampfac, int kerevalmeth,
-                   int debug, int showwarn, int spreadinterponly, int dim, int kernel_type)
+                   int debug, int showwarn, int spreadinterponly, int dim, int kerformula)
 /* Initializes spreader kernel parameters given desired NUFFT tolerance eps,
    upsampling factor (=sigma in paper, or R in Dutt-Rokhlin), and debug flags.
    Horner polynomial evaluation is always used; the kerevalmeth argument is
@@ -2028,8 +2028,8 @@ int setup_spreader(finufft_spread_opts &opts, T eps, double upsampfac, int kerev
   // write out default finufft_spread_opts (some overridden in setup_spreader_for_nufft)
   opts.spread_direction = 0; // user should always set to 1 or 2 as desired
   opts.sort             = 2; // 2:auto-choice
-  opts.kerpad           = 0; // kerpad retained for ABI compatibility only
-  opts.kerevalmeth      = 1;
+  opts.kerpad           = 0; // kerpad retained for ABI compatibility only; ignored
+  opts.kerevalmeth      = 1; // kerevalmeth retained for ABI compatibility only; ignored
   opts.upsampfac        = upsampfac;
   opts.nthreads         = 0; // all avail
   opts.sort_threads     = 0; // 0:auto-choice
@@ -2049,15 +2049,15 @@ int setup_spreader(finufft_spread_opts &opts, T eps, double upsampfac, int kerev
     eps = EPSILON; // only changes local copy (not any opts)
     ier = FINUFFT_WARN_EPS_TOO_SMALL;
   }
-  if (!spreadinterponly && (upsampfac < 1.25 || upsampfac > 2.0)) {
+  if (!spreadinterponly && (upsampfac < 1.15 || upsampfac > 2.5)) {
     if (showwarn)
       fprintf(stderr,
-              "%s warning: upsampfac=%.3g outside [1.25, 2.0] are unlikely to provide "
+              "%s warning: upsampfac=%.3g outside [1.15, 2.5] are unlikely to provide "
               "benefit and might break the library;\n",
               __func__, upsampfac);
   }
   // Compute ns (kernel width) using central helper; caller handles clipping.
-  ns = compute_kernel_ns(upsampfac, (double)eps, kernel_type, opts);
+  ns = compute_kernel_ns(upsampfac, (double)eps, kerformula, opts);
   // ns == 2 breaks for float with upsampfact = 2.00
   if (std::is_same_v<T, float> && upsampfac == 2.00) ns = std::max(ns, 3);
   if (ns > MAX_NSPREAD) {
@@ -2071,19 +2071,18 @@ int setup_spreader(finufft_spread_opts &opts, T eps, double upsampfac, int kerev
     ier = FINUFFT_WARN_EPS_TOO_SMALL;
   }
   opts.nspread = ns;
-  // default kernel selector: 0 = ES (exp-sqrt), 1 = KB (Kaiser--Bessel)
-  opts.kernel_type = kernel_type;
+  opts.kerformula = kerformula; // pass through
   // initialize remaining ES/KB parameters (beta, c, halfwidth) based on opts.nspread
-  initialize_kernel_params(opts, upsampfac, (double)eps, kernel_type);
+  initialize_kernel_params(opts, upsampfac, (double)eps, kerformula);
   return ier;
 }
 
 template FINUFFT_EXPORT_TEST int setup_spreader<float>(
     finufft_spread_opts &opts, float eps, double upsampfac, int kerevalmeth, int debug,
-    int showwarn, int spreadinterponly, int dim, int kernel_type);
+    int showwarn, int spreadinterponly, int dim, int kerformula);
 template FINUFFT_EXPORT_TEST int setup_spreader<double>(
     finufft_spread_opts &opts, double eps, double upsampfac, int kerevalmeth, int debug,
-    int showwarn, int spreadinterponly, int dim, int kernel_type);
+    int showwarn, int spreadinterponly, int dim, int kerformula);
 
 template<typename T>
 T evaluate_kernel_runtime(T x, int ns, int nc, const T *horner_coeffs_ptr,

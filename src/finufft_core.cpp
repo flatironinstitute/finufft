@@ -533,7 +533,7 @@ template<typename TF> void FINUFFT_PLAN_T<TF>::precompute_horner_coeffs() {
   // Get the kernel parameters once
   const TF beta         = TF(this->spopts.ES_beta);
   const TF c_param      = TF(this->spopts.ES_c);
-  const int kernel_type = this->spopts.kernel_type;
+  const int kerformula  = this->spopts.kerformula;
 
   nc = MIN_NC; // a class field setting the number of coeffs used.
   // interpolation domain [a,b]
@@ -552,9 +552,9 @@ template<typename TF> void FINUFFT_PLAN_T<TF>::precompute_horner_coeffs() {
     // original: 0.5 * (x - nspread + 2*j + 1)
     const TF shift = TF(2 * j + 1 - nspread);
 
-    const auto kernel = [shift, beta, c_param, kernel_type](TF x) -> TF {
+    const auto kernel = [shift, beta, c_param, kerformula](TF x) -> TF {
       const TF t = TF(0.5) * (x + shift);
-      return evaluate_kernel(t, beta, c_param, kernel_type);
+      return evaluate_kernel(t, beta, c_param, kerformula);
     };
 
     const auto coeffs = fit_monomials(kernel, static_cast<int>(nc_fit), a, b);
