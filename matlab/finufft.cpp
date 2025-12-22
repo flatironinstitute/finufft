@@ -571,9 +571,9 @@ void* mxWrapGetP(const mxArray* a, const char* fmt, const char** e)
 #ifdef R2008OO
     mxArray* ap;
 #endif
-    if (mxGetClassID(a) == mxDOUBLE_CLASS &&
-        mxGetM(a)*mxGetN(a) == 1 && *mxGetPr(a) == 0)
-        return p;
+    if (mxGetClassID(a) == mxDOUBLE_CLASS && mxGetM(a) * mxGetN(a) == 1 &&
+        *mxGetPr(a) == 0)
+      return p;
     if (mxIsChar(a)) {
         char pbuf[128];
         mxGetString(a, pbuf, sizeof(pbuf));
@@ -772,9 +772,9 @@ void* mxWrapGetP_single(const mxArray* a, const char* fmt, const char** e)
 #ifdef R2008OO
     mxArray* ap;
 #endif
-    if (mxGetClassID(a) == mxSINGLE_CLASS &&
-        mxGetM(a)*mxGetN(a) == 1 && *((float*)mxGetData(a)) == 0)
-        return p;
+    if (mxGetClassID(a) == mxSINGLE_CLASS && mxGetM(a) * mxGetN(a) == 1 &&
+        *((float *)mxGetData(a)) == 0)
+      return p;
     if (mxIsChar(a)) {
         char pbuf[128];
         mxGetString(a, pbuf, sizeof(pbuf));
@@ -1161,14 +1161,11 @@ typedef std::complex<float> fcomplex;
      }
      else if (strcmp(fname[ifield],"spread_max_sp_size") == 0) {
        oc->spread_max_sp_size = (int)round(*mxGetPr(mxGetFieldByNumber(om,idx,ifield)));
-     }
-     else if (strcmp(fname[ifield],"spread_function") == 0) {
-       oc->spread_function = (int)round(*mxGetPr(mxGetFieldByNumber(om,idx,ifield)));
-     }
-     else if (strcmp(fname[ifield],"spreadinterponly") == 0) {
+     } else if (strcmp(fname[ifield], "spread_kerformula") == 0) {
+       oc->spread_kerformula = (int)round(*mxGetPr(mxGetFieldByNumber(om, idx, ifield)));
+     } else if (strcmp(fname[ifield], "spreadinterponly") == 0) {
        oc->spreadinterponly = (int)round(*mxGetPr(mxGetFieldByNumber(om,idx,ifield)));
-     }
-     else
+     } else
        continue;
    }
    mxFree(fname);

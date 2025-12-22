@@ -108,7 +108,7 @@ static int setup_spreader_for_nufft(finufft_spread_opts &spopts, T eps,
   // this calls spreadinterp.cpp...
   int ier = setup_spreader(spopts, eps, opts.upsampfac, opts.spread_kerevalmeth,
                            opts.spread_debug, opts.showwarn, opts.spreadinterponly, dim,
-                           opts.spread_function);
+                           opts.spread_kerformula);
   // override various spread opts from their defaults...
   spopts.debug    = opts.spread_debug;
   spopts.sort     = opts.spread_sort; // could make dim or CPU choices here?
@@ -734,7 +734,7 @@ void finufft_default_opts_t(finufft_opts *o)
   o->maxbatchsize       = 0;
   o->spread_nthr_atomic = -1;
   o->spread_max_sp_size = 0;
-  o->spread_function    = 0;
+  o->spread_kerformula  = 0;
   o->fftw_lock_fun      = nullptr;
   o->fftw_unlock_fun    = nullptr;
   o->fftw_lock_data     = nullptr;

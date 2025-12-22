@@ -21,17 +21,12 @@
 %     opts.debug:   0 (silent, default), 1 (timing breakdown), 2 (debug info).
 %     opts.spread_debug: spreader: 0 (no text, default), 1 (some), or 2 (lots)
 %     opts.spread_sort:  0 (don't sort NU pts), 1 (do), 2 (auto, default)
-%     opts.spread_kerevalmeth:  DEPRECATED (kept for compatibility). The library
-%          now always uses the Horner piecewise-polynomial evaluation internally
-%          (historical "1"). Setting this field has no effect.
-%     opts.spread_kerpad:  DEPRECATED and ignored. This historically controlled
-%          padding for the removed direct-eval method and no longer applies.
 %     opts.fftw: FFTW plan mode, 64=FFTW_ESTIMATE (default), 0=FFTW_MEASURE, etc
 %     opts.upsampfac:   sigma.  2.0 (default), or 1.25 (low RAM, smaller FFT)
 %     opts.spread_thread:   for ntrans>1 only. 0:auto, 1:seq multi, 2:par, etc
 %     opts.maxbatchsize:  for ntrans>1 only. max blocking size, or 0 for auto.
 %     opts.nthreads:   number of threads, or 0: use all available (default)
-%     opts.spread_function: 0 (default), >0 (nonstandard kernels) [experts only]
+%     opts.spread_kerformula: 0 (default), >0 (nonstandard funcs) [experts only]
 %     opts.modeord: 0 (CMCL increasing mode ordering, default), 1 (FFT ordering)
 %     opts.spreadinterponly: 0 (perform NUFFT, default), 1 (only spread/interp)
 %   Outputs:

@@ -25,7 +25,7 @@ int main(int argc, char *argv[]) {
   double upsampfac = 2.0;
   const auto seed  = std::random_device()();
   int hold_inputs  = 1; // default: hold inputs (reuse across tolerances)
-  int kernel_type  = 0; // 0 => ES (default), 1 => KB
+  int kerformula   = 0; // default, >0 experts only
   int max_digits   = 0; // <=0 means use machine precision (15 double / 7 float)
   int debug_level  = 0; // optional: enable debug output (sets both opts.debug and
                         // opts.spread_debug)
@@ -37,7 +37,7 @@ int main(int argc, char *argv[]) {
   for (int ai = 1; ai < argc; ++ai) {
     if (std::string(argv[ai]) == "-h" || std::string(argv[ai]) == "--help") {
       std::cout << "Usage: " << argv[0]
-                << " [M] [N] [isign] [upsampfac] [hold_inputs] [kernel_type] "
+                << " [M] [N] [isign] [upsampfac] [hold_inputs] [kerformula] "
                    "[max_digits] [debug] [showwarn] [verbose]\n";
       std::cout << "  M             : number of sources (default 2000)\n";
       std::cout << "  N             : number of modes (default 100)\n";
@@ -45,7 +45,8 @@ int main(int argc, char *argv[]) {
       std::cout << "  upsampfac     : upsampling factor (default 2.0)\n";
       std::cout
           << "  hold_inputs   : if nonzero, reuse inputs across tolerances (default 1)\n";
-      std::cout << "  kernel_type   : spread kernel selection (0:ES default, 1:KB)\n";
+      std::cout
+          << "  kerformula    : spread kernel formula (0:default, >0: for experts)\n";
       std::cout << "  max_digits    : max digits to test (<=0 uses machine precision)\n";
       std::cout
           << "  debug         : optional debug level (0=no debug, 1=some, 2=more)\n";
@@ -69,7 +70,7 @@ int main(int argc, char *argv[]) {
   if (argc > 4) sscanf(argv[4], "%lf", &upsampfac);
   // Note: seed is internal (default 42) and not a command-line argument
   if (argc > 5) sscanf(argv[5], "%d", &hold_inputs);
-  if (argc > 6) sscanf(argv[6], "%d", &kernel_type);
+  if (argc > 6) sscanf(argv[6], "%d", &kerformula);
   if (argc > 7) sscanf(argv[7], "%d", &max_digits);
   if (argc > 8) sscanf(argv[8], "%d", &debug_level);
   if (argc > 9) sscanf(argv[9], "%d", &showwarn);
@@ -77,7 +78,7 @@ int main(int argc, char *argv[]) {
 
   if (max_digits <= 0) {
     max_digits     = std::numeric_limits<FLT>::digits10;
-    double min_tol = finufft::kernel::sigma_max_tol(upsampfac, kernel_type,
+    double min_tol = finufft::kernel::sigma_max_tol(upsampfac, kerformula,
                                                     finufft::common::MAX_NSPREAD);
     // Cap max_digits based on achievable tolerance for the chosen upsampling
     // factor and kernel.  Use kernel::sigma_max_tol with the library's
@@ -106,11 +107,11 @@ int main(int argc, char *argv[]) {
 
   // Setup opts (will be passed to guru makeplan). We will use the plan
   // guru interface so we can override the plan's spread kernel selection
-  // via the plan method `set_spread_kernel_type` below.
+  // via the plan method `set_spread_kerformula` below.
   finufft_opts opts{};
   FINUFFT_DEFAULT_OPTS(&opts);
   opts.upsampfac       = upsampfac;
-  opts.spread_function = kernel_type;
+  opts.spread_kerformula = kerformula;
   // set debug levels from command-line if requested
   opts.debug        = debug_level;
   opts.spread_debug = debug_level;
