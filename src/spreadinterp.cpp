@@ -2058,8 +2058,9 @@ int setup_spreader(finufft_spread_opts &opts, T eps, double upsampfac, int kerev
   }
   // Compute ns (kernel width) using central helper; caller handles clipping.
   ns = compute_kernel_ns(upsampfac, (double)eps, kerformula, opts);
-  // ns == 2 breaks for float with upsampfact = 2.00
+  // ns == 2 breaks for float with upsampfact = 2.00  (Marco's hack) ***
   if (std::is_same_v<T, float> && upsampfac == 2.00) ns = std::max(ns, 3);
+
   if (ns > MAX_NSPREAD) {
     // clip to fit allocated arrays, Horner rules
     if (showwarn)

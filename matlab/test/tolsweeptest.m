@@ -14,11 +14,12 @@ sigmas = [1.25 2];             % a.k.a. upsampfac, list to test
 floors32 = [1e-4 1e-5];        % float: seemingly controlled by rdyn
 floors64 = [3e-9 3e-14];       % double: former limited by wmax
 tolslack = [5.0; 5.0; 10.0];   % factors by which eps can exceed tol (3 types)
-o.spread_function = 0;   % any FINUFFT opts...
+o.showwarn = 0;
+warning('off','FINUFFT:epsTooSmall');
+o.spread_function = 0;         % any custom FINUFFT opts...
 dims = false(1, 3); dims(dim) = true;  % only test this dim
 tolsperdecade = 8;
 tolstep = 10 ^ (-1 / tolsperdecade); % multiplicative step in tol, < 1
-warning('off','FINUFFT:epsTooSmall');
 
 for precdev=precdevs  % ......... loop precisions & devices
                       %  s=single, d=double; sd = CPU, SD = GPU
@@ -27,7 +28,7 @@ for precdev=precdevs  % ......... loop precisions & devices
   ntols = ceil(log(mintol) / log(tolstep));
   tols = tolstep.^(0:ntols-1);     % go down from tol = 1
   for j=1:numel(sigmas), o.upsampfac = sigmas(j);         % ------- loop USF
-    fprintf('%s\tsigma=%.3g\tprec=%s\tM=%d, Ntot=%d, ntr=%d, ntols=%d\n',...
+    fprintf('%s\tsigma=%.3g\tprec=%s M=%d Ntot=%d ntr=%d ntols=%d\n',...
             devname, o.upsampfac, prec, M, Ntot, ntr, ntols)
     errs = nan(3, ntols);          % for 3 types (just 1D for now), each tol
     toloks = true(1,ntols);        % whether FINUFFT reported warning for tol
@@ -44,7 +45,10 @@ for precdev=precdevs  % ......... loop precisions & devices
       e = errs(type,:);
       fails = e>tolslack(type)*tols & e>epsmin;
       failskeep = fails(toloks); tolskeep = tols(toloks); % discard warned cases
-      fprintf('\t\ttype %d: fail=%d\t\t',type,max(failskeep));
+      ekeep = e(toloks);         % compute worst closeness factor to failure...
+      worstfac = max(min(ekeep./(tolslack(type)*tolskeep), ekeep/epsmin));
+      if max(failskeep), msg='FAIL'; else msg='pass'; end
+      fprintf('\t\ttype %d: worstfac=%.3g\t %s\t\t',type,worstfac,msg);
       fprintf('%.3g ',tolskeep(failskeep)); fprintf('\n');   % list failed tols
       % cause CI to fail out:
       if max(failskeep), error('FINUFFT tolsweeptest failed!'); end

@@ -34,7 +34,7 @@ void initialize_kernel_params(finufft_spread_opts &opts, double upsampfac, doubl
   opts.kerformula   = kerformula;
   opts.nspread      = ns; // ensure opts is populated with the (possibly clipped) ns
   opts.ES_halfwidth = (double)ns / 2.0;
-  opts.ES_c         = 4.0 / (double)(ns * ns);
+  opts.ES_c = 4.0 / (double)(ns * ns); // *** move this into kernel.h, kill c param
 
   if (kerformula == 0) { // always the default
     // Exponential of Semicircle (ES)
@@ -54,7 +54,7 @@ void initialize_kernel_params(finufft_spread_opts &opts, double upsampfac, doubl
 
   } else if (kerformula == 1) {
     // Kaiser-Bessel (KB)
-    // Formula from Beatty et al. 2005
+    // Formula from Beatty et al. 2005.
     double tmp   = (double)ns * (double)ns / (upsampfac * upsampfac);
     double term2 = (upsampfac - 0.5) * (upsampfac - 0.5);
     opts.ES_beta = common::PI * std::sqrt(tmp * term2 - 0.8);
@@ -68,6 +68,7 @@ void initialize_kernel_params(finufft_spread_opts &opts, double upsampfac, doubl
   }
 }
 
+// AHB prefer cut; only used in accuracy_test which will be changed ***
 double sigma_max_tol(double upsampfac, int kerformula, int max_ns) {
   if (upsampfac == 2.0) {
     return 10.0 * std::pow(10.0, -(double)max_ns);
