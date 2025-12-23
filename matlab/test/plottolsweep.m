@@ -36,7 +36,7 @@ for precdev=precdevs  % ......... loop precisions & devices
   ntols = ceil(log(mintol) / log(tolstep));
   fprintf('%s\tprec=%s\t%dD, M=%d, Ntot=%d, ntrans=%d, ntols=%d\n', ...
           devname, prec, dim, M, Ntot, ntr, ntols)
-  tols = tolstep.^(0:ntols-1);     % start at tol = 1 &go down
+  tols = tolstep.^(0:ntols-1);     % go down from tol = 1
   errs = nan(3, ntols);            % for 3 types (just 1D for now), each tol
   toloks = true(1,ntols);          % whether FINUFFT reported warning for tol
   for t=1:ntols
@@ -59,7 +59,7 @@ for precdev=precdevs  % ......... loop precisions & devices
     fails = e>tolslack(type)*tols & e>bwmax & e>bCC;
     failskeep = fails(toloks); tolskeep = tols(toloks);  % discard warned cases
     fprintf('\t\ttype %d: fail=%d\t\t',type,max(failskeep));
-    fprintf('%3g ',tolskeep(failskeep)); fprintf('\n');   % list failed tols
+    fprintf('%.3g ',tolskeep(failskeep)); fprintf('\n');   % list failed tols
   end
   subplot(1,2,iplot);     % overplot all types...
   h0 = loglog(tols(toloks), errs(:,toloks), '+'); hold on;
