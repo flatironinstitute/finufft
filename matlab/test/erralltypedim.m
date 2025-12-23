@@ -21,10 +21,14 @@
 %  errcheck = [optional] make text output of errors as the tests done, and
 %             report fail if error>errcheck.
 %
+% [err, info] = erralltypedim(...) returns info struct with at least fields:
+%   info.Nmax = max N used in each dim, 1x3 vector
+%
 % Barnett 12/21/25. Helper used by fullmathtest and plottolsweep.
 %
-function err = erralltypedim(M,Ntot,ntr,isign,prec,tol,o,myrand,dims,errcheck)
+function [err, info] = erralltypedim(M,Ntot,ntr,isign,prec,tol,o,myrand,dims,errcheck)
 err = nan(3,3);
+info.Nmax = nan(1,3);
 % defaults...
 if nargin<7, o=struct(); end
 if nargin<8, myrand=@rand; end          % use CPU
@@ -38,7 +42,7 @@ z = 2*pi*myrand(M,1,prec);
 c = (2*myrand(M,ntr,prec)-1) + 1i*(2*myrand(M,ntr,prec)-1);
 
 if dims(1) % ----------------------------------------------- 1D ----------
-  N = Ntot;
+  N = Ntot; info.Nmax(1) = N;
 
   k = (ceil(-N/2):floor((N-1)/2))';            % mode list
   f = finufft1d1(x,c,isign,tol,N,o);
@@ -55,7 +59,7 @@ if dims(1) % ----------------------------------------------- 1D ----------
   if errcheck>0, fprintf('\t\t1D type 2:\t%.3g   \t',err(2,1));
     if err(2,1)>errcheck, fprintf('FAIL!\n'); else fprintf('pass\n'); end
   end
-    
+
   s = N*myrand(M,1,prec);            % M target freqs of space-bandwidth O(N)
   f = finufft1d3(x,c,isign,tol,s,o);
   fe = exp(1i*isign*s*x')*c;         % type 3 NUDFT mat (via outer prod)
@@ -66,7 +70,8 @@ if dims(1) % ----------------------------------------------- 1D ----------
 end
 if dims(2) % ------------------------------------------------- 2D ---------
   N1 = round(sqrt(2*Ntot)); N2 = round(Ntot/N1);   % pick sizes prod ~ Ntot
-    
+  info.Nmax(2) = max([N1,N2]);
+
   kx = (ceil(-N1/2):floor((N1-1)/2))';         % modes in each dim
   ky = (ceil(-N2/2):floor((N2-1)/2))';
   [kx ky] = ndgrid(kx,ky);                     % mode index lists
@@ -77,14 +82,14 @@ if dims(2) % ------------------------------------------------- 2D ---------
   if errcheck>0, fprintf('\t\t2D type 1:\t%.3g   \t',err(1,2));
     if err(1,2)>errcheck, fprintf('FAIL!\n'); else fprintf('pass\n'); end
   end
-  
+
   C = finufft2d2(x,y,isign,tol,f,o);
   Ce = A.' * reshape(f,[N1*N2, ntr]);    % exact direct via non-conj transpose
   err(2,2) = norm(C-Ce)/norm(Ce);
   if errcheck>0, fprintf('\t\t2D type 2:\t%.3g   \t',err(2,2));
     if err(2,2)>errcheck, fprintf('FAIL!\n'); else fprintf('pass\n'); end
   end
-  
+
   s = N1*myrand(M,1,prec); t = N2*myrand(M,1,prec);   % M target freqs
   f = finufft2d3(x,y,c,isign,tol,s,t,o);
   fe = exp(1i*isign*(s*x'+t*y'))*c;    % type 3 NUDFT matrix (via outer prods)
@@ -93,9 +98,10 @@ if dims(2) % ------------------------------------------------- 2D ---------
     if err(3,2)>errcheck, fprintf('FAIL!\n'); else fprintf('pass\n'); end
   end
 end
-  
+
 if dims(3) % ------------------------------------------------- 3D ---------
   N1 = round((2*Ntot)^(1/3)); N2 = round(Ntot^(1/3)); N3 = round(Ntot/N1/N2);
+  info.Nmax(3) = max([N1,N2,N3]);
 
   kx = (ceil(-N1/2):floor((N1-1)/2))';         % modes in each dim
   ky = (ceil(-N2/2):floor((N2-1)/2))';
@@ -108,14 +114,14 @@ if dims(3) % ------------------------------------------------- 3D ---------
   if errcheck>0, fprintf('\t\t3D type 1:\t%.3g   \t',err(1,3));
     if err(1,3)>errcheck, fprintf('FAIL!\n'); else fprintf('pass\n'); end
   end
-  
+
   C = finufft3d2(x,y,z,isign,tol,f,o);
   Ce = A.' * reshape(f,[N1*N2*N3, ntr]);  % exact direct via non-conj transpose
   err(2,3) = norm(C-Ce)/norm(Ce);
   if errcheck>0, fprintf('\t\t3D type 2:\t%.3g   \t',err(2,3));
     if err(2,3)>errcheck, fprintf('FAIL!\n'); else fprintf('pass\n'); end
   end
-  
+
   s = N1*myrand(M,1,prec); t = N2*myrand(M,1,prec); u = N3*myrand(M,1,prec);
   f = finufft3d3(x,y,z,c,isign,tol,s,t,u,o);
   fe = exp(1i*isign*(s*x'+t*y'+u*z'))*c;    % type 3 NUDFT matrix
