@@ -3,6 +3,7 @@
 % Simplified from plottolsweep; uses erralltypedim.
 % Barnett 12/22/25.
 
+addpath(fileparts(mfilename('fullpath')))
 clear % both single & double; just CPU for now...
 precdevs = 'sd'; myrand   = @rand; devname  = 'CPU               ';
 
@@ -10,7 +11,7 @@ M = 1e3;            % # NU pts (several secs for >=1e4)
 dim = 1; Ntot = 30; % which dimensionality to test, tot #modes
 ntr = 10;           % #transforms to average error over
 isign = +1;
-sigmas = [1.25 2];             % a.k.a. upsampfac, list to test
+sigmas = [1.25 2];             % a.k.a. upsampfac, list to test (v2.4.1 for now)
 floors32 = [1e-4 1e-5];        % float: seemingly controlled by rdyn
 floors64 = [3e-9 3e-14];       % double: former limited by wmax
 tolslack = [5.0; 5.0; 10.0];   % factors by which eps can exceed tol (3 types)

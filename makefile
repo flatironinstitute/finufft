@@ -428,7 +428,7 @@ matlab: matlab/finufft.cpp $(STATICLIB)
 # octave .mex executable...
 octave: matlab/finufft.cpp $(STATICLIB)
 	(cd matlab; $(MKOCTFILE) --mex finufft.cpp -I../include ../$(STATICLIB) $(OFLAGS) $(LIBSFFT) -output finufft)
-	@echo "Running octave interface tests; please wait a few seconds..."
+	@echo "Running octave interface tests; please wait 30 seconds..."
 	(cd matlab ;\
 	$(OCTAVE) test/fullmathtest.m ;\
 	$(OCTAVE) test/check_finufft.m ;\

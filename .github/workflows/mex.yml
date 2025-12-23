@@ -131,13 +131,14 @@ jobs:
             cmake --build build --verbose --target cufinufft_mex --parallel
           fi
 
-      - name: Run fullmathtest.m
+      - name: Run matlab math & tol-sweep tests
         uses: matlab-actions/run-command@v2
         with:
           command: |
             addpath(genpath('matlab'));
             addpath(genpath('build'));
             fullmathtest
+            tolsweeptest
 
       - name: Package with CPack
         shell: bash

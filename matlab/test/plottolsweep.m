@@ -5,6 +5,7 @@
 % tolsweeptest.m for better ones.
 % Barnett 12/21/25. Added candidate pass/fail criteria 12/22/25.
 
+addpath(fileparts(mfilename('fullpath')))
 clear   % both single & double; just CPU for now...
 precdevs = 'sd'; myrand   = @rand; devname  = 'CPU               ';
 

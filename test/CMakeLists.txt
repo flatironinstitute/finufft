@@ -97,12 +97,13 @@ function(add_tests_with_prec PREC REQ_TOL CHECK_TOL SUFFIX)
         WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
     )
 
-    add_test(NAME run_accuracy_test_${PREC} COMMAND accuracy_test${SUFFIX} WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
+# temporarily removed this from CI until can rewrite it: ***
+#    add_test(NAME run_accuracy_test_${PREC} COMMAND accuracy_test${SUFFIX} WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
 
     add_test(NAME run_adjointness_${PREC} COMMAND adjointness${SUFFIX} WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
 endfunction()
 
 # use above function to actually add the tests, with certain requested and check
-# tols
+# tols; these are for classical tests that test one tol at fp32 and one at fp64
 add_tests_with_prec(float 1e-5 2e-4 f)
 add_tests_with_prec(double 1e-12 1e-11 "")

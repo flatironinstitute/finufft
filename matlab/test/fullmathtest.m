@@ -3,8 +3,9 @@
 % (For sweep over tols see plottolsweep.m)
 % Short runtime (~1 sec per device).
 % Barnett 4/2/25, broken out erralltypedim 12/21/25.
-clear
 
+addpath(fileparts(mfilename('fullpath')))
+clear
 precdevs = '';
 if exist('finufft')==3                                        % CPU .mex exist?
   precdevs = [precdevs 'sd'];                                 % add CPU

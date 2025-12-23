@@ -5,6 +5,8 @@
 // across each decade [1e-d,1e-(d+1)] to be <= 1e-d. Exits nonzero on failure
 // so CTest/CI can detect it.
 
+// to fix up, remove decade-averaging ***
+
 #include <cmath>
 #include <cstdlib>
 #include <finufft/test_defs.h>
