@@ -1,6 +1,8 @@
 % MATLAB plot achieved error over a range of tolerances, 3 types, 2 precs.
 % Only a single choice of dim for now, and CPU only.
 % Successor to obsolete fig_accuracy.m; uses erralltypedim.
+% Candidate pass/fail criteria are overly complicated here; see
+% tolsweeptest.m for better ones.
 % Barnett 12/21/25. Added candidate pass/fail criteria 12/22/25.
 
 clear   % both single & double; just CPU for now...

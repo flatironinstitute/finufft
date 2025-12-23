@@ -2058,8 +2058,6 @@ int setup_spreader(finufft_spread_opts &opts, T eps, double upsampfac, int kerev
   }
   // Compute ns (kernel width) using central helper; caller handles clipping.
   ns = compute_kernel_ns(upsampfac, (double)eps, kerformula, opts);
-  // ns == 2 breaks for float with upsampfact = 2.00  (Marco's hack) ***
-  if (std::is_same_v<T, float> && upsampfac == 2.00) ns = std::max(ns, 3);
 
   if (ns > MAX_NSPREAD) {
     // clip to fit allocated arrays, Horner rules
@@ -2090,10 +2088,10 @@ T evaluate_kernel_runtime(T x, int ns, int nc, const T *horner_coeffs_ptr,
                           const finufft_spread_opts &opts) {
   // Pure runtime kernel evaluator: primary interface for FT and plan-based code.
   // Coefficients are stored as horner_coeffs[j * padded_ns + i], where padded_ns
-  // is rounded up to SIMD alignment for the current type. Barbone (Dec/25)
-  // Infer padded_ns from the layout expected by caller (plan uses SIMD padding)
-  using simd_type                 = xsimd::batch<T>;
-  static constexpr auto simd_size = simd_type::size;
+  // is rounded up to SIMD alignment which *must* be consistent with that used
+  // in both evaluate_kernel_vector above, and precompute_horner_coeffs.
+  // Barbone (Dec/25). Fixed Lu 12/23/25.
+  const auto simd_size            = GetPaddedSIMDWidth<T>(2 * ns);
   const int padded_ns             = (ns + simd_size - 1) & -simd_size;
 
   if (std::abs(x) >= (T)opts.ES_halfwidth) return (T)0.0;

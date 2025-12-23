@@ -66,6 +66,7 @@ template<typename T> T evaluate_kernel(T x, T beta, T c, int kerformula = 0) {
   /* The spread/interp kernel function definitions.
      The single real argument x is in (-ns/2, ns/2), where ns
      is the integer spreading width (support in fine gridpoints).
+     *** currently ns not known, encoded in c -> change so halfwidth passsed in.
 
      kerformula == 0 : This is always the default.
 
