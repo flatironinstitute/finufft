@@ -699,10 +699,7 @@ template<typename TF> int FINUFFT_PLAN_T<TF>::initSpreadAndFFT() {
 // (they are not namespaced since have safe names finufft{f}_* )
 using namespace finufft::utils; // AHB since already given at top, needed again?
 
-// Marco Barbone: 5.8.2024
-// These are user-facing.
-// The various options could be macros to follow c standard library conventions.
-// Question: would these be enums?
+
 
 // OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO
 void finufft_default_opts_t(finufft_opts *o)
@@ -710,6 +707,13 @@ void finufft_default_opts_t(finufft_opts *o)
 // See finufft_opts.h for meanings.
 // This was created to avoid uncertainty about C++11 style static initialization
 // when called from MEX, but now is generally used. Barnett 10/30/17 onwards.
+// Discussion (Marco Barbone: 5.8.2024): These are user-facing.
+// The various options could be macros to follow c standard library conventions.
+// Question: would these be enums? Ans: no, let's keep ints/doubles for now.
+
+// For FFW=DUCC, opts.fftw=-1 is the default to be more informative than 0
+// (which coincides with the code FFTW_MEASURE; see fftw3.h).
+
 // Sphinx sucks the below code block into the web docs, hence keep it clean...
 {
   // sphinx tag (don't remove): @defopts_start
@@ -722,7 +726,7 @@ void finufft_default_opts_t(finufft_opts *o)
 
   o->nthreads = 0;
 #ifdef FINUFFT_USE_DUCC0
-  o->fftw = 0;
+  o->fftw = -1;
 #else
   o->fftw = FFTW_ESTIMATE;
 #endif
