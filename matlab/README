@@ -51,5 +51,5 @@ definitions; the script adds the help comments at the start of each m-file.
 
 Once *.m contains the updated help comments, and you have edited Contents.m
 by hand (it is not auto-generated), one should then run
-  ../docs/genmatlabhelp.sh
+  (cd ../docs; ./genmatlabhelp.sh)
 to update .rst web doc source (for CPU and GPU)

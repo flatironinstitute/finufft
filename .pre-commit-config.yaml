@@ -1,3 +1,5 @@
+exclude: '\.m$|\.mw$|\.doc$|\.docbit$|\.docsrc$|\.rst$'
+
 repos:
   - repo: local
     hooks:
@@ -10,7 +12,6 @@ repos:
         pass_filenames: false
         types_or: [ c++, c, cuda ]
         files: \.(c|cc|cpp|h|hpp|cu|cuh)$
-        exclude: '(^|/)(matlab/.*)$'
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v6.0.0
     hooks:

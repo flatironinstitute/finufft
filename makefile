@@ -152,7 +152,7 @@ STATICLIB = lib-static/$(LIBNAME).a
 ABSDYNLIB = $(FINUFFT)$(DYNLIB)
 
 # spreader objs
-SOBJS = src/finufft_utils.o src/utils.o src/spreadinterp.o
+SOBJS = src/finufft_utils.o src/spreadinterp.o src/common/utils.o src/common/kernel.o
 
 # all lib dual-precision objs (note DUCC_OBJS empty if unused)
 OBJS = $(SOBJS) src/fft.o src/finufft_core.o src/c_interface.o fortran/finufftfort.o $(DUCC_OBJS)
@@ -283,10 +283,10 @@ test/%: test/%.cpp $(DYNLIB)
 test/%f: test/%.cpp $(DYNLIB)
 	$(CXX) $(CXXFLAGS) ${LDFLAGS} -DSINGLE $< $(ABSDYNLIB) $(LIBSFFT) -o $@
 # low-level tests that are cleaner if depend on only specific objects...
-test/testutils: test/testutils.cpp src/finufft_utils.o src/utils.o
-	$(CXX) $(CXXFLAGS) ${LDFLAGS} test/testutils.cpp src/finufft_utils.o src/utils.o $(LIBS) -o test/testutils
-test/testutilsf: test/testutils.cpp src/finufft_utils.o src/utils.o
-	$(CXX) $(CXXFLAGS) ${LDFLAGS} -DSINGLE test/testutils.cpp src/finufft_utils.o src/utils.o $(LIBS) -o test/testutilsf
+test/testutils: test/testutils.cpp src/finufft_utils.o src/common/utils.o
+	$(CXX) $(CXXFLAGS) ${LDFLAGS} test/testutils.cpp src/finufft_utils.o src/common/utils.o $(LIBS) -o test/testutils
+test/testutilsf: test/testutils.cpp src/finufft_utils.o src/common/utils.o
+	$(CXX) $(CXXFLAGS) ${LDFLAGS} -DSINGLE test/testutils.cpp src/finufft_utils.o src/common/utils.o $(LIBS) -o test/testutilsf
 
 # make sure all double-prec test executables ready for testing
 TESTS := $(basename $(wildcard test/*.cpp))
@@ -428,7 +428,7 @@ matlab: matlab/finufft.cpp $(STATICLIB)
 # octave .mex executable...
 octave: matlab/finufft.cpp $(STATICLIB)
 	(cd matlab; $(MKOCTFILE) --mex finufft.cpp -I../include ../$(STATICLIB) $(OFLAGS) $(LIBSFFT) -output finufft)
-	@echo "Running octave interface tests; please wait a few seconds..."
+	@echo "Running octave interface tests; please wait 30 seconds..."
 	(cd matlab ;\
 	$(OCTAVE) test/fullmathtest.m ;\
 	$(OCTAVE) test/check_finufft.m ;\

@@ -107,7 +107,8 @@ static int setup_spreader_for_nufft(finufft_spread_opts &spopts, T eps,
 {
   // this calls spreadinterp.cpp...
   int ier = setup_spreader(spopts, eps, opts.upsampfac, opts.spread_kerevalmeth,
-                           opts.spread_debug, opts.showwarn, opts.spreadinterponly, dim);
+                           opts.spread_debug, opts.showwarn, opts.spreadinterponly, dim,
+                           opts.spread_kerformula);
   // override various spread opts from their defaults...
   spopts.debug    = opts.spread_debug;
   spopts.sort     = opts.spread_sort; // could make dim or CPU choices here?
@@ -519,27 +520,28 @@ template<typename TF> void FINUFFT_PLAN_T<TF>::precompute_horner_coeffs() {
   // Solve for piecewise Horner coeffs for the function kernel.h:evaluate_kernel()
   // Marco Barbone, Fall 2025.
   const auto nspread = spopts.nspread;
-  // "number of coeffs"
-  const auto n_coeffs = std::max(nspread + 3, MIN_NC);
+  const auto nc_fit  = std::max(nspread + 3, MIN_NC); // how many coeffs to fit
 
   // get the xsimd padding
-  // (must match that used in spreadinterp.cpp), if we change horner simd_width there
-  // we must also change it here
+  // (must match that used in spreadinterp.cpp: if we change horner simd_width there
+  // we must also change it here)
   const auto simd_size = GetPaddedSIMDWidth<TF>(2 * nspread);
   const auto padded_ns = (nspread + simd_size - 1) & -simd_size;
 
   horner_coeffs.fill(TF(0));
 
   // Get the kernel parameters once
-  const TF beta    = TF(this->spopts.ES_beta);
-  const TF c_param = TF(this->spopts.ES_c);
+  const TF beta         = TF(this->spopts.ES_beta);
+  const TF c_param      = TF(this->spopts.ES_c);
+  const int kerformula  = this->spopts.kerformula;
 
-  nc = MIN_NC;
-
+  nc = MIN_NC; // a class field setting the number of coeffs used.
+  // interpolation domain [a,b]
   static constexpr TF a = TF(-1.0);
   static constexpr TF b = TF(1.0);
 
-  // First pass: fit at max_degree, cache coeffs, and determine nc.
+  // First pass: fit at max_degree, cache coeffs, and determine largest nc
+  // needed.
   // Note: `fit_monomials()` returns coefficients in descending-degree order
   // (highest-degree first): coeffs[0] is the highest-degree term. We store
   // them so that `horner_coeffs[k * padded_ns + j]` holds the k'th Horner
@@ -550,12 +552,12 @@ template<typename TF> void FINUFFT_PLAN_T<TF>::precompute_horner_coeffs() {
     // original: 0.5 * (x - nspread + 2*j + 1)
     const TF shift = TF(2 * j + 1 - nspread);
 
-    const auto kernel = [shift, beta, c_param](TF x) -> TF {
+    const auto kernel = [shift, beta, c_param, kerformula](TF x) -> TF {
       const TF t = TF(0.5) * (x + shift);
-      return evaluate_kernel(t, beta, c_param);
+      return evaluate_kernel(t, beta, c_param, kerformula);
     };
 
-    const auto coeffs = fit_monomials(kernel, static_cast<int>(n_coeffs), a, b);
+    const auto coeffs = fit_monomials(kernel, static_cast<int>(nc_fit), a, b);
 
     // Cache coefficients directly into final table (transposed/padded):
     // coeffs[k] is highest->lowest, store at row k for panel j.
@@ -566,21 +568,24 @@ template<typename TF> void FINUFFT_PLAN_T<TF>::precompute_horner_coeffs() {
     // Determine effective number of coeffs by skipping leading zeros.
     // coeffs[0] is highest degree.
     int used = 0;
+    const TF coeffs_tol_cutoff = 0.1; // coeffs cut-off relative to tol
     for (size_t k = 0; k < coeffs.size(); ++k) {
-      if (std::abs(coeffs[k]) >= tol * 0.50) { // divide tol by 5 otherwise it fails in
-                                               // some cases
+      if (std::abs(coeffs[k]) >= tol * coeffs_tol_cutoff) {
         used = static_cast<int>(coeffs.size() - k);
         break;
       }
     }
     if (used > nc) nc = used;
   }
+  // nc = nc_fit;  // hack, realized by Libin
+  if (opts.debug)
+    printf("[%s] ns=%d:\tnc_fit=%d, trim to nc=%d\n", __func__, nspread, nc_fit, nc);
 
   // If the max required degree (nc) is less than max_degree, we must shift
   // the coefficients "left" (to lower row indices) so that the significant
   // coefficients end at row nc-1.
-  if (nc < static_cast<int>(n_coeffs)) {
-    const size_t shift = n_coeffs - nc;
+  if (nc < static_cast<int>(nc_fit)) {
+    const size_t shift = nc_fit - nc;
     for (size_t k = 0; k < static_cast<size_t>(nc); ++k) {
       const size_t src_row = k + shift;
       const size_t dst_row = k;
@@ -589,7 +594,7 @@ template<typename TF> void FINUFFT_PLAN_T<TF>::precompute_horner_coeffs() {
       }
     }
     // Zero out the now-unused tail rows for cleanliness
-    for (size_t k = nc; k < static_cast<size_t>(n_coeffs); ++k) {
+    for (size_t k = nc; k < static_cast<size_t>(nc_fit); ++k) {
       for (size_t j = 0; j < padded_ns; ++j) {
         horner_coeffs[k * padded_ns + j] = TF(0);
       }
@@ -729,6 +734,7 @@ void finufft_default_opts_t(finufft_opts *o)
   o->maxbatchsize       = 0;
   o->spread_nthr_atomic = -1;
   o->spread_max_sp_size = 0;
+  o->spread_kerformula  = 0;
   o->fftw_lock_fun      = nullptr;
   o->fftw_unlock_fun    = nullptr;
   o->fftw_lock_data     = nullptr;
@@ -850,6 +856,8 @@ FINUFFT_PLAN_T<TF>::FINUFFT_PLAN_T(int type_, int dim_, const BIGINT *n_modes, i
   // spreader/Horner internals now using the provided upsampfac.
   if (opts.upsampfac != 0.0) {
     upsamp_locked = true; // user explicitly set upsampfac, don't auto-update
+    if (opts.debug) printf("\t\tuser locked upsampfac=%g\n", opts.upsampfac);
+
     ier = setup_spreader_for_nufft(spopts, tol, opts, dim);
     if (ier > 1) // proceed if success or warning
       throw int(ier);
@@ -862,7 +870,7 @@ FINUFFT_PLAN_T<TF>::FINUFFT_PLAN_T(int type_, int dim_, const BIGINT *n_modes, i
     }
   } else {
     // If upsampfac was left as 0.0 (auto) we defer setup_spreader to setpts.
-    // However, we must still check if tol is too small to warn the user now.
+    // However, we may still warn the user now if tol is guaranteed unachievable:
     if (tol < std::numeric_limits<TF>::epsilon()) ier = FINUFFT_WARN_EPS_TOO_SMALL;
   }
 
@@ -872,7 +880,6 @@ FINUFFT_PLAN_T<TF>::FINUFFT_PLAN_T(int type_, int dim_, const BIGINT *n_modes, i
     // Type 3 will call finufft_makeplan for type 2; no need to init FFTW
     // Note we don't even know nj or nk yet, so can't do anything else!
   }
-  if (ier > 1) throw int(ier); // report setup_spreader status (could be warning)
 }
 
 // MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM

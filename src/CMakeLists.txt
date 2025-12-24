@@ -23,7 +23,6 @@ set(FINUFFT_SOURCES
     finufft_core.cpp
     c_interface.cpp
     finufft_utils.cpp
-    utils.cpp
 )
 
 if(FINUFFT_BUILD_FORTRAN)
@@ -48,7 +47,7 @@ if(FINUFFT_USE_DUCC0)
     target_compile_definitions(finufft PRIVATE FINUFFT_USE_DUCC0)
 endif()
 
-target_link_libraries(finufft PRIVATE $<BUILD_INTERFACE:finufft_fftlibs xsimd>)
+target_link_libraries(finufft PRIVATE $<BUILD_INTERFACE:finufft_fftlibs xsimd finufft_common>)
 if(FINUFFT_USE_OPENMP)
     target_link_libraries(finufft PRIVATE OpenMP::OpenMP_CXX)
     if(NOT FINUFFT_STATIC_LINKING)

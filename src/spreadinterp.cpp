@@ -60,7 +60,7 @@ struct [[maybe_unused]] select_odd {
 
 // this finds the largest SIMD instruction set that can handle N elements
 // void otherwise -> compile error
-template<class T, uint8_t N, uint8_t K = N> static constexpr auto BestSIMDHelper() {
+template<class T, uint8_t N, uint8_t K = N> constexpr auto BestSIMDHelper() {
   if constexpr (N % K == 0) {
     // returns void in the worst case
     return xsimd::make_sized_batch<T, K>{};
@@ -78,7 +78,7 @@ template<class T, uint8_t ns> constexpr auto get_padding() {
 }
 
 template<class T, uint8_t ns> constexpr auto get_padding_helper(uint8_t runtime_ns) {
-  if constexpr (ns < finufft::common::MIN_NSPREAD) {
+  if constexpr (ns < MIN_NSPREAD) {
     return 0;
   } else {
     if (runtime_ns == ns) {
@@ -90,7 +90,7 @@ template<class T, uint8_t ns> constexpr auto get_padding_helper(uint8_t runtime_
 }
 
 template<class T> uint8_t get_padding(uint8_t ns) {
-  return get_padding_helper<T, 2 * ::finufft::common::MAX_NSPREAD>(ns);
+  return get_padding_helper<T, 2 * MAX_NSPREAD>(ns);
 }
 template<class T, uint8_t N>
 using BestSIMD = typename decltype(BestSIMDHelper<T, N, xsimd::batch<T>::size>())::type;
@@ -1999,7 +1999,7 @@ template int spreadinterpSorted<double>(
 
 template<typename T>
 int setup_spreader(finufft_spread_opts &opts, T eps, double upsampfac, int kerevalmeth,
-                   int debug, int showwarn, int spreadinterponly, int dim)
+                   int debug, int showwarn, int spreadinterponly, int dim, int kerformula)
 /* Initializes spreader kernel parameters given desired NUFFT tolerance eps,
    upsampling factor (=sigma in paper, or R in Dutt-Rokhlin), and debug flags.
    Horner polynomial evaluation is always used; the kerevalmeth argument is
@@ -2028,8 +2028,8 @@ int setup_spreader(finufft_spread_opts &opts, T eps, double upsampfac, int kerev
   // write out default finufft_spread_opts (some overridden in setup_spreader_for_nufft)
   opts.spread_direction = 0; // user should always set to 1 or 2 as desired
   opts.sort             = 2; // 2:auto-choice
-  opts.kerpad           = 0; // kerpad retained for ABI compatibility only
-  opts.kerevalmeth      = 1;
+  opts.kerpad           = 0; // kerpad retained for ABI compatibility only; ignored
+  opts.kerevalmeth      = 1; // kerevalmeth retained for ABI compatibility only; ignored
   opts.upsampfac        = upsampfac;
   opts.nthreads         = 0; // all avail
   opts.sort_threads     = 0; // 0:auto-choice
@@ -2049,19 +2049,16 @@ int setup_spreader(finufft_spread_opts &opts, T eps, double upsampfac, int kerev
     eps = EPSILON; // only changes local copy (not any opts)
     ier = FINUFFT_WARN_EPS_TOO_SMALL;
   }
-  if (!spreadinterponly && (upsampfac < 1.25 || upsampfac > 2.0)) {
+  if (!spreadinterponly && (upsampfac < 1.15 || upsampfac > 2.5)) {
     if (showwarn)
-      fprintf(
-          stderr,
-          "%s warning: upsampfac=%.3g outside [1.25, 2.0] are unlikely to provide benefit and might break the library;\n",
-          __func__, upsampfac);
+      fprintf(stderr,
+              "%s warning: upsampfac=%.3g outside [1.15, 2.5] are unlikely to provide "
+              "benefit and might break the library;\n",
+              __func__, upsampfac);
   }
-  if (upsampfac == 2.0) // standard sigma (see SISC paper)
-    ns = std::ceil(-log10(eps / (T)10.0)); // 1 digit per power of 10
-  else // custom sigma
-    ns = std::ceil(-log(eps) / (T(PI) * sqrt(1.0 - 1.0 / upsampfac))); // formula,
-  // gam=1
-  ns = max(2, ns); // (we don't have ns=1 version yet)
+  // Compute ns (kernel width) using central helper; caller handles clipping.
+  ns = compute_kernel_ns(upsampfac, (double)eps, kerformula, opts);
+
   if (ns > MAX_NSPREAD) {
     // clip to fit allocated arrays, Horner rules
     if (showwarn)
@@ -2073,44 +2070,28 @@ int setup_spreader(finufft_spread_opts &opts, T eps, double upsampfac, int kerev
     ier = FINUFFT_WARN_EPS_TOO_SMALL;
   }
   opts.nspread = ns;
-  // setup for reference kernel eval (via formula): select beta width param...
-  // Horner kernels still need reference evals for FTs in onedim_*_kernel
-  opts.ES_halfwidth = (double)ns / 2; // constants to help (see below routines)
-  opts.ES_c         = 4.0 / (double)(ns * ns);
-  double betaoverns = 2.30; // gives decent betas for default sigma=2.0
-  if (ns == 2) betaoverns = 2.20; // some small-width tweaks...
-  if (ns == 3) betaoverns = 2.26;
-  if (ns == 4) betaoverns = 2.38;
-  if (upsampfac != 2.0) {
-    // again, override beta for custom sigma
-    T gamma    = 0.97; // must match devel/gen_all_horner_C_code.m !
-    betaoverns = gamma * T(PI) * (1.0 - 1.0 / (2 * upsampfac)); // formula based
-    // on cutoff
-  }
-  opts.ES_beta = betaoverns * ns; // set the kernel beta parameter
-  if (debug)
-    printf("%s eps=%.3g sigma=%.3g (Horner): chose ns=%d beta=%.3g\n", __func__,
-           (double)eps, upsampfac, ns, opts.ES_beta);
-
+  opts.kerformula = kerformula; // pass through
+  // initialize remaining ES/KB parameters (beta, c, halfwidth) based on opts.nspread
+  initialize_kernel_params(opts, upsampfac, (double)eps, kerformula);
   return ier;
 }
 
 template FINUFFT_EXPORT_TEST int setup_spreader<float>(
     finufft_spread_opts &opts, float eps, double upsampfac, int kerevalmeth, int debug,
-    int showwarn, int spreadinterponly, int dim);
+    int showwarn, int spreadinterponly, int dim, int kerformula);
 template FINUFFT_EXPORT_TEST int setup_spreader<double>(
     finufft_spread_opts &opts, double eps, double upsampfac, int kerevalmeth, int debug,
-    int showwarn, int spreadinterponly, int dim);
+    int showwarn, int spreadinterponly, int dim, int kerformula);
 
 template<typename T>
 T evaluate_kernel_runtime(T x, int ns, int nc, const T *horner_coeffs_ptr,
                           const finufft_spread_opts &opts) {
   // Pure runtime kernel evaluator: primary interface for FT and plan-based code.
   // Coefficients are stored as horner_coeffs[j * padded_ns + i], where padded_ns
-  // is rounded up to SIMD alignment for the current type. Barbone (Dec/25)
-  // Infer padded_ns from the layout expected by caller (plan uses SIMD padding)
-  using simd_type                 = xsimd::batch<T>;
-  static constexpr auto simd_size = simd_type::size;
+  // is rounded up to SIMD alignment which *must* be consistent with that used
+  // in both evaluate_kernel_vector above, and precompute_horner_coeffs.
+  // Barbone (Dec/25). Fixed Lu 12/23/25.
+  const auto simd_size            = GetPaddedSIMDWidth<T>(2 * ns);
   const int padded_ns             = (ns + simd_size - 1) & -simd_size;
 
   if (std::abs(x) >= (T)opts.ES_halfwidth) return (T)0.0;
