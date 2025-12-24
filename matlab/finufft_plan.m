@@ -45,6 +45,7 @@
 %     opts   optional struct with optional fields controlling the following:
 %     opts.debug:   0 (silent, default), 1 (timing breakdown), 2 (debug info).
 %     opts.spread_debug: spreader: 0 (no text, default), 1 (some), or 2 (lots)
+%     opts.showwarn:  1 (default, warnings appear in stdout), 0 (no warnings)
 %     opts.spread_sort:  0 (don't sort NU pts), 1 (do), 2 (auto, default)
 %     opts.fftw: FFTW plan mode, 64=FFTW_ESTIMATE (default), 0=FFTW_MEASURE, etc
 %     opts.upsampfac:   sigma.  2.0 (default), or 1.25 (low RAM, smaller FFT)
