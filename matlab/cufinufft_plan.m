@@ -34,7 +34,7 @@
 % Creates a cufinufft_plan MATLAB object in the interface to GPU FINUFFT, of
 %  type 1, 2 or 3, and with given numbers of Fourier modes (unless type 3).
 %
-% Inputs:
+% Inputs: 
 %     type            transform type: 1, 2, or 3
 %     n_modes_or_dim  if type is 1 or 2, the number of Fourier modes in each
 %                     dimension: [ms] in 1D, [ms mt] in 2D, or [ms mt mu] in 3D.
