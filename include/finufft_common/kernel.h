@@ -103,4 +103,10 @@ FINUFFT_EXPORT void initialize_kernel_params(finufft_spread_opts &opts, double u
 
 FINUFFT_EXPORT double sigma_max_tol(double upsampfac, int kerformula, int max_ns);
 
+template<int NS, int NC> inline constexpr bool ValidKernelParams() noexcept {
+  // NC allowed only between NS-1 and NS+3 inclusive; other instantiations can be
+  // compiled away at call sites using if constexpr to reduce binary size.
+  return (NC >= NS - 1) && (NC <= NS + 3);
+}
+
 } // namespace finufft::kernel
