@@ -21,13 +21,14 @@ The CPU used for all benchmarks below is: Intel(R) Xeon(R) w5-3435X.
 The compiler is GCC 13.2.0.
 The compiler flags are the ones used by default in the ``CMakeLists.txt`` of the version tested; we only impose a Release build and ``-march=native``.
 In the below graphs, the title includes the following parameters used:
- - type: transform type (1, 2 or 3)
- - pref: precision (f=float, d=double)
- - N1, N2, N3: numbers of modes in each dimension, or 1 if that dimension unused
- - ntransf: number of transforms (if >1, testing many-vector case)
- - M: number of non-uniform points
- - tol: tolerance
- - umsampfac: upsampling factor
+
+- type: transform type (1, 2 or 3)
+- pref: precision (f=float, d=double)
+- N1, N2, N3: numbers of modes in each dimension, or 1 if that dimension unused
+- ntransf: number of transforms (if >1, testing many-vector case)
+- M: number of non-uniform points
+- tol: tolerance
+- umsampfac: upsampling factor
 
 The other parameters are set to defaults for ``finufft_opts``.
 
