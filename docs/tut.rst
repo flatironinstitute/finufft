@@ -23,9 +23,9 @@ unless otherwise stated.
 
 For further applications, see :ref:`references <refs>`, and:
 
-* These software tutorial `PDF slides <http://users.flatironinstitute.org/~ahb/talks/fwam23.pdf>`_.
+* These software tutorial `PDF slides <http://users.flatironinstitute.org/~ahb/talks/fwam23.pdf>`__.
 
-* These seminar `PDF slides <http://users.flatironinstitute.org/~ahb/talks/pacm20.pdf>`_.
+* These seminar `PDF slides <http://users.flatironinstitute.org/~ahb/talks/pacm20.pdf>`__.
 
 * `Fast Fresnel diffraction <https://github.com/ahbarnett/fresnaq>`_ for optics and acoustics applications.
 

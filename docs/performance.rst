@@ -12,10 +12,10 @@ Keep in mind that CPU performance depends on multiple parameters, including
 dimensions, size, type, digits requested, upsampling factor, number of threads, compiler flags,
 SIMD instructions available, and (as of 2.3.0) choice of FFT.
 Due to the curse of dimensionality it is not possible to test all possible configurations.
-Hence, we selected some user scenarios from this `GitHub discussion <https://github.com/flatironinstitute/finufft/discussions/398>`_.
+Hence, we selected some user scenarios from this `GitHub discussion <https://github.com/flatironinstitute/finufft/discussions/398>`__.
 If none of the following examples is of any help for your specific use case, participating in the discussion is the best way to communicate with us, so that benchmarks may be updated to satisfy more users.
 
-This `GitHub discussion <https://github.com/flatironinstitute/finufft/discussions/452>`_ includes a snapshot of performance of the spreader/interpolator alone, for different compilers, and gives more insight on which one might be fastest for a specific CPU.
+This `GitHub discussion <https://github.com/flatironinstitute/finufft/discussions/452>`__ includes a snapshot of performance of the spreader/interpolator alone, for different compilers, and gives more insight on which one might be fastest for a specific CPU.
 
 The CPU used for all benchmarks below is: Intel(R) Xeon(R) w5-3435X.
 The compiler is GCC 13.2.0.
