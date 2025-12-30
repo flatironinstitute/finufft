@@ -805,7 +805,7 @@ def _set_nufft_doc(f, dim, tp, example='python/finufft/test/accuracy_speed_tests
 {src_pts_doc}
       c         (complex[M] or complex[n_tr, M]): source strengths.
 {target_pts_doc}
-      out       (complex[N] or complex[n_tr, N]): output values at target frequencies.
+      out       (complex[N] or complex[n_tr, N], optional): output values at target frequencies.
       eps       (float, optional): precision requested (>1e-16).
       isign     (int, optional): if non-negative, uses positive sign in
                 exponential, otherwise negative sign.
