@@ -8,17 +8,17 @@ Please cite the first two papers if you use the CPU library FINUFFT, and the thi
 [FIN]
 A parallel non-uniform fast Fourier transform library based on an "exponential of semicircle" kernel.
 A. H. Barnett, J. F. Magland, and L. af Klinteberg.
-SIAM J. Sci. Comput. 41(5), C479-C504 (2019). `arxiv version <https://arxiv.org/abs/1808.06736>`_
+SIAM J. Sci. Comput. 41(5), C479-C504 (2019). `arxiv version <https://arxiv.org/abs/1808.06736>`__
 
 [B20]
 Aliasing error of the exp$(\beta \sqrt{1-z^2})$ kernel in the nonuniform fast Fourier transform.
 A. H. Barnett. Appl. Comput. Harmon. Anal. 51, 1-16 (2021).
-`arxiv version <https://arxiv.org/abs/2001.09405>`_
+`arxiv version <https://arxiv.org/abs/2001.09405>`__
 
 [S21]
 cuFINUFFT: a load-balanced GPU library for general-purpose nonuniform FFTs.
 Y.-H. Shih, G. Wright, J. Andén, J. Blaschke, and A. H. Barnett.
-PDSEC2021 workshop of the IPDPS2021 conference (*best paper prize* at workshop). `arxiv version <https://arxiv.org/abs/2102.08463>`_
+PDSEC2021 workshop of the IPDPS2021 conference (*best paper prize* at workshop). `arxiv version <https://arxiv.org/abs/2102.08463>`__
 
 Background references
 ~~~~~~~~~~~~~~~~~~~~~
@@ -43,15 +43,15 @@ J. A. Fessler and B. P. Sutton. IEEE Trans. Sig. Proc., 51(2):560-74, (Feb. 2003
 [KKP] Using NFFT3---a software library for various nonequispaced fast Fourier transforms. J. Keiner, S. Kunis and D. Potts. Trans. Math. Software 36(4) (2009).
 
 [DFT] How exponentially ill-conditioned are contiguous submatrices of the Fourier matrix? A. H. Barnett, submitted, SIAM Rev. (2020).
-`arxiv version <https://arxiv.org/abs/2004.09643>`_
+`arxiv version <https://arxiv.org/abs/2004.09643>`__
 
 The appendix of the last of the above contains the first known published proof
 of the Kaiser--Bessel Fourier transform pair.
 This next two papers prove error estimates for sinh-type and other kernels closely related (and possibly slightly more optimal) than ours:
 
-[PT] Uniform error estimates for the NFFT. D. Potts and M. Tasche. (2020). `arxiv <https://arxiv.org/abs/1912.09746v2>`_
+[PT] Uniform error estimates for the NFFT. D. Potts and M. Tasche. (2020). `arxiv <https://arxiv.org/abs/1912.09746v2>`__
 
-[PT2] Continuous window functions for NFFT.  D. Potts and M. Tasche. (2020). `arxiv <https://arxiv.org/abs/2010.06894>`_. In revision, Adv. Comput. Math.
+[PT2] Continuous window functions for NFFT.  D. Potts and M. Tasche. (2020). `arxiv <https://arxiv.org/abs/2010.06894>`__. In revision, Adv. Comput. Math.
 
 In late 2020 it was pointed out to us by Piero Angeletti that the exponential of semicircle kernel developed for FINUFFT had in fact been independently proposed:
 
@@ -79,7 +79,7 @@ Talk slides
 ~~~~~~~~~~~
 
 These
-`PDF slides <http://users.flatironinstitute.org/~ahb/talks/pacm20.pdf>`_
+`PDF slides <http://users.flatironinstitute.org/~ahb/talks/pacm20.pdf>`__
 may be a useful introduction to FINUFFT and applications.
 
 Yu-Hsuan (Melody) Shih's PDSEC2021 20-minute presentation video on cuFINUFFT is here: https://www.youtube.com/watch?v=PnW6ehMyHxM
