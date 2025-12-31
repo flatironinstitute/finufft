@@ -133,7 +133,7 @@ private:
   // other internal structs
   std::unique_ptr<Finufft_FFT_plan<TF>> fftPlan;
 
-  // store piecewise Horner coeffs for ES kernel: ns x nc table
+  // store piecewise Horner coeffs for ns intervals of kernel: ns x nc table
   alignas(64) std::array<TF, finufft::common::MAX_NSPREAD *
                                  finufft::common::MAX_NC> horner_coeffs{0};
 

@@ -536,13 +536,10 @@ template<typename TF> void FINUFFT_PLAN_T<TF>::precompute_horner_coeffs() {
   const int kerformula  = this->spopts.kerformula;
 
   nc = MIN_NC; // a class field setting the number of coeffs used.
-  // interpolation domain [a,b]
-  static constexpr TF a = TF(-1.0);
-  static constexpr TF b = TF(1.0);
 
   // First pass: fit at max_degree, cache coeffs, and determine largest nc
   // needed.
-  // Note: `fit_monomials()` returns coefficients in descending-degree order
+  // Note: `poly_fit()` returns coefficients in descending-degree order
   // (highest-degree first): coeffs[0] is the highest-degree term. We store
   // them so that `horner_coeffs[k * padded_ns + j]` holds the k'th Horner
   // coefficient (k=0 -> highest-degree). `horner_coeffs` was filled with
@@ -552,12 +549,14 @@ template<typename TF> void FINUFFT_PLAN_T<TF>::precompute_horner_coeffs() {
     // original: 0.5 * (x - nspread + 2*j + 1)
     const TF shift = TF(2 * j + 1 - nspread);
 
-    const auto kernel = [shift, beta, c_param, kerformula](TF x) -> TF {
+    // shift and scale so [-1,1] maps to jth interval of kernel...
+    const auto kernel_this_interval = [shift, beta, c_param, kerformula](TF x) -> TF {
       const TF t = TF(0.5) * (x + shift);
       return evaluate_kernel(t, beta, c_param, kerformula);
     };
 
-    const auto coeffs = fit_monomials(kernel, static_cast<int>(nc_fit), a, b);
+    const TF dummy    = 0.0; // *** there must be a better way to communicate TF type
+    const auto coeffs = poly_fit(kernel_this_interval, static_cast<int>(nc_fit), dummy);
 
     // Cache coefficients directly into final table (transposed/padded):
     // coeffs[k] is highest->lowest, store at row k for panel j.
@@ -577,11 +576,10 @@ template<typename TF> void FINUFFT_PLAN_T<TF>::precompute_horner_coeffs() {
     }
     if (used > nc) nc = used;
   }
-  // nc = nc_fit;  // hack, realized by Libin
   if (opts.debug)
     printf("[%s] ns=%d:\tnc_fit=%d, trim to nc=%d\n", __func__, nspread, nc_fit, nc);
 
-  // If the max required degree (nc) is less than max_degree, we must shift
+  // If the max required degree (nc) is less than nc_fit, we must shift
   // the coefficients "left" (to lower row indices) so that the significant
   // coefficients end at row nc-1.
   if (nc < static_cast<int>(nc_fit)) {
