@@ -26,7 +26,7 @@ and also add them to GitHub's Used By feature):
 
 #. `Multitaper.jl <https://github.com/lootie/Multitaper.jl>`_: estimates power spectra from non-equispaced time series, improving upon Lomb-Scargle and NWelch, for exoplanet detection, by Sarah Dodson-Robinson and Charlotte Haley. Uses Julia 1D type 3.
 
-#. `Pyxu <https://github.com/pyxu-org/pyxu>`_: Solves linear inverse problems with convex penalties using proximal optimization algorithms, in Python, by researchers at EPFL. This includes regularized imaging problems. (cu)FINUFFT is used for all `NUFFTs <https://pyxu-org.github.io/api/operator/linop.html#pyxu.operator.NUFFT>`_.
+#. `Pyxu <https://github.com/pyxu-org/pyxu>`_: Solves linear inverse problems with convex penalties using proximal optimization algorithms, in Python, by researchers at EPFL including Sepand Kashani. It targets regularized or Bayesian inverse imaging problems. FINUFFT the main `NUFFT plugin for pyxu <https://github.com/pyxu-org/pyxu_finufft>`__.
 
 #. `MRI-NUFFT <https://mind-inria.github.io/mri-nufft/index.html>`_: unified Python interface to various NUFFT implementations for MRI reconstruction, with coil sensitivities, density compensation, and off-resonance corrections. (96 GH stars as of 2025.) From INRIA/CEA Paris Neurospin group; see `JOSS <https://joss.theoj.org/papers/10.21105/joss.07743>`__ article. Their `benchmarks conclude <https://github.com/flatironinstitute/finufft/pull/564>`__ that **cufinufft is the fastest NUFFT in the west, and by a wide margin**.
 
@@ -36,17 +36,17 @@ and also add them to GitHub's Used By feature):
 
 #. `spinifel <https://gitlab.osti.gov/mtip/spinifel>`_: Uses the multitiered iterative phasing (M-TIP) algorithm for single particle X-ray diffraction imaging, on CPU/GPU, from the ExaFEL project at LBNL/DOE.
 
-#. `sinctransform <https://github.com/hannahlawrence/sinctransform>`_: C++ and MATLAB codes to evaluate sums of the sinc and sinc^2 kernels between arbitrary nonuniform points in 1,2, or 3 dimensions, by Hannah Lawrence (2017 summer intern at Flatiron).
+#. `sinctransform <https://github.com/hannahlawrence/sinctransform>`_: C++ and MATLAB codes for fast evaluation of sums of the sinc and sinc^2 kernels between arbitrary nonuniform points in 1,2, or 3 dimensions, in near-linear time. By Hannah Lawrence (2017 summer intern at Flatiron).
 
-#. `fsinc <https://github.com/gauteh/fsinc>`_:  Gaute Hope's fast sinc transform and interpolation Python package.
+#. `fsinc <https://github.com/gauteh/fsinc>`__:  Gaute Hope's fast sinc transform and interpolation Python package.
 
-#. `FTK <https://github.com/flatironinstitute/ftk>`_: Factorization of the translation kernel for fast 2D rigid image alignment, by Rangan, Spivak, Andén, and Barnett.
+#. `FTK <https://github.com/flatironinstitute/ftk>`__: Factorization of the translation kernel for fast 2D rigid image alignment, by Rangan, Spivak, Andén, and Barnett.
 
-#. `nifty-ls <https://github.com/flatironinstitute/nifty-ls>`_: Fast evaluation of the Lomb-Scargle periodogram for time series analysis, backed by finufft or cufinufft
+#. `nifty-ls <https://github.com/flatironinstitute/nifty-ls>`__: Fast evaluation of the Lomb-Scargle periodogram for time series analysis in astronomy, backed by finufft or cufinufft.
 
 #. `TRIQS CTINT <https://github.com/TRIQS/ctint>`_: continous time interaction-expansion solver, by N. Wentzell and O. Parcollet (Flatiron Institute, part of platform for interacting quantum systems).
 
-#. `cunuSHT <https://github.com/Sebastian-Belkner/cunuSHT>`_: GPU accelerated spherical harmonic transforms from nonuniform samples (arbitrary pixelizations), by S. Belkner and coauthors. https://arxiv.org/abs/2406.14542 (They may have moved to DUCC NUFFT).
+#. `cunuSHT <https://github.com/Sebastian-Belkner/cunuSHT>`_: GPU accelerated spherical harmonic transforms from nonuniform samples (arbitrary pixelizations), by S. Belkner and coauthors. https://arxiv.org/abs/2406.14542 (They may have moved to DUCC NUFFT as of 2025?)
 
 #. `FReSCO <https://github.com/martiniani-lab/FReSCo>`_: Fast reciprocal-space correlator, by Aaron Shih, Mathias Kasiulis, and Stefano Martiani. This uses thousands of calls to all three transform types in 2D or 3D, to iteratively adjust nonuniform points until their Fourier transforms match a desired function. Physics Mag. article and movie: https://physics.aps.org/articles/v17/134
 
