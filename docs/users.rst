@@ -28,7 +28,7 @@ and also add them to GitHub's Used By feature):
 
 #. `Pyxu <https://github.com/pyxu-org/pyxu>`_: Solves linear inverse problems with convex penalties using proximal optimization algorithms, in Python, by researchers at EPFL. This includes regularized imaging problems. (cu)FINUFFT is used for all `NUFFTs <https://pyxu-org.github.io/api/operator/linop.html#pyxu.operator.NUFFT>`_.
 
-#. `MRI-NUFFT <https://mind-inria.github.io/mri-nufft/index.html>`_: unified Python interface to various NUFFT implementations for MRI reconstruction, with coil sensitivities, density compensation, and off-resonance corrections. From INRIA/CEA Paris Neurospin group; see `JOSS <https://joss.theoj.org/papers/10.21105/joss.07743>`__ article. Their `benchmarks conclude <https://github.com/flatironinstitute/finufft/pull/564>`__ that <b>cufinufft is the fastest NUFFT in the west, and by a wide margin</b>.
+#. `MRI-NUFFT <https://mind-inria.github.io/mri-nufft/index.html>`_: unified Python interface to various NUFFT implementations for MRI reconstruction, with coil sensitivities, density compensation, and off-resonance corrections. (96 GH stars as of 2025.) From INRIA/CEA Paris Neurospin group; see `JOSS <https://joss.theoj.org/papers/10.21105/joss.07743>`__ article. Their `benchmarks conclude <https://github.com/flatironinstitute/finufft/pull/564>`__ that <b>cufinufft is the fastest NUFFT in the west, and by a wide margin</b>.
 
 #. `mri_distortion_toolkit <https://github.com/Image-X-Institute/mri_distortion_toolkit>`_: Characterisation and reporting of geometric distortion in MRI. Uses our PyPI pkg.
 
@@ -51,6 +51,9 @@ and also add them to GitHub's Used By feature):
 #. `FReSCO <https://github.com/martiniani-lab/FReSCo>`_: Fast reciprocal-space correlator, by Aaron Shih, Mathias Kasiulis, and Stefano Martiani. This uses thousands of calls to all three transform types in 2D or 3D, to iteratively adjust nonuniform points until their Fourier transforms match a desired function. Physics Mag. article and movie: https://physics.aps.org/articles/v17/134
 
 #. `RM-tools <https://github.com/CIRADA-Tools/RM-Tools/wiki>`__ package that implements rotation measure (RM) synthesis and Stokes QU-fitting for use on astronomical radio polarization analysis (2020 onwards, 49 GH stars as of 2025).
+
+#. `fftvis <https://github.com/tyler-a-cox/fftvis>`__: a non-uniform Fast Fourier Transform based interferometric visibility simulator, by Tyler A Cox (UC Berkeley) and colleagues. Their `article <https://academic.oup.com/rasti/article/doi/10.1093/rasti/rzaf056/8327611>`__ states that FINUFFT enables "up to two orders of magnitude" speed-up over the standard simulator code.
+
 
    
 
@@ -119,9 +122,12 @@ For the latest see: Google Scholar `FINUFFT citations <https://scholar.google.co
 
 #. Greengard P, Rachh M, Barnett A H, "Equispaced Fourier representations for efficient Gaussian process regression from a billion data points," SIAM/ASA J. Uncert. Quant. 13(1), 2025. https://doi.org/10.1137/23M1565310 https://arxiv.org/abs/2210.10210 uses FINUFFT to do GP regression in dimensions 1, 2, and 3. In 2D a billion points can be regressed in 2 minutes on a desktop. The EFGP method is now being used in astronomy https://arxiv.org/abs/2510.07395
 
-#. Together with Nour al Hassanieh and Leslie Greengard, we developed a fast spectral method for the wave equation in `1D <https://arxiv.org/abs/2507.07823>`__ and `3D <https://arxiv.org/abs/2511.20824>`__ . This is a type of Ewald split for the Green's function, where the spectral (long-range) part requires NUFFTs. We use FINUFFT to enables a rapid time-step. Stay tuned for 2D.
+#. Together with Nour al Hassanieh and Leslie Greengard, we developed a fast spectral potential-theory method for the wave equation in `1D <https://arxiv.org/abs/2507.07823>`__ and in `3D <https://arxiv.org/abs/2511.20824>`__. This is a type of "Ewald split" for the space-time Green's function, where the spectral (long-range) part requires NUFFTs for speed. We use FINUFFT's MATLAB interface. Stay tuned for 2D.
+
+#. In molecular dynamics, FINUFFT enables a 10x speed-up in long-range electrostatic effects when `machine-learning interatomic potentials <https://journals.aps.org/prl/abstract/10.1103/ssp9-7s81>`__ with a `sum-of-Gaussians network <https://github.com/DuktigYajie/SOG-Net>`__, in work done by my colleague Jiuyang Liang (CCM) and collaborators.
 
 
+   
 Papers or codes using our new ES window (kernel spreading) function, but not the whole FINUFFT package:
 
 1. Davood Shamshirgar and Anna-Karin Tornberg, "Fast Ewald summation for electrostatic potentials with arbitrary periodicity", exploit our "Barnett-Magland" (BM), aka exp-sqrt (ES) window function. https://arxiv.org/abs/1712.04732
