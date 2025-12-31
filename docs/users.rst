@@ -28,7 +28,7 @@ and also add them to GitHub's Used By feature):
 
 #. `Pyxu <https://github.com/pyxu-org/pyxu>`_: Solves linear inverse problems with convex penalties using proximal optimization algorithms, in Python, by researchers at EPFL. This includes regularized imaging problems. (cu)FINUFFT is used for all `NUFFTs <https://pyxu-org.github.io/api/operator/linop.html#pyxu.operator.NUFFT>`_.
 
-#. `MRI-NUFFT <https://mind-inria.github.io/mri-nufft/index.html>`_: unified Python interface to various NUFFT implementations for MRI reconstruction, with coil sensitivities, density compensation, and off-resonance corrections. (96 GH stars as of 2025.) From INRIA/CEA Paris Neurospin group; see `JOSS <https://joss.theoj.org/papers/10.21105/joss.07743>`__ article. Their `benchmarks conclude <https://github.com/flatironinstitute/finufft/pull/564>`__ that <b>cufinufft is the fastest NUFFT in the west, and by a wide margin</b>.
+#. `MRI-NUFFT <https://mind-inria.github.io/mri-nufft/index.html>`_: unified Python interface to various NUFFT implementations for MRI reconstruction, with coil sensitivities, density compensation, and off-resonance corrections. (96 GH stars as of 2025.) From INRIA/CEA Paris Neurospin group; see `JOSS <https://joss.theoj.org/papers/10.21105/joss.07743>`__ article. Their `benchmarks conclude <https://github.com/flatironinstitute/finufft/pull/564>`__ that **cufinufft is the fastest NUFFT in the west, and by a wide margin**.
 
 #. `mri_distortion_toolkit <https://github.com/Image-X-Institute/mri_distortion_toolkit>`_: Characterisation and reporting of geometric distortion in MRI. Uses our PyPI pkg.
 
