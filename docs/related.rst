@@ -16,8 +16,8 @@ Other recommended NUFFT libraries
 
 - `PyNUFFT <https://github.com/jyhmiinlin/pynufft>`__ Python code supporting CPU and GPU operation. We have not compared against FINUFFT yet.
 
-- `NonuniformFFTs.jl <https://jipolanco.github.io/NonuniformFFTs.jl/dev/>`__ native Julia code for types 1 and 2 only (CPU and GPU via KernelAbstractions), by Juan Polanco, 2024. Close to our CPU performance, and can beat it in the case of real data via a custom real transform. On the GPU claims their shared-memory type 1 implementation beats our v2.4.1. Has a good `benchmarks page <https://jipolanco.github.io/NonuniformFFTs.jl/dev/benchmarks/>`__ comparing (cu)FINUFFT at 6-digit accuracy, CPU and GPU. Marco has now incorporated his ideas into output-driven type 1 on GPU (see ``gpu_method=3`` in master, to be released in v2.5.0).
+- `NonuniformFFTs.jl <https://jipolanco.github.io/NonuniformFFTs.jl/dev/>`__ native Julia code for types 1 and 2 only (CPU and GPU via KernelAbstractions), by Juan Polanco, 2024. Close to our CPU performance, and can beat it in the case of real data via a custom real transform. On the GPU claims their shared-memory type 1 implementation beats our v2.4.1. Has a great `benchmarks page <https://jipolanco.github.io/NonuniformFFTs.jl/stable/benchmarks>`__ comparing (cu)FINUFFT at 6-digit accuracy, CPU and GPU. Marco has now incorporated his ideas into output-driven type 1 on GPU (available as ``gpu_method=3`` in master, to be released in v2.5.0).
 
 - `NFFT.jl <https://github.com/JuliaMath/NFFT.jl>`__ native Julia implementation for type 1 and 2 only, by Tobias Knopp and coworkers, starting around 2022. See :doc:`page on Julia <julia>`.
   
-A comparison of some library performances (as of 2019) was in our paper [FIN] in the :doc:`references <refs>`. The MIR-NUFFT team also did a benchmark comparison of some codes in 2024, see https://github.com/mind-inria/mri-nufft-benchmark/
+A comparison of some library performances (as of 2019) was in our paper [FIN] in the :doc:`references <refs>`. The MRI-NUFFT Neurospin Paris team also did a benchmark comparison of some codes in 2024, see https://github.com/mind-inria/mri-nufft-benchmark/
