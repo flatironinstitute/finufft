@@ -3,13 +3,7 @@
    Exists zero if success, nonzero upon failure.
 
    Based on Barbone's accuracy_test and Barnett's matlab/test/tolsweeptest.m
-   The logic is taken from the latter. Barnett 1/4/26
-
-   Todo
-   1d for now
-   get rid of inputs except:
-   upsampfac, kerformula, showwarn, verbose (want worstfac...)?
-
+   The logic is taken from the latter (no significance to decades). Barnett 1/5/26
 */
 
 #include <cmath>
@@ -23,7 +17,6 @@
 #include "utils/dirft2d.hpp"
 #include "utils/dirft3d.hpp"
 #include "utils/norms.hpp"
-#include <finufft_common/kernel.h>
 
 int main(int argc, char *argv[]) {
 
@@ -32,34 +25,41 @@ int main(int argc, char *argv[]) {
   BIGINT N  = 30;   // # modes
   int isign = +1;
 
-  // one USF for now...
-  double upsampfac = 2.0;
-#ifdef SINGLE
-  double floor = 1e-5;
-#else
-  double floor = 3e-14;
-#endif
-  double tolslack      = 5.0;                             // type 1 only for now
+  double tolslack       = 5.0; // tunable slack parameter(s); type 1 only for now
   double tolsperdecade = 8;
   double tolstep       = pow(10.0, -1.0 / tolsperdecade); // multiplicative tol step, <1
+  constexpr FLT EPSILON = std::numeric_limits<FLT>::epsilon();
+  double mintol         = 0.5 * EPSILON; // somewhat arbitrary where start
+  int ntols             = std::ceil(log(mintol) / log(tolstep));
 
   // Defaults
   int kerformula = 0;
   int showwarn   = 0;
   int verbose    = 0;
   int debug      = 0;
+  // one USF for now, matching error floor...
+  double upsampfac = 0.0;
+#ifdef SINGLE
+  double floor = 1e-5;
+#else
+  double floor = 3e-14;
+#endif
 
   // If user asked for help, print usage and exit
   for (int ai = 1; ai < argc; ++ai) {
     if (std::string(argv[ai]) == "-h" || std::string(argv[ai]) == "--help") {
-      std::cout << "Usage: " << argv[0] << " kerformula [showwarn [verbose [debug]]]]\n";
+      std::cout << "Usage: " << argv[0]
+                << " kerformula [showwarn [verbose [debug [sigma [floor]]]]]]\n";
       std::cout
           << "  kerformula    : spread kernel formula (0:default, >0: for experts)\n";
       std::cout
           << "  showwarn      : whether to print warnings (0=silent default, 1=show)\n";
       std::cout << "  verbose       : 0 (default) silent, >0 print worstfac, etc\n";
       std::cout << "  debug         : passed to opts.debug\n";
-      std::cout << "Example: " << argv[0] << " 0 1 1 0\n";
+      std::cout << "  sigma         : upsampling factor (default 0; passed to "
+                   "opts.upsampfac)\n";
+      std::cout << "  floor         : minimum rel err (default around 1e2 * eps_mach)\n";
+      std::cout << "Example: " << argv[0] << " 0 1 1 0 2.0 3e-14\n";
       return 0;
     }
   }
@@ -67,134 +67,66 @@ int main(int argc, char *argv[]) {
   if (argc > 2) sscanf(argv[2], "%d", &showwarn);
   if (argc > 3) sscanf(argv[3], "%d", &verbose);
   if (argc > 4) sscanf(argv[4], "%d", &debug);
+  if (argc > 5) sscanf(argv[5], "%lf", &upsampfac);
+  if (argc > 6) sscanf(argv[6], "%lf", &floor);
 
-  ***GOT HERE : loop over tols..
-
-                // Build tolerance grid: exps from -1 down to -max_digits in 0.02 steps.
-                // Use an integer-step loop to ensure the last exponent equals -max_digits
-                // (avoids floating-point drift that could omit the final decade).
-                std::vector<double>
-                    exps;
-  int nsteps = (int)std::round((max_digits - 1.0) / 0.02);
-  for (int i = 0; i <= nsteps; ++i) exps.push_back(-1.0 - 0.02 * (double)i);
-  const size_t NT = exps.size();
-  std::vector<double> tols(NT);
-  for (size_t t = 0; t < NT; ++t) tols[t] = pow(10.0, exps[t]);
-
-  // Setup opts (will be passed to guru makeplan). We will use the plan
-  // guru interface so we can override the plan's spread kernel selection
-  // via the plan method `set_spread_kerformula` below.
   finufft_opts opts{};
   FINUFFT_DEFAULT_OPTS(&opts);
   opts.upsampfac         = upsampfac;
   opts.spread_kerformula = kerformula;
-  // set debug levels from command-line if requested
-  opts.debug        = debug_level;
-  opts.spread_debug = debug_level;
-  // set whether to show warnings (user-controllable)
+  opts.debug             = debug;
   opts.showwarn = showwarn;
-
-  // For reproducibility use srand when not holding inputs
-  srand(seed);
 
   std::vector<FLT> x(M);
   std::vector<CPX> c(M);
   std::vector<CPX> F(N);
   std::vector<CPX> fe(N);
 
-  for (BIGINT j = 0; j < M; ++j) {
-    x[j] = PI * randm11();
-  }
-  if (hold_inputs) {
-    for (BIGINT j = 0; j < M; ++j) c[j] = crandm11();
-  }
+  srand(42);                        // seed
+  double worstfac = 0.0, tol = 1.0; // init tol
+  int npass = 0, nfail = 0;
+  for (int t = 0; t < ntols; ++t) { // ............... loop over tols
 
-  int ier = 0;
-
-  // Pass/fail tracking: we update these as each tolerance is tested.
-  int npass = 0;
-  int nfail = 0;
-  std::vector<int> decade_fail(max_digits + 1, 0);
-  std::vector<int> decade_total(max_digits + 1, 0);
-  std::cout << std::scientific << std::setprecision(6);
-
-  // Tunable slack multiplier: allow `slack * tol` as acceptable threshold.
-  // `base_slack` can be tuned to be more/less permissive. When a tolerance
-  // is close to machine precision (digit near `max_digits`) we increase the
-  // slack to account for limits of floating-point resolution.
-  const double base_slack = 3.0; // it fails in CI otherwsie
-  for (size_t t = 0; t < NT; ++t) {
-    double tol = tols[t];
-    if (!hold_inputs) {
-      for (BIGINT j = 0; j < M; ++j) {
-        x[j] = PI * randm11();
-        c[j] = crandm11();
-      }
+    // make new rand data each test
+    for (BIGINT j = 0; j < M; ++j) {
+      x[j] = PI * randm11();
+      c[j] = crandm11();
     }
 
-    ier = FINUFFT1D1(M, x.data(), c.data(), isign, (FLT)tol, N, F.data(), &opts);
+    // write into F
+    int ier = FINUFFT1D1(M, x.data(), c.data(), isign, (FLT)tol, N, F.data(), &opts);
     if (ier > 1) {
-      std::cerr << "accuracy_test: FINUFFT1D1 returned ier=" << ier << "\n";
+      std::cerr << "tolsweep: FINUFFT1D1 failed with ier=" << ier << "\n";
       return ier;
     }
+    dirft1d1<BIGINT>(M, x, c, isign, N, fe); // exact ans written into fe
+    double relerr = relerrtwonorm<BIGINT>(N, fe, F);
 
-    // Compute exact result using direct DFT test utility and compute
-    // relative L2 error using the test norms utilities.
-    dirft1d1<BIGINT>(M, x, c, isign, N, fe);
-    double rel_err = relerrtwonorm<BIGINT>(N, fe, F);
-
-    // Compute integer digit from the precomputed exponents for exactness.
-    int d = (int)std::round(-exps[t]);
-    if (d < 1) d = 1;
-    if (d > max_digits) d = max_digits;
-
-    // If this tolerance is exactly a power-of-ten (1e-d), print the
-    // achieved accuracy for that power-of-ten tolerance.
-    if (std::fabs(-exps[t] - d) < 1e-12) {
-      std::cout << "tol 1e-" << d << " achieved=" << rel_err << "\n";
-    }
-
-    // Compute the required threshold using a tunable slack multiplier.
-    double slack = base_slack;
-#ifdef SINGLE
-    if (d == 6) slack *= 5.0;
-    if (d == 7) slack *= 50.0;
-#else
-    if (d == 14) slack *= 1.10;
-    if (d == 15) slack *= 13.0;
-#endif
-
-    const double req = tol * slack; // final acceptance threshold
-    const bool pass  = (rel_err <= req);
-    if (pass) {
-      ++npass;
-    } else {
-      ++nfail;
-      ++decade_fail[d];
-      // Print failures immediately only in verbose mode (suppress PASSED lines to reduce
-      // noise).
-      if (verbose) {
-        std::cout << "tol=" << tol << " req=" << req << " rel_err=" << rel_err
-                  << " -> FAILED (interval=1e-" << d << ",1e-" << (d + 1) << ")\n";
+    if (ier == 0) {
+      double req      = std::max(floor, tolslack * tol); // acceptance threshold
+      double clearfac = relerr / req; // factor by which beats req (<=1 ok, >1 fail)
+      worstfac        = std::max(worstfac, clearfac); // track the worst case
+      bool pass       = (relerr <= req);
+      if (pass) {
+        ++npass;
+        if (verbose > 1)
+          printf("\ttol %8.3g:\trelerr = %.3g,    \tclearancefac=%.3g\tpass\n", tol,
+                 relerr, clearfac);
+      } else {
+        ++nfail;
+        printf("\ttol %8.3g:\trelerr = %.3g,    \tclearancefac=%.3g\tFAIL\n", tol, relerr,
+               clearfac);
       }
-    }
-    ++decade_total[d];
+    } else // finufft returned warning, assumed cannot achieve accuracy
+      if (verbose > 1)
+        printf("\ttol %8.3g:\trelerr = %.3g,    \t(warn ier=%d: not tested)\n", tol,
+               relerr, ier);
 
-    // If the next sample is in a different interval (or we're at the last sample),
-    // print the decade summary now so progress appears as we go.
-    int next_d = -1;
-    if (t + 1 < NT) next_d = static_cast<int>(std::round(-exps[t + 1]));
-    if (next_d < 1) next_d = 1;
-    if (next_d > max_digits) next_d = max_digits;
-    if (next_d != d) {
-      // Only print intermediate decade summaries in verbose mode; otherwise
-      // the program will only emit the final SUMMARY to reduce noise.
-      std::cout << "-- [1e-" << (d) << ", 1e-" << (d + 1)
-                << "] summary: total=" << decade_total[d] << " failed=" << decade_fail[d]
-                << "\n";
-    }
-  }
+    tol *= tolstep;
+  } // ...........................................
 
-  std::cout << "\nSUMMARY: " << npass << " passed, " << nfail << " failed\n";
+  if (verbose)
+    printf("tolsweep 1d1: %d pass, %d fail. worstfac=%.3g\n", npass, nfail, worstfac);
+
   return nfail != 0;
 }
