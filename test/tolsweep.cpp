@@ -5,11 +5,10 @@
    Based on Barbone's accuracy_test and Barnett's matlab/test/tolsweeptest.m
    The logic is taken from the latter. Barnett 1/4/26
 
-   Todo;
+   Todo
+   1d for now
    get rid of inputs except:
    upsampfac, kerformula, showwarn, verbose (want worstfac...)?
-
-
 
 */
 
@@ -18,7 +17,6 @@
 #include <finufft/test_defs.h>
 #include <iomanip>
 #include <iostream>
-#include <random>
 #include <vector>
 // test utilities: direct DFT and norm helpers
 #include "utils/dirft1d.hpp"
@@ -28,87 +26,55 @@
 #include <finufft_common/kernel.h>
 
 int main(int argc, char *argv[]) {
-  // Defaults
-  BIGINT M         = 2000; // # sources
-  BIGINT N         = 100;  // # modes
-  int isign        = +1;
-  double upsampfac = 2.0;
-  const auto seed  = std::random_device()();
-  int hold_inputs  = 1; // default: hold inputs (reuse across tolerances)
-  int kerformula   = 0; // default, >0 experts only
-  int max_digits   = 0; // <=0 means use machine precision (15 double / 7 float)
-  int debug_level  = 0; // optional: enable debug output (sets both opts.debug and
-                        // opts.spread_debug)
-  int showwarn = 0;     // whether to print warnings (default 0 => suppress)
-  int verbose  = 0;     // if 1 print per-tolerance FAILED lines and decade summaries
 
-  double w = 0.0;
+  // Define test problems, tolerance ranges, slack factors...
+  BIGINT M  = 1000; // pick problem size: # sources
+  BIGINT N  = 30;   // # modes
+  int isign = +1;
+
+  // one USF for now...
+  double upsampfac = 2.0;
+#ifdef SINGLE
+  double floor = 1e-5;
+#else
+  double floor = 3e-14;
+#endif
+  double tolslack      = 5.0;                             // type 1 only for now
+  double tolsperdecade = 8;
+  double tolstep       = pow(10.0, -1.0 / tolsperdecade); // multiplicative tol step, <1
+
+  // Defaults
+  int kerformula = 0;
+  int showwarn   = 0;
+  int verbose    = 0;
+  int debug      = 0;
+
   // If user asked for help, print usage and exit
   for (int ai = 1; ai < argc; ++ai) {
     if (std::string(argv[ai]) == "-h" || std::string(argv[ai]) == "--help") {
-      std::cout << "Usage: " << argv[0]
-                << " [M] [N] [isign] [upsampfac] [hold_inputs] [kerformula] "
-                   "[max_digits] [debug] [showwarn] [verbose]\n";
-      std::cout << "  M             : number of sources (default 2000)\n";
-      std::cout << "  N             : number of modes (default 100)\n";
-      std::cout << "  isign         : sign of transform (default +1)\n";
-      std::cout << "  upsampfac     : upsampling factor (default 2.0)\n";
-      std::cout
-          << "  hold_inputs   : if nonzero, reuse inputs across tolerances (default 1)\n";
+      std::cout << "Usage: " << argv[0] << " kerformula [showwarn [verbose [debug]]]]\n";
       std::cout
           << "  kerformula    : spread kernel formula (0:default, >0: for experts)\n";
-      std::cout << "  max_digits    : max digits to test (<=0 uses machine precision)\n";
-      std::cout
-          << "  debug         : optional debug level (0=no debug, 1=some, 2=more)\n";
       std::cout
           << "  showwarn      : whether to print warnings (0=silent default, 1=show)\n";
-      std::cout << "  verbose       : if 1 print FAILED accuracies and decade summaries "
-                   "(default 0)\n";
-      std::cout << "Example: " << argv[0] << " 10000 100 1 2.0 1 0 15 1 0 0\n";
+      std::cout << "  verbose       : 0 (default) silent, >0 print worstfac, etc\n";
+      std::cout << "  debug         : passed to opts.debug\n";
+      std::cout << "Example: " << argv[0] << " 0 1 1 0\n";
       return 0;
     }
   }
-  if (argc > 1) {
-    sscanf(argv[1], "%lf", &w);
-    M = (BIGINT)w;
-  }
-  if (argc > 2) {
-    sscanf(argv[2], "%lf", &w);
-    N = (BIGINT)w;
-  }
-  if (argc > 3) sscanf(argv[3], "%d", &isign);
-  if (argc > 4) sscanf(argv[4], "%lf", &upsampfac);
-  // Note: seed is internal (default 42) and not a command-line argument
-  if (argc > 5) sscanf(argv[5], "%d", &hold_inputs);
-  if (argc > 6) sscanf(argv[6], "%d", &kerformula);
-  if (argc > 7) sscanf(argv[7], "%d", &max_digits);
-  if (argc > 8) sscanf(argv[8], "%d", &debug_level);
-  if (argc > 9) sscanf(argv[9], "%d", &showwarn);
-  if (argc > 10) sscanf(argv[10], "%d", &verbose);
+  if (argc > 1) sscanf(argv[1], "%d", &kerformula);
+  if (argc > 2) sscanf(argv[2], "%d", &showwarn);
+  if (argc > 3) sscanf(argv[3], "%d", &verbose);
+  if (argc > 4) sscanf(argv[4], "%d", &debug);
 
-  if (max_digits <= 0) {
-    max_digits     = std::numeric_limits<FLT>::digits10;
-    double min_tol = finufft::kernel::sigma_max_tol(upsampfac, kerformula,
-                                                    finufft::common::MAX_NSPREAD);
-    // Cap max_digits based on achievable tolerance for the chosen upsampling
-    // factor and kernel.  Use kernel::sigma_max_tol with the library's
-    // MAX_NSPREAD to compute the smallest attainable sigma, then convert to
-    // decimal digits and clamp. This prevents attempting to test digits
-    // finer than the kernel/spreader can reasonably achieve for the chosen
-    // `upsampfac`.
-    if (min_tol < 0.0)
-      throw std::runtime_error("accuracy_test: could not compute min_tol");
-    int max_digits_sigma = (int)std::floor(-std::log10(min_tol));
-    if (max_digits_sigma < 1) max_digits_sigma = 1;
-    if (max_digits > max_digits_sigma) {
-      max_digits = max_digits_sigma;
-    }
-  }
+  ***GOT HERE : loop over tols..
 
-  // Build tolerance grid: exps from -1 down to -max_digits in 0.02 steps.
-  // Use an integer-step loop to ensure the last exponent equals -max_digits
-  // (avoids floating-point drift that could omit the final decade).
-  std::vector<double> exps;
+                // Build tolerance grid: exps from -1 down to -max_digits in 0.02 steps.
+                // Use an integer-step loop to ensure the last exponent equals -max_digits
+                // (avoids floating-point drift that could omit the final decade).
+                std::vector<double>
+                    exps;
   int nsteps = (int)std::round((max_digits - 1.0) / 0.02);
   for (int i = 0; i <= nsteps; ++i) exps.push_back(-1.0 - 0.02 * (double)i);
   const size_t NT = exps.size();

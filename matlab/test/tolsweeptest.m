@@ -17,9 +17,10 @@ floors64 = [3e-9 3e-14];       % double: former limited by wmax
 tolslack = [5.0; 5.0; 10.0];   % factors by which eps can exceed tol (3 types)
 o.showwarn = 0;
 warning('off','FINUFFT:epsTooSmall');
-o.spread_function = 0;         % any custom FINUFFT opts...
-dims = false(1, 3); dims(dim) = true;  % only test this dim
-tolsperdecade = 8;
+o.spread_kerformula                = 0;
+% any custom FINUFFT opts... dims  = false(1, 3);
+dims(dim)                          = true;
+% only test this dim tolsperdecade = 8;
 tolstep = 10 ^ (-1 / tolsperdecade); % multiplicative step in tol, < 1
 
 for precdev=precdevs  % ......... loop precisions & devices
