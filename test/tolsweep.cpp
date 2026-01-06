@@ -22,9 +22,11 @@
 int main(int argc, char *argv[]) {
 
   // Define test problems, tolerance ranges, slack factors...
-  int dim   = 1;    // do not change yet (no alloc for dim>1)
   BIGINT M  = 1000; // pick problem size: # sources
-  BIGINT N  = 30;   // # modes
+  int dim      = 1;    // overall spatial dimension
+  BIGINT Nm[3] = {30, 1, 1};            // # modes per dim
+  BIGINT N     = Nm[0] * Nm[1] * Nm[2]; // tot # modes, or freq-pts for type 3
+  int ntr      = 1; // >1 in tolsweeptest.m but only for speed/convenience
   int isign = +1;
 
   double tolslack[3]    = {5.0, 5.0, 10.0}; // tunable slack parameters for each type
@@ -74,7 +76,7 @@ int main(int argc, char *argv[]) {
   opts.debug             = debug;
   opts.showwarn = showwarn;
 
-  std::vector<FLT> x(M), s(N);
+  std::vector<FLT> x(M), y(M), z(M), X(N), Y(N), Z(N); // xyz real vs XYZ freq-space
   std::vector<CPX> c(M), ce(M), F(N), Fe(N);
 
   srand(42);                          // fix seed
@@ -93,22 +95,37 @@ int main(int argc, char *argv[]) {
         // just make new rand data each test and type, even data not needed for that type
         for (BIGINT j = 0; j < M; ++j) {
           x[j] = PI * randm11();
+          y[j] = PI * randm11();
+          z[j] = PI * randm11();
           c[j] = crandm11();
         }
         for (BIGINT k = 0; k < N; ++k) {
-          s[k] = PI * randm11();
+          X[k] = N * rand01(); // *** to make N[0], etc when d>1
+          Y[k] = N * rand01();
+          Z[k] = N * rand01();
           F[k] = crandm11();
         }
         // do tested transform and direct version...
         int ier;                                   // things needed in this scope
         double relerr;
-        if (type == 1) {                           // writes into F
+
+        int ier     = FINUFFT_MAKEPLAN(type, dim, Nm, isign, ntr, (FLT)tol, &plan, &opts);
+        int ier_set = FINUFFT_SETPTS(plan, M, x.data(), y.data(), z.data(), N, X.data(),
+                                     Y.data(), Z.data());
+        int ier_ex  = FINUFFT_EXECUTE(plan, c.data(), F.data());
+        FINUFFT_DESTROY(plan);
+
+        ***to replace by guru...
+
+          if (type == 1) {                         // writes into F
           ier = FINUFFT1D1(M, x.data(), c.data(), isign, (FLT)tol, N, F.data(), &opts);
           dirft1d1<BIGINT>(M, x, c, isign, N, Fe); // exact ans written into Fe
-        } else if (type == 2) {                    // write into c
+        }
+        else if (type == 2) {                      // write into c
           ier = FINUFFT1D2(M, x.data(), c.data(), isign, (FLT)tol, N, F.data(), &opts);
           dirft1d2<BIGINT>(M, x, ce, isign, N, F); // exact ans written into ce
-        } else {                                   // type 3, write into F
+        }
+        else {                                     // type 3, write into F
           ier = FINUFFT1D3(M, x.data(), c.data(), isign, (FLT)tol, N, s.data(), F.data(),
                            &opts);
           dirft1d3<BIGINT>(M, x, c, isign, N, s, Fe); // exact ans written into Fe
