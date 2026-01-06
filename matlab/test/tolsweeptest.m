@@ -9,18 +9,20 @@ precdevs = 'sd'; myrand   = @rand; devname  = 'CPU               ';
 
 M = 1e3;            % # NU pts (several secs for >=1e4)
 dim = 1; Ntot = 30; % which dimensionality to test, tot #modes
+%dim = 2; Ntot = 400;
+%dim = 3; Ntot = 1e3;
 ntr = 10;           % #transforms to average error over
 isign = +1;
 sigmas = [1.25 2];             % a.k.a. upsampfac, list to test (v2.4.1 for now)
 floors32 = [1e-4 1e-5];        % float: seemingly controlled by rdyn
 floors64 = [3e-9 3e-14];       % double: former limited by wmax
 tolslack = [5.0; 5.0; 10.0];   % factors by which eps can exceed tol (3 types)
+                               %tolslack=dim*tolslack;  % hack
 o.showwarn = 0;
 warning('off','FINUFFT:epsTooSmall');
-o.spread_kerformula                = 0;
-% any custom FINUFFT opts... dims  = false(1, 3);
-dims(dim)                          = true;
-% only test this dim tolsperdecade = 8;
+o.spread_kerformula = 0;         % any custom FINUFFT opts...
+dims = false(1, 3); dims(dim) = true;  % only test this dim
+tolsperdecade = 8;
 tolstep = 10 ^ (-1 / tolsperdecade); % multiplicative step in tol, < 1
 
 for precdev=precdevs  % ......... loop precisions & devices
