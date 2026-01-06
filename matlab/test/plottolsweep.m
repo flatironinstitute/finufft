@@ -17,7 +17,7 @@ dim = 1; Ntot = 30;   % which dimensionality to test, tot #modes
 ntr = 10;             % #transforms to average error over
 isign = +1;
 o.debug = 0; o.showwarn=0;        % any FINUFFT opts...
-o.upsampfac = 1.25; %2.0 etc
+o.upsampfac = 2.0;  %  etc
 o.spread_kerformula = 0;
 % failure fudge factors...
 tolslack = [5.0; 5.0; 10.0];  % factors by which eps can exceed tol (3 types)
