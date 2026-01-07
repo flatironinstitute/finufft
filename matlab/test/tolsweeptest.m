@@ -9,7 +9,7 @@ precdevs = 'sd'; myrand   = @rand; devname  = 'CPU               ';
 
 M = 1e3;            % # NU pts (several secs for >=1e4)
 dim = 1; Ntot = 30; % which dimensionality to test, tot #modes
-                    %dim = 2; Ntot = 400;
+%dim = 2; Ntot = 400;
 %dim = 3; Ntot = 1e3;
 ntr = 10;           % #transforms to average error over
 isign = +1;

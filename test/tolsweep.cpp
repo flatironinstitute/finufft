@@ -4,7 +4,7 @@
 
    Based on Barbone's accuracy_test and Barnett's matlab/test/tolsweeptest.m
    The logic is taken from the latter (no significance to decades). Barnett 1/5/26
-   1D only for now, since low-upsampfac rdyn^dim effects need fitting.
+   To do: for dim>1, low-upsampfac rdyn^dim effects need fitting.
 */
 
 #include <cmath>
@@ -24,7 +24,7 @@ int main(int argc, char *argv[]) {
   // Define test problems, tolerance ranges, slack factors...
   BIGINT M  = 1000; // pick problem size: # sources
   int dim      = 1;    // overall spatial dimension
-  BIGINT Nm[3] = {30, 1, 1};            // # modes per dim
+  BIGINT Nm[3] = {30, 1, 1};            // # modes per dim or 1 in remaining
   BIGINT N     = Nm[0] * Nm[1] * Nm[2]; // tot # modes, or freq-pts for type 3
   int ntr      = 1; // >1 in tolsweeptest.m but only for speed/convenience
   int isign = +1;
@@ -105,39 +105,33 @@ int main(int argc, char *argv[]) {
           Z[k] = N * rand01();
           F[k] = crandm11();
         }
-        // do tested transform and direct version...
-        int ier;                                   // things needed in this scope
-        double relerr;
-
+        FINUFFT_PLAN plan; // do tested transform...
         int ier     = FINUFFT_MAKEPLAN(type, dim, Nm, isign, ntr, (FLT)tol, &plan, &opts);
         int ier_set = FINUFFT_SETPTS(plan, M, x.data(), y.data(), z.data(), N, X.data(),
                                      Y.data(), Z.data());
-        int ier_ex  = FINUFFT_EXECUTE(plan, c.data(), F.data());
+        FINUFFT_EXECUTE(plan, c.data(), F.data()); // type 2 writes to c, others to F
         FINUFFT_DESTROY(plan);
 
-        ***to replace by guru...
-
-          if (type == 1) {                         // writes into F
-          ier = FINUFFT1D1(M, x.data(), c.data(), isign, (FLT)tol, N, F.data(), &opts);
-          dirft1d1<BIGINT>(M, x, c, isign, N, Fe); // exact ans written into Fe
-        }
-        else if (type == 2) {                      // write into c
-          ier = FINUFFT1D2(M, x.data(), c.data(), isign, (FLT)tol, N, F.data(), &opts);
-          dirft1d2<BIGINT>(M, x, ce, isign, N, F); // exact ans written into ce
-        }
-        else {                                     // type 3, write into F
-          ier = FINUFFT1D3(M, x.data(), c.data(), isign, (FLT)tol, N, s.data(), F.data(),
-                           &opts);
-          dirft1d3<BIGINT>(M, x, c, isign, N, s, Fe); // exact ans written into Fe
-        }
-        if (type == 2)                                // compute relevant error metric
+        if (dim == 1)
+          if (type == 1)
+            dirft1d1<BIGINT>(M, x, c, isign, N, Fe); // exact ans written into Fe
+          else if (type == 2)
+            dirft1d2<BIGINT>(M, x, ce, isign, N, F); // exact ans written into ce
+          else
+            dirft1d3<BIGINT>(M, x, c, isign, N, X, Fe); // exact ans written into Fe
+        else
+          {};
+        
+        double relerr;                                // compute relevant error metric
+        if (type == 2)
           relerr = relerrtwonorm<BIGINT>(M, ce, c);
         else
           relerr = relerrtwonorm<BIGINT>(N, Fe, F);
 
-        if (ier > 1) { // error not merely warning
-          fprintf(stderr, "  tolsweep: %dD%d failed! ier=%d\n", dim, type, ier);
-          return ier;
+        if (ier > 1 || ier_set > 1) { // an error, not merely warning, we exit
+          fprintf(stderr, "  tolsweep: %dD%d failed! ier=%d, ier_setpts=%d\n", dim, type,
+                  ier, ier_set);
+          return 1;
         }
 
         if (ier == 0) {
@@ -155,10 +149,15 @@ int main(int argc, char *argv[]) {
             ++nfail[ti];
             printf("  %dD%d, tol %8.3g:\trelerr = %.3g,    \tclearancefac=%.3g\tFAIL\n",
                    dim, type, tol, relerr, clearfac);
-            printf("  Rerunning with debug=1...........................................\n");
-            // *** TO DO
-
-            printf("  (Rerun done) ....................................................\n");
+            printf("  Rerunning with debug=1_________________________________________\n");
+            opts.debug = 1;
+            FINUFFT_MAKEPLAN(type, dim, Nm, isign, ntr, (FLT)tol, &plan, &opts);
+            FINUFFT_SETPTS(plan, M, x.data(), y.data(), z.data(), N, X.data(),
+                           Y.data(), Z.data());
+            FINUFFT_EXECUTE(plan, c.data(), F.data());  // type 2 writes to c
+            FINUFFT_DESTROY(plan);
+            printf("  (Rerun done)___________________________________________________\n");
+            opts.debug = debug;   // reset to cmdline arg value
           }
         } else // finufft returned warning (namely cannot achieve accuracy): don't test acc
           if (verbose > 1)
