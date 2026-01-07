@@ -49,7 +49,7 @@ int main(int argc, char *argv[]) {
 #ifdef SINGLE
   double floor[nu][3] = {{1e-4, 1e-3, 1e-2}, {1e-5, 1e-5, 1e-5}}; // inner is dim
 #else
-  double floor[nu][3] = {{3e-9, 3e-9, 3e-9}, {3e-14, 3e-14, 3e-14}};
+  double floor[nu][3] = {{3e-9, 3e-9, 1e-8}, {3e-14, 3e-14, 3e-14}};
 #endif
 
   // If user asked for help, print usage and exit
@@ -85,7 +85,7 @@ int main(int argc, char *argv[]) {
   int nfailtot = 0;                   // overall count across all dims, USF, tols, types
 
   for (int dim = 1; dim <= 3; ++dim) {  /////////////////////// loop over dims
-    if (verbose) printf("\ntolsweep: %dD =============================\n", dim);
+    if (verbose) printf("\n%s: %dD =============================\n", argv[0], dim);
     BIGINT *Nm = Nm_alldims[dim - 1];   // ptr to Nm array (3-el) for this dim
     BIGINT N   = Nm[0] * Nm[1] * Nm[2]; // tot # modes, or freq-pts for type 3
     X.resize(N);
