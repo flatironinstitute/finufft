@@ -206,9 +206,65 @@ def _set_nufft_doc(f, dim, tp):
       c = cufinufft.nufft{dim}d2({pts}, f)
     """
 
-    doc_nufft = {1: doc_nufft1, 2: doc_nufft2}
+    doc_nufft3 = \
+    """{dim}D type-3 (nonuniform to nonuniform) complex NUFFT
+
+    ::
+
+             M-1
+      f[k] = SUM c[j] exp(+/-i {pt_inner_type3}),
+             j=0
+
+          for k = 0, ..., N-1
+
+    Args:
+{src_pts_doc}
+      c         (complex[M] or complex[n_tr, M]): source strengths.
+{target_pts_doc}
+      out       (complex[N] or complex[n_tr, N], optional): output values at target frequencies.
+      eps       (float, optional): precision requested (>1e-16).
+      isign     (int, optional): if non-negative, uses positive sign in
+                exponential, otherwise negative sign.
+      **kwargs  (optional): other options may be specified, see the ``Plan``
+                constructor for details.
+
+    .. note::
+
+      The output is written into the ``out`` array if supplied.
+
+    Returns:
+      complex[M] or complex[n_tr, M]: The resulting array.
+
+    Example (CuPy):
+    ::
+
+      import cupy as cp
+      import cufinufft
+
+      # number of source points
+      M = 100
+
+      # number of target points
+      N = 200
+
+      # the source points
+{pts_generate}
+
+      # the target points
+{target_pts_generate}
+
+      # their complex strengths
+      c = (cp.random.standard_normal(size=M)
+           + 1J * cp.random.standard_normal(size=M))
+
+      # calcuate the type-3 NUFFT
+      f = cufinufft.nufft{dim}d3({pts}, c, {target_pts})
+    """
+
+    doc_nufft = {1: doc_nufft1, 2: doc_nufft2, 3: doc_nufft3}
 
     pts = ('x', 'y', 'z')
+    target_pts = ('s', 't', 'u')
     sample_modes = (50, 75, 100)
 
     dims = range(1, dim + 1)
@@ -230,15 +286,28 @@ def _set_nufft_doc(f, dim, tp):
     v['pts_generate'] = '\n'.join('      {} = 2 * cp.pi * cp.random.uniform(size=M)'.format(x) for x in pts[:dim])
     v['sample_modes'] = ', '.join(str(n) for n in sample_modes[:dim])
 
+    # for type 3 only
+    v['src_pts_doc'] = '\n'.join('      {}         (float[M]): nonuniform points, valid in [-pi, pi), values outside will be folded'.format(x) for x in pts[:dim])
+    v['target_pts_doc'] = '\n'.join('      {}         (float[N]): nonuniform target points.'.format(x) for x in target_pts[:dim])
+    v['pt_inner_type3'] = ' + '.join('{0}[k] {1}[j]'.format(s, x) for s, x in zip(target_pts[:dim], pts[:dim]))
+
+    # for type 3 example only
+    v['target_pts'] = ', '.join(str(x) for x in target_pts[:dim])
+    v['target_pts_generate'] = '\n'.join('      {} = 2 * np.pi * cp.random.uniform(size=N)'.format(x) for x in target_pts[:dim])
+
     if dim > 1:
         v['pt_inner'] = '(' + v['pt_inner'] + ')'
+        v['pt_inner_type3'] = '(' + v['pt_inner_type3'] + ')'
 
     f.__doc__ = _wrap_docstring(doc_nufft[tp].format(**v))
 
 
 _set_nufft_doc(nufft1d1, 1, 1)
 _set_nufft_doc(nufft1d2, 1, 2)
+_set_nufft_doc(nufft1d3, 1, 3)
 _set_nufft_doc(nufft2d1, 2, 1)
 _set_nufft_doc(nufft2d2, 2, 2)
+_set_nufft_doc(nufft2d3, 2, 3)
 _set_nufft_doc(nufft3d1, 3, 1)
 _set_nufft_doc(nufft3d2, 3, 2)
+_set_nufft_doc(nufft3d3, 3, 3)

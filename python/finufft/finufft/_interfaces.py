@@ -805,7 +805,7 @@ def _set_nufft_doc(f, dim, tp, example='python/finufft/test/accuracy_speed_tests
 {src_pts_doc}
       c         (complex[M] or complex[n_tr, M]): source strengths.
 {target_pts_doc}
-      out       (complex[N] or complex[n_tr, N]): output values at target frequencies.
+      out       (complex[N] or complex[n_tr, N], optional): output values at target frequencies.
       eps       (float, optional): precision requested (>1e-16).
       isign     (int, optional): if non-negative, uses positive sign in
                 exponential, otherwise negative sign.
@@ -864,7 +864,7 @@ def _set_nufft_doc(f, dim, tp, example='python/finufft/test/accuracy_speed_tests
     v['pt_spacing'] = ' ' * (len(v['pt_idx']) - 2)
     v['pt_inner'] = ' + '.join('k{0} {1}(j)'.format(i, x) for i, x in zip(dims, pts[:dim]))
     v['pt_constraint'] = ', '.join('-N{0}/2 <= k{0} <= (N{0}-1)/2'.format(i) for i in dims)
-    v['pts_doc'] = '\n'.join('      {}(float[M]): nonuniform points, in [-pi, pi), values outside will be folded'.format(x) for x in pts[:dim]) + '\n'
+    v['pts_doc'] = '\n'.join('      {}         (float[M]): nonuniform points, in [-pi, pi), values outside will be folded'.format(x) for x in pts[:dim])
 
     # for example
     v['pts'] = ', '.join(str(x) for x in pts[:dim])
@@ -873,8 +873,8 @@ def _set_nufft_doc(f, dim, tp, example='python/finufft/test/accuracy_speed_tests
     v['example'] = example
 
     # for type 3 only
-    v['src_pts_doc'] = '\n'.join('      {}(float[M]): nonuniform points, valid in [-pi, pi), values outside will be folded'.format(x) for x in pts[:dim]) + '\n'
-    v['target_pts_doc'] = '\n'.join('      {}(float[N]): nonuniform target points.'.format(x) for x in target_pts[:dim]) + '\n'
+    v['src_pts_doc'] = '\n'.join('      {}         (float[M]): nonuniform points, valid in [-pi, pi), values outside will be folded'.format(x) for x in pts[:dim])
+    v['target_pts_doc'] = '\n'.join('      {}         (float[N]): nonuniform target points.'.format(x) for x in target_pts[:dim])
     v['pt_inner_type3'] = ' + '.join('{0}[k] {1}[j]'.format(s, x) for s, x in zip(target_pts[:dim], pts[:dim]))
 
     # for type 3 example only

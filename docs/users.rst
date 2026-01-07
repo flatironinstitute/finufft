@@ -26,9 +26,9 @@ and also add them to GitHub's Used By feature):
 
 #. `Multitaper.jl <https://github.com/lootie/Multitaper.jl>`_: estimates power spectra from non-equispaced time series, improving upon Lomb-Scargle and NWelch, for exoplanet detection, by Sarah Dodson-Robinson and Charlotte Haley. Uses Julia 1D type 3.
 
-#. `Pyxu <https://github.com/pyxu-org/pyxu>`_: Solves linear inverse problems with convex penalties using proximal optimization algorithms, in Python, by researchers at EPFL. This includes regularized imaging problems. (cu)FINUFFT is used for all `NUFFTs <https://pyxu-org.github.io/api/operator/linop.html#pyxu.operator.NUFFT>`_.
+#. `Pyxu <https://github.com/pyxu-org/pyxu>`_: Solves linear inverse problems with convex penalties using proximal optimization algorithms, in Python, by researchers at EPFL including Sepand Kashani. It targets regularized or Bayesian inverse imaging problems. FINUFFT the main `NUFFT plugin for pyxu <https://github.com/pyxu-org/pyxu_finufft>`__.
 
-#. `MRI-NUFFT <https://mind-inria.github.io/mri-nufft/index.html>`_: unified Python interface to various NUFFT implementations for MRI reconstruction, with coil sensitivities, density compensation, and off-resonance corrections. From INRIA/CEA Paris Neurospin group.
+#. `MRI-NUFFT <https://mind-inria.github.io/mri-nufft/index.html>`_: unified Python interface to various NUFFT implementations for MRI reconstruction, with coil sensitivities, density compensation, and off-resonance corrections. (96 GH stars as of 2025.) From INRIA/CEA Paris Neurospin group; see `JOSS <https://joss.theoj.org/papers/10.21105/joss.07743>`__ article. Their `benchmarks conclude <https://github.com/flatironinstitute/finufft/pull/564>`__ that **cufinufft is the fastest NUFFT in the west, and by a wide margin**.
 
 #. `mri_distortion_toolkit <https://github.com/Image-X-Institute/mri_distortion_toolkit>`_: Characterisation and reporting of geometric distortion in MRI. Uses our PyPI pkg.
 
@@ -36,38 +36,44 @@ and also add them to GitHub's Used By feature):
 
 #. `spinifel <https://gitlab.osti.gov/mtip/spinifel>`_: Uses the multitiered iterative phasing (M-TIP) algorithm for single particle X-ray diffraction imaging, on CPU/GPU, from the ExaFEL project at LBNL/DOE.
 
-#. `sinctransform <https://github.com/hannahlawrence/sinctransform>`_: C++ and MATLAB codes to evaluate sums of the sinc and sinc^2 kernels between arbitrary nonuniform points in 1,2, or 3 dimensions, by Hannah Lawrence (2017 summer intern at Flatiron).
+#. `sinctransform <https://github.com/hannahlawrence/sinctransform>`_: C++ and MATLAB codes for fast evaluation of sums of the sinc and sinc^2 kernels between arbitrary nonuniform points in 1,2, or 3 dimensions, in near-linear time. By Hannah Lawrence (2017 summer intern at Flatiron).
 
-#. `fsinc <https://github.com/gauteh/fsinc>`_:  Gaute Hope's fast sinc transform and interpolation Python package.
+#. `fsinc <https://github.com/gauteh/fsinc>`__:  Gaute Hope's fast sinc transform and interpolation Python package.
 
-#. `FTK <https://github.com/flatironinstitute/ftk>`_: Factorization of the translation kernel for fast 2D rigid image alignment, by Rangan, Spivak, Andén, and Barnett.
+#. `FTK <https://github.com/flatironinstitute/ftk>`__: Factorization of the translation kernel for fast 2D rigid image alignment, by Rangan, Spivak, Andén, and Barnett.
 
-#. `nifty-ls <https://github.com/flatironinstitute/nifty-ls>`_: Fast evaluation of the Lomb-Scargle periodogram for time series analysis, backed by finufft or cufinufft
+#. `nifty-ls <https://github.com/flatironinstitute/nifty-ls>`__: Fast evaluation of the Lomb-Scargle periodogram for time series analysis in astronomy, backed by finufft or cufinufft.
 
 #. `TRIQS CTINT <https://github.com/TRIQS/ctint>`_: continous time interaction-expansion solver, by N. Wentzell and O. Parcollet (Flatiron Institute, part of platform for interacting quantum systems).
 
-#. `cunuSHT <https://github.com/Sebastian-Belkner/cunuSHT>`_: GPU accelerated spherical harmonic transforms from nonuniform samples (arbitrary pixelizations), by S. Belkner and coauthors. https://arxiv.org/abs/2406.14542
+#. `cunuSHT <https://github.com/Sebastian-Belkner/cunuSHT>`_: GPU accelerated spherical harmonic transforms from nonuniform samples (arbitrary pixelizations), by S. Belkner and coauthors. https://arxiv.org/abs/2406.14542 (They may have moved to DUCC NUFFT as of 2025?)
 
 #. `FReSCO <https://github.com/martiniani-lab/FReSCo>`_: Fast reciprocal-space correlator, by Aaron Shih, Mathias Kasiulis, and Stefano Martiani. This uses thousands of calls to all three transform types in 2D or 3D, to iteratively adjust nonuniform points until their Fourier transforms match a desired function. Physics Mag. article and movie: https://physics.aps.org/articles/v17/134
 
+#. `RM-tools <https://github.com/CIRADA-Tools/RM-Tools/wiki>`__ package that implements rotation measure (RM) synthesis and Stokes QU-fitting for use on astronomical radio polarization analysis (2020 onwards, 49 GH stars as of 2025).
+
+#. `fftvis <https://github.com/tyler-a-cox/fftvis>`__: a non-uniform Fast Fourier Transform based interferometric visibility simulator, by Tyler A Cox (UC Berkeley) and colleagues. Their `article <https://academic.oup.com/rasti/article/doi/10.1093/rasti/rzaf056/8327611>`__ states that FINUFFT enables "up to two orders of magnitude" speed-up over the standard simulator code.
+
+
+   
 
 Python packages depending on FINUFFT
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-For Python only, here is an automatically-generated list:
+For Python only, here is an automatically-generated list (16 packages as of 2025):
 https://www.wheelodex.org/projects/finufft/rdepends/
 
 
 Other wrappers to (cu)FINUFFT
 ------------------------------
 
-#. `FINUFFT.jl <https://github.com/ludvigak/FINUFFT.jl>`_: a `julia <https://julialang.org/>`_ language wrapper by Ludvig af Klinteberg, Libin Lu, and others, now using pure Julia, and fully featured (rather than via Python). This is itself wrapped by `AbstractNFFTs.jl` in `NFFT.jl <https://juliamath.github.io/NFFT.jl/dev/performance/>`_.
+#. `FINUFFT.jl <https://github.com/ludvigak/FINUFFT.jl>`_: a `julia <https://julialang.org/>`__ language wrapper by Ludvig af Klinteberg, Libin Lu, and others, now using pure Julia, and fully featured (rather than via Python). This is itself wrapped by `AbstractNFFTs.jl` in `NFFT.jl <https://juliamath.github.io/NFFT.jl/dev/performance/>`_.
 
-#. `TensorFlow NUFFT <https://github.com/mrphys/tensorflow-nufft>`_: a wrapper to the differentiable machine learning Python tool TensorFlow, for the CPU (via FINUFFT) and GPU (via cuFINUFFT). By Javier Montalt Tordera (UCL).
+#. `TensorFlow NUFFT <https://github.com/mrphys/tensorflow-nufft>`__: a wrapper to the differentiable machine learning Python tool TensorFlow, for the CPU (via FINUFFT) and GPU (via cuFINUFFT). By Javier Montalt Tordera (UCL).
 
-#. `JAX bindings to (cu)FINUFFT <https://github.com/dfm/jax-finufft>`_: a wrapper to the differentiable machine learning Python tool JAX. Directly exposes the FINUFFT library to JAX's XLA backend, as well as implementing differentiation rules for the transforms. By Dan Foreman-Mackey (CCA).
+#. `JAX bindings to (cu)FINUFFT <https://github.com/dfm/jax-finufft>`__: a wrapper to the differentiable machine learning Python tool JAX. Directly exposes the FINUFFT library to JAX's XLA backend, as well as implementing differentiation rules for the transforms. By Dan Foreman-Mackey (formerly CCA) and Lehman Garrison (SCC).
 
-#. `PyTorch wrapper to (cu)FINUFFT <https://flatironinstitute.github.io/pytorch-finufft>`_:  a wrapper to the differentiable machine learning Python tool PyTorch. By Michael Eickenberg and Brian Ward (CCM).
+#. `PyTorch wrapper to (cu)FINUFFT <https://flatironinstitute.github.io/pytorch-finufft>`__:  a wrapper to the differentiable machine learning Python tool PyTorch. By Michael Eickenberg (formerly CCM) and Brian Ward (CCM).
 
 
 Research output using (cu)FINUFFT
@@ -75,7 +81,7 @@ Research output using (cu)FINUFFT
 
 For the latest see: Google Scholar `FINUFFT citations <https://scholar.google.com/scholar?oi=bibs&hl=en&cites=14265215625340229167>`_, and `cuFINUFFT citations <https://scholar.google.com/scholar?oi=bibs&hl=en&cites=15739437776774999949>`_. Here are some highlights that we know about:
 
-#. Marco Barbone and colleagues at Imperial have used FINUFFT and multi-GPU cuFINUFFT to accelerate 4D MRI reconstruction via the XD-GRASP algorithm by 10-20x. See their `2021 conference paper <https://ieeexplore.ieee.org/document/9651604>`_ and `2023 article <https://doi.org/10.1016/j.phro.2023.100484>`_.
+#. Marco Barbone and colleagues at Imperial have used FINUFFT and multi-GPU cuFINUFFT to accelerate 4D MRI reconstruction via the XD-GRASP algorithm by 10-20x, enabling real-time MR-guided radiotherapy. See their `2021 conference paper <https://ieeexplore.ieee.org/document/9651604>`_ and `2023 article <https://doi.org/10.1016/j.phro.2023.100484>`_.
 
 #. "Cryo-EM reconstruction of continuous heterogeneity by Laplacian spectral volumes", Amit Moscovich, Amit Halevi, Joakim Andén, and Amit Singer. Appeared in Inv. Prob. (2020), https://arxiv.org/abs/1907.01898
 
@@ -94,13 +100,13 @@ For the latest see: Google Scholar `FINUFFT citations <https://scholar.google.co
    Inverse Problems 36 (2), 024001 (2020).
    https://arxiv.org/abs/1905.12317
 
-#. The late Aleks Donev's group at NYU (Ondrej Maxian, et al) uses FINUFFT in Stokes viscous hydrodynamics solvers.
+#. The (very sadly late) Aleks Donev's group at NYU, including Ondrej Maxian (now at Notre Dame), uses FINUFFT in Stokes viscous hydrodynamics solvers.
 
 #. Efficient wide-field radio interferometry response. P. Arras, M. Reinecke, R. Westermann, T.A. Ensslin, Astron. Astrophys. (2020).   https://doi.org/10.1051/0004-6361/202039723
 
-#. Johannes Blaschke, Jeff Donatelli, Jamie Sethian, and collaborators at the `ExaFEL <https://lcls.slac.stanford.edu/exafel>`_ coherent light source use FINUFFT and cuFINUFFT to accelerate single-particle X-ray imaging.  See preprint by Chang, Slaughter, Donatelli, et al: https://arxiv.org/abs/2109.05339
+#. Johannes Blaschke, Jeff Donatelli, Jamie Sethian, and collaborators at the `ExaFEL <https://lcls.slac.stanford.edu/exafel>`__ coherent light source use FINUFFT and cuFINUFFT to accelerate single-particle X-ray imaging.  See preprint by Chang, Slaughter, Donatelli, et al: https://arxiv.org/abs/2109.05339
 
-#. A. Harness, S. Shaklan, P. Willems, N. J. Kasdin, K. Balasubramanian, V. White, K. Yee, P. Dumont, R. Muller, S. Vuong, M. Galvin, "Optical experiments and model validation of perturbed starshade designs," Proc. SPIE 11823, Techniques and Instrumentation for Detection of Exoplanets X, 1182312 (1 September 2021); https://doi.org/10.1117/12.2595409
+#. Anthony Harness (Princeton) and collaborators use FINUFFT for "Optical experiments and model validation of perturbed starshade designs," Proc. SPIE 11823, Techniques and Instrumentation for Detection of Exoplanets X, 1182312 (1 September 2021); https://doi.org/10.1117/12.2595409
 
 #. Chang, P., Pienaar, E., & Gebbie, T. (2020). "Malliavin--Mancino Estimators Implemented with Nonuniform Fast Fourier Transforms." SIAM J. Sci. Comput. 42(6), B1378–B1403. https://doi.org/10.1137/20m1325903
 
@@ -108,25 +114,32 @@ For the latest see: Google Scholar `FINUFFT citations <https://scholar.google.co
 
 #. Sriramkrishnan Muralikrishnan at the Jülich Supercomputing Centre is running cufinufft on 6144 A100 GPUs (the NERSC-9 supercomputer), for a particle-in-Fourier method for plasma (Vlasov-Poisson) simulations, https://pasc23.pasc-conference.org/presentation/?id=msa167&sess=sess154 https://arxiv.org/abs/2407.00485  The CPU code is also used for Vlasov-Poisson, https://www.sciencedirect.com/science/article/pii/S0021999124006387
 
-#. Related to that, FINUFFT is being used for a better-converging Fourier approach to the Immersed Boundary method of Peskin and his group at NYU. Zhe Chen and Charles Peskin, https://arxiv.org/abs/2302.08694
+#. FINUFFT is being used for a better-converging Fourier approach to the Immersed Boundary method of Peskin and his group at NYU. Zhe Chen and Charles Peskin, https://arxiv.org/abs/2302.08694 This is mathematically identical to the above particle-in-Fourier method.
 
-#. Pei R, Askham T, Greengard L, Jiang S (2023). "A fast method for imposing periodic boundary conditions on arbitrarily-shaped lattices in two dimensions." J. Comput. Phys. 474, 111792. https://doi.org/10.1016/j.jcp.2022.111792 Uses FINUFFT for plane wave sums.
+#. Pei R, Askham T, Greengard L, Jiang S (2023). "A fast method for imposing periodic boundary conditions on arbitrarily-shaped lattices in two dimensions." J. Comput. Phys. 474, 111792. https://doi.org/10.1016/j.jcp.2022.111792 They use FINUFFT for plane wave sums.
 
 #. Dylan Green, JR Jamora, and Anne Gelb (2023). "Leveraging joint sparsity in 3D synthetic aperture radar imaging," Appl. Math. Modern Chall. 1, 61-86. https://doi.org/10.3934/ammc.2023005 Uses 3D transforms between $N=201^3$ modes (voxels) and $M=313300$ data points. As they state, "...the computational cost of each method heavily depends on the NUFFT algorithm used."
 
+#. Greengard P, Rachh M, Barnett A H, "Equispaced Fourier representations for efficient Gaussian process regression from a billion data points," SIAM/ASA J. Uncert. Quant. 13(1), 2025. https://doi.org/10.1137/23M1565310 https://arxiv.org/abs/2210.10210 uses FINUFFT to do GP regression in dimensions 1, 2, and 3. In 2D a billion points can be regressed in 2 minutes on a desktop. The EFGP method is now being used in astronomy https://arxiv.org/abs/2510.07395
 
+#. Together with Nour al Hassanieh and Leslie Greengard, we developed a fast spectral potential-theory method for the wave equation in `1D <https://arxiv.org/abs/2507.07823>`__ and in `3D <https://arxiv.org/abs/2511.20824>`__. This is a type of "Ewald split" for the space-time Green's function, where the spectral (long-range) part requires NUFFTs for speed. We use FINUFFT's MATLAB interface. Stay tuned for 2D.
+
+#. In molecular dynamics, FINUFFT enables a 10x speed-up in long-range electrostatic effects when `machine-learning interatomic potentials <https://journals.aps.org/prl/abstract/10.1103/ssp9-7s81>`__ with a `sum-of-Gaussians network <https://github.com/DuktigYajie/SOG-Net>`__, in work done by my colleague Jiuyang Liang (CCM) and collaborators.
+
+
+   
 Papers or codes using our new ES window (kernel spreading) function, but not the whole FINUFFT package:
 
 1. Davood Shamshirgar and Anna-Karin Tornberg, "Fast Ewald summation for electrostatic potentials with arbitrary periodicity", exploit our "Barnett-Magland" (BM), aka exp-sqrt (ES) window function. https://arxiv.org/abs/1712.04732
 
-#. Martin Reinecke: codes for radio astronomy reconstruction including https://gitlab.mpcdf.mpg.de/mtr/ducc
+#. Martin Reinecke: codes for radio astronomy reconstruction including https://gitlab.mpcdf.mpg.de/mtr/ducc tweaked our kernel by changing the sqrt to a slightly different power.
 
 #. Aref Hashemi et al, "Computing hydrodynamic interactions in confined doubly-periodic geometries in linear time," J. Chem. Phys. 158(15): 154101 (2023). DOI:10.1063/5.0141371.  https://arxiv.org/abs/2210.01837
-
+   
 
 Papers influenced by other aspects of FINUFFT:
 
-1. NFFT.jl: Generic and Fast Julia Implementation of the Nonequidistant Fast Fourier Transform, by Tobias Knopp, Marija Boberg, Mirco Grosser (2022). https://arxiv.org/abs/2208.00049  They use our blocked spreading and piecewise polynomial ideas, and beat our type 1 and 2 performance by a factor of up to 1.7 in multithreaded cases. Code is dimension-independent but very abstract (two levels of meta-programming, I believe).
+1. NFFT.jl: Generic and Fast Julia Implementation of the Nonequidistant Fast Fourier Transform, by Tobias Knopp, Marija Boberg, Mirco Grosser (2022). https://arxiv.org/abs/2208.00049  They use our blocked spreading and piecewise polynomial ideas, and beat our v2.2.0 type 1 and 2 performance by a factor of up to 1.7 in multithreaded cases. Our v2.4.0 is faster, and has not been compared. Their code is dimension-independent but very abstract (two levels of meta-programming, I believe).
 
 
 
@@ -143,4 +156,4 @@ Some citations to FINUFFT that do not appear to be actual users
 
 #. https://arxiv.org/abs/2010.05295
 
-Now too many to track by hand... please see Google Scholar search linked above.
+As of 2020, too many to track by hand... please see Google Scholar search linked above.

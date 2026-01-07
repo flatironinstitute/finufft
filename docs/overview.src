@@ -20,8 +20,8 @@ has very simple interfaces to most major numerical languages
 but also has more advanced (vectorized and "guru") interfaces that
 allow multiple strength vectors and the reuse of FFT plans.
 The CPU library
-is written in C++, OpenMP, and calls
-`FFTW <http://www.fftw.org>`_.
+is written in C++/OpenMP/XSIMD and can use either
+`FFTW <http://www.fftw.org>`__ or `DUCC <https://github.com/mreineck/ducc/tree/ducc0>`__ FFT.
 It has been developed since 2017 at the `Center for Computational Mathematics
 <https://www.simonsfoundation.org/flatiron/center-for-computational-mathematics/>`_ at the `Flatiron Institute <https://www.simonsfoundation.org/flatiron>`_,
 a division of the `Simons Foundation <https://www.simonsfoundation.org>`_,
