@@ -78,6 +78,7 @@ mark_as_advanced(
 )
 
 include(setupCPM)
+include(setupPOET)
 
 if(FINUFFT_USE_CPU)
     add_subdirectory(src)

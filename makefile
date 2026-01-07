@@ -71,6 +71,11 @@ XSIMD_URL := https://github.com/xtensor-stack/xsimd.git
 XSIMD_VERSION := 14.0.0
 XSIMD_DIR := $(DEPS_ROOT)/xsimd
 
+# POET header-only dependency repo (fetched like xsimd)
+POET_URL := https://github.com/DiamonDinoia/poet.git
+POET_VERSION := main
+POET_DIR := $(DEPS_ROOT)/poet
+
 # DUCC sources optional dependency repo
 DUCC_URL := https://github.com/mreineck/ducc.git
 DUCC_VERSION := ducc0_0_39_1
@@ -92,7 +97,7 @@ FINUFFT = $(dir $(realpath $(firstword $(MAKEFILE_LIST))))
 # Now come flags that should be added, whatever user overrode in make.inc.
 # -fPIC (position-indep code) needed to build dyn lib (.so)
 # Also, we force return (via :=) to the land of simply-expanded variables...
-INCL = -Iinclude -I$(XSIMD_DIR)/include
+INCL = -Iinclude -I$(XSIMD_DIR)/include -I$(POET_DIR)/include
 # single-thread total list of math and FFT libs (now both precisions)...
 # (Note: finufft tests use LIBSFFT; spread & util tests only need LIBS)
 LIBSFFT := $(LIBS)
@@ -205,13 +210,13 @@ fortran/%.o: fortran/%.cpp $(HEADERS)
 %.o: %.f
 	$(FC) -c $(FFLAGS) $< -o $@
 
-# spreadinterp include auto-generated code, xsimd header-only dependency;
+# spreadinterp include auto-generated code, xsimd and POET header-only dependencies;
 # if FFT=DUCC also setup ducc with fft.h dependency on $(DUCC_SETUP)...
 # Note src/spreadinterp.cpp includes finufft/finufft_core.h which includes finufft/fft.h
 # so fftw/ducc header needed for spreadinterp, though spreadinterp should not
 # depend on fftw/ducc directly?
 include/finufft/fft.h: $(DUCC_SETUP)
-SHEAD = $(wildcard src/*.h) $(XSIMD_DIR)/include/xsimd/xsimd.hpp
+SHEAD = $(wildcard src/*.h) $(XSIMD_DIR)/include/xsimd/xsimd.hpp $(POET_DIR)/include/poet/poet.hpp
 src/spreadinterp.o: $(SHEAD)
 
 # we need xsimd functionality in finufft_core.h, which is included by many other
@@ -480,23 +485,31 @@ docker-wheel:
 # ================== SETUP/COMPILE OF EXTERNAL DEPENDENCIES ===============
 
 define clone_repo
-	@if [ ! -d "$(3)" ]; then \
-		echo "Cloning repository $(1) at tag $(2) into directory $(3)"; \
-		git clone --no-checkout $(1) $(3) && \
-		cd $(3) && \
-		git fetch origin tag $(2) --force && \
-		git -c advice.detachedHead=false checkout $(2); \
-	else \
-		cd $(3) && \
-		CURRENT_VERSION=$$(git describe --tags --abbrev=0 2>/dev/null || echo ""); \
-		if [ "$$CURRENT_VERSION" = "$(2)" ]; then \
-			echo "Directory $(3) already exists and is at the correct version $(2)."; \
-		else \
-			echo "Directory $(3) exists but is at version $$CURRENT_VERSION. Checking out the correct version $(2)."; \
-			git fetch origin tag $(2) --force && \
-			git -c advice.detachedHead=false checkout $(2) || { echo "Error: Failed to checkout version $(2) in $(3)."; exit 1; }; \
-		fi; \
-	fi
+@if [ ! -d "$(3)" ]; then \
+  echo "Cloning repository $(1) at ref $(2) into directory $(3)"; \
+  git clone --no-checkout $(1) $(3) && \
+  cd $(3) && \
+  git fetch origin --prune >/dev/null 2>&1 || true; \
+  if git ls-remote --tags origin | grep -q "refs/tags/$(2)$$"; then \
+    git fetch origin tag $(2) --force && git -c advice.detachedHead=false checkout $(2) || { echo "Error: Failed to checkout tag $(2) in $(3)."; exit 1; }; \
+  elif git ls-remote --heads origin | grep -q "refs/heads/$(2)$$"; then \
+    git fetch origin $(2) --force && git -c advice.detachedHead=false checkout -B $(2) origin/$(2) || { echo "Error: Failed to checkout branch $(2) in $(3)."; exit 1; }; \
+  else \
+    git fetch origin --prune >/dev/null 2>&1 || true; \
+    git -c advice.detachedHead=false checkout $(2) || { echo "Error: Failed to checkout ref $(2) in $(3)."; exit 1; }; \
+  fi; \
+else \
+  cd $(3) && \
+  git fetch origin --prune >/dev/null 2>&1 || true; \
+  if git ls-remote --tags origin | grep -q "refs/tags/$(2)$$"; then \
+    git fetch origin tag $(2) --force && git -c advice.detachedHead=false checkout $(2) && git reset --hard $(2) || { echo "Error: Failed to checkout tag $(2) in $(3)."; exit 1; }; \
+  elif git ls-remote --heads origin | grep -q "refs/heads/$(2)$$"; then \
+    git fetch origin $(2) --force && git -c advice.detachedHead=false checkout -B $(2) origin/$(2) && git reset --hard origin/$(2) || { echo "Error: Failed to checkout branch $(2) in $(3)."; exit 1; }; \
+  else \
+    git fetch origin --prune >/dev/null 2>&1 || true; \
+    git -c advice.detachedHead=false checkout $(2) || git checkout --force $(2) || { echo "Error: Failed to checkout ref $(2) in $(3)."; exit 1; }; \
+  fi; \
+fi
 endef
 
 
@@ -506,6 +519,18 @@ $(XSIMD_DIR)/include/xsimd/xsimd.hpp:
 	@echo "Checking XSIMD external dependency..."
 	$(call clone_repo,$(XSIMD_URL),$(XSIMD_VERSION),$(XSIMD_DIR))
 	@echo "xsimd installed in deps/xsimd"
+
+# download: POET header-only dependency (fetched like xsimd)
+$(POET_DIR)/include/poet/poet.hpp:
+	mkdir -p $(DEPS_ROOT)
+	@echo "Checking POET external dependency..."
+	$(call clone_repo,$(POET_URL),$(POET_VERSION),$(POET_DIR))
+	@# ensure branch/tag/commit is present and init submodules
+	@git -C $(POET_DIR) fetch --prune >/dev/null 2>&1 || true
+	@echo "Attempting to checkout $(POET_VERSION) in $(POET_DIR)..."
+	@git -C $(POET_DIR) -c advice.detachedHead=false checkout $(POET_VERSION) >/dev/null 2>&1 || true
+	@git -C $(POET_DIR) submodule update --init --recursive >/dev/null 2>&1 || true
+	@echo "POET installed in deps/poet"
 
 # download DUCC... (an empty target just used to track if installed)
 $(DUCC_COOKIE):
@@ -521,7 +546,7 @@ $(DUCC_SRCS): %.cc: $(DUCC_SETUP)
 $(DUCC_OBJS): %.o: %.cc
 	$(CXX) -c $(DUCC_CXXFLAGS) $(DUCC_INCL) $< -o $@
 
-setup: $(XSIMD_DIR)/include/xsimd/xsimd.hpp $(DUCC_SETUP)
+setup: $(XSIMD_DIR)/include/xsimd/xsimd.hpp $(POET_DIR)/include/poet/poet.hpp $(DUCC_SETUP)
 
 setupclean:
 	rm -rf $(DEPS_ROOT)
