@@ -6,7 +6,7 @@
 #          To run test on Windows (WSL):   ./check_finufft.sh {DUMMY or SINGLE} ON
 # Exit code is 0 for success, otherwise failure
 
-# These are supported as of v2.2.0, but will become obsolete in favor of CTest.
+# These are supported as of v2.5.0, but may become obsolete in favor of CTest.
 
 # In total these tests take about 5 seconds on a modern machine with the
 # default compile, threads=2*#cores (hyperthreading), or <1 second w/ less thr.
@@ -14,7 +14,8 @@
 
 # Barnett 3/14/17. numdiff-free option 3/16/17. simpler, dual-prec 7/3/20,
 # execs now have exit codes, removed any numdiff dep 8/18/20
-# removed diff 6/16/23. Added kerevalmeth=0 vs 1 test 7/8/24.
+# removed diff 6/16/23. Added kerevalmeth=0 vs 1 test 7/8/24 (removed).
+# added tolsweep 1/5/26.
 
 # precision-specific settings
 if [[ $1 == "SINGLE" ]]; then

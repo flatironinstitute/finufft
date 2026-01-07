@@ -1,8 +1,8 @@
 /* test/tolsweep: pass-fail accuracy test for either float/double CPU FINUFFT
-   that sweeps across full range of tolerances, dims, types, for set of upsampfacs.
-   (just std USFs for now)
+   that sweeps across full range of tolerances, dims, types, for set of upsampfacs
+   (just two std USFs for now).
    Uses relative L2 error norms, with direct reference evaluation.
-   Exists zero if success, nonzero upon failure.
+   Exit code: zero if success, nonzero upon failure.
 
    Based on Barbone's accuracy_test and Barnett's matlab/test/tolsweeptest.m
    The logic is taken from the latter (no significance to decades). Barnett 1/5/26
