@@ -2010,7 +2010,7 @@ template int spreadinterpSorted<double>(
 ///////////////////////////////////////////////////////////////////////////
 
 template<typename T>
-int setup_spreader(finufft_spread_opts &opts, T eps, double upsampfac, int kerevalmeth,
+int setup_spreader(finufft_spread_opts &spopts, T eps, double upsampfac, int kerevalmeth,
                    int debug, int showwarn, int spreadinterponly, int dim, int kerformula)
 /* Initializes spreader kernel parameters given desired NUFFT tolerance eps,
    upsampling factor (=sigma in paper, or R in Dutt-Rokhlin), and debug flags.
@@ -2018,7 +2018,7 @@ int setup_spreader(finufft_spread_opts &opts, T eps, double upsampfac, int kerev
    retained only for ABI compatibility and is ignored (a warning is emitted
    when the caller specifies a value other than 1).
    Also sets all default options in finufft_spread_opts. See finufft_spread_opts.h for
-   opts. dim is spatial dimension (1,2, or 3). See finufft_core:finufft_plan() for where
+   spopts. dim is spatial dimension (1,2, or 3). See finufft_core:finufft_plan() for where
    upsampfac is set. Must call this before any kernel evals done, otherwise segfault
    likely.
    Returns: 0  : success
@@ -2038,27 +2038,31 @@ int setup_spreader(finufft_spread_opts &opts, T eps, double upsampfac, int kerev
             kerevalmeth);
   }
   // write out default finufft_spread_opts (some overridden in setup_spreader_for_nufft)
-  opts.spread_direction = 0; // user should always set to 1 or 2 as desired
-  opts.sort             = 2; // 2:auto-choice
-  opts.kerpad           = 0; // kerpad retained for ABI compatibility only; ignored
-  opts.kerevalmeth      = 1; // kerevalmeth retained for ABI compatibility only; ignored
-  opts.upsampfac        = upsampfac;
-  opts.nthreads         = 0; // all avail
-  opts.sort_threads     = 0; // 0:auto-choice
+  spopts.spread_direction = 0; // user should always set to 1 or 2 as desired
+  spopts.sort             = 2; // 2:auto-choice
+  spopts.kerpad           = 0; // kerpad retained for ABI compatibility only; ignored
+  spopts.kerevalmeth      = 1; // kerevalmeth retained for ABI compatibility only; ignored
+  spopts.upsampfac        = upsampfac;
+  spopts.nthreads         = 0; // all avail
+  spopts.sort_threads     = 0; // 0:auto-choice
   // heuristic dir=1 chunking for nthr>>1, typical for intel i7 and skylake...
-  opts.max_subproblem_size = (dim == 1) ? 10000 : 100000;
-  // TF_OMIT_* timing flags removed; no opts.flags field.
-  opts.debug = 0; // 0:no debug output
+  spopts.max_subproblem_size = (dim == 1) ? 10000 : 100000;
+  // TF_OMIT_* timing flags removed; no spopts.flags field.
+  spopts.debug = 0; // 0:no debug output
   // heuristic nthr above which switch OMP critical to atomic (add_wrapped...):
-  opts.atomic_threshold = 10; // R Blackwell's value
+  spopts.atomic_threshold = 10;     // R Blackwell's value
+  if (kerformula == 0)
+    spopts.kerformula = 1;          // sets the default kernel type
+  else
+    spopts.kerformula = kerformula; // pass through
 
-  int ns, ier = 0; // Set kernel width w (aka ns, nspread) then copy to opts...
+  int ns, ier = 0; // Set kernel width w (aka ns, nspread) then copy to spopts...
   if (eps < EPSILON) {
     // safety; there's no hope of beating e_mach
     if (showwarn)
       fprintf(stderr, "%s warning: increasing tol=%.3g to eps_mach=%.3g.\n", __func__,
               (double)eps, (double)EPSILON);
-    eps = EPSILON; // only changes local copy (not any opts)
+    eps = EPSILON; // only changes local copy (not any spopts)
     ier = FINUFFT_WARN_EPS_TOO_SMALL;
   }
   if (!spreadinterponly && (upsampfac < 1.15 || upsampfac > 2.5)) {
@@ -2069,7 +2073,7 @@ int setup_spreader(finufft_spread_opts &opts, T eps, double upsampfac, int kerev
               __func__, upsampfac);
   }
   // Compute ns (kernel width) using central helper; caller handles clipping.
-  ns = compute_kernel_ns(upsampfac, (double)eps, kerformula, opts);
+  ns = compute_kernel_ns(upsampfac, (double)eps, kerformula, spopts);
 
   if (ns > MAX_NSPREAD) {
     // clip to fit allocated arrays, Horner rules
@@ -2081,23 +2085,22 @@ int setup_spreader(finufft_spread_opts &opts, T eps, double upsampfac, int kerev
     ns  = MAX_NSPREAD;
     ier = FINUFFT_WARN_EPS_TOO_SMALL;
   }
-  opts.nspread = ns;
-  opts.kerformula = kerformula; // pass through
-  // initialize remaining ES/KB parameters (beta, c, halfwidth) based on opts.nspread
-  initialize_kernel_params(opts, upsampfac, (double)eps, kerformula);
+  spopts.nspread = ns;
+  // initialize remaining ES/KB parameters (beta, c, halfwidth) based on spopts.nspread
+  initialize_kernel_params(spopts, upsampfac, (double)eps, spopts.kerformula);
   return ier;
 }
 
 template FINUFFT_EXPORT_TEST int setup_spreader<float>(
-    finufft_spread_opts &opts, float eps, double upsampfac, int kerevalmeth, int debug,
+    finufft_spread_opts &spopts, float eps, double upsampfac, int kerevalmeth, int debug,
     int showwarn, int spreadinterponly, int dim, int kerformula);
 template FINUFFT_EXPORT_TEST int setup_spreader<double>(
-    finufft_spread_opts &opts, double eps, double upsampfac, int kerevalmeth, int debug,
+    finufft_spread_opts &spopts, double eps, double upsampfac, int kerevalmeth, int debug,
     int showwarn, int spreadinterponly, int dim, int kerformula);
 
 template<typename T>
 T evaluate_kernel_runtime(T x, int ns, int nc, const T *horner_coeffs_ptr,
-                          const finufft_spread_opts &opts) {
+                          const finufft_spread_opts &spopts) {
   // Pure runtime kernel evaluator: primary interface for FT and plan-based code.
   // Coefficients are stored as horner_coeffs[j * padded_ns + i], where padded_ns
   // is rounded up to SIMD alignment which *must* be consistent with that used
@@ -2106,10 +2109,10 @@ T evaluate_kernel_runtime(T x, int ns, int nc, const T *horner_coeffs_ptr,
   const auto simd_size            = GetPaddedSIMDWidth<T>(2 * ns);
   const int padded_ns             = (ns + simd_size - 1) & -simd_size;
 
-  if (std::abs(x) >= (T)opts.ES_halfwidth) return (T)0.0;
+  if (std::abs(x) >= (T)spopts.ES_halfwidth) return (T)0.0;
   T res = (T)0.0;
   for (int i = 0; i < ns; ++i) {
-    if (x > -opts.ES_halfwidth + i && x <= -opts.ES_halfwidth + i + 1) {
+    if (x > -spopts.ES_halfwidth + i && x <= -spopts.ES_halfwidth + i + 1) {
       T z = std::fma((T)2.0, x - (T)i, (T)(ns - 1));
       for (int j = 0; j < nc; ++j) {
         res = std::fma(res, z, horner_coeffs_ptr[j * padded_ns + i]);

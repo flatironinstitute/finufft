@@ -3,10 +3,12 @@
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
+#include <cstdio>
 #include <vector>
 
 #include <finufft_common/constants.h>
 #include <finufft_common/utils.h>
+#include <finufft_errors.h>
 #include <finufft_spread_opts.h>
 
 namespace finufft::kernel {
@@ -95,10 +97,10 @@ template<typename T> T kernel_definition(T x, T beta, T c, int kerformula) {
     return static_cast<T>(i0_arg / i0_beta);
 
   } else {
-    fprintf(stderr, "[%s] unknown opts.kerformula\n", __func__);
+    fprintf(stderr, "[%s] unknown opts.kerformula=%d\n", __func__, kerformula);
     throw int(FINUFFT_ERR_KERFORMULA_NOTVALID);
+    return T(0.0);
   }
-  return T(0.0); // cannot get here
 }
 
 FINUFFT_EXPORT int compute_kernel_ns(double upsampfac, double tol, int kerformula,
@@ -108,6 +110,7 @@ FINUFFT_EXPORT void initialize_kernel_params(finufft_spread_opts &opts, double u
                                              double tol, int kerformula);
 
 template<int NS, int NC> inline constexpr bool ValidKernelParams() noexcept {
+  // NS = nspread (kernel width), NC = # poly coeffs in Horner evaluator.
   // NC allowed only between NS-1 and NS+3 inclusive; other instantiations can be
   // compiled away at call sites using if constexpr to reduce binary size.
   return (NC >= NS - 1) && (NC <= NS + 3);

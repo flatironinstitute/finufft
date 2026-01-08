@@ -517,7 +517,7 @@ int FINUFFT_PLAN_T<T>::deconvolveBatch(int batchSize, std::complex<T> *fkBatch,
 
 // ------------------- piecewise-poly Horner setup utility -----------------
 template<typename TF> void FINUFFT_PLAN_T<TF>::precompute_horner_coeffs() {
-  // Solve for piecewise Horner coeffs for the function kernel.h:evaluate_kernel()
+  // Solve for piecewise Horner coeffs for the function kernel.h:kernel_definition()
   // Marco Barbone, Fall 2025.
   const auto nspread = spopts.nspread;
   const auto nc_fit  = std::max(nspread + 3, MIN_NC); // how many coeffs to fit
@@ -552,7 +552,7 @@ template<typename TF> void FINUFFT_PLAN_T<TF>::precompute_horner_coeffs() {
     // shift and scale so [-1,1] maps to jth interval of kernel...
     const auto kernel_this_interval = [shift, beta, c_param, kerformula](TF x) -> TF {
       const TF t = TF(0.5) * (x + shift);
-      return evaluate_kernel(t, beta, c_param, kerformula);
+      return kernel_definition(t, beta, c_param, kerformula);
     };
 
     const TF dummy    = 0.0; // *** there must be a better way to communicate TF type

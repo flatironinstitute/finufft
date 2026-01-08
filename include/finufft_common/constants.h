@@ -19,5 +19,6 @@ inline constexpr double INV_2PI = 0.159154943091895335768883763372514362;
 // polynomial degree bounds for all kernel approximation
 inline constexpr int MIN_NC = 4;
 inline constexpr int MAX_NC = 19;
+
 } // namespace common
 } // namespace finufft

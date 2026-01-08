@@ -9,7 +9,8 @@ namespace finufft::kernel {
 
 int compute_kernel_ns(double upsampfac, double tol, int kerformula,
                       const finufft_spread_opts &opts) {
-  // Note: opts is unused here but kept for API consistency if needed later
+  // Note: opts is unused here but kept for API consistency if needed later.
+  // kerformula also not used
   int ns;
   if (upsampfac == 2.0) {
     ns = (int)std::ceil(-std::log10(tol / 10.0));
@@ -36,7 +37,7 @@ void initialize_kernel_params(finufft_spread_opts &opts, double upsampfac, doubl
   opts.ES_halfwidth = (double)ns / 2.0;
   opts.ES_c = 4.0 / (double)(ns * ns); // *** move this into kernel.h, kill c param
 
-  if (kerformula == 0) { // always the default
+  if (kerformula == 1) {
     // Exponential of Semicircle (ES)
     double betaoverns = 2.30;
     if (ns == 2)
@@ -52,7 +53,7 @@ void initialize_kernel_params(finufft_spread_opts &opts, double upsampfac, doubl
     }
     opts.ES_beta = betaoverns * (double)ns;
 
-  } else if (kerformula == 1) {
+  } else if (kerformula == 2) {
     // Kaiser-Bessel (KB)
     // Formula from Beatty et al. 2005.
     double tmp   = (double)ns * (double)ns / (upsampfac * upsampfac);
@@ -61,7 +62,7 @@ void initialize_kernel_params(finufft_spread_opts &opts, double upsampfac, doubl
   }
 
   if (opts.debug) {
-    const char *kname = (kerformula == 1) ? "KB" : "ES";
+    const char *kname = (kerformula == 2) ? "KB" : "ES"; // *** to fix
     printf("setup_spreader: using spread kernel type %d (%s)\n", kerformula, kname);
     printf("setup_spreader eps=%.3g sigma=%.3g (%s): chose ns=%d beta=%.3g\n", tol,
            upsampfac, kname, ns, opts.ES_beta);
