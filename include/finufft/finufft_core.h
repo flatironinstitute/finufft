@@ -152,7 +152,7 @@ private:
 
   // Helper to initialize spreader, phiHat (Fourier series), and FFT plan.
   // Used by constructor (when upsampfac given) and setpts (when upsampfac deferred).
-  int initSpreadAndFFT();
+  int init_grid_kerFT_FFT();
 
 public:
   FINUFFT_PLAN_T(int type, int dim, const BIGINT *n_modes, int iflag, int ntrans, TF tol,

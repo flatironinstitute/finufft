@@ -614,7 +614,7 @@ template<typename TF> void FINUFFT_PLAN_T<TF>::precompute_horner_coeffs() {
 // Helper to initialize spreader, phiHat (Fourier series), and FFT plan.
 // Used by constructor (when upsampfac given) and setpts (when upsampfac deferred).
 // Returns 0 on success, or an error code if set_nf_type12 or alloc fails.
-template<typename TF> int FINUFFT_PLAN_T<TF>::initSpreadAndFFT() {
+template<typename TF> int FINUFFT_PLAN_T<TF>::init_grid_kerFT_FFT() {
   CNTime timer{};
   spopts.spread_direction = type;
   constexpr TF EPSILON    = std::numeric_limits<TF>::epsilon();
@@ -867,7 +867,7 @@ FINUFFT_PLAN_T<TF>::FINUFFT_PLAN_T(int type_, int dim_, const BIGINT *n_modes, i
 
     //  ------------------------ types 1,2: planning needed ---------------------
     if (type == 1 || type == 2) {
-      int code = initSpreadAndFFT();
+      int code = init_grid_kerFT_FFT();
       if (code) throw code;
     }
   } else {
@@ -951,7 +951,7 @@ int FINUFFT_PLAN_T<TF>::setpts(BIGINT nj, const TF *xj, const TF *yj, const TF *
         precompute_horner_coeffs();
 
         // Perform the planning steps (first call or re-plan due to density change).
-        code = initSpreadAndFFT();
+        code = init_grid_kerFT_FFT();
         if (code) return code;
       }
     }
