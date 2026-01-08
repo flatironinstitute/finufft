@@ -93,6 +93,7 @@ template<typename T> T kernel_definition(T x, T beta, T c, int kerformula) {
     const double i0_arg  = ::finufft::common::cyl_bessel_i(0, static_cast<double>(arg));
     const double i0_beta = ::finufft::common::cyl_bessel_i(0, static_cast<double>(beta));
     return static_cast<T>(i0_arg / i0_beta);
+
   } else {
     fprintf(stderr, "[%s] unknown opts.kerformula\n", __func__);
     throw int(FINUFFT_ERR_KERFORMULA_NOTVALID);
@@ -105,8 +106,6 @@ FINUFFT_EXPORT int compute_kernel_ns(double upsampfac, double tol, int kerformul
 
 FINUFFT_EXPORT void initialize_kernel_params(finufft_spread_opts &opts, double upsampfac,
                                              double tol, int kerformula);
-
-FINUFFT_EXPORT double sigma_max_tol(double upsampfac, int kerformula, int max_ns);
 
 template<int NS, int NC> inline constexpr bool ValidKernelParams() noexcept {
   // NC allowed only between NS-1 and NS+3 inclusive; other instantiations can be

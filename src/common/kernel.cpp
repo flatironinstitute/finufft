@@ -68,14 +68,4 @@ void initialize_kernel_params(finufft_spread_opts &opts, double upsampfac, doubl
   }
 }
 
-// AHB prefer cut; only used in accuracy_test which will be changed ***
-double sigma_max_tol(double upsampfac, int kerformula, int max_ns) {
-  if (upsampfac == 2.0) {
-    return 10.0 * std::pow(10.0, -(double)max_ns);
-  } else {
-    return std::exp(
-        -(double)max_ns * finufft::common::PI * std::sqrt(1.0 - 1.0 / upsampfac));
-  }
-}
-
 } // namespace finufft::kernel
