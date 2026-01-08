@@ -576,8 +576,10 @@ template<typename TF> void FINUFFT_PLAN_T<TF>::precompute_horner_coeffs() {
     }
     if (used > nc) nc = used;
   }
-  if (opts.debug)
+  if (opts.debug) {
     printf("[%s] ns=%d:\tnc_fit=%d, trim to nc=%d\n", __func__, nspread, nc_fit, nc);
+    printf("\t\t\t\t\tsimd_size=%d, padded_ns=%d\n", (int)simd_size, (int)padded_ns);
+  }
 
   // If the max required degree (nc) is less than nc_fit, we must shift
   // the coefficients "left" (to lower row indices) so that the significant

@@ -892,10 +892,11 @@ template<typename T> struct SpreadSubproblem1dCaller {
   template<int NS, int NC> int operator()() const {
     if constexpr (!::finufft::kernel::ValidKernelParams<NS, NC>()) {
       return 1;
+    } else {
+      spread_subproblem_1d_kernel<T, NS, NC>(off1, size1, du, M, kx, dd,
+                                             horner_coeffs_ptr);
+      return 0;
     }
-    spread_subproblem_1d_kernel<T, NS, NC>(off1, size1, du, M, kx, dd,
-                                           horner_coeffs_ptr);
-    return 0;
   }
 };
 
@@ -1023,10 +1024,11 @@ template<typename T> struct SpreadSubproblem2dCaller {
   template<int NS, int NC> int operator()() const {
     if constexpr (!::finufft::kernel::ValidKernelParams<NS, NC>()) {
       return 1;
+    } else {
+      spread_subproblem_2d_kernel<T, NS, NC>(off1, off2, size1, size2, du, M, kx, ky, dd,
+                                             horner_coeffs_ptr);
+      return 0;
     }
-    spread_subproblem_2d_kernel<T, NS, NC>(off1, off2, size1, size2, du, M, kx, ky, dd,
-                                           horner_coeffs_ptr);
-    return 0;
   }
 };
 
@@ -1148,10 +1150,11 @@ template<typename T> struct SpreadSubproblem3dCaller {
   template<int NS, int NC> int operator()() const {
     if constexpr (!::finufft::kernel::ValidKernelParams<NS, NC>()) {
       return 1;
+    } else {
+      spread_subproblem_3d_kernel<T, NS, NC>(off1, off2, off3, size1, size2, size3, du, M,
+                                             kx, ky, kz, dd, horner_coeffs_ptr);
+      return 0;
     }
-    spread_subproblem_3d_kernel<T, NS, NC>(off1, off2, off3, size1, size2, size3, du, M,
-                                           kx, ky, kz, dd, horner_coeffs_ptr);
-    return 0;
   }
 };
 
@@ -1843,10 +1846,11 @@ template<typename T> struct InterpSortedCaller {
   template<int NS, int NC> int operator()() const {
     if constexpr (!::finufft::kernel::ValidKernelParams<NS, NC>()) {
       return 1;
+    } else {
+      return interpSorted_kernel<T, NS, NC>(sort_indices, N1, N2, N3, data_uniform, M, kx,
+                                            ky, kz, data_nonuniform, opts,
+                                            horner_coeffs_ptr);
     }
-    return interpSorted_kernel<T, NS, NC>(sort_indices, N1, N2, N3, data_uniform, M, kx,
-                                          ky, kz, data_nonuniform, opts,
-                                          horner_coeffs_ptr);
   }
 };
 
