@@ -11,13 +11,13 @@ precdevs = 'sd'; myrand   = @rand; devname  = 'CPU               ';
 
 M = 1e3;              % # NU pts (several secs for >=1e4)
 dim = 1; Ntot = 30;   % which dimensionality to test, tot #modes
-%dim = 2; Ntot = 100; % (note when only 10 modes / dim, fluctuates vs ns, and misleading faster t12 conv)
+%dim = 2; Ntot = 480; % (note when only 10 modes / dim, fluctuates vs ns, and misleading faster t12 conv)
 %dim = 3; Ntot = 1000; % ditto
 ntr = 10;             % #transforms to average error over
 isign = +1;
 o.debug = 0; o.showwarn=0;        % any FINUFFT opts...
-o.upsampfac = 2.0; %1.25; % etc
-o.spread_kerformula = 0;
+o.upsampfac = 1.25;  %2.0  etc
+o.spread_kerformula = 1;
 % failure fudge factors...
 tolslack = [5.0; 5.0; 10.0];  % factors by which eps can exceed tol (3 types)
 floorslack = 20;

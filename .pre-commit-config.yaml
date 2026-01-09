@@ -9,7 +9,7 @@ repos:
         language: python
         additional_dependencies:
           - clang-format
-        pass_filenames: false
+        pass_filenames: true
         types_or: [ c++, c, cuda ]
         files: \.(c|cc|cpp|h|hpp|cu|cuh)$
         exclude: '(^|/)(matlab/.*)$'

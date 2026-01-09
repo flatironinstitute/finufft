@@ -112,7 +112,7 @@ int main(int argc, char *argv[]) {
   // via the plan method `set_spread_kerformula` below.
   finufft_opts opts{};
   FINUFFT_DEFAULT_OPTS(&opts);
-  opts.upsampfac       = upsampfac;
+  opts.upsampfac         = upsampfac;
   opts.spread_kerformula = kerformula;
   // set debug levels from command-line if requested
   opts.debug        = debug_level;
