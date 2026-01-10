@@ -18,7 +18,7 @@ int theoretical_kernel_ns(double tol, int dim, int type, int debug,
   int ns;
   double sigma = spopts.upsampfac;
 
-  if (spopts.kerformula==1 & sigma == 2.0) {   // legacy (2017-2025)
+  if (spopts.kerformula==1 && sigma == 2.0) {   // legacy (2017-2025)
     ns = (int)std::ceil(-std::log10(tol / 10.0));
   
   } else {  // generic formula for PSWF-like kernels
@@ -29,20 +29,21 @@ int theoretical_kernel_ns(double tol, int dim, int type, int debug,
   return ns;
 }
 
-void set_kernel_shape_given_ns(finufft_spread_opts &spopts) {
+void set_kernel_shape_given_ns(finufft_spread_opts &spopts, int debug) {
 // Writes kernel shape parameter(s) (beta,...), into spopts, given previously-set
 // kernel info fields in spopts, principally: nspread, upsampfac, kerformula.
+// debug >0 causes stdout reporting.
   int ns = spopts.nspread;
   double sigma = spopts.upsampfac;
   spopts.ES_halfwidth = (double)ns / 2.0;
-  opts.ES_c = 4.0 / (double)(ns * ns); // *** kill c param
+  spopts.ES_c = 4.0 / (double)(ns * ns); // *** kill c param
 
   // these strings must match: kernel_definition, and the below
   const char* kernames[] = {"default", "ES (legacy params)", "KB"};
 
   if (spopts.kerformula == 1) {
     // Exponential of Semicircle (ES)
-    double betaoverns = 2.30;    // legacy logic 2017-2025.
+    double betaoverns = 2.30;    // the legacy logic 2017-2025...
     if (ns == 2)
       betaoverns = 2.20;
     else if (ns == 3)
@@ -57,15 +58,16 @@ void set_kernel_shape_given_ns(finufft_spread_opts &spopts) {
     spopts.ES_beta = betaoverns * (double)ns;
 
   } else if (spopts.kerformula == 2) {
-    // Kaiser-Bessel (KB)
-    // shape param formula from Beatty et al. 2005.
-    double tmp   = (double)ns * (double)ns / (upsampfac * upsampfac);
-    double term2 = (upsampfac - 0.5) * (upsampfac - 0.5);
-    spopts.ES_beta = common::PI * std::sqrt(tmp * term2 - 0.8);
+    // Kaiser-Bessel (KB), with
+    // shape param formula from Beatty et al,
+    // IEEE Trans Med Imaging, 2005 24(6):799-808. doi:10.1109/TMI.2005.848376
+    // "Rapid gridding reconstruction with a minimal oversampling ratio".
+    double t = (double)ns * (1.0 - 1.0 / (2.0 * sigma));
+    spopts.ES_beta = common::PI * std::sqrt(t*t - 0.8);
   }
 
-  if (spopts.debug)
-    printf("setup_spreadinterp:\tkerformula=%d: %s...\n", spopts.kerformula,
+  if (debug || spopts.debug)
+    printf("[setup_spreadinterp]\tkerformula=%d: %s...\n", spopts.kerformula,
       kernames[spopts.kerformula]);
   }
 

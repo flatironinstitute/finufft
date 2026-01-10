@@ -35,7 +35,7 @@ int main(int argc, char *argv[]) {
   double tolslack[3]    = {5.0, 5.0, 15.0}; // tunable slack parameters for each type
   double tolsperdecade  = 8;                // controls overall effort (tol resolution)
   double tolstep       = pow(10.0, -1.0 / tolsperdecade); // multiplicative tol step, <1
-  constexpr FLT EPSILON = std::numeric_limits<FLT>::epsilon();
+  constexpr FLT EPSILON = std::numeric_limits<FLT>::epsilon();  // 2.2e-16 or 1.2e-7
   double mintol         = 0.5 * EPSILON; // somewhat arbitrary where start (catch warns)
   int ntols             = std::ceil(log(mintol) / log(tolstep));
 
@@ -167,7 +167,7 @@ int main(int argc, char *argv[]) {
             double req = std::max(floor[u][dim - 1], tolslack[ti] * tol); // threshold
             double clearfac = relerr / req; // factor by which beats req (<=1 ok, >1 fail)
             worstfac[ti]    = std::max(worstfac[ti], clearfac); // track the worst case
-            bool pass       = (relerr <= req);
+            bool pass       = (relerr <= req);  // note relerr=NaN will not pass
             if (pass) {
               ++npass[ti];
               if (verbose > 2)

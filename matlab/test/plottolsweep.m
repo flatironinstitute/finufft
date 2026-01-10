@@ -16,7 +16,7 @@ dim = 1; Ntot = 30;   % which dimensionality to test, tot #modes
 ntr = 10;             % #transforms to average error over
 isign = +1;
 o.debug = 0; o.showwarn=0;        % any FINUFFT opts...
-o.upsampfac = 1.5;  %2.0  etc
+o.upsampfac = 1.2; %1.5;  %2.0  etc
 o.spread_kerformula = 0;
 % failure fudge factors...
 tolslack = [5.0; 5.0; 10.0];  % factors by which eps can exceed tol (3 types)
@@ -48,6 +48,7 @@ for precdev=precdevs  % ......... loop precisions & devices
     [nineerrs, info] = erralltypedim(M,Ntot,ntr,isign,prec,tol,o,myrand,dims);
     errs(:,t) = nineerrs(:,dim);   % extract col from 3x3
     [~,id] = lastwarn; toloks(t) = ~strcmp(id, 'FINUFFT:epsTooSmall');
+    %o.debug = 0; if max(errs(:,t))>0.1, o.debug = 1; end  % <- for detective
   end
   Nmax = info.Nmax(dims);
   % pass/fail... epsfloor is worst of w_max or cond # limit

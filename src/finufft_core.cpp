@@ -513,11 +513,13 @@ template<typename TF> int FINUFFT_PLAN_T<TF>::setup_spreadinterp() {
   spopts.sort_threads     = 0; // 0:auto-choice
   spopts.debug    = opts.spread_debug;  // simple pass-through
   spopts.upsampfac  = opts.upsampfac;   // "
-  spopts.kerformula = (opts.kerformula==0) ? 1 : opts.kerformula;  // sets default
+  // where the kerformula (>0) resulting from the default (=0) is set...
+  spopts.kerformula = (opts.spread_kerformula==0) ? 1 : opts.spread_kerformula;
 
-  int ier;
+  constexpr TF EPSILON  = std::numeric_limits<TF>::epsilon();  // 2.2e-16 or 1.2e-7
+  int ier = 0;
   if (tol < EPSILON) {  // unfeasible request: no hope of beating eps_mach...
-    if (showwarn)
+    if (opts.showwarn)
       fprintf(stderr, "%s warning: increasing tol=%.3g to eps_mach=%.3g.\n", __func__,
               (double)tol, (double)EPSILON);
     tol = EPSILON;    // ... so forget the user request and target eps_mach
@@ -528,7 +530,7 @@ template<typename TF> int FINUFFT_PLAN_T<TF>::setup_spreadinterp() {
   int ns = theoretical_kernel_ns((double)tol, dim, type, opts.debug, spopts);
   ns = std::max(MIN_NSPREAD,ns); // clip low
   if (ns > MAX_NSPREAD) {        // clip to largest spreadinterp.cpp allows
-    if (showwarn)
+    if (opts.showwarn)
       fprintf(stderr, "%s warning: at upsampfac=%.3g, tol=%.3g would need kernel "
         "width ns=%d; clipping to max %d.\n", __func__, spopts.upsampfac,
         (double)tol, ns, MAX_NSPREAD);
@@ -536,21 +538,21 @@ template<typename TF> int FINUFFT_PLAN_T<TF>::setup_spreadinterp() {
     ier = FINUFFT_WARN_EPS_TOO_SMALL;
   }
   // further ns reduction to prevent catastrophic cancellation in float...
-  const bool singleprec = constexpr std::is_same_v<TF,float>;
+  const bool singleprec = std::is_same_v<TF,float>;
   if (singleprec && spopts.upsampfac < 1.4) {
-    int ns_CC_lim = (dim==1) ? 9 : 8;  // hacky, const, via plottolsweep.m
-    if (ns > ns_CC_lim) {
-     if (showwarn)
-      fprintf(stderr, "%s warning: ns reducing from %d to %d to prevent rdyn-related"
-        "catastrophic cancellation.\n", __func__, ns, ns_CC_lim);
-      ns  = ns_CC_lim;
+    int max_ns_CC = (dim==1) ? 9 : 8;  // hacky, const, via plottolsweep.m
+    if (ns > max_ns_CC) {
+      if (opts.showwarn)
+        fprintf(stderr, "%s warning: ns reducing from %d to %d to prevent rdyn-related"
+                "catastrophic cancellation.\n", __func__, ns, max_ns_CC);
+      ns = max_ns_CC;
     }
   }
   spopts.nspread = ns;
-  set_kernel_shape_given_ns(spopts);  // selects kernel params in spopts
-  if (spopts.debug)
-    printf("\t\t\ttol=%.3g sigma=%.3g (%s): chose ns=%d beta=%.3g\n", tol,
-           spopts.upsampfac, ns, spopts.ES_beta);
+  set_kernel_shape_given_ns(spopts, opts.debug);  // selects kernel params in spopts
+  if (opts.debug || spopts.debug)
+    printf("\t\t\ttol=%.3g sigma=%.3g: chose ns=%d beta=%.3g (ier=%d)\n", tol,
+           spopts.upsampfac, ns, spopts.ES_beta, ier);
 
   // heuristic dir=1 chunking for nthr>>1, typical for intel i7 and skylake...
   spopts.max_subproblem_size = (dim == 1) ? 10000 : 100000;   // todo: revisit
@@ -1047,7 +1049,7 @@ int FINUFFT_PLAN_T<TF>::setpts(BIGINT nj, const TF *xj, const TF *yj, const TF *
       if (opts.debug > 1)
         printf("[setpts t3] selected upsampfac=%.2f (density=1 used; persisted)\n",
                opts.upsampfac);
-      int sier = setup_spreader_for_nufft(spopts, tol, opts, dim);
+      int sier = setup_spreadinterp();
       if (sier > 1) return sier;
       precompute_horner_coeffs();
     }

@@ -106,7 +106,7 @@ template<typename T> T kernel_definition(T x, T beta, T c, int kerformula) {
 FINUFFT_EXPORT int theoretical_kernel_ns(double tol, int dim, int type, int debug,
                       const finufft_spread_opts &spopts);
 
-FINUFFT_EXPORT void set_kernel_shape_given_ns(finufft_spread_opts &opts);
+FINUFFT_EXPORT void set_kernel_shape_given_ns(finufft_spread_opts &opts, int debug);
 
 template<int NS, int NC> inline constexpr bool ValidKernelParams() noexcept {
   // NS = nspread (kernel width), NC = # poly coeffs in Horner evaluator.
