@@ -525,7 +525,7 @@ template<typename TF> int FINUFFT_PLAN_T<TF>::setup_spreadinterp() {
     tol = EPSILON;    // ... so forget the user request and target eps_mach
     ier = FINUFFT_WARN_EPS_TOO_SMALL;
   }
- 
+
   // choose nspread and set it in spopts...
   int ns = theoretical_kernel_ns((double)tol, dim, type, opts.debug, spopts);
   ns = std::max(MIN_NSPREAD,ns); // clip low
@@ -560,7 +560,7 @@ template<typename TF> int FINUFFT_PLAN_T<TF>::setup_spreadinterp() {
     spopts.max_subproblem_size = opts.spread_max_sp_size;
   // nthr above which switch OMP critical->atomic (add_wrapped..). R Blackwell's val:
   spopts.atomic_threshold = (opts.spread_nthr_atomic >= 0) ? opts.spread_nthr_atomic : 10;
-  
+
   return ier;
  }
 
@@ -568,9 +568,10 @@ template<typename TF> int FINUFFT_PLAN_T<TF>::setup_spreadinterp() {
 // ------------------- piecewise-poly Horner setup utility -----------------
 template<typename TF> void FINUFFT_PLAN_T<TF>::precompute_horner_coeffs() {
   // Solve for piecewise Horner coeffs for the function kernel.h:kernel_definition()
-  // Marco Barbone, Fall 2025.
+  // Marco Barbone, Fall 2025. Barnett & Lu edits, Jan 2026.
   const auto nspread = spopts.nspread;
-  const auto nc_fit  = std::max(nspread + 3, MIN_NC); // how many coeffs to fit
+
+  const auto nc_fit = max_nc_given_ns(nspread); // how many coeffs to fit
 
   // get the xsimd padding
   // (must match that used in spreadinterp.cpp: if we change horner simd_width there
@@ -585,7 +586,7 @@ template<typename TF> void FINUFFT_PLAN_T<TF>::precompute_horner_coeffs() {
   const TF c_param      = TF(this->spopts.ES_c);
   const int kerformula  = this->spopts.kerformula;
 
-  nc = MIN_NC; // a class field setting the number of coeffs used.
+  nc = MIN_NC; // a class member which will become the number of coeffs used
 
   // First pass: fit at max_degree, cache coeffs, and determine largest nc
   // needed.
@@ -608,24 +609,29 @@ template<typename TF> void FINUFFT_PLAN_T<TF>::precompute_horner_coeffs() {
     const TF dummy    = 0.0; // *** there must be a better way to communicate TF type
     const auto coeffs = poly_fit(kernel_this_interval, static_cast<int>(nc_fit), dummy);
 
-    // Cache coefficients directly into final table (transposed/padded):
+    // Save coefficients directly into final table (transposed/padded):
     // coeffs[k] is highest->lowest, store at row k for panel j.
     for (size_t k = 0; k < coeffs.size(); ++k) {
       horner_coeffs[k * padded_ns + j] = coeffs[k];
     }
 
-    // Determine effective number of coeffs by skipping leading zeros.
-    // coeffs[0] is highest degree.
-    int used = 0;
-    const TF coeffs_tol_cutoff = 0.1; // coeffs cut-off relative to tol
-    for (size_t k = 0; k < coeffs.size(); ++k) {
+    // Truncate polynomial degree using a numerical coeff size cut-off:
+    // (ordering is coeffs[0] highest degree, to coeffs[nc_fit-1] const term)
+    int nc_needed              = 0;
+    const TF coeffs_tol_cutoff = 0.1; // coeffs cut-off rel to tol: *** make opts?
+    for (size_t k = 0; k < coeffs.size(); ++k) { // power is nc_fit-1-k
       if (std::abs(coeffs[k]) >= tol * coeffs_tol_cutoff) {
-        used = static_cast<int>(coeffs.size() - k);
+        nc_needed = static_cast<int>(coeffs.size() - k);
         break;
       }
     }
-    if (used > nc) nc = used;
+    if (nc_needed > nc) nc = nc_needed; // nc takes max over panels j
   }
+  // nc = nc_fit;  // override truncation, useful for debugging
+  // prevent nc falling off bottom of valid range...
+  nc = std::max(nc, min_nc_given_ns(nspread));
+  // (we know nc cannot be larger than valid due to nc_fit initialization above)
+
   if (opts.debug) {
     printf("[%s] ns=%d:\tnc_fit=%d, trim to nc=%d\n", __func__, nspread, nc_fit, nc);
     printf("\t\t\t\t\tsimd_size=%d, padded_ns=%d\n", (int)simd_size, (int)padded_ns);
@@ -916,7 +922,7 @@ FINUFFT_PLAN_T<TF>::FINUFFT_PLAN_T(int type_, int dim_, const BIGINT *n_modes, i
       fprintf(stderr, "%s warning: upsampfac=%.3g not in [1.15, 2.5], unlikely "
               "to provide benefit and may give inaccurate results!\n",
               __func__, opts.upsampfac);
- 
+
     ier = setup_spreadinterp();
     if (ier > 1) // proceed if success or warning
       throw int(ier);

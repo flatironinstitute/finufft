@@ -11,6 +11,8 @@
 #include <finufft_errors.h>
 #include <finufft_spread_opts.h>
 
+using namespace finufft::common;
+
 namespace finufft::kernel {
 
 template<class T, class F> std::vector<T> poly_fit(F &&f, int n, T dummy) noexcept {
@@ -108,13 +110,22 @@ FINUFFT_EXPORT int theoretical_kernel_ns(double tol, int dim, int type, int debu
 
 FINUFFT_EXPORT void set_kernel_shape_given_ns(finufft_spread_opts &opts, int debug);
 
+// min and max number of poly coeffs allowed (compiled) for a given spread width ns
+inline constexpr int min_nc_given_ns(int ns) {
+  return std::max(MIN_NC, ns - 1); // note must stay in bounds from constants.h
+}
+inline constexpr int max_nc_given_ns(int ns) {
+  return std::min(MAX_NC, ns + 3); // "
+}
+
 template<int NS, int NC> inline constexpr bool ValidKernelParams() noexcept {
   // NS = nspread (kernel width), NC = # poly coeffs in Horner evaluator.
   // Defines the compiled range of NC for each NS, in spreadinterp.
   // Other instantiations can be
   // compiled away at call sites using if constexpr to reduce binary size.
   // Barbone Dec 2025.
-  return (NC >= NS - 1) && (NC <= NS + 3);
+  // AHB changed to use the above two expressions, but needs checking if compile-time ok
+  return (NC >= min_nc_given_ns(NS)) && (NC <= max_nc_given_ns(NS));
 }
 
 } // namespace finufft::kernel
