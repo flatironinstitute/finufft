@@ -99,29 +99,6 @@ static int set_nf_type12(BIGINT ms, const finufft_opts &opts,
 }
 
 template<typename T>
-static int setup_spreader_for_nufft(finufft_spread_opts &spopts, T eps,
-                                    const finufft_opts &opts, int dim)
-// Set up the spreader parameters given eps, and pass across various nufft
-// options. Return status of setup_spreader. Uses pass-by-ref. Barnett 10/30/17
-// Barbone (Dec/25): ensure legacy kereval/kerpad user opts are treated as no-ops.
-{
-  // this calls spreadinterp.cpp...
-  int ier = setup_spreader(spopts, eps, opts.upsampfac, opts.spread_kerevalmeth,
-                           opts.spread_debug, opts.showwarn, opts.spreadinterponly, dim,
-                           opts.spread_kerformula);
-  // override various spread opts from their defaults...
-  spopts.debug    = opts.spread_debug;
-  spopts.sort     = opts.spread_sort; // could make dim or CPU choices here?
-  spopts.kerpad   = 0;                // legacy kerpad kept for ABI compatibility
-  spopts.nthreads = opts.nthreads;    // 0 passed in becomes omp max by here
-  if (opts.spread_nthr_atomic >= 0)   // overrides
-    spopts.atomic_threshold = opts.spread_nthr_atomic;
-  if (opts.spread_max_sp_size > 0)    // overrides
-    spopts.max_subproblem_size = opts.spread_max_sp_size;
-  return ier;
-}
-
-template<typename T>
 static void set_nhg_type3(T S, T X, const finufft_opts &opts,
                           const finufft_spread_opts &spopts, BIGINT *nf, T *h, T *gam)
 /* sets nf, h (upsampled grid spacing), and gamma (x_j rescaling factor),
@@ -515,6 +492,77 @@ int FINUFFT_PLAN_T<T>::deconvolveBatch(int batchSize, std::complex<T> *fkBatch,
   return 0;
 }
 
+template<typename TF> int FINUFFT_PLAN_T<TF>::setup_spreadinterp() {
+/* Sets spread/interp (gridding) kernel params in spopts struct (ns, etc),
+  based on:
+  tol - desired user relative tolerance (a.k.a eps)
+  opts.upsampfac - fixed upsampling factor (=sigma), previously set.
+  opts.kerformula - kernel function type (chooses the default, override if >0)
+  All of these are plan members.
+  Some members simply populate spopts from opts (except spread_direction not set).
+  Returns: 0  : success
+            FINUFFT_WARN_EPS_TOO_SMALL : requested eps (tol) cannot be achieved,
+                                         but proceed with best possible eps.
+            otherwise : failure (see codes in finufft_errors.h); spreading must
+                        not proceed.
+  Barbone (Dec/25): ensure legacy kereval/kerpad user opts are treated as no-ops.
+  1/8/26: Barnett redo (merges setup_spreader & setup_spreader_for_nufft of 2017).
+*/
+  spopts.nthreads = opts.nthreads; // 0 passed in becomes OMP max avail spreadinterp
+  spopts.sort     = opts.spread_sort; // todo: could make dim or CPU choices here?
+  spopts.sort_threads     = 0; // 0:auto-choice
+  spopts.debug    = opts.spread_debug;  // simple pass-through
+  spopts.upsampfac  = opts.upsampfac;   // "
+  spopts.kerformula = (opts.kerformula==0) ? 1 : opts.kerformula;  // sets default
+
+  int ier;
+  if (tol < EPSILON) {  // unfeasible request: no hope of beating eps_mach...
+    if (showwarn)
+      fprintf(stderr, "%s warning: increasing tol=%.3g to eps_mach=%.3g.\n", __func__,
+              (double)tol, (double)EPSILON);
+    tol = EPSILON;    // ... so forget the user request and target eps_mach
+    ier = FINUFFT_WARN_EPS_TOO_SMALL;
+  }
+ 
+  // choose nspread and set it in spopts...
+  int ns = theoretical_kernel_ns((double)tol, dim, type, opts.debug, spopts);
+  ns = std::max(MIN_NSPREAD,ns); // clip low
+  if (ns > MAX_NSPREAD) {        // clip to largest spreadinterp.cpp allows
+    if (showwarn)
+      fprintf(stderr, "%s warning: at upsampfac=%.3g, tol=%.3g would need kernel "
+        "width ns=%d; clipping to max %d.\n", __func__, spopts.upsampfac,
+        (double)tol, ns, MAX_NSPREAD);
+    ns  = MAX_NSPREAD;
+    ier = FINUFFT_WARN_EPS_TOO_SMALL;
+  }
+  // further ns reduction to prevent catastrophic cancellation in float...
+  const bool singleprec = constexpr std::is_same_v<TF,float>;
+  if (singleprec && spopts.upsampfac < 1.4) {
+    int ns_CC_lim = (dim==1) ? 9 : 8;  // hacky, const, via plottolsweep.m
+    if (ns > ns_CC_lim) {
+     if (showwarn)
+      fprintf(stderr, "%s warning: ns reducing from %d to %d to prevent rdyn-related"
+        "catastrophic cancellation.\n", __func__, ns, ns_CC_lim);
+      ns  = ns_CC_lim;
+    }
+  }
+  spopts.nspread = ns;
+  set_kernel_shape_given_ns(spopts);  // selects kernel params in spopts
+  if (spopts.debug)
+    printf("\t\t\ttol=%.3g sigma=%.3g (%s): chose ns=%d beta=%.3g\n", tol,
+           spopts.upsampfac, ns, spopts.ES_beta);
+
+  // heuristic dir=1 chunking for nthr>>1, typical for intel i7 and skylake...
+  spopts.max_subproblem_size = (dim == 1) ? 10000 : 100000;   // todo: revisit
+  if (opts.spread_max_sp_size > 0)    // override
+    spopts.max_subproblem_size = opts.spread_max_sp_size;
+  // nthr above which switch OMP critical->atomic (add_wrapped..). R Blackwell's val:
+  spopts.atomic_threshold = (opts.spread_nthr_atomic >= 0) ? opts.spread_nthr_atomic : 10;
+  
+  return ier;
+ }
+
+
 // ------------------- piecewise-poly Horner setup utility -----------------
 template<typename TF> void FINUFFT_PLAN_T<TF>::precompute_horner_coeffs() {
   // Solve for piecewise Horner coeffs for the function kernel.h:kernel_definition()
@@ -731,8 +779,8 @@ void finufft_default_opts_t(finufft_opts *o)
   o->fftw = FFTW_ESTIMATE;
 #endif
   o->spread_sort        = 2;
-  o->spread_kerevalmeth = 1;
-  o->spread_kerpad      = 1;
+  o->spread_kerevalmeth = 1; // deprecated
+  o->spread_kerpad      = 1; // deprecated
   o->upsampfac          = 0.0;
   o->spread_thread      = 0;
   o->maxbatchsize       = 0;
@@ -861,8 +909,13 @@ FINUFFT_PLAN_T<TF>::FINUFFT_PLAN_T(int type_, int dim_, const BIGINT *n_modes, i
   if (opts.upsampfac != 0.0) {
     upsamp_locked = true; // user explicitly set upsampfac, don't auto-update
     if (opts.debug) printf("\t\tuser locked upsampfac=%g\n", opts.upsampfac);
-
-    ier = setup_spreader_for_nufft(spopts, tol, opts, dim);
+    if (opts.showwarn && !opts.spreadinterponly && (opts.upsampfac < 1.15 ||
+                                                    opts.upsampfac > 2.5))
+      fprintf(stderr, "%s warning: upsampfac=%.3g not in [1.15, 2.5], unlikely "
+              "to provide benefit and may give inaccurate results!\n",
+              __func__, opts.upsampfac);
+ 
+    ier = setup_spreadinterp();
     if (ier > 1) // proceed if success or warning
       throw int(ier);
     precompute_horner_coeffs();
@@ -945,13 +998,12 @@ int FINUFFT_PLAN_T<TF>::setpts(BIGINT nj, const TF *xj, const TF *yj, const TF *
       // Re-plan if this is the first call (upsampfac==0) or if upsampfac changed
       if (upsampfac != opts.upsampfac) {
         opts.upsampfac = upsampfac;
-        if (opts.debug > 1)
-          printf("[setpts] selected upsampfac=%.2f (density=%.3f, nj=%lld)\n",
+        if (opts.debug)
+          printf("[setpts] selected best upsampfac=%.3g (density=%.3g, nj=%lld)\n",
                  opts.upsampfac, density, (long long)nj);
-        int code = setup_spreader_for_nufft(spopts, tol, opts, dim);
+        int code = setup_spreadinterp();
         if (code > 1) return code;
         precompute_horner_coeffs();
-
         // Perform the planning steps (first call or re-plan due to density change).
         code = init_grid_kerFT_FFT();
         if (code) return code;

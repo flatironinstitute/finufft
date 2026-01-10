@@ -147,7 +147,7 @@ private:
 
   int execute_internal(TC *cj, TC *fk, bool adjoint = false, int ntrans_actual = -1,
                        TC *aligned_scratch = nullptr, size_t scratch_size = 0) const;
-
+  int setup_spreadinterp();
   void precompute_horner_coeffs();
 
   // Helper to initialize spreader, phiHat (Fourier series), and FFT plan.
