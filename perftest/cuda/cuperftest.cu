@@ -14,7 +14,7 @@
 #include <thrust/device_vector.h>
 #include <thrust/host_vector.h>
 
-static const double PI = 3.141592653589793238462643383279502884;
+using finufft::common::PI;
 
 std::string get_or(const std::unordered_map<std::string, std::string> &m,
                    const std::string &key, const std::string &default_value) {
