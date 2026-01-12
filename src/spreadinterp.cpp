@@ -173,6 +173,14 @@ void print_subgrid_info(int ndims, BIGINT offset1, BIGINT offset2, BIGINT offset
     break;
   }
 }
+// Helper for runtime diagnostic when dispatch picks invalid kernel params.
+// Defined noinline to avoid code bloat on the valid path.
+FINUFFT_NEVER_INLINE int report_invalid_kernel_params(const int ns, const int nc) {
+  fprintf(stderr,
+          "FINUFFT error: invalid kernel params selected at runtime (ns=%d, nc=%d).\n",
+          ns, nc);
+  return 1;
+}
 } // namespace
 // declarations of purely internal functions... (thus need not be in .h)
 
@@ -891,7 +899,7 @@ template<typename T> struct SpreadSubproblem1dCaller {
 
   template<int NS, int NC> int operator()() const {
     if constexpr (!::finufft::kernel::ValidKernelParams<NS, NC>()) {
-      return 1;
+      return report_invalid_kernel_params(NS, NC);
     } else {
       spread_subproblem_1d_kernel<T, NS, NC>(off1, size1, du, M, kx, dd,
                                              horner_coeffs_ptr);
@@ -1023,7 +1031,7 @@ template<typename T> struct SpreadSubproblem2dCaller {
 
   template<int NS, int NC> int operator()() const {
     if constexpr (!::finufft::kernel::ValidKernelParams<NS, NC>()) {
-      return 1;
+      return report_invalid_kernel_params(NS, NC);
     } else {
       spread_subproblem_2d_kernel<T, NS, NC>(off1, off2, size1, size2, du, M, kx, ky, dd,
                                              horner_coeffs_ptr);
@@ -1149,7 +1157,7 @@ template<typename T> struct SpreadSubproblem3dCaller {
 
   template<int NS, int NC> int operator()() const {
     if constexpr (!::finufft::kernel::ValidKernelParams<NS, NC>()) {
-      return 1;
+      return report_invalid_kernel_params(NS, NC);
     } else {
       spread_subproblem_3d_kernel<T, NS, NC>(off1, off2, off3, size1, size2, size3, du, M,
                                              kx, ky, kz, dd, horner_coeffs_ptr);
@@ -1845,7 +1853,7 @@ template<typename T> struct InterpSortedCaller {
 
   template<int NS, int NC> int operator()() const {
     if constexpr (!::finufft::kernel::ValidKernelParams<NS, NC>()) {
-      return 1;
+      return report_invalid_kernel_params(NS, NC);
     } else {
       return interpSorted_kernel<T, NS, NC>(sort_indices, N1, N2, N3, data_uniform, M, kx,
                                             ky, kz, data_nonuniform, opts,
