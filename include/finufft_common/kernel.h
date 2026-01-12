@@ -9,8 +9,6 @@
 #include <finufft_common/utils.h>
 #include <finufft_spread_opts.h>
 
-using namespace finufft::common;
-
 namespace finufft::kernel {
 
 template<class T, class F> std::vector<T> fit_monomials(F &&f, int n, T a, T b) noexcept {
@@ -90,8 +88,8 @@ template<typename T> T evaluate_kernel(T x, T beta, T c, int kerformula = 0) {
     if (c * x * x >= T(1)) return T(0.0); // prevent nonpositive sqrts
     const T inner        = std::sqrt(T(1) - c * x * x);
     const T arg          = beta * inner;
-    const double i0_arg  = ::finufft::common::cyl_bessel_i(0, static_cast<double>(arg));
-    const double i0_beta = ::finufft::common::cyl_bessel_i(0, static_cast<double>(beta));
+    const double i0_arg  = common::cyl_bessel_i(0, static_cast<double>(arg));
+    const double i0_beta = common::cyl_bessel_i(0, static_cast<double>(beta));
     return static_cast<T>(i0_arg / i0_beta);
   }
   return T(0.0);
@@ -107,10 +105,10 @@ FINUFFT_EXPORT double sigma_max_tol(double upsampfac, int kerformula, int max_ns
 
 // min and max number of poly coeffs allowed (compiled) for a given spread width ns
 inline constexpr int min_nc_given_ns(int ns) {
-  return std::max(MIN_NC, ns - 1); // note must stay in bounds from constants.h
+  return std::max(common::MIN_NC, ns - 1); // note must stay in bounds from constants.h
 }
 inline constexpr int max_nc_given_ns(int ns) {
-  return std::min(MAX_NC, ns + 3); // "
+  return std::min(common::MAX_NC, ns + 3); // "
 }
 
 template<int NS, int NC> inline constexpr bool ValidKernelParams() noexcept {
