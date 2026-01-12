@@ -191,7 +191,7 @@ usage:
 	@echo "Also see docs/install.rst and docs/README"
 
 # collect headers for implicit depends (we don't separate public from private)
-HEADERS = $(wildcard include/*.h include/finufft/*.h include/finufft_common/*.h)
+HEADERS = $(wildcard include/*.h include/finufft/*.h include/finufft/*.hpp include/finufft_common/*.h)
 
 # implicit rules for objects (note -o ensures writes to correct dir)
 %.o: %.cpp $(HEADERS)
@@ -211,8 +211,8 @@ fortran/%.o: fortran/%.cpp $(HEADERS)
 # so fftw/ducc header needed for spreadinterp, though spreadinterp should not
 # depend on fftw/ducc directly?
 include/finufft/fft.h: $(DUCC_SETUP)
-SHEAD = $(wildcard src/*.h) $(XSIMD_DIR)/include/xsimd/xsimd.hpp
-src/spreadinterp.o: $(SHEAD)
+SHEAD = $(XSIMD_DIR)/include/xsimd/xsimd.hpp
+src/spreadinterp.o: src/spreadinterp.cpp include/finufft/spreadinterp.h include/finufft/finufft_utils.hpp include/finufft_common/kernel.h include/finufft_common/spread_opts.h $(SHEAD)
 
 # we need xsimd functionality in finufft_core.h, which is included by many other
 # files, so make sure we install xsimd before we prcess any of those files.

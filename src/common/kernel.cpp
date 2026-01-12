@@ -3,7 +3,7 @@
 #include <cstdio>
 #include <finufft_common/common.h>
 #include <finufft_common/kernel.h>
-#include <finufft_spread_opts.h>
+#include <finufft_common/spread_opts.h>
 
 namespace finufft::kernel {
 
