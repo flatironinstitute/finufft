@@ -14,6 +14,8 @@
 #include <thrust/device_vector.h>
 #include <thrust/host_vector.h>
 
+using finufft::common::PI;
+
 std::string get_or(const std::unordered_map<std::string, std::string> &m,
                    const std::string &key, const std::string &default_value) {
   auto it = m.find(key);

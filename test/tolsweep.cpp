@@ -56,8 +56,7 @@ int main(int argc, char *argv[]) {
   // If user asked for help, print usage and exit
   for (int ai = 1; ai < argc; ++ai) {
     if (std::string(argv[ai]) == "-h" || std::string(argv[ai]) == "--help") {
-      std::cout << "Usage: " << argv[0]
-                << " [kerformula [showwarn [verbose [debug]]]]\n";
+      std::cout << "Usage: " << argv[0] << " [kerformula [showwarn [verbose [debug]]]]\n";
       std::cout
           << "  kerformula    : spread kernel formula (0:default, >0: for experts)\n";
       std::cout
