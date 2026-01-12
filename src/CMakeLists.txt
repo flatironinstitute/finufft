@@ -47,7 +47,7 @@ if(FINUFFT_USE_DUCC0)
     target_compile_definitions(finufft PRIVATE FINUFFT_USE_DUCC0)
 endif()
 
-target_link_libraries(finufft PRIVATE $<BUILD_INTERFACE:finufft_fftlibs xsimd finufft_common>)
+target_link_libraries(finufft PRIVATE $<BUILD_INTERFACE:finufft_fftlibs xsimd finufft_common poet::poet>)
 if(FINUFFT_USE_OPENMP)
     target_link_libraries(finufft PRIVATE OpenMP::OpenMP_CXX)
     if(NOT FINUFFT_STATIC_LINKING)

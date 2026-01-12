@@ -13,6 +13,7 @@
 #include <utility> // for std::forward
 
 #include <finufft_common/common.h>
+#include <poet/poet.hpp>
 
 #ifndef _USE_MATH_DEFINES
 #define _USE_MATH_DEFINES
@@ -187,7 +188,7 @@ template<typename Func, typename T, typename... Args>
 auto launch_dispatch_ns(Func &&func, int target_ns, Args &&...args) {
   using NsSeq = make_range<MIN_NSPREAD, MAX_NSPREAD>;
   auto params = std::make_tuple(DispatchParam<NsSeq>{target_ns});
-  return dispatch(std::forward<Func>(func), params, std::forward<Args>(args)...);
+  return poet::dispatch(std::forward<Func>(func), params, std::forward<Args>(args)...);
 }
 
 /**

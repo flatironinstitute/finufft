@@ -81,7 +81,8 @@ if(FINUFFT_SHARED_LINKING)
     endif()
 endif()
 
-target_link_libraries(cufinufft PRIVATE CUDA::cudart CUDA::cufft $<BUILD_INTERFACE:finufft_common>)
+target_link_libraries(cufinufft PRIVATE CUDA::cudart CUDA::cufft)
+target_link_libraries(cufinufft PUBLIC $<BUILD_INTERFACE:finufft_common> poet::poet)
 # Expose only when not doing fully static linking
 if(NOT FINUFFT_STATIC_LINKING)
     target_link_libraries(cufinufft PUBLIC CUDA::cudart CUDA::cufft)

@@ -3,6 +3,7 @@
 #include <finufft/finufft_utils.hpp>
 #include <finufft/spreadinterp.h>
 #include <finufft_common/kernel.h>
+#include <poet/poet.hpp>
 
 #include <finufft/xsimd.hpp>
 
@@ -15,7 +16,7 @@
 
 using namespace std;
 using namespace finufft::utils;  // access to timer
-using namespace finufft::common; // access to constants and dispatch
+using namespace finufft::common; // access to constants
 using namespace finufft::kernel; // access to kernel evaluation funcs
 
 namespace finufft::spreadinterp {
@@ -911,7 +912,7 @@ static void spread_subproblem_1d(BIGINT off1, UBIGINT size1, T *du, UBIGINT M, T
   using NcSeq = make_range<MIN_NC, MAX_NC>;
   auto params =
       std::make_tuple(DispatchParam<NsSeq>{opts.nspread}, DispatchParam<NcSeq>{nc});
-  dispatch(caller, params);
+  poet::dispatch(caller, params);
 }
 
 template<typename T, int ns, int nc>
@@ -1053,7 +1054,7 @@ static void spread_subproblem_2d(
   using NcSeq = make_range<MIN_NC, MAX_NC>;
   auto params =
       std::make_tuple(DispatchParam<NsSeq>{opts.nspread}, DispatchParam<NcSeq>{nc});
-  dispatch(caller, params);
+  poet::dispatch(caller, params);
 }
 
 template<typename T, int ns, int nc>
@@ -1179,7 +1180,7 @@ du (size size1*size2*size3) is uniform complex output array
   using NcSeq = make_range<MIN_NC, MAX_NC>;
   auto params =
       std::make_tuple(DispatchParam<NsSeq>{opts.nspread}, DispatchParam<NcSeq>{nc});
-  dispatch(caller, params);
+  poet::dispatch(caller, params);
 }
 
 template<typename T, bool thread_safe>
@@ -1870,7 +1871,7 @@ static int interpSorted(
   using NcSeq = make_range<MIN_NC, MAX_NC>;
   auto params =
       std::make_tuple(DispatchParam<NsSeq>{opts.nspread}, DispatchParam<NcSeq>{nc});
-  return dispatch(caller, params);
+  return poet::dispatch(caller, params);
 }
 
 template<typename T>
