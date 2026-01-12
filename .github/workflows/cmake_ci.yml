@@ -104,6 +104,23 @@ jobs:
           - { os: macos-15, toolchain: gcc-15 }
 
     steps:
+      - name: Show CPU info (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          lscpu
+
+      - name: Show CPU info (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          sysctl -a | grep -i machdep.cpu
+
+      - name: Show CPU info (Windows)
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: |
+          Get-CimInstance Win32_Processor |
+            Select-Object Name,Manufacturer,NumberOfCores,NumberOfLogicalProcessors |
+            Format-List
       - name: Free Disk Space (Ubuntu)
         if: runner.os == 'Linux'
         uses: jlumbroso/free-disk-space@main
