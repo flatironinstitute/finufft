@@ -4,8 +4,8 @@
 #include <cufft.h>
 #include <cufinufft/types.h>
 #include <cufinufft_opts.h>
+#include <finufft_common/spread_opts.h>
 #include <finufft_errors.h>
-#include <finufft_spread_opts.h>
 
 #include <complex>
 
