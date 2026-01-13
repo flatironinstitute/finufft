@@ -3,8 +3,9 @@
  * behavior and checks correctness via kernel sums.
 
  * Barbone, using the public finufft API 11/07/2025.
- * Barnett over-simplified to remove misleading opts, 1/12/26.
- Todo: update args + screen output like spreadtestnd.cpp
+ * Barnett over-simplified to remove misleading opts, 1/12/26. but found...
+ Todo: 1) Fix erroneous moving of NU points without doing setpts :(
+ 2) Update args + screen output like spreadtestnd.cpp
  */
 #include "finufft/finufft_utils.hpp"
 #include <finufft/test_defs.h>
@@ -22,9 +23,9 @@ void usage(void) {
       "usage: spreadtestnd dims [M N [dir [sort]]]\n"
       "\twhere dims=1,2 or 3\n"
       "\tM=# nonuniform pts\n"
-      "\tN=# uniform pts (total)\n"
+      "\tN=# uniform pts (rough total; per-dim N=round(N^(1/d)))\n"
       "\tdir=direction (1=spread, 2=interpolate)\n"
-      "\tsort=0 (don't sort NU pts), 1 (do), or 2 (maybe sort; default)\n"
+      "\tsort=0 (never sort NU pts), 1 (always sort), or 2 (auto; default)\n"
       "\n"
       "example: ./spreadtestndall 1 1e6 1e6 1 2\n");
 }
@@ -88,11 +89,12 @@ int main(int argc, char *argv[]) {
   // use complex arrays for NU strengths and uniform grid values
   std::vector<CPX> d_nonuniform(M), d_uniform(Ng);
 
+  // whether this causes warnings will depend on upsampfac...
   const auto max_digits = std::is_same_v<FLT, double> ? 17 : 9;
 
   for (int digits = 2; digits < max_digits; ++digits) {
     const auto tol = (FLT)(10.0 * pow(10.0, -digits));
-    printf("digits=%d, tol = %.3g\n", digits, (double)tol);
+    printf("digits=%d, tol = %.3g...\n", digits, (double)tol);
 
     // set finufft options from CLI choices
     finufft_opts fopts;
@@ -147,7 +149,7 @@ int main(int argc, char *argv[]) {
     }
 
     // now random data for large test
-    printf("making random data...\n");
+    // printf("making random data...\n");
 #pragma omp parallel
     {
       unsigned int se = MY_OMP_GET_THREAD_NUM();
@@ -164,8 +166,14 @@ int main(int argc, char *argv[]) {
     CNTime timer{};
     double t;
 
+    // Alert for Marco: the NU pts arrays have been changed then calling execute!
+    // (Docs forbid this). This would lead to very slow spreading...  TO FIX.
+
+    // Not sure why a different execute is used for timing here... the above one
+    // would suffice:
+
     if (dir == 1) {
-      printf("spreadinterp %dD, %.3g U pts, dir=%d, tol=%.3g:\n", d, (double)Ng, 1,
+      printf("spreadtestndall %dD, %.3g U pts, dir=%d, tol=%.3g:\n", d, (double)Ng, 1,
              (double)tol);
       timer.start();
       ier = FINUFFT_EXECUTE(plan, d_nonuniform.data(), d_uniform.data());
@@ -175,18 +183,18 @@ int main(int argc, char *argv[]) {
         FINUFFT_DESTROY(plan);
         return ier;
       }
-      printf("\t%.3g NU pts in %.3g s \t%.3g pts/s\n", (double)M, t, M / t);
+      printf("\t%.3g NU pts in %.3g s   \t%.3g pts/s", (double)M, t, M / t);
       // compare grid sum to predicted kersum*sum(c)
       CPX csum = std::accumulate(d_nonuniform.begin(), d_nonuniform.end(), CPX(0.0, 0.0));
       CPX mass = std::accumulate(d_uniform.begin(), d_uniform.end(), CPX(0.0, 0.0));
       FLT relerr = std::abs(mass - kersum * csum) / std::abs(mass);
-      printf("\trel err in total over grid: %.3g\n", relerr);
+      printf("\trel err %.3g\n", relerr);
 
     } else { // dir == 2: interpolate U->NU via execute_adjoint
       printf("making more random NU pts...\n");
       for (BIGINT i = 0; i < Ng; ++i) d_uniform[i] = CPX(1.0, 0.0);
 
-      printf("spreadinterpall %dD, %.3g U pts, dir=%d, tol=%.3g:\n", d, (double)Ng, 2,
+      printf("spreadtestndall %dD, %.3g U pts, dir=%d, tol=%.3g:\n", d, (double)Ng, 2,
              (double)tol);
       timer.restart();
       ier = FINUFFT_EXECUTE(plan, d_nonuniform.data(), d_uniform.data());
@@ -196,12 +204,12 @@ int main(int argc, char *argv[]) {
         FINUFFT_DESTROY(plan);
         return ier;
       }
-      printf("\t%.3g NU pts in %.3g s \t%.3g pts/s\n", (double)M, t, M / t);
+      printf("\t%.3g NU pts in %.3g s   \t%.3g pts/s", (double)M, t, M / t);
       // interp-only test: compute sup error at NU points vs kersum
       FLT superr = 0.0;
       for (auto &cj : d_nonuniform) superr = std::max(superr, std::abs(cj - kersum));
       FLT relsuperr = superr / std::abs(kersum);
-      printf("\trel sup err %.3g\n", relsuperr);
+      printf("\trel err %.3g\n", relsuperr);
     }
 
     FINUFFT_DESTROY(plan);

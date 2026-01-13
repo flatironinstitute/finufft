@@ -204,13 +204,13 @@ int main(int argc, char *argv[]) {
     FINUFFT_DESTROY(plan);
     return ier;
   } else
-    printf("\tdir=1 setpts+exec done in %.3g s", t1);
+    printf("\tdir=1 setpts+exec %.3g s\t(%.3g NU pt/s)", t1, (double)Ng / t1);
 
   // Compute total input strength and total output mass, compare with kersum
   CPX csum   = std::accumulate(d_nonuniform.begin(), d_nonuniform.end(), CPX(0.0, 0.0));
   CPX mass   = std::accumulate(d_uniform.begin(), d_uniform.end(), CPX(0.0, 0.0));
   FLT relerr = std::abs(mass - kersum * csum) / std::abs(mass);
-  printf("   \trel err in grid total: %.3g\n", relerr);
+  printf("\trel err %.3g\n", relerr);
 
   // -------- Type-2 test (U -> NU) using a separate type-2 plan --------
   // printf("making random NU pts for dir=2...\n");
@@ -255,14 +255,14 @@ int main(int argc, char *argv[]) {
     FINUFFT_DESTROY(plan2);
     return ier;
   } else
-    printf("\tdir=2 setpts+exec done in %.3g s", t2);
+    printf("\tdir=2 setpts+exec %.3g s\t(%.3g NU pt/s)", t2, (double)Ng / t2);
 
   // interp-only check: since grid=1.0 was done above, interp should give kersum
   // (const) at all NU points in d_nonuniform. Compute sup error vs kersum:
   FLT superr = 0.0;
   for (auto &cj : d_nonuniform) superr = std::max(superr, std::abs(cj - kersum));
   FLT relsuperr = superr / std::abs(kersum);
-  printf("    \tmax rel err vs const:  %.3g\n", relsuperr);
+  printf("\trel err %.3g\n", relsuperr);
   FINUFFT_DESTROY(plan);
   FINUFFT_DESTROY(plan2);
   return 0;
