@@ -63,7 +63,7 @@ template<class T, class F> std::vector<T> poly_fit(F &&f, int n) noexcept {
   return c;
 }
 
-double kernel_definition(const finufft_spread_opts spopts, const double z) {
+double kernel_definition(const finufft_spread_opts &spopts, const double z) {
   /* The spread/interp kernel phi_beta(z) function on standard interval z in [-1,1],
      This evaluation does not need to be fast; it is used *only* for polynomial
      interpolation via Horner coeffs (the interpolant is evaluated fast).

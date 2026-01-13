@@ -583,10 +583,6 @@ template<typename TF> void FINUFFT_PLAN_T<TF>::precompute_horner_coeffs() {
 
   horner_coeffs.fill(TF(0));
 
-  // Get the kernel parameters
-  const TF beta         = TF(this->spopts.beta);
-  const int kerformula  = this->spopts.kerformula;
-
   nc = MIN_NC; // a class member which will become the number of coeffs used
 
   // First pass: fit at max_degree, cache coeffs, and determine largest nc
@@ -596,6 +592,7 @@ template<typename TF> void FINUFFT_PLAN_T<TF>::precompute_horner_coeffs() {
   // them so that `horner_coeffs[k * padded_ns + j]` holds the k'th Horner
   // coefficient (k=0 -> highest-degree). `horner_coeffs` was filled with
   // zeros above, so panels that need fewer coefficients leave the rest as 0.
+  
   for (int j = 0; j < nspread; ++j) {
     // Map x ∈ [-1, 1] to the physical interval for panel j.
     // original: 0.5 * (x - nspread + 2*j + 1)
@@ -603,7 +600,7 @@ template<typename TF> void FINUFFT_PLAN_T<TF>::precompute_horner_coeffs() {
 
     // shift and scale so [-1,1] maps to jth interval of kernel...
     // *** explore making double always, like kernel def:
-    const auto kernel_this_interval = [shift, spopts, nspread](TF x) -> TF {  /// *** prob with capture of spopts
+    const auto kernel_this_interval = [shift, this, nspread](TF x) -> TF {
       const TF z = (x + shift) / (TF(2.0)*nspread);
       return (TF)kernel_definition(spopts, z);
     };
