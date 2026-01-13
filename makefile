@@ -66,7 +66,7 @@ MWRAP = mwrap
 # root directory for dependencies to be downloaded:
 DEPS_ROOT := deps
 
-# xsimd header-only dependency repo
+# xsimd header-only dependency repo (the VERSION has to be a valid git tag)
 XSIMD_URL := https://github.com/xtensor-stack/xsimd.git
 XSIMD_VERSION := 14.0.0
 XSIMD_DIR := $(DEPS_ROOT)/xsimd
@@ -168,14 +168,14 @@ usage:
 	@echo " make lib - build the main library (in lib/ and lib-static/)"
 	@echo " make examples - compile and run all codes in examples/"
 	@echo " make test - compile and run quick math validation tests"
-	@echo " make perftest - compile and run (slower) performance tests"
+	@echo " make perftest - compile and run performance tests (~10 mins)"
 	@echo " make fortran - compile and run Fortran tests and examples"
 	@echo " make matlab - compile MATLAB interfaces (no test)"
 	@echo " make octave - compile and test octave interfaces"
 	@echo " make python - compile and test python interfaces"
-	@echo " make all - do all the above (around 1 minute; assumes you have MATLAB, etc)"
+	@echo " make all - do all the above (~1 minute; assumes you have MATLAB, etc)"
 	@echo " make spreadtest - compile & run spreader-only tests (no FFT)"
-	@echo " make spreadtestall - small set spreader-only tests for CI use"
+	@echo " make spreadtestall - small set of spreader-only tests for CI use"
 	@echo " make objclean - remove all object files, preserving libs & MEX"
 	@echo " make clean - also remove all lib, MEX, py, and demo executables"
 	@echo " make setup - check (and possibly download) dependencies"
@@ -190,7 +190,7 @@ usage:
 	@echo ""
 	@echo "Also see docs/install.rst and docs/README"
 
-# collect headers for implicit depends (we don't separate public from private)
+# collect headers for implicit depends (we don't separate public from private here)
 HEADERS = $(wildcard include/*.h include/finufft/*.h include/finufft/*.hpp include/finufft_common/*.h)
 
 # implicit rules for objects (note -o ensures writes to correct dir)
@@ -205,7 +205,7 @@ fortran/%.o: fortran/%.cpp $(HEADERS)
 %.o: %.f
 	$(FC) -c $(FFLAGS) $< -o $@
 
-# spreadinterp include auto-generated code, xsimd header-only dependency;
+# rule for spreadinterp: includes auto-generated code, xsimd header-only dependency;
 # if FFT=DUCC also setup ducc with fft.h dependency on $(DUCC_SETUP)...
 # Note src/spreadinterp.cpp includes finufft/finufft_core.h which includes finufft/fft.h
 # so fftw/ducc header needed for spreadinterp, though spreadinterp should not
@@ -356,7 +356,7 @@ spreadtest: $(ST) $(STF)
 	$(STF) 1 8e6 8e6 1e-3 ;\
 	$(STF) 2 8e6 8e6 1e-3 ;\
 	$(STF) 3 8e6 8e6 1e-3 )
-# smaller test of spreadinterp various tols, precs, kermeths...
+# smaller test of spreadinterp various tols, precs, sigmas (no pass/fail math)...
 spreadtestall: $(ST) $(STF)
 	(cd perftest; ./spreadtestall.sh)
 # Marco's sweep through kernel widths (ie tols)...
@@ -451,7 +451,8 @@ endif
 
 
 # python ---------------------------------------------------------------------
-python: $(STATICLIB) $(DYNLIB)
+# this task uses pyproject.toml and cmake (as of v2.3), so no more lib/static dep
+python:
 # note use of CMAKE_ARGS which needs quotes; see scikit-build docs...
 	FINUFFT_DIR=$(FINUFFT) CMAKE_ARGS=$(PY_CMAKE_ARGS) $(PYTHON) -m pip -v install python/finufft
 # note to devs: if trouble w/ NumPy, use: pip install ./python --no-deps
@@ -479,6 +480,7 @@ docker-wheel:
 
 # ================== SETUP/COMPILE OF EXTERNAL DEPENDENCIES ===============
 
+# this utility can only get a valid tag (not a specific commit like CPMAddPackage):
 define clone_repo
 	@if [ ! -d "$(3)" ]; then \
 		echo "Cloning repository $(1) at tag $(2) into directory $(3)"; \
