@@ -4,6 +4,7 @@ If not stated, FINUFFT is assumed (old cuFINUFFT <=1.3 is listed separately).
 Master (working towards v2.5.0), 1/12/26
 
 * Moved finufft_spread_opts.h from public-facing to private header (Barnett).
+* fixed no-setpts bug in perftest/spreadtestndall, updated perftests (Barnett).
 * Added real-valued function type-2 interpolation demos (Barnett, Unalmis #722)
 * Added functionality for adjoint execution of FINUFFT plans (Reinecke #633,
   addresses #566 and #571).
