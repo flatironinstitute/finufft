@@ -168,14 +168,14 @@ usage:
 	@echo " make lib - build the main library (in lib/ and lib-static/)"
 	@echo " make examples - compile and run all codes in examples/"
 	@echo " make test - compile and run quick math validation tests"
-	@echo " make perftest - compile and run performance tests (~10 mins)"
+	@echo " make perftest - compile and run some performance tests (~1 min)"
 	@echo " make fortran - compile and run Fortran tests and examples"
 	@echo " make matlab - compile MATLAB interfaces (no test)"
 	@echo " make octave - compile and test octave interfaces"
 	@echo " make python - compile and test python interfaces"
 	@echo " make all - do all the above (~1 minute; assumes you have MATLAB, etc)"
-	@echo " make spreadtest - compile & run spreader-only tests (no FFT)"
-	@echo " make spreadtestall - small set of spreader-only tests for CI use"
+	@echo " make spreadtest - compile & run quick spreader-only perf tests"
+	@echo " make spreadtestsweep - spreader-only perf tests, sweep all tolerances"
 	@echo " make objclean - remove all object files, preserving libs & MEX"
 	@echo " make clean - also remove all lib, MEX, py, and demo executables"
 	@echo " make setup - check (and possibly download) dependencies"
@@ -330,7 +330,8 @@ perftest/%: perftest/%.cpp $(STATICLIB)
 perftest/%f: perftest/%.cpp $(DYNLIB)
 	$(CXX) $(CXXFLAGS) ${LDFLAGS} -DSINGLE $< $(STATICLIB) $(LIBSFFT) -o $@
 
-# spreader only test, double/single (good for self-contained work on spreader)
+# spread/interp tests, double/single (used to be isolated from FINUFFT, now
+# require FINUFFT lib to be built because they use its API)...
 ST=perftest/spreadtestnd
 STA=perftest/spreadtestndall
 STF=$(ST)f
@@ -346,7 +347,8 @@ $(STAF): $(STA).cpp $(DYNLIB)
 	$(CXX) $(CXXFLAGS) ${LDFLAGS} -DSINGLE $< $(STATICLIB) $(LIBSFFT) -o $@
 
 spreadtest: $(ST) $(STF)
-# run one thread per core... (escape the $ to get single $ in bash; one big cmd)
+# This set of executables is similar to ./spreadtestall.sh; consider unifying:
+# Run one thread per core... (escape the $ to get single $ in bash; one big cmd)
 	(export OMP_NUM_THREADS=$$(perftest/mynumcores.sh) ;\
 	echo "\nRunning makefile double-precision spreader tests, $$OMP_NUM_THREADS threads..." ;\
 	$(ST) 1 8e6 8e6 1e-6 ;\
@@ -356,19 +358,16 @@ spreadtest: $(ST) $(STF)
 	$(STF) 1 8e6 8e6 1e-3 ;\
 	$(STF) 2 8e6 8e6 1e-3 ;\
 	$(STF) 3 8e6 8e6 1e-3 )
-# smaller test of spreadinterp various tols, precs, sigmas (no pass/fail math)...
-spreadtestall: $(ST) $(STF)
-	(cd perftest; ./spreadtestall.sh)
-# Marco's sweep through kernel widths (ie tols)...
-spreadtestndall: $(STA) $(STAF)
-	(cd perftest; ./multispreadtestndall.sh)
+# spread/interp speed test, sweep through all tolerances (for each prec, dim, dir):
+spreadtestsweep: $(STA) $(STAF)
+	(cd perftest; ./spreadtestndsweep.sh)
 bigtest: perftest/big2d2f
 	@echo "\nRunning >2^31 size example (takes 30 s and 30 GB RAM)..."
 	perftest/big2d2f
 
 PERFEXECS := $(basename $(wildcard test/finufft?d_test.cpp))
 PERFEXECS += $(PERFEXECS:%=%f)
-perftest: $(ST) $(STF) $(PERFEXECS) spreadtestndall bigtest gurutime manysmallprobs
+perftest: $(ST) $(STF) $(PERFEXECS) spreadtestsweep gurutime manysmallprobs bigtest
 # here the tee cmd copies output to screen. 2>&1 grabs both stdout and stderr...
 	(cd perftest ;\
 	./spreadtestnd.sh 2>&1 | tee results/spreadtestnd_results.txt ;\
