@@ -5,6 +5,8 @@
  * Barbone, using the public finufft API 11/07/2025.
  * Barnett 1/12/26: simplified to remove misleading/deprecated opts,
    fix erroneous NU pts change w/o setpts! Added both dir=1,2 as docs claimed.
+ * Note that there is a rounding stochastic error of sqrt(M)*e_mach, which is
+   apparent in single-prec (eg for M=6 you can bottom out at 3e-5 rel err).
 
  Todo: Add some more args + update screen output like spreadtestnd.cpp.
  */
@@ -99,7 +101,8 @@ int main(int argc, char *argv[]) {
   if (d > 2) kz.resize(M);
 
   // use complex arrays for NU strengths and uniform grid values
-  std::vector<CPX> d_nonuniform(M), d_uniform(Ng);
+  // (here d_nonuniform stay fixed, while d_nuout is for dir=2 output only)
+  std::vector<CPX> d_nonuniform(M), d_nuout(M), d_uniform(Ng);
 
   printf("spreadtestndall %dD: M=%.3g NU pts, Ng=%.3g U pts.\n", d, (double)M,
          (double)Ng);
@@ -118,7 +121,7 @@ int main(int argc, char *argv[]) {
   }
 
   std::vector<FLT> kxs(1), kys(1), kzs(1);    // set up tiny M=1 data to get kernel sum
-  kxs[0] = kys[0] = kzs[0] = (FLT)PI / 2.0;   // 1 NU point loc
+  kxs[0] = kys[0] = kzs[0] = 0.0;  // 1 NU point loc, ar nf/2 in each dim, on grid.
   std::vector<CPX> d_nus   = {CPX(1.0, 0.0)}; // with unit strength
 
   // where to stop (whether that causes warnings will depend on upsampfac):
@@ -195,7 +198,7 @@ int main(int argc, char *argv[]) {
 
     // dir == 2: interpolate U->NU via execute_adjoint ........................
     timer.restart();
-    ier = FINUFFT_EXECUTE_ADJOINT(plan, d_nonuniform.data(), d_uniform.data());
+    ier = FINUFFT_EXECUTE_ADJOINT(plan, d_nuout.data(), d_uniform.data());
     t   = timer.elapsedsec();
     if (ier != 0) {
       printf("exec error (ier=%d)!\n", ier);
@@ -205,7 +208,7 @@ int main(int argc, char *argv[]) {
     printf("  dir=2 exec in %.3g s,  \t%.3g NU pt/s   ", t, M / t);
     // interp-only test: compute sup error at NU points vs kersum
     FLT superr = 0.0;
-    for (auto &cj : d_nonuniform) superr = std::max(superr, std::abs(cj - kersum));
+    for (auto &cj : d_nuout) superr = std::max(superr, std::abs(cj - kersum));
     FLT relsuperr = superr / std::abs(kersum);
     printf("\trel err %.3g\n", relsuperr);
 

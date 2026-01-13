@@ -158,6 +158,8 @@ int main(int argc, char *argv[]) {
     return ier;
   }
 
+// *** reorder so fix erroneous setpts before kx ky change...
+
   // Reference: spread a single source at origin to get kernel sum over grid
   d_nonuniform.assign(M, CPX(0.0, 0.0));
   d_nonuniform[0] = CPX(1.0, 0.0);
@@ -209,7 +211,7 @@ int main(int argc, char *argv[]) {
   // Compute total input strength and total output mass, compare with kersum
   CPX csum   = std::accumulate(d_nonuniform.begin(), d_nonuniform.end(), CPX(0.0, 0.0));
   CPX mass   = std::accumulate(d_uniform.begin(), d_uniform.end(), CPX(0.0, 0.0));
-  FLT relerr = std::abs(mass - kersum * csum) / std::abs(mass);
+  FLT relerr = std::abs(mass - kersum * csum) / std::abs(kersum * csum);
   printf("\trel err %.3g\n", relerr);
 
   // -------- Type-2 test (U -> NU) using a separate type-2 plan --------
