@@ -181,7 +181,6 @@ int main(int argc, char *argv[]) {
   printf(" sort=%d, spread_debug=%d, kerform=%d, upsamp=%.3g\n", sort, spread_debug,
          kerformula, (double)upsampfac);
 
-  // printf("making random data for dir=1...\n");
 #pragma omp parallel
   {
     unsigned int se = MY_OMP_GET_THREAD_NUM();
