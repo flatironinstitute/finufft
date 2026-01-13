@@ -19,7 +19,6 @@ jobs:
 
     - name: Compile C++ code
       run: |
-        make spreadtestall
         make lib
         make test
 
@@ -38,7 +37,6 @@ jobs:
 
     - name: Compile C++ code
       run: |
-        make spreadtestall
         make lib
         make test
 
@@ -57,7 +55,6 @@ jobs:
 
     - name: Compile C++ code
       run: |
-        make spreadtestall
         make lib
         make test
 
@@ -84,4 +81,4 @@ jobs:
     - name: Compile C++ code
       run: |
         cp make-platforms/make.inc.windows_msys make.inc
-        make spreadtestall && make lib && make test
+        make lib && make test

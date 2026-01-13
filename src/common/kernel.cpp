@@ -3,7 +3,7 @@
 #include <cstdio>
 #include <finufft_common/common.h>
 #include <finufft_common/kernel.h>
-#include <finufft_spread_opts.h>
+#include <finufft_common/spread_opts.h>
 
 // this module uses finufft_spread_opts but does not know about FINUFFT_PLAN class
 // nor finufft_opts. This allows it to be used by CPU & GPU.
@@ -20,7 +20,7 @@ int theoretical_kernel_ns(double tol, int dim, int type, int debug,
 
   if (spopts.kerformula==1 && sigma == 2.0) {   // legacy (2017-2025)
     ns = (int)std::ceil(-std::log10(tol / 10.0));
-  
+
   } else {  // generic formula for PSWF-like kernels
     double fudgefac = 1.0;   // *** todo: tweak it, per kerformula
     ns = (int)std::ceil( std::log(fudgefac / tol) /

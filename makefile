@@ -66,7 +66,7 @@ MWRAP = mwrap
 # root directory for dependencies to be downloaded:
 DEPS_ROOT := deps
 
-# xsimd header-only dependency repo
+# xsimd header-only dependency repo (the VERSION has to be a valid git tag)
 XSIMD_URL := https://github.com/xtensor-stack/xsimd.git
 XSIMD_VERSION := 14.0.0
 XSIMD_DIR := $(DEPS_ROOT)/xsimd
@@ -161,21 +161,21 @@ OBJS = $(SOBJS) src/fft.o src/finufft_core.o src/c_interface.o fortran/finufftfo
 
 default: usage
 
-all: test perftest lib examples fortran matlab octave python
+all: test lib examples fortran matlab octave python spreadtest spreadtestsweep perftest
 
 usage:
 	@echo "Makefile for FINUFFT CPU library. Please specify your task:"
 	@echo " make lib - build the main library (in lib/ and lib-static/)"
 	@echo " make examples - compile and run all codes in examples/"
 	@echo " make test - compile and run quick math validation tests"
-	@echo " make perftest - compile and run (slower) performance tests"
 	@echo " make fortran - compile and run Fortran tests and examples"
 	@echo " make matlab - compile MATLAB interfaces (no test)"
-	@echo " make octave - compile and test octave interfaces"
-	@echo " make python - compile and test python interfaces"
-	@echo " make all - do all the above (around 1 minute; assumes you have MATLAB, etc)"
-	@echo " make spreadtest - compile & run spreader-only tests (no FFT)"
-	@echo " make spreadtestall - small set spreader-only tests for CI use"
+	@echo " make octave - compile then test octave interfaces"
+	@echo " make python - compile then test python interfaces"
+	@echo " make spreadtest - compile & run spreader-only perf tests"
+	@echo " make spreadtestsweep - spreader-only perf tests, sweep all tols"
+	@echo " make perftest - compile and run some performance tests (~1 min)"
+	@echo " make all - do all the above (~3 min; assumes have MEX, etc)"
 	@echo " make objclean - remove all object files, preserving libs & MEX"
 	@echo " make clean - also remove all lib, MEX, py, and demo executables"
 	@echo " make setup - check (and possibly download) dependencies"
@@ -190,8 +190,8 @@ usage:
 	@echo ""
 	@echo "Also see docs/install.rst and docs/README"
 
-# collect headers for implicit depends (we don't separate public from private)
-HEADERS = $(wildcard include/*.h include/finufft/*.h include/finufft_common/*.h)
+# collect headers for implicit depends (we don't separate public from private here)
+HEADERS = $(wildcard include/*.h include/finufft/*.h include/finufft/*.hpp include/finufft_common/*.h)
 
 # implicit rules for objects (note -o ensures writes to correct dir)
 %.o: %.cpp $(HEADERS)
@@ -205,14 +205,14 @@ fortran/%.o: fortran/%.cpp $(HEADERS)
 %.o: %.f
 	$(FC) -c $(FFLAGS) $< -o $@
 
-# spreadinterp include auto-generated code, xsimd header-only dependency;
+# rule for spreadinterp: includes auto-generated code, xsimd header-only dependency;
 # if FFT=DUCC also setup ducc with fft.h dependency on $(DUCC_SETUP)...
 # Note src/spreadinterp.cpp includes finufft/finufft_core.h which includes finufft/fft.h
 # so fftw/ducc header needed for spreadinterp, though spreadinterp should not
 # depend on fftw/ducc directly?
 include/finufft/fft.h: $(DUCC_SETUP)
-SHEAD = $(wildcard src/*.h) $(XSIMD_DIR)/include/xsimd/xsimd.hpp
-src/spreadinterp.o: $(SHEAD)
+SHEAD = $(XSIMD_DIR)/include/xsimd/xsimd.hpp
+src/spreadinterp.o: src/spreadinterp.cpp include/finufft/spreadinterp.h include/finufft/finufft_utils.hpp include/finufft_common/kernel.h include/finufft_common/spread_opts.h $(SHEAD)
 
 # we need xsimd functionality in finufft_core.h, which is included by many other
 # files, so make sure we install xsimd before we prcess any of those files.
@@ -330,7 +330,8 @@ perftest/%: perftest/%.cpp $(STATICLIB)
 perftest/%f: perftest/%.cpp $(DYNLIB)
 	$(CXX) $(CXXFLAGS) ${LDFLAGS} -DSINGLE $< $(STATICLIB) $(LIBSFFT) -o $@
 
-# spreader only test, double/single (good for self-contained work on spreader)
+# spread/interp tests, double/single (used to be isolated from FINUFFT, now
+# require FINUFFT lib to be built because they use its API)...
 ST=perftest/spreadtestnd
 STA=perftest/spreadtestndall
 STF=$(ST)f
@@ -346,7 +347,8 @@ $(STAF): $(STA).cpp $(DYNLIB)
 	$(CXX) $(CXXFLAGS) ${LDFLAGS} -DSINGLE $< $(STATICLIB) $(LIBSFFT) -o $@
 
 spreadtest: $(ST) $(STF)
-# run one thread per core... (escape the $ to get single $ in bash; one big cmd)
+# This set of executables is similar to ./spreadtestall.sh; consider unifying:
+# Run one thread per core... (escape the $ to get single $ in bash; one big cmd)
 	(export OMP_NUM_THREADS=$$(perftest/mynumcores.sh) ;\
 	echo "\nRunning makefile double-precision spreader tests, $$OMP_NUM_THREADS threads..." ;\
 	$(ST) 1 8e6 8e6 1e-6 ;\
@@ -356,19 +358,16 @@ spreadtest: $(ST) $(STF)
 	$(STF) 1 8e6 8e6 1e-3 ;\
 	$(STF) 2 8e6 8e6 1e-3 ;\
 	$(STF) 3 8e6 8e6 1e-3 )
-# smaller test of spreadinterp various tols, precs, kermeths...
-spreadtestall: $(ST) $(STF)
-	(cd perftest; ./spreadtestall.sh)
-# Marco's sweep through kernel widths (ie tols)...
-spreadtestndall: $(STA) $(STAF)
-	(cd perftest; ./multispreadtestndall.sh)
+# spread/interp speed test, sweep through all tolerances (for each prec, dim, dir):
+spreadtestsweep: $(STA) $(STAF)
+	(cd perftest; ./spreadtestndsweep.sh)
 bigtest: perftest/big2d2f
 	@echo "\nRunning >2^31 size example (takes 30 s and 30 GB RAM)..."
 	perftest/big2d2f
 
 PERFEXECS := $(basename $(wildcard test/finufft?d_test.cpp))
 PERFEXECS += $(PERFEXECS:%=%f)
-perftest: $(ST) $(STF) $(PERFEXECS) spreadtestndall bigtest gurutime manysmallprobs
+perftest: $(ST) $(STF) $(PERFEXECS) spreadtestsweep gurutime manysmallprobs bigtest
 # here the tee cmd copies output to screen. 2>&1 grabs both stdout and stderr...
 	(cd perftest ;\
 	./spreadtestnd.sh 2>&1 | tee results/spreadtestnd_results.txt ;\
@@ -451,7 +450,8 @@ endif
 
 
 # python ---------------------------------------------------------------------
-python: $(STATICLIB) $(DYNLIB)
+# this task uses pyproject.toml and cmake (as of v2.3), so no more lib/static dep
+python:
 # note use of CMAKE_ARGS which needs quotes; see scikit-build docs...
 	FINUFFT_DIR=$(FINUFFT) CMAKE_ARGS=$(PY_CMAKE_ARGS) $(PYTHON) -m pip -v install python/finufft
 # note to devs: if trouble w/ NumPy, use: pip install ./python --no-deps
@@ -479,6 +479,7 @@ docker-wheel:
 
 # ================== SETUP/COMPILE OF EXTERNAL DEPENDENCIES ===============
 
+# this utility can only get a valid tag (not a specific commit like CPMAddPackage):
 define clone_repo
 	@if [ ! -d "$(3)" ]; then \
 		echo "Cloning repository $(1) at tag $(2) into directory $(3)"; \

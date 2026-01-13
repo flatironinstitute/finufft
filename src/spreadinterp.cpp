@@ -1518,7 +1518,8 @@ int indexSort(std::vector<BIGINT> &sort_indices, UBIGINT N1, UBIGINT N2, UBIGINT
                (only kz used in 1D, only kx and ky used in 2D.)
     N1,N2,N3 - integer sizes of overall box (set N2=N3=1 for 1D, N3=1 for 2D).
                1 = x (fastest), 2 = y (medium), 3 = z (slowest).
-    opts     - spreading options struct, see ../include/finufft_spread_opts.h
+    opts     - spreading options struct,
+                see ../include/finufft_common/spread_opts.h
    Outputs:
     sort_indices - a good permutation of NU points. (User must preallocate
                    to length M.) Ie, kx[sort_indices[j]], j=0,..,M-1, is a good
@@ -1960,7 +1961,7 @@ int spreadinterpSorted(
 
         These should lie in the box -pi<=kx<=pi. Points outside this domain are also
         correctly folded back into this domain.
-   opts - spread/interp options struct, documented in ../include/finufft_spread_opts.h
+   opts - spread/interp options struct; see ../include/finufft_common/spread_opts.h
 
    Inputs/Outputs:
    data_uniform - output values on grid (dir=1) OR input grid data (dir=2)

@@ -17,7 +17,7 @@
 #define SPREADINTERP_H
 
 #include <finufft/finufft_core.h>
-#include <finufft_spread_opts.h>
+#include <finufft_common/spread_opts.h>
 
 namespace finufft {
 namespace spreadinterp {
