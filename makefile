@@ -161,21 +161,21 @@ OBJS = $(SOBJS) src/fft.o src/finufft_core.o src/c_interface.o fortran/finufftfo
 
 default: usage
 
-all: test perftest lib examples fortran matlab octave python
+all: test lib examples fortran matlab octave python spreadtest spreadtestsweep perftest
 
 usage:
 	@echo "Makefile for FINUFFT CPU library. Please specify your task:"
 	@echo " make lib - build the main library (in lib/ and lib-static/)"
 	@echo " make examples - compile and run all codes in examples/"
 	@echo " make test - compile and run quick math validation tests"
-	@echo " make perftest - compile and run some performance tests (~1 min)"
 	@echo " make fortran - compile and run Fortran tests and examples"
 	@echo " make matlab - compile MATLAB interfaces (no test)"
-	@echo " make octave - compile and test octave interfaces"
-	@echo " make python - compile and test python interfaces"
-	@echo " make all - do all the above (~1 minute; assumes you have MATLAB, etc)"
-	@echo " make spreadtest - compile & run quick spreader-only perf tests"
-	@echo " make spreadtestsweep - spreader-only perf tests, sweep all tolerances"
+	@echo " make octave - compile then test octave interfaces"
+	@echo " make python - compile then test python interfaces"
+	@echo " make spreadtest - compile & run spreader-only perf tests"
+	@echo " make spreadtestsweep - spreader-only perf tests, sweep all tols"
+	@echo " make perftest - compile and run some performance tests (~1 min)"
+	@echo " make all - do all the above (~3 min; assumes have MEX, etc)"
 	@echo " make objclean - remove all object files, preserving libs & MEX"
 	@echo " make clean - also remove all lib, MEX, py, and demo executables"
 	@echo " make setup - check (and possibly download) dependencies"

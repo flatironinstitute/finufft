@@ -1,5 +1,6 @@
 # Each source test file is instantiated in single and double precision
 set(PERFTESTS guru_timing_test manysmallprobs spreadtestnd spreadtestndall)
+# Other than that, it looks like no actual tests executed here by CMake
 
 foreach(TEST ${PERFTESTS})
     add_executable(${TEST} ${TEST}.cpp)
