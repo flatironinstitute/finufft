@@ -17,10 +17,10 @@ template<class T, class F> std::vector<T> poly_fit(F &&f, int n) noexcept {
   static_assert(std::is_floating_point_v<T>, "T must be floating-point");
   /* Expects f, a function handle for arguments on [-1,1], both I/O type T.
      Returns vector of n coefficients a_{n-1}, ... a_1, a_0 of degree-(n-1)
-     polynomial that interpolates f at a set of hard-wired Chebychev nodes.
+     polynomial that interpolates f at a set of hard-wired Chebyshev nodes.
 
      Barbone, Fall 2025.
-     Barnett 12/29/25-1/13/26 removed a,b to reduce poly defn confusion.
+     Barnett 12/29/25-1/13/26 removed a,b to simplify; no poly defn confusion.
   */
 
   // 1) Type-1 Chebyshev nodes t_k, data samples y_k = f(t_k)
@@ -63,43 +63,53 @@ template<class T, class F> std::vector<T> poly_fit(F &&f, int n) noexcept {
   return c;
 }
 
-template<typename T> T kernel_definition(T x, T beta, T c, int kerformula) {
-  /* The spread/interp kernel function definitions.
-     The single real argument x is in (-ns/2, ns/2), where ns
-     is the integer spreading width (support in fine gridpoints).
+double kernel_definition(const finufft_spread_opts spopts, const double z) {
+  /* The spread/interp kernel phi_beta(z) function on standard interval z in [-1,1],
+     This evaluation does not need to be fast; it is used *only* for polynomial
+     interpolation via Horner coeffs (the interpolant is evaluated fast).
+     It can thus always be double-precision. No analytic Fourier transform pair is
+     needed, thanks to numerical quadrature in finufft_core:onedim*; playing with
+     new kernels is thus very easy.
+    Inputs:
+    z      - real ordinate on standard interval [-1,1]. Handling of edge cases
+            at or near +-1 is no longer crucial, because precompute_horner_coeffs
+            (the only user of this function) has interpolation nodes in (-1,1).
+    spopts - spread_opts struct containing fields:
+      beta        - shape parameter for ES, KB, or other prolate kernels
+                    (a.k.a. c parameter in PSWF).
+      kerformula  - positive integer selecting among kernel function types; see
+                    docs in the code below.
+                    (More than one value may give the same type, to allow
+                    kerformula also to select a parameter-choice method.)
+                    Note: the default 0 (in opts.spread_kerformula) is invalid here;
+                    selection of a >0 kernel type must already have happened.
+    Output: phi(z), as in the notation of original 2019 paper ([FIN] in the docs).
 
-     *** currently ns not known, encoded in c -> change so halfwidth passsed in.
-     *** to kill c and have this kernel being defined on [-1,1]
-
-     kerformula must be >0 (even though 0 indicates default; this must have
-     already happened).
-
-     kerformula=1 :  ES ("exp sqrt") kernel (default)
-     phi_ES(x) = exp(beta*(sqrt(1 - c*x^2) - 1))
-     Note: max is 1. The kernel used in FINUFFT 2017-2025.
-
-     kerformula=2 : Kaiser--Bessel (KB) kernel
-       phi_KB(x) = I_0(beta*sqrt(1 - c*x^2)) / I_0(beta)
-     Note: `std::cyl_bessel_i` from <cmath> is used for I_0.
-     Note: max is 1.
+    Notes: 1) no normalization of max value or integral is needed, since any
+            overall factor is cancelled out in the deconvolve step. However,
+            values as large as exp(beta) have caused floating-pt overflow; don't
+            use them.
+    Barnett rewritten 1/13/26 for double on [-1,1]; based on Barbone Dec 2025.
   */
-  if (kerformula == 1) {
-    if (c * x * x >= T(1)) return T(0.0); // prevent nonpositive sqrts
-    return std::exp(beta * (std::sqrt(T(1) - c * x * x) - T(1))); // ES formula
+  if (std::abs(z) >= 1.0) return 0.0;         // restrict support to (-1,1)
+  double beta = spopts.beta;                  // get shape param
+  double arg = beta * std::sqrt(1.0 - z * z); // common argument for exp, I0, etc
 
-  } else if (kerformula == 2) {
-    // Kaiser--Bessel (normalized by I0(beta)). Use std::cyl_bessel_i from <cmath>.
-    if (c * x * x >= T(1)) return T(0.0); // prevent nonpositive sqrts
-    const T inner        = std::sqrt(T(1) - c * x * x);
-    const T arg          = beta * inner;
-    const double i0_arg  = common::cyl_bessel_i(0, static_cast<double>(arg));
-    const double i0_beta = common::cyl_bessel_i(0, static_cast<double>(beta));
-    return static_cast<T>(i0_arg / i0_beta);
+  if (spopts.kerformula == 1) {
+    // ES ("exponential of semicircle" or "exp sqrt"), see [FIN] reference.
+    // used in FINUFFT 2017-2025 (up to v2.4.1). max is 1, as of v2.3.0.
+    return std::exp(arg) / std::exp(beta);
+
+  } else if (spopts.kerformula == 2) {
+    // forwards Kaiser--Bessel (KB), normalized to max of 1.
+    // std::cyl_bessel_i is from <cmath>, expects double. See src/common/utils.cpp
+    return common::cyl_bessel_i(0, arg) / common::cyl_bessel_i(0, beta);
 
   } else {
-    fprintf(stderr, "[%s] unknown opts.kerformula=%d\n", __func__, kerformula);
+    fprintf(stderr, "[%s] unknown spopts.kerformula=%d\n", __func__, 
+      spopts.kerformula);
     throw int(FINUFFT_ERR_KERFORMULA_NOTVALID);
-    return T(0.0);
+    return std::numeric_limits<double>::quiet_NaN();    // non-signalling
   }
 }
 

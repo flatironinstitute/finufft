@@ -42,10 +42,10 @@ J. A. Fessler and B. P. Sutton. IEEE Trans. Sig. Proc., 51(2):560-74, (Feb. 2003
 
 [KKP] Using NFFT3---a software library for various nonequispaced fast Fourier transforms. J. Keiner, S. Kunis and D. Potts. Trans. Math. Software 36(4) (2009).
 
-[DFT] How exponentially ill-conditioned are contiguous submatrices of the Fourier matrix? A. H. Barnett, submitted, SIAM Rev. (2020).
+[DFT] How exponentially ill-conditioned are contiguous submatrices of the Fourier matrix? A. H. Barnett, SIAM Rev. 64(1) (2022).
 `arxiv version <https://arxiv.org/abs/2004.09643>`__
 
-The appendix of the last of the above contains the first known published proof
+The appendix of the last of the above contains a simple proof
 of the Kaiser--Bessel Fourier transform pair.
 This next two papers prove error estimates for sinh-type and other kernels closely related (and possibly slightly more optimal) than ours:
 

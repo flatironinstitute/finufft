@@ -171,7 +171,7 @@ static void onedim_fseries_kernel(BIGINT nf, std::vector<T> &fwkerhalf,
 {
   T J2 = opts.nspread / 2.0; // J/2, half-width of ker z-support
   // # quadr nodes in z (from 0 to J/2; reflections will be added)...
-  int q = (int)(2 + 3.0 * J2); // not sure why so large? cannot exceed MAX_NQUAD
+  int q = (int)(2 + 3.0 * J2); // not sure why so large? (NB cannot exceed MAX_NQUAD)
   T f[MAX_NQUAD];
   double z[2 * MAX_NQUAD], w[2 * MAX_NQUAD];
   gaussquad(2 * q, z, w);       // only half the nodes used, eg on (0,1)
@@ -498,8 +498,9 @@ template<typename TF> int FINUFFT_PLAN_T<TF>::setup_spreadinterp() {
   tol - desired user relative tolerance (a.k.a eps)
   opts.upsampfac - fixed upsampling factor (=sigma), previously set.
   opts.kerformula - kernel function type (chooses the default, override if >0)
-  All of these are plan members.
-  Some members simply populate spopts from opts (except spread_direction not set).
+  All of these (spopts, opts, tol) are plan class members.
+  See finufft_common/spread_opts.h for docs on all spopts fields.
+  Note that spopts.spread_direction is not set.
   Returns: 0  : success
             FINUFFT_WARN_EPS_TOO_SMALL : requested eps (tol) cannot be achieved,
                                          but proceed with best possible eps.
@@ -540,7 +541,7 @@ template<typename TF> int FINUFFT_PLAN_T<TF>::setup_spreadinterp() {
   // further ns reduction to prevent catastrophic cancellation in float...
   const bool singleprec = std::is_same_v<TF,float>;
   if (singleprec && spopts.upsampfac < 1.4) {
-    int max_ns_CC = (dim==1) ? 9 : 8;  // hacky, const, via plottolsweep.m
+    int max_ns_CC = (dim==1) ? 9 : 8;  // hacky, const, found via plottolsweep.m
     if (ns > max_ns_CC) {
       if (opts.showwarn)
         fprintf(stderr, "%s warning: ns reducing from %d to %d to prevent rdyn-related"
@@ -552,7 +553,7 @@ template<typename TF> int FINUFFT_PLAN_T<TF>::setup_spreadinterp() {
   set_kernel_shape_given_ns(spopts, opts.debug);  // selects kernel params in spopts
   if (opts.debug || spopts.debug)
     printf("\t\t\ttol=%.3g sigma=%.3g: chose ns=%d beta=%.3g (ier=%d)\n", tol,
-           spopts.upsampfac, ns, spopts.ES_beta, ier);
+           spopts.upsampfac, ns, spopts.beta, ier);
 
   // heuristic dir=1 chunking for nthr>>1, typical for intel i7 and skylake...
   spopts.max_subproblem_size = (dim == 1) ? 10000 : 100000;   // todo: revisit
@@ -568,7 +569,8 @@ template<typename TF> int FINUFFT_PLAN_T<TF>::setup_spreadinterp() {
 // ------------------- piecewise-poly Horner setup utility -----------------
 template<typename TF> void FINUFFT_PLAN_T<TF>::precompute_horner_coeffs() {
   // Solve for piecewise Horner coeffs for the function kernel.h:kernel_definition()
-  // Marco Barbone, Fall 2025. Barnett & Lu edits, Jan 2026.
+  // Marco Barbone, Fall 2025. Barnett & Lu edits and two bugs fixed, Jan 2026.
+  // *** Todo: investigate using double when TF=float, and tol_cutoff, 1/13/26. 
   const auto nspread = spopts.nspread;
 
   const auto nc_fit = max_nc_given_ns(nspread); // how many coeffs to fit
@@ -581,9 +583,8 @@ template<typename TF> void FINUFFT_PLAN_T<TF>::precompute_horner_coeffs() {
 
   horner_coeffs.fill(TF(0));
 
-  // Get the kernel parameters once
-  const TF beta         = TF(this->spopts.ES_beta);
-  const TF c_param      = TF(this->spopts.ES_c);
+  // Get the kernel parameters
+  const TF beta         = TF(this->spopts.beta);
   const int kerformula  = this->spopts.kerformula;
 
   nc = MIN_NC; // a class member which will become the number of coeffs used
@@ -601,11 +602,13 @@ template<typename TF> void FINUFFT_PLAN_T<TF>::precompute_horner_coeffs() {
     const TF shift = TF(2 * j + 1 - nspread);
 
     // shift and scale so [-1,1] maps to jth interval of kernel...
-    const auto kernel_this_interval = [shift, beta, c_param, kerformula](TF x) -> TF {
-      const TF t = TF(0.5) * (x + shift);
-      return kernel_definition(t, beta, c_param, kerformula);
+    // *** explore making double always, like kernel def:
+    const auto kernel_this_interval = [shift, spopts, nspread](TF x) -> TF {  /// *** prob with capture of spopts
+      const TF z = (x + shift) / (TF(2.0)*nspread);
+      return (TF)kernel_definition(spopts, z);
     };
 
+    // we're fitting in float for TF=float, *** explore this:
     const auto coeffs = poly_fit<TF>(kernel_this_interval, static_cast<int>(nc_fit));
 
     // Save coefficients directly into final table (transposed/padded):
