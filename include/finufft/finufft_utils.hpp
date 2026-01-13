@@ -11,6 +11,7 @@
 #include <array>
 #include <finufft/xsimd.hpp>
 #include <type_traits>
+#if defined(XSIMD_VERSION_MAJOR) && (XSIMD_VERSION_MAJOR >= 14)
 
 namespace finufft::utils {
 
@@ -65,6 +66,7 @@ template<class T> constexpr std::size_t GetPaddedSIMDWidth(int runtime_ns) {
 }
 
 } // namespace finufft::utils
+#endif // XSIMD_VERSION_MAJOR >=14
 #endif // __has_include(xsimd)
 
 namespace finufft::utils {
