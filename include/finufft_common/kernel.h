@@ -13,14 +13,14 @@
 
 namespace finufft::kernel {
 
-template<class T, class F> std::vector<T> poly_fit(F &&f, int n, T dummy) noexcept {
+template<class T, class F> std::vector<T> poly_fit(F &&f, int n) noexcept {
   static_assert(std::is_floating_point_v<T>, "T must be floating-point");
   /* Expects f, a function handle for arguments on [-1,1], both I/O type T.
      Returns vector of n coefficients a_{n-1}, ... a_1, a_0 of degree-(n-1)
      polynomial that interpolates f at a set of hard-wired Chebychev nodes.
 
-     Barbone, fall 2025. Barnett removed a,b to reduce poly defn confusion 12/29/25.
-     dummy seems to be needed to communicate the T type.
+     Barbone, Fall 2025.
+     Barnett 12/29/25-1/13/26 removed a,b to reduce poly defn confusion.
   */
 
   // 1) Type-1 Chebyshev nodes t_k, data samples y_k = f(t_k)

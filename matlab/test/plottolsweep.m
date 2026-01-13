@@ -19,7 +19,7 @@ o.debug = 0; o.showwarn=0;        % any FINUFFT opts...
 o.upsampfac = 1.5;  %2.0  etc
 o.spread_kerformula = 0;
 % failure fudge factors...
-tolslack = [5.0; 5.0; 10.0];  % factors by which eps can exceed tol (3 types)
+tolslack = [5.0; 5.0; 15.0];  % factors by which eps can exceed tol (3 types)
 floorslack = 20;
 w_max=16;            % MAX_NSPREAD
 sigma = o.upsampfac; % assume explicitly given

@@ -606,8 +606,7 @@ template<typename TF> void FINUFFT_PLAN_T<TF>::precompute_horner_coeffs() {
       return kernel_definition(t, beta, c_param, kerformula);
     };
 
-    const TF dummy    = 0.0; // *** there must be a better way to communicate TF type
-    const auto coeffs = poly_fit(kernel_this_interval, static_cast<int>(nc_fit), dummy);
+    const auto coeffs = poly_fit<TF>(kernel_this_interval, static_cast<int>(nc_fit));
 
     // Save coefficients directly into final table (transposed/padded):
     // coeffs[k] is highest->lowest, store at row k for panel j.
