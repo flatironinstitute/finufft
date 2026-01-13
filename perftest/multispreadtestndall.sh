@@ -3,20 +3,26 @@
 # used by the makefile.
 # all avail threads for now.
 # human has to check the output for now.
-# Barnett 6/4/24. 1/12/26: This is rather obsolete and unused.
+# Barnett 6/4/24.
+# Barnett 1/12/26 update for new cmd line args.
 
 M=1e6       # problem size (sets both # NU pts and # U modes); it's a string
 N=1e6       # num U grid pts
+USF=2.0     # sigma upsampfac (it's also a string)
 
-./spreadtestndall 1 $M $N 1
-./spreadtestndall 1 $M $N 2
-./spreadtestndall 2 $M $N 1
-./spreadtestndall 2 $M $N 2
-./spreadtestndall 3 $M $N 1
-./spreadtestndall 3 $M $N 2
-./spreadtestndallf 1 $M $N 1
-./spreadtestndallf 1 $M $N 2
-./spreadtestndallf 2 $M $N 1
-./spreadtestndallf 2 $M $N 2
-./spreadtestndallf 3 $M $N 1
-./spreadtestndallf 3 $M $N 2
+echo ""
+echo "Double-prec spread/interp tol sweep ----------------------------------"
+echo ""
+./spreadtestndall  1 $M $N 2 $USF
+echo ""
+./spreadtestndall  2 $M $N 2 $USF
+echo ""
+./spreadtestndall  3 $M $N 2 $USF
+echo ""
+echo "Single-prec spread/interp tol sweep ----------------------------------"
+echo ""
+./spreadtestndallf 1 $M $N 2 $USF
+echo ""
+./spreadtestndallf 2 $M $N 2 $USF
+echo ""
+./spreadtestndallf 3 $M $N 2 $USF

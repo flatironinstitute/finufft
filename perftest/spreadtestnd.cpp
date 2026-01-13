@@ -12,7 +12,7 @@
  * Barbone, removed pirange 05/09/24.
  * Barbone switched to public FINUFFT API 11/07/2025
  * Barbone (Dec/25): Warn when deprecated CLI spreader knobs are requested.
- * Barnett 1/12/26: update for v2.5.0, removing all deprecated flags/args
+ * Barnett 1/12/26: update for v2.5.0, kill all deprecated flags/args, tidy
 */
 
 #include <cmath>
@@ -28,8 +28,8 @@ using namespace finufft::utils;
 /* clang-format off */
 static void usage() {
   printf(
-    "usage: spreadtestnd dims [M N [tol [sort [spread_debug [kerformula [upsampfac]]]]]]\n"
-    "\twhere dims=1,2 or 3\n"
+    "usage: spreadtestnd{f} dims [M N [tol [sort [spread_debug [kerformula [upsampfac]]]]]]\n"
+    "\twhere the suffix f is for single (else double prec), dims=1,2 or 3\n"
     "\tM=# nonuniform pts\n"
     "\tN=# uniform pts (rough total; per-dim N=round(N^(1/d)))\n"
     "\ttol=requested accuracy\n"
