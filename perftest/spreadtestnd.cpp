@@ -1,5 +1,7 @@
 /* Test executable for the 1D, 2D, or 3D C++ spreader, both directions,
    via the FINUFFT API (using opts.spreadinterponly=1).
+   Unfortunately this API does not allow direct control of width w (nspread),
+   which the old (pre-2.4) spreadtestnd.cpp allowed (reporting spread-pt/sec).
    It checks speed, and basic correctness via the grid sum of the result.
    See usage() for usage.
 
@@ -172,12 +174,12 @@ int main(int argc, char *argv[]) {
   const CPX kersum = std::accumulate(d_uniform.begin(), d_uniform.end(), CPX(0.0, 0.0));
 
   // -------- Type-1 test (spread) --------
-  printf("config: d=%d, per-dim Nj=%lld, total N=%.3g, M=%.3g, tol=%.3g\n", d,
-         (long long)N, (double)Ng, (double)M, tol);
-  printf("        sort=%d, spread_debug=%d, kerform=%d, upsamp=%.3g\n", sort,
-         spread_debug, kerformula, (double)upsampfac);
+  printf("dim=%d, per-dim Nj=%lld, total N=%.3g, M=%.3g, tol=%.3g\n", d, (long long)N,
+         (double)Ng, (double)M, tol);
+  printf(" sort=%d, spread_debug=%d, kerform=%d, upsamp=%.3g\n", sort, spread_debug,
+         kerformula, (double)upsampfac);
 
-  printf("making random data for dir=1...\n");
+  // printf("making random data for dir=1...\n");
 #pragma omp parallel
   {
     unsigned int se = MY_OMP_GET_THREAD_NUM();
@@ -202,16 +204,16 @@ int main(int argc, char *argv[]) {
     FINUFFT_DESTROY(plan);
     return ier;
   } else
-    printf("\tsetpts+exec done in %.3g s", t1);
+    printf("\tdir=1 setpts+exec done in %.3g s", t1);
 
   // Compute total input strength and total output mass, compare with kersum
   CPX csum   = std::accumulate(d_nonuniform.begin(), d_nonuniform.end(), CPX(0.0, 0.0));
   CPX mass   = std::accumulate(d_uniform.begin(), d_uniform.end(), CPX(0.0, 0.0));
   FLT relerr = std::abs(mass - kersum * csum) / std::abs(mass);
-  printf("\t\trel err in grid total: %.3g\n", relerr);
+  printf("   \trel err in grid total: %.3g\n", relerr);
 
   // -------- Type-2 test (U -> NU) using a separate type-2 plan --------
-  printf("making random NU pts for dir=2...\n");
+  // printf("making random NU pts for dir=2...\n");
   // sets uniform grid to 1.0 everywhere...
   std::fill(d_uniform.begin(), d_uniform.end(), CPX(1.0, 0.0));
 #pragma omp parallel
@@ -253,14 +255,14 @@ int main(int argc, char *argv[]) {
     FINUFFT_DESTROY(plan2);
     return ier;
   } else
-    printf("\tsetpts+exec done in %.3g s", t2);
+    printf("\tdir=2 setpts+exec done in %.3g s", t2);
 
   // interp-only check: since grid=1.0 was done above, interp should give kersum
   // (const) at all NU points in d_nonuniform. Compute sup error vs kersum:
   FLT superr = 0.0;
   for (auto &cj : d_nonuniform) superr = std::max(superr, std::abs(cj - kersum));
   FLT relsuperr = superr / std::abs(kersum);
-  printf("\t\tmax rel err vs const:  %.3g\n", relsuperr);
+  printf("    \tmax rel err vs const:  %.3g\n", relsuperr);
   FINUFFT_DESTROY(plan);
   FINUFFT_DESTROY(plan2);
   return 0;

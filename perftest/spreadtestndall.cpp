@@ -1,3 +1,11 @@
+/* Test executable for the 1D, 2D, or 3D spreader, both directions.
+ * This version uses the public FINUFFT guru API to exercise the spreader
+ * behavior and checks correctness via kernel sums.
+
+ * Barbone, using the public finufft API 11/07/2025.
+ * Barnett over-simplified to remove misleading opts, 1/12/26.
+ Todo: update args + screen output like spreadtestnd.cpp
+ */
 #include "finufft/finufft_utils.hpp"
 #include <finufft/test_defs.h>
 
@@ -11,45 +19,29 @@ using namespace finufft::utils; // for timer
 /* clang-format off */
 void usage(void) {
   printf(
-      "usage: spreadtestnd dims [M N [dir [sort [flags [debug [kerpad [kerevalmeth [upsampfac]]]]]]]]\n"
+      "usage: spreadtestnd dims [M N [dir [sort]]]\n"
       "\twhere dims=1,2 or 3\n"
       "\tM=# nonuniform pts\n"
-      "\tN=# uniform pts\n"
-      "\tdir=spreader direction [spread/interpolate]\n"
+      "\tN=# uniform pts (total)\n"
+      "\tdir=direction (1=spread, 2=interpolate)\n"
       "\tsort=0 (don't sort NU pts), 1 (do), or 2 (maybe sort; default)\n"
-      "\tflags: expert timing flags, 0 is default (see spreadinterp.h)\n"
-      "\tdebug=0 (less text out), 1 (more), 2 (lots)\n"
-      "\tkerpad=0 (no pad to mult of 4), 1 (do, for kerevalmeth=0 only)\n"
-      "\tkerevalmeth=0 (direct), 1 (Horner ppval)\n"
-      "\tupsampfac>1; 2 or 1.25 for Horner\n"
       "\n"
-      "example: ./spreadtestndall 1 1e6 1e6 1 2 0 1\n");
+      "example: ./spreadtestndall 1 1e6 1e6 1 2\n");
 }
 /* clang-format on */
 
-int main(int argc, char *argv[])
-/* Test executable for the 1D, 2D, or 3D spreader, both directions.
- * This version uses the public FINUFFT guru API to exercise the spreader
- * behavior and checks correctness via kernel sums.
- *
- * Example: spreadtestndall 3 1e7 1e7 1 1
- *
- * Barbone, using the public fiufft API 11/07/2025
- */
-{
-  int d = 3;             // Cmd line args & their defaults
+int main(int argc, char *argv[]) {
+  int d;
   double w;
+  // Cmd line args & their defaults...
   int dir         = 1;   // default: spread (NU->U)
   BIGINT M        = 1e6; // default # NU pts
   BIGINT roughNg  = 1e6; // default # U pts
   int sort        = 2;   // spread_sort
-  int flags       = 0;   // default
-  int debug       = 0;   // default
-  int kerpad      = 0;   // default
-  int kerevalmeth = 1;   // default: Horner
-  FLT upsampfac   = 2.0; // standard
+  int debug       = 0;
+  FLT upsampfac   = 2.0;
 
-  if (argc < 2 || argc == 3 || argc > 11) {
+  if (argc < 2 || argc == 3 || argc > 6) {
     usage();
     return (argc > 1);
   }
@@ -84,40 +76,6 @@ int main(int argc, char *argv[])
       return 1;
     }
   }
-  if (argc > 6) sscanf(argv[6], "%d", &flags);
-  if (argc > 7) {
-    sscanf(argv[7], "%d", &debug);
-    if ((debug < 0) || (debug > 2)) {
-      printf("debug must be 0, 1 or 2!\n");
-      usage();
-      return 1;
-    }
-  }
-  if (argc > 8) {
-    sscanf(argv[8], "%d", &kerpad);
-    if ((kerpad < 0) || (kerpad > 1)) {
-      printf("kerpad must be 0 or 1!\n");
-      usage();
-      return 1;
-    }
-  }
-  if (argc > 9) {
-    sscanf(argv[9], "%d", &kerevalmeth);
-    if ((kerevalmeth < 0) || (kerevalmeth > 1)) {
-      printf("kerevalmeth must be 0 or 1!\n");
-      usage();
-      return 1;
-    }
-  }
-  if (argc > 10) {
-    sscanf(argv[10], "%lf", &w);
-    upsampfac = (FLT)w;
-    if (upsampfac <= 1.0) {
-      printf("upsampfac must be >1.0!\n");
-      usage();
-      return 1;
-    }
-  }
 
   BIGINT N  = (BIGINT)round(pow(roughNg, 1.0 / d)); // grid size per dim
   BIGINT Ng = (BIGINT)pow(N, d);                    // total grid points
@@ -140,12 +98,10 @@ int main(int argc, char *argv[])
     finufft_opts fopts;
     FINUFFT_DEFAULT_OPTS(&fopts);
     fopts.upsampfac          = upsampfac;
-    fopts.spread_kerevalmeth = kerevalmeth;
     fopts.spread_sort        = sort;
-    fopts.spread_kerpad      = kerpad;
     fopts.debug              = debug;
     fopts.showwarn           = 1;
-    fopts.spreadinterponly   = 1;
+    fopts.spreadinterponly   = 1; // key to use via FINUFFT API
 
     FINUFFT_PLAN plan{};
     BIGINT nmodes[3] = {N, N, N};
