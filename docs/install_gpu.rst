@@ -24,7 +24,7 @@ To automate the installation process, we use ``cmake``. To use this, run
     mkdir build
     cd build
     cmake -D FINUFFT_USE_CUDA=ON ..
-    cmake --build .
+    cmake --build . --parallel
 
 The ``libcufinufft.so`` (along with ``libfinufft.so``) will now be present in your ``build`` directory. Note that for this to work, you must have the Nvidia CUDA toolchain installed (such as the ``nvcc`` compiler, among others). To speed up the compilation, you could replace the last command by ``cmake --build . -j`` to use all threads,
 or ``cmake --build . -j8`` to specify using 8 threads, for example.
@@ -59,7 +59,7 @@ To test your cuFINUFFT package, configure it with the ``BUILD_TESTING`` and ``FI
 
     cmake -D FINUFFT_USE_CUDA=ON -D BUILD_TESTING=ON -D FINUFFT_BUILD_TESTS=ON ..
 
-Then after compiling as above with ``cmake --build .``, you execute the tests using
+Then after compiling as above with ``cmake --build . --parallel``, you execute the tests using
 
 .. code-block:: bash
 
