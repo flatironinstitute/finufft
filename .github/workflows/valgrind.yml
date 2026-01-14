@@ -4,13 +4,13 @@ on: [push, pull_request]
 
 jobs:
   valgrind:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
       - name: Setup Cpp
-        uses: aminya/setup-cpp@v1.1.1
+        uses: aminya/setup-cpp@v1
         with:
           compiler: gcc
           cmake: true
@@ -24,10 +24,16 @@ jobs:
           sudo apt update
           sudo apt install -y libfftw3-dev valgrind
 
-      - name: Configure CMake
+      - name: Detect CPU and Configure CMake
         run: |
+          if grep -q avx512 /proc/cpuinfo; then
+            march="x86-64-v3"
+          else
+            march="native"
+          fi
           cmake -S . -B ./build -G Ninja \
             -DCMAKE_BUILD_TYPE:STRING=RelWithDebInfo \
+            -DFINUFFT_ARCH_FLAGS="-march=$march" \
             -DFINUFFT_BUILD_TESTS=ON \
             -DFINUFFT_USE_SANITIZERS=OFF \
             -DMEMORYCHECK_COMMAND=$(which valgrind) \
