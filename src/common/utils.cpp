@@ -85,10 +85,8 @@ std::tuple<double, double> leg_eval(int n, double x) {
   return {p2, n * (x * p2 - p1) / (x * x - 1)};
 }
 
-double cyl_bessel_i(double nu, double x) noexcept {
-#if defined(FINUFFT_HAVE_STD_CYL_BESSEL_I)
-  return std::cyl_bessel_i(nu, x);
-#else
+// Custom series implementation (always available) exposed for testing.
+double cyl_bessel_i_custom(double nu, double x) noexcept {
   if (x == 0.0) {
     if (nu == 0.0) return 1.0;
     return 0.0;
@@ -104,12 +102,16 @@ double cyl_bessel_i(double nu, double x) noexcept {
   for (int k = 1; k < max_iter; ++k) {
     term *= (halfx * halfx) / (static_cast<double>(k) * (nu + static_cast<double>(k)));
     sum += term;
-
-    if (std::abs(term) < eps * std::abs(sum)) {
-      break;
-    }
+    if (std::abs(term) < eps * std::abs(sum)) break;
   }
   return sum;
+}
+
+double cyl_bessel_i(double nu, double x) noexcept {
+#if defined(FINUFFT_HAVE_STD_CYL_BESSEL_I)
+  return std::cyl_bessel_i(nu, x);
+#else
+  return cyl_bessel_i_custom(nu, x);
 #endif
 }
 
