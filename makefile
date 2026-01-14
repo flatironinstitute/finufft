@@ -565,23 +565,23 @@ else
 endif
 
 
-# indiscriminate .o killer; needed before changing threading...
+# indiscriminate .o killer; needed before changing, eg, compiler, threading...
 objclean:
 ifneq ($(MINGW),ON)
-  # non-Windows-WSL... (note: cleans DUCC objects regardless of FFT choice)
-	rm -f src/*.o test/directft/*.o test/*.o examples/*.o matlab/*.o
+  # some system other than Windows-WSL... (note: cleans DUCC objects regardless of FFT choice)
+	rm -f src/*.o src/common/*.o test/*.o examples/*.o matlab/*.o
 	rm -f fortran/*.o $(FE_DIR)/*.o $(FD)/*.o finufft_mod.mod
 	rm -f $(DUCC_SRC)/infra/*.o $(DUCC_SRC)/math/*.o
 else
   # Windows-WSL...
-	for /d %%d in (src,test\directfttest,examples,matlab) do (for %%f in (%%d\*.o) do (del %%f))
+	for /d %%d in (src,src\common,test,examples,matlab) do (for %%f in (%%d\*.o) do (del %%f))
 	for /d %%d in (fortran,$(subst /,\, $(FE_DIR)),$(subst /,\, $(FD))) do (for %%f in (%%d\*.o) do (del %%f))
   # *** to del DUCC *.o
 endif
 
 pyclean:
 ifneq ($(MINGW),ON)
-  # non-Windows-WSL...
+  # some system other than Windows-WSL...
 	rm -f python/finufft/*.pyc python/finufft/__pycache__/* python/test/*.pyc python/test/__pycache__/*
 	rm -rf python/fixed_wheel python/wheelhouse
 else
