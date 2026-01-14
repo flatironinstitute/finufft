@@ -28,7 +28,7 @@ void usage(void) {
       "usage:\t./spreadtestndall{f} dims [M N [sort [upsampfac]]]\n"
       "\twhere the suffix f is for single (else double prec), dims=1,2 or 3\n"
       "\tM=# nonuniform pts\n"
-      "\tN=# uniform pts (rough total; per-dim N=round(N^(1/d)))\n"
+      "\tN=# uniform pts (rough total; per-dim N = round(N^(1/d)))\n"
       "\tsort=0 (never sort NU pts), 1 (always sort), or 2 (auto; default)\n"
       "\tupsampfac>1.0: sigma upsampling factor (typ range 1.2 to 2.5)\n"
       "\n"
