@@ -6,7 +6,6 @@
 
 # Barnett started 2/2/17. both-precision handling, choose # threads 7/3/20.
 
-M=1e6       # problem size (# NU pts)
 N=1e6       # num U grid pts
 TOL=1e-6    # overall requested accuracy
 
@@ -26,6 +25,7 @@ fi
 
 echo
 export OMP_NUM_THREADS=$TESTTHREADS
+M=1e6       # problem size (# NU pts)
 echo "$PREC-precision $OMP_NUM_THREADS-thread tests: #NU = $M, #U = $N, tol = $TOL..."
 $ST 1 $M $N $TOL
 $ST 2 $M $N $TOL
@@ -33,6 +33,7 @@ $ST 3 $M $N $TOL
 
 echo
 export OMP_NUM_THREADS=1
+M=1e6       # problem size (# NU pts), smaller to avoid stoch rounding error?
 echo "$PREC-precision $OMP_NUM_THREADS-thread tests: #NU = $M, #U = $N, tol = $TOL..."
 $ST 1 $M $N $TOL
 $ST 2 $M $N $TOL

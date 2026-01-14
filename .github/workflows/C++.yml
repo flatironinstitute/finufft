@@ -19,8 +19,6 @@ jobs:
 
     - name: Compile C++ code
       run: |
-        make spreadtestall
-        make lib
         make test
 
   MacOS_clang:
@@ -38,8 +36,6 @@ jobs:
 
     - name: Compile C++ code
       run: |
-        make spreadtestall
-        make lib
         make test
 
   MacOS_gcc:
@@ -57,8 +53,6 @@ jobs:
 
     - name: Compile C++ code
       run: |
-        make spreadtestall
-        make lib
         make test
 
   Windows:
@@ -84,4 +78,4 @@ jobs:
     - name: Compile C++ code
       run: |
         cp make-platforms/make.inc.windows_msys make.inc
-        make spreadtestall && make lib && make test
+        make test

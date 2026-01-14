@@ -4,7 +4,7 @@
 #include <cmath>
 #include <cuda.h>
 #include <cufinufft/types.h>
-#include <finufft_spread_opts.h>
+#include <finufft_common/spread_opts.h>
 
 namespace cufinufft {
 namespace spreadinterp {

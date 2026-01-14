@@ -23,25 +23,25 @@
 #ifndef FINUFFT_H
 #define FINUFFT_H
 
-// prec-indep stuff. both these are thus made public-facing
+// Public options struct
 #include <finufft_opts.h>
-#include <finufft_spread_opts.h>
 
-// Public error numbers
+// Public error codes
 #include <finufft_errors.h>
 
 // octave (mkoctfile) needs this otherwise it doesn't know what int64_t is!
 #include <stdint.h>
 #define FINUFFT_BIGINT int64_t
 
-// this macro name has to be safe since exposed to user
+// Public dual-precision C interface...
+// (the following macro name has to be safe since pollutes user headers)
 #define FINUFFT_SINGLE
 #include <finufft_eitherprec.h>
 #undef FINUFFT_SINGLE
 // do it again for double-prec...
 #include <finufft_eitherprec.h>
 
-// clean up any purely local defs that are not in finufft_eitherprec.h...
+// clean up any purely local defs that are not in finufft_eitherprec.h
 #undef FINUFFT_BIGINT
 
 #endif // FINUFFT_H

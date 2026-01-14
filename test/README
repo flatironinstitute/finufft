@@ -26,6 +26,8 @@ dumbinputs{f} :    test of edge cases, invalid inputs, and plan interface.
                    No arguments needed (exit code 0 is a pass).
 testutils{f} :     test of utils module.
                    No arguments needed (exit code 0 is a pass).
+tolsweep{f}:       Test that accuracy close to tol, over full allowed range.
+                   (exit code 0 is a pass).
 
 check_finufft.sh : validates the FINUFFT library for correctness
                    (exit code 0 is a pass). See docs in that script.

@@ -5,7 +5,7 @@
 
 #include <cufinufft/defs.h>
 #include <cufinufft_opts.h>
-#include <finufft_spread_opts.h>
+#include <finufft_common/spread_opts.h>
 #include <type_traits>
 
 #include <cuComplex.h>

@@ -6,8 +6,8 @@
 #include <vector>
 
 #include <finufft_common/constants.h>
+#include <finufft_common/spread_opts.h>
 #include <finufft_common/utils.h>
-#include <finufft_spread_opts.h>
 
 namespace finufft::kernel {
 
