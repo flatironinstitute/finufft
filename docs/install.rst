@@ -102,12 +102,12 @@ is then done by:
   git clone https://github.com/flatironinstitute/finufft.git
   cd finufft
   cmake -S . -B build -DFINUFFT_BUILD_TESTS=ON --install-prefix /path/to/install
-  cmake --build build
+  cmake --build build --parallel
   ctest --test-dir build
   cmake --install build
 
 In ``build``, this creates the static library (``libfinufft.a`` on linux or OSX), and runs a test that should take a
-couple of seconds and report ``100% tests passed, 0 tests failed out of 17``. It then attempts to install the library.
+couple of seconds and report something like ``100% tests passed, 0 tests failed out of 17``. It then attempts to install the library.
 To instead build a shared library, see the ``FINUFFT_STATIC_LINKING`` CMake option below.
 
 .. note::

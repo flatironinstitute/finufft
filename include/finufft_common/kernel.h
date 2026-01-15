@@ -106,7 +106,7 @@ double kernel_definition(const finufft_spread_opts &spopts, const double z) {
     return common::cyl_bessel_i(0, arg) / common::cyl_bessel_i(0, beta);
 
   } else {
-    fprintf(stderr, "[%s] unknown spopts.kerformula=%d\n", __func__, 
+    fprintf(stderr, "[%s] unknown spopts.kerformula=%d\n", __func__,
       spopts.kerformula);
     throw int(FINUFFT_ERR_KERFORMULA_NOTVALID);
     return std::numeric_limits<double>::quiet_NaN();    // non-signalling

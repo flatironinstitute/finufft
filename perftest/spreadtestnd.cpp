@@ -13,6 +13,7 @@
  * Barbone switched to public FINUFFT API 11/07/2025
  * Barbone (Dec/25): Warn when deprecated CLI spreader knobs are requested.
  * Barnett 1/12/26: update for v2.5.0, kill all deprecated flags/args, tidy
+   and fix the setpts incorrect usage, use M=1 for kersum.
 */
 
 #include <cmath>
@@ -31,7 +32,7 @@ static void usage() {
     "usage: spreadtestnd{f} dims [M N [tol [sort [spread_debug [kerformula [upsampfac]]]]]]\n"
     "\twhere the suffix f is for single (else double prec), dims=1,2 or 3\n"
     "\tM=# nonuniform pts\n"
-    "\tN=# uniform pts (rough total; per-dim N=round(N^(1/d)))\n"
+    "\tN=# uniform pts (rough total; per-dim N = round(N^(1/d)))\n"
     "\ttol=requested accuracy\n"
     "\tsort=0 (no), 1 (yes), 2 (auto; default)\n"
     "\tspread_debug=0,1,...\n"
@@ -44,13 +45,13 @@ static void usage() {
 int main(int argc, char *argv[]) {
   int d = 3;
   double w;
-  double tol      = 1e-6;
-  BIGINT M        = 1e6;
-  BIGINT roughNg  = 1e6;
-  int sort        = 2;
-  int spread_debug= 0;
-  int kerformula  = 0;
-  FLT upsampfac   = 2.0;
+  double tol       = 1e-6;
+  BIGINT M         = 1e6;
+  BIGINT roughNg   = 1e6;
+  int sort         = 2;
+  int spread_debug = 0;
+  int kerformula   = 0;
+  FLT upsampfac    = 2.0;
 
   if (argc < 2 || argc == 3 || argc > 9) {
     usage();
@@ -149,29 +150,24 @@ int main(int argc, char *argv[]) {
     return ier;
   }
 
-  // Initialize NU points (will be overwritten later), and set in plan
-  ier = FINUFFT_SETPTS(plan, M, kx.data(), ky.data(), kz.data(), 0, nullptr, nullptr,
+  // Reference: spread a single source at origin to get kernel sum over grid
+  std::vector<FLT> kxs(1), kys(1), kzs(1); // set up tiny M=1 data to get kernel sum
+  kxs[0] = kys[0] = kzs[0] = 0.0; // 1 NU point loc, ar nf/2 in each dim, on grid.
+  std::vector<CPX> d_nus   = {CPX(1.0, 0.0)}; // with unit strength
+  ier = FINUFFT_SETPTS(plan, 1, kxs.data(), kys.data(), kzs.data(), 0, nullptr, nullptr,
                        nullptr);
   if (ier != 0) {
-    printf("error when setting NU pts (ier=%d)!\n", ier);
+    printf("error when setting M=1 single NU pt (ier=%d)!\n", ier);
     FINUFFT_DESTROY(plan);
     return ier;
   }
-
-  // Reference: spread a single source at origin to get kernel sum over grid
-  d_nonuniform.assign(M, CPX(0.0, 0.0));
-  d_nonuniform[0] = CPX(1.0, 0.0);
-  kx[0]           = 0.0;
-  if (d > 1) ky[0] = 0.0;
-  if (d > 2) kz[0] = 0.0;
-
-  ier = FINUFFT_EXECUTE(plan, d_nonuniform.data(), d_uniform.data());
+  ier = FINUFFT_EXECUTE(plan, d_nus.data(), d_uniform.data());
   if (ier != 0) {
-    printf("error when spreading M=1 pt for ref acc check (ier=%d)!\n", ier);
+    printf("error when spreading M=1 pt for sum acc check (ier=%d)!\n", ier);
     FINUFFT_DESTROY(plan);
     return ier;
   }
-  const CPX kersum = std::accumulate(d_uniform.begin(), d_uniform.end(), CPX(0.0, 0.0));
+  auto kersum = std::accumulate(d_uniform.begin(), d_uniform.end(), CPX(0.0, 0.0));
 
   // -------- Type-1 test (spread) --------
   printf("dim=%d, per-dim Nj=%lld, total N=%.3g, M=%.3g, tol=%.3g\n", d, (long long)N,
@@ -179,7 +175,7 @@ int main(int argc, char *argv[]) {
   printf(" sort=%d, spread_debug=%d, kerform=%d, upsamp=%.3g\n", sort, spread_debug,
          kerformula, (double)upsampfac);
 
-  // printf("making random data for dir=1...\n");
+  // make random data...
 #pragma omp parallel
   {
     unsigned int se = MY_OMP_GET_THREAD_NUM();
@@ -197,23 +193,27 @@ int main(int argc, char *argv[]) {
   timer.start();
   ier = FINUFFT_SETPTS(plan, M, kx.data(), ky.data(), kz.data(), 0, nullptr, nullptr,
                        nullptr);
-  ier = FINUFFT_EXECUTE(plan, d_nonuniform.data(), d_uniform.data());
-  const double t1 = timer.elapsedsec();
   if (ier != 0) {
-    printf("error in dir=1 execute (ier=%d)!\n", ier);
+    printf("error when setting NU pts (ier=%d)!\n", ier);
     FINUFFT_DESTROY(plan);
     return ier;
+  }
+  ier             = FINUFFT_EXECUTE(plan, d_nonuniform.data(), d_uniform.data());
+  const double t1 = timer.elapsedsec();
+  FINUFFT_DESTROY(plan); // we're done in all cases
+  if (ier != 0) {
+    printf("error in dir=1 execute (ier=%d)!\n", ier);
+    return ier;
   } else
-    printf("\tdir=1 setpts+exec %.3g s\t(%.3g NU pt/s)", t1, (double)Ng / t1);
+    printf("\tdir=1 setpts+exec %.3g s\t(%.3g NU pt/s)   ", t1, (double)Ng / t1);
 
-  // Compute total input strength and total output mass, compare with kersum
+  // Compute total input strength and total output mass, compare with prediction
   CPX csum   = std::accumulate(d_nonuniform.begin(), d_nonuniform.end(), CPX(0.0, 0.0));
   CPX mass   = std::accumulate(d_uniform.begin(), d_uniform.end(), CPX(0.0, 0.0));
-  FLT relerr = std::abs(mass - kersum * csum) / std::abs(mass);
+  FLT relerr = std::abs(mass - kersum * csum) / std::abs(kersum * csum); // relative err
   printf("\trel err %.3g\n", relerr);
 
-  // -------- Type-2 test (U -> NU) using a separate type-2 plan --------
-  // printf("making random NU pts for dir=2...\n");
+  // -------- Type-2 test (U -> NU) using new NU locs, separate type-2 plan --------
   // sets uniform grid to 1.0 everywhere...
   std::fill(d_uniform.begin(), d_uniform.end(), CPX(1.0, 0.0));
 #pragma omp parallel
@@ -233,7 +233,6 @@ int main(int argc, char *argv[]) {
   ier = FINUFFT_MAKEPLAN(2, d, nmodes, 1, 1, tol, &plan2, &opts);
   if (ier > 1) {
     printf("error when creating the type-2 plan (ier=%d)!\n", ier);
-    FINUFFT_DESTROY(plan);
     return ier;
   }
 
@@ -242,20 +241,17 @@ int main(int argc, char *argv[]) {
                        nullptr);
   if (ier != 0) {
     printf("error when setting NU pts for type-2 plan (ier=%d)!\n", ier);
-    FINUFFT_DESTROY(plan);
     FINUFFT_DESTROY(plan2);
     return ier;
   }
-
-  ier = FINUFFT_EXECUTE(plan2, d_nonuniform.data(), d_uniform.data());
+  ier             = FINUFFT_EXECUTE(plan2, d_nonuniform.data(), d_uniform.data());
   const double t2 = timer.elapsedsec();
   if (ier != 0) {
     printf("error in dir=2 execute (ier=%d)!\n", ier);
-    FINUFFT_DESTROY(plan);
     FINUFFT_DESTROY(plan2);
     return ier;
   } else
-    printf("\tdir=2 setpts+exec %.3g s\t(%.3g NU pt/s)", t2, (double)Ng / t2);
+    printf("\tdir=2 setpts+exec %.3g s\t(%.3g NU pt/s)   ", t2, (double)Ng / t2);
 
   // interp-only check: since grid=1.0 was done above, interp should give kersum
   // (const) at all NU points in d_nonuniform. Compute sup error vs kersum:
@@ -263,7 +259,6 @@ int main(int argc, char *argv[]) {
   for (auto &cj : d_nonuniform) superr = std::max(superr, std::abs(cj - kersum));
   FLT relsuperr = superr / std::abs(kersum);
   printf("\trel err %.3g\n", relsuperr);
-  FINUFFT_DESTROY(plan);
   FINUFFT_DESTROY(plan2);
   return 0;
 }

@@ -57,6 +57,7 @@ static inline void MY_OMP_SET_NUM_THREADS [[maybe_unused]] (int) {}
 #include <finufft_common/constants.h>
 #include <finufft_common/spread_opts.h>
 #include <finufft_opts.h>
+#include <finufft_common/spread_opts.h>
 
 // group together a bunch of type 3 rescaling/centering/phasing parameters:
 template<typename T> struct type3params {

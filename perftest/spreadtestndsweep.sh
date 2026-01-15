@@ -6,12 +6,12 @@
 # Barnett 6/4/24.
 # Barnett 1/12/26 update for new cmd line args.
 
-M=1e6       # problem size (sets both # NU pts and # U modes); it's a string
 N=1e6       # num U grid pts
 USF=2.0     # sigma upsampfac (it's also a string)
 
 echo ""
 echo "Double-prec spread/interp tol sweep ----------------------------------"
+M=1e6       # problem size (sets both # NU pts and # U modes); it's a string
 echo ""
 ./spreadtestndall  1 $M $N 2 $USF
 echo ""
@@ -20,6 +20,7 @@ echo ""
 ./spreadtestndall  3 $M $N 2 $USF
 echo ""
 echo "Single-prec spread/interp tol sweep ----------------------------------"
+M=1e3       # reduce stochastic rounding error for single prec
 echo ""
 ./spreadtestndallf 1 $M $N 2 $USF
 echo ""
