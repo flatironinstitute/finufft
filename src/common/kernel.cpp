@@ -22,7 +22,7 @@ int theoretical_kernel_ns(double tol, int dim, int type, int debug,
     ns = (int)std::ceil(-std::log10(tol / 10.0));
 
   } else {  // generic formula for PSWF-like kernels
-    double fudgefac = 1.0;   // *** todo: tweak it, per kerformula
+    const double fudgefac = 1.0; // *** todo: tweak it, per kerformula
     ns = (int)std::ceil( std::log(fudgefac / tol) /
                          (finufft::common::PI * std::sqrt(1.0 - 1.0 / sigma)));
   }
@@ -35,15 +35,13 @@ void set_kernel_shape_given_ns(finufft_spread_opts &spopts, int debug) {
 // debug >0 causes stdout reporting.
   int ns = spopts.nspread;
   double sigma = spopts.upsampfac;
-  spopts.ES_halfwidth = (double)ns / 2.0;
-  spopts.ES_c = 4.0 / (double)(ns * ns); // *** kill c param
 
   // these strings must match: kernel_definition, and the below
   const char* kernames[] = {"default", "ES (legacy params)", "KB"};
 
   if (spopts.kerformula == 1) {
     // Exponential of Semicircle (ES)
-    double betaoverns = 2.30;    // the legacy logic 2017-2025...
+    double betaoverns = 2.30; // the legacy logic, used 2017-2025...
     if (ns == 2)
       betaoverns = 2.20;
     else if (ns == 3)
@@ -52,10 +50,10 @@ void set_kernel_shape_given_ns(finufft_spread_opts &spopts, int debug) {
       betaoverns = 2.38;
 
     if (sigma != 2.0) {
-      double gamma = 0.97;
+      const double gamma = 0.97;
       betaoverns   = gamma * common::PI * (1.0 - 1.0 / (2.0 * sigma));
     }
-    spopts.ES_beta = betaoverns * (double)ns;
+    spopts.beta = betaoverns * (double)ns;
 
   } else if (spopts.kerformula == 2) {
     // Kaiser-Bessel (KB), with
@@ -63,7 +61,7 @@ void set_kernel_shape_given_ns(finufft_spread_opts &spopts, int debug) {
     // IEEE Trans Med Imaging, 2005 24(6):799-808. doi:10.1109/TMI.2005.848376
     // "Rapid gridding reconstruction with a minimal oversampling ratio".
     double t = (double)ns * (1.0 - 1.0 / (2.0 * sigma));
-    spopts.ES_beta = common::PI * std::sqrt(t*t - 0.8);
+    spopts.beta = common::PI * std::sqrt(t * t - 0.8); // just below PI*t
   }
 
   if (debug || spopts.debug)
