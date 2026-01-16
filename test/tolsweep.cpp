@@ -28,14 +28,14 @@ int main(int argc, char *argv[]) {
   BIGINT M = 500; // pick problem size: # sources (balance runtime vs rand-averaging)
   // N vectors to test: first triplet is for dim=1, then for dim=2, etc...
   BIGINT Nm_alldims[3][3] = {{30, 1, 1}, {20, 40, 1}, {10, 11, 12}}; // Ntot~1e3 ok
-  int ntr                 = 1; // >1 in tolsweeptest.m but only for speed/convenience
-  int isign               = +1;
+  int ntr      = 1; // >1 in tolsweeptest.m but only for speed/convenience
+  int isign = +1;
 
   // *** make these vary by dim?: had to grow type-3 slack=15 here for macos CI...
   double tolslack[3]    = {5.0, 5.0, 15.0}; // tunable slack parameters for each type
   double tolsperdecade  = 8;                // controls overall effort (tol resolution)
-  double tolstep        = pow(10.0, -1.0 / tolsperdecade); // multiplicative tol step, <1
-  constexpr FLT EPSILON = std::numeric_limits<FLT>::epsilon();
+  double tolstep       = pow(10.0, -1.0 / tolsperdecade); // multiplicative tol step, <1
+  constexpr FLT EPSILON = std::numeric_limits<FLT>::epsilon();  // 2.2e-16 or 1.2e-7
   double mintol         = 0.5 * EPSILON; // somewhat arbitrary where start (catch warns)
   int ntols             = std::ceil(log(mintol) / log(tolstep));
 
@@ -77,13 +77,13 @@ int main(int argc, char *argv[]) {
   FINUFFT_DEFAULT_OPTS(&opts);
   opts.spread_kerformula = kerformula;
   opts.debug             = debug;
-  opts.showwarn          = showwarn;
+  opts.showwarn = showwarn;
   opts.nthreads = 1; // single-threaded FINUFFT faster since small (esp valgrind!)
 
   std::vector<FLT> x(M), y(M), z(M), X, Y, Z; // xyz real vs XYZ freq-space
-  std::vector<CPX> c(M), ce(M), F, Fe;  // (we don't know N yet, since varies by dim)
-  srand(42);                            // fix seed
-  int nfailtot = 0;                     // overall count across all dims, USF, tols, types
+  std::vector<CPX> c(M), ce(M), F, Fe; // (we don't know N yet, since varies by dim)
+  srand(42);                          // fix seed
+  int nfailtot = 0;                   // overall count across all dims, USF, tols, types
 
   for (int dim = 1; dim <= 3; ++dim) {  /////////////////////// loop over dims
     if (verbose) printf("%s: %dD =============================\n", argv[0], dim);
@@ -166,7 +166,7 @@ int main(int argc, char *argv[]) {
             double req = std::max(floor[u][dim - 1], tolslack[ti] * tol); // threshold
             double clearfac = relerr / req; // factor by which beats req (<=1 ok, >1 fail)
             worstfac[ti]    = std::max(worstfac[ti], clearfac); // track the worst case
-            bool pass       = (relerr <= req);
+            bool pass       = (relerr <= req);  // note relerr=NaN will not pass
             if (pass) {
               ++npass[ti];
               if (verbose > 2)

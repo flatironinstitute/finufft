@@ -1,4 +1,4 @@
-% Pass/fail test for error over a range of tolerances, 3 types, 1D fixed N.
+% Pass/fail test for error over a range of tolerances, 3 types, fixed dim.
 % CPU only. Raises error if fails; use for CI. Two upsampfacs for now.
 % Simplified from plottolsweep; uses erralltypedim.
 % Barnett 12/22/25.

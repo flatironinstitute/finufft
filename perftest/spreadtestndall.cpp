@@ -121,7 +121,7 @@ int main(int argc, char *argv[]) {
   }
 
   std::vector<FLT> kxs(1), kys(1), kzs(1);    // set up tiny M=1 data to get kernel sum
-  kxs[0] = kys[0] = kzs[0] = 0.0;  // 1 NU point loc, ar nf/2 in each dim, on grid.
+  kxs[0] = kys[0] = kzs[0] = 0.0;  // 1 NU point loc, at nf/2 in each dim, on grid.
   std::vector<CPX> d_nus   = {CPX(1.0, 0.0)}; // with unit strength
 
   // where to stop (whether that causes warnings will depend on upsampfac):

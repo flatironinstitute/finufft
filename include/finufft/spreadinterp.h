@@ -1,9 +1,17 @@
 // Defines interface to spreading/interpolation code.
 
-// Devnotes: see finufft_core.h for definition of MAX_NSPREAD
-// RESCALE macro moved to spreadinterp.cpp, 7/15/20.
-// finufft_spread_opts renamed 6/7/22.
-// TF_OMIT_* and some other ker flags deprecated. Dec 2025.
+/* Devnotes: see finufft_core.h for definition of MAX_NSPREAD
+    RESCALE macro moved to spreadinterp.cpp, 7/15/20.
+    finufft_spread_opts renamed 6/7/22.
+    Note as of v2.5 (Dec 2025):
+    legacy TF_OMIT_* timing flags were removed. Timing helpers
+    Note as of v2.5: legacy TF_OMIT_* timing flags were removed. Timing helpers
+    previously controlled by these flags have been purged from the codebase.
+    The kerevalmeth/kerpad knobs remain in the public API structs solely for
+    ABI compatibility and are ignored by the implementation (Horner is always
+    used).
+    1/9/26: setup_spreadinterp() moved to finufft_core/common.
+*/
 
 #ifndef SPREADINTERP_H
 #define SPREADINTERP_H
@@ -11,20 +19,8 @@
 #include <finufft/finufft_core.h>
 #include <finufft_common/spread_opts.h>
 
-/* Note: the legacy TF_OMIT_* timing flags were removed. Timing helpers
-    previously controlled by these flags have been purged from the codebase.
-    The kerevalmeth/kerpad knobs remain in the public API structs solely for
-    ABI compatibility and are ignored by the implementation (Horner is always
-    used).
-*/
-
 namespace finufft {
 namespace spreadinterp {
-
-template<typename T>
-FINUFFT_EXPORT_TEST int setup_spreader(finufft_spread_opts &opts, T eps, double upsampfac,
-                                       int kerevalmeth, int debug, int showwarn,
-                                       int spreadinterponly, int dim, int kerformula = 0);
 
 int spreadcheck(UBIGINT N1, UBIGINT N2, UBIGINT N3, const finufft_spread_opts &opts);
 template<typename T>
