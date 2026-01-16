@@ -1,7 +1,10 @@
 % Comparison of several kerformulae: error vs widths w, 3 types, fix dim,
 % CPU only. One sigma for now.
-% Extracts w from a spreadinterponly call, ignores tol.
-% Uses the tol sweep from tolsweeptest, uses erralltypedim to meas err.
+% This measures the goodness of shape (beta) choice for each type (kf) and w.
+% It is unaffected by the logic of choosing w appropriate for a given tol.
+% 
+% Based on tol sweep from tolsweeptest, using erralltypedim to meas err,
+% and extracts w from a spreadinterponly call (ignores tol).
 % Barnett 1/16/26.
 
 addpath(fileparts(mfilename('fullpath')))
@@ -9,20 +12,22 @@ clear
 prec = 'double';  % working precision
 myrand = @rand;   % select CPU
 
-M = 1e3;            % # NU pts (several secs for >=1e4)
-dim = 1; Ntot = 300; % which dimensionality to test, tot #modes
+M = 1e3;             % # NU pts (several secs for >=1e4)
+dim = 1; Ntot = 300; % which dimensionality to test, tot #modes (not too small)
 % (weird thing is N small, eg 32, makes KB look better)
 %dim = 2; Ntot = 400;  % or try other dims...
 %dim = 3; Ntot = 1e3;
 ntr = 10;           % #transforms to average error over at each tol
 isign = +1;
-sigma = 1.5;
+sigma = 1.25;
 tolsperdecade = 8;
 tolstep = 10 ^ (-1 / tolsperdecade); % multiplicative step in tol, < 1
-kfnam = {"ES legacy", "ES Beatty", "KB Beatty"};  % must match kernel.hpp :)
-kfs = 1:3;        % kernel formulae to test
+% following names must match kernel.hpp:
+kfnam = {"ES legacy", "ES Beatty", "KB Beatty", "cont-KB Beatty"};
+kfs = 1:4;        % kernel formulae to test
 
 o.upsampfac = sigma;
+%o.debug = 0;
 o.showwarn = 0; warning('off','FINUFFT:epsTooSmall');
 dims = false(1, 3); dims(dim) = true;  % only test this dim
 nkf = numel(kfs);

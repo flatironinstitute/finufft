@@ -515,7 +515,7 @@ template<typename TF> int FINUFFT_PLAN_T<TF>::setup_spreadinterp() {
   spopts.debug        = opts.spread_debug; // simple pass-through
   spopts.upsampfac    = opts.upsampfac;    // "
   // where the kerformula (>0) resulting from the default (=0) is set...
-  spopts.kerformula = (opts.spread_kerformula == 0) ? 1 : opts.spread_kerformula;
+  spopts.kerformula = (opts.spread_kerformula == 0) ? 3 : opts.spread_kerformula;
 
   constexpr TF EPSILON = std::numeric_limits<TF>::epsilon(); // 2.2e-16 or 1.2e-7
   int ier              = 0;

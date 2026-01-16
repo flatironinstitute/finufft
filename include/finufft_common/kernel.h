@@ -98,16 +98,23 @@ inline double kernel_definition(const finufft_spread_opts &spopts, const double 
 
   if (kf == 1 || kf == 2)
     // ES ("exponential of semicircle" or "exp sqrt"), see [FIN] reference.
-    // used in FINUFFT 2017-2025 (up to v2.4.1). max is 1, as of v2.3.0.
+    // Used in FINUFFT 2017-2025 (up to v2.4.1). max is 1, as of v2.3.0.
     return std::exp(arg) / std::exp(beta);
   else if (kf == 3)
     // forwards Kaiser--Bessel (KB), normalized to max of 1.
     // std::cyl_bessel_i is from <cmath>, expects double. See src/common/utils.cpp
     return common::cyl_bessel_i(0, arg) / common::cyl_bessel_i(0, beta);
+  else if (kf == 4)
+    // continuous (deplinthed) KB, as in Barnett SIREV 2022, normalized to max nearly 1
+    return (common::cyl_bessel_i(0, arg) - 1.0) / common::cyl_bessel_i(0, beta);
+  else if (kf == 5)
+    return std::cosh(arg) / std::cosh(beta); // normalized cosh-type of Rmk. 13 [FIN]
+  else if (kf == 6)
+    return (std::cosh(arg) - 1.0) / std::cosh(beta); // Potts-Tasche cont cosh-type
   else {
     fprintf(stderr, "[%s] unknown spopts.kerformula=%d\n", __func__, spopts.kerformula);
-    throw int(FINUFFT_ERR_KERFORMULA_NOTVALID);
-    return std::numeric_limits<double>::quiet_NaN(); // non-signalling
+    throw int(FINUFFT_ERR_KERFORMULA_NOTVALID);      // *** crashes matlab, not good
+    return std::numeric_limits<double>::quiet_NaN(); // never gets here, non-signalling
   }
 }
 
