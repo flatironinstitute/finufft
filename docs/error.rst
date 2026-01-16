@@ -5,7 +5,8 @@ Error (status) codes
 
 In all FINUFFT interfaces, the returned value ``ier`` is a status indicator.
 It is ``0`` if successful, otherwise the error code
-has the following meanings (see codes in ``include/finufft_errors.h``):
+has the following meanings which are used by both CPU and GPU versions
+(see codes in ``include/finufft_errors.h``):
 
 ::
 
@@ -29,7 +30,11 @@ has the following meanings (see codes in ``include/finufft_errors.h``):
   18 size of bins for subprob/blockgather invalid
   19 GPU shmem too small for subprob/blockgather parameters
   20 invalid number of nonuniform points: nj or nk negative, or too big (see finufft_core.h)
-
+  21 invalid input argument not covered by other errors
+  22 invalid FFTW lock function
+  23 nthreads invalid
+  24 spread kernel formula type invalid
+  
 When ``ier=1`` (warning only) the transform(s) is/are still completed, at the smallest epsilon achievable, so, with that caveat, the answer should still be usable.
 
 For any other nonzero values of ``ier`` the transform may not have been performed and the output should not be trusted. However, we hope that the value of ``ier`` will help to narrow down the problem.
