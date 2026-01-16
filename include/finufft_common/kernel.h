@@ -26,7 +26,7 @@ template<class T, class F> std::vector<T> poly_fit(F &&f, int n) noexcept {
   // 1) Type-1 Chebyshev nodes t_k, data samples y_k = f(t_k)
   std::vector<T> t(n), y(n);
   for (int k = 0; k < n; ++k) {
-    t[k]       = std::cos((T(2 * k + 1) * common::PI) / (T(2) * T(n))); // in (-1,1)
+    t[k] = std::cos((T(2 * k + 1) * common::PI) / (T(2) * T(n))); // in (-1,1)
     // t[k]       = std::cos((T(k) * common::PI) / T(n-1)); // type-2 in [-1,1] also ok
     y[k] = static_cast<T>(f(t[k])); // evaluate this sample
   }
@@ -63,7 +63,9 @@ template<class T, class F> std::vector<T> poly_fit(F &&f, int n) noexcept {
   return c;
 }
 
-double kernel_definition(const finufft_spread_opts &spopts, const double z) {
+// *** inline here to avoid >1 defn in src/common/utils.o, src/finufft_utils.o:
+
+inline double kernel_definition(const finufft_spread_opts &spopts, const double z) {
   /* The spread/interp kernel phi_beta(z) function on standard interval z in [-1,1],
      This evaluation does not need to be fast; it is used *only* for polynomial
      interpolation via Horner coeffs (the interpolant is evaluated fast).
@@ -91,9 +93,9 @@ double kernel_definition(const finufft_spread_opts &spopts, const double z) {
             use them.
     Barnett rewritten 1/13/26 for double on [-1,1]; based on Barbone Dec 2025.
   */
-  if (std::abs(z) >= 1.0) return 0.0;         // restrict support to (-1,1)
-  double beta = spopts.beta;                  // get shape param
-  double arg = beta * std::sqrt(1.0 - z * z); // common argument for exp, I0, etc
+  if (std::abs(z) > 1.0) return 0.0;           // restrict support to [-1,1]
+  double beta = spopts.beta;                   // get shape param
+  double arg  = beta * std::sqrt(1.0 - z * z); // common argument for exp, I0, etc
 
   if (spopts.kerformula == 1) {
     // ES ("exponential of semicircle" or "exp sqrt"), see [FIN] reference.
@@ -106,15 +108,14 @@ double kernel_definition(const finufft_spread_opts &spopts, const double z) {
     return common::cyl_bessel_i(0, arg) / common::cyl_bessel_i(0, beta);
 
   } else {
-    fprintf(stderr, "[%s] unknown spopts.kerformula=%d\n", __func__,
-      spopts.kerformula);
+    fprintf(stderr, "[%s] unknown spopts.kerformula=%d\n", __func__, spopts.kerformula);
     throw int(FINUFFT_ERR_KERFORMULA_NOTVALID);
-    return std::numeric_limits<double>::quiet_NaN();    // non-signalling
+    return std::numeric_limits<double>::quiet_NaN(); // non-signalling
   }
 }
 
 FINUFFT_EXPORT int theoretical_kernel_ns(double tol, int dim, int type, int debug,
-                      const finufft_spread_opts &spopts);
+                                         const finufft_spread_opts &spopts);
 
 FINUFFT_EXPORT void set_kernel_shape_given_ns(finufft_spread_opts &opts, int debug);
 

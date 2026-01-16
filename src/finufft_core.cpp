@@ -493,84 +493,86 @@ int FINUFFT_PLAN_T<T>::deconvolveBatch(int batchSize, std::complex<T> *fkBatch,
 }
 
 template<typename TF> int FINUFFT_PLAN_T<TF>::setup_spreadinterp() {
-/* Sets spread/interp (gridding) kernel params in spopts struct (ns, etc),
-  based on:
-  tol - desired user relative tolerance (a.k.a eps)
-  opts.upsampfac - fixed upsampling factor (=sigma), previously set.
-  opts.kerformula - kernel function type (chooses the default, override if >0)
-  All of these (spopts, opts, tol) are plan class members.
-  See finufft_common/spread_opts.h for docs on all spopts fields.
-  Note that spopts.spread_direction is not set.
-  Returns: 0  : success
-            FINUFFT_WARN_EPS_TOO_SMALL : requested eps (tol) cannot be achieved,
-                                         but proceed with best possible eps.
-            otherwise : failure (see codes in finufft_errors.h); spreading must
-                        not proceed.
-  Barbone (Dec/25): ensure legacy kereval/kerpad user opts are treated as no-ops.
-  1/8/26: Barnett redo (merges setup_spreader & setup_spreader_for_nufft of 2017).
-*/
-  spopts.nthreads = opts.nthreads; // 0 passed in becomes OMP max avail spreadinterp
-  spopts.sort     = opts.spread_sort; // todo: could make dim or CPU choices here?
-  spopts.sort_threads     = 0; // 0:auto-choice
-  spopts.debug    = opts.spread_debug;  // simple pass-through
-  spopts.upsampfac  = opts.upsampfac;   // "
+  /* Sets spread/interp (gridding) kernel params in spopts struct (ns, etc),
+    based on:
+    tol - desired user relative tolerance (a.k.a eps)
+    opts.upsampfac - fixed upsampling factor (=sigma), previously set.
+    opts.kerformula - kernel function type (chooses the default, override if >0)
+    All of these (spopts, opts, tol) are plan class members.
+    See finufft_common/spread_opts.h for docs on all spopts fields.
+    Note that spopts.spread_direction is not set.
+    Returns: 0  : success
+              FINUFFT_WARN_EPS_TOO_SMALL : requested eps (tol) cannot be achieved,
+                                           but proceed with best possible eps.
+              otherwise : failure (see codes in finufft_errors.h); spreading must
+                          not proceed.
+    Barbone (Dec/25): ensure legacy kereval/kerpad user opts are treated as no-ops.
+    1/8/26: Barnett redo (merges setup_spreader & setup_spreader_for_nufft of 2017).
+  */
+  spopts.nthreads     = opts.nthreads; // 0 passed in becomes OMP max avail spreadinterp
+  spopts.sort         = opts.spread_sort;  // todo: could make dim or CPU choices here?
+  spopts.sort_threads = 0;                 // 0:auto-choice
+  spopts.debug        = opts.spread_debug; // simple pass-through
+  spopts.upsampfac    = opts.upsampfac;    // "
   // where the kerformula (>0) resulting from the default (=0) is set...
-  spopts.kerformula = (opts.spread_kerformula==0) ? 1 : opts.spread_kerformula;
+  spopts.kerformula = (opts.spread_kerformula == 0) ? 1 : opts.spread_kerformula;
 
-  constexpr TF EPSILON  = std::numeric_limits<TF>::epsilon();  // 2.2e-16 or 1.2e-7
-  int ier = 0;
-  if (tol < EPSILON) {  // unfeasible request: no hope of beating eps_mach...
+  constexpr TF EPSILON = std::numeric_limits<TF>::epsilon(); // 2.2e-16 or 1.2e-7
+  int ier              = 0;
+  if (tol < EPSILON) { // unfeasible request: no hope of beating eps_mach...
     if (opts.showwarn)
       fprintf(stderr, "%s warning: increasing tol=%.3g to eps_mach=%.3g.\n", __func__,
               (double)tol, (double)EPSILON);
-    tol = EPSILON;    // ... so forget the user request and target eps_mach
+    tol = EPSILON; // ... so forget the user request and target eps_mach
     ier = FINUFFT_WARN_EPS_TOO_SMALL;
   }
 
   // choose nspread and set it in spopts...
   int ns = theoretical_kernel_ns((double)tol, dim, type, opts.debug, spopts);
-  ns = std::max(MIN_NSPREAD,ns); // clip low
-  if (ns > MAX_NSPREAD) {        // clip to largest spreadinterp.cpp allows
+  ns     = std::max(MIN_NSPREAD, ns); // clip low
+  if (ns > MAX_NSPREAD) {             // clip to largest spreadinterp.cpp allows
     if (opts.showwarn)
-      fprintf(stderr, "%s warning: at upsampfac=%.3g, tol=%.3g would need kernel "
-        "width ns=%d; clipping to max %d.\n", __func__, spopts.upsampfac,
-        (double)tol, ns, MAX_NSPREAD);
+      fprintf(stderr,
+              "%s warning: at upsampfac=%.3g, tol=%.3g would need kernel "
+              "width ns=%d; clipping to max %d.\n",
+              __func__, spopts.upsampfac, (double)tol, ns, MAX_NSPREAD);
     ns  = MAX_NSPREAD;
     ier = FINUFFT_WARN_EPS_TOO_SMALL;
   }
   // further ns reduction to prevent catastrophic cancellation in float...
-  const bool singleprec = std::is_same_v<TF,float>;
+  const bool singleprec = std::is_same_v<TF, float>;
   if (singleprec && spopts.upsampfac < 1.4) {
-    int max_ns_CC = (dim==1) ? 9 : 8;  // hacky, const, found via plottolsweep.m
+    int max_ns_CC = (dim == 1) ? 9 : 8; // hacky, const, found via plottolsweep.m
     if (ns > max_ns_CC) {
       if (opts.showwarn)
-        fprintf(stderr, "%s warning: ns reducing from %d to %d to prevent rdyn-related"
-                "catastrophic cancellation.\n", __func__, ns, max_ns_CC);
+        fprintf(stderr,
+                "%s warning: ns reducing from %d to %d to prevent rdyn-related"
+                "catastrophic cancellation.\n",
+                __func__, ns, max_ns_CC);
       ns = max_ns_CC;
     }
   }
   spopts.nspread = ns;
-  set_kernel_shape_given_ns(spopts, opts.debug);  // selects kernel params in spopts
+  set_kernel_shape_given_ns(spopts, opts.debug); // selects kernel params in spopts
   if (opts.debug || spopts.debug)
     printf("\t\t\ttol=%.3g sigma=%.3g: chose ns=%d beta=%.3g (ier=%d)\n", tol,
            spopts.upsampfac, ns, spopts.beta, ier);
 
   // heuristic dir=1 chunking for nthr>>1, typical for intel i7 and skylake...
-  spopts.max_subproblem_size = (dim == 1) ? 10000 : 100000;   // todo: revisit
-  if (opts.spread_max_sp_size > 0)    // override
+  spopts.max_subproblem_size = (dim == 1) ? 10000 : 100000; // todo: revisit
+  if (opts.spread_max_sp_size > 0)                          // override
     spopts.max_subproblem_size = opts.spread_max_sp_size;
   // nthr above which switch OMP critical->atomic (add_wrapped..). R Blackwell's val:
   spopts.atomic_threshold = (opts.spread_nthr_atomic >= 0) ? opts.spread_nthr_atomic : 10;
 
   return ier;
- }
-
+}
 
 // ------------------- piecewise-poly Horner setup utility -----------------
 template<typename TF> void FINUFFT_PLAN_T<TF>::precompute_horner_coeffs() {
   // Solve for piecewise Horner coeffs for the function kernel.h:kernel_definition()
   // Marco Barbone, Fall 2025. Barnett & Lu edits and two bugs fixed, Jan 2026.
-  // *** Todo: investigate using double when TF=float, and tol_cutoff, 1/13/26. 
+  // *** Todo: investigate using double when TF=float, and tol_cutoff, 1/13/26.
   const auto nspread = spopts.nspread;
 
   const auto nc_fit = max_nc_given_ns(nspread); // how many coeffs to fit
@@ -585,27 +587,24 @@ template<typename TF> void FINUFFT_PLAN_T<TF>::precompute_horner_coeffs() {
 
   nc = MIN_NC; // a class member which will become the number of coeffs used
 
-  // First pass: fit at max_degree, cache coeffs, and determine largest nc
-  // needed.
+  // First pass: fit at max_degree (nc_fit-1), and save these coeffs,
+  // then determine largest nc needed and shuffle the coeffs if nc<nc_fit.
   // Note: `poly_fit()` returns coefficients in descending-degree order
   // (highest-degree first): coeffs[0] is the highest-degree term. We store
   // them so that `horner_coeffs[k * padded_ns + j]` holds the k'th Horner
   // coefficient (k=0 -> highest-degree). `horner_coeffs` was filled with
   // zeros above, so panels that need fewer coefficients leave the rest as 0.
-  
-  for (int j = 0; j < nspread; ++j) {
-    // Map x ∈ [-1, 1] to the physical interval for panel j.
-    // original: 0.5 * (x - nspread + 2*j + 1)
-    const TF shift = TF(2 * j + 1 - nspread);
 
-    // shift and scale so [-1,1] maps to jth interval of kernel...
-    // *** explore making double always, like kernel def:
-    const auto kernel_this_interval = [shift, this, nspread](TF x) -> TF {
-      const TF z = (x + shift) / (TF(2.0)*nspread);
-      return (TF)kernel_definition(spopts, z);
+  for (int j = 0; j < nspread; ++j) { // ......... loop over intervals (panels)
+    // affine map of x in [-1,1] to z in jth interval [-1+2j/w,-1+2(j+1)/w]
+    const TF xshiftj = TF(2 * j + 1 - nspread); // jth center in [-w,w]
+    // *** explore making this lambda double always, like kernel itself:
+    const auto kernel_this_interval = [xshiftj, this, nspread](TF x) -> TF {
+      const TF z = (x + xshiftj) / (TF)nspread;
+      return (TF)kernel_definition(spopts, (double)z);
     };
 
-    // we're fitting in float for TF=float, *** explore this:
+    // we're fitting in float for TF=float, *** explore always double:
     const auto coeffs = poly_fit<TF>(kernel_this_interval, static_cast<int>(nc_fit));
 
     // Save coefficients directly into final table (transposed/padded):
@@ -624,8 +623,9 @@ template<typename TF> void FINUFFT_PLAN_T<TF>::precompute_horner_coeffs() {
         break;
       }
     }
-    if (nc_needed > nc) nc = nc_needed; // nc takes max over panels j
-  }
+    if (nc_needed > nc) nc = nc_needed; // nc take as max over panels j
+  } // .............. end loop
+
   // nc = nc_fit;  // override truncation, useful for debugging
   // prevent nc falling off bottom of valid range...
   nc = std::max(nc, min_nc_given_ns(nspread));
@@ -691,7 +691,7 @@ template<typename TF> int FINUFFT_PLAN_T<TF>::init_grid_kerFT_FFT() {
         printf(" spread_thread=%d\n", opts.spread_thread);
     }
 
-  } else { // ..... usual NUFFT: eval Fourier series, alloc workspace .....
+  } else {               // ..... usual NUFFT: eval Fourier series, alloc workspace .....
 
     if (opts.showwarn) { // user warn round-off error (due to prob condition #)...
       for (int idim = 0; idim < dim; ++idim)
@@ -705,8 +705,8 @@ template<typename TF> int FINUFFT_PLAN_T<TF>::init_grid_kerFT_FFT() {
     // determine fine grid sizes, sanity check, then alloc...
     for (int idim = 0; idim < dim; ++idim) {
       int nfier = set_nf_type12(mstu[idim], opts, spopts, &nfdim[idim]);
-      if (nfier) return nfier;                    // nf too big; we're done
-      phiHat[idim].resize(nfdim[idim] / 2 + 1);   // alloc fseries
+      if (nfier) return nfier;                  // nf too big; we're done
+      phiHat[idim].resize(nfdim[idim] / 2 + 1); // alloc fseries
     }
 
     if (opts.debug) { // "long long" here is to avoid warnings with printf...
@@ -739,7 +739,7 @@ template<typename TF> int FINUFFT_PLAN_T<TF>::init_grid_kerFT_FFT() {
     }
 
     timer.restart(); // plan the FFTW (to act in-place on the workspace fwBatch)
-    int nthr_fft = opts.nthreads;
+    int nthr_fft  = opts.nthreads;
     const auto ns = gridsize_for_fft(*this);
     std::vector<TC, xsimd::aligned_allocator<TC, 64>> fwBatch(nf() * batchSize);
     fftPlan->plan(ns, batchSize, fwBatch.data(), fftSign, opts.fftw, nthr_fft);
@@ -753,8 +753,6 @@ template<typename TF> int FINUFFT_PLAN_T<TF>::init_grid_kerFT_FFT() {
 // --------------- rest is the five user guru (plan) interface drivers ----------
 // (they are not namespaced since have safe names finufft{f}_* )
 using namespace finufft::utils; // AHB since already given at top, needed again?
-
-
 
 // OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO
 void finufft_default_opts_t(finufft_opts *o)
@@ -916,9 +914,10 @@ FINUFFT_PLAN_T<TF>::FINUFFT_PLAN_T(int type_, int dim_, const BIGINT *n_modes, i
   if (opts.upsampfac != 0.0) {
     upsamp_locked = true; // user explicitly set upsampfac, don't auto-update
     if (opts.debug) printf("\t\tuser locked upsampfac=%g\n", opts.upsampfac);
-    if (opts.showwarn && !opts.spreadinterponly && (opts.upsampfac < 1.15 ||
-                                                    opts.upsampfac > 2.5))
-      fprintf(stderr, "%s warning: upsampfac=%.3g not in [1.15, 2.5], unlikely "
+    if (opts.showwarn && !opts.spreadinterponly &&
+        (opts.upsampfac < 1.15 || opts.upsampfac > 2.5))
+      fprintf(stderr,
+              "%s warning: upsampfac=%.3g not in [1.15, 2.5], unlikely "
               "to provide benefit and may give inaccurate results!\n",
               __func__, opts.upsampfac);
 
@@ -995,12 +994,12 @@ int FINUFFT_PLAN_T<TF>::setpts(BIGINT nj, const TF *xj, const TF *yj, const TF *
     return FINUFFT_ERR_NUM_NU_PTS_INVALID;
   }
 
-  if (type != 3) {          // ------------------ TYPE 1,2 SETPTS -------------------
-                            // (all we can do is check and maybe bin-sort the NU pts)
+  if (type != 3) { // ------------------ TYPE 1,2 SETPTS -------------------
+                   // (all we can do is check and maybe bin-sort the NU pts)
     // If upsampfac is not locked by user (auto mode), choose or update it now
     // based on the actual density nj/N(). Re-plan if density changed significantly.
     if (!upsamp_locked) {
-      double density = double(nj) / double(N());
+      double density   = double(nj) / double(N());
       double upsampfac = bestUpsamplingFactor<TF>(opts.nthreads, density, dim, type, tol);
       // Re-plan if this is the first call (upsampfac==0) or if upsampfac changed
       if (upsampfac != opts.upsampfac) {
@@ -1162,8 +1161,9 @@ int FINUFFT_PLAN_T<TF>::setpts(BIGINT nj, const TF *xj, const TF *yj, const TF *
     t2opts.debug        = std::max(0, opts.debug - 1);    // don't print as much detail
     t2opts.spread_debug = std::max(0, opts.spread_debug - 1);
     t2opts.showwarn     = 0;                              // so don't see warnings 2x
-    if (!upsamp_locked) t2opts.upsampfac = 0.0; // if the upsampfac was auto, let inner
-                                                // t2 pick it again (from density=nj/Nf)
+    if (!upsamp_locked)
+      t2opts.upsampfac = 0.0; // if the upsampfac was auto, let inner
+                              // t2 pick it again (from density=nj/Nf)
     // (...could vary other t2opts here?)
     // MR: temporary hack, until we have figured out the C++ interface.
     FINUFFT_PLAN_T<TF> *tmpplan;
