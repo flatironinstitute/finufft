@@ -63,8 +63,6 @@ template<class T, class F> std::vector<T> poly_fit(F &&f, int n) noexcept {
   return c;
 }
 
-// *** inline here to avoid >1 defn in src/common/utils.o, src/finufft_utils.o:
-
 inline double kernel_definition(const finufft_spread_opts &spopts, const double z) {
   /* The spread/interp kernel phi_beta(z) function on standard interval z in [-1,1],
      This evaluation does not need to be fast; it is used *only* for polynomial
@@ -96,18 +94,17 @@ inline double kernel_definition(const finufft_spread_opts &spopts, const double 
   if (std::abs(z) > 1.0) return 0.0;           // restrict support to [-1,1]
   double beta = spopts.beta;                   // get shape param
   double arg  = beta * std::sqrt(1.0 - z * z); // common argument for exp, I0, etc
+  int kf      = spopts.kerformula;
 
-  if (spopts.kerformula == 1) {
+  if (kf == 1 || kf == 2)
     // ES ("exponential of semicircle" or "exp sqrt"), see [FIN] reference.
     // used in FINUFFT 2017-2025 (up to v2.4.1). max is 1, as of v2.3.0.
     return std::exp(arg) / std::exp(beta);
-
-  } else if (spopts.kerformula == 2) {
+  else if (kf == 3)
     // forwards Kaiser--Bessel (KB), normalized to max of 1.
     // std::cyl_bessel_i is from <cmath>, expects double. See src/common/utils.cpp
     return common::cyl_bessel_i(0, arg) / common::cyl_bessel_i(0, beta);
-
-  } else {
+  else {
     fprintf(stderr, "[%s] unknown spopts.kerformula=%d\n", __func__, spopts.kerformula);
     throw int(FINUFFT_ERR_KERFORMULA_NOTVALID);
     return std::numeric_limits<double>::quiet_NaN(); // non-signalling

@@ -16,7 +16,7 @@ int theoretical_kernel_ns(double tol, int dim, int type, int debug,
   // in exact arithmetic, to achieve requested tolerance tol. Possibly uses
   // other parameters in spopts (upsampfac, kerformula,...). No clipping of ns
   // to valid range done here.
-  int ns;
+  int ns       = 0;
   double sigma = spopts.upsampfac;
 
   if (spopts.kerformula == 1) // ES legacy ns choice (v2.4.1, ie 2025, and before)
@@ -39,13 +39,16 @@ void set_kernel_shape_given_ns(finufft_spread_opts &spopts, int debug) {
   // debug >0 causes stdout reporting.
   int ns       = spopts.nspread;
   double sigma = spopts.upsampfac;
+  int kf       = spopts.kerformula;
 
-  // these strings must match: kernel_definition, and the below
-  const char *kernames[] = {"default", "ES (legacy params)", "KB"};
-
-  if (spopts.kerformula == 1) {
-    // Exponential of Semicircle (ES)
-    double betaoverns = 2.30; // the legacy logic, used 2017-2025.
+  // these strings must match: kernel_definition(), the above, and the below
+  const char *kernames[] = {"default",
+                            "ES (legacy params)", // 1
+                            "ES (Beatty beta)",   // 2
+                            "KB (Beatty beta)"};  // 3
+  if (kf == 1) {
+    // Exponential of Semicircle (ES), the legacy logic, from 2017, used to v2.4.1
+    double betaoverns = 2.30;
     if (ns == 2)
       betaoverns = 2.20;
     else if (ns == 3)
@@ -59,8 +62,8 @@ void set_kernel_shape_given_ns(finufft_spread_opts &spopts, int debug) {
     }
     spopts.beta = betaoverns * (double)ns;
 
-  } else if (spopts.kerformula == 2) {
-    // Kaiser-Bessel (KB), with shape param formula from Beatty et al,
+  } else if (kf >= 2) {
+    // Shape param formula (designed for K-B), from Beatty et al,
     // IEEE Trans Med Imaging, 2005 24(6):799-808. doi:10.1109/TMI.2005.848376
     // "Rapid gridding reconstruction with a minimal oversampling ratio".
     double t    = (double)ns * (1.0 - 1.0 / (2.0 * sigma));
@@ -68,8 +71,7 @@ void set_kernel_shape_given_ns(finufft_spread_opts &spopts, int debug) {
   }
 
   if (debug || spopts.debug)
-    printf("[setup_spreadinterp]\tkerformula=%d: %s...\n", spopts.kerformula,
-           kernames[spopts.kerformula]);
+    printf("[setup_spreadinterp]\tkerformula=%d: %s...\n", kf, kernames[kf]);
 }
 
 } // namespace finufft::kernel
