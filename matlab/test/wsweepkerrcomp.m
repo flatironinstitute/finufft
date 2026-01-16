@@ -1,0 +1,73 @@
+% Comparison of several kerformulae: error vs widths w, 3 types, fix dim,
+% CPU only. One sigma for now.
+% Extracts w from a spreadinterponly call, ignores tol.
+% Uses the tol sweep from tolsweeptest, uses erralltypedim to meas err.
+% Barnett 1/16/26.
+
+addpath(fileparts(mfilename('fullpath')))
+clear
+prec = 'double';  % working precision
+myrand = @rand;   % select CPU
+
+M = 1e3;            % # NU pts (several secs for >=1e4)
+dim = 1; Ntot = 300; % which dimensionality to test, tot #modes
+% (weird thing is N small, eg 32, makes KB look better)
+%dim = 2; Ntot = 400;  % or try other dims...
+%dim = 3; Ntot = 1e3;
+ntr = 10;           % #transforms to average error over at each tol
+isign = +1;
+sigma = 1.5;
+tolsperdecade = 8;
+tolstep = 10 ^ (-1 / tolsperdecade); % multiplicative step in tol, < 1
+kfnam = {"ES legacy", "ES Beatty", "KB Beatty"};  % must match kernel.hpp :)
+kfs = 1:3;        % kernel formulae to test
+
+o.upsampfac = sigma;
+o.showwarn = 0; warning('off','FINUFFT:epsTooSmall');
+dims = false(1, 3); dims(dim) = true;  % only test this dim
+nkf = numel(kfs);
+mintol = 10 * eps(prec);        % stop above eps_mach
+ntols = ceil(log(mintol) / log(tolstep));
+tols = tolstep.^(0:ntols-1);     % go down from tol = 1
+fprintf('%dD sigma=%.3g\tprec=%s M=%d Ntot=%d ntr=%d ntols=%d, kfs:',...
+        dim, o.upsampfac, prec, M, Ntot, ntr, ntols);
+fprintf(' %d',kfs); fprintf('\n');
+errs = nan(nkf, 3, ntols);          % for 3 types (just 1D for now), each tol
+ws = zeros(nkf, ntols);
+for t=1:ntols
+  tol = tols(t);
+  for i = 1:numel(kfs)  % loop over kernel formulae
+    o.spread_kerformula = kfs(i);
+    [nineerrs, info] = erralltypedim(M,Ntot,ntr,isign,prec,tol,o,myrand,dims);
+    errs(i,:,t) = nineerrs(:,dim);   % extract col from 3x3
+    % measure w via support of one spread pt to the origin...
+    oo = o; oo.spreadinterponly = 1;
+    du = finufft1d1(0.0,1.0,+1,tol,100,oo);
+    ws(i,t) = sum(du~=0.0);
+  end
+end
+
+% gather mean errs (ekw) for each kerformula, type, and w...
+wmax = max(ws(:)); ekw = nan(nkf,3,wmax); vkw=ekw;
+for w = 2:wmax
+  for i = 1:numel(kfs)
+    tt = find(ws(i,:)==w);   % take mean and var along tol t ind...
+    [vkw(i,:,w), ekw(i,:,w)] = var(squeeze(errs(i,:,tt)),0,2);
+  end
+end
+
+figure('name','mean rel err vs w, comparing kernels, for 3 NUFFT types',...
+       'position',[500 500 1500 500]);
+for y=1:3  % types
+  subplot(1,3,y);
+  legs = {};
+  for i=1:nkf     % kernels. make error bars with +-stddev...
+    errorbar(2:wmax, squeeze(ekw(i,y,2:end)), sqrt(squeeze(vkw(i,y,2:end))),'.-','markersize',10);
+    set(gca, 'ysc','log'); hold on; xlabel('w'); ylabel('mean rel err');
+    legs{i} = sprintf('kf=%d: %s',kfs(i),kfnam{i});
+  end
+  axis([2 wmax min(ekw(:)) max(ekw(:))]);
+  legend(legs)
+  title(sprintf('%dD type %d %s, N_{tot}=%d, \\sigma=%g',dim,y,prec,Ntot,sigma))
+end
+print('-dpng',sprintf('results/wsweepkerrcomp_%dD_%s_sig%g.png',dim,prec,sigma))
