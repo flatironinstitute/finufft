@@ -15,6 +15,8 @@ std::tuple<double, double> leg_eval(int n, double x);
 
 // Series implementation of the modified Bessel function of the first kind I_nu(x)
 double cyl_bessel_i(double nu, double x) noexcept;
+// Explicit custom series implementation exposed for testing
+double cyl_bessel_i_custom(double nu, double x) noexcept;
 
 // helper to generate the integer sequence in range [Start, End]
 template<int Offset, typename Seq> struct offset_seq;
