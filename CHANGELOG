@@ -1,10 +1,16 @@
 List of features / changes made / release notes, in reverse chronological order.
 If not stated, FINUFFT is assumed (old cuFINUFFT <=1.3 is listed separately).
 
-Master (working towards v2.5.0), 1/12/26
+Master (working towards v2.5.0), 1/16/26
 
-* Moved finufft_spread_opts.h from public-facing to private header.
-  Simplified kernel definition to [-1,1], removed ES-specific spopts (Barnett).
+* Major overhaul of spreading (gridding) kernel function choice, parameters,
+  and code logic:
+  Switch default kernel to fwd Kaiser-Bessel, improving by 0.3-0.5 digit at
+  the same w (width). Legacy (2017-2025) ES kernel and parameters available
+  via (new) option field opts.spread_kerformula=1 (with default of 0).
+  Moved finufft_spread_opts.h from public-facing to private header.
+  Simplified kernel definition to [-1,1], simplified old ES-specific spopts.
+  Kernel-comparison-vs-w mean rel err plotter wsweepkerrcomp.m (Barnett #787).
 * fixed no-setpts bug in perftest/spreadtestndall, updated perftests (Barnett).
 * Added real-valued function type-2 interpolation demos (Barnett, Unalmis #722)
 * Added functionality for adjoint execution of FINUFFT plans (Reinecke #633,
