@@ -256,9 +256,24 @@ finufft(mex_id_, o);
       % Note the peculiarity that mwrap only accepts a double for n_trans, even
       % though it's declared int. It complains, also with int64 for nj, etc :(
 
-      % replace in finufft_opts struct whichever fields are in incoming opts...
+      % clean opts fields (eg bools) for MEX input to C++, or for obsolescence...
+      if isfield(opts,'debug'), opts.debug = double(opts.debug); end
+      if isfield(opts,'spread_debug'), opts.spread_debug = double(opts.spread_debug); end
+      if isfield(opts,'spreadinterponly'), opts.spreadinterponly = double(opts.spreadinterponly); end
+      if isfield(opts,'showwarn'), opts.showwarn = double(opts.showwarn); end
+      if isfield(opts,'chkbnds')
+         warning('FINUFFT:deprecatedOpt', 'FINUFFT chkbnds option is deprecated.');
+      end
+      if isfield(opts,'spread_kerevalmeth')
+         warning('FINUFFT:deprecatedOpt', 'FINUFFT spread_kerevalmeth option is deprecated.');
+      end
+      if isfield(opts,'spread_kerpad')
+         warning('FINUFFT:deprecatedOpt', 'FINUFFT spread_kerpad option is deprecated.');
+      end
+      % replace in finufft_opts struct whichever fields are in incoming opts...      
       mex_id_ = 'copy_finufft_opts(c i mxArray, c i finufft_opts*)';
 finufft(mex_id_, opts, o);
+
       if strcmp(plan.floatprec,'double')
         tol = double(tol);   % scalar type must match for mwrap>=0.33.11
         mex_id_ = 'c o int = finufft_makeplan(c i int, c i int, c i int64_t[x], c i int, c i int, c i double, c i finufft_plan*, c i finufft_opts*)';
