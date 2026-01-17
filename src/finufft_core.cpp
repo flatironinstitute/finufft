@@ -532,15 +532,18 @@ template<typename TF> void FINUFFT_PLAN_T<TF>::precompute_horner_coeffs() {
   horner_coeffs.fill(TF(0));
 
   // Get the kernel parameters once
-  const TF beta         = TF(this->spopts.ES_beta);
-  const TF c_param      = TF(this->spopts.ES_c);
-  const int kerformula  = this->spopts.kerformula;
+  const TF beta        = TF(this->spopts.ES_beta);
+  const TF c_param     = TF(this->spopts.ES_c);
+  const int kerformula = this->spopts.kerformula;
 
   nc = MIN_NC; // a class member which will become the number of coeffs used
 
   // interpolation domain [a,b]
   static constexpr TF a = TF(-1.0);
   static constexpr TF b = TF(1.0);
+
+  CNTime timer;
+  timer.start();
 
   // First pass: fit at max_degree, cache coeffs, and determine largest nc
   // needed.
@@ -584,11 +587,6 @@ template<typename TF> void FINUFFT_PLAN_T<TF>::precompute_horner_coeffs() {
   nc = std::max(nc, min_nc_given_ns(nspread));
   // (we know nc cannot be larger than valid due to nc_fit initialization above)
 
-  if (opts.debug) {
-    printf("[%s] ns=%d:\tnc_fit=%d, trim to nc=%d\n", __func__, nspread, nc_fit, nc);
-    printf("\t\t\t\t\tsimd_size=%d, padded_ns=%d\n", (int)simd_size, (int)padded_ns);
-  }
-
   // If the max required degree (nc) is less than max_degree, we must shift
   // the coefficients "left" (to lower row indices) so that the significant
   // coefficients end at row nc-1.
@@ -608,14 +606,20 @@ template<typename TF> void FINUFFT_PLAN_T<TF>::precompute_horner_coeffs() {
       }
     }
   }
+  double t = timer.elapsedsec();
 
+  if (opts.debug) {
+    printf("[%s] ns=%d:\t%.3g s\n", __func__, nspread, t);
+    printf("\t\tnc_fit=%d (trim to nc=%d), simd_size=%d, padded_ns=%d\n", nc_fit, nc,
+           (int)simd_size, (int)padded_ns);
+  }
   if (opts.debug > 2) {
     // Print transposed layout: all "index 0" coeffs for intervals, then "index 1", ...
     // Note: k is the coefficient index in Horner order, with highest degree first.
     for (size_t k = 0; k < static_cast<size_t>(nc); ++k) {
       printf("[%s] idx=%lu: ", __func__, k);
       for (size_t j = 0; j < padded_ns; ++j) // use padded_ns to show padding as well
-        printf("%g ", static_cast<double>(horner_coeffs[k * padded_ns + j]));
+        printf("%.14g ", static_cast<double>(horner_coeffs[k * padded_ns + j]));
       printf("\n");
     }
   }
@@ -644,7 +648,7 @@ template<typename TF> int FINUFFT_PLAN_T<TF>::initSpreadAndFFT() {
         printf(" spread_thread=%d\n", opts.spread_thread);
     }
 
-  } else { // ..... usual NUFFT: eval Fourier series, alloc workspace .....
+  } else {               // ..... usual NUFFT: eval Fourier series, alloc workspace .....
 
     if (opts.showwarn) { // user warn round-off error (due to prob condition #)...
       for (int idim = 0; idim < dim; ++idim)
@@ -658,8 +662,8 @@ template<typename TF> int FINUFFT_PLAN_T<TF>::initSpreadAndFFT() {
     // determine fine grid sizes, sanity check, then alloc...
     for (int idim = 0; idim < dim; ++idim) {
       int nfier = set_nf_type12(mstu[idim], opts, spopts, &nfdim[idim]);
-      if (nfier) return nfier;                    // nf too big; we're done
-      phiHat[idim].resize(nfdim[idim] / 2 + 1);   // alloc fseries
+      if (nfier) return nfier;                  // nf too big; we're done
+      phiHat[idim].resize(nfdim[idim] / 2 + 1); // alloc fseries
     }
 
     if (opts.debug) { // "long long" here is to avoid warnings with printf...
@@ -692,7 +696,7 @@ template<typename TF> int FINUFFT_PLAN_T<TF>::initSpreadAndFFT() {
     }
 
     timer.restart(); // plan the FFTW (to act in-place on the workspace fwBatch)
-    int nthr_fft = opts.nthreads;
+    int nthr_fft  = opts.nthreads;
     const auto ns = gridsize_for_fft(*this);
     std::vector<TC, xsimd::aligned_allocator<TC, 64>> fwBatch(nf() * batchSize);
     fftPlan->plan(ns, batchSize, fwBatch.data(), fftSign, opts.fftw, nthr_fft);
@@ -706,8 +710,6 @@ template<typename TF> int FINUFFT_PLAN_T<TF>::initSpreadAndFFT() {
 // --------------- rest is the five user guru (plan) interface drivers ----------
 // (they are not namespaced since have safe names finufft{f}_* )
 using namespace finufft::utils; // AHB since already given at top, needed again?
-
-
 
 // OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO
 void finufft_default_opts_t(finufft_opts *o)
@@ -943,12 +945,12 @@ int FINUFFT_PLAN_T<TF>::setpts(BIGINT nj, const TF *xj, const TF *yj, const TF *
     return FINUFFT_ERR_NUM_NU_PTS_INVALID;
   }
 
-  if (type != 3) {          // ------------------ TYPE 1,2 SETPTS -------------------
-                            // (all we can do is check and maybe bin-sort the NU pts)
+  if (type != 3) { // ------------------ TYPE 1,2 SETPTS -------------------
+                   // (all we can do is check and maybe bin-sort the NU pts)
     // If upsampfac is not locked by user (auto mode), choose or update it now
     // based on the actual density nj/N(). Re-plan if density changed significantly.
     if (!upsamp_locked) {
-      double density = double(nj) / double(N());
+      double density   = double(nj) / double(N());
       double upsampfac = bestUpsamplingFactor<TF>(opts.nthreads, density, dim, type, tol);
       // Re-plan if this is the first call (upsampfac==0) or if upsampfac changed
       if (upsampfac != opts.upsampfac) {
@@ -1111,8 +1113,9 @@ int FINUFFT_PLAN_T<TF>::setpts(BIGINT nj, const TF *xj, const TF *yj, const TF *
     t2opts.debug        = std::max(0, opts.debug - 1);    // don't print as much detail
     t2opts.spread_debug = std::max(0, opts.spread_debug - 1);
     t2opts.showwarn     = 0;                              // so don't see warnings 2x
-    if (!upsamp_locked) t2opts.upsampfac = 0.0; // if the upsampfac was auto, let inner
-                                                // t2 pick it again (from density=nj/Nf)
+    if (!upsamp_locked)
+      t2opts.upsampfac = 0.0; // if the upsampfac was auto, let inner
+                              // t2 pick it again (from density=nj/Nf)
     // (...could vary other t2opts here?)
     // MR: temporary hack, until we have figured out the C++ interface.
     FINUFFT_PLAN_T<TF> *tmpplan;
