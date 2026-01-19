@@ -518,15 +518,15 @@ template<typename TF> int FINUFFT_PLAN_T<TF>::setup_spreadinterp() {
   spopts.upsampfac    = opts.upsampfac;    // "
   // sanity check sigma (upsampfac)...
   if (spopts.upsampfac <= 1.0) { // no digits would result, ns infinite
-    fprintf(stderr, "[%s] error: upsampfac=%.3g\n", __func__, upsampfac);
+    fprintf(stderr, "[%s] error: upsampfac=%.3g\n", __func__, spopts.upsampfac);
     return FINUFFT_ERR_UPSAMPFAC_TOO_SMALL;
   }
-  if (!opts.spreadinterponly && (spopts.upsampfac < 1.15 || spopts.upsampfac > 3.0))
-    if (opts.showwarn)
-      fprintf(stderr,
-              "%s warning: upsampfac=%.3g outside [1.15, 3.0] is unlikely to provide "
-              "benefit and may break the library;\n",
-              __func__, spopts.upsampfac);
+  if (opts.showwarn && !opts.spreadinterponly &&
+      (spopts.upsampfac < 1.15 || spopts.upsampfac > 3.0))
+    fprintf(stderr,
+            "%s warning: upsampfac=%.3g outside [1.15, 3.0] is unlikely to provide "
+            "benefit and may break the library;\n",
+            __func__, spopts.upsampfac);
 
   // crucial: where the default kerformula is set ....*
   spopts.kerformula = (opts.spread_kerformula == 0) ? 3 : opts.spread_kerformula;
@@ -928,13 +928,6 @@ FINUFFT_PLAN_T<TF>::FINUFFT_PLAN_T(int type_, int dim_, const BIGINT *n_modes, i
   if (opts.upsampfac != 0.0) {
     upsamp_locked = true; // user explicitly set upsampfac, don't auto-update
     if (opts.debug) printf("\t\tuser locked upsampfac=%g\n", opts.upsampfac);
-    if (opts.showwarn && !opts.spreadinterponly &&
-        (opts.upsampfac < 1.15 || opts.upsampfac > 2.5))
-      fprintf(stderr,
-              "%s warning: upsampfac=%.3g not in [1.15, 2.5], unlikely "
-              "to provide benefit and may give inaccurate results!\n",
-              __func__, opts.upsampfac);
-
     ier = setup_spreadinterp();
     if (ier > 1) // proceed if success or warning
       throw int(ier);
