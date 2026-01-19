@@ -13,14 +13,16 @@ namespace cufinufft {
 namespace spreadinterp {
 
 template<typename T>
-int setup_spreader(finufft_spread_opts &opts, T eps, T upsampfac,
+int setup_spreader(finufft_spread_opts &spopts, T eps, T upsampfac,
                    int kerevalmeth, int debug, int spreadinterponly)
 // Initializes spreader kernel parameters given desired NUFFT tolerance eps,
 // upsampling factor (=sigma in paper, or R in Dutt-Rokhlin), and ker eval meth
 // (etiher 0:exp(sqrt()), 1: Horner ppval).
 // Also sets all default options in finufft_spread_opts.
 // Must call before any kernel evals done.
-// Returns: 0 success, 1 warning, >1 failure (see error codes in utils.h)
+// Returns: 0 success, 1 warning, >1 failure (see error codes in utils.h).
+// As of v2.5 no longer sets ES_c, ES_halfwidth, since absent from spopts.
+// To do: *** update this to CPU v2.5 kernel choice, coeffs, params...
 {
   if (upsampfac != 2.0 && upsampfac != 1.25) { // nonstandard sigma
     if (kerevalmeth == 1) {
@@ -34,15 +36,15 @@ int setup_spreader(finufft_spread_opts &opts, T eps, T upsampfac,
       fprintf(stderr, "[%s] error: upsampfac=%.3g\n", __func__, upsampfac);
       return FINUFFT_ERR_UPSAMPFAC_TOO_SMALL;
     }
-    // calling routine must abort on above errors, since opts is garbage!
+    // calling routine must abort on above errors, since spopts is garbage!
     if (!spreadinterponly && upsampfac > 4.0)
       fprintf(stderr, "[%s] warning: upsampfac=%.3g is too large to be beneficial!\n",
               __func__, upsampfac);
   }
 
   // defaults... (user can change after this function called)
-  opts.spread_direction = 0; // user should always set to 1 or 2 as desired
-  opts.upsampfac        = upsampfac;
+  spopts.spread_direction = 0; // user should always set to 1 or 2 as desired
+  spopts.upsampfac        = upsampfac;
 
   // as in FINUFFT v2.0, allow too-small-eps by truncating to eps_mach...
   int ier             = 0;
@@ -54,7 +56,8 @@ int setup_spreader(finufft_spread_opts &opts, T eps, T upsampfac,
     ier = FINUFFT_WARN_EPS_TOO_SMALL;
   }
 
-  // Set kernel width w (aka ns) and ES kernel beta parameter, in opts...
+  // Set kernel width w (aka ns) and ES kernel beta parameter, in spopts...
+  // To do: *** unify with new CPU kernel logic/coeffs of v2.5.
   int ns = std::ceil(-log10(eps / (T)10.0)); // 1 digit per power of ten
   if (upsampfac != 2.0)                      // override ns for custom sigma
     ns = std::ceil(
@@ -69,9 +72,7 @@ int setup_spreader(finufft_spread_opts &opts, T eps, T upsampfac,
     ns  = MAX_NSPREAD;
     ier = FINUFFT_WARN_EPS_TOO_SMALL;
   }
-  opts.nspread      = ns;
-  opts.ES_halfwidth = T(ns * .5); // constants to help ker eval (except Horner)
-  opts.ES_c         = 4.0 / (T)(ns * ns);
+  spopts.nspread      = ns;
 
   T betaoverns = 2.30;            // gives decent betas for default sigma=2.0
   if (ns == 2) betaoverns = 2.20; // some small-width tweaks...
@@ -79,23 +80,21 @@ int setup_spreader(finufft_spread_opts &opts, T eps, T upsampfac,
   if (ns == 4) betaoverns = 2.38;
   if (upsampfac != 2.0) { // again, override beta for custom sigma
     T gamma    = 0.97;    // must match devel/gen_all_horner_C_code.m
-    betaoverns = gamma * T(PI) * (1 - 1 / (2 * upsampfac)); // formula
-                                                                               // based on
-                                                                               // cutoff
+    betaoverns = gamma * T(PI) * (1 - 1 / (2 * upsampfac));
   }
-  opts.ES_beta = betaoverns * (T)ns; // set the kernel beta parameter
+  spopts.beta = betaoverns * (T)ns; // set the kernel beta (shape) parameter
   if (debug)
     printf("[%s] (kerevalmeth=%d) eps=%.3g sigma=%.3g: chose ns=%d beta=%.3g\n", __func__,
-           kerevalmeth, (double)eps, (double)upsampfac, ns, opts.ES_beta);
+           kerevalmeth, (double)eps, (double)upsampfac, ns, spopts.beta);
   return ier;
 }
 
-template int setup_spreader(finufft_spread_opts &opts, float eps, float upsampfac,
+template int setup_spreader(finufft_spread_opts &spopts, float eps, float upsampfac,
                             int kerevalmeth, int debug, int spreadinterponly);
-template int setup_spreader(finufft_spread_opts &opts, double eps, double upsampfac,
+template int setup_spreader(finufft_spread_opts &spopts, double eps, double upsampfac,
                             int kerevalmeth, int debug, int spreadinterponly);
-template float evaluate_kernel(float x, const finufft_spread_opts &opts);
-template double evaluate_kernel(double x, const finufft_spread_opts &opts);
+template float evaluate_kernel(float x, const finufft_spread_opts &spopts);
+template double evaluate_kernel(double x, const finufft_spread_opts &spopts);
 
 } // namespace spreadinterp
 } // namespace cufinufft

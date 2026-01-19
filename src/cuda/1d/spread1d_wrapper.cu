@@ -122,8 +122,8 @@ int cuspread1d_nuptsdriven(int nf1, int M, cufinufft_plan_t<T> *d_plan, int blks
   dim3 blocks;
 
   int *d_idxnupts = d_plan->idxnupts;
-  T es_c          = d_plan->spopts.ES_c;
-  T es_beta       = d_plan->spopts.ES_beta;
+  T es_c          = 4.0 / T(d_plan->spopts.nspread * d_plan->spopts.nspread);
+  T es_beta       = d_plan->spopts.beta;
   T sigma         = d_plan->spopts.upsampfac;
 
   T *d_kx               = d_plan->kx;
@@ -154,8 +154,8 @@ int cuspread1d_nuptsdriven(int nf1, int M, cufinufft_plan_t<T> *d_plan, int blks
 template<typename T, int ns>
 int cuspread1d_output_driven(int nf1, int M, cufinufft_plan_t<T> *d_plan, int blksize) {
   auto &stream       = d_plan->stream;
-  T es_c             = d_plan->spopts.ES_c;
-  T es_beta          = d_plan->spopts.ES_beta;
+  T es_c             = 4.0 / T(d_plan->spopts.nspread * d_plan->spopts.nspread);
+  T es_beta          = d_plan->spopts.beta;
   int maxsubprobsize = d_plan->opts.gpu_maxsubprobsize;
 
   // assume that bin_size_x > ns/2;
@@ -293,8 +293,8 @@ int cuspread1d_subprob_prop(int nf1, int M, cufinufft_plan_t<T> *d_plan)
 template<typename T, int ns>
 int cuspread1d_subprob(int nf1, int M, cufinufft_plan_t<T> *d_plan, int blksize) {
   auto &stream       = d_plan->stream;
-  T es_c             = d_plan->spopts.ES_c;
-  T es_beta          = d_plan->spopts.ES_beta;
+  T es_c             = 4.0 / T(d_plan->spopts.nspread * d_plan->spopts.nspread);
+  T es_beta          = d_plan->spopts.beta;
   int maxsubprobsize = d_plan->opts.gpu_maxsubprobsize;
 
   // assume that bin_size_x > ns/2;

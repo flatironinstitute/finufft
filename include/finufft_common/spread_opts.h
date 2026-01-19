@@ -8,6 +8,7 @@
   2) Deliberately uses fixed types (no templated precision-switching), although
   now the plan is a class, this would be fine.
   3) `flags` (TF_OMIT_*) timing-only flags have been purged.
+  4) ES kernel fields replaced by generic shape param beta, and kerformula type
 */
 
 /* clang-format off */

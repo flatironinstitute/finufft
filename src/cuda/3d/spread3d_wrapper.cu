@@ -129,8 +129,8 @@ int cuspread3d_nuptsdriven(int nf1, int nf2, int nf3, int M, cufinufft_plan_t<T>
   dim3 blocks;
 
   T sigma   = d_plan->spopts.upsampfac;
-  T es_c    = d_plan->spopts.ES_c;
-  T es_beta = d_plan->spopts.ES_beta;
+  T es_c    = 4.0 / T(d_plan->spopts.nspread * d_plan->spopts.nspread);
+  T es_beta = d_plan->spopts.beta;
 
   int *d_idxnupts       = d_plan->idxnupts;
   T *d_kx               = d_plan->kx;
@@ -349,8 +349,8 @@ int cuspread3d_blockgather(int nf1, int nf2, int nf3, int M, cufinufft_plan_t<T>
                            int blksize) {
   auto &stream = d_plan->stream;
 
-  T es_c             = d_plan->spopts.ES_c;
-  T es_beta          = d_plan->spopts.ES_beta;
+  T es_c             = 4.0 / T(d_plan->spopts.nspread * d_plan->spopts.nspread);
+  T es_beta          = d_plan->spopts.beta;
   T sigma            = d_plan->spopts.upsampfac;
   int maxsubprobsize = d_plan->opts.gpu_maxsubprobsize;
 
@@ -537,8 +537,8 @@ int cuspread3d_subprob(int nf1, int nf2, int nf3, int M, cufinufft_plan_t<T> *d_
   int *d_subprob_to_bin = d_plan->subprob_to_bin;
 
   T sigma                      = d_plan->spopts.upsampfac;
-  T es_c                       = d_plan->spopts.ES_c;
-  T es_beta                    = d_plan->spopts.ES_beta;
+  T es_c                       = 4.0 / T(d_plan->spopts.nspread * d_plan->spopts.nspread);
+  T es_beta                    = d_plan->spopts.beta;
   const auto sharedplanorysize = shared_memory_required<T>(
       3, d_plan->spopts.nspread, d_plan->opts.gpu_binsizex, d_plan->opts.gpu_binsizey,
       d_plan->opts.gpu_binsizez, d_plan->opts.gpu_np);
@@ -606,8 +606,8 @@ int cuspread3d_output_driven(int nf1, int nf2, int nf3, int M,
   const auto np = d_plan->opts.gpu_np;
 
   T sigma                      = d_plan->spopts.upsampfac;
-  T es_c                       = d_plan->spopts.ES_c;
-  T es_beta                    = d_plan->spopts.ES_beta;
+  T es_c                       = 4.0 / T(d_plan->spopts.nspread * d_plan->spopts.nspread);
+  T es_beta                    = d_plan->spopts.beta;
   const auto sharedplanorysize = shared_memory_required<T>(
       3, ns, d_plan->opts.gpu_binsizex, d_plan->opts.gpu_binsizey,
       d_plan->opts.gpu_binsizez, d_plan->opts.gpu_np);

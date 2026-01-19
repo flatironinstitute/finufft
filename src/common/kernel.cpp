@@ -15,7 +15,7 @@ int theoretical_kernel_ns(double tol, int dim, int type, int debug,
   // returns ideal preferred spread width (ns, a.k.a. w) using convergence rate,
   // in exact arithmetic, to achieve requested tolerance tol. Possibly uses
   // other parameters in spopts (upsampfac, kerformula,...). No clipping of ns
-  // to valid range done here.
+  // to valid range done here. Input upsampfac must be >1.0.
   int ns       = 0;
   double sigma = spopts.upsampfac;
 

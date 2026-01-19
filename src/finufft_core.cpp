@@ -166,7 +166,8 @@ static void onedim_fseries_kernel(BIGINT nf, std::vector<T> &fwkerhalf,
 
   Barnett 2/7/17. openmp (since slow vs fftw in 1D large-N case) 3/3/18.
   Fixed num_threads 7/20/20. Reduced rounding error in a[n] calc 8/20/24.
-  11/25/25, replaced evaluate_kernel by evaluate_kernel_runtime (math change).
+  11/25/25, replaced kernel_definition by evaluate_kernel_runtime, meaning that
+  the FT of the piecewise poly approximant (not "exact" kernel) is computed.
  */
 {
   T J2 = opts.nspread / 2.0; // J/2, half-width of ker z-support
@@ -223,7 +224,8 @@ public:
     opts - spreading opts object, needed to eval kernel (must be already set up)
 
     Barnett 2/8/17. openmp since cos slow 2/9/17.
-    11/25/25, replaced evaluate_kernel by evaluate_kernel_runtime (math change).
+    11/25/25, replaced kernel_definition by evaluate_kernel_runtime, so that
+    the FT of the piecewise poly approximant (not "exact" kernel) is computed.
    */
 
   Kernel_onedim_FT(const finufft_spread_opts &opts, const T *horner_coeffs_ptr, int nc) {
@@ -514,7 +516,19 @@ template<typename TF> int FINUFFT_PLAN_T<TF>::setup_spreadinterp() {
   spopts.sort_threads = 0;                 // 0:auto-choice
   spopts.debug        = opts.spread_debug; // simple pass-through
   spopts.upsampfac    = opts.upsampfac;    // "
-  // where the kerformula (>0) resulting from the default (=0) is set...
+  // sanity check sigma (upsampfac)...
+  if (spopts.upsampfac <= 1.0) { // no digits would result, ns infinite
+    fprintf(stderr, "[%s] error: upsampfac=%.3g\n", __func__, upsampfac);
+    return FINUFFT_ERR_UPSAMPFAC_TOO_SMALL;
+  }
+  if (!opts.spreadinterponly && (spopts.upsampfac < 1.15 || spopts.upsampfac > 3.0))
+    if (opts.showwarn)
+      fprintf(stderr,
+              "%s warning: upsampfac=%.3g outside [1.15, 3.0] is unlikely to provide "
+              "benefit and may break the library;\n",
+              __func__, spopts.upsampfac);
+
+  // crucial: where the default kerformula is set ....*
   spopts.kerformula = (opts.spread_kerformula == 0) ? 3 : opts.spread_kerformula;
 
   constexpr TF EPSILON = std::numeric_limits<TF>::epsilon(); // 2.2e-16 or 1.2e-7
@@ -546,7 +560,7 @@ template<typename TF> int FINUFFT_PLAN_T<TF>::setup_spreadinterp() {
     if (ns > max_ns_CC) {
       if (opts.showwarn)
         fprintf(stderr,
-                "%s warning: ns reducing from %d to %d to prevent rdyn-related"
+                "%s warning: ns reducing from %d to %d to prevent r_{dyn}-related"
                 "catastrophic cancellation.\n",
                 __func__, ns, max_ns_CC);
       ns = max_ns_CC;
