@@ -518,7 +518,8 @@ template<typename TF> int FINUFFT_PLAN_T<TF>::setup_spreadinterp() {
   spopts.upsampfac    = opts.upsampfac;    // "
   // sanity check sigma (upsampfac)...
   if (spopts.upsampfac <= 1.0) { // no digits would result, ns infinite
-    fprintf(stderr, "[%s] error: upsampfac=%.3g\n", __func__, spopts.upsampfac);
+    fprintf(stderr, "[%s] error: upsampfac=%.3g is not > 1.0!\n", __func__,
+            spopts.upsampfac);
     return FINUFFT_ERR_UPSAMPFAC_TOO_SMALL;
   }
   if (opts.showwarn && !opts.spreadinterponly &&
