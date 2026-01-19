@@ -602,6 +602,9 @@ template<typename TF> void FINUFFT_PLAN_T<TF>::precompute_horner_coeffs() {
 
   nc = MIN_NC; // a class member which will become the number of coeffs used
 
+  CNTime timer;
+  timer.start();
+
   // First pass: fit at max_degree (nc_fit-1), and save these coeffs,
   // then determine largest nc needed and shuffle the coeffs if nc<nc_fit.
   // Note: `poly_fit()` returns coefficients in descending-degree order
@@ -645,11 +648,6 @@ template<typename TF> void FINUFFT_PLAN_T<TF>::precompute_horner_coeffs() {
   // prevent nc falling off bottom of valid range...
   nc = std::max(nc, min_nc_given_ns(nspread));
   // (we know nc cannot be larger than valid due to nc_fit initialization above)
-
-  if (opts.debug) {
-    printf("[%s] ns=%d:\tnc_fit=%d, trim to nc=%d\n", __func__, nspread, nc_fit, nc);
-    printf("\t\t\t\t\tsimd_size=%d, padded_ns=%d\n", (int)simd_size, (int)padded_ns);
-  }
 
   // If the max required degree (nc) is less than nc_fit, we must shift
   // the coefficients "left" (to lower row indices) so that the significant
