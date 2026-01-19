@@ -670,14 +670,20 @@ template<typename TF> void FINUFFT_PLAN_T<TF>::precompute_horner_coeffs() {
       }
     }
   }
+  double t = timer.elapsedsec();
 
+  if (opts.debug) {
+    printf("[%s] ns=%d:\t%.3g s\n", __func__, nspread, t);
+    printf("\t\tnc_fit=%d (trim to nc=%d), simd_size=%d, padded_ns=%d\n", nc_fit, nc,
+           (int)simd_size, (int)padded_ns);
+  }
   if (opts.debug > 2) {
     // Print transposed layout: all "index 0" coeffs for intervals, then "index 1", ...
     // Note: k is the coefficient index in Horner order, with highest degree first.
     for (size_t k = 0; k < static_cast<size_t>(nc); ++k) {
       printf("[%s] idx=%lu: ", __func__, k);
       for (size_t j = 0; j < padded_ns; ++j) // use padded_ns to show padding as well
-        printf("%g ", static_cast<double>(horner_coeffs[k * padded_ns + j]));
+        printf("%.14g ", static_cast<double>(horner_coeffs[k * padded_ns + j]));
       printf("\n");
     }
   }

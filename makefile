@@ -447,6 +447,9 @@ else
 	(cd matlab & $(MWRAP) -mex finufft -c finufft.cpp -mb -cppcomplex finufft.mw)
 	(cd matlab & $(MWRAP) -mex cufinufft -c cufinufft.cu -mb -cppcomplex -gpu cufinufft.mw)
 endif
+	(cd matlab; ./addmhelp.sh)
+	(cd docs; ./genmatlabhelp.sh)
+
 
 
 # python ---------------------------------------------------------------------

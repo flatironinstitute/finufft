@@ -2,14 +2,14 @@ Makefile for FINUFFT CPU library. Please specify your task:
  make lib - build the main library (in lib/ and lib-static/)
  make examples - compile and run all codes in examples/
  make test - compile and run quick math validation tests
- make perftest - compile and run (slower) performance tests
  make fortran - compile and run Fortran tests and examples
  make matlab - compile MATLAB interfaces (no test)
- make octave - compile and test octave interfaces
- make python - compile and test python interfaces
- make all - do all the above (around 1 minute; assumes you have MATLAB, etc)
- make spreadtest - compile & run spreader-only tests (no FFT)
- make spreadtestall - small set spreader-only tests for CI use
+ make octave - compile then test octave interfaces
+ make python - compile then test python interfaces
+ make spreadtest - compile & run spreader-only perf tests
+ make spreadtestsweep - spreader-only perf tests, sweep all tols
+ make perftest - compile and run some performance tests (~1 min)
+ make all - do all the above (~3 min; assumes have MEX, etc)
  make objclean - remove all object files, preserving libs & MEX
  make clean - also remove all lib, MEX, py, and demo executables
  make setup - check (and possibly download) dependencies

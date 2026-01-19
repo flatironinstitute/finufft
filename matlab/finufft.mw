@@ -73,12 +73,6 @@ $     }
 $     else if (strcmp(fname[ifield],"spread_sort") == 0) {
 $       oc->spread_sort = (int)round(*mxGetPr(mxGetFieldByNumber(om,idx,ifield)));
 $     }
-$     else if (strcmp(fname[ifield],"spread_kerevalmeth") == 0) {
-$       oc->spread_kerevalmeth = (int)round(*mxGetPr(mxGetFieldByNumber(om,idx,ifield)));
-$     }
-$     else if (strcmp(fname[ifield],"spread_kerpad") == 0) {
-$       oc->spread_kerpad = (int)round(*mxGetPr(mxGetFieldByNumber(om,idx,ifield)));
-$     }
 $     else if (strcmp(fname[ifield],"fftw") == 0) {
 $       oc->fftw = (int)round(*mxGetPr(mxGetFieldByNumber(om,idx,ifield)));
 $     }
@@ -190,8 +184,23 @@ classdef finufft_plan < handle
       % Note the peculiarity that mwrap only accepts a double for n_trans, even
       % though it's declared int. It complains, also with int64 for nj, etc :(
 
-      % replace in finufft_opts struct whichever fields are in incoming opts...
+      % clean opts fields (eg bools) for MEX input to C++, or for obsolescence...
+      if isfield(opts,'debug'), opts.debug = double(opts.debug); end
+      if isfield(opts,'spread_debug'), opts.spread_debug = double(opts.spread_debug); end
+      if isfield(opts,'spreadinterponly'), opts.spreadinterponly = double(opts.spreadinterponly); end
+      if isfield(opts,'showwarn'), opts.showwarn = double(opts.showwarn); end
+      if isfield(opts,'chkbnds')
+         warning('FINUFFT:deprecatedOpt', 'FINUFFT chkbnds option is deprecated.');
+      end
+      if isfield(opts,'spread_kerevalmeth')
+         warning('FINUFFT:deprecatedOpt', 'FINUFFT spread_kerevalmeth option is deprecated.');
+      end
+      if isfield(opts,'spread_kerpad')
+         warning('FINUFFT:deprecatedOpt', 'FINUFFT spread_kerpad option is deprecated.');
+      end
+      % replace in finufft_opts struct whichever fields are in incoming opts...      
       # copy_finufft_opts(mxArray opts, finufft_opts* o);
+
       if strcmp(plan.floatprec,'double')
         tol = double(tol);   % scalar type must match for mwrap>=0.33.11
         # int ier = finufft_makeplan(int type, int dim, int64_t[3] n_modes, int iflag, int n_trans, double tol, finufft_plan* plan, finufft_opts* o);
