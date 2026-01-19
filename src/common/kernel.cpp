@@ -26,7 +26,7 @@ int theoretical_kernel_ns(double tol, int dim, int type, int debug,
       ns = (int)std::ceil(
           std::log(1.0 / tol) / (finufft::common::PI * std::sqrt(1.0 - 1.0 / sigma)));
   else {                         // generic formula for PSWF-like kernels
-    const double fudgefac = 1.0; // *** todo: tweak it, per kerformula, for user tol
+    const double fudgefac = 2.0; // tweak it for user tol matching (& tolsweep passing)
     ns                    = (int)std::ceil(
         std::log(fudgefac / tol) / (finufft::common::PI * std::sqrt(1.0 - 1.0 / sigma)));
   }
