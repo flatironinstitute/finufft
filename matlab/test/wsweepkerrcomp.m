@@ -5,7 +5,7 @@
 % 
 % Based on tol sweep from tolsweeptest, using erralltypedim to meas err,
 % and extracts w from a spreadinterponly call (ignores tol).
-% Barnett 1/16/26.
+% Barnett 1/16/26. Added err-vs-tol comparison 1/20/26.
 
 addpath(fileparts(mfilename('fullpath')))
 clear
@@ -17,14 +17,14 @@ dim = 1; Ntot = 300; % which dimensionality to test, tot #modes (not too small)
 % (weird thing is N small, eg 32, makes KB look better)
 %dim = 2; Ntot = 400;  % or try other dims...
 %dim = 3; Ntot = 1e3;
-ntr = 10;           % #transforms to average error over at each tol
+ntr = 20;           % #transforms to average error over at each tol (was 10)
 isign = +1;
-sigma = 1.25;
-tolsperdecade = 8;
+sigma = 1.5;
+tolsperdecade = 10;
 tolstep = 10 ^ (-1 / tolsperdecade); % multiplicative step in tol, < 1
 % following names must match kernel.hpp:
 kfnam = {"ES legacy", "ES Beatty", "KB Beatty", "cont-KB Beatty"};
-kfs = 1:4;        % kernel formulae to test
+kfs = [1 3]; %1:4;        % kernel formulae to test
 
 o.upsampfac = sigma;
 %o.debug = 0;
@@ -37,14 +37,17 @@ tols = tolstep.^(0:ntols-1);     % go down from tol = 1
 fprintf('%dD sigma=%.3g\tprec=%s M=%d Ntot=%d ntr=%d ntols=%d, kfs:',...
         dim, o.upsampfac, prec, M, Ntot, ntr, ntols);
 fprintf(' %d',kfs); fprintf('\n');
-errs = nan(nkf, 3, ntols);          % for 3 types (just 1D for now), each tol
-ws = zeros(nkf, ntols);
+errs = nan(nkf, 3, ntols);     % for 3 types (just 1D for now), each tol
+toloks = true(1,ntols);        % whether FINUFFT reported warning for tol
+ws = zeros(nkf, ntols);        % extracted widths w
 for t=1:ntols
   tol = tols(t);
   for i = 1:numel(kfs)  % loop over kernel formulae
     o.spread_kerformula = kfs(i);
+    lastwarn('');                  % clean up warnings
     [nineerrs, info] = erralltypedim(M,Ntot,ntr,isign,prec,tol,o,myrand,dims);
     errs(i,:,t) = nineerrs(:,dim);   % extract col from 3x3
+    [~,id] = lastwarn; toloks(t) = ~strcmp(id, 'FINUFFT:epsTooSmall');
     % measure w via support of one spread pt to the origin...
     oo = o; oo.spreadinterponly = 1;
     du = finufft1d1(0.0,1.0,+1,tol,100,oo);
@@ -61,18 +64,40 @@ for w = 2:wmax
   end
 end
 
+% do the err vs w plot...
 figure('name','mean rel err vs w, comparing kernels, for 3 NUFFT types',...
-       'position',[500 500 1500 500]);
+       'position',[200 200 1200 500]);
 for y=1:3  % types
   subplot(1,3,y);
   legs = {};
   for i=1:nkf     % kernels. make error bars with +-stddev...
     errorbar(2:wmax, squeeze(ekw(i,y,2:end)), sqrt(squeeze(vkw(i,y,2:end))),'.-','markersize',10);
-    set(gca, 'ysc','log'); hold on; xlabel('w'); ylabel('mean rel err');
-    legs{i} = sprintf('kf=%d: %s',kfs(i),kfnam{i});
+    set(gca, 'ysc','log'); hold on; xlabel('w'); ylabel('mean rel l2 err');
+    legs{i} = sprintf('kf=%d: %s',kfs(i),kfnam{kfs(i)});
   end
   axis([2 wmax min(ekw(:)) max(ekw(:))]);
   legend(legs)
   title(sprintf('%dD type %d %s, N_{tot}=%d, \\sigma=%g',dim,y,prec,Ntot,sigma))
 end
 print('-dpng',sprintf('results/wsweepkerrcomp_%dD_%s_sig%g.png',dim,prec,sigma))
+
+% also for kicks plot err vs tol for these kernels...
+figure('name','mean rel err vs tol, comparing kernels, for 3 NUFFT types',...
+       'position',[200 200 1200 500]);
+for y=1:3  % types
+  subplot(1,3,y);
+  legs = {};
+  symb = '+.';
+  tt = tols(toloks);            % plot only the non-warning tol domain
+  for i=1:nkf     % kernels
+    loglog(tt, squeeze(errs(i,y,toloks)), symb(i)); % 'markersize',10);
+    hold on; xlabel('\epsilon (user tol)'); ylabel('mean rel l2 err');
+    legs{i} = sprintf('kf=%d: %s',kfs(i),kfnam{kfs(i)});
+  end
+  plot(tt,tt,'-'); legs{nkf+1} = '\epsilon';
+  axis([min(tt) max(tols) min(tt) 1.0]);
+  legend(legs,'location','nw')
+  title(sprintf('%dD type %d %s, N_{tot}=%d, \\sigma=%g',dim,y,prec,Ntot,sigma))
+end
+print('-dpng',sprintf('results/tolsweepkerrcomp_%dD_%s_sig%g.png',dim,prec,sigma))
+

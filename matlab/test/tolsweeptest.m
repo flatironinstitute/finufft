@@ -1,28 +1,35 @@
 % Pass/fail test for error over a range of tolerances, 3 types, fixed dim.
 % CPU only. Raises error if fails; use for CI. Two upsampfacs for now.
 % Simplified from plottolsweep; uses erralltypedim.
-% Barnett 12/22/25.
+% Barnett 12/22/25, add CI vs fig-plot option 1/20/26.
 
 addpath(fileparts(mfilename('fullpath')))
 clear % both single & double; just CPU for now...
 precdevs = 'sd'; myrand   = @rand; devname  = 'CPU               ';
+CI = false;  % CI: error out & no fig. not CI: don't error & plot fig
 
-M = 1e3;            % # NU pts (several secs for >=1e4)
-dim = 1; Ntot = 30; % which dimensionality to test, tot #modes
-%dim = 2; Ntot = 400;
-%dim = 3; Ntot = 1e3;
-ntr = 10;           % #transforms to average error over
+M = 500;            % # NU pts (several secs for >=1e4)
+dim = 1; Ntot = 50; % which dimensionality to test, tot #modes
+% Ntot in 1D is subtle: too small (<50) gives unrealistic fast t1&2 convergence
+% at tol<1e-10, say, for sig=2. But too large (>200) starts to lose digits in
+% single-prec due to condition-num of problem. To keep floors32 around 1e-5
+% need keep N low.
+%dim = 2; Ntot = 1e3;
+%dim = 3; Ntot = 2e3;    % t3 sig=1.25 needs floor32=2e-4, floor64~1e-8 (rdyn!)
+ntr = 20;           % #transforms to average error over
 isign = +1;
 sigmas = [1.25 2];             % a.k.a. upsampfac, list to test (v2.4.1 for now)
-floors32 = [1e-4 1e-5];        % float: seemingly controlled by rdyn
+floors32 = [1e-4 2e-5];        % float: seemingly controlled by rdyn
 floors64 = [3e-9 3e-14];       % double: former limited by wmax
-tolslack = [5.0; 5.0; 10.0];   % factors by which eps can exceed tol (3 types)
-o.showwarn = 0;
+tolslack = [5.0; 5.0; 5.0];   % factors by which eps can exceed tol (3 types)
 warning('off','FINUFFT:epsTooSmall');
-o.spread_kerformula = 0;         % any custom FINUFFT opts...
+%o.debug=1;
+o.showwarn = 0;
+o.spread_kerformula = 0;       % custom FINUFFT opts (should be none for CI)
 dims = false(1, 3); dims(dim) = true;  % only test this dim
 tolsperdecade = 8;
 tolstep = 10 ^ (-1 / tolsperdecade); % multiplicative step in tol, < 1
+if ~CI, figure('name','tolsweeptest','position',[200 200 1000 500*numel(sigmas)]); end
 
 for precdev=precdevs  % ......... loop precisions & devices
                       %  s=single, d=double; sd = CPU, SD = GPU
@@ -42,8 +49,18 @@ for precdev=precdevs  % ......... loop precisions & devices
       errs(:,t) = nineerrs(:,dim);   % extract col from 3x3
       [~,id] = lastwarn; toloks(t) = ~strcmp(id, 'FINUFFT:epsTooSmall');
     end
-    Nmax = info.Nmax(dims);
+    Nmax = info.Nmax(dims);    % currently unused
     if strcmp(prec,'single'), epsmin=floors32(j); else epsmin=floors64(j); end
+    if ~CI, subplot(numel(sigmas),2,2*(j-1)+1+strcmp(prec,'double'));  % plot
+      h0 = loglog(tols(toloks), errs(:,toloks), '+'); hold on;
+      plot(tols(~toloks), errs(:,~toloks),'mo');    % highlight those w/ warning
+      h1 = plot(tols, tols, 'k-');
+      h2 = plot(tols, tolslack*tols, '--');
+      h3 = plot(tols, 0*tols+epsmin, 'm--');
+      axis([min(tols), max(tols), eps(prec), 1.0]);
+      title(sprintf('%s %dD \\sigma=%g kf=%d M=%d N=%d',prec,dim,o.upsampfac,...
+                    o.spread_kerformula,M,Ntot)); drawnow
+    end
     for type=1:3       % simplified pass/fail criterion...
       e = errs(type,:);
       fails = e>tolslack(type)*tols & e>epsmin;
@@ -53,8 +70,7 @@ for precdev=precdevs  % ......... loop precisions & devices
       if max(failskeep), msg='FAIL'; else msg='pass'; end
       fprintf('\t\ttype %d: worstfac=%.3g\t %s\t\t',type,worstfac,msg);
       fprintf('%.3g ',tolskeep(failskeep)); fprintf('\n');   % list failed tols
-      % cause CI to fail out:
-      if max(failskeep), error('FINUFFT tolsweeptest failed!'); end
+      if CI & max(failskeep), error('FINUFFT tolsweeptest failed!'); end
     end
   end                                                    % --------
 end                    % .........

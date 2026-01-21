@@ -557,7 +557,7 @@ template<typename TF> int FINUFFT_PLAN_T<TF>::setup_spreadinterp() {
   // further ns reduction to prevent catastrophic cancellation in float...
   const bool singleprec = std::is_same_v<TF, float>;
   if (singleprec && spopts.upsampfac < 1.4) {
-    int max_ns_CC = (dim == 1) ? 9 : 8; // hacky, const, found via plottolsweep.m
+    int max_ns_CC = 8; // hacky, const, found via tolsweeptest.m (type 3 was 7)
     if (ns > max_ns_CC) {
       if (opts.showwarn)
         fprintf(stderr,
@@ -587,7 +587,7 @@ template<typename TF> int FINUFFT_PLAN_T<TF>::setup_spreadinterp() {
 template<typename TF> void FINUFFT_PLAN_T<TF>::precompute_horner_coeffs() {
   // Solve for piecewise Horner coeffs for the function kernel.h:kernel_definition()
   // Marco Barbone, Fall 2025. Barnett & Lu edits and two bugs fixed, Jan 2026.
-  // *** Todo: investigate using double when TF=float, and tol_cutoff, 1/13/26.
+  // *** To-do: investigate using double when TF=float, and tol_cutoff, 1/13/26.
   const auto nspread = spopts.nspread;
 
   const auto nc_fit = max_nc_given_ns(nspread); // how many coeffs to fit
@@ -634,7 +634,7 @@ template<typename TF> void FINUFFT_PLAN_T<TF>::precompute_horner_coeffs() {
     // Truncate polynomial degree using a numerical coeff size cut-off:
     // (ordering is coeffs[0] highest degree, to coeffs[nc_fit-1] const term)
     int nc_needed              = 0;
-    const TF coeffs_tol_cutoff = 0.1; // coeffs cut-off rel to tol: *** make opts?
+    const TF coeffs_tol_cutoff = 0.05; // coeffs cut-off rel to tol: *** make opts?
     for (size_t k = 0; k < coeffs.size(); ++k) { // power is nc_fit-1-k
       if (std::abs(coeffs[k]) >= tol * coeffs_tol_cutoff) {
         nc_needed = static_cast<int>(coeffs.size() - k);
@@ -644,8 +644,8 @@ template<typename TF> void FINUFFT_PLAN_T<TF>::precompute_horner_coeffs() {
     if (nc_needed > nc) nc = nc_needed; // nc take as max over panels j
   } // .............. end loop
 
-  // nc = nc_fit;  // override truncation, useful for debugging
-  // prevent nc falling off bottom of valid range...
+  // nc = nc_fit;  // overrides truncation, useful for debugging
+  //   prevent nc falling off bottom of valid range...
   nc = std::max(nc, min_nc_given_ns(nspread));
   // (we know nc cannot be larger than valid due to nc_fit initialization above)
 
@@ -670,7 +670,7 @@ template<typename TF> void FINUFFT_PLAN_T<TF>::precompute_horner_coeffs() {
   }
   double t = timer.elapsedsec();
 
-  if (opts.debug) {
+  if (opts.debug || spopts.debug) {
     printf("[%s] ns=%d:\t%.3g s\n", __func__, nspread, t);
     printf("\t\tnc_fit=%d (trim to nc=%d), simd_size=%d, padded_ns=%d\n", nc_fit, nc,
            (int)simd_size, (int)padded_ns);
@@ -678,6 +678,7 @@ template<typename TF> void FINUFFT_PLAN_T<TF>::precompute_horner_coeffs() {
   if (opts.debug > 2) {
     // Print transposed layout: all "index 0" coeffs for intervals, then "index 1", ...
     // Note: k is the coefficient index in Horner order, with highest degree first.
+    printf("dumping precomputed Horner coeffs...\n");
     for (size_t k = 0; k < static_cast<size_t>(nc); ++k) {
       printf("[%s] idx=%lu: ", __func__, k);
       for (size_t j = 0; j < padded_ns; ++j) // use padded_ns to show padding as well

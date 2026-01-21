@@ -25,10 +25,13 @@ int theoretical_kernel_ns(double tol, int dim, int type, int debug,
     else
       ns = (int)std::ceil(
           std::log(1.0 / tol) / (finufft::common::PI * std::sqrt(1.0 - 1.0 / sigma)));
-  else {                         // generic formula for PSWF-like kernels
-    const double fudgefac = 2.0; // tweak it for user tol matching (& tolsweep passing)
-    ns                    = (int)std::ceil(
-        std::log(fudgefac / tol) / (finufft::common::PI * std::sqrt(1.0 - 1.0 / sigma)));
+  else { // generic formula for PSWF-like kernels.
+    // tweak tolfac and nsoff for user tol matching (& tolsweep passing)...
+    const double tolfac = (type == 3) ? 0.5 : 0.3; // only applies to outer of type 3
+    const double nsoff  = 0.8; // width offset (helps balance err over sigma range)
+    ns                  = (int)std::ceil(
+        std::log(tolfac / tol) / (finufft::common::PI * std::sqrt(1.0 - 1.0 / sigma)) +
+        nsoff);
   }
   return ns;
 }
@@ -68,7 +71,8 @@ void set_kernel_shape_given_ns(finufft_spread_opts &spopts, int debug) {
     // IEEE Trans Med Imaging, 2005 24(6):799-808. doi:10.1109/TMI.2005.848376
     // "Rapid gridding reconstruction with a minimal oversampling ratio".
     double t    = (double)ns * (1.0 - 1.0 / (2.0 * sigma));
-    spopts.beta = common::PI * std::sqrt(t * t - 0.8); // just below std cutoff PI*t
+    double c_beatty = (ns == 2) ? 0.5 : 0.8; // Beatty but tweak ns=2 for err fac 2 better
+    spopts.beta = common::PI * std::sqrt(t * t - c_beatty); // just below std cutoff PI*t
     // in fact, in wsweepkerrcomp.m on KB we find beta=pi*t-0.17 is indistinguishable.
     // This is analogous to a safety factor of >0.99 around ns=10 (0.97 was too small)
   }
