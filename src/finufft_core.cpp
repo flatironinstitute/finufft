@@ -633,19 +633,20 @@ template<typename TF> void FINUFFT_PLAN_T<TF>::precompute_horner_coeffs() {
 
     // Truncate polynomial degree using a numerical coeff size cut-off:
     // (ordering is coeffs[0] highest degree, to coeffs[nc_fit-1] const term)
-    int nc_needed              = 0;
-    const TF coeffs_tol_cutoff = 0.05; // coeffs cut-off rel to tol: *** make opts?
+    int nc_needed = 0; // initialize
+    // experiments showed with this as 0.1, ns=15 had err bump, went away at 0.05...
+    const TF coeffs_tol_cutoff = 0.05; // coeffs cut-off rel to tol: to-do make opts?
     for (size_t k = 0; k < coeffs.size(); ++k) { // power is nc_fit-1-k
       if (std::abs(coeffs[k]) >= tol * coeffs_tol_cutoff) {
         nc_needed = static_cast<int>(coeffs.size() - k);
         break;
       }
     }
-    if (nc_needed > nc) nc = nc_needed; // nc take as max over panels j
+    if (nc_needed > nc) nc = nc_needed; // nc update to be max over panels j
   } // .............. end loop
 
   // nc = nc_fit;  // overrides truncation, useful for debugging
-  //   prevent nc falling off bottom of valid range...
+  //    prevent nc falling off bottom of valid range...
   nc = std::max(nc, min_nc_given_ns(nspread));
   // (we know nc cannot be larger than valid due to nc_fit initialization above)
 

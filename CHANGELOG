@@ -1,18 +1,27 @@
 List of features / changes made / release notes, in reverse chronological order.
 If not stated, FINUFFT is assumed (old cuFINUFFT <=1.3 is listed separately).
 
-Master (working towards v2.5.0), 1/16/26
+Master (working towards v2.5.0), 1/21/26
 
 * Major overhaul of spreading (gridding) kernel function choice, parameters,
-  and code logic:
-  Switch default kernel to fwd Kaiser-Bessel, improving by 0.3-0.5 digit at
-  the same w (width). Legacy (2017-2025) ES kernel and parameters available
+  and code logic, to exploit the new on-the-fly kernel poly fitting:
+  Switch default kernel to (fwd) Kaiser-Bessel with a tweak on Beatty 2005
+  shape param, improving by 0.3-0.5 digit at the same w (width).
+  Comparisons against various kernels (cosh, cont KB, cont cosh,...) done.
+  The logic of choosing ns from tol is improved to give lower and
+  more predictable error across types, sigma (upsampfac) and dimensions.
+  See https://github.com/flatironinstitute/finufft/discussions/798
+  Legacy (2017-2025) ES kernel and parameters are available
   via (new) option field opts.spread_kerformula=1 (with default of 0).
-  Moved finufft_spread_opts.h from public-facing to private header.
   Simplified kernel definition to [-1,1], simplified old ES-specific spopts.
+  Added several new MATLAB tolerance-sweeping error-measure tools, and CI:
+  tolsweeptest.m is run in CI & has a multi-fig plot option (to test/results/)
   Kernel-comparison-vs-w mean rel err plotter wsweepkerrcomp.m (Barnett #787).
-* fixed no-setpts bug in perftest/spreadtestndall, updated perftests (Barnett).
+* fix no-setpts bug in perftest/spreadtestndall, better perftests (Barnett #791)
+* exhaustive tolerance testing in CI via new tolsweep.cpp (Barnett, #780)
 * Added real-valued function type-2 interpolation demos (Barnett, Unalmis #722)
+* Moved finufft_spread_opts.h from public-facing to private header, allowing
+  easy changes without affecting the API. (Barnett #791)
 * Added functionality for adjoint execution of FINUFFT plans (Reinecke #633,
   addresses #566 and #571).
   Work arrays are now only allocated during plan execution, reducing overall
@@ -45,7 +54,7 @@ Master (working towards v2.5.0), 1/16/26
   spreadtestnd, spreadtestndall and test_spreadinterponly were updated to use
   the public API and share a unified STL-based implementation for kersum,
   mass and relative-error checks. This common kernel header will also enable
-  reuse by the GPU. (Barbone, Barnett, Lu, PR #748)
+  reuse by the GPU. (Barbone, Barnett, Lu, PR #748 and some in #791)
 * Purged legacy `TF_OMIT_*` timing flags from headers and core source and
   removed timing-related omission flags. Deprecated `kerevalmeth` and
   `kerpad` are retained only for API compatibility but are ignored; the
