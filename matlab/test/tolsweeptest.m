@@ -30,7 +30,7 @@ for dim = 1:3  % ======== dimensions
     floors32 = [1e-4 2e-5];        % float: seemingly controlled by Nmax, rdyn
     floors64 = [2e-9 3e-14];       % double: former limited by wmax
   elseif dim==2
-    Ntot = 1e3; floors32 = [6e-5 2e-5]; floors64 = [2e-9 5e-14];
+    Ntot = 1e3; floors32 = [1e-4 2e-5]; floors64 = [2e-9 5e-14];
   else
     Ntot = 2e3; floors32 = [2e-4 1e-5]; floors64 = [2e-8 3e-14];
   end

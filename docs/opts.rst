@@ -170,11 +170,6 @@ automatically from call to call in the same executable (incidentally, also in th
 The heuristic bakes in empirical findings such as: generally it is not worth sorting in 1D type 2 transforms, or when the number of nonuniform points is small.
 Feel free to try experimenting here; if you have highly-structured nonuniform point ordering (such as coming from polar-grid or propeller-type MRI k-points) it may be advantageous not to sort.
 
-**spread_kerevalmeth**: Kernel evaluation method in spreader/interpolator. Deprecated — retained only for API compatibility and documentation. The library now always uses the Horner piecewise-polynomial evaluation internally (the historical ``=1`` choice). Setting this field has no effect.
-
-**spread_kerpad**: (Deprecated) This option historically controlled padding to help SIMD vectorization for the removed direct-evaluation method. It is ignored by the library.
-
-
 **upsampfac**: This is the internal factor by which the FFT (fine grid)
 is chosen larger than
 the number of requested modes in each dimension, for type 1 and 2 transforms. For type 3 transforms this factor gets squared, due to type 2 nested in a type-1-spreading operation, so has even more influence.
@@ -186,7 +181,6 @@ for only two settings, as follows. Otherwise, setting it to zero chooses a good 
 * ``upsampfac=2.0`` : standard setting of upsampling. Due to kernel width restrictions, this is necessary if you need to exceed 9 digits of accuracy.
 
 * ``upsampfac=1.25`` : low-upsampling option, with lower RAM, smaller FFTs, but wider spreading kernel. The latter can be much faster than the standard when the number of nonuniform points is similar or smaller to the number of modes, and/or if low accuracy is required. It is especially much (2 to 3 times) faster for type 3 transforms. However, the kernel widths :math:`w` are about 50% larger in each dimension, which can lead to slower spreading (it can also be faster due to the smaller size of the fine grid). Because the kernel width is limited to 16, currently, thus only 9-digit accuracy can currently be reached when using ``upsampfac=1.25``.
-
 
 **spread_thread**: in the case of multiple transforms per call (``ntr>1``, or the "many" interfaces), controls how multithreading is used to spread/interpolate each batch of data.
 
@@ -207,6 +201,13 @@ Here ``0`` makes an automatic choice. If you are unhappy with this, then for sma
 **spread_nthr_atomic**: if non-negative: for numbers of threads up to this value, an OMP critical block for ``add_wrapped_subgrid`` is used in spreading (type 1 transforms). Above this value, instead OMP atomic writes are used, which scale better for large thread numbers. If negative, the heuristic default in the spreader is used, set in ``src/spreadinterp.cpp:setup_spreader()``.
 
 **spread_max_sp_size**: if positive, overrides the maximum subproblem (chunking) size for multithreaded spreading (type 1 transforms). Otherwise the default in the spreader is used, set in ``src/spreadinterp.cpp:setup_spreader()``, which we believe is a decent heuristic for Intel i7 and xeon machines.
+
+**spread_kerformula**: ``0`` uses default spreading (gridding) kernel with default shape choice, whereas positive integers select among various kernels and shape parameter choices. In particular ``1`` returns to the "legacy ES" choices used from the first 2017 code to v2.4.1 (2025). Only developers should mess with this parameter; users will want to leave it at default.
+
+**spread_kerevalmeth**: [DEPRECATED] Kernel evaluation method in spreader/interpolator; retained only for API compatibility and documentation. The library now always uses the Horner piecewise-polynomial evaluation internally (the historical ``=1`` choice). Setting this field has no effect.
+
+**spread_kerpad**: [DEPRECATED] This option historically controlled padding to help SIMD vectorization for the removed direct-evaluation method. It is ignored by the library.
+
 
 
 Thread safety options (advanced)

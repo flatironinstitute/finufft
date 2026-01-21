@@ -43,6 +43,7 @@ for precdev=precdevs  % ......... loop precisions & devices
   % various opts
   o.debug = 0;      % choose 1 for timing breakdown text output
   o.spread_debug=0; % spread-specific debug info
+  o.spread_kerformula=0;
   o.upsampfac=0;    % 0 (auto), 2.0 (default), or 1.25 (low-RAM, small-FFT)
   fprintf('%s\tprec=%s\ttol=%.3g, M=%d, Ntot=%d, ntrans=%d\n',...
           devname, prec, tol, M, Ntot, ntr)
