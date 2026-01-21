@@ -19,7 +19,7 @@ dim = 1; Ntot = 300; % which dimensionality to test, tot #modes (not too small)
 %dim = 3; Ntot = 1e3;
 ntr = 20;           % #transforms to average error over at each tol (was 10)
 isign = +1;
-sigma = 1.5;
+sigma = 2.0; %1.25;
 tolsperdecade = 10;
 tolstep = 10 ^ (-1 / tolsperdecade); % multiplicative step in tol, < 1
 % following names must match kernel.hpp:
