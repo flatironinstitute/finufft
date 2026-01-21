@@ -1,12 +1,12 @@
 % Pass/fail test for error over a range of tolerances, 3 types, fixed dim.
 % CPU only. Raises error if fails; use for CI. Two upsampfacs for now.
 % Simplified from plottolsweep; uses erralltypedim.
-% Barnett 12/22/25, add CI vs fig-plot option 1/20/26, all dims 1/21/26.
+% Barnett 12/22/25, add CI vs fig-plot to results 1/20/26; all dims 1/21/26.
 
 addpath(fileparts(mfilename('fullpath')))
 clear % both single & double; just CPU for now...
 precdevs = 'sd'; myrand   = @rand; devname  = 'CPU               ';
-CI = true;  % CI: error out & no fig. not CI: don't error & plot fig
+CI = true;  % leave true after debug! not CI: plot figs & don't raise errors
 
 M = 500;            % NU pts in each test
 ntr = 20;           % #transforms to average error over (little extra direct cost)

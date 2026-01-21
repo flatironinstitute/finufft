@@ -125,7 +125,7 @@ FINUFFT_EXPORT void set_kernel_shape_given_ns(finufft_spread_opts &opts, int deb
 
 // min and max number of poly coeffs allowed (compiled) for a given spread width ns
 inline constexpr int min_nc_given_ns(int ns) {
-  return std::max(common::MIN_NC, ns - 1); // note must stay in bounds from constants.h
+  return std::max(common::MIN_NC, ns - 4); // note must stay in bounds from constants.h
 }
 inline constexpr int max_nc_given_ns(int ns) {
   return std::min(common::MAX_NC, ns + 3); // "
