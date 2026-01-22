@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.24)
 
 # Build a small static helper library for CPU-only kernel parameter helpers
 # Source is in ../kernel.cpp as requested
-set(FINUFFT_COMMON_SOURCES kernel.cpp utils.cpp)
+set(FINUFFT_COMMON_SOURCES kernel.cpp utils.cpp pswf.cpp)
 
 add_library(finufft_common STATIC ${FINUFFT_COMMON_SOURCES})
 
