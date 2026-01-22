@@ -7,6 +7,7 @@
 #include <vector>
 
 #include <finufft_common/constants.h>
+#include <finufft_common/pswf.h>
 #include <finufft_common/spread_opts.h>
 #include <finufft_common/utils.h>
 #include <finufft_errors.h>
@@ -111,6 +112,8 @@ inline double kernel_definition(const finufft_spread_opts &spopts, const double 
     return std::cosh(arg) / std::cosh(beta); // normalized cosh-type of Rmk. 13 [FIN]
   else if (kf == 6)
     return (std::cosh(arg) - 1.0) / std::cosh(beta); // Potts-Tasche cont cosh-type
+  else if (kf == 7)
+    return common::pswf(beta, z); // pswf order zero, normalized to 1 at z=0
   else {
     fprintf(stderr, "[%s] unknown spopts.kerformula=%d\n", __func__, spopts.kerformula);
     throw int(FINUFFT_ERR_KERFORMULA_NOTVALID);      // *** crashes matlab, not good
