@@ -152,7 +152,7 @@ STATICLIB = lib-static/$(LIBNAME).a
 ABSDYNLIB = $(FINUFFT)$(DYNLIB)
 
 # spreader objs
-SOBJS = src/finufft_utils.o src/spreadinterp.o src/common/utils.o src/common/kernel.o
+SOBJS = src/finufft_utils.o src/spreadinterp.o src/common/utils.o src/common/kernel.o src/common/pswf.o
 
 # all lib dual-precision objs (note DUCC_OBJS empty if unused)
 OBJS = $(SOBJS) src/fft.o src/finufft_core.o src/c_interface.o fortran/finufftfort.o $(DUCC_OBJS)
