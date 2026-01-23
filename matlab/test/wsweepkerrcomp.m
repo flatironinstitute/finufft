@@ -22,12 +22,12 @@ isign = +1;
 sigma = 2.0; %1.25;
 tolsperdecade = 10;
 tolstep = 10 ^ (-1 / tolsperdecade); % multiplicative step in tol, < 1
-% following names must match kernel.hpp:
-kfnam = {"ES legacy", "ES Beatty", "KB Beatty", "cont-KB Beatty"};
-kfs = [1 3]; %1:4;        % kernel formulae to test
+% following names must match src/finufft_common/kernel.h:
+kfnam = {"ES legacy", "ES Beatty", "KB Beatty", "cont-KB Beatty", "cosh-type Bea", "cont cosh Bea", "PSWF Beatty", "PSWF tuned"};
+kfs = [1 3 7 8];       % kernel formulae to test
 
 o.upsampfac = sigma;
-%o.debug = 0;
+%o.debug = 1;
 o.showwarn = 0; warning('off','FINUFFT:epsTooSmall');
 dims = false(1, 3); dims(dim) = true;  % only test this dim
 nkf = numel(kfs);
@@ -44,6 +44,7 @@ for t=1:ntols
   tol = tols(t);
   for i = 1:numel(kfs)  % loop over kernel formulae
     o.spread_kerformula = kfs(i);
+    %o.debug = (tol<1e-8 && tol>1e-10);  % *** only to find ns=15 s=1.25 bump :(
     lastwarn('');                  % clean up warnings
     [nineerrs, info] = erralltypedim(M,Ntot,ntr,isign,prec,tol,o,myrand,dims);
     errs(i,:,t) = nineerrs(:,dim);   % extract col from 3x3
@@ -87,7 +88,7 @@ figure('name','mean rel err vs tol, comparing kernels, for 3 NUFFT types',...
 for y=1:3  % types
   subplot(1,3,y);
   legs = {};
-  symb = '+.';
+  symb = '+.ox*sd';
   tt = tols(toloks);            % plot only the non-warning tol domain
   for i=1:nkf     % kernels
     loglog(tt, squeeze(errs(i,y,toloks)), symb(i)); % 'markersize',10);
