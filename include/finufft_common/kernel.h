@@ -112,7 +112,7 @@ inline double kernel_definition(const finufft_spread_opts &spopts, const double 
     return std::cosh(arg) / std::cosh(beta); // normalized cosh-type of Rmk. 13 [FIN]
   else if (kf == 6)
     return (std::cosh(arg) - 1.0) / std::cosh(beta); // Potts-Tasche cont cosh-type
-  else if (kf == 7 || kf == 8)
+  else if (kf >= 7 && kf <= 9)
     return common::pswf(beta, z); // prolate (PSWF) Psi_0, normalized to 1 at z=0
   else {
     fprintf(stderr, "[%s] unknown spopts.kerformula=%d\n", __func__, spopts.kerformula);

@@ -19,12 +19,12 @@ dim = 1; Ntot = 300; % which dimensionality to test, tot #modes (not too small)
 %dim = 3; Ntot = 1e3;
 ntr = 20;           % #transforms to average error over at each tol (was 10)
 isign = +1;
-sigma = 2.0; %1.25;
+sigma = 1.25;
 tolsperdecade = 10;
 tolstep = 10 ^ (-1 / tolsperdecade); % multiplicative step in tol, < 1
 % following names must match src/finufft_common/kernel.h:
-kfnam = {"ES legacy", "ES Beatty", "KB Beatty", "cont-KB Beatty", "cosh-type Bea", "cont cosh Bea", "PSWF Beatty", "PSWF tuned"};
-kfs = [1 3 7 8];       % kernel formulae to test
+kfnam = {"ES legacy", "ES Beatty", "KB Beatty", "cont-KB Beatty", "cosh-type Bea", "cont cosh Bea", "PSWF Beatty", "PSWF beta-shift", "PSWF std"};
+kfs = [1 3 8 9];       % kernel formulae to test
 
 o.upsampfac = sigma;
 %o.debug = 1;

@@ -529,8 +529,8 @@ template<typename TF> int FINUFFT_PLAN_T<TF>::setup_spreadinterp() {
             "benefit and may break the library;\n",
             __func__, spopts.upsampfac);
 
-  // crucial: where the default kerformula is set ....*
-  spopts.kerformula = (opts.spread_kerformula == 0) ? 3 : opts.spread_kerformula;
+  // crucial: where the default kerformula is set ....*    see kernel.{h,cpp}
+  spopts.kerformula = (opts.spread_kerformula == 0) ? 8 : opts.spread_kerformula;
 
   constexpr TF EPSILON = std::numeric_limits<TF>::epsilon(); // 2.2e-16 or 1.2e-7
   int ier              = 0;
@@ -632,12 +632,14 @@ template<typename TF> void FINUFFT_PLAN_T<TF>::precompute_horner_coeffs() {
     }
 
     // Truncate polynomial degree using a numerical coeff size cut-off:
-    // (ordering is coeffs[0] highest degree, to coeffs[nc_fit-1] const term)
-    int nc_needed = 0; // initialize
-    // experiments showed with this as 0.1, ns=15 had err bump, went away at 0.05...
+    // truncation at nc is allowed if all coeffs of degree nc have magnitude
+    // less than tol * coeffs_tol_cutoff. The smallest such nc is found.
+    // Experiments showed with this as 0.1, ns=15 had err bump, went away at 0.05...
     const TF coeffs_tol_cutoff = 0.05; // coeffs cut-off rel to tol: to-do make opts?
-    for (size_t k = 0; k < coeffs.size(); ++k) { // power is nc_fit-1-k
-      if (std::abs(coeffs[k]) >= tol * coeffs_tol_cutoff) {
+    // Note: ordering is coeffs[0] highest degree, to coeffs[nc_fit-1] const term.
+    int nc_needed = 0; // initialize. then step down from highest degree...
+    for (size_t k = 0; k < coeffs.size(); ++k) {            // power is nc_fit-1-k
+      if (std::abs(coeffs[k]) >= tol * coeffs_tol_cutoff) { // stop when large enough
         nc_needed = static_cast<int>(coeffs.size() - k);
         break;
       }
@@ -646,7 +648,7 @@ template<typename TF> void FINUFFT_PLAN_T<TF>::precompute_horner_coeffs() {
   } // .............. end loop
 
   // nc = nc_fit;  // overrides truncation, useful for debugging
-  //    prevent nc falling off bottom of valid range...
+  //     prevent nc falling off bottom of valid range...
   nc = std::max(nc, min_nc_given_ns(nspread));
   // (we know nc cannot be larger than valid due to nc_fit initialization above)
 

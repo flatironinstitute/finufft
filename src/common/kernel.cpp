@@ -43,6 +43,8 @@ void set_kernel_shape_given_ns(finufft_spread_opts &spopts, int debug) {
   int ns       = spopts.nspread;
   double sigma = spopts.upsampfac;
   int kf       = spopts.kerformula;
+  // standard beta (shape) param for all PSWF-like kernels, used in the below...
+  const double beta_cutoff = common::PI * (double)ns * (1.0 - 1.0 / (2.0 * sigma));
 
   // these strings must match: kernel_definition(), the above, and the below
   const char *kernames[] = {"default",
@@ -53,7 +55,8 @@ void set_kernel_shape_given_ns(finufft_spread_opts &spopts, int debug) {
                             "cosh-type (Beatty beta)", // 5
                             "cont cosh (Beatty beta)", // 6
                             "PSWF (Beatty beta)",      // 7
-                            "PSWF (tuned beta)"};      // 8
+                            "PSWF (beta shift)",       // 8
+                            "PSWF (cutoff beta)"};     // 9
   if (kf == 1) {
     // Exponential of Semicircle (ES), the legacy logic, from 2017, used to v2.4.1
     double betaoverns = 2.30;
@@ -62,35 +65,38 @@ void set_kernel_shape_given_ns(finufft_spread_opts &spopts, int debug) {
     else if (ns == 3)
       betaoverns = 2.26;
     else if (ns == 4)
-      betaoverns = 2.38;
-
-    if (sigma != 2.0) { // low-sigma option, introduced v1.0 (2018-2025)
-      const double gamma = 0.97;
-      betaoverns         = gamma * common::PI * (1.0 - 1.0 / (2.0 * sigma));
-    }
+      betaoverns = 2.38;         // in hindsight this value was too large
     spopts.beta = betaoverns * (double)ns;
+    if (sigma != 2.0) {          // low-sigma option, introduced v1.0 (2018-2025)
+      const double gamma = 0.97; // safety factor, from [FIN] paper
+      spopts.beta        = gamma * beta_cutoff;
+    }
 
-  } else if (kf >= 2 || kf <= 7) {
-    // Shape param formula (designed for K-B), from Beatty et al,
-    // IEEE Trans Med Imaging, 2005 24(6):799-808. doi:10.1109/TMI.2005.848376
-    // "Rapid gridding reconstruction with a minimal oversampling ratio".
-    double t    = (double)ns * (1.0 - 1.0 / (2.0 * sigma));
-    double c_beatty = (ns == 2) ? 0.5 : 0.8; // Beatty but tweak ns=2: KB err fac 2 better
-    spopts.beta = common::PI * std::sqrt(t * t - c_beatty); // just below std cutoff PI*t
-    // in fact, in wsweepkerrcomp.m on KB we find beta=pi*t-0.17 is indistinguishable.
+  } else if (kf >= 2 && kf <= 7) {
+    /* Shape param formula (designed for K-B), from Beatty et al,
+      IEEE Trans Med Imaging, 2005 24(6):799-808. doi:10.1109/TMI.2005.848376
+      "Rapid gridding reconstruction with a minimal oversampling ratio".
+      This widens in real space, narrowing in k-space a little to exploit continued
+      drop just after cutoff. We tweak Beatty's value 0.8 for ns=2 case to lower error.
+    */
+    double c_Beatty = (ns == 2) ? 0.5 : 0.8; // ns=2 case gives error fac 2 better for KB
+    double pis      = common::PI * common::PI;
+    spopts.beta     = std::sqrt(beta_cutoff * beta_cutoff - c_Beatty / pis);
+    // Expts show beta_cutoff with KB is 1/3-digit worse than Beatty, similar to ES.
+    // In fact, in wsweepkerrcomp.m on KB we find beta_cutoff-0.17 is indistinguishable.
     // This is analogous to a safety factor of >0.99 around ns=10 (0.97 was too small)
-  } else if (kf == 8) {
-    // Marco's LSQ fit of a functional form for beta(sigma,ns)...
-    const double sigmasq = sigma * sigma;
-    const double A       = -0.19638654 + 2.31685991 * sigma - 0.53110991 * sigmasq;
-    const double B       = 2.29051829 - 2.82937718 * sigma + 0.91381927 * sigmasq;
-    const double C       = -0.61525503;
-    spopts.beta          = A * (double)ns + B + C / (double)ns;
-  }
 
-  // Plain shape param formula using std model for cutoff: (4.5) in [FIN], gamma=1:
-  // spopts.beta = common::PI * (double)ns * (1.0 - 1.0 / (2.0 * sigma));
-  // Expts show this formula with KB is 1/3-digit worse than Beatty, similar to ES.
+  } else if (kf == 8) {
+    // Std shape param with const shift to exploit a little more tail decay,
+    // in the style of Beatty (above) but without the sqrt; a const is better at high ns.
+    // This is best for PSWF, within 0.1 digit.
+    spopts.beta = beta_cutoff - 0.05; // Libin Lu 1/23/26
+
+  } else if (kf == 9) {
+    // Std shape param formula using model for cutoff, eg (4.5) in [FIN] with gamma=1.
+    // For PSWF, aligns cut-off (start of aliasing) with freq (c) param.
+    spopts.beta = beta_cutoff;
+  }
 
   if (debug || spopts.debug)
     printf("[setup_spreadinterp]\tkerformula=%d: %s...\n", kf, kernames[kf]);
