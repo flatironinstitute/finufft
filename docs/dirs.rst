@@ -23,7 +23,8 @@ Examples, tutorials, and docs:
 - ``tutorial/`` : application demo codes (various languages), supporting ``docs/tutorial/``
 - ``docs/`` : source files for documentation (``.rst`` files are human-readable, kinda)
 - ``README.md`` : github-facing (and human text-only reader) welcome message
-- ``LICENSE`` : how you may use this software
+- ``LICENSE`` : license info for source code
+- ``NOTICE`` : license info for dependencies and contributed code
 - ``CHANGELOG`` : list of changes, release notes
 - ``devel/`` : scratch space for development, ideas docs, code snippets
 

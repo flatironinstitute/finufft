@@ -26,8 +26,9 @@ It has been developed since 2017 at the `Center for Computational Mathematics
 <https://www.simonsfoundation.org/flatiron/center-for-computational-mathematics/>`_ at the `Flatiron Institute <https://www.simonsfoundation.org/flatiron>`_,
 a division of the `Simons Foundation <https://www.simonsfoundation.org>`_,
 by :ref:`Alex Barnett and others<ackn>`,
-and is released under an
-`Apache v2 license <https://github.com/flatironinstitute/finufft/blob/master/LICENSE>`_. Here is a `project overview from 2025 <https://users.flatironinstitute.org/~ahb/notes/finufft-project-summary-2025.pdf>`_.
+and our source code is
+`Apache v2 licensed <https://github.com/flatironinstitute/finufft/blob/master/LICENSE>`_.
+Here is a `project overview from 2025 <https://users.flatironinstitute.org/~ahb/notes/finufft-project-summary-2025.pdf>`_.
 
 What does FINUFFT do?
 -----------------------

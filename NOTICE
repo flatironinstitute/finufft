@@ -1,0 +1,42 @@
+FINUFFT. This NOTICE lists licensing info for contributed code and dependencies.
+
+Copyright (C) 2017-2026 The Simons Foundation, Inc. - All Rights Reserved.
+
+
+FINUFFT CPU depends on XSIMD.
+It is installed in a subdirectory at build time.
+XSIMD has a BSD3 license:
+https://github.com/xtensor-stack/xsimd/blob/master/LICENSE
+
+FINUFFT CPU may be compiled with either FFTW3 or DUCC0 fast Fourier transform:
+
+ * FFTW3 is written by Matteo Frigo and Steven G. Johnson.
+It is a dependency unless you choose to build with DUCC0 FFT.
+FFTW3 has GPLv2 (or later) license, see:
+https://www.fftw.org/doc/License-and-Copyright.html
+
+* DUCC0 is written by Martin Reinecke.
+It is installed in a subdirectory at build time.
+We specifically use only the FFT components of DUCC0, which are
+BSD3/GPLv2+ dual-licensed, as explained here:
+https://github.com/mreineck/ducc/tree/ducc0
+
+FINUFFT GPU (aka cufinufft) depends on CUFFT,
+which has the standard NVIDIA math lib license:
+https://docs.nvidia.com/cuda/cufftdx/license.html
+
+FINUFFT Fortran interface contains test codes by Leslie Greengard,
+June-Yub Lee, Zydrunas Gimbutas, under BSD license, see the local file:
+fortran/cmcl_license.txt
+
+The tutorials section includes a Gauss-Legendre weight code by
+Greg von Winckel, which has a BSD-like license, see the local file:
+tutorial/utils/lgwt.m
+
+FINUFFT 2.5.0 onwards uses PSWF evaluation code by Vladimir Rokhlin.
+Specifically, his Fortran codes
+https://github.com/flatironinstitute/dmk/blob/main/src/common/specialfunctions/prolcrea.f
+https://github.com/flatironinstitute/dmk/blob/main/src/common/specialfunctions/legeexps.f
+have been converted to C and packaged into our code src/common/pswf.cpp
+
+Other code contributions are listed at the local file docs/ackn.rst
