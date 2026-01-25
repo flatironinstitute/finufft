@@ -25,11 +25,14 @@ int theoretical_kernel_ns(double tol, int dim, int type, int debug,
     else
       ns = (int)std::ceil(
           std::log(1.0 / tol) / (finufft::common::PI * std::sqrt(1.0 - 1.0 / sigma)));
-  else { // generic formula for PSWF-like kernels.
-    // tweak tolfac and nsoff for user tol matching (& tolsweep passing)...
-    const double tolfac = (type == 3) ? 0.5 : 0.3; // only applies to outer of type 3
-    const double nsoff  = 0.8; // width offset (helps balance err over sigma range)
-    ns                  = (int)std::ceil(
+  else { // generic formula for PSWF-like kernels. Currently for kf=8, PSWF (beta shift)
+    // tweak tolfac and nsoff for user tol matching (& tolsweep passing) over sigma...
+    double tolfac = 0.18 * std::pow(1.4, (double)(dim - 1));
+    // (here the dim power compensated for empirical worsening by dim)
+    if (type == 3) // compensate for type 3 worse (affects outer spread, not inner t2)
+      tolfac *= 1.4;
+    const double nsoff = 1.0; // width offset (helps balance err over sigma range)
+    ns                 = (int)std::ceil(
         std::log(tolfac / tol) / (finufft::common::PI * std::sqrt(1.0 - 1.0 / sigma)) +
         nsoff);
   }
@@ -56,7 +59,7 @@ void set_kernel_shape_given_ns(finufft_spread_opts &spopts, int debug) {
                             "cont cosh (Beatty beta)", // 6
                             "PSWF (Beatty beta)",      // 7
                             "PSWF (beta shift)",       // 8
-                            "PSWF (cutoff beta)"};     // 9
+                            "PSWF (beta Marco)"};      // 9
   if (kf == 1) {
     // Exponential of Semicircle (ES), the legacy logic, from 2017, used to v2.4.1
     double betaoverns = 2.30;
@@ -95,7 +98,9 @@ void set_kernel_shape_given_ns(finufft_spread_opts &spopts, int debug) {
   } else if (kf == 9) {
     // Std shape param formula using model for cutoff, eg (4.5) in [FIN] with gamma=1.
     // For PSWF, aligns cut-off (start of aliasing) with freq (c) param.
-    spopts.beta = beta_cutoff;
+    // spopts.beta = beta_cutoff;
+    double t    = beta_cutoff / common::PI;
+    spopts.beta = ((-0.00149087 * t + 0.0218459) * t + 3.06269) * t - 0.0365245;
   }
 
   if (debug || spopts.debug)
