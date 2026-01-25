@@ -28,8 +28,8 @@ Other contributors to code either directly or indirectly include:
 * David Stein - python wrappers, finding "pi-1ULP" spreadcheck error
 * Garrett Wright - dual-precision build, py packaging, GPU version
 * Wenda Zhou - Cmake build, code review, professionalization, SIMD ideas
-* Vladimir Rokhlin - PSWF evaluation (converted to C & repackaged by Libin Lu)
-  
+* Vladimir Rokhlin - PSWF evaluation (C versions of legeexps and prolcrea)
+
 Testing, bug reports, helpful discussions, contributions:
 
 * Dan Fortunato - MATLAB setpts temp array bug and fix
