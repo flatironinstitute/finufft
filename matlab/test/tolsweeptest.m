@@ -6,7 +6,7 @@
 addpath(fileparts(mfilename('fullpath')))
 clear % both single & double; just CPU for now...
 precdevs = 'sd'; myrand   = @rand; devname  = 'CPU               ';
-CI = false;  % leave true after debug! not CI: plot figs & don't raise errors
+CI = true;  % leave true after debug! not CI: plot figs & don't raise errors
 
 M = 500;            % NU pts in each test
 ntr = 20;           % #transforms to average error over (little extra direct cost)
