@@ -54,6 +54,12 @@ If you prefer to read text files, the source to generate the above documentation
 - `docs/ackn.rst`    : authors and acknowledgments
 - `docs/refs.rst`    : journal article references (ours and others)
 
+License
+-------
+
+For license info for FINUFFT (CPU/GPU source), see `LICENSE`.
+For info for dependencies and contributed code, see `NOTICE`.
+
 Support
 -------
 
