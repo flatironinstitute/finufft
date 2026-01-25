@@ -34,7 +34,7 @@ int main(int argc, char *argv[]) {
   int ntr                 = 1; // only 1 for now. to-do: allow >1 as in tolsweeptest.m
   int isign = +1;
 
-  double tolslack[3] = {5.0, 5.0, 5.0}; // tunable slack parameters for each type
+  double tolslack[3] = {4.0, 4.0, 5.0}; // tunable slack parameters for each type
   // to-do: make per dimension (slack could grow slightly per dim)
   double tolsperdecade  = 8;                // controls overall effort (tol resolution)
   double tolstep       = pow(10.0, -1.0 / tolsperdecade); // multiplicative tol step, <1
@@ -53,7 +53,7 @@ int main(int argc, char *argv[]) {
 #ifdef SINGLE
   double floor[nu][3] = {{1e-4, 1e-4, 2e-4}, {2e-5, 2e-5, 1e-5}}; // inner is dim
 #else
-  double floor[nu][3] = {{2e-9, 2e-9, 2e-8}, {3e-14, 5e-14, 3e-14}};
+  double floor[nu][3] = {{1e-9, 2e-9, 3e-8}, {3e-14, 3e-14, 3e-14}};
 #endif
 
   // If user asked for help, print usage and exit

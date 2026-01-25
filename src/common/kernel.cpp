@@ -46,7 +46,8 @@ void set_kernel_shape_given_ns(finufft_spread_opts &spopts, int debug) {
   int ns       = spopts.nspread;
   double sigma = spopts.upsampfac;
   int kf       = spopts.kerformula;
-  // standard beta (shape) param for all PSWF-like kernels, used in the below...
+  // Std shape param formula using ES model for cutoff, eg (4.5) in [FIN] with gamma=1.
+  // For PSWF, aligns cut-off (start of aliasing) with freq (c) param. Used below...
   const double beta_cutoff = common::PI * (double)ns * (1.0 - 1.0 / (2.0 * sigma));
 
   // these strings must match: kernel_definition(), the above, and the below
@@ -94,12 +95,11 @@ void set_kernel_shape_given_ns(finufft_spread_opts &spopts, int debug) {
     // in the style of Beatty (above) but without the sqrt; a const is better at high ns.
     // This is best for PSWF, within 0.1 digit.
     spopts.beta = beta_cutoff - 0.05; // Libin Lu 1/23/26
+                                      // spopts.beta = beta_cutoff; // std param
 
   } else if (kf == 9) {
-    // Std shape param formula using model for cutoff, eg (4.5) in [FIN] with gamma=1.
-    // For PSWF, aligns cut-off (start of aliasing) with freq (c) param.
-    // spopts.beta = beta_cutoff;
-    double t    = beta_cutoff / common::PI;
+    double t = beta_cutoff / common::PI;
+    // Marco's LSQ fit using simple functions of t, 1/23/26.
     spopts.beta = ((-0.00149087 * t + 0.0218459) * t + 3.06269) * t - 0.0365245;
   }
 

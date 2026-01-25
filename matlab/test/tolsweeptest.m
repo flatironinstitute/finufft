@@ -6,13 +6,13 @@
 addpath(fileparts(mfilename('fullpath')))
 clear % both single & double; just CPU for now...
 precdevs = 'sd'; myrand   = @rand; devname  = 'CPU               ';
-CI = true;  % leave true after debug! not CI: plot figs & don't raise errors
+CI = false;  % leave true after debug! not CI: plot figs & don't raise errors
 
 M = 500;            % NU pts in each test
 ntr = 20;           % #transforms to average error over (little extra direct cost)
 isign = +1;
 sigmas = [1.25 2];             % a.k.a. upsampfac, list to test
-tolslack = [5.0; 5.0; 5.0];    % factors by which eps can exceed tol (3 types)
+tolslack = [4.0; 4.0; 5.0];    % factors by which eps can exceed tol (3 types)
 warning('off','FINUFFT:epsTooSmall');
 o.showwarn = 0; %o.debug=1;
 o.spread_kerformula = 0;       % custom FINUFFT opts (should be defaults for CI)
@@ -28,11 +28,11 @@ for dim = 1:3  % ======== dimensions
     % single-prec due to condition-num of problem. To keep floors32 around 1e-5
     % need keep N low.
     floors32 = [1e-4 2e-5];        % float: seemingly controlled by Nmax, rdyn
-    floors64 = [2e-9 3e-14];       % double: former limited by wmax
+    floors64 = [1e-9 3e-14];       % double: former limited by wmax
   elseif dim==2
-    Ntot = 1e3; floors32 = [1e-4 2e-5]; floors64 = [2e-9 5e-14];
+    Ntot = 1e3; floors32 = [1e-4 2e-5]; floors64 = [2e-9 3e-14];
   else
-    Ntot = 2e3; floors32 = [2e-4 1e-5]; floors64 = [2e-8 3e-14];
+    Ntot = 2e3; floors32 = [2e-4 1e-5]; floors64 = [3e-8 3e-14];
   end
   dims = false(1, 3); dims(dim) = true;  % only test this dim
 

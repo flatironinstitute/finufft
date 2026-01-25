@@ -20,15 +20,15 @@
 # precision-specific settings
 if [[ $1 == "SINGLE" ]]; then
     PREC=single
-    # what's weird is that tol=1e-6 here gives *worse* single-prec errs >2e-4 :(
     export FINUFFT_REQ_TOL=1e-5
-    # acceptable error one digit above requested tol... (& rounding accum)
+    # acceptable error (watch out for N~1e3 in 1D causing large round-off)
     CHECK_TOL=2e-4
     # modifier for executables, exported so that check?d.sh can also access...
     export PRECSUF=f
 else
     PREC=double
     export FINUFFT_REQ_TOL=1e-12
+    # acceptable error should be slack*tol (5e-12), but allow N~1e3 1D roundoff
     CHECK_TOL=1e-11
     export PRECSUF=
 fi
