@@ -170,17 +170,15 @@ automatically from call to call in the same executable (incidentally, also in th
 The heuristic bakes in empirical findings such as: generally it is not worth sorting in 1D type 2 transforms, or when the number of nonuniform points is small.
 Feel free to try experimenting here; if you have highly-structured nonuniform point ordering (such as coming from polar-grid or propeller-type MRI k-points) it may be advantageous not to sort.
 
-**upsampfac**: This is the internal factor by which the FFT (fine grid)
+**upsampfac**: This is the internal factor $\sigma$ by which the FFT (fine grid)
 is chosen larger than
 the number of requested modes in each dimension, for type 1 and 2 transforms. For type 3 transforms this factor gets squared, due to type 2 nested in a type-1-spreading operation, so has even more influence.
-We have built efficient kernels
-for only two settings, as follows. Otherwise, setting it to zero chooses a good heuristic:
+As of v2.5.0, due to on-the-fly polynomial coefficient fitting, the kernel is equally efficient for an arbitrary upsampling factor greater than 1, but the useful range is around 1.2 up to 3.0.
 
-* ``upsampfac=0.0`` : use heuristics to choose ``upsampfac`` as one of the below values, and use this value internally. The value chosen is visible in the text output via setting ``debug>=2``. This setting is recommended for basic users; however, if you seek more performance it is quick to try the other of the values.
+* ``upsampfac=0.0`` : use heuristics to choose a good ``upsampfac`` based on the problem.
+ The value chosen is visible in the text output via setting ``debug>=1``. This default setting is recommended for most users; however, if you seek more performance you may want to set if 
 
-* ``upsampfac=2.0`` : standard setting of upsampling. Due to kernel width restrictions, this is necessary if you need to exceed 9 digits of accuracy.
-
-* ``upsampfac=1.25`` : low-upsampling option, with lower RAM, smaller FFTs, but wider spreading kernel. The latter can be much faster than the standard when the number of nonuniform points is similar or smaller to the number of modes, and/or if low accuracy is required. It is especially much (2 to 3 times) faster for type 3 transforms. However, the kernel widths :math:`w` are about 50% larger in each dimension, which can lead to slower spreading (it can also be faster due to the smaller size of the fine grid). Because the kernel width is limited to 16, currently, thus only 9-digit accuracy can currently be reached when using ``upsampfac=1.25``.
+* ``upsampfac>1.0`` : fix the upsampling factor and override the heuristic choice. A standard setting is 2 (which is good for achieving 9-digit or more accuracy), while a typical "low" setting is 1.25 (this reduces the RAM and FFT costs, and is good for up to 5-digit accuracy, unless the density M/N is high enough that its 50% wider spreading kernel would be counterproductive). Low upsampfac is especially efficient for type 3 transforms. Because the kernel width is limited to 16, only 9-digit accuracy can currently be reached when using ``upsampfac=1.25``.
 
 **spread_thread**: in the case of multiple transforms per call (``ntr>1``, or the "many" interfaces), controls how multithreading is used to spread/interpolate each batch of data.
 
@@ -202,7 +200,7 @@ Here ``0`` makes an automatic choice. If you are unhappy with this, then for sma
 
 **spread_max_sp_size**: if positive, overrides the maximum subproblem (chunking) size for multithreaded spreading (type 1 transforms). Otherwise the default in the spreader is used, set in ``src/spreadinterp.cpp:setup_spreader()``, which we believe is a decent heuristic for Intel i7 and xeon machines.
 
-**spread_kerformula**: ``0`` uses default spreading (gridding) kernel with default shape choice, whereas positive integers select among various kernels and shape parameter choices. In particular ``1`` returns to the "legacy ES" choices used from the first 2017 code to v2.4.1 (2025). Only developers should mess with this parameter; users will want to leave it at default.
+**spread_kerformula**: ``0`` uses default spreading (gridding) kernel with default shape choice, whereas positive integers select among various kernels and shape parameter choices. In particular ``1`` returns to the "legacy ES" choices used from the first 2017 code to v2.4.1 (2025). Only developers should mess with this parameter; users should leave it at default.
 
 **spread_kerevalmeth**: [DEPRECATED] Kernel evaluation method in spreader/interpolator; retained only for API compatibility and documentation. The library now always uses the Horner piecewise-polynomial evaluation internally (the historical ``=1`` choice). Setting this field has no effect.
 
