@@ -293,6 +293,10 @@ __global__ void spread_2d_output_driven(
         const int iy = real_yy + ns_2;
         const int ix = real_xx + ns_2;
 
+        if constexpr (std::is_same_v<T, float>) {
+          if (ix >= (padded_size_x) || ix < 0) break;
+          if (iy >= (padded_size_y) || iy < 0) break;
+        }
         // separable window weights
         const auto kervalue = kerevals(i, 0, xx) * kerevals(i, 1, yy);
 

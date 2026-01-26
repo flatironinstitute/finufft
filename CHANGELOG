@@ -1,7 +1,7 @@
 List of features / changes made / release notes, in reverse chronological order.
 If not stated, FINUFFT is assumed (old cuFINUFFT <=1.3 is listed separately).
 
-Master (working towards v2.5.0), 1/12/26
+Master (working towards v2.5.0), 01/29/26
 
 * Moved finufft_spread_opts.h from public-facing to private header (Barnett).
 * fixed no-setpts bug in perftest/spreadtestndall, updated perftests (Barnett).
@@ -50,6 +50,8 @@ Master (working towards v2.5.0), 1/12/26
   no-ops. Documentation, examples, and Fortran/C headers were updated to
   reflect these changes. Horner evaluation now supports any `upsampfac`.
   (Barbone, #760)
+* Added bounds checks for CUDA method 3 to prevent segfault in single-precision
+  when the dimension is >= 1e8 (DiamonDinoia #802)
 
 V 2.4.1 7/8/25
 
