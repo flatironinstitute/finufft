@@ -195,7 +195,7 @@ static inline void legepols(double x, int n, double *pols) {
   }
 }
 
-// TODO: legepols() is not tested yet.
+// TODO: legepols() is not tested yet, to test itype 2
 // only itype !=2 is tested.
 static inline void legeexps(int itype, int n, double *x,
                             std::vector<std::vector<double>> &u,
@@ -205,8 +205,7 @@ static inline void legeexps(int itype, int n, double *x,
   // Call legerts to construct the nodes and weights of the n-point Gaussian quadrature
   legerts(itype_rts, n, x, whts);
 
-  // legerts() is buggy now, type 2(code below) is not tested yet.
-  // legerts_(&itype_rts, &n, x, whts);
+  // TODO: itype 2(code below) is not tested yet.
 
   // If itype is not 2, return early
   if (itype != 2) return;
@@ -274,33 +273,6 @@ static inline void legeFDER(double x, double &val, double &der, const double *pe
     derjm2 = derjm1;
     derjm1 = derj;
   }
-}
-
-// Function to compute the Legendre polynomial p_n(x) and its derivative p'_n(x)
-static inline void legendre(int n, double x, double &pn, double &pn_prime) {
-  if (n == 0) {
-    pn       = 1.0;
-    pn_prime = 0.0;
-    return;
-  }
-
-  if (n == 1) {
-    pn       = x;
-    pn_prime = 1.0;
-    return;
-  }
-
-  double pn_minus1 = 1.0; // P_0(x)
-  double pn_minus2 = 0.0; // P_-1(x)
-  pn               = x;   // P_1(x)
-
-  for (int k = 2; k <= n; ++k) {
-    pn_minus2 = pn_minus1;
-    pn_minus1 = pn;
-    pn        = ((2.0 * k - 1.0) * x * pn_minus1 - (k - 1.0) * pn_minus2) / k;
-  }
-
-  pn_prime = n * (x * pn - pn_minus1) / (x * x - 1.0);
 }
 // end of legendre functions
 
@@ -847,14 +819,15 @@ static inline void prol0ini(int &ier, double c, double *w, double &rlam20, doubl
   w[0]          = iw + 0.1;
   w[8]          = thresh;
 
-  // Create the data to be used in the evaluation of the function ψ^c_0(x) for x ∈ [-1,1]
+  // Create the data to be used in the evaluation of prolate psi^c_0(x) for x in [-1,1]
   int nterms = 0;
   prolps0i(ier, c, w + iw - 1, lenw, nterms, ltot, rkhi);
 
   if (ier != 0) return;
 
-  // If c >= thresh, do not prepare data for the evaluation of ψ^c_0 outside the interval
-  // [-1,1]
+  // If c >= thresh, do not prepare data for the evaluation of psi^c_0 outside the
+  // interval
+  // [-1,1], as psi^c_0(x) is negligible outside [-1, 1] when c >= thresh
   if (c >= thresh) {
     w[7] = c;
     w[4] = nterms + 0.1;
@@ -862,8 +835,9 @@ static inline void prol0ini(int &ier, double c, double *w, double &rlam20, doubl
     return;
   }
 
-  // Create the data to be used in the evaluation of the function ψ^c_0(x) for x outside
-  // the interval [-1,1]
+  // Create the data to be used in the evaluation of prolate psi^c_0(x) for x outside
+  // the interval [-1,1], do we really evaluate psi^c_0 outside [-1,1]? Seems not used
+  // code path
   int ngauss = nterms * 2;
   int lw     = nterms + 2;
   int its    = iw + lw;
@@ -891,10 +865,11 @@ static inline void prol0ini(int &ier, double c, double *w, double &rlam20, doubl
 
   // Evaluate the prolate function at the Gaussian nodes
   for (int i = 0; i < ngauss; ++i) {
-    legeexev(w[its + i - 2], w[ifs + i - 2], w + iw - 1, nterms - 1);
+    legeexev(w[its + i - 1], w[ifs + i - 1], w + iw - 1, nterms - 1);
   }
 
-  // Calculate the eigenvalue corresponding to ψ^c_0
+  // Calculate the eigenvalue corresponding to the eigenfunction psi^c_0
+  // of the operator: G(\phi) (x) = \int_{-1}^1  \phi (t) * sin(c*(x-t))/(x-t) dt
   double rlam = 0;
   double x0   = 0;
   double f0;
@@ -937,7 +912,8 @@ static inline void prol0eva(double x, const double *w, double &psi0, double &der
   }
 
   legeFDER(x, psi0, derpsi0, &w[iw - 1], nterms - 2);
-  // to match chebfun psi0, needs a factor of sqrt(2)
+
+  // note that to match chebfun psi0, needs a factor of sqrt(2)
   // psi0 = sqrt(2.0) * psi0;
   // derpsi0 = sqrt(2.0) * derpsi0;
 }
@@ -1009,7 +985,6 @@ struct Prolate0Fun {
   inline double int_eval(double r) const {
     double val;
     prol0int0r(workarray.data(), r, val);
-    // prol0int0r_(workarray.data(), &r, &val);
     return val;
   }
 
