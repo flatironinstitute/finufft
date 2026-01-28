@@ -51,7 +51,9 @@ Master (working towards v2.5.0), 01/29/26
   reflect these changes. Horner evaluation now supports any `upsampfac`.
   (Barbone, #760)
 * Added bounds checks for CUDA method 3 to prevent segfault in single-precision
-  when the dimension is >= 1e8 (DiamonDinoia #802)
+  when the dimension is >= 1e8 (Barbone #802)
+* Fixed memory leak in python bindings due to storing input references for too long.
+  (Barbone #804)
 
 V 2.4.1 7/8/25
 
