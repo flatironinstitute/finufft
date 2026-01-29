@@ -270,7 +270,7 @@ class Plan:
 
         # We will also store references to these arrays.
         #   This keeps python from prematurely cleaning them up.
-        self._references.append(_x)
+        self._references = [_x]
         if self._dim >= 2:
             fpts_axes.insert(0, _compat.get_array_ptr(_y))
             self._references.append(_y)
@@ -383,7 +383,7 @@ class Plan:
         self._plan = None
 
         # Reset our reference.
-        self._references = []
+        self._references.clear()
 
 
 def _ensure_array_type(x, name, dtype, output=False):

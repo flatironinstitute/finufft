@@ -155,9 +155,11 @@ __global__ void spread_1d_output_driven(
       static constexpr auto total = ns;
       for (int idx = threadIdx.x; idx < total; idx += blockDim.x) {
         const int ix = xstart + idx + ns_2;
+        if constexpr (std::is_same_v<T, float>) {
+          if (ix >= (padded_size_x) || ix < 0) break;
+        }
         // separable window weights
         const auto kervalue = kerevals(i, idx);
-
         // accumulate
         const cuda_complex<T> res{cnow.x * kervalue, cnow.y * kervalue};
         local_subgrid[ix] += res;
