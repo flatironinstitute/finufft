@@ -3,29 +3,9 @@ If not stated, FINUFFT is assumed (old cuFINUFFT <=1.3 is listed separately).
 
 Master (working towards v2.5.0), 01/29/26
 
-* Major overhaul of spreading (gridding) kernel function choice, parameters,
-  and code logic, to exploit the new on-the-fly kernel polynomial fitting:
-  Switch default kernel to PSWF (prolate) with constant shift from the cutoff
-  shape parameter, improving by 0.3-0.6 digit at the same w (width).
-  Comparisons against many kernels (KB, cosh, cont variants...) done.
-  The logic of choosing ns from tol is improved to give lower and
-  more predictable error across types, sigma (upsampfac), and dimensions.
-  NOTE: this is a math change, and will affect the answers FINUFFT gives!
-  (at the level of the tolerance). In almost all cases the change will be to
-  a more accurate result. tol is now a better upper bound on relative error;
-  hence users may want to adjust tol (slightly) in their codes.
-  See https://github.com/flatironinstitute/finufft/discussions/798
-  Legacy (2017-2025) ES kernel and parameters are available
-  via (new) option field opts.spread_kerformula=1 (with default of 0).
-  Simplified kernel definition to [-1,1], simplified old ES-specific spopts.
-  Added several new MATLAB tolerance-sweeping error-measure tools, and CI:
-  tolsweeptest.m is run in CI & has a multi-fig plot option (to test/results/)
-  Kernel-comparison-vs-w mean rel err plotter wsweepkerrcomp.m (Barnett #787).
-* fix no-setpts bug in perftest/spreadtestndall, better perftests (Barnett #791)
-* exhaustive tolerance testing in CI via new tolsweep.cpp (Barnett, #780)
+* Moved finufft_spread_opts.h from public-facing to private header (Barnett).
+* fixed no-setpts bug in perftest/spreadtestndall, updated perftests (Barnett).
 * Added real-valued function type-2 interpolation demos (Barnett, Unalmis #722)
-* Moved finufft_spread_opts.h from public-facing to private header, allowing
-  easy changes without affecting the API. (Barnett #791)
 * Added functionality for adjoint execution of FINUFFT plans (Reinecke #633,
   addresses #566 and #571).
   Work arrays are now only allocated during plan execution, reducing overall
@@ -58,7 +38,7 @@ Master (working towards v2.5.0), 01/29/26
   spreadtestnd, spreadtestndall and test_spreadinterponly were updated to use
   the public API and share a unified STL-based implementation for kersum,
   mass and relative-error checks. This common kernel header will also enable
-  reuse by the GPU. (Barbone, Barnett, Lu, PR #748 and some in #791)
+  reuse by the GPU. (Barbone, Barnett, Lu, PR #748)
 * Purged legacy `TF_OMIT_*` timing flags from headers and core source and
   removed timing-related omission flags. Deprecated `kerevalmeth` and
   `kerpad` are retained only for API compatibility but are ignored; the
@@ -72,9 +52,12 @@ Master (working towards v2.5.0), 01/29/26
   (Barbone, #760)
 * Added bounds checks for CUDA method 3 to prevent segfault in single-precision
   when the dimension is >= 1e8 (Barbone #802)
-* Fixed memory leak in python bindings due to storing input references for too
-  long (Barbone #804)
-* Added support to clone a specific commit in makefile (Barbone #806)
+* Fixed memory leak in python bindings due to storing input references for too long.
+  (Barbone #804)
+* Reduced shared-memory usage for Method 2/3 in 3D double-precision (15-digit) runs,
+  preventing crashes on systems with very small available shmem.
+  Added benchmarking-based autotuning to select binsize and np for best performance.
+  Cleaned up and consolidated debug printing output. (Barbone #807)
 
 V 2.4.1 7/8/25
 
