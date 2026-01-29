@@ -261,7 +261,10 @@ void cufinufft_setup_binsize(int type, int ns, int dim, cufinufft_opts *opts) {
   };
 
   auto set_binsizes_if_unset = [&](int binsize) {
-    if (binsize <= 1) return;
+    if (binsize <= 1) {
+      // Fall back to a safe minimum to avoid invalid bin sizes.
+      binsize = std::max(ns, 2);
+    }
 
     opts->gpu_binsizex = opts->gpu_binsizex == 0 ? binsize : opts->gpu_binsizex;
     opts->gpu_binsizey =
@@ -307,10 +310,33 @@ void cufinufft_setup_binsize(int type, int ns, int dim, cufinufft_opts *opts) {
 
     set_binsizes_if_unset(binsize);
 
-    const int shmem_required = shared_memory_required<T>(
-        dim, ns, opts->gpu_binsizex, opts->gpu_binsizey, opts->gpu_binsizez, 0);
-    const int shmem_left = shared_mem_per_block - shmem_required;
-    const int max_np     = (shmem_left / shmem_per_point) & static_cast<unsigned>(-16);
+    binsize            = opts->gpu_binsizex;
+    int shmem_required = shared_memory_required<T>(dim, ns, binsize, opts->gpu_binsizey,
+                                                   opts->gpu_binsizez, 0);
+    int shmem_left     = shared_mem_per_block - shmem_required;
+    int max_np         = (shmem_left / shmem_per_point) & static_cast<unsigned>(-16);
+    if (max_np < 16) {
+      max_np = 16;
+      // Reduce binsize until shared memory fits the minimum np.
+      while (binsize > 1) {
+        const int required_shmem =
+            shared_memory_required<T>(dim, ns, binsize, binsize, binsize, max_np);
+        if (required_shmem <= shared_mem_per_block) break;
+        binsize -= 1;
+      }
+      if (binsize <= 1) {
+        throw std::runtime_error(
+            "[cufinufft] ERROR: Not enough shared memory for output-driven method.");
+      }
+      opts->gpu_binsizex = binsize;
+      opts->gpu_binsizey = (dim < 2) ? 1 : binsize;
+      opts->gpu_binsizez = (dim < 3) ? 1 : binsize;
+      shmem_required     = shared_memory_required<T>(
+          dim, ns, opts->gpu_binsizex, opts->gpu_binsizey, opts->gpu_binsizez, 0);
+      shmem_left = shared_mem_per_block - shmem_required;
+      max_np     = (shmem_left / shmem_per_point) & static_cast<unsigned>(-16);
+      if (max_np < 16) max_np = 16;
+    }
 
     if (opts->debug) {
       const int required_shmem = shared_memory_required<T>(
