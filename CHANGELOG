@@ -54,6 +54,7 @@ Master (working towards v2.5.0), 01/29/26
   when the dimension is >= 1e8 (Barbone #802)
 * Fixed memory leak in python bindings due to storing input references for too long.
   (Barbone #804)
+* Added support to clone checkout to makefile (Barbone #806)
 
 V 2.4.1 7/8/25
 

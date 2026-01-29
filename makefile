@@ -66,9 +66,9 @@ MWRAP = mwrap
 # root directory for dependencies to be downloaded:
 DEPS_ROOT := deps
 
-# xsimd header-only dependency repo (the VERSION has to be a valid git tag)
-XSIMD_URL := https://github.com/xtensor-stack/xsimd.git
-XSIMD_VERSION := 14.0.0
+# xsimd header-only dependency repo (VERSION can be a tag or commit)
+XSIMD_URL := https://github.com/DiamonDinoia/xsimd.git
+XSIMD_VERSION := 7bca54b
 XSIMD_DIR := $(DEPS_ROOT)/xsimd
 
 # DUCC sources optional dependency repo
@@ -482,23 +482,27 @@ docker-wheel:
 
 # ================== SETUP/COMPILE OF EXTERNAL DEPENDENCIES ===============
 
-# this utility can only get a valid tag (not a specific commit like CPMAddPackage):
+# this utility can get a tag or commit (similar to CPMAddPackage):
 define clone_repo
 	@if [ ! -d "$(3)" ]; then \
-		echo "Cloning repository $(1) at tag $(2) into directory $(3)"; \
+		echo "Cloning repository $(1) at ref $(2) into directory $(3)"; \
 		git clone --no-checkout $(1) $(3) && \
 		cd $(3) && \
-		git fetch origin tag $(2) --force && \
-		git -c advice.detachedHead=false checkout $(2); \
+		git fetch origin --tags --force && \
+		git fetch origin $(2) --force >/dev/null 2>&1 || true; \
+		TARGET_COMMIT=$$(git rev-parse --verify $(2)^{commit} 2>/dev/null) || { echo "Error: Failed to resolve ref $(2) in $(3)."; exit 1; }; \
+		git -c advice.detachedHead=false checkout $$TARGET_COMMIT; \
 	else \
 		cd $(3) && \
-		CURRENT_VERSION=$$(git describe --tags --abbrev=0 2>/dev/null || echo ""); \
-		if [ "$$CURRENT_VERSION" = "$(2)" ]; then \
-			echo "Directory $(3) already exists and is at the correct version $(2)."; \
+		git fetch origin --tags --force && \
+		git fetch origin $(2) --force >/dev/null 2>&1 || true; \
+		TARGET_COMMIT=$$(git rev-parse --verify $(2)^{commit} 2>/dev/null) || { echo "Error: Failed to resolve ref $(2) in $(3)."; exit 1; }; \
+		CURRENT_COMMIT=$$(git rev-parse HEAD 2>/dev/null || echo ""); \
+		if [ "$$CURRENT_COMMIT" = "$$TARGET_COMMIT" ]; then \
+			echo "Directory $(3) already exists and is at the correct version $(2) ($$CURRENT_COMMIT)."; \
 		else \
-			echo "Directory $(3) exists but is at version $$CURRENT_VERSION. Checking out the correct version $(2)."; \
-			git fetch origin tag $(2) --force && \
-			git -c advice.detachedHead=false checkout $(2) || { echo "Error: Failed to checkout version $(2) in $(3)."; exit 1; }; \
+			echo "Directory $(3) exists but is at commit $$CURRENT_COMMIT. Checking out $(2) ($$TARGET_COMMIT)."; \
+			git -c advice.detachedHead=false checkout $$TARGET_COMMIT || { echo "Error: Failed to checkout ref $(2) in $(3)."; exit 1; }; \
 		fi; \
 	fi
 endef
