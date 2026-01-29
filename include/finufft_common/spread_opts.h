@@ -1,7 +1,7 @@
 #ifndef FINUFFT_SPREAD_OPTS_H
 #define FINUFFT_SPREAD_OPTS_H
 
-/* C-compatible options struct for spread/interpolation within FINUFFT
+/* Options struct for spread/interpolation within FINUFFT (not part of API)
 
   Notes: 1) as of v2.5, no longer part of public-facing API (it was already a
   private member of the plan class.

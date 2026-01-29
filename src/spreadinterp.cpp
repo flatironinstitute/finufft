@@ -2030,7 +2030,7 @@ template int spreadinterpSorted<double>(
 
 template<typename T>
 T evaluate_kernel_runtime(T x, int ns, int nc, const T *horner_coeffs_ptr,
-                          const finufft_spread_opts &spopts) {
+                          [[maybe_unused]] const finufft_spread_opts &spopts) {
   /* Simple runtime spreading kernel evaluator for a single argument.
     Uses the precomputed piecewise polynomial coeffs (degree nc-1, where
     nc = number of coeffs per panel), for the ns panels covering its support.

@@ -1,3 +1,13 @@
+/* Routines for the evaluation of the prolate spheroidal wavefunction
+   of order zero (Psi_0^c) inside [-1,1], for arbitrary frequency parameter c.
+   They use a basis of Legendre polynomials.
+   This is a collection of Fortran codes by Vladimir Rokhlin, specifically
+   legeexps.f and prolcrea.f
+   The originals may be found in src/common/specialfunctions/ of the DMK repo
+   https://github.com/flatironinstitute/dmk
+   They have been converted to C and repackaged by Libin Lu.
+*/
+
 #include <array>
 #include <cmath>
 #include <finufft_common/pswf.h>
