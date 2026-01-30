@@ -50,8 +50,8 @@ int cuinterp1d_nuptsdriven(int nf1, int M, cufinufft_plan_t<T> *d_plan, int blks
   dim3 threadsPerBlock;
   dim3 blocks;
 
-  T es_c          = d_plan->spopts.ES_c;
-  T es_beta       = d_plan->spopts.ES_beta;
+  T es_c          = 4.0/T(d_plan->spopts.nspread * d_plan->spopts.nspread);
+  T es_beta       = d_plan->spopts.beta;
   T sigma         = d_plan->opts.upsampfac;
   int *d_idxnupts = d_plan->idxnupts;
 

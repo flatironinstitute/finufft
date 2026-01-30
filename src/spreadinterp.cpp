@@ -184,11 +184,12 @@ FINUFFT_NEVER_INLINE int report_invalid_kernel_params(const int ns, const int nc
 } // namespace
 // declarations of purely internal functions... (thus need not be in .h)
 
-/* local NU coord fold+rescale macro: does the following affine transform to x:
-    (x+PI) mod PI    each to [0,N)
-   Note: folding big numbers can cause numerical inaccuracies
+/* local NU coord fold+rescale macro. Folds x into [-pi,pi) by addition of some integer
+   multiple of 2pi, then linearly maps [-pi,pi) to [0,N). This is done in precision T
+   (float or double).
+   Note: folding larger x will cause a larger roundoff error.
    Martin Reinecke, 8.5.2024 used floor to speedup the function and removed the range
-   limitation Marco Barbone, 8.5.2024 Changed it from a Macro to an inline function
+   limitation Marco Barbone, 8.5.2024 Changed it from a macro to an inline function
 */
 template<typename T>
 static FINUFFT_ALWAYS_INLINE T fold_rescale(const T x, const UBIGINT N) noexcept {
@@ -649,21 +650,27 @@ template<int ns, int nc, class T,
          typename... V>
 static FINUFFT_ALWAYS_INLINE auto evaluate_kernel_vector(
     T *FINUFFT_RESTRICT ker, const T *horner_coeffs_ptr, const V... elems) noexcept {
-  /* Utility function that allows to move the kernel evaluation outside the spreader for
-     clarity
+  /* Main SIMD-accelerated 1D kernel evaluator, using precomputed Horner coeffs to
+     evaluate kernel on a grid of ns ordinates lying in kernel support, which is
+     here scaled to [-ns/2,ns/2].
      Inputs are:
-     ns = kernel width
+     ns = kernel width (spread points)
      T = (single or double precision) type of the kernel
      simd_type = xsimd::batch for Horner
      vectorization (default is the optimal simd size)
-     elems = kernel arguments
-    Examples usage is
-    evaluate_kernel_vector<ns>(x, y, z) // for 3D or
-    evaluate_kernel_vector<ns>(x, y) // for 2D or
-    evaluate_kernel_vector<ns>(x) // for 1D
+     elems = one or more leftmost ordinates x, which should be in [-ns/2,ns/2+1].
+             For each such a
+
+    Example usages:
+    evaluate_kernel_vector<ns,nc,T,simd_type>(ker, coeffs, x)
+    evaluate_kernel_vector<ns,nc,T,simd_type>(ker, coeffs, x, y) // for 3D
+    etc
+
+    See: evaluate_kernel_runtime() for a simplified code which does the same thing.
 
     Barbone (Dec/25): Removed unused opts parameter, kerevalmeth and inlined horner code
     since it is only used here now.
+    *** to document this better.
    */
   const std::array inputs{elems...};
   // Only Horner piecewise-polynomial evaluation is used now. Call Horner
@@ -805,13 +812,12 @@ FINUFFT_NEVER_INLINE void spread_subproblem_1d_kernel(
       // kernel evaluation will fall outside their designed domains, >>1 errors.
       // This can only happen if the overall error would be O(1) anyway. Clip x1??
       if (x1 < -ns2) x1 = -ns2;
-      if (x1 > -ns2 + 1) x1 = -ns2 + 1; // ***
+      if (x1 > -ns2 + 1) x1 = -ns2 + 1;
       return x1;
     }();
     // Libin improvement: pass ker as a parameter and allocate it outside the loop
-    // gcc13 + 10% speedup
+    // gcc13 + 10% speedup (relative to const auto ker = evaluate_kernel_vec...etc).
     evaluate_kernel_vector<ns, nc, T, simd_type>(ker.data(), horner_coeffs_ptr, x1);
-    //    const auto ker = evaluate_kernel_vector<ns, T, simd_type>(x1);
     const auto j = i1 - off1; // offset rel to subgrid, starts the output indices
     auto *FINUFFT_RESTRICT trg = du + 2 * j; // restrict helps compiler to vectorize
     // du is padded, so we can use SIMD even if we write more than ns values in du
@@ -2023,108 +2029,30 @@ template int spreadinterpSorted<double>(
 ///////////////////////////////////////////////////////////////////////////
 
 template<typename T>
-int setup_spreader(finufft_spread_opts &opts, T eps, double upsampfac, int kerevalmeth,
-                   int debug, int showwarn, int spreadinterponly, int dim, int kerformula)
-/* Initializes spreader kernel parameters given desired NUFFT tolerance eps,
-   upsampling factor (=sigma in paper, or R in Dutt-Rokhlin), and debug flags.
-   Horner polynomial evaluation is always used; the kerevalmeth argument is
-   retained only for ABI compatibility and is ignored (a warning is emitted
-   when the caller specifies a value other than 1).
-   Also sets all default options in finufft_spread_opts. See finufft_common/spread_opts.h
-   for opts. dim is spatial dimension (1,2, or 3). See finufft_core:finufft_plan() for
-   where upsampfac is set. Must call this before any kernel evals done, otherwise segfault
-   likely.
-   Returns: 0  : success
-            FINUFFT_WARN_EPS_TOO_SMALL : requested eps cannot be achieved,
-                                         but proceed with best possible eps
-            otherwise : failure (see codes in finufft_errors.h); spreading must
-                        not proceed
-   Barnett 2017. debug, loosened eps logic 6/14/20.
-*/
-// Barbone (Dec/25): Force Horner-only setup; legacy kerevalmeth/kerpad now warn/no-op.
-{
-  constexpr T EPSILON = std::numeric_limits<T>::epsilon();
-  if (kerevalmeth != 1 && showwarn) {
-    fprintf(stderr,
-            "FINUFFT setup_spreader: warning, kerevalmeth=%d is deprecated and ignored; "
-            "using Horner method\n",
-            kerevalmeth);
-  }
-  // write out default finufft_spread_opts (some overridden in setup_spreader_for_nufft)
-  opts.spread_direction = 0; // user should always set to 1 or 2 as desired
-  opts.sort             = 2; // 2:auto-choice
-  opts.kerpad           = 0; // kerpad retained for ABI compatibility only; ignored
-  opts.kerevalmeth      = 1; // kerevalmeth retained for ABI compatibility only; ignored
-  opts.upsampfac        = upsampfac;
-  opts.nthreads         = 0; // all avail
-  opts.sort_threads     = 0; // 0:auto-choice
-  // heuristic dir=1 chunking for nthr>>1, typical for intel i7 and skylake...
-  opts.max_subproblem_size = (dim == 1) ? 10000 : 100000;
-  // TF_OMIT_* timing flags removed; no opts.flags field.
-  opts.debug = 0; // 0:no debug output
-  // heuristic nthr above which switch OMP critical to atomic (add_wrapped...):
-  opts.atomic_threshold = 10; // R Blackwell's value
-
-  int ns, ier = 0; // Set kernel width w (aka ns, nspread) then copy to opts...
-  if (eps < EPSILON) {
-    // safety; there's no hope of beating e_mach
-    if (showwarn)
-      fprintf(stderr, "%s warning: increasing tol=%.3g to eps_mach=%.3g.\n", __func__,
-              (double)eps, (double)EPSILON);
-    eps = EPSILON; // only changes local copy (not any opts)
-    ier = FINUFFT_WARN_EPS_TOO_SMALL;
-  }
-  if (!spreadinterponly && (upsampfac < 1.15 || upsampfac > 2.5)) {
-    if (showwarn)
-      fprintf(stderr,
-              "%s warning: upsampfac=%.3g outside [1.15, 2.5] are unlikely to provide "
-              "benefit and might break the library;\n",
-              __func__, upsampfac);
-  }
-  // Compute ns (kernel width) using central helper; caller handles clipping.
-  ns = compute_kernel_ns(upsampfac, (double)eps, kerformula, opts);
-
-  if (ns > MAX_NSPREAD) {
-    // clip to fit allocated arrays, Horner rules
-    if (showwarn)
-      fprintf(stderr,
-              "%s warning: at upsampfac=%.3g, tol=%.3g would need kernel width ns=%d; "
-              "clipping to max %d.\n",
-              __func__, upsampfac, (double)eps, ns, MAX_NSPREAD);
-    ns  = MAX_NSPREAD;
-    ier = FINUFFT_WARN_EPS_TOO_SMALL;
-  }
-  opts.nspread = ns;
-  opts.kerformula = kerformula; // pass through
-  // initialize remaining ES/KB parameters (beta, c, halfwidth) based on opts.nspread
-  initialize_kernel_params(opts, upsampfac, (double)eps, kerformula);
-  return ier;
-}
-
-template FINUFFT_EXPORT_TEST int setup_spreader<float>(
-    finufft_spread_opts &opts, float eps, double upsampfac, int kerevalmeth, int debug,
-    int showwarn, int spreadinterponly, int dim, int kerformula);
-template FINUFFT_EXPORT_TEST int setup_spreader<double>(
-    finufft_spread_opts &opts, double eps, double upsampfac, int kerevalmeth, int debug,
-    int showwarn, int spreadinterponly, int dim, int kerformula);
-
-template<typename T>
 T evaluate_kernel_runtime(T x, int ns, int nc, const T *horner_coeffs_ptr,
-                          const finufft_spread_opts &opts) {
-  // Pure runtime kernel evaluator: primary interface for FT and plan-based code.
-  // Coefficients are stored as horner_coeffs[j * padded_ns + i], where padded_ns
-  // is rounded up to SIMD alignment which *must* be consistent with that used
-  // in both evaluate_kernel_vector above, and precompute_horner_coeffs.
-  // Barbone (Dec/25). Fixed Lu 12/23/25.
+                          [[maybe_unused]] const finufft_spread_opts &spopts) {
+  /* Simple runtime spreading kernel evaluator for a single argument.
+    Uses the precomputed piecewise polynomial coeffs (degree nc-1, where
+    nc = number of coeffs per panel), for the ns panels covering its support.
+    Returns phi(2x/w), where standard kernel phi has support [-1,1].
+    Need not be fast, but must match the output of the above
+    evaluate_kernel_vector(), which evaluates a set of ns kernel values at once,
+    for the corresponding ordinate.
+    Is used by numerical Fourier transform in finufft_core:onedim_*.
+    Coefficients are stored as horner_coeffs[j * padded_ns + i], where padded_ns
+    is rounded up to SIMD alignment which *must* be consistent with that used
+    in both evaluate_kernel_vector above, and precompute_horner_coeffs.
+    Barbone (Dec/25). Fixed Lu 12/23/25.
+    Simplified spopts, removed redundant |x|>=ns/2 exit point, Barnett 1/15/26.
+  */
   const auto simd_size            = GetPaddedSIMDWidth<T>(2 * ns);
   const int padded_ns             = (ns + simd_size - 1) & -simd_size;
-
-  if (std::abs(x) >= (T)opts.ES_halfwidth) return (T)0.0;
+  const T ns2                     = ns / T(2.0); // half width w/2, in grid point units
   T res = (T)0.0;
-  for (int i = 0; i < ns; ++i) {
-    if (x > -opts.ES_halfwidth + i && x <= -opts.ES_halfwidth + i + 1) {
-      T z = std::fma((T)2.0, x - (T)i, (T)(ns - 1));
-      for (int j = 0; j < nc; ++j) {
+  for (int i = 0; i < ns; ++i) {             // check if x falls into any piecewise panels
+    if (x > -ns2 + i && x <= -ns2 + i + 1) { // if so, eval that Horner polynomial
+      T z = std::fma((T)2.0, x - (T)i, (T)(ns - 1)); // maps panel to z in [-1,1]
+      for (int j = 0; j < nc; ++j) { // Horner loop (highest to lowest order)...
         res = std::fma(res, z, horner_coeffs_ptr[j * padded_ns + i]);
       }
       break;

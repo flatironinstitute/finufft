@@ -55,6 +55,7 @@ static inline void MY_OMP_SET_NUM_THREADS [[maybe_unused]] (int) {}
 
 #include <finufft/fft.h> // (must come after complex.h)
 #include <finufft_common/constants.h>
+#include <finufft_common/spread_opts.h>
 #include <finufft_opts.h>
 #include <finufft_common/spread_opts.h>
 
@@ -134,7 +135,7 @@ private:
   // other internal structs
   std::unique_ptr<Finufft_FFT_plan<TF>> fftPlan;
 
-  // store piecewise Horner coeffs for ES kernel: ns x nc table
+  // store piecewise Horner coeffs for ns intervals of kernel: ns x nc table
   alignas(64) std::array<TF, finufft::common::MAX_NSPREAD *
                                  finufft::common::MAX_NC> horner_coeffs{0};
 
@@ -148,12 +149,12 @@ private:
 
   int execute_internal(TC *cj, TC *fk, bool adjoint = false, int ntrans_actual = -1,
                        TC *aligned_scratch = nullptr, size_t scratch_size = 0) const;
-
+  int setup_spreadinterp();
   void precompute_horner_coeffs();
 
   // Helper to initialize spreader, phiHat (Fourier series), and FFT plan.
   // Used by constructor (when upsampfac given) and setpts (when upsampfac deferred).
-  int initSpreadAndFFT();
+  int init_grid_kerFT_FFT();
 
 public:
   FINUFFT_PLAN_T(int type, int dim, const BIGINT *n_modes, int iflag, int ntrans, TF tol,

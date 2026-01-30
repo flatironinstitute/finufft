@@ -5,77 +5,106 @@
 #include <finufft_common/kernel.h>
 #include <finufft_common/spread_opts.h>
 
+// this module uses finufft_spread_opts but does not know about FINUFFT_PLAN class
+// nor finufft_opts. This allows it to be used by CPU & GPU.
+
 namespace finufft::kernel {
 
-int compute_kernel_ns(double upsampfac, double tol, int kerformula,
-                      const finufft_spread_opts &opts) {
-  // Note: opts is unused here but kept for API consistency if needed later
-  int ns;
-  if (upsampfac == 2.0) {
-    ns = (int)std::ceil(-std::log10(tol / 10.0));
-  } else {
-    ns = (int)std::ceil(
-        -std::log(tol) / (finufft::common::PI * std::sqrt(1.0 - 1.0 / upsampfac)));
+int theoretical_kernel_ns(double tol, int dim, int type, int debug,
+                          const finufft_spread_opts &spopts) {
+  // returns ideal preferred spread width (ns, a.k.a. w) using convergence rate,
+  // in exact arithmetic, to achieve requested tolerance tol. Possibly uses
+  // other parameters in spopts (upsampfac, kerformula,...). No clipping of ns
+  // to valid range done here. Input upsampfac must be >1.0.
+  int ns       = 0;
+  double sigma = spopts.upsampfac;
+
+  if (spopts.kerformula == 1) // ES legacy ns choice (v2.4.1, ie 2025, and before)
+    if (sigma == 2.0)
+      ns = (int)std::ceil(std::log10(10.0 / tol));
+    else
+      ns = (int)std::ceil(
+          std::log(1.0 / tol) / (finufft::common::PI * std::sqrt(1.0 - 1.0 / sigma)));
+  else { // generic formula for PSWF-like kernels. Currently for kf=8, PSWF (beta shift)
+    // tweak tolfac and nsoff for user tol matching (& tolsweep passing) over sigma...
+    double tolfac = 0.18 * std::pow(1.4, (double)(dim - 1));
+    // (here the dim power compensated for empirical worsening by dim)
+    if (type == 3) // compensate for type 3 worse (affects outer spread, not inner t2)
+      tolfac *= 1.4;
+    const double nsoff = 1.0; // width offset (helps balance err over sigma range)
+    ns                 = (int)std::ceil(
+        std::log(tolfac / tol) / (finufft::common::PI * std::sqrt(1.0 - 1.0 / sigma)) +
+        nsoff);
   }
-  ns = std::max(2, ns);
   return ns;
 }
 
-void initialize_kernel_params(finufft_spread_opts &opts, double upsampfac, double tol,
-                              int kerformula) {
-  int ns;
-  // Respect any pre-set opts.nspread (e.g., clipped by caller). If it's <=0 compute it.
-  if (opts.nspread > 0) {
-    ns = opts.nspread;
-  } else {
-    ns = compute_kernel_ns(upsampfac, tol, kerformula, opts);
-  }
+void set_kernel_shape_given_ns(finufft_spread_opts &spopts, int debug) {
+  // Writes kernel shape parameter(s) (beta,...), into spopts, given previously-set
+  // kernel info fields in spopts, principally: nspread, upsampfac, kerformula.
+  // debug >0 causes stdout reporting.
+  int ns       = spopts.nspread;
+  double sigma = spopts.upsampfac;
+  int kf       = spopts.kerformula;
+  // Std shape param formula using ES model for cutoff, eg (4.5) in [FIN] with gamma=1.
+  // For PSWF, aligns cut-off (start of aliasing) with freq (c) param. Used below...
+  const double beta_cutoff = common::PI * (double)ns * (1.0 - 1.0 / (2.0 * sigma));
 
-  opts.kerformula   = kerformula;
-  opts.nspread      = ns; // ensure opts is populated with the (possibly clipped) ns
-  opts.ES_halfwidth = (double)ns / 2.0;
-  opts.ES_c = 4.0 / (double)(ns * ns); // *** move this into kernel.h, kill c param
-
-  if (kerformula == 0) { // always the default
-    // Exponential of Semicircle (ES)
+  // these strings must match: kernel_definition(), the above, and the below
+  const char *kernames[] = {"default",
+                            "ES (legacy beta)",        // 1
+                            "ES (Beatty beta)",        // 2
+                            "KB (Beatty beta)",        // 3
+                            "cont-KB (Beatty beta)",   // 4
+                            "cosh-type (Beatty beta)", // 5
+                            "cont cosh (Beatty beta)", // 6
+                            "PSWF (Beatty beta)",      // 7
+                            "PSWF (beta shift)",       // 8
+                            "PSWF (beta Marco)"};      // 9
+  if (kf == 1) {
+    // Exponential of Semicircle (ES), the legacy logic, from 2017, used to v2.4.1
     double betaoverns = 2.30;
     if (ns == 2)
       betaoverns = 2.20;
     else if (ns == 3)
       betaoverns = 2.26;
     else if (ns == 4)
-      betaoverns = 2.38;
-
-    if (upsampfac != 2.0) {
-      double gamma = 0.97;
-      betaoverns   = gamma * common::PI * (1.0 - 1.0 / (2.0 * upsampfac));
+      betaoverns = 2.38;         // in hindsight this value was too large
+    spopts.beta = betaoverns * (double)ns;
+    if (sigma != 2.0) {          // low-sigma option, introduced v1.0 (2018-2025)
+      const double gamma = 0.97; // safety factor, from [FIN] paper
+      spopts.beta        = gamma * beta_cutoff;
     }
-    opts.ES_beta = betaoverns * (double)ns;
 
-  } else if (kerformula == 1) {
-    // Kaiser-Bessel (KB)
-    // Formula from Beatty et al. 2005.
-    double tmp   = (double)ns * (double)ns / (upsampfac * upsampfac);
-    double term2 = (upsampfac - 0.5) * (upsampfac - 0.5);
-    opts.ES_beta = common::PI * std::sqrt(tmp * term2 - 0.8);
+  } else if (kf >= 2 && kf <= 7) {
+    /* Shape param formula (designed for K-B), from Beatty et al,
+      IEEE Trans Med Imaging, 2005 24(6):799-808. doi:10.1109/TMI.2005.848376
+      "Rapid gridding reconstruction with a minimal oversampling ratio".
+      This widens in real space, narrowing in k-space a little to exploit continued
+      drop just after cutoff. We tweak Beatty's value 0.8 for ns=2 case to lower error.
+    */
+    double c_Beatty = (ns == 2) ? 0.5 : 0.8; // ns=2 case gives error fac 2 better for KB
+    double pis      = common::PI * common::PI;
+    spopts.beta     = std::sqrt(beta_cutoff * beta_cutoff - c_Beatty / pis);
+    // Expts show beta_cutoff with KB is 1/3-digit worse than Beatty, similar to ES.
+    // In fact, in wsweepkerrcomp.m on KB we find beta_cutoff-0.17 is indistinguishable.
+    // This is analogous to a safety factor of >0.99 around ns=10 (0.97 was too small)
+
+  } else if (kf == 8) {
+    // Std shape param with const shift to exploit a little more tail decay,
+    // in the style of Beatty (above) but without the sqrt; a const is better at high ns.
+    // This is best for PSWF, within 0.1 digit.
+    spopts.beta = beta_cutoff - 0.05; // Libin Lu 1/23/26
+                                      // spopts.beta = beta_cutoff; // std param
+
+  } else if (kf == 9) {
+    double t = beta_cutoff / common::PI;
+    // Marco's LSQ fit using simple functions of t, 1/23/26.
+    spopts.beta = ((-0.00149087 * t + 0.0218459) * t + 3.06269) * t - 0.0365245;
   }
 
-  if (opts.debug) {
-    const char *kname = (kerformula == 1) ? "KB" : "ES";
-    printf("setup_spreader: using spread kernel type %d (%s)\n", kerformula, kname);
-    printf("setup_spreader eps=%.3g sigma=%.3g (%s): chose ns=%d beta=%.3g\n", tol,
-           upsampfac, kname, ns, opts.ES_beta);
-  }
-}
-
-// AHB prefer cut; only used in accuracy_test which will be changed ***
-double sigma_max_tol(double upsampfac, int kerformula, int max_ns) {
-  if (upsampfac == 2.0) {
-    return 10.0 * std::pow(10.0, -(double)max_ns);
-  } else {
-    return std::exp(
-        -(double)max_ns * finufft::common::PI * std::sqrt(1.0 - 1.0 / upsampfac));
-  }
+  if (debug || spopts.debug)
+    printf("[setup_spreadinterp]\tkerformula=%d: %s...\n", kf, kernames[kf]);
 }
 
 } // namespace finufft::kernel

@@ -24,7 +24,7 @@
 % [err, info] = erralltypedim(...) returns info struct with at least fields:
 %   info.Nmax = max N used in each dim, 1x3 vector
 %
-% Barnett 12/21/25. Helper used by fullmathtest and plottolsweep.
+% Barnett 12/21/25. Helper used by fullmathtest, plottolsweep, wsweepkerrcomp.
 %
 function [err, info] = erralltypedim(M,Ntot,ntr,isign,prec,tol,o,myrand,dims,errcheck)
 err = nan(3,3);

@@ -33,16 +33,18 @@ for precdev=precdevs  % ......... loop precisions & devices
     prec = 'double';
     tol = 1e-9;
   end
-  errcheck = 10*tol;    % acceptable rel l2 error norm
+  errcheck = 10*tol;    % acceptable rel l2 error norm (leave due to GPU)
 
   % choose small problems suitable for direct NUDFT computation...
   M       = 1e3;    % # of NU pts (in all dims, and for type 3 targs too)
-  Ntot    = 1e3;    % # of modes (approx total, used in all dims)
-  ntr     = 5;      % # transforms
+  Ntot    = 1e3;    % # of modes (approx total, used in all dims, causes
+                    % round-off in 1D, hence)
+  ntr     = 20;     % # transforms (averages err)
   isign   = +1;     % sign of imaginary unit in exponential
   % various opts
   o.debug = 0;      % choose 1 for timing breakdown text output
   o.spread_debug=0; % spread-specific debug info
+  o.spread_kerformula=0;
   o.upsampfac=0;    % 0 (auto), 2.0 (default), or 1.25 (low-RAM, small-FFT)
   fprintf('%s\tprec=%s\ttol=%.3g, M=%d, Ntot=%d, ntrans=%d\n',...
           devname, prec, tol, M, Ntot, ntr)

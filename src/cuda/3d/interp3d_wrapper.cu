@@ -56,8 +56,8 @@ int cuinterp3d_nuptsdriven(int nf1, int nf2, int nf3, int M, cufinufft_plan_t<T>
                            int blksize) {
   const auto stream = d_plan->stream;
 
-  T es_c    = d_plan->spopts.ES_c;
-  T es_beta = d_plan->spopts.ES_beta;
+  T es_c    = 4.0 / T(d_plan->spopts.nspread * d_plan->spopts.nspread);
+  T es_beta = d_plan->spopts.beta;
   T sigma   = d_plan->spopts.upsampfac;
 
   int *d_idxnupts = d_plan->idxnupts;
@@ -122,8 +122,8 @@ int cuinterp3d_subprob(int nf1, int nf2, int nf3, int M, cufinufft_plan_t<T> *d_
   int totalnumsubprob    = d_plan->totalnumsubprob;
 
   T sigma                      = d_plan->spopts.upsampfac;
-  T es_c                       = d_plan->spopts.ES_c;
-  T es_beta                    = d_plan->spopts.ES_beta;
+  T es_c                       = 4.0 / T(d_plan->spopts.nspread * d_plan->spopts.nspread);
+  T es_beta                    = d_plan->spopts.beta;
   const auto sharedplanorysize = shared_memory_required<T>(
       3, d_plan->spopts.nspread, d_plan->opts.gpu_binsizex, d_plan->opts.gpu_binsizey,
       d_plan->opts.gpu_binsizez, d_plan->opts.gpu_np);

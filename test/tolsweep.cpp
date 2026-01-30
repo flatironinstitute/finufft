@@ -8,6 +8,7 @@
    The logic is taken from the latter (no significance to decades). Barnett 1/5/26
    Multiple dims, USFs, extra debug output for failures. 1/6/26.
    nthr=1 (for valgrind!) and tweak for 6s (float), 12s (double) runtimes. 1/7/26.
+   Update for new kf=3 (KB+Beatty) kernel, matching new tolsweeptest.m 1/21/26.
 */
 
 #include <cmath>
@@ -27,30 +28,32 @@ int main(int argc, char *argv[]) {
   // Define test problems, tolerance ranges, slack factors...
   BIGINT M = 500; // pick problem size: # sources (balance runtime vs rand-averaging)
   // N vectors to test: first triplet is for dim=1, then for dim=2, etc...
-  BIGINT Nm_alldims[3][3] = {{30, 1, 1}, {20, 40, 1}, {10, 11, 12}}; // Ntot~1e3 ok
-  int ntr                 = 1; // >1 in tolsweeptest.m but only for speed/convenience
-  int isign               = +1;
+  // Nmax is subtle, roughly in [50,200], due to misleading effects at both extremes
+  // (see discussion in tolsweeptest.m). For 2D, 3D seek Ntot <2e3 to reduce runtime.
+  BIGINT Nm_alldims[3][3] = {{50, 1, 1}, {25, 40, 1}, {10, 11, 12}};
+  int ntr                 = 1; // only 1 for now. to-do: allow >1 as in tolsweeptest.m
+  int isign = +1;
 
-  // *** make these vary by dim?: had to grow type-3 slack=15 here for macos CI...
-  double tolslack[3]    = {5.0, 5.0, 15.0}; // tunable slack parameters for each type
+  double tolslack[3] = {4.0, 4.0, 5.0}; // tunable slack parameters for each type
+  // to-do: make per dimension (slack could grow slightly per dim)
   double tolsperdecade  = 8;                // controls overall effort (tol resolution)
-  double tolstep        = pow(10.0, -1.0 / tolsperdecade); // multiplicative tol step, <1
-  constexpr FLT EPSILON = std::numeric_limits<FLT>::epsilon();
+  double tolstep       = pow(10.0, -1.0 / tolsperdecade); // multiplicative tol step, <1
+  constexpr FLT EPSILON = std::numeric_limits<FLT>::epsilon();  // 2.2e-16 or 1.2e-7
   double mintol         = 0.5 * EPSILON; // somewhat arbitrary where start (catch warns)
   int ntols             = std::ceil(log(mintol) / log(tolstep));
 
   // Defaults
-  int kerformula = 0;
+  int kerformula = 0; // should be the default
   int showwarn   = 0;
-  int verbose    = 2;
+  int verbose    = 2; // show summary line for each dim, sigma, type
   int debug      = 0;
   // test set of upsampfacs each with matching error floor for each dim...
-  const int nu         = 2; // how many USFs (just the standard ones for now)
-  double upsampfac[nu] = {1.25, 2.0};
+  const int nu         = 2;           // how many upsampfacs
+  double upsampfac[nu] = {1.25, 2.0}; // just the standard sigmas for now
 #ifdef SINGLE
-  double floor[nu][3] = {{1e-4, 1e-3, 1e-2}, {1e-5, 1e-5, 1e-5}}; // inner is dim
+  double floor[nu][3] = {{1e-4, 1e-4, 2e-4}, {2e-5, 2e-5, 1e-5}}; // inner is dim
 #else
-  double floor[nu][3] = {{3e-9, 3e-9, 1e-8}, {3e-14, 3e-14, 3e-14}};
+  double floor[nu][3] = {{1e-9, 2e-9, 3e-8}, {3e-14, 3e-14, 3e-14}};
 #endif
 
   // If user asked for help, print usage and exit
@@ -77,13 +80,13 @@ int main(int argc, char *argv[]) {
   FINUFFT_DEFAULT_OPTS(&opts);
   opts.spread_kerformula = kerformula;
   opts.debug             = debug;
-  opts.showwarn          = showwarn;
+  opts.showwarn = showwarn;
   opts.nthreads = 1; // single-threaded FINUFFT faster since small (esp valgrind!)
 
   std::vector<FLT> x(M), y(M), z(M), X, Y, Z; // xyz real vs XYZ freq-space
-  std::vector<CPX> c(M), ce(M), F, Fe;  // (we don't know N yet, since varies by dim)
-  srand(42);                            // fix seed
-  int nfailtot = 0;                     // overall count across all dims, USF, tols, types
+  std::vector<CPX> c(M), ce(M), F, Fe; // (we don't know N yet, since varies by dim)
+  srand(42);                          // fix seed
+  int nfailtot = 0;                   // overall count across all dims, USF, tols, types
 
   for (int dim = 1; dim <= 3; ++dim) {  /////////////////////// loop over dims
     if (verbose) printf("%s: %dD =============================\n", argv[0], dim);
@@ -166,7 +169,7 @@ int main(int argc, char *argv[]) {
             double req = std::max(floor[u][dim - 1], tolslack[ti] * tol); // threshold
             double clearfac = relerr / req; // factor by which beats req (<=1 ok, >1 fail)
             worstfac[ti]    = std::max(worstfac[ti], clearfac); // track the worst case
-            bool pass       = (relerr <= req);
+            bool pass       = (relerr <= req);  // note relerr=NaN will not pass
             if (pass) {
               ++npass[ti];
               if (verbose > 2)

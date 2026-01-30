@@ -97,9 +97,9 @@ double cyl_bessel_i_custom(double nu, double x) noexcept {
   double sum         = term;
 
   static constexpr auto eps      = std::numeric_limits<double>::epsilon() * 10.0;
-  static constexpr auto max_iter = 100000;
+  static constexpr auto max_terms = 100;
 
-  for (int k = 1; k < max_iter; ++k) {
+  for (int k = 1; k < max_terms; ++k) {
     term *= (halfx * halfx) / (static_cast<double>(k) * (nu + static_cast<double>(k)));
     sum += term;
     if (std::abs(term) < eps * std::abs(sum)) break;

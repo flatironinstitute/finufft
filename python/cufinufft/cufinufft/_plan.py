@@ -128,12 +128,21 @@ class Plan:
 
         # Get the default option values.
         self._opts = self._default_opts()
+        try:
+            if not getattr(self._opts, 'gpu_stream', None):
+                import ctypes as _ct
+
+                self._opts.gpu_stream = _ct.c_void_p(None)
+        except Exception:
+            pass
 
         # Extract list of valid field names.
         field_names = [name for name, _ in self._opts._fields_]
 
         # Assign field names from kwargs if they match up, otherwise error.
         for k, v in kwargs.items():
+            if k in ("fftw_lock_fun", "fftw_unlock_fun", "fftw_lock_data"):
+                raise TypeError(f"Invalid option '{k}': FFTW locks are not exposed in Python")
             if k in field_names:
                 setattr(self._opts, k, v)
             else:
@@ -198,13 +207,13 @@ class Plan:
         _n_modes = (c_int64 * 3)(*_n_modes)
 
         ier = self._make_plan(self._type,
-                              self._dim,
-                              _n_modes,
-                              self._isign,
-                              self._n_trans,
-                              self._eps,
-                              byref(self._plan),
-                              self._opts)
+                      self._dim,
+                      _n_modes,
+                      self._isign,
+                      self._n_trans,
+                      self._eps,
+                      byref(self._plan),
+                      byref(self._opts))
 
         if ier != 0:
             raise RuntimeError('Error creating plan.')

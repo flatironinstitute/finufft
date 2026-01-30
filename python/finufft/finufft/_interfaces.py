@@ -16,6 +16,7 @@ import numbers
 from ctypes import byref
 from ctypes import c_longlong
 from ctypes import c_void_p
+import ctypes
 
 import finufft._finufft as _finufft
 
@@ -99,8 +100,16 @@ class Plan:
         # set opts and check precision type
         opts = _finufft.FinufftOpts()
         _finufft._default_opts(opts)
+        # Ensure explicit mapping for some fields that must be exact C types.
+        # In particular, enforce that `spread_kerformula` (if provided)
+        # is assigned as an integer to the ctypes structure
+        if 'spread_kerformula' in kwargs:
+            try:
+                opts.spread_kerformula = int(kwargs.get('spread_kerformula'))
+            except Exception:
+                # fall back to generic setter below which will warn if invalid
+                pass
         setkwopts(opts,**kwargs)
-
         dtype = np.dtype(dtype)
 
         is_single = is_single_dtype(dtype)
@@ -139,7 +148,7 @@ class Plan:
             self._destroy = _finufft._destroy
 
         ier = self._makeplan(nufft_type, dim, n_modes, isign, n_trans, eps,
-                             byref(plan), opts)
+                     byref(plan), byref(opts))
 
         # check error
         if ier != 0:
@@ -584,6 +593,8 @@ def setkwopts(opt,**kwargs):
         warnings.simplefilter('always')
 
         for key,value in kwargs.items():
+            if key in ("fftw_lock_fun", "fftw_unlock_fun", "fftw_lock_data"):
+                raise TypeError(f"Invalid option '{key}': FFTW locks are not exposed in Python")
             if hasattr(opt,key):
                 setattr(opt,key,value)
             else:

@@ -11,7 +11,6 @@
  * ier=1 warning not error, upsampfac 6/14/20.
  * Barbone, removed pirange 05/09/24.
  * Barbone switched to public FINUFFT API 11/07/2025
- * Barbone (Dec/25): Warn when deprecated CLI spreader knobs are requested.
  * Barnett 1/12/26: update for v2.5.0, kill all deprecated flags/args, tidy
    and fix the setpts incorrect usage, use M=1 for kersum.
 */

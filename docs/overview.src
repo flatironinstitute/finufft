@@ -28,7 +28,7 @@ a division of the `Simons Foundation <https://www.simonsfoundation.org>`_,
 by :ref:`Alex Barnett and others<ackn>`,
 and our source code is
 `Apache v2 licensed <https://github.com/flatironinstitute/finufft/blob/master/LICENSE>`_.
-Here is a `project overview from 2023 <https://users.flatironinstitute.org/~ahb/notes/finufft-project-summary-2023.pdf>`_.
+Here is a `project overview from 2025 <https://users.flatironinstitute.org/~ahb/notes/finufft-project-summary-2025.pdf>`_.
 
 What does FINUFFT do?
 -----------------------
@@ -82,12 +82,13 @@ Our main features are:
 
 * **High speed**.  See our :ref:`performance tests <performance>`. For instance, at similar accuracy, FINUFFT is up to 10x faster than the multi-threaded `Chemnitz NFFT3 library <https://www-user.tu-chemnitz.de/~potts/nfft/>`_, and (in single-thread mode) up to 50x faster than the `CMCL NUFFT library <http://www.cims.nyu.edu/cmcl/nufft/nufft.html>`_. This is achieved via:
 
-  1. a simple `"exponential of semicircle" kernel <https://arxiv.org/abs/2001.09405>`_ that is provably close to optimal
-  #. quadrature approximation for this kernel's Fourier transform
+  1. a prolate spheroidal wavefunction (PSWF) spreading/interpolation kernel
+  (as of v2.5.0), achieving the optimal error for each kernel width
+  #. quadrature approximation for kernel Fourier transforms (allowing arbitrary switchable kernels)
   #. load-balanced multithreaded manual-SIMD-vectorized spreading/interpolation
   #. bin-sorting of points to improve cache reuse
-  #. a low upsampling option for smaller FFTs, especially in type 3 transforms
-  #. piecewise polynomial kernel evaluation (additions and multiplications only) with manual SIMD vectorization
+  #. arbitrary upsampling factor, allowing smaller FFTs, especially in type 3 transforms
+  #. piecewise polynomial Horner's rule kernel evaluation with manual SIMD vectorization
 
 * **Less RAM**. Our kernel is so fast that there is no point in precomputation; it is always evaluated on the fly. Thus our memory footprint is often an order of magnitude less than the fastest (precomputed) modes of competitors such as NFFT3 and MIRT, especially at high accuracy.
 
@@ -120,7 +121,11 @@ fast GPU shared memory.
 We have since added dimension 1 and type 3 transforms,
 and merged cuFINUFFT into the FINUFFT repository.
 Both double and single precision are supported, and Python and MATLAB
-interfaces. Please see sections of this documentation labeled "GPU".
+interfaces.
+The GPU code still uses the "exponential of semicircle" (ES)
+kernel at upsampling ratios 2.0 and 1.25 with legacy parameters from v2.4.1
+and prior.
+Please see sections of this documentation labeled "GPU".
 Ongoing unification of the GPU and CPU interfaces continues.
 
 .. _need:
