@@ -34,7 +34,7 @@ switch ier
  case 12
   error('FINUFFT:badDim','FINUFFT number of dimensions dim invalid');
  case 13
-  error('FINUFFT:spreadinterp:badNthr','FINUFFT spread threads invalid');
+  error('FINUFFT:spreadinterp:badSpreadThread','FINUFFT option spread_thread invalid');
  case 14
   error('FINUFFT:GPU:badDim','FINUFFT GPU number of dimensions dim invalid');
  case 15
