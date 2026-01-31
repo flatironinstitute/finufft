@@ -279,9 +279,8 @@ void cufinufft_setup_binsize(int type, int ns, int dim, cufinufft_opts *opts) {
   auto print_method_setup = [&](int method, int ns, int np, const char *suffix) {
     if (opts->debug < 1) return;
     if (method == 3) {
-      printf("[cufinufft] Method 3 setup: dim=%d, ns=%d, bin=%dx%dx%d, np=%d%s\n",
-             dim, ns, opts->gpu_binsizex, opts->gpu_binsizey, opts->gpu_binsizez, np,
-             suffix);
+      printf("[cufinufft] Method 3 setup: dim=%d, ns=%d, bin=%dx%dx%d, np=%d%s\n", dim,
+             ns, opts->gpu_binsizex, opts->gpu_binsizey, opts->gpu_binsizez, np, suffix);
     } else {
       printf("[cufinufft] Method %d setup: dim=%d, ns=%d, bin=%dx%dx%d%s\n", method, dim,
              ns, opts->gpu_binsizex, opts->gpu_binsizey, opts->gpu_binsizez, suffix);
@@ -292,8 +291,7 @@ void cufinufft_setup_binsize(int type, int ns, int dim, cufinufft_opts *opts) {
     if (opts->debug < 2) return;
     if (target_percent >= 0) {
       printf("  %s: Target %d%%, Used %d/%d bytes (%.1f%%)\n", label, target_percent,
-             shmem_used, shared_mem_per_block,
-             100.0 * shmem_used / shared_mem_per_block);
+             shmem_used, shared_mem_per_block, 100.0 * shmem_used / shared_mem_per_block);
     } else {
       printf("  %s: Used %d/%d bytes (%.1f%%)\n", label, shmem_used, shared_mem_per_block,
              100.0 * shmem_used / shared_mem_per_block);
@@ -302,10 +300,11 @@ void cufinufft_setup_binsize(int type, int ns, int dim, cufinufft_opts *opts) {
 
   switch (opts->gpu_method) {
   case 1: {
-    // Method 1 (Global Memory): Smaller bins improve performance via better cache behavior
+    // Method 1 (Global Memory): Smaller bins improve performance via better cache
+    // behavior
     const double load_factor = (dim <= 2) ? 0.5 : 0.75;
-    int target_shmem = static_cast<int>(shared_mem_per_block * load_factor);
-    int binsize = calc_binsize(target_shmem);
+    int target_shmem         = static_cast<int>(shared_mem_per_block * load_factor);
+    int binsize              = calc_binsize(target_shmem);
 
     // Fallback to full memory for extreme tolerances (large ns)
     if (binsize < 1) {
@@ -315,9 +314,11 @@ void cufinufft_setup_binsize(int type, int ns, int dim, cufinufft_opts *opts) {
     // If still can't fit, throw error - will be caught by impl.h retry logic
     if (binsize < 1) {
       throw std::runtime_error(
-          std::string("[cufinufft] ERROR: Insufficient shared memory for Method 1 (Global Memory).\n"
-          "           Available: ") +
-          std::to_string(shared_mem_per_block) + " bytes, kernel width ns=" + std::to_string(ns) +
+          std::string("[cufinufft] ERROR: Insufficient shared memory for Method 1 "
+                      "(Global Memory).\n"
+                      "           Available: ") +
+          std::to_string(shared_mem_per_block) +
+          " bytes, kernel width ns=" + std::to_string(ns) +
           ".\n"
           "           GPU has insufficient shared memory for this tolerance.");
     }
@@ -325,23 +326,25 @@ void cufinufft_setup_binsize(int type, int ns, int dim, cufinufft_opts *opts) {
     set_binsizes_if_unset(binsize);
 
     print_method_setup(1, ns, 0, "");
-    int shmem_used = shared_memory_required<T>(
-        dim, ns, opts->gpu_binsizex, opts->gpu_binsizey, opts->gpu_binsizez, 0);
+    int shmem_used = shared_memory_required<T>(dim, ns, opts->gpu_binsizex,
+                                               opts->gpu_binsizey, opts->gpu_binsizez, 0);
     print_shmem_usage("Shmem", shmem_used, (dim <= 2) ? 50 : 75);
     break;
   }
   case 2: {
     // Method 2 (Shared Memory): Maximize bin size for optimal performance
     const double load_factor = 1.0;
-    int target_shmem = static_cast<int>(shared_mem_per_block * load_factor);
-    int binsize = calc_binsize(target_shmem);
+    int target_shmem         = static_cast<int>(shared_mem_per_block * load_factor);
+    int binsize              = calc_binsize(target_shmem);
 
     // Method 2 requires shared memory - check if sufficient
     if (binsize < 1) {
       throw std::runtime_error(
-          std::string("[cufinufft] ERROR: Insufficient shared memory for Method 2 (Shared Memory).\n"
-          "           Available: ") +
-          std::to_string(shared_mem_per_block) + " bytes, kernel width ns=" + std::to_string(ns) +
+          std::string("[cufinufft] ERROR: Insufficient shared memory for Method 2 "
+                      "(Shared Memory).\n"
+                      "           Available: ") +
+          std::to_string(shared_mem_per_block) +
+          " bytes, kernel width ns=" + std::to_string(ns) +
           ".\n"
           "           Try Method 1 (Global Memory) or set method=0 for auto-select.");
     }
@@ -349,34 +352,34 @@ void cufinufft_setup_binsize(int type, int ns, int dim, cufinufft_opts *opts) {
     set_binsizes_if_unset(binsize);
 
     print_method_setup(2, ns, 0, "");
-    int shmem_used = shared_memory_required<T>(
-        dim, ns, opts->gpu_binsizex, opts->gpu_binsizey, opts->gpu_binsizez, 0);
+    int shmem_used = shared_memory_required<T>(dim, ns, opts->gpu_binsizex,
+                                               opts->gpu_binsizey, opts->gpu_binsizez, 0);
     print_shmem_usage("Shmem", shmem_used, -1);
     break;
   }
   case 3: {
     // Method 3 (Output-Driven): Partition shmem between np and bins using ratio
-    const double load_factor = 1.0;
+    const double load_factor  = 1.0;
     const int shmem_per_point = shared_memory_per_point<T>(dim, ns);
-    int target_shmem = static_cast<int>(shared_mem_per_block * load_factor);
+    int target_shmem          = static_cast<int>(shared_mem_per_block * load_factor);
 
     // Dimension-dependent np allocation ratio (from benchmark analysis)
     // 1D: High parallelism (more np), 3D: More memory for bins (less np)
     double np_ratio;
     if (dim == 1) {
-      np_ratio = 0.15;  // 15% shmem for np (benchmark-optimal: high parallelism)
+      np_ratio = 0.15; // 15% shmem for np (benchmark-optimal: high parallelism)
     } else if (dim == 2) {
-      np_ratio = 0.10;  // 10% shmem for np (balanced)
+      np_ratio = 0.10; // 10% shmem for np (balanced)
     } else {
-      np_ratio = 0.05;  // 5% shmem for np (3D needs more bin memory)
+      np_ratio = 0.05; // 5% shmem for np (3D needs more bin memory)
     }
 
     // Calculate target np from ratio (round to multiple of 16, minimum 16)
-    int np_shmem = static_cast<int>(target_shmem * np_ratio);
+    int np_shmem  = static_cast<int>(target_shmem * np_ratio);
     int target_np = std::max(16, (np_shmem / shmem_per_point) & ~15);
 
     // Calculate binsize from remaining memory
-    np_shmem = target_np * shmem_per_point;  // Recalc with rounded np
+    np_shmem    = target_np * shmem_per_point; // Recalc with rounded np
     int binsize = calc_binsize(target_shmem - np_shmem);
 
     // Fallback: If bins don't fit, reduce to minimum np=16
@@ -388,9 +391,11 @@ void cufinufft_setup_binsize(int type, int ns, int dim, cufinufft_opts *opts) {
 
     if (binsize < 1) {
       throw std::runtime_error(
-          std::string("[cufinufft] ERROR: Insufficient shared memory for Method 3 (Output-Driven).\n"
-          "           Available: ") +
-          std::to_string(shared_mem_per_block) + " bytes, kernel width ns=" + std::to_string(ns) +
+          std::string("[cufinufft] ERROR: Insufficient shared memory for Method 3 "
+                      "(Output-Driven).\n"
+                      "           Available: ") +
+          std::to_string(shared_mem_per_block) +
+          " bytes, kernel width ns=" + std::to_string(ns) +
           ".\n"
           "           Try Method 1 (Global Memory) or set method=0 for auto-select.");
     }
@@ -414,9 +419,10 @@ void cufinufft_setup_binsize(int type, int ns, int dim, cufinufft_opts *opts) {
       }
       if (binsize < 1) {
         throw std::runtime_error(
-            std::string("[cufinufft] ERROR: Insufficient shared memory for Method 3 (Output-Driven).\n"
-            "           Cannot fit minimum np=16 with valid bin sizes.\n"
-            "           Available: ") +
+            std::string("[cufinufft] ERROR: Insufficient shared memory for Method 3 "
+                        "(Output-Driven).\n"
+                        "           Cannot fit minimum np=16 with valid bin sizes.\n"
+                        "           Available: ") +
             std::to_string(shared_mem_per_block) +
             " bytes.\n"
             "           Try Method 1 (Global Memory) or set method=0 for auto-select.");
@@ -433,10 +439,10 @@ void cufinufft_setup_binsize(int type, int ns, int dim, cufinufft_opts *opts) {
         dim, ns, opts->gpu_binsizex, opts->gpu_binsizey, opts->gpu_binsizez, max_np);
     if (opts->debug >= 2) {
       double actual_np_ratio = (double)(shmem_per_point * max_np) / total_shmem;
-      printf(
-          "  Shmem: %d/%d bytes (%.1f%%), per_point=%d, grid_shmem=%d, np_shmem=%d\n",
-          total_shmem, shared_mem_per_block, 100.0 * total_shmem / shared_mem_per_block,
-          shmem_per_point, shmem_required, shmem_per_point * max_np);
+      printf("  Shmem: %d/%d bytes (%.1f%%), per_point=%d, grid_shmem=%d, np_shmem=%d\n",
+             total_shmem, shared_mem_per_block,
+             100.0 * total_shmem / shared_mem_per_block, shmem_per_point, shmem_required,
+             shmem_per_point * max_np);
       printf("  np/bins allocation ratio: %.3f (target=%.2f, np gets %.1f%% of shmem)\n",
              actual_np_ratio, np_ratio, 100.0 * actual_np_ratio);
     }
@@ -464,16 +470,15 @@ void cufinufft_setup_binsize(int type, int ns, int dim, cufinufft_opts *opts) {
   if (opts->gpu_binsizex < 1 || opts->gpu_binsizey < 1 || opts->gpu_binsizez < 1) {
     throw std::runtime_error(
         std::string("[cufinufft] ERROR: Invalid bin sizes after setup: ") +
-        std::to_string(opts->gpu_binsizex) + "x" + std::to_string(opts->gpu_binsizey) + "x" +
-        std::to_string(opts->gpu_binsizez) +
+        std::to_string(opts->gpu_binsizex) + "x" + std::to_string(opts->gpu_binsizey) +
+        "x" + std::to_string(opts->gpu_binsizez) +
         ".\n"
         "           This is a bug - bin sizes should never be < 1.\n"
         "           Shared memory available: " +
-        std::to_string(shared_mem_per_block) +
-        " bytes, method: " + std::to_string(opts->gpu_method) + ", ns: " + std::to_string(ns));
+        std::to_string(shared_mem_per_block) + " bytes, method: " +
+        std::to_string(opts->gpu_method) + ", ns: " + std::to_string(ns));
   }
 }
-
 
 template int setup_spreader_for_nufft(finufft_spread_opts &spopts, float eps,
                                       cufinufft_opts opts);
