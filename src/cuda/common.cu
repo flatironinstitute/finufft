@@ -300,27 +300,16 @@ void cufinufft_setup_binsize(int type, int ns, int dim, cufinufft_opts *opts) {
 
   switch (opts->gpu_method) {
   case 1: {
-    // Method 1 (Global Memory): Smaller bins improve performance via better cache
-    // behavior
-    const double load_factor = (dim <= 2) ? 0.5 : 0.75;
-    int target_shmem         = static_cast<int>(shared_mem_per_block * load_factor);
-    int binsize              = calc_binsize(target_shmem);
+    // Method 1 (Global Memory): Use 100% shared memory
+    int binsize = calc_binsize(shared_mem_per_block);
 
-    // Fallback to full memory for extreme tolerances (large ns)
+    // Ensure binsize is at least 1
     if (binsize < 1) {
-      binsize = calc_binsize(shared_mem_per_block);
-    }
-
-    // If still can't fit, throw error - will be caught by impl.h retry logic
-    if (binsize < 1) {
-      throw std::runtime_error(
-          std::string("[cufinufft] ERROR: Insufficient shared memory for Method 1 "
-                      "(Global Memory).\n"
-                      "           Available: ") +
-          std::to_string(shared_mem_per_block) +
-          " bytes, kernel width ns=" + std::to_string(ns) +
-          ".\n"
-          "           GPU has insufficient shared memory for this tolerance.");
+      printf("[cufinufft] Warning: Insufficient shared memory for Method 1 "
+             "(Global Memory). Available: %d bytes, kernel width ns=%d.\n"
+             "           Falling back to minimum bin size of 1.\n",
+             shared_mem_per_block, ns);
+      binsize = 1;
     }
 
     set_binsizes_if_unset(binsize);
@@ -328,14 +317,75 @@ void cufinufft_setup_binsize(int type, int ns, int dim, cufinufft_opts *opts) {
     print_method_setup(1, ns, 0, "");
     int shmem_used = shared_memory_required<T>(dim, ns, opts->gpu_binsizex,
                                                opts->gpu_binsizey, opts->gpu_binsizez, 0);
-    print_shmem_usage("Shmem", shmem_used, (dim <= 2) ? 50 : 75);
+    print_shmem_usage("Shmem", shmem_used, 100);
     break;
   }
   case 2: {
-    // Method 2 (Shared Memory): Maximize bin size for optimal performance
-    const double load_factor = 1.0;
-    int target_shmem         = static_cast<int>(shared_mem_per_block * load_factor);
-    int binsize              = calc_binsize(target_shmem);
+    // Method 2 (Shared Memory): Optimize bin size based on GPU architecture and dimension
+    //
+    // Benchmark analysis (Feb 2025) across 8 GPUs shows optimal shared memory utilization
+    // varies by dimension and GPU architecture:
+    //   - 1D: 10-30% (datacenter GPUs use less, Ada/Blackwell use more)
+    //   - 2D: 15-40% (similar pattern)
+    //   - 3D: 35-90% (tolerance-dependent: loose tolerances use less, tight use more)
+    //
+    // Using 100% shared memory causes 20-60% performance degradation in 1D/2D!
+    // Smaller bins reduce bank conflicts and improve cache locality.
+
+    // Detect GPU type: workstation/consumer vs datacenter
+    // Workstation/consumer GPUs (RTX, GeForce, Quadro, TITAN) benefit from higher shmem
+    // All others (A100, H100, V100, Tesla, etc.) are datacenter and use lower shmem
+    cudaDeviceProp prop;
+    cudaGetDeviceProperties(&prop, device_id);
+    std::string device_name(prop.name);
+    // Check for workstation/consumer GPU patterns
+    // If found → use higher shmem; otherwise → datacenter (default)
+    bool use_higher_shmem = (device_name.find("RTX") != std::string::npos ||
+                             device_name.find("GeForce") != std::string::npos ||
+                             device_name.find("Quadro") != std::string::npos ||
+                             device_name.find("TITAN") != std::string::npos);
+
+    double load_factor;
+
+    if (dim == 1) {
+      // 1D: Low shared memory is optimal across all tolerances
+      // Datacenter (A100/H100): 9-10% best
+      // Ada/Blackwell: 29-39% best
+      load_factor = use_higher_shmem ? 0.30 : 0.10;
+
+    } else if (dim == 2) {
+      // 2D: Low-moderate shared memory optimal
+      // Datacenter: 9-19% best
+      // Ada/Blackwell: 27-47% best
+      load_factor = use_higher_shmem ? 0.40 : 0.15;
+
+    } else { // dim == 3
+      // 3D: Tolerance-dependent (kernel width vs bin size trade-off)
+      // For loose tolerances (small ns): moderate shmem
+      // For tight tolerances (large ns): high shmem (kernel dominates bin size)
+      if (ns <= 7) {
+        // Loose/medium tolerance: moderate shmem
+        load_factor = use_higher_shmem ? 0.50 : 0.35;
+      } else {
+        // Tight tolerance (ns >= 10): high shmem IS optimal
+        // At ns=13, kernel width equals or exceeds bin size (4-10 per dim)
+        load_factor = 1.0;
+      }
+    }
+
+    int target_shmem = static_cast<int>(shared_mem_per_block * load_factor);
+    int binsize      = calc_binsize(target_shmem);
+
+    // Fallback: If target doesn't fit (extreme tolerance), try full memory
+    if (binsize < 1) {
+      if (opts->debug >= 1) {
+        printf("[cufinufft] Warning: Target %d%% shmem insufficient, trying 100%%\n",
+               static_cast<int>(load_factor * 100));
+      }
+      target_shmem = shared_mem_per_block;
+      binsize      = calc_binsize(target_shmem);
+      load_factor  = 1.0;
+    }
 
     // Method 2 requires shared memory - check if sufficient
     if (binsize < 1) {
@@ -354,7 +404,7 @@ void cufinufft_setup_binsize(int type, int ns, int dim, cufinufft_opts *opts) {
     print_method_setup(2, ns, 0, "");
     int shmem_used = shared_memory_required<T>(dim, ns, opts->gpu_binsizex,
                                                opts->gpu_binsizey, opts->gpu_binsizez, 0);
-    print_shmem_usage("Shmem", shmem_used, -1);
+    print_shmem_usage("Shmem", shmem_used, static_cast<int>(load_factor * 100));
     break;
   }
   case 3: {
@@ -367,7 +417,7 @@ void cufinufft_setup_binsize(int type, int ns, int dim, cufinufft_opts *opts) {
     // 1D: High parallelism (more np), 3D: More memory for bins (less np)
     double np_ratio;
     if (dim == 1) {
-      np_ratio = 0.15; // 15% shmem for np (benchmark-optimal: high parallelism)
+      np_ratio = 0.15; // 15% shmem for np (high parallelism)
     } else if (dim == 2) {
       np_ratio = 0.10; // 10% shmem for np (balanced)
     } else {
