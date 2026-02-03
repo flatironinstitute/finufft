@@ -1,10 +1,14 @@
-# Makefile variable overrides for Mac OSX compilation with CLANG + MATLAB
+# Makefile variable overrides for Mac OSX compilation with CLANG + MATLAB,
+# with Intel silicon.
+# This version uses libiomp5 from MATLAB (make.inc.macosx_clang uses a brew version
+# instead).
 #
 # Note that we have not been able to link against gfortran, so if you need
 # fortran interfaces, use make.inc.macosx_gcc-* instead.
 #
 # Copy this file to make.inc, and if needed edit for your setup.
 # Barnett 10/3/20
+# updated 2/3/26
 
 # compile flags for use with clang: (note absence of -march, etc)
 CFLAGS = -O3
@@ -29,10 +33,11 @@ LIBS += -L/usr/local/lib -L/opt/homebrew/lib
 # Use MATLAB's shipped OpenMP (not gomp otherwise segfaults), with clang...
 MOMPFLAGS = -D_OPENMP
 OMPFLAGS = -Xpreprocessor -fopenmp
+# This path is set up for Intel mac (maci64). If you need ARM edit to maca64...
 OMPLIBS = $(shell ls -d /Applications/MATLAB_R20**.app)/sys/os/maci64/libiomp5.dylib
 # on mac os with clang compiler, matlab mex should use iomp as omp implementation
 # we need to use -Wl,-rpath to add iomp lib directory to the runtime library search path
-# add iomp runtime search path to linker flags
+# add iomp runtime search path to linker flags (ditto as above re maca64)...
 LDFLAGS += -Wl,-rpath,$(shell ls -d /Applications/MATLAB_R20**.app)/sys/os/maci64/
 # since fftw3_omp doesn't work in OSX, we need...
 FFTWOMPSUFFIX=threads
@@ -40,7 +45,8 @@ FFTWOMPSUFFIX=threads
 # MATLAB interface:
 # some of these will depend on your FFTW library location, but this is where
 # brew should put things...
-MFLAGS += -I/usr/local/include -I/opt/homebrew/include -L/usr/local/lib -L/opt/homebrew/lib -lm
+# (ld_classic avoids the new XCode apple linker, as of Feb 2026)
+MFLAGS += -I/usr/local/include -I/opt/homebrew/include -L/usr/local/lib -L/opt/homebrew/lib -lm -ld_classic
 # should work, or edit for your MATLAB version location...
 MEX = $(shell ls -d /Applications/MATLAB_R20**.app)/bin/mex
 
