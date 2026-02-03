@@ -68,7 +68,7 @@ DEPS_ROOT := deps
 
 # xsimd header-only dependency repo (VERSION can be a tag or commit)
 XSIMD_URL := https://github.com/DiamonDinoia/xsimd.git
-XSIMD_VERSION := 7bca54b
+XSIMD_VERSION := df8db98
 XSIMD_DIR := $(DEPS_ROOT)/xsimd
 
 # DUCC sources optional dependency repo
