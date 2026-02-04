@@ -968,13 +968,8 @@ int finufft_makeplan_t(int type, int dim, const BIGINT *n_modes, int iflag, int 
 // C-API wrapper around the C++ constructor. Writes a pointer to the plan in *pp.
 // Returns ier (warning or error codes as per C interface).
 {
-  *pp     = nullptr;
   int ier = 0;
-  try {
-    *pp = new FINUFFT_PLAN_T<TF>(type, dim, n_modes, iflag, ntrans, tol, opts, ier);
-  } catch (int errcode) {
-    return errcode;
-  }
+  *pp     = new FINUFFT_PLAN_T<TF>(type, dim, n_modes, iflag, ntrans, tol, opts, ier);
   return ier;
 }
 

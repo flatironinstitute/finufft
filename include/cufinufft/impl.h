@@ -261,6 +261,8 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
       if ((ier = allocgpumem3d_plan<T>(d_plan))) goto finalize;
     } break;
     }
+    // FIXME: FINUFFT_ERR_METHOD_NOTVALID from allocgpumem* should propagate to the
+    // public API instead of being overwritten to 0 later in this function.
 
     // We dont need any cuFFT plans or kernel values if we are only spreading /
     // interpolating

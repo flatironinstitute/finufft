@@ -3,13 +3,12 @@
 // private headers
 #include <array>
 #include <cstdio>
-#include <new> // for std::bad_alloc
 #include <finufft/finufft_core.h> // (must come after complex.h)
-#include <functional> // std::invoke
-#include <type_traits>
-#include <utility>    // std::forward
+#include <finufft_common/safe_call.h>
+#include <new>                    // for std::bad_alloc
 
 using namespace std;
+using finufft::common::safe_finufft_call;
 
 /* ---------------------------------------------------------------------------
    The 18 simple interfaces (= 3 dims * 3 types * {singlecall,many}) to FINUFFT.
@@ -32,29 +31,6 @@ using c128  = std::complex<double>;
 using cc128 = const std::complex<double>;
 using i64   = BIGINT;
 using ci64  = const BIGINT;
-
-template <class F, class... Args>
-FINUFFT_ALWAYS_INLINE int safe_finufft_call(F&& f, Args&&... args) {
-  try {
-    using R = std::invoke_result_t<F, Args...>;
-
-    if constexpr (std::is_void_v<R>) {
-      std::invoke(std::forward<F>(f), std::forward<Args>(args)...);
-      return 0;
-    } else {
-      static_assert(std::is_convertible_v<R, int>,
-                    "safe_finufft_call: callable must return void or a type convertible to int");
-      return static_cast<int>(std::invoke(std::forward<F>(f), std::forward<Args>(args)...));
-    }
-  } catch (int retcode) {
-    return retcode;
-  } catch (const std::bad_alloc&) {
-    return FINUFFT_ERR_ALLOC;
-//  insert more conversions from C++ standard exceptions here ...
-  } catch (...) {
-    return FINUFFT_ERR_UNKNOWN_EXCEPTION;
-  }
-}
 
 void finufft_default_opts(finufft_opts *o) { finufft_default_opts_t(o); }
 void finufftf_default_opts(finufft_opts *o) { finufft_default_opts_t(o); }
@@ -156,21 +132,21 @@ static int guru(
       delete plan;
       return ier;
     }
-  
+
     int ier2 = plan->setpts(nj, xyz[0], xyz[1], xyz[2], nk, stu[0], stu[1], stu[2]);
     if (ier2 > 1) {
       fprintf(stderr, "FINUFFT invokeGuru: setpts error (ier=%d)!\n", ier2);
       delete plan;
       return ier2;
     }
-  
+
     int ier3 = plan->execute(cj, fk);
     if (ier3 > 1) {
       fprintf(stderr, "FINUFFT invokeGuru: execute error (ier=%d)!\n", ier3);
       delete plan;
       return ier3;
     }
-  
+
     delete plan;
     return max(max(ier, ier2), ier3); // in case any one gave a (positive!) warning
   });

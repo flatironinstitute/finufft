@@ -14,7 +14,7 @@
 
 namespace finufft::kernel {
 
-template<class T, class F> std::vector<T> poly_fit(F &&f, int n) noexcept {
+template<class T, class F> std::vector<T> poly_fit(F &&f, int n) {
   static_assert(std::is_floating_point_v<T>, "T must be floating-point");
   /* Expects f, a function handle for arguments on [-1,1], both I/O type T.
      Returns vector of n coefficients a_{n-1}, ... a_1, a_0 of degree-(n-1)
