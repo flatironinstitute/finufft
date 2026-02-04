@@ -67,8 +67,8 @@ MWRAP = mwrap
 DEPS_ROOT := deps
 
 # xsimd header-only dependency repo (VERSION can be a tag or commit)
-XSIMD_URL := https://github.com/DiamonDinoia/xsimd.git
-XSIMD_VERSION := df8db98
+XSIMD_URL := https://github.com/xtensor-stack/xsimd.git
+XSIMD_VERSION := 6842624
 XSIMD_DIR := $(DEPS_ROOT)/xsimd
 
 # DUCC sources optional dependency repo

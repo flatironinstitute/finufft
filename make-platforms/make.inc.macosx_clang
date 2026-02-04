@@ -5,6 +5,7 @@
 #
 # Copy this file to make.inc, and if needed edit for your setup.
 # Barnett 10/27/18. Input from Yu-Hsuan Shih, Amit Moskovich.
+# Updated 2/3/26, Dan Fortunato.
 
 # (note that /usr/bin/g++,gcc are aliased to clang/LLVM, so CXX,CC unchanged)
 
@@ -39,7 +40,8 @@ FFTWOMPSUFFIX=threads
 # make.inc.macosx_clang_matlab
 
 # Some of these will depend on your FFTW library location...
-MFLAGS += -I/usr/local/include -L/usr/local/lib -lm
+# (ld_classic avoids the new XCode apple linker, as of Feb 2026)
+MFLAGS += -I/usr/local/include -L/usr/local/lib -lm -ld_classic
 # may need to edit for your MATLAB version location...
 MEX = $(shell ls -d /Applications/MATLAB_R20**.app)/bin/mex
 # Also see docs/install.rst for possible edits to MATLAB's MEX XML file.

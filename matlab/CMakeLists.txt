@@ -23,6 +23,10 @@ if(FINUFFT_USE_CPU)
     )
     target_compile_definitions(finufft_mex PRIVATE ${FINUFFT_MEX_DEFS})
     target_include_directories(finufft_mex PRIVATE $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>)
+    if(APPLE)
+        # needed to prevent new Apple XCode linker which can break mex...
+        target_link_options(finufft_mex PRIVATE -ld_classic)
+    endif()
     make_mex_self_contained(finufft_mex)
 endif()
 
