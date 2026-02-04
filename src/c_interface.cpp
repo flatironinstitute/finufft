@@ -5,6 +5,9 @@
 #include <cstdio>
 #include <new> // for std::bad_alloc
 #include <finufft/finufft_core.h> // (must come after complex.h)
+#include <functional> // std::invoke
+#include <type_traits>
+#include <utility>    // std::forward
 
 using namespace std;
 
@@ -30,76 +33,79 @@ using cc128 = const std::complex<double>;
 using i64   = BIGINT;
 using ci64  = const BIGINT;
 
-#define FINUFFT_EXCEPTION_TO_RETCODE \
-catch (int retcode) { \
-  return retcode; \
-} \
-catch (const std::bad_alloc &) { \
-  return FINUFFT_ERR_ALLOC; \
-} \
-catch (...) { \
-  return FINUFFT_ERR_UNKNOWN_EXCEPTION; \
-} \
-return 0;
+template <class F, class... Args>
+FINUFFT_ALWAYS_INLINE int safe_finufft_call(F&& f, Args&&... args) {
+  try {
+    using R = std::invoke_result_t<F, Args...>;
+
+    if constexpr (std::is_void_v<R>) {
+      std::invoke(std::forward<F>(f), std::forward<Args>(args)...);
+      return 0;
+    } else {
+      static_assert(std::is_convertible_v<R, int>,
+                    "safe_finufft_call: callable must return void or a type convertible to int");
+      return static_cast<int>(std::invoke(std::forward<F>(f), std::forward<Args>(args)...));
+    }
+  } catch (int retcode) {
+    return retcode;
+  } catch (const std::bad_alloc&) {
+    return FINUFFT_ERR_ALLOC;
+//  insert more conversions from C++ standard exceptions here ...
+  } catch (...) {
+    return FINUFFT_ERR_UNKNOWN_EXCEPTION;
+  }
+}
 
 void finufft_default_opts(finufft_opts *o) { finufft_default_opts_t(o); }
 void finufftf_default_opts(finufft_opts *o) { finufft_default_opts_t(o); }
 
 int finufft_makeplan(int type, int dim, ci64 *n_modes, int iflag, int ntrans, f64 tol,
                      finufft_plan *pp, const finufft_opts *opts) {
-  try {
+  return safe_finufft_call([&]() -> int {
     return finufft_makeplan_t<f64>(type, dim, n_modes, iflag, ntrans, tol,
                                    reinterpret_cast<FINUFFT_PLAN_T<f64> **>(pp), opts);
-  }
-  FINUFFT_EXCEPTION_TO_RETCODE
+  });
 }
 int finufftf_makeplan(int type, int dim, ci64 *n_modes, int iflag, int ntrans, f32 tol,
                       finufftf_plan *pp, const finufft_opts *opts) {
-  try {
+  return safe_finufft_call([&]() -> int {
     return finufft_makeplan_t<f32>(type, dim, n_modes, iflag, ntrans, tol,
                                    reinterpret_cast<FINUFFT_PLAN_T<f32> **>(pp), opts);
-  }
-  FINUFFT_EXCEPTION_TO_RETCODE
+  });
 }
 
 int finufft_setpts(finufft_plan p, i64 nj, cf64 *xj, cf64 *yj, cf64 *zj, i64 nk, cf64 *s,
                    cf64 *t, cf64 *u) {
-  try {
+  return safe_finufft_call([&]() -> int {
     return reinterpret_cast<FINUFFT_PLAN_T<f64> *>(p)->setpts(nj, xj, yj, zj, nk, s, t, u);
-  }
-  FINUFFT_EXCEPTION_TO_RETCODE
+  });
 }
 int finufftf_setpts(finufftf_plan p, i64 nj, cf32 *xj, cf32 *yj, cf32 *zj, i64 nk,
                     cf32 *s, cf32 *t, cf32 *u) {
-  try {
+  return safe_finufft_call([&]() -> int {
     return reinterpret_cast<FINUFFT_PLAN_T<f32> *>(p)->setpts(nj, xj, yj, zj, nk, s, t, u);
-  }
-  FINUFFT_EXCEPTION_TO_RETCODE
+  });
 }
 
 int finufft_execute(finufft_plan p, c128 *cj, c128 *fk) {
-  try {
+  return safe_finufft_call([&]() -> int {
     return reinterpret_cast<FINUFFT_PLAN_T<f64> *>(p)->execute(cj, fk);
-  }
-  FINUFFT_EXCEPTION_TO_RETCODE
+  });
 }
 int finufftf_execute(finufftf_plan p, c64 *cj, c64 *fk) {
-  try {
+  return safe_finufft_call([&]() -> int {
     return reinterpret_cast<FINUFFT_PLAN_T<f32> *>(p)->execute(cj, fk);
-  }
-  FINUFFT_EXCEPTION_TO_RETCODE
+  });
 }
 int finufft_execute_adjoint(finufft_plan p, c128 *cj, c128 *fk) {
-  try {
+  return safe_finufft_call([&]() -> int {
     return reinterpret_cast<FINUFFT_PLAN_T<f64> *>(p)->execute_adjoint(cj, fk);
-  }
-  FINUFFT_EXCEPTION_TO_RETCODE
+  });
 }
 int finufftf_execute_adjoint(finufftf_plan p, c64 *cj, c64 *fk) {
-  try {
+  return safe_finufft_call([&]() -> int {
     return reinterpret_cast<FINUFFT_PLAN_T<f32> *>(p)->execute_adjoint(cj, fk);
-  }
-  FINUFFT_EXCEPTION_TO_RETCODE
+  });
 }
 
 int finufft_destroy(finufft_plan p)
@@ -108,14 +114,13 @@ int finufft_destroy(finufft_plan p)
 // Thus either each thing free'd here is guaranteed to be nullptr or correctly
 // allocated.
 {
-  try {
+  return safe_finufft_call([&]() -> int {
     if (!p) // nullptr ptr, so not a ptr to a plan, report error
       return 1;
 
     delete reinterpret_cast<FINUFFT_PLAN_T<f64> *>(p);
     return 0; // success
-  }
-  FINUFFT_EXCEPTION_TO_RETCODE
+  });
 }
 int finufftf_destroy(finufftf_plan p)
 // Free everything we allocated inside of finufft_plan pointed to by p.
@@ -123,14 +128,13 @@ int finufftf_destroy(finufftf_plan p)
 // Thus either each thing free'd here is guaranteed to be nullptr or correctly
 // allocated.
 {
-  try {
+  return safe_finufft_call([&]() -> int {
     if (!p) // nullptr ptr, so not a ptr to a plan, report error
       return 1;
 
     delete reinterpret_cast<FINUFFT_PLAN_T<f32> *>(p);
     return 0; // success
-  }
-  FINUFFT_EXCEPTION_TO_RETCODE
+  });
 }
 // Helper layer ...........................................................
 
@@ -142,7 +146,7 @@ static int guru(
 // Helper layer between simple interfaces (with opts) and the guru functions.
 // Author: Andrea Malleo, 2019.
 {
-  try {
+  return safe_finufft_call([&]() -> int {
     FINUFFT_PLAN_T<T> *plan = nullptr;
     int ier =
         finufft_makeplan_t<T>(type, n_dims, n_modes.data(), iflag, n_transf, eps, &plan,
@@ -169,8 +173,7 @@ static int guru(
   
     delete plan;
     return max(max(ier, ier2), ier3); // in case any one gave a (positive!) warning
-  }
-  FINUFFT_EXCEPTION_TO_RETCODE
+  });
 }
 template<typename T>
 static int guru13(int n_dims, int type, int n_transf, i64 nj,
