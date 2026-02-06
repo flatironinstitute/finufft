@@ -4,8 +4,11 @@
 #include <array>
 #include <cstdio>
 #include <finufft/finufft_core.h> // (must come after complex.h)
+#include <finufft_common/safe_call.h>
+#include <new>                    // for std::bad_alloc
 
 using namespace std;
+using finufft::common::safe_finufft_call;
 
 /* ---------------------------------------------------------------------------
    The 18 simple interfaces (= 3 dims * 3 types * {singlecall,many}) to FINUFFT.
@@ -34,35 +37,51 @@ void finufftf_default_opts(finufft_opts *o) { finufft_default_opts_t(o); }
 
 int finufft_makeplan(int type, int dim, ci64 *n_modes, int iflag, int ntrans, f64 tol,
                      finufft_plan *pp, const finufft_opts *opts) {
-  return finufft_makeplan_t<f64>(type, dim, n_modes, iflag, ntrans, tol,
-                                 reinterpret_cast<FINUFFT_PLAN_T<f64> **>(pp), opts);
+  return safe_finufft_call([&]() -> int {
+    return finufft_makeplan_t<f64>(type, dim, n_modes, iflag, ntrans, tol,
+                                   reinterpret_cast<FINUFFT_PLAN_T<f64> **>(pp), opts);
+  });
 }
 int finufftf_makeplan(int type, int dim, ci64 *n_modes, int iflag, int ntrans, f32 tol,
                       finufftf_plan *pp, const finufft_opts *opts) {
-  return finufft_makeplan_t<f32>(type, dim, n_modes, iflag, ntrans, tol,
-                                 reinterpret_cast<FINUFFT_PLAN_T<f32> **>(pp), opts);
+  return safe_finufft_call([&]() -> int {
+    return finufft_makeplan_t<f32>(type, dim, n_modes, iflag, ntrans, tol,
+                                   reinterpret_cast<FINUFFT_PLAN_T<f32> **>(pp), opts);
+  });
 }
 
 int finufft_setpts(finufft_plan p, i64 nj, cf64 *xj, cf64 *yj, cf64 *zj, i64 nk, cf64 *s,
                    cf64 *t, cf64 *u) {
-  return reinterpret_cast<FINUFFT_PLAN_T<f64> *>(p)->setpts(nj, xj, yj, zj, nk, s, t, u);
+  return safe_finufft_call([&]() -> int {
+    return reinterpret_cast<FINUFFT_PLAN_T<f64> *>(p)->setpts(nj, xj, yj, zj, nk, s, t, u);
+  });
 }
 int finufftf_setpts(finufftf_plan p, i64 nj, cf32 *xj, cf32 *yj, cf32 *zj, i64 nk,
                     cf32 *s, cf32 *t, cf32 *u) {
-  return reinterpret_cast<FINUFFT_PLAN_T<f32> *>(p)->setpts(nj, xj, yj, zj, nk, s, t, u);
+  return safe_finufft_call([&]() -> int {
+    return reinterpret_cast<FINUFFT_PLAN_T<f32> *>(p)->setpts(nj, xj, yj, zj, nk, s, t, u);
+  });
 }
 
 int finufft_execute(finufft_plan p, c128 *cj, c128 *fk) {
-  return reinterpret_cast<FINUFFT_PLAN_T<f64> *>(p)->execute(cj, fk);
+  return safe_finufft_call([&]() -> int {
+    return reinterpret_cast<FINUFFT_PLAN_T<f64> *>(p)->execute(cj, fk);
+  });
 }
 int finufftf_execute(finufftf_plan p, c64 *cj, c64 *fk) {
-  return reinterpret_cast<FINUFFT_PLAN_T<f32> *>(p)->execute(cj, fk);
+  return safe_finufft_call([&]() -> int {
+    return reinterpret_cast<FINUFFT_PLAN_T<f32> *>(p)->execute(cj, fk);
+  });
 }
 int finufft_execute_adjoint(finufft_plan p, c128 *cj, c128 *fk) {
-  return reinterpret_cast<FINUFFT_PLAN_T<f64> *>(p)->execute_adjoint(cj, fk);
+  return safe_finufft_call([&]() -> int {
+    return reinterpret_cast<FINUFFT_PLAN_T<f64> *>(p)->execute_adjoint(cj, fk);
+  });
 }
 int finufftf_execute_adjoint(finufftf_plan p, c64 *cj, c64 *fk) {
-  return reinterpret_cast<FINUFFT_PLAN_T<f32> *>(p)->execute_adjoint(cj, fk);
+  return safe_finufft_call([&]() -> int {
+    return reinterpret_cast<FINUFFT_PLAN_T<f32> *>(p)->execute_adjoint(cj, fk);
+  });
 }
 
 int finufft_destroy(finufft_plan p)
@@ -71,11 +90,13 @@ int finufft_destroy(finufft_plan p)
 // Thus either each thing free'd here is guaranteed to be nullptr or correctly
 // allocated.
 {
-  if (!p) // nullptr ptr, so not a ptr to a plan, report error
-    return 1;
+  return safe_finufft_call([&]() -> int {
+    if (!p) // nullptr ptr, so not a ptr to a plan, report error
+      return 1;
 
-  delete reinterpret_cast<FINUFFT_PLAN_T<f64> *>(p);
-  return 0; // success
+    delete reinterpret_cast<FINUFFT_PLAN_T<f64> *>(p);
+    return 0; // success
+  });
 }
 int finufftf_destroy(finufftf_plan p)
 // Free everything we allocated inside of finufft_plan pointed to by p.
@@ -83,11 +104,13 @@ int finufftf_destroy(finufftf_plan p)
 // Thus either each thing free'd here is guaranteed to be nullptr or correctly
 // allocated.
 {
-  if (!p) // nullptr ptr, so not a ptr to a plan, report error
-    return 1;
+  return safe_finufft_call([&]() -> int {
+    if (!p) // nullptr ptr, so not a ptr to a plan, report error
+      return 1;
 
-  delete reinterpret_cast<FINUFFT_PLAN_T<f32> *>(p);
-  return 0; // success
+    delete reinterpret_cast<FINUFFT_PLAN_T<f32> *>(p);
+    return 0; // success
+  });
 }
 // Helper layer ...........................................................
 
@@ -99,32 +122,34 @@ static int guru(
 // Helper layer between simple interfaces (with opts) and the guru functions.
 // Author: Andrea Malleo, 2019.
 {
-  FINUFFT_PLAN_T<T> *plan = nullptr;
-  int ier =
-      finufft_makeplan_t<T>(type, n_dims, n_modes.data(), iflag, n_transf, eps, &plan,
-                            popts); // popts (ptr to opts) can be nullptr
-  if (ier > 1) {                    // since 1 (a warning) still allows proceeding...
-    fprintf(stderr, "FINUFFT invokeGuru: plan error (ier=%d)!\n", ier);
-    delete plan;
-    return ier;
-  }
+  return safe_finufft_call([&]() -> int {
+    FINUFFT_PLAN_T<T> *plan = nullptr;
+    int ier =
+        finufft_makeplan_t<T>(type, n_dims, n_modes.data(), iflag, n_transf, eps, &plan,
+                              popts); // popts (ptr to opts) can be nullptr
+    if (ier > 1) {                    // since 1 (a warning) still allows proceeding...
+      fprintf(stderr, "FINUFFT invokeGuru: plan error (ier=%d)!\n", ier);
+      delete plan;
+      return ier;
+    }
 
-  int ier2 = plan->setpts(nj, xyz[0], xyz[1], xyz[2], nk, stu[0], stu[1], stu[2]);
-  if (ier2 > 1) {
-    fprintf(stderr, "FINUFFT invokeGuru: setpts error (ier=%d)!\n", ier2);
-    delete plan;
-    return ier2;
-  }
+    int ier2 = plan->setpts(nj, xyz[0], xyz[1], xyz[2], nk, stu[0], stu[1], stu[2]);
+    if (ier2 > 1) {
+      fprintf(stderr, "FINUFFT invokeGuru: setpts error (ier=%d)!\n", ier2);
+      delete plan;
+      return ier2;
+    }
 
-  int ier3 = plan->execute(cj, fk);
-  if (ier3 > 1) {
-    fprintf(stderr, "FINUFFT invokeGuru: execute error (ier=%d)!\n", ier3);
-    delete plan;
-    return ier3;
-  }
+    int ier3 = plan->execute(cj, fk);
+    if (ier3 > 1) {
+      fprintf(stderr, "FINUFFT invokeGuru: execute error (ier=%d)!\n", ier3);
+      delete plan;
+      return ier3;
+    }
 
-  delete plan;
-  return max(max(ier, ier2), ier3); // in case any one gave a (positive!) warning
+    delete plan;
+    return max(max(ier, ier2), ier3); // in case any one gave a (positive!) warning
+  });
 }
 template<typename T>
 static int guru13(int n_dims, int type, int n_transf, i64 nj,

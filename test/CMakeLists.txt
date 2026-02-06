@@ -27,6 +27,26 @@ endforeach()
 # for windows
 copy_dll(finufft basicpassfail)
 
+# Small C error-handling test for the public C API.
+include(CheckCSourceCompiles)
+# gersemi: off
+check_c_source_compiles("
+        #include <complex.h>
+        int main(void) {
+            float complex z = 1.0f + 2.0f*I;
+            float x = crealf(z);
+            return 0;
+        }
+    " HAS_C_COMPLEX)
+# gersemi: on
+
+if(HAS_C_COMPLEX)
+    add_executable(error_handling error_handling.c)
+    target_compile_features(error_handling PRIVATE c_std_99)
+    finufft_link_test(error_handling)
+    add_test(NAME run_error_handling COMMAND error_handling WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
+endif()
+
 # Add ctest definitions not for both precisions...
 add_executable(testutils testutils.cpp)
 if(FINUFFT_USE_DUCC0)

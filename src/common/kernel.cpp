@@ -103,8 +103,10 @@ void set_kernel_shape_given_ns(finufft_spread_opts &spopts, int debug) {
     spopts.beta = ((-0.00149087 * t + 0.0218459) * t + 3.06269) * t - 0.0365245;
   }
 
-  if (debug || spopts.debug)
-    printf("[setup_spreadinterp]\tkerformula=%d: %s...\n", kf, kernames[kf]);
+  if (debug || spopts.debug) {
+    const char *kname = (kf >= 0 && kf <= 9) ? kernames[kf] : "unknown";
+    printf("[setup_spreadinterp]\tkerformula=%d: %s...\n", kf, kname);
+  }
 }
 
 } // namespace finufft::kernel
