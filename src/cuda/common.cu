@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <iomanip>
 #include <iostream>
+#include <string>
 
 #include <cuComplex.h>
 #include <cuda.h>
@@ -250,284 +251,393 @@ template<typename T> int find_bin_size(std::size_t mem_size, int dim, int ns) {
   //       maybe the shape should not be uniform
   return bin_size;
 }
+
+namespace {
+// ============================================================================
+// GPU Classification for Binsize Selection
+// ============================================================================
+//
+// Categorizes GPUs based on runtime-queryable device attributes
+// to select optimal bin sizes for Methods 2 & 3.
+//
+// Background: Benchmark sweeps across 8 GPUs (A100-40GB, A100-80GB, H100-80GB,
+// H100-94GB, H200, RTX 6000 Ada, RTX 4070 Mobile, RTX Blackwell) revealed:
+//
+// METHOD 2: Requires 2-4 GPU groups depending on dimension
+// METHOD 3: Requires 4-5 GPU groups (highly architecture-sensitive)
+//
+//   Group 1 (Ampere Large):    A100 (CC 8.0, 164 KB/block)
+//   Group 2 (Hopper):          H100/H200 (CC 9.0, 228 KB/block)
+//   Group 3 (Small-SMEM Desk): Ada/Blackwell workstation-class parts
+//                              (~100 KB/block, high SM count)
+//   Group 4 (Small-SMEM Mob):  Mobile parts with low SM count (need very large np)
+//
+// Key insight: Method 3 couples shared memory footprint with work granularity
+// in ways that make different GPU architectures prefer vastly different configs.
+// ============================================================================
+
+// Method 3 GPU categories for granular heuristic selection
+enum class Method3Category {
+  AMPERE_LARGE, // A100: CC 8.0, prefers low shmem, small np
+  HOPPER,       // H100/H200: CC 9.0, can use larger np
+  ADA_DESKTOP,  // Small-SMEM desktop/workstation: Ada/Blackwell, high SM count
+  ADA_MOBILE,   // Small-SMEM mobile: low SM count
+  UNKNOWN       // Fallback
+};
+
+struct GpuCharacteristics {
+  int cc_major, cc_minor;
+  int max_smem_per_block_optin; // bytes
+  int max_smem_per_sm;          // bytes
+  int max_threads_per_sm;
+  int max_warps_per_sm;         // derived: max_threads_per_sm / 32
+  int multiprocessor_count;     // SM count
+  std::string gpu_name;
+
+  static GpuCharacteristics query(int device_id) {
+    GpuCharacteristics gpu{};
+
+    // Query compute capability
+    cudaDeviceGetAttribute(&gpu.cc_major, cudaDevAttrComputeCapabilityMajor, device_id);
+    cudaDeviceGetAttribute(&gpu.cc_minor, cudaDevAttrComputeCapabilityMinor, device_id);
+
+    // Query shared memory limits (primary classification signals)
+    cudaDeviceGetAttribute(&gpu.max_smem_per_block_optin,
+                           cudaDevAttrMaxSharedMemoryPerBlockOptin, device_id);
+    cudaDeviceGetAttribute(&gpu.max_smem_per_sm,
+                           cudaDevAttrMaxSharedMemoryPerMultiprocessor, device_id);
+
+    // Query occupancy limiters
+    cudaDeviceGetAttribute(&gpu.max_threads_per_sm,
+                           cudaDevAttrMaxThreadsPerMultiProcessor, device_id);
+    gpu.max_warps_per_sm = gpu.max_threads_per_sm / 32;
+
+    // Query SM count (for Ada desktop vs mobile classification)
+    cudaDeviceGetAttribute(&gpu.multiprocessor_count, cudaDevAttrMultiProcessorCount,
+                           device_id);
+
+    // Get GPU name
+    cudaDeviceProp prop{};
+    cudaGetDeviceProperties(&prop, device_id);
+    gpu.gpu_name = std::string(prop.name);
+
+    return gpu;
+  }
+
+  // Check if this GPU is "Hopper-like" for Method 2/3 binsize selection.
+  // "Hopper-like" = large shared memory (≥200 KB/block) AND high occupancy (≥64 warps/SM)
+  // Matches: H100 (9.0), H200 (9.0), Blackwell datacenter (10.0)
+  bool is_hopper_like() const {
+    return (max_smem_per_block_optin >= 200 * 1024) && (max_warps_per_sm >= 64);
+  }
+
+  // Check if this GPU has "small SMEM" constraints (≤110 KB/block).
+  // Matches: Ada (8.9), Ampere 8.6, Blackwell workstation (12.0)
+  bool is_small_smem() const { return (max_smem_per_block_optin <= 110 * 1024); }
+
+  // Classify GPU for Method 3 heuristics (5-category system)
+  Method3Category get_method3_category() const {
+    // CC 8.0 = Ampere large (A100, A30)
+    if (cc_major == 8 && cc_minor == 0) {
+      return Method3Category::AMPERE_LARGE;
+    }
+
+    // CC 9.0 = Hopper (H100, H200)
+    if (cc_major == 9 && cc_minor == 0) {
+      return Method3Category::HOPPER;
+    }
+
+    // CC 8.9 = Ada Lovelace (need SM count to distinguish desktop vs mobile)
+    // Desktop (RTX 6000 Ada): 142 SMs
+    // Mobile (RTX 4070): typically 36-46 SMs
+    // Threshold: 80 SMs
+    if (cc_major == 8 && cc_minor == 9) {
+      return (multiprocessor_count >= 80) ? Method3Category::ADA_DESKTOP
+                                          : Method3Category::ADA_MOBILE;
+    }
+
+    // CC 12.0 = Blackwell workstation (RTX 6000/5000 Blackwell)
+    // Reuse the same binsize table as Ada desktop (both are ~100KB/block parts).
+    if (cc_major == 12 && cc_minor == 0) return Method3Category::ADA_DESKTOP;
+
+    // CC 10.0 = Blackwell datacenter (B200) - treat as Hopper-like
+    if (cc_major == 10 && cc_minor == 0) {
+      return Method3Category::HOPPER;
+    }
+
+    // Unknown / future architectures: fallback to simple classification
+    return Method3Category::UNKNOWN;
+  }
+
+  const char *method3_category_name() const {
+    switch (get_method3_category()) {
+    case Method3Category::AMPERE_LARGE:
+      return "Ampere-Large";
+    case Method3Category::HOPPER:
+      return "Hopper";
+    case Method3Category::ADA_DESKTOP:
+      return "Small-SMEM-Desktop";
+    case Method3Category::ADA_MOBILE:
+      return "Small-SMEM-Mobile";
+    case Method3Category::UNKNOWN:
+      return "Unknown";
+    }
+    return "Unknown";
+  }
+
+  void print_classification(int debug_level) const {
+    if (debug_level < 2) return;
+
+    printf("[cufinufft] GPU Classification:\n");
+    printf("  Name: %s\n", gpu_name.c_str());
+    printf("  Compute Capability: %d.%d\n", cc_major, cc_minor);
+    printf("  Multiprocessor Count: %d SMs\n", multiprocessor_count);
+    printf("  Shared Memory:\n");
+    printf("    Per-block (opt-in): %.1f KB\n", max_smem_per_block_optin / 1024.0);
+    printf("    Per-SM: %.1f KB\n", max_smem_per_sm / 1024.0);
+    printf("  Occupancy:\n");
+    printf("    Max warps/SM: %d\n", max_warps_per_sm);
+    printf("    Max threads/SM: %d\n", max_threads_per_sm);
+
+    if (debug_level >= 3) {
+      printf("  Binsize Categories:\n");
+      printf("    Method 2/3: Hopper-like (≥200 KB/block, ≥64 warps): %s\n",
+             is_hopper_like() ? "YES" : "NO");
+      printf("    Method 2/3: Small SMEM (≤110 KB/block): %s\n",
+             is_small_smem() ? "YES" : "NO");
+      printf("    Method 3: Category: %s\n", method3_category_name());
+    }
+  }
+};
+
+// ============================================================================
+// Method 3 Heuristic (Benchmark-Validated Tables)
+// ============================================================================
+// Returns (bin,np) for Method 3 based on GPU category, dimension, and ns.
+// Tables derived from multi-GPU sweeps; achieves ~90% of optimal throughput.
+// ============================================================================
+struct Method3Config {
+  int bin;
+  int np;
+};
+
+inline int ns_bucket(int ns) {
+  return (ns <= 4) ? 0 : (ns <= 7) ? 1 : (ns <= 10) ? 2 : 3;
+}
+
 template<typename T>
-void cufinufft_setup_binsize(int type, int ns, int dim, cufinufft_opts *opts) {
-  int shared_mem_per_block{}, device_id{opts->gpu_device_id};
-  cudaDeviceGetAttribute(&shared_mem_per_block, cudaDevAttrMaxSharedMemoryPerBlockOptin,
+Method3Config get_method3_config(Method3Category category, int dim, int ns,
+                                 int shmem_limit_bytes, int shmem_per_point_bytes) {
+  const int complex_bytes = sizeof(cuda_complex<T>);
+  // For unknown GPUs: compute bins dynamically based on available SMEM
+  if (category == Method3Category::UNKNOWN) {
+    // Iteratively find (bin, np) satisfying: bin >= 8, np >= 16
+    // Start conservative (60% to grid), increase by 10% each iteration up to 100%
+    double load_factor = 0.60;
+    int bin            = 0;
+    int np             = 0;
+
+    while (load_factor <= 1.0) {
+      const int grid_budget = static_cast<int>(shmem_limit_bytes * load_factor);
+      const int elements    = grid_budget / complex_bytes;
+      const int padded_bin  = static_cast<int>(std::floor(std::pow(elements, 1.0 / dim)));
+      bin                   = padded_bin - (2 * (ns + 1) / 2);
+
+      // Calculate actual grid memory and check remaining space for np
+      const size_t grid_mem = shared_memory_required<T>(dim, ns, bin, bin, bin, 0);
+      const int shmem_rem   = shmem_limit_bytes - static_cast<int>(grid_mem);
+      np                    = (shmem_rem / shmem_per_point_bytes) & ~15;
+
+      // Accept if both bin reasonable AND np sufficient (or we've exhausted options)
+      if ((bin >= 8 && np >= 16) || load_factor >= 1.0) break;
+
+      load_factor += 0.10; // Try 10% more aggressive
+    }
+
+    // Ensure minimums
+    bin = std::max(4, bin);
+    np  = std::max(16, std::min(2048, np));
+
+    return {bin, np};
+  }
+
+  // Known GPUs: use benchmark-validated tables
+  // Tables: [category][dim-1][ns_bucket] for 4 GPU types × 3 dims × 4 ns ranges
+  static constexpr int BIN[4][3][4] = {
+      {{362, 351, 753, 285}, {29, 25, 25, 23}, {8, 8, 7, 7}},    // AMPERE_LARGE
+      {{511, 532, 441, 446}, {17, 14, 12, 21}, {10, 8, 8, 9}},   // HOPPER
+      {{212, 169, 222, 123}, {23, 16, 13, 23}, {9, 9, 7, 4}},    // SMALL-SMEM DESKTOP
+      {{199, 423, 191, 356}, {34, 39, 40, 40}, {12, 10, 7, 4}}}; // SMALL-SMEM MOBILE
+
+  static constexpr int NP[4][3][4] = {
+      {{208, 144, 128, 96}, {16, 16, 64, 48}, {96, 64, 16, 48}},      // AMPERE_LARGE
+      {{288, 192, 160, 128}, {176, 112, 80, 112}, {240, 16, 64, 64}}, // HOPPER
+      {{128, 96, 64, 64}, {80, 80, 112, 32}, {112, 112, 16, 16}}, // SMALL-SMEM DESKTOP
+      {{0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}}};                // MOBILE (computed)
+
+  const int category_idx = (category == Method3Category::AMPERE_LARGE)  ? 0
+                           : (category == Method3Category::HOPPER)      ? 1
+                           : (category == Method3Category::ADA_DESKTOP) ? 2
+                                                                        : 3; // ADA_MOBILE
+
+  const int dim_idx = std::max(0, std::min(2, dim - 1));
+  const int ns_idx  = ns_bucket(ns);
+
+  Method3Config cfg{BIN[category_idx][dim_idx][ns_idx],
+                    NP[category_idx][dim_idx][ns_idx]};
+
+  // Mobile GPUs: compute np to fill remaining shmem after grid tile
+  // Constraint: np must be at least 16 for reasonable performance
+  if (cfg.np == 0) {
+    // Start with table bin, reduce if necessary to ensure np >= 16
+    int bin = cfg.bin;
+
+    while (bin >= 1) {
+      const size_t grid_mem = shared_memory_required<T>(dim, ns, bin, bin, bin, 0);
+      const int shmem_rem   = shmem_limit_bytes - static_cast<int>(grid_mem);
+      const int np          = shmem_rem / shmem_per_point_bytes;
+
+      if (np >= 16) {
+        cfg.bin = bin;
+        cfg.np  = np;
+        break;
+      }
+
+      bin--; // Table bin too large, try smaller
+    }
+
+    if (cfg.np == 0) {
+      throw std::runtime_error("[cufinufft] Mobile GPU: insufficient SMEM for Method 3 "
+                               "(cannot satisfy np≥16 even with bin=1)");
+    }
+  }
+
+  cfg.np = std::max(16, std::min(2048, cfg.np & ~15));
+  return cfg;
+}
+
+} // anonymous namespace
+
+template<typename T>
+void cufinufft_setup_binsize([[maybe_unused]] int type, int ns, int dim,
+                             cufinufft_opts *opts) {
+  const int device_id = opts->gpu_device_id;
+  int shmem_limit{};
+  cudaDeviceGetAttribute(&shmem_limit, cudaDevAttrMaxSharedMemoryPerBlockOptin,
                          device_id);
 
-  // Helper: Calculate bin size from available shared memory
-  auto calc_binsize = [&](int shmem) -> int {
-    return find_bin_size<T>(shmem, dim, ns);
+  const auto gpu         = GpuCharacteristics::query(device_id);
+  const int shmem_per_pt = static_cast<int>(shared_memory_per_point<T>(dim, ns));
+
+  gpu.print_classification(opts->debug);
+
+  auto set_bins = [&](int bin) {
+    if (opts->gpu_binsizex == 0) opts->gpu_binsizex = bin;
+    if (opts->gpu_binsizey == 0) opts->gpu_binsizey = (dim >= 2) ? bin : 1;
+    if (opts->gpu_binsizez == 0) opts->gpu_binsizez = (dim >= 3) ? bin : 1;
   };
 
-  // Helper: Set bin sizes respecting dimensionality
-  auto set_binsizes = [&](int binsize_x, int binsize_y, int binsize_z) {
-    opts->gpu_binsizex = binsize_x;
-    opts->gpu_binsizey = (dim >= 2) ? binsize_y : 1;
-    opts->gpu_binsizez = (dim >= 3) ? binsize_z : 1;
-  };
-
-  // Helper: Set bin sizes only if user hasn't specified them
-  auto set_binsizes_if_unset = [&](int binsize) {
-    int x = (opts->gpu_binsizex == 0) ? binsize : opts->gpu_binsizex;
-    int y = (opts->gpu_binsizey == 0) ? binsize : opts->gpu_binsizey;
-    int z = (opts->gpu_binsizez == 0) ? binsize : opts->gpu_binsizez;
-    set_binsizes(x, y, z);
-  };
-
-  auto print_method_setup = [&](int method, int ns, int np, const char *suffix) {
-    if (opts->debug < 1) return;
-    if (method == 3) {
-      printf("[cufinufft] Method 3 setup: dim=%d, ns=%d, bin=%dx%dx%d, np=%d%s\n", dim,
-             ns, opts->gpu_binsizex, opts->gpu_binsizey, opts->gpu_binsizez, np, suffix);
-    } else {
-      printf("[cufinufft] Method %d setup: dim=%d, ns=%d, bin=%dx%dx%d%s\n", method, dim,
-             ns, opts->gpu_binsizex, opts->gpu_binsizey, opts->gpu_binsizez, suffix);
+  auto validate_fit = [&](int np) {
+    size_t need = shared_memory_required<T>(dim, ns, opts->gpu_binsizex,
+                                            opts->gpu_binsizey, opts->gpu_binsizez, np);
+    if (need > static_cast<size_t>(shmem_limit)) {
+      throw std::runtime_error("[cufinufft] Config exceeds " +
+                               std::to_string(shmem_limit) + " bytes available (needs " +
+                               std::to_string(need) + " bytes)");
     }
   };
 
-  auto print_shmem_usage = [&](const char *label, int shmem_used, int target_percent) {
-    if (opts->debug < 2) return;
-    if (target_percent >= 0) {
-      printf("  %s: Target %d%%, Used %d/%d bytes (%.1f%%)\n", label, target_percent,
-             shmem_used, shared_mem_per_block, 100.0 * shmem_used / shared_mem_per_block);
-    } else {
-      printf("  %s: Used %d/%d bytes (%.1f%%)\n", label, shmem_used, shared_mem_per_block,
-             100.0 * shmem_used / shared_mem_per_block);
+  auto debug_print = [&](int method, int np, const char *note) {
+    if (opts->debug < 1) return;
+    printf("[cufinufft] Method %d: dim=%d, ns=%d, bin=%dx%dx%d", method, dim, ns,
+           opts->gpu_binsizex, opts->gpu_binsizey, opts->gpu_binsizez);
+    if (np > 0) printf(", np=%d", np);
+    if (note[0])
+      printf(" %s", note);
+    else if (method == 3 && np > 0)
+      printf(" [%s]", gpu.method3_category_name());
+    printf("\n");
+    if (opts->debug >= 2) {
+      size_t use = shared_memory_required<T>(dim, ns, opts->gpu_binsizex,
+                                             opts->gpu_binsizey, opts->gpu_binsizez, np);
+      printf("  Shmem: %zu/%d bytes (%.1f%%)\n", use, shmem_limit,
+             100.0 * use / shmem_limit);
     }
   };
 
   switch (opts->gpu_method) {
-  case 1: {
-    // Method 1 (Global Memory): Use 100% shared memory
-    int binsize = calc_binsize(shared_mem_per_block);
-
-    // Ensure binsize is at least 1
-    if (binsize < 1) {
-      printf("[cufinufft] Warning: Insufficient shared memory for Method 1 "
-             "(Global Memory). Available: %d bytes, kernel width ns=%d.\n"
-             "           Falling back to minimum bin size of 1.\n",
-             shared_mem_per_block, ns);
-      binsize = 1;
-    }
-
-    set_binsizes_if_unset(binsize);
-
-    print_method_setup(1, ns, 0, "");
-    int shmem_used = shared_memory_required<T>(dim, ns, opts->gpu_binsizex,
-                                               opts->gpu_binsizey, opts->gpu_binsizez, 0);
-    print_shmem_usage("Shmem", shmem_used, 100);
+  case 1:
+    set_bins(dim == 1 ? 1024 : dim == 2 ? 40 : 8);
+    debug_print(1, 0, "");
     break;
-  }
+
   case 2: {
-    // Method 2 (Shared Memory): Optimize bin size based on GPU architecture and dimension
-    //
-    // Benchmark analysis (Feb 2025) across 8 GPUs shows optimal shared memory utilization
-    // varies by dimension and GPU architecture:
-    //   - 1D: 10-30% (datacenter GPUs use less, Ada/Blackwell use more)
-    //   - 2D: 15-40% (similar pattern)
-    //   - 3D: 35-90% (tolerance-dependent: loose tolerances use less, tight use more)
-    //
-    // Using 100% shared memory causes 20-60% performance degradation in 1D/2D!
-    // Smaller bins reduce bank conflicts and improve cache locality.
-
-    // Detect GPU type: workstation/consumer vs datacenter
-    // Workstation/consumer GPUs (RTX, GeForce, Quadro, TITAN) benefit from higher shmem
-    // All others (A100, H100, V100, Tesla, etc.) are datacenter and use lower shmem
-    cudaDeviceProp prop;
-    cudaGetDeviceProperties(&prop, device_id);
-    std::string device_name(prop.name);
-    // Check for workstation/consumer GPU patterns
-    // If found → use higher shmem; otherwise → datacenter (default)
-    bool use_higher_shmem = (device_name.find("RTX") != std::string::npos ||
-                             device_name.find("GeForce") != std::string::npos ||
-                             device_name.find("Quadro") != std::string::npos ||
-                             device_name.find("TITAN") != std::string::npos);
-
-    double load_factor;
-
-    if (dim == 1) {
-      // 1D: Low shared memory is optimal across all tolerances
-      // Datacenter (A100/H100): 9-10% best
-      // Ada/Blackwell: 29-39% best
-      load_factor = use_higher_shmem ? 0.30 : 0.10;
-
-    } else if (dim == 2) {
-      // 2D: Low-moderate shared memory optimal
-      // Datacenter: 9-19% best
-      // Ada/Blackwell: 27-47% best
-      load_factor = use_higher_shmem ? 0.40 : 0.15;
-
-    } else { // dim == 3
-      // 3D: Tolerance-dependent (kernel width vs bin size trade-off)
-      // For loose tolerances (small ns): moderate shmem
-      // For tight tolerances (large ns): high shmem (kernel dominates bin size)
-      if (ns <= 7) {
-        // Loose/medium tolerance: moderate shmem
-        load_factor = use_higher_shmem ? 0.50 : 0.35;
-      } else {
-        // Tight tolerance (ns >= 10): high shmem IS optimal
-        // At ns=13, kernel width equals or exceeds bin size (4-10 per dim)
-        load_factor = 1.0;
-      }
+    int bin = (dim == 1) ? 1024 : (dim == 2) ? 40 : 0;
+    if (bin == 0) {
+      double load = (ns <= 6) ? 0.50 : (ns <= 10 && !gpu.is_small_smem()) ? 0.90 : 1.0;
+      int target  = static_cast<int>(shmem_limit * load);
+      bin         = find_bin_size<T>(target, dim, ns);
+      if (bin < 1) bin = find_bin_size<T>(shmem_limit, dim, ns);
     }
-
-    int target_shmem = static_cast<int>(shared_mem_per_block * load_factor);
-    int binsize      = calc_binsize(target_shmem);
-
-    // Fallback: If target doesn't fit (extreme tolerance), try full memory
-    if (binsize < 1) {
-      if (opts->debug >= 1) {
-        printf("[cufinufft] Warning: Target %d%% shmem insufficient, trying 100%%\n",
-               static_cast<int>(load_factor * 100));
-      }
-      target_shmem = shared_mem_per_block;
-      binsize      = calc_binsize(target_shmem);
-      load_factor  = 1.0;
-    }
-
-    // Method 2 requires shared memory - check if sufficient
-    if (binsize < 1) {
-      throw std::runtime_error(
-          std::string("[cufinufft] ERROR: Insufficient shared memory for Method 2 "
-                      "(Shared Memory).\n"
-                      "           Available: ") +
-          std::to_string(shared_mem_per_block) +
-          " bytes, kernel width ns=" + std::to_string(ns) +
-          ".\n"
-          "           Try Method 1 (Global Memory) or set method=0 for auto-select.");
-    }
-
-    set_binsizes_if_unset(binsize);
-
-    print_method_setup(2, ns, 0, "");
-    int shmem_used = shared_memory_required<T>(dim, ns, opts->gpu_binsizex,
-                                               opts->gpu_binsizey, opts->gpu_binsizez, 0);
-    print_shmem_usage("Shmem", shmem_used, static_cast<int>(load_factor * 100));
+    if (bin < 1)
+      throw std::runtime_error("[cufinufft] Insufficient shmem for Method 2 (ns=" +
+                               std::to_string(ns) + "). Try Method 1.");
+    set_bins(bin);
+    validate_fit(0);
+    debug_print(2, 0, "");
     break;
   }
+
   case 3: {
-    // Method 3 (Output-Driven): Partition shmem between np and bins using ratio
-    const double load_factor  = 1.0;
-    const int shmem_per_point = shared_memory_per_point<T>(dim, ns);
-    int target_shmem          = static_cast<int>(shared_mem_per_block * load_factor);
+    const bool user_np  = (opts->gpu_np != 0);
+    const bool user_bin = (opts->gpu_binsizex | opts->gpu_binsizey | opts->gpu_binsizez);
 
-    // Dimension-dependent np allocation ratio (from benchmark analysis)
-    // 1D: High parallelism (more np), 3D: More memory for bins (less np)
-    double np_ratio;
-    if (dim == 1) {
-      np_ratio = 0.15; // 15% shmem for np (high parallelism)
-    } else if (dim == 2) {
-      np_ratio = 0.10; // 10% shmem for np (balanced)
-    } else {
-      np_ratio = 0.05; // 5% shmem for np (3D needs more bin memory)
-    }
-
-    // Calculate target np from ratio (round to multiple of 16, minimum 16)
-    int np_shmem  = static_cast<int>(target_shmem * np_ratio);
-    int target_np = std::max(16, (np_shmem / shmem_per_point) & ~15);
-
-    // Calculate binsize from remaining memory
-    np_shmem    = target_np * shmem_per_point; // Recalc with rounded np
-    int binsize = calc_binsize(target_shmem - np_shmem);
-
-    // Fallback: If bins don't fit, reduce to minimum np=16
-    if (binsize < 1 && target_np > 16) {
-      target_np = 16;
-      np_shmem  = shmem_per_point * 16;
-      binsize   = calc_binsize(target_shmem - np_shmem);
-    }
-
-    if (binsize < 1) {
-      throw std::runtime_error(
-          std::string("[cufinufft] ERROR: Insufficient shared memory for Method 3 "
-                      "(Output-Driven).\n"
-                      "           Available: ") +
-          std::to_string(shared_mem_per_block) +
-          " bytes, kernel width ns=" + std::to_string(ns) +
-          ".\n"
-          "           Try Method 1 (Global Memory) or set method=0 for auto-select.");
-    }
-
-    set_binsizes_if_unset(binsize);
-
-    // Calculate max np that fits with the chosen bin size (round down to multiple of 16)
-    binsize            = opts->gpu_binsizex;
-    int shmem_required = shared_memory_required<T>(dim, ns, binsize, opts->gpu_binsizey,
-                                                   opts->gpu_binsizez, 0);
-    int shmem_left     = shared_mem_per_block - shmem_required;
-    int max_np = (shmem_left / shmem_per_point) & ~15; // Round down to multiple of 16
-
-    // If can't fit minimum np=16, reduce bin size until it fits
-    if (max_np < 16) {
-      max_np = 16;
-      while (binsize > 1) {
-        int required = shared_memory_required<T>(dim, ns, binsize, binsize, binsize, 16);
-        if (required <= shared_mem_per_block) break;
-        binsize--;
-      }
-      if (binsize < 1) {
+    if (user_np && !user_bin) {
+      int avail = shmem_limit - opts->gpu_np * shmem_per_pt;
+      if (avail <= 0)
         throw std::runtime_error(
-            std::string("[cufinufft] ERROR: Insufficient shared memory for Method 3 "
-                        "(Output-Driven).\n"
-                        "           Cannot fit minimum np=16 with valid bin sizes.\n"
-                        "           Available: ") +
-            std::to_string(shared_mem_per_block) +
-            " bytes.\n"
-            "           Try Method 1 (Global Memory) or set method=0 for auto-select.");
-      }
-
-      set_binsizes(binsize, binsize, binsize);
-      shmem_required = shared_memory_required<T>(dim, ns, binsize, binsize, binsize, 0);
-      max_np =
-          std::max(16, ((shared_mem_per_block - shmem_required) / shmem_per_point) & ~15);
+            "[cufinufft] gpu_np=" + std::to_string(opts->gpu_np) + " too large");
+      set_bins(find_bin_size<T>(avail, dim, ns));
+      validate_fit(opts->gpu_np);
+      debug_print(3, opts->gpu_np, "(user np)");
+    } else if (user_bin) {
+      int grid_mem = static_cast<int>(shared_memory_required<T>(
+          dim, ns, opts->gpu_binsizex, opts->gpu_binsizey, opts->gpu_binsizez, 0));
+      int rem      = shmem_limit - grid_mem;
+      if (rem < shmem_per_pt * 16)
+        throw std::runtime_error("[cufinufft] User bin too large (no room for np≥16)");
+      opts->gpu_np = std::max(16, (rem / shmem_per_pt) & ~15);
+      validate_fit(opts->gpu_np);
+      debug_print(3, opts->gpu_np, user_np ? "(user)" : "(user bin)");
+    } else {
+      auto cfg = get_method3_config<T>(gpu.get_method3_category(), dim, ns, shmem_limit,
+                                       shmem_per_pt);
+      set_bins(cfg.bin);
+      opts->gpu_np = cfg.np;
+      validate_fit(cfg.np);
+      debug_print(3, cfg.np, "");
     }
-
-    print_method_setup(3, ns, max_np, "");
-    int total_shmem = shared_memory_required<T>(
-        dim, ns, opts->gpu_binsizex, opts->gpu_binsizey, opts->gpu_binsizez, max_np);
-    if (opts->debug >= 2) {
-      double actual_np_ratio = (double)(shmem_per_point * max_np) / total_shmem;
-      printf("  Shmem: %d/%d bytes (%.1f%%), per_point=%d, grid_shmem=%d, np_shmem=%d\n",
-             total_shmem, shared_mem_per_block,
-             100.0 * total_shmem / shared_mem_per_block, shmem_per_point, shmem_required,
-             shmem_per_point * max_np);
-      printf("  np/bins allocation ratio: %.3f (target=%.2f, np gets %.1f%% of shmem)\n",
-             actual_np_ratio, np_ratio, 100.0 * actual_np_ratio);
-    }
-    assert(total_shmem <= shared_mem_per_block);
-    opts->gpu_np = max_np;
     break;
   }
-  case 4: {
-    opts->gpu_obinsizex = opts->gpu_obinsizex == 0 ? 8 : opts->gpu_obinsizex;
-    opts->gpu_obinsizey = opts->gpu_obinsizey == 0 ? 8 : opts->gpu_obinsizey;
-    opts->gpu_obinsizez = opts->gpu_obinsizez == 0 ? 8 : opts->gpu_obinsizez;
-    opts->gpu_binsizex  = opts->gpu_binsizex == 0 ? 4 : opts->gpu_binsizex;
-    opts->gpu_binsizey  = opts->gpu_binsizey == 0 ? 4 : opts->gpu_binsizey;
-    opts->gpu_binsizez  = opts->gpu_binsizez == 0 ? 4 : opts->gpu_binsizez;
-    break;
-  }
-  default: {
-    throw std::runtime_error(std::string("[cufinufft] ERROR: Invalid gpu_method=") +
-                             std::to_string(opts->gpu_method) +
-                             ". Valid methods: 0 (auto), 1 (GM), 2 (SM), 3 (OD), 4.");
-  }
-  }
 
-  // Final safety guard: binsize should never be 0 (would cause segfault)
-  if (opts->gpu_binsizex < 1 || opts->gpu_binsizey < 1 || opts->gpu_binsizez < 1) {
+  case 4:
+    if (opts->gpu_obinsizex == 0) opts->gpu_obinsizex = 8;
+    if (opts->gpu_obinsizey == 0) opts->gpu_obinsizey = 8;
+    if (opts->gpu_obinsizez == 0) opts->gpu_obinsizez = 8;
+    if (opts->gpu_binsizex == 0) opts->gpu_binsizex = 4;
+    if (opts->gpu_binsizey == 0) opts->gpu_binsizey = 4;
+    if (opts->gpu_binsizez == 0) opts->gpu_binsizez = 4;
+    break;
+
+  default:
     throw std::runtime_error(
-        std::string("[cufinufft] ERROR: Invalid bin sizes after setup: ") +
-        std::to_string(opts->gpu_binsizex) + "x" + std::to_string(opts->gpu_binsizey) +
-        "x" + std::to_string(opts->gpu_binsizez) +
-        ".\n"
-        "           This is a bug - bin sizes should never be < 1.\n"
-        "           Shared memory available: " +
-        std::to_string(shared_mem_per_block) + " bytes, method: " +
-        std::to_string(opts->gpu_method) + ", ns: " + std::to_string(ns));
+        "[cufinufft] Invalid gpu_method=" + std::to_string(opts->gpu_method));
   }
+
+  if (opts->gpu_binsizex < 1 || opts->gpu_binsizey < 1 || opts->gpu_binsizez < 1)
+    throw std::runtime_error(
+        "[cufinufft] BUG: Invalid bin sizes (method=" + std::to_string(opts->gpu_method) +
+        ", ns=" + std::to_string(ns) + ")");
 }
 
 template int setup_spreader_for_nufft(finufft_spread_opts &spopts, float eps,

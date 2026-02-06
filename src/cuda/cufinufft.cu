@@ -128,7 +128,7 @@ void cufinufft_default_opts(cufinufft_opts *opts)
   opts->gpu_binsizey       = 0;
   opts->gpu_binsizez       = 0;
   opts->gpu_maxbatchsize   = 0;
-  opts->gpu_np             = 32;
+  opts->gpu_np             = 0;
   opts->debug              = 0;
   opts->gpu_stream         = cudaStreamDefault;
   // sphinx tag (don't remove): @gpu_defopts_end

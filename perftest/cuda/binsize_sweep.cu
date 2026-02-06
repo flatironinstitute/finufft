@@ -1,5 +1,7 @@
-// Comprehensive benchmark to find optimal bin size and np for cufinufft methods
+// Benchmark to find optimal bin size and np for cufinufft methods
 // Tests all methods, dimensions, tolerances with various bin sizes
+// Designed by Marco Barbone but printing and refactoring by
+// Claude Sonnet 4.5
 
 #include <algorithm>
 #include <chrono>
@@ -345,7 +347,7 @@ int main(int argc, char **argv) {
       debug_mode ? vector<tuple<int, int64_t, int64_t>>{{3, 128, 100000}} : // Quick 3D
                                                                             // test
           vector<tuple<int, int64_t, int64_t>>{
-              {1, 1 << 20, 1e8}, {2, 2048, 1e8}, {3, 256, 1e8}};
+              {1, 1 << 20, 1e7}, {2, 2048, 1e7}, {3, 256, 1e7}};
 
   for (auto [dim, N, M] : configs) {
     cout << "\n" << dim << "D case (";
