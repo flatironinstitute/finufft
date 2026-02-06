@@ -75,6 +75,10 @@ Master (working towards v2.5.0), 01/29/26
 * Fixed memory leak in python bindings due to storing input references for too
   long (Barbone #804)
 * Added support to clone a specific commit in makefile (Barbone #806)
+* Reduced shared-memory usage for Method 2/3 in 3D double-precision (15-digit) runs,
+  preventing crashes on systems with very small available shmem.
+  Added benchmarking-based autotuning to select binsize and np for best performance.
+  Cleaned up and consolidated debug printing output. (Barbone #807)
 
 V 2.4.1 7/8/25
 
