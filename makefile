@@ -282,6 +282,9 @@ test/%: test/%.cpp $(DYNLIB)
 	$(CXX) $(CXXFLAGS) ${LDFLAGS} $< $(ABSDYNLIB) $(LIBSFFT) -o $@
 test/%f: test/%.cpp $(DYNLIB)
 	$(CXX) $(CXXFLAGS) ${LDFLAGS} -DSINGLE $< $(ABSDYNLIB) $(LIBSFFT) -o $@
+# C test for error-path handling in the C interface.
+test/error_handling: test/error_handling.c $(DYNLIB)
+	$(CC) $(CFLAGS) ${LDFLAGS} $< $(ABSDYNLIB) $(LIBSFFT) $(CLINK) -o $@
 # low-level tests that are cleaner if depend on only specific objects...
 test/testutils: test/testutils.cpp src/finufft_utils.o src/common/utils.o
 	$(CXX) $(CXXFLAGS) ${LDFLAGS} test/testutils.cpp src/finufft_utils.o src/common/utils.o $(LIBS) -o test/testutils
@@ -289,13 +292,13 @@ test/testutilsf: test/testutils.cpp src/finufft_utils.o src/common/utils.o
 	$(CXX) $(CXXFLAGS) ${LDFLAGS} -DSINGLE test/testutils.cpp src/finufft_utils.o src/common/utils.o $(LIBS) -o test/testutilsf
 
 # make sure all double-prec test executables ready for testing
-TESTS := $(basename $(wildcard test/*.cpp))
+CPPTESTS := $(basename $(wildcard test/*.cpp))
 # kill off FFTW-specific tests if it's not the FFT we build with...
 ifeq ($(FFT),DUCC)
-  TESTS := $(filter-out $(basename $(wildcard test/*fftw*.cpp)),$(TESTS))
+  CPPTESTS := $(filter-out $(basename $(wildcard test/*fftw*.cpp)),$(CPPTESTS))
 endif
-# also need single-prec
-TESTS += $(TESTS:%=%f)
+# single-precision variants for C++ tests only, plus C-interface error handling test.
+TESTS := $(CPPTESTS) $(CPPTESTS:%=%f) test/error_handling
 test: $(TESTS)
 ifneq ($(MINGW),ON)
   # non-Windows-WSL: it will fail if either of these return nonzero exit code...

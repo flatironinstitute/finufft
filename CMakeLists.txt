@@ -80,6 +80,9 @@ mark_as_advanced(
 include(setupCPM)
 
 if(FINUFFT_USE_CPU)
+    if(FINUFFT_USE_OPENMP)
+        find_package(OpenMP COMPONENTS C CXX REQUIRED)
+    endif()
     add_subdirectory(src)
 endif()
 
