@@ -197,20 +197,11 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
       goto finalize;
     }
   }
-  if (d_plan->opts.debug) {
-    printf("[cufinufft] bin size x: %d", d_plan->opts.gpu_binsizex);
-    if (dim > 1) printf(" bin size y: %d", d_plan->opts.gpu_binsizey);
-    if (dim > 2) printf(" bin size z: %d", d_plan->opts.gpu_binsizez);
-    printf("\n");
-    // shared memory required for the spreader vs available shared memory
-    int shared_mem_per_block{};
-    cudaDeviceGetAttribute(&shared_mem_per_block, cudaDevAttrMaxSharedMemoryPerBlockOptin,
-                           device_id);
-    const auto mem_required = shared_memory_required<T>(
-        dim, d_plan->spopts.nspread, d_plan->opts.gpu_binsizex, d_plan->opts.gpu_binsizey,
-        d_plan->opts.gpu_binsizez, d_plan->opts.gpu_np);
-    printf("[cufinufft] shared memory required for the spreader: %ld\n", mem_required);
-    printf("[cufinufft] gpu_Np = %ld\n", d_plan->opts.gpu_np);
+  // Bin size and memory info now printed in cufinufft_setup_binsize() (common.cu)
+  // Additional runtime info at debug level 2
+  if (d_plan->opts.debug >= 2) {
+    printf("[cufinufft] Runtime: grid=(%ld,%ld,%ld), M=%ld\n", d_plan->nf1, d_plan->nf2,
+           d_plan->nf3, d_plan->M);
   }
 
   // dynamically request the maximum amount of shared memory available
