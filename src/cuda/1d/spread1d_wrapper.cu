@@ -61,18 +61,6 @@ template<typename T> int cuspread1d(cufinufft_plan_t<T> *d_plan, int blksize) {
 template<typename T>
 int cuspread1d_nuptsdriven_prop(int nf1, int M, cufinufft_plan_t<T> *d_plan) {
   auto &stream = d_plan->stream;
-  if (d_plan->opts.gpu_sort && d_plan->opts.gpu_method == 1) {
-    int *d_idxnupts = d_plan->idxnupts;
-    thrust::sequence(thrust::cuda::par.on(stream), d_idxnupts, d_idxnupts + M);
-    RETURN_IF_CUDA_ERROR
-    const T *kx_ptr = d_plan->kx;
-    thrust::sort(thrust::cuda::par.on(stream), d_idxnupts, d_idxnupts + M,
-                 [=] __host__ __device__(int a, int b) {
-                   return fold_rescale(kx_ptr[a], 1) < fold_rescale(kx_ptr[b], 1);
-                 });
-    RETURN_IF_CUDA_ERROR
-    return 0;
-  }
   if (d_plan->opts.gpu_sort) {
     int bin_size_x = d_plan->opts.gpu_binsizex;
     if (bin_size_x < 0) {
