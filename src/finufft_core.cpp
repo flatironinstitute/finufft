@@ -844,13 +844,13 @@ FINUFFT_PLAN_T<TF>::FINUFFT_PLAN_T(int type_, int dim_, const BIGINT *n_modes, i
            __func__);
 
   if (!opts.spreadinterponly) { // Don't make FFTW plan if only spread/interpolate
-    fftPlan = std::make_unique<Finufft_FFT_plan<TF>>(
-        opts.fftw_lock_fun, opts.fftw_unlock_fun, opts.fftw_lock_data);
     if (!opts.fftw_lock_fun != !opts.fftw_unlock_fun) {
       fprintf(stderr, "[%s] fftw_(un)lock functions should be both null or both set\n",
               __func__);
       throw int(FINUFFT_ERR_LOCK_FUNS_INVALID);
     }
+    fftPlan = std::make_unique<Finufft_FFT_plan<TF>>(
+        opts.fftw_lock_fun, opts.fftw_unlock_fun, opts.fftw_lock_data);
   }
   if ((type != 1) && (type != 2) && (type != 3)) {
     fprintf(stderr, "[%s] Invalid type (%d), should be 1, 2 or 3.\n", __func__, type);

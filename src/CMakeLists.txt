@@ -13,10 +13,6 @@ else()
     include(setupFFTW)
 endif()
 
-if(FINUFFT_USE_OPENMP)
-    find_package(OpenMP COMPONENTS C CXX REQUIRED)
-endif()
-
 set(FINUFFT_SOURCES
     spreadinterp.cpp
     fft.cpp

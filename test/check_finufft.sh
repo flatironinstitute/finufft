@@ -118,6 +118,14 @@ T=tolsweep$PRECSUF
 E=${PIPESTATUS[0]}
 if [[ $E -eq 0 ]]; then echo passed; elif [[ $E -eq $SIGSEGV ]]; then echo crashed; ((CRASHES++)); else echo failed; ((FAILS++)); fi
 
+if [[ -z "$PRECSUF" ]]; then
+    ((N++))
+    T=error_handling
+    ./$T$FEX 2>$DIR/$T.err.out | tee $DIR/$T.out
+    E=${PIPESTATUS[0]}
+    if [[ $E -eq 0 ]]; then echo passed; elif [[ $E -eq $SIGSEGV ]]; then echo crashed; ((CRASHES++)); else echo failed; ((FAILS++)); fi
+fi
+
 # END TESTS ---------------------------------------------------------
 
 
