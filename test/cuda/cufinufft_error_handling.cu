@@ -7,6 +7,8 @@
 #include <cufinufft.h>
 #include <finufft_errors.h>
 
+constexpr int CUFINUFFT_SUCCESS = 0;
+
 static int check_rc(const char *label, int got, int expected, int code) {
   if (got != expected) {
     fprintf(stderr, "%s: expected %d got %d\n", label, expected, got);
@@ -76,10 +78,8 @@ int main(void) {
 
   // Type 3 invalid argument -> expect FINUFFT_ERR_INVALID_ARGUMENT
   rc = cufinufftf_makeplan(3, 1, N, 1, 1, 1e-5f, &fplan, NULL);
-  if (rc) {
-    fprintf(stderr, "makeplan type3 failed: rc=%d\n", rc);
-    return 22;
-  }
+  rc = check_rc("makeplan type3", rc, CUFINUFFT_SUCCESS, 22);
+  if (rc) return rc;
   rc = cufinufftf_setpts(fplan, 1, NULL, NULL, NULL, 1, NULL, NULL, NULL);
   rc = check_rc("type3 invalid argument", rc, FINUFFT_ERR_INVALID_ARGUMENT, 23);
   cufinufftf_destroy(fplan);
@@ -87,10 +87,8 @@ int main(void) {
 
   // Type 3 invalid N -> expect FINUFFT_ERR_NUM_NU_PTS_INVALID
   rc = cufinufftf_makeplan(3, 1, N, 1, 1, 1e-5f, &fplan, NULL);
-  if (rc) {
-    fprintf(stderr, "makeplan type3 (N invalid) failed: rc=%d\n", rc);
-    return 24;
-  }
+  rc = check_rc("makeplan type3 (N invalid)", rc, CUFINUFFT_SUCCESS, 24);
+  if (rc) return rc;
   rc = cufinufftf_setpts(fplan, 1, NULL, NULL, NULL, -1, NULL, NULL, NULL);
   rc = check_rc("type3 N invalid", rc, FINUFFT_ERR_NUM_NU_PTS_INVALID, 25);
   cufinufftf_destroy(fplan);
