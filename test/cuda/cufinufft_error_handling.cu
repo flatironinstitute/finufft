@@ -15,14 +15,6 @@ static int check_rc(const char *label, int got, int expected, int code) {
   return 0;
 }
 
-static int check_cuda(const char *label, cudaError_t err, int code) {
-  if (err != cudaSuccess) {
-    fprintf(stderr, "%s: cuda error %s\n", label, cudaGetErrorString(err));
-    return code;
-  }
-  return 0;
-}
-
 int main(void) {
   const int64_t N[3] = {16, 16, 16};
   int rc;
@@ -74,52 +66,7 @@ int main(void) {
   opts.gpu_binsizey = 1024;
   opts.gpu_binsizez = 1024;
   rc                = cufinufftf_makeplan(1, 3, N, 1, 1, 1e-5f, &fplan, &opts);
-  if (rc) {
-    fprintf(stderr, "makeplan insufficient shmem setup failed: rc=%d\n", rc);
-    return 8;
-  }
-  float *d_x            = NULL;
-  float *d_y            = NULL;
-  float *d_z            = NULL;
-  cuFloatComplex *d_c   = NULL;
-  cuFloatComplex *d_fk  = NULL;
-  const size_t fk_count = (size_t)N[0] * (size_t)N[1] * (size_t)N[2];
-  rc = check_cuda("cudaMalloc d_x", cudaMalloc((void **)&d_x, sizeof(float)), 9);
-  if (rc) return rc;
-  rc = check_cuda("cudaMalloc d_y", cudaMalloc((void **)&d_y, sizeof(float)), 10);
-  if (rc) return rc;
-  rc = check_cuda("cudaMalloc d_z", cudaMalloc((void **)&d_z, sizeof(float)), 11);
-  if (rc) return rc;
-  rc =
-      check_cuda("cudaMalloc d_c", cudaMalloc((void **)&d_c, sizeof(cuFloatComplex)), 12);
-  if (rc) return rc;
-  rc = check_cuda("cudaMalloc d_fk",
-                  cudaMalloc((void **)&d_fk, sizeof(cuFloatComplex) * fk_count), 13);
-  if (rc) return rc;
-  rc = check_cuda("cudaMemset d_x", cudaMemset(d_x, 0, sizeof(float)), 14);
-  if (rc) return rc;
-  rc = check_cuda("cudaMemset d_y", cudaMemset(d_y, 0, sizeof(float)), 15);
-  if (rc) return rc;
-  rc = check_cuda("cudaMemset d_z", cudaMemset(d_z, 0, sizeof(float)), 16);
-  if (rc) return rc;
-  rc = check_cuda("cudaMemset d_c", cudaMemset(d_c, 0, sizeof(cuFloatComplex)), 17);
-  if (rc) return rc;
-  rc = check_cuda("cudaMemset d_fk",
-                  cudaMemset(d_fk, 0, sizeof(cuFloatComplex) * fk_count), 18);
-  if (rc) return rc;
-  rc = cufinufftf_setpts(fplan, 1, d_x, d_y, d_z, 0, NULL, NULL, NULL);
-  if (rc) {
-    fprintf(stderr, "setpts for insufficient shmem failed: rc=%d\n", rc);
-    return 19;
-  }
-  rc = cufinufftf_execute(fplan, d_c, d_fk);
-  rc = check_rc("insufficient shmem", rc, FINUFFT_ERR_INSUFFICIENT_SHMEM, 20);
-  cudaFree(d_x);
-  cudaFree(d_y);
-  cudaFree(d_z);
-  cudaFree(d_c);
-  cudaFree(d_fk);
-  cufinufftf_destroy(fplan);
+  rc = check_rc("insufficient shmem", rc, FINUFFT_ERR_INSUFFICIENT_SHMEM, 8);
   if (rc) return rc;
 
   // Destroy null -> expect FINUFFT_ERR_PLAN_NOTVALID
