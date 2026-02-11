@@ -80,7 +80,8 @@ Talk slides
 ~~~~~~~~~~~
 
 These
-`PDF slides <http://users.flatironinstitute.org/~ahb/talks/pacm20.pdf>`__
-may be a useful introduction to FINUFFT and applications.
+`Princeton 2020 slides <http://users.flatironinstitute.org/~ahb/talks/pacm20.pdf>`__ and
+`FWAM 2023 slides <http://users.flatironinstitute.org/~ahb/talks/fwam23.pdf>`__
+should be a useful introduction to NUFFTs, FINUFFT, and applications.
 
 Yu-Hsuan (Melody) Shih's PDSEC2021 20-minute presentation video on cuFINUFFT is here: https://www.youtube.com/watch?v=PnW6ehMyHxM
