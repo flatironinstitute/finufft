@@ -20,26 +20,26 @@ do
     while IFS= read -r line; do
         # define all tags (case-sens) and their actions here:
         case $line in
-            *@F*)      # declarations: bash string replacement gets 4 combos...
-                simp=${line//@F/finufft}
+            *@F*)      # simple & many declarations: bash string replacement gets 4 combos...
+                simp=${line//@F/finufft}             # double-prec
                 many=${simp//\(/many\(int ntr, }     # insert new 1st arg; esc (
                 echo "::"                            # parsed-literal not good
                 echo ""
                 echo "$simp"
-                simp=${simp//finufft/finufftf}
+                simp=${line//@F/finufftf}            # single-prec (don't change finufft_opts)
                 echo "${simp//double/float}"
                 echo ""
                 echo "$many"
-                many=${many//finufft/finufftf}
+                many=${simp//\(/many\(int ntr, }     # insert new 1st arg; esc (
                 echo "${many//double/float}"
                 ;;
-            *@G*)      # guru declarations:
-                line=${line//@G/finufft}
+            *@G*)      # guru declarations: only 2 combos...
+                guru=${line//@G/finufft}
                 echo "::"
                 echo ""
-                echo "$line"
-                line=${line//finufft/finufftf}        # catches both instances
-                echo "${line//double/float}"
+                echo "$guru"
+                guru=${line//@G/finufftf}            # single-prec (don't change finufft_opts)
+                echo "${guru//double/float}"
                 ;;
             # rest are exact matches for whole line...
             @t)

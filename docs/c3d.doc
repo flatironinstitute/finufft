@@ -3,14 +3,14 @@
  int finufft3d1(int64_t M, double* x, double* y, double* z, complex<double>* c, int iflag, 
  double eps, int64_t N1, int64_t N2, int64_t N3, complex<double>* f, finufft_opts* opts)
  int finufftf3d1(int64_t M, float* x, float* y, float* z, complex<float>* c, int iflag, 
- float eps, int64_t N1, int64_t N2, int64_t N3, complex<float>* f, finufftf_opts* opts)
+ float eps, int64_t N1, int64_t N2, int64_t N3, complex<float>* f, finufft_opts* opts)
  
  int finufft3d1many(int ntr, int64_t M, double* x, double* y, double* z, complex<double>* 
  c, int iflag, double eps, int64_t N1, int64_t N2, int64_t N3, complex<double>* f, 
  finufft_opts* opts)
  int finufftf3d1many(int ntr, int64_t M, float* x, float* y, float* z, complex<float>* c, 
  int iflag, float eps, int64_t N1, int64_t N2, int64_t N3, complex<float>* f, 
- finufftf_opts* opts)
+ finufft_opts* opts)
  
    3D complex nonuniform FFT of type 1 (nonuniform to uniform).
  
@@ -51,14 +51,14 @@
  int finufft3d2(int64_t M, double* x, double* y, double* z, complex<double>* c, int iflag, 
  double eps, int64_t N1, int64_t N2, int64_t N3, complex<double>* f, finufft_opts* opts)
  int finufftf3d2(int64_t M, float* x, float* y, float* z, complex<float>* c, int iflag, 
- float eps, int64_t N1, int64_t N2, int64_t N3, complex<float>* f, finufftf_opts* opts)
+ float eps, int64_t N1, int64_t N2, int64_t N3, complex<float>* f, finufft_opts* opts)
  
  int finufft3d2many(int ntr, int64_t M, double* x, double* y, double* z, complex<double>* 
  c, int iflag, double eps, int64_t N1, int64_t N2, int64_t N3, complex<double>* f, 
  finufft_opts* opts)
  int finufftf3d2many(int ntr, int64_t M, float* x, float* y, float* z, complex<float>* c, 
  int iflag, float eps, int64_t N1, int64_t N2, int64_t N3, complex<float>* f, 
- finufftf_opts* opts)
+ finufft_opts* opts)
  
    3D complex nonuniform FFT of type 2 (uniform to nonuniform).
  
@@ -101,15 +101,14 @@
  double eps, int64_t N, double* s, double* t, double* u, complex<double>* f, finufft_opts* 
  opts)
  int finufftf3d3(int64_t M, float* x, float* y, float* z, complex<float>* c, int iflag, 
- float eps, int64_t N, float* s, float* t, float* u, complex<float>* f, finufftf_opts* 
- opts)
+ float eps, int64_t N, float* s, float* t, float* u, complex<float>* f, finufft_opts* opts)
  
  int finufft3d3many(int ntr, int64_t M, double* x, double* y, double* z, complex<double>* 
  c, int iflag, double eps, int64_t N, double* s, double* t, double* u, complex<double>* f, 
  finufft_opts* opts)
  int finufftf3d3many(int ntr, int64_t M, float* x, float* y, float* z, complex<float>* c, 
  int iflag, float eps, int64_t N, float* s, float* t, float* u, complex<float>* f, 
- finufftf_opts* opts)
+ finufft_opts* opts)
  
    3D complex nonuniform FFT of type 3 (nonuniform to nonuniform).
  

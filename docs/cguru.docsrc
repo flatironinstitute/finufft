@@ -1,4 +1,4 @@
-int @G_makeplan(int type, int dim, int64_t* nmodes, int iflag, int ntr, double eps, finufft_plan* plan, finufft_opts* opts)
+int @G_makeplan(int type, int dim, int64_t* nmodes, int iflag, int ntr, double eps, @G_plan* plan, finufft_opts* opts)
 
   Make a plan to perform one or more general transforms.
 
@@ -30,7 +30,7 @@ Inputs:
      * For more details about the fields in the opts pointer, see opts.rst
 
 
-int @G_setpts(finufft_plan plan, int64_t M, double* x, double* y, double* z, int64_t N, double* s, double* t, double* z)
+int @G_setpts(@G_plan plan, int64_t M, double* x, double* y, double* z, int64_t N, double* s, double* t, double* z)
 
   Input nonuniform points with coordinates x (and possibly y, and possibly z),
   and, if type 3, nonuniform frequency target coordinates s (and possibly t,
@@ -79,7 +79,7 @@ int @G_setpts(finufft_plan plan, int64_t M, double* x, double* y, double* z, int
       not be changed between this call and the below execute call!
 
 
-int @G_execute(finufft_plan plan, complex<double>* c, complex<double>* f)
+int @G_execute(@G_plan plan, complex<double>* c, complex<double>* f)
 
   Perform one or more NUFFT transforms using previously entered nonuniform
   points and an existing plan. To summarize, this maps
@@ -115,7 +115,7 @@ int @G_execute(finufft_plan plan, complex<double>* c, complex<double>* f)
       if ntr>1, being the "slowest" (outer) dimension.
 
 
-int @G_execute_adjoint(finufft_plan plan, complex<double>* c, complex<double>* f)
+int @G_execute_adjoint(@G_plan plan, complex<double>* c, complex<double>* f)
 
   Perform one or more NUFFT transforms using previously entered nonuniform
   points and the *adjoint* of the existing planned transform. The point is to
@@ -155,10 +155,10 @@ int @G_execute_adjoint(finufft_plan plan, complex<double>* c, complex<double>* f
       if ntr>1, being the "slowest" (outer) dimension.
 
 
-int @G_destroy(finufft_plan plan)
+int @G_destroy(@G_plan plan)
 
   Deallocate a plan object. This must be used upon clean-up, or before reusing
-  a plan in another call to finufft_makeplan.
+  a plan in another call to finufft_makeplan or finufftf_makeplan.
 
   Inputs/Outputs:
        plan   plan object

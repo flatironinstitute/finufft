@@ -3,7 +3,7 @@
  int finufft_makeplan(int type, int dim, int64_t* nmodes, int iflag, int ntr, double eps, 
  finufft_plan* plan, finufft_opts* opts)
  int finufftf_makeplan(int type, int dim, int64_t* nmodes, int iflag, int ntr, float eps, 
- finufftf_plan* plan, finufftf_opts* opts)
+ finufftf_plan* plan, finufft_opts* opts)
  
    Make a plan to perform one or more general transforms.
  
@@ -178,7 +178,7 @@
  int finufftf_destroy(finufftf_plan plan)
  
    Deallocate a plan object. This must be used upon clean-up, or before reusing
-   a plan in another call to finufft_makeplan.
+   a plan in another call to finufft_makeplan or finufftf_makeplan.
  
    Inputs/Outputs:
         plan   plan object
