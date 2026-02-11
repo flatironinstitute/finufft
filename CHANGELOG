@@ -82,7 +82,7 @@ Master (working towards v2.5.0), 01/29/26
   Cleaned up and consolidated debug printing output. (Barbone #807)
 * fixed obsolete finufftf_plan to finufft_plan in C/C++ docs (Barnett).
 * Now all C++ errors are caught and converted to C-style status return error
-  codes. (eg prevents crashing out of MATLAB) (Reinecke/Barbone/Lu #808).
+  codes. (Eg, prevents crashing out of MATLAB.) (Reinecke/Barbone/Lu #808).
 * revert to binsort (was thrust quicksort) for GPU 1D GM method (Lu #810).
 
 V 2.4.1 7/8/25

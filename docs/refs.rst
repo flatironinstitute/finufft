@@ -65,15 +65,16 @@ FINUFFT builds upon the CMCL NUFFT, and the Fortran wrappers are very similar to
 
 Inversion of the NUFFT is covered in [KKP] above, and in:
 
-[GLI] The fast sinc transform and image reconstruction from nonuniform samples in $\mathbf{k}$-space. L. Greengard, J.-Y. Lee and S. Inati, Commun. Appl. Math. Comput. Sci (CAMCOS) 1(1) 121-131 (2006).
+[GLI] The fast sinc transform and image reconstruction from nonuniform samples in $\mathbf{k}$-space. L. Greengard, J.-Y. Lee and S. Inati, Commun. Appl. Math. Comput. Sci. (CAMCOS) 1(1) 121-131 (2006).
+
+[WEB] Superfast direct inversion of the nonuniform discrete Fourier transform via hierarchically semiseparable least squares. H. Wilber, E. N. Epperly and A. H. Barnett. SIAM J. Sci. Comput. 47(3) A1702-1732 (2025).
 
 The original NUFFT analysis using truncated Gaussians is (the second
 improving upon the convergence rate of the first):
 
 [DR] Fast Fourier Transforms for Nonequispaced data. A. Dutt and V. Rokhlin. SIAM J. Sci. Comput. 14, 1368 (1993).
 
-[S] A note on fast Fourier transforms for nonequispaced grids.
-G. Steidl, Adv. Comput. Math. 9, 337-352 (1998).
+[S] A note on fast Fourier transforms for nonequispaced grids. G. Steidl, Adv. Comput. Math. 9, 337-352 (1998).
 
 Talk slides
 ~~~~~~~~~~~
