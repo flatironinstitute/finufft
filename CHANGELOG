@@ -75,10 +75,15 @@ Master (working towards v2.5.0), 01/29/26
 * Fixed memory leak in python bindings due to storing input references for too
   long (Barbone #804)
 * Added support to clone a specific commit in makefile (Barbone #806)
-* Reduced shared-memory usage for Method 2/3 in 3D double-precision (15-digit) runs,
-  preventing crashes on systems with very small available shmem.
-  Added benchmarking-based autotuning to select binsize and np for best performance.
+* Reduced shared-memory usage for Method 2/3 in 3D double-precision (15-digit)
+  runs, preventing crashes on systems with very small available shmem.
+  Added benchmarking-based GPU autotuning to select binsize and np for best
+  performance; this is detailed in Discussion #809.
   Cleaned up and consolidated debug printing output. (Barbone #807)
+* fixed obsolete finufftf_plan to finufft_plan in C/C++ docs (Barnett).
+* Now all C++ errors are caught and converted to C-style status return error
+  codes. (eg prevents crashing out of MATLAB) (Reinecke/Barbone/Lu #808).
+* revert to binsort (was thrust quicksort) for GPU 1D GM method (Lu #810).
 
 V 2.4.1 7/8/25
 
@@ -89,7 +94,7 @@ V 2.4.1 7/8/25
 * Adding OutputDriven parallelism to cufinufft (Barbone)
 * replaced LGPL-licensed Gauss-Legendre quadrature code by Apache2-licensed
   code adapted from Jason Kaye's cppdlr. CPU and GPU. PR #692 (Barnett).
-* Fix cufinufft importing bug found by @fzimmermann89 (Barbone, issue #707, PR #708)
+* Fix cufinufft importing bug found by @fzimmermann89 (Barbone, #707, PR #708)
 * Python simple interface for CUDA type 3 (Maxim Ermenko, #685)
 
 V 2.4.0 (5/27/25)
