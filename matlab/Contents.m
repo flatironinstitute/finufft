@@ -1,5 +1,5 @@
 % FINUFFT: Flatiron Institute Nonuniform Fast Fourier Transform
-% Version 2.5.0dev
+% Version 2.5.0
 %
 % Basic and many-vector interfaces
 %   finufft1d1 - 1D complex nonuniform FFT of type 1 (nonuniform to uniform).

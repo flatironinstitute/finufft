@@ -16,7 +16,7 @@ using UBIGINT = uint64_t;
 // ------------- Library-wide algorithm parameter settings ----------------
 
 // Library version (is a string)
-#define FINUFFT_VER "2.5.0dev"
+#define FINUFFT_VER "2.5.0"
 
 // Internal (nf1 etc) array allocation size that immediately raises error.
 // (Note: next235 takes 1s for 1e11, so it is also to prevent hang here.)

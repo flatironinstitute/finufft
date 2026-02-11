@@ -51,13 +51,13 @@ Then add the following to your ``CMakeLists.txt``:
 .. code-block:: cmake
 
   # short version
-  CPMAddPackage("gh:flatironinstitute/finufft@2.4.1")
+  CPMAddPackage("gh:flatironinstitute/finufft@2.5.0-rc1")
 
   # alternative in case custom options are needed
   CPMAddPackage(
     NAME             Finufft
     GIT_REPOSITORY   https://github.com/flatironinstitute/finufft.git
-    GIT_TAG          2.4.1
+    GIT_TAG          2.5.0-rc1
     GIT_SHALLOW      Yes
     GIT_PROGRESS     Yes
     EXCLUDE_FROM_ALL Yes
@@ -79,7 +79,7 @@ Add the following to your ``CMakeLists.txt``:
     FetchContent_Declare(
       finufft
       GIT_REPOSITORY https://github.com/flatironinstitute/finufft.git
-      GIT_TAG 2.4.1
+      GIT_TAG 2.5.0-rc1
     )
 
     # Make the content available
