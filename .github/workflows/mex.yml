@@ -116,9 +116,14 @@ jobs:
           EXTRA_MACOS_FLAGS="-DCMAKE_OSX_ARCHITECTURES=arm64"
           fi
 
+          DUCC0_FLAG="-DFINUFFT_USE_DUCC0=ON"
+          if [ "${{ matrix.os }}" = "macos-15" ]; then
+            DUCC0_FLAG="-DFINUFFT_USE_DUCC0=OFF"
+          fi
+
           cmake -S . -B build -G Ninja \
             -DCMAKE_BUILD_TYPE=Release \
-            -DFINUFFT_USE_DUCC0=ON \
+            ${DUCC0_FLAG} \
             -DFINUFFT_USE_OPENMP=ON \
             -DFINUFFT_MATLAB_INSTALL=ON \
             -DMatlab_MEX_EXTENSION="${MEXEXT}" \
