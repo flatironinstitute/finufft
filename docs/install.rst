@@ -20,7 +20,7 @@ FINUFFT builds with no issues on Linux and MacOS using any compiler, and in our 
 
   Both are available in either CMake or GNU make build routes. Currently FFTW3 is the default in both routes, since DUCC0 is new as of FINUFFT v2.3 and not as well tested. DUCC0 is from the same author as `PocketFFT <https://gitlab.mpcdf.mpg.de/mtr/pocketfft>`_ (used, for instance, by `scipy <https://scipy.org/>`_); however, DUCC0 FFT is more optimized than PocketFFT. Choosing DUCC0 also exploits the block-sparsity structure in 2D and 3D transforms, and is generally faster than FFTW3 in those cases. In 1D, the relative speed of FFTW3 and DUCC0 varies depending on `N` and the batch size. DUCC0 has no plan stage, whereas FFTW3 requires a plan stage. Some idea of their relative performance can be found in `this discussion <https://github.com/flatironinstitute/finufft/pull/463#issuecomment-2223988300>`_. We encourage the power user to try switching to DUCC to see if it is faster in their setting.
 
-If you cannot get FINUFFT to compile, as a last resort you might find
+If you cannot get FINUFFT to compile (see details below), as a last resort you might find
 a precompiled binary for your platform under Assets for various
 `releases <https://github.com/flatironinstitute/finufft/releases>`_.
 Please post an `Issue <https://github.com/flatironinstitute/finufft/issues>`_
@@ -173,6 +173,11 @@ Have a look in ``make-platforms/`` to see what is available, and/or edit your ``
   make-platforms/make.inc.windows_msys
 
 Thus, those are the recommended files for OSX or Windows users to try as their ``make.inc``.
+
+.. note::
+
+  If your makefile compilation fails after updating FINUFFT (especially with ``xsimd``-related errors), do ``make setupclean`` to remove any old versions of dependencies (xsimd, ducc, etc), as well as ``make clean``, before doing ``make test``.
+
 If there is an error in testing on what you consider a standard set-up,
 please file a detailed bug report as a New Issue at https://github.com/flatironinstitute/finufft/issues
 
@@ -181,13 +186,13 @@ Quick linux GNU make install instructions
 
 Unless you select ``FFT=DUCC``, make sure you have packages ``fftw3`` and ``fftw3-dev`` (or their equivalent on your distro) installed.
 Then ``cd`` into your FINUFFT directory and do ``make test -j``.
-This should compile the static
-library in ``lib-static/``, some C++ test drivers in ``test/``, then run them,
+This should compile the dynamic library in ``lib/`` (taking around 10-30 seconds, mostly due to templated SIMD code), some C++ test drivers in ``test/``, then run them,
 printing some terminal output ending in::
 
-  0 segfaults out of 9 tests done
-  0 fails out of 9 tests done
+  0 segfaults out of 11 tests done
+  0 fails out of 11 tests done
 
+As of v2.5 the tests have become more extensive, and now take around 10-20 seconds to run.
 This output repeats for double then single precision (hence, scroll up to check the double also gave no fails).
 If this fails, see the more detailed instructions/tips below.
 If it succeeds,

@@ -179,7 +179,7 @@ usage:
 	@echo " make objclean - remove all object files, preserving libs & MEX"
 	@echo " make clean - also remove all lib, MEX, py, and demo executables"
 	@echo " make setup - check (and possibly download) dependencies"
-	@echo " make setupclean - delete downloaded dependencies"
+	@echo " make setupclean - delete downloaded dependencies (try if errors)"
 	@echo "For faster (multicore) compilation, append, for example, -j8"
 	@echo ""
 	@echo "Make options:"

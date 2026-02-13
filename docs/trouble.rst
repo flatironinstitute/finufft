@@ -6,8 +6,8 @@ Troubleshooting
 If you are having issues (segfaults, slowness, "wrong" answers, etc),
 there is a high probability it is something we already know about, so
 please first read all of the advice below in the section relevant
-to your problem: math, speed, or crashing. Also look for
-similar GitHub `Issues <https://github.com/flatironinstitute/finufft/issues?q=is%3Aissue>`_ or `Discussions <https://github.com/flatironinstitute/finufft/discussions>`_.
+to your problem: math, speed, crashing, or compiling.  Also look for
+similar GitHub `Issues <https://github.com/flatironinstitute/finufft/issues?q=is%3Aissue>`__ or `Discussions <https://github.com/flatironinstitute/finufft/discussions>`__.
 If that fails, post an Issue. The lead developer may also be contacted at abarnett@flatironinstitute.org
 
 
@@ -137,6 +137,15 @@ Crash (segfault) issues and advice
 - To diagnose problems with the spread/interpolation stage, similarly setting ``opts.spread_debug`` to 1 or 2 will print even more output. Here the setting 2 generates a large amount of output even for a single transform.
 
 - For the GPU code, did you run out of GPU memory? Keep track of this with ``nvidia-smi``.
+
+
+Compilation issues
+******************
+
+If, after updating FINUFFT, your compilation fails (especially with ``xsimd``-related errors), make sure to ``make setupclean`` to remove any old versions of dependencies, as well as ``make clean``, before doing ``make test``.
+Or, if you use CMake, start with a fresh build directory.
+All other compilation advice is on the :ref:`Install <install>` page.
+
 
 
 Other known issues with library or interfaces
