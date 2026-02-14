@@ -5,7 +5,7 @@ repos:
     hooks:
       - id: git-clang-format-staged
         name: git clang-format (staged only)
-        entry: git-clang-format --staged
+        entry: git-clang-format --staged --
         language: python
         additional_dependencies:
           - clang-format
@@ -22,11 +22,11 @@ repos:
       - id: check-illegal-windows-names
       - id: mixed-line-ending
   - repo: https://github.com/BlankSpruce/gersemi
-    rev: 0.23.2
+    rev: 0.25.4
     hooks:
       - id: gersemi
   - repo: https://github.com/abravalheri/validate-pyproject
-    rev: v0.24.1
+    rev: v0.25
     hooks:
       - id: validate-pyproject
         # Optional: Include additional validations from SchemaStore
