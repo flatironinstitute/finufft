@@ -75,13 +75,27 @@ XSIMD_DIR := $(DEPS_ROOT)/xsimd
 DUCC_URL := https://github.com/mreineck/ducc.git
 DUCC_VERSION := ducc0_0_39_1
 DUCC_DIR := $(DEPS_ROOT)/ducc
-# this dummy file used as empty target by make...
-DUCC_COOKIE := $(DUCC_DIR)/.finufft_has_ducc
 # for internal DUCC compile...
 DUCC_INCL := -I$(DUCC_DIR)/src
 DUCC_SRC := $(DUCC_DIR)/src/ducc0
 # for DUCC objects compile only (not our objects)...
 DUCC_CXXFLAGS := -fPIC -std=c++17 -ffast-math $(CXXFLAGS)
+
+# Stamp files to track installed dependency URL + version
+XSIMD_STAMP := $(DEPS_ROOT)/.xsimd_version
+DUCC_STAMP  := $(DEPS_ROOT)/.ducc_version
+
+# Read currently installed state from stamp files (format: "URL VERSION")
+XSIMD_INSTALLED := $(shell cat $(XSIMD_STAMP) 2>/dev/null)
+DUCC_INSTALLED  := $(shell cat $(DUCC_STAMP) 2>/dev/null)
+
+# If URL or version changed, force re-check via git fetch + checkout (non-destructive)
+ifneq ($(XSIMD_INSTALLED),$(XSIMD_URL) $(XSIMD_VERSION))
+.PHONY: $(XSIMD_STAMP)
+endif
+ifneq ($(DUCC_INSTALLED),$(DUCC_URL) $(DUCC_VERSION))
+.PHONY: $(DUCC_STAMP)
+endif
 
 # absolute path of this makefile, ie FINUFFT's top-level directory...
 FINUFFT = $(dir $(realpath $(firstword $(MAKEFILE_LIST))))
@@ -97,7 +111,7 @@ INCL = -Iinclude -I$(XSIMD_DIR)/include
 # (Note: finufft tests use LIBSFFT; spread & util tests only need LIBS)
 LIBSFFT := $(LIBS)
 ifeq ($(FFT),DUCC)
-  DUCC_SETUP := $(DUCC_COOKIE)
+  DUCC_SETUP := $(DUCC_STAMP)
 # so FINUFFT build can see DUCC headers...
   INCL += $(DUCC_INCL)
   DUCC_OBJS := $(DUCC_SRC)/infra/string_utils.o $(DUCC_SRC)/infra/threading.o $(DUCC_SRC)/infra/mav.o
@@ -211,12 +225,12 @@ fortran/%.o: fortran/%.cpp $(HEADERS)
 # so fftw/ducc header needed for spreadinterp, though spreadinterp should not
 # depend on fftw/ducc directly?
 include/finufft/fft.h: $(DUCC_SETUP)
-SHEAD = $(XSIMD_DIR)/include/xsimd/xsimd.hpp
+SHEAD = $(XSIMD_STAMP)
 src/spreadinterp.o: src/spreadinterp.cpp include/finufft/spreadinterp.h include/finufft/finufft_utils.hpp include/finufft_common/kernel.h include/finufft_common/spread_opts.h $(SHEAD)
 
 # we need xsimd functionality in finufft_core.h, which is included by many other
 # files, so make sure we install xsimd before we prcess any of those files.
-include/finufft/finufft_core.h: $(XSIMD_DIR)/include/xsimd/xsimd.hpp
+include/finufft/finufft_core.h: $(XSIMD_STAMP)
 
 # lib -----------------------------------------------------------------------
 # build library with double/single prec both bundled in...
@@ -497,6 +511,11 @@ define clone_repo
 		git -c advice.detachedHead=false checkout $$TARGET_COMMIT; \
 	else \
 		cd $(3) && \
+		CURRENT_URL=$$(git remote get-url origin 2>/dev/null || echo ""); \
+		if [ "$$CURRENT_URL" != "$(1)" ]; then \
+			echo "Remote URL changed from $$CURRENT_URL to $(1). Updating remote..."; \
+			git remote set-url origin $(1); \
+		fi && \
 		git fetch origin --tags --force && \
 		git fetch origin $(2) --force >/dev/null 2>&1 || true; \
 		TARGET_COMMIT=$$(git rev-parse --verify $(2)^{commit} 2>/dev/null) || { echo "Error: Failed to resolve ref $(2) in $(3)."; exit 1; }; \
@@ -512,19 +531,26 @@ endef
 
 
 # download: header-only, no compile needed...
-$(XSIMD_DIR)/include/xsimd/xsimd.hpp:
+$(XSIMD_STAMP):
 	mkdir -p $(DEPS_ROOT)
-	@echo "Checking XSIMD external dependency..."
+	@if [ -f "$@" ]; then \
+		echo "XSIMD dependency stamp invalid (expected: $(XSIMD_URL) $(XSIMD_VERSION), found: $$(cat $@)), verifying..."; \
+	else \
+		echo "Setting up XSIMD external dependency..."; \
+	fi
 	$(call clone_repo,$(XSIMD_URL),$(XSIMD_VERSION),$(XSIMD_DIR))
-	@echo "xsimd installed in deps/xsimd"
+	@echo "$(XSIMD_URL) $(XSIMD_VERSION)" > $@
 
-# download DUCC... (an empty target just used to track if installed)
-$(DUCC_COOKIE):
+# download DUCC...
+$(DUCC_STAMP):
 	mkdir -p $(DEPS_ROOT)
-	@echo "Checking DUCC external dependency..."
+	@if [ -f "$@" ]; then \
+		echo "DUCC dependency stamp invalid (expected: $(DUCC_URL) $(DUCC_VERSION), found: $$(cat $@)), verifying..."; \
+	else \
+		echo "Setting up DUCC external dependency..."; \
+	fi
 	$(call clone_repo,$(DUCC_URL),$(DUCC_VERSION),$(DUCC_DIR))
-	touch $(DUCC_COOKIE)
-	@echo "DUCC installed in deps/ducc"
+	@echo "$(DUCC_URL) $(DUCC_VERSION)" > $@
 
 # implicit rule for DUCC compile just needed objects, only used if FFT=DUCC.
 # Needed since DUCC has no makefile (yet).
@@ -532,7 +558,7 @@ $(DUCC_SRCS): %.cc: $(DUCC_SETUP)
 $(DUCC_OBJS): %.o: %.cc
 	$(CXX) -c $(DUCC_CXXFLAGS) $(DUCC_INCL) $< -o $@
 
-setup: $(XSIMD_DIR)/include/xsimd/xsimd.hpp $(DUCC_SETUP)
+setup: $(XSIMD_STAMP) $(DUCC_SETUP)
 
 setupclean:
 	rm -rf $(DEPS_ROOT)
