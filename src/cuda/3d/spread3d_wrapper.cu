@@ -58,7 +58,7 @@ template<typename T> int cuspread3d(cufinufft_plan_t<T> *d_plan, int blksize) {
     Marco Barbone 01/30/25
   */
   return launch_dispatch_ns<Spread3DDispatcher, T>(
-      Spread3DDispatcher(), d_plan->spopts.nspread, d_plan->nf1, d_plan->nf2, d_plan->nf3,
+      Spread3DDispatcher(), d_plan->spopts.nspread, d_plan->nf123[0], d_plan->nf123[1], d_plan->nf123[2],
       d_plan->M, d_plan, blksize);
 }
 
@@ -84,9 +84,9 @@ int cuspread3d_nuptsdriven_prop(int nf1, int nf2, int nf3, int M,
     numbins[1] = (nf2 + bin_size_y - 1) / bin_size_y;
     numbins[2] = (nf3 + bin_size_z - 1) / bin_size_z;
 
-    T *d_kx = d_plan->kx;
-    T *d_ky = d_plan->ky;
-    T *d_kz = d_plan->kz;
+    T *d_kx = d_plan->kxyz[0];
+    T *d_ky = d_plan->kxyz[1];
+    T *d_kz = d_plan->kxyz[2];
 
     int *d_binsize     = d_plan->binsize;
     int *d_binstartpts = d_plan->binstartpts;
@@ -133,9 +133,9 @@ int cuspread3d_nuptsdriven(int nf1, int nf2, int nf3, int M, cufinufft_plan_t<T>
   T es_beta = d_plan->spopts.beta;
 
   int *d_idxnupts       = d_plan->idxnupts;
-  T *d_kx               = d_plan->kx;
-  T *d_ky               = d_plan->ky;
-  T *d_kz               = d_plan->kz;
+  T *d_kx               = d_plan->kxyz[0];
+  T *d_ky               = d_plan->kxyz[1];
+  T *d_kz               = d_plan->kxyz[2];
   cuda_complex<T> *d_c  = d_plan->c;
   cuda_complex<T> *d_fw = d_plan->fw;
 
@@ -215,9 +215,9 @@ int cuspread3d_blockgather_prop(int nf1, int nf2, int nf3, int M,
   numbins[1]   = numobins[1] * (binsperobiny);
   numbins[2]   = numobins[2] * (binsperobinz);
 
-  T *d_kx = d_plan->kx;
-  T *d_ky = d_plan->ky;
-  T *d_kz = d_plan->kz;
+  T *d_kx = d_plan->kxyz[0];
+  T *d_ky = d_plan->kxyz[1];
+  T *d_kz = d_plan->kxyz[2];
 
   int *d_binsize         = d_plan->binsize;
   int *d_sortidx         = d_plan->sortidx;
@@ -370,9 +370,9 @@ int cuspread3d_blockgather(int nf1, int nf2, int nf3, int M, cufinufft_plan_t<T>
   binsperobiny = obin_size_y / bin_size_y + 2;
   binsperobinz = obin_size_z / bin_size_z + 2;
 
-  T *d_kx               = d_plan->kx;
-  T *d_ky               = d_plan->ky;
-  T *d_kz               = d_plan->kz;
+  T *d_kx               = d_plan->kxyz[0];
+  T *d_ky               = d_plan->kxyz[1];
+  T *d_kz               = d_plan->kxyz[2];
   cuda_complex<T> *d_c  = d_plan->c;
   cuda_complex<T> *d_fw = d_plan->fw;
 
@@ -435,9 +435,9 @@ int cuspread3d_subprob_prop(int nf1, int nf2, int nf3, int M,
   numbins[1] = ceil((T)nf2 / bin_size_y);
   numbins[2] = ceil((T)nf3 / bin_size_z);
 
-  T *d_kx = d_plan->kx;
-  T *d_ky = d_plan->ky;
-  T *d_kz = d_plan->kz;
+  T *d_kx = d_plan->kxyz[0];
+  T *d_ky = d_plan->kxyz[1];
+  T *d_kz = d_plan->kxyz[2];
 
   int *d_binsize         = d_plan->binsize;
   int *d_binstartpts     = d_plan->binstartpts;
@@ -521,9 +521,9 @@ int cuspread3d_subprob(int nf1, int nf2, int nf3, int M, cufinufft_plan_t<T> *d_
   numbins[1] = ceil((T)nf2 / bin_size_y);
   numbins[2] = ceil((T)nf3 / bin_size_z);
 
-  T *d_kx               = d_plan->kx;
-  T *d_ky               = d_plan->ky;
-  T *d_kz               = d_plan->kz;
+  T *d_kx               = d_plan->kxyz[0];
+  T *d_ky               = d_plan->kxyz[1];
+  T *d_kz               = d_plan->kxyz[2];
   cuda_complex<T> *d_c  = d_plan->c;
   cuda_complex<T> *d_fw = d_plan->fw;
 
@@ -588,9 +588,9 @@ int cuspread3d_output_driven(int nf1, int nf2, int nf3, int M,
   numbins[1] = ceil((T)nf2 / bin_size_y);
   numbins[2] = ceil((T)nf3 / bin_size_z);
 
-  T *d_kx               = d_plan->kx;
-  T *d_ky               = d_plan->ky;
-  T *d_kz               = d_plan->kz;
+  T *d_kx               = d_plan->kxyz[0];
+  T *d_ky               = d_plan->kxyz[1];
+  T *d_kz               = d_plan->kxyz[2];
   cuda_complex<T> *d_c  = d_plan->c;
   cuda_complex<T> *d_fw = d_plan->fw;
 

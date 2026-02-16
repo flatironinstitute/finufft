@@ -2,6 +2,7 @@
 #define CUFINUFFT_TYPES_H
 
 #include <cufft.h>
+#include <cuda/std/array>
 
 #include <cufinufft/defs.h>
 #include <cufinufft_opts.h>
@@ -12,7 +13,7 @@
 
 #define CUFINUFFT_BIGINT int
 
-// Marco Barbone 8/5/2924, replaced the ugly trick with std::conditional
+// Marco Barbone 8/5/2024, replaced the ugly trick with std::conditional
 // to define cuda_complex
 // by using std::conditional and std::is_same, we can define cuda_complex
 // if T is float, cuda_complex<T> is cuFloatComplex
@@ -34,27 +35,19 @@ template<typename T> struct cufinufft_plan_t {
   int type;
   int dim;
   CUFINUFFT_BIGINT M;
-  CUFINUFFT_BIGINT nf1;
-  CUFINUFFT_BIGINT nf2;
-  CUFINUFFT_BIGINT nf3;
-  CUFINUFFT_BIGINT ms;
-  CUFINUFFT_BIGINT mt;
-  CUFINUFFT_BIGINT mu;
+  cuda::std::array<CUFINUFFT_BIGINT,3> nf123;
+  cuda::std::array<CUFINUFFT_BIGINT,3> mstu;
   int ntransf;
   int batchsize;
   int iflag;
   int supports_pools;
 
   int totalnumsubprob;
-  T *fwkerhalf1;
-  T *fwkerhalf2;
-  T *fwkerhalf3;
+  cuda::std::array<T *,3> fwkerhalf;
 
   // for type 1,2 it is a pointer to kx, ky, kz (no new allocs), for type 3 it
   // for t3: allocated as "primed" (scaled) src pts x'_j, etc
-  T *kx;
-  T *ky;
-  T *kz;
+  cuda::std::array<T *,3> kxyz;
   cuda_complex<T> *CpBatch; // working array of prephased strengths
   cuda_complex<T> *fwbatch;
 
@@ -72,9 +65,7 @@ template<typename T> struct cufinufft_plan_t {
   } type3_params;
   int N;                        // number of NU freq pts (type 3 only)
   CUFINUFFT_BIGINT nf;
-  T *d_Sp;
-  T *d_Tp;
-  T *d_Up;
+  cuda::std::array<T *,3> d_STUp;
   T tol;
   // inner type 2 plan for type 3
   cufinufft_plan_t<T> *t2_plan;

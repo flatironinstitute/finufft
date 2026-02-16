@@ -23,7 +23,7 @@ int allocgpumem1d_plan(cufinufft_plan_t<T> *d_plan)
   const auto stream = d_plan->stream;
 
   int ier{0};
-  int nf1          = d_plan->nf1;
+  int nf1          = d_plan->nf123[0];
   int maxbatchsize = d_plan->batchsize;
 
   switch (d_plan->opts.gpu_method) {
@@ -69,7 +69,7 @@ int allocgpumem1d_plan(cufinufft_plan_t<T> *d_plan)
                                stream, d_plan->supports_pools))))
       goto finalize;
     if ((ier = checkCudaErrors(
-             cudaMallocWrapper(&d_plan->fwkerhalf1, (nf1 / 2 + 1) * sizeof(T), stream,
+             cudaMallocWrapper(&d_plan->fwkerhalf[0], (nf1 / 2 + 1) * sizeof(T), stream,
                                d_plan->supports_pools))))
       goto finalize;
   }
@@ -131,8 +131,8 @@ int allocgpumem2d_plan(cufinufft_plan_t<T> *d_plan)
   const auto stream = d_plan->stream;
   int ier{0};
 
-  int nf1          = d_plan->nf1;
-  int nf2          = d_plan->nf2;
+  int nf1          = d_plan->nf123[0];
+  int nf2          = d_plan->nf123[1];
   int maxbatchsize = d_plan->batchsize;
 
   switch (d_plan->opts.gpu_method) {
@@ -184,11 +184,11 @@ int allocgpumem2d_plan(cufinufft_plan_t<T> *d_plan)
              d_plan->supports_pools))))
       goto finalize;
     if ((ier = checkCudaErrors(
-             cudaMallocWrapper(&d_plan->fwkerhalf1, (nf1 / 2 + 1) * sizeof(T), stream,
+             cudaMallocWrapper(&d_plan->fwkerhalf[0], (nf1 / 2 + 1) * sizeof(T), stream,
                                d_plan->supports_pools))))
       goto finalize;
     if ((ier = checkCudaErrors(
-             cudaMallocWrapper(&d_plan->fwkerhalf2, (nf2 / 2 + 1) * sizeof(T), stream,
+             cudaMallocWrapper(&d_plan->fwkerhalf[1], (nf2 / 2 + 1) * sizeof(T), stream,
                                d_plan->supports_pools))))
       goto finalize;
   }
@@ -258,9 +258,9 @@ int allocgpumem3d_plan(cufinufft_plan_t<T> *d_plan)
   const auto stream = d_plan->stream;
   int ier{0};
 
-  int nf1          = d_plan->nf1;
-  int nf2          = d_plan->nf2;
-  int nf3          = d_plan->nf3;
+  int nf1          = d_plan->nf123[0];
+  int nf2          = d_plan->nf123[1];
+  int nf3          = d_plan->nf123[2];
   int maxbatchsize = d_plan->batchsize;
 
   switch (d_plan->opts.gpu_method) {
@@ -345,15 +345,15 @@ int allocgpumem3d_plan(cufinufft_plan_t<T> *d_plan)
              stream, d_plan->supports_pools))))
       goto finalize;
     if ((ier = checkCudaErrors(
-             cudaMallocWrapper(&d_plan->fwkerhalf1, (nf1 / 2 + 1) * sizeof(T), stream,
+             cudaMallocWrapper(&d_plan->fwkerhalf[0], (nf1 / 2 + 1) * sizeof(T), stream,
                                d_plan->supports_pools))))
       goto finalize;
     if ((ier = checkCudaErrors(
-             cudaMallocWrapper(&d_plan->fwkerhalf2, (nf2 / 2 + 1) * sizeof(T), stream,
+             cudaMallocWrapper(&d_plan->fwkerhalf[1], (nf2 / 2 + 1) * sizeof(T), stream,
                                d_plan->supports_pools))))
       goto finalize;
     if ((ier = checkCudaErrors(
-             cudaMallocWrapper(&d_plan->fwkerhalf3, (nf3 / 2 + 1) * sizeof(T), stream,
+             cudaMallocWrapper(&d_plan->fwkerhalf[2], (nf3 / 2 + 1) * sizeof(T), stream,
                                d_plan->supports_pools))))
       goto finalize;
   }
@@ -441,9 +441,9 @@ void freegpumemory(cufinufft_plan_t<T> *d_plan)
   // (it is d_fk)
   if (!d_plan->opts.gpu_spreadinterponly || d_plan->type == 3)
     CUDA_FREE_AND_NULL(d_plan->fw, stream, d_plan->supports_pools);
-  CUDA_FREE_AND_NULL(d_plan->fwkerhalf1, stream, d_plan->supports_pools);
-  CUDA_FREE_AND_NULL(d_plan->fwkerhalf2, stream, d_plan->supports_pools);
-  CUDA_FREE_AND_NULL(d_plan->fwkerhalf3, stream, d_plan->supports_pools);
+  CUDA_FREE_AND_NULL(d_plan->fwkerhalf[0], stream, d_plan->supports_pools);
+  CUDA_FREE_AND_NULL(d_plan->fwkerhalf[1], stream, d_plan->supports_pools);
+  CUDA_FREE_AND_NULL(d_plan->fwkerhalf[2], stream, d_plan->supports_pools);
 
   CUDA_FREE_AND_NULL(d_plan->idxnupts, stream, d_plan->supports_pools);
   CUDA_FREE_AND_NULL(d_plan->sortidx, stream, d_plan->supports_pools);
@@ -460,12 +460,12 @@ void freegpumemory(cufinufft_plan_t<T> *d_plan)
     return;
   }
 
-  CUDA_FREE_AND_NULL(d_plan->kx, stream, d_plan->supports_pools);
-  CUDA_FREE_AND_NULL(d_plan->d_Sp, stream, d_plan->supports_pools);
-  CUDA_FREE_AND_NULL(d_plan->ky, stream, d_plan->supports_pools);
-  CUDA_FREE_AND_NULL(d_plan->d_Tp, stream, d_plan->supports_pools);
-  CUDA_FREE_AND_NULL(d_plan->kz, stream, d_plan->supports_pools);
-  CUDA_FREE_AND_NULL(d_plan->d_Up, stream, d_plan->supports_pools);
+  CUDA_FREE_AND_NULL(d_plan->kxyz[0], stream, d_plan->supports_pools);
+  CUDA_FREE_AND_NULL(d_plan->d_STUp[0], stream, d_plan->supports_pools);
+  CUDA_FREE_AND_NULL(d_plan->kxyz[1], stream, d_plan->supports_pools);
+  CUDA_FREE_AND_NULL(d_plan->d_STUp[1], stream, d_plan->supports_pools);
+  CUDA_FREE_AND_NULL(d_plan->kxyz[2], stream, d_plan->supports_pools);
+  CUDA_FREE_AND_NULL(d_plan->d_STUp[2], stream, d_plan->supports_pools);
   CUDA_FREE_AND_NULL(d_plan->prephase, stream, d_plan->supports_pools);
   CUDA_FREE_AND_NULL(d_plan->deconv, stream, d_plan->supports_pools);
   CUDA_FREE_AND_NULL(d_plan->fwbatch, stream, d_plan->supports_pools);

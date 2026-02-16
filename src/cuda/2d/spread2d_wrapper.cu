@@ -53,7 +53,7 @@ template<typename T> int cuspread2d(cufinufft_plan_t<T> *d_plan, int blksize) {
     Marco Barbone 01/30/25
   */
   return launch_dispatch_ns<Spread2DDispatcher, T>(
-      Spread2DDispatcher(), d_plan->spopts.nspread, d_plan->nf1, d_plan->nf2, d_plan->M,
+      Spread2DDispatcher(), d_plan->spopts.nspread, d_plan->nf123[0], d_plan->nf123[1], d_plan->M,
       d_plan, blksize);
 }
 
@@ -75,8 +75,8 @@ int cuspread2d_nuptsdriven_prop(int nf1, int nf2, int M, cufinufft_plan_t<T> *d_
     numbins[0] = ceil((T)nf1 / bin_size_x);
     numbins[1] = ceil((T)nf2 / bin_size_y);
 
-    T *d_kx = d_plan->kx;
-    T *d_ky = d_plan->ky;
+    T *d_kx = d_plan->kxyz[0];
+    T *d_ky = d_plan->kxyz[1];
 
     int *d_binsize     = d_plan->binsize;
     int *d_binstartpts = d_plan->binstartpts;
@@ -123,8 +123,8 @@ int cuspread2d_nuptsdriven(int nf1, int nf2, int M, cufinufft_plan_t<T> *d_plan,
   T es_beta       = d_plan->spopts.beta;
   T sigma         = d_plan->spopts.upsampfac;
 
-  T *d_kx               = d_plan->kx;
-  T *d_ky               = d_plan->ky;
+  T *d_kx               = d_plan->kxyz[0];
+  T *d_ky               = d_plan->kxyz[1];
   cuda_complex<T> *d_c  = d_plan->c;
   cuda_complex<T> *d_fw = d_plan->fw;
 
@@ -174,8 +174,8 @@ int cuspread2d_subprob_prop(int nf1, int nf2, int M, cufinufft_plan_t<T> *d_plan
   numbins[0] = ceil((T)nf1 / bin_size_x);
   numbins[1] = ceil((T)nf2 / bin_size_y);
 
-  T *d_kx = d_plan->kx;
-  T *d_ky = d_plan->ky;
+  T *d_kx = d_plan->kxyz[0];
+  T *d_ky = d_plan->kxyz[1];
 
   int *d_binsize         = d_plan->binsize;
   int *d_binstartpts     = d_plan->binstartpts;
@@ -259,8 +259,8 @@ int cuspread2d_output_driven(int nf1, int nf2, int M, cufinufft_plan_t<T> *d_pla
   numbins[0] = ceil((T)nf1 / bin_size_x);
   numbins[1] = ceil((T)nf2 / bin_size_y);
 
-  T *d_kx               = d_plan->kx;
-  T *d_ky               = d_plan->ky;
+  T *d_kx               = d_plan->kxyz[0];
+  T *d_ky               = d_plan->kxyz[1];
   cuda_complex<T> *d_c  = d_plan->c;
   cuda_complex<T> *d_fw = d_plan->fw;
 
@@ -328,8 +328,8 @@ int cuspread2d_subprob(int nf1, int nf2, int M, cufinufft_plan_t<T> *d_plan,
   numbins[0] = ceil((T)nf1 / bin_size_x);
   numbins[1] = ceil((T)nf2 / bin_size_y);
 
-  T *d_kx               = d_plan->kx;
-  T *d_ky               = d_plan->ky;
+  T *d_kx               = d_plan->kxyz[0];
+  T *d_ky               = d_plan->kxyz[1];
   cuda_complex<T> *d_c  = d_plan->c;
   cuda_complex<T> *d_fw = d_plan->fw;
 

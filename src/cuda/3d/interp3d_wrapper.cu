@@ -47,7 +47,7 @@ template<typename T> int cuinterp3d(cufinufft_plan_t<T> *d_plan, int blksize) {
     Marco Barbone 01/30/25
   */
   return launch_dispatch_ns<Interp3DDispatcher, T>(
-      Interp3DDispatcher(), d_plan->spopts.nspread, d_plan->nf1, d_plan->nf2, d_plan->nf3,
+      Interp3DDispatcher(), d_plan->spopts.nspread, d_plan->nf123[0], d_plan->nf123[1], d_plan->nf123[2],
       d_plan->M, d_plan, blksize);
 }
 
@@ -62,9 +62,9 @@ int cuinterp3d_nuptsdriven(int nf1, int nf2, int nf3, int M, cufinufft_plan_t<T>
 
   int *d_idxnupts = d_plan->idxnupts;
 
-  T *d_kx               = d_plan->kx;
-  T *d_ky               = d_plan->ky;
-  T *d_kz               = d_plan->kz;
+  T *d_kx               = d_plan->kxyz[0];
+  T *d_ky               = d_plan->kxyz[1];
+  T *d_kz               = d_plan->kxyz[2];
   cuda_complex<T> *d_c  = d_plan->c;
   cuda_complex<T> *d_fw = d_plan->fw;
 
@@ -107,9 +107,9 @@ int cuinterp3d_subprob(int nf1, int nf2, int nf3, int M, cufinufft_plan_t<T> *d_
   numbins[1] = ceil((T)nf2 / bin_size_y);
   numbins[2] = ceil((T)nf3 / bin_size_z);
 
-  T *d_kx               = d_plan->kx;
-  T *d_ky               = d_plan->ky;
-  T *d_kz               = d_plan->kz;
+  T *d_kx               = d_plan->kxyz[0];
+  T *d_ky               = d_plan->kxyz[1];
+  T *d_kz               = d_plan->kxyz[2];
   cuda_complex<T> *d_c  = d_plan->c;
   cuda_complex<T> *d_fw = d_plan->fw;
 

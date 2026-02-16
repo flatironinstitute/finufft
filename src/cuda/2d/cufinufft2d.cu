@@ -41,7 +41,7 @@ int cufinufft2d1_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
   for (int i = 0; i * d_plan->batchsize < d_plan->ntransf; i++) {
     int blksize = min(d_plan->ntransf - i * d_plan->batchsize, d_plan->batchsize);
     d_cstart    = d_c + i * d_plan->batchsize * d_plan->M;
-    d_fkstart   = d_fk + i * d_plan->batchsize * d_plan->ms * d_plan->mt;
+    d_fkstart   = d_fk + i * d_plan->batchsize * d_plan->mstu[0] * d_plan->mstu[1];
     d_plan->c   = d_cstart;
     d_plan->fk  = d_fkstart;  // so deconvolve will write into user output f
     if (d_plan->opts.gpu_spreadinterponly)
@@ -50,7 +50,7 @@ int cufinufft2d1_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
     // this is needed
     if ((ier = checkCudaErrors(cudaMemsetAsync(
              d_plan->fw, 0,
-             d_plan->batchsize * d_plan->nf1 * d_plan->nf2 * sizeof(cuda_complex<T>),
+             d_plan->batchsize * d_plan->nf123[0] * d_plan->nf123[1] * sizeof(cuda_complex<T>),
              stream))))
       return ier;
 
@@ -99,7 +99,7 @@ int cufinufft2d2_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
   for (int i = 0; i * d_plan->batchsize < d_plan->ntransf; i++) {
     int blksize = min(d_plan->ntransf - i * d_plan->batchsize, d_plan->batchsize);
     d_cstart    = d_c + i * d_plan->batchsize * d_plan->M;
-    d_fkstart   = d_fk + i * d_plan->batchsize * d_plan->ms * d_plan->mt;
+    d_fkstart   = d_fk + i * d_plan->batchsize * d_plan->mstu[0] * d_plan->mstu[1];
 
     d_plan->c  = d_cstart;
     d_plan->fk = d_fkstart;

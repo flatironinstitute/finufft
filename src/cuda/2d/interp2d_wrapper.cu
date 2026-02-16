@@ -46,7 +46,7 @@ template<typename T> int cuinterp2d(cufinufft_plan_t<T> *d_plan, int blksize) {
     Marco Barbone 01/30/25
   */
   return launch_dispatch_ns<Interp2DDispatcher, T>(
-      Interp2DDispatcher(), d_plan->spopts.nspread, d_plan->nf1, d_plan->nf2, d_plan->M,
+      Interp2DDispatcher(), d_plan->spopts.nspread, d_plan->nf123[0], d_plan->nf123[1], d_plan->M,
       d_plan, blksize);
 }
 
@@ -64,8 +64,8 @@ int cuinterp2d_nuptsdriven(int nf1, int nf2, int M, cufinufft_plan_t<T> *d_plan,
 
   int *d_idxnupts = d_plan->idxnupts;
 
-  T *d_kx               = d_plan->kx;
-  T *d_ky               = d_plan->ky;
+  T *d_kx               = d_plan->kxyz[0];
+  T *d_ky               = d_plan->kxyz[1];
   cuda_complex<T> *d_c  = d_plan->c;
   cuda_complex<T> *d_fw = d_plan->fw;
 
@@ -110,8 +110,8 @@ int cuinterp2d_subprob(int nf1, int nf2, int M, cufinufft_plan_t<T> *d_plan,
   numbins[0] = ceil((T)nf1 / bin_size_x);
   numbins[1] = ceil((T)nf2 / bin_size_y);
 
-  T *d_kx               = d_plan->kx;
-  T *d_ky               = d_plan->ky;
+  T *d_kx               = d_plan->kxyz[0];
+  T *d_ky               = d_plan->kxyz[1];
   cuda_complex<T> *d_c  = d_plan->c;
   cuda_complex<T> *d_fw = d_plan->fw;
 

@@ -12,21 +12,13 @@
 namespace cufinufft {
 namespace common {
 template<typename T>
-__global__ void fseries_kernel_compute(int nf1, int nf2, int nf3, T *f, T *a,
-                                       T *fwkerhalf1, T *fwkerhalf2, T *fwkerhalf3,
-                                       int ns);
-template<typename T>
-__global__ void cu_nuft_kernel_compute(int nf1, int nf2, int nf3, T *f, T *z, T *kx,
-                                       T *ky, T *kz, T *fwkerhalf1, T *fwkerhalf2,
-                                       T *fwkerhalf3, int ns);
-template<typename T>
-int fseries_kernel_compute(int dim, int nf1, int nf2, int nf3, T *d_f, T *d_phase,
-                           T *d_fwkerhalf1, T *d_fwkerhalf2, T *d_fwkerhalf3, int ns,
+int fseries_kernel_compute(int dim, cuda::std::array<CUFINUFFT_BIGINT,3> nf123, T *d_f, T *d_phase,
+                           cuda::std::array<T *,3> d_fwkerhalf, int ns,
                            cudaStream_t stream);
 template<typename T>
-int nuft_kernel_compute(int dim, int nf1, int nf2, int nf3, T *d_f, T *d_z, T *d_kx,
-                        T *d_ky, T *d_kz, T *d_fwkerhalf1, T *d_fwkerhalf2,
-                        T *d_fwkerhalf3, int ns, cudaStream_t stream);
+int nuft_kernel_compute(int dim, cuda::std::array<CUFINUFFT_BIGINT,3> nf123, T *d_f, T *d_z,
+                        cuda::std::array<T *,3> d_kxyz, cuda::std::array<T *,3>d_fwkerhalf,
+                        int ns, cudaStream_t stream);
 template<typename T>
 int setup_spreader_for_nufft(finufft_spread_opts &spopts, T eps, cufinufft_opts opts);
 

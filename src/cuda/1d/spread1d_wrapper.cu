@@ -54,7 +54,7 @@ template<typename T> int cuspread1d(cufinufft_plan_t<T> *d_plan, int blksize) {
     Marco Barbone 01/30/25
  */
   return launch_dispatch_ns<Spread1DDispatcher, T>(Spread1DDispatcher(),
-                                                   d_plan->spopts.nspread, d_plan->nf1,
+                                                   d_plan->spopts.nspread, d_plan->nf123[0],
                                                    d_plan->M, d_plan, blksize);
 }
 
@@ -71,7 +71,7 @@ int cuspread1d_nuptsdriven_prop(int nf1, int M, cufinufft_plan_t<T> *d_plan) {
 
     int numbins = ceil((T)nf1 / bin_size_x);
 
-    T *d_kx = d_plan->kx;
+    T *d_kx = d_plan->kxyz[0];
 
     int *d_binsize     = d_plan->binsize;
     int *d_binstartpts = d_plan->binstartpts;
@@ -114,7 +114,7 @@ int cuspread1d_nuptsdriven(int nf1, int M, cufinufft_plan_t<T> *d_plan, int blks
   T es_beta       = d_plan->spopts.beta;
   T sigma         = d_plan->spopts.upsampfac;
 
-  T *d_kx               = d_plan->kx;
+  T *d_kx               = d_plan->kxyz[0];
   cuda_complex<T> *d_c  = d_plan->c;
   cuda_complex<T> *d_fw = d_plan->fw;
 
@@ -150,7 +150,7 @@ int cuspread1d_output_driven(int nf1, int M, cufinufft_plan_t<T> *d_plan, int bl
   int bin_size_x = d_plan->opts.gpu_binsizex;
   int numbins    = ceil((T)nf1 / bin_size_x);
 
-  T *d_kx               = d_plan->kx;
+  T *d_kx               = d_plan->kxyz[0];
   cuda_complex<T> *d_c  = d_plan->c;
   cuda_complex<T> *d_fw = d_plan->fw;
 
@@ -219,7 +219,7 @@ int cuspread1d_subprob_prop(int nf1, int M, cufinufft_plan_t<T> *d_plan)
   }
 
   const auto numbins           = (nf1 + bin_size_x - 1) / bin_size_x;
-  const auto d_kx              = d_plan->kx;
+  const auto d_kx              = d_plan->kxyz[0];
   const auto d_binsize         = d_plan->binsize;
   const auto d_binstartpts     = d_plan->binstartpts;
   const auto d_sortidx         = d_plan->sortidx;
@@ -289,7 +289,7 @@ int cuspread1d_subprob(int nf1, int M, cufinufft_plan_t<T> *d_plan, int blksize)
   int bin_size_x = d_plan->opts.gpu_binsizex;
   int numbins    = ceil((T)nf1 / bin_size_x);
 
-  T *d_kx               = d_plan->kx;
+  T *d_kx               = d_plan->kxyz[0];
   cuda_complex<T> *d_c  = d_plan->c;
   cuda_complex<T> *d_fw = d_plan->fw;
 
