@@ -46,10 +46,9 @@ int cufinufft3d1_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
     if (d_plan->opts.gpu_spreadinterponly)
       d_plan->fw = d_fkstart; // spread directly into user output f
 
-    if ((ier = checkCudaErrors(cudaMemsetAsync(
+    checkCudaErrors(cudaMemsetAsync(
              d_plan->fw, 0, d_plan->batchsize * d_plan->nf * sizeof(cuda_complex<T>),
-             stream))))
-      return ier;
+             stream));
 
     // Step 1: Spread
     if ((ier = cuspread3d<T>(d_plan, blksize))) return ier;
@@ -152,10 +151,9 @@ int cufinufft3d3_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
     // setting output for spreader
     d_plan->fk = d_plan->fw;
     // NOTE: fw might need to be set to 0
-    if ((ier = checkCudaErrors(cudaMemsetAsync(
+    checkCudaErrors(cudaMemsetAsync(
              d_plan->fw, 0, d_plan->batchsize * d_plan->nf * sizeof(cuda_complex<T>),
-             stream))))
-      return ier;
+             stream));
     // Step 0: pre-phase the input strengths
     for (int i = 0; i < blksize; i++) {
       thrust::transform(thrust::cuda::par.on(stream), d_plan->prephase,

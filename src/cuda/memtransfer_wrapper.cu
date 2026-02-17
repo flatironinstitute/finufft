@@ -30,33 +30,26 @@ int allocgpumem1d_plan(cufinufft_plan_t<T> *d_plan)
   case 1: {
     if (d_plan->opts.gpu_sort) {
       int numbins = ceil((T)nf1 / d_plan->opts.gpu_binsizex);
-      if ((ier = checkCudaErrors(cudaMallocWrapper(
-               &d_plan->binsize, numbins * sizeof(int), stream, d_plan->supports_pools))))
-        goto finalize;
-      if ((ier = checkCudaErrors(
+      checkCudaErrors(cudaMallocWrapper(
+               &d_plan->binsize, numbins * sizeof(int), stream, d_plan->supports_pools));
+      checkCudaErrors(
                cudaMallocWrapper(&d_plan->binstartpts, numbins * sizeof(int), stream,
-                                 d_plan->supports_pools))))
-        goto finalize;
+                                 d_plan->supports_pools));
     }
   } break;
   case 2:
   case 3: {
     int numbins = ceil((T)nf1 / d_plan->opts.gpu_binsizex);
-    if ((ier =
-             checkCudaErrors(cudaMallocWrapper(&d_plan->numsubprob, numbins * sizeof(int),
-                                               stream, d_plan->supports_pools))))
-      goto finalize;
-    if ((ier = checkCudaErrors(cudaMallocWrapper(&d_plan->binsize, numbins * sizeof(int),
-                                                 stream, d_plan->supports_pools))))
-      goto finalize;
-    if ((ier = checkCudaErrors(
+    checkCudaErrors(cudaMallocWrapper(&d_plan->numsubprob, numbins * sizeof(int),
+                                               stream, d_plan->supports_pools));
+    checkCudaErrors(cudaMallocWrapper(&d_plan->binsize, numbins * sizeof(int),
+                                                 stream, d_plan->supports_pools));
+    checkCudaErrors(
              cudaMallocWrapper(&d_plan->binstartpts, numbins * sizeof(int), stream,
-                               d_plan->supports_pools))))
-      goto finalize;
-    if ((ier = checkCudaErrors(
+                               d_plan->supports_pools));
+    checkCudaErrors(
              cudaMallocWrapper(&d_plan->subprobstartpts, (numbins + 1) * sizeof(int),
-                               stream, d_plan->supports_pools))))
-      goto finalize;
+                               stream, d_plan->supports_pools));
   } break;
   default:
     ier = FINUFFT_ERR_METHOD_NOTVALID;
@@ -64,14 +57,12 @@ int allocgpumem1d_plan(cufinufft_plan_t<T> *d_plan)
   }
 
   if (!d_plan->opts.gpu_spreadinterponly) {
-    if ((ier = checkCudaErrors(
+    checkCudaErrors(
              cudaMallocWrapper(&d_plan->fw, maxbatchsize * nf1 * sizeof(cuda_complex<T>),
-                               stream, d_plan->supports_pools))))
-      goto finalize;
-    if ((ier = checkCudaErrors(
+                               stream, d_plan->supports_pools));
+    checkCudaErrors(
              cudaMallocWrapper(&d_plan->fwkerhalf[0], (nf1 / 2 + 1) * sizeof(T), stream,
-                               d_plan->supports_pools))))
-      goto finalize;
+                               d_plan->supports_pools));
   }
 
 finalize:
@@ -100,13 +91,11 @@ int allocgpumem1d_nupts(cufinufft_plan_t<T> *d_plan)
   case 1:
   case 2:
   case 3: {
-    if (d_plan->opts.gpu_sort &&
-        (ier = checkCudaErrors(cudaMallocWrapper(&d_plan->sortidx, M * sizeof(int),
-                                                 stream, d_plan->supports_pools))))
-      goto finalize;
-    if ((ier = checkCudaErrors(cudaMallocWrapper(&d_plan->idxnupts, M * sizeof(int),
-                                                 stream, d_plan->supports_pools))))
-      goto finalize;
+    if (d_plan->opts.gpu_sort)
+        checkCudaErrors(cudaMallocWrapper(&d_plan->sortidx, M * sizeof(int),
+                                                 stream, d_plan->supports_pools));
+    checkCudaErrors(cudaMallocWrapper(&d_plan->idxnupts, M * sizeof(int),
+                                                 stream, d_plan->supports_pools));
   } break;
   default:
     std::cerr << "[allocgpumem1d_nupts] error: invalid method\n";
@@ -141,14 +130,12 @@ int allocgpumem2d_plan(cufinufft_plan_t<T> *d_plan)
       int numbins[2];
       numbins[0] = ceil((T)nf1 / d_plan->opts.gpu_binsizex);
       numbins[1] = ceil((T)nf2 / d_plan->opts.gpu_binsizey);
-      if ((ier = checkCudaErrors(
+      checkCudaErrors(
                cudaMallocWrapper(&d_plan->binsize, numbins[0] * numbins[1] * sizeof(int),
-                                 stream, d_plan->supports_pools))))
-        goto finalize;
-      if ((ier = checkCudaErrors(cudaMallocWrapper(&d_plan->binstartpts,
+                                 stream, d_plan->supports_pools));
+      checkCudaErrors(cudaMallocWrapper(&d_plan->binstartpts,
                                                    numbins[0] * numbins[1] * sizeof(int),
-                                                   stream, d_plan->supports_pools))))
-        goto finalize;
+                                                   stream, d_plan->supports_pools));
     }
   } break;
   case 2:
@@ -156,22 +143,18 @@ int allocgpumem2d_plan(cufinufft_plan_t<T> *d_plan)
     int64_t numbins[2];
     numbins[0] = ceil((T)nf1 / d_plan->opts.gpu_binsizex);
     numbins[1] = ceil((T)nf2 / d_plan->opts.gpu_binsizey);
-    if ((ier = checkCudaErrors(
+    checkCudaErrors(
              cudaMallocWrapper(&d_plan->numsubprob, numbins[0] * numbins[1] * sizeof(int),
-                               stream, d_plan->supports_pools))))
-      goto finalize;
-    if ((ier = checkCudaErrors(
+                               stream, d_plan->supports_pools));
+    checkCudaErrors(
              cudaMallocWrapper(&d_plan->binsize, numbins[0] * numbins[1] * sizeof(int),
-                               stream, d_plan->supports_pools))))
-      goto finalize;
-    if ((ier = checkCudaErrors(cudaMallocWrapper(&d_plan->binstartpts,
+                               stream, d_plan->supports_pools));
+    checkCudaErrors(cudaMallocWrapper(&d_plan->binstartpts,
                                                  numbins[0] * numbins[1] * sizeof(int),
-                                                 stream, d_plan->supports_pools))))
-      goto finalize;
-    if ((ier = checkCudaErrors(cudaMallocWrapper(
+                                                 stream, d_plan->supports_pools));
+    checkCudaErrors(cudaMallocWrapper(
              &d_plan->subprobstartpts, (numbins[0] * numbins[1] + 1) * sizeof(int),
-             stream, d_plan->supports_pools))))
-      goto finalize;
+             stream, d_plan->supports_pools));
   } break;
   default:
     ier = FINUFFT_ERR_METHOD_NOTVALID;
@@ -179,18 +162,15 @@ int allocgpumem2d_plan(cufinufft_plan_t<T> *d_plan)
   }
 
   if (!d_plan->opts.gpu_spreadinterponly) {
-    if ((ier = checkCudaErrors(cudaMallocWrapper(
+    checkCudaErrors(cudaMallocWrapper(
              &d_plan->fw, maxbatchsize * nf1 * nf2 * sizeof(cuda_complex<T>), stream,
-             d_plan->supports_pools))))
-      goto finalize;
-    if ((ier = checkCudaErrors(
+             d_plan->supports_pools));
+    checkCudaErrors(
              cudaMallocWrapper(&d_plan->fwkerhalf[0], (nf1 / 2 + 1) * sizeof(T), stream,
-                               d_plan->supports_pools))))
-      goto finalize;
-    if ((ier = checkCudaErrors(
+                               d_plan->supports_pools));
+    checkCudaErrors(
              cudaMallocWrapper(&d_plan->fwkerhalf[1], (nf2 / 2 + 1) * sizeof(T), stream,
-                               d_plan->supports_pools))))
-      goto finalize;
+                               d_plan->supports_pools));
   }
 
 finalize:
@@ -218,22 +198,18 @@ int allocgpumem2d_nupts(cufinufft_plan_t<T> *d_plan)
 
   switch (d_plan->opts.gpu_method) {
   case 1: {
-    if (d_plan->opts.gpu_sort &&
-        (ier = checkCudaErrors(cudaMallocWrapper(&d_plan->sortidx, M * sizeof(int),
-                                                 stream, d_plan->supports_pools))))
-      goto finalize;
-    if ((ier = checkCudaErrors(cudaMallocWrapper(&d_plan->idxnupts, M * sizeof(int),
-                                                 stream, d_plan->supports_pools))))
-      goto finalize;
+    if (d_plan->opts.gpu_sort)
+        checkCudaErrors(cudaMallocWrapper(&d_plan->sortidx, M * sizeof(int),
+                                                 stream, d_plan->supports_pools));
+    checkCudaErrors(cudaMallocWrapper(&d_plan->idxnupts, M * sizeof(int),
+                                                 stream, d_plan->supports_pools));
   } break;
   case 2:
   case 3: {
-    if ((ier = checkCudaErrors(cudaMallocWrapper(&d_plan->idxnupts, M * sizeof(int),
-                                                 stream, d_plan->supports_pools))))
-      goto finalize;
-    if ((ier = checkCudaErrors(cudaMallocWrapper(&d_plan->sortidx, M * sizeof(int),
-                                                 stream, d_plan->supports_pools))))
-      goto finalize;
+    checkCudaErrors(cudaMallocWrapper(&d_plan->idxnupts, M * sizeof(int),
+                                                 stream, d_plan->supports_pools));
+    checkCudaErrors(cudaMallocWrapper(&d_plan->sortidx, M * sizeof(int),
+                                                 stream, d_plan->supports_pools));
   } break;
   default:
     ier = FINUFFT_ERR_METHOD_NOTVALID;
@@ -269,14 +245,12 @@ int allocgpumem3d_plan(cufinufft_plan_t<T> *d_plan)
       const int64_t nbins_tot = ceil((T)nf1 / d_plan->opts.gpu_binsizex) *
                                 ceil((T)nf2 / d_plan->opts.gpu_binsizey) *
                                 ceil((T)nf3 / d_plan->opts.gpu_binsizez);
-      if ((ier = checkCudaErrors(
+      checkCudaErrors(
                cudaMallocWrapper(&d_plan->binsize, nbins_tot * sizeof(int), stream,
-                                 d_plan->supports_pools))))
-        goto finalize;
-      if ((ier = checkCudaErrors(
+                                 d_plan->supports_pools));
+      checkCudaErrors(
                cudaMallocWrapper(&d_plan->binstartpts, nbins_tot * sizeof(int), stream,
-                                 d_plan->supports_pools))))
-        goto finalize;
+                                 d_plan->supports_pools));
     }
   } break;
   case 2:
@@ -285,21 +259,17 @@ int allocgpumem3d_plan(cufinufft_plan_t<T> *d_plan)
                               ceil((T)nf2 / d_plan->opts.gpu_binsizey) *
                               ceil((T)nf3 / d_plan->opts.gpu_binsizez);
 
-    if ((ier = checkCudaErrors(
+    checkCudaErrors(
              cudaMallocWrapper(&d_plan->numsubprob, nbins_tot * sizeof(int), stream,
-                               d_plan->supports_pools))))
-      goto finalize;
-    if ((ier = checkCudaErrors(cudaMallocWrapper(
-             &d_plan->binsize, nbins_tot * sizeof(int), stream, d_plan->supports_pools))))
-      goto finalize;
-    if ((ier = checkCudaErrors(
+                               d_plan->supports_pools));
+    checkCudaErrors(cudaMallocWrapper(
+             &d_plan->binsize, nbins_tot * sizeof(int), stream, d_plan->supports_pools));
+    checkCudaErrors(
              cudaMallocWrapper(&d_plan->binstartpts, nbins_tot * sizeof(int), stream,
-                               d_plan->supports_pools))))
-      goto finalize;
-    if ((ier = checkCudaErrors(
+                               d_plan->supports_pools));
+    checkCudaErrors(
              cudaMallocWrapper(&d_plan->subprobstartpts, (nbins_tot + 1) * sizeof(int),
-                               stream, d_plan->supports_pools))))
-      goto finalize;
+                               stream, d_plan->supports_pools));
   } break;
   case 4: {
     const int numobins[3] = {(int)ceil((T)nf1 / d_plan->opts.gpu_obinsizex),
@@ -317,22 +287,18 @@ int allocgpumem3d_plan(cufinufft_plan_t<T> *d_plan)
     const int64_t numobins_tot = numobins[0] * numobins[1] * numobins[2];
     const int64_t numbins_tot  = numbins[0] * numbins[1] * numbins[2];
 
-    if ((ier = checkCudaErrors(
+    checkCudaErrors(
              cudaMallocWrapper(&d_plan->numsubprob, numobins_tot * sizeof(int), stream,
-                               d_plan->supports_pools))))
-      goto finalize;
-    if ((ier = checkCudaErrors(
+                               d_plan->supports_pools));
+    checkCudaErrors(
              cudaMallocWrapper(&d_plan->binsize, numbins_tot * sizeof(int), stream,
-                               d_plan->supports_pools))))
-      goto finalize;
-    if ((ier = checkCudaErrors(
+                               d_plan->supports_pools));
+    checkCudaErrors(
              cudaMallocWrapper(&d_plan->binstartpts, (numbins_tot + 1) * sizeof(int),
-                               stream, d_plan->supports_pools))))
-      goto finalize;
-    if ((ier = checkCudaErrors(
+                               stream, d_plan->supports_pools));
+    checkCudaErrors(
              cudaMallocWrapper(&d_plan->subprobstartpts, (numobins_tot + 1) * sizeof(int),
-                               stream, d_plan->supports_pools))))
-      goto finalize;
+                               stream, d_plan->supports_pools));
   } break;
   default:
     ier = FINUFFT_ERR_METHOD_NOTVALID;
@@ -340,22 +306,18 @@ int allocgpumem3d_plan(cufinufft_plan_t<T> *d_plan)
   }
 
   if (!d_plan->opts.gpu_spreadinterponly) {
-    if ((ier = checkCudaErrors(cudaMallocWrapper(
+    checkCudaErrors(cudaMallocWrapper(
              &d_plan->fw, maxbatchsize * nf1 * nf2 * nf3 * sizeof(cuda_complex<T>),
-             stream, d_plan->supports_pools))))
-      goto finalize;
-    if ((ier = checkCudaErrors(
+             stream, d_plan->supports_pools));
+    checkCudaErrors(
              cudaMallocWrapper(&d_plan->fwkerhalf[0], (nf1 / 2 + 1) * sizeof(T), stream,
-                               d_plan->supports_pools))))
-      goto finalize;
-    if ((ier = checkCudaErrors(
+                               d_plan->supports_pools));
+    checkCudaErrors(
              cudaMallocWrapper(&d_plan->fwkerhalf[1], (nf2 / 2 + 1) * sizeof(T), stream,
-                               d_plan->supports_pools))))
-      goto finalize;
-    if ((ier = checkCudaErrors(
+                               d_plan->supports_pools));
+    checkCudaErrors(
              cudaMallocWrapper(&d_plan->fwkerhalf[2], (nf3 / 2 + 1) * sizeof(T), stream,
-                               d_plan->supports_pools))))
-      goto finalize;
+                               d_plan->supports_pools));
   }
 
 finalize:
@@ -386,34 +348,27 @@ int allocgpumem3d_nupts(cufinufft_plan_t<T> *d_plan)
 
   switch (d_plan->opts.gpu_method) {
   case 1: {
-    if (d_plan->opts.gpu_sort &&
-        ((ier = checkCudaErrors(cudaMallocWrapper(&d_plan->sortidx, M * sizeof(int),
-                                                  stream, d_plan->supports_pools)))))
-      goto finalize;
-    if ((ier = checkCudaErrors(cudaMallocWrapper(&d_plan->idxnupts, M * sizeof(int),
-                                                 stream, d_plan->supports_pools))))
-      goto finalize;
+    if (d_plan->opts.gpu_sort)
+        checkCudaErrors(cudaMallocWrapper(&d_plan->sortidx, M * sizeof(int),
+                                                  stream, d_plan->supports_pools));
+    checkCudaErrors(cudaMallocWrapper(&d_plan->idxnupts, M * sizeof(int),
+                                                 stream, d_plan->supports_pools));
   } break;
   case 2: {
-    if ((ier = checkCudaErrors(cudaMallocWrapper(&d_plan->idxnupts, M * sizeof(int),
-                                                 stream, d_plan->supports_pools))))
-      goto finalize;
-    if ((ier = checkCudaErrors(cudaMallocWrapper(&d_plan->sortidx, M * sizeof(int),
-                                                 stream, d_plan->supports_pools))))
-      goto finalize;
+    checkCudaErrors(cudaMallocWrapper(&d_plan->idxnupts, M * sizeof(int),
+                                                 stream, d_plan->supports_pools));
+    checkCudaErrors(cudaMallocWrapper(&d_plan->sortidx, M * sizeof(int),
+                                                 stream, d_plan->supports_pools));
   } break;
   case 3: {
-    if ((ier = checkCudaErrors(cudaMallocWrapper(&d_plan->idxnupts, M * sizeof(int),
-                                                 stream, d_plan->supports_pools))))
-      goto finalize;
-    if ((ier = checkCudaErrors(cudaMallocWrapper(&d_plan->sortidx, M * sizeof(int),
-                                                 stream, d_plan->supports_pools))))
-      goto finalize;
+    checkCudaErrors(cudaMallocWrapper(&d_plan->idxnupts, M * sizeof(int),
+                                                 stream, d_plan->supports_pools));
+    checkCudaErrors(cudaMallocWrapper(&d_plan->sortidx, M * sizeof(int),
+                                                 stream, d_plan->supports_pools));
   } break;
   case 4: {
-    if ((ier = checkCudaErrors(cudaMallocWrapper(&d_plan->sortidx, M * sizeof(int),
-                                                 stream, d_plan->supports_pools))))
-      goto finalize;
+    checkCudaErrors(cudaMallocWrapper(&d_plan->sortidx, M * sizeof(int),
+                                                 stream, d_plan->supports_pools));
   } break;
   default:
     ier = FINUFFT_ERR_METHOD_NOTVALID;

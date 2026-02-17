@@ -83,10 +83,8 @@ int cuspread2d_nuptsdriven_prop(int nf1, int nf2, int M, cufinufft_plan_t<T> *d_
     int *d_sortidx     = d_plan->sortidx;
     int *d_idxnupts    = d_plan->idxnupts;
 
-    int ier;
-    if ((ier = checkCudaErrors(cudaMemsetAsync(
-             d_binsize, 0, numbins[0] * numbins[1] * sizeof(int), stream))))
-      return ier;
+    checkCudaErrors(cudaMemsetAsync(
+             d_binsize, 0, numbins[0] * numbins[1] * sizeof(int), stream));
 
     calc_bin_size_noghost_2d<<<(M + 1024 - 1) / 1024, 1024, 0, stream>>>(
         M, nf1, nf2, bin_size_x, bin_size_y, numbins[0], numbins[1], d_binsize, d_kx,
@@ -186,10 +184,8 @@ int cuspread2d_subprob_prop(int nf1, int nf2, int M, cufinufft_plan_t<T> *d_plan
 
   int *d_subprob_to_bin = NULL;
 
-  int ier;
-  if ((ier = checkCudaErrors(
-           cudaMemsetAsync(d_binsize, 0, numbins[0] * numbins[1] * sizeof(int), stream))))
-    return ier;
+  checkCudaErrors(
+           cudaMemsetAsync(d_binsize, 0, numbins[0] * numbins[1] * sizeof(int), stream));
 
   calc_bin_size_noghost_2d<<<(M + 1024 - 1) / 1024, 1024, 0, stream>>>(
       M, nf1, nf2, bin_size_x, bin_size_y, numbins[0], numbins[1], d_binsize, d_kx, d_ky,
@@ -213,19 +209,15 @@ int cuspread2d_subprob_prop(int nf1, int nf2, int M, cufinufft_plan_t<T> *d_plan
   d_result = thrust::device_pointer_cast(d_subprobstartpts + 1);
   thrust::inclusive_scan(thrust::cuda::par.on(stream), d_ptr, d_ptr + n, d_result);
 
-  if ((ier = checkCudaErrors(cudaMemsetAsync(d_subprobstartpts, 0, sizeof(int), stream))))
-    return ier;
+  checkCudaErrors(cudaMemsetAsync(d_subprobstartpts, 0, sizeof(int), stream));
 
   int totalnumsubprob;
-  if ((ier =
-           checkCudaErrors(cudaMemcpyAsync(&totalnumsubprob, &d_subprobstartpts[n],
-                                           sizeof(int), cudaMemcpyDeviceToHost, stream))))
-    return ier;
+  checkCudaErrors(cudaMemcpyAsync(&totalnumsubprob, &d_subprobstartpts[n],
+                                           sizeof(int), cudaMemcpyDeviceToHost, stream));
   cudaStreamSynchronize(stream);
-  if ((ier = checkCudaErrors(
+  checkCudaErrors(
            cudaMallocWrapper(&d_subprob_to_bin, totalnumsubprob * sizeof(int), stream,
-                             d_plan->supports_pools))))
-    return ier;
+                             d_plan->supports_pools));
   map_b_into_subprob_2d<<<(numbins[0] * numbins[1] + 1024 - 1) / 1024, 1024, 0, stream>>>(
       d_subprob_to_bin, d_subprobstartpts, d_numsubprob, numbins[0] * numbins[1]);
   cudaError_t err = cudaGetLastError();

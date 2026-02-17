@@ -133,14 +133,12 @@ static const char *cufftGetErrorString(cufftResult error) {
 }
 
 template<typename T>
-int check(T result, const char *const func, const char *const file, const int line) {
+void check(T result, const char *const func, const char *const file, const int line) {
   if (result) {
     fprintf(stderr, "CUDA error at %s:%d code=%d(%s) \"%s\" \n", file, line,
             static_cast<unsigned int>(result), _cudaGetErrorEnum(result), func);
-    return FINUFFT_ERR_CUDA_FAILURE;
+    throw FINUFFT_ERR_CUDA_FAILURE;
   }
-
-  return 0;
 }
 
 #endif // COMMON_HELPER_CUDA_H_

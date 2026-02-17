@@ -10,42 +10,38 @@
 namespace cufinufft {
 namespace spreadinterp {
 
-// Functor to handle function selection (nuptsdriven vs subprob)
-struct Interp1DDispatcher {
-  template<int ns, typename T>
-  int operator()(int nf1, int M, cufinufft_plan_t<T> *d_plan, int blksize) const {
-    switch (d_plan->opts.gpu_method) {
-    case 1:
-      return cuinterp1d_nuptsdriven<T, ns>(nf1, M, d_plan, blksize);
-    default:
-      std::cerr << "[cuinterp1d] error: incorrect method, should be 1\n";
-      return FINUFFT_ERR_METHOD_NOTVALID;
+/* --------------------- 1d Interpolation Kernels ----------------------------*/
+/* Kernels for NUptsdriven Method */
+template<typename T, int KEREVALMETH, int ns>
+static __global__ void interp_1d_nuptsdriven(const T *x, cuda_complex<T> *c,
+                                      const cuda_complex<T> *fw, int M, int nf1, T es_c,
+                                      T es_beta, T sigma, const int *idxnupts) {
+
+  for (int i = blockDim.x * blockIdx.x + threadIdx.x; i < M;
+       i += blockDim.x * gridDim.x) {
+    const T x_rescaled        = fold_rescale(x[idxnupts[i]], nf1);
+    const auto [xstart, xend] = interval(ns, x_rescaled);
+
+    cuda_complex<T> cnow{0, 0};
+
+    const T x1 = (T)xstart - x_rescaled;
+    T ker1[ns];
+    if constexpr (KEREVALMETH == 1)
+      eval_kernel_vec_horner<T, ns>(ker1, x1, sigma);
+    else
+      eval_kernel_vec<T, ns>(ker1, x1, es_c, es_beta);
+    for (int xx = xstart; xx <= xend; xx++) {
+      int ix            = xx < 0 ? xx + nf1 : (xx > nf1 - 1 ? xx - nf1 : xx);
+      const T kervalue1 = ker1[xx - xstart];
+      cnow.x += fw[ix].x * kervalue1;
+      cnow.y += fw[ix].y * kervalue1;
     }
+    c[idxnupts[i]] = cnow;
   }
-};
-
-// Updated cuinterp1d using generic dispatch
-template<typename T> int cuinterp1d(cufinufft_plan_t<T> *d_plan, int blksize) {
-  /*
-   A wrapper for different interpolation methods.
-
-   Methods available:
-      (1) Non-uniform points driven
-      (2) Subproblem
-
-   Melody Shih 11/21/21
-
-   Now the function is updated to dispatch based on ns. This is to avoid alloca which
-   it seems slower according to the MRI community.
-   Marco Barbone 01/30/25
-  */
-  return launch_dispatch_ns<Interp1DDispatcher, T>(Interp1DDispatcher(),
-                                                   d_plan->spopts.nspread, d_plan->nf123[0],
-                                                   d_plan->M, d_plan, blksize);
 }
 
 template<typename T, int ns>
-int cuinterp1d_nuptsdriven(int nf1, int M, cufinufft_plan_t<T> *d_plan, int blksize) {
+static int cuinterp1d_nuptsdriven(int nf1, int M, cufinufft_plan_t<T> *d_plan, int blksize) {
   auto &stream = d_plan->stream;
   dim3 threadsPerBlock;
   dim3 blocks;
@@ -80,6 +76,40 @@ int cuinterp1d_nuptsdriven(int nf1, int M, cufinufft_plan_t<T> *d_plan, int blks
   }
 
   return 0;
+}
+
+// Functor to handle function selection (nuptsdriven vs subprob)
+struct Interp1DDispatcher {
+  template<int ns, typename T>
+  int operator()(int nf1, int M, cufinufft_plan_t<T> *d_plan, int blksize) const {
+    switch (d_plan->opts.gpu_method) {
+    case 1:
+      return cuinterp1d_nuptsdriven<T, ns>(nf1, M, d_plan, blksize);
+    default:
+      std::cerr << "[cuinterp1d] error: incorrect method, should be 1\n";
+      return FINUFFT_ERR_METHOD_NOTVALID;
+    }
+  }
+};
+
+// Updated cuinterp1d using generic dispatch
+template<typename T> int cuinterp1d(cufinufft_plan_t<T> *d_plan, int blksize) {
+  /*
+   A wrapper for different interpolation methods.
+
+   Methods available:
+      (1) Non-uniform points driven
+      (2) Subproblem
+
+   Melody Shih 11/21/21
+
+   Now the function is updated to dispatch based on ns. This is to avoid alloca which
+   it seems slower according to the MRI community.
+   Marco Barbone 01/30/25
+  */
+  return launch_dispatch_ns<Interp1DDispatcher, T>(Interp1DDispatcher(),
+                                                   d_plan->spopts.nspread, d_plan->nf123[0],
+                                                   d_plan->M, d_plan, blksize);
 }
 
 template int cuinterp1d<float>(cufinufft_plan_t<float> *d_plan, int blksize);

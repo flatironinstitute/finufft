@@ -48,11 +48,10 @@ int cufinufft2d1_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
       d_plan->fw = d_fkstart; // spread directly into user output f
 
     // this is needed
-    if ((ier = checkCudaErrors(cudaMemsetAsync(
+    checkCudaErrors(cudaMemsetAsync(
              d_plan->fw, 0,
              d_plan->batchsize * d_plan->nf123[0] * d_plan->nf123[1] * sizeof(cuda_complex<T>),
-             stream))))
-      return ier;
+             stream));
 
     // Step 1: Spread
     if ((ier = cuspread2d<T>(d_plan, blksize))) return ier;
@@ -154,10 +153,9 @@ int cufinufft2d3_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
     d_plan->c = d_plan->CpBatch;
     // setting output for spreader
     d_plan->fk = d_plan->fw;
-    if ((ier = checkCudaErrors(cudaMemsetAsync(
+    checkCudaErrors(cudaMemsetAsync(
              d_plan->fw, 0, d_plan->batchsize * d_plan->nf * sizeof(cuda_complex<T>),
-             stream))))
-      return ier;
+             stream));
     // NOTE: fw might need to be set to 0
     // Step 0: pre-phase the input strengths
     for (int i = 0; i < blksize; i++) {

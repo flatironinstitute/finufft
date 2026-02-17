@@ -93,10 +93,8 @@ int cuspread3d_nuptsdriven_prop(int nf1, int nf2, int nf3, int M,
     int *d_sortidx     = d_plan->sortidx;
     int *d_idxnupts    = d_plan->idxnupts;
 
-    int ier;
-    if ((ier = checkCudaErrors(cudaMemsetAsync(
-             d_binsize, 0, numbins[0] * numbins[1] * numbins[2] * sizeof(int), stream))))
-      return ier;
+    checkCudaErrors(cudaMemsetAsync(
+             d_binsize, 0, numbins[0] * numbins[1] * numbins[2] * sizeof(int), stream));
     calc_bin_size_noghost_3d<<<(M + 1024 - 1) / 1024, 1024, 0, stream>>>(
         M, nf1, nf2, nf3, bin_size_x, bin_size_y, bin_size_z, numbins[0], numbins[1],
         numbins[2], d_binsize, d_kx, d_ky, d_kz, d_sortidx);
@@ -227,10 +225,8 @@ int cuspread3d_blockgather_prop(int nf1, int nf2, int nf3, int M,
   int *d_subprobstartpts = d_plan->subprobstartpts;
   int *d_subprob_to_bin  = NULL;
 
-  int ier;
-  if ((ier = checkCudaErrors(cudaMemsetAsync(
-           d_binsize, 0, numbins[0] * numbins[1] * numbins[2] * sizeof(int), stream))))
-    return ier;
+  checkCudaErrors(cudaMemsetAsync(
+           d_binsize, 0, numbins[0] * numbins[1] * numbins[2] * sizeof(int), stream));
 
   locate_nupts_to_bins_ghost<<<(M + 1024 - 1) / 1024, 1024, 0, stream>>>(
       M, bin_size_x, bin_size_y, bin_size_z, numobins[0], numobins[1], numobins[2],
@@ -256,17 +252,14 @@ int cuspread3d_blockgather_prop(int nf1, int nf2, int nf3, int M,
   thrust::device_ptr<int> d_result(d_binstartpts + 1);
   thrust::inclusive_scan(thrust::cuda::par.on(stream), d_ptr, d_ptr + n, d_result);
 
-  if ((ier = checkCudaErrors(cudaMemsetAsync(d_binstartpts, 0, sizeof(int), stream))))
-    return ier;
+  checkCudaErrors(cudaMemsetAsync(d_binstartpts, 0, sizeof(int), stream));
 
   int totalNUpts;
-  if ((ier = checkCudaErrors(cudaMemcpyAsync(&totalNUpts, &d_binstartpts[n], sizeof(int),
-                                             cudaMemcpyDeviceToHost, stream))))
-    return ier;
+  checkCudaErrors(cudaMemcpyAsync(&totalNUpts, &d_binstartpts[n], sizeof(int),
+                                             cudaMemcpyDeviceToHost, stream));
   cudaStreamSynchronize(stream);
-  if ((ier = checkCudaErrors(cudaMallocWrapper(&d_idxnupts, totalNUpts * sizeof(int),
-                                               stream, d_plan->supports_pools))))
-    return ier;
+  checkCudaErrors(cudaMallocWrapper(&d_idxnupts, totalNUpts * sizeof(int),
+                                               stream, d_plan->supports_pools));
 
   calc_inverse_of_global_sort_index_ghost<<<(M + 1024 - 1) / 1024, 1024, 0, stream>>>(
       M, bin_size_x, bin_size_y, bin_size_z, numobins[0], numobins[1], numobins[2],
@@ -314,19 +307,15 @@ int cuspread3d_blockgather_prop(int nf1, int nf2, int nf3, int M,
   d_result = thrust::device_pointer_cast(d_subprobstartpts + 1);
   thrust::inclusive_scan(thrust::cuda::par.on(stream), d_ptr, d_ptr + n, d_result);
 
-  if ((ier = checkCudaErrors(cudaMemsetAsync(d_subprobstartpts, 0, sizeof(int), stream))))
-    return ier;
+  checkCudaErrors(cudaMemsetAsync(d_subprobstartpts, 0, sizeof(int), stream));
 
   int totalnumsubprob;
-  if ((ier =
-           checkCudaErrors(cudaMemcpyAsync(&totalnumsubprob, &d_subprobstartpts[n],
-                                           sizeof(int), cudaMemcpyDeviceToHost, stream))))
-    return ier;
+  checkCudaErrors(cudaMemcpyAsync(&totalnumsubprob, &d_subprobstartpts[n],
+                                           sizeof(int), cudaMemcpyDeviceToHost, stream));
   cudaStreamSynchronize(stream);
-  if ((ier = checkCudaErrors(
+  checkCudaErrors(
            cudaMallocWrapper(&d_subprob_to_bin, totalnumsubprob * sizeof(int), stream,
-                             d_plan->supports_pools))))
-    return ier;
+                             d_plan->supports_pools));
   map_b_into_subprob_3d_v1<<<(n + 1024 - 1) / 1024, 1024, 0, stream>>>(
       d_subprob_to_bin, d_subprobstartpts, d_numsubprob, n);
   err = cudaGetLastError();
@@ -448,10 +437,8 @@ int cuspread3d_subprob_prop(int nf1, int nf2, int nf3, int M,
 
   int *d_subprob_to_bin = NULL;
 
-  int ier;
-  if ((ier = checkCudaErrors(cudaMemsetAsync(
-           d_binsize, 0, numbins[0] * numbins[1] * numbins[2] * sizeof(int), stream))))
-    return ier;
+  checkCudaErrors(cudaMemsetAsync(
+           d_binsize, 0, numbins[0] * numbins[1] * numbins[2] * sizeof(int), stream));
   calc_bin_size_noghost_3d<<<(M + 1024 - 1) / 1024, 1024, 0, stream>>>(
       M, nf1, nf2, nf3, bin_size_x, bin_size_y, bin_size_z, numbins[0], numbins[1],
       numbins[2], d_binsize, d_kx, d_ky, d_kz, d_sortidx);
@@ -477,14 +464,12 @@ int cuspread3d_subprob_prop(int nf1, int nf2, int nf3, int M,
   d_result = thrust::device_pointer_cast(d_subprobstartpts + 1);
   thrust::inclusive_scan(thrust::cuda::par.on(stream), d_ptr, d_ptr + n, d_result);
   int totalnumsubprob;
-  if (checkCudaErrors(cudaMemsetAsync(d_subprobstartpts, 0, sizeof(int), stream)) ||
-      checkCudaErrors(cudaMemcpyAsync(&totalnumsubprob, &d_subprobstartpts[n],
-                                      sizeof(int), cudaMemcpyDeviceToHost, stream)))
-    return FINUFFT_ERR_CUDA_FAILURE;
+  checkCudaErrors(cudaMemsetAsync(d_subprobstartpts, 0, sizeof(int), stream));
+  checkCudaErrors(cudaMemcpyAsync(&totalnumsubprob, &d_subprobstartpts[n],
+                                      sizeof(int), cudaMemcpyDeviceToHost, stream));
   cudaStreamSynchronize(stream);
-  if (checkCudaErrors(cudaMallocWrapper(&d_subprob_to_bin, totalnumsubprob * sizeof(int),
-                                        stream, d_plan->supports_pools)))
-    return FINUFFT_ERR_CUDA_FAILURE;
+  checkCudaErrors(cudaMallocWrapper(&d_subprob_to_bin, totalnumsubprob * sizeof(int),
+                                        stream, d_plan->supports_pools));
 
   map_b_into_subprob_3d_v2<<<(numbins[0] * numbins[1] + 1024 - 1) / 1024, 1024, 0,
                              stream>>>(d_subprob_to_bin, d_subprobstartpts, d_numsubprob,
