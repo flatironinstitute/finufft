@@ -4,8 +4,9 @@
 
 #include <cufinufft/spreadinterp.h>
 #include <cufinufft/types.h>
+#include <cufinufft/utils.h>
 
-#include "spreadinterp1d.cuh"
+using namespace cufinufft::utils;
 
 namespace cufinufft {
 namespace spreadinterp {

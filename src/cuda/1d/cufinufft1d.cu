@@ -57,7 +57,7 @@ int cufinufft1d1_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
     // Step 2: FFT
     cufftResult cufft_status =
         cufft_ex(d_plan->fftplan, d_plan->fw, d_plan->fw, d_plan->iflag);
-    if (cufft_status != CUFFT_SUCCESS) return FINUFFT_ERR_CUDA_FAILURE;
+    if (cufft_status != CUFFT_SUCCESS) throw FINUFFT_ERR_CUDA_FAILURE;
 
     // Step 3: deconvolve and shuffle
     if (d_plan->opts.modeord == 0) {

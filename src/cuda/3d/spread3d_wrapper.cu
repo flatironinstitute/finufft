@@ -3,6 +3,7 @@
 
 #include <cuComplex.h>
 #include <cufinufft/contrib/helper_cuda.h>
+#include <cufinufft/contrib/helper_math.h>
 #include <thrust/device_ptr.h>
 #include <thrust/scan.h>
 #include <thrust/sort.h>
@@ -10,56 +11,543 @@
 #include <cufinufft/common.h>
 #include <cufinufft/precision_independent.h>
 #include <cufinufft/spreadinterp.h>
+#include <cufinufft/utils.h>
+#include <cufinufft/intrinsics.h>
 
 using namespace cufinufft::common;
-
-#include "spreadinterp3d.cuh"
+using namespace cufinufft::utils;
 
 namespace cufinufft {
 namespace spreadinterp {
 
-// Functor to handle function selection (nuptsdriven, subprob, blockgather)
-struct Spread3DDispatcher {
-  template<int ns, typename T>
-  int operator()(int nf1, int nf2, int nf3, int M, cufinufft_plan_t<T> *d_plan,
-                 int blksize) const {
-    switch (d_plan->opts.gpu_method) {
-    case 1:
-      return cuspread3d_nuptsdriven<T, ns>(nf1, nf2, nf3, M, d_plan, blksize);
-    case 2:
-      return cuspread3d_subprob<T, ns>(nf1, nf2, nf3, M, d_plan, blksize);
-    case 3:
-      return cuspread3d_output_driven<T, ns>(nf1, nf2, nf3, M, d_plan, blksize);
-    case 4:
-      return cuspread3d_blockgather<T, ns>(nf1, nf2, nf3, M, d_plan, blksize);
-    default:
-      std::cerr << "[cuspread3d] error: invalid method " +
-                       std::to_string(d_plan->opts.gpu_method) +
-                       ", should be 1, 2, 3 or 4\n";
-      return FINUFFT_ERR_METHOD_NOTVALID;
+using cuda::std::dextents;
+using cuda::std::dynamic_extent;
+using cuda::std::extents;
+using cuda::std::mdspan;
+using cuda::std::span;
+
+template<typename T>
+static __global__ void calc_bin_size_noghost_3d(int M, int nf1, int nf2, int nf3, int bin_size_x,
+                                         int bin_size_y, int bin_size_z, int nbinx,
+                                         int nbiny, int nbinz, int *bin_size, const T *x,
+                                         const T *y, const T *z, int *sortidx) {
+  int binidx, binx, biny, binz;
+  int oldidx;
+  T x_rescaled, y_rescaled, z_rescaled;
+  for (int i = threadIdx.x + blockIdx.x * blockDim.x; i < M;
+       i += gridDim.x * blockDim.x) {
+    x_rescaled = fold_rescale(x[i], nf1);
+    y_rescaled = fold_rescale(y[i], nf2);
+    z_rescaled = fold_rescale(z[i], nf3);
+    binx       = floor(x_rescaled / bin_size_x);
+    binx       = binx >= nbinx ? binx - 1 : binx;
+    binx       = binx < 0 ? 0 : binx;
+
+    biny = floor(y_rescaled / bin_size_y);
+    biny = biny >= nbiny ? biny - 1 : biny;
+    biny = biny < 0 ? 0 : biny;
+
+    binz       = floor(z_rescaled / bin_size_z);
+    binz       = binz >= nbinz ? binz - 1 : binz;
+    binz       = binz < 0 ? 0 : binz;
+    binidx     = binx + biny * nbinx + binz * nbinx * nbiny;
+    oldidx     = atomicAdd(&bin_size[binidx], 1);
+    sortidx[i] = oldidx;
+  }
+}
+
+template<typename T>
+static __global__ void calc_inverse_of_global_sort_index_3d(
+    int M, int bin_size_x, int bin_size_y, int bin_size_z, int nbinx, int nbiny,
+    int nbinz, const int *bin_startpts, const int *sortidx, const T *x, const T *y,
+    const T *z, int *index, int nf1, int nf2, int nf3) {
+  int binx, biny, binz;
+  int binidx;
+  T x_rescaled, y_rescaled, z_rescaled;
+  for (int i = threadIdx.x + blockIdx.x * blockDim.x; i < M;
+       i += gridDim.x * blockDim.x) {
+    x_rescaled = fold_rescale(x[i], nf1);
+    y_rescaled = fold_rescale(y[i], nf2);
+    z_rescaled = fold_rescale(z[i], nf3);
+    binx       = floor(x_rescaled / bin_size_x);
+    binx       = binx >= nbinx ? binx - 1 : binx;
+    binx       = binx < 0 ? 0 : binx;
+    biny       = floor(y_rescaled / bin_size_y);
+    biny       = biny >= nbiny ? biny - 1 : biny;
+    biny       = biny < 0 ? 0 : biny;
+    binz       = floor(z_rescaled / bin_size_z);
+    binz       = binz >= nbinz ? binz - 1 : binz;
+    binz       = binz < 0 ? 0 : binz;
+    binidx     = common::calc_global_index_v2(binx, biny, binz, nbinx, nbiny, nbinz);
+
+    index[bin_startpts[binidx] + sortidx[i]] = i;
+  }
+}
+
+template<typename T, int KEREVALMETH, int ns>
+static __global__ void spread_3d_nupts_driven(
+    const T *x, const T *y, const T *z, const cuda_complex<T> *c, cuda_complex<T> *fw,
+    int M, int nf1, int nf2, int nf3, T es_c, T es_beta, T sigma, const int *idxnupts) {
+  T ker1[ns];
+  T ker2[ns];
+  T ker3[ns];
+  for (int i = blockDim.x * blockIdx.x + threadIdx.x; i < M;
+       i += blockDim.x * gridDim.x) {
+    const auto x_rescaled = fold_rescale(x[idxnupts[i]], nf1);
+    const auto y_rescaled = fold_rescale(y[idxnupts[i]], nf2);
+    const auto z_rescaled = fold_rescale(z[idxnupts[i]], nf3);
+
+    const auto [xstart, xend] = interval(ns, x_rescaled);
+    const auto [ystart, yend] = interval(ns, y_rescaled);
+    const auto [zstart, zend] = interval(ns, z_rescaled);
+
+    const auto x1 = T(xstart) - x_rescaled;
+    const auto y1 = T(ystart) - y_rescaled;
+    const auto z1 = T(zstart) - z_rescaled;
+
+    if constexpr (KEREVALMETH == 1) {
+      eval_kernel_vec_horner<T, ns>(ker1, x1, sigma);
+      eval_kernel_vec_horner<T, ns>(ker2, y1, sigma);
+      eval_kernel_vec_horner<T, ns>(ker3, z1, sigma);
+    } else {
+      eval_kernel_vec<T, ns>(ker1, x1, es_c, es_beta);
+      eval_kernel_vec<T, ns>(ker2, y1, es_c, es_beta);
+      eval_kernel_vec<T, ns>(ker3, z1, es_c, es_beta);
+    }
+
+    for (int zz = zstart; zz <= zend; zz++) {
+      const auto ker3val = ker3[zz - zstart];
+      for (int yy = ystart; yy <= yend; yy++) {
+        const auto ker2val = ker2[yy - ystart];
+        for (int xx = xstart; xx <= xend; xx++) {
+          const int ix        = xx < 0 ? xx + nf1 : (xx > nf1 - 1 ? xx - nf1 : xx);
+          const int iy        = yy < 0 ? yy + nf2 : (yy > nf2 - 1 ? yy - nf2 : yy);
+          const int iz        = zz < 0 ? zz + nf3 : (zz > nf3 - 1 ? zz - nf3 : zz);
+          const int outidx    = ix + iy * nf1 + iz * nf1 * nf2;
+          const auto ker1val  = ker1[xx - xstart];
+          const auto kervalue = ker1val * ker2val * ker3val;
+          const cuda_complex<T> res{c[idxnupts[i]].x * kervalue,
+                                    c[idxnupts[i]].y * kervalue};
+          atomicAddComplexGlobal<T>(fw + outidx, res);
+        }
+      }
     }
   }
-};
+}
 
-// Updated cuspread3d using generic dispatch
-template<typename T> int cuspread3d(cufinufft_plan_t<T> *d_plan, int blksize) {
-  /*
-    A wrapper for different spreading methods.
+/* Kernels for Output Driven method */
+template<typename T, int KEREVALMETH, int ns>
+static __global__ void spread_3d_output_driven(
+    T *x, T *y, T *z, cuda_complex<T> *c, cuda_complex<T> *fw, int M, int nf1, int nf2,
+    int nf3, T sigma, T es_c, T es_beta, int *binstartpts, int *bin_size, int bin_size_x,
+    int bin_size_y, int bin_size_z, int *subprob_to_bin, int *subprobstartpts,
+    int *numsubprob, int maxsubprobsize, int nbinx, int nbiny, int nbinz, int *idxnupts,
+    int np) {
+  extern __shared__ char sharedbuf[];
 
-    Methods available:
-        (1) Non-uniform points driven
-        (2) Subproblem
-        (4) Block gather
+  static constexpr auto ns_2f      = T(ns * .5);
+  static constexpr auto ns_2       = (ns + 1) / 2;
+  static constexpr auto rounded_ns = ns_2 * 2;
 
-    Melody Shih 07/25/19
+  const auto padded_size_x = bin_size_x + rounded_ns;
+  const auto padded_size_y = bin_size_y + rounded_ns;
+  const auto padded_size_z = bin_size_z + rounded_ns;
 
-    Now the function is updated to dispatch based on ns. This is to avoid alloca which
-    it seems slower according to the MRI community.
-    Marco Barbone 01/30/25
-  */
-  return launch_dispatch_ns<Spread3DDispatcher, T>(
-      Spread3DDispatcher(), d_plan->spopts.nspread, d_plan->nf123[0], d_plan->nf123[1], d_plan->nf123[2],
-      d_plan->M, d_plan, blksize);
+  const int bidx        = subprob_to_bin[blockIdx.x];
+  const int binsubp_idx = blockIdx.x - subprobstartpts[bidx];
+  const int ptstart     = binstartpts[bidx] + binsubp_idx * maxsubprobsize;
+  const int nupts = min(maxsubprobsize, bin_size[bidx] - binsubp_idx * maxsubprobsize);
+
+  const int xoffset = (bidx % nbinx) * bin_size_x;
+  const int yoffset = ((bidx / nbinx) % nbiny) * bin_size_y;
+  const int zoffset = (bidx / (nbinx * nbiny)) * bin_size_z;
+
+  auto kerevals = mdspan<T, extents<int, dynamic_extent, 3, ns>>((T *)sharedbuf, np);
+  const auto c_kerevals =
+      mdspan<const T, extents<int, dynamic_extent, 3, ns>>((T *)sharedbuf, np);
+  // sharedbuf + size of kerevals in bytes
+  // Offset pointer into sharedbuf after kerevals
+  // Create span using pointer + size
+
+  auto nupts_sm = span(
+      reinterpret_cast<cuda_complex<T> *>(kerevals.data_handle() + kerevals.size()),
+      np);
+
+  auto shift = span(reinterpret_cast<int3 *>(nupts_sm.data() + nupts_sm.size()), np);
+
+  auto local_subgrid = mdspan<cuda_complex<T>, dextents<int, 3>>(
+      reinterpret_cast<cuda_complex<T> *>(shift.data() + shift.size()), padded_size_z,
+      padded_size_y, padded_size_x);
+
+  // set local_subgrid to zero
+  for (int i = threadIdx.x; i < local_subgrid.size(); i += blockDim.x) {
+    local_subgrid.data_handle()[i] = {0, 0};
+  }
+  __syncthreads();
+
+  for (int batch_begin = 0; batch_begin < nupts; batch_begin += np) {
+    const auto batch_size = min(np, nupts - batch_begin);
+    for (int i = threadIdx.x; i < batch_size; i += blockDim.x) {
+      const int nuptsidx = loadReadOnly(idxnupts + ptstart + i + batch_begin);
+      // index of the current point within the batch
+      const auto x_rescaled = fold_rescale(loadReadOnly(x + nuptsidx), nf1);
+      const auto y_rescaled = fold_rescale(loadReadOnly(y + nuptsidx), nf2);
+      const auto z_rescaled = fold_rescale(loadReadOnly(z + nuptsidx), nf3);
+      nupts_sm[i]           = loadCacheStreaming(c + nuptsidx);
+      const auto xstart     = int(std::ceil(x_rescaled - ns_2f));
+      const auto ystart     = int(std::ceil(y_rescaled - ns_2f));
+      const auto zstart     = int(std::ceil(z_rescaled - ns_2f));
+      const T x1            = T(xstart) - x_rescaled;
+      const T y1            = T(ystart) - y_rescaled;
+      const T z1            = T(zstart) - z_rescaled;
+
+      shift[i] = {xstart - xoffset, ystart - yoffset, zstart - zoffset};
+
+      if constexpr (KEREVALMETH == 1) {
+        eval_kernel_vec_horner<T, ns>(&kerevals(i, 0, 0), x1, sigma);
+        eval_kernel_vec_horner<T, ns>(&kerevals(i, 1, 0), y1, sigma);
+        eval_kernel_vec_horner<T, ns>(&kerevals(i, 2, 0), z1, sigma);
+      } else {
+        eval_kernel_vec<T, ns>(&kerevals(i, 0, 0), x1, es_c, es_beta);
+        eval_kernel_vec<T, ns>(&kerevals(i, 1, 0), y1, es_c, es_beta);
+        eval_kernel_vec<T, ns>(&kerevals(i, 2, 0), z1, es_c, es_beta);
+      }
+    }
+    __syncthreads();
+
+    for (auto i = 0; i < batch_size; i++) {
+      // strength from shared memory
+      static constexpr int sizex = ns;            // true span in X
+      static constexpr int sizey = ns;            // true span in Y
+      static constexpr int sizez = ns;            // true span in Z
+      static constexpr int plane = sizex * sizey; // #cells per Z‐slice
+      static constexpr int total = plane * sizez; // total #cells
+
+      const auto cnow                     = nupts_sm[i];
+      const auto [xstart, ystart, zstart] = shift[i];
+
+      for (int idx = threadIdx.x; idx < total; idx += blockDim.x) {
+        // decompose idx using `plane`
+        const int zz   = idx / plane;
+        const int rem1 = idx - zz * plane;
+        const int yy   = rem1 / sizex;
+        const int xx   = rem1 - yy * sizex;
+
+        // decompose idx using `plane`
+        // recover global coords
+        const int real_zz = zstart + zz;
+        const int real_yy = ystart + yy;
+        const int real_xx = xstart + xx;
+
+        // padded indices
+        const int iz = real_zz + ns_2;
+        const int iy = real_yy + ns_2;
+        const int ix = real_xx + ns_2;
+
+        // separable window weights
+        const auto kervalue =
+            c_kerevals(i, 0, xx) * c_kerevals(i, 1, yy) * c_kerevals(i, 2, zz);
+        // accumulate
+        local_subgrid(iz, iy, ix) += {cnow * kervalue};
+      }
+      __syncthreads();
+    }
+  }
+  for (int n = threadIdx.x; n < local_subgrid.size(); n += blockDim.x) {
+    const int i = n % (padded_size_x);
+    const int j = (n / (padded_size_x)) % (padded_size_y);
+    const int k = n / ((padded_size_x) * (padded_size_y));
+
+    int ix = xoffset - ns_2 + i;
+    int iy = yoffset - ns_2 + j;
+    int iz = zoffset - ns_2 + k;
+
+    if (ix < (nf1 + ns_2) && iy < (nf2 + ns_2) && iz < (nf3 + ns_2)) {
+      ix               = ix < 0 ? ix + nf1 : (ix > nf1 - 1 ? ix - nf1 : ix);
+      iy               = iy < 0 ? iy + nf2 : (iy > nf2 - 1 ? iy - nf2 : iy);
+      iz               = iz < 0 ? iz + nf3 : (iz > nf3 - 1 ? iz - nf3 : iz);
+      const int outidx = ix + iy * nf1 + iz * nf1 * nf2;
+      atomicAddComplexGlobal<T>(fw + outidx, local_subgrid(k, j, i));
+    }
+  }
+}
+
+/* Kernels for Subprob method */
+template<typename T, int KEREVALMETH, int ns>
+static __global__ void spread_3d_subprob(
+    T *x, T *y, T *z, cuda_complex<T> *c, cuda_complex<T> *fw, int M, int nf1, int nf2,
+    int nf3, T sigma, T es_c, T es_beta, int *binstartpts, int *bin_size, int bin_size_x,
+    int bin_size_y, int bin_size_z, int *subprob_to_bin, int *subprobstartpts,
+    int *numsubprob, int maxsubprobsize, int nbinx, int nbiny, int nbinz, int *idxnupts) {
+  extern __shared__ char sharedbuf[];
+  auto fwshared = (cuda_complex<T> *)sharedbuf;
+
+  const int bidx        = subprob_to_bin[blockIdx.x];
+  const int binsubp_idx = blockIdx.x - subprobstartpts[bidx];
+  const int ptstart     = binstartpts[bidx] + binsubp_idx * maxsubprobsize;
+  const int nupts = min(maxsubprobsize, bin_size[bidx] - binsubp_idx * maxsubprobsize);
+
+  const int xoffset = (bidx % nbinx) * bin_size_x;
+  const int yoffset = ((bidx / nbinx) % nbiny) * bin_size_y;
+  const int zoffset = (bidx / (nbinx * nbiny)) * bin_size_z;
+
+  const T ns_2f         = ns * T(.5);
+  const auto ns_2       = (ns + 1) / 2;
+  const auto rounded_ns = ns_2 * 2;
+
+  const int N =
+      (bin_size_x + rounded_ns) * (bin_size_y + rounded_ns) * (bin_size_z + rounded_ns);
+
+  for (int i = threadIdx.x; i < N; i += blockDim.x) {
+    fwshared[i] = {0, 0};
+  }
+  __syncthreads();
+
+  T ker1[ns];
+  T ker2[ns];
+  T ker3[ns];
+
+  for (int i = threadIdx.x; i < nupts; i += blockDim.x) {
+    const int nuptsidx    = idxnupts[ptstart + i];
+    const auto x_rescaled = fold_rescale(x[nuptsidx], nf1);
+    const auto y_rescaled = fold_rescale(y[nuptsidx], nf2);
+    const auto z_rescaled = fold_rescale(z[nuptsidx], nf3);
+    const auto cnow       = c[nuptsidx];
+    auto [xstart, xend]   = interval(ns, x_rescaled);
+    auto [ystart, yend]   = interval(ns, y_rescaled);
+    auto [zstart, zend]   = interval(ns, z_rescaled);
+
+    const T x1 = T(xstart) - x_rescaled;
+    const T y1 = T(ystart) - y_rescaled;
+    const T z1 = T(zstart) - z_rescaled;
+
+    xstart -= xoffset;
+    ystart -= yoffset;
+    zstart -= zoffset;
+
+    xend -= xoffset;
+    yend -= yoffset;
+    zend -= zoffset;
+
+    if constexpr (KEREVALMETH == 1) {
+      eval_kernel_vec_horner<T, ns>(ker1, x1, sigma);
+      eval_kernel_vec_horner<T, ns>(ker2, y1, sigma);
+      eval_kernel_vec_horner<T, ns>(ker3, z1, sigma);
+    } else {
+      eval_kernel_vec<T, ns>(ker1, x1, es_c, es_beta);
+      eval_kernel_vec<T, ns>(ker2, y1, es_c, es_beta);
+      eval_kernel_vec<T, ns>(ker3, z1, es_c, es_beta);
+    }
+
+    for (int zz = zstart; zz <= zend; zz++) {
+      const T kervalue3 = ker3[zz - zstart];
+      const int iz      = zz + ns_2;
+      if (iz >= (bin_size_z + rounded_ns) || iz < 0) break;
+      for (int yy = ystart; yy <= yend; yy++) {
+        const T kervalue2 = ker2[yy - ystart];
+        const int iy      = yy + ns_2;
+        if (iy >= (bin_size_y + rounded_ns) || iy < 0) break;
+        for (int xx = xstart; xx <= xend; xx++) {
+          const int ix = xx + ns_2;
+          if (ix >= (bin_size_x + rounded_ns) || ix < 0) break;
+          const int outidx = ix + iy * (bin_size_x + rounded_ns) +
+                             iz * (bin_size_x + rounded_ns) * (bin_size_y + rounded_ns);
+          const auto kervalue = ker1[xx - xstart] * kervalue2 * kervalue3;
+          const cuda_complex<T> res{cnow.x * kervalue, cnow.y * kervalue};
+          atomicAddComplexShared<T>(fwshared + outidx, res);
+        }
+      }
+    }
+  }
+  __syncthreads();
+
+  /* write to global memory */
+  for (int n = threadIdx.x; n < N; n += blockDim.x) {
+    const int i = n % (bin_size_x + rounded_ns);
+    const int j = (n / (bin_size_x + rounded_ns)) % (bin_size_y + rounded_ns);
+    const int k = n / ((bin_size_x + rounded_ns) * (bin_size_y + rounded_ns));
+
+    int ix = xoffset - ns_2 + i;
+    int iy = yoffset - ns_2 + j;
+    int iz = zoffset - ns_2 + k;
+
+    if (ix < (nf1 + ns_2) && iy < (nf2 + ns_2) && iz < (nf3 + ns_2)) {
+      ix                  = ix < 0 ? ix + nf1 : (ix > nf1 - 1 ? ix - nf1 : ix);
+      iy                  = iy < 0 ? iy + nf2 : (iy > nf2 - 1 ? iy - nf2 : iy);
+      iz                  = iz < 0 ? iz + nf3 : (iz > nf3 - 1 ? iz - nf3 : iz);
+      const int outidx    = ix + iy * nf1 + iz * nf1 * nf2;
+      const int sharedidx = i + j * (bin_size_x + rounded_ns) +
+                            k * (bin_size_x + rounded_ns) * (bin_size_y + rounded_ns);
+      atomicAddComplexGlobal<T>(fw + outidx, fwshared[sharedidx]);
+    }
+  }
+}
+template<typename T>
+static __global__ void locate_nupts_to_bins_ghost(
+    int M, int bin_size_x, int bin_size_y, int bin_size_z, int nobinx, int nobiny,
+    int nobinz, int binsperobinx, int binsperobiny, int binsperobinz, int *bin_size,
+    const T *x, const T *y, const T *z, int *sortidx, int nf1, int nf2, int nf3) {
+  int binidx, binx, biny, binz;
+  int oldidx;
+  T x_rescaled, y_rescaled, z_rescaled;
+  for (int i = threadIdx.x + blockIdx.x * blockDim.x; i < M;
+       i += gridDim.x * blockDim.x) {
+    x_rescaled = fold_rescale(x[i], nf1);
+    y_rescaled = fold_rescale(y[i], nf2);
+    z_rescaled = fold_rescale(z[i], nf3);
+    binx       = floor(x_rescaled / bin_size_x);
+    biny       = floor(y_rescaled / bin_size_y);
+    binz       = floor(z_rescaled / bin_size_z);
+    binx = binx / (binsperobinx - 2) * binsperobinx + (binx % (binsperobinx - 2) + 1);
+    biny = biny / (binsperobiny - 2) * binsperobiny + (biny % (binsperobiny - 2) + 1);
+    binz = binz / (binsperobinz - 2) * binsperobinz + (binz % (binsperobinz - 2) + 1);
+
+    binidx     = common::calc_global_index(binx, biny, binz, nobinx, nobiny, nobinz,
+                                           binsperobinx, binsperobiny, binsperobinz);
+    oldidx     = atomicAdd(&bin_size[binidx], 1);
+    sortidx[i] = oldidx;
+  }
+}
+
+template<typename T>
+static __global__ void calc_inverse_of_global_sort_index_ghost(
+    int M, int bin_size_x, int bin_size_y, int bin_size_z, int nobinx, int nobiny,
+    int nobinz, int binsperobinx, int binsperobiny, int binsperobinz, int *bin_startpts,
+    const int *sortidx, const T *x, const T *y, const T *z, int *index, int nf1, int nf2,
+    int nf3) {
+  int binx, biny, binz;
+  int binidx;
+  T x_rescaled, y_rescaled, z_rescaled;
+  for (int i = threadIdx.x + blockIdx.x * blockDim.x; i < M;
+       i += gridDim.x * blockDim.x) {
+    x_rescaled = fold_rescale(x[i], nf1);
+    y_rescaled = fold_rescale(y[i], nf2);
+    z_rescaled = fold_rescale(z[i], nf3);
+    binx       = floor(x_rescaled / bin_size_x);
+    biny       = floor(y_rescaled / bin_size_y);
+    binz       = floor(z_rescaled / bin_size_z);
+    binx = binx / (binsperobinx - 2) * binsperobinx + (binx % (binsperobinx - 2) + 1);
+    biny = biny / (binsperobiny - 2) * binsperobiny + (biny % (binsperobiny - 2) + 1);
+    binz = binz / (binsperobinz - 2) * binsperobinz + (binz % (binsperobinz - 2) + 1);
+
+    binidx = common::calc_global_index(binx, biny, binz, nobinx, nobiny, nobinz,
+                                       binsperobinx, binsperobiny, binsperobinz);
+
+    index[bin_startpts[binidx] + sortidx[i]] = i;
+  }
+}
+
+template<typename T, int KEREVALMETH, int ns>
+static __global__ void spread_3d_block_gather(
+    const T *x, const T *y, const T *z, const cuda_complex<T> *c, cuda_complex<T> *fw,
+    int M, int nf1, int nf2, int nf3, T es_c, T es_beta, T sigma, const int *binstartpts,
+    int obin_size_x, int obin_size_y, int obin_size_z, int binsperobin,
+    int *subprob_to_bin, const int *subprobstartpts, int maxsubprobsize, int nobinx,
+    int nobiny, int nobinz, const int *idxnupts) {
+  extern __shared__ char sharedbuf[];
+  cuda_complex<T> *fwshared = (cuda_complex<T> *)sharedbuf;
+  const int subpidx         = blockIdx.x;
+  const int obidx           = subprob_to_bin[subpidx];
+  const int bidx            = obidx * binsperobin;
+
+  const int obinsubp_idx = subpidx - subprobstartpts[obidx];
+  const int ptstart      = binstartpts[bidx] + obinsubp_idx * maxsubprobsize;
+  const int nupts =
+      min(maxsubprobsize, binstartpts[bidx + binsperobin] - binstartpts[bidx] -
+                              obinsubp_idx * maxsubprobsize);
+
+  const int xoffset = (obidx % nobinx) * obin_size_x;
+  const int yoffset = (obidx / nobinx) % nobiny * obin_size_y;
+  const int zoffset = (obidx / (nobinx * nobiny)) * obin_size_z;
+
+  const int N = obin_size_x * obin_size_y * obin_size_z;
+
+  T ker1[ns];
+  T ker2[ns];
+  T ker3[ns];
+
+  for (int i = threadIdx.x; i < N; i += blockDim.x) {
+    fwshared[i] = {0, 0};
+  }
+
+  __syncthreads();
+
+  for (int i = threadIdx.x; i < nupts; i += blockDim.x) {
+    int nidx = idxnupts[ptstart + i];
+    int b    = nidx / M;
+    int box[3];
+    for (int &d : box) {
+      d = b % 3;
+      if (d == 1) d = -1;
+      if (d == 2) d = 1;
+      b = b / 3;
+    }
+    const int ii          = nidx % M;
+    const auto x_rescaled = fold_rescale(x[ii], nf1) + box[0] * nf1;
+    const auto y_rescaled = fold_rescale(y[ii], nf2) + box[1] * nf2;
+    const auto z_rescaled = fold_rescale(z[ii], nf3) + box[2] * nf3;
+    const auto cnow       = c[ii];
+    auto [xstart, xend]   = interval(ns, x_rescaled);
+    auto [ystart, yend]   = interval(ns, y_rescaled);
+    auto [zstart, zend]   = interval(ns, z_rescaled);
+
+    const T x1 = T(xstart) - x_rescaled;
+    const T y1 = T(ystart) - y_rescaled;
+    const T z1 = T(zstart) - z_rescaled;
+
+    xstart -= xoffset;
+    ystart -= yoffset;
+    zstart -= zoffset;
+
+    xend -= xoffset;
+    yend -= yoffset;
+    zend -= zoffset;
+
+    if constexpr (KEREVALMETH == 1) {
+      eval_kernel_vec_horner<T, ns>(ker1, x1, sigma);
+      eval_kernel_vec_horner<T, ns>(ker2, y1, sigma);
+      eval_kernel_vec_horner<T, ns>(ker3, z1, sigma);
+    } else {
+      eval_kernel_vec<T, ns>(ker1, x1, es_c, es_beta);
+      eval_kernel_vec<T, ns>(ker2, y1, es_c, es_beta);
+      eval_kernel_vec<T, ns>(ker3, z1, es_c, es_beta);
+    }
+
+    const auto xstartnew = xstart < 0 ? 0 : xstart;
+    const auto ystartnew = ystart < 0 ? 0 : ystart;
+    const auto zstartnew = zstart < 0 ? 0 : zstart;
+    const auto xendnew   = xend >= obin_size_x ? obin_size_x - 1 : xend;
+    const auto yendnew   = yend >= obin_size_y ? obin_size_y - 1 : yend;
+    const auto zendnew   = zend >= obin_size_z ? obin_size_z - 1 : zend;
+
+    for (int zz = zstartnew; zz <= zendnew; zz++) {
+      const T kervalue3 = ker3[zz - zstart];
+      for (int yy = ystartnew; yy <= yendnew; yy++) {
+        const T kervalue2 = ker2[yy - ystart];
+        for (int xx = xstartnew; xx <= xendnew; xx++) {
+          const auto outidx = xx + yy * obin_size_x + zz * obin_size_y * obin_size_x;
+          const T kervalue1 = ker1[xx - xstart];
+          const cuda_complex<T> res{cnow.x * kervalue1 * kervalue2 * kervalue3,
+                                    cnow.y * kervalue1 * kervalue2 * kervalue3};
+          atomicAddComplexShared<T>(fwshared + outidx, res);
+        }
+      }
+    }
+  }
+  __syncthreads();
+  /* write to global memory */
+  for (int n = threadIdx.x; n < N; n += blockDim.x) {
+    int i = n % obin_size_x;
+    int j = (n / obin_size_x) % obin_size_y;
+    int k = n / (obin_size_x * obin_size_y);
+
+    const auto ix     = xoffset + i;
+    const auto iy     = yoffset + j;
+    const auto iz     = zoffset + k;
+    const auto outidx = ix + iy * nf1 + iz * nf1 * nf2;
+    atomicAdd(&fw[outidx].x, fwshared[n].x);
+    atomicAdd(&fw[outidx].y, fwshared[n].y);
+  }
 }
 
 template<typename T>
@@ -117,9 +605,13 @@ int cuspread3d_nuptsdriven_prop(int nf1, int nf2, int nf3, int M,
 
   return 0;
 }
+template int cuspread3d_nuptsdriven_prop<float>(int nf1, int nf2, int nf3, int M,
+                                                cufinufft_plan_t<float> *d_plan);
+template int cuspread3d_nuptsdriven_prop<double>(int nf1, int nf2, int nf3, int M,
+                                                 cufinufft_plan_t<double> *d_plan);
 
 template<typename T, int ns>
-int cuspread3d_nuptsdriven(int nf1, int nf2, int nf3, int M, cufinufft_plan_t<T> *d_plan,
+static int cuspread3d_nuptsdriven(int nf1, int nf2, int nf3, int M, cufinufft_plan_t<T> *d_plan,
                            int blksize) {
   auto &stream = d_plan->stream;
 
@@ -332,9 +824,13 @@ int cuspread3d_blockgather_prop(int nf1, int nf2, int nf3, int M,
 
   return 0;
 }
+template int cuspread3d_blockgather_prop<float>(int nf1, int nf2, int nf3, int M,
+                                                cufinufft_plan_t<float> *d_plan);
+template int cuspread3d_blockgather_prop<double>(int nf1, int nf2, int nf3, int M,
+                                                 cufinufft_plan_t<double> *d_plan);
 
 template<typename T, int ns>
-int cuspread3d_blockgather(int nf1, int nf2, int nf3, int M, cufinufft_plan_t<T> *d_plan,
+static int cuspread3d_blockgather(int nf1, int nf2, int nf3, int M, cufinufft_plan_t<T> *d_plan,
                            int blksize) {
   auto &stream = d_plan->stream;
 
@@ -489,9 +985,13 @@ int cuspread3d_subprob_prop(int nf1, int nf2, int nf3, int M,
 
   return 0;
 }
+template int cuspread3d_subprob_prop<float>(int nf1, int nf2, int nf3, int M,
+                                            cufinufft_plan_t<float> *d_plan);
+template int cuspread3d_subprob_prop<double>(int nf1, int nf2, int nf3, int M,
+                                             cufinufft_plan_t<double> *d_plan);
 
 template<typename T, int ns>
-int cuspread3d_subprob(int nf1, int nf2, int nf3, int M, cufinufft_plan_t<T> *d_plan,
+static int cuspread3d_subprob(int nf1, int nf2, int nf3, int M, cufinufft_plan_t<T> *d_plan,
                        int blksize) {
   auto &stream = d_plan->stream;
 
@@ -558,7 +1058,7 @@ int cuspread3d_subprob(int nf1, int nf2, int nf3, int M, cufinufft_plan_t<T> *d_
 }
 
 template<typename T, int ns>
-int cuspread3d_output_driven(int nf1, int nf2, int nf3, int M,
+static int cuspread3d_output_driven(int nf1, int nf2, int nf3, int M,
                              cufinufft_plan_t<T> *d_plan, int blksize) {
   auto &stream = d_plan->stream;
 
@@ -639,20 +1139,51 @@ int cuspread3d_output_driven(int nf1, int nf2, int nf3, int M,
   return 0;
 }
 
+// Functor to handle function selection (nuptsdriven, subprob, blockgather)
+struct Spread3DDispatcher {
+  template<int ns, typename T>
+  int operator()(int nf1, int nf2, int nf3, int M, cufinufft_plan_t<T> *d_plan,
+                 int blksize) const {
+    switch (d_plan->opts.gpu_method) {
+    case 1:
+      return cuspread3d_nuptsdriven<T, ns>(nf1, nf2, nf3, M, d_plan, blksize);
+    case 2:
+      return cuspread3d_subprob<T, ns>(nf1, nf2, nf3, M, d_plan, blksize);
+    case 3:
+      return cuspread3d_output_driven<T, ns>(nf1, nf2, nf3, M, d_plan, blksize);
+    case 4:
+      return cuspread3d_blockgather<T, ns>(nf1, nf2, nf3, M, d_plan, blksize);
+    default:
+      std::cerr << "[cuspread3d] error: invalid method " +
+                       std::to_string(d_plan->opts.gpu_method) +
+                       ", should be 1, 2, 3 or 4\n";
+      return FINUFFT_ERR_METHOD_NOTVALID;
+    }
+  }
+};
+
+// Updated cuspread3d using generic dispatch
+template<typename T> int cuspread3d(cufinufft_plan_t<T> *d_plan, int blksize) {
+  /*
+    A wrapper for different spreading methods.
+
+    Methods available:
+        (1) Non-uniform points driven
+        (2) Subproblem
+        (4) Block gather
+
+    Melody Shih 07/25/19
+
+    Now the function is updated to dispatch based on ns. This is to avoid alloca which
+    it seems slower according to the MRI community.
+    Marco Barbone 01/30/25
+  */
+  return launch_dispatch_ns<Spread3DDispatcher, T>(
+      Spread3DDispatcher(), d_plan->spopts.nspread, d_plan->nf123[0], d_plan->nf123[1], d_plan->nf123[2],
+      d_plan->M, d_plan, blksize);
+}
 template int cuspread3d<float>(cufinufft_plan_t<float> *d_plan, int blksize);
 template int cuspread3d<double>(cufinufft_plan_t<double> *d_plan, int blksize);
-template int cuspread3d_nuptsdriven_prop<float>(int nf1, int nf2, int nf3, int M,
-                                                cufinufft_plan_t<float> *d_plan);
-template int cuspread3d_nuptsdriven_prop<double>(int nf1, int nf2, int nf3, int M,
-                                                 cufinufft_plan_t<double> *d_plan);
-template int cuspread3d_subprob_prop<float>(int nf1, int nf2, int nf3, int M,
-                                            cufinufft_plan_t<float> *d_plan);
-template int cuspread3d_subprob_prop<double>(int nf1, int nf2, int nf3, int M,
-                                             cufinufft_plan_t<double> *d_plan);
-template int cuspread3d_blockgather_prop<float>(int nf1, int nf2, int nf3, int M,
-                                                cufinufft_plan_t<float> *d_plan);
-template int cuspread3d_blockgather_prop<double>(int nf1, int nf2, int nf3, int M,
-                                                 cufinufft_plan_t<double> *d_plan);
 
 } // namespace spreadinterp
 } // namespace cufinufft

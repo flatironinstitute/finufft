@@ -1,5 +1,7 @@
 #include <cassert>
+#include <cmath>
 #include <iostream>
+#include <cuda/std/mdspan>
 
 #include <thrust/device_ptr.h>
 #include <thrust/sequence.h>
@@ -12,14 +14,22 @@
 #include <cufinufft/memtransfer.h>
 #include <cufinufft/precision_independent.h>
 #include <cufinufft/spreadinterp.h>
-
-#include "spreadinterp1d.cuh"
+#include <cufinufft/utils.h>
+#include <cufinufft/contrib/helper_cuda.h>
+#include <cufinufft/contrib/helper_math.h>
 
 using namespace cufinufft::common;
 using namespace cufinufft::memtransfer;
+using namespace cufinufft::utils;
 
 namespace cufinufft {
 namespace spreadinterp {
+
+using cuda::std::mdspan;
+using cuda::std::span;
+using cuda::std::dextents;
+using cuda::std::extents;
+using cuda::std::dynamic_extent;
 
 /* ------------------------ 1d Spreading Kernels ----------------------------*/
 /* Kernels for NUptsdriven Method */
@@ -242,43 +252,6 @@ static __global__ void spread_1d_subprob(
   }
 }
 
-// Functor to handle function selection (nuptsdriven vs subprob)
-struct Spread1DDispatcher {
-  template<int ns, typename T>
-  int operator()(int nf1, int M, cufinufft_plan_t<T> *d_plan, int blksize) const {
-    switch (d_plan->opts.gpu_method) {
-    case 1:
-      return cuspread1d_nuptsdriven<T, ns>(nf1, M, d_plan, blksize);
-    case 2:
-      return cuspread1d_subprob<T, ns>(nf1, M, d_plan, blksize);
-    case 3:
-      return cuspread1d_output_driven<T, ns>(nf1, M, d_plan, blksize);
-    default:
-      std::cerr << "[cuspread1d] error: incorrect method, should be 1, 2 or 3\n";
-      return FINUFFT_ERR_METHOD_NOTVALID;
-    }
-  }
-};
-
-// Updated cuspread1d using generic dispatch
-template<typename T> int cuspread1d(cufinufft_plan_t<T> *d_plan, int blksize) {
-  /*
-    A wrapper for different spreading methods.
-
-    Methods available:
-        (1) Non-uniform points driven
-
-    Melody Shih 11/21/21
-
-    Now the function is updated to dispatch based on ns. This is to avoid alloca which
-    it seems slower according to the MRI community.
-    Marco Barbone 01/30/25
- */
-  return launch_dispatch_ns<Spread1DDispatcher, T>(Spread1DDispatcher(),
-                                                   d_plan->spopts.nspread, d_plan->nf123[0],
-                                                   d_plan->M, d_plan, blksize);
-}
-
 template<typename T>
 int cuspread1d_nuptsdriven_prop(int nf1, int M, cufinufft_plan_t<T> *d_plan) {
   auto &stream = d_plan->stream;
@@ -321,9 +294,13 @@ int cuspread1d_nuptsdriven_prop(int nf1, int M, cufinufft_plan_t<T> *d_plan) {
   }
   return 0;
 }
+template int cuspread1d_nuptsdriven_prop<float>(int nf1, int M,
+                                                cufinufft_plan_t<float> *d_plan);
+template int cuspread1d_nuptsdriven_prop<double>(int nf1, int M,
+                                                 cufinufft_plan_t<double> *d_plan);
 
 template<typename T, int ns>
-int cuspread1d_nuptsdriven(int nf1, int M, cufinufft_plan_t<T> *d_plan, int blksize) {
+static int cuspread1d_nuptsdriven(int nf1, int M, cufinufft_plan_t<T> *d_plan, int blksize) {
   auto &stream = d_plan->stream;
   dim3 threadsPerBlock;
   dim3 blocks;
@@ -359,7 +336,7 @@ int cuspread1d_nuptsdriven(int nf1, int M, cufinufft_plan_t<T> *d_plan, int blks
 }
 
 template<typename T, int ns>
-int cuspread1d_output_driven(int nf1, int M, cufinufft_plan_t<T> *d_plan, int blksize) {
+static int cuspread1d_output_driven(int nf1, int M, cufinufft_plan_t<T> *d_plan, int blksize) {
   auto &stream       = d_plan->stream;
   T es_c             = 4.0 / T(d_plan->spopts.nspread * d_plan->spopts.nspread);
   T es_beta          = d_plan->spopts.beta;
@@ -496,9 +473,13 @@ int cuspread1d_subprob_prop(int nf1, int M, cufinufft_plan_t<T> *d_plan)
 
   return 0;
 }
+template int cuspread1d_subprob_prop<float>(int nf1, int M,
+                                            cufinufft_plan_t<float> *d_plan);
+template int cuspread1d_subprob_prop<double>(int nf1, int M,
+                                             cufinufft_plan_t<double> *d_plan);
 
 template<typename T, int ns>
-int cuspread1d_subprob(int nf1, int M, cufinufft_plan_t<T> *d_plan, int blksize) {
+static int cuspread1d_subprob(int nf1, int M, cufinufft_plan_t<T> *d_plan, int blksize) {
   auto &stream       = d_plan->stream;
   T es_c             = 4.0 / T(d_plan->spopts.nspread * d_plan->spopts.nspread);
   T es_beta          = d_plan->spopts.beta;
@@ -555,16 +536,44 @@ int cuspread1d_subprob(int nf1, int M, cufinufft_plan_t<T> *d_plan, int blksize)
   return 0;
 }
 
+// Functor to handle function selection (nuptsdriven vs subprob)
+struct Spread1DDispatcher {
+  template<int ns, typename T>
+  int operator()(int nf1, int M, cufinufft_plan_t<T> *d_plan, int blksize) const {
+    switch (d_plan->opts.gpu_method) {
+    case 1:
+      return cuspread1d_nuptsdriven<T, ns>(nf1, M, d_plan, blksize);
+    case 2:
+      return cuspread1d_subprob<T, ns>(nf1, M, d_plan, blksize);
+    case 3:
+      return cuspread1d_output_driven<T, ns>(nf1, M, d_plan, blksize);
+    default:
+      std::cerr << "[cuspread1d] error: incorrect method, should be 1, 2 or 3\n";
+      return FINUFFT_ERR_METHOD_NOTVALID;
+    }
+  }
+};
+
+// Updated cuspread1d using generic dispatch
+template<typename T> int cuspread1d(cufinufft_plan_t<T> *d_plan, int blksize) {
+  /*
+    A wrapper for different spreading methods.
+
+    Methods available:
+        (1) Non-uniform points driven
+
+    Melody Shih 11/21/21
+
+    Now the function is updated to dispatch based on ns. This is to avoid alloca which
+    it seems slower according to the MRI community.
+    Marco Barbone 01/30/25
+ */
+  return launch_dispatch_ns<Spread1DDispatcher, T>(Spread1DDispatcher(),
+                                                   d_plan->spopts.nspread, d_plan->nf123[0],
+                                                   d_plan->M, d_plan, blksize);
+}
 template int cuspread1d<float>(cufinufft_plan_t<float> *d_plan, int blksize);
 template int cuspread1d<double>(cufinufft_plan_t<double> *d_plan, int blksize);
-template int cuspread1d_nuptsdriven_prop<float>(int nf1, int M,
-                                                cufinufft_plan_t<float> *d_plan);
-template int cuspread1d_nuptsdriven_prop<double>(int nf1, int M,
-                                                 cufinufft_plan_t<double> *d_plan);
-template int cuspread1d_subprob_prop<float>(int nf1, int M,
-                                            cufinufft_plan_t<float> *d_plan);
-template int cuspread1d_subprob_prop<double>(int nf1, int M,
-                                             cufinufft_plan_t<double> *d_plan);
 
 } // namespace spreadinterp
 } // namespace cufinufft
