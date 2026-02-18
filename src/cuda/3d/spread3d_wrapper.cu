@@ -1134,13 +1134,13 @@ struct Spread3DDispatcher {
                  int blksize) const {
     switch (d_plan->opts.gpu_method) {
     case 1:
-      cuspread3d_nuptsdriven<T, ns>(nf1, nf2, nf3, M, d_plan, blksize);
+      return cuspread3d_nuptsdriven<T, ns>(nf1, nf2, nf3, M, d_plan, blksize);
     case 2:
-      cuspread3d_subprob<T, ns>(nf1, nf2, nf3, M, d_plan, blksize);
+      return cuspread3d_subprob<T, ns>(nf1, nf2, nf3, M, d_plan, blksize);
     case 3:
-      cuspread3d_output_driven<T, ns>(nf1, nf2, nf3, M, d_plan, blksize);
+      return cuspread3d_output_driven<T, ns>(nf1, nf2, nf3, M, d_plan, blksize);
     case 4:
-      cuspread3d_blockgather<T, ns>(nf1, nf2, nf3, M, d_plan, blksize);
+      return cuspread3d_blockgather<T, ns>(nf1, nf2, nf3, M, d_plan, blksize);
     default:
       std::cerr << "[cuspread3d] error: invalid method " +
                        std::to_string(d_plan->opts.gpu_method) +

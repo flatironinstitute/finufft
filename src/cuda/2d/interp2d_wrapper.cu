@@ -247,9 +247,9 @@ struct Interp2DDispatcher {
                  int blksize) const {
     switch (d_plan->opts.gpu_method) {
     case 1:
-      cuinterp2d_nuptsdriven<T, ns>(nf1, nf2, M, d_plan, blksize);
+      return cuinterp2d_nuptsdriven<T, ns>(nf1, nf2, M, d_plan, blksize);
     case 2:
-      cuinterp2d_subprob<T, ns>(nf1, nf2, M, d_plan, blksize);
+      return cuinterp2d_subprob<T, ns>(nf1, nf2, M, d_plan, blksize);
     default:
       std::cerr << "[cuinterp2d] error: incorrect method, should be 1 or 2\n";
       throw FINUFFT_ERR_METHOD_NOTVALID;

@@ -536,11 +536,11 @@ struct Spread1DDispatcher {
   void operator()(int nf1, int M, cufinufft_plan_t<T> *d_plan, int blksize) const {
     switch (d_plan->opts.gpu_method) {
     case 1:
-      cuspread1d_nuptsdriven<T, ns>(nf1, M, d_plan, blksize);
+      return cuspread1d_nuptsdriven<T, ns>(nf1, M, d_plan, blksize);
     case 2:
-      cuspread1d_subprob<T, ns>(nf1, M, d_plan, blksize);
+      return cuspread1d_subprob<T, ns>(nf1, M, d_plan, blksize);
     case 3:
-      cuspread1d_output_driven<T, ns>(nf1, M, d_plan, blksize);
+      return cuspread1d_output_driven<T, ns>(nf1, M, d_plan, blksize);
     default:
       std::cerr << "[cuspread1d] error: incorrect method, should be 1, 2 or 3\n";
       throw FINUFFT_ERR_METHOD_NOTVALID;

@@ -286,9 +286,9 @@ struct Interp3DDispatcher {
                  int blksize) const {
     switch (d_plan->opts.gpu_method) {
     case 1:
-      cuinterp3d_nuptsdriven<T, ns>(nf1, nf2, nf3, M, d_plan, blksize);
+      return cuinterp3d_nuptsdriven<T, ns>(nf1, nf2, nf3, M, d_plan, blksize);
     case 2:
-      cuinterp3d_subprob<T, ns>(nf1, nf2, nf3, M, d_plan, blksize);
+      return cuinterp3d_subprob<T, ns>(nf1, nf2, nf3, M, d_plan, blksize);
     default:
       std::cerr << "[cuinterp3d] error: incorrect method, should be 1 or 2\n";
       throw FINUFFT_ERR_METHOD_NOTVALID;

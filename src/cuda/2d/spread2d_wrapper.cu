@@ -501,11 +501,11 @@ struct Spread2DDispatcher {
                  int blksize) const {
     switch (d_plan->opts.gpu_method) {
     case 1:
-      cuspread2d_nuptsdriven<T, ns>(nf1, nf2, M, d_plan, blksize);
+      return cuspread2d_nuptsdriven<T, ns>(nf1, nf2, M, d_plan, blksize);
     case 2:
-      cuspread2d_subprob<T, ns>(nf1, nf2, M, d_plan, blksize);
+      return cuspread2d_subprob<T, ns>(nf1, nf2, M, d_plan, blksize);
     case 3:
-      cuspread2d_output_driven<T, ns>(nf1, nf2, M, d_plan, blksize);
+      return cuspread2d_output_driven<T, ns>(nf1, nf2, M, d_plan, blksize);
     default:
       std::cerr << "[cuspread2d] error: incorrect method, should be 1, 2 or 3\n";
       throw FINUFFT_ERR_METHOD_NOTVALID;

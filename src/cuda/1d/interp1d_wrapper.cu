@@ -83,7 +83,7 @@ struct Interp1DDispatcher {
   void operator()(int nf1, int M, cufinufft_plan_t<T> *d_plan, int blksize) const {
     switch (d_plan->opts.gpu_method) {
     case 1:
-      cuinterp1d_nuptsdriven<T, ns>(nf1, M, d_plan, blksize);
+      return cuinterp1d_nuptsdriven<T, ns>(nf1, M, d_plan, blksize);
     default:
       std::cerr << "[cuinterp1d] error: incorrect method, should be 1\n";
       throw FINUFFT_ERR_METHOD_NOTVALID;
