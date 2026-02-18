@@ -176,7 +176,7 @@ static __global__ void interp_3d_subprob(
 }
 
 template<typename T, int ns>
-static int cuinterp3d_nuptsdriven(int nf1, int nf2, int nf3, int M, cufinufft_plan_t<T> *d_plan,
+static void cuinterp3d_nuptsdriven(int nf1, int nf2, int nf3, int M, cufinufft_plan_t<T> *d_plan,
                            int blksize) {
   const auto stream = d_plan->stream;
 
@@ -201,22 +201,20 @@ static int cuinterp3d_nuptsdriven(int nf1, int nf2, int nf3, int M, cufinufft_pl
       interp_3d_nupts_driven<T, 1, ns><<<blocks, threadsPerBlock, 0, stream>>>(
           d_kx, d_ky, d_kz, d_c + t * M, d_fw + t * nf1 * nf2 * nf3, M, nf1, nf2, nf3,
           es_c, es_beta, sigma, d_idxnupts);
-      RETURN_IF_CUDA_ERROR
+      THROW_IF_CUDA_ERROR
     }
   } else {
     for (int t = 0; t < blksize; t++) {
       interp_3d_nupts_driven<T, 0, ns><<<blocks, threadsPerBlock, 0, stream>>>(
           d_kx, d_ky, d_kz, d_c + t * M, d_fw + t * nf1 * nf2 * nf3, M, nf1, nf2, nf3,
           es_c, es_beta, sigma, d_idxnupts);
-      RETURN_IF_CUDA_ERROR
+      THROW_IF_CUDA_ERROR
     }
   }
-
-  return 0;
 }
 
 template<typename T, int ns>
-static int cuinterp3d_subprob(int nf1, int nf2, int nf3, int M, cufinufft_plan_t<T> *d_plan,
+static void cuinterp3d_subprob(int nf1, int nf2, int nf3, int M, cufinufft_plan_t<T> *d_plan,
                        int blksize) {
   auto &stream = d_plan->stream;
 
@@ -255,7 +253,7 @@ static int cuinterp3d_subprob(int nf1, int nf2, int nf3, int M, cufinufft_plan_t
   if (d_plan->opts.gpu_kerevalmeth == 1) {
     if (const auto finufft_err =
             cufinufft_set_shared_memory(interp_3d_subprob<T, 1, ns>, 3, *d_plan)) {
-      return finufft_err;
+      throw finufft_err;
     }
     for (int t = 0; t < blksize; t++) {
       interp_3d_subprob<T, 1, ns><<<totalnumsubprob, 256, sharedplanorysize, stream>>>(
@@ -263,12 +261,12 @@ static int cuinterp3d_subprob(int nf1, int nf2, int nf3, int M, cufinufft_plan_t
           es_c, es_beta, sigma, d_binstartpts, d_binsize, bin_size_x, bin_size_y,
           bin_size_z, d_subprob_to_bin, d_subprobstartpts, d_numsubprob, maxsubprobsize,
           numbins[0], numbins[1], numbins[2], d_idxnupts);
-      RETURN_IF_CUDA_ERROR
+      THROW_IF_CUDA_ERROR
     }
   } else {
     if (const auto finufft_err =
             cufinufft_set_shared_memory(interp_3d_subprob<T, 0, ns>, 3, *d_plan)) {
-      return finufft_err;
+      throw finufft_err;
     }
     for (int t = 0; t < blksize; t++) {
       interp_3d_subprob<T, 0, ns><<<totalnumsubprob, 256, sharedplanorysize, stream>>>(
@@ -276,32 +274,30 @@ static int cuinterp3d_subprob(int nf1, int nf2, int nf3, int M, cufinufft_plan_t
           es_c, es_beta, sigma, d_binstartpts, d_binsize, bin_size_x, bin_size_y,
           bin_size_z, d_subprob_to_bin, d_subprobstartpts, d_numsubprob, maxsubprobsize,
           numbins[0], numbins[1], numbins[2], d_idxnupts);
-      RETURN_IF_CUDA_ERROR
+      THROW_IF_CUDA_ERROR
     }
   }
-
-  return 0;
 }
 
 // Functor to handle function selection (nuptsdriven vs subprob)
 struct Interp3DDispatcher {
   template<int ns, typename T>
-  int operator()(int nf1, int nf2, int nf3, int M, cufinufft_plan_t<T> *d_plan,
+  void operator()(int nf1, int nf2, int nf3, int M, cufinufft_plan_t<T> *d_plan,
                  int blksize) const {
     switch (d_plan->opts.gpu_method) {
     case 1:
-      return cuinterp3d_nuptsdriven<T, ns>(nf1, nf2, nf3, M, d_plan, blksize);
+      cuinterp3d_nuptsdriven<T, ns>(nf1, nf2, nf3, M, d_plan, blksize);
     case 2:
-      return cuinterp3d_subprob<T, ns>(nf1, nf2, nf3, M, d_plan, blksize);
+      cuinterp3d_subprob<T, ns>(nf1, nf2, nf3, M, d_plan, blksize);
     default:
       std::cerr << "[cuinterp3d] error: incorrect method, should be 1 or 2\n";
-      return FINUFFT_ERR_METHOD_NOTVALID;
+      throw FINUFFT_ERR_METHOD_NOTVALID;
     }
   }
 };
 
 // Updated cuinterp3d using generic dispatch
-template<typename T> int cuinterp3d(cufinufft_plan_t<T> *d_plan, int blksize) {
+template<typename T> void cuinterp3d(cufinufft_plan_t<T> *d_plan, int blksize) {
   /*
     A wrapper for different interpolation methods.
 
@@ -315,12 +311,12 @@ template<typename T> int cuinterp3d(cufinufft_plan_t<T> *d_plan, int blksize) {
     it seems slower according to the MRI community.
     Marco Barbone 01/30/25
   */
-  return launch_dispatch_ns<Interp3DDispatcher, T>(
+  launch_dispatch_ns<Interp3DDispatcher, T>(
       Interp3DDispatcher(), d_plan->spopts.nspread, d_plan->nf123[0], d_plan->nf123[1], d_plan->nf123[2],
       d_plan->M, d_plan, blksize);
 }
-template int cuinterp3d<float>(cufinufft_plan_t<float> *d_plan, int blksize);
-template int cuinterp3d<double>(cufinufft_plan_t<double> *d_plan, int blksize);
+template void cuinterp3d<float>(cufinufft_plan_t<float> *d_plan, int blksize);
+template void cuinterp3d<double>(cufinufft_plan_t<double> *d_plan, int blksize);
 
 } // namespace spreadinterp
 } // namespace cufinufft

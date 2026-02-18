@@ -38,14 +38,14 @@ void cufinufft2d3_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
                        cufinufft_plan_t<T> *d_plan);
 // 3d
 template<typename T>
-int cufinufft3d1_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
-                      cufinufft_plan_t<T> *d_plan);
+void cufinufft3d1_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
+                       cufinufft_plan_t<T> *d_plan);
 template<typename T>
-int cufinufft3d2_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
-                      cufinufft_plan_t<T> *d_plan);
+void cufinufft3d2_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
+                       cufinufft_plan_t<T> *d_plan);
 template<typename T>
-int cufinufft3d3_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
-                      cufinufft_plan_t<T> *d_plan);
+void cufinufft3d3_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
+                       cufinufft_plan_t<T> *d_plan);
 
 template<typename T>
 int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntransf, T tol,
@@ -419,22 +419,14 @@ Notes: the type T means either single or double, matching the
       cuspread2d_subprob_prop<T>(nf1, nf2, M, d_plan);
   } break;
   case 3: {
-    if (d_plan->opts.gpu_method == 1 &&
-        (ier = cuspread3d_nuptsdriven_prop<T>(nf1, nf2, nf3, M, d_plan)))
-      fprintf(stderr, "error: cuspread3d_nuptsdriven_prop, method(%d)\n",
-              d_plan->opts.gpu_method);
-    if (d_plan->opts.gpu_method == 2 &&
-        (ier = cuspread3d_subprob_prop<T>(nf1, nf2, nf3, M, d_plan)))
-      fprintf(stderr, "error: cuspread3d_subprob_prop, method(%d)\n",
-              d_plan->opts.gpu_method);
-    if (d_plan->opts.gpu_method == 3 &&
-        (ier = cuspread3d_subprob_prop<T>(nf1, nf2, nf3, M, d_plan)))
-      fprintf(stderr, "error: cuspread3d_outputdriven_prop, method(%d)\n",
-              d_plan->opts.gpu_method);
-    if (d_plan->opts.gpu_method == 4 &&
-        (ier = cuspread3d_blockgather_prop<T>(nf1, nf2, nf3, M, d_plan)))
-      fprintf(stderr, "error: cuspread3d_blockgather_prop, method(%d)\n",
-              d_plan->opts.gpu_method);
+    if (d_plan->opts.gpu_method == 1)
+      cuspread3d_nuptsdriven_prop<T>(nf1, nf2, nf3, M, d_plan);
+    if (d_plan->opts.gpu_method == 2)
+      cuspread3d_subprob_prop<T>(nf1, nf2, nf3, M, d_plan);
+    if (d_plan->opts.gpu_method == 3)
+      cuspread3d_subprob_prop<T>(nf1, nf2, nf3, M, d_plan);
+    if (d_plan->opts.gpu_method == 4)
+      cuspread3d_blockgather_prop<T>(nf1, nf2, nf3, M, d_plan);
   } break;
   }
 
@@ -852,9 +844,9 @@ int cufinufft_execute_impl(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
     if (type == 3) cufinufft2d3_exec<T>(d_c, d_fk, d_plan);
   } break;
   case 3: {
-    if (type == 1) ier = cufinufft3d1_exec<T>(d_c, d_fk, d_plan);
-    if (type == 2) ier = cufinufft3d2_exec<T>(d_c, d_fk, d_plan);
-    if (type == 3) ier = cufinufft3d3_exec<T>(d_c, d_fk, d_plan);
+    if (type == 1) cufinufft3d1_exec<T>(d_c, d_fk, d_plan);
+    if (type == 2) cufinufft3d2_exec<T>(d_c, d_fk, d_plan);
+    if (type == 3) cufinufft3d3_exec<T>(d_c, d_fk, d_plan);
   } break;
   }
 
