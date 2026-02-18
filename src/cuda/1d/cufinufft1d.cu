@@ -16,7 +16,7 @@ using namespace cufinufft::deconvolve;
 using namespace cufinufft::spreadinterp;
 
 template<typename T>
-int cufinufft1d1_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
+void cufinufft1d1_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
                       cufinufft_plan_t<T> *d_plan)
 /*
     1D Type-1 NUFFT
@@ -34,7 +34,6 @@ int cufinufft1d1_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
   assert(d_plan->spopts.spread_direction == 1);
   auto &stream = d_plan->stream;
 
-  int ier;
   for (int i = 0; i * d_plan->batchsize < d_plan->ntransf; i++) {
     int blksize = std::min(d_plan->ntransf - i * d_plan->batchsize, d_plan->batchsize);
     cuda_complex<T> *d_cstart    = d_c + i * d_plan->batchsize * d_plan->M;
@@ -50,7 +49,7 @@ int cufinufft1d1_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
         stream));
 
     // Step 1: Spread
-    if ((ier = cuspread1d<T>(d_plan, blksize))) return ier;
+    cuspread1d<T>(d_plan, blksize);
 
     if (d_plan->opts.gpu_spreadinterponly) continue; // skip steps 2 and 3
 
@@ -61,22 +60,20 @@ int cufinufft1d1_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
 
     // Step 3: deconvolve and shuffle
     if (d_plan->opts.modeord == 0) {
-      if ((ier = cudeconvolve1d<T, 0>(d_plan, blksize))) return ier;
+      cudeconvolve1d<T, 0>(d_plan, blksize);
     } else {
-      if ((ier = cudeconvolve1d<T, 1>(d_plan, blksize))) return ier;
+      cudeconvolve1d<T, 1>(d_plan, blksize);
     }
   }
-
-  return 0;
 }
-template int cufinufft1d1_exec<float>(cuda_complex<float> *d_c, cuda_complex<float> *d_fk,
+template void cufinufft1d1_exec<float>(cuda_complex<float> *d_c, cuda_complex<float> *d_fk,
                                       cufinufft_plan_t<float> *d_plan);
-template int cufinufft1d1_exec<double>(cuda_complex<double> *d_c,
+template void cufinufft1d1_exec<double>(cuda_complex<double> *d_c,
                                        cuda_complex<double> *d_fk,
                                        cufinufft_plan_t<double> *d_plan);
 
 template<typename T>
-int cufinufft1d2_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
+void cufinufft1d2_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
                       cufinufft_plan_t<T> *d_plan)
 /*
     1D Type-2 NUFFT
@@ -93,7 +90,6 @@ int cufinufft1d2_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
 {
   assert(d_plan->spopts.spread_direction == 2);
 
-  int ier;
   for (int i = 0; i * d_plan->batchsize < d_plan->ntransf; i++) {
     int blksize = std::min(d_plan->ntransf - i * d_plan->batchsize, d_plan->batchsize);
     cuda_complex<T> *d_cstart    = d_c + i * d_plan->batchsize * d_plan->M;
@@ -106,32 +102,30 @@ int cufinufft1d2_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
     if (!d_plan->opts.gpu_spreadinterponly) {
       // Step 1: amplify Fourier coeffs fk and copy into upsampled array fw
       if (d_plan->opts.modeord == 0) {
-        if ((ier = cudeconvolve1d<T, 0>(d_plan, blksize))) return ier;
+        cudeconvolve1d<T, 0>(d_plan, blksize);
       } else {
-        if ((ier = cudeconvolve1d<T, 1>(d_plan, blksize))) return ier;
+        cudeconvolve1d<T, 1>(d_plan, blksize);
       }
 
       // Step 2: FFT
       cufftResult cufft_status =
           cufft_ex(d_plan->fftplan, d_plan->fw, d_plan->fw, d_plan->iflag);
-      if (cufft_status != CUFFT_SUCCESS) return FINUFFT_ERR_CUDA_FAILURE;
+      if (cufft_status != CUFFT_SUCCESS) throw FINUFFT_ERR_CUDA_FAILURE;
     } else
       d_plan->fw = d_fkstart; // interpolate directly from user input f
 
     // Step 3: Interpolate
-    if ((ier = cuinterp1d<T>(d_plan, blksize))) return ier;
+    cuinterp1d<T>(d_plan, blksize);
   }
-
-  return 0;
 }
-template int cufinufft1d2_exec<float>(cuda_complex<float> *d_c, cuda_complex<float> *d_fk,
+template void cufinufft1d2_exec<float>(cuda_complex<float> *d_c, cuda_complex<float> *d_fk,
                                       cufinufft_plan_t<float> *d_plan);
-template int cufinufft1d2_exec<double>(cuda_complex<double> *d_c,
+template void cufinufft1d2_exec<double>(cuda_complex<double> *d_c,
                                        cuda_complex<double> *d_fk,
                                        cufinufft_plan_t<double> *d_plan);
 
 template<typename T>
-int cufinufft1d3_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
+void cufinufft1d3_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
                       cufinufft_plan_t<T> *d_plan) {
   /*
     1D Type-3 NUFFT
@@ -145,7 +139,6 @@ int cufinufft1d3_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
 
   Marco Barbone 08/14/2024
   */
-  int ier;
   const auto stream = d_plan->stream;
   for (int i = 0; i * d_plan->batchsize < d_plan->ntransf; i++) {
     int blksize = std::min(d_plan->ntransf - i * d_plan->batchsize, d_plan->batchsize);
@@ -167,14 +160,14 @@ int cufinufft1d3_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
                         thrust::multiplies<cuda_complex<T>>());
     }
     // Step 1: Spread
-    if ((ier = cuspread1d<T>(d_plan, blksize))) return ier;
+    cuspread1d<T>(d_plan, blksize);
     // now d_plan->fk = d_plan->fw contains the spread values
     // Step 2: Type 2 NUFFT
     // type 2 goes from fk to c
     // saving the results directly in the user output array d_fk
     // it needs to do blksize transforms
     d_plan->t2_plan->ntransf = blksize;
-    if ((ier = cufinufft1d2_exec<T>(d_fkstart, d_plan->fw, d_plan->t2_plan))) return ier;
+    cufinufft1d2_exec<T>(d_fkstart, d_plan->fw, d_plan->t2_plan);
     // Step 3: deconvolve
     // now we need to d_fk = d_fk*d_plan->deconv
     for (int i = 0; i < blksize; i++) {
@@ -183,10 +176,9 @@ int cufinufft1d3_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
                         d_fkstart + i * d_plan->N, thrust::multiplies<cuda_complex<T>>());
     }
   }
-  return 0;
 }
-template int cufinufft1d3_exec<float>(cuda_complex<float> *d_c, cuda_complex<float> *d_fk,
-                                      cufinufft_plan_t<float> *d_plan);
-template int cufinufft1d3_exec<double>(cuda_complex<double> *d_c,
-                                       cuda_complex<double> *d_fk,
-                                       cufinufft_plan_t<double> *d_plan);
+template void cufinufft1d3_exec<float>(cuda_complex<float> *d_c, cuda_complex<float> *d_fk,
+                                       cufinufft_plan_t<float> *d_plan);
+template void cufinufft1d3_exec<double>(cuda_complex<double> *d_c,
+                                        cuda_complex<double> *d_fk,
+                                        cufinufft_plan_t<double> *d_plan);

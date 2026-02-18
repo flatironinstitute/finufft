@@ -7,11 +7,11 @@ namespace cufinufft {
 namespace deconvolve {
 
 template<typename T, int modeord>
-int cudeconvolve1d(cufinufft_plan_t<T> *d_mem, int blksize);
+void cudeconvolve1d(cufinufft_plan_t<T> *d_mem, int blksize);
 template<typename T, int modeord>
-int cudeconvolve2d(cufinufft_plan_t<T> *d_mem, int blksize);
+void cudeconvolve2d(cufinufft_plan_t<T> *d_mem, int blksize);
 template<typename T, int modeord>
-int cudeconvolve3d(cufinufft_plan_t<T> *d_mem, int blksize);
+void cudeconvolve3d(cufinufft_plan_t<T> *d_mem, int blksize);
 
 } // namespace deconvolve
 } // namespace cufinufft

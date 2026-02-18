@@ -18,25 +18,24 @@
 
 // 1d
 template<typename T>
-int cufinufft1d1_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
-                      cufinufft_plan_t<T> *d_plan);
+void cufinufft1d1_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
+                       cufinufft_plan_t<T> *d_plan);
 template<typename T>
-int cufinufft1d2_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
-                      cufinufft_plan_t<T> *d_plan);
+void cufinufft1d2_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
+                       cufinufft_plan_t<T> *d_plan);
 template<typename T>
-int cufinufft1d3_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
-                      cufinufft_plan_t<T> *d_plan);
+void cufinufft1d3_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
+                       cufinufft_plan_t<T> *d_plan);
 // 2d
 template<typename T>
-int cufinufft2d1_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
-                      cufinufft_plan_t<T> *d_plan);
+void cufinufft2d1_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
+                       cufinufft_plan_t<T> *d_plan);
 template<typename T>
-int cufinufft2d2_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
-                      cufinufft_plan_t<T> *d_plan);
-
+void cufinufft2d2_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
+                       cufinufft_plan_t<T> *d_plan);
 template<typename T>
-int cufinufft2d3_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
-                      cufinufft_plan_t<T> *d_plan);
+void cufinufft2d3_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
+                       cufinufft_plan_t<T> *d_plan);
 // 3d
 template<typename T>
 int cufinufft3d1_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
@@ -404,32 +403,20 @@ Notes: the type T means either single or double, matching the
   using namespace cufinufft::spreadinterp;
   switch (d_plan->dim) {
   case 1: {
-    if (d_plan->opts.gpu_method == 1 &&
-        (ier = cuspread1d_nuptsdriven_prop<T>(nf1, M, d_plan)))
-      fprintf(stderr, "error: cuspread1d_nupts_prop, method(%d)\n",
-              d_plan->opts.gpu_method);
-    if (d_plan->opts.gpu_method == 2 &&
-        (ier = cuspread1d_subprob_prop<T>(nf1, M, d_plan)))
-      fprintf(stderr, "error: cuspread1d_subprob_prop, method(%d)\n",
-              d_plan->opts.gpu_method);
-    if (d_plan->opts.gpu_method == 3 &&
-        (ier = cuspread1d_subprob_prop<T>(nf1, M, d_plan)))
-      fprintf(stderr, "error: cuspread1d_nupts_prop, method(%d)\n",
-              d_plan->opts.gpu_method);
+    if (d_plan->opts.gpu_method == 1)
+      cuspread1d_nuptsdriven_prop<T>(nf1, M, d_plan);
+    if (d_plan->opts.gpu_method == 2)
+      cuspread1d_subprob_prop<T>(nf1, M, d_plan);
+    if (d_plan->opts.gpu_method == 3)
+      cuspread1d_subprob_prop<T>(nf1, M, d_plan);
   } break;
   case 2: {
-    if (d_plan->opts.gpu_method == 1 &&
-        (ier = cuspread2d_nuptsdriven_prop<T>(nf1, nf2, M, d_plan)))
-      fprintf(stderr, "error: cuspread2d_nupts_prop, method(%d)\n",
-              d_plan->opts.gpu_method);
-    if (d_plan->opts.gpu_method == 2 &&
-        (ier = cuspread2d_subprob_prop<T>(nf1, nf2, M, d_plan)))
-      fprintf(stderr, "error: cuspread2d_subprob_prop, method(%d)\n",
-              d_plan->opts.gpu_method);
-    if (d_plan->opts.gpu_method == 3 &&
-        (ier = cuspread2d_subprob_prop<T>(nf1, nf2, M, d_plan)))
-      fprintf(stderr, "error: cuspread2d_nupts_prop, method(%d)\n",
-              d_plan->opts.gpu_method);
+    if (d_plan->opts.gpu_method == 1)
+      cuspread2d_nuptsdriven_prop<T>(nf1, nf2, M, d_plan);
+    if (d_plan->opts.gpu_method == 2)
+      cuspread2d_subprob_prop<T>(nf1, nf2, M, d_plan);
+    if (d_plan->opts.gpu_method == 3)
+      cuspread2d_subprob_prop<T>(nf1, nf2, M, d_plan);
   } break;
   case 3: {
     if (d_plan->opts.gpu_method == 1 &&
@@ -851,18 +838,18 @@ int cufinufft_execute_impl(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
 */
 {
   cufinufft::utils::WithCudaDevice device_swapper(d_plan->opts.gpu_device_id);
-  int ier;
+  int ier=0;
   int type = d_plan->type;
   switch (d_plan->dim) {
   case 1: {
-    if (type == 1) ier = cufinufft1d1_exec<T>(d_c, d_fk, d_plan);
-    if (type == 2) ier = cufinufft1d2_exec<T>(d_c, d_fk, d_plan);
-    if (type == 3) ier = cufinufft1d3_exec<T>(d_c, d_fk, d_plan);
+    if (type == 1) cufinufft1d1_exec<T>(d_c, d_fk, d_plan);
+    if (type == 2) cufinufft1d2_exec<T>(d_c, d_fk, d_plan);
+    if (type == 3) cufinufft1d3_exec<T>(d_c, d_fk, d_plan);
   } break;
   case 2: {
-    if (type == 1) ier = cufinufft2d1_exec<T>(d_c, d_fk, d_plan);
-    if (type == 2) ier = cufinufft2d2_exec<T>(d_c, d_fk, d_plan);
-    if (type == 3) ier = cufinufft2d3_exec<T>(d_c, d_fk, d_plan);
+    if (type == 1) cufinufft2d1_exec<T>(d_c, d_fk, d_plan);
+    if (type == 2) cufinufft2d2_exec<T>(d_c, d_fk, d_plan);
+    if (type == 3) cufinufft2d3_exec<T>(d_c, d_fk, d_plan);
   } break;
   case 3: {
     if (type == 1) ier = cufinufft3d1_exec<T>(d_c, d_fk, d_plan);

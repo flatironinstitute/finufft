@@ -128,24 +128,24 @@ static __device__ void eval_kernel_vec_horner(T *ker, const T x, const double up
 }
 
 // Functions for calling different methods of spreading & interpolation
-template<typename T> int cuspread1d(cufinufft_plan_t<T> *d_plan, int blksize);
-template<typename T> int cuinterp1d(cufinufft_plan_t<T> *d_plan, int blksize);
+template<typename T> void cuspread1d(cufinufft_plan_t<T> *d_plan, int blksize);
+template<typename T> void cuinterp1d(cufinufft_plan_t<T> *d_plan, int blksize);
 
-template<typename T> int cuspread2d(cufinufft_plan_t<T> *d_plan, int blksize);
-template<typename T> int cuinterp2d(cufinufft_plan_t<T> *d_plan, int blksize);
+template<typename T> void cuspread2d(cufinufft_plan_t<T> *d_plan, int blksize);
+template<typename T> void cuinterp2d(cufinufft_plan_t<T> *d_plan, int blksize);
 
 template<typename T> int cuspread3d(cufinufft_plan_t<T> *d_plan, int blksize);
 template<typename T> int cuinterp3d(cufinufft_plan_t<T> *d_plan, int blksize);
 
 // Wrappers for methods of spreading
 template<typename T>
-int cuspread1d_nuptsdriven_prop(int nf1, int M, cufinufft_plan_t<T> *d_plan);
+void cuspread1d_nuptsdriven_prop(int nf1, int M, cufinufft_plan_t<T> *d_plan);
 template<typename T>
-int cuspread1d_subprob_prop(int nf1, int M, cufinufft_plan_t<T> *d_plan);
+void cuspread1d_subprob_prop(int nf1, int M, cufinufft_plan_t<T> *d_plan);
 template<typename T>
-int cuspread2d_nuptsdriven_prop(int nf1, int nf2, int M, cufinufft_plan_t<T> *d_plan);
+void cuspread2d_nuptsdriven_prop(int nf1, int nf2, int M, cufinufft_plan_t<T> *d_plan);
 template<typename T>
-int cuspread2d_subprob_prop(int nf1, int nf2, int M, cufinufft_plan_t<T> *d_plan);
+void cuspread2d_subprob_prop(int nf1, int nf2, int M, cufinufft_plan_t<T> *d_plan);
 template<typename T>
 int cuspread3d_nuptsdriven_prop(int nf1, int nf2, int nf3, int M,
                                 cufinufft_plan_t<T> *d_plan);
