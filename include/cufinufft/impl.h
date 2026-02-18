@@ -577,7 +577,7 @@ int cufinufft_setpts_impl(int M, T *d_kx, T *d_ky, T *d_kz, int N, T *d_s, T *d_
 
   // A macro might be better as it has access to __line__ and __func__
   const auto checked_free = [stream, pool = d_plan->supports_pools](auto x) constexpr {
-    if (!x) return cudaFreeWrapper(x, stream, pool);
+    if (x) return cudaFreeWrapper(x, stream, pool);
     return cudaSuccess;
   };
   const auto checked_realloc = [checked_free, pool = d_plan->supports_pools, stream](
