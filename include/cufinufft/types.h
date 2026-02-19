@@ -6,7 +6,6 @@
 
 #include <cufinufft/defs.h>
 #include <cufinufft_opts.h>
-#include <cufinufft/contrib/helper_cuda.h>
 #include <finufft_common/spread_opts.h>
 #include <type_traits>
 
@@ -28,6 +27,50 @@ using cuda_complex = typename std::conditional<
     std::is_same<T, float>::value, cuFloatComplex,
     typename std::conditional<std::is_same<T, double>::value, cuDoubleComplex,
                               void>::type>::type;
+
+template<typename T> class cufinufftArray {
+  private:
+    cudaStream_t strm;
+    T *ptr;
+    size_t sz;
+    bool pool;
+
+    void alloc(size_t size, cudaStream_t stream, bool pool_supported) {
+      if (sz!=0) throw FINUFFT_ERR_CUDA_FAILURE;
+      sz = size;
+      strm = stream;
+      pool = pool_supported;
+      auto err = pool ? cudaMallocAsync(&ptr, sz*sizeof(T), strm)
+                      : cudaMalloc(&ptr, sz);
+      if (err!=cudaSuccess) throw FINUFFT_ERR_CUDA_FAILURE;
+    }
+
+  public:
+    cufinufftArray() : strm(0), ptr(nullptr), sz(0), pool(false) {}
+    cufinufftArray(size_t size, cudaStream_t stream, bool pool_supported)
+      : cufinufftArray()
+    { alloc(size, stream, pool_supported); }
+    ~cufinufftArray() { clear(); }
+
+    void clear() {
+      if (sz==0) return;
+      auto err = pool ? cudaFreeAsync(ptr, strm) : cudaFree(ptr);
+      if (err!=cudaSuccess) throw FINUFFT_ERR_CUDA_FAILURE;
+      sz = 0;
+      strm = 0;
+      ptr = nullptr;
+      pool = false;
+    }
+
+    void resize(size_t size, cudaStream_t stream, bool pool_supported) {
+      clear();
+      alloc(size, stream, pool_supported);
+    }
+
+    T *data() { return ptr; }
+    const T *data() const { return ptr; }
+    size_t size() const { return sz; }
+};
 
 template<typename T> struct cufinufft_plan_t {
   cufinufft_opts opts;
