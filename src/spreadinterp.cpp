@@ -3,6 +3,7 @@
 #include <finufft/finufft_utils.hpp>
 #include <finufft/spreadinterp.h>
 #include <finufft_common/kernel.h>
+#include <finufft_common/utils.h>
 
 #include <finufft/xsimd.hpp>
 
@@ -1260,61 +1261,38 @@ static void add_wrapped_subgrid(BIGINT offset1, BIGINT offset2, BIGINT offset3,
   }
 }
 
-template<typename simd_type, std::size_t... Is>
-static FINUFFT_ALWAYS_INLINE simd_type make_incremented_vectors(
-    std::index_sequence<Is...>) {
-  return simd_type{Is...}; // Creates a SIMD vector with the index sequence
-}
-
-template<std::size_t N, typename simd_type>
-static FINUFFT_ALWAYS_INLINE bool has_duplicates_impl(const simd_type &vec) noexcept {
-
-  if constexpr (N == simd_type::size) {
-    return false;
-  } else {
-    const auto duplicates =
-        (xsimd::rotate_right<N>(vec) == vec) != xsimd::batch_bool<bool>(false);
-    if (duplicates) {
-      return true;
-    }
-    return has_duplicates_impl<N + 1>(vec);
-  }
-}
-
-template<typename simd_type>
-static FINUFFT_ALWAYS_INLINE bool has_duplicates(const simd_type &vec) noexcept {
-  return has_duplicates_impl<1, simd_type>(vec);
-}
-
-template<typename T>
-static void bin_sort_singlethread_vector(
-    std::vector<BIGINT> &ret, UBIGINT M, const T *kx, const T *ky, const T *kz,
-    UBIGINT N1, UBIGINT N2, UBIGINT N3, double bin_size_x, double bin_size_y,
-    double bin_size_z, int debug [[maybe_unused]])
+template<typename T, int ndims>
+static void bin_sort_singlethread_vector(std::vector<BIGINT> &ret, UBIGINT M, const T *kx,
+                                         const T *ky, const T *kz, UBIGINT N1, UBIGINT N2,
+                                         UBIGINT N3, double bin_size_x, double bin_size_y,
+                                         double bin_size_z, int debug [[maybe_unused]])
 /* SIMD-vectorized version of bin_sort_singlethread.
+ * Uses SIMD to compute bin indices, scalar accumulation for histogram updates
+ * (scatter/gather is slower due to duplicate-bin conflicts and latency).
+ * Uses uint32_t counts to halve cache footprint vs BIGINT.
+ * Templated on ndims to eliminate branching in inner loops.
  * For documentation see: bin_sort_singlethread.
  */
 {
+  static_assert(ndims >= 1 && ndims <= 3, "ndims must be 1, 2, or 3");
   using simd_type                 = xsimd::batch<T>;
-  using int_simd_type             = xsimd::batch<xsimd::as_integer_t<T>>;
   using arch_t                    = typename simd_type::arch_type;
   static constexpr auto simd_size = simd_type::size;
   static constexpr auto alignment = arch_t::alignment();
 
   static constexpr auto to_array = [](const auto &vec) constexpr noexcept {
     using VT = decltype(std::decay_t<decltype(vec)>());
-    alignas(alignment) std::array<typename VT::value_type, VT::size> array{};
-    vec.store_aligned(array.data());
-    return array;
+    alignas(alignment) std::array<typename VT::value_type, VT::size> arr{};
+    vec.store_aligned(arr.data());
+    return arr;
   };
 
-  const auto isky = (N2 > 1), iskz = (N3 > 1); // ky,kz avail? (cannot access if not)
   // here the +1 is needed to allow round-off error causing i1=N1/bin_size_x,
   // for kx near +pi, ie foldrescale gives N1 (exact arith would be 0 to N1-1).
   // Note that round-off near kx=-pi stably rounds negative to i1=0.
   const auto nbins1             = BIGINT(T(N1) / bin_size_x + 1);
-  const auto nbins2             = isky ? BIGINT(T(N2) / bin_size_y + 1) : 1;
-  const auto nbins3             = iskz ? BIGINT(T(N3) / bin_size_z + 1) : 1;
+  const auto nbins2             = ndims > 1 ? BIGINT(T(N2) / bin_size_y + 1) : 1;
+  const auto nbins3             = ndims > 2 ? BIGINT(T(N3) / bin_size_z + 1) : 1;
   const auto nbins              = nbins1 * nbins2 * nbins3;
   const auto inv_bin_size_x     = T(1.0 / bin_size_x);
   const auto inv_bin_size_y     = T(1.0 / bin_size_y);
@@ -1322,89 +1300,70 @@ static void bin_sort_singlethread_vector(
   const auto inv_bin_size_x_vec = simd_type(1.0 / bin_size_x);
   const auto inv_bin_size_y_vec = simd_type(1.0 / bin_size_y);
   const auto inv_bin_size_z_vec = simd_type(1.0 / bin_size_z);
-  const auto zero               = to_int(simd_type(0));
-  const auto increment =
-      to_int(make_incremented_vectors<simd_type>(std::make_index_sequence<simd_size>{}));
+  const auto zero               = xsimd::to_int(simd_type(0));
 
-  // count how many pts in each bin
-  alignas(alignment) std::vector<xsimd::as_integer_t<FLT>> counts(nbins + simd_size, 0);
-  const auto simd_M = M & (-simd_size); // round down to simd_size multiple
+  // lambda to compute SIMD bin indices from a given offset into kx/ky/kz
+  auto compute_bins = [&](UBIGINT offset) {
+    const auto i1 = xsimd::to_int(
+        fold_rescale(simd_type::load_unaligned(kx + offset), N1) * inv_bin_size_x_vec);
+    auto bin = i1;
+    if constexpr (ndims > 1) {
+      const auto i2 = xsimd::to_int(
+          fold_rescale(simd_type::load_unaligned(ky + offset), N2) * inv_bin_size_y_vec);
+      bin = i1 + nbins1 * i2;
+    }
+    if constexpr (ndims > 2) {
+      const auto i3 = xsimd::to_int(
+          fold_rescale(simd_type::load_unaligned(kz + offset), N3) * inv_bin_size_z_vec);
+      bin = bin + nbins1 * nbins2 * i3;
+    }
+    return bin;
+  };
+
+  // lambda to compute scalar bin index for a single point
+  auto compute_bin_scalar = [&](UBIGINT idx) {
+    auto bin = BIGINT(fold_rescale<T>(kx[idx], N1) * inv_bin_size_x);
+    if constexpr (ndims > 1)
+      bin += nbins1 * BIGINT(fold_rescale<T>(ky[idx], N2) * inv_bin_size_y);
+    if constexpr (ndims > 2)
+      bin += nbins1 * nbins2 * BIGINT(fold_rescale<T>(kz[idx], N3) * inv_bin_size_z);
+    return bin;
+  };
+
+  // uint32_t counts halves cache footprint vs BIGINT (int64_t)
+  std::vector<uint32_t> counts(nbins, 0);
+  const auto simd_M = M & UBIGINT(-simd_size); // round down to simd_size multiple
   UBIGINT i{};
+
+  // counting pass: SIMD bin compute, scalar accumulate
   for (i = 0; i < simd_M; i += simd_size) {
-    const auto i1 = xsimd::to_int(
-        fold_rescale(simd_type::load_unaligned(kx + i), N1) * inv_bin_size_x_vec);
-    const auto i2 =
-        isky ? xsimd::to_int(fold_rescale(simd_type::load_unaligned(ky + i), N2) *
-                             inv_bin_size_y_vec)
-             : zero;
-    const auto i3 =
-        iskz ? xsimd::to_int(fold_rescale(simd_type::load_unaligned(kz + i), N3) *
-                             inv_bin_size_z_vec)
-             : zero;
-    const auto bin = i1 + nbins1 * (i2 + nbins2 * i3);
-    if (has_duplicates(bin)) {
-      const auto bin_array = to_array(bin);
-      for (int j = 0; j < simd_size; j++) {
-        ++counts[bin_array[j]];
-      }
-    } else {
-      const auto bins      = int_simd_type::gather(counts.data(), bin);
-      const auto incr_bins = xsimd::incr(bins);
-      incr_bins.scatter(counts.data(), bin);
-    }
+    const auto bin       = compute_bins(i);
+    const auto bin_array = to_array(bin);
+    for (int j = 0; j < simd_size; j++) ++counts[bin_array[j]];
   }
+  for (; i < M; i++) ++counts[compute_bin_scalar(i)];
 
-  for (; i < M; i++) {
-    // find the bin index in however many dims are needed
-    const auto i1  = BIGINT(fold_rescale<T>(kx[i], N1) * inv_bin_size_x);
-    const auto i2  = isky ? BIGINT(fold_rescale<T>(ky[i], N2) * inv_bin_size_y) : 0;
-    const auto i3  = iskz ? BIGINT(fold_rescale<T>(kz[i], N3) * inv_bin_size_z) : 0;
-    const auto bin = i1 + nbins1 * (i2 + nbins2 * i3);
-    ++counts[bin];
-  }
-
-  // compute the offsets directly in the counts array (no offset array)
-  BIGINT current_offset = 0;
-  for (i = 0; i < nbins; i++) {
-    BIGINT tmp = counts[i];
-    counts[i]  = current_offset; // Reinecke's cute replacement of counts[i]
+  // compute the offsets directly in the counts array (Reinecke's trick)
+  uint32_t current_offset = 0;
+  for (BIGINT ii = 0; ii < nbins; ii++) {
+    uint32_t tmp = counts[ii];
+    counts[ii]   = current_offset;
     current_offset += tmp;
-  } // (counts now contains the index offsets for each bin)
+  }
 
+  // placement pass: SIMD bin compute, scalar placement
   for (i = 0; i < simd_M; i += simd_size) {
-    const auto i1 = xsimd::to_int(
-        fold_rescale(simd_type::load_unaligned(kx + i), N1) * inv_bin_size_x_vec);
-    const auto i2 =
-        isky ? xsimd::to_int(fold_rescale(simd_type::load_unaligned(ky + i), N2) *
-                             inv_bin_size_y_vec)
-             : zero;
-    const auto i3 =
-        iskz ? xsimd::to_int(fold_rescale(simd_type::load_unaligned(kz + i), N3) *
-                             inv_bin_size_z_vec)
-             : zero;
-    const auto bin = i1 + nbins1 * (i2 + nbins2 * i3);
-    if (has_duplicates(bin)) {
-      const auto bin_array = to_array(to_int(bin));
-      for (int j = 0; j < simd_size; j++) {
-        ret[counts[bin_array[j]]] = j + i;
-        counts[bin_array[j]]++;
-      }
-    } else {
-      const auto bins      = decltype(bin)::gather(counts.data(), bin);
-      const auto incr_bins = xsimd::incr(bins);
-      incr_bins.scatter(counts.data(), bin);
-      const auto result = increment + int_simd_type(i);
-      result.scatter(ret, bins);
+    const auto bin       = compute_bins(i);
+    const auto bin_array = to_array(bin);
+    for (int j = 0; j < simd_size; j++) {
+      ret[counts[bin_array[j]]] = BIGINT(j + i);
+      ++counts[bin_array[j]];
     }
   }
   for (; i < M; i++) {
-    // find the bin index (again! but better than using RAM)
-    const auto i1    = BIGINT(fold_rescale<T>(kx[i], N1) * inv_bin_size_x);
-    const auto i2    = isky ? BIGINT(fold_rescale<T>(ky[i], N2) * inv_bin_size_y) : 0;
-    const auto i3    = iskz ? BIGINT(fold_rescale<T>(kz[i], N3) * inv_bin_size_z) : 0;
-    const auto bin   = i1 + nbins1 * (i2 + nbins2 * i3);
-    ret[counts[bin]] = BIGINT(i); // fill the inverse map on the fly
-    ++counts[bin];        // update the offsets
+    const auto bin   = compute_bin_scalar(i);
+    ret[counts[bin]] = BIGINT(i);
+    ++counts[bin];
   }
 }
 
@@ -1453,78 +1412,156 @@ static void bin_sort_singlethread(std::vector<BIGINT> &ret, UBIGINT M, const T *
   }
 }
 
-template<typename T>
+template<typename T, int ndims>
 static void bin_sort_multithread(std::vector<BIGINT> &ret, UBIGINT M, const T *kx,
                                  const T *ky, const T *kz, UBIGINT N1, UBIGINT N2,
                                  UBIGINT N3, double bin_size_x, double bin_size_y,
                                  double bin_size_z, int debug [[maybe_unused]], int nthr)
-/* Mostly-OpenMP'ed version of bin_sort.
+/* Mostly-OpenMP'ed version of bin_sort, SIMD-vectorized per thread.
+   Templated on ndims to eliminate branching in inner loops.
    For documentation see: bin_sort_singlethread.
    Caution: when M (# NU pts) << N (# U pts), is SLOWER than single-thread.
    Originally by Barnett 2/8/18
    Explicit #threads control argument 7/20/20.
    Improved by Martin Reinecke, 6/19/23 (up to 50% faster at 1 thr/core).
+   SIMD vectorization with uint32_t counts, 2/2026.
    Todo: if debug, print timing breakdowns.
  */
 {
-  bool isky      = (N2 > 1), iskz = (N3 > 1); // ky,kz avail? (cannot access if not)
-  UBIGINT nbins1 = N1 / bin_size_x + 1, nbins2, nbins3; // see above note on why +1
-  nbins2         = isky ? N2 / bin_size_y + 1 : 1;
-  nbins3         = iskz ? N3 / bin_size_z + 1 : 1;
-  UBIGINT nbins  = nbins1 * nbins2 * nbins3;
-  if (nthr == 0) // should never happen in spreadinterp use
-    fprintf(stderr, "[%s] nthr (%d) must be positive!\n", __func__, nthr);
-  int nt = std::min(M, UBIGINT(nthr)); // handle case of less points than threads
-  std::vector<UBIGINT> brk(nt + 1); // list of start NU pt indices per thread
+  static_assert(ndims >= 1 && ndims <= 3, "ndims must be 1, 2, or 3");
+  using simd_type                 = xsimd::batch<T>;
+  using arch_t                    = typename simd_type::arch_type;
+  static constexpr auto simd_size = simd_type::size;
+  static constexpr auto alignment = arch_t::alignment();
 
-  // distribute the NU pts to threads once & for all...
-  for (int t = 0; t <= nt; ++t)
-    brk[t]   = (UBIGINT)(0.5 + M * t / (double)nt); // start index for t'th chunk
+  static constexpr auto to_array = [](const auto &vec) constexpr noexcept {
+    using VT = decltype(std::decay_t<decltype(vec)>());
+    alignas(alignment) std::array<typename VT::value_type, VT::size> arr{};
+    vec.store_aligned(arr.data());
+    return arr;
+  };
 
-  // set up 2d array (nthreads * nbins), just its pointers for now
-  // (sub-vectors will be initialized later)
-  std::vector<std::vector<UBIGINT>> counts(nt);
+  const auto nbins1             = BIGINT(T(N1) / bin_size_x + 1);
+  const auto nbins2             = ndims > 1 ? BIGINT(T(N2) / bin_size_y + 1) : 1;
+  const auto nbins3             = ndims > 2 ? BIGINT(T(N3) / bin_size_z + 1) : 1;
+  const auto nbins              = nbins1 * nbins2 * nbins3;
+  const auto inv_bin_size_x_vec = simd_type(1.0 / bin_size_x);
+  const auto inv_bin_size_y_vec = simd_type(1.0 / bin_size_y);
+  const auto inv_bin_size_z_vec = simd_type(1.0 / bin_size_z);
+  const auto inv_bin_size_x     = T(1.0 / bin_size_x);
+  const auto inv_bin_size_y     = T(1.0 / bin_size_y);
+  const auto inv_bin_size_z     = T(1.0 / bin_size_z);
 
-#pragma omp parallel num_threads(nt)
-  {
-    // parallel binning to each thread's count. Block done once per thread
-    int t = MY_OMP_GET_THREAD_NUM(); // (we assume all nt threads created)
-    auto &my_counts(counts[t]); // name for counts[t]
-    my_counts.resize(nbins, 0); // allocate counts[t], now in parallel region
-    for (auto i = brk[t]; i < brk[t + 1]; i++) {
-      // find the bin index in however many dims are needed
-      BIGINT i1 = fold_rescale<T>(kx[i], N1) / bin_size_x, i2 = 0, i3 = 0;
-      if (isky) i2 = fold_rescale<T>(ky[i], N2) / bin_size_y;
-      if (iskz) i3 = fold_rescale<T>(kz[i], N3) / bin_size_z;
-      const auto bin = i1 + nbins1 * (i2 + nbins2 * i3);
-      ++my_counts[bin]; // no clash btw threads
+  // lambda to compute SIMD bin indices from a given offset into kx/ky/kz
+  auto compute_bins = [&](UBIGINT offset) {
+    const auto i1 = xsimd::to_int(
+        fold_rescale(simd_type::load_unaligned(kx + offset), N1) * inv_bin_size_x_vec);
+    auto bin = i1;
+    if constexpr (ndims > 1) {
+      const auto i2 = xsimd::to_int(
+          fold_rescale(simd_type::load_unaligned(ky + offset), N2) * inv_bin_size_y_vec);
+      bin = i1 + nbins1 * i2;
     }
-  }
+    if constexpr (ndims > 2) {
+      const auto i3 = xsimd::to_int(
+          fold_rescale(simd_type::load_unaligned(kz + offset), N3) * inv_bin_size_z_vec);
+      bin = bin + nbins1 * nbins2 * i3;
+    }
+    return bin;
+  };
 
-  // inner sum along both bin and thread (inner) axes to get global offsets
-  UBIGINT current_offset = 0;
-  for (UBIGINT b = 0; b < nbins; ++b) // (not worth omp)
-    for (int t = 0; t < nt; ++t) {
-      UBIGINT tmp  = counts[t][b];
-      counts[t][b] = current_offset;
-      current_offset += tmp;
-    } // counts[t][b] is now the index offset as if t ordered fast, b slow
+  // lambda to compute scalar bin index for a single point
+  auto compute_bin_scalar = [&](UBIGINT idx) {
+    auto bin = BIGINT(fold_rescale<T>(kx[idx], N1) * inv_bin_size_x);
+    if constexpr (ndims > 1)
+      bin += nbins1 * BIGINT(fold_rescale<T>(ky[idx], N2) * inv_bin_size_y);
+    if constexpr (ndims > 2)
+      bin += nbins1 * nbins2 * BIGINT(fold_rescale<T>(kz[idx], N3) * inv_bin_size_z);
+    return bin;
+  };
+
+  if (nthr == 0) fprintf(stderr, "[%s] nthr (%d) must be positive!\n", __func__, nthr);
+  int nt = std::min(M, UBIGINT(nthr));
+  std::vector<UBIGINT> brk(nt + 1);
+
+  for (int t = 0; t <= nt; ++t) brk[t] = (UBIGINT)(0.5 + M * t / (double)nt);
+
+  std::vector<std::vector<uint32_t>> counts(nt);
 
 #pragma omp parallel num_threads(nt)
   {
     int t = MY_OMP_GET_THREAD_NUM();
     auto &my_counts(counts[t]);
-    for (UBIGINT i = brk[t]; i < brk[t + 1]; i++) {
-      // find the bin index (again! but better than using RAM)
-      UBIGINT i1 = fold_rescale<T>(kx[i], N1) / bin_size_x, i2 = 0, i3 = 0;
-      if (isky) i2 = fold_rescale<T>(ky[i], N2) / bin_size_y;
-      if (iskz) i3 = fold_rescale<T>(kz[i], N3) / bin_size_z;
-      UBIGINT bin         = i1 + nbins1 * (i2 + nbins2 * i3);
-      ret[my_counts[bin]] = i; // inverse is offset for this NU pt and thread
-      ++my_counts[bin]; // update the offsets; no thread clash
+    my_counts.resize(nbins, 0);
+    const auto chunk_start = brk[t];
+    const auto chunk_end   = brk[t + 1];
+    const auto chunk_simd =
+        chunk_start + ((chunk_end - chunk_start) & UBIGINT(-simd_size));
+
+    // counting pass: SIMD bin compute, scalar accumulate
+    UBIGINT i;
+    for (i = chunk_start; i < chunk_simd; i += simd_size) {
+      const auto bin       = compute_bins(i);
+      const auto bin_array = to_array(bin);
+      for (int j = 0; j < simd_size; j++) ++my_counts[bin_array[j]];
+    }
+    for (; i < chunk_end; i++) ++my_counts[compute_bin_scalar(i)];
+  }
+
+  // inner sum along both bin and thread (inner) axes to get global offsets
+  uint32_t current_offset = 0;
+  for (BIGINT b = 0; b < nbins; ++b)
+    for (int t = 0; t < nt; ++t) {
+      uint32_t tmp = counts[t][b];
+      counts[t][b] = current_offset;
+      current_offset += tmp;
+    }
+
+#pragma omp parallel num_threads(nt)
+  {
+    int t = MY_OMP_GET_THREAD_NUM();
+    auto &my_counts(counts[t]);
+    const auto chunk_start = brk[t];
+    const auto chunk_end   = brk[t + 1];
+    const auto chunk_simd =
+        chunk_start + ((chunk_end - chunk_start) & UBIGINT(-simd_size));
+
+    // placement pass: SIMD bin compute, scalar placement
+    UBIGINT i;
+    for (i = chunk_start; i < chunk_simd; i += simd_size) {
+      const auto bin       = compute_bins(i);
+      const auto bin_array = to_array(bin);
+      for (int j = 0; j < simd_size; j++) {
+        ret[my_counts[bin_array[j]]] = BIGINT(j + i);
+        ++my_counts[bin_array[j]];
+      }
+    }
+    for (; i < chunk_end; i++) {
+      const auto bin      = compute_bin_scalar(i);
+      ret[my_counts[bin]] = BIGINT(i);
+      ++my_counts[bin];
     }
   }
 }
+
+// Functor for dispatching bin_sort on ndims template parameter.
+template<typename T> struct BinSortDispatch {
+  std::vector<BIGINT> &sort_indices;
+  UBIGINT M;
+  const T *kx, *ky, *kz;
+  UBIGINT N1, N2, N3;
+  double bin_size_x, bin_size_y, bin_size_z;
+  int sort_debug, sort_nthr;
+  template<int ndims> void operator()() {
+    if (sort_nthr == 1)
+      bin_sort_singlethread_vector<T, ndims>(sort_indices, M, kx, ky, kz, N1, N2, N3,
+                                             bin_size_x, bin_size_y, bin_size_z,
+                                             sort_debug);
+    else
+      bin_sort_multithread<T, ndims>(sort_indices, M, kx, ky, kz, N1, N2, N3, bin_size_x,
+                                     bin_size_y, bin_size_z, sort_debug, sort_nthr);
+  }
+};
 
 template<typename T>
 static void get_subgrid(BIGINT &offset1, BIGINT &offset2, BIGINT &offset3,
@@ -1694,12 +1731,15 @@ int indexSort(std::vector<BIGINT> &sort_indices, UBIGINT N1, UBIGINT N2, UBIGINT
 #endif
     if (sort_nthr == 0) // multithreaded auto choice: when N>>M, one thread is better!
       sort_nthr = (10 * M > N) ? maxnthr : 1; // heuristic
-    if (sort_nthr == 1)
-      bin_sort_singlethread_vector(sort_indices, M, kx, ky, kz, N1, N2, N3, bin_size_x,
-                                   bin_size_y, bin_size_z, sort_debug);
-    else // sort_nthr>1, user fixes # threads (>=2)
-      bin_sort_multithread(sort_indices, M, kx, ky, kz, N1, N2, N3, bin_size_x,
-                           bin_size_y, bin_size_z, sort_debug, sort_nthr);
+    // dispatch on ndims to eliminate branching in inner loops
+    using finufft::common::dispatch;
+    using finufft::common::DispatchParam;
+    using finufft::common::make_range;
+    auto ndims_param =
+        std::make_tuple(DispatchParam<make_range<1, 3>>{ndims_from_Ns(N1, N2, N3)});
+    dispatch(BinSortDispatch<T>{sort_indices, M, kx, ky, kz, N1, N2, N3, bin_size_x,
+                                bin_size_y, bin_size_z, sort_debug, sort_nthr},
+             ndims_param);
     if (opts.debug)
       printf("\tsorted (%d threads):\t%.3g s\n", sort_nthr, timer.elapsedsec());
     did_sort = 1;
