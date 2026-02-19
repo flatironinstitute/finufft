@@ -74,7 +74,7 @@ template<typename T> class cufinufftArray {
     const T *data() const { return ptr; }
     size_t size() const { return sz; }
 
-    operator T* () { return ptr; }
+  //  operator T* () { return ptr; }
 
     void swap(cufinufftArray &other) {
       std::swap(strm, other.strm);

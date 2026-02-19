@@ -576,10 +576,10 @@ void cuspread3d_nuptsdriven_prop(int nf1, int nf2, int nf3, int M,
     T *d_ky = d_plan->kxyz[1];
     T *d_kz = d_plan->kxyz[2];
 
-    int *d_binsize     = d_plan->binsize;
-    int *d_binstartpts = d_plan->binstartpts;
-    int *d_sortidx     = d_plan->sortidx;
-    int *d_idxnupts    = d_plan->idxnupts;
+    int *d_binsize     = d_plan->binsize.data();
+    int *d_binstartpts = d_plan->binstartpts.data();
+    int *d_sortidx     = d_plan->sortidx.data();
+    int *d_idxnupts    = d_plan->idxnupts.data();
 
     checkCudaErrors(cudaMemsetAsync(
              d_binsize, 0, numbins[0] * numbins[1] * numbins[2] * sizeof(int), stream));
@@ -598,7 +598,7 @@ void cuspread3d_nuptsdriven_prop(int nf1, int nf2, int nf3, int M,
         d_binstartpts, d_sortidx, d_kx, d_ky, d_kz, d_idxnupts, nf1, nf2, nf3);
     THROW_IF_CUDA_ERROR
   } else {
-    int *d_idxnupts = d_plan->idxnupts;
+    int *d_idxnupts = d_plan->idxnupts.data();
     thrust::sequence(thrust::cuda::par.on(stream), d_idxnupts, d_idxnupts + M);
     THROW_IF_CUDA_ERROR
   }
@@ -620,7 +620,7 @@ static void cuspread3d_nuptsdriven(int nf1, int nf2, int nf3, int M, cufinufft_p
   T es_c    = 4.0 / T(d_plan->spopts.nspread * d_plan->spopts.nspread);
   T es_beta = d_plan->spopts.beta;
 
-  int *d_idxnupts       = d_plan->idxnupts;
+  int *d_idxnupts       = d_plan->idxnupts.data();
   T *d_kx               = d_plan->kxyz[0];
   T *d_ky               = d_plan->kxyz[1];
   T *d_kz               = d_plan->kxyz[2];
@@ -749,7 +749,7 @@ void cuspread3d_blockgather_prop(int nf1, int nf2, int nf3, int M,
   calc_inverse_of_global_sort_index_ghost<<<(M + 1024 - 1) / 1024, 1024, 0, stream>>>(
       M, bin_size_x, bin_size_y, bin_size_z, numobins[0], numobins[1], numobins[2],
       binsperobinx, binsperobiny, binsperobinz, d_binstartpts, d_sortidx, d_kx, d_ky,
-      d_kz, d_idxnupts, nf1, nf2, nf3);
+      d_kz, d_idxnupts.data(), nf1, nf2, nf3);
 
   threadsPerBlock.x = 2;
   threadsPerBlock.y = 2;
@@ -761,7 +761,7 @@ void cuspread3d_blockgather_prop(int nf1, int nf2, int nf3, int M,
 
   ghost_bin_pts_index<<<blocks, threadsPerBlock, 0, stream>>>(
       binsperobinx, binsperobiny, binsperobinz, numobins[0], numobins[1], numobins[2],
-      d_binsize, d_idxnupts, d_binstartpts, M);
+      d_binsize, d_idxnupts.data(), d_binstartpts, M);
 
   d_plan->idxnupts.clear();
   d_plan->idxnupts.swap(d_idxnupts);
@@ -788,7 +788,7 @@ void cuspread3d_blockgather_prop(int nf1, int nf2, int nf3, int M,
   cudaStreamSynchronize(stream);
   cufinufftArray<int> d_subprob_to_bin(totalnumsubprob, stream, d_plan->supports_pools);
   map_b_into_subprob_3d_v1<<<(n + 1024 - 1) / 1024, 1024, 0, stream>>>(
-      d_subprob_to_bin, d_subprobstartpts, d_numsubprob, n);
+      d_subprob_to_bin.data(), d_subprobstartpts, d_numsubprob, n);
 
   d_plan->subprob_to_bin.clear();
   d_plan->subprob_to_bin.swap(d_subprob_to_bin);
@@ -831,12 +831,12 @@ static void cuspread3d_blockgather(int nf1, int nf2, int nf3, int M, cufinufft_p
   cuda_complex<T> *d_c  = d_plan->c;
   cuda_complex<T> *d_fw = d_plan->fw;
 
-  int *d_binstartpts     = d_plan->binstartpts;
-  int *d_subprobstartpts = d_plan->subprobstartpts;
-  int *d_idxnupts        = d_plan->idxnupts;
+  int *d_binstartpts     = d_plan->binstartpts.data();
+  int *d_subprobstartpts = d_plan->subprobstartpts.data();
+  int *d_idxnupts        = d_plan->idxnupts.data();
 
   int totalnumsubprob   = d_plan->totalnumsubprob;
-  int *d_subprob_to_bin = d_plan->subprob_to_bin;
+  int *d_subprob_to_bin = d_plan->subprob_to_bin.data();
 
   size_t sharedplanorysize =
       obin_size_x * obin_size_y * obin_size_z * sizeof(cuda_complex<T>);
@@ -892,12 +892,12 @@ void cuspread3d_subprob_prop(int nf1, int nf2, int nf3, int M,
   T *d_ky = d_plan->kxyz[1];
   T *d_kz = d_plan->kxyz[2];
 
-  int *d_binsize         = d_plan->binsize;
-  int *d_binstartpts     = d_plan->binstartpts;
-  int *d_sortidx         = d_plan->sortidx;
-  int *d_numsubprob      = d_plan->numsubprob;
-  int *d_subprobstartpts = d_plan->subprobstartpts;
-  int *d_idxnupts        = d_plan->idxnupts;
+  int *d_binsize         = d_plan->binsize.data();
+  int *d_binstartpts     = d_plan->binstartpts.data();
+  int *d_sortidx         = d_plan->sortidx.data();
+  int *d_numsubprob      = d_plan->numsubprob.data();
+  int *d_subprobstartpts = d_plan->subprobstartpts.data();
+  int *d_idxnupts        = d_plan->idxnupts.data();
 
   checkCudaErrors(cudaMemsetAsync(
            d_binsize, 0, numbins[0] * numbins[1] * numbins[2] * sizeof(int), stream));
@@ -933,7 +933,7 @@ void cuspread3d_subprob_prop(int nf1, int nf2, int nf3, int M,
   cufinufftArray<int> d_subprob_to_bin(totalnumsubprob, stream, d_plan->supports_pools);
 
   map_b_into_subprob_3d_v2<<<(numbins[0] * numbins[1] + 1024 - 1) / 1024, 1024, 0,
-                             stream>>>(d_subprob_to_bin, d_subprobstartpts, d_numsubprob,
+                             stream>>>(d_subprob_to_bin.data(), d_subprobstartpts, d_numsubprob,
                                        numbins[0] * numbins[1] * numbins[2]);
 
   d_plan->subprob_to_bin.clear();
@@ -967,14 +967,14 @@ static void cuspread3d_subprob(int nf1, int nf2, int nf3, int M, cufinufft_plan_
   cuda_complex<T> *d_c  = d_plan->c;
   cuda_complex<T> *d_fw = d_plan->fw;
 
-  int *d_binsize         = d_plan->binsize;
-  int *d_binstartpts     = d_plan->binstartpts;
-  int *d_numsubprob      = d_plan->numsubprob;
-  int *d_subprobstartpts = d_plan->subprobstartpts;
-  int *d_idxnupts        = d_plan->idxnupts;
+  int *d_binsize         = d_plan->binsize.data();
+  int *d_binstartpts     = d_plan->binstartpts.data();
+  int *d_numsubprob      = d_plan->numsubprob.data();
+  int *d_subprobstartpts = d_plan->subprobstartpts.data();
+  int *d_idxnupts        = d_plan->idxnupts.data();
 
   int totalnumsubprob   = d_plan->totalnumsubprob;
-  int *d_subprob_to_bin = d_plan->subprob_to_bin;
+  int *d_subprob_to_bin = d_plan->subprob_to_bin.data();
 
   T sigma                      = d_plan->spopts.upsampfac;
   T es_c                       = 4.0 / T(d_plan->spopts.nspread * d_plan->spopts.nspread);
@@ -1033,14 +1033,14 @@ static void cuspread3d_output_driven(int nf1, int nf2, int nf3, int M,
   cuda_complex<T> *d_c  = d_plan->c;
   cuda_complex<T> *d_fw = d_plan->fw;
 
-  int *d_binsize         = d_plan->binsize;
-  int *d_binstartpts     = d_plan->binstartpts;
-  int *d_numsubprob      = d_plan->numsubprob;
-  int *d_subprobstartpts = d_plan->subprobstartpts;
-  int *d_idxnupts        = d_plan->idxnupts;
+  int *d_binsize         = d_plan->binsize.data();
+  int *d_binstartpts     = d_plan->binstartpts.data();
+  int *d_numsubprob      = d_plan->numsubprob.data();
+  int *d_subprobstartpts = d_plan->subprobstartpts.data();
+  int *d_idxnupts        = d_plan->idxnupts.data();
 
   int totalnumsubprob   = d_plan->totalnumsubprob;
-  int *d_subprob_to_bin = d_plan->subprob_to_bin;
+  int *d_subprob_to_bin = d_plan->subprob_to_bin.data();
 
   const auto np = d_plan->opts.gpu_np;
 
