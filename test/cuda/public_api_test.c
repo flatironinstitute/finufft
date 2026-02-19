@@ -129,43 +129,35 @@ int test_double(int M, int N) {
     c[j] =
         (2 * ((double)rand()) / RAND_MAX - 1) + I * (2 * ((double)rand()) / RAND_MAX - 1);
   }
-printf("1\n");
+
   // Allocate the device arrays and copy the x and c arrays.
   cudaMalloc((void **)&d_x, M * sizeof(double));
   cudaMalloc((void **)&d_c, M * sizeof(double _Complex));
   cudaMalloc((void **)&d_f, N * sizeof(double _Complex));
-printf("2\n");
 
   cudaMemcpy(d_x, x, M * sizeof(double), cudaMemcpyHostToDevice);
   cudaMemcpy(d_c, c, M * sizeof(double _Complex), cudaMemcpyHostToDevice);
-printf("3\n");
 
   // Make the cufinufft plan for a 1D type-1 transform with six digits of
   // tolerance.
   cufinufft_makeplan(1, 1, modes, 1, 1, 1e-6, &plan, NULL);
-printf("4\n");
 
   // Set the frequencies of the nonuniform points.
   cufinufft_setpts(plan, M, d_x, NULL, NULL, 0, NULL, NULL, NULL);
-printf("5\n");
 
   // Actually execute the plan on the given coefficients and store the result
   // in the d_f array.
   cufinufft_execute(plan, d_c, d_f);
-printf("6\n");
 
   // Copy the result back onto the host.
   cudaMemcpy(f, d_f, N * sizeof(double _Complex), cudaMemcpyDeviceToHost);
-printf("7\n");
 
   // Destroy the plan and free the device arrays after we're done.
   cufinufft_destroy(plan);
-printf("8\n");
 
   cudaFree(d_x);
   cudaFree(d_c);
   cudaFree(d_f);
-printf("9\n");
 
   // Pick an index to check the result of the calculation.
   idx = 4 * N / 7;
