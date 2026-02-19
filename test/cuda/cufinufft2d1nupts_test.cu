@@ -32,7 +32,6 @@ template<typename T> int run_test(int method) {
   int iflag = 1;
 
   std::cout << std::scientific << std::setprecision(3);
-  int ier;
 
   thrust::host_vector<T> x1(M1), y1(M1);
   thrust::host_vector<thrust::complex<T>> c1(M1), fk1(N1 * N2);
@@ -109,11 +108,7 @@ template<typename T> int run_test(int method) {
   nmodes[1] = N2;
   nmodes[2] = 1;
   cudaEventRecord(start);
-  ier = cufinufft_makeplan_impl<T>(type, dim, nmodes, iflag, ntransf, tol, &dplan, &opts);
-  if (ier != 0) {
-    printf("err: cufinufft2d_plan\n");
-    return ier;
-  }
+  cufinufft_makeplan_impl<T>(type, dim, nmodes, iflag, ntransf, tol, &dplan, &opts);
   cudaEventRecord(stop);
   cudaEventSynchronize(stop);
   cudaEventElapsedTime(&milliseconds, start, stop);
@@ -121,12 +116,8 @@ template<typename T> int run_test(int method) {
   printf("[time  ] cufinufft plan:\t\t %.3g s\n", milliseconds / 1000);
 
   cudaEventRecord(start);
-  ier = cufinufft_setpts_impl<T>(M1, d_x1.data().get(), d_y1.data().get(), NULL, 0, NULL,
-                                 NULL, NULL, dplan);
-  if (ier != 0) {
-    printf("err: cufinufft_setpts (set 1)\n");
-    return ier;
-  }
+  cufinufft_setpts_impl<T>(M1, d_x1.data().get(), d_y1.data().get(), NULL, 0, NULL,
+                           NULL, NULL, dplan);
   cudaEventRecord(stop);
   cudaEventSynchronize(stop);
   cudaEventElapsedTime(&milliseconds, start, stop);
@@ -134,13 +125,9 @@ template<typename T> int run_test(int method) {
   printf("[time  ] cufinufft setNUpts (set 1):\t %.3g s\n", milliseconds / 1000);
 
   cudaEventRecord(start);
-  ier = cufinufft_execute_impl<T>((cuda_complex<T> *)d_c1.data().get(),
-                                  (cuda_complex<T> *)d_fk1.data().get(), dplan);
+  cufinufft_execute_impl<T>((cuda_complex<T> *)d_c1.data().get(),
+                            (cuda_complex<T> *)d_fk1.data().get(), dplan);
 
-  if (ier != 0) {
-    printf("err: cufinufft2d1_exec (set 1)\n");
-    return ier;
-  }
   cudaEventRecord(stop);
   cudaEventSynchronize(stop);
   cudaEventElapsedTime(&milliseconds, start, stop);
@@ -149,12 +136,8 @@ template<typename T> int run_test(int method) {
   printf("[time  ] cufinufft exec (set 1):\t %.3g s\n", milliseconds / 1000);
 
   cudaEventRecord(start);
-  ier = cufinufft_setpts_impl<T>(M2, d_x2.data().get(), d_y2.data().get(), NULL, 0, NULL,
-                                 NULL, NULL, dplan);
-  if (ier != 0) {
-    printf("err: cufinufft_setpts (set 2)\n");
-    return ier;
-  }
+  cufinufft_setpts_impl<T>(M2, d_x2.data().get(), d_y2.data().get(), NULL, 0, NULL,
+                           NULL, NULL, dplan);
   cudaEventRecord(stop);
   cudaEventSynchronize(stop);
   cudaEventElapsedTime(&milliseconds, start, stop);
@@ -162,12 +145,8 @@ template<typename T> int run_test(int method) {
   printf("[time  ] cufinufft setNUpts (set 2):\t %.3g s\n", milliseconds / 1000);
 
   cudaEventRecord(start);
-  ier = cufinufft_execute_impl<T>((cuda_complex<T> *)d_c2.data().get(),
-                                  (cuda_complex<T> *)d_fk2.data().get(), dplan);
-  if (ier != 0) {
-    printf("err: cufinufft2d1_exec (set 2)\n");
-    return ier;
-  }
+  cufinufft_execute_impl<T>((cuda_complex<T> *)d_c2.data().get(),
+                            (cuda_complex<T> *)d_fk2.data().get(), dplan);
   cudaEventRecord(stop);
   cudaEventSynchronize(stop);
   cudaEventElapsedTime(&milliseconds, start, stop);
@@ -176,7 +155,7 @@ template<typename T> int run_test(int method) {
   printf("[time  ] cufinufft exec (set 2):\t %.3g s\n", milliseconds / 1000);
 
   cudaEventRecord(start);
-  ier = cufinufft_destroy_impl<T>(dplan);
+  cufinufft_destroy_impl<T>(dplan);
   cudaEventRecord(stop);
   cudaEventSynchronize(stop);
   cudaEventElapsedTime(&milliseconds, start, stop);

@@ -24,7 +24,6 @@ int run_test(int N1, int M, T tol, T checktol, int iflag, double upsampfac) {
   // tol and upsamplefac are used to determine the kernel
 
   std::cout << std::scientific << std::setprecision(3);
-  int ier{};
 
   const int dim = 1;
 
@@ -61,23 +60,11 @@ int run_test(int N1, int M, T tol, T checktol, int iflag, double upsampfac) {
   cudaEventCreate(&start);
   cudaEventCreate(&stop);
 
-  ier = cufinufft_makeplan_impl<T>(1, dim, nmodes, iflag, ntransf, tol, &dplan, &opts);
-  if (ier != 0) {
-    printf("err: cufinufft1d_plan (ier=%d)\n", ier);
-    return ier;
-  }
-  ier = cufinufft_setpts_impl<T>(M, d_x.data().get(), nullptr, nullptr, 0, nullptr,
-                                 nullptr, nullptr, dplan);
-  if (ier != 0) {
-    printf("err: cufinufft_setpts (ier=%d)\n", ier);
-    return ier;
-  }
-  ier = cufinufft_execute_impl<T>((cuda_complex<T> *)d_c.data().get(),
-                                  (cuda_complex<T> *)d_fk.data().get(), dplan);
-  if (ier != 0) {
-    printf("err: cufinufft1d_exec (ier=%d)\n", ier);
-    return ier;
-  }
+  cufinufft_makeplan_impl<T>(1, dim, nmodes, iflag, ntransf, tol, &dplan, &opts);
+  cufinufft_setpts_impl<T>(M, d_x.data().get(), nullptr, nullptr, 0, nullptr,
+                           nullptr, nullptr, dplan);
+  cufinufft_execute_impl<T>((cuda_complex<T> *)d_c.data().get(),
+                            (cuda_complex<T> *)d_fk.data().get(), dplan);
   cufinufft_destroy_impl(dplan);
 
   fk = d_fk;
@@ -109,24 +96,11 @@ int run_test(int N1, int M, T tol, T checktol, int iflag, double upsampfac) {
   cudaDeviceSynchronize();
   cudaEventRecord(start);
 
-  ier = cufinufft_makeplan_impl<T>(1, dim, nmodes, iflag, ntransf, tol, &dplan, &opts);
-  if (ier != 0) {
-    printf("err: cufinufft1d_plan (ier=%d)\n", ier);
-    return ier;
-  }
-  ier = cufinufft_setpts_impl<T>(M, d_x.data().get(), nullptr, nullptr, 0, nullptr,
-                                 nullptr, nullptr, dplan);
-  if (ier != 0) {
-    printf("err: cufinufft_setpts (ier=%d)\n", ier);
-    return ier;
-  }
-  ier = cufinufft_execute_impl<T>((cuda_complex<T> *)d_c.data().get(),
-                                  (cuda_complex<T> *)d_fk.data().get(), dplan);
-
-  if (ier != 0) {
-    printf("err: cufinufft1d_exec (ier=%d)\n", ier);
-    return ier;
-  }
+  cufinufft_makeplan_impl<T>(1, dim, nmodes, iflag, ntransf, tol, &dplan, &opts);
+  cufinufft_setpts_impl<T>(M, d_x.data().get(), nullptr, nullptr, 0, nullptr,
+                           nullptr, nullptr, dplan);
+  cufinufft_execute_impl<T>((cuda_complex<T> *)d_c.data().get(),
+                            (cuda_complex<T> *)d_fk.data().get(), dplan);
   cufinufft_destroy_impl(dplan);
 
   cudaEventRecord(stop);
@@ -152,25 +126,13 @@ int run_test(int N1, int M, T tol, T checktol, int iflag, double upsampfac) {
   cudaDeviceSynchronize();
   cudaEventRecord(start);
 
-  ier = cufinufft_makeplan_impl<T>(2, dim, nmodes, iflag, ntransf, tol, &dplan, &opts);
-  if (ier != 0) {
-    printf("err: cufinufft1d_plan (ier=%d)\n", ier);
-    return ier;
-  }
-  ier = cufinufft_setpts_impl<T>(M, d_x.data().get(), nullptr, nullptr, 0, nullptr,
-                                 nullptr, nullptr, dplan);
-  if (ier != 0) {
-    printf("err: cufinufft_setpts (ier=%d)\n", ier);
-    return ier;
-  }
+  cufinufft_makeplan_impl<T>(2, dim, nmodes, iflag, ntransf, tol, &dplan, &opts);
+  cufinufft_setpts_impl<T>(M, d_x.data().get(), nullptr, nullptr, 0, nullptr,
+                           nullptr, nullptr, dplan);
 
-  ier = cufinufft_execute_impl<T>((cuda_complex<T> *)d_c.data().get(),
-                                  (cuda_complex<T> *)d_fk.data().get(), dplan);
+  cufinufft_execute_impl<T>((cuda_complex<T> *)d_c.data().get(),
+                            (cuda_complex<T> *)d_fk.data().get(), dplan);
 
-  if (ier != 0) {
-    printf("err: cufinufft1d_exec (ier=%d)\n", ier);
-    return ier;
-  }
   cufinufft_destroy_impl(dplan);
 
   cudaEventSynchronize(stop);

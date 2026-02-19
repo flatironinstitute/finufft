@@ -117,12 +117,7 @@ int run_test(int method, int type, int N1, int N2, int M, T tol, T checktol, int
   int nmodes[3]         = {N1, N2, 1};
   int ntransf           = 1;
   cudaEventRecord(start);
-  int ier =
-      cufinufft_makeplan_impl(type, dim, nmodes, iflag, ntransf, tol, &dplan, &opts);
-  if (ier != 0) {
-    printf("err: cufinufft2d_plan\n");
-    return ier;
-  }
+  cufinufft_makeplan_impl(type, dim, nmodes, iflag, ntransf, tol, &dplan, &opts);
   cudaEventRecord(stop);
   cudaEventSynchronize(stop);
   cudaEventElapsedTime(&milliseconds, start, stop);
@@ -130,12 +125,8 @@ int run_test(int method, int type, int N1, int N2, int M, T tol, T checktol, int
   printf("[time  ] cufinufft plan:\t\t %.3g s\n", milliseconds / 1000);
 
   cudaEventRecord(start);
-  ier = cufinufft_setpts_impl<T>(M, d_x.data().get(), d_y.data().get(), nullptr, N1 * N2,
-                                 d_s.data().get(), d_t.data().get(), nullptr, dplan);
-  if (ier != 0) {
-    printf("err: cufinufft_setpts\n");
-    return ier;
-  }
+  cufinufft_setpts_impl<T>(M, d_x.data().get(), d_y.data().get(), nullptr, N1 * N2,
+                           d_s.data().get(), d_t.data().get(), nullptr, dplan);
   cudaEventRecord(stop);
   cudaEventSynchronize(stop);
   cudaEventElapsedTime(&milliseconds, start, stop);
@@ -143,12 +134,8 @@ int run_test(int method, int type, int N1, int N2, int M, T tol, T checktol, int
   printf("[time  ] cufinufft setNUpts:\t\t %.3g s\n", milliseconds / 1000);
 
   cudaEventRecord(start);
-  ier = cufinufft_execute_impl<T>((cuda_complex<T> *)d_c.data().get(),
-                                  (cuda_complex<T> *)d_fk.data().get(), dplan);
-  if (ier != 0) {
-    printf("err: cufinufft2d1_exec\n");
-    return ier;
-  }
+  cufinufft_execute_impl<T>((cuda_complex<T> *)d_c.data().get(),
+                            (cuda_complex<T> *)d_fk.data().get(), dplan);
   cudaEventRecord(stop);
   cudaEventSynchronize(stop);
   cudaEventElapsedTime(&milliseconds, start, stop);
@@ -157,7 +144,7 @@ int run_test(int method, int type, int N1, int N2, int M, T tol, T checktol, int
   printf("[time  ] cufinufft exec:\t\t %.3g s\n", milliseconds / 1000);
 
   cudaEventRecord(start);
-  ier = cufinufft_destroy_impl<T>(dplan);
+  cufinufft_destroy_impl<T>(dplan);
   cudaEventRecord(stop);
   cudaEventSynchronize(stop);
   cudaEventElapsedTime(&milliseconds, start, stop);

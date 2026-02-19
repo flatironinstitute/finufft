@@ -12,7 +12,7 @@ namespace cufinufft {
 namespace memtransfer {
 
 template<typename T>
-int allocgpumem1d_plan(cufinufft_plan_t<T> *d_plan)
+void allocgpumem1d_plan(cufinufft_plan_t<T> *d_plan)
 /*
     wrapper for gpu memory allocation in "plan" stage.
 
@@ -22,7 +22,6 @@ int allocgpumem1d_plan(cufinufft_plan_t<T> *d_plan)
   utils::WithCudaDevice device_swapper(d_plan->opts.gpu_device_id);
   const auto stream = d_plan->stream;
 
-  int ier{0};
   int nf1          = d_plan->nf123[0];
   int maxbatchsize = d_plan->batchsize;
 
@@ -52,8 +51,8 @@ int allocgpumem1d_plan(cufinufft_plan_t<T> *d_plan)
                                stream, d_plan->supports_pools));
   } break;
   default:
-    ier = FINUFFT_ERR_METHOD_NOTVALID;
     std::cerr << "err: invalid method " << std::endl;
+    throw FINUFFT_ERR_METHOD_NOTVALID;
   }
 
   if (!d_plan->opts.gpu_spreadinterponly) {
@@ -64,15 +63,10 @@ int allocgpumem1d_plan(cufinufft_plan_t<T> *d_plan)
              cudaMallocWrapper(&d_plan->fwkerhalf[0], (nf1 / 2 + 1) * sizeof(T), stream,
                                d_plan->supports_pools));
   }
-
-finalize:
-  if (ier) freegpumemory(d_plan);
-
-  return ier;
 }
 
 template<typename T>
-int allocgpumem1d_nupts(cufinufft_plan_t<T> *d_plan)
+void allocgpumem1d_nupts(cufinufft_plan_t<T> *d_plan)
 /*
     wrapper for gpu memory allocation in "setNUpts" stage.
 
@@ -81,7 +75,6 @@ int allocgpumem1d_nupts(cufinufft_plan_t<T> *d_plan)
 {
   utils::WithCudaDevice device_swapper(d_plan->opts.gpu_device_id);
   const auto stream = d_plan->stream;
-  int ier{0};
 
   int M = d_plan->M;
   CUDA_FREE_AND_NULL(d_plan->sortidx, stream, d_plan->supports_pools);
@@ -99,17 +92,12 @@ int allocgpumem1d_nupts(cufinufft_plan_t<T> *d_plan)
   } break;
   default:
     std::cerr << "[allocgpumem1d_nupts] error: invalid method\n";
-    ier = FINUFFT_ERR_METHOD_NOTVALID;
+    throw FINUFFT_ERR_METHOD_NOTVALID;
   }
-
-finalize:
-  if (ier) freegpumemory(d_plan);
-
-  return ier;
 }
 
 template<typename T>
-int allocgpumem2d_plan(cufinufft_plan_t<T> *d_plan)
+void allocgpumem2d_plan(cufinufft_plan_t<T> *d_plan)
 /*
     wrapper for gpu memory allocation in "plan" stage.
 
@@ -118,7 +106,6 @@ int allocgpumem2d_plan(cufinufft_plan_t<T> *d_plan)
 {
   utils::WithCudaDevice device_swapper(d_plan->opts.gpu_device_id);
   const auto stream = d_plan->stream;
-  int ier{0};
 
   int nf1          = d_plan->nf123[0];
   int nf2          = d_plan->nf123[1];
@@ -157,8 +144,8 @@ int allocgpumem2d_plan(cufinufft_plan_t<T> *d_plan)
              stream, d_plan->supports_pools));
   } break;
   default:
-    ier = FINUFFT_ERR_METHOD_NOTVALID;
     std::cerr << "[allocgpumem2d_plan] error: invalid method\n";
+    throw FINUFFT_ERR_METHOD_NOTVALID;
   }
 
   if (!d_plan->opts.gpu_spreadinterponly) {
@@ -172,15 +159,10 @@ int allocgpumem2d_plan(cufinufft_plan_t<T> *d_plan)
              cudaMallocWrapper(&d_plan->fwkerhalf[1], (nf2 / 2 + 1) * sizeof(T), stream,
                                d_plan->supports_pools));
   }
-
-finalize:
-  if (ier) freegpumemory(d_plan);
-
-  return ier;
 }
 
 template<typename T>
-int allocgpumem2d_nupts(cufinufft_plan_t<T> *d_plan)
+void allocgpumem2d_nupts(cufinufft_plan_t<T> *d_plan)
 /*
     wrapper for gpu memory allocation in "setNUpts" stage.
 
@@ -189,7 +171,6 @@ int allocgpumem2d_nupts(cufinufft_plan_t<T> *d_plan)
 {
   utils::WithCudaDevice device_swapper(d_plan->opts.gpu_device_id);
   const auto stream = d_plan->stream;
-  int ier{0};
 
   const int M = d_plan->M;
 
@@ -212,18 +193,13 @@ int allocgpumem2d_nupts(cufinufft_plan_t<T> *d_plan)
                                                  stream, d_plan->supports_pools));
   } break;
   default:
-    ier = FINUFFT_ERR_METHOD_NOTVALID;
     std::cerr << "[allocgpumem2d_nupts] error: invalid method\n";
+    throw FINUFFT_ERR_METHOD_NOTVALID;
   }
-
-finalize:
-  if (ier) freegpumemory(d_plan);
-
-  return ier;
 }
 
 template<typename T>
-int allocgpumem3d_plan(cufinufft_plan_t<T> *d_plan)
+void allocgpumem3d_plan(cufinufft_plan_t<T> *d_plan)
 /*
     wrapper for gpu memory allocation in "plan" stage.
 
@@ -232,7 +208,6 @@ int allocgpumem3d_plan(cufinufft_plan_t<T> *d_plan)
 {
   utils::WithCudaDevice device_swapper(d_plan->opts.gpu_device_id);
   const auto stream = d_plan->stream;
-  int ier{0};
 
   int nf1          = d_plan->nf123[0];
   int nf2          = d_plan->nf123[1];
@@ -301,8 +276,8 @@ int allocgpumem3d_plan(cufinufft_plan_t<T> *d_plan)
                                stream, d_plan->supports_pools));
   } break;
   default:
-    ier = FINUFFT_ERR_METHOD_NOTVALID;
     std::cerr << "[allocgpumem3d_plan] error: invalid method\n";
+    throw FINUFFT_ERR_METHOD_NOTVALID;
   }
 
   if (!d_plan->opts.gpu_spreadinterponly) {
@@ -319,19 +294,10 @@ int allocgpumem3d_plan(cufinufft_plan_t<T> *d_plan)
              cudaMallocWrapper(&d_plan->fwkerhalf[2], (nf3 / 2 + 1) * sizeof(T), stream,
                                d_plan->supports_pools));
   }
-
-finalize:
-  if (ier) {
-    std::cerr << "[allocgpumem3d_plan] error:"
-              << cudaGetErrorString(static_cast<cudaError_t>(ier)) << std::endl;
-    freegpumemory(d_plan);
-  }
-
-  return ier;
 }
 
 template<typename T>
-int allocgpumem3d_nupts(cufinufft_plan_t<T> *d_plan)
+void allocgpumem3d_nupts(cufinufft_plan_t<T> *d_plan)
 /*
     wrapper for gpu memory allocation in "setNUpts" stage.
 
@@ -340,7 +306,6 @@ int allocgpumem3d_nupts(cufinufft_plan_t<T> *d_plan)
 {
   utils::WithCudaDevice device_swapper(d_plan->opts.gpu_device_id);
   const auto stream = d_plan->stream;
-  int ier{0};
   int M = d_plan->M;
 
   CUDA_FREE_AND_NULL(d_plan->sortidx, stream, d_plan->supports_pools);
@@ -371,14 +336,9 @@ int allocgpumem3d_nupts(cufinufft_plan_t<T> *d_plan)
                                                  stream, d_plan->supports_pools));
   } break;
   default:
-    ier = FINUFFT_ERR_METHOD_NOTVALID;
     std::cerr << "[allocgpumem3d_nupts] error: invalid method\n";
+    throw FINUFFT_ERR_METHOD_NOTVALID;
   }
-
-finalize:
-  if (ier) freegpumemory(d_plan);
-
-  return ier;
 }
 
 template<typename T>
@@ -427,23 +387,23 @@ void freegpumemory(cufinufft_plan_t<T> *d_plan)
   CUDA_FREE_AND_NULL(d_plan->CpBatch, stream, d_plan->supports_pools);
 }
 
-template int allocgpumem1d_plan<float>(cufinufft_plan_t<float> *d_plan);
-template int allocgpumem1d_plan<double>(cufinufft_plan_t<double> *d_plan);
-template int allocgpumem1d_nupts<float>(cufinufft_plan_t<float> *d_plan);
-template int allocgpumem1d_nupts<double>(cufinufft_plan_t<double> *d_plan);
+template void allocgpumem1d_plan<float>(cufinufft_plan_t<float> *d_plan);
+template void allocgpumem1d_plan<double>(cufinufft_plan_t<double> *d_plan);
+template void allocgpumem1d_nupts<float>(cufinufft_plan_t<float> *d_plan);
+template void allocgpumem1d_nupts<double>(cufinufft_plan_t<double> *d_plan);
 
 template void freegpumemory<float>(cufinufft_plan_t<float> *d_plan);
 template void freegpumemory<double>(cufinufft_plan_t<double> *d_plan);
 
-template int allocgpumem2d_plan<float>(cufinufft_plan_t<float> *d_plan);
-template int allocgpumem2d_plan<double>(cufinufft_plan_t<double> *d_plan);
-template int allocgpumem2d_nupts<float>(cufinufft_plan_t<float> *d_plan);
-template int allocgpumem2d_nupts<double>(cufinufft_plan_t<double> *d_plan);
+template void allocgpumem2d_plan<float>(cufinufft_plan_t<float> *d_plan);
+template void allocgpumem2d_plan<double>(cufinufft_plan_t<double> *d_plan);
+template void allocgpumem2d_nupts<float>(cufinufft_plan_t<float> *d_plan);
+template void allocgpumem2d_nupts<double>(cufinufft_plan_t<double> *d_plan);
 
-template int allocgpumem3d_plan<float>(cufinufft_plan_t<float> *d_plan);
-template int allocgpumem3d_plan<double>(cufinufft_plan_t<double> *d_plan);
-template int allocgpumem3d_nupts<float>(cufinufft_plan_t<float> *d_plan);
-template int allocgpumem3d_nupts<double>(cufinufft_plan_t<double> *d_plan);
+template void allocgpumem3d_plan<float>(cufinufft_plan_t<float> *d_plan);
+template void allocgpumem3d_plan<double>(cufinufft_plan_t<double> *d_plan);
+template void allocgpumem3d_nupts<float>(cufinufft_plan_t<float> *d_plan);
+template void allocgpumem3d_nupts<double>(cufinufft_plan_t<double> *d_plan);
 
 } // namespace memtransfer
 } // namespace cufinufft

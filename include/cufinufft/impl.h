@@ -75,12 +75,12 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
   int ier;
   if (type < 1 || type > 3) {
     fprintf(stderr, "[%s] Invalid type (%d): should be 1, 2, or 3.\n", __func__, type);
-    return FINUFFT_ERR_TYPE_NOTVALID;
+    throw FINUFFT_ERR_TYPE_NOTVALID;
   }
   if (ntransf < 1) {
     fprintf(stderr, "[%s] Invalid ntransf (%d): should be at least 1.\n", __func__,
             ntransf);
-    return FINUFFT_ERR_NTRANS_NOTVALID;
+    throw FINUFFT_ERR_NTRANS_NOTVALID;
   }
 
   /* allocate the plan structure, assign address to user pointer. */
@@ -242,13 +242,13 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
     using namespace cufinufft::memtransfer;
     switch (d_plan->dim) {
     case 1: {
-      if ((ier = allocgpumem1d_plan<T>(d_plan))) goto finalize;
+      allocgpumem1d_plan<T>(d_plan);
     } break;
     case 2: {
-      if ((ier = allocgpumem2d_plan<T>(d_plan))) goto finalize;
+      allocgpumem2d_plan<T>(d_plan);
     } break;
     case 3: {
-      if ((ier = allocgpumem3d_plan<T>(d_plan))) goto finalize;
+      allocgpumem3d_plan<T>(d_plan);
     } break;
     }
     // FIXME: FINUFFT_ERR_METHOD_NOTVALID from allocgpumem* should propagate to the
@@ -333,7 +333,7 @@ finalize:
 }
 
 template<typename T>
-int cufinufft_setpts_12_impl(int M, T *d_kx, T *d_ky, T *d_kz,
+void cufinufft_setpts_12_impl(int M, T *d_kx, T *d_ky, T *d_kz,
                              cufinufft_plan_t<T> *d_plan)
 /*
     "setNUpts" stage (in single or double precision).
@@ -382,19 +382,17 @@ Notes: the type T means either single or double, matching the
   d_plan->M = M;
 
   using namespace cufinufft::memtransfer;
-  int ier;
   switch (d_plan->dim) {
   case 1: {
-    ier = allocgpumem1d_nupts<T>(d_plan);
+    allocgpumem1d_nupts<T>(d_plan);
   } break;
   case 2: {
-    ier = allocgpumem2d_nupts<T>(d_plan);
+    allocgpumem2d_nupts<T>(d_plan);
   } break;
   case 3: {
-    ier = allocgpumem3d_nupts<T>(d_plan);
+    allocgpumem3d_nupts<T>(d_plan);
   } break;
   }
-  if (ier) return ier;
 
   d_plan->kxyz[0] = d_kx;
   if (dim > 1) d_plan->kxyz[1] = d_ky;
@@ -433,11 +431,10 @@ Notes: the type T means either single or double, matching the
   if (d_plan->opts.debug) {
     printf("[cufinufft] plan->M=%d\n", M);
   }
-  return ier;
 }
 
 template<typename T>
-int cufinufft_setpts_impl(int M, T *d_kx, T *d_ky, T *d_kz, int N, T *d_s, T *d_t, T *d_u,
+void cufinufft_setpts_impl(int M, T *d_kx, T *d_ky, T *d_kz, int N, T *d_s, T *d_t, T *d_u,
                           cufinufft_plan_t<T> *d_plan) {
   // type 1 and type 2 setpts
   if (d_plan->type == 1 || d_plan->type == 2) {
@@ -453,34 +450,34 @@ int cufinufft_setpts_impl(int M, T *d_kx, T *d_ky, T *d_kz, int N, T *d_s, T *d_
   if (d_plan->type != 3) {
     fprintf(stderr, "[%s] Invalid type (%d): should be 1, 2, or 3.\n", __func__,
             d_plan->type);
-    return FINUFFT_ERR_TYPE_NOTVALID;
+    throw FINUFFT_ERR_TYPE_NOTVALID;
   }
   if (N < 0) {
     fprintf(stderr, "[cufinufft] Invalid N (%d): cannot be negative.\n", N);
-    return FINUFFT_ERR_NUM_NU_PTS_INVALID;
+    throw FINUFFT_ERR_NUM_NU_PTS_INVALID;
   }
   if (N > MAX_NF) {
     fprintf(stderr, "[cufinufft] Invalid N (%d): cannot be greater than %d.\n", N,
             MAX_NF);
-    return FINUFFT_ERR_NUM_NU_PTS_INVALID;
+    throw FINUFFT_ERR_NUM_NU_PTS_INVALID;
   }
   const auto stream = d_plan->stream;
   d_plan->N         = N;
   if (d_plan->dim > 0 && d_s == nullptr) {
     fprintf(stderr, "[%s] Error: d_s is nullptr but dim > 0.\n", __func__);
-    return FINUFFT_ERR_INVALID_ARGUMENT;
+    throw FINUFFT_ERR_INVALID_ARGUMENT;
   }
   d_plan->d_STUp[0] = d_plan->dim > 0 ? d_s : nullptr;
 
   if (d_plan->dim > 1 && d_t == nullptr) {
     fprintf(stderr, "[%s] Error: d_t is nullptr but dim > 1.\n", __func__);
-    return FINUFFT_ERR_INVALID_ARGUMENT;
+    throw FINUFFT_ERR_INVALID_ARGUMENT;
   }
   d_plan->d_STUp[1] = d_plan->dim > 1 ? d_t : nullptr;
 
   if (d_plan->dim > 2 && d_u == nullptr) {
     fprintf(stderr, "[%s] Error: d_u is nullptr but dim > 2.\n", __func__);
-    return FINUFFT_ERR_INVALID_ARGUMENT;
+    throw FINUFFT_ERR_INVALID_ARGUMENT;
   }
   d_plan->d_STUp[2] = d_plan->dim > 2 ? d_u : nullptr;
 
@@ -551,7 +548,7 @@ int cufinufft_setpts_impl(int M, T *d_kx, T *d_ky, T *d_kz, int N, T *d_s, T *d_
     fprintf(stderr,
             "[%s t3] fwBatch would be bigger than MAX_NF, not attempting malloc!\n",
             __func__);
-    return FINUFFT_ERR_MAXNALLOC;
+    throw FINUFFT_ERR_MAXNALLOC;
   }
 
   // A macro might be better as it has access to __line__ and __func__
@@ -761,19 +758,16 @@ int cufinufft_setpts_impl(int M, T *d_kx, T *d_ky, T *d_kz, int N, T *d_s, T *d_
   using namespace cufinufft::memtransfer;
   switch (d_plan->dim) {
   case 1: {
-    if ((allocgpumem1d_plan<T>(d_plan))) goto finalize;
+    allocgpumem1d_plan<T>(d_plan);
   } break;
   case 2: {
-    if ((allocgpumem2d_plan<T>(d_plan))) goto finalize;
+    allocgpumem2d_plan<T>(d_plan);
   } break;
   case 3: {
-    if ((allocgpumem3d_plan<T>(d_plan))) goto finalize;
+    allocgpumem3d_plan<T>(d_plan);
   } break;
   }
-  if (cufinufft_setpts_12_impl(M, d_plan->kxyz[0], d_plan->kxyz[1], d_plan->kxyz[2], d_plan)) {
-    fprintf(stderr, "[%s] cufinufft_setpts_12_impl failed\n", __func__);
-    goto finalize;
-  }
+  cufinufft_setpts_12_impl(M, d_plan->kxyz[0], d_plan->kxyz[1], d_plan->kxyz[2], d_plan);
   {
     int t2modes[]               = {d_plan->nf123[0], d_plan->nf123[1], d_plan->nf123[2]};
     cufinufft_opts t2opts       = d_plan->opts;
@@ -782,26 +776,19 @@ int cufinufft_setpts_impl(int M, T *d_kx, T *d_ky, T *d_kz, int N, T *d_s, T *d_
     // Safe to ignore the return value here?
     if (d_plan->t2_plan) cufinufft_destroy_impl(d_plan->t2_plan);
     // check that maxbatchsize is correct
-    if (cufinufft_makeplan_impl<T>(2, dim, t2modes, d_plan->iflag, d_plan->batchsize,
-                                   d_plan->tol, &d_plan->t2_plan, &t2opts)) {
-      fprintf(stderr, "[%s] inner t2 plan cufinufft_makeplan failed\n", __func__);
-      goto finalize;
-    }
-    if (cufinufft_setpts_12_impl(N, d_plan->d_STUp[0], d_plan->d_STUp[1], d_plan->d_STUp[2],
-                                 d_plan->t2_plan)) {
-      fprintf(stderr, "[%s] inner t2 plan cufinufft_setpts_12 failed\n", __func__);
-      goto finalize;
-    }
+    cufinufft_makeplan_impl<T>(2, dim, t2modes, d_plan->iflag, d_plan->batchsize,
+                                   d_plan->tol, &d_plan->t2_plan, &t2opts);
+    cufinufft_setpts_12_impl(N, d_plan->d_STUp[0], d_plan->d_STUp[1], d_plan->d_STUp[2],
+                                 d_plan->t2_plan);
     if (d_plan->t2_plan->spopts.spread_direction != 2) {
       fprintf(stderr, "[%s] inner t2 plan cufinufft_setpts_12 wrong direction\n",
               __func__);
-      goto finalize;
     }
   }
-  return 0;
+  return;
 finalize:
   cufinufft_destroy_impl(d_plan);
-  return FINUFFT_ERR_CUDA_FAILURE;
+  throw FINUFFT_ERR_CUDA_FAILURE;
 }
 
 template<typename T>
@@ -854,7 +841,7 @@ int cufinufft_execute_impl(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
 }
 
 template<typename T>
-int cufinufft_destroy_impl(cufinufft_plan_t<T> *d_plan)
+void cufinufft_destroy_impl(cufinufft_plan_t<T> *d_plan)
 /*
     "destroy" stage (single and double precision versions).
 
@@ -865,7 +852,7 @@ int cufinufft_destroy_impl(cufinufft_plan_t<T> *d_plan)
 {
 
   // Can't destroy a null pointer.
-  if (!d_plan) return FINUFFT_ERR_PLAN_NOTVALID;
+  if (!d_plan) throw FINUFFT_ERR_PLAN_NOTVALID;
 
   cufinufft::utils::WithCudaDevice device_swapper(d_plan->opts.gpu_device_id);
 
@@ -878,7 +865,5 @@ int cufinufft_destroy_impl(cufinufft_plan_t<T> *d_plan)
 
   /* free/destruct the plan */
   delete d_plan;
-
-  return 0;
 } // namespace cufinufft
 #endif
