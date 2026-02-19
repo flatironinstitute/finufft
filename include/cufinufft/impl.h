@@ -372,7 +372,6 @@ Notes: the type T means either single or double, matching the
     Melody Shih 07/25/19; Barnett 2/16/21 moved out docs.
 */
 {
-printf("setpts1\n");
   const cufinufft::utils::WithCudaDevice FromID(d_plan->opts.gpu_device_id);
 
   int nf1 = d_plan->nf123[0];
@@ -382,7 +381,6 @@ printf("setpts1\n");
 
   d_plan->M = M;
 
-printf("setpts2\n");
   using namespace cufinufft::memtransfer;
   int ier;
   switch (d_plan->dim) {
@@ -396,13 +394,11 @@ printf("setpts2\n");
     ier = allocgpumem3d_nupts<T>(d_plan);
   } break;
   }
-printf("setpts3\n");
   if (ier) return ier;
 
   d_plan->kxyz[0] = d_kx;
   if (dim > 1) d_plan->kxyz[1] = d_ky;
   if (dim > 2) d_plan->kxyz[2] = d_kz;
-printf("setpts4\n");
 
   using namespace cufinufft::spreadinterp;
   switch (d_plan->dim) {
@@ -433,7 +429,6 @@ printf("setpts4\n");
       cuspread3d_blockgather_prop<T>(nf1, nf2, nf3, M, d_plan);
   } break;
   }
-printf("setpts5\n");
 
   if (d_plan->opts.debug) {
     printf("[cufinufft] plan->M=%d\n", M);
@@ -444,8 +439,6 @@ printf("setpts5\n");
 template<typename T>
 int cufinufft_setpts_impl(int M, T *d_kx, T *d_ky, T *d_kz, int N, T *d_s, T *d_t, T *d_u,
                           cufinufft_plan_t<T> *d_plan) {
-printf("plan address: %ld\n",(d_plan));
-printf("type: %d\n",d_plan->type);
   // type 1 and type 2 setpts
   if (d_plan->type == 1 || d_plan->type == 2) {
     return cufinufft_setpts_12_impl<T>(M, d_kx, d_ky, d_kz, d_plan);
