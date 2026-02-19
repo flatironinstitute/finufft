@@ -1262,16 +1262,35 @@ static void add_wrapped_subgrid(BIGINT offset1, BIGINT offset2, BIGINT offset3,
 }
 
 template<typename T, int ndims>
-static void bin_sort_singlethread_vector(std::vector<BIGINT> &ret, UBIGINT M, const T *kx,
-                                         const T *ky, const T *kz, UBIGINT N1, UBIGINT N2,
-                                         UBIGINT N3, double bin_size_x, double bin_size_y,
-                                         double bin_size_z, int debug [[maybe_unused]])
-/* SIMD-vectorized version of bin_sort_singlethread.
- * Uses SIMD to compute bin indices, scalar accumulation for histogram updates
- * (scatter/gather is slower due to duplicate-bin conflicts and latency).
- * Uses uint32_t counts to halve cache footprint vs BIGINT.
- * Templated on ndims to eliminate branching in inner loops.
- * For documentation see: bin_sort_singlethread.
+static void bin_sort_singlethread(std::vector<BIGINT> &ret, UBIGINT M, const T *kx,
+                                  const T *ky, const T *kz, UBIGINT N1, UBIGINT N2,
+                                  UBIGINT N3, double bin_size_x, double bin_size_y,
+                                  double bin_size_z, int debug [[maybe_unused]])
+/* Returns permutation of all nonuniform points with good RAM access,
+ * ie less cache misses for spreading, in 1D, 2D, or 3D.
+ *
+ * This is achieved by binning into cuboids (of given bin_size within the
+ * overall box domain), then reading out the indices within these bins in a
+ * Cartesian cuboid ordering (x fastest, y med, z slowest). Finally the
+ * permutation is inverted, so that the good ordering is: the NU pt of index
+ * ret[0], the NU pt of index ret[1], ..., NU pt of index ret[M-1].
+ *
+ * Inputs: M - number of input NU points.
+ *         kx,ky,kz - length-M arrays of real coords of NU pts in [-pi, pi).
+ *                    Points outside this range are folded into it.
+ *         N1,N2,N3 - integer sizes of overall box (N2=N3=1 for 1D, N3=1 for 2D)
+ *         bin_size_x,y,z - what binning box size to use in each dimension
+ *                    (in rescaled coords where ranges are [0,Ni]).
+ *                    For 1D, only bin_size_x is used; for 2D, it & bin_size_y.
+ * Output: writes to ret a vector list of indices, each in the range 0,..,M-1.
+ *         Thus, ret must have been preallocated for M BIGINTs.
+ *
+ * Implementation: SIMD-vectorized bin index computation (xsimd::batch<T>),
+ * scalar histogram accumulation (scatter/gather rejected: duplicate-bin
+ * conflicts dominate). uint32_t counts halve cache footprint vs BIGINT.
+ * Templated on ndims to eliminate isky/iskz branching in inner loops.
+ * Originally by Barnett. Simplified by Reinecke 6/19/23.
+ * SIMD vectorization, uint32_t counts, ndims dispatch: 2/2026.
  */
 {
   static_assert(ndims >= 1 && ndims <= 3, "ndims must be 1, 2, or 3");
@@ -1525,9 +1544,8 @@ template<typename T> struct BinSortDispatch {
   int sort_debug, sort_nthr;
   template<int ndims> void operator()() {
     if (sort_nthr == 1)
-      bin_sort_singlethread_vector<T, ndims>(sort_indices, M, kx, ky, kz, N1, N2, N3,
-                                             bin_size_x, bin_size_y, bin_size_z,
-                                             sort_debug);
+      bin_sort_singlethread<T, ndims>(sort_indices, M, kx, ky, kz, N1, N2, N3, bin_size_x,
+                                      bin_size_y, bin_size_z, sort_debug);
     else
       bin_sort_multithread<T, ndims>(sort_indices, M, kx, ky, kz, N1, N2, N3, bin_size_x,
                                      bin_size_y, bin_size_z, sort_debug, sort_nthr);
