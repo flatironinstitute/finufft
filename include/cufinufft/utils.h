@@ -81,7 +81,7 @@ public:
 private:
   const int orig_device_;
 
-  static int get_orig_device() noexcept {
+  static int get_orig_device() {
     int device{};
     cudaGetDevice(&device);
     return device;
@@ -199,7 +199,7 @@ auto launch_dispatch_ns(Func &&func, int target_ns, Args &&...args) {
  *   SM 7x      :  8 warps  = 128 threads
  *   SM 6x-     :  4 warps  = 64 threads
  */
-inline unsigned optimal_block_threads(int device) noexcept {
+inline unsigned optimal_block_threads(int device) {
   cudaGetDevice(&device);
   cudaDeviceProp prop;
   cudaGetDeviceProperties(&prop, device);

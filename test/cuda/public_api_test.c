@@ -53,7 +53,7 @@ int test_float(int M, int N) {
 
   // Make the cufinufft plan for a 1D type-1 transform with six digits of
   // tolerance.
-  cufinufftf_makeplan(1, 1, modes, 1, 1, 1e-6, &plan, NULL);
+  printf("%d\n",cufinufftf_makeplan(1, 1, modes, 1, 1, 1e-6, &plan, NULL));
 
   // Set the frequencies of the nonuniform points.
   cufinufftf_setpts(plan, M, d_x, NULL, NULL, 0, NULL, NULL, NULL);
