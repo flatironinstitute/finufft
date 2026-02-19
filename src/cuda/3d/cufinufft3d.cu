@@ -140,7 +140,7 @@ void cufinufft3d3_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
     d_cstart    = d_c + i * d_plan->batchsize * d_plan->M;
     d_fkstart   = d_fk + i * d_plan->batchsize * d_plan->N;
     // setting input for spreader
-    d_plan->c = d_plan->CpBatch;
+    d_plan->c = d_plan->CpBatch.data();
     // setting output for spreader
     d_plan->fk = d_plan->fw;
     // NOTE: fw might need to be set to 0

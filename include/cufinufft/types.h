@@ -6,6 +6,7 @@
 
 #include <cufinufft/defs.h>
 #include <cufinufft_opts.h>
+#include <cufinufft/contrib/helper_cuda.h>
 #include <finufft_common/spread_opts.h>
 #include <type_traits>
 
@@ -48,7 +49,7 @@ template<typename T> struct cufinufft_plan_t {
   // for type 1,2 it is a pointer to kx, ky, kz (no new allocs), for type 3 it
   // for t3: allocated as "primed" (scaled) src pts x'_j, etc
   cuda::std::array<T *,3> kxyz;
-  cuda_complex<T> *CpBatch; // working array of prephased strengths
+  cufinufftArray<cuda_complex<T>> CpBatch; // working array of prephased strengths
   cuda_complex<T> *fwbatch;
 
   // no allocs here

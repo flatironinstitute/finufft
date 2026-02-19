@@ -384,7 +384,6 @@ void freegpumemory(cufinufft_plan_t<T> *d_plan)
   CUDA_FREE_AND_NULL(d_plan->prephase, stream, d_plan->supports_pools);
   CUDA_FREE_AND_NULL(d_plan->deconv, stream, d_plan->supports_pools);
   CUDA_FREE_AND_NULL(d_plan->fwbatch, stream, d_plan->supports_pools);
-  CUDA_FREE_AND_NULL(d_plan->CpBatch, stream, d_plan->supports_pools);
 }
 
 template void allocgpumem1d_plan<float>(cufinufft_plan_t<float> *d_plan);

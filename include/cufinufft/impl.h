@@ -565,9 +565,7 @@ void cufinufft_setpts_impl(int M, T *d_kx, T *d_ky, T *d_kz, int N, T *d_s, T *d
   if (checked_realloc(d_plan->fw, sizeof(cuda_complex<T>) * d_plan->nf *
                                       d_plan->batchsize) != cudaSuccess)
     goto finalize;
-  if (checked_realloc(d_plan->CpBatch, sizeof(cuda_complex<T>) * M * d_plan->batchsize) !=
-      cudaSuccess)
-    goto finalize;
+  d_plan->CpBatch.resize(M * d_plan->batchsize, stream, d_plan->supports_pools);
   if (checked_realloc(d_plan->kxyz[0], sizeof(T) * M) != cudaSuccess) goto finalize;
   if (checked_realloc(d_plan->d_STUp[0], sizeof(T) * N) != cudaSuccess) goto finalize;
   if (d_plan->dim > 1) {
