@@ -658,7 +658,7 @@ void cuspread2d_subprob_prop(int nf1, int nf2, int M, cufinufft_plan_t<T> *d_pla
   }
 
   d_plan->subprob_to_bin.clear();
-  std::swap(d_plan->subprob_to_bin, d_subprob_to_bin);
+  d_plan->subprob_to_bin.swap(d_subprob_to_bin);
   d_plan->totalnumsubprob = totalnumsubprob;
 }
 

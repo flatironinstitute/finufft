@@ -764,7 +764,7 @@ void cuspread3d_blockgather_prop(int nf1, int nf2, int nf3, int M,
       d_binsize, d_idxnupts, d_binstartpts, M);
 
   d_plan->idxnupts.clear();
-  std::swap(d_plan->idxnupts, d_idxnupts);
+  d_plan->idxnupts.swap(d_idxnupts);
 
   /* --------------------------------------------- */
   //        Determining Subproblem properties      //
@@ -791,7 +791,7 @@ void cuspread3d_blockgather_prop(int nf1, int nf2, int nf3, int M,
       d_subprob_to_bin, d_subprobstartpts, d_numsubprob, n);
 
   d_plan->subprob_to_bin.clear();
-  std::swap(d_plan->subprob_to_bin,d_subprob_to_bin);
+  d_plan->subprob_to_bin.swap(d_subprob_to_bin);
   d_plan->totalnumsubprob = totalnumsubprob;
 }
 template void cuspread3d_blockgather_prop<float>(int nf1, int nf2, int nf3, int M,
@@ -937,7 +937,7 @@ void cuspread3d_subprob_prop(int nf1, int nf2, int nf3, int M,
                                        numbins[0] * numbins[1] * numbins[2]);
 
   d_plan->subprob_to_bin.clear();
-  std::swap(d_plan->subprob_to_bin, d_subprob_to_bin);
+  d_plan->subprob_to_bin.swap(d_subprob_to_bin);
   d_plan->totalnumsubprob = totalnumsubprob;
 }
 template void cuspread3d_subprob_prop<float>(int nf1, int nf2, int nf3, int M,

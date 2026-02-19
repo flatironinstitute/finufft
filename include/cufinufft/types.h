@@ -50,7 +50,10 @@ template<typename T> class cufinufftArray {
     cufinufftArray(size_t size, cudaStream_t stream, bool pool_supported)
       : cufinufftArray()
     { alloc(size, stream, pool_supported); }
+    cufinufftArray(const cufinufftArray &) = delete;
     ~cufinufftArray() { clear(); }
+
+    cufinufftArray &operator= (const cufinufftArray&) = delete;
 
     void clear() {
       if (sz==0) return;
@@ -72,6 +75,13 @@ template<typename T> class cufinufftArray {
     size_t size() const { return sz; }
 
     operator T* () { return ptr; }
+
+    void swap(cufinufftArray &other) {
+      std::swap(strm, other.strm);
+      std::swap(ptr, other.ptr);
+      std::swap(sz, other.sz);
+      std::swap(pool, other.pool);
+    }
 };
 
 template<typename T> struct cufinufft_plan_t {

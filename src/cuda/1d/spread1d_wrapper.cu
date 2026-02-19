@@ -348,14 +348,14 @@ static void cuspread1d_output_driven(int nf1, int M, cufinufft_plan_t<T> *d_plan
   cuda_complex<T> *d_c  = d_plan->c;
   cuda_complex<T> *d_fw = d_plan->fw;
 
-  int *d_binsize         = d_plan->binsize;
-  int *d_binstartpts     = d_plan->binstartpts;
-  int *d_numsubprob      = d_plan->numsubprob;
-  int *d_subprobstartpts = d_plan->subprobstartpts;
-  int *d_idxnupts        = d_plan->idxnupts;
+  int *d_binsize         = d_plan->binsize.data();
+  int *d_binstartpts     = d_plan->binstartpts.data();
+  int *d_numsubprob      = d_plan->numsubprob.data();
+  int *d_subprobstartpts = d_plan->subprobstartpts.data();
+  int *d_idxnupts        = d_plan->idxnupts.data();
 
   int totalnumsubprob   = d_plan->totalnumsubprob;
-  int *d_subprob_to_bin = d_plan->subprob_to_bin;
+  int *d_subprob_to_bin = d_plan->subprob_to_bin.data();
 
   T sigma = d_plan->opts.upsampfac;
 
@@ -460,7 +460,7 @@ void cuspread1d_subprob_prop(int nf1, int M, cufinufft_plan_t<T> *d_plan)
       d_subprob_to_bin, d_subprobstartpts, d_numsubprob, numbins);
   THROW_IF_CUDA_ERROR
   d_plan->subprob_to_bin.clear();
-  std::swap(d_subprob_to_bin, d_plan->subprob_to_bin);
+  d_subprob_to_bin.swap(d_plan->subprob_to_bin);
   d_plan->totalnumsubprob = totalnumsubprob;
 }
 template void cuspread1d_subprob_prop<float>(int nf1, int M,
