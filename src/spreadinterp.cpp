@@ -1367,51 +1367,6 @@ static void bin_sort_singlethread_vector(std::vector<BIGINT> &ret, UBIGINT M, co
   }
 }
 
-template<typename T>
-static void bin_sort_singlethread(std::vector<BIGINT> &ret, UBIGINT M, const T *kx,
-                                  const T *ky, const T *kz, UBIGINT N1, UBIGINT N2,
-                                  UBIGINT N3, double bin_size_x, double bin_size_y,
-                                  double bin_size_z, int debug [[maybe_unused]])
-/* Returns permutation of all nonuniform points with good RAM access,
- * ie less cache misses for spreading, in 1D, 2D, or 3D. Single-threaded version
- * For documentation see: bin_sort_singlethread_vector.
- */
-{
-  const auto isky = (N2 > 1), iskz = (N3 > 1);
-  const auto nbins1         = BIGINT(T(N1) / bin_size_x + 1);
-  const auto nbins2         = isky ? BIGINT(T(N2) / bin_size_y + 1) : 1;
-  const auto nbins3         = iskz ? BIGINT(T(N3) / bin_size_z + 1) : 1;
-  const auto nbins          = nbins1 * nbins2 * nbins3;
-  const auto inv_bin_size_x = T(1.0 / bin_size_x);
-  const auto inv_bin_size_y = T(1.0 / bin_size_y);
-  const auto inv_bin_size_z = T(1.0 / bin_size_z);
-  std::vector<BIGINT> counts(nbins, 0);
-
-  for (UBIGINT i = 0; i < M; i++) {
-    const auto i1  = BIGINT(fold_rescale<T>(kx[i], N1) * inv_bin_size_x);
-    const auto i2  = isky ? BIGINT(fold_rescale<T>(ky[i], N2) * inv_bin_size_y) : 0;
-    const auto i3  = iskz ? BIGINT(fold_rescale<T>(kz[i], N3) * inv_bin_size_z) : 0;
-    const auto bin = i1 + nbins1 * (i2 + nbins2 * i3);
-    ++counts[bin];
-  }
-
-  BIGINT current_offset = 0;
-  for (BIGINT i = 0; i < nbins; i++) {
-    BIGINT tmp = counts[i];
-    counts[i]  = current_offset;
-    current_offset += tmp;
-  }
-
-  for (UBIGINT i = 0; i < M; i++) {
-    const auto i1    = BIGINT(fold_rescale<T>(kx[i], N1) * inv_bin_size_x);
-    const auto i2    = isky ? BIGINT(fold_rescale<T>(ky[i], N2) * inv_bin_size_y) : 0;
-    const auto i3    = iskz ? BIGINT(fold_rescale<T>(kz[i], N3) * inv_bin_size_z) : 0;
-    const auto bin   = i1 + nbins1 * (i2 + nbins2 * i3);
-    ret[counts[bin]] = BIGINT(i);
-    ++counts[bin];
-  }
-}
-
 template<typename T, int ndims>
 static void bin_sort_multithread(std::vector<BIGINT> &ret, UBIGINT M, const T *kx,
                                  const T *ky, const T *kz, UBIGINT N1, UBIGINT N2,
@@ -1487,16 +1442,19 @@ static void bin_sort_multithread(std::vector<BIGINT> &ret, UBIGINT M, const T *k
   for (int t = 0; t <= nt; ++t) brk[t] = (UBIGINT)(0.5 + M * t / (double)nt);
 
   std::vector<std::vector<uint32_t>> counts(nt);
+  std::vector<uint32_t> bin_offset(nbins);
 
 #pragma omp parallel num_threads(nt)
   {
-    int t = MY_OMP_GET_THREAD_NUM();
-    auto &my_counts(counts[t]);
-    my_counts.resize(nbins, 0);
+    const int t            = MY_OMP_GET_THREAD_NUM();
     const auto chunk_start = brk[t];
     const auto chunk_end   = brk[t + 1];
     const auto chunk_simd =
         chunk_start + ((chunk_end - chunk_start) & UBIGINT(-simd_size));
+
+    // each thread allocates its own histogram
+    counts[t].resize(nbins, 0);
+    auto &my_counts = counts[t];
 
     // counting pass: SIMD bin compute, scalar accumulate
     UBIGINT i;
@@ -1506,28 +1464,41 @@ static void bin_sort_multithread(std::vector<BIGINT> &ret, UBIGINT M, const T *k
       for (int j = 0; j < simd_size; j++) ++my_counts[bin_array[j]];
     }
     for (; i < chunk_end; i++) ++my_counts[compute_bin_scalar(i)];
-  }
 
-  // inner sum along both bin and thread (inner) axes to get global offsets
-  uint32_t current_offset = 0;
-  for (BIGINT b = 0; b < nbins; ++b)
-    for (int t = 0; t < nt; ++t) {
-      uint32_t tmp = counts[t][b];
-      counts[t][b] = current_offset;
-      current_offset += tmp;
+    // ensure all threads have finished counting before computing offsets
+#pragma omp barrier
+
+    // Phase 1 (parallel): compute per-bin totals across all threads
+#pragma omp for schedule(static)
+    for (BIGINT b = 0; b < nbins; ++b) {
+      uint32_t total = 0;
+      for (int tt = 0; tt < nt; ++tt) total += counts[tt][b];
+      bin_offset[b] = total;
     }
 
-#pragma omp parallel num_threads(nt)
-  {
-    int t = MY_OMP_GET_THREAD_NUM();
-    auto &my_counts(counts[t]);
-    const auto chunk_start = brk[t];
-    const auto chunk_end   = brk[t + 1];
-    const auto chunk_simd =
-        chunk_start + ((chunk_end - chunk_start) & UBIGINT(-simd_size));
+    // Phase 2 (sequential): prefix sum over bin totals
+#pragma omp single
+    {
+      uint32_t running = 0;
+      for (BIGINT b = 0; b < nbins; ++b) {
+        uint32_t tmp  = bin_offset[b];
+        bin_offset[b] = running;
+        running += tmp;
+      }
+    }
+
+    // Phase 3 (parallel): compute per-thread offsets within each bin
+#pragma omp for schedule(static)
+    for (BIGINT b = 0; b < nbins; ++b) {
+      uint32_t off = bin_offset[b];
+      for (int tt = 0; tt < nt; ++tt) {
+        uint32_t tmp  = counts[tt][b];
+        counts[tt][b] = off;
+        off += tmp;
+      }
+    }
 
     // placement pass: SIMD bin compute, scalar placement
-    UBIGINT i;
     for (i = chunk_start; i < chunk_simd; i += simd_size) {
       const auto bin       = compute_bins(i);
       const auto bin_array = to_array(bin);
