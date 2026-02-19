@@ -609,14 +609,12 @@ void cuspread2d_subprob_prop(int nf1, int nf2, int M, cufinufft_plan_t<T> *d_pla
   T *d_kx = d_plan->kxyz[0];
   T *d_ky = d_plan->kxyz[1];
 
-  int *d_binsize         = d_plan->binsize;
-  int *d_binstartpts     = d_plan->binstartpts;
-  int *d_sortidx         = d_plan->sortidx;
-  int *d_numsubprob      = d_plan->numsubprob;
-  int *d_subprobstartpts = d_plan->subprobstartpts;
-  int *d_idxnupts        = d_plan->idxnupts;
-
-  int *d_subprob_to_bin = NULL;
+  int *d_binsize         = d_plan->binsize.data();
+  int *d_binstartpts     = d_plan->binstartpts.data();
+  int *d_sortidx         = d_plan->sortidx.data();
+  int *d_numsubprob      = d_plan->numsubprob.data();
+  int *d_subprobstartpts = d_plan->subprobstartpts.data();
+  int *d_idxnupts        = d_plan->idxnupts.data();
 
   checkCudaErrors(
            cudaMemsetAsync(d_binsize, 0, numbins[0] * numbins[1] * sizeof(int), stream));
@@ -649,9 +647,7 @@ void cuspread2d_subprob_prop(int nf1, int nf2, int M, cufinufft_plan_t<T> *d_pla
   checkCudaErrors(cudaMemcpyAsync(&totalnumsubprob, &d_subprobstartpts[n],
                                            sizeof(int), cudaMemcpyDeviceToHost, stream));
   cudaStreamSynchronize(stream);
-  checkCudaErrors(
-           cudaMallocWrapper(&d_subprob_to_bin, totalnumsubprob * sizeof(int), stream,
-                             d_plan->supports_pools));
+  cufinufftArray<int> d_subprob_to_bin(totalnumsubprob, stream, d_plan->supports_pools);
   map_b_into_subprob_2d<<<(numbins[0] * numbins[1] + 1024 - 1) / 1024, 1024, 0, stream>>>(
       d_subprob_to_bin, d_subprobstartpts, d_numsubprob, numbins[0] * numbins[1]);
   cudaError_t err = cudaGetLastError();
@@ -661,9 +657,8 @@ void cuspread2d_subprob_prop(int nf1, int nf2, int M, cufinufft_plan_t<T> *d_pla
     throw FINUFFT_ERR_CUDA_FAILURE;
   }
 
-  assert(d_subprob_to_bin != NULL);
-  cudaFreeWrapper(d_plan->subprob_to_bin, stream, d_plan->supports_pools);
-  d_plan->subprob_to_bin  = d_subprob_to_bin;
+  d_plan->subprob_to_bin.clear();
+  std::swap(d_plan->subprob_to_bin, d_subprob_to_bin);
   d_plan->totalnumsubprob = totalnumsubprob;
 }
 

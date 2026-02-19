@@ -413,15 +413,13 @@ void cuspread1d_subprob_prop(int nf1, int M, cufinufft_plan_t<T> *d_plan)
 
   const auto numbins           = (nf1 + bin_size_x - 1) / bin_size_x;
   const auto d_kx              = d_plan->kxyz[0];
-  const auto d_binsize         = d_plan->binsize;
-  const auto d_binstartpts     = d_plan->binstartpts;
-  const auto d_sortidx         = d_plan->sortidx;
-  const auto d_numsubprob      = d_plan->numsubprob;
-  const auto d_subprobstartpts = d_plan->subprobstartpts;
-  const auto d_idxnupts        = d_plan->idxnupts;
+  const auto d_binsize         = d_plan->binsize.data();
+  const auto d_binstartpts     = d_plan->binstartpts.data();
+  const auto d_sortidx         = d_plan->sortidx.data();
+  const auto d_numsubprob      = d_plan->numsubprob.data();
+  const auto d_subprobstartpts = d_plan->subprobstartpts.data();
+  const auto d_idxnupts        = d_plan->idxnupts.data();
   const auto stream            = d_plan->stream;
-
-  int *d_subprob_to_bin = nullptr;
 
   cudaMemsetAsync(d_binsize, 0, numbins * sizeof(int), stream);
   THROW_IF_CUDA_ERROR
@@ -456,16 +454,13 @@ void cuspread1d_subprob_prop(int nf1, int M, cufinufft_plan_t<T> *d_plan)
   cudaStreamSynchronize(stream);
   THROW_IF_CUDA_ERROR
 
-  cudaMallocWrapper(&d_subprob_to_bin, totalnumsubprob * sizeof(int), stream,
-                    d_plan->supports_pools);
-  THROW_IF_CUDA_ERROR
+  cufinufftArray<int> d_subprob_to_bin(totalnumsubprob, stream, d_plan->supports_pools);
 
   map_b_into_subprob_1d<<<(numbins + 1024 - 1) / 1024, 1024, 0, stream>>>(
       d_subprob_to_bin, d_subprobstartpts, d_numsubprob, numbins);
   THROW_IF_CUDA_ERROR
-  assert(d_subprob_to_bin != nullptr);
-  cudaFreeWrapper(d_plan->subprob_to_bin, stream, d_plan->supports_pools);
-  d_plan->subprob_to_bin  = d_subprob_to_bin;
+  d_plan->subprob_to_bin.clear();
+  std::swap(d_subprob_to_bin, d_plan->subprob_to_bin);
   d_plan->totalnumsubprob = totalnumsubprob;
 }
 template void cuspread1d_subprob_prop<float>(int nf1, int M,

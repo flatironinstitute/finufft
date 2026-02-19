@@ -120,17 +120,17 @@ template<typename T> struct cufinufft_plan_t {
   cuda_complex<T> *deconv;   // reciprocal of kernel FT, phase, all output NU pts
 
   // Arrays that used in subprob method
-  int *idxnupts;        // length: #nupts, index of the nupts in the bin-sorted order
-  int *sortidx;         // length: #nupts, order inside the bin the nupt belongs to
-  int *numsubprob;      // length: #bins,  number of subproblems in each bin
-  int *binsize;         // length: #bins, number of nonuniform ponits in each bin
-  int *binstartpts;     // length: #bins, exclusive scan of array binsize
-  int *subprob_to_bin;  // length: #subproblems, the bin the subproblem works on
-  int *subprobstartpts; // length: #bins, exclusive scan of array numsubprob
+  cufinufftArray<int> idxnupts;        // length: #nupts, index of the nupts in the bin-sorted order
+  cufinufftArray<int> sortidx;         // length: #nupts, order inside the bin the nupt belongs to
+  cufinufftArray<int> numsubprob;      // length: #bins,  number of subproblems in each bin
+  cufinufftArray<int> binsize;         // length: #bins, number of nonuniform ponits in each bin
+  cufinufftArray<int> binstartpts;     // length: #bins, exclusive scan of array binsize
+  cufinufftArray<int> subprob_to_bin;  // length: #subproblems, the bin the subproblem works on
+  cufinufftArray<int> subprobstartpts; // length: #bins, exclusive scan of array numsubprob
 
   // Arrays for 3d (need to sort out)
-  int *numnupts;
-  int *subprob_to_nupts;
+  cufinufftArray<int> numnupts;
+  cufinufftArray<int> subprob_to_nupts;
 
   cufftHandle fftplan;
   cudaStream_t stream;
