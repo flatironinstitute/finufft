@@ -70,6 +70,8 @@ template<typename T> class cufinufftArray {
     T *data() { return ptr; }
     const T *data() const { return ptr; }
     size_t size() const { return sz; }
+
+    operator T* () { return ptr; }
 };
 
 template<typename T> struct cufinufft_plan_t {
@@ -87,13 +89,12 @@ template<typename T> struct cufinufft_plan_t {
   int supports_pools;
 
   int totalnumsubprob;
-  cuda::std::array<T *,3> fwkerhalf;
+  cuda::std::array<cufinufftArray<T>,3> fwkerhalf;
 
   // for type 1,2 it is a pointer to kx, ky, kz (no new allocs), for type 3 it
   // for t3: allocated as "primed" (scaled) src pts x'_j, etc
   cuda::std::array<T *,3> kxyz;
   cufinufftArray<cuda_complex<T>> CpBatch; // working array of prephased strengths
-  cuda_complex<T> *fwbatch;
 
   // no allocs here
   cuda_complex<T> *c;

@@ -13,11 +13,11 @@ namespace cufinufft {
 namespace common {
 template<typename T>
 int fseries_kernel_compute(int dim, cuda::std::array<CUFINUFFT_BIGINT,3> nf123, T *d_f, T *d_phase,
-                           cuda::std::array<T *,3> d_fwkerhalf, int ns,
+                           cuda::std::array<cufinufftArray<T>,3> &d_fwkerhalf, int ns,
                            cudaStream_t stream);
 template<typename T>
 int nuft_kernel_compute(int dim, cuda::std::array<CUFINUFFT_BIGINT,3> nf123, T *d_f, T *d_z,
-                        cuda::std::array<T *,3> d_kxyz, cuda::std::array<T *,3>d_fwkerhalf,
+                        cuda::std::array<T *,3> d_kxyz, cuda::std::array<cufinufftArray<T>,3> &d_fwkerhalf,
                         int ns, cudaStream_t stream);
 template<typename T>
 int setup_spreader_for_nufft(finufft_spread_opts &spopts, T eps, cufinufft_opts opts);

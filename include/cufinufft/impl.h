@@ -668,15 +668,15 @@ void cufinufft_setpts_impl(int M, T *d_kx, T *d_ky, T *d_kz, int N, T *d_s, T *d
     std::array<T, 3 * MAX_NQUAD> nuft_precomp_f{};
     thrust::device_vector<T> d_nuft_precomp_z(3 * MAX_NQUAD);
     thrust::device_vector<T> d_nuft_precomp_f(3 * MAX_NQUAD);
-    thrust::device_vector<T> phi_hat1, phi_hat2, phi_hat3;
+    cuda::std::array<cufinufftArray<T>,3> phi_hat123;
     if (d_plan->dim > 0) {
-      phi_hat1.resize(N);
+      phi_hat123[0].resize(N, d_plan->stream, d_plan->supports_pools);
     }
     if (d_plan->dim > 1) {
-      phi_hat2.resize(N);
+      phi_hat123[1].resize(N, d_plan->stream, d_plan->supports_pools);
     }
     if (d_plan->dim > 2) {
-      phi_hat3.resize(N);
+      phi_hat123[2].resize(N, d_plan->stream, d_plan->supports_pools);
     }
     onedim_nuft_kernel_precomp<T>(nuft_precomp_f.data(), nuft_precomp_z.data(),
                                   d_plan->spopts);
@@ -695,8 +695,7 @@ void cufinufft_setpts_impl(int M, T *d_kx, T *d_ky, T *d_kz, int N, T *d_s, T *d
     // sync the stream before calling the kernel might be needed
     if (nuft_kernel_compute(d_plan->dim, {N, N, N}, d_nuft_precomp_f.data().get(),
                             d_nuft_precomp_z.data().get(), d_plan->d_STUp,
-                            {phi_hat1.data().get(), phi_hat2.data().get(),
-                            phi_hat3.data().get()}, d_plan->spopts.nspread, stream))
+                            phi_hat123, d_plan->spopts.nspread, stream))
       goto finalize;
 
     const auto is_c_finite = std::isfinite(d_plan->type3_params.C1) &&
@@ -707,11 +706,11 @@ void cufinufft_setpts_impl(int M, T *d_kx, T *d_ky, T *d_kz, int N, T *d_s, T *d
                               d_plan->type3_params.C3 != 0;
 
     const auto phi_hat_iterator = thrust::make_zip_iterator(
-        thrust::make_tuple(phi_hat1.begin(),
+        thrust::make_tuple(phi_hat123[0].data(),
                            // to avoid out of bounds access, use phi_hat1 if dim < 2
-                           dim > 1 ? phi_hat2.begin() : phi_hat1.begin(),
+                           dim > 1 ? phi_hat123[1].data() : phi_hat123[0].data(),
                            // to avoid out of bounds access, use phi_hat1 if dim < 3
-                           dim > 2 ? phi_hat3.begin() : phi_hat1.begin()));
+                           dim > 2 ? phi_hat123[2].data() : phi_hat123[0].data()));
     thrust::transform(thrust::cuda::par.on(stream), phi_hat_iterator,
                       phi_hat_iterator + N, d_plan->deconv,
                       [dim] __host__
