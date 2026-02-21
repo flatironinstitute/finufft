@@ -29,18 +29,17 @@ void allocgpumem1d_plan(cufinufft_plan_t<T> *d_plan)
   case 1: {
     if (d_plan->opts.gpu_sort) {
       int numbins = ceil((T)nf1 / d_plan->opts.gpu_binsizex);
-      d_plan->binsize.resize(numbins, stream, d_plan->supports_pools);
-      d_plan->binstartpts.resize(numbins, stream,
-                                 d_plan->supports_pools);
+      d_plan->binsize.resize(numbins);
+      d_plan->binstartpts.resize(numbins);
     }
   } break;
   case 2:
   case 3: {
     int numbins = ceil((T)nf1 / d_plan->opts.gpu_binsizex);
-    d_plan->numsubprob.resize(numbins, stream, d_plan->supports_pools);
-    d_plan->binsize.resize(numbins, stream, d_plan->supports_pools);
-    d_plan->binstartpts.resize(numbins, stream, d_plan->supports_pools);
-    d_plan->subprobstartpts.resize(numbins+1, stream, d_plan->supports_pools);
+    d_plan->numsubprob.resize(numbins);
+    d_plan->binsize.resize(numbins);
+    d_plan->binstartpts.resize(numbins);
+    d_plan->subprobstartpts.resize(numbins+1);
   } break;
   default:
     std::cerr << "err: invalid method " << std::endl;
@@ -51,7 +50,7 @@ void allocgpumem1d_plan(cufinufft_plan_t<T> *d_plan)
     checkCudaErrors(
              cudaMallocWrapper(&d_plan->fw, maxbatchsize * nf1 * sizeof(cuda_complex<T>),
                                stream, d_plan->supports_pools));
-    d_plan->fwkerhalf[0].resize((nf1 / 2 + 1), stream, d_plan->supports_pools);
+    d_plan->fwkerhalf[0].resize(nf1 / 2 + 1);
   }
 }
 
@@ -75,8 +74,8 @@ void allocgpumem1d_nupts(cufinufft_plan_t<T> *d_plan)
   case 2:
   case 3: {
     if (d_plan->opts.gpu_sort)
-      d_plan->sortidx.resize(M, stream, d_plan->supports_pools);
-    d_plan->idxnupts.resize(M, stream, d_plan->supports_pools);
+      d_plan->sortidx.resize(M);
+    d_plan->idxnupts.resize(M);
   } break;
   default:
     std::cerr << "[allocgpumem1d_nupts] error: invalid method\n";
@@ -105,8 +104,8 @@ void allocgpumem2d_plan(cufinufft_plan_t<T> *d_plan)
       int numbins[2];
       numbins[0] = ceil((T)nf1 / d_plan->opts.gpu_binsizex);
       numbins[1] = ceil((T)nf2 / d_plan->opts.gpu_binsizey);
-      d_plan->binsize.resize(numbins[0] * numbins[1], stream, d_plan->supports_pools);
-      d_plan->binstartpts.resize(numbins[0] * numbins[1], stream, d_plan->supports_pools);
+      d_plan->binsize.resize(numbins[0] * numbins[1]);
+      d_plan->binstartpts.resize(numbins[0] * numbins[1]);
     }
   } break;
   case 2:
@@ -114,11 +113,10 @@ void allocgpumem2d_plan(cufinufft_plan_t<T> *d_plan)
     int64_t numbins[2];
     numbins[0] = ceil((T)nf1 / d_plan->opts.gpu_binsizex);
     numbins[1] = ceil((T)nf2 / d_plan->opts.gpu_binsizey);
-    d_plan->numsubprob.resize(numbins[0] * numbins[1], stream, d_plan->supports_pools);
-    d_plan->binsize.resize(numbins[0] * numbins[1], stream, d_plan->supports_pools);
-    d_plan->binstartpts.resize(numbins[0] * numbins[1], stream, d_plan->supports_pools);
-    d_plan->subprobstartpts.resize(numbins[0] * numbins[1] + 1,
-             stream, d_plan->supports_pools);
+    d_plan->numsubprob.resize(numbins[0] * numbins[1]);
+    d_plan->binsize.resize(numbins[0] * numbins[1]);
+    d_plan->binstartpts.resize(numbins[0] * numbins[1]);
+    d_plan->subprobstartpts.resize(numbins[0] * numbins[1] + 1);
   } break;
   default:
     std::cerr << "[allocgpumem2d_plan] error: invalid method\n";
@@ -129,10 +127,8 @@ void allocgpumem2d_plan(cufinufft_plan_t<T> *d_plan)
     checkCudaErrors(cudaMallocWrapper(
              &d_plan->fw, maxbatchsize * nf1 * nf2 * sizeof(cuda_complex<T>), stream,
              d_plan->supports_pools));
-    d_plan->fwkerhalf[0].resize((nf1 / 2 + 1), stream,
-                               d_plan->supports_pools);
-    d_plan->fwkerhalf[1].resize((nf2 / 2 + 1), stream,
-                               d_plan->supports_pools);
+    d_plan->fwkerhalf[0].resize(nf1 / 2 + 1);
+    d_plan->fwkerhalf[1].resize(nf2 / 2 + 1);
   }
 }
 
@@ -155,13 +151,13 @@ void allocgpumem2d_nupts(cufinufft_plan_t<T> *d_plan)
   switch (d_plan->opts.gpu_method) {
   case 1: {
     if (d_plan->opts.gpu_sort)
-      d_plan->sortidx.resize(M, stream, d_plan->supports_pools);
-    d_plan->idxnupts.resize(M, stream, d_plan->supports_pools);
+      d_plan->sortidx.resize(M);
+    d_plan->idxnupts.resize(M);
   } break;
   case 2:
   case 3: {
-    d_plan->idxnupts.resize(M, stream, d_plan->supports_pools);
-    d_plan->sortidx.resize(M, stream, d_plan->supports_pools);
+    d_plan->idxnupts.resize(M);
+    d_plan->sortidx.resize(M);
   } break;
   default:
     std::cerr << "[allocgpumem2d_nupts] error: invalid method\n";
@@ -191,8 +187,8 @@ void allocgpumem3d_plan(cufinufft_plan_t<T> *d_plan)
       const int64_t nbins_tot = ceil((T)nf1 / d_plan->opts.gpu_binsizex) *
                                 ceil((T)nf2 / d_plan->opts.gpu_binsizey) *
                                 ceil((T)nf3 / d_plan->opts.gpu_binsizez);
-      d_plan->binsize.resize(nbins_tot, stream, d_plan->supports_pools);
-      d_plan->binstartpts.resize(nbins_tot, stream, d_plan->supports_pools);
+      d_plan->binsize.resize(nbins_tot);
+      d_plan->binstartpts.resize(nbins_tot);
     }
   } break;
   case 2:
@@ -201,10 +197,10 @@ void allocgpumem3d_plan(cufinufft_plan_t<T> *d_plan)
                               ceil((T)nf2 / d_plan->opts.gpu_binsizey) *
                               ceil((T)nf3 / d_plan->opts.gpu_binsizez);
 
-    d_plan->numsubprob.resize(nbins_tot, stream, d_plan->supports_pools);
-    d_plan->binsize.resize(nbins_tot, stream, d_plan->supports_pools);
-    d_plan->binstartpts.resize(nbins_tot, stream, d_plan->supports_pools);
-    d_plan->subprobstartpts.resize(nbins_tot + 1, stream, d_plan->supports_pools);
+    d_plan->numsubprob.resize(nbins_tot);
+    d_plan->binsize.resize(nbins_tot);
+    d_plan->binstartpts.resize(nbins_tot);
+    d_plan->subprobstartpts.resize(nbins_tot + 1);
   } break;
   case 4: {
     const int numobins[3] = {(int)ceil((T)nf1 / d_plan->opts.gpu_obinsizex),
@@ -222,10 +218,10 @@ void allocgpumem3d_plan(cufinufft_plan_t<T> *d_plan)
     const int64_t numobins_tot = numobins[0] * numobins[1] * numobins[2];
     const int64_t numbins_tot  = numbins[0] * numbins[1] * numbins[2];
 
-    d_plan->numsubprob.resize(numobins_tot, stream, d_plan->supports_pools);
-    d_plan->binsize.resize(numbins_tot, stream, d_plan->supports_pools);
-    d_plan->binstartpts.resize(numbins_tot + 1, stream, d_plan->supports_pools);
-    d_plan->subprobstartpts.resize(numobins_tot + 1, stream, d_plan->supports_pools);
+    d_plan->numsubprob.resize(numobins_tot);
+    d_plan->binsize.resize(numbins_tot);
+    d_plan->binstartpts.resize(numbins_tot + 1);
+    d_plan->subprobstartpts.resize(numobins_tot + 1);
   } break;
   default:
     std::cerr << "[allocgpumem3d_plan] error: invalid method\n";
@@ -236,12 +232,9 @@ void allocgpumem3d_plan(cufinufft_plan_t<T> *d_plan)
     checkCudaErrors(cudaMallocWrapper(
              &d_plan->fw, maxbatchsize * nf1 * nf2 * nf3 * sizeof(cuda_complex<T>),
              stream, d_plan->supports_pools));
-    d_plan->fwkerhalf[0].resize((nf1 / 2 + 1), stream,
-                               d_plan->supports_pools);
-    d_plan->fwkerhalf[1].resize((nf2 / 2 + 1), stream,
-                               d_plan->supports_pools);
-    d_plan->fwkerhalf[2].resize((nf3 / 2 + 1), stream,
-                               d_plan->supports_pools);
+    d_plan->fwkerhalf[0].resize(nf1 / 2 + 1);
+    d_plan->fwkerhalf[1].resize(nf2 / 2 + 1);
+    d_plan->fwkerhalf[2].resize(nf3 / 2 + 1);
   }
 }
 
@@ -262,19 +255,19 @@ void allocgpumem3d_nupts(cufinufft_plan_t<T> *d_plan)
 
   switch (d_plan->opts.gpu_method) {
   case 1: {
-    d_plan->sortidx.resize(M, stream, d_plan->supports_pools);
-    d_plan->idxnupts.resize(M, stream, d_plan->supports_pools);
+    d_plan->sortidx.resize(M);
+    d_plan->idxnupts.resize(M);
   } break;
   case 2: {
-    d_plan->idxnupts.resize(M, stream, d_plan->supports_pools);
-    d_plan->sortidx.resize(M, stream, d_plan->supports_pools);
+    d_plan->idxnupts.resize(M);
+    d_plan->sortidx.resize(M);
   } break;
   case 3: {
-    d_plan->idxnupts.resize(M, stream, d_plan->supports_pools);
-    d_plan->sortidx.resize(M, stream, d_plan->supports_pools);
+    d_plan->idxnupts.resize(M);
+    d_plan->sortidx.resize(M);
   } break;
   case 4: {
-    d_plan->sortidx.resize(M, stream, d_plan->supports_pools);
+    d_plan->sortidx.resize(M);
   } break;
   default:
     std::cerr << "[allocgpumem3d_nupts] error: invalid method\n";

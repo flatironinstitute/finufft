@@ -267,10 +267,10 @@ void cuspread1d_nuptsdriven_prop(int nf1, int M, cufinufft_plan_t<T> *d_plan) {
 
     T *d_kx = d_plan->kxyz[0];
 
-    int *d_binsize     = d_plan->binsize.data();
-    int *d_binstartpts = d_plan->binstartpts.data();
-    int *d_sortidx     = d_plan->sortidx.data();
-    int *d_idxnupts    = d_plan->idxnupts.data();
+    int *d_binsize     = dethrust(d_plan->binsize);
+    int *d_binstartpts = dethrust(d_plan->binstartpts);
+    int *d_sortidx     = dethrust(d_plan->sortidx);
+    int *d_idxnupts    = dethrust(d_plan->idxnupts);
 
     checkCudaErrors(
         cudaMemsetAsync(d_binsize, 0, numbins * sizeof(int), stream));
@@ -288,7 +288,7 @@ void cuspread1d_nuptsdriven_prop(int nf1, int M, cufinufft_plan_t<T> *d_plan) {
         M, bin_size_x, numbins, d_binstartpts, d_sortidx, d_kx, d_idxnupts, nf1);
     THROW_IF_CUDA_ERROR
   } else {
-    int *d_idxnupts = d_plan->idxnupts.data();
+    int *d_idxnupts = dethrust(d_plan->idxnupts);;
     thrust::sequence(thrust::cuda::par.on(stream), d_idxnupts, d_idxnupts + M);
     THROW_IF_CUDA_ERROR
   }
@@ -304,7 +304,7 @@ static void cuspread1d_nuptsdriven(int nf1, int M, cufinufft_plan_t<T> *d_plan, 
   dim3 threadsPerBlock;
   dim3 blocks;
 
-  int *d_idxnupts = d_plan->idxnupts.data();
+  int *d_idxnupts = dethrust(d_plan->idxnupts);;
   T es_c          = 4.0 / T(d_plan->spopts.nspread * d_plan->spopts.nspread);
   T es_beta       = d_plan->spopts.beta;
   T sigma         = d_plan->spopts.upsampfac;
@@ -348,14 +348,14 @@ static void cuspread1d_output_driven(int nf1, int M, cufinufft_plan_t<T> *d_plan
   cuda_complex<T> *d_c  = d_plan->c;
   cuda_complex<T> *d_fw = d_plan->fw;
 
-  int *d_binsize         = d_plan->binsize.data();
-  int *d_binstartpts     = d_plan->binstartpts.data();
-  int *d_numsubprob      = d_plan->numsubprob.data();
-  int *d_subprobstartpts = d_plan->subprobstartpts.data();
-  int *d_idxnupts        = d_plan->idxnupts.data();
+  int *d_binsize         = dethrust(d_plan->binsize);
+  int *d_binstartpts     = dethrust(d_plan->binstartpts);
+  int *d_numsubprob      = dethrust(d_plan->numsubprob);
+  int *d_subprobstartpts = dethrust(d_plan->subprobstartpts);
+  int *d_idxnupts        = dethrust(d_plan->idxnupts);
 
   int totalnumsubprob   = d_plan->totalnumsubprob;
-  int *d_subprob_to_bin = d_plan->subprob_to_bin.data();
+  int *d_subprob_to_bin = dethrust(d_plan->subprob_to_bin);
 
   T sigma = d_plan->opts.upsampfac;
 
@@ -413,12 +413,12 @@ void cuspread1d_subprob_prop(int nf1, int M, cufinufft_plan_t<T> *d_plan)
 
   const auto numbins           = (nf1 + bin_size_x - 1) / bin_size_x;
   const auto d_kx              = d_plan->kxyz[0];
-  const auto d_binsize         = d_plan->binsize.data();
-  const auto d_binstartpts     = d_plan->binstartpts.data();
-  const auto d_sortidx         = d_plan->sortidx.data();
-  const auto d_numsubprob      = d_plan->numsubprob.data();
-  const auto d_subprobstartpts = d_plan->subprobstartpts.data();
-  const auto d_idxnupts        = d_plan->idxnupts.data();
+  const auto d_binsize         = dethrust(d_plan->binsize);
+  const auto d_binstartpts     = dethrust(d_plan->binstartpts);
+  const auto d_sortidx         = dethrust(d_plan->sortidx);
+  const auto d_numsubprob      = dethrust(d_plan->numsubprob);
+  const auto d_subprobstartpts = dethrust(d_plan->subprobstartpts);
+  const auto d_idxnupts        = dethrust(d_plan->idxnupts);
   const auto stream            = d_plan->stream;
 
   cudaMemsetAsync(d_binsize, 0, numbins * sizeof(int), stream);
@@ -454,10 +454,10 @@ void cuspread1d_subprob_prop(int nf1, int M, cufinufft_plan_t<T> *d_plan)
   cudaStreamSynchronize(stream);
   THROW_IF_CUDA_ERROR
 
-  cufinufftArray<int> d_subprob_to_bin(totalnumsubprob, stream, d_plan->supports_pools);
+  gpuArray<int> d_subprob_to_bin(totalnumsubprob, d_plan->ialloc);
 
   map_b_into_subprob_1d<<<(numbins + 1024 - 1) / 1024, 1024, 0, stream>>>(
-      d_subprob_to_bin.data(), d_subprobstartpts, d_numsubprob, numbins);
+      dethrust(d_subprob_to_bin), d_subprobstartpts, d_numsubprob, numbins);
   THROW_IF_CUDA_ERROR
   d_plan->subprob_to_bin.clear();
   d_subprob_to_bin.swap(d_plan->subprob_to_bin);
@@ -483,14 +483,14 @@ static void cuspread1d_subprob(int nf1, int M, cufinufft_plan_t<T> *d_plan, int 
   cuda_complex<T> *d_c  = d_plan->c;
   cuda_complex<T> *d_fw = d_plan->fw;
 
-  int *d_binsize         = d_plan->binsize.data();
-  int *d_binstartpts     = d_plan->binstartpts.data();
-  int *d_numsubprob      = d_plan->numsubprob.data();
-  int *d_subprobstartpts = d_plan->subprobstartpts.data();
-  int *d_idxnupts        = d_plan->idxnupts.data();
+  int *d_binsize         = dethrust(d_plan->binsize);
+  int *d_binstartpts     = dethrust(d_plan->binstartpts);
+  int *d_numsubprob      = dethrust(d_plan->numsubprob);
+  int *d_subprobstartpts = dethrust(d_plan->subprobstartpts);
+  int *d_idxnupts        = dethrust(d_plan->idxnupts);
 
   int totalnumsubprob   = d_plan->totalnumsubprob;
-  int *d_subprob_to_bin = d_plan->subprob_to_bin.data();
+  int *d_subprob_to_bin = dethrust(d_plan->subprob_to_bin);
 
   T sigma = d_plan->opts.upsampfac;
 

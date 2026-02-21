@@ -147,7 +147,7 @@ static void cuinterp2d_nuptsdriven(int nf1, int nf2, int M, cufinufft_plan_t<T> 
   T es_beta = d_plan->spopts.beta;
   T sigma   = d_plan->opts.upsampfac;
 
-  int *d_idxnupts = d_plan->idxnupts.data();
+  int *d_idxnupts = dethrust(d_plan->idxnupts);
 
   T *d_kx               = d_plan->kxyz[0];
   T *d_ky               = d_plan->kxyz[1];
@@ -198,12 +198,12 @@ static void cuinterp2d_subprob(int nf1, int nf2, int M, cufinufft_plan_t<T> *d_p
   cuda_complex<T> *d_c  = d_plan->c;
   cuda_complex<T> *d_fw = d_plan->fw;
 
-  int *d_binsize         = d_plan->binsize.data();
-  int *d_binstartpts     = d_plan->binstartpts.data();
-  int *d_numsubprob      = d_plan->numsubprob.data();
-  int *d_subprobstartpts = d_plan->subprobstartpts.data();
-  int *d_idxnupts        = d_plan->idxnupts.data();
-  int *d_subprob_to_bin  = d_plan->subprob_to_bin.data();
+  int *d_binsize         = dethrust(d_plan->binsize);
+  int *d_binstartpts     = dethrust(d_plan->binstartpts);
+  int *d_numsubprob      = dethrust(d_plan->numsubprob);
+  int *d_subprobstartpts = dethrust(d_plan->subprobstartpts);
+  int *d_idxnupts        = dethrust(d_plan->idxnupts);
+  int *d_subprob_to_bin  = dethrust(d_plan->subprob_to_bin);
   int totalnumsubprob    = d_plan->totalnumsubprob;
 
   T sigma                      = d_plan->opts.upsampfac;

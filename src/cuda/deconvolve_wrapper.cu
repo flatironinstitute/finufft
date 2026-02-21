@@ -235,14 +235,14 @@ void cudeconvolve1d(cufinufft_plan_t<T> *d_plan, int blksize)
   if (d_plan->spopts.spread_direction == 1) {
     for (int t = 0; t < blksize; t++) {
       deconvolve_1d<T, modeord><<<(nmodes + 256 - 1) / 256, 256, 0, stream>>>(
-          ms, nf1, d_plan->fw + t * nf1, d_plan->fk + t * nmodes, d_plan->fwkerhalf[0].data());
+          ms, nf1, d_plan->fw + t * nf1, d_plan->fk + t * nmodes, dethrust(d_plan->fwkerhalf[0]));
     }
   } else {
     checkCudaErrors(cudaMemsetAsync(
         d_plan->fw, 0, maxbatchsize * nf1 * sizeof(cuda_complex<T>), stream));
     for (int t = 0; t < blksize; t++) {
       amplify_1d<T, modeord><<<(nmodes + 256 - 1) / 256, 256, 0, stream>>>(
-          ms, nf1, d_plan->fw + t * nf1, d_plan->fk + t * nmodes, d_plan->fwkerhalf[0].data());
+          ms, nf1, d_plan->fw + t * nf1, d_plan->fk + t * nmodes, dethrust(d_plan->fwkerhalf[0]));
     }
   }
 }
@@ -268,7 +268,7 @@ void cudeconvolve2d(cufinufft_plan_t<T> *d_plan, int blksize)
     for (int t = 0; t < blksize; t++) {
       deconvolve_2d<T, modeord><<<(nmodes + 256 - 1) / 256, 256, 0, stream>>>(
           ms, mt, nf1, nf2, d_plan->fw + t * nf1 * nf2, d_plan->fk + t * nmodes,
-          d_plan->fwkerhalf[0].data(), d_plan->fwkerhalf[1].data());
+          dethrust(d_plan->fwkerhalf[0]), dethrust(d_plan->fwkerhalf[1]));
     }
   } else {
     checkCudaErrors(cudaMemsetAsync(
@@ -276,7 +276,7 @@ void cudeconvolve2d(cufinufft_plan_t<T> *d_plan, int blksize)
     for (int t = 0; t < blksize; t++) {
       amplify_2d<T, modeord><<<(nmodes + 256 - 1) / 256, 256, 0, stream>>>(
           ms, mt, nf1, nf2, d_plan->fw + t * nf1 * nf2, d_plan->fk + t * nmodes,
-          d_plan->fwkerhalf[0].data(), d_plan->fwkerhalf[1].data());
+          dethrust(d_plan->fwkerhalf[0]), dethrust(d_plan->fwkerhalf[1]));
     }
   }
 }
@@ -303,8 +303,8 @@ void cudeconvolve3d(cufinufft_plan_t<T> *d_plan, int blksize)
     for (int t = 0; t < blksize; t++) {
       deconvolve_3d<T, modeord><<<(nmodes + 256 - 1) / 256, 256, 0, stream>>>(
           ms, mt, mu, nf1, nf2, nf3, d_plan->fw + t * nf1 * nf2 * nf3,
-          d_plan->fk + t * nmodes, d_plan->fwkerhalf[0].data(), d_plan->fwkerhalf[1].data(),
-          d_plan->fwkerhalf[2].data());
+          d_plan->fk + t * nmodes, dethrust(d_plan->fwkerhalf[0]), dethrust(d_plan->fwkerhalf[1]),
+          dethrust(d_plan->fwkerhalf[2]));
     }
   } else {
     checkCudaErrors(cudaMemsetAsync(
@@ -312,8 +312,8 @@ void cudeconvolve3d(cufinufft_plan_t<T> *d_plan, int blksize)
     for (int t = 0; t < blksize; t++) {
       amplify_3d<T, modeord><<<(nmodes + 256 - 1) / 256, 256, 0, stream>>>(
           ms, mt, mu, nf1, nf2, nf3, d_plan->fw + t * nf1 * nf2 * nf3,
-          d_plan->fk + t * nmodes, d_plan->fwkerhalf[0].data(), d_plan->fwkerhalf[1].data(),
-          d_plan->fwkerhalf[2].data());
+          d_plan->fk + t * nmodes, dethrust(d_plan->fwkerhalf[0]), dethrust(d_plan->fwkerhalf[1]),
+          dethrust(d_plan->fwkerhalf[2]));
     }
   }
 }

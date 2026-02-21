@@ -565,7 +565,7 @@ void cufinufft_setpts_impl(int M, T *d_kx, T *d_ky, T *d_kz, int N, T *d_s, T *d
   if (checked_realloc(d_plan->fw, sizeof(cuda_complex<T>) * d_plan->nf *
                                       d_plan->batchsize) != cudaSuccess)
     goto finalize;
-  d_plan->CpBatch.resize(M * d_plan->batchsize, stream, d_plan->supports_pools);
+  d_plan->CpBatch.resize(M * d_plan->batchsize);
   if (checked_realloc(d_plan->kxyz[0], sizeof(T) * M) != cudaSuccess) goto finalize;
   if (checked_realloc(d_plan->d_STUp[0], sizeof(T) * N) != cudaSuccess) goto finalize;
   if (d_plan->dim > 1) {
@@ -668,15 +668,15 @@ void cufinufft_setpts_impl(int M, T *d_kx, T *d_ky, T *d_kz, int N, T *d_s, T *d
     std::array<T, 3 * MAX_NQUAD> nuft_precomp_f{};
     thrust::device_vector<T> d_nuft_precomp_z(3 * MAX_NQUAD);
     thrust::device_vector<T> d_nuft_precomp_f(3 * MAX_NQUAD);
-    cuda::std::array<cufinufftArray<T>,3> phi_hat123;
+    cuda::std::array<gpuArray<T>,3> phi_hat123({gpuArray<T>{0,d_plan->alloc},gpuArray<T>{0,d_plan->alloc},gpuArray<T>{0,d_plan->alloc}});
     if (d_plan->dim > 0) {
-      phi_hat123[0].resize(N, d_plan->stream, d_plan->supports_pools);
+      phi_hat123[0].resize(N);
     }
     if (d_plan->dim > 1) {
-      phi_hat123[1].resize(N, d_plan->stream, d_plan->supports_pools);
+      phi_hat123[1].resize(N);
     }
     if (d_plan->dim > 2) {
-      phi_hat123[2].resize(N, d_plan->stream, d_plan->supports_pools);
+      phi_hat123[2].resize(N);
     }
     onedim_nuft_kernel_precomp<T>(nuft_precomp_f.data(), nuft_precomp_z.data(),
                                   d_plan->spopts);
