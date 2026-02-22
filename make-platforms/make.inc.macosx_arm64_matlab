@@ -1,0 +1,85 @@
+# Makefile variable overrides for cross-compiling for ARM silicon via
+# clang + MATLAB on Mac OSX.
+#
+# This is a combination of the following
+# Barnett 10/3/20: make.inc.macosx_clang_matlab
+# Libin Lu 12/21/23: make.inc.macosx_arm64
+# Bobbie Wu 1/3/26: Added comments about MEX XML; MATLAB+OMP fix for MATLAB_R2024+
+
+# compile flags for use with clang: (note absence of -march, etc)
+CFLAGS = -O3 -arch arm64
+
+# If you're getting warning messages of the form:
+#    ld: warning: object file (lib-static/libfinufft.a(finufft1d.o)) was built for
+#    newer OSX version (10.13) than being linked (10.9)
+# Then you can uncomment the following two lines with the older version number
+# (in this example -mmacosx-version-min=10.9)
+#
+#CFLAGS += "-mmacosx-version-min=<OLDER OSX VERSION NUMBER>"
+
+CXX=clang++
+CC=clang
+
+# assuming libomp and fftw are installed through homebrew
+OMP_ROOT = $(shell brew --prefix libomp)
+FFTW_ROOT = $(shell brew --prefix fftw)
+
+# taken from makefile...
+CFLAGS   += -I include -I/usr/local/include -I$(OMP_ROOT)/include -I$(FFTW_ROOT)/include
+FFLAGS   = $(CFLAGS)
+CXXFLAGS = $(CFLAGS)
+LIBS += -L/usr/local/lib -L$(OMP_ROOT)/lib -L$(FFTW_ROOT)/lib
+LDFLAGS += -arch arm64 -L$(OMP_ROOT)/lib -L$(FFTW_ROOT)/lib
+
+# OpenMP with clang needs following...
+OMPFLAGS = -Xpreprocessor -fopenmp
+OMPLIBS = -lomp
+# Also use MATLAB's shipped OpenMP (not gomp otherwise segfaults), with clang...
+MOMPFLAGS = -D_OPENMP
+OMPLIBS += $(shell ls -d /Applications/MATLAB_R* | sort | tail -1)/toolbox/eml/externalDependency/omp/maca64/lib/libomp.dylib
+# Also use -Wl,-rpath to add MATLAB's omp lib directory to the runtime library search path
+LDFLAGS += -Wl,-rpath,$(shell ls -d /Applications/MATLAB_R* | sort | tail -1)/toolbox/eml/externalDependency/omp/maca64/lib/
+# since fftw3_omp doesn't work in OSX, we need...
+FFTWOMPSUFFIX=threads
+
+# MATLAB interface:
+# Some of these will depend on your FFTW library location...
+MFLAGS += -I/usr/local/include -I/opt/homebrew/include -L/usr/local/lib -L/opt/homebrew/lib
+# may need to edit for your MATLAB version location...
+MEX = $(shell ls -d /Applications/MATLAB_R* | sort | tail -1)/bin/mex
+
+# Also see docs/install.rst for possible edits to MATLAB's MEX XML file.
+
+# Comments about MEX XML: "make matlab" may return with the following error message:
+#
+#		Undefined symbols for architecture arm64:
+#		  "_mexCreateMexFunction", referenced from:
+#		      <initial-undefines>
+#		  "_mexDestroyMexFunction", referenced from:
+#		      <initial-undefines>
+#		  "_mexFunction", referenced from:
+#		      <initial-undefines>
+#		  "_mexFunctionAdapter", referenced from:
+#		      <initial-undefines>
+#		ld: symbol(s) not found for architecture arm64
+#		clang++: error: linker command failed with exit code 1
+#
+# This is because the C++ MEX API by default links to certain symbols (such as
+# "_mexCreateMexFunction"). But matlab/finufft.cpp is coded with the C MEX API
+# (i.e., #include "mex.h" instead of "mex.hpp").
+#
+# The solution is to modify the MEX XML file to ignore the C++ MEX symbols:
+#
+#	1. Open the "mex_C++_maca64.xml" file, located in e.g.:
+#
+#		"~/Library/Application Support/MathWorks/MATLAB/R2025b/mex_C++_maca64.xml"
+#
+#   2. Identify the variable LINKEXPORTCPP, which reads:
+#
+#   	LINKEXPORTCPP="-Wl,-U,_mexCreateMexFunction -Wl,-U,_mexDestroyMexFunction ..."
+#
+#      Redefine it as an empty string:
+#
+#   	LINKEXPORTCPP=""
+#
+# Then "make matlab" should work without error.
