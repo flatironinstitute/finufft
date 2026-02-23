@@ -364,11 +364,7 @@ static void cuspread1d_output_driven(int nf1, int M, cufinufft_plan_t<T> *d_plan
       d_plan->opts.gpu_binsizez, d_plan->opts.gpu_np);
 
   if (d_plan->opts.gpu_kerevalmeth) {
-    if (const auto finufft_err =
-            cufinufft_set_shared_memory(spread_1d_output_driven<T, 1, ns>, 1, *d_plan) !=
-            0) {
-      throw FINUFFT_ERR_INSUFFICIENT_SHMEM;
-    }
+    cufinufft_set_shared_memory(spread_1d_output_driven<T, 1, ns>, 1, *d_plan);
     for (int t = 0; t < blksize; t++) {
       spread_1d_output_driven<T, 1, ns>
           <<<totalnumsubprob, 256, sharedplanorysize, stream>>>(
@@ -378,11 +374,7 @@ static void cuspread1d_output_driven(int nf1, int M, cufinufft_plan_t<T> *d_plan
       THROW_IF_CUDA_ERROR
     }
   } else {
-    if (const auto finufft_err =
-            cufinufft_set_shared_memory(spread_1d_output_driven<T, 0, ns>, 1, *d_plan) !=
-            0) {
-      throw FINUFFT_ERR_INSUFFICIENT_SHMEM;
-    }
+    cufinufft_set_shared_memory(spread_1d_output_driven<T, 0, ns>, 1, *d_plan);
     for (int t = 0; t < blksize; t++) {
       spread_1d_output_driven<T, 0, ns>
           <<<totalnumsubprob, 256, sharedplanorysize, stream>>>(
@@ -499,10 +491,7 @@ static void cuspread1d_subprob(int nf1, int M, cufinufft_plan_t<T> *d_plan, int 
       d_plan->opts.gpu_binsizez, d_plan->opts.gpu_np);
 
   if (d_plan->opts.gpu_kerevalmeth) {
-    if (const auto finufft_err =
-            cufinufft_set_shared_memory(spread_1d_subprob<T, 1, ns>, 1, *d_plan) != 0) {
-      throw FINUFFT_ERR_INSUFFICIENT_SHMEM;
-    }
+    cufinufft_set_shared_memory(spread_1d_subprob<T, 1, ns>, 1, *d_plan);
     for (int t = 0; t < blksize; t++) {
       spread_1d_subprob<T, 1, ns><<<totalnumsubprob, 256, sharedplanorysize, stream>>>(
           d_kx, d_c + t * M, d_fw + t * nf1, M, nf1, es_c, es_beta, sigma, d_binstartpts,
@@ -511,10 +500,7 @@ static void cuspread1d_subprob(int nf1, int M, cufinufft_plan_t<T> *d_plan, int 
       THROW_IF_CUDA_ERROR
     }
   } else {
-    if (const auto finufft_err =
-            cufinufft_set_shared_memory(spread_1d_subprob<T, 0, ns>, 1, *d_plan) != 0) {
-      throw FINUFFT_ERR_INSUFFICIENT_SHMEM;
-    }
+    cufinufft_set_shared_memory(spread_1d_subprob<T, 0, ns>, 1, *d_plan);
     for (int t = 0; t < blksize; t++) {
       spread_1d_subprob<T, 0, ns><<<totalnumsubprob, 256, sharedplanorysize, stream>>>(
           d_kx, d_c + t * M, d_fw + t * nf1, M, nf1, es_c, es_beta, sigma, d_binstartpts,

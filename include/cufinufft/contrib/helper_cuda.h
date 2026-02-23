@@ -34,35 +34,11 @@
 
 #include <cufft.h>
 
-static const char *_cudaGetErrorEnum(cudaError_t error) {
-  return cudaGetErrorName(error);
-}
-
 // This will output the proper CUDA error strings in the event
 // that a CUDA host call returns an error
 #define checkCudaErrors(val) check((val), #val, __FILE__, __LINE__)
 
-template<typename T>
-static cudaError_t cudaMallocWrapper(T **devPtr, size_t size, cudaStream_t stream,
-                                     int pool_supported) {
-  return pool_supported ? cudaMallocAsync(devPtr, size, stream)
-                        : cudaMalloc(devPtr, size);
-}
 
-template<typename T>
-static cudaError_t cudaFreeWrapper(T *devPtr, cudaStream_t stream, int pool_supported) {
-  return pool_supported ? cudaFreeAsync(devPtr, stream) : cudaFree(devPtr);
-}
-
-#define RETURN_IF_CUDA_ERROR                                                         \
-  {                                                                                  \
-    cudaError_t err = cudaGetLastError();                                            \
-    if (err != cudaSuccess) {                                                        \
-      printf("[%s] Error: %s in %s at line %d\n", __func__, cudaGetErrorString(err), \
-             __FILE__, __LINE__);                                                    \
-      return FINUFFT_ERR_CUDA_FAILURE;                                               \
-    }                                                                                \
-  }
 #define THROW_IF_CUDA_ERROR                                                         \
   {                                                                                  \
     cudaError_t err = cudaGetLastError();                                            \
@@ -70,14 +46,6 @@ static cudaError_t cudaFreeWrapper(T *devPtr, cudaStream_t stream, int pool_supp
       printf("[%s] Error: %s in %s at line %d\n", __func__, cudaGetErrorString(err), \
              __FILE__, __LINE__);                                                    \
       throw FINUFFT_ERR_CUDA_FAILURE;                                               \
-    }                                                                                \
-  }
-
-#define CUDA_FREE_AND_NULL(val, stream, pool_supported)                              \
-  {                                                                                  \
-    if (val != nullptr) {                                                            \
-      check(cudaFreeWrapper(val, stream, pool_supported), #val, __FILE__, __LINE__); \
-      val = nullptr;                                                                 \
     }                                                                                \
   }
 
@@ -145,7 +113,7 @@ template<typename T>
 void check(T result, const char *const func, const char *const file, const int line) {
   if (result) {
     fprintf(stderr, "CUDA error at %s:%d code=%d(%s) \"%s\" \n", file, line,
-            static_cast<unsigned int>(result), _cudaGetErrorEnum(result), func);
+            static_cast<unsigned int>(result), cudaGetErrorName(result), func);
     throw FINUFFT_ERR_CUDA_FAILURE;
   }
 }

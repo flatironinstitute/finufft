@@ -72,7 +72,7 @@ static __global__ void cu_nuft_kernel_compute(cuda::std::array<CUFINUFFT_BIGINT,
 }
 
 template<typename T>
-int fseries_kernel_compute(int dim, cuda::std::array<CUFINUFFT_BIGINT,3> nf123, T *d_f, T *d_phase,
+void fseries_kernel_compute(int dim, cuda::std::array<CUFINUFFT_BIGINT,3> nf123, T *d_f, T *d_phase,
                            cuda::std::array<gpuArray<T>,3> &d_fwkerhalf, int ns,
                            cudaStream_t stream)
 /*
@@ -89,19 +89,17 @@ int fseries_kernel_compute(int dim, cuda::std::array<CUFINUFFT_BIGINT,3> nf123, 
 
   cu_fseries_kernel_compute<<<numBlocks, threadsPerBlock, 0, stream>>>(
       nf123, d_f, d_phase, {dethrust(d_fwkerhalf[0]), dethrust(d_fwkerhalf[1]), dethrust(d_fwkerhalf[2])}, ns);
-  RETURN_IF_CUDA_ERROR
-
-  return 0;
+  THROW_IF_CUDA_ERROR
 }
-template int fseries_kernel_compute<float>(int dim, cuda::std::array<CUFINUFFT_BIGINT,3> nf123, float *d_f, float *d_phase,
+template void fseries_kernel_compute<float>(int dim, cuda::std::array<CUFINUFFT_BIGINT,3> nf123, float *d_f, float *d_phase,
                            cuda::std::array<gpuArray<float>,3> &d_fwkerhalf, int ns,
                            cudaStream_t stream);
-template int fseries_kernel_compute<double>(int dim, cuda::std::array<CUFINUFFT_BIGINT,3> nf123, double *d_f, double *d_phase,
+template void fseries_kernel_compute<double>(int dim, cuda::std::array<CUFINUFFT_BIGINT,3> nf123, double *d_f, double *d_phase,
                            cuda::std::array<gpuArray<double>,3> &d_fwkerhalf, int ns,
                            cudaStream_t stream);
 
 template<typename T>
-int nuft_kernel_compute(int dim, cuda::std::array<CUFINUFFT_BIGINT,3> nf123, T *d_f, T *d_z,
+void nuft_kernel_compute(int dim, cuda::std::array<CUFINUFFT_BIGINT,3> nf123, T *d_f, T *d_z,
                         cuda::std::array<T *,3> d_kxyz, cuda::std::array<gpuArray<T>,3> &d_fwkerhalf,
                         int ns, cudaStream_t stream)
 /*
@@ -124,14 +122,12 @@ int nuft_kernel_compute(int dim, cuda::std::array<CUFINUFFT_BIGINT,3> nf123, T *
   cu_nuft_kernel_compute<<<numBlocks, threadsPerBlock, 0, stream>>>(
       nf123, d_f, d_z, d_kxyz, {dethrust(d_fwkerhalf[0]), dethrust(d_fwkerhalf[1]), dethrust(d_fwkerhalf[2])},
       ns);
-  RETURN_IF_CUDA_ERROR
-
-  return 0;
+  THROW_IF_CUDA_ERROR
 }
-template int nuft_kernel_compute(int dim, cuda::std::array<CUFINUFFT_BIGINT,3> nf123, float *d_f, float *d_z,
+template void nuft_kernel_compute(int dim, cuda::std::array<CUFINUFFT_BIGINT,3> nf123, float *d_f, float *d_z,
                         cuda::std::array<float *,3> d_kxyz, cuda::std::array<gpuArray<float>,3> &d_fwkerhalf,
                         int ns, cudaStream_t stream);
-template int nuft_kernel_compute(int dim, cuda::std::array<CUFINUFFT_BIGINT,3> nf123, double *d_f, double *d_z,
+template void nuft_kernel_compute(int dim, cuda::std::array<CUFINUFFT_BIGINT,3> nf123, double *d_f, double *d_z,
                         cuda::std::array<double *,3> d_kxyz, cuda::std::array<gpuArray<double>,3> &d_fwkerhalf,
                         int ns, cudaStream_t stream);
 

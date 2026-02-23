@@ -154,8 +154,8 @@ void cufinufft1d3_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
     // NOTE: fw might need to be set to 0
     // Step 0: pre-phase the input strengths
     for (int block = 0; block < blksize; block++) {
-      thrust::transform(thrust::cuda::par.on(stream), d_plan->prephase,
-                        d_plan->prephase + d_plan->M, d_cstart + block * d_plan->M,
+      thrust::transform(thrust::cuda::par.on(stream), dethrust(d_plan->prephase),
+                        dethrust(d_plan->prephase) + d_plan->M, d_cstart + block * d_plan->M,
                         d_plan->c + block * d_plan->M,
                         thrust::multiplies<cuda_complex<T>>());
     }
@@ -171,8 +171,8 @@ void cufinufft1d3_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
     // Step 3: deconvolve
     // now we need to d_fk = d_fk*d_plan->deconv
     for (int i = 0; i < blksize; i++) {
-      thrust::transform(thrust::cuda::par.on(stream), d_plan->deconv,
-                        d_plan->deconv + d_plan->N, d_fkstart + i * d_plan->N,
+      thrust::transform(thrust::cuda::par.on(stream), dethrust(d_plan->deconv),
+                        dethrust(d_plan->deconv) + d_plan->N, d_fkstart + i * d_plan->N,
                         d_fkstart + i * d_plan->N, thrust::multiplies<cuda_complex<T>>());
     }
   }

@@ -47,9 +47,8 @@ void allocgpumem1d_plan(cufinufft_plan_t<T> *d_plan)
   }
 
   if (!d_plan->opts.gpu_spreadinterponly) {
-    checkCudaErrors(
-             cudaMallocWrapper(&d_plan->fw, maxbatchsize * nf1 * sizeof(cuda_complex<T>),
-                               stream, d_plan->supports_pools));
+    d_plan->fwp.resize(maxbatchsize * nf1);
+    d_plan->fw = dethrust(d_plan->fwp);
     d_plan->fwkerhalf[0].resize(nf1 / 2 + 1);
   }
 }
@@ -124,9 +123,8 @@ void allocgpumem2d_plan(cufinufft_plan_t<T> *d_plan)
   }
 
   if (!d_plan->opts.gpu_spreadinterponly) {
-    checkCudaErrors(cudaMallocWrapper(
-             &d_plan->fw, maxbatchsize * nf1 * nf2 * sizeof(cuda_complex<T>), stream,
-             d_plan->supports_pools));
+    d_plan->fwp.resize(maxbatchsize * nf1 * nf2);
+    d_plan->fw = dethrust(d_plan->fwp);
     d_plan->fwkerhalf[0].resize(nf1 / 2 + 1);
     d_plan->fwkerhalf[1].resize(nf2 / 2 + 1);
   }
@@ -229,9 +227,8 @@ void allocgpumem3d_plan(cufinufft_plan_t<T> *d_plan)
   }
 
   if (!d_plan->opts.gpu_spreadinterponly) {
-    checkCudaErrors(cudaMallocWrapper(
-             &d_plan->fw, maxbatchsize * nf1 * nf2 * nf3 * sizeof(cuda_complex<T>),
-             stream, d_plan->supports_pools));
+    d_plan->fwp.resize(maxbatchsize * nf1 * nf2 * nf3);
+    d_plan->fw = dethrust(d_plan->fwp);
     d_plan->fwkerhalf[0].resize(nf1 / 2 + 1);
     d_plan->fwkerhalf[1].resize(nf2 / 2 + 1);
     d_plan->fwkerhalf[2].resize(nf3 / 2 + 1);
@@ -255,8 +252,8 @@ void allocgpumem3d_nupts(cufinufft_plan_t<T> *d_plan)
 
   switch (d_plan->opts.gpu_method) {
   case 1: {
-    d_plan->sortidx.resize(M);
     d_plan->idxnupts.resize(M);
+    d_plan->sortidx.resize(M);
   } break;
   case 2: {
     d_plan->idxnupts.resize(M);
@@ -288,8 +285,7 @@ void freegpumemory(cufinufft_plan_t<T> *d_plan)
   const auto stream = d_plan->stream;
   // Dont clear fw if spreadinterponly for type 1 and 2 as fw belongs to original program
   // (it is d_fk)
-  if (!d_plan->opts.gpu_spreadinterponly || d_plan->type == 3)
-    CUDA_FREE_AND_NULL(d_plan->fw, stream, d_plan->supports_pools);
+  d_plan->fwp.clear();
   d_plan->fwkerhalf[0].clear();
   d_plan->fwkerhalf[1].clear();
   d_plan->fwkerhalf[2].clear();
@@ -309,14 +305,14 @@ void freegpumemory(cufinufft_plan_t<T> *d_plan)
     return;
   }
 
-  CUDA_FREE_AND_NULL(d_plan->kxyz[0], stream, d_plan->supports_pools);
-  CUDA_FREE_AND_NULL(d_plan->d_STUp[0], stream, d_plan->supports_pools);
-  CUDA_FREE_AND_NULL(d_plan->kxyz[1], stream, d_plan->supports_pools);
-  CUDA_FREE_AND_NULL(d_plan->d_STUp[1], stream, d_plan->supports_pools);
-  CUDA_FREE_AND_NULL(d_plan->kxyz[2], stream, d_plan->supports_pools);
-  CUDA_FREE_AND_NULL(d_plan->d_STUp[2], stream, d_plan->supports_pools);
-  CUDA_FREE_AND_NULL(d_plan->prephase, stream, d_plan->supports_pools);
-  CUDA_FREE_AND_NULL(d_plan->deconv, stream, d_plan->supports_pools);
+  d_plan->kxyzp[0].clear();
+  d_plan->kxyzp[1].clear();
+  d_plan->kxyzp[2].clear();
+  d_plan->STUp[0].clear();
+  d_plan->STUp[1].clear();
+  d_plan->STUp[2].clear();
+  d_plan->prephase.clear();
+  d_plan->deconv.clear();
   d_plan->CpBatch.clear();
 }
 

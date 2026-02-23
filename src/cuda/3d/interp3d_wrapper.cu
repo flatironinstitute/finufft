@@ -251,10 +251,7 @@ static void cuinterp3d_subprob(int nf1, int nf2, int nf3, int M, cufinufft_plan_
       d_plan->opts.gpu_binsizez, d_plan->opts.gpu_np);
 
   if (d_plan->opts.gpu_kerevalmeth == 1) {
-    if (const auto finufft_err =
-            cufinufft_set_shared_memory(interp_3d_subprob<T, 1, ns>, 3, *d_plan)) {
-      throw finufft_err;
-    }
+    cufinufft_set_shared_memory(interp_3d_subprob<T, 1, ns>, 3, *d_plan);
     for (int t = 0; t < blksize; t++) {
       interp_3d_subprob<T, 1, ns><<<totalnumsubprob, 256, sharedplanorysize, stream>>>(
           d_kx, d_ky, d_kz, d_c + t * M, d_fw + t * nf1 * nf2 * nf3, M, nf1, nf2, nf3,
@@ -264,10 +261,7 @@ static void cuinterp3d_subprob(int nf1, int nf2, int nf3, int M, cufinufft_plan_
       THROW_IF_CUDA_ERROR
     }
   } else {
-    if (const auto finufft_err =
-            cufinufft_set_shared_memory(interp_3d_subprob<T, 0, ns>, 3, *d_plan)) {
-      throw finufft_err;
-    }
+    cufinufft_set_shared_memory(interp_3d_subprob<T, 0, ns>, 3, *d_plan);
     for (int t = 0; t < blksize; t++) {
       interp_3d_subprob<T, 0, ns><<<totalnumsubprob, 256, sharedplanorysize, stream>>>(
           d_kx, d_ky, d_kz, d_c + t * M, d_fw + t * nf1 * nf2 * nf3, M, nf1, nf2, nf3,

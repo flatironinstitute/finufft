@@ -78,62 +78,6 @@ template<typename T> inline T* dethrust(gpuArray<T> &arr) {
   return thrust::raw_pointer_cast(arr.data());
   }
 
-template<typename T> class cufinufftArray {
-  private:
-    cudaStream_t strm;
-    T *ptr;
-    size_t sz;
-    bool pool;
-
-    void alloc(size_t size, cudaStream_t stream, bool pool_supported) {
-      if (sz!=0) throw FINUFFT_ERR_CUDA_FAILURE;
-      sz = size;
-      strm = stream;
-      pool = pool_supported;
-      auto err = pool ? cudaMallocAsync(&ptr, sz*sizeof(T), strm)
-                      : cudaMalloc(&ptr, sz);
-      if (err!=cudaSuccess) throw FINUFFT_ERR_CUDA_FAILURE;
-    }
-
-  public:
-    cufinufftArray() : strm(0), ptr(nullptr), sz(0), pool(false) {}
-    cufinufftArray(size_t size, cudaStream_t stream, bool pool_supported)
-      : cufinufftArray()
-    { alloc(size, stream, pool_supported); }
-    cufinufftArray(const cufinufftArray &) = delete;
-    ~cufinufftArray() { clear(); }
-
-    cufinufftArray &operator= (const cufinufftArray&) = delete;
-
-    void clear() {
-      if (sz==0) return;
-      auto err = pool ? cudaFreeAsync(ptr, strm) : cudaFree(ptr);
-      if (err!=cudaSuccess) throw FINUFFT_ERR_CUDA_FAILURE;
-      sz = 0;
-      strm = 0;
-      ptr = nullptr;
-      pool = false;
-    }
-
-    void resize(size_t size, cudaStream_t stream, bool pool_supported) {
-      clear();
-      alloc(size, stream, pool_supported);
-    }
-
-    T *data() { return ptr; }
-    const T *data() const { return ptr; }
-    size_t size() const { return sz; }
-
-  //  operator T* () { return ptr; }
-
-    void swap(cufinufftArray &other) {
-      std::swap(strm, other.strm);
-      std::swap(ptr, other.ptr);
-      std::swap(sz, other.sz);
-      std::swap(pool, other.pool);
-    }
-};
-
 template<typename T> struct cufinufft_plan_t {
   cufinufft_opts opts;
   finufft_spread_opts spopts;
@@ -158,10 +102,12 @@ template<typename T> struct cufinufft_plan_t {
   // for type 1,2 it is a pointer to kx, ky, kz (no new allocs), for type 3 it
   // for t3: allocated as "primed" (scaled) src pts x'_j, etc
   cuda::std::array<T *,3> kxyz;
+  cuda::std::array<gpuArray<T>,3> kxyzp;
   gpuArray<cuda_complex<T>> CpBatch; // working array of prephased strengths
 
   // no allocs here
   cuda_complex<T> *c;
+  gpuArray<cuda_complex<T>> fwp;
   cuda_complex<T> *fw;
   cuda_complex<T> *fk;
 
@@ -174,14 +120,15 @@ template<typename T> struct cufinufft_plan_t {
   } type3_params;
   int N;                        // number of NU freq pts (type 3 only)
   CUFINUFFT_BIGINT nf;
-  cuda::std::array<T *,3> d_STUp;
+  cuda::std::array<T *,3> STU;
+  cuda::std::array<gpuArray<T>,3> STUp;
   T tol;
   // inner type 2 plan for type 3
   cufinufft_plan_t<T> *t2_plan;
   // new allocs.
   // FIXME: convert to device vectors to use resize
-  cuda_complex<T> *prephase; // pre-phase, for all input NU pts
-  cuda_complex<T> *deconv;   // reciprocal of kernel FT, phase, all output NU pts
+  gpuArray<cuda_complex<T>> prephase; // pre-phase, for all input NU pts
+  gpuArray<cuda_complex<T>> deconv;   // reciprocal of kernel FT, phase, all output NU pts
 
   // Arrays that used in subprob method
   gpuArray<int> idxnupts;        // length: #nupts, index of the nupts in the bin-sorted order
@@ -200,8 +147,12 @@ template<typename T> struct cufinufft_plan_t {
   cudaStream_t stream;
 
   cufinufft_plan_t() : ialloc(0,false), alloc(0,false), calloc(0,false),
-    fwkerhalf({gpuArray<T>{0, alloc},gpuArray<T>{0,alloc},gpuArray<T>{0,alloc}}), CpBatch(0,calloc), idxnupts(0, ialloc), sortidx(0, ialloc), numsubprob(0, ialloc),
-    binsize(0, ialloc), binstartpts(0, ialloc), subprob_to_bin(0, ialloc),
+    fwkerhalf({gpuArray<T>{0, alloc},gpuArray<T>{0,alloc},gpuArray<T>{0,alloc}}),
+    kxyzp({gpuArray<T>{0, alloc},gpuArray<T>{0,alloc},gpuArray<T>{0,alloc}}),
+    CpBatch(0,calloc), fwp(0, calloc),
+    STUp({gpuArray<T>{0, alloc},gpuArray<T>{0,alloc},gpuArray<T>{0,alloc}}),
+    prephase(0, calloc), deconv(0, calloc), idxnupts(0, ialloc), sortidx(0, ialloc),
+    numsubprob(0, ialloc), binsize(0, ialloc), binstartpts(0, ialloc), subprob_to_bin(0, ialloc),
     subprobstartpts(0, ialloc) {}
 };
 
