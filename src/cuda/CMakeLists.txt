@@ -45,9 +45,10 @@ target_include_directories(cufinufft PUBLIC ${CUFINUFFT_INCLUDE_DIRS})
 # set target build location
 set_target_properties(cufinufft PROPERTIES LIBRARY_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}")
 
-set(FINUFFT_CUDA_VISIBILITY_PRESET hidden)
-if(FINUFFT_BUILD_TESTS)
+if(FINUFFT_SHARED_LINKING AND FINUFFT_BUILD_TESTS)
     set(FINUFFT_CUDA_VISIBILITY_PRESET default)
+else()
+    set(FINUFFT_CUDA_VISIBILITY_PRESET hidden)
 endif()
 
 set_target_properties(
@@ -81,16 +82,18 @@ if(FINUFFT_SHARED_LINKING)
     endif()
 endif()
 
-target_link_libraries(cufinufft PRIVATE CUDA::cudart CUDA::cufft $<BUILD_INTERFACE:finufft_common>)
-# Expose only when not doing fully static linking
-if(NOT FINUFFT_STATIC_LINKING)
-    target_link_libraries(cufinufft PUBLIC CUDA::cudart CUDA::cufft)
-endif()
-
-target_link_libraries(cufinufft PRIVATE CCCL::CCCL)
-if(NOT FINUFFT_STATIC_LINKING)
-    target_link_libraries(cufinufft INTERFACE CCCL::CCCL)
-endif()
+# BUILD_INTERFACE exposes deps to the library itself and to all build consumers
+# (tests, examples) without requiring them to list dependencies explicitly.
+# Shared library consumers don't need these re-exposed: the .so encodes its own
+# runtime deps and CCCL is header-only with nothing to link.
+target_link_libraries(
+    cufinufft
+    PUBLIC
+        $<BUILD_INTERFACE:CUDA::cudart>
+        $<BUILD_INTERFACE:CUDA::cufft>
+        $<BUILD_INTERFACE:CCCL::CCCL>
+        $<BUILD_INTERFACE:finufft_common>
+)
 
 check_cxx_compiler_flag(-Wno-deprecated-declarations FINUFFT_HAS_NO_DEPRECATED_DECLARATIONS)
 # disable deprecated warnings for tests if supported
