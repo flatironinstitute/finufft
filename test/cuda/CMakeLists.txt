@@ -4,10 +4,9 @@ foreach(srcfile ${test_src})
     string(REGEX REPLACE "\\.c.?" "" executable ${srcfile})
     get_filename_component(executable ${executable} NAME)
     add_executable(${executable} ${srcfile})
-    target_include_directories(${executable} PUBLIC ${CUFINUFFT_INCLUDE_DIRS})
-    # Link cufinufft and CUDA runtime/cufft and also link finufft_common
-    # privately so only test executables get it (keep finufft_common PRIVATE in cufinufft).
-    target_link_libraries(${executable} PRIVATE cufinufft CUDA::cufft CUDA::cudart $<BUILD_INTERFACE:finufft_common>)
+    # All transitive dependencies (CUDA::cudart, CUDA::cufft, CCCL::CCCL,
+    # finufft_common) are exposed by cufinufft via BUILD_INTERFACE.
+    target_link_libraries(${executable} PRIVATE cufinufft)
     if(MATH_LIBRARY)
         target_link_libraries(${executable} PRIVATE ${MATH_LIBRARY})
     endif()
