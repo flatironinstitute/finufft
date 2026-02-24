@@ -3,11 +3,17 @@
 #include <finufft/detail/simd_helpers.hpp>
 
 namespace finufft::spreadinterp {
+} // namespace finufft::spreadinterp
 
-template<typename T, int ns, int nc>
-FINUFFT_NEVER_INLINE void spread_subproblem_1d_kernel(
-    const BIGINT off1, const UBIGINT size1, T *FINUFFT_RESTRICT du, const UBIGINT M,
-    const T *const kx, const T *const dd, const T *horner_coeffs_ptr) noexcept {
+// ---------- FINUFFT_PLAN_T spread_subproblem_*_kernel method definitions ----------
+// FINUFFT_PLAN_T is already defined via the transitive include chain:
+//   detail/simd_helpers.hpp -> finufft/spreadinterp.hpp -> finufft/finufft_core.hpp
+
+template<typename TF>
+template<int ns, int nc>
+FINUFFT_NEVER_INLINE void FINUFFT_PLAN_T<TF>::spread_subproblem_1d_kernel(
+    const BIGINT off1, const UBIGINT size1, TF *FINUFFT_RESTRICT du, const UBIGINT M,
+    const TF *const kx, const TF *const dd) const noexcept {
   /* 1D spreader from nonuniform to uniform subproblem grid, without wrapping.
      Inputs:
      off1 - integer offset of left end of du subgrid from that of overall fine
@@ -27,13 +33,19 @@ FINUFFT_NEVER_INLINE void spread_subproblem_1d_kernel(
      chance of segfault when epsmach*N1>O(1), assuming max() and ceil() commute.
      This needed off1 as extra arg. AHB 11/30/20.
      Vectorized using xsimd by M. Barbone 06/24.
+     2/24/26 Barbone: converted from free function template to method on FINUFFT_PLAN_T.
+     Previous arg horner_coeffs_ptr is now read from plan member horner_coeffs.data().
   */
+  using namespace finufft::spreadinterp;
+  using finufft::common::MAX_NSPREAD;
+  using T                         = TF;
   using simd_type                 = PaddedSIMD<T, 2 * ns>;
   using arch_t                    = typename simd_type::arch_type;
   static constexpr auto padding   = get_padding<T, 2 * ns>();
   static constexpr auto alignment = arch_t::alignment();
   static constexpr auto simd_size = simd_type::size;
   static constexpr auto ns2       = ns * T(0.5); // half spread width
+  const T *horner_coeffs_ptr      = horner_coeffs.data();
   // something weird here. Reversing ker{0} and std fill causes ker
   // to be zeroed inside the loop GCC uses AVX, clang AVX2
   alignas(alignment) std::array<T, MAX_NSPREAD> ker{0};
@@ -144,60 +156,32 @@ FINUFFT_NEVER_INLINE void spread_subproblem_1d_kernel(
   }
 }
 
-namespace {
 
-template<typename T> struct SpreadSubproblem1dCaller {
-  BIGINT off1;
-  UBIGINT size1;
-  T *du;
-  UBIGINT M;
-  const T *kx;
-  const T *dd;
-  const T *horner_coeffs_ptr;
-
-  template<int NS, int NC> int operator()() const {
-    if constexpr (!::finufft::kernel::ValidKernelParams<NS, NC>()) {
-      return report_invalid_kernel_params(NS, NC);
-    } else {
-      spread_subproblem_1d_kernel<T, NS, NC>(off1, size1, du, M, kx, dd,
-                                             horner_coeffs_ptr);
-      return 0;
-    }
-  }
-};
-
-} // namespace
-
-template<typename T>
-static void spread_subproblem_1d(BIGINT off1, UBIGINT size1, T *du, UBIGINT M, T *kx,
-                                 T *dd, const finufft_spread_opts &opts,
-                                 const T *horner_coeffs_ptr, int nc) noexcept {
-  SpreadSubproblem1dCaller<T> caller{off1, size1, du, M, kx, dd, horner_coeffs_ptr};
-  using NsSeq = make_range<MIN_NSPREAD, MAX_NSPREAD>;
-  using NcSeq = make_range<MIN_NC, MAX_NC>;
-  auto params =
-      std::make_tuple(DispatchParam<NsSeq>{opts.nspread}, DispatchParam<NcSeq>{nc});
-  dispatch(caller, params);
-}
-
-template<typename T, int ns, int nc>
-FINUFFT_NEVER_INLINE static void spread_subproblem_2d_kernel(
+template<typename TF>
+template<int ns, int nc>
+FINUFFT_NEVER_INLINE void FINUFFT_PLAN_T<TF>::spread_subproblem_2d_kernel(
     const BIGINT off1, const BIGINT off2, const UBIGINT size1, const UBIGINT size2,
-    T *FINUFFT_RESTRICT du, const UBIGINT M, const T *kx, const T *ky, const T *dd,
-    const T *horner_coeffs_ptr) noexcept
+    TF *FINUFFT_RESTRICT du, const UBIGINT M, const TF *kx, const TF *ky,
+    const TF *dd) const noexcept
 /* spreader from dd (NU) to du (uniform) in 2D without wrapping.
    See above docs/notes for spread_subproblem_2d.
    kx,ky (size M) are NU locations in [off+ns/2,off+size-1-ns/2] in both dims.
    dd (size M complex) are complex source strengths
    du (size size1*size2) is complex uniform output array
    For algoritmic details see spread_subproblem_1d_kernel.
+   2/24/26 Barbone: converted from free function template to method on FINUFFT_PLAN_T.
+   Previous arg horner_coeffs_ptr is now read from plan member horner_coeffs.data().
 */
 {
+  using namespace finufft::spreadinterp;
+  using finufft::common::MAX_NSPREAD;
+  using T                         = TF;
   using simd_type                 = PaddedSIMD<T, 2 * ns>;
   using arch_t                    = typename simd_type::arch_type;
   static constexpr auto padding   = get_padding<T, 2 * ns>();
   static constexpr auto simd_size = simd_type::size;
   static constexpr auto alignment = arch_t::alignment();
+  const T *horner_coeffs_ptr      = horner_coeffs.data();
   // Kernel values stored in consecutive memory. This allows us to compute
   // values in all three directions in a single kernel evaluation call.
   static constexpr auto ns2 = ns * T(0.5); // half spread width
@@ -275,64 +259,26 @@ FINUFFT_NEVER_INLINE static void spread_subproblem_2d_kernel(
   }
 }
 
-namespace {
 
-template<typename T> struct SpreadSubproblem2dCaller {
-  BIGINT off1, off2;
-  UBIGINT size1, size2;
-  T *du;
-  UBIGINT M;
-  const T *kx;
-  const T *ky;
-  const T *dd;
-  const T *horner_coeffs_ptr;
-
-  template<int NS, int NC> int operator()() const {
-    if constexpr (!::finufft::kernel::ValidKernelParams<NS, NC>()) {
-      return report_invalid_kernel_params(NS, NC);
-    } else {
-      spread_subproblem_2d_kernel<T, NS, NC>(off1, off2, size1, size2, du, M, kx, ky, dd,
-                                             horner_coeffs_ptr);
-      return 0;
-    }
-  }
-};
-
-} // namespace
-
-template<typename T>
-static void spread_subproblem_2d(
-    BIGINT off1, BIGINT off2, UBIGINT size1, UBIGINT size2, T *FINUFFT_RESTRICT du,
-    UBIGINT M, const T *kx, const T *ky, const T *dd, const finufft_spread_opts &opts,
-    const T *horner_coeffs_ptr, int nc) noexcept
-/* spreader from dd (NU) to du (uniform) in 2D without wrapping.
-   See above docs/notes for spread_subproblem_2d.
-   kx,ky (size M) are NU locations in [off+ns/2,off+size-1-ns/2] in both dims.
-   dd (size M complex) are complex source strengths
-   du (size size1*size2) is complex uniform output array
-   For algoritmic details see spread_subproblem_1d_kernel.
-*/
-{
-  SpreadSubproblem2dCaller<T> caller{off1, off2, size1, size2, du,
-                                     M, kx, ky, dd, horner_coeffs_ptr};
-  using NsSeq = make_range<MIN_NSPREAD, MAX_NSPREAD>;
-  using NcSeq = make_range<MIN_NC, MAX_NC>;
-  auto params =
-      std::make_tuple(DispatchParam<NsSeq>{opts.nspread}, DispatchParam<NcSeq>{nc});
-  dispatch(caller, params);
-}
-
-template<typename T, int ns, int nc>
-FINUFFT_NEVER_INLINE void spread_subproblem_3d_kernel(
+template<typename TF>
+template<int ns, int nc>
+FINUFFT_NEVER_INLINE void FINUFFT_PLAN_T<TF>::spread_subproblem_3d_kernel(
     const BIGINT off1, const BIGINT off2, const BIGINT off3, const UBIGINT size1,
-    const UBIGINT size2, const UBIGINT size3, T *FINUFFT_RESTRICT du, const UBIGINT M,
-    const T *kx, const T *ky, const T *kz, const T *dd,
-    const T *horner_coeffs_ptr) noexcept {
+    const UBIGINT size2, const UBIGINT size3, TF *FINUFFT_RESTRICT du, const UBIGINT M,
+    const TF *kx, const TF *ky, const TF *kz, const TF *dd) const noexcept
+// 3D version of spread_subproblem_1d_kernel.
+// 2/24/26 Barbone: converted from free function template to method on FINUFFT_PLAN_T.
+// Previous arg horner_coeffs_ptr is now read from plan member horner_coeffs.data().
+{
+  using namespace finufft::spreadinterp;
+  using finufft::common::MAX_NSPREAD;
+  using T                         = TF;
   using simd_type                 = PaddedSIMD<T, 2 * ns>;
   using arch_t                    = typename simd_type::arch_type;
   static constexpr auto padding   = get_padding<T, 2 * ns>();
   static constexpr auto simd_size = simd_type::size;
   static constexpr auto alignment = arch_t::alignment();
+  const T *horner_coeffs_ptr      = horner_coeffs.data();
 
   static constexpr auto ns2 = ns * T(0.5); // half spread width
   alignas(alignment) std::array<T, 3 * MAX_NSPREAD> kernel_values{0};
@@ -400,59 +346,12 @@ FINUFFT_NEVER_INLINE void spread_subproblem_3d_kernel(
   }
 }
 
-namespace {
 
-template<typename T> struct SpreadSubproblem3dCaller {
-  BIGINT off1, off2, off3;
-  UBIGINT size1, size2, size3;
-  T *du;
-  UBIGINT M;
-  T *kx;
-  T *ky;
-  T *kz;
-  T *dd;
-  const T *horner_coeffs_ptr;
-
-  template<int NS, int NC> int operator()() const {
-    if constexpr (!::finufft::kernel::ValidKernelParams<NS, NC>()) {
-      return report_invalid_kernel_params(NS, NC);
-    } else {
-      spread_subproblem_3d_kernel<T, NS, NC>(off1, off2, off3, size1, size2, size3, du, M,
-                                             kx, ky, kz, dd, horner_coeffs_ptr);
-      return 0;
-    }
-  }
-};
-
-} // namespace
-
-template<typename T>
-static void spread_subproblem_3d(BIGINT off1, BIGINT off2, BIGINT off3, UBIGINT size1,
-                                 UBIGINT size2, UBIGINT size3, T *du, UBIGINT M, T *kx,
-                                 T *ky, T *kz, T *dd, const finufft_spread_opts &opts,
-                                 const T *horner_coeffs_ptr, int nc) noexcept
-/* spreader from dd (NU) to du (uniform) in 3D without wrapping.
-See above docs/notes for spread_subproblem_2d.
-kx,ky,kz (size M) are NU locations in [off+ns/2,off+size-1-ns/2] in each dim.
-dd (size M complex) are complex source strengths
-du (size size1*size2*size3) is uniform complex output array
-*/
-{
-  SpreadSubproblem3dCaller<T> caller{off1, off2, off3, size1, size2, size3,
-                                     du, M, kx, ky, kz, dd,
-                                     horner_coeffs_ptr};
-  using NsSeq = make_range<MIN_NSPREAD, MAX_NSPREAD>;
-  using NcSeq = make_range<MIN_NC, MAX_NC>;
-  auto params =
-      std::make_tuple(DispatchParam<NsSeq>{opts.nspread}, DispatchParam<NcSeq>{nc});
-  dispatch(caller, params);
-}
-
-template<typename T, bool thread_safe>
-static void add_wrapped_subgrid(BIGINT offset1, BIGINT offset2, BIGINT offset3,
-                                UBIGINT padded_size1, UBIGINT size1, UBIGINT size2,
-                                UBIGINT size3, UBIGINT N1, UBIGINT N2, UBIGINT N3,
-                                T *FINUFFT_RESTRICT data_uniform, const T *du0)
+template<typename TF>
+template<bool thread_safe>
+void FINUFFT_PLAN_T<TF>::add_wrapped_subgrid(
+    BIGINT offset1, BIGINT offset2, BIGINT offset3, UBIGINT padded_size1, UBIGINT size1,
+    UBIGINT size2, UBIGINT size3, TF *FINUFFT_RESTRICT data_uniform, const TF *du0) const
 /* Add a large subgrid (du0) to output grid (data_uniform),
    with periodic wrapping to N1,N2,N3 box.
    offset1,2,3 give the offset of the subgrid from the lowest corner of output.
@@ -461,8 +360,11 @@ static void add_wrapped_subgrid(BIGINT offset1, BIGINT offset2, BIGINT offset3,
    using atomic writes (R Blackwell, Nov 2020).
    Merged the thread_safe and the not thread_safe version of the function into one
    (M. Barbone 06/24).
+   Accesses plan members nfdim[0..2] for grid dimensions N1,N2,N3.
 */
 {
+  using T          = TF;
+  const UBIGINT N1 = nfdim[0], N2 = nfdim[1], N3 = nfdim[2];
   std::vector<BIGINT> o2(size2), o3(size3);
   static auto accumulate = [](T &a, T b) {
     if constexpr (thread_safe) { // NOLINT(*-branch-clone)
@@ -511,11 +413,9 @@ static void add_wrapped_subgrid(BIGINT offset1, BIGINT offset2, BIGINT offset3,
   }
 }
 
-template<typename T>
-static void bin_sort_singlethread(std::vector<BIGINT> &ret, UBIGINT M, const T *kx,
-                                  const T *ky, const T *kz, UBIGINT N1, UBIGINT N2,
-                                  UBIGINT N3, double bin_size_x, double bin_size_y,
-                                  double bin_size_z, int debug [[maybe_unused]])
+template<typename TF>
+void FINUFFT_PLAN_T<TF>::bin_sort_singlethread(double bin_size_x, double bin_size_y,
+                                               double bin_size_z)
 /* Returns permutation of all nonuniform points with good RAM access,
  * ie less cache misses for spreading, in 1D, 2D, or 3D. Single-threaded version
  *
@@ -542,8 +442,17 @@ static void bin_sort_singlethread(std::vector<BIGINT> &ret, UBIGINT M, const T *
  * tidied up, early 2017, Barnett.
  * Timings (2017): 3s for M=1e8 NU pts on 1 core of i7; 5s on 1 core of xeon.
  * Simplified by Martin Reinecke, 6/19/23 (no apparent effect on speed).
+ * Accesses plan members: sortIndices, nj, XYZ, nfdim.
  */
 {
+  using namespace finufft::spreadinterp;
+  using T                = TF;
+  auto &ret              = sortIndices;
+  const UBIGINT M        = nj;
+  const T *kx            = XYZ[0];
+  const T *ky            = XYZ[1];
+  const T *kz            = XYZ[2];
+  const UBIGINT N1       = nfdim[0], N2 = nfdim[1], N3 = nfdim[2];
   const auto isky = (N2 > 1), iskz = (N3 > 1); // ky,kz avail? (cannot access if not)
   // here the +1 is needed to allow round-off error causing i1=N1/bin_size_x,
   // for kx near +pi, ie foldrescale gives N1 (exact arith would be 0 to N1-1).
@@ -586,11 +495,9 @@ static void bin_sort_singlethread(std::vector<BIGINT> &ret, UBIGINT M, const T *
   }
 }
 
-template<typename T>
-static void bin_sort_multithread(std::vector<BIGINT> &ret, UBIGINT M, const T *kx,
-                                 const T *ky, const T *kz, UBIGINT N1, UBIGINT N2,
-                                 UBIGINT N3, double bin_size_x, double bin_size_y,
-                                 double bin_size_z, int debug [[maybe_unused]], int nthr)
+template<typename TF>
+void FINUFFT_PLAN_T<TF>::bin_sort_multithread(double bin_size_x, double bin_size_y,
+                                              double bin_size_z, int nthr)
 /* Mostly-OpenMP'ed version of bin_sort.
    For documentation see: bin_sort_singlethread.
    Caution: when M (# NU pts) << N (# U pts), is SLOWER than single-thread.
@@ -598,8 +505,17 @@ static void bin_sort_multithread(std::vector<BIGINT> &ret, UBIGINT M, const T *k
    Explicit #threads control argument 7/20/20.
    Improved by Martin Reinecke, 6/19/23 (up to 50% faster at 1 thr/core).
    Todo: if debug, print timing breakdowns.
+   Accesses plan members: sortIndices, nj, XYZ, nfdim.
  */
 {
+  using namespace finufft::spreadinterp;
+  using T                = TF;
+  auto &ret              = sortIndices;
+  const UBIGINT M        = nj;
+  const T *kx            = XYZ[0];
+  const T *ky            = XYZ[1];
+  const T *kz            = XYZ[2];
+  const UBIGINT N1       = nfdim[0], N2 = nfdim[1], N3 = nfdim[2];
   bool isky      = (N2 > 1), iskz = (N3 > 1); // ky,kz avail? (cannot access if not)
   UBIGINT nbins1 = N1 / bin_size_x + 1, nbins2, nbins3; // see above note on why +1
   nbins2         = isky ? N2 / bin_size_y + 1 : 1;
@@ -659,11 +575,11 @@ static void bin_sort_multithread(std::vector<BIGINT> &ret, UBIGINT M, const T *k
   }
 }
 
-template<typename T>
-static void get_subgrid(BIGINT &offset1, BIGINT &offset2, BIGINT &offset3,
-                        BIGINT &padded_size1, BIGINT &size1, BIGINT &size2, BIGINT &size3,
-                        UBIGINT M, const T *kx, const T *ky, const T *kz, int ns,
-                        int ndims)
+template<typename TF>
+void FINUFFT_PLAN_T<TF>::get_subgrid(BIGINT &offset1, BIGINT &offset2, BIGINT &offset3,
+                                     BIGINT &padded_size1, BIGINT &size1, BIGINT &size2,
+                                     BIGINT &size3, UBIGINT M, const TF *kx, const TF *ky,
+                                     const TF *kz) const
 /* Writes out the integer offsets and sizes of a "subgrid" (cuboid subset of
    Z^ndims) large enough to enclose all of the nonuniform points with
    (non-periodic) padding of half the kernel width ns to each side in
@@ -705,8 +621,14 @@ static void get_subgrid(BIGINT &offset1, BIGINT &offset2, BIGINT &offset3,
    inaccurate) single-precision with N1>>1e7 on 11/30/20.
    3) Requires O(M) RAM reads to find the k array bnds. Almost negligible in
    tests.
+   Accesses plan members: spopts.nspread, dim.
 */
 {
+  using namespace finufft::spreadinterp;
+  using finufft::utils::arrayrange;
+  using T       = TF;
+  const int ns  = spopts.nspread;
+  const int ndims = dim;
   T ns2 = (T)ns / 2;
   T min_kx, max_kx; // 1st (x) dimension: get min/max of nonuniform points
   arrayrange(M, kx, &min_kx, &max_kx);
@@ -733,137 +655,130 @@ static void get_subgrid(BIGINT &offset1, BIGINT &offset2, BIGINT &offset3,
   }
 }
 
-// --------------------------------------------------------------------------
-template<typename T>
-int spreadSorted(
-    const std::vector<BIGINT> &sort_indices, UBIGINT N1, UBIGINT N2, UBIGINT N3,
-    T *FINUFFT_RESTRICT data_uniform, UBIGINT M, const T *FINUFFT_RESTRICT kx,
-    const T *FINUFFT_RESTRICT ky, const T *FINUFFT_RESTRICT kz, const T *data_nonuniform,
-    const finufft_spread_opts &opts, int did_sort, const T *horner_coeffs_ptr, int nc)
-// Spread NU pts in sorted order to a uniform grid. See spreadinterp() for doc.
-{
-  CNTime timer{};
-  const auto ndims = ndims_from_Ns(N1, N2, N3);
-  const auto N     = N1 * N2 * N3; // output array size
-  const auto ns    = opts.nspread; // abbrev. for w, kernel width
-  auto nthr        = MY_OMP_GET_MAX_THREADS(); // guess # threads to use to spread
-  if (opts.nthreads > 0) nthr = opts.nthreads; // user override, now without limit
-#ifndef _OPENMP
-  nthr = 1; // single-threaded lib must override user
-#endif
-  if (opts.debug)
-    printf("\tspread %dD (M=%lld; N1=%lld,N2=%lld,N3=%lld), nthr=%d\n", ndims,
-           (long long)M, (long long)N1, (long long)N2, (long long)N3, nthr);
-  timer.start();
-  std::fill(data_uniform, data_uniform + 2 * N, 0.0); // zero the output array
-  if (opts.debug) printf("\tzero output array\t%.3g s\n", timer.elapsedsec());
-  if (M == 0) // no NU pts, we're done
-    return 0;
+// ---------- FINUFFT_PLAN_T spread-subproblem nested caller definitions ----------
+// Out-of-class definitions of the nested types declared in finufft_core.hpp.
+// Member function templates are not allowed in local classes (GCC restriction),
+// so these must be proper nested class definitions of FINUFFT_PLAN_T<TF>.
 
-  auto spread_single = (nthr == 1) || (M * 100 < N); // low-density heuristic?
-  spread_single      = false; // for now
-  timer.start();
-  if (spread_single) {
-    // ------- Basic single-core t1 spreading ------
-    for (UBIGINT j = 0; j < M; j++) {
-      // *** todo, not urgent
-      // ... (question is: will the index wrapping per NU pt slow it down?)
+template<typename TF>
+struct FINUFFT_PLAN_T<TF>::SpreadSubproblem1dCaller {
+  const FINUFFT_PLAN_T &plan;
+  BIGINT off1;
+  UBIGINT size1;
+  TF *du;
+  UBIGINT M;
+  const TF *kx;
+  const TF *dd;
+  template<int NS, int NC>
+  int operator()() const {
+    if constexpr (!::finufft::kernel::ValidKernelParams<NS, NC>())
+      return finufft::spreadinterp::report_invalid_kernel_params(NS, NC);
+    else {
+      plan.template spread_subproblem_1d_kernel<NS, NC>(off1, size1, du, M, kx, dd);
+      return 0;
     }
-    if (opts.debug) printf("\tt1 simple spreading:\t%.3g s\n", timer.elapsedsec());
-  } else {
-    // ------- Fancy multi-core blocked t1 spreading ----
-    // Splits sorted inds (jfm's advanced2), could double RAM.
-    // choose nb (# subprobs) via used nthreads:
-    auto nb = std::min((UBIGINT)nthr, M); // simply split one subprob per thr...
-    if (nb * (BIGINT)opts.max_subproblem_size < M) {
-      // ...or more subprobs to cap size
-      nb = 1 + (M - 1) / opts.max_subproblem_size; // int div does
-      // ceil(M/opts.max_subproblem_size)
-      if (opts.debug)
-        printf("\tcapping subproblem sizes to max of %d\n", opts.max_subproblem_size);
-    }
-    if (M * 1000 < N) {
-      // low-density heuristic: one thread per NU pt!
-      nb = M;
-      if (opts.debug) printf("\tusing low-density speed rescue nb=M...\n");
-    }
-    if (!did_sort && nthr == 1) {
-      nb = 1;
-      if (opts.debug) printf("\tunsorted nthr=1: forcing single subproblem...\n");
-    }
-    if (opts.debug && nthr > opts.atomic_threshold)
-      printf("\tnthr big: switching add_wrapped OMP from critical to atomic (!)\n");
-
-    std::vector<UBIGINT> brk(nb + 1); // NU index breakpoints defining nb subproblems
-    for (UBIGINT p = 0; p <= nb; ++p) brk[p] = (M * p + nb - 1) / nb;
-
-#pragma omp parallel num_threads(nthr)
-    {
-      // local copies of NU pts and data for each subproblem
-      std::vector<T> kx0{}, ky0{}, kz0{}, dd0{}, du0{};
-#pragma omp for schedule(dynamic, 1)                     // each is big
-      for (BIGINT isub = 0; isub < BIGINT(nb); isub++) {
-        // Main loop through the
-        // subproblems
-        const auto M0 = brk[isub + 1] - brk[isub]; // # NU pts in this subproblem
-        // copy the location and data vectors for the nonuniform points
-        kx0.resize(M0);
-        ky0.resize(M0 * (N2 > 1));
-        kz0.resize(M0 * (N3 > 1));
-        dd0.resize(2 * M0); // complex strength data
-        for (UBIGINT j = 0; j < M0; j++) {
-          // todo: can avoid this copying?
-          const auto kk = sort_indices[j + brk[isub]]; // NU pt from subprob index list
-          kx0[j]        = fold_rescale<T>(kx[kk], N1);
-          if (N2 > 1) ky0[j] = fold_rescale<T>(ky[kk], N2);
-          if (N3 > 1) kz0[j] = fold_rescale<T>(kz[kk], N3);
-          dd0[j * 2]     = data_nonuniform[kk * 2]; // real part
-          dd0[j * 2 + 1] = data_nonuniform[kk * 2 + 1]; // imag part
-        }
-        // get the subgrid which will include padding by roughly nspread/2
-        // get_subgrid sets
-        BIGINT offset1, offset2, offset3, padded_size1, size1, size2, size3;
-        // sets offsets and sizes
-        get_subgrid(offset1, offset2, offset3, padded_size1, size1, size2, size3, M0,
-                    kx0.data(), ky0.data(), kz0.data(), ns, ndims);
-        if (opts.debug > 1) {
-          print_subgrid_info(ndims, offset1, offset2, offset3, padded_size1, size1, size2,
-                             size3, M0);
-        }
-        // allocate output data for this subgrid
-        du0.resize(2 * padded_size1 * size2 * size3); // complex
-        // Spread to subgrid without need for bounds checking or wrapping
-        if (ndims == 1)
-          spread_subproblem_1d(offset1, padded_size1, du0.data(), M0, kx0.data(),
-                               dd0.data(), opts, horner_coeffs_ptr, nc);
-        else if (ndims == 2)
-          spread_subproblem_2d(offset1, offset2, padded_size1, size2, du0.data(), M0,
-                               kx0.data(), ky0.data(), dd0.data(), opts,
-                               horner_coeffs_ptr, nc);
-        else
-          spread_subproblem_3d(offset1, offset2, offset3, padded_size1, size2, size3,
-                               du0.data(), M0, kx0.data(), ky0.data(), kz0.data(),
-                               dd0.data(), opts, horner_coeffs_ptr, nc);
-
-        // add subgrid to output (always do this); atomic vs critical chosen
-        if (nthr > opts.atomic_threshold) {
-          // see above for debug reporting
-          add_wrapped_subgrid<T, true>(offset1, offset2, offset3, padded_size1, size1,
-                                       size2, size3, N1, N2, N3, data_uniform,
-                                       du0.data()); // R Blackwell's atomic version
-        } else {
-#pragma omp critical
-          add_wrapped_subgrid<T, false>(offset1, offset2, offset3, padded_size1, size1,
-                                        size2, size3, N1, N2, N3, data_uniform,
-                                        du0.data());
-        }
-      } // end main loop over subprobs
-    }
-    if (opts.debug)
-      printf("\tt1 fancy spread: \t%.3g s (%" PRIu64 " subprobs)\n", timer.elapsedsec(),
-             nb);
-  } // end of choice of which t1 spread type to use
-  return 0;
+  }
 };
 
-} // namespace finufft::spreadinterp
+template<typename TF>
+struct FINUFFT_PLAN_T<TF>::SpreadSubproblem2dCaller {
+  const FINUFFT_PLAN_T &plan;
+  BIGINT off1, off2;
+  UBIGINT size1, size2;
+  TF *du;
+  UBIGINT M;
+  const TF *kx;
+  const TF *ky;
+  const TF *dd;
+  template<int NS, int NC>
+  int operator()() const {
+    if constexpr (!::finufft::kernel::ValidKernelParams<NS, NC>())
+      return finufft::spreadinterp::report_invalid_kernel_params(NS, NC);
+    else {
+      plan.template spread_subproblem_2d_kernel<NS, NC>(off1, off2, size1, size2, du, M,
+                                                        kx, ky, dd);
+      return 0;
+    }
+  }
+};
+
+template<typename TF>
+struct FINUFFT_PLAN_T<TF>::SpreadSubproblem3dCaller {
+  const FINUFFT_PLAN_T &plan;
+  BIGINT off1, off2, off3;
+  UBIGINT size1, size2, size3;
+  TF *du;
+  UBIGINT M;
+  TF *kx;
+  TF *ky;
+  TF *kz;
+  TF *dd;
+  template<int NS, int NC>
+  int operator()() const {
+    if constexpr (!::finufft::kernel::ValidKernelParams<NS, NC>())
+      return finufft::spreadinterp::report_invalid_kernel_params(NS, NC);
+    else {
+      plan.template spread_subproblem_3d_kernel<NS, NC>(off1, off2, off3, size1, size2,
+                                                        size3, du, M, kx, ky, kz, dd);
+      return 0;
+    }
+  }
+};
+
+// ---------- FINUFFT_PLAN_T spread-subproblem method definitions ----------
+// FINUFFT_PLAN_T is already defined via the transitive include chain:
+//   detail/simd_helpers.hpp -> finufft/spreadinterp.hpp -> finufft/finufft_core.hpp
+
+template<typename TF>
+void FINUFFT_PLAN_T<TF>::spread_subproblem_1d(BIGINT off1, UBIGINT size1, TF *du,
+                                              UBIGINT M, TF *kx, TF *dd) const noexcept
+// Spread M NU points (kx, dd) into subgrid du of length size1 starting at off1.
+// Uses plan members spopts.nspread, nc, horner_coeffs for the kernel dispatch.
+// 2/24/26 Barbone: converted from free function to method on FINUFFT_PLAN_T.
+// Previous args (opts, horner_coeffs_ptr, nc) are now plan members.
+{
+  using namespace finufft::spreadinterp;
+  using namespace finufft::common;
+  SpreadSubproblem1dCaller caller{*this, off1, size1, du, M, kx, dd};
+  using NsSeq = make_range<MIN_NSPREAD, MAX_NSPREAD>;
+  using NcSeq = make_range<MIN_NC, MAX_NC>;
+  dispatch(caller, std::make_tuple(DispatchParam<NsSeq>{spopts.nspread},
+                                   DispatchParam<NcSeq>{nc}));
+}
+
+template<typename TF>
+void FINUFFT_PLAN_T<TF>::spread_subproblem_2d(BIGINT off1, BIGINT off2, UBIGINT size1,
+                                              UBIGINT size2, TF *FINUFFT_RESTRICT du,
+                                              UBIGINT M, const TF *kx, const TF *ky,
+                                              const TF *dd) const noexcept
+// 2D version of spread_subproblem_1d.
+// 2/24/26 Barbone: converted from free function to method on FINUFFT_PLAN_T.
+// Previous args (opts, horner_coeffs_ptr, nc) are now plan members.
+{
+  using namespace finufft::spreadinterp;
+  using namespace finufft::common;
+  SpreadSubproblem2dCaller caller{*this, off1, off2, size1, size2, du, M, kx, ky, dd};
+  using NsSeq = make_range<MIN_NSPREAD, MAX_NSPREAD>;
+  using NcSeq = make_range<MIN_NC, MAX_NC>;
+  dispatch(caller, std::make_tuple(DispatchParam<NsSeq>{spopts.nspread},
+                                   DispatchParam<NcSeq>{nc}));
+}
+
+template<typename TF>
+void FINUFFT_PLAN_T<TF>::spread_subproblem_3d(BIGINT off1, BIGINT off2, BIGINT off3,
+                                              UBIGINT size1, UBIGINT size2, UBIGINT size3,
+                                              TF *du, UBIGINT M, TF *kx, TF *ky, TF *kz,
+                                              TF *dd) const noexcept
+// 3D version of spread_subproblem_1d.
+// 2/24/26 Barbone: converted from free function to method on FINUFFT_PLAN_T.
+// Previous args (opts, horner_coeffs_ptr, nc) are now plan members.
+{
+  using namespace finufft::spreadinterp;
+  using namespace finufft::common;
+  SpreadSubproblem3dCaller caller{*this, off1, off2, off3, size1, size2, size3, du, M,
+                                  kx,    ky,   kz,   dd};
+  using NsSeq = make_range<MIN_NSPREAD, MAX_NSPREAD>;
+  using NcSeq = make_range<MIN_NC, MAX_NC>;
+  dispatch(caller, std::make_tuple(DispatchParam<NsSeq>{spopts.nspread},
+                                   DispatchParam<NcSeq>{nc}));
+}
