@@ -155,7 +155,7 @@ ABSDYNLIB = $(FINUFFT)$(DYNLIB)
 SOBJS = src/finufft_utils.o src/spreadinterp.o src/common/utils.o src/common/kernel.o src/common/pswf.o
 
 # all lib dual-precision objs (note DUCC_OBJS empty if unused)
-OBJS = $(SOBJS) src/makeplan.o src/makeplan_f.o src/setpts.o src/setpts_f.o src/fft.o src/finufft_core.o src/c_interface.o fortran/finufftfort.o $(DUCC_OBJS)
+OBJS = $(SOBJS) src/makeplan.o src/makeplan_f.o src/setpts.o src/setpts_f.o src/execute.o src/execute_f.o src/fft.o src/c_interface.o fortran/finufftfort.o $(DUCC_OBJS)
 
 .PHONY: usage lib examples test perftest spreadtest spreadtestall fortran matlab octave all mex python clean objclean pyclean mexclean wheel docker-wheel gurutime docs setup setupclean
 

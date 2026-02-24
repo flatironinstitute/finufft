@@ -1,23 +1,19 @@
+#pragma once
+
 #include <cmath>
 #include <cstdio>
-#include <iomanip>
 #include <memory>
 #include <vector>
 
 #include <finufft/fft.hpp>
 #include <finufft/finufft_core.hpp>
 #include <finufft/finufft_utils.hpp>
-#include <finufft/heuristics.hpp>
 #include <finufft/spreadinterp.hpp>
 #include <finufft/xsimd.hpp>
-#include <finufft_common/kernel.h>
 
 using namespace finufft;
 using namespace finufft::utils;
 using namespace finufft::spreadinterp;
-using namespace finufft::heuristics;
-using namespace finufft::common;
-using namespace finufft::kernel;
 
 /* Computational core for FINUFFT.
 
@@ -26,7 +22,7 @@ using namespace finufft::kernel;
    Original guru interface written by Andrea Malleo, summer 2019, mentored
    by Alex Barnett. Many rewrites in early 2020 by Alex Barnett & Libin Lu.
 
-   As of v1.2 these replace the old hand-coded separate 9 finufft?d?() functions
+   As of v1.2 these replace the old hand-coded separate 9 finufft?d() functions
    and the two finufft2d?many() functions. The (now 18) simple C++ interfaces
    are in c_interface.cpp.
 
@@ -73,14 +69,11 @@ Design notes for guru interface implementation:
 
 */
 
-// ---------- local math routines (were in common.cpp; no need now): --------
-
-namespace finufft {
-namespace utils {
+// ---------- deconvolveshuffle: private methods on FINUFFT_PLAN_T ----------
 
 template<typename T>
-static void deconvolveshuffle1d(int dir, T prefac, const std::vector<T> &ker, BIGINT ms,
-                                T *fk, BIGINT nf1, std::complex<T> *fw, int modeord)
+void FINUFFT_PLAN_T<T>::deconvolveshuffle1d(int dir, T prefac, BIGINT ms, T *fk,
+                                            std::complex<T> *fw) const
 /*
   if dir==1: copies fw to fk with amplification by prefac/ker
   if dir==2: copies fk to fw (and zero pads rest of it), same amplification.
@@ -90,7 +83,7 @@ static void deconvolveshuffle1d(int dir, T prefac, const std::vector<T> &ker, BI
 
   fk is a size-ms T complex array (2*ms Ts alternating re,im parts)
   fw is a size-nf1 complex array (2*nf1 Ts alternating re,im parts)
-  ker is real-valued T array of length nf1/2+1.
+  ker is real-valued T array of length nf1/2+1 (accessed via phiHat[0]).
 
   Single thread only, but shouldn't matter since mostly data movement.
 
@@ -104,6 +97,9 @@ static void deconvolveshuffle1d(int dir, T prefac, const std::vector<T> &ker, BI
   Barnett 1/25/17. Fixed ms=0 case 3/14/17. modeord flag & clean 10/25/17
 */
 {
+  const auto &ker   = phiHat[0];
+  const BIGINT nf1  = nfdim[0];
+  const int modeord = opts.modeord;
   BIGINT kmin = -ms / 2, kmax = (ms - 1) / 2; // inclusive range of k indices
   if (ms == 0) kmax = -1;                     // fixes zero-pad for trivial no-mode case
   // set up pp & pn as ptrs to start of pos(ie nonneg) & neg chunks of fk array
@@ -138,9 +134,8 @@ static void deconvolveshuffle1d(int dir, T prefac, const std::vector<T> &ker, BI
 }
 
 template<typename T>
-static void deconvolveshuffle2d(int dir, T prefac, const std::vector<T> &ker1,
-                                const std::vector<T> &ker2, BIGINT ms, BIGINT mt, T *fk,
-                                BIGINT nf1, BIGINT nf2, std::complex<T> *fw, int modeord)
+void FINUFFT_PLAN_T<T>::deconvolveshuffle2d(int dir, T prefac, BIGINT ms, BIGINT mt,
+                                            T *fk, std::complex<T> *fw) const
 /*
   2D version of deconvolveshuffle1d, calls it on each x-line using 1/ker2 fac.
 
@@ -155,11 +150,15 @@ static void deconvolveshuffle2d(int dir, T prefac, const std::vector<T> &ker1,
   fw is a complex array stored as 2*nf1*nf2] Ts alternating re,im parts, with
   nf1 looped over fast and nf2 slow.
   ker1, ker2 are real-valued T arrays of lengths nf1/2+1, nf2/2+1
-     respectively.
+     respectively (accessed via phiHat[0], phiHat[1]).
 
   Barnett 2/1/17, Fixed mt=0 case 3/14/17. modeord 10/25/17
 */
 {
+  const auto &ker2  = phiHat[1];
+  const BIGINT nf1  = nfdim[0];
+  const BIGINT nf2  = nfdim[1];
+  const int modeord = opts.modeord;
   BIGINT k2min = -mt / 2, k2max = (mt - 1) / 2; // inclusive range of k2 indices
   if (mt == 0) k2max = -1;                      // fixes zero-pad for trivial no-mode case
   // set up pp & pn as ptrs to start of pos(ie nonneg) & neg chunks of fk array
@@ -174,18 +173,14 @@ static void deconvolveshuffle2d(int dir, T prefac, const std::vector<T> &ker1,
       fw[j] = 0.0;
   for (BIGINT k2 = 0; k2 <= k2max; ++k2, pp += 2 * ms)               // non-neg y-freqs
     // point fk and fw to the start of this y value's row (2* is for complex):
-    utils::deconvolveshuffle1d(dir, prefac / ker2[k2], ker1, ms, fk + pp, nf1,
-                               &fw[nf1 * k2], modeord);
+    deconvolveshuffle1d(dir, prefac / ker2[k2], ms, fk + pp, &fw[nf1 * k2]);
   for (BIGINT k2 = k2min; k2 < 0; ++k2, pn += 2 * ms) // neg y-freqs
-    utils::deconvolveshuffle1d(dir, prefac / ker2[-k2], ker1, ms, fk + pn, nf1,
-                               &fw[nf1 * (nf2 + k2)], modeord);
+    deconvolveshuffle1d(dir, prefac / ker2[-k2], ms, fk + pn, &fw[nf1 * (nf2 + k2)]);
 }
 
 template<typename T>
-static void deconvolveshuffle3d(int dir, T prefac, const std::vector<T> &ker1,
-                                const std::vector<T> &ker2, const std::vector<T> &ker3,
-                                BIGINT ms, BIGINT mt, BIGINT mu, T *fk, BIGINT nf1,
-                                BIGINT nf2, BIGINT nf3, std::complex<T> *fw, int modeord)
+void FINUFFT_PLAN_T<T>::deconvolveshuffle3d(int dir, T prefac, BIGINT ms, BIGINT mt,
+                                            BIGINT mu, T *fk, std::complex<T> *fw) const
 /*
   3D version of deconvolveshuffle2d, calls it on each xy-plane using 1/ker3 fac.
 
@@ -200,11 +195,16 @@ static void deconvolveshuffle3d(int dir, T prefac, const std::vector<T> &ker1,
   fw is a complex array stored as 2*nf1*nf2*nf3 Ts alternating re,im parts, with
   nf1 looped over fastest and nf3 slowest.
   ker1, ker2, ker3 are real-valued T arrays of lengths nf1/2+1, nf2/2+1,
-     and nf3/2+1 respectively.
+     and nf3/2+1 respectively (accessed via phiHat[0], phiHat[1], phiHat[2]).
 
   Barnett 2/1/17, Fixed mu=0 case 3/14/17. modeord 10/25/17
 */
 {
+  const auto &ker3  = phiHat[2];
+  const BIGINT nf1  = nfdim[0];
+  const BIGINT nf2  = nfdim[1];
+  const BIGINT nf3  = nfdim[2];
+  const int modeord = opts.modeord;
   BIGINT k3min = -mu / 2, k3max = (mu - 1) / 2; // inclusive range of k3 indices
   if (mu == 0) k3max = -1;                      // fixes zero-pad for trivial no-mode case
   // set up pp & pn as ptrs to start of pos(ie nonneg) & neg chunks of fk array
@@ -219,15 +219,10 @@ static void deconvolveshuffle3d(int dir, T prefac, const std::vector<T> &ker1,
       fw[j] = 0.0;
   for (BIGINT k3 = 0; k3 <= k3max; ++k3, pp += 2 * ms * mt)        // non-neg z-freqs
     // point fk and fw to the start of this z value's plane (2* is for complex):
-    utils::deconvolveshuffle2d(dir, prefac / ker3[k3], ker1, ker2, ms, mt, fk + pp, nf1,
-                               nf2, &fw[np * k3], modeord);
+    deconvolveshuffle2d(dir, prefac / ker3[k3], ms, mt, fk + pp, &fw[np * k3]);
   for (BIGINT k3 = k3min; k3 < 0; ++k3, pn += 2 * ms * mt) // neg z-freqs
-    utils::deconvolveshuffle2d(dir, prefac / ker3[-k3], ker1, ker2, ms, mt, fk + pn, nf1,
-                               nf2, &fw[np * (nf3 + k3)], modeord);
+    deconvolveshuffle2d(dir, prefac / ker3[-k3], ms, mt, fk + pn, &fw[np * (nf3 + k3)]);
 }
-
-} // namespace utils
-} // namespace finufft
 
 // --------- batch helper functions for t1,2 exec: ---------------------------
 
@@ -292,17 +287,13 @@ int FINUFFT_PLAN_T<T>::deconvolveBatch(int batchSize, std::complex<T> *fkBatch,
                                                // wkspace
     std::complex<T> *fki = fkBatch + i * N();  // start of i'th fk array in fkBatch
 
-    // pick dim-specific routine from above; note prefactors hardcoded to 1.0...
+    // pick dim-specific routine; note prefactors hardcoded to 1.0...
     if (dim == 1)
-      deconvolveshuffle1d(dir, T(1), phiHat[0], mstu[0], (T *)fki, nfdim[0], fwi,
-                          opts.modeord);
+      deconvolveshuffle1d(dir, T(1), mstu[0], (T *)fki, fwi);
     else if (dim == 2)
-      deconvolveshuffle2d(dir, T(1), phiHat[0], phiHat[1], mstu[0], mstu[1], (T *)fki,
-                          nfdim[0], nfdim[1], fwi, opts.modeord);
+      deconvolveshuffle2d(dir, T(1), mstu[0], mstu[1], (T *)fki, fwi);
     else
-      deconvolveshuffle3d(dir, T(1), phiHat[0], phiHat[1], phiHat[2], mstu[0], mstu[1],
-                          mstu[2], (T *)fki, nfdim[0], nfdim[1], nfdim[2], fwi,
-                          opts.modeord);
+      deconvolveshuffle3d(dir, T(1), mstu[0], mstu[1], mstu[2], (T *)fki, fwi);
   }
   return 0;
 }
@@ -552,9 +543,3 @@ int FINUFFT_PLAN_T<TF>::execute_internal(TC *cj, TC *fk, bool adjoint, int ntran
 
   return 0;
 }
-template int FINUFFT_PLAN_T<float>::execute_internal(
-    std::complex<float> *cj, std::complex<float> *fk, bool adjoint, int ntrans_actual,
-    std::complex<float> *aligned_scratch, size_t scratch_size) const;
-template int FINUFFT_PLAN_T<double>::execute_internal(
-    std::complex<double> *cj, std::complex<double> *fk, bool adjoint, int ntrans_actual,
-    std::complex<double> *aligned_scratch, size_t scratch_size) const;
