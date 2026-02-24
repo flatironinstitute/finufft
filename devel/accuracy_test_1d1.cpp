@@ -9,7 +9,7 @@
 
 #include <cmath>
 #include <cstdlib>
-#include <finufft/test_defs.h>
+#include <finufft/test_defs.hpp>
 #include <iomanip>
 #include <iostream>
 #include <random>

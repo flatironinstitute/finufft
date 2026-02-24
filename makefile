@@ -155,7 +155,7 @@ ABSDYNLIB = $(FINUFFT)$(DYNLIB)
 SOBJS = src/finufft_utils.o src/spreadinterp.o src/common/utils.o src/common/kernel.o src/common/pswf.o
 
 # all lib dual-precision objs (note DUCC_OBJS empty if unused)
-OBJS = $(SOBJS) src/fft.o src/finufft_core.o src/c_interface.o fortran/finufftfort.o $(DUCC_OBJS)
+OBJS = $(SOBJS) src/makeplan.o src/fft.o src/finufft_core.o src/c_interface.o fortran/finufftfort.o $(DUCC_OBJS)
 
 .PHONY: usage lib examples test perftest spreadtest spreadtestall fortran matlab octave all mex python clean objclean pyclean mexclean wheel docker-wheel gurutime docs setup setupclean
 
@@ -207,16 +207,16 @@ fortran/%.o: fortran/%.cpp $(HEADERS)
 
 # rule for spreadinterp: includes auto-generated code, xsimd header-only dependency;
 # if FFT=DUCC also setup ducc with fft.h dependency on $(DUCC_SETUP)...
-# Note src/spreadinterp.cpp includes finufft/finufft_core.h which includes finufft/fft.h
+# Note src/spreadinterp.cpp includes finufft/finufft_core.hpp which includes finufft/fft.hpp
 # so fftw/ducc header needed for spreadinterp, though spreadinterp should not
 # depend on fftw/ducc directly?
-include/finufft/fft.h: $(DUCC_SETUP)
+include/finufft/fft.hpp: $(DUCC_SETUP)
 SHEAD = $(XSIMD_DIR)/include/xsimd/xsimd.hpp
-src/spreadinterp.o: src/spreadinterp.cpp include/finufft/spreadinterp.h include/finufft/finufft_utils.hpp include/finufft_common/kernel.h include/finufft_common/spread_opts.h $(SHEAD)
+src/spreadinterp.o: src/spreadinterp.cpp include/finufft/spreadinterp.hpp include/finufft/finufft_utils.hpp include/finufft_common/kernel.h include/finufft_common/spread_opts.h $(SHEAD)
 
-# we need xsimd functionality in finufft_core.h, which is included by many other
-# files, so make sure we install xsimd before we prcess any of those files.
-include/finufft/finufft_core.h: $(XSIMD_DIR)/include/xsimd/xsimd.hpp
+# we need xsimd functionality in finufft_core.hpp, which is included by many other
+# files, so make sure we install xsimd before we process any of those files.
+include/finufft/finufft_core.hpp: $(XSIMD_DIR)/include/xsimd/xsimd.hpp
 
 # lib -----------------------------------------------------------------------
 # build library with double/single prec both bundled in...

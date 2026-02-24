@@ -1,5 +1,5 @@
 #include <algorithm>
-#include <finufft/fft.h>
+#include <finufft/fft.hpp>
 
 using namespace std;
 

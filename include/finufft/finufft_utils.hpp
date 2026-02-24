@@ -3,7 +3,7 @@
 
 #pragma once
 
-#include "finufft_core.h"
+#include "finufft_core.hpp"
 #include <cmath>
 #include <cstddef>
 #include <finufft_common/common.h>

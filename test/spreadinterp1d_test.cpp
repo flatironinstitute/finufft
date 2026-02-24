@@ -9,7 +9,7 @@
 
    Barnett 1/8/25, based on ../examples/spreadinterponly1d and finufft1d_test
 */
-#include <finufft/test_defs.h>
+#include <finufft/test_defs.hpp>
 #include <numeric>
 using namespace std;
 using namespace finufft::utils;

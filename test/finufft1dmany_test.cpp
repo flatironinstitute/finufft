@@ -1,4 +1,4 @@
-#include <finufft/test_defs.h>
+#include <finufft/test_defs.hpp>
 // this enforces recompilation, responding to SINGLE...
 #include "finufft/finufft_utils.hpp"
 #include "utils/dirft1d.hpp"
