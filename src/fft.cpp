@@ -211,9 +211,9 @@ public:
 
 #endif // FINUFFT_USE_DUCC0
 
-#include <finufft/finufft_core.hpp> // FINUFFT_PLAN_T (pulls in fft.hpp forward decl)
-#include <finufft/finufft_utils.hpp> // CNTime
-#include <finufft/xsimd.hpp>         // aligned_allocator
+#include <finufft/plan.hpp> // FINUFFT_PLAN_T (includes FFT forward decl)
+#include <finufft/utils.hpp> // CNTime
+#include <finufft/simd.hpp>           // aligned_allocator
 #include <algorithm>                  // std::min (for DUCC0 path)
 
 using namespace std;
@@ -242,7 +242,7 @@ template FINUFFT_PLAN_T<double>::~FINUFFT_PLAN_T();
 template<typename TF>
 std::vector<int> FINUFFT_PLAN_T<TF>::gridsize_for_fft() const
 // Returns grid dims in fftw_plan_many_dft / ducc0 order.
-// 2/24/26 Barbone: converted from free function.
+// Converted from free function. Barbone 2/24/26.
 {
   if (dim == 1) return {(int)nfdim[0]};
   if (dim == 2) return {(int)nfdim[1], (int)nfdim[0]};
@@ -258,7 +258,7 @@ void FINUFFT_PLAN_T<TF>::do_fft(TC *fwBatch, int ntrans_actual [[maybe_unused]],
 // Execute FFT on fwBatch (in-place, batchSize transforms).
 // FFTW: ntrans_actual ignored (plan already sized to batchSize).
 // DUCC0: used for partial FFTs.
-// 2/24/26 Barbone: converted from free function.
+// Converted from free function. Barbone 2/24/26.
 {
 #ifdef FINUFFT_USE_DUCC0
   size_t nthreads = min<size_t>(MY_OMP_GET_MAX_THREADS(), opts.nthreads);
@@ -363,7 +363,7 @@ template void FINUFFT_PLAN_T<double>::do_fft(std::complex<double> *, int, bool) 
 
 // --- create_fft_plan ---
 // Allocates the fftPlan unique_ptr; needs complete Finufft_FFT_plan type.
-// Called from the constructor in detail/makeplan.hpp.
+// Called from the constructor in makeplan.hpp.
 template<typename TF> void FINUFFT_PLAN_T<TF>::create_fft_plan() {
   fftPlan.reset(new Finufft_FFT_plan<TF>(
       opts.fftw_lock_fun, opts.fftw_unlock_fun, opts.fftw_lock_data));
@@ -375,8 +375,8 @@ template void FINUFFT_PLAN_T<double>::create_fft_plan();
 // Helper to initialize spreader, phiHat (Fourier series), and FFT plan.
 // Used by constructor (when upsampfac given) and setpts (when upsampfac deferred).
 // Returns 0 on success, or an error code if set_nf_type12 or alloc fails.
-// Moved from detail/makeplan.hpp to fft.cpp so the complete Finufft_FFT_plan
-// type is available without a detail/ header.
+// Moved from makeplan.hpp to fft.cpp so the complete Finufft_FFT_plan
+// type is available without exposing the FFT implementation.
 template<typename TF> int FINUFFT_PLAN_T<TF>::init_grid_kerFT_FFT() {
   using namespace finufft::utils;
   CNTime timer{};

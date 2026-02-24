@@ -1,15 +1,15 @@
 #pragma once
 
+#include <algorithm>
 #include <cmath>
+#include <complex>
 #include <cstdio>
-#include <memory>
 #include <vector>
 
-#include <finufft/detail/spreadinterp.hpp>
-#include <finufft/finufft_core.hpp>
-#include <finufft/finufft_utils.hpp>
+#include <finufft/spreadinterp.hpp>
+#include <finufft/plan.hpp>
+#include <finufft/utils.hpp>
 #include <finufft/heuristics.hpp>
-#include <finufft_common/kernel.h>
 
 // ---------- local math routines for type-3 setpts: --------
 
@@ -26,7 +26,7 @@ void FINUFFT_PLAN_T<TF>::set_nhg_type3(int idim, TF S, TF X)
    t3P.gam[idim] - x rescale factor, ie x'_j = x_j/gam (modulo shifts).
    Barnett 2/13/17. Caught inf/nan 3/14/17. io int types changed 3/28/17
    New logic 6/12/17
-   2/24/26 Barbone: converted from free function to method on FINUFFT_PLAN_T.
+   Converted from free function to method on FINUFFT_PLAN_T. Barbone 2/24/26.
    Previous args (opts, spopts) are now plan members; previous output pointers
    (nf, h, gam) are now written directly to plan members nfdim, t3P.h, t3P.gam.
 */

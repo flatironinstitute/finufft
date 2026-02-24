@@ -15,8 +15,8 @@
 
 // convenient private finufft internals that tests need
 #include <finufft_common/common.h>
-#include <finufft/finufft_core.hpp>
-#include <finufft/finufft_utils.hpp>
+#include <finufft/plan.hpp>
+#include <finufft/utils.hpp>
 #include <memory>
 
 // --------------- Private data types for compilation in either prec ---------

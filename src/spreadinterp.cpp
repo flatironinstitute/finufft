@@ -1,4 +1,4 @@
-#include <finufft/detail/spreadinterp.hpp>
+#include <finufft/spreadinterp.hpp>
 
 // Explicit instantiation, selected by FINUFFT_SINGLE define.
 

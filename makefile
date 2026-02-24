@@ -152,7 +152,7 @@ STATICLIB = lib-static/$(LIBNAME).a
 ABSDYNLIB = $(FINUFFT)$(DYNLIB)
 
 # spreader objs
-SOBJS = src/finufft_utils.o src/common/utils.o src/common/kernel.o src/common/pswf.o
+SOBJS = src/utils.o src/common/utils.o src/common/kernel.o src/common/pswf.o
 
 # per-precision objs (each gets a _f.o single-precision variant via pattern rule)
 PRECISION_OBJS = src/makeplan.o src/setpts.o src/execute.o \
@@ -197,7 +197,7 @@ usage:
 	@echo "Also see docs/install.rst and docs/README"
 
 # collect headers for implicit depends (we don't separate public from private here)
-HEADERS = $(wildcard include/*.h include/finufft/*.h include/finufft/*.hpp include/finufft/detail/*.hpp include/finufft_common/*.h)
+HEADERS = $(wildcard include/*.h include/finufft/*.h include/finufft/*.hpp include/finufft_common/*.h)
 
 # implicit rules for objects (note -o ensures writes to correct dir)
 %.o: %.cpp $(HEADERS)
@@ -216,16 +216,15 @@ fortran/%.o: fortran/%.cpp $(HEADERS)
 
 # rule for spreadinterp: includes auto-generated code, xsimd header-only dependency;
 # if FFT=DUCC also setup ducc with fft.h dependency on $(DUCC_SETUP)...
-# Note src/spreadinterp.cpp includes finufft/finufft_core.hpp which includes finufft/fft.hpp
+# Note src/spreadinterp.cpp includes finufft/plan.hpp which pulls in FFT forward decls
 # so fftw/ducc header needed for spreadinterp, though spreadinterp should not
 # depend on fftw/ducc directly?
-include/finufft/fft.hpp: $(DUCC_SETUP)
 SHEAD = $(XSIMD_DIR)/include/xsimd/xsimd.hpp
-src/spreadinterp.o: src/spreadinterp.cpp include/finufft/spreadinterp.hpp include/finufft/finufft_utils.hpp include/finufft_common/kernel.h include/finufft_common/spread_opts.h $(SHEAD)
+src/spreadinterp.o: src/spreadinterp.cpp include/finufft/spreadinterp.hpp include/finufft/utils.hpp include/finufft_common/kernel.h include/finufft_common/spread_opts.h $(SHEAD)
 
-# we need xsimd functionality in finufft_core.hpp, which is included by many other
+# we need xsimd functionality in plan.hpp, which is included by many other
 # files, so make sure we install xsimd before we process any of those files.
-include/finufft/finufft_core.hpp: $(XSIMD_DIR)/include/xsimd/xsimd.hpp
+include/finufft/plan.hpp: $(XSIMD_DIR)/include/xsimd/xsimd.hpp
 
 # lib -----------------------------------------------------------------------
 # build library with double/single prec both bundled in...
@@ -295,10 +294,10 @@ test/%f: test/%.cpp $(DYNLIB)
 test/error_handling: test/error_handling.c $(DYNLIB)
 	$(CC) $(CFLAGS) ${LDFLAGS} $< $(ABSDYNLIB) $(LIBSFFT) $(CLINK) -o $@
 # low-level tests that are cleaner if depend on only specific objects...
-test/testutils: test/testutils.cpp src/finufft_utils.o src/common/utils.o
-	$(CXX) $(CXXFLAGS) ${LDFLAGS} test/testutils.cpp src/finufft_utils.o src/common/utils.o $(LIBS) -o test/testutils
-test/testutilsf: test/testutils.cpp src/finufft_utils.o src/common/utils.o
-	$(CXX) $(CXXFLAGS) ${LDFLAGS} -DSINGLE test/testutils.cpp src/finufft_utils.o src/common/utils.o $(LIBS) -o test/testutilsf
+test/testutils: test/testutils.cpp src/utils.o src/common/utils.o
+	$(CXX) $(CXXFLAGS) ${LDFLAGS} test/testutils.cpp src/utils.o src/common/utils.o $(LIBS) -o test/testutils
+test/testutilsf: test/testutils.cpp src/utils.o src/common/utils.o
+	$(CXX) $(CXXFLAGS) ${LDFLAGS} -DSINGLE test/testutils.cpp src/utils.o src/common/utils.o $(LIBS) -o test/testutilsf
 
 # make sure all double-prec test executables ready for testing
 CPPTESTS := $(basename $(wildcard test/*.cpp))

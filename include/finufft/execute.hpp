@@ -1,14 +1,14 @@
 #pragma once
 
-#include <cmath>
+#include <algorithm>
+#include <complex>
 #include <cstdio>
-#include <memory>
 #include <vector>
 
-#include <finufft/finufft_core.hpp>
-#include <finufft/finufft_utils.hpp>
-#include <finufft/detail/spreadinterp.hpp>
-#include <finufft/xsimd.hpp>
+#include <finufft/plan.hpp>
+#include <finufft/utils.hpp>
+#include <finufft/spreadinterp.hpp>
+#include <finufft/simd.hpp>
 
 using finufft::utils::CNTime;
 
@@ -92,7 +92,7 @@ void FINUFFT_PLAN_T<T>::deconvolveshuffle1d(int dir, T prefac, BIGINT ms, T *fk,
     real divide, or is there a way to force a real divide?
 
   Barnett 1/25/17. Fixed ms=0 case 3/14/17. modeord flag & clean 10/25/17
-  2/24/26 Barbone: converted from free function to method on FINUFFT_PLAN_T.
+  Converted from free function to method on FINUFFT_PLAN_T. Barbone 2/24/26.
   Previous args (ker, nf1, modeord) are now read from plan members
   (phiHat[0], nfdim[0], opts.modeord); remaining args: dir, prefac, ms, fk, fw.
 */
@@ -153,7 +153,7 @@ void FINUFFT_PLAN_T<T>::deconvolveshuffle2d(int dir, T prefac, BIGINT ms, BIGINT
      respectively (accessed via phiHat[0], phiHat[1]).
 
   Barnett 2/1/17, Fixed mt=0 case 3/14/17. modeord 10/25/17
-  2/24/26 Barbone: converted from free function to method on FINUFFT_PLAN_T.
+  Converted from free function to method on FINUFFT_PLAN_T. Barbone 2/24/26.
   Previous args (ker1, ker2, nf1, nf2, modeord) are now read from plan members
   (phiHat[0], phiHat[1], nfdim[0], nfdim[1], opts.modeord); remaining args:
   dir, prefac, ms, mt, fk, fw.
@@ -202,7 +202,7 @@ void FINUFFT_PLAN_T<T>::deconvolveshuffle3d(int dir, T prefac, BIGINT ms, BIGINT
      and nf3/2+1 respectively (accessed via phiHat[0], phiHat[1], phiHat[2]).
 
   Barnett 2/1/17, Fixed mu=0 case 3/14/17. modeord 10/25/17
-  2/24/26 Barbone: converted from free function to method on FINUFFT_PLAN_T.
+  Converted from free function to method on FINUFFT_PLAN_T. Barbone 2/24/26.
   Previous args (ker1, ker2, ker3, nf1, nf2, nf3, modeord) are now read from
   plan members (phiHat[0..2], nfdim[0..2], opts.modeord); remaining args:
   dir, prefac, ms, mt, mu, fk, fw.

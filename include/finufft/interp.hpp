@@ -1,6 +1,6 @@
 #pragma once
 
-#include <finufft/detail/simd_helpers.hpp>
+#include <finufft/simd.hpp>
 
 namespace finufft::spreadinterp {
 
@@ -456,12 +456,12 @@ static void interp_cube(T *FINUFFT_RESTRICT target, const T *du, const T *ker1,
 
 // ---------- FINUFFT_PLAN_T interpSorted_kernel method definition ----------
 // FINUFFT_PLAN_T is already defined via the transitive include chain:
-//   detail/simd_helpers.hpp -> finufft/spreadinterp.hpp -> finufft/finufft_core.hpp
+//   simd.hpp -> finufft/plan.hpp
 //
-// 2/24/26 Barbone: converted from free function template interpSorted_kernel<T,NS,NC>
+// Converted from free function template interpSorted_kernel<T,NS,NC>
 // to method on FINUFFT_PLAN_T. Previous args (sort_indices, N1, N2, N3, M, kx, ky,
 // kz, opts, horner_coeffs_ptr) are now plan members. Dimensionality uses runtime plan
-// member dim (replacing the old ndims_from_Ns(N1,N2,N3) call).
+// member dim (replacing the old ndims_from_Ns(N1,N2,N3) call). Barbone 2/24/26.
 
 template<typename TF>
 template<int NS, int NC>
@@ -567,13 +567,14 @@ FINUFFT_NEVER_INLINE int FINUFFT_PLAN_T<TF>::interpSorted_kernel(
 }
 
 // ---------- FINUFFT_PLAN_T interp nested caller definition ----------
-// Out-of-class definition of the nested type declared in finufft_core.hpp.
+// Out-of-class definition of the nested type declared in plan.hpp.
 // Member function templates are not allowed in local classes (GCC restriction),
 // so this must be a proper nested class definition of FINUFFT_PLAN_T<TF>.
 //
-// 2/24/26 Barbone: converted from free InterpSortedCaller struct (in anonymous
+// Converted from free InterpSortedCaller struct (in anonymous
 // namespace in spreadinterp.cpp) to nested class of FINUFFT_PLAN_T. Previous
 // free-function args are now read from the plan reference via interpSorted_kernel.
+// Barbone 2/24/26.
 
 template<typename TF>
 struct FINUFFT_PLAN_T<TF>::InterpSortedCaller {
@@ -595,7 +596,7 @@ template<typename TF>
 int FINUFFT_PLAN_T<TF>::interpSorted(TF *data_uniform, TF *data_nonuniform) const
 // Interpolate to all NU points from the uniform grid.
 // Uses plan members sortIndices, nfdim, nj, XYZ, spopts, nc, horner_coeffs, dim.
-// 2/24/26 Barbone: converted from free function to method on FINUFFT_PLAN_T.
+// Converted from free function to method on FINUFFT_PLAN_T. Barbone 2/24/26.
 // Previous args (sort_indices, N1, N2, N3, M, kx, ky, kz, opts, horner_coeffs, nc)
 // are now plan members; remaining args: data_uniform, data_nonuniform.
 {

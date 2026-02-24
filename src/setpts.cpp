@@ -1,4 +1,4 @@
-#include <finufft/detail/setpts.hpp>
+#include <finufft/setpts.hpp>
 
 // Explicit instantiation, selected by FINUFFT_SINGLE define.
 

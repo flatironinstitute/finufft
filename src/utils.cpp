@@ -3,11 +3,12 @@
 
 // For self-test see ../test/testutils.cpp
 
-#include <finufft/finufft_utils.hpp>
+#include <finufft/utils.hpp>
 
-#include <iostream>
-#include <string>
 #include <chrono>
+#include <iostream>
+#include <sstream>
+#include <string>
 
 #if defined(_WIN32)
 #include <vector>

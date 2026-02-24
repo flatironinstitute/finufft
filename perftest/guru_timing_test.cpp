@@ -1,4 +1,4 @@
-#include "finufft/finufft_utils.hpp"
+#include "finufft/utils.hpp"
 #include <finufft/test_defs.hpp>
 
 // for sleep call
