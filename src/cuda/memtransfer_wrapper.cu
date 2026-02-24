@@ -62,9 +62,7 @@ void allocgpumem1d_nupts(cufinufft_plan_t<T> *d_plan)
 */
 {
   utils::WithCudaDevice device_swapper(d_plan->opts.gpu_device_id);
-  const auto stream = d_plan->stream;
 
-  int M = d_plan->M;
   d_plan->sortidx.clear();
   d_plan->idxnupts.clear();
 
@@ -73,8 +71,8 @@ void allocgpumem1d_nupts(cufinufft_plan_t<T> *d_plan)
   case 2:
   case 3: {
     if (d_plan->opts.gpu_sort)
-      d_plan->sortidx.resize(M);
-    d_plan->idxnupts.resize(M);
+      d_plan->sortidx.resize(d_plan->M);
+    d_plan->idxnupts.resize(d_plan->M);
   } break;
   default:
     std::cerr << "[allocgpumem1d_nupts] error: invalid method\n";
@@ -139,9 +137,6 @@ void allocgpumem2d_nupts(cufinufft_plan_t<T> *d_plan)
 */
 {
   utils::WithCudaDevice device_swapper(d_plan->opts.gpu_device_id);
-  const auto stream = d_plan->stream;
-
-  const int M = d_plan->M;
 
   d_plan->sortidx.clear();
   d_plan->idxnupts.clear();
@@ -149,13 +144,13 @@ void allocgpumem2d_nupts(cufinufft_plan_t<T> *d_plan)
   switch (d_plan->opts.gpu_method) {
   case 1: {
     if (d_plan->opts.gpu_sort)
-      d_plan->sortidx.resize(M);
-    d_plan->idxnupts.resize(M);
+      d_plan->sortidx.resize(d_plan->M);
+    d_plan->idxnupts.resize(d_plan->M);
   } break;
   case 2:
   case 3: {
-    d_plan->idxnupts.resize(M);
-    d_plan->sortidx.resize(M);
+    d_plan->idxnupts.resize(d_plan->M);
+    d_plan->sortidx.resize(d_plan->M);
   } break;
   default:
     std::cerr << "[allocgpumem2d_nupts] error: invalid method\n";
@@ -244,27 +239,17 @@ void allocgpumem3d_nupts(cufinufft_plan_t<T> *d_plan)
 */
 {
   utils::WithCudaDevice device_swapper(d_plan->opts.gpu_device_id);
-  const auto stream = d_plan->stream;
-  int M = d_plan->M;
-
-  d_plan->sortidx.clear();
-  d_plan->idxnupts.clear();
 
   switch (d_plan->opts.gpu_method) {
-  case 1: {
-    d_plan->idxnupts.resize(M);
-    d_plan->sortidx.resize(M);
-  } break;
-  case 2: {
-    d_plan->idxnupts.resize(M);
-    d_plan->sortidx.resize(M);
-  } break;
+  case 1:
+  case 2:
   case 3: {
-    d_plan->idxnupts.resize(M);
-    d_plan->sortidx.resize(M);
+    d_plan->idxnupts.resize(d_plan->M);
+    d_plan->sortidx.resize(d_plan->M);
   } break;
   case 4: {
-    d_plan->sortidx.resize(M);
+    d_plan->idxnupts.clear();
+    d_plan->sortidx.resize(d_plan->M);
   } break;
   default:
     std::cerr << "[allocgpumem3d_nupts] error: invalid method\n";

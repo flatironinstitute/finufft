@@ -288,7 +288,7 @@ void cuspread1d_nuptsdriven_prop(int nf1, int M, cufinufft_plan_t<T> *d_plan) {
         M, bin_size_x, numbins, d_binstartpts, d_sortidx, d_kx, d_idxnupts, nf1);
     THROW_IF_CUDA_ERROR
   } else {
-    int *d_idxnupts = dethrust(d_plan->idxnupts);;
+    int *d_idxnupts = dethrust(d_plan->idxnupts);
     thrust::sequence(thrust::cuda::par.on(stream), d_idxnupts, d_idxnupts + M);
     THROW_IF_CUDA_ERROR
   }
@@ -304,7 +304,7 @@ static void cuspread1d_nuptsdriven(int nf1, int M, cufinufft_plan_t<T> *d_plan, 
   dim3 threadsPerBlock;
   dim3 blocks;
 
-  int *d_idxnupts = dethrust(d_plan->idxnupts);;
+  int *d_idxnupts = dethrust(d_plan->idxnupts);
   T es_c          = 4.0 / T(d_plan->spopts.nspread * d_plan->spopts.nspread);
   T es_beta       = d_plan->spopts.beta;
   T sigma         = d_plan->spopts.upsampfac;

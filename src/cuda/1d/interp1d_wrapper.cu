@@ -50,7 +50,7 @@ static void cuinterp1d_nuptsdriven(int nf1, int M, cufinufft_plan_t<T> *d_plan, 
   T es_c          = 4.0/T(d_plan->spopts.nspread * d_plan->spopts.nspread);
   T es_beta       = d_plan->spopts.beta;
   T sigma         = d_plan->opts.upsampfac;
-  int *d_idxnupts = dethrust(d_plan->idxnupts);;
+  int *d_idxnupts = dethrust(d_plan->idxnupts);
 
   T *d_kx               = d_plan->kxyz[0];
   cuda_complex<T> *d_c  = d_plan->c;

@@ -113,10 +113,7 @@ template<typename T> struct cufinufft_plan_t {
 
   // Type 3 specific
   struct {
-    T X1, C1, S1, D1, h1, gam1; // x dim: X=halfwid C=center D=freqcen h,gam=rescale,
-                                // s=interval
-    T X2, C2, S2, D2, h2, gam2; // y
-    T X3, C3, S3, D3, h3, gam3; // z
+    cuda::std::array<T,3> X, C, S, D, h, gam;
   } type3_params;
   int N;                        // number of NU freq pts (type 3 only)
   CUFINUFFT_BIGINT nf;

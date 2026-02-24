@@ -598,7 +598,7 @@ void cuspread3d_nuptsdriven_prop(int nf1, int nf2, int nf3, int M,
         d_binstartpts, d_sortidx, d_kx, d_ky, d_kz, d_idxnupts, nf1, nf2, nf3);
     THROW_IF_CUDA_ERROR
   } else {
-    int *d_idxnupts = dethrust(d_plan->idxnupts);;
+    int *d_idxnupts = dethrust(d_plan->idxnupts);
     thrust::sequence(thrust::cuda::par.on(stream), d_idxnupts, d_idxnupts + M);
     THROW_IF_CUDA_ERROR
   }
@@ -620,7 +620,7 @@ static void cuspread3d_nuptsdriven(int nf1, int nf2, int nf3, int M, cufinufft_p
   T es_c    = 4.0 / T(d_plan->spopts.nspread * d_plan->spopts.nspread);
   T es_beta = d_plan->spopts.beta;
 
-  int *d_idxnupts       = dethrust(d_plan->idxnupts);;
+  int *d_idxnupts       = dethrust(d_plan->idxnupts);
   T *d_kx               = d_plan->kxyz[0];
   T *d_ky               = d_plan->kxyz[1];
   T *d_kz               = d_plan->kxyz[2];

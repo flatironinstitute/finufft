@@ -391,7 +391,7 @@ static void cuspread2d_nuptsdriven(int nf1, int nf2, int M, cufinufft_plan_t<T> 
   dim3 threadsPerBlock;
   dim3 blocks;
 
-  int *d_idxnupts = dethrust(d_plan->idxnupts);;
+  int *d_idxnupts = dethrust(d_plan->idxnupts);
   T es_c          = 4.0 / T(d_plan->spopts.nspread * d_plan->spopts.nspread);
   T es_beta       = d_plan->spopts.beta;
   T sigma         = d_plan->spopts.upsampfac;
@@ -519,6 +519,8 @@ template<typename T> void cuspread2d(cufinufft_plan_t<T> *d_plan, int blksize) {
       Spread2DDispatcher(), d_plan->spopts.nspread, d_plan->nf123[0], d_plan->nf123[1], d_plan->M,
       d_plan, blksize);
 }
+template void cuspread2d<float>(cufinufft_plan_t<float> *d_plan, int blksize);
+template void cuspread2d<double>(cufinufft_plan_t<double> *d_plan, int blksize);
 
 template<typename T>
 void cuspread2d_nuptsdriven_prop(int nf1, int nf2, int M, cufinufft_plan_t<T> *d_plan) {
@@ -564,11 +566,15 @@ void cuspread2d_nuptsdriven_prop(int nf1, int nf2, int M, cufinufft_plan_t<T> *d
         d_ky, d_idxnupts, nf1, nf2);
     THROW_IF_CUDA_ERROR
   } else {
-    int *d_idxnupts = dethrust(d_plan->idxnupts);;
+    int *d_idxnupts = dethrust(d_plan->idxnupts);
     thrust::sequence(thrust::cuda::par.on(stream), d_idxnupts, d_idxnupts + M);
     THROW_IF_CUDA_ERROR
   }
 }
+template void cuspread2d_nuptsdriven_prop<float>(int nf1, int nf2, int M,
+                                                cufinufft_plan_t<float> *d_plan);
+template void cuspread2d_nuptsdriven_prop<double>(int nf1, int nf2, int M,
+                                                 cufinufft_plan_t<double> *d_plan);
 
 template<typename T>
 void cuspread2d_subprob_prop(int nf1, int nf2, int M, cufinufft_plan_t<T> *d_plan)
@@ -642,17 +648,10 @@ void cuspread2d_subprob_prop(int nf1, int nf2, int M, cufinufft_plan_t<T> *d_pla
   d_plan->subprob_to_bin.swap(d_subprob_to_bin);
   d_plan->totalnumsubprob = totalnumsubprob;
 }
-
-template void cuspread2d<float>(cufinufft_plan_t<float> *d_plan, int blksize);
-template void cuspread2d<double>(cufinufft_plan_t<double> *d_plan, int blksize);
 template void cuspread2d_subprob_prop<float>(int nf1, int nf2, int M,
                                             cufinufft_plan_t<float> *d_plan);
 template void cuspread2d_subprob_prop<double>(int nf1, int nf2, int M,
                                              cufinufft_plan_t<double> *d_plan);
-template void cuspread2d_nuptsdriven_prop<float>(int nf1, int nf2, int M,
-                                                cufinufft_plan_t<float> *d_plan);
-template void cuspread2d_nuptsdriven_prop<double>(int nf1, int nf2, int M,
-                                                 cufinufft_plan_t<double> *d_plan);
 
 } // namespace spreadinterp
 } // namespace cufinufft
