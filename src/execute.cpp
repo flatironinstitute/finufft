@@ -1,4 +1,4 @@
-#include <finufft/detail/execute.hpp>
+#include <finufft/execute.hpp>
 
 // Explicit instantiation, selected by FINUFFT_SINGLE define.
 

@@ -3,9 +3,7 @@
 // private headers
 #include <array>
 #include <cstdio>
-#include <finufft/finufft_core.hpp> // (must come after complex.h)
-#include <finufft_common/safe_call.h>
-#include <new>                    // for std::bad_alloc
+#include <finufft/plan.hpp> // (must come after complex.h)
 
 using namespace std;
 using finufft::common::safe_finufft_call;

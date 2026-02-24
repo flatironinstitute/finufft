@@ -32,7 +32,7 @@ set(IWYU_EXTRA_ARGS "" CACHE STRING "Extra arguments forwarded to include-what-y
 # Files to exclude entirely from IWYU analysis AND auto-fix (semicolon-separated).
 # Paths may be absolute or relative to ${PROJECT_SOURCE_DIR}.
 set(IWYU_EXCLUDE_FILES
-    "src/fft.cpp;include/finufft/fft.h;src/finufft_utils.cpp"
+    "src/fft.cpp;include/finufft/fft.h;src/utils.cpp"
     CACHE STRING
     "Files to exclude from IWYU analysis and auto-fix (semicolon-separated)."
 )

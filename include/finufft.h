@@ -36,10 +36,10 @@
 // Public dual-precision C interface...
 // (the following macro name has to be safe since pollutes user headers)
 #define FINUFFT_SINGLE
-#include <finufft_eitherprec.h>
+#include <finufft/finufft_eitherprec.h>
 #undef FINUFFT_SINGLE
 // do it again for double-prec...
-#include <finufft_eitherprec.h>
+#include <finufft/finufft_eitherprec.h>
 
 // clean up any purely local defs that are not in finufft_eitherprec.h
 #undef FINUFFT_BIGINT
