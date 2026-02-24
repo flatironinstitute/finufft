@@ -25,7 +25,7 @@ set(FINUFFT_PRECISION_SOURCES
 )
 
 # Sources compiled once (handle both precisions internally)
-set(FINUFFT_COMMON_SOURCES fft.cpp c_interface.cpp finufft_utils.cpp)
+set(FINUFFT_COMMON_SOURCES fft.cpp c_interface.cpp utils.cpp)
 
 if(FINUFFT_BUILD_FORTRAN)
     list(APPEND FINUFFT_COMMON_SOURCES ${PROJECT_SOURCE_DIR}/fortran/finufftfort.cpp)

@@ -1,6 +1,6 @@
 #include <finufft/test_defs.hpp>
 // this enforces recompilation, responding to SINGLE...
-#include "finufft/finufft_utils.hpp"
+#include "finufft/utils.hpp"
 #include "utils/dirft3d.hpp"
 #include "utils/norms.hpp"
 

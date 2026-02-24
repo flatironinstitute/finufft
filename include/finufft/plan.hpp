@@ -52,11 +52,25 @@ static inline int MY_OMP_GET_THREAD_NUM [[maybe_unused]] () { return 0; }
 static inline void MY_OMP_SET_NUM_THREADS [[maybe_unused]] (int) {}
 #endif
 
-#include <finufft/fft.hpp> // (must come after complex.h)
+// Forward declaration only. Full definition in src/fft.cpp.
+template<typename T> class Finufft_FFT_plan;
+
+// Custom deleter for unique_ptr<Finufft_FFT_plan<T>> so that the complete
+// Finufft_FFT_plan type is only required in fft.cpp (where operator() is defined),
+// not in every TU that instantiates FINUFFT_PLAN_T's constructor or destructor.
+template<typename T> struct Finufft_FFT_plan_deleter {
+  void operator()(Finufft_FFT_plan<T> *p) const; // defined in fft.cpp
+};
+
+// FFTW global cleanup utilities (defined in fft.cpp).
+// FINUFFT_EXPORT_TEST: exported only when FINUFFT_BUILD_TESTS is set.
+#include <finufft_common/defines.h>
+FINUFFT_EXPORT_TEST void finufft_fft_forget_wisdom();
+FINUFFT_EXPORT_TEST void finufft_fft_cleanup();
+FINUFFT_EXPORT_TEST void finufft_fft_cleanup_threads();
 #include <finufft_common/constants.h>
 #include <finufft_common/spread_opts.h>
 #include <finufft_opts.h>
-#include <finufft_common/spread_opts.h>
 
 // group together a bunch of type 3 rescaling/centering/phasing parameters:
 template<typename T> struct type3params {
@@ -159,7 +173,7 @@ private:
   void onedim_fseries_kernel(BIGINT nf, std::vector<TF> &fwkerhalf) const;
   void set_nhg_type3(int idim, TF S, TF X);
   // Compile-time-dispatched kernel method templates (NS=nspread, NC=horner degree).
-  // Bodies are defined in detail/interp.hpp and detail/spread.hpp respectively.
+  // Bodies are defined in interp.hpp and spread.hpp respectively.
   template<int NS, int NC>
   int interpSorted_kernel(TF *data_uniform, TF *data_nonuniform) const;
   template<int NS, int NC>
@@ -176,7 +190,7 @@ private:
                                    const TF *dd) const noexcept;
 
   // Nested caller types used to dispatch to compile-time ns/nc kernel specialisations.
-  // Bodies are defined in detail/spread.hpp and detail/interp.hpp respectively.
+  // Bodies are defined in spread.hpp and interp.hpp respectively.
   struct SpreadSubproblem1dCaller;
   struct SpreadSubproblem2dCaller;
   struct SpreadSubproblem3dCaller;
@@ -187,11 +201,12 @@ private:
                             int nthr);
   template<bool thread_safe>
   void add_wrapped_subgrid(BIGINT offset1, BIGINT offset2, BIGINT offset3,
-                           UBIGINT padded_size1, UBIGINT size1, UBIGINT size2, UBIGINT size3,
-                           TF *FINUFFT_RESTRICT data_uniform, const TF *du0) const;
-  void get_subgrid(BIGINT &offset1, BIGINT &offset2, BIGINT &offset3, BIGINT &padded_size1,
-                   BIGINT &size1, BIGINT &size2, BIGINT &size3, UBIGINT M, const TF *kx,
-                   const TF *ky, const TF *kz) const;
+                           UBIGINT padded_size1, UBIGINT size1, UBIGINT size2,
+                           UBIGINT size3, TF *FINUFFT_RESTRICT data_uniform,
+                           const TF *du0) const;
+  void get_subgrid(BIGINT &offset1, BIGINT &offset2, BIGINT &offset3,
+                   BIGINT &padded_size1, BIGINT &size1, BIGINT &size2, BIGINT &size3,
+                   UBIGINT M, const TF *kx, const TF *ky, const TF *kz) const;
 
   void indexSort();
   void spread_subproblem_1d(BIGINT off1, UBIGINT size1, TF *du, UBIGINT M, TF *kx,
@@ -274,11 +289,11 @@ inline void finufft_default_opts_t(finufft_opts *o)
   o->spread_debug = 0;
   o->showwarn     = 1;
 
-  o->nthreads = 0;
-  o->fftw     = FINUFFT_FFT_DEFAULT; // FFTW_ESTIMATE (=64) for FFTW; -1 for DUCC0
+  o->nthreads           = 0;
+  o->fftw               = FINUFFT_FFT_DEFAULT; // FFTW_ESTIMATE for FFTW; -1 for DUCC0
   o->spread_sort        = 2;
-  o->spread_kerevalmeth = 1; // deprecated
-  o->spread_kerpad      = 1; // deprecated
+  o->spread_kerevalmeth = 1;                   // deprecated
+  o->spread_kerpad      = 1;                   // deprecated
   o->upsampfac          = 0.0;
   o->spread_thread      = 0;
   o->maxbatchsize       = 0;

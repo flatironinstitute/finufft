@@ -13,7 +13,8 @@ Main library source:
 - ``src/`` : main library C++ CPU sources
 - ``src/cuda/`` : main library CUDA GPU sources
 - ``include/`` : public library API header files
-- ``include/{cu}finufft`` : private header files
+- ``include/finufft/`` : internal C++ headers (``.hpp``): class declarations, template method bodies, SIMD utilities
+- ``include/cufinufft/`` : internal CUDA headers
 - ``lib/`` : dynamic (``.so``) library will be built here by GNU make
 - ``lib-static/`` : static (``.a``) library will be built here by GNU make
 
