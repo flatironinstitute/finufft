@@ -18,8 +18,9 @@ set(FINUFFT_PRECISION_SOURCES
     makeplan.cpp
     setpts.cpp
     execute.cpp
-    spread.cpp
-    interp.cpp
+    spread_1d.cpp
+    spread_2d.cpp
+    spread_3d.cpp
     spreadinterp.cpp
 )
 

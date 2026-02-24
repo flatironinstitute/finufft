@@ -13,12 +13,13 @@
 #include <cstdlib>
 #include <vector>
 
-using namespace std;
-using namespace finufft::utils;
-using namespace finufft::common;
-using namespace finufft::kernel;
-
 namespace finufft::spreadinterp {
+
+using finufft::common::INV_2PI;
+using finufft::common::MAX_NSPREAD;
+using finufft::common::MIN_NSPREAD;
+using finufft::utils::find_optimal_simd_width;
+using finufft::utils::GetPaddedSIMDWidth;
 
 namespace {
 // anonymous namespace for internal structs equivalent to declaring everything static
@@ -96,7 +97,7 @@ template<class T, uint8_t N>
 using BestSIMD = typename decltype(BestSIMDHelper<T, N, xsimd::batch<T>::size>())::type;
 
 template<class T, class V, size_t... Is>
-constexpr T generate_sequence_impl(V a, V b, index_sequence<Is...>) noexcept {
+constexpr T generate_sequence_impl(V a, V b, std::index_sequence<Is...>) noexcept {
   // utility function to generate a sequence of a, b interleaved as function arguments
   return T(((Is % 2 == 0) ? a : b)...);
 }
@@ -202,7 +203,7 @@ static constexpr uint8_t ndims_from_Ns(const UBIGINT /*N1*/, const UBIGINT N2,
 template<typename T>
 static FINUFFT_ALWAYS_INLINE T fold_rescale(const T x, const UBIGINT N) noexcept {
   const T result = x * T(INV_2PI) + T(0.5);
-  return (result - floor(result)) * T(N);
+  return (result - std::floor(result)) * T(N);
 }
 
 template<int ns, int nc, class T,
