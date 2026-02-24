@@ -5,10 +5,8 @@ repos:
     hooks:
       - id: git-clang-format-staged
         name: git clang-format (staged only)
-        entry: git-clang-format --staged --
-        language: python
-        additional_dependencies:
-          - clang-format
+        entry: bash -c 'CF=git-clang-format-21; BIN=clang-format-21; command -v "$CF" &>/dev/null || { CF=git-clang-format; BIN=clang-format; }; gitdir="$(git rev-parse --git-dir)"; rm -f "$gitdir/clang-format-index.lock"; out=$("$CF" --binary "$BIN" --staged -- "$@" 2>&1); rc=$?; rm -f "$gitdir/clang-format-index.lock"; if echo "$out" | grep -q "changed files:"; then echo "$out"; exit 1; fi; exit 0' --
+        language: system
         pass_filenames: true
         types_or: [ c++, c, cuda ]
         files: \.(c|cc|cpp|h|hpp|cu|cuh)$

@@ -14,16 +14,10 @@ else()
 endif()
 
 # Sources compiled per-precision (once for float, once for double)
-set(FINUFFT_PRECISION_SOURCES makeplan.cpp setpts.cpp)
+set(FINUFFT_PRECISION_SOURCES makeplan.cpp setpts.cpp execute.cpp)
 
 # Sources compiled once (handle both precisions internally)
-set(FINUFFT_COMMON_SOURCES
-    spreadinterp.cpp
-    fft.cpp
-    finufft_core.cpp
-    c_interface.cpp
-    finufft_utils.cpp
-)
+set(FINUFFT_COMMON_SOURCES spreadinterp.cpp fft.cpp c_interface.cpp finufft_utils.cpp)
 
 if(FINUFFT_BUILD_FORTRAN)
     list(APPEND FINUFFT_COMMON_SOURCES ${PROJECT_SOURCE_DIR}/fortran/finufftfort.cpp)
