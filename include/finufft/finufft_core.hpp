@@ -72,6 +72,12 @@ private:
                               std::complex<TF> *cBatch, bool adjoint) const;
   int deconvolveBatch(int batchSize, std::complex<TF> *fkBatch, std::complex<TF> *fwBatch,
                       bool adjoint) const;
+  void deconvolveshuffle1d(int dir, TF prefac, BIGINT ms, TF *fk,
+                           std::complex<TF> *fw) const;
+  void deconvolveshuffle2d(int dir, TF prefac, BIGINT ms, BIGINT mt, TF *fk,
+                           std::complex<TF> *fw) const;
+  void deconvolveshuffle3d(int dir, TF prefac, BIGINT ms, BIGINT mt, BIGINT mu, TF *fk,
+                           std::complex<TF> *fw) const;
 
   // These delete specifications just state the obvious,
   // but are here to silence compiler warnings.
