@@ -18,10 +18,33 @@
 #include <finufft/finufft_core.hpp>
 #include <finufft_common/spread_opts.h>
 
+#include <cstdio>
+
 namespace finufft {
 namespace spreadinterp {
 
-int spreadcheck(UBIGINT N1, UBIGINT N2, UBIGINT N3, const finufft_spread_opts &opts);
+inline int spreadcheck(UBIGINT N1, UBIGINT N2, UBIGINT N3, const finufft_spread_opts &opts)
+/* This does just the input checking and reporting for the spreader.
+   See spreadinterp() for input arguments and meaning of returned value.
+   Split out by Melody Shih, Jun 2018. Finiteness chk Barnett 7/30/18.
+   Marco Barbone 5.8.24 removed bounds check as new foldrescale is not limited to
+   [-3pi,3pi)
+*/
+{
+  // INPUT CHECKING & REPORTING .... cuboid not too small for spreading?
+  UBIGINT minN = UBIGINT(2 * opts.nspread);
+  if (N1 < minN || (N2 > 1 && N2 < minN) || (N3 > 1 && N3 < minN)) {
+    fprintf(stderr,
+            "%s error: one or more non-trivial box dims is less than 2.nspread!\n",
+            __func__);
+    return FINUFFT_ERR_SPREAD_BOX_SMALL;
+  }
+  if (opts.spread_direction != 1 && opts.spread_direction != 2) {
+    fprintf(stderr, "%s error: opts.spread_direction must be 1 or 2!\n", __func__);
+    return FINUFFT_ERR_SPREAD_DIR;
+  }
+  return 0;
+}
 template<typename T>
 int indexSort(std::vector<BIGINT> &sort_indices, UBIGINT N1, UBIGINT N2, UBIGINT N3,
               UBIGINT N, const T *kx, const T *ky, const T *kz,
