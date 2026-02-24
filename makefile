@@ -155,7 +155,7 @@ ABSDYNLIB = $(FINUFFT)$(DYNLIB)
 SOBJS = src/finufft_utils.o src/spreadinterp.o src/common/utils.o src/common/kernel.o src/common/pswf.o
 
 # all lib dual-precision objs (note DUCC_OBJS empty if unused)
-OBJS = $(SOBJS) src/makeplan.o src/fft.o src/finufft_core.o src/c_interface.o fortran/finufftfort.o $(DUCC_OBJS)
+OBJS = $(SOBJS) src/makeplan.o src/makeplan_f.o src/setpts.o src/setpts_f.o src/fft.o src/finufft_core.o src/c_interface.o fortran/finufftfort.o $(DUCC_OBJS)
 
 .PHONY: usage lib examples test perftest spreadtest spreadtestall fortran matlab octave all mex python clean objclean pyclean mexclean wheel docker-wheel gurutime docs setup setupclean
 
@@ -191,13 +191,16 @@ usage:
 	@echo "Also see docs/install.rst and docs/README"
 
 # collect headers for implicit depends (we don't separate public from private here)
-HEADERS = $(wildcard include/*.h include/finufft/*.h include/finufft/*.hpp include/finufft_common/*.h)
+HEADERS = $(wildcard include/*.h include/finufft/*.h include/finufft/*.hpp include/finufft/detail/*.hpp include/finufft_common/*.h)
 
 # implicit rules for objects (note -o ensures writes to correct dir)
 %.o: %.cpp $(HEADERS)
 	$(CXX) -c $(CXXFLAGS) $< -o $@
 src/%.o: src/%.cpp $(HEADERS)
 	$(CXX) $(OBJFLAGS) -c $(CXXFLAGS) $< -o $@
+# single-precision variants: compile same source with -DFINUFFT_SINGLE
+src/%_f.o: src/%.cpp $(HEADERS)
+	$(CXX) $(OBJFLAGS) -DFINUFFT_SINGLE -c $(CXXFLAGS) $< -o $@
 fortran/%.o: fortran/%.cpp $(HEADERS)
 	$(CXX) $(OBJFLAGS) -c $(CXXFLAGS) $< -o $@
 %.o: %.c $(HEADERS)

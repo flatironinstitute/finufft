@@ -175,7 +175,48 @@ public:
   const std::array<const TF *, 3> &getSTU() const { return STU; }
 };
 
-void finufft_default_opts_t(finufft_opts *o);
+inline void finufft_default_opts_t(finufft_opts *o)
+// Sets default nufft opts (referenced by all language interfaces too).
+// See finufft_opts.h for meanings.
+// This was created to avoid uncertainty about C++11 style static initialization
+// when called from MEX, but now is generally used. Barnett 10/30/17 onwards.
+// Discussion (Marco Barbone: 5.8.2024): These are user-facing.
+// The various options could be macros to follow c standard library conventions.
+// Question: would these be enums? Ans: no, let's keep ints/doubles for now.
+
+// For FFW=DUCC, opts.fftw=-1 is the default to be more informative than 0
+// (which coincides with the code FFTW_MEASURE; see fftw3.h).
+
+// Sphinx sucks the below code block into the web docs, hence keep it clean...
+{
+  // sphinx tag (don't remove): @defopts_start
+  o->modeord          = 0;
+  o->spreadinterponly = 0;
+
+  o->debug        = 0;
+  o->spread_debug = 0;
+  o->showwarn     = 1;
+
+  o->nthreads = 0;
+#ifdef FINUFFT_USE_DUCC0
+  o->fftw = -1;
+#else
+  o->fftw = FFTW_ESTIMATE;
+#endif
+  o->spread_sort        = 2;
+  o->spread_kerevalmeth = 1; // deprecated
+  o->spread_kerpad      = 1; // deprecated
+  o->upsampfac          = 0.0;
+  o->spread_thread      = 0;
+  o->maxbatchsize       = 0;
+  o->spread_nthr_atomic = -1;
+  o->spread_max_sp_size = 0;
+  o->spread_kerformula  = 0;
+  o->fftw_lock_fun      = nullptr;
+  o->fftw_unlock_fun    = nullptr;
+  o->fftw_lock_data     = nullptr;
+  // sphinx tag (don't remove): @defopts_end
+}
 template<typename TF>
 int finufft_makeplan_t(int type, int dim, const BIGINT *n_modes, int iflag, int ntrans,
                        TF tol, FINUFFT_PLAN_T<TF> **pp, const finufft_opts *opts);
