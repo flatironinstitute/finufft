@@ -1,0 +1,150 @@
+name: cmake sanitizers
+
+on: [push, pull_request]
+
+jobs:
+  cache:
+    strategy:
+      matrix:
+        os: [ubuntu-22.04]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: create cache directory
+        shell: bash
+        run: mkdir -p "cpm"
+      - name: Check if cache exists
+        id: cache
+        uses: actions/cache@v4
+        with:
+          key: cpm-cache-00-${{ hashFiles('**/CMakeLists.txt', 'cmake/**') }}
+          enableCrossOsArchive: true
+          path: cpm
+      - name: Setup Cpp (on cache miss)
+        if: steps.cache.outputs.cache-hit != 'true'
+        uses: aminya/setup-cpp@v1
+        with:
+          cmake: true
+      - name: Download dependencies in cache
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: |
+          cmake -S . -B ./build -DFINUFFT_USE_DUCC0=ON -DCPM_SOURCE_CACHE="cpm"
+      - name: Cache dependencies
+        if: steps.cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          key: cpm-cache-00-${{ hashFiles('**/CMakeLists.txt', 'cmake/**') }}
+          enableCrossOsArchive: true
+          path: cpm
+
+  cmake-sanitizers:
+    runs-on: ${{ matrix.os }}
+    needs: [cache]
+    env:
+      CMAKE_GENERATOR: Ninja
+      CPM_SOURCE_CACHE: cpm
+      CTEST_OUTPUT_ON_FAILURE: "1"
+      SCCACHE_GHA_ENABLED: "true"
+      SCCACHE_GHA_VERSION: "0"
+      CMAKE_C_COMPILER_LAUNCHER: sccache
+      CMAKE_CXX_COMPILER_LAUNCHER: sccache
+      CMAKE_EXPORT_COMPILE_COMMANDS: "OFF"
+      SCCACHE_CACHE_SIZE: "5G"
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: ubuntu-22.04, toolchain: gcc-13 }
+          - { os: macos-14, toolchain: llvm }
+
+    steps:
+      - name: Show CPU info (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          lscpu
+
+      - name: Show CPU info (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          sysctl -a | grep -i machdep.cpu
+
+      - name: Free Disk Space (Ubuntu)
+        if: runner.os == 'Linux'
+        uses: jlumbroso/free-disk-space@main
+        with:
+          tool-cache: false
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Restore Cache
+        uses: actions/cache/restore@v4
+        with:
+          key: cpm-cache-00-${{ hashFiles('**/CMakeLists.txt', 'cmake/**') }}
+          enableCrossOsArchive: true
+          path: cpm
+
+      - name: Run sccache-cache
+        uses: mozilla-actions/sccache-action@v0.0.9
+
+      - name: Setup Cpp
+        uses: aminya/setup-cpp@v1
+        with:
+          compiler: ${{ matrix.toolchain }}
+          vcvarsall: true
+          cmake: true
+          ninja: true
+
+      - name: Install toolchain + FFTW (macOS)
+        if: startsWith(matrix.os, 'macos-')
+        run: |
+          export HOMEBREW_NO_ANALYTICS=1 HOMEBREW_NO_INSTALL_CLEANUP=1
+          brew install libomp fftw
+          {
+            echo "LDFLAGS=-L$(brew --prefix libomp)/lib"
+            echo "CPPFLAGS=-I$(brew --prefix libomp)/include"
+            echo "LIBRARY_PATH=$(brew --prefix libomp)/lib"
+            echo "DYLD_LIBRARY_PATH=$(brew --prefix libomp)/lib"
+            echo "CMAKE_PREFIX_PATH=$(brew --prefix libomp)"
+            ver="${{ matrix.os }}"; ver="${ver#macos-}"
+            echo "MACOSX_DEPLOYMENT_TARGET=${ver}.0"
+          } >> "$GITHUB_ENV"
+
+      - name: Install fftw (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt update
+          sudo apt install -y libfftw3-dev
+
+      - name: Build and test with sanitizers
+        shell: bash
+        run: |
+          build_type="Debug"
+
+          if [[ "$RUNNER_OS" == "Linux" ]]; then
+            arch_flags=("-march=x86-64-v2" "-march=x86-64-v3")
+            flags=$(lscpu | awk -F: 'BEGIN{IGNORECASE=1} $1 ~ /flags/ {print tolower($2)}')
+            if [[ $flags == *avx512f* && $flags == *avx512dq* && $flags == *avx512cd* && $flags == *avx512bw* && $flags == *avx512vl* ]]; then
+              arch_flags+=("-march=x86-64-v4")
+            fi
+          else
+            arch_flags=("native")
+          fi
+
+          build_dir="build"
+
+          for arch in "${arch_flags[@]}"; do
+            rm -rf $build_dir
+
+            cmake -E make_directory "$build_dir"
+            cmake -S . -B "$build_dir" \
+              -DCMAKE_BUILD_TYPE=$build_type \
+              -DFINUFFT_ARCH_FLAGS="$arch" \
+              -DFINUFFT_BUILD_EXAMPLES=ON \
+              -DFINUFFT_BUILD_TESTS=ON \
+              -DFINUFFT_USE_DUCC0=ON \
+              -DFINUFFT_USE_SANITIZERS=ON
+
+            cmake --build "$build_dir" --config "$build_type"
+            ctest --test-dir "$build_dir" --output-on-failure
+          done
