@@ -1,5 +1,4 @@
-#ifndef FINUFFT_CORE_H
-#define FINUFFT_CORE_H
+#pragma once
 
 #include <array>
 #include <cstdint>
@@ -53,7 +52,7 @@ static inline int MY_OMP_GET_THREAD_NUM [[maybe_unused]] () { return 0; }
 static inline void MY_OMP_SET_NUM_THREADS [[maybe_unused]] (int) {}
 #endif
 
-#include <finufft/fft.h> // (must come after complex.h)
+#include <finufft/fft.hpp> // (must come after complex.h)
 #include <finufft_common/constants.h>
 #include <finufft_common/spread_opts.h>
 #include <finufft_opts.h>
@@ -159,7 +158,7 @@ private:
 public:
   FINUFFT_PLAN_T(int type, int dim, const BIGINT *n_modes, int iflag, int ntrans, TF tol,
                  const finufft_opts *opts, int &ier);
-  ~FINUFFT_PLAN_T();
+  ~FINUFFT_PLAN_T() = default;
 
   // Remaining actions (not create/delete) in guru interface are now methods...
   int setpts(BIGINT nj, const TF *xj, const TF *yj, const TF *zj, BIGINT nk, const TF *s,
@@ -180,5 +179,3 @@ void finufft_default_opts_t(finufft_opts *o);
 template<typename TF>
 int finufft_makeplan_t(int type, int dim, const BIGINT *n_modes, int iflag, int ntrans,
                        TF tol, FINUFFT_PLAN_T<TF> **pp, const finufft_opts *opts);
-
-#endif // FINUFFT_CORE_H

@@ -2,8 +2,7 @@
 // Private to library; not for user use.
 // These switch precision based on if SINGLE is defined.
 
-#ifndef TEST_DEFS_H
-#define TEST_DEFS_H
+#pragma once
 
 // TESTER SETTINGS...
 // how big a problem to check direct DFT for in 1D...
@@ -16,7 +15,7 @@
 
 // convenient private finufft internals that tests need
 #include <finufft_common/common.h>
-#include <finufft/finufft_core.h>
+#include <finufft/finufft_core.hpp>
 #include <finufft/finufft_utils.hpp>
 #include <memory>
 
@@ -125,5 +124,3 @@ struct FINUFFT_PLAN_S : public FINUFFT_PLAN_T<FLT> {};
 #include <iomanip>
 #include <iostream>
 #include <vector>
-
-#endif // TEST_DEFS_H

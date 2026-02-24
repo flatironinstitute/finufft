@@ -4,7 +4,7 @@
 #include "finufft.h"
 
 // private access to timer, etc
-#include "finufft/test_defs.h"
+#include "finufft/test_defs.hpp"
 using namespace finufft::utils;
 
 using namespace std;

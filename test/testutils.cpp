@@ -20,7 +20,7 @@
 
 #include "finufft/finufft_utils.hpp"
 #include "utils/norms.hpp"
-#include <finufft/test_defs.h>
+#include <finufft/test_defs.hpp>
 
 namespace finufft::common {
 double cyl_bessel_i_custom(double nu, double x) noexcept;
