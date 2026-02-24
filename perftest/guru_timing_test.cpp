@@ -1,5 +1,5 @@
 #include "finufft/finufft_utils.hpp"
-#include <finufft/test_defs.h>
+#include <finufft/test_defs.hpp>
 
 // for sleep call
 #if defined(WIN32) || defined(_WIN32) || defined(__WIN32) && !defined(__CYGWIN__)

@@ -37,7 +37,7 @@
 #include "utils/dirft1d.hpp"
 #include "utils/dirft2d.hpp"
 #include "utils/norms.hpp"
-#include <finufft/test_defs.h>
+#include <finufft/test_defs.hpp>
 
 using namespace std;
 

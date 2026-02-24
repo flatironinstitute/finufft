@@ -14,6 +14,7 @@ else()
 endif()
 
 set(FINUFFT_SOURCES
+    makeplan.cpp
     spreadinterp.cpp
     fft.cpp
     finufft_core.cpp

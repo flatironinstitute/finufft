@@ -13,10 +13,9 @@
     1/9/26: setup_spreadinterp() moved to finufft_core/common.
 */
 
-#ifndef SPREADINTERP_H
-#define SPREADINTERP_H
+#pragma once
 
-#include <finufft/finufft_core.h>
+#include <finufft/finufft_core.hpp>
 #include <finufft_common/spread_opts.h>
 
 namespace finufft {
@@ -41,5 +40,3 @@ T evaluate_kernel_runtime(T x, int ns, int nc, const T *horner_coeffs,
 
 } // namespace spreadinterp
 } // namespace finufft
-
-#endif // SPREADINTERP_H

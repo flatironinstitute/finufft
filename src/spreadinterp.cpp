@@ -1,7 +1,7 @@
 // Spreading/interpolating module within FINUFFT.
 
 #include <finufft/finufft_utils.hpp>
-#include <finufft/spreadinterp.h>
+#include <finufft/spreadinterp.hpp>
 #include <finufft_common/kernel.h>
 
 #include <finufft/xsimd.hpp>

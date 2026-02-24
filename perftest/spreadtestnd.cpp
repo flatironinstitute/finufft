@@ -20,7 +20,7 @@
 #include <numeric>
 #include <vector>
 
-#include <finufft/test_defs.h>
+#include <finufft/test_defs.hpp>
 
 using namespace std;
 using namespace finufft::utils;

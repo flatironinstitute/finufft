@@ -1,5 +1,4 @@
-#ifndef FINUFFT_INCLUDE_FINUFFT_FFT_H
-#define FINUFFT_INCLUDE_FINUFFT_FFT_H
+#pragma once
 
 #include <vector>
 
@@ -206,7 +205,7 @@ public:
 
 #endif
 
-#include <finufft/finufft_core.h>
+#include <finufft/finufft_core.hpp>
 
 static inline void finufft_fft_forget_wisdom [[maybe_unused]] () {
   Finufft_FFT_plan<float>::forget_wisdom();
@@ -225,5 +224,3 @@ template<typename TF> std::vector<int> gridsize_for_fft(const FINUFFT_PLAN_T<TF>
 template<typename TF>
 void do_fft(const FINUFFT_PLAN_T<TF> &p, std::complex<TF> *fwBatch, int ntrans_actual,
             bool adjoint);
-
-#endif // FINUFFT_INCLUDE_FINUFFT_FFT_H

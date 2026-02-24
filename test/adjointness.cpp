@@ -1,5 +1,5 @@
 #include "utils/norms.hpp"
-#include <finufft/test_defs.h>
+#include <finufft/test_defs.hpp>
 
 /* Test that execute_adjoint applies the adjoint of execute, in the
    guru interface, for all types and dimensions.
