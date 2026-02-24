@@ -117,7 +117,7 @@ FFLAGS := $(FFLAGS) $(INCL) -I/usr/include -fPIC
 # Link time optimization (LTO):
 # (works with GCC, Clang. Increases link time, reduces binary size, can speed up hot paths)
 ifneq ($(LTO),OFF)
-  LTOFLAGS := -flto
+  LTOFLAGS := -flto=auto
   CFLAGS   += $(LTOFLAGS)
   CXXFLAGS += $(LTOFLAGS)
   FFLAGS   += $(LTOFLAGS)
@@ -154,8 +154,14 @@ ABSDYNLIB = $(FINUFFT)$(DYNLIB)
 # spreader objs
 SOBJS = src/finufft_utils.o src/common/utils.o src/common/kernel.o src/common/pswf.o
 
+# per-precision objs (each gets a _f.o single-precision variant via pattern rule)
+PRECISION_OBJS = src/makeplan.o src/setpts.o src/execute.o \
+                 src/spread_1d.o src/spread_2d.o src/spread_3d.o \
+                 src/spreadinterp.o
+# common objs compiled once for both precisions
+COMMON_OBJS = src/fft.o src/c_interface.o fortran/finufftfort.o
 # all lib dual-precision objs (note DUCC_OBJS empty if unused)
-OBJS = $(SOBJS) src/makeplan.o src/makeplan_f.o src/setpts.o src/setpts_f.o src/execute.o src/execute_f.o src/spread.o src/spread_f.o src/interp.o src/interp_f.o src/spreadinterp.o src/spreadinterp_f.o src/fft.o src/c_interface.o fortran/finufftfort.o $(DUCC_OBJS)
+OBJS = $(SOBJS) $(PRECISION_OBJS) $(PRECISION_OBJS:%.o=%_f.o) $(COMMON_OBJS) $(DUCC_OBJS)
 
 .PHONY: usage lib examples test perftest spreadtest spreadtestall fortran matlab octave all mex python clean objclean pyclean mexclean wheel docker-wheel gurutime docs setup setupclean
 

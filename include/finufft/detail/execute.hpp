@@ -5,15 +5,12 @@
 #include <memory>
 #include <vector>
 
-#include <finufft/fft.hpp>
 #include <finufft/finufft_core.hpp>
 #include <finufft/finufft_utils.hpp>
-#include <finufft/spreadinterp.hpp>
+#include <finufft/detail/spreadinterp.hpp>
 #include <finufft/xsimd.hpp>
 
-using namespace finufft;
-using namespace finufft::utils;
-using namespace finufft::spreadinterp;
+using finufft::utils::CNTime;
 
 /* Computational core for FINUFFT.
 
@@ -95,6 +92,9 @@ void FINUFFT_PLAN_T<T>::deconvolveshuffle1d(int dir, T prefac, BIGINT ms, T *fk,
     real divide, or is there a way to force a real divide?
 
   Barnett 1/25/17. Fixed ms=0 case 3/14/17. modeord flag & clean 10/25/17
+  2/24/26 Barbone: converted from free function to method on FINUFFT_PLAN_T.
+  Previous args (ker, nf1, modeord) are now read from plan members
+  (phiHat[0], nfdim[0], opts.modeord); remaining args: dir, prefac, ms, fk, fw.
 */
 {
   const auto &ker   = phiHat[0];
@@ -153,6 +153,10 @@ void FINUFFT_PLAN_T<T>::deconvolveshuffle2d(int dir, T prefac, BIGINT ms, BIGINT
      respectively (accessed via phiHat[0], phiHat[1]).
 
   Barnett 2/1/17, Fixed mt=0 case 3/14/17. modeord 10/25/17
+  2/24/26 Barbone: converted from free function to method on FINUFFT_PLAN_T.
+  Previous args (ker1, ker2, nf1, nf2, modeord) are now read from plan members
+  (phiHat[0], phiHat[1], nfdim[0], nfdim[1], opts.modeord); remaining args:
+  dir, prefac, ms, mt, fk, fw.
 */
 {
   const auto &ker2  = phiHat[1];
@@ -198,6 +202,10 @@ void FINUFFT_PLAN_T<T>::deconvolveshuffle3d(int dir, T prefac, BIGINT ms, BIGINT
      and nf3/2+1 respectively (accessed via phiHat[0], phiHat[1], phiHat[2]).
 
   Barnett 2/1/17, Fixed mu=0 case 3/14/17. modeord 10/25/17
+  2/24/26 Barbone: converted from free function to method on FINUFFT_PLAN_T.
+  Previous args (ker1, ker2, ker3, nf1, nf2, nf3, modeord) are now read from
+  plan members (phiHat[0..2], nfdim[0..2], opts.modeord); remaining args:
+  dir, prefac, ms, mt, mu, fk, fw.
 */
 {
   const auto &ker3  = phiHat[2];
@@ -254,9 +262,7 @@ int FINUFFT_PLAN_T<T>::spreadinterpSortedBatch(
     std::complex<T> *fwi = fwBatch + i * nf(); // start of i'th fw array in
                                                // fwBatch workspace or user array
     std::complex<T> *ci = cBatch + i * nj;     // start of i'th c array in cBatch
-    spreadinterpSorted(sortIndices, (UBIGINT)nfdim[0], (UBIGINT)nfdim[1],
-                       (UBIGINT)nfdim[2], (T *)fwi, (UBIGINT)nj, XYZ[0], XYZ[1], XYZ[2],
-                       (T *)ci, spopts, didSort, adjoint, horner_coeffs.data(), nc);
+    spreadinterpSorted((T *)fwi, (T *)ci, adjoint);
   }
   return 0;
 }
@@ -385,7 +391,7 @@ int FINUFFT_PLAN_T<TF>::execute_internal(TC *cj, TC *fk, bool adjoint, int ntran
         // STEP 2: call the FFT on this batch
         timer.restart();
 
-        do_fft(*this, fwBatch, thisBatchSize, adjoint);
+        do_fft(fwBatch, thisBatchSize, adjoint);
         t_fft += timer.elapsedsec();
         if (opts.debug > 1) printf("\tFFT exec:\t\t%.3g s\n", timer.elapsedsec());
       }

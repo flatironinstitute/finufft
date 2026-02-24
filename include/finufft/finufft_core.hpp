@@ -99,6 +99,7 @@ private:
   int nbatch;             // how many batches done to cover all ntrans vectors
 
   int nc             = 0; // number of Horner coefficients used for ES kernel (<= MAX_NC)
+  int padded_ns      = 0; // SIMD-padded kernel width, set by precompute_horner_coeffs()
   bool upsamp_locked = false; // true if user specified upsampfac != 0, prevents auto
                               // update
 
@@ -138,15 +139,13 @@ private:
                                                          // of type 3
 
   // other internal structs
-  std::unique_ptr<Finufft_FFT_plan<TF>> fftPlan;
+  std::unique_ptr<Finufft_FFT_plan<TF>, Finufft_FFT_plan_deleter<TF>> fftPlan;
 
   // store piecewise Horner coeffs for ns intervals of kernel: ns x nc table
   alignas(64) std::array<TF, finufft::common::MAX_NSPREAD *
                                  finufft::common::MAX_NC> horner_coeffs{0};
 
 public:
-  const Finufft_FFT_plan<TF> &getFFTPlan() const { return *fftPlan; }
-
   finufft_opts opts; // this and spopts could be made ptrs
 
 private:
@@ -156,15 +155,87 @@ private:
                        TC *aligned_scratch = nullptr, size_t scratch_size = 0) const;
   int setup_spreadinterp();
   void precompute_horner_coeffs();
+  int set_nf_type12(BIGINT ms, BIGINT *nf) const;
+  void onedim_fseries_kernel(BIGINT nf, std::vector<TF> &fwkerhalf) const;
+  void set_nhg_type3(int idim, TF S, TF X);
+  // Compile-time-dispatched kernel method templates (NS=nspread, NC=horner degree).
+  // Bodies are defined in detail/interp.hpp and detail/spread.hpp respectively.
+  template<int NS, int NC>
+  int interpSorted_kernel(TF *data_uniform, TF *data_nonuniform) const;
+  template<int NS, int NC>
+  void spread_subproblem_1d_kernel(BIGINT off1, UBIGINT size1, TF *FINUFFT_RESTRICT du,
+                                   UBIGINT M, const TF *kx, const TF *dd) const noexcept;
+  template<int NS, int NC>
+  void spread_subproblem_2d_kernel(BIGINT off1, BIGINT off2, UBIGINT size1, UBIGINT size2,
+                                   TF *FINUFFT_RESTRICT du, UBIGINT M, const TF *kx,
+                                   const TF *ky, const TF *dd) const noexcept;
+  template<int NS, int NC>
+  void spread_subproblem_3d_kernel(BIGINT off1, BIGINT off2, BIGINT off3, UBIGINT size1,
+                                   UBIGINT size2, UBIGINT size3, TF *FINUFFT_RESTRICT du,
+                                   UBIGINT M, const TF *kx, const TF *ky, const TF *kz,
+                                   const TF *dd) const noexcept;
+
+  // Nested caller types used to dispatch to compile-time ns/nc kernel specialisations.
+  // Bodies are defined in detail/spread.hpp and detail/interp.hpp respectively.
+  struct SpreadSubproblem1dCaller;
+  struct SpreadSubproblem2dCaller;
+  struct SpreadSubproblem3dCaller;
+  struct InterpSortedCaller;
+
+  void bin_sort_singlethread(double bin_size_x, double bin_size_y, double bin_size_z);
+  void bin_sort_multithread(double bin_size_x, double bin_size_y, double bin_size_z,
+                            int nthr);
+  template<bool thread_safe>
+  void add_wrapped_subgrid(BIGINT offset1, BIGINT offset2, BIGINT offset3,
+                           UBIGINT padded_size1, UBIGINT size1, UBIGINT size2, UBIGINT size3,
+                           TF *FINUFFT_RESTRICT data_uniform, const TF *du0) const;
+  void get_subgrid(BIGINT &offset1, BIGINT &offset2, BIGINT &offset3, BIGINT &padded_size1,
+                   BIGINT &size1, BIGINT &size2, BIGINT &size3, UBIGINT M, const TF *kx,
+                   const TF *ky, const TF *kz) const;
+
+  void indexSort();
+  void spread_subproblem_1d(BIGINT off1, UBIGINT size1, TF *du, UBIGINT M, TF *kx,
+                            TF *dd) const noexcept;
+  void spread_subproblem_2d(BIGINT off1, BIGINT off2, UBIGINT size1, UBIGINT size2,
+                            TF *FINUFFT_RESTRICT du, UBIGINT M, const TF *kx,
+                            const TF *ky, const TF *dd) const noexcept;
+  void spread_subproblem_3d(BIGINT off1, BIGINT off2, BIGINT off3, UBIGINT size1,
+                            UBIGINT size2, UBIGINT size3, TF *du, UBIGINT M, TF *kx,
+                            TF *ky, TF *kz, TF *dd) const noexcept;
+  int spreadSorted(TF *FINUFFT_RESTRICT data_uniform, const TF *data_nonuniform) const;
+  int interpSorted(TF *FINUFFT_RESTRICT data_uniform,
+                   TF *FINUFFT_RESTRICT data_nonuniform) const;
+  int spreadinterpSorted(TF *data_uniform, TF *data_nonuniform, bool adjoint) const;
+  TF evaluate_kernel_runtime(TF x) const;
+  std::vector<int> gridsize_for_fft() const;
+  void do_fft(TC *fwBatch, int ntrans_actual, bool adjoint) const;
+
+  // Precomputed quadrature-based 1D kernel FT evaluator (used by type-3 setpts).
+  // Nested class: has access to plan's private members via implicit friendship.
+  class Kernel_onedim_FT {
+    std::vector<TF> z, f;
+
+  public:
+    Kernel_onedim_FT(const FINUFFT_PLAN_T &plan);
+    FINUFFT_ALWAYS_INLINE TF operator()(TF k) const {
+      TF x = 0;
+      for (size_t n = 0; n < z.size(); ++n)
+        x += f[n] * 2 * std::cos(k * z[n]); // pos & neg freq pair
+      return x;
+    }
+  };
 
   // Helper to initialize spreader, phiHat (Fourier series), and FFT plan.
   // Used by constructor (when upsampfac given) and setpts (when upsampfac deferred).
   int init_grid_kerFT_FFT();
 
+  // Allocates fftPlan (needs complete Finufft_FFT_plan type); defined in fft.cpp.
+  void create_fft_plan();
+
 public:
   FINUFFT_PLAN_T(int type, int dim, const BIGINT *n_modes, int iflag, int ntrans, TF tol,
                  const finufft_opts *opts, int &ier);
-  ~FINUFFT_PLAN_T() = default;
+  ~FINUFFT_PLAN_T(); // defined in src/fft.cpp where Finufft_FFT_plan is complete
 
   // Remaining actions (not create/delete) in guru interface are now methods...
   int setpts(BIGINT nj, const TF *xj, const TF *yj, const TF *zj, BIGINT nk, const TF *s,
@@ -204,11 +275,7 @@ inline void finufft_default_opts_t(finufft_opts *o)
   o->showwarn     = 1;
 
   o->nthreads = 0;
-#ifdef FINUFFT_USE_DUCC0
-  o->fftw = -1;
-#else
-  o->fftw = FFTW_ESTIMATE;
-#endif
+  o->fftw     = FINUFFT_FFT_DEFAULT; // FFTW_ESTIMATE (=64) for FFTW; -1 for DUCC0
   o->spread_sort        = 2;
   o->spread_kerevalmeth = 1; // deprecated
   o->spread_kerpad      = 1; // deprecated

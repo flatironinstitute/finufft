@@ -5,7 +5,6 @@
 #include <memory>
 #include <vector>
 
-#include <finufft/fft.hpp>
 #include <finufft/finufft_core.hpp>
 #include <finufft/finufft_utils.hpp>
 #include <finufft/heuristics.hpp>
@@ -16,14 +15,15 @@
 
 // ---------- local math routines (were in common.cpp; no need now): --------
 
-namespace finufft {
-namespace utils {
-inline int set_nf_type12(BIGINT ms, const finufft_opts &opts,
-                         const finufft_spread_opts &spopts, BIGINT *nf)
+template<typename TF>
+int FINUFFT_PLAN_T<TF>::set_nf_type12(BIGINT ms, BIGINT *nf) const
 // Type 1 & 2 recipe for how to set 1d size of upsampled array, nf, given opts
 // and requested number of Fourier modes ms. Returns 0 if success, else an
 // error code if nf was unreasonably big (& tell the world).
+// 2/24/26 Barbone: converted from free function to method on FINUFFT_PLAN_T.
+// Previous args (opts, spopts) are now plan members; only ms and nf remain.
 {
+  using namespace finufft::utils;
   *nf = BIGINT(std::ceil(opts.upsampfac * double(ms))); // round up to handle small cases
   if (*nf < 2 * spopts.nspread) *nf = 2 * spopts.nspread; // otherwise spread fails
   if (*nf < MAX_NF) {
@@ -38,10 +38,9 @@ inline int set_nf_type12(BIGINT ms, const finufft_opts &opts,
   }
 }
 
-template<typename T>
-void onedim_fseries_kernel(BIGINT nf, std::vector<T> &fwkerhalf,
-                           const finufft_spread_opts &opts, const T *horner_coeffs_ptr,
-                           int nc)
+template<typename TF>
+void FINUFFT_PLAN_T<TF>::onedim_fseries_kernel(BIGINT nf,
+                                               std::vector<TF> &fwkerhalf) const
 /*
   Approximates exact Fourier series coeffs of spreadinterp's real symmetric
   kernel, directly via q-node quadrature on Euler-Fourier formula, exploiting
@@ -55,12 +54,12 @@ void onedim_fseries_kernel(BIGINT nf, std::vector<T> &fwkerhalf,
 
   Inputs:
   nf - size of 1d uniform spread grid, must be even.
-  opts - spreading opts object, needed to eval kernel (must be already set up)
+  Reads spopts (spreading opts) from the plan, needed to eval kernel.
 
   Outputs:
   fwkerhalf - real Fourier series coeffs from indices 0 to nf/2 inclusive,
         divided by h = 2pi/n.
-        (should be allocated for at least nf/2+1 Ts)
+        (should be allocated for at least nf/2+1 TFs)
 
   [Compare long-gone onedim_dct_kernel which had same interface, but computed DFT
   of sampled kernel, not quite the same object. This was from 2017-ish.]
@@ -69,39 +68,38 @@ void onedim_fseries_kernel(BIGINT nf, std::vector<T> &fwkerhalf,
   Fixed num_threads 7/20/20. Reduced rounding error in a[n] calc 8/20/24.
   11/25/25, replaced kernel_definition by evaluate_kernel_runtime, meaning that
   the FT of the piecewise poly approximant (not "exact" kernel) is computed.
+  2/24/26 Barbone: converted from free function to method on FINUFFT_PLAN_T.
+  Previous arg opts (spreading opts) is now read from plan member spopts.
  */
 {
-  T J2 = opts.nspread / 2.0; // J/2, half-width of ker z-support
+  using namespace finufft::common;
+  TF J2 = spopts.nspread / 2.0; // J/2, half-width of ker z-support
   // # quadr nodes in z (from 0 to J/2; reflections will be added)...
   int q = (int)(2 + 3.0 * J2); // not sure why so large? (NB cannot exceed MAX_NQUAD)
-  using namespace finufft::common;
-  using finufft::spreadinterp::evaluate_kernel_runtime;
-  T f[MAX_NQUAD];
+  TF f[MAX_NQUAD];
   double z[2 * MAX_NQUAD], w[2 * MAX_NQUAD];
   gaussquad(2 * q, z, w); // only half the nodes used, eg on (0,1)
-  std::complex<T> a[MAX_NQUAD];
+  std::complex<TF> a[MAX_NQUAD];
   for (int n = 0; n < q; ++n) {            // set up nodes z_n and vals f_n
     z[n] *= J2;                            // rescale nodes
                                            // vals & quadr weighs
-    f[n] = J2 * (T)w[n] *
-           evaluate_kernel_runtime<T>((T)z[n], opts.nspread, nc, horner_coeffs_ptr,
-                                    opts);
+    f[n] = J2 * (TF)w[n] * evaluate_kernel_runtime((TF)z[n]);
     // phase winding rates
     a[n] = -std::exp(2 * PI * std::complex<double>(0, 1) * z[n] / double(nf));
   }
-  BIGINT nout = nf / 2 + 1;                            // how many values we're writing to
-  int nt      = std::min(nout, (BIGINT)opts.nthreads); // how many chunks
-  std::vector<BIGINT> brk(nt + 1);                     // start indices for each thread
+  BIGINT nout = nf / 2 + 1; // how many values we're writing to
+  int nt      = std::min(nout, (BIGINT)spopts.nthreads); // how many chunks
+  std::vector<BIGINT> brk(nt + 1);                       // start indices for each thread
   for (int t = 0; t <= nt; ++t) // split nout mode indices btw threads
     brk[t] = (BIGINT)(0.5 + nout * t / (double)nt);
 #pragma omp parallel num_threads(nt)
   {                                                // each thread gets own chunk to do
     int t = MY_OMP_GET_THREAD_NUM();
-    std::complex<T> aj[MAX_NQUAD];                 // phase rotator for this thread
+    std::complex<TF> aj[MAX_NQUAD];                // phase rotator for this thread
     for (int n = 0; n < q; ++n)
-      aj[n] = std::pow(a[n], (T)brk[t]);           // init phase factors for chunk
+      aj[n] = std::pow(a[n], (TF)brk[t]);          // init phase factors for chunk
     for (BIGINT j = brk[t]; j < brk[t + 1]; ++j) { // loop along output array
-      T x = 0.0;                                   // accumulator for answer at this j
+      TF x = 0.0;                                  // accumulator for answer at this j
       for (int n = 0; n < q; ++n) {
         x += f[n] * 2 * std::real(aj[n]);          // include the negative freq
         aj[n] *= a[n];                             // wind the phases
@@ -110,9 +108,6 @@ void onedim_fseries_kernel(BIGINT nf, std::vector<T> &fwkerhalf,
     }
   }
 }
-
-} // namespace utils
-} // namespace finufft
 
 // --------------- makeplan-related member functions and free functions ----------
 
@@ -223,7 +218,7 @@ template<typename TF> void FINUFFT_PLAN_T<TF>::precompute_horner_coeffs() {
   // (must match that used in spreadinterp.cpp: if we change horner simd_width there
   // we must also change it here)
   const auto simd_size = GetPaddedSIMDWidth<TF>(2 * nspread);
-  const auto padded_ns = (nspread + simd_size - 1) & -simd_size;
+  padded_ns            = (nspread + simd_size - 1) & -simd_size;
 
   horner_coeffs.fill(TF(0));
 
@@ -318,89 +313,6 @@ template<typename TF> void FINUFFT_PLAN_T<TF>::precompute_horner_coeffs() {
   }
 }
 
-// Helper to initialize spreader, phiHat (Fourier series), and FFT plan.
-// Used by constructor (when upsampfac given) and setpts (when upsampfac deferred).
-// Returns 0 on success, or an error code if set_nf_type12 or alloc fails.
-template<typename TF> int FINUFFT_PLAN_T<TF>::init_grid_kerFT_FFT() {
-  using namespace finufft::utils;
-  CNTime timer{};
-  spopts.spread_direction = type;
-  constexpr TF EPSILON    = std::numeric_limits<TF>::epsilon();
-
-  if (opts.spreadinterponly) { // (unusual case of no NUFFT, just report)
-    // spreadinterp grid will simply be the user's "mode" grid...
-    for (int idim = 0; idim < dim; ++idim) nfdim[idim] = mstu[idim];
-
-    if (opts.debug) { // "long long" here is to avoid warnings with printf...
-      printf("[%s] %dd spreadinterponly(dir=%d): (ms,mt,mu)=(%lld,%lld,%lld)"
-             "\n               ntrans=%d nthr=%d batchSize=%d kernel width ns=%d",
-             __func__, dim, type, (long long)mstu[0], (long long)mstu[1],
-             (long long)mstu[2], ntrans, opts.nthreads, batchSize, spopts.nspread);
-      if (batchSize == 1) // spread_thread has no effect in this case
-        printf("\n");
-      else
-        printf(" spread_thread=%d\n", opts.spread_thread);
-    }
-
-  } else {               // ..... usual NUFFT: eval Fourier series, alloc workspace .....
-
-    if (opts.showwarn) { // user warn round-off error (due to prob condition #)...
-      for (int idim = 0; idim < dim; ++idim)
-        if (EPSILON * mstu[idim] > 1.0)
-          fprintf(stderr,
-                  "%s warning: rounding err (due to cond # of prob) eps_mach*N%d = %.3g "
-                  "> 1 !\n",
-                  __func__, idim, (double)(EPSILON * mstu[idim]));
-    }
-
-    // determine fine grid sizes, sanity check, then alloc...
-    for (int idim = 0; idim < dim; ++idim) {
-      int nfier = set_nf_type12(mstu[idim], opts, spopts, &nfdim[idim]);
-      if (nfier) return nfier;                  // nf too big; we're done
-      phiHat[idim].resize(nfdim[idim] / 2 + 1); // alloc fseries
-    }
-
-    if (opts.debug) { // "long long" here is to avoid warnings with printf...
-      printf("[%s] %dd%d: (ms,mt,mu)=(%lld,%lld,%lld) "
-             "(nf1,nf2,nf3)=(%lld,%lld,%lld)\n               ntrans=%d nthr=%d "
-             "batchSize=%d ",
-             __func__, dim, type, (long long)mstu[0], (long long)mstu[1],
-             (long long)mstu[2], (long long)nfdim[0], (long long)nfdim[1],
-             (long long)nfdim[2], ntrans, opts.nthreads, batchSize);
-      if (batchSize == 1) // spread_thread has no effect in this case
-        printf("\n");
-      else
-        printf(" spread_thread=%d\n", opts.spread_thread);
-    }
-
-    // STEP 0: get Fourier coeffs of spreading kernel along each fine grid dim
-    timer.restart();
-    for (int idim = 0; idim < dim; ++idim)
-      onedim_fseries_kernel(nfdim[idim], phiHat[idim], spopts, horner_coeffs.data(), nc);
-    if (opts.debug)
-      printf("[%s] kernel fser (ns=%d):\t\t%.3g s\n", __func__, spopts.nspread,
-             timer.elapsedsec());
-
-    if (nf() * batchSize > MAX_NF) {
-      fprintf(stderr,
-              "[%s] fwBatch would be bigger than MAX_NF, not attempting memory "
-              "allocation!\n",
-              __func__);
-      return FINUFFT_ERR_MAXNALLOC;
-    }
-
-    timer.restart(); // plan the FFTW (to act in-place on the workspace fwBatch)
-    int nthr_fft  = opts.nthreads;
-    const auto ns = gridsize_for_fft(*this);
-    std::vector<TC, xsimd::aligned_allocator<TC, 64>> fwBatch(nf() * batchSize);
-    fftPlan->plan(ns, batchSize, fwBatch.data(), fftSign, opts.fftw, nthr_fft);
-    if (opts.debug)
-      printf("[%s] FFT plan (mode %d, nthr=%d):\t%.3g s\n", __func__, opts.fftw, nthr_fft,
-             timer.elapsedsec());
-  }
-  return 0;
-}
-
 template<typename TF>
 FINUFFT_PLAN_T<TF>::FINUFFT_PLAN_T(int type_, int dim_, const BIGINT *n_modes, int iflag,
                                    int ntrans_, TF tol_, const finufft_opts *opts_,
@@ -429,8 +341,7 @@ FINUFFT_PLAN_T<TF>::FINUFFT_PLAN_T(int type_, int dim_, const BIGINT *n_modes, i
               __func__);
       throw int(FINUFFT_ERR_LOCK_FUNS_INVALID);
     }
-    fftPlan = std::make_unique<Finufft_FFT_plan<TF>>(
-        opts.fftw_lock_fun, opts.fftw_unlock_fun, opts.fftw_lock_data);
+    create_fft_plan(); // needs complete Finufft_FFT_plan type; defined in fft.cpp
   }
   if ((type != 1) && (type != 2) && (type != 3)) {
     fprintf(stderr, "[%s] Invalid type (%d), should be 1, 2 or 3.\n", __func__, type);

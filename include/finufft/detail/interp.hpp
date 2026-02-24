@@ -452,157 +452,158 @@ static void interp_cube(T *FINUFFT_RESTRICT target, const T *du, const T *ker1,
   target[1] = out[1];
 }
 
-template<typename T, int ns, int nc>
-FINUFFT_NEVER_INLINE static int interpSorted_kernel(
-    const std::vector<BIGINT> &sort_indices, const UBIGINT N1, const UBIGINT N2,
-    const UBIGINT N3, const T *data_uniform, const UBIGINT M,
-    const T *FINUFFT_RESTRICT kx, const T *FINUFFT_RESTRICT ky,
-    const T *FINUFFT_RESTRICT kz, T *FINUFFT_RESTRICT data_nonuniform,
-    const finufft_spread_opts &opts, const T *horner_coeffs_ptr)
-// Interpolate to NU pts in sorted order from a uniform grid.
-// See spreadinterp() for doc.
+} // namespace finufft::spreadinterp
+
+// ---------- FINUFFT_PLAN_T interpSorted_kernel method definition ----------
+// FINUFFT_PLAN_T is already defined via the transitive include chain:
+//   detail/simd_helpers.hpp -> finufft/spreadinterp.hpp -> finufft/finufft_core.hpp
+//
+// 2/24/26 Barbone: converted from free function template interpSorted_kernel<T,NS,NC>
+// to method on FINUFFT_PLAN_T. Previous args (sort_indices, N1, N2, N3, M, kx, ky,
+// kz, opts, horner_coeffs_ptr) are now plan members. Dimensionality uses runtime plan
+// member dim (replacing the old ndims_from_Ns(N1,N2,N3) call).
+
+template<typename TF>
+template<int NS, int NC>
+FINUFFT_NEVER_INLINE int FINUFFT_PLAN_T<TF>::interpSorted_kernel(
+    TF *data_uniform, TF *data_nonuniform) const
+// Interpolate to NU pts in sorted order from a uniform grid. See spreadinterp() for doc.
 {
-  using simd_type = PaddedSIMD<T, 2 * ns>;
-  using arch_t = typename simd_type::arch_type;
-  static constexpr auto alignment = arch_t::alignment();
-  static constexpr auto simd_size = simd_type::size;
-  static constexpr auto ns2 = ns * T(0.5); // half spread width, used as stencil shift
+  using namespace finufft::spreadinterp;
+  using finufft::common::MAX_NSPREAD;
+  using finufft::utils::CNTime;
+  using simd_type                    = PaddedSIMD<TF, 2 * NS>;
+  using arch_t                       = typename simd_type::arch_type;
+  static constexpr auto alignment    = arch_t::alignment();
+  static constexpr auto simd_size    = simd_type::size;
+  static constexpr auto ns2          = NS * TF(0.5);
+  const UBIGINT N1                   = nfdim[0];
+  const UBIGINT N2                   = nfdim[1];
+  const UBIGINT N3                   = nfdim[2];
+  const UBIGINT M                    = nj;
+  const TF *FINUFFT_RESTRICT kx      = XYZ[0];
+  const TF *FINUFFT_RESTRICT ky      = XYZ[1];
+  const TF *FINUFFT_RESTRICT kz      = XYZ[2];
+  const TF *horner_coeffs_ptr        = horner_coeffs.data();
+  const auto ndims                   = dim;
 
   CNTime timer{};
-  const auto ndims = ndims_from_Ns(N1, N2, N3);
-  auto nthr        = MY_OMP_GET_MAX_THREADS(); // guess # threads to use to interp
-  if (opts.nthreads > 0) nthr = opts.nthreads; // user override, now without limit
+  auto nthr = MY_OMP_GET_MAX_THREADS();
+  if (spopts.nthreads > 0) nthr = spopts.nthreads;
 #ifndef _OPENMP
-  nthr = 1; // single-threaded lib must override user
+  nthr = 1;
 #endif
-  if (opts.debug)
+  if (spopts.debug)
     printf("\tinterp %dD (M=%lld; N1=%lld,N2=%lld,N3=%lld), nthr=%d\n", ndims,
            (long long)M, (long long)N1, (long long)N2, (long long)N3, nthr);
   timer.start();
 #pragma omp parallel num_threads(nthr)
   {
-    static constexpr auto CHUNKSIZE = simd_size; // number of targets per chunk
+    static constexpr auto CHUNKSIZE = simd_size;
     alignas(alignment) UBIGINT jlist[CHUNKSIZE];
-    alignas(alignment) T xjlist[CHUNKSIZE], yjlist[CHUNKSIZE], zjlist[CHUNKSIZE];
-    alignas(alignment) T outbuf[2 * CHUNKSIZE];
-    // Kernels: static alloc is faster, so we do it for up to 3D...
-    alignas(alignment) std::array<T, 3 * MAX_NSPREAD> kernel_values{0};
+    alignas(alignment) TF xjlist[CHUNKSIZE], yjlist[CHUNKSIZE], zjlist[CHUNKSIZE];
+    alignas(alignment) TF outbuf[2 * CHUNKSIZE];
+    alignas(alignment) std::array<TF, 3 * MAX_NSPREAD> kernel_values{0};
     auto *FINUFFT_RESTRICT ker1 = kernel_values.data();
     auto *FINUFFT_RESTRICT ker2 = kernel_values.data() + MAX_NSPREAD;
     auto *FINUFFT_RESTRICT ker3 = kernel_values.data() + 2 * MAX_NSPREAD;
 
-    // Loop over interpolation chunks
-    // main loop over NU trgs, interp each from U
-    // (note: windows omp doesn't like unsigned loop vars)
-#pragma omp for schedule(dynamic, 1000) // assign threads to NU targ pts:
+#pragma omp for schedule(dynamic, 1000)
     for (BIGINT i = 0; i < BIGINT(M); i += CHUNKSIZE) {
-      // Setup buffers for this chunk
       const UBIGINT bufsize = (i + CHUNKSIZE > M) ? M - i : CHUNKSIZE;
       for (UBIGINT ibuf = 0; ibuf < bufsize; ibuf++) {
-        UBIGINT j    = sort_indices[i + ibuf];
+        UBIGINT j    = sortIndices[i + ibuf];
         jlist[ibuf]  = j;
-        xjlist[ibuf] = fold_rescale<T>(kx[j], N1);
-        if (ndims >= 2) yjlist[ibuf] = fold_rescale<T>(ky[j], N2);
-        if (ndims == 3) zjlist[ibuf] = fold_rescale<T>(kz[j], N3);
+        xjlist[ibuf] = fold_rescale<TF>(kx[j], N1);
+        if (ndims >= 2) yjlist[ibuf] = fold_rescale<TF>(ky[j], N2);
+        if (ndims == 3) zjlist[ibuf] = fold_rescale<TF>(kz[j], N3);
       }
 
-      // Loop over targets in chunk
       for (UBIGINT ibuf = 0; ibuf < bufsize; ibuf++) {
         const auto xj = xjlist[ibuf];
-        const auto yj = (ndims > 1) ? yjlist[ibuf] : 0;
-        const auto zj = (ndims > 2) ? zjlist[ibuf] : 0;
+        const auto yj = (ndims > 1) ? yjlist[ibuf] : TF(0);
+        const auto zj = (ndims > 2) ? zjlist[ibuf] : TF(0);
 
         auto *FINUFFT_RESTRICT target = outbuf + 2 * ibuf;
 
-        // coords (x,y,z), spread block corner index (i1,i2,i3) of current NU targ
-        const auto i1 = BIGINT(std::ceil(xj - ns2)); // leftmost grid index
-        const auto i2 = (ndims > 1) ? BIGINT(std::ceil(yj - ns2)) : 0; // min y grid index
-        const auto i3 = (ndims > 2) ? BIGINT(std::ceil(zj - ns2)) : 0; // min z grid index
+        const auto i1 = BIGINT(std::ceil(xj - ns2));
+        const auto i2 = (ndims > 1) ? BIGINT(std::ceil(yj - ns2)) : 0;
+        const auto i3 = (ndims > 2) ? BIGINT(std::ceil(zj - ns2)) : 0;
 
-        const auto x1 = std::ceil(xj - ns2) - xj; // shift of ker center, in [-w/2,-w/2+1]
-        const auto x2 = (ndims > 1) ? std::ceil(yj - ns2) - yj : 0;
-        const auto x3 = (ndims > 2) ? std::ceil(zj - ns2) - zj : 0;
+        const auto x1 = std::ceil(xj - ns2) - xj;
+        const auto x2 = (ndims > 1) ? std::ceil(yj - ns2) - yj : TF(0);
+        const auto x3 = (ndims > 2) ? std::ceil(zj - ns2) - zj : TF(0);
 
-        // eval kernel values patch and use to interpolate from uniform data...
         switch (ndims) {
         case 1:
-          evaluate_kernel_vector<ns, nc, T, simd_type>(kernel_values.data(),
-                                                       horner_coeffs_ptr, x1);
-          interp_line<T, ns, simd_type>(target, data_uniform, ker1, i1, N1);
+          evaluate_kernel_vector<NS, NC, TF, simd_type>(kernel_values.data(),
+                                                        horner_coeffs_ptr, x1);
+          interp_line<TF, NS, simd_type>(target, data_uniform, ker1, i1, N1);
           break;
         case 2:
-          evaluate_kernel_vector<ns, nc, T, simd_type>(kernel_values.data(),
-                                                       horner_coeffs_ptr, x1, x2);
-          interp_square<T, ns, simd_type>(target, data_uniform, ker1, ker2, i1, i2, N1,
-                                          N2);
+          evaluate_kernel_vector<NS, NC, TF, simd_type>(kernel_values.data(),
+                                                        horner_coeffs_ptr, x1, x2);
+          interp_square<TF, NS, simd_type>(target, data_uniform, ker1, ker2, i1, i2, N1,
+                                           N2);
           break;
-        case 3:
-          evaluate_kernel_vector<ns, nc, T, simd_type>(kernel_values.data(),
-                                                       horner_coeffs_ptr, x1, x2, x3);
-          interp_cube<T, ns, simd_type>(target, data_uniform, ker1, ker2, ker3, i1, i2,
-                                        i3, N1, N2, N3);
-          break;
-        default: // can't get here
-          FINUFFT_UNREACHABLE;
+        default:
+          evaluate_kernel_vector<NS, NC, TF, simd_type>(kernel_values.data(),
+                                                        horner_coeffs_ptr, x1, x2, x3);
+          interp_cube<TF, NS, simd_type>(target, data_uniform, ker1, ker2, ker3, i1, i2,
+                                         i3, N1, N2, N3);
           break;
         }
-      } // end loop over targets in chunk
+      }
 
-      // Copy result buffer to output array
       for (UBIGINT ibuf = 0; ibuf < bufsize; ibuf++) {
         const UBIGINT j            = jlist[ibuf];
         data_nonuniform[2 * j]     = outbuf[2 * ibuf];
         data_nonuniform[2 * j + 1] = outbuf[2 * ibuf + 1];
       }
-
     } // end NU targ loop
   } // end parallel section
-  if (opts.debug) printf("\tt2 spreading loop: \t%.3g s\n", timer.elapsedsec());
+  if (spopts.debug) printf("\tt2 spreading loop: \t%.3g s\n", timer.elapsedsec());
   return 0;
 }
 
-namespace {
+// ---------- FINUFFT_PLAN_T interp nested caller definition ----------
+// Out-of-class definition of the nested type declared in finufft_core.hpp.
+// Member function templates are not allowed in local classes (GCC restriction),
+// so this must be a proper nested class definition of FINUFFT_PLAN_T<TF>.
+//
+// 2/24/26 Barbone: converted from free InterpSortedCaller struct (in anonymous
+// namespace in spreadinterp.cpp) to nested class of FINUFFT_PLAN_T. Previous
+// free-function args are now read from the plan reference via interpSorted_kernel.
 
-template<typename T> struct InterpSortedCaller {
-  const std::vector<BIGINT> &sort_indices;
-  UBIGINT N1, N2, N3;
-  T *data_uniform;
-  UBIGINT M;
-  const T *kx;
-  const T *ky;
-  const T *kz;
-  T *data_nonuniform;
-  const finufft_spread_opts &opts;
-  const T *horner_coeffs_ptr;
-
-  template<int NS, int NC> int operator()() const {
-    if constexpr (!::finufft::kernel::ValidKernelParams<NS, NC>()) {
-      return report_invalid_kernel_params(NS, NC);
-    } else {
-      return interpSorted_kernel<T, NS, NC>(sort_indices, N1, N2, N3, data_uniform, M, kx,
-                                            ky, kz, data_nonuniform, opts,
-                                            horner_coeffs_ptr);
-    }
+template<typename TF>
+struct FINUFFT_PLAN_T<TF>::InterpSortedCaller {
+  const FINUFFT_PLAN_T &plan;
+  TF *du;
+  TF *dnu;
+  template<int NS, int NC>
+  int operator()() const {
+    if constexpr (!::finufft::kernel::ValidKernelParams<NS, NC>())
+      return finufft::spreadinterp::report_invalid_kernel_params(NS, NC);
+    else
+      return plan.template interpSorted_kernel<NS, NC>(du, dnu);
   }
 };
 
-} // namespace
+// ---------- FINUFFT_PLAN_T interpSorted method definition ----------
 
-template<typename T>
-int interpSorted(
-    const std::vector<BIGINT> &sort_indices, const UBIGINT N1, const UBIGINT N2,
-    const UBIGINT N3, T *FINUFFT_RESTRICT data_uniform, const UBIGINT M,
-    const T *FINUFFT_RESTRICT kx, const T *FINUFFT_RESTRICT ky,
-    const T *FINUFFT_RESTRICT kz, T *FINUFFT_RESTRICT data_nonuniform,
-    const finufft_spread_opts &opts, const T *horner_coeffs_ptr, int nc) {
-  InterpSortedCaller<T> caller{
-      sort_indices, N1, N2, N3, data_uniform, M, kx, ky, kz, data_nonuniform, opts,
-      horner_coeffs_ptr};
+template<typename TF>
+int FINUFFT_PLAN_T<TF>::interpSorted(TF *data_uniform, TF *data_nonuniform) const
+// Interpolate to all NU points from the uniform grid.
+// Uses plan members sortIndices, nfdim, nj, XYZ, spopts, nc, horner_coeffs, dim.
+// 2/24/26 Barbone: converted from free function to method on FINUFFT_PLAN_T.
+// Previous args (sort_indices, N1, N2, N3, M, kx, ky, kz, opts, horner_coeffs, nc)
+// are now plan members; remaining args: data_uniform, data_nonuniform.
+{
+  using namespace finufft::spreadinterp;
+  using namespace finufft::common;
+  InterpSortedCaller caller{*this, data_uniform, data_nonuniform};
   using NsSeq = make_range<MIN_NSPREAD, MAX_NSPREAD>;
   using NcSeq = make_range<MIN_NC, MAX_NC>;
-  auto params =
-      std::make_tuple(DispatchParam<NsSeq>{opts.nspread}, DispatchParam<NcSeq>{nc});
-  return dispatch(caller, params);
+  return dispatch(caller, std::make_tuple(DispatchParam<NsSeq>{spopts.nspread},
+                                          DispatchParam<NcSeq>{nc}));
 }
-
-} // namespace finufft::spreadinterp

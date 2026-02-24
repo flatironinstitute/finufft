@@ -5,37 +5,36 @@
 #include <memory>
 #include <vector>
 
-#include <finufft/fft.hpp>
+#include <finufft/detail/spreadinterp.hpp>
 #include <finufft/finufft_core.hpp>
 #include <finufft/finufft_utils.hpp>
 #include <finufft/heuristics.hpp>
-#include <finufft/spreadinterp.hpp>
 #include <finufft_common/kernel.h>
 
 // ---------- local math routines for type-3 setpts: --------
 
-namespace finufft {
-namespace utils {
-
-template<typename T>
-static void set_nhg_type3(T S, T X, const finufft_opts &opts,
-                          const finufft_spread_opts &spopts, BIGINT *nf, T *h, T *gam)
-/* sets nf, h (upsampled grid spacing), and gamma (x_j rescaling factor),
-   for type 3 only.
+template<typename TF>
+void FINUFFT_PLAN_T<TF>::set_nhg_type3(int idim, TF S, TF X)
+/* sets nfdim[idim], t3P.h[idim], and t3P.gam[idim], for type 3 only.
    Inputs:
+   idim - which dimension (0,1,2)
    X and S are the xj and sk interval half-widths respectively.
-   opts and spopts are the NUFFT and spreader opts strucs, respectively.
-   Outputs:
-   nf is the size of upsampled grid for a given single dimension.
-   h is the grid spacing = 2pi/nf
-   gam is the x rescale factor, ie x'_j = x_j/gam  (modulo shifts).
+   Reads opts and spopts from the plan.
+   Outputs written to plan members:
+   nfdim[idim] - size of upsampled grid for this dimension.
+   t3P.h[idim] - grid spacing = 2pi/nf
+   t3P.gam[idim] - x rescale factor, ie x'_j = x_j/gam (modulo shifts).
    Barnett 2/13/17. Caught inf/nan 3/14/17. io int types changed 3/28/17
    New logic 6/12/17
+   2/24/26 Barbone: converted from free function to method on FINUFFT_PLAN_T.
+   Previous args (opts, spopts) are now plan members; previous output pointers
+   (nf, h, gam) are now written directly to plan members nfdim, t3P.h, t3P.gam.
 */
 {
   using namespace finufft::common;
+  using namespace finufft::utils;
   int nss = spopts.nspread + 1; // since ns may be odd
-  T Xsafe = X, Ssafe = S;       // may be tweaked locally
+  TF Xsafe = X, Ssafe = S;       // may be tweaked locally
   if (X == 0.0)                 // logic ensures XS>=1, handle X=0 a/o S=0
     if (S == 0.0) {
       Xsafe = 1.0;
@@ -45,78 +44,16 @@ static void set_nhg_type3(T S, T X, const finufft_opts &opts,
   else
     Ssafe = std::max(Ssafe, 1 / X);
   // use the safe X and S...
-  auto nfd = T(2.0 * opts.upsampfac * Ssafe * Xsafe / PI + nss);
+  auto nfd = TF(2.0 * opts.upsampfac * Ssafe * Xsafe / PI + nss);
   if (!std::isfinite(nfd)) nfd = 0.0;
-  *nf = (BIGINT)nfd;
-  // printf("initial nf=%lld, ns=%d\n",*nf,spopts.nspread);
-  //  catch too small nf, and nan or +-inf, otherwise spread fails...
-  if (*nf < 2 * spopts.nspread) *nf = 2 * spopts.nspread;
-  if (*nf < MAX_NF)                               // otherwise will fail anyway
-    *nf = next235even(*nf);                       // expensive at huge nf
-  *h   = T(2.0 * PI / *nf);                       // upsampled grid spacing
-  *gam = T(*nf / (2.0 * opts.upsampfac * Ssafe)); // x scale fac to x'
+  nfdim[idim] = (BIGINT)nfd;
+  // catch too small nf, and nan or +-inf, otherwise spread fails...
+  if (nfdim[idim] < 2 * spopts.nspread) nfdim[idim] = 2 * spopts.nspread;
+  if (nfdim[idim] < MAX_NF)                   // otherwise will fail
+    nfdim[idim] = next235even(nfdim[idim]);   // expensive at huge nf
+  t3P.h[idim]   = TF(2.0 * PI / nfdim[idim]); // upsampled grid spacing
+  t3P.gam[idim] = TF(nfdim[idim] / (2.0 * opts.upsampfac * Ssafe)); // x scale fac to x'
 }
-
-template<typename T> class Kernel_onedim_FT {
-private:
-  std::vector<T> z, f; // internal arrays
-
-public:
-  /*
-    Approximates exact 1D Fourier transform of spreadinterp's real symmetric
-    kernel, directly via q-node quadrature on Euler-Fourier formula, exploiting
-    narrowness of kernel. Evaluates at set of arbitrary freqs k in [-pi, pi),
-    for a kernel with x measured in grid-spacings. (See previous routine for
-    FT definition.). Note: old (pre-2025) name was: onedim_nuft_kernel().
-
-    Inputs:
-    opts - spreading opts object, needed to eval kernel (must be already set up)
-
-    Barnett 2/8/17. openmp since cos slow 2/9/17.
-    11/25/25, replaced kernel_definition by evaluate_kernel_runtime, so that
-    the FT of the piecewise poly approximant (not "exact" kernel) is computed.
-   */
-
-  Kernel_onedim_FT(const finufft_spread_opts &opts, const T *horner_coeffs_ptr, int nc) {
-    using finufft::common::gaussquad;
-    using finufft::spreadinterp::evaluate_kernel_runtime;
-    // creator: uses slow kernel evals to initialize z and f arrays.
-    T J2 = opts.nspread / 2.0; // J/2, half-width of ker z-support
-    // # quadr nodes in z (from 0 to J/2; reflections will be added)...
-    int q = (int)(2 + 2.0 * J2); // > pi/2 ratio.  cannot exceed MAX_NQUAD
-    if (opts.debug) printf("q (# ker FT quadr pts) = %d\n", q);
-    std::vector<double> Z(2 * q), W(2 * q);
-    gaussquad(2 * q, Z.data(), W.data()); // only half the nodes used,
-                                          // for (0,1)
-    z.resize(q);
-    f.resize(q);
-    for (int n = 0; n < q; ++n) {
-      z[n] = T(Z[n] * J2); // quadr nodes for [0,J/2] with weights J2 * w
-      f[n] = J2 * T(W[n]) *
-             evaluate_kernel_runtime<T>(z[n], opts.nspread, nc, horner_coeffs_ptr, opts);
-    }
-  }
-
-  /*
-    Evaluates the Fourier transform of the kernel at a single point, using
-    the z and f arrays from creation time.
-
-    Inputs:
-    k - frequency, dual to the kernel's natural argument, ie exp(i.k.z)
-
-    Outputs:
-    phihat - real Fourier transform evaluated at freq k
-   */
-  FINUFFT_ALWAYS_INLINE T operator()(T k) {
-    T x = 0;
-    for (size_t n = 0; n < z.size(); ++n)
-      x += f[n] * 2 * std::cos(k * z[n]); // pos & neg freq pair.  use T cos!
-    return x;
-  }
-};
-
-} // namespace utils
-} // namespace finufft
 
 // --------- setpts user guru interface driver ----------
 
@@ -168,10 +105,9 @@ int FINUFFT_PLAN_T<TF>::setpts(BIGINT nj, const TF *xj, const TF *yj, const TF *
       return ier;
     timer.restart();
     sortIndices.resize(nj);
-    didSort =
-        indexSort(sortIndices, nfdim[0], nfdim[1], nfdim[2], nj, xj, yj, zj, spopts);
+    indexSort();
     if (opts.debug)
-      printf("[%s] sort (didSort=%d):\t\t%.3g s\n", __func__, didSort,
+      printf("[%s] sort (didSort=%d):\t\t%.3g s\n", __func__, (int)didSort,
              timer.elapsedsec());
 
   } else { // ------------------------- TYPE 3 SETPTS -----------------------
@@ -210,8 +146,7 @@ int FINUFFT_PLAN_T<TF>::setpts(BIGINT nj, const TF *xj, const TF *yj, const TF *
     for (int idim = 0; idim < dim; ++idim) {
       arraywidcen(nj, XYZ_in[idim], &(t3P.X[idim]), &(t3P.C[idim]));
       arraywidcen(nk, STU_in[idim], &S[idim], &(t3P.D[idim])); // same D, S, but for {s_k}
-      set_nhg_type3(S[idim], t3P.X[idim], opts, spopts, &(nfdim[idim]), &(t3P.h[idim]),
-                    &(t3P.gam[idim]));                         // applies twist i)
+      set_nhg_type3(idim, S[idim], t3P.X[idim]);               // applies twist i)
       if (opts.debug) // report on choices of shifts, centers, etc...
         printf("\tX%d=%.3g C%d=%.3g S%d=%.3g D%d=%.3g gam%d=%g nf%d=%lld h%d=%.3g\t\n",
                idim, t3P.X[idim], idim, t3P.C[idim], idim, S[idim], idim, t3P.D[idim],
@@ -261,7 +196,7 @@ int FINUFFT_PLAN_T<TF>::setpts(BIGINT nj, const TF *xj, const TF *yj, const TF *
         prephase[j] = {1.0, 0.0}; // *** or keep flag so no mult in exec??
 
     // create a 1D phihat evaluator
-    Kernel_onedim_FT<TF> onedim_phihat(spopts, horner_coeffs.data(), nc);
+    Kernel_onedim_FT onedim_phihat(*this);
 
     // (old STEP 3a) Compute deconvolution post-factors array (per targ pt)...
     // (exploits that FT separates because kernel is prod of 1D funcs)
@@ -293,10 +228,9 @@ int FINUFFT_PLAN_T<TF>::setpts(BIGINT nj, const TF *xj, const TF *yj, const TF *
     timer.restart();
     sortIndices.resize(nj);
     spopts.spread_direction = 1;
-    didSort = indexSort(sortIndices, nfdim[0], nfdim[1], nfdim[2], nj, XYZ[0], XYZ[1],
-                        XYZ[2], spopts);
+    indexSort();
     if (opts.debug)
-      printf("[%s t3] sort (didSort=%d):\t\t%.3g s\n", __func__, didSort,
+      printf("[%s t3] sort (didSort=%d):\t\t%.3g s\n", __func__, (int)didSort,
              timer.elapsedsec());
 
     // Plan and setpts once, for the (repeated) inner type 2 finufft call...

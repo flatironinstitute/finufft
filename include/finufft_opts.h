@@ -5,6 +5,18 @@
 #ifndef FINUFFT_OPTS_H
 #define FINUFFT_OPTS_H
 
+// Default FFT plan flag passed to opts.fftw.
+// Equals FFTW_ESTIMATE (=64) for FFTW builds; -1 for DUCC0 (a sentinel,
+// since FFTW_MEASURE=0 is a different valid choice).
+// To use FFTW_MEASURE or other flags explicitly, include <fftw3.h>.
+#ifdef __cplusplus
+extern "C" {
+#endif
+extern const int FINUFFT_FFT_DEFAULT;
+#ifdef __cplusplus
+}
+#endif
+
 typedef struct finufft_opts { // defaults see finufft_core.cpp:finufft_default_opts_t()
   // sphinx tag (don't remove): @opts_start
   // FINUFFT options:
