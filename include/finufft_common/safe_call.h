@@ -29,8 +29,6 @@ template<class F, class... Args> inline int safe_finufft_call(F &&f, Args &&...a
       return static_cast<int>(
           std::invoke(std::forward<F>(f), std::forward<Args>(args)...));
     }
-  } catch (unsigned int retcode) {
-    return int(retcode);
   } catch (int retcode) {
     return retcode;
   } catch (const std::bad_alloc &) {
