@@ -560,7 +560,7 @@ void cufinufft_setpts_impl(int M, T *d_kx, T *d_ky, T *d_kz, int N, T *d_s, T *d
   for (int idim=0; idim<d_plan->dim; ++idim) {
     const auto scale = d_plan->type3_params.h[idim] * d_plan->type3_params.gam[idim];
     const auto D     = -d_plan->type3_params.D[idim];
-    thrust::transform(thrust::cuda::par.on(stream), d_s, d_s + N, d_plan->STU[idim],
+    thrust::transform(thrust::cuda::par.on(stream), d_stu[idim], d_stu[idim] + N, d_plan->STU[idim],
                       [scale, D] __host__
                       __device__(const T s) -> T { return scale * (s + D); });
   }
@@ -674,7 +674,7 @@ void cufinufft_setpts_impl(int M, T *d_kx, T *d_ky, T *d_kz, int N, T *d_s, T *d
 }
 
 template<typename T>
-int cufinufft_execute_impl(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
+void cufinufft_execute_impl(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
                            cufinufft_plan_t<T> *d_plan)
 /*
     "exec" stage (single and double precision versions).
@@ -699,7 +699,6 @@ int cufinufft_execute_impl(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
 */
 {
   cufinufft::utils::WithCudaDevice device_swapper(d_plan->opts.gpu_device_id);
-  int ier=0;
   int type = d_plan->type;
   switch (d_plan->dim) {
   case 1: {
@@ -718,8 +717,6 @@ int cufinufft_execute_impl(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
     if (type == 3) cufinufft3d3_exec<T>(d_c, d_fk, d_plan);
   } break;
   }
-
-  return ier;
 }
 
 template<typename T>
