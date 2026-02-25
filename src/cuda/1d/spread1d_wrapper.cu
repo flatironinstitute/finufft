@@ -260,7 +260,7 @@ void cuspread1d_nuptsdriven_prop(int nf1, int M, cufinufft_plan_t<T> *d_plan) {
     if (bin_size_x < 0) {
       std::cerr << "[cuspread1d_nuptsdriven_prop] error: invalid binsize (binsizex) = ("
                 << bin_size_x << ")\n";
-      throw FINUFFT_ERR_BINSIZE_NOTVALID;
+      throw int(FINUFFT_ERR_BINSIZE_NOTVALID);
     }
 
     int numbins = ceil((T)nf1 / bin_size_x);
@@ -400,7 +400,7 @@ void cuspread1d_subprob_prop(int nf1, int M, cufinufft_plan_t<T> *d_plan)
   if (bin_size_x < 0) {
     std::cerr << "[cuspread1d_subprob_prop] error: invalid binsize (binsizex) = ("
               << bin_size_x << ")\n";
-    throw FINUFFT_ERR_BINSIZE_NOTVALID;
+    throw int(FINUFFT_ERR_BINSIZE_NOTVALID);
   }
 
   const auto numbins           = (nf1 + bin_size_x - 1) / bin_size_x;
@@ -524,7 +524,7 @@ struct Spread1DDispatcher {
       return cuspread1d_output_driven<T, ns>(nf1, M, d_plan, blksize);
     default:
       std::cerr << "[cuspread1d] error: incorrect method, should be 1, 2 or 3\n";
-      throw FINUFFT_ERR_METHOD_NOTVALID;
+      throw int(FINUFFT_ERR_METHOD_NOTVALID);
     }
   }
 };

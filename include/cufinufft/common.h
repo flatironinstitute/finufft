@@ -55,7 +55,7 @@ void cufinufft_set_shared_memory(V *kernel, const int dim,
             "Error: Shared memory required per block is %zu bytes, but the device "
             "supports only %d bytes.\n",
             shared_mem_required, shared_mem_per_block);
-    throw FINUFFT_ERR_INSUFFICIENT_SHMEM;
+    throw int(FINUFFT_ERR_INSUFFICIENT_SHMEM);
   }
   cudaFuncSetAttribute(kernel, cudaFuncAttributeMaxDynamicSharedMemorySize,
                        shared_mem_required);

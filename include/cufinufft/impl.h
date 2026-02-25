@@ -75,12 +75,12 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
   int ier;
   if (type < 1 || type > 3) {
     fprintf(stderr, "[%s] Invalid type (%d): should be 1, 2, or 3.\n", __func__, type);
-    throw FINUFFT_ERR_TYPE_NOTVALID;
+    throw int(FINUFFT_ERR_TYPE_NOTVALID);
   }
   if (ntransf < 1) {
     fprintf(stderr, "[%s] Invalid ntransf (%d): should be at least 1.\n", __func__,
             ntransf);
-    throw FINUFFT_ERR_NTRANS_NOTVALID;
+    throw int(FINUFFT_ERR_NTRANS_NOTVALID);
   }
 
   /* allocate the plan structure, assign address to user pointer. */
@@ -187,11 +187,11 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
       } else {
         // User-specified method failed, or the fallback GM method failed.
         fprintf(stderr, "%s, method %d\n", e.what(), d_plan->opts.gpu_method);
-        throw FINUFFT_ERR_INSUFFICIENT_SHMEM;
+        throw int(FINUFFT_ERR_INSUFFICIENT_SHMEM);
       }
     }
     if (cudaGetLastError() != cudaSuccess) {
-      throw FINUFFT_ERR_CUDA_FAILURE;
+      throw int(FINUFFT_ERR_CUDA_FAILURE);
     }
   }
   // Bin size and memory info now printed in cufinufft_setup_binsize() (common.cu)
@@ -205,7 +205,7 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
   // for the spreader
 
   if (cudaGetLastError() != cudaSuccess) {
-    throw FINUFFT_ERR_CUDA_FAILURE;
+    throw int(FINUFFT_ERR_CUDA_FAILURE);
   }
 
   if (type == 1 || type == 2) {
@@ -267,7 +267,7 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
       if (cufft_status != CUFFT_SUCCESS) {
         fprintf(stderr, "[%s] cufft makeplan error: %s", __func__,
                 cufftGetErrorString(cufft_status));
-        throw FINUFFT_ERR_CUDA_FAILURE;
+        throw int(FINUFFT_ERR_CUDA_FAILURE);
       }
       cufftSetStream(fftplan, stream);
 
@@ -423,34 +423,34 @@ void cufinufft_setpts_impl(int M, T *d_kx, T *d_ky, T *d_kz, int N, T *d_s, T *d
   if (d_plan->type != 3) {
     fprintf(stderr, "[%s] Invalid type (%d): should be 1, 2, or 3.\n", __func__,
             d_plan->type);
-    throw FINUFFT_ERR_TYPE_NOTVALID;
+    throw int(FINUFFT_ERR_TYPE_NOTVALID);
   }
   if (N < 0) {
     fprintf(stderr, "[cufinufft] Invalid N (%d): cannot be negative.\n", N);
-    throw FINUFFT_ERR_NUM_NU_PTS_INVALID;
+    throw int(FINUFFT_ERR_NUM_NU_PTS_INVALID);
   }
   if (N > MAX_NF) {
     fprintf(stderr, "[cufinufft] Invalid N (%d): cannot be greater than %d.\n", N,
             MAX_NF);
-    throw FINUFFT_ERR_NUM_NU_PTS_INVALID;
+    throw int(FINUFFT_ERR_NUM_NU_PTS_INVALID);
   }
   const auto stream = d_plan->stream;
   d_plan->N         = N;
   if (d_plan->dim > 0 && d_s == nullptr) {
     fprintf(stderr, "[%s] Error: d_s is nullptr but dim > 0.\n", __func__);
-    throw FINUFFT_ERR_INVALID_ARGUMENT;
+    throw int(FINUFFT_ERR_INVALID_ARGUMENT);
   }
   d_plan->STU[0] = d_plan->dim > 0 ? d_s : nullptr;
 
   if (d_plan->dim > 1 && d_t == nullptr) {
     fprintf(stderr, "[%s] Error: d_t is nullptr but dim > 1.\n", __func__);
-    throw FINUFFT_ERR_INVALID_ARGUMENT;
+    throw int(FINUFFT_ERR_INVALID_ARGUMENT);
   }
   d_plan->STU[1] = d_plan->dim > 1 ? d_t : nullptr;
 
   if (d_plan->dim > 2 && d_u == nullptr) {
     fprintf(stderr, "[%s] Error: d_u is nullptr but dim > 2.\n", __func__);
-    throw FINUFFT_ERR_INVALID_ARGUMENT;
+    throw int(FINUFFT_ERR_INVALID_ARGUMENT);
   }
   d_plan->STU[2] = d_plan->dim > 2 ? d_u : nullptr;
 
@@ -497,7 +497,7 @@ void cufinufft_setpts_impl(int M, T *d_kx, T *d_ky, T *d_kz, int N, T *d_s, T *d
     fprintf(stderr,
             "[%s t3] fwBatch would be bigger than MAX_NF, not attempting malloc!\n",
             __func__);
-    throw FINUFFT_ERR_MAXNALLOC;
+    throw int(FINUFFT_ERR_MAXNALLOC);
   }
 
   // FIXME: check the size of the allocs for the batch interface
@@ -731,7 +731,7 @@ void cufinufft_destroy_impl(cufinufft_plan_t<T> *d_plan)
 {
 
   // Can't destroy a null pointer.
-  if (!d_plan) throw FINUFFT_ERR_PLAN_NOTVALID;
+  if (!d_plan) throw int(FINUFFT_ERR_PLAN_NOTVALID);
 
   cufinufft::utils::WithCudaDevice device_swapper(d_plan->opts.gpu_device_id);
 

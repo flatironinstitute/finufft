@@ -43,7 +43,7 @@ void allocgpumem1d_plan(cufinufft_plan_t<T> *d_plan)
   } break;
   default:
     std::cerr << "err: invalid method " << std::endl;
-    throw FINUFFT_ERR_METHOD_NOTVALID;
+    throw int(FINUFFT_ERR_METHOD_NOTVALID);
   }
 
   if (!d_plan->opts.gpu_spreadinterponly) {
@@ -76,7 +76,7 @@ void allocgpumem1d_nupts(cufinufft_plan_t<T> *d_plan)
   } break;
   default:
     std::cerr << "[allocgpumem1d_nupts] error: invalid method\n";
-    throw FINUFFT_ERR_METHOD_NOTVALID;
+    throw int(FINUFFT_ERR_METHOD_NOTVALID);
   }
 }
 
@@ -117,7 +117,7 @@ void allocgpumem2d_plan(cufinufft_plan_t<T> *d_plan)
   } break;
   default:
     std::cerr << "[allocgpumem2d_plan] error: invalid method\n";
-    throw FINUFFT_ERR_METHOD_NOTVALID;
+    throw int(FINUFFT_ERR_METHOD_NOTVALID);
   }
 
   if (!d_plan->opts.gpu_spreadinterponly) {
@@ -154,7 +154,7 @@ void allocgpumem2d_nupts(cufinufft_plan_t<T> *d_plan)
   } break;
   default:
     std::cerr << "[allocgpumem2d_nupts] error: invalid method\n";
-    throw FINUFFT_ERR_METHOD_NOTVALID;
+    throw int(FINUFFT_ERR_METHOD_NOTVALID);
   }
 }
 
@@ -218,7 +218,7 @@ void allocgpumem3d_plan(cufinufft_plan_t<T> *d_plan)
   } break;
   default:
     std::cerr << "[allocgpumem3d_plan] error: invalid method\n";
-    throw FINUFFT_ERR_METHOD_NOTVALID;
+    throw int(FINUFFT_ERR_METHOD_NOTVALID);
   }
 
   if (!d_plan->opts.gpu_spreadinterponly) {
@@ -253,7 +253,7 @@ void allocgpumem3d_nupts(cufinufft_plan_t<T> *d_plan)
   } break;
   default:
     std::cerr << "[allocgpumem3d_nupts] error: invalid method\n";
-    throw FINUFFT_ERR_METHOD_NOTVALID;
+    throw int(FINUFFT_ERR_METHOD_NOTVALID);
   }
 }
 

@@ -86,7 +86,7 @@ struct Interp1DDispatcher {
       return cuinterp1d_nuptsdriven<T, ns>(nf1, M, d_plan, blksize);
     default:
       std::cerr << "[cuinterp1d] error: incorrect method, should be 1\n";
-      throw FINUFFT_ERR_METHOD_NOTVALID;
+      throw int(FINUFFT_ERR_METHOD_NOTVALID);
     }
   }
 };

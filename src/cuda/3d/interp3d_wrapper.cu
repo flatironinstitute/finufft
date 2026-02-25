@@ -285,7 +285,7 @@ struct Interp3DDispatcher {
       return cuinterp3d_subprob<T, ns>(nf1, nf2, nf3, M, d_plan, blksize);
     default:
       std::cerr << "[cuinterp3d] error: incorrect method, should be 1 or 2\n";
-      throw FINUFFT_ERR_METHOD_NOTVALID;
+      throw int(FINUFFT_ERR_METHOD_NOTVALID);
     }
   }
 };

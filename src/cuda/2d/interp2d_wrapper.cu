@@ -246,7 +246,7 @@ struct Interp2DDispatcher {
       return cuinterp2d_subprob<T, ns>(nf1, nf2, M, d_plan, blksize);
     default:
       std::cerr << "[cuinterp2d] error: incorrect method, should be 1 or 2\n";
-      throw FINUFFT_ERR_METHOD_NOTVALID;
+      throw int(FINUFFT_ERR_METHOD_NOTVALID);
     }
   }
 };

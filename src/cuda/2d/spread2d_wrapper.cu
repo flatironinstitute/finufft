@@ -495,7 +495,7 @@ struct Spread2DDispatcher {
       return cuspread2d_output_driven<T, ns>(nf1, nf2, M, d_plan, blksize);
     default:
       std::cerr << "[cuspread2d] error: incorrect method, should be 1, 2 or 3\n";
-      throw FINUFFT_ERR_METHOD_NOTVALID;
+      throw int(FINUFFT_ERR_METHOD_NOTVALID);
     }
   }
 };
@@ -533,7 +533,7 @@ void cuspread2d_nuptsdriven_prop(int nf1, int nf2, int M, cufinufft_plan_t<T> *d
       std::cerr << "[cuspread2d_nuptsdriven_prop] error: invalid binsize "
                    "(binsizex, binsizey) = (";
       std::cerr << bin_size_x << "," << bin_size_y << ")" << std::endl;
-      throw FINUFFT_ERR_BINSIZE_NOTVALID;
+      throw int(FINUFFT_ERR_BINSIZE_NOTVALID);
     }
 
     int numbins[2];
@@ -593,7 +593,7 @@ void cuspread2d_subprob_prop(int nf1, int nf2, int M, cufinufft_plan_t<T> *d_pla
     std::cerr << "[cuspread2d_subprob_prop] error: invalid binsize (binsizex, "
                  "binsizey) = (";
     std::cerr << bin_size_x << "," << bin_size_y << ")" << std::endl;
-    throw FINUFFT_ERR_BINSIZE_NOTVALID;
+    throw int(FINUFFT_ERR_BINSIZE_NOTVALID);
   }
   int numbins[2];
   numbins[0] = ceil((T)nf1 / bin_size_x);

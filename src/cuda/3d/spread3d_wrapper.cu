@@ -564,7 +564,7 @@ void cuspread3d_nuptsdriven_prop(int nf1, int nf2, int nf3, int M,
                    "(binsizex, binsizey, binsizez) = (";
       std::cerr << bin_size_x << "," << bin_size_y << "," << bin_size_z << ")"
                 << std::endl;
-      throw FINUFFT_ERR_BINSIZE_NOTVALID;
+      throw int(FINUFFT_ERR_BINSIZE_NOTVALID);
     }
 
     int numbins[3];
@@ -670,7 +670,7 @@ void cuspread3d_blockgather_prop(int nf1, int nf2, int nf3, int M,
               << std::endl;
     std::cerr << "       (obinsizex, obinsizey, obinsizez) = (" << o_bin_size_x << ", "
               << o_bin_size_y << ", " << o_bin_size_z << ")" << std::endl;
-    throw FINUFFT_ERR_BINSIZE_NOTVALID;
+    throw int(FINUFFT_ERR_BINSIZE_NOTVALID);
   }
 
   numobins[0] = ceil((T)nf1 / o_bin_size_x);
@@ -689,7 +689,7 @@ void cuspread3d_blockgather_prop(int nf1, int nf2, int nf3, int M,
               << bin_size_y << ", " << bin_size_z << ")" << std::endl;
     std::cerr << "      (obinsizex, obinsizey, obinsizez) = (" << o_bin_size_x << ", "
               << o_bin_size_y << ", " << o_bin_size_z << ")" << std::endl;
-    throw FINUFFT_ERR_BINSIZE_NOTVALID;
+    throw int(FINUFFT_ERR_BINSIZE_NOTVALID);
   }
 
   int binsperobinx, binsperobiny, binsperobinz;
@@ -842,7 +842,7 @@ static void cuspread3d_blockgather(int nf1, int nf2, int nf3, int M, cufinufft_p
       obin_size_x * obin_size_y * obin_size_z * sizeof(cuda_complex<T>);
   if (sharedplanorysize > 49152) {
     std::cerr << "[cuspread3d_blockgather] error: not enough shared memory" << std::endl;
-    throw FINUFFT_ERR_INSUFFICIENT_SHMEM;
+    throw int(FINUFFT_ERR_INSUFFICIENT_SHMEM);
   }
 
   for (int t = 0; t < blksize; t++) {
@@ -880,7 +880,7 @@ void cuspread3d_subprob_prop(int nf1, int nf2, int nf3, int M,
   if (bin_size_x < 0 || bin_size_y < 0 || bin_size_z < 0) {
     std::cerr << "error: invalid binsize (binsizex, binsizey, binsizez) = (";
     std::cerr << bin_size_x << "," << bin_size_y << "," << bin_size_z << ")" << std::endl;
-    throw FINUFFT_ERR_BINSIZE_NOTVALID;
+    throw int(FINUFFT_ERR_BINSIZE_NOTVALID);
   }
 
   int numbins[3];
@@ -1096,7 +1096,7 @@ struct Spread3DDispatcher {
       std::cerr << "[cuspread3d] error: invalid method " +
                        std::to_string(d_plan->opts.gpu_method) +
                        ", should be 1, 2, 3 or 4\n";
-      throw FINUFFT_ERR_METHOD_NOTVALID;
+      throw int(FINUFFT_ERR_METHOD_NOTVALID);
     }
   }
 };

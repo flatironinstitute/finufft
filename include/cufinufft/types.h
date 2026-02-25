@@ -61,14 +61,14 @@ struct ThrustAllocatorAsync : public thrust::device_malloc_allocator<T> {
       T* p = nullptr;
       auto err = pool ? cudaMallocAsync(&p, n*sizeof(T), stream)
                       : cudaMalloc(&p, n*sizeof(T));
-      if (err!=cudaSuccess) throw FINUFFT_ERR_CUDA_FAILURE;
+      if (err!=cudaSuccess) throw int(FINUFFT_ERR_CUDA_FAILURE);
       return enthrust(p);
     }
   
     void deallocate(pointer p, size_type) {
       auto err = pool ? cudaFreeAsync(dethrust(p), stream)
                       : cudaFree(dethrust(p));
-      if (err!=cudaSuccess) throw FINUFFT_ERR_CUDA_FAILURE;
+      if (err!=cudaSuccess) throw int(FINUFFT_ERR_CUDA_FAILURE);
     }
 };
 
