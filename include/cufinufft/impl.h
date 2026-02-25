@@ -511,7 +511,7 @@ void cufinufft_setpts_impl(int M, T *d_kx, T *d_ky, T *d_kz, int N, T *d_s, T *d
     d_plan->STU[idim] = dethrust(d_plan->STUp[idim]);
   }
   d_plan->prephase.resize(M);
-  d_plan->deconv.resize(M);
+  d_plan->deconv.resize(N);
 
   // NOTE: init-captures are not allowed for extended __host__ __device__ lambdas
 
