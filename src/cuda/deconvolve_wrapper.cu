@@ -14,7 +14,7 @@ namespace deconvolve {
 // to N/2-1), modeord=1: FFT-compatible mode ordering in fk (from 0 to N/2-1, then -N/2 up
 // to -1).
 template<typename T, int modeord>
-__global__ void deconvolve_1d(int ms, int nf1, cuda_complex<T> *fw, cuda_complex<T> *fk,
+__global__ static void deconvolve_1d(int ms, int nf1, cuda_complex<T> *fw, cuda_complex<T> *fk,
                               T *fwkerhalf1) {
   for (int i = blockDim.x * blockIdx.x + threadIdx.x; i < ms;
        i += blockDim.x * gridDim.x) {
@@ -36,7 +36,7 @@ __global__ void deconvolve_1d(int ms, int nf1, cuda_complex<T> *fw, cuda_complex
 }
 
 template<typename T, int modeord>
-__global__ void deconvolve_2d(int ms, int mt, int nf1, int nf2, cuda_complex<T> *fw,
+__global__ static void deconvolve_2d(int ms, int mt, int nf1, int nf2, cuda_complex<T> *fw,
                               cuda_complex<T> *fk, T *fwkerhalf1, T *fwkerhalf2) {
   int w1, w2, fwkerind1, fwkerind2;
 
@@ -70,7 +70,7 @@ __global__ void deconvolve_2d(int ms, int mt, int nf1, int nf2, cuda_complex<T> 
 }
 
 template<typename T, int modeord>
-__global__ void deconvolve_3d(int ms, int mt, int mu, int nf1, int nf2, int nf3,
+__global__ static void deconvolve_3d(int ms, int mt, int mu, int nf1, int nf2, int nf3,
                               cuda_complex<T> *fw, cuda_complex<T> *fk, T *fwkerhalf1,
                               T *fwkerhalf2, T *fwkerhalf3) {
   int pivot1, pivot2, pivot3, w1, w2, w3, fwkerind1, fwkerind2, fwkerind3;
@@ -115,7 +115,7 @@ __global__ void deconvolve_3d(int ms, int mt, int mu, int nf1, int nf2, int nf3,
 
 /* Kernel for copying fk to fw with same amplication */
 template<typename T, int modeord>
-__global__ void amplify_1d(int ms, int nf1, cuda_complex<T> *fw, cuda_complex<T> *fk,
+__global__ static void amplify_1d(int ms, int nf1, cuda_complex<T> *fw, cuda_complex<T> *fk,
                            T *fwkerhalf1) {
   int w1, fwkerind1;
 
@@ -138,7 +138,7 @@ __global__ void amplify_1d(int ms, int nf1, cuda_complex<T> *fw, cuda_complex<T>
 }
 
 template<typename T, int modeord>
-__global__ void amplify_2d(int ms, int mt, int nf1, int nf2, cuda_complex<T> *fw,
+__global__ static void amplify_2d(int ms, int mt, int nf1, int nf2, cuda_complex<T> *fw,
                            cuda_complex<T> *fk, T *fwkerhalf1, T *fwkerhalf2) {
   int pivot1, pivot2, w1, w2, fwkerind1, fwkerind2;
   int k1, k2, inidx, outidx;
@@ -174,7 +174,7 @@ __global__ void amplify_2d(int ms, int mt, int nf1, int nf2, cuda_complex<T> *fw
 }
 
 template<typename T, int modeord>
-__global__ void amplify_3d(int ms, int mt, int mu, int nf1, int nf2, int nf3,
+__global__ static void amplify_3d(int ms, int mt, int mu, int nf1, int nf2, int nf3,
                            cuda_complex<T> *fw, cuda_complex<T> *fk, T *fwkerhalf1,
                            T *fwkerhalf2, T *fwkerhalf3) {
   int pivot1, pivot2, pivot3, w1, w2, w3, fwkerind1, fwkerind2, fwkerind3;
