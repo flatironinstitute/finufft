@@ -35,7 +35,7 @@ __global__ static void deconvolve_nd(cuda::std::array<int,3> mstu, cuda::std::ar
     int inidx=0, outidx=0;
     for (int idim=0; idim<ndim; ++idim) {
       int wn, fwkerindn;
-      if (modeord == 0) {
+      if constexpr (modeord == 0) {
         int pivot = k[idim] - mstu[idim] / 2;
         wn        = (pivot >= 0) ? pivot : nf123[idim] + pivot;
         fwkerindn = abs(pivot);
@@ -49,8 +49,8 @@ __global__ static void deconvolve_nd(cuda::std::array<int,3> mstu, cuda::std::ar
       outidx += k[idim]*m_acc[idim];
     }
 
-    fk[inidx].x  = fw[outidx].x / kervalue;
-    fk[inidx].y  = fw[outidx].y / kervalue;
+    fk[outidx].x  = fw[inidx].x / kervalue;
+    fk[outidx].y  = fw[inidx].y / kervalue;
   }
 }
 template<typename T, int modeord>
