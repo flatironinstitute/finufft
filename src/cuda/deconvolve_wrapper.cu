@@ -120,10 +120,10 @@ static void cudeconvolve_nd(cufinufft_plan_t<T> *d_plan, int blksize)
   if (!fw2fk)
     checkCudaErrors(cudaMemsetAsync(
         d_plan->fw, 0, d_plan->batchsize * nftot * sizeof(cuda_complex<T>), d_plan->stream));
-  else
-    for (int t = 0; t < blksize; t++)
-      deconvolve_nd<T, modeord,1><<<(nmodes + 256 - 1) / 256, 256, 0, d_plan->stream>>>(
-        d_plan->mstu, d_plan->nf123, d_plan->fw + t * nftot, d_plan->fk + t * nmodes, dethrust(d_plan->fwkerhalf), fw2fk);
+
+  for (int t = 0; t < blksize; t++)
+    deconvolve_nd<T, modeord, ndim><<<(nmodes + 256 - 1) / 256, 256, 0, d_plan->stream>>>(
+      d_plan->mstu, d_plan->nf123, d_plan->fw + t * nftot, d_plan->fk + t * nmodes, dethrust(d_plan->fwkerhalf), fw2fk);
 }
 
 #if 0
@@ -197,7 +197,7 @@ void cudeconvolve3d(cufinufft_plan_t<T> *d_plan, int blksize)
   int maxbatchsize = d_plan->batchsize;
   if (d_plan->spopts.spread_direction == 1) {
     for (int t = 0; t < blksize; t++) {
-      deconvolve_nd<T, modeord, 3><<<(nmodes + 256 - 1) / 256, 256, 0, stream>>>(
+      deconvolve_nd<T, modeord, m><<<(nmodes + 256 - 1) / 256, 256, 0, stream>>>(
           d_plan->mstu, d_plan->nf123, d_plan->fw + t * nf1 * nf2 * nf3,
           d_plan->fk + t * nmodes, dethrust(d_plan->fwkerhalf), true);
     }
