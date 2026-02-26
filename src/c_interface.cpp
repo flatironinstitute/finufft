@@ -113,7 +113,7 @@ int finufftf_destroy(finufftf_plan p)
 // Helper layer ...........................................................
 
 template<typename T>
-static int guru(
+int guru(
     int n_dims, int type, int n_transf, i64 nj, const std::array<const T *, 3> &xyz,
     std::complex<T> *cj, int iflag, T eps, const std::array<ci64, 3> &n_modes, i64 nk,
     const std::array<const T *, 3> &stu, std::complex<T> *fk, const finufft_opts *popts)
@@ -150,7 +150,7 @@ static int guru(
   });
 }
 template<typename T>
-static int guru13(int n_dims, int type, int n_transf, i64 nj,
+int guru13(int n_dims, int type, int n_transf, i64 nj,
                   const std::array<const T *, 3> &xyz, const std::complex<T> *cj,
                   int iflag, T eps, const std::array<ci64, 3> &n_modes, i64 nk,
                   const std::array<const T *, 3> &stu, std::complex<T> *fk,
@@ -159,7 +159,7 @@ static int guru13(int n_dims, int type, int n_transf, i64 nj,
               eps, n_modes, nk, stu, fk, popts);
 }
 template<typename T>
-static int guru2(int n_dims, int type, int n_transf, i64 nj,
+int guru2(int n_dims, int type, int n_transf, i64 nj,
                  const std::array<const T *, 3> &xyz, std::complex<T> *cj, int iflag,
                  T eps, const std::array<ci64, 3> &n_modes, i64 nk,
                  const std::array<const T *, 3> &stu, const std::complex<T> *fk,

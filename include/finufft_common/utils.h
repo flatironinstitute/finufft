@@ -105,7 +105,7 @@ template<typename Tuple> auto extract_vals(const Tuple &t) {
 }
 
 template<typename Tuple, std::size_t... I>
-auto extract_seqs_impl(const Tuple &t, std::index_sequence<I...>) {
+auto extract_seqs_impl(const Tuple &, std::index_sequence<I...>) {
   using T = std::remove_reference_t<Tuple>;
   return std::make_tuple(typename std::tuple_element_t<I, T>::seq_type{}...);
 }

@@ -242,7 +242,7 @@ template FINUFFT_PLAN_T<double>::~FINUFFT_PLAN_T();
 template<typename TF>
 std::vector<int> FINUFFT_PLAN_T<TF>::gridsize_for_fft() const
 // Returns grid dims in fftw_plan_many_dft / ducc0 order.
-// Converted from free function. Barbone 2/24/26.
+// Converted to class member. Barbone 2/24/26.
 {
   if (dim == 1) return {(int)nfdim[0]};
   if (dim == 2) return {(int)nfdim[1], (int)nfdim[0]};
@@ -258,7 +258,7 @@ void FINUFFT_PLAN_T<TF>::do_fft(TC *fwBatch, int ntrans_actual [[maybe_unused]],
 // Execute FFT on fwBatch (in-place, batchSize transforms).
 // FFTW: ntrans_actual ignored (plan already sized to batchSize).
 // DUCC0: used for partial FFTs.
-// Converted from free function. Barbone 2/24/26.
+// Converted to class member. Barbone 2/24/26.
 {
 #ifdef FINUFFT_USE_DUCC0
   size_t nthreads = min<size_t>(MY_OMP_GET_MAX_THREADS(), opts.nthreads);

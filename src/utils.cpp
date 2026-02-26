@@ -74,7 +74,6 @@ double CNTime::elapsedsec() const
 }
 
 #ifdef _OPENMP
-namespace {
 #if defined(_WIN32)
 // Returns the number of physical CPU cores on Windows (excluding hyper-threaded cores)
 unsigned getPhysicalCoreCount() {
@@ -230,8 +229,6 @@ unsigned getPhysicalCoreCount() { return MY_OMP_GET_MAX_THREADS(); }
 unsigned getAllowedCoreCount() { return MY_OMP_GET_MAX_THREADS(); }
 
 #endif
-
-} // namespace
 
 unsigned getOptimalThreadCount() {
   // if the user has set the OMP_NUM_THREADS environment variable, use that value

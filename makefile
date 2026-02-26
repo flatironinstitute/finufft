@@ -155,9 +155,9 @@ ABSDYNLIB = $(FINUFFT)$(DYNLIB)
 SOBJS = src/utils.o src/common/utils.o src/common/kernel.o src/common/pswf.o
 
 # per-precision objs (each gets a _f.o single-precision variant via pattern rule)
+SPREAD_DIM_OBJS := $(foreach dim,1 2 3,src/spreadinterp$(dim)d.o)
 PRECISION_OBJS = src/makeplan.o src/setpts.o src/execute.o \
-                 src/spread_1d.o src/spread_2d.o src/spread_3d.o \
-                 src/spreadinterp.o
+                 src/spreadinterp.o $(SPREAD_DIM_OBJS)
 # common objs compiled once for both precisions
 COMMON_OBJS = src/fft.o src/c_interface.o fortran/finufftfort.o
 # all lib dual-precision objs (note DUCC_OBJS empty if unused)
@@ -207,6 +207,14 @@ src/%.o: src/%.cpp $(HEADERS)
 # single-precision variants: compile same source with -DFINUFFT_SINGLE
 src/%_f.o: src/%.cpp $(HEADERS)
 	$(CXX) $(OBJFLAGS) -DFINUFFT_SINGLE -c $(CXXFLAGS) $< -o $@
+# per-dimension spread objects: generated rules (source name differs from object name)
+define SPREADINTERP_DIM_RULES
+src/spreadinterp$(1)d.o: src/spreadinterp.cpp $(HEADERS)
+	$$(CXX) $$(OBJFLAGS) -DFINUFFT_DIM=$(1) -c $$(CXXFLAGS) $$< -o $$@
+src/spreadinterp$(1)d_f.o: src/spreadinterp.cpp $(HEADERS)
+	$$(CXX) $$(OBJFLAGS) -DFINUFFT_SINGLE -DFINUFFT_DIM=$(1) -c $$(CXXFLAGS) $$< -o $$@
+endef
+$(foreach dim,1 2 3,$(eval $(call SPREADINTERP_DIM_RULES,$(dim))))
 fortran/%.o: fortran/%.cpp $(HEADERS)
 	$(CXX) $(OBJFLAGS) -c $(CXXFLAGS) $< -o $@
 %.o: %.c $(HEADERS)

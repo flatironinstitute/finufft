@@ -10,8 +10,6 @@
 #include <finufft/spreadinterp.hpp>
 #include <finufft/simd.hpp>
 
-using finufft::utils::CNTime;
-
 /* Computational core for FINUFFT.
 
    Based on Barnett 2017-2018 finufft?d.cpp containing nine drivers, plus
@@ -69,7 +67,7 @@ Design notes for guru interface implementation:
 // ---------- deconvolveshuffle: private methods on FINUFFT_PLAN_T ----------
 
 template<typename T>
-void FINUFFT_PLAN_T<T>::deconvolveshuffle1d(int dir, T prefac, BIGINT ms, T *fk,
+void FINUFFT_PLAN_T<T>::deconvolveshuffle1d(int dir, T prefac, T *fk,
                                             std::complex<T> *fw) const
 /*
   if dir==1: copies fw to fk with amplification by prefac/ker
@@ -92,11 +90,12 @@ void FINUFFT_PLAN_T<T>::deconvolveshuffle1d(int dir, T prefac, BIGINT ms, T *fk,
     real divide, or is there a way to force a real divide?
 
   Barnett 1/25/17. Fixed ms=0 case 3/14/17. modeord flag & clean 10/25/17
-  Converted from free function to method on FINUFFT_PLAN_T. Barbone 2/24/26.
-  Previous args (ker, nf1, modeord) are now read from plan members
-  (phiHat[0], nfdim[0], opts.modeord); remaining args: dir, prefac, ms, fk, fw.
+  Previous args (ker, nf1, ms, modeord) are now read from plan members
+  (phiHat[0], nfdim[0], mstu[0], opts.modeord).
+  Converted to class member, ms param removed. Barbone 2/26/26.
 */
 {
+  const BIGINT ms   = mstu[0];
   const auto &ker   = phiHat[0];
   const BIGINT nf1  = nfdim[0];
   const int modeord = opts.modeord;
@@ -134,8 +133,8 @@ void FINUFFT_PLAN_T<T>::deconvolveshuffle1d(int dir, T prefac, BIGINT ms, T *fk,
 }
 
 template<typename T>
-void FINUFFT_PLAN_T<T>::deconvolveshuffle2d(int dir, T prefac, BIGINT ms, BIGINT mt,
-                                            T *fk, std::complex<T> *fw) const
+void FINUFFT_PLAN_T<T>::deconvolveshuffle2d(int dir, T prefac, T *fk,
+                                            std::complex<T> *fw) const
 /*
   2D version of deconvolveshuffle1d, calls it on each x-line using 1/ker2 fac.
 
@@ -153,12 +152,14 @@ void FINUFFT_PLAN_T<T>::deconvolveshuffle2d(int dir, T prefac, BIGINT ms, BIGINT
      respectively (accessed via phiHat[0], phiHat[1]).
 
   Barnett 2/1/17, Fixed mt=0 case 3/14/17. modeord 10/25/17
-  Converted from free function to method on FINUFFT_PLAN_T. Barbone 2/24/26.
-  Previous args (ker1, ker2, nf1, nf2, modeord) are now read from plan members
-  (phiHat[0], phiHat[1], nfdim[0], nfdim[1], opts.modeord); remaining args:
-  dir, prefac, ms, mt, fk, fw.
+  Previous args (ker2, nf1, nf2, ms, mt, modeord) are now read from plan
+  members (phiHat[1], nfdim[0..1], mstu[0..1], opts.modeord). ker1 is read
+  from phiHat[0] inside deconvolveshuffle1d.
+  Converted to class member, ms/mt params removed. Barbone 2/26/26.
 */
 {
+  const BIGINT ms   = mstu[0];
+  const BIGINT mt   = mstu[1];
   const auto &ker2  = phiHat[1];
   const BIGINT nf1  = nfdim[0];
   const BIGINT nf2  = nfdim[1];
@@ -177,14 +178,14 @@ void FINUFFT_PLAN_T<T>::deconvolveshuffle2d(int dir, T prefac, BIGINT ms, BIGINT
       fw[j] = 0.0;
   for (BIGINT k2 = 0; k2 <= k2max; ++k2, pp += 2 * ms)               // non-neg y-freqs
     // point fk and fw to the start of this y value's row (2* is for complex):
-    deconvolveshuffle1d(dir, prefac / ker2[k2], ms, fk + pp, &fw[nf1 * k2]);
+    deconvolveshuffle1d(dir, prefac / ker2[k2], fk + pp, &fw[nf1 * k2]);
   for (BIGINT k2 = k2min; k2 < 0; ++k2, pn += 2 * ms) // neg y-freqs
-    deconvolveshuffle1d(dir, prefac / ker2[-k2], ms, fk + pn, &fw[nf1 * (nf2 + k2)]);
+    deconvolveshuffle1d(dir, prefac / ker2[-k2], fk + pn, &fw[nf1 * (nf2 + k2)]);
 }
 
 template<typename T>
-void FINUFFT_PLAN_T<T>::deconvolveshuffle3d(int dir, T prefac, BIGINT ms, BIGINT mt,
-                                            BIGINT mu, T *fk, std::complex<T> *fw) const
+void FINUFFT_PLAN_T<T>::deconvolveshuffle3d(int dir, T prefac, T *fk,
+                                            std::complex<T> *fw) const
 /*
   3D version of deconvolveshuffle2d, calls it on each xy-plane using 1/ker3 fac.
 
@@ -202,12 +203,15 @@ void FINUFFT_PLAN_T<T>::deconvolveshuffle3d(int dir, T prefac, BIGINT ms, BIGINT
      and nf3/2+1 respectively (accessed via phiHat[0], phiHat[1], phiHat[2]).
 
   Barnett 2/1/17, Fixed mu=0 case 3/14/17. modeord 10/25/17
-  Converted from free function to method on FINUFFT_PLAN_T. Barbone 2/24/26.
-  Previous args (ker1, ker2, ker3, nf1, nf2, nf3, modeord) are now read from
-  plan members (phiHat[0..2], nfdim[0..2], opts.modeord); remaining args:
-  dir, prefac, ms, mt, mu, fk, fw.
+  Previous args (ker3, nf1, nf2, nf3, ms, mt, mu, modeord) are now read from
+  plan members (phiHat[2], nfdim[0..2], mstu[0..2], opts.modeord). ker1/ker2
+  are read from phiHat[0..1] inside deconvolveshuffle1d/2d.
+  Converted to class member, ms/mt/mu params removed. Barbone 2/26/26.
 */
 {
+  const BIGINT ms   = mstu[0];
+  const BIGINT mt   = mstu[1];
+  const BIGINT mu   = mstu[2];
   const auto &ker3  = phiHat[2];
   const BIGINT nf1  = nfdim[0];
   const BIGINT nf2  = nfdim[1];
@@ -227,9 +231,9 @@ void FINUFFT_PLAN_T<T>::deconvolveshuffle3d(int dir, T prefac, BIGINT ms, BIGINT
       fw[j] = 0.0;
   for (BIGINT k3 = 0; k3 <= k3max; ++k3, pp += 2 * ms * mt)        // non-neg z-freqs
     // point fk and fw to the start of this z value's plane (2* is for complex):
-    deconvolveshuffle2d(dir, prefac / ker3[k3], ms, mt, fk + pp, &fw[np * k3]);
+    deconvolveshuffle2d(dir, prefac / ker3[k3], fk + pp, &fw[np * k3]);
   for (BIGINT k3 = k3min; k3 < 0; ++k3, pn += 2 * ms * mt) // neg z-freqs
-    deconvolveshuffle2d(dir, prefac / ker3[-k3], ms, mt, fk + pn, &fw[np * (nf3 + k3)]);
+    deconvolveshuffle2d(dir, prefac / ker3[-k3], fk + pn, &fw[np * (nf3 + k3)]);
 }
 
 // --------- batch helper functions for t1,2 exec: ---------------------------
@@ -295,11 +299,11 @@ int FINUFFT_PLAN_T<T>::deconvolveBatch(int batchSize, std::complex<T> *fkBatch,
 
     // pick dim-specific routine; note prefactors hardcoded to 1.0...
     if (dim == 1)
-      deconvolveshuffle1d(dir, T(1), mstu[0], (T *)fki, fwi);
+      deconvolveshuffle1d(dir, T(1), (T *)fki, fwi);
     else if (dim == 2)
-      deconvolveshuffle2d(dir, T(1), mstu[0], mstu[1], (T *)fki, fwi);
+      deconvolveshuffle2d(dir, T(1), (T *)fki, fwi);
     else
-      deconvolveshuffle3d(dir, T(1), mstu[0], mstu[1], mstu[2], (T *)fki, fwi);
+      deconvolveshuffle3d(dir, T(1), (T *)fki, fwi);
   }
   return 0;
 }
@@ -346,6 +350,7 @@ int FINUFFT_PLAN_T<TF>::execute_internal(TC *cj, TC *fk, bool adjoint, int ntran
      If scratch_size>0. then aligned_scratch points to FFTW-aligned storage with
      at least scratch_size entries. This can be used as scratch space.
 */
+  using finufft::utils::CNTime;
   CNTime timer;
   timer.start();
 
