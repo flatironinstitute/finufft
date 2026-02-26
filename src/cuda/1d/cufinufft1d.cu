@@ -91,27 +91,21 @@ void cufinufft1d2_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
 
   for (int i = 0; i * d_plan->batchsize < d_plan->ntransf; i++) {
     int blksize = std::min(d_plan->ntransf - i * d_plan->batchsize, d_plan->batchsize);
-    cuda_complex<T> *d_cstart    = d_c + i * d_plan->batchsize * d_plan->M;
-    cuda_complex<T> *d_fkstart   = d_fk + i * d_plan->batchsize * d_plan->mstu[0];
-
-    d_plan->c  = d_cstart;
-    d_plan->fk = d_fkstart;
+    d_plan->c  = d_c + i * d_plan->batchsize * d_plan->M;
+    d_plan->fk = d_fk + i * d_plan->batchsize * d_plan->mstu[0];
 
     // Skip steps 1 and 2 if interponly
     if (!d_plan->opts.gpu_spreadinterponly) {
       // Step 1: amplify Fourier coeffs fk and copy into upsampled array fw
-      if (d_plan->opts.modeord == 0) {
-        cudeconvolve1d<T, 0>(d_plan, blksize);
-      } else {
-        cudeconvolve1d<T, 1>(d_plan, blksize);
-      }
+      (d_plan->opts.modeord == 0) ? cudeconvolve1d<T, 0>(d_plan, blksize)
+                                  : cudeconvolve1d<T, 1>(d_plan, blksize);
 
       // Step 2: FFT
       cufftResult cufft_status =
           cufft_ex(d_plan->fftplan, d_plan->fw, d_plan->fw, d_plan->iflag);
       if (cufft_status != CUFFT_SUCCESS) throw int(FINUFFT_ERR_CUDA_FAILURE);
     } else
-      d_plan->fw = d_fkstart; // interpolate directly from user input f
+      d_plan->fw = d_plan->fk; // interpolate directly from user input f
 
     // Step 3: Interpolate
     cuinterp1d<T>(d_plan, blksize);

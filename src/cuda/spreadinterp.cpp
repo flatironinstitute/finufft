@@ -93,8 +93,6 @@ template int setup_spreader(finufft_spread_opts &spopts, float eps, float upsamp
                             int kerevalmeth, int debug, int spreadinterponly);
 template int setup_spreader(finufft_spread_opts &spopts, double eps, double upsampfac,
                             int kerevalmeth, int debug, int spreadinterponly);
-template float evaluate_kernel(float x, const finufft_spread_opts &spopts);
-template double evaluate_kernel(double x, const finufft_spread_opts &spopts);
 
 } // namespace spreadinterp
 } // namespace cufinufft

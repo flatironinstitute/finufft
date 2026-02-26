@@ -12,7 +12,6 @@
 #include <cufinufft/common.h>
 #include <cufinufft/contrib/helper_cuda.h>
 #include <cufinufft/memtransfer.h>
-#include <cufinufft/precision_independent.h>
 #include <cufinufft/spreadinterp.h>
 #include <cufinufft/utils.h>
 #include <cufinufft/contrib/helper_cuda.h>
@@ -32,8 +31,26 @@ using cuda::std::extents;
 using cuda::std::dynamic_extent;
 
 /* ------------------------ 1d Spreading Kernels ----------------------------*/
-/* Kernels for NUptsdriven Method */
 
+static __global__ void calc_subprob_1d(int *bin_size, int *num_subprob, int maxsubprobsize,
+                                int numbins) {
+  for (int i = threadIdx.x + blockIdx.x * blockDim.x; i < numbins;
+       i += gridDim.x * blockDim.x) {
+    num_subprob[i] = ceil(bin_size[i] / (float)maxsubprobsize);
+  }
+}
+
+static __global__ void map_b_into_subprob_1d(int *d_subprob_to_bin, int *d_subprobstartpts,
+                                      int *d_numsubprob, int numbins) {
+  for (int i = threadIdx.x + blockIdx.x * blockDim.x; i < numbins;
+       i += gridDim.x * blockDim.x) {
+    for (int j = 0; j < d_numsubprob[i]; j++) {
+      d_subprob_to_bin[d_subprobstartpts[i] + j] = i;
+    }
+  }
+}
+
+/* Kernels for NUptsdriven Method */
 template<typename T, int KEREVALMETH, int ns>
 static __global__ void spread_1d_nuptsdriven(const T *x, const cuda_complex<T> *c,
                                       cuda_complex<T> *fw, int M, int nf1, T es_c,
@@ -64,17 +81,14 @@ static __global__ void spread_1d_nuptsdriven(const T *x, const cuda_complex<T> *
 template<typename T>
 static __global__ void calc_bin_size_noghost_1d(int M, int nf1, int bin_size_x, int nbinx,
                                          int *bin_size, const T *x, int *sortidx) {
-  int binx;
-  int oldidx;
-  T x_rescaled;
   for (int i = threadIdx.x + blockIdx.x * blockDim.x; i < M;
        i += gridDim.x * blockDim.x) {
-    x_rescaled = fold_rescale(x[i], nf1);
-    binx       = floor(x_rescaled / bin_size_x);
-    binx       = binx >= nbinx ? binx - 1 : binx;
-    binx       = binx < 0 ? 0 : binx;
-    oldidx     = atomicAdd(&bin_size[binx], 1);
-    sortidx[i] = oldidx;
+    T x_rescaled = fold_rescale(x[i], nf1);
+    int binx     = floor(x_rescaled / bin_size_x);
+    binx         = binx >= nbinx ? binx - 1 : binx;
+    binx         = binx < 0 ? 0 : binx;
+    int oldidx   = atomicAdd(&bin_size[binx], 1);
+    sortidx[i]   = oldidx;
     if (binx >= nbinx) {
       sortidx[i] = -binx;
     }
@@ -85,14 +99,12 @@ template<typename T>
 static __global__ void calc_inverse_of_global_sort_idx_1d(
     int M, int bin_size_x, int nbinx, const int *bin_startpts, const int *sortidx,
     const T *x, int *index, int nf1) {
-  int binx;
-  T x_rescaled;
   for (int i = threadIdx.x + blockIdx.x * blockDim.x; i < M;
        i += gridDim.x * blockDim.x) {
-    x_rescaled = fold_rescale(x[i], nf1);
-    binx       = floor(x_rescaled / bin_size_x);
-    binx       = binx >= nbinx ? binx - 1 : binx;
-    binx       = binx < 0 ? 0 : binx;
+    T x_rescaled = fold_rescale(x[i], nf1);
+    int binx     = floor(x_rescaled / bin_size_x);
+    binx         = binx >= nbinx ? binx - 1 : binx;
+    binx         = binx < 0 ? 0 : binx;
 
     index[bin_startpts[binx] + sortidx[i]] = i;
   }

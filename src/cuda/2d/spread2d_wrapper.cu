@@ -9,7 +9,6 @@
 
 #include <cufinufft/contrib/helper_math.h>
 #include <cufinufft/common.h>
-#include <cufinufft/precision_independent.h>
 #include <cufinufft/spreadinterp.h>
 #include <cufinufft/utils.h>
 
@@ -24,6 +23,24 @@ using cuda::std::dynamic_extent;
 using cuda::std::extents;
 using cuda::std::mdspan;
 using cuda::std::span;
+
+static __global__ void calc_subprob_2d(int *bin_size, int *num_subprob, int maxsubprobsize,
+                                int numbins) {
+  for (int i = threadIdx.x + blockIdx.x * blockDim.x; i < numbins;
+       i += gridDim.x * blockDim.x) {
+    num_subprob[i] = ceil(bin_size[i] / (float)maxsubprobsize);
+  }
+}
+
+static __global__ void map_b_into_subprob_2d(int *d_subprob_to_bin, int *d_subprobstartpts,
+                                      int *d_numsubprob, int numbins) {
+  for (int i = threadIdx.x + blockIdx.x * blockDim.x; i < numbins;
+       i += gridDim.x * blockDim.x) {
+    for (int j = 0; j < d_numsubprob[i]; j++) {
+      d_subprob_to_bin[d_subprobstartpts[i] + j] = i;
+    }
+  }
+}
 
 template<typename T>
 static __global__ void calc_bin_size_noghost_2d(int M, int nf1, int nf2, int bin_size_x,

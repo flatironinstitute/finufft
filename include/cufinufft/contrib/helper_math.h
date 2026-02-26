@@ -194,4 +194,7 @@ __host__ __device__ __forceinline__ cuFloatComplex &operator+=(cuFloatComplex &a
   return a;
 }
 
+/* Auxiliary func to compute power of complex number */
+__device__  __forceinline__ double cabs(const cuDoubleComplex &z) { return double(cuCabs(z)); }
+
 #endif // FINUFFT_INCLUDE_CUFINUFFT_CONTRIB_HELPER_MATH_H
