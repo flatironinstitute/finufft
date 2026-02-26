@@ -25,36 +25,33 @@
 #include <inttypes.h>
 #include <vector>
 
-namespace finufft {
-namespace spreadinterp {
+// ---------- FINUFFT_PLAN_T method definitions ----------
 
-inline int spreadcheck(UBIGINT N1, UBIGINT N2, UBIGINT N3, const finufft_spread_opts &opts)
-/* This does just the input checking and reporting for the spreader.
-   See spreadinterp() for input arguments and meaning of returned value.
+template<typename TF>
+int FINUFFT_PLAN_T<TF>::spreadcheck() const
+/* Input checking and reporting for the spreader. Reads nfdim[0..2] and spopts
+   from the plan.
    Split out by Melody Shih, Jun 2018. Finiteness chk Barnett 7/30/18.
    Marco Barbone 5.8.24 removed bounds check as new foldrescale is not limited to
    [-3pi,3pi)
+   Converted to class member, Barbone 2/26/26.
 */
 {
   // INPUT CHECKING & REPORTING .... cuboid not too small for spreading?
-  UBIGINT minN = UBIGINT(2 * opts.nspread);
+  const UBIGINT N1 = (UBIGINT)nfdim[0], N2 = (UBIGINT)nfdim[1], N3 = (UBIGINT)nfdim[2];
+  UBIGINT minN = UBIGINT(2 * spopts.nspread);
   if (N1 < minN || (N2 > 1 && N2 < minN) || (N3 > 1 && N3 < minN)) {
     fprintf(stderr,
             "%s error: one or more non-trivial box dims is less than 2.nspread!\n",
             __func__);
     return FINUFFT_ERR_SPREAD_BOX_SMALL;
   }
-  if (opts.spread_direction != 1 && opts.spread_direction != 2) {
+  if (spopts.spread_direction != 1 && spopts.spread_direction != 2) {
     fprintf(stderr, "%s error: opts.spread_direction must be 1 or 2!\n", __func__);
     return FINUFFT_ERR_SPREAD_DIR;
   }
   return 0;
 }
-
-} // namespace spreadinterp
-} // namespace finufft
-
-// ---------- FINUFFT_PLAN_T method definitions ----------
 
 template<typename TF>
 TF FINUFFT_PLAN_T<TF>::evaluate_kernel_runtime(TF x) const
@@ -72,9 +69,9 @@ TF FINUFFT_PLAN_T<TF>::evaluate_kernel_runtime(TF x) const
    Reads spopts.nspread, nc, padded_ns, horner_coeffs from the plan.
    Barbone (Dec/25). Fixed Lu 12/23/25.
    Simplified spopts, removed redundant |x|>=ns/2 exit point, Barnett 1/15/26.
-   Converted from free function to method on FINUFFT_PLAN_T. Barbone 2/24/26.
    Previous args (x, ns, nc, horner_coeffs_ptr, spopts) are now plan members
-   (spopts.nspread, nc, horner_coeffs, padded_ns); only x remains as argument.
+   (spopts.nspread, nc, horner_coeffs, padded_ns).
+   Converted to class member, Barbone 2/24/26.
 */
 {
   const int ns    = spopts.nspread;
@@ -107,7 +104,7 @@ TF FINUFFT_PLAN_T<TF>::evaluate_kernel_runtime(TF x) const
   Barnett 2/8/17. openmp since cos slow 2/9/17.
   11/25/25, replaced kernel_definition by evaluate_kernel_runtime, so that
   the FT of the piecewise poly approximant (not "exact" kernel) is computed.
-  Converted from free class to nested class of FINUFFT_PLAN_T. Barbone 2/24/26.
+  Converted to nested class of FINUFFT_PLAN_T, Barbone 2/24/26.
   Previous constructor args (spopts, horner_coeffs_ptr, nc) are now read from
   the plan reference.
 */
@@ -156,10 +153,9 @@ void FINUFFT_PLAN_T<TF>::indexSort()
     didSort      - whether a sort was done (true) or not (false).
 
    Barnett 2017; split out by Melody Shih, Jun 2018. Barnett nthr logic 2024.
-   Converted from free function to method on FINUFFT_PLAN_T. Barbone 2/24/26.
    Previous args (M, kx, ky, kz, N1, N2, N3, opts) are now plan members
-   (nj, XYZ, nfdim, spopts). Previous output (sort_indices return value) is
-   now plan member sortIndices; didSort is set as a side effect.
+   (nj, XYZ, nfdim, spopts). Output sortIndices and didSort are plan members.
+   Converted to class member, Barbone 2/24/26.
 */
 {
   using namespace finufft::spreadinterp;
@@ -289,7 +285,7 @@ int FINUFFT_PLAN_T<TF>::spreadinterpSorted(TF *data_uniform, TF *data_nonuniform
             These should lie in the box -pi<=kx<=pi. Points outside this
             domain are also correctly folded back into this domain.
   spopts       - spread/interp options struct; see finufft_common/spread_opts.h
-  horner_coeffs - Horner-format kernel coefficients.
+  horner_coeffs - Horner kernel coefficients.
   nc           - number of Horner coefficients per panel.
 
   Returned value:
@@ -308,11 +304,9 @@ int FINUFFT_PLAN_T<TF>::spreadinterpSorted(TF *data_uniform, TF *data_nonuniform
    Melody Shih split into 3 routines: check, sort, spread. Jun 2018, making
    this routine just a caller to them. Name change, Barnett 7/27/18
    Tidy, Barnett 5/20/20. Tidy doc, Barnett 10/22/20.
-   Converted from free function to method on FINUFFT_PLAN_T. Barbone 2/24/26.
    Previous args (sort_indices, N1, N2, N3, M, kx, ky, kz, opts, did_sort,
-   horner_coeffs, nc) are now plan members (sortIndices, nfdim, nj, XYZ, spopts,
-   didSort, horner_coeffs, nc). Remaining args: data_uniform, data_nonuniform,
-   adjoint.
+   horner_coeffs, nc) are now plan members.
+   Converted to class member, Barbone 2/24/26.
 */
 {
   if ((spopts.spread_direction == 1) != adjoint) // ========= direction 1 (spreading)

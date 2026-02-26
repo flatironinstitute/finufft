@@ -21,8 +21,8 @@ int FINUFFT_PLAN_T<TF>::set_nf_type12(BIGINT ms, BIGINT *nf) const
 // Type 1 & 2 recipe for how to set 1d size of upsampled array, nf, given opts
 // and requested number of Fourier modes ms. Returns 0 if success, else an
 // error code if nf was unreasonably big (& tell the world).
-// Converted from free function to method on FINUFFT_PLAN_T. Barbone 2/24/26.
-// Previous args (opts, spopts) are now plan members; only ms and nf remain.
+// Previous args (opts, spopts) are now plan members.
+// Converted to class member, Barbone 2/24/26.
 {
   using namespace finufft::utils;
   *nf = BIGINT(std::ceil(opts.upsampfac * double(ms))); // round up to handle small cases
@@ -69,8 +69,8 @@ void FINUFFT_PLAN_T<TF>::onedim_fseries_kernel(BIGINT nf,
   Fixed num_threads 7/20/20. Reduced rounding error in a[n] calc 8/20/24.
   11/25/25, replaced kernel_definition by evaluate_kernel_runtime, meaning that
   the FT of the piecewise poly approximant (not "exact" kernel) is computed.
-  Converted from free function to method on FINUFFT_PLAN_T. Barbone 2/24/26.
   Previous arg opts (spreading opts) is now read from plan member spopts.
+  Converted to class member, Barbone 2/24/26.
  */
 {
   using namespace finufft::common;

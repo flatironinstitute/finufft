@@ -5,7 +5,7 @@
 namespace finufft::spreadinterp {
 
 template<typename T, uint8_t ns>
-static void interp_line_wrap(T *FINUFFT_RESTRICT target, const T *du, const T *ker,
+void interp_line_wrap(T *FINUFFT_RESTRICT target, const T *du, const T *ker,
                              const BIGINT i1, const UBIGINT N1) {
   /* This function is called when the kernel wraps around the grid. It is
      slower than interp_line.
@@ -50,7 +50,7 @@ static void interp_line_wrap(T *FINUFFT_RESTRICT target, const T *du, const T *k
 }
 
 template<typename T, uint8_t ns, class simd_type = PaddedSIMD<T, 2 * ns>>
-static void interp_line(T *FINUFFT_RESTRICT target, const T *du, const T *ker, BIGINT i1,
+void interp_line(T *FINUFFT_RESTRICT target, const T *du, const T *ker, BIGINT i1,
                         UBIGINT N1) {
   /* 1D interpolate complex values from size-ns block of the du (uniform grid
    data) array to a single complex output value "target", using as weights the
@@ -134,7 +134,7 @@ static void interp_line(T *FINUFFT_RESTRICT target, const T *du, const T *ker, B
 }
 
 template<typename T, uint8_t ns, class simd_type>
-static void interp_square_wrap(T *FINUFFT_RESTRICT target, const T *du, const T *ker1,
+void interp_square_wrap(T *FINUFFT_RESTRICT target, const T *du, const T *ker1,
                                const T *ker2, const BIGINT i1, const BIGINT i2,
                                const UBIGINT N1, const UBIGINT N2) {
   /*
@@ -189,7 +189,7 @@ static void interp_square_wrap(T *FINUFFT_RESTRICT target, const T *du, const T 
 }
 
 template<typename T, uint8_t ns, class simd_type = PaddedSIMD<T, 2 * ns>>
-static void interp_square(T *FINUFFT_RESTRICT target, const T *du, const T *ker1,
+void interp_square(T *FINUFFT_RESTRICT target, const T *du, const T *ker1,
                           const T *ker2, BIGINT i1, BIGINT i2, UBIGINT N1, UBIGINT N2)
 /* 2D interpolate complex values from a ns*ns block of the du (uniform grid
    data) array to a single complex output value "target", using as weights the
@@ -285,7 +285,7 @@ static void interp_square(T *FINUFFT_RESTRICT target, const T *du, const T *ker1
 }
 
 template<typename T, uint8_t ns, class simd_type>
-static void interp_cube_wrapped(T *FINUFFT_RESTRICT target, const T *du, const T *ker1,
+void interp_cube_wrapped(T *FINUFFT_RESTRICT target, const T *du, const T *ker1,
                                 const T *ker2, const T *ker3, const BIGINT i1,
                                 const BIGINT i2, const BIGINT i3, const UBIGINT N1,
                                 const UBIGINT N2, const UBIGINT N3) {
@@ -361,7 +361,7 @@ static void interp_cube_wrapped(T *FINUFFT_RESTRICT target, const T *du, const T
 }
 
 template<typename T, uint8_t ns, class simd_type = PaddedSIMD<T, 2 * ns>>
-static void interp_cube(T *FINUFFT_RESTRICT target, const T *du, const T *ker1,
+void interp_cube(T *FINUFFT_RESTRICT target, const T *du, const T *ker1,
                         const T *ker2, const T *ker3, BIGINT i1, BIGINT i2, BIGINT i3,
                         UBIGINT N1, UBIGINT N2, UBIGINT N3)
 /* 3D interpolate complex values from a ns*ns*ns block of the du (uniform grid
@@ -458,10 +458,9 @@ static void interp_cube(T *FINUFFT_RESTRICT target, const T *du, const T *ker1,
 // FINUFFT_PLAN_T is already defined via the transitive include chain:
 //   simd.hpp -> finufft/plan.hpp
 //
-// Converted from free function template interpSorted_kernel<T,NS,NC>
-// to method on FINUFFT_PLAN_T. Previous args (sort_indices, N1, N2, N3, M, kx, ky,
-// kz, opts, horner_coeffs_ptr) are now plan members. Dimensionality uses runtime plan
-// member dim (replacing the old ndims_from_Ns(N1,N2,N3) call). Barbone 2/24/26.
+// Previous args (sort_indices, N1, N2, N3, M, kx, ky, kz, opts, horner_coeffs_ptr) are
+// now plan members. Dimensionality uses runtime plan member dim (replacing the old
+// ndims_from_Ns(N1,N2,N3) call). Converted to class member, Barbone 2/24/26.
 
 template<typename TF>
 template<int NS, int NC>
@@ -571,10 +570,8 @@ FINUFFT_NEVER_INLINE int FINUFFT_PLAN_T<TF>::interpSorted_kernel(
 // Member function templates are not allowed in local classes (GCC restriction),
 // so this must be a proper nested class definition of FINUFFT_PLAN_T<TF>.
 //
-// Converted from free InterpSortedCaller struct (in anonymous
-// namespace in spreadinterp.cpp) to nested class of FINUFFT_PLAN_T. Previous
-// free-function args are now read from the plan reference via interpSorted_kernel.
-// Barbone 2/24/26.
+// Previous free-function args are now read from the plan reference via
+// interpSorted_kernel. Converted to nested class of FINUFFT_PLAN_T, Barbone 2/24/26.
 
 template<typename TF>
 struct FINUFFT_PLAN_T<TF>::InterpSortedCaller {
@@ -596,9 +593,8 @@ template<typename TF>
 int FINUFFT_PLAN_T<TF>::interpSorted(TF *data_uniform, TF *data_nonuniform) const
 // Interpolate to all NU points from the uniform grid.
 // Uses plan members sortIndices, nfdim, nj, XYZ, spopts, nc, horner_coeffs, dim.
-// Converted from free function to method on FINUFFT_PLAN_T. Barbone 2/24/26.
 // Previous args (sort_indices, N1, N2, N3, M, kx, ky, kz, opts, horner_coeffs, nc)
-// are now plan members; remaining args: data_uniform, data_nonuniform.
+// are now plan members. Converted to class member, Barbone 2/24/26.
 {
   using namespace finufft::spreadinterp;
   using namespace finufft::common;

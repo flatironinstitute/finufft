@@ -26,9 +26,9 @@ void FINUFFT_PLAN_T<TF>::set_nhg_type3(int idim, TF S, TF X)
    t3P.gam[idim] - x rescale factor, ie x'_j = x_j/gam (modulo shifts).
    Barnett 2/13/17. Caught inf/nan 3/14/17. io int types changed 3/28/17
    New logic 6/12/17
-   Converted from free function to method on FINUFFT_PLAN_T. Barbone 2/24/26.
-   Previous args (opts, spopts) are now plan members; previous output pointers
-   (nf, h, gam) are now written directly to plan members nfdim, t3P.h, t3P.gam.
+   Previous args (opts, spopts) are now plan members; outputs (nf, h, gam) are
+   written directly to plan members nfdim, t3P.h, t3P.gam.
+   Converted to class member, Barbone 2/24/26.
 */
 {
   using namespace finufft::common;
@@ -62,7 +62,6 @@ int FINUFFT_PLAN_T<TF>::setpts(BIGINT nj, const TF *xj, const TF *yj, const TF *
                                BIGINT nk, const TF *s, const TF *t, const TF *u) {
   using namespace finufft::utils;
   using namespace finufft::heuristics;
-  using namespace finufft::spreadinterp;
   // Method function to set NU points and do precomputations. Barnett 2020.
   // See ../docs/cguru.doc for current documentation.
   int d = dim; // abbrev for spatial dim
@@ -100,7 +99,7 @@ int FINUFFT_PLAN_T<TF>::setpts(BIGINT nj, const TF *xj, const TF *yj, const TF *
     }
 
     XYZ     = {xj, yj, zj}; // plan must keep pointers to user's fixed NU pts
-    int ier = spreadcheck(nfdim[0], nfdim[1], nfdim[2], spopts);
+    int ier = spreadcheck();
     if (ier)                // no warnings allowed here
       return ier;
     timer.restart();
