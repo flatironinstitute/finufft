@@ -14,9 +14,17 @@ else()
 endif()
 
 # Sources compiled per-precision (once for float, once for double).
-# spreadinterp.cpp compiled here handles everything except spread_subproblem_Nd;
-# those are compiled per-dimension below (FINUFFT_DIM=1/2/3) for parallelism.
-set(FINUFFT_PRECISION_SOURCES makeplan.cpp setpts.cpp execute.cpp spreadinterp.cpp)
+# spreadinterp_Nd.cpp files each instantiate spread_subproblem_Nd + interpSorted_Nd
+# for their dimension, giving 6 TUs total (3 dims × 2 precisions).
+set(FINUFFT_PRECISION_SOURCES
+    makeplan.cpp
+    setpts.cpp
+    execute.cpp
+    spreadinterp.cpp
+    spreadinterp_1d.cpp
+    spreadinterp_2d.cpp
+    spreadinterp_3d.cpp
+)
 
 # Sources compiled once (handle both precisions internally)
 set(FINUFFT_COMMON_SOURCES fft.cpp c_interface.cpp utils.cpp)
@@ -70,7 +78,6 @@ target_compile_definitions(finufft_f32 PRIVATE FINUFFT_SINGLE)
 finufft_apply_compile_settings(finufft_f32)
 
 # Main library: double-precision precision sources + common sources + f32 objects
-#               + per-dimension spread objects (spreadinterp.cpp × 3 dims × 2 precisions)
 set(FINUFFT_SOURCES ${FINUFFT_PRECISION_SOURCES} ${FINUFFT_COMMON_SOURCES})
 
 if(FINUFFT_STATIC_LINKING)
@@ -79,19 +86,6 @@ else()
     add_library(finufft SHARED ${FINUFFT_SOURCES})
 endif()
 target_sources(finufft PRIVATE $<TARGET_OBJECTS:finufft_f32>)
-
-foreach(dim 1 2 3)
-    foreach(prec "" "_f32")
-        set(tgt finufft_spread${dim}d${prec})
-        add_library(${tgt} OBJECT spreadinterp.cpp)
-        target_compile_definitions(${tgt} PRIVATE FINUFFT_DIM=${dim})
-        if(prec STREQUAL "_f32")
-            target_compile_definitions(${tgt} PRIVATE FINUFFT_SINGLE)
-        endif()
-        finufft_apply_compile_settings(${tgt})
-        target_sources(finufft PRIVATE $<TARGET_OBJECTS:${tgt}>)
-    endforeach()
-endforeach()
 
 enable_static_analysis(finufft)
 add_iwyu_fix_target(finufft)
