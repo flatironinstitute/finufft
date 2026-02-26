@@ -36,13 +36,13 @@ __global__ static void deconvolve_nd(cuda::std::array<int,3> mstu, cuda::std::ar
     for (int idim=0; idim<ndim; ++idim) {
       int wn, fwkerindn;
       if (modeord == 0) {
-        int pivot = i - mstu[idim] / 2;
+        int pivot = k[idim] - mstu[idim] / 2;
         wn        = (pivot >= 0) ? pivot : nf123[idim] + pivot;
         fwkerindn = abs(pivot);
       } else {
-        int pivot = i - mstu[idim] + mstu[idim] / 2;
-        wn        = (pivot >= 0) ? nf123[idim] + i - mstu[idim] : i;
-        fwkerindn = (pivot >= 0) ? mstu[idim] - i : i;
+        int pivot = k[idim] - mstu[idim] + mstu[idim] / 2;
+        wn        = (pivot >= 0) ? nf123[idim] + k[idim] - mstu[idim] : k[idim];
+        fwkerindn = (pivot >= 0) ? mstu[idim] - k[idim] : k[idim];
       }
       kervalue *= fwkerhalf[idim][fwkerindn];
       inidx += wn*nf_acc[idim];
