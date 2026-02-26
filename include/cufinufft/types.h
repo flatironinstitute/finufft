@@ -77,6 +77,11 @@ template<typename T> using gpuArray = thrust::device_vector<T, ThrustAllocatorAs
 template<typename T> inline T* dethrust(gpuArray<T> &arr) {
   return thrust::raw_pointer_cast(arr.data());
   }
+template<typename T> inline cuda::std::array<T *,3> dethrust(cuda::std::array<gpuArray<T>,3> &arr) {
+  cuda::std::array<T *,3> res;
+  for (int i=0; i<3; ++i) res[i] = dethrust(arr[i]);
+  return res;
+  }
 
 template<typename T> struct cufinufft_plan_t {
   cufinufft_opts opts;

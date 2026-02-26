@@ -13,6 +13,50 @@ namespace deconvolve {
 // Note: assume modeord=0: CMCL-compatible mode ordering in fk (from -N/2 up
 // to N/2-1), modeord=1: FFT-compatible mode ordering in fk (from 0 to N/2-1, then -N/2 up
 // to -1).
+template<typename T, int modeord, int ndim>
+__global__ static void deconvolve_nd(cuda::std::array<int,3> mstu, cuda::std::array<int,3> nf123, cuda_complex<T> *fw, cuda_complex<T> *fk,
+                              cuda::std::array<T *, 3>fwkerhalf) {
+
+  // FIXME: use multiplies?
+  cuda::std::array<int, 3> m_acc;
+  for (int idim=0; idim<ndim; ++idim)
+    m_acc[idim] = (idim==0) ? 1 : mstu[idim-1]*m_acc[idim-1];
+  int mtotal = m_acc[ndim-1]*mstu[ndim-1];
+  cuda::std::array<int, 3> nf_acc;
+  for (int idim=0; idim<ndim; ++idim)
+    nf_acc[idim] = (idim==0) ? 1 : nf123[idim-1]*nf_acc[idim-1];
+
+  for (int i = blockDim.x * blockIdx.x + threadIdx.x; i < mtotal;
+       i += blockDim.x * gridDim.x) {
+    cuda::std::array<int,3> k;
+    if constexpr (ndim==1)
+      k = {i,0,0};
+    if constexpr (ndim==2)
+      k = {i%mstu[0], i/mstu[0], 0};
+    if constexpr (ndim==3)
+      k = {i%mstu[0], (i/mstu[0])%mstu[1], (i/mstu[0])/mstu[1]};
+    T kervalue=1;
+    int inidx=0, outidx=0;
+    for (int idim=1; idim<ndim; ++idim) {
+      int wn, fwkerindn;
+      if (modeord == 0) {
+        int pivot    = i - mstu[idim] / 2;
+        wn        = (pivot >= 0) ? pivot : nf123[idim] + pivot;
+        fwkerindn = abs(pivot);
+      } else {
+        int pivot    = i - mstu[idim] + mstu[idim] / 2;
+        wn        = (pivot >= 0) ? nf123[idim] + i - mstu[idim] : i;
+        fwkerindn = (pivot >= 0) ? mstu[idim] - i : i;
+      }
+      kervalue *= fwkerhalf[idim][fwkerindn];
+      inidx += wn*nf_acc[idim];
+      outidx += k[idim]*m_acc[idim];
+    }
+
+    fk[inidx].x  = fw[outidx].x / kervalue;
+    fk[inidx].y  = fw[outidx].y / kervalue;
+  }
+}
 template<typename T, int modeord>
 __global__ static void deconvolve_1d(int ms, int nf1, cuda_complex<T> *fw, cuda_complex<T> *fk,
                               T *fwkerhalf1) {
@@ -234,8 +278,8 @@ void cudeconvolve1d(cufinufft_plan_t<T> *d_plan, int blksize)
 
   if (d_plan->spopts.spread_direction == 1) {
     for (int t = 0; t < blksize; t++) {
-      deconvolve_1d<T, modeord><<<(nmodes + 256 - 1) / 256, 256, 0, stream>>>(
-          ms, nf1, d_plan->fw + t * nf1, d_plan->fk + t * nmodes, dethrust(d_plan->fwkerhalf[0]));
+      deconvolve_nd<T, modeord,1><<<(nmodes + 256 - 1) / 256, 256, 0, stream>>>(
+          d_plan->mstu, d_plan->nf123, d_plan->fw + t * nf1, d_plan->fk + t * nmodes, dethrust(d_plan->fwkerhalf));
     }
   } else {
     checkCudaErrors(cudaMemsetAsync(
@@ -266,9 +310,9 @@ void cudeconvolve2d(cufinufft_plan_t<T> *d_plan, int blksize)
 
   if (d_plan->spopts.spread_direction == 1) {
     for (int t = 0; t < blksize; t++) {
-      deconvolve_2d<T, modeord><<<(nmodes + 256 - 1) / 256, 256, 0, stream>>>(
-          ms, mt, nf1, nf2, d_plan->fw + t * nf1 * nf2, d_plan->fk + t * nmodes,
-          dethrust(d_plan->fwkerhalf[0]), dethrust(d_plan->fwkerhalf[1]));
+      deconvolve_nd<T, modeord, 2><<<(nmodes + 256 - 1) / 256, 256, 0, stream>>>(
+          d_plan->mstu, d_plan->nf123, d_plan->fw + t * nf1 * nf2, d_plan->fk + t * nmodes,
+          dethrust(d_plan->fwkerhalf));
     }
   } else {
     checkCudaErrors(cudaMemsetAsync(
@@ -301,10 +345,9 @@ void cudeconvolve3d(cufinufft_plan_t<T> *d_plan, int blksize)
   int maxbatchsize = d_plan->batchsize;
   if (d_plan->spopts.spread_direction == 1) {
     for (int t = 0; t < blksize; t++) {
-      deconvolve_3d<T, modeord><<<(nmodes + 256 - 1) / 256, 256, 0, stream>>>(
-          ms, mt, mu, nf1, nf2, nf3, d_plan->fw + t * nf1 * nf2 * nf3,
-          d_plan->fk + t * nmodes, dethrust(d_plan->fwkerhalf[0]), dethrust(d_plan->fwkerhalf[1]),
-          dethrust(d_plan->fwkerhalf[2]));
+      deconvolve_nd<T, modeord, 3><<<(nmodes + 256 - 1) / 256, 256, 0, stream>>>(
+          d_plan->mstu, d_plan->nf123, d_plan->fw + t * nf1 * nf2 * nf3,
+          d_plan->fk + t * nmodes, dethrust(d_plan->fwkerhalf));
     }
   } else {
     checkCudaErrors(cudaMemsetAsync(
