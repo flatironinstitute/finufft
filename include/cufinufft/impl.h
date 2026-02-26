@@ -18,34 +18,16 @@
 
 // 1d
 template<typename T>
-void cufinufft1d1_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
-                       cufinufft_plan_t<T> *d_plan);
-template<typename T>
-void cufinufft1d2_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
-                       cufinufft_plan_t<T> *d_plan);
-template<typename T>
-void cufinufft1d3_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
-                       cufinufft_plan_t<T> *d_plan);
+void cufinufft1d_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
+                      cufinufft_plan_t<T> *d_plan);
 // 2d
 template<typename T>
-void cufinufft2d1_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
-                       cufinufft_plan_t<T> *d_plan);
-template<typename T>
-void cufinufft2d2_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
-                       cufinufft_plan_t<T> *d_plan);
-template<typename T>
-void cufinufft2d3_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
-                       cufinufft_plan_t<T> *d_plan);
+void cufinufft2d_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
+                      cufinufft_plan_t<T> *d_plan);
 // 3d
 template<typename T>
-void cufinufft3d1_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
-                       cufinufft_plan_t<T> *d_plan);
-template<typename T>
-void cufinufft3d2_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
-                       cufinufft_plan_t<T> *d_plan);
-template<typename T>
-void cufinufft3d3_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
-                       cufinufft_plan_t<T> *d_plan);
+void cufinufft3d_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
+                      cufinufft_plan_t<T> *d_plan);
 
 template<typename T>
 int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntransf, T tol,
@@ -670,19 +652,13 @@ void cufinufft_execute_impl(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
   int type = d_plan->type;
   switch (d_plan->dim) {
   case 1: {
-    if (type == 1) cufinufft1d1_exec<T>(d_c, d_fk, d_plan);
-    if (type == 2) cufinufft1d2_exec<T>(d_c, d_fk, d_plan);
-    if (type == 3) cufinufft1d3_exec<T>(d_c, d_fk, d_plan);
+    cufinufft1d_exec<T>(d_c, d_fk, d_plan);
   } break;
   case 2: {
-    if (type == 1) cufinufft2d1_exec<T>(d_c, d_fk, d_plan);
-    if (type == 2) cufinufft2d2_exec<T>(d_c, d_fk, d_plan);
-    if (type == 3) cufinufft2d3_exec<T>(d_c, d_fk, d_plan);
+    cufinufft2d_exec<T>(d_c, d_fk, d_plan);
   } break;
   case 3: {
-    if (type == 1) cufinufft3d1_exec<T>(d_c, d_fk, d_plan);
-    if (type == 2) cufinufft3d2_exec<T>(d_c, d_fk, d_plan);
-    if (type == 3) cufinufft3d3_exec<T>(d_c, d_fk, d_plan);
+    cufinufft3d_exec<T>(d_c, d_fk, d_plan);
   } break;
   }
 }

@@ -16,7 +16,7 @@ using namespace cufinufft::spreadinterp;
 using std::min;
 
 template<typename T>
-void cufinufft3d1_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
+static void cufinufft3d1_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
                       cufinufft_plan_t<T> *d_plan)
 /*
     3D Type-1 NUFFT
@@ -61,14 +61,9 @@ void cufinufft3d1_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
     cudeconvolve(d_plan, blksize);
   }
 }
-template void cufinufft3d1_exec<float>(cuda_complex<float> *d_c, cuda_complex<float> *d_fk,
-                                       cufinufft_plan_t<float> *d_plan);
-template void cufinufft3d1_exec<double>(cuda_complex<double> *d_c,
-                                        cuda_complex<double> *d_fk,
-                                        cufinufft_plan_t<double> *d_plan);
 
 template<typename T>
-void cufinufft3d2_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
+static void cufinufft3d2_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
                       cufinufft_plan_t<T> *d_plan)
 /*
     3D Type-2 NUFFT
@@ -110,15 +105,10 @@ void cufinufft3d2_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
     cuinterp3d<T>(d_plan, blksize);
   }
 }
-template void cufinufft3d2_exec<float>(cuda_complex<float> *d_c, cuda_complex<float> *d_fk,
-                                       cufinufft_plan_t<float> *d_plan);
-template void cufinufft3d2_exec<double>(cuda_complex<double> *d_c,
-                                        cuda_complex<double> *d_fk,
-                                        cufinufft_plan_t<double> *d_plan);
 
 // TODO: in case data is centered, we could save GPU memory
 template<typename T>
-void cufinufft3d3_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
+static void cufinufft3d3_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
                       cufinufft_plan_t<T> *d_plan) {
   /*
     3D Type-3 NUFFT
@@ -170,8 +160,18 @@ void cufinufft3d3_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
     }
   }
 }
-template void cufinufft3d3_exec<float>(cuda_complex<float> *d_c, cuda_complex<float> *d_fk,
-                                       cufinufft_plan_t<float> *d_plan);
-template void cufinufft3d3_exec<double>(cuda_complex<double> *d_c,
-                                        cuda_complex<double> *d_fk,
-                                        cufinufft_plan_t<double> *d_plan);
+
+template<typename T>
+void cufinufft3d_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
+                             cufinufft_plan_t<T> *d_plan) {
+  switch (d_plan->type) {
+    case 1: return cufinufft3d1_exec(d_c, d_fk, d_plan);
+    case 2: return cufinufft3d2_exec(d_c, d_fk, d_plan);
+    case 3: return cufinufft3d3_exec(d_c, d_fk, d_plan);
+  }
+}
+template void cufinufft3d_exec<float>(cuda_complex<float> *d_c, cuda_complex<float> *d_fk,
+                                      cufinufft_plan_t<float> *d_plan);
+template void cufinufft3d_exec<double>(cuda_complex<double> *d_c,
+                                       cuda_complex<double> *d_fk,
+                                       cufinufft_plan_t<double> *d_plan);
