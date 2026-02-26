@@ -58,11 +58,7 @@ void cufinufft1d1_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
     if (cufft_status != CUFFT_SUCCESS) throw int(FINUFFT_ERR_CUDA_FAILURE);
 
     // Step 3: deconvolve and shuffle
-    if (d_plan->opts.modeord == 0) {
-      cudeconvolve1d<T, 0>(d_plan, blksize);
-    } else {
-      cudeconvolve1d<T, 1>(d_plan, blksize);
-    }
+    cudeconvolve(d_plan, blksize);
   }
 }
 template void cufinufft1d1_exec<float>(cuda_complex<float> *d_c, cuda_complex<float> *d_fk,
@@ -97,8 +93,7 @@ void cufinufft1d2_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
     // Skip steps 1 and 2 if interponly
     if (!d_plan->opts.gpu_spreadinterponly) {
       // Step 1: amplify Fourier coeffs fk and copy into upsampled array fw
-      (d_plan->opts.modeord == 0) ? cudeconvolve1d<T, 0>(d_plan, blksize)
-                                  : cudeconvolve1d<T, 1>(d_plan, blksize);
+      cudeconvolve(d_plan, blksize);
 
       // Step 2: FFT
       cufftResult cufft_status =

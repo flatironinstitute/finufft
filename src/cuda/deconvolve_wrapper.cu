@@ -103,7 +103,7 @@ __global__ static void amplify_nd(cuda::std::array<int,3> mstu, cuda::std::array
 }
 #endif
 template<typename T, int modeord, int ndim>
-static void cudeconvolvend(cufinufft_plan_t<T> *d_plan, int blksize)
+static void cudeconvolve_nd(cufinufft_plan_t<T> *d_plan, int blksize)
 /*
     wrapper for deconvolution & amplification in 1/2/3D.
 
@@ -128,22 +128,23 @@ static void cudeconvolvend(cufinufft_plan_t<T> *d_plan, int blksize)
   }
 }
 
+#if 0
 template<typename T, int modeord>
 void cudeconvolve1d(cufinufft_plan_t<T> *d_plan, int blksize)
 {
-cudeconvolvend<T, modeord, 1>(d_plan, blksize);
+cudeconvolve_nd<T, modeord, 1>(d_plan, blksize);
 }
 template<typename T, int modeord>
 void cudeconvolve2d(cufinufft_plan_t<T> *d_plan, int blksize)
 {
-cudeconvolvend<T, modeord, 2>(d_plan, blksize);
+cudeconvolve_nd<T, modeord, 2>(d_plan, blksize);
 }
 template<typename T, int modeord>
 void cudeconvolve3d(cufinufft_plan_t<T> *d_plan, int blksize)
 {
-cudeconvolvend<T, modeord, 3>(d_plan, blksize);
+cudeconvolve_nd<T, modeord, 3>(d_plan, blksize);
 }
-#if 0
+
 template<typename T, int modeord>
 void cudeconvolve2d(cufinufft_plan_t<T> *d_plan, int blksize)
 /*
@@ -213,6 +214,23 @@ void cudeconvolve3d(cufinufft_plan_t<T> *d_plan, int blksize)
   }
 }
 #endif
+template<typename T>
+void cudeconvolve(cufinufft_plan_t<T> *d_plan, int blksize)
+  {
+  if (d_plan->dim==1)
+    (d_plan->opts.modeord == 0) ? cudeconvolve_nd<T,0,1>(d_plan, blksize)
+                                : cudeconvolve_nd<T,1,1>(d_plan, blksize);
+  if (d_plan->dim==2)
+    (d_plan->opts.modeord == 0) ? cudeconvolve_nd<T,0,2>(d_plan, blksize)
+                                : cudeconvolve_nd<T,1,2>(d_plan, blksize);
+  if (d_plan->dim==3)
+    (d_plan->opts.modeord == 0) ? cudeconvolve_nd<T,0,3>(d_plan, blksize)
+                                : cudeconvolve_nd<T,1,3>(d_plan, blksize);
+  }
+
+template void cudeconvolve<float>(cufinufft_plan_t<float> *d_plan, int blksize);
+template void cudeconvolve<double>(cufinufft_plan_t<double> *d_plan, int blksize);
+#if 0
 template void cudeconvolve1d<float, 0>(cufinufft_plan_t<float> *d_plan, int blksize);
 template void cudeconvolve1d<float, 1>(cufinufft_plan_t<float> *d_plan, int blksize);
 template void cudeconvolve1d<double, 0>(cufinufft_plan_t<double> *d_plan, int blksize);
@@ -225,6 +243,6 @@ template void cudeconvolve3d<float, 0>(cufinufft_plan_t<float> *d_plan, int blks
 template void cudeconvolve3d<float, 1>(cufinufft_plan_t<float> *d_plan, int blksize);
 template void cudeconvolve3d<double, 0>(cufinufft_plan_t<double> *d_plan, int blksize);
 template void cudeconvolve3d<double, 1>(cufinufft_plan_t<double> *d_plan, int blksize);
-
+#endif
 } // namespace deconvolve
 } // namespace cufinufft
