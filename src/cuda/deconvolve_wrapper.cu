@@ -18,13 +18,9 @@ __global__ static void deconvolve_nd(cuda::std::array<int,3> mstu, cuda::std::ar
                               cuda::std::array<T *, 3>fwkerhalf) {
 
   // FIXME: use multiplies?
-  cuda::std::array<int, 3> m_acc;
-  for (int idim=0; idim<ndim; ++idim)
-    m_acc[idim] = (idim==0) ? 1 : mstu[idim-1]*m_acc[idim-1];
+  cuda::std::array<int, 3> m_acc {1, mstu[0], mstu[0]*mstu[1]};
   int mtotal = m_acc[ndim-1]*mstu[ndim-1];
-  cuda::std::array<int, 3> nf_acc;
-  for (int idim=0; idim<ndim; ++idim)
-    nf_acc[idim] = (idim==0) ? 1 : nf123[idim-1]*nf_acc[idim-1];
+  cuda::std::array<int, 3> nf_acc {1, nf123[0], nf123[0]*nf123[1]};
 
   for (int i = blockDim.x * blockIdx.x + threadIdx.x; i < mtotal;
        i += blockDim.x * gridDim.x) {
@@ -37,14 +33,14 @@ __global__ static void deconvolve_nd(cuda::std::array<int,3> mstu, cuda::std::ar
       k = {i%mstu[0], (i/mstu[0])%mstu[1], (i/mstu[0])/mstu[1]};
     T kervalue=1;
     int inidx=0, outidx=0;
-    for (int idim=1; idim<ndim; ++idim) {
+    for (int idim=0; idim<ndim; ++idim) {
       int wn, fwkerindn;
       if (modeord == 0) {
-        int pivot    = i - mstu[idim] / 2;
+        int pivot = i - mstu[idim] / 2;
         wn        = (pivot >= 0) ? pivot : nf123[idim] + pivot;
         fwkerindn = abs(pivot);
       } else {
-        int pivot    = i - mstu[idim] + mstu[idim] / 2;
+        int pivot = i - mstu[idim] + mstu[idim] / 2;
         wn        = (pivot >= 0) ? nf123[idim] + i - mstu[idim] : i;
         fwkerindn = (pivot >= 0) ? mstu[idim] - i : i;
       }
