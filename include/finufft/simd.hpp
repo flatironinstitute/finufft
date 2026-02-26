@@ -215,7 +215,7 @@ template<typename T> FINUFFT_ALWAYS_INLINE auto xsimd_to_array(const T &vec) noe
   return array;
 }
 
-FINUFFT_NEVER_INLINE
+[[maybe_unused]] FINUFFT_NEVER_INLINE
 void print_subgrid_info(int ndims, BIGINT offset1, BIGINT offset2, BIGINT offset3,
                         UBIGINT padded_size1, UBIGINT size1, UBIGINT size2, UBIGINT size3,
                         UBIGINT M0) {
@@ -242,7 +242,7 @@ void print_subgrid_info(int ndims, BIGINT offset1, BIGINT offset2, BIGINT offset
 }
 // Helper for runtime diagnostic when dispatch picks invalid kernel params.
 // Defined noinline to avoid code bloat on the valid path.
-FINUFFT_NEVER_INLINE int report_invalid_kernel_params(const int ns, const int nc) {
+[[maybe_unused]] FINUFFT_NEVER_INLINE int report_invalid_kernel_params(const int ns, const int nc) {
   fprintf(stderr,
           "FINUFFT error: invalid kernel params selected at runtime (ns=%d, nc=%d).\n",
           ns, nc);
@@ -268,8 +268,11 @@ static constexpr uint8_t ndims_from_Ns(const UBIGINT /*N1*/, const UBIGINT N2,
 */
 template<typename T>
 static FINUFFT_ALWAYS_INLINE T fold_rescale(const T x, const UBIGINT N) noexcept {
-  const T result = x * T(INV_2PI) + T(0.5);
-  return (result - std::floor(result)) * T(N);
+  // using namespace to make the code compatible with both std and xsimd functions without qualification
+  using namespace std;
+  using namespace xsimd;
+  const T result = fma(x, INV_2PI, T(0.5)); // x/(2pi) + 0.5
+  return (result - floor(result)) * T(N);
 }
 
 template<int ns, int nc, class T,

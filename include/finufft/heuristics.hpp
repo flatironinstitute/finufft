@@ -11,7 +11,7 @@
 namespace finufft::heuristics {
 #ifndef FINUFFT_USE_DUCC0
 template<typename T>
-static double bestUpsamplingFactorSinglethread(
+double bestUpsamplingFactorSinglethread(
     const double density, const int dim, const int nufftType, const double epsilon) {
 
   constexpr bool isFloat = std::is_same_v<T, float>;
@@ -106,7 +106,7 @@ static double bestUpsamplingFactorSinglethread(
 }
 
 template<typename T>
-static double bestUpsamplingFactorMultithread(const double density, const int dim,
+double bestUpsamplingFactorMultithread(const double density, const int dim,
                                               const int nufftType, const double epsilon) {
   constexpr bool isFloat = std::is_same_v<T, float>;
   if constexpr (isFloat) {
@@ -157,7 +157,7 @@ static double bestUpsamplingFactorMultithread(const double density, const int di
 #else
 
 template<typename T>
-static double bestUpsamplingFactorSinglethread(
+double bestUpsamplingFactorSinglethread(
     const double density, const int dim, const int nufftType, const double epsilon) {
 
   constexpr bool isFloat = std::is_same_v<T, float>;
@@ -271,7 +271,7 @@ static double bestUpsamplingFactorSinglethread(
 }
 
 template<typename T>
-static double bestUpsamplingFactorMultithread(const double density, const int dim,
+double bestUpsamplingFactorMultithread(const double density, const int dim,
                                               const int nufftType, const double epsilon) {
   constexpr bool isFloat = std::is_same_v<T, float>;
   if constexpr (isFloat) {

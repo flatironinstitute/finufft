@@ -33,8 +33,8 @@ FINUFFT_NEVER_INLINE void FINUFFT_PLAN_T<TF>::spread_subproblem_1d_kernel(
      chance of segfault when epsmach*N1>O(1), assuming max() and ceil() commute.
      This needed off1 as extra arg. AHB 11/30/20.
      Vectorized using xsimd by M. Barbone 06/24.
-     Converted from free function template to method on FINUFFT_PLAN_T. Barbone 2/24/26.
      Previous arg horner_coeffs_ptr is now read from plan member horner_coeffs.data().
+     Converted to class member, Barbone 2/24/26.
   */
   using namespace finufft::spreadinterp;
   using finufft::common::MAX_NSPREAD;
@@ -156,7 +156,6 @@ FINUFFT_NEVER_INLINE void FINUFFT_PLAN_T<TF>::spread_subproblem_1d_kernel(
   }
 }
 
-
 template<typename TF>
 template<int ns, int nc>
 FINUFFT_NEVER_INLINE void FINUFFT_PLAN_T<TF>::spread_subproblem_2d_kernel(
@@ -169,8 +168,8 @@ FINUFFT_NEVER_INLINE void FINUFFT_PLAN_T<TF>::spread_subproblem_2d_kernel(
    dd (size M complex) are complex source strengths
    du (size size1*size2) is complex uniform output array
    For algoritmic details see spread_subproblem_1d_kernel.
-   Converted from free function template to method on FINUFFT_PLAN_T. Barbone 2/24/26.
    Previous arg horner_coeffs_ptr is now read from plan member horner_coeffs.data().
+   Converted to class member, Barbone 2/24/26.
 */
 {
   using namespace finufft::spreadinterp;
@@ -259,7 +258,6 @@ FINUFFT_NEVER_INLINE void FINUFFT_PLAN_T<TF>::spread_subproblem_2d_kernel(
   }
 }
 
-
 template<typename TF>
 template<int ns, int nc>
 FINUFFT_NEVER_INLINE void FINUFFT_PLAN_T<TF>::spread_subproblem_3d_kernel(
@@ -267,8 +265,8 @@ FINUFFT_NEVER_INLINE void FINUFFT_PLAN_T<TF>::spread_subproblem_3d_kernel(
     const UBIGINT size2, const UBIGINT size3, TF *FINUFFT_RESTRICT du, const UBIGINT M,
     const TF *kx, const TF *ky, const TF *kz, const TF *dd) const noexcept
 // 3D version of spread_subproblem_1d_kernel.
-// Converted from free function template to method on FINUFFT_PLAN_T.
-// Previous arg horner_coeffs_ptr is now read from plan member horner_coeffs.data(). Barbone 2/24/26.
+// Previous arg horner_coeffs_ptr is now read from plan member horner_coeffs.data().
+// Converted to class member, Barbone 2/24/26.
 {
   using namespace finufft::spreadinterp;
   using finufft::common::MAX_NSPREAD;
@@ -346,7 +344,6 @@ FINUFFT_NEVER_INLINE void FINUFFT_PLAN_T<TF>::spread_subproblem_3d_kernel(
   }
 }
 
-
 template<typename TF>
 template<bool thread_safe>
 void FINUFFT_PLAN_T<TF>::add_wrapped_subgrid(
@@ -360,8 +357,8 @@ void FINUFFT_PLAN_T<TF>::add_wrapped_subgrid(
    using atomic writes (R Blackwell, Nov 2020).
    Merged the thread_safe and the not thread_safe version of the function into one
    (M. Barbone 06/24).
-   Converted from free function to method on FINUFFT_PLAN_T. Barbone 2/24/26.
    Previous args (N1, N2, N3) are now read from plan member nfdim[0..2].
+   Converted to class member, Barbone 2/24/26.
 */
 {
   using T          = TF;
@@ -437,9 +434,9 @@ void FINUFFT_PLAN_T<TF>::bin_sort_singlethread(double bin_size_x, double bin_siz
  *         writes to ret a vector list of indices, each in the range 0,..,M-1.
  *         Thus, ret must have been preallocated for M BIGINTs.
  *
- * Converted from free function to method on FINUFFT_PLAN_T. Barbone 2/24/26.
  * Previous args (ret, M, kx, ky, kz, N1, N2, N3, debug) are now plan members
  * (sortIndices, nj, XYZ[0..2], nfdim[0..2], spopts.debug).
+ * Converted to class member, Barbone 2/24/26.
  *
  * Notes: I compared RAM usage against declaring an internal vector and passing
  * back; the latter used more RAM and was slower.
@@ -510,9 +507,9 @@ void FINUFFT_PLAN_T<TF>::bin_sort_multithread(double bin_size_x, double bin_size
    Explicit #threads control argument 7/20/20.
    Improved by Martin Reinecke, 6/19/23 (up to 50% faster at 1 thr/core).
    Todo: if debug, print timing breakdowns.
-   Converted from free function to method on FINUFFT_PLAN_T. Barbone 2/24/26.
    Previous args (ret, M, kx, ky, kz, N1, N2, N3, debug) are now plan members
    (sortIndices, nj, XYZ[0..2], nfdim[0..2], spopts.debug).
+   Converted to class member, Barbone 2/24/26.
  */
 {
   using namespace finufft::spreadinterp;
@@ -628,8 +625,8 @@ void FINUFFT_PLAN_T<TF>::get_subgrid(BIGINT &offset1, BIGINT &offset2, BIGINT &o
    inaccurate) single-precision with N1>>1e7 on 11/30/20.
    3) Requires O(M) RAM reads to find the k array bnds. Almost negligible in
    tests.
-   Converted from free function to method on FINUFFT_PLAN_T. Barbone 2/24/26.
    Previous args (ns, ndims) are now read from plan members spopts.nspread and dim.
+   Converted to class member, Barbone 2/24/26.
 */
 {
   using namespace finufft::spreadinterp;
@@ -742,8 +739,8 @@ void FINUFFT_PLAN_T<TF>::spread_subproblem_1d(BIGINT off1, UBIGINT size1, TF *du
                                               UBIGINT M, TF *kx, TF *dd) const noexcept
 // Spread M NU points (kx, dd) into subgrid du of length size1 starting at off1.
 // Uses plan members spopts.nspread, nc, horner_coeffs for the kernel dispatch.
-// Converted from free function to method on FINUFFT_PLAN_T.
-// Previous args (opts, horner_coeffs_ptr, nc) are now plan members. Barbone 2/24/26.
+// Previous args (opts, horner_coeffs_ptr, nc) are now plan members.
+// Converted to class member, Barbone 2/24/26.
 {
   using namespace finufft::spreadinterp;
   using namespace finufft::common;
@@ -755,13 +752,12 @@ void FINUFFT_PLAN_T<TF>::spread_subproblem_1d(BIGINT off1, UBIGINT size1, TF *du
 }
 
 template<typename TF>
-void FINUFFT_PLAN_T<TF>::spread_subproblem_2d(BIGINT off1, BIGINT off2, UBIGINT size1,
-                                              UBIGINT size2, TF *FINUFFT_RESTRICT du,
-                                              UBIGINT M, const TF *kx, const TF *ky,
-                                              const TF *dd) const noexcept
+void FINUFFT_PLAN_T<TF>::spread_subproblem_2d(
+    BIGINT off1, BIGINT off2, UBIGINT size1, UBIGINT size2, TF *FINUFFT_RESTRICT du,
+    UBIGINT M, const TF *kx, const TF *ky, const TF *dd) const noexcept
 // 2D version of spread_subproblem_1d.
-// Converted from free function to method on FINUFFT_PLAN_T.
-// Previous args (opts, horner_coeffs_ptr, nc) are now plan members. Barbone 2/24/26.
+// Previous args (opts, horner_coeffs_ptr, nc) are now plan members.
+// Converted to class member, Barbone 2/24/26.
 {
   using namespace finufft::spreadinterp;
   using namespace finufft::common;
@@ -773,13 +769,12 @@ void FINUFFT_PLAN_T<TF>::spread_subproblem_2d(BIGINT off1, BIGINT off2, UBIGINT 
 }
 
 template<typename TF>
-void FINUFFT_PLAN_T<TF>::spread_subproblem_3d(BIGINT off1, BIGINT off2, BIGINT off3,
-                                              UBIGINT size1, UBIGINT size2, UBIGINT size3,
-                                              TF *du, UBIGINT M, TF *kx, TF *ky, TF *kz,
-                                              TF *dd) const noexcept
+void FINUFFT_PLAN_T<TF>::spread_subproblem_3d(
+    BIGINT off1, BIGINT off2, BIGINT off3, UBIGINT size1, UBIGINT size2, UBIGINT size3,
+    TF *du, UBIGINT M, TF *kx, TF *ky, TF *kz, TF *dd) const noexcept
 // 3D version of spread_subproblem_1d.
-// Converted from free function to method on FINUFFT_PLAN_T.
-// Previous args (opts, horner_coeffs_ptr, nc) are now plan members. Barbone 2/24/26.
+// Previous args (opts, horner_coeffs_ptr, nc) are now plan members.
+// Converted to class member, Barbone 2/24/26.
 {
   using namespace finufft::spreadinterp;
   using namespace finufft::common;

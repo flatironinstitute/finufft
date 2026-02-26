@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <complex>
 #include <cstdint>
 #include <memory>
 
@@ -32,24 +33,16 @@ inline constexpr BIGINT MAX_NU_PTS = BIGINT(1e14);
 #ifdef _OPENMP
 #include <omp.h>
 // point to actual omp utils
-static inline int MY_OMP_GET_NUM_THREADS [[maybe_unused]] () {
-  return omp_get_num_threads();
-}
-static inline int MY_OMP_GET_MAX_THREADS [[maybe_unused]] () {
-  return omp_get_max_threads();
-}
-static inline int MY_OMP_GET_THREAD_NUM [[maybe_unused]] () {
-  return omp_get_thread_num();
-}
-static inline void MY_OMP_SET_NUM_THREADS [[maybe_unused]] (int x) {
-  omp_set_num_threads(x);
-}
+inline int MY_OMP_GET_NUM_THREADS [[maybe_unused]] () { return omp_get_num_threads(); }
+inline int MY_OMP_GET_MAX_THREADS [[maybe_unused]] () { return omp_get_max_threads(); }
+inline int MY_OMP_GET_THREAD_NUM [[maybe_unused]] () { return omp_get_thread_num(); }
+inline void MY_OMP_SET_NUM_THREADS [[maybe_unused]] (int x) { omp_set_num_threads(x); }
 #else
 // non-omp safe dummy versions of omp utils...
-static inline int MY_OMP_GET_NUM_THREADS [[maybe_unused]] () { return 1; }
-static inline int MY_OMP_GET_MAX_THREADS [[maybe_unused]] () { return 1; }
-static inline int MY_OMP_GET_THREAD_NUM [[maybe_unused]] () { return 0; }
-static inline void MY_OMP_SET_NUM_THREADS [[maybe_unused]] (int) {}
+inline int MY_OMP_GET_NUM_THREADS [[maybe_unused]] () { return 1; }
+inline int MY_OMP_GET_MAX_THREADS [[maybe_unused]] () { return 1; }
+inline int MY_OMP_GET_THREAD_NUM [[maybe_unused]] () { return 0; }
+inline void MY_OMP_SET_NUM_THREADS [[maybe_unused]] (int) {}
 #endif
 
 // Forward declaration only. Full definition in src/fft.cpp.
@@ -86,12 +79,9 @@ private:
                               std::complex<TF> *cBatch, bool adjoint) const;
   int deconvolveBatch(int batchSize, std::complex<TF> *fkBatch, std::complex<TF> *fwBatch,
                       bool adjoint) const;
-  void deconvolveshuffle1d(int dir, TF prefac, BIGINT ms, TF *fk,
-                           std::complex<TF> *fw) const;
-  void deconvolveshuffle2d(int dir, TF prefac, BIGINT ms, BIGINT mt, TF *fk,
-                           std::complex<TF> *fw) const;
-  void deconvolveshuffle3d(int dir, TF prefac, BIGINT ms, BIGINT mt, BIGINT mu, TF *fk,
-                           std::complex<TF> *fw) const;
+  void deconvolveshuffle1d(int dir, TF prefac, TF *fk, std::complex<TF> *fw) const;
+  void deconvolveshuffle2d(int dir, TF prefac, TF *fk, std::complex<TF> *fw) const;
+  void deconvolveshuffle3d(int dir, TF prefac, TF *fk, std::complex<TF> *fw) const;
 
   // These delete specifications just state the obvious,
   // but are here to silence compiler warnings.
@@ -113,7 +103,7 @@ private:
   int nbatch;             // how many batches done to cover all ntrans vectors
 
   int nc             = 0; // number of Horner coefficients used for ES kernel (<= MAX_NC)
-  int padded_ns      = 0; // SIMD-padded kernel width, set by precompute_horner_coeffs()
+  size_t padded_ns   = 0; // SIMD-padded kernel width, set by precompute_horner_coeffs()
   bool upsamp_locked = false; // true if user specified upsampfac != 0, prevents auto
                               // update
 
@@ -208,6 +198,7 @@ private:
                    BIGINT &padded_size1, BIGINT &size1, BIGINT &size2, BIGINT &size3,
                    UBIGINT M, const TF *kx, const TF *ky, const TF *kz) const;
 
+  int spreadcheck() const;
   void indexSort();
   void spread_subproblem_1d(BIGINT off1, UBIGINT size1, TF *du, UBIGINT M, TF *kx,
                             TF *dd) const noexcept;
