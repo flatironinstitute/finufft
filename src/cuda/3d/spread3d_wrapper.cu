@@ -723,9 +723,12 @@ static __global__ void spread_3d_block_gather(
 }
 
 template<typename T>
-void cuspread3d_nuptsdriven_prop(int nf1, int nf2, int nf3, int M,
-                                cufinufft_plan_t<T> *d_plan) {
+static void cuspread3d_nuptsdriven_prop(cufinufft_plan_t<T> *d_plan) {
   auto &stream = d_plan->stream;
+  int M = d_plan->M;
+  int nf1 = d_plan->nf123[0];
+  int nf2 = d_plan->nf123[1];
+  int nf3 = d_plan->nf123[2];
 
   if (d_plan->opts.gpu_sort) {
     int bin_size_x = d_plan->opts.gpu_binsizex;
@@ -775,10 +778,6 @@ void cuspread3d_nuptsdriven_prop(int nf1, int nf2, int nf3, int M,
     THROW_IF_CUDA_ERROR
   }
 }
-template void cuspread3d_nuptsdriven_prop<float>(int nf1, int nf2, int nf3, int M,
-                                                 cufinufft_plan_t<float> *d_plan);
-template void cuspread3d_nuptsdriven_prop<double>(int nf1, int nf2, int nf3, int M,
-                                                  cufinufft_plan_t<double> *d_plan);
 
 template<typename T, int ns>
 static void cuspread3d_nuptsdriven(int nf1, int nf2, int nf3, int M, cufinufft_plan_t<T> *d_plan,
@@ -822,9 +821,12 @@ static void cuspread3d_nuptsdriven(int nf1, int nf2, int nf3, int M, cufinufft_p
 }
 
 template<typename T>
-void cuspread3d_blockgather_prop(int nf1, int nf2, int nf3, int M,
-                                cufinufft_plan_t<T> *d_plan) {
+static void cuspread3d_blockgather_prop(cufinufft_plan_t<T> *d_plan) {
   auto &stream = d_plan->stream;
+  int M = d_plan->M;
+  int nf1 = d_plan->nf123[0];
+  int nf2 = d_plan->nf123[1];
+  int nf3 = d_plan->nf123[2];
 
   dim3 threadsPerBlock;
   dim3 blocks;
@@ -966,10 +968,6 @@ void cuspread3d_blockgather_prop(int nf1, int nf2, int nf3, int M,
   d_plan->subprob_to_bin.swap(d_subprob_to_bin);
   d_plan->totalnumsubprob = totalnumsubprob;
 }
-template void cuspread3d_blockgather_prop<float>(int nf1, int nf2, int nf3, int M,
-                                                 cufinufft_plan_t<float> *d_plan);
-template void cuspread3d_blockgather_prop<double>(int nf1, int nf2, int nf3, int M,
-                                                  cufinufft_plan_t<double> *d_plan);
 
 template<typename T, int ns>
 static void cuspread3d_blockgather(int nf1, int nf2, int nf3, int M, cufinufft_plan_t<T> *d_plan,
@@ -1041,9 +1039,12 @@ static void cuspread3d_blockgather(int nf1, int nf2, int nf3, int M, cufinufft_p
 }
 
 template<typename T>
-void cuspread3d_subprob_prop(int nf1, int nf2, int nf3, int M,
-                            cufinufft_plan_t<T> *d_plan) {
+static void cuspread3d_subprob_prop(cufinufft_plan_t<T> *d_plan) {
   const auto stream = d_plan->stream;
+  int M = d_plan->M;
+  int nf1 = d_plan->nf123[0];
+  int nf2 = d_plan->nf123[1];
+  int nf3 = d_plan->nf123[2];
 
   int maxsubprobsize = d_plan->opts.gpu_maxsubprobsize;
   int bin_size_x     = d_plan->opts.gpu_binsizex;
@@ -1112,10 +1113,6 @@ void cuspread3d_subprob_prop(int nf1, int nf2, int nf3, int M,
   d_plan->subprob_to_bin.swap(d_subprob_to_bin);
   d_plan->totalnumsubprob = totalnumsubprob;
 }
-template void cuspread3d_subprob_prop<float>(int nf1, int nf2, int nf3, int M,
-                                             cufinufft_plan_t<float> *d_plan);
-template void cuspread3d_subprob_prop<double>(int nf1, int nf2, int nf3, int M,
-                                              cufinufft_plan_t<double> *d_plan);
 
 template<typename T, int ns>
 static void cuspread3d_subprob(int nf1, int nf2, int nf3, int M, cufinufft_plan_t<T> *d_plan,
@@ -1295,6 +1292,20 @@ template<typename T> void cuspread3d(cufinufft_plan_t<T> *d_plan, int blksize) {
 }
 template void cuspread3d<float>(cufinufft_plan_t<float> *d_plan, int blksize);
 template void cuspread3d<double>(cufinufft_plan_t<double> *d_plan, int blksize);
+
+template<typename T>
+void cuspread3d_prop(cufinufft_plan_t<T> *d_plan) {
+  if (d_plan->opts.gpu_method == 1)
+    cuspread3d_nuptsdriven_prop<T>(d_plan);
+  if (d_plan->opts.gpu_method == 2)
+    cuspread3d_subprob_prop<T>(d_plan);
+  if (d_plan->opts.gpu_method == 3)
+    cuspread3d_subprob_prop<T>(d_plan);
+  if (d_plan->opts.gpu_method == 4)
+    cuspread3d_blockgather_prop<T>(d_plan);
+}
+template void cuspread3d_prop(cufinufft_plan_t<float> *d_plan);
+template void cuspread3d_prop(cufinufft_plan_t<double> *d_plan);
 
 } // namespace spreadinterp
 } // namespace cufinufft

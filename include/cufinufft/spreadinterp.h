@@ -139,22 +139,11 @@ template<typename T> void cuinterp3d(cufinufft_plan_t<T> *d_plan, int blksize);
 
 // Wrappers for methods of spreading
 template<typename T>
-void cuspread1d_nuptsdriven_prop(int nf1, int M, cufinufft_plan_t<T> *d_plan);
+void cuspread1d_prop(cufinufft_plan_t<T> *d_plan);
 template<typename T>
-void cuspread1d_subprob_prop(int nf1, int M, cufinufft_plan_t<T> *d_plan);
+void cuspread2d_prop(cufinufft_plan_t<T> *d_plan);
 template<typename T>
-void cuspread2d_nuptsdriven_prop(int nf1, int nf2, int M, cufinufft_plan_t<T> *d_plan);
-template<typename T>
-void cuspread2d_subprob_prop(int nf1, int nf2, int M, cufinufft_plan_t<T> *d_plan);
-template<typename T>
-void cuspread3d_nuptsdriven_prop(int nf1, int nf2, int nf3, int M,
-                                 cufinufft_plan_t<T> *d_plan);
-template<typename T>
-void cuspread3d_blockgather_prop(int nf1, int nf2, int nf3, int M,
-                                 cufinufft_plan_t<T> *d_plan);
-template<typename T>
-void cuspread3d_subprob_prop(int nf1, int nf2, int nf3, int M,
-                             cufinufft_plan_t<T> *d_plan);
+void cuspread3d_prop(cufinufft_plan_t<T> *d_plan);
 
 } // namespace spreadinterp
 } // namespace cufinufft

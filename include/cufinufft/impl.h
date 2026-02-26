@@ -315,46 +315,24 @@ Notes: the type T means either single or double, matching the
 {
   const cufinufft::utils::WithCudaDevice FromID(d_plan->opts.gpu_device_id);
 
-  int nf1 = d_plan->nf123[0];
-  int nf2 = d_plan->nf123[1];
-  int nf3 = d_plan->nf123[2];
-  int dim = d_plan->dim;
-
   d_plan->M = M;
 
   cufinufft::memtransfer::allocgpumem_nupts<T>(d_plan);
 
   d_plan->kxyz[0] = d_kx;
-  if (dim > 1) d_plan->kxyz[1] = d_ky;
-  if (dim > 2) d_plan->kxyz[2] = d_kz;
+  if (d_plan->dim > 1) d_plan->kxyz[1] = d_ky;
+  if (d_plan->dim > 2) d_plan->kxyz[2] = d_kz;
 
   using namespace cufinufft::spreadinterp;
   switch (d_plan->dim) {
   case 1: {
-    if (d_plan->opts.gpu_method == 1)
-      cuspread1d_nuptsdriven_prop<T>(nf1, M, d_plan);
-    if (d_plan->opts.gpu_method == 2)
-      cuspread1d_subprob_prop<T>(nf1, M, d_plan);
-    if (d_plan->opts.gpu_method == 3)
-      cuspread1d_subprob_prop<T>(nf1, M, d_plan);
+    cuspread1d_prop(d_plan);
   } break;
   case 2: {
-    if (d_plan->opts.gpu_method == 1)
-      cuspread2d_nuptsdriven_prop<T>(nf1, nf2, M, d_plan);
-    if (d_plan->opts.gpu_method == 2)
-      cuspread2d_subprob_prop<T>(nf1, nf2, M, d_plan);
-    if (d_plan->opts.gpu_method == 3)
-      cuspread2d_subprob_prop<T>(nf1, nf2, M, d_plan);
+    cuspread2d_prop(d_plan);
   } break;
   case 3: {
-    if (d_plan->opts.gpu_method == 1)
-      cuspread3d_nuptsdriven_prop<T>(nf1, nf2, nf3, M, d_plan);
-    if (d_plan->opts.gpu_method == 2)
-      cuspread3d_subprob_prop<T>(nf1, nf2, nf3, M, d_plan);
-    if (d_plan->opts.gpu_method == 3)
-      cuspread3d_subprob_prop<T>(nf1, nf2, nf3, M, d_plan);
-    if (d_plan->opts.gpu_method == 4)
-      cuspread3d_blockgather_prop<T>(nf1, nf2, nf3, M, d_plan);
+    cuspread3d_prop(d_plan);
   } break;
   }
 
@@ -649,7 +627,6 @@ void cufinufft_execute_impl(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
 */
 {
   cufinufft::utils::WithCudaDevice device_swapper(d_plan->opts.gpu_device_id);
-  int type = d_plan->type;
   switch (d_plan->dim) {
   case 1: {
     cufinufft1d_exec<T>(d_c, d_fk, d_plan);

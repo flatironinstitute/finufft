@@ -265,8 +265,10 @@ static __global__ void spread_1d_subprob(
 }
 
 template<typename T>
-void cuspread1d_nuptsdriven_prop(int nf1, int M, cufinufft_plan_t<T> *d_plan) {
+static void cuspread1d_nuptsdriven_prop(cufinufft_plan_t<T> *d_plan) {
   auto &stream = d_plan->stream;
+  int M = d_plan->M;
+  int nf1 = d_plan->nf123[0];
   if (d_plan->opts.gpu_sort) {
     int bin_size_x = d_plan->opts.gpu_binsizex;
     if (bin_size_x < 0) {
@@ -305,10 +307,6 @@ void cuspread1d_nuptsdriven_prop(int nf1, int M, cufinufft_plan_t<T> *d_plan) {
     THROW_IF_CUDA_ERROR
   }
 }
-template void cuspread1d_nuptsdriven_prop<float>(int nf1, int M,
-                                                 cufinufft_plan_t<float> *d_plan);
-template void cuspread1d_nuptsdriven_prop<double>(int nf1, int M,
-                                                  cufinufft_plan_t<double> *d_plan);
 
 template<typename T, int ns>
 static void cuspread1d_nuptsdriven(int nf1, int M, cufinufft_plan_t<T> *d_plan, int blksize) {
@@ -399,13 +397,15 @@ static void cuspread1d_output_driven(int nf1, int M, cufinufft_plan_t<T> *d_plan
 }
 
 template<typename T>
-void cuspread1d_subprob_prop(int nf1, int M, cufinufft_plan_t<T> *d_plan)
+static void cuspread1d_subprob_prop(cufinufft_plan_t<T> *d_plan)
 /*
     This function determines the properties for spreading that are independent
     of the strength of the nodes,  only relates to the locations of the nodes,
     which only needs to be done once.
 */
 {
+  int M = d_plan->M;
+  int nf1 = d_plan->nf123[0];
 
   const auto maxsubprobsize = d_plan->opts.gpu_maxsubprobsize;
   const auto bin_size_x     = d_plan->opts.gpu_binsizex;
@@ -467,10 +467,6 @@ void cuspread1d_subprob_prop(int nf1, int M, cufinufft_plan_t<T> *d_plan)
   d_subprob_to_bin.swap(d_plan->subprob_to_bin);
   d_plan->totalnumsubprob = totalnumsubprob;
 }
-template void cuspread1d_subprob_prop<float>(int nf1, int M,
-                                             cufinufft_plan_t<float> *d_plan);
-template void cuspread1d_subprob_prop<double>(int nf1, int M,
-                                              cufinufft_plan_t<double> *d_plan);
 
 template<typename T, int ns>
 static void cuspread1d_subprob(int nf1, int M, cufinufft_plan_t<T> *d_plan, int blksize) {
@@ -561,6 +557,18 @@ template<typename T> void cuspread1d(cufinufft_plan_t<T> *d_plan, int blksize) {
 }
 template void cuspread1d<float>(cufinufft_plan_t<float> *d_plan, int blksize);
 template void cuspread1d<double>(cufinufft_plan_t<double> *d_plan, int blksize);
+
+template<typename T>
+void cuspread1d_prop(cufinufft_plan_t<T> *d_plan) {
+  if (d_plan->opts.gpu_method == 1)
+    cuspread1d_nuptsdriven_prop<T>(d_plan);
+  if (d_plan->opts.gpu_method == 2)
+    cuspread1d_subprob_prop<T>(d_plan);
+  if (d_plan->opts.gpu_method == 3)
+    cuspread1d_subprob_prop<T>(d_plan);
+}
+template void cuspread1d_prop(cufinufft_plan_t<float> *d_plan);
+template void cuspread1d_prop(cufinufft_plan_t<double> *d_plan);
 
 } // namespace spreadinterp
 } // namespace cufinufft
