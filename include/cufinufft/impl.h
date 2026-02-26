@@ -236,18 +236,7 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
     d_plan->nf123[2] = nf3;
     d_plan->nf  = nf1 * nf2 * nf3;
 
-    using namespace cufinufft::memtransfer;
-    switch (d_plan->dim) {
-    case 1: {
-      allocgpumem1d_plan<T>(d_plan);
-    } break;
-    case 2: {
-      allocgpumem2d_plan<T>(d_plan);
-    } break;
-    case 3: {
-      allocgpumem3d_plan<T>(d_plan);
-    } break;
-    }
+    cufinufft::memtransfer::allocgpumem_plan(d_plan);
 
     // We don't need any cuFFT plans or kernel values if we are only spreading /
     // interpolating
@@ -351,18 +340,7 @@ Notes: the type T means either single or double, matching the
 
   d_plan->M = M;
 
-  using namespace cufinufft::memtransfer;
-  switch (d_plan->dim) {
-  case 1: {
-    allocgpumem1d_nupts<T>(d_plan);
-  } break;
-  case 2: {
-    allocgpumem2d_nupts<T>(d_plan);
-  } break;
-  case 3: {
-    allocgpumem3d_nupts<T>(d_plan);
-  } break;
-  }
+  cufinufft::memtransfer::allocgpumem_nupts<T>(d_plan);
 
   d_plan->kxyz[0] = d_kx;
   if (dim > 1) d_plan->kxyz[1] = d_ky;
@@ -641,18 +619,8 @@ void cufinufft_setpts_impl(int M, T *d_kx, T *d_ky, T *d_kz, int N, T *d_s, T *d
     // since GPU memory is expensive, we should free it as soon as possible
   }
 
-  using namespace cufinufft::memtransfer;
-  switch (d_plan->dim) {
-  case 1: {
-    allocgpumem1d_plan<T>(d_plan);
-  } break;
-  case 2: {
-    allocgpumem2d_plan<T>(d_plan);
-  } break;
-  case 3: {
-    allocgpumem3d_plan<T>(d_plan);
-  } break;
-  }
+  cufinufft::memtransfer::allocgpumem_plan<T>(d_plan);
+
   cufinufft_setpts_12_impl(M, d_plan->kxyz[0], d_plan->kxyz[1], d_plan->kxyz[2], d_plan);
   {
     int t2modes[]               = {d_plan->nf123[0], d_plan->nf123[1], d_plan->nf123[2]};

@@ -301,23 +301,26 @@ void freegpumemory(cufinufft_plan_t<T> *d_plan)
   d_plan->CpBatch.clear();
 }
 
-template void allocgpumem1d_plan<float>(cufinufft_plan_t<float> *d_plan);
-template void allocgpumem1d_plan<double>(cufinufft_plan_t<double> *d_plan);
-template void allocgpumem1d_nupts<float>(cufinufft_plan_t<float> *d_plan);
-template void allocgpumem1d_nupts<double>(cufinufft_plan_t<double> *d_plan);
+template<typename T> void allocgpumem_plan(cufinufft_plan_t<T> *d_plan)
+{
+if (d_plan->dim==1) allocgpumem1d_plan(d_plan);
+if (d_plan->dim==2) allocgpumem2d_plan(d_plan);
+if (d_plan->dim==3) allocgpumem3d_plan(d_plan);
+}
+template void allocgpumem_plan(cufinufft_plan_t<float> *d_plan);
+template void allocgpumem_plan(cufinufft_plan_t<double> *d_plan);
+
+template<typename T> void allocgpumem_nupts(cufinufft_plan_t<T> *d_plan)
+{
+if (d_plan->dim==1) allocgpumem1d_nupts(d_plan);
+if (d_plan->dim==2) allocgpumem2d_nupts(d_plan);
+if (d_plan->dim==3) allocgpumem3d_nupts(d_plan);
+}
+template void allocgpumem_nupts(cufinufft_plan_t<float> *d_plan);
+template void allocgpumem_nupts(cufinufft_plan_t<double> *d_plan);
 
 template void freegpumemory<float>(cufinufft_plan_t<float> *d_plan);
 template void freegpumemory<double>(cufinufft_plan_t<double> *d_plan);
-
-template void allocgpumem2d_plan<float>(cufinufft_plan_t<float> *d_plan);
-template void allocgpumem2d_plan<double>(cufinufft_plan_t<double> *d_plan);
-template void allocgpumem2d_nupts<float>(cufinufft_plan_t<float> *d_plan);
-template void allocgpumem2d_nupts<double>(cufinufft_plan_t<double> *d_plan);
-
-template void allocgpumem3d_plan<float>(cufinufft_plan_t<float> *d_plan);
-template void allocgpumem3d_plan<double>(cufinufft_plan_t<double> *d_plan);
-template void allocgpumem3d_nupts<float>(cufinufft_plan_t<float> *d_plan);
-template void allocgpumem3d_nupts<double>(cufinufft_plan_t<double> *d_plan);
 
 } // namespace memtransfer
 } // namespace cufinufft
