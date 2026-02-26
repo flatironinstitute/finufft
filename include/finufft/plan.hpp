@@ -65,15 +65,15 @@ FINUFFT_EXPORT_TEST void finufft_fft_cleanup_threads();
 #include <finufft_common/spread_opts.h>
 #include <finufft_opts.h>
 
-// group together a bunch of type 3 rescaling/centering/phasing parameters:
-template<typename T> struct type3params {
-  std::array<T, 3> X, C, D, h, gam; // x dim: X=halfwid C=center D=freqcen h,gam=rescale
-};
-
 template<typename TF> struct FINUFFT_PLAN_T { // the main plan class, fully C++
 
 private:
   using TC = std::complex<TF>;
+
+  // Type 3 rescaling/centering/phasing parameters:
+  struct type3params {
+    std::array<TF, 3> X, C, D, h, gam; // X=halfwid C=center D=freqcen h,gam=rescale
+  };
 
   int spreadinterpSortedBatch(int batchSize, std::complex<TF> *fwBatch,
                               std::complex<TF> *cBatch, bool adjoint) const;
@@ -138,7 +138,7 @@ private:
   std::vector<TC> deconv;   // reciprocal of kernel FT, phase, all output NU pts
   std::array<std::vector<TF>, 3> XYZp; // internal primed NU points (x'_j, etc)
   std::array<std::vector<TF>, 3> STUp; // internal primed targs (s'_k, etc)
-  type3params<TF> t3P; // groups together type 3 shift, scale, phase, parameters
+  type3params t3P; // groups together type 3 shift, scale, phase, parameters
   std::unique_ptr<const FINUFFT_PLAN_T<TF>> innerT2plan; // ptr used for type 2 in step 2
                                                          // of type 3
 
@@ -164,7 +164,7 @@ private:
   void set_nhg_type3(int idim, TF S, TF X);
   // Compile-time-dispatched kernel method templates (NS=nspread, NC=horner degree).
   // Bodies are defined in interp.hpp and spread.hpp respectively.
-  template<int NS, int NC>
+  template<int NS, int NC, int NDIMS>
   int interpSorted_kernel(TF *data_uniform, TF *data_nonuniform) const;
   template<int NS, int NC>
   void spread_subproblem_1d_kernel(BIGINT off1, UBIGINT size1, TF *FINUFFT_RESTRICT du,
@@ -184,7 +184,9 @@ private:
   struct SpreadSubproblem1dCaller;
   struct SpreadSubproblem2dCaller;
   struct SpreadSubproblem3dCaller;
-  struct InterpSortedCaller;
+  struct InterpSorted1dCaller;
+  struct InterpSorted2dCaller;
+  struct InterpSorted3dCaller;
 
   void bin_sort_singlethread(double bin_size_x, double bin_size_y, double bin_size_z);
   void bin_sort_multithread(double bin_size_x, double bin_size_y, double bin_size_z,
@@ -211,6 +213,9 @@ private:
   int spreadSorted(TF *FINUFFT_RESTRICT data_uniform, const TF *data_nonuniform) const;
   int interpSorted(TF *FINUFFT_RESTRICT data_uniform,
                    TF *FINUFFT_RESTRICT data_nonuniform) const;
+  int interpSorted_1d(TF *data_uniform, TF *data_nonuniform) const;
+  int interpSorted_2d(TF *data_uniform, TF *data_nonuniform) const;
+  int interpSorted_3d(TF *data_uniform, TF *data_nonuniform) const;
   int spreadinterpSorted(TF *data_uniform, TF *data_nonuniform, bool adjoint) const;
   TF evaluate_kernel_runtime(TF x) const;
   std::vector<int> gridsize_for_fft() const;
