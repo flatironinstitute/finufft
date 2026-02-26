@@ -102,37 +102,48 @@ __global__ static void amplify_nd(cuda::std::array<int,3> mstu, cuda::std::array
   }
 }
 #endif
-template<typename T, int modeord>
-void cudeconvolve1d(cufinufft_plan_t<T> *d_plan, int blksize)
+template<typename T, int modeord, int ndim>
+static void cudeconvolvend(cufinufft_plan_t<T> *d_plan, int blksize)
 /*
-    wrapper for deconvolution & amplication in 1D.
+    wrapper for deconvolution & amplification in 1/2/3D.
 
     Melody Shih 11/21/21
 */
 {
-  auto &stream = d_plan->stream;
+  int nmodes=1, nftot=1;
+  for (int idim=0; idim<ndim; ++idim) {
+    nmodes *= d_plan->mstu[idim];
+    nftot *= d_plan->nf123[idim];
+  }
 
-  int ms           = d_plan->mstu[0];
-  int nf1          = d_plan->nf123[0];
-  int nmodes       = ms;
-  int maxbatchsize = d_plan->batchsize;
-
-  if (d_plan->spopts.spread_direction == 1) {
-    for (int t = 0; t < blksize; t++) {
-      deconvolve_nd<T, modeord,1><<<(nmodes + 256 - 1) / 256, 256, 0, stream>>>(
-          d_plan->mstu, d_plan->nf123, d_plan->fw + t * nf1, d_plan->fk + t * nmodes, dethrust(d_plan->fwkerhalf), true);
-    }
-  } else {
+  bool fw2fk = d_plan->spopts.spread_direction == 1;
+  if (!fw2fk) {
     checkCudaErrors(cudaMemsetAsync(
-        d_plan->fw, 0, maxbatchsize * nf1 * sizeof(cuda_complex<T>), stream));
-    for (int t = 0; t < blksize; t++) {
-      deconvolve_nd<T, modeord, 1><<<(nmodes + 256 - 1) / 256, 256, 0, stream>>>(
-          d_plan->mstu, d_plan->nf123, d_plan->fw + t * nf1,
-          d_plan->fk + t * nmodes, dethrust(d_plan->fwkerhalf), false);
-    }
+        d_plan->fw, 0, d_plan->batchsize * nftot * sizeof(cuda_complex<T>), d_plan->stream));
+  }
+
+  for (int t = 0; t < blksize; t++) {
+    deconvolve_nd<T, modeord,1><<<(nmodes + 256 - 1) / 256, 256, 0, d_plan->stream>>>(
+      d_plan->mstu, d_plan->nf123, d_plan->fw + t * nftot, d_plan->fk + t * nmodes, dethrust(d_plan->fwkerhalf), fw2fk);
   }
 }
 
+template<typename T, int modeord>
+void cudeconvolve1d(cufinufft_plan_t<T> *d_plan, int blksize)
+{
+cudeconvolvend<T, modeord, 1>(d_plan, blksize);
+}
+template<typename T, int modeord>
+void cudeconvolve2d(cufinufft_plan_t<T> *d_plan, int blksize)
+{
+cudeconvolvend<T, modeord, 2>(d_plan, blksize);
+}
+template<typename T, int modeord>
+void cudeconvolve3d(cufinufft_plan_t<T> *d_plan, int blksize)
+{
+cudeconvolvend<T, modeord, 3>(d_plan, blksize);
+}
+#if 0
 template<typename T, int modeord>
 void cudeconvolve2d(cufinufft_plan_t<T> *d_plan, int blksize)
 /*
@@ -201,7 +212,7 @@ void cudeconvolve3d(cufinufft_plan_t<T> *d_plan, int blksize)
     }
   }
 }
-
+#endif
 template void cudeconvolve1d<float, 0>(cufinufft_plan_t<float> *d_plan, int blksize);
 template void cudeconvolve1d<float, 1>(cufinufft_plan_t<float> *d_plan, int blksize);
 template void cudeconvolve1d<double, 0>(cufinufft_plan_t<double> *d_plan, int blksize);
