@@ -64,67 +64,15 @@ template<class T, class F> std::vector<T> poly_fit(F &&f, int n) {
   return c;
 }
 
-inline double kernel_definition(const finufft_spread_opts &spopts, const double z) {
-  /* The spread/interp kernel phi_beta(z) function on standard interval z in [-1,1],
-     This evaluation does not need to be fast; it is used *only* for polynomial
-     interpolation via Horner coeffs (the interpolant is evaluated fast).
-     It can thus always be double-precision. No analytic Fourier transform pair is
-     needed, thanks to numerical quadrature in finufft_core:onedim*; playing with
-     new kernels is thus very easy.
-    Inputs:
-    z      - real ordinate on standard interval [-1,1]. Handling of edge cases
-            at or near +-1 is no longer crucial, because precompute_horner_coeffs
-            (the only user of this function) has interpolation nodes in (-1,1).
-    spopts - spread_opts struct containing fields:
-      beta        - shape parameter for ES, KB, or other prolate kernels
-                    (a.k.a. c parameter in PSWF).
-      kerformula  - positive integer selecting among kernel function types; see
-                    docs in the code below.
-                    (More than one value may give the same type, to allow
-                    kerformula also to select a parameter-choice method.)
-                    Note: the default 0 (in opts.spread_kerformula) is invalid here;
-                    selection of a >0 kernel type must already have happened.
-    Output: phi(z), as in the notation of original 2019 paper ([FIN] in the docs).
+// The spread/interp kernel phi_beta(z) on z in [-1,1]. Not performance-critical;
+// used only for polynomial interpolation (precompute_horner_coeffs). Always double.
+// Defined in src/common/kernel.cpp.
+double kernel_definition(const finufft_spread_opts &spopts, double z);
 
-    Notes: 1) no normalization of max value or integral is needed, since any
-            overall factor is cancelled out in the deconvolve step. However,
-            values as large as exp(beta) have caused floating-pt overflow; don't
-            use them.
-    Barnett rewritten 1/13/26 for double on [-1,1]; based on Barbone Dec 2025.
-  */
-  if (std::abs(z) > 1.0) return 0.0;           // restrict support to [-1,1]
-  double beta = spopts.beta;                   // get shape param
-  double arg  = beta * std::sqrt(1.0 - z * z); // common argument for exp, I0, etc
-  int kf      = spopts.kerformula;
+int theoretical_kernel_ns(double tol, int dim, int type, int debug,
+                          const finufft_spread_opts &spopts);
 
-  if (kf == 1 || kf == 2)
-    // ES ("exponential of semicircle" or "exp sqrt"), see [FIN] reference.
-    // Used in FINUFFT 2017-2025 (up to v2.4.1). max is 1, as of v2.3.0.
-    return std::exp(arg) / std::exp(beta);
-  else if (kf == 3)
-    // forwards Kaiser--Bessel (KB), normalized to max of 1.
-    // std::cyl_bessel_i is from <cmath>, expects double. See src/common/utils.cpp
-    return common::cyl_bessel_i(0, arg) / common::cyl_bessel_i(0, beta);
-  else if (kf == 4)
-    // continuous (deplinthed) KB, as in Barnett SIREV 2022, normalized to max nearly 1
-    return (common::cyl_bessel_i(0, arg) - 1.0) / common::cyl_bessel_i(0, beta);
-  else if (kf == 5)
-    return std::cosh(arg) / std::cosh(beta); // normalized cosh-type of Rmk. 13 [FIN]
-  else if (kf == 6)
-    return (std::cosh(arg) - 1.0) / std::cosh(beta); // Potts-Tasche cont cosh-type
-  else if (kf >= 7 && kf <= 9)
-    return common::pswf(beta, z); // prolate (PSWF) Psi_0, normalized to 1 at z=0
-  else {
-    fprintf(stderr, "[%s] unknown spopts.kerformula=%d\n", __func__, spopts.kerformula);
-    throw int(FINUFFT_ERR_KERFORMULA_NOTVALID);      // *** crashes matlab, not good
-    return std::numeric_limits<double>::quiet_NaN(); // never gets here, non-signalling
-  }
-}
-
-FINUFFT_EXPORT int theoretical_kernel_ns(double tol, int dim, int type, int debug,
-                                         const finufft_spread_opts &spopts);
-
-FINUFFT_EXPORT void set_kernel_shape_given_ns(finufft_spread_opts &opts, int debug);
+void set_kernel_shape_given_ns(finufft_spread_opts &opts, int debug);
 
 // min and max number of poly coeffs allowed (compiled) for a given spread width ns.
 // Since for low upsampfacs, ns=16 can need only nc~12, allow such low nc here.
