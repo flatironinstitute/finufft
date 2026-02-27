@@ -10,7 +10,7 @@ namespace finufft::spreadinterp {
 //   simd.hpp -> finufft/plan.hpp
 
 template<typename TF>
-template<int ns, int nc>
+template<int NS, int NC>
 FINUFFT_NEVER_INLINE void FINUFFT_PLAN_T<TF>::spread_subproblem_1d_kernel(
     const BIGINT off1, const UBIGINT size1, TF *FINUFFT_RESTRICT du, const UBIGINT M,
     const TF *const kx, const TF *const dd) const noexcept {
@@ -39,12 +39,12 @@ FINUFFT_NEVER_INLINE void FINUFFT_PLAN_T<TF>::spread_subproblem_1d_kernel(
   using namespace finufft::spreadinterp;
   using finufft::common::MAX_NSPREAD;
   using T                         = TF;
-  using simd_type                 = PaddedSIMD<T, 2 * ns>;
+  using simd_type                 = PaddedSIMD<T, 2 * NS>;
   using arch_t                    = typename simd_type::arch_type;
-  static constexpr auto padding   = get_padding<T, 2 * ns>();
+  static constexpr auto padding   = get_padding<T, 2 * NS>();
   static constexpr auto alignment = arch_t::alignment();
   static constexpr auto simd_size = simd_type::size;
-  static constexpr auto ns2       = ns * T(0.5); // half spread width
+  static constexpr auto ns2       = NS * T(0.5); // half spread width
   const T *horner_coeffs_ptr      = horner_coeffs.data();
   // something weird here. Reversing ker{0} and std fill causes ker
   // to be zeroed inside the loop GCC uses AVX, clang AVX2
@@ -81,7 +81,7 @@ FINUFFT_NEVER_INLINE void FINUFFT_PLAN_T<TF>::spread_subproblem_1d_kernel(
     }();
     // Libin improvement: pass ker as a parameter and allocate it outside the loop
     // gcc13 + 10% speedup (relative to const auto ker = evaluate_kernel_vec...etc).
-    evaluate_kernel_vector<ns, nc, T, simd_type>(ker.data(), horner_coeffs_ptr, x1);
+    evaluate_kernel_vector<NS, NC, T, simd_type>(ker.data(), horner_coeffs_ptr, x1);
     const auto j = i1 - off1; // offset rel to subgrid, starts the output indices
     auto *FINUFFT_RESTRICT trg = du + 2 * j; // restrict helps compiler to vectorize
     // du is padded, so we can use SIMD even if we write more than ns values in du
@@ -96,7 +96,7 @@ FINUFFT_NEVER_INLINE void FINUFFT_PLAN_T<TF>::spread_subproblem_1d_kernel(
     // This allows to save one load at each loop iteration.
     // The special case, allows to minimize padding otherwise out of bounds access.
     // See below for the details.
-    static constexpr auto regular_part = (2 * ns + padding) & (-(2 * simd_size));
+    static constexpr auto regular_part = (2 * NS + padding) & (-(2 * simd_size));
     // this loop increment is 2*simd_size by design
     // it allows to save one load this way at each iteration
 
@@ -138,10 +138,10 @@ FINUFFT_NEVER_INLINE void FINUFFT_PLAN_T<TF>::spread_subproblem_1d_kernel(
       res1.store_unaligned(trg + dx + simd_size);
     }
     // sanity check at compile time that all the elements are computed
-    static_assert(regular_part + simd_size >= 2 * ns);
+    static_assert(regular_part + simd_size >= 2 * NS);
     // case where the 2*ns is not a multiple of 2*simd_size
     // checking 2*ns instead of 2*ns+padding as we do not need to compute useless zeros...
-    if constexpr (regular_part < 2 * ns) {
+    if constexpr (regular_part < 2 * NS) {
       // here we need to load the last kernel values,
       // but we can avoid computing extra padding
       // also this padding will result in out-of-bounds access to trg
@@ -157,7 +157,7 @@ FINUFFT_NEVER_INLINE void FINUFFT_PLAN_T<TF>::spread_subproblem_1d_kernel(
 }
 
 template<typename TF>
-template<int ns, int nc>
+template<int NS, int NC>
 FINUFFT_NEVER_INLINE void FINUFFT_PLAN_T<TF>::spread_subproblem_2d_kernel(
     const BIGINT off1, const BIGINT off2, const UBIGINT size1, const UBIGINT size2,
     TF *FINUFFT_RESTRICT du, const UBIGINT M, const TF *kx, const TF *ky,
@@ -175,15 +175,15 @@ FINUFFT_NEVER_INLINE void FINUFFT_PLAN_T<TF>::spread_subproblem_2d_kernel(
   using namespace finufft::spreadinterp;
   using finufft::common::MAX_NSPREAD;
   using T                         = TF;
-  using simd_type                 = PaddedSIMD<T, 2 * ns>;
+  using simd_type                 = PaddedSIMD<T, 2 * NS>;
   using arch_t                    = typename simd_type::arch_type;
-  static constexpr auto padding   = get_padding<T, 2 * ns>();
+  static constexpr auto padding   = get_padding<T, 2 * NS>();
   static constexpr auto simd_size = simd_type::size;
   static constexpr auto alignment = arch_t::alignment();
   const T *horner_coeffs_ptr      = horner_coeffs.data();
   // Kernel values stored in consecutive memory. This allows us to compute
   // values in all three directions in a single kernel evaluation call.
-  static constexpr auto ns2 = ns * T(0.5); // half spread width
+  static constexpr auto ns2 = NS * T(0.5);  // half spread width
   alignas(alignment) std::array<T, 2 * MAX_NSPREAD> kernel_values{0};
   std::fill(du, du + 2 * size1 * size2, 0); // initialized to 0 due to the padding
   for (uint64_t pt = 0; pt < M; pt++) {
@@ -194,13 +194,13 @@ FINUFFT_NEVER_INLINE void FINUFFT_PLAN_T<TF>::spread_subproblem_2d_kernel(
     const auto i2 = (BIGINT)std::ceil(ky[pt] - ns2);
     const auto x1 = (T)std::ceil(kx[pt] - ns2) - kx[pt];
     const auto x2 = (T)std::ceil(ky[pt] - ns2) - ky[pt];
-    evaluate_kernel_vector<ns, nc, T, simd_type>(kernel_values.data(), horner_coeffs_ptr,
+    evaluate_kernel_vector<NS, NC, T, simd_type>(kernel_values.data(), horner_coeffs_ptr,
                                                  x1, x2);
     const auto *ker1 = kernel_values.data();
     const auto *ker2 = kernel_values.data() + MAX_NSPREAD;
     // Combine kernel with complex source value to simplify inner loop
     // here 2* is because of complex
-    static constexpr uint8_t kerval_vectors = (2 * ns + padding) / simd_size;
+    static constexpr uint8_t kerval_vectors = (2 * NS + padding) / simd_size;
     static_assert(kerval_vectors > 0, "kerval_vectors must be greater than 0");
     // wrapping this in a lambda gives an extra 10% speedup (gcc13)
     // the compiler realizes the values are constant after the lambda
@@ -245,7 +245,7 @@ FINUFFT_NEVER_INLINE void FINUFFT_PLAN_T<TF>::spread_subproblem_2d_kernel(
     }();
 
     // critical inner loop:
-    for (auto dy = 0; dy < ns; ++dy) {
+    for (auto dy = 0; dy < NS; ++dy) {
       const auto j = size1 * (i2 - off2 + dy) + i1 - off1; // should be in subgrid
       auto *FINUFFT_RESTRICT trg = du + 2 * j;
       const simd_type kerval_v(ker2[dy]);
@@ -259,7 +259,7 @@ FINUFFT_NEVER_INLINE void FINUFFT_PLAN_T<TF>::spread_subproblem_2d_kernel(
 }
 
 template<typename TF>
-template<int ns, int nc>
+template<int NS, int NC>
 FINUFFT_NEVER_INLINE void FINUFFT_PLAN_T<TF>::spread_subproblem_3d_kernel(
     const BIGINT off1, const BIGINT off2, const BIGINT off3, const UBIGINT size1,
     const UBIGINT size2, const UBIGINT size3, TF *FINUFFT_RESTRICT du, const UBIGINT M,
@@ -271,14 +271,14 @@ FINUFFT_NEVER_INLINE void FINUFFT_PLAN_T<TF>::spread_subproblem_3d_kernel(
   using namespace finufft::spreadinterp;
   using finufft::common::MAX_NSPREAD;
   using T                         = TF;
-  using simd_type                 = PaddedSIMD<T, 2 * ns>;
+  using simd_type                 = PaddedSIMD<T, 2 * NS>;
   using arch_t                    = typename simd_type::arch_type;
-  static constexpr auto padding   = get_padding<T, 2 * ns>();
+  static constexpr auto padding   = get_padding<T, 2 * NS>();
   static constexpr auto simd_size = simd_type::size;
   static constexpr auto alignment = arch_t::alignment();
   const T *horner_coeffs_ptr      = horner_coeffs.data();
 
-  static constexpr auto ns2 = ns * T(0.5); // half spread width
+  static constexpr auto ns2 = NS * T(0.5); // half spread width
   alignas(alignment) std::array<T, 3 * MAX_NSPREAD> kernel_values{0};
   std::fill(du, du + 2 * size1 * size2 * size3, 0);
 
@@ -293,7 +293,7 @@ FINUFFT_NEVER_INLINE void FINUFFT_PLAN_T<TF>::spread_subproblem_3d_kernel(
     const auto x2 = std::ceil(ky[pt] - ns2) - ky[pt];
     const auto x3 = std::ceil(kz[pt] - ns2) - kz[pt];
 
-    evaluate_kernel_vector<ns, nc, T, simd_type>(kernel_values.data(), horner_coeffs_ptr,
+    evaluate_kernel_vector<NS, NC, T, simd_type>(kernel_values.data(), horner_coeffs_ptr,
                                                  x1, x2, x3);
     const auto *ker1 = kernel_values.data();
     const auto *ker2 = kernel_values.data() + MAX_NSPREAD;
@@ -301,7 +301,7 @@ FINUFFT_NEVER_INLINE void FINUFFT_PLAN_T<TF>::spread_subproblem_3d_kernel(
     // Combine kernel with complex source value to simplify inner loop
     // here 2* is because of complex
     // kerval_vectors is the number of SIMD iterations needed to compute all the elements
-    static constexpr uint8_t kerval_vectors = (2 * ns + padding) / simd_size;
+    static constexpr uint8_t kerval_vectors = (2 * NS + padding) / simd_size;
     static_assert(kerval_vectors > 0, "kerval_vectors must be greater than 0");
     const auto ker1val_v = [ker1, dd_pt]() constexpr noexcept {
       std::array<simd_type, kerval_vectors> ker1val_v{};
@@ -328,9 +328,9 @@ FINUFFT_NEVER_INLINE void FINUFFT_PLAN_T<TF>::spread_subproblem_3d_kernel(
       return ker1val_v;
     }();
     // critical inner loop:
-    for (uint8_t dz{0}; dz < ns; ++dz) {
+    for (uint8_t dz{0}; dz < NS; ++dz) {
       const auto oz = size1 * size2 * (i3 - off3 + dz); // offset due to z
-      for (uint8_t dy{0}; dy < ns; ++dy) {
+      for (uint8_t dy{0}; dy < NS; ++dy) {
         const auto j = oz + size1 * (i2 - off2 + dy) + i1 - off1; // should be in subgrid
         auto *FINUFFT_RESTRICT trg = du + 2 * j;
         const simd_type kerval_v(ker2[dy] * ker3[dz]);
