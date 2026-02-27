@@ -17,8 +17,10 @@
 
 namespace finufft::common {
 
+namespace { // file-local helpers
+
 // start of legendre functions
-static inline void legepol(double x, int n, double &pol, double &der) {
+void legepol(double x, int n, double &pol, double &der) {
   double pkm1 = 1.0;
   double pk   = x;
   double pkp1;
@@ -48,8 +50,8 @@ static inline void legepol(double x, int n, double &pol, double &der) {
   der = n * (x * pkp1 - pk) / (x * x - 1);
 }
 
-static inline void legetayl(double pol, double der, double x, double h, int n, int k,
-                            double &sum, double &sumder) {
+void legetayl(double pol, double der, double x, double h, int n, int k, double &sum,
+              double &sumder) {
   double done = 1.0;
   double q0   = pol;
   double q1   = der * h;
@@ -80,7 +82,7 @@ static inline void legetayl(double pol, double der, double x, double h, int n, i
 /* Constructs Gaussian quadrature of order n.
    itype=1 => both roots (ts) and weights (whts) are computed.
    itype=0 => only roots (ts) are computed. */
-static inline void legerts(int itype, int n, double *ts, double *whts) {
+void legerts(int itype, int n, double *ts, double *whts) {
   int k     = 30;
   double d  = 1.0;
   double d2 = d + 1.0e-24;
@@ -179,7 +181,7 @@ static inline void legerts(int itype, int n, double *ts, double *whts) {
   }
 }
 
-static inline void legepols(double x, int n, double *pols) {
+void legepols(double x, int n, double *pols) {
   double pkm1 = 1.0;
   double pk   = x;
 
@@ -207,9 +209,8 @@ static inline void legepols(double x, int n, double *pols) {
 
 // TODO: legepols() is not tested yet, to test itype 2
 // only itype !=2 is tested.
-static inline void legeexps(int itype, int n, double *x,
-                            std::vector<std::vector<double>> &u,
-                            std::vector<std::vector<double>> &v, double *whts) {
+void legeexps(int itype, int n, double *x, std::vector<std::vector<double>> &u,
+              std::vector<std::vector<double>> &v, double *whts) {
   int itype_rts = (itype > 0) ? 1 : 0;
 
   // Call legerts to construct the nodes and weights of the n-point Gaussian quadrature
@@ -246,7 +247,7 @@ static inline void legeexps(int itype, int n, double *x,
   }
 }
 
-static inline void legeexev(double x, double &val, const double *pexp, int n) {
+void legeexev(double x, double &val, const double *pexp, int n) {
   double pjm2 = 1.0;
   double pjm1 = x;
 
@@ -260,8 +261,7 @@ static inline void legeexev(double x, double &val, const double *pexp, int n) {
   }
 }
 
-static inline void legeFDER(double x, double &val, double &der, const double *pexp,
-                            int n) {
+void legeFDER(double x, double &val, double &der, const double *pexp, int n) {
   double pjm2   = 1.0;
   double pjm1   = x;
   double derjm2 = 0.0;
@@ -517,9 +517,8 @@ void prolc180(double eps, double &c) {
   c        = cs[i - 1];
 }
 
-static inline void prosinin(double c, const double *ts, const double *whts,
-                            const double *fs, double x, int n, double &rint,
-                            double &derrint) {
+void prosinin(double c, const double *ts, const double *whts, const double *fs, double x,
+              int n, double &rint, double &derrint) {
   rint    = 0.0;
   derrint = 0.0;
 
@@ -534,8 +533,8 @@ static inline void prosinin(double c, const double *ts, const double *whts,
   }
 }
 
-static inline void prolcoef(double rlam, int k, double c, double &alpha0, double &beta0,
-                            double &gamma0, double &alpha, double &beta, double &gamma) {
+void prolcoef(double rlam, int k, double c, double &alpha0, double &beta0, double &gamma0,
+              double &alpha, double &beta, double &gamma) {
   double d  = k * (k - 1);
   d         = d / (2 * k + 1) / (2 * k - 1);
   double uk = d;
@@ -559,8 +558,8 @@ static inline void prolcoef(double rlam, int k, double c, double &alpha0, double
   gamma0 = wk;
 }
 
-static inline void prolmatr(double *as, double *bs, double *cs, int n, double c,
-                            double rlam, int ifsymm, int ifodd) {
+void prolmatr(double *as, double *bs, double *cs, int n, double c, double rlam,
+              int ifsymm, int ifodd) {
   double done = 1.0;
   double half = done / 2.0;
   int k       = 0;
@@ -602,7 +601,7 @@ static inline void prolmatr(double *as, double *bs, double *cs, int n, double c,
   }
 }
 
-static inline void prolql1(int n, double *d, double *e, int &ierr) {
+void prolql1(int n, double *d, double *e, int &ierr) {
   ierr = 0;
   if (n == 1) return;
 
@@ -668,8 +667,7 @@ static inline void prolql1(int n, double *d, double *e, int &ierr) {
   }
 }
 
-static inline void prolfact(double *a, double *b, double *c, int n, double *u, double *v,
-                            double *w) {
+void prolfact(double *a, double *b, double *c, int n, double *u, double *v, double *w) {
   // Eliminate down
   for (int i = 0; i < n - 1; ++i) {
     double d = c[i + 1] / a[i];
@@ -690,8 +688,7 @@ static inline void prolfact(double *a, double *b, double *c, int n, double *u, d
   }
 }
 
-static inline void prolsolv(const double *u, const double *v, const double *w, int n,
-                            double *rhs) {
+void prolsolv(const double *u, const double *v, const double *w, int n, double *rhs) {
   // Eliminate down
   for (int i = 0; i < n - 1; ++i) {
     rhs[i + 1] -= u[i] * rhs[i];
@@ -708,9 +705,8 @@ static inline void prolsolv(const double *u, const double *v, const double *w, i
   }
 }
 
-static inline void prolfun0(int &ier, int n, double c, double *as, double *bs, double *cs,
-                            double *xk, double *u, double *v, double *w, double eps,
-                            int &nterms, double &rkhi) {
+void prolfun0(int &ier, int n, double c, double *as, double *bs, double *cs, double *xk,
+              double *u, double *v, double *w, double eps, int &nterms, double &rkhi) {
   ier          = 0;
   double delta = 1.0e-8;
   int ifsymm   = 1;
@@ -772,8 +768,8 @@ static inline void prolfun0(int &ier, int n, double c, double *as, double *bs, d
   nterms *= 2;
 }
 
-static inline void prolps0i(int &ier, double c, double *w, int lenw, int &nterms,
-                            int &ltot, double &rkhi) {
+void prolps0i(int &ier, double c, double *w, int lenw, int &nterms, int &ltot,
+              double &rkhi) {
   static const std::array<int, 20> ns = {48,  64,  80,  92,  106, 120, 130,
                                          144, 156, 168, 178, 190, 202, 214,
                                          224, 236, 248, 258, 268, 280};
@@ -821,8 +817,8 @@ static inline void prolps0i(int &ier, double c, double *w, int lenw, int &nterms
   if (ier != 0) return;
 }
 
-static inline void prol0ini(int &ier, double c, double *w, double &rlam20, double &rkhi,
-                            int lenw, int &keep, int &ltot) {
+void prol0ini(int &ier, double c, double *w, double &rlam20, double &rkhi, int lenw,
+              int &keep, int &ltot) {
   ier           = 0;
   double thresh = 45;
   int iw        = 11;
@@ -896,7 +892,7 @@ static inline void prol0ini(int &ier, double c, double *w, double &rlam20, doubl
   w[7] = c;
 }
 
-static inline void prol0eva(double x, const double *w, double &psi0, double &derpsi0) {
+void prol0eva(double x, const double *w, double &psi0, double &derpsi0) {
   int iw    = static_cast<int>(w[0]);
   int its   = static_cast<int>(w[1]);
   int iwhts = static_cast<int>(w[2]);
@@ -928,7 +924,7 @@ static inline void prol0eva(double x, const double *w, double &psi0, double &der
   // derpsi0 = sqrt(2.0) * derpsi0;
 }
 
-static inline void prol0int0r(const double *w, double r, double &val) {
+void prol0int0r(const double *w, double r, double &val) {
   static int npts  = 200;
   static int itype = 1;
   double derpsi0;
@@ -959,6 +955,9 @@ static inline void prol0int0r(const double *w, double r, double &val) {
     val += ws[i] * r / 2 * fvals[i];
   }
 }
+} // anonymous namespace
+
+namespace { // file-local helpers (continued)
 
 struct Prolate0Fun {
   Prolate0Fun() = default;
@@ -1046,6 +1045,8 @@ double prolate0_int_eval(double c, double r) {
   return prolate0_funcs_cache[c].int_eval(r);
 }
 // end of prolate functions
+
+} // anonymous namespace
 
 double pswf(double c, double x) {
   if (std::abs(x) > 1.0) return 0.0; // restrict support to [-1,1]
