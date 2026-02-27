@@ -150,6 +150,16 @@ template<typename T> struct cufinufft_plan_t {
 
   cufinufft_plan_t(const cufinufft_opts &opts_, bool supports_pools_)
     : opts(opts_), supports_pools(supports_pools_) {}
+
+  ~cufinufft_plan_t() {
+    int orig_device{};
+    cudaGetDevice(&orig_device);
+    cudaSetDevice(opts.gpu_device_id);
+    //cufinufft::utils::WithCudaDevice device_swapper(opts.gpu_device_id);
+    if (fftplan) cufftDestroy(fftplan);
+    delete t2_plan;
+    cudaSetDevice(orig_device);
+  }
 };
 
 template<typename T> static inline constexpr cufftType_t cufft_type();
