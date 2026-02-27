@@ -231,7 +231,7 @@ jobs:
                 -DCMAKE_POLICY_DEFAULT_CMP0141=NEW
 
               cmake --build "$build_dir" --config "$build_type"
-              ctest --test-dir "$build_dir" --output-on-failure
+              ctest --test-dir "$build_dir" --output-on-failure -j
 
               python3 -m pip install \
                 --verbose \

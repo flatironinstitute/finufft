@@ -10,8 +10,8 @@
 
  Todo: Add some more args + update screen output like spreadtestnd.cpp.
  */
-#include "finufft/finufft_utils.hpp"
-#include <finufft/test_defs.h>
+#include "finufft/utils.hpp"
+#include <finufft/test_defs.hpp>
 
 #include <cmath>
 #include <cstdio>

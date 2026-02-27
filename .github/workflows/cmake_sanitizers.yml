@@ -146,5 +146,5 @@ jobs:
               -DFINUFFT_USE_SANITIZERS=ON
 
             cmake --build "$build_dir" --config "$build_type"
-            ctest --test-dir "$build_dir" --output-on-failure
+            ctest --test-dir "$build_dir" --output-on-failure -j
           done

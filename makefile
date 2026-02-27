@@ -117,7 +117,7 @@ FFLAGS := $(FFLAGS) $(INCL) -I/usr/include -fPIC
 # Link time optimization (LTO):
 # (works with GCC, Clang. Increases link time, reduces binary size, can speed up hot paths)
 ifneq ($(LTO),OFF)
-  LTOFLAGS := -flto
+  LTOFLAGS := -flto=auto
   CFLAGS   += $(LTOFLAGS)
   CXXFLAGS += $(LTOFLAGS)
   FFLAGS   += $(LTOFLAGS)
@@ -152,10 +152,16 @@ STATICLIB = lib-static/$(LIBNAME).a
 ABSDYNLIB = $(FINUFFT)$(DYNLIB)
 
 # spreader objs
-SOBJS = src/finufft_utils.o src/spreadinterp.o src/common/utils.o src/common/kernel.o src/common/pswf.o
+SOBJS = src/utils.o src/common/utils.o src/common/kernel.o src/common/pswf.o
 
+# per-precision objs (each gets a _f.o single-precision variant via pattern rule)
+PRECISION_OBJS = src/makeplan.o src/setpts.o src/execute.o \
+                 src/spreadinterp.o \
+                 src/spreadinterp_1d.o src/spreadinterp_2d.o src/spreadinterp_3d.o
+# common objs compiled once for both precisions
+COMMON_OBJS = src/fft.o src/c_interface.o fortran/finufftfort.o
 # all lib dual-precision objs (note DUCC_OBJS empty if unused)
-OBJS = $(SOBJS) src/fft.o src/finufft_core.o src/c_interface.o fortran/finufftfort.o $(DUCC_OBJS)
+OBJS = $(SOBJS) $(PRECISION_OBJS) $(PRECISION_OBJS:%.o=%_f.o) $(COMMON_OBJS) $(DUCC_OBJS)
 
 .PHONY: usage lib examples test perftest spreadtest spreadtestall fortran matlab octave all mex python clean objclean pyclean mexclean wheel docker-wheel gurutime docs setup setupclean
 
@@ -198,6 +204,9 @@ HEADERS = $(wildcard include/*.h include/finufft/*.h include/finufft/*.hpp inclu
 	$(CXX) -c $(CXXFLAGS) $< -o $@
 src/%.o: src/%.cpp $(HEADERS)
 	$(CXX) $(OBJFLAGS) -c $(CXXFLAGS) $< -o $@
+# single-precision variants: compile same source with -DFINUFFT_SINGLE
+src/%_f.o: src/%.cpp $(HEADERS)
+	$(CXX) $(OBJFLAGS) -DFINUFFT_SINGLE -c $(CXXFLAGS) $< -o $@
 fortran/%.o: fortran/%.cpp $(HEADERS)
 	$(CXX) $(OBJFLAGS) -c $(CXXFLAGS) $< -o $@
 %.o: %.c $(HEADERS)
@@ -207,16 +216,15 @@ fortran/%.o: fortran/%.cpp $(HEADERS)
 
 # rule for spreadinterp: includes auto-generated code, xsimd header-only dependency;
 # if FFT=DUCC also setup ducc with fft.h dependency on $(DUCC_SETUP)...
-# Note src/spreadinterp.cpp includes finufft/finufft_core.h which includes finufft/fft.h
+# Note src/spreadinterp.cpp includes finufft/plan.hpp which pulls in FFT forward decls
 # so fftw/ducc header needed for spreadinterp, though spreadinterp should not
 # depend on fftw/ducc directly?
-include/finufft/fft.h: $(DUCC_SETUP)
 SHEAD = $(XSIMD_DIR)/include/xsimd/xsimd.hpp
-src/spreadinterp.o: src/spreadinterp.cpp include/finufft/spreadinterp.h include/finufft/finufft_utils.hpp include/finufft_common/kernel.h include/finufft_common/spread_opts.h $(SHEAD)
+src/spreadinterp.o: src/spreadinterp.cpp include/finufft/spreadinterp.hpp include/finufft/utils.hpp include/finufft_common/kernel.h include/finufft_common/spread_opts.h $(SHEAD)
 
-# we need xsimd functionality in finufft_core.h, which is included by many other
-# files, so make sure we install xsimd before we prcess any of those files.
-include/finufft/finufft_core.h: $(XSIMD_DIR)/include/xsimd/xsimd.hpp
+# we need xsimd functionality in plan.hpp, which is included by many other
+# files, so make sure we install xsimd before we process any of those files.
+include/finufft/plan.hpp: $(XSIMD_DIR)/include/xsimd/xsimd.hpp
 
 # lib -----------------------------------------------------------------------
 # build library with double/single prec both bundled in...
@@ -286,10 +294,10 @@ test/%f: test/%.cpp $(DYNLIB)
 test/error_handling: test/error_handling.c $(DYNLIB)
 	$(CC) $(CFLAGS) ${LDFLAGS} $< $(ABSDYNLIB) $(LIBSFFT) $(CLINK) -o $@
 # low-level tests that are cleaner if depend on only specific objects...
-test/testutils: test/testutils.cpp src/finufft_utils.o src/common/utils.o
-	$(CXX) $(CXXFLAGS) ${LDFLAGS} test/testutils.cpp src/finufft_utils.o src/common/utils.o $(LIBS) -o test/testutils
-test/testutilsf: test/testutils.cpp src/finufft_utils.o src/common/utils.o
-	$(CXX) $(CXXFLAGS) ${LDFLAGS} -DSINGLE test/testutils.cpp src/finufft_utils.o src/common/utils.o $(LIBS) -o test/testutilsf
+test/testutils: test/testutils.cpp src/utils.o src/common/utils.o
+	$(CXX) $(CXXFLAGS) ${LDFLAGS} test/testutils.cpp src/utils.o src/common/utils.o $(LIBS) -o test/testutils
+test/testutilsf: test/testutils.cpp src/utils.o src/common/utils.o
+	$(CXX) $(CXXFLAGS) ${LDFLAGS} -DSINGLE test/testutils.cpp src/utils.o src/common/utils.o $(LIBS) -o test/testutilsf
 
 # make sure all double-prec test executables ready for testing
 CPPTESTS := $(basename $(wildcard test/*.cpp))

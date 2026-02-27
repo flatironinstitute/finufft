@@ -3,11 +3,15 @@
 
 // For self-test see ../test/testutils.cpp
 
-#include <finufft/finufft_utils.hpp>
+#include <finufft/utils.hpp>
 
-#include <iostream>
-#include <string>
+#include <cinttypes>
+#include <cstdio>
+
 #include <chrono>
+#include <iostream>
+#include <sstream>
+#include <string>
 
 #if defined(_WIN32)
 #include <vector>
@@ -73,7 +77,6 @@ double CNTime::elapsedsec() const
 }
 
 #ifdef _OPENMP
-namespace {
 #if defined(_WIN32)
 // Returns the number of physical CPU cores on Windows (excluding hyper-threaded cores)
 unsigned getPhysicalCoreCount() {
@@ -230,8 +233,6 @@ unsigned getAllowedCoreCount() { return MY_OMP_GET_MAX_THREADS(); }
 
 #endif
 
-} // namespace
-
 unsigned getOptimalThreadCount() {
   // if the user has set the OMP_NUM_THREADS environment variable, use that value
   static const auto cached_threads = []() -> unsigned {
@@ -278,3 +279,39 @@ int rand_r(unsigned int * /*seedp*/)
 #endif
 
 } // namespace finufft::utils
+
+namespace finufft::spreadinterp {
+
+void print_subgrid_info(int ndims, BIGINT offset1, BIGINT offset2, BIGINT offset3,
+                        UBIGINT padded_size1, UBIGINT size1, UBIGINT size2, UBIGINT size3,
+                        UBIGINT M0) {
+  printf("size1 %" PRIu64 ", padded_size1 %" PRIu64 "\n", size1, padded_size1);
+  switch (ndims) {
+  case 1:
+    printf("\tsubgrid: off %" PRId64 "\t siz %" PRIu64 "\t #NU %" PRIu64 "\n", offset1,
+           padded_size1, M0);
+    break;
+  case 2:
+    printf("\tsubgrid: off %" PRId64 ",%" PRId64 "\t siz %" PRIu64 ",%" PRIu64
+           "\t #NU %" PRIu64 "\n",
+           offset1, offset2, padded_size1, size2, M0);
+    break;
+  case 3:
+    printf("\tsubgrid: off %" PRId64 ",%" PRId64 ",%" PRId64 "\t siz %" PRIu64 ",%" PRIu64
+           ",%" PRIu64 "\t #NU %" PRIu64 "\n",
+           offset1, offset2, offset3, padded_size1, size2, size3, M0);
+    break;
+  default:
+    printf("Invalid number of dimensions: %d\n", ndims);
+    break;
+  }
+}
+
+int report_invalid_kernel_params(int ns, int nc) {
+  fprintf(stderr,
+          "FINUFFT error: invalid kernel params selected at runtime (ns=%d, nc=%d).\n",
+          ns, nc);
+  return 1;
+}
+
+} // namespace finufft::spreadinterp

@@ -1,6 +1,17 @@
 List of features / changes made / release notes, in reverse chronological order.
 If not stated, FINUFFT is assumed (old cuFINUFFT <=1.3 is listed separately).
 
+v2.6.0 (in progress)
+
+* Internal C++ refactoring: core implementation (makeplan, setpts, execute,
+  spread/interp) moved to template headers in include/finufft/,
+  with per-precision explicit-instantiation TUs in src/. Many internal free
+  functions converted to private methods on FINUFFT_PLAN_T, reducing
+  parameter passing and improving encapsulation. FFT plan management
+  consolidated in src/fft.cpp with an opaque custom deleter. C++ internal
+  headers renamed from .h to .hpp. No public API changes.
+  (Barbone)
+
 v2.5.0 (release candidate 1, 02/10/26)
 
 * Major overhaul of spreading (gridding) kernel function choice, parameters,

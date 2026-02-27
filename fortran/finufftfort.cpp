@@ -19,7 +19,7 @@
 
 // public header
 #include <finufft.h>
-#include <finufft/finufft_core.h>
+#include <finufft/plan.hpp>
 
 using f32  = float;
 using f64  = double;
