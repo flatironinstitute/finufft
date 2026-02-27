@@ -468,18 +468,20 @@ void cufinufft_setpts_impl(int M, T *d_kx, T *d_ky, T *d_kz, int N, T *d_s, T *d
                                                      (d_plan->dim > 1) ? d_ky : d_kx,
                                                      // same idea as above
                                                      (d_plan->dim > 2) ? d_kz : d_kx));
-    const auto D = d_plan->type3_params.D;
+    const auto D1       = d_plan->type3_params.D[0];
+    const auto D2       = d_plan->type3_params.D[1]; // this should be 0 if dim < 2
+    const auto D3       = d_plan->type3_params.D[2]; // this should be 0 if dim < 3
     const auto realsign = d_plan->iflag >= 0 ? T(1) : T(-1);
     thrust::transform(
         thrust::cuda::par.on(stream), iterator, iterator + M, dethrust(d_plan->prephase),
-        [D, realsign] __host__
+        [D1, D2, D3, realsign] __host__
         __device__(const thrust::tuple<T, T, T> &tuple) -> cuda_complex<T> {
           const auto x = thrust::get<0>(tuple);
           const auto y = thrust::get<1>(tuple);
           const auto z = thrust::get<2>(tuple);
-          // no branching because D[1] and D[2] are 0 if dim < 2 and dim < 3
+          // no branching because D2 and D3 are 0 if dim < 2 and dim < 3
           // this is generally faster on GPU
-          const auto phase = D[0] * x + D[1] * y + D[2] * z;
+          const auto phase = D1 * x + D2 * y + D3 * z;
           // TODO: nvcc should have the sincos function
           //       check the cos + i*sin
           //       ref: https://en.wikipedia.org/wiki/Cis_(mathematics)
