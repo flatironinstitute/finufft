@@ -118,7 +118,7 @@ template<typename T> struct cufinufft_plan_t {
 
   // Type 3 specific
   struct {
-    cuda::std::array<T,3> X, C, S, D, h, gam;
+    cuda::std::array<T,3> X={0,0,0}, C={0,0,0}, S={0,0,0}, D={0,0,0}, h={0,0,0}, gam={0,0,0};
   } type3_params;
   int N=0;                        // number of NU freq pts (type 3 only)
   CUFINUFFT_BIGINT nf=0;
