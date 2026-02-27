@@ -15,7 +15,7 @@
 
 #include <cuComplex.h>
 
-#define CUFINUFFT_BIGINT int
+using CUFINUFFT_BIGINT=int;
 
 // Marco Barbone 8/5/2024, replaced the ugly trick with std::conditional
 // to define cuda_complex
@@ -85,77 +85,71 @@ template<typename T> inline cuda::std::array<T *,3> dethrust(cuda::std::array<gp
 
 template<typename T> struct cufinufft_plan_t {
   cufinufft_opts opts;
+  bool supports_pools=false;
   finufft_spread_opts spopts;
 
-  ThrustAllocatorAsync<int> ialloc;
-  ThrustAllocatorAsync<T> alloc;
-  ThrustAllocatorAsync<cuda_complex<T>> calloc;
+  ThrustAllocatorAsync<int> ialloc{(cudaStream_t)opts.gpu_stream, supports_pools};
+  ThrustAllocatorAsync<T> alloc{(cudaStream_t)opts.gpu_stream, supports_pools};
+  ThrustAllocatorAsync<cuda_complex<T>> calloc{(cudaStream_t)opts.gpu_stream, supports_pools};
 
-  int type;
-  int dim;
-  CUFINUFFT_BIGINT M;
-  cuda::std::array<CUFINUFFT_BIGINT,3> nf123;
-  cuda::std::array<CUFINUFFT_BIGINT,3> mstu;
-  int ntransf;
-  int batchsize;
-  int iflag;
-  int supports_pools;
+  int type=0;
+  int dim=0;
+  CUFINUFFT_BIGINT M=0;
+  cuda::std::array<CUFINUFFT_BIGINT,3> nf123={0,0,0};
+  cuda::std::array<CUFINUFFT_BIGINT,3> mstu={0,0,0};
+  int ntransf=0;
+  int batchsize=0;
+  int iflag=0;
 
-  int totalnumsubprob;
-  cuda::std::array<gpuArray<T>,3> fwkerhalf;
+  int totalnumsubprob=0;
+  cuda::std::array<gpuArray<T>,3> fwkerhalf={gpuArray<T>{0, alloc},gpuArray<T>{0,alloc},gpuArray<T>{0,alloc}};
 
   // for type 1,2 it is a pointer to kx, ky, kz (no new allocs), for type 3 it
   // for t3: allocated as "primed" (scaled) src pts x'_j, etc
-  cuda::std::array<T *,3> kxyz;
-  cuda::std::array<gpuArray<T>,3> kxyzp;
-  gpuArray<cuda_complex<T>> CpBatch; // working array of prephased strengths
+  cuda::std::array<T *,3> kxyz={nullptr,nullptr,nullptr};
+  cuda::std::array<gpuArray<T>,3> kxyzp={gpuArray<T>{0,alloc},gpuArray<T>{0,alloc},gpuArray<T>{0,alloc}};
+  gpuArray<cuda_complex<T>> CpBatch{0, calloc}; // working array of prephased strengths
 
   // no allocs here
-  cuda_complex<T> *c;
-  gpuArray<cuda_complex<T>> fwp;
-  cuda_complex<T> *fw;
-  cuda_complex<T> *fk;
+  cuda_complex<T> *c=nullptr;
+  gpuArray<cuda_complex<T>> fwp{0,calloc};
+  cuda_complex<T> *fw=nullptr;
+  cuda_complex<T> *fk=nullptr;
 
   // Type 3 specific
   struct {
     cuda::std::array<T,3> X, C, S, D, h, gam;
   } type3_params;
-  int N;                        // number of NU freq pts (type 3 only)
-  CUFINUFFT_BIGINT nf;
-  cuda::std::array<T *,3> STU;
-  cuda::std::array<gpuArray<T>,3> STUp;
-  T tol;
+  int N=0;                        // number of NU freq pts (type 3 only)
+  CUFINUFFT_BIGINT nf=0;
+  cuda::std::array<T *,3> STU={nullptr,nullptr,nullptr};
+  cuda::std::array<gpuArray<T>,3> STUp={gpuArray<T>{0, alloc},gpuArray<T>{0,alloc},gpuArray<T>{0,alloc}};
+  T tol=0;
   // inner type 2 plan for type 3
-  cufinufft_plan_t<T> *t2_plan;
+  cufinufft_plan_t<T> *t2_plan=nullptr;
   // new allocs.
   // FIXME: convert to device vectors to use resize
-  gpuArray<cuda_complex<T>> prephase; // pre-phase, for all input NU pts
-  gpuArray<cuda_complex<T>> deconv;   // reciprocal of kernel FT, phase, all output NU pts
+  gpuArray<cuda_complex<T>> prephase{0, calloc}; // pre-phase, for all input NU pts
+  gpuArray<cuda_complex<T>> deconv{0,calloc};   // reciprocal of kernel FT, phase, all output NU pts
 
   // Arrays that used in subprob method
-  gpuArray<int> idxnupts;        // length: #nupts, index of the nupts in the bin-sorted order
-  gpuArray<int> sortidx;         // length: #nupts, order inside the bin the nupt belongs to
-  gpuArray<int> numsubprob;      // length: #bins,  number of subproblems in each bin
-  gpuArray<int> binsize;         // length: #bins, number of nonuniform ponits in each bin
-  gpuArray<int> binstartpts;     // length: #bins, exclusive scan of array binsize
-  gpuArray<int> subprob_to_bin;  // length: #subproblems, the bin the subproblem works on
-  gpuArray<int> subprobstartpts; // length: #bins, exclusive scan of array numsubprob
+  gpuArray<int> idxnupts{0,ialloc};        // length: #nupts, index of the nupts in the bin-sorted order
+  gpuArray<int> sortidx{0,ialloc};         // length: #nupts, order inside the bin the nupt belongs to
+  gpuArray<int> numsubprob{0,ialloc};      // length: #bins,  number of subproblems in each bin
+  gpuArray<int> binsize{0,ialloc};         // length: #bins, number of nonuniform ponits in each bin
+  gpuArray<int> binstartpts{0,ialloc};     // length: #bins, exclusive scan of array binsize
+  gpuArray<int> subprob_to_bin{0,ialloc};  // length: #subproblems, the bin the subproblem works on
+  gpuArray<int> subprobstartpts{0,ialloc}; // length: #bins, exclusive scan of array numsubprob
 
   // Arrays for 3d (need to sort out)
-  gpuArray<int> numnupts;
-  gpuArray<int> subprob_to_nupts;
+  gpuArray<int> numnupts{0,ialloc};
+  gpuArray<int> subprob_to_nupts{0,ialloc};
 
-  cufftHandle fftplan;
-  cudaStream_t stream;
+  cufftHandle fftplan=0;
+  cudaStream_t stream=0;
 
-  cufinufft_plan_t() : ialloc(0,false), alloc(0,false), calloc(0,false),
-    fwkerhalf({gpuArray<T>{0, alloc},gpuArray<T>{0,alloc},gpuArray<T>{0,alloc}}),
-    kxyzp({gpuArray<T>{0, alloc},gpuArray<T>{0,alloc},gpuArray<T>{0,alloc}}),
-    CpBatch(0,calloc), fwp(0, calloc),
-    STUp({gpuArray<T>{0, alloc},gpuArray<T>{0,alloc},gpuArray<T>{0,alloc}}),
-    prephase(0, calloc), deconv(0, calloc), idxnupts(0, ialloc), sortidx(0, ialloc),
-    numsubprob(0, ialloc), binsize(0, ialloc), binstartpts(0, ialloc), subprob_to_bin(0, ialloc),
-    subprobstartpts(0, ialloc) {}
+  cufinufft_plan_t(const cufinufft_opts &opts_, bool supports_pools_)
+    : opts(opts_), supports_pools(supports_pools_) {}
 };
 
 template<typename T> static inline constexpr cufftType_t cufft_type();

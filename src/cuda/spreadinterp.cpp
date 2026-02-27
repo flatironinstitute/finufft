@@ -30,11 +30,11 @@ int setup_spreader(finufft_spread_opts &spopts, T eps, T upsampfac,
           stderr,
           "[%s] error: nonstandard upsampfac=%.3g cannot be handled by kerevalmeth=1\n",
           __func__, upsampfac);
-      return FINUFFT_ERR_HORNER_WRONG_BETA;
+      throw int(FINUFFT_ERR_HORNER_WRONG_BETA);
     }
     if (upsampfac <= 1.0) { // no digits would result, ns infinite
       fprintf(stderr, "[%s] error: upsampfac=%.3g\n", __func__, upsampfac);
-      return FINUFFT_ERR_UPSAMPFAC_TOO_SMALL;
+      throw int(FINUFFT_ERR_UPSAMPFAC_TOO_SMALL);
     }
     // calling routine must abort on above errors, since spopts is garbage!
     if (!spreadinterponly && upsampfac > 4.0)

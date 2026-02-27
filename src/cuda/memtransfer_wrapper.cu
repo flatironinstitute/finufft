@@ -54,33 +54,6 @@ void allocgpumem1d_plan(cufinufft_plan_t<T> *d_plan)
 }
 
 template<typename T>
-void allocgpumem1d_nupts(cufinufft_plan_t<T> *d_plan)
-/*
-    wrapper for gpu memory allocation in "setNUpts" stage.
-
-    Melody Shih 11/21/21
-*/
-{
-  utils::WithCudaDevice device_swapper(d_plan->opts.gpu_device_id);
-
-  d_plan->sortidx.clear();
-  d_plan->idxnupts.clear();
-
-  switch (d_plan->opts.gpu_method) {
-  case 1:
-  case 2:
-  case 3: {
-    if (d_plan->opts.gpu_sort)
-      d_plan->sortidx.resize(d_plan->M);
-    d_plan->idxnupts.resize(d_plan->M);
-  } break;
-  default:
-    std::cerr << "[allocgpumem1d_nupts] error: invalid method\n";
-    throw int(FINUFFT_ERR_METHOD_NOTVALID);
-  }
-}
-
-template<typename T>
 void allocgpumem2d_plan(cufinufft_plan_t<T> *d_plan)
 /*
     wrapper for gpu memory allocation in "plan" stage.
@@ -125,36 +98,6 @@ void allocgpumem2d_plan(cufinufft_plan_t<T> *d_plan)
     d_plan->fw = dethrust(d_plan->fwp);
     d_plan->fwkerhalf[0].resize(nf1 / 2 + 1);
     d_plan->fwkerhalf[1].resize(nf2 / 2 + 1);
-  }
-}
-
-template<typename T>
-void allocgpumem2d_nupts(cufinufft_plan_t<T> *d_plan)
-/*
-    wrapper for gpu memory allocation in "setNUpts" stage.
-
-    Melody Shih 07/25/19
-*/
-{
-  utils::WithCudaDevice device_swapper(d_plan->opts.gpu_device_id);
-
-  d_plan->sortidx.clear();
-  d_plan->idxnupts.clear();
-
-  switch (d_plan->opts.gpu_method) {
-  case 1: {
-    if (d_plan->opts.gpu_sort)
-      d_plan->sortidx.resize(d_plan->M);
-    d_plan->idxnupts.resize(d_plan->M);
-  } break;
-  case 2:
-  case 3: {
-    d_plan->idxnupts.resize(d_plan->M);
-    d_plan->sortidx.resize(d_plan->M);
-  } break;
-  default:
-    std::cerr << "[allocgpumem2d_nupts] error: invalid method\n";
-    throw int(FINUFFT_ERR_METHOD_NOTVALID);
   }
 }
 
@@ -231,6 +174,63 @@ void allocgpumem3d_plan(cufinufft_plan_t<T> *d_plan)
 }
 
 template<typename T>
+void allocgpumem1d_nupts(cufinufft_plan_t<T> *d_plan)
+/*
+    wrapper for gpu memory allocation in "setNUpts" stage.
+
+    Melody Shih 11/21/21
+*/
+{
+  utils::WithCudaDevice device_swapper(d_plan->opts.gpu_device_id);
+
+  d_plan->sortidx.clear();
+  d_plan->idxnupts.clear();
+
+  switch (d_plan->opts.gpu_method) {
+  case 1:
+  case 2:
+  case 3: {
+    if (d_plan->opts.gpu_sort)
+      d_plan->sortidx.resize(d_plan->M);
+    d_plan->idxnupts.resize(d_plan->M);
+  } break;
+  default:
+    std::cerr << "[allocgpumem1d_nupts] error: invalid method\n";
+    throw int(FINUFFT_ERR_METHOD_NOTVALID);
+  }
+}
+
+template<typename T>
+void allocgpumem2d_nupts(cufinufft_plan_t<T> *d_plan)
+/*
+    wrapper for gpu memory allocation in "setNUpts" stage.
+
+    Melody Shih 07/25/19
+*/
+{
+  utils::WithCudaDevice device_swapper(d_plan->opts.gpu_device_id);
+
+  d_plan->sortidx.clear();
+  d_plan->idxnupts.clear();
+
+  switch (d_plan->opts.gpu_method) {
+  case 1: {
+    if (d_plan->opts.gpu_sort)
+      d_plan->sortidx.resize(d_plan->M);
+    d_plan->idxnupts.resize(d_plan->M);
+  } break;
+  case 2:
+  case 3: {
+    d_plan->idxnupts.resize(d_plan->M);
+    d_plan->sortidx.resize(d_plan->M);
+  } break;
+  default:
+    std::cerr << "[allocgpumem2d_nupts] error: invalid method\n";
+    throw int(FINUFFT_ERR_METHOD_NOTVALID);
+  }
+}
+
+template<typename T>
 void allocgpumem3d_nupts(cufinufft_plan_t<T> *d_plan)
 /*
     wrapper for gpu memory allocation in "setNUpts" stage.
@@ -257,50 +257,6 @@ void allocgpumem3d_nupts(cufinufft_plan_t<T> *d_plan)
   }
 }
 
-template<typename T>
-void freegpumemory(cufinufft_plan_t<T> *d_plan)
-/*
-    wrapper for freeing gpu memory.
-
-    Melody Shih 11/21/21
-*/
-{
-  utils::WithCudaDevice device_swapper(d_plan->opts.gpu_device_id);
-  // Fixes a crash whewre the plan itself is deleted before the stream
-  const auto stream = d_plan->stream;
-  // Dont clear fw if spreadinterponly for type 1 and 2 as fw belongs to original program
-  // (it is d_fk)
-  d_plan->fwp.clear();
-  d_plan->fwkerhalf[0].clear();
-  d_plan->fwkerhalf[1].clear();
-  d_plan->fwkerhalf[2].clear();
-
-  d_plan->idxnupts.clear();
-  d_plan->sortidx.clear();
-  d_plan->numsubprob.clear();
-  d_plan->binsize.clear();
-  d_plan->binstartpts.clear();
-  d_plan->subprob_to_bin.clear();
-  d_plan->subprobstartpts.clear();
-
-  d_plan->numnupts.clear();
-  d_plan->numsubprob.clear();
-
-  if (d_plan->type != 3) {
-    return;
-  }
-
-  d_plan->kxyzp[0].clear();
-  d_plan->kxyzp[1].clear();
-  d_plan->kxyzp[2].clear();
-  d_plan->STUp[0].clear();
-  d_plan->STUp[1].clear();
-  d_plan->STUp[2].clear();
-  d_plan->prephase.clear();
-  d_plan->deconv.clear();
-  d_plan->CpBatch.clear();
-}
-
 template<typename T> void allocgpumem_plan(cufinufft_plan_t<T> *d_plan)
 {
 if (d_plan->dim==1) allocgpumem1d_plan(d_plan);
@@ -318,9 +274,6 @@ if (d_plan->dim==3) allocgpumem3d_nupts(d_plan);
 }
 template void allocgpumem_nupts(cufinufft_plan_t<float> *d_plan);
 template void allocgpumem_nupts(cufinufft_plan_t<double> *d_plan);
-
-template void freegpumemory<float>(cufinufft_plan_t<float> *d_plan);
-template void freegpumemory<double>(cufinufft_plan_t<double> *d_plan);
 
 } // namespace memtransfer
 } // namespace cufinufft

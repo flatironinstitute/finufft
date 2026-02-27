@@ -54,7 +54,8 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
   */
   using namespace cufinufft::common;
   using namespace finufft::common;
-  int ier;
+  *d_plan_ptr = nullptr;
+
   if (type < 1 || type > 3) {
     fprintf(stderr, "[%s] Invalid type (%d): should be 1, 2, or 3.\n", __func__, type);
     throw int(FINUFFT_ERR_TYPE_NOTVALID);
@@ -65,23 +66,44 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
     throw int(FINUFFT_ERR_NTRANS_NOTVALID);
   }
 
-  /* allocate the plan structure, assign address to user pointer. */
-  auto *d_plan = new cufinufft_plan_t<T>;
-  memset(d_plan, 0, sizeof(*d_plan));
-  *d_plan_ptr = d_plan;
+  /* If a user has not supplied their own options, assign defaults for them. */
+  cufinufft_opts planopts;
+  if (opts == nullptr) {  // use default opts
+    cufinufft_default_opts(&planopts);
+  } else {                // or read from what's passed in
+    planopts = *opts; // keep a deep copy; changing *opts now has no effect
+  }
 
+  // Multi-GPU support: set the CUDA Device ID:
+  const int device_id = planopts.gpu_device_id;
+  const cufinufft::utils::WithCudaDevice FromID{device_id};
+  int supports_pools=0;
+
+  // cudaMallocAsync isn't supported for all devices, regardless of cuda version. Check
+  // for support
+  {
+    cudaDeviceGetAttribute(&supports_pools, cudaDevAttrMemoryPoolsSupported,
+                           device_id);
+    static bool warned = false;
+    if (!warned && !supports_pools && planopts.gpu_stream != nullptr) {
+      fprintf(stderr,
+              "[cufinufft] Warning: cudaMallocAsync not supported on this device. Use of "
+              "CUDA streams may not perform optimally.\n");
+      warned = true;
+    }
+  }
+
+  /* allocate the plan structure, assign address to user pointer. */
+  auto *d_plan = new cufinufft_plan_t<T>(planopts, bool(supports_pools));
+  *d_plan_ptr = d_plan;
+try{
   // Zero out your struct, (sets all pointers to NULL)
   // set nf1, nf2, nf3 to 1 for type 3, type 1, type 2 will overwrite this
   d_plan->nf123[0] = 1;
   d_plan->nf123[1] = 1;
   d_plan->nf123[2] = 1;
   d_plan->tol = tol;
-  /* If a user has not supplied their own options, assign defaults for them. */
-  if (opts == nullptr) {  // use default opts
-    cufinufft_default_opts(&(d_plan->opts));
-  } else {                // or read from what's passed in
-    d_plan->opts = *opts; // keep a deep copy; changing *opts now has no effect
-  }
+  d_plan->opts = planopts;
   d_plan->dim                   = dim;
   d_plan->opts.gpu_maxbatchsize = std::max(d_plan->opts.gpu_maxbatchsize, 1);
   d_plan->opts.gpu_np           = d_plan->opts.gpu_method == 3 ? d_plan->opts.gpu_np : 0;
@@ -109,24 +131,6 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
 
   const auto stream = d_plan->stream = (cudaStream_t)d_plan->opts.gpu_stream;
 
-  // Mult-GPU support: set the CUDA Device ID:
-  const int device_id = d_plan->opts.gpu_device_id;
-  const cufinufft::utils::WithCudaDevice FromID{device_id};
-
-  // cudaMallocAsync isn't supported for all devices, regardless of cuda version. Check
-  // for support
-  {
-    cudaDeviceGetAttribute(&d_plan->supports_pools, cudaDevAttrMemoryPoolsSupported,
-                           device_id);
-    static bool warned = false;
-    if (!warned && !d_plan->supports_pools && d_plan->opts.gpu_stream != nullptr) {
-      fprintf(stderr,
-              "[cufinufft] Warning: cudaMallocAsync not supported on this device. Use of "
-              "CUDA streams may not perform optimally.\n");
-      warned = true;
-    }
-  }
-
   // simple check to use upsampfac=1.25 if tol is big
   // FIXME: since cufft is really fast we should use 1.25 only if we run out of vram
   if (d_plan->opts.upsampfac == 0.0) { // indicates auto-choose
@@ -139,10 +143,7 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
     }
   }
   /* Setup Spreader */
-  if ((ier = setup_spreader_for_nufft(d_plan->spopts, tol, d_plan->opts)) > 1) {
-    // can return FINUFFT_WARN_EPS_TOO_SMALL=1, which is OK
-    goto finalize;
-  }
+  int ier = setup_spreader_for_nufft(d_plan->spopts, tol, d_plan->opts);
 
   d_plan->type                    = type;
   d_plan->spopts.spread_direction = d_plan->type;
@@ -265,12 +266,13 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
                d_plan->spopts.nspread, stream);
     }
   }
-finalize:
-  if (ier > 1) {
-    cufinufft_destroy_impl(*d_plan_ptr);
-    *d_plan_ptr = nullptr;
-  }
   return ier;
+}
+catch(...) {
+  delete d_plan;
+  *d_plan_ptr = nullptr;
+  throw;
+}
 }
 
 template<typename T>
@@ -471,20 +473,18 @@ void cufinufft_setpts_impl(int M, T *d_kx, T *d_ky, T *d_kz, int N, T *d_s, T *d
                                                      (d_plan->dim > 1) ? d_ky : d_kx,
                                                      // same idea as above
                                                      (d_plan->dim > 2) ? d_kz : d_kx));
-    const auto D1       = d_plan->type3_params.D[0];
-    const auto D2       = d_plan->type3_params.D[1]; // this should be 0 if dim < 2
-    const auto D3       = d_plan->type3_params.D[2]; // this should be 0 if dim < 3
+    const auto D = d_plan->type3_params.D;
     const auto realsign = d_plan->iflag >= 0 ? T(1) : T(-1);
     thrust::transform(
         thrust::cuda::par.on(stream), iterator, iterator + M, dethrust(d_plan->prephase),
-        [D1, D2, D3, realsign] __host__
+        [D, realsign] __host__
         __device__(const thrust::tuple<T, T, T> &tuple) -> cuda_complex<T> {
           const auto x = thrust::get<0>(tuple);
           const auto y = thrust::get<1>(tuple);
           const auto z = thrust::get<2>(tuple);
-          // no branching because D2 and D3 are 0 if dim < 2 and dim < 3
+          // no branching because D[1] and D[2] are 0 if dim < 2 and dim < 3
           // this is generally faster on GPU
-          const auto phase = D1 * x + D2 * y + D3 * z;
+          const auto phase = D[0] * x + D[1] * y + D[2] * z;
           // TODO: nvcc should have the sincos function
           //       check the cos + i*sin
           //       ref: https://en.wikipedia.org/wiki/Cis_(mathematics)
@@ -652,16 +652,13 @@ void cufinufft_destroy_impl(cufinufft_plan_t<T> *d_plan)
 {
 
   // Can't destroy a null pointer.
-  if (!d_plan) throw int(FINUFFT_ERR_PLAN_NOTVALID);
+  if (!d_plan) return;
 
   cufinufft::utils::WithCudaDevice device_swapper(d_plan->opts.gpu_device_id);
 
-  using namespace cufinufft::memtransfer;
-  freegpumemory<T>(d_plan);
+  cufftDestroy(d_plan->fftplan);
 
-  if (d_plan->fftplan) cufftDestroy(d_plan->fftplan);
-
-  if (d_plan->t2_plan) cufinufft_destroy_impl(d_plan->t2_plan);
+  cufinufft_destroy_impl(d_plan->t2_plan);
 
   /* free/destruct the plan */
   delete d_plan;
