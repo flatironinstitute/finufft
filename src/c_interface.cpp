@@ -112,6 +112,7 @@ int finufftf_destroy(finufftf_plan p)
 }
 // Helper layer ...........................................................
 
+namespace { // helpers local to this TU
 template<typename T>
 int guru(
     int n_dims, int type, int n_transf, i64 nj, const std::array<const T *, 3> &xyz,
@@ -167,6 +168,7 @@ int guru2(int n_dims, int type, int n_transf, i64 nj,
   return guru(n_dims, type, n_transf, nj, xyz, cj, iflag, eps, n_modes, nk, stu,
               const_cast<std::complex<T> *>(fk), popts);
 }
+} // anonymous namespace
 
 // Dimension 1111111111111111111111111111111111111111111111111111111111111111
 

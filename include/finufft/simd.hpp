@@ -87,8 +87,6 @@ using finufft::common::MIN_NSPREAD;
 using finufft::utils::find_optimal_simd_width;
 using finufft::utils::GetPaddedSIMDWidth;
 
-namespace {
-// anonymous namespace for internal structs equivalent to declaring everything static
 struct zip_low {
   // helper struct to get the lower half of a SIMD register and zip it with itself
   // it returns index 0, 0, 1, 1, ... N/2, N/2
@@ -215,49 +213,21 @@ template<typename T> FINUFFT_ALWAYS_INLINE auto xsimd_to_array(const T &vec) noe
   return array;
 }
 
-[[maybe_unused]] FINUFFT_NEVER_INLINE
-void print_subgrid_info(int ndims, BIGINT offset1, BIGINT offset2, BIGINT offset3,
-                        UBIGINT padded_size1, UBIGINT size1, UBIGINT size2, UBIGINT size3,
-                        UBIGINT M0) {
-  printf("size1 %" PRIu64 ", padded_size1 %" PRIu64 "\n", size1, padded_size1);
-  switch (ndims) {
-  case 1:
-    printf("\tsubgrid: off %" PRId64 "\t siz %" PRIu64 "\t #NU %" PRIu64 "\n", offset1,
-           padded_size1, M0);
-    break;
-  case 2:
-    printf("\tsubgrid: off %" PRId64 ",%" PRId64 "\t siz %" PRIu64 ",%" PRIu64
-           "\t #NU %" PRIu64 "\n",
-           offset1, offset2, padded_size1, size2, M0);
-    break;
-  case 3:
-    printf("\tsubgrid: off %" PRId64 ",%" PRId64 ",%" PRId64 "\t siz %" PRIu64 ",%" PRIu64
-           ",%" PRIu64 "\t #NU %" PRIu64 "\n",
-           offset1, offset2, offset3, padded_size1, size2, size3, M0);
-    break;
-  default:
-    printf("Invalid number of dimensions: %d\n", ndims);
-    break;
-  }
-}
+// Forward declarations (defined in src/utils.cpp):
+FINUFFT_NEVER_INLINE void print_subgrid_info(
+    int ndims, BIGINT offset1, BIGINT offset2, BIGINT offset3, UBIGINT padded_size1,
+    UBIGINT size1, UBIGINT size2, UBIGINT size3, UBIGINT M0);
 // Helper for runtime diagnostic when dispatch picks invalid kernel params.
 // Defined noinline to avoid code bloat on the valid path.
-[[maybe_unused]] FINUFFT_NEVER_INLINE int report_invalid_kernel_params(const int ns, const int nc) {
-  fprintf(stderr,
-          "FINUFFT error: invalid kernel params selected at runtime (ns=%d, nc=%d).\n",
-          ns, nc);
-  return 1;
-}
+FINUFFT_NEVER_INLINE int report_invalid_kernel_params(int ns, int nc);
 
-static constexpr uint8_t ndims_from_Ns(const UBIGINT /*N1*/, const UBIGINT N2,
-                                       const UBIGINT N3)
+constexpr uint8_t ndims_from_Ns(const UBIGINT /*N1*/, const UBIGINT N2, const UBIGINT N3)
 /* rule for getting number of spreading dimensions from the list of Ns per dim.
    Split out, Barnett 7/26/18
 */
 {
   return 1 + (N2 > 1) + (N3 > 1);
 }
-} // namespace
 
 /* local NU coord fold+rescale macro. Folds x into [-pi,pi) by addition of some integer
    multiple of 2pi, then linearly maps [-pi,pi) to [0,N). This is done in precision T
@@ -267,7 +237,7 @@ static constexpr uint8_t ndims_from_Ns(const UBIGINT /*N1*/, const UBIGINT N2,
    limitation Marco Barbone, 8.5.2024 Changed it from a macro to an inline function
 */
 template<typename T>
-static FINUFFT_ALWAYS_INLINE T fold_rescale(const T x, const UBIGINT N) noexcept {
+FINUFFT_ALWAYS_INLINE T fold_rescale(const T x, const UBIGINT N) noexcept {
   // using namespace to make the code compatible with both std and xsimd functions without qualification
   using namespace std;
   using namespace xsimd;
@@ -278,7 +248,7 @@ static FINUFFT_ALWAYS_INLINE T fold_rescale(const T x, const UBIGINT N) noexcept
 template<int ns, int nc, class T,
          class simd_type = xsimd::make_sized_batch_t<T, find_optimal_simd_width<T, ns>()>,
          typename... V>
-static FINUFFT_ALWAYS_INLINE auto evaluate_kernel_vector(
+FINUFFT_ALWAYS_INLINE auto evaluate_kernel_vector(
     T *FINUFFT_RESTRICT ker, const T *horner_coeffs_ptr, const V... elems) noexcept {
   /* Main SIMD-accelerated 1D kernel evaluator, using precomputed Horner coeffs to
      evaluate kernel on a grid of ns ordinates lying in kernel support, which is
