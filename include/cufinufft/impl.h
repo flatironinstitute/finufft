@@ -77,10 +77,10 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
   // Multi-GPU support: set the CUDA Device ID:
   const int device_id = planopts.gpu_device_id;
   const cufinufft::utils::WithCudaDevice FromID{device_id};
-  int supports_pools=0;
 
   // cudaMallocAsync isn't supported for all devices, regardless of cuda version. Check
   // for support
+  int supports_pools=0;
   {
     cudaDeviceGetAttribute(&supports_pools, cudaDevAttrMemoryPoolsSupported,
                            device_id);
@@ -92,26 +92,22 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
       warned = true;
     }
   }
-
+printf("SUPPORTS_POOLS=%d\n",supports_pools);
   /* allocate the plan structure, assign address to user pointer. */
-  auto *d_plan = new cufinufft_plan_t<T>(planopts, bool(supports_pools));
+  auto *d_plan = new cufinufft_plan_t<T>(planopts, false);//bool(supports_pools));
   *d_plan_ptr = d_plan;
 try{
   // Zero out your struct, (sets all pointers to NULL)
   // set nf1, nf2, nf3 to 1 for type 3, type 1, type 2 will overwrite this
-  d_plan->nf123[0] = 1;
-  d_plan->nf123[1] = 1;
-  d_plan->nf123[2] = 1;
+  d_plan->nf123 = {1, 1, 1};
   d_plan->tol = tol;
   d_plan->opts = planopts;
-  d_plan->dim                   = dim;
+  d_plan->dim = dim;
   d_plan->opts.gpu_maxbatchsize = std::max(d_plan->opts.gpu_maxbatchsize, 1);
-  d_plan->opts.gpu_np           = d_plan->opts.gpu_method == 3 ? d_plan->opts.gpu_np : 0;
+  d_plan->opts.gpu_np = d_plan->opts.gpu_method == 3 ? d_plan->opts.gpu_np : 0;
 
   if (type != 3) {
-    d_plan->mstu[0] = nmodes[0];
-    d_plan->mstu[1] = nmodes[1];
-    d_plan->mstu[2] = nmodes[2];
+    d_plan->mstu = {nmodes[0], nmodes[1], nmodes[2]};
     if (d_plan->opts.debug) {
       printf("[cufinufft] (ms,mt,mu): %d %d %d\n", d_plan->mstu[0], d_plan->mstu[1], d_plan->mstu[2]);
     }
@@ -119,8 +115,7 @@ try{
     d_plan->opts.gpu_spreadinterponly = 1;
   }
 
-  int fftsign     = (iflag >= 0) ? 1 : -1;
-  d_plan->iflag   = fftsign;
+  d_plan->iflag   = (iflag >= 0) ? 1 : -1;
   d_plan->ntransf = ntransf;
 
   int batchsize = (opts != nullptr) ? opts->gpu_maxbatchsize : 0;
@@ -217,7 +212,7 @@ try{
     d_plan->nf123[0] = nf1;
     d_plan->nf123[1] = nf2;
     d_plan->nf123[2] = nf3;
-    d_plan->nf  = nf1 * nf2 * nf3;
+    d_plan->nf = nf1 * nf2 * nf3;
 
     cufinufft::memtransfer::allocgpumem_plan(d_plan);
 
