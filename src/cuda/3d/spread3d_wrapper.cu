@@ -387,23 +387,32 @@ static __global__ void spread_3d_output_driven(
     }
     __syncthreads();
 
+    // strength from shared memory
+    static constexpr int sizex = ns;            // true span in X
+    static constexpr int sizey = ns;            // true span in Y
+    static constexpr int sizez = ns;            // true span in Z
+    static constexpr int plane = sizex * sizey; // #cells per Z‐slice
+    static constexpr int total = plane * sizez; // total #cells
+    auto posz0 = threadIdx.x/plane;
+    auto posy0 = (threadIdx.x - posz0*plane)/sizex;
+    auto posx0 = threadIdx.x%sizex;
+    auto incz0 = blockDim.x/plane;
+    auto incy0 = (blockDim.x - incz0*plane)/sizex;
+    auto incx0 = blockDim.x%sizex;
     for (auto i = 0; i < batch_size; i++) {
-      // strength from shared memory
-      static constexpr int sizex = ns;            // true span in X
-      static constexpr int sizey = ns;            // true span in Y
-      static constexpr int sizez = ns;            // true span in Z
-      static constexpr int plane = sizex * sizey; // #cells per Z‐slice
-      static constexpr int total = plane * sizez; // total #cells
 
       const auto cnow                     = nupts_sm[i];
       const auto [xstart, ystart, zstart] = shift[i];
 
+      auto xx = posx0;
+      auto yy = posy0;
+      auto zz = posz0;
       for (int idx = threadIdx.x; idx < total; idx += blockDim.x) {
         // decompose idx using `plane`
-        const int zz   = idx / plane;
-        const int rem1 = idx - zz * plane;
-        const int yy   = rem1 / sizex;
-        const int xx   = rem1 - yy * sizex;
+//        const int zz   = idx / plane;
+//        const int rem1 = idx - zz * plane;
+//        const int yy   = rem1 / sizex;
+//        const int xx   = rem1 - yy * sizex;
 
         // decompose idx using `plane`
         // recover global coords
@@ -421,6 +430,9 @@ static __global__ void spread_3d_output_driven(
             c_kerevals(i, 0, xx) * c_kerevals(i, 1, yy) * c_kerevals(i, 2, zz);
         // accumulate
         local_subgrid(iz, iy, ix) += {cnow * kervalue};
+xx += incx0; if (xx>=sizex) { xx-=sizex; ++yy; }
+yy += incy0; if (yy>=sizey) { yy-=sizey; ++zz; }
+zz += incz0;
       }
       __syncthreads();
     }
