@@ -165,9 +165,9 @@ struct CudaTimer {
   std::vector<cudaEvent_t> stop_;
 };
 
-template<class F, class... Args> inline void timeit(F f, CudaTimer &timer, Args... args) {
+template<class F, class... Args> inline void timeit(F f, CudaTimer &timer, Args &&... args) {
   timer.start();
-  f(args...);
+  f(std::forward<Args>(args)...);
   timer.stop();
 }
 

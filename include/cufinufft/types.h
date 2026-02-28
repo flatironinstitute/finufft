@@ -174,8 +174,10 @@ template<typename T> struct cufinufft_plan_t {
   cufftHandle fftplan=0;
   cudaStream_t stream=0;
 
+  cufinufft_plan_t() = delete;
   cufinufft_plan_t(const cufinufft_opts &opts_, bool supports_pools_)
     : opts(opts_), supports_pools(supports_pools_) {}
+  cufinufft_plan_t &operator=(cufinufft_plan_t &) = delete;
 
   ~cufinufft_plan_t() {
     DeviceSwitcher switcher(opts.gpu_device_id);
