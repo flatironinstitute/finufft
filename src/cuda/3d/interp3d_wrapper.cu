@@ -54,19 +54,20 @@ static __global__ void interp_3d_nupts_driven(
     if (ystart<0) { ystart+= nf2; yend +=nf2; }
     if (zstart<0) { zstart+= nf3; zend +=nf3; }
 
-    cuda_complex<T> cnow{0, 0};
+    cuda_complex<T> c_acc[ns];
+    for (int x0=0; x0<ns; ++x0) c_acc[x0]={0};
     for (int z0=0, iz=zstart; z0<ns; ++z0,++iz,iz=(iz>=nf3) ? iz-nf3 : iz) {
       const auto inidx0=iz * nf2 * nf1;
-      cuda_complex<T> cnowy{0, 0};
       for (int y0=0, iy=ystart; y0<ns; ++y0,++iy,iy=(iy>=nf2) ? iy-nf2 : iy) {
         const auto inidx1 = inidx0 + iy*nf1;
-        cuda_complex<T> cnowx{0, 0};
+        auto ker = ker3[z0]*ker2[y0];
         for (int x0=0, ix=xstart; x0<ns; ++x0,++ix,ix=(ix>=nf1) ? ix-nf1 : ix)
-          cnowx += {fw[inidx1+ix] * ker1[x0]};
-        cnowy += {cnowx * ker2[y0]};
+          c_acc[x0] += {fw[inidx1+ix] * ker};
       }
-      cnow += {cnowy * ker3[z0]};
     }
+    cuda_complex<T> cnow{0, 0};
+    for (int x0=0; x0<ns; ++x0)
+      cnow += c_acc[x0] * ker1[x0];
     c[idxnupts[i]] = cnow;
   }
 }
