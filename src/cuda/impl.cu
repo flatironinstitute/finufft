@@ -156,9 +156,7 @@ try{
         throw int(FINUFFT_ERR_INSUFFICIENT_SHMEM);
       }
     }
-    if (cudaGetLastError() != cudaSuccess) {
-      throw int(FINUFFT_ERR_CUDA_FAILURE);
-    }
+    THROW_IF_CUDA_ERROR
   }
   // Bin size and memory info now printed in cufinufft_setup_binsize() (common.cu)
   // Additional runtime info at debug level 2
@@ -170,37 +168,27 @@ try{
   // dynamically request the maximum amount of shared memory available
   // for the spreader
 
-  if (cudaGetLastError() != cudaSuccess) {
-    throw int(FINUFFT_ERR_CUDA_FAILURE);
-  }
+  THROW_IF_CUDA_ERROR
 
   if (type == 1 || type == 2) {
-    CUFINUFFT_BIGINT nf1 = 1, nf2 = 1, nf3 = 1;
     if (d_plan->opts.gpu_spreadinterponly) {
       // spread/interp grid is precisely the user "mode" sizes, no upsampling
-      nf1 = d_plan->mstu[0];
-      if (dim > 1) nf2 = d_plan->mstu[1];
-      if (dim > 2) nf3 = d_plan->mstu[2];
+      for (int idim = 0; idim < dim; ++idim) d_plan->nf123[idim] = d_plan->mstu[idim];
       if (d_plan->opts.debug) {
-        printf("[cufinufft] spreadinterponly mode: (nf1,nf2,nf3) = (%d, %d, %d)\n", nf1,
-               nf2, nf3);
+        printf("[cufinufft] spreadinterponly mode: (nf1,nf2,nf3) = (%d, %d, %d)\n",
+               d_plan->nf123[0], d_plan->nf123[1], d_plan->nf123[2]);
       }
     } else { // usual NUFFT with fine grid using upsampling
-      set_nf_type12(d_plan->mstu[0], d_plan->opts, d_plan->spopts, &nf1,
-                    d_plan->opts.gpu_obinsizex);
-      if (dim > 1)
-        set_nf_type12(d_plan->mstu[1], d_plan->opts, d_plan->spopts, &nf2,
-                      d_plan->opts.gpu_obinsizey);
-      if (dim > 2)
-        set_nf_type12(d_plan->mstu[2], d_plan->opts, d_plan->spopts, &nf3,
-                      d_plan->opts.gpu_obinsizez);
+      std::array<int, 3> obinsize{d_plan->opts.gpu_obinsizex, d_plan->opts.gpu_obinsizey,
+                                  d_plan->opts.gpu_obinsizez};
+      for (int idim = 0; idim < dim; ++idim)
+        set_nf_type12(d_plan->mstu[idim], d_plan->opts, d_plan->spopts,
+                      &d_plan->nf123[idim], obinsize[idim]);
       if (d_plan->opts.debug)
-        printf("[cufinufft] (nf1,nf2,nf3) = (%d, %d, %d)\n", nf1, nf2, nf3);
+        printf("[cufinufft] (nf1,nf2,nf3) = (%d, %d, %d)\n", d_plan->nf123[0],
+               d_plan->nf123[1], d_plan->nf123[2]);
     }
-    d_plan->nf123[0] = nf1;
-    d_plan->nf123[1] = nf2;
-    d_plan->nf123[2] = nf3;
-    d_plan->nf = nf1 * nf2 * nf3;
+    d_plan->nf = d_plan->nf123[0] * d_plan->nf123[1] * d_plan->nf123[2];
 
     cufinufft::memtransfer::allocgpumem_plan(d_plan);
 
