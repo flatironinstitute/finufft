@@ -50,25 +50,25 @@ static __global__ void interp_3d_nupts_driven(
       eval_kernel_vec<T, ns>(ker2, y1, es_c, es_beta);
       eval_kernel_vec<T, ns>(ker3, z1, es_c, es_beta);
     }
-    if (xstart<0) { xstart+= nf1; xend +=nf1; }
-    if (ystart<0) { ystart+= nf2; yend +=nf2; }
-    if (zstart<0) { zstart+= nf3; zend +=nf3; }
+    if (xstart<0) { xstart+=nf1; xend+=nf1; }
+    if (ystart<0) { ystart+=nf2; yend+=nf2; }
+    if (zstart<0) { zstart+=nf3; zend+=nf3; }
 
     cuda_complex<T> cnow{0, 0};
     int xidx[ns];
     for (int x0=0, ix=xstart; x0<ns; ++x0,++ix,ix=(ix>=nf1) ? ix-nf1 : ix)
       xidx[x0]=ix;
     for (int z0=0, iz=zstart; z0<ns; ++z0,++iz,iz=(iz>=nf3) ? iz-nf3 : iz) {
-      const auto inidx0=iz * nf2 * nf1;
+      const auto inidx0 = iz*nf2*nf1;
       cuda_complex<T> cnowy{0, 0};
       for (int y0=0, iy=ystart; y0<ns; ++y0,++iy,iy=(iy>=nf2) ? iy-nf2 : iy) {
         const auto inidx1 = inidx0 + iy*nf1;
         cuda_complex<T> cnowx{0, 0};
         for (int x0=0; x0<ns; ++x0)
-          cnowx += {fw[inidx1+xidx[x0]] * ker1[x0]};
-        cnowy += {cnowx * ker2[y0]};
+          cnowx += fw[inidx1+xidx[x0]] * ker1[x0];
+        cnowy += cnowx * ker2[y0];
       }
-      cnow += {cnowy * ker3[z0]};
+      cnow += cnowy * ker3[z0];
     }
     c[idxnupts[i]] = cnow;
   }
