@@ -39,6 +39,24 @@ template<typename T> inline thrust::device_ptr<T> enthrust(T *ptr) {
   return thrust::device_pointer_cast(ptr);
   }
 
+class DeviceSwitcher {
+  private:
+    int orig_device;
+
+    static int get_orig_device() {
+      int device{};
+      cudaGetDevice(&device);
+      return device;
+    }
+
+  public:
+    explicit DeviceSwitcher(int newDevice) : orig_device{get_orig_device()} {
+    cudaSetDevice(newDevice);
+    }
+
+    ~DeviceSwitcher() { cudaSetDevice(orig_device); }
+};
+
 template <typename T>
 struct ThrustAllocatorAsync : public thrust::device_malloc_allocator<T> {
   public:
@@ -48,16 +66,16 @@ struct ThrustAllocatorAsync : public thrust::device_malloc_allocator<T> {
 
   private:
     cudaStream_t stream;
+    int deviceID;
     bool pool;
 
   public:
-    // We need a default constructor as long as we do not fully C++ify
-    // the NUFFT plan struct.
-    ThrustAllocatorAsync() : stream(0), pool (false) {}
     // Prefer explicit stream; no default ctor needed if you always pass alloc to device_vector
-    explicit ThrustAllocatorAsync(cudaStream_t s, bool supports_pools) : stream(s), pool (supports_pools) {}
+    explicit ThrustAllocatorAsync(cudaStream_t s, int ID, bool supports_pools)
+      : stream(s), deviceID(ID), pool(supports_pools) {}
 
     pointer allocate(size_type n) {
+      DeviceSwitcher switcher(deviceID);
       T* p = nullptr;
       auto err = pool ? cudaMallocAsync(&p, n*sizeof(T), stream)
                       : cudaMalloc(&p, n*sizeof(T));
@@ -66,6 +84,7 @@ struct ThrustAllocatorAsync : public thrust::device_malloc_allocator<T> {
     }
   
     void deallocate(pointer p, size_type) {
+      DeviceSwitcher switcher(deviceID);
       auto err = pool ? cudaFreeAsync(dethrust(p), stream)
                       : cudaFree(dethrust(p));
       if (err!=cudaSuccess) throw int(FINUFFT_ERR_CUDA_FAILURE);
@@ -88,9 +107,9 @@ template<typename T> struct cufinufft_plan_t {
   bool supports_pools=false;
   finufft_spread_opts spopts;
 
-  ThrustAllocatorAsync<int> ialloc{(cudaStream_t)opts.gpu_stream, supports_pools};
-  ThrustAllocatorAsync<T> alloc{(cudaStream_t)opts.gpu_stream, supports_pools};
-  ThrustAllocatorAsync<cuda_complex<T>> calloc{(cudaStream_t)opts.gpu_stream, supports_pools};
+  ThrustAllocatorAsync<int> ialloc{(cudaStream_t)opts.gpu_stream, opts.gpu_device_id, supports_pools};
+  ThrustAllocatorAsync<T> alloc{(cudaStream_t)opts.gpu_stream, opts.gpu_device_id, supports_pools};
+  ThrustAllocatorAsync<cuda_complex<T>> calloc{(cudaStream_t)opts.gpu_stream, opts.gpu_device_id, supports_pools};
 
   int type=0;
   int dim=0;
@@ -152,13 +171,9 @@ template<typename T> struct cufinufft_plan_t {
     : opts(opts_), supports_pools(supports_pools_) {}
 
   ~cufinufft_plan_t() {
-    int orig_device{};
-    cudaGetDevice(&orig_device);
-    cudaSetDevice(opts.gpu_device_id);
-    //cufinufft::utils::WithCudaDevice device_swapper(opts.gpu_device_id);
+    DeviceSwitcher switcher(opts.gpu_device_id);
     if (fftplan) cufftDestroy(fftplan);
     delete t2_plan;
-    cudaSetDevice(orig_device);
   }
 };
 

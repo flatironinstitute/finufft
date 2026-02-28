@@ -70,24 +70,6 @@ namespace utils {
 
 using namespace finufft::common;
 
-class WithCudaDevice {
-public:
-  explicit WithCudaDevice(const int device) : orig_device_{get_orig_device()} {
-    cudaSetDevice(device);
-  }
-
-  ~WithCudaDevice() { cudaSetDevice(orig_device_); }
-
-private:
-  const int orig_device_;
-
-  static int get_orig_device() {
-    int device{};
-    cudaGetDevice(&device);
-    return device;
-  }
-};
-
 // math helpers whose source is in src/utils.cpp
 FINUFFT_EXPORT long next235beven(long n, long b);
 

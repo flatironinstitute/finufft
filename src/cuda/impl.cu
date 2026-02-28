@@ -15,6 +15,9 @@
 #include <finufft_errors.h>
 #include <thrust/device_vector.h>
 
+template<typename T>
+void cufinufft_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
+                    cufinufft_plan_t<T> *d_plan);
 // 1d
 template<typename T>
 void cufinufft1d_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
@@ -53,6 +56,7 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
   */
   using namespace cufinufft::common;
   using namespace finufft::common;
+
   *d_plan_ptr = nullptr;
 
   if (type < 1 || type > 3) {
@@ -75,7 +79,7 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
 
   // Multi-GPU support: set the CUDA Device ID:
   const int device_id = planopts.gpu_device_id;
-  const cufinufft::utils::WithCudaDevice FromID{device_id};
+  DeviceSwitcher switcher(device_id);
 
   // cudaMallocAsync isn't supported for all devices, regardless of cuda version. Check
   // for support
@@ -313,8 +317,6 @@ Notes: the type T means either single or double, matching the
     Melody Shih 07/25/19; Barnett 2/16/21 moved out docs.
 */
 {
-  const cufinufft::utils::WithCudaDevice FromID(d_plan->opts.gpu_device_id);
-
   d_plan->M = M;
 
   cufinufft::memtransfer::allocgpumem_nupts<T>(d_plan);
@@ -344,6 +346,7 @@ Notes: the type T means either single or double, matching the
 template<typename T>
 void cufinufft_setpts_impl(int M, T *d_kx, T *d_ky, T *d_kz, int N, T *d_s, T *d_t, T *d_u,
                           cufinufft_plan_t<T> *d_plan) {
+  DeviceSwitcher switcher(d_plan->opts.gpu_device_id);
   // type 1 and type 2 setpts
   if (d_plan->type == 1 || d_plan->type == 2) {
     return cufinufft_setpts_12_impl<T>(M, d_kx, d_ky, d_kz, d_plan);
@@ -628,18 +631,8 @@ void cufinufft_execute_impl(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
     Melody Shih 07/25/19; Barnett 2/16/21.
 */
 {
-  cufinufft::utils::WithCudaDevice device_swapper(d_plan->opts.gpu_device_id);
-  switch (d_plan->dim) {
-  case 1: {
-    cufinufft1d_exec<T>(d_c, d_fk, d_plan);
-  } break;
-  case 2: {
-    cufinufft2d_exec<T>(d_c, d_fk, d_plan);
-  } break;
-  case 3: {
-    cufinufft3d_exec<T>(d_c, d_fk, d_plan);
-  } break;
-  }
+  DeviceSwitcher switcher(d_plan->opts.gpu_device_id);
+  cufinufft_exec(d_c, d_fk, d_plan);
 }
 template void cufinufft_execute_impl(cuda_complex<float> *d_c, cuda_complex<float> *d_fk,
                            cufinufft_plan_t<float> *d_plan);
@@ -656,6 +649,7 @@ void cufinufft_destroy_impl(cufinufft_plan_t<T> *d_plan)
         (2) delete the cuFFT plan
 */
 {
+  DeviceSwitcher switcher(d_plan->opts.gpu_device_id);
   // Can't destroy a null pointer.
   if (!d_plan) throw int(FINUFFT_ERR_PLAN_NOTVALID);
   delete d_plan;

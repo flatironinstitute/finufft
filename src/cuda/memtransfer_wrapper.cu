@@ -19,7 +19,6 @@ void allocgpumem1d_plan(cufinufft_plan_t<T> *d_plan)
     Melody Shih 11/21/21
 */
 {
-  utils::WithCudaDevice device_swapper(d_plan->opts.gpu_device_id);
   const auto stream = d_plan->stream;
 
   int nf1          = d_plan->nf123[0];
@@ -61,7 +60,6 @@ void allocgpumem2d_plan(cufinufft_plan_t<T> *d_plan)
     Melody Shih 07/25/19
 */
 {
-  utils::WithCudaDevice device_swapper(d_plan->opts.gpu_device_id);
   const auto stream = d_plan->stream;
 
   int nf1          = d_plan->nf123[0];
@@ -109,7 +107,6 @@ void allocgpumem3d_plan(cufinufft_plan_t<T> *d_plan)
     Melody Shih 07/25/19
 */
 {
-  utils::WithCudaDevice device_swapper(d_plan->opts.gpu_device_id);
   const auto stream = d_plan->stream;
 
   int nf1          = d_plan->nf123[0];
@@ -181,8 +178,6 @@ void allocgpumem1d_nupts(cufinufft_plan_t<T> *d_plan)
     Melody Shih 11/21/21
 */
 {
-  utils::WithCudaDevice device_swapper(d_plan->opts.gpu_device_id);
-
   d_plan->sortidx.clear();
   d_plan->idxnupts.clear();
 
@@ -208,8 +203,6 @@ void allocgpumem2d_nupts(cufinufft_plan_t<T> *d_plan)
     Melody Shih 07/25/19
 */
 {
-  utils::WithCudaDevice device_swapper(d_plan->opts.gpu_device_id);
-
   d_plan->sortidx.clear();
   d_plan->idxnupts.clear();
 
@@ -238,8 +231,6 @@ void allocgpumem3d_nupts(cufinufft_plan_t<T> *d_plan)
     Melody Shih 07/25/19
 */
 {
-  utils::WithCudaDevice device_swapper(d_plan->opts.gpu_device_id);
-
   switch (d_plan->opts.gpu_method) {
   case 1:
   case 2:
