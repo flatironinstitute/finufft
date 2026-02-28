@@ -26,3 +26,10 @@ if(HAVE_GETOPT_H)
     endif()
     finufft_link_test(perftest)
 endif()
+
+
+add_executable(benchmarkdefault benchmarkdefault.cpp)
+if(FINUFFT_USE_DUCC0)
+    target_compile_definitions(benchmarkdefault PRIVATE -DFINUFFT_USE_DUCC0)
+endif()
+finufft_link_test(benchmarkdefault)
