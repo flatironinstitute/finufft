@@ -541,7 +541,7 @@ struct Spread1DDispatcher {
 };
 
 // Updated cuspread1d using generic dispatch
-template<typename T> void cuspread1d(cufinufft_plan_t<T> *d_plan, int blksize) {
+template<typename T> void cuspread1d(const cufinufft_plan_t<T> &d_plan, int blksize) {
   /*
     A wrapper for different spreading methods.
 
@@ -554,21 +554,21 @@ template<typename T> void cuspread1d(cufinufft_plan_t<T> *d_plan, int blksize) {
     it seems slower according to the MRI community.
     Marco Barbone 01/30/25
  */
-  launch_dispatch_ns<Spread1DDispatcher, T>(Spread1DDispatcher(), d_plan->spopts.nspread,
-                                            d_plan->nf123[0], d_plan->M, *d_plan,
+  launch_dispatch_ns<Spread1DDispatcher, T>(Spread1DDispatcher(), d_plan.spopts.nspread,
+                                            d_plan.nf123[0], d_plan.M, d_plan,
                                             blksize);
 }
-template void cuspread1d<float>(cufinufft_plan_t<float> *d_plan, int blksize);
-template void cuspread1d<double>(cufinufft_plan_t<double> *d_plan, int blksize);
+template void cuspread1d<float>(const cufinufft_plan_t<float> &d_plan, int blksize);
+template void cuspread1d<double>(const cufinufft_plan_t<double> &d_plan, int blksize);
 
 template<typename T>
-void cuspread1d_prop(cufinufft_plan_t<T> *d_plan) {
-  if (d_plan->opts.gpu_method == 1) cuspread1d_nuptsdriven_prop<T>(*d_plan);
-  if (d_plan->opts.gpu_method == 2) cuspread1d_subprob_prop<T>(*d_plan);
-  if (d_plan->opts.gpu_method == 3) cuspread1d_subprob_prop<T>(*d_plan);
+void cuspread1d_prop(cufinufft_plan_t<T> &d_plan) {
+  if (d_plan.opts.gpu_method == 1) cuspread1d_nuptsdriven_prop(d_plan);
+  if (d_plan.opts.gpu_method == 2) cuspread1d_subprob_prop(d_plan);
+  if (d_plan.opts.gpu_method == 3) cuspread1d_subprob_prop(d_plan);
 }
-template void cuspread1d_prop(cufinufft_plan_t<float> *d_plan);
-template void cuspread1d_prop(cufinufft_plan_t<double> *d_plan);
+template void cuspread1d_prop(cufinufft_plan_t<float> &d_plan);
+template void cuspread1d_prop(cufinufft_plan_t<double> &d_plan);
 
 } // namespace spreadinterp
 } // namespace cufinufft

@@ -103,12 +103,11 @@ template<typename T> inline cuda::std::array<T *,3> dethrust(cuda::std::array<gp
   for (int i=0; i<3; ++i) res[i] = dethrust(arr[i]);
   return res;
   }
-  template<typename T>
-  inline cuda::std::array<const T *, 3> dethrust(
-      const cuda::std::array<gpuArray<T>, 3> &arr) {
-    cuda::std::array<T *, 3> res;
-    for (int i = 0; i < 3; ++i) res[i] = dethrust(arr[i]);
-    return res;
+template<typename T> inline cuda::std::array<const T *, 3> dethrust(
+  const cuda::std::array<gpuArray<T>, 3> &arr) {
+  cuda::std::array<const T *, 3> res;
+  for (int i = 0; i < 3; ++i) res[i] = dethrust(arr[i]);
+  return res;
   }
 
 template<typename T> struct cufinufft_plan_t {

@@ -252,7 +252,7 @@ struct Interp2DDispatcher {
 };
 
 // Updated cuinterp2d using generic dispatch
-template<typename T> void cuinterp2d(cufinufft_plan_t<T> *d_plan, int blksize) {
+template<typename T> void cuinterp2d(const cufinufft_plan_t<T> &d_plan, int blksize) {
   /*
     A wrapper for different interpolation methods.
 
@@ -266,13 +266,13 @@ template<typename T> void cuinterp2d(cufinufft_plan_t<T> *d_plan, int blksize) {
     it seems slower according to the MRI community.
     Marco Barbone 01/30/25
   */
-  launch_dispatch_ns<Interp2DDispatcher, T>(Interp2DDispatcher(), d_plan->spopts.nspread,
-                                            d_plan->nf123[0], d_plan->nf123[1], d_plan->M,
-                                            *d_plan, blksize);
+  launch_dispatch_ns<Interp2DDispatcher, T>(Interp2DDispatcher(), d_plan.spopts.nspread,
+                                            d_plan.nf123[0], d_plan.nf123[1], d_plan.M,
+                                            d_plan, blksize);
 }
 
-template void cuinterp2d<float>(cufinufft_plan_t<float> *d_plan, int blksize);
-template void cuinterp2d<double>(cufinufft_plan_t<double> *d_plan, int blksize);
+template void cuinterp2d<float>(const cufinufft_plan_t<float> &d_plan, int blksize);
+template void cuinterp2d<double>(const cufinufft_plan_t<double> &d_plan, int blksize);
 
 } // namespace spreadinterp
 } // namespace cufinufft

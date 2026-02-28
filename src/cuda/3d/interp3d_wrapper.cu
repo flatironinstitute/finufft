@@ -179,21 +179,20 @@ static __global__ void interp_3d_subprob(
 }
 
 template<typename T, int ns>
-static void cuinterp3d_nuptsdriven(int nf1, int nf2, int nf3, int M,
-                                   const cufinufft_plan_t<T> &d_plan, int blksize) {
+static void cuinterp3d_nuptsdriven(int nf1, int nf2, int nf3, int M, const cufinufft_plan_t<T> &d_plan,
+                           int blksize) {
   const auto stream = d_plan.stream;
 
   T es_c    = 4.0 / T(d_plan.spopts.nspread * d_plan.spopts.nspread);
   T es_beta = d_plan.spopts.beta;
   T sigma   = d_plan.spopts.upsampfac;
 
-  const int *d_idxnupts = dethrust(d_plan.idxnupts);
-  ;
+  const int *d_idxnupts = dethrust(d_plan.idxnupts);;
 
   const T *d_kx               = d_plan.kxyz[0];
   const T *d_ky               = d_plan.kxyz[1];
   const T *d_kz               = d_plan.kxyz[2];
-  cuda_complex<T> *d_c        = d_plan.c;
+  cuda_complex<T> *d_c  = d_plan.c;
   const cuda_complex<T> *d_fw = d_plan.fw;
 
   const dim3 threadsPerBlock{
@@ -218,8 +217,8 @@ static void cuinterp3d_nuptsdriven(int nf1, int nf2, int nf3, int M,
 }
 
 template<typename T, int ns>
-static void cuinterp3d_subprob(int nf1, int nf2, int nf3, int M,
-                               const cufinufft_plan_t<T> &d_plan, int blksize) {
+static void cuinterp3d_subprob(int nf1, int nf2, int nf3, int M, const cufinufft_plan_t<T> &d_plan,
+                       int blksize) {
   auto &stream = d_plan.stream;
 
   int maxsubprobsize = d_plan.opts.gpu_maxsubprobsize;
@@ -236,7 +235,7 @@ static void cuinterp3d_subprob(int nf1, int nf2, int nf3, int M,
   const T *d_kx               = d_plan.kxyz[0];
   const T *d_ky               = d_plan.kxyz[1];
   const T *d_kz               = d_plan.kxyz[2];
-  cuda_complex<T> *d_c        = d_plan.c;
+  cuda_complex<T> *d_c  = d_plan.c;
   const cuda_complex<T> *d_fw = d_plan.fw;
 
   const int *d_binsize         = dethrust(d_plan.binsize);
@@ -245,7 +244,7 @@ static void cuinterp3d_subprob(int nf1, int nf2, int nf3, int M,
   const int *d_subprobstartpts = dethrust(d_plan.subprobstartpts);
   const int *d_idxnupts        = dethrust(d_plan.idxnupts);
   const int *d_subprob_to_bin  = dethrust(d_plan.subprob_to_bin);
-  int totalnumsubprob          = d_plan.totalnumsubprob;
+  int totalnumsubprob    = d_plan.totalnumsubprob;
 
   T sigma                      = d_plan.spopts.upsampfac;
   T es_c                       = 4.0 / T(d_plan.spopts.nspread * d_plan.spopts.nspread);
@@ -281,7 +280,7 @@ static void cuinterp3d_subprob(int nf1, int nf2, int nf3, int M,
 struct Interp3DDispatcher {
   template<int ns, typename T>
   void operator()(int nf1, int nf2, int nf3, int M, const cufinufft_plan_t<T> &d_plan,
-                  int blksize) const {
+                 int blksize) const {
     switch (d_plan.opts.gpu_method) {
     case 1:
       return cuinterp3d_nuptsdriven<T, ns>(nf1, nf2, nf3, M, d_plan, blksize);
@@ -295,7 +294,7 @@ struct Interp3DDispatcher {
 };
 
 // Updated cuinterp3d using generic dispatch
-template<typename T> void cuinterp3d(cufinufft_plan_t<T> *d_plan, int blksize) {
+template<typename T> void cuinterp3d(const cufinufft_plan_t<T> &d_plan, int blksize) {
   /*
     A wrapper for different interpolation methods.
 
@@ -310,11 +309,11 @@ template<typename T> void cuinterp3d(cufinufft_plan_t<T> *d_plan, int blksize) {
     Marco Barbone 01/30/25
   */
   launch_dispatch_ns<Interp3DDispatcher, T>(
-      Interp3DDispatcher(), d_plan->spopts.nspread, d_plan->nf123[0], d_plan->nf123[1],
-      d_plan->nf123[2], d_plan->M, *d_plan, blksize);
+      Interp3DDispatcher(), d_plan.spopts.nspread, d_plan.nf123[0], d_plan.nf123[1], d_plan.nf123[2],
+      d_plan.M, d_plan, blksize);
 }
-template void cuinterp3d<float>(cufinufft_plan_t<float> *d_plan, int blksize);
-template void cuinterp3d<double>(cufinufft_plan_t<double> *d_plan, int blksize);
+template void cuinterp3d<float>(const cufinufft_plan_t<float> &d_plan, int blksize);
+template void cuinterp3d<double>(const cufinufft_plan_t<double> &d_plan, int blksize);
 
 } // namespace spreadinterp
 } // namespace cufinufft

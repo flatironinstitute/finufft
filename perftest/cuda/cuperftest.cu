@@ -262,8 +262,8 @@ template<typename T> void run_test(test_options_t &test_opts) {
            iflag, ntransf, test_opts.tol, &dplan, &opts);
     for (int i = 0; i < test_opts.n_runs; ++i) {
       timeit(cufinufft_setpts_impl<T>, setpts_timer, M, d_x_p, d_y_p, d_z_p, 0, nullptr,
-             nullptr, nullptr, dplan);
-      timeit(cufinufft_execute_impl<T>, execute_timer, d_c_p, d_fk_p, dplan);
+             nullptr, nullptr, *dplan);
+      timeit(cufinufft_execute_impl<T>, execute_timer, d_c_p, d_fk_p, *dplan);
     }
 
     d2h_timer.start();

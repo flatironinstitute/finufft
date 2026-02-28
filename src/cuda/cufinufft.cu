@@ -71,7 +71,7 @@ int cufinufftf_setpts(cufinufftf_plan d_plan, const int64_t M, const float *d_x,
     if (M > std::numeric_limits<int32_t>::max()) throw int(FINUFFT_ERR_NDATA_NOTVALID);
 
     cufinufft_setpts_impl((int)M, d_x, d_y, d_z, N, d_s, d_t, d_u,
-                          (cufinufft_plan_t<float> *)d_plan);
+                          *((cufinufft_plan_t<float> *)d_plan));
   });
 }
 
@@ -81,21 +81,21 @@ int cufinufft_setpts(cufinufft_plan d_plan, const int64_t M, const double *d_x, 
     if (M > std::numeric_limits<int32_t>::max()) throw int(FINUFFT_ERR_NDATA_NOTVALID);
 
     cufinufft_setpts_impl((int)M, d_x, d_y, d_z, N, d_s, d_t, d_u,
-                          (cufinufft_plan_t<double> *)d_plan);
+                          *((cufinufft_plan_t<double> *)d_plan));
   });
 }
 
 int cufinufftf_execute(cufinufftf_plan d_plan, cuFloatComplex *d_c,
                        cuFloatComplex *d_fk) {
   return safe_finufft_call([&]() {
-    cufinufft_execute_impl<float>(d_c, d_fk, (cufinufft_plan_t<float> *)d_plan);
+    cufinufft_execute_impl<float>(d_c, d_fk, *((cufinufft_plan_t<float> *)d_plan));
   });
 }
 
 int cufinufft_execute(cufinufft_plan d_plan, cuDoubleComplex *d_c,
                       cuda_complex<double> *d_fk) {
   return safe_finufft_call([&]() {
-    cufinufft_execute_impl<double>(d_c, d_fk, (cufinufft_plan_t<double> *)d_plan);
+    cufinufft_execute_impl<double>(d_c, d_fk, *((cufinufft_plan_t<double> *)d_plan));
   });
 }
 

@@ -117,7 +117,7 @@ template<typename T> int run_test(int method) {
 
   cudaEventRecord(start);
   cufinufft_setpts_impl<T>(M1, d_x1.data().get(), d_y1.data().get(), NULL, 0, NULL,
-                           NULL, NULL, dplan);
+                           NULL, NULL, *dplan);
   cudaEventRecord(stop);
   cudaEventSynchronize(stop);
   cudaEventElapsedTime(&milliseconds, start, stop);
@@ -126,7 +126,7 @@ template<typename T> int run_test(int method) {
 
   cudaEventRecord(start);
   cufinufft_execute_impl<T>((cuda_complex<T> *)d_c1.data().get(),
-                            (cuda_complex<T> *)d_fk1.data().get(), dplan);
+                            (cuda_complex<T> *)d_fk1.data().get(), *dplan);
 
   cudaEventRecord(stop);
   cudaEventSynchronize(stop);
@@ -137,7 +137,7 @@ template<typename T> int run_test(int method) {
 
   cudaEventRecord(start);
   cufinufft_setpts_impl<T>(M2, d_x2.data().get(), d_y2.data().get(), NULL, 0, NULL,
-                           NULL, NULL, dplan);
+                           NULL, NULL, *dplan);
   cudaEventRecord(stop);
   cudaEventSynchronize(stop);
   cudaEventElapsedTime(&milliseconds, start, stop);
@@ -146,7 +146,7 @@ template<typename T> int run_test(int method) {
 
   cudaEventRecord(start);
   cufinufft_execute_impl<T>((cuda_complex<T> *)d_c2.data().get(),
-                            (cuda_complex<T> *)d_fk2.data().get(), dplan);
+                            (cuda_complex<T> *)d_fk2.data().get(), *dplan);
   cudaEventRecord(stop);
   cudaEventSynchronize(stop);
   cudaEventElapsedTime(&milliseconds, start, stop);

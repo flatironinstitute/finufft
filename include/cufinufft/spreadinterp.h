@@ -128,22 +128,22 @@ static __device__ void eval_kernel_vec_horner(T *ker, const T x, const double up
 }
 
 // Functions for calling different methods of spreading & interpolation
-template<typename T> void cuspread1d(cufinufft_plan_t<T> *d_plan, int blksize);
-template<typename T> void cuinterp1d(cufinufft_plan_t<T> *d_plan, int blksize);
+template<typename T> void cuspread1d(const cufinufft_plan_t<T> &d_plan, int blksize);
+template<typename T> void cuinterp1d(const cufinufft_plan_t<T> &d_plan, int blksize);
 
-template<typename T> void cuspread2d(cufinufft_plan_t<T> *d_plan, int blksize);
-template<typename T> void cuinterp2d(cufinufft_plan_t<T> *d_plan, int blksize);
+template<typename T> void cuspread2d(const cufinufft_plan_t<T> &d_plan, int blksize);
+template<typename T> void cuinterp2d(const cufinufft_plan_t<T> &d_plan, int blksize);
 
-template<typename T> void cuspread3d(cufinufft_plan_t<T> *d_plan, int blksize);
-template<typename T> void cuinterp3d(cufinufft_plan_t<T> *d_plan, int blksize);
+template<typename T> void cuspread3d(const cufinufft_plan_t<T> &d_plan, int blksize);
+template<typename T> void cuinterp3d(const cufinufft_plan_t<T> &d_plan, int blksize);
 
 // Wrappers for methods of spreading
 template<typename T>
-void cuspread1d_prop(cufinufft_plan_t<T> *d_plan);
+void cuspread1d_prop(cufinufft_plan_t<T> &d_plan);
 template<typename T>
-void cuspread2d_prop(cufinufft_plan_t<T> *d_plan);
+void cuspread2d_prop(cufinufft_plan_t<T> &d_plan);
 template<typename T>
-void cuspread3d_prop(cufinufft_plan_t<T> *d_plan);
+void cuspread3d_prop(cufinufft_plan_t<T> &d_plan);
 
 } // namespace spreadinterp
 } // namespace cufinufft

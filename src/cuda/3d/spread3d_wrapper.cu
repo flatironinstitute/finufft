@@ -1270,7 +1270,7 @@ struct Spread3DDispatcher {
 };
 
 // Updated cuspread3d using generic dispatch
-template<typename T> void cuspread3d(cufinufft_plan_t<T> *d_plan, int blksize) {
+template<typename T> void cuspread3d(const cufinufft_plan_t<T> &d_plan, int blksize) {
   /*
     A wrapper for different spreading methods.
 
@@ -1286,25 +1286,25 @@ template<typename T> void cuspread3d(cufinufft_plan_t<T> *d_plan, int blksize) {
     Marco Barbone 01/30/25
   */
   launch_dispatch_ns<Spread3DDispatcher, T>(
-      Spread3DDispatcher(), d_plan->spopts.nspread, d_plan->nf123[0], d_plan->nf123[1], d_plan->nf123[2],
-      d_plan->M, *d_plan, blksize);
+      Spread3DDispatcher(), d_plan.spopts.nspread, d_plan.nf123[0], d_plan.nf123[1], d_plan.nf123[2],
+      d_plan.M, d_plan, blksize);
 }
-template void cuspread3d<float>(cufinufft_plan_t<float> *d_plan, int blksize);
-template void cuspread3d<double>(cufinufft_plan_t<double> *d_plan, int blksize);
+template void cuspread3d<float>(const cufinufft_plan_t<float> &d_plan, int blksize);
+template void cuspread3d<double>(const cufinufft_plan_t<double> &d_plan, int blksize);
 
 template<typename T>
-void cuspread3d_prop(cufinufft_plan_t<T> *d_plan) {
-  if (d_plan->opts.gpu_method == 1)
-    cuspread3d_nuptsdriven_prop<T>(*d_plan);
-  if (d_plan->opts.gpu_method == 2)
-    cuspread3d_subprob_prop<T>(*d_plan);
-  if (d_plan->opts.gpu_method == 3)
-    cuspread3d_subprob_prop<T>(*d_plan);
-  if (d_plan->opts.gpu_method == 4)
-    cuspread3d_blockgather_prop<T>(*d_plan);
+void cuspread3d_prop(cufinufft_plan_t<T> &d_plan) {
+  if (d_plan.opts.gpu_method == 1)
+    cuspread3d_nuptsdriven_prop<T>(d_plan);
+  if (d_plan.opts.gpu_method == 2)
+    cuspread3d_subprob_prop<T>(d_plan);
+  if (d_plan.opts.gpu_method == 3)
+    cuspread3d_subprob_prop<T>(d_plan);
+  if (d_plan.opts.gpu_method == 4)
+    cuspread3d_blockgather_prop<T>(d_plan);
 }
-template void cuspread3d_prop(cufinufft_plan_t<float> *d_plan);
-template void cuspread3d_prop(cufinufft_plan_t<double> *d_plan);
+template void cuspread3d_prop(cufinufft_plan_t<float> &d_plan);
+template void cuspread3d_prop(cufinufft_plan_t<double> &d_plan);
 
 } // namespace spreadinterp
 } // namespace cufinufft

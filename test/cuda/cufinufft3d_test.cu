@@ -135,7 +135,7 @@ int run_test(int method, int type, int N1, int N2, int N3, int M, T tol, T check
   cudaEventRecord(start);
   cufinufft_setpts_impl<T>(M, d_x.data().get(), d_y.data().get(), d_z.data().get(),
                            N1 * N2 * N3, d_s.data().get(), d_t.data().get(),
-                           d_u.data().get(), dplan);
+                           d_u.data().get(), *dplan);
   cudaEventRecord(stop);
   cudaEventSynchronize(stop);
   cudaEventElapsedTime(&milliseconds, start, stop);
@@ -144,7 +144,7 @@ int run_test(int method, int type, int N1, int N2, int N3, int M, T tol, T check
 
   cudaEventRecord(start);
   cufinufft_execute_impl<T>((cuda_complex<T> *)d_c.data().get(),
-                            (cuda_complex<T> *)d_fk.data().get(), dplan);
+                            (cuda_complex<T> *)d_fk.data().get(), *dplan);
   cudaEventRecord(stop);
   cudaEventSynchronize(stop);
   cudaEventElapsedTime(&milliseconds, start, stop);
