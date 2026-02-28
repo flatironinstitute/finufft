@@ -1,17 +1,16 @@
 #ifndef CUFINUFFT_TYPES_H
 #define CUFINUFFT_TYPES_H
 
-#include <cufft.h>
 #include <cuda/std/array>
-
+#include <cufft.h>
 #include <cufinufft/defs.h>
 #include <cufinufft_opts.h>
 #include <finufft_common/spread_opts.h>
-#include <type_traits>
-#include <thrust/system/cuda/execution_policy.h>
-#include <thrust/device_vector.h>
 #include <thrust/device_malloc_allocator.h>
 #include <thrust/device_ptr.h>
+#include <thrust/device_vector.h>
+#include <thrust/system/cuda/execution_policy.h>
+#include <type_traits>
 
 #include <cuComplex.h>
 
@@ -82,7 +81,7 @@ struct ThrustAllocatorAsync : public thrust::device_malloc_allocator<T> {
       if (err!=cudaSuccess) throw int(FINUFFT_ERR_CUDA_FAILURE);
       return enthrust(p);
     }
-  
+
     void deallocate(pointer p, size_type) {
       DeviceSwitcher switcher(deviceID);
       auto err = pool ? cudaFreeAsync(dethrust(p), stream)
