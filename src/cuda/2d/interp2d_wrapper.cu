@@ -136,8 +136,8 @@ static __global__ void interp_2d_subprob(
 }
 
 template<typename T, int ns>
-static void cuinterp2d_nuptsdriven(int nf1, int nf2, int M, const cufinufft_plan_t<T> &d_plan,
-                           int blksize) {
+static void cuinterp2d_nuptsdriven(int nf1, int nf2, int M,
+                                   const cufinufft_plan_t<T> &d_plan, int blksize) {
   auto &stream = d_plan.stream;
 
   dim3 threadsPerBlock;
@@ -151,7 +151,7 @@ static void cuinterp2d_nuptsdriven(int nf1, int nf2, int M, const cufinufft_plan
 
   const T *d_kx               = d_plan.kxyz[0];
   const T *d_ky               = d_plan.kxyz[1];
-  cuda_complex<T> *d_c  = d_plan.c;
+  cuda_complex<T> *d_c        = d_plan.c;
   const cuda_complex<T> *d_fw = d_plan.fw;
 
   threadsPerBlock.x =
@@ -179,7 +179,7 @@ static void cuinterp2d_nuptsdriven(int nf1, int nf2, int M, const cufinufft_plan
 
 template<typename T, int ns>
 static void cuinterp2d_subprob(int nf1, int nf2, int M, const cufinufft_plan_t<T> &d_plan,
-                       int blksize) {
+                               int blksize) {
   auto &stream = d_plan.stream;
 
   T es_c             = 4.0 / T(d_plan.spopts.nspread * d_plan.spopts.nspread);
@@ -195,7 +195,7 @@ static void cuinterp2d_subprob(int nf1, int nf2, int M, const cufinufft_plan_t<T
 
   const T *d_kx               = d_plan.kxyz[0];
   const T *d_ky               = d_plan.kxyz[1];
-  cuda_complex<T> *d_c  = d_plan.c;
+  cuda_complex<T> *d_c        = d_plan.c;
   const cuda_complex<T> *d_fw = d_plan.fw;
 
   const int *d_binsize         = dethrust(d_plan.binsize);
@@ -238,7 +238,7 @@ static void cuinterp2d_subprob(int nf1, int nf2, int M, const cufinufft_plan_t<T
 struct Interp2DDispatcher {
   template<int ns, typename T>
   void operator()(int nf1, int nf2, int M, const cufinufft_plan_t<T> &d_plan,
-                 int blksize) const {
+                  int blksize) const {
     switch (d_plan.opts.gpu_method) {
     case 1:
       return cuinterp2d_nuptsdriven<T, ns>(nf1, nf2, M, d_plan, blksize);
@@ -266,9 +266,9 @@ template<typename T> void cuinterp2d(cufinufft_plan_t<T> *d_plan, int blksize) {
     it seems slower according to the MRI community.
     Marco Barbone 01/30/25
   */
-  launch_dispatch_ns<Interp2DDispatcher, T>(
-      Interp2DDispatcher(), d_plan->spopts.nspread, d_plan->nf123[0], d_plan->nf123[1], d_plan->M,
-      *d_plan, blksize);
+  launch_dispatch_ns<Interp2DDispatcher, T>(Interp2DDispatcher(), d_plan->spopts.nspread,
+                                            d_plan->nf123[0], d_plan->nf123[1], d_plan->M,
+                                            *d_plan, blksize);
 }
 
 template void cuinterp2d<float>(cufinufft_plan_t<float> *d_plan, int blksize);
