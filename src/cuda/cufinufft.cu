@@ -9,7 +9,7 @@
 
 using finufft::common::safe_finufft_call;
 
-inline bool is_invalid_mode_array(int type, int dim, const int64_t *modes64,
+static inline bool is_invalid_mode_array(int type, int dim, const int64_t *modes64,
                                   int32_t modes32[3]) {
   if (type == 3) {
     modes32[0] = modes32[1] = modes32[2] = 1;

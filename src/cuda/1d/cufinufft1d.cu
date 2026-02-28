@@ -35,17 +35,15 @@ static void cufinufft1d1_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
   auto &stream = d_plan->stream;
   for (int i = 0; i * d_plan->batchsize < d_plan->ntransf; i++) {
     int blksize = std::min(d_plan->ntransf - i * d_plan->batchsize, d_plan->batchsize);
-    cuda_complex<T> *d_cstart    = d_c + i * d_plan->batchsize * d_plan->M;
-    cuda_complex<T> *d_fkstart   = d_fk + i * d_plan->batchsize * d_plan->mstu[0];
-    d_plan->c   = d_cstart;
-    d_plan->fk  = d_fkstart;  // so deconvolve will write into user output f
+    d_plan->c   = d_c + i * d_plan->batchsize * d_plan->M;
+    d_plan->fk  = d_fk + i * d_plan->batchsize * d_plan->mstu[0];  // so deconvolve will write into user output f
     if (d_plan->opts.gpu_spreadinterponly)
-      d_plan->fw = d_fkstart; // spread directly into user output f
+      d_plan->fw = d_plan->fk; // spread directly into user output f
 
     // this is needed
     checkCudaErrors(cudaMemsetAsync(
-        d_plan->fw, 0, d_plan->batchsize * d_plan->nf123[0] * sizeof(cuda_complex<T>),
-        stream));
+      d_plan->fw, 0, d_plan->batchsize * d_plan->nf * sizeof(cuda_complex<T>),
+      stream));
 
     // Step 1: Spread
     cuspread1d<T>(d_plan, blksize);
@@ -120,8 +118,8 @@ static void cufinufft1d3_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
   const auto &stream = d_plan->stream;
   for (int i = 0; i * d_plan->batchsize < d_plan->ntransf; i++) {
     int blksize = std::min(d_plan->ntransf - i * d_plan->batchsize, d_plan->batchsize);
-    cuda_complex<T> *d_cstart    = d_c + i * d_plan->batchsize * d_plan->M;
-    cuda_complex<T> *d_fkstart   = d_fk + i * d_plan->batchsize * d_plan->N;
+    cuda_complex<T> *d_cstart  = d_c + i * d_plan->batchsize * d_plan->M;
+    cuda_complex<T> *d_fkstart = d_fk + i * d_plan->batchsize * d_plan->N;
     // setting input for spreader
     d_plan->c = dethrust(d_plan->CpBatch);
     // setting output for spreader

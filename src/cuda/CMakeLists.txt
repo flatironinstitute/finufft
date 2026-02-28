@@ -1,7 +1,7 @@
 include(staticAnalysis)
 include(setupIWYU)
 
-set(PRECISION_DEPENDENT_SRC
+set(SRC
     spreadinterp.cpp
     1d/cufinufft1d.cu
     1d/spread1d_wrapper.cu
@@ -16,6 +16,7 @@ set(PRECISION_DEPENDENT_SRC
     deconvolve_wrapper.cu
     cufinufft.cu
     common.cu
+    impl.cu
 )
 
 set(CUFINUFFT_INCLUDE_DIRS
@@ -31,9 +32,9 @@ set(CUFINUFFT_INCLUDE_DIRS ${CUFINUFFT_INCLUDE_DIRS} PARENT_SCOPE)
 list(APPEND FINUFFT_CUDA_FLAGS $<$<COMPILE_LANGUAGE:CUDA>:--extended-lambda --extra-device-vectorization>)
 
 if(FINUFFT_SHARED_LINKING)
-    add_library(cufinufft SHARED ${PRECISION_DEPENDENT_SRC})
+    add_library(cufinufft SHARED ${SRC})
 else()
-    add_library(cufinufft STATIC ${PRECISION_DEPENDENT_SRC})
+    add_library(cufinufft STATIC ${SRC})
 endif()
 
 enable_static_analysis(cufinufft)
