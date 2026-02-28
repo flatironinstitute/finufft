@@ -33,9 +33,9 @@ static __global__ void interp_3d_nupts_driven(
     const auto y_rescaled = fold_rescale(loadReadOnly(y + nuptsidx), nf2);
     const auto z_rescaled = fold_rescale(loadReadOnly(z + nuptsidx), nf3);
 
-    const auto [xstart, xend] = interval(ns, x_rescaled);
-    const auto [ystart, yend] = interval(ns, y_rescaled);
-    const auto [zstart, zend] = interval(ns, z_rescaled);
+    auto [xstart, xend] = interval(ns, x_rescaled);
+    auto [ystart, yend] = interval(ns, y_rescaled);
+    auto [zstart, zend] = interval(ns, z_rescaled);
 
     const T x1 = T(xstart) - x_rescaled;
     const T y1 = T(ystart) - y_rescaled;
@@ -50,22 +50,26 @@ static __global__ void interp_3d_nupts_driven(
       eval_kernel_vec<T, ns>(ker2, y1, es_c, es_beta);
       eval_kernel_vec<T, ns>(ker3, z1, es_c, es_beta);
     }
+    if (xstart<0) { xstart+= nf1; xend +=nf1; }
+    if (ystart<0) { ystart+= nf2; yend +=nf2; }
+    if (zstart<0) { zstart+= nf3; zend +=nf3; }
 
     cuda_complex<T> cnow{0, 0};
     for (int zz = zstart; zz <= zend; zz++) {
-      const auto kervalue3 = ker3[zz - zstart];
-      const auto iz        = zz < 0 ? zz + nf3 : (zz > nf3 - 1 ? zz - nf3 : zz);
+      const auto iz        = zz >= nf3 ? zz - nf3 : zz;
+      cuda_complex<T> cnowy{0, 0};
       for (int yy = ystart; yy <= yend; yy++) {
-        const auto kervalue2 = ker2[yy - ystart];
-        const int iy         = yy < 0 ? yy + nf2 : (yy > nf2 - 1 ? yy - nf2 : yy);
+        cuda_complex<T> cnowy{0, 0};
+        const int iy         = yy >= nf2 ? yy - nf2 : yy;
+        cuda_complex<T> cnowx{0, 0};
         for (int xx = xstart; xx <= xend; xx++) {
-          const auto ix        = xx < 0 ? xx + nf1 : (xx > nf1 - 1 ? xx - nf1 : xx);
+          const auto ix        = xx >= nf1 ? xx - nf1 : xx;
           const auto inidx     = ix + iy * nf1 + iz * nf2 * nf1;
-          const auto kervalue1 = ker1[xx - xstart];
-          const auto kervalue  = kervalue1 * kervalue2 * kervalue3;
-          cnow += {fw[inidx] * kervalue};
+          cnowx += {fw[inidx] * ker1[xx - xstart]};
         }
+        cnowy += {cnowx * ker2[yy - ystart]};
       }
+      cnow += {cnowy * ker3[zz - zstart]};
     }
     c[idxnupts[i]] = cnow;
   }
