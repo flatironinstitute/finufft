@@ -59,7 +59,6 @@ static __global__ void interp_3d_nupts_driven(
       const auto iz        = zz >= nf3 ? zz - nf3 : zz;
       cuda_complex<T> cnowy{0, 0};
       for (int yy = ystart; yy <= yend; yy++) {
-        cuda_complex<T> cnowy{0, 0};
         const int iy         = yy >= nf2 ? yy - nf2 : yy;
         cuda_complex<T> cnowx{0, 0};
         for (int xx = xstart; xx <= xend; xx++) {
