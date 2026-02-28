@@ -18,11 +18,11 @@ void cufinufft3d_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
                       cufinufft_plan_t<T> *d_plan);
 
 template<typename T>
-int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntransf, T tol,
-                            cufinufft_plan_t<T> **d_plan_ptr, cufinufft_opts *opts);
+int cufinufft_makeplan_impl(int type, int dim, const int *nmodes, int iflag, int ntransf, T tol,
+                            cufinufft_plan_t<T> **d_plan_ptr, const cufinufft_opts *opts);
 
 template<typename T>
-void cufinufft_setpts_impl(int M, T *d_kx, T *d_ky, T *d_kz, int N, T *d_s, T *d_t, T *d_u,
+void cufinufft_setpts_impl(int M, const T *d_kx, const T *d_ky, const T *d_kz, int N, const T *d_s, const T *d_t, const T *d_u,
                           cufinufft_plan_t<T> *d_plan);
 template<typename T>
 void cufinufft_execute_impl(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,

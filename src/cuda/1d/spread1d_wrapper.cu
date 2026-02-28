@@ -279,7 +279,7 @@ static void cuspread1d_nuptsdriven_prop(cufinufft_plan_t<T> *d_plan) {
 
     int numbins = ceil((T)nf1 / bin_size_x);
 
-    T *d_kx = d_plan->kxyz[0];
+    const T *d_kx = d_plan->kxyz[0];
 
     int *d_binsize     = dethrust(d_plan->binsize);
     int *d_binstartpts = dethrust(d_plan->binstartpts);
@@ -319,7 +319,7 @@ static void cuspread1d_nuptsdriven(int nf1, int M, cufinufft_plan_t<T> *d_plan, 
   T es_beta       = d_plan->spopts.beta;
   T sigma         = d_plan->spopts.upsampfac;
 
-  T *d_kx               = d_plan->kxyz[0];
+  const T *d_kx               = d_plan->kxyz[0];
   cuda_complex<T> *d_c  = d_plan->c;
   cuda_complex<T> *d_fw = d_plan->fw;
 
@@ -354,7 +354,7 @@ static void cuspread1d_output_driven(int nf1, int M, cufinufft_plan_t<T> *d_plan
   int bin_size_x = d_plan->opts.gpu_binsizex;
   int numbins    = ceil((T)nf1 / bin_size_x);
 
-  T *d_kx               = d_plan->kxyz[0];
+  const T *d_kx               = d_plan->kxyz[0];
   cuda_complex<T> *d_c  = d_plan->c;
   cuda_complex<T> *d_fw = d_plan->fw;
 
@@ -479,7 +479,7 @@ static void cuspread1d_subprob(int nf1, int M, cufinufft_plan_t<T> *d_plan, int 
   int bin_size_x = d_plan->opts.gpu_binsizex;
   int numbins    = ceil((T)nf1 / bin_size_x);
 
-  T *d_kx               = d_plan->kxyz[0];
+  const T *d_kx               = d_plan->kxyz[0];
   cuda_complex<T> *d_c  = d_plan->c;
   cuda_complex<T> *d_fw = d_plan->fw;
 

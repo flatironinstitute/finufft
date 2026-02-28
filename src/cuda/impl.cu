@@ -17,8 +17,8 @@
 #include <thrust/device_vector.h>
 
 template<typename T>
-int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntransf, T tol,
-                            cufinufft_plan_t<T> **d_plan_ptr, cufinufft_opts *opts) {
+int cufinufft_makeplan_impl(int type, int dim, const int *nmodes, int iflag, int ntransf, T tol,
+                            cufinufft_plan_t<T> **d_plan_ptr, const cufinufft_opts *opts) {
   /*
       "plan" stage (in single or double precision).
           See ../docs/cppdoc.md for main user-facing documentation.
@@ -257,13 +257,13 @@ catch(...) {
   throw;
 }
 }
-template int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntransf, float tol,
-                            cufinufft_plan_t<float> **d_plan_ptr, cufinufft_opts *opts);
-template int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntransf, double tol,
-                            cufinufft_plan_t<double> **d_plan_ptr, cufinufft_opts *opts);
+template int cufinufft_makeplan_impl(int type, int dim, const int *nmodes, int iflag, int ntransf, float tol,
+                            cufinufft_plan_t<float> **d_plan_ptr, const cufinufft_opts *opts);
+template int cufinufft_makeplan_impl(int type, int dim, const int *nmodes, int iflag, int ntransf, double tol,
+                            cufinufft_plan_t<double> **d_plan_ptr, const cufinufft_opts *opts);
 
 template<typename T>
-static void cufinufft_setpts_12_impl(int M, T *d_kx, T *d_ky, T *d_kz,
+static void cufinufft_setpts_12_impl(int M, const T *d_kx, const T *d_ky, const T *d_kz,
                              cufinufft_plan_t<T> *d_plan)
 /*
     "setNUpts" stage (in single or double precision).
@@ -329,7 +329,7 @@ Notes: the type T means either single or double, matching the
 }
 
 template<typename T>
-void cufinufft_setpts_impl(int M, T *d_kx, T *d_ky, T *d_kz, int N, T *d_s, T *d_t, T *d_u,
+void cufinufft_setpts_impl(int M, const T *d_kx, const T *d_ky, const T *d_kz, int N, const T *d_s, const T *d_t, const T *d_u,
                           cufinufft_plan_t<T> *d_plan) {
   DeviceSwitcher switcher(d_plan->opts.gpu_device_id);
   // type 1 and type 2 setpts
@@ -343,8 +343,8 @@ void cufinufft_setpts_impl(int M, T *d_kx, T *d_ky, T *d_kz, int N, T *d_s, T *d
   // it harder to follow. To understand the code, it is recommended to read the CPU code
   // first.
 
-  cuda::std::array<T *,3> d_kxyz = {d_kx, d_ky, d_kz};
-  cuda::std::array<T *,3> d_stu = {d_s, d_t, d_u};
+  cuda::std::array<const T *,3> d_kxyz = {d_kx, d_ky, d_kz};
+  cuda::std::array<const T *,3> d_stu = {d_s, d_t, d_u};
 
   if (d_plan->type != 3) {
     fprintf(stderr, "[%s] Invalid type (%d): should be 1, 2, or 3.\n", __func__,
@@ -444,7 +444,7 @@ void cufinufft_setpts_impl(int M, T *d_kx, T *d_ky, T *d_kz, int N, T *d_s, T *d
   for (int idim=0; idim<d_plan->dim; ++idim) {
     const auto ig = T(1) / d_plan->type3_params.gam[idim];
     const auto C  = -d_plan->type3_params.C[idim];
-    thrust::transform(thrust::cuda::par.on(stream), d_kxyz[idim], d_kxyz[idim] + M, d_plan->kxyz[idim],
+    thrust::transform(thrust::cuda::par.on(stream), d_kxyz[idim], d_kxyz[idim] + M, dethrust(d_plan->kxyzp[idim]),
                       [ig, C] __host__
                       __device__(const T x) -> T { return (x + C) * ig; });
   }
@@ -484,7 +484,7 @@ void cufinufft_setpts_impl(int M, T *d_kx, T *d_ky, T *d_kz, int N, T *d_s, T *d
   for (int idim=0; idim<d_plan->dim; ++idim) {
     const auto scale = d_plan->type3_params.h[idim] * d_plan->type3_params.gam[idim];
     const auto D     = -d_plan->type3_params.D[idim];
-    thrust::transform(thrust::cuda::par.on(stream), d_stu[idim], d_stu[idim] + N, d_plan->STU[idim],
+    thrust::transform(thrust::cuda::par.on(stream), d_stu[idim], d_stu[idim] + N, dethrust(d_plan->STUp[idim]),
                       [scale, D] __host__
                       __device__(const T s) -> T { return scale * (s + D); });
   }
@@ -586,9 +586,9 @@ void cufinufft_setpts_impl(int M, T *d_kx, T *d_ky, T *d_kz, int N, T *d_s, T *d
     }
   }
 }
-template void cufinufft_setpts_impl(int M, float *d_kx, float *d_ky, float *d_kz, int N, float *d_s, float *d_t, float *d_u,
+template void cufinufft_setpts_impl(int M, const float *d_kx, const float *d_ky, const float *d_kz, int N, const float *d_s, const float *d_t, const float *d_u,
                           cufinufft_plan_t<float> *d_plan);
-template void cufinufft_setpts_impl(int M, double *d_kx, double *d_ky, double *d_kz, int N, double *d_s, double *d_t, double *d_u,
+template void cufinufft_setpts_impl(int M, const double *d_kx, const double *d_ky, const double *d_kz, int N, const double *d_s, const double *d_t, const double *d_u,
                           cufinufft_plan_t<double> *d_plan);
 
 template<typename T>

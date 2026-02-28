@@ -52,7 +52,7 @@ static void cuinterp1d_nuptsdriven(int nf1, int M, cufinufft_plan_t<T> *d_plan, 
   T sigma         = d_plan->opts.upsampfac;
   int *d_idxnupts = dethrust(d_plan->idxnupts);
 
-  T *d_kx               = d_plan->kxyz[0];
+  const T *d_kx               = d_plan->kxyz[0];
   cuda_complex<T> *d_c  = d_plan->c;
   cuda_complex<T> *d_fw = d_plan->fw;
 

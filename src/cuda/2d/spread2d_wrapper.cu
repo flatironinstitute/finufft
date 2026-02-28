@@ -45,7 +45,7 @@ static __global__ void map_b_into_subprob_2d(int *d_subprob_to_bin, int *d_subpr
 template<typename T>
 static __global__ void calc_bin_size_noghost_2d(int M, int nf1, int nf2, int bin_size_x,
                                          int bin_size_y, int nbinx, int nbiny,
-                                         int *bin_size, T *x, T *y, int *sortidx) {
+                                         int *bin_size, const T *x, const T *y, int *sortidx) {
   int binidx, binx, biny;
   int oldidx;
   T x_rescaled, y_rescaled;
@@ -356,8 +356,8 @@ static void cuspread2d_output_driven(int nf1, int nf2, int M, cufinufft_plan_t<T
   numbins[0] = ceil((T)nf1 / bin_size_x);
   numbins[1] = ceil((T)nf2 / bin_size_y);
 
-  T *d_kx               = d_plan->kxyz[0];
-  T *d_ky               = d_plan->kxyz[1];
+  const T *d_kx               = d_plan->kxyz[0];
+  const T *d_ky               = d_plan->kxyz[1];
   cuda_complex<T> *d_c  = d_plan->c;
   cuda_complex<T> *d_fw = d_plan->fw;
 
@@ -413,8 +413,8 @@ static void cuspread2d_nuptsdriven(int nf1, int nf2, int M, cufinufft_plan_t<T> 
   T es_beta       = d_plan->spopts.beta;
   T sigma         = d_plan->spopts.upsampfac;
 
-  T *d_kx               = d_plan->kxyz[0];
-  T *d_ky               = d_plan->kxyz[1];
+  const T *d_kx               = d_plan->kxyz[0];
+  const T *d_ky               = d_plan->kxyz[1];
   cuda_complex<T> *d_c  = d_plan->c;
   cuda_complex<T> *d_fw = d_plan->fw;
 
@@ -455,8 +455,8 @@ static void cuspread2d_subprob(int nf1, int nf2, int M, cufinufft_plan_t<T> *d_p
   numbins[0] = ceil((T)nf1 / bin_size_x);
   numbins[1] = ceil((T)nf2 / bin_size_y);
 
-  T *d_kx               = d_plan->kxyz[0];
-  T *d_ky               = d_plan->kxyz[1];
+  const T *d_kx               = d_plan->kxyz[0];
+  const T *d_ky               = d_plan->kxyz[1];
   cuda_complex<T> *d_c  = d_plan->c;
   cuda_complex<T> *d_fw = d_plan->fw;
 
@@ -560,8 +560,8 @@ static void cuspread2d_nuptsdriven_prop(cufinufft_plan_t<T> *d_plan) {
     numbins[0] = ceil((T)nf1 / bin_size_x);
     numbins[1] = ceil((T)nf2 / bin_size_y);
 
-    T *d_kx = d_plan->kxyz[0];
-    T *d_ky = d_plan->kxyz[1];
+    const T *d_kx = d_plan->kxyz[0];
+    const T *d_ky = d_plan->kxyz[1];
 
     int *d_binsize     = dethrust(d_plan->binsize);
     int *d_binstartpts = dethrust(d_plan->binstartpts);
@@ -618,8 +618,8 @@ static void cuspread2d_subprob_prop(cufinufft_plan_t<T> *d_plan)
   numbins[0] = ceil((T)nf1 / bin_size_x);
   numbins[1] = ceil((T)nf2 / bin_size_y);
 
-  T *d_kx = d_plan->kxyz[0];
-  T *d_ky = d_plan->kxyz[1];
+  const T *d_kx = d_plan->kxyz[0];
+  const T *d_ky = d_plan->kxyz[1];
 
   int *d_binsize         = dethrust(d_plan->binsize);
   int *d_binstartpts     = dethrust(d_plan->binstartpts);

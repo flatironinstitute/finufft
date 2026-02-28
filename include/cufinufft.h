@@ -17,17 +17,17 @@ FINUFFT_EXPORT void cufinufft_default_opts(cufinufft_opts *opts);
 
 FINUFFT_EXPORT int cufinufft_makeplan(int type, int dim, const int64_t *n_modes,
                                       int iflag, int ntr, double eps,
-                                      cufinufft_plan *d_plan_ptr, cufinufft_opts *opts);
+                                      cufinufft_plan *d_plan_ptr, const cufinufft_opts *opts);
 FINUFFT_EXPORT int cufinufftf_makeplan(int type, int dim, const int64_t *n_modes,
                                        int iflag, int ntr, float eps,
-                                       cufinufftf_plan *d_plan_ptr, cufinufft_opts *opts);
+                                       cufinufftf_plan *d_plan_ptr, const cufinufft_opts *opts);
 
-FINUFFT_EXPORT int cufinufft_setpts(cufinufft_plan d_plan, int64_t M, double *d_x,
-                                    double *d_y, double *d_z, int N, double *d_s,
-                                    double *d_t, double *d_u);
-FINUFFT_EXPORT int cufinufftf_setpts(cufinufftf_plan d_plan, int64_t M, float *d_x,
-                                     float *d_y, float *d_z, int N, float *d_s,
-                                     float *d_t, float *d_u);
+FINUFFT_EXPORT int cufinufft_setpts(cufinufft_plan d_plan, int64_t M, const double *d_x,
+                                    const double *d_y, const double *d_z, int N, const double *d_s,
+                                    const double *d_t, const double *d_u);
+FINUFFT_EXPORT int cufinufftf_setpts(cufinufftf_plan d_plan, int64_t M, const float *d_x,
+                                     const float *d_y, const float *d_z, int N, const float *d_s,
+                                     const float *d_t, const float *d_u);
 
 FINUFFT_EXPORT int cufinufft_execute(cufinufft_plan d_plan, cuDoubleComplex *d_c,
                                      cuDoubleComplex *d_fk);

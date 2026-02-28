@@ -125,7 +125,7 @@ template<typename T> struct cufinufft_plan_t {
 
   // for type 1,2 it is a pointer to kx, ky, kz (no new allocs), for type 3 it
   // for t3: allocated as "primed" (scaled) src pts x'_j, etc
-  cuda::std::array<T *,3> kxyz={nullptr,nullptr,nullptr};
+  cuda::std::array<const T *,3> kxyz={nullptr,nullptr,nullptr};
   cuda::std::array<gpuArray<T>,3> kxyzp={gpuArray<T>{0,alloc},gpuArray<T>{0,alloc},gpuArray<T>{0,alloc}};
   gpuArray<cuda_complex<T>> CpBatch{0, calloc}; // working array of prephased strengths
 
@@ -139,15 +139,14 @@ template<typename T> struct cufinufft_plan_t {
   struct {
     cuda::std::array<T,3> X={0,0,0}, C={0,0,0}, S={0,0,0}, D={0,0,0}, h={0,0,0}, gam={0,0,0};
   } type3_params;
-  int N=0;                        // number of NU freq pts (type 3 only)
+  int N=0; // number of NU freq pts (type 3 only)
   CUFINUFFT_BIGINT nf=0;
-  cuda::std::array<T *,3> STU={nullptr,nullptr,nullptr};
+  cuda::std::array<const T *,3> STU={nullptr,nullptr,nullptr};
   cuda::std::array<gpuArray<T>,3> STUp={gpuArray<T>{0, alloc},gpuArray<T>{0,alloc},gpuArray<T>{0,alloc}};
   T tol=0;
   // inner type 2 plan for type 3
   cufinufft_plan_t<T> *t2_plan=nullptr;
-  // new allocs.
-  // FIXME: convert to device vectors to use resize
+
   gpuArray<cuda_complex<T>> prephase{0, calloc}; // pre-phase, for all input NU pts
   gpuArray<cuda_complex<T>> deconv{0,calloc};   // reciprocal of kernel FT, phase, all output NU pts
 

@@ -30,7 +30,7 @@ static inline bool is_invalid_mode_array(int type, int dim, const int64_t *modes
 
 extern "C" {
 int cufinufftf_makeplan(int type, int dim, const int64_t *nmodes, int iflag, int ntransf,
-                        float tol, cufinufftf_plan *d_plan_ptr, cufinufft_opts *opts) {
+                        float tol, cufinufftf_plan *d_plan_ptr, const cufinufft_opts *opts) {
   return safe_finufft_call([&]() -> int {
     if (dim < 1 || dim > 3) {
       fprintf(stderr, "[%s] Invalid dim (%d), should be 1, 2 or 3.\n", __func__, dim);
@@ -48,7 +48,7 @@ int cufinufftf_makeplan(int type, int dim, const int64_t *nmodes, int iflag, int
 }
 
 int cufinufft_makeplan(int type, int dim, const int64_t *nmodes, int iflag, int ntransf,
-                       double tol, cufinufft_plan *d_plan_ptr, cufinufft_opts *opts) {
+                       double tol, cufinufft_plan *d_plan_ptr, const cufinufft_opts *opts) {
   return safe_finufft_call([&]() -> int {
     if (dim < 1 || dim > 3) {
       fprintf(stderr, "[%s] Invalid dim (%d), should be 1, 2 or 3.\n", __func__, dim);
@@ -65,8 +65,8 @@ int cufinufft_makeplan(int type, int dim, const int64_t *nmodes, int iflag, int 
   });
 }
 
-int cufinufftf_setpts(cufinufftf_plan d_plan, const int64_t M, float *d_x, float *d_y,
-                      float *d_z, int N, float *d_s, float *d_t, float *d_u) {
+int cufinufftf_setpts(cufinufftf_plan d_plan, const int64_t M, const float *d_x, const float *d_y,
+                      const float *d_z, int N, const float *d_s, const float *d_t, const float *d_u) {
   return safe_finufft_call([&]() {
     if (M > std::numeric_limits<int32_t>::max()) throw int(FINUFFT_ERR_NDATA_NOTVALID);
 
@@ -75,8 +75,8 @@ int cufinufftf_setpts(cufinufftf_plan d_plan, const int64_t M, float *d_x, float
   });
 }
 
-int cufinufft_setpts(cufinufft_plan d_plan, const int64_t M, double *d_x, double *d_y,
-                     double *d_z, int N, double *d_s, double *d_t, double *d_u) {
+int cufinufft_setpts(cufinufft_plan d_plan, const int64_t M, const double *d_x, const double *d_y,
+                     const double *d_z, int N, const double *d_s, const double *d_t, const double *d_u) {
   return safe_finufft_call([&]() {
     if (M > std::numeric_limits<int32_t>::max()) throw int(FINUFFT_ERR_NDATA_NOTVALID);
 

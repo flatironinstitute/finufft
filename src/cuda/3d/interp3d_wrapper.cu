@@ -189,9 +189,9 @@ static void cuinterp3d_nuptsdriven(int nf1, int nf2, int nf3, int M, cufinufft_p
 
   int *d_idxnupts = dethrust(d_plan->idxnupts);;
 
-  T *d_kx               = d_plan->kxyz[0];
-  T *d_ky               = d_plan->kxyz[1];
-  T *d_kz               = d_plan->kxyz[2];
+  const T *d_kx               = d_plan->kxyz[0];
+  const T *d_ky               = d_plan->kxyz[1];
+  const T *d_kz               = d_plan->kxyz[2];
   cuda_complex<T> *d_c  = d_plan->c;
   cuda_complex<T> *d_fw = d_plan->fw;
 
@@ -232,9 +232,9 @@ static void cuinterp3d_subprob(int nf1, int nf2, int nf3, int M, cufinufft_plan_
   numbins[1] = ceil((T)nf2 / bin_size_y);
   numbins[2] = ceil((T)nf3 / bin_size_z);
 
-  T *d_kx               = d_plan->kxyz[0];
-  T *d_ky               = d_plan->kxyz[1];
-  T *d_kz               = d_plan->kxyz[2];
+  const T *d_kx               = d_plan->kxyz[0];
+  const T *d_ky               = d_plan->kxyz[1];
+  const T *d_kz               = d_plan->kxyz[2];
   cuda_complex<T> *d_c  = d_plan->c;
   cuda_complex<T> *d_fw = d_plan->fw;
 
