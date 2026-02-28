@@ -649,9 +649,9 @@ void cufinufft_destroy_impl(cufinufft_plan_t<T> *d_plan)
         (2) delete the cuFFT plan
 */
 {
-  DeviceSwitcher switcher(d_plan->opts.gpu_device_id);
-  // Can't destroy a null pointer.
   if (!d_plan) throw int(FINUFFT_ERR_PLAN_NOTVALID);
+  DeviceSwitcher switcher(d_plan->opts.gpu_device_id);
+
   delete d_plan;
 } // namespace cufinufft
 template void cufinufft_destroy_impl(cufinufft_plan_t<float> *d_plan);
