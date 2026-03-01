@@ -25,15 +25,15 @@ using std::max;
  * onedim_fseries_kernel in CPU code. Used by functions below in this file.
  */
 template<typename T>
-static __global__ void cu_fseries_kernel_compute(cuda::std::array<CUFINUFFT_BIGINT,3> nf123, const T *f, const T *phase,
-                                          cuda::std::array<T *,3> fwkerhalf,
-                                          int ns) {
-  T J2  = ns / 2.0;
-  int q = (int)(2 + 3.0 * J2);
-  int nf = nf123[threadIdx.y];
+static __global__ void cu_fseries_kernel_compute(
+    cuda::std::array<CUFINUFFT_BIGINT, 3> nf123, const T *f, const T *phase,
+    cuda::std::array<T *, 3> fwkerhalf, int ns) {
+  T J2            = ns / 2.0;
+  int q           = (int)(2 + 3.0 * J2);
+  int nf          = nf123[threadIdx.y];
   const T *phaset = phase + threadIdx.y * MAX_NQUAD;
   const T *ft     = f + threadIdx.y * MAX_NQUAD;
-  T *oarr=fwkerhalf[threadIdx.y];
+  T *oarr         = fwkerhalf[threadIdx.y];
 
   for (int i = blockDim.x * blockIdx.x + threadIdx.x; i < nf / 2 + 1;
        i += blockDim.x * gridDim.x) {
@@ -53,15 +53,16 @@ static __global__ void cu_fseries_kernel_compute(cuda::std::array<CUFINUFFT_BIGI
  * type 3, matching KernelFSeries in CPU code. Used by functions below in this file.
  */
 template<typename T>
-static __global__ void cu_nuft_kernel_compute(cuda::std::array<CUFINUFFT_BIGINT,3> nf123, const T *f, const T *z,
-                                       cuda::std::array<const T *,3> kxyz, cuda::std::array<T *,3> fwkerhalf, int ns) {
-  T J2  = ns / 2.0;
-  int q = (int)(2 + 2.0 * J2);
-  int nf = nf123[threadIdx.y];
+static __global__ void cu_nuft_kernel_compute(
+    cuda::std::array<CUFINUFFT_BIGINT, 3> nf123, const T *f, const T *z,
+    cuda::std::array<const T *, 3> kxyz, cuda::std::array<T *, 3> fwkerhalf, int ns) {
+  T J2        = ns / 2.0;
+  int q       = (int)(2 + 2.0 * J2);
+  int nf      = nf123[threadIdx.y];
   const T *at = z + threadIdx.y * MAX_NQUAD;
   const T *ft = f + threadIdx.y * MAX_NQUAD;
-  T *oarr = fwkerhalf[threadIdx.y];
-  const T *k = kxyz[threadIdx.y];
+  T *oarr     = fwkerhalf[threadIdx.y];
+  const T *k  = kxyz[threadIdx.y];
   for (int i = blockDim.x * blockIdx.x + threadIdx.x; i < nf;
        i += blockDim.x * gridDim.x) {
     T x = 0.0;
@@ -73,9 +74,9 @@ static __global__ void cu_nuft_kernel_compute(cuda::std::array<CUFINUFFT_BIGINT,
 }
 
 template<typename T>
-void fseries_kernel_compute(int dim, cuda::std::array<CUFINUFFT_BIGINT,3> nf123, const T *d_f, const T *d_phase,
-                           cuda::std::array<gpuArray<T>,3> &d_fwkerhalf, int ns,
-                           cudaStream_t stream)
+void fseries_kernel_compute(
+    int dim, cuda::std::array<CUFINUFFT_BIGINT, 3> nf123, const T *d_f, const T *d_phase,
+    cuda::std::array<gpuArray<T>, 3> &d_fwkerhalf, int ns, cudaStream_t stream)
 /*
     wrapper for approximation of Fourier series of real symmetric spreading
     kernel.
@@ -89,20 +90,24 @@ void fseries_kernel_compute(int dim, cuda::std::array<CUFINUFFT_BIGINT,3> nf123,
   dim3 numBlocks((nout + 16 - 1) / 16, 1);
 
   cu_fseries_kernel_compute<<<numBlocks, threadsPerBlock, 0, stream>>>(
-      nf123, d_f, d_phase, {dethrust(d_fwkerhalf[0]), dethrust(d_fwkerhalf[1]), dethrust(d_fwkerhalf[2])}, ns);
+      nf123, d_f, d_phase,
+      {dethrust(d_fwkerhalf[0]), dethrust(d_fwkerhalf[1]), dethrust(d_fwkerhalf[2])}, ns);
   THROW_IF_CUDA_ERROR
 }
-template void fseries_kernel_compute<float>(int dim, cuda::std::array<CUFINUFFT_BIGINT,3> nf123, const float *d_f, const float *d_phase,
-                           cuda::std::array<gpuArray<float>,3> &d_fwkerhalf, int ns,
-                           cudaStream_t stream);
-template void fseries_kernel_compute<double>(int dim, cuda::std::array<CUFINUFFT_BIGINT,3> nf123, const double *d_f, const double *d_phase,
-                           cuda::std::array<gpuArray<double>,3> &d_fwkerhalf, int ns,
-                           cudaStream_t stream);
+template void fseries_kernel_compute<float>(
+    int dim, cuda::std::array<CUFINUFFT_BIGINT, 3> nf123, const float *d_f,
+    const float *d_phase, cuda::std::array<gpuArray<float>, 3> &d_fwkerhalf, int ns,
+    cudaStream_t stream);
+template void fseries_kernel_compute<double>(
+    int dim, cuda::std::array<CUFINUFFT_BIGINT, 3> nf123, const double *d_f,
+    const double *d_phase, cuda::std::array<gpuArray<double>, 3> &d_fwkerhalf, int ns,
+    cudaStream_t stream);
 
 template<typename T>
-void nuft_kernel_compute(int dim, cuda::std::array<CUFINUFFT_BIGINT,3> nf123, const T *d_f, const T *d_z,
-                        cuda::std::array<const T *,3> d_kxyz, cuda::std::array<gpuArray<T>,3> &d_fwkerhalf,
-                        int ns, cudaStream_t stream)
+void nuft_kernel_compute(
+    int dim, cuda::std::array<CUFINUFFT_BIGINT, 3> nf123, const T *d_f, const T *d_z,
+    cuda::std::array<const T *, 3> d_kxyz, cuda::std::array<gpuArray<T>, 3> &d_fwkerhalf,
+    int ns, cudaStream_t stream)
 /*
     Approximates exact Fourier transform of cnufftspread's real symmetric
     kernel, directly via q-node quadrature on Euler-Fourier formula, exploiting
@@ -121,16 +126,18 @@ void nuft_kernel_compute(int dim, cuda::std::array<CUFINUFFT_BIGINT,3> nf123, co
   dim3 numBlocks((nout + 16 - 1) / 16, 1);
 
   cu_nuft_kernel_compute<<<numBlocks, threadsPerBlock, 0, stream>>>(
-      nf123, d_f, d_z, d_kxyz, {dethrust(d_fwkerhalf[0]), dethrust(d_fwkerhalf[1]), dethrust(d_fwkerhalf[2])},
-      ns);
+      nf123, d_f, d_z, d_kxyz,
+      {dethrust(d_fwkerhalf[0]), dethrust(d_fwkerhalf[1]), dethrust(d_fwkerhalf[2])}, ns);
   THROW_IF_CUDA_ERROR
 }
-template void nuft_kernel_compute(int dim, cuda::std::array<CUFINUFFT_BIGINT,3> nf123, const float *d_f, const float *d_z,
-                        cuda::std::array<const float *,3> d_kxyz, cuda::std::array<gpuArray<float>,3> &d_fwkerhalf,
-                        int ns, cudaStream_t stream);
-template void nuft_kernel_compute(int dim, cuda::std::array<CUFINUFFT_BIGINT,3> nf123, const double *d_f, const double *d_z,
-                        cuda::std::array<const double *,3> d_kxyz, cuda::std::array<gpuArray<double>,3> &d_fwkerhalf,
-                        int ns, cudaStream_t stream);
+template void nuft_kernel_compute(
+    int dim, cuda::std::array<CUFINUFFT_BIGINT, 3> nf123, const float *d_f,
+    const float *d_z, cuda::std::array<const float *, 3> d_kxyz,
+    cuda::std::array<gpuArray<float>, 3> &d_fwkerhalf, int ns, cudaStream_t stream);
+template void nuft_kernel_compute(
+    int dim, cuda::std::array<CUFINUFFT_BIGINT, 3> nf123, const double *d_f,
+    const double *d_z, cuda::std::array<const double *, 3> d_kxyz,
+    cuda::std::array<gpuArray<double>, 3> &d_fwkerhalf, int ns, cudaStream_t stream);
 
 template<typename T>
 int setup_spreader_for_nufft(finufft_spread_opts &spopts, T eps, cufinufft_opts opts)

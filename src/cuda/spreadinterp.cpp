@@ -13,8 +13,8 @@ namespace cufinufft {
 namespace spreadinterp {
 
 template<typename T>
-int setup_spreader(finufft_spread_opts &spopts, T eps, T upsampfac,
-                   int kerevalmeth, int debug, int spreadinterponly)
+int setup_spreader(finufft_spread_opts &spopts, T eps, T upsampfac, int kerevalmeth,
+                   int debug, int spreadinterponly)
 // Initializes spreader kernel parameters given desired NUFFT tolerance eps,
 // upsampling factor (=sigma in paper, or R in Dutt-Rokhlin), and ker eval meth
 // (etiher 0:exp(sqrt()), 1: Horner ppval).
@@ -60,10 +60,9 @@ int setup_spreader(finufft_spread_opts &spopts, T eps, T upsampfac,
   // To do: *** unify with new CPU kernel logic/coeffs of v2.5.
   int ns = std::ceil(-log10(eps / (T)10.0)); // 1 digit per power of ten
   if (upsampfac != 2.0)                      // override ns for custom sigma
-    ns = std::ceil(
-        -log(eps) / (T(PI) * sqrt(1 - 1 / upsampfac))); // formula,
-                                                                           // gamma=1
-  ns = std::max(2, ns);                      // we don't have ns=1 version yet
+    ns = std::ceil(-log(eps) / (T(PI) * sqrt(1 - 1 / upsampfac))); // formula,
+                                                                   // gamma=1
+  ns = std::max(2, ns);   // we don't have ns=1 version yet
   if (ns > MAX_NSPREAD) { // clip to match allocated arrays
     fprintf(stderr,
             "[%s] warning: at upsampfac=%.3g, tol=%.3g would need kernel width ns=%d; "
@@ -72,7 +71,7 @@ int setup_spreader(finufft_spread_opts &spopts, T eps, T upsampfac,
     ns  = MAX_NSPREAD;
     ier = FINUFFT_WARN_EPS_TOO_SMALL;
   }
-  spopts.nspread      = ns;
+  spopts.nspread = ns;
 
   T betaoverns = 2.30;            // gives decent betas for default sigma=2.0
   if (ns == 2) betaoverns = 2.20; // some small-width tweaks...

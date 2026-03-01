@@ -6,8 +6,7 @@
 namespace cufinufft {
 namespace deconvolve {
 
-template<typename T>
-void cudeconvolve(const cufinufft_plan_t<T> &d_plan, int blksize);
+template<typename T> void cudeconvolve(const cufinufft_plan_t<T> &d_plan, int blksize);
 
 } // namespace deconvolve
 } // namespace cufinufft

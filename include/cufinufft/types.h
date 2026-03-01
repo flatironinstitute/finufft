@@ -14,7 +14,7 @@
 
 #include <cuComplex.h>
 
-using CUFINUFFT_BIGINT=int;
+using CUFINUFFT_BIGINT = int;
 
 // Marco Barbone 8/5/2024, replaced the ugly trick with std::conditional
 // to define cuda_complex
@@ -31,152 +31,168 @@ using cuda_complex = typename std::conditional<
     typename std::conditional<std::is_same<T, double>::value, cuDoubleComplex,
                               void>::type>::type;
 
-template<typename T> inline T* dethrust(thrust::device_ptr<T> ptr) {
+template<typename T> inline T *dethrust(thrust::device_ptr<T> ptr) {
   return thrust::raw_pointer_cast(ptr);
-  }
+}
 template<typename T> inline thrust::device_ptr<T> enthrust(T *ptr) {
   return thrust::device_pointer_cast(ptr);
-  }
+}
 
 class DeviceSwitcher {
-  private:
-    int orig_device;
+private:
+  int orig_device;
 
-    static int get_orig_device() {
-      int device{};
-      cudaGetDevice(&device);
-      return device;
-    }
+  static int get_orig_device() {
+    int device{};
+    cudaGetDevice(&device);
+    return device;
+  }
 
-  public:
-    explicit DeviceSwitcher(int newDevice) : orig_device{get_orig_device()} {
+public:
+  explicit DeviceSwitcher(int newDevice) : orig_device{get_orig_device()} {
     cudaSetDevice(newDevice);
-    }
+  }
 
-    ~DeviceSwitcher() { cudaSetDevice(orig_device); }
+  ~DeviceSwitcher() { cudaSetDevice(orig_device); }
 };
 
-template <typename T>
+template<typename T>
 struct ThrustAllocatorAsync : public thrust::device_malloc_allocator<T> {
-  public:
-    using Base      = thrust::device_malloc_allocator<T>;
-    using pointer   = typename Base::pointer;
-    using size_type = typename Base::size_type;
+public:
+  using Base      = thrust::device_malloc_allocator<T>;
+  using pointer   = typename Base::pointer;
+  using size_type = typename Base::size_type;
 
-  private:
-    cudaStream_t stream;
-    int deviceID;
-    bool pool;
+private:
+  cudaStream_t stream;
+  int deviceID;
+  bool pool;
 
-  public:
-    // Prefer explicit stream; no default ctor needed if you always pass alloc to device_vector
-    explicit ThrustAllocatorAsync(cudaStream_t s, int ID, bool supports_pools)
+public:
+  // Prefer explicit stream; no default ctor needed if you always pass alloc to
+  // device_vector
+  explicit ThrustAllocatorAsync(cudaStream_t s, int ID, bool supports_pools)
       : stream(s), deviceID(ID), pool(supports_pools) {}
 
-    pointer allocate(size_type n) {
-      DeviceSwitcher switcher(deviceID);
-      T* p = nullptr;
-      auto err = pool ? cudaMallocAsync(&p, n*sizeof(T), stream)
-                      : cudaMalloc(&p, n*sizeof(T));
-      if (err!=cudaSuccess) throw int(FINUFFT_ERR_CUDA_FAILURE);
-      return enthrust(p);
-    }
+  pointer allocate(size_type n) {
+    DeviceSwitcher switcher(deviceID);
+    T *p = nullptr;
+    auto err =
+        pool ? cudaMallocAsync(&p, n * sizeof(T), stream) : cudaMalloc(&p, n * sizeof(T));
+    if (err != cudaSuccess) throw int(FINUFFT_ERR_CUDA_FAILURE);
+    return enthrust(p);
+  }
 
-    void deallocate(pointer p, size_type) {
-      DeviceSwitcher switcher(deviceID);
-      auto err = pool ? cudaFreeAsync(dethrust(p), stream)
-                      : cudaFree(dethrust(p));
-      if (err!=cudaSuccess) throw int(FINUFFT_ERR_CUDA_FAILURE);
-    }
+  void deallocate(pointer p, size_type) {
+    DeviceSwitcher switcher(deviceID);
+    auto err = pool ? cudaFreeAsync(dethrust(p), stream) : cudaFree(dethrust(p));
+    if (err != cudaSuccess) throw int(FINUFFT_ERR_CUDA_FAILURE);
+  }
 };
 
 template<typename T> using gpuArray = thrust::device_vector<T, ThrustAllocatorAsync<T>>;
 
-template<typename T> inline T* dethrust(gpuArray<T> &arr) {
+template<typename T> inline T *dethrust(gpuArray<T> &arr) {
   return thrust::raw_pointer_cast(arr.data());
-  }
-  template<typename T> inline const T *dethrust(const gpuArray<T> &arr) {
-    return thrust::raw_pointer_cast(arr.data());
-  }
-template<typename T> inline cuda::std::array<T *,3> dethrust(cuda::std::array<gpuArray<T>,3> &arr) {
-  cuda::std::array<T *,3> res;
-  for (int i=0; i<3; ++i) res[i] = dethrust(arr[i]);
+}
+template<typename T> inline const T *dethrust(const gpuArray<T> &arr) {
+  return thrust::raw_pointer_cast(arr.data());
+}
+template<typename T>
+inline cuda::std::array<T *, 3> dethrust(cuda::std::array<gpuArray<T>, 3> &arr) {
+  cuda::std::array<T *, 3> res;
+  for (int i = 0; i < 3; ++i) res[i] = dethrust(arr[i]);
   return res;
-  }
-template<typename T> inline cuda::std::array<const T *, 3> dethrust(
-  const cuda::std::array<gpuArray<T>, 3> &arr) {
+}
+template<typename T>
+inline cuda::std::array<const T *, 3> dethrust(
+    const cuda::std::array<gpuArray<T>, 3> &arr) {
   cuda::std::array<const T *, 3> res;
   for (int i = 0; i < 3; ++i) res[i] = dethrust(arr[i]);
   return res;
-  }
+}
 
 template<typename T> struct cufinufft_plan_t {
   cufinufft_opts opts;
-  bool supports_pools=false;
+  bool supports_pools = false;
   finufft_spread_opts spopts;
 
-  ThrustAllocatorAsync<int> ialloc{(cudaStream_t)opts.gpu_stream, opts.gpu_device_id, supports_pools};
-  ThrustAllocatorAsync<T> alloc{(cudaStream_t)opts.gpu_stream, opts.gpu_device_id, supports_pools};
-  ThrustAllocatorAsync<cuda_complex<T>> calloc{(cudaStream_t)opts.gpu_stream, opts.gpu_device_id, supports_pools};
+  ThrustAllocatorAsync<int> ialloc{(cudaStream_t)opts.gpu_stream, opts.gpu_device_id,
+                                   supports_pools};
+  ThrustAllocatorAsync<T> alloc{(cudaStream_t)opts.gpu_stream, opts.gpu_device_id,
+                                supports_pools};
+  ThrustAllocatorAsync<cuda_complex<T>> calloc{(cudaStream_t)opts.gpu_stream,
+                                               opts.gpu_device_id, supports_pools};
 
-  int type=0;
-  int dim=0;
-  CUFINUFFT_BIGINT M=0;
-  cuda::std::array<CUFINUFFT_BIGINT,3> nf123={0,0,0};
-  cuda::std::array<CUFINUFFT_BIGINT,3> mstu={0,0,0};
-  int ntransf=0;
-  int batchsize=0;
-  int iflag=0;
+  int type                                    = 0;
+  int dim                                     = 0;
+  CUFINUFFT_BIGINT M                          = 0;
+  cuda::std::array<CUFINUFFT_BIGINT, 3> nf123 = {0, 0, 0};
+  cuda::std::array<CUFINUFFT_BIGINT, 3> mstu  = {0, 0, 0};
+  int ntransf                                 = 0;
+  int batchsize                               = 0;
+  int iflag                                   = 0;
 
-  int totalnumsubprob=0;
-  cuda::std::array<gpuArray<T>,3> fwkerhalf={gpuArray<T>{0, alloc},gpuArray<T>{0,alloc},gpuArray<T>{0,alloc}};
+  int totalnumsubprob                        = 0;
+  cuda::std::array<gpuArray<T>, 3> fwkerhalf = {
+      gpuArray<T>{0, alloc}, gpuArray<T>{0, alloc}, gpuArray<T>{0, alloc}};
 
   // for type 1,2 it is a pointer to kx, ky, kz (no new allocs), for type 3 it
   // for t3: allocated as "primed" (scaled) src pts x'_j, etc
-  cuda::std::array<const T *,3> kxyz={nullptr,nullptr,nullptr};
-  cuda::std::array<gpuArray<T>,3> kxyzp={gpuArray<T>{0,alloc},gpuArray<T>{0,alloc},gpuArray<T>{0,alloc}};
+  cuda::std::array<const T *, 3> kxyz    = {nullptr, nullptr, nullptr};
+  cuda::std::array<gpuArray<T>, 3> kxyzp = {gpuArray<T>{0, alloc}, gpuArray<T>{0, alloc},
+                                            gpuArray<T>{0, alloc}};
   gpuArray<cuda_complex<T>> CpBatch{0, calloc}; // working array of prephased strengths
 
   // no allocs here
-  cuda_complex<T> *c=nullptr;
-  gpuArray<cuda_complex<T>> fwp{0,calloc};
-  cuda_complex<T> *fw=nullptr;
-  cuda_complex<T> *fk=nullptr;
+  cuda_complex<T> *c = nullptr;
+  gpuArray<cuda_complex<T>> fwp{0, calloc};
+  cuda_complex<T> *fw = nullptr;
+  cuda_complex<T> *fk = nullptr;
 
   // Type 3 specific
   struct {
-    cuda::std::array<T,3> X={0,0,0}, C={0,0,0}, S={0,0,0}, D={0,0,0}, h={0,0,0}, gam={0,0,0};
+    cuda::std::array<T, 3> X = {0, 0, 0}, C = {0, 0, 0}, S = {0, 0, 0}, D = {0, 0, 0},
+                           h = {0, 0, 0}, gam = {0, 0, 0};
   } type3_params;
-  int N=0; // number of NU freq pts (type 3 only)
-  CUFINUFFT_BIGINT nf=0;
-  cuda::std::array<const T *,3> STU={nullptr,nullptr,nullptr};
-  cuda::std::array<gpuArray<T>,3> STUp={gpuArray<T>{0, alloc},gpuArray<T>{0,alloc},gpuArray<T>{0,alloc}};
-  T tol=0;
+  int N                                 = 0; // number of NU freq pts (type 3 only)
+  CUFINUFFT_BIGINT nf                   = 0;
+  cuda::std::array<const T *, 3> STU    = {nullptr, nullptr, nullptr};
+  cuda::std::array<gpuArray<T>, 3> STUp = {gpuArray<T>{0, alloc}, gpuArray<T>{0, alloc},
+                                           gpuArray<T>{0, alloc}};
+  T tol                                 = 0;
   // inner type 2 plan for type 3
-  cufinufft_plan_t<T> *t2_plan=nullptr;
+  cufinufft_plan_t<T> *t2_plan = nullptr;
 
   gpuArray<cuda_complex<T>> prephase{0, calloc}; // pre-phase, for all input NU pts
-  gpuArray<cuda_complex<T>> deconv{0,calloc};   // reciprocal of kernel FT, phase, all output NU pts
+  gpuArray<cuda_complex<T>> deconv{0, calloc};   // reciprocal of kernel FT, phase, all
+                                                 // output NU pts
 
   // Arrays that used in subprob method
-  gpuArray<int> idxnupts{0,ialloc};        // length: #nupts, index of the nupts in the bin-sorted order
-  gpuArray<int> sortidx{0,ialloc};         // length: #nupts, order inside the bin the nupt belongs to
-  gpuArray<int> numsubprob{0,ialloc};      // length: #bins,  number of subproblems in each bin
-  gpuArray<int> binsize{0,ialloc};         // length: #bins, number of nonuniform ponits in each bin
-  gpuArray<int> binstartpts{0,ialloc};     // length: #bins, exclusive scan of array binsize
-  gpuArray<int> subprob_to_bin{0,ialloc};  // length: #subproblems, the bin the subproblem works on
-  gpuArray<int> subprobstartpts{0,ialloc}; // length: #bins, exclusive scan of array numsubprob
+  gpuArray<int> idxnupts{0, ialloc};   // length: #nupts, index of the nupts in the
+                                       // bin-sorted order
+  gpuArray<int> sortidx{0, ialloc};    // length: #nupts, order inside the bin the nupt
+                                       // belongs to
+  gpuArray<int> numsubprob{0, ialloc}; // length: #bins,  number of subproblems in each
+                                       // bin
+  gpuArray<int> binsize{0, ialloc}; // length: #bins, number of nonuniform ponits in each
+                                    // bin
+  gpuArray<int> binstartpts{0, ialloc}; // length: #bins, exclusive scan of array binsize
+  gpuArray<int> subprob_to_bin{0, ialloc}; // length: #subproblems, the bin the subproblem
+                                           // works on
+  gpuArray<int> subprobstartpts{0, ialloc}; // length: #bins, exclusive scan of array
+                                            // numsubprob
 
   // Arrays for 3d (need to sort out)
-  gpuArray<int> numnupts{0,ialloc};
-  gpuArray<int> subprob_to_nupts{0,ialloc};
+  gpuArray<int> numnupts{0, ialloc};
+  gpuArray<int> subprob_to_nupts{0, ialloc};
 
-  cufftHandle fftplan=0;
-  cudaStream_t stream=0;
+  cufftHandle fftplan = 0;
+  cudaStream_t stream = 0;
 
   cufinufft_plan_t() = delete;
   cufinufft_plan_t(const cufinufft_opts &opts_, bool supports_pools_)
-    : opts(opts_), supports_pools(supports_pools_) {}
+      : opts(opts_), supports_pools(supports_pools_) {}
   cufinufft_plan_t &operator=(cufinufft_plan_t &) = delete;
 
   ~cufinufft_plan_t() {

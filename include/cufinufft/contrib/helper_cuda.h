@@ -38,14 +38,13 @@
 // that a CUDA host call returns an error
 #define checkCudaErrors(val) check((val), #val, __FILE__, __LINE__)
 
-
-#define THROW_IF_CUDA_ERROR                                                         \
+#define THROW_IF_CUDA_ERROR                                                          \
   {                                                                                  \
     cudaError_t err = cudaGetLastError();                                            \
     if (err != cudaSuccess) {                                                        \
       printf("[%s] Error: %s in %s at line %d\n", __func__, cudaGetErrorString(err), \
              __FILE__, __LINE__);                                                    \
-      throw int(FINUFFT_ERR_CUDA_FAILURE);                                               \
+      throw int(FINUFFT_ERR_CUDA_FAILURE);                                           \
     }                                                                                \
   }
 

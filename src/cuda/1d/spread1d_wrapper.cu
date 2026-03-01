@@ -1,7 +1,7 @@
 #include <cassert>
 #include <cmath>
-#include <iostream>
 #include <cuda/std/mdspan>
+#include <iostream>
 
 #include <thrust/device_ptr.h>
 #include <thrust/sequence.h>
@@ -11,11 +11,10 @@
 
 #include <cufinufft/common.h>
 #include <cufinufft/contrib/helper_cuda.h>
+#include <cufinufft/contrib/helper_math.h>
 #include <cufinufft/memtransfer.h>
 #include <cufinufft/spreadinterp.h>
 #include <cufinufft/utils.h>
-#include <cufinufft/contrib/helper_cuda.h>
-#include <cufinufft/contrib/helper_math.h>
 
 using namespace cufinufft::common;
 using namespace cufinufft::memtransfer;
@@ -24,24 +23,24 @@ using namespace cufinufft::utils;
 namespace cufinufft {
 namespace spreadinterp {
 
+using cuda::std::dextents;
+using cuda::std::dynamic_extent;
+using cuda::std::extents;
 using cuda::std::mdspan;
 using cuda::std::span;
-using cuda::std::dextents;
-using cuda::std::extents;
-using cuda::std::dynamic_extent;
 
 /* ------------------------ 1d Spreading Kernels ----------------------------*/
 
-static __global__ void calc_subprob_1d(int *bin_size, int *num_subprob, int maxsubprobsize,
-                                int numbins) {
+static __global__ void calc_subprob_1d(int *bin_size, int *num_subprob,
+                                       int maxsubprobsize, int numbins) {
   for (int i = threadIdx.x + blockIdx.x * blockDim.x; i < numbins;
        i += gridDim.x * blockDim.x) {
     num_subprob[i] = ceil(bin_size[i] / (float)maxsubprobsize);
   }
 }
 
-static __global__ void map_b_into_subprob_1d(int *d_subprob_to_bin, int *d_subprobstartpts,
-                                      int *d_numsubprob, int numbins) {
+static __global__ void map_b_into_subprob_1d(
+    int *d_subprob_to_bin, int *d_subprobstartpts, int *d_numsubprob, int numbins) {
   for (int i = threadIdx.x + blockIdx.x * blockDim.x; i < numbins;
        i += gridDim.x * blockDim.x) {
     for (int j = 0; j < d_numsubprob[i]; j++) {
@@ -53,8 +52,8 @@ static __global__ void map_b_into_subprob_1d(int *d_subprob_to_bin, int *d_subpr
 /* Kernels for NUptsdriven Method */
 template<typename T, int KEREVALMETH, int ns>
 static __global__ void spread_1d_nuptsdriven(const T *x, const cuda_complex<T> *c,
-                                      cuda_complex<T> *fw, int M, int nf1, T es_c,
-                                      T es_beta, T sigma, const int *idxnupts) {
+                                             cuda_complex<T> *fw, int M, int nf1, T es_c,
+                                             T es_beta, T sigma, const int *idxnupts) {
   T ker1[ns];
   for (int i = blockDim.x * blockIdx.x + threadIdx.x; i < M;
        i += blockDim.x * gridDim.x) {
@@ -80,7 +79,7 @@ static __global__ void spread_1d_nuptsdriven(const T *x, const cuda_complex<T> *
 // SubProb properties
 template<typename T>
 static __global__ void calc_bin_size_noghost_1d(int M, int nf1, int bin_size_x, int nbinx,
-                                         int *bin_size, const T *x, int *sortidx) {
+                                                int *bin_size, const T *x, int *sortidx) {
   for (int i = threadIdx.x + blockIdx.x * blockDim.x; i < M;
        i += gridDim.x * blockDim.x) {
     T x_rescaled = fold_rescale(x[i], nf1);
@@ -132,14 +131,13 @@ static __global__ void spread_1d_output_driven(
   const int xoffset = (bidx % nbinx) * bin_size_x;
 
   using mdspan_t = mdspan<T, extents<int, dynamic_extent, ns>>;
-  auto kerevals = mdspan_t((T *)sharedbuf, np);
+  auto kerevals  = mdspan_t((T *)sharedbuf, np);
   // sharedbuf + size of kerevals in bytes
   // Offset pointer into sharedbuf after kerevals
   // Create span using pointer + size
 
   auto nupts_sm = span(
-      reinterpret_cast<cuda_complex<T> *>(kerevals.data_handle() + kerevals.size()),
-      np);
+      reinterpret_cast<cuda_complex<T> *>(kerevals.data_handle() + kerevals.size()), np);
 
   auto shift = span(reinterpret_cast<int *>(nupts_sm.data() + nupts_sm.size()), np);
 
@@ -286,8 +284,7 @@ static void cuspread1d_nuptsdriven_prop(cufinufft_plan_t<T> &d_plan) {
     int *d_sortidx     = dethrust(d_plan.sortidx);
     int *d_idxnupts    = dethrust(d_plan.idxnupts);
 
-    checkCudaErrors(
-        cudaMemsetAsync(d_binsize, 0, numbins * sizeof(int), stream));
+    checkCudaErrors(cudaMemsetAsync(d_binsize, 0, numbins * sizeof(int), stream));
     calc_bin_size_noghost_1d<<<(M + 1024 - 1) / 1024, 1024, 0, stream>>>(
         M, nf1, bin_size_x, numbins, d_binsize, d_kx, d_sortidx);
     THROW_IF_CUDA_ERROR
@@ -555,14 +552,12 @@ template<typename T> void cuspread1d(const cufinufft_plan_t<T> &d_plan, int blks
     Marco Barbone 01/30/25
  */
   launch_dispatch_ns<Spread1DDispatcher, T>(Spread1DDispatcher(), d_plan.spopts.nspread,
-                                            d_plan.nf123[0], d_plan.M, d_plan,
-                                            blksize);
+                                            d_plan.nf123[0], d_plan.M, d_plan, blksize);
 }
 template void cuspread1d<float>(const cufinufft_plan_t<float> &d_plan, int blksize);
 template void cuspread1d<double>(const cufinufft_plan_t<double> &d_plan, int blksize);
 
-template<typename T>
-void cuspread1d_prop(cufinufft_plan_t<T> &d_plan) {
+template<typename T> void cuspread1d_prop(cufinufft_plan_t<T> &d_plan) {
   if (d_plan.opts.gpu_method == 1) cuspread1d_nuptsdriven_prop(d_plan);
   if (d_plan.opts.gpu_method == 2) cuspread1d_subprob_prop(d_plan);
   if (d_plan.opts.gpu_method == 3) cuspread1d_subprob_prop(d_plan);

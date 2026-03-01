@@ -38,7 +38,7 @@ void allocgpumem1d_plan(cufinufft_plan_t<T> &d_plan)
     d_plan.numsubprob.resize(numbins);
     d_plan.binsize.resize(numbins);
     d_plan.binstartpts.resize(numbins);
-    d_plan.subprobstartpts.resize(numbins+1);
+    d_plan.subprobstartpts.resize(numbins + 1);
   } break;
   default:
     std::cerr << "err: invalid method " << std::endl;
@@ -185,8 +185,7 @@ void allocgpumem1d_nupts(cufinufft_plan_t<T> &d_plan)
   case 1:
   case 2:
   case 3: {
-    if (d_plan.opts.gpu_sort)
-      d_plan.sortidx.resize(d_plan.M);
+    if (d_plan.opts.gpu_sort) d_plan.sortidx.resize(d_plan.M);
     d_plan.idxnupts.resize(d_plan.M);
   } break;
   default:
@@ -208,8 +207,7 @@ void allocgpumem2d_nupts(cufinufft_plan_t<T> &d_plan)
 
   switch (d_plan.opts.gpu_method) {
   case 1: {
-    if (d_plan.opts.gpu_sort)
-      d_plan.sortidx.resize(d_plan.M);
+    if (d_plan.opts.gpu_sort) d_plan.sortidx.resize(d_plan.M);
     d_plan.idxnupts.resize(d_plan.M);
   } break;
   case 2:
@@ -248,20 +246,18 @@ void allocgpumem3d_nupts(cufinufft_plan_t<T> &d_plan)
   }
 }
 
-template<typename T> void allocgpumem_plan(cufinufft_plan_t<T> &d_plan)
-{
-if (d_plan.dim==1) allocgpumem1d_plan(d_plan);
-if (d_plan.dim==2) allocgpumem2d_plan(d_plan);
-if (d_plan.dim==3) allocgpumem3d_plan(d_plan);
+template<typename T> void allocgpumem_plan(cufinufft_plan_t<T> &d_plan) {
+  if (d_plan.dim == 1) allocgpumem1d_plan(d_plan);
+  if (d_plan.dim == 2) allocgpumem2d_plan(d_plan);
+  if (d_plan.dim == 3) allocgpumem3d_plan(d_plan);
 }
 template void allocgpumem_plan(cufinufft_plan_t<float> &d_plan);
 template void allocgpumem_plan(cufinufft_plan_t<double> &d_plan);
 
-template<typename T> void allocgpumem_nupts(cufinufft_plan_t<T> &d_plan)
-{
-if (d_plan.dim==1) allocgpumem1d_nupts(d_plan);
-if (d_plan.dim==2) allocgpumem2d_nupts(d_plan);
-if (d_plan.dim==3) allocgpumem3d_nupts(d_plan);
+template<typename T> void allocgpumem_nupts(cufinufft_plan_t<T> &d_plan) {
+  if (d_plan.dim == 1) allocgpumem1d_nupts(d_plan);
+  if (d_plan.dim == 2) allocgpumem2d_nupts(d_plan);
+  if (d_plan.dim == 3) allocgpumem3d_nupts(d_plan);
 }
 template void allocgpumem_nupts(cufinufft_plan_t<float> &d_plan);
 template void allocgpumem_nupts(cufinufft_plan_t<double> &d_plan);

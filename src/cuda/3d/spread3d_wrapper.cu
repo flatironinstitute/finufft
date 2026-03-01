@@ -9,9 +9,9 @@
 #include <thrust/sort.h>
 
 #include <cufinufft/common.h>
+#include <cufinufft/intrinsics.h>
 #include <cufinufft/spreadinterp.h>
 #include <cufinufft/utils.h>
-#include <cufinufft/intrinsics.h>
 
 using namespace cufinufft::common;
 using namespace cufinufft::utils;
@@ -25,8 +25,8 @@ using cuda::std::extents;
 using cuda::std::mdspan;
 using cuda::std::span;
 
-static __host__ __device__ int calc_global_index(int xidx, int yidx, int zidx, int onx, int ony,
-                                          int onz, int bnx, int bny, int bnz) {
+static __host__ __device__ int calc_global_index(
+    int xidx, int yidx, int zidx, int onx, int ony, int onz, int bnx, int bny, int bnz) {
   int oix, oiy, oiz;
   oix = xidx / bnx;
   oiy = yidx / bny;
@@ -35,21 +35,22 @@ static __host__ __device__ int calc_global_index(int xidx, int yidx, int zidx, i
          (xidx % bnx + yidx % bny * bnx + zidx % bnz * bny * bnx);
 }
 
-static __device__ int calc_global_index_v2(int xidx, int yidx, int zidx, int nbinx, int nbiny,
-                                    int nbinz) {
+static __device__ int calc_global_index_v2(int xidx, int yidx, int zidx, int nbinx,
+                                           int nbiny, int nbinz) {
   return xidx + yidx * nbinx + zidx * nbinx * nbiny;
 }
 
-static __global__ void calc_subprob_3d_v2(const int *bin_size, int *num_subprob, int maxsubprobsize,
-                                   int numbins) {
+static __global__ void calc_subprob_3d_v2(const int *bin_size, int *num_subprob,
+                                          int maxsubprobsize, int numbins) {
   for (int i = threadIdx.x + blockIdx.x * blockDim.x; i < numbins;
        i += gridDim.x * blockDim.x) {
     num_subprob[i] = ceil(bin_size[i] / (float)maxsubprobsize);
   }
 }
 
-static __global__ void map_b_into_subprob_3d_v2(int *d_subprob_to_bin, const int *d_subprobstartpts,
-                                         const int *d_numsubprob, int numbins) {
+static __global__ void map_b_into_subprob_3d_v2(int *d_subprob_to_bin,
+                                                const int *d_subprobstartpts,
+                                                const int *d_numsubprob, int numbins) {
   for (int i = threadIdx.x + blockIdx.x * blockDim.x; i < numbins;
        i += gridDim.x * blockDim.x) {
     for (int j = 0; j < d_numsubprob[i]; j++) {
@@ -58,9 +59,9 @@ static __global__ void map_b_into_subprob_3d_v2(int *d_subprob_to_bin, const int
   }
 }
 
-static __global__ void calc_subprob_3d_v1(int binsperobinx, int binsperobiny, int binsperobinz,
-                                   const int *bin_size, int *num_subprob, int maxsubprobsize,
-                                   int numbins) {
+static __global__ void calc_subprob_3d_v1(
+    int binsperobinx, int binsperobiny, int binsperobinz, const int *bin_size,
+    int *num_subprob, int maxsubprobsize, int numbins) {
   for (int i = threadIdx.x + blockIdx.x * blockDim.x; i < numbins;
        i += gridDim.x * blockDim.x) {
     int numnupts    = 0;
@@ -72,8 +73,9 @@ static __global__ void calc_subprob_3d_v1(int binsperobinx, int binsperobiny, in
   }
 }
 
-static __global__ void map_b_into_subprob_3d_v1(int *d_subprob_to_obin, const int *d_subprobstartpts,
-                                         const int *d_numsubprob, int numbins) {
+static __global__ void map_b_into_subprob_3d_v1(int *d_subprob_to_obin,
+                                                const int *d_subprobstartpts,
+                                                const int *d_numsubprob, int numbins) {
   for (int i = threadIdx.x + blockIdx.x * blockDim.x; i < numbins;
        i += gridDim.x * blockDim.x) {
     for (int j = 0; j < d_numsubprob[i]; j++) {
@@ -82,8 +84,9 @@ static __global__ void map_b_into_subprob_3d_v1(int *d_subprob_to_obin, const in
   }
 }
 
-static __global__ void fill_ghost_bins(int binsperobinx, int binsperobiny, int binsperobinz,
-                                int nobinx, int nobiny, int nobinz, int *binsize) {
+static __global__ void fill_ghost_bins(int binsperobinx, int binsperobiny,
+                                       int binsperobinz, int nobinx, int nobiny,
+                                       int nobinz, int *binsize) {
   int binx = threadIdx.x + blockIdx.x * blockDim.x;
   int biny = threadIdx.y + blockIdx.y * blockDim.y;
   int binz = threadIdx.z + blockIdx.z * blockDim.z;
@@ -131,9 +134,9 @@ static __global__ void fill_ghost_bins(int binsperobinx, int binsperobiny, int b
   }
 }
 
-static __global__ void ghost_bin_pts_index(int binsperobinx, int binsperobiny, int binsperobinz,
-                                    int nobinx, int nobiny, int nobinz, int *binsize,
-                                    int *index, const int *binstartpts, int M) {
+static __global__ void ghost_bin_pts_index(
+    int binsperobinx, int binsperobiny, int binsperobinz, int nobinx, int nobiny,
+    int nobinz, int *binsize, int *index, const int *binstartpts, int M) {
   int binx  = threadIdx.x + blockIdx.x * blockDim.x;
   int biny  = threadIdx.y + blockIdx.y * blockDim.y;
   int binz  = threadIdx.z + blockIdx.z * blockDim.z;
@@ -199,10 +202,10 @@ static __global__ void ghost_bin_pts_index(int binsperobinx, int binsperobiny, i
 }
 
 template<typename T>
-static __global__ void calc_bin_size_noghost_3d(int M, int nf1, int nf2, int nf3, int bin_size_x,
-                                         int bin_size_y, int bin_size_z, int nbinx,
-                                         int nbiny, int nbinz, int *bin_size, const T *x,
-                                         const T *y, const T *z, int *sortidx) {
+static __global__ void calc_bin_size_noghost_3d(
+    int M, int nf1, int nf2, int nf3, int bin_size_x, int bin_size_y, int bin_size_z,
+    int nbinx, int nbiny, int nbinz, int *bin_size, const T *x, const T *y, const T *z,
+    int *sortidx) {
   int binidx, binx, biny, binz;
   int oldidx;
   T x_rescaled, y_rescaled, z_rescaled;
@@ -310,11 +313,11 @@ static __global__ void spread_3d_nupts_driven(
 /* Kernels for Output Driven method */
 template<typename T, int KEREVALMETH, int ns>
 static __global__ void spread_3d_output_driven(
-    const T *x, const T *y, const T *z, const cuda_complex<T> *c, cuda_complex<T> *fw, int M, int nf1, int nf2,
-    int nf3, T sigma, T es_c, T es_beta, const int *binstartpts, const int *bin_size, int bin_size_x,
-    int bin_size_y, int bin_size_z, const int *subprob_to_bin, const int *subprobstartpts,
-    const int *numsubprob, int maxsubprobsize, int nbinx, int nbiny, int nbinz, const int *idxnupts,
-    int np) {
+    const T *x, const T *y, const T *z, const cuda_complex<T> *c, cuda_complex<T> *fw,
+    int M, int nf1, int nf2, int nf3, T sigma, T es_c, T es_beta, const int *binstartpts,
+    const int *bin_size, int bin_size_x, int bin_size_y, int bin_size_z,
+    const int *subprob_to_bin, const int *subprobstartpts, const int *numsubprob,
+    int maxsubprobsize, int nbinx, int nbiny, int nbinz, const int *idxnupts, int np) {
   extern __shared__ char sharedbuf[];
 
   static constexpr auto ns_2f      = T(ns * .5);
@@ -342,8 +345,7 @@ static __global__ void spread_3d_output_driven(
   // Create span using pointer + size
 
   auto nupts_sm = span(
-      reinterpret_cast<cuda_complex<T> *>(kerevals.data_handle() + kerevals.size()),
-      np);
+      reinterpret_cast<cuda_complex<T> *>(kerevals.data_handle() + kerevals.size()), np);
 
   auto shift = span(reinterpret_cast<int3 *>(nupts_sm.data() + nupts_sm.size()), np);
 
@@ -447,10 +449,11 @@ static __global__ void spread_3d_output_driven(
 /* Kernels for Subprob method */
 template<typename T, int KEREVALMETH, int ns>
 static __global__ void spread_3d_subprob(
-    const T *x, const T *y, const T *z, const cuda_complex<T> *c, cuda_complex<T> *fw, int M, int nf1, int nf2,
-    int nf3, T sigma, T es_c, T es_beta, const int *binstartpts, const int *bin_size, int bin_size_x,
-    int bin_size_y, int bin_size_z, const int *subprob_to_bin, const int *subprobstartpts,
-    const int *numsubprob, int maxsubprobsize, int nbinx, int nbiny, int nbinz, const int *idxnupts) {
+    const T *x, const T *y, const T *z, const cuda_complex<T> *c, cuda_complex<T> *fw,
+    int M, int nf1, int nf2, int nf3, T sigma, T es_c, T es_beta, const int *binstartpts,
+    const int *bin_size, int bin_size_x, int bin_size_y, int bin_size_z,
+    const int *subprob_to_bin, const int *subprobstartpts, const int *numsubprob,
+    int maxsubprobsize, int nbinx, int nbiny, int nbinz, const int *idxnupts) {
   extern __shared__ char sharedbuf[];
   auto fwshared = (cuda_complex<T> *)sharedbuf;
 
@@ -574,8 +577,8 @@ static __global__ void locate_nupts_to_bins_ghost(
     biny = biny / (binsperobiny - 2) * binsperobiny + (biny % (binsperobiny - 2) + 1);
     binz = binz / (binsperobinz - 2) * binsperobinz + (binz % (binsperobinz - 2) + 1);
 
-    binidx     = calc_global_index(binx, biny, binz, nobinx, nobiny, nobinz,
-                                           binsperobinx, binsperobiny, binsperobinz);
+    binidx     = calc_global_index(binx, biny, binz, nobinx, nobiny, nobinz, binsperobinx,
+                                   binsperobiny, binsperobinz);
     oldidx     = atomicAdd(&bin_size[binidx], 1);
     sortidx[i] = oldidx;
   }
@@ -584,9 +587,9 @@ static __global__ void locate_nupts_to_bins_ghost(
 template<typename T>
 static __global__ void calc_inverse_of_global_sort_index_ghost(
     int M, int bin_size_x, int bin_size_y, int bin_size_z, int nobinx, int nobiny,
-    int nobinz, int binsperobinx, int binsperobiny, int binsperobinz, const int *bin_startpts,
-    const int *sortidx, const T *x, const T *y, const T *z, int *index, int nf1, int nf2,
-    int nf3) {
+    int nobinz, int binsperobinx, int binsperobiny, int binsperobinz,
+    const int *bin_startpts, const int *sortidx, const T *x, const T *y, const T *z,
+    int *index, int nf1, int nf2, int nf3) {
   int binx, biny, binz;
   int binidx;
   T x_rescaled, y_rescaled, z_rescaled;
@@ -602,8 +605,8 @@ static __global__ void calc_inverse_of_global_sort_index_ghost(
     biny = biny / (binsperobiny - 2) * binsperobiny + (biny % (binsperobiny - 2) + 1);
     binz = binz / (binsperobinz - 2) * binsperobinz + (binz % (binsperobinz - 2) + 1);
 
-    binidx = calc_global_index(binx, biny, binz, nobinx, nobiny, nobinz,
-                                       binsperobinx, binsperobiny, binsperobinz);
+    binidx = calc_global_index(binx, biny, binz, nobinx, nobiny, nobinz, binsperobinx,
+                               binsperobiny, binsperobinz);
 
     index[bin_startpts[binidx] + sortidx[i]] = i;
   }
@@ -725,10 +728,10 @@ static __global__ void spread_3d_block_gather(
 template<typename T>
 static void cuspread3d_nuptsdriven_prop(cufinufft_plan_t<T> &d_plan) {
   auto &stream = d_plan.stream;
-  int M = d_plan.M;
-  int nf1 = d_plan.nf123[0];
-  int nf2 = d_plan.nf123[1];
-  int nf3 = d_plan.nf123[2];
+  int M        = d_plan.M;
+  int nf1      = d_plan.nf123[0];
+  int nf2      = d_plan.nf123[1];
+  int nf3      = d_plan.nf123[2];
 
   if (d_plan.opts.gpu_sort) {
     int bin_size_x = d_plan.opts.gpu_binsizex;
@@ -757,7 +760,7 @@ static void cuspread3d_nuptsdriven_prop(cufinufft_plan_t<T> &d_plan) {
     int *d_idxnupts    = dethrust(d_plan.idxnupts);
 
     checkCudaErrors(cudaMemsetAsync(
-             d_binsize, 0, numbins[0] * numbins[1] * numbins[2] * sizeof(int), stream));
+        d_binsize, 0, numbins[0] * numbins[1] * numbins[2] * sizeof(int), stream));
     calc_bin_size_noghost_3d<<<(M + 1024 - 1) / 1024, 1024, 0, stream>>>(
         M, nf1, nf2, nf3, bin_size_x, bin_size_y, bin_size_z, numbins[0], numbins[1],
         numbins[2], d_binsize, d_kx, d_ky, d_kz, d_sortidx);
@@ -780,27 +783,27 @@ static void cuspread3d_nuptsdriven_prop(cufinufft_plan_t<T> &d_plan) {
 }
 
 template<typename T, int ns>
-static void cuspread3d_nuptsdriven(int nf1, int nf2, int nf3, int M, const cufinufft_plan_t<T> &d_plan,
-                           int blksize) {
+static void cuspread3d_nuptsdriven(int nf1, int nf2, int nf3, int M,
+                                   const cufinufft_plan_t<T> &d_plan, int blksize) {
   auto &stream = d_plan.stream;
 
   T sigma   = d_plan.spopts.upsampfac;
   T es_c    = 4.0 / T(d_plan.spopts.nspread * d_plan.spopts.nspread);
   T es_beta = d_plan.spopts.beta;
 
-  const int *d_idxnupts       = dethrust(d_plan.idxnupts);
-  const T *d_kx               = d_plan.kxyz[0];
-  const T *d_ky               = d_plan.kxyz[1];
-  const T *d_kz               = d_plan.kxyz[2];
-  const cuda_complex<T> *d_c  = d_plan.c;
-  cuda_complex<T> *d_fw = d_plan.fw;
+  const int *d_idxnupts      = dethrust(d_plan.idxnupts);
+  const T *d_kx              = d_plan.kxyz[0];
+  const T *d_ky              = d_plan.kxyz[1];
+  const T *d_kz              = d_plan.kxyz[2];
+  const cuda_complex<T> *d_c = d_plan.c;
+  cuda_complex<T> *d_fw      = d_plan.fw;
 
   dim3 threadsPerBlock;
   threadsPerBlock.x = 16;
   threadsPerBlock.y = 1;
   dim3 blocks;
-  blocks.x          = (M + threadsPerBlock.x - 1) / threadsPerBlock.x;
-  blocks.y          = 1;
+  blocks.x = (M + threadsPerBlock.x - 1) / threadsPerBlock.x;
+  blocks.y = 1;
 
   if (d_plan.opts.gpu_kerevalmeth == 1) {
     for (int t = 0; t < blksize; t++) {
@@ -822,10 +825,10 @@ static void cuspread3d_nuptsdriven(int nf1, int nf2, int nf3, int M, const cufin
 template<typename T>
 static void cuspread3d_blockgather_prop(cufinufft_plan_t<T> &d_plan) {
   auto &stream = d_plan.stream;
-  int M = d_plan.M;
-  int nf1 = d_plan.nf123[0];
-  int nf2 = d_plan.nf123[1];
-  int nf3 = d_plan.nf123[2];
+  int M        = d_plan.M;
+  int nf1      = d_plan.nf123[0];
+  int nf2      = d_plan.nf123[1];
+  int nf3      = d_plan.nf123[2];
 
   dim3 threadsPerBlock;
   dim3 blocks;
@@ -885,7 +888,7 @@ static void cuspread3d_blockgather_prop(cufinufft_plan_t<T> &d_plan) {
   int *d_subprobstartpts = dethrust(d_plan.subprobstartpts);
 
   checkCudaErrors(cudaMemsetAsync(
-           d_binsize, 0, numbins[0] * numbins[1] * numbins[2] * sizeof(int), stream));
+      d_binsize, 0, numbins[0] * numbins[1] * numbins[2] * sizeof(int), stream));
 
   locate_nupts_to_bins_ghost<<<(M + 1024 - 1) / 1024, 1024, 0, stream>>>(
       M, bin_size_x, bin_size_y, bin_size_z, numobins[0], numobins[1], numobins[2],
@@ -915,7 +918,7 @@ static void cuspread3d_blockgather_prop(cufinufft_plan_t<T> &d_plan) {
 
   int totalNUpts;
   checkCudaErrors(cudaMemcpyAsync(&totalNUpts, &d_binstartpts[n], sizeof(int),
-                                             cudaMemcpyDeviceToHost, stream));
+                                  cudaMemcpyDeviceToHost, stream));
   cudaStreamSynchronize(stream);
   gpuArray<int> d_idxnupts(totalNUpts, d_plan.ialloc);
 
@@ -956,8 +959,8 @@ static void cuspread3d_blockgather_prop(cufinufft_plan_t<T> &d_plan) {
   checkCudaErrors(cudaMemsetAsync(d_subprobstartpts, 0, sizeof(int), stream));
 
   int totalnumsubprob;
-  checkCudaErrors(cudaMemcpyAsync(&totalnumsubprob, &d_subprobstartpts[n],
-                                           sizeof(int), cudaMemcpyDeviceToHost, stream));
+  checkCudaErrors(cudaMemcpyAsync(&totalnumsubprob, &d_subprobstartpts[n], sizeof(int),
+                                  cudaMemcpyDeviceToHost, stream));
   cudaStreamSynchronize(stream);
   gpuArray<int> d_subprob_to_bin(totalnumsubprob, d_plan.ialloc);
   map_b_into_subprob_3d_v1<<<(n + 1024 - 1) / 1024, 1024, 0, stream>>>(
@@ -969,8 +972,8 @@ static void cuspread3d_blockgather_prop(cufinufft_plan_t<T> &d_plan) {
 }
 
 template<typename T, int ns>
-static void cuspread3d_blockgather(int nf1, int nf2, int nf3, int M, const cufinufft_plan_t<T> &d_plan,
-                           int blksize) {
+static void cuspread3d_blockgather(int nf1, int nf2, int nf3, int M,
+                                   const cufinufft_plan_t<T> &d_plan, int blksize) {
   auto &stream = d_plan.stream;
 
   T es_c             = 4.0 / T(d_plan.spopts.nspread * d_plan.spopts.nspread);
@@ -994,17 +997,17 @@ static void cuspread3d_blockgather(int nf1, int nf2, int nf3, int M, const cufin
   binsperobiny = obin_size_y / bin_size_y + 2;
   binsperobinz = obin_size_z / bin_size_z + 2;
 
-  const T *d_kx               = d_plan.kxyz[0];
-  const T *d_ky               = d_plan.kxyz[1];
-  const T *d_kz               = d_plan.kxyz[2];
-  const cuda_complex<T> *d_c  = d_plan.c;
-  cuda_complex<T> *d_fw = d_plan.fw;
+  const T *d_kx              = d_plan.kxyz[0];
+  const T *d_ky              = d_plan.kxyz[1];
+  const T *d_kz              = d_plan.kxyz[2];
+  const cuda_complex<T> *d_c = d_plan.c;
+  cuda_complex<T> *d_fw      = d_plan.fw;
 
   const int *d_binstartpts     = dethrust(d_plan.binstartpts);
   const int *d_subprobstartpts = dethrust(d_plan.subprobstartpts);
   const int *d_idxnupts        = dethrust(d_plan.idxnupts);
 
-  int totalnumsubprob   = d_plan.totalnumsubprob;
+  int totalnumsubprob         = d_plan.totalnumsubprob;
   const int *d_subprob_to_bin = dethrust(d_plan.subprob_to_bin);
 
   size_t sharedplanorysize =
@@ -1037,13 +1040,12 @@ static void cuspread3d_blockgather(int nf1, int nf2, int nf3, int M, const cufin
   }
 }
 
-template<typename T>
-static void cuspread3d_subprob_prop(cufinufft_plan_t<T> &d_plan) {
+template<typename T> static void cuspread3d_subprob_prop(cufinufft_plan_t<T> &d_plan) {
   const auto stream = d_plan.stream;
-  int M = d_plan.M;
-  int nf1 = d_plan.nf123[0];
-  int nf2 = d_plan.nf123[1];
-  int nf3 = d_plan.nf123[2];
+  int M             = d_plan.M;
+  int nf1           = d_plan.nf123[0];
+  int nf2           = d_plan.nf123[1];
+  int nf3           = d_plan.nf123[2];
 
   int maxsubprobsize = d_plan.opts.gpu_maxsubprobsize;
   int bin_size_x     = d_plan.opts.gpu_binsizex;
@@ -1072,7 +1074,7 @@ static void cuspread3d_subprob_prop(cufinufft_plan_t<T> &d_plan) {
   int *d_idxnupts        = dethrust(d_plan.idxnupts);
 
   checkCudaErrors(cudaMemsetAsync(
-           d_binsize, 0, numbins[0] * numbins[1] * numbins[2] * sizeof(int), stream));
+      d_binsize, 0, numbins[0] * numbins[1] * numbins[2] * sizeof(int), stream));
   calc_bin_size_noghost_3d<<<(M + 1024 - 1) / 1024, 1024, 0, stream>>>(
       M, nf1, nf2, nf3, bin_size_x, bin_size_y, bin_size_z, numbins[0], numbins[1],
       numbins[2], d_binsize, d_kx, d_ky, d_kz, d_sortidx);
@@ -1099,13 +1101,14 @@ static void cuspread3d_subprob_prop(cufinufft_plan_t<T> &d_plan) {
   thrust::inclusive_scan(thrust::cuda::par.on(stream), d_ptr, d_ptr + n, d_result);
   int totalnumsubprob;
   checkCudaErrors(cudaMemsetAsync(d_subprobstartpts, 0, sizeof(int), stream));
-  checkCudaErrors(cudaMemcpyAsync(&totalnumsubprob, &d_subprobstartpts[n],
-                                      sizeof(int), cudaMemcpyDeviceToHost, stream));
+  checkCudaErrors(cudaMemcpyAsync(&totalnumsubprob, &d_subprobstartpts[n], sizeof(int),
+                                  cudaMemcpyDeviceToHost, stream));
   cudaStreamSynchronize(stream);
   gpuArray<int> d_subprob_to_bin(totalnumsubprob, d_plan.ialloc);
 
   map_b_into_subprob_3d_v2<<<(numbins[0] * numbins[1] + 1024 - 1) / 1024, 1024, 0,
-                             stream>>>(dethrust(d_subprob_to_bin), d_subprobstartpts, d_numsubprob,
+                             stream>>>(dethrust(d_subprob_to_bin), d_subprobstartpts,
+                                       d_numsubprob,
                                        numbins[0] * numbins[1] * numbins[2]);
 
   d_plan.subprob_to_bin.clear();
@@ -1114,8 +1117,8 @@ static void cuspread3d_subprob_prop(cufinufft_plan_t<T> &d_plan) {
 }
 
 template<typename T, int ns>
-static void cuspread3d_subprob(int nf1, int nf2, int nf3, int M, const cufinufft_plan_t<T> &d_plan,
-                        int blksize) {
+static void cuspread3d_subprob(int nf1, int nf2, int nf3, int M,
+                               const cufinufft_plan_t<T> &d_plan, int blksize) {
   auto &stream = d_plan.stream;
 
   int maxsubprobsize = d_plan.opts.gpu_maxsubprobsize;
@@ -1129,11 +1132,11 @@ static void cuspread3d_subprob(int nf1, int nf2, int nf3, int M, const cufinufft
   numbins[1] = ceil((T)nf2 / bin_size_y);
   numbins[2] = ceil((T)nf3 / bin_size_z);
 
-  const T *d_kx               = d_plan.kxyz[0];
-  const T *d_ky               = d_plan.kxyz[1];
-  const T *d_kz               = d_plan.kxyz[2];
-  const cuda_complex<T> *d_c  = d_plan.c;
-  cuda_complex<T> *d_fw = d_plan.fw;
+  const T *d_kx              = d_plan.kxyz[0];
+  const T *d_ky              = d_plan.kxyz[1];
+  const T *d_kz              = d_plan.kxyz[2];
+  const cuda_complex<T> *d_c = d_plan.c;
+  cuda_complex<T> *d_fw      = d_plan.fw;
 
   const int *d_binsize         = dethrust(d_plan.binsize);
   const int *d_binstartpts     = dethrust(d_plan.binstartpts);
@@ -1141,7 +1144,7 @@ static void cuspread3d_subprob(int nf1, int nf2, int nf3, int M, const cufinufft
   const int *d_subprobstartpts = dethrust(d_plan.subprobstartpts);
   const int *d_idxnupts        = dethrust(d_plan.idxnupts);
 
-  int totalnumsubprob   = d_plan.totalnumsubprob;
+  int totalnumsubprob         = d_plan.totalnumsubprob;
   const int *d_subprob_to_bin = dethrust(d_plan.subprob_to_bin);
 
   T sigma                      = d_plan.spopts.upsampfac;
@@ -1175,7 +1178,7 @@ static void cuspread3d_subprob(int nf1, int nf2, int nf3, int M, const cufinufft
 
 template<typename T, int ns>
 static void cuspread3d_output_driven(int nf1, int nf2, int nf3, int M,
-                              const cufinufft_plan_t<T> &d_plan, int blksize) {
+                                     const cufinufft_plan_t<T> &d_plan, int blksize) {
   auto &stream = d_plan.stream;
 
   int maxsubprobsize = d_plan.opts.gpu_maxsubprobsize;
@@ -1189,11 +1192,11 @@ static void cuspread3d_output_driven(int nf1, int nf2, int nf3, int M,
   numbins[1] = ceil((T)nf2 / bin_size_y);
   numbins[2] = ceil((T)nf3 / bin_size_z);
 
-  const T *d_kx               = d_plan.kxyz[0];
-  const T *d_ky               = d_plan.kxyz[1];
-  const T *d_kz               = d_plan.kxyz[2];
-  const cuda_complex<T> *d_c  = d_plan.c;
-  cuda_complex<T> *d_fw = d_plan.fw;
+  const T *d_kx              = d_plan.kxyz[0];
+  const T *d_ky              = d_plan.kxyz[1];
+  const T *d_kz              = d_plan.kxyz[2];
+  const cuda_complex<T> *d_c = d_plan.c;
+  cuda_complex<T> *d_fw      = d_plan.fw;
 
   const int *d_binsize         = dethrust(d_plan.binsize);
   const int *d_binstartpts     = dethrust(d_plan.binstartpts);
@@ -1201,17 +1204,17 @@ static void cuspread3d_output_driven(int nf1, int nf2, int nf3, int M,
   const int *d_subprobstartpts = dethrust(d_plan.subprobstartpts);
   const int *d_idxnupts        = dethrust(d_plan.idxnupts);
 
-  int totalnumsubprob   = d_plan.totalnumsubprob;
+  int totalnumsubprob         = d_plan.totalnumsubprob;
   const int *d_subprob_to_bin = dethrust(d_plan.subprob_to_bin);
 
   const auto np = d_plan.opts.gpu_np;
 
-  T sigma                      = d_plan.spopts.upsampfac;
-  T es_c                       = 4.0 / T(d_plan.spopts.nspread * d_plan.spopts.nspread);
-  T es_beta                    = d_plan.spopts.beta;
-  const auto sharedplanorysize = shared_memory_required<T>(
-      3, ns, d_plan.opts.gpu_binsizex, d_plan.opts.gpu_binsizey,
-      d_plan.opts.gpu_binsizez, d_plan.opts.gpu_np);
+  T sigma   = d_plan.spopts.upsampfac;
+  T es_c    = 4.0 / T(d_plan.spopts.nspread * d_plan.spopts.nspread);
+  T es_beta = d_plan.spopts.beta;
+  const auto sharedplanorysize =
+      shared_memory_required<T>(3, ns, d_plan.opts.gpu_binsizex, d_plan.opts.gpu_binsizey,
+                                d_plan.opts.gpu_binsizez, d_plan.opts.gpu_np);
   if (d_plan.opts.gpu_kerevalmeth) {
     cufinufft_set_shared_memory(spread_3d_output_driven<T, 1, ns>, 3, d_plan);
     cudaFuncSetSharedMemConfig(spread_3d_output_driven<T, 1, ns>,
@@ -1250,7 +1253,7 @@ static void cuspread3d_output_driven(int nf1, int nf2, int nf3, int M,
 struct Spread3DDispatcher {
   template<int ns, typename T>
   void operator()(int nf1, int nf2, int nf3, int M, const cufinufft_plan_t<T> &d_plan,
-                 int blksize) const {
+                  int blksize) const {
     switch (d_plan.opts.gpu_method) {
     case 1:
       return cuspread3d_nuptsdriven<T, ns>(nf1, nf2, nf3, M, d_plan, blksize);
@@ -1285,23 +1288,18 @@ template<typename T> void cuspread3d(const cufinufft_plan_t<T> &d_plan, int blks
     it seems slower according to the MRI community.
     Marco Barbone 01/30/25
   */
-  launch_dispatch_ns<Spread3DDispatcher, T>(
-      Spread3DDispatcher(), d_plan.spopts.nspread, d_plan.nf123[0], d_plan.nf123[1], d_plan.nf123[2],
-      d_plan.M, d_plan, blksize);
+  launch_dispatch_ns<Spread3DDispatcher, T>(Spread3DDispatcher(), d_plan.spopts.nspread,
+                                            d_plan.nf123[0], d_plan.nf123[1],
+                                            d_plan.nf123[2], d_plan.M, d_plan, blksize);
 }
 template void cuspread3d<float>(const cufinufft_plan_t<float> &d_plan, int blksize);
 template void cuspread3d<double>(const cufinufft_plan_t<double> &d_plan, int blksize);
 
-template<typename T>
-void cuspread3d_prop(cufinufft_plan_t<T> &d_plan) {
-  if (d_plan.opts.gpu_method == 1)
-    cuspread3d_nuptsdriven_prop<T>(d_plan);
-  if (d_plan.opts.gpu_method == 2)
-    cuspread3d_subprob_prop<T>(d_plan);
-  if (d_plan.opts.gpu_method == 3)
-    cuspread3d_subprob_prop<T>(d_plan);
-  if (d_plan.opts.gpu_method == 4)
-    cuspread3d_blockgather_prop<T>(d_plan);
+template<typename T> void cuspread3d_prop(cufinufft_plan_t<T> &d_plan) {
+  if (d_plan.opts.gpu_method == 1) cuspread3d_nuptsdriven_prop<T>(d_plan);
+  if (d_plan.opts.gpu_method == 2) cuspread3d_subprob_prop<T>(d_plan);
+  if (d_plan.opts.gpu_method == 3) cuspread3d_subprob_prop<T>(d_plan);
+  if (d_plan.opts.gpu_method == 4) cuspread3d_blockgather_prop<T>(d_plan);
 }
 template void cuspread3d_prop(cufinufft_plan_t<float> &d_plan);
 template void cuspread3d_prop(cufinufft_plan_t<double> &d_plan);

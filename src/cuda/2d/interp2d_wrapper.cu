@@ -14,9 +14,9 @@ namespace cufinufft {
 namespace spreadinterp {
 
 template<typename T, int KEREVALMETH, int ns>
-static __global__ void interp_2d_nupts_driven(const T *x, const T *y, cuda_complex<T> *c,
-                                       const cuda_complex<T> *fw, int M, int nf1, int nf2,
-                                       T es_c, T es_beta, T sigma, const int *idxnupts) {
+static __global__ void interp_2d_nupts_driven(
+    const T *x, const T *y, cuda_complex<T> *c, const cuda_complex<T> *fw, int M, int nf1,
+    int nf2, T es_c, T es_beta, T sigma, const int *idxnupts) {
   T ker1[ns];
   T ker2[ns];
 

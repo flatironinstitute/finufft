@@ -100,8 +100,7 @@ static __inline__ __device__ void eval_kernel_vec(T *ker, const T x, const T es_
   // Eval the above direct ES kernel evaluator for arguments x+j, for j=0,..,w-1.
   // This is used when gpu_kerevalmeth=0.
   // Serves the same purpose as the below function eval_kernel_vec_horner.
-  for (int i = 0; i < w; i++)
-    ker[i] = evaluate_kernel<T, w>(abs(x + i), es_c, es_beta);
+  for (int i = 0; i < w; i++) ker[i] = evaluate_kernel<T, w>(abs(x + i), es_c, es_beta);
 }
 
 template<typename T, int w>
@@ -138,12 +137,9 @@ template<typename T> void cuspread3d(const cufinufft_plan_t<T> &d_plan, int blks
 template<typename T> void cuinterp3d(const cufinufft_plan_t<T> &d_plan, int blksize);
 
 // Wrappers for methods of spreading
-template<typename T>
-void cuspread1d_prop(cufinufft_plan_t<T> &d_plan);
-template<typename T>
-void cuspread2d_prop(cufinufft_plan_t<T> &d_plan);
-template<typename T>
-void cuspread3d_prop(cufinufft_plan_t<T> &d_plan);
+template<typename T> void cuspread1d_prop(cufinufft_plan_t<T> &d_plan);
+template<typename T> void cuspread2d_prop(cufinufft_plan_t<T> &d_plan);
+template<typename T> void cuspread3d_prop(cufinufft_plan_t<T> &d_plan);
 
 } // namespace spreadinterp
 } // namespace cufinufft
