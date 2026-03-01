@@ -70,24 +70,6 @@ namespace utils {
 
 using namespace finufft::common;
 
-class WithCudaDevice {
-public:
-  explicit WithCudaDevice(const int device) : orig_device_{get_orig_device()} {
-    cudaSetDevice(device);
-  }
-
-  ~WithCudaDevice() { cudaSetDevice(orig_device_); }
-
-private:
-  const int orig_device_;
-
-  static int get_orig_device() noexcept {
-    int device{};
-    cudaGetDevice(&device);
-    return device;
-  }
-};
-
 // math helpers whose source is in src/utils.cpp
 FINUFFT_EXPORT long next235beven(long n, long b);
 
@@ -123,7 +105,7 @@ static __forceinline__ __device__ void atomicAddComplexGlobal(cuda_complex<T> *a
   }
 }
 
-template<typename T> auto arrayrange(int n, T *a, cudaStream_t stream) {
+template<typename T> auto arrayrange(int n, const T *a, cudaStream_t stream) {
   const auto d_min_max = thrust::minmax_element(thrust::cuda::par.on(stream), a, a + n);
 
   // copy d_min and d_max to host
@@ -140,7 +122,7 @@ template<typename T> auto arrayrange(int n, T *a, cudaStream_t stream) {
 // ARRAYWIDCEN_GROWFRAC defined in finufft_common/constants.h.
 // This prevents rephasings which don't grow nf by much. 6/8/17
 // If n==0, w and c are not finite.
-template<typename T> auto arraywidcen(int n, T *a, cudaStream_t stream) {
+template<typename T> auto arraywidcen(int n, const T *a, cudaStream_t stream) {
   const auto [lo, hi] = arrayrange(n, a, stream);
   auto w              = (hi - lo) / 2;
   auto c              = (hi + lo) / 2;
@@ -199,7 +181,7 @@ auto launch_dispatch_ns(Func &&func, int target_ns, Args &&...args) {
  *   SM 7x      :  8 warps  = 128 threads
  *   SM 6x-     :  4 warps  = 64 threads
  */
-inline unsigned optimal_block_threads(int device) noexcept {
+inline unsigned optimal_block_threads(int device) {
   cudaGetDevice(&device);
   cudaDeviceProp prop;
   cudaGetDeviceProperties(&prop, device);
