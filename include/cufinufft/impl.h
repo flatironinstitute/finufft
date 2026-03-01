@@ -16,4 +16,5 @@ void cufinufft_execute_impl(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
 
 template<typename T>
 void cufinufft_destroy_impl(cufinufft_plan_t<T> *d_plan);
+
 #endif

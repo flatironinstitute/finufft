@@ -354,19 +354,16 @@ void cufinufft_setpts_impl(int M, const T *d_kx, const T *d_ky, const T *d_kz, i
     fprintf(stderr, "[%s] Error: d_s is nullptr but dim > 0.\n", __func__);
     throw int(FINUFFT_ERR_INVALID_ARGUMENT);
   }
-  d_plan.STU[0] = d_plan.dim > 0 ? d_s : nullptr;
 
   if (d_plan.dim > 1 && d_t == nullptr) {
     fprintf(stderr, "[%s] Error: d_t is nullptr but dim > 1.\n", __func__);
     throw int(FINUFFT_ERR_INVALID_ARGUMENT);
   }
-  d_plan.STU[1] = d_plan.dim > 1 ? d_t : nullptr;
 
   if (d_plan.dim > 2 && d_u == nullptr) {
     fprintf(stderr, "[%s] Error: d_u is nullptr but dim > 2.\n", __func__);
     throw int(FINUFFT_ERR_INVALID_ARGUMENT);
   }
-  d_plan.STU[2] = d_plan.dim > 2 ? d_u : nullptr;
 
   const auto dim = d_plan.dim;
   // no need to set the params to zero, as they are already zeroed out in the plan
