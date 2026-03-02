@@ -15,6 +15,7 @@ TOLS = [1e-3, 1e-6]
 OUTPUT_ARGS = [False, True]
 CONTIGUOUS = [False, True]
 MODEORDS = [0, 1]
+GPU_METHODS_TYPE1 = [0, 1, 2, 3]
 
 
 @pytest.mark.parametrize("dtype", DTYPES)
@@ -23,13 +24,16 @@ MODEORDS = [0, 1]
 @pytest.mark.parametrize("tol", TOLS)
 @pytest.mark.parametrize("output_arg", OUTPUT_ARGS)
 @pytest.mark.parametrize("modeord", MODEORDS)
-def test_type1(to_gpu, to_cpu, dtype, shape, M, tol, output_arg, modeord):
+@pytest.mark.parametrize("gpu_method", GPU_METHODS_TYPE1)
+def test_type1(to_gpu, to_cpu, dtype, shape, M, tol, output_arg, modeord,
+               gpu_method):
     k, c = utils.type1_problem(dtype, shape, M)
 
     k_gpu = to_gpu(k)
     c_gpu = to_gpu(c)
 
-    plan = Plan(1, shape, eps=tol, dtype=dtype, modeord=modeord)
+    plan = Plan(1, shape, eps=tol, dtype=dtype, modeord=modeord,
+                gpu_method=gpu_method)
 
     # Since k_gpu is an array of shape (dim, M), this will expand to
     # plan.setpts(k_gpu[0], ..., k_gpu[dim]), allowing us to handle all
