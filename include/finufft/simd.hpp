@@ -241,7 +241,7 @@ FINUFFT_ALWAYS_INLINE T fold_rescale(const T x, const UBIGINT N) noexcept {
   // using namespace to make the code compatible with both std and xsimd functions without qualification
   using namespace std;
   using namespace xsimd;
-  const T result = fma(x, INV_2PI, T(0.5)); // x/(2pi) + 0.5
+  const T result = fma(x, T(INV_2PI), T(0.5)); // x/(2pi) + 0.5
   return (result - floor(result)) * T(N);
 }
 
