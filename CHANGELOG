@@ -15,6 +15,17 @@ v2.6.0-dev
   consolidated in src/fft.cpp with an opaque custom deleter. C++ internal
   headers renamed from .h to .hpp. No public API changes.
   (Barbone)
+* Mutable state on FINUFFT_PLAN_T extracted into a nested struct M (all
+  computed state from makeplan/setpts: spreader config, fine grid, NU points,
+  type-3 workspace, FFT plan), separating it from immutable configuration
+  set once in the constructor. Exception-based error handling: internal C++
+  code now throws finufft::exception instead of throw int(...) or returning
+  error codes; safe_finufft_call at the C boundary catches exceptions and
+  converts them to integer return codes. Constructor no longer takes an
+  int &ier output parameter; warnings are accumulated in warning_code().
+  Memory leak fixes in guru helper and type-3 inner plan creation using
+  RAII (unique_ptr). No public API changes.
+  (Barbone)
 * Internal cuFINUFFT refactoring
   - Memory management is now done in C++ style (RAII) using Thrust allocators
   - Cufinufftt's C-style interface is now const-correct

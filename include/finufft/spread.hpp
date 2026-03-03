@@ -47,7 +47,7 @@ FINUFFT_NEVER_INLINE void FINUFFT_PLAN_T<TF>::spread_subproblem_1d_kernel(
   static constexpr auto alignment = arch_t::alignment();
   static constexpr auto simd_size = simd_type::size;
   static constexpr auto ns2       = NS * T(0.5); // half spread width
-  const T *horner_coeffs_ptr      = horner_coeffs.data();
+  const T *horner_coeffs_ptr      = m.horner_coeffs.data();
   // something weird here. Reversing ker{0} and std fill causes ker
   // to be zeroed inside the loop GCC uses AVX, clang AVX2
   alignas(alignment) std::array<T, MAX_NSPREAD> ker{0};
@@ -182,7 +182,7 @@ FINUFFT_NEVER_INLINE void FINUFFT_PLAN_T<TF>::spread_subproblem_2d_kernel(
   static constexpr auto padding   = get_padding<T, 2 * NS>();
   static constexpr auto simd_size = simd_type::size;
   static constexpr auto alignment = arch_t::alignment();
-  const T *horner_coeffs_ptr      = horner_coeffs.data();
+  const T *horner_coeffs_ptr      = m.horner_coeffs.data();
   // Kernel values stored in consecutive memory. This allows us to compute
   // values in all three directions in a single kernel evaluation call.
   static constexpr auto ns2 = NS * T(0.5);  // half spread width
@@ -278,7 +278,7 @@ FINUFFT_NEVER_INLINE void FINUFFT_PLAN_T<TF>::spread_subproblem_3d_kernel(
   static constexpr auto padding   = get_padding<T, 2 * NS>();
   static constexpr auto simd_size = simd_type::size;
   static constexpr auto alignment = arch_t::alignment();
-  const T *horner_coeffs_ptr      = horner_coeffs.data();
+  const T *horner_coeffs_ptr      = m.horner_coeffs.data();
 
   static constexpr auto ns2 = NS * T(0.5); // half spread width
   alignas(alignment) std::array<T, 3 * MAX_NSPREAD> kernel_values{0};
@@ -364,7 +364,7 @@ void FINUFFT_PLAN_T<TF>::add_wrapped_subgrid(
 */
 {
   using T          = TF;
-  const UBIGINT N1 = nfdim[0], N2 = nfdim[1], N3 = nfdim[2];
+  const UBIGINT N1 = m.nfdim[0], N2 = m.nfdim[1], N3 = m.nfdim[2];
   std::vector<BIGINT> o2(size2), o3(size3);
   static auto accumulate = [](T &a, T b) {
     if constexpr (thread_safe) { // NOLINT(*-branch-clone)
@@ -703,20 +703,20 @@ inline void bin_sort_multithread_impl(std::vector<BIGINT> &ret, UBIGINT M, const
 template<typename TF>
 void FINUFFT_PLAN_T<TF>::bin_sort_singlethread(double bin_size_x, double bin_size_y,
                                                double bin_size_z) {
-  const UBIGINT N1 = nfdim[0], N2 = nfdim[1], N3 = nfdim[2];
+  const UBIGINT N1 = m.nfdim[0], N2 = m.nfdim[1], N3 = m.nfdim[2];
   const int ndims = finufft::spreadinterp::ndims_from_Ns(N1, N2, N3);
   switch (ndims) {
   case 1:
-    bin_sort_singlethread_impl<TF, 1>(sortIndices, nj, XYZ[0], XYZ[1], XYZ[2], N1, N2,
-                                      N3, bin_size_x, bin_size_y, bin_size_z);
+    bin_sort_singlethread_impl<TF, 1>(m.sortIndices, m.nj, m.XYZ[0], m.XYZ[1], m.XYZ[2],
+                                      N1, N2, N3, bin_size_x, bin_size_y, bin_size_z);
     break;
   case 2:
-    bin_sort_singlethread_impl<TF, 2>(sortIndices, nj, XYZ[0], XYZ[1], XYZ[2], N1, N2,
-                                      N3, bin_size_x, bin_size_y, bin_size_z);
+    bin_sort_singlethread_impl<TF, 2>(m.sortIndices, m.nj, m.XYZ[0], m.XYZ[1], m.XYZ[2],
+                                      N1, N2, N3, bin_size_x, bin_size_y, bin_size_z);
     break;
   default:
-    bin_sort_singlethread_impl<TF, 3>(sortIndices, nj, XYZ[0], XYZ[1], XYZ[2], N1, N2,
-                                      N3, bin_size_x, bin_size_y, bin_size_z);
+    bin_sort_singlethread_impl<TF, 3>(m.sortIndices, m.nj, m.XYZ[0], m.XYZ[1], m.XYZ[2],
+                                      N1, N2, N3, bin_size_x, bin_size_y, bin_size_z);
     break;
   }
 }
@@ -724,20 +724,20 @@ void FINUFFT_PLAN_T<TF>::bin_sort_singlethread(double bin_size_x, double bin_siz
 template<typename TF>
 void FINUFFT_PLAN_T<TF>::bin_sort_multithread(double bin_size_x, double bin_size_y,
                                               double bin_size_z, int nthr) {
-  const UBIGINT N1 = nfdim[0], N2 = nfdim[1], N3 = nfdim[2];
+  const UBIGINT N1 = m.nfdim[0], N2 = m.nfdim[1], N3 = m.nfdim[2];
   const int ndims = finufft::spreadinterp::ndims_from_Ns(N1, N2, N3);
   switch (ndims) {
   case 1:
-    bin_sort_multithread_impl<TF, 1>(sortIndices, nj, XYZ[0], XYZ[1], XYZ[2], N1, N2, N3,
-                                     bin_size_x, bin_size_y, bin_size_z, nthr);
+    bin_sort_multithread_impl<TF, 1>(m.sortIndices, m.nj, m.XYZ[0], m.XYZ[1], m.XYZ[2],
+                                     N1, N2, N3, bin_size_x, bin_size_y, bin_size_z, nthr);
     break;
   case 2:
-    bin_sort_multithread_impl<TF, 2>(sortIndices, nj, XYZ[0], XYZ[1], XYZ[2], N1, N2, N3,
-                                     bin_size_x, bin_size_y, bin_size_z, nthr);
+    bin_sort_multithread_impl<TF, 2>(m.sortIndices, m.nj, m.XYZ[0], m.XYZ[1], m.XYZ[2],
+                                     N1, N2, N3, bin_size_x, bin_size_y, bin_size_z, nthr);
     break;
   default:
-    bin_sort_multithread_impl<TF, 3>(sortIndices, nj, XYZ[0], XYZ[1], XYZ[2], N1, N2, N3,
-                                     bin_size_x, bin_size_y, bin_size_z, nthr);
+    bin_sort_multithread_impl<TF, 3>(m.sortIndices, m.nj, m.XYZ[0], m.XYZ[1], m.XYZ[2],
+                                     N1, N2, N3, bin_size_x, bin_size_y, bin_size_z, nthr);
     break;
   }
 }
@@ -795,7 +795,7 @@ void FINUFFT_PLAN_T<TF>::get_subgrid(BIGINT &offset1, BIGINT &offset2, BIGINT &o
   using namespace finufft::spreadinterp;
   using finufft::utils::arrayrange;
   using T       = TF;
-  const int ns  = spopts.nspread;
+  const int ns  = m.spopts.nspread;
   const int ndims = dim;
   T ns2 = (T)ns / 2;
   T min_kx, max_kx; // 1st (x) dimension: get min/max of nonuniform points
@@ -910,8 +910,8 @@ void FINUFFT_PLAN_T<TF>::spread_subproblem_1d(BIGINT off1, UBIGINT size1, TF *du
   SpreadSubproblem1dCaller caller{*this, off1, size1, du, M, kx, dd};
   using NsSeq = make_range<MIN_NSPREAD, MAX_NSPREAD>;
   using NcSeq = make_range<MIN_NC, MAX_NC>;
-  dispatch(caller, std::make_tuple(DispatchParam<NsSeq>{spopts.nspread},
-                                   DispatchParam<NcSeq>{nc}));
+  dispatch(caller, std::make_tuple(DispatchParam<NsSeq>{m.spopts.nspread},
+                                   DispatchParam<NcSeq>{m.nc}));
 }
 
 template<typename TF>
@@ -927,8 +927,8 @@ void FINUFFT_PLAN_T<TF>::spread_subproblem_2d(
   SpreadSubproblem2dCaller caller{*this, off1, off2, size1, size2, du, M, kx, ky, dd};
   using NsSeq = make_range<MIN_NSPREAD, MAX_NSPREAD>;
   using NcSeq = make_range<MIN_NC, MAX_NC>;
-  dispatch(caller, std::make_tuple(DispatchParam<NsSeq>{spopts.nspread},
-                                   DispatchParam<NcSeq>{nc}));
+  dispatch(caller, std::make_tuple(DispatchParam<NsSeq>{m.spopts.nspread},
+                                   DispatchParam<NcSeq>{m.nc}));
 }
 
 template<typename TF>
@@ -945,6 +945,6 @@ void FINUFFT_PLAN_T<TF>::spread_subproblem_3d(
                                   kx,    ky,   kz,   dd};
   using NsSeq = make_range<MIN_NSPREAD, MAX_NSPREAD>;
   using NcSeq = make_range<MIN_NC, MAX_NC>;
-  dispatch(caller, std::make_tuple(DispatchParam<NsSeq>{spopts.nspread},
-                                   DispatchParam<NcSeq>{nc}));
+  dispatch(caller, std::make_tuple(DispatchParam<NsSeq>{m.spopts.nspread},
+                                   DispatchParam<NcSeq>{m.nc}));
 }

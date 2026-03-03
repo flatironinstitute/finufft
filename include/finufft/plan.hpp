@@ -90,20 +90,57 @@ private:
   FINUFFT_PLAN_T(const FINUFFT_PLAN_T &)            = delete;
   FINUFFT_PLAN_T &operator=(const FINUFFT_PLAN_T &) = delete;
 
+  // ---------- Mutable computed state (Rust M-paradigm) ----------
+  // All state that is built up across makeplan/setpts lives here.
+  // Configuration set once in the constructor stays on the plan itself.
+  struct M {
+    // --- Spreader configuration (computed by setup_spreadinterp) ---
+    TF tol{};                      // user tolerance, clamped to machine eps by spreader
+    finufft_spread_opts spopts{};  // spreading kernel parameters (nspread, beta, etc.)
+    int nc = 0;     // number of Horner polynomial coefficients (<= MAX_NC)
+    size_t padded_ns = 0;          // SIMD-padded kernel width
+    alignas(64) std::array<TF, finufft::common::MAX_NSPREAD *
+                                   finufft::common::MAX_NC> horner_coeffs{0};
+                                   // piecewise Horner coefficients table (ns x nc layout)
+
+    // --- Fine grid (computed by init_grid_kerFT_FFT or set_nhg_type3) ---
+    std::array<BIGINT, 3> nfdim{1, 1, 1};  // upsampled grid dimensions
+    std::array<std::vector<TF>, 3> phiHat;  // FT of spreading kernel on mode grids
+
+    // --- NU point data (set by setpts) ---
+    BIGINT nj = 0;                 // number of nonuniform source points
+    BIGINT nk = 0;                 // number of nonuniform target freqs (type 3 only)
+    std::array<const TF *, 3> XYZ{nullptr, nullptr, nullptr};
+                                   // pointers to user's NU source coords (no alloc)
+    std::vector<BIGINT> sortIndices;  // bin-sort permutation of NU points
+    bool didSort = false;             // whether bin-sorting was applied
+
+    // --- Type 3 workspace (set by setpts for type 3 only) ---
+    std::array<const TF *, 3> STU{nullptr, nullptr, nullptr};
+                                   // pointers to user's target NU-point arrays (no alloc)
+    std::vector<TC> prephase;      // pre-phase factors for all input NU pts
+    std::vector<TC> deconv;        // 1/kernel_FT * phase at all output NU pts
+    std::array<std::vector<TF>, 3> XYZp;  // rescaled/centered source NU points (x'_j)
+    std::array<std::vector<TF>, 3> STUp;  // rescaled/centered target freqs (s'_k)
+    type3params t3P;               // type 3 rescaling/centering/phasing params
+    std::unique_ptr<const FINUFFT_PLAN_T<TF>> innerT2plan;
+                                   // inner type-2 plan used in step 2 of type 3
+
+    // --- FFT plan (created in constructor or init_grid_kerFT_FFT) ---
+    std::unique_ptr<Finufft_FFT_plan<TF>, Finufft_FFT_plan_deleter<TF>> fftPlan;
+  };
+
+  M m; // all mutable computed state lives here
+  int warning_code_ = 0; // accumulated warning code (e.g. FINUFFT_WARN_EPS_TOO_SMALL)
+
 public:
   int type; // transform type (Rokhlin naming): 1,2 or 3
   int dim;  // overall dimension: 1,2 or 3
 
 private:
   int ntrans;             // how many transforms to do at once (vector or "many" mode)
-  BIGINT nj;              // num of NU pts in type 1,2 (for type 3, num input x pts)
-  BIGINT nk;              // number of NU freq pts (type 3 only)
-  TF tol;                 // relative user tolerance
   int batchSize;          // # strength vectors to group together for FFTW, etc
   int nbatch;             // how many batches done to cover all ntrans vectors
-
-  int nc             = 0; // number of Horner coefficients used for ES kernel (<= MAX_NC)
-  size_t padded_ns   = 0; // SIMD-padded kernel width, set by precompute_horner_coeffs()
   bool upsamp_locked = false; // true if user specified upsampfac != 0, prevents auto
                               // update
 
@@ -114,52 +151,21 @@ public:
   // func for total # modes (prod of above three)...
   BIGINT N() const { return mstu[0] * mstu[1] * mstu[2]; }
 
-  std::array<BIGINT, 3> nfdim{1, 1, 1}; // internal fine grid size in x,y,z directions
   // func to return total # fine grid points...
-  BIGINT nf() const { return nfdim[0] * nfdim[1] * nfdim[2]; }
+  BIGINT nf() const { return m.nfdim[0] * m.nfdim[1] * m.nfdim[2]; }
 
   int fftSign; // sign in exponential for NUFFT defn, guaranteed to be +-1
-
-private:
-  std::array<std::vector<TF>, 3> phiHat; // FT of kernel in t1,2, on x,y,z-axis mode grid
-
-  std::vector<BIGINT> sortIndices; // precomputed NU pt permutation, speeds spread/interp
-  bool didSort;                    // whether binsorting used (false: identity perm used)
-
-  // for t1,2: ptr to user-supplied NU pts (no new allocs).
-  // for t3: will become ptr to internally allocated "primed" (scaled) Xp, Yp, Zp vecs
-  std::array<const TF *, 3> XYZ = {nullptr, nullptr, nullptr};
-
-  // type 3 specific
-  std::array<const TF *, 3> STU = {nullptr, nullptr, nullptr}; // ptrs to user's target
-                                                               // NU-point arrays (no new
-                                                               // allocs)
-  std::vector<TC> prephase; // pre-phase, for all input NU pts
-  std::vector<TC> deconv;   // reciprocal of kernel FT, phase, all output NU pts
-  std::array<std::vector<TF>, 3> XYZp; // internal primed NU points (x'_j, etc)
-  std::array<std::vector<TF>, 3> STUp; // internal primed targs (s'_k, etc)
-  type3params t3P; // groups together type 3 shift, scale, phase, parameters
-  std::unique_ptr<const FINUFFT_PLAN_T<TF>> innerT2plan; // ptr used for type 2 in step 2
-                                                         // of type 3
-
-  // other internal structs
-  std::unique_ptr<Finufft_FFT_plan<TF>, Finufft_FFT_plan_deleter<TF>> fftPlan;
-
-  // store piecewise Horner coeffs for ns intervals of kernel: ns x nc table
-  alignas(64) std::array<TF, finufft::common::MAX_NSPREAD *
-                                 finufft::common::MAX_NC> horner_coeffs{0};
 
 public:
   finufft_opts opts; // this and spopts could be made ptrs
 
 private:
-  finufft_spread_opts spopts;
 
   int execute_internal(TC *cj, TC *fk, bool adjoint = false, int ntrans_actual = -1,
                        TC *aligned_scratch = nullptr, size_t scratch_size = 0) const;
-  int setup_spreadinterp();
+  void setup_spreadinterp();
   void precompute_horner_coeffs();
-  int set_nf_type12(BIGINT ms, BIGINT *nf) const;
+  void set_nf_type12(BIGINT ms, BIGINT *nf) const;
   void onedim_fseries_kernel(BIGINT nf, std::vector<TF> &fwkerhalf) const;
   void set_nhg_type3(int idim, TF S, TF X);
   // Compile-time-dispatched kernel method templates (NS=nspread, NC=horner degree).
@@ -200,7 +206,7 @@ private:
                    BIGINT &padded_size1, BIGINT &size1, BIGINT &size2, BIGINT &size3,
                    UBIGINT M, const TF *kx, const TF *ky, const TF *kz) const;
 
-  int spreadcheck() const;
+  void spreadcheck() const;
   void indexSort();
   void spread_subproblem_1d(BIGINT off1, UBIGINT size1, TF *du, UBIGINT M, TF *kx,
                             TF *dd) const noexcept;
@@ -238,14 +244,14 @@ private:
 
   // Helper to initialize spreader, phiHat (Fourier series), and FFT plan.
   // Used by constructor (when upsampfac given) and setpts (when upsampfac deferred).
-  int init_grid_kerFT_FFT();
+  void init_grid_kerFT_FFT();
 
   // Allocates fftPlan (needs complete Finufft_FFT_plan type); defined in fft.cpp.
   void create_fft_plan();
 
 public:
   FINUFFT_PLAN_T(int type, int dim, const BIGINT *n_modes, int iflag, int ntrans, TF tol,
-                 const finufft_opts *opts, int &ier);
+                 const finufft_opts *opts);
   ~FINUFFT_PLAN_T(); // defined in src/fft.cpp where Finufft_FFT_plan is complete
 
   // Remaining actions (not create/delete) in guru interface are now methods...
@@ -256,11 +262,12 @@ public:
   int execute_adjoint(TC *cj, TC *fk) const { return execute_internal(cj, fk, true); }
 
   // accessors for reading the internal state of the plan
-  BIGINT Nj() const { return nj; }
-  BIGINT Nk() const { return nk; }
-  TF Tol() const { return tol; }
+  BIGINT Nj() const { return m.nj; }
+  BIGINT Nk() const { return m.nk; }
+  TF Tol() const { return m.tol; }
   int Ntrans() const { return ntrans; }
-  const std::array<const TF *, 3> &getSTU() const { return STU; }
+  int warning_code() const { return warning_code_; }
+  const std::array<const TF *, 3> &getSTU() const { return m.STU; }
 };
 
 inline void finufft_default_opts_t(finufft_opts *o)
