@@ -17,7 +17,7 @@ extern const int FINUFFT_FFT_DEFAULT;
 }
 #endif
 
-typedef struct finufft_opts { // defaults see finufft_core.cpp:finufft_default_opts_t()
+typedef struct finufft_opts { // defaults see plan.hpp:finufft_default_opts_t()
   // sphinx tag (don't remove): @opts_start
   // FINUFFT options:
   // data handling opts...

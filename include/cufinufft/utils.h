@@ -154,7 +154,7 @@ template<typename T> auto arraywidcen(int n, T *a, cudaStream_t stream) {
 template<typename T>
 auto set_nhg_type3(T S, T X, const cufinufft_opts &opts,
                    const finufft_spread_opts &spopts)
-// It implements the same named function in finufft_core.cpp (see its docs)
+// It implements the same named function in makeplan.hpp (see its docs)
 {
   int nss = spopts.nspread + 1; // since ns may be odd
   T Xsafe = X, Ssafe = S;       // may be tweaked locally
