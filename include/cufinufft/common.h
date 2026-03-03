@@ -2,7 +2,7 @@
 #define __COMMON_H__
 
 #include <cufft.h>
-#include <cufinufft/types.h>
+#include <cufinufft/cufinufft_plan_t.h>
 #include <cufinufft_opts.h>
 #include <finufft_common/spread_opts.h>
 #include <finufft_errors.h>
@@ -12,23 +12,14 @@
 namespace cufinufft {
 namespace common {
 template<typename T>
-__global__ void fseries_kernel_compute(int nf1, int nf2, int nf3, T *f, T *a,
-                                       T *fwkerhalf1, T *fwkerhalf2, T *fwkerhalf3,
-                                       int ns);
+void fseries_kernel_compute(
+    int dim, cuda::std::array<CUFINUFFT_BIGINT, 3> nf123, const T *d_f, const T *d_phase,
+    cuda::std::array<gpu_array<T>, 3> &d_fwkerhalf, int ns, cudaStream_t stream);
 template<typename T>
-__global__ void cu_nuft_kernel_compute(int nf1, int nf2, int nf3, T *f, T *z, T *kx,
-                                       T *ky, T *kz, T *fwkerhalf1, T *fwkerhalf2,
-                                       T *fwkerhalf3, int ns);
-template<typename T>
-int fseries_kernel_compute(int dim, int nf1, int nf2, int nf3, T *d_f, T *d_phase,
-                           T *d_fwkerhalf1, T *d_fwkerhalf2, T *d_fwkerhalf3, int ns,
-                           cudaStream_t stream);
-template<typename T>
-int nuft_kernel_compute(int dim, int nf1, int nf2, int nf3, T *d_f, T *d_z, T *d_kx,
-                        T *d_ky, T *d_kz, T *d_fwkerhalf1, T *d_fwkerhalf2,
-                        T *d_fwkerhalf3, int ns, cudaStream_t stream);
-template<typename T>
-int setup_spreader_for_nufft(finufft_spread_opts &spopts, T eps, cufinufft_opts opts);
+void nuft_kernel_compute(
+    int dim, cuda::std::array<CUFINUFFT_BIGINT, 3> nf123, const T *d_f, const T *d_z,
+    cuda::std::array<const T *, 3> d_kxyz, cuda::std::array<gpu_array<T>, 3> &d_fwkerhalf,
+    int ns, cudaStream_t stream);
 
 void set_nf_type12(CUFINUFFT_BIGINT ms, cufinufft_opts opts, finufft_spread_opts spopts,
                    CUFINUFFT_BIGINT *nf, CUFINUFFT_BIGINT b);
@@ -47,8 +38,8 @@ template<typename T>
 void cufinufft_setup_binsize(int type, int ns, int dim, cufinufft_opts *opts);
 
 template<typename T, typename V>
-int cufinufft_set_shared_memory(V *kernel, const int dim,
-                                const cufinufft_plan_t<T> &d_plan) {
+void cufinufft_set_shared_memory(V *kernel, const int dim,
+                                 const cufinufft_plan_t<T> &d_plan) {
   /**
    * WARNING: this function does not handle cuda errors. The caller should check them.
    */
@@ -63,11 +54,10 @@ int cufinufft_set_shared_memory(V *kernel, const int dim,
             "Error: Shared memory required per block is %zu bytes, but the device "
             "supports only %d bytes.\n",
             shared_mem_required, shared_mem_per_block);
-    return FINUFFT_ERR_INSUFFICIENT_SHMEM;
+    throw int(FINUFFT_ERR_INSUFFICIENT_SHMEM);
   }
   cudaFuncSetAttribute(kernel, cudaFuncAttributeMaxDynamicSharedMemorySize,
                        shared_mem_required);
-  return 0;
 }
 
 } // namespace common

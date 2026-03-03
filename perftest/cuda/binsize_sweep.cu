@@ -16,7 +16,7 @@
 
 #include <cuda_runtime.h>
 #include <cufinufft.h>
-#include <cufinufft/types.h>
+#include <cufinufft/cufinufft_plan_t.h>
 #include <thrust/device_vector.h>
 #include <thrust/host_vector.h>
 
