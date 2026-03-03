@@ -46,9 +46,9 @@ Here is a 1-line summary of each option, taken from the code
    :start-after: @opts_start
    :end-before: @opts_end
 
-Here are their default settings (from ``src/finufft_core.cpp:finufft_default_opts``):
+Here are their default settings (from ``include/finufft/plan.hpp:finufft_default_opts_t``):
 
-.. literalinclude:: ../src/finufft_core.cpp
+.. literalinclude:: ../include/finufft/plan.hpp
    :start-after: @defopts_start
    :end-before: @defopts_end
 
