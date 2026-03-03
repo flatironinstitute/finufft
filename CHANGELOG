@@ -11,6 +11,18 @@ v2.6.0-dev
   consolidated in src/fft.cpp with an opaque custom deleter. C++ internal
   headers renamed from .h to .hpp. No public API changes.
   (Barbone)
+* Internal cuFINUFFT refactoring
+  - Memory management is now done in C++ style (RAII) using Thrust allocators
+  - Cufinufftt's C-style interface is now const-correct
+    (backwards-compatible change)
+  - Internal error management is now based on exceptions (currently via
+    throwing/catching integers, to be improved in the future)
+  - many nearly identical code paths were merged, reducing overall
+    source code size (e.g. cufinufft1_exec instead of
+    cufinufft1d1_exec/cufinufft2d1_exec/cufinufft3d1_exec)
+  - file contents were reshuffled to simplify and reduce inter-file
+    dependencies; as a result, internal headers are much smaller now.
+  (Reinecke)
 
 v2.5.0 3/3/26
 

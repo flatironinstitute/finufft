@@ -8,7 +8,7 @@
 #include <unordered_map>
 
 #include <cufinufft.h>
-#include <cufinufft/impl.h>
+#include <cufinufft/cufinufft_plan_t.h>
 
 #include <thrust/complex.h>
 #include <thrust/device_vector.h>
@@ -29,7 +29,7 @@ struct test_options_t {
   char prec;
   int type;
   int n_runs;
-  int N[3];
+  int32_t N[3];
   int M;
   int ntransf;
   int kerevalmethod;
@@ -165,12 +165,17 @@ struct CudaTimer {
   std::vector<cudaEvent_t> stop_;
 };
 
-template<class F, class... Args> inline void timeit(F f, CudaTimer &timer, Args... args) {
+template<class F, class... Args>
+inline void timeit(F f, CudaTimer &timer, Args &&...args) {
   timer.start();
-  f(args...);
+  f(std::forward<Args>(args)...);
   timer.stop();
 }
-
+template<typename T>
+void makeplan(int type, int dim, const int32_t *nmodes, int iflag, int ntransf,
+              double tol, const cufinufft_opts &opts, cufinufft_plan_t<T> **res) {
+  *res = new cufinufft_plan_t<T>(type, dim, nmodes, iflag, ntransf, tol, opts);
+}
 void gpu_warmup() {
   int nf1 = 100;
   cufftHandle fftplan;
@@ -258,12 +263,13 @@ template<typename T> void run_test(test_options_t &test_opts) {
     cuda_complex<T> *d_c_p  = (cuda_complex<T> *)d_c.data().get();
     cuda_complex<T> *d_fk_p = (cuda_complex<T> *)d_fk.data().get();
 
-    timeit(cufinufft_makeplan_impl<T>, makeplan_timer, test_opts.type, dim, test_opts.N,
-           iflag, ntransf, test_opts.tol, &dplan, &opts);
+    timeit(makeplan<T>, makeplan_timer, test_opts.type, dim, test_opts.N, iflag, ntransf,
+           test_opts.tol, opts, &dplan);
     for (int i = 0; i < test_opts.n_runs; ++i) {
-      timeit(cufinufft_setpts_impl<T>, setpts_timer, M, d_x_p, d_y_p, d_z_p, 0, nullptr,
-             nullptr, nullptr, dplan);
-      timeit(cufinufft_execute_impl<T>, execute_timer, d_c_p, d_fk_p, dplan);
+      timeit(std::bind(&cufinufft_plan_t<T>::setpts, dplan, M, d_x_p, d_y_p, d_z_p, 0,
+                       nullptr, nullptr, nullptr),
+             setpts_timer);
+      timeit(std::bind(&cufinufft_plan_t<T>::exec, dplan, d_c_p, d_fk_p), execute_timer);
     }
 
     d2h_timer.start();
