@@ -131,7 +131,6 @@ private:
   };
 
   M m; // all mutable computed state lives here
-  int warning_code_ = 0; // accumulated warning code (e.g. FINUFFT_WARN_EPS_TOO_SMALL)
 
 public:
   int type; // transform type (Rokhlin naming): 1,2 or 3
@@ -163,7 +162,7 @@ private:
 
   int execute_internal(TC *cj, TC *fk, bool adjoint = false, int ntrans_actual = -1,
                        TC *aligned_scratch = nullptr, size_t scratch_size = 0) const;
-  void setup_spreadinterp();
+  void setup_spreadinterp(); // throws FINUFFT_ERR_EPS_TOO_SMALL if tol unachievable
   void precompute_horner_coeffs();
   void set_nf_type12(BIGINT ms, BIGINT *nf) const;
   void onedim_fseries_kernel(BIGINT nf, std::vector<TF> &fwkerhalf) const;
@@ -266,7 +265,6 @@ public:
   BIGINT Nk() const { return m.nk; }
   TF Tol() const { return m.tol; }
   int Ntrans() const { return ntrans; }
-  int warning_code() const { return warning_code_; }
   const std::array<const TF *, 3> &getSTU() const { return m.STU; }
 };
 

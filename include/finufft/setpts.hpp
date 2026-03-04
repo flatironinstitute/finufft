@@ -63,8 +63,9 @@ int FINUFFT_PLAN_T<TF>::setpts(BIGINT nj, const TF *xj, const TF *yj, const TF *
   using namespace finufft::utils;
   using namespace finufft::heuristics;
   // Method function to set NU points and do precomputations. Barnett 2020.
+  // Barbone (3/4/26): removed warning_code_ plumbing (eps-too-small now throws).
   // See ../docs/cguru.doc for current documentation.
-  int d = dim; // abbrev for spatial dim
+  int d = dim;       // abbrev for spatial dim
   CNTime timer;
   timer.start();
   m.nj = nj; // the user only now chooses how many NU (x,y,z) pts
@@ -89,7 +90,7 @@ int FINUFFT_PLAN_T<TF>::setpts(BIGINT nj, const TF *xj, const TF *yj, const TF *
         if (opts.debug)
           printf("[setpts] selected best upsampfac=%.3g (density=%.3g, nj=%lld)\n",
                  opts.upsampfac, density, (long long)nj);
-        setup_spreadinterp();        // throws on error, sets warning_code_ on warning
+        setup_spreadinterp(); // throws on error
         precompute_horner_coeffs();
         // Perform the planning steps (first call or re-plan due to density change).
         init_grid_kerFT_FFT();       // throws on error
@@ -130,7 +131,7 @@ int FINUFFT_PLAN_T<TF>::setpts(BIGINT nj, const TF *xj, const TF *yj, const TF *
       if (opts.debug > 1)
         printf("[setpts t3] selected upsampfac=%.2f (density=1 used; persisted)\n",
                opts.upsampfac);
-      setup_spreadinterp();        // throws on error, sets warning_code_ on warning
+      setup_spreadinterp(); // throws on error
       precompute_horner_coeffs();
     }
 

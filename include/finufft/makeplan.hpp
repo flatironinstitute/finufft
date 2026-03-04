@@ -121,12 +121,13 @@ template<typename TF> void FINUFFT_PLAN_T<TF>::setup_spreadinterp() {
     All of these (spopts, opts, tol) are plan class members.
     See finufft_common/spread_opts.h for docs on all spopts fields.
     Note that spopts.spread_direction is not set.
-    Throws on error (see codes in finufft_errors.h).
-    Sets warning_code_ = FINUFFT_WARN_EPS_TOO_SMALL if requested eps (tol)
-    cannot be achieved, but proceeds with best possible eps.
+    Throws on error (see codes in finufft_errors.h), including
+    FINUFFT_ERR_EPS_TOO_SMALL if requested eps (tol) is below machine epsilon.
     Barbone (Dec/25): ensure legacy kereval/kerpad user opts are treated as no-ops.
     1/8/26: Barnett redo (merges setup_spreader & setup_spreader_for_nufft of 2017).
+    Barbone (3/4/26): eps-too-small is now a hard error (throw), not a warning.
   */
+
   m.spopts.nthreads     = opts.nthreads; // 0 passed in becomes OMP max avail spreadinterp
   m.spopts.sort         = opts.spread_sort;  // todo: could make dim or CPU choices here?
   m.spopts.sort_threads = 0;                 // 0:auto-choice
@@ -150,24 +151,20 @@ template<typename TF> void FINUFFT_PLAN_T<TF>::setup_spreadinterp() {
 
   constexpr TF EPSILON = std::numeric_limits<TF>::epsilon(); // 2.2e-16 or 1.2e-7
   if (m.tol < EPSILON) { // unfeasible request: no hope of beating eps_mach...
-    if (opts.showwarn)
-      fprintf(stderr, "%s warning: increasing tol=%.3g to eps_mach=%.3g.\n", __func__,
-              (double)m.tol, (double)EPSILON);
-    m.tol = EPSILON; // ... so forget the user request and target eps_mach
-    warning_code_ = FINUFFT_WARN_EPS_TOO_SMALL;
+    fprintf(stderr, "%s error: requested tol=%.3g is below eps_mach=%.3g.\n", __func__,
+            (double)m.tol, (double)EPSILON);
+    throw finufft::exception(FINUFFT_ERR_EPS_TOO_SMALL);
   }
 
   // choose nspread and set it in spopts...
   int ns = theoretical_kernel_ns((double)m.tol, dim, type, opts.debug, m.spopts);
   ns     = std::max(MIN_NSPREAD, ns); // clip low
   if (ns > MAX_NSPREAD) {             // clip to largest spreadinterp.cpp allows
-    if (opts.showwarn)
-      fprintf(stderr,
-              "%s warning: at upsampfac=%.3g, tol=%.3g would need kernel "
-              "width ns=%d; clipping to max %d.\n",
-              __func__, m.spopts.upsampfac, (double)m.tol, ns, MAX_NSPREAD);
-    ns  = MAX_NSPREAD;
-    warning_code_ = FINUFFT_WARN_EPS_TOO_SMALL;
+    fprintf(stderr,
+            "%s error: at upsampfac=%.3g, tol=%.3g would need kernel "
+            "width ns=%d, exceeding max %d.\n",
+            __func__, m.spopts.upsampfac, (double)m.tol, ns, MAX_NSPREAD);
+    throw finufft::exception(FINUFFT_ERR_EPS_TOO_SMALL);
   }
   // further ns reduction to prevent catastrophic cancellation in float...
   const bool singleprec = std::is_same_v<TF, float>;
@@ -185,8 +182,8 @@ template<typename TF> void FINUFFT_PLAN_T<TF>::setup_spreadinterp() {
   m.spopts.nspread = ns;
   set_kernel_shape_given_ns(m.spopts, opts.debug); // selects kernel params in spopts
   if (opts.debug || m.spopts.debug)
-    printf("\t\t\ttol=%.3g sigma=%.3g: chose ns=%d beta=%.3g (warning=%d)\n", m.tol,
-           m.spopts.upsampfac, ns, m.spopts.beta, warning_code_);
+    printf("\t\t\ttol=%.3g sigma=%.3g: chose ns=%d beta=%.3g\n", m.tol,
+           m.spopts.upsampfac, ns, m.spopts.beta);
 
   // heuristic dir=1 chunking for nthr>>1, typical for intel i7 and skylake...
   m.spopts.max_subproblem_size = (dim == 1) ? 10000 : 100000; // todo: revisit
@@ -318,11 +315,10 @@ FINUFFT_PLAN_T<TF>::FINUFFT_PLAN_T(int type_, int dim_, const BIGINT *n_modes, i
 // For some of the fields (if "auto" selected) here choose the actual setting.
 // For types 1,2 allocates memory for internal working arrays,
 // evaluates spreading kernel coefficients, and does FFT plan if needed.
-// Throws finufft::exception on error. Warning codes are accumulated in
-// warning_code_ (read via warning_code()).
+// Throws finufft::exception on error.
 {
   using namespace finufft::utils;
-  m.tol = tol_;    // save user tolerance (may be clamped later by setup_spreadinterp)
+  m.tol = tol_;    // save user tolerance (setup_spreadinterp throws if below eps_mach)
   if (!opts_)      // use default opts
     finufft_default_opts_t(&opts);
   else             // or read from what's passed in
@@ -424,7 +420,7 @@ FINUFFT_PLAN_T<TF>::FINUFFT_PLAN_T(int type_, int dim_, const BIGINT *n_modes, i
   if (opts.upsampfac != 0.0) {
     upsamp_locked = true; // user explicitly set upsampfac, don't auto-update
     if (opts.debug) printf("\t\tuser locked upsampfac=%g\n", opts.upsampfac);
-    setup_spreadinterp(); // throws on error, sets warning_code_ on warning
+    setup_spreadinterp(); // throws on error
     precompute_horner_coeffs();
 
     //  ------------------------ types 1,2: planning needed ---------------------
@@ -433,9 +429,9 @@ FINUFFT_PLAN_T<TF>::FINUFFT_PLAN_T(int type_, int dim_, const BIGINT *n_modes, i
     }
   } else {
     // If upsampfac was left as 0.0 (auto) we defer setup_spreader to setpts.
-    // However, we may still warn the user now if tol is guaranteed unachievable:
+    // However, we can still error out now if tol is guaranteed unachievable:
     if (m.tol < std::numeric_limits<TF>::epsilon())
-      warning_code_ = FINUFFT_WARN_EPS_TOO_SMALL;
+      throw finufft::exception(FINUFFT_ERR_EPS_TOO_SMALL);
   }
 
   if (type == 3) { // -------------------------- type 3 (no planning) ------------
@@ -450,10 +446,10 @@ template<typename TF>
 int finufft_makeplan_t(int type, int dim, const BIGINT *n_modes, int iflag, int ntrans,
                        TF tol, FINUFFT_PLAN_T<TF> **pp, const finufft_opts *opts)
 // C-API wrapper around the C++ constructor. Writes a pointer to the plan in *pp.
-// Returns warning code (0 = success, 1 = warning). Errors throw and are caught
-// by safe_finufft_call at the C boundary.
+// Returns 0 on success. Errors throw and are caught by safe_finufft_call at the
+// C boundary.
 {
   *pp = nullptr;
   *pp = new FINUFFT_PLAN_T<TF>(type, dim, n_modes, iflag, ntrans, tol, opts);
-  return (*pp)->warning_code();
+  return 0;
 }

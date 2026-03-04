@@ -25,7 +25,8 @@ public:
 
   static const char *error_string(int code) {
     switch (code) {
-    case FINUFFT_WARN_EPS_TOO_SMALL: return "requested tolerance too small";
+    case FINUFFT_WARN_EPS_TOO_SMALL: return "requested tolerance too small (deprecated)";
+    case FINUFFT_ERR_EPS_TOO_SMALL: return "requested tolerance too small";
     case FINUFFT_ERR_MAXNALLOC: return "fine grid size exceeds MAX_NF";
     case FINUFFT_ERR_SPREAD_BOX_SMALL: return "grid dims smaller than 2*nspread";
     case FINUFFT_ERR_SPREAD_DIR: return "spread_direction must be 1 or 2";

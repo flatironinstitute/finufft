@@ -21,10 +21,14 @@ v2.6.0-dev
   set once in the constructor. Exception-based error handling: internal C++
   code now throws finufft::exception instead of throw int(...) or returning
   error codes; safe_finufft_call at the C boundary catches exceptions and
-  converts them to integer return codes. Constructor no longer takes an
-  int &ier output parameter; warnings are accumulated in warning_code().
+  converts them to integer return codes.
   Memory leak fixes in guru helper and type-3 inner plan creation using
-  RAII (unique_ptr). No public API changes.
+  RAII (unique_ptr).
+  BREAKING CHANGE: FINUFFT_WARN_EPS_TOO_SMALL (ier=1) is now a hard error
+  (FINUFFT_ERR_EPS_TOO_SMALL, ier=26). Requesting a tolerance below machine
+  epsilon now throws/returns an error instead of clamping and proceeding.
+  Users must pass a valid tolerance >= machine epsilon. The old enum value
+  is deprecated (compiler warning) but retained for backward compatibility.
   (Barbone)
 * Internal cuFINUFFT refactoring
   - Memory management is now done in C++ style (RAII) using Thrust allocators

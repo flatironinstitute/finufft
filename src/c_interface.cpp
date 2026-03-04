@@ -122,12 +122,13 @@ int guru(int n_dims, int type, int n_transf, i64 nj, const std::array<const T *,
 // Plan is stack-allocated since its lifetime is scoped to this call.
 // Errors throw finufft::exception and are caught by safe_finufft_call.
 // Author: Andrea Malleo, 2019. Stack alloc: Barbone, 2026.
+// Barbone (3/4/26): return 0 on success (removed warning_code propagation).
 {
   return safe_finufft_call([&]() -> int {
     FINUFFT_PLAN_T<T> plan(type, n_dims, n_modes.data(), iflag, n_transf, eps, popts);
     plan.setpts(nj, xyz[0], xyz[1], xyz[2], nk, stu[0], stu[1], stu[2]);
     plan.execute(cj, fk);
-    return plan.warning_code();
+    return 0;
   });
 }
 template<typename T>

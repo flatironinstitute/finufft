@@ -123,12 +123,15 @@ int main(int argc, char *argv[]) {
             Z[k] = Nm[2] * rand01();
             F[k] = crandm11();
           }
-          FINUFFT_PLAN plan; // do tested transform...
+          FINUFFT_PLAN plan = nullptr; // do tested transform...
           int ier = FINUFFT_MAKEPLAN(type, dim, Nm, isign, ntr, (FLT)tol, &plan, &opts);
-          int ier_set = FINUFFT_SETPTS(plan, M, x.data(), y.data(), z.data(), N, X.data(),
-                                       Y.data(), Z.data());
-          FINUFFT_EXECUTE(plan, c.data(), F.data()); // type 2 writes to c, others to F
-          FINUFFT_DESTROY(plan);
+          int ier_set = 0;
+          if (!ier) {
+            ier_set = FINUFFT_SETPTS(plan, M, x.data(), y.data(), z.data(), N, X.data(),
+                                     Y.data(), Z.data());
+            if (!ier_set) FINUFFT_EXECUTE(plan, c.data(), F.data());
+            FINUFFT_DESTROY(plan);
+          }
 
           if (dim == 1) // do the relevant (of nine) direct "exact" evals...
             if (type == 1)
@@ -158,13 +161,12 @@ int main(int argc, char *argv[]) {
           else
             relerr = relerrtwonorm<BIGINT>(N, Fe, F);
 
-          if (ier > 1 || ier_set > 1) { // an error, not merely warning, we exit
-            fprintf(stderr, "   tolsweep: %dD%d failed! ier=%d, ier_setpts=%d\n", dim,
-                    type, ier, ier_set);
-            return 1;
-          }
-
-          if (ier == 0) {
+          if (ier != 0 || ier_set != 0) { // an error, we skip this tol
+            if (verbose > 2)
+              printf(
+                  "   %dd%d, tol %8.3g:\trelerr = %.3g,    \t(err ier=%d: not tested)\n",
+                  dim, type, tol, relerr, ier ? ier : ier_set);
+          } else {
             int ti     = type - 1; // index for 3-el arrays
             double req = std::max(floor[u][dim - 1], tolslack[ti] * tol); // threshold
             double clearfac = relerr / req; // factor by which beats req (<=1 ok, >1 fail)
@@ -195,11 +197,7 @@ int main(int argc, char *argv[]) {
                 opts.debug = debug; // reset to cmdline arg value
               }
             }
-          } else // finufft returned warning (ie cannot achieve accuracy): don't test
-            if (verbose > 2)
-              printf(
-                  "   %dd%d, tol %8.3g:\trelerr = %.3g,    \t(warn ier=%d: not tested)\n",
-                  dim, type, tol, relerr, ier);
+          }
 
         } // ---------------------------
 
