@@ -13,7 +13,7 @@ using namespace cufinufft::utils;
 
 namespace cufinufft {
 namespace spreadinterp {
-
+#if 0
 template<typename T, int KEREVALMETH, int ns>
 static __global__ void interp_2d_subprob(
     const T *x, const T *y, cuda_complex<T> *c, const cuda_complex<T> *fw, int M, int nf1,
@@ -145,7 +145,7 @@ static void cuinterp2d_subprob(const cufinufft_plan_t<T> &d_plan, int blksize) {
     }
   }
 }
-
+#endif
 // Functor to handle function selection (nuptsdriven vs subprob)
 struct Interp2DDispatcher {
   template<int ns, typename T>
@@ -154,7 +154,7 @@ struct Interp2DDispatcher {
     case 1:
       return cuinterp_nuptsdriven<T, 2, ns>(d_plan, blksize);
     case 2:
-      return cuinterp2d_subprob<T, ns>(d_plan, blksize);
+      return cuinterp_subprob<T, 2, ns>(d_plan, blksize);
     default:
       std::cerr << "[cuinterp2d] error: incorrect method, should be 1 or 2\n";
       throw int(FINUFFT_ERR_METHOD_NOTVALID);

@@ -19,6 +19,8 @@ struct Interp1DDispatcher {
     switch (d_plan.opts.gpu_method) {
     case 1:
       return cuinterp_nuptsdriven<T, 1, ns>(d_plan, blksize);
+    case 2:
+      return cuinterp_subprob<T, 1, ns>(d_plan, blksize);
     default:
       std::cerr << "[cuinterp1d] error: incorrect method, should be 1\n";
       throw int(FINUFFT_ERR_METHOD_NOTVALID);
