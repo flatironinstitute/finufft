@@ -344,14 +344,14 @@ void cuspread_nupts_driven(const cufinufft_plan_t<T> &d_plan, int blksize) {
 
   if (d_plan.opts.gpu_kerevalmeth == 1) {
     for (int t = 0; t < blksize; t++) {
-      spread_nupts_driven<T, 1, 3, ns><<<blocks, threadsPerBlock, 0, d_plan.stream>>>(
+      spread_nupts_driven<T, 1, ndim, ns><<<blocks, threadsPerBlock, 0, d_plan.stream>>>(
           d_plan.kxyz, d_plan.c + t * d_plan.M, d_plan.fw + t * d_plan.nf, d_plan.M, d_plan.nf123,
           es_c, es_beta, sigma, d_idxnupts);
       THROW_IF_CUDA_ERROR
     }
   } else {
     for (int t = 0; t < blksize; t++) {
-      spread_nupts_driven<T, 0, 3, ns><<<blocks, threadsPerBlock, 0, d_plan.stream>>>(
+      spread_nupts_driven<T, 0, ndim, ns><<<blocks, threadsPerBlock, 0, d_plan.stream>>>(
           d_plan.kxyz, d_plan.c + t * d_plan.M, d_plan.fw + t * d_plan.nf, d_plan.M, d_plan.nf123,
           es_c, es_beta, sigma, d_idxnupts);
       THROW_IF_CUDA_ERROR
