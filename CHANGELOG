@@ -15,28 +15,16 @@ v2.6.0-dev
   consolidated in src/fft.cpp with an opaque custom deleter. C++ internal
   headers renamed from .h to .hpp. No public API changes.
   (Barbone)
-* Mutable state on FINUFFT_PLAN_T extracted into a nested struct M (all
-  computed state from makeplan/setpts: spreader config, fine grid, NU points,
-  type-3 workspace, FFT plan), separating it from immutable configuration
-  set once in the constructor. Exception-based error handling: internal C++
-  code now throws finufft::exception instead of throw int(...) or returning
-  error codes; safe_finufft_call at the C boundary catches exceptions and
-  converts them to integer return codes.
-  Memory leak fixes in guru helper and type-3 inner plan creation using
-  RAII (unique_ptr).
+* Mutable plan state extracted into nested struct M, separating computed
+  state from immutable configuration. Internal C++ error handling now uses
+  exceptions (finufft::exception) instead of integer return codes.
+  Memory leak fixes in guru helper and type-3 inner plan via RAII.
+  Deprecated opts fields (spread_kerevalmeth, spread_kerpad) and unused
+  error codes (FINUFFT_ERR_SPREAD_PTS_OUT_RANGE, FINUFFT_ERR_SPREAD_ALLOC)
+  now emit compiler deprecation warnings.
   BREAKING CHANGE: FINUFFT_WARN_EPS_TOO_SMALL (ier=1) is now a hard error
-  (FINUFFT_ERR_EPS_TOO_SMALL, ier=26). Requesting a tolerance below machine
-  epsilon now throws/returns an error instead of clamping and proceeding.
-  Users must pass a valid tolerance >= machine epsilon. The old enum value
-  is deprecated (compiler warning) but retained for backward compatibility.
-  Deprecated enum values (FINUFFT_ERR_SPREAD_PTS_OUT_RANGE,
-  FINUFFT_ERR_SPREAD_ALLOC) now emit compiler warnings via
-  FINUFFT_DEPRECATED_ENUM. Deprecated opts fields (spread_kerevalmeth,
-  spread_kerpad) now emit compiler warnings via FINUFFT_DEPRECATED_FIELD.
-  Portable compiler-diagnostic macros moved from finufft_errors.h to
-  finufft_common/defines.h; finufft_errors.h now includes defines.h.
-  Restored FINUFFT_WARN_EPS_TOO_SMALL case in safe_call.h error_string
-  (still used by cuFINUFFT).
+  (FINUFFT_ERR_EPS_TOO_SMALL, ier=26). Users must pass tolerance >= machine
+  epsilon. The old enum value is retained but deprecated.
   (Barbone)
 * Internal cuFINUFFT refactoring
   - Memory management is now done in C++ style (RAII) using Thrust allocators

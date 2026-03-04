@@ -417,6 +417,8 @@ void FINUFFT_PLAN_T<TF>::add_wrapped_subgrid(
 // Called by the FINUFFT_PLAN_T methods below via runtime ndims dispatch.
 namespace {
 
+// FIXME: bin_sort_singlethread_impl can be changed to take XYZ directly
+// instead of separate kx, ky, kz and N1, N2, N3, bin_size_x/y/z arguments.
 template<typename T, int ndims>
 inline void bin_sort_singlethread_impl(std::vector<BIGINT> &ret, UBIGINT M, const T *kx,
                                        const T *ky, const T *kz, UBIGINT N1, UBIGINT N2,
@@ -544,6 +546,8 @@ inline void bin_sort_singlethread_impl(std::vector<BIGINT> &ret, UBIGINT M, cons
   }
 }
 
+// FIXME: same as bin_sort_singlethread_impl — can take XYZ/nfdim/bin_size arrays
+// instead of separate per-dimension arguments.
 template<typename T, int ndims>
 inline void bin_sort_multithread_impl(std::vector<BIGINT> &ret, UBIGINT M, const T *kx,
                                       const T *ky, const T *kz, UBIGINT N1, UBIGINT N2,
