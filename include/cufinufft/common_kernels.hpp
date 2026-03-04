@@ -19,8 +19,8 @@ __global__ void interp_nupts_driven(
   for (int i = blockDim.x * blockIdx.x + threadIdx.x; i < M;
        i += blockDim.x * gridDim.x) {
     const auto nuptsidx = loadReadOnly(idxnupts + i);
-    cuda::std::array<cuda::std::array<T, ns>, ndim> ker;
 
+    cuda::std::array<cuda::std::array<T, ns>, ndim> ker;
     cuda::std::array<int, ndim> start;
     for (size_t idim = 0; idim < ndim; ++idim) {
       auto rescaled   = fold_rescale(loadReadOnly(xyz[idim] + nuptsidx), nf[idim]);
