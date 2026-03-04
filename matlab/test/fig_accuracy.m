@@ -22,9 +22,8 @@ for t=1:numel(tols)
   x = pi*(2*rand(1,M)-1);
   c = randn(1,M)+1i*randn(1,M);
   ns = (ceil(-N/2) : floor((N-1)/2))';  % mode indices, col vec
-  lastwarn(''); % clear the warning state
-  f = finufft1d1(x, c, isign, tols(t), N, o);
-  [~, id] = lastwarn; toloks(t) = ~strcmp(id, 'FINUFFT:epsTooSmall'); % get warn
+  [toloks(t), f] = safe_call(@() finufft1d1(x, c, isign, tols(t), N, o));
+  if ~toloks(t), continue; end
   fe = exp(1i*isign*ns*x) * c.';         % exact (note mat fill, matvec)
   %errs(t) = max(abs(f(:)-fe(:))) / norm(c,1);      % eps as in err analysis...
   %p=2; errs(t) = norm(f(:)-fe(:),p) / norm(c,p);   % ...or p-norm rel to input

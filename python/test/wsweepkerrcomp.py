@@ -6,6 +6,7 @@ This script uses erralltypedim.py for the core error computations and calls the
 FINUFFT Python bindings to measure kernel support via spreadinterponly for each
 kernel formula, producing a figure saved under results/.
 """
+
 from __future__ import annotations
 
 import math
@@ -14,7 +15,6 @@ import sys
 
 import matplotlib.pyplot as plt
 import numpy as np
-import warnings
 
 from erralltypedim import erralltypedim
 
@@ -31,11 +31,19 @@ def main() -> None:
     import argparse
 
     p = argparse.ArgumentParser(description="Kernel-width sweep")
-    p.add_argument("--sigma", type=float, default=2.00, help="upsampling factor (sigma)")
-    p.add_argument("--dim", type=int, default=1, choices=[1, 2, 3], help="dimension to test")
-    p.add_argument("--M", type=int, default=1000, help="number of nonuniform points (M)")
+    p.add_argument(
+        "--sigma", type=float, default=2.00, help="upsampling factor (sigma)"
+    )
+    p.add_argument(
+        "--dim", type=int, default=1, choices=[1, 2, 3], help="dimension to test"
+    )
+    p.add_argument(
+        "--M", type=int, default=1000, help="number of nonuniform points (M)"
+    )
     p.add_argument("--Ntot", type=int, default=300, help="total number of modes (Ntot)")
-    p.add_argument("--ntr", type=int, default=10, help="# transforms to average per tol (ntr)")
+    p.add_argument(
+        "--ntr", type=int, default=10, help="# transforms to average per tol (ntr)"
+    )
     args = p.parse_args()
 
     prec = "double"
@@ -48,7 +56,14 @@ def main() -> None:
     sigma = float(args.sigma)
     tolsperdecade = 8
     tolstep = 10 ** (-1 / tolsperdecade)
-    kfnam = ["ES legacy", "ES Beatty", "KB Beatty", "cont-KB Beatty", "cosh-type", "smoothed cont-KB"]
+    kfnam = [
+        "ES legacy",
+        "ES Beatty",
+        "KB Beatty",
+        "cont-KB Beatty",
+        "cosh-type",
+        "smoothed cont-KB",
+    ]
     kfs = list(range(1, len(kfnam) + 1))
 
     o = {"upsampfac": sigma, "showwarn": False}
@@ -66,18 +81,18 @@ def main() -> None:
         f"ntols={ntols}, kfs: {' '.join(str(k) for k in kfs)}"
     )
 
-    # suppress repeated FINUFFT eps-too-small warnings during sweeps
-    warnings.filterwarnings("ignore", message="FINUFFT eps tolerance too small to achieve")
-
     errs = np.full((nkf, 3, ntols), np.nan, dtype=float)
+    toloks = np.ones(ntols, dtype=bool)
     ws = np.zeros((nkf, ntols), dtype=int)
 
     for t, tol in enumerate(tols):
         for i, kf in enumerate(kfs):
             o["spread_kerformula"] = kf
-            errvals, info = erralltypedim(
+            errvals, info, toloks[t] = erralltypedim(
                 M, Ntot, ntr, isign, prec, float(tol), o, myrand, dims
             )
+            if not toloks[t]:
+                continue
             errs[i, :, t] = np.asarray(errvals)[:, dim - 1]
 
             o_spread = dict(o)
@@ -161,16 +176,12 @@ def main() -> None:
         ax.set_ylabel("mean rel err")
         if legs:
             ax.legend(legs)
-        ax.set_title(
-            f"{dim}D type {y + 1} {prec}, N_tot={Ntot}, σ={sigma}", pad=6
-        )
+        ax.set_title(f"{dim}D type {y + 1} {prec}, N_tot={Ntot}, σ={sigma}", pad=6)
         ax.tick_params(axis="both", which="both", width=0.5, length=4)
         ax.set_facecolor("white")
 
     plt.tight_layout()
-    outfile = os.path.join(
-        results_dir, f"wsweepkerrcomp_{dim}D_{prec}_sig{sigma}.png"
-    )
+    outfile = os.path.join(results_dir, f"wsweepkerrcomp_{dim}D_{prec}_sig{sigma}.png")
     fig.savefig(outfile)
     print(f"Saved {outfile}")
 
