@@ -121,7 +121,7 @@ static __global__ void interp_subprob(
   const auto nupts = min(maxsubprobsize, bin_size[bidx] - binsubp_idx * maxsubprobsize);
 
 //FIXME: loop!
-  cuda::std::array<int, 3> offset;
+  cuda::std::array<int, ndim> offset;
   {
   int tmp = bidx;
   for (int idim=0; idim<ndim; ++idim) {
@@ -164,7 +164,7 @@ static __global__ void interp_subprob(
 
   for (int i = threadIdx.x; i < nupts; i += blockDim.x) {
     const int idx = ptstart + i;
-    cuda::std::array<int, 3> start;
+    cuda::std::array<int, ndim> start;
     for (int idim=0; idim<ndim; ++idim) {
       const auto rescaled = fold_rescale(xyz[idim][idxnupts[idx]], nf[idim]);
       auto [s, dummy] = interval(ns, rescaled);
@@ -182,19 +182,38 @@ static __global__ void interp_subprob(
     }
 
     cuda_complex<T> cnow{0, 0};
-    for (int zz = 0; zz < ns; ++zz) {
-      const auto kervalue3 = ker[2][zz];
-      const auto iz = zz + start[2] + ns_2;
+    if constexpr (ndim==1) {
+      for (int xx = 0; xx < ns; ++xx) {
+        const auto ix = xx + start[0] + ns_2;
+        cnow += {fwshared[ix] * ker[0][xx]};
+      }
+    } else if constexpr (ndim==2) {
       for (int yy = 0; yy < ns; ++yy) {
         const auto kervalue2 = ker[1][yy];
         const auto iy = yy + start[1] + ns_2;
         for (int xx = 0; xx < ns; ++xx) {
           const auto ix = xx + start[0] + ns_2;
-          const auto outidx = ix + iy * (binsizes[0] + rounded_ns) +
-                              iz * (binsizes[0] + rounded_ns) * (binsizes[1] + rounded_ns);
+          const auto inidx = ix + iy * (binsizes[0] + rounded_ns);
           const auto kervalue1 = ker[0][xx];
-          const auto kervalue  = kervalue1 * kervalue2 * kervalue3;
-          cnow += {fwshared[outidx] * kervalue};
+          const auto kervalue  = kervalue1 * kervalue2;
+          cnow += {fwshared[inidx] * kervalue};
+        }
+      }
+    } else {
+      for (int zz = 0; zz < ns; ++zz) {
+        const auto kervalue3 = ker[2][zz];
+        const auto iz = zz + start[2] + ns_2;
+        for (int yy = 0; yy < ns; ++yy) {
+          const auto kervalue2 = ker[1][yy];
+          const auto iy = yy + start[1] + ns_2;
+          for (int xx = 0; xx < ns; ++xx) {
+            const auto ix = xx + start[0] + ns_2;
+            const auto inidx = ix + iy * (binsizes[0] + rounded_ns) +
+                               iz * (binsizes[0] + rounded_ns) * (binsizes[1] + rounded_ns);
+            const auto kervalue1 = ker[0][xx];
+            const auto kervalue  = kervalue1 * kervalue2 * kervalue3;
+            cnow += {fwshared[inidx] * kervalue};
+          }
         }
       }
     }
