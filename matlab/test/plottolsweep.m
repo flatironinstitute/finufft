@@ -30,8 +30,6 @@ tolsperdecade = 8;
 tolstep = 10 ^ (-1 / tolsperdecade); % multiplicative step in tol, < 1
 figure('position', [500 500 1000 500]);
 iplot = 1;            % subplot counter
-warning('off','FINUFFT:epsTooSmall');
-
 for precdev=precdevs  % ......... loop precisions & devices
                       %  s=single, d=double; sd = CPU, SD = GPU
   if sum (precdev == 'sS'), prec = 'single'; else prec = 'double'; end
@@ -44,10 +42,8 @@ for precdev=precdevs  % ......... loop precisions & devices
   toloks = true(1,ntols);          % whether FINUFFT reported warning for tol
   for t=1:ntols
     tol = tols(t);
-    lastwarn('');                  % clean up warnings
-    [nineerrs, info] = erralltypedim(M,Ntot,ntr,isign,prec,tol,o,myrand,dims);
-    errs(:,t) = nineerrs(:,dim);   % extract col from 3x3
-    [~,id] = lastwarn; toloks(t) = ~strcmp(id, 'FINUFFT:epsTooSmall');
+    [nineerrs, info, toloks(t)] = erralltypedim(M,Ntot,ntr,isign,prec,tol,o,myrand,dims);
+    if toloks(t), errs(:,t) = nineerrs(:,dim); end
     %o.debug = 0; if max(errs(:,t))>0.1, o.debug = 1; end  % <- for detective
   end
   Nmax = info.Nmax(dims);

@@ -13,7 +13,6 @@ ntr = 20;           % #transforms to average error over (little extra direct cos
 isign = +1;
 sigmas = [1.25 2];             % a.k.a. upsampfac, list to test
 tolslack = [4.0; 4.0; 5.0];    % factors by which eps can exceed tol (3 types)
-warning('off','FINUFFT:epsTooSmall');
 o.showwarn = 0; %o.debug=1;
 o.spread_kerformula = 0;       % custom FINUFFT opts (should be defaults for CI)
 tolsperdecade = 8;             % tol resolution
@@ -51,10 +50,8 @@ for dim = 1:3  % ======== dimensions
       toloks = true(1,ntols);        % whether FINUFFT reported warning for tol
       for t=1:ntols
         tol = tols(t);
-        lastwarn('');                  % clean up warnings
-        [nineerrs, info] = erralltypedim(M,Ntot,ntr,isign,prec,tol,o,myrand,dims);
-        errs(:,t) = nineerrs(:,dim);   % extract col from 3x3
-        [~,id] = lastwarn; toloks(t) = ~strcmp(id, 'FINUFFT:epsTooSmall');
+        [nineerrs, info, toloks(t)] = erralltypedim(M,Ntot,ntr,isign,prec,tol,o,myrand,dims);
+        if toloks(t), errs(:,t) = nineerrs(:,dim); end
       end
       Nmax = info.Nmax(dims);    % currently unused
       if strcmp(prec,'single'), epsmin=floors32(j); else epsmin=floors64(j); end

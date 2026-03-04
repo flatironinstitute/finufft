@@ -98,8 +98,9 @@ def test_finufft2_plan(dtype, shape, n_pts, output_arg, modeord):
 @pytest.mark.parametrize("n_target_pts", N_PTS)
 @pytest.mark.parametrize("output_arg", OUTPUT_ARGS)
 def test_finufft3_plan(dtype, dim, n_source_pts, n_target_pts, output_arg):
-    source_pts, source_coefs, target_pts = utils.type3_problem(dtype,
-            dim, n_source_pts, n_target_pts)
+    source_pts, source_coefs, target_pts = utils.type3_problem(
+        dtype, dim, n_source_pts, n_target_pts
+    )
 
     plan = Plan(3, dim, dtype=dtype)
 
@@ -145,7 +146,7 @@ def test_finufft_plan_errors():
     with pytest.raises(RuntimeError, match="n_modes dimension must be 1, 2"):
         Plan(2, (1, 2, 3, 4))
 
-    with pytest.warns(Warning, match="eps tolerance too small"):
+    with pytest.raises(RuntimeError, match="eps tolerance too small"):
         Plan(1, (8, 8), eps=1e-30)
 
     with pytest.raises(TypeError, match="does not have the correct dtype"):
@@ -154,8 +155,10 @@ def test_finufft_plan_errors():
     with pytest.raises(TypeError, match="the following requirement: C"):
         plan = Plan(1, (8, 8), dtype="complex64")
         plan.setpts(*np.ones((2, 1), dtype="float32"))
-        plan.execute(np.ones(1, dtype="complex64"), out=np.ones((8, 8),
-            dtype="complex64", order="F"))
+        plan.execute(
+            np.ones(1, dtype="complex64"),
+            out=np.ones((8, 8), dtype="complex64", order="F"),
+        )
 
     with pytest.raises(TypeError, match="the following requirement: W"):
         plan = Plan(1, (8, 8), dtype="complex64")
@@ -258,7 +261,9 @@ def test_finufft_plan_errors():
     with pytest.raises(RuntimeError, match=r"f\.ndim must be 1 or 2"):
         plan = Plan(3, 1, dtype="complex64")
         plan.setpts(np.ones(3, dtype="float32"), s=np.ones(3, dtype="float32"))
-        plan.execute(np.ones(3, dtype="complex64"), out=np.ones((1, 2, 3), dtype="complex64"))
+        plan.execute(
+            np.ones(3, dtype="complex64"), out=np.ones((1, 2, 3), dtype="complex64")
+        )
 
     with pytest.raises(RuntimeError, match=r"f\.size of must be nk"):
         plan = Plan(3, 1, dtype="complex64")
@@ -268,12 +273,16 @@ def test_finufft_plan_errors():
     with pytest.raises(RuntimeError, match=r"f\.ndim must be 2"):
         plan = Plan(3, 1, n_trans=2, dtype="complex64")
         plan.setpts(np.ones(3, dtype="float32"), s=np.ones(3, dtype="float32"))
-        plan.execute(np.ones((2, 3), dtype="complex64"), out=np.ones(3, dtype="complex64"))
+        plan.execute(
+            np.ones((2, 3), dtype="complex64"), out=np.ones(3, dtype="complex64")
+        )
 
     with pytest.raises(RuntimeError, match=r"f\.shape must be \(n_trans, nk\)"):
         plan = Plan(3, 1, n_trans=2, dtype="complex64")
         plan.setpts(np.ones(3, dtype="float32"), s=np.ones(3, dtype="float32"))
-        plan.execute(np.ones((2, 3), dtype="complex64"), out=np.ones((2, 4), dtype="complex64"))
+        plan.execute(
+            np.ones((2, 3), dtype="complex64"), out=np.ones((2, 4), dtype="complex64")
+        )
 
     with pytest.raises(RuntimeError, match="transform type invalid"):
         plan = Plan(4, (8,))
