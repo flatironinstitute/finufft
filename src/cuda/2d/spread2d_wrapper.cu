@@ -11,6 +11,7 @@
 #include <cufinufft/contrib/helper_math.h>
 #include <cufinufft/spreadinterp.h>
 #include <cufinufft/utils.h>
+#include <cufinufft/common_kernels.hpp>
 
 using namespace cufinufft::common;
 using namespace cufinufft::utils;
@@ -89,46 +90,6 @@ static __global__ void calc_inverse_of_global_sort_index_2d(
     binidx     = binx + biny * nbinx;
 
     index[bin_startpts[binidx] + sortidx[i]] = i;
-  }
-}
-
-template<typename T, int KEREVALMETH, int ns>
-static __global__ void spread_2d_nupts_driven(
-    const T *x, const T *y, const cuda_complex<T> *c, cuda_complex<T> *fw, int M, int nf1,
-    int nf2, T es_c, T es_beta, T sigma, const int *idxnupts) {
-  T ker1[ns];
-  T ker2[ns];
-  for (int i = blockDim.x * blockIdx.x + threadIdx.x; i < M;
-       i += blockDim.x * gridDim.x) {
-    const auto x_rescaled     = fold_rescale(x[idxnupts[i]], nf1);
-    const auto y_rescaled     = fold_rescale(y[idxnupts[i]], nf2);
-    const auto cnow           = c[idxnupts[i]];
-    const auto [xstart, xend] = interval(ns, x_rescaled);
-    const auto [ystart, yend] = interval(ns, y_rescaled);
-
-    const auto x1 = (T)xstart - x_rescaled;
-    const auto y1 = (T)ystart - y_rescaled;
-
-    if constexpr (KEREVALMETH == 1) {
-      eval_kernel_vec_horner<T, ns>(ker1, x1, sigma);
-      eval_kernel_vec_horner<T, ns>(ker2, y1, sigma);
-    } else {
-      eval_kernel_vec<T, ns>(ker1, x1, es_c, es_beta);
-      eval_kernel_vec<T, ns>(ker2, y1, es_c, es_beta);
-    }
-
-    for (auto yy = ystart; yy <= yend; yy++) {
-      const auto iy = yy < 0 ? yy + nf2 : (yy > nf2 - 1 ? yy - nf2 : yy);
-      for (auto xx = xstart; xx <= xend; xx++) {
-        const auto ix        = xx < 0 ? xx + nf1 : (xx > nf1 - 1 ? xx - nf1 : xx);
-        const auto outidx    = ix + iy * nf1;
-        const auto kervalue1 = ker1[xx - xstart];
-        const auto kervalue2 = ker2[yy - ystart];
-        const cuda_complex<T> res{cnow.x * kervalue1 * kervalue2,
-                                  cnow.y * kervalue1 * kervalue2};
-        atomicAddComplexGlobal<T>(fw + outidx, res);
-      }
-    }
   }
 }
 
@@ -402,44 +363,6 @@ static void cuspread2d_output_driven(int nf1, int nf2, int M,
 }
 
 template<typename T, int ns>
-static void cuspread2d_nuptsdriven(int nf1, int nf2, int M,
-                                   const cufinufft_plan_t<T> &d_plan, int blksize) {
-  auto &stream = d_plan.stream;
-  dim3 threadsPerBlock;
-  dim3 blocks;
-
-  const int *d_idxnupts = dethrust(d_plan.idxnupts);
-  T es_c                = 4.0 / T(d_plan.spopts.nspread * d_plan.spopts.nspread);
-  T es_beta             = d_plan.spopts.beta;
-  T sigma               = d_plan.spopts.upsampfac;
-
-  const T *d_kx              = d_plan.kxyz[0];
-  const T *d_ky              = d_plan.kxyz[1];
-  const cuda_complex<T> *d_c = d_plan.c;
-  cuda_complex<T> *d_fw      = d_plan.fw;
-
-  threadsPerBlock.x = 16;
-  threadsPerBlock.y = 1;
-  blocks.x          = (M + threadsPerBlock.x - 1) / threadsPerBlock.x;
-  blocks.y          = 1;
-  if (d_plan.opts.gpu_kerevalmeth) {
-    for (int t = 0; t < blksize; t++) {
-      spread_2d_nupts_driven<T, 1, ns><<<blocks, threadsPerBlock, 0, stream>>>(
-          d_kx, d_ky, d_c + t * M, d_fw + t * nf1 * nf2, M, nf1, nf2, es_c, es_beta,
-          sigma, d_idxnupts);
-      THROW_IF_CUDA_ERROR
-    }
-  } else {
-    for (int t = 0; t < blksize; t++) {
-      spread_2d_nupts_driven<T, 0, ns><<<blocks, threadsPerBlock, 0, stream>>>(
-          d_kx, d_ky, d_c + t * M, d_fw + t * nf1 * nf2, M, nf1, nf2, es_c, es_beta,
-          sigma, d_idxnupts);
-      THROW_IF_CUDA_ERROR
-    }
-  }
-}
-
-template<typename T, int ns>
 static void cuspread2d_subprob(int nf1, int nf2, int M, const cufinufft_plan_t<T> &d_plan,
                                int blksize) {
   auto &stream = d_plan.stream;
@@ -505,7 +428,7 @@ struct Spread2DDispatcher {
                   int blksize) const {
     switch (d_plan.opts.gpu_method) {
     case 1:
-      return cuspread2d_nuptsdriven<T, ns>(nf1, nf2, M, d_plan, blksize);
+      return cuspread_nupts_driven<T, 3, ns>(d_plan, blksize);
     case 2:
       return cuspread2d_subprob<T, ns>(nf1, nf2, M, d_plan, blksize);
     case 3:

@@ -14,6 +14,7 @@
 #include <cufinufft/contrib/helper_math.h>
 #include <cufinufft/spreadinterp.h>
 #include <cufinufft/utils.h>
+#include <cufinufft/common_kernels.hpp>
 
 using namespace cufinufft::common;
 using namespace cufinufft::utils;
@@ -44,32 +45,6 @@ static __global__ void map_b_into_subprob_1d(int *d_subprob_to_bin,
        i += gridDim.x * blockDim.x) {
     for (int j = 0; j < d_numsubprob[i]; j++) {
       d_subprob_to_bin[d_subprobstartpts[i] + j] = i;
-    }
-  }
-}
-
-/* Kernels for NUptsdriven Method */
-template<typename T, int KEREVALMETH, int ns>
-static __global__ void spread_1d_nuptsdriven(const T *x, const cuda_complex<T> *c,
-                                             cuda_complex<T> *fw, int M, int nf1, T es_c,
-                                             T es_beta, T sigma, const int *idxnupts) {
-  T ker1[ns];
-  for (int i = blockDim.x * blockIdx.x + threadIdx.x; i < M;
-       i += blockDim.x * gridDim.x) {
-    const auto x_rescaled     = fold_rescale(x[idxnupts[i]], nf1);
-    const auto cnow           = c[idxnupts[i]];
-    const auto [xstart, xend] = interval(ns, x_rescaled);
-    const T x1                = (T)xstart - x_rescaled;
-    if constexpr (KEREVALMETH == 1)
-      eval_kernel_vec_horner<T, ns>(ker1, x1, sigma);
-    else
-      eval_kernel_vec<T, ns>(ker1, x1, es_c, es_beta);
-
-    for (auto xx = xstart; xx <= xend; xx++) {
-      auto ix          = xx < 0 ? xx + nf1 : (xx > nf1 - 1 ? xx - nf1 : xx);
-      const T kervalue = ker1[xx - xstart];
-      atomicAdd(&fw[ix].x, cnow.x * kervalue);
-      atomicAdd(&fw[ix].y, cnow.y * kervalue);
     }
   }
 }
@@ -305,42 +280,6 @@ static void cuspread1d_nuptsdriven_prop(cufinufft_plan_t<T> &d_plan) {
 }
 
 template<typename T, int ns>
-static void cuspread1d_nuptsdriven(int nf1, int M, const cufinufft_plan_t<T> &d_plan,
-                                   int blksize) {
-  auto &stream = d_plan.stream;
-  dim3 threadsPerBlock;
-  dim3 blocks;
-
-  const int *d_idxnupts = dethrust(d_plan.idxnupts);
-  T es_c                = 4.0 / T(d_plan.spopts.nspread * d_plan.spopts.nspread);
-  T es_beta             = d_plan.spopts.beta;
-  T sigma               = d_plan.spopts.upsampfac;
-
-  const T *d_kx              = d_plan.kxyz[0];
-  const cuda_complex<T> *d_c = d_plan.c;
-  cuda_complex<T> *d_fw      = d_plan.fw;
-
-  threadsPerBlock.x = 16;
-  threadsPerBlock.y = 1;
-  blocks.x          = (M + threadsPerBlock.x - 1) / threadsPerBlock.x;
-  blocks.y          = 1;
-
-  if (d_plan.opts.gpu_kerevalmeth) {
-    for (int t = 0; t < blksize; t++) {
-      spread_1d_nuptsdriven<T, 1, ns><<<blocks, threadsPerBlock, 0, stream>>>(
-          d_kx, d_c + t * M, d_fw + t * nf1, M, nf1, es_c, es_beta, sigma, d_idxnupts);
-      THROW_IF_CUDA_ERROR
-    }
-  } else {
-    for (int t = 0; t < blksize; t++) {
-      spread_1d_nuptsdriven<T, 0, ns><<<blocks, threadsPerBlock, 0, stream>>>(
-          d_kx, d_c + t * M, d_fw + t * nf1, M, nf1, es_c, es_beta, sigma, d_idxnupts);
-      THROW_IF_CUDA_ERROR
-    }
-  }
-}
-
-template<typename T, int ns>
 static void cuspread1d_output_driven(int nf1, int M, const cufinufft_plan_t<T> &d_plan,
                                      int blksize) {
   auto &stream       = d_plan.stream;
@@ -524,7 +463,7 @@ struct Spread1DDispatcher {
   void operator()(int nf1, int M, const cufinufft_plan_t<T> &d_plan, int blksize) const {
     switch (d_plan.opts.gpu_method) {
     case 1:
-      return cuspread1d_nuptsdriven<T, ns>(nf1, M, d_plan, blksize);
+      return cuspread_nupts_driven<T, 1, ns>(d_plan, blksize);
     case 2:
       return cuspread1d_subprob<T, ns>(nf1, M, d_plan, blksize);
     case 3:
