@@ -281,22 +281,19 @@ static __global__ void spread_nupts_driven(
     }
 
     cuda_complex<T> val = c[idxnupts[i]];
-#if 0
     if constexpr (ndim == 1) {
       for (int x0 = 0, ix = start[0]; x0 < ns; ++x0, ix = (ix + 1 >= nf[0]) ? 0 : ix + 1)
-        cnow += fw[ix] * ker[0][x0];
+        atomicAddComplexGlobal<T>(fw+ix, ker[0][x0]*val);
     } else if constexpr (ndim == 2) {
       for (int y0 = 0, iy = start[1]; y0 < ns;
            ++y0, iy       = (iy + 1 >= nf[1]) ? 0 : iy + 1) {
-        const auto inidx0 = iy * nf[0];
-        cuda_complex<T> cnowx{0, 0};
+        const auto outidx0 = iy * nf[0];
+        cuda_complex<T> valy = ker[1][y0];
         for (int x0 = 0, ix = start[0]; x0 < ns;
              ++x0, ix       = (ix + 1 >= nf[0]) ? 0 : ix + 1)
-          cnowx += fw[inidx0 + ix] * ker[0][x0];
-        cnow += cnowx * ker[1][y0];
+          atomicAddComplexGlobal<T>(fw+outidx0+ix, ker[0][x0]*valy);
       }
     } else {
-#endif
       for (int z0 = 0, iz = start[2]; z0 < ns;
            ++z0, iz       = (iz + 1 >= nf[2]) ? 0 : iz + 1) {
         const auto outidx0 = iz * nf[1] * nf[0];
@@ -311,7 +308,7 @@ static __global__ void spread_nupts_driven(
           }
         }
       }
-//    }
+    }
   }
 }
 
