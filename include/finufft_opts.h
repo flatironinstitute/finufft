@@ -52,9 +52,9 @@ typedef struct finufft_opts { // defaults see plan.hpp:finufft_default_opts_t()
   int fftw;               // plan flags to FFTW (FFTW_ESTIMATE=64, FFTW_MEASURE=0,...)
   int spread_sort;        // spreader: 0 don't sort, 1 do, or 2 heuristic choice
   FINUFFT_DEPRECATED_FIELD("no effect; Horner is always used")
-  int spread_kerevalmeth; // retained for ABI compatibility
+  int spread_kerevalmeth; // deprecated; no effect (Horner is always used)
   FINUFFT_DEPRECATED_FIELD("no effect; padding is handled internally")
-  int spread_kerpad;      // retained for ABI compatibility
+  int spread_kerpad;      // deprecated; no effect (padding is handled internally)
   double upsampfac;       // upsampling ratio sigma: 2.0 std, 1.25 small FFT, 0.0 auto
   int spread_thread;      // (vectorized ntr>1 only): 0 auto, 1 seq multithreaded,
                           //                          2 parallel single-thread spread
