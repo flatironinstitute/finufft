@@ -282,6 +282,8 @@ inline void finufft_default_opts_t(finufft_opts *o)
 
 // Sphinx sucks the below code block into the web docs, hence keep it clean...
 {
+  FINUFFT_DIAGNOSTIC_PUSH
+  FINUFFT_DISABLE_WARNING_DEPRECATED
   // sphinx tag (don't remove): @defopts_start
   o->modeord          = 0;
   o->spreadinterponly = 0;
@@ -293,8 +295,8 @@ inline void finufft_default_opts_t(finufft_opts *o)
   o->nthreads           = 0;
   o->fftw               = FINUFFT_FFT_DEFAULT; // FFTW_ESTIMATE for FFTW; -1 for DUCC0
   o->spread_sort        = 2;
-  o->spread_kerevalmeth = 1;                   // deprecated
-  o->spread_kerpad      = 1;                   // deprecated
+  o->spread_kerevalmeth = 1;                   // deprecated, retained for ABI
+  o->spread_kerpad      = 1;                   // deprecated, retained for ABI
   o->upsampfac          = 0.0;
   o->spread_thread      = 0;
   o->maxbatchsize       = 0;
@@ -305,6 +307,7 @@ inline void finufft_default_opts_t(finufft_opts *o)
   o->fftw_unlock_fun    = nullptr;
   o->fftw_lock_data     = nullptr;
   // sphinx tag (don't remove): @defopts_end
+  FINUFFT_DIAGNOSTIC_POP
 }
 template<typename TF>
 int finufft_makeplan_t(int type, int dim, const BIGINT *n_modes, int iflag, int ntrans,
