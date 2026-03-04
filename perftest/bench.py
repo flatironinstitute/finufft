@@ -25,6 +25,7 @@ def run_command(command, args):
         print("stdout output:\n", e.stdout)
         print("stderr output:\n", e.stderr)
         print("Error executing command:", e)
+        return "", ""
 
 
 def build_args(args):
@@ -163,6 +164,16 @@ for version in versions:
             "git", ["-C", "finufft", "checkout", "origin/master", "--", "perftest"]
         )
         run_command("rm", ["-rf", "build"])
+        # Clear stale empty CPM fftw3 source cache dirs that cause target creation to be skipped
+        cpm_cache = os.path.expanduser("~/.cpm")
+        for pkg in ["fftw3", "fftw3f"]:
+            pkg_cache = os.path.join(cpm_cache, pkg)
+            if os.path.isdir(pkg_cache):
+                for h in os.listdir(pkg_cache):
+                    d = os.path.join(pkg_cache, h)
+                    if os.path.isdir(d) and not os.listdir(d):
+                        print(f"Removing empty CPM cache dir: {d}")
+                        os.rmdir(d)
         if fft == "ducc":
             run_command(
                 "cmake",
@@ -187,6 +198,8 @@ for version in versions:
                     "-DCMAKE_BUILD_TYPE=Release",
                     "-DFINUFFT_BUILD_TESTS=ON",
                     "-DFINUFFT_FFTW_LIBRARIES=DOWNLOAD",
+                    "-DCPM_USE_LOCAL_PACKAGES=OFF",
+                    "-DCMAKE_POLICY_VERSION_MINIMUM=3.5",
                 ],
             )
         run_command(
