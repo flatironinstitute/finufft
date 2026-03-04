@@ -114,22 +114,20 @@ int finufftf_destroy(finufftf_plan p)
 
 namespace { // helpers local to this TU
 template<typename T>
-int guru(
-    int n_dims, int type, int n_transf, i64 nj, const std::array<const T *, 3> &xyz,
-    std::complex<T> *cj, int iflag, T eps, const std::array<ci64, 3> &n_modes, i64 nk,
-    const std::array<const T *, 3> &stu, std::complex<T> *fk, const finufft_opts *popts)
+int guru(int n_dims, int type, int n_transf, i64 nj, const std::array<const T *, 3> &xyz,
+         std::complex<T> *cj, int iflag, T eps, const std::array<ci64, 3> &n_modes,
+         i64 nk, const std::array<const T *, 3> &stu, std::complex<T> *fk,
+         const finufft_opts *popts)
 // Helper layer between simple interfaces (with opts) and the guru functions.
+// Plan is stack-allocated since its lifetime is scoped to this call.
 // Errors throw finufft::exception and are caught by safe_finufft_call.
-// Author: Andrea Malleo, 2019.
+// Author: Andrea Malleo, 2019. Stack alloc: Barbone, 2026.
 {
   return safe_finufft_call([&]() -> int {
-    FINUFFT_PLAN_T<T> *rawplan = nullptr;
-    finufft_makeplan_t<T>(type, n_dims, n_modes.data(), iflag, n_transf, eps, &rawplan,
-                          popts); // throws on error; popts can be nullptr
-    std::unique_ptr<FINUFFT_PLAN_T<T>> plan(rawplan); // ensures cleanup on throw
-    plan->setpts(nj, xyz[0], xyz[1], xyz[2], nk, stu[0], stu[1], stu[2]);
-    plan->execute(cj, fk);
-    return plan->warning_code();
+    FINUFFT_PLAN_T<T> plan(type, n_dims, n_modes.data(), iflag, n_transf, eps, popts);
+    plan.setpts(nj, xyz[0], xyz[1], xyz[2], nk, stu[0], stu[1], stu[2]);
+    plan.execute(cj, fk);
+    return plan.warning_code();
   });
 }
 template<typename T>
