@@ -301,7 +301,7 @@ __global__ void spread_nupts_driven(
       for (int y0 = 0, iy = start[1]; y0 < ns;
            ++y0, iy       = (iy + 1 >= nf[1]) ? 0 : iy + 1) {
         const auto outidx0 = iy * nf[0];
-        cuda_complex<T> valy = ker[1][y0];
+        cuda_complex<T> valy = val*ker[1][y0];
         for (int x0 = 0, ix = start[0]; x0 < ns;
              ++x0, ix       = (ix + 1 >= nf[0]) ? 0 : ix + 1)
           atomicAddComplexGlobal<T>(fw+outidx0+ix, ker[0][x0]*valy);
