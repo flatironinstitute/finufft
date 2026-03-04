@@ -246,13 +246,13 @@ static void cuinterp_subprob(const cufinufft_plan_t<T> &d_plan, int blksize) {
   T es_c                       = 4.0 / T(d_plan.spopts.nspread * d_plan.spopts.nspread);
   T es_beta                    = d_plan.spopts.beta;
   const auto sharedplanorysize = shared_memory_required<T>(
-      3, d_plan.spopts.nspread, d_plan.opts.gpu_binsizex, d_plan.opts.gpu_binsizey,
+      ndim, d_plan.spopts.nspread, d_plan.opts.gpu_binsizex, d_plan.opts.gpu_binsizey,
       d_plan.opts.gpu_binsizez, d_plan.opts.gpu_np);
 
   if (d_plan.opts.gpu_kerevalmeth == 1) {
-    cufinufft_set_shared_memory(interp_subprob<T, 1, 3, ns>, 3, d_plan);
+    cufinufft_set_shared_memory(interp_subprob<T, 1, ndim, ns>, ndim, d_plan);
     for (int t = 0; t < blksize; t++) {
-      interp_subprob<T, 1, 3, ns><<<totalnumsubprob, 256, sharedplanorysize, stream>>>(
+      interp_subprob<T, 1, ndim, ns><<<totalnumsubprob, 256, sharedplanorysize, stream>>>(
           d_plan.kxyz, d_plan.c + t * d_plan.M, d_plan.fw + t * d_plan.nf, d_plan.M,
           d_plan.nf123, es_c, es_beta, sigma, d_binstartpts, d_binsize, binsizes,
           d_subprob_to_bin, d_subprobstartpts, d_numsubprob,
@@ -260,9 +260,9 @@ static void cuinterp_subprob(const cufinufft_plan_t<T> &d_plan, int blksize) {
       THROW_IF_CUDA_ERROR
     }
   } else {
-    cufinufft_set_shared_memory(interp_subprob<T, 0, 3, ns>, 3, d_plan);
+    cufinufft_set_shared_memory(interp_subprob<T, 0, ndim, ns>, ndim, d_plan);
     for (int t = 0; t < blksize; t++) {
-      interp_subprob<T, 0, 3, ns><<<totalnumsubprob, 256, sharedplanorysize, stream>>>(
+      interp_subprob<T, 0, ndim, ns><<<totalnumsubprob, 256, sharedplanorysize, stream>>>(
           d_plan.kxyz, d_plan.c + t * d_plan.M, d_plan.fw + t * d_plan.nf, d_plan.M,
           d_plan.nf123, es_c, es_beta, sigma, d_binstartpts, d_binsize, binsizes,
           d_subprob_to_bin, d_subprobstartpts, d_numsubprob,
