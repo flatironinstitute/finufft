@@ -12,6 +12,7 @@
 #include <cufinufft/intrinsics.h>
 #include <cufinufft/spreadinterp.h>
 #include <cufinufft/utils.h>
+#include <cufinufft/common_kernels.hpp>
 
 using namespace cufinufft::common;
 using namespace cufinufft::utils;
@@ -256,59 +257,6 @@ static __global__ void calc_inverse_of_global_sort_index_3d(
     binidx     = calc_global_index_v2(binx, biny, binz, nbinx, nbiny, nbinz);
 
     index[bin_startpts[binidx] + sortidx[i]] = i;
-  }
-}
-
-template<typename T, int KEREVALMETH, int ndim, int ns>
-static __global__ void spread_nupts_driven(
-    cuda::std::array<const T *, 3> xyz, const cuda_complex<T> *c, cuda_complex<T> *fw,
-    int M, cuda::std::array<int, 3> nf, T es_c, T es_beta, T sigma, const int *idxnupts) {
-
-  for (int i = blockDim.x * blockIdx.x + threadIdx.x; i < M;
-       i += blockDim.x * gridDim.x) {
-    cuda::std::array<cuda::std::array<T,ns>, ndim> ker;
-    cuda::std::array<int, ndim> start;
-    const auto nuptsidx = loadReadOnly(idxnupts + i);
-    for (size_t idim = 0; idim < ndim; ++idim) {
-      auto rescaled   = fold_rescale(loadReadOnly(xyz[idim] + nuptsidx), nf[idim]);
-      auto [s, dummy] = interval(ns, rescaled);
-      if constexpr (KEREVALMETH == 1) {
-        eval_kernel_vec_horner<T, ns>(&ker[idim][0], T(s) - rescaled, sigma);
-      } else {
-        eval_kernel_vec<T, ns>(&ker[idim][0], T(s) - rescaled, es_c, es_beta);
-      }
-      start[idim] = s + ((s < 0) ? nf[idim] : 0);
-    }
-
-    cuda_complex<T> val = c[idxnupts[i]];
-    if constexpr (ndim == 1) {
-      for (int x0 = 0, ix = start[0]; x0 < ns; ++x0, ix = (ix + 1 >= nf[0]) ? 0 : ix + 1)
-        atomicAddComplexGlobal<T>(fw+ix, ker[0][x0]*val);
-    } else if constexpr (ndim == 2) {
-      for (int y0 = 0, iy = start[1]; y0 < ns;
-           ++y0, iy       = (iy + 1 >= nf[1]) ? 0 : iy + 1) {
-        const auto outidx0 = iy * nf[0];
-        cuda_complex<T> valy = ker[1][y0];
-        for (int x0 = 0, ix = start[0]; x0 < ns;
-             ++x0, ix       = (ix + 1 >= nf[0]) ? 0 : ix + 1)
-          atomicAddComplexGlobal<T>(fw+outidx0+ix, ker[0][x0]*valy);
-      }
-    } else {
-      for (int z0 = 0, iz = start[2]; z0 < ns;
-           ++z0, iz       = (iz + 1 >= nf[2]) ? 0 : iz + 1) {
-        const auto outidx0 = iz * nf[1] * nf[0];
-        cuda_complex<T> valz = val*ker[2][z0];
-        for (int y0 = 0, iy = start[1]; y0 < ns;
-             ++y0, iy       = (iy + 1 >= nf[1]) ? 0 : iy + 1) {
-          const auto outidx1 = outidx0 + iy * nf[0];
-          cuda_complex<T> valy = valz*ker[1][y0];
-          for (int x0 = 0, ix = start[0]; x0 < ns;
-             ++x0, ix       = (ix + 1 >= nf[0]) ? 0 : ix + 1) {
-            atomicAddComplexGlobal<T>(fw+outidx1+ix, ker[0][x0]*valy);
-          }
-        }
-      }
-    }
   }
 }
 
@@ -784,46 +732,6 @@ static void cuspread3d_nuptsdriven_prop(cufinufft_plan_t<T> &d_plan) {
   }
 }
 
-template<typename T, int ns>
-static void cuspread3d_nuptsdriven(int nf1, int nf2, int nf3, int M,
-                                   const cufinufft_plan_t<T> &d_plan, int blksize) {
-  auto &stream = d_plan.stream;
-
-  T sigma   = d_plan.spopts.upsampfac;
-  T es_c    = 4.0 / T(d_plan.spopts.nspread * d_plan.spopts.nspread);
-  T es_beta = d_plan.spopts.beta;
-
-  const int *d_idxnupts      = dethrust(d_plan.idxnupts);
-  const T *d_kx              = d_plan.kxyz[0];
-  const T *d_ky              = d_plan.kxyz[1];
-  const T *d_kz              = d_plan.kxyz[2];
-  const cuda_complex<T> *d_c = d_plan.c;
-  cuda_complex<T> *d_fw      = d_plan.fw;
-
-  dim3 threadsPerBlock;
-  threadsPerBlock.x = 16;
-  threadsPerBlock.y = 1;
-  dim3 blocks;
-  blocks.x = (M + threadsPerBlock.x - 1) / threadsPerBlock.x;
-  blocks.y = 1;
-
-  if (d_plan.opts.gpu_kerevalmeth == 1) {
-    for (int t = 0; t < blksize; t++) {
-      spread_nupts_driven<T, 1, 3, ns><<<blocks, threadsPerBlock, 0, stream>>>(
-          d_plan.kxyz, d_c + t * M, d_fw + t * d_plan.nf, M, d_plan.nf123,
-          es_c, es_beta, sigma, d_idxnupts);
-      THROW_IF_CUDA_ERROR
-    }
-  } else {
-    for (int t = 0; t < blksize; t++) {
-      spread_nupts_driven<T, 0, 3, ns><<<blocks, threadsPerBlock, 0, stream>>>(
-          d_plan.kxyz, d_c + t * M, d_fw + t * d_plan.nf, M, d_plan.nf123,
-          es_c, es_beta, sigma, d_idxnupts);
-      THROW_IF_CUDA_ERROR
-    }
-  }
-}
-
 template<typename T>
 static void cuspread3d_blockgather_prop(cufinufft_plan_t<T> &d_plan) {
   auto &stream = d_plan.stream;
@@ -1258,7 +1166,7 @@ struct Spread3DDispatcher {
                   int blksize) const {
     switch (d_plan.opts.gpu_method) {
     case 1:
-      return cuspread3d_nuptsdriven<T, ns>(nf1, nf2, nf3, M, d_plan, blksize);
+      return cuspread_nupts_driven<T, 3, ns>(d_plan, blksize);
     case 2:
       return cuspread3d_subprob<T, ns>(nf1, nf2, nf3, M, d_plan, blksize);
     case 3:
