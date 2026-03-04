@@ -6,53 +6,13 @@
 #include <cufinufft/common.h>
 #include <cufinufft/spreadinterp.h>
 #include <cufinufft/utils.h>
+#include <cufinufft/common_kernels.hpp>
 
 using namespace cufinufft::common;
 using namespace cufinufft::utils;
 
 namespace cufinufft {
 namespace spreadinterp {
-
-template<typename T, int KEREVALMETH, int ns>
-static __global__ void interp_2d_nupts_driven(
-    const T *x, const T *y, cuda_complex<T> *c, const cuda_complex<T> *fw, int M, int nf1,
-    int nf2, T es_c, T es_beta, T sigma, const int *idxnupts) {
-  T ker1[ns];
-  T ker2[ns];
-
-  for (int i = blockDim.x * blockIdx.x + threadIdx.x; i < M;
-       i += blockDim.x * gridDim.x) {
-    const auto x_rescaled     = fold_rescale(x[idxnupts[i]], nf1);
-    const auto y_rescaled     = fold_rescale(y[idxnupts[i]], nf2);
-    const auto [xstart, xend] = interval(ns, x_rescaled);
-    const auto [ystart, yend] = interval(ns, y_rescaled);
-
-    T x1 = (T)xstart - x_rescaled;
-    T y1 = (T)ystart - y_rescaled;
-
-    if constexpr (KEREVALMETH == 1) {
-      eval_kernel_vec_horner<T, ns>(ker1, x1, sigma);
-      eval_kernel_vec_horner<T, ns>(ker2, y1, sigma);
-    } else {
-      eval_kernel_vec<T, ns>(ker1, x1, es_c, es_beta);
-      eval_kernel_vec<T, ns>(ker2, y1, es_c, es_beta);
-    }
-
-    cuda_complex<T> cnow{0, 0};
-    for (int yy = ystart; yy <= yend; yy++) {
-      const T kervalue2 = ker2[yy - ystart];
-      const auto iy     = yy < 0 ? yy + nf2 : (yy > nf2 - 1 ? yy - nf2 : yy);
-      for (int xx = xstart; xx <= xend; xx++) {
-        const auto ix        = xx < 0 ? xx + nf1 : (xx > nf1 - 1 ? xx - nf1 : xx);
-        const auto inidx     = ix + iy * nf1;
-        const auto kervalue1 = ker1[xx - xstart];
-        cnow.x += fw[inidx].x * kervalue1 * kervalue2;
-        cnow.y += fw[inidx].y * kervalue1 * kervalue2;
-      }
-    }
-    c[idxnupts[i]] = cnow;
-  }
-}
 
 template<typename T, int KEREVALMETH, int ns>
 static __global__ void interp_2d_subprob(
@@ -136,50 +96,7 @@ static __global__ void interp_2d_subprob(
 }
 
 template<typename T, int ns>
-static void cuinterp2d_nuptsdriven(int nf1, int nf2, int M,
-                                   const cufinufft_plan_t<T> &d_plan, int blksize) {
-  auto &stream = d_plan.stream;
-
-  dim3 threadsPerBlock;
-  dim3 blocks;
-
-  T es_c    = 4.0 / T(d_plan.spopts.nspread * d_plan.spopts.nspread);
-  T es_beta = d_plan.spopts.beta;
-  T sigma   = d_plan.opts.upsampfac;
-
-  const int *d_idxnupts = dethrust(d_plan.idxnupts);
-
-  const T *d_kx               = d_plan.kxyz[0];
-  const T *d_ky               = d_plan.kxyz[1];
-  cuda_complex<T> *d_c        = d_plan.c;
-  const cuda_complex<T> *d_fw = d_plan.fw;
-
-  threadsPerBlock.x =
-      std::min(optimal_block_threads(d_plan.opts.gpu_device_id), (unsigned)M);
-  threadsPerBlock.y = 1;
-  blocks.x          = (M + threadsPerBlock.x - 1) / threadsPerBlock.x;
-  blocks.y          = 1;
-
-  if (d_plan.opts.gpu_kerevalmeth) {
-    for (int t = 0; t < blksize; t++) {
-      interp_2d_nupts_driven<T, 1, ns><<<blocks, threadsPerBlock, 0, stream>>>(
-          d_kx, d_ky, d_c + t * M, d_fw + t * nf1 * nf2, M, nf1, nf2, es_c, es_beta,
-          sigma, d_idxnupts);
-      THROW_IF_CUDA_ERROR
-    }
-  } else {
-    for (int t = 0; t < blksize; t++) {
-      interp_2d_nupts_driven<T, 0, ns><<<blocks, threadsPerBlock, 0, stream>>>(
-          d_kx, d_ky, d_c + t * M, d_fw + t * nf1 * nf2, M, nf1, nf2, es_c, es_beta,
-          sigma, d_idxnupts);
-      THROW_IF_CUDA_ERROR
-    }
-  }
-}
-
-template<typename T, int ns>
-static void cuinterp2d_subprob(int nf1, int nf2, int M, const cufinufft_plan_t<T> &d_plan,
-                               int blksize) {
+static void cuinterp2d_subprob(const cufinufft_plan_t<T> &d_plan, int blksize) {
   auto &stream = d_plan.stream;
 
   T es_c             = 4.0 / T(d_plan.spopts.nspread * d_plan.spopts.nspread);
@@ -190,13 +107,8 @@ static void cuinterp2d_subprob(int nf1, int nf2, int M, const cufinufft_plan_t<T
   int bin_size_x = d_plan.opts.gpu_binsizex;
   int bin_size_y = d_plan.opts.gpu_binsizey;
   int numbins[2];
-  numbins[0] = ceil((T)nf1 / bin_size_x);
-  numbins[1] = ceil((T)nf2 / bin_size_y);
-
-  const T *d_kx               = d_plan.kxyz[0];
-  const T *d_ky               = d_plan.kxyz[1];
-  cuda_complex<T> *d_c        = d_plan.c;
-  const cuda_complex<T> *d_fw = d_plan.fw;
+  numbins[0] = ceil((T)d_plan.nf123[0] / bin_size_x);
+  numbins[1] = ceil((T)d_plan.nf123[1] / bin_size_y);
 
   const int *d_binsize         = dethrust(d_plan.binsize);
   const int *d_binstartpts     = dethrust(d_plan.binstartpts);
@@ -215,7 +127,7 @@ static void cuinterp2d_subprob(int nf1, int nf2, int M, const cufinufft_plan_t<T
     cufinufft_set_shared_memory(interp_2d_subprob<T, 1, ns>, 2, d_plan);
     for (int t = 0; t < blksize; t++) {
       interp_2d_subprob<T, 1, ns><<<totalnumsubprob, 256, sharedplanorysize, stream>>>(
-          d_kx, d_ky, d_c + t * M, d_fw + t * nf1 * nf2, M, nf1, nf2, es_c, es_beta,
+          d_plan.kxyz[0], d_plan.kxyz[1], d_plan.c + t * d_plan.M, d_plan.fw + t * d_plan.nf, d_plan.M, d_plan.nf123[0], d_plan.nf123[1], es_c, es_beta,
           sigma, d_binstartpts, d_binsize, bin_size_x, bin_size_y, d_subprob_to_bin,
           d_subprobstartpts, d_numsubprob, maxsubprobsize, numbins[0], numbins[1],
           d_idxnupts);
@@ -225,7 +137,7 @@ static void cuinterp2d_subprob(int nf1, int nf2, int M, const cufinufft_plan_t<T
     cufinufft_set_shared_memory(interp_2d_subprob<T, 0, ns>, 2, d_plan);
     for (int t = 0; t < blksize; t++) {
       interp_2d_subprob<T, 0, ns><<<totalnumsubprob, 256, sharedplanorysize, stream>>>(
-          d_kx, d_ky, d_c + t * M, d_fw + t * nf1 * nf2, M, nf1, nf2, es_c, es_beta,
+          d_plan.kxyz[0], d_plan.kxyz[1], d_plan.c + t * d_plan.M, d_plan.fw + t * d_plan.nf, d_plan.M, d_plan.nf123[0], d_plan.nf123[1], es_c, es_beta,
           sigma, d_binstartpts, d_binsize, bin_size_x, bin_size_y, d_subprob_to_bin,
           d_subprobstartpts, d_numsubprob, maxsubprobsize, numbins[0], numbins[1],
           d_idxnupts);
@@ -237,13 +149,12 @@ static void cuinterp2d_subprob(int nf1, int nf2, int M, const cufinufft_plan_t<T
 // Functor to handle function selection (nuptsdriven vs subprob)
 struct Interp2DDispatcher {
   template<int ns, typename T>
-  void operator()(int nf1, int nf2, int M, const cufinufft_plan_t<T> &d_plan,
-                  int blksize) const {
+  void operator()(const cufinufft_plan_t<T> &d_plan, int blksize) const {
     switch (d_plan.opts.gpu_method) {
     case 1:
-      return cuinterp2d_nuptsdriven<T, ns>(nf1, nf2, M, d_plan, blksize);
+      return cuinterp_nuptsdriven<T, 2, ns>(d_plan, blksize);
     case 2:
-      return cuinterp2d_subprob<T, ns>(nf1, nf2, M, d_plan, blksize);
+      return cuinterp2d_subprob<T, ns>(d_plan, blksize);
     default:
       std::cerr << "[cuinterp2d] error: incorrect method, should be 1 or 2\n";
       throw int(FINUFFT_ERR_METHOD_NOTVALID);
@@ -267,7 +178,6 @@ template<typename T> void cuinterp2d(const cufinufft_plan_t<T> &d_plan, int blks
     Marco Barbone 01/30/25
   */
   launch_dispatch_ns<Interp2DDispatcher, T>(Interp2DDispatcher(), d_plan.spopts.nspread,
-                                            d_plan.nf123[0], d_plan.nf123[1], d_plan.M,
                                             d_plan, blksize);
 }
 
