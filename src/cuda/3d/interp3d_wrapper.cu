@@ -15,20 +15,19 @@ using namespace cufinufft::utils;
 namespace cufinufft {
 namespace spreadinterp {
 
-template<typename T, int KEREVALMETH, int ns>
+template<typename T, int KEREVALMETH, int ndim, int ns>
 static __global__ void interp_3d_nupts_driven(
     const cuda::std::array<const T *, 3> xyz, cuda_complex<T> *c,
     const cuda_complex<T> *fw, int M, const cuda::std::array<int, 3> nf, T es_c,
     T es_beta, T sigma, const int *idxnupts) {
 
-  cuda::std::array<cuda::std::array<T, ns>, 3> ker;
-
   for (int i = blockDim.x * blockIdx.x + threadIdx.x; i < M;
        i += blockDim.x * gridDim.x) {
     const auto nuptsidx = loadReadOnly(idxnupts + i);
+    cuda::std::array<cuda::std::array<T, ns>, ndim> ker;
 
-    cuda::std::array<int, 3> start;
-    for (size_t idim = 0; idim < 3; ++idim) {
+    cuda::std::array<int, ndim> start;
+    for (size_t idim = 0; idim < ndim; ++idim) {
       auto rescaled   = fold_rescale(loadReadOnly(xyz[idim] + nuptsidx), nf[idim]);
       auto [s, dummy] = interval(ns, rescaled);
       if constexpr (KEREVALMETH == 1) {
@@ -39,25 +38,45 @@ static __global__ void interp_3d_nupts_driven(
       start[idim] = s + (s < 0) ? nf[idim] : 0;
     }
 
-    cuda::std::array<int, ns> xidx;
-    for (int x0 = 0, ix = start[0]; x0 < ns;
-         ++x0, ++ix, ix = (ix >= nf[0]) ? ix - nf[0] : ix)
-      xidx[x0] = ix;
-    cuda_complex<T> cnow{0, 0};
-    for (int z0 = 0, iz = start[2]; z0 < ns;
-         ++z0, ++iz, iz = (iz >= nf[2]) ? iz - nf[2] : iz) {
-      const auto inidx0 = iz * nf[1] * nf[0];
-      cuda_complex<T> cnowy{0, 0};
+    if constexpr (ndim==1) {
+      cuda_complex<T> cnow{0, 0};
+      for (int x0 = 0, ix = start[0]; x0 < ns;
+           ++x0, ix = (ix+1 >= nf[0]) ? 0 : ix+1)
+        cnow += fw[ix] * ker[0][x0];
+      c[idxnupts[i]] = cnow;
+    } else if constexpr (ndim==2) {
+      cuda_complex<T> cnow{0, 0};
       for (int y0 = 0, iy = start[1]; y0 < ns;
-           ++y0, ++iy, iy = (iy >= nf[1]) ? iy - nf[1] : iy) {
-        const auto inidx1 = inidx0 + iy * nf[0];
+           ++y0, iy = (iy+1 >= nf[1]) ? 0 : iy+1) {
+        const auto inidx0 = iy * nf[0];
         cuda_complex<T> cnowx{0, 0};
-        for (int x0 = 0; x0 < ns; ++x0) cnowx += fw[inidx1 + xidx[x0]] * ker[0][x0];
-        cnowy += cnowx * ker[1][y0];
+        for (int x0 = 0, ix = start[0]; x0 < ns;
+             ++x0, ix = (ix+1 >= nf[0]) ? 0 : ix+1)
+          cnowx += fw[inidx0 + ix] * ker[0][x0];
+        cnow += cnowx * ker[1][y0];
       }
-      cnow += cnowy * ker[2][z0];
+      c[idxnupts[i]] = cnow;
+    } else {
+      cuda::std::array<int, ns> xidx;
+      for (int x0 = 0, ix = start[0]; x0 < ns;
+           ++x0, ix = (ix+1 >= nf[0]) ? 0 : ix+1)
+        xidx[x0] = ix;
+      cuda_complex<T> cnow{0, 0};
+      for (int z0 = 0, iz = start[2]; z0 < ns;
+           ++z0, iz = (iz+1 >= nf[2]) ? 0 : iz+1) {
+        const auto inidx0 = iz * nf[1] * nf[0];
+        cuda_complex<T> cnowy{0, 0};
+        for (int y0 = 0, iy = start[1]; y0 < ns;
+             ++y0, iy = (iy+1 >= nf[1]) ? 0 : iy+1) {
+          const auto inidx1 = inidx0 + iy * nf[0];
+          cuda_complex<T> cnowx{0, 0};
+          for (int x0 = 0; x0 < ns; ++x0) cnowx += fw[inidx1 + xidx[x0]] * ker[0][x0];
+          cnowy += cnowx * ker[1][y0];
+        }
+        cnow += cnowy * ker[2][z0];
+      }
+      c[idxnupts[i]] = cnow;
     }
-    c[idxnupts[i]] = cnow;
   }
 }
 
@@ -168,16 +187,10 @@ static __global__ void interp_3d_subprob(
 template<typename T, int ns>
 static void cuinterp3d_nuptsdriven(int nf1, int nf2, int nf3, int M,
                                    const cufinufft_plan_t<T> &d_plan, int blksize) {
-  const auto stream = d_plan.stream;
-
+  T sigma = d_plan.spopts.upsampfac;
   T es_c    = 4.0 / T(d_plan.spopts.nspread * d_plan.spopts.nspread);
   T es_beta = d_plan.spopts.beta;
-  T sigma   = d_plan.spopts.upsampfac;
-
   const int *d_idxnupts = dethrust(d_plan.idxnupts);
-
-  cuda_complex<T> *d_c        = d_plan.c;
-  const cuda_complex<T> *d_fw = d_plan.fw;
 
   const dim3 threadsPerBlock{
       std::min(optimal_block_threads(d_plan.opts.gpu_device_id), (unsigned)M), 1u, 1u};
@@ -185,15 +198,15 @@ static void cuinterp3d_nuptsdriven(int nf1, int nf2, int nf3, int M,
 
   if (d_plan.opts.gpu_kerevalmeth) {
     for (int t = 0; t < blksize; t++) {
-      interp_3d_nupts_driven<T, 1, ns><<<blocks, threadsPerBlock, 0, stream>>>(
-          d_plan.kxyz, d_c + t * M, d_fw + t * d_plan.nf, M, d_plan.nf123, es_c, es_beta,
+      interp_3d_nupts_driven<T, 1, 3, ns><<<blocks, threadsPerBlock, 0, d_plan.stream>>>(
+          d_plan.kxyz, d_plan.c + t * M, d_plan.fw + t * d_plan.nf, M, d_plan.nf123, es_c, es_beta,
           sigma, d_idxnupts);
       THROW_IF_CUDA_ERROR
     }
   } else {
     for (int t = 0; t < blksize; t++) {
-      interp_3d_nupts_driven<T, 0, ns><<<blocks, threadsPerBlock, 0, stream>>>(
-          d_plan.kxyz, d_c + t * M, d_fw + t * d_plan.nf, M, d_plan.nf123, es_c, es_beta,
+      interp_3d_nupts_driven<T, 0, 3, ns><<<blocks, threadsPerBlock, 0, d_plan.stream>>>(
+          d_plan.kxyz, d_plan.c + t * M, d_plan.fw + t * d_plan.nf, M, d_plan.nf123, es_c, es_beta,
           sigma, d_idxnupts);
       THROW_IF_CUDA_ERROR
     }
