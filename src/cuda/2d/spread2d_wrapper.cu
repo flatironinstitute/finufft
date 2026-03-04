@@ -428,7 +428,7 @@ struct Spread2DDispatcher {
                   int blksize) const {
     switch (d_plan.opts.gpu_method) {
     case 1:
-      return cuspread_nupts_driven<T, 3, ns>(d_plan, blksize);
+      return cuspread_nupts_driven<T, 2, ns>(d_plan, blksize);
     case 2:
       return cuspread2d_subprob<T, ns>(nf1, nf2, M, d_plan, blksize);
     case 3:
