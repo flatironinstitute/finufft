@@ -237,7 +237,6 @@ template<typename T> void run_test(test_options_t &test_opts) {
   finufft_default_opts(&opts);
   opts.debug              = test_opts.debug;
   opts.upsampfac          = test_opts.upsampfact;
-  opts.spread_kerevalmeth = test_opts.kerevalmethod;
   opts.spread_sort        = test_opts.sort;
   opts.nthreads           = test_opts.threads;
 

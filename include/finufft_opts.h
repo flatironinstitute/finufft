@@ -5,6 +5,22 @@
 #ifndef FINUFFT_OPTS_H
 #define FINUFFT_OPTS_H
 
+// Portable deprecation attribute for struct fields.
+// nvcc doesn't support deprecation attributes on struct members.
+#ifndef FINUFFT_DEPRECATED_FIELD
+#if defined(__NVCC__)
+#define FINUFFT_DEPRECATED_FIELD(msg)
+#elif defined(__cplusplus) && __cplusplus >= 201402L
+#define FINUFFT_DEPRECATED_FIELD(msg) [[deprecated(msg)]]
+#elif defined(__GNUC__) || defined(__clang__)
+#define FINUFFT_DEPRECATED_FIELD(msg) __attribute__((deprecated(msg)))
+#elif defined(_MSC_VER)
+#define FINUFFT_DEPRECATED_FIELD(msg) __declspec(deprecated(msg))
+#else
+#define FINUFFT_DEPRECATED_FIELD(msg)
+#endif
+#endif
+
 // Default FFT plan flag passed to opts.fftw.
 // Equals FFTW_ESTIMATE (=64) for FFTW builds; -1 for DUCC0 (a sentinel,
 // since FFTW_MEASURE=0 is a different valid choice).
@@ -35,8 +51,10 @@ typedef struct finufft_opts { // defaults see plan.hpp:finufft_default_opts_t()
   int nthreads;           // number of threads to use, or 0 uses all available
   int fftw;               // plan flags to FFTW (FFTW_ESTIMATE=64, FFTW_MEASURE=0,...)
   int spread_sort;        // spreader: 0 don't sort, 1 do, or 2 heuristic choice
-  int spread_kerevalmeth; // deprecated, retained for ABI; Horner is always used
-  int spread_kerpad;      // deprecated, retained for ABI; padding has no effect
+  FINUFFT_DEPRECATED_FIELD("no effect; Horner is always used")
+  int spread_kerevalmeth; // retained for ABI compatibility
+  FINUFFT_DEPRECATED_FIELD("no effect; padding is handled internally")
+  int spread_kerpad;      // retained for ABI compatibility
   double upsampfac;       // upsampling ratio sigma: 2.0 std, 1.25 small FFT, 0.0 auto
   int spread_thread;      // (vectorized ntr>1 only): 0 auto, 1 seq multithreaded,
                           //                          2 parallel single-thread spread
