@@ -307,7 +307,7 @@ template void cuspread1d<double>(const cufinufft_plan_t<double> &d_plan, int blk
 
 template<typename T> void cuspread1d_prop(cufinufft_plan_t<T> &d_plan) {
   if (d_plan.opts.gpu_method == 1) cuspread_nuptsdriven_prop<T,1>(d_plan);
-  if (d_plan.opts.gpu_method == 2) cuspread1d_subprob_prop(d_plan);
+  if (d_plan.opts.gpu_method == 2) cuspread_subprob_prop<T,1>(d_plan);
   if (d_plan.opts.gpu_method == 3) cuspread1d_subprob_prop(d_plan);
 }
 template void cuspread1d_prop(cufinufft_plan_t<float> &d_plan);

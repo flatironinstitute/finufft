@@ -226,7 +226,7 @@ void cuinterp_subprob(const cufinufft_plan_t<T> &d_plan, int blksize) {
 
   int maxsubprobsize = d_plan.opts.gpu_maxsubprobsize;
 
-  // assume that bin_size_x > ns/2;
+  // assume that bin_size > ns/2;
   cuda::std::array<int, 3> binsizes {d_plan.opts.gpu_binsizex, d_plan.opts.gpu_binsizey, d_plan.opts.gpu_binsizez};
 
   cuda::std::array<int, 3> numbins;
@@ -553,7 +553,7 @@ __global__ void spread_subprob(
 template<typename T, int ndim, int ns>
 static void cuspread_subprob(const cufinufft_plan_t<T> &d_plan, int blksize) {
 
-  // assume that bin_size_x > ns/2;
+  // assume that bin_size > ns/2;
   cuda::std::array<int, 3> binsizes = {d_plan.opts.gpu_binsizex, d_plan.opts.gpu_binsizey, d_plan.opts.gpu_binsizez};
   cuda::std::array<int, 3> nbins;
   for (int idim=0; idim<ndim; ++idim)
@@ -585,6 +585,75 @@ static void cuspread_subprob(const cufinufft_plan_t<T> &d_plan, int blksize) {
       THROW_IF_CUDA_ERROR
     }
   }
+}
+
+
+static __global__ void calc_subprob(const int *bin_size, int *num_subprob,
+                                       int maxsubprobsize, int numbins) {
+  for (int i = threadIdx.x + blockIdx.x * blockDim.x; i < numbins;
+       i += gridDim.x * blockDim.x) {
+    num_subprob[i] = ceil(bin_size[i] / (float)maxsubprobsize);
+  }
+}
+static __global__ void map_b_into_subprob(int *d_subprob_to_bin,
+                                          const int *d_subprobstartpts,
+                                          const int *d_numsubprob, int numbins) {
+  for (int i = threadIdx.x + blockIdx.x * blockDim.x; i < numbins;
+       i += gridDim.x * blockDim.x) {
+    for (int j = 0; j < d_numsubprob[i]; j++) {
+      d_subprob_to_bin[d_subprobstartpts[i] + j] = i;
+    }
+  }
+}
+
+template<typename T, int ndim> static void cuspread_subprob_prop(cufinufft_plan_t<T> &d_plan) {
+  cuda::std::array<int,3> binsizes = {d_plan.opts.gpu_binsizex, d_plan.opts.gpu_binsizey, d_plan.opts.gpu_binsizez};
+
+  cuda::std::array<int, 3> nbins{1,1,1};
+  int nbins_tot=1;
+  for (int idim=0; idim<ndim; ++idim) {
+    if (binsizes[idim] < 0) {
+      std::cerr << "[cuspread_nuptsdriven_prop] error: invalid binsize (dim "<<idim<<") = ("
+                << binsizes[idim] << ")\n";
+      throw int(FINUFFT_ERR_BINSIZE_NOTVALID);
+    }
+    nbins[idim] = ceil((T)d_plan.nf123[idim] / binsizes[idim]);
+    nbins_tot *= nbins[idim];
+  }
+
+  checkCudaErrors(cudaMemsetAsync(dethrust(d_plan.binsize), 0, nbins_tot * sizeof(int), d_plan.stream));
+  calc_bin_size_noghost<T,ndim><<<(d_plan.M + 1024 - 1) / 1024, 1024, 0, d_plan.stream>>>(
+      d_plan.M, d_plan.nf123, binsizes, nbins, dethrust(d_plan.binsize), d_plan.kxyz, dethrust(d_plan.sortidx));
+  THROW_IF_CUDA_ERROR
+  thrust::exclusive_scan(thrust::cuda::par.on(d_plan.stream), d_plan.binsize.begin(), d_plan.binsize.end(), d_plan.binstartpts.begin());
+  THROW_IF_CUDA_ERROR
+  calc_inverse_of_global_sort_idx<T,ndim> <<<(d_plan.M + 1024 - 1) / 1024, 1024, 0, d_plan.stream>>>(
+      d_plan.M, binsizes, nbins, dethrust(d_plan.binstartpts), dethrust(d_plan.sortidx), d_plan.kxyz, dethrust(d_plan.idxnupts), d_plan.nf123);
+  THROW_IF_CUDA_ERROR
+
+  /* --------------------------------------------- */
+  //        Determining Subproblem properties      //
+  /* --------------------------------------------- */
+  calc_subprob<<<(d_plan.M + 1024 - 1) / 1024, 1024, 0, d_plan.stream>>>(
+      dethrust(d_plan.binsize), dethrust(d_plan.numsubprob), d_plan.opts.gpu_maxsubprobsize, nbins_tot);
+  THROW_IF_CUDA_ERROR
+
+  thrust::inclusive_scan(thrust::cuda::par.on(d_plan.stream), d_plan.numsubprob.begin(), d_plan.numsubprob.begin() + nbins_tot, d_plan.subprobstartpts.begin()+1);
+  THROW_IF_CUDA_ERROR
+
+  int totalnumsubprob;
+  checkCudaErrors(cudaMemsetAsync(dethrust(d_plan.subprobstartpts), 0, sizeof(int), d_plan.stream));
+  checkCudaErrors(cudaMemcpyAsync(&totalnumsubprob, &(dethrust(d_plan.subprobstartpts)[nbins_tot]), sizeof(int),
+                                  cudaMemcpyDeviceToHost, d_plan.stream));
+  cudaStreamSynchronize(d_plan.stream);
+  d_plan.subprob_to_bin.resize(totalnumsubprob);
+
+  map_b_into_subprob<<<(nbins[0] * nbins[1] + 1024 - 1) / 1024, 1024, 0,
+                        d_plan.stream>>>(dethrust(d_plan.subprob_to_bin), dethrust(d_plan.subprobstartpts),
+                                 dethrust(d_plan.numsubprob),
+                                 nbins_tot);
+
+  d_plan.totalnumsubprob = totalnumsubprob;
 }
 
 } // namespace spreadinterp
