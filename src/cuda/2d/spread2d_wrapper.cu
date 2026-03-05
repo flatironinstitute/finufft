@@ -25,25 +25,6 @@ using cuda::std::extents;
 using cuda::std::mdspan;
 using cuda::std::span;
 
-static __global__ void calc_subprob_2d(const int *bin_size, int *num_subprob,
-                                       int maxsubprobsize, int numbins) {
-  for (int i = threadIdx.x + blockIdx.x * blockDim.x; i < numbins;
-       i += gridDim.x * blockDim.x) {
-    num_subprob[i] = ceil(bin_size[i] / (float)maxsubprobsize);
-  }
-}
-
-static __global__ void map_b_into_subprob_2d(int *d_subprob_to_bin,
-                                             const int *d_subprobstartpts,
-                                             const int *d_numsubprob, int numbins) {
-  for (int i = threadIdx.x + blockIdx.x * blockDim.x; i < numbins;
-       i += gridDim.x * blockDim.x) {
-    for (int j = 0; j < d_numsubprob[i]; j++) {
-      d_subprob_to_bin[d_subprobstartpts[i] + j] = i;
-    }
-  }
-}
-
 template<typename T, int KEREVALMETH, int ns>
 static __global__ void spread_2d_output_driven(
     const T *x, const T *y, const cuda_complex<T> *c, cuda_complex<T> *fw, int M, int nf1,
@@ -268,87 +249,10 @@ template<typename T> void cuspread2d(const cufinufft_plan_t<T> &d_plan, int blks
 template void cuspread2d<float>(const cufinufft_plan_t<float> &d_plan, int blksize);
 template void cuspread2d<double>(const cufinufft_plan_t<double> &d_plan, int blksize);
 
-template<typename T>
-static void cuspread2d_subprob_prop(cufinufft_plan_t<T> &d_plan)
-/*
-    This function determines the properties for spreading that are independent
-    of the strength of the nodes,  only relates to the locations of the nodes,
-    which only needs to be done once.
-*/
-{
-  auto &stream = d_plan.stream;
-  int M        = d_plan.M;
-  int nf1      = d_plan.nf123[0];
-  int nf2      = d_plan.nf123[1];
-
-  int maxsubprobsize = d_plan.opts.gpu_maxsubprobsize;
-  int bin_size_x     = d_plan.opts.gpu_binsizex;
-  int bin_size_y     = d_plan.opts.gpu_binsizey;
-  if (bin_size_x < 0 || bin_size_y < 0) {
-    std::cerr << "[cuspread2d_subprob_prop] error: invalid binsize (binsizex, "
-                 "binsizey) = (";
-    std::cerr << bin_size_x << "," << bin_size_y << ")" << std::endl;
-    throw int(FINUFFT_ERR_BINSIZE_NOTVALID);
-  }
-  int numbins[2];
-  numbins[0] = ceil((T)nf1 / bin_size_x);
-  numbins[1] = ceil((T)nf2 / bin_size_y);
-
-  const T *d_kx = d_plan.kxyz[0];
-  const T *d_ky = d_plan.kxyz[1];
-
-  int *d_binsize         = dethrust(d_plan.binsize);
-  int *d_binstartpts     = dethrust(d_plan.binstartpts);
-  int *d_sortidx         = dethrust(d_plan.sortidx);
-  int *d_numsubprob      = dethrust(d_plan.numsubprob);
-  int *d_subprobstartpts = dethrust(d_plan.subprobstartpts);
-  int *d_idxnupts        = dethrust(d_plan.idxnupts);
-
-  checkCudaErrors(
-      cudaMemsetAsync(d_binsize, 0, numbins[0] * numbins[1] * sizeof(int), stream));
-
-  calc_bin_size_noghost<T,2><<<(M + 1024 - 1) / 1024, 1024, 0, stream>>>(
-      M, d_plan.nf123, {bin_size_x, bin_size_y, 1}, {numbins[0], numbins[1],1 }, d_binsize, d_plan.kxyz,
-      d_sortidx);
-  THROW_IF_CUDA_ERROR
-
-  int n = numbins[0] * numbins[1];
-  thrust::device_ptr<int> d_ptr(d_binsize);
-  thrust::device_ptr<int> d_result(d_binstartpts);
-  thrust::exclusive_scan(thrust::cuda::par.on(stream), d_ptr, d_ptr + n, d_result);
-
-  calc_inverse_of_global_sort_idx<T,2><<<(M + 1024 - 1) / 1024, 1024, 0, stream>>>(
-      M, {bin_size_x, bin_size_y, 1}, {numbins[0], numbins[1], 1}, d_binstartpts, d_sortidx,
-      d_plan.kxyz, d_idxnupts, d_plan.nf123);
-  THROW_IF_CUDA_ERROR
-  calc_subprob_2d<<<(M + 1024 - 1) / 1024, 1024, 0, stream>>>(
-      d_binsize, d_numsubprob, maxsubprobsize, numbins[0] * numbins[1]);
-  THROW_IF_CUDA_ERROR
-
-  d_ptr    = thrust::device_pointer_cast(d_numsubprob);
-  d_result = thrust::device_pointer_cast(d_subprobstartpts + 1);
-  thrust::inclusive_scan(thrust::cuda::par.on(stream), d_ptr, d_ptr + n, d_result);
-
-  checkCudaErrors(cudaMemsetAsync(d_subprobstartpts, 0, sizeof(int), stream));
-
-  int totalnumsubprob;
-  checkCudaErrors(cudaMemcpyAsync(&totalnumsubprob, &d_subprobstartpts[n], sizeof(int),
-                                  cudaMemcpyDeviceToHost, stream));
-  cudaStreamSynchronize(stream);
-  gpu_array<int> d_subprob_to_bin(totalnumsubprob, d_plan.alloc);
-  map_b_into_subprob_2d<<<(numbins[0] * numbins[1] + 1024 - 1) / 1024, 1024, 0, stream>>>(
-      dethrust(d_subprob_to_bin), d_subprobstartpts, d_numsubprob,
-      numbins[0] * numbins[1]);
-
-  d_plan.subprob_to_bin.clear();
-  d_plan.subprob_to_bin.swap(d_subprob_to_bin);
-  d_plan.totalnumsubprob = totalnumsubprob;
-}
-
 template<typename T> void cuspread2d_prop(cufinufft_plan_t<T> &d_plan) {
   if (d_plan.opts.gpu_method == 1) cuspread_nuptsdriven_prop<T,2>(d_plan);
   if (d_plan.opts.gpu_method == 2) cuspread_subprob_prop<T,2>(d_plan);
-  if (d_plan.opts.gpu_method == 3) cuspread2d_subprob_prop<T>(d_plan);
+  if (d_plan.opts.gpu_method == 3) cuspread_subprob_prop<T,2>(d_plan);
 }
 template void cuspread2d_prop(cufinufft_plan_t<float> &d_plan);
 template void cuspread2d_prop(cufinufft_plan_t<double> &d_plan);

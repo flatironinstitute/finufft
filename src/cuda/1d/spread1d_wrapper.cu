@@ -30,25 +30,6 @@ using cuda::std::span;
 
 /* ------------------------ 1d Spreading Kernels ----------------------------*/
 
-static __global__ void calc_subprob_1d(const int *bin_size, int *num_subprob,
-                                       int maxsubprobsize, int numbins) {
-  for (int i = threadIdx.x + blockIdx.x * blockDim.x; i < numbins;
-       i += gridDim.x * blockDim.x) {
-    num_subprob[i] = ceil(bin_size[i] / (float)maxsubprobsize);
-  }
-}
-
-static __global__ void map_b_into_subprob_1d(int *d_subprob_to_bin,
-                                             const int *d_subprobstartpts,
-                                             const int *d_numsubprob, int numbins) {
-  for (int i = threadIdx.x + blockIdx.x * blockDim.x; i < numbins;
-       i += gridDim.x * blockDim.x) {
-    for (int j = 0; j < d_numsubprob[i]; j++) {
-      d_subprob_to_bin[d_subprobstartpts[i] + j] = i;
-    }
-  }
-}
-
 /* Kernels for SubProb Method */
 template<typename T, int KEREVALMETH, int ns>
 static __global__ void spread_1d_output_driven(
@@ -195,78 +176,6 @@ static void cuspread1d_output_driven(int nf1, int M, const cufinufft_plan_t<T> &
   }
 }
 
-template<typename T>
-static void cuspread1d_subprob_prop(cufinufft_plan_t<T> &d_plan)
-/*
-    This function determines the properties for spreading that are independent
-    of the strength of the nodes,  only relates to the locations of the nodes,
-    which only needs to be done once.
-*/
-{
-  int M   = d_plan.M;
-  int nf1 = d_plan.nf123[0];
-
-  const auto maxsubprobsize = d_plan.opts.gpu_maxsubprobsize;
-  const auto bin_size_x     = d_plan.opts.gpu_binsizex;
-  if (bin_size_x < 0) {
-    std::cerr << "[cuspread1d_subprob_prop] error: invalid binsize (binsizex) = ("
-              << bin_size_x << ")\n";
-    throw int(FINUFFT_ERR_BINSIZE_NOTVALID);
-  }
-
-  const auto numbins           = (nf1 + bin_size_x - 1) / bin_size_x;
-  const auto d_kx              = d_plan.kxyz[0];
-  const auto d_binsize         = dethrust(d_plan.binsize);
-  const auto d_binstartpts     = dethrust(d_plan.binstartpts);
-  const auto d_sortidx         = dethrust(d_plan.sortidx);
-  const auto d_numsubprob      = dethrust(d_plan.numsubprob);
-  const auto d_subprobstartpts = dethrust(d_plan.subprobstartpts);
-  const auto d_idxnupts        = dethrust(d_plan.idxnupts);
-  const auto stream            = d_plan.stream;
-
-  cudaMemsetAsync(d_binsize, 0, numbins * sizeof(int), stream);
-  THROW_IF_CUDA_ERROR
-  calc_bin_size_noghost<T,1><<<(M + 1024 - 1) / 1024, 1024, 0, stream>>>(
-      M, d_plan.nf123, {bin_size_x,1,1}, {numbins,1,1}, d_binsize, d_plan.kxyz, d_sortidx);
-  THROW_IF_CUDA_ERROR
-
-  int n = numbins;
-  thrust::device_ptr<int> d_ptr(d_binsize);
-  thrust::device_ptr<int> d_result(d_binstartpts);
-  thrust::exclusive_scan(thrust::cuda::par.on(stream), d_ptr, d_ptr + n, d_result);
-
-  calc_inverse_of_global_sort_idx<T,1><<<(M + 1024 - 1) / 1024, 1024, 0, stream>>>(
-      M, {bin_size_x,1,1}, {numbins,1,1}, d_binstartpts, d_sortidx, d_plan.kxyz, d_idxnupts, d_plan.nf123);
-  THROW_IF_CUDA_ERROR
-
-  calc_subprob_1d<<<(M + 1024 - 1) / 1024, 1024, 0, stream>>>(d_binsize, d_numsubprob,
-                                                              maxsubprobsize, numbins);
-  THROW_IF_CUDA_ERROR
-
-  d_ptr    = thrust::device_pointer_cast(d_numsubprob);
-  d_result = thrust::device_pointer_cast(d_subprobstartpts + 1);
-  thrust::inclusive_scan(thrust::cuda::par.on(stream), d_ptr, d_ptr + n, d_result);
-  THROW_IF_CUDA_ERROR
-
-  cudaMemsetAsync(d_subprobstartpts, 0, sizeof(int), stream);
-  THROW_IF_CUDA_ERROR
-
-  int totalnumsubprob{};
-  cudaMemcpyAsync(&totalnumsubprob, &d_subprobstartpts[n], sizeof(int),
-                  cudaMemcpyDeviceToHost, stream);
-  cudaStreamSynchronize(stream);
-  THROW_IF_CUDA_ERROR
-
-  gpu_array<int> d_subprob_to_bin(totalnumsubprob, d_plan.alloc);
-
-  map_b_into_subprob_1d<<<(numbins + 1024 - 1) / 1024, 1024, 0, stream>>>(
-      dethrust(d_subprob_to_bin), d_subprobstartpts, d_numsubprob, numbins);
-  THROW_IF_CUDA_ERROR
-  d_plan.subprob_to_bin.clear();
-  d_subprob_to_bin.swap(d_plan.subprob_to_bin);
-  d_plan.totalnumsubprob = totalnumsubprob;
-}
-
 // Functor to handle function selection (nuptsdriven vs subprob)
 struct Spread1DDispatcher {
   template<int ns, typename T>
@@ -308,7 +217,8 @@ template void cuspread1d<double>(const cufinufft_plan_t<double> &d_plan, int blk
 template<typename T> void cuspread1d_prop(cufinufft_plan_t<T> &d_plan) {
   if (d_plan.opts.gpu_method == 1) cuspread_nuptsdriven_prop<T,1>(d_plan);
   if (d_plan.opts.gpu_method == 2) cuspread_subprob_prop<T,1>(d_plan);
-  if (d_plan.opts.gpu_method == 3) cuspread1d_subprob_prop(d_plan);
+//FIXME: is this intended?
+  if (d_plan.opts.gpu_method == 3) cuspread_subprob_prop<T,1>(d_plan);
 }
 template void cuspread1d_prop(cufinufft_plan_t<float> &d_plan);
 template void cuspread1d_prop(cufinufft_plan_t<double> &d_plan);
