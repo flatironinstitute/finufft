@@ -6,6 +6,7 @@
 #include <cufinufft/contrib/helper_cuda.h>
 #include <cufinufft/contrib/helper_math.h>
 #include <cufinufft/intrinsics.h>
+#include <cufinufft/spreadinterp.h>
 #include <cufinufft/utils.h>
 
 namespace cufinufft {
