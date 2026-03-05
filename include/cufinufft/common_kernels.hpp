@@ -790,7 +790,7 @@ if constexpr(ndim==1) {
           if (ix >= (padded_size[0]) || ix < 0) break;
         }
         // separable window weights
-        const auto kervalue = kerevals[i][idx][0];
+        const auto kervalue = kerevals[i][0][idx];
         // accumulate
     //    const cuda_complex<T> res{cnow * kervalue};
         local_subgrid[ix] += cnow * kervalue;
