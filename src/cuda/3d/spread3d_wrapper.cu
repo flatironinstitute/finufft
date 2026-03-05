@@ -9,10 +9,10 @@
 #include <thrust/sort.h>
 
 #include <cufinufft/common.h>
+#include <cufinufft/common_kernels.hpp>
 #include <cufinufft/intrinsics.h>
 #include <cufinufft/spreadinterp.h>
 #include <cufinufft/utils.h>
-#include <cufinufft/common_kernels.hpp>
 
 using namespace cufinufft::common;
 using namespace cufinufft::utils;
@@ -820,9 +820,9 @@ template void cuspread3d<float>(const cufinufft_plan_t<float> &d_plan, int blksi
 template void cuspread3d<double>(const cufinufft_plan_t<double> &d_plan, int blksize);
 
 template<typename T> void cuspread3d_prop(cufinufft_plan_t<T> &d_plan) {
-  if (d_plan.opts.gpu_method == 1) cuspread_nuptsdriven_prop<T,3>(d_plan);
-  if (d_plan.opts.gpu_method == 2) cuspread_subprob_prop<T,3>(d_plan);
-  if (d_plan.opts.gpu_method == 3) cuspread_subprob_prop<T,3>(d_plan);
+  if (d_plan.opts.gpu_method == 1) cuspread_nuptsdriven_prop<T, 3>(d_plan);
+  if (d_plan.opts.gpu_method == 2) cuspread_subprob_prop<T, 3>(d_plan);
+  if (d_plan.opts.gpu_method == 3) cuspread_subprob_prop<T, 3>(d_plan);
   if (d_plan.opts.gpu_method == 4) cuspread3d_blockgather_prop<T>(d_plan);
 }
 template void cuspread3d_prop(cufinufft_plan_t<float> &d_plan);

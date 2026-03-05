@@ -2,8 +2,8 @@
 
 #include <cuComplex.h>
 
-#include <cufinufft/spreadinterp.h>
 #include <cufinufft/common_kernels.hpp>
+#include <cufinufft/spreadinterp.h>
 
 namespace cufinufft {
 namespace spreadinterp {
