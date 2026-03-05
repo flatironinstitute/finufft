@@ -154,23 +154,23 @@ static void cuspread1d_output_driven(int nf1, int M, const cufinufft_plan_t<T> &
       d_plan.opts.gpu_binsizez, d_plan.opts.gpu_np);
 
   if (d_plan.opts.gpu_kerevalmeth) {
-    cufinufft_set_shared_memory(spread_1d_output_driven<T, 1, ns>, 1, d_plan);
+    cufinufft_set_shared_memory(spread_output_driven<T, 1, 1, ns>, 1, d_plan);
     for (int t = 0; t < blksize; t++) {
-      spread_1d_output_driven<T, 1, ns>
+      spread_output_driven<T, 1, 1, ns>
           <<<totalnumsubprob, 256, sharedplanorysize, stream>>>(
-              d_kx, d_c + t * M, d_fw + t * nf1, M, nf1, es_c, es_beta, sigma,
-              d_binstartpts, d_binsize, bin_size_x, d_subprob_to_bin, d_subprobstartpts,
-              d_numsubprob, maxsubprobsize, numbins, d_idxnupts, d_plan.opts.gpu_np);
+              d_plan.kxyz, d_c + t * M, d_fw + t * nf1, M, d_plan.nf123, es_c, es_beta, sigma,
+              d_binstartpts, d_binsize, {bin_size_x,1,1}, d_subprob_to_bin, d_subprobstartpts,
+              d_numsubprob, maxsubprobsize, {numbins,1,1}, d_idxnupts, d_plan.opts.gpu_np);
       THROW_IF_CUDA_ERROR
     }
   } else {
-    cufinufft_set_shared_memory(spread_1d_output_driven<T, 0, ns>, 1, d_plan);
+    cufinufft_set_shared_memory(spread_output_driven<T, 0, 1, ns>, 1, d_plan);
     for (int t = 0; t < blksize; t++) {
-      spread_1d_output_driven<T, 0, ns>
+      spread_output_driven<T, 0, 1, ns>
           <<<totalnumsubprob, 256, sharedplanorysize, stream>>>(
-              d_kx, d_c + t * M, d_fw + t * nf1, M, nf1, es_c, es_beta, sigma,
-              d_binstartpts, d_binsize, bin_size_x, d_subprob_to_bin, d_subprobstartpts,
-              d_numsubprob, maxsubprobsize, numbins, d_idxnupts, d_plan.opts.gpu_np);
+              d_plan.kxyz, d_c + t * M, d_fw + t * nf1, M, d_plan.nf123, es_c, es_beta, sigma,
+              d_binstartpts, d_binsize, {bin_size_x,1,1}, d_subprob_to_bin, d_subprobstartpts,
+              d_numsubprob, maxsubprobsize, {numbins,1,1}, d_idxnupts, d_plan.opts.gpu_np);
       THROW_IF_CUDA_ERROR
     }
   }

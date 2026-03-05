@@ -184,24 +184,24 @@ static void cuspread2d_output_driven(int nf1, int nf2, int M,
       d_plan.opts.gpu_binsizez, d_plan.opts.gpu_np);
 
   if (d_plan.opts.gpu_kerevalmeth) {
-    cufinufft_set_shared_memory(spread_2d_output_driven<T, 1, ns>, 2, d_plan);
+    cufinufft_set_shared_memory(spread_output_driven<T, 1, 2, ns>, 2, d_plan);
     for (int t = 0; t < blksize; t++) {
-      spread_2d_output_driven<T, 1, ns>
+      spread_output_driven<T, 1, 2, ns>
           <<<totalnumsubprob, 256, sharedplanorysize, stream>>>(
-              d_kx, d_ky, d_c + t * M, d_fw + t * nf1 * nf2, M, nf1, nf2, es_c, es_beta,
-              sigma, d_binstartpts, d_binsize, bin_size_x, bin_size_y, d_subprob_to_bin,
-              d_subprobstartpts, d_numsubprob, maxsubprobsize, numbins[0], numbins[1],
+              d_plan.kxyz, d_c + t * M, d_fw + t * nf1 * nf2, M, d_plan.nf123, es_c, es_beta,
+              sigma, d_binstartpts, d_binsize, {bin_size_x, bin_size_y, 1}, d_subprob_to_bin,
+              d_subprobstartpts, d_numsubprob, maxsubprobsize, {numbins[0], numbins[1], 1},
               d_idxnupts, d_plan.opts.gpu_np);
       THROW_IF_CUDA_ERROR
     }
   } else {
-    cufinufft_set_shared_memory(spread_subprob<T, 0, 2, ns>, 2, d_plan);
+    cufinufft_set_shared_memory(spread_output_driven<T, 0, 2, ns>, 2, d_plan);
     for (int t = 0; t < blksize; t++) {
-      spread_2d_output_driven<T, 0, ns>
+      spread_output_driven<T, 0, 2, ns>
           <<<totalnumsubprob, 256, sharedplanorysize, stream>>>(
-              d_kx, d_ky, d_c + t * M, d_fw + t * nf1 * nf2, M, nf1, nf2, es_c, es_beta,
-              sigma, d_binstartpts, d_binsize, bin_size_x, bin_size_y, d_subprob_to_bin,
-              d_subprobstartpts, d_numsubprob, maxsubprobsize, numbins[0], numbins[1],
+              d_plan.kxyz, d_c + t * M, d_fw + t * nf1 * nf2, M, d_plan.nf123, es_c, es_beta,
+              sigma, d_binstartpts, d_binsize, {bin_size_x, bin_size_y, 1}, d_subprob_to_bin,
+              d_subprobstartpts, d_numsubprob, maxsubprobsize, {numbins[0], numbins[1], 1},
               d_idxnupts, d_plan.opts.gpu_np);
       THROW_IF_CUDA_ERROR
     }

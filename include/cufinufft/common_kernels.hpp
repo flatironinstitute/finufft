@@ -774,8 +774,60 @@ __global__ void spread_output_driven(
       //}
     }
     __syncthreads();
-#if 1
+
     for (auto i = 0; i < batch_size; i++) {
+if constexpr(ndim==1) {
+      // strength from shared memory
+
+      const auto cnow            = nupts_sm[i];
+      const auto start           = shift[i];
+      static constexpr auto total = ns;
+      for (int idx = threadIdx.x; idx < total; idx += blockDim.x) {
+        const int ix = start[0] + idx + ns_2;
+        if constexpr (std::is_same_v<T, float>) {
+          if (ix >= (padded_size[0]) || ix < 0) break;
+        }
+        // separable window weights
+        const auto kervalue = kerevals[i][idx][0];
+        // accumulate
+    //    const cuda_complex<T> res{cnow * kervalue};
+        local_subgrid[ix] += cnow * kervalue;
+      }
+      __syncthreads();
+    }
+if constexpr(ndim==2) {
+      // strength from shared memory
+      static constexpr int sizex  = ns; // true span in X
+      const auto cnow             = nupts_sm[i];
+      const auto start = shift[i];
+      static constexpr auto total = ns * ns;
+
+      for (int idx = threadIdx.x; idx < total; idx += blockDim.x) {
+        // decompose idx using `plane`
+        const int yy = idx / sizex;
+        const int xx = idx - yy * sizex;
+
+        // recover global coords
+        const int real_yy = start[1] + yy;
+        const int real_xx = start[0] + xx;
+
+        // padded indices
+        const int iy = real_yy + ns_2;
+        const int ix = real_xx + ns_2;
+
+        if constexpr (std::is_same_v<T, float>) {
+          if (ix >= (padded_size[0]) || ix < 0) break;
+          if (iy >= (padded_size[1]) || iy < 0) break;
+        }
+        // separable window weights
+        const auto kervalue = kerevals[i][0][xx] * kerevals[i][1][yy];
+
+        // accumulate
+        local_subgrid[ix + padded_size[0]*iy] += {cnow * kervalue};
+      }
+      __syncthreads();
+}
+if constexpr(ndim==3) {
       // strength from shared memory
       static constexpr int sizex = ns;            // true span in X
       static constexpr int sizey = ns;            // true span in Y
@@ -811,8 +863,8 @@ __global__ void spread_output_driven(
         local_subgrid[ix + padded_size[0]*iy + padded_size[0]*padded_size[1]*iz] += {cnow * kervalue};
       }
       __syncthreads();
+}
     }
-#endif
   }
   /* write to global memory */
   for (int n = threadIdx.x; n < local_subgrid_size; n += blockDim.x) {
