@@ -45,32 +45,6 @@ static __global__ void map_b_into_subprob_2d(int *d_subprob_to_bin,
 }
 
 template<typename T>
-static __global__ void calc_bin_size_noghost_2d(
-    int M, int nf1, int nf2, int bin_size_x, int bin_size_y, int nbinx, int nbiny,
-    int *bin_size, const T *x, const T *y, int *sortidx) {
-  int binidx, binx, biny;
-  int oldidx;
-  T x_rescaled, y_rescaled;
-  for (int i = threadIdx.x + blockIdx.x * blockDim.x; i < M;
-       i += gridDim.x * blockDim.x) {
-    x_rescaled = fold_rescale(x[i], nf1);
-    y_rescaled = fold_rescale(y[i], nf2);
-    binx       = floor(x_rescaled / bin_size_x);
-    binx       = binx >= nbinx ? binx - 1 : binx;
-    binx       = binx < 0 ? 0 : binx;
-    biny       = floor(y_rescaled / bin_size_y);
-    biny       = biny >= nbiny ? biny - 1 : biny;
-    biny       = biny < 0 ? 0 : biny;
-    binidx     = binx + biny * nbinx;
-    oldidx     = atomicAdd(&bin_size[binidx], 1);
-    sortidx[i] = oldidx;
-    if (binx >= nbinx || biny >= nbiny) {
-      sortidx[i] = -biny;
-    }
-  }
-}
-
-template<typename T>
 static __global__ void calc_inverse_of_global_sort_index_2d(
     int M, int bin_size_x, int bin_size_y, int nbinx, int nbiny, const int *bin_startpts,
     const int *sortidx, const T *x, const T *y, int *index, int nf1, int nf2) {
@@ -472,6 +446,7 @@ static void cuspread2d_nuptsdriven_prop(cufinufft_plan_t<T> &d_plan) {
   if (d_plan.opts.gpu_sort) {
     int bin_size_x = d_plan.opts.gpu_binsizex;
     int bin_size_y = d_plan.opts.gpu_binsizey;
+    cuda::std::array<int,3> binsizes = {d_plan.opts.gpu_binsizex, d_plan.opts.gpu_binsizey, d_plan.opts.gpu_binsizez};
     if (bin_size_x < 0 || bin_size_y < 0) {
       std::cerr << "[cuspread2d_nuptsdriven_prop] error: invalid binsize "
                    "(binsizex, binsizey) = (";
@@ -479,9 +454,9 @@ static void cuspread2d_nuptsdriven_prop(cufinufft_plan_t<T> &d_plan) {
       throw int(FINUFFT_ERR_BINSIZE_NOTVALID);
     }
 
-    int numbins[2];
-    numbins[0] = ceil((T)nf1 / bin_size_x);
-    numbins[1] = ceil((T)nf2 / bin_size_y);
+    cuda::std::array<int, 3> nbins{1,1,1};
+    nbins[0] = ceil((T)nf1 / bin_size_x);
+    nbins[1] = ceil((T)nf2 / bin_size_y);
 
     const T *d_kx = d_plan.kxyz[0];
     const T *d_ky = d_plan.kxyz[1];
@@ -492,20 +467,19 @@ static void cuspread2d_nuptsdriven_prop(cufinufft_plan_t<T> &d_plan) {
     int *d_idxnupts    = dethrust(d_plan.idxnupts);
 
     checkCudaErrors(
-        cudaMemsetAsync(d_binsize, 0, numbins[0] * numbins[1] * sizeof(int), stream));
+        cudaMemsetAsync(d_binsize, 0, nbins[0] * nbins[1] * sizeof(int), stream));
 
-    calc_bin_size_noghost_2d<<<(M + 1024 - 1) / 1024, 1024, 0, stream>>>(
-        M, nf1, nf2, bin_size_x, bin_size_y, numbins[0], numbins[1], d_binsize, d_kx,
-        d_ky, d_sortidx);
+    calc_bin_size_noghost<T,2><<<(M + 1024 - 1) / 1024, 1024, 0, stream>>>(
+        M, d_plan.nf123, binsizes, nbins, d_binsize, d_plan.kxyz, d_sortidx);
     THROW_IF_CUDA_ERROR
 
-    int n = numbins[0] * numbins[1];
+    int n = nbins[0] * nbins[1];
     thrust::device_ptr<int> d_ptr(d_binsize);
     thrust::device_ptr<int> d_result(d_binstartpts);
     thrust::exclusive_scan(thrust::cuda::par.on(stream), d_ptr, d_ptr + n, d_result);
 
     calc_inverse_of_global_sort_index_2d<<<(M + 1024 - 1) / 1024, 1024, 0, stream>>>(
-        M, bin_size_x, bin_size_y, numbins[0], numbins[1], d_binstartpts, d_sortidx, d_kx,
+        M, bin_size_x, bin_size_y, nbins[0], nbins[1], d_binstartpts, d_sortidx, d_kx,
         d_ky, d_idxnupts, nf1, nf2);
     THROW_IF_CUDA_ERROR
   } else {
@@ -554,8 +528,8 @@ static void cuspread2d_subprob_prop(cufinufft_plan_t<T> &d_plan)
   checkCudaErrors(
       cudaMemsetAsync(d_binsize, 0, numbins[0] * numbins[1] * sizeof(int), stream));
 
-  calc_bin_size_noghost_2d<<<(M + 1024 - 1) / 1024, 1024, 0, stream>>>(
-      M, nf1, nf2, bin_size_x, bin_size_y, numbins[0], numbins[1], d_binsize, d_kx, d_ky,
+  calc_bin_size_noghost<T,2><<<(M + 1024 - 1) / 1024, 1024, 0, stream>>>(
+      M, d_plan.nf123, {bin_size_x, bin_size_y, 1}, {numbins[0], numbins[1],1 }, d_binsize, d_plan.kxyz,
       d_sortidx);
   THROW_IF_CUDA_ERROR
 

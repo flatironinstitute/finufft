@@ -359,6 +359,48 @@ void cuspread_nupts_driven(const cufinufft_plan_t<T> &d_plan, int blksize) {
   }
 }
 
+template<typename T, int ndim>
+__global__ void calc_bin_size_noghost(
+    int M, cuda::std::array<int, 3> nf, cuda::std::array<int, 3> binsizes,
+    cuda::std::array<int, 3> nbins, int *bin_size, cuda::std::array<const T *, 3> xyz,
+    int *sortidx) {
+  for (int i = threadIdx.x + blockIdx.x * blockDim.x; i < M;
+       i += gridDim.x * blockDim.x) {
+    int binidx = 0;
+    int stride = 1;
+    for (int idim=0; idim<ndim; ++idim) {
+      T rescaled = fold_rescale(xyz[idim][i], nf[idim]);
+      int bin = floor(rescaled / binsizes[idim]);
+      bin = bin >= nbins[idim] ? bin - 1 : bin;
+      bin = bin < 0 ? 0 : bin;
+      binidx += bin*stride;
+      stride *= nbins[idim];
+    }
+    int oldidx = atomicAdd(&bin_size[binidx], 1);
+    sortidx[i] = oldidx;
+  }
+}
+
+template<typename T, int ndim>
+__global__ void calc_inverse_of_global_sort_idx(
+    int M, cuda::std::array<int, 3> binsizes, cuda::std::array<int, 3> nbins, const int *bin_startpts, const int *sortidx,
+    cuda::std::array<const T *, 3> xyz, int *index, cuda::std::array<int, 3> nf) {
+  for (int i = threadIdx.x + blockIdx.x * blockDim.x; i < M;
+       i += gridDim.x * blockDim.x) {
+    int binidx = 0;
+    int stride = 1;
+    for (int idim=0; idim<ndim; ++idim) {
+      T rescaled = fold_rescale(xyz[idim][i], nf[idim]);
+      int bin = floor(rescaled / binsizes[idim]);
+      bin = bin >= nbins[idim] ? bin - 1 : bin;
+      bin = bin < 0 ? 0 : bin;
+      binidx += bin*stride;
+      stride *= nbins[idim];
+    }
+    index[bin_startpts[binidx] + sortidx[i]] = i;
+  }
+}
+
 } // namespace spreadinterp
 } // namespace cufinufft
 
