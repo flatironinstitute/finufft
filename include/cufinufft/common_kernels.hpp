@@ -409,7 +409,7 @@ void cuspread_nuptsdriven_prop(cufinufft_plan_t<T> &d_plan) {
     int nbins_tot=1;
     for (int idim=0; idim<ndim; ++idim) {
       if (binsizes[idim] < 0) {
-        std::cerr << "[cuspread1d_nuptsdriven_prop] error: invalid binsize (dim "<<idim<<") = ("
+        std::cerr << "[cuspread_nuptsdriven_prop] error: invalid binsize (dim "<<idim<<") = ("
                   << binsizes[idim] << ")\n";
         throw int(FINUFFT_ERR_BINSIZE_NOTVALID);
       }
@@ -494,7 +494,7 @@ __global__ void spread_subprob(
       }
     }
 
-    const auto cnow = c[idx];
+    const auto cnow = c[idxnupts[idx]];
     if constexpr (ndim==1) {
       for (int xx = 0; xx < ns; ++xx) {
         const auto ix = xx + start[0] + ns_2;
