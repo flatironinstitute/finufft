@@ -14,6 +14,43 @@ namespace spreadinterp {
 using namespace cufinufft::utils;
 using namespace cufinufft::common;
 
+template<int ndim, typename T> inline auto get_nbin_info(const cufinufft_plan_t<T> &plan, cuda::std::array<int, 3> binsizes) {
+  cuda::std::array<int, 3> nbins{1,1,1};
+  int nbins_tot=1;
+  for (int idim=0; idim<ndim; ++idim) {
+    if (binsizes[idim] < 0) {
+      std::cerr << "[cuspread_nuptsdriven_prop] error: invalid binsize (dim "<<idim<<") = ("
+                << binsizes[idim] << ")\n";
+      throw int(FINUFFT_ERR_BINSIZE_NOTVALID);
+    }
+    nbins[idim] = ceil(T(plan.nf123[idim]) / binsizes[idim]);
+    nbins_tot *= nbins[idim];
+  }
+  return std::make_tuple(nbins, nbins_tot);
+}
+template<typename T, int KEREVALMETH, int ndim, int ns> __device__ inline auto
+  get_kerval_and_startpos(int idx, cuda::std::array<const T *,3> xyz, cuda::std::array<int,3> nf, cuda::std::array<int,ndim> offset, T sigma, T es_c, T es_beta) {
+
+  cuda::std::array<cuda::std::array<T, ns>, ndim> ker;
+  cuda::std::array<int, ndim> start;
+  for (int idim=0; idim<ndim; ++idim) {
+    const auto rescaled = fold_rescale(xyz[idim][idx], nf[idim]);
+    auto [s, dummy] = interval(ns, rescaled);
+
+    const T s1 = T(s) - rescaled;
+
+    s -= offset[idim];
+    start[idim] = s;
+
+    if constexpr (KEREVALMETH == 1) {
+      eval_kernel_vec_horner<T, ns>(&ker[idim][0], s1, sigma);
+    } else {
+      eval_kernel_vec<T, ns>(&ker[idim][0], s1, es_c, es_beta);
+    }
+  }
+  return make_tuple(ker,start);
+}
+
 template<typename T, int KEREVALMETH, int ndim, int ns>
 __global__ void interp_nupts_driven(
     const cuda::std::array<const T *, 3> xyz, cuda_complex<T> *c,
@@ -405,17 +442,7 @@ void cuspread_nuptsdriven_prop(cufinufft_plan_t<T> &d_plan) {
   if (d_plan.opts.gpu_sort) {
     cuda::std::array<int,3> binsizes = {d_plan.opts.gpu_binsizex, d_plan.opts.gpu_binsizey, d_plan.opts.gpu_binsizez};
 
-    cuda::std::array<int, 3> nbins{1,1,1};
-    int nbins_tot=1;
-    for (int idim=0; idim<ndim; ++idim) {
-      if (binsizes[idim] < 0) {
-        std::cerr << "[cuspread_nuptsdriven_prop] error: invalid binsize (dim "<<idim<<") = ("
-                  << binsizes[idim] << ")\n";
-        throw int(FINUFFT_ERR_BINSIZE_NOTVALID);
-      }
-      nbins[idim] = ceil((T)d_plan.nf123[idim] / binsizes[idim]);
-      nbins_tot *= nbins[idim];
-    }
+    auto [nbins, nbins_tot] = get_nbin_info<ndim>(d_plan, binsizes);
 
     checkCudaErrors(cudaMemsetAsync(dethrust(d_plan.binsize), 0, nbins_tot * sizeof(int), d_plan.stream));
     calc_bin_size_noghost<T,ndim><<<(d_plan.M + 1024 - 1) / 1024, 1024, 0, d_plan.stream>>>(
@@ -476,23 +503,24 @@ __global__ void spread_subprob(
 
   for (int i = threadIdx.x; i < nupts; i += blockDim.x) {
     const int idx = ptstart + i;
-    cuda::std::array<cuda::std::array<T, ns>, ndim> ker;
-    cuda::std::array<int, ndim> start;
-    for (int idim=0; idim<ndim; ++idim) {
-      const auto rescaled = fold_rescale(xyz[idim][idxnupts[idx]], nf[idim]);
-      auto [s, dummy] = interval(ns, rescaled);
+    auto [ker, start] = get_kerval_and_startpos<T, KEREVALMETH, ndim, ns>(idxnupts[idx], xyz, nf, offset, sigma, es_c, es_beta);
+    //cuda::std::array<cuda::std::array<T, ns>, ndim> ker;
+    //cuda::std::array<int, ndim> start;
+    //for (int idim=0; idim<ndim; ++idim) {
+      //const auto rescaled = fold_rescale(xyz[idim][idxnupts[idx]], nf[idim]);
+      //auto [s, dummy] = interval(ns, rescaled);
 
-      const T s1 = T(s) - rescaled;
+      //const T s1 = T(s) - rescaled;
 
-      s -= offset[idim];
-      start[idim] = s;
+      //s -= offset[idim];
+      //start[idim] = s;
 
-      if constexpr (KEREVALMETH == 1) {
-        eval_kernel_vec_horner<T, ns>(&ker[idim][0], s1, sigma);
-      } else {
-        eval_kernel_vec<T, ns>(&ker[idim][0], s1, es_c, es_beta);
-      }
-    }
+      //if constexpr (KEREVALMETH == 1) {
+        //eval_kernel_vec_horner<T, ns>(&ker[idim][0], s1, sigma);
+      //} else {
+        //eval_kernel_vec<T, ns>(&ker[idim][0], s1, es_c, es_beta);
+      //}
+    //}
 
     const auto cnow = c[idxnupts[idx]];
     if constexpr (ndim==1) {
@@ -555,9 +583,7 @@ static void cuspread_subprob(const cufinufft_plan_t<T> &d_plan, int blksize) {
 
   // assume that bin_size > ns/2;
   cuda::std::array<int, 3> binsizes = {d_plan.opts.gpu_binsizex, d_plan.opts.gpu_binsizey, d_plan.opts.gpu_binsizez};
-  cuda::std::array<int, 3> nbins;
-  for (int idim=0; idim<ndim; ++idim)
-    nbins[idim] = ceil((T)d_plan.nf123[idim] / binsizes[idim]);
+  auto [nbins, nbins_tot] = get_nbin_info<ndim>(d_plan, binsizes);
 
   T sigma                      = d_plan.spopts.upsampfac;
   T es_c                       = 4.0 / T(d_plan.spopts.nspread * d_plan.spopts.nspread);
@@ -609,17 +635,18 @@ static __global__ void map_b_into_subprob(int *d_subprob_to_bin,
 template<typename T, int ndim> static void cuspread_subprob_prop(cufinufft_plan_t<T> &d_plan) {
   cuda::std::array<int,3> binsizes = {d_plan.opts.gpu_binsizex, d_plan.opts.gpu_binsizey, d_plan.opts.gpu_binsizez};
 
-  cuda::std::array<int, 3> nbins{1,1,1};
-  int nbins_tot=1;
-  for (int idim=0; idim<ndim; ++idim) {
-    if (binsizes[idim] < 0) {
-      std::cerr << "[cuspread_nuptsdriven_prop] error: invalid binsize (dim "<<idim<<") = ("
-                << binsizes[idim] << ")\n";
-      throw int(FINUFFT_ERR_BINSIZE_NOTVALID);
-    }
-    nbins[idim] = ceil((T)d_plan.nf123[idim] / binsizes[idim]);
-    nbins_tot *= nbins[idim];
-  }
+  auto [nbins, nbins_tot] = get_nbin_info<ndim>(d_plan, binsizes);
+  //cuda::std::array<int, 3> nbins{1,1,1};
+  //int nbins_tot=1;
+  //for (int idim=0; idim<ndim; ++idim) {
+    //if (binsizes[idim] < 0) {
+      //std::cerr << "[cuspread_nuptsdriven_prop] error: invalid binsize (dim "<<idim<<") = ("
+                //<< binsizes[idim] << ")\n";
+      //throw int(FINUFFT_ERR_BINSIZE_NOTVALID);
+    //}
+    //nbins[idim] = ceil((T)d_plan.nf123[idim] / binsizes[idim]);
+    //nbins_tot *= nbins[idim];
+  //}
 
   checkCudaErrors(cudaMemsetAsync(dethrust(d_plan.binsize), 0, nbins_tot * sizeof(int), d_plan.stream));
   calc_bin_size_noghost<T,ndim><<<(d_plan.M + 1024 - 1) / 1024, 1024, 0, d_plan.stream>>>(
