@@ -564,79 +564,7 @@ static void cuspread3d_blockgather(int nf1, int nf2, int nf3, int M,
     }
   }
 }
-#if 0
-template<typename T, int ns>
-static void cuspread3d_output_driven(int nf1, int nf2, int nf3, int M,
-                                     const cufinufft_plan_t<T> &d_plan, int blksize) {
-  auto &stream = d_plan.stream;
 
-  int maxsubprobsize = d_plan.opts.gpu_maxsubprobsize;
-
-  // assume that bin_size_x > ns/2;
-  int bin_size_x = d_plan.opts.gpu_binsizex;
-  int bin_size_y = d_plan.opts.gpu_binsizey;
-  int bin_size_z = d_plan.opts.gpu_binsizez;
-  int numbins[3];
-  numbins[0] = ceil((T)nf1 / bin_size_x);
-  numbins[1] = ceil((T)nf2 / bin_size_y);
-  numbins[2] = ceil((T)nf3 / bin_size_z);
-
-  const T *d_kx              = d_plan.kxyz[0];
-  const T *d_ky              = d_plan.kxyz[1];
-  const T *d_kz              = d_plan.kxyz[2];
-  const cuda_complex<T> *d_c = d_plan.c;
-  cuda_complex<T> *d_fw      = d_plan.fw;
-
-  const int *d_binsize         = dethrust(d_plan.binsize);
-  const int *d_binstartpts     = dethrust(d_plan.binstartpts);
-  const int *d_numsubprob      = dethrust(d_plan.numsubprob);
-  const int *d_subprobstartpts = dethrust(d_plan.subprobstartpts);
-  const int *d_idxnupts        = dethrust(d_plan.idxnupts);
-
-  int totalnumsubprob         = d_plan.totalnumsubprob;
-  const int *d_subprob_to_bin = dethrust(d_plan.subprob_to_bin);
-
-  const auto np = d_plan.opts.gpu_np;
-
-  T sigma   = d_plan.spopts.upsampfac;
-  T es_c    = 4.0 / T(d_plan.spopts.nspread * d_plan.spopts.nspread);
-  T es_beta = d_plan.spopts.beta;
-  const auto sharedplanorysize =
-      shared_memory_required<T>(3, ns, d_plan.opts.gpu_binsizex, d_plan.opts.gpu_binsizey,
-                                d_plan.opts.gpu_binsizez, d_plan.opts.gpu_np);
-  if (d_plan.opts.gpu_kerevalmeth) {
-    cufinufft_set_shared_memory(spread_output_driven<T, 1, 3, ns>, 3, d_plan);
-    cudaFuncSetSharedMemConfig(spread_output_driven<T, 1, 3, ns>,
-                               cudaSharedMemBankSizeEightByte);
-    THROW_IF_CUDA_ERROR
-    for (int t = 0; t < blksize; t++) {
-      spread_output_driven<T, 1, 3, ns>
-          <<<totalnumsubprob, std::min(256, std::max(ns * ns * ns, np)),
-             sharedplanorysize, stream>>>(
-              d_plan.kxyz, d_c + t * M, d_fw + t * nf1 * nf2 * nf3, M, d_plan.nf123,
-              sigma, es_c, es_beta, d_binstartpts, d_binsize, {bin_size_x, bin_size_y,
-              bin_size_z}, d_subprob_to_bin, d_subprobstartpts, d_numsubprob,
-              maxsubprobsize, {numbins[0], numbins[1], numbins[2]}, d_idxnupts, np);
-      THROW_IF_CUDA_ERROR
-    }
-  } else {
-    cufinufft_set_shared_memory(spread_output_driven<T, 0, 3, ns>, 3, d_plan);
-    cudaFuncSetSharedMemConfig(spread_output_driven<T, 0, 3, ns>,
-                               cudaSharedMemBankSizeEightByte);
-    THROW_IF_CUDA_ERROR
-    for (int t = 0; t < blksize; t++) {
-      spread_output_driven<T, 0, 3, ns>
-          <<<totalnumsubprob, std::min(256, std::max(ns * ns * ns, np)),
-             sharedplanorysize, stream>>>(
-              d_plan.kxyz, d_c + t * M, d_fw + t * nf1 * nf2 * nf3, M, d_plan.nf123,
-              sigma, es_c, es_beta, d_binstartpts, d_binsize, {bin_size_x, bin_size_y,
-              bin_size_z}, d_subprob_to_bin, d_subprobstartpts, d_numsubprob,
-              maxsubprobsize, {numbins[0], numbins[1], numbins[2]}, d_idxnupts, np);
-      THROW_IF_CUDA_ERROR
-    }
-  }
-}
-#endif
 // Functor to handle function selection (nuptsdriven, subprob, blockgather)
 struct Spread3DDispatcher {
   template<int ns, typename T>
