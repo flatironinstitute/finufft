@@ -1,13 +1,9 @@
-#include <cuComplex.h>
-#include <cufinufft/contrib/helper_cuda.h>
 #include <iostream>
 
-#include <cufinufft/spreadinterp.h>
-#include <cufinufft/types.h>
-#include <cufinufft/utils.h>
-#include <cufinufft/common_kernels.hpp>
+#include <cuComplex.h>
 
-using namespace cufinufft::utils;
+#include <cufinufft/spreadinterp.h>
+#include <cufinufft/common_kernels.hpp>
 
 namespace cufinufft {
 namespace spreadinterp {
