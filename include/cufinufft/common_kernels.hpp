@@ -739,16 +739,18 @@ __global__ void spread_output_driven(
     const auto batch_size = min(np, nupts - batch_begin);
     for (int i = threadIdx.x; i < batch_size; i += blockDim.x) {
       const int nuptsidx = loadReadOnly(idxnupts + ptstart + i + batch_begin);
+      nupts_sm[i] = c[nuptsidx];
       // index of the current point within the batch
       for (size_t idim = 0; idim < ndim; ++idim) {
         auto rescaled   = fold_rescale(xyz[idim][nuptsidx], nf[idim]);
-        auto [s, dummy] = interval(ns, rescaled);
+        const auto start     = int(std::ceil(rescaled - ns_2f));
+   //     auto [s, dummy] = interval(ns, rescaled);
         if constexpr (KEREVALMETH == 1) {
-          eval_kernel_vec_horner<T, ns>(&kerevals[i][idim][0], T(s) - rescaled, sigma);
+          eval_kernel_vec_horner<T, ns>(&kerevals[i][idim][0], T(start) - rescaled, sigma);
         } else {
-          eval_kernel_vec<T, ns>(&kerevals[i][idim][0], T(s) - rescaled, es_c, es_beta);
+          eval_kernel_vec<T, ns>(&kerevals[i][idim][0], T(start) - rescaled, es_c, es_beta);
         }
-        shift[i][idim] = s + ((s < 0) ? nf[idim] : 0);
+        shift[i][idim] = start - offset[idim];// + ((s < 0) ? nf[idim] : 0);
       }
       //const auto x_rescaled = fold_rescale(loadReadOnly(x + nuptsidx), nf1);
       //const auto y_rescaled = fold_rescale(loadReadOnly(y + nuptsidx), nf2);
