@@ -114,15 +114,12 @@ __global__ void interp_subprob(
   extern __shared__ char sharedbuf[];
   auto fwshared = (cuda_complex<T> *)sharedbuf;
 
-  cuda::std::array<cuda::std::array<T, ns>, ndim> ker;
-
   const auto subpidx     = blockIdx.x;
   const auto bidx        = subprob_to_bin[subpidx];
   const auto binsubp_idx = subpidx - subprobstartpts[bidx];
   const auto ptstart     = binstartpts[bidx] + binsubp_idx * maxsubprobsize;
   const auto nupts = min(maxsubprobsize, bin_size[bidx] - binsubp_idx * maxsubprobsize);
 
-//FIXME: loop!
   cuda::std::array<int, ndim> offset;
   {
   int tmp = bidx;
@@ -131,9 +128,6 @@ __global__ void interp_subprob(
     tmp /= nbins[idim];
   }
   }
-//  offset[0] = (bidx % nbins[0]) * binsizes[0];
-//  offset[1] = ((bidx / nbins[0]) % nbins[1]) * binsizes[1];
-//  offset[2] = (bidx / (nbins[0] * nbins[1])) * binsizes[2];
 
   const T ns_2f         = ns * T(.5);
   const auto ns_2       = (ns + 1) / 2;
@@ -144,6 +138,8 @@ __global__ void interp_subprob(
     N *= binsizes[idim]+rounded_ns;
 
   for (int n = threadIdx.x; n < N; n += blockDim.x) {
+
+//FIXME: spreadidx == n by construction?
     bool in_region = true;
     int flatidx = n;
     int inidx = 0, sharedidx = 0;
@@ -166,6 +162,7 @@ __global__ void interp_subprob(
 
   for (int i = threadIdx.x; i < nupts; i += blockDim.x) {
     const int idx = ptstart + i;
+    cuda::std::array<cuda::std::array<T, ns>, ndim> ker;
     cuda::std::array<int, ndim> start;
     for (int idim=0; idim<ndim; ++idim) {
       const auto rescaled = fold_rescale(xyz[idim][idxnupts[idx]], nf[idim]);
@@ -435,6 +432,158 @@ void cuspread_nuptsdriven_prop(cufinufft_plan_t<T> &d_plan) {
     int *d_idxnupts = dethrust(d_plan.idxnupts);
     thrust::sequence(thrust::cuda::par.on(d_plan.stream), d_plan.idxnupts.begin(), d_plan.idxnupts.begin() + d_plan.M);
     THROW_IF_CUDA_ERROR
+  }
+}
+
+template<typename T, int KEREVALMETH, int ndim, int ns>
+__global__ void spread_subprob(
+    cuda::std::array<const T *, 3> xyz, const cuda_complex<T> *c, cuda_complex<T> *fw,
+    int M, cuda::std::array<int, 3> nf, T sigma, T es_c, T es_beta, const int *binstartpts,
+    const int *bin_size, cuda::std::array<int, 3> binsizes,
+    const int *subprob_to_bin, const int *subprobstartpts, const int *numsubprob,
+    int maxsubprobsize, cuda::std::array<int, 3> nbins, const int *idxnupts) {
+  extern __shared__ char sharedbuf[];
+  auto fwshared = (cuda_complex<T> *)sharedbuf;
+
+  const auto subpidx     = blockIdx.x;
+  const auto bidx        = subprob_to_bin[subpidx];
+  const auto binsubp_idx = subpidx - subprobstartpts[bidx];
+  const auto ptstart     = binstartpts[bidx] + binsubp_idx * maxsubprobsize;
+  const auto nupts = min(maxsubprobsize, bin_size[bidx] - binsubp_idx * maxsubprobsize);
+
+  cuda::std::array<int, ndim> offset;
+  {
+  int tmp = bidx;
+  for (int idim=0; idim<ndim; ++idim) {
+    offset[idim] = (tmp%nbins[idim]) * binsizes[idim];
+    tmp /= nbins[idim];
+  }
+  }
+
+  const T ns_2f         = ns * T(.5);
+  const auto ns_2       = (ns + 1) / 2;
+  const auto rounded_ns = ns_2 * 2;
+
+  int N = 1;
+  for (int idim=0; idim<ndim; ++idim)
+    N *= binsizes[idim]+rounded_ns;
+
+  for (int i = threadIdx.x; i < N; i += blockDim.x) {
+    fwshared[i] = {0, 0};
+  }
+
+  __syncthreads();
+
+  for (int i = threadIdx.x; i < nupts; i += blockDim.x) {
+    const int idx = ptstart + i;
+    cuda::std::array<cuda::std::array<T, ns>, ndim> ker;
+    cuda::std::array<int, ndim> start;
+    for (int idim=0; idim<ndim; ++idim) {
+      const auto rescaled = fold_rescale(xyz[idim][idxnupts[idx]], nf[idim]);
+      auto [s, dummy] = interval(ns, rescaled);
+
+      const T s1 = T(s) - rescaled;
+
+      s -= offset[idim];
+      start[idim] = s;
+
+      if constexpr (KEREVALMETH == 1) {
+        eval_kernel_vec_horner<T, ns>(&ker[idim][0], s1, sigma);
+      } else {
+        eval_kernel_vec<T, ns>(&ker[idim][0], s1, es_c, es_beta);
+      }
+    }
+
+    const auto cnow = c[idx];
+    if constexpr (ndim==1) {
+      for (int xx = 0; xx < ns; ++xx) {
+        const auto ix = xx + start[0] + ns_2;
+        atomicAddComplexShared<T>(fwshared + ix, cnow*ker[0][xx]);
+      }
+    } else if constexpr (ndim==2) {
+      for (int yy = 0; yy < ns; ++yy) {
+        const auto iy = yy + start[1] + ns_2;
+        for (int xx = 0; xx < ns; ++xx) {
+          const auto ix = xx + start[0] + ns_2;
+          const auto outidx = ix + iy * (binsizes[0] + rounded_ns);
+          atomicAddComplexShared<T>(fwshared + outidx, cnow*(ker[0][xx]*ker[1][yy]));
+        }
+      }
+    } else {
+      for (int zz = 0; zz < ns; ++zz) {
+        const auto kervalue3 = ker[2][zz];
+        const auto iz = zz + start[2] + ns_2;
+        for (int yy = 0; yy < ns; ++yy) {
+          const auto iy = yy + start[1] + ns_2;
+          for (int xx = 0; xx < ns; ++xx) {
+            const auto ix = xx + start[0] + ns_2;
+            const auto outidx = ix + iy * (binsizes[0] + rounded_ns) +
+                                iz * (binsizes[0] + rounded_ns) * (binsizes[1] + rounded_ns);
+            atomicAddComplexShared<T>(fwshared + outidx, cnow*(ker[0][xx]*ker[1][yy]*ker[2][zz]));
+          }
+        }
+      }
+    }
+  }
+
+  __syncthreads();
+
+  /* write to global memory */
+  for (int n = threadIdx.x; n < N; n += blockDim.x) {
+    bool in_region = true;
+    int flatidx = n;
+    int outidx = 0, sharedidx = 0;
+    int outstride = 1, sharedstride = 1;
+    for (int idim=0; idim<ndim; ++idim) {
+      int idx0 = flatidx%(binsizes[idim]+rounded_ns);
+      int idx = idx0 + offset[idim] - ns_2;
+      if (idx >= nf[idim] + ns_2) in_region = false;
+      idx = idx < 0 ? idx + nf[idim] : (idx >= nf[idim] ? idx - nf[idim] : idx);
+      outidx += idx*outstride;
+      outstride *= nf[idim];
+      sharedidx += idx0*sharedstride;
+      sharedstride *= (binsizes[idim]+rounded_ns);
+      flatidx /= (binsizes[idim]+rounded_ns);
+    }
+    if (in_region)
+      atomicAddComplexGlobal<T>(fw + outidx, fwshared[sharedidx]);
+  }
+}
+
+template<typename T, int ndim, int ns>
+static void cuspread_subprob(const cufinufft_plan_t<T> &d_plan, int blksize) {
+
+  // assume that bin_size_x > ns/2;
+  cuda::std::array<int, 3> binsizes = {d_plan.opts.gpu_binsizex, d_plan.opts.gpu_binsizey, d_plan.opts.gpu_binsizez};
+  cuda::std::array<int, 3> nbins;
+  for (int idim=0; idim<ndim; ++idim)
+    nbins[idim] = ceil((T)d_plan.nf123[idim] / binsizes[idim]);
+
+  T sigma                      = d_plan.spopts.upsampfac;
+  T es_c                       = 4.0 / T(d_plan.spopts.nspread * d_plan.spopts.nspread);
+  T es_beta                    = d_plan.spopts.beta;
+  const auto sharedplanorysize = shared_memory_required<T>(
+      ndim, d_plan.spopts.nspread, d_plan.opts.gpu_binsizex, d_plan.opts.gpu_binsizey, d_plan.opts.gpu_binsizez, d_plan.opts.gpu_np);
+  if (d_plan.opts.gpu_kerevalmeth) {
+    cufinufft_set_shared_memory(spread_subprob<T, 1, ndim, ns>, ndim, d_plan);
+    for (int t = 0; t < blksize; t++) {
+      spread_subprob<T, 1, ndim, ns><<<d_plan.totalnumsubprob, 256, sharedplanorysize, d_plan.stream>>>(
+          d_plan.kxyz, d_plan.c + t * d_plan.M, d_plan.fw + t * d_plan.nf, d_plan.M, d_plan.nf123,
+          sigma, es_c, es_beta, dethrust(d_plan.binstartpts), dethrust(d_plan.binsize), binsizes,
+          dethrust(d_plan.subprob_to_bin), dethrust(d_plan.subprobstartpts), dethrust(d_plan.numsubprob), d_plan.opts.gpu_maxsubprobsize,
+          nbins, dethrust(d_plan.idxnupts));
+      THROW_IF_CUDA_ERROR
+    }
+  } else {
+    cufinufft_set_shared_memory(spread_subprob<T, 0, ndim, ns>, ndim, d_plan);
+    for (int t = 0; t < blksize; t++) {
+      spread_subprob<T, 1, ndim, ns><<<d_plan.totalnumsubprob, 256, sharedplanorysize, d_plan.stream>>>(
+          d_plan.kxyz, d_plan.c + t * d_plan.M, d_plan.fw + t * d_plan.nf, d_plan.M, d_plan.nf123,
+          sigma, es_c, es_beta, dethrust(d_plan.binstartpts), dethrust(d_plan.binsize), binsizes,
+          dethrust(d_plan.subprob_to_bin), dethrust(d_plan.subprobstartpts), dethrust(d_plan.numsubprob), d_plan.opts.gpu_maxsubprobsize,
+          nbins, dethrust(d_plan.idxnupts));
+      THROW_IF_CUDA_ERROR
+    }
   }
 }
 

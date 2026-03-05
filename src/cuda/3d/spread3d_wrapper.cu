@@ -36,11 +36,6 @@ static __host__ __device__ int calc_global_index(
          (xidx % bnx + yidx % bny * bnx + zidx % bnz * bny * bnx);
 }
 
-static __device__ int calc_global_index_v2(int xidx, int yidx, int zidx, int nbinx,
-                                           int nbiny, int nbinz) {
-  return xidx + yidx * nbinx + zidx * nbinx * nbiny;
-}
-
 static __global__ void calc_subprob_3d_v2(const int *bin_size, int *num_subprob,
                                           int maxsubprobsize, int numbins) {
   for (int i = threadIdx.x + blockIdx.x * blockDim.x; i < numbins;
@@ -202,65 +197,6 @@ static __global__ void ghost_bin_pts_index(
   }
 }
 
-template<typename T>
-static __global__ void calc_bin_size_noghost_3d(
-    int M, int nf1, int nf2, int nf3, int bin_size_x, int bin_size_y, int bin_size_z,
-    int nbinx, int nbiny, int nbinz, int *bin_size, const T *x, const T *y, const T *z,
-    int *sortidx) {
-  int binidx, binx, biny, binz;
-  int oldidx;
-  T x_rescaled, y_rescaled, z_rescaled;
-  for (int i = threadIdx.x + blockIdx.x * blockDim.x; i < M;
-       i += gridDim.x * blockDim.x) {
-    x_rescaled = fold_rescale(x[i], nf1);
-    y_rescaled = fold_rescale(y[i], nf2);
-    z_rescaled = fold_rescale(z[i], nf3);
-    binx       = floor(x_rescaled / bin_size_x);
-    binx       = binx >= nbinx ? binx - 1 : binx;
-    binx       = binx < 0 ? 0 : binx;
-
-    biny = floor(y_rescaled / bin_size_y);
-    biny = biny >= nbiny ? biny - 1 : biny;
-    biny = biny < 0 ? 0 : biny;
-
-    binz       = floor(z_rescaled / bin_size_z);
-    binz       = binz >= nbinz ? binz - 1 : binz;
-    binz       = binz < 0 ? 0 : binz;
-    binidx     = binx + biny * nbinx + binz * nbinx * nbiny;
-    oldidx     = atomicAdd(&bin_size[binidx], 1);
-    sortidx[i] = oldidx;
-  }
-}
-
-template<typename T>
-static __global__ void calc_inverse_of_global_sort_index_3d(
-    int M, int bin_size_x, int bin_size_y, int bin_size_z, int nbinx, int nbiny,
-    int nbinz, const int *bin_startpts, const int *sortidx, const T *x, const T *y,
-    const T *z, int *index, int nf1, int nf2, int nf3) {
-  int binx, biny, binz;
-  int binidx;
-  T x_rescaled, y_rescaled, z_rescaled;
-  for (int i = threadIdx.x + blockIdx.x * blockDim.x; i < M;
-       i += gridDim.x * blockDim.x) {
-    x_rescaled = fold_rescale(x[i], nf1);
-    y_rescaled = fold_rescale(y[i], nf2);
-    z_rescaled = fold_rescale(z[i], nf3);
-    binx       = floor(x_rescaled / bin_size_x);
-    binx       = binx >= nbinx ? binx - 1 : binx;
-    binx       = binx < 0 ? 0 : binx;
-    biny       = floor(y_rescaled / bin_size_y);
-    biny       = biny >= nbiny ? biny - 1 : biny;
-    biny       = biny < 0 ? 0 : biny;
-    binz       = floor(z_rescaled / bin_size_z);
-    binz       = binz >= nbinz ? binz - 1 : binz;
-    binz       = binz < 0 ? 0 : binz;
-    binidx     = calc_global_index_v2(binx, biny, binz, nbinx, nbiny, nbinz);
-
-    index[bin_startpts[binidx] + sortidx[i]] = i;
-  }
-}
-
-/* Kernels for Output Driven method */
 template<typename T, int KEREVALMETH, int ns>
 static __global__ void spread_3d_output_driven(
     const T *x, const T *y, const T *z, const cuda_complex<T> *c, cuda_complex<T> *fw,
@@ -397,116 +333,6 @@ static __global__ void spread_3d_output_driven(
 }
 
 /* Kernels for Subprob method */
-template<typename T, int KEREVALMETH, int ns>
-static __global__ void spread_3d_subprob(
-    const T *x, const T *y, const T *z, const cuda_complex<T> *c, cuda_complex<T> *fw,
-    int M, int nf1, int nf2, int nf3, T sigma, T es_c, T es_beta, const int *binstartpts,
-    const int *bin_size, int bin_size_x, int bin_size_y, int bin_size_z,
-    const int *subprob_to_bin, const int *subprobstartpts, const int *numsubprob,
-    int maxsubprobsize, int nbinx, int nbiny, int nbinz, const int *idxnupts) {
-  extern __shared__ char sharedbuf[];
-  auto fwshared = (cuda_complex<T> *)sharedbuf;
-
-  const int bidx        = subprob_to_bin[blockIdx.x];
-  const int binsubp_idx = blockIdx.x - subprobstartpts[bidx];
-  const int ptstart     = binstartpts[bidx] + binsubp_idx * maxsubprobsize;
-  const int nupts = min(maxsubprobsize, bin_size[bidx] - binsubp_idx * maxsubprobsize);
-
-  const int xoffset = (bidx % nbinx) * bin_size_x;
-  const int yoffset = ((bidx / nbinx) % nbiny) * bin_size_y;
-  const int zoffset = (bidx / (nbinx * nbiny)) * bin_size_z;
-
-  const T ns_2f         = ns * T(.5);
-  const auto ns_2       = (ns + 1) / 2;
-  const auto rounded_ns = ns_2 * 2;
-
-  const int N =
-      (bin_size_x + rounded_ns) * (bin_size_y + rounded_ns) * (bin_size_z + rounded_ns);
-
-  for (int i = threadIdx.x; i < N; i += blockDim.x) {
-    fwshared[i] = {0, 0};
-  }
-  __syncthreads();
-
-  T ker1[ns];
-  T ker2[ns];
-  T ker3[ns];
-
-  for (int i = threadIdx.x; i < nupts; i += blockDim.x) {
-    const int nuptsidx    = idxnupts[ptstart + i];
-    const auto x_rescaled = fold_rescale(x[nuptsidx], nf1);
-    const auto y_rescaled = fold_rescale(y[nuptsidx], nf2);
-    const auto z_rescaled = fold_rescale(z[nuptsidx], nf3);
-    const auto cnow       = c[nuptsidx];
-    auto [xstart, xend]   = interval(ns, x_rescaled);
-    auto [ystart, yend]   = interval(ns, y_rescaled);
-    auto [zstart, zend]   = interval(ns, z_rescaled);
-
-    const T x1 = T(xstart) - x_rescaled;
-    const T y1 = T(ystart) - y_rescaled;
-    const T z1 = T(zstart) - z_rescaled;
-
-    xstart -= xoffset;
-    ystart -= yoffset;
-    zstart -= zoffset;
-
-    xend -= xoffset;
-    yend -= yoffset;
-    zend -= zoffset;
-
-    if constexpr (KEREVALMETH == 1) {
-      eval_kernel_vec_horner<T, ns>(ker1, x1, sigma);
-      eval_kernel_vec_horner<T, ns>(ker2, y1, sigma);
-      eval_kernel_vec_horner<T, ns>(ker3, z1, sigma);
-    } else {
-      eval_kernel_vec<T, ns>(ker1, x1, es_c, es_beta);
-      eval_kernel_vec<T, ns>(ker2, y1, es_c, es_beta);
-      eval_kernel_vec<T, ns>(ker3, z1, es_c, es_beta);
-    }
-
-    for (int zz = zstart; zz <= zend; zz++) {
-      const T kervalue3 = ker3[zz - zstart];
-      const int iz      = zz + ns_2;
-      if (iz >= (bin_size_z + rounded_ns) || iz < 0) break;
-      for (int yy = ystart; yy <= yend; yy++) {
-        const T kervalue2 = ker2[yy - ystart];
-        const int iy      = yy + ns_2;
-        if (iy >= (bin_size_y + rounded_ns) || iy < 0) break;
-        for (int xx = xstart; xx <= xend; xx++) {
-          const int ix = xx + ns_2;
-          if (ix >= (bin_size_x + rounded_ns) || ix < 0) break;
-          const int outidx = ix + iy * (bin_size_x + rounded_ns) +
-                             iz * (bin_size_x + rounded_ns) * (bin_size_y + rounded_ns);
-          const auto kervalue = ker1[xx - xstart] * kervalue2 * kervalue3;
-          const cuda_complex<T> res{cnow.x * kervalue, cnow.y * kervalue};
-          atomicAddComplexShared<T>(fwshared + outidx, res);
-        }
-      }
-    }
-  }
-  __syncthreads();
-
-  /* write to global memory */
-  for (int n = threadIdx.x; n < N; n += blockDim.x) {
-    const int i = n % (bin_size_x + rounded_ns);
-    const int j = (n / (bin_size_x + rounded_ns)) % (bin_size_y + rounded_ns);
-    const int k = n / ((bin_size_x + rounded_ns) * (bin_size_y + rounded_ns));
-
-    int ix = xoffset - ns_2 + i;
-    int iy = yoffset - ns_2 + j;
-    int iz = zoffset - ns_2 + k;
-
-    if (ix < (nf1 + ns_2) && iy < (nf2 + ns_2) && iz < (nf3 + ns_2)) {
-      ix                  = ix < 0 ? ix + nf1 : (ix > nf1 - 1 ? ix - nf1 : ix);
-      iy                  = iy < 0 ? iy + nf2 : (iy > nf2 - 1 ? iy - nf2 : iy);
-      iz                  = iz < 0 ? iz + nf3 : (iz > nf3 - 1 ? iz - nf3 : iz);
-      const int outidx    = ix + iy * nf1 + iz * nf1 * nf2;
-      const int sharedidx = i + j * (bin_size_x + rounded_ns) +
-                            k * (bin_size_x + rounded_ns) * (bin_size_y + rounded_ns);
-      atomicAddComplexGlobal<T>(fw + outidx, fwshared[sharedidx]);
-    }
-  }
-}
 template<typename T>
 static __global__ void locate_nupts_to_bins_ghost(
     int M, int bin_size_x, int bin_size_y, int bin_size_z, int nobinx, int nobiny,
@@ -928,9 +754,9 @@ template<typename T> static void cuspread3d_subprob_prop(cufinufft_plan_t<T> &d_
 
   checkCudaErrors(cudaMemsetAsync(
       d_binsize, 0, numbins[0] * numbins[1] * numbins[2] * sizeof(int), stream));
-  calc_bin_size_noghost_3d<<<(M + 1024 - 1) / 1024, 1024, 0, stream>>>(
-      M, nf1, nf2, nf3, bin_size_x, bin_size_y, bin_size_z, numbins[0], numbins[1],
-      numbins[2], d_binsize, d_kx, d_ky, d_kz, d_sortidx);
+  calc_bin_size_noghost<T,3><<<(M + 1024 - 1) / 1024, 1024, 0, stream>>>(
+      M, d_plan.nf123, {bin_size_x, bin_size_y, bin_size_z}, {numbins[0], numbins[1],
+      numbins[2]}, d_binsize, d_plan.kxyz, d_sortidx);
   THROW_IF_CUDA_ERROR
 
   int n = numbins[0] * numbins[1] * numbins[2];
@@ -938,9 +764,9 @@ template<typename T> static void cuspread3d_subprob_prop(cufinufft_plan_t<T> &d_
   thrust::device_ptr<int> d_result(d_binstartpts);
   thrust::exclusive_scan(thrust::cuda::par.on(stream), d_ptr, d_ptr + n, d_result);
 
-  calc_inverse_of_global_sort_index_3d<<<(M + 1024 - 1) / 1024, 1024, 0, stream>>>(
-      M, bin_size_x, bin_size_y, bin_size_z, numbins[0], numbins[1], numbins[2],
-      d_binstartpts, d_sortidx, d_kx, d_ky, d_kz, d_idxnupts, nf1, nf2, nf3);
+  calc_inverse_of_global_sort_idx<T,3><<<(M + 1024 - 1) / 1024, 1024, 0, stream>>>(
+      M, {bin_size_x, bin_size_y, bin_size_z}, {numbins[0], numbins[1], numbins[2]},
+      d_binstartpts, d_sortidx, d_plan.kxyz, d_idxnupts, d_plan.nf123);
   THROW_IF_CUDA_ERROR
   /* --------------------------------------------- */
   //        Determining Subproblem properties      //
@@ -967,66 +793,6 @@ template<typename T> static void cuspread3d_subprob_prop(cufinufft_plan_t<T> &d_
   d_plan.subprob_to_bin.clear();
   d_plan.subprob_to_bin.swap(d_subprob_to_bin);
   d_plan.totalnumsubprob = totalnumsubprob;
-}
-
-template<typename T, int ns>
-static void cuspread3d_subprob(int nf1, int nf2, int nf3, int M,
-                               const cufinufft_plan_t<T> &d_plan, int blksize) {
-  auto &stream = d_plan.stream;
-
-  int maxsubprobsize = d_plan.opts.gpu_maxsubprobsize;
-
-  // assume that bin_size_x > ns/2;
-  int bin_size_x = d_plan.opts.gpu_binsizex;
-  int bin_size_y = d_plan.opts.gpu_binsizey;
-  int bin_size_z = d_plan.opts.gpu_binsizez;
-  int numbins[3];
-  numbins[0] = ceil((T)nf1 / bin_size_x);
-  numbins[1] = ceil((T)nf2 / bin_size_y);
-  numbins[2] = ceil((T)nf3 / bin_size_z);
-
-  const T *d_kx              = d_plan.kxyz[0];
-  const T *d_ky              = d_plan.kxyz[1];
-  const T *d_kz              = d_plan.kxyz[2];
-  const cuda_complex<T> *d_c = d_plan.c;
-  cuda_complex<T> *d_fw      = d_plan.fw;
-
-  const int *d_binsize         = dethrust(d_plan.binsize);
-  const int *d_binstartpts     = dethrust(d_plan.binstartpts);
-  const int *d_numsubprob      = dethrust(d_plan.numsubprob);
-  const int *d_subprobstartpts = dethrust(d_plan.subprobstartpts);
-  const int *d_idxnupts        = dethrust(d_plan.idxnupts);
-
-  int totalnumsubprob         = d_plan.totalnumsubprob;
-  const int *d_subprob_to_bin = dethrust(d_plan.subprob_to_bin);
-
-  T sigma                      = d_plan.spopts.upsampfac;
-  T es_c                       = 4.0 / T(d_plan.spopts.nspread * d_plan.spopts.nspread);
-  T es_beta                    = d_plan.spopts.beta;
-  const auto sharedplanorysize = shared_memory_required<T>(
-      3, d_plan.spopts.nspread, d_plan.opts.gpu_binsizex, d_plan.opts.gpu_binsizey,
-      d_plan.opts.gpu_binsizez, d_plan.opts.gpu_np);
-  if (d_plan.opts.gpu_kerevalmeth) {
-    cufinufft_set_shared_memory(spread_3d_subprob<T, 1, ns>, 3, d_plan);
-    for (int t = 0; t < blksize; t++) {
-      spread_3d_subprob<T, 1, ns><<<totalnumsubprob, 256, sharedplanorysize, stream>>>(
-          d_kx, d_ky, d_kz, d_c + t * M, d_fw + t * nf1 * nf2 * nf3, M, nf1, nf2, nf3,
-          sigma, es_c, es_beta, d_binstartpts, d_binsize, bin_size_x, bin_size_y,
-          bin_size_z, d_subprob_to_bin, d_subprobstartpts, d_numsubprob, maxsubprobsize,
-          numbins[0], numbins[1], numbins[2], d_idxnupts);
-      THROW_IF_CUDA_ERROR
-    }
-  } else {
-    cufinufft_set_shared_memory(spread_3d_subprob<T, 0, ns>, 3, d_plan);
-    for (int t = 0; t < blksize; t++) {
-      spread_3d_subprob<T, 0, ns><<<totalnumsubprob, 256, sharedplanorysize, stream>>>(
-          d_kx, d_ky, d_kz, d_c + t * M, d_fw + t * nf1 * nf2 * nf3, M, nf1, nf2, nf3,
-          sigma, es_c, es_beta, d_binstartpts, d_binsize, bin_size_x, bin_size_y,
-          bin_size_z, d_subprob_to_bin, d_subprobstartpts, d_numsubprob, maxsubprobsize,
-          numbins[0], numbins[1], numbins[2], d_idxnupts);
-      THROW_IF_CUDA_ERROR
-    }
-  }
 }
 
 template<typename T, int ns>
@@ -1111,7 +877,7 @@ struct Spread3DDispatcher {
     case 1:
       return cuspread_nupts_driven<T, 3, ns>(d_plan, blksize);
     case 2:
-      return cuspread3d_subprob<T, ns>(nf1, nf2, nf3, M, d_plan, blksize);
+      return cuspread_subprob<T, 3, ns>(d_plan, blksize);
     case 3:
       return cuspread3d_output_driven<T, ns>(nf1, nf2, nf3, M, d_plan, blksize);
     case 4:

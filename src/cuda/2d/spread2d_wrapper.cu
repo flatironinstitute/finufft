@@ -44,29 +44,6 @@ static __global__ void map_b_into_subprob_2d(int *d_subprob_to_bin,
   }
 }
 
-template<typename T>
-static __global__ void calc_inverse_of_global_sort_index_2d(
-    int M, int bin_size_x, int bin_size_y, int nbinx, int nbiny, const int *bin_startpts,
-    const int *sortidx, const T *x, const T *y, int *index, int nf1, int nf2) {
-  int binx, biny;
-  int binidx;
-  T x_rescaled, y_rescaled;
-  for (int i = threadIdx.x + blockIdx.x * blockDim.x; i < M;
-       i += gridDim.x * blockDim.x) {
-    x_rescaled = fold_rescale(x[i], nf1);
-    y_rescaled = fold_rescale(y[i], nf2);
-    binx       = floor(x_rescaled / bin_size_x);
-    binx       = binx >= nbinx ? binx - 1 : binx;
-    binx       = binx < 0 ? 0 : binx;
-    biny       = floor(y_rescaled / bin_size_y);
-    biny       = biny >= nbiny ? biny - 1 : biny;
-    biny       = biny < 0 ? 0 : biny;
-    binidx     = binx + biny * nbinx;
-
-    index[bin_startpts[binidx] + sortidx[i]] = i;
-  }
-}
-
 template<typename T, int KEREVALMETH, int ns>
 static __global__ void spread_2d_output_driven(
     const T *x, const T *y, const cuda_complex<T> *c, cuda_complex<T> *fw, int M, int nf1,
@@ -189,92 +166,6 @@ static __global__ void spread_2d_output_driven(
   }
 }
 
-template<typename T, int KEREVALMETH, int ns>
-static __global__ void spread_2d_subprob(
-    const T *x, const T *y, const cuda_complex<T> *c, cuda_complex<T> *fw, int M, int nf1,
-    int nf2, T es_c, T es_beta, T sigma, const int *binstartpts, const int *bin_size,
-    int bin_size_x, int bin_size_y, const int *subprob_to_bin, const int *subprobstartpts,
-    const int *numsubprob, int maxsubprobsize, int nbinx, int nbiny,
-    const int *idxnupts) {
-  extern __shared__ char sharedbuf[];
-  cuda_complex<T> *fwshared = (cuda_complex<T> *)sharedbuf;
-
-  const int subpidx      = blockIdx.x;
-  const auto bidx        = subprob_to_bin[subpidx];
-  const auto binsubp_idx = subpidx - subprobstartpts[bidx];
-  const auto ptstart     = binstartpts[bidx] + binsubp_idx * maxsubprobsize;
-  const auto nupts = min(maxsubprobsize, bin_size[bidx] - binsubp_idx * maxsubprobsize);
-
-  const int xoffset = (bidx % nbinx) * bin_size_x;
-  const int yoffset = (bidx / nbinx) * bin_size_y;
-
-  const T ns_2f         = ns * T(.5);
-  const auto ns_2       = (ns + 1) / 2;
-  const auto rounded_ns = ns_2 * 2;
-  const int N           = (bin_size_x + rounded_ns) * (bin_size_y + rounded_ns);
-
-  T ker1[ns];
-  T ker2[ns];
-
-  for (int i = threadIdx.x; i < N; i += blockDim.x) {
-    fwshared[i] = {0, 0};
-  }
-  __syncthreads();
-
-  for (int i = threadIdx.x; i < nupts; i += blockDim.x) {
-    const int idx         = ptstart + i;
-    const auto x_rescaled = fold_rescale(x[idxnupts[idx]], nf1);
-    const auto y_rescaled = fold_rescale(y[idxnupts[idx]], nf2);
-    const auto cnow       = c[idxnupts[idx]];
-    auto [xstart, xend]   = interval(ns, x_rescaled);
-    auto [ystart, yend]   = interval(ns, y_rescaled);
-
-    const T x1 = T(xstart) - x_rescaled;
-    const T y1 = T(ystart) - y_rescaled;
-    xstart -= xoffset;
-    ystart -= yoffset;
-    xend -= xoffset;
-    yend -= yoffset;
-
-    if constexpr (KEREVALMETH == 1) {
-      eval_kernel_vec_horner<T, ns>(ker1, x1, sigma);
-      eval_kernel_vec_horner<T, ns>(ker2, y1, sigma);
-    } else {
-      eval_kernel_vec<T, ns>(ker1, x1, es_c, es_beta);
-      eval_kernel_vec<T, ns>(ker2, y1, es_c, es_beta);
-    }
-
-    for (int yy = ystart; yy <= yend; yy++) {
-      const auto iy = yy + ns_2;
-      if (iy >= (bin_size_y + rounded_ns) || iy < 0) break;
-      for (int xx = xstart; xx <= xend; xx++) {
-        const auto ix = xx + ns_2;
-        if (ix >= (bin_size_x + rounded_ns) || ix < 0) break;
-        const auto outidx   = ix + iy * (bin_size_x + rounded_ns);
-        const auto kervalue = ker1[xx - xstart] * ker2[yy - ystart];
-        const cuda_complex<T> res{cnow.x * kervalue, cnow.y * kervalue};
-        atomicAddComplexShared<T>(fwshared + outidx, res);
-      }
-    }
-  }
-
-  __syncthreads();
-  /* write to global memory */
-  for (int k = threadIdx.x; k < N; k += blockDim.x) {
-    const auto i = k % (bin_size_x + rounded_ns);
-    const auto j = k / (bin_size_x + rounded_ns);
-    auto ix      = xoffset - ns_2 + i;
-    auto iy      = yoffset - ns_2 + j;
-    if (ix < (nf1 + ns_2) && iy < (nf2 + ns_2)) {
-      ix                   = ix < 0 ? ix + nf1 : (ix > nf1 - 1 ? ix - nf1 : ix);
-      iy                   = iy < 0 ? iy + nf2 : (iy > nf2 - 1 ? iy - nf2 : iy);
-      const auto outidx    = ix + iy * nf1;
-      const auto sharedidx = i + j * (bin_size_x + rounded_ns);
-      atomicAddComplexGlobal<T>(fw + outidx, fwshared[sharedidx]);
-    }
-  }
-}
-
 template<typename T, int ns>
 static void cuspread2d_output_driven(int nf1, int nf2, int M,
                                      const cufinufft_plan_t<T> &d_plan, int blksize) {
@@ -323,7 +214,7 @@ static void cuspread2d_output_driven(int nf1, int nf2, int M,
       THROW_IF_CUDA_ERROR
     }
   } else {
-    cufinufft_set_shared_memory(spread_2d_subprob<T, 0, ns>, 2, d_plan);
+    cufinufft_set_shared_memory(spread_subprob<T, 0, 2, ns>, 2, d_plan);
     for (int t = 0; t < blksize; t++) {
       spread_2d_output_driven<T, 0, ns>
           <<<totalnumsubprob, 256, sharedplanorysize, stream>>>(
@@ -331,65 +222,6 @@ static void cuspread2d_output_driven(int nf1, int nf2, int M,
               sigma, d_binstartpts, d_binsize, bin_size_x, bin_size_y, d_subprob_to_bin,
               d_subprobstartpts, d_numsubprob, maxsubprobsize, numbins[0], numbins[1],
               d_idxnupts, d_plan.opts.gpu_np);
-      THROW_IF_CUDA_ERROR
-    }
-  }
-}
-
-template<typename T, int ns>
-static void cuspread2d_subprob(int nf1, int nf2, int M, const cufinufft_plan_t<T> &d_plan,
-                               int blksize) {
-  auto &stream = d_plan.stream;
-
-  T es_c             = 4.0 / T(d_plan.spopts.nspread * d_plan.spopts.nspread);
-  T es_beta          = d_plan.spopts.beta;
-  int maxsubprobsize = d_plan.opts.gpu_maxsubprobsize;
-
-  // assume that bin_size_x > ns/2;
-  int bin_size_x = d_plan.opts.gpu_binsizex;
-  int bin_size_y = d_plan.opts.gpu_binsizey;
-  int numbins[2];
-  numbins[0] = ceil((T)nf1 / bin_size_x);
-  numbins[1] = ceil((T)nf2 / bin_size_y);
-
-  const T *d_kx              = d_plan.kxyz[0];
-  const T *d_ky              = d_plan.kxyz[1];
-  const cuda_complex<T> *d_c = d_plan.c;
-  cuda_complex<T> *d_fw      = d_plan.fw;
-
-  const int *d_binsize         = dethrust(d_plan.binsize);
-  const int *d_binstartpts     = dethrust(d_plan.binstartpts);
-  const int *d_numsubprob      = dethrust(d_plan.numsubprob);
-  const int *d_subprobstartpts = dethrust(d_plan.subprobstartpts);
-  const int *d_idxnupts        = dethrust(d_plan.idxnupts);
-
-  int totalnumsubprob         = d_plan.totalnumsubprob;
-  const int *d_subprob_to_bin = dethrust(d_plan.subprob_to_bin);
-
-  T sigma = d_plan.opts.upsampfac;
-
-  const auto sharedplanorysize = shared_memory_required<T>(
-      2, d_plan.spopts.nspread, d_plan.opts.gpu_binsizex, d_plan.opts.gpu_binsizey,
-      d_plan.opts.gpu_binsizez, d_plan.opts.gpu_np);
-
-  if (d_plan.opts.gpu_kerevalmeth) {
-    cufinufft_set_shared_memory(spread_2d_subprob<T, 1, ns>, 2, d_plan);
-    for (int t = 0; t < blksize; t++) {
-      spread_2d_subprob<T, 1, ns><<<totalnumsubprob, 256, sharedplanorysize, stream>>>(
-          d_kx, d_ky, d_c + t * M, d_fw + t * nf1 * nf2, M, nf1, nf2, es_c, es_beta,
-          sigma, d_binstartpts, d_binsize, bin_size_x, bin_size_y, d_subprob_to_bin,
-          d_subprobstartpts, d_numsubprob, maxsubprobsize, numbins[0], numbins[1],
-          d_idxnupts);
-      THROW_IF_CUDA_ERROR
-    }
-  } else {
-    cufinufft_set_shared_memory(spread_2d_subprob<T, 0, ns>, 2, d_plan);
-    for (int t = 0; t < blksize; t++) {
-      spread_2d_subprob<T, 0, ns><<<totalnumsubprob, 256, sharedplanorysize, stream>>>(
-          d_kx, d_ky, d_c + t * M, d_fw + t * nf1 * nf2, M, nf1, nf2, es_c, es_beta,
-          sigma, d_binstartpts, d_binsize, bin_size_x, bin_size_y, d_subprob_to_bin,
-          d_subprobstartpts, d_numsubprob, maxsubprobsize, numbins[0], numbins[1],
-          d_idxnupts);
       THROW_IF_CUDA_ERROR
     }
   }
@@ -404,7 +236,7 @@ struct Spread2DDispatcher {
     case 1:
       return cuspread_nupts_driven<T, 2, ns>(d_plan, blksize);
     case 2:
-      return cuspread2d_subprob<T, ns>(nf1, nf2, M, d_plan, blksize);
+      return cuspread_subprob<T, 2, ns>(d_plan, blksize);
     case 3:
       return cuspread2d_output_driven<T, ns>(nf1, nf2, M, d_plan, blksize);
     default:
@@ -485,9 +317,9 @@ static void cuspread2d_subprob_prop(cufinufft_plan_t<T> &d_plan)
   thrust::device_ptr<int> d_result(d_binstartpts);
   thrust::exclusive_scan(thrust::cuda::par.on(stream), d_ptr, d_ptr + n, d_result);
 
-  calc_inverse_of_global_sort_index_2d<<<(M + 1024 - 1) / 1024, 1024, 0, stream>>>(
-      M, bin_size_x, bin_size_y, numbins[0], numbins[1], d_binstartpts, d_sortidx, d_kx,
-      d_ky, d_idxnupts, nf1, nf2);
+  calc_inverse_of_global_sort_idx<T,2><<<(M + 1024 - 1) / 1024, 1024, 0, stream>>>(
+      M, {bin_size_x, bin_size_y, 1}, {numbins[0], numbins[1], 1}, d_binstartpts, d_sortidx,
+      d_plan.kxyz, d_idxnupts, d_plan.nf123);
   THROW_IF_CUDA_ERROR
   calc_subprob_2d<<<(M + 1024 - 1) / 1024, 1024, 0, stream>>>(
       d_binsize, d_numsubprob, maxsubprobsize, numbins[0] * numbins[1]);
