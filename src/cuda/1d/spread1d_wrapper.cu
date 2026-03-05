@@ -1,8 +1,4 @@
-#include <cassert>
-#include <cmath>
-
-#include <thrust/device_ptr.h>
-#include <thrust/sequence.h>
+#include <iostream>
 
 #include <cuComplex.h>
 

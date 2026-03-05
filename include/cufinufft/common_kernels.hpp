@@ -130,8 +130,6 @@ void cuinterp_nuptsdriven(const cufinufft_plan_t<T> &d_plan, int blksize) {
   T es_beta = d_plan.spopts.beta;
   T sigma   = d_plan.spopts.upsampfac;
 
-  const int *d_idxnupts = dethrust(d_plan.idxnupts);
-
   const dim3 threadsPerBlock{
       std::min(optimal_block_threads(d_plan.opts.gpu_device_id), (unsigned)d_plan.M), 1u,
       1u};
@@ -141,14 +139,14 @@ void cuinterp_nuptsdriven(const cufinufft_plan_t<T> &d_plan, int blksize) {
     for (int t = 0; t < blksize; t++) {
       interp_nupts_driven<T, 1, ndim, ns><<<blocks, threadsPerBlock, 0, d_plan.stream>>>(
           d_plan.kxyz, d_plan.c + t * d_plan.M, d_plan.fw + t * d_plan.nf, d_plan.M,
-          d_plan.nf123, es_c, es_beta, sigma, d_idxnupts);
+          d_plan.nf123, es_c, es_beta, sigma, dethrust(d_plan.idxnupts));
       THROW_IF_CUDA_ERROR
     }
   } else {
     for (int t = 0; t < blksize; t++) {
       interp_nupts_driven<T, 0, ndim, ns><<<blocks, threadsPerBlock, 0, d_plan.stream>>>(
           d_plan.kxyz, d_plan.c + t * d_plan.M, d_plan.fw + t * d_plan.nf, d_plan.M,
-          d_plan.nf123, es_c, es_beta, sigma, d_idxnupts);
+          d_plan.nf123, es_c, es_beta, sigma, dethrust(d_plan.idxnupts));
       THROW_IF_CUDA_ERROR
     }
   }
@@ -188,12 +186,10 @@ __global__ void interp_subprob(
   for (int idim = 0; idim < ndim; ++idim) N *= binsizes[idim] + rounded_ns;
 
   for (int n = threadIdx.x; n < N; n += blockDim.x) {
-
-    // FIXME: spreadidx == n by construction?
     bool in_region = true;
     int flatidx    = n;
-    int inidx = 0, sharedidx = 0;
-    int instride = 1, sharedstride = 1;
+    int inidx = 0;
+    int instride = 1;
     for (int idim = 0; idim < ndim; ++idim) {
       int idx0 = flatidx % (binsizes[idim] + rounded_ns);
       int idx  = idx0 + offset[idim] - ns_2;
@@ -201,11 +197,9 @@ __global__ void interp_subprob(
       idx = idx < 0 ? idx + nf[idim] : (idx >= nf[idim] ? idx - nf[idim] : idx);
       inidx += idx * instride;
       instride *= nf[idim];
-      sharedidx += idx0 * sharedstride;
-      sharedstride *= (binsizes[idim] + rounded_ns);
       flatidx /= (binsizes[idim] + rounded_ns);
     }
-    if (in_region) fwshared[sharedidx] = fw[inidx];
+    if (in_region) fwshared[n] = fw[inidx];
   }
   __syncthreads();
 
@@ -543,9 +537,9 @@ __global__ void spread_subprob(
   /* write to global memory */
   for (int n = threadIdx.x; n < N; n += blockDim.x) {
     bool in_region = true;
-    int flatidx    = n;
-    int outidx = 0, sharedidx = 0;
-    int outstride = 1, sharedstride = 1;
+    int flatidx = n;
+    int outidx = 0;
+    int outstride = 1;
     for (int idim = 0; idim < ndim; ++idim) {
       int idx0 = flatidx % (binsizes[idim] + rounded_ns);
       int idx  = idx0 + offset[idim] - ns_2;
@@ -553,11 +547,9 @@ __global__ void spread_subprob(
       idx = idx < 0 ? idx + nf[idim] : (idx >= nf[idim] ? idx - nf[idim] : idx);
       outidx += idx * outstride;
       outstride *= nf[idim];
-      sharedidx += idx0 * sharedstride;
-      sharedstride *= (binsizes[idim] + rounded_ns);
       flatidx /= (binsizes[idim] + rounded_ns);
     }
-    if (in_region) atomicAddComplexGlobal<T>(fw + outidx, fwshared[sharedidx]);
+    if (in_region) atomicAddComplexGlobal<T>(fw + outidx, fwshared[n]);
   }
 }
 
@@ -831,29 +823,23 @@ __global__ void spread_output_driven(
   }
   /* write to global memory */
   for (int n = threadIdx.x; n < local_subgrid_size; n += blockDim.x) {
-    int flatidx    = n;
-    int outidx = 0, sharedidx = 0;
-    int outstride = 1, sharedstride = 1;
+    int flatidx = n;
+    int outidx = 0;
+    int outstride = 1;
     for (int idim = 0; idim < ndim; ++idim) {
       int idx0 = flatidx % padded_size[idim];
       int idx  = idx0 + offset[idim] - ns_2;
       idx = idx < 0 ? idx + nf[idim] : (idx >= nf[idim] ? idx - nf[idim] : idx);
       outidx += idx * outstride;
       outstride *= nf[idim];
-      sharedidx += idx0 * sharedstride;
-      sharedstride *= padded_size[idim];
       flatidx /= padded_size[idim];
     }
-    atomicAddComplexGlobal<T>(fw + outidx, local_subgrid[sharedidx]);
+    atomicAddComplexGlobal<T>(fw + outidx, local_subgrid[n]);
   }
 }
 
 template<typename T, int ndim, int ns>
 static void cuspread_output_driven(const cufinufft_plan_t<T> &d_plan, int blksize) {
-  //auto &stream = d_plan.stream;
-
-  int maxsubprobsize = d_plan.opts.gpu_maxsubprobsize;
-
   // assume that bin_size_x > ns/2;
   cuda::std::array<int, 3> binsizes {d_plan.opts.gpu_binsizex, d_plan.opts.gpu_binsizey, d_plan.opts.gpu_binsizez};
   cuda::std::array<int, 3> nbins{1,1,1};
@@ -882,7 +868,7 @@ static void cuspread_output_driven(const cufinufft_plan_t<T> &d_plan, int blksiz
               d_plan.kxyz, d_plan.c + t * d_plan.M, d_plan.fw + t * d_plan.nf, d_plan.M, d_plan.nf123,
               sigma, es_c, es_beta, dethrust(d_plan.binstartpts), dethrust(d_plan.binsize), binsizes,
               dethrust(d_plan.subprob_to_bin), dethrust(d_plan.subprobstartpts), dethrust(d_plan.numsubprob),
-              maxsubprobsize, nbins, dethrust(d_plan.idxnupts), d_plan.opts.gpu_np);
+              d_plan.opts.gpu_maxsubprobsize, nbins, dethrust(d_plan.idxnupts), d_plan.opts.gpu_np);
       THROW_IF_CUDA_ERROR
     }
   } else {
@@ -897,7 +883,7 @@ static void cuspread_output_driven(const cufinufft_plan_t<T> &d_plan, int blksiz
               d_plan.kxyz, d_plan.c + t * d_plan.M, d_plan.fw + t * d_plan.nf, d_plan.M, d_plan.nf123,
               sigma, es_c, es_beta, dethrust(d_plan.binstartpts), dethrust(d_plan.binsize), binsizes,
               dethrust(d_plan.subprob_to_bin), dethrust(d_plan.subprobstartpts), dethrust(d_plan.numsubprob),
-              maxsubprobsize, nbins, dethrust(d_plan.idxnupts), d_plan.opts.gpu_np);
+              d_plan.opts.gpu_maxsubprobsize, nbins, dethrust(d_plan.idxnupts), d_plan.opts.gpu_np);
       THROW_IF_CUDA_ERROR
     }
   }

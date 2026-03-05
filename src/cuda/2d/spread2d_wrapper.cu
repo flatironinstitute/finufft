@@ -1,9 +1,6 @@
-#include <cassert>
 #include <iostream>
 
 #include <cuComplex.h>
-#include <cufinufft/contrib/helper_cuda.h>
-#include <thrust/device_ptr.h>
 
 #include <cufinufft/common_kernels.hpp>
 #include <cufinufft/spreadinterp.h>
