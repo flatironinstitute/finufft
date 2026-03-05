@@ -203,42 +203,6 @@ static __global__ void spread_1d_subprob(
   }
 }
 
-template<typename T>
-static void cuspread1d_nuptsdriven_prop(cufinufft_plan_t<T> &d_plan) {
-  constexpr int ndim=1;
-  if (d_plan.opts.gpu_sort) {
-    cuda::std::array<int,3> binsizes = {d_plan.opts.gpu_binsizex, d_plan.opts.gpu_binsizey, d_plan.opts.gpu_binsizez};
-
-    cuda::std::array<int, 3> nbins{1,1,1};
-    int nbins_tot=1;
-    for (int idim=0; idim<ndim; ++idim) {
-      if (binsizes[idim] < 0) {
-        std::cerr << "[cuspread1d_nuptsdriven_prop] error: invalid binsize (dim "<<idim<<") = ("
-                  << binsizes[idim] << ")\n";
-        throw int(FINUFFT_ERR_BINSIZE_NOTVALID);
-      }
-      nbins[idim] = ceil((T)d_plan.nf123[idim] / binsizes[idim]);
-      nbins_tot *= nbins[idim];
-    }
-
-    checkCudaErrors(cudaMemsetAsync(dethrust(d_plan.binsize), 0, nbins_tot * sizeof(int), d_plan.stream));
-    calc_bin_size_noghost<T,1><<<(d_plan.M + 1024 - 1) / 1024, 1024, 0, d_plan.stream>>>(
-        d_plan.M, d_plan.nf123, binsizes, nbins, dethrust(d_plan.binsize), d_plan.kxyz, dethrust(d_plan.sortidx));
-    THROW_IF_CUDA_ERROR
-
-    thrust::exclusive_scan(thrust::cuda::par.on(d_plan.stream), d_plan.binsize.begin(), d_plan.binsize.end(), d_plan.binstartpts.begin());
-    THROW_IF_CUDA_ERROR
-
-    calc_inverse_of_global_sort_idx<T,1> <<<(d_plan.M + 1024 - 1) / 1024, 1024, 0, d_plan.stream>>>(
-        d_plan.M, binsizes, nbins, dethrust(d_plan.binstartpts), dethrust(d_plan.sortidx), d_plan.kxyz, dethrust(d_plan.idxnupts), d_plan.nf123);
-    THROW_IF_CUDA_ERROR
-  } else {
-    int *d_idxnupts = dethrust(d_plan.idxnupts);
-    thrust::sequence(thrust::cuda::par.on(d_plan.stream), d_plan.idxnupts.begin(), d_plan.idxnupts.begin() + d_plan.M);
-    THROW_IF_CUDA_ERROR
-  }
-}
-
 template<typename T, int ns>
 static void cuspread1d_output_driven(int nf1, int M, const cufinufft_plan_t<T> &d_plan,
                                      int blksize) {
@@ -456,7 +420,7 @@ template void cuspread1d<float>(const cufinufft_plan_t<float> &d_plan, int blksi
 template void cuspread1d<double>(const cufinufft_plan_t<double> &d_plan, int blksize);
 
 template<typename T> void cuspread1d_prop(cufinufft_plan_t<T> &d_plan) {
-  if (d_plan.opts.gpu_method == 1) cuspread1d_nuptsdriven_prop(d_plan);
+  if (d_plan.opts.gpu_method == 1) cuspread_nuptsdriven_prop<T,1>(d_plan);
   if (d_plan.opts.gpu_method == 2) cuspread1d_subprob_prop(d_plan);
   if (d_plan.opts.gpu_method == 3) cuspread1d_subprob_prop(d_plan);
 }

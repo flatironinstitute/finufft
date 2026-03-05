@@ -437,59 +437,6 @@ template void cuspread2d<float>(const cufinufft_plan_t<float> &d_plan, int blksi
 template void cuspread2d<double>(const cufinufft_plan_t<double> &d_plan, int blksize);
 
 template<typename T>
-static void cuspread2d_nuptsdriven_prop(cufinufft_plan_t<T> &d_plan) {
-  auto &stream = d_plan.stream;
-  int M        = d_plan.M;
-  int nf1      = d_plan.nf123[0];
-  int nf2      = d_plan.nf123[1];
-
-  if (d_plan.opts.gpu_sort) {
-    int bin_size_x = d_plan.opts.gpu_binsizex;
-    int bin_size_y = d_plan.opts.gpu_binsizey;
-    cuda::std::array<int,3> binsizes = {d_plan.opts.gpu_binsizex, d_plan.opts.gpu_binsizey, d_plan.opts.gpu_binsizez};
-    if (bin_size_x < 0 || bin_size_y < 0) {
-      std::cerr << "[cuspread2d_nuptsdriven_prop] error: invalid binsize "
-                   "(binsizex, binsizey) = (";
-      std::cerr << bin_size_x << "," << bin_size_y << ")" << std::endl;
-      throw int(FINUFFT_ERR_BINSIZE_NOTVALID);
-    }
-
-    cuda::std::array<int, 3> nbins{1,1,1};
-    nbins[0] = ceil((T)nf1 / bin_size_x);
-    nbins[1] = ceil((T)nf2 / bin_size_y);
-
-    const T *d_kx = d_plan.kxyz[0];
-    const T *d_ky = d_plan.kxyz[1];
-
-    int *d_binsize     = dethrust(d_plan.binsize);
-    int *d_binstartpts = dethrust(d_plan.binstartpts);
-    int *d_sortidx     = dethrust(d_plan.sortidx);
-    int *d_idxnupts    = dethrust(d_plan.idxnupts);
-
-    checkCudaErrors(
-        cudaMemsetAsync(d_binsize, 0, nbins[0] * nbins[1] * sizeof(int), stream));
-
-    calc_bin_size_noghost<T,2><<<(M + 1024 - 1) / 1024, 1024, 0, stream>>>(
-        M, d_plan.nf123, binsizes, nbins, d_binsize, d_plan.kxyz, d_sortidx);
-    THROW_IF_CUDA_ERROR
-
-    int n = nbins[0] * nbins[1];
-    thrust::device_ptr<int> d_ptr(d_binsize);
-    thrust::device_ptr<int> d_result(d_binstartpts);
-    thrust::exclusive_scan(thrust::cuda::par.on(stream), d_ptr, d_ptr + n, d_result);
-
-    calc_inverse_of_global_sort_index_2d<<<(M + 1024 - 1) / 1024, 1024, 0, stream>>>(
-        M, bin_size_x, bin_size_y, nbins[0], nbins[1], d_binstartpts, d_sortidx, d_kx,
-        d_ky, d_idxnupts, nf1, nf2);
-    THROW_IF_CUDA_ERROR
-  } else {
-    int *d_idxnupts = dethrust(d_plan.idxnupts);
-    thrust::sequence(thrust::cuda::par.on(stream), d_idxnupts, d_idxnupts + M);
-    THROW_IF_CUDA_ERROR
-  }
-}
-
-template<typename T>
 static void cuspread2d_subprob_prop(cufinufft_plan_t<T> &d_plan)
 /*
     This function determines the properties for spreading that are independent
@@ -567,7 +514,7 @@ static void cuspread2d_subprob_prop(cufinufft_plan_t<T> &d_plan)
 }
 
 template<typename T> void cuspread2d_prop(cufinufft_plan_t<T> &d_plan) {
-  if (d_plan.opts.gpu_method == 1) cuspread2d_nuptsdriven_prop<T>(d_plan);
+  if (d_plan.opts.gpu_method == 1) cuspread_nuptsdriven_prop<T,2>(d_plan);
   if (d_plan.opts.gpu_method == 2) cuspread2d_subprob_prop<T>(d_plan);
   if (d_plan.opts.gpu_method == 3) cuspread2d_subprob_prop<T>(d_plan);
 }
