@@ -188,8 +188,8 @@ __global__ void interp_subprob(
   for (int n = threadIdx.x; n < N; n += blockDim.x) {
     bool in_region = true;
     int flatidx    = n;
-    int inidx = 0;
-    int instride = 1;
+    int inidx      = 0;
+    int instride   = 1;
     for (int idim = 0; idim < ndim; ++idim) {
       int idx0 = flatidx % (binsizes[idim] + rounded_ns);
       int idx  = idx0 + offset[idim] - ns_2;
@@ -537,9 +537,9 @@ __global__ void spread_subprob(
   /* write to global memory */
   for (int n = threadIdx.x; n < N; n += blockDim.x) {
     bool in_region = true;
-    int flatidx = n;
-    int outidx = 0;
-    int outstride = 1;
+    int flatidx    = n;
+    int outidx     = 0;
+    int outstride  = 1;
     for (int idim = 0; idim < ndim; ++idim) {
       int idx0 = flatidx % (binsizes[idim] + rounded_ns);
       int idx  = idx0 + offset[idim] - ns_2;
@@ -667,8 +667,8 @@ static void cuspread_subprob_prop(cufinufft_plan_t<T> &d_plan) {
 template<typename T, int KEREVALMETH, int ndim, int ns>
 __global__ void spread_output_driven(
     cuda::std::array<const T *, 3> xyz, const cuda_complex<T> *c, cuda_complex<T> *fw,
-    int M, cuda::std::array<int, 3> nf, T sigma, T es_c, T es_beta, const int *binstartpts,
-    const int *bin_size, cuda::std::array<int, 3> binsizes,
+    int M, cuda::std::array<int, 3> nf, T sigma, T es_c, T es_beta,
+    const int *binstartpts, const int *bin_size, cuda::std::array<int, 3> binsizes,
     const int *subprob_to_bin, const int *subprobstartpts, const int *numsubprob,
     int maxsubprobsize, cuda::std::array<int, 3> nbins, const int *idxnupts, int np) {
   extern __shared__ char sharedbuf[];
@@ -678,8 +678,7 @@ __global__ void spread_output_driven(
   static constexpr auto rounded_ns = ns_2 * 2;
 
   cuda::std::array<int, ndim> padded_size;
-  for (int idim=0; idim<ndim; ++idim)
-    padded_size[idim] = binsizes[idim] + rounded_ns;
+  for (int idim = 0; idim < ndim; ++idim) padded_size[idim] = binsizes[idim] + rounded_ns;
 
   const int bidx        = subprob_to_bin[blockIdx.x];
   const int binsubp_idx = blockIdx.x - subprobstartpts[bidx];
@@ -696,16 +695,19 @@ __global__ void spread_output_driven(
   }
 
   using kernel_data = cuda::std::array<cuda::std::array<T, ns>, ndim>;
-  auto *kerevals = reinterpret_cast<kernel_data *>(sharedbuf);
+  auto *kerevals    = reinterpret_cast<kernel_data *>(sharedbuf);
   // Offset pointer into sharedbuf after kerevals
-  auto *nupts_sm = reinterpret_cast<cuda_complex<T> *>(sharedbuf+np*sizeof(kernel_data));
-  auto *shift = reinterpret_cast<cuda::std::array<int,ndim> *>(sharedbuf+np*sizeof(kernel_data)+np*sizeof(cuda_complex<T>));
+  auto *nupts_sm =
+      reinterpret_cast<cuda_complex<T> *>(sharedbuf + np * sizeof(kernel_data));
+  auto *shift = reinterpret_cast<cuda::std::array<int, ndim> *>(
+      sharedbuf + np * sizeof(kernel_data) + np * sizeof(cuda_complex<T>));
 
-  auto *local_subgrid = reinterpret_cast<cuda_complex<T> *>(sharedbuf+np*sizeof(kernel_data)+np*sizeof(cuda_complex<T>)+np*sizeof(cuda::std::array<int,ndim>));
+  auto *local_subgrid = reinterpret_cast<cuda_complex<T> *>(
+      sharedbuf + np * sizeof(kernel_data) + np * sizeof(cuda_complex<T>) +
+      np * sizeof(cuda::std::array<int, ndim>));
 
-  int local_subgrid_size=1;
-  for (int idim=0; idim<ndim; ++idim)
-    local_subgrid_size *= padded_size[idim];
+  int local_subgrid_size = 1;
+  for (int idim = 0; idim < ndim; ++idim) local_subgrid_size *= padded_size[idim];
 
   // set local_subgrid to zero
   for (int i = threadIdx.x; i < local_subgrid_size; i += blockDim.x) {
@@ -718,25 +720,27 @@ __global__ void spread_output_driven(
     const auto batch_size = min(np, nupts - batch_begin);
     for (int i = threadIdx.x; i < batch_size; i += blockDim.x) {
       const int nuptsidx = loadReadOnly(idxnupts + ptstart + i + batch_begin);
-      nupts_sm[i] = c[nuptsidx];
+      nupts_sm[i]        = c[nuptsidx];
       for (size_t idim = 0; idim < ndim; ++idim) {
-        auto rescaled   = fold_rescale(xyz[idim][nuptsidx], nf[idim]);
-        const auto start     = int(std::ceil(rescaled - ns_2f));
+        auto rescaled    = fold_rescale(xyz[idim][nuptsidx], nf[idim]);
+        const auto start = int(std::ceil(rescaled - ns_2f));
         if constexpr (KEREVALMETH == 1) {
-          eval_kernel_vec_horner<T, ns>(&kerevals[i][idim][0], T(start) - rescaled, sigma);
+          eval_kernel_vec_horner<T, ns>(&kerevals[i][idim][0], T(start) - rescaled,
+                                        sigma);
         } else {
-          eval_kernel_vec<T, ns>(&kerevals[i][idim][0], T(start) - rescaled, es_c, es_beta);
+          eval_kernel_vec<T, ns>(&kerevals[i][idim][0], T(start) - rescaled, es_c,
+                                 es_beta);
         }
-        shift[i][idim] = start - offset[idim];// + ((s < 0) ? nf[idim] : 0);
+        shift[i][idim] = start - offset[idim]; // + ((s < 0) ? nf[idim] : 0);
       }
     }
     __syncthreads();
 
     for (auto i = 0; i < batch_size; i++) {
-      if constexpr(ndim==1) {
+      if constexpr (ndim == 1) {
         // strength from shared memory
-        const auto cnow            = nupts_sm[i];
-        const auto start           = shift[i];
+        const auto cnow             = nupts_sm[i];
+        const auto start            = shift[i];
         static constexpr auto total = ns;
         for (int idx = threadIdx.x; idx < total; idx += blockDim.x) {
           const int ix = start[0] + idx + ns_2;
@@ -750,72 +754,73 @@ __global__ void spread_output_driven(
         }
         __syncthreads();
       }
-      if constexpr(ndim==2) {
+      if constexpr (ndim == 2) {
         // strength from shared memory
         static constexpr int sizex  = ns; // true span in X
         const auto cnow             = nupts_sm[i];
-        const auto start = shift[i];
+        const auto start            = shift[i];
         static constexpr auto total = ns * ns;
-  
+
         for (int idx = threadIdx.x; idx < total; idx += blockDim.x) {
           // decompose idx using `plane`
           const int yy = idx / sizex;
           const int xx = idx - yy * sizex;
-  
+
           // recover global coords
           const int real_yy = start[1] + yy;
           const int real_xx = start[0] + xx;
-  
+
           // padded indices
           const int iy = real_yy + ns_2;
           const int ix = real_xx + ns_2;
-  
+
           if constexpr (std::is_same_v<T, float>) {
             if (ix >= (padded_size[0]) || ix < 0) break;
             if (iy >= (padded_size[1]) || iy < 0) break;
           }
           // separable window weights
           const auto kervalue = kerevals[i][0][xx] * kerevals[i][1][yy];
-  
+
           // accumulate
-          local_subgrid[ix + padded_size[0]*iy] += {cnow * kervalue};
+          local_subgrid[ix + padded_size[0] * iy] += {cnow * kervalue};
         }
-      __syncthreads();
+        __syncthreads();
       }
-      if constexpr(ndim==3) {
-           // strength from shared memory
+      if constexpr (ndim == 3) {
+        // strength from shared memory
         static constexpr int sizex = ns;            // true span in X
         static constexpr int sizey = ns;            // true span in Y
         static constexpr int sizez = ns;            // true span in Z
         static constexpr int plane = sizex * sizey; // #cells per Z‐slice
         static constexpr int total = plane * sizez; // total #cells
-  
-        const auto cnow = nupts_sm[i];
+
+        const auto cnow  = nupts_sm[i];
         const auto start = shift[i];
-  
+
         for (int idx = threadIdx.x; idx < total; idx += blockDim.x) {
           // decompose idx using `plane`
           const int zz   = idx / plane;
           const int rem1 = idx - zz * plane;
           const int yy   = rem1 / sizex;
           const int xx   = rem1 - yy * sizex;
-  
+
           // decompose idx using `plane`
           // recover global coords
           const int real_zz = start[2] + zz;
           const int real_yy = start[1] + yy;
           const int real_xx = start[0] + xx;
-  
+
           // padded indices
           const int iz = real_zz + ns_2;
           const int iy = real_yy + ns_2;
           const int ix = real_xx + ns_2;
-  
+
           // separable window weights
           const auto kervalue =
               kerevals[i][0][xx] * kerevals[i][1][yy] * kerevals[i][2][zz];
           // accumulate
-          local_subgrid[ix + padded_size[0]*iy + padded_size[0]*padded_size[1]*iz] += {cnow * kervalue};
+          local_subgrid[ix + padded_size[0] * iy +
+                        padded_size[0] * padded_size[1] * iz] += {cnow * kervalue};
         }
         __syncthreads();
       }
@@ -823,13 +828,13 @@ __global__ void spread_output_driven(
   }
   /* write to global memory */
   for (int n = threadIdx.x; n < local_subgrid_size; n += blockDim.x) {
-    int flatidx = n;
-    int outidx = 0;
+    int flatidx   = n;
+    int outidx    = 0;
     int outstride = 1;
     for (int idim = 0; idim < ndim; ++idim) {
       int idx0 = flatidx % padded_size[idim];
       int idx  = idx0 + offset[idim] - ns_2;
-      idx = idx < 0 ? idx + nf[idim] : (idx >= nf[idim] ? idx - nf[idim] : idx);
+      idx      = idx < 0 ? idx + nf[idim] : (idx >= nf[idim] ? idx - nf[idim] : idx);
       outidx += idx * outstride;
       outstride *= nf[idim];
       flatidx /= padded_size[idim];
@@ -841,21 +846,22 @@ __global__ void spread_output_driven(
 template<typename T, int ndim, int ns>
 static void cuspread_output_driven(const cufinufft_plan_t<T> &d_plan, int blksize) {
   // assume that bin_size_x > ns/2;
-  cuda::std::array<int, 3> binsizes {d_plan.opts.gpu_binsizex, d_plan.opts.gpu_binsizey, d_plan.opts.gpu_binsizez};
-  cuda::std::array<int, 3> nbins{1,1,1};
-  for (int idim=0; idim<ndim; ++idim)
+  cuda::std::array<int, 3> binsizes{d_plan.opts.gpu_binsizex, d_plan.opts.gpu_binsizey,
+                                    d_plan.opts.gpu_binsizez};
+  cuda::std::array<int, 3> nbins{1, 1, 1};
+  for (int idim = 0; idim < ndim; ++idim)
     nbins[idim] = ceil(T(d_plan.nf123[idim]) / binsizes[idim]);
 
   T sigma   = d_plan.spopts.upsampfac;
   T es_c    = 4.0 / T(d_plan.spopts.nspread * d_plan.spopts.nspread);
   T es_beta = d_plan.spopts.beta;
 
-  int bufsz=1;
-  for (int idim=0; idim<ndim; ++idim) bufsz*=ns;
+  int bufsz = 1;
+  for (int idim = 0; idim < ndim; ++idim) bufsz *= ns;
 
-  const auto sharedplanorysize =
-      shared_memory_required<T>(ndim, ns, d_plan.opts.gpu_binsizex, d_plan.opts.gpu_binsizey,
-                                d_plan.opts.gpu_binsizez, d_plan.opts.gpu_np);
+  const auto sharedplanorysize = shared_memory_required<T>(
+      ndim, ns, d_plan.opts.gpu_binsizex, d_plan.opts.gpu_binsizey,
+      d_plan.opts.gpu_binsizez, d_plan.opts.gpu_np);
   if (d_plan.opts.gpu_kerevalmeth) {
     cufinufft_set_shared_memory(spread_output_driven<T, 1, ndim, ns>, ndim, d_plan);
     cudaFuncSetSharedMemConfig(spread_output_driven<T, 1, ndim, ns>,
@@ -865,10 +871,12 @@ static void cuspread_output_driven(const cufinufft_plan_t<T> &d_plan, int blksiz
       spread_output_driven<T, 1, ndim, ns>
           <<<d_plan.totalnumsubprob, std::min(256, std::max(bufsz, d_plan.opts.gpu_np)),
              sharedplanorysize, d_plan.stream>>>(
-              d_plan.kxyz, d_plan.c + t * d_plan.M, d_plan.fw + t * d_plan.nf, d_plan.M, d_plan.nf123,
-              sigma, es_c, es_beta, dethrust(d_plan.binstartpts), dethrust(d_plan.binsize), binsizes,
-              dethrust(d_plan.subprob_to_bin), dethrust(d_plan.subprobstartpts), dethrust(d_plan.numsubprob),
-              d_plan.opts.gpu_maxsubprobsize, nbins, dethrust(d_plan.idxnupts), d_plan.opts.gpu_np);
+              d_plan.kxyz, d_plan.c + t * d_plan.M, d_plan.fw + t * d_plan.nf, d_plan.M,
+              d_plan.nf123, sigma, es_c, es_beta, dethrust(d_plan.binstartpts),
+              dethrust(d_plan.binsize), binsizes, dethrust(d_plan.subprob_to_bin),
+              dethrust(d_plan.subprobstartpts), dethrust(d_plan.numsubprob),
+              d_plan.opts.gpu_maxsubprobsize, nbins, dethrust(d_plan.idxnupts),
+              d_plan.opts.gpu_np);
       THROW_IF_CUDA_ERROR
     }
   } else {
@@ -880,10 +888,12 @@ static void cuspread_output_driven(const cufinufft_plan_t<T> &d_plan, int blksiz
       spread_output_driven<T, 0, ndim, ns>
           <<<d_plan.totalnumsubprob, std::min(256, std::max(bufsz, d_plan.opts.gpu_np)),
              sharedplanorysize, d_plan.stream>>>(
-              d_plan.kxyz, d_plan.c + t * d_plan.M, d_plan.fw + t * d_plan.nf, d_plan.M, d_plan.nf123,
-              sigma, es_c, es_beta, dethrust(d_plan.binstartpts), dethrust(d_plan.binsize), binsizes,
-              dethrust(d_plan.subprob_to_bin), dethrust(d_plan.subprobstartpts), dethrust(d_plan.numsubprob),
-              d_plan.opts.gpu_maxsubprobsize, nbins, dethrust(d_plan.idxnupts), d_plan.opts.gpu_np);
+              d_plan.kxyz, d_plan.c + t * d_plan.M, d_plan.fw + t * d_plan.nf, d_plan.M,
+              d_plan.nf123, sigma, es_c, es_beta, dethrust(d_plan.binstartpts),
+              dethrust(d_plan.binsize), binsizes, dethrust(d_plan.subprob_to_bin),
+              dethrust(d_plan.subprobstartpts), dethrust(d_plan.numsubprob),
+              d_plan.opts.gpu_maxsubprobsize, nbins, dethrust(d_plan.idxnupts),
+              d_plan.opts.gpu_np);
       THROW_IF_CUDA_ERROR
     }
   }
