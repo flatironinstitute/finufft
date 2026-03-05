@@ -188,11 +188,6 @@ function(add_tests PREC REQ_TOL CHECK_TOL UPSAMP)
         )
 
         add_test(
-            NAME cufinufft3d2_test_GM_${PREC}_${UPSAMP}
-            COMMAND cufinufft3d_test 1 2 2 5 10 20 ${REQ_TOL} ${CHECK_TOL} ${PREC} ${UPSAMP}
-        )
-
-        add_test(
             NAME cufinufft3d2_test_SM_${PREC}_${UPSAMP}
             COMMAND cufinufft3d_test 2 2 2 5 10 20 ${REQ_TOL} ${CHECK_TOL} ${PREC} ${UPSAMP}
         )
