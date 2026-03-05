@@ -902,5 +902,74 @@ if constexpr(ndim==3) {
   //}
 }
 
+template<typename T, int ndim, int ns>
+static void cuspread_output_driven(const cufinufft_plan_t<T> &d_plan, int blksize) {
+  //auto &stream = d_plan.stream;
+
+  int maxsubprobsize = d_plan.opts.gpu_maxsubprobsize;
+
+  // assume that bin_size_x > ns/2;
+  cuda::std::array<int, 3> binsizes {d_plan.opts.gpu_binsizex, d_plan.opts.gpu_binsizey, d_plan.opts.gpu_binsizez};
+  cuda::std::array<int, 3> nbins{1,1,1};
+  for (int idim=0; idim<ndim; ++idim)
+    nbins[idim] = ceil(T(d_plan.nf123[idim]) / binsizes[idim]);
+
+  //const cuda_complex<T> *d_c = d_plan.c;
+  //cuda_complex<T> *d_fw      = d_plan.fw;
+
+  //const int *d_binsize         = dethrust(d_plan.binsize);
+  //const int *d_binstartpts     = dethrust(d_plan.binstartpts);
+  //const int *d_numsubprob      = dethrust(d_plan.numsubprob);
+  //const int *d_subprobstartpts = dethrust(d_plan.subprobstartpts);
+  //const int *d_idxnupts        = dethrust(d_plan.idxnupts);
+
+  //int totalnumsubprob         = d_plan.totalnumsubprob;
+  //const int *d_subprob_to_bin = dethrust(d_plan.subprob_to_bin);
+
+  //const auto np = d_plan.opts.gpu_np;
+
+  T sigma   = d_plan.spopts.upsampfac;
+  T es_c    = 4.0 / T(d_plan.spopts.nspread * d_plan.spopts.nspread);
+  T es_beta = d_plan.spopts.beta;
+
+  int bufsz=1;
+  for (int idim=0; idim<ndim; ++idim) bufsz*=ns;
+
+  const auto sharedplanorysize =
+      shared_memory_required<T>(ndim, ns, d_plan.opts.gpu_binsizex, d_plan.opts.gpu_binsizey,
+                                d_plan.opts.gpu_binsizez, d_plan.opts.gpu_np);
+  if (d_plan.opts.gpu_kerevalmeth) {
+    cufinufft_set_shared_memory(spread_output_driven<T, 1, ndim, ns>, ndim, d_plan);
+    cudaFuncSetSharedMemConfig(spread_output_driven<T, 1, ndim, ns>,
+                               cudaSharedMemBankSizeEightByte);
+    THROW_IF_CUDA_ERROR
+    for (int t = 0; t < blksize; t++) {
+      spread_output_driven<T, 1, ndim, ns>
+          <<<d_plan.totalnumsubprob, std::min(256, std::max(bufsz, d_plan.opts.gpu_np)),
+             sharedplanorysize, d_plan.stream>>>(
+              d_plan.kxyz, d_plan.c + t * d_plan.M, d_plan.fw + t * d_plan.nf, d_plan.M, d_plan.nf123,
+              sigma, es_c, es_beta, dethrust(d_plan.binstartpts), dethrust(d_plan.binsize), binsizes,
+              dethrust(d_plan.subprob_to_bin), dethrust(d_plan.subprobstartpts), dethrust(d_plan.numsubprob),
+              maxsubprobsize, nbins, dethrust(d_plan.idxnupts), d_plan.opts.gpu_np);
+      THROW_IF_CUDA_ERROR
+    }
+  } else {
+    cufinufft_set_shared_memory(spread_output_driven<T, 0, ndim, ns>, ndim, d_plan);
+    cudaFuncSetSharedMemConfig(spread_output_driven<T, 0, ndim, ns>,
+                               cudaSharedMemBankSizeEightByte);
+    THROW_IF_CUDA_ERROR
+    for (int t = 0; t < blksize; t++) {
+      spread_output_driven<T, 0, ndim, ns>
+          <<<d_plan.totalnumsubprob, std::min(256, std::max(bufsz, d_plan.opts.gpu_np)),
+             sharedplanorysize, d_plan.stream>>>(
+              d_plan.kxyz, d_plan.c + t * d_plan.M, d_plan.fw + t * d_plan.nf, d_plan.M, d_plan.nf123,
+              sigma, es_c, es_beta, dethrust(d_plan.binstartpts), dethrust(d_plan.binsize), binsizes,
+              dethrust(d_plan.subprob_to_bin), dethrust(d_plan.subprobstartpts), dethrust(d_plan.numsubprob),
+              maxsubprobsize, nbins, dethrust(d_plan.idxnupts), d_plan.opts.gpu_np);
+      THROW_IF_CUDA_ERROR
+    }
+  }
+}
+
 } // namespace spreadinterp
 } // namespace cufinufft

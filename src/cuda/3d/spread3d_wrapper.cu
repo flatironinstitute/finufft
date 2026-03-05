@@ -177,7 +177,7 @@ static __global__ void ghost_bin_pts_index(
     }
   }
 }
-
+#if 0
 template<typename T, int KEREVALMETH, int ns>
 static __global__ void spread_3d_output_driven(
     const T *x, const T *y, const T *z, const cuda_complex<T> *c, cuda_complex<T> *fw,
@@ -312,7 +312,7 @@ static __global__ void spread_3d_output_driven(
     }
   }
 }
-
+#endif
 /* Kernels for Subprob method */
 template<typename T>
 static __global__ void locate_nupts_to_bins_ghost(
@@ -699,7 +699,7 @@ static void cuspread3d_blockgather(int nf1, int nf2, int nf3, int M,
     }
   }
 }
-
+#if 0
 template<typename T, int ns>
 static void cuspread3d_output_driven(int nf1, int nf2, int nf3, int M,
                                      const cufinufft_plan_t<T> &d_plan, int blksize) {
@@ -771,7 +771,7 @@ static void cuspread3d_output_driven(int nf1, int nf2, int nf3, int M,
     }
   }
 }
-
+#endif
 // Functor to handle function selection (nuptsdriven, subprob, blockgather)
 struct Spread3DDispatcher {
   template<int ns, typename T>
@@ -783,7 +783,7 @@ struct Spread3DDispatcher {
     case 2:
       return cuspread_subprob<T, 3, ns>(d_plan, blksize);
     case 3:
-      return cuspread3d_output_driven<T, ns>(nf1, nf2, nf3, M, d_plan, blksize);
+      return cuspread_output_driven<T, 3, ns>(d_plan, blksize);
     case 4:
       return cuspread3d_blockgather<T, ns>(nf1, nf2, nf3, M, d_plan, blksize);
     default:

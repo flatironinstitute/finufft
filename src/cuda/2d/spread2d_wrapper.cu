@@ -24,7 +24,7 @@ using cuda::std::dynamic_extent;
 using cuda::std::extents;
 using cuda::std::mdspan;
 using cuda::std::span;
-
+#if 0
 template<typename T, int KEREVALMETH, int ns>
 static __global__ void spread_2d_output_driven(
     const T *x, const T *y, const cuda_complex<T> *c, cuda_complex<T> *fw, int M, int nf1,
@@ -207,7 +207,7 @@ static void cuspread2d_output_driven(int nf1, int nf2, int M,
     }
   }
 }
-
+#endif
 // Functor to handle function selection (nuptsdriven vs subprob)
 struct Spread2DDispatcher {
   template<int ns, typename T>
@@ -219,7 +219,7 @@ struct Spread2DDispatcher {
     case 2:
       return cuspread_subprob<T, 2, ns>(d_plan, blksize);
     case 3:
-      return cuspread2d_output_driven<T, ns>(nf1, nf2, M, d_plan, blksize);
+      return cuspread_output_driven<T, 2, ns>(d_plan, blksize);
     default:
       std::cerr << "[cuspread2d] error: incorrect method, should be 1, 2 or 3\n";
       throw int(FINUFFT_ERR_METHOD_NOTVALID);

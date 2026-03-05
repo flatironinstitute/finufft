@@ -31,6 +31,7 @@ using cuda::std::span;
 /* ------------------------ 1d Spreading Kernels ----------------------------*/
 
 /* Kernels for SubProb Method */
+#if 0
 template<typename T, int KEREVALMETH, int ns>
 static __global__ void spread_1d_output_driven(
     const T *x, const cuda_complex<T> *c, cuda_complex<T> *fw, int M, int nf1, T es_c,
@@ -175,7 +176,7 @@ static void cuspread1d_output_driven(int nf1, int M, const cufinufft_plan_t<T> &
     }
   }
 }
-
+#endif
 // Functor to handle function selection (nuptsdriven vs subprob)
 struct Spread1DDispatcher {
   template<int ns, typename T>
@@ -186,7 +187,7 @@ struct Spread1DDispatcher {
     case 2:
       return cuspread_subprob<T, 1, ns>(d_plan, blksize);
     case 3:
-      return cuspread1d_output_driven<T, ns>(nf1, M, d_plan, blksize);
+      return cuspread_output_driven<T, 1, ns>(d_plan, blksize);
     default:
       std::cerr << "[cuspread1d] error: incorrect method, should be 1, 2 or 3\n";
       throw int(FINUFFT_ERR_METHOD_NOTVALID);
