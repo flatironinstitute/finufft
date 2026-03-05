@@ -672,5 +672,183 @@ static void cuspread_subprob_prop(cufinufft_plan_t<T> &d_plan) {
   d_plan.totalnumsubprob = totalnumsubprob;
 }
 
+template<typename T, int KEREVALMETH, int ndim, int ns>
+__global__ void spread_output_driven(
+    cuda::std::array<const T *, 3> xyz, const cuda_complex<T> *c, cuda_complex<T> *fw,
+    int M, cuda::std::array<int, 3> nf, T sigma, T es_c, T es_beta, const int *binstartpts,
+    const int *bin_size, cuda::std::array<int, 3> binsizes,
+    const int *subprob_to_bin, const int *subprobstartpts, const int *numsubprob,
+    int maxsubprobsize, cuda::std::array<int, 3> nbins, const int *idxnupts, int np) {
+  extern __shared__ char sharedbuf[];
+
+  static constexpr auto ns_2f      = T(ns * .5);
+  static constexpr auto ns_2       = (ns + 1) / 2;
+  static constexpr auto rounded_ns = ns_2 * 2;
+
+  cuda::std::array<int, ndim> padded_size;
+  for (int idim=0; idim<ndim; ++idim)
+    padded_size[idim] = binsizes[idim] + rounded_ns;
+
+  const int bidx        = subprob_to_bin[blockIdx.x];
+  const int binsubp_idx = blockIdx.x - subprobstartpts[bidx];
+  const int ptstart     = binstartpts[bidx] + binsubp_idx * maxsubprobsize;
+  const int nupts = min(maxsubprobsize, bin_size[bidx] - binsubp_idx * maxsubprobsize);
+
+  cuda::std::array<int, ndim> offset;
+  {
+    int tmp = bidx;
+    for (int idim = 0; idim < ndim; ++idim) {
+      offset[idim] = (tmp % nbins[idim]) * binsizes[idim];
+      tmp /= nbins[idim];
+    }
+  }
+
+  using kernel_data = cuda::std::array<cuda::std::array<T, ns>, ndim>;
+  auto *kerevals = reinterpret_cast<kernel_data *>(sharedbuf);
+//  auto kerevals = mdspan<T, extents<int, dynamic_extent, 3, ns>>((T *)sharedbuf, np);
+//  const auto c_kerevals =
+//      mdspan<const T, extents<int, dynamic_extent, 3, ns>>((T *)sharedbuf, np);
+  // sharedbuf + size of kerevals in bytes
+  // Offset pointer into sharedbuf after kerevals
+  // Create span using pointer + size
+
+  auto *nupts_sm = reinterpret_cast<cuda_complex<T> *>(sharedbuf+np*sizeof(kernel_data));
+//  auto nupts_sm = span(
+//      reinterpret_cast<cuda_complex<T> *>(kerevals.data_handle() + kerevals.size()), np);
+
+  auto *shift = reinterpret_cast<cuda::std::array<int,3> *>(sharedbuf+np*sizeof(kernel_data)+np*sizeof(cuda_complex<T>));
+//  auto shift = span(reinterpret_cast<int3 *>(nupts_sm.data() + nupts_sm.size()), np);
+
+  auto *local_subgrid = reinterpret_cast<cuda_complex<T> *>(sharedbuf+np*sizeof(kernel_data)+np*sizeof(cuda_complex<T>)+np*sizeof(cuda::std::array<int,3>));
+//  auto local_subgrid = mdspan<cuda_complex<T>, dextents<int, 3>>(
+//      reinterpret_cast<cuda_complex<T> *>(shift.data() + shift.size()), padded_size_z,
+//      padded_size_y, padded_size_x);
+
+  int local_subgrid_size=1;
+  for (int idim=0; idim<ndim; ++idim)
+    local_subgrid_size *= padded_size[idim];
+
+  // set local_subgrid to zero
+  for (int i = threadIdx.x; i < local_subgrid_size; i += blockDim.x) {
+    local_subgrid[i] = {0, 0};
+  }
+
+  __syncthreads();
+
+  for (int batch_begin = 0; batch_begin < nupts; batch_begin += np) {
+    const auto batch_size = min(np, nupts - batch_begin);
+    for (int i = threadIdx.x; i < batch_size; i += blockDim.x) {
+      const int nuptsidx = loadReadOnly(idxnupts + ptstart + i + batch_begin);
+      // index of the current point within the batch
+      for (size_t idim = 0; idim < ndim; ++idim) {
+        auto rescaled   = fold_rescale(xyz[idim][nuptsidx], nf[idim]);
+        auto [s, dummy] = interval(ns, rescaled);
+        if constexpr (KEREVALMETH == 1) {
+          eval_kernel_vec_horner<T, ns>(&kerevals[i][idim][0], T(s) - rescaled, sigma);
+        } else {
+          eval_kernel_vec<T, ns>(&kerevals[i][idim][0], T(s) - rescaled, es_c, es_beta);
+        }
+        shift[i][idim] = s + ((s < 0) ? nf[idim] : 0);
+      }
+      //const auto x_rescaled = fold_rescale(loadReadOnly(x + nuptsidx), nf1);
+      //const auto y_rescaled = fold_rescale(loadReadOnly(y + nuptsidx), nf2);
+      //const auto z_rescaled = fold_rescale(loadReadOnly(z + nuptsidx), nf3);
+      //nupts_sm[i]           = loadCacheStreaming(c + nuptsidx);
+      //const auto xstart     = int(std::ceil(x_rescaled - ns_2f));
+      //const auto ystart     = int(std::ceil(y_rescaled - ns_2f));
+      //const auto zstart     = int(std::ceil(z_rescaled - ns_2f));
+      //const T x1            = T(xstart) - x_rescaled;
+      //const T y1            = T(ystart) - y_rescaled;
+      //const T z1            = T(zstart) - z_rescaled;
+
+      //shift[i] = {xstart - xoffset, ystart - yoffset, zstart - zoffset};
+
+      //if constexpr (KEREVALMETH == 1) {
+        //eval_kernel_vec_horner<T, ns>(&kerevals(i, 0, 0), x1, sigma);
+        //eval_kernel_vec_horner<T, ns>(&kerevals(i, 1, 0), y1, sigma);
+        //eval_kernel_vec_horner<T, ns>(&kerevals(i, 2, 0), z1, sigma);
+      //} else {
+        //eval_kernel_vec<T, ns>(&kerevals(i, 0, 0), x1, es_c, es_beta);
+        //eval_kernel_vec<T, ns>(&kerevals(i, 1, 0), y1, es_c, es_beta);
+        //eval_kernel_vec<T, ns>(&kerevals(i, 2, 0), z1, es_c, es_beta);
+      //}
+    }
+    __syncthreads();
+#if 1
+    for (auto i = 0; i < batch_size; i++) {
+      // strength from shared memory
+      static constexpr int sizex = ns;            // true span in X
+      static constexpr int sizey = ns;            // true span in Y
+      static constexpr int sizez = ns;            // true span in Z
+      static constexpr int plane = sizex * sizey; // #cells per Z‐slice
+      static constexpr int total = plane * sizez; // total #cells
+
+      const auto cnow = nupts_sm[i];
+      const auto start = shift[i];
+
+      for (int idx = threadIdx.x; idx < total; idx += blockDim.x) {
+        // decompose idx using `plane`
+        const int zz   = idx / plane;
+        const int rem1 = idx - zz * plane;
+        const int yy   = rem1 / sizex;
+        const int xx   = rem1 - yy * sizex;
+
+        // decompose idx using `plane`
+        // recover global coords
+        const int real_zz = start[2] + zz;
+        const int real_yy = start[1] + yy;
+        const int real_xx = start[0] + xx;
+
+        // padded indices
+        const int iz = real_zz + ns_2;
+        const int iy = real_yy + ns_2;
+        const int ix = real_xx + ns_2;
+
+        // separable window weights
+        const auto kervalue =
+            kerevals[i][0][xx] * kerevals[i][1][yy] * kerevals[i][2][zz];
+        // accumulate
+        local_subgrid[ix + padded_size[0]*iy + padded_size[0]*padded_size[1]*iz] += {cnow * kervalue};
+      }
+      __syncthreads();
+    }
+#endif
+  }
+  /* write to global memory */
+  for (int n = threadIdx.x; n < local_subgrid_size; n += blockDim.x) {
+    int flatidx    = n;
+    int outidx = 0, sharedidx = 0;
+    int outstride = 1, sharedstride = 1;
+    for (int idim = 0; idim < ndim; ++idim) {
+      int idx0 = flatidx % padded_size[idim];
+      int idx  = idx0 + offset[idim] - ns_2;
+      idx = idx < 0 ? idx + nf[idim] : (idx >= nf[idim] ? idx - nf[idim] : idx);
+      outidx += idx * outstride;
+      outstride *= nf[idim];
+      sharedidx += idx0 * sharedstride;
+      sharedstride *= padded_size[idim];
+      flatidx /= padded_size[idim];
+    }
+    atomicAddComplexGlobal<T>(fw + outidx, local_subgrid[sharedidx]);
+  }
+  //for (int n = threadIdx.x; n < local_subgrid.size(); n += blockDim.x) {
+    //const int i = n % (padded_size_x);
+    //const int j = (n / (padded_size_x)) % (padded_size_y);
+    //const int k = n / ((padded_size_x) * (padded_size_y));
+
+    //int ix = xoffset - ns_2 + i;
+    //int iy = yoffset - ns_2 + j;
+    //int iz = zoffset - ns_2 + k;
+
+    //if (ix < (nf1 + ns_2) && iy < (nf2 + ns_2) && iz < (nf3 + ns_2)) {
+      //ix               = ix < 0 ? ix + nf1 : (ix > nf1 - 1 ? ix - nf1 : ix);
+      //iy               = iy < 0 ? iy + nf2 : (iy > nf2 - 1 ? iy - nf2 : iy);
+      //iz               = iz < 0 ? iz + nf3 : (iz > nf3 - 1 ? iz - nf3 : iz);
+      //const int outidx = ix + iy * nf1 + iz * nf1 * nf2;
+      //atomicAddComplexGlobal<T>(fw + outidx, local_subgrid(k, j, i));
+    //}
+  //}
+}
+
 } // namespace spreadinterp
 } // namespace cufinufft

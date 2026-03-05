@@ -740,34 +740,33 @@ static void cuspread3d_output_driven(int nf1, int nf2, int nf3, int M,
       shared_memory_required<T>(3, ns, d_plan.opts.gpu_binsizex, d_plan.opts.gpu_binsizey,
                                 d_plan.opts.gpu_binsizez, d_plan.opts.gpu_np);
   if (d_plan.opts.gpu_kerevalmeth) {
-    cufinufft_set_shared_memory(spread_3d_output_driven<T, 1, ns>, 3, d_plan);
-    cudaFuncSetSharedMemConfig(spread_3d_output_driven<T, 1, ns>,
+    cufinufft_set_shared_memory(spread_output_driven<T, 1, 3, ns>, 3, d_plan);
+    cudaFuncSetSharedMemConfig(spread_output_driven<T, 1, 3, ns>,
                                cudaSharedMemBankSizeEightByte);
     THROW_IF_CUDA_ERROR
     for (int t = 0; t < blksize; t++) {
-      spread_3d_output_driven<T, 1, ns>
+      spread_output_driven<T, 1, 3, ns>
           <<<totalnumsubprob, std::min(256, std::max(ns * ns * ns, np)),
              sharedplanorysize, stream>>>(
-              d_kx, d_ky, d_kz, d_c + t * M, d_fw + t * nf1 * nf2 * nf3, M, nf1, nf2, nf3,
-              sigma, es_c, es_beta, d_binstartpts, d_binsize, bin_size_x, bin_size_y,
-              bin_size_z, d_subprob_to_bin, d_subprobstartpts, d_numsubprob,
-              maxsubprobsize, numbins[0], numbins[1], numbins[2], d_idxnupts, np);
+              d_plan.kxyz, d_c + t * M, d_fw + t * nf1 * nf2 * nf3, M, d_plan.nf123,
+              sigma, es_c, es_beta, d_binstartpts, d_binsize, {bin_size_x, bin_size_y,
+              bin_size_z}, d_subprob_to_bin, d_subprobstartpts, d_numsubprob,
+              maxsubprobsize, {numbins[0], numbins[1], numbins[2]}, d_idxnupts, np);
       THROW_IF_CUDA_ERROR
     }
   } else {
-    cufinufft_set_shared_memory(spread_3d_output_driven<T, 0, ns>, 3, d_plan);
-    cudaFuncSetSharedMemConfig(spread_3d_output_driven<T, 0, ns>,
+    cufinufft_set_shared_memory(spread_output_driven<T, 0, 3, ns>, 3, d_plan);
+    cudaFuncSetSharedMemConfig(spread_output_driven<T, 0, 3, ns>,
                                cudaSharedMemBankSizeEightByte);
     THROW_IF_CUDA_ERROR
     for (int t = 0; t < blksize; t++) {
-      spread_3d_output_driven<T, 0, ns>
+      spread_output_driven<T, 0, 3, ns>
           <<<totalnumsubprob, std::min(256, std::max(ns * ns * ns, np)),
              sharedplanorysize, stream>>>(
-              d_kx, d_ky, d_kz, d_c + t * M, d_fw + t * nf1 * nf2 * nf3, M, nf1, nf2, nf3,
-              sigma, es_c, es_beta, d_binstartpts, d_binsize, bin_size_x, bin_size_y,
-              bin_size_z, d_subprob_to_bin, d_subprobstartpts, d_numsubprob,
-              maxsubprobsize, numbins[0], numbins[1], numbins[2], d_idxnupts,
-              d_plan.opts.gpu_np);
+              d_plan.kxyz, d_c + t * M, d_fw + t * nf1 * nf2 * nf3, M, d_plan.nf123,
+              sigma, es_c, es_beta, d_binstartpts, d_binsize, {bin_size_x, bin_size_y,
+              bin_size_z}, d_subprob_to_bin, d_subprobstartpts, d_numsubprob,
+              maxsubprobsize, {numbins[0], numbins[1], numbins[2]}, d_idxnupts, np);
       THROW_IF_CUDA_ERROR
     }
   }
