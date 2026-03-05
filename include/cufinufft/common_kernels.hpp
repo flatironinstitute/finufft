@@ -716,10 +716,10 @@ __global__ void spread_output_driven(
 //  auto nupts_sm = span(
 //      reinterpret_cast<cuda_complex<T> *>(kerevals.data_handle() + kerevals.size()), np);
 
-  auto *shift = reinterpret_cast<cuda::std::array<int,3> *>(sharedbuf+np*sizeof(kernel_data)+np*sizeof(cuda_complex<T>));
+  auto *shift = reinterpret_cast<cuda::std::array<int,ndim> *>(sharedbuf+np*sizeof(kernel_data)+np*sizeof(cuda_complex<T>));
 //  auto shift = span(reinterpret_cast<int3 *>(nupts_sm.data() + nupts_sm.size()), np);
 
-  auto *local_subgrid = reinterpret_cast<cuda_complex<T> *>(sharedbuf+np*sizeof(kernel_data)+np*sizeof(cuda_complex<T>)+np*sizeof(cuda::std::array<int,3>));
+  auto *local_subgrid = reinterpret_cast<cuda_complex<T> *>(sharedbuf+np*sizeof(kernel_data)+np*sizeof(cuda_complex<T>)+np*sizeof(cuda::std::array<int,ndim>));
 //  auto local_subgrid = mdspan<cuda_complex<T>, dextents<int, 3>>(
 //      reinterpret_cast<cuda_complex<T> *>(shift.data() + shift.size()), padded_size_z,
 //      padded_size_y, padded_size_x);
