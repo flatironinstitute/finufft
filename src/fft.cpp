@@ -244,9 +244,9 @@ std::vector<int> FINUFFT_PLAN_T<TF>::gridsize_for_fft() const
 // Returns grid dims in fftw_plan_many_dft / ducc0 order.
 // Converted to class member. Barbone 2/24/26.
 {
-  if (dim == 1) return {(int)nfdim[0]};
-  if (dim == 2) return {(int)nfdim[1], (int)nfdim[0]};
-  return {(int)nfdim[2], (int)nfdim[1], (int)nfdim[0]};
+  if (dim == 1) return {(int)m.nfdim[0]};
+  if (dim == 2) return {(int)m.nfdim[1], (int)m.nfdim[0]};
+  return {(int)m.nfdim[2], (int)m.nfdim[1], (int)m.nfdim[0]};
 }
 template std::vector<int> FINUFFT_PLAN_T<float>::gridsize_for_fft() const;
 template std::vector<int> FINUFFT_PLAN_T<double>::gridsize_for_fft() const;
@@ -353,9 +353,9 @@ void FINUFFT_PLAN_T<TF>::do_fft(TC *fwBatch, int ntrans_actual [[maybe_unused]],
 #endif
 #else // FFTW path: ntrans_actual ignored (plan already sized to batchSize)
   if (adjoint)
-    fftPlan->execute_adjoint(fwBatch);
+    m.fftPlan->execute_adjoint(fwBatch);
   else
-    fftPlan->execute(fwBatch);
+    m.fftPlan->execute(fwBatch);
 #endif
 }
 template void FINUFFT_PLAN_T<float>::do_fft(std::complex<float> *, int, bool) const;
@@ -365,7 +365,7 @@ template void FINUFFT_PLAN_T<double>::do_fft(std::complex<double> *, int, bool) 
 // Allocates the fftPlan unique_ptr; needs complete Finufft_FFT_plan type.
 // Called from the constructor in makeplan.hpp.
 template<typename TF> void FINUFFT_PLAN_T<TF>::create_fft_plan() {
-  fftPlan.reset(new Finufft_FFT_plan<TF>(
+  m.fftPlan.reset(new Finufft_FFT_plan<TF>(
       opts.fftw_lock_fun, opts.fftw_unlock_fun, opts.fftw_lock_data));
 }
 template void FINUFFT_PLAN_T<float>::create_fft_plan();
@@ -374,24 +374,24 @@ template void FINUFFT_PLAN_T<double>::create_fft_plan();
 // --- init_grid_kerFT_FFT ---
 // Helper to initialize spreader, phiHat (Fourier series), and FFT plan.
 // Used by constructor (when upsampfac given) and setpts (when upsampfac deferred).
-// Returns 0 on success, or an error code if set_nf_type12 or alloc fails.
+// Throws finufft::exception on error.
 // Moved from makeplan.hpp to fft.cpp so the complete Finufft_FFT_plan
 // type is available without exposing the FFT implementation.
-template<typename TF> int FINUFFT_PLAN_T<TF>::init_grid_kerFT_FFT() {
+template<typename TF> void FINUFFT_PLAN_T<TF>::init_grid_kerFT_FFT() {
   using namespace finufft::utils;
   CNTime timer{};
-  spopts.spread_direction = type;
+  m.spopts.spread_direction = type;
   constexpr TF EPSILON    = std::numeric_limits<TF>::epsilon();
 
   if (opts.spreadinterponly) { // (unusual case of no NUFFT, just report)
     // spreadinterp grid will simply be the user's "mode" grid...
-    for (int idim = 0; idim < dim; ++idim) nfdim[idim] = mstu[idim];
+    for (int idim = 0; idim < dim; ++idim) m.nfdim[idim] = mstu[idim];
 
     if (opts.debug) { // "long long" here is to avoid warnings with printf...
       printf("[%s] %dd spreadinterponly(dir=%d): (ms,mt,mu)=(%lld,%lld,%lld)"
              "\n               ntrans=%d nthr=%d batchSize=%d kernel width ns=%d",
              __func__, dim, type, (long long)mstu[0], (long long)mstu[1],
-             (long long)mstu[2], ntrans, opts.nthreads, batchSize, spopts.nspread);
+             (long long)mstu[2], ntrans, opts.nthreads, batchSize, m.spopts.nspread);
       if (batchSize == 1) // spread_thread has no effect in this case
         printf("\n");
       else
@@ -411,9 +411,8 @@ template<typename TF> int FINUFFT_PLAN_T<TF>::init_grid_kerFT_FFT() {
 
     // determine fine grid sizes, sanity check, then alloc...
     for (int idim = 0; idim < dim; ++idim) {
-      int nfier = set_nf_type12(mstu[idim], &nfdim[idim]);
-      if (nfier) return nfier;                  // nf too big; we're done
-      phiHat[idim].resize(nfdim[idim] / 2 + 1); // alloc fseries
+      set_nf_type12(mstu[idim], &m.nfdim[idim]);   // throws if nf too big
+      m.phiHat[idim].resize(m.nfdim[idim] / 2 + 1); // alloc fseries
     }
 
     if (opts.debug) { // "long long" here is to avoid warnings with printf...
@@ -421,8 +420,8 @@ template<typename TF> int FINUFFT_PLAN_T<TF>::init_grid_kerFT_FFT() {
              "(nf1,nf2,nf3)=(%lld,%lld,%lld)\n               ntrans=%d nthr=%d "
              "batchSize=%d ",
              __func__, dim, type, (long long)mstu[0], (long long)mstu[1],
-             (long long)mstu[2], (long long)nfdim[0], (long long)nfdim[1],
-             (long long)nfdim[2], ntrans, opts.nthreads, batchSize);
+             (long long)mstu[2], (long long)m.nfdim[0], (long long)m.nfdim[1],
+             (long long)m.nfdim[2], ntrans, opts.nthreads, batchSize);
       if (batchSize == 1) // spread_thread has no effect in this case
         printf("\n");
       else
@@ -432,9 +431,9 @@ template<typename TF> int FINUFFT_PLAN_T<TF>::init_grid_kerFT_FFT() {
     // STEP 0: get Fourier coeffs of spreading kernel along each fine grid dim
     timer.restart();
     for (int idim = 0; idim < dim; ++idim)
-      onedim_fseries_kernel(nfdim[idim], phiHat[idim]);
+      onedim_fseries_kernel(m.nfdim[idim], m.phiHat[idim]);
     if (opts.debug)
-      printf("[%s] kernel fser (ns=%d):\t\t%.3g s\n", __func__, spopts.nspread,
+      printf("[%s] kernel fser (ns=%d):\t\t%.3g s\n", __func__, m.spopts.nspread,
              timer.elapsedsec());
 
     if (nf() * batchSize > MAX_NF) {
@@ -442,22 +441,21 @@ template<typename TF> int FINUFFT_PLAN_T<TF>::init_grid_kerFT_FFT() {
               "[%s] fwBatch would be bigger than MAX_NF, not attempting memory "
               "allocation!\n",
               __func__);
-      return FINUFFT_ERR_MAXNALLOC;
+      throw finufft::exception(FINUFFT_ERR_MAXNALLOC);
     }
 
     timer.restart(); // plan the FFTW (to act in-place on the workspace fwBatch)
     int nthr_fft  = opts.nthreads;
     const auto ns = gridsize_for_fft();
     std::vector<TC, xsimd::aligned_allocator<TC, 64>> fwBatch(nf() * batchSize);
-    fftPlan->plan(ns, batchSize, fwBatch.data(), fftSign, opts.fftw, nthr_fft);
+    m.fftPlan->plan(ns, batchSize, fwBatch.data(), fftSign, opts.fftw, nthr_fft);
     if (opts.debug)
       printf("[%s] FFT plan (mode %d, nthr=%d):\t%.3g s\n", __func__, opts.fftw, nthr_fft,
              timer.elapsedsec());
   }
-  return 0;
 }
-template int FINUFFT_PLAN_T<float>::init_grid_kerFT_FFT();
-template int FINUFFT_PLAN_T<double>::init_grid_kerFT_FFT();
+template void FINUFFT_PLAN_T<float>::init_grid_kerFT_FFT();
+template void FINUFFT_PLAN_T<double>::init_grid_kerFT_FFT();
 
 // --- fftw global cleanup utilities ---
 void finufft_fft_forget_wisdom() {

@@ -28,7 +28,7 @@ kfs = [1 8];       % kernel formulae to test
 
 o.upsampfac = sigma;
 %o.debug = 1;
-o.showwarn = 0; warning('off','FINUFFT:epsTooSmall');
+o.showwarn = 0;
 dims = false(1, 3); dims(dim) = true;  % only test this dim
 nkf = numel(kfs);
 mintol = 10 * eps(prec);        % stop above eps_mach
@@ -45,10 +45,9 @@ for t=1:ntols
   for i = 1:numel(kfs)  % loop over kernel formulae
     o.spread_kerformula = kfs(i);
     %o.debug = (tol<1e-9 && tol>1e-10);  % *** only to find ns=15 s=1.25 bump :(
-    lastwarn('');                  % clean up warnings
-    [nineerrs, info] = erralltypedim(M,Ntot,ntr,isign,prec,tol,o,myrand,dims);
+    [nineerrs, info, toloks(t)] = erralltypedim(M,Ntot,ntr,isign,prec,tol,o,myrand,dims);
+    if ~toloks(t), continue; end
     errs(i,:,t) = nineerrs(:,dim);   % extract col from 3x3
-    [~,id] = lastwarn; toloks(t) = ~strcmp(id, 'FINUFFT:epsTooSmall');
     % measure w via support of one spread pt to the origin (type-1 only!)...
     oo = o; oo.spreadinterponly = 1;
     if dim==1, du = finufft1d1(0,1,+1,tol,32,oo);   % Nj>=2.ns here

@@ -14,7 +14,6 @@
 #include <cmath>
 #include <cstdlib>
 #include <finufft/test_defs.hpp>
-#include <iomanip>
 #include <iostream>
 #include <vector>
 // test utilities: direct DFT and norm helpers
@@ -123,11 +122,12 @@ int main(int argc, char *argv[]) {
             Z[k] = Nm[2] * rand01();
             F[k] = crandm11();
           }
-          FINUFFT_PLAN plan; // do tested transform...
+          FINUFFT_PLAN plan = nullptr; // do tested transform...
           int ier = FINUFFT_MAKEPLAN(type, dim, Nm, isign, ntr, (FLT)tol, &plan, &opts);
-          int ier_set = FINUFFT_SETPTS(plan, M, x.data(), y.data(), z.data(), N, X.data(),
-                                       Y.data(), Z.data());
-          FINUFFT_EXECUTE(plan, c.data(), F.data()); // type 2 writes to c, others to F
+          if (!ier)
+            ier = FINUFFT_SETPTS(plan, M, x.data(), y.data(), z.data(), N, X.data(),
+                                 Y.data(), Z.data());
+          if (!ier) ier = FINUFFT_EXECUTE(plan, c.data(), F.data());
           FINUFFT_DESTROY(plan);
 
           if (dim == 1) // do the relevant (of nine) direct "exact" evals...
@@ -158,48 +158,45 @@ int main(int argc, char *argv[]) {
           else
             relerr = relerrtwonorm<BIGINT>(N, Fe, F);
 
-          if (ier > 1 || ier_set > 1) { // an error, not merely warning, we exit
-            fprintf(stderr, "   tolsweep: %dD%d failed! ier=%d, ier_setpts=%d\n", dim,
-                    type, ier, ier_set);
-            return 1;
+          if (ier != 0) { // eps_too_small expected for tiny tols; anything else is a fail
+            if (ier != FINUFFT_ERR_EPS_TOO_SMALL) {
+              ++nfail[type - 1];
+              printf("   %dd%d, tol %8.3g:\tunexpected error ier=%d\tFAIL\n", dim, type,
+                     tol, ier);
+            } else if (verbose > 2)
+              printf("   %dd%d, tol %8.3g:\tier=%d (eps too small, skipped)\n", dim, type,
+                     tol, ier);
+            continue;
           }
 
-          if (ier == 0) {
-            int ti     = type - 1; // index for 3-el arrays
-            double req = std::max(floor[u][dim - 1], tolslack[ti] * tol); // threshold
-            double clearfac = relerr / req; // factor by which beats req (<=1 ok, >1 fail)
-            worstfac[ti]    = std::max(worstfac[ti], clearfac); // track the worst case
-            bool pass       = (relerr <= req);  // note relerr=NaN will not pass
-            if (pass) {
-              ++npass[ti];
-              if (verbose > 2)
-                printf(
-                    "   %dd%d, tol %8.3g:\trelerr = %.3g,    \tclearancefac=%.3g\tpass\n",
-                    dim, type, tol, relerr, clearfac);
-            } else {
-              ++nfail[ti];
-              printf(
-                  "   %dd%d, tol %8.3g:\trelerr = %.3g,    \tclearancefac=%.3g  \tFAIL\n",
-                  dim, type, tol, relerr, clearfac);
-              if (verbose > 1) {
-                printf("   Rerunning with "
-                       "debug=1:_______________________________________\n");
-                opts.debug = 1;
-                FINUFFT_MAKEPLAN(type, dim, Nm, isign, ntr, (FLT)tol, &plan, &opts);
-                FINUFFT_SETPTS(plan, M, x.data(), y.data(), z.data(), N, X.data(),
-                               Y.data(), Z.data());
-                FINUFFT_EXECUTE(plan, c.data(), F.data()); // type 2 writes to c
-                FINUFFT_DESTROY(plan);
-                printf("   (Rerun "
-                       "done)__________________________________________________\n");
-                opts.debug = debug; // reset to cmdline arg value
-              }
-            }
-          } else // finufft returned warning (ie cannot achieve accuracy): don't test
+          int ti          = type - 1;
+          double req      = std::max(floor[u][dim - 1], tolslack[ti] * tol);
+          double clearfac = relerr / req; // <=1 ok, >1 fail
+          worstfac[ti]    = std::max(worstfac[ti], clearfac);
+          if (relerr <= req) {            // note relerr=NaN will not pass
+            ++npass[ti];
             if (verbose > 2)
-              printf(
-                  "   %dd%d, tol %8.3g:\trelerr = %.3g,    \t(warn ier=%d: not tested)\n",
-                  dim, type, tol, relerr, ier);
+              printf("   %dd%d, tol %8.3g:\trelerr = %.3g,\tclearfac=%.3g\tpass\n", dim,
+                     type, tol, relerr, clearfac);
+            continue;
+          }
+          ++nfail[ti];
+          printf("   %dd%d, tol %8.3g:\trelerr = %.3g,\tclearfac=%.3g\tFAIL\n", dim, type,
+                 tol, relerr, clearfac);
+          if (verbose > 1) { // rerun failed case with debug output
+            printf("   Rerunning with debug=1: --------\n");
+            opts.debug = 1;
+            plan       = nullptr;
+            int ier2 =
+                FINUFFT_MAKEPLAN(type, dim, Nm, isign, ntr, (FLT)tol, &plan, &opts);
+            if (!ier2)
+              ier2 = FINUFFT_SETPTS(plan, M, x.data(), y.data(), z.data(), N, X.data(),
+                                    Y.data(), Z.data());
+            if (!ier2) FINUFFT_EXECUTE(plan, c.data(), F.data());
+            FINUFFT_DESTROY(plan);
+            printf("   (Rerun done) -------------------\n");
+            opts.debug = debug;
+          }
 
         } // ---------------------------
 

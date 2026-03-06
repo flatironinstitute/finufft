@@ -10,7 +10,7 @@ switch ier
   % All of those should be caught here, else a C++ error will crash MATLAB entirely
   % and make for unhappy users:
  case 1
-  warning('FINUFFT:epsTooSmall','FINUFFT eps tolerance too small to achieve');
+  error('FINUFFT:epsTooSmall','FINUFFT eps tolerance too small to achieve [DEPRECATED code; use code 26]');
  case 2
   error('FINUFFT:mallocGtMaxNf','FINUFFT malloc size requested greater than MAXNF');
  case 3
@@ -57,4 +57,8 @@ switch ier
   error('FINUFFT:badNthr','FINUFFT number of threads invalid');
  case 24
   error('FINUFFT:badKerFormula','FINUFFT opts.spread_kerformula invalid');
+ case 25
+  error('FINUFFT:unknownException','FINUFFT unknown internal exception');
+ case 26
+  error('FINUFFT:epsTooSmall','FINUFFT eps tolerance too small to achieve');
 end

@@ -66,3 +66,31 @@
 #define FINUFFT_UNLIKELY(x) (x)
 #define FINUFFT_LIKELY(x)   (x)
 #endif
+
+// Portable diagnostic push/pop and deprecation-warning suppression.
+#if defined(__GNUC__) || defined(__clang__)
+#define FINUFFT_DIAGNOSTIC_PUSH _Pragma("GCC diagnostic push")
+#define FINUFFT_DIAGNOSTIC_POP  _Pragma("GCC diagnostic pop")
+#define FINUFFT_DISABLE_WARNING_DEPRECATED \
+  _Pragma("GCC diagnostic ignored \"-Wdeprecated-declarations\"")
+#elif defined(_MSC_VER)
+#define FINUFFT_DIAGNOSTIC_PUSH            __pragma(warning(push))
+#define FINUFFT_DIAGNOSTIC_POP             __pragma(warning(pop))
+#define FINUFFT_DISABLE_WARNING_DEPRECATED __pragma(warning(disable : 4996))
+#else
+#define FINUFFT_DIAGNOSTIC_PUSH
+#define FINUFFT_DIAGNOSTIC_POP
+#define FINUFFT_DISABLE_WARNING_DEPRECATED
+#endif
+
+// Portable deprecation attribute for enum values (placed after the name).
+// nvcc doesn't support deprecation attributes on enumerators.
+#if defined(__NVCC__)
+#define FINUFFT_DEPRECATED_ENUM(msg)
+#elif defined(__GNUC__) || defined(__clang__)
+#define FINUFFT_DEPRECATED_ENUM(msg) __attribute__((deprecated(msg)))
+#elif defined(_MSC_VER)
+#define FINUFFT_DEPRECATED_ENUM(msg) /* MSVC doesn't support this on anon enums */
+#else
+#define FINUFFT_DEPRECATED_ENUM(msg)
+#endif
