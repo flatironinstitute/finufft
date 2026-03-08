@@ -8,6 +8,7 @@ set(TESTS
     finufft2dmany_test
     finufft3d_test
     finufft3dmany_test
+    find_sigma_bounds
     spreadinterp1d_test
     adjointness
     tolsweep
