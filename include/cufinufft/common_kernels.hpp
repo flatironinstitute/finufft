@@ -212,31 +212,12 @@ __global__ void interp_subprob(
 
   auto offset = compute_offset<ndim>(bidx, nbins, binsizes);
 
-  constexpr T ns_2f         = ns * T(.5);
   constexpr auto ns_2       = (ns + 1) / 2;
   constexpr auto rounded_ns = ns_2 * 2;
 
-  int N = 1;
-  for (int idim = 0; idim < ndim; ++idim) N *= binsizes[idim] + rounded_ns;
-
   shared_mem_copy_helper<T, ndim, ns> (binsizes, offset, nf,
-    [fw, fwshared](int idx_shared, int idx_global) { fwshared[idx_shared] = fw[idx_global]; });
-  //for (int n = threadIdx.x; n < N; n += blockDim.x) {
-    //bool in_region = true;
-    //int flatidx    = n;
-    //int inidx      = 0;
-    //int instride   = 1;
-    //for (int idim = 0; idim < ndim; ++idim) {
-      //int idx0 = flatidx % (binsizes[idim] + rounded_ns);
-      //int idx  = idx0 + offset[idim] - ns_2;
-      //if (idx >= nf[idim] + ns_2) in_region = false;
-      //idx = idx < 0 ? idx + nf[idim] : (idx >= nf[idim] ? idx - nf[idim] : idx);
-      //inidx += idx * instride;
-      //instride *= nf[idim];
-      //flatidx /= (binsizes[idim] + rounded_ns);
-    //}
-    //if (in_region) fwshared[n] = fw[inidx];
-  //}
+    [fw, fwshared](int idx_shared, int idx_global)
+      { fwshared[idx_shared] = fw[idx_global]; });
   __syncthreads();
 
   for (int i = threadIdx.x; i < nupts; i += blockDim.x) {
@@ -509,7 +490,6 @@ __global__ void spread_subprob(
 
   auto offset = compute_offset<ndim>(bidx, nbins, binsizes);
 
-  constexpr T ns_2f         = ns * T(.5);
   constexpr auto ns_2       = (ns + 1) / 2;
   constexpr auto rounded_ns = ns_2 * 2;
 
@@ -567,39 +547,8 @@ __global__ void spread_subprob(
 
   /* write to global memory */
   shared_mem_copy_helper<T, ndim, ns> (binsizes, offset, nf,
-    [fw, fwshared](int idx_shared, int idx_global) { atomicAddComplexGlobal<T>(fw + idx_global, fwshared[idx_shared]); });
-  //for (int n = threadIdx.x; n < N; n += blockDim.x) {
-    //bool in_region = true;
-    //int flatidx    = n;
-    //int outidx     = 0;
-    //int outstride  = 1;
-    //for (int idim = 0; idim < ndim; ++idim) {
-      //int idx0 = flatidx % (binsizes[idim] + rounded_ns);
-      //int idx  = idx0 + offset[idim] - ns_2;
-      //if (idx >= nf[idim] + ns_2) in_region = false;
-      //idx = idx < 0 ? idx + nf[idim] : (idx >= nf[idim] ? idx - nf[idim] : idx);
-      //outidx += idx * outstride;
-      //outstride *= nf[idim];
-      //flatidx /= (binsizes[idim] + rounded_ns);
-    //}
-    //if (in_region) atomicAddComplexGlobal<T>(fw + outidx, fwshared[n]);
-  //}
-  //for (int n = threadIdx.x; n < N; n += blockDim.x) {
-    //bool in_region = true;
-    //int flatidx    = n;
-    //int inidx      = 0;
-    //int instride   = 1;
-    //for (int idim = 0; idim < ndim; ++idim) {
-      //int idx0 = flatidx % (binsizes[idim] + rounded_ns);
-      //int idx  = idx0 + offset[idim] - ns_2;
-      //if (idx >= nf[idim] + ns_2) in_region = false;
-      //idx = idx < 0 ? idx + nf[idim] : (idx >= nf[idim] ? idx - nf[idim] : idx);
-      //inidx += idx * instride;
-      //instride *= nf[idim];
-      //flatidx /= (binsizes[idim] + rounded_ns);
-    //}
-    //if (in_region) fwshared[n] = fw[inidx];
-  //}
+    [fw, fwshared](int idx_shared, int idx_global)
+      { atomicAddComplexGlobal<T>(fw + idx_global, fwshared[idx_shared]); });
 }
 
 template<typename T, int ndim, int ns>
