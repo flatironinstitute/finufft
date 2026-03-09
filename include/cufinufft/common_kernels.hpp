@@ -82,6 +82,7 @@ template<int ndim> __device__ auto compute_offset(int bidx, const cuda::std::arr
     offset[idim] = (tmp % nbins[idim]) * binsizes[idim];
     tmp /= nbins[idim];
   }
+  // last dimension can be done more cheaply
   offset[ndim-1] = tmp * binsizes[ndim-1];
   return offset;
 }
@@ -214,39 +215,38 @@ __global__ void interp_subprob(
 
     cuda_complex<T> cnow{0, 0};
     if constexpr (ndim == 1) {
-      for (int xx = 0; xx < ns; ++xx) {
-        const auto ix = xx + start[0] + ns_2;
-        cnow += {fwshared[ix] * ker[0][xx]};
-      }
-    } else if constexpr (ndim == 2) {
+      const auto ofs0 = start[0] + ns_2;
+      for (int xx = 0; xx < ns; ++xx)
+        cnow += {fwshared[ofs0 + xx] * ker[0][xx]};
+    }
+    if constexpr (ndim == 2) {
+      const auto delta_y = binsizes[0] + rounded_ns;
+      const auto ofs0 = (start[1] + ns_2) * delta_y + (start[0] + ns_2);
       for (int yy = 0; yy < ns; ++yy) {
-        const auto kervalue2 = ker[1][yy];
-        const auto iy        = yy + start[1] + ns_2;
+        cuda_complex<T> cnowy{0, 0};
+        const auto ofs = ofs0 + yy*delta_y;
         for (int xx = 0; xx < ns; ++xx) {
-          const auto ix        = xx + start[0] + ns_2;
-          const auto inidx     = ix + iy * (binsizes[0] + rounded_ns);
-          const auto kervalue1 = ker[0][xx];
-          const auto kervalue  = kervalue1 * kervalue2;
-          cnow += {fwshared[inidx] * kervalue};
+          cnowy += fwshared[ofs+xx] * ker[0][xx];
         }
+      cnow += cnowy * ker[1][yy];
       }
-    } else {
+    }
+    if constexpr (ndim == 3) {
+      const auto delta_y = binsizes[0] + rounded_ns;
+      const auto delta_z = delta_y * (binsizes[1] + rounded_ns);
+      const auto ofs0 = (start[2] + ns_2) * delta_z + (start[1] + ns_2) * delta_y + (start[0] + ns_2);
       for (int zz = 0; zz < ns; ++zz) {
-        const auto kervalue3 = ker[2][zz];
-        const auto iz        = zz + start[2] + ns_2;
+        cuda_complex<T> cnowz{0, 0};
+        const auto ofs1 = ofs0 + zz*delta_z;
         for (int yy = 0; yy < ns; ++yy) {
-          const auto kervalue2 = ker[1][yy];
-          const auto iy        = yy + start[1] + ns_2;
+          cuda_complex<T> cnowy{0, 0};
+          const auto ofs = ofs1 + yy*delta_y;
           for (int xx = 0; xx < ns; ++xx) {
-            const auto ix = xx + start[0] + ns_2;
-            const auto inidx =
-                ix + iy * (binsizes[0] + rounded_ns) +
-                iz * (binsizes[0] + rounded_ns) * (binsizes[1] + rounded_ns);
-            const auto kervalue1 = ker[0][xx];
-            const auto kervalue  = kervalue1 * kervalue2 * kervalue3;
-            cnow += {fwshared[inidx] * kervalue};
+            cnowy += {fwshared[ofs+xx] * ker[0][xx]};
           }
+        cnowz += cnowy * ker[1][yy];
         }
+      cnowz += cnowz * ker[2][zz];
       }
     }
     c[idxnupts[idx]] = cnow;
@@ -718,6 +718,7 @@ __global__ void spread_output_driven(
       for (size_t idim = 0; idim < ndim; ++idim) {
         auto rescaled    = fold_rescale(xyz[idim][nuptsidx], nf[idim]);
         const auto start = int(std::ceil(rescaled - ns_2f));
+//FIXME: used get_kerval_and_startpos?
         if constexpr (KEREVALMETH == 1) {
           eval_kernel_vec_horner<T, ns>(&kerevals[i][idim][0], T(start) - rescaled,
                                         sigma);
@@ -736,17 +737,21 @@ __global__ void spread_output_driven(
 
       for (int idx = threadIdx.x; idx < total; idx += blockDim.x) {
       // strength from shared memory
-        int tmp=idx;
+        int tmp = idx;
         int idxout = 0;
         T kervalue = 1;
         int strideout = 1;
-        for (int idim=0; idim<ndim; ++idim) {
+        for (int idim=0; idim+1<ndim; ++idim) {
           int s = tmp%ns;
           kervalue *= kerevals[i][idim][s];
           idxout += strideout*(s+start[idim]+ns_2);
           strideout *= padded_size[idim];
           tmp /= ns;
         }
+        // last dimension can be done more cheaply
+        kervalue *= kerevals[i][ndim-1][tmp];
+        idxout += strideout*(tmp+start[ndim-1]+ns_2);
+
         local_subgrid[idxout] += cnow*kervalue;
       }
       __syncthreads();
