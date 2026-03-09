@@ -11,7 +11,7 @@ namespace spreadinterp {
 // Functor to handle function selection (nuptsdriven vs subprob)
 struct Spread2DDispatcher {
   template<int ns, typename T>
-  void operator()(int nf1, int nf2, int M, const cufinufft_plan_t<T> &d_plan,
+  void operator()(const cufinufft_plan_t<T> &d_plan,
                   int blksize) const {
     switch (d_plan.opts.gpu_method) {
     case 1:
@@ -43,7 +43,6 @@ template<typename T> void cuspread2d(const cufinufft_plan_t<T> &d_plan, int blks
     Marco Barbone 01/30/25
   */
   launch_dispatch_ns<Spread2DDispatcher, T>(Spread2DDispatcher(), d_plan.spopts.nspread,
-                                            d_plan.nf123[0], d_plan.nf123[1], d_plan.M,
                                             d_plan, blksize);
 }
 template void cuspread2d<float>(const cufinufft_plan_t<float> &d_plan, int blksize);

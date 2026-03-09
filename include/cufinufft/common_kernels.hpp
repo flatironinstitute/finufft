@@ -75,6 +75,16 @@ inline __device__ auto get_kerval_and_startpos_nuptsdriven(
   return make_tuple(ker, start);
 }
 
+template<int ndim> __device__ auto compute_offset(int bidx, const cuda::std::array<int, 3> &nbins, const cuda::std::array<int, 3> &binsizes) {
+  cuda::std::array<int, ndim> offset;
+  int tmp = bidx;
+  for (int idim = 0; idim < ndim; ++idim) {
+    offset[idim] = (tmp % nbins[idim]) * binsizes[idim];
+    tmp /= nbins[idim];
+  }
+  return offset;
+}
+
 template<typename T, int KEREVALMETH, int ndim, int ns>
 __global__ void interp_nupts_driven(const cuda::std::array<const T *, 3> xyz,
                                     cuda_complex<T> *c, const cuda_complex<T> *fw, int M,
@@ -169,14 +179,7 @@ __global__ void interp_subprob(
   const auto ptstart     = binstartpts[bidx] + binsubp_idx * maxsubprobsize;
   const auto nupts = min(maxsubprobsize, bin_size[bidx] - binsubp_idx * maxsubprobsize);
 
-  cuda::std::array<int, ndim> offset;
-  {
-    int tmp = bidx;
-    for (int idim = 0; idim < ndim; ++idim) {
-      offset[idim] = (tmp % nbins[idim]) * binsizes[idim];
-      tmp /= nbins[idim];
-    }
-  }
+  auto offset = compute_offset<ndim>(bidx, nbins, binsizes);
 
   const T ns_2f         = ns * T(.5);
   const auto ns_2       = (ns + 1) / 2;
@@ -378,6 +381,7 @@ void cuspread_nupts_driven(const cufinufft_plan_t<T> &d_plan, int blksize) {
   }
 }
 
+//FIXME unify the next two functions and templatize on a lambda?
 template<typename T, int ndim>
 __global__ void calc_bin_size_noghost(int M, cuda::std::array<int, 3> nf,
                                       cuda::std::array<int, 3> binsizes,
@@ -471,14 +475,7 @@ __global__ void spread_subprob(
   const auto ptstart     = binstartpts[bidx] + binsubp_idx * maxsubprobsize;
   const auto nupts = min(maxsubprobsize, bin_size[bidx] - binsubp_idx * maxsubprobsize);
 
-  cuda::std::array<int, ndim> offset;
-  {
-    int tmp = bidx;
-    for (int idim = 0; idim < ndim; ++idim) {
-      offset[idim] = (tmp % nbins[idim]) * binsizes[idim];
-      tmp /= nbins[idim];
-    }
-  }
+  auto offset = compute_offset<ndim>(bidx, nbins, binsizes);
 
   const T ns_2f         = ns * T(.5);
   const auto ns_2       = (ns + 1) / 2;
@@ -685,14 +682,7 @@ __global__ void spread_output_driven(
   const int ptstart     = binstartpts[bidx] + binsubp_idx * maxsubprobsize;
   const int nupts = min(maxsubprobsize, bin_size[bidx] - binsubp_idx * maxsubprobsize);
 
-  cuda::std::array<int, ndim> offset;
-  {
-    int tmp = bidx;
-    for (int idim = 0; idim < ndim; ++idim) {
-      offset[idim] = (tmp % nbins[idim]) * binsizes[idim];
-      tmp /= nbins[idim];
-    }
-  }
+  auto offset = compute_offset<ndim>(bidx, nbins, binsizes);
 
   using kernel_data = cuda::std::array<cuda::std::array<T, ns>, ndim>;
   auto *kerevals    = reinterpret_cast<kernel_data *>(sharedbuf);
@@ -787,17 +777,30 @@ __global__ void spread_output_driven(
         __syncthreads();
       }
       if constexpr (ndim == 3) {
+        const auto cnow  = nupts_sm[i];
+        const auto start = shift[i];
+
+        for (int idx = threadIdx.x; idx < total; idx += blockDim.x) {
+#if 1
         // strength from shared memory
         static constexpr int sizex = ns;            // true span in X
         static constexpr int sizey = ns;            // true span in Y
         static constexpr int sizez = ns;            // true span in Z
         static constexpr int plane = sizex * sizey; // #cells per Z‐slice
         static constexpr int total = plane * sizez; // total #cells
-
-        const auto cnow  = nupts_sm[i];
-        const auto start = shift[i];
-
-        for (int idx = threadIdx.x; idx < total; idx += blockDim.x) {
+          int tmp=idx;
+          int idxout = 0;
+          T kervalue = 1;
+          int strideout = 1;
+          for (int idim=0; i<idim; ++i) {
+            int s = tmp%ns;
+            kervalue *= kerevals[i][idim][s];
+            idxout += strideout*((tmp%ns)+start[idim]+ns_2);
+            strideout *= padded_size[idim];
+            tmp /= ns;
+          }
+          local_subgrid[idxout] += cnow*kervalue;
+#else
           // decompose idx using `plane`
           const int zz   = idx / plane;
           const int rem1 = idx - zz * plane;
@@ -821,6 +824,7 @@ __global__ void spread_output_driven(
           // accumulate
           local_subgrid[ix + padded_size[0] * iy +
                         padded_size[0] * padded_size[1] * iz] += {cnow * kervalue};
+#endif
         }
         __syncthreads();
       }
