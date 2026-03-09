@@ -246,7 +246,7 @@ __global__ void interp_subprob(
           }
         cnowz += cnowy * ker[1][yy];
         }
-      cnowz += cnowz * ker[2][zz];
+      cnow += cnowz * ker[2][zz];
       }
     }
     c[idxnupts[idx]] = cnow;
