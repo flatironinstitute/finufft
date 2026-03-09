@@ -673,6 +673,9 @@ __global__ void spread_output_driven(
   static constexpr auto ns_2f      = T(ns * .5);
   static constexpr auto ns_2       = (ns + 1) / 2;
   static constexpr auto rounded_ns = ns_2 * 2;
+  int total = 1;
+  for (int idim=1; idim<ndim; ++idim)
+    total *= ns;
 
   cuda::std::array<int, ndim> padded_size;
   for (int idim = 0; idim < ndim; ++idim) padded_size[idim] = binsizes[idim] + rounded_ns;
@@ -727,103 +730,25 @@ __global__ void spread_output_driven(
     __syncthreads();
 
     for (auto i = 0; i < batch_size; i++) {
-      if constexpr (ndim == 1) {
-        // strength from shared memory
-        const auto cnow             = nupts_sm[i];
-        const auto start            = shift[i];
-        static constexpr auto total = ns;
-        for (int idx = threadIdx.x; idx < total; idx += blockDim.x) {
-          const int ix = start[0] + idx + ns_2;
-          if constexpr (std::is_same_v<T, float>) {
-            if (ix >= (padded_size[0]) || ix < 0) break;
-          }
-          // separable window weights
-          const auto kervalue = kerevals[i][0][idx];
-          // accumulate
-          local_subgrid[ix] += cnow * kervalue;
+      const auto cnow  = nupts_sm[i];
+      const auto start = shift[i];
+
+      for (int idx = threadIdx.x; idx < total; idx += blockDim.x) {
+      // strength from shared memory
+        int tmp=idx;
+        int idxout = 0;
+        T kervalue = 1;
+        int strideout = 1;
+        for (int idim=0; i<idim; ++i) {
+          int s = tmp%ns;
+          kervalue *= kerevals[i][idim][s];
+          idxout += strideout*(s+start[idim]+ns_2);
+          strideout *= padded_size[idim];
+          tmp /= ns;
         }
-        __syncthreads();
+        local_subgrid[idxout] += cnow*kervalue;
       }
-      if constexpr (ndim == 2) {
-        // strength from shared memory
-        static constexpr int sizex  = ns; // true span in X
-        const auto cnow             = nupts_sm[i];
-        const auto start            = shift[i];
-        static constexpr auto total = ns * ns;
-
-        for (int idx = threadIdx.x; idx < total; idx += blockDim.x) {
-          // decompose idx using `plane`
-          const int yy = idx / sizex;
-          const int xx = idx - yy * sizex;
-
-          // recover global coords
-          const int real_yy = start[1] + yy;
-          const int real_xx = start[0] + xx;
-
-          // padded indices
-          const int iy = real_yy + ns_2;
-          const int ix = real_xx + ns_2;
-
-          if constexpr (std::is_same_v<T, float>) {
-            if (ix >= (padded_size[0]) || ix < 0) break;
-            if (iy >= (padded_size[1]) || iy < 0) break;
-          }
-          // separable window weights
-          const auto kervalue = kerevals[i][0][xx] * kerevals[i][1][yy];
-
-          // accumulate
-          local_subgrid[ix + padded_size[0] * iy] += {cnow * kervalue};
-        }
-        __syncthreads();
-      }
-      if constexpr (ndim == 3) {
-        const auto cnow  = nupts_sm[i];
-        const auto start = shift[i];
-        static constexpr auto total = ns * ns * ns;
-
-        for (int idx = threadIdx.x; idx < total; idx += blockDim.x) {
-#if 1
-        // strength from shared memory
-          int tmp=idx;
-          int idxout = 0;
-          T kervalue = 1;
-          int strideout = 1;
-          for (int idim=0; i<idim; ++i) {
-            int s = tmp%ns;
-            kervalue *= kerevals[i][idim][s];
-            idxout += strideout*(s+start[idim]+ns_2);
-            strideout *= padded_size[idim];
-            tmp /= ns;
-          }
-          local_subgrid[idxout] += cnow*kervalue;
-#else
-          // decompose idx using `plane`
-          const int zz   = idx / plane;
-          const int rem1 = idx - zz * plane;
-          const int yy   = rem1 / sizex;
-          const int xx   = rem1 - yy * sizex;
-
-          // decompose idx using `plane`
-          // recover global coords
-          const int real_zz = start[2] + zz;
-          const int real_yy = start[1] + yy;
-          const int real_xx = start[0] + xx;
-
-          // padded indices
-          const int iz = real_zz + ns_2;
-          const int iy = real_yy + ns_2;
-          const int ix = real_xx + ns_2;
-
-          // separable window weights
-          const auto kervalue =
-              kerevals[i][0][xx] * kerevals[i][1][yy] * kerevals[i][2][zz];
-          // accumulate
-          local_subgrid[ix + padded_size[0] * iy +
-                        padded_size[0] * padded_size[1] * iz] += {cnow * kervalue};
-#endif
-        }
-        __syncthreads();
-      }
+      __syncthreads();
     }
   }
   /* write to global memory */
