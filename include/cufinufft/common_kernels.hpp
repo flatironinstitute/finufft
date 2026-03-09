@@ -779,15 +779,11 @@ __global__ void spread_output_driven(
       if constexpr (ndim == 3) {
         const auto cnow  = nupts_sm[i];
         const auto start = shift[i];
+        static constexpr auto total = ns * ns * ns;
 
         for (int idx = threadIdx.x; idx < total; idx += blockDim.x) {
 #if 1
         // strength from shared memory
-        static constexpr int sizex = ns;            // true span in X
-        static constexpr int sizey = ns;            // true span in Y
-        static constexpr int sizez = ns;            // true span in Z
-        static constexpr int plane = sizex * sizey; // #cells per Z‐slice
-        static constexpr int total = plane * sizez; // total #cells
           int tmp=idx;
           int idxout = 0;
           T kervalue = 1;
@@ -795,7 +791,7 @@ __global__ void spread_output_driven(
           for (int idim=0; i<idim; ++i) {
             int s = tmp%ns;
             kervalue *= kerevals[i][idim][s];
-            idxout += strideout*((tmp%ns)+start[idim]+ns_2);
+            idxout += strideout*(s+start[idim]+ns_2);
             strideout *= padded_size[idim];
             tmp /= ns;
           }
