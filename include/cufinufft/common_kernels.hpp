@@ -498,32 +498,34 @@ __global__ void spread_subprob(
 
     const auto cnow = c[idxnupts[idx]];
     if constexpr (ndim == 1) {
+      const auto ofs = start[0] + ns_2;
       for (int xx = 0; xx < ns; ++xx) {
-        const auto ix = xx + start[0] + ns_2;
-        atomicAddComplexShared<T>(fwshared + ix, cnow * ker[0][xx]);
+        atomicAddComplexShared<T>(fwshared + xx + ofs, cnow * ker[0][xx]);
       }
-    } else if constexpr (ndim == 2) {
+    }
+    if constexpr (ndim == 2) {
+      const auto delta_y = binsizes[0] + rounded_ns;
+      const auto ofs0 = (start[1] + ns_2) * delta_y;
       for (int yy = 0; yy < ns; ++yy) {
-        const auto iy = yy + start[1] + ns_2;
+        const auto ofs = ofs0 + yy*delta_y;
+        const auto cnowy = cnow*ker[1][yy];
         for (int xx = 0; xx < ns; ++xx) {
-          const auto ix     = xx + start[0] + ns_2;
-          const auto outidx = ix + iy * (binsizes[0] + rounded_ns);
-          atomicAddComplexShared<T>(fwshared + outidx, cnow * (ker[0][xx] * ker[1][yy]));
+          atomicAddComplexShared<T>(fwshared + xx + ofs, cnowy * ker[0][xx]);
         }
       }
-    } else {
+    }
+    if constexpr (ndim == 3) {
+      const auto delta_y = binsizes[0] + rounded_ns;
+      const auto delta_z = delta_y * (binsizes[1] + rounded_ns);
+      const auto ofs0 = (start[2] + ns_2) * delta_z + (start[1] + ns_2) * delta_y + (start[0] + ns_2);
       for (int zz = 0; zz < ns; ++zz) {
-        const auto kervalue3 = ker[2][zz];
-        const auto iz        = zz + start[2] + ns_2;
+        const auto cnowz = cnow*ker[2][zz];
+        const auto ofs1 = ofs0 + zz*delta_z;
         for (int yy = 0; yy < ns; ++yy) {
-          const auto iy = yy + start[1] + ns_2;
+          const auto cnowy = cnowz*ker[1][yy];
+          const auto ofs = ofs1 + yy*delta_y;
           for (int xx = 0; xx < ns; ++xx) {
-            const auto ix = xx + start[0] + ns_2;
-            const auto outidx =
-                ix + iy * (binsizes[0] + rounded_ns) +
-                iz * (binsizes[0] + rounded_ns) * (binsizes[1] + rounded_ns);
-            atomicAddComplexShared<T>(fwshared + outidx,
-                                      cnow * (ker[0][xx] * ker[1][yy] * ker[2][zz]));
+            atomicAddComplexShared<T>(fwshared + xx + ofs, cnowy * ker[0][xx]);
           }
         }
       }
