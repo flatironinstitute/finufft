@@ -567,7 +567,7 @@ __global__ void spread_subprob(
 
   /* write to global memory */
   shared_mem_copy_helper<T, ndim, ns> (binsizes, offset, nf,
-    [fw, fwshared](int idx_shared, int idx_global) { fw[idx_global] = fwshared[idx_shared]; });
+    [fw, fwshared](int idx_shared, int idx_global) { atomicAddComplexGlobal<T>(fw + idx_global, fwshared[idx_shared]); });
   //for (int n = threadIdx.x; n < N; n += blockDim.x) {
     //bool in_region = true;
     //int flatidx    = n;
