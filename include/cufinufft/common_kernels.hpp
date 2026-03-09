@@ -740,7 +740,7 @@ __global__ void spread_output_driven(
         int idxout = 0;
         T kervalue = 1;
         int strideout = 1;
-        for (int idim=0; i<idim; ++i) {
+        for (int idim=0; idim<ndim; ++idim) {
           int s = tmp%ns;
           kervalue *= kerevals[i][idim][s];
           idxout += strideout*(s+start[idim]+ns_2);
