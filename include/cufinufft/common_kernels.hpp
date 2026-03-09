@@ -505,7 +505,7 @@ __global__ void spread_subprob(
     }
     if constexpr (ndim == 2) {
       const auto delta_y = binsizes[0] + rounded_ns;
-      const auto ofs0 = (start[1] + ns_2) * delta_y;
+      const auto ofs0 = (start[1] + ns_2) * delta_y + start[0] + ns_2;
       for (int yy = 0; yy < ns; ++yy) {
         const auto ofs = ofs0 + yy*delta_y;
         const auto cnowy = cnow*ker[1][yy];
