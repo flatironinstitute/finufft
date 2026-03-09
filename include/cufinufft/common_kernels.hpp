@@ -78,10 +78,11 @@ inline __device__ auto get_kerval_and_startpos_nuptsdriven(
 template<int ndim> __device__ auto compute_offset(int bidx, const cuda::std::array<int, 3> &nbins, const cuda::std::array<int, 3> &binsizes) {
   cuda::std::array<int, ndim> offset;
   int tmp = bidx;
-  for (int idim = 0; idim < ndim; ++idim) {
+  for (int idim = 0; idim+1 < ndim; ++idim) {
     offset[idim] = (tmp % nbins[idim]) * binsizes[idim];
     tmp /= nbins[idim];
   }
+  offset[ndim-1] = tmp * binsizes[ndim-1];
   return offset;
 }
 
@@ -674,7 +675,7 @@ __global__ void spread_output_driven(
   static constexpr auto ns_2       = (ns + 1) / 2;
   static constexpr auto rounded_ns = ns_2 * 2;
   int total = 1;
-  for (int idim=1; idim<ndim; ++idim)
+  for (int idim=0; idim<ndim; ++idim)
     total *= ns;
 
   cuda::std::array<int, ndim> padded_size;
