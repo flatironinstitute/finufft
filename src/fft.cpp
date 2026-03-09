@@ -18,8 +18,7 @@ public:
   Finufft_FFT_plan(const Finufft_FFT_plan &)            = delete;
   Finufft_FFT_plan &operator=(const Finufft_FFT_plan &) = delete;
   [[maybe_unused]] void plan(const std::vector<int> & /*dims*/, size_t /*batchSize*/,
-                             std::complex<T> * /*ptr*/, int /*sign*/, int /*options*/,
-                             int /*nthreads*/) {}
+                             int /*sign*/, int /*options*/, int /*nthreads*/) {}
 
   [[maybe_unused]] static void forget_wisdom() {}
   [[maybe_unused]] static void cleanup() {}
@@ -32,6 +31,8 @@ public:
 #include <complex>
 #include <fftw3.h> // (after complex) needed so can typedef FFTW_CPX
 //clang-format on
+#include <array>
+#include <finufft/simd.hpp> // xsimd::aligned_allocator
 #include <mutex>
 #include <vector>
 
@@ -78,13 +79,19 @@ public:
   }
   Finufft_FFT_plan &operator=(const Finufft_FFT_plan &) = delete;
 
-  void plan
-      [[maybe_unused]] (const std::vector<int> &dims, size_t batchSize,
-                        std::complex<float> *ptr, int sign, int options, int nthreads) {
+  void plan [[maybe_unused]] (const std::vector<int> &dims, size_t batchSize, int sign,
+                              int options, int nthreads) {
     uint64_t nf = 1;
     for (auto i : dims) nf *= i;
+    // FFTW_ESTIMATE never touches the buffer; FFTW_MEASURE etc. run trial FFTs.
+    // Use a 1-element dummy for ESTIMATE, full aligned buffer otherwise.
+    using cpxf = std::complex<float>;
+    using fvec = std::vector<cpxf, xsimd::aligned_allocator<cpxf, 64>>;
+    alignas(64) std::array<cpxf, 1> dummy{};
+    fvec buf(options & FFTW_ESTIMATE ? 0 : nf * batchSize);
+    auto *ptr =
+        reinterpret_cast<fftwf_complex *>(buf.empty() ? dummy.data() : buf.data());
     lock();
-    // Destroy existing plans before creating new ones (handles re-planning)
     if (plan_) {
       fftwf_destroy_plan(plan_);
       plan_ = nullptr;
@@ -96,14 +103,12 @@ public:
 #ifdef _OPENMP
     fftwf_plan_with_nthreads(nthreads);
 #endif
-    plan_     = fftwf_plan_many_dft(int(dims.size()), dims.data(), int(batchSize),
-                                    reinterpret_cast<fftwf_complex *>(ptr), nullptr, 1,
-                                    int(nf), reinterpret_cast<fftwf_complex *>(ptr), nullptr,
-                                    1, int(nf), sign, unsigned(options));
-    plan_adj_ = fftwf_plan_many_dft(int(dims.size()), dims.data(), int(batchSize),
-                                    reinterpret_cast<fftwf_complex *>(ptr), nullptr, 1,
-                                    int(nf), reinterpret_cast<fftwf_complex *>(ptr),
-                                    nullptr, 1, int(nf), -sign, unsigned(options));
+    plan_     = fftwf_plan_many_dft(int(dims.size()), dims.data(), int(batchSize), ptr,
+                                    nullptr, 1, int(nf), ptr, nullptr, 1, int(nf), sign,
+                                    unsigned(options));
+    plan_adj_ = fftwf_plan_many_dft(int(dims.size()), dims.data(), int(batchSize), ptr,
+                                    nullptr, 1, int(nf), ptr, nullptr, 1, int(nf), -sign,
+                                    unsigned(options));
     unlock();
   }
   void execute [[maybe_unused]] (std::complex<float> *data) const {
@@ -163,13 +168,18 @@ public:
   }
   Finufft_FFT_plan &operator=(const Finufft_FFT_plan &) = delete;
 
-  void plan
-      [[maybe_unused]] (const std::vector<int> &dims, size_t batchSize,
-                        std::complex<double> *ptr, int sign, int options, int nthreads) {
+  void plan [[maybe_unused]] (const std::vector<int> &dims, size_t batchSize, int sign,
+                              int options, int nthreads) {
     uint64_t nf = 1;
     for (auto i : dims) nf *= i;
+    // FFTW_ESTIMATE never touches the buffer; FFTW_MEASURE etc. run trial FFTs.
+    // Use a 1-element dummy for ESTIMATE, full aligned buffer otherwise.
+    using cpxd = std::complex<double>;
+    using fvec = std::vector<cpxd, xsimd::aligned_allocator<cpxd, 64>>;
+    alignas(64) std::array<cpxd, 1> dummy{};
+    fvec buf(options & FFTW_ESTIMATE ? 0 : nf * batchSize);
+    auto *ptr = reinterpret_cast<fftw_complex *>(buf.empty() ? dummy.data() : buf.data());
     lock();
-    // Destroy existing plans before creating new ones (handles re-planning)
     if (plan_) {
       fftw_destroy_plan(plan_);
       plan_ = nullptr;
@@ -181,14 +191,12 @@ public:
 #ifdef _OPENMP
     fftw_plan_with_nthreads(nthreads);
 #endif
-    plan_     = fftw_plan_many_dft(int(dims.size()), dims.data(), int(batchSize),
-                                   reinterpret_cast<fftw_complex *>(ptr), nullptr, 1, int(nf),
-                                   reinterpret_cast<fftw_complex *>(ptr), nullptr, 1, int(nf),
-                                   sign, unsigned(options));
-    plan_adj_ = fftw_plan_many_dft(int(dims.size()), dims.data(), int(batchSize),
-                                   reinterpret_cast<fftw_complex *>(ptr), nullptr, 1,
-                                   int(nf), reinterpret_cast<fftw_complex *>(ptr),
-                                   nullptr, 1, int(nf), -sign, unsigned(options));
+    plan_ =
+        fftw_plan_many_dft(int(dims.size()), dims.data(), int(batchSize), ptr, nullptr, 1,
+                           int(nf), ptr, nullptr, 1, int(nf), sign, unsigned(options));
+    plan_adj_ =
+        fftw_plan_many_dft(int(dims.size()), dims.data(), int(batchSize), ptr, nullptr, 1,
+                           int(nf), ptr, nullptr, 1, int(nf), -sign, unsigned(options));
     unlock();
   }
   void execute [[maybe_unused]] (std::complex<double> *data) const {
@@ -211,10 +219,9 @@ public:
 
 #endif // FINUFFT_USE_DUCC0
 
-#include <finufft/plan.hpp> // FINUFFT_PLAN_T (includes FFT forward decl)
+#include <algorithm>         // std::min (for DUCC0 path)
+#include <finufft/plan.hpp>  // FINUFFT_PLAN_T (includes FFT forward decl)
 #include <finufft/utils.hpp> // CNTime
-#include <finufft/simd.hpp>           // aligned_allocator
-#include <algorithm>                  // std::min (for DUCC0 path)
 
 using namespace std;
 
@@ -448,20 +455,7 @@ template<typename TF> int FINUFFT_PLAN_T<TF>::init_grid_kerFT_FFT() {
     timer.restart();
     int nthr_fft  = opts.nthreads;
     const auto ns = gridsize_for_fft();
-#ifdef FINUFFT_USE_DUCC0
-    // DUCC0 plan() is a no-op; no buffer needed.
-    fftPlan->plan(ns, batchSize, nullptr, fftSign, opts.fftw, nthr_fft);
-#else
-    if (opts.fftw & FFTW_ESTIMATE) {
-      // FFTW_ESTIMATE doesn't touch the buffer; only pointer alignment matters.
-      alignas(64) TC dummy[1];
-      fftPlan->plan(ns, batchSize, dummy, fftSign, opts.fftw, nthr_fft);
-    } else {
-      // FFTW_MEASURE etc. run trial FFTs and need the real buffer.
-      std::vector<TC, xsimd::aligned_allocator<TC, 64>> fwBatch(nf() * batchSize);
-      fftPlan->plan(ns, batchSize, fwBatch.data(), fftSign, opts.fftw, nthr_fft);
-    }
-#endif
+    fftPlan->plan(ns, batchSize, fftSign, opts.fftw, nthr_fft);
     if (opts.debug)
       printf("[%s] FFT plan (mode %d, nthr=%d):\t%.3g s\n", __func__, opts.fftw, nthr_fft,
              timer.elapsedsec());
