@@ -445,11 +445,23 @@ template<typename TF> int FINUFFT_PLAN_T<TF>::init_grid_kerFT_FFT() {
       return FINUFFT_ERR_MAXNALLOC;
     }
 
-    timer.restart(); // plan the FFTW (to act in-place on the workspace fwBatch)
+    timer.restart();
     int nthr_fft  = opts.nthreads;
     const auto ns = gridsize_for_fft();
-    std::vector<TC, xsimd::aligned_allocator<TC, 64>> fwBatch(nf() * batchSize);
-    fftPlan->plan(ns, batchSize, fwBatch.data(), fftSign, opts.fftw, nthr_fft);
+#ifdef FINUFFT_USE_DUCC0
+    // DUCC0 plan() is a no-op; no buffer needed.
+    fftPlan->plan(ns, batchSize, nullptr, fftSign, opts.fftw, nthr_fft);
+#else
+    if (opts.fftw & FFTW_ESTIMATE) {
+      // FFTW_ESTIMATE doesn't touch the buffer; only pointer alignment matters.
+      alignas(64) TC dummy[1];
+      fftPlan->plan(ns, batchSize, dummy, fftSign, opts.fftw, nthr_fft);
+    } else {
+      // FFTW_MEASURE etc. run trial FFTs and need the real buffer.
+      std::vector<TC, xsimd::aligned_allocator<TC, 64>> fwBatch(nf() * batchSize);
+      fftPlan->plan(ns, batchSize, fwBatch.data(), fftSign, opts.fftw, nthr_fft);
+    }
+#endif
     if (opts.debug)
       printf("[%s] FFT plan (mode %d, nthr=%d):\t%.3g s\n", __func__, opts.fftw, nthr_fft,
              timer.elapsedsec());
