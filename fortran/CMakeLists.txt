@@ -20,12 +20,15 @@ set(FORTRAN_EXAMPLES
 if(NOT FINUFFT_USE_DUCC0)
     list(APPEND FORTRAN_EXAMPLES guru1d1)
 endif()
-foreach(EXAMPLE ${FORTRAN_EXAMPLES})
-    add_executable(fort_${EXAMPLE} examples/${EXAMPLE}.f)
-    add_executable(fort_${EXAMPLE}f examples/${EXAMPLE}f.f)
 
-    target_link_libraries(fort_${EXAMPLE} PRIVATE directft finufft)
-    target_link_libraries(fort_${EXAMPLE}f PRIVATE directft finufft)
+foreach(EXAMPLE ${FORTRAN_EXAMPLES})
+    if(FINUFFT_BUILD_EXAMPLES OR (BUILD_TESTING AND FINUFFT_BUILD_TESTS))
+        add_executable(fort_${EXAMPLE} examples/${EXAMPLE}.f)
+        add_executable(fort_${EXAMPLE}f examples/${EXAMPLE}f.f)
+
+        target_link_libraries(fort_${EXAMPLE} PRIVATE directft finufft)
+        target_link_libraries(fort_${EXAMPLE}f PRIVATE directft finufft)
+    endif()
 
     if(BUILD_TESTING AND FINUFFT_BUILD_TESTS)
         add_test(NAME fort_${EXAMPLE} COMMAND fort_${EXAMPLE})

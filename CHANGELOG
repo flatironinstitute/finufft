@@ -3,6 +3,10 @@ If not stated, FINUFFT is assumed (old cuFINUFFT <=1.3 is listed separately).
 
 v2.6.0-dev
 
+* SIMD-vectorized bin sort with parallel prefix sum: uint32_t bin counts,
+  ndims dispatch for vectorized coordinate binning, std::exclusive_scan for
+  parallel prefix sum of offsets, restored single-threaded variant as
+  bin_sort_singlethread. (Barbone)
 * Internal C++ refactoring: core implementation (makeplan, setpts, execute,
   spread/interp) moved to template headers in include/finufft/,
   with per-precision explicit-instantiation TUs in src/. Many internal free

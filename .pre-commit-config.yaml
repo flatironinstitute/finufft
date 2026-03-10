@@ -1,16 +1,39 @@
 exclude: '\.m$|\.mw$|\.doc$|\.docbit$|\.docsrc$|\.rst$'
 
 repos:
+  # --- C / C++ / CUDA: staged hunks only via git-clang-format ---
   - repo: local
     hooks:
-      - id: git-clang-format-staged
-        name: git clang-format (staged only)
-        entry: bash -c 'CF=git-clang-format-21; BIN=clang-format-21; command -v "$CF" &>/dev/null || { CF=git-clang-format; BIN=clang-format; }; gitdir="$(git rev-parse --git-dir)"; rm -f "$gitdir/clang-format-index.lock"; out=$("$CF" --binary "$BIN" --staged -- "$@" 2>&1); rc=$?; rm -f "$gitdir/clang-format-index.lock"; if echo "$out" | grep -q "changed files:"; then echo "$out"; exit 1; fi; exit 0' --
-        language: system
+      - id: clang-format-staged
+        name: clang-format (staged hunks)
+        entry: git-clang-format --binary clang-format --staged
+        language: python
+        additional_dependencies: [clang-format==22.*]
         pass_filenames: true
-        types_or: [ c++, c, cuda ]
+        types_or: [c++, c, cuda]
         files: \.(c|cc|cpp|h|hpp|cu|cuh)$
         exclude: '(^|/)(matlab/.*)$'
+
+  # --- CMake ---
+  - repo: https://github.com/BlankSpruce/gersemi
+    rev: 0.26.0
+    hooks:
+      - id: gersemi
+
+  # --- Python ---
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.15.4
+    hooks:
+      - id: ruff-format
+        exclude: '^perftest/spreadbenchmark\.py$'  # Python 2 file
+
+  # --- Shell ---
+  - repo: https://github.com/scop/pre-commit-shfmt
+    rev: v3.12.0-2
+    hooks:
+      - id: shfmt
+
+  # --- Standard file hygiene ---
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v6.0.0
     hooks:
@@ -19,14 +42,11 @@ repos:
       - id: trailing-whitespace
       - id: check-illegal-windows-names
       - id: mixed-line-ending
-  - repo: https://github.com/BlankSpruce/gersemi
-    rev: 0.25.4
-    hooks:
-      - id: gersemi
+
+  # --- Python package validation ---
   - repo: https://github.com/abravalheri/validate-pyproject
     rev: v0.25
     hooks:
       - id: validate-pyproject
-        # Optional: Include additional validations from SchemaStore
         additional_dependencies: ["validate-pyproject-schema-store[all]"]
         files: ^python/(finufft|cufinufft)/pyproject\.toml$
