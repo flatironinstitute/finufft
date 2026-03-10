@@ -4,11 +4,22 @@
 #include "utils/dirft3d.hpp"
 #include "utils/norms.hpp"
 #include <finufft.h>
+#include <random>
 
 using namespace std;
 
 double prec = 1e-5;
 
+random_device rd;
+mt19937 gen(12345);
+uniform_real_distribution<double> udis(-1.0, 1.0);
+
+double random11() {
+   return udis(gen);
+}
+complex<double> crandom11() {
+   return udis(gen)+1i*udis(gen);
+}
 
 double get_sigma(double tol, int type) {
     int dim = 1;
@@ -41,62 +52,63 @@ tuple<int, int, int> factor3(int val) {
     return {get<0>(f2), get<0>(flarge), get<1>(flarge)};
 }
 
-int64_t M = 500; 
+int64_t M = 5000; 
 pair<double, double> sigma_bounds = {1.0, 2.0};
-int n_tol = 20;
+int n_tol = 47;
 vector<double> tol_range = log_scale(1e-15, 1e-5, n_tol);
 
 int main(int argc, char *argv[]) {
     int n_dims = 1;
     int64_t N[3]; 
-    long Nmax = 500;
+    long Nmax = 5000;
 
-    cout << "Tolerances: ";
-    for(auto &tol : tol_range) {
-        cout << tol << ",";
+    cout << "tolv=[";
+    for(int i=0;i<tol_range.size();i++) {
+        if(i) cout << ",";
+        cout << tol_range[i];
+
     }
-    cout << endl;
-    int isign = 1;
+    cout << "]" << endl;
+    int n_transf = 1;
+    int iflag = 1;
     std::vector<double> x(M), y(M), z(M);
     std::vector<double> s(Nmax), t(Nmax), u(Nmax);
     std::vector<complex<double>> c_est(M), c_targ(M), c_input(M);
     std::vector<complex<double>> f_est(Nmax), f_targ(Nmax), f_input(Nmax);
     for(int i=0;i<M;i++) {
-        x[i] = PI * randm11();
-        y[i] = PI * randm11();
-        z[i] = PI * randm11();
-        c_input[i] = crandm11();
+        x[i] = PI * random11();
+        y[i] = PI * random11();
+        z[i] = PI * random11();
+        c_input[i] = crandom11();
     }
+    dirft1d1(M, x, c_input, iflag, Nmax, f_input);
     for(int i=0;i<Nmax;i++) {
-        f_input[i] = crandm11();
-        s[i] = PI * randm11();
-        t[i] = PI * randm11();
-        u[i] = PI * randm11();
+        s[i] = PI * random11();
+        t[i] = PI * random11();
+        u[i] = PI * random11();
     }
     finufft_opts opts;
     finufft_default_opts(&opts);
     
-    int n_transf = 1;
-    int iflag = 1;
     for(int type=1;type<=3;type++) {
         N[0]=Nmax, N[1]=1, N[2]=1;
         int64_t Ntotal = N[0]*N[1]*N[2];
         auto sigma_dynamic = sigma_bounds;
         switch(type) {
-            case(1): dirft1d1(M, x, c_input, iflag, N[0], f_targ); break;
-            case(2): dirft1d2(M, x, c_targ, iflag, N[0], f_input); break;
+            case(1): dirft1d1(M, x, c_input, iflag, Ntotal, f_targ); break;
+            case(2): dirft1d2(M, x, c_targ, iflag, Ntotal, f_input); break;
             case(3): dirft1d3(M, x, c_input, iflag, Ntotal, s, f_targ); break;
         }
         stringstream warnstream; 
         stringstream tolstream; 
+        int i=0;
         for(auto &tol: tol_range) {
             sigma_dynamic.first = sigma_bounds.first;
-            int warning=0;
             if(sigma_bounds.first+prec<sigma_dynamic.second)
                 while(sigma_dynamic.second - sigma_dynamic.first > prec) {
                     opts.upsampfac = (sigma_dynamic.second + sigma_dynamic.first)/2;
                     finufft_plan_s *plan{nullptr};
-                    warning = finufft_makeplan(type, n_dims, N, iflag, n_transf, tol, &plan, &opts);
+                    finufft_makeplan(type, n_dims, N, iflag, n_transf, tol, &plan, &opts);
                     finufft_setpts(plan, M, x.data(), y.data(), z.data(), Ntotal, s.data(), t.data(), u.data());
                     float err;
                     if(type == 1 || type == 3) {
@@ -113,6 +125,10 @@ int main(int argc, char *argv[]) {
                     } else
                         sigma_dynamic.first = opts.upsampfac;
                 }
+            finufft_plan_s *plan{nullptr};
+            opts.upsampfac = sigma_dynamic.second;
+            int warning = finufft_makeplan(type, n_dims, N, iflag, n_transf, tol, &plan, &opts);
+            finufft_destroy(plan);
             warnstream << warning << ",";
             tolstream << sigma_dynamic.second << ",";
         }
