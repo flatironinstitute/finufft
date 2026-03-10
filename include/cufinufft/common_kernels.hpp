@@ -75,15 +75,17 @@ inline __device__ auto get_kerval_and_startpos_nuptsdriven(
   return make_tuple(ker, start);
 }
 
-template<int ndim> __device__ auto compute_offset(int bidx, const cuda::std::array<int, 3> &nbins, const cuda::std::array<int, 3> &binsizes) {
+template<int ndim>
+__device__ auto compute_offset(int bidx, const cuda::std::array<int, 3> &nbins,
+                               const cuda::std::array<int, 3> &binsizes) {
   cuda::std::array<int, ndim> offset;
   int tmp = bidx;
-  for (int idim = 0; idim+1 < ndim; ++idim) {
+  for (int idim = 0; idim + 1 < ndim; ++idim) {
     offset[idim] = (tmp % nbins[idim]) * binsizes[idim];
     tmp /= nbins[idim];
   }
   // last dimension can be done more cheaply
-  offset[ndim-1] = tmp * binsizes[ndim-1];
+  offset[ndim - 1] = tmp * binsizes[ndim - 1];
   return offset;
 }
 
@@ -164,10 +166,10 @@ void cuinterp_nuptsdriven(const cufinufft_plan_t<T> &d_plan, int blksize) {
   }
 }
 
-template<typename T, int ndim, int ns, typename Func> __device__
-  inline void shared_mem_copy_helper(cuda::std::array<int, 3> binsizes,
- cuda::std::array<int, ndim> offset, cuda::std::array<int, 3> nf, Func func)
-{
+template<typename T, int ndim, int ns, typename Func>
+inline __device__ void shared_mem_copy_helper(cuda::std::array<int, 3> binsizes,
+                                              cuda::std::array<int, ndim> offset,
+                                              cuda::std::array<int, 3> nf, Func func) {
   constexpr T ns_2f         = ns * T(.5);
   constexpr auto ns_2       = (ns + 1) / 2;
   constexpr auto rounded_ns = ns_2 * 2;
@@ -178,8 +180,8 @@ template<typename T, int ndim, int ns, typename Func> __device__
   for (int n = threadIdx.x; n < N; n += blockDim.x) {
     bool in_region = true;
     int flatidx    = n;
-    int globidx     = 0;
-    int globstride  = 1;
+    int globidx    = 0;
+    int globstride = 1;
     for (int idim = 0; idim < ndim; ++idim) {
       int idx0 = flatidx % (binsizes[idim] + rounded_ns);
       int idx  = idx0 + offset[idim] - ns_2;
@@ -189,7 +191,8 @@ template<typename T, int ndim, int ns, typename Func> __device__
       globstride *= nf[idim];
       flatidx /= (binsizes[idim] + rounded_ns);
     }
-    if (in_region) func(n, globidx);//atomicAddComplexGlobal<T>(fw + outidx, fwshared[n]);
+    if (in_region)
+      func(n, globidx); // atomicAddComplexGlobal<T>(fw + outidx, fwshared[n]);
   }
 }
 
@@ -215,9 +218,10 @@ __global__ void interp_subprob(
   constexpr auto ns_2       = (ns + 1) / 2;
   constexpr auto rounded_ns = ns_2 * 2;
 
-  shared_mem_copy_helper<T, ndim, ns> (binsizes, offset, nf,
-    [fw, fwshared](int idx_shared, int idx_global)
-      { fwshared[idx_shared] = fw[idx_global]; });
+  shared_mem_copy_helper<T, ndim, ns>(binsizes, offset, nf,
+                                      [fw, fwshared](int idx_shared, int idx_global) {
+                                        fwshared[idx_shared] = fw[idx_global];
+                                      });
   __syncthreads();
 
   for (int i = threadIdx.x; i < nupts; i += blockDim.x) {
@@ -228,37 +232,37 @@ __global__ void interp_subprob(
     cuda_complex<T> cnow{0, 0};
     if constexpr (ndim == 1) {
       const auto ofs0 = start[0] + ns_2;
-      for (int xx = 0; xx < ns; ++xx)
-        cnow += {fwshared[ofs0 + xx] * ker[0][xx]};
+      for (int xx = 0; xx < ns; ++xx) cnow += {fwshared[ofs0 + xx] * ker[0][xx]};
     }
     if constexpr (ndim == 2) {
       const auto delta_y = binsizes[0] + rounded_ns;
-      const auto ofs0 = (start[1] + ns_2) * delta_y + (start[0] + ns_2);
+      const auto ofs0    = (start[1] + ns_2) * delta_y + (start[0] + ns_2);
       for (int yy = 0; yy < ns; ++yy) {
         cuda_complex<T> cnowy{0, 0};
-        const auto ofs = ofs0 + yy*delta_y;
+        const auto ofs = ofs0 + yy * delta_y;
         for (int xx = 0; xx < ns; ++xx) {
-          cnowy += fwshared[ofs+xx] * ker[0][xx];
+          cnowy += fwshared[ofs + xx] * ker[0][xx];
         }
-      cnow += cnowy * ker[1][yy];
+        cnow += cnowy * ker[1][yy];
       }
     }
     if constexpr (ndim == 3) {
       const auto delta_y = binsizes[0] + rounded_ns;
       const auto delta_z = delta_y * (binsizes[1] + rounded_ns);
-      const auto ofs0 = (start[2] + ns_2) * delta_z + (start[1] + ns_2) * delta_y + (start[0] + ns_2);
+      const auto ofs0 =
+          (start[2] + ns_2) * delta_z + (start[1] + ns_2) * delta_y + (start[0] + ns_2);
       for (int zz = 0; zz < ns; ++zz) {
         cuda_complex<T> cnowz{0, 0};
-        const auto ofs1 = ofs0 + zz*delta_z;
+        const auto ofs1 = ofs0 + zz * delta_z;
         for (int yy = 0; yy < ns; ++yy) {
           cuda_complex<T> cnowy{0, 0};
-          const auto ofs = ofs1 + yy*delta_y;
+          const auto ofs = ofs1 + yy * delta_y;
           for (int xx = 0; xx < ns; ++xx) {
-            cnowy += {fwshared[ofs+xx] * ker[0][xx]};
+            cnowy += {fwshared[ofs + xx] * ker[0][xx]};
           }
-        cnowz += cnowy * ker[1][yy];
+          cnowz += cnowy * ker[1][yy];
         }
-      cnow += cnowz * ker[2][zz];
+        cnow += cnowz * ker[2][zz];
       }
     }
     c[idxnupts[idx]] = cnow;
@@ -394,7 +398,7 @@ void cuspread_nupts_driven(const cufinufft_plan_t<T> &d_plan, int blksize) {
   }
 }
 
-//FIXME unify the next two functions and templatize on a lambda?
+// FIXME unify the next two functions and templatize on a lambda?
 template<typename T, int ndim>
 __global__ void calc_bin_size_noghost(int M, cuda::std::array<int, 3> nf,
                                       cuda::std::array<int, 3> binsizes,
@@ -516,10 +520,10 @@ __global__ void spread_subprob(
     }
     if constexpr (ndim == 2) {
       const auto delta_y = binsizes[0] + rounded_ns;
-      const auto ofs0 = (start[1] + ns_2) * delta_y + start[0] + ns_2;
+      const auto ofs0    = (start[1] + ns_2) * delta_y + start[0] + ns_2;
       for (int yy = 0; yy < ns; ++yy) {
-        const auto ofs = ofs0 + yy*delta_y;
-        const auto cnowy = cnow*ker[1][yy];
+        const auto ofs   = ofs0 + yy * delta_y;
+        const auto cnowy = cnow * ker[1][yy];
         for (int xx = 0; xx < ns; ++xx) {
           atomicAddComplexShared<T>(fwshared + xx + ofs, cnowy * ker[0][xx]);
         }
@@ -528,13 +532,14 @@ __global__ void spread_subprob(
     if constexpr (ndim == 3) {
       const auto delta_y = binsizes[0] + rounded_ns;
       const auto delta_z = delta_y * (binsizes[1] + rounded_ns);
-      const auto ofs0 = (start[2] + ns_2) * delta_z + (start[1] + ns_2) * delta_y + (start[0] + ns_2);
+      const auto ofs0 =
+          (start[2] + ns_2) * delta_z + (start[1] + ns_2) * delta_y + (start[0] + ns_2);
       for (int zz = 0; zz < ns; ++zz) {
-        const auto cnowz = cnow*ker[2][zz];
-        const auto ofs1 = ofs0 + zz*delta_z;
+        const auto cnowz = cnow * ker[2][zz];
+        const auto ofs1  = ofs0 + zz * delta_z;
         for (int yy = 0; yy < ns; ++yy) {
-          const auto cnowy = cnowz*ker[1][yy];
-          const auto ofs = ofs1 + yy*delta_y;
+          const auto cnowy = cnowz * ker[1][yy];
+          const auto ofs   = ofs1 + yy * delta_y;
           for (int xx = 0; xx < ns; ++xx) {
             atomicAddComplexShared<T>(fwshared + xx + ofs, cnowy * ker[0][xx]);
           }
@@ -546,9 +551,10 @@ __global__ void spread_subprob(
   __syncthreads();
 
   /* write to global memory */
-  shared_mem_copy_helper<T, ndim, ns> (binsizes, offset, nf,
-    [fw, fwshared](int idx_shared, int idx_global)
-      { atomicAddComplexGlobal<T>(fw + idx_global, fwshared[idx_shared]); });
+  shared_mem_copy_helper<T, ndim, ns>(
+      binsizes, offset, nf, [fw, fwshared](int idx_shared, int idx_global) {
+        atomicAddComplexGlobal<T>(fw + idx_global, fwshared[idx_shared]);
+      });
 }
 
 template<typename T, int ndim, int ns>
@@ -674,9 +680,8 @@ __global__ void spread_output_driven(
   static constexpr auto ns_2f      = T(ns * .5);
   static constexpr auto ns_2       = (ns + 1) / 2;
   static constexpr auto rounded_ns = ns_2 * 2;
-  int total = 1;
-  for (int idim=0; idim<ndim; ++idim)
-    total *= ns;
+  int total                        = 1;
+  for (int idim = 0; idim < ndim; ++idim) total *= ns;
 
   cuda::std::array<int, ndim> padded_size;
   for (int idim = 0; idim < ndim; ++idim) padded_size[idim] = binsizes[idim] + rounded_ns;
@@ -718,7 +723,7 @@ __global__ void spread_output_driven(
       for (size_t idim = 0; idim < ndim; ++idim) {
         auto rescaled    = fold_rescale(xyz[idim][nuptsidx], nf[idim]);
         const auto start = int(std::ceil(rescaled - ns_2f));
-//FIXME: used get_kerval_and_startpos?
+        // FIXME: used get_kerval_and_startpos?
         if constexpr (KEREVALMETH == 1) {
           eval_kernel_vec_horner<T, ns>(&kerevals[i][idim][0], T(start) - rescaled,
                                         sigma);
@@ -736,23 +741,23 @@ __global__ void spread_output_driven(
       const auto start = shift[i];
 
       for (int idx = threadIdx.x; idx < total; idx += blockDim.x) {
-      // strength from shared memory
-        int tmp = idx;
-        int idxout = 0;
-        T kervalue = 1;
+        // strength from shared memory
+        int tmp       = idx;
+        int idxout    = 0;
+        T kervalue    = 1;
         int strideout = 1;
-        for (int idim=0; idim+1<ndim; ++idim) {
-          int s = tmp%ns;
+        for (int idim = 0; idim + 1 < ndim; ++idim) {
+          int s = tmp % ns;
           kervalue *= kerevals[i][idim][s];
-          idxout += strideout*(s+start[idim]+ns_2);
+          idxout += strideout * (s + start[idim] + ns_2);
           strideout *= padded_size[idim];
           tmp /= ns;
         }
         // last dimension can be done more cheaply
-        kervalue *= kerevals[i][ndim-1][tmp];
-        idxout += strideout*(tmp+start[ndim-1]+ns_2);
+        kervalue *= kerevals[i][ndim - 1][tmp];
+        idxout += strideout * (tmp + start[ndim - 1] + ns_2);
 
-        local_subgrid[idxout] += cnow*kervalue;
+        local_subgrid[idxout] += cnow * kervalue;
       }
       __syncthreads();
     }
