@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <memory>
 
+#include "finufft/memory.hpp"
 #include "finufft_common/common.h"
 #include "finufft_errors.h"
 
@@ -128,6 +129,11 @@ private:
 
     // --- FFT plan (created in constructor or init_grid_kerFT_FFT) ---
     std::unique_ptr<Finufft_FFT_plan<TF>, Finufft_FFT_plan_deleter<TF>> fftPlan;
+
+    // Persistent fwBatch buffer for type 1,2 execute. Allocated once in
+    // init_grid_kerFT_FFT, then marked reclaimable so the OS can drop physical
+    // pages between execute calls under memory pressure.
+    mutable finufft::ReclaimableMemory fwBatchBuf_;
   };
 
   M m; // all mutable computed state lives here

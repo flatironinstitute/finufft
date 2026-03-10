@@ -458,6 +458,17 @@ template<typename TF> void FINUFFT_PLAN_T<TF>::init_grid_kerFT_FFT() {
     if (opts.debug)
       printf("[%s] FFT plan (mode %d, nthr=%d):\t%.3g s\n", __func__, opts.fftw, nthr_fft,
              timer.elapsedsec());
+
+    // Pre-allocate fwBatch buffer via mmap+MAP_POPULATE, then immediately mark
+    // pages as reclaimable. Pages stay resident until the OS needs them.
+    timer.restart();
+    const size_t fwBatchBytes = size_t(nf()) * batchSize * sizeof(TC);
+    if (!m.fwBatchBuf_.allocate(fwBatchBytes))
+      throw finufft::exception(FINUFFT_ERR_ALLOC);
+    m.fwBatchBuf_.mark_reclaimable();
+    if (opts.debug)
+      printf("[%s] fwBatch alloc (%.3g GB):\t%.3g s\n", __func__, fwBatchBytes / 1e9,
+             timer.elapsedsec());
   }
 }
 template void FINUFFT_PLAN_T<float>::init_grid_kerFT_FFT();

@@ -363,11 +363,10 @@ int FINUFFT_PLAN_T<TF>::execute_internal(TC *cj, TC *fk, bool adjoint, int ntran
     if (opts.debug)
       printf("[%s] start%s ntrans=%d (%d batches, bsize=%d)...\n", "execute",
              adjoint ? " adjoint" : "", ntrans_actual, nbatch, batchSize);
-    // allocate temporary buffers
+    // Use caller-provided scratch, or fall back to the persistent mmap buffer
     bool scratch_provided = scratch_size >= size_t(nf() * batchSize);
-    std::vector<TC, xsimd::aligned_allocator<TC, 64>> fwBatch_(
-        scratch_provided ? 0 : nf() * batchSize);
-    TC *fwBatch = scratch_provided ? aligned_scratch : fwBatch_.data();
+    TC *fwBatch =
+        scratch_provided ? aligned_scratch : static_cast<TC *>(m.fwBatchBuf_.data());
     for (int b = 0; b * batchSize < ntrans_actual; b++) { // .....loop b over batches
 
       // current batch is either batchSize, or possibly truncated if last one
@@ -410,6 +409,10 @@ int FINUFFT_PLAN_T<TF>::execute_internal(TC *cj, TC *fk, bool adjoint, int ntran
         t_sprint += timer.elapsedsec();
       }
     } // ........end b loop
+
+    // Mark fwBatch pages as reclaimable so the OS can reclaim physical memory
+    // between execute calls if under pressure. Pages stay resident otherwise.
+    if (!scratch_provided) m.fwBatchBuf_.mark_reclaimable();
 
     if (opts.debug) { // report total times in their natural order...
       if ((type == 1) != adjoint) {
