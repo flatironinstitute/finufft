@@ -81,14 +81,14 @@ int main(int argc, char *argv[]) {
     for(int type=1;type<=3;type++) {
         N[0]=Nmax, N[1]=1, N[2]=1;
         int64_t Ntotal = N[0]*N[1]*N[2];
-        cout << "Type: " << type << " Ndims: " << n_dims <<  " -- ";
         auto sigma_dynamic = sigma_bounds;
         switch(type) {
             case(1): dirft1d1(M, x, c_input, iflag, N[0], f_targ); break;
             case(2): dirft1d2(M, x, c_targ, iflag, N[0], f_input); break;
             case(3): dirft1d3(M, x, c_input, iflag, Ntotal, s, f_targ); break;
         }
-        stringstream ss; 
+        stringstream warnstream; 
+        stringstream tolstream; 
         for(auto &tol: tol_range) {
             sigma_dynamic.first = sigma_bounds.first;
             int warning=0;
@@ -113,11 +113,15 @@ int main(int argc, char *argv[]) {
                     } else
                         sigma_dynamic.first = opts.upsampfac;
                 }
-            ss << warning << ",";
-            cout << sigma_dynamic.second << ",";
+            warnstream << warning << ",";
+            tolstream << sigma_dynamic.second << ",";
         }
-        cout << endl;
-        cout << ss.str() << endl;
-    }
+        auto tols = tolstream.str();
+        tols.pop_back();
+        auto warns = warnstream.str();
+        warns.pop_back();
+        cout << "tols" << type << "=[" << tols << "]" << endl;
+        cout << "warns" << type << "=[" << warns<< "]" << endl;
+    } 
     return 0;
 }
