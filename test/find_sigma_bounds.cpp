@@ -9,6 +9,16 @@ using namespace std;
 
 double prec = 1e-5;
 
+
+double get_sigma(double tol, int type) {
+    int dim = 1;
+    double maxns = 16;
+    double tolfac = 0.18*pow(1.4, dim-1);
+    if(type==3) tolfac*=1.4;
+    double a = log(tolfac/tol);
+    double b = pow(a/((maxns-1)*PI), 2);
+    return 1/(1-b);
+}
 template<typename T> std::vector<T> log_scale(T low, T hi, int n) {
     vector<T> res;
     T base = log(low);
@@ -32,9 +42,9 @@ tuple<int, int, int> factor3(int val) {
 }
 
 int64_t M = 500; 
-pair<double, double> sigma_bounds = {1.15, 3.0};
-int n_tol = 15;
-vector<double> tol_range = log_scale(1e-12, 1e-5, n_tol);
+pair<double, double> sigma_bounds = {1.0, 2.0};
+int n_tol = 20;
+vector<double> tol_range = log_scale(1e-15, 1e-5, n_tol);
 
 int main(int argc, char *argv[]) {
     int n_dims = 1;
@@ -69,50 +79,24 @@ int main(int argc, char *argv[]) {
     int n_transf = 1;
     int iflag = 1;
     for(int type=1;type<=3;type++) {
-    for(int n_dims=1;n_dims<=3;n_dims++) {
-        switch(n_dims) {
-            case(1): N[0]=Nmax, N[1]=1, N[2]=1; break;
-            case(2): {
-                auto f2 = factor2(Nmax);
-                N[0]=get<0>(f2); 
-                N[1]=get<1>(f2); 
-                N[2]=1; break;
-            }
-            case(3): {
-                auto f3 = factor3(Nmax);
-                N[0]=get<0>(f3); 
-                N[1]=get<1>(f3); 
-                N[2]=get<2>(f3); 
-                break;
-            }
-        }
+        N[0]=Nmax, N[1]=1, N[2]=1;
         int64_t Ntotal = N[0]*N[1]*N[2];
         cout << "Type: " << type << " Ndims: " << n_dims <<  " -- ";
         auto sigma_dynamic = sigma_bounds;
         switch(type) {
-            case(1): switch(n_dims) {
-                case(1): dirft1d1(M, x, c_input, iflag, N[0], f_targ); break;
-                case(2): dirft2d1(M, x, y, c_input, iflag, N[0], N[1], f_targ); break;
-                case(3): dirft3d1(M, x, y, z, c_input, isign, N[0], N[1], N[2], f_targ); break;
-            } break;
-            case(2): switch(n_dims) {
-                case(1): dirft1d2(M, x, c_targ, iflag, N[0], f_input); break;
-                case(2): dirft2d2(M, x, y, c_targ, iflag, N[0], N[1], f_input); break;
-                case(3): dirft3d2(M, x, y, z, c_targ, isign, N[0], N[1], N[2], f_input); break;
-            } break;
-            case(3): switch(n_dims) {
-                case(1): dirft1d3(M, x, c_input, iflag, Ntotal, s, f_targ); break;
-                case(2): dirft2d3(M, x, y, c_input, iflag, Ntotal, s, t, f_targ); break;
-                case(3): dirft3d3(M, x, y, z, c_input, isign, Ntotal, s, t, u, f_targ); break;
-            } break;
+            case(1): dirft1d1(M, x, c_input, iflag, N[0], f_targ); break;
+            case(2): dirft1d2(M, x, c_targ, iflag, N[0], f_input); break;
+            case(3): dirft1d3(M, x, c_input, iflag, Ntotal, s, f_targ); break;
         }
+        stringstream ss; 
         for(auto &tol: tol_range) {
             sigma_dynamic.first = sigma_bounds.first;
+            int warning=0;
             if(sigma_bounds.first+prec<sigma_dynamic.second)
                 while(sigma_dynamic.second - sigma_dynamic.first > prec) {
                     opts.upsampfac = (sigma_dynamic.second + sigma_dynamic.first)/2;
                     finufft_plan_s *plan{nullptr};
-                    finufft_makeplan(type, n_dims, N, iflag, n_transf, tol, &plan, &opts);
+                    warning = finufft_makeplan(type, n_dims, N, iflag, n_transf, tol, &plan, &opts);
                     finufft_setpts(plan, M, x.data(), y.data(), z.data(), Ntotal, s.data(), t.data(), u.data());
                     float err;
                     if(type == 1 || type == 3) {
@@ -124,14 +108,16 @@ int main(int argc, char *argv[]) {
                     }
                     finufft_destroy(plan);
 
-                    if(err<tol) 
+                    if(err<tol) { 
                         sigma_dynamic.second = opts.upsampfac;
-                    else
+                    } else
                         sigma_dynamic.first = opts.upsampfac;
                 }
+            ss << warning << ",";
             cout << sigma_dynamic.second << ",";
         }
         cout << endl;
-    }}
+        cout << ss.str() << endl;
+    }
     return 0;
 }
