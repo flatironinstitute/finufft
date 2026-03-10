@@ -102,6 +102,9 @@ template<typename T> inline T *dethrust(gpu_array<T> &arr) {
 template<typename T> inline const T *dethrust(const gpu_array<T> &arr) {
   return thrust::raw_pointer_cast(arr.data());
 }
+template<typename T> inline T *dethrust_noconst(const gpu_array<T> &arr) {
+  return const_cast<T *>(thrust::raw_pointer_cast(arr.data()));
+}
 template<typename T>
 inline cuda::std::array<T *, 3> dethrust(cuda::std::array<gpu_array<T>, 3> &arr) {
   cuda::std::array<T *, 3> res;
@@ -113,6 +116,13 @@ inline cuda::std::array<const T *, 3> dethrust(
     const cuda::std::array<gpu_array<T>, 3> &arr) {
   cuda::std::array<const T *, 3> res;
   for (int i = 0; i < 3; ++i) res[i] = dethrust(arr[i]);
+  return res;
+}
+template<typename T>
+inline cuda::std::array<T *, 3> dethrust_noconst(
+    const cuda::std::array<gpu_array<T>, 3> &arr) {
+  cuda::std::array<T *, 3> res;
+  for (int i = 0; i < 3; ++i) res[i] = dethrust_noconst(arr[i]);
   return res;
 }
 
@@ -232,6 +242,90 @@ public:
               const T *d_t, const T *d_u);
   // FIXME: we want to make this "const" in the future
   void exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk);
+};
+
+// This class contains a subset of the information stored in
+// cufinufft_plan_t, in a shape that can be copied to GPU.
+template<typename T> struct cufinufft_gpu_data {
+  cufinufft_opts opts;
+  finufft_spread_opts spopts;
+
+  int type                                    = 0;
+  int dim                                     = 0;
+  CUFINUFFT_BIGINT M                          = 0;
+  cuda::std::array<CUFINUFFT_BIGINT, 3> nf123 = {0, 0, 0};
+  cuda::std::array<CUFINUFFT_BIGINT, 3> mstu  = {0, 0, 0};
+  int ntransf                                 = 0;
+  int batchsize                               = 0;
+  int iflag                                   = 0;
+
+  int totalnumsubprob                         = 0;
+
+  // for type 1,2 it is a pointer to kx, ky, kz (no new allocs), for type 3 it
+  // for t3: allocated as "primed" (scaled) src pts x'_j, etc
+  cuda::std::array<const T *, 3> xyz     = {nullptr, nullptr, nullptr};
+//  gpu_array<cuda_complex<T>> CpBatch{0, alloc}; // working array of prephased strengths
+
+  // no allocs here
+  cuda_complex<T> *c = nullptr;
+  cuda_complex<T> *fw = nullptr;
+  cuda_complex<T> *fk = nullptr;
+
+  // Type 3 specific
+  struct {
+    cuda::std::array<T, 3> X = {0, 0, 0}, C = {0, 0, 0}, S = {0, 0, 0}, D = {0, 0, 0},
+                           h = {0, 0, 0}, gam = {0, 0, 0};
+  } type3_params;
+  int N                                  = 0; // number of NU freq pts (type 3 only)
+  CUFINUFFT_BIGINT nf                    = 0;
+  cuda::std::array<const T *, 3> STU     = {nullptr, nullptr, nullptr};
+  T tol = 0;
+
+  cuda_complex<T> *prephase = nullptr; // pre-phase, for all input NU pts
+  cuda_complex<T> *deconv = nullptr;   // reciprocal of kernel FT, phase, all
+                                                 // output NU pts
+
+  // Arrays that used in subprob method
+  int *idxnupts = nullptr;   // length: #nupts, index of the nupts in the
+                                       // bin-sorted order
+  int *sortidx = nullptr;    // length: #nupts, order inside the bin the nupt
+                                       // belongs to
+  int *numsubprob = nullptr; // length: #bins,  number of subproblems in each
+                                       // bin
+  int *binsize = nullptr; // length: #bins, number of nonuniform ponits in each
+                                    // bin
+  int *binstartpts = nullptr; // length: #bins, exclusive scan of array binsize
+  int *subprob_to_bin = nullptr; // length: #subproblems, the bin the subproblem
+                                           // works on
+  int *subprobstartpts = nullptr; // length: #bins, exclusive scan of array
+                                            // numsubprob
+
+  // Arrays for 3d (need to sort out)
+  int *numnupts = nullptr;
+  int *subprob_to_nupts = nullptr;
+
+  cufinufft_gpu_data() = delete;
+  cufinufft_gpu_data(const cufinufft_plan_t<T> &orig)
+    : opts(orig.opts),
+      spopts(orig.spopts),
+      type(orig.type), dim(orig.dim), M(orig.M), nf123(orig.nf123),
+      mstu(orig.mstu), ntransf(orig.ntransf), batchsize(orig.batchsize),
+      iflag(orig.iflag), totalnumsubprob(orig.totalnumsubprob),
+      xyz(orig.kxyz), c(orig.c),
+      fw(orig.fw), fk(orig.fk),
+ //type3_params(orig.type3_params),
+      nf(orig.nf), STU(orig.STU), tol(orig.tol), prephase(dethrust_noconst(orig.prephase)),
+      deconv(dethrust_noconst(orig.deconv)),
+      idxnupts(dethrust_noconst(orig.idxnupts)),
+      sortidx(dethrust_noconst(orig.sortidx)),
+      numsubprob(dethrust_noconst(orig.numsubprob)),
+      binsize(dethrust_noconst(orig.binsize)),
+      binstartpts(dethrust_noconst(orig.binstartpts)),
+      subprob_to_bin(dethrust_noconst(orig.subprob_to_bin)),
+      subprobstartpts(dethrust_noconst(orig.subprobstartpts)),
+      numnupts(dethrust_noconst(orig.numnupts)),
+     subprob_to_nupts(dethrust_noconst(orig.subprob_to_nupts))
+    {}
 };
 
 #endif
