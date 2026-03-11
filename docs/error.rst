@@ -10,7 +10,7 @@ has the following meanings which are used by both CPU and GPU versions
 
 ::
 
-  1  requested tolerance epsilon too small to achieve (warning only)
+  1  [DEPRECATED] requested tolerance epsilon too small (was warning, now see code 26)
   2  stopped due to needing internal array size >MAX_NF (defined in plan.hpp)
   3  spreader: fine grid too small compared to spread (kernel) width
   4  spreader: [DEPRECATED]
@@ -34,10 +34,13 @@ has the following meanings which are used by both CPU and GPU versions
   22 invalid FFTW lock function
   23 nthreads invalid
   24 spread kernel formula type invalid
-  
-When ``ier=1`` (warning only) the transform(s) is/are still completed, at the smallest epsilon achievable, so, with that caveat, the answer should still be usable.
+  25 unknown exception caught
+  26 requested tolerance epsilon too small to achieve (hard error; tolerance must be >= machine epsilon)
 
-For any other nonzero values of ``ier`` the transform may not have been performed and the output should not be trusted. However, we hope that the value of ``ier`` will help to narrow down the problem.
+For any nonzero value of ``ier`` the transform may not have been performed and the output should not be trusted. However, we hope that the value of ``ier`` will help to narrow down the problem.
+
+.. note::
+   On CPU, prior to v2.6.0, ``ier=1`` was a warning that still completed the transform at reduced accuracy. The default CPU behavior is now a hard error (``ier=26``). Setting ``opts.allow_eps_too_small=1`` clamps the requested tolerance to machine epsilon and allows the transform to proceed with no warning. GPU behavior is unchanged for now.
 
 FINUFFT sometimes also sends error text to ``stderr`` if it detects faulty input parameters. Please check your terminal output.
 

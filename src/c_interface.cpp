@@ -114,40 +114,20 @@ int finufftf_destroy(finufftf_plan p)
 
 namespace { // helpers local to this TU
 template<typename T>
-int guru(
-    int n_dims, int type, int n_transf, i64 nj, const std::array<const T *, 3> &xyz,
-    std::complex<T> *cj, int iflag, T eps, const std::array<ci64, 3> &n_modes, i64 nk,
-    const std::array<const T *, 3> &stu, std::complex<T> *fk, const finufft_opts *popts)
+int guru(int n_dims, int type, int n_transf, i64 nj, const std::array<const T *, 3> &xyz,
+         std::complex<T> *cj, int iflag, T eps, const std::array<ci64, 3> &n_modes,
+         i64 nk, const std::array<const T *, 3> &stu, std::complex<T> *fk,
+         const finufft_opts *popts)
 // Helper layer between simple interfaces (with opts) and the guru functions.
-// Author: Andrea Malleo, 2019.
+// Plan is stack-allocated since its lifetime is scoped to this call.
+// Errors throw finufft::exception and are caught by safe_finufft_call.
+// Author: Andrea Malleo, 2019. Stack alloc: Barbone, 2026.
 {
   return safe_finufft_call([&]() -> int {
-    FINUFFT_PLAN_T<T> *plan = nullptr;
-    int ier =
-        finufft_makeplan_t<T>(type, n_dims, n_modes.data(), iflag, n_transf, eps, &plan,
-                              popts); // popts (ptr to opts) can be nullptr
-    if (ier > 1) {                    // since 1 (a warning) still allows proceeding...
-      fprintf(stderr, "FINUFFT invokeGuru: plan error (ier=%d)!\n", ier);
-      delete plan;
-      return ier;
-    }
-
-    int ier2 = plan->setpts(nj, xyz[0], xyz[1], xyz[2], nk, stu[0], stu[1], stu[2]);
-    if (ier2 > 1) {
-      fprintf(stderr, "FINUFFT invokeGuru: setpts error (ier=%d)!\n", ier2);
-      delete plan;
-      return ier2;
-    }
-
-    int ier3 = plan->execute(cj, fk);
-    if (ier3 > 1) {
-      fprintf(stderr, "FINUFFT invokeGuru: execute error (ier=%d)!\n", ier3);
-      delete plan;
-      return ier3;
-    }
-
-    delete plan;
-    return max(max(ier, ier2), ier3); // in case any one gave a (positive!) warning
+    FINUFFT_PLAN_T<T> plan(type, n_dims, n_modes.data(), iflag, n_transf, eps, popts);
+    plan.setpts(nj, xyz[0], xyz[1], xyz[2], nk, stu[0], stu[1], stu[2]);
+    plan.execute(cj, fk);
+    return 0;
   });
 }
 template<typename T>
