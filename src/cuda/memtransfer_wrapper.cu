@@ -27,6 +27,7 @@ void cufinufft_plan_t<T>::alloc1d()
     }
   } break;
   case 2:
+  case 42:
   case 3: {
     int numbins = ceil((T)nf1 / opts.gpu_binsizex);
     numsubprob.resize(numbins);
@@ -69,6 +70,7 @@ void cufinufft_plan_t<T>::alloc2d()
     }
   } break;
   case 2:
+  case 42:
   case 3: {
     int64_t numbins[2];
     numbins[0] = ceil((T)nf1 / opts.gpu_binsizex);
@@ -115,6 +117,7 @@ void cufinufft_plan_t<T>::alloc3d()
     }
   } break;
   case 2:
+  case 42:
   case 3: {
     const int64_t nbins_tot = ceil((T)nf1 / opts.gpu_binsizex) *
                               ceil((T)nf2 / opts.gpu_binsizey) *
@@ -182,6 +185,7 @@ void cufinufft_plan_t<T>::alloc1d_nupts()
   switch (opts.gpu_method) {
   case 1:
   case 2:
+  case 42:
   case 3: {
     if (opts.gpu_sort) sortidx.resize(M);
     idxnupts.resize(M);
@@ -209,6 +213,7 @@ void cufinufft_plan_t<T>::alloc2d_nupts()
     idxnupts.resize(M);
   } break;
   case 2:
+  case 42:
   case 3: {
     idxnupts.resize(M);
     sortidx.resize(M);
@@ -230,6 +235,7 @@ void cufinufft_plan_t<T>::alloc3d_nupts()
   switch (opts.gpu_method) {
   case 1:
   case 2:
+  case 42:
   case 3: {
     idxnupts.resize(M);
     sortidx.resize(M);

@@ -561,7 +561,8 @@ void cufinufft_setup_binsize([[maybe_unused]] int type, int ns, int dim,
     debug_print(1, 0, "");
     break;
 
-  case 2: {
+  case 2:
+  case 42: {
     int bin = (dim == 1) ? 1024 : (dim == 2) ? 40 : 0;
     if (bin == 0) {
       double load = (ns <= 6) ? 0.50 : (ns <= 10 && !gpu.is_small_smem()) ? 0.90 : 1.0;
