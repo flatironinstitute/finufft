@@ -579,6 +579,8 @@ struct Spread3DDispatcher {
       return cuspread_output_driven<T, 3, ns>(d_plan, blksize);
     case 4:
       return cuspread3d_blockgather<T, ns>(nf1, nf2, nf3, M, d_plan, blksize);
+    case 42:
+      return cuspread_romein<T, 3, ns>(d_plan, blksize);
     default:
       std::cerr << "[cuspread3d] error: invalid method " +
                        std::to_string(d_plan.opts.gpu_method) +
@@ -616,6 +618,7 @@ template<typename T> void cuspread3d_prop(cufinufft_plan_t<T> &d_plan) {
   if (d_plan.opts.gpu_method == 2) cuspread_subprob_prop<T, 3>(d_plan);
   if (d_plan.opts.gpu_method == 3) cuspread_subprob_prop<T, 3>(d_plan);
   if (d_plan.opts.gpu_method == 4) cuspread3d_blockgather_prop<T>(d_plan);
+  if (d_plan.opts.gpu_method == 42) cuspread_subprob_prop<T, 3>(d_plan);
 }
 template void cuspread3d_prop(cufinufft_plan_t<float> &d_plan);
 template void cuspread3d_prop(cufinufft_plan_t<double> &d_plan);

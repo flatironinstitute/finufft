@@ -324,7 +324,7 @@ template<typename T> struct cufinufft_gpu_data {
       subprob_to_bin(dethrust_noconst(orig.subprob_to_bin)),
       subprobstartpts(dethrust_noconst(orig.subprobstartpts)),
       numnupts(dethrust_noconst(orig.numnupts)),
-     subprob_to_nupts(dethrust_noconst(orig.subprob_to_nupts))
+      subprob_to_nupts(dethrust_noconst(orig.subprob_to_nupts))
     {}
 };
 

@@ -21,6 +21,8 @@ struct Spread1DDispatcher {
       return cuspread_subprob<T, 1, ns>(d_plan, blksize);
     case 3:
       return cuspread_output_driven<T, 1, ns>(d_plan, blksize);
+    case 42:
+      return cuspread_romein<T, 1, ns>(d_plan, blksize);
     default:
       std::cerr << "[cuspread1d] error: incorrect method, should be 1, 2 or 3\n";
       throw int(FINUFFT_ERR_METHOD_NOTVALID);
@@ -52,6 +54,7 @@ template<typename T> void cuspread1d_prop(cufinufft_plan_t<T> &d_plan) {
   if (d_plan.opts.gpu_method == 1) cuspread_nuptsdriven_prop<T, 1>(d_plan);
   if (d_plan.opts.gpu_method == 2) cuspread_subprob_prop<T, 1>(d_plan);
   if (d_plan.opts.gpu_method == 3) cuspread_subprob_prop<T, 1>(d_plan);
+  if (d_plan.opts.gpu_method == 42) cuspread_subprob_prop<T, 1>(d_plan);
 }
 template void cuspread1d_prop(cufinufft_plan_t<float> &d_plan);
 template void cuspread1d_prop(cufinufft_plan_t<double> &d_plan);
