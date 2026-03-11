@@ -691,7 +691,7 @@ static void cuspread_romein(const cufinufft_plan_t<T> &d_plan, int blksize) {
       ndim, d_plan.spopts.nspread, d_plan.opts.gpu_binsizex, d_plan.opts.gpu_binsizey,
       d_plan.opts.gpu_binsizez, d_plan.opts.gpu_np);
   if (d_plan.opts.gpu_kerevalmeth) {
-    cufinufft_set_shared_memory(spread_subprob<T, 1, ndim, ns>, ndim, d_plan);
+    cufinufft_set_shared_memory(spread_romein<T, 1, ndim, ns>, ndim, d_plan);
     for (int t = 0; t < blksize; t++) {
       spread_romein<T, 1, ndim, ns>
           <<<d_plan.totalnumsubprob, min(256,bufsz), sharedplanorysize, d_plan.stream>>>(
@@ -703,7 +703,7 @@ static void cuspread_romein(const cufinufft_plan_t<T> &d_plan, int blksize) {
       THROW_IF_CUDA_ERROR
     }
   } else {
-    cufinufft_set_shared_memory(spread_subprob<T, 0, ndim, ns>, ndim, d_plan);
+    cufinufft_set_shared_memory(spread_romein<T, 0, ndim, ns>, ndim, d_plan);
     for (int t = 0; t < blksize; t++) {
       spread_romein<T, 1, ndim, ns>
           <<<d_plan.totalnumsubprob, min(256,bufsz), sharedplanorysize, d_plan.stream>>>(
