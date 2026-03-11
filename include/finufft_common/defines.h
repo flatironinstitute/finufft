@@ -51,7 +51,7 @@
 #define FINUFFT_UNREACHABLE   __assume(0)
 #define FINUFFT_UNLIKELY(x)   (x)
 #define FINUFFT_LIKELY(x)     (x)
-#elif defined(__GNUC__) || defined(__clang__)
+#elif defined(__GNUC__)
 #define FINUFFT_ALWAYS_INLINE __attribute__((always_inline)) inline
 #define FINUFFT_NEVER_INLINE  __attribute__((noinline))
 #define FINUFFT_RESTRICT      __restrict__
@@ -68,7 +68,7 @@
 #endif
 
 // Portable diagnostic push/pop and deprecation-warning suppression.
-#if defined(__GNUC__) || defined(__clang__)
+#if defined(__GNUC__)
 #define FINUFFT_DIAGNOSTIC_PUSH _Pragma("GCC diagnostic push")
 #define FINUFFT_DIAGNOSTIC_POP  _Pragma("GCC diagnostic pop")
 #define FINUFFT_DISABLE_WARNING_DEPRECATED \
@@ -83,14 +83,9 @@
 #define FINUFFT_DISABLE_WARNING_DEPRECATED
 #endif
 
-// Portable deprecation attribute for enum values (placed after the name).
-// nvcc doesn't support deprecation attributes on enumerators.
-#if defined(__NVCC__)
-#define FINUFFT_DEPRECATED_ENUM(msg)
-#elif defined(__GNUC__) || defined(__clang__)
-#define FINUFFT_DEPRECATED_ENUM(msg) __attribute__((deprecated(msg)))
-#elif defined(_MSC_VER)
-#define FINUFFT_DEPRECATED_ENUM(msg) /* MSVC doesn't support this on anon enums */
+// Deprecation attribute for enum values in C++14+ code, empty otherwise.
+#if defined(__cplusplus) && __cplusplus >= 201402L
+#define FINUFFT_DEPRECATED_ENUM(msg) [[deprecated(msg)]]
 #else
 #define FINUFFT_DEPRECATED_ENUM(msg)
 #endif

@@ -5,17 +5,10 @@
 #ifndef FINUFFT_OPTS_H
 #define FINUFFT_OPTS_H
 
-// Portable deprecation attribute for struct fields.
-// nvcc doesn't support deprecation attributes on struct members.
+// Deprecation attribute for struct fields in C++14+ code, empty otherwise.
 #ifndef FINUFFT_DEPRECATED_FIELD
-#if defined(__NVCC__)
-#define FINUFFT_DEPRECATED_FIELD(msg)
-#elif defined(__cplusplus) && __cplusplus >= 201402L
+#if defined(__cplusplus) && __cplusplus >= 201402L
 #define FINUFFT_DEPRECATED_FIELD(msg) [[deprecated(msg)]]
-#elif defined(__GNUC__) || defined(__clang__)
-#define FINUFFT_DEPRECATED_FIELD(msg) __attribute__((deprecated(msg)))
-#elif defined(_MSC_VER)
-#define FINUFFT_DEPRECATED_FIELD(msg) __declspec(deprecated(msg))
 #else
 #define FINUFFT_DEPRECATED_FIELD(msg)
 #endif
@@ -64,6 +57,7 @@ typedef struct finufft_opts { // defaults see plan.hpp:finufft_default_opts_t()
   int spread_max_sp_size; // if >0, overrides spreader (dir=1) max subproblem size
   int spread_kerformula;  // kernel function formula: 0 default, [>0 devs/debug only]
                           // Non-zero values are unsupported and behavior can change
+  int allow_eps_too_small; // CPU only: 0 hard error if tol<eps_mach, 1 clamp and proceed
   // sphinx tag (don't remove): @opts_end
 
   // User can provide their own FFTW planner lock functions for thread safety

@@ -21,6 +21,7 @@ c     DEPRECATED: spread_kerpad kept for ABI compatibility, ignored by library
       integer spread_thread, maxbatchsize, spread_nthr_atomic
       integer spread_max_sp_size
       integer spread_kerformula
+      integer allow_eps_too_small
       integer fftw_lock_fun, fftw_unlock_fun, fftw_lock_data
 
       end type

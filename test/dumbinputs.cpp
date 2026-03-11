@@ -93,6 +93,13 @@ int main(int argc, char *argv[]) {
     printf("1d1 tol=0:\twrong err code %d\n", ier);
     return 1;
   }
+  finufft_opts opts_allow        = opts;
+  opts_allow.allow_eps_too_small = 1;
+  ier                            = FINUFFT1D1(M, x, c, +1, 0, N, F, &opts_allow);
+  if (ier != 0) {
+    printf("1d1 tol=0 allow_eps_too_small:\twrong err code %d\n", ier);
+    return 1;
+  }
   ier = FINUFFT1D1(M, x, c, +1, acc, 0, F, &opts);
   if (ier) {
     printf("1d1 N=0:\tier=%d\n", ier);

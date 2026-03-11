@@ -24,23 +24,16 @@
 % [err, info] = erralltypedim(...) returns info struct with at least fields:
 %   info.Nmax = max N used in each dim, 1x3 vector
 %
-% [err, info, tolok] = erralltypedim(...) also returns tolok=false if FINUFFT
-%   raised FINUFFT:epsTooSmall (tolerance unachievable), true otherwise.
-%   When tolok=false, err remains NaN.
-%
 % Barnett 12/21/25. Helper used by fullmathtest, plottolsweep, wsweepkerrcomp.
 %
-function [err, info, tolok] = erralltypedim(M,Ntot,ntr,isign,prec,tol,o,myrand,dims,errcheck)
+function [err, info] = erralltypedim(M,Ntot,ntr,isign,prec,tol,o,myrand,dims,errcheck)
 err = nan(3,3);
 info.Nmax = nan(1,3);
-tolok = true;
 % defaults...
 if nargin<7, o=struct(); end
 if nargin<8, myrand=@rand; end          % use CPU
 if nargin<9 || isempty(dims), dims = true(3,1); end      % test all dims
 if nargin<10, errcheck = -1; end        % don't output text
-
-try  % catch eps-too-small errors so callers can check tolok flag
 
 x = 2*pi*myrand(M,1,prec);      % random NU pts on whichever device, all dims
 y = 2*pi*myrand(M,1,prec);      % (col vecs)
@@ -135,13 +128,5 @@ if dims(3) % ------------------------------------------------- 3D ---------
   err(3,3) = norm(f-fe)/norm(fe);
   if errcheck>0, fprintf('\t\t3D type 3:\t%.3g   \t',err(3,3));
     if err(3,3)>errcheck, fprintf('FAIL!\n'); else fprintf('pass\n'); end
-  end
-end
-
-catch ME
-  if strcmp(ME.identifier, 'FINUFFT:epsTooSmall')
-    tolok = false;
-  else
-    rethrow(ME);
   end
 end

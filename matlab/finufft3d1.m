@@ -30,6 +30,7 @@
 %     opts.spread_sort:  0 (don't sort NU pts), 1 (do), 2 (auto, default)
 %     opts.fftw: FFTW plan mode, 64=FFTW_ESTIMATE (default), 0=FFTW_MEASURE, etc
 %     opts.upsampfac:   sigma.  2.0 (default), or 1.25 (low RAM, smaller FFT)
+%     opts.allow_eps_too_small: 0 (default hard error if tol<epsmach), 1 (clamp and proceed)
 %     opts.spread_thread:   for ntrans>1 only. 0:auto, 1:seq multi, 2:par, etc
 %     opts.maxbatchsize:  for ntrans>1 only. max blocking size, or 0 for auto.
 %     opts.nthreads:   number of threads, or 0: use all available (default)

@@ -24,7 +24,11 @@ public:
   int code() const noexcept { return code_; }
 
   static const char *error_string(int code) {
+    FINUFFT_DIAGNOSTIC_PUSH
+    FINUFFT_DISABLE_WARNING_DEPRECATED
     switch (code) {
+    // FIXME: remove this deprecated legacy code-1 mapping once GPU stops returning
+    // FINUFFT_WARN_EPS_TOO_SMALL for tiny requested tolerances.
     case FINUFFT_WARN_EPS_TOO_SMALL: return "requested tolerance too small (deprecated)";
     case FINUFFT_ERR_EPS_TOO_SMALL: return "requested tolerance too small";
     case FINUFFT_ERR_MAXNALLOC: return "fine grid size exceeds MAX_NF";
@@ -43,6 +47,7 @@ public:
     case FINUFFT_ERR_KERFORMULA_NOTVALID: return "kernel formula not valid";
     default: return "unknown FINUFFT error";
     }
+    FINUFFT_DIAGNOSTIC_POP
   }
 };
 

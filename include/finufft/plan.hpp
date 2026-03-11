@@ -303,6 +303,7 @@ inline void finufft_default_opts_t(finufft_opts *o)
   o->spread_nthr_atomic = -1;
   o->spread_max_sp_size = 0;
   o->spread_kerformula  = 0;
+  o->allow_eps_too_small = 0;
   o->fftw_lock_fun      = nullptr;
   o->fftw_unlock_fun    = nullptr;
   o->fftw_lock_data     = nullptr;

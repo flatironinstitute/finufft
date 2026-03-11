@@ -29,6 +29,7 @@ kfs = [1 8];       % kernel formulae to test
 o.upsampfac = sigma;
 %o.debug = 1;
 o.showwarn = 0;
+o.allow_eps_too_small = 1;
 dims = false(1, 3); dims(dim) = true;  % only test this dim
 nkf = numel(kfs);
 mintol = 10 * eps(prec);        % stop above eps_mach
@@ -38,15 +39,13 @@ fprintf('%dD sigma=%.3g\tprec=%s M=%d Ntot=%d ntr=%d ntols=%d, kfs:',...
         dim, o.upsampfac, prec, M, Ntot, ntr, ntols);
 fprintf(' %d',kfs); fprintf('\n');
 errs = nan(nkf, 3, ntols);     % for 3 types (just 1D for now), each tol
-toloks = true(1,ntols);        % whether FINUFFT reported warning for tol
 ws = zeros(nkf, ntols);        % extracted widths w
 for t=1:ntols
   tol = tols(t);
   for i = 1:numel(kfs)  % loop over kernel formulae
     o.spread_kerformula = kfs(i);
     %o.debug = (tol<1e-9 && tol>1e-10);  % *** only to find ns=15 s=1.25 bump :(
-    [nineerrs, info, toloks(t)] = erralltypedim(M,Ntot,ntr,isign,prec,tol,o,myrand,dims);
-    if ~toloks(t), continue; end
+    [nineerrs, info] = erralltypedim(M,Ntot,ntr,isign,prec,tol,o,myrand,dims);
     errs(i,:,t) = nineerrs(:,dim);   % extract col from 3x3
     % measure w via support of one spread pt to the origin (type-1 only!)...
     oo = o; oo.spreadinterponly = 1;
@@ -93,9 +92,9 @@ for y=1:3  % types
   subplot(1,3,y);
   legs = {};
   symb = '+.ox*sd';
-  tt = tols(toloks);            % plot only the non-warning tol domain
+  tt = tols;
   for i=1:nkf     % kernels
-    loglog(tt, squeeze(errs(i,y,toloks)), symb(i)); % 'markersize',10);
+    loglog(tt, squeeze(errs(i,y,:)), symb(i)); % 'markersize',10);
     hold on; xlabel('\epsilon (user tol)'); ylabel('mean rel l2 err');
     legs{i} = sprintf('kf=%d: %s',kfs(i),kfnam{kfs(i)});
   end
@@ -105,4 +104,3 @@ for y=1:3  % types
   title(sprintf('%dD type %d %s, N_{tot}=%d, \\sigma=%g',dim,y,prec,Ntot,sigma))
 end
 print('-dpng',sprintf('results/tolsweepkerrcomp_%dD_%s_sig%g.png',dim,prec,sigma))
-

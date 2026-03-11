@@ -8,6 +8,7 @@ isign = +1; % sign of imaginary unit in exponential
 o.debug = 0;      % choose 1 for timing breakdown text output
 o.spread_function = 0;    % >0 for experts only
 o.upsampfac = 2.0;
+o.allow_eps_too_small = 1;
 
 % use one of these...
 tols = 10.^(0:-0.02:-15); o.upsampfac = 2.0;
@@ -17,21 +18,18 @@ tols = 10.^(0:-0.02:-15); o.upsampfac = 2.0;
 %tols = 10.^(0:-0.02:-14); o.upsampfac = 1.99;    % v close to 2
 
 errs = nan*tols;
-toloks = true(size(tols));
 for t=1:numel(tols)
   x = pi*(2*rand(1,M)-1);
   c = randn(1,M)+1i*randn(1,M);
   ns = (ceil(-N/2) : floor((N-1)/2))';  % mode indices, col vec
-  [toloks(t), f] = safe_call(@() finufft1d1(x, c, isign, tols(t), N, o));
-  if ~toloks(t), continue; end
+  f = finufft1d1(x, c, isign, tols(t), N, o);
   fe = exp(1i*isign*ns*x) * c.';         % exact (note mat fill, matvec)
   %errs(t) = max(abs(f(:)-fe(:))) / norm(c,1);      % eps as in err analysis...
   %p=2; errs(t) = norm(f(:)-fe(:),p) / norm(c,p);   % ...or p-norm rel to input
   p=2; errs(t) = norm(f(:)-fe(:),p) / norm(fe(:),p); % ...or rel p-norm
 end
 figure;
-loglog(tols(toloks), errs(toloks), '+'); hold on; plot(tols, tols, 'k-');
-plot(tols(~toloks), errs(~toloks), 'mo'); % highlight those w / tol warning
+loglog(tols, errs, '+'); hold on; plot(tols, tols, 'k-');
 axis tight; xlabel('tol'); ylabel('err');
 % title(sprintf('1d1: (maxerr)/||c||_1, M=%d, N=%d\n', M, N));
 title(sprintf('1d1 \\sigma=%g sf=%d M=%d N=%d: rel 2-norm err in f',...

@@ -40,7 +40,7 @@ has the following meanings which are used by both CPU and GPU versions
 For any nonzero value of ``ier`` the transform may not have been performed and the output should not be trusted. However, we hope that the value of ``ier`` will help to narrow down the problem.
 
 .. note::
-   Prior to v2.6.0, ``ier=1`` was a warning that still completed the transform at reduced accuracy. It is now a hard error (``ier=26``). Users must pass a tolerance at or above machine epsilon.
+   On CPU, prior to v2.6.0, ``ier=1`` was a warning that still completed the transform at reduced accuracy. The default CPU behavior is now a hard error (``ier=26``). Setting ``opts.allow_eps_too_small=1`` clamps the requested tolerance to machine epsilon and allows the transform to proceed with no warning. GPU behavior is unchanged for now.
 
 FINUFFT sometimes also sends error text to ``stderr`` if it detects faulty input parameters. Please check your terminal output.
 

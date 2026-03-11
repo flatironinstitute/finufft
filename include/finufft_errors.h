@@ -5,6 +5,7 @@
 
 // ---------- Global error/warning output codes for the library ---------------
 // All documentation is at ../docs/errors.rst (not here):
+// clang-format off
 enum {
   FINUFFT_WARN_EPS_TOO_SMALL FINUFFT_DEPRECATED_ENUM(
       "use FINUFFT_ERR_EPS_TOO_SMALL instead") = 1,
@@ -37,4 +38,5 @@ enum {
   FINUFFT_ERR_UNKNOWN_EXCEPTION                    = 25,
   FINUFFT_ERR_EPS_TOO_SMALL                        = 26,
 };
+// clang-format on
 #endif

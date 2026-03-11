@@ -122,7 +122,8 @@ template<typename TF> void FINUFFT_PLAN_T<TF>::setup_spreadinterp() {
     See finufft_common/spread_opts.h for docs on all spopts fields.
     Note that spopts.spread_direction is not set.
     Throws on error (see codes in finufft_errors.h), including
-    FINUFFT_ERR_EPS_TOO_SMALL if requested eps (tol) is below machine epsilon.
+    FINUFFT_ERR_EPS_TOO_SMALL if requested eps (tol) is below machine epsilon,
+    unless opts.allow_eps_too_small requests clamp-and-proceed behavior.
     Barbone (Dec/25): ensure legacy kereval/kerpad user opts are treated as no-ops.
     1/8/26: Barnett redo (merges setup_spreader & setup_spreader_for_nufft of 2017).
     Barbone (3/4/26): eps-too-small is now a hard error (throw), not a warning.
@@ -151,20 +152,28 @@ template<typename TF> void FINUFFT_PLAN_T<TF>::setup_spreadinterp() {
 
   constexpr TF EPSILON = std::numeric_limits<TF>::epsilon(); // 2.2e-16 or 1.2e-7
   if (m.tol < EPSILON) { // unfeasible request: no hope of beating eps_mach...
-    fprintf(stderr, "%s error: requested tol=%.3g is below eps_mach=%.3g.\n", __func__,
-            (double)m.tol, (double)EPSILON);
-    throw finufft::exception(FINUFFT_ERR_EPS_TOO_SMALL);
+    if (opts.allow_eps_too_small) {
+      m.tol = EPSILON;
+    } else {
+      fprintf(stderr, "%s error: requested tol=%.3g is below eps_mach=%.3g.\n", __func__,
+              (double)m.tol, (double)EPSILON);
+      throw finufft::exception(FINUFFT_ERR_EPS_TOO_SMALL);
+    }
   }
 
   // choose nspread and set it in spopts...
   int ns = theoretical_kernel_ns((double)m.tol, dim, type, opts.debug, m.spopts);
   ns     = std::max(MIN_NSPREAD, ns); // clip low
   if (ns > MAX_NSPREAD) {             // clip to largest spreadinterp.cpp allows
-    fprintf(stderr,
-            "%s error: at upsampfac=%.3g, tol=%.3g would need kernel "
-            "width ns=%d, exceeding max %d.\n",
-            __func__, m.spopts.upsampfac, (double)m.tol, ns, MAX_NSPREAD);
-    throw finufft::exception(FINUFFT_ERR_EPS_TOO_SMALL);
+    if (opts.allow_eps_too_small) {
+      ns = MAX_NSPREAD;
+    } else {
+      fprintf(stderr,
+              "%s error: at upsampfac=%.3g, tol=%.3g would need kernel "
+              "width ns=%d, exceeding max %d.\n",
+              __func__, m.spopts.upsampfac, (double)m.tol, ns, MAX_NSPREAD);
+      throw finufft::exception(FINUFFT_ERR_EPS_TOO_SMALL);
+    }
   }
   // further ns reduction to prevent catastrophic cancellation in float...
   const bool singleprec = std::is_same_v<TF, float>;
@@ -318,7 +327,7 @@ FINUFFT_PLAN_T<TF>::FINUFFT_PLAN_T(int type_, int dim_, const BIGINT *n_modes, i
 // Throws finufft::exception on error.
 {
   using namespace finufft::utils;
-  m.tol = tol_;    // save user tolerance (setup_spreadinterp throws if below eps_mach)
+  m.tol = tol_;    // save user tolerance (setup_spreadinterp may clamp it)
   if (!opts_)      // use default opts
     finufft_default_opts_t(&opts);
   else             // or read from what's passed in
@@ -429,9 +438,14 @@ FINUFFT_PLAN_T<TF>::FINUFFT_PLAN_T(int type_, int dim_, const BIGINT *n_modes, i
     }
   } else {
     // If upsampfac was left as 0.0 (auto) we defer setup_spreader to setpts.
-    // However, we can still error out now if tol is guaranteed unachievable:
-    if (m.tol < std::numeric_limits<TF>::epsilon())
-      throw finufft::exception(FINUFFT_ERR_EPS_TOO_SMALL);
+    // However, we can still reject or clamp unachievable tiny tolerances now.
+    const TF eps_mach = std::numeric_limits<TF>::epsilon();
+    if (m.tol < eps_mach) {
+      if (opts.allow_eps_too_small) {
+        m.tol = eps_mach;
+      } else
+        throw finufft::exception(FINUFFT_ERR_EPS_TOO_SMALL);
+    }
   }
 
   if (type == 3) { // -------------------------- type 3 (no planning) ------------

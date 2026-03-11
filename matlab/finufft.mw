@@ -100,6 +100,9 @@ $     }
 $     else if (strcmp(fname[ifield],"spread_kerformula") == 0) {
 $       oc->spread_kerformula = (int)round(*mxGetPr(mxGetFieldByNumber(om,idx,ifield)));
 $     }
+$     else if (strcmp(fname[ifield],"allow_eps_too_small") == 0) {
+$       oc->allow_eps_too_small = (int)round(*mxGetPr(mxGetFieldByNumber(om,idx,ifield)));
+$     }
 $     else if (strcmp(fname[ifield],"spreadinterponly") == 0) {
 $       oc->spreadinterponly = (int)round(*mxGetPr(mxGetFieldByNumber(om,idx,ifield)));
 $     }
@@ -189,6 +192,7 @@ classdef finufft_plan < handle
       if isfield(opts,'spread_debug'), opts.spread_debug = double(opts.spread_debug); end
       if isfield(opts,'spreadinterponly'), opts.spreadinterponly = double(opts.spreadinterponly); end
       if isfield(opts,'showwarn'), opts.showwarn = double(opts.showwarn); end
+      if isfield(opts,'allow_eps_too_small'), opts.allow_eps_too_small = double(opts.allow_eps_too_small); end
       if isfield(opts,'chkbnds')
          warning('FINUFFT:deprecatedOpt', 'FINUFFT chkbnds option is deprecated.');
       end

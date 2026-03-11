@@ -20,7 +20,6 @@ import ctypes
 
 import finufft._finufft as _finufft
 
-
 ### Plan class definition
 class Plan:
     r"""
@@ -90,20 +89,10 @@ class Plan:
                         ``'complex64'`` or ``'complex128'``.
         **kwargs        (optional): for more options, see :ref:`opts`.
     """
-
-    def __init__(
-        self,
-        nufft_type,
-        n_modes_or_dim,
-        n_trans=1,
-        eps=1e-6,
-        isign=None,
-        dtype="complex128",
-        **kwargs,
-    ):
+    def __init__(self,nufft_type,n_modes_or_dim,n_trans=1,eps=1e-6,isign=None,dtype='complex128',**kwargs):
         # set default isign based on if isign is None
-        if isign == None:
-            if nufft_type == 2:
+        if isign==None:
+            if nufft_type==2:
                 isign = -1
             else:
                 isign = 1
@@ -114,13 +103,13 @@ class Plan:
         # Ensure explicit mapping for some fields that must be exact C types.
         # In particular, enforce that `spread_kerformula` (if provided)
         # is assigned as an integer to the ctypes structure
-        if "spread_kerformula" in kwargs:
+        if 'spread_kerformula' in kwargs:
             try:
-                opts.spread_kerformula = int(kwargs.get("spread_kerformula"))
+                opts.spread_kerformula = int(kwargs.get('spread_kerformula'))
             except Exception:
                 # fall back to generic setter below which will warn if invalid
                 pass
-        setkwopts(opts, **kwargs)
+        setkwopts(opts,**kwargs)
         dtype = np.dtype(dtype)
 
         is_single = is_single_dtype(dtype)
@@ -129,17 +118,15 @@ class Plan:
         plan = c_void_p(None)
 
         # setting n_modes and dim for makeplan
-        if nufft_type == 3:
+        if nufft_type==3:
             npdim = np.asarray(n_modes_or_dim, dtype=np.int64)
             if npdim.size != 1:
-                raise RuntimeError(
-                    "FINUFFT type 3 plan n_modes_or_dim must be one number, the dimension"
-                )
+                raise RuntimeError('FINUFFT type 3 plan n_modes_or_dim must be one number, the dimension')
             dim = int(npdim)
             n_modes = np.ones([dim], dtype=np.int64)
         else:
             npmodes = np.asarray(n_modes_or_dim, dtype=np.int64)
-            if npmodes.size > 3 or npmodes.size < 1:
+            if npmodes.size>3 or npmodes.size<1:
                 raise RuntimeError("FINUFFT n_modes dimension must be 1, 2, or 3")
             dim = int(npmodes.size)
             n_modes = np.ones([dim], dtype=np.int64)
@@ -160,9 +147,8 @@ class Plan:
             self._execute_adjoint = _finufft._execute_adjoint
             self._destroy = _finufft._destroy
 
-        ier = self._makeplan(
-            nufft_type, dim, n_modes, isign, n_trans, eps, byref(plan), byref(opts)
-        )
+        ier = self._makeplan(nufft_type, dim, n_modes, isign, n_trans, eps,
+                     byref(plan), byref(opts))
 
         # check error
         if ier != 0:
@@ -203,7 +189,7 @@ class Plan:
         return self._n_trans
 
     ### setpts
-    def setpts(self, x=None, y=None, z=None, s=None, t=None, u=None):
+    def setpts(self,x=None,y=None,z=None,s=None,t=None,u=None):
         r"""
         Set the nonuniform points
 
@@ -243,53 +229,22 @@ class Plan:
         # valid sizes
         dim = self._dim
         tp = self._type
-        (self._nj, self._nk) = valid_setpts(
-            tp, dim, self._xj, self._yj, self._zj, self._s, self._t, self._u
-        )
+        (self._nj, self._nk) = valid_setpts(tp, dim, self._xj, self._yj, self._zj, self._s, self._t, self._u)
 
         # call set pts for single prec plan
         if self._dim == 1:
-            ier = self._setpts(
-                self._inner_plan,
-                self._nj,
-                self._xj,
-                self._yj,
-                self._zj,
-                self._nk,
-                self._s,
-                self._t,
-                self._u,
-            )
+            ier = self._setpts(self._inner_plan, self._nj, self._xj, self._yj, self._zj, self._nk, self._s, self._t, self._u)
         elif self._dim == 2:
-            ier = self._setpts(
-                self._inner_plan,
-                self._nj,
-                self._yj,
-                self._xj,
-                self._zj,
-                self._nk,
-                self._t,
-                self._s,
-                self._u,
-            )
+            ier = self._setpts(self._inner_plan, self._nj, self._yj, self._xj, self._zj, self._nk, self._t, self._s, self._u)
         elif self._dim == 3:
-            ier = self._setpts(
-                self._inner_plan,
-                self._nj,
-                self._zj,
-                self._yj,
-                self._xj,
-                self._nk,
-                self._u,
-                self._t,
-                self._s,
-            )
+            ier = self._setpts(self._inner_plan, self._nj, self._zj, self._yj, self._xj, self._nk, self._u, self._t, self._s)
 
         if ier != 0:
             err_handler(ier)
 
+
     ### execute
-    def execute(self, data, out=None):
+    def execute(self,data,out=None):
         r"""
         Execute the plan
 
@@ -318,50 +273,42 @@ class Plan:
         nk = self._nk
         dim = self._dim
 
-        if tp == 1 or tp == 2:
-            ms, mt, mu = [*self._n_modes, *([1] * (3 - len(self._n_modes)))]
+        if tp==1 or tp==2:
+            ms, mt, mu = [*self._n_modes, *([1]*(3-len(self._n_modes)))]
 
         # input shape and size check
-        if tp == 2:
-            valid_fshape(data.shape, n_trans, dim, ms, mt, mu, None, 2)
+        if tp==2:
+            valid_fshape(data.shape,n_trans,dim,ms,mt,mu,None,2)
         else:
-            valid_cshape(data.shape, nj, n_trans)
+            valid_cshape(data.shape,nj,n_trans)
 
         # out shape and size check
         if out is not None:
-            if tp == 1:
-                valid_fshape(out.shape, n_trans, dim, ms, mt, mu, None, 1)
-            if tp == 2:
-                valid_cshape(out.shape, nj, n_trans)
-            if tp == 3:
-                valid_fshape(out.shape, n_trans, dim, None, None, None, nk, 3)
+            if tp==1:
+                valid_fshape(out.shape,n_trans,dim,ms,mt,mu,None,1)
+            if tp==2:
+                valid_cshape(out.shape,nj,n_trans)
+            if tp==3:
+                valid_fshape(out.shape,n_trans,dim,None,None,None,nk,3)
 
         # allocate out if None
         if out is None:
-            if tp == 1:
-                _out = np.zeros(
-                    [*data.shape[:-1], *self._n_modes[::-1]],
-                    dtype=self._dtype,
-                    order="C",
-                )
-            if tp == 2:
-                _out = np.zeros([*data.shape[:-dim], nj], dtype=self._dtype, order="C")
-            if tp == 3:
-                _out = np.zeros([*data.shape[:-1], nk], dtype=self._dtype, order="C")
+            if tp==1:
+                _out = np.zeros([*data.shape[:-1], *self._n_modes[::-1]], dtype=self._dtype, order='C')
+            if tp==2:
+                _out = np.zeros([*data.shape[:-dim], nj], dtype=self._dtype, order='C')
+            if tp==3:
+                _out = np.zeros([*data.shape[:-1], nk], dtype=self._dtype, order='C')
 
         # call execute based on type and precision type
-        if tp == 1 or tp == 3:
-            ier = self._execute(
-                self._inner_plan,
-                _data.ctypes.data_as(c_void_p),
-                _out.ctypes.data_as(c_void_p),
-            )
-        elif tp == 2:
-            ier = self._execute(
-                self._inner_plan,
-                _out.ctypes.data_as(c_void_p),
-                _data.ctypes.data_as(c_void_p),
-            )
+        if tp==1 or tp==3:
+            ier = self._execute(self._inner_plan,
+                                _data.ctypes.data_as(c_void_p),
+                                _out.ctypes.data_as(c_void_p))
+        elif tp==2:
+            ier = self._execute(self._inner_plan,
+                                _out.ctypes.data_as(c_void_p),
+                                _data.ctypes.data_as(c_void_p))
 
         # check error
         if ier != 0:
@@ -370,7 +317,7 @@ class Plan:
         return _out
 
     ### execute_adjoint
-    def execute_adjoint(self, data, out=None):
+    def execute_adjoint(self,data,out=None):
         r"""
         Execute the plan in the adjoint direction
 
@@ -404,52 +351,44 @@ class Plan:
         nk = self._nk
         dim = self._dim
 
-        if tp == 1 or tp == 2:
-            ms, mt, mu = [*self._n_modes, *([1] * (3 - len(self._n_modes)))]
+        if tp==1 or tp==2:
+            ms, mt, mu = [*self._n_modes, *([1]*(3-len(self._n_modes)))]
 
         # input shape and size check
-        if tp == 1:
-            valid_fshape(data.shape, n_trans, dim, ms, mt, mu, None, 2)
-        if tp == 2:
-            valid_cshape(data.shape, nj, n_trans)
-        if tp == 3:
-            valid_cshape(data.shape, nk, n_trans)
+        if tp==1:
+            valid_fshape(data.shape,n_trans,dim,ms,mt,mu,None,2)
+        if tp==2:
+            valid_cshape(data.shape,nj,n_trans)
+        if tp==3:
+            valid_cshape(data.shape,nk,n_trans)
 
         # out shape and size check
         if out is not None:
-            if tp == 1:
-                valid_cshape(out.shape, nj, n_trans)
-            if tp == 2:
-                valid_fshape(out.shape, n_trans, dim, ms, mt, mu, None, 1)
-            if tp == 3:
-                valid_cshape(out.shape, nj, n_trans)
+            if tp==1:
+                valid_cshape(out.shape,nj,n_trans)
+            if tp==2:
+                valid_fshape(out.shape,n_trans,dim,ms,mt,mu,None,1)
+            if tp==3:
+                valid_cshape(out.shape,nj,n_trans)
 
         # allocate out if None
         if out is None:
-            if tp == 1:
-                _out = np.empty([*data.shape[:-dim], nj], dtype=self._dtype, order="C")
-            if tp == 2:
-                _out = np.empty(
-                    [*data.shape[:-1], *self._n_modes[::-1]],
-                    dtype=self._dtype,
-                    order="C",
-                )
-            if tp == 3:
-                _out = np.empty([*data.shape[:-1], nj], dtype=self._dtype, order="C")
+            if tp==1:
+                _out = np.empty([*data.shape[:-dim], nj], dtype=self._dtype, order='C')
+            if tp==2:
+                _out = np.empty([*data.shape[:-1], *self._n_modes[::-1]], dtype=self._dtype, order='C')
+            if tp==3:
+                _out = np.empty([*data.shape[:-1], nj], dtype=self._dtype, order='C')
 
         # call execute based on type and precision type
-        if tp == 1 or tp == 3:
-            ier = self._execute_adjoint(
-                self._inner_plan,
-                _out.ctypes.data_as(c_void_p),
-                _data.ctypes.data_as(c_void_p),
-            )
-        elif tp == 2:
-            ier = self._execute_adjoint(
-                self._inner_plan,
-                _data.ctypes.data_as(c_void_p),
-                _out.ctypes.data_as(c_void_p),
-            )
+        if tp==1 or tp==3:
+            ier = self._execute_adjoint(self._inner_plan,
+                                        _out.ctypes.data_as(c_void_p),
+                                        _data.ctypes.data_as(c_void_p))
+        elif tp==2:
+            ier = self._execute_adjoint(self._inner_plan,
+                                        _data.ctypes.data_as(c_void_p),
+                                        _out.ctypes.data_as(c_void_p))
 
         # check error
         if ier != 0:
@@ -457,11 +396,10 @@ class Plan:
 
         return _out
 
+
     def __del__(self):
         destroy(self)
         self._inner_plan = None
-
-
 ### End of Plan class definition
 
 
@@ -474,9 +412,7 @@ def _ensure_array_type(x, name, dtype, output=False):
         return np.array(0, dtype=dtype, order="C")
 
     if x.dtype != dtype:
-        raise TypeError(
-            f"Argument `{name}` does not have the correct dtype: {x.dtype} was given, but {dtype} was expected."
-        )
+        raise TypeError(f"Argument `{name}` does not have the correct dtype: {x.dtype} was given, but {dtype} was expected.")
 
     if not output:
         reqs = ["C"]
@@ -486,13 +422,9 @@ def _ensure_array_type(x, name, dtype, output=False):
     for prop in reqs:
         if not x.flags[prop]:
             if output:
-                raise TypeError(
-                    f"Argument `{name}` does not satisfy the following requirement: {prop}"
-                )
+                raise TypeError(f"Argument `{name}` does not satisfy the following requirement: {prop}")
             else:
-                warnings.warn(
-                    f"Argument `{name}` does not satisfy the following requirement: {prop}. Copying array (this may reduce performance)"
-                )
+                warnings.warn(f"Argument `{name}` does not satisfy the following requirement: {prop}. Copying array (this may reduce performance)")
                 x = np.array(x, dtype=dtype, order="C")
 
     return x
@@ -501,191 +433,174 @@ def _ensure_array_type(x, name, dtype, output=False):
 ### error handler (keep up to date with FINUFFT/include/defs.h)
 def err_handler(ier):
     switcher = {
-        1: "FINUFFT eps tolerance too small to achieve",
-        2: "FINUFFT malloc size requested greater than MAX_NF",
-        3: "FINUFFT spreader fine grid too small compared to kernel width",
-        4: "FINUFFT spreader nonuniform point out of range [-pi, pi)^d [DEPRECATED]",
-        5: "FINUFFT spreader malloc error",
-        6: "FINUFFT spreader illegal direction (must be 1 or 2)",
-        7: "FINUFFT opts.upsampfac not > 1.0",
-        8: "FINUFFT opts.upsampfac not a value with known Horner polynomial rule",
-        9: "FINUFFT number of transforms ntrans invalid",
-        10: "FINUFFT transform type invalid",
-        11: "FINUFFT general malloc failure",
-        12: "FINUFFT number of dimensions dim invalid",
-        13: "FINUFFT spread_thread option invalid",
-        26: "FINUFFT eps tolerance too small to achieve",
+        1: 'FINUFFT eps tolerance too small to achieve',
+        2: 'FINUFFT malloc size requested greater than MAX_NF',
+        3: 'FINUFFT spreader fine grid too small compared to kernel width',
+        4: 'FINUFFT spreader nonuniform point out of range [-pi, pi)^d [DEPRECATED]', # DEPRECATED
+        5: 'FINUFFT spreader malloc error',
+        6: 'FINUFFT spreader illegal direction (must be 1 or 2)',
+        7: 'FINUFFT opts.upsampfac not > 1.0',
+        8: 'FINUFFT opts.upsampfac not a value with known Horner polynomial rule',
+        9: 'FINUFFT number of transforms ntrans invalid',
+        10: 'FINUFFT transform type invalid',
+        11: 'FINUFFT general malloc failure',
+        12: 'FINUFFT number of dimensions dim invalid',
+        13: 'FINUFFT spread_thread option invalid',
+        25: 'FINUFFT unknown internal exception',
+        26: 'FINUFFT eps tolerance too small to achieve',
     }
-    err_msg = switcher.get(ier, "Unknown error")
+    err_msg = switcher.get(ier,'Unknown error')
 
-    raise RuntimeError(err_msg)
+    if ier == 1:
+        warnings.warn(err_msg, Warning)
+    else:
+        raise RuntimeError(err_msg)
 
 
 ### valid sizes when setpts
-def valid_setpts(tp, dim, x, y, z, s, t, u):
+def valid_setpts(tp,dim,x,y,z,s,t,u):
     if x.ndim != 1:
-        raise RuntimeError("FINUFFT x must be a vector")
+        raise RuntimeError('FINUFFT x must be a vector')
 
     nj = x.size
 
     if tp == 3:
         nk = s.size
         if s.ndim != 1:
-            raise RuntimeError("FINUFFT s must be a vector")
+            raise RuntimeError('FINUFFT s must be a vector')
     else:
         nk = 0
 
     if dim > 1:
         if y.ndim != 1:
-            raise RuntimeError("FINUFFT y must be a vector")
+            raise RuntimeError('FINUFFT y must be a vector')
         if y.size != nj:
-            raise RuntimeError("FINUFFT y must have same length as x")
-        if tp == 3:
+            raise RuntimeError('FINUFFT y must have same length as x')
+        if tp==3:
             if t.ndim != 1:
-                raise RuntimeError("FINUFFT t must be a vector")
+                raise RuntimeError('FINUFFT t must be a vector')
             if t.size != nk:
-                raise RuntimeError("FINUFFT t must have same length as s")
+                raise RuntimeError('FINUFFT t must have same length as s')
 
     if dim > 2:
         if z.ndim != 1:
-            raise RuntimeError("FINUFFT z must be a vector")
+            raise RuntimeError('FINUFFT z must be a vector')
         if z.size != nj:
-            raise RuntimeError("FINUFFT z must have same length as x")
-        if tp == 3:
+            raise RuntimeError('FINUFFT z must have same length as x')
+        if tp==3:
             if u.ndim != 1:
-                raise RuntimeError("FINUFFT u must be a vector")
+                raise RuntimeError('FINUFFT u must be a vector')
             if u.size != nk:
-                raise RuntimeError("FINUFFT u must have same length as s")
+                raise RuntimeError('FINUFFT u must have same length as s')
 
     return (nj, nk)
 
 
 ### ntransf for type 1 and type 2
-def valid_ntr_tp12(dim, shape, n_transin, n_modesin):
-    if len(shape) == dim + 1:
+def valid_ntr_tp12(dim,shape,n_transin,n_modesin):
+    if len(shape) == dim+1:
         n_trans = shape[0]
-        n_modes = shape[1 : dim + 1]
+        n_modes = shape[1:dim+1]
     elif len(shape) == dim:
         n_trans = 1
         n_modes = shape
     else:
-        raise RuntimeError(
-            "FINUFFT type 1 output dimension or type 2 input dimension must be either dim (n_trans==1) or dim+1 (n_trans>=1)"
-        )
+        raise RuntimeError('FINUFFT type 1 output dimension or type 2 input dimension must be either dim (n_trans==1) or dim+1 (n_trans>=1)')
 
     if n_transin is not None and n_trans != n_transin:
-        raise RuntimeError("FINUFFT input n_trans and output n_trans do not match")
+        raise RuntimeError('FINUFFT input n_trans and output n_trans do not match')
 
     if n_modesin is not None:
         if n_modes != n_modesin:
-            raise RuntimeError("FINUFFT input n_modes and output n_modes do not match")
+            raise RuntimeError('FINUFFT input n_modes and output n_modes do not match')
 
-    return (n_trans, n_modes)
+    return (n_trans,n_modes)
 
 
 ### valid number of transforms
-def valid_ntr(x, c):
-    n_trans = int(c.size / x.size)
-    if n_trans * x.size != c.size:
-        raise RuntimeError("FINUFFT c.size must be divisible by x.size")
-    valid_cshape(c.shape, x.size, n_trans)
+def valid_ntr(x,c):
+    n_trans = int(c.size/x.size)
+    if n_trans*x.size != c.size:
+        raise RuntimeError('FINUFFT c.size must be divisible by x.size')
+    valid_cshape(c.shape,x.size,n_trans)
     return n_trans
 
 
 ### valid shape of c
-def valid_cshape(cshape, xsize, n_trans):
+def valid_cshape(cshape,xsize,n_trans):
     if n_trans == 1:
         if len(cshape) != 1 and len(cshape) != 2:
-            raise RuntimeError("FINUFFT c.ndim must be 1 or 2 if n_trans == 1")
+            raise RuntimeError('FINUFFT c.ndim must be 1 or 2 if n_trans == 1')
         if cshape[-1] != xsize or np.prod(cshape) != xsize:
-            raise RuntimeError("FINUFFT c.size must be same as x.size if n_trans == 1")
+            raise RuntimeError('FINUFFT c.size must be same as x.size if n_trans == 1')
     if n_trans > 1:
         if len(cshape) != 2:
-            raise RuntimeError("FINUFFT c.ndim must be 2 if n_trans > 1")
+            raise RuntimeError('FINUFFT c.ndim must be 2 if n_trans > 1')
         if cshape[1] != xsize or cshape[0] != n_trans:
-            raise RuntimeError(
-                "FINUFFT c.shape must be (n_trans, x.size) if n_trans > 1"
-            )
+            raise RuntimeError('FINUFFT c.shape must be (n_trans, x.size) if n_trans > 1')
 
 
 ### valid shape of f
-def valid_fshape(fshape, n_trans, dim, ms, mt, mu, nk, tp):
+def valid_fshape(fshape,n_trans,dim,ms,mt,mu,nk,tp):
     if tp == 3:
         if n_trans == 1:
             if len(fshape) != 1 and len(fshape) != 2:
-                raise RuntimeError(
-                    "FINUFFT f.ndim must be 1 or 2 for type 3 if n_trans == 1"
-                )
+                raise RuntimeError('FINUFFT f.ndim must be 1 or 2 for type 3 if n_trans == 1')
             if fshape[-1] != nk or np.prod(fshape) != nk:
-                raise RuntimeError("FINUFFT f.size of must be nk if n_trans == 1")
+                raise RuntimeError('FINUFFT f.size of must be nk if n_trans == 1')
         if n_trans > 1:
             if len(fshape) != 2:
-                raise RuntimeError("FINUFFT f.ndim must be 2 for type 3 if n_trans > 1")
+                raise RuntimeError('FINUFFT f.ndim must be 2 for type 3 if n_trans > 1')
             if fshape[1] != nk or fshape[0] != n_trans:
-                raise RuntimeError(
-                    "FINUFFT f.shape must be (n_trans, nk) if n_trans > 1"
-                )
+                raise RuntimeError('FINUFFT f.shape must be (n_trans, nk) if n_trans > 1')
     else:
         if n_trans == 1:
-            if len(fshape) != dim and len(fshape) != dim + 1:
-                raise RuntimeError(
-                    "FINUFFT f.ndim must be same as the problem dimension or the problem dimension + 1 for type 1 or 2 if n_trans == 1"
-                )
-            if len(fshape) == dim + 1 and fshape[0] != n_trans:
-                raise RuntimeError(
-                    "FINUFFT f.shape[0] must be 1 for type 1 or 2 if n_trans == 1 and len(f.shape) == dim+1"
-                )
+            if len(fshape) != dim and len(fshape) != dim+1:
+                raise RuntimeError('FINUFFT f.ndim must be same as the problem dimension or the problem dimension + 1 for type 1 or 2 if n_trans == 1')
+            if len(fshape) == dim+1 and fshape[0] != n_trans:
+                raise RuntimeError('FINUFFT f.shape[0] must be 1 for type 1 or 2 if n_trans == 1 and len(f.shape) == dim+1')
         if n_trans > 1:
-            if len(fshape) != dim + 1:
-                raise RuntimeError(
-                    "FINUFFT f.ndim must be same as the problem dimension + 1 for type 1 or 2 if n_trans > 1"
-                )
+            if len(fshape) != dim+1:
+                raise RuntimeError('FINUFFT f.ndim must be same as the problem dimension + 1 for type 1 or 2 if n_trans > 1')
             if fshape[0] != n_trans:
-                raise RuntimeError(
-                    "FINUFFT f.shape[0] must be n_trans for type 1 or 2 if n_trans > 1"
-                )
+                raise RuntimeError('FINUFFT f.shape[0] must be n_trans for type 1 or 2 if n_trans > 1')
         if fshape[-1] != ms:
-            raise RuntimeError("FINUFFT f.shape is not consistent with n_modes")
-        if dim > 1:
+            raise RuntimeError('FINUFFT f.shape is not consistent with n_modes')
+        if dim>1:
             if fshape[-2] != mt:
-                raise RuntimeError("FINUFFT f.shape is not consistent with n_modes")
-        if dim > 2:
+                raise RuntimeError('FINUFFT f.shape is not consistent with n_modes')
+        if dim>2:
             if fshape[-3] != mu:
-                raise RuntimeError("FINUFFT f.shape is not consistent with n_modes")
+                raise RuntimeError('FINUFFT f.shape is not consistent with n_modes')
 
 
 ### check if dtype is single or double
 def is_single_dtype(dtype):
     dtype = np.dtype(dtype)
 
-    if dtype == np.dtype("complex128"):
+    if dtype == np.dtype('complex128'):
         return False
-    elif dtype == np.dtype("complex64"):
+    elif dtype == np.dtype('complex64'):
         return True
     else:
-        raise RuntimeError("FINUFFT dtype(precision type) must be single or double")
+        raise RuntimeError('FINUFFT dtype(precision type) must be single or double')
 
 
 ### kwargs opt set
-def setkwopts(opt, **kwargs):
+def setkwopts(opt,**kwargs):
 
     # Use context manager to mutate `warnings` filter stack
     # This will restore the state of the `warnings` stack on exit from the context.
     with warnings.catch_warnings():
-        warnings.simplefilter("always")
+        warnings.simplefilter('always')
 
-        for key, value in kwargs.items():
+        for key,value in kwargs.items():
             if key in ("fftw_lock_fun", "fftw_unlock_fun", "fftw_lock_data"):
-                raise TypeError(
-                    f"Invalid option '{key}': FFTW locks are not exposed in Python"
-                )
-            if hasattr(opt, key):
-                setattr(opt, key, value)
+                raise TypeError(f"Invalid option '{key}': FFTW locks are not exposed in Python")
+            if hasattr(opt,key):
+                setattr(opt,key,value)
             else:
-                warnings.warn(
-                    'Warning: finufft_opts does not have attribute "' + key + '"',
-                    Warning,
-                )
+                warnings.warn('Warning: finufft_opts does not have attribute "' + key + '"', Warning)
 
 
 ### destroy
@@ -698,62 +613,54 @@ def destroy(plan):
 
 
 ### invoke guru interface, this function is used for simple interfaces
-def invoke_guru(dim, tp, x, y, z, c, s, t, u, f, isign, eps, n_modes, **kwargs):
+def invoke_guru(dim,tp,x,y,z,c,s,t,u,f,isign,eps,n_modes,**kwargs):
     # infer dtype from x
-    if x.dtype == np.dtype("float64"):
-        pdtype = "complex128"
-    elif x.dtype == np.dtype("float32"):
-        pdtype = "complex64"
+    if x.dtype == np.dtype('float64'):
+        pdtype = 'complex128'
+    elif x.dtype == np.dtype('float32'):
+        pdtype = 'complex64'
     else:
-        raise RuntimeError(
-            "FINUFFT x dtype should be float64 for double precision or float32 for single precision"
-        )
+        raise RuntimeError('FINUFFT x dtype should be float64 for double precision or float32 for single precision')
     # check n_modes type, n_modes must be a tuple or an integer
     if n_modes is not None:
-        if (not isinstance(n_modes, tuple)) and (
-            not isinstance(n_modes, numbers.Integral)
-        ):
-            raise RuntimeError("FINUFFT input n_modes must be a tuple or an integer")
+        if (not isinstance(n_modes, tuple)) and (not isinstance(n_modes, numbers.Integral)):
+            raise RuntimeError('FINUFFT input n_modes must be a tuple or an integer')
     # sanity check for n_modes input as tuple
     if isinstance(n_modes, tuple):
         if len(n_modes) != dim:
-            raise RuntimeError(
-                "FINUFFT input n_modes dimension does not match problem dimension"
-            )
-        if not all(isinstance(elmi, numbers.Integral) for elmi in n_modes):
-            raise RuntimeError("FINUFFT all elements of input n_modes must be integer")
+            raise RuntimeError('FINUFFT input n_modes dimension does not match problem dimension')
+        if (not all(isinstance(elmi, numbers.Integral) for elmi in n_modes)):
+            raise RuntimeError('FINUFFT all elements of input n_modes must be integer')
     # if n_modes is an integer populate n_modes for all dimensions
     if isinstance(n_modes, numbers.Integral):
-        n_modes = (n_modes,) * dim
+        n_modes = (n_modes,)*dim
 
     # infer n_modes/n_trans from input/output
-    if tp == 1:
-        n_trans = valid_ntr(x, c)
+    if tp==1:
+        n_trans = valid_ntr(x,c)
         if n_modes is None and f is None:
-            raise RuntimeError(
-                "FINUFFT type 1 input must supply n_modes or output vector, or both"
-            )
+            raise RuntimeError('FINUFFT type 1 input must supply n_modes or output vector, or both')
         if f is not None:
-            (n_trans, n_modes) = valid_ntr_tp12(dim, f.shape, n_trans, n_modes)
-    elif tp == 2:
-        (n_trans, n_modes) = valid_ntr_tp12(dim, f.shape, None, None)
+            (n_trans,n_modes) = valid_ntr_tp12(dim,f.shape,n_trans,n_modes)
+    elif tp==2:
+        (n_trans,n_modes) = valid_ntr_tp12(dim,f.shape,None,None)
     else:
-        n_trans = valid_ntr(x, c)
+        n_trans = valid_ntr(x,c)
 
-    # plan
-    if tp == 3:
-        plan = Plan(tp, dim, n_trans, eps, isign, pdtype, **kwargs)
+    #plan
+    if tp==3:
+        plan = Plan(tp,dim,n_trans,eps,isign,pdtype,**kwargs)
     else:
-        plan = Plan(tp, n_modes, n_trans, eps, isign, pdtype, **kwargs)
+        plan = Plan(tp,n_modes,n_trans,eps,isign,pdtype,**kwargs)
 
-    # setpts
-    plan.setpts(x, y, z, s, t, u)
+    #setpts
+    plan.setpts(x,y,z,s,t,u)
 
-    # excute
-    if tp == 1 or tp == 3:
-        out = plan.execute(c, f)
+    #excute
+    if tp==1 or tp==3:
+        out = plan.execute(c,f)
     else:
-        out = plan.execute(f, c)
+        out = plan.execute(f,c)
 
     return out
 
@@ -763,27 +670,28 @@ def _wrap_docstring(docstring, tw=80, min_spacing=2):
 
     for k, line in enumerate(lines):
         if len(line) > tw:
-            last_space = line[:tw].rfind(" ")
-            indent_level = line.rfind(" " * min_spacing) + min_spacing
+            last_space = line[:tw].rfind(' ')
+            indent_level = line.rfind(' ' * min_spacing) + min_spacing
 
             lines[k] = line[:last_space]
 
-            new_line = (" " * indent_level) + line[last_space + 1 :]
+            new_line = (' ' * indent_level) + line[last_space + 1:]
 
             # Check if the indentation level continues on next line. If so,
             # concatenate, otherwise insert new line.
             if len(lines[k + 1]) - len(lines[k + 1].lstrip()) >= indent_level:
-                lines[k + 1] = new_line + " " + lines[k + 1].lstrip()
+                lines[k + 1] = new_line + ' ' + lines[k + 1].lstrip()
             else:
                 lines.insert(k + 1, new_line)
 
-    docstring = "\n".join(lines)
+    docstring = '\n'.join(lines)
 
     return docstring
 
 
-def _set_nufft_doc(f, dim, tp, example="python/finufft/test/accuracy_speed_tests.py"):
-    doc_nufft1 = """{dim}D type-1 (nonuniform to uniform) complex NUFFT
+def _set_nufft_doc(f, dim, tp, example='python/finufft/test/accuracy_speed_tests.py'):
+    doc_nufft1 = \
+    """{dim}D type-1 (nonuniform to uniform) complex NUFFT
 
     ::
 
@@ -840,7 +748,8 @@ def _set_nufft_doc(f, dim, tp, example="python/finufft/test/accuracy_speed_tests
     See also ``{example}``.
     """
 
-    doc_nufft2 = """{dim}D type-2 (uniform to nonuniform) complex NUFFT
+    doc_nufft2 = \
+    """{dim}D type-2 (uniform to nonuniform) complex NUFFT
 
     ::
 
@@ -894,7 +803,8 @@ def _set_nufft_doc(f, dim, tp, example="python/finufft/test/accuracy_speed_tests
     See also ``{example}``.
     """
 
-    doc_nufft3 = """{dim}D type-3 (nonuniform to nonuniform) complex NUFFT
+    doc_nufft3 = \
+    """{dim}D type-3 (nonuniform to nonuniform) complex NUFFT
 
     ::
 
@@ -951,144 +861,96 @@ def _set_nufft_doc(f, dim, tp, example="python/finufft/test/accuracy_speed_tests
 
     doc_nufft = {1: doc_nufft1, 2: doc_nufft2, 3: doc_nufft3}
 
-    pts = ("x", "y", "z")
-    target_pts = ("s", "t", "u")
+    pts = ('x', 'y', 'z')
+    target_pts = ('s', 't', 'u')
     sample_modes = (50, 75, 100)
 
     dims = range(1, dim + 1)
 
     v = {}
 
-    v["dim"] = dim
+    v['dim'] = dim
 
-    v["modes"] = ", ".join("N{}".format(i) for i in dims)
-    v["modes_tuple"] = "(" + v["modes"] + (", " if dim == 1 else "") + ")"
-    v["pt_idx"] = ", ".join("k{}".format(i) for i in dims)
-    v["pt_spacing"] = " " * (len(v["pt_idx"]) - 2)
-    v["pt_inner"] = " + ".join(
-        "k{0} {1}(j)".format(i, x) for i, x in zip(dims, pts[:dim])
-    )
-    v["pt_constraint"] = ", ".join(
-        "-N{0}/2 <= k{0} <= (N{0}-1)/2".format(i) for i in dims
-    )
-    v["pts_doc"] = "\n".join(
-        "      {}         (float[M]): nonuniform points, in [-pi, pi), values outside will be folded".format(
-            x
-        )
-        for x in pts[:dim]
-    )
+    v['modes'] = ', '.join('N{}'.format(i) for i in dims)
+    v['modes_tuple'] = '(' + v['modes'] + (', ' if dim == 1 else '') + ')'
+    v['pt_idx'] = ', '.join('k{}'.format(i) for i in dims)
+    v['pt_spacing'] = ' ' * (len(v['pt_idx']) - 2)
+    v['pt_inner'] = ' + '.join('k{0} {1}(j)'.format(i, x) for i, x in zip(dims, pts[:dim]))
+    v['pt_constraint'] = ', '.join('-N{0}/2 <= k{0} <= (N{0}-1)/2'.format(i) for i in dims)
+    v['pts_doc'] = '\n'.join('      {}         (float[M]): nonuniform points, in [-pi, pi), values outside will be folded'.format(x) for x in pts[:dim])
 
     # for example
-    v["pts"] = ", ".join(str(x) for x in pts[:dim])
-    v["pts_generate"] = "\n".join(
-        "      {} = 2 * np.pi * np.random.uniform(size=M)".format(x) for x in pts[:dim]
-    )
-    v["sample_modes"] = ", ".join(str(n) for n in sample_modes[:dim])
-    v["example"] = example
+    v['pts'] = ', '.join(str(x) for x in pts[:dim])
+    v['pts_generate'] = '\n'.join('      {} = 2 * np.pi * np.random.uniform(size=M)'.format(x) for x in pts[:dim])
+    v['sample_modes'] = ', '.join(str(n) for n in sample_modes[:dim])
+    v['example'] = example
 
     # for type 3 only
-    v["src_pts_doc"] = "\n".join(
-        "      {}         (float[M]): nonuniform points, valid in [-pi, pi), values outside will be folded".format(
-            x
-        )
-        for x in pts[:dim]
-    )
-    v["target_pts_doc"] = "\n".join(
-        "      {}         (float[N]): nonuniform target points.".format(x)
-        for x in target_pts[:dim]
-    )
-    v["pt_inner_type3"] = " + ".join(
-        "{0}[k] {1}[j]".format(s, x) for s, x in zip(target_pts[:dim], pts[:dim])
-    )
+    v['src_pts_doc'] = '\n'.join('      {}         (float[M]): nonuniform points, valid in [-pi, pi), values outside will be folded'.format(x) for x in pts[:dim])
+    v['target_pts_doc'] = '\n'.join('      {}         (float[N]): nonuniform target points.'.format(x) for x in target_pts[:dim])
+    v['pt_inner_type3'] = ' + '.join('{0}[k] {1}[j]'.format(s, x) for s, x in zip(target_pts[:dim], pts[:dim]))
 
     # for type 3 example only
-    v["target_pts"] = ", ".join(str(x) for x in target_pts[:dim])
-    v["target_pts_generate"] = "\n".join(
-        "      {} = 2 * np.pi * np.random.uniform(size=N)".format(x)
-        for x in target_pts[:dim]
-    )
+    v['target_pts'] = ', '.join(str(x) for x in target_pts[:dim])
+    v['target_pts_generate'] = '\n'.join('      {} = 2 * np.pi * np.random.uniform(size=N)'.format(x) for x in target_pts[:dim])
 
     if dim > 1:
-        v["pt_inner"] = "(" + v["pt_inner"] + ")"
-        v["pt_inner_type3"] = "(" + v["pt_inner_type3"] + ")"
+        v['pt_inner'] = '(' + v['pt_inner'] + ')'
+        v['pt_inner_type3'] = '(' + v['pt_inner_type3'] + ')'
 
     f.__doc__ = _wrap_docstring(doc_nufft[tp].format(**v))
 
 
 ### easy interfaces
 ### 1d1
-def nufft1d1(x, c, n_modes=None, out=None, eps=1e-6, isign=1, **kwargs):
-    return invoke_guru(
-        1, 1, x, None, None, c, None, None, None, out, isign, eps, n_modes, **kwargs
-    )
+def nufft1d1(x,c,n_modes=None,out=None,eps=1e-6,isign=1,**kwargs):
+    return invoke_guru(1,1,x,None,None,c,None,None,None,out,isign,eps,n_modes,**kwargs)
 
 
 ### 1d2
-def nufft1d2(x, f, out=None, eps=1e-6, isign=-1, **kwargs):
-    return invoke_guru(
-        1, 2, x, None, None, out, None, None, None, f, isign, eps, None, **kwargs
-    )
+def nufft1d2(x,f,out=None,eps=1e-6,isign=-1,**kwargs):
+    return invoke_guru(1,2,x,None,None,out,None,None,None,f,isign,eps,None,**kwargs)
 
 
 ### 1d3
-def nufft1d3(x, c, s, out=None, eps=1e-6, isign=1, **kwargs):
-    return invoke_guru(
-        1, 3, x, None, None, c, s, None, None, out, isign, eps, None, **kwargs
-    )
+def nufft1d3(x,c,s,out=None,eps=1e-6,isign=1,**kwargs):
+    return invoke_guru(1,3,x,None,None,c,s,None,None,out,isign,eps,None,**kwargs)
 
 
 ### 2d1
-def nufft2d1(x, y, c, n_modes=None, out=None, eps=1e-6, isign=1, **kwargs):
-    return invoke_guru(
-        2, 1, x, y, None, c, None, None, None, out, isign, eps, n_modes, **kwargs
-    )
+def nufft2d1(x,y,c,n_modes=None,out=None,eps=1e-6,isign=1,**kwargs):
+    return invoke_guru(2,1,x,y,None,c,None,None,None,out,isign,eps,n_modes,**kwargs)
 
 
 ### 2d2
-def nufft2d2(x, y, f, out=None, eps=1e-6, isign=-1, **kwargs):
-    return invoke_guru(
-        2, 2, x, y, None, out, None, None, None, f, isign, eps, None, **kwargs
-    )
+def nufft2d2(x,y,f,out=None,eps=1e-6,isign=-1,**kwargs):
+    return invoke_guru(2,2,x,y,None,out,None,None,None,f,isign,eps,None,**kwargs)
 
 
 ### 2d3
-def nufft2d3(x, y, c, s, t, out=None, eps=1e-6, isign=1, **kwargs):
-    return invoke_guru(2, 3, x, y, None, c, s, t, None, out, isign, eps, None, **kwargs)
+def nufft2d3(x,y,c,s,t,out=None,eps=1e-6,isign=1,**kwargs):
+    return invoke_guru(2,3,x,y,None,c,s,t,None,out,isign,eps,None,**kwargs)
 
 
 ### 3d1
-def nufft3d1(x, y, z, c, n_modes=None, out=None, eps=1e-6, isign=1, **kwargs):
-    return invoke_guru(
-        3, 1, x, y, z, c, None, None, None, out, isign, eps, n_modes, **kwargs
-    )
+def nufft3d1(x,y,z,c,n_modes=None,out=None,eps=1e-6,isign=1,**kwargs):
+    return invoke_guru(3,1,x,y,z,c,None,None,None,out,isign,eps,n_modes,**kwargs)
 
 
 ### 3d2
-def nufft3d2(x, y, z, f, out=None, eps=1e-6, isign=-1, **kwargs):
-    return invoke_guru(
-        3, 2, x, y, z, out, None, None, None, f, isign, eps, None, **kwargs
-    )
+def nufft3d2(x,y,z,f,out=None,eps=1e-6,isign=-1,**kwargs):
+    return invoke_guru(3,2,x,y,z,out,None,None,None,f,isign,eps,None,**kwargs)
 
 
 ### 3d3
-def nufft3d3(x, y, z, c, s, t, u, out=None, eps=1e-6, isign=1, **kwargs):
-    return invoke_guru(3, 3, x, y, z, c, s, t, u, out, isign, eps, None, **kwargs)
+def nufft3d3(x,y,z,c,s,t,u,out=None,eps=1e-6,isign=1,**kwargs):
+    return invoke_guru(3,3,x,y,z,c,s,t,u,out,isign,eps,None,**kwargs)
 
 
-_set_nufft_doc(
-    nufft1d1,
-    1,
-    1,
-    "python/finufft/examples/simple1d1.py, python/finufft/examples/simpleopts1d1.py",
-)
+_set_nufft_doc(nufft1d1, 1, 1, 'python/finufft/examples/simple1d1.py, python/finufft/examples/simpleopts1d1.py')
 _set_nufft_doc(nufft1d2, 1, 2)
 _set_nufft_doc(nufft1d3, 1, 3)
-_set_nufft_doc(
-    nufft2d1,
-    2,
-    1,
-    "python/finufft/examples/simple2d1.py, python/finufft/examples/many2d1.py",
-)
+_set_nufft_doc(nufft2d1, 2, 1, 'python/finufft/examples/simple2d1.py, python/finufft/examples/many2d1.py')
 _set_nufft_doc(nufft2d2, 2, 2)
 _set_nufft_doc(nufft2d3, 2, 3)
 _set_nufft_doc(nufft3d1, 3, 1)

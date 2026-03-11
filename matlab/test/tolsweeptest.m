@@ -15,6 +15,7 @@ sigmas = [1.25 2];             % a.k.a. upsampfac, list to test
 tolslack = [4.0; 4.0; 5.0];    % factors by which eps can exceed tol (3 types)
 o.showwarn = 0; %o.debug=1;
 o.spread_kerformula = 0;       % custom FINUFFT opts (should be defaults for CI)
+o.allow_eps_too_small = 1;
 tolsperdecade = 8;             % tol resolution
 tolstep = 10 ^ (-1 / tolsperdecade);     % multiplicative step in tol, < 1
 
@@ -47,17 +48,15 @@ for dim = 1:3  % ======== dimensions
       fprintf('%s\tsigma=%.3g prec=%s M=%d Ntot=%d ntr=%d ntols=%d\n',...
               devname, o.upsampfac, prec, M, Ntot, ntr, ntols)
       errs = nan(3, ntols);          % for 3 types (just 1D for now), each tol
-      toloks = true(1,ntols);        % whether FINUFFT reported warning for tol
       for t=1:ntols
         tol = tols(t);
-        [nineerrs, info, toloks(t)] = erralltypedim(M,Ntot,ntr,isign,prec,tol,o,myrand,dims);
-        if toloks(t), errs(:,t) = nineerrs(:,dim); end
+        [nineerrs, info] = erralltypedim(M,Ntot,ntr,isign,prec,tol,o,myrand,dims);
+        errs(:,t) = nineerrs(:,dim);   % extract col from 3x3
       end
       Nmax = info.Nmax(dims);    % currently unused
       if strcmp(prec,'single'), epsmin=floors32(j); else epsmin=floors64(j); end
       if ~CI, subplot(numel(sigmas),2,2*(j-1)+1+strcmp(prec,'double'));  % plot
-        h0 = loglog(tols(toloks), errs(:,toloks), '+'); hold on;
-        plot(tols(~toloks), errs(:,~toloks),'mo');    % highlight those w/ warning
+        h0 = loglog(tols, errs, '+'); hold on;
         h1 = plot(tols, tols, 'k-');
         h2 = plot(tols, tolslack*tols, '--');
         h3 = plot(tols, 0*tols+epsmin, 'm--');
@@ -68,13 +67,11 @@ for dim = 1:3  % ======== dimensions
       for type=1:3       % simplified pass/fail criterion...
         e = errs(type,:);
         fails = e>tolslack(type)*tols & e>epsmin;
-        failskeep = fails(toloks); tolskeep = tols(toloks); % discard warned cases
-        ekeep = e(toloks);         % compute worst closeness factor to failure...
-        worstfac = max(min(ekeep./(tolslack(type)*tolskeep), ekeep/epsmin));
-        if max(failskeep), msg='FAIL'; else msg='pass'; end
+        worstfac = max(min(e./(tolslack(type)*tols), e/epsmin));
+        if max(fails), msg='FAIL'; else msg='pass'; end
         fprintf('\t\ttype %d: worstfac=%.3g\t %s\t\t',type,worstfac,msg);
-        fprintf('%.3g ',tolskeep(failskeep)); fprintf('\n');   % list failed tols
-        if CI & max(failskeep), error('FINUFFT tolsweeptest failed!'); end
+        fprintf('%.3g ',tols(fails)); fprintf('\n');
+        if CI & max(fails), error('FINUFFT tolsweeptest failed!'); end
       end
     end                                                    % --------
   end                    % .........

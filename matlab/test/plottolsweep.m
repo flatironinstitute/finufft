@@ -39,11 +39,11 @@ for precdev=precdevs  % ......... loop precisions & devices
           devname, prec, dim, M, Ntot, ntr, ntols)
   tols = tolstep.^(0:ntols-1);     % go down from tol = 1
   errs = nan(3, ntols);            % for 3 types (just 1D for now), each tol
-  toloks = true(1,ntols);          % whether FINUFFT reported warning for tol
+  o.allow_eps_too_small = 1;
   for t=1:ntols
     tol = tols(t);
-    [nineerrs, info, toloks(t)] = erralltypedim(M,Ntot,ntr,isign,prec,tol,o,myrand,dims);
-    if toloks(t), errs(:,t) = nineerrs(:,dim); end
+    [nineerrs, info] = erralltypedim(M,Ntot,ntr,isign,prec,tol,o,myrand,dims);
+    errs(:,t) = nineerrs(:,dim);   % extract col from 3x3
     %o.debug = 0; if max(errs(:,t))>0.1, o.debug = 1; end  % <- for detective
   end
   Nmax = info.Nmax(dims);
@@ -57,13 +57,11 @@ for precdev=precdevs  % ......... loop precisions & devices
     bCC = 1.0*Nmax*eps(prec)*rdyns;       % rounding err with CC of rdyn,
                                           % t3 seems to be Nmax^2; keep N small
     fails = e>tolslack(type)*tols & e>bwmax & e>bCC;
-    failskeep = fails(toloks); tolskeep = tols(toloks);  % discard warned cases
-    fprintf('\t\ttype %d: fail=%d\t\t',type,max(failskeep));
-    fprintf('%.3g ',tolskeep(failskeep)); fprintf('\n');   % list failed tols
+    fprintf('\t\ttype %d: fail=%d\t\t',type,max(fails));
+    fprintf('%.3g ',tols(fails)); fprintf('\n');
   end
   subplot(1,2,iplot);     % overplot all types...
-  h0 = loglog(tols(toloks), errs(:,toloks), '+'); hold on;
-  plot(tols(~toloks), errs(:,~toloks),'mo'); % highlight those w / tol warning
+  h0 = loglog(tols, errs, '+'); hold on;
   h1 = plot(tols, tols, 'k-');
   h2 = plot(tols, tolslack*tols, 'k--');
   h3 = plot(tols, bwmax + 0*tols, 'm--');
