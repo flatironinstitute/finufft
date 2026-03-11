@@ -567,9 +567,10 @@ __global__ void spread_romein(
   tmp /= ns;
   }
   }
-
-  for (int i = threadIdx.x; i < nupts; i += blockDim.x) {
-    const int idx     = ptstart + i;
+int maxi = ((nupts+blockDim.x-1)/blockDim.x)*blockDim.x;
+  for (int i = threadIdx.x; i < maxi; i += blockDim.x) {
+    bool beyond_end = i>=nupts;
+    const int idx     = beyond_end ? ptstart : ptstart + i;
     auto [ker, start] = get_kerval_and_startpos_subprob<T, KEREVALMETH, ndim, ns>(
         idxnupts[idx], xyz, nf, offset, sigma, es_c, es_beta);
 
@@ -587,7 +588,8 @@ __global__ void spread_romein(
     if constexpr (ndim == 1) {
       const auto ofs = start[0] + ns_2;
       for (int ix = 0, xx=ofsxx[0]; ix < ns; ++ix, xx = (xx + 1 >= ns) ? 0 : xx + 1) {
-        fwshared[xx + ofs] += cnow * ker[0][xx];
+        if (!beyond_end)
+          fwshared[xx + ofs] += cnow * ker[0][xx];
         __syncthreads();
       }
     }
@@ -598,7 +600,8 @@ __global__ void spread_romein(
         const auto ofs   = ofs0 + yy * delta_y;
         const auto cnowy = cnow * ker[1][yy];
         for (int ix = 0, xx=ofsxx[0]; ix < ns; ++ix, xx = (xx + 1 >= ns) ? 0 : xx + 1) {
-          fwshared[xx + ofs] += cnowy * ker[0][xx];
+          if (!beyond_end)
+            fwshared[xx + ofs] += cnowy * ker[0][xx];
           __syncthreads();
         }
       }
@@ -615,7 +618,8 @@ __global__ void spread_romein(
           const auto cnowy = cnowz * ker[1][yy];
           const auto ofs   = ofs1 + yy * delta_y;
           for (int ix = 0, xx=ofsxx[0]; ix < ns; ++ix, xx = (xx + 1 >= ns) ? 0 : xx + 1) {
-            fwshared[xx + ofs] += cnowy * ker[0][xx];
+            if (!beyond_end)
+              fwshared[xx + ofs] += cnowy * ker[0][xx];
             __syncthreads();
           }
         }
