@@ -118,13 +118,6 @@ inline cuda::std::array<const T *, 3> dethrust(
   for (int i = 0; i < 3; ++i) res[i] = dethrust(arr[i]);
   return res;
 }
-template<typename T>
-inline cuda::std::array<T *, 3> dethrust_noconst(
-    const cuda::std::array<gpu_array<T>, 3> &arr) {
-  cuda::std::array<T *, 3> res;
-  for (int i = 0; i < 3; ++i) res[i] = dethrust_noconst(arr[i]);
-  return res;
-}
 
 template<typename T> struct cufinufft_plan_t {
   // FIXME: we want to make data members private in the future.
@@ -268,28 +261,28 @@ template<typename T> struct cufinufft_gpu_data {
   cuda::std::array<const T *, 3> STU     = {nullptr, nullptr, nullptr};
   T tol = 0;
 
-  cuda_complex<T> *prephase = nullptr; // pre-phase, for all input NU pts
-  cuda_complex<T> *deconv = nullptr;   // reciprocal of kernel FT, phase, all
+  const cuda_complex<T> *prephase = nullptr; // pre-phase, for all input NU pts
+  const cuda_complex<T> *deconv = nullptr;   // reciprocal of kernel FT, phase, all
                                                  // output NU pts
 
   // Arrays that used in subprob method
-  int *idxnupts = nullptr;   // length: #nupts, index of the nupts in the
+  const int *idxnupts = nullptr;   // length: #nupts, index of the nupts in the
                                        // bin-sorted order
-  int *sortidx = nullptr;    // length: #nupts, order inside the bin the nupt
+  const int *sortidx = nullptr;    // length: #nupts, order inside the bin the nupt
                                        // belongs to
-  int *numsubprob = nullptr; // length: #bins,  number of subproblems in each
+  const int *numsubprob = nullptr; // length: #bins,  number of subproblems in each
                                        // bin
-  int *binsize = nullptr; // length: #bins, number of nonuniform ponits in each
+  const int *binsize = nullptr; // length: #bins, number of nonuniform ponits in each
                                     // bin
-  int *binstartpts = nullptr; // length: #bins, exclusive scan of array binsize
-  int *subprob_to_bin = nullptr; // length: #subproblems, the bin the subproblem
+  const int *binstartpts = nullptr; // length: #bins, exclusive scan of array binsize
+  const int *subprob_to_bin = nullptr; // length: #subproblems, the bin the subproblem
                                            // works on
-  int *subprobstartpts = nullptr; // length: #bins, exclusive scan of array
+  const int *subprobstartpts = nullptr; // length: #bins, exclusive scan of array
                                             // numsubprob
 
   // Arrays for 3d (need to sort out)
-  int *numnupts = nullptr;
-  int *subprob_to_nupts = nullptr;
+  const int *numnupts = nullptr;
+  const int *subprob_to_nupts = nullptr;
 
   cufinufft_gpu_data() = delete;
   cufinufft_gpu_data(const cufinufft_plan_t<T> &orig)
@@ -300,17 +293,17 @@ template<typename T> struct cufinufft_gpu_data {
       iflag(orig.iflag), totalnumsubprob(orig.totalnumsubprob),
       xyz(orig.kxyz),
  //type3_params(orig.type3_params),
-      nf(orig.nf), STU(orig.STU), tol(orig.tol), prephase(dethrust_noconst(orig.prephase)),
-      deconv(dethrust_noconst(orig.deconv)),
-      idxnupts(dethrust_noconst(orig.idxnupts)),
-      sortidx(dethrust_noconst(orig.sortidx)),
-      numsubprob(dethrust_noconst(orig.numsubprob)),
-      binsize(dethrust_noconst(orig.binsize)),
-      binstartpts(dethrust_noconst(orig.binstartpts)),
-      subprob_to_bin(dethrust_noconst(orig.subprob_to_bin)),
-      subprobstartpts(dethrust_noconst(orig.subprobstartpts)),
-      numnupts(dethrust_noconst(orig.numnupts)),
-      subprob_to_nupts(dethrust_noconst(orig.subprob_to_nupts))
+      nf(orig.nf), STU(orig.STU), tol(orig.tol), prephase(dethrust(orig.prephase)),
+      deconv(dethrust(orig.deconv)),
+      idxnupts(dethrust(orig.idxnupts)),
+      sortidx(dethrust(orig.sortidx)),
+      numsubprob(dethrust(orig.numsubprob)),
+      binsize(dethrust(orig.binsize)),
+      binstartpts(dethrust(orig.binstartpts)),
+      subprob_to_bin(dethrust(orig.subprob_to_bin)),
+      subprobstartpts(dethrust(orig.subprobstartpts)),
+      numnupts(dethrust(orig.numnupts)),
+      subprob_to_nupts(dethrust(orig.subprob_to_nupts))
     {}
 };
 
