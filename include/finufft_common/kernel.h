@@ -78,10 +78,10 @@ void set_kernel_shape_given_ns(finufft_spread_opts &opts, int debug);
 // Since for low upsampfacs, ns=16 can need only nc~12, allow such low nc here.
 // Note: spreadinterp.cpp compilation time grows with the gap between these bounds...
 inline constexpr int min_nc_given_ns(int ns) {
-  return std::max(common::MIN_NC, ns - 4); // note must stay in bounds from constants.h
+  return (std::max)(common::MIN_NC, ns - 4); // note must stay in bounds from constants.h
 }
 inline constexpr int max_nc_given_ns(int ns) {
-  return std::min(common::MAX_NC, ns + 3); // "
+  return (std::min)(common::MAX_NC, ns + 3); // "
 }
 
 template<int NS, int NC> inline constexpr bool ValidKernelParams() noexcept {

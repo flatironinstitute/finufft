@@ -56,6 +56,11 @@ target_compile_features(testutils PRIVATE cxx_std_17)
 finufft_link_test(testutils)
 add_test(NAME run_testutils COMMAND testutils WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
 
+add_executable(threadsafe_execute threadsafe_execute.cpp)
+target_compile_features(threadsafe_execute PRIVATE cxx_std_17)
+finufft_link_test(threadsafe_execute)
+add_test(NAME run_threadsafe_execute COMMAND threadsafe_execute WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
+
 if(NOT FINUFFT_USE_DUCC0 AND FINUFFT_USE_OPENMP)
     find_package(OpenMP COMPONENTS CXX REQUIRED)
     add_executable(fftw_lock_test fftw_lock_test.cpp)

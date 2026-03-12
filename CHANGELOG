@@ -3,6 +3,13 @@ If not stated, FINUFFT is assumed (old cuFINUFFT <=1.3 is listed separately).
 
 v2.6.0-dev
 
+* Fixed CPU fallback execute scratch handling to use thread-local reclaimable
+  buffers when caller scratch is not provided, so concurrent `execute()` calls
+  on the same plan no longer share internal workspace. Added unit coverage for
+  `ReclaimableMemory` and a `threadsafe_execute` regression test based on
+  direct 1D reference evaluation. Added sanitizer mode selection via
+  `FINUFFT_ENABLE_SANITIZERS=OFF|ON|MEMSAN|TSAN`, and extended the sanitizer
+  GitHub workflow to run a focused Linux TSAN job. (Barbone)
 * SIMD-vectorized bin sort with parallel prefix sum: uint32_t bin counts,
   ndims dispatch for vectorized coordinate binning, std::exclusive_scan for
   parallel prefix sum of offsets, restored single-threaded variant as
