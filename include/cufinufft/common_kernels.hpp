@@ -90,7 +90,7 @@ __device__ auto compute_offset(int bidx, const cuda::std::array<int, 3> &nbins,
 }
 
 template<typename T, int KEREVALMETH, int ndim, int ns>
-__global__ void interp_nupts_driven(cufinufft_gpu_data<T> p) {
+__global__ void interp_nupts_driven(cufinufft_gpu_data<T> p, cuda_complex<T> *c, const cuda_complex<T> *fw) {
   T es_c    = 4.0 / T(p.spopts.nspread * p.spopts.nspread);
   T es_beta = p.spopts.beta;
   T sigma   = p.spopts.upsampfac;
@@ -105,7 +105,7 @@ __global__ void interp_nupts_driven(cufinufft_gpu_data<T> p) {
     cuda_complex<T> cnow{0, 0};
     if constexpr (ndim == 1) {
       for (int x0 = 0, ix = start[0]; x0 < ns; ++x0, ix = (ix + 1 >= p.nf123[0]) ? 0 : ix + 1)
-        cnow += p.fw[ix] * ker[0][x0];
+        cnow += fw[ix] * ker[0][x0];
     }
     if constexpr (ndim == 2) {
       for (int y0 = 0, iy = start[1]; y0 < ns;
@@ -114,7 +114,7 @@ __global__ void interp_nupts_driven(cufinufft_gpu_data<T> p) {
         cuda_complex<T> cnowx{0, 0};
         for (int x0 = 0, ix = start[0]; x0 < ns;
              ++x0, ix       = (ix + 1 >= p.nf123[0]) ? 0 : ix + 1)
-          cnowx += p.fw[inidx0 + ix] * ker[0][x0];
+          cnowx += fw[inidx0 + ix] * ker[0][x0];
         cnow += cnowx * ker[1][y0];
       }
     }
@@ -130,18 +130,18 @@ __global__ void interp_nupts_driven(cufinufft_gpu_data<T> p) {
              ++y0, iy       = (iy + 1 >= p.nf123[1]) ? 0 : iy + 1) {
           const auto inidx1 = inidx0 + iy * p.nf123[0];
           cuda_complex<T> cnowx{0, 0};
-          for (int x0 = 0; x0 < ns; ++x0) cnowx += p.fw[inidx1 + xidx[x0]] * ker[0][x0];
+          for (int x0 = 0; x0 < ns; ++x0) cnowx += fw[inidx1 + xidx[x0]] * ker[0][x0];
           cnowy += cnowx * ker[1][y0];
         }
         cnow += cnowy * ker[2][z0];
       }
     }
-    p.c[p.idxnupts[i]] = cnow;
+    c[p.idxnupts[i]] = cnow;
   }
 }
 
 template<typename T, int ndim, int ns>
-void cuinterp_nuptsdriven(const cufinufft_plan_t<T> &d_plan, int blksize) {
+void cuinterp_nuptsdriven(const cufinufft_plan_t<T> &d_plan, cuda_complex<T> *c, const cuda_complex<T> *fw, int blksize) {
   const dim3 threadsPerBlock{
       std::min(optimal_block_threads(d_plan.opts.gpu_device_id), (unsigned)d_plan.M), 1u,
       1u};
@@ -150,10 +150,10 @@ void cuinterp_nuptsdriven(const cufinufft_plan_t<T> &d_plan, int blksize) {
   for (int t = 0; t < blksize; t++) {
     if (d_plan.opts.gpu_kerevalmeth)
       interp_nupts_driven<T, 1, ndim, ns><<<blocks, threadsPerBlock, 0, d_plan.stream>>>(
-          d_plan);
+          d_plan, c, fw);
     else
       interp_nupts_driven<T, 0, ndim, ns><<<blocks, threadsPerBlock, 0, d_plan.stream>>>(
-          d_plan);
+          d_plan, c, fw);
   THROW_IF_CUDA_ERROR
   }
 }
@@ -192,7 +192,7 @@ inline __device__ void shared_mem_copy_helper(cuda::std::array<int, 3> binsizes,
 template<typename T, int KEREVALMETH, int ndim, int ns>
 __global__ void interp_subprob(
     cuda::std::array<int, 3> binsizes,
-    cuda::std::array<int, 3> nbins, cufinufft_gpu_data<T> p) {
+    cuda::std::array<int, 3> nbins, cufinufft_gpu_data<T> p, cuda_complex<T> *c, const cuda_complex<T> *fw) {
   extern __shared__ char sharedbuf[];
   auto fwshared = (cuda_complex<T> *)sharedbuf;
 
@@ -212,8 +212,8 @@ __global__ void interp_subprob(
   constexpr auto rounded_ns = ns_2 * 2;
 
   shared_mem_copy_helper<T, ndim, ns>(binsizes, offset, p.nf123,
-                                      [&p, &fwshared](int idx_shared, int idx_global) {
-                                        fwshared[idx_shared] = p.fw[idx_global];
+                                      [&fw, &fwshared](int idx_shared, int idx_global) {
+                                        fwshared[idx_shared] = fw[idx_global];
                                       });
   __syncthreads();
 
@@ -258,12 +258,12 @@ __global__ void interp_subprob(
         cnow += cnowz * ker[2][zz];
       }
     }
-    p.c[p.idxnupts[idx]] = cnow;
+    c[p.idxnupts[idx]] = cnow;
   }
 }
 
 template<typename T, int ndim, int ns>
-void cuinterp_subprob(const cufinufft_plan_t<T> &d_plan, int blksize) {
+void cuinterp_subprob(const cufinufft_plan_t<T> &d_plan, cuda_complex<T> *c, const cuda_complex<T> *fw, int blksize) {
   // assume that bin_size > ns/2;
   cuda::std::array<int, 3> binsizes{d_plan.opts.gpu_binsizex, d_plan.opts.gpu_binsizey,
                                     d_plan.opts.gpu_binsizez};
@@ -280,14 +280,14 @@ void cuinterp_subprob(const cufinufft_plan_t<T> &d_plan, int blksize) {
     cufinufft_set_shared_memory(interp_subprob<T, 1, ndim, ns>, ndim, d_plan);
     for (int t = 0; t < blksize; t++) {
       interp_subprob<T, 1, ndim, ns><<<d_plan.totalnumsubprob, 256, sharedplanorysize, d_plan.stream>>>(
-          binsizes, numbins, d_plan);
+          binsizes, numbins, d_plan, c, fw);
       THROW_IF_CUDA_ERROR
     }
   } else {
     cufinufft_set_shared_memory(interp_subprob<T, 0, ndim, ns>, ndim, d_plan);
     for (int t = 0; t < blksize; t++) {
       interp_subprob<T, 0, ndim, ns><<<d_plan.totalnumsubprob, 256, sharedplanorysize, d_plan.stream>>>(
-          binsizes, numbins, d_plan);
+          binsizes, numbins, d_plan, c, fw);
       THROW_IF_CUDA_ERROR
     }
   }
@@ -337,7 +337,7 @@ __global__ void spread_nupts_driven(
 }
 
 template<typename T, int ndim, int ns>
-void cuspread_nupts_driven(const cufinufft_plan_t<T> &d_plan, int blksize) {
+void cuspread_nupts_driven(const cufinufft_plan_t<T> &d_plan, const cuda_complex<T> *c, cuda_complex<T> *fw, int blksize) {
   auto &stream = d_plan.stream;
 
   T sigma   = d_plan.spopts.upsampfac;
@@ -356,14 +356,14 @@ void cuspread_nupts_driven(const cufinufft_plan_t<T> &d_plan, int blksize) {
   if (d_plan.opts.gpu_kerevalmeth == 1) {
     for (int t = 0; t < blksize; t++) {
       spread_nupts_driven<T, 1, ndim, ns><<<blocks, threadsPerBlock, 0, d_plan.stream>>>(
-          d_plan.kxyz, d_plan.c + t * d_plan.M, d_plan.fw + t * d_plan.nf, d_plan.M,
+          d_plan.kxyz, c + t * d_plan.M, fw + t * d_plan.nf, d_plan.M,
           d_plan.nf123, es_c, es_beta, sigma, d_idxnupts);
       THROW_IF_CUDA_ERROR
     }
   } else {
     for (int t = 0; t < blksize; t++) {
       spread_nupts_driven<T, 0, ndim, ns><<<blocks, threadsPerBlock, 0, d_plan.stream>>>(
-          d_plan.kxyz, d_plan.c + t * d_plan.M, d_plan.fw + t * d_plan.nf, d_plan.M,
+          d_plan.kxyz, c + t * d_plan.M, fw + t * d_plan.nf, d_plan.M,
           d_plan.nf123, es_c, es_beta, sigma, d_idxnupts);
       THROW_IF_CUDA_ERROR
     }
@@ -637,7 +637,7 @@ int maxi = ((nupts+blockDim.x-1)/blockDim.x)*blockDim.x;
 }
 
 template<typename T, int ndim, int ns>
-static void cuspread_subprob(const cufinufft_plan_t<T> &d_plan, int blksize) {
+static void cuspread_subprob(const cufinufft_plan_t<T> &d_plan, const cuda_complex<T> *c, cuda_complex<T> *fw, int blksize) {
 
   // assume that bin_size > ns/2;
   cuda::std::array<int, 3> binsizes = {d_plan.opts.gpu_binsizex, d_plan.opts.gpu_binsizey,
@@ -655,7 +655,7 @@ static void cuspread_subprob(const cufinufft_plan_t<T> &d_plan, int blksize) {
     for (int t = 0; t < blksize; t++) {
       spread_subprob<T, 1, ndim, ns>
           <<<d_plan.totalnumsubprob, 256, sharedplanorysize, d_plan.stream>>>(
-              d_plan.kxyz, d_plan.c + t * d_plan.M, d_plan.fw + t * d_plan.nf, d_plan.M,
+              d_plan.kxyz, c + t * d_plan.M, fw + t * d_plan.nf, d_plan.M,
               d_plan.nf123, sigma, es_c, es_beta, dethrust(d_plan.binstartpts),
               dethrust(d_plan.binsize), binsizes, dethrust(d_plan.subprob_to_bin),
               dethrust(d_plan.subprobstartpts), dethrust(d_plan.numsubprob),
@@ -667,7 +667,7 @@ static void cuspread_subprob(const cufinufft_plan_t<T> &d_plan, int blksize) {
     for (int t = 0; t < blksize; t++) {
       spread_subprob<T, 1, ndim, ns>
           <<<d_plan.totalnumsubprob, 256, sharedplanorysize, d_plan.stream>>>(
-              d_plan.kxyz, d_plan.c + t * d_plan.M, d_plan.fw + t * d_plan.nf, d_plan.M,
+              d_plan.kxyz, c + t * d_plan.M, fw + t * d_plan.nf, d_plan.M,
               d_plan.nf123, sigma, es_c, es_beta, dethrust(d_plan.binstartpts),
               dethrust(d_plan.binsize), binsizes, dethrust(d_plan.subprob_to_bin),
               dethrust(d_plan.subprobstartpts), dethrust(d_plan.numsubprob),
@@ -678,7 +678,7 @@ static void cuspread_subprob(const cufinufft_plan_t<T> &d_plan, int blksize) {
 }
 
 template<typename T, int ndim, int ns>
-static void cuspread_romein(const cufinufft_plan_t<T> &d_plan, int blksize) {
+static void cuspread_romein(const cufinufft_plan_t<T> &d_plan, const cuda_complex<T> *c, cuda_complex<T> *fw, int blksize) {
 
   // assume that bin_size > ns/2;
   cuda::std::array<int, 3> binsizes = {d_plan.opts.gpu_binsizex, d_plan.opts.gpu_binsizey,
@@ -699,7 +699,7 @@ static void cuspread_romein(const cufinufft_plan_t<T> &d_plan, int blksize) {
     for (int t = 0; t < blksize; t++) {
       spread_romein<T, 1, ndim, ns>
           <<<d_plan.totalnumsubprob, min(256,bufsz), sharedplanorysize, d_plan.stream>>>(
-              d_plan.kxyz, d_plan.c + t * d_plan.M, d_plan.fw + t * d_plan.nf, d_plan.M,
+              d_plan.kxyz, c + t * d_plan.M, fw + t * d_plan.nf, d_plan.M,
               d_plan.nf123, sigma, es_c, es_beta, dethrust(d_plan.binstartpts),
               dethrust(d_plan.binsize), binsizes, dethrust(d_plan.subprob_to_bin),
               dethrust(d_plan.subprobstartpts), dethrust(d_plan.numsubprob),
@@ -711,7 +711,7 @@ static void cuspread_romein(const cufinufft_plan_t<T> &d_plan, int blksize) {
     for (int t = 0; t < blksize; t++) {
       spread_romein<T, 1, ndim, ns>
           <<<d_plan.totalnumsubprob, min(256,bufsz), sharedplanorysize, d_plan.stream>>>(
-              d_plan.kxyz, d_plan.c + t * d_plan.M, d_plan.fw + t * d_plan.nf, d_plan.M,
+              d_plan.kxyz, c + t * d_plan.M, fw + t * d_plan.nf, d_plan.M,
               d_plan.nf123, sigma, es_c, es_beta, dethrust(d_plan.binstartpts),
               dethrust(d_plan.binsize), binsizes, dethrust(d_plan.subprob_to_bin),
               dethrust(d_plan.subprobstartpts), dethrust(d_plan.numsubprob),
@@ -903,7 +903,7 @@ __global__ void spread_output_driven(
 }
 
 template<typename T, int ndim, int ns>
-static void cuspread_output_driven(const cufinufft_plan_t<T> &d_plan, int blksize) {
+static void cuspread_output_driven(const cufinufft_plan_t<T> &d_plan, const cuda_complex<T> *c, cuda_complex<T> *fw, int blksize) {
   // assume that bin_size_x > ns/2;
   cuda::std::array<int, 3> binsizes{d_plan.opts.gpu_binsizex, d_plan.opts.gpu_binsizey,
                                     d_plan.opts.gpu_binsizez};
@@ -930,7 +930,7 @@ static void cuspread_output_driven(const cufinufft_plan_t<T> &d_plan, int blksiz
       spread_output_driven<T, 1, ndim, ns>
           <<<d_plan.totalnumsubprob, std::min(256, std::max(bufsz, d_plan.opts.gpu_np)),
              sharedplanorysize, d_plan.stream>>>(
-              d_plan.kxyz, d_plan.c + t * d_plan.M, d_plan.fw + t * d_plan.nf, d_plan.M,
+              d_plan.kxyz, c + t * d_plan.M, fw + t * d_plan.nf, d_plan.M,
               d_plan.nf123, sigma, es_c, es_beta, dethrust(d_plan.binstartpts),
               dethrust(d_plan.binsize), binsizes, dethrust(d_plan.subprob_to_bin),
               dethrust(d_plan.subprobstartpts), dethrust(d_plan.numsubprob),
@@ -947,7 +947,7 @@ static void cuspread_output_driven(const cufinufft_plan_t<T> &d_plan, int blksiz
       spread_output_driven<T, 0, ndim, ns>
           <<<d_plan.totalnumsubprob, std::min(256, std::max(bufsz, d_plan.opts.gpu_np)),
              sharedplanorysize, d_plan.stream>>>(
-              d_plan.kxyz, d_plan.c + t * d_plan.M, d_plan.fw + t * d_plan.nf, d_plan.M,
+              d_plan.kxyz, c + t * d_plan.M, fw + t * d_plan.nf, d_plan.M,
               d_plan.nf123, sigma, es_c, es_beta, dethrust(d_plan.binstartpts),
               dethrust(d_plan.binsize), binsizes, dethrust(d_plan.subprob_to_bin),
               dethrust(d_plan.subprobstartpts), dethrust(d_plan.numsubprob),

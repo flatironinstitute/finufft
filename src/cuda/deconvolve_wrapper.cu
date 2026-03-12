@@ -56,7 +56,7 @@ static __global__ void deconv_nd(
 
 template<typename T>
 template<int modeord, int ndim>
-void cufinufft_plan_t<T>::deconvolve_nd<modeord, ndim>(int blksize) const
+void cufinufft_plan_t<T>::deconvolve_nd<modeord, ndim>(cuda_complex<T> *fw, cuda_complex<T> *fk, int blksize) const
 /*
     wrapper for deconvolution & amplification in 1/2/3D.
 
@@ -79,14 +79,14 @@ void cufinufft_plan_t<T>::deconvolve_nd<modeord, ndim>(int blksize) const
         mstu, nf123, fw + t * nftot, fk + t * nmodes, dethrust(fwkerhalf), fw2fk);
 }
 
-template<typename T> void cufinufft_plan_t<T>::deconvolve(int blksize) const {
+template<typename T> void cufinufft_plan_t<T>::deconvolve(cuda_complex<T> *fw, cuda_complex<T> *fk, int blksize) const {
   if (dim == 1)
-    (opts.modeord == 0) ? deconvolve_nd<0, 1>(blksize) : deconvolve_nd<1, 1>(blksize);
+    (opts.modeord == 0) ? deconvolve_nd<0, 1>(fw, fk, blksize) : deconvolve_nd<1, 1>(fw, fk, blksize);
   if (dim == 2)
-    (opts.modeord == 0) ? deconvolve_nd<0, 2>(blksize) : deconvolve_nd<1, 2>(blksize);
+    (opts.modeord == 0) ? deconvolve_nd<0, 2>(fw, fk, blksize) : deconvolve_nd<1, 2>(fw, fk, blksize);
   if (dim == 3)
-    (opts.modeord == 0) ? deconvolve_nd<0, 3>(blksize) : deconvolve_nd<1, 3>(blksize);
+    (opts.modeord == 0) ? deconvolve_nd<0, 3>(fw, fk, blksize) : deconvolve_nd<1, 3>(fw, fk, blksize);
 }
 
-template void cufinufft_plan_t<float>::deconvolve(int blksize) const;
-template void cufinufft_plan_t<double>::deconvolve(int blksize) const;
+template void cufinufft_plan_t<float>::deconvolve(cuda_complex<float> *fw, cuda_complex<float> *fk, int blksize) const;
+template void cufinufft_plan_t<double>::deconvolve(cuda_complex<double> *fw, cuda_complex<double> *fk, int blksize) const;

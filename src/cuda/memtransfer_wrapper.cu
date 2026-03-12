@@ -16,7 +16,6 @@ void cufinufft_plan_t<T>::alloc1d()
 */
 {
   int nf1          = nf123[0];
-  int maxbatchsize = batchsize;
 
   switch (opts.gpu_method) {
   case 1: {
@@ -41,8 +40,6 @@ void cufinufft_plan_t<T>::alloc1d()
   }
 
   if (!opts.gpu_spreadinterponly) {
-    fwp.resize(maxbatchsize * nf1);
-    fw = dethrust(fwp);
     fwkerhalf[0].resize(nf1 / 2 + 1);
   }
 }
@@ -57,7 +54,6 @@ void cufinufft_plan_t<T>::alloc2d()
 {
   int nf1          = nf123[0];
   int nf2          = nf123[1];
-  int maxbatchsize = batchsize;
 
   switch (opts.gpu_method) {
   case 1: {
@@ -86,8 +82,6 @@ void cufinufft_plan_t<T>::alloc2d()
   }
 
   if (!opts.gpu_spreadinterponly) {
-    fwp.resize(maxbatchsize * nf1 * nf2);
-    fw = dethrust(fwp);
     fwkerhalf[0].resize(nf1 / 2 + 1);
     fwkerhalf[1].resize(nf2 / 2 + 1);
   }
@@ -104,7 +98,6 @@ void cufinufft_plan_t<T>::alloc3d()
   int nf1          = nf123[0];
   int nf2          = nf123[1];
   int nf3          = nf123[2];
-  int maxbatchsize = batchsize;
 
   switch (opts.gpu_method) {
   case 1: {
@@ -155,8 +148,6 @@ void cufinufft_plan_t<T>::alloc3d()
   }
 
   if (!opts.gpu_spreadinterponly) {
-    fwp.resize(maxbatchsize * nf1 * nf2 * nf3);
-    fw = dethrust(fwp);
     fwkerhalf[0].resize(nf1 / 2 + 1);
     fwkerhalf[1].resize(nf2 / 2 + 1);
     fwkerhalf[2].resize(nf3 / 2 + 1);

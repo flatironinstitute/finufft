@@ -156,13 +156,6 @@ template<typename T> struct cufinufft_plan_t {
   cuda::std::array<const T *, 3> kxyz     = {nullptr, nullptr, nullptr};
   cuda::std::array<gpu_array<T>, 3> kxyzp = {
       gpu_array<T>{0, alloc}, gpu_array<T>{0, alloc}, gpu_array<T>{0, alloc}};
-  gpu_array<cuda_complex<T>> CpBatch{0, alloc}; // working array of prephased strengths
-
-  // no allocs here
-  cuda_complex<T> *c = nullptr;
-  gpu_array<cuda_complex<T>> fwp{0, alloc};
-  cuda_complex<T> *fw = nullptr;
-  cuda_complex<T> *fk = nullptr;
 
   // Type 3 specific
   struct {
@@ -230,8 +223,8 @@ private:
   void exec2(cuda_complex<T> *d_c, cuda_complex<T> *d_fk);
   void exec3(cuda_complex<T> *d_c, cuda_complex<T> *d_fk);
 
-  void deconvolve(int blksize) const;
-  template<int modeord, int ndim> void deconvolve_nd(int blksize) const;
+  void deconvolve(cuda_complex<T> *fw, cuda_complex<T> *fk, int blksize) const;
+  template<int modeord, int ndim> void deconvolve_nd(cuda_complex<T> *fw, cuda_complex<T> *fk, int blksize) const;
 
   void setpts_12(int M_, const T *d_kx, const T *d_ky, const T *d_kz);
   void allocate();
@@ -264,12 +257,6 @@ template<typename T> struct cufinufft_gpu_data {
   // for type 1,2 it is a pointer to kx, ky, kz (no new allocs), for type 3 it
   // for t3: allocated as "primed" (scaled) src pts x'_j, etc
   cuda::std::array<const T *, 3> xyz     = {nullptr, nullptr, nullptr};
-//  gpu_array<cuda_complex<T>> CpBatch{0, alloc}; // working array of prephased strengths
-
-  // no allocs here
-  cuda_complex<T> *c = nullptr;
-  cuda_complex<T> *fw = nullptr;
-  cuda_complex<T> *fk = nullptr;
 
   // Type 3 specific
   struct {
@@ -311,8 +298,7 @@ template<typename T> struct cufinufft_gpu_data {
       type(orig.type), dim(orig.dim), M(orig.M), nf123(orig.nf123),
       mstu(orig.mstu), ntransf(orig.ntransf), batchsize(orig.batchsize),
       iflag(orig.iflag), totalnumsubprob(orig.totalnumsubprob),
-      xyz(orig.kxyz), c(orig.c),
-      fw(orig.fw), fk(orig.fk),
+      xyz(orig.kxyz),
  //type3_params(orig.type3_params),
       nf(orig.nf), STU(orig.STU), tol(orig.tol), prephase(dethrust_noconst(orig.prephase)),
       deconv(dethrust_noconst(orig.deconv)),
