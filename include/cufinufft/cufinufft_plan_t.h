@@ -14,6 +14,7 @@
 #include <thrust/system/cuda/execution_policy.h>
 #include <type_traits>
 
+#include <memory>
 #include <cstddef>
 #include <cuComplex.h>
 
@@ -102,9 +103,6 @@ template<typename T> inline T *dethrust(gpu_array<T> &arr) {
 template<typename T> inline const T *dethrust(const gpu_array<T> &arr) {
   return thrust::raw_pointer_cast(arr.data());
 }
-template<typename T> inline T *dethrust_noconst(const gpu_array<T> &arr) {
-  return const_cast<T *>(thrust::raw_pointer_cast(arr.data()));
-}
 template<typename T>
 inline cuda::std::array<T *, 3> dethrust(cuda::std::array<gpu_array<T>, 3> &arr) {
   cuda::std::array<T *, 3> res;
@@ -162,7 +160,7 @@ template<typename T> struct cufinufft_plan_t {
       gpu_array<T>{0, alloc}, gpu_array<T>{0, alloc}, gpu_array<T>{0, alloc}};
   T tol = 0;
   // inner type 2 plan for type 3
-  cufinufft_plan_t<T> *t2_plan = nullptr;
+  std::unique_ptr<cufinufft_plan_t<T>> t2_plan;
 
   gpu_array<cuda_complex<T>> prephase{0, alloc}; // pre-phase, for all input NU pts
   gpu_array<cuda_complex<T>> deconv{0, alloc};   // reciprocal of kernel FT, phase, all
@@ -200,7 +198,6 @@ template<typename T> struct cufinufft_plan_t {
   ~cufinufft_plan_t() {
     DeviceSwitcher switcher(opts.gpu_device_id);
     if (fftplan) cufftDestroy(fftplan);
-    delete t2_plan;
   }
 
 private:
@@ -251,11 +248,6 @@ template<typename T> struct cufinufft_gpu_data {
   // for t3: allocated as "primed" (scaled) src pts x'_j, etc
   cuda::std::array<const T *, 3> xyz     = {nullptr, nullptr, nullptr};
 
-  // Type 3 specific
-  struct {
-    cuda::std::array<T, 3> X = {0, 0, 0}, C = {0, 0, 0}, S = {0, 0, 0}, D = {0, 0, 0},
-                           h = {0, 0, 0}, gam = {0, 0, 0};
-  } type3_params;
   int N                                  = 0; // number of NU freq pts (type 3 only)
   CUFINUFFT_BIGINT nf                    = 0;
   cuda::std::array<const T *, 3> STU     = {nullptr, nullptr, nullptr};
@@ -292,7 +284,6 @@ template<typename T> struct cufinufft_gpu_data {
       mstu(orig.mstu), ntransf(orig.ntransf), batchsize(orig.batchsize),
       iflag(orig.iflag), totalnumsubprob(orig.totalnumsubprob),
       xyz(orig.kxyz),
- //type3_params(orig.type3_params),
       nf(orig.nf), STU(orig.STU), tol(orig.tol), prephase(dethrust(orig.prephase)),
       deconv(dethrust(orig.deconv)),
       idxnupts(dethrust(orig.idxnupts)),

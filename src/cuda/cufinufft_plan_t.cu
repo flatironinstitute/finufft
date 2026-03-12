@@ -502,9 +502,8 @@ void cufinufft_plan_t<T>::setpts(int M_, const T *d_kx, const T *d_ky, const T *
     cufinufft_opts t2opts       = opts;
     t2opts.gpu_spreadinterponly = 0;
     t2opts.gpu_method           = 0;
-    // Safe to ignore the return value here?
-    delete t2_plan;
-    t2_plan = new cufinufft_plan_t<T>(2, dim, t2modes, iflag, batchsize, tol, t2opts);
+    t2_plan.reset();
+    t2_plan = std::make_unique<cufinufft_plan_t<T>>(2, dim, t2modes, iflag, batchsize, tol, t2opts);
     t2_plan->setpts_12(N, STU[0], STU[1], STU[2]);
     if (t2_plan->spopts.spread_direction != 2) {
       fprintf(stderr, "[%s] inner t2 plan cufinufft_setpts_12 wrong direction\n",
