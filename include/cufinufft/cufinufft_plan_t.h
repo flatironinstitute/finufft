@@ -14,9 +14,9 @@
 #include <thrust/system/cuda/execution_policy.h>
 #include <type_traits>
 
-#include <memory>
 #include <cstddef>
 #include <cuComplex.h>
+#include <memory>
 
 /* This header file contains the internal plan class of cufinufft,
    as well as other types and functions which are exclusively
@@ -214,7 +214,8 @@ private:
   void exec3(cuda_complex<T> *d_c, cuda_complex<T> *d_fk) const;
 
   void deconvolve(cuda_complex<T> *fw, cuda_complex<T> *fk, int blksize) const;
-  template<int modeord, int ndim> void deconvolve_nd(cuda_complex<T> *fw, cuda_complex<T> *fk, int blksize) const;
+  template<int modeord, int ndim>
+  void deconvolve_nd(cuda_complex<T> *fw, cuda_complex<T> *fk, int blksize) const;
 
   void setpts_12(int M_, const T *d_kx, const T *d_ky, const T *d_kz);
   void allocate();
@@ -242,60 +243,54 @@ template<typename T> struct cufinufft_gpu_data {
   int batchsize                               = 0;
   int iflag                                   = 0;
 
-  int totalnumsubprob                         = 0;
+  int totalnumsubprob = 0;
 
   // for type 1,2 it is a pointer to kx, ky, kz (no new allocs), for type 3 it
   // for t3: allocated as "primed" (scaled) src pts x'_j, etc
-  cuda::std::array<const T *, 3> xyz     = {nullptr, nullptr, nullptr};
+  cuda::std::array<const T *, 3> xyz = {nullptr, nullptr, nullptr};
 
-  int N                                  = 0; // number of NU freq pts (type 3 only)
-  CUFINUFFT_BIGINT nf                    = 0;
-  cuda::std::array<const T *, 3> STU     = {nullptr, nullptr, nullptr};
-  T tol = 0;
+  int N                              = 0; // number of NU freq pts (type 3 only)
+  CUFINUFFT_BIGINT nf                = 0;
+  cuda::std::array<const T *, 3> STU = {nullptr, nullptr, nullptr};
+  T tol                              = 0;
 
   const cuda_complex<T> *prephase = nullptr; // pre-phase, for all input NU pts
-  const cuda_complex<T> *deconv = nullptr;   // reciprocal of kernel FT, phase, all
-                                                 // output NU pts
+  const cuda_complex<T> *deconv   = nullptr; // reciprocal of kernel FT, phase, all
+                                             // output NU pts
 
   // Arrays that used in subprob method
   const int *idxnupts = nullptr;   // length: #nupts, index of the nupts in the
-                                       // bin-sorted order
+                                   // bin-sorted order
   const int *sortidx = nullptr;    // length: #nupts, order inside the bin the nupt
-                                       // belongs to
+                                   // belongs to
   const int *numsubprob = nullptr; // length: #bins,  number of subproblems in each
-                                       // bin
-  const int *binsize = nullptr; // length: #bins, number of nonuniform ponits in each
-                                    // bin
-  const int *binstartpts = nullptr; // length: #bins, exclusive scan of array binsize
-  const int *subprob_to_bin = nullptr; // length: #subproblems, the bin the subproblem
-                                           // works on
+                                   // bin
+  const int *binsize = nullptr;    // length: #bins, number of nonuniform ponits in each
+                                   // bin
+  const int *binstartpts    = nullptr;  // length: #bins, exclusive scan of array binsize
+  const int *subprob_to_bin = nullptr;  // length: #subproblems, the bin the subproblem
+                                        // works on
   const int *subprobstartpts = nullptr; // length: #bins, exclusive scan of array
-                                            // numsubprob
+                                        // numsubprob
 
   // Arrays for 3d (need to sort out)
-  const int *numnupts = nullptr;
+  const int *numnupts         = nullptr;
   const int *subprob_to_nupts = nullptr;
 
   cufinufft_gpu_data() = delete;
   cufinufft_gpu_data(const cufinufft_plan_t<T> &orig)
-    : opts(orig.opts),
-      spopts(orig.spopts),
-      type(orig.type), dim(orig.dim), M(orig.M), nf123(orig.nf123),
-      mstu(orig.mstu), ntransf(orig.ntransf), batchsize(orig.batchsize),
-      iflag(orig.iflag), totalnumsubprob(orig.totalnumsubprob),
-      xyz(orig.kxyz),
-      nf(orig.nf), STU(orig.STU), tol(orig.tol), prephase(dethrust(orig.prephase)),
-      deconv(dethrust(orig.deconv)),
-      idxnupts(dethrust(orig.idxnupts)),
-      sortidx(dethrust(orig.sortidx)),
-      numsubprob(dethrust(orig.numsubprob)),
-      binsize(dethrust(orig.binsize)),
-      binstartpts(dethrust(orig.binstartpts)),
-      subprob_to_bin(dethrust(orig.subprob_to_bin)),
-      subprobstartpts(dethrust(orig.subprobstartpts)),
-      numnupts(dethrust(orig.numnupts)),
-      subprob_to_nupts(dethrust(orig.subprob_to_nupts))
-    {}
+      : opts(orig.opts), spopts(orig.spopts), type(orig.type), dim(orig.dim), M(orig.M),
+        nf123(orig.nf123), mstu(orig.mstu), ntransf(orig.ntransf),
+        batchsize(orig.batchsize), iflag(orig.iflag),
+        totalnumsubprob(orig.totalnumsubprob), xyz(orig.kxyz), nf(orig.nf), STU(orig.STU),
+        tol(orig.tol), prephase(dethrust(orig.prephase)), deconv(dethrust(orig.deconv)),
+        idxnupts(dethrust(orig.idxnupts)), sortidx(dethrust(orig.sortidx)),
+        numsubprob(dethrust(orig.numsubprob)), binsize(dethrust(orig.binsize)),
+        binstartpts(dethrust(orig.binstartpts)),
+        subprob_to_bin(dethrust(orig.subprob_to_bin)),
+        subprobstartpts(dethrust(orig.subprobstartpts)),
+        numnupts(dethrust(orig.numnupts)),
+        subprob_to_nupts(dethrust(orig.subprob_to_nupts)) {}
 };
 
 #endif

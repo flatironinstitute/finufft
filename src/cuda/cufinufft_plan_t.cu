@@ -503,7 +503,8 @@ void cufinufft_plan_t<T>::setpts(int M_, const T *d_kx, const T *d_ky, const T *
     t2opts.gpu_spreadinterponly = 0;
     t2opts.gpu_method           = 0;
     t2_plan.reset();
-    t2_plan = std::make_unique<cufinufft_plan_t<T>>(2, dim, t2modes, iflag, batchsize, tol, t2opts);
+    t2_plan = std::make_unique<cufinufft_plan_t<T>>(2, dim, t2modes, iflag, batchsize,
+                                                    tol, t2opts);
     t2_plan->setpts_12(N, STU[0], STU[1], STU[2]);
     if (t2_plan->spopts.spread_direction != 2) {
       fprintf(stderr, "[%s] inner t2 plan cufinufft_setpts_12 wrong direction\n",
@@ -519,7 +520,8 @@ template void cufinufft_plan_t<double>::setpts(
     const double *d_s, const double *d_t, const double *d_u);
 
 template<typename T>
-static void cuspreadnd(const cufinufft_plan_t<T> &d_plan, const cuda_complex<T> *c, cuda_complex<T> *fw, int blksize) {
+static void cuspreadnd(const cufinufft_plan_t<T> &d_plan, const cuda_complex<T> *c,
+                       cuda_complex<T> *fw, int blksize) {
   using namespace cufinufft::spreadinterp;
   switch (d_plan.dim) {
   case 1:
@@ -531,7 +533,8 @@ static void cuspreadnd(const cufinufft_plan_t<T> &d_plan, const cuda_complex<T> 
   }
 }
 template<typename T>
-static void cuinterpnd(const cufinufft_plan_t<T> &d_plan, cuda_complex<T> *c, const cuda_complex<T> *fw, int blksize) {
+static void cuinterpnd(const cufinufft_plan_t<T> &d_plan, cuda_complex<T> *c,
+                       const cuda_complex<T> *fw, int blksize) {
   using namespace cufinufft::spreadinterp;
   switch (d_plan.dim) {
   case 1:
@@ -562,15 +565,15 @@ void cufinufft_plan_t<T>::exec1(cuda_complex<T> *d_c, cuda_complex<T> *d_fk) con
 
   int nmodes = 1;
   for (int idim = 0; idim < dim; ++idim) nmodes *= mstu[idim];
-  gpu_array<cuda_complex<T>> fwp(0,alloc);
-  if (!opts.gpu_spreadinterponly) fwp.resize(nf*batchsize);
+  gpu_array<cuda_complex<T>> fwp(0, alloc);
+  if (!opts.gpu_spreadinterponly) fwp.resize(nf * batchsize);
   auto *fw = dethrust(fwp);
   for (int i = 0; i * batchsize < ntransf; i++) {
-    int blksize = std::min(ntransf - i * batchsize, batchsize);
-    const auto *c           = d_c + i * batchsize * M;
-    auto *fk          = d_fk + i * batchsize * nmodes; // so deconvolve will write into
-                                                 // user output f
-    if (opts.gpu_spreadinterponly) fw = fk;      // spread directly into user output f
+    int blksize   = std::min(ntransf - i * batchsize, batchsize);
+    const auto *c = d_c + i * batchsize * M;
+    auto *fk      = d_fk + i * batchsize * nmodes; // so deconvolve will write into
+                                                   // user output f
+    if (opts.gpu_spreadinterponly) fw = fk;        // spread directly into user output f
 
     checkCudaErrors(
         cudaMemsetAsync(fw, 0, blksize * nf * sizeof(cuda_complex<T>), stream));
@@ -608,13 +611,13 @@ void cufinufft_plan_t<T>::exec2(cuda_complex<T> *d_c, cuda_complex<T> *d_fk) con
 
   int nmodes = 1;
   for (int idim = 0; idim < dim; ++idim) nmodes *= mstu[idim];
-  gpu_array<cuda_complex<T>> fwp(0,alloc);
-  if (!opts.gpu_spreadinterponly) fwp.resize(nf*batchsize);
+  gpu_array<cuda_complex<T>> fwp(0, alloc);
+  if (!opts.gpu_spreadinterponly) fwp.resize(nf * batchsize);
   auto *fw = dethrust(fwp);
   for (int i = 0; i * batchsize < ntransf; i++) {
     int blksize = std::min(ntransf - i * batchsize, batchsize);
-    auto *c           = d_c + i * batchsize * M;
-    auto *fk          = d_fk + i * batchsize * nmodes;
+    auto *c     = d_c + i * batchsize * M;
+    auto *fk    = d_fk + i * batchsize * nmodes;
 
     // Skip steps 1 and 2 if interponly
     if (!opts.gpu_spreadinterponly) {
@@ -648,8 +651,8 @@ void cufinufft_plan_t<T>::exec3(cuda_complex<T> *d_c, cuda_complex<T> *d_fk) con
 
   Marco Barbone 08/14/2024
   */
-  gpu_array<cuda_complex<T>> CpBatch(M*batchsize,alloc);
-  gpu_array<cuda_complex<T>> fwp(nf*batchsize,alloc);
+  gpu_array<cuda_complex<T>> CpBatch(M * batchsize, alloc);
+  gpu_array<cuda_complex<T>> fwp(nf * batchsize, alloc);
   auto *fw = dethrust(fwp);
   for (int i = 0; i * batchsize < ntransf; i++) {
     int blksize                = std::min(ntransf - i * batchsize, batchsize);

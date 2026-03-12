@@ -127,14 +127,26 @@ static __device__ void eval_kernel_vec_horner(T *ker, const T x, const double up
 }
 
 // Functions for calling different methods of spreading & interpolation
-template<typename T> void cuspread1d(const cufinufft_plan_t<T> &d_plan, const cuda_complex<T> *c, cuda_complex<T> *fw, int blksize);
-template<typename T> void cuinterp1d(const cufinufft_plan_t<T> &d_plan, cuda_complex<T> *c, const cuda_complex<T> *fw, int blksize);
+template<typename T>
+void cuspread1d(const cufinufft_plan_t<T> &d_plan, const cuda_complex<T> *c,
+                cuda_complex<T> *fw, int blksize);
+template<typename T>
+void cuinterp1d(const cufinufft_plan_t<T> &d_plan, cuda_complex<T> *c,
+                const cuda_complex<T> *fw, int blksize);
 
-template<typename T> void cuspread2d(const cufinufft_plan_t<T> &d_plan, const cuda_complex<T> *c, cuda_complex<T> *fw, int blksize);
-template<typename T> void cuinterp2d(const cufinufft_plan_t<T> &d_plan, cuda_complex<T> *c, const cuda_complex<T> *fw, int blksize);
+template<typename T>
+void cuspread2d(const cufinufft_plan_t<T> &d_plan, const cuda_complex<T> *c,
+                cuda_complex<T> *fw, int blksize);
+template<typename T>
+void cuinterp2d(const cufinufft_plan_t<T> &d_plan, cuda_complex<T> *c,
+                const cuda_complex<T> *fw, int blksize);
 
-template<typename T> void cuspread3d(const cufinufft_plan_t<T> &d_plan, const cuda_complex<T> *c, cuda_complex<T> *fw, int blksize);
-template<typename T> void cuinterp3d(const cufinufft_plan_t<T> &d_plan, cuda_complex<T> *c, const cuda_complex<T> *fw, int blksize);
+template<typename T>
+void cuspread3d(const cufinufft_plan_t<T> &d_plan, const cuda_complex<T> *c,
+                cuda_complex<T> *fw, int blksize);
+template<typename T>
+void cuinterp3d(const cufinufft_plan_t<T> &d_plan, cuda_complex<T> *c,
+                const cuda_complex<T> *fw, int blksize);
 
 // Wrappers for methods of spreading
 template<typename T> void cuspread1d_prop(cufinufft_plan_t<T> &d_plan);

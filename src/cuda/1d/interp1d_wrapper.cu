@@ -11,7 +11,8 @@ namespace spreadinterp {
 // Functor to handle function selection (nuptsdriven vs subprob)
 struct Interp1DDispatcher {
   template<int ns, typename T>
-  void operator()(const cufinufft_plan_t<T> &d_plan, cuda_complex<T> *c, const cuda_complex<T> *fw, int blksize) const {
+  void operator()(const cufinufft_plan_t<T> &d_plan, cuda_complex<T> *c,
+                  const cuda_complex<T> *fw, int blksize) const {
     switch (d_plan.opts.gpu_method) {
     case 1:
       return cuinterp_nuptsdriven<T, 1, ns>(d_plan, c, fw, blksize);
@@ -25,7 +26,9 @@ struct Interp1DDispatcher {
 };
 
 // Updated cuinterp1d using generic dispatch
-template<typename T> void cuinterp1d(const cufinufft_plan_t<T> &d_plan, cuda_complex<T> *c, const cuda_complex<T> *fw, int blksize) {
+template<typename T>
+void cuinterp1d(const cufinufft_plan_t<T> &d_plan, cuda_complex<T> *c,
+                const cuda_complex<T> *fw, int blksize) {
   /*
    A wrapper for different interpolation methods.
 
@@ -43,8 +46,12 @@ template<typename T> void cuinterp1d(const cufinufft_plan_t<T> &d_plan, cuda_com
                                             d_plan, c, fw, blksize);
 }
 
-template void cuinterp1d<float>(const cufinufft_plan_t<float> &d_plan, cuda_complex<float> *c, const cuda_complex<float> *fw, int blksize);
-template void cuinterp1d<double>(const cufinufft_plan_t<double> &d_plan, cuda_complex<double> *c, const cuda_complex<double> *fw, int blksize);
+template void cuinterp1d<float>(const cufinufft_plan_t<float> &d_plan,
+                                cuda_complex<float> *c, const cuda_complex<float> *fw,
+                                int blksize);
+template void cuinterp1d<double>(const cufinufft_plan_t<double> &d_plan,
+                                 cuda_complex<double> *c, const cuda_complex<double> *fw,
+                                 int blksize);
 
 } // namespace spreadinterp
 } // namespace cufinufft

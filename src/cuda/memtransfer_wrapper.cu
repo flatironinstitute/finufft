@@ -15,7 +15,7 @@ void cufinufft_plan_t<T>::alloc1d()
     Melody Shih 11/21/21
 */
 {
-  int nf1          = nf123[0];
+  int nf1 = nf123[0];
 
   switch (opts.gpu_method) {
   case 1: {
@@ -51,8 +51,8 @@ void cufinufft_plan_t<T>::alloc2d()
     Melody Shih 07/25/19
 */
 {
-  int nf1          = nf123[0];
-  int nf2          = nf123[1];
+  int nf1 = nf123[0];
+  int nf2 = nf123[1];
 
   switch (opts.gpu_method) {
   case 1: {
@@ -93,9 +93,9 @@ void cufinufft_plan_t<T>::alloc3d()
     Melody Shih 07/25/19
 */
 {
-  int nf1          = nf123[0];
-  int nf2          = nf123[1];
-  int nf3          = nf123[2];
+  int nf1 = nf123[0];
+  int nf2 = nf123[1];
+  int nf3 = nf123[2];
 
   switch (opts.gpu_method) {
   case 1: {
