@@ -27,6 +27,9 @@ v2.6.0-dev
   epsilon. The old enum value is retained but deprecated.
   (Barbone)
 * Internal cuFINUFFT refactoring
+  - Spreading/interpolation functions of different dimensionalities were
+    merged and templated on number of dimensions. Operation count in critical
+    inner loops was reduced.
   - Memory management is now done in C++ style (RAII) using Thrust allocators
   - Cufinufftt's C-style interface is now const-correct
     (backwards-compatible change)
