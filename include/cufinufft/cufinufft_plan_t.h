@@ -219,9 +219,9 @@ private:
   void alloc2d_nupts();
   void alloc3d_nupts();
 
-  void exec1(cuda_complex<T> *d_c, cuda_complex<T> *d_fk);
-  void exec2(cuda_complex<T> *d_c, cuda_complex<T> *d_fk);
-  void exec3(cuda_complex<T> *d_c, cuda_complex<T> *d_fk);
+  void exec1(cuda_complex<T> *d_c, cuda_complex<T> *d_fk) const;
+  void exec2(cuda_complex<T> *d_c, cuda_complex<T> *d_fk) const;
+  void exec3(cuda_complex<T> *d_c, cuda_complex<T> *d_fk) const;
 
   void deconvolve(cuda_complex<T> *fw, cuda_complex<T> *fk, int blksize) const;
   template<int modeord, int ndim> void deconvolve_nd(cuda_complex<T> *fw, cuda_complex<T> *fk, int blksize) const;
@@ -234,7 +234,7 @@ public:
   void setpts(int M_, const T *d_kx, const T *d_ky, const T *d_kz, int N_, const T *d_s,
               const T *d_t, const T *d_u);
   // FIXME: we want to make this "const" in the future
-  void exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk);
+  void exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk) const;
 };
 
 // This class contains a subset of the information stored in

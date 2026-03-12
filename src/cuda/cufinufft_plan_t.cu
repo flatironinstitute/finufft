@@ -545,7 +545,7 @@ static void cuinterpnd(const cufinufft_plan_t<T> &d_plan, cuda_complex<T> *c, co
 }
 
 template<typename T>
-void cufinufft_plan_t<T>::exec1(cuda_complex<T> *d_c, cuda_complex<T> *d_fk)
+void cufinufft_plan_t<T>::exec1(cuda_complex<T> *d_c, cuda_complex<T> *d_fk) const
 /*
     1D/2D/3D Type-1 NUFFT
 
@@ -591,7 +591,7 @@ void cufinufft_plan_t<T>::exec1(cuda_complex<T> *d_c, cuda_complex<T> *d_fk)
 }
 
 template<typename T>
-void cufinufft_plan_t<T>::exec2(cuda_complex<T> *d_c, cuda_complex<T> *d_fk)
+void cufinufft_plan_t<T>::exec2(cuda_complex<T> *d_c, cuda_complex<T> *d_fk) const
 /*
     1D/2D/3D Type-2 NUFFT
 
@@ -636,7 +636,7 @@ void cufinufft_plan_t<T>::exec2(cuda_complex<T> *d_c, cuda_complex<T> *d_fk)
 
 // TODO: in case data is centered, we could save GPU memory
 template<typename T>
-void cufinufft_plan_t<T>::exec3(cuda_complex<T> *d_c, cuda_complex<T> *d_fk) {
+void cufinufft_plan_t<T>::exec3(cuda_complex<T> *d_c, cuda_complex<T> *d_fk) const {
   /*
     1D/2D/3D Type-3 NUFFT
 
@@ -689,7 +689,7 @@ void cufinufft_plan_t<T>::exec3(cuda_complex<T> *d_c, cuda_complex<T> *d_fk) {
 }
 
 template<typename T>
-void cufinufft_plan_t<T>::exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk) {
+void cufinufft_plan_t<T>::exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk) const {
   DeviceSwitcher switcher(opts.gpu_device_id);
   switch (type) {
   case 1:
@@ -701,6 +701,6 @@ void cufinufft_plan_t<T>::exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk) {
   }
 }
 template void cufinufft_plan_t<float>::exec(cuda_complex<float> *d_c,
-                                            cuda_complex<float> *d_fk);
+                                            cuda_complex<float> *d_fk) const;
 template void cufinufft_plan_t<double>::exec(cuda_complex<double> *d_c,
-                                             cuda_complex<double> *d_fk);
+                                             cuda_complex<double> *d_fk) const;
