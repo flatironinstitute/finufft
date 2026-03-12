@@ -459,8 +459,8 @@ template<typename TF> void FINUFFT_PLAN_T<TF>::init_grid_kerFT_FFT() {
       printf("[%s] FFT plan (mode %d, nthr=%d):\t%.3g s\n", __func__, opts.fftw, nthr_fft,
              timer.elapsedsec());
 
-    // Pre-allocate fwBatch buffer via mmap+MAP_POPULATE, then immediately mark
-    // pages as reclaimable. Pages stay resident until the OS needs them.
+    // Reserve the fwBatch address range up front, then immediately mark pages
+    // as reclaimable. Physical pages are faulted in on first use.
     timer.restart();
     const size_t fwBatchBytes = size_t(nf()) * batchSize * sizeof(TC);
     if (!m.fwBatchBuf_.allocate(fwBatchBytes))

@@ -3,7 +3,7 @@
 // Cross-platform RAII wrapper for large temporary buffers.
 //
 // Uses mmap/VirtualAlloc for large allocations with two key features:
-// 1. MAP_POPULATE (Linux) pre-faults pages at allocation time
+// 1. allocation keeps a stable virtual address range for reuse
 // 2. MADV_FREE / MEM_RESET marks pages as reclaimable by the OS without
 //    releasing the virtual address range, so subsequent reuse is free
 //    unless the OS reclaimed the pages under memory pressure.
@@ -55,8 +55,8 @@ public:
 
   ~ReclaimableMemory() { deallocate(); }
 
-  // Allocate nbytes of memory. Pre-faults pages where supported.
-  // Returns true on success.
+  // Allocate nbytes of memory while leaving physical pages to be faulted in on
+  // first use. Returns true on success.
   bool allocate(size_t nbytes) {
     if (nbytes == 0) return true;
     if (ptr_ && nbytes_ == nbytes) return true; // already the right size
@@ -69,8 +69,8 @@ public:
       return false;
     }
 #elif defined(__linux__)
-    ptr_ = mmap(nullptr, nbytes, PROT_READ | PROT_WRITE,
-                MAP_PRIVATE | MAP_ANONYMOUS | MAP_POPULATE, -1, 0);
+    ptr_ =
+        mmap(nullptr, nbytes, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
     if (ptr_ == MAP_FAILED) {
       ptr_    = nullptr;
       nbytes_ = 0;
