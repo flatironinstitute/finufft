@@ -650,7 +650,7 @@ void cufinufft_plan_t<T>::exec3(cuda_complex<T> *d_c, cuda_complex<T> *d_fk) {
   Marco Barbone 08/14/2024
   */
   gpu_array<cuda_complex<T>> CpBatch(M*batchsize,alloc);
-  gpu_array<cuda_complex<T>> fwp(0,alloc);
+  gpu_array<cuda_complex<T>> fwp(nf*batchsize,alloc);
   auto *fw = dethrust(fwp);
   for (int i = 0; i * batchsize < ntransf; i++) {
     int blksize                = std::min(ntransf - i * batchsize, batchsize);
