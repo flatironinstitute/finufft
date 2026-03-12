@@ -459,16 +459,11 @@ template<typename TF> void FINUFFT_PLAN_T<TF>::init_grid_kerFT_FFT() {
       printf("[%s] FFT plan (mode %d, nthr=%d):\t%.3g s\n", __func__, opts.fftw, nthr_fft,
              timer.elapsedsec());
 
-    // Reserve the fwBatch address range up front, then immediately mark pages
-    // as reclaimable. Physical pages are faulted in on first use.
-    timer.restart();
-    const size_t fwBatchBytes = size_t(nf()) * batchSize * sizeof(TC);
-    if (!m.fwBatchBuf_.allocate(fwBatchBytes))
-      throw finufft::exception(FINUFFT_ERR_ALLOC);
-    m.fwBatchBuf_.mark_reclaimable();
-    if (opts.debug)
-      printf("[%s] fwBatch alloc (%.3g GB):\t%.3g s\n", __func__, fwBatchBytes / 1e9,
-             timer.elapsedsec());
+    if (opts.debug) {
+      const size_t fwBatchBytes = size_t(nf()) * batchSize * sizeof(TC);
+      printf("[%s] fwBatch alloc (%.3g GB):\tdeferred to execute\n", __func__,
+             fwBatchBytes / 1e9);
+    }
   }
 }
 template void FINUFFT_PLAN_T<float>::init_grid_kerFT_FFT();

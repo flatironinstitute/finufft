@@ -5,10 +5,11 @@
 #include <cstdio>
 #include <vector>
 
+#include <finufft/memory.hpp>
 #include <finufft/plan.hpp>
-#include <finufft/utils.hpp>
-#include <finufft/spreadinterp.hpp>
 #include <finufft/simd.hpp>
+#include <finufft/spreadinterp.hpp>
+#include <finufft/utils.hpp>
 
 /* Computational core for FINUFFT.
 
@@ -363,10 +364,17 @@ int FINUFFT_PLAN_T<TF>::execute_internal(TC *cj, TC *fk, bool adjoint, int ntran
     if (opts.debug)
       printf("[%s] start%s ntrans=%d (%d batches, bsize=%d)...\n", "execute",
              adjoint ? " adjoint" : "", ntrans_actual, nbatch, batchSize);
-    // Use caller-provided scratch, or fall back to the persistent mmap buffer
+    // Use caller-provided scratch, or fall back to a thread-local reclaimable
+    // buffer so concurrent execute() calls on the same plan do not share state.
     bool scratch_provided = scratch_size >= size_t(nf() * batchSize);
-    TC *fwBatch =
-        scratch_provided ? aligned_scratch : static_cast<TC *>(m.fwBatchBuf_.data());
+    static thread_local finufft::ReclaimableMemory tls_fwBatchBuf;
+    TC *fwBatch = aligned_scratch;
+    if (!scratch_provided) {
+      const size_t fwBatchBytes = size_t(nf()) * batchSize * sizeof(TC);
+      if (!tls_fwBatchBuf.allocate(fwBatchBytes))
+        throw finufft::exception(FINUFFT_ERR_ALLOC);
+      fwBatch = static_cast<TC *>(tls_fwBatchBuf.data());
+    }
     for (int b = 0; b * batchSize < ntrans_actual; b++) { // .....loop b over batches
 
       // current batch is either batchSize, or possibly truncated if last one
@@ -410,9 +418,10 @@ int FINUFFT_PLAN_T<TF>::execute_internal(TC *cj, TC *fk, bool adjoint, int ntran
       }
     } // ........end b loop
 
-    // Mark fwBatch pages as reclaimable so the OS can reclaim physical memory
-    // between execute calls if under pressure. Pages stay resident otherwise.
-    if (!scratch_provided) m.fwBatchBuf_.mark_reclaimable();
+    // Mark thread-local pages as reclaimable so the OS can reclaim physical
+    // memory between execute calls if under pressure. Pages stay resident
+    // otherwise, and virtual addresses remain stable for reuse.
+    if (!scratch_provided) tls_fwBatchBuf.mark_reclaimable();
 
     if (opts.debug) { // report total times in their natural order...
       if ((type == 1) != adjoint) {

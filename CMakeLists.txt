@@ -26,7 +26,13 @@ option(FINUFFT_USE_CUDA "Whether to build CUDA accelerated FINUFFT library (libc
 option(FINUFFT_USE_DUCC0 "Whether to use DUCC0 (instead of FFTW) for CPU FFTs" OFF)
 option(FINUFFT_USE_IWYU "Set CXX_INCLUDE_WHAT_YOU_USE on target (checker-only)" OFF)
 option(FINUFFT_USE_OPENMP "Whether to use OpenMP for parallelization. If disabled, the finufft library will be single threaded. This does not affect the choice of FFTW library." ON)
-option(FINUFFT_USE_SANITIZERS "Whether to enable sanitizers, only effective for Debug configuration." OFF)
+set(
+    FINUFFT_ENABLE_SANITIZERS
+    "OFF"
+    CACHE STRING
+          "Sanitizer mode for Debug/RelWithDebInfo builds. Supported values: OFF, ON, MEMSAN, TSAN. ON and MEMSAN both select the default address/undefined/bounds bundle."
+)
+set_property(CACHE FINUFFT_ENABLE_SANITIZERS PROPERTY STRINGS OFF ON MEMSAN TSAN)
 # if FINUFFT_USE_DUCC0 is ON, the following options are ignored
 set(FINUFFT_FFTW_LIBRARIES "DEFAULT" CACHE STRING "Specify a custom FFTW library")
 set(FINUFFT_FFTW_SUFFIX "DEFAULT" CACHE STRING "Suffix for FFTW libraries (e.g. OpenMP, Threads etc.) defaults to empty string if OpenMP is disabled, else uses OpenMP. Ignored if DUCC0 is used.")
@@ -144,7 +150,7 @@ message(STATUS "  FINUFFT_BUILD_TESTS: ${FINUFFT_BUILD_TESTS}")
 message(STATUS "  FINUFFT_BUILD_FORTRAN: ${FINUFFT_BUILD_FORTRAN}")
 message(STATUS "  FINUFFT_BUILD_MATLAB: ${FINUFFT_BUILD_MATLAB}")
 message(STATUS "  FINUFFT_BUILD_PYTHON: ${FINUFFT_BUILD_PYTHON}")
-message(STATUS "  FINUFFT_USE_SANITIZERS: ${FINUFFT_USE_SANITIZERS}")
+message(STATUS "  FINUFFT_ENABLE_SANITIZERS: ${FINUFFT_ENABLE_SANITIZERS}")
 message(STATUS "  FINUFFT_FFTW_SUFFIX: ${FINUFFT_FFTW_SUFFIX}")
 message(STATUS "  FINUFFT_FFTW_LIBRARIES: ${FINUFFT_FFTW_LIBRARIES}")
 message(STATUS "  FINUFFT_ARCH_FLAGS: ${FINUFFT_ARCH_FLAGS}")
