@@ -586,7 +586,7 @@ static void cuspread_subprob(const cufinufft_plan_t<T> &d_plan, int blksize) {
   } else {
     cufinufft_set_shared_memory(spread_subprob<T, 0, ndim, ns>, ndim, d_plan);
     for (int t = 0; t < blksize; t++) {
-      spread_subprob<T, 1, ndim, ns>
+      spread_subprob<T, 0, ndim, ns>
           <<<d_plan.totalnumsubprob, 256, sharedplanorysize, d_plan.stream>>>(
               d_plan.kxyz, d_plan.c + t * d_plan.M, d_plan.fw + t * d_plan.nf, d_plan.M,
               d_plan.nf123, sigma, es_c, es_beta, dethrust(d_plan.binstartpts),
