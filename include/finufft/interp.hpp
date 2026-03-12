@@ -476,22 +476,22 @@ FINUFFT_NEVER_INLINE int FINUFFT_PLAN_T<TF>::interpSorted_kernel(
   static constexpr auto alignment    = arch_t::alignment();
   static constexpr auto simd_size    = simd_type::size;
   static constexpr auto ns2          = NS * TF(0.5);
-  const UBIGINT N1                   = nfdim[0];
-  [[maybe_unused]] const UBIGINT N2              = nfdim[1];
-  [[maybe_unused]] const UBIGINT N3              = nfdim[2];
-  const UBIGINT M                    = nj;
-  const TF *FINUFFT_RESTRICT kx      = XYZ[0];
-  [[maybe_unused]] const TF *FINUFFT_RESTRICT ky = XYZ[1];
-  [[maybe_unused]] const TF *FINUFFT_RESTRICT kz = XYZ[2];
-  const TF *horner_coeffs_ptr                    = horner_coeffs.data();
+  const UBIGINT N1                   = m.nfdim[0];
+  [[maybe_unused]] const UBIGINT N2              = m.nfdim[1];
+  [[maybe_unused]] const UBIGINT N3              = m.nfdim[2];
+  const UBIGINT M                    = m.nj;
+  const TF *FINUFFT_RESTRICT kx      = m.XYZ[0];
+  [[maybe_unused]] const TF *FINUFFT_RESTRICT ky = m.XYZ[1];
+  [[maybe_unused]] const TF *FINUFFT_RESTRICT kz = m.XYZ[2];
+  const TF *horner_coeffs_ptr                    = m.horner_coeffs.data();
 
   CNTime timer{};
   auto nthr = MY_OMP_GET_MAX_THREADS();
-  if (spopts.nthreads > 0) nthr = spopts.nthreads;
+  if (m.spopts.nthreads > 0) nthr = m.spopts.nthreads;
 #ifndef _OPENMP
   nthr = 1;
 #endif
-  if (spopts.debug)
+  if (m.spopts.debug)
     printf("\tinterp %dD (M=%lld; N1=%lld,N2=%lld,N3=%lld), nthr=%d\n", NDIMS,
            (long long)M, (long long)N1, (long long)N2, (long long)N3, nthr);
   timer.start();
@@ -512,7 +512,7 @@ FINUFFT_NEVER_INLINE int FINUFFT_PLAN_T<TF>::interpSorted_kernel(
     for (BIGINT i = 0; i < BIGINT(M); i += CHUNKSIZE) {
       const UBIGINT bufsize = (i + CHUNKSIZE > M) ? M - i : CHUNKSIZE;
       for (UBIGINT ibuf = 0; ibuf < bufsize; ibuf++) {
-        UBIGINT j    = sortIndices[i + ibuf];
+        UBIGINT j    = m.sortIndices[i + ibuf];
         jlist[ibuf]  = j;
         xjlist[ibuf] = fold_rescale<TF>(kx[j], N1);
         if constexpr (NDIMS >= 2) yjlist[ibuf] = fold_rescale<TF>(ky[j], N2);
@@ -560,7 +560,7 @@ FINUFFT_NEVER_INLINE int FINUFFT_PLAN_T<TF>::interpSorted_kernel(
       }
     } // end NU targ loop
   } // end parallel section
-  if (spopts.debug) printf("\tt2 spreading loop: \t%.3g s\n", timer.elapsedsec());
+  if (m.spopts.debug) printf("\tt2 spreading loop: \t%.3g s\n", timer.elapsedsec());
   return 0;
 }
 
@@ -621,8 +621,8 @@ int FINUFFT_PLAN_T<TF>::interpSorted_1d(TF *data_uniform, TF *data_nonuniform) c
   InterpSorted1dCaller caller{*this, data_uniform, data_nonuniform};
   using NsSeq = make_range<MIN_NSPREAD, MAX_NSPREAD>;
   using NcSeq = make_range<MIN_NC, MAX_NC>;
-  return dispatch(caller, std::make_tuple(DispatchParam<NsSeq>{spopts.nspread},
-                                          DispatchParam<NcSeq>{nc}));
+  return dispatch(caller, std::make_tuple(DispatchParam<NsSeq>{m.spopts.nspread},
+                                          DispatchParam<NcSeq>{m.nc}));
 }
 
 template<typename TF>
@@ -632,8 +632,8 @@ int FINUFFT_PLAN_T<TF>::interpSorted_2d(TF *data_uniform, TF *data_nonuniform) c
   InterpSorted2dCaller caller{*this, data_uniform, data_nonuniform};
   using NsSeq = make_range<MIN_NSPREAD, MAX_NSPREAD>;
   using NcSeq = make_range<MIN_NC, MAX_NC>;
-  return dispatch(caller, std::make_tuple(DispatchParam<NsSeq>{spopts.nspread},
-                                          DispatchParam<NcSeq>{nc}));
+  return dispatch(caller, std::make_tuple(DispatchParam<NsSeq>{m.spopts.nspread},
+                                          DispatchParam<NcSeq>{m.nc}));
 }
 
 template<typename TF>
@@ -643,8 +643,8 @@ int FINUFFT_PLAN_T<TF>::interpSorted_3d(TF *data_uniform, TF *data_nonuniform) c
   InterpSorted3dCaller caller{*this, data_uniform, data_nonuniform};
   using NsSeq = make_range<MIN_NSPREAD, MAX_NSPREAD>;
   using NcSeq = make_range<MIN_NC, MAX_NC>;
-  return dispatch(caller, std::make_tuple(DispatchParam<NsSeq>{spopts.nspread},
-                                          DispatchParam<NcSeq>{nc}));
+  return dispatch(caller, std::make_tuple(DispatchParam<NsSeq>{m.spopts.nspread},
+                                          DispatchParam<NcSeq>{m.nc}));
 }
 
 // ---------- FINUFFT_PLAN_T interpSorted method definition ----------

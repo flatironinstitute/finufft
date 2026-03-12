@@ -1,3 +1,5 @@
+import warnings
+
 import pytest
 
 import numpy as np
@@ -145,8 +147,13 @@ def test_finufft_plan_errors():
     with pytest.raises(RuntimeError, match="n_modes dimension must be 1, 2"):
         Plan(2, (1, 2, 3, 4))
 
-    with pytest.warns(Warning, match="eps tolerance too small"):
+    with pytest.raises(RuntimeError, match="eps tolerance too small"):
         Plan(1, (8, 8), eps=1e-30)
+
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        Plan(1, (8, 8), eps=1e-30, allow_eps_too_small=1)
+    assert not any("eps tolerance too small" in str(w.message) for w in caught)
 
     with pytest.raises(TypeError, match="does not have the correct dtype"):
         Plan(1, (8, 8), dtype="complex64").setpts(np.ones(1, dtype="complex128"))

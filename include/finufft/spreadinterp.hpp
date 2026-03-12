@@ -28,9 +28,9 @@
 // ---------- FINUFFT_PLAN_T method definitions ----------
 
 template<typename TF>
-int FINUFFT_PLAN_T<TF>::spreadcheck() const
+void FINUFFT_PLAN_T<TF>::spreadcheck() const
 /* Input checking and reporting for the spreader. Reads nfdim[0..2] and spopts
-   from the plan.
+   from the plan. Throws finufft::exception on error.
    Split out by Melody Shih, Jun 2018. Finiteness chk Barnett 7/30/18.
    Marco Barbone 5.8.24 removed bounds check as new foldrescale is not limited to
    [-3pi,3pi)
@@ -38,19 +38,19 @@ int FINUFFT_PLAN_T<TF>::spreadcheck() const
 */
 {
   // INPUT CHECKING & REPORTING .... cuboid not too small for spreading?
-  const UBIGINT N1 = (UBIGINT)nfdim[0], N2 = (UBIGINT)nfdim[1], N3 = (UBIGINT)nfdim[2];
-  UBIGINT minN = UBIGINT(2 * spopts.nspread);
+  const UBIGINT N1 = (UBIGINT)m.nfdim[0], N2 = (UBIGINT)m.nfdim[1],
+                N3 = (UBIGINT)m.nfdim[2];
+  UBIGINT minN = UBIGINT(2 * m.spopts.nspread);
   if (N1 < minN || (N2 > 1 && N2 < minN) || (N3 > 1 && N3 < minN)) {
     fprintf(stderr,
             "%s error: one or more non-trivial box dims is less than 2.nspread!\n",
             __func__);
-    return FINUFFT_ERR_SPREAD_BOX_SMALL;
+    throw finufft::exception(FINUFFT_ERR_SPREAD_BOX_SMALL);
   }
-  if (spopts.spread_direction != 1 && spopts.spread_direction != 2) {
+  if (m.spopts.spread_direction != 1 && m.spopts.spread_direction != 2) {
     fprintf(stderr, "%s error: opts.spread_direction must be 1 or 2!\n", __func__);
-    return FINUFFT_ERR_SPREAD_DIR;
+    throw finufft::exception(FINUFFT_ERR_SPREAD_DIR);
   }
-  return 0;
 }
 
 template<typename TF>
@@ -74,15 +74,15 @@ TF FINUFFT_PLAN_T<TF>::evaluate_kernel_runtime(TF x) const
    Converted to class member, Barbone 2/24/26.
 */
 {
-  const int ns    = spopts.nspread;
+  const int ns    = m.spopts.nspread;
   const TF ns2    = ns / TF(2.0); // half width w/2, in grid point units
-  const TF *coefs = horner_coeffs.data();
+  const TF *coefs = m.horner_coeffs.data();
   TF res          = TF(0.0);
   for (int i = 0; i < ns; ++i) {             // check if x falls into any piecewise panels
     if (x > -ns2 + i && x <= -ns2 + i + 1) { // if so, eval that Horner polynomial
       TF z = std::fma(TF(2.0), x - TF(i), TF(ns - 1)); // maps panel to z in [-1,1]
-      for (int j = 0; j < nc; ++j) // Horner loop (highest to lowest order)...
-        res = std::fma(res, z, coefs[j * padded_ns + i]);
+      for (int j = 0; j < m.nc; ++j) // Horner loop (highest to lowest order)...
+        res = std::fma(res, z, coefs[j * m.padded_ns + i]);
       break;
     }
   }
@@ -112,10 +112,10 @@ template<typename TF>
 FINUFFT_PLAN_T<TF>::Kernel_onedim_FT::Kernel_onedim_FT(const FINUFFT_PLAN_T &plan) {
   // Creator: uses slow kernel evals to initialize z and f arrays.
   using finufft::common::gaussquad;
-  TF J2 = plan.spopts.nspread / 2.0; // J/2, half-width of ker z-support
+  TF J2 = plan.m.spopts.nspread / 2.0; // J/2, half-width of ker z-support
   // # quadr nodes in z (from 0 to J/2; reflections will be added)...
   int q = (int)(2 + 2.0 * J2); // > pi/2 ratio.  cannot exceed MAX_NQUAD
-  if (plan.spopts.debug) printf("q (# ker FT quadr pts) = %d\n", q);
+  if (plan.m.spopts.debug) printf("q (# ker FT quadr pts) = %d\n", q);
   std::vector<double> Z(2 * q), W(2 * q);
   gaussquad(2 * q, Z.data(), W.data()); // only half the nodes used, for (0,1)
   z.resize(q);
@@ -161,27 +161,27 @@ void FINUFFT_PLAN_T<TF>::indexSort()
   using namespace finufft::spreadinterp;
   using finufft::utils::CNTime;
   CNTime timer{};
-  const UBIGINT N1 = nfdim[0], N2 = nfdim[1], N3 = nfdim[2];
-  const UBIGINT M = nj;
+  const UBIGINT N1 = m.nfdim[0], N2 = m.nfdim[1], N3 = m.nfdim[2];
+  const UBIGINT M = m.nj;
 
   // heuristic binning box size for U grid... affects performance:
   double bin_size_x = 16, bin_size_y = 4, bin_size_z = 4;
 
   int better_to_sort =
-      !(dim == 1 && (spopts.spread_direction == 2 || (M > 1000 * N1))); // 1D small-N or
+      !(dim == 1 && (m.spopts.spread_direction == 2 || (M > 1000 * N1))); // 1D small-N or
   // dir=2 case:
   // don't sort
 
   timer.start(); // if needed, sort all the NU pts...
-  didSort      = false;
+  m.didSort    = false;
   auto maxnthr = MY_OMP_GET_MAX_THREADS(); // used if both below opts default
-  if (spopts.nthreads > 0)
-    maxnthr = spopts.nthreads;             // user nthreads overrides, without limit
-  if (spopts.sort_threads > 0)
-    maxnthr = spopts.sort_threads;         // high-priority override, also no limit
-  if (spopts.sort == 1 || (spopts.sort == 2 && better_to_sort)) {
+  if (m.spopts.nthreads > 0)
+    maxnthr = m.spopts.nthreads;           // user nthreads overrides, without limit
+  if (m.spopts.sort_threads > 0)
+    maxnthr = m.spopts.sort_threads;       // high-priority override, also no limit
+  if (m.spopts.sort == 1 || (m.spopts.sort == 2 && better_to_sort)) {
     // store a good permutation ordering of all NU pts (dim=1,2 or 3)
-    int sort_nthr = spopts.sort_threads; // 0, or user max # threads for sort
+    int sort_nthr = m.spopts.sort_threads; // 0, or user max # threads for sort
 #ifndef _OPENMP
     sort_nthr = 1; // if single-threaded lib, override user
 #endif
@@ -192,15 +192,15 @@ void FINUFFT_PLAN_T<TF>::indexSort()
       bin_sort_singlethread(bin_size_x, bin_size_y, bin_size_z);
     else // sort_nthr>1, user fixes # threads (>=2)
       bin_sort_multithread(bin_size_x, bin_size_y, bin_size_z, sort_nthr);
-    if (spopts.debug)
+    if (m.spopts.debug)
       printf("\tsorted (%d threads):\t%.3g s\n", sort_nthr, timer.elapsedsec());
-    didSort = true;
+    m.didSort = true;
   } else {
 #pragma omp parallel for num_threads(maxnthr) schedule(static, 1000000)
     for (BIGINT i = 0; i < BIGINT(M); i++) // here omp helps xeon, hinders i7
-      sortIndices[i] = i;                  // the identity permutation
-    if (spopts.debug)
-      printf("\tnot sorted (sort=%d): \t%.3g s\n", (int)spopts.sort, timer.elapsedsec());
+      m.sortIndices[i] = i;                // the identity permutation
+    if (m.spopts.debug)
+      printf("\tnot sorted (sort=%d): \t%.3g s\n", (int)m.spopts.sort, timer.elapsedsec());
   }
 }
 
@@ -309,7 +309,7 @@ int FINUFFT_PLAN_T<TF>::spreadinterpSorted(TF *data_uniform, TF *data_nonuniform
    Converted to class member, Barbone 2/24/26.
 */
 {
-  if ((spopts.spread_direction == 1) != adjoint) // ========= direction 1 (spreading)
+  if ((m.spopts.spread_direction == 1) != adjoint) // ======== direction 1 (spreading)
     spreadSorted(data_uniform, data_nonuniform);
   else // ================= direction 2 (interpolation) ===========
     interpSorted(data_uniform, data_nonuniform);
@@ -329,28 +329,28 @@ int FINUFFT_PLAN_T<TF>::spreadSorted(TF *FINUFFT_RESTRICT data_uniform,
   using namespace finufft::spreadinterp;
   using finufft::utils::CNTime;
   // Alias plan members to local names matching the original algorithm.
-  const auto N1                 = (UBIGINT)nfdim[0];
-  const auto N2                 = (UBIGINT)nfdim[1];
-  const auto N3                 = (UBIGINT)nfdim[2];
-  const auto M                  = (UBIGINT)nj;
-  const auto *kx                = XYZ[0];
-  const auto *ky                = XYZ[1];
-  const auto *kz                = XYZ[2];
-  const auto did_sort = (int)didSort;
+  const auto N1                 = (UBIGINT)m.nfdim[0];
+  const auto N2                 = (UBIGINT)m.nfdim[1];
+  const auto N3                 = (UBIGINT)m.nfdim[2];
+  const auto M                  = (UBIGINT)m.nj;
+  const auto *kx                = m.XYZ[0];
+  const auto *ky                = m.XYZ[1];
+  const auto *kz                = m.XYZ[2];
+  const auto did_sort = (int)m.didSort;
   CNTime timer{};
   const auto ndims = ndims_from_Ns(N1, N2, N3);
   const auto N     = N1 * N2 * N3; // output array size
   auto nthr        = MY_OMP_GET_MAX_THREADS(); // guess # threads to use to spread
-  if (spopts.nthreads > 0) nthr = spopts.nthreads; // user override, now without limit
+  if (m.spopts.nthreads > 0) nthr = m.spopts.nthreads; // user override, now without limit
 #ifndef _OPENMP
   nthr = 1; // single-threaded lib must override user
 #endif
-  if (spopts.debug)
+  if (m.spopts.debug)
     printf("\tspread %dD (M=%lld; N1=%lld,N2=%lld,N3=%lld), nthr=%d\n", ndims,
            (long long)M, (long long)N1, (long long)N2, (long long)N3, nthr);
   timer.start();
   std::fill(data_uniform, data_uniform + 2 * N, 0.0); // zero the output array
-  if (spopts.debug) printf("\tzero output array\t%.3g s\n", timer.elapsedsec());
+  if (m.spopts.debug) printf("\tzero output array\t%.3g s\n", timer.elapsedsec());
   if (M == 0) // no NU pts, we're done
     return 0;
 
@@ -363,29 +363,29 @@ int FINUFFT_PLAN_T<TF>::spreadSorted(TF *FINUFFT_RESTRICT data_uniform,
       // *** todo, not urgent
       // ... (question is: will the index wrapping per NU pt slow it down?)
     }
-    if (spopts.debug) printf("\tt1 simple spreading:\t%.3g s\n", timer.elapsedsec());
+    if (m.spopts.debug) printf("\tt1 simple spreading:\t%.3g s\n", timer.elapsedsec());
   } else {
     // ------- Fancy multi-core blocked t1 spreading ----
     // Splits sorted inds (jfm's advanced2), could double RAM.
     // choose nb (# subprobs) via used nthreads:
     auto nb = std::min((UBIGINT)nthr, M); // simply split one subprob per thr...
-    if (nb * (BIGINT)spopts.max_subproblem_size < M) {
+    if (nb * (BIGINT)m.spopts.max_subproblem_size < M) {
       // ...or more subprobs to cap size
-      nb = 1 + (M - 1) / spopts.max_subproblem_size; // int div does
-      // ceil(M/spopts.max_subproblem_size)
-      if (spopts.debug)
-        printf("\tcapping subproblem sizes to max of %d\n", spopts.max_subproblem_size);
+      nb = 1 + (M - 1) / m.spopts.max_subproblem_size; // int div does
+      // ceil(M/m.spopts.max_subproblem_size)
+      if (m.spopts.debug)
+        printf("\tcapping subproblem sizes to max of %d\n", m.spopts.max_subproblem_size);
     }
     if (M * 1000 < N) {
       // low-density heuristic: one thread per NU pt!
       nb = M;
-      if (spopts.debug) printf("\tusing low-density speed rescue nb=M...\n");
+      if (m.spopts.debug) printf("\tusing low-density speed rescue nb=M...\n");
     }
     if (!did_sort && nthr == 1) {
       nb = 1;
-      if (spopts.debug) printf("\tunsorted nthr=1: forcing single subproblem...\n");
+      if (m.spopts.debug) printf("\tunsorted nthr=1: forcing single subproblem...\n");
     }
-    if (spopts.debug && nthr > spopts.atomic_threshold)
+    if (m.spopts.debug && nthr > m.spopts.atomic_threshold)
       printf("\tnthr big: switching add_wrapped OMP from critical to atomic (!)\n");
 
     std::vector<UBIGINT> brk(nb + 1); // NU index breakpoints defining nb subproblems
@@ -405,7 +405,7 @@ int FINUFFT_PLAN_T<TF>::spreadSorted(TF *FINUFFT_RESTRICT data_uniform,
         dd0.resize(2 * M0); // complex strength data
         for (UBIGINT j = 0; j < M0; j++) {
           // todo: can avoid this copying?
-          const auto kk = sortIndices[j + brk[isub]]; // NU pt from subprob index list
+          const auto kk = m.sortIndices[j + brk[isub]]; // NU pt from subprob index list
           kx0[j]        = fold_rescale<TF>(kx[kk], N1);
           if (N2 > 1) ky0[j] = fold_rescale<TF>(ky[kk], N2);
           if (N3 > 1) kz0[j] = fold_rescale<TF>(kz[kk], N3);
@@ -416,7 +416,7 @@ int FINUFFT_PLAN_T<TF>::spreadSorted(TF *FINUFFT_RESTRICT data_uniform,
         BIGINT offset1, offset2, offset3, padded_size1, size1, size2, size3;
         get_subgrid(offset1, offset2, offset3, padded_size1, size1, size2, size3, M0,
                     kx0.data(), ky0.data(), kz0.data());
-        if (spopts.debug > 1) {
+        if (m.spopts.debug > 1) {
           print_subgrid_info(ndims, offset1, offset2, offset3, padded_size1, size1, size2,
                              size3, M0);
         }
@@ -434,7 +434,7 @@ int FINUFFT_PLAN_T<TF>::spreadSorted(TF *FINUFFT_RESTRICT data_uniform,
                                du0.data(), M0, kx0.data(), ky0.data(), kz0.data(),
                                dd0.data());
         // add subgrid to output (always do this); atomic vs critical chosen
-        if (nthr > spopts.atomic_threshold) {
+        if (nthr > m.spopts.atomic_threshold) {
           add_wrapped_subgrid<true>(offset1, offset2, offset3, padded_size1, size1, size2,
                                    size3, data_uniform,
                                    du0.data()); // R Blackwell's atomic version
@@ -445,7 +445,7 @@ int FINUFFT_PLAN_T<TF>::spreadSorted(TF *FINUFFT_RESTRICT data_uniform,
         }
       } // end main loop over subprobs
     }
-    if (spopts.debug)
+    if (m.spopts.debug)
       printf("\tt1 fancy spread: \t%.3g s (%" PRIu64 " subprobs)\n", timer.elapsedsec(),
              nb);
   } // end of choice of which t1 spread type to use

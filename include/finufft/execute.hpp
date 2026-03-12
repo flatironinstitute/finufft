@@ -96,8 +96,8 @@ void FINUFFT_PLAN_T<T>::deconvolveshuffle1d(int dir, T prefac, T *fk,
 */
 {
   const BIGINT ms   = mstu[0];
-  const auto &ker   = phiHat[0];
-  const BIGINT nf1  = nfdim[0];
+  const auto &ker   = m.phiHat[0];
+  const BIGINT nf1  = m.nfdim[0];
   const int modeord = opts.modeord;
   BIGINT kmin = -ms / 2, kmax = (ms - 1) / 2; // inclusive range of k indices
   if (ms == 0) kmax = -1;                     // fixes zero-pad for trivial no-mode case
@@ -160,9 +160,9 @@ void FINUFFT_PLAN_T<T>::deconvolveshuffle2d(int dir, T prefac, T *fk,
 {
   const BIGINT ms   = mstu[0];
   const BIGINT mt   = mstu[1];
-  const auto &ker2  = phiHat[1];
-  const BIGINT nf1  = nfdim[0];
-  const BIGINT nf2  = nfdim[1];
+  const auto &ker2  = m.phiHat[1];
+  const BIGINT nf1  = m.nfdim[0];
+  const BIGINT nf2  = m.nfdim[1];
   const int modeord = opts.modeord;
   BIGINT k2min = -mt / 2, k2max = (mt - 1) / 2; // inclusive range of k2 indices
   if (mt == 0) k2max = -1;                      // fixes zero-pad for trivial no-mode case
@@ -212,10 +212,10 @@ void FINUFFT_PLAN_T<T>::deconvolveshuffle3d(int dir, T prefac, T *fk,
   const BIGINT ms   = mstu[0];
   const BIGINT mt   = mstu[1];
   const BIGINT mu   = mstu[2];
-  const auto &ker3  = phiHat[2];
-  const BIGINT nf1  = nfdim[0];
-  const BIGINT nf2  = nfdim[1];
-  const BIGINT nf3  = nfdim[2];
+  const auto &ker3  = m.phiHat[2];
+  const BIGINT nf1  = m.nfdim[0];
+  const BIGINT nf2  = m.nfdim[1];
+  const BIGINT nf3  = m.nfdim[2];
   const int modeord = opts.modeord;
   BIGINT k3min = -mu / 2, k3max = (mu - 1) / 2; // inclusive range of k3 indices
   if (mu == 0) k3max = -1;                      // fixes zero-pad for trivial no-mode case
@@ -265,7 +265,7 @@ int FINUFFT_PLAN_T<T>::spreadinterpSortedBatch(
   for (int i = 0; i < batchSize; i++) {
     std::complex<T> *fwi = fwBatch + i * nf(); // start of i'th fw array in
                                                // fwBatch workspace or user array
-    std::complex<T> *ci = cBatch + i * nj;     // start of i'th c array in cBatch
+    std::complex<T> *ci = cBatch + i * m.nj;   // start of i'th c array in cBatch
     spreadinterpSorted((T *)fwi, (T *)ci, adjoint);
   }
   return 0;
@@ -287,7 +287,7 @@ int FINUFFT_PLAN_T<T>::deconvolveBatch(int batchSize, std::complex<T> *fkBatch,
 */
 {
   // since deconvolveshuffle?d are single-thread, omp par seems to help here...
-  int dir = spopts.spread_direction;
+  int dir = m.spopts.spread_direction;
   // Quick and dirty way to change direction 1 into direction 2 and vice versa
   // if adjoint operation is requested.
   if (adjoint) dir = 3 - dir;
@@ -373,7 +373,7 @@ int FINUFFT_PLAN_T<TF>::execute_internal(TC *cj, TC *fk, bool adjoint, int ntran
       // current batch is either batchSize, or possibly truncated if last one
       int thisBatchSize = std::min(ntrans_actual - b * batchSize, batchSize);
       int bB            = b * batchSize; // index of vector, since batchsizes same
-      TC *cjb           = cj + bB * nj;  // point to batch of user weights
+      TC *cjb           = cj + bB * m.nj; // point to batch of user weights
       TC *fkb           = fk + bB * N(); // point to batch of user mode coeffs
       if (opts.debug > 1)
         printf("[%s] start batch %d (size %d):\n", "execute", b, thisBatchSize);
@@ -442,24 +442,25 @@ int FINUFFT_PLAN_T<TF>::execute_internal(TC *cj, TC *fk, bool adjoint, int ntran
     std::vector<TC, xsimd::aligned_allocator<TC, 64>> buf1, buf2, buf3;
     TC *CpBatch, *fwBatch, *fwBatch_inner;
     if (!adjoint) { // we can combine CpBatch and fwBatch_inner!
-      buf1.resize(std::max(nj * batchSize, innerT2plan->nf() * innerT2plan->batchSize));
+      buf1.resize(
+          std::max(m.nj * batchSize, m.innerT2plan->nf() * m.innerT2plan->batchSize));
       CpBatch = fwBatch_inner = buf1.data();
       buf2.resize(nf() * batchSize);
       fwBatch = buf2.data();
     } else { // we may be able to combine CpBatch and fwBatch!
       // This only works if the inner plan performs our calls (that we do once
       // per batch) without doing any of its own batching ...
-      if (innerT2plan->batchSize >= batchSize) {
-        buf1.resize(std::max(nk * batchSize, nf() * batchSize));
+      if (m.innerT2plan->batchSize >= batchSize) {
+        buf1.resize(std::max(m.nk * batchSize, nf() * batchSize));
         CpBatch = fwBatch = buf1.data();
-        buf2.resize(innerT2plan->nf() * innerT2plan->batchSize);
+        buf2.resize(m.innerT2plan->nf() * m.innerT2plan->batchSize);
         fwBatch_inner = buf2.data();
       } else {
-        buf1.resize(nk * batchSize);
+        buf1.resize(m.nk * batchSize);
         CpBatch = buf1.data();
         buf2.resize(nf() * batchSize);
         fwBatch = buf2.data();
-        buf3.resize(innerT2plan->nf() * innerT2plan->batchSize);
+        buf3.resize(m.innerT2plan->nf() * m.innerT2plan->batchSize);
         fwBatch_inner = buf3.data();
       }
     }
@@ -469,8 +470,8 @@ int FINUFFT_PLAN_T<TF>::execute_internal(TC *cj, TC *fk, bool adjoint, int ntran
       // batching and pointers to this batch, identical to t1,2 above...
       int thisBatchSize = std::min(ntrans_actual - b * batchSize, batchSize);
       int bB            = b * batchSize;
-      TC *cjb           = cj + bB * nj; // batch of input strengths
-      TC *fkb           = fk + bB * nk; // batch of output strengths
+      TC *cjb           = cj + bB * m.nj; // batch of input strengths
+      TC *fkb           = fk + bB * m.nk; // batch of output strengths
       if (opts.debug > 1)
         printf("[%s t3] start batch %d (size %d):\n", "execute", b, thisBatchSize);
 
@@ -478,10 +479,10 @@ int FINUFFT_PLAN_T<TF>::execute_internal(TC *cj, TC *fk, bool adjoint, int ntran
         // STEP 0: pre-phase (possibly) the c_j input strengths into c'_j batch...
         timer.restart();
 #pragma omp parallel for num_threads(opts.nthreads) // or batchSize?
-        for (BIGINT j = 0; j < nj; ++j) {
-          auto phase = prephase[j];
+        for (BIGINT j = 0; j < m.nj; ++j) {
+          auto phase = m.prephase[j];
           for (int i = 0; i < thisBatchSize; i++)
-            CpBatch[i * nj + j] = phase * cjb[i * nj + j];
+            CpBatch[i * m.nj + j] = phase * cjb[i * m.nj + j];
         }
         t_phase += timer.elapsedsec();
 
@@ -495,29 +496,30 @@ int FINUFFT_PLAN_T<TF>::execute_internal(TC *cj, TC *fk, bool adjoint, int ntran
         timer.restart();
         /* (alarming that FFT not shrunk, but safe, because t2's fwBatch array
        still the same size, as Andrea explained; just wastes a few flops) */
-        innerT2plan->execute_internal(fkb, fwBatch, adjoint, thisBatchSize, fwBatch_inner,
-                                      innerT2plan->nf() * innerT2plan->batchSize);
+        m.innerT2plan->execute_internal(fkb, fwBatch, adjoint, thisBatchSize,
+                                        fwBatch_inner,
+                                        m.innerT2plan->nf() * m.innerT2plan->batchSize);
         t_inner += timer.elapsedsec();
         // STEP 3: apply deconvolve (precomputed 1/phiHat(targ_k), phasing too)...
         timer.restart();
 #pragma omp parallel for num_threads(opts.nthreads)
-        for (BIGINT k = 0; k < nk; ++k)
-          for (int i = 0; i < thisBatchSize; i++) fkb[i * nk + k] *= deconv[k];
+        for (BIGINT k = 0; k < m.nk; ++k)
+          for (int i = 0; i < thisBatchSize; i++) fkb[i * m.nk + k] *= m.deconv[k];
         t_deconv += timer.elapsedsec();
       } else { // adjoint mode
         // STEP 0: apply deconvolve (precomputed 1/phiHat(targ_k), conjugate phasing
         // too)... write output into CpBatch
         timer.restart();
 #pragma omp parallel for num_threads(opts.nthreads)
-        for (BIGINT k = 0; k < nk; ++k)
+        for (BIGINT k = 0; k < m.nk; ++k)
           for (int i = 0; i < thisBatchSize; i++)
-            CpBatch[i * nk + k] = fkb[i * nk + k] * conj(deconv[k]);
+            CpBatch[i * m.nk + k] = fkb[i * m.nk + k] * conj(m.deconv[k]);
         t_deconv += timer.elapsedsec();
         // STEP 1: adjoint type 2 (i.e. type 1) NUFFT from CpBatch to fwBatch...
         timer.restart();
-        innerT2plan->execute_internal(CpBatch, fwBatch, adjoint, thisBatchSize,
-                                      fwBatch_inner,
-                                      innerT2plan->nf() * innerT2plan->batchSize);
+        m.innerT2plan->execute_internal(CpBatch, fwBatch, adjoint, thisBatchSize,
+                                        fwBatch_inner,
+                                        m.innerT2plan->nf() * m.innerT2plan->batchSize);
         t_inner += timer.elapsedsec();
         // STEP 2: interpolate fwBatch into user output array ...
         timer.restart();
@@ -527,9 +529,9 @@ int FINUFFT_PLAN_T<TF>::execute_internal(TC *cj, TC *fk, bool adjoint, int ntran
         // STEP 3: post-phase (possibly) the c_j output strengths (in place) ...
         timer.restart();
 #pragma omp parallel for num_threads(opts.nthreads) // or batchSize?
-        for (BIGINT j = 0; j < nj; ++j) {
-          auto phase = conj(prephase[j]);
-          for (int i = 0; i < thisBatchSize; i++) cjb[i * nj + j] *= phase;
+        for (BIGINT j = 0; j < m.nj; ++j) {
+          auto phase = conj(m.prephase[j]);
+          for (int i = 0; i < thisBatchSize; i++) cjb[i * m.nj + j] *= phase;
         }
         t_phase += timer.elapsedsec();
       }

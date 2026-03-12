@@ -14,7 +14,6 @@ import sys
 
 import matplotlib.pyplot as plt
 import numpy as np
-import warnings
 
 from erralltypedim import erralltypedim
 
@@ -51,7 +50,7 @@ def main() -> None:
     kfnam = ["ES legacy", "ES Beatty", "KB Beatty", "cont-KB Beatty", "cosh-type", "smoothed cont-KB"]
     kfs = list(range(1, len(kfnam) + 1))
 
-    o = {"upsampfac": sigma, "showwarn": False}
+    o = {"upsampfac": sigma, "showwarn": False, "allow_eps_too_small": 1}
     dims = [False, False, False]
     dims[dim - 1] = True
     nkf = len(kfs)
@@ -65,9 +64,6 @@ def main() -> None:
         f"{dim}D sigma={sigma:.3g}\tprec={prec} M={M} Ntot={Ntot} ntr={ntr} "
         f"ntols={ntols}, kfs: {' '.join(str(k) for k in kfs)}"
     )
-
-    # suppress repeated FINUFFT eps-too-small warnings during sweeps
-    warnings.filterwarnings("ignore", message="FINUFFT eps tolerance too small to achieve")
 
     errs = np.full((nkf, 3, ntols), np.nan, dtype=float)
     ws = np.zeros((nkf, ntols), dtype=int)
