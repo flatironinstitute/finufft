@@ -1159,6 +1159,9 @@ typedef std::complex<float> fcomplex;
      else if (strcmp(fname[ifield],"spread_kerformula") == 0) {
        oc->spread_kerformula = (int)round(*mxGetPr(mxGetFieldByNumber(om,idx,ifield)));
      }
+     else if (strcmp(fname[ifield],"allow_eps_too_small") == 0) {
+       oc->allow_eps_too_small = (int)round(*mxGetPr(mxGetFieldByNumber(om,idx,ifield)));
+     }
      else if (strcmp(fname[ifield],"spreadinterponly") == 0) {
        oc->spreadinterponly = (int)round(*mxGetPr(mxGetFieldByNumber(om,idx,ifield)));
      }

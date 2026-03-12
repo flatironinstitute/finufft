@@ -57,4 +57,8 @@ switch ier
   error('FINUFFT:badNthr','FINUFFT number of threads invalid');
  case 24
   error('FINUFFT:badKerFormula','FINUFFT opts.spread_kerformula invalid');
+ case 25
+  error('FINUFFT:unknownException','FINUFFT unknown internal exception');
+ case 26
+  error('FINUFFT:epsTooSmall','FINUFFT eps tolerance too small to achieve');
 end

@@ -15,6 +15,17 @@ v2.6.0-dev
   consolidated in src/fft.cpp with an opaque custom deleter. C++ internal
   headers renamed from .h to .hpp. No public API changes.
   (Barbone)
+* Mutable plan state extracted into nested struct M, separating computed
+  state from immutable configuration. Internal C++ error handling now uses
+  exceptions (finufft::exception) instead of integer return codes.
+  Memory leak fixes in guru helper and type-3 inner plan via RAII.
+  Deprecated opts fields (spread_kerevalmeth, spread_kerpad) and unused
+  error codes (FINUFFT_ERR_SPREAD_PTS_OUT_RANGE, FINUFFT_ERR_SPREAD_ALLOC)
+  now emit compiler deprecation warnings.
+  BREAKING CHANGE: FINUFFT_WARN_EPS_TOO_SMALL (ier=1) is now a hard error
+  (FINUFFT_ERR_EPS_TOO_SMALL, ier=26). Users must pass tolerance >= machine
+  epsilon. The old enum value is retained but deprecated.
+  (Barbone)
 * Internal cuFINUFFT refactoring
   - Spreading/interpolation functions of different dimensionalities were
     merged and templated on number of dimensions. Operation count in critical

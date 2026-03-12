@@ -3,6 +3,7 @@
 #include <cstdio>
 #include <finufft_common/common.h>
 #include <finufft_common/kernel.h>
+#include <finufft_common/safe_call.h>
 #include <finufft_common/spread_opts.h>
 #include <limits>
 
@@ -63,7 +64,7 @@ double kernel_definition(const finufft_spread_opts &spopts, const double z) {
     return common::pswf(beta, z); // prolate (PSWF) Psi_0, normalized to 1 at z=0
   else {
     fprintf(stderr, "[%s] unknown spopts.kerformula=%d\n", __func__, spopts.kerformula);
-    throw int(FINUFFT_ERR_KERFORMULA_NOTVALID);      // *** crashes matlab, not good
+    throw finufft::exception(FINUFFT_ERR_KERFORMULA_NOTVALID);
     return std::numeric_limits<double>::quiet_NaN(); // never gets here, non-signalling
   }
 }
