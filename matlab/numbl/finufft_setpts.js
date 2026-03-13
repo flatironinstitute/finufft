@@ -1,6 +1,6 @@
+// native: finufft
 // wasm: finufft
 // finufft_setpts(handle, nj, xj, yj, zj, nk, s, t, u) -> void
-// Sets nonuniform points on a guru plan.
 register({
   check: function (argTypes, nargout) {
     return { outputTypes: [] };
@@ -8,13 +8,29 @@ register({
   apply: function (args, nargout) {
     var handle = args[0];
     var nj = args[1];
-    var xj = args[2]; // tensor or empty
-    var yj = args[3]; // tensor or empty
-    var zj = args[4]; // tensor or empty
+    var xj = args[2];
+    var yj = args[3];
+    var zj = args[4];
     var nk = args[5];
-    var s = args[6]; // tensor or empty
-    var t = args[7]; // tensor or empty
-    var u = args[8]; // tensor or empty
+    var s = args[6];
+    var t = args[7];
+    var u = args[8];
+
+    if (native) {
+      var fn = native.func("int guru_setpts(int handle, int nj, double *xj, double *yj, double *zj, int nk, double *s, double *t, double *u)");
+
+      function toArr(tensor, n) {
+        if (n === 0 || !tensor || !tensor.data || tensor.data.length === 0) return null;
+        return tensor.data;
+      }
+
+      var ier = fn(handle, nj, toArr(xj, nj), toArr(yj, nj), toArr(zj, nj),
+                   nk, toArr(s, nk), toArr(t, nk), toArr(u, nk));
+      if (ier !== 0) {
+        throw new RuntimeError("finufft_setpts failed with error code " + ier);
+      }
+      return;
+    }
 
     var BYTES = 8;
     var exports = wasm.exports;

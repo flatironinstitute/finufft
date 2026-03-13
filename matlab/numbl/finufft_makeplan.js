@@ -1,6 +1,6 @@
+// native: finufft
 // wasm: finufft
 // finufft_makeplan(type, dim, n_modes, iflag, ntrans, tol) -> handle
-// Creates a FINUFFT guru plan and returns an integer handle.
 register({
   check: function (argTypes, nargout) {
     if (argTypes.length !== 6) {
@@ -15,6 +15,19 @@ register({
     var iflag = args[3];
     var ntrans = args[4];
     var tol = args[5];
+
+    if (native) {
+      var fn = native.func("int guru_makeplan(int type, int dim, double *n_modes, int iflag, int ntrans, double tol)");
+      var nm = new Float64Array(3);
+      nm[0] = n_modes.data[0];
+      nm[1] = n_modes.data.length > 1 ? n_modes.data[1] : 1;
+      nm[2] = n_modes.data.length > 2 ? n_modes.data[2] : 1;
+      var handle = fn(type, dim, nm, iflag, ntrans, tol);
+      if (handle < 0) {
+        throw new RuntimeError("finufft_makeplan failed");
+      }
+      return RTV.num(handle);
+    }
 
     var BYTES = 8;
     var exports = wasm.exports;

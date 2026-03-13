@@ -1,6 +1,6 @@
+// native: finufft
 // wasm: finufft
 // finufft_execute(handle, data_in, n_in, n_out) -> complex_tensor
-// Executes a FINUFFT guru plan. Returns complex output tensor.
 register({
   check: function (argTypes, nargout) {
     if (argTypes.length !== 4) {
@@ -10,7 +10,7 @@ register({
   },
   apply: function (args, nargout) {
     var handle = args[0];
-    var data_in = args[1]; // complex tensor
+    var data_in = args[1];
     var n_in = args[2];
     var n_out = args[3];
 
@@ -25,6 +25,32 @@ register({
       cplx_re[0] = data_in.re;
       cplx_im[0] = data_in.im;
       data_in = { data: cplx_re, imag: cplx_im, shape: [1, 1] };
+    }
+
+    if (native) {
+      var fn = native.func("int guru_execute(int handle, double *in_re, double *in_im, int n_in, double *out_re, double *out_im, int n_out)");
+
+      var in_re = new Float64Array(n_in);
+      var in_im = new Float64Array(n_in);
+      for (var i = 0; i < n_in; i++) {
+        in_re[i] = data_in.data[i];
+        in_im[i] = data_in.imag ? data_in.imag[i] : 0;
+      }
+      var out_re = new Float64Array(n_out);
+      var out_im = new Float64Array(n_out);
+
+      var ier = fn(handle, in_re, in_im, n_in, out_re, out_im, n_out);
+      if (ier !== 0) {
+        throw new RuntimeError("finufft_execute failed with error code " + ier);
+      }
+
+      var result_re = new FloatXArray(n_out);
+      var result_im = new FloatXArray(n_out);
+      for (var i = 0; i < n_out; i++) {
+        result_re[i] = out_re[i];
+        result_im[i] = out_im[i];
+      }
+      return RTV.tensor(result_re, [n_out, 1], result_im);
     }
 
     var BYTES = 8;
