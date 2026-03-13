@@ -20,12 +20,6 @@ using namespace cufinufft::utils;
 namespace cufinufft {
 namespace spreadinterp {
 
-using cuda::std::dextents;
-using cuda::std::dynamic_extent;
-using cuda::std::extents;
-using cuda::std::mdspan;
-using cuda::std::span;
-
 static __host__ __device__ int calc_global_index(
     int xidx, int yidx, int zidx, int onx, int ony, int onz, int bnx, int bny, int bnz) {
   int oix, oiy, oiz;

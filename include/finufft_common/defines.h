@@ -47,13 +47,15 @@
 #if defined(_MSC_VER)
 #define FINUFFT_ALWAYS_INLINE __forceinline
 #define FINUFFT_NEVER_INLINE  __declspec(noinline)
-#define FINUFFT_RESTRICT      __restrict
-#define FINUFFT_UNREACHABLE   __assume(0)
-#define FINUFFT_UNLIKELY(x)   (x)
-#define FINUFFT_LIKELY(x)     (x)
+#define FINUFFT_FLATTEN
+#define FINUFFT_RESTRICT    __restrict
+#define FINUFFT_UNREACHABLE __assume(0)
+#define FINUFFT_UNLIKELY(x) (x)
+#define FINUFFT_LIKELY(x)   (x)
 #elif defined(__GNUC__)
 #define FINUFFT_ALWAYS_INLINE __attribute__((always_inline)) inline
 #define FINUFFT_NEVER_INLINE  __attribute__((noinline))
+#define FINUFFT_FLATTEN       __attribute__((flatten))
 #define FINUFFT_RESTRICT      __restrict__
 #define FINUFFT_UNREACHABLE   __builtin_unreachable()
 #define FINUFFT_UNLIKELY(x)   __builtin_expect(!!(x), 0)
@@ -61,6 +63,7 @@
 #else
 #define FINUFFT_ALWAYS_INLINE inline
 #define FINUFFT_NEVER_INLINE
+#define FINUFFT_FLATTEN
 #define FINUFFT_RESTRICT
 #define FINUFFT_UNREACHABLE
 #define FINUFFT_UNLIKELY(x) (x)

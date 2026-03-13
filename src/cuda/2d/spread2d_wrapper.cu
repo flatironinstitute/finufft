@@ -26,19 +26,19 @@ struct Spread2DDispatcher {
   }
 };
 
-// Updated cuspread2d using generic dispatch
+// Thin wrapper that dispatches to the shared spreading kernels.
 template<typename T> void cuspread2d(const cufinufft_plan_t<T> &d_plan, int blksize) {
   /*
-    A wrapper for different spreading methods.
+    Dispatch spreading to the shared CUDA kernels.
 
     Methods available:
         (1) Non-uniform points driven
         (2) Subproblem
+        (3) Output-driven
 
     Melody Shih 07/25/19
 
-    Now the function is updated to dispatch based on ns. This is to avoid alloca which
-    it seems slower according to the MRI community.
+    Dispatch is specialized on ns to avoid dynamic stack allocation.
     Marco Barbone 01/30/25
   */
   launch_dispatch_ns<Spread2DDispatcher, T>(Spread2DDispatcher(), d_plan.spopts.nspread,
