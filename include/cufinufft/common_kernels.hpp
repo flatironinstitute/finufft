@@ -21,12 +21,12 @@ template<int ndim, typename T>
 auto get_nbins(const cufinufft_plan_t<T> &plan, cuda::std::array<int, 3> binsizes) {
   cuda::std::array<int, 3> nbins{1, 1, 1};
   for (int idim = 0; idim < ndim; ++idim) {
-    if (binsizes[idim] < 0) {
+    if (binsizes[idim] <= 0) {
       std::cerr << "[cuspread_nuptsdriven_prop] error: invalid binsize (dim " << idim
                 << ") = (" << binsizes[idim] << ")\n";
       throw int(FINUFFT_ERR_BINSIZE_NOTVALID);
     }
-    nbins[idim] = ceil(T(plan.nf123[idim]) / binsizes[idim]);
+    nbins[idim] = (plan.nf123[idim] + binsizes[idim] - 1) / binsizes[idim];
   }
   return nbins;
 }
@@ -320,7 +320,7 @@ void cuinterp_subprob(const cufinufft_plan_t<T> &d_plan, int blksize) {
 
   cuda::std::array<int, 3> numbins;
   for (int idim = 0; idim < ndim; ++idim)
-    numbins[idim] = ceil((T)d_plan.nf123[idim] / binsizes[idim]);
+    numbins[idim] = (d_plan.nf123[idim] + binsizes[idim] - 1) / binsizes[idim];
 
   const T sigma                = d_plan.spopts.upsampfac;
   const T es_c                 = 4.0 / T(d_plan.spopts.nspread * d_plan.spopts.nspread);
@@ -591,7 +591,7 @@ static __global__ void calc_subprob(const int *bin_size, int *num_subprob,
                                     int maxsubprobsize, int numbins) {
   for (int i = threadIdx.x + blockIdx.x * blockDim.x; i < numbins;
        i += gridDim.x * blockDim.x) {
-    num_subprob[i] = ceil(bin_size[i] / (float)maxsubprobsize);
+    num_subprob[i] = (bin_size[i] + maxsubprobsize - 1) / maxsubprobsize;
   }
 }
 static __global__ void map_b_into_subprob(int *d_subprob_to_bin,
@@ -753,7 +753,7 @@ static void cuspread_output_driven(const cufinufft_plan_t<T> &d_plan, int blksiz
                                     d_plan.opts.gpu_binsizez};
   cuda::std::array<int, 3> nbins{1, 1, 1};
   for (int idim = 0; idim < ndim; ++idim)
-    nbins[idim] = ceil(T(d_plan.nf123[idim]) / binsizes[idim]);
+    nbins[idim] = (d_plan.nf123[idim] + binsizes[idim] - 1) / binsizes[idim];
 
   const T sigma   = d_plan.spopts.upsampfac;
   const T es_c    = 4.0 / T(d_plan.spopts.nspread * d_plan.spopts.nspread);
