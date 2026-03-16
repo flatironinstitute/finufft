@@ -90,13 +90,13 @@ __device__ auto compute_offset(int bidx, const cuda::std::array<int, 3> &nbins,
 
 template<int ndim, typename T>
 __device__ int compute_bin_index(
-    int idx, cuda::std::array<int, 3> nf, cuda::std::array<int, 3> binsizes,
+    int idx, cuda::std::array<int, 3> nf, cuda::std::array<T, 3> inv_binsizes,
     cuda::std::array<int, 3> nbins, cuda::std::array<const T *, 3> xyz) {
   int binidx = 0;
   int stride = 1;
   for (int idim = 0; idim < ndim; ++idim) {
     const T rescaled = fold_rescale(loadReadOnly(xyz[idim] + idx), nf[idim]);
-    int bin          = floor(rescaled / binsizes[idim]);
+    int bin          = floor(rescaled * inv_binsizes[idim]);
     bin              = bin >= nbins[idim] ? bin - 1 : bin;
     bin              = bin < 0 ? 0 : bin;
     binidx += bin * stride;
@@ -427,12 +427,12 @@ void cuspread_nupts_driven(const cufinufft_plan_t<T> &d_plan, int blksize) {
 template<typename T, int ndim>
 __global__ FINUFFT_FLATTEN void calc_bin_size_noghost(
     const int M, const cuda::std::array<int, 3> nf,
-    const cuda::std::array<int, 3> binsizes, const cuda::std::array<int, 3> nbins,
+    const cuda::std::array<T, 3> inv_binsizes, const cuda::std::array<int, 3> nbins,
     int *FINUFFT_RESTRICT bin_size, const cuda::std::array<const T *, 3> xyz,
     int *FINUFFT_RESTRICT sortidx) {
   for (int i = threadIdx.x + blockIdx.x * blockDim.x; i < M;
        i += gridDim.x * blockDim.x) {
-    const int binidx = compute_bin_index<ndim>(i, nf, binsizes, nbins, xyz);
+    const int binidx = compute_bin_index<ndim>(i, nf, inv_binsizes, nbins, xyz);
     const int oldidx = atomicAdd(&bin_size[binidx], 1);
     storeCacheStreaming(sortidx + i, oldidx);
   }
@@ -440,13 +440,13 @@ __global__ FINUFFT_FLATTEN void calc_bin_size_noghost(
 
 template<typename T, int ndim>
 __global__ FINUFFT_FLATTEN void calc_inverse_of_global_sort_idx(
-    const int M, const cuda::std::array<int, 3> binsizes,
+    const int M, const cuda::std::array<T, 3> inv_binsizes,
     const cuda::std::array<int, 3> nbins, const int *FINUFFT_RESTRICT bin_startpts,
     const int *FINUFFT_RESTRICT sortidx, const cuda::std::array<const T *, 3> xyz,
     int *FINUFFT_RESTRICT index, const cuda::std::array<int, 3> nf) {
   for (int i = threadIdx.x + blockIdx.x * blockDim.x; i < M;
        i += gridDim.x * blockDim.x) {
-    const int binidx = compute_bin_index<ndim>(i, nf, binsizes, nbins, xyz);
+    const int binidx = compute_bin_index<ndim>(i, nf, inv_binsizes, nbins, xyz);
     storeCacheStreaming(
         index + loadReadOnly(bin_startpts + binidx) + loadReadOnly(sortidx + i), i);
   }
@@ -460,12 +460,14 @@ void cuspread_nuptsdriven_prop(cufinufft_plan_t<T> &d_plan) {
 
     auto nbins          = get_nbins<ndim>(d_plan, binsizes);
     const int nbins_tot = nbins_total(nbins);
+    const cuda::std::array<T, 3> inv_binsizes{T(1) / binsizes[0], T(1) / binsizes[1],
+                                              T(1) / binsizes[2]};
 
     checkCudaErrors(cudaMemsetAsync(dethrust(d_plan.binsize), 0, nbins_tot * sizeof(int),
                                     d_plan.stream));
     calc_bin_size_noghost<T, ndim>
         <<<(d_plan.M + 1024 - 1) / 1024, 1024, 0, d_plan.stream>>>(
-            d_plan.M, d_plan.nf123, binsizes, nbins, dethrust(d_plan.binsize),
+            d_plan.M, d_plan.nf123, inv_binsizes, nbins, dethrust(d_plan.binsize),
             d_plan.kxyz, dethrust(d_plan.sortidx));
     THROW_IF_CUDA_ERROR
 
@@ -475,7 +477,7 @@ void cuspread_nuptsdriven_prop(cufinufft_plan_t<T> &d_plan) {
 
     calc_inverse_of_global_sort_idx<T, ndim>
         <<<(d_plan.M + 1024 - 1) / 1024, 1024, 0, d_plan.stream>>>(
-            d_plan.M, binsizes, nbins, dethrust(d_plan.binstartpts),
+            d_plan.M, inv_binsizes, nbins, dethrust(d_plan.binstartpts),
             dethrust(d_plan.sortidx), d_plan.kxyz, dethrust(d_plan.idxnupts),
             d_plan.nf123);
     THROW_IF_CUDA_ERROR
@@ -629,20 +631,22 @@ static void cuspread_subprob_prop(cufinufft_plan_t<T> &d_plan) {
 
   auto nbins          = get_nbins<ndim>(d_plan, binsizes);
   const int nbins_tot = nbins_total(nbins);
+  const cuda::std::array<T, 3> inv_binsizes{T(1) / binsizes[0], T(1) / binsizes[1],
+                                            T(1) / binsizes[2]};
 
   checkCudaErrors(cudaMemsetAsync(dethrust(d_plan.binsize), 0, nbins_tot * sizeof(int),
                                   d_plan.stream));
   calc_bin_size_noghost<T, ndim>
       <<<(d_plan.M + 1024 - 1) / 1024, 1024, 0, d_plan.stream>>>(
-          d_plan.M, d_plan.nf123, binsizes, nbins, dethrust(d_plan.binsize), d_plan.kxyz,
-          dethrust(d_plan.sortidx));
+          d_plan.M, d_plan.nf123, inv_binsizes, nbins, dethrust(d_plan.binsize),
+          d_plan.kxyz, dethrust(d_plan.sortidx));
   THROW_IF_CUDA_ERROR
   thrust::exclusive_scan(thrust::cuda::par.on(d_plan.stream), d_plan.binsize.begin(),
                          d_plan.binsize.end(), d_plan.binstartpts.begin());
   THROW_IF_CUDA_ERROR
   calc_inverse_of_global_sort_idx<T, ndim>
       <<<(d_plan.M + 1024 - 1) / 1024, 1024, 0, d_plan.stream>>>(
-          d_plan.M, binsizes, nbins, dethrust(d_plan.binstartpts),
+          d_plan.M, inv_binsizes, nbins, dethrust(d_plan.binstartpts),
           dethrust(d_plan.sortidx), d_plan.kxyz, dethrust(d_plan.idxnupts), d_plan.nf123);
   THROW_IF_CUDA_ERROR
 
