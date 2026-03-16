@@ -19,18 +19,18 @@ struct Interp1DDispatcher {
     case 2:
       return cuinterp_subprob<T, 1, ns>(d_plan, c, fw, blksize);
     default:
-      std::cerr << "[cuinterp1d] error: incorrect method, should be 1\n";
+      std::cerr << "[cuinterp1d] error: incorrect method, should be 1 or 2\n";
       throw int(FINUFFT_ERR_METHOD_NOTVALID);
     }
   }
 };
 
-// Updated cuinterp1d using generic dispatch
+// Thin wrapper that dispatches to the shared interpolation kernels.
 template<typename T>
 void cuinterp1d(const cufinufft_plan_t<T> &d_plan, cuda_complex<T> *c,
                 const cuda_complex<T> *fw, int blksize) {
   /*
-   A wrapper for different interpolation methods.
+   Dispatch interpolation to the shared CUDA kernels.
 
    Methods available:
       (1) Non-uniform points driven
@@ -38,8 +38,7 @@ void cuinterp1d(const cufinufft_plan_t<T> &d_plan, cuda_complex<T> *c,
 
    Melody Shih 11/21/21
 
-   Now the function is updated to dispatch based on ns. This is to avoid alloca which
-   it seems slower according to the MRI community.
+   Dispatch is specialized on ns to avoid dynamic stack allocation.
    Marco Barbone 01/30/25
   */
   launch_dispatch_ns<Interp1DDispatcher, T>(Interp1DDispatcher(), d_plan.spopts.nspread,
