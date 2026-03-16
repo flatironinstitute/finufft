@@ -764,8 +764,7 @@ template<typename TF> int FINUFFT_PLAN_T<TF>::init_grid_kerFT_FFT() {
     timer.restart(); // plan the FFTW (to act in-place on the workspace fwBatch)
     int nthr_fft  = opts.nthreads;
     const auto ns = gridsize_for_fft(*this);
-    std::vector<TC, xsimd::aligned_allocator<TC, 64>> fwBatch(nf() * batchSize);
-    fftPlan->plan(ns, batchSize, fwBatch.data(), fftSign, opts.fftw, nthr_fft);
+    fftPlan->plan(ns, batchSize, fftSign, opts.fftw, nthr_fft);
     if (opts.debug)
       printf("[%s] FFT plan (mode %d, nthr=%d):\t%.3g s\n", __func__, opts.fftw, nthr_fft,
              timer.elapsedsec());

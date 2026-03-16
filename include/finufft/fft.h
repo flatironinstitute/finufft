@@ -14,8 +14,7 @@ public:
   Finufft_FFT_plan(const Finufft_FFT_plan &)            = delete;
   Finufft_FFT_plan &operator=(const Finufft_FFT_plan &) = delete;
   [[maybe_unused]] void plan(const std::vector<int> & /*dims*/, size_t /*batchSize*/,
-                             std::complex<T> * /*ptr*/, int /*sign*/, int /*options*/,
-                             int /*nthreads*/) {}
+                             int /*sign*/, int /*options*/, int /*nthreads*/) {}
 
   [[maybe_unused]] static void forget_wisdom() {}
   [[maybe_unused]] static void cleanup() {}
@@ -28,6 +27,7 @@ public:
 #include <complex>
 #include <fftw3.h> // (after complex) needed so can typedef FFTW_CPX
 //clang-format on
+#include <array>
 #include <mutex>
 
 template<typename T> class Finufft_FFT_plan {};
@@ -73,11 +73,17 @@ public:
   }
   Finufft_FFT_plan &operator=(const Finufft_FFT_plan &) = delete;
 
-  void plan
-      [[maybe_unused]] (const std::vector<int> &dims, size_t batchSize,
-                        std::complex<float> *ptr, int sign, int options, int nthreads) {
+  void plan [[maybe_unused]] (const std::vector<int> &dims, size_t batchSize, int sign,
+                              int options, int nthreads) {
     uint64_t nf = 1;
     for (auto i : dims) nf *= i;
+    // FFTW_ESTIMATE never touches the buffer; FFTW_MEASURE etc. run trial FFTs.
+    // Use a 1-element dummy for ESTIMATE, full aligned buffer otherwise.
+    using cpxf = std::complex<float>;
+    std::array<cpxf, 1> dummy{};
+    std::vector<cpxf> buf(options & FFTW_ESTIMATE ? 0 : nf * batchSize);
+    auto *ptr =
+        reinterpret_cast<fftwf_complex *>(buf.empty() ? dummy.data() : buf.data());
     lock();
     // Destroy existing plans before creating new ones (handles re-planning)
     if (plan_) {
@@ -91,14 +97,12 @@ public:
 #ifdef _OPENMP
     fftwf_plan_with_nthreads(nthreads);
 #endif
-    plan_     = fftwf_plan_many_dft(int(dims.size()), dims.data(), int(batchSize),
-                                    reinterpret_cast<fftwf_complex *>(ptr), nullptr, 1,
-                                    int(nf), reinterpret_cast<fftwf_complex *>(ptr), nullptr,
-                                    1, int(nf), sign, unsigned(options));
-    plan_adj_ = fftwf_plan_many_dft(int(dims.size()), dims.data(), int(batchSize),
-                                    reinterpret_cast<fftwf_complex *>(ptr), nullptr, 1,
-                                    int(nf), reinterpret_cast<fftwf_complex *>(ptr),
-                                    nullptr, 1, int(nf), -sign, unsigned(options));
+    plan_     = fftwf_plan_many_dft(int(dims.size()), dims.data(), int(batchSize), ptr,
+                                    nullptr, 1, int(nf), ptr, nullptr, 1, int(nf), sign,
+                                    unsigned(options));
+    plan_adj_ = fftwf_plan_many_dft(int(dims.size()), dims.data(), int(batchSize), ptr,
+                                    nullptr, 1, int(nf), ptr, nullptr, 1, int(nf), -sign,
+                                    unsigned(options));
     unlock();
   }
   void execute [[maybe_unused]] (std::complex<float> *data) const {
@@ -158,11 +162,16 @@ public:
   }
   Finufft_FFT_plan &operator=(const Finufft_FFT_plan &) = delete;
 
-  void plan
-      [[maybe_unused]] (const std::vector<int> &dims, size_t batchSize,
-                        std::complex<double> *ptr, int sign, int options, int nthreads) {
+  void plan [[maybe_unused]] (const std::vector<int> &dims, size_t batchSize, int sign,
+                              int options, int nthreads) {
     uint64_t nf = 1;
     for (auto i : dims) nf *= i;
+    // FFTW_ESTIMATE never touches the buffer; FFTW_MEASURE etc. run trial FFTs.
+    // Use a 1-element dummy for ESTIMATE, full aligned buffer otherwise.
+    using cpxd = std::complex<double>;
+    std::array<cpxd, 1> dummy{};
+    std::vector<cpxd> buf(options & FFTW_ESTIMATE ? 0 : nf * batchSize);
+    auto *ptr = reinterpret_cast<fftw_complex *>(buf.empty() ? dummy.data() : buf.data());
     lock();
     // Destroy existing plans before creating new ones (handles re-planning)
     if (plan_) {
@@ -176,14 +185,12 @@ public:
 #ifdef _OPENMP
     fftw_plan_with_nthreads(nthreads);
 #endif
-    plan_     = fftw_plan_many_dft(int(dims.size()), dims.data(), int(batchSize),
-                                   reinterpret_cast<fftw_complex *>(ptr), nullptr, 1, int(nf),
-                                   reinterpret_cast<fftw_complex *>(ptr), nullptr, 1, int(nf),
-                                   sign, unsigned(options));
-    plan_adj_ = fftw_plan_many_dft(int(dims.size()), dims.data(), int(batchSize),
-                                   reinterpret_cast<fftw_complex *>(ptr), nullptr, 1,
-                                   int(nf), reinterpret_cast<fftw_complex *>(ptr),
-                                   nullptr, 1, int(nf), -sign, unsigned(options));
+    plan_ =
+        fftw_plan_many_dft(int(dims.size()), dims.data(), int(batchSize), ptr, nullptr, 1,
+                           int(nf), ptr, nullptr, 1, int(nf), sign, unsigned(options));
+    plan_adj_ =
+        fftw_plan_many_dft(int(dims.size()), dims.data(), int(batchSize), ptr, nullptr, 1,
+                           int(nf), ptr, nullptr, 1, int(nf), -sign, unsigned(options));
     unlock();
   }
   void execute [[maybe_unused]] (std::complex<double> *data) const {
