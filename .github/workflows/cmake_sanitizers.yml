@@ -55,8 +55,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { os: ubuntu-22.04, toolchain: gcc-13 }
-          - { os: macos-14, toolchain: llvm }
+          - { os: ubuntu-22.04, toolchain: gcc-13, sanitizer: ON }
+          - { os: ubuntu-22.04, toolchain: gcc-13, sanitizer: TSAN }
+          - { os: macos-14, toolchain: llvm, sanitizer: ON }
 
     steps:
       - name: Show CPU info (Linux)
@@ -136,6 +137,12 @@ jobs:
           for arch in "${arch_flags[@]}"; do
             rm -rf $build_dir
 
+            ctest_args=(--output-on-failure -j)
+            # Keep the TSAN job focused on the concurrency-sensitive coverage.
+            if [[ "${{ matrix.sanitizer }}" == "TSAN" ]]; then
+              ctest_args=(--output-on-failure -R '^(run_testutils|run_threadsafe_execute)$')
+            fi
+
             cmake -E make_directory "$build_dir"
             cmake -S . -B "$build_dir" \
               -DCMAKE_BUILD_TYPE=$build_type \
@@ -143,8 +150,8 @@ jobs:
               -DFINUFFT_BUILD_EXAMPLES=ON \
               -DFINUFFT_BUILD_TESTS=ON \
               -DFINUFFT_USE_DUCC0=ON \
-              -DFINUFFT_USE_SANITIZERS=ON
+              -DFINUFFT_ENABLE_SANITIZERS="${{ matrix.sanitizer }}"
 
             cmake --build "$build_dir" --config "$build_type"
-            ctest --test-dir "$build_dir" --output-on-failure -j
+            ctest --test-dir "$build_dir" "${ctest_args[@]}"
           done
