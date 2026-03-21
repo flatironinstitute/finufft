@@ -253,25 +253,27 @@ __global__ FINUFFT_FLATTEN void interp_subprob(
   const auto subpidx     = blockIdx.x;
   const auto bidx        = loadReadOnly(p.subprob_to_bin + subpidx);
   const auto binsubp_idx = subpidx - loadReadOnly(p.subprobstartpts + bidx);
-  const auto ptstart     = loadReadOnly(p.binstartpts + bidx) + binsubp_idx * p.opts.gpu_maxsubprobsize;
-  const auto nupts       = min(p.opts.gpu_maxsubprobsize,
-                               loadReadOnly(p.binsize + bidx) - binsubp_idx * p.opts.gpu_maxsubprobsize);
+  const auto ptstart =
+      loadReadOnly(p.binstartpts + bidx) + binsubp_idx * p.opts.gpu_maxsubprobsize;
+  const auto nupts =
+      min(p.opts.gpu_maxsubprobsize,
+          loadReadOnly(p.binsize + bidx) - binsubp_idx * p.opts.gpu_maxsubprobsize);
 
   auto offset = compute_offset<ndim>(bidx, nbins, binsizes);
 
   constexpr auto ns_2       = (ns + 1) / 2;
   constexpr auto rounded_ns = ns_2 * 2;
 
-  shared_mem_copy_helper<T, ndim, ns>(binsizes, offset, p.nf123,
-                                      [fw, fwshared](int idx_shared, int idx_global) {
-                                        fwshared[idx_shared] = loadReadOnly(fw + idx_global);
-                                      });
+  shared_mem_copy_helper<T, ndim, ns>(
+      binsizes, offset, p.nf123, [fw, fwshared](int idx_shared, int idx_global) {
+        fwshared[idx_shared] = loadReadOnly(fw + idx_global);
+      });
   __syncthreads();
 
   for (int i = threadIdx.x; i < nupts; i += blockDim.x) {
-    const int idx     = ptstart + i;
+    const int idx       = ptstart + i;
     const auto nuptsidx = loadReadOnly(p.idxnupts + idx);
-    auto [ker, start] = get_kerval_and_local_start<T, KEREVALMETH, ndim, ns>(
+    auto [ker, start]   = get_kerval_and_local_start<T, KEREVALMETH, ndim, ns>(
         nuptsidx, p.xyz, p.nf123, offset, sigma, es_c, es_beta);
 
     cuda_complex<T> cnow{0, 0};
@@ -488,9 +490,11 @@ __global__ FINUFFT_FLATTEN void spread_subprob(
   const auto subpidx     = blockIdx.x;
   const auto bidx        = loadReadOnly(p.subprob_to_bin + subpidx);
   const auto binsubp_idx = subpidx - loadReadOnly(p.subprobstartpts + bidx);
-  const auto ptstart     = loadReadOnly(p.binstartpts + bidx) + binsubp_idx * p.opts.gpu_maxsubprobsize;
-  const auto nupts       = min(p.opts.gpu_maxsubprobsize,
-                               loadReadOnly(p.binsize + bidx) - binsubp_idx * p.opts.gpu_maxsubprobsize);
+  const auto ptstart =
+      loadReadOnly(p.binstartpts + bidx) + binsubp_idx * p.opts.gpu_maxsubprobsize;
+  const auto nupts =
+      min(p.opts.gpu_maxsubprobsize,
+          loadReadOnly(p.binsize + bidx) - binsubp_idx * p.opts.gpu_maxsubprobsize);
 
   auto offset = compute_offset<ndim>(bidx, nbins, binsizes);
 
@@ -507,9 +511,9 @@ __global__ FINUFFT_FLATTEN void spread_subprob(
   __syncthreads();
 
   for (int i = threadIdx.x; i < nupts; i += blockDim.x) {
-    const int idx     = ptstart + i;
+    const int idx       = ptstart + i;
     const auto nuptsidx = loadReadOnly(p.idxnupts + idx);
-    auto [ker, start] = get_kerval_and_local_start<T, KEREVALMETH, ndim, ns>(
+    auto [ker, start]   = get_kerval_and_local_start<T, KEREVALMETH, ndim, ns>(
         nuptsidx, p.xyz, p.nf123, offset, sigma, es_c, es_beta);
 
     const auto cnow = loadReadOnly(c + nuptsidx);
@@ -677,9 +681,11 @@ __global__ FINUFFT_FLATTEN void spread_output_driven(
 
   const int bidx        = loadReadOnly(p.subprob_to_bin + blockIdx.x);
   const int binsubp_idx = blockIdx.x - loadReadOnly(p.subprobstartpts + bidx);
-  const int ptstart     = loadReadOnly(p.binstartpts + bidx) + binsubp_idx * p.opts.gpu_maxsubprobsize;
-  const int nupts       = min(p.opts.gpu_maxsubprobsize,
-                              loadReadOnly(p.binsize + bidx) - binsubp_idx * p.opts.gpu_maxsubprobsize);
+  const int ptstart =
+      loadReadOnly(p.binstartpts + bidx) + binsubp_idx * p.opts.gpu_maxsubprobsize;
+  const int nupts =
+      min(p.opts.gpu_maxsubprobsize,
+          loadReadOnly(p.binsize + bidx) - binsubp_idx * p.opts.gpu_maxsubprobsize);
 
   auto offset = compute_offset<ndim>(bidx, nbins, binsizes);
 
