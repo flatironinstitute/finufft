@@ -3,6 +3,10 @@ If not stated, FINUFFT is assumed (old cuFINUFFT <=1.3 is listed separately).
 
 v2.6.0-dev
 
+* Added `threadsafe_execute` regression test verifying concurrent `execute()`
+  calls on the same plan produce correct results. Added sanitizer mode selection
+  via `FINUFFT_USE_SANITIZERS=OFF|ON|MEMSAN|TSAN`, and extended the sanitizer
+  GitHub workflow to run a focused Linux TSAN job. (Barbone)
 * SIMD-vectorized bin sort with parallel prefix sum: uint32_t bin counts,
   ndims dispatch for vectorized coordinate binning, std::exclusive_scan for
   parallel prefix sum of offsets, restored single-threaded variant as

@@ -91,7 +91,9 @@ endif()
 
 # ---- Sanitizers ---------------------------------------------------------------
 set(FINUFFT_SANITIZER_FLAGS)
-if(FINUFFT_USE_SANITIZERS)
+string(TOUPPER "${FINUFFT_USE_SANITIZERS}" FINUFFT_USE_SANITIZERS_MODE)
+if(FINUFFT_USE_SANITIZERS_MODE STREQUAL "OFF")
+elseif(FINUFFT_USE_SANITIZERS_MODE STREQUAL "ON" OR FINUFFT_USE_SANITIZERS_MODE STREQUAL "MEMSAN")
     set(FINUFFT_SANITIZER_FLAGS
         -fsanitize=address
         -fsanitize=undefined
@@ -99,6 +101,16 @@ if(FINUFFT_USE_SANITIZERS)
         /fsanitize=address
         /RTC1
     )
+elseif(FINUFFT_USE_SANITIZERS_MODE STREQUAL "TSAN")
+    set(FINUFFT_SANITIZER_FLAGS -fsanitize=thread)
+else()
+    message(
+        FATAL_ERROR
+        "Unsupported FINUFFT_USE_SANITIZERS value '${FINUFFT_USE_SANITIZERS}'. Use one of: OFF, ON, MEMSAN, TSAN."
+    )
+endif()
+
+if(FINUFFT_SANITIZER_FLAGS)
     filter_supported_compiler_flags(FINUFFT_SANITIZER_FLAGS FINUFFT_SANITIZER_FLAGS)
     set(FINUFFT_SANITIZER_FLAGS $<$<CONFIG:Debug,RelWithDebInfo>:${FINUFFT_SANITIZER_FLAGS}>)
 endif()
