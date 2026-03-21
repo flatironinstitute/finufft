@@ -360,10 +360,6 @@ void cufinufft_plan_t<T>::setpts(int M_, const T *d_kx, const T *d_ky, const T *
     throw int(FINUFFT_ERR_MAXNALLOC);
   }
 
-  // FIXME: check the size of the allocs for the batch interface
-  fwp.resize(nf * batchsize);
-  fw = dethrust(fwp);
-  CpBatch.resize(M * batchsize);
   for (int idim = 0; idim < dim; ++idim) {
     kxyzp[idim].resize(M);
     kxyz[idim] = dethrust(kxyzp[idim]);
@@ -506,9 +502,9 @@ void cufinufft_plan_t<T>::setpts(int M_, const T *d_kx, const T *d_ky, const T *
     cufinufft_opts t2opts       = opts;
     t2opts.gpu_spreadinterponly = 0;
     t2opts.gpu_method           = 0;
-    // Safe to ignore the return value here?
-    delete t2_plan;
-    t2_plan = new cufinufft_plan_t<T>(2, dim, t2modes, iflag, batchsize, tol, t2opts);
+    t2_plan.reset();
+    t2_plan = std::make_unique<cufinufft_plan_t<T>>(2, dim, t2modes, iflag, batchsize,
+                                                    tol, t2opts);
     t2_plan->setpts_12(N, STU[0], STU[1], STU[2]);
     if (t2_plan->spopts.spread_direction != 2) {
       fprintf(stderr, "[%s] inner t2 plan cufinufft_setpts_12 wrong direction\n",
@@ -524,32 +520,34 @@ template void cufinufft_plan_t<double>::setpts(
     const double *d_s, const double *d_t, const double *d_u);
 
 template<typename T>
-static void cuspreadnd(const cufinufft_plan_t<T> &d_plan, int blksize) {
+static void cuspreadnd(const cufinufft_plan_t<T> &d_plan, const cuda_complex<T> *c,
+                       cuda_complex<T> *fw, int blksize) {
   using namespace cufinufft::spreadinterp;
   switch (d_plan.dim) {
   case 1:
-    return cuspread1d(d_plan, blksize);
+    return cuspread1d(d_plan, c, fw, blksize);
   case 2:
-    return cuspread2d(d_plan, blksize);
+    return cuspread2d(d_plan, c, fw, blksize);
   case 3:
-    return cuspread3d(d_plan, blksize);
+    return cuspread3d(d_plan, c, fw, blksize);
   }
 }
 template<typename T>
-static void cuinterpnd(const cufinufft_plan_t<T> &d_plan, int blksize) {
+static void cuinterpnd(const cufinufft_plan_t<T> &d_plan, cuda_complex<T> *c,
+                       const cuda_complex<T> *fw, int blksize) {
   using namespace cufinufft::spreadinterp;
   switch (d_plan.dim) {
   case 1:
-    return cuinterp1d(d_plan, blksize);
+    return cuinterp1d(d_plan, c, fw, blksize);
   case 2:
-    return cuinterp2d(d_plan, blksize);
+    return cuinterp2d(d_plan, c, fw, blksize);
   case 3:
-    return cuinterp3d(d_plan, blksize);
+    return cuinterp3d(d_plan, c, fw, blksize);
   }
 }
 
 template<typename T>
-void cufinufft_plan_t<T>::exec1(cuda_complex<T> *d_c, cuda_complex<T> *d_fk)
+void cufinufft_plan_t<T>::exec1(cuda_complex<T> *d_c, cuda_complex<T> *d_fk) const
 /*
     1D/2D/3D Type-1 NUFFT
 
@@ -567,18 +565,21 @@ void cufinufft_plan_t<T>::exec1(cuda_complex<T> *d_c, cuda_complex<T> *d_fk)
 
   int nmodes = 1;
   for (int idim = 0; idim < dim; ++idim) nmodes *= mstu[idim];
+  gpu_array<cuda_complex<T>> fwp(0, alloc);
+  if (!opts.gpu_spreadinterponly) fwp.resize(nf * batchsize);
+  auto *fw = dethrust(fwp);
   for (int i = 0; i * batchsize < ntransf; i++) {
-    int blksize = std::min(ntransf - i * batchsize, batchsize);
-    c           = d_c + i * batchsize * M;
-    fk          = d_fk + i * batchsize * nmodes; // so deconvolve will write into
-                                                 // user output f
-    if (opts.gpu_spreadinterponly) fw = fk;      // spread directly into user output f
+    int blksize   = std::min(ntransf - i * batchsize, batchsize);
+    const auto *c = d_c + i * batchsize * M;
+    auto *fk      = d_fk + i * batchsize * nmodes; // so deconvolve will write into
+                                                   // user output f
+    if (opts.gpu_spreadinterponly) fw = fk;        // spread directly into user output f
 
     checkCudaErrors(
         cudaMemsetAsync(fw, 0, blksize * nf * sizeof(cuda_complex<T>), stream));
 
     // Step 1: Spread
-    cuspreadnd<T>(*this, blksize);
+    cuspreadnd<T>(*this, c, fw, blksize);
 
     if (opts.gpu_spreadinterponly) continue; // skip steps 2 and 3
 
@@ -587,12 +588,12 @@ void cufinufft_plan_t<T>::exec1(cuda_complex<T> *d_c, cuda_complex<T> *d_fk)
     if (cufft_status != CUFFT_SUCCESS) throw int(FINUFFT_ERR_CUDA_FAILURE);
 
     // Step 3: deconvolve and shuffle
-    deconvolve(blksize);
+    deconvolve(fw, fk, blksize);
   }
 }
 
 template<typename T>
-void cufinufft_plan_t<T>::exec2(cuda_complex<T> *d_c, cuda_complex<T> *d_fk)
+void cufinufft_plan_t<T>::exec2(cuda_complex<T> *d_c, cuda_complex<T> *d_fk) const
 /*
     1D/2D/3D Type-2 NUFFT
 
@@ -610,15 +611,18 @@ void cufinufft_plan_t<T>::exec2(cuda_complex<T> *d_c, cuda_complex<T> *d_fk)
 
   int nmodes = 1;
   for (int idim = 0; idim < dim; ++idim) nmodes *= mstu[idim];
+  gpu_array<cuda_complex<T>> fwp(0, alloc);
+  if (!opts.gpu_spreadinterponly) fwp.resize(nf * batchsize);
+  auto *fw = dethrust(fwp);
   for (int i = 0; i * batchsize < ntransf; i++) {
     int blksize = std::min(ntransf - i * batchsize, batchsize);
-    c           = d_c + i * batchsize * M;
-    fk          = d_fk + i * batchsize * nmodes;
+    auto *c     = d_c + i * batchsize * M;
+    auto *fk    = d_fk + i * batchsize * nmodes;
 
     // Skip steps 1 and 2 if interponly
     if (!opts.gpu_spreadinterponly) {
       // Step 1: amplify Fourier coeffs fk and copy into upsampled array fw
-      deconvolve(blksize);
+      deconvolve(fw, fk, blksize);
 
       // Step 2: FFT
       THROW_IF_CUDA_ERROR
@@ -628,13 +632,13 @@ void cufinufft_plan_t<T>::exec2(cuda_complex<T> *d_c, cuda_complex<T> *d_fk)
       fw = fk; // interpolate directly from user input f
 
     // Step 3: Interpolate
-    cuinterpnd<T>(*this, blksize);
+    cuinterpnd<T>(*this, c, fw, blksize);
   }
 }
 
 // TODO: in case data is centered, we could save GPU memory
 template<typename T>
-void cufinufft_plan_t<T>::exec3(cuda_complex<T> *d_c, cuda_complex<T> *d_fk) {
+void cufinufft_plan_t<T>::exec3(cuda_complex<T> *d_c, cuda_complex<T> *d_fk) const {
   /*
     1D/2D/3D Type-3 NUFFT
 
@@ -647,14 +651,17 @@ void cufinufft_plan_t<T>::exec3(cuda_complex<T> *d_c, cuda_complex<T> *d_fk) {
 
   Marco Barbone 08/14/2024
   */
+  gpu_array<cuda_complex<T>> CpBatch(M * batchsize, alloc);
+  gpu_array<cuda_complex<T>> fwp(nf * batchsize, alloc);
+  auto *fw = dethrust(fwp);
   for (int i = 0; i * batchsize < ntransf; i++) {
     int blksize                = std::min(ntransf - i * batchsize, batchsize);
     cuda_complex<T> *d_cstart  = d_c + i * batchsize * M;
     cuda_complex<T> *d_fkstart = d_fk + i * batchsize * N;
     // setting input for spreader
-    c = dethrust(CpBatch);
+    auto *c = dethrust(CpBatch);
     // setting output for spreader
-    fk = fw;
+    auto *fk = fw;
     // NOTE: fw might need to be set to 0
     checkCudaErrors(
         cudaMemsetAsync(fw, 0, blksize * nf * sizeof(cuda_complex<T>), stream));
@@ -665,7 +672,7 @@ void cufinufft_plan_t<T>::exec3(cuda_complex<T> *d_c, cuda_complex<T> *d_fk) {
                         thrust::multiplies<cuda_complex<T>>());
     }
     // Step 1: Spread
-    cuspreadnd<T>(*this, blksize);
+    cuspreadnd<T>(*this, c, fk, blksize);
     // now fk = fw contains the spread values
     // Step 2: Type 2 NUFFT
     // type 2 goes from fk to c
@@ -684,7 +691,7 @@ void cufinufft_plan_t<T>::exec3(cuda_complex<T> *d_c, cuda_complex<T> *d_fk) {
 }
 
 template<typename T>
-void cufinufft_plan_t<T>::exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk) {
+void cufinufft_plan_t<T>::exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk) const {
   DeviceSwitcher switcher(opts.gpu_device_id);
   switch (type) {
   case 1:
@@ -696,6 +703,6 @@ void cufinufft_plan_t<T>::exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk) {
   }
 }
 template void cufinufft_plan_t<float>::exec(cuda_complex<float> *d_c,
-                                            cuda_complex<float> *d_fk);
+                                            cuda_complex<float> *d_fk) const;
 template void cufinufft_plan_t<double>::exec(cuda_complex<double> *d_c,
-                                             cuda_complex<double> *d_fk);
+                                             cuda_complex<double> *d_fk) const;

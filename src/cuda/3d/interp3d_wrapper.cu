@@ -11,12 +11,13 @@ namespace spreadinterp {
 // Functor to handle function selection (nuptsdriven vs subprob)
 struct Interp3DDispatcher {
   template<int ns, typename T>
-  void operator()(const cufinufft_plan_t<T> &d_plan, int blksize) const {
+  void operator()(const cufinufft_plan_t<T> &d_plan, cuda_complex<T> *c,
+                  const cuda_complex<T> *fw, int blksize) const {
     switch (d_plan.opts.gpu_method) {
     case 1:
-      return cuinterp_nuptsdriven<T, 3, ns>(d_plan, blksize);
+      return cuinterp_nuptsdriven<T, 3, ns>(d_plan, c, fw, blksize);
     case 2:
-      return cuinterp_subprob<T, 3, ns>(d_plan, blksize);
+      return cuinterp_subprob<T, 3, ns>(d_plan, c, fw, blksize);
     default:
       std::cerr << "[cuinterp3d] error: incorrect method, should be 1 or 2\n";
       throw int(FINUFFT_ERR_METHOD_NOTVALID);
@@ -25,7 +26,9 @@ struct Interp3DDispatcher {
 };
 
 // Updated cuinterp3d using generic dispatch
-template<typename T> void cuinterp3d(const cufinufft_plan_t<T> &d_plan, int blksize) {
+template<typename T>
+void cuinterp3d(const cufinufft_plan_t<T> &d_plan, cuda_complex<T> *c,
+                const cuda_complex<T> *fw, int blksize) {
   /*
     A wrapper for different interpolation methods.
 
@@ -40,10 +43,14 @@ template<typename T> void cuinterp3d(const cufinufft_plan_t<T> &d_plan, int blks
     Marco Barbone 01/30/25
   */
   launch_dispatch_ns<Interp3DDispatcher, T>(Interp3DDispatcher(), d_plan.spopts.nspread,
-                                            d_plan, blksize);
+                                            d_plan, c, fw, blksize);
 }
-template void cuinterp3d<float>(const cufinufft_plan_t<float> &d_plan, int blksize);
-template void cuinterp3d<double>(const cufinufft_plan_t<double> &d_plan, int blksize);
+template void cuinterp3d<float>(const cufinufft_plan_t<float> &d_plan,
+                                cuda_complex<float> *c, const cuda_complex<float> *fw,
+                                int blksize);
+template void cuinterp3d<double>(const cufinufft_plan_t<double> &d_plan,
+                                 cuda_complex<double> *c, const cuda_complex<double> *fw,
+                                 int blksize);
 
 } // namespace spreadinterp
 } // namespace cufinufft

@@ -491,8 +491,9 @@ static void cuspread3d_blockgather_prop(cufinufft_plan_t<T> &d_plan) {
 }
 
 template<typename T, int ns>
-static void cuspread3d_blockgather(int nf1, int nf2, int nf3, int M,
-                                   const cufinufft_plan_t<T> &d_plan, int blksize) {
+static void cuspread3d_blockgather(
+    int nf1, int nf2, int nf3, int M, const cufinufft_plan_t<T> &d_plan,
+    const cuda_complex<T> *c, cuda_complex<T> *fw, int blksize) {
   auto &stream = d_plan.stream;
 
   T es_c             = 4.0 / T(d_plan.spopts.nspread * d_plan.spopts.nspread);
@@ -519,8 +520,8 @@ static void cuspread3d_blockgather(int nf1, int nf2, int nf3, int M,
   const T *d_kx              = d_plan.kxyz[0];
   const T *d_ky              = d_plan.kxyz[1];
   const T *d_kz              = d_plan.kxyz[2];
-  const cuda_complex<T> *d_c = d_plan.c;
-  cuda_complex<T> *d_fw      = d_plan.fw;
+  const cuda_complex<T> *d_c = c;
+  cuda_complex<T> *d_fw      = fw;
 
   const int *d_binstartpts     = dethrust(d_plan.binstartpts);
   const int *d_subprobstartpts = dethrust(d_plan.subprobstartpts);
@@ -562,17 +563,19 @@ static void cuspread3d_blockgather(int nf1, int nf2, int nf3, int M,
 // Functor to handle function selection (nuptsdriven, subprob, blockgather)
 struct Spread3DDispatcher {
   template<int ns, typename T>
-  void operator()(int nf1, int nf2, int nf3, int M, const cufinufft_plan_t<T> &d_plan,
-                  int blksize) const {
+  void operator()(const cufinufft_plan_t<T> &d_plan, const cuda_complex<T> *c,
+                  cuda_complex<T> *fw, int blksize) const {
     switch (d_plan.opts.gpu_method) {
     case 1:
-      return cuspread_nupts_driven<T, 3, ns>(d_plan, blksize);
+      return cuspread_nupts_driven<T, 3, ns>(d_plan, c, fw, blksize);
     case 2:
-      return cuspread_subprob<T, 3, ns>(d_plan, blksize);
+      return cuspread_subprob<T, 3, ns>(d_plan, c, fw, blksize);
     case 3:
-      return cuspread_output_driven<T, 3, ns>(d_plan, blksize);
+      return cuspread_output_driven<T, 3, ns>(d_plan, c, fw, blksize);
     case 4:
-      return cuspread3d_blockgather<T, ns>(nf1, nf2, nf3, M, d_plan, blksize);
+      return cuspread3d_blockgather<T, ns>(d_plan.nf123[0], d_plan.nf123[1],
+                                           d_plan.nf123[2], d_plan.M, d_plan, c, fw,
+                                           blksize);
     default:
       std::cerr << "[cuspread3d] error: invalid method " +
                        std::to_string(d_plan.opts.gpu_method) +
@@ -583,7 +586,9 @@ struct Spread3DDispatcher {
 };
 
 // Updated cuspread3d using generic dispatch
-template<typename T> void cuspread3d(const cufinufft_plan_t<T> &d_plan, int blksize) {
+template<typename T>
+void cuspread3d(const cufinufft_plan_t<T> &d_plan, const cuda_complex<T> *c,
+                cuda_complex<T> *fw, int blksize) {
   /*
     A wrapper for different spreading methods.
 
@@ -599,11 +604,14 @@ template<typename T> void cuspread3d(const cufinufft_plan_t<T> &d_plan, int blks
     Marco Barbone 01/30/25
   */
   launch_dispatch_ns<Spread3DDispatcher, T>(Spread3DDispatcher(), d_plan.spopts.nspread,
-                                            d_plan.nf123[0], d_plan.nf123[1],
-                                            d_plan.nf123[2], d_plan.M, d_plan, blksize);
+                                            d_plan, c, fw, blksize);
 }
-template void cuspread3d<float>(const cufinufft_plan_t<float> &d_plan, int blksize);
-template void cuspread3d<double>(const cufinufft_plan_t<double> &d_plan, int blksize);
+template void cuspread3d<float>(const cufinufft_plan_t<float> &d_plan,
+                                const cuda_complex<float> *c, cuda_complex<float> *fw,
+                                int blksize);
+template void cuspread3d<double>(const cufinufft_plan_t<double> &d_plan,
+                                 const cuda_complex<double> *c, cuda_complex<double> *fw,
+                                 int blksize);
 
 template<typename T> void cuspread3d_prop(cufinufft_plan_t<T> &d_plan) {
   if (d_plan.opts.gpu_method == 1) cuspread_nuptsdriven_prop<T, 3>(d_plan);
