@@ -38,7 +38,7 @@ __device__ auto get_kerval_and_local_start(
   cuda::std::array<cuda::std::array<T, ns>, ndim> ker;
   cuda::std::array<int, ndim> start;
   for (int idim = 0; idim < ndim; ++idim) {
-    const auto rescaled = fold_rescale(xyz[idim][idx], nf[idim]);
+    const auto rescaled = fold_rescale(loadReadOnly(xyz[idim] + idx), nf[idim]);
     const auto s        = int(std::ceil(rescaled - ns_2f));
     if constexpr (KEREVALMETH == 1) {
       eval_kernel_vec_horner<T, ns>(&ker[idim][0], T(s) - rescaled, sigma);
@@ -86,13 +86,13 @@ __device__ auto compute_offset(int bidx, const cuda::std::array<int, 3> &nbins,
 
 template<int ndim, typename T>
 __device__ int compute_bin_index(
-    int idx, cuda::std::array<int, 3> nf, cuda::std::array<int, 3> binsizes,
+    int idx, cuda::std::array<int, 3> nf, cuda::std::array<T, 3> inv_binsizes,
     cuda::std::array<int, 3> nbins, cuda::std::array<const T *, 3> xyz) {
   int binidx = 0;
   int stride = 1;
   for (int idim = 0; idim < ndim; ++idim) {
-    const T rescaled = fold_rescale(xyz[idim][idx], nf[idim]);
-    int bin          = floor(rescaled / binsizes[idim]);
+    const T rescaled = fold_rescale(loadReadOnly(xyz[idim] + idx), nf[idim]);
+    int bin          = floor(rescaled * inv_binsizes[idim]);
     bin              = bin >= nbins[idim] ? bin - 1 : bin;
     bin              = bin < 0 ? 0 : bin;
     binidx += bin * stride;
@@ -152,16 +152,15 @@ __global__ FINUFFT_FLATTEN void interp_nupts_driven(
     if constexpr (ndim == 1) {
       for (int x0 = 0, ix = start[0]; x0 < ns;
            ++x0, ix       = (ix + 1 >= p.nf123[0]) ? 0 : ix + 1)
-        cnow += fw[ix] * ker[0][x0];
-    }
-    if constexpr (ndim == 2) {
+        cnow += loadReadOnly(fw + ix) * ker[0][x0];
+    } else if constexpr (ndim == 2) {
       for (int y0 = 0, iy = start[1]; y0 < ns;
            ++y0, iy       = (iy + 1 >= p.nf123[1]) ? 0 : iy + 1) {
         const auto inidx0 = iy * p.nf123[0];
         cuda_complex<T> cnowx{0, 0};
         for (int x0 = 0, ix = start[0]; x0 < ns;
              ++x0, ix       = (ix + 1 >= p.nf123[0]) ? 0 : ix + 1)
-          cnowx += fw[inidx0 + ix] * ker[0][x0];
+          cnowx += loadReadOnly(fw + inidx0 + ix) * ker[0][x0];
         cnow += cnowx * ker[1][y0];
       }
     }
@@ -178,13 +177,14 @@ __global__ FINUFFT_FLATTEN void interp_nupts_driven(
              ++y0, iy       = (iy + 1 >= p.nf123[1]) ? 0 : iy + 1) {
           const auto inidx1 = inidx0 + iy * p.nf123[0];
           cuda_complex<T> cnowx{0, 0};
-          for (int x0 = 0; x0 < ns; ++x0) cnowx += fw[inidx1 + xidx[x0]] * ker[0][x0];
+          for (int x0 = 0; x0 < ns; ++x0)
+            cnowx += loadReadOnly(fw + inidx1 + xidx[x0]) * ker[0][x0];
           cnowy += cnowx * ker[1][y0];
         }
         cnow += cnowy * ker[2][z0];
       }
     }
-    c[p.idxnupts[i]] = cnow;
+    storeCacheStreaming(c + nuptsidx, cnow);
   }
 }
 
@@ -251,11 +251,11 @@ __global__ FINUFFT_FLATTEN void interp_subprob(
   auto nbins = get_nbins<ndim>(p.nf123, binsizes);
 
   const auto subpidx     = blockIdx.x;
-  const auto bidx        = p.subprob_to_bin[subpidx];
-  const auto binsubp_idx = subpidx - p.subprobstartpts[bidx];
-  const auto ptstart     = p.binstartpts[bidx] + binsubp_idx * p.opts.gpu_maxsubprobsize;
+  const auto bidx        = loadReadOnly(p.subprob_to_bin + subpidx);
+  const auto binsubp_idx = subpidx - loadReadOnly(p.subprobstartpts + bidx);
+  const auto ptstart     = loadReadOnly(p.binstartpts + bidx) + binsubp_idx * p.opts.gpu_maxsubprobsize;
   const auto nupts       = min(p.opts.gpu_maxsubprobsize,
-                               p.binsize[bidx] - binsubp_idx * p.opts.gpu_maxsubprobsize);
+                               loadReadOnly(p.binsize + bidx) - binsubp_idx * p.opts.gpu_maxsubprobsize);
 
   auto offset = compute_offset<ndim>(bidx, nbins, binsizes);
 
@@ -263,15 +263,16 @@ __global__ FINUFFT_FLATTEN void interp_subprob(
   constexpr auto rounded_ns = ns_2 * 2;
 
   shared_mem_copy_helper<T, ndim, ns>(binsizes, offset, p.nf123,
-                                      [&fw, &fwshared](int idx_shared, int idx_global) {
-                                        fwshared[idx_shared] = fw[idx_global];
+                                      [fw, fwshared](int idx_shared, int idx_global) {
+                                        fwshared[idx_shared] = loadReadOnly(fw + idx_global);
                                       });
   __syncthreads();
 
   for (int i = threadIdx.x; i < nupts; i += blockDim.x) {
     const int idx     = ptstart + i;
+    const auto nuptsidx = loadReadOnly(p.idxnupts + idx);
     auto [ker, start] = get_kerval_and_local_start<T, KEREVALMETH, ndim, ns>(
-        p.idxnupts[idx], p.xyz, p.nf123, offset, sigma, es_c, es_beta);
+        nuptsidx, p.xyz, p.nf123, offset, sigma, es_c, es_beta);
 
     cuda_complex<T> cnow{0, 0};
     if constexpr (ndim == 1) {
@@ -309,7 +310,7 @@ __global__ FINUFFT_FLATTEN void interp_subprob(
         cnow += cnowz * ker[2][zz];
       }
     }
-    c[p.idxnupts[idx]] = cnow;
+    storeCacheStreaming(c + nuptsidx, cnow);
   }
 }
 
@@ -348,7 +349,7 @@ __global__ FINUFFT_FLATTEN void spread_nupts_driven(
     auto [ker, start]   = get_kerval_and_startpos_nuptsdriven<T, KEREVALMETH, ndim, ns>(
         nuptsidx, p.xyz, p.nf123, sigma, es_c, es_beta);
 
-    cuda_complex<T> val = c[p.idxnupts[i]];
+    const auto val = loadReadOnly(c + nuptsidx);
     if constexpr (ndim == 1) {
       for (int x0 = 0, ix = start[0]; x0 < ns;
            ++x0, ix       = (ix + 1 >= p.nf123[0]) ? 0 : ix + 1)
@@ -407,26 +408,29 @@ void cuspread_nupts_driven(const cufinufft_plan_t<T> &d_plan, const cuda_complex
 // FIXME unify the next two functions and templatize on a lambda?
 template<typename T, int ndim>
 __global__ FINUFFT_FLATTEN void calc_bin_size_noghost(
-    int M, cuda::std::array<int, 3> nf, cuda::std::array<int, 3> binsizes,
-    cuda::std::array<int, 3> nbins, int *bin_size, cuda::std::array<const T *, 3> xyz,
-    int *sortidx) {
+    const int M, const cuda::std::array<int, 3> nf,
+    const cuda::std::array<T, 3> inv_binsizes, const cuda::std::array<int, 3> nbins,
+    int *FINUFFT_RESTRICT bin_size, const cuda::std::array<const T *, 3> xyz,
+    int *FINUFFT_RESTRICT sortidx) {
   for (int i = threadIdx.x + blockIdx.x * blockDim.x; i < M;
        i += gridDim.x * blockDim.x) {
-    const int binidx = compute_bin_index<ndim>(i, nf, binsizes, nbins, xyz);
-    int oldidx       = atomicAdd(&bin_size[binidx], 1);
-    sortidx[i]       = oldidx;
+    const int binidx = compute_bin_index<ndim>(i, nf, inv_binsizes, nbins, xyz);
+    const int oldidx = atomicAdd(&bin_size[binidx], 1);
+    storeCacheStreaming(sortidx + i, oldidx);
   }
 }
 
 template<typename T, int ndim>
 __global__ FINUFFT_FLATTEN void calc_inverse_of_global_sort_idx(
-    int M, cuda::std::array<int, 3> binsizes, cuda::std::array<int, 3> nbins,
-    const int *bin_startpts, const int *sortidx, cuda::std::array<const T *, 3> xyz,
-    int *index, cuda::std::array<int, 3> nf) {
+    const int M, const cuda::std::array<T, 3> inv_binsizes,
+    const cuda::std::array<int, 3> nbins, const int *FINUFFT_RESTRICT bin_startpts,
+    const int *FINUFFT_RESTRICT sortidx, const cuda::std::array<const T *, 3> xyz,
+    int *FINUFFT_RESTRICT index, const cuda::std::array<int, 3> nf) {
   for (int i = threadIdx.x + blockIdx.x * blockDim.x; i < M;
        i += gridDim.x * blockDim.x) {
-    const int binidx = compute_bin_index<ndim>(i, nf, binsizes, nbins, xyz);
-    index[bin_startpts[binidx] + sortidx[i]] = i;
+    const int binidx = compute_bin_index<ndim>(i, nf, inv_binsizes, nbins, xyz);
+    storeCacheStreaming(
+        index + loadReadOnly(bin_startpts + binidx) + loadReadOnly(sortidx + i), i);
   }
 }
 
@@ -438,12 +442,14 @@ void cuspread_nuptsdriven_prop(cufinufft_plan_t<T> &d_plan) {
 
     auto nbins          = get_nbins<ndim>(d_plan.nf123, binsizes);
     const int nbins_tot = nbins_total(nbins);
+    const cuda::std::array<T, 3> inv_binsizes{T(1) / binsizes[0], T(1) / binsizes[1],
+                                              T(1) / binsizes[2]};
 
     checkCudaErrors(cudaMemsetAsync(dethrust(d_plan.binsize), 0, nbins_tot * sizeof(int),
                                     d_plan.stream));
     calc_bin_size_noghost<T, ndim>
         <<<(d_plan.M + 1024 - 1) / 1024, 1024, 0, d_plan.stream>>>(
-            d_plan.M, d_plan.nf123, binsizes, nbins, dethrust(d_plan.binsize),
+            d_plan.M, d_plan.nf123, inv_binsizes, nbins, dethrust(d_plan.binsize),
             d_plan.kxyz, dethrust(d_plan.sortidx));
     THROW_IF_CUDA_ERROR
 
@@ -453,7 +459,7 @@ void cuspread_nuptsdriven_prop(cufinufft_plan_t<T> &d_plan) {
 
     calc_inverse_of_global_sort_idx<T, ndim>
         <<<(d_plan.M + 1024 - 1) / 1024, 1024, 0, d_plan.stream>>>(
-            d_plan.M, binsizes, nbins, dethrust(d_plan.binstartpts),
+            d_plan.M, inv_binsizes, nbins, dethrust(d_plan.binstartpts),
             dethrust(d_plan.sortidx), d_plan.kxyz, dethrust(d_plan.idxnupts),
             d_plan.nf123);
     THROW_IF_CUDA_ERROR
@@ -480,11 +486,11 @@ __global__ FINUFFT_FLATTEN void spread_subprob(
   auto nbins = get_nbins<ndim>(p.nf123, binsizes);
 
   const auto subpidx     = blockIdx.x;
-  const auto bidx        = p.subprob_to_bin[subpidx];
-  const auto binsubp_idx = subpidx - p.subprobstartpts[bidx];
-  const auto ptstart     = p.binstartpts[bidx] + binsubp_idx * p.opts.gpu_maxsubprobsize;
+  const auto bidx        = loadReadOnly(p.subprob_to_bin + subpidx);
+  const auto binsubp_idx = subpidx - loadReadOnly(p.subprobstartpts + bidx);
+  const auto ptstart     = loadReadOnly(p.binstartpts + bidx) + binsubp_idx * p.opts.gpu_maxsubprobsize;
   const auto nupts       = min(p.opts.gpu_maxsubprobsize,
-                               p.binsize[bidx] - binsubp_idx * p.opts.gpu_maxsubprobsize);
+                               loadReadOnly(p.binsize + bidx) - binsubp_idx * p.opts.gpu_maxsubprobsize);
 
   auto offset = compute_offset<ndim>(bidx, nbins, binsizes);
 
@@ -502,10 +508,11 @@ __global__ FINUFFT_FLATTEN void spread_subprob(
 
   for (int i = threadIdx.x; i < nupts; i += blockDim.x) {
     const int idx     = ptstart + i;
+    const auto nuptsidx = loadReadOnly(p.idxnupts + idx);
     auto [ker, start] = get_kerval_and_local_start<T, KEREVALMETH, ndim, ns>(
-        p.idxnupts[idx], p.xyz, p.nf123, offset, sigma, es_c, es_beta);
+        nuptsidx, p.xyz, p.nf123, offset, sigma, es_c, es_beta);
 
-    const auto cnow = c[p.idxnupts[idx]];
+    const auto cnow = loadReadOnly(c + nuptsidx);
     if constexpr (ndim == 1) {
       const auto ofs = start[0] + ns_2;
       for (int xx = 0; xx < ns; ++xx) {
@@ -570,20 +577,21 @@ static void cuspread_subprob(const cufinufft_plan_t<T> &d_plan, const cuda_compl
                                      : launch(spread_subprob<T, 0, ndim, ns>);
 }
 
-static __global__ void calc_subprob(const int *bin_size, int *num_subprob,
-                                    int maxsubprobsize, int numbins) {
+static __global__ void calc_subprob(const int *FINUFFT_RESTRICT bin_size,
+                                    int *FINUFFT_RESTRICT num_subprob,
+                                    const int maxsubprobsize, const int numbins) {
   for (int i = threadIdx.x + blockIdx.x * blockDim.x; i < numbins;
        i += gridDim.x * blockDim.x) {
-    num_subprob[i] = (bin_size[i] + maxsubprobsize - 1) / maxsubprobsize;
+    num_subprob[i] = (loadReadOnly(bin_size + i) + maxsubprobsize - 1) / maxsubprobsize;
   }
 }
-static __global__ void map_b_into_subprob(int *d_subprob_to_bin,
-                                          const int *d_subprobstartpts,
-                                          const int *d_numsubprob, int numbins) {
+static __global__ void map_b_into_subprob(
+    int *FINUFFT_RESTRICT d_subprob_to_bin, const int *FINUFFT_RESTRICT d_subprobstartpts,
+    const int *FINUFFT_RESTRICT d_numsubprob, const int numbins) {
   for (int i = threadIdx.x + blockIdx.x * blockDim.x; i < numbins;
        i += gridDim.x * blockDim.x) {
-    for (int j = 0; j < d_numsubprob[i]; j++) {
-      d_subprob_to_bin[d_subprobstartpts[i] + j] = i;
+    for (int j = 0; j < loadReadOnly(d_numsubprob + i); j++) {
+      d_subprob_to_bin[loadReadOnly(d_subprobstartpts + i) + j] = i;
     }
   }
 }
@@ -595,20 +603,22 @@ static void cuspread_subprob_prop(cufinufft_plan_t<T> &d_plan) {
 
   auto nbins          = get_nbins<ndim>(d_plan.nf123, binsizes);
   const int nbins_tot = nbins_total(nbins);
+  const cuda::std::array<T, 3> inv_binsizes{T(1) / binsizes[0], T(1) / binsizes[1],
+                                            T(1) / binsizes[2]};
 
   checkCudaErrors(cudaMemsetAsync(dethrust(d_plan.binsize), 0, nbins_tot * sizeof(int),
                                   d_plan.stream));
   calc_bin_size_noghost<T, ndim>
       <<<(d_plan.M + 1024 - 1) / 1024, 1024, 0, d_plan.stream>>>(
-          d_plan.M, d_plan.nf123, binsizes, nbins, dethrust(d_plan.binsize), d_plan.kxyz,
-          dethrust(d_plan.sortidx));
+          d_plan.M, d_plan.nf123, inv_binsizes, nbins, dethrust(d_plan.binsize),
+          d_plan.kxyz, dethrust(d_plan.sortidx));
   THROW_IF_CUDA_ERROR
   thrust::exclusive_scan(thrust::cuda::par.on(d_plan.stream), d_plan.binsize.begin(),
                          d_plan.binsize.end(), d_plan.binstartpts.begin());
   THROW_IF_CUDA_ERROR
   calc_inverse_of_global_sort_idx<T, ndim>
       <<<(d_plan.M + 1024 - 1) / 1024, 1024, 0, d_plan.stream>>>(
-          d_plan.M, binsizes, nbins, dethrust(d_plan.binstartpts),
+          d_plan.M, inv_binsizes, nbins, dethrust(d_plan.binstartpts),
           dethrust(d_plan.sortidx), d_plan.kxyz, dethrust(d_plan.idxnupts), d_plan.nf123);
   THROW_IF_CUDA_ERROR
 
@@ -665,11 +675,11 @@ __global__ FINUFFT_FLATTEN void spread_output_driven(
 
   auto [padded_size, local_subgrid_size] = get_padded_subgrid_info<ndim, ns>(binsizes);
 
-  const int bidx        = p.subprob_to_bin[blockIdx.x];
-  const int binsubp_idx = blockIdx.x - p.subprobstartpts[bidx];
-  const int ptstart     = p.binstartpts[bidx] + binsubp_idx * p.opts.gpu_maxsubprobsize;
+  const int bidx        = loadReadOnly(p.subprob_to_bin + blockIdx.x);
+  const int binsubp_idx = blockIdx.x - loadReadOnly(p.subprobstartpts + bidx);
+  const int ptstart     = loadReadOnly(p.binstartpts + bidx) + binsubp_idx * p.opts.gpu_maxsubprobsize;
   const int nupts       = min(p.opts.gpu_maxsubprobsize,
-                              p.binsize[bidx] - binsubp_idx * p.opts.gpu_maxsubprobsize);
+                              loadReadOnly(p.binsize + bidx) - binsubp_idx * p.opts.gpu_maxsubprobsize);
 
   auto offset = compute_offset<ndim>(bidx, nbins, binsizes);
 
@@ -696,7 +706,7 @@ __global__ FINUFFT_FLATTEN void spread_output_driven(
     const auto batch_size = min(np, nupts - batch_begin);
     for (int i = threadIdx.x; i < batch_size; i += blockDim.x) {
       const int nuptsidx      = loadReadOnly(p.idxnupts + ptstart + i + batch_begin);
-      nupts_sm[i]             = c[nuptsidx];
+      nupts_sm[i]             = loadReadOnly(c + nuptsidx);
       auto [ker, local_shift] = get_kerval_and_local_start<T, KEREVALMETH, ndim, ns>(
           nuptsidx, p.xyz, p.nf123, offset, sigma, es_c, es_beta);
       kerevals[i] = ker;
