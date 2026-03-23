@@ -1,3 +1,4 @@
+#include <finufft_common/common.h>
 #include "PolynomialRegression.hpp"
 #include <iostream>
 #include <cmath>
@@ -9,7 +10,6 @@
 #include <map>
 #include <ranges>
 #include <fstream>
-#include "predictor.hpp"
 
 using namespace std;
 
@@ -66,7 +66,7 @@ int main(int argc, char *argv[]) {
     finufft_opts opts;
     finufft_default_opts(&opts);
     N[0] = Ntotal, N[1] = 1, N[2] = 1;
-    vector<Predictor> predictors;
+    vector<finufft::kernel::SigmaEstimator> predictors;
     for (int type = 1; type <= 3; type++) {
         int dim = 1;
         type = 3;
@@ -86,7 +86,7 @@ int main(int argc, char *argv[]) {
         double impossible_tol = tol_range[0];
         int lowest_tol_idx = 0;
         for (auto &tol : tol_range) {
-            double comp_sigma = get_sigma(tol, type, dim);
+            double comp_sigma = finufft::kernel::get_sigma(tol, type, dim);
             sigma_dynamic.first = comp_sigma;
             while (sigma_dynamic.second - sigma_dynamic.first > sigma_prec) {
                 opts.upsampfac = (sigma_dynamic.second + sigma_dynamic.first) / 2;
@@ -118,16 +118,23 @@ int main(int argc, char *argv[]) {
         vector<double> tol_x(tol_range.begin()+lowest_tol_idx, tol_range.begin()+sigmas.size());
         double lower_tol = tol_x.front();
         double upper_tol = tol_x.back();
-        transform(tol_x.begin(), tol_x.end(), tol_x.begin(), [=](double tol){ return map_to_domain(tol, lower_tol, upper_tol);});
+        transform(tol_x.begin(), tol_x.end(), tol_x.begin(), [=](double tol){ return finufft::kernel::map_to_domain(tol, lower_tol, upper_tol);});
         vector<double> ups_y(sigmas.begin()+lowest_tol_idx, sigmas.end());
         vector<double> coeffs(NCOEFFS);
         PolynomialRegression<double>().fitIt(tol_x, ups_y, NCOEFFS-1, coeffs);
-        predictors.push_back(Predictor(type, dim, coeffs, lower_tol, upper_tol, typeid(double)));
+        predictors.push_back(finufft::kernel::SigmaEstimator(type, dim, coeffs, lower_tol, upper_tol, typeid(double)));
         break;
     }
-    ofstream out("predictors.bin", ios::binary);
-    for(auto &pred: predictors) 
-        out << pred;
+    cout << SAVE_PATH << endl;
+    ofstream out(SAVE_PATH);
+    out << "#include <finufft_common/common.h>" << endl;
+    out << "finufft::kernel::SigmaEstimator trained[] = {";
+    for(int i=0;i<predictors.size();i++) {
+        if(i)
+            out << "," << endl;
+        out << predictors[i];
+    }
+    out << "};";
     out.close();
     return 0;
 }

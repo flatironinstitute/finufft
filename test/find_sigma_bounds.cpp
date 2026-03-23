@@ -26,6 +26,7 @@ double get_sigma(double tol, int type) {
   double b = pow(a / ((maxns - 1) * PI), 2);
   return 1 / (1 - b);
 }
+
 template<typename T> std::vector<T> log_scale(T low, T hi, int n) {
   vector<T> res;
   T base = log(low);
@@ -35,17 +36,6 @@ template<typename T> std::vector<T> log_scale(T low, T hi, int n) {
     res.push_back(exp(base + i * step));
   }
   return res;
-}
-
-tuple<int, int> factor2(int val) {
-  int a = static_cast<int>(sqrt(val));
-  while (val % a != 0 && a > 1) a--;
-  return {a, val / a};
-}
-tuple<int, int, int> factor3(int val) {
-  auto f2     = factor2(val);
-  auto flarge = factor2(get<1>(f2));
-  return {get<0>(f2), get<0>(flarge), get<1>(flarge)};
 }
 
 int64_t M                         = 5000;
@@ -107,7 +97,7 @@ int main(int argc, char *argv[]) {
       sigma_dynamic.first = sigma_bounds.first;
       if (sigma_bounds.first + prec < sigma_dynamic.second)
         while (sigma_dynamic.second - sigma_dynamic.first > prec) {
-          opts.upsampfac = (sigma_dynamic.second + sigma_dynamic.first) / 2;
+          opts.upsampfac = 2.0;//(sigma_dynamic.second + sigma_dynamic.first) / 2;
           finufft_plan_s *plan{nullptr};
           finufft_makeplan(type, n_dims, N, iflag, n_transf, tol, &plan, &opts);
           finufft_setpts(plan, M, x.data(), y.data(), z.data(), Ntotal, s.data(),
@@ -120,12 +110,14 @@ int main(int argc, char *argv[]) {
             finufft_execute(plan, c_est.data(), f_input.data());
             err = relerrtwonorm(M, c_targ.data(), c_est.data());
           }
+          cout << err << endl;
           finufft_destroy(plan);
 
           if (err < tol) {
             sigma_dynamic.second = opts.upsampfac;
           } else
             sigma_dynamic.first = opts.upsampfac;
+          break;
         }
       finufft_plan_s *plan{nullptr};
       opts.upsampfac = sigma_dynamic.second;
