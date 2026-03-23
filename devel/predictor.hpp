@@ -18,6 +18,13 @@ double get_sigma(double tol, int type, int dim) {
   double b = pow(a / ((maxns - 1) * PI), 2);
   return 1 / (1 - b);
 }
+
+double map_to_domain(double x, double lower, double upper) {
+    double span = log(upper) - log(lower);
+    double sum_endpoints = (log(upper) + log(lower));
+    return (log(x)*2-sum_endpoints)/span;
+}
+
 struct Predictor {
 public:
     Predictor() {};
@@ -45,9 +52,7 @@ double Predictor::best_sigma(double tol) {
     if(tol < upper_tol) {
         double mult = 1;
         double res = 0;
-        double span = log(upper_tol) - log(lower_tol);
-        double sum_endpoints = (log(upper_tol) + log(lower_tol));
-        double log_scaled = (log(tol)*2-sum_endpoints)/span;
+        double log_scaled = map_to_domain(tol, lower_tol, upper_tol);
         for(auto &coeff: coefficients) {
             res += coeff*mult; 
             mult *= log_scaled;

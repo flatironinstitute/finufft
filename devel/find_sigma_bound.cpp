@@ -118,17 +118,10 @@ int main(int argc, char *argv[]) {
         vector<double> tol_x(tol_range.begin()+lowest_tol_idx, tol_range.begin()+sigmas.size());
         double lower_tol = tol_x.front();
         double upper_tol = tol_x.back();
-        double span = log(upper_tol) - log(lower_tol);
-        double sum_endpoints = (log(upper_tol) + log(lower_tol));
-        transform(tol_x.begin(), tol_x.end(), tol_x.begin(), [=](double tol){ return (log(tol)*2 - sum_endpoints)/span; });
-        for(auto &ae: tol_x)
-            cout << ae << " ";
-        cout << endl;
+        transform(tol_x.begin(), tol_x.end(), tol_x.begin(), [=](double tol){ return map_to_domain(tol, lower_tol, upper_tol);});
         vector<double> ups_y(sigmas.begin()+lowest_tol_idx, sigmas.end());
         vector<double> coeffs(NCOEFFS);
         PolynomialRegression<double>().fitIt(tol_x, ups_y, NCOEFFS-1, coeffs);
-        for(auto a: coeffs) 
-            cout << a << endl;
         predictors.push_back(Predictor(type, dim, coeffs, lower_tol, upper_tol, typeid(double)));
         break;
     }
