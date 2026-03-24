@@ -54,8 +54,8 @@ and also add them to GitHub's Used By feature):
 
 #. `fftvis <https://github.com/tyler-a-cox/fftvis>`__: a non-uniform Fast Fourier Transform based interferometric visibility simulator, by Tyler A Cox (UC Berkeley) and colleagues. Their `article <https://academic.oup.com/rasti/article/doi/10.1093/rasti/rzaf056/8327611>`__ states that FINUFFT enables "up to two orders of magnitude" speed-up over the standard simulator code.
 
+#. `FIONA <https://github.com/ninoephremidze/FIONA>`__: Fresnel Integral Optimization via Non-uniform trAnsforms, by Nino Ephremidze, Marc Kamionkowski, and Cora Dvorkin. Uses the factorization (Bluestein) trick from our Fresnel integral work with FINUFFT for fast computation of gravitational-wave lensing (2026). https://arxiv.org/abs/2603.12333
 
-   
 
 Python packages depending on FINUFFT
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
