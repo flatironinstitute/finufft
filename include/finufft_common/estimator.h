@@ -4,7 +4,7 @@
 #include <ostream>
 
 namespace finufft::kernel {
-double get_sigma(double tol, int type, int dim);
+double get_sigma(double tol, int type, int dim, int maxns);
 double map_to_domain(double x, double lower, double upper);
 struct SigmaEstimator {
 public:
@@ -21,6 +21,6 @@ private:
     double upper_tol;
     std::type_index precision;
 };
-extern const SigmaEstimator trained[];
+extern const std::vector<SigmaEstimator> trained;
 }
 

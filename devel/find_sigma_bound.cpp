@@ -2,8 +2,8 @@
 #include "PolynomialRegression.hpp"
 #include <iostream>
 #include <cmath>
-#include <direct/norms.hpp>
-#include <direct/dirft1d.hpp>
+#include "direct/norms.hpp"
+#include "direct/dirft1d.hpp"
 #include <finufft/test_defs.hpp>
 #include <finufft.h>
 #include <random>
@@ -234,11 +234,11 @@ int main(int argc, char *argv[]) {
     vector<finufft::kernel::SigmaEstimator> predictors;
     if(cmd_opts.prec.find('f') != cmd_opts.prec.end())
         train<float>(cmd_opts, predictors);
-    //if(cmd_opts.prec.find("d") != cmd_opts.prec.end())
-    //    train<double>(cmd_opts, predictors);
+    if(cmd_opts.prec.find('d') != cmd_opts.prec.end())
+        train<double>(cmd_opts, predictors);
     ofstream out(cmd_opts.output_path);
     out << "#include <finufft_common/common.h>\n";
-    out << "finufft::kernel::SigmaEstimator trained[] = {\n";
+    out << "const std::vector<finufft::kernel::SigmaEstimator> finufft::kernel::trained = {\n";
     for(int i=0;i<predictors.size();i++) {
         if(i)
             out << ",\n";

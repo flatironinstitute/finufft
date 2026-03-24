@@ -6,8 +6,7 @@
 
 namespace finufft::kernel {
 
-double get_sigma(double tol, int type, int dim) {
-  double maxns  = 16;
+double get_sigma(double tol, int type, int dim, int maxns) {
   double tolfac = 0.18 * pow(1.4, dim - 1);
   if (type == 3) tolfac *= 1.4;
   double a = std::log(tolfac / tol);
@@ -32,7 +31,10 @@ double SigmaEstimator::best_sigma(double tol) {
         }
         return std::min(res, 2.0);
     }
-    return get_sigma(tol, type, dim);
+    int maxns = finufft::common::MAX_NSPREAD;
+    if(precision == typeid(float))
+        maxns = 8;
+    return get_sigma(tol, type, dim, maxns);
 }
 bool SigmaEstimator::match(int transform_type, int transform_dim, std::type_index &transform_precision) {
     return transform_type == type && transform_dim == dim && transform_precision == precision;
