@@ -1,4 +1,5 @@
 #include <finufft_common/common.h>
+#include <finufft/heuristics.hpp>
 #include "PolynomialRegression.hpp"
 #include <iostream>
 #include <cmath>
@@ -89,7 +90,7 @@ template<typename T> std::vector<T> log_scale(T low, T hi, int n) {
     return res;
 }
 
-template<typename T> void train(train_options_t &cmd_opts, vector<finufft::kernel::SigmaEstimator> &predictors) {
+template<typename T> void train(train_options_t &cmd_opts, vector<finufft::heuristics::SigmaEstimator> &predictors) {
     pair<double, double> sigma_bounds = {1.0, 2.0};
     double limit = static_cast<double>(numeric_limits<T>::epsilon());
     vector<double> tol_range          = log_scale(limit, 1e-2, 100);
@@ -144,7 +145,7 @@ template<typename T> void train(train_options_t &cmd_opts, vector<finufft::kerne
                 int maxns = finufft::common::MAX_NSPREAD;
                 if constexpr (is_same_v<T, float>)
                     maxns = 8;
-                double comp_sigma = finufft::kernel::get_sigma(tol, type, n_dims, maxns);
+                double comp_sigma = finufft::heuristics::get_sigma(tol, type, n_dims, maxns);
                 sigma_dynamic.first = comp_sigma;
                 while (sigma_dynamic.second - sigma_dynamic.first > cmd_opts.sigma_prec) {
                     opts.upsampfac = (sigma_dynamic.second + sigma_dynamic.first) / 2;
@@ -194,11 +195,11 @@ template<typename T> void train(train_options_t &cmd_opts, vector<finufft::kerne
                 continue;
             double lower_tol = tol_x.front();
             double upper_tol = tol_x.back();
-            transform(tol_x.begin(), tol_x.end(), tol_x.begin(), [=](double tol){ return finufft::kernel::map_to_domain(tol, lower_tol, upper_tol);});
+            transform(tol_x.begin(), tol_x.end(), tol_x.begin(), [=](double tol){ return finufft::heuristics::map_to_domain(tol, lower_tol, upper_tol);});
             vector<double> ups_y(sigmas.begin()+lowest_tol_idx, sigmas.end());
-            vector<double> coeffs(finufft::kernel::SigmaEstimator::NCOEFFS);
-            PolynomialRegression<double>().fitIt(tol_x, ups_y, finufft::kernel::SigmaEstimator::NCOEFFS-1, coeffs);
-            predictors.push_back(finufft::kernel::SigmaEstimator(type, n_dims, coeffs, lower_tol, upper_tol, typeid(T)));
+            vector<double> coeffs(finufft::heuristics::SigmaEstimator::NCOEFFS);
+            PolynomialRegression<double>().fitIt(tol_x, ups_y, finufft::heuristics::SigmaEstimator::NCOEFFS-1, coeffs);
+            predictors.push_back(finufft::heuristics::SigmaEstimator(type, n_dims, coeffs, lower_tol, upper_tol, typeid(T)));
         }
     }
 }
@@ -231,14 +232,14 @@ int main(int argc, char *argv[]) {
         return 0;
     }
     train_options_t cmd_opts(argc, argv);
-    vector<finufft::kernel::SigmaEstimator> predictors;
+    vector<finufft::heuristics::SigmaEstimator> predictors;
     if(cmd_opts.prec.find('f') != cmd_opts.prec.end())
         train<float>(cmd_opts, predictors);
     if(cmd_opts.prec.find('d') != cmd_opts.prec.end())
         train<double>(cmd_opts, predictors);
     ofstream out(cmd_opts.output_path);
     out << "#include <finufft_common/common.h>\n";
-    out << "const std::vector<finufft::kernel::SigmaEstimator> finufft::kernel::trained = {\n";
+    out << "const std::vector<finufft::heuristics::SigmaEstimator> finufft::heuristics::trained = {\n";
     for(int i=0;i<predictors.size();i++) {
         if(i)
             out << ",\n";

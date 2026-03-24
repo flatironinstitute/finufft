@@ -6,4 +6,3 @@
 #include <finufft_common/pswf.h>
 #include <finufft_common/safe_call.h>
 #include <finufft_common/utils.h>
-#include <finufft_common/estimator.h>

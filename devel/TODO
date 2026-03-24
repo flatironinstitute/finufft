@@ -1,0 +1,27 @@
+Side list of items to do for FINUFFT library that are not in github Issues
+==========================================================================
+
+
+* Add a real-valued spreader option which will be faster and use half the RAM: but how avoid code duplication? Extend the C macros we now have for dual-prec.
+
+* Check huge arrays >2^31 working in 2d,3d in C++, and for any d in MATLAB/octave.
+- matlab/MEX used to give zero answers for >=2e31 array sizes (big1dtest.m).
+- test huge arrays >=2^31 2d, 3d in C++.
+- test huge arrays >=2^31 in octave/mex.
+- ditto py.
+
+* Package as RPM and .deb for linux, brew for OSX.
+
+* R interface?
+
+
+
+LOWER PRIORITY TODO / DISCUSSIONS:
+
+* Return FFTW's internal state to single-threaded upon exit from finufft (deals with Marina & Andras' problem where fftw was then kicked from single to multi-threaded by an intervening finufft call).  Remind ourselves why?
+* understand why two modeords not give bit-wise same answers in check_modeords.m (really why it's stochastic either exactly zero or around 1e-13)
+* Decide if non vs omp get different lib names? (like FFTW) -> not yet.
+* Intel MKL FFT interface option instead of FFTW?
+* recoup DFM's PyPI publishing of finufftpy, maybe awkward
+* make finufft.cpp shuffle routines dcomplex interface and native dcomplex arith (remove a bunch of 2* in indexing, and have no fftw_complex refs in them. However, need first to make sure using complex divide isn't slower than real divide used now).
+* rewrite fftw3 plans via 64bit guru interface to allow eg 1024^3 type 1 or 2 in 3D. Not sure needed (only for huge 1d transforms). see http://www.fftw.org/fftw3_doc/Guru-Interface.html#Guru-Interface
