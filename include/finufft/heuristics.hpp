@@ -8,8 +8,10 @@
 #include <type_traits>
 #include <vector>
 #include <array>
-#include <typeindex>
 #include <ostream>
+#include <typeindex>
+#include <optional>
+#include <functional>
 
 namespace finufft::heuristics {
 
@@ -19,8 +21,8 @@ struct SigmaEstimator {
 public:
     static constexpr int NCOEFFS = 4;
     SigmaEstimator(int type, int dim, const std::vector<double> &coeffs, double lower_tol, double upper_tol, std::type_index prec);
-    bool match(int transform_type, int transform_dim, std::type_index &transform_precision);
-    double best_sigma(double tol);
+    bool match(int transform_type, int transform_dim, std::type_index transform_precision) const;
+    double best_sigma(double tol) const;
     friend std::ostream &operator<<(std::ostream &os, const SigmaEstimator &self);
 private:
     int type;
@@ -31,6 +33,7 @@ private:
     std::type_index precision;
 };
 extern const std::vector<SigmaEstimator> trained;
+std::optional<std::reference_wrapper<const SigmaEstimator>> get_estimator(int transform_type, int transform_dim, std::type_index transform_precision); 
 
 #ifndef FINUFFT_USE_DUCC0
 template<typename T>
@@ -348,6 +351,8 @@ double bestUpsamplingFactorMultithread(const double density, const int dim,
 template<typename T>
 double bestUpsamplingFactor(const int nthreads, const double density, const int dim,
                             const int nufftType, const double epsilon) {
+  if(auto estimator = get_estimator(nufftType, dim, std::type_index(typeid(T))))
+      return estimator->get().best_sigma(epsilon);
   // 1) For epsilons <= 1e-9, 1.25 is not supported.
   //    We also prevent 1.25 being used when within 2 digits of eps_mach
   if (epsilon <= 1.0e-9 || epsilon <= std::numeric_limits<T>::epsilon() * 100) {

@@ -7,6 +7,14 @@
 
 namespace finufft::heuristics {
 
+
+std::optional<std::reference_wrapper<const SigmaEstimator>> get_estimator(int transform_type, int transform_dim, std::type_index transform_precision) {
+    for(auto &estimator: trained) {
+        if(estimator.match(transform_type, transform_dim, transform_precision))
+            return estimator;
+    }
+}
+
 double get_sigma(double tol, int type, int dim, int maxns) {
   double tolfac = 0.18 * pow(1.4, dim - 1);
   if (type == 3) tolfac *= 1.4;
@@ -19,7 +27,7 @@ double map_to_domain(double x, double lower, double upper) {
     double sum_endpoints = (std::log(upper) + std::log(lower));
     return (std::log(x)*2-sum_endpoints)/span;
 }
-double SigmaEstimator::best_sigma(double tol) {
+double SigmaEstimator::best_sigma(double tol) const {
     if(tol < lower_tol) 
         return 2.0;
     if(tol < upper_tol) {
@@ -37,7 +45,7 @@ double SigmaEstimator::best_sigma(double tol) {
         maxns = 8;
     return get_sigma(tol, type, dim, maxns);
 }
-bool SigmaEstimator::match(int transform_type, int transform_dim, std::type_index &transform_precision) {
+bool SigmaEstimator::match(int transform_type, int transform_dim, std::type_index transform_precision) const {
     return transform_type == type && transform_dim == dim && transform_precision == precision;
 }
 SigmaEstimator::SigmaEstimator(int type, int dim, const std::vector<double> &coeffs, double lower_tol, double upper_tol, std::type_index prec): type(type), dim(dim), lower_tol(lower_tol), upper_tol(upper_tol), precision(prec) {

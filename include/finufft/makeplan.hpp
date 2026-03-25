@@ -174,6 +174,8 @@ template<typename TF> void FINUFFT_PLAN_T<TF>::setup_spreadinterp() {
               __func__, m.spopts.upsampfac, (double)m.tol, ns, MAX_NSPREAD);
       throw finufft::exception(FINUFFT_ERR_EPS_TOO_SMALL);
     }
+  } else if(!opts.allow_eps_too_small) {
+
   }
   // further ns reduction to prevent catastrophic cancellation in float...
   const bool singleprec = std::is_same_v<TF, float>;
