@@ -21,15 +21,6 @@ namespace cufinufft {
 namespace spreadinterp {
 
 static __host__ __device__ int calc_global_index(
-    int xidx, int yidx, int zidx, int onx, int ony, int onz, int bnx, int bny, int bnz) {
-  int oix, oiy, oiz;
-  oix = xidx / bnx;
-  oiy = yidx / bny;
-  oiz = zidx / bnz;
-  return (oix + oiy * onx + oiz * ony * onx) * (bnx * bny * bnz) +
-         (xidx % bnx + yidx % bny * bnx + zidx % bnz * bny * bnx);
-}
-static __host__ __device__ int calc_global_index(
     cuda::std::array<int,3> idx, cuda::std::array<int,3> on, cuda::std::array<int,3> bn) {
   cuda::std::array<int,3> oi{idx[0]/bn[0], idx[1]/bn[1], idx[2]/bn[2]};
   return (oi[0] + oi[1] * on[0] + oi[2] * on[1] * on[0]) * (bn[0] * bn[1] * bn[2]) +
@@ -37,14 +28,14 @@ static __host__ __device__ int calc_global_index(
 }
 
 static __global__ void calc_subprob_3d_v1(
-    int binsperobinx, int binsperobiny, int binsperobinz, const int *bin_size,
+    cuda::std::array<int,3>  binsperobin, const int *bin_size,
     int *num_subprob, int maxsubprobsize, int numbins) {
   for (int i = threadIdx.x + blockIdx.x * blockDim.x; i < numbins;
        i += gridDim.x * blockDim.x) {
     int numnupts    = 0;
-    int binsperobin = binsperobinx * binsperobiny * binsperobinz;
-    for (int b = 0; b < binsperobin; b++) {
-      numnupts += bin_size[binsperobin * i + b];
+    int binsperobin_tot = binsperobin[0] * binsperobin[1] * binsperobin[2];
+    for (int b = 0; b < binsperobin_tot; b++) {
+      numnupts += bin_size[binsperobin_tot * i + b];
     }
     num_subprob[i] = ceil(numnupts / (float)maxsubprobsize);
   }
@@ -95,63 +86,40 @@ static __global__ void fill_ghost_bins(cuda::std::array<int,3> binsperobin,
 }
 
 static __global__ void ghost_bin_pts_index(
-    int binsperobinx, int binsperobiny, int binsperobinz, int nobinx, int nobiny,
-    int nobinz, const int *binsize, int *index, const int *binstartpts, int M) {
-  int binx  = threadIdx.x + blockIdx.x * blockDim.x;
-  int biny  = threadIdx.y + blockIdx.y * blockDim.y;
-  int binz  = threadIdx.z + blockIdx.z * blockDim.z;
-  int nbinx = nobinx * binsperobinx;
-  int nbiny = nobiny * binsperobiny;
-  int nbinz = nobinz * binsperobinz;
+    cuda::std::array<int,3> binsperobin,
+    cuda::std::array<int,3> nobin, const int *binsize, int *index, const int *binstartpts, int M) {
+  constexpr int ndim=3;
 
-  int i, j, k;
+  cuda::std::array<int,3> bin = {int(threadIdx.x + blockIdx.x * blockDim.x),
+                                 int(threadIdx.y + blockIdx.y * blockDim.y),
+                                 int(threadIdx.z + blockIdx.z * blockDim.z)};
+
+  cuda::std::array<int,3> nbin;
+  for (int idim=0; idim<ndim; ++idim)
+    nbin[idim] = nobin[idim] * binsperobin[idim];
+
   int w = 0;
-  int box[3];
-  if (binx < nbinx && biny < nbiny && binz < nbinz) {
-    box[0] = box[1] = box[2] = 0;
-    i                        = binx;
-    j                        = biny;
-    k                        = binz;
-    int binidx = calc_global_index(binx, biny, binz, nobinx, nobiny, nobinz, binsperobinx,
-                                   binsperobiny, binsperobinz);
-    if (binx % binsperobinx == 0) {
-      i      = binx - 2;
-      box[0] = (i < 0);
-      i      = i < 0 ? i + nbinx : i;
-      w      = 1;
+  cuda::std::array<int,3> box;
+  if (bin[0] < nbin[0] && bin[1] < nbin[1] && bin[2] < nbin[2]) {
+    int binidx = calc_global_index(bin, nobin, binsperobin);
+    cuda::std::array<int,3> ijk;
+    for (int idim=0; idim<ndim; ++idim) {
+      box[idim] = 0;
+      ijk[idim] = bin[idim];
+      if (bin[idim] % binsperobin[idim] == 0) {
+        ijk[idim]      = bin[idim] - 2;
+        box[idim] = (ijk[idim] < 0);
+        ijk[idim]      = ijk[idim] < 0 ? ijk[idim] + nbin[idim] : ijk[idim];
+        w      = 1;
+      }
+      if (bin[idim] % binsperobin[idim] == binsperobin[idim] - 1) {
+        ijk[idim] = bin[idim] + 2;
+        box[idim] = (ijk[idim] > nbin[idim]) * 2;
+        ijk[idim] = (ijk[idim] > nbin[idim]) ? ijk[idim] - nbin[idim] : ijk[idim];
+        w = 1;
+      }
     }
-    if (binx % binsperobinx == binsperobinx - 1) {
-      i      = binx + 2;
-      box[0] = (i > nbinx) * 2;
-      i      = (i > nbinx) ? i - nbinx : i;
-      w      = 1;
-    }
-    if (biny % binsperobiny == 0) {
-      j      = biny - 2;
-      box[1] = (j < 0);
-      j      = j < 0 ? j + nbiny : j;
-      w      = 1;
-    }
-    if (biny % binsperobiny == binsperobiny - 1) {
-      j      = biny + 2;
-      box[1] = (j > nbiny) * 2;
-      j      = (j > nbiny) ? j - nbiny : j;
-      w      = 1;
-    }
-    if (binz % binsperobinz == 0) {
-      k      = binz - 2;
-      box[2] = (k < 0);
-      k      = k < 0 ? k + nbinz : k;
-      w      = 1;
-    }
-    if (binz % binsperobinz == binsperobinz - 1) {
-      k      = binz + 2;
-      box[2] = (k > nbinz) * 2;
-      k      = (k > nbinz) ? k - nbinz : k;
-      w      = 1;
-    }
-    int corbinidx = calc_global_index(i, j, k, nobinx, nobiny, nobinz, binsperobinx,
-                                      binsperobiny, binsperobinz);
+    int corbinidx = calc_global_index(ijk, nobin, binsperobin);
     if (w == 1) {
       for (int n = 0; n < binsize[binidx]; n++) {
         index[binstartpts[binidx] + n] =
@@ -168,20 +136,16 @@ static __global__ void locate_nupts_to_bins_ghost(
     cuda::std::array<int,3> binsperobin, int *bin_size,
     cuda::std::array<const T *,3> xyz, int *sortidx, cuda::std::array<int,3> nf123) {
   int binidx;
+  constexpr int ndim=3;
   cuda::std::array<int,3> bin;
   int oldidx;
-  cuda::std::array<T,3>  rescaled;
   for (int i = threadIdx.x + blockIdx.x * blockDim.x; i < M;
        i += gridDim.x * blockDim.x) {
-    rescaled[0] = fold_rescale(xyz[0][i], nf123[0]);
-    rescaled[1] = fold_rescale(xyz[1][i], nf123[1]);
-    rescaled[2] = fold_rescale(xyz[2][i], nf123[2]);
-    bin[0]       = floor(rescaled[0] / binsize[0]);
-    bin[1]       = floor(rescaled[1] / binsize[1]);
-    bin[2]       = floor(rescaled[2] / binsize[2]);
-    bin[0] = bin[0] / (binsperobin[0] - 2) * binsperobin[0] + (bin[0] % (binsperobin[0] - 2) + 1);
-    bin[1] = bin[1] / (binsperobin[1] - 2) * binsperobin[1] + (bin[1] % (binsperobin[1] - 2) + 1);
-    bin[2] = bin[2] / (binsperobin[2] - 2) * binsperobin[2] + (bin[2] % (binsperobin[2] - 2) + 1);
+    for (int idim=0; idim<ndim; ++idim) {
+      T rescaled = fold_rescale(xyz[idim][i], nf123[idim]);
+      bin[idim] = floor(rescaled / binsize[idim]);
+      bin[idim] = bin[idim] / (binsperobin[idim] - 2) * binsperobin[idim] + (bin[idim] % (binsperobin[idim] - 2) + 1);
+    }
 
     binidx     = calc_global_index(bin, nobin, binsperobin);
     oldidx     = atomicAdd(&bin_size[binidx], 1);
@@ -195,19 +159,15 @@ static __global__ void calc_inverse_of_global_sort_index_ghost(
     cuda::std::array<int,3> binsperobin,
     const int *bin_startpts, const int *sortidx, cuda::std::array<const T *,3> xyz,
     int *index, cuda::std::array<int,3> nf123) {
+  constexpr int ndim=3;
   cuda::std::array<int,3> bin;
-  cuda::std::array<T,3>  rescaled;
   for (int i = threadIdx.x + blockIdx.x * blockDim.x; i < M;
        i += gridDim.x * blockDim.x) {
-    rescaled[0] = fold_rescale(xyz[0][i], nf123[0]);
-    rescaled[1] = fold_rescale(xyz[1][i], nf123[1]);
-    rescaled[2] = fold_rescale(xyz[2][i], nf123[2]);
-    bin[0]       = floor(rescaled[0] / binsize[0]);
-    bin[1]       = floor(rescaled[1] / binsize[1]);
-    bin[2]       = floor(rescaled[2] / binsize[2]);
-    bin[0] = bin[0] / (binsperobin[0] - 2) * binsperobin[0] + (bin[0] % (binsperobin[0] - 2) + 1);
-    bin[1] = bin[1] / (binsperobin[1] - 2) * binsperobin[1] + (bin[1] % (binsperobin[1] - 2) + 1);
-    bin[2] = bin[2] / (binsperobin[2] - 2) * binsperobin[2] + (bin[2] % (binsperobin[2] - 2) + 1);
+    for (int idim=0; idim<ndim; ++idim) {
+      T rescaled = fold_rescale(xyz[idim][i], nf123[idim]);
+      bin[idim] = floor(rescaled / binsize[idim]);
+      bin[idim] = bin[idim] / (binsperobin[idim] - 2) * binsperobin[idim] + (bin[idim] % (binsperobin[idim] - 2) + 1);
+    }
 
     int binidx = calc_global_index(bin, nobin, binsperobin);
 
@@ -445,8 +405,7 @@ static void cuspread3d_blockgather_prop(cufinufft_plan_t<T> &d_plan) {
   blocks.z = (threadsPerBlock.z + numbins[2] - 1) / threadsPerBlock.z;
 
   ghost_bin_pts_index<<<blocks, threadsPerBlock, 0, stream>>>(
-      binsperobin[0], binsperobin[1], binsperobin[2], numobins[0], numobins[1], numobins[2],
-      d_binsize, dethrust(d_idxnupts), d_binstartpts, M);
+      binsperobin, numobins, d_binsize, dethrust(d_idxnupts), d_binstartpts, M);
 
   d_plan.idxnupts.clear();
   d_plan.idxnupts.swap(d_idxnupts);
@@ -456,7 +415,7 @@ static void cuspread3d_blockgather_prop(cufinufft_plan_t<T> &d_plan) {
   /* --------------------------------------------- */
   n = numobins[0] * numobins[1] * numobins[2];
   calc_subprob_3d_v1<<<(n + 1024 - 1) / 1024, 1024, 0, stream>>>(
-      binsperobin[0], binsperobin[1], binsperobin[2], d_binsize, d_numsubprob, maxsubprobsize,
+      binsperobin, d_binsize, d_numsubprob, maxsubprobsize,
       numobins[0] * numobins[1] * numobins[2]);
   THROW_IF_CUDA_ERROR
 
