@@ -33,7 +33,8 @@ private:
     std::type_index precision;
 };
 extern const std::vector<SigmaEstimator> trained;
-std::optional<std::reference_wrapper<const SigmaEstimator>> get_estimator(int transform_type, int transform_dim, std::type_index transform_precision); 
+template<typename T>
+std::optional<std::reference_wrapper<const SigmaEstimator>> get_estimator(int transform_type, int transform_dim); 
 
 #ifndef FINUFFT_USE_DUCC0
 template<typename T>
