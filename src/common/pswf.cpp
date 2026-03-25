@@ -12,6 +12,7 @@
 #include <cmath>
 #include <finufft_common/pswf.h>
 #include <iostream>
+#include <mutex>
 #include <unordered_map>
 #include <vector>
 
@@ -1011,9 +1012,10 @@ evaluate prolate0c derivative at x, i.e., \psi_0^c(x)
 */
 double prolate0_eval_derivative(double c, double x) {
   static std::unordered_map<double, Prolate0Fun> prolate0_funcs_cache;
+  static std::mutex mtx;
   const Prolate0Fun *f = nullptr;
-#pragma omp critical(PROLATE0_EVAL)
   {
+    std::lock_guard<std::mutex> lock(mtx);
     auto it = prolate0_funcs_cache.find(c);
     if (it == prolate0_funcs_cache.end()) {
       it = prolate0_funcs_cache.emplace(c, Prolate0Fun(c, 10000)).first;
@@ -1028,9 +1030,10 @@ evaluate prolate0c at x, i.e., \psi_0^c(x)
 */
 double prolate0_eval(double c, double x) {
   static std::unordered_map<double, Prolate0Fun> prolate0_funcs_cache;
+  static std::mutex mtx;
   const Prolate0Fun *f = nullptr;
-#pragma omp critical(PROLATE0_EVAL)
   {
+    std::lock_guard<std::mutex> lock(mtx);
     auto it = prolate0_funcs_cache.find(c);
     if (it == prolate0_funcs_cache.end()) {
       it = prolate0_funcs_cache.emplace(c, Prolate0Fun(c, 10000)).first;
@@ -1045,9 +1048,10 @@ evaluate prolate0c function integral of \int_0^r \psi_0^c(x) dx
 */
 double prolate0_int_eval(double c, double r) {
   static std::unordered_map<double, Prolate0Fun> prolate0_funcs_cache;
+  static std::mutex mtx;
   const Prolate0Fun *f = nullptr;
-#pragma omp critical(PROLATE0_INT_EVAL)
   {
+    std::lock_guard<std::mutex> lock(mtx);
     auto it = prolate0_funcs_cache.find(c);
     if (it == prolate0_funcs_cache.end()) {
       it = prolate0_funcs_cache.emplace(c, Prolate0Fun(c, 10000)).first;
