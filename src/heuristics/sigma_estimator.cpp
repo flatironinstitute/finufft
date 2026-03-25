@@ -6,12 +6,10 @@
 #include <sstream>
 
 namespace finufft::heuristics {
-
-
 template<typename T>
 std::optional<std::reference_wrapper<const SigmaEstimator>> get_estimator(int transform_type, int transform_dim) {
     for(auto &estimator: trained) {
-        if(estimator.match(transform_type, transform_dim, type_index(typeid(T))))
+        if(estimator.match(transform_type, transform_dim, std::type_index(typeid(T))))
             return estimator;
     }
 }
@@ -41,15 +39,12 @@ double SigmaEstimator::best_sigma(double tol) const {
         }
         return std::min(res, 2.0);
     }
-    int maxns = finufft::common::MAX_NSPREAD;
-    if(precision == typeid(float))
-        maxns = 8;
     return get_sigma(tol, type, dim, maxns);
 }
 bool SigmaEstimator::match(int transform_type, int transform_dim, std::type_index transform_precision) const {
     return transform_type == type && transform_dim == dim && transform_precision == precision;
 }
-SigmaEstimator::SigmaEstimator(int type, int dim, const std::vector<double> &coeffs, double lower_tol, double upper_tol, std::type_index prec): type(type), dim(dim), lower_tol(lower_tol), upper_tol(upper_tol), precision(prec) {
+SigmaEstimator::SigmaEstimator(int type, int dim, int maxns, const std::vector<double> &coeffs, double lower_tol, double upper_tol, std::type_index prec): type(type), dim(dim), maxns(maxns), lower_tol(lower_tol), upper_tol(upper_tol), precision(prec) {
     assert(coeffs.size() == coefficients.size());
     copy(coeffs.begin(), coeffs.end(), coefficients.begin());
 }
