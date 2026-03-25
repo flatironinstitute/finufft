@@ -138,7 +138,7 @@ struct CudaTimer {
     float avg = this->mean();
 
     double var = 0.0;
-    for (int i = 0; i < start_.size(); ++i) {
+    for (size_t i = 0; i < start_.size(); ++i) {
       float dt;
       cudaEventElapsedTime(&dt, start_[i], stop_[i]);
       var += (dt - avg) * (dt - avg);
@@ -150,7 +150,7 @@ struct CudaTimer {
 
   float tot() {
     float dt_tot = 0.;
-    for (int i = 0; i < start_.size(); ++i) {
+    for (size_t i = 0; i < start_.size(); ++i) {
       float dt;
       cudaEventElapsedTime(&dt, start_[i], stop_[i]);
       dt_tot += dt;

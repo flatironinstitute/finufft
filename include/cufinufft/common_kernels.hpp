@@ -17,6 +17,8 @@ using namespace cufinufft::common;
 
 /* --------------------------- Shared Helpers ---------------------------- */
 
+// Given grid sizes (via nf123) and bin sizes, compute the number of bins
+// along every axis.
 template<int ndim>
 __host__ __device__ auto get_nbins(cuda::std::array<int, 3> nf123,
                                    cuda::std::array<int, 3> binsizes) {
@@ -30,6 +32,9 @@ inline __host__ __device__ int nbins_total(const cuda::std::array<int, 3> &nbins
   return nbins[0] * nbins[1] * nbins[2];
 }
 
+// For the current nonuniform point (given via idx), compute the set of
+// start indices of the spreading/interpolation area in the locally stored subgrid.
+// Also compute the kernel values to use in spreading/interpolation.
 template<typename T, int KEREVALMETH, int ndim, int ns>
 __device__ auto get_kerval_and_local_start(
     int idx, cuda::std::array<const T *, 3> xyz, cuda::std::array<int, 3> nf,
@@ -50,6 +55,10 @@ __device__ auto get_kerval_and_local_start(
   return cuda::std::make_tuple(ker, start);
 }
 
+// For the current nonuniform point (given via idx), compute the set of
+// start indices of the spreading/interpolation area in the locally stored subgrid.
+// Also compute the kernel values to use in spreading/interpolation.
+// (Version for nonunifom-points-driven algorithm.)
 template<typename T, int KEREVALMETH, int ndim, int ns>
 __device__ auto get_kerval_and_startpos_nuptsdriven(
     int idx, cuda::std::array<const T *, 3> xyz, cuda::std::array<int, 3> nf, T sigma,
@@ -84,6 +93,8 @@ __device__ auto compute_offset(int bidx, const cuda::std::array<int, 3> &nbins,
   return offset;
 }
 
+// For the current nonuniform point (given via idx), compute the flat index
+// of the bin it falls into.
 template<int ndim, typename T>
 __device__ int compute_bin_index(
     int idx, cuda::std::array<int, 3> nf, cuda::std::array<T, 3> inv_binsizes,
@@ -101,6 +112,7 @@ __device__ int compute_bin_index(
   return binidx;
 }
 
+// Given bin sizes and kernel support, compute the size of a padded subgrid.
 template<int ndim, int ns>
 __device__ auto get_padded_subgrid_info(const cuda::std::array<int, 3> &binsizes) {
   constexpr auto rounded_ns = ((ns + 1) / 2) * 2;
@@ -113,6 +125,7 @@ __device__ auto get_padded_subgrid_info(const cuda::std::array<int, 3> &binsizes
   return cuda::std::make_tuple(padded_size, total);
 }
 
+// Given a flat index in a local padded subgrid, compute its location in the global grid.
 template<int ndim, int ns>
 __device__ int output_index_from_flat_local_index(
     int flatidx, const cuda::std::array<int, ndim> &padded_size,
@@ -207,6 +220,9 @@ void cuinterp_nuptsdriven(const cufinufft_plan_t<T> &d_plan, cuda_complex<T> *c,
                                      : launch(interp_nupts_driven<T, 0, ndim, ns>);
 }
 
+// Iterates over all locations in a local subgrid, and for all pairs of
+// corresponding local and global pixels, calls the provided function.
+// Useful for copying between global and local grids.
 template<typename T, int ndim, int ns, typename Func>
 __device__ void shared_mem_copy_helper(cuda::std::array<int, 3> binsizes,
                                        cuda::std::array<int, ndim> offset,
@@ -389,12 +405,8 @@ void cuspread_nupts_driven(const cufinufft_plan_t<T> &d_plan, const cuda_complex
                            cuda_complex<T> *fw, int blksize) {
   auto &stream = d_plan.stream;
 
-  dim3 threadsPerBlock;
-  threadsPerBlock.x = 16;
-  threadsPerBlock.y = 1;
-  dim3 blocks;
-  blocks.x = (d_plan.M + threadsPerBlock.x - 1) / threadsPerBlock.x;
-  blocks.y = 1;
+  const dim3 threadsPerBlock{16, 1, 1};
+  const dim3 blocks{(unsigned(d_plan.M) + 15) / 16, 1, 1};
 
   const auto launch = [&](auto kernel) {
     for (int t = 0; t < blksize; t++) {

@@ -135,7 +135,7 @@ cufinufft_plan_t<T>::cufinufft_plan_t(int type_, int dim_, const int *nmodes, in
   // Bin size and memory info now printed in cufinufft_setup_binsize() (common.cu)
   // Additional runtime info at debug level 2
   if (opts.debug >= 2) {
-    printf("[cufinufft] Runtime: grid=(%ld,%ld,%ld), M=%ld\n", nf123[0], nf123[1],
+    printf("[cufinufft] Runtime: grid=(%d,%d,%d), M=%d\n", nf123[0], nf123[1],
            nf123[2], M);
   }
 

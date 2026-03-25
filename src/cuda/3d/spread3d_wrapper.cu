@@ -303,13 +303,13 @@ static __global__ void spread_3d_block_gather(
     const T y1 = T(ystart) - y_rescaled;
     const T z1 = T(zstart) - z_rescaled;
 
-    xstart -= xoffset;
-    ystart -= yoffset;
-    zstart -= zoffset;
+    xstart -= offset[0];
+    ystart -= offset[1];
+    zstart -= offset[2];
 
-    xend -= xoffset;
-    yend -= yoffset;
-    zend -= zoffset;
+    xend -= offset[0];
+    yend -= offset[1];
+    zend -= offset[2];
 
     if constexpr (KEREVALMETH == 1) {
       eval_kernel_vec_horner<T, ns>(ker1, x1, sigma);
@@ -324,16 +324,16 @@ static __global__ void spread_3d_block_gather(
     const auto xstartnew = xstart < 0 ? 0 : xstart;
     const auto ystartnew = ystart < 0 ? 0 : ystart;
     const auto zstartnew = zstart < 0 ? 0 : zstart;
-    const auto xendnew   = xend >= obin_size_x ? obin_size_x - 1 : xend;
-    const auto yendnew   = yend >= obin_size_y ? obin_size_y - 1 : yend;
-    const auto zendnew   = zend >= obin_size_z ? obin_size_z - 1 : zend;
+    const auto xendnew   = xend >= obin_size[0] ? obin_size[0] - 1 : xend;
+    const auto yendnew   = yend >= obin_size[1] ? obin_size[1] - 1 : yend;
+    const auto zendnew   = zend >= obin_size[2] ? obin_size[2] - 1 : zend;
 
     for (int zz = zstartnew; zz <= zendnew; zz++) {
       const T kervalue3 = ker3[zz - zstart];
       for (int yy = ystartnew; yy <= yendnew; yy++) {
         const T kervalue2 = ker2[yy - ystart];
         for (int xx = xstartnew; xx <= xendnew; xx++) {
-          const auto outidx = xx + yy * obin_size_x + zz * obin_size_y * obin_size_x;
+          const auto outidx = xx + yy * obin_size[0] + zz * obin_size[1] * obin_size[0];
           const T kervalue1 = ker1[xx - xstart];
           const cuda_complex<T> res{cnow.x * kervalue1 * kervalue2 * kervalue3,
                                     cnow.y * kervalue1 * kervalue2 * kervalue3};
@@ -345,13 +345,13 @@ static __global__ void spread_3d_block_gather(
   __syncthreads();
   /* write to global memory */
   for (int n = threadIdx.x; n < N; n += blockDim.x) {
-    int i = n % obin_size_x;
-    int j = (n / obin_size_x) % obin_size_y;
-    int k = n / (obin_size_x * obin_size_y);
+    int i = n % obin_size[0];
+    int j = (n / obin_size[0]) % obin_size[1];
+    int k = n / (obin_size[0] * obin_size[1]);
 
-    const auto ix     = xoffset + i;
-    const auto iy     = yoffset + j;
-    const auto iz     = zoffset + k;
+    const auto ix     = offset[0] + i;
+    const auto iy     = offset[1] + j;
+    const auto iz     = offset[2] + k;
     const auto outidx = ix + iy * p.nf123[0] + iz * p.nf123[0] * p.nf123[1];
     atomicAdd(&fw[outidx].x, fwshared[n].x);
     atomicAdd(&fw[outidx].y, fwshared[n].y);

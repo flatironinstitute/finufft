@@ -49,7 +49,7 @@ void cufinufft_set_shared_memory(V *kernel, const int dim,
       d_plan.opts.gpu_binsizez, d_plan.opts.gpu_np);
   cudaDeviceGetAttribute(&shared_mem_per_block, cudaDevAttrMaxSharedMemoryPerBlockOptin,
                          d_plan.opts.gpu_device_id);
-  if (shared_mem_required > shared_mem_per_block) {
+  if (shared_mem_required > unsigned(shared_mem_per_block)) {
     fprintf(stderr,
             "Error: Shared memory required per block is %zu bytes, but the device "
             "supports only %d bytes.\n",
