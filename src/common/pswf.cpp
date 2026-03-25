@@ -925,34 +925,37 @@ void prol0eva(double x, const double *w, double &psi0, double &derpsi0) {
 }
 
 void prol0int0r(const double *w, double r, double &val) {
-  static int npts  = 200;
-  static int itype = 1;
-  double derpsi0;
-  static std::vector<double> xs(npts, 0), ws(npts, 0), fvals(npts, 0);
-  static int need_init = 1;
-  std::vector<std::vector<double>> u;
-  std::vector<std::vector<double>> v;
+  constexpr int npts  = 200;
+  constexpr int itype = 1;
+  struct Prol0IntQuadrature {
+    std::array<double, npts> xs{};
+    std::array<double, npts> ws{};
 
-  // since xs, ws, fval of size 200 are static
-  // only need to get nodes and weights once
-  if (need_init) {
-#pragma omp critical(PROL0INT0R)
-    if (need_init) {
+    Prol0IntQuadrature() {
+      std::vector<std::vector<double>> u;
+      std::vector<std::vector<double>> v;
       legeexps(itype, npts, xs.data(), u, v, ws.data());
-      need_init = 0;
     }
-  }
+  };
+
+  const auto &quadrature = []() -> const Prol0IntQuadrature & {
+    static const Prol0IntQuadrature quadrature;
+    return quadrature;
+  }();
+
+  double derpsi0;
+  std::array<double, npts> fvals{};
 
   // Scale the nodes and weights to [0, r]
   double xs_r;
   for (int i = 0; i < npts; ++i) {
-    xs_r = (xs[i] + 1) * r / 2;
+    xs_r = (quadrature.xs[i] + 1) * r / 2;
     prol0eva(xs_r, w, fvals[i], derpsi0);
   }
 
   val = 0;
   for (int i = 0; i < npts; ++i) {
-    val += ws[i] * r / 2 * fvals[i];
+    val += quadrature.ws[i] * r / 2 * fvals[i];
   }
 }
 } // anonymous namespace
@@ -1008,13 +1011,16 @@ evaluate prolate0c derivative at x, i.e., \psi_0^c(x)
 */
 double prolate0_eval_derivative(double c, double x) {
   static std::unordered_map<double, Prolate0Fun> prolate0_funcs_cache;
-  if (prolate0_funcs_cache.find(c) == prolate0_funcs_cache.end()) {
+  const Prolate0Fun *f = nullptr;
 #pragma omp critical(PROLATE0_EVAL)
-    if (prolate0_funcs_cache.find(c) == prolate0_funcs_cache.end()) {
-      prolate0_funcs_cache.emplace(c, Prolate0Fun(c, 10000));
+  {
+    auto it = prolate0_funcs_cache.find(c);
+    if (it == prolate0_funcs_cache.end()) {
+      it = prolate0_funcs_cache.emplace(c, Prolate0Fun(c, 10000)).first;
     }
+    f = &it->second;
   }
-  return prolate0_funcs_cache[c].eval_derivative(x);
+  return f->eval_derivative(x);
 }
 
 /*
@@ -1022,13 +1028,16 @@ evaluate prolate0c at x, i.e., \psi_0^c(x)
 */
 double prolate0_eval(double c, double x) {
   static std::unordered_map<double, Prolate0Fun> prolate0_funcs_cache;
-  if (prolate0_funcs_cache.find(c) == prolate0_funcs_cache.end()) {
+  const Prolate0Fun *f = nullptr;
 #pragma omp critical(PROLATE0_EVAL)
-    if (prolate0_funcs_cache.find(c) == prolate0_funcs_cache.end()) {
-      prolate0_funcs_cache.emplace(c, Prolate0Fun(c, 10000));
+  {
+    auto it = prolate0_funcs_cache.find(c);
+    if (it == prolate0_funcs_cache.end()) {
+      it = prolate0_funcs_cache.emplace(c, Prolate0Fun(c, 10000)).first;
     }
+    f = &it->second;
   }
-  return prolate0_funcs_cache[c].eval_val(x);
+  return f->eval_val(x);
 }
 
 /*
@@ -1036,13 +1045,16 @@ evaluate prolate0c function integral of \int_0^r \psi_0^c(x) dx
 */
 double prolate0_int_eval(double c, double r) {
   static std::unordered_map<double, Prolate0Fun> prolate0_funcs_cache;
-  if (prolate0_funcs_cache.find(c) == prolate0_funcs_cache.end()) {
+  const Prolate0Fun *f = nullptr;
 #pragma omp critical(PROLATE0_INT_EVAL)
-    if (prolate0_funcs_cache.find(c) == prolate0_funcs_cache.end()) {
-      prolate0_funcs_cache.emplace(c, Prolate0Fun(c, 10000));
+  {
+    auto it = prolate0_funcs_cache.find(c);
+    if (it == prolate0_funcs_cache.end()) {
+      it = prolate0_funcs_cache.emplace(c, Prolate0Fun(c, 10000)).first;
     }
+    f = &it->second;
   }
-  return prolate0_funcs_cache[c].int_eval(r);
+  return f->int_eval(r);
 }
 // end of prolate functions
 
