@@ -15,6 +15,10 @@ namespace spreadinterp {
 using namespace cufinufft::utils;
 using namespace cufinufft::common;
 
+// The only functions in this header that are called from outside are
+// called "cu<spread/interp>_<method>[_prop]".
+// All other functions are only used locally.
+
 /* --------------------------- Shared Helpers ---------------------------- */
 
 // Given grid sizes (via plan.nf123) and bin sizes, compute the number of bins
@@ -149,8 +153,9 @@ __device__ int output_index_from_flat_local_index(
   return outidx;
 }
 
-/* ------------------------- Interp Kernels ------------------------------ */
+/* ------------------------- Interpolation section ------------------------------ */
 
+// Nupts-driven interpolation kernel
 template<typename T, int KEREVALMETH, int ndim, int ns>
 __global__ FINUFFT_FLATTEN void interp_nupts_driven(
     const cuda::std::array<const T *, 3> xyz, cuda_complex<T> *FINUFFT_RESTRICT c,
@@ -202,6 +207,7 @@ __global__ FINUFFT_FLATTEN void interp_nupts_driven(
   }
 }
 
+// Nupts-driven interpolation CPU driver
 template<typename T, int ndim, int ns>
 void cuinterp_nuptsdriven(const cufinufft_plan_t<T> &d_plan, int blksize) {
   const T es_c    = 4.0 / T(d_plan.spopts.nspread * d_plan.spopts.nspread);
@@ -257,6 +263,7 @@ __device__ void shared_mem_copy_helper(cuda::std::array<int, 3> binsizes,
   }
 }
 
+// Subprob interpolation kernel
 template<typename T, int KEREVALMETH, int ndim, int ns>
 __global__ FINUFFT_FLATTEN void interp_subprob(
     const cuda::std::array<const T *, 3> xyz, cuda_complex<T> *FINUFFT_RESTRICT c,
@@ -334,6 +341,7 @@ __global__ FINUFFT_FLATTEN void interp_subprob(
   }
 }
 
+// Subprob interpolation CPU driver
 template<typename T, int ndim, int ns>
 void cuinterp_subprob(const cufinufft_plan_t<T> &d_plan, int blksize) {
   const int maxsubprobsize = d_plan.opts.gpu_maxsubprobsize;
@@ -370,8 +378,9 @@ void cuinterp_subprob(const cufinufft_plan_t<T> &d_plan, int blksize) {
     launch(interp_subprob<T, 0, ndim, ns>);
 }
 
-/* ------------------------- Spread Kernels ------------------------------ */
+/* ------------------------- Spreading section ------------------------------ */
 
+// Nupts-driven spreading kernel
 template<typename T, int KEREVALMETH, int ndim, int ns>
 __global__ FINUFFT_FLATTEN void spread_nupts_driven(
     const cuda::std::array<const T *, 3> xyz, const cuda_complex<T> *FINUFFT_RESTRICT c,
@@ -416,6 +425,7 @@ __global__ FINUFFT_FLATTEN void spread_nupts_driven(
   }
 }
 
+// Nupts-driven spreading CPU driver
 template<typename T, int ndim, int ns>
 void cuspread_nupts_driven(const cufinufft_plan_t<T> &d_plan, int blksize) {
   const T sigma   = d_plan.spopts.upsampfac;
@@ -468,6 +478,7 @@ __global__ FINUFFT_FLATTEN void calc_inverse_of_global_sort_idx(
   }
 }
 
+// Preparation(?) function for nupts-driven spreading
 template<typename T, int ndim>
 void cuspread_nuptsdriven_prop(cufinufft_plan_t<T> &d_plan) {
   if (d_plan.opts.gpu_sort) {
@@ -504,6 +515,7 @@ void cuspread_nuptsdriven_prop(cufinufft_plan_t<T> &d_plan) {
   }
 }
 
+// Subprob spreading kernel
 template<typename T, int KEREVALMETH, int ndim, int ns>
 __global__ FINUFFT_FLATTEN void spread_subprob(
     const cuda::std::array<const T *, 3> xyz, const cuda_complex<T> *FINUFFT_RESTRICT c,
@@ -590,6 +602,7 @@ __global__ FINUFFT_FLATTEN void spread_subprob(
       });
 }
 
+// Subprob spreading CPU driver
 template<typename T, int ndim, int ns>
 static void cuspread_subprob(const cufinufft_plan_t<T> &d_plan, int blksize) {
   cuda::std::array<int, 3> binsizes = {d_plan.opts.gpu_binsizex, d_plan.opts.gpu_binsizey,
@@ -640,8 +653,9 @@ static __global__ void map_b_into_subprob(
   }
 }
 
+// Preparation(?) function for subprob and output-driven spreading
 template<typename T, int ndim>
-static void cuspread_subprob_prop(cufinufft_plan_t<T> &d_plan) {
+static void cuspread_subprob_and_OD_prop(cufinufft_plan_t<T> &d_plan) {
   cuda::std::array<int, 3> binsizes = {d_plan.opts.gpu_binsizex, d_plan.opts.gpu_binsizey,
                                        d_plan.opts.gpu_binsizez};
 
@@ -697,6 +711,7 @@ static void cuspread_subprob_prop(cufinufft_plan_t<T> &d_plan) {
 
 /* ---------------------- Output-Driven Kernels -------------------------- */
 
+// Output-driven spreading kernel
 template<typename T, int KEREVALMETH, int ndim, int ns>
 __global__ FINUFFT_FLATTEN void spread_output_driven(
     const cuda::std::array<const T *, 3> xyz, const cuda_complex<T> *FINUFFT_RESTRICT c,
@@ -788,6 +803,7 @@ __global__ FINUFFT_FLATTEN void spread_output_driven(
   }
 }
 
+// Output-driven spreading CPU driver
 template<typename T, int ndim, int ns>
 static void cuspread_output_driven(const cufinufft_plan_t<T> &d_plan, int blksize) {
   cuda::std::array<int, 3> binsizes{d_plan.opts.gpu_binsizex, d_plan.opts.gpu_binsizey,
