@@ -2,69 +2,71 @@
 // wasm: finufft
 // finufft_setpts(handle, nj, xj, yj, zj, nk, s, t, u) -> void
 register({
-  check: function (argTypes, nargout) {
-    return { outputTypes: [] };
-  },
-  apply: function (args, nargout) {
-    var handle = args[0];
-    var nj = args[1];
-    var xj = args[2];
-    var yj = args[3];
-    var zj = args[4];
-    var nk = args[5];
-    var s = args[6];
-    var t = args[7];
-    var u = args[8];
+  resolve: function (argTypes, nargout) {
+    return {
+      outputTypes: [],
+      apply: function (args, nargout) {
+        var handle = args[0];
+        var nj = args[1];
+        var xj = args[2];
+        var yj = args[3];
+        var zj = args[4];
+        var nk = args[5];
+        var s = args[6];
+        var t = args[7];
+        var u = args[8];
 
-    if (native) {
-      var fn = native.func("int guru_setpts(int handle, int nj, double *xj, double *yj, double *zj, int nk, double *s, double *t, double *u)");
+        if (native) {
+          var fn = native.func("int guru_setpts(int handle, int nj, double *xj, double *yj, double *zj, int nk, double *s, double *t, double *u)");
 
-      function toArr(tensor, n) {
-        if (n === 0 || !tensor || !tensor.data || tensor.data.length === 0) return null;
-        return tensor.data;
-      }
+          function toArr(tensor, n) {
+            if (n === 0 || !tensor || !tensor.data || tensor.data.length === 0) return null;
+            return tensor.data;
+          }
 
-      var ier = fn(handle, nj, toArr(xj, nj), toArr(yj, nj), toArr(zj, nj),
-                   nk, toArr(s, nk), toArr(t, nk), toArr(u, nk));
-      if (ier !== 0) {
-        throw new RuntimeError("finufft_setpts failed with error code " + ier);
-      }
-      return;
-    }
+          var ier = fn(handle, nj, toArr(xj, nj), toArr(yj, nj), toArr(zj, nj),
+                       nk, toArr(s, nk), toArr(t, nk), toArr(u, nk));
+          if (ier !== 0) {
+            throw new RuntimeError("finufft_setpts failed with error code " + ier);
+          }
+          return;
+        }
 
-    var BYTES = 8;
-    var exports = wasm.exports;
-    var mem = exports.memory;
+        var BYTES = 8;
+        var exports = wasm.exports;
+        var mem = exports.memory;
 
-    function allocCopy(tensor, n) {
-      if (n === 0 || !tensor || !tensor.data || tensor.data.length === 0) {
-        return 0; // null pointer for empty arrays
-      }
-      var ptr = exports.my_malloc(n * BYTES);
-      var view = new Float64Array(mem.buffer);
-      view.set(new Float64Array(tensor.data.buffer, tensor.data.byteOffset, n), ptr / BYTES);
-      return ptr;
-    }
+        function allocCopy(tensor, n) {
+          if (n === 0 || !tensor || !tensor.data || tensor.data.length === 0) {
+            return 0; // null pointer for empty arrays
+          }
+          var ptr = exports.my_malloc(n * BYTES);
+          var view = new Float64Array(mem.buffer);
+          view.set(new Float64Array(tensor.data.buffer, tensor.data.byteOffset, n), ptr / BYTES);
+          return ptr;
+        }
 
-    var xj_ptr = allocCopy(xj, nj);
-    var yj_ptr = allocCopy(yj, nj);
-    var zj_ptr = allocCopy(zj, nj);
-    var s_ptr = allocCopy(s, nk);
-    var t_ptr = allocCopy(t, nk);
-    var u_ptr = allocCopy(u, nk);
+        var xj_ptr = allocCopy(xj, nj);
+        var yj_ptr = allocCopy(yj, nj);
+        var zj_ptr = allocCopy(zj, nj);
+        var s_ptr = allocCopy(s, nk);
+        var t_ptr = allocCopy(t, nk);
+        var u_ptr = allocCopy(u, nk);
 
-    var ier = exports.guru_setpts(handle, nj, xj_ptr, yj_ptr, zj_ptr,
-                                  nk, s_ptr, t_ptr, u_ptr);
+        var ier = exports.guru_setpts(handle, nj, xj_ptr, yj_ptr, zj_ptr,
+                                      nk, s_ptr, t_ptr, u_ptr);
 
-    if (xj_ptr) exports.my_free(xj_ptr);
-    if (yj_ptr) exports.my_free(yj_ptr);
-    if (zj_ptr) exports.my_free(zj_ptr);
-    if (s_ptr) exports.my_free(s_ptr);
-    if (t_ptr) exports.my_free(t_ptr);
-    if (u_ptr) exports.my_free(u_ptr);
+        if (xj_ptr) exports.my_free(xj_ptr);
+        if (yj_ptr) exports.my_free(yj_ptr);
+        if (zj_ptr) exports.my_free(zj_ptr);
+        if (s_ptr) exports.my_free(s_ptr);
+        if (t_ptr) exports.my_free(t_ptr);
+        if (u_ptr) exports.my_free(u_ptr);
 
-    if (ier !== 0) {
-      throw new RuntimeError("finufft_setpts failed with error code " + ier);
-    }
+        if (ier !== 0) {
+          throw new RuntimeError("finufft_setpts failed with error code " + ier);
+        }
+      },
+    };
   },
 });
