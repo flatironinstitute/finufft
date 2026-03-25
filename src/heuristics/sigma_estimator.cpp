@@ -8,10 +8,10 @@
 namespace finufft::heuristics {
 
 
-std::optional<const SigmaEstimator*> get_estimator(int transform_type, int transform_dim, std::type_index transform_precision) {
+std::optional<std::reference_wrapper<const SigmaEstimator>> get_estimator(int transform_type, int transform_dim, std::type_index transform_precision) {
     for(auto &estimator: trained) {
         if(estimator.match(transform_type, transform_dim, transform_precision))
-            return &estimator;
+            return estimator;
     }
 }
 

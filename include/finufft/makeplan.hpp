@@ -10,12 +10,14 @@
 
 #include <finufft/plan.hpp>
 #include <finufft/utils.hpp>
+#include <finufft/heuristics.hpp>
 #include <finufft/spreadinterp.hpp>
 #include <finufft_common/kernel.h>
 #include <finufft_common/utils.h>
 
 // ---------- local math routines (were in common.cpp; no need now): --------
 
+#include <typeindex>
 template<typename TF>
 void FINUFFT_PLAN_T<TF>::set_nf_type12(BIGINT ms, BIGINT *nf) const
 // Type 1 & 2 recipe for how to set 1d size of upsampled array, nf, given opts
@@ -174,8 +176,14 @@ template<typename TF> void FINUFFT_PLAN_T<TF>::setup_spreadinterp() {
               __func__, m.spopts.upsampfac, (double)m.tol, ns, MAX_NSPREAD);
       throw finufft::exception(FINUFFT_ERR_EPS_TOO_SMALL);
     }
-  } else if(!opts.allow_eps_too_small) {
-
+  } else if(auto estimator = finufft::heuristics::get_estimator(type, dim, std::type_index(typeid(TF)))) {
+    auto sigma = estimator->get().best_sigma((double)m.tol);
+    if(!opts.allow_eps_too_small && sigma > m.spopts.upsampfac) {
+      fprintf(stderr,
+              "%s waring: tol=%.3g is not achievable at upsampfac=%.3g. "
+              "Increase upsampfac to %.3g=\n",
+              __func__, (double)m.tol, m.spopts.upsampfac, sigma);
+    }
   }
   // further ns reduction to prevent catastrophic cancellation in float...
   const bool singleprec = std::is_same_v<TF, float>;
