@@ -26,7 +26,7 @@ set(CUFINUFFT_INCLUDE_DIRS
 
 set(CUFINUFFT_INCLUDE_DIRS ${CUFINUFFT_INCLUDE_DIRS} PARENT_SCOPE)
 
-list(APPEND FINUFFT_CUDA_FLAGS $<$<COMPILE_LANGUAGE:CUDA>:--extended-lambda --extra-device-vectorization -Wextra -Wall>)
+list(APPEND FINUFFT_CUDA_FLAGS $<$<COMPILE_LANGUAGE:CUDA>:--extended-lambda --extra-device-vectorization>)
 
 if(FINUFFT_SHARED_LINKING)
     add_library(cufinufft SHARED ${SRC})
