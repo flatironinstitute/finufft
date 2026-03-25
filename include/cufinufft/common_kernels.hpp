@@ -279,7 +279,7 @@ __global__ FINUFFT_FLATTEN void interp_subprob(
     cuda_complex<T> cnow{0, 0};
     if constexpr (ndim == 1) {
       const auto ofs0 = start[0] + ns_2;
-      for (int xx = 0; xx < ns; ++xx) cnow += {fwshared[ofs0 + xx] * ker[0][xx]};
+      for (int xx = 0; xx < ns; ++xx) cnow += fwshared[ofs0 + xx] * ker[0][xx];
     }
     if constexpr (ndim == 2) {
       const auto delta_y = binsizes[0] + rounded_ns;
@@ -305,7 +305,7 @@ __global__ FINUFFT_FLATTEN void interp_subprob(
           cuda_complex<T> cnowy{0, 0};
           const auto ofs = ofs1 + yy * delta_y;
           for (int xx = 0; xx < ns; ++xx) {
-            cnowy += {fwshared[ofs + xx] * ker[0][xx]};
+            cnowy += fwshared[ofs + xx] * ker[0][xx];
           }
           cnowz += cnowy * ker[1][yy];
         }

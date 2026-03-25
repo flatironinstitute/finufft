@@ -4,6 +4,7 @@
 #include <cuComplex.h>
 #include <cuda.h>
 #include <cufinufft/contrib/helper_cuda.h>
+#include <cufinufft/contrib/helper_math.h>
 #include <cufinufft/cufinufft_plan_t.h>
 
 /* Kernel for copying fw to fk with amplication by prefac/ker */
@@ -45,11 +46,9 @@ static __global__ void deconv_nd(
     }
 
     if (fw2fk) {
-      fk[fkidx].x = fw[fwidx].x / kervalue;
-      fk[fkidx].y = fw[fwidx].y / kervalue;
+      fk[fkidx] = fw[fwidx] / kervalue;
     } else {
-      fw[fwidx].x = fk[fkidx].x / kervalue;
-      fw[fwidx].y = fk[fkidx].y / kervalue;
+      fw[fwidx] = fk[fkidx] / kervalue;
     }
   }
 }
