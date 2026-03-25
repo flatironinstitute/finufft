@@ -238,40 +238,37 @@ static __global__ void spread_3d_block_gather(
   T sigma            = p.spopts.upsampfac;
   int maxsubprobsize = p.opts.gpu_maxsubprobsize;
 
-  int obin_size_x = p.opts.gpu_obinsizex;
-  int obin_size_y = p.opts.gpu_obinsizey;
-  int obin_size_z = p.opts.gpu_obinsizez;
-  int bin_size_x  = p.opts.gpu_binsizex;
-  int bin_size_y  = p.opts.gpu_binsizey;
-  int bin_size_z  = p.opts.gpu_binsizez;
-  int nobinx, nobiny, nobinz;
-  nobinx = ceil((T)p.nf123[0] / obin_size_x);
-  nobiny = ceil((T)p.nf123[1] / obin_size_y);
-  nobinz = ceil((T)p.nf123[2] / obin_size_z);
+  cuda::std::array<int,3> obin_size { p.opts.gpu_obinsizex, p.opts.gpu_obinsizey, p.opts.gpu_obinsizez };
+  cuda::std::array<int,3> bin_size { p.opts.gpu_binsizex, p.opts.gpu_binsizey, p.opts.gpu_binsizez };
+  cuda::std::array<int,ndim> nobin;
+  for (size_t idim=0; idim<ndim; ++idim)
+    nobin[idim] = ceil((T)p.nf123[idim] / obin_size[idim]);
 
-  int binsperobinx, binsperobiny, binsperobinz;
-  binsperobinx = obin_size_x / bin_size_x + 2;
-  binsperobiny = obin_size_y / bin_size_y + 2;
-  binsperobinz = obin_size_z / bin_size_z + 2;
-  int binsperobin = binsperobinx * binsperobiny * binsperobinz;
+  cuda::std::array<int,ndim> binsperobin;
+  int binsperobin_tot = 1;
+  for (size_t idim=0; idim<ndim; ++idim) {
+    binsperobin[idim] = obin_size[idim] / bin_size[idim] + 2;
+    binsperobin_tot *= binsperobin[idim];
+  }
 
   extern __shared__ char sharedbuf[];
   cuda_complex<T> *fwshared = (cuda_complex<T> *)sharedbuf;
   const int subpidx         = blockIdx.x;
   const int obidx           = p.subprob_to_bin[subpidx];
-  const int bidx            = obidx * binsperobin;
+  const int bidx            = obidx * binsperobin_tot;
 
   const int obinsubp_idx = subpidx - p.subprobstartpts[obidx];
   const int ptstart      = p.binstartpts[bidx] + obinsubp_idx * p.opts.gpu_maxsubprobsize;
   const int nupts =
-      min(maxsubprobsize, p.binstartpts[bidx + binsperobin] - p.binstartpts[bidx] -
+      min(maxsubprobsize, p.binstartpts[bidx + binsperobin_tot] - p.binstartpts[bidx] -
                               obinsubp_idx * p.opts.gpu_maxsubprobsize);
 
-  const int xoffset = (obidx % nobinx) * obin_size_x;
-  const int yoffset = (obidx / nobinx) % nobiny * obin_size_y;
-  const int zoffset = (obidx / (nobinx * nobiny)) * obin_size_z;
+  cuda::std::array<int,ndim> offset;
+  offset[0] = (obidx % nobin[0]) * obin_size[0];
+  offset[1] = (obidx / nobin[0]) % nobin[1] * obin_size[1];
+  offset[2] = (obidx / (nobin[0] * nobin[1])) * obin_size[2];
 
-  const int N = obin_size_x * obin_size_y * obin_size_z;
+  const int N = obin_size[0] * obin_size[1] * obin_size[2];
 
   T ker1[ns];
   T ker2[ns];
