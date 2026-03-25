@@ -407,7 +407,7 @@ void cuspread_nupts_driven(const cufinufft_plan_t<T> &d_plan, int blksize) {
   const T es_beta = d_plan.spopts.beta;
 
   const dim3 threadsPerBlock{16, 1, 1};
-  const dim3 blocks{(d_plan.M + 15) / 16, 1, 1};
+  const dim3 blocks{(unsigned(d_plan.M) + 15) / 16, 1, 1};
 
   const auto launch = [&](auto kernel) {
     for (int t = 0; t < blksize; t++) {
