@@ -66,15 +66,10 @@ c
       iflag = 1
       print*,'Starting 2D testing: ', ' nj =',nj, ' ms,mt =',ms,mt
       do i = 1,4
-         if (i.eq.1) eps=1d-4
-         if (i.eq.2) eps=1d-8
-         if (i.eq.3) eps=1d-12
-         if (i.eq.4) eps=1d-16
-c extented/quad precision tests
-         if (i.eq.5) eps=1d-20
-         if (i.eq.6) eps=1d-24
-         if (i.eq.7) eps=1d-28
-         if (i.eq.8) eps=1d-32
+         if (i.eq.1) eps=1d-3
+         if (i.eq.2) eps=1d-6
+         if (i.eq.3) eps=1d-9
+         if (i.eq.4) eps=1d-12
 	 print*,' '
 	 print*,' Requested precision eps =',eps
 	 print*,' '
