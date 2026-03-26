@@ -167,6 +167,54 @@ static __global__ void calc_inverse_of_global_sort_index_ghost(
     *const_cast<int *>(&p.idxnupts[p.binstartpts[binidx] + p.sortidx[i]]) = i;
   }
 }
+template<typename T>
+static __global__ void locate_nupts_to_bins_ghost(
+    int M, cuda::std::array<int,3> binsize, cuda::std::array<int,3> nobin,
+    cuda::std::array<int,3> binsperobin, int *bin_size,
+    cuda::std::array<const T *,3> xyz, int *sortidx, cuda::std::array<int,3> nf123) {
+  int binidx;
+  constexpr int ndim=3;
+  cuda::std::array<int,3> bin;
+  int oldidx;
+  for (int i = threadIdx.x + blockIdx.x * blockDim.x; i < M;
+       i += gridDim.x * blockDim.x) {
+
+    for (int idim=0; idim<ndim; ++idim) {
+      T rescaled = fold_rescale(xyz[idim][i], nf123[idim]);
+      bin[idim] = floor(rescaled / binsize[idim]);
+      bin[idim] = bin[idim] / (binsperobin[idim] - 2) * binsperobin[idim] + (bin[idim] % (binsperobin[idim] - 2) + 1);
+
+    }
+
+    binidx     = calc_global_index(bin, nobin, binsperobin);
+    oldidx     = atomicAdd(&bin_size[binidx], 1);
+    sortidx[i] = oldidx;
+  }
+}
+
+template<typename T>
+static __global__ void calc_inverse_of_global_sort_index_ghost(
+    int M, cuda::std::array<int,3> binsize, cuda::std::array<int,3> nobin,
+    cuda::std::array<int,3> binsperobin,
+    const int *bin_startpts, const int *sortidx, cuda::std::array<const T *,3> xyz,
+    int *index, cuda::std::array<int,3> nf123) {
+  constexpr int ndim=3;
+  cuda::std::array<int,3> bin;
+  for (int i = threadIdx.x + blockIdx.x * blockDim.x; i < M;
+       i += gridDim.x * blockDim.x) {
+
+    for (int idim=0; idim<ndim; ++idim) {
+      T rescaled = fold_rescale(xyz[idim][i], nf123[idim]);
+      bin[idim] = floor(rescaled / binsize[idim]);
+      bin[idim] = bin[idim] / (binsperobin[idim] - 2) * binsperobin[idim] + (bin[idim] % (binsperobin[idim] - 2) + 1);
+
+    }
+
+    int binidx = calc_global_index(bin, nobin, binsperobin);
+
+    index[bin_startpts[binidx] + sortidx[i]] = i;
+  }
+}
 
 template<typename T, int KEREVALMETH, int ndim, int ns>
 static __global__ void spread_3d_block_gather(
@@ -334,7 +382,11 @@ static void cuspread3d_blockgather_prop(cufinufft_plan_t<T> &d_plan) {
       d_binsize, 0, numbins[0] * numbins[1] * numbins[2] * sizeof(int), stream));
 
   locate_nupts_to_bins_ghost<<<(M + 1024 - 1) / 1024, 1024, 0, stream>>>(
-      cufinufft_gpu_data<T>(d_plan), bin_size, numobins, binsperobin);
+      M, bin_size, numobins,
+      binsperobin, d_binsize, d_plan.kxyz, d_sortidx,
+      d_plan.nf123);
+//  locate_nupts_to_bins_ghost<<<(M + 1024 - 1) / 1024, 1024, 0, stream>>>(
+//      cufinufft_gpu_data<T>(d_plan), bin_size, numobins, binsperobin);
   THROW_IF_CUDA_ERROR
 
   dim3 threadsPerBlock = {8, 8, 8};
@@ -362,7 +414,10 @@ static void cuspread3d_blockgather_prop(cufinufft_plan_t<T> &d_plan) {
   gpu_array<int> d_idxnupts(totalNUpts, d_plan.alloc);
 
   calc_inverse_of_global_sort_index_ghost<<<(M + 1024 - 1) / 1024, 1024, 0, stream>>>(
-      cufinufft_gpu_data<T>(d_plan), bin_size, numobins, binsperobin);
+      M, bin_size, numobins, binsperobin, d_binstartpts, d_sortidx, d_plan.kxyz,
+      dethrust(d_idxnupts), d_plan.nf123);
+//  calc_inverse_of_global_sort_index_ghost<<<(M + 1024 - 1) / 1024, 1024, 0, stream>>>(
+//      cufinufft_gpu_data<T>(d_plan), bin_size, numobins, binsperobin);
 
   threadsPerBlock = {2, 2, 2};
 
