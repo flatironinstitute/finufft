@@ -57,10 +57,6 @@ constexpr __forceinline__ __host__ __device__ T fold_rescale(T x, int N) {
 }
 
 template<typename T>
-int setup_spreader(finufft_spread_opts &spopts, T eps, T upsampfac, int kerevalmeth,
-                   int debug, int spreadinterponly);
-
-template<typename T>
 static inline T evaluate_kernel(T x, const finufft_spread_opts &spopts)
 /* ES ("exp sqrt" or "exp semicircle") kernel evaluation, single real argument:
    returns phi(2x/ns) := exp(beta.[sqrt(1 - (2x/ns)^2) - 1]),  for |x| < ns/2.
