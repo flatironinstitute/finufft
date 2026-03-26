@@ -28,6 +28,7 @@ set(FINUFFT_PRECISION_SOURCES
 
 # Sources compiled once (handle both precisions internally)
 set(FINUFFT_COMMON_SOURCES fft.cpp c_interface.cpp utils.cpp)
+list(APPEND FINUFFT_COMMON_SOURCES heuristics/estimate_sigma.cpp)
 
 if(FINUFFT_BUILD_FORTRAN)
     list(APPEND FINUFFT_COMMON_SOURCES ${PROJECT_SOURCE_DIR}/fortran/finufftfort.cpp)
