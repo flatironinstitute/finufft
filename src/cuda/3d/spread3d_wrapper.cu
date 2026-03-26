@@ -210,16 +210,11 @@ static __global__ void spread_3d_block_gather(
       min(maxsubprobsize, p.binstartpts[bidx + binsperobin_tot] - p.binstartpts[bidx] -
                               obinsubp_idx * p.opts.gpu_maxsubprobsize);
 
-  cuda::std::array<int,ndim> offset;
-  offset[0] = (obidx % nobin[0]) * obin_size[0];
-  offset[1] = (obidx / nobin[0]) % nobin[1] * obin_size[1];
-  offset[2] = (obidx / (nobin[0] * nobin[1])) * obin_size[2];
+  auto offset = compute_offset<ndim>(obidx, nobin, obin_size);
 
   const int N = obin_size[0] * obin_size[1] * obin_size[2];
 
-  T ker1[ns];
-  T ker2[ns];
-  T ker3[ns];
+  cuda::std::array<cuda::std::array<T, ns>, 3> ker;
 
   for (int i = threadIdx.x; i < N; i += blockDim.x) {
     fwshared[i] = {0, 0};
@@ -238,70 +233,52 @@ static __global__ void spread_3d_block_gather(
       b = b / 3;
     }
     const int ii          = nidx % p.M;
-    const auto x_rescaled = fold_rescale(p.xyz[0][ii], p.nf123[0]) + box[0] * p.nf123[0];
-    const auto y_rescaled = fold_rescale(p.xyz[1][ii], p.nf123[1]) + box[1] * p.nf123[1];
-    const auto z_rescaled = fold_rescale(p.xyz[2][ii], p.nf123[2]) + box[2] * p.nf123[2];
-    const auto cnow       = c[ii];
-    auto [xstart, xend]   = interval(ns, x_rescaled);
-    auto [ystart, yend]   = interval(ns, y_rescaled);
-    auto [zstart, zend]   = interval(ns, z_rescaled);
+    cuda::std::array<int,3> start, startnew, endnew;
+    for (int idim=0; idim<ndim; ++idim) {
+      const auto rescaled = fold_rescale(p.xyz[idim][ii], p.nf123[idim]) + box[idim] * p.nf123[idim];
+      auto [start_, end]   = interval(ns, rescaled);
 
-    const T x1 = T(xstart) - x_rescaled;
-    const T y1 = T(ystart) - y_rescaled;
-    const T z1 = T(zstart) - z_rescaled;
+      const T pos = T(start_) - rescaled;
+      start_ -= offset[idim];
+      end -= offset[idim];
 
-    xstart -= offset[0];
-    ystart -= offset[1];
-    zstart -= offset[2];
+      if constexpr (KEREVALMETH == 1) {
+        eval_kernel_vec_horner<T, ns>(&ker[idim][0], pos, sigma);
+      } else {
+        eval_kernel_vec<T, ns>(&ker[idim][0], pos, es_c, es_beta);
+      }
 
-    xend -= offset[0];
-    yend -= offset[1];
-    zend -= offset[2];
-
-    if constexpr (KEREVALMETH == 1) {
-      eval_kernel_vec_horner<T, ns>(ker1, x1, sigma);
-      eval_kernel_vec_horner<T, ns>(ker2, y1, sigma);
-      eval_kernel_vec_horner<T, ns>(ker3, z1, sigma);
-    } else {
-      eval_kernel_vec<T, ns>(ker1, x1, es_c, es_beta);
-      eval_kernel_vec<T, ns>(ker2, y1, es_c, es_beta);
-      eval_kernel_vec<T, ns>(ker3, z1, es_c, es_beta);
+      start[idim] = start_;
+      startnew[idim] = start_ < 0 ? 0 : start_;
+      endnew[idim]   = end >= obin_size[idim] ? obin_size[idim] - 1 : end;
     }
 
-    const auto xstartnew = xstart < 0 ? 0 : xstart;
-    const auto ystartnew = ystart < 0 ? 0 : ystart;
-    const auto zstartnew = zstart < 0 ? 0 : zstart;
-    const auto xendnew   = xend >= obin_size[0] ? obin_size[0] - 1 : xend;
-    const auto yendnew   = yend >= obin_size[1] ? obin_size[1] - 1 : yend;
-    const auto zendnew   = zend >= obin_size[2] ? obin_size[2] - 1 : zend;
-
-    for (int zz = zstartnew; zz <= zendnew; zz++) {
-      const T kervalue3 = ker3[zz - zstart];
-      for (int yy = ystartnew; yy <= yendnew; yy++) {
-        const T kervalue2 = ker2[yy - ystart];
-        for (int xx = xstartnew; xx <= xendnew; xx++) {
+    const auto cnow       = c[ii];
+    for (int zz = startnew[2]; zz <= endnew[2]; zz++) {
+      const T kervalue3 = ker[2][zz - start[2]];
+      for (int yy = startnew[1]; yy <= endnew[1]; yy++) {
+        const T kervalue2 = ker[1][yy - start[1]];
+        for (int xx = startnew[0]; xx <= endnew[0]; xx++) {
           const auto outidx = xx + yy * obin_size[0] + zz * obin_size[1] * obin_size[0];
-          const T kervalue1 = ker1[xx - xstart];
-          const cuda_complex<T> res{cnow.x * kervalue1 * kervalue2 * kervalue3,
-                                    cnow.y * kervalue1 * kervalue2 * kervalue3};
-          atomicAddComplexShared<T>(fwshared + outidx, res);
+          const T kervalue1 = ker[0][xx - start[0]];
+          atomicAddComplexShared<T>(fwshared + outidx, cnow * kervalue1 * kervalue2 * kervalue3);
         }
       }
     }
   }
   __syncthreads();
-  /* write to global memory */
-  for (int n = threadIdx.x; n < N; n += blockDim.x) {
-    int i = n % obin_size[0];
-    int j = (n / obin_size[0]) % obin_size[1];
-    int k = n / (obin_size[0] * obin_size[1]);
 
-    const auto ix     = offset[0] + i;
-    const auto iy     = offset[1] + j;
-    const auto iz     = offset[2] + k;
-    const auto outidx = ix + iy * p.nf123[0] + iz * p.nf123[0] * p.nf123[1];
-    atomicAdd(&fw[outidx].x, fwshared[n].x);
-    atomicAdd(&fw[outidx].y, fwshared[n].y);
+ /* write to global memory */
+  for (int n = threadIdx.x; n < N; n += blockDim.x) {
+    int outidx = 0, stride = 1;
+    int tmp = n;
+    for (size_t idim=0; idim<ndim; ++idim) {
+      int idx = tmp%obin_size[idim]+offset[idim];
+      outidx += idx*stride;
+      tmp /= obin_size[idim];
+      stride *= p.nf123[idim];
+    }
+    atomicAddComplexGlobal<T>(fw + outidx, fwshared[n]);
   }
 }
 
@@ -313,10 +290,7 @@ static void cuspread3d_blockgather_prop(cufinufft_plan_t<T> &d_plan) {
   int M        = d_plan.M;
 
   int maxsubprobsize = d_plan.opts.gpu_maxsubprobsize;
-  cuda::std::array<int,3> o_bin_size;
-  o_bin_size[0] = d_plan.opts.gpu_obinsizex;
-  o_bin_size[1] = d_plan.opts.gpu_obinsizey;
-  o_bin_size[2] = d_plan.opts.gpu_obinsizez;
+  cuda::std::array<int,3> o_bin_size = {d_plan.opts.gpu_obinsizex, d_plan.opts.gpu_obinsizey, d_plan.opts.gpu_obinsizez};
 
   if (d_plan.nf123[0] % o_bin_size[0] != 0 || d_plan.nf123[1] % o_bin_size[1] != 0 || d_plan.nf123[2] % o_bin_size[2] != 0) {
     std::cerr << "[cuspread3d_blockgather_prop] error:\n";
@@ -329,9 +303,8 @@ static void cuspread3d_blockgather_prop(cufinufft_plan_t<T> &d_plan) {
   }
 
   cuda::std::array<int,3> numobins;
-  numobins[0] = ceil((T)d_plan.nf123[0] / o_bin_size[0]);
-  numobins[1] = ceil((T)d_plan.nf123[1] / o_bin_size[1]);
-  numobins[2] = ceil((T)d_plan.nf123[2] / o_bin_size[2]);
+  for (int idim=0; idim<ndim; ++idim)
+    numobins[idim] = ceil((T)d_plan.nf123[idim] / o_bin_size[idim]);
 
   cuda::std::array<int,3> bin_size = {d_plan.opts.gpu_binsizex, d_plan.opts.gpu_binsizey, d_plan.opts.gpu_binsizez};
   if (o_bin_size[0] % bin_size[0] != 0 || o_bin_size[1] % bin_size[1] != 0 ||
@@ -348,12 +321,10 @@ static void cuspread3d_blockgather_prop(cufinufft_plan_t<T> &d_plan) {
 
   cuda::std::array<int,3> binsperobin;
   cuda::std::array<int,3> numbins;
-  binsperobin[0] = o_bin_size[0] / bin_size[0] + 2;
-  binsperobin[1] = o_bin_size[1] / bin_size[1] + 2;
-  binsperobin[2] = o_bin_size[2] / bin_size[2] + 2;
-  numbins[0]   = numobins[0] * binsperobin[0];
-  numbins[1]   = numobins[1] * binsperobin[1];
-  numbins[2]   = numobins[2] * binsperobin[2];
+  for (int idim=0; idim<ndim; ++idim) {
+    binsperobin[idim] = o_bin_size[idim] / bin_size[idim] + 2;
+    numbins[idim] = numobins[idim] * binsperobin[idim];
+  }
 
   int *d_binsize         = dethrust(d_plan.binsize);
   int *d_sortidx         = dethrust(d_plan.sortidx);

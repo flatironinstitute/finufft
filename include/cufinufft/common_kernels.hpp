@@ -84,7 +84,7 @@ __device__ auto get_kerval_and_startpos_nuptsdriven(
 }
 
 template<int ndim>
-__device__ auto compute_offset(int bidx, const cuda::std::array<int, 3> &nbins,
+__device__ auto compute_offset(const int bidx, const cuda::std::array<int, 3> &nbins,
                                const cuda::std::array<int, 3> &binsizes) {
   cuda::std::array<int, ndim> offset;
   int tmp = bidx;
