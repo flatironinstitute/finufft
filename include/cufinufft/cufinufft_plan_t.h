@@ -201,14 +201,6 @@ template<typename T> struct cufinufft_plan_t {
   }
 
 private:
-  void alloc1d();
-  void alloc2d();
-  void alloc3d();
-
-  void alloc1d_nupts();
-  void alloc2d_nupts();
-  void alloc3d_nupts();
-
   void exec1(cuda_complex<T> *d_c, cuda_complex<T> *d_fk) const;
   void exec2(cuda_complex<T> *d_c, cuda_complex<T> *d_fk) const;
   void exec3(cuda_complex<T> *d_c, cuda_complex<T> *d_fk) const;
