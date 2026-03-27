@@ -1,13 +1,12 @@
-#include "polynomial_regression.hpp"
 #include <cmath>
 #include <finufft.h>
-#include <finufft/heuristics.hpp>
 #include <finufft/test_defs.hpp>
 #include <finufft_common/common.h>
 #include <fstream>
 #include <getopt.h>
 #include <iostream>
 #include <map>
+#include <polynomial_regression.hpp>
 #include <random>
 #include <ranges>
 #include <set>
@@ -140,7 +139,7 @@ template<typename T> void train(train_options_t &cmd_opts) {
       vector<double> sigmas;
       int lowest_tol_idx = 0;
       for (auto &tol : tol_range) {
-        double comp_sigma = finufft::heuristics::lowest_sigma(tol, type, n_dims, maxns);
+        double comp_sigma  = finufft::kernel::lowest_sigma(tol, type, n_dims, maxns, 8);
         double sigma_lower = min(sigma_upper, comp_sigma);
         while (sigma_upper - sigma_lower > cmd_opts.sigma_prec) {
           opts.upsampfac = (sigma_upper + sigma_lower) / 2;
@@ -192,7 +191,7 @@ template<typename T> void train(train_options_t &cmd_opts) {
       double lower_tol = tol_x.front();
       double upper_tol = tol_x.back();
       transform(tol_x.begin(), tol_x.end(), tol_x.begin(), [=](double tol) {
-        return finufft::heuristics::map_to_domain(tol, lower_tol, upper_tol);
+        return finufft::kernel::map_to_domain(tol, lower_tol, upper_tol);
       });
       vector<double> ups_y(sigmas.begin() + lowest_tol_idx, sigmas.end());
       auto polynomial = andviane::polynomial_regression<3>(tol_x, ups_y);
