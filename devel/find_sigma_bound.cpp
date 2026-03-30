@@ -34,15 +34,17 @@ struct train_options_t {
   int Ntotal;
   int M;
   double sigma_prec;
+  int ntol;
   unordered_map<string, string> options_map;
 
   train_options_t(int argc, char *argv[]) {
     options_map["dim"]        = "1";
     options_map["type"]       = "1,2,3";
     options_map["prec"]       = "f,d";
-    options_map["N"]          = "5000";
+    options_map["N"]          = "300";
     options_map["M"]          = "5000";
     options_map["sigma-prec"] = "1e-5";
+    options_map["ntol"]       = "200";
     // clang-format off
         static struct option long_options[] {
             {"dim", required_argument, 0, 0},
@@ -50,7 +52,8 @@ struct train_options_t {
             {"prec", required_argument, 0, 0},
             {"sigma-prec", required_argument, 0, 0},
             {"N", required_argument, 0, 0},
-            {"M", required_argument, 0, 0}
+            {"M", required_argument, 0, 0},
+            {"ntol", required_argument, 0, 0}
         };
     // clang-format on
     int option_index = 0;
@@ -65,6 +68,7 @@ struct train_options_t {
     Ntotal     = stoi(options_map["N"]);
     M          = stoi(options_map["M"]);
     sigma_prec = stod(options_map["sigma-prec"]);
+    ntol       = stoi(options_map["ntol"]);
   }
 };
 
@@ -79,10 +83,26 @@ template<typename T> std::vector<T> log_scale(T low, T hi, int n) {
   return res;
 }
 
+// Inverse of theoretical_kernel_ns. Computes lowest sigma (upsampfacs) that
+// keeps ns below maxns.
+double lowest_sigma(double tol, int type, int dim, int maxns, int kerformula) {
+  double tolfac;
+  double nsoff;
+  if (kerformula == 1) {
+    tolfac = 1;
+    nsoff  = 0;
+  } else {
+    tolfac = 0.18 * pow(1.4, dim - 1);
+    if (type == 3) tolfac *= 1.4;
+    nsoff = 1;
+  }
+  double a = std::log(tolfac / tol);
+  double b = pow(a / ((maxns - nsoff) * finufft::common::PI), 2);
+  return 1 / (1 - b);
+}
+
 template<typename T> void train(train_options_t &cmd_opts) {
   pair<double, double> sigma_bounds = {1.0, 2.0};
-  double limit                      = static_cast<double>(numeric_limits<T>::epsilon());
-  vector<double> tol_range          = log_scale(limit, min(1e-2, limit * 1e10), 100);
   int64_t N[3];
   const int n_transf  = 1;
   constexpr int iflag = 1;
@@ -112,19 +132,17 @@ template<typename T> void train(train_options_t &cmd_opts) {
       c_input[i] = crandom11();
     }
     dirft1d1(cmd_opts.M, x, c_input, iflag, cmd_opts.Ntotal, f_input);
+    T S = (T)cmd_opts.Ntotal / 4;
     for (int i = 0; i < cmd_opts.Ntotal; i++) {
-      s[i] = PI * random11();
-      t[i] = PI * random11();
-      u[i] = PI * random11();
+      s[i] = S * (random11());
+      t[i] = S * (random11());
+      u[i] = S * (random11());
     }
     finufft_opts opts;
     finufft_default_opts(&opts);
     opts.allow_eps_too_small = 1;
     N[0] = cmd_opts.Ntotal, N[1] = 1, N[2] = 1;
     for (auto &type : cmd_opts.type) {
-      int maxns = finufft::common::MAX_NSPREAD;
-      if constexpr (is_same_v<T, float>) maxns = 8;
-      double sigma_upper = sigma_bounds.second;
       switch (type) {
       case (1):
         dirft1d1(cmd_opts.M, x, c_input, iflag, cmd_opts.Ntotal, f_targ);
@@ -138,8 +156,23 @@ template<typename T> void train(train_options_t &cmd_opts) {
       }
       vector<double> sigmas;
       int lowest_tol_idx = 0;
-      for (auto &tol : tol_range) {
-        double comp_sigma  = finufft::kernel::lowest_sigma(tol, type, n_dims, maxns, 8);
+      int upper_tol_idx  = -1;
+
+      int maxns = finufft::common::MAX_NSPREAD;
+      if constexpr (is_same_v<T, float>) maxns = 8;
+      double sigma_upper = sigma_bounds.second;
+      double prev_sigma;
+      vector<double> tol_range;
+      double exp_tol   = static_cast<double>(numeric_limits<T>::epsilon());
+      double exp_limit = log(min(1e-2, exp_tol * 1e6));
+      exp_tol          = log(exp_tol);
+      double max_step  = (exp_limit - exp_tol) / cmd_opts.ntol;
+
+      for (int idx = 0; exp_tol < exp_limit; idx++) {
+        double tol = exp(exp_tol);
+        tol_range.push_back(tol);
+        prev_sigma         = sigma_upper;
+        double comp_sigma  = lowest_sigma(tol, type, n_dims, maxns, 8);
         double sigma_lower = min(sigma_upper, comp_sigma);
         while (sigma_upper - sigma_lower > cmd_opts.sigma_prec) {
           opts.upsampfac = (sigma_upper + sigma_lower) / 2;
@@ -179,32 +212,35 @@ template<typename T> void train(train_options_t &cmd_opts) {
             sigma_lower = opts.upsampfac;
         }
         sigmas.push_back(sigma_upper);
-        if (sigma_upper == sigma_bounds.second) lowest_tol_idx++;
+        if (sigma_upper == sigma_bounds.second) {
+          lowest_tol_idx = max(0, idx);
+        }
         if (sigma_upper < sigma_bounds.second &&
-            sigma_upper < comp_sigma + cmd_opts.sigma_prec)
+            sigma_upper < comp_sigma + cmd_opts.sigma_prec) {
+          upper_tol_idx = upper_tol_idx == -1 ? idx : upper_tol_idx;
           break;
+        }
+        exp_tol += max_step;
       }
-      if (lowest_tol_idx > 0) lowest_tol_idx--;
+      upper_tol_idx = upper_tol_idx == -1 ? tol_range.size() - 1 : upper_tol_idx;
       vector<double> tol_x(tol_range.begin() + lowest_tol_idx,
-                           tol_range.begin() + sigmas.size());
+                           tol_range.begin() + upper_tol_idx + 1);
       if (tol_x.size() < 2) continue;
-      double lower_tol = tol_x.front();
-      double upper_tol = tol_x.back();
-      transform(tol_x.begin(), tol_x.end(), tol_x.begin(), [=](double tol) {
-        return finufft::kernel::map_to_domain(tol, lower_tol, upper_tol);
-      });
-      vector<double> ups_y(sigmas.begin() + lowest_tol_idx, sigmas.end());
+      vector<double> ups_y(sigmas.begin() + lowest_tol_idx,
+                           sigmas.begin() + upper_tol_idx + 1);
+      transform(tol_x.begin(), tol_x.end(), tol_x.begin(),
+                [=](double tol) { return log(tol); });
       auto polynomial = andviane::polynomial_regression<3>(tol_x, ups_y);
       vector<double> coeffs(polynomial.begin(), polynomial.end());
 
       cout << "SigmaEstimator{ type: " << type << ", n_dims: " << n_dims
-           << ", maxns: " << maxns << ", polynomial_coefficients: [";
+           << ", maxns: " << maxns << ", polynomial_coefficients: {";
       for (size_t i = 0; i < coeffs.size(); ++i) {
         if (i > 0) cout << ", ";
-        cout << std::fixed << std::setprecision(4) << coeffs[i];
+        cout << std::fixed << std::setprecision(10) << coeffs[i];
       }
-      cout << "], lower_tol: " << std::scientific << lower_tol
-           << ", upper_tol: " << std::scientific << upper_tol
+      cout << "}, " << std::scientific << tol_range[lowest_tol_idx] << ", "
+           << std::scientific << tol_range[upper_tol_idx]
            << ", type: " << typeid(T).name() << " }\n";
     }
   }
@@ -236,7 +272,10 @@ int main(int argc, char *argv[]) {
               << default_opts.options_map["M"] << "\n"
               << "    --sigma-prec <int>\n"
                  "           precision of sigma value binary search.\n"
-              << "           default: " << default_opts.options_map["sigma-prec"] << "\n";
+              << "           default: " << default_opts.options_map["sigma-prec"] << "\n"
+              << "    --ntol <int>\n"
+                 "           Number of tolerance values in a range.\n"
+              << "           default: " << default_opts.options_map["ntol"] << "\n";
     return 0;
   }
   train_options_t cmd_opts(argc, argv);
