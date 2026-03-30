@@ -9,9 +9,6 @@
 #include <vector>
 
 namespace finufft::heuristics {
-
-double lowest_sigma(double tol, int type, int dim, int maxns);
-double map_to_domain(double x, double lower, double upper);
 #ifndef FINUFFT_USE_DUCC0
 template<typename T>
 double bestUpsamplingFactorSinglethread(

@@ -72,11 +72,6 @@ double kernel_definition(const finufft_spread_opts &spopts, double z);
 int theoretical_kernel_ns(double tol, int dim, int type, int debug,
                           const finufft_spread_opts &spopts);
 
-// Inverse of theoretical_kernel_ns. Computes lowest sigma (upsampfacs) that
-// keeps ns below maxns.
-double lowest_sigma(double tol, int type, int dim, int maxns, int kerformula);
-double map_to_domain(double x, double lower, double upper);
-
 void set_kernel_shape_given_ns(finufft_spread_opts &opts, int debug);
 
 // min and max number of poly coeffs allowed (compiled) for a given spread width ns.
