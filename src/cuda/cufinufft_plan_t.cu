@@ -5,6 +5,7 @@
 
 #include <cufinufft.h>
 #include <cufinufft/common.h>
+#include <cufinufft/common_kernels.hpp>
 #include <cufinufft/defs.h>
 #include <cufinufft/spreadinterp.h>
 #include <cufinufft/types.h>
@@ -504,17 +505,7 @@ Notes: the type T means either single or double, matching the
   if (dim > 2) kxyz[2] = d_kz;
 
   using namespace cufinufft::spreadinterp;
-  switch (dim) {
-  case 1: {
-    cuspread1d_prop(*this);
-  } break;
-  case 2: {
-    cuspread2d_prop(*this);
-  } break;
-  case 3: {
-    cuspread3d_prop(*this);
-  } break;
-  }
+  launch_dispatch_ndim<SpreadPropDispatcher, T>(SpreadPropDispatcher(), dim, *this);
 
   if (opts.debug) {
     printf("[cufinufft] plan->M=%d\n", M);
@@ -767,28 +758,14 @@ template void cufinufft_plan_t<double>::setpts(
 template<typename T>
 static void cuspreadnd(const cufinufft_plan_t<T> &d_plan, const cuda_complex<T> *c,
                        cuda_complex<T> *fw, int blksize) {
-  using namespace cufinufft::spreadinterp;
-  switch (d_plan.dim) {
-  case 1:
-    return cuspread1d(d_plan, c, fw, blksize);
-  case 2:
-    return cuspread2d(d_plan, c, fw, blksize);
-  case 3:
-    return cuspread3d(d_plan, c, fw, blksize);
-  }
+  cufinufft::utils::launch_dispatch_ndim_ns<cufinufft::spreadinterp::SpreadDispatcher, T>(cufinufft::spreadinterp::SpreadDispatcher(), d_plan.dim, d_plan.spopts.nspread,
+                                            d_plan, c, fw, blksize);
 }
 template<typename T>
 static void cuinterpnd(const cufinufft_plan_t<T> &d_plan, cuda_complex<T> *c,
                        const cuda_complex<T> *fw, int blksize) {
-  using namespace cufinufft::spreadinterp;
-  switch (d_plan.dim) {
-  case 1:
-    return cuinterp1d(d_plan, c, fw, blksize);
-  case 2:
-    return cuinterp2d(d_plan, c, fw, blksize);
-  case 3:
-    return cuinterp3d(d_plan, c, fw, blksize);
-  }
+  cufinufft::utils::launch_dispatch_ndim_ns<cufinufft::spreadinterp::InterpDispatcher, T>(cufinufft::spreadinterp::InterpDispatcher(), d_plan.dim, d_plan.spopts.nspread,
+                                            d_plan, c, fw, blksize);
 }
 
 template<typename T>
