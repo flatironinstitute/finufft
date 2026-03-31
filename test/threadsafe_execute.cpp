@@ -13,11 +13,16 @@
 #include "utils/dirft1d.hpp"
 #include "utils/norms.hpp"
 
+/* This tests thread-safety of single-threaded guru 1D type-1 calls (plan, setpts, etc),
+   then it does a math test against the direct evaluation, again with many threads
+   running the same thing many times. (Claude describes it as "hammering" the same plan:)
+   Code expanded by Libin Lu, March 2026. Docs by Barnett 3/31/26.
+ */
 int main() {
-  constexpr int nthreads = 4;
+  constexpr int nthreads = 4;    // number of threads to launch (NOT FINUFFT internal)
   constexpr int nreps    = 16;
-  constexpr int M        = 400;
-  constexpr int64_t N1   = 2048;
+  constexpr int M        = 400;  // NU pts
+  constexpr int64_t N1   = 2048; // output modes
   constexpr double tol   = 1e-12;
 
   finufft_opts opts;
@@ -39,10 +44,11 @@ int main() {
     std::vector<finufft_plan> plans(nthreads, nullptr);
     std::vector<int> failures(nthreads, 0);
 
+    // stress test of plan creation under concurrency.
     std::vector<std::thread> workers;
     workers.reserve(nthreads);
     for (int tid = 0; tid < nthreads; ++tid) {
-      workers.emplace_back([&, tid]() {
+      workers.emplace_back([&, tid]() { // apparently idiomatic C++ to start a thread
         finufft_opts local_opts = opts;
         int ier = finufft_makeplan(1, 1, Ns, +1, 1, tol, &plans[tid], &local_opts);
         if (ier != 0) {
@@ -51,6 +57,7 @@ int main() {
         }
       });
     }
+    // any failures: clean up and exit early...
     for (auto &worker : workers) worker.join();
     if (*std::max_element(failures.begin(), failures.end()) != 0) {
       for (auto &plan : plans) {
@@ -59,6 +66,7 @@ int main() {
       return 1;
     }
 
+    // stress test of setpts under concurrency.
     workers.clear();
     for (int tid = 0; tid < nthreads; ++tid) {
       workers.emplace_back([&, tid]() {
@@ -77,6 +85,7 @@ int main() {
     if (*std::max_element(failures.begin(), failures.end()) != 0) return 1;
   }
 
+  // set up type-1 data...
   std::vector<double> x(M);
   std::vector<std::complex<double>> c(M), ref(N1);
   for (int j = 0; j < M; ++j) {
@@ -99,10 +108,13 @@ int main() {
     return ier;
   }
 
+  // compute true answer once
   dirft1d1<int64_t>(M, x, c, +1, N1, ref);
 
   std::vector<int> failures(nthreads, 0);
 
+  // math test for each of many threads each transforming the same data nreps times
+  // (designed to create concurrency)
   std::vector<std::thread> workers;
   workers.reserve(nthreads);
   for (int tid = 0; tid < nthreads; ++tid) {

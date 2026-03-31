@@ -926,7 +926,8 @@ void prol0eva(double x, const double *w, double &psi0, double &derpsi0) {
 }
 
 void prol0int0r(const double *w, double r, double &val) {
-  constexpr int npts  = 200;
+  // The setup func for evaluating antiderivatives ("int") of the PSWF.
+  constexpr int npts  = 200; // G-L nodes for taking antiderivative
   constexpr int itype = 1;
   struct Prol0IntQuadrature {
     std::array<double, npts> xs{};
@@ -939,6 +940,7 @@ void prol0int0r(const double *w, double r, double &val) {
     }
   };
 
+  // This initializes the quadrature instance once, for use locally below
   const auto &quadrature = []() -> const Prol0IntQuadrature & {
     static const Prol0IntQuadrature quadrature;
     return quadrature;
@@ -1064,9 +1066,12 @@ double prolate0_int_eval(double c, double r) {
 
 } // anonymous namespace
 
+/* Our API for FINUFFT kernel function use only,
+   since: 1) sets to zero outside [-1,1], and 2) normalizes by value at 0.
+   Be warned: it is not exactly the standard PSWF evaluator.
+*/
 double pswf(double c, double x) {
   if (std::abs(x) > 1.0) return 0.0; // restrict support to [-1,1]
-
   return prolate0_eval(c, x) / prolate0_eval(c, 0.0);
 }
 
