@@ -8,9 +8,13 @@ via CMake (the recommended modern way, being more platform-independent, and also
 only way to build the GPU library),
 or via a GNU ``makefile`` (which has settings for platforms on linux, OSX, Windows).
 We currently support both, and detail them in that order in the text below.
-The only requirement is a C/C++ compiler supporting OpenMP and the C++17
-standard.
-FINUFFT builds with no issues on Linux and MacOS using any compiler, and in our experience (as of 2024), GCC13 gives the best performance. We do not recommend any GCC version prior to 9, due to vectorization issues.
+The main language requirements are a C/C++ compiler supporting OpenMP and the
+C++17 standard.
+In practice, SIMD code generation also depends on the compiler version and
+target CPU. FINUFFT builds with no issues on Linux and MacOS using current
+compilers, and in our experience (as of 2024), GCC13 gives the best
+performance. We do not recommend any GCC version prior to 9 on x86_64, due to
+vectorization issues.
 
 .. note::
   There are now two choices of FFT library for the CPU build:
@@ -145,6 +149,15 @@ Notes on compiler flags for various systems
 These apply to CMake (as above), or GNU make (as below).
 
 .. warning::
+    On x86_64, GCC 8.5 may fail in ``xsimd`` when ``-march=native`` enables
+    AVX-512 on an AVX-512-capable CPU. The workaround is to disable AVX-512
+    explicitly, for instance by adding ``CFLAGS += -mno-avx512f`` to
+    ``make.inc`` for the GNU make route, or by configuring CMake with
+    ``-DFINUFFT_ARCH_FLAGS='-march=native;-mno-avx512f'`` to preserve native
+    tuning while masking AVX-512. For this reason we recommend GCC 9 or newer
+    on x86_64.
+
+.. warning::
     Using ``--fast-math`` or ``/fp:fast`` can break FINUFFT and its tests.
     On windows with msvc cl, ``DUCC0 FFT`` has to compile with ``/fp:fast``, otherwise some tests (run_finufft3d_test_float, run_finufft3dmany_test_float) may fail because of the resulting error is larger than the tolerance.
     On the other hand, finufft on Windows with msvc cl should not compile with flag ``/fp:fast``, with ``/fp:fast`` the test run_dumbinputs_double will result in segfault, because ``/fp:fast`` makes values (NaN, +infinity, -infinity, -0.0) may not be propagated or behave strictly according to the IEEE-754 standard.
@@ -198,7 +211,6 @@ If this fails, see the more detailed instructions/tips below.
 If it succeeds,
 please look in ``examples/``, ``test/``, and the rest of this manual,
 for examples of how to call and link to the library.
-
 
 Make build tasks and options
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
