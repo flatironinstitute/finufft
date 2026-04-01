@@ -164,26 +164,21 @@ auto set_nhg_type3(T S, T X, const cufinufft_opts &opts,
   return std::make_tuple(nf, h, gam);
 }
 
-// Wrapper around the generic dispatcher for nspread-based dispatch
-template<typename Func, typename T, typename... Args>
-auto launch_dispatch_ns(Func &&func, int target_ns, Args &&...args) {
-  using NsSeq = make_range<MIN_NSPREAD, MAX_NSPREAD>;
-  auto params = std::make_tuple(DispatchParam<NsSeq>{target_ns});
-  return dispatch(std::forward<Func>(func), params, std::forward<Args>(args)...);
-}
 // Wrapper around the generic dispatcher for ndim-based dispatch
 template<typename Func, typename T, typename... Args>
 auto launch_dispatch_ndim(Func &&func, int target_ndim, Args &&...args) {
   using NdimSeq = make_range<1, 3>;
-  auto params = std::make_tuple(DispatchParam<NdimSeq>{target_ndim});
+  auto params   = std::make_tuple(DispatchParam<NdimSeq>{target_ndim});
   return dispatch(std::forward<Func>(func), params, std::forward<Args>(args)...);
 }
 // Wrapper around the generic dispatcher for ndim- and nspread-based dispatch
 template<typename Func, typename T, typename... Args>
-auto launch_dispatch_ndim_ns(Func &&func, int target_ndim, int target_ns, Args &&...args) {
+auto launch_dispatch_ndim_ns(Func &&func, int target_ndim, int target_ns,
+                             Args &&...args) {
   using NdimSeq = make_range<1, 3>;
-  using NsSeq = make_range<MIN_NSPREAD, MAX_NSPREAD>;
-  auto params = std::make_tuple(DispatchParam<NdimSeq>{target_ndim}, DispatchParam<NsSeq>{target_ns});
+  using NsSeq   = make_range<MIN_NSPREAD, MAX_NSPREAD>;
+  auto params   = std::make_tuple(DispatchParam<NdimSeq>{target_ndim},
+                                  DispatchParam<NsSeq>{target_ns});
   return dispatch(std::forward<Func>(func), params, std::forward<Args>(args)...);
 }
 

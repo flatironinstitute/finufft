@@ -25,7 +25,7 @@ using namespace cufinufft::common;
 // along every axis.
 template<int ndim>
 inline __host__ __device__ auto get_nbins(cuda::std::array<int, 3> nf123,
-                                   cuda::std::array<int, 3> binsizes) {
+                                          cuda::std::array<int, 3> binsizes) {
   cuda::std::array<int, 3> nbins{1, 1, 1};
   for (int idim = 0; idim < ndim; ++idim)
     nbins[idim] = (nf123[idim] + binsizes[idim] - 1) / binsizes[idim];
@@ -1074,132 +1074,132 @@ static __global__ void spread_3d_block_gather(
 
 template<typename T, int ndim>
 static void cuspread3d_blockgather_prop(cufinufft_plan_t<T> &d_plan) {
-  if constexpr(ndim==3) {
+  if constexpr (ndim == 3) {
 
-  auto &stream = d_plan.stream;
-  int M        = d_plan.M;
+    auto &stream = d_plan.stream;
+    int M        = d_plan.M;
 
-  int maxsubprobsize                  = d_plan.opts.gpu_maxsubprobsize;
-  cuda::std::array<int, 3> o_bin_size = {
-      d_plan.opts.gpu_obinsizex, d_plan.opts.gpu_obinsizey, d_plan.opts.gpu_obinsizez};
+    int maxsubprobsize                  = d_plan.opts.gpu_maxsubprobsize;
+    cuda::std::array<int, 3> o_bin_size = {
+        d_plan.opts.gpu_obinsizex, d_plan.opts.gpu_obinsizey, d_plan.opts.gpu_obinsizez};
 
-  if (d_plan.nf123[0] % o_bin_size[0] != 0 || d_plan.nf123[1] % o_bin_size[1] != 0 ||
-      d_plan.nf123[2] % o_bin_size[2] != 0) {
-    std::cerr << "[cuspread3d_blockgather_prop] error:\n";
-    std::cerr << "       mod(nf(1|2|3), opts.gpu_obinsize(x|y|z)) != 0" << std::endl;
-    std::cerr << "       (nf1, nf2, nf3) = (" << d_plan.nf123[0] << ", "
-              << d_plan.nf123[1] << ", " << d_plan.nf123[2] << ")" << std::endl;
-    std::cerr << "       (obinsizex, obinsizey, obinsizez) = (" << o_bin_size[0] << ", "
-              << o_bin_size[1] << ", " << o_bin_size[2] << ")" << std::endl;
-    throw int(FINUFFT_ERR_BINSIZE_NOTVALID);
-  }
+    if (d_plan.nf123[0] % o_bin_size[0] != 0 || d_plan.nf123[1] % o_bin_size[1] != 0 ||
+        d_plan.nf123[2] % o_bin_size[2] != 0) {
+      std::cerr << "[cuspread3d_blockgather_prop] error:\n";
+      std::cerr << "       mod(nf(1|2|3), opts.gpu_obinsize(x|y|z)) != 0" << std::endl;
+      std::cerr << "       (nf1, nf2, nf3) = (" << d_plan.nf123[0] << ", "
+                << d_plan.nf123[1] << ", " << d_plan.nf123[2] << ")" << std::endl;
+      std::cerr << "       (obinsizex, obinsizey, obinsizez) = (" << o_bin_size[0] << ", "
+                << o_bin_size[1] << ", " << o_bin_size[2] << ")" << std::endl;
+      throw int(FINUFFT_ERR_BINSIZE_NOTVALID);
+    }
 
-  cuda::std::array<int, 3> numobins;
-  for (int idim = 0; idim < ndim; ++idim)
-    numobins[idim] = ceil((T)d_plan.nf123[idim] / o_bin_size[idim]);
+    cuda::std::array<int, 3> numobins;
+    for (int idim = 0; idim < ndim; ++idim)
+      numobins[idim] = ceil((T)d_plan.nf123[idim] / o_bin_size[idim]);
 
-  cuda::std::array<int, 3> bin_size = {d_plan.opts.gpu_binsizex, d_plan.opts.gpu_binsizey,
-                                       d_plan.opts.gpu_binsizez};
-  if (o_bin_size[0] % bin_size[0] != 0 || o_bin_size[1] % bin_size[1] != 0 ||
-      o_bin_size[2] % bin_size[2] != 0) {
-    std::cerr << "[cuspread3d_blockgather_prop] error:\n";
-    std::cerr << "      mod(ops.gpu_obinsize(x|y|z), opts.gpu_binsize(x|y|z)) != 0"
-              << std::endl;
-    std::cerr << "      (binsizex, binsizey, binsizez) = (" << bin_size[0] << ", "
-              << bin_size[1] << ", " << bin_size[2] << ")" << std::endl;
-    std::cerr << "      (obinsizex, obinsizey, obinsizez) = (" << o_bin_size[0] << ", "
-              << o_bin_size[1] << ", " << o_bin_size[2] << ")" << std::endl;
-    throw int(FINUFFT_ERR_BINSIZE_NOTVALID);
-  }
+    cuda::std::array<int, 3> bin_size = {
+        d_plan.opts.gpu_binsizex, d_plan.opts.gpu_binsizey, d_plan.opts.gpu_binsizez};
+    if (o_bin_size[0] % bin_size[0] != 0 || o_bin_size[1] % bin_size[1] != 0 ||
+        o_bin_size[2] % bin_size[2] != 0) {
+      std::cerr << "[cuspread3d_blockgather_prop] error:\n";
+      std::cerr << "      mod(ops.gpu_obinsize(x|y|z), opts.gpu_binsize(x|y|z)) != 0"
+                << std::endl;
+      std::cerr << "      (binsizex, binsizey, binsizez) = (" << bin_size[0] << ", "
+                << bin_size[1] << ", " << bin_size[2] << ")" << std::endl;
+      std::cerr << "      (obinsizex, obinsizey, obinsizez) = (" << o_bin_size[0] << ", "
+                << o_bin_size[1] << ", " << o_bin_size[2] << ")" << std::endl;
+      throw int(FINUFFT_ERR_BINSIZE_NOTVALID);
+    }
 
-  cuda::std::array<int, 3> binsperobin;
-  cuda::std::array<int, 3> numbins;
-  for (int idim = 0; idim < ndim; ++idim) {
-    binsperobin[idim] = o_bin_size[idim] / bin_size[idim] + 2;
-    numbins[idim]     = numobins[idim] * binsperobin[idim];
-  }
+    cuda::std::array<int, 3> binsperobin;
+    cuda::std::array<int, 3> numbins;
+    for (int idim = 0; idim < ndim; ++idim) {
+      binsperobin[idim] = o_bin_size[idim] / bin_size[idim] + 2;
+      numbins[idim]     = numobins[idim] * binsperobin[idim];
+    }
 
-  int *d_binsize         = dethrust(d_plan.binsize);
-  int *d_sortidx         = dethrust(d_plan.sortidx);
-  int *d_binstartpts     = dethrust(d_plan.binstartpts);
-  int *d_numsubprob      = dethrust(d_plan.numsubprob);
-  int *d_subprobstartpts = dethrust(d_plan.subprobstartpts);
+    int *d_binsize         = dethrust(d_plan.binsize);
+    int *d_sortidx         = dethrust(d_plan.sortidx);
+    int *d_binstartpts     = dethrust(d_plan.binstartpts);
+    int *d_numsubprob      = dethrust(d_plan.numsubprob);
+    int *d_subprobstartpts = dethrust(d_plan.subprobstartpts);
 
-  checkCudaErrors(cudaMemsetAsync(
-      d_binsize, 0, numbins[0] * numbins[1] * numbins[2] * sizeof(int), stream));
+    checkCudaErrors(cudaMemsetAsync(
+        d_binsize, 0, numbins[0] * numbins[1] * numbins[2] * sizeof(int), stream));
 
-  locate_nupts_to_bins_ghost<<<(M + 1024 - 1) / 1024, 1024, 0, stream>>>(
-      M, bin_size, numobins, binsperobin, d_binsize, d_plan.kxyz, d_sortidx,
-      d_plan.nf123);
-  THROW_IF_CUDA_ERROR
+    locate_nupts_to_bins_ghost<<<(M + 1024 - 1) / 1024, 1024, 0, stream>>>(
+        M, bin_size, numobins, binsperobin, d_binsize, d_plan.kxyz, d_sortidx,
+        d_plan.nf123);
+    THROW_IF_CUDA_ERROR
 
-  dim3 threadsPerBlock = {8, 8, 8};
+    dim3 threadsPerBlock = {8, 8, 8};
 
-  dim3 blocks;
-  blocks.x = (threadsPerBlock.x + numbins[0] - 1) / threadsPerBlock.x;
-  blocks.y = (threadsPerBlock.y + numbins[1] - 1) / threadsPerBlock.y;
-  blocks.z = (threadsPerBlock.z + numbins[2] - 1) / threadsPerBlock.z;
+    dim3 blocks;
+    blocks.x = (threadsPerBlock.x + numbins[0] - 1) / threadsPerBlock.x;
+    blocks.y = (threadsPerBlock.y + numbins[1] - 1) / threadsPerBlock.y;
+    blocks.z = (threadsPerBlock.z + numbins[2] - 1) / threadsPerBlock.z;
 
-  fill_ghost_bins<<<blocks, threadsPerBlock, 0, stream>>>(binsperobin, numobins,
-                                                          d_binsize);
-  THROW_IF_CUDA_ERROR
+    fill_ghost_bins<<<blocks, threadsPerBlock, 0, stream>>>(binsperobin, numobins,
+                                                            d_binsize);
+    THROW_IF_CUDA_ERROR
 
-  int n = numbins[0] * numbins[1] * numbins[2];
-  thrust::device_ptr<int> d_ptr(d_binsize);
-  thrust::device_ptr<int> d_result(d_binstartpts + 1);
-  thrust::inclusive_scan(thrust::cuda::par.on(stream), d_ptr, d_ptr + n, d_result);
+    int n = numbins[0] * numbins[1] * numbins[2];
+    thrust::device_ptr<int> d_ptr(d_binsize);
+    thrust::device_ptr<int> d_result(d_binstartpts + 1);
+    thrust::inclusive_scan(thrust::cuda::par.on(stream), d_ptr, d_ptr + n, d_result);
 
-  checkCudaErrors(cudaMemsetAsync(d_binstartpts, 0, sizeof(int), stream));
+    checkCudaErrors(cudaMemsetAsync(d_binstartpts, 0, sizeof(int), stream));
 
-  int totalNUpts;
-  checkCudaErrors(cudaMemcpyAsync(&totalNUpts, &d_binstartpts[n], sizeof(int),
-                                  cudaMemcpyDeviceToHost, stream));
-  cudaStreamSynchronize(stream);
-  gpu_array<int> d_idxnupts(totalNUpts, d_plan.alloc);
+    int totalNUpts;
+    checkCudaErrors(cudaMemcpyAsync(&totalNUpts, &d_binstartpts[n], sizeof(int),
+                                    cudaMemcpyDeviceToHost, stream));
+    cudaStreamSynchronize(stream);
+    gpu_array<int> d_idxnupts(totalNUpts, d_plan.alloc);
 
-  calc_inverse_of_global_sort_index_ghost<<<(M + 1024 - 1) / 1024, 1024, 0, stream>>>(
-      M, bin_size, numobins, binsperobin, d_binstartpts, d_sortidx, d_plan.kxyz,
-      dethrust(d_idxnupts), d_plan.nf123);
+    calc_inverse_of_global_sort_index_ghost<<<(M + 1024 - 1) / 1024, 1024, 0, stream>>>(
+        M, bin_size, numobins, binsperobin, d_binstartpts, d_sortidx, d_plan.kxyz,
+        dethrust(d_idxnupts), d_plan.nf123);
 
-  threadsPerBlock = {2, 2, 2};
+    threadsPerBlock = {2, 2, 2};
 
-  blocks.x = (threadsPerBlock.x + numbins[0] - 1) / threadsPerBlock.x;
-  blocks.y = (threadsPerBlock.y + numbins[1] - 1) / threadsPerBlock.y;
-  blocks.z = (threadsPerBlock.z + numbins[2] - 1) / threadsPerBlock.z;
+    blocks.x = (threadsPerBlock.x + numbins[0] - 1) / threadsPerBlock.x;
+    blocks.y = (threadsPerBlock.y + numbins[1] - 1) / threadsPerBlock.y;
+    blocks.z = (threadsPerBlock.z + numbins[2] - 1) / threadsPerBlock.z;
 
-  ghost_bin_pts_index<<<blocks, threadsPerBlock, 0, stream>>>(
-      binsperobin, numobins, d_binsize, dethrust(d_idxnupts), d_binstartpts, M);
+    ghost_bin_pts_index<<<blocks, threadsPerBlock, 0, stream>>>(
+        binsperobin, numobins, d_binsize, dethrust(d_idxnupts), d_binstartpts, M);
 
-  d_plan.idxnupts.clear();
-  d_plan.idxnupts.swap(d_idxnupts);
+    d_plan.idxnupts.clear();
+    d_plan.idxnupts.swap(d_idxnupts);
 
-  /* --------------------------------------------- */
-  //        Determining Subproblem properties      //
-  /* --------------------------------------------- */
-  n = numobins[0] * numobins[1] * numobins[2];
-  calc_subprob_3d_v1<<<(n + 1024 - 1) / 1024, 1024, 0, stream>>>(
-      binsperobin, d_binsize, d_numsubprob, maxsubprobsize,
-      numobins[0] * numobins[1] * numobins[2]);
-  THROW_IF_CUDA_ERROR
+    /* --------------------------------------------- */
+    //        Determining Subproblem properties      //
+    /* --------------------------------------------- */
+    n = numobins[0] * numobins[1] * numobins[2];
+    calc_subprob_3d_v1<<<(n + 1024 - 1) / 1024, 1024, 0, stream>>>(
+        binsperobin, d_binsize, d_numsubprob, maxsubprobsize,
+        numobins[0] * numobins[1] * numobins[2]);
+    THROW_IF_CUDA_ERROR
 
-  n        = numobins[0] * numobins[1] * numobins[2];
-  d_ptr    = thrust::device_pointer_cast(d_numsubprob);
-  d_result = thrust::device_pointer_cast(d_subprobstartpts + 1);
-  thrust::inclusive_scan(thrust::cuda::par.on(stream), d_ptr, d_ptr + n, d_result);
+    n        = numobins[0] * numobins[1] * numobins[2];
+    d_ptr    = thrust::device_pointer_cast(d_numsubprob);
+    d_result = thrust::device_pointer_cast(d_subprobstartpts + 1);
+    thrust::inclusive_scan(thrust::cuda::par.on(stream), d_ptr, d_ptr + n, d_result);
 
-  checkCudaErrors(cudaMemsetAsync(d_subprobstartpts, 0, sizeof(int), stream));
+    checkCudaErrors(cudaMemsetAsync(d_subprobstartpts, 0, sizeof(int), stream));
 
-  int totalnumsubprob;
-  checkCudaErrors(cudaMemcpyAsync(&totalnumsubprob, &d_subprobstartpts[n], sizeof(int),
-                                  cudaMemcpyDeviceToHost, stream));
-  cudaStreamSynchronize(stream);
-  gpu_array<int> d_subprob_to_bin(totalnumsubprob, d_plan.alloc);
-  map_b_into_subprob_3d_v1<<<(n + 1024 - 1) / 1024, 1024, 0, stream>>>(
-      dethrust(d_subprob_to_bin), d_subprobstartpts, d_numsubprob, n);
+    int totalnumsubprob;
+    checkCudaErrors(cudaMemcpyAsync(&totalnumsubprob, &d_subprobstartpts[n], sizeof(int),
+                                    cudaMemcpyDeviceToHost, stream));
+    cudaStreamSynchronize(stream);
+    gpu_array<int> d_subprob_to_bin(totalnumsubprob, d_plan.alloc);
+    map_b_into_subprob_3d_v1<<<(n + 1024 - 1) / 1024, 1024, 0, stream>>>(
+        dethrust(d_subprob_to_bin), d_subprobstartpts, d_numsubprob, n);
 
-  d_plan.subprob_to_bin.clear();
-  d_plan.subprob_to_bin.swap(d_subprob_to_bin);
-  d_plan.totalnumsubprob = totalnumsubprob;
+    d_plan.subprob_to_bin.clear();
+    d_plan.subprob_to_bin.swap(d_subprob_to_bin);
+    d_plan.totalnumsubprob = totalnumsubprob;
   } else
     throw int(FINUFFT_ERR_DIM_NOTVALID);
 }
@@ -1208,11 +1208,12 @@ template<typename T, int ndim, int ns>
 static void cuspread3d_blockgather(const cufinufft_plan_t<T> &d_plan,
                                    const cuda_complex<T> *c, cuda_complex<T> *fw,
                                    int blksize) {
-  if constexpr(ndim==3) {
+  if constexpr (ndim == 3) {
     size_t sharedplanorysize = d_plan.opts.gpu_obinsizex * d_plan.opts.gpu_obinsizey *
                                d_plan.opts.gpu_obinsizez * sizeof(cuda_complex<T>);
     if (sharedplanorysize > 49152) {
-      std::cerr << "[cuspread3d_blockgather] error: not enough shared memory" << std::endl;
+      std::cerr << "[cuspread3d_blockgather] error: not enough shared memory"
+                << std::endl;
       throw int(FINUFFT_ERR_INSUFFICIENT_SHMEM);
     }
 
@@ -1230,15 +1231,13 @@ static void cuspread3d_blockgather(const cufinufft_plan_t<T> &d_plan,
     throw int(FINUFFT_ERR_DIM_NOTVALID);
 }
 
-
 struct SpreadPropDispatcher {
-  template<int ndim, typename T>
-    void operator()(cufinufft_plan_t<T> &d_plan) {
-      if (d_plan.opts.gpu_method == 1) cuspread_nuptsdriven_prop<T, ndim>(d_plan);
-      if (d_plan.opts.gpu_method == 2) cuspread_subprob_and_OD_prop<T, ndim>(d_plan);
-      if (d_plan.opts.gpu_method == 3) cuspread_subprob_and_OD_prop<T, ndim>(d_plan);
-      if (d_plan.opts.gpu_method == 4) cuspread3d_blockgather_prop<T, ndim>(d_plan);
-    }
+  template<int ndim, typename T> void operator()(cufinufft_plan_t<T> &d_plan) {
+    if (d_plan.opts.gpu_method == 1) cuspread_nuptsdriven_prop<T, ndim>(d_plan);
+    if (d_plan.opts.gpu_method == 2) cuspread_subprob_and_OD_prop<T, ndim>(d_plan);
+    if (d_plan.opts.gpu_method == 3) cuspread_subprob_and_OD_prop<T, ndim>(d_plan);
+    if (d_plan.opts.gpu_method == 4) cuspread3d_blockgather_prop<T, ndim>(d_plan);
+  }
 };
 struct SpreadDispatcher {
   template<int ndim, int ns, typename T>

@@ -11,9 +11,9 @@
 #include <cufinufft/types.h>
 #include <cufinufft/utils.h>
 
+#include <finufft_common/constants.h>
 #include <finufft_errors.h>
 #include <thrust/device_vector.h>
-#include <finufft_common/constants.h>
 
 static bool have_pool_support(const cufinufft_opts &opts) {
   DeviceSwitcher switcher(opts.gpu_device_id);
@@ -31,8 +31,8 @@ static bool have_pool_support(const cufinufft_opts &opts) {
 }
 
 template<typename T>
-static int setup_spreader(finufft_spread_opts &spopts, T eps, T upsampfac, int kerevalmeth,
-                   int debug, int spreadinterponly)
+static int setup_spreader(finufft_spread_opts &spopts, T eps, T upsampfac,
+                          int kerevalmeth, int debug, int spreadinterponly)
 // Initializes spreader kernel parameters given desired NUFFT tolerance eps,
 // upsampling factor (=sigma in paper, or R in Dutt-Rokhlin), and ker eval meth
 // (etiher 0:exp(sqrt()), 1: Horner ppval).
@@ -42,8 +42,8 @@ static int setup_spreader(finufft_spread_opts &spopts, T eps, T upsampfac, int k
 // As of v2.5 no longer sets ES_c, ES_halfwidth, since absent from spopts.
 // To do: *** update this to CPU v2.5 kernel choice, coeffs, params...
 {
-  using finufft::common::PI;
   using finufft::common::MAX_NSPREAD;
+  using finufft::common::PI;
 
   if (upsampfac != 2.0 && upsampfac != 1.25) { // nonstandard sigma
     if (kerevalmeth == 1) {
@@ -109,15 +109,15 @@ static int setup_spreader(finufft_spread_opts &spopts, T eps, T upsampfac, int k
   return ier;
 }
 
-template<typename T>
-void cufinufft_plan_t<T>::allocate() {
-  cuda::std::array<int, 3> binsizes {opts.gpu_binsizex, opts.gpu_binsizey, opts.gpu_binsizez};
+template<typename T> void cufinufft_plan_t<T>::allocate() {
+  cuda::std::array<int, 3> binsizes{opts.gpu_binsizex, opts.gpu_binsizey,
+                                    opts.gpu_binsizez};
 
   switch (opts.gpu_method) {
   case 1: {
     if (opts.gpu_sort) {
       int numbins = 1;
-      for (int idim=0; idim<dim; ++idim)
+      for (int idim = 0; idim < dim; ++idim)
         numbins *= ceil((T)nf123[idim] / binsizes[idim]);
       binsize.resize(numbins);
       binstartpts.resize(numbins);
@@ -126,7 +126,7 @@ void cufinufft_plan_t<T>::allocate() {
   case 2:
   case 3: {
     int numbins = 1;
-    for (int idim=0; idim<dim; ++idim)
+    for (int idim = 0; idim < dim; ++idim)
       numbins *= ceil((T)nf123[idim] / binsizes[idim]);
     numsubprob.resize(numbins);
     binsize.resize(numbins);
@@ -134,13 +134,14 @@ void cufinufft_plan_t<T>::allocate() {
     subprobstartpts.resize(numbins + 1);
   } break;
   case 4: {
-    if (dim!=3) {
+    if (dim != 3) {
       std::cerr << "err: invalid method " << std::endl;
       throw int(FINUFFT_ERR_METHOD_NOTVALID);
     }
-    cuda::std::array<int, 3> obinsizes {opts.gpu_obinsizex, opts.gpu_obinsizey, opts.gpu_obinsizez};
-    int numobins_tot=1, numbins_tot=1;
-    for (int idim=0; idim<dim; ++idim) {
+    cuda::std::array<int, 3> obinsizes{opts.gpu_obinsizex, opts.gpu_obinsizey,
+                                       opts.gpu_obinsizez};
+    int numobins_tot = 1, numbins_tot = 1;
+    for (int idim = 0; idim < dim; ++idim) {
       const int numobins = (int)ceil((T)nf123[idim] / obinsizes[idim]);
       numobins_tot *= numobins;
       const int binsperobin = obinsizes[idim] / binsizes[idim];
@@ -157,8 +158,7 @@ void cufinufft_plan_t<T>::allocate() {
     throw int(FINUFFT_ERR_METHOD_NOTVALID);
   }
   if (!opts.gpu_spreadinterponly)
-    for (int idim=0; idim<dim; ++idim)
-      fwkerhalf[idim].resize(nf123[idim] / 2 + 1);
+    for (int idim = 0; idim < dim; ++idim) fwkerhalf[idim].resize(nf123[idim] / 2 + 1);
 }
 
 template<typename T> void cufinufft_plan_t<T>::allocate_nupts() {
@@ -176,7 +176,7 @@ template<typename T> void cufinufft_plan_t<T>::allocate_nupts() {
     idxnupts.resize(M);
   } break;
   case 4: {
-    if (dim!=3) {
+    if (dim != 3) {
       std::cerr << "err: invalid method " << std::endl;
       throw int(FINUFFT_ERR_METHOD_NOTVALID);
     }
@@ -345,9 +345,8 @@ cufinufft_plan_t<T>::cufinufft_plan_t(int type_, int dim_, const int *nmodes, in
     }
   }
   /* Setup Spreader */
-  eps_too_small = setup_spreader(
-                      spopts, tol, T(opts.upsampfac), opts.gpu_kerevalmeth, opts.debug,
-                      opts.gpu_spreadinterponly) != 0;
+  eps_too_small = setup_spreader(spopts, tol, T(opts.upsampfac), opts.gpu_kerevalmeth,
+                                 opts.debug, opts.gpu_spreadinterponly) != 0;
 
   spopts.spread_direction = type;
 
@@ -381,8 +380,8 @@ cufinufft_plan_t<T>::cufinufft_plan_t(int type_, int dim_, const int *nmodes, in
   // Bin size and memory info now printed in cufinufft_setup_binsize() (common.cu)
   // Additional runtime info at debug level 2
   if (opts.debug >= 2) {
-    printf("[cufinufft] Runtime: grid=(%d,%d,%d), M=%d\n", nf123[0], nf123[1],
-           nf123[2], M);
+    printf("[cufinufft] Runtime: grid=(%d,%d,%d), M=%d\n", nf123[0], nf123[1], nf123[2],
+           M);
   }
 
   // dynamically request the maximum amount of shared memory available
@@ -758,14 +757,16 @@ template void cufinufft_plan_t<double>::setpts(
 template<typename T>
 static void cuspreadnd(const cufinufft_plan_t<T> &d_plan, const cuda_complex<T> *c,
                        cuda_complex<T> *fw, int blksize) {
-  cufinufft::utils::launch_dispatch_ndim_ns<cufinufft::spreadinterp::SpreadDispatcher, T>(cufinufft::spreadinterp::SpreadDispatcher(), d_plan.dim, d_plan.spopts.nspread,
-                                            d_plan, c, fw, blksize);
+  cufinufft::utils::launch_dispatch_ndim_ns<cufinufft::spreadinterp::SpreadDispatcher, T>(
+      cufinufft::spreadinterp::SpreadDispatcher(), d_plan.dim, d_plan.spopts.nspread,
+      d_plan, c, fw, blksize);
 }
 template<typename T>
 static void cuinterpnd(const cufinufft_plan_t<T> &d_plan, cuda_complex<T> *c,
                        const cuda_complex<T> *fw, int blksize) {
-  cufinufft::utils::launch_dispatch_ndim_ns<cufinufft::spreadinterp::InterpDispatcher, T>(cufinufft::spreadinterp::InterpDispatcher(), d_plan.dim, d_plan.spopts.nspread,
-                                            d_plan, c, fw, blksize);
+  cufinufft::utils::launch_dispatch_ndim_ns<cufinufft::spreadinterp::InterpDispatcher, T>(
+      cufinufft::spreadinterp::InterpDispatcher(), d_plan.dim, d_plan.spopts.nspread,
+      d_plan, c, fw, blksize);
 }
 
 template<typename T>
