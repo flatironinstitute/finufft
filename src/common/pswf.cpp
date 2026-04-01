@@ -1037,9 +1037,12 @@ double prolate0_int_eval(double c, double r) {
 
 } // anonymous namespace
 
+/* Our API for FINUFFT kernel function use only,
+   since: 1) sets to zero outside [-1,1], and 2) normalizes by value at 0.
+   Be warned: it is not exactly the standard PSWF evaluator.
+*/
 double pswf(double c, double x) {
   if (std::abs(x) > 1.0) return 0.0; // restrict support to [-1,1]
-
   return prolate0_eval(c, x) / prolate0_eval(c, 0.0);
 }
 
