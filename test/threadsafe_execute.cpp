@@ -25,6 +25,59 @@ int main() {
   opts.nthreads = 1; // crucial: parallelism is across concurrent plan executes
   opts.debug    = 0;
 
+  int64_t Ns[3] = {N1, 1, 1};
+
+  {
+    std::vector<std::vector<double>> xsetup(nthreads, std::vector<double>(M));
+    for (int tid = 0; tid < nthreads; ++tid) {
+      for (int j = 0; j < M; ++j) {
+        double t       = static_cast<double>(j) / M;
+        xsetup[tid][j] = finufft::common::PI * std::sin(0.73 * t + 0.11 * tid);
+      }
+    }
+
+    std::vector<finufft_plan> plans(nthreads, nullptr);
+    std::vector<int> failures(nthreads, 0);
+
+    std::vector<std::thread> workers;
+    workers.reserve(nthreads);
+    for (int tid = 0; tid < nthreads; ++tid) {
+      workers.emplace_back([&, tid]() {
+        finufft_opts local_opts = opts;
+        int ier = finufft_makeplan(1, 1, Ns, +1, 1, tol, &plans[tid], &local_opts);
+        if (ier != 0) {
+          failures[tid] = 1;
+          std::fprintf(stderr, "parallel makeplan failed for plan %d: ier=%d\n", tid,
+                       ier);
+        }
+      });
+    }
+    for (auto &worker : workers) worker.join();
+    if (*std::max_element(failures.begin(), failures.end()) != 0) {
+      for (auto &plan : plans) {
+        if (plan != nullptr) finufft_destroy(plan);
+      }
+      return 1;
+    }
+
+    workers.clear();
+    for (int tid = 0; tid < nthreads; ++tid) {
+      workers.emplace_back([&, tid]() {
+        int ier = finufft_setpts(plans[tid], M, xsetup[tid].data(), nullptr, nullptr, 0,
+                                 nullptr, nullptr, nullptr);
+        if (ier != 0) {
+          failures[tid] = 1;
+          std::fprintf(stderr, "parallel setpts failed for plan %d: ier=%d\n", tid, ier);
+        }
+      });
+    }
+    for (auto &worker : workers) worker.join();
+    for (auto &plan : plans) {
+      if (plan != nullptr) finufft_destroy(plan);
+    }
+    if (*std::max_element(failures.begin(), failures.end()) != 0) return 1;
+  }
+
   std::vector<double> x(M);
   std::vector<std::complex<double>> c(M), ref(N1);
   for (int j = 0; j < M; ++j) {
@@ -34,7 +87,6 @@ int main() {
                                     0.75 * std::sin(11.0 * t) - 0.2 * std::cos(5.0 * t));
   }
 
-  int64_t Ns[3] = {N1, 1, 1};
   finufft_plan plan;
   int ier = finufft_makeplan(1, 1, Ns, +1, 1, tol, &plan, &opts);
   if (ier != 0) {
