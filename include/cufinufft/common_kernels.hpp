@@ -808,6 +808,9 @@ static void cuspread_output_driven(const cufinufft_plan_t<T> &d_plan,
                                      : launch(spread_output_driven<T, 0, ndim, ns>);
 }
 
+// Functions for block-gather spreading
+// Only implemented for 3D at the moment and potentially obsolete.
+
 static __host__ __device__ int calc_global_index(cuda::std::array<int, 3> idx,
                                                  cuda::std::array<int, 3> on,
                                                  cuda::std::array<int, 3> bn) {
@@ -1231,6 +1234,10 @@ static void cuspread3d_blockgather(const cufinufft_plan_t<T> &d_plan,
     throw int(FINUFFT_ERR_DIM_NOTVALID);
 }
 
+// End of block-gather spreading
+
+// Dispatchers for spreading preparation, spreading and interpolation
+
 struct SpreadPropDispatcher {
   template<int ndim, typename T> void operator()(cufinufft_plan_t<T> &d_plan) {
     if (d_plan.opts.gpu_method == 1) cuspread_nuptsdriven_prop<T, ndim>(d_plan);
@@ -1239,6 +1246,7 @@ struct SpreadPropDispatcher {
     if (d_plan.opts.gpu_method == 4) cuspread3d_blockgather_prop<T, ndim>(d_plan);
   }
 };
+
 struct SpreadDispatcher {
   template<int ndim, int ns, typename T>
   void operator()(const cufinufft_plan_t<T> &d_plan, const cuda_complex<T> *c,
@@ -1258,6 +1266,7 @@ struct SpreadDispatcher {
     }
   }
 };
+
 struct InterpDispatcher {
   template<int ndim, int ns, typename T>
   void operator()(const cufinufft_plan_t<T> &d_plan, cuda_complex<T> *c,

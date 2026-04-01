@@ -499,9 +499,7 @@ Notes: the type T means either single or double, matching the
 
   allocate_nupts();
 
-  kxyz[0] = d_kx;
-  if (dim > 1) kxyz[1] = d_ky;
-  if (dim > 2) kxyz[2] = d_kz;
+  kxyz = {d_kx, d_ky, d_kz};
 
   using namespace cufinufft::spreadinterp;
   launch_dispatch_ndim<SpreadPropDispatcher, T>(SpreadPropDispatcher(), dim, *this);
