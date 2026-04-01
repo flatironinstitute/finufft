@@ -24,7 +24,7 @@ using namespace cufinufft::common;
 // Given grid sizes (via nf123) and bin sizes, compute the number of bins
 // along every axis.
 template<int ndim>
-__host__ __device__ auto get_nbins(cuda::std::array<int, 3> nf123,
+inline __host__ __device__ auto get_nbins(cuda::std::array<int, 3> nf123,
                                    cuda::std::array<int, 3> binsizes) {
   cuda::std::array<int, 3> nbins{1, 1, 1};
   for (int idim = 0; idim < ndim; ++idim)
