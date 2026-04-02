@@ -4,6 +4,7 @@
 #include <finufft_common/common.h>
 #include <fstream>
 #include <getopt.h>
+#include <iomanip>
 #include <iostream>
 #include <map>
 #include <polynomial_regression.hpp>
@@ -224,6 +225,19 @@ template<typename T> void train(train_options_t &cmd_opts) {
         exp_tol += max_step;
       }
       upper_tol_idx = upper_tol_idx == -1 ? tol_range.size() - 1 : upper_tol_idx;
+
+      // CSV output: full scanned range, for plotting and comparison
+      static bool csv_header = false;
+      if (!csv_header) {
+        fprintf(stdout, "prec,type,dim,tol,sigma_empirical,sigma_analytical\n");
+        csv_header = true;
+      }
+      for (size_t i = 0; i < tol_range.size(); i++) {
+        double sigma_anal = lowest_sigma(tol_range[i], type, n_dims, maxns, 8);
+        fprintf(stdout, "%c,%d,%d,%.6e,%.8f,%.8f\n", std::is_same_v<T, float> ? 'f' : 'd',
+                type, n_dims, tol_range[i], sigmas[i], sigma_anal);
+      }
+
       vector<double> tol_x(tol_range.begin() + lowest_tol_idx,
                            tol_range.begin() + upper_tol_idx + 1);
       if (tol_x.size() < 2) continue;
@@ -234,13 +248,24 @@ template<typename T> void train(train_options_t &cmd_opts) {
       auto polynomial = andviane::polynomial_regression<3>(tol_x, ups_y);
       vector<double> coeffs(polynomial.begin(), polynomial.end());
 
-      cout << "SigmaEstimator{ type: " << type << ", n_dims: " << n_dims
+      // Degree-1 fit attempt: if residual < 0.02, prefer it (fewer coefficients)
+      auto poly1      = andviane::polynomial_regression<1>(tol_x, ups_y);
+      double max_res1 = 0.0;
+      for (size_t i = 0; i < tol_x.size(); i++) {
+        double fit = poly1[0] + poly1[1] * tol_x[i];
+        max_res1   = std::max(max_res1, std::abs(fit - ups_y[i]));
+      }
+      fprintf(stderr, "  degree-1 max residual: %.4f  intercept=%.6f slope=%.6f\n",
+              max_res1, poly1[0], poly1[1]);
+
+      // Print SigmaEstimator struct to stderr (stdout is CSV)
+      cerr << "SigmaEstimator{ type: " << type << ", n_dims: " << n_dims
            << ", maxns: " << maxns << ", polynomial_coefficients: {";
       for (size_t i = 0; i < coeffs.size(); ++i) {
-        if (i > 0) cout << ", ";
-        cout << std::fixed << std::setprecision(10) << coeffs[i];
+        if (i > 0) cerr << ", ";
+        cerr << std::fixed << std::setprecision(10) << coeffs[i];
       }
-      cout << "}, " << std::scientific << tol_range[lowest_tol_idx] << ", "
+      cerr << "}, " << std::scientific << tol_range[lowest_tol_idx] << ", "
            << std::scientific << tol_range[upper_tol_idx]
            << ", type: " << typeid(T).name() << " }\n";
     }
