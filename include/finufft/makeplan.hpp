@@ -151,8 +151,9 @@ static const SigmaEstimator<4> float_estimators[] = {
                    2.1274e-05),
     SigmaEstimator(1, 3, {972.3293, 261.9325, 23.4330, 0.6948}, 1.2034e-05, 3.9812e-05)};
 static const SigmaEstimator<4> double_estimators[] = {
-    SigmaEstimator(1, 1, {-99422.1679, -9647.3087, -312.0279, -3.3640}, 2.2724e-14,
-                   5.1080e-14),
+    SigmaEstimator(1, 1,
+                   {-3815.4310521586, -381.0004259396, -12.6781681616, -0.1406435773},
+                   2.5494e-14, 1.8469e-13),
     SigmaEstimator(1, 2, {-173967.9888, -16839.9453, -543.3508, -5.8438}, 2.2724e-14,
                    4.5499e-14),
     SigmaEstimator(1, 3, {-26770.8966, -2620.3217, -85.4868, -0.9297}, 2.2724e-14,
@@ -165,7 +166,7 @@ template<typename T> std::optional<SigmaEstimator<4>> get_estimator(int dim, int
     }
   }
   if constexpr (std::is_same_v<float, T>) {
-    for (auto &est : double_estimators) {
+    for (auto &est : float_estimators) {
       if (est.match(dim, type)) return est;
     }
   }
@@ -254,21 +255,14 @@ template<typename TF> void FINUFFT_PLAN_T<TF>::setup_spreadinterp() {
     }
   }
 
-  if (opts.showwarn) {
+  if (opts.showwarn && opts.upsampfac > 0.0) {
     if (auto e = get_estimator<TF>(dim, type)) {
-      auto est = *e;
-      if ((double)m.tol < est.get_lowest_tol()) {
+      double sigma_min = e->get_lower_bound((double)m.tol);
+      if (sigma_min > m.spopts.upsampfac) {
         fprintf(stderr,
-                "%s waring: tol=%.3g is not achievable. "
-                "Increase tol>=%.3g\n",
-                __func__, (double)m.tol, est.get_lowest_tol());
-      }
-      auto lowest_sigma = est.get_lower_bound(m.tol);
-      if (lowest_sigma > m.spopts.upsampfac) {
-        fprintf(stderr,
-                "%s waring: tol=%.3g is not achievable at upsampfac=%.3g. "
-                "Increase upsampfac to %.3g=\n",
-                __func__, (double)m.tol, m.spopts.upsampfac, lowest_sigma);
+                "%s warning: upsampfac=%.3g may be too low for tol=%.3g; "
+                "suggest upsampfac>=%.3g\n",
+                __func__, m.spopts.upsampfac, (double)m.tol, sigma_min);
       }
     }
   }
