@@ -141,6 +141,7 @@ template<typename T> void train(train_options_t &cmd_opts) {
     finufft_opts opts;
     finufft_default_opts(&opts);
     opts.allow_eps_too_small = 1;
+    opts.showwarn            = 0;
     N[0] = cmd_opts.Ntotal, N[1] = 1, N[2] = 1;
     for (auto &type : cmd_opts.type) {
       switch (type) {
