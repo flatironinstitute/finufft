@@ -12,10 +12,10 @@ namespace spreadinterp {
 template<typename T> void cuspreadnd_prop(cufinufft_plan_t<T> &plan);
 template<typename T>
 void cuspreadnd(const cufinufft_plan_t<T> &d_plan, const cuda_complex<T> *c,
-                       cuda_complex<T> *fw, int blksize);
+                cuda_complex<T> *fw, int blksize);
 template<typename T>
 void cuinterpnd(const cufinufft_plan_t<T> &d_plan, cuda_complex<T> *c,
-                       const cuda_complex<T> *fw, int blksize);
+                const cuda_complex<T> *fw, int blksize);
 
 template<typename T>
 static inline T evaluate_kernel(T x, const finufft_spread_opts &spopts)

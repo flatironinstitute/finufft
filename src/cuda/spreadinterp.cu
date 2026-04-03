@@ -111,7 +111,7 @@ static __device__ void eval_kernel_vec_horner(T *ker, const T x, const double up
 // along every axis.
 template<int ndim>
 static inline __host__ __device__ auto get_nbins(cuda::std::array<int, 3> nf123,
-                                          cuda::std::array<int, 3> binsizes) {
+                                                 cuda::std::array<int, 3> binsizes) {
   cuda::std::array<int, 3> nbins{1, 1, 1};
   for (int idim = 0; idim < ndim; ++idim)
     nbins[idim] = (nf123[idim] + binsizes[idim] - 1) / binsizes[idim];
@@ -170,8 +170,9 @@ static __device__ auto get_kerval_and_startpos_nuptsdriven(
 }
 
 template<int ndim>
-static __device__ auto compute_offset(const int bidx, const cuda::std::array<int, 3> &nbins,
-                               const cuda::std::array<int, 3> &binsizes) {
+static __device__ auto compute_offset(const int bidx,
+                                      const cuda::std::array<int, 3> &nbins,
+                                      const cuda::std::array<int, 3> &binsizes) {
   cuda::std::array<int, ndim> offset;
   int tmp = bidx;
   for (int idim = 0; idim + 1 < ndim; ++idim) {
@@ -295,7 +296,7 @@ static __global__ FINUFFT_FLATTEN void interp_nupts_driven(
 // Nupts-driven interpolation CPU driver
 template<typename T, int ndim, int ns>
 static void cuinterp_nuptsdriven(const cufinufft_plan_t<T> &d_plan, cuda_complex<T> *c,
-                          const cuda_complex<T> *fw, int blksize) {
+                                 const cuda_complex<T> *fw, int blksize) {
   const dim3 threadsPerBlock{
       std::min(optimal_block_threads(d_plan.opts.gpu_device_id), (unsigned)d_plan.M), 1u,
       1u};
@@ -317,8 +318,8 @@ static void cuinterp_nuptsdriven(const cufinufft_plan_t<T> &d_plan, cuda_complex
 // Useful for copying between global and local grids.
 template<typename T, int ndim, int ns, typename Func>
 static __device__ void shared_mem_copy_helper(cuda::std::array<int, 3> binsizes,
-                                       cuda::std::array<int, ndim> offset,
-                                       cuda::std::array<int, 3> nf, Func func) {
+                                              cuda::std::array<int, ndim> offset,
+                                              cuda::std::array<int, 3> nf, Func func) {
   constexpr auto ns_2 = (ns + 1) / 2;
 
   auto [padded_size, N] = get_padded_subgrid_info<ndim, ns>(binsizes);
@@ -427,7 +428,7 @@ static __global__ FINUFFT_FLATTEN void interp_subprob(
 // Subprob interpolation CPU driver
 template<typename T, int ndim, int ns>
 static void cuinterp_subprob(const cufinufft_plan_t<T> &d_plan, cuda_complex<T> *c,
-                      const cuda_complex<T> *fw, int blksize) {
+                             const cuda_complex<T> *fw, int blksize) {
   const auto sharedplanorysize = shared_memory_required<T>(
       ndim, d_plan.spopts.nspread, d_plan.opts.gpu_binsizex, d_plan.opts.gpu_binsizey,
       d_plan.opts.gpu_binsizez, d_plan.opts.gpu_np);
@@ -496,8 +497,9 @@ static __global__ FINUFFT_FLATTEN void spread_nupts_driven(
 
 // Nupts-driven spreading CPU driver
 template<typename T, int ndim, int ns>
-static void cuspread_nupts_driven(const cufinufft_plan_t<T> &d_plan, const cuda_complex<T> *c,
-                           cuda_complex<T> *fw, int blksize) {
+static void cuspread_nupts_driven(const cufinufft_plan_t<T> &d_plan,
+                                  const cuda_complex<T> *c, cuda_complex<T> *fw,
+                                  int blksize) {
   auto &stream = d_plan.stream;
 
   const dim3 threadsPerBlock{16, 1, 1};
@@ -1335,7 +1337,8 @@ struct SpreadPropDispatcher {
 
 template<typename T> void cuspreadnd_prop(cufinufft_plan_t<T> &plan) {
   using namespace cufinufft::spreadinterp;
-  cufinufft::utils::launch_dispatch_ndim<SpreadPropDispatcher, T>(SpreadPropDispatcher(), plan.dim, plan);
+  cufinufft::utils::launch_dispatch_ndim<SpreadPropDispatcher, T>(SpreadPropDispatcher(),
+                                                                  plan.dim, plan);
 }
 template void cuspreadnd_prop(cufinufft_plan_t<float> &plan);
 template void cuspreadnd_prop(cufinufft_plan_t<double> &plan);
@@ -1362,15 +1365,17 @@ struct SpreadDispatcher {
 
 template<typename T>
 void cuspreadnd(const cufinufft_plan_t<T> &d_plan, const cuda_complex<T> *c,
-                       cuda_complex<T> *fw, int blksize) {
+                cuda_complex<T> *fw, int blksize) {
   cufinufft::utils::launch_dispatch_ndim_ns<cufinufft::spreadinterp::SpreadDispatcher, T>(
       cufinufft::spreadinterp::SpreadDispatcher(), d_plan.dim, d_plan.spopts.nspread,
       d_plan, c, fw, blksize);
 }
-template void cuspreadnd(const cufinufft_plan_t<float> &d_plan, const cuda_complex<float> *c,
-                       cuda_complex<float> *fw, int blksize);
-template void cuspreadnd(const cufinufft_plan_t<double> &d_plan, const cuda_complex<double> *c,
-                       cuda_complex<double> *fw, int blksize);
+template void cuspreadnd(const cufinufft_plan_t<float> &d_plan,
+                         const cuda_complex<float> *c, cuda_complex<float> *fw,
+                         int blksize);
+template void cuspreadnd(const cufinufft_plan_t<double> &d_plan,
+                         const cuda_complex<double> *c, cuda_complex<double> *fw,
+                         int blksize);
 
 struct InterpDispatcher {
   template<int ndim, int ns, typename T>
@@ -1390,15 +1395,15 @@ struct InterpDispatcher {
 
 template<typename T>
 void cuinterpnd(const cufinufft_plan_t<T> &d_plan, cuda_complex<T> *c,
-                       const cuda_complex<T> *fw, int blksize) {
+                const cuda_complex<T> *fw, int blksize) {
   cufinufft::utils::launch_dispatch_ndim_ns<cufinufft::spreadinterp::InterpDispatcher, T>(
       cufinufft::spreadinterp::InterpDispatcher(), d_plan.dim, d_plan.spopts.nspread,
       d_plan, c, fw, blksize);
 }
 template void cuinterpnd(const cufinufft_plan_t<float> &d_plan, cuda_complex<float> *c,
-                       const cuda_complex<float> *fw, int blksize);
+                         const cuda_complex<float> *fw, int blksize);
 template void cuinterpnd(const cufinufft_plan_t<double> &d_plan, cuda_complex<double> *c,
-                       const cuda_complex<double> *fw, int blksize);
+                         const cuda_complex<double> *fw, int blksize);
 
 } // namespace spreadinterp
 } // namespace cufinufft
