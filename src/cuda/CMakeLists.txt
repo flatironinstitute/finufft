@@ -5,6 +5,7 @@ set(SRC
     cufinufft.cu
     common.cu
     cufinufft_plan_t.cu
+    spreadinterp.cu
 )
 
 set(CUFINUFFT_INCLUDE_DIRS

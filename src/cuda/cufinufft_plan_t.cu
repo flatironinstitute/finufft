@@ -5,7 +5,6 @@
 
 #include <cufinufft.h>
 #include <cufinufft/common.h>
-#include <cufinufft/common_kernels.hpp>
 #include <cufinufft/defs.h>
 #include <cufinufft/spreadinterp.h>
 #include <cufinufft/types.h>
@@ -501,8 +500,7 @@ Notes: the type T means either single or double, matching the
 
   kxyz = {d_kx, d_ky, d_kz};
 
-  using namespace cufinufft::spreadinterp;
-  launch_dispatch_ndim<SpreadPropDispatcher, T>(SpreadPropDispatcher(), dim, *this);
+  cufinufft::spreadinterp::cuspreadnd_prop(*this);
 
   if (opts.debug) {
     printf("[cufinufft] plan->M=%d\n", M);
@@ -753,21 +751,6 @@ template void cufinufft_plan_t<double>::setpts(
     const double *d_s, const double *d_t, const double *d_u);
 
 template<typename T>
-static void cuspreadnd(const cufinufft_plan_t<T> &d_plan, const cuda_complex<T> *c,
-                       cuda_complex<T> *fw, int blksize) {
-  cufinufft::utils::launch_dispatch_ndim_ns<cufinufft::spreadinterp::SpreadDispatcher, T>(
-      cufinufft::spreadinterp::SpreadDispatcher(), d_plan.dim, d_plan.spopts.nspread,
-      d_plan, c, fw, blksize);
-}
-template<typename T>
-static void cuinterpnd(const cufinufft_plan_t<T> &d_plan, cuda_complex<T> *c,
-                       const cuda_complex<T> *fw, int blksize) {
-  cufinufft::utils::launch_dispatch_ndim_ns<cufinufft::spreadinterp::InterpDispatcher, T>(
-      cufinufft::spreadinterp::InterpDispatcher(), d_plan.dim, d_plan.spopts.nspread,
-      d_plan, c, fw, blksize);
-}
-
-template<typename T>
 void cufinufft_plan_t<T>::exec1(cuda_complex<T> *d_c, cuda_complex<T> *d_fk) const
 /*
     1D/2D/3D Type-1 NUFFT
@@ -800,7 +783,7 @@ void cufinufft_plan_t<T>::exec1(cuda_complex<T> *d_c, cuda_complex<T> *d_fk) con
         cudaMemsetAsync(fw, 0, blksize * nf * sizeof(cuda_complex<T>), stream));
 
     // Step 1: Spread
-    cuspreadnd<T>(*this, c, fw, blksize);
+    cufinufft::spreadinterp::cuspreadnd<T>(*this, c, fw, blksize);
 
     if (opts.gpu_spreadinterponly) continue; // skip steps 2 and 3
 
@@ -853,7 +836,7 @@ void cufinufft_plan_t<T>::exec2(cuda_complex<T> *d_c, cuda_complex<T> *d_fk) con
       fw = fk; // interpolate directly from user input f
 
     // Step 3: Interpolate
-    cuinterpnd<T>(*this, c, fw, blksize);
+    cufinufft::spreadinterp::cuinterpnd<T>(*this, c, fw, blksize);
   }
 }
 
@@ -893,7 +876,7 @@ void cufinufft_plan_t<T>::exec3(cuda_complex<T> *d_c, cuda_complex<T> *d_fk) con
                         thrust::multiplies<cuda_complex<T>>());
     }
     // Step 1: Spread
-    cuspreadnd<T>(*this, c, fk, blksize);
+    cufinufft::spreadinterp::cuspreadnd<T>(*this, c, fk, blksize);
     // now fk = fw contains the spread values
     // Step 2: Type 2 NUFFT
     // type 2 goes from fk to c

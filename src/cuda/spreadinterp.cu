@@ -1,5 +1,3 @@
-#pragma once
-
 #include <thrust/sequence.h>
 
 #include <cufinufft/common.h>
@@ -15,16 +13,104 @@ namespace spreadinterp {
 using namespace cufinufft::utils;
 using namespace cufinufft::common;
 
-// The only functions in this header that are called from outside are
-// called "cu<spread/interp>_<method>[_prop]".
-// All other functions are only used locally.
-
 /* --------------------------- Shared Helpers ---------------------------- */
+
+template<typename T>
+static constexpr __forceinline__ __device__ T cudaFMA(const T a, const T b, const T c) {
+  if constexpr (std::is_same_v<T, float>) {
+    // fused multiply-add, round to nearest even
+    return __fmaf_rn(a, b, c);
+  } else if constexpr (std::is_same_v<T, double>) {
+    // fused multiply-add, round to nearest even
+    return __fma_rn(a, b, c);
+  }
+  static_assert(std::is_same_v<T, float> || std::is_same_v<T, double>,
+                "Only float and double are supported.");
+  return std::fma(a, b, c);
+}
+
+/**
+ * local NU coord fold+rescale macro: does the following affine transform to x:
+ *   (x+PI) mod PI    each to [0,N)
+ */
+template<typename T>
+static constexpr __forceinline__ __host__ __device__ T fold_rescale(T x, int N) {
+  constexpr auto x2pi = T(0.159154943091895345554011992339482617);
+  constexpr auto half = T(0.5);
+#if defined(__CUDA_ARCH__)
+  if constexpr (std::is_same_v<T, float>) {
+    // fused multiply-add, round to nearest even
+    auto result = cudaFMA(x, x2pi, half);
+    // subtract, round down
+    result = __fsub_rd(result, floorf(result));
+    // multiply, round down
+    return __fmul_rd(result, static_cast<T>(N));
+  } else if constexpr (std::is_same_v<T, double>) {
+    // fused multiply-add, round to nearest even
+    auto result = cudaFMA(x, x2pi, half);
+    // subtract, round down
+    result = __dsub_rd(result, floor(result));
+    // multiply, round down
+    return __dmul_rd(result, static_cast<T>(N));
+  } else {
+    static_assert(std::is_same_v<T, float> || std::is_same_v<T, double>,
+                  "Only float and double are supported.");
+  }
+#else
+  const auto result = std::fma(x, x2pi, half);
+  return (result - std::floor(result)) * static_cast<T>(N);
+#endif
+}
+
+template<typename T, int ns>
+static __forceinline__ __device__ T evaluate_kernel(T x, T es_c, T es_beta)
+// ns (spread-width) templated fast evaluator for the above kernel function.
+// Direct eval, hardwired for this kernel, with shape param es_beta.
+// es_c must have been set up as (2/ns)^2; the point of precomputing this is to
+// reduce flops (as in the original CPU kernel). es_halfwidth has been cut.
+// Used only by the below eval_kernel_vec(), hence when gpu_kerevalmeth=0.
+// To do: *** unify kernel logic/coeffs with CPU codes in common/
+{
+  const T zsq = es_c * x * x; // z^2, where z is arg for std interval [-1,1]
+  return (zsq < 1.0) ? exp((T)es_beta * (sqrt((T)1.0 - zsq) - (T)1.0)) : 0.0;
+}
+
+template<typename T, int w>
+static __inline__ __device__ void eval_kernel_vec(T *ker, const T x, const T es_c,
+                                                  const T es_beta) {
+  // Eval the above direct ES kernel evaluator for arguments x+j, for j=0,..,w-1.
+  // This is used when gpu_kerevalmeth=0.
+  // Serves the same purpose as the below function eval_kernel_vec_horner.
+  for (int i = 0; i < w; i++) ker[i] = evaluate_kernel<T, w>(abs(x + i), es_c, es_beta);
+}
+
+template<typename T, int w>
+static __device__ void eval_kernel_vec_horner(T *ker, const T x, const double upsampfac)
+/* Fill ker[] with Horner piecewise poly approx to [-w/2,w/2] ES kernel eval at
+   x_j = x + j,  for j=0,..,w-1.  Thus x in [-w/2,-w/2+1].   w is aka ns.
+   Two upsampfacs implemented (same as CPU coeffs created in 2018, used to 2025).
+   The parameter (w and beta) choice in setup_spreader must match these coeffs.
+   This is used when gpu_kerevalmeth=1.
+   To do: *** update horner evaluator and coeffs to match CPU in common/
+   */
+{
+  // const T z = T(2) * x + T(w - 1);
+  const auto z = cudaFMA(T(2), x, T(w - 1)); // scale so local grid offset z in [-1,1]
+  // insert the auto-generated code which expects z, w args, writes to ker...
+  if (upsampfac == 2.0) { // floating point equality is fine here
+    using FLT = T;
+#include "cufinufft/contrib/ker_horner_allw_loop.inc"
+  }
+  if (upsampfac == 1.25) { // floating point equality is fine here
+    using FLT = T;
+#include "cufinufft/contrib/ker_lowupsampfac_horner_allw_loop.inc"
+  }
+}
 
 // Given grid sizes (via nf123) and bin sizes, compute the number of bins
 // along every axis.
 template<int ndim>
-inline __host__ __device__ auto get_nbins(cuda::std::array<int, 3> nf123,
+static inline __host__ __device__ auto get_nbins(cuda::std::array<int, 3> nf123,
                                           cuda::std::array<int, 3> binsizes) {
   cuda::std::array<int, 3> nbins{1, 1, 1};
   for (int idim = 0; idim < ndim; ++idim)
@@ -32,7 +118,7 @@ inline __host__ __device__ auto get_nbins(cuda::std::array<int, 3> nf123,
   return nbins;
 }
 
-inline __host__ __device__ int nbins_total(const cuda::std::array<int, 3> &nbins) {
+static inline __host__ __device__ int nbins_total(const cuda::std::array<int, 3> &nbins) {
   return nbins[0] * nbins[1] * nbins[2];
 }
 
@@ -40,7 +126,7 @@ inline __host__ __device__ int nbins_total(const cuda::std::array<int, 3> &nbins
 // start indices of the spreading/interpolation area in the locally stored subgrid.
 // Also compute the kernel values to use in spreading/interpolation.
 template<typename T, int KEREVALMETH, int ndim, int ns>
-__device__ auto get_kerval_and_local_start(
+static __device__ auto get_kerval_and_local_start(
     int idx, cuda::std::array<const T *, 3> xyz, cuda::std::array<int, 3> nf,
     cuda::std::array<int, ndim> offset, T sigma, T es_c, T es_beta) {
   constexpr auto ns_2f = T(ns * .5);
@@ -64,7 +150,7 @@ __device__ auto get_kerval_and_local_start(
 // Also compute the kernel values to use in spreading/interpolation.
 // (Version for nonunifom-points-driven algorithm.)
 template<typename T, int KEREVALMETH, int ndim, int ns>
-__device__ auto get_kerval_and_startpos_nuptsdriven(
+static __device__ auto get_kerval_and_startpos_nuptsdriven(
     int idx, cuda::std::array<const T *, 3> xyz, cuda::std::array<int, 3> nf, T sigma,
     T es_c, T es_beta) {
   constexpr auto ns_2f = T(ns * .5);
@@ -84,7 +170,7 @@ __device__ auto get_kerval_and_startpos_nuptsdriven(
 }
 
 template<int ndim>
-__device__ auto compute_offset(const int bidx, const cuda::std::array<int, 3> &nbins,
+static __device__ auto compute_offset(const int bidx, const cuda::std::array<int, 3> &nbins,
                                const cuda::std::array<int, 3> &binsizes) {
   cuda::std::array<int, ndim> offset;
   int tmp = bidx;
@@ -100,7 +186,7 @@ __device__ auto compute_offset(const int bidx, const cuda::std::array<int, 3> &n
 // For the current nonuniform point (given via idx), compute the flat index
 // of the bin it falls into.
 template<int ndim, typename T>
-__device__ int compute_bin_index(
+static __device__ int compute_bin_index(
     int idx, cuda::std::array<int, 3> nf, cuda::std::array<T, 3> inv_binsizes,
     cuda::std::array<int, 3> nbins, cuda::std::array<const T *, 3> xyz) {
   int binidx = 0;
@@ -118,7 +204,7 @@ __device__ int compute_bin_index(
 
 // Given bin sizes and kernel support, compute the size of a padded subgrid.
 template<int ndim, int ns>
-__device__ auto get_padded_subgrid_info(const cuda::std::array<int, 3> &binsizes) {
+static __device__ auto get_padded_subgrid_info(const cuda::std::array<int, 3> &binsizes) {
   constexpr auto rounded_ns = ((ns + 1) / 2) * 2;
   cuda::std::array<int, ndim> padded_size;
   int total = 1;
@@ -131,7 +217,7 @@ __device__ auto get_padded_subgrid_info(const cuda::std::array<int, 3> &binsizes
 
 // Given a flat index in a local padded subgrid, compute its location in the global grid.
 template<int ndim, int ns>
-__device__ int output_index_from_flat_local_index(
+static __device__ int output_index_from_flat_local_index(
     int flatidx, const cuda::std::array<int, ndim> &padded_size,
     const cuda::std::array<int, ndim> &offset, const cuda::std::array<int, 3> &nf) {
   constexpr auto ns_2 = (ns + 1) / 2;
@@ -153,7 +239,7 @@ __device__ int output_index_from_flat_local_index(
 
 // Nupts-driven interpolation kernel
 template<typename T, int KEREVALMETH, int ndim, int ns>
-__global__ FINUFFT_FLATTEN void interp_nupts_driven(
+static __global__ FINUFFT_FLATTEN void interp_nupts_driven(
     cufinufft_gpu_data<T> p, cuda_complex<T> *c, const cuda_complex<T> *fw) {
   T es_c    = 4.0 / T(p.spopts.nspread * p.spopts.nspread);
   T es_beta = p.spopts.beta;
@@ -208,7 +294,7 @@ __global__ FINUFFT_FLATTEN void interp_nupts_driven(
 
 // Nupts-driven interpolation CPU driver
 template<typename T, int ndim, int ns>
-void cuinterp_nuptsdriven(const cufinufft_plan_t<T> &d_plan, cuda_complex<T> *c,
+static void cuinterp_nuptsdriven(const cufinufft_plan_t<T> &d_plan, cuda_complex<T> *c,
                           const cuda_complex<T> *fw, int blksize) {
   const dim3 threadsPerBlock{
       std::min(optimal_block_threads(d_plan.opts.gpu_device_id), (unsigned)d_plan.M), 1u,
@@ -230,7 +316,7 @@ void cuinterp_nuptsdriven(const cufinufft_plan_t<T> &d_plan, cuda_complex<T> *c,
 // corresponding local and global pixels, calls the provided function.
 // Useful for copying between global and local grids.
 template<typename T, int ndim, int ns, typename Func>
-__device__ void shared_mem_copy_helper(cuda::std::array<int, 3> binsizes,
+static __device__ void shared_mem_copy_helper(cuda::std::array<int, 3> binsizes,
                                        cuda::std::array<int, ndim> offset,
                                        cuda::std::array<int, 3> nf, Func func) {
   constexpr auto ns_2 = (ns + 1) / 2;
@@ -258,7 +344,7 @@ __device__ void shared_mem_copy_helper(cuda::std::array<int, 3> binsizes,
 
 // Subprob interpolation kernel
 template<typename T, int KEREVALMETH, int ndim, int ns>
-__global__ FINUFFT_FLATTEN void interp_subprob(
+static __global__ FINUFFT_FLATTEN void interp_subprob(
     cufinufft_gpu_data<T> p, cuda_complex<T> *c, const cuda_complex<T> *fw) {
   extern __shared__ char sharedbuf[];
   auto fwshared = (cuda_complex<T> *)sharedbuf;
@@ -340,7 +426,7 @@ __global__ FINUFFT_FLATTEN void interp_subprob(
 
 // Subprob interpolation CPU driver
 template<typename T, int ndim, int ns>
-void cuinterp_subprob(const cufinufft_plan_t<T> &d_plan, cuda_complex<T> *c,
+static void cuinterp_subprob(const cufinufft_plan_t<T> &d_plan, cuda_complex<T> *c,
                       const cuda_complex<T> *fw, int blksize) {
   const auto sharedplanorysize = shared_memory_required<T>(
       ndim, d_plan.spopts.nspread, d_plan.opts.gpu_binsizex, d_plan.opts.gpu_binsizey,
@@ -362,7 +448,7 @@ void cuinterp_subprob(const cufinufft_plan_t<T> &d_plan, cuda_complex<T> *c,
 
 // Nupts-driven spreading kernel
 template<typename T, int KEREVALMETH, int ndim, int ns>
-__global__ FINUFFT_FLATTEN void spread_nupts_driven(
+static __global__ FINUFFT_FLATTEN void spread_nupts_driven(
     cufinufft_gpu_data<T> p, const cuda_complex<T> *c, cuda_complex<T> *fw) {
 
   T sigma   = p.spopts.upsampfac;
@@ -410,7 +496,7 @@ __global__ FINUFFT_FLATTEN void spread_nupts_driven(
 
 // Nupts-driven spreading CPU driver
 template<typename T, int ndim, int ns>
-void cuspread_nupts_driven(const cufinufft_plan_t<T> &d_plan, const cuda_complex<T> *c,
+static void cuspread_nupts_driven(const cufinufft_plan_t<T> &d_plan, const cuda_complex<T> *c,
                            cuda_complex<T> *fw, int blksize) {
   auto &stream = d_plan.stream;
 
@@ -430,7 +516,7 @@ void cuspread_nupts_driven(const cufinufft_plan_t<T> &d_plan, const cuda_complex
 
 // FIXME unify the next two functions and templatize on a lambda?
 template<typename T, int ndim>
-__global__ FINUFFT_FLATTEN void calc_bin_size_noghost(
+static __global__ FINUFFT_FLATTEN void calc_bin_size_noghost(
     const int M, const cuda::std::array<int, 3> nf,
     const cuda::std::array<T, 3> inv_binsizes, const cuda::std::array<int, 3> nbins,
     int *FINUFFT_RESTRICT bin_size, const cuda::std::array<const T *, 3> xyz,
@@ -444,7 +530,7 @@ __global__ FINUFFT_FLATTEN void calc_bin_size_noghost(
 }
 
 template<typename T, int ndim>
-__global__ FINUFFT_FLATTEN void calc_inverse_of_global_sort_idx(
+static __global__ FINUFFT_FLATTEN void calc_inverse_of_global_sort_idx(
     const int M, const cuda::std::array<T, 3> inv_binsizes,
     const cuda::std::array<int, 3> nbins, const int *FINUFFT_RESTRICT bin_startpts,
     const int *FINUFFT_RESTRICT sortidx, const cuda::std::array<const T *, 3> xyz,
@@ -459,7 +545,7 @@ __global__ FINUFFT_FLATTEN void calc_inverse_of_global_sort_idx(
 
 // Preparation(?) function for nupts-driven spreading
 template<typename T, int ndim>
-void cuspread_nuptsdriven_prop(cufinufft_plan_t<T> &d_plan) {
+static void cuspread_nuptsdriven_prop(cufinufft_plan_t<T> &d_plan) {
   if (d_plan.opts.gpu_sort) {
     cuda::std::array<int, 3> binsizes = {
         d_plan.opts.gpu_binsizex, d_plan.opts.gpu_binsizey, d_plan.opts.gpu_binsizez};
@@ -496,7 +582,7 @@ void cuspread_nuptsdriven_prop(cufinufft_plan_t<T> &d_plan) {
 
 // Subprob spreading kernel
 template<typename T, int KEREVALMETH, int ndim, int ns>
-__global__ FINUFFT_FLATTEN void spread_subprob(
+static __global__ FINUFFT_FLATTEN void spread_subprob(
     cufinufft_gpu_data<T> p, const cuda_complex<T> *c, cuda_complex<T> *fw) {
   extern __shared__ char sharedbuf[];
   auto fwshared = (cuda_complex<T> *)sharedbuf;
@@ -684,7 +770,7 @@ static void cuspread_subprob_and_OD_prop(cufinufft_plan_t<T> &d_plan) {
 
 // Output-driven spreading kernel
 template<typename T, int KEREVALMETH, int ndim, int ns>
-__global__ FINUFFT_FLATTEN void spread_output_driven(
+static __global__ FINUFFT_FLATTEN void spread_output_driven(
     cufinufft_gpu_data<T> p, const cuda_complex<T> *c, cuda_complex<T> *fw, int np) {
   extern __shared__ char sharedbuf[];
 
@@ -1247,6 +1333,13 @@ struct SpreadPropDispatcher {
   }
 };
 
+template<typename T> void cuspreadnd_prop(cufinufft_plan_t<T> &plan) {
+  using namespace cufinufft::spreadinterp;
+  cufinufft::utils::launch_dispatch_ndim<SpreadPropDispatcher, T>(SpreadPropDispatcher(), plan.dim, plan);
+}
+template void cuspreadnd_prop(cufinufft_plan_t<float> &plan);
+template void cuspreadnd_prop(cufinufft_plan_t<double> &plan);
+
 struct SpreadDispatcher {
   template<int ndim, int ns, typename T>
   void operator()(const cufinufft_plan_t<T> &d_plan, const cuda_complex<T> *c,
@@ -1267,6 +1360,18 @@ struct SpreadDispatcher {
   }
 };
 
+template<typename T>
+void cuspreadnd(const cufinufft_plan_t<T> &d_plan, const cuda_complex<T> *c,
+                       cuda_complex<T> *fw, int blksize) {
+  cufinufft::utils::launch_dispatch_ndim_ns<cufinufft::spreadinterp::SpreadDispatcher, T>(
+      cufinufft::spreadinterp::SpreadDispatcher(), d_plan.dim, d_plan.spopts.nspread,
+      d_plan, c, fw, blksize);
+}
+template void cuspreadnd(const cufinufft_plan_t<float> &d_plan, const cuda_complex<float> *c,
+                       cuda_complex<float> *fw, int blksize);
+template void cuspreadnd(const cufinufft_plan_t<double> &d_plan, const cuda_complex<double> *c,
+                       cuda_complex<double> *fw, int blksize);
+
 struct InterpDispatcher {
   template<int ndim, int ns, typename T>
   void operator()(const cufinufft_plan_t<T> &d_plan, cuda_complex<T> *c,
@@ -1282,5 +1387,18 @@ struct InterpDispatcher {
     }
   }
 };
+
+template<typename T>
+void cuinterpnd(const cufinufft_plan_t<T> &d_plan, cuda_complex<T> *c,
+                       const cuda_complex<T> *fw, int blksize) {
+  cufinufft::utils::launch_dispatch_ndim_ns<cufinufft::spreadinterp::InterpDispatcher, T>(
+      cufinufft::spreadinterp::InterpDispatcher(), d_plan.dim, d_plan.spopts.nspread,
+      d_plan, c, fw, blksize);
+}
+template void cuinterpnd(const cufinufft_plan_t<float> &d_plan, cuda_complex<float> *c,
+                       const cuda_complex<float> *fw, int blksize);
+template void cuinterpnd(const cufinufft_plan_t<double> &d_plan, cuda_complex<double> *c,
+                       const cuda_complex<double> *fw, int blksize);
+
 } // namespace spreadinterp
 } // namespace cufinufft
