@@ -163,6 +163,7 @@ private:
   int execute_internal(TC *cj, TC *fk, bool adjoint = false, int ntrans_actual = -1,
                        TC *aligned_scratch = nullptr, size_t scratch_size = 0) const;
   void setup_spreadinterp(); // throws FINUFFT_ERR_EPS_TOO_SMALL if tol unachievable
+  void check_sigma();        // throws FINUFFT_ERR_EPS_TOO_SMALL if sigma too low for tol
   void precompute_horner_coeffs();
   void set_nf_type12(BIGINT ms, BIGINT *nf) const;
   void onedim_fseries_kernel(BIGINT nf, std::vector<TF> &fwkerhalf) const;

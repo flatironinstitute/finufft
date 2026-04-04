@@ -114,20 +114,24 @@ def _pswf(c, x):
     return pro_ang1(0, 0, c, x)[0] / val_0
 
 
-def _mreineck_sigma_min(tol, ns, dim, type_, eps_mach):
-    """mreineck's 3-term model: kernel + rdyn (no N-dependent floor)."""
-    tolfac = 0.18 * 1.4 ** (dim - 1) * (1.4 if type_ == 3 else 1.0)
+def _mreineck_sigma_min(tol, ns, dim, type_, eps_mach, gridlen):
+    """mreineck's 3-term model from PR #841: kernel + rdyn + phase error."""
+    tolfac = 0.18 * 1.4 ** (dim - 1)
 
     def mreineck_tol(sigma):
-        u = np.sqrt(1.0 - 1.0 / sigma)
-        t_kernel = tolfac * np.exp(-(ns - 1) * PI * u)
+        # Kernel aliasing
+        tol1 = tolfac / np.exp(ns * PI * np.sqrt(1.0 - 1.0 / sigma))
+        # Dynamic range of deconvolution correction
         c = PI * ns * (1.0 - 1.0 / (2.0 * sigma)) - 0.05
         pswf_arg = PI * ns / (2.0 * sigma * c)
         if pswf_arg >= 1.0:
             return float("inf")
         pv = _pswf(c, pswf_arg)
         rdyn = 1.0 / pv if 0 < pv < float("inf") else float("inf")
-        return t_kernel + eps_mach * rdyn**dim
+        tol0 = eps_mach * rdyn**dim
+        # Phase error from coordinate rounding (N-dependent)
+        tol2 = 0.5 * eps_mach * gridlen * sigma
+        return tol0 + tol1 + tol2
 
     if mreineck_tol(MAXSIGMA) > tol:
         return MAXSIGMA + 1.0
@@ -187,7 +191,9 @@ def plot_per_N(data, out_prefix):
                 mr = np.array(
                     [
                         np.clip(
-                            _mreineck_sigma_min(t, ns, 1, type_, eps_mach), 1.0, 2.05
+                            _mreineck_sigma_min(t, ns, 1, type_, eps_mach, nv),
+                            1.0,
+                            2.05,
                         )
                         for t in tol
                     ]
