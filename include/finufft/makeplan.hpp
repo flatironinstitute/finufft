@@ -107,48 +107,6 @@ void FINUFFT_PLAN_T<TF>::onedim_fseries_kernel(BIGINT nf,
     }
   }
 }
-namespace {
-static const double MINSIGMA = 1.0;
-static const double MAXSIGMA = 2.0;
-
-// Estimated achievable tolerance at given (sigma, ns, dim, type, precision, gridlen).
-// Calibrated two-term model (see devel/find_sigma_bound.py for derivation):
-//   tol_kernel = tolfac * exp(-(ns-0.1)*pi*u^1.19)   — kernel truncation
-//   tol_floor  = 117 * eps_mach                        — FFT/deconv/Horner floor
-//   tol_phase  = 0.5 * eps_mach * gridlen * sigma      — finite-precision coordinates
-// Fits empirical sigma_min to within 0.03 sigma for double, dim 1, types 1-3.
-static double estimated_tol(double sigma, int ns, int dim, int /*type*/, double eps_mach,
-                            double gridlen) {
-  // Calibrated two-term model (see devel/find_sigma_bound.py for derivation):
-  //   tol = tolfac * exp(-(ns - 0.09) * pi * u^1.19) + 126*eps_mach + phase
-  // Fits empirical sigma_min to within 0.03 sigma for types 1-3, dim 1, double.
-  const double tolfac = 0.079 * std::pow(1.4, dim - 1);
-  const double u      = std::sqrt(1.0 - 1.0 / sigma);
-  const double tol_kernel =
-      tolfac * std::exp(-(ns - 0.1) * finufft::common::PI * std::pow(u, 1.19));
-  const double tol_floor = 117.0 * eps_mach;
-  const double tol_phase = 0.5 * eps_mach * gridlen * sigma;
-  return tol_kernel + tol_floor + tol_phase;
-}
-
-// Minimum sigma that achieves requested tol, via binary search on estimated_tol.
-// Returns MAXSIGMA when not achievable (caller uses sigma_min >= MAXSIGMA to detect).
-// Cost: ~40 iterations of exp/sqrt/pow (~200ns).
-static double lowest_sigma_impl(double tol, int type, int dim, int maxns, double eps_mach,
-                                double gridlen) {
-  if (estimated_tol(MAXSIGMA, maxns, dim, type, eps_mach, gridlen) > tol)
-    return MAXSIGMA; // not achievable even at sigma=2
-  double lo = MINSIGMA + 0.01, hi = MAXSIGMA;
-  for (int i = 0; i < 40; ++i) {
-    double mid = 0.5 * (lo + hi);
-    if (estimated_tol(mid, maxns, dim, type, eps_mach, gridlen) <= tol)
-      hi = mid;
-    else
-      lo = mid;
-  }
-  return hi;
-}
-} // namespace
 
 // --------------- makeplan-related member functions and free functions ----------
 
@@ -228,24 +186,6 @@ template<typename TF> void FINUFFT_PLAN_T<TF>::setup_spreadinterp() {
                 "catastrophic cancellation.\n",
                 __func__, ns, max_ns_CC);
       ns = max_ns_CC;
-    }
-  }
-
-  if (opts.showwarn && opts.upsampfac > 0.0) {
-    constexpr double eps_mach = std::numeric_limits<TF>::epsilon();
-    const double gridlen      = *std::max_element(mstu.begin(), mstu.begin() + dim);
-    double sigma_min = lowest_sigma_impl((double)m.tol, type, dim, ns, eps_mach, gridlen);
-    if (sigma_min > m.spopts.upsampfac) {
-      if (sigma_min >= MAXSIGMA)
-        fprintf(stderr,
-                "%s warning: tol=%.3g may not be achievable at upsampfac=%.3g; "
-                "suggest upsampfac>=%.3g\n",
-                __func__, (double)m.tol, m.spopts.upsampfac, MAXSIGMA);
-      else
-        fprintf(stderr,
-                "%s warning: upsampfac=%.3g may be too low for tol=%.3g; "
-                "suggest upsampfac>=%.3g\n",
-                __func__, m.spopts.upsampfac, (double)m.tol, sigma_min);
     }
   }
   m.spopts.nspread = ns;
