@@ -1,247 +1,140 @@
 #!/usr/bin/env python3
-# Run with: uv run --with scipy --with matplotlib --with numpy devel/find_sigma_bound.py
-"""Derive and validate the sigma_min estimator used in makeplan.hpp.
+"""Validate the sigma_min estimator used in kernel.cpp (finufft::common).
 
-The estimator predicts the minimum upsampling factor (sigma) needed to achieve a
-requested tolerance. It is used to emit warnings when the user's upsampfac is too low.
+The estimator predicts the minimum upsampling factor (sigma) needed to achieve
+a requested tolerance, used by makeplan to warn when upsampfac is too low.
 
-## Error model
+Error model (matches C++ estimated_tol / lowest_sigma in kernel.cpp):
 
-The NUFFT achievable tolerance at a given sigma is modelled as two terms:
+    eps_l2(sigma) = eps_alias + eps_round
 
-    tol(sigma) = tol_kernel + tol_floor
+    eps_alias = tolfac * exp(-(ns - 1) * pi * u),   u = sqrt(1 - 1/sigma)
+    eps_round = 0.48 * eps_mach * N
 
-  tol_kernel = tolfac * exp(-(ns - nsoff) * pi * u^u_exp)
-      where u = sqrt(1 - 1/sigma)
-  tol_floor  = floor_c * eps_mach
+  tolfac = 0.18 * 1.4^(dim-1), same as theoretical_kernel_ns (kf>=2 branch).
+  The aliasing rate pi*u is optimal for ES/KB/PSWF kernels ([BAR] Thm 1).
+  The floor coefficient 0.48 is calibrated from [FIN] Remark 9 (N*eps phase error).
 
-The kernel truncation term captures the dominant exponential decay of the spreading
-kernel error. The floor term captures the combined contributions of:
-  - FFT rounding: O(log2(N) * eps_mach)
-  - Deconvolution dynamic range: eps_mach * rdyn (averages out over modes)
-  - Horner polynomial approximation error
+sigma_min uses two regimes based on r = tol / eps_round:
+  - Kernel regime (r >= 10): pure analytical inversion of the aliasing formula,
+    exact to ~0.0001 sigma.
+  - Transition regime (r < 10): sigma = sigma_pure + poly(1/r), where the degree-2
+    polynomial in 1/r captures the rounding floor effect. Coefficients fit by
+    least-squares on empirical data across N=50..5000, types 1-3, dim 1.
+    Separate coefficients for double (ns>8) and float (ns<=8).
 
-For production use (makeplan.hpp), a phase term is added:
-  tol_phase = 0.5 * eps_mach * gridlen * sigma
+References:
+  [FIN] Barnett, Magland & af Klinteberg, SISC 2019, arxiv:1808.06736
+  [BAR] Barnett, Appl. Comput. Harmon. Anal. 2021, arxiv:2001.09405
+  Based on Martin Reineck's 3-term PSWF model (PR #841).
 
-## Calibrated coefficients (double, dim=1, ns=16)
+Usage (from repo root, after cmake -B build -DFINUFFT_BUILD_TESTS=ON && cmake --build build -j):
 
-Fitted against empirical data from find_sigma_bound.cpp (N=300, ntol=60):
+    # Generate training data (~30s, parallel over N):
+    for N in 50 500 5000; do
+      build/devel/find_sigma_bound --prec d,f --type 1,2,3 --N $N --ntol 40 \
+        --sigma-prec 1e-3 > /tmp/sigma_N${N}.csv &
+    done; wait
+    # Combine into one CSV:
+    head -1 /tmp/sigma_N50.csv > /tmp/sigma.csv
+    for N in 50 500 5000; do tail -n+2 /tmp/sigma_N${N}.csv >> /tmp/sigma.csv; done
+    # Plot:
+    uv run --with scipy --with matplotlib --with numpy \
+      devel/find_sigma_bound.py /tmp/sigma.csv /tmp
 
-  tolfac_base = 0.0798
-  nsoff       = 0.0901  (≈ use full W, not W-1)
-  u_exp       = 1.1893  (slightly superlinear — controls descent slope)
-  floor_c     = 125.5   (≈ 126 * eps_mach ≈ 2.8e-14 for double)
-  dim_factor  = 1.4^(dim-1)  (empirical worsening per dimension)
-  type3_factor = 1.1    (type 3 has slightly larger errors)
-
-  tolfac = tolfac_base * dim_factor * (type3_factor if type==3 else 1.0)
-
-Accuracy against training data:
-  type 1: max|error| = 0.034 sigma
-  type 2: max|error| = 0.028 sigma
-  type 3: max|error| = 0.022 sigma
-
-## Derivation history
-
-Starting point: mreineck's 3-term model (flatironinstitute/finufft PR #841):
-  tol = tolfac*exp(-(W-1)*pi*u) + eps_mach*rdyn^dim + 0.5*eps_mach*gridlen*sigma
-
-where rdyn = 1/pswf(c, pi*W/(2*sigma*c)), the deconvolution dynamic range.
-
-Key findings during calibration:
-1. The rdyn term (worst-case Nyquist amplification) overestimates the actual L2 error
-   because most output modes see much lower amplification. Replacing it with a constant
-   floor matches the empirical data better.
-2. The standard exponent u = sqrt(1-1/sigma) gives a slope that's too steep compared to
-   empirical. Raising u to power ~1.19 flattens the descent to match.
-3. tolfac = 0.18 (mreineck's value) underestimates the error. The calibrated value
-   0.0798 with nsoff≈0 (using full W instead of W-1) gives the right magnitude.
-4. The type 3 factor of 1.4 (from FINUFFT's kernel.cpp) is slightly too conservative;
-   1.1 matches the empirical data better.
-
-Usage:
-  # Generate training data (C++ tool, ~10s):
-  cd build && LD_LIBRARY_PATH=src \\
-    devel/find_sigma_bound --prec d --type 1,2,3 --dim 1 --ntol 60 --sigma-prec 5e-4 \\
-    > /tmp/sigma.csv
-
-  # Validate and plot:
-  uv run --with scipy --with matplotlib --with numpy devel/find_sigma_bound.py /tmp/sigma.csv
-
-  # With coefficient calibration:
-  uv run --with scipy --with matplotlib --with numpy devel/find_sigma_bound.py --calibrate /tmp/sigma.csv
+Barbone scattered code all around cleaned up by Claude 4.6
 """
 
 import sys
 
 import numpy as np
-from scipy.optimize import minimize
 from scipy.special import pro_ang1
 
 PI = np.pi
 MAXSIGMA = 2.0
 
-# ---------------------------------------------------------------------------
-# Calibrated model coefficients
-# ---------------------------------------------------------------------------
-TOLFAC_BASE = 0.079
-NSOFF = 0.1
-U_EXP = 1.19
-FLOOR_C = 117.0
-DIM_FACTOR = 1.4  # per extra dimension
-TYPE3_FACTOR = 1.0  # no special type 3 correction needed
+# Model coefficients — must match kernel.cpp estimated_tol / lowest_sigma.
+TOLFAC = 0.18  # kernel aliasing prefactor (same as theoretical_kernel_ns kf>=2)
+DIM_FAC = 1.4  # per-dimension correction: tolfac *= 1.4^(dim-1)
+FLOOR_C = 0.48  # eps_round = FLOOR_C * eps_mach * N ([FIN] Remark 9)
+
+# Poly(1/r) correction coefficients {a2, a1, a0} for the transition region,
+# fit by least-squares across all types, N=50..5000 (see this file's Usage).
+POLY_DOUBLE = (0.014, 0.291, -0.043)  # ns > 8
+POLY_FLOAT = (0.555, -0.290, 0.071)  # ns <= 8
+
+
+def _prec_params(prec):
+    """Return (ns, eps_mach) for precision char 'd' or 'f'."""
+    if prec == "d":
+        return 16, 2.2e-16
+    return 8, 1.2e-7
 
 
 # ---------------------------------------------------------------------------
-# Model evaluation
+# Model (matches C++ estimated_tol / lowest_sigma in kernel.cpp)
 # ---------------------------------------------------------------------------
-def estimated_tol(
-    sigma,
-    ns,
-    dim,
-    type_,
-    eps_mach,
-    tf=TOLFAC_BASE,
-    nsoff=NSOFF,
-    u_exp=U_EXP,
-    floor_c=FLOOR_C,
-    t3_fac=TYPE3_FACTOR,
-):
-    """Estimated achievable tolerance at given sigma."""
-    tolfac = tf * DIM_FACTOR ** (dim - 1) * (t3_fac if type_ == 3 else 1.0)
-    u = np.sqrt(1.0 - 1.0 / sigma)
-    tol_kernel = tolfac * np.exp(-(ns - nsoff) * PI * u**u_exp)
-    tol_floor = floor_c * eps_mach
-    return tol_kernel + tol_floor
+def _invert_kernel_sigma(tol, ns, dim):
+    """Pure analytical sigma inversion (kernel formula only, no floor)."""
+    tolfac = TOLFAC * DIM_FAC ** (dim - 1)
+    if tol <= 0:
+        return MAXSIGMA
+    if tol >= tolfac:
+        return 1.0 + 1e-6
+    u = np.log(tolfac / tol) / ((ns - 1.0) * PI)
+    if u >= 1.0:
+        return MAXSIGMA
+    return min(1.0 / (1.0 - u * u), MAXSIGMA)
 
 
-def sigma_min_from_model(tol, ns, dim, type_, eps_mach, **kw):
-    """Binary search to find minimum sigma achieving tol."""
-    if estimated_tol(MAXSIGMA, ns, dim, type_, eps_mach, **kw) > tol:
-        return MAXSIGMA + 1.0
-    lo, hi = 1.01, MAXSIGMA
-    for _ in range(60):
-        mid = 0.5 * (lo + hi)
-        if estimated_tol(mid, ns, dim, type_, eps_mach, **kw) <= tol:
-            hi = mid
-        else:
-            lo = mid
-    return hi
+def sigma_min_from_model(tol, ns, dim, eps_mach, gridlen):
+    """Minimum sigma via hybrid model (matches C++ lowest_sigma)."""
+    eps_round = FLOOR_C * eps_mach * gridlen
+    r = tol / eps_round
+    if r <= 0.5:
+        return MAXSIGMA
+    sigma_pure = _invert_kernel_sigma(tol, ns, dim)
+    if r >= 10.0:
+        return sigma_pure
+    a2, a1, a0 = POLY_DOUBLE if ns > 8 else POLY_FLOAT
+    inv_r = 1.0 / r
+    correction = (a2 * inv_r + a1) * inv_r + a0
+    return min(sigma_pure + max(correction, 0), MAXSIGMA)
 
 
 # ---------------------------------------------------------------------------
-# Calibration
+# mreineck 3-term PSWF model (PR #841, for comparison in plots)
 # ---------------------------------------------------------------------------
-def calibrate(data, types=(1, 2, 3), dim=1, prec="d"):
-    """Optimize model coefficients against empirical data."""
-    ns = 16 if prec == "d" else 8
-    eps_mach = 2.2e-16 if prec == "d" else 1.2e-7
-
-    subsets = {}
-    for type_ in types:
-        mask = (data["prec"] == prec) & (data["type"] == type_) & (data["dim"] == dim)
-        d = data[mask]
-        if len(d) == 0:
-            continue
-        subsets[type_] = (d["tol"].astype(float), d["sigma_empirical"].astype(float))
-
-    def objective(params):
-        tf, nsoff, u_exp, floor_c, t3_fac = params
-        if (
-            tf < 0.01
-            or nsoff < 0
-            or nsoff > 2
-            or u_exp < 0.2
-            or floor_c < 1
-            or t3_fac < 0.5
-        ):
-            return 1e6
-        total = 0
-        for type_, (tol, se) in subsets.items():
-            maxe = 0
-            n = 0
-            for i in range(len(tol)):
-                sp = sigma_min_from_model(
-                    tol[i],
-                    ns,
-                    dim,
-                    type_,
-                    eps_mach,
-                    tf=tf,
-                    nsoff=nsoff,
-                    u_exp=u_exp,
-                    floor_c=floor_c,
-                    t3_fac=t3_fac,
-                )
-                if sp <= MAXSIGMA + 0.5:
-                    maxe = max(maxe, abs(sp - se[i]))
-                    n += 1
-            total += maxe
-            if n < 3:
-                total += 10  # penalize too few valid points
-        return total
-
-    x0 = [TOLFAC_BASE, NSOFF, U_EXP, FLOOR_C, TYPE3_FACTOR]
-    res = minimize(
-        objective,
-        x0,
-        method="Nelder-Mead",
-        options={"xatol": 0.005, "fatol": 1e-5, "maxiter": 1000},
-    )
-    return {
-        "tf": res.x[0],
-        "nsoff": res.x[1],
-        "u_exp": res.x[2],
-        "floor_c": res.x[3],
-        "t3_fac": res.x[4],
-        "sum_max_err": res.fun,
-        "success": res.success,
-    }
-
-
-# ---------------------------------------------------------------------------
-# mreineck 3-term PSWF model helpers
-# ---------------------------------------------------------------------------
-def _pswf(c: float, x: float) -> float:
-    """Normalised prolate spheroidal wave function pswf(c,x)/pswf(c,0)."""
+def _pswf(c, x):
     if abs(x) >= 1.0:
         return float("inf")
-    val_x = pro_ang1(0, 0, c, x)[0]
     val_0 = pro_ang1(0, 0, c, 0.0)[0]
     if val_0 == 0.0:
         return float("inf")
-    return val_x / val_0
+    return pro_ang1(0, 0, c, x)[0] / val_0
 
 
-def _mreineck_tol(
-    sigma: float, ns: int, dim: int, type_: int, eps_mach: float
-) -> float:
-    """mreineck 3-term model: tol_kernel + tol_rounding (no phase term)."""
+def _mreineck_sigma_min(tol, ns, dim, type_, eps_mach):
+    """mreineck's 3-term model: kernel + rdyn (no N-dependent floor)."""
     tolfac = 0.18 * 1.4 ** (dim - 1) * (1.4 if type_ == 3 else 1.0)
-    u = np.sqrt(1.0 - 1.0 / sigma)
-    tol_kernel = tolfac * np.exp(-(ns - 1) * PI * u)
-    c = PI * ns * (1.0 - 1.0 / (2.0 * sigma)) - 0.05
-    pswf_arg = PI * ns / (2.0 * sigma * c)
-    if pswf_arg >= 1.0:
-        rdyn = float("inf")
-    else:
+
+    def mreineck_tol(sigma):
+        u = np.sqrt(1.0 - 1.0 / sigma)
+        t_kernel = tolfac * np.exp(-(ns - 1) * PI * u)
+        c = PI * ns * (1.0 - 1.0 / (2.0 * sigma)) - 0.05
+        pswf_arg = PI * ns / (2.0 * sigma * c)
+        if pswf_arg >= 1.0:
+            return float("inf")
         pv = _pswf(c, pswf_arg)
-        rdyn = 1.0 / pv if pv != 0 else float("inf")
-    tol_rounding = eps_mach * rdyn**dim
-    return tol_kernel + tol_rounding
+        rdyn = 1.0 / pv if 0 < pv < float("inf") else float("inf")
+        return t_kernel + eps_mach * rdyn**dim
 
-
-def _mreineck_sigma_min(
-    tol: float, ns: int, dim: int, type_: int, eps_mach: float
-) -> float:
-    """Binary search inversion of mreineck model."""
-    if _mreineck_tol(MAXSIGMA, ns, dim, type_, eps_mach) > tol:
+    if mreineck_tol(MAXSIGMA) > tol:
         return MAXSIGMA + 1.0
     lo, hi = 1.01, MAXSIGMA
     for _ in range(60):
         mid = 0.5 * (lo + hi)
-        if _mreineck_tol(mid, ns, dim, type_, eps_mach) <= tol:
+        if mreineck_tol(mid) <= tol:
             hi = mid
         else:
             lo = mid
@@ -249,97 +142,99 @@ def _mreineck_sigma_min(
 
 
 # ---------------------------------------------------------------------------
-# PR comparison plot (3 models side-by-side)
+# Plotting
 # ---------------------------------------------------------------------------
-def plot_pr_comparison(
-    data: np.ndarray, out_png: str, model_kw: dict | None = None
-) -> None:
-    """Generate a 1x3 comparison figure for PR documentation.
-
-    Columns: type 1, type 2, type 3 (double, dim=1, ns=16).
-    Four curves per panel: empirical, analytical, mreineck, calibrated model.
-    """
+def plot_per_N(data, out_prefix):
+    """One figure per precision: rows=N, cols=types.  3 lines each."""
     import matplotlib
 
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
 
-    ns = 16
-    eps_mach = 2.2e-16
-    dim = 1
-    prec = "d"
-    kw = model_kw if model_kw else {}
-
-    fig, axes = plt.subplots(1, 3, figsize=(18, 5), squeeze=False)
-
-    for col, type_ in enumerate((1, 2, 3)):
-        ax = axes[0, col]
-        mask = (data["prec"] == prec) & (data["type"] == type_) & (data["dim"] == dim)
-        d = data[mask]
-        if len(d) == 0:
-            ax.set_visible(False)
+    for prec in ("d", "f"):
+        ns, eps_mach = _prec_params(prec)
+        prec_label = "double" if prec == "d" else "float"
+        prec_mask = (data["prec"] == prec) & (data["dim"] == 1)
+        d_prec = data[prec_mask]
+        if len(d_prec) == 0:
             continue
 
-        tol = d["tol"].astype(float)
-        se = d["sigma_empirical"].astype(float)
-        sa = d["sigma_analytical"].astype(float)
+        Nvals = sorted(set(d_prec["N"].astype(float)))
+        types = sorted(set(d_prec["type"].tolist()))
+        nrows, ncols = len(Nvals), len(types)
 
-        # mreineck model
-        mr = np.array(
-            [
-                np.clip(_mreineck_sigma_min(t, ns, dim, type_, eps_mach), 1.0, 2.05)
-                for t in tol
-            ]
+        fig, axes = plt.subplots(
+            nrows, ncols, figsize=(5.5 * ncols, 4 * nrows), squeeze=False
         )
-
-        # calibrated model
-        cal = np.array(
-            [
-                np.clip(
-                    sigma_min_from_model(t, ns, dim, type_, eps_mach, **kw), 1.0, 2.05
+        for row, nv in enumerate(Nvals):
+            for col, type_ in enumerate(types):
+                mask = (
+                    prec_mask
+                    & (data["type"] == type_)
+                    & (data["N"].astype(float) == nv)
                 )
-                for t in tol
-            ]
+                d = data[mask]
+                if len(d) == 0:
+                    axes[row, col].set_visible(False)
+                    continue
+
+                ax = axes[row, col]
+                tol = d["tol"].astype(float)
+                se = d["sigma_empirical"].astype(float)
+                pred = np.array(
+                    [sigma_min_from_model(t, ns, 1, eps_mach, nv) for t in tol]
+                )
+                mr = np.array(
+                    [
+                        np.clip(
+                            _mreineck_sigma_min(t, ns, 1, type_, eps_mach), 1.0, 2.05
+                        )
+                        for t in tol
+                    ]
+                )
+
+                ax.semilogx(tol, se, "ko-", ms=4, lw=1.2, label="empirical", zorder=5)
+                ax.semilogx(
+                    tol, np.clip(pred, 1.0, 2.05), "r-", lw=2.5, label="model", zorder=4
+                )
+                ax.semilogx(
+                    tol, mr, color="#1f77b4", ls="--", lw=2, label="mreineck", zorder=3
+                )
+                ax.set_xlabel("tolerance")
+                ax.set_ylabel(r"$\sigma_{\min}$")
+                ax.set_title(f"{prec_label} type {type_}  N={int(nv)}")
+                ax.legend(fontsize=8)
+                ax.grid(True, alpha=0.3)
+                ax.set_ylim(1.0 if prec == "f" else 1.3, 2.15)
+
+        fig.suptitle(
+            f"{prec_label} (ns={ns}): empirical vs model vs mreineck",
+            fontsize=14,
+            y=1.01,
         )
-
-        ax.semilogx(tol, se, "b.-", ms=4, lw=1.5, label="empirical", zorder=5)
-        ax.semilogx(
-            tol, np.clip(sa, 1.0, 2.05), "r--", lw=1.5, label="analytical (kernel only)"
-        )
-        ax.semilogx(tol, mr, color="orange", ls="-.", lw=1.5, label="mreineck 3-term")
-        ax.semilogx(tol, cal, "g-", lw=2, label="calibrated model")
-
-        ax.set_xlabel(r"tolerance ($\varepsilon$)")
-        ax.set_ylabel(r"$\sigma_{\min}$")
-        ax.set_title(f"type {type_}")
-        ax.legend(fontsize=8)
-        ax.grid(True, alpha=0.3)
-        ax.set_ylim(1.3, 2.15)
-
-    fig.tight_layout()
-    fig.savefig(out_png, dpi=150)
-    plt.close(fig)
-    print(f"Comparison plot saved to {out_png}")
+        fig.tight_layout()
+        out = f"{out_prefix}_{prec_label}.png"
+        fig.savefig(out, dpi=200, bbox_inches="tight")
+        plt.close(fig)
+        print(f"  {out}")
 
 
 # ---------------------------------------------------------------------------
-# Analysis and plotting
+# Main
 # ---------------------------------------------------------------------------
-def load_csv(path):
-    return np.genfromtxt(path, delimiter=",", names=True, dtype=None, encoding="utf-8")
-
-
 def main():
     if len(sys.argv) < 2:
-        print(f"Usage: {sys.argv[0]} [--calibrate] <csv> [output.png]", file=sys.stderr)
+        print(f"Usage: {sys.argv[0]} <csv> [output_dir]", file=sys.stderr)
         sys.exit(1)
 
-    do_calibrate = "--calibrate" in sys.argv
-    args = [a for a in sys.argv[1:] if not a.startswith("--")]
-    csv_path = args[0]
-    out_png = args[1] if len(args) > 1 else "/tmp/sigma_fit.png"
+    csv_path = sys.argv[1]
+    out_dir = sys.argv[2] if len(sys.argv) > 2 else "/tmp"
+    data = np.genfromtxt(
+        csv_path, delimiter=",", names=True, dtype=None, encoding="utf-8"
+    )
 
-    data = load_csv(csv_path)
+    # Error summary
+    print("max |sigma_predicted - sigma_empirical|:")
     combos = sorted(
         set(
             zip(
@@ -349,111 +244,31 @@ def main():
             )
         )
     )
-
-    # Calibrate if requested
-    model_kw = {}
-    if do_calibrate:
-        print("=" * 70)
-        print("Calibrating model coefficients...")
-        print("=" * 70)
-        for prec in sorted(set(data["prec"])):
-            types_avail = sorted(
-                set(data["type"][(data["prec"] == prec) & (data["dim"] == 1)].tolist())
-            )
-            if not types_avail:
-                continue
-            result = calibrate(data, types=types_avail, dim=1, prec=prec)
-            print(f"\n{prec} dim=1 (types {types_avail}):")
-            for k, v in result.items():
-                print(f"  {k:12s} = {v}")
-            model_kw = {
-                "tf": result["tf"],
-                "nsoff": result["nsoff"],
-                "u_exp": result["u_exp"],
-                "floor_c": result["floor_c"],
-                "t3_fac": result["t3_fac"],
-            }
-        print()
-
-    # Compare model vs empirical
-    print("=" * 70)
-    print("Model comparison")
-    print("=" * 70)
-
-    import matplotlib
-
-    matplotlib.use("Agg")
-    import matplotlib.pyplot as plt
-
-    plot_data = []
     for prec, type_, dim in combos:
+        ns, eps_mach = _prec_params(prec)
         mask = (data["prec"] == prec) & (data["type"] == type_) & (data["dim"] == dim)
         d = data[mask]
         if len(d) == 0:
             continue
         tol = d["tol"].astype(float)
         se = d["sigma_empirical"].astype(float)
-        ns = 16 if prec == "d" else 8
-        eps_mach = 2.2e-16 if prec == "d" else 1.2e-7
-
+        N_arr = d["N"].astype(float)
         pred = np.array(
             [
-                min(
-                    sigma_min_from_model(
-                        t, ns, int(dim), int(type_), eps_mach, **model_kw
-                    ),
-                    2.05,
-                )
-                for t in tol
+                sigma_min_from_model(t, ns, int(dim), eps_mach, float(N_arr[i]))
+                for i, t in enumerate(tol)
             ]
         )
-        valid = pred <= MAXSIGMA + 0.5
-        if valid.sum() > 0:
-            diff = pred[valid] - se[valid]
-            maxe = np.max(np.abs(diff))
-            cons = np.sum(diff > 0.01)
-            opt = np.sum(diff < -0.01)
-        else:
-            maxe = float("nan")
-            cons = opt = 0
+        valid = pred <= 2.05
+        diffs = pred[valid] - se[valid]
+        mu = max(-diffs.min(), 0) if len(diffs) > 0 else 0
+        mo = max(diffs.max(), 0) if len(diffs) > 0 else 0
+        label = "double" if prec == "d" else "float "
+        print(f"  {label} type={type_} dim={dim}: under={mu:.3f} over={mo:.3f}")
 
-        combo = f"{prec} type={type_} dim={dim}"
-        print(
-            f"\n{combo}: max|err|={maxe:.4f}, cons={cons}, opt={opt}, n={valid.sum()}"
-        )
-        plot_data.append((combo, tol, se, pred, type_))
-
-    # Plot
-    n = len(plot_data)
-    if n == 0:
-        print("No data to plot.", file=sys.stderr)
-        sys.exit(1)
-
-    cols = min(n, 3)
-    rows = (n + cols - 1) // cols
-    _, axes = plt.subplots(rows, cols, figsize=(6 * cols, 5 * rows), squeeze=False)
-
-    for idx, (combo, tol, se, pred, type_) in enumerate(plot_data):
-        ax = axes[idx // cols, idx % cols]
-        ax.semilogx(tol, se, "b.-", ms=4, lw=2, label="empirical", zorder=5)
-        ax.semilogx(tol, np.clip(pred, 1.0, 2.05), "g-", lw=2, label="model")
-        ax.set_xlabel("tol")
-        ax.set_ylabel("sigma_min")
-        ax.set_title(combo)
-        ax.legend(fontsize=9)
-        ax.grid(True, alpha=0.3)
-        ax.set_ylim(1.3, 2.15)
-
-    for idx in range(n, rows * cols):
-        axes[idx // cols, idx % cols].set_visible(False)
-
-    plt.tight_layout()
-    plt.savefig(out_png, dpi=150)
-    print(f"\nPlot saved to {out_png}")
-
-    # PR comparison plot (3 models side-by-side)
-    cmp_png = out_png.replace(".png", "_comparison.png")
-    plot_pr_comparison(data, cmp_png, model_kw=model_kw if model_kw else None)
+    # Plots
+    print("\nPlots:")
+    plot_per_N(data, f"{out_dir}/sigma_fit")
 
 
 if __name__ == "__main__":

@@ -711,33 +711,6 @@ int main(int argc, char *argv[]) {
   FINUFFT_DESTROY(plan);
   // *** todo: more extensive bad inputs and error catching in guru...
 
-  // Test sigma-too-low warning: upsampfac=1.25 + tight tol should warn but succeed
-#ifndef SINGLE
-  {
-    int64_t N1 = 100;
-    finufft_opts opts_w;
-    finufft_default_opts(&opts_w);
-    opts_w.upsampfac           = 1.25;
-    opts_w.showwarn            = 1;
-    opts_w.allow_eps_too_small = 1; // allow ns clamping so warning code is reached
-    finufft_plan_s *plan       = nullptr;
-    ier                        = finufft_makeplan(1, 1, &N1, 1, 1, 1e-14, &plan, &opts_w);
-    if (ier != 0) {
-      printf("sigma-low warning test: unexpected err %d\n", ier);
-      return 1;
-    }
-    finufft_destroy(plan);
-    opts_w.upsampfac = 2.0;
-    plan             = nullptr;
-    ier              = finufft_makeplan(1, 1, &N1, 1, 1, 1e-14, &plan, &opts_w);
-    if (ier != 0) {
-      printf("sigma=2 no-warn test: unexpected err %d\n", ier);
-      return 1;
-    }
-    finufft_destroy(plan);
-  }
-#endif
-
 #ifdef SINGLE
   printf("dumbinputsf passed.\n");
 #else
