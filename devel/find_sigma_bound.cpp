@@ -1,3 +1,8 @@
+// Empirical sigma_min data generator for the upsampfac warning estimator.
+// Outputs CSV: prec,type,dim,tol,sigma_empirical,sigma_analytical,b,delta,N
+// See devel/find_sigma_bound.py for model fitting and validation.
+// Brodovič; N column added by Barbone 4/3/26.
+
 #include <cmath>
 #include <finufft.h>
 #include <finufft/test_defs.hpp>
@@ -232,9 +237,9 @@ void run_combo(int n_dims, int type, const train_options_t &cmd_opts,
     double b_val      = log(tolfac / tol_range[i]) / ((maxns - 1) * finufft::common::PI);
     double delta_val  = sigmas[i] - sigma_anal;
     char buf[200];
-    snprintf(buf, sizeof(buf), "%c,%d,%d,%.6e,%.8f,%.8f,%.10f,%.10f\n",
+    snprintf(buf, sizeof(buf), "%c,%d,%d,%.6e,%.8f,%.8f,%.10f,%.10f,%d\n",
              is_same_v<T, float> ? 'f' : 'd', type, n_dims, tol_range[i], sigmas[i],
-             sigma_anal, b_val, delta_val);
+             sigma_anal, b_val, delta_val, cmd_opts.Ntotal);
     csv_block += buf;
   }
 
@@ -326,7 +331,7 @@ int main(int argc, char *argv[]) {
     return 0;
   }
   train_options_t cmd_opts(argc, argv);
-  fprintf(stdout, "prec,type,dim,tol,sigma_empirical,sigma_analytical,b,delta\n");
+  fprintf(stdout, "prec,type,dim,tol,sigma_empirical,sigma_analytical,b,delta,N\n");
   std::mutex output_mutex;
   // Launch all (prec, dim, type) combos simultaneously
   vector<std::thread> threads;

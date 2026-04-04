@@ -3,6 +3,12 @@ If not stated, FINUFFT is assumed (old cuFINUFFT <=1.3 is listed separately).
 
 v2.6.0-dev
 
+* Added sigma_min estimator in makeplan: warns when upsampfac is too low for
+  the requested tolerance. Uses a hybrid kernel-aliasing / rounding-floor model
+  calibrated against empirical data (N=50..5000, types 1-3, float and double).
+  New functions: `estimated_tol`, `lowest_sigma` in `finufft::common`.
+  Includes Python validation tool `devel/find_sigma_bound.py`.
+  (Barbone)
 * Added `threadsafe_execute` regression test verifying concurrent `execute()`
   calls on the same plan produce correct results. Added sanitizer mode selection
   via `FINUFFT_USE_SANITIZERS=OFF|ON|MEMSAN|TSAN`, and extended the sanitizer

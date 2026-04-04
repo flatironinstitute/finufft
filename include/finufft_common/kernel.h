@@ -95,3 +95,19 @@ template<int NS, int NC> inline constexpr bool ValidKernelParams() noexcept {
 }
 
 } // namespace finufft::kernel
+
+namespace finufft::common {
+
+// Estimated relative ell-2 NUFFT error: eps_l2 = eps_alias + eps_round.
+//   eps_alias = tolfac * exp(-(W-1)*pi*u),  u := sqrt(1-1/sigma)
+//   eps_round = 0.48 * eps_mach * N
+// Uses the theoretical optimal rate from [BAR] Thm 1. See devel/find_sigma_bound.py.
+double estimated_tol(double sigma, int ns, int dim, double eps_mach, double gridlen);
+
+// Minimum sigma achieving requested tol. Hybrid model: uses exact analytical kernel
+// inversion in the kernel-dominated regime, switches to floor-corrected inversion only
+// when the rounding floor matters (tol near eps_round). Returns MAXSIGMA if not
+// achievable.
+double lowest_sigma(double tol, int dim, int ns, double eps_mach, double gridlen);
+
+} // namespace finufft::common
