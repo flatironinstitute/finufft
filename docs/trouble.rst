@@ -117,6 +117,8 @@ If cuFINUFFT is slow (eg, less than $10^8$ nonuniform points per second), here i
 
 - Try the different method types. Start with method=1. For instance, for type 1 transforms, method 2 (SM in the paper) is supposed to be faster than method 1 (GM-sort in the paper), but on the above test it is only 2% faster. In the test call, the 1st argument sets the method type and the next argument the transform type.
 
+- **CUDA 12.4 codegen slowdown for small transforms.** The ``nvcc`` compiler in CUDA 12.4 generates materially slower device code for the cuFINUFFT interpolation kernels compared to CUDA 13.x. This affects the published v2.5.0 PyPI wheels (built with CUDA 12.4) and any local build using that toolkit version. Symptoms are 2--5x slower ``cufinufft_execute`` calls, most visible on small transforms (few nonuniform points). Workaround: rebuild from source with a more recent CUDA toolkit version. See `Issue #846 <https://github.com/flatironinstitute/finufft/issues/846>`__ for details.
+
 - There is not currently a ``debug`` option for ``cufinufft``, so the above timing of a test problem on your hardware is a good option. You could place timers around the various ``cufinufft`` calls in your own code, just as in our test codes.
 
 
