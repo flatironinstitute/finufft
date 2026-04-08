@@ -65,6 +65,13 @@ if(NOT FINUFFT_USE_DUCC0 AND FINUFFT_USE_OPENMP)
     add_test(NAME run_fftw_lock_test COMMAND fftw_lock_test WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
 endif()
 
+find_package(Threads REQUIRED)
+add_executable(threadsafe_execute threadsafe_execute.cpp)
+target_compile_features(threadsafe_execute PRIVATE cxx_std_17)
+finufft_link_test(threadsafe_execute)
+target_link_libraries(threadsafe_execute PRIVATE Threads::Threads)
+add_test(NAME run_threadsafe_execute COMMAND threadsafe_execute WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
+
 # Add ctest definitions that run at both precisions...
 function(add_tests_with_prec PREC REQ_TOL CHECK_TOL SUFFIX)
     # All of the following should be run at OMP_NUM_THREADS=4 or something small,
