@@ -2,11 +2,14 @@ exclude: '\.m$|\.mw$|\.doc$|\.docbit$|\.docsrc$|\.rst$'
 
 repos:
   # --- C / C++ / CUDA: staged hunks only via git-clang-format ---
+  # Uses a wrapper script to work around git-clang-format's fixed temp-index
+  # path (.git/clang-format-index) which causes stale .lock files when the
+  # pre-commit framework's concurrent git operations race with it.
   - repo: local
     hooks:
       - id: clang-format-staged
         name: clang-format (staged hunks)
-        entry: git-clang-format --binary clang-format --staged
+        entry: python tools/clang-format-staged.py
         language: python
         additional_dependencies: [clang-format==22.*]
         pass_filenames: true
