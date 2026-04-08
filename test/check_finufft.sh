@@ -19,28 +19,28 @@
 
 # precision-specific settings
 if [[ $1 == "SINGLE" ]]; then
-    PREC=single
-    export FINUFFT_REQ_TOL=1e-5
-    # acceptable error (watch out for N~1e3 in 1D causing large round-off)
-    CHECK_TOL=2e-4
-    # modifier for executables, exported so that check?d.sh can also access...
-    export PRECSUF=f
+	PREC=single
+	export FINUFFT_REQ_TOL=1e-5
+	# acceptable error (watch out for N~1e3 in 1D causing large round-off)
+	CHECK_TOL=2e-4
+	# modifier for executables, exported so that check?d.sh can also access...
+	export PRECSUF=f
 else
-    PREC=double
-    export FINUFFT_REQ_TOL=1e-12
-    # acceptable error should be slack*tol (5e-12), but allow N~1e3 1D roundoff
-    CHECK_TOL=1e-11
-    export PRECSUF=
+	PREC=double
+	export FINUFFT_REQ_TOL=1e-12
+	# acceptable error should be slack*tol (5e-12), but allow N~1e3 1D roundoff
+	CHECK_TOL=1e-11
+	export PRECSUF=
 fi
 if [[ $2 == "ON" ]]; then
-    export FEX=".exe"
+	export FEX=".exe"
 else
-    export FEX=
+	export FEX=
 fi
 # Note that bash cannot handle floating-point arithmetic, and bc cannot read
 # exponent notation. Thus the exponent notation above is purely string in nature
 
-SIGSEGV=139            # POSIX code to catch a seg violation: 128 + 11
+SIGSEGV=139 # POSIX code to catch a seg violation: 128 + 11
 CRASHES=0
 FAILS=0
 N=0
@@ -55,82 +55,166 @@ echo "pass-fail FINUFFT library $PREC-precision check with tol=$FINUFFT_REQ_TOL 
 T=testutils$PRECSUF
 # stdout to screen and file; stderr to different file
 ./$T$FEX 2>$DIR/$T.err.out | tee $DIR/$T.out
-E=${PIPESTATUS[0]}          # exit code of the tested cmd (not the tee cmd!)
-if [[ $E -eq 0 ]]; then echo passed; elif [[ $E -eq $SIGSEGV ]]; then echo crashed; ((CRASHES++)); else echo failed; ((FAILS++)); fi
+E=${PIPESTATUS[0]} # exit code of the tested cmd (not the tee cmd!)
+if [[ $E -eq 0 ]]; then echo passed; elif [[ $E -eq $SIGSEGV ]]; then
+	echo crashed
+	((CRASHES++))
+else
+	echo failed
+	((FAILS++))
+fi
 
 ((N++))
 T=finufft1d_test$PRECSUF
 ./$T$FEX 1e2 2e2 $FINUFFT_REQ_TOL 0 2 0.0 $CHECK_TOL 2>$DIR/$T.err.out | tee $DIR/$T.out
 E=${PIPESTATUS[0]}
-if [[ $E -eq 0 ]]; then echo passed; elif [[ $E -eq $SIGSEGV ]]; then echo crashed; ((CRASHES++)); else echo failed; ((FAILS++)); fi
+if [[ $E -eq 0 ]]; then echo passed; elif [[ $E -eq $SIGSEGV ]]; then
+	echo crashed
+	((CRASHES++))
+else
+	echo failed
+	((FAILS++))
+fi
 
 ((N++))
 T=finufft1dmany_test$PRECSUF
 ./$T$FEX 3 1e2 1e3 $FINUFFT_REQ_TOL 0 0 0 2 0.0 $CHECK_TOL 2>$DIR/$T.err.out | tee $DIR/$T.out
 E=${PIPESTATUS[0]}
-if [[ $E -eq 0 ]]; then echo passed; elif [[ $E -eq $SIGSEGV ]]; then echo crashed; ((CRASHES++)); else echo failed; ((FAILS++)); fi
+if [[ $E -eq 0 ]]; then echo passed; elif [[ $E -eq $SIGSEGV ]]; then
+	echo crashed
+	((CRASHES++))
+else
+	echo failed
+	((FAILS++))
+fi
 
 ((N++))
 T=finufft2d_test$PRECSUF
 ./$T$FEX 1e2 1e1 1e3 $FINUFFT_REQ_TOL 0 2 0.0 $CHECK_TOL 2>$DIR/$T.err.out | tee $DIR/$T.out
 E=${PIPESTATUS[0]}
-if [[ $E -eq 0 ]]; then echo passed; elif [[ $E -eq $SIGSEGV ]]; then echo crashed; ((CRASHES++)); else echo failed; ((FAILS++)); fi
+if [[ $E -eq 0 ]]; then echo passed; elif [[ $E -eq $SIGSEGV ]]; then
+	echo crashed
+	((CRASHES++))
+else
+	echo failed
+	((FAILS++))
+fi
 
 ((N++))
 T=finufft2dmany_test$PRECSUF
 ./$T$FEX 3 1e2 1e1 1e3 $FINUFFT_REQ_TOL 0 0 0 2 0.0 $CHECK_TOL 2>$DIR/$T.err.out | tee $DIR/$T.out
 E=${PIPESTATUS[0]}
-if [[ $E -eq 0 ]]; then echo passed; elif [[ $E -eq $SIGSEGV ]]; then echo crashed; ((CRASHES++)); else echo failed; ((FAILS++)); fi
+if [[ $E -eq 0 ]]; then echo passed; elif [[ $E -eq $SIGSEGV ]]; then
+	echo crashed
+	((CRASHES++))
+else
+	echo failed
+	((FAILS++))
+fi
 
 ((N++))
 T=finufft3d_test$PRECSUF
 ./$T$FEX 5 10 20 1e2 $FINUFFT_REQ_TOL 0 2 0.0 $CHECK_TOL 2>$DIR/$T.err.out | tee $DIR/$T.out
 E=${PIPESTATUS[0]}
-if [[ $E -eq 0 ]]; then echo passed; elif [[ $E -eq $SIGSEGV ]]; then echo crashed; ((CRASHES++)); else echo failed; ((FAILS++)); fi
+if [[ $E -eq 0 ]]; then echo passed; elif [[ $E -eq $SIGSEGV ]]; then
+	echo crashed
+	((CRASHES++))
+else
+	echo failed
+	((FAILS++))
+fi
 
 ((N++))
 T=finufft3dmany_test$PRECSUF
 ./$T$FEX 2 10 50 20 1e2 $FINUFFT_REQ_TOL 0 0 0 2 0.0 $CHECK_TOL 2>$DIR/$T.err.out | tee $DIR/$T.out
 E=${PIPESTATUS[0]}
-if [[ $E -eq 0 ]]; then echo passed; elif [[ $E -eq $SIGSEGV ]]; then echo crashed; ((CRASHES++)); else echo failed; ((FAILS++)); fi
+if [[ $E -eq 0 ]]; then echo passed; elif [[ $E -eq $SIGSEGV ]]; then
+	echo crashed
+	((CRASHES++))
+else
+	echo failed
+	((FAILS++))
+fi
 
 ((N++))
 T=spreadinterp1d_test$PRECSUF
 ./$T$FEX 1e2 2e2 $FINUFFT_REQ_TOL 0 2 2.0 $CHECK_TOL 2>$DIR/$T.err.out | tee $DIR/$T.out
 E=${PIPESTATUS[0]}
-if [[ $E -eq 0 ]]; then echo passed; elif [[ $E -eq $SIGSEGV ]]; then echo crashed; ((CRASHES++)); else echo failed; ((FAILS++)); fi
+if [[ $E -eq 0 ]]; then echo passed; elif [[ $E -eq $SIGSEGV ]]; then
+	echo crashed
+	((CRASHES++))
+else
+	echo failed
+	((FAILS++))
+fi
 
 ((N++))
 T=dumbinputs$PRECSUF
 ./$T$FEX 2>$DIR/$T.err.out | tee $DIR/$T.out
 E=${PIPESTATUS[0]}
-if [[ $E -eq 0 ]]; then echo passed; elif [[ $E -eq $SIGSEGV ]]; then echo crashed; ((CRASHES++)); else echo failed; ((FAILS++)); fi
+if [[ $E -eq 0 ]]; then echo passed; elif [[ $E -eq $SIGSEGV ]]; then
+	echo crashed
+	((CRASHES++))
+else
+	echo failed
+	((FAILS++))
+fi
 
 ((N++))
 T=adjointness$PRECSUF
 ./$T$FEX 2>$DIR/$T.err.out | tee $DIR/$T.out
 E=${PIPESTATUS[0]}
-if [[ $E -eq 0 ]]; then echo passed; elif [[ $E -eq $SIGSEGV ]]; then echo crashed; ((CRASHES++)); else echo failed; ((FAILS++)); fi
+if [[ $E -eq 0 ]]; then echo passed; elif [[ $E -eq $SIGSEGV ]]; then
+	echo crashed
+	((CRASHES++))
+else
+	echo failed
+	((FAILS++))
+fi
 
 ((N++))
 T=tolsweep$PRECSUF
 ./$T$FEX 2>$DIR/$T.err.out | tee $DIR/$T.out
 E=${PIPESTATUS[0]}
-if [[ $E -eq 0 ]]; then echo passed; elif [[ $E -eq $SIGSEGV ]]; then echo crashed; ((CRASHES++)); else echo failed; ((FAILS++)); fi
+if [[ $E -eq 0 ]]; then echo passed; elif [[ $E -eq $SIGSEGV ]]; then
+	echo crashed
+	((CRASHES++))
+else
+	echo failed
+	((FAILS++))
+fi
 
+# there is no {f} suffix for this test, so only do it if PRECSUF is null string...
 if [[ -z "$PRECSUF" ]]; then
-    ((N++))
-    T=error_handling
-    ./$T$FEX 2>$DIR/$T.err.out | tee $DIR/$T.out
-    E=${PIPESTATUS[0]}
-    if [[ $E -eq 0 ]]; then echo passed; elif [[ $E -eq $SIGSEGV ]]; then echo crashed; ((CRASHES++)); else echo failed; ((FAILS++)); fi
+	((N++))
+	T=error_handling
+	./$T$FEX 2>$DIR/$T.err.out | tee $DIR/$T.out
+	E=${PIPESTATUS[0]}
+	if [[ $E -eq 0 ]]; then echo passed; elif [[ $E -eq $SIGSEGV ]]; then
+		echo crashed
+		((CRASHES++))
+	else
+		echo failed
+		((FAILS++))
+	fi
+fi
+
+((N++))
+T=threadsafe_execute$PRECSUF
+./$T$FEX 2>$DIR/$T.err.out | tee $DIR/$T.out
+E=${PIPESTATUS[0]}
+if [[ $E -eq 0 ]]; then echo passed; elif [[ $E -eq $SIGSEGV ]]; then
+	echo crashed
+	((CRASHES++))
+else
+	echo failed
+	((FAILS++))
 fi
 
 # END TESTS ---------------------------------------------------------
-
 
 echo "check_finufft.sh $PREC-precision done. Summary:"
 echo "$CRASHES segfaults out of $N tests done"
 echo "$FAILS fails out of $N tests done"
 echo ""
-exit $((CRASHES+FAILS))         # use total as exit code
+exit $((CRASHES + FAILS)) # use total as exit code
