@@ -169,3 +169,63 @@ void set_kernel_shape_given_ns(finufft_spread_opts &spopts, int debug) {
 }
 
 } // namespace finufft::kernel
+
+namespace finufft::common {
+
+// Invert the kernel aliasing formula from theoretical_kernel_ns (kf>=2):
+//   tol = tolfac * exp(-(ns - 1) * pi * u),  u = sqrt(1 - 1/sigma).
+// Returns sigma in [MINSIGMA, MAXSIGMA]. Barbone 4/3/26.
+static double invert_kernel_sigma(double tol, int ns, int dim) {
+  const double tolfac = 0.18 * std::pow(1.4, dim - 1);
+  if (tol <= 0) return MAXSIGMA;
+  if (tol >= tolfac) return MINSIGMA + 0.01;
+  const double u = std::log(tolfac / tol) / ((ns - 1.0) * PI);
+  if (u >= 1.0) return MAXSIGMA;
+  return std::min(1.0 / (1.0 - u * u), MAXSIGMA);
+}
+
+double estimated_tol(double sigma, int ns, int dim, double eps_mach, double gridlen) {
+  // Estimated relative ell-2 NUFFT error = eps_alias + eps_round.
+  //   eps_alias = tolfac * exp(-(ns-1)*pi*u)     [BAR] Thm 1, [FIN] Thm 7
+  //   eps_round = 0.48 * eps_mach * N            [FIN] Remark 9
+  // Barbone 4/3/26.
+  // References:
+  // [FIN] Barnett, Magland & af Klinteberg, SISC 2019, arxiv:1808.06736
+  // [BAR] Barnett, Appl. Comput. Harmon. Anal. 2021, arxiv:2001.09405
+  const double tolfac    = 0.18 * std::pow(1.4, dim - 1);
+  const double u         = std::sqrt(1.0 - 1.0 / sigma);
+  const double eps_alias = tolfac * std::exp(-(ns - 1.0) * PI * u);
+  return eps_alias + 0.48 * eps_mach * gridlen;
+}
+
+double lowest_sigma(double tol, int dim, int ns, double eps_mach, double gridlen) {
+  // Minimum sigma achieving requested tol. Two regimes:
+  //
+  //   r = tol / eps_round,  eps_round = 0.48 * eps_mach * N.
+  //
+  // Kernel regime (r >= 10): pure analytical inversion of the aliasing formula,
+  //   exact to ~0.0001 sigma (validated in find_sigma_bound.py).
+  //
+  // Transition regime (r < 10): the rounding floor matters. A polynomial
+  //   correction in 1/r is added to sigma_pure to account for the floor:
+  //     sigma = sigma_pure + a2/r^2 + a1/r + a0
+  //   Coefficients fit by least-squares on empirical sigma_min data across
+  //   N=50..5000, types 1-3, dim 1 (see devel/find_sigma_bound.py).
+  //   Separate coefficients for ns>8 (double) and ns<=8 (float).
+  //
+  // Barbone 4/3/26.
+  const double eps_round = 0.48 * eps_mach * gridlen;
+  const double r         = tol / eps_round;
+  if (r <= 0.5) return MAXSIGMA;
+  const double sigma_pure = invert_kernel_sigma(tol, ns, dim);
+  if (r >= 10.0) return sigma_pure;
+  // Poly(1/r) correction coefficients {a2, a1, a0}, fit across all types:
+  const double a2         = ns > 8 ? 0.014 : 0.555;
+  const double a1         = ns > 8 ? 0.291 : -0.290;
+  const double a0         = ns > 8 ? -0.043 : 0.071;
+  const double inv_r      = 1.0 / r;
+  const double correction = (a2 * inv_r + a1) * inv_r + a0;
+  return std::min(sigma_pure + std::max(correction, 0.0), MAXSIGMA);
+}
+
+} // namespace finufft::common
