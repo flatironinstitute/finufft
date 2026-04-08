@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.24...3.31)
 cmake_policy(VERSION 3.24)
-project(FINUFFT VERSION 2.5.0 LANGUAGES C CXX)
+project(FINUFFT VERSION 2.5.1 LANGUAGES C CXX)
 
 include(CMakeDependentOption)
 
