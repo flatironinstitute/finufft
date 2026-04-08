@@ -298,8 +298,7 @@ template<typename T, int ndim, int ns>
 static void cuinterp_nuptsdriven(const cufinufft_plan_t<T> &d_plan, cuda_complex<T> *c,
                                  const cuda_complex<T> *fw, int blksize) {
   const dim3 threadsPerBlock{
-      std::min(optimal_block_threads(d_plan.opts.gpu_device_id), (unsigned)d_plan.M), 1u,
-      1u};
+      optimal_interp_block_threads(d_plan.opts.gpu_device_id, d_plan.M), 1u, 1u};
   const dim3 blocks{(d_plan.M + threadsPerBlock.x - 1) / threadsPerBlock.x, 1, 1};
 
   const auto launch = [&](auto kernel) {

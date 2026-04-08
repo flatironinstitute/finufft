@@ -928,19 +928,17 @@ void prol0int0r(const double *w, double r, double &val) {
   static int npts  = 200;
   static int itype = 1;
   double derpsi0;
-  static std::vector<double> xs(npts, 0), ws(npts, 0), fvals(npts, 0);
-  static int need_init = 1;
+  thread_local static std::vector<double> xs(npts, 0), ws(npts, 0);
+  std::vector<double> fvals(npts, 0); // local: written every call
+  thread_local static int need_init = 1;
   std::vector<std::vector<double>> u;
   std::vector<std::vector<double>> v;
 
   // since xs, ws, fval of size 200 are static
   // only need to get nodes and weights once
   if (need_init) {
-#pragma omp critical(PROL0INT0R)
-    if (need_init) {
-      legeexps(itype, npts, xs.data(), u, v, ws.data());
-      need_init = 0;
-    }
+    legeexps(itype, npts, xs.data(), u, v, ws.data());
+    need_init = 0;
   }
 
   // Scale the nodes and weights to [0, r]
@@ -1007,12 +1005,9 @@ struct Prolate0Fun {
 evaluate prolate0c derivative at x, i.e., \psi_0^c(x)
 */
 double prolate0_eval_derivative(double c, double x) {
-  static std::unordered_map<double, Prolate0Fun> prolate0_funcs_cache;
+  thread_local static std::unordered_map<double, Prolate0Fun> prolate0_funcs_cache;
   if (prolate0_funcs_cache.find(c) == prolate0_funcs_cache.end()) {
-#pragma omp critical(PROLATE0_EVAL)
-    if (prolate0_funcs_cache.find(c) == prolate0_funcs_cache.end()) {
-      prolate0_funcs_cache.emplace(c, Prolate0Fun(c, 10000));
-    }
+    prolate0_funcs_cache.emplace(c, Prolate0Fun(c, 10000));
   }
   return prolate0_funcs_cache[c].eval_derivative(x);
 }
@@ -1021,12 +1016,9 @@ double prolate0_eval_derivative(double c, double x) {
 evaluate prolate0c at x, i.e., \psi_0^c(x)
 */
 double prolate0_eval(double c, double x) {
-  static std::unordered_map<double, Prolate0Fun> prolate0_funcs_cache;
+  thread_local static std::unordered_map<double, Prolate0Fun> prolate0_funcs_cache;
   if (prolate0_funcs_cache.find(c) == prolate0_funcs_cache.end()) {
-#pragma omp critical(PROLATE0_EVAL)
-    if (prolate0_funcs_cache.find(c) == prolate0_funcs_cache.end()) {
-      prolate0_funcs_cache.emplace(c, Prolate0Fun(c, 10000));
-    }
+    prolate0_funcs_cache.emplace(c, Prolate0Fun(c, 10000));
   }
   return prolate0_funcs_cache[c].eval_val(x);
 }
@@ -1035,12 +1027,9 @@ double prolate0_eval(double c, double x) {
 evaluate prolate0c function integral of \int_0^r \psi_0^c(x) dx
 */
 double prolate0_int_eval(double c, double r) {
-  static std::unordered_map<double, Prolate0Fun> prolate0_funcs_cache;
+  thread_local static std::unordered_map<double, Prolate0Fun> prolate0_funcs_cache;
   if (prolate0_funcs_cache.find(c) == prolate0_funcs_cache.end()) {
-#pragma omp critical(PROLATE0_INT_EVAL)
-    if (prolate0_funcs_cache.find(c) == prolate0_funcs_cache.end()) {
-      prolate0_funcs_cache.emplace(c, Prolate0Fun(c, 10000));
-    }
+    prolate0_funcs_cache.emplace(c, Prolate0Fun(c, 10000));
   }
   return prolate0_funcs_cache[c].int_eval(r);
 }
@@ -1048,9 +1037,12 @@ double prolate0_int_eval(double c, double r) {
 
 } // anonymous namespace
 
+/* Our API for FINUFFT kernel function use only,
+   since: 1) sets to zero outside [-1,1], and 2) normalizes by value at 0.
+   Be warned: it is not exactly the standard PSWF evaluator.
+*/
 double pswf(double c, double x) {
   if (std::abs(x) > 1.0) return 0.0; // restrict support to [-1,1]
-
   return prolate0_eval(c, x) / prolate0_eval(c, 0.0);
 }
 
