@@ -46,6 +46,15 @@ v2.6.0-dev
     dependencies; as a result, internal headers are much smaller now.
   (Reinecke)
 
+v2.5.1 4/8/26
+
+* Fix thread safety of PSWF kernel evaluation (Barbone, Lu, #835, #838)
+* Fix unnecessary allocation in makeplan for FFTW_ESTIMATE (Barbone, #693, #829)
+* Tune GPU interpolation block size for small workloads (Barbone, #847)
+* Add parallel makeplan/setpts/execute thread-safety test (Barbone, Lu)
+* Fix git-clang-format stale .lock files in pre-commit (Barbone)
+* Doc improvements for PSWF functions (Barnett)
+
 v2.5.0 3/3/26
 
 * Major overhaul of spreading (gridding) kernel function choice, parameters,
