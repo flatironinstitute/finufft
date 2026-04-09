@@ -211,18 +211,20 @@ void mexErrMsgTxt(const char* msg) {
 }
 
 void mexErrMsgIdAndTxt(const char* /*id*/, const char* fmt, ...) {
+    if (!fmt) mexErrMsgTxt("");  /* mexErrMsgTxt is noreturn */
     char buf[1024];
     va_list ap;
     va_start(ap, fmt);
-    std::vsnprintf(buf, sizeof(buf), fmt ? fmt : "", ap);
+    std::vsnprintf(buf, sizeof(buf), fmt, ap);
     va_end(ap);
     mexErrMsgTxt(buf);
 }
 
 int mexPrintf(const char* fmt, ...) {
+    if (!fmt) return 0;
     va_list ap;
     va_start(ap, fmt);
-    int r = std::vfprintf(stdout, fmt ? fmt : "", ap);
+    int r = std::vfprintf(stdout, fmt, ap);
     va_end(ap);
     return r;
 }
