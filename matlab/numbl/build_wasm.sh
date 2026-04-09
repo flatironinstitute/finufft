@@ -1,17 +1,12 @@
 #!/bin/bash
-# Build FINUFFT as a WebAssembly module for use with numbl.
+# Build a numbl-compatible WebAssembly module that exposes the finufft
+# mexFunction (from upstream matlab/finufft.cpp) via a small mex shim.
 # Produces finufft.wasm in this directory.
 #
 # Prerequisites: emcc, emcmake, emmake on PATH (Emscripten SDK)
 #
 # Usage:
 #   cd finufft/matlab/numbl && bash build_wasm.sh
-#
-# After building, run numbl with:
-#   npx tsx src/cli.ts run \
-#     --extra-path path/to/finufft/matlab/numbl \
-#     --extra-path path/to/finufft/matlab \
-#     your_script.m
 
 set -euo pipefail
 
@@ -65,7 +60,8 @@ echo "  finufft: $LIBFINUFFT"
 echo "  common:  $LIBCOMMON"
 echo "  ducc0:   ${LIBDUCC0:-not found}"
 
-# Step 3: Link wrapper + FINUFFT into standalone WASM
+# Step 3: Compile finufft.cpp (upstream mwrap-generated MEX source) and our
+# mex shim, then link with FINUFFT and produce a standalone wasm module.
 echo "=== Linking finufft.wasm ==="
 cd "$SCRIPT_DIR"
 
@@ -74,12 +70,17 @@ if [ -n "$LIBDUCC0" ]; then
   LINK_LIBS="$LINK_LIBS $LIBDUCC0"
 fi
 
-em++ finufft_wrapper.cpp \
+em++ \
+  "$FINUFFT_SRC/matlab/finufft.cpp" \
+  "$SCRIPT_DIR/mex_shim.cpp" \
+  -I"$SCRIPT_DIR/mex_shim" \
   -I"$FINUFFT_SRC/include" \
+  -DMX_HAS_INTERLEAVED_COMPLEX=1 \
   $LINK_LIBS \
   -O2 \
   -msimd128 \
   -s STANDALONE_WASM \
+  -s SUPPORT_LONGJMP=wasm \
   --no-entry \
   -s TOTAL_MEMORY=67108864 \
   -s ALLOW_MEMORY_GROWTH=1 \

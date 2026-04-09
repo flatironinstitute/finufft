@@ -1,7 +1,8 @@
 #!/bin/bash
-# Build FINUFFT as a standalone native shared library for numbl.
+# Build a numbl-compatible native shared library that exposes the finufft
+# mexFunction (from upstream matlab/finufft.cpp) via a small mex shim.
 # Produces finufft.so (Linux) or finufft.dylib (macOS) in this directory.
-# All dependencies (FINUFFT, ducc0) are statically linked.
+# All FINUFFT and ducc0 dependencies are statically linked.
 #
 # Usage:
 #   cd finufft/matlab/numbl && bash build_native.sh
@@ -60,7 +61,8 @@ echo "  finufft: $LIBFINUFFT"
 echo "  common:  $LIBCOMMON"
 echo "  ducc0:   ${LIBDUCC0:-not found}"
 
-# Step 3: Link wrapper + static libs into shared library
+# Step 3: Compile finufft.cpp (the upstream mwrap-generated MEX source) and
+# our mex shim, then link them with the static finufft libs.
 echo "=== Linking finufft.$EXT ==="
 cd "$SCRIPT_DIR"
 
@@ -69,30 +71,41 @@ if [ -n "$LIBDUCC0" ]; then
   LINK_LIBS="$LINK_LIBS $LIBDUCC0"
 fi
 
-# Platform-specific linker flags
+# Place our shim's mex.h ahead of any system mex.h.
+SHIM_INC="-I$SCRIPT_DIR/mex_shim"
+
+# Only export the mex_* and my_* symbols that JS calls into.
 EXTRA_LINK=""
+VERSION_SCRIPT=""
 if [ "$EXT" = "so" ]; then
-  EXTRA_LINK="-Wl,--version-script=/dev/stdin"
-  # Only export guru_* symbols
-  VERSION_SCRIPT=$(cat <<'VEOF'
-{ global: guru_*; local: *; };
-VEOF
-)
+  VERSION_SCRIPT='{ global: mex_*; my_*; local: *; };'
 fi
 
+COMPILE_FLAGS=(
+  $SHIM_INC
+  -I"$FINUFFT_SRC/include"
+  -DMX_HAS_INTERLEAVED_COMPLEX=1
+  -O2
+  $SHARED_FLAGS
+  -fvisibility=hidden
+)
+
+SOURCES=(
+  "$FINUFFT_SRC/matlab/finufft.cpp"
+  "$SCRIPT_DIR/mex_shim.cpp"
+)
+
 if [ "$EXT" = "so" ]; then
-  echo "$VERSION_SCRIPT" | g++ finufft_native_wrapper.cpp \
-    -I"$FINUFFT_SRC/include" \
+  echo "$VERSION_SCRIPT" | g++ "${SOURCES[@]}" \
+    "${COMPILE_FLAGS[@]}" \
     $LINK_LIBS \
-    -O2 $SHARED_FLAGS -fvisibility=hidden \
     -Wl,--version-script=/dev/stdin \
     -lstdc++ -lm -lpthread \
     -o "finufft.$EXT"
 else
-  g++ finufft_native_wrapper.cpp \
-    -I"$FINUFFT_SRC/include" \
+  g++ "${SOURCES[@]}" \
+    "${COMPILE_FLAGS[@]}" \
     $LINK_LIBS \
-    -O2 $SHARED_FLAGS -fvisibility=hidden \
     -lstdc++ -lm -lpthread \
     -o "finufft.$EXT"
 fi
