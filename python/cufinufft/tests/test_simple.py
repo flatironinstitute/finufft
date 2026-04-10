@@ -113,3 +113,36 @@ def test_cufinufft3_simple(to_gpu, to_cpu, dtype, dim, n_source_pts, n_target_pt
     target_coefs = to_cpu(target_coefs_gpu)
 
     utils.verify_type3(source_pts, source_coefs, target_pts, target_coefs, tol)
+
+
+def test_simple_plan_cache_reuses_plans(monkeypatch, to_gpu):
+    shape = (8, 8, 8)
+    M = 128
+    tol = 1e-3
+
+    k, c = utils.type1_problem(np.complex64, shape, M, n_trans=(2,))
+    _, fk = utils.type2_problem(np.complex64, shape, M, n_trans=(2,))
+
+    k_gpu = to_gpu(k)
+    c_gpu = to_gpu(c)
+    fk_gpu = to_gpu(fk)
+
+    import cufinufft._simple as _simple
+
+    orig_plan = _simple.Plan
+    plan_create_count = {"n": 0}
+
+    def counted_plan(*args, **kwargs):
+        plan_create_count["n"] += 1
+        return orig_plan(*args, **kwargs)
+
+    monkeypatch.setattr(_simple, "Plan", counted_plan)
+    monkeypatch.setattr(_simple, "_PLAN_CACHE_ENABLED", True)
+    monkeypatch.setattr(_simple, "_PLAN_CACHE_MAX_SIZE", 8)
+    _simple.clear_plan_cache()
+
+    for _ in range(3):
+        cufinufft.nufft3d1(*k_gpu, c_gpu, shape, eps=tol)
+        cufinufft.nufft3d2(*k_gpu, fk_gpu, eps=tol)
+
+    assert plan_create_count["n"] == 2

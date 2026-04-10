@@ -1,4 +1,78 @@
+import os
+import threading
+from collections import OrderedDict
+
 from cufinufft import Plan, _compat
+
+_PLAN_CACHE_ENABLED = os.environ.get("CUFINUFFT_SIMPLE_PLAN_CACHE", "1") != "0"
+_PLAN_CACHE_MAX_SIZE = int(os.environ.get("CUFINUFFT_SIMPLE_PLAN_CACHE_SIZE", "16"))
+_PLAN_CACHE_LOCK = threading.Lock()
+_PLAN_CACHE = OrderedDict()
+
+
+def clear_plan_cache():
+    """Clear cached simple-API plans created by cufinufft.nufft*d* helpers."""
+    with _PLAN_CACHE_LOCK:
+        _PLAN_CACHE.clear()
+
+
+def _freeze_opt_value(value):
+    if isinstance(value, dict):
+        return tuple(sorted((k, _freeze_opt_value(v)) for k, v in value.items()))
+    if isinstance(value, (list, tuple)):
+        return tuple(_freeze_opt_value(v) for v in value)
+    if hasattr(value, "value"):
+        return value.value
+    return value
+
+
+def _plan_cache_key(dim, nufft_type, n_modes, n_trans, eps, isign, dtype, kwargs):
+    opts_key = tuple(sorted((k, _freeze_opt_value(v)) for k, v in kwargs.items()))
+    if nufft_type == 3:
+        n_modes_key = dim
+    else:
+        n_modes_key = tuple(int(v) for v in n_modes)
+    return (
+        threading.get_ident(),
+        dim,
+        nufft_type,
+        n_modes_key,
+        int(n_trans),
+        float(eps),
+        int(isign),
+        str(dtype),
+        opts_key,
+    )
+
+
+def _create_plan(dim, nufft_type, n_modes, n_trans, eps, isign, dtype, kwargs):
+    if nufft_type == 3:
+        return Plan(nufft_type, dim, n_trans, eps, isign, dtype, **kwargs)
+    return Plan(nufft_type, n_modes, n_trans, eps, isign, dtype, **kwargs)
+
+
+def _get_or_create_plan(dim, nufft_type, n_modes, n_trans, eps, isign, dtype, kwargs):
+    if (not _PLAN_CACHE_ENABLED) or _PLAN_CACHE_MAX_SIZE <= 0:
+        return _create_plan(dim, nufft_type, n_modes, n_trans, eps, isign, dtype, kwargs)
+
+    key = _plan_cache_key(dim, nufft_type, n_modes, n_trans, eps, isign, dtype, kwargs)
+    with _PLAN_CACHE_LOCK:
+        plan = _PLAN_CACHE.pop(key, None)
+        if plan is None:
+            plan = _create_plan(
+                dim,
+                nufft_type,
+                n_modes,
+                n_trans,
+                eps,
+                isign,
+                dtype,
+                kwargs,
+            )
+        _PLAN_CACHE[key] = plan
+        while len(_PLAN_CACHE) > _PLAN_CACHE_MAX_SIZE:
+            _PLAN_CACHE.popitem(last=False)
+    return plan
 
 def nufft1d1(x, data, n_modes=None, out=None, eps=1e-6, isign=1, **kwargs):
     return _invoke_plan(1, 1, x, None, None, data, None, None, None, out, isign, eps, n_modes,
@@ -33,6 +107,9 @@ def nufft1d3(x, data, s, out=None, eps=1e-6, isign=1, **kwargs):
 
 def _invoke_plan(dim, nufft_type, x, y, z, data, s, t, u,  out, isign, eps,
         n_modes=None, kwargs=None):
+    if kwargs is None:
+        kwargs = {}
+
     dtype = _compat.get_array_dtype(data)
 
     n_trans = _get_ntrans(dim, nufft_type, data)
@@ -42,10 +119,8 @@ def _invoke_plan(dim, nufft_type, x, y, z, data, s, t, u,  out, isign, eps,
     if nufft_type == 2:
         n_modes = data.shape[-dim:]
 
-    if nufft_type == 3:
-        plan = Plan(nufft_type, dim, n_trans, eps, isign, dtype, **kwargs)
-    else:
-        plan = Plan(nufft_type, n_modes, n_trans, eps, isign, dtype, **kwargs)
+    plan = _get_or_create_plan(dim, nufft_type, n_modes, n_trans, eps, isign,
+            dtype, kwargs)
 
     plan.setpts(x, y, z, s, t, u)
 
