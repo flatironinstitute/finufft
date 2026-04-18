@@ -186,8 +186,8 @@ template<typename T> void cufinufft_plan_t<T>::allocate_nupts() {
     throw int(FINUFFT_ERR_METHOD_NOTVALID);
   }
 
-  if (newsize_sortidx == sortidx.size()) sortidx.resize(newsize_sortidx);
-  if (newsize_idxnupts == idxnupts.size()) idxnupts.resize(newsize_idxnupts);
+  if (newsize_sortidx != sortidx.size()) sortidx.resize(newsize_sortidx);
+  if (newsize_idxnupts != idxnupts.size()) idxnupts.resize(newsize_idxnupts);
 }
 
 /* Kernel for copying fw to fk with amplication by prefac/ker */
