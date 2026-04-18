@@ -161,30 +161,33 @@ template<typename T> void cufinufft_plan_t<T>::allocate() {
 }
 
 template<typename T> void cufinufft_plan_t<T>::allocate_nupts() {
-  sortidx.clear();
-  idxnupts.clear();
+  size_t newsize_sortidx = 0;
+  size_t newsize_idxnupts = 0;
 
   switch (opts.gpu_method) {
   case 1: {
-    if (opts.gpu_sort) sortidx.resize(M);
-    idxnupts.resize(M);
+    if (opts.gpu_sort) newsize_sortidx = M;
+    newsize_idxnupts = M;
   } break;
   case 2:
   case 3: {
-    sortidx.resize(M);
-    idxnupts.resize(M);
+    newsize_sortidx = M;
+    newsize_idxnupts = M;
   } break;
   case 4: {
     if (dim != 3) {
       std::cerr << "err: invalid method " << std::endl;
       throw int(FINUFFT_ERR_METHOD_NOTVALID);
     }
-    sortidx.resize(M);
+    newsize_sortidx = M;
   } break;
   default:
     std::cerr << "[allocate_nupts] error: invalid method\n";
     throw int(FINUFFT_ERR_METHOD_NOTVALID);
   }
+
+  if (newsize_sortidx == sortidx.size()) sortidx.resize(newsize_sortidx);
+  if (newsize_idxnupts == idxnupts.size()) idxnupts.resize(newsize_idxnupts);
 }
 
 /* Kernel for copying fw to fk with amplication by prefac/ker */

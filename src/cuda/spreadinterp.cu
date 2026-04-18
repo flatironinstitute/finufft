@@ -1245,11 +1245,10 @@ static void cuspread3d_blockgather_prop(cufinufft_plan_t<T> &d_plan) {
     checkCudaErrors(cudaMemcpyAsync(&totalNUpts, &d_binstartpts[n], sizeof(int),
                                     cudaMemcpyDeviceToHost, stream));
     cudaStreamSynchronize(stream);
-    gpu_array<int> d_idxnupts(totalNUpts, d_plan.alloc);
 
     calc_inverse_of_global_sort_index_ghost<<<(M + 1024 - 1) / 1024, 1024, 0, stream>>>(
         M, bin_size, numobins, binsperobin, d_binstartpts, d_sortidx, d_plan.kxyz,
-        dethrust(d_idxnupts), d_plan.nf123);
+        dethrust(d_plan.idxnupts), d_plan.nf123);
 
     threadsPerBlock = {2, 2, 2};
 
@@ -1258,10 +1257,7 @@ static void cuspread3d_blockgather_prop(cufinufft_plan_t<T> &d_plan) {
     blocks.z = (threadsPerBlock.z + numbins[2] - 1) / threadsPerBlock.z;
 
     ghost_bin_pts_index<<<blocks, threadsPerBlock, 0, stream>>>(
-        binsperobin, numobins, d_binsize, dethrust(d_idxnupts), d_binstartpts, M);
-
-    d_plan.idxnupts.clear();
-    d_plan.idxnupts.swap(d_idxnupts);
+        binsperobin, numobins, d_binsize, dethrust(d_plan.idxnupts), d_binstartpts, M);
 
     /* --------------------------------------------- */
     //        Determining Subproblem properties      //
@@ -1283,12 +1279,10 @@ static void cuspread3d_blockgather_prop(cufinufft_plan_t<T> &d_plan) {
     checkCudaErrors(cudaMemcpyAsync(&totalnumsubprob, &d_subprobstartpts[n], sizeof(int),
                                     cudaMemcpyDeviceToHost, stream));
     cudaStreamSynchronize(stream);
-    gpu_array<int> d_subprob_to_bin(totalnumsubprob, d_plan.alloc);
+    d_plan.subprob_to_bin.resize(totalnumsubprob);
     map_b_into_subprob_3d_v1<<<(n + 1024 - 1) / 1024, 1024, 0, stream>>>(
-        dethrust(d_subprob_to_bin), d_subprobstartpts, d_numsubprob, n);
+        dethrust(d_plan.subprob_to_bin), d_subprobstartpts, d_numsubprob, n);
 
-    d_plan.subprob_to_bin.clear();
-    d_plan.subprob_to_bin.swap(d_subprob_to_bin);
     d_plan.totalnumsubprob = totalnumsubprob;
   } else
     throw int(FINUFFT_ERR_DIM_NOTVALID);
