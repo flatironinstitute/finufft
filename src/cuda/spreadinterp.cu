@@ -1245,6 +1245,7 @@ static void cuspread3d_blockgather_prop(cufinufft_plan_t<T> &d_plan) {
     checkCudaErrors(cudaMemcpyAsync(&totalNUpts, &d_binstartpts[n], sizeof(int),
                                     cudaMemcpyDeviceToHost, stream));
     cudaStreamSynchronize(stream);
+    d_plan.idxnupts.resize(totalNUpts);
 
     calc_inverse_of_global_sort_index_ghost<<<(M + 1024 - 1) / 1024, 1024, 0, stream>>>(
         M, bin_size, numobins, binsperobin, d_binstartpts, d_sortidx, d_plan.kxyz,
