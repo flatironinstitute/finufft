@@ -2,18 +2,10 @@ include(staticAnalysis)
 include(setupIWYU)
 
 set(SRC
-    spreadinterp.cpp
-    1d/spread1d_wrapper.cu
-    1d/interp1d_wrapper.cu
-    2d/spread2d_wrapper.cu
-    2d/interp2d_wrapper.cu
-    3d/spread3d_wrapper.cu
-    3d/interp3d_wrapper.cu
-    memtransfer_wrapper.cu
-    deconvolve_wrapper.cu
     cufinufft.cu
     common.cu
     cufinufft_plan_t.cu
+    spreadinterp.cu
 )
 
 set(CUFINUFFT_INCLUDE_DIRS

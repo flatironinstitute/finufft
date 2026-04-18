@@ -16,6 +16,7 @@
 
 #include <cstddef>
 #include <cuComplex.h>
+#include <memory>
 
 /* This header file contains the internal plan class of cufinufft,
    as well as other types and functions which are exclusively
@@ -146,13 +147,6 @@ template<typename T> struct cufinufft_plan_t {
   cuda::std::array<const T *, 3> kxyz     = {nullptr, nullptr, nullptr};
   cuda::std::array<gpu_array<T>, 3> kxyzp = {
       gpu_array<T>{0, alloc}, gpu_array<T>{0, alloc}, gpu_array<T>{0, alloc}};
-  gpu_array<cuda_complex<T>> CpBatch{0, alloc}; // working array of prephased strengths
-
-  // no allocs here
-  cuda_complex<T> *c = nullptr;
-  gpu_array<cuda_complex<T>> fwp{0, alloc};
-  cuda_complex<T> *fw = nullptr;
-  cuda_complex<T> *fk = nullptr;
 
   // Type 3 specific
   struct {
@@ -166,7 +160,7 @@ template<typename T> struct cufinufft_plan_t {
       gpu_array<T>{0, alloc}, gpu_array<T>{0, alloc}, gpu_array<T>{0, alloc}};
   T tol = 0;
   // inner type 2 plan for type 3
-  cufinufft_plan_t<T> *t2_plan = nullptr;
+  std::unique_ptr<cufinufft_plan_t<T>> t2_plan;
 
   gpu_array<cuda_complex<T>> prephase{0, alloc}; // pre-phase, for all input NU pts
   gpu_array<cuda_complex<T>> deconv{0, alloc};   // reciprocal of kernel FT, phase, all
@@ -204,24 +198,16 @@ template<typename T> struct cufinufft_plan_t {
   ~cufinufft_plan_t() {
     DeviceSwitcher switcher(opts.gpu_device_id);
     if (fftplan) cufftDestroy(fftplan);
-    delete t2_plan;
   }
 
 private:
-  void alloc1d();
-  void alloc2d();
-  void alloc3d();
+  void exec1(cuda_complex<T> *d_c, cuda_complex<T> *d_fk) const;
+  void exec2(cuda_complex<T> *d_c, cuda_complex<T> *d_fk) const;
+  void exec3(cuda_complex<T> *d_c, cuda_complex<T> *d_fk) const;
 
-  void alloc1d_nupts();
-  void alloc2d_nupts();
-  void alloc3d_nupts();
-
-  void exec1(cuda_complex<T> *d_c, cuda_complex<T> *d_fk);
-  void exec2(cuda_complex<T> *d_c, cuda_complex<T> *d_fk);
-  void exec3(cuda_complex<T> *d_c, cuda_complex<T> *d_fk);
-
-  void deconvolve(int blksize) const;
-  template<int modeord, int ndim> void deconvolve_nd(int blksize) const;
+  void deconvolve(cuda_complex<T> *fw, cuda_complex<T> *fk, int blksize) const;
+  template<int modeord, int ndim>
+  void deconvolve_nd(cuda_complex<T> *fw, cuda_complex<T> *fk, int blksize) const;
 
   void setpts_12(int M_, const T *d_kx, const T *d_ky, const T *d_kz);
   void allocate();
@@ -231,7 +217,72 @@ public:
   void setpts(int M_, const T *d_kx, const T *d_ky, const T *d_kz, int N_, const T *d_s,
               const T *d_t, const T *d_u);
   // FIXME: we want to make this "const" in the future
-  void exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk);
+  void exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk) const;
+};
+
+// This class contains a subset of the information stored in
+// cufinufft_plan_t, in a shape that can be copied to GPU.
+template<typename T> struct cufinufft_gpu_data {
+  cufinufft_opts opts;
+  finufft_spread_opts spopts;
+
+  int type                                    = 0;
+  int dim                                     = 0;
+  CUFINUFFT_BIGINT M                          = 0;
+  cuda::std::array<CUFINUFFT_BIGINT, 3> nf123 = {0, 0, 0};
+  cuda::std::array<CUFINUFFT_BIGINT, 3> mstu  = {0, 0, 0};
+  int ntransf                                 = 0;
+  int batchsize                               = 0;
+  int iflag                                   = 0;
+
+  int totalnumsubprob = 0;
+
+  // for type 1,2 it is a pointer to kx, ky, kz (no new allocs), for type 3 it
+  // for t3: allocated as "primed" (scaled) src pts x'_j, etc
+  cuda::std::array<const T *, 3> xyz = {nullptr, nullptr, nullptr};
+
+  int N                              = 0; // number of NU freq pts (type 3 only)
+  CUFINUFFT_BIGINT nf                = 0;
+  cuda::std::array<const T *, 3> STU = {nullptr, nullptr, nullptr};
+  T tol                              = 0;
+
+  const cuda_complex<T> *prephase = nullptr; // pre-phase, for all input NU pts
+  const cuda_complex<T> *deconv   = nullptr; // reciprocal of kernel FT, phase, all
+                                             // output NU pts
+
+  // Arrays that used in subprob method
+  const int *idxnupts = nullptr;   // length: #nupts, index of the nupts in the
+                                   // bin-sorted order
+  const int *sortidx = nullptr;    // length: #nupts, order inside the bin the nupt
+                                   // belongs to
+  const int *numsubprob = nullptr; // length: #bins,  number of subproblems in each
+                                   // bin
+  const int *binsize = nullptr;    // length: #bins, number of nonuniform ponits in each
+                                   // bin
+  const int *binstartpts    = nullptr;  // length: #bins, exclusive scan of array binsize
+  const int *subprob_to_bin = nullptr;  // length: #subproblems, the bin the subproblem
+                                        // works on
+  const int *subprobstartpts = nullptr; // length: #bins, exclusive scan of array
+                                        // numsubprob
+
+  // Arrays for 3d (need to sort out)
+  const int *numnupts         = nullptr;
+  const int *subprob_to_nupts = nullptr;
+
+  cufinufft_gpu_data() = delete;
+  cufinufft_gpu_data(const cufinufft_plan_t<T> &orig)
+      : opts(orig.opts), spopts(orig.spopts), type(orig.type), dim(orig.dim), M(orig.M),
+        nf123(orig.nf123), mstu(orig.mstu), ntransf(orig.ntransf),
+        batchsize(orig.batchsize), iflag(orig.iflag),
+        totalnumsubprob(orig.totalnumsubprob), xyz(orig.kxyz), nf(orig.nf), STU(orig.STU),
+        tol(orig.tol), prephase(dethrust(orig.prephase)), deconv(dethrust(orig.deconv)),
+        idxnupts(dethrust(orig.idxnupts)), sortidx(dethrust(orig.sortidx)),
+        numsubprob(dethrust(orig.numsubprob)), binsize(dethrust(orig.binsize)),
+        binstartpts(dethrust(orig.binstartpts)),
+        subprob_to_bin(dethrust(orig.subprob_to_bin)),
+        subprobstartpts(dethrust(orig.subprobstartpts)),
+        numnupts(dethrust(orig.numnupts)),
+        subprob_to_nupts(dethrust(orig.subprob_to_nupts)) {}
 };
 
 #endif
