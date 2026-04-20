@@ -1,0 +1,157 @@
+name: Run perftests
+
+on:
+  workflow_dispatch:
+    inputs:
+      versions:
+        description: "Comma separated version list"
+        type: string
+        default: 'v2.2.0,v2.3.0,v2.4.0,v2.5.0'
+        required: true
+
+jobs:
+  prepare-tags:
+    runs-on: ubuntu-22.04
+    env:
+      VERSIONS_INPUT: ${{ github.event.inputs.versions || 'v2.4.0,v2.5.0' }}
+    permissions:
+      contents: read
+    outputs:
+      matrix: ${{ steps.collect.outputs.matrix }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Collect tags oldest to newest
+        id: collect
+        shell: bash
+        run: |
+          VERSIONS=$(echo $VERSIONS_INPUT | tr ',' '\n' |  xargs -I? sh -c "echo -n '?:';git rev-parse ?")
+          VERSIONS="$VERSIONS master:$(git rev-parse master)"
+          RESULT=$(echo $VERSIONS | python3 -c 'import json;import sys; print("matrix="+json.dumps({"include": [{"tag": tag, "commit": sha} for tag, sha in [p.split(":") for p in next(sys.stdin).split()]]}))')
+          echo $RESULT
+          echo $RESULT >> $GITHUB_OUTPUT
+
+  checkout-tags:
+    runs-on: ubuntu-22.04
+    needs: prepare-tags
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.prepare-tags.outputs.matrix) }}
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout latest perftest
+        uses: actions/checkout@v4
+        with:
+          path: _head_ref
+          sparse-checkout: |
+            perftest
+
+      - name: Checkout tag commit
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          ref: ${{ matrix.commit }}
+          fetch-depth: 1
+          path: _matrix_ref
+
+      - name: Copy perftest into tag tree
+        run: |
+          rm -fr _matrix_ref/perftest
+          mv _head_ref/perftest _matrix_ref/perftest
+
+      - name: Results cache
+        id: csv-cache
+        uses: actions/cache/restore@v4
+        with:
+          key: csv-${{ matrix.commit }}-${{ hashFiles('_matrix_ref/perftest/**') }}
+          path: matrix-results/${{ matrix.tag }}.csv
+
+
+      - name: Setup Cpp
+        if: steps.csv-cache.outputs.cache-hit != 'true'
+        uses: aminya/setup-cpp@v1
+        with:
+          cmake: true
+
+      - name: Build executables
+        if: steps.csv-cache.outputs.cache-hit != 'true'
+        id: run_test
+        run: |
+          cmake -S _matrix_ref -B build -DFINUFFT_BUILD_TESTS=ON -DCMAKE_BUILD_TYPE=Release -DFINUFFT_FFTW_LIBRARIES=DOWNLOAD -DCPM_USE_LOCAL_PACKAGES=OFF
+          cmake --build build --target perftest -j
+
+      - name: Run perftests
+        if: steps.csv-cache.outputs.cache-hit != 'true'
+        run: |
+          pip install --quiet pandas
+          mkdir -p matrix-results
+          python3 _matrix_ref/perftest/run_perftest_ci.py run --output-csv matrix-results/${{ matrix.tag }}.csv
+
+      - name: Create empty csv on failure
+        if: failure()
+        run: |
+          mkdir -p matrix-results
+          : > matrix-results/${{ matrix.tag }}.csv
+
+      - name: Save csv cache
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          key: csv-${{ matrix.commit }}-${{ hashFiles('_matrix_ref/perftest/**') }}
+          path: matrix-results/${{ matrix.tag }}.csv
+
+      - name: Upload matrix result
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: matrix-result-${{ matrix.tag }}-csv
+          path: matrix-results/${{ matrix.tag }}.csv
+          if-no-files-found: error
+
+  gather-results:
+    runs-on: ubuntu-22.04
+    needs:
+      - prepare-tags
+      - checkout-tags
+    if: always()
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Download matrix results
+        uses: actions/download-artifact@v4
+        with:
+          pattern: matrix-result-*-csv
+          path: matrix-results
+          merge-multiple: true
+
+      - name: Install plotting dependency
+        run: python3 -m pip install --quiet matplotlib pandas Jinja2
+
+      - name: Summarize matrix results
+        run: |
+          echo "Matrix JSON from prepare-tags:"
+          echo '${{ needs.prepare-tags.outputs.matrix }}'
+          rm -f docs/pics/perftestci*
+          CPU=$(grep 'model name' /proc/cpuinfo | head -n 1)
+          python3 perftest/run_perftest_ci.py gather \
+            --matrix-json '${{ needs.prepare-tags.outputs.matrix }}' \
+            --input-dir matrix-results \
+            --plot-output-dir docs/pics \
+            --template-path docs/perftest_timings.rst.j2 \
+            --cpu-name "$CPU"
+
+      - name: Commit generated perftest docs
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@github.com"
+          git add docs/pics docs/perftest_timings.rst
+          git diff --staged --quiet || git commit -m "Generated new perftest report page." && git push
