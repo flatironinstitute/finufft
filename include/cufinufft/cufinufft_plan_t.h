@@ -160,7 +160,7 @@ template<typename T> struct cufinufft_plan_t {
       gpu_array<T>{0, alloc}, gpu_array<T>{0, alloc}, gpu_array<T>{0, alloc}};
   T tol = 0;
   // inner type 2 plan for type 3
-  std::unique_ptr<cufinufft_plan_t<T>> t2_plan;
+  std::unique_ptr<const cufinufft_plan_t<T>> t2_plan;
 
   gpu_array<cuda_complex<T>> prephase{0, alloc}; // pre-phase, for all input NU pts
   gpu_array<cuda_complex<T>> deconv{0, alloc};   // reciprocal of kernel FT, phase, all
@@ -202,7 +202,10 @@ template<typename T> struct cufinufft_plan_t {
 
 private:
   void exec1(cuda_complex<T> *d_c, cuda_complex<T> *d_fk) const;
-  void exec2(cuda_complex<T> *d_c, cuda_complex<T> *d_fk) const;
+  // The "batchsize_override" parameter is only needed when a type 3 plan calls
+  // its inner type 2 plan. Leave at default in all other circumstances!
+  void exec2(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
+             int batchsize_override = 0) const;
   void exec3(cuda_complex<T> *d_c, cuda_complex<T> *d_fk) const;
 
   void deconvolve(cuda_complex<T> *fw, cuda_complex<T> *fk, int blksize) const;
