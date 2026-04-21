@@ -732,15 +732,18 @@ void cufinufft_plan_t<T>::setpts(int M_, const T *d_kx, const T *d_ky, const T *
 
   setpts_12(M, kxyz[0], kxyz[1], kxyz[2]);
   {
-    int t2modes[]               = {nf123[0], nf123[1], nf123[2]};
-    cufinufft_opts t2opts       = opts;
-    t2opts.gpu_spreadinterponly = 0;
-    t2opts.gpu_method           = 0;
-    // Release the old inner plan before allocating the new one to
-    // avoid holding both in memory at the same time, which could be wasteful
-    t2_plan.reset();
-    auto *tmp = new cufinufft_plan_t<T>(2, dim, t2modes, iflag, batchsize, tol, t2opts);
+    if (!t2_plan) {  // inner plan has not been constructed yet
+      int t2modes[]               = {nf123[0], nf123[1], nf123[2]};
+      cufinufft_opts t2opts       = opts;
+      t2opts.gpu_spreadinterponly = 0;
+      t2opts.gpu_method           = 0;
+      t2_plan = std::make_unique<cufinufft_plan_t<T>>(2, dim, t2modes, iflag, batchsize, tol, t2opts);
+    }
+    // Extract the plan from the unique pointer to allow manipulation
+    auto *tmp = const_cast<cufinufft_plan_t<T> *>(t2_plan.release());
+    // Call setpts on the inner plan
     tmp->setpts_12(N, STU[0], STU[1], STU[2]);
+    // put it back into the unique pointer
     t2_plan.reset(tmp);
     if (t2_plan->spopts.spread_direction != 2) {
       fprintf(stderr, "[%s] inner t2 plan cufinufft_setpts_12 wrong direction\n",
