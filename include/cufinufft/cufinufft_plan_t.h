@@ -160,7 +160,7 @@ template<typename T> struct cufinufft_plan_t {
       gpu_array<T>{0, alloc}, gpu_array<T>{0, alloc}, gpu_array<T>{0, alloc}};
   T tol = 0;
   // inner type 2 plan for type 3
-  std::unique_ptr<const cufinufft_plan_t<T>> t2_plan;
+  std::unique_ptr<cufinufft_plan_t<T>> t2_plan;
 
   gpu_array<cuda_complex<T>> prephase{0, alloc}; // pre-phase, for all input NU pts
   gpu_array<cuda_complex<T>> deconv{0, alloc};   // reciprocal of kernel FT, phase, all
