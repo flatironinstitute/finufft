@@ -109,6 +109,7 @@ def gather_results(args) -> None:
         try:
             frame = pd.read_csv(base_dir / f"{tag}.csv")
         except pd.errors.EmptyDataError:
+            print(f"Skipped version {tag}")
             continue
         frame["tag"] = tag
         frames.append(frame)
@@ -202,8 +203,17 @@ def gather_results(args) -> None:
     template_path = Path(args.template_path)
     env = Environment(loader=FileSystemLoader(template_path.parent))
     template = env.get_template(template_path.name)
+    cpu_flags = args.cpu_flags.partition(":")[-1].strip().split()
+    isa_features = [flag for flag in cpu_flags if flag.startswith("avx")]
+    fma_supported = "yes" if "fma" in cpu_flags else "no"
+    if not isa_features:
+        isa_features_text = "none detected"
+    else:
+        isa_features_text = ", ".join(isa_features)
     rendered = template.render(
         cpu_name=args.cpu_name.partition(":")[-1],
+        simd_features=isa_features_text,
+        fma_supported=fma_supported,
         dim_transform_groups=dim_transform_groups,
     )
     template_path.with_suffix("").write_text(rendered, encoding="utf-8")
@@ -252,6 +262,7 @@ def main() -> None:
         help="Path to docs page template.",
     )
     gather_parser.add_argument("--cpu-name", help="Machine cpu name")
+    gather_parser.add_argument("--cpu-flags", default="", help="Machine cpu flags line")
     args = parser.parse_args()
 
     if args.mode == "gather":

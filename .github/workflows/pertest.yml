@@ -1,17 +1,19 @@
 name: Run perftests
 
 on:
+  push:
+    branches: [ master ]
   workflow_dispatch:
     inputs:
       versions:
         description: "Comma separated version list"
         type: string
-        default: 'v2.2.0,v2.3.0,v2.4.0,v2.5.0'
+        default: 'v2.4.0,v2.5.0'
         required: true
 
 jobs:
   prepare-tags:
-    runs-on: ubuntu-22.04
+    runs-on: self-hosted
     env:
       VERSIONS_INPUT: ${{ github.event.inputs.versions || 'v2.4.0,v2.5.0' }}
     permissions:
@@ -31,13 +33,13 @@ jobs:
         shell: bash
         run: |
           VERSIONS=$(echo $VERSIONS_INPUT | tr ',' '\n' |  xargs -I? sh -c "echo -n '?:';git rev-parse ?")
-          VERSIONS="$VERSIONS master:$(git rev-parse master)"
+
+          #VERSIONS="$VERSIONS master:$(git rev-parse master)"
           RESULT=$(echo $VERSIONS | python3 -c 'import json;import sys; print("matrix="+json.dumps({"include": [{"tag": tag, "commit": sha} for tag, sha in [p.split(":") for p in next(sys.stdin).split()]]}))')
-          echo $RESULT
           echo $RESULT >> $GITHUB_OUTPUT
 
   checkout-tags:
-    runs-on: ubuntu-22.04
+    runs-on: self-hosted
     needs: prepare-tags
     strategy:
       fail-fast: false
@@ -84,7 +86,7 @@ jobs:
         id: run_test
         run: |
           cmake -S _matrix_ref -B build -DFINUFFT_BUILD_TESTS=ON -DCMAKE_BUILD_TYPE=Release -DFINUFFT_FFTW_LIBRARIES=DOWNLOAD -DCPM_USE_LOCAL_PACKAGES=OFF
-          cmake --build build --target perftest -j
+          cmake --build build --target perftest -j 6
 
       - name: Run perftests
         if: steps.csv-cache.outputs.cache-hit != 'true'
@@ -115,7 +117,7 @@ jobs:
           if-no-files-found: error
 
   gather-results:
-    runs-on: ubuntu-22.04
+    runs-on: self-hosted
     needs:
       - prepare-tags
       - checkout-tags
@@ -140,18 +142,24 @@ jobs:
         run: |
           echo "Matrix JSON from prepare-tags:"
           echo '${{ needs.prepare-tags.outputs.matrix }}'
-          rm -f docs/pics/perftestci*
+          rm -f docs/pics/perftestci_*
           CPU=$(grep 'model name' /proc/cpuinfo | head -n 1)
+          CPU_FLAGS=$(grep 'flags' /proc/cpuinfo | head -n 1)
           python3 perftest/run_perftest_ci.py gather \
             --matrix-json '${{ needs.prepare-tags.outputs.matrix }}' \
             --input-dir matrix-results \
             --plot-output-dir docs/pics \
             --template-path docs/perftest_timings.rst.j2 \
-            --cpu-name "$CPU"
+            --cpu-name "$CPU" \
+            --cpu-flags "$CPU_FLAGS"
 
       - name: Commit generated perftest docs
+        if: (github.event_name == 'push' && github.ref == 'refs/heads/master') || github.event_name == 'workflow_dispatch'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@github.com"
-          git add docs/pics docs/perftest_timings.rst
-          git diff --staged --quiet || git commit -m "Generated new perftest report page." && git push
+          git checkout -B perftest-results
+          git add docs/pics/perftestci_* docs/perftest_timings.rst
+          git diff --staged --quiet || git commit -m "Generated new perftest report page." && git push -f --set-upstream origin perftest-results

@@ -7,6 +7,10 @@ This page compares performance of every FINUFFT release version and latest commi
 
 The CPU used for all benchmarks below is: {{ cpu_name }}
 
+AVX extensions present: {{ simd_features }}.
+
+FMA supported: {{ fma_supported }}.
+
 {% for dim, transform_groups in dim_transform_groups.items() %}
 {{ dim }}D Transforms
 ---------------------------------------------
