@@ -16,23 +16,25 @@ repos:
         types_or: [c++, c, cuda]
         files: \.(c|cc|cpp|h|hpp|cu|cuh)$
         exclude: '(^|/)(matlab/.*)$'
-
-  # --- CMake ---
-  - repo: https://github.com/BlankSpruce/gersemi
-    rev: 0.26.0
-    hooks:
-      - id: gersemi
-
+      - id: gersemi-staged
+        name: gersemi (staged hunks)
+        entry: python tools/gersemi-staged.py
+        language: python
+        additional_dependencies: [gersemi==0.27.1]
+        pass_filenames: true
+        files: '(^|/)(CMakeLists\.txt|[^/]+\.cmake(?:\.in)?)$'
   # --- Python ---
-  - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.15.4
+  - repo: https://github.com/akaihola/darker
+    rev: v3.0.0
     hooks:
-      - id: ruff-format
+      - id: darker
+        args: [--formatter=ruff]
+        additional_dependencies: [ruff==0.15.9]
         exclude: '^perftest/spreadbenchmark\.py$'  # Python 2 file
 
   # --- Shell ---
   - repo: https://github.com/scop/pre-commit-shfmt
-    rev: v3.12.0-2
+    rev: v3.13.1-1
     hooks:
       - id: shfmt
 
