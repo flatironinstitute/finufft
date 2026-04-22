@@ -4,6 +4,14 @@ on:
   pull_request:
     branches:
       - master
+  # Manual trigger (with an optional deploy toggle)
+  workflow_dispatch:
+    inputs:
+      deploy:
+        description: "Deploy after build?"
+        type: boolean
+        required: false
+        default: false
 
 jobs:
   Linux:
