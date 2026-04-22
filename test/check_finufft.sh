@@ -199,16 +199,19 @@ if [[ -z "$PRECSUF" ]]; then
 	fi
 fi
 
-((N++))
-T=threadsafe_execute$PRECSUF
-./$T$FEX 2>$DIR/$T.err.out | tee $DIR/$T.out
-E=${PIPESTATUS[0]}
-if [[ $E -eq 0 ]]; then echo passed; elif [[ $E -eq $SIGSEGV ]]; then
-	echo crashed
-	((CRASHES++))
-else
-	echo failed
-	((FAILS++))
+# Skip on Windows: crashes during std::thread teardown on MinGW (libgomp TLS).
+if [[ "$OSTYPE" != msys* && "$OSTYPE" != cygwin* ]]; then
+	((N++))
+	T=threadsafe_execute$PRECSUF
+	./$T$FEX 2>$DIR/$T.err.out | tee $DIR/$T.out
+	E=${PIPESTATUS[0]}
+	if [[ $E -eq 0 ]]; then echo passed; elif [[ $E -eq $SIGSEGV ]]; then
+		echo crashed
+		((CRASHES++))
+	else
+		echo failed
+		((FAILS++))
+	fi
 fi
 
 # END TESTS ---------------------------------------------------------
