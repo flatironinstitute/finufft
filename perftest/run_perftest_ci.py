@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 import argparse
-import csv
 import json
 import os
 import io
@@ -32,16 +31,16 @@ class Params:
             return 2
         return 1
 
-    def get_hash(self) -> str:
-        return hashlib.md5(
-            json.dumps(asdict(self), sort_keys=True).encode("utf-8")
-        ).hexdigest()
-
     def args(self) -> list[str]:
         return [f"{f.name}={getattr(self, f.name)}" for f in fields(self)]
 
     def pretty_string(self) -> str:
         return ", ".join(f"{f.name}={getattr(self, f.name)}" for f in fields(self))
+
+    def get_hash(self) -> str:
+        # Stable short identifier used to group matching parameter sets in CSVs.
+        payload = json.dumps(asdict(self), sort_keys=True)
+        return hashlib.sha1(payload.encode("utf-8")).hexdigest()[:12]
 
 
 NRUNS = 10
@@ -92,39 +91,114 @@ def run_command(command: str, args: list[str]) -> str:
     return result.stdout
 
 
-def gather_results(args) -> None:
+def detect_cpu_info() -> tuple[str, str]:
+    cpu_name = "unknown"
+    cpu_flags = ""
+    with open("/proc/cpuinfo", "r", encoding="utf-8") as f:
+        for line in f:
+            if line.startswith("model name"):
+                cpu_name = line.split(":", 1)[1].strip()
+            elif line.startswith("flags"):
+                cpu_flags = line.strip()
+    return cpu_name, cpu_flags
+
+
+def resolve_perftest_bin(build_dir: Path) -> Path | None:
+    candidates = [
+        build_dir / "perftest" / "perftest",
+        build_dir / "perftest",
+    ]
+    for candidate in candidates:
+        if candidate.exists() and os.access(candidate, os.X_OK):
+            return candidate
+    return None
+
+
+def discover_tags(
+    builds_root: Path, versions_input: str, current_tag: str
+) -> list[str]:
+    preferred: list[str] = []
+    if versions_input.strip():
+        preferred.extend(
+            tag.strip() for tag in versions_input.split(",") if tag.strip()
+        )
+    if current_tag and current_tag not in preferred:
+        preferred.append(current_tag)
+
+    if preferred:
+        return preferred
+
+    tags = []
+    for path in sorted(builds_root.iterdir()):
+        if path.is_dir():
+            tags.append(path.name)
+    return tags
+
+
+def run_benchmarks_for_bin(perftest_bin: Path) -> pd.DataFrame:
+    output_rows: list[dict[str, Number | str]] = []
+    run_count = 0
+
+    for param in PARAM_LIST:
+        param_id = param.get_hash()
+        for transform in TRANSFORMS:
+            perftest_args = param.args() + DEFAULT_EXTRA_ARGS + [f"type={transform}"]
+            output = run_command(str(perftest_bin), perftest_args)
+            test_res = pd.read_csv(
+                io.StringIO(
+                    "\n".join(
+                        [
+                            line
+                            for line in output.splitlines()
+                            if not line.startswith("#")
+                        ]
+                    )
+                ),
+                sep=",",
+            )
+            test_res = test_res.set_index("event")
+            output_rows.append(
+                {
+                    "params_hash": param_id,
+                    "transform": transform,
+                    "makeplan_mean(ms)": test_res.at["makeplan", "mean(ms)"],
+                    "makeplan_std(ms)": test_res.at["makeplan", "std(ms)"],
+                    "setpts_mean(ms)": test_res.at["setpts", "mean(ms)"],
+                    "setpts_std(ms)": test_res.at["setpts", "std(ms)"],
+                    "execute_mean(ms)": test_res.at["execute", "mean(ms)"],
+                    "execute_std(ms)": test_res.at["execute", "std(ms)"],
+                }
+            )
+            run_count += 1
+
+    print(f"Ran {run_count} perftest invocations successfully for {perftest_bin}.")
+    return pd.DataFrame(output_rows)
+
+
+def render_plots_and_report(
+    all_results: pd.DataFrame,
+    tags: list[str],
+    plot_output_dir: Path,
+    template_path: Path,
+    cpu_name: str,
+    cpu_flags: str,
+) -> None:
     import matplotlib.pyplot as plt
     import numpy as np
     from jinja2 import Environment, FileSystemLoader
 
-    matrix = json.loads(args.matrix_json)
-    tags = [entry["tag"] for entry in matrix.get("include", [])]
-    base_dir = Path(args.input_dir)
-    plot_output_dir = Path(args.plot_output_dir)
     plot_output_dir.mkdir(parents=True, exist_ok=True)
-    frames: list[pd.DataFrame] = []
-    generated_images: list[dict[str, str]] = []
+    if all_results.empty:
+        raise RuntimeError("No performance measurements were produced")
 
-    for tag in tags:
-        try:
-            frame = pd.read_csv(base_dir / f"{tag}.csv")
-        except pd.errors.EmptyDataError:
-            print(f"Skipped version {tag}")
-            continue
-        frame["tag"] = tag
-        frames.append(frame)
-
-    if not frames:
-        raise RuntimeError("Matrix did not produce any performance measurements")
-
-    df = pd.concat(frames, ignore_index=True)
+    df = all_results
 
     dim_transform_groups = defaultdict(lambda: defaultdict(list))
     for param in PARAM_LIST:
         param_df = df[df["params_hash"] == param.get_hash()]
         for transform in TRANSFORMS:
             transform_df = param_df[param_df["transform"] == transform]
-            transform_df.set_index("tag", inplace=True)
+            transform_df = transform_df.set_index("tag")
             xs = []
             makeplan = []
             setpts = []
@@ -200,10 +274,9 @@ def gather_results(args) -> None:
             print(param.pretty_string())
             plt.close(fig)
 
-    template_path = Path(args.template_path)
     env = Environment(loader=FileSystemLoader(template_path.parent))
     template = env.get_template(template_path.name)
-    cpu_flags = args.cpu_flags.partition(":")[-1].strip().split()
+    cpu_flags = cpu_flags.split()
     isa_features = [flag for flag in cpu_flags if flag.startswith("avx")]
     fma_supported = "yes" if "fma" in cpu_flags else "no"
     if not isa_features:
@@ -211,7 +284,7 @@ def gather_results(args) -> None:
     else:
         isa_features_text = ", ".join(isa_features)
     rendered = template.render(
-        cpu_name=args.cpu_name.partition(":")[-1],
+        cpu_name=cpu_name,
         simd_features=isa_features_text,
         fma_supported=fma_supported,
         dim_transform_groups=dim_transform_groups,
@@ -221,90 +294,66 @@ def gather_results(args) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Run perftests or gather per-tag perftest CSV results."
+        description="Run perftest matrix and generate plots."
     )
-    subparsers = parser.add_subparsers(dest="mode", required=True)
-
-    run_parser = subparsers.add_parser(
-        "run", help="Run perftest matrix and write per-tag CSV."
+    parser.add_argument(
+        "--builds-root",
+        default="/builds",
     )
-    run_parser.add_argument(
-        "--perftest-bin",
-        default="./build/perftest/perftest",
-        help="Path to perftest executable.",
+    parser.add_argument(
+        "--tag-list",
+        default="",
+        help="Comma-separated tags in preferred display order.",
     )
-    run_parser.add_argument(
-        "--output-csv",
-        default="matrix-results/perftest_ci_results.csv",
-        help="Output CSV path for collected perftest rows.",
-    )
-    gather_parser = subparsers.add_parser(
-        "gather", help="Gather per-tag CSV files into one CSV."
-    )
-    gather_parser.add_argument(
-        "--matrix-json",
-        required=True,
-        help='Matrix JSON like {"include":[{"tag":"...","commit":"..."}]}.',
-    )
-    gather_parser.add_argument(
-        "--input-dir",
-        default="matrix-results",
-        help="Input directory containing per-tag CSV files (gather mode).",
-    )
-    gather_parser.add_argument(
+    parser.add_argument(
         "--plot-output-dir",
         default="docs/pics",
         help="Output directory for generated performance plot images.",
     )
-    gather_parser.add_argument(
-        "--template-path",
+    parser.add_argument(
+        "--docs-page-path",
         default="docs/perftest_timings.rst.j2",
-        help="Path to docs page template.",
+        help="Path to the docs template page to render.",
     )
-    gather_parser.add_argument("--cpu-name", help="Machine cpu name")
-    gather_parser.add_argument("--cpu-flags", default="", help="Machine cpu flags line")
     args = parser.parse_args()
 
-    if args.mode == "gather":
-        gather_results(args)
+    builds_root = Path(args.builds_root)
+    if not builds_root.exists():
+        raise RuntimeError(f"Build root does not exist: {builds_root}")
 
-        return
-    run_count = 0
-    output_rows = []
+    tags = discover_tags(builds_root, args.tag_list, "")
 
-    for param in PARAM_LIST:
-        param_id = param.get_hash()
-        for transform in TRANSFORMS:
-            perftest_args = param.args() + DEFAULT_EXTRA_ARGS + [f"type={transform}"]
-            output = run_command(args.perftest_bin, perftest_args)
-            test_res = pd.read_csv(
-                io.StringIO(
-                    "\n".join(
-                        [
-                            line
-                            for line in output.splitlines()
-                            if not line.startswith("#")
-                        ]
-                    )
-                ),
-                sep=",",
-            )
-            test_res = test_res.set_index("event")
-            output_rows.append(
-                {
-                    "params_hash": param_id,
-                    "transform": transform,
-                    "makeplan_mean(ms)": test_res.at["makeplan", "mean(ms)"],
-                    "makeplan_std(ms)": test_res.at["makeplan", "std(ms)"],
-                    "setpts_mean(ms)": test_res.at["setpts", "mean(ms)"],
-                    "setpts_std(ms)": test_res.at["setpts", "std(ms)"],
-                    "execute_mean(ms)": test_res.at["execute", "mean(ms)"],
-                    "execute_std(ms)": test_res.at["execute", "std(ms)"],
-                }
-            )
-    pd.DataFrame(output_rows).to_csv(args.output_csv, index=False)
-    print(f"Ran {run_count} perftest invocations successfully.")
-    print(f"Wrote CSV: {args.output_csv}")
+    all_frames: list[pd.DataFrame] = []
+    used_tags: list[str] = []
+    for tag in tags:
+        build_dir = builds_root / tag
+        perftest_bin = resolve_perftest_bin(build_dir)
+        if perftest_bin is None:
+            print(f"Skipping {tag}: could not find executable perftest in {build_dir}")
+            continue
+        tag_df = run_benchmarks_for_bin(perftest_bin)
+        if tag_df.empty:
+            print(f"Skipping {tag}: benchmark produced no rows")
+            continue
+        tag_df["tag"] = tag
+        all_frames.append(tag_df)
+        used_tags.append(tag)
+
+    if not all_frames:
+        raise RuntimeError("No benchmark data collected from any build directory")
+
+    all_results = pd.concat(all_frames, ignore_index=True)
+
+    cpu_name, cpu_flags = detect_cpu_info()
+
+    render_plots_and_report(
+        all_results=all_results,
+        tags=used_tags,
+        plot_output_dir=Path(args.plot_output_dir),
+        template_path=Path(args.docs_page_path),
+        cpu_name=cpu_name,
+        cpu_flags=cpu_flags,
+    )
 
 
 if __name__ == "__main__":

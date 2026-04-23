@@ -1,0 +1,79 @@
+name: checkout tags into folders
+
+on:
+  workflow_dispatch:
+    inputs:
+      tags:
+        description: "Tag list (comma, space, or newline separated)"
+        required: true
+        type: string
+      base_dir:
+        description: "Base directory for checked out tags"
+        required: false
+        default: checked-out-tags
+        type: string
+
+jobs:
+  checkout-tags-other:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check out each tag into its own folder
+        shell: bash
+        env:
+          TAG_LIST: ${{ inputs.tags }}
+          BASE_DIR: ${{ inputs.base_dir }}
+        run: |
+          set -euo pipefail
+
+          mkdir -p "$BASE_DIR"
+          mapfile -t tags < <(printf '%s\n' "$TAG_LIST" | tr ', ' '\n\n' | sed '/^[[:space:]]*$/d')
+
+          if [[ ${#tags[@]} -eq 0 ]]; then
+            echo "No tags were provided after parsing input."
+            exit 1
+          fi
+
+          printf 'Requested tags:\n'
+          printf '  - %s\n' "${tags[@]}"
+
+          declared_tags=""
+          for tag in "${tags[@]}"; do
+            if ! git rev-parse -q --verify "refs/tags/$tag" >/dev/null; then
+              echo "Tag not found: $tag"
+              exit 1
+            fi
+
+            if grep -qxF "$tag" <<< "$declared_tags"; then
+              echo "Duplicate tag in input: $tag"
+              exit 1
+            fi
+            declared_tags+="$tag"$'\n'
+
+            safe_tag=$(sed 's#[^A-Za-z0-9._-]#_#g' <<< "$tag")
+            target_dir="$BASE_DIR/$safe_tag"
+
+            if [[ -e "$target_dir" ]]; then
+              echo "Target directory already exists: $target_dir"
+              exit 1
+            fi
+
+            git worktree add --detach "$target_dir" "refs/tags/$tag^{commit}"
+            echo "Checked out $tag -> $target_dir"
+          done
+
+          {
+            echo "### Checked out tags"
+            echo
+            echo "| Tag | Folder |"
+            echo "| --- | --- |"
+            for tag in "${tags[@]}"; do
+              safe_tag=$(sed 's#[^A-Za-z0-9._-]#_#g' <<< "$tag")
+              echo "| \`$tag\` | \`$BASE_DIR/$safe_tag\` |"
+            done
+          } >> "$GITHUB_STEP_SUMMARY"
