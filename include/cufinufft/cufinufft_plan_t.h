@@ -202,10 +202,9 @@ template<typename T> struct cufinufft_plan_t {
 
 private:
   void exec1(cuda_complex<T> *d_c, cuda_complex<T> *d_fk) const;
-  // The "batchsize_override" parameter is only needed when a type 3 plan calls
+  // The "ntransf_override" parameter is only needed when a type 3 plan calls
   // its inner type 2 plan. Leave at default in all other circumstances!
-  void exec2(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
-             int batchsize_override = 0) const;
+  void exec2(cuda_complex<T> *d_c, cuda_complex<T> *d_fk, int ntransf_override = 0) const;
   void exec3(cuda_complex<T> *d_c, cuda_complex<T> *d_fk) const;
 
   void deconvolve(cuda_complex<T> *fw, cuda_complex<T> *fk, int blksize) const;
