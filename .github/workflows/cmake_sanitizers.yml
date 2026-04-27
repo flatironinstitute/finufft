@@ -129,7 +129,7 @@ jobs:
               arch_flags+=("-march=x86-64-v4")
             fi
           else
-            arch_flags=("native")
+            arch_flags=("")
           fi
 
           build_dir="build"

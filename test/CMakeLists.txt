@@ -58,7 +58,9 @@ add_test(NAME run_testutils COMMAND testutils WORKING_DIRECTORY ${CMAKE_BINARY_D
 
 add_executable(threadsafe_execute threadsafe_execute.cpp)
 finufft_link_test(threadsafe_execute)
-add_test(NAME run_threadsafe_execute COMMAND threadsafe_execute WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
+if(NOT (MINGW OR MSYS OR CYGWIN)) # crashes during std::thread teardown on MinGW (libgomp TLS).
+    add_test(NAME run_threadsafe_execute COMMAND threadsafe_execute WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
+endif()
 
 if(NOT FINUFFT_USE_DUCC0 AND FINUFFT_USE_OPENMP)
     find_package(OpenMP COMPONENTS CXX REQUIRED)

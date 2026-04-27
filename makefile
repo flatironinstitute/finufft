@@ -305,6 +305,11 @@ CPPTESTS := $(basename $(wildcard test/*.cpp))
 ifeq ($(FFT),DUCC)
   CPPTESTS := $(filter-out $(basename $(wildcard test/*fftw*.cpp)),$(CPPTESTS))
 endif
+# kill off tests demanding multithreading if single-thread build...
+ifeq ($(OMP),OFF)
+  CPPTESTS := $(filter-out $(basename $(wildcard test/fftw_lock_test.cpp)),$(CPPTESTS))
+endif
+
 # single-precision variants for C++ tests only, plus C-interface error handling test.
 TESTS := $(CPPTESTS) $(CPPTESTS:%=%f) test/error_handling
 test: $(TESTS)

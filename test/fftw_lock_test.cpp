@@ -9,6 +9,9 @@
 // This file tests the user locking mechanism for multi-threaded FFTW. This
 // demonstrates a user lock to prevent FFTW plan calls from interfering with
 // finufft plan calls (make/destroy).
+// It relies on multithreaded FFTW features, so should not be built when
+// OMP=OFF in makefile.
+
 // Robert Blackwell. Based on bug identified by Jonas Krimmer (9/17/24)
 // See discussion at https://github.com/ludvigak/FINUFFT.jl/issues/62
 
