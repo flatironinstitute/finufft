@@ -65,4 +65,4 @@ jobs:
           git config user.email "github-actions[bot]@github.com"
           git checkout -B perftest-results
           git add docs/pics/perftestci_* docs/perftest_timings.rst
-          git diff --staged --quiet || git commit -m "Generated new perftest report page." && git push -f --set-upstream origin perftest-results
+          git diff --staged --quiet || git commit -m "Generated new perftest report page. [no ci]" && git push -f --set-upstream origin perftest-results
