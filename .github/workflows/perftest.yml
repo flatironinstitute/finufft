@@ -6,17 +6,17 @@ on:
       versions:
         description: "Comma separated version list"
         type: string
-        default: 'v2.4.0,v2.5.0'
+        default: 'v2.2.0,v2.3.0,v2.4.0,v2.5.0'
         required: true
 
 jobs:
   perftest:
     env:
-      VERSIONS_INPUT: ${{ github.event.inputs.versions || 'v2.4.0,v2.5.0' }}
+      VERSIONS_INPUT: ${{ github.event.inputs.versions || github.event.inputs.default }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout latest perftest
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
           fetch-tags: true
@@ -25,6 +25,7 @@ jobs:
         uses: aminya/setup-cpp@v1
         with:
           cmake: true
+          ninja: true
 
       - name: Checkout tagged versions
         run: |
@@ -40,8 +41,8 @@ jobs:
               cp -r perftest ../$tag/perftest
               src_path="../$tag"
             fi
-            cmake -B ../builds/$tag -S $src_path -DFINUFFT_BUILD_TESTS=ON &&
-            cmake --build ../builds/$tag --target perftest
+            cmake -B ../builds/$tag -S $src_path -DFINUFFT_BUILD_TESTS=ON -DCMAKE_BUILD_TYPE=Release &&
+            cmake --build ../builds/$tag --target perftest -j
           done
 
 

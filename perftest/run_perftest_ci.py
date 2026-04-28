@@ -1,68 +1,14 @@
 #!/usr/bin/env python3
 import argparse
-import json
 import os
 import io
 import subprocess
-import hashlib
 from collections import defaultdict
-from dataclasses import dataclass, fields, asdict
-from numbers import Number
 from pathlib import Path
 
 import pandas as pd
 
-
-@dataclass(frozen=True)
-class Params:
-    prec: str = "f"
-    N1: Number = 320
-    N2: Number = 320
-    N3: Number = 1
-    ntransf: int = 1
-    threads: int = 1
-    M: Number = 1e6
-    tol: float = 1e-5
-
-    def ndim(self) -> int:
-        if self.N3 > 1:
-            return 3
-        if self.N2 > 1:
-            return 2
-        return 1
-
-    def args(self) -> list[str]:
-        return [f"{f.name}={getattr(self, f.name)}" for f in fields(self)]
-
-    def pretty_string(self) -> str:
-        return ", ".join(f"{f.name}={getattr(self, f.name)}" for f in fields(self))
-
-    def get_hash(self) -> str:
-        # Stable short identifier used to group matching parameter sets in CSVs.
-        payload = json.dumps(asdict(self), sort_keys=True)
-        return hashlib.sha1(payload.encode("utf-8")).hexdigest()[:12]
-
-
-NRUNS = 10
-
-PARAM_LIST = [
-    Params("f", 1e4, 1, 1, 1, 1, 1e7, 1e-4),
-    Params("d", 1e4, 1, 1, 1, 1, 1e7, 1e-9),
-    Params("f", 320, 320, 1, 1, 1, 1e7, 1e-5),
-    Params("d", 320, 320, 1, 1, 1, 1e7, 1e-9),
-    Params("f", 320, 320, 1, 1, 0, 1e7, 1e-5),
-    Params("d", 192, 192, 128, 1, 0, 1e7, 1e-7),
-]
-
-TRANSFORMS = [3, 2, 1]
-DEFAULT_EXTRA_ARGS = [
-    f"n_runs={NRUNS}",
-    "sort=1",
-    "upsampfact=0",
-    "kerevalmethod=1",
-    "debug=0",
-    "bandwidth=1.0",
-]
+from perftest_config import PARAM_LIST, NRUNS, TRANSFORMS
 
 
 def set_arg(args: list[str], key: str, value: str) -> list[str]:
@@ -138,11 +84,19 @@ def discover_tags(
 def run_benchmarks_for_bin(perftest_bin: Path) -> pd.DataFrame:
     output_rows: list[dict[str, Number | str]] = []
     run_count = 0
+    extra_args = [
+        f"n_runs={NRUNS}",
+        "sort=1",
+        "upsampfact=0",
+        "kerevalmethod=1",
+        "debug=0",
+        "bandwidth=1.0",
+    ]
 
     for param in PARAM_LIST:
         param_id = param.get_hash()
         for transform in TRANSFORMS:
-            perftest_args = param.args() + DEFAULT_EXTRA_ARGS + [f"type={transform}"]
+            perftest_args = param.args() + extra_args + [f"type={transform}"]
             output = run_command(str(perftest_bin), perftest_args)
             test_res = pd.read_csv(
                 io.StringIO(
