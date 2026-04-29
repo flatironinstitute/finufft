@@ -5,20 +5,56 @@ pipeline {
     buildDiscarder(logRotator(numToKeepStr: '8', daysToKeepStr: '20'))
     timeout(time: 1, unit: 'HOURS')
   }
+  environment {
+    IMAGE = "$REGISTRY_PREFIX/${JOB_NAME.toLowerCase()}:$BUILD_NUMBER"
+    PARALLEL = 4
+  }
   stages {
-    stage('main') {
+    stage('image') {
       agent {
-         dockerfile {
-            filename 'tools/cufinufft/docker/cuda11.2/Dockerfile-x86_64'
-            args '--gpus 2'
-            label 'v100'
-         }
+        kubernetes {
+          inheritFrom 'podman'
+          defaultContainer 'main'
+        }
+      }
+      steps {
+        sh 'podman build -t $IMAGE . -f tools/cufinufft/docker/cuda11.2/Dockerfile-x86_64'
+        sh 'podman push $IMAGE'
+      }
+    }
+    stage('build') {
+      agent {
+        kubernetes {
+          inheritFrom 'jnlp'
+          yaml """
+            spec:
+              runtimeClassName: nvidia
+              imagePullSecrets:
+                - name: registry-auth
+              nodeSelector:
+                nvidia: v100
+              containers:
+                - name: main
+                  image: $IMAGE
+                  command: [sleep]
+                  args: [99999]
+                  securityContext:
+                    runAsUser: 1000
+                    runAsGroup: 1000
+                  resources:
+                    limits:
+                      cpu: $PARALLEL
+                      memory: 16Gi
+                      nvidia.com/gpu: 2
+          """
+          defaultContainer 'main'
+        }
       }
       environment {
-    HOME = "$WORKSPACE"
-    PYBIN = "/opt/python/cp310-cp310/bin"
-    LIBRARY_PATH = "$WORKSPACE/build"
-    LD_LIBRARY_PATH = "$WORKSPACE/build"
+        HOME = "$WORKSPACE"
+        PYBIN = "/opt/python/cp310-cp310/bin"
+        LIBRARY_PATH = "$WORKSPACE/build"
+        LD_LIBRARY_PATH = "$WORKSPACE/build"
       }
       steps {
     sh '''#!/bin/bash -ex
@@ -38,7 +74,7 @@ pipeline {
                          -DBUILD_TESTING=ON \
                          -DFINUFFT_STATIC_LINKING=OFF
         cd build
-        make -j4
+        make -j$PARALLEL
     '''
     sh '''#!/bin/bash -ex
       cd build/test/cuda
@@ -75,25 +111,13 @@ pipeline {
   }
   post {
     failure {
-      emailext subject: '$PROJECT_NAME - Build #$BUILD_NUMBER - $BUILD_STATUS',
-           body: '''$PROJECT_NAME - Build #$BUILD_NUMBER - $BUILD_STATUS
-
-Check console output at $BUILD_URL to view full results.
-
-Building $BRANCH_NAME for $CAUSE
-$JOB_DESCRIPTION
-
-Chages:
-$CHANGES
-
-End of build log:
-${BUILD_LOG,maxLines=200}
-''',
+      emailext subject: '$DEFAULT_SUBJECT',
+           body: '$DEFAULT_CONTENT',
            recipientProviders: [
          [$class: 'DevelopersRecipientProvider'],
            ],
            replyTo: '$DEFAULT_REPLYTO',
-           to: 'janden@flatironinstitute.org'
+           to: 'janden-vscholar@flatironinstitute.org'
     }
   }
 }
