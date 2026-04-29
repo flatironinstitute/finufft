@@ -17,6 +17,10 @@ OUTPUT_ARGS = [False, True]
 MODEORDS = [0, 1]
 
 
+def type3_eps(dtype):
+    return 1e-3 if np.dtype(dtype) == np.dtype(np.complex64) else 1e-6
+
+
 @pytest.mark.parametrize("dtype", DTYPES)
 @pytest.mark.parametrize("shape", SHAPES)
 @pytest.mark.parametrize("n_pts", N_PTS)
@@ -102,8 +106,9 @@ def test_finufft2_plan(dtype, shape, n_pts, output_arg, modeord):
 def test_finufft3_plan(dtype, dim, n_source_pts, n_target_pts, output_arg):
     source_pts, source_coefs, target_pts = utils.type3_problem(dtype,
             dim, n_source_pts, n_target_pts)
+    eps = type3_eps(dtype)
 
-    plan = Plan(3, dim, dtype=dtype)
+    plan = Plan(3, dim, dtype=dtype, eps=eps)
 
     plan.setpts(*source_pts, *((None,) * (3 - dim)), *target_pts)
 
@@ -113,10 +118,10 @@ def test_finufft3_plan(dtype, dim, n_source_pts, n_target_pts, output_arg):
         target_coefs = np.empty(n_target_pts, dtype=dtype)
         plan.execute(source_coefs, out=target_coefs)
 
-    utils.verify_type3(source_pts, source_coefs, target_pts, target_coefs, 1e-6)
+    utils.verify_type3(source_pts, source_coefs, target_pts, target_coefs, eps)
 
     # test adjoint type 3
-    plan = Plan(3, dim, dtype=dtype, isign=-1, eps=1e-5)
+    plan = Plan(3, dim, dtype=dtype, isign=-1, eps=eps)
 
     plan.setpts(*target_pts, *((None,) * (3 - dim)), *source_pts)
 
@@ -125,10 +130,12 @@ def test_finufft3_plan(dtype, dim, n_source_pts, n_target_pts, output_arg):
     else:
         plan.execute_adjoint(source_coefs, out=target_coefs)
 
-    utils.verify_type3(source_pts, source_coefs, target_pts, target_coefs, 1e-5)
+    utils.verify_type3(source_pts, source_coefs, target_pts, target_coefs, eps)
 
 
 def test_finufft_plan_errors():
+    EPS = type3_eps(np.complex64)
+
     with pytest.raises(RuntimeError, match="must be single or double"):
         Plan(1, (8, 8), dtype="uint32")
 
@@ -172,7 +179,7 @@ def test_finufft_plan_errors():
         plan.execute(np.ones(1, dtype="complex64"), out=out)
 
     with pytest.warns(Warning, match="the following requirement: C. Copying"):
-        plan = Plan(2, (8, 8), dtype="complex64")
+        plan = Plan(2, (8, 8), dtype="complex64", eps=EPS)
         plan.setpts(*np.ones((2, 1), dtype="float32"))
         plan.execute(np.ones((8, 8), dtype="complex64", order="F"))
 
@@ -189,13 +196,13 @@ def test_finufft_plan_errors():
         Plan(1, (8, 8, 8), dtype="complex64").setpts(vec, vec, not_vec)
 
     with pytest.raises(RuntimeError, match="s must be a vector"):
-        Plan(3, 3, dtype="complex64").setpts(vec, vec, vec, not_vec, vec, vec)
+        Plan(3, 3, dtype="complex64", eps=EPS).setpts(vec, vec, vec, not_vec, vec, vec)
 
     with pytest.raises(RuntimeError, match="t must be a vector"):
-        Plan(3, 3, dtype="complex64").setpts(vec, vec, vec, vec, not_vec, vec)
+        Plan(3, 3, dtype="complex64", eps=EPS).setpts(vec, vec, vec, vec, not_vec, vec)
 
     with pytest.raises(RuntimeError, match="u must be a vector"):
-        Plan(3, 3, dtype="complex64").setpts(vec, vec, vec, vec, vec, not_vec)
+        Plan(3, 3, dtype="complex64", eps=EPS).setpts(vec, vec, vec, vec, vec, not_vec)
 
     vec = np.ones(3, dtype="float32")
     long_vec = np.ones(4, dtype="float32")
@@ -207,10 +214,10 @@ def test_finufft_plan_errors():
         Plan(1, (8, 8, 8), dtype="complex64").setpts(vec, vec, long_vec)
 
     with pytest.raises(RuntimeError, match="t must have same length as s"):
-        Plan(3, 3, dtype="complex64").setpts(vec, vec, vec, vec, long_vec, vec)
+        Plan(3, 3, dtype="complex64", eps=EPS).setpts(vec, vec, vec, vec, long_vec, vec)
 
     with pytest.raises(RuntimeError, match="u must have same length as s"):
-        Plan(3, 3, dtype="complex64").setpts(vec, vec, vec, vec, vec, long_vec)
+        Plan(3, 3, dtype="complex64", eps=EPS).setpts(vec, vec, vec, vec, vec, long_vec)
 
     with pytest.raises(RuntimeError, match="c.ndim must be 1 or 2 if n_trans == 1"):
         plan = Plan(1, (8,), dtype="complex64")
@@ -233,52 +240,52 @@ def test_finufft_plan_errors():
         plan.execute(np.ones((2, 4), dtype="complex64"))
 
     with pytest.raises(RuntimeError, match="same as the problem dimension"):
-        plan = Plan(2, (8,), dtype="complex64")
+        plan = Plan(2, (8,), dtype="complex64", eps=EPS)
         plan.setpts(np.ones(3, dtype="float32"))
         plan.execute(np.ones((1, 2, 8), dtype="complex64"))
 
     with pytest.raises(RuntimeError, match=r"same as the problem dimension \+ 1 for"):
-        plan = Plan(2, (8,), n_trans=2, dtype="complex64")
+        plan = Plan(2, (8,), n_trans=2, dtype="complex64", eps=EPS)
         plan.setpts(np.ones(3, dtype="float32"))
         plan.execute(np.ones(8, dtype="complex64"))
 
     with pytest.raises(RuntimeError, match=r"f\.shape\[0\] must be n_trans"):
-        plan = Plan(2, (8,), n_trans=2, dtype="complex64")
+        plan = Plan(2, (8,), n_trans=2, dtype="complex64", eps=EPS)
         plan.setpts(np.ones(3, dtype="float32"))
         plan.execute(np.ones((3, 8), dtype="complex64"))
 
     with pytest.raises(RuntimeError, match=r"f\.shape is not consistent"):
-        plan = Plan(2, (8,), dtype="complex64")
+        plan = Plan(2, (8,), dtype="complex64", eps=EPS)
         plan.setpts(np.ones(3, dtype="float32"))
         plan.execute(np.ones(2, dtype="complex64"))
 
     with pytest.raises(RuntimeError, match=r"f\.shape is not consistent"):
-        plan = Plan(2, (8, 9), dtype="complex64")
+        plan = Plan(2, (8, 9), dtype="complex64", eps=EPS)
         plan.setpts(*np.ones((2, 3), dtype="float32"))
         plan.execute(np.ones((2, 9), dtype="complex64"))
 
     with pytest.raises(RuntimeError, match=r"f\.shape is not consistent"):
-        plan = Plan(2, (8, 9, 10), dtype="complex64")
+        plan = Plan(2, (8, 9, 10), dtype="complex64", eps=EPS)
         plan.setpts(*np.ones((3, 3), dtype="float32"))
         plan.execute(np.ones((2, 9, 10), dtype="complex64"))
 
     with pytest.raises(RuntimeError, match=r"f\.ndim must be 1 or 2"):
-        plan = Plan(3, 1, dtype="complex64")
+        plan = Plan(3, 1, dtype="complex64", eps=EPS)
         plan.setpts(np.ones(3, dtype="float32"), s=np.ones(3, dtype="float32"))
         plan.execute(np.ones(3, dtype="complex64"), out=np.ones((1, 2, 3), dtype="complex64"))
 
     with pytest.raises(RuntimeError, match=r"f\.size of must be nk"):
-        plan = Plan(3, 1, dtype="complex64")
+        plan = Plan(3, 1, dtype="complex64", eps=EPS)
         plan.setpts(np.ones(3, dtype="float32"), s=np.ones(3, dtype="float32"))
         plan.execute(np.ones(3, dtype="complex64"), out=np.ones(4, dtype="complex64"))
 
     with pytest.raises(RuntimeError, match=r"f\.ndim must be 2"):
-        plan = Plan(3, 1, n_trans=2, dtype="complex64")
+        plan = Plan(3, 1, n_trans=2, dtype="complex64", eps=EPS)
         plan.setpts(np.ones(3, dtype="float32"), s=np.ones(3, dtype="float32"))
         plan.execute(np.ones((2, 3), dtype="complex64"), out=np.ones(3, dtype="complex64"))
 
     with pytest.raises(RuntimeError, match=r"f\.shape must be \(n_trans, nk\)"):
-        plan = Plan(3, 1, n_trans=2, dtype="complex64")
+        plan = Plan(3, 1, n_trans=2, dtype="complex64", eps=EPS)
         plan.setpts(np.ones(3, dtype="float32"), s=np.ones(3, dtype="float32"))
         plan.execute(np.ones((2, 3), dtype="complex64"), out=np.ones((2, 4), dtype="complex64"))
 

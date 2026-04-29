@@ -10,6 +10,29 @@
 #include <finufft/plan.hpp>
 #include <finufft/utils.hpp>
 #include <finufft/heuristics.hpp>
+#include <finufft_common/kernel.h>
+
+// ---------- local helpers for setpts: --------
+
+template<typename TF> void FINUFFT_PLAN_T<TF>::check_sigma() {
+  constexpr double eps_mach = std::numeric_limits<TF>::epsilon();
+  const double gridlen      = *std::max_element(m.nfdim.begin(), m.nfdim.begin() + dim);
+  const double sigma_min =
+      finufft::common::lowest_sigma((double)m.tol, dim, m.spopts.nspread, eps_mach,
+                                    gridlen);
+  const double eps_round  = 0.48 * eps_mach * gridlen;
+  const bool unachievable = (double)m.tol <= eps_round; // MAXSIGMA still not enough
+  if (!unachievable && sigma_min <= m.spopts.upsampfac) return; // fine
+  const double suggest = std::min(sigma_min, finufft::common::MAXSIGMA);
+  const bool do_throw  = !opts.allow_eps_too_small;             // opt-in wins
+  fprintf(stderr, "%s %s: upsampfac=%.3g too low for tol=%.3g; %s\n", __func__,
+          do_throw ? "error" : "warning", m.spopts.upsampfac, (double)m.tol,
+          unachievable
+              ? "rounding floor dominates (eps_round ~= tol); no upsampfac helps"
+              : (opts.allow_eps_too_small ? "suggest upsampfac>=" : "need upsampfac>="));
+  if (!unachievable) fprintf(stderr, "  (%.3g)\n", suggest);
+  if (do_throw) throw finufft::exception(FINUFFT_ERR_EPS_TOO_SMALL);
+}
 
 // ---------- local math routines for type-3 setpts: --------
 
@@ -96,6 +119,8 @@ int FINUFFT_PLAN_T<TF>::setpts(BIGINT nj, const TF *xj, const TF *yj, const TF *
         init_grid_kerFT_FFT();       // throws on error
       }
     }
+
+    check_sigma(); // throws if upsampfac too low for tol (nfdim now known)
 
     m.XYZ   = {xj, yj, zj}; // plan must keep pointers to user's fixed NU pts
     spreadcheck();          // throws on error
