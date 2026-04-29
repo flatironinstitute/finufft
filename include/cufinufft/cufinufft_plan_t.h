@@ -8,6 +8,7 @@
 #include <cufinufft_opts.h>
 #include <finufft_common/spread_opts.h>
 #include <finufft_errors.h>
+#include <optional>
 #include <thrust/device_malloc_allocator.h>
 #include <thrust/device_ptr.h>
 #include <thrust/device_vector.h>
@@ -204,7 +205,8 @@ private:
   void exec1(cuda_complex<T> *d_c, cuda_complex<T> *d_fk) const;
   // The "ntransf_override" parameter is only needed when a type 3 plan calls
   // its inner type 2 plan. Leave at default in all other circumstances!
-  void exec2(cuda_complex<T> *d_c, cuda_complex<T> *d_fk, int ntransf_override = 0) const;
+  void exec2(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
+             std::optional<int> ntransf_override = std::optional<int>()) const;
   void exec3(cuda_complex<T> *d_c, cuda_complex<T> *d_fk) const;
 
   void deconvolve(cuda_complex<T> *fw, cuda_complex<T> *fk, int blksize) const;
@@ -224,6 +226,10 @@ public:
 
 // This class contains a subset of the information stored in
 // cufinufft_plan_t, in a shape that can be copied to GPU.
+// Its only intended use is for (implicit) on-the-fly construction
+// from a full cufinufft_plan_t object when launching a kernel, such
+// that the kernel has convenient access to the relevant parameters
+// and arrays. Do not cache such objects or its members!
 template<typename T> struct cufinufft_gpu_data {
   cufinufft_opts opts;
   finufft_spread_opts spopts;
@@ -276,11 +282,11 @@ template<typename T> struct cufinufft_gpu_data {
       : opts(orig.opts), spopts(orig.spopts), type(orig.type), dim(orig.dim), M(orig.M),
         nf123(orig.nf123), mstu(orig.mstu), ntransf(orig.ntransf),
         batchsize(orig.batchsize), iflag(orig.iflag),
-        totalnumsubprob(orig.totalnumsubprob), xyz(orig.kxyz), nf(orig.nf), STU(orig.STU),
-        tol(orig.tol), prephase(dethrust(orig.prephase)), deconv(dethrust(orig.deconv)),
-        idxnupts(dethrust(orig.idxnupts)), sortidx(dethrust(orig.sortidx)),
-        numsubprob(dethrust(orig.numsubprob)), binsize(dethrust(orig.binsize)),
-        binstartpts(dethrust(orig.binstartpts)),
+        totalnumsubprob(orig.totalnumsubprob), xyz(orig.kxyz), N(orig.N), nf(orig.nf),
+        STU(orig.STU), tol(orig.tol), prephase(dethrust(orig.prephase)),
+        deconv(dethrust(orig.deconv)), idxnupts(dethrust(orig.idxnupts)),
+        sortidx(dethrust(orig.sortidx)), numsubprob(dethrust(orig.numsubprob)),
+        binsize(dethrust(orig.binsize)), binstartpts(dethrust(orig.binstartpts)),
         subprob_to_bin(dethrust(orig.subprob_to_bin)),
         subprobstartpts(dethrust(orig.subprobstartpts)),
         numnupts(dethrust(orig.numnupts)),

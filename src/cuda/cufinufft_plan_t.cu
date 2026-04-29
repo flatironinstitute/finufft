@@ -469,9 +469,8 @@ void cufinufft_plan_t<T>::setpts_12(int M_, const T *d_kx, const T *d_ky, const 
         (3) rescale x,y,z coordinates for spread/interp (on gpu, rescaled
             coordinates are stored)
         (4) determine the spread/interp properties that only relates to the
-            locations of nupts (see 2d/spread2d_wrapper.cu,
-            3d/spread3d_wrapper.cu for what have been done in
-            function spread<dim>d_<method>_prop() )
+            locations of nupts (see spreadinterp.cu for what has been done in
+            function cuspread_<method>_prop() )
 
         See ../docs/cppdoc.md for main user-facing documentation.
         Here is the old developer docs, which are useful only to translate
@@ -806,7 +805,7 @@ void cufinufft_plan_t<T>::exec1(cuda_complex<T> *d_c, cuda_complex<T> *d_fk) con
 
 template<typename T>
 void cufinufft_plan_t<T>::exec2(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
-                                int ntransf_override) const
+                                std::optional<int> ntransf_override) const
 /*
     1D/2D/3D Type-2 NUFFT
 
@@ -824,7 +823,7 @@ void cufinufft_plan_t<T>::exec2(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
   // CAUTION: if this particular exec2() call is executed as part of
   // a type 3 transform, ntransf will be overridden!
   int ntransf_for_this_run = ntransf;
-  if (ntransf_override > 0) ntransf_for_this_run = ntransf_override;
+  if (ntransf_override) ntransf_for_this_run = *ntransf_override;
 
   int nmodes = 1;
   for (int idim = 0; idim < dim; ++idim) nmodes *= mstu[idim];

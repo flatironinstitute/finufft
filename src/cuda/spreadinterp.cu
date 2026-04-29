@@ -1351,7 +1351,7 @@ struct SpreadDispatcher {
     case 4:
       return cuspread3d_blockgather<T, ndim, ns>(d_plan, c, fw, blksize);
     default:
-      std::cerr << "[cuspread2d] error: incorrect method, should be 1, 2 or 3\n";
+      std::cerr << "[cuspreadnd] error: incorrect method, should be 1, 2 or 3\n";
       throw int(FINUFFT_ERR_METHOD_NOTVALID);
     }
   }
@@ -1381,7 +1381,7 @@ struct InterpDispatcher {
     case 2:
       return cuinterp_subprob<T, ndim, ns>(d_plan, c, fw, blksize);
     default:
-      std::cerr << "[cuinterp3d] error: incorrect method, should be 1 or 2\n";
+      std::cerr << "[cuinterpnd] error: incorrect method, should be 1 or 2\n";
       throw int(FINUFFT_ERR_METHOD_NOTVALID);
     }
   }
