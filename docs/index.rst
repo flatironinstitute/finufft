@@ -29,7 +29,7 @@ Documentation contents
    error
    trouble
    performance
-   perftest_timings
+   performance_change
    tut
    fortran
    matlab

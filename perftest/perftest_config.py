@@ -23,7 +23,7 @@ class Params:
         return 1
 
     def args(self) -> list[str]:
-        return [f"{f.name}={getattr(self, f.name)}" for f in fields(self)]
+        return [f"--{f.name}={getattr(self, f.name)}" for f in fields(self)]
 
     def pretty_string(self) -> str:
         n = 4
@@ -46,4 +46,4 @@ PARAM_LIST = [
     Params("f", 320, 320, 1, 1, 0, 1e7, 1e-5),
     Params("d", 192, 192, 128, 1, 0, 1e7, 1e-7),
 ]
-TRANSFORMS = [3, 2, 1]
+TRANSFORMS = [1, 2, 3]
