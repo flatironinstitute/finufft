@@ -502,7 +502,7 @@ Notes: the type T means either single or double, matching the
 
   kxyz = {d_kx, d_ky, d_kz};
 
-  cufinufft::spreadinterp::cuspreadnd_prop(*this);
+  prep_spreadinterp();
 
   if (opts.debug) {
     printf("[cufinufft] plan->M=%d\n", M);
@@ -790,7 +790,7 @@ void cufinufft_plan_t<T>::exec1(cuda_complex<T> *d_c, cuda_complex<T> *d_fk) con
         cudaMemsetAsync(fw, 0, blksize * nf * sizeof(cuda_complex<T>), stream));
 
     // Step 1: Spread
-    cufinufft::spreadinterp::cuspreadnd<T>(*this, c, fw, blksize);
+    spread(c, fw, blksize);
 
     if (opts.gpu_spreadinterponly) continue; // skip steps 2 and 3
 
@@ -849,7 +849,7 @@ void cufinufft_plan_t<T>::exec2(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
       fw = fk; // interpolate directly from user input f
 
     // Step 3: Interpolate
-    cufinufft::spreadinterp::cuinterpnd<T>(*this, c, fw, blksize);
+    interp(c, fw, blksize);
   }
 }
 
@@ -889,7 +889,7 @@ void cufinufft_plan_t<T>::exec3(cuda_complex<T> *d_c, cuda_complex<T> *d_fk) con
                         thrust::multiplies<cuda_complex<T>>());
     }
     // Step 1: Spread
-    cufinufft::spreadinterp::cuspreadnd<T>(*this, c, fk, blksize);
+    spread(c, fk, blksize);
     // now fk = fw contains the spread values
     // Step 2: Type 2 NUFFT
     // type 2 goes from fk to c

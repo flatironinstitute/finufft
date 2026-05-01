@@ -1329,14 +1329,6 @@ struct SpreadPropDispatcher {
   }
 };
 
-template<typename T> void cuspreadnd_prop(cufinufft_plan_t<T> &plan) {
-  using namespace cufinufft::spreadinterp;
-  cufinufft::utils::launch_dispatch_ndim<SpreadPropDispatcher, T>(SpreadPropDispatcher(),
-                                                                  plan.dim, plan);
-}
-template void cuspreadnd_prop(cufinufft_plan_t<float> &plan);
-template void cuspreadnd_prop(cufinufft_plan_t<double> &plan);
-
 struct SpreadDispatcher {
   template<int ndim, int ns, typename T>
   void operator()(const cufinufft_plan_t<T> &d_plan, const cuda_complex<T> *c,
@@ -1351,25 +1343,11 @@ struct SpreadDispatcher {
     case 4:
       return cuspread3d_blockgather<T, ndim, ns>(d_plan, c, fw, blksize);
     default:
-      std::cerr << "[cuspreadnd] error: incorrect method, should be 1, 2 or 3\n";
+      std::cerr << "[spread] error: incorrect method, should be 1, 2 or 3\n";
       throw int(FINUFFT_ERR_METHOD_NOTVALID);
     }
   }
 };
-
-template<typename T>
-void cuspreadnd(const cufinufft_plan_t<T> &d_plan, const cuda_complex<T> *c,
-                cuda_complex<T> *fw, int blksize) {
-  cufinufft::utils::launch_dispatch_ndim_ns<cufinufft::spreadinterp::SpreadDispatcher, T>(
-      cufinufft::spreadinterp::SpreadDispatcher(), d_plan.dim, d_plan.spopts.nspread,
-      d_plan, c, fw, blksize);
-}
-template void cuspreadnd(const cufinufft_plan_t<float> &d_plan,
-                         const cuda_complex<float> *c, cuda_complex<float> *fw,
-                         int blksize);
-template void cuspreadnd(const cufinufft_plan_t<double> &d_plan,
-                         const cuda_complex<double> *c, cuda_complex<double> *fw,
-                         int blksize);
 
 struct InterpDispatcher {
   template<int ndim, int ns, typename T>
@@ -1381,23 +1359,47 @@ struct InterpDispatcher {
     case 2:
       return cuinterp_subprob<T, ndim, ns>(d_plan, c, fw, blksize);
     default:
-      std::cerr << "[cuinterpnd] error: incorrect method, should be 1 or 2\n";
+      std::cerr << "[interp] error: incorrect method, should be 1 or 2\n";
       throw int(FINUFFT_ERR_METHOD_NOTVALID);
     }
   }
 };
 
-template<typename T>
-void cuinterpnd(const cufinufft_plan_t<T> &d_plan, cuda_complex<T> *c,
-                const cuda_complex<T> *fw, int blksize) {
-  cufinufft::utils::launch_dispatch_ndim_ns<cufinufft::spreadinterp::InterpDispatcher, T>(
-      cufinufft::spreadinterp::InterpDispatcher(), d_plan.dim, d_plan.spopts.nspread,
-      d_plan, c, fw, blksize);
-}
-template void cuinterpnd(const cufinufft_plan_t<float> &d_plan, cuda_complex<float> *c,
-                         const cuda_complex<float> *fw, int blksize);
-template void cuinterpnd(const cufinufft_plan_t<double> &d_plan, cuda_complex<double> *c,
-                         const cuda_complex<double> *fw, int blksize);
-
 } // namespace spreadinterp
 } // namespace cufinufft
+
+// Spread/interp plan methods — defined here so they can use the dispatchers
+// (SpreadPropDispatcher, SpreadDispatcher, InterpDispatcher) declared above.
+
+template<typename T> void cufinufft_plan_t<T>::prep_spreadinterp() {
+  using namespace cufinufft::spreadinterp;
+  cufinufft::utils::launch_dispatch_ndim<SpreadPropDispatcher, T>(SpreadPropDispatcher(),
+                                                                  this->dim, *this);
+}
+
+template<typename T>
+void cufinufft_plan_t<T>::spread(const cuda_complex<T> *c, cuda_complex<T> *fw,
+                                 int blksize) const {
+  using namespace cufinufft::spreadinterp;
+  cufinufft::utils::launch_dispatch_ndim_ns<SpreadDispatcher, T>(
+      SpreadDispatcher(), this->dim, this->spopts.nspread, *this, c, fw, blksize);
+}
+
+template<typename T>
+void cufinufft_plan_t<T>::interp(cuda_complex<T> *c, const cuda_complex<T> *fw,
+                                 int blksize) const {
+  using namespace cufinufft::spreadinterp;
+  cufinufft::utils::launch_dispatch_ndim_ns<InterpDispatcher, T>(
+      InterpDispatcher(), this->dim, this->spopts.nspread, *this, c, fw, blksize);
+}
+
+template void cufinufft_plan_t<float>::prep_spreadinterp();
+template void cufinufft_plan_t<double>::prep_spreadinterp();
+template void cufinufft_plan_t<float>::spread(const cuda_complex<float> *,
+                                              cuda_complex<float> *, int) const;
+template void cufinufft_plan_t<double>::spread(const cuda_complex<double> *,
+                                               cuda_complex<double> *, int) const;
+template void cufinufft_plan_t<float>::interp(cuda_complex<float> *,
+                                              const cuda_complex<float> *, int) const;
+template void cufinufft_plan_t<double>::interp(cuda_complex<double> *,
+                                               const cuda_complex<double> *, int) const;
