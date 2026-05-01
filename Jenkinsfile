@@ -1,62 +1,18 @@
-pipeline {
-  agent none
-  options {
-    disableConcurrentBuilds()
-    buildDiscarder(logRotator(numToKeepStr: '8', daysToKeepStr: '20'))
-    timeout(time: 1, unit: 'HOURS')
-  }
-  environment {
-    IMAGE = "$REGISTRY_PREFIX/${JOB_NAME.toLowerCase()}:$BUILD_NUMBER"
-    PARALLEL = 4
-  }
-  stages {
-    stage('image') {
-      agent {
-        kubernetes {
-          inheritFrom 'podman'
-          defaultContainer 'main'
-        }
-      }
-      steps {
-        sh 'podman build -t $IMAGE . -f tools/cufinufft/docker/cuda11.2/Dockerfile-x86_64'
-        sh 'podman push $IMAGE'
-      }
-    }
-    stage('build') {
-      agent {
-        kubernetes {
-          inheritFrom 'jnlp'
-          yaml """
-            spec:
-              runtimeClassName: nvidia
-              imagePullSecrets:
-                - name: registry-auth
-              nodeSelector:
-                nvidia: v100
-              containers:
-                - name: main
-                  image: $IMAGE
-                  command: [sleep]
-                  args: [99999]
-                  securityContext:
-                    runAsUser: 1000
-                    runAsGroup: 1000
-                  resources:
-                    limits:
-                      cpu: $PARALLEL
-                      memory: 16Gi
-                      nvidia.com/gpu: 2
-          """
-          defaultContainer 'main'
-        }
-      }
-      environment {
-        HOME = "$WORKSPACE"
-        PYBIN = "/opt/python/cp310-cp310/bin"
-        LIBRARY_PATH = "$WORKSPACE/build"
-        LD_LIBRARY_PATH = "$WORKSPACE/build"
-      }
-      steps {
+properties([
+  disableConcurrentBuilds(),
+  buildDiscarder(logRotator(numToKeepStr: '8', daysToKeepStr: '20'))
+])
+
+try {
+  timeout(time: 1, unit: 'HOURS') {
+    buildPod(dockerfile: 'tools/cufinufft/docker/cuda11.2/Dockerfile-x86_64', gpus: 2, gpuType: 'v100') {
+      stage('build') {
+        withEnv([
+          "HOME=$WORKSPACE",
+          "PYBIN=/opt/python/cp310-cp310/bin",
+          "LIBRARY_PATH=$WORKSPACE/build",
+          "LD_LIBRARY_PATH=$WORKSPACE/build"
+        ]) {
     sh '''#!/bin/bash -ex
       nvidia-smi
     '''
@@ -106,18 +62,11 @@ pipeline {
       python3 -m pytest --framework=cupy python/cufinufft
       python3 -m pytest --framework=torch python/cufinufft
     '''
+        }
       }
     }
   }
-  post {
-    failure {
-      emailext subject: '$DEFAULT_SUBJECT',
-           body: '$DEFAULT_CONTENT',
-           recipientProviders: [
-         [$class: 'DevelopersRecipientProvider'],
-           ],
-           replyTo: '$DEFAULT_REPLYTO',
-           to: 'janden-vscholar@flatironinstitute.org'
-    }
-  }
+}
+finally {
+  emailFailure()
 }
