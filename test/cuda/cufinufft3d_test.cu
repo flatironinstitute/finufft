@@ -8,8 +8,8 @@
 #include <cufinufft.h>
 #include <finufft_common/common.h>
 
-#include <cufinufft/cufinufft_plan_t.h>
-#include <cufinufft/utils.h>
+#include <cufinufft/cufinufft_plan_t.hpp>
+#include <cufinufft/utils.hpp>
 
 #include <thrust/complex.h>
 #include <thrust/device_vector.h>

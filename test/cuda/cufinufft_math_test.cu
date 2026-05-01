@@ -5,7 +5,7 @@
 
 // Include the custom operators for cuComplex
 #include <cufinufft/contrib/helper_math.h>
-#include <cufinufft/types.h>
+#include <cufinufft/types.hpp>
 
 // Helper function to create cuComplex
 template<typename T> cuda_complex<T> make_cuda_complex(T real, T imag) {

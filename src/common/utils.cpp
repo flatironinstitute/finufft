@@ -16,7 +16,7 @@
 #endif
 
 #ifdef __CUDACC__
-#include <cufinufft/types.h>
+#include <cufinufft/types.hpp>
 #endif
 
 namespace finufft {

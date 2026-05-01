@@ -14,8 +14,8 @@
 #include "../utils/dirft1d.hpp"
 #include "../utils/norms.hpp"
 #include <cufinufft/contrib/helper_cuda.h>
-#include <cufinufft/cufinufft_plan_t.h>
-#include <cufinufft/utils.h>
+#include <cufinufft/cufinufft_plan_t.hpp>
+#include <cufinufft/utils.hpp>
 
 constexpr auto TEST_BIGPROB = 1e8;
 

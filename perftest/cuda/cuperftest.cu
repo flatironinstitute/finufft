@@ -8,7 +8,7 @@
 #include <unordered_map>
 
 #include <cufinufft.h>
-#include <cufinufft/cufinufft_plan_t.h>
+#include <cufinufft/cufinufft_plan_t.hpp>
 
 #include <thrust/complex.h>
 #include <thrust/device_vector.h>
