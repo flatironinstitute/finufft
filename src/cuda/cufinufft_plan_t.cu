@@ -14,6 +14,13 @@
 #include <finufft_errors.h>
 #include <thrust/device_vector.h>
 
+cufft_plan::~cufft_plan() {
+  if (handle_ != 0) {
+    DeviceSwitcher switcher(device_id_);
+    cufftDestroy(handle_);
+  }
+}
+
 static bool have_pool_support(const cufinufft_opts &opts) {
   DeviceSwitcher switcher(opts.gpu_device_id);
   int supports_pools = 0;
@@ -108,6 +115,36 @@ static int setup_spreader(finufft_spread_opts &spopts, T eps, T upsampfac,
            kerevalmeth, (double)eps, (double)upsampfac, ns, spopts.beta);
   return ier;
 }
+
+template<typename T>
+std::tuple<CUFINUFFT_BIGINT, T, T> cufinufft_plan_t<T>::set_nhg_type3(T S, T X) const
+// Mirror of CPU set_nhg_type3: choose nf, h, gam given source half-width S and
+// freq half-width X, using this plan's opts/spopts.
+{
+  using finufft::common::PI;
+  int nss = spopts.nspread + 1; // since ns may be odd
+  T Xsafe = X, Ssafe = S;       // may be tweaked locally
+  if (X == 0.0)                 // logic ensures XS>=1, handle X=0 a/o S=0
+    if (S == 0.0) {
+      Xsafe = 1.0;
+      Ssafe = 1.0;
+    } else
+      Xsafe = std::max(Xsafe, T(1) / S);
+  else
+    Ssafe = std::max(Ssafe, T(1) / X);
+  T nfd = 2.0 * opts.upsampfac * Ssafe * Xsafe / PI + nss;
+  if (!std::isfinite(nfd)) nfd = 0.0;
+  auto nf = (int)nfd;
+  if (nf < 2 * spopts.nspread) nf = 2 * spopts.nspread;
+  if (nf < MAX_NF) nf = finufft::common::next235(nf, 2);
+  auto h   = 2 * T(PI) / nf;
+  auto gam = T(nf) / (2.0 * opts.upsampfac * Ssafe);
+  return std::make_tuple(nf, h, gam);
+}
+template std::tuple<CUFINUFFT_BIGINT, float, float>
+cufinufft_plan_t<float>::set_nhg_type3(float, float) const;
+template std::tuple<CUFINUFFT_BIGINT, double, double>
+cufinufft_plan_t<double>::set_nhg_type3(double, double) const;
 
 template<typename T> void cufinufft_plan_t<T>::allocate() {
   cuda::std::array<int, 3> binsizes{opts.gpu_binsizex, opts.gpu_binsizey,
@@ -402,7 +439,7 @@ cufinufft_plan_t<T>::cufinufft_plan_t(int type_, int dim_, const int *nmodes, in
       std::array<int, 3> obinsize{opts.gpu_obinsizex, opts.gpu_obinsizey,
                                   opts.gpu_obinsizez};
       for (int idim = 0; idim < dim; ++idim)
-        set_nf_type12(mstu[idim], opts, spopts, &nf123[idim], obinsize[idim]);
+        set_nf_type12(mstu[idim], &nf123[idim], obinsize[idim]);
       if (opts.debug)
         printf("[cufinufft] (nf1,nf2,nf3) = (%d, %d, %d)\n", nf123[0], nf123[1],
                nf123[2]);
@@ -420,15 +457,17 @@ cufinufft_plan_t<T>::cufinufft_plan_t(int type_, int dim_, const int *nmodes, in
         n[idim] = int(nf123[dim - idim - 1]);
         ntot *= n[idim];
       }
-      cufftResult_t cufft_status = cufftPlanMany(&fftplan, dim, n, n, 1, ntot, n, 1, ntot,
-                                                 cufft_type<T>(), batchsize);
+      fftplan.set_device_id(opts.gpu_device_id);
+      cufftResult_t cufft_status =
+          cufftPlanMany(fftplan.for_creation(), dim, n, n, 1, ntot, n, 1, ntot,
+                        cufft_type<T>(), batchsize);
 
       if (cufft_status != CUFFT_SUCCESS) {
         fprintf(stderr, "[%s] cufft makeplan error: %s", __func__,
                 cufftGetErrorString(cufft_status));
         throw int(FINUFFT_ERR_CUDA_FAILURE);
       }
-      cufftSetStream(fftplan, stream);
+      cufftSetStream(fftplan.get(), stream);
 
       // compute up to 3 * NQUAD precomputed values on CPU
       T fseries_precomp_phase[3 * MAX_NQUAD];
@@ -436,9 +475,8 @@ cufinufft_plan_t<T>::cufinufft_plan_t(int type_, int dim_, const int *nmodes, in
       thrust::device_vector<T> d_fseries_precomp_phase(3 * MAX_NQUAD);
       thrust::device_vector<T> d_fseries_precomp_f(3 * MAX_NQUAD);
       for (int idim = 0; idim < dim; ++idim)
-        onedim_fseries_kernel_precomp<T>(
-            nf123[idim], fseries_precomp_f + idim * MAX_NQUAD,
-            fseries_precomp_phase + idim * MAX_NQUAD, spopts);
+        onedim_fseries_kernel_precomp(nf123[idim], fseries_precomp_f + idim * MAX_NQUAD,
+                                      fseries_precomp_phase + idim * MAX_NQUAD);
       // copy the precomputed data to the device using thrust
       thrust::copy(fseries_precomp_phase, fseries_precomp_phase + 3 * MAX_NQUAD,
                    d_fseries_precomp_phase.begin());
@@ -560,7 +598,7 @@ void cufinufft_plan_t<T>::setpts(int M_, const T *d_kx, const T *d_ky, const T *
     type3_params.X[idim]          = xx;
     type3_params.C[idim]          = cc;
     const auto [SS, DD]           = arraywidcen<T>(N, d_stu[idim], stream);
-    const auto [nfnf, hh, gamgam] = set_nhg_type3<T>(SS, xx, opts, spopts);
+    const auto [nfnf, hh, gamgam] = set_nhg_type3(SS, xx);
     nf123[idim]                   = nfnf;
     type3_params.S[idim]          = SS;
     type3_params.D[idim]          = DD;
@@ -796,7 +834,7 @@ void cufinufft_plan_t<T>::exec1(cuda_complex<T> *d_c, cuda_complex<T> *d_fk) con
     if (opts.gpu_spreadinterponly) continue; // skip steps 2 and 3
 
     // Step 2: FFT
-    cufftResult cufft_status = cufft_ex(fftplan, fw, fw, iflag);
+    cufftResult cufft_status = cufft_ex(fftplan.get(), fw, fw, iflag);
     if (cufft_status != CUFFT_SUCCESS) throw int(FINUFFT_ERR_CUDA_FAILURE);
 
     // Step 3: deconvolve and shuffle
@@ -844,7 +882,7 @@ void cufinufft_plan_t<T>::exec2(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
 
       // Step 2: FFT
       THROW_IF_CUDA_ERROR
-      cufftResult cufft_status = cufft_ex(fftplan, fw, fw, iflag);
+      cufftResult cufft_status = cufft_ex(fftplan.get(), fw, fw, iflag);
       if (cufft_status != CUFFT_SUCCESS) throw int(FINUFFT_ERR_CUDA_FAILURE);
     } else
       fw = fk; // interpolate directly from user input f
