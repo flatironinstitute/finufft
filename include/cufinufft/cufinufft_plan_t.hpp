@@ -217,6 +217,14 @@ private:
   void allocate();
   void allocate_nupts();
 
+  // Spread/interp drivers — implementations live in src/cuda/spreadinterp.cu.
+  // prep_spreadinterp() is mutating: it sets up the bin-sort / subproblem /
+  // block-gather state in setpts(), and that state is consumed by both
+  // spread() and interp().
+  void prep_spreadinterp();
+  void spread(const cuda_complex<T> *c, cuda_complex<T> *fw, int blksize) const;
+  void interp(cuda_complex<T> *c, const cuda_complex<T> *fw, int blksize) const;
+
 public:
   void setpts(int M_, const T *d_kx, const T *d_ky, const T *d_kz, int N_, const T *d_s,
               const T *d_t, const T *d_u);
