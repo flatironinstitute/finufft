@@ -58,12 +58,12 @@ def main() -> None:
     args = parser.parse_args()
 
     cpu_info = get_cpu_info()
-    simd_features = ", ".join([flag for flag in cpu_info["flags"] if "avx" in flag])
-    fma_supported = "yes" if "fma" in cpu_info["flags"] else "no"
 
     print(f"cpu_name={cpu_info['brand_raw']}")
-    print(f"simd_features={simd_features}")
-    print(f"fma_supported={fma_supported}")
+    print(f"arch={cpu_info['arch']}")
+    cpu_flags = ", ".join(cpu_info["flags"])
+    print(f"cpu_flags={cpu_flags}")
+    print(f"ncores={cpu_info['count']}")
 
     compiler_version = "NA"
     compiler_flags = "NA"

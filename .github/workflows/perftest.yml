@@ -7,13 +7,12 @@ on:
         description: "Comma separated version list"
         type: string
         default: 'v2.2.0,v2.3.0,v2.4.1,v2.5.0'
-        required: true
 
 jobs:
   perftest:
     env:
-      VERSIONS_INPUT: ${{ github.event.inputs.versions || github.event.inputs.default }}
-    runs-on: ubuntu-latest
+      VERSIONS_INPUT: ${{ github.event.inputs.versions }}
+    runs-on: self-hosted
     steps:
       - name: Checkout latest perftest
         uses: actions/checkout@v6

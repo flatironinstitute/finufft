@@ -148,10 +148,11 @@ def main() -> None:
     template = env.get_template(template_path.name)
     rendered = template.render(
         cpu_name=cpu_info["brand_raw"],
+        arch=cpu_info["arch"],
+        core_count=cpu_info["count"],
+        flags=", ".join(cpu_info["flags"]),
         compiler_version=compiler_version,
         compiler_flags=compiler_flags,
-        simd_features=", ".join([flag for flag in cpu_info["flags"] if "avx" in flag]),
-        fma_supported="fma" in cpu_info["flags"],
         dim_transform_groups=dim_transform_groups,
     )
     template_path.with_suffix("").write_text(rendered, encoding="utf-8")

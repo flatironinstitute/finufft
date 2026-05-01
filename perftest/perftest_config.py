@@ -4,7 +4,7 @@ from dataclasses import dataclass, fields, asdict
 from numbers import Number
 
 
-@dataclass(frozen=True)
+@dataclass
 class Params:
     prec: str = "f"
     N1: Number = 320
@@ -30,11 +30,6 @@ class Params:
         fvalues = [f"{f.name}:{getattr(self, f.name)}" for f in fields(self)]
         chunks = [" ".join(fvalues[i : i + n]) for i in range(0, len(fvalues), n)]
         return "\n".join(chunks)
-
-    def get_hash(self) -> str:
-        # Stable short identifier used to group matching parameter sets in CSVs.
-        payload = json.dumps(asdict(self), sort_keys=True)
-        return hashlib.sha1(payload.encode("utf-8")).hexdigest()[:12]
 
 
 NRUNS = 10

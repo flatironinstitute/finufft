@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   perftest-and-comment:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     steps:
       - name: Checkout latest master
         uses: actions/checkout@v6
@@ -45,6 +45,9 @@ jobs:
           cmake -B builds/pr-head -S pr-head -DFINUFFT_BUILD_TESTS=ON -DCMAKE_BUILD_TYPE=Release &&
           cmake --build builds/pr-head --target perftest -j
 
+      - name: Compare performance
+        id: test-perf
+        run: |
           pip install pandas matplotlib py-cpuinfo
           python3 master/perftest/perftest_pr_head.py \
             --master-perftest builds/master/perftest/perftest \
@@ -85,23 +88,27 @@ jobs:
             <details>
             <summary>These are the CPU characteristics and compiler configuration.</summary>
 
-            CPU name: `${{ steps.build.outputs.cpu_name }}`.
+            CPU name: `${{ steps.test-perf.outputs.cpu_name }}`.
 
-            AVX extensions present: `${{ steps.build.outputs.simd_features }}`.
+            Arch: `${{ steps.test-perf.outputs.arch }}`.
 
-            FMA supported: `${{ steps.build.outputs.fma_supported }}`.
+            Core count: `${{ steps.test-perf.outputs.ncores }}`.
 
-            Compiler version: `${{ steps.build.outputs.compiler_version }}`.
+            ISA extensions present: `${{ steps.test-perf.outputs.cpu_flags }}`.
 
-            Compiler flags: `${{ steps.build.outputs.compiler_flags }}`.
+            Compiler version: `${{ steps.test-perf.outputs.compiler_version }}`.
+
+            Compiler flags: `${{ steps.test-perf.outputs.compiler_flags }}`.
 
             </details>
             <details>
             <summary>The perftest commands that gather data for the plots.</summary>
             <p>
+
             ```
-            ${{ fromJson(steps.build.outputs.commands) }}
+            ${{ fromJson(steps.test-perf.outputs.commands) }}
             ```
+
             </p>
             </details>
 
@@ -118,15 +125,17 @@ jobs:
             <details>
             <summary>These are the CPU characteristics and compiler configuration.</summary>
 
-            CPU name: `${{ steps.build.outputs.cpu_name }}`.
+            CPU name: `${{ steps.test-perf.outputs.cpu_name }}`.
 
-            AVX extensions present: `${{ steps.build.outputs.simd_features }}`.
+            Arch: `${{ steps.test-perf.outputs.arch }}`.
 
-            FMA supported: `${{ steps.build.outputs.fma_supported }}`.
+            Core count: `${{ steps.test-perf.outputs.ncores }}`.
 
-            Compiler version: `${{ steps.build.outputs.compiler_version }}`.
+            ISA extensions present: `${{ steps.test-perf.outputs.cpu_flags }}`.
 
-            Compiler flags: `${{ steps.build.outputs.compiler_flags }}`.
+            Compiler version: `${{ steps.test-perf.outputs.compiler_version }}`.
+
+            Compiler flags: `${{ steps.test-perf.outputs.compiler_flags }}`.
 
             </details>
 
@@ -135,7 +144,7 @@ jobs:
             <p>
 
             ```
-            ${{ fromJson(steps.build.outputs.commands) }}
+            ${{ fromJson(steps.test-perf.outputs.commands) }}
             ```
 
             </p>
