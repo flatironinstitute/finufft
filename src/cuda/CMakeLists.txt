@@ -6,6 +6,12 @@ set(SRC
     common.cu
     cufinufft_plan_t.cu
     spreadinterp.cu
+    spread_nupts_driven.cu
+    spread_subprob.cu
+    spread_output_driven.cu
+    spread_blockgather.cu
+    interp_nupts_driven.cu
+    interp_subprob.cu
 )
 
 set(CUFINUFFT_INCLUDE_DIRS

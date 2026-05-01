@@ -225,12 +225,14 @@ private:
   void spread(const cuda_complex<T> *c, cuda_complex<T> *fw, int blksize) const;
   void interp(cuda_complex<T> *c, const cuda_complex<T> *fw, int blksize) const;
 
+public:
   // Dynamic shared-memory bytes required per kernel launch for spread/interp.
-  // Wraps the free helper so callers don't have to re-thread the same plan
-  // members (dim, nspread, gpu_binsize{x,y,z}, gpu_np) on every launch site.
+  // Public because per-method drivers (spreadinterp.hpp) and shared-memory
+  // setup (common.hpp::cufinufft_set_shared_memory) call it from outside the
+  // class. Wraps the free helper so callers don't re-thread plan members
+  // (dim, nspread, gpu_binsize{x,y,z}, gpu_np) on every launch site.
   std::size_t shared_memory_required() const;
 
-public:
   void setpts(int M_, const T *d_kx, const T *d_ky, const T *d_kz, int N_, const T *d_s,
               const T *d_t, const T *d_u);
   // FIXME: we want to make this "const" in the future
