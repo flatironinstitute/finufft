@@ -231,6 +231,20 @@ template std::size_t shared_memory_required<float>(
 template std::size_t shared_memory_required<double>(
     int dim, int ns, int bin_size_x, int bin_size_y, int bin_size_z, int np);
 
+} // namespace common
+} // namespace cufinufft
+
+template<typename T> std::size_t cufinufft_plan_t<T>::shared_memory_required() const {
+  return cufinufft::common::shared_memory_required<T>(
+      dim, spopts.nspread, opts.gpu_binsizex, opts.gpu_binsizey, opts.gpu_binsizez,
+      opts.gpu_np);
+}
+template std::size_t cufinufft_plan_t<float>::shared_memory_required() const;
+template std::size_t cufinufft_plan_t<double>::shared_memory_required() const;
+
+namespace cufinufft {
+namespace common {
+
 // Function to find bin_size_x == bin_size_y
 // where bin_size_x * bin_size_y * bin_size_z < mem_size
 template<typename T> int find_bin_size(std::size_t mem_size, int dim, int ns) {

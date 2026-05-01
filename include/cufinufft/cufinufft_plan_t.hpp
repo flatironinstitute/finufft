@@ -225,6 +225,11 @@ private:
   void spread(const cuda_complex<T> *c, cuda_complex<T> *fw, int blksize) const;
   void interp(cuda_complex<T> *c, const cuda_complex<T> *fw, int blksize) const;
 
+  // Dynamic shared-memory bytes required per kernel launch for spread/interp.
+  // Wraps the free helper so callers don't have to re-thread the same plan
+  // members (dim, nspread, gpu_binsize{x,y,z}, gpu_np) on every launch site.
+  std::size_t shared_memory_required() const;
+
 public:
   void setpts(int M_, const T *d_kx, const T *d_ky, const T *d_kz, int N_, const T *d_s,
               const T *d_t, const T *d_u);
@@ -241,6 +246,12 @@ public:
 template<typename T> struct cufinufft_gpu_data {
   cufinufft_opts opts;
   finufft_spread_opts spopts;
+
+  // Derived ES-kernel parameters, cached so spread/interp kernels do not
+  // recompute them on every launch. es_c == (2/ns)^2; sigma == upsampfac.
+  T sigma   = 0;
+  T es_c    = 0;
+  T es_beta = 0;
 
   int type                                    = 0;
   int dim                                     = 0;
@@ -287,7 +298,9 @@ template<typename T> struct cufinufft_gpu_data {
 
   cufinufft_gpu_data() = delete;
   cufinufft_gpu_data(const cufinufft_plan_t<T> &orig)
-      : opts(orig.opts), spopts(orig.spopts), type(orig.type), dim(orig.dim), M(orig.M),
+      : opts(orig.opts), spopts(orig.spopts), sigma(orig.spopts.upsampfac),
+        es_c(T(4) / T(orig.spopts.nspread * orig.spopts.nspread)),
+        es_beta(orig.spopts.beta), type(orig.type), dim(orig.dim), M(orig.M),
         nf123(orig.nf123), mstu(orig.mstu), ntransf(orig.ntransf),
         batchsize(orig.batchsize), iflag(orig.iflag),
         totalnumsubprob(orig.totalnumsubprob), xyz(orig.kxyz), N(orig.N), nf(orig.nf),
