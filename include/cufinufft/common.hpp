@@ -38,15 +38,12 @@ template<typename T>
 void cufinufft_setup_binsize(int type, int ns, int dim, cufinufft_opts *opts);
 
 template<typename T, typename V>
-void cufinufft_set_shared_memory(V *kernel, const int dim,
-                                 const cufinufft_plan_t<T> &d_plan) {
+void cufinufft_set_shared_memory(V *kernel, const cufinufft_plan_t<T> &d_plan) {
   /**
    * WARNING: this function does not handle cuda errors. The caller should check them.
    */
   int shared_mem_per_block{};
-  const auto shared_mem_required = shared_memory_required<T>(
-      dim, d_plan.spopts.nspread, d_plan.opts.gpu_binsizex, d_plan.opts.gpu_binsizey,
-      d_plan.opts.gpu_binsizez, d_plan.opts.gpu_np);
+  const auto shared_mem_required = d_plan.shared_memory_required();
   cudaDeviceGetAttribute(&shared_mem_per_block, cudaDevAttrMaxSharedMemoryPerBlockOptin,
                          d_plan.opts.gpu_device_id);
   if (shared_mem_required > unsigned(shared_mem_per_block)) {
