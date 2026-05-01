@@ -1,0 +1,142 @@
+name: Perftest Pull Requests
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+jobs:
+  perftest-and-comment:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout latest master
+        uses: actions/checkout@v6
+        with:
+          ref: 'master'
+          path: master
+
+      - name: Checkout pr head
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: pr-head
+
+      - name: Setup Cpp
+        uses: aminya/setup-cpp@v1
+        with:
+          cmake: true
+          ninja: true
+
+      - name: Build latest master and PR head
+        id: build
+        run: |
+          mkdir -p builds
+          rm -fr builds/*
+
+          cmake -B builds/master -S master -DFINUFFT_BUILD_TESTS=ON -DCMAKE_BUILD_TYPE=Release &&
+          cmake --build builds/master --target perftest -j
+
+          rm -fr pr-head/perftest
+          cp -r master/perftest pr-head/perftest
+          cmake -B builds/pr-head -S pr-head -DFINUFFT_BUILD_TESTS=ON -DCMAKE_BUILD_TYPE=Release &&
+          cmake --build builds/pr-head --target perftest -j
+
+          pip install pandas matplotlib py-cpuinfo
+          python3 master/perftest/perftest_pr_head.py \
+            --master-perftest builds/master/perftest/perftest \
+            --pr-perftest builds/pr-head/perftest/perftest \
+            --plot-output master/perftest_comment_figure.svg >> $GITHUB_OUTPUT
+
+      - name: Commit benchmark results
+        id: push-image
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          cd master
+          git config user.name "GitHub Actions Bot"
+          git config user.email "actions@github.com"
+          git branch -D perftest-comment-figure || true && git switch --orphan perftest-comment-figure
+          git add perftest_comment_figure.svg
+          PRE_COMMIT_ALLOW_NO_CONFIG=1 git commit -m "Performance change [no ci]"
+          IMAGE_SHA=$(git rev-parse HEAD)
+          git push -f https://${GITHUB_TOKEN}@github.com/${{ github.repository }} perftest-comment-figure
+          echo "image_sha=$IMAGE_SHA" >> $GITHUB_OUTPUT
+
+      - name: Find existing managed comment
+        id: find-comment
+        uses: peter-evans/find-comment@v3
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          comment-author: github-actions[bot]
+          body-includes: "<!-- pr-managed-comment -->"
+
+      - name: Create managed PR comment
+        if: steps.find-comment.outputs.comment-id == ''
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          body: |
+            <!-- pr-managed-comment -->
+            ![Perftest plot](https://raw.githubusercontent.com/${{ github.repository }}/${{ steps.push-image.outputs.image_sha }}/perftest_comment_figure.svg)
+            <details>
+            <summary>These are the CPU characteristics and compiler configuration.</summary>
+
+            CPU name: `${{ steps.build.outputs.cpu_name }}`.
+
+            AVX extensions present: `${{ steps.build.outputs.simd_features }}`.
+
+            FMA supported: `${{ steps.build.outputs.fma_supported }}`.
+
+            Compiler version: `${{ steps.build.outputs.compiler_version }}`.
+
+            Compiler flags: `${{ steps.build.outputs.compiler_flags }}`.
+
+            </details>
+            <details>
+            <summary>The perftest commands that gather data for the plots.</summary>
+            <p>
+            ```
+            ${{ fromJson(steps.build.outputs.commands) }}
+            ```
+            </p>
+            </details>
+
+      - name: Update managed PR comment
+        if: steps.find-comment.outputs.comment-id != ''
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          comment-id: ${{ steps.find-comment.outputs.comment-id }}
+          edit-mode: replace
+          body: |
+            <!-- pr-managed-comment -->
+            ![Perftest plot](https://raw.githubusercontent.com/${{ github.repository }}/${{ steps.push-image.outputs.image_sha }}/perftest_comment_figure.svg)
+
+            <details>
+            <summary>These are the CPU characteristics and compiler configuration.</summary>
+
+            CPU name: `${{ steps.build.outputs.cpu_name }}`.
+
+            AVX extensions present: `${{ steps.build.outputs.simd_features }}`.
+
+            FMA supported: `${{ steps.build.outputs.fma_supported }}`.
+
+            Compiler version: `${{ steps.build.outputs.compiler_version }}`.
+
+            Compiler flags: `${{ steps.build.outputs.compiler_flags }}`.
+
+            </details>
+
+            <details>
+            <summary>The perftest commands that gather data for the plots.</summary>
+            <p>
+
+            ```
+            ${{ fromJson(steps.build.outputs.commands) }}
+            ```
+
+            </p>
+            </details>

@@ -1,0 +1,75 @@
+name: Run perftests
+
+on:
+  workflow_dispatch:
+    inputs:
+      versions:
+        description: "Comma separated version list"
+        type: string
+        default: 'v2.2.0,v2.3.0,v2.4.1,v2.5.0'
+        required: true
+
+jobs:
+  perftest:
+    env:
+      VERSIONS_INPUT: ${{ github.event.inputs.versions || github.event.inputs.default }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout latest perftest
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Setup Cpp
+        uses: aminya/setup-cpp@v1
+        with:
+          cmake: true
+          ninja: true
+
+      - name: Checkout tagged versions
+        run: |
+          mkdir -p ../builds
+          rm -fr ../builds/*
+          tags="$VERSIONS_INPUT,master"
+          IFS=','
+          for tag in $tags; do
+            if [ "$tag" = "master" ]; then
+              src_path="."
+            else
+              rm -fr ../$tag
+              git worktree add -f -d ../$tag tags/$tag
+              rm -fr ../$tag/perftest
+              cp -r perftest ../$tag/perftest
+              src_path="../$tag"
+            fi
+            cmake -B ../builds/$tag -S $src_path -DFINUFFT_BUILD_TESTS=ON -DCMAKE_BUILD_TYPE=Release &&
+            cmake --build ../builds/$tag --target perftest -j
+          done
+
+
+      - name: Install plotting dependency
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - run: python3 -m pip install --quiet matplotlib pandas Jinja2 py-cpuinfo
+
+      - name: Summarize matrix results
+        run: |
+          rm -f docs/pics/perftestci_*
+          python3 perftest/run_perftest_ci.py \
+            --builds-root ../builds \
+            --tag-list "$VERSIONS_INPUT,master" \
+            --plot-output-dir docs/pics \
+            --docs-page-path docs/performance_change.rst.j2
+
+      - name: Commit generated perftest docs
+        if: (github.event_name == 'push' && github.ref == 'refs/heads/master') || github.event_name == 'workflow_dispatch'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@github.com"
+          git checkout -B perftest-results
+          git add docs/pics/perftestci_* docs/performance_change.rst
+          git diff --staged --quiet || git commit -m "Generated new perftest report page. [no ci]" && git push -f --set-upstream origin perftest-results
