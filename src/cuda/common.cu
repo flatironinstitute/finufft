@@ -139,20 +139,6 @@ template void nuft_kernel_compute(
     const double *d_z, cuda::std::array<const double *, 3> d_kxyz,
     cuda::std::array<gpu_array<double>, 3> &d_fwkerhalf, int ns, cudaStream_t stream);
 
-void set_nf_type12(CUFINUFFT_BIGINT ms, cufinufft_opts opts, finufft_spread_opts spopts,
-                   CUFINUFFT_BIGINT *nf, CUFINUFFT_BIGINT bs)
-// type 1 & 2 recipe for how to set 1d size of upsampled array, nf, given opts
-// and requested number of Fourier modes ms.
-{
-  // round up to handle small cases
-  *nf = static_cast<CUFINUFFT_BIGINT>(std::ceil(opts.upsampfac * ms));
-  if (*nf < 2 * spopts.nspread) *nf = 2 * spopts.nspread; // otherwise spread fails
-  if (*nf < MAX_NF) {                                     // otherwise will fail anyway
-    if (bs&1) bs*=2;  // make sure that bs is even
-    *nf = common::next235(*nf, opts.gpu_method == 4 ? bs : 2);
-  }
-}
-
 /*
   Precomputation of approximations of exact Fourier series coeffs of cnufftspread's
   real symmetric kernel.
@@ -168,26 +154,6 @@ void set_nf_type12(CUFINUFFT_BIGINT ms, cufinufft_opts opts, finufft_spread_opts
   f - function values at quadrature nodes multiplied with quadrature weights (a, f are
       provided as the inputs of onedim_fseries_kernel_compute() defined below)
 */
-
-template<typename T>
-void onedim_fseries_kernel_precomp(CUFINUFFT_BIGINT nf, T *f, T *phase,
-                                   finufft_spread_opts opts) {
-  T J2 = opts.nspread / 2.0; // J/2, half-width of ker z-support
-  // # quadr nodes in z (from 0 to J/2; reflections will be added)...
-  const auto q = (int)(2 + 3.0 * J2); // matches CPU code
-  double z[2 * MAX_NQUAD];
-  double w[2 * MAX_NQUAD];
-  gaussquad(2 * q, z, w);       // only half the nodes used, for (0,1)
-  for (int n = 0; n < q; ++n) { // set up nodes z_n and vals f_n
-    z[n] *= J2;                 // rescale nodes
-    f[n]     = J2 * w[n] * evaluate_kernel((T)z[n], opts); // vals & quadr wei
-    phase[n] = T(2.0 * PI * z[n] / T(nf));                 // phase winding rates
-  }
-}
-template void onedim_fseries_kernel_precomp<float>(CUFINUFFT_BIGINT nf, float *f,
-                                                   float *a, finufft_spread_opts opts);
-template void onedim_fseries_kernel_precomp<double>(CUFINUFFT_BIGINT nf, double *f,
-                                                    double *a, finufft_spread_opts opts);
 
 template<typename T>
 void onedim_nuft_kernel_precomp(T *f, T *z, finufft_spread_opts opts) {
@@ -242,6 +208,48 @@ template<typename T> std::size_t cufinufft_plan_t<T>::shared_memory_required() c
 }
 template std::size_t cufinufft_plan_t<float>::shared_memory_required() const;
 template std::size_t cufinufft_plan_t<double>::shared_memory_required() const;
+
+template<typename T>
+void cufinufft_plan_t<T>::set_nf_type12(CUFINUFFT_BIGINT ms, CUFINUFFT_BIGINT *nf,
+                                        CUFINUFFT_BIGINT bs) const
+// type 1 & 2 recipe for how to set 1d size of upsampled array, nf, given opts
+// and requested number of Fourier modes ms.
+{
+  // round up to handle small cases
+  *nf = static_cast<CUFINUFFT_BIGINT>(std::ceil(opts.upsampfac * ms));
+  if (*nf < 2 * spopts.nspread) *nf = 2 * spopts.nspread; // otherwise spread fails
+  if (*nf < MAX_NF) {                                     // otherwise will fail anyway
+    if (bs & 1) bs *= 2; // make sure that bs is even
+    *nf = finufft::common::next235(*nf, opts.gpu_method == 4 ? bs : 2);
+  }
+}
+template void cufinufft_plan_t<float>::set_nf_type12(CUFINUFFT_BIGINT, CUFINUFFT_BIGINT *,
+                                                     CUFINUFFT_BIGINT) const;
+template void cufinufft_plan_t<double>::set_nf_type12(
+    CUFINUFFT_BIGINT, CUFINUFFT_BIGINT *, CUFINUFFT_BIGINT) const;
+
+template<typename T>
+void cufinufft_plan_t<T>::onedim_fseries_kernel_precomp(CUFINUFFT_BIGINT nf_, T *f,
+                                                        T *phase) const {
+  using cufinufft::spreadinterp::evaluate_kernel;
+  using finufft::common::gaussquad;
+  using finufft::common::MAX_NQUAD;
+  using finufft::common::PI;
+  T J2         = spopts.nspread / 2.0; // J/2, half-width of ker z-support
+  const auto q = (int)(2 + 3.0 * J2);  // matches CPU code
+  double z[2 * MAX_NQUAD];
+  double w[2 * MAX_NQUAD];
+  gaussquad(2 * q, z, w);       // only half the nodes used, for (0,1)
+  for (int n = 0; n < q; ++n) { // set up nodes z_n and vals f_n
+    z[n] *= J2;                 // rescale nodes
+    f[n]     = J2 * w[n] * evaluate_kernel((T)z[n], spopts); // vals & quadr wei
+    phase[n] = T(2.0 * PI * z[n] / T(nf_));                  // phase winding rates
+  }
+}
+template void cufinufft_plan_t<float>::onedim_fseries_kernel_precomp(
+    CUFINUFFT_BIGINT, float *, float *) const;
+template void cufinufft_plan_t<double>::onedim_fseries_kernel_precomp(
+    CUFINUFFT_BIGINT, double *, double *) const;
 
 namespace cufinufft {
 namespace common {
