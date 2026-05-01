@@ -2,7 +2,7 @@
 #define __COMMON_H__
 
 #include <cufft.h>
-#include <cufinufft/cufinufft_plan_t.h>
+#include <cufinufft/cufinufft_plan_t.hpp>
 #include <cufinufft_opts.h>
 #include <finufft_common/spread_opts.h>
 #include <finufft_errors.h>

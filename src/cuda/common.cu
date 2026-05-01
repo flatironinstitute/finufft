@@ -6,11 +6,11 @@
 #include <cuComplex.h>
 #include <cuda.h>
 
-#include <cufinufft/common.h>
+#include <cufinufft/common.hpp>
 #include <cufinufft/contrib/helper_cuda.h>
-#include <cufinufft/defs.h>
-#include <cufinufft/spreadinterp.h>
-#include <cufinufft/utils.h>
+#include <cufinufft/defs.hpp>
+#include <cufinufft/spreadinterp.hpp>
+#include <cufinufft/utils.hpp>
 
 namespace cufinufft {
 namespace common {

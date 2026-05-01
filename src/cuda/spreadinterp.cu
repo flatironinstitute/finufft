@@ -1,11 +1,11 @@
 #include <thrust/sequence.h>
 
-#include <cufinufft/common.h>
+#include <cufinufft/common.hpp>
 #include <cufinufft/contrib/helper_cuda.h>
 #include <cufinufft/contrib/helper_math.h>
-#include <cufinufft/intrinsics.h>
-#include <cufinufft/spreadinterp.h>
-#include <cufinufft/utils.h>
+#include <cufinufft/intrinsics.hpp>
+#include <cufinufft/spreadinterp.hpp>
+#include <cufinufft/utils.hpp>
 
 namespace cufinufft {
 namespace spreadinterp {

@@ -4,11 +4,11 @@
 #include <cufinufft/contrib/helper_math.h>
 
 #include <cufinufft.h>
-#include <cufinufft/common.h>
-#include <cufinufft/defs.h>
-#include <cufinufft/spreadinterp.h>
-#include <cufinufft/types.h>
-#include <cufinufft/utils.h>
+#include <cufinufft/common.hpp>
+#include <cufinufft/defs.hpp>
+#include <cufinufft/spreadinterp.hpp>
+#include <cufinufft/types.hpp>
+#include <cufinufft/utils.hpp>
 
 #include <finufft_common/constants.h>
 #include <finufft_errors.h>

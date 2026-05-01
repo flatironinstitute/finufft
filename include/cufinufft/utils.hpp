@@ -4,7 +4,7 @@
 // octave (mkoctfile) needs this otherwise it doesn't know what int64_t is!
 #include <complex>
 
-#include <cufinufft/types.h>
+#include <cufinufft/types.hpp>
 
 #include <cuda_runtime.h>
 #include <thrust/extrema.h>

@@ -2,7 +2,7 @@
 #define CUFINUFFT_TYPES_H
 
 #include <cufft.h>
-#include <cufinufft/defs.h>
+#include <cufinufft/defs.hpp>
 #include <cufinufft_opts.h>
 
 #include <cuComplex.h>
