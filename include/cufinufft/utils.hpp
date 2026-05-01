@@ -133,37 +133,6 @@ template<typename T> auto arraywidcen(int n, const T *a, cudaStream_t stream) {
   return std::make_tuple(w, c);
 }
 
-template<typename T>
-auto set_nhg_type3(T S, T X, const cufinufft_opts &opts,
-                   const finufft_spread_opts &spopts)
-// It implements the same named function in makeplan.hpp (see its docs)
-{
-  int nss = spopts.nspread + 1; // since ns may be odd
-  T Xsafe = X, Ssafe = S;       // may be tweaked locally
-  if (X == 0.0)                 // logic ensures XS>=1, handle X=0 a/o S=0
-    if (S == 0.0) {
-      Xsafe = 1.0;
-      Ssafe = 1.0;
-    } else
-      Xsafe = std::max(Xsafe, T(1) / S);
-  else
-    Ssafe = std::max(Ssafe, T(1) / X);
-  // use the safe X and S...
-  T nfd = 2.0 * opts.upsampfac * Ssafe * Xsafe / PI + nss;
-  if (!std::isfinite(nfd)) nfd = 0.0; // use FLT to catch inf
-  auto nf = (int)nfd;
-  // printf("initial nf=%lld, ns=%d\n",*nf,spopts.nspread);
-  //  catch too small nf, and nan or +-inf, otherwise spread fails...
-  if (nf < 2 * spopts.nspread) nf = 2 * spopts.nspread;
-  if (nf < MAX_NF)            // otherwise will fail anyway
-    nf = next235beven(nf, 1); // expensive at huge nf
-  // Note: b is 1 because type 3 uses a type 2 plan, so it should not need the extra
-  // condition that seems to be used by Block Gather as type 2 are only GM-sort
-  auto h   = 2 * T(PI) / nf;                         // upsampled grid spacing
-  auto gam = T(nf) / (2.0 * opts.upsampfac * Ssafe); // x scale fac to x'
-  return std::make_tuple(nf, h, gam);
-}
-
 // Wrapper around the generic dispatcher for ndim-based dispatch
 template<typename Func, typename T, typename... Args>
 auto launch_dispatch_ndim(Func &&func, int target_ndim, Args &&...args) {

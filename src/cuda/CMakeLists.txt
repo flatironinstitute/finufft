@@ -6,13 +6,28 @@ set(SRC
     common.cu
     cufinufft_plan_t.cu
     spreadinterp.cu
-    spread_nupts_driven.cu
-    spread_subprob.cu
-    spread_output_driven.cu
-    spread_blockgather.cu
-    interp_nupts_driven.cu
-    interp_subprob.cu
+    spread_blockgather_3d.cu
 )
+
+# Per-method per-dim instantiation TUs. Each *_inst.cu is compiled once
+# per dim (1, 2, 3) with -DCUFINUFFT_DIM=<dim> via configure_file copies
+# in the build dir. Splitting per (method, dim) maximizes nvcc parallelism
+# without duplicating source files in the tree.
+set(CUFINUFFT_PER_DIM_METHODS
+    spread_nupts_driven
+    spread_subprob
+    spread_output_driven
+    interp_nupts_driven
+    interp_subprob
+)
+foreach(method ${CUFINUFFT_PER_DIM_METHODS})
+    foreach(dim 1 2 3)
+        set(_gen ${CMAKE_CURRENT_BINARY_DIR}/${method}_${dim}d.cu)
+        configure_file(${CMAKE_CURRENT_SOURCE_DIR}/${method}_inst.cu ${_gen} COPYONLY)
+        set_source_files_properties(${_gen} PROPERTIES COMPILE_DEFINITIONS "CUFINUFFT_DIM=${dim}")
+        list(APPEND SRC ${_gen})
+    endforeach()
+endforeach()
 
 set(CUFINUFFT_INCLUDE_DIRS
     $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
@@ -37,6 +52,9 @@ add_iwyu_fix_target(cufinufft)
 set_property(TARGET ${target} PROPERTY INTERPROCEDURAL_OPTIMIZATION ${FINUFFT_INTERPROCEDURAL_OPTIMIZATION})
 add_library(finufft::cufinufft ALIAS cufinufft)
 target_include_directories(cufinufft PUBLIC ${CUFINUFFT_INCLUDE_DIRS})
+# Generated per-dim instantiation TUs in build dir need to find the
+# .cuh method-body headers in the source dir.
+target_include_directories(cufinufft PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 # set target build location
 set_target_properties(cufinufft PROPERTIES LIBRARY_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}")
 

@@ -21,12 +21,6 @@ void nuft_kernel_compute(
     cuda::std::array<const T *, 3> d_kxyz, cuda::std::array<gpu_array<T>, 3> &d_fwkerhalf,
     int ns, cudaStream_t stream);
 
-void set_nf_type12(CUFINUFFT_BIGINT ms, cufinufft_opts opts, finufft_spread_opts spopts,
-                   CUFINUFFT_BIGINT *nf, CUFINUFFT_BIGINT b);
-
-template<typename T>
-void onedim_fseries_kernel_precomp(CUFINUFFT_BIGINT nf, T *f, T *a,
-                                   finufft_spread_opts opts);
 template<typename T>
 void onedim_nuft_kernel_precomp(T *f, T *zout, finufft_spread_opts opts);
 
