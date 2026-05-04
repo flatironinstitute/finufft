@@ -171,23 +171,6 @@ static void prolps0i(double c, std::vector<double> &work) {
   prolfun0(n, c, work, 1e-16);
 }
 
-/*
-evaluate prolate0c at x, i.e., \psi_0^c(x)
-*/
-double prolate0_eval(double c, double x) {
-  thread_local static std::unordered_map<double, PSWF0> prolate0_funcs_cache;
-  {
-    auto pswf = prolate0_funcs_cache.find(c);
-    if (pswf != prolate0_funcs_cache.end()) // we found it
-      return (pswf->second)(x);
-  }
-
-  // We didn't find the function object, so let's create it
-  prolate0_funcs_cache.emplace(c, PSWF0(c));
-  auto pswf = prolate0_funcs_cache.find(c);
-  return (pswf->second)(x);
-}
-
 } // anonymous namespace
 
 PSWF0::PSWF0(double c_) : c(c_) {
