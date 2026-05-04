@@ -11,14 +11,13 @@
 #include <array>
 #include <cmath>
 #include <finufft_common/pswf.h>
+#include <finufft_errors.h>
 #include <unordered_map>
 #include <vector>
 
 namespace finufft::common {
 
 namespace { // file-local helpers
-
-constexpr int PSWF_ERROR = 42;  // FIXME: which FINUFFT error code should we use here?
 
 /* Class for evaluation of the prolate spheroidal wavefunction
    of order zero (Psi_0^c) inside [-1,1], for arbitrary frequency parameter c.
@@ -81,7 +80,7 @@ protected:
         }
 
         if (m == l) break;
-        if (j == 30) throw int(PSWF_ERROR);
+        if (j == 30) throw int(FINUFFT_ERR_PSWF_SETUP);
         ++j;
 
         double g = (d[l + 1] - d[l]) / (2. * e[l]);
