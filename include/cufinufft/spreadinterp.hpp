@@ -319,7 +319,13 @@ __global__ FINUFFT_FLATTEN void calc_inverse_of_global_sort_idx(
   }
 }
 
-inline __global__ void calc_subprob(const int *FINUFFT_RESTRICT bin_size,
+// `static` (not `inline`) so each TU gets a uniquely-named kernel symbol;
+// otherwise, with RDC off, every TU that includes this header registers a
+// kernel with the same mangled name and the CUDA Runtime emits a
+// "Duplicate entry kernels" warning at first launch (compute-sanitizer
+// reports it as an error). Templated kernels above don't have the issue
+// because vague-linkage lets the linker fold the duplicates.
+static __global__ void calc_subprob(const int *FINUFFT_RESTRICT bin_size,
                                     int *FINUFFT_RESTRICT num_subprob,
                                     const int maxsubprobsize, const int numbins) {
   for (int i = threadIdx.x + blockIdx.x * blockDim.x; i < numbins;
@@ -327,7 +333,7 @@ inline __global__ void calc_subprob(const int *FINUFFT_RESTRICT bin_size,
     num_subprob[i] = (loadReadOnly(bin_size + i) + maxsubprobsize - 1) / maxsubprobsize;
   }
 }
-inline __global__ void map_b_into_subprob(
+static __global__ void map_b_into_subprob(
     int *FINUFFT_RESTRICT d_subprob_to_bin, const int *FINUFFT_RESTRICT d_subprobstartpts,
     const int *FINUFFT_RESTRICT d_numsubprob, const int numbins) {
   for (int i = threadIdx.x + blockIdx.x * blockDim.x; i < numbins;
