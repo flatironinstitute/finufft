@@ -70,7 +70,14 @@ set_target_properties(
     cufinufft
     PROPERTIES
         CUDA_ARCHITECTURES "${CMAKE_CUDA_ARCHITECTURES}"
-        CUDA_SEPARABLE_COMPILATION ON
+        # RDC is disabled: no cross-TU __device__ calls exist (all device
+        # helpers are inline/__forceinline__/template in headers, all
+        # __global__ kernels are launched from the same TU that defines
+        # them). Turning this off skips the device-link step, enables
+        # whole-program inlining within each TU, and avoids MSVC + nvcc
+        # toolchain quirks. Reintroduce only if a future feature genuinely
+        # needs cross-TU device calls.
+        CUDA_SEPARABLE_COMPILATION OFF
         ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}"
         INTERPROCEDURAL_OPTIMIZATION ${FINUFFT_INTERPROCEDURAL_OPTIMIZATION}
         POSITION_INDEPENDENT_CODE ${FINUFFT_POSITION_INDEPENDENT_CODE}
