@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include "spreadinterp_common.cuh"
 #include <cufinufft/spreadinterp.hpp>
 
 namespace cufinufft {
@@ -19,9 +20,11 @@ __global__ FINUFFT_FLATTEN void spread_output_driven(
   T es_beta = p.es_beta;
 
   // assume that bin_size > ns/2;
-  cuda::std::array<int, 3> binsizes{p.opts.gpu_binsizex, p.opts.gpu_binsizey,
-                                    p.opts.gpu_binsizez};
-  auto nbins = get_nbins<ndim>(p.nf123, binsizes);
+  auto info         = compute_subprob_block_info<T, ndim>(p, blockIdx.x);
+  auto &binsizes    = info.binsizes;
+  auto &offset      = info.offset;
+  const int ptstart = info.ptstart;
+  const int nupts   = info.nupts;
 
   static constexpr auto ns_2f = T(ns * .5);
   static constexpr auto ns_2  = (ns + 1) / 2;
@@ -30,16 +33,6 @@ __global__ FINUFFT_FLATTEN void spread_output_driven(
   for (int idim = 0; idim < ndim; ++idim) total *= ns;
 
   auto [padded_size, local_subgrid_size] = get_padded_subgrid_info<ndim, ns>(binsizes);
-
-  const int bidx        = loadReadOnly(p.subprob_to_bin + blockIdx.x);
-  const int binsubp_idx = blockIdx.x - loadReadOnly(p.subprobstartpts + bidx);
-  const int ptstart =
-      loadReadOnly(p.binstartpts + bidx) + binsubp_idx * p.opts.gpu_maxsubprobsize;
-  const int nupts =
-      min(p.opts.gpu_maxsubprobsize,
-          loadReadOnly(p.binsize + bidx) - binsubp_idx * p.opts.gpu_maxsubprobsize);
-
-  auto offset = compute_offset<ndim>(bidx, nbins, binsizes);
 
   using kernel_data = cuda::std::array<cuda::std::array<T, ns>, ndim>;
   auto *kerevals    = reinterpret_cast<kernel_data *>(sharedbuf);

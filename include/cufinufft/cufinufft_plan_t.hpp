@@ -218,6 +218,18 @@ template<typename T> struct cufinufft_plan_t {
   finufft_spread_opts spopts;
   bool eps_too_small = false;
 
+  // Dynamic shared-memory bytes required per kernel launch for spread/interp.
+  // Public because per-method drivers (spreadinterp.hpp) and shared-memory
+  // setup (common.hpp::cufinufft_set_shared_memory) call it from outside the
+  // class. Wraps the free helper so callers don't re-thread plan members
+  // (dim, nspread, gpu_binsize{x,y,z}, gpu_np) on every launch site.
+  std::size_t shared_memory_required() const;
+
+  void setpts(int nj, const T *d_kx, const T *d_ky, const T *d_kz, int nk, const T *d_s,
+              const T *d_t, const T *d_u);
+  // FIXME: we want to make this "const" in the future
+  void execute(cuda_complex<T> *d_c, cuda_complex<T> *d_fk) const;
+
 private:
   // Worker functions and the POD-copy helper need direct access to private
   // state (mutating prep helpers resize bin/subprob arrays; spread/interp
@@ -388,19 +400,6 @@ private:
   void interp_nupts_driven(cuda_complex<T> *c, const cuda_complex<T> *fw,
                            int blksize) const;
   void interp_subprob(cuda_complex<T> *c, const cuda_complex<T> *fw, int blksize) const;
-
-public:
-  // Dynamic shared-memory bytes required per kernel launch for spread/interp.
-  // Public because per-method drivers (spreadinterp.hpp) and shared-memory
-  // setup (common.hpp::cufinufft_set_shared_memory) call it from outside the
-  // class. Wraps the free helper so callers don't re-thread plan members
-  // (dim, nspread, gpu_binsize{x,y,z}, gpu_np) on every launch site.
-  std::size_t shared_memory_required() const;
-
-  void setpts(int M_, const T *d_kx, const T *d_ky, const T *d_kz, int N_, const T *d_s,
-              const T *d_t, const T *d_u);
-  // FIXME: we want to make this "const" in the future
-  void exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk) const;
 };
 
 // This class contains a subset of the information stored in
