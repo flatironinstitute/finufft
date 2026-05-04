@@ -16,6 +16,72 @@
 namespace cufinufft {
 namespace spreadinterp {
 
+// Nupts-driven spreading kernel
+template<typename T, int KEREVALMETH, int ndim, int ns>
+__global__ FINUFFT_FLATTEN void spread_nupts_driven(
+    cufinufft_gpu_data<T> p, const cuda_complex<T> *c, cuda_complex<T> *fw) {
+
+  T sigma   = p.sigma;
+  T es_c    = p.es_c;
+  T es_beta = p.es_beta;
+
+  for (int i = blockDim.x * blockIdx.x + threadIdx.x; i < p.M;
+       i += blockDim.x * gridDim.x) {
+    const auto nuptsidx = loadReadOnly(p.idxnupts + i);
+    auto [ker, start]   = get_kerval_and_startpos_nuptsdriven<T, KEREVALMETH, ndim, ns>(
+        nuptsidx, p.xyz, p.nf123, sigma, es_c, es_beta);
+
+    const auto val = loadReadOnly(c + nuptsidx);
+    if constexpr (ndim == 1) {
+      for (int x0 = 0, ix = start[0]; x0 < ns;
+           ++x0, ix       = (ix + 1 >= p.nf123[0]) ? 0 : ix + 1)
+        atomicAddComplexGlobal<T>(fw + ix, ker[0][x0] * val);
+    } else if constexpr (ndim == 2) {
+      for (int y0 = 0, iy = start[1]; y0 < ns;
+           ++y0, iy       = (iy + 1 >= p.nf123[1]) ? 0 : iy + 1) {
+        const auto outidx0   = iy * p.nf123[0];
+        cuda_complex<T> valy = val * ker[1][y0];
+        for (int x0 = 0, ix = start[0]; x0 < ns;
+             ++x0, ix       = (ix + 1 >= p.nf123[0]) ? 0 : ix + 1)
+          atomicAddComplexGlobal<T>(fw + outidx0 + ix, ker[0][x0] * valy);
+      }
+    } else {
+      for (int z0 = 0, iz = start[2]; z0 < ns;
+           ++z0, iz       = (iz + 1 >= p.nf123[2]) ? 0 : iz + 1) {
+        const auto outidx0   = iz * p.nf123[1] * p.nf123[0];
+        cuda_complex<T> valz = val * ker[2][z0];
+        for (int y0 = 0, iy = start[1]; y0 < ns;
+             ++y0, iy       = (iy + 1 >= p.nf123[1]) ? 0 : iy + 1) {
+          const auto outidx1   = outidx0 + iy * p.nf123[0];
+          cuda_complex<T> valy = valz * ker[1][y0];
+          for (int x0 = 0, ix = start[0]; x0 < ns;
+               ++x0, ix       = (ix + 1 >= p.nf123[0]) ? 0 : ix + 1) {
+            atomicAddComplexGlobal<T>(fw + outidx1 + ix, ker[0][x0] * valy);
+          }
+        }
+      }
+    }
+  }
+}
+
+// Nupts-driven spreading CPU driver
+template<typename T, int ndim, int ns>
+void cuspread_nupts_driven(const cufinufft_plan_t<T> &d_plan, const cuda_complex<T> *c,
+                           cuda_complex<T> *fw, int blksize) {
+  const dim3 threadsPerBlock{16, 1, 1};
+  const dim3 blocks{(unsigned(d_plan.M) + 15) / 16, 1, 1};
+
+  const auto launch = [&](auto kernel) {
+    for (int t = 0; t < blksize; t++) {
+      kernel<<<blocks, threadsPerBlock, 0, d_plan.stream>>>(d_plan, c + t * d_plan.M,
+                                                            fw + t * d_plan.nf);
+      THROW_IF_CUDA_ERROR
+    }
+  };
+  (d_plan.opts.gpu_kerevalmeth == 1) ? launch(spread_nupts_driven<T, 1, ndim, ns>)
+                                     : launch(spread_nupts_driven<T, 0, ndim, ns>);
+}
+
 template<typename T, int Ndim> struct SpreadNuptsDrivenCaller {
   const cufinufft_plan_t<T> &p;
   const cuda_complex<T> *c;
