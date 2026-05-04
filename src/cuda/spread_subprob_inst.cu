@@ -23,3 +23,12 @@ template void do_prep_subprob_and_OD<double, CUFINUFFT_DIM>(cufinufft_plan_t<dou
 
 } // namespace spreadinterp
 } // namespace cufinufft
+
+#if CUFINUFFT_DIM == 1
+template void cufinufft_plan_t<float>::spread_subprob(const cuda_complex<float> *,
+                                                      cuda_complex<float> *, int) const;
+template void cufinufft_plan_t<double>::spread_subprob(const cuda_complex<double> *,
+                                                       cuda_complex<double> *, int) const;
+template void cufinufft_plan_t<float>::prep_subprob_and_OD();
+template void cufinufft_plan_t<double>::prep_subprob_and_OD();
+#endif
