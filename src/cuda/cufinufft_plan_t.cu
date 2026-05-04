@@ -548,12 +548,12 @@ Notes: the type T means either single or double, matching the
 }
 
 template<typename T>
-void cufinufft_plan_t<T>::setpts(int M_, const T *d_kx, const T *d_ky, const T *d_kz,
-                                 int N_, const T *d_s, const T *d_t, const T *d_u) {
+void cufinufft_plan_t<T>::setpts(int nj, const T *d_kx, const T *d_ky, const T *d_kz,
+                                 int nk, const T *d_s, const T *d_t, const T *d_u) {
   DeviceSwitcher switcher(opts.gpu_device_id);
   // type 1 and type 2 setpts
   if (type == 1 || type == 2) {
-    return setpts_12(M_, d_kx, d_ky, d_kz);
+    return setpts_12(nj, d_kx, d_ky, d_kz);
   }
   // type 3 setpts
 
@@ -565,8 +565,8 @@ void cufinufft_plan_t<T>::setpts(int M_, const T *d_kx, const T *d_ky, const T *
   cuda::std::array<const T *, 3> d_kxyz = {d_kx, d_ky, d_kz};
   cuda::std::array<const T *, 3> d_stu  = {d_s, d_t, d_u};
 
-  M = M_;
-  N = N_;
+  M = nj;
+  N = nk;
   if (N < 0) {
     fprintf(stderr, "[cufinufft] Invalid N (%d): cannot be negative.\n", N);
     throw int(FINUFFT_ERR_NUM_NU_PTS_INVALID);
@@ -786,10 +786,10 @@ void cufinufft_plan_t<T>::setpts(int M_, const T *d_kx, const T *d_ky, const T *
   }
 }
 template void cufinufft_plan_t<float>::setpts(
-    int M_, const float *d_kx, const float *d_ky, const float *d_kz, int N_,
+    int nj, const float *d_kx, const float *d_ky, const float *d_kz, int nk,
     const float *d_s, const float *d_t, const float *d_u);
 template void cufinufft_plan_t<double>::setpts(
-    int M_, const double *d_kx, const double *d_ky, const double *d_kz, int N_,
+    int nj, const double *d_kx, const double *d_ky, const double *d_kz, int nk,
     const double *d_s, const double *d_t, const double *d_u);
 
 template<typename T>
@@ -945,7 +945,7 @@ void cufinufft_plan_t<T>::exec3(cuda_complex<T> *d_c, cuda_complex<T> *d_fk) con
 }
 
 template<typename T>
-void cufinufft_plan_t<T>::exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk) const {
+void cufinufft_plan_t<T>::execute(cuda_complex<T> *d_c, cuda_complex<T> *d_fk) const {
   DeviceSwitcher switcher(opts.gpu_device_id);
   switch (type) {
   case 1:
@@ -956,7 +956,7 @@ void cufinufft_plan_t<T>::exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk) cons
     return exec3(d_c, d_fk);
   }
 }
-template void cufinufft_plan_t<float>::exec(cuda_complex<float> *d_c,
-                                            cuda_complex<float> *d_fk) const;
-template void cufinufft_plan_t<double>::exec(cuda_complex<double> *d_c,
-                                             cuda_complex<double> *d_fk) const;
+template void cufinufft_plan_t<float>::execute(cuda_complex<float> *d_c,
+                                               cuda_complex<float> *d_fk) const;
+template void cufinufft_plan_t<double>::execute(cuda_complex<double> *d_c,
+                                                cuda_complex<double> *d_fk) const;

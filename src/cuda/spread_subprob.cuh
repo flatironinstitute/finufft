@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include "spreadinterp_common.cuh"
 #include <cufinufft/spreadinterp.hpp>
 
 namespace cufinufft {
@@ -20,20 +21,12 @@ __global__ FINUFFT_FLATTEN void spread_subprob(
   T es_beta = p.es_beta;
 
   // assume that bin_size > ns/2;
-  cuda::std::array<int, 3> binsizes{p.opts.gpu_binsizex, p.opts.gpu_binsizey,
-                                    p.opts.gpu_binsizez};
-  auto nbins = get_nbins<ndim>(p.nf123, binsizes);
-
-  const auto subpidx     = blockIdx.x;
-  const auto bidx        = loadReadOnly(p.subprob_to_bin + subpidx);
-  const auto binsubp_idx = subpidx - loadReadOnly(p.subprobstartpts + bidx);
-  const auto ptstart =
-      loadReadOnly(p.binstartpts + bidx) + binsubp_idx * p.opts.gpu_maxsubprobsize;
-  const auto nupts =
-      min(p.opts.gpu_maxsubprobsize,
-          loadReadOnly(p.binsize + bidx) - binsubp_idx * p.opts.gpu_maxsubprobsize);
-
-  auto offset = compute_offset<ndim>(bidx, nbins, binsizes);
+  auto info         = compute_subprob_block_info<T, ndim>(p, blockIdx.x);
+  auto &binsizes    = info.binsizes;
+  auto &nbins       = info.nbins;
+  auto &offset      = info.offset;
+  const int ptstart = info.ptstart;
+  const int nupts   = info.nupts;
 
   constexpr auto ns_2       = (ns + 1) / 2;
   constexpr auto rounded_ns = ns_2 * 2;
@@ -137,13 +130,10 @@ void do_spread_subprob(const cufinufft_plan_t<T> &p, const cuda_complex<T> *c,
 }
 
 template<typename T, int Ndim> void do_prep_subprob_and_OD(cufinufft_plan_t<T> &p) {
-  cuda::std::array<int, 3> binsizes = {p.opts.gpu_binsizex, p.opts.gpu_binsizey,
-                                       p.opts.gpu_binsizez};
-
-  auto nbins          = get_nbins<Ndim>(p.nf123, binsizes);
-  const int nbins_tot = nbins_total(nbins);
-  const cuda::std::array<T, 3> inv_binsizes{T(1) / binsizes[0], T(1) / binsizes[1],
-                                            T(1) / binsizes[2]};
+  auto layout         = compute_bin_layout<T, Ndim>(p.opts, p.nf123);
+  auto &nbins         = layout.nbins;
+  const int nbins_tot = layout.nbins_tot;
+  auto &inv_binsizes  = layout.inv_binsizes;
 
   checkCudaErrors(
       cudaMemsetAsync(dethrust(p.binsize), 0, nbins_tot * sizeof(int), p.stream));
