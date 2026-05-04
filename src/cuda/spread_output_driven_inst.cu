@@ -20,3 +20,10 @@ template void do_spread_output_driven<double, CUFINUFFT_DIM>(
 
 } // namespace spreadinterp
 } // namespace cufinufft
+
+#if CUFINUFFT_DIM == 1
+template void cufinufft_plan_t<float>::spread_output_driven(
+    const cuda_complex<float> *, cuda_complex<float> *, int) const;
+template void cufinufft_plan_t<double>::spread_output_driven(
+    const cuda_complex<double> *, cuda_complex<double> *, int) const;
+#endif

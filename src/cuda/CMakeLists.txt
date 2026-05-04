@@ -1,12 +1,15 @@
 include(staticAnalysis)
 
-set(SRC
-    cufinufft.cu
+set(SRC_CUDA
     common.cu
     cufinufft_plan_t.cu
-    spreadinterp.cu
     spread_blockgather_3d.cu
 )
+# Pure-host TUs: dispatch + C-API shims with no kernel launches and no
+# __global__/__device__ tokens. Compile with the host C++ compiler so they
+# don't pay nvcc's parsing cost and so MSVC/Windows toolchains see plain C++.
+set(SRC_CXX cufinufft.cpp spreadinterp.cpp)
+set(SRC ${SRC_CUDA} ${SRC_CXX})
 
 # Per-method per-dim instantiation TUs. Each *_inst.cu is compiled once
 # per dim (1, 2, 3) with -DCUFINUFFT_DIM=<dim> via configure_file copies
@@ -45,6 +48,7 @@ if(FINUFFT_SHARED_LINKING)
 else()
     add_library(cufinufft STATIC ${SRC})
 endif()
+set_source_files_properties(${SRC_CXX} PROPERTIES LANGUAGE CXX)
 
 enable_static_analysis(cufinufft)
 set_property(TARGET ${target} PROPERTY INTERPROCEDURAL_OPTIMIZATION ${FINUFFT_INTERPROCEDURAL_OPTIMIZATION})
