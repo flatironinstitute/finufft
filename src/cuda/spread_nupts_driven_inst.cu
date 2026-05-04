@@ -23,3 +23,15 @@ template void do_prep_nupts_driven<double, CUFINUFFT_DIM>(cufinufft_plan_t<doubl
 
 } // namespace spreadinterp
 } // namespace cufinufft
+
+// Per-method plan-method instantiations live with the method body (not in
+// spreadinterp.cpp, which is a pure-host TU and cannot pull in __global__
+// kernels). Gate on dim=1 so each member is instantiated exactly once.
+#if CUFINUFFT_DIM == 1
+template void cufinufft_plan_t<float>::spread_nupts_driven(
+    const cuda_complex<float> *, cuda_complex<float> *, int) const;
+template void cufinufft_plan_t<double>::spread_nupts_driven(
+    const cuda_complex<double> *, cuda_complex<double> *, int) const;
+template void cufinufft_plan_t<float>::prep_nupts_driven();
+template void cufinufft_plan_t<double>::prep_nupts_driven();
+#endif

@@ -19,3 +19,10 @@ template void do_interp_nupts_driven<double, CUFINUFFT_DIM>(
 
 } // namespace spreadinterp
 } // namespace cufinufft
+
+#if CUFINUFFT_DIM == 1
+template void cufinufft_plan_t<float>::interp_nupts_driven(
+    cuda_complex<float> *, const cuda_complex<float> *, int) const;
+template void cufinufft_plan_t<double>::interp_nupts_driven(
+    cuda_complex<double> *, const cuda_complex<double> *, int) const;
+#endif
