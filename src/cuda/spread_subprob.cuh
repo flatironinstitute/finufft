@@ -8,6 +8,115 @@
 namespace cufinufft {
 namespace spreadinterp {
 
+// Subprob spreading kernel
+template<typename T, int KEREVALMETH, int ndim, int ns>
+__global__ FINUFFT_FLATTEN void spread_subprob(
+    cufinufft_gpu_data<T> p, const cuda_complex<T> *c, cuda_complex<T> *fw) {
+  extern __shared__ char sharedbuf[];
+  auto fwshared = (cuda_complex<T> *)sharedbuf;
+
+  T sigma   = p.sigma;
+  T es_c    = p.es_c;
+  T es_beta = p.es_beta;
+
+  // assume that bin_size > ns/2;
+  cuda::std::array<int, 3> binsizes{p.opts.gpu_binsizex, p.opts.gpu_binsizey,
+                                    p.opts.gpu_binsizez};
+  auto nbins = get_nbins<ndim>(p.nf123, binsizes);
+
+  const auto subpidx     = blockIdx.x;
+  const auto bidx        = loadReadOnly(p.subprob_to_bin + subpidx);
+  const auto binsubp_idx = subpidx - loadReadOnly(p.subprobstartpts + bidx);
+  const auto ptstart =
+      loadReadOnly(p.binstartpts + bidx) + binsubp_idx * p.opts.gpu_maxsubprobsize;
+  const auto nupts =
+      min(p.opts.gpu_maxsubprobsize,
+          loadReadOnly(p.binsize + bidx) - binsubp_idx * p.opts.gpu_maxsubprobsize);
+
+  auto offset = compute_offset<ndim>(bidx, nbins, binsizes);
+
+  constexpr auto ns_2       = (ns + 1) / 2;
+  constexpr auto rounded_ns = ns_2 * 2;
+
+  int N = 1;
+  for (int idim = 0; idim < ndim; ++idim) N *= binsizes[idim] + rounded_ns;
+
+  for (int i = threadIdx.x; i < N; i += blockDim.x) {
+    fwshared[i] = {0, 0};
+  }
+
+  __syncthreads();
+
+  for (int i = threadIdx.x; i < nupts; i += blockDim.x) {
+    const int idx       = ptstart + i;
+    const auto nuptsidx = loadReadOnly(p.idxnupts + idx);
+    auto [ker, start]   = get_kerval_and_local_start<T, KEREVALMETH, ndim, ns>(
+        nuptsidx, p.xyz, p.nf123, offset, sigma, es_c, es_beta);
+
+    const auto cnow = loadReadOnly(c + nuptsidx);
+    if constexpr (ndim == 1) {
+      const auto ofs = start[0] + ns_2;
+      for (int xx = 0; xx < ns; ++xx) {
+        atomicAddComplexShared<T>(fwshared + xx + ofs, cnow * ker[0][xx]);
+      }
+    }
+    if constexpr (ndim == 2) {
+      const auto delta_y = binsizes[0] + rounded_ns;
+      const auto ofs0    = (start[1] + ns_2) * delta_y + start[0] + ns_2;
+      for (int yy = 0; yy < ns; ++yy) {
+        const auto ofs   = ofs0 + yy * delta_y;
+        const auto cnowy = cnow * ker[1][yy];
+        for (int xx = 0; xx < ns; ++xx) {
+          atomicAddComplexShared<T>(fwshared + xx + ofs, cnowy * ker[0][xx]);
+        }
+      }
+    }
+    if constexpr (ndim == 3) {
+      const auto delta_y = binsizes[0] + rounded_ns;
+      const auto delta_z = delta_y * (binsizes[1] + rounded_ns);
+      const auto ofs0 =
+          (start[2] + ns_2) * delta_z + (start[1] + ns_2) * delta_y + (start[0] + ns_2);
+      for (int zz = 0; zz < ns; ++zz) {
+        const auto cnowz = cnow * ker[2][zz];
+        const auto ofs1  = ofs0 + zz * delta_z;
+        for (int yy = 0; yy < ns; ++yy) {
+          const auto cnowy = cnowz * ker[1][yy];
+          const auto ofs   = ofs1 + yy * delta_y;
+          for (int xx = 0; xx < ns; ++xx) {
+            atomicAddComplexShared<T>(fwshared + xx + ofs, cnowy * ker[0][xx]);
+          }
+        }
+      }
+    }
+  }
+
+  __syncthreads();
+
+  /* write to global memory */
+  shared_mem_copy_helper<T, ndim, ns>(
+      binsizes, offset, p.nf123, [fw, fwshared](int idx_shared, int idx_global) {
+        atomicAddComplexGlobal<T>(fw + idx_global, fwshared[idx_shared]);
+      });
+}
+
+// Subprob spreading CPU driver
+template<typename T, int ndim, int ns>
+void cuspread_subprob(const cufinufft_plan_t<T> &d_plan, const cuda_complex<T> *c,
+                      cuda_complex<T> *fw, int blksize) {
+  const auto sharedplanorysize = d_plan.shared_memory_required();
+
+  const auto launch = [&](auto kernel) {
+    cufinufft_set_shared_memory(kernel, d_plan);
+    for (int t = 0; t < blksize; t++) {
+      kernel<<<d_plan.totalnumsubprob, 256, sharedplanorysize, d_plan.stream>>>(
+          d_plan, c + t * d_plan.M, fw + t * d_plan.nf);
+      THROW_IF_CUDA_ERROR
+    }
+  };
+  (d_plan.opts.gpu_kerevalmeth == 1) ? launch(spread_subprob<T, 1, ndim, ns>)
+                                     : launch(spread_subprob<T, 0, ndim, ns>);
+}
+
 template<typename T, int Ndim> struct SpreadSubprobCaller {
   const cufinufft_plan_t<T> &p;
   const cuda_complex<T> *c;
