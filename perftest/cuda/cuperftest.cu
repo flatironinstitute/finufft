@@ -269,7 +269,8 @@ template<typename T> void run_test(test_options_t &test_opts) {
       timeit(std::bind(&cufinufft_plan_t<T>::setpts, dplan, M, d_x_p, d_y_p, d_z_p, 0,
                        nullptr, nullptr, nullptr),
              setpts_timer);
-      timeit(std::bind(&cufinufft_plan_t<T>::exec, dplan, d_c_p, d_fk_p), execute_timer);
+      timeit(std::bind(&cufinufft_plan_t<T>::execute, dplan, d_c_p, d_fk_p),
+             execute_timer);
     }
 
     d2h_timer.start();

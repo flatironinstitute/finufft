@@ -11,6 +11,7 @@
 
 #pragma once
 
+#include "spreadinterp_common.cuh"
 #include <cufinufft/spreadinterp.hpp>
 
 namespace cufinufft {
@@ -103,13 +104,10 @@ void do_spread_nupts_driven(const cufinufft_plan_t<T> &p, const cuda_complex<T> 
 
 template<typename T, int Ndim> void do_prep_nupts_driven(cufinufft_plan_t<T> &p) {
   if (p.opts.gpu_sort) {
-    cuda::std::array<int, 3> binsizes = {p.opts.gpu_binsizex, p.opts.gpu_binsizey,
-                                         p.opts.gpu_binsizez};
-
-    auto nbins          = get_nbins<Ndim>(p.nf123, binsizes);
-    const int nbins_tot = nbins_total(nbins);
-    const cuda::std::array<T, 3> inv_binsizes{T(1) / binsizes[0], T(1) / binsizes[1],
-                                              T(1) / binsizes[2]};
+    auto layout         = compute_bin_layout<T, Ndim>(p.opts, p.nf123);
+    auto &nbins         = layout.nbins;
+    const int nbins_tot = layout.nbins_tot;
+    auto &inv_binsizes  = layout.inv_binsizes;
 
     checkCudaErrors(
         cudaMemsetAsync(dethrust(p.binsize), 0, nbins_tot * sizeof(int), p.stream));
