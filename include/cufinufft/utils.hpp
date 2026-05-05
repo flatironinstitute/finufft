@@ -70,9 +70,6 @@ namespace utils {
 
 using namespace finufft::common;
 
-// math helpers whose source is in src/utils.cpp
-FINUFFT_EXPORT long next235beven(long n, long b);
-
 /**
  * does a complex atomic add on a shared memory address
  * it adds the real and imaginary parts separately

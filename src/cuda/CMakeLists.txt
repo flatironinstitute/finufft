@@ -2,14 +2,17 @@ include(staticAnalysis)
 include(setupIWYU)
 
 set(SRC_CUDA
-    common.cu
-    cufinufft_plan_t.cu
-    spread_blockgather_3d.cu
+    fft.cu
+    heuristics.cu
+    makeplan.cu
+    setpts.cu
+    execute.cu
+    spread_blockgather_inst.cu
 )
 # Pure-host TUs: dispatch + C-API shims with no kernel launches and no
 # __global__/__device__ tokens. Compile with the host C++ compiler so they
 # don't pay nvcc's parsing cost and so MSVC/Windows toolchains see plain C++.
-set(SRC_CXX cufinufft.cpp spreadinterp.cpp)
+set(SRC_CXX c_interface.cpp spreadinterp.cpp)
 set(SRC ${SRC_CUDA} ${SRC_CXX})
 
 # Per-method per-dim instantiation TUs. Each *_inst.cu is compiled once

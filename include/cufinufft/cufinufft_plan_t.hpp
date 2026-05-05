@@ -3,7 +3,6 @@
 
 #include <cuda/std/array>
 #include <cufft.h>
-#include <cufinufft/defs.hpp>
 #include <cufinufft/types.hpp>
 #include <cufinufft_opts.h>
 #include <finufft_common/spread_opts.h>
