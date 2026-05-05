@@ -1,10 +1,13 @@
 #pragma once
 
 #include <array>
+#include <cmath>
+#include <cstdint>
 #include <tuple>
 #include <type_traits>
 #include <utility>
 
+#include "constants.h"
 #include "defines.h"
 
 namespace finufft {
@@ -34,9 +37,14 @@ template<int Start, int End>
 using make_range =
     typename offset_seq<Start, std::make_integer_sequence<int, End - Start + 1>>::type;
 
+// Explicit ctor (rather than aggregate init) so GCC 9.3.1 + nvcc 11.2 (the
+// Jenkins-CI toolchain) can resolve DispatchParam<Seq>{n} call sites.
+// Older g++ versions fail to apply aggregate init through a brace-init-list
+// here and look for a constructor instead, so we provide one.
 template<typename Seq> struct DispatchParam {
-  int runtime_val;
   using seq_type = Seq;
+  int runtime_val;
+  constexpr DispatchParam(int v) noexcept : runtime_val(v) {}
 };
 
 // Cartesian product over integer sequences.
@@ -156,3 +164,49 @@ decltype(auto) dispatch(Func &&func, ParamTuple &&params, Args &&...args) {
 
 } // namespace common
 } // namespace finufft
+
+namespace cufinufft::utils {
+// Smallest even n' >= n whose largest prime factor is <= 5 and which is a
+// multiple of b (b's prime factors must be in {2,3,5}). Defined alongside
+// gaussquad / leg_eval in src/common/utils.cpp; declared here so the decl
+// lives in the same shared header as the rest of src/common/utils.cpp's
+// public surface.
+FINUFFT_EXPORT long next235beven(long n, long b);
+} // namespace cufinufft::utils
+
+namespace finufft::utils {
+
+// Host versions of arrayrange / arraywidcen. The CUDA path has a separate
+// device-pointer overload (in include/cufinufft/utils.hpp) that uses thrust.
+template<typename T>
+FINUFFT_ALWAYS_INLINE void arrayrange(int64_t n, const T *a, T *lo, T *hi)
+// With a a length-n array, writes out min(a) to lo and max(a) to hi,
+// so that all a values lie in [lo,hi].
+// If n==0, lo and hi are not finite.
+{
+  *lo = INFINITY;
+  *hi = -INFINITY;
+  for (int64_t m = 0; m < n; ++m) {
+    if (a[m] < *lo) *lo = a[m];
+    if (a[m] > *hi) *hi = a[m];
+  }
+}
+template<typename T>
+FINUFFT_ALWAYS_INLINE void arraywidcen(int64_t n, const T *a, T *w, T *c)
+// Writes out w = half-width and c = center of an interval enclosing all a[n]'s
+// Only chooses a nonzero center if this increases w by less than fraction
+// ARRAYWIDCEN_GROWFRAC defined in finufft_common/constants.h.
+// This prevents rephasings which don't grow nf by much. 6/8/17
+// If n==0, w and c are not finite.
+{
+  T lo, hi;
+  arrayrange(n, a, &lo, &hi);
+  *w = (hi - lo) / 2;
+  *c = (hi + lo) / 2;
+  if (std::abs(*c) < finufft::common::ARRAYWIDCEN_GROWFRAC * (*w)) {
+    *w += std::abs(*c);
+    *c = 0.0;
+  }
+}
+
+} // namespace finufft::utils

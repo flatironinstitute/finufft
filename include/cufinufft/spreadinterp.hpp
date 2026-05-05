@@ -5,10 +5,10 @@
 #include <cuda.h>
 #include <thrust/sequence.h>
 
-#include <cufinufft/common.hpp>
 #include <cufinufft/contrib/helper_cuda.h>
 #include <cufinufft/contrib/helper_math.h>
 #include <cufinufft/cufinufft_plan_t.hpp>
+#include <cufinufft/heuristics.hpp>
 #include <cufinufft/intrinsics.hpp>
 #include <cufinufft/utils.hpp>
 #include <finufft_common/spread_opts.h>
@@ -18,6 +18,8 @@ namespace spreadinterp {
 
 using namespace cufinufft::utils;
 using namespace cufinufft::common;
+// ^^ pulls in cufinufft_set_shared_memory + shared_memory_required (heuristics.hpp).
+// Per-method headers below call them unqualified.
 
 // ES kernel reference evaluator used by host-side FT-quadrature code in
 // src/cuda/common.cu. Kept here (rather than in the moved section below)
