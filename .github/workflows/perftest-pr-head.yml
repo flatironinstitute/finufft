@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   perftest-and-comment:
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout latest master
         uses: actions/checkout@v6
@@ -37,12 +37,12 @@ jobs:
           mkdir -p builds
           rm -fr builds/*
 
-          cmake -B builds/master -S master -DFINUFFT_BUILD_TESTS=ON -DCMAKE_BUILD_TYPE=Release &&
+          cmake -B builds/master -S master -DFINUFFT_BUILD_TESTS=ON -DFINUFFT_USE_DUCC0=ON -DCMAKE_BUILD_TYPE=Release &&
           cmake --build builds/master --target perftest -j
 
           rm -fr pr-head/perftest
           cp -r master/perftest pr-head/perftest
-          cmake -B builds/pr-head -S pr-head -DFINUFFT_BUILD_TESTS=ON -DCMAKE_BUILD_TYPE=Release &&
+          cmake -B builds/pr-head -S pr-head -DFINUFFT_BUILD_TESTS=ON -DFINUFFT_USE_DUCC0=ON -DCMAKE_BUILD_TYPE=Release &&
           cmake --build builds/pr-head --target perftest -j
 
       - name: Compare performance
@@ -85,6 +85,9 @@ jobs:
           body: |
             <!-- pr-managed-comment -->
             ![Perftest plot](https://raw.githubusercontent.com/${{ github.repository }}/${{ steps.push-image.outputs.image_sha }}/perftest_comment_figure.svg)
+
+            FFT backend: `DUCC`
+
             <details>
             <summary>These are the CPU characteristics and compiler configuration.</summary>
 
@@ -121,6 +124,8 @@ jobs:
           body: |
             <!-- pr-managed-comment -->
             ![Perftest plot](https://raw.githubusercontent.com/${{ github.repository }}/${{ steps.push-image.outputs.image_sha }}/perftest_comment_figure.svg)
+
+            FFT backend: `DUCC`
 
             <details>
             <summary>These are the CPU characteristics and compiler configuration.</summary>

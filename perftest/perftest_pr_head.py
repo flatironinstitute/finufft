@@ -4,6 +4,7 @@ from datetime import datetime
 from pathlib import Path
 import io
 import json
+import re
 
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -22,6 +23,13 @@ def get_command(param: Params, transform: int, binary_path: str) -> list[str]:
         "--debug=0",
         "--bandwidth=1.0",
     ]
+    if param.threads == 1:
+        return (
+            ["taskset", "-c", "0", binary_path, "--arg"]
+            + param.args()
+            + extra_args
+            + [f"--type={transform}"]
+        )
     return [binary_path] + param.args() + extra_args + [f"--type={transform}"]
 
 
@@ -63,7 +71,14 @@ def main() -> None:
     print(f"arch={cpu_info['arch']}")
     cpu_flags = ", ".join(cpu_info["flags"])
     print(f"cpu_flags={cpu_flags}")
-    print(f"ncores={cpu_info['count']}")
+
+    helpmsg = subprocess.run(
+        [args.master_perftest, "--debug=2"],
+        capture_output=True,
+        text=True,
+    ).stdout
+    ncores = int(re.search(r"opts.nthreads=(\d+)", helpmsg).groups()[0])
+    print(f"ncores={ncores}")
 
     compiler_version = "NA"
     compiler_flags = "NA"

@@ -62,9 +62,6 @@ endif()
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-include(utils) # finds cmake/utils.cmake
-include(toolchain) # finds cmake/toolchain.cmake
-
 # Versions for dependencies
 set(CPM_DOWNLOAD_VERSION "0.42.0" CACHE STRING "Version of CPM.cmake to use")
 set(FFTW_VERSION "3.3.10" CACHE STRING "Version of FFTW to use")
@@ -84,6 +81,8 @@ mark_as_advanced(
 )
 
 include(setupCPM)
+include(utils) # finds cmake/utils.cmake
+include(toolchain) # finds cmake/toolchain.cmake
 
 if(FINUFFT_USE_CPU)
     if(FINUFFT_USE_OPENMP)

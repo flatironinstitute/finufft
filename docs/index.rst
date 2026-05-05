@@ -29,7 +29,7 @@ Documentation contents
    error
    trouble
    performance
-   performance_change
+   performance_change_summary
    tut
    fortran
    matlab

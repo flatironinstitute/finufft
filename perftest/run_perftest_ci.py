@@ -2,9 +2,11 @@
 import argparse
 import os
 import io
+import re
 import subprocess
 from collections import defaultdict
 from pathlib import Path
+import uuid
 
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -44,7 +46,11 @@ def run_benchmarks_for_bin(
         "--bandwidth=1.0",
     ]
     perftest_args = param.args() + extra_args + [f"--type={transform}"]
-    output = run_command(str(perftest_bin), perftest_args)
+    if param.threads == 1:
+        args = ["-c", "0", str(perftest_bin), "--arg"] + perftest_args
+        output = run_command("taskset", args)
+    else:
+        output = run_command(str(perftest_bin), perftest_args)
     return pd.read_csv(
         io.StringIO(
             "\n".join(
@@ -60,8 +66,13 @@ def main() -> None:
         description="Run perftest matrix and generate plots."
     )
     parser.add_argument(
+        "--backend",
+        default="fftw",
+        help="FFT backend name.",
+    )
+    parser.add_argument(
         "--builds-root",
-        default="/builds",
+        default="./builds",
     )
     parser.add_argument(
         "--tag-list",
@@ -69,26 +80,32 @@ def main() -> None:
         help="Comma-separated tags in preferred display order.",
     )
     parser.add_argument(
-        "--plot-output-dir",
-        default="docs/pics",
-        help="Output directory for generated performance plot images.",
+        "--page-template",
+        default="docs/performance_backend.rst.j2",
+        help="Path to the docs template page to render.",
     )
     parser.add_argument(
-        "--docs-page-path",
-        default="docs/performance_change.rst.j2",
-        help="Path to the docs template page to render.",
+        "--outputs",
+        default="./outputs",
+        help="Output directory for generated performance report.",
     )
     args = parser.parse_args()
 
     builds_root = Path(args.builds_root)
     assert builds_root.exists()
-    plot_path = Path(args.plot_output_dir)
-    assert plot_path.exists()
-    template_path = Path(args.docs_page_path)
+    output_dir = Path(args.outputs)
+    assert output_dir.exists()
+    template_path = Path(args.page_template)
     assert template_path.exists()
 
-    tags = args.tag_list.split(",")
+    tags = args.tag_list.split(" ")
 
+    helpmsg = subprocess.run(
+        [builds_root / "master" / "perftest" / "perftest", "--debug=2"],
+        capture_output=True,
+        text=True,
+    ).stdout
+    ncores = int(re.search(r"opts.nthreads=(\d+)", helpmsg).groups()[0])
     compiler_version = "NA"
     compiler_flags = "NA"
     with open(builds_root / tags[-1] / "CMakeCache.txt", "r") as f:
@@ -133,8 +150,19 @@ def main() -> None:
             ax.set_ylabel("Mean time (ms)")
             ax.legend()
 
-            file = f"perftestci_{(plot_num := plot_num + 1)}.png"
-            fig.savefig(plot_path / file)
+            file = f"perftestci_{uuid.uuid4()}.png"
+            durations = np.array(makeplan) + np.array(setpts) + np.array(execute)
+            ax.set_ylim(top=np.max(durations) * 1.1)
+            for i in range(len(x)):
+                ax.text(
+                    x[i],
+                    durations[i],
+                    f"{durations[i] / durations[0]:.2f}x",
+                    ha="center",
+                    va="bottom",
+                )
+
+            fig.savefig(output_dir / file)
             plt.close(fig)
 
             dim_transform_groups[param.ndim()][transform].append(
@@ -147,15 +175,18 @@ def main() -> None:
     env = Environment(loader=FileSystemLoader(template_path.parent))
     template = env.get_template(template_path.name)
     rendered = template.render(
+        backend=args.backend.upper(),
         cpu_name=cpu_info["brand_raw"],
         arch=cpu_info["arch"],
-        core_count=cpu_info["count"],
+        core_count=ncores,
         flags=", ".join(cpu_info["flags"]),
         compiler_version=compiler_version,
         compiler_flags=compiler_flags,
         dim_transform_groups=dim_transform_groups,
     )
-    template_path.with_suffix("").write_text(rendered, encoding="utf-8")
+    (output_dir / f"performance_{args.backend}.rst").write_text(
+        rendered, encoding="utf-8"
+    )
 
 
 if __name__ == "__main__":
