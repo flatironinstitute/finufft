@@ -20,7 +20,7 @@ using std::max;
 
 /** Kernel for computing approximations of exact Fourier series coeffs of
  *  cnufftspread's real symmetric kernel.
- * phase, f are intermediate results from function onedim_fseries_kernel_precomp().
+ * phase, f are intermediate results from function precompute_fseries_nodes().
  * this is the equispaced frequency case, used by type 1 & 2, matching
  * onedim_fseries_kernel in CPU code. Used by functions below in this file.
  */
@@ -48,7 +48,7 @@ static __global__ void cu_fseries_kernel_compute(
 
 /** Kernel for computing approximations of exact Fourier series coeffs of
  *  cnufftspread's real symmetric kernel.
- * a , f are intermediate results from function onedim_fseries_kernel_precomp().
+ * a , f are intermediate results from function precompute_fseries_nodes().
  * this is the arbitrary frequency case (hence the extra kx, ky, kx arguments), used by
  * type 3, matching KernelFSeries in CPU code. Used by functions below in this file.
  */
@@ -228,8 +228,8 @@ template void cufinufft_plan_t<double>::set_nf_type12(
     CUFINUFFT_BIGINT, CUFINUFFT_BIGINT *, CUFINUFFT_BIGINT) const;
 
 template<typename T>
-void cufinufft_plan_t<T>::onedim_fseries_kernel_precomp(CUFINUFFT_BIGINT nf_, T *f,
-                                                        T *phase) const {
+void cufinufft_plan_t<T>::precompute_fseries_nodes(CUFINUFFT_BIGINT nf_, T *f,
+                                                   T *phase) const {
   using cufinufft::spreadinterp::evaluate_kernel;
   using finufft::common::gaussquad;
   using finufft::common::MAX_NQUAD;
@@ -245,9 +245,9 @@ void cufinufft_plan_t<T>::onedim_fseries_kernel_precomp(CUFINUFFT_BIGINT nf_, T 
     phase[n] = T(2.0 * PI * z[n] / T(nf_));                  // phase winding rates
   }
 }
-template void cufinufft_plan_t<float>::onedim_fseries_kernel_precomp(
-    CUFINUFFT_BIGINT, float *, float *) const;
-template void cufinufft_plan_t<double>::onedim_fseries_kernel_precomp(
+template void cufinufft_plan_t<float>::precompute_fseries_nodes(CUFINUFFT_BIGINT, float *,
+                                                                float *) const;
+template void cufinufft_plan_t<double>::precompute_fseries_nodes(
     CUFINUFFT_BIGINT, double *, double *) const;
 
 namespace cufinufft {

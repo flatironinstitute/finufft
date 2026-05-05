@@ -101,8 +101,9 @@ __global__ FINUFFT_FLATTEN void spread_output_driven(
 
 // Output-driven spreading CPU driver
 template<typename T, int ndim, int ns>
-void cuspread_output_driven(const cufinufft_plan_t<T> &d_plan, const cuda_complex<T> *c,
-                            cuda_complex<T> *fw, int blksize) {
+void spread_output_driven_launch(const cufinufft_plan_t<T> &d_plan,
+                                 const cuda_complex<T> *c, cuda_complex<T> *fw,
+                                 int blksize) {
   int bufsz = 1;
   for (int idim = 0; idim < ndim; ++idim) bufsz *= ns;
 
@@ -130,7 +131,7 @@ template<typename T, int Ndim> struct SpreadOutputDrivenCaller {
   cuda_complex<T> *fw;
   int blksize;
   template<int Ns> void operator()() const {
-    cuspread_output_driven<T, Ndim, Ns>(p, c, fw, blksize);
+    spread_output_driven_launch<T, Ndim, Ns>(p, c, fw, blksize);
   }
 };
 

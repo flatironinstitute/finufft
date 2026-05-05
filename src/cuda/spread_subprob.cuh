@@ -94,8 +94,8 @@ __global__ FINUFFT_FLATTEN void spread_subprob(
 
 // Subprob spreading CPU driver
 template<typename T, int ndim, int ns>
-void cuspread_subprob(const cufinufft_plan_t<T> &d_plan, const cuda_complex<T> *c,
-                      cuda_complex<T> *fw, int blksize) {
+void spread_subprob_launch(const cufinufft_plan_t<T> &d_plan, const cuda_complex<T> *c,
+                           cuda_complex<T> *fw, int blksize) {
   const auto sharedplanorysize = d_plan.shared_memory_required();
 
   const auto launch = [&](auto kernel) {
@@ -116,7 +116,7 @@ template<typename T, int Ndim> struct SpreadSubprobCaller {
   cuda_complex<T> *fw;
   int blksize;
   template<int Ns> void operator()() const {
-    cuspread_subprob<T, Ndim, Ns>(p, c, fw, blksize);
+    spread_subprob_launch<T, Ndim, Ns>(p, c, fw, blksize);
   }
 };
 

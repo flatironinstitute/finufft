@@ -67,8 +67,9 @@ __global__ FINUFFT_FLATTEN void spread_nupts_driven(
 
 // Nupts-driven spreading CPU driver
 template<typename T, int ndim, int ns>
-void cuspread_nupts_driven(const cufinufft_plan_t<T> &d_plan, const cuda_complex<T> *c,
-                           cuda_complex<T> *fw, int blksize) {
+void spread_nupts_driven_launch(const cufinufft_plan_t<T> &d_plan,
+                                const cuda_complex<T> *c, cuda_complex<T> *fw,
+                                int blksize) {
   const dim3 threadsPerBlock{16, 1, 1};
   const dim3 blocks{(unsigned(d_plan.M) + 15) / 16, 1, 1};
 
@@ -89,7 +90,7 @@ template<typename T, int Ndim> struct SpreadNuptsDrivenCaller {
   cuda_complex<T> *fw;
   int blksize;
   template<int Ns> void operator()() const {
-    cuspread_nupts_driven<T, Ndim, Ns>(p, c, fw, blksize);
+    spread_nupts_driven_launch<T, Ndim, Ns>(p, c, fw, blksize);
   }
 };
 

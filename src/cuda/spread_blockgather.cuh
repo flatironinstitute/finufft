@@ -275,13 +275,14 @@ __global__ void spread_3d_block_gather(cufinufft_gpu_data<T> p, const cuda_compl
 }
 
 template<typename T, int ndim, int ns>
-void cuspread3d_blockgather(const cufinufft_plan_t<T> &d_plan, const cuda_complex<T> *c,
-                            cuda_complex<T> *fw, int blksize) {
+void spread_blockgather_3d_launch(const cufinufft_plan_t<T> &d_plan,
+                                  const cuda_complex<T> *c, cuda_complex<T> *fw,
+                                  int blksize) {
   if constexpr (ndim == 3) {
     size_t sharedplanorysize = d_plan.opts.gpu_obinsizex * d_plan.opts.gpu_obinsizey *
                                d_plan.opts.gpu_obinsizez * sizeof(cuda_complex<T>);
     if (sharedplanorysize > 49152) {
-      std::cerr << "[cuspread3d_blockgather] error: not enough shared memory"
+      std::cerr << "[spread_blockgather_3d_launch] error: not enough shared memory"
                 << std::endl;
       throw int(FINUFFT_ERR_INSUFFICIENT_SHMEM);
     }
@@ -306,7 +307,7 @@ template<typename T> struct SpreadBlockGatherCaller {
   cuda_complex<T> *fw;
   int blksize;
   template<int Ns> void operator()() const {
-    cuspread3d_blockgather<T, 3, Ns>(p, c, fw, blksize);
+    spread_blockgather_3d_launch<T, 3, Ns>(p, c, fw, blksize);
   }
 };
 

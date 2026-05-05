@@ -64,8 +64,8 @@ __global__ FINUFFT_FLATTEN void interp_nupts_driven(
 
 // Nupts-driven interpolation CPU driver
 template<typename T, int ndim, int ns>
-void cuinterp_nuptsdriven(const cufinufft_plan_t<T> &d_plan, cuda_complex<T> *c,
-                          const cuda_complex<T> *fw, int blksize) {
+void interp_nupts_driven_launch(const cufinufft_plan_t<T> &d_plan, cuda_complex<T> *c,
+                                const cuda_complex<T> *fw, int blksize) {
   const dim3 threadsPerBlock{
       optimal_interp_block_threads(d_plan.opts.gpu_device_id, d_plan.M), 1u, 1u};
   const dim3 blocks{(d_plan.M + threadsPerBlock.x - 1) / threadsPerBlock.x, 1, 1};
@@ -87,7 +87,7 @@ template<typename T, int Ndim> struct InterpNuptsDrivenCaller {
   const cuda_complex<T> *fw;
   int blksize;
   template<int Ns> void operator()() const {
-    cuinterp_nuptsdriven<T, Ndim, Ns>(p, c, fw, blksize);
+    interp_nupts_driven_launch<T, Ndim, Ns>(p, c, fw, blksize);
   }
 };
 
