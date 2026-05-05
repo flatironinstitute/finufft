@@ -319,7 +319,7 @@ void do_spread_blockgather_3d(const cufinufft_plan_t<T> &p, const cuda_complex<T
   dispatch(caller, std::make_tuple(DispatchParam<NsSeq>{p.spopts.nspread}));
 }
 
-template<typename T> void do_prep_blockgather_3d(cufinufft_plan_t<T> &p) {
+template<typename T> void do_indexSort_blockgather_3d(cufinufft_plan_t<T> &p) {
   constexpr int ndim = 3;
   auto &stream       = p.stream;
   int M              = p.M;
@@ -330,7 +330,7 @@ template<typename T> void do_prep_blockgather_3d(cufinufft_plan_t<T> &p) {
 
   if (p.nf123[0] % o_bin_size[0] != 0 || p.nf123[1] % o_bin_size[1] != 0 ||
       p.nf123[2] % o_bin_size[2] != 0) {
-    std::cerr << "[prep_blockgather_3d] error:\n";
+    std::cerr << "[indexSort_blockgather_3d] error:\n";
     std::cerr << "       mod(nf(1|2|3), opts.gpu_obinsize(x|y|z)) != 0" << std::endl;
     std::cerr << "       (nf1, nf2, nf3) = (" << p.nf123[0] << ", " << p.nf123[1] << ", "
               << p.nf123[2] << ")" << std::endl;
@@ -347,7 +347,7 @@ template<typename T> void do_prep_blockgather_3d(cufinufft_plan_t<T> &p) {
                                        p.opts.gpu_binsizez};
   if (o_bin_size[0] % bin_size[0] != 0 || o_bin_size[1] % bin_size[1] != 0 ||
       o_bin_size[2] % bin_size[2] != 0) {
-    std::cerr << "[prep_blockgather_3d] error:\n";
+    std::cerr << "[indexSort_blockgather_3d] error:\n";
     std::cerr << "      mod(ops.gpu_obinsize(x|y|z), opts.gpu_binsize(x|y|z)) != 0"
               << std::endl;
     std::cerr << "      (binsizex, binsizey, binsizez) = (" << bin_size[0] << ", "
@@ -447,8 +447,8 @@ extern template void do_spread_blockgather_3d<float>(const cufinufft_plan_t<floa
 extern template void do_spread_blockgather_3d<double>(const cufinufft_plan_t<double> &,
                                                       const cuda_complex<double> *,
                                                       cuda_complex<double> *, int);
-extern template void do_prep_blockgather_3d<float>(cufinufft_plan_t<float> &);
-extern template void do_prep_blockgather_3d<double>(cufinufft_plan_t<double> &);
+extern template void do_indexSort_blockgather_3d<float>(cufinufft_plan_t<float> &);
+extern template void do_indexSort_blockgather_3d<double>(cufinufft_plan_t<double> &);
 
 } // namespace spreadinterp
 } // namespace cufinufft
@@ -460,7 +460,7 @@ void cufinufft_plan_t<T>::spread_blockgather_3d(const cuda_complex<T> *c,
   cufinufft::spreadinterp::do_spread_blockgather_3d<T>(*this, c, fw, blksize);
 }
 
-template<typename T> void cufinufft_plan_t<T>::prep_blockgather_3d() {
+template<typename T> void cufinufft_plan_t<T>::indexSort_blockgather_3d() {
   if (this->dim != 3) throw int(FINUFFT_ERR_METHOD_NOTVALID);
-  cufinufft::spreadinterp::do_prep_blockgather_3d<T>(*this);
+  cufinufft::spreadinterp::do_indexSort_blockgather_3d<T>(*this);
 }

@@ -1,7 +1,7 @@
 // Method body: nupts-driven spreading (gpu_method = 1).
 //
 // Defines the per-dim worker templates (do_spread_nupts_driven /
-// do_prep_nupts_driven) and the plan-method bodies that dispatch on
+// do_indexSort_nupts_driven) and the plan-method bodies that dispatch on
 // dim. Workers are extern-template declared here and instantiated in
 // the per-dim TUs spread_nupts_driven_{1,2,3}d.cu.
 //
@@ -102,7 +102,7 @@ void do_spread_nupts_driven(const cufinufft_plan_t<T> &p, const cuda_complex<T> 
   dispatch(caller, std::make_tuple(DispatchParam<NsSeq>{p.spopts.nspread}));
 }
 
-template<typename T, int Ndim> void do_prep_nupts_driven(cufinufft_plan_t<T> &p) {
+template<typename T, int Ndim> void do_indexSort_nupts_driven(cufinufft_plan_t<T> &p) {
   if (p.opts.gpu_sort) {
     auto layout         = compute_bin_layout<T, Ndim>(p.opts, p.nf123);
     auto &nbins         = layout.nbins;
@@ -151,12 +151,12 @@ extern template void do_spread_nupts_driven<double, 3>(const cufinufft_plan_t<do
                                                        const cuda_complex<double> *,
                                                        cuda_complex<double> *, int);
 
-extern template void do_prep_nupts_driven<float, 1>(cufinufft_plan_t<float> &);
-extern template void do_prep_nupts_driven<float, 2>(cufinufft_plan_t<float> &);
-extern template void do_prep_nupts_driven<float, 3>(cufinufft_plan_t<float> &);
-extern template void do_prep_nupts_driven<double, 1>(cufinufft_plan_t<double> &);
-extern template void do_prep_nupts_driven<double, 2>(cufinufft_plan_t<double> &);
-extern template void do_prep_nupts_driven<double, 3>(cufinufft_plan_t<double> &);
+extern template void do_indexSort_nupts_driven<float, 1>(cufinufft_plan_t<float> &);
+extern template void do_indexSort_nupts_driven<float, 2>(cufinufft_plan_t<float> &);
+extern template void do_indexSort_nupts_driven<float, 3>(cufinufft_plan_t<float> &);
+extern template void do_indexSort_nupts_driven<double, 1>(cufinufft_plan_t<double> &);
+extern template void do_indexSort_nupts_driven<double, 2>(cufinufft_plan_t<double> &);
+extern template void do_indexSort_nupts_driven<double, 3>(cufinufft_plan_t<double> &);
 
 } // namespace spreadinterp
 } // namespace cufinufft
@@ -177,15 +177,15 @@ void cufinufft_plan_t<T>::spread_nupts_driven(const cuda_complex<T> *c,
   }
 }
 
-template<typename T> void cufinufft_plan_t<T>::prep_nupts_driven() {
-  using cufinufft::spreadinterp::do_prep_nupts_driven;
+template<typename T> void cufinufft_plan_t<T>::indexSort_nupts_driven() {
+  using cufinufft::spreadinterp::do_indexSort_nupts_driven;
   switch (this->dim) {
   case 1:
-    return do_prep_nupts_driven<T, 1>(*this);
+    return do_indexSort_nupts_driven<T, 1>(*this);
   case 2:
-    return do_prep_nupts_driven<T, 2>(*this);
+    return do_indexSort_nupts_driven<T, 2>(*this);
   case 3:
-    return do_prep_nupts_driven<T, 3>(*this);
+    return do_indexSort_nupts_driven<T, 3>(*this);
   default:
     throw int(FINUFFT_ERR_DIM_NOTVALID);
   }

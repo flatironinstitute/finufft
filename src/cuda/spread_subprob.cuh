@@ -129,7 +129,7 @@ void do_spread_subprob(const cufinufft_plan_t<T> &p, const cuda_complex<T> *c,
   dispatch(caller, std::make_tuple(DispatchParam<NsSeq>{p.spopts.nspread}));
 }
 
-template<typename T, int Ndim> void do_prep_subprob_and_OD(cufinufft_plan_t<T> &p) {
+template<typename T, int Ndim> void do_indexSort_subprob_and_OD(cufinufft_plan_t<T> &p) {
   auto layout         = compute_bin_layout<T, Ndim>(p.opts, p.nf123);
   auto &nbins         = layout.nbins;
   const int nbins_tot = layout.nbins_tot;
@@ -195,12 +195,12 @@ extern template void do_spread_subprob<double, 3>(const cufinufft_plan_t<double>
                                                   const cuda_complex<double> *,
                                                   cuda_complex<double> *, int);
 
-extern template void do_prep_subprob_and_OD<float, 1>(cufinufft_plan_t<float> &);
-extern template void do_prep_subprob_and_OD<float, 2>(cufinufft_plan_t<float> &);
-extern template void do_prep_subprob_and_OD<float, 3>(cufinufft_plan_t<float> &);
-extern template void do_prep_subprob_and_OD<double, 1>(cufinufft_plan_t<double> &);
-extern template void do_prep_subprob_and_OD<double, 2>(cufinufft_plan_t<double> &);
-extern template void do_prep_subprob_and_OD<double, 3>(cufinufft_plan_t<double> &);
+extern template void do_indexSort_subprob_and_OD<float, 1>(cufinufft_plan_t<float> &);
+extern template void do_indexSort_subprob_and_OD<float, 2>(cufinufft_plan_t<float> &);
+extern template void do_indexSort_subprob_and_OD<float, 3>(cufinufft_plan_t<float> &);
+extern template void do_indexSort_subprob_and_OD<double, 1>(cufinufft_plan_t<double> &);
+extern template void do_indexSort_subprob_and_OD<double, 2>(cufinufft_plan_t<double> &);
+extern template void do_indexSort_subprob_and_OD<double, 3>(cufinufft_plan_t<double> &);
 
 } // namespace spreadinterp
 } // namespace cufinufft
@@ -221,15 +221,15 @@ void cufinufft_plan_t<T>::spread_subprob(const cuda_complex<T> *c, cuda_complex<
   }
 }
 
-template<typename T> void cufinufft_plan_t<T>::prep_subprob_and_OD() {
-  using cufinufft::spreadinterp::do_prep_subprob_and_OD;
+template<typename T> void cufinufft_plan_t<T>::indexSort_subprob_and_OD() {
+  using cufinufft::spreadinterp::do_indexSort_subprob_and_OD;
   switch (this->dim) {
   case 1:
-    return do_prep_subprob_and_OD<T, 1>(*this);
+    return do_indexSort_subprob_and_OD<T, 1>(*this);
   case 2:
-    return do_prep_subprob_and_OD<T, 2>(*this);
+    return do_indexSort_subprob_and_OD<T, 2>(*this);
   case 3:
-    return do_prep_subprob_and_OD<T, 3>(*this);
+    return do_indexSort_subprob_and_OD<T, 3>(*this);
   default:
     throw int(FINUFFT_ERR_DIM_NOTVALID);
   }

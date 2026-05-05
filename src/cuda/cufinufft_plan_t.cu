@@ -37,19 +37,22 @@ static bool have_pool_support(const cufinufft_opts &opts) {
 }
 
 template<typename T>
-static int setup_spreader(finufft_spread_opts &spopts, T eps, T upsampfac,
-                          int kerevalmeth, int debug, int spreadinterponly)
-// Initializes spreader kernel parameters given desired NUFFT tolerance eps,
-// upsampling factor (=sigma in paper, or R in Dutt-Rokhlin), and ker eval meth
-// (etiher 0:exp(sqrt()), 1: Horner ppval).
-// Also sets all default options in finufft_spread_opts.
-// Must call before any kernel evals done.
-// Returns: 0 success, 1 warning, >1 failure (see error codes in utils.h).
+int cufinufft_plan_t<T>::setup_spreadinterp()
+// Initializes spreader kernel params in this->spopts from this->tol,
+// this->opts.upsampfac, and this->opts.gpu_kerevalmeth (0:exp(sqrt()),
+// 1: Horner ppval). Mirrors CPU FINUFFT_PLAN_T<TF>::setup_spreadinterp().
+// Returns 0, or FINUFFT_WARN_EPS_TOO_SMALL when tol was clamped up to
+// eps_mach; throws on hard error.
 // As of v2.5 no longer sets ES_c, ES_halfwidth, since absent from spopts.
 // To do: *** update this to CPU v2.5 kernel choice, coeffs, params...
 {
   using finufft::common::MAX_NSPREAD;
   using finufft::common::PI;
+  T eps                      = tol;
+  const T upsampfac          = T(opts.upsampfac);
+  const int kerevalmeth      = opts.gpu_kerevalmeth;
+  const int debug            = opts.debug;
+  const int spreadinterponly = opts.gpu_spreadinterponly;
 
   if (upsampfac != 2.0 && upsampfac != 1.25) { // nonstandard sigma
     if (kerevalmeth == 1) {
@@ -114,6 +117,8 @@ static int setup_spreader(finufft_spread_opts &spopts, T eps, T upsampfac,
            kerevalmeth, (double)eps, (double)upsampfac, ns, spopts.beta);
   return ier;
 }
+template int cufinufft_plan_t<float>::setup_spreadinterp();
+template int cufinufft_plan_t<double>::setup_spreadinterp();
 
 template<typename T>
 std::tuple<CUFINUFFT_BIGINT, T, T> cufinufft_plan_t<T>::set_nhg_type3(T S, T X) const
@@ -384,8 +389,7 @@ cufinufft_plan_t<T>::cufinufft_plan_t(int type_, int dim_, const int *nmodes, in
     }
   }
   /* Setup Spreader */
-  eps_too_small = setup_spreader(spopts, tol, T(opts.upsampfac), opts.gpu_kerevalmeth,
-                                 opts.debug, opts.gpu_spreadinterponly) != 0;
+  eps_too_small = setup_spreadinterp() != 0;
 
   spopts.spread_direction = type;
 
@@ -540,7 +544,7 @@ Notes: the type T means either single or double, matching the
 
   kxyz = {d_kx, d_ky, d_kz};
 
-  prep_spreadinterp();
+  indexSort();
 
   if (opts.debug) {
     printf("[cufinufft] plan->M=%d\n", M);

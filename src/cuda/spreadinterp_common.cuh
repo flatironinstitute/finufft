@@ -2,7 +2,7 @@
 //
 // Extracted to deduplicate the bin/subproblem metadata setup that is
 // identical across spread_subprob, interp_subprob, and spread_output_driven
-// (kernel side) and across the prep_* drivers (host side). The functions
+// (kernel side) and across the indexSort_* drivers (host side). The functions
 // are __forceinline__/inline so codegen is unchanged from the inlined
 // originals.
 
@@ -42,8 +42,8 @@ __device__ __forceinline__ subprob_block_info<T, ndim> compute_subprob_block_inf
   return {binsizes, nbins, offset, bidx, ptstart, nupts};
 }
 
-// Host-side bin-layout bundle used by prep_nupts_driven and
-// prep_subprob_and_OD. Same four values are derived from p.opts and
+// Host-side bin-layout bundle used by indexSort_nupts_driven and
+// indexSort_subprob_and_OD. Same four values are derived from p.opts and
 // p.nf123 in both places.
 template<typename T, int Ndim> struct bin_layout {
   cuda::std::array<int, 3> binsizes;

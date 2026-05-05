@@ -11,20 +11,20 @@
 #include <cufinufft/cufinufft_plan_t.hpp>
 #include <finufft_errors.h>
 
-template<typename T> void cufinufft_plan_t<T>::prep_spreadinterp() {
+template<typename T> void cufinufft_plan_t<T>::indexSort() {
   switch (opts.gpu_method) {
   case 1:
-    prep_nupts_driven();
+    indexSort_nupts_driven();
     return;
   case 2:
   case 3:
-    prep_subprob_and_OD();
+    indexSort_subprob_and_OD();
     return;
   case 4:
-    prep_blockgather_3d();
+    indexSort_blockgather_3d();
     return;
   default:
-    std::cerr << "[prep_spreadinterp] error: incorrect gpu_method\n";
+    std::cerr << "[indexSort] error: incorrect gpu_method\n";
     throw int(FINUFFT_ERR_METHOD_NOTVALID);
   }
 }
@@ -61,8 +61,8 @@ void cufinufft_plan_t<T>::interp(cuda_complex<T> *c, const cuda_complex<T> *fw,
   }
 }
 
-template void cufinufft_plan_t<float>::prep_spreadinterp();
-template void cufinufft_plan_t<double>::prep_spreadinterp();
+template void cufinufft_plan_t<float>::indexSort();
+template void cufinufft_plan_t<double>::indexSort();
 template void cufinufft_plan_t<float>::spread(const cuda_complex<float> *,
                                               cuda_complex<float> *, int) const;
 template void cufinufft_plan_t<double>::spread(const cuda_complex<double> *,

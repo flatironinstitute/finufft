@@ -85,9 +85,9 @@ template<typename T>
 void do_spread_blockgather_3d(const cufinufft_plan_t<T> &, const cuda_complex<T> *,
                               cuda_complex<T> *, int);
 
-template<typename T, int Ndim> void do_prep_nupts_driven(cufinufft_plan_t<T> &);
-template<typename T, int Ndim> void do_prep_subprob_and_OD(cufinufft_plan_t<T> &);
-template<typename T> void do_prep_blockgather_3d(cufinufft_plan_t<T> &);
+template<typename T, int Ndim> void do_indexSort_nupts_driven(cufinufft_plan_t<T> &);
+template<typename T, int Ndim> void do_indexSort_subprob_and_OD(cufinufft_plan_t<T> &);
+template<typename T> void do_indexSort_blockgather_3d(cufinufft_plan_t<T> &);
 
 template<typename T, int Ndim>
 void do_interp_nupts_driven(const cufinufft_plan_t<T> &, cuda_complex<T> *,
@@ -269,11 +269,11 @@ private:
       const cufinufft_plan_t<U> &, const cuda_complex<U> *, cuda_complex<U> *, int);
 
   template<typename U, int N>
-  friend void cufinufft::spreadinterp::do_prep_nupts_driven(cufinufft_plan_t<U> &);
+  friend void cufinufft::spreadinterp::do_indexSort_nupts_driven(cufinufft_plan_t<U> &);
   template<typename U, int N>
-  friend void cufinufft::spreadinterp::do_prep_subprob_and_OD(cufinufft_plan_t<U> &);
+  friend void cufinufft::spreadinterp::do_indexSort_subprob_and_OD(cufinufft_plan_t<U> &);
   template<typename U>
-  friend void cufinufft::spreadinterp::do_prep_blockgather_3d(cufinufft_plan_t<U> &);
+  friend void cufinufft::spreadinterp::do_indexSort_blockgather_3d(cufinufft_plan_t<U> &);
 
   template<typename U, int N>
   friend void cufinufft::spreadinterp::do_interp_nupts_driven(
@@ -370,24 +370,27 @@ private:
 
   // Helpers migrated from free functions in cufinufft::common / cufinufft::utils.
   // Use this->opts and this->spopts; called only from plan setup.
+  // Mirrors CPU FINUFFT_PLAN_T<TF>::setup_spreadinterp(). Returns nonzero
+  // (FINUFFT_WARN_EPS_TOO_SMALL) when tol was clamped up to eps_mach.
+  int setup_spreadinterp();
   void set_nf_type12(CUFINUFFT_BIGINT ms, CUFINUFFT_BIGINT *nf, CUFINUFFT_BIGINT b) const;
   std::tuple<CUFINUFFT_BIGINT, T, T> set_nhg_type3(T S, T X) const;
   void onedim_fseries_kernel_precomp(CUFINUFFT_BIGINT nf, T *f, T *phase) const;
 
   // Spread/interp drivers — implementations live in src/cuda/spreadinterp.cu.
-  // prep_spreadinterp() is mutating: it sets up the bin-sort / subproblem /
+  // indexSort() is mutating: it sets up the bin-sort / subproblem /
   // block-gather state in setpts(), and that state is consumed by both
   // spread() and interp().
-  void prep_spreadinterp();
+  void indexSort();
   void spread(const cuda_complex<T> *c, cuda_complex<T> *fw, int blksize) const;
   void interp(cuda_complex<T> *c, const cuda_complex<T> *fw, int blksize) const;
 
   // Per-method spread/interp entry points. Bodies live in per-method TUs
   // (src/cuda/spread_*.cu, src/cuda/interp_*.cu) to preserve compile
   // parallelism across nvcc invocations.
-  void prep_nupts_driven();   // gpu_method = 1
-  void prep_subprob_and_OD(); // gpu_method = 2 or 3
-  void prep_blockgather_3d(); // gpu_method = 4 (3D-only)
+  void indexSort_nupts_driven();   // gpu_method = 1
+  void indexSort_subprob_and_OD(); // gpu_method = 2 or 3
+  void indexSort_blockgather_3d(); // gpu_method = 4 (3D-only)
 
   void spread_nupts_driven(const cuda_complex<T> *c, cuda_complex<T> *fw,
                            int blksize) const;
