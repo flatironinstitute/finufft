@@ -83,8 +83,8 @@ __global__ FINUFFT_FLATTEN void interp_subprob(
 
 // Subprob interpolation CPU driver
 template<typename T, int ndim, int ns>
-void cuinterp_subprob(const cufinufft_plan_t<T> &d_plan, cuda_complex<T> *c,
-                      const cuda_complex<T> *fw, int blksize) {
+void interp_subprob_launch(const cufinufft_plan_t<T> &d_plan, cuda_complex<T> *c,
+                           const cuda_complex<T> *fw, int blksize) {
   const auto sharedplanorysize = d_plan.shared_memory_required();
 
   const auto launch = [&](auto kernel) {
@@ -105,7 +105,7 @@ template<typename T, int Ndim> struct InterpSubprobCaller {
   const cuda_complex<T> *fw;
   int blksize;
   template<int Ns> void operator()() const {
-    cuinterp_subprob<T, Ndim, Ns>(p, c, fw, blksize);
+    interp_subprob_launch<T, Ndim, Ns>(p, c, fw, blksize);
   }
 };
 
