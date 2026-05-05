@@ -18,8 +18,10 @@ template void do_spread_subprob<double, CUFINUFFT_DIM>(const cufinufft_plan_t<do
                                                        const cuda_complex<double> *,
                                                        cuda_complex<double> *, int);
 
-template void do_prep_subprob_and_OD<float, CUFINUFFT_DIM>(cufinufft_plan_t<float> &);
-template void do_prep_subprob_and_OD<double, CUFINUFFT_DIM>(cufinufft_plan_t<double> &);
+template void do_indexSort_subprob_and_OD<float, CUFINUFFT_DIM>(
+    cufinufft_plan_t<float> &);
+template void do_indexSort_subprob_and_OD<double, CUFINUFFT_DIM>(
+    cufinufft_plan_t<double> &);
 
 } // namespace spreadinterp
 } // namespace cufinufft
@@ -29,6 +31,6 @@ template void cufinufft_plan_t<float>::spread_subprob(const cuda_complex<float> 
                                                       cuda_complex<float> *, int) const;
 template void cufinufft_plan_t<double>::spread_subprob(const cuda_complex<double> *,
                                                        cuda_complex<double> *, int) const;
-template void cufinufft_plan_t<float>::prep_subprob_and_OD();
-template void cufinufft_plan_t<double>::prep_subprob_and_OD();
+template void cufinufft_plan_t<float>::indexSort_subprob_and_OD();
+template void cufinufft_plan_t<double>::indexSort_subprob_and_OD();
 #endif

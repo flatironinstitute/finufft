@@ -110,7 +110,7 @@ __device__ void eval_kernel_vec_horner(T *ker, const T x, const double upsampfac
 /* Fill ker[] with Horner piecewise poly approx to [-w/2,w/2] ES kernel eval at
    x_j = x + j,  for j=0,..,w-1.  Thus x in [-w/2,-w/2+1].   w is aka ns.
    Two upsampfacs implemented (same as CPU coeffs created in 2018, used to 2025).
-   The parameter (w and beta) choice in setup_spreader must match these coeffs.
+   The parameter (w and beta) choice in setup_spreadinterp must match these coeffs.
    This is used when gpu_kerevalmeth=1.
    To do: *** update horner evaluator and coeffs to match CPU in common/
    */
