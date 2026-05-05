@@ -1,41 +1,35 @@
-#ifndef __COMMON_H__
-#define __COMMON_H__
+#ifndef CUFINUFFT_HEURISTICS_HPP
+#define CUFINUFFT_HEURISTICS_HPP
 
-#include <cufft.h>
+#include <cstddef>
+#include <cstdio>
+
+#include <cuda_runtime.h>
+
 #include <cufinufft/cufinufft_plan_t.hpp>
 #include <cufinufft_opts.h>
-#include <finufft_common/spread_opts.h>
 #include <finufft_errors.h>
 
-#include <complex>
+namespace cufinufft::common {
 
-namespace cufinufft {
-namespace common {
-template<typename T>
-void fseries_kernel_compute(
-    int dim, cuda::std::array<CUFINUFFT_BIGINT, 3> nf123, const T *d_f, const T *d_phase,
-    cuda::std::array<gpu_array<T>, 3> &d_fwkerhalf, int ns, cudaStream_t stream);
-template<typename T>
-void nuft_kernel_compute(
-    int dim, cuda::std::array<CUFINUFFT_BIGINT, 3> nf123, const T *d_f, const T *d_z,
-    cuda::std::array<const T *, 3> d_kxyz, cuda::std::array<gpu_array<T>, 3> &d_fwkerhalf,
-    int ns, cudaStream_t stream);
-
-template<typename T>
-void onedim_nuft_kernel_precomp(T *f, T *zout, finufft_spread_opts opts);
-
+// Per-launch shared-memory budget for spread/interp kernels. Wraps the
+// account of grid tile + per-point scratch and is consulted by
+// cufinufft_set_shared_memory() and the bin-size selector.
 template<typename T>
 std::size_t shared_memory_required(int dim, int ns, int bin_size_x, int bin_size_y,
                                    int bin_size_z, int np);
 
+// Pick (bin sizes, np) for the requested gpu_method on the device named in
+// opts->gpu_device_id. Mutates opts in place. Mirrors finufft::heuristics on
+// the CPU side.
 template<typename T>
 void cufinufft_setup_binsize(int type, int ns, int dim, cufinufft_opts *opts);
 
+// Opt this kernel into the dynamic shared memory the plan needs, throwing
+// FINUFFT_ERR_INSUFFICIENT_SHMEM if the device cannot satisfy the request.
+// WARNING: does not handle CUDA errors; the caller must check them.
 template<typename T, typename V>
 void cufinufft_set_shared_memory(V *kernel, const cufinufft_plan_t<T> &d_plan) {
-  /**
-   * WARNING: this function does not handle cuda errors. The caller should check them.
-   */
   int shared_mem_per_block{};
   const auto shared_mem_required = d_plan.shared_memory_required();
   cudaDeviceGetAttribute(&shared_mem_per_block, cudaDevAttrMaxSharedMemoryPerBlockOptin,
@@ -51,6 +45,6 @@ void cufinufft_set_shared_memory(V *kernel, const cufinufft_plan_t<T> &d_plan) {
                        shared_mem_required);
 }
 
-} // namespace common
-} // namespace cufinufft
+} // namespace cufinufft::common
+
 #endif
