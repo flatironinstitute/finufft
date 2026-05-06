@@ -99,9 +99,9 @@ private:
     finufft_spread_opts spopts{};  // spreading kernel parameters (nspread, beta, etc.)
     int nc = 0;     // number of Horner polynomial coefficients (<= MAX_NC)
     size_t padded_ns = 0;          // SIMD-padded kernel width
-    alignas(64) std::array<TF, finufft::common::MAX_NSPREAD *
+    alignas(64) std::array<TF, finufft::common::MAX_NSPREAD<double> *
                                    finufft::common::MAX_NC> horner_coeffs{0};
-                                   // piecewise Horner coefficients table (ns x nc layout)
+    // piecewise Horner coefficients table (ns x nc layout)
 
     // --- Fine grid (computed by init_grid_kerFT_FFT or set_nhg_type3) ---
     std::array<BIGINT, 3> nfdim{1, 1, 1};  // upsampled grid dimensions
