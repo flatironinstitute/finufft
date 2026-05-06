@@ -73,7 +73,7 @@ constexpr std::size_t get_simd_width_helper(uint8_t runtime_ns) {
   }
 }
 template<class T> constexpr std::size_t GetPaddedSIMDWidth(int runtime_ns) {
-  return get_simd_width_helper<T, 2 * ::finufft::common::MAX_NSPREAD>(runtime_ns);
+  return get_simd_width_helper<T, 2 * ::finufft::common::MAX_NSPREAD<T>>(runtime_ns);
 }
 
 } // namespace finufft::utils
@@ -155,7 +155,7 @@ template<class T, uint8_t ns> constexpr auto get_padding_helper(uint8_t runtime_
 }
 
 template<class T> uint8_t get_padding(uint8_t ns) {
-  return get_padding_helper<T, 2 * MAX_NSPREAD>(ns);
+  return get_padding_helper<T, 2 * MAX_NSPREAD<T>>(ns);
 }
 template<class T, uint8_t N>
 using BestSIMD = typename decltype(BestSIMDHelper<T, N, xsimd::batch<T>::size>())::type;
@@ -286,7 +286,7 @@ FINUFFT_ALWAYS_INLINE auto evaluate_kernel_vector(
     static constexpr auto use_ker_sym = (simd_size < ns);
     static constexpr auto stride      = padded_ns;
 
-    T *KER = ker + (i * MAX_NSPREAD);
+    T *KER = ker + (i * MAX_NSPREAD<double>);
 
     if constexpr (use_ker_sym) {
       static constexpr uint8_t tail          = ns % simd_size;

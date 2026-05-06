@@ -163,15 +163,18 @@ template<typename TF> void FINUFFT_PLAN_T<TF>::setup_spreadinterp() {
 
   // choose nspread and set it in spopts...
   int ns = theoretical_kernel_ns((double)m.tol, dim, type, opts.debug, m.spopts);
-  ns     = std::max(MIN_NSPREAD, ns); // clip low
-  if (ns > MAX_NSPREAD) {             // clip to largest spreadinterp.cpp allows
+  ns = std::max(MIN_NSPREAD, ns); // clip low
+  // per-precision cap: float spreadinterp is only instantiated up to
+  // MAX_NSPREAD<TF> (see constants.h, issue #827)
+  constexpr int max_ns = MAX_NSPREAD<TF>;
+  if (ns > max_ns) { // clip to largest spreadinterp.cpp allows
     if (opts.allow_eps_too_small) {
-      ns = MAX_NSPREAD;
+      ns = max_ns;
     } else {
       fprintf(stderr,
               "%s error: at upsampfac=%.3g, tol=%.3g would need kernel "
               "width ns=%d, exceeding max %d.\n",
-              __func__, m.spopts.upsampfac, (double)m.tol, ns, MAX_NSPREAD);
+              __func__, m.spopts.upsampfac, (double)m.tol, ns, max_ns);
       throw finufft::exception(FINUFFT_ERR_EPS_TOO_SMALL);
     }
   }

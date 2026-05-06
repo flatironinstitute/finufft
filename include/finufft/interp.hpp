@@ -503,10 +503,12 @@ FINUFFT_NEVER_INLINE int FINUFFT_PLAN_T<TF>::interpSorted_kernel(
     [[maybe_unused]] alignas(alignment) TF yjlist[CHUNKSIZE];
     [[maybe_unused]] alignas(alignment) TF zjlist[CHUNKSIZE];
     alignas(alignment) TF outbuf[2 * CHUNKSIZE];
-    alignas(alignment) std::array<TF, 3 * MAX_NSPREAD> kernel_values{0};
+    alignas(alignment) std::array<TF, 3 * MAX_NSPREAD<double>> kernel_values{0};
     auto *FINUFFT_RESTRICT ker1 = kernel_values.data();
-    [[maybe_unused]] auto *FINUFFT_RESTRICT ker2 = kernel_values.data() + MAX_NSPREAD;
-    [[maybe_unused]] auto *FINUFFT_RESTRICT ker3 = kernel_values.data() + 2 * MAX_NSPREAD;
+    [[maybe_unused]] auto *FINUFFT_RESTRICT ker2 =
+        kernel_values.data() + MAX_NSPREAD<double>;
+    [[maybe_unused]] auto *FINUFFT_RESTRICT ker3 =
+        kernel_values.data() + 2 * MAX_NSPREAD<double>;
 
 #pragma omp for schedule(dynamic, 1000)
     for (BIGINT i = 0; i < BIGINT(M); i += CHUNKSIZE) {
@@ -619,7 +621,7 @@ int FINUFFT_PLAN_T<TF>::interpSorted_1d(TF *data_uniform, TF *data_nonuniform) c
   using namespace finufft::spreadinterp;
   using namespace finufft::common;
   InterpSorted1dCaller caller{*this, data_uniform, data_nonuniform};
-  using NsSeq = make_range<MIN_NSPREAD, MAX_NSPREAD>;
+  using NsSeq = make_range<MIN_NSPREAD, MAX_NSPREAD<TF>>;
   using NcSeq = make_range<MIN_NC, MAX_NC>;
   return dispatch(caller, std::make_tuple(DispatchParam<NsSeq>{m.spopts.nspread},
                                           DispatchParam<NcSeq>{m.nc}));
@@ -630,7 +632,7 @@ int FINUFFT_PLAN_T<TF>::interpSorted_2d(TF *data_uniform, TF *data_nonuniform) c
   using namespace finufft::spreadinterp;
   using namespace finufft::common;
   InterpSorted2dCaller caller{*this, data_uniform, data_nonuniform};
-  using NsSeq = make_range<MIN_NSPREAD, MAX_NSPREAD>;
+  using NsSeq = make_range<MIN_NSPREAD, MAX_NSPREAD<TF>>;
   using NcSeq = make_range<MIN_NC, MAX_NC>;
   return dispatch(caller, std::make_tuple(DispatchParam<NsSeq>{m.spopts.nspread},
                                           DispatchParam<NcSeq>{m.nc}));
@@ -641,7 +643,7 @@ int FINUFFT_PLAN_T<TF>::interpSorted_3d(TF *data_uniform, TF *data_nonuniform) c
   using namespace finufft::spreadinterp;
   using namespace finufft::common;
   InterpSorted3dCaller caller{*this, data_uniform, data_nonuniform};
-  using NsSeq = make_range<MIN_NSPREAD, MAX_NSPREAD>;
+  using NsSeq = make_range<MIN_NSPREAD, MAX_NSPREAD<TF>>;
   using NcSeq = make_range<MIN_NC, MAX_NC>;
   return dispatch(caller, std::make_tuple(DispatchParam<NsSeq>{m.spopts.nspread},
                                           DispatchParam<NcSeq>{m.nc}));
