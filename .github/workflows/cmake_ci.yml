@@ -90,13 +90,21 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          # Older toolchains: keep on jammy (default packages there)
           - { os: ubuntu-22.04, toolchain: gcc-10 }
           - { os: ubuntu-22.04, toolchain: gcc-11 }
           - { os: ubuntu-22.04, toolchain: gcc-12 }
-          - { os: ubuntu-22.04, toolchain: gcc-13 }
+          - { os: ubuntu-22.04, toolchain: clang-15 }
           - { os: ubuntu-22.04, toolchain: clang-16 }
           - { os: ubuntu-22.04, toolchain: clang-17 }
-          - { os: ubuntu-22.04, toolchain: clang-18 }
+          # Newer toolchains: ubuntu-24.04 (current LTS), where gcc-13/14 are default and recent clangs install cleanly
+          - { os: ubuntu-24.04, toolchain: gcc-13 }
+          - { os: ubuntu-24.04, toolchain: gcc-14 }
+          - { os: ubuntu-24.04, toolchain: gcc-15 }
+          - { os: ubuntu-24.04, toolchain: clang-18 }
+          - { os: ubuntu-24.04, toolchain: clang-19 }
+          - { os: ubuntu-24.04, toolchain: clang-20 }
+          - { os: ubuntu-24.04, toolchain: clang-21 }
 
           - { os: windows-2022, toolchain: msvc }
           - { os: windows-2022, toolchain: clang-19 }

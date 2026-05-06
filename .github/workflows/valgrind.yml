@@ -4,7 +4,7 @@ on: [push, pull_request]
 
 jobs:
   valgrind:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -12,7 +12,7 @@ jobs:
       - name: Setup Cpp
         uses: aminya/setup-cpp@v1
         with:
-          compiler: gcc
+          compiler: gcc-15
           cmake: true
           ninja: true
           vcpkg: false
