@@ -47,7 +47,7 @@ std::function<double(double)> kernel_definition_lambda(
     // Used in FINUFFT 2017-2025 (up to v2.4.1). max is 1, as of v2.3.0.
     const double expbeta = std::exp(beta);
     return [beta, expbeta](double z) {
-      return std::exp(beta * std::sqrt(1.0 - z * z)) / std::exp(beta);
+      return std::exp(beta * std::sqrt(1.0 - z * z)) / expbeta;
     };
   } else if (kf == 3) {
     // forwards Kaiser--Bessel (KB), normalized to max of 1.
