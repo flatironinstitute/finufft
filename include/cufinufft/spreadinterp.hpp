@@ -34,7 +34,7 @@ inline T evaluate_kernel(T x, const finufft_spread_opts &spopts)
    FT quadrature approx, so it need not be fast. */
 {
   T z = 2.0 * x / T(spopts.nspread); // argument on [-1,1]
-  if (abs(z) >= 1.0) return 0.0;
+  if (std::abs(z) >= 1.0) return 0.0;
   return exp(T(spopts.beta) * (sqrt(T(1.0) - z * z) - T(1.0)));
 }
 
@@ -107,7 +107,7 @@ __inline__ __device__ void eval_kernel_vec(T *ker, const T x, const T es_c,
   // Eval the above direct ES kernel evaluator for arguments x+j, for j=0,..,w-1.
   // This is used when gpu_kerevalmeth=0.
   // Serves the same purpose as the below function eval_kernel_vec_horner.
-  for (int i = 0; i < w; i++) ker[i] = evaluate_kernel<T, w>(abs(x + i), es_c, es_beta);
+  for (int i = 0; i < w; i++) ker[i] = evaluate_kernel<T, w>(std::abs(x + i), es_c, es_beta);
 }
 
 template<typename T, int w>
