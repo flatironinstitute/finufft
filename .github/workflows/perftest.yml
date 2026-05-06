@@ -1,10 +1,9 @@
 name: Run perftests
 
 on:
-  workflow_dispatch:
-  #push:
-  #  branches:
-  #    - master
+  push:
+    branches:
+      - master
 
 jobs:
   perftest:
@@ -16,7 +15,7 @@ jobs:
           - name: "ducc"
             ducc_enabled: "ON"
     env:
-      VERSIONS_INPUT: v2.2.0 v2.3.1 v2.4.1 v2.5.0
+      VERSIONS_INPUT: v2.2.0 v2.3.1 v2.4.1 v2.5.1
     runs-on: ubuntu-latest
     steps:
       - name: Checkout latest perftest
