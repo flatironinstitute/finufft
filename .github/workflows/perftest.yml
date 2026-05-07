@@ -113,25 +113,14 @@ jobs:
           page.write_text("\n".join(chunks) + "\n", encoding="utf-8")
           PY
 
-      - name: Commit generated perftest docs to master
+      - name: Commit generated perftest docs
         if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/master')
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -B perftest-results
           git add docs/pics/perftestci_* docs/performance_change_summary.rst
-          if git diff --staged --quiet; then
-            echo "No perftest doc changes to commit."
-            exit 0
-          fi
-          # The "[no ci]" token tells GitHub Actions to skip the
-          # subsequent push event so we don't recursively retrigger.
-          git commit -m "ci(perftest): regenerate performance_change_summary [no ci]"
-          # Pull any commits that landed while we were running, then
-          # fast-forward push. Concurrency cancels stale runs, so races
-          # should be rare; if one slips through, the rebase keeps the
-          # bot commit on top.
-          git pull --rebase origin master
-          git push origin HEAD:master
+          git diff --staged --quiet || git commit -m "Generated new perftest report page. [no ci]"
+          git push -f --set-upstream origin perftest-results
