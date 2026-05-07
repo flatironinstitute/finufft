@@ -1,0 +1,47 @@
+name: CodSpeed Benchmarks
+
+on:
+  push:
+    branches:
+      - "master"
+  pull_request:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  benchmarks:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Cpp
+        uses: aminya/setup-cpp@v1
+        with:
+          cmake: true
+          ninja: true
+
+      - name: Detect CPU and Configure CMake
+        run: |
+          if grep -q avx512 /proc/cpuinfo; then
+            march="x86-64-v3"
+          else
+            march="native"
+          fi
+          cmake -S . -B ./build -G Ninja \
+            -DFINUFFT_BUILD_TESTS=ON  \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DFINUFFT_ARCH_FLAGS="-march=$march" \
+            -DFINUFFT_USE_DUCC0=ON \
+            -DCODSPEED_MODE=instrumentation
+
+      - name: Build
+        run: cmake --build ./build --target codspeed_benchmark -j
+
+      - name: Run benchmarks
+        uses: CodSpeedHQ/action@v4
+        with:
+          mode: simulation
+          run: ./build/perftest/codspeed_benchmark

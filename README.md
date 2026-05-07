@@ -5,6 +5,7 @@
 [![PyPI - finufft](https://img.shields.io/pypi/dm/finufft?label=finufft%20(CPU))](https://pypi.org/project/finufft)
 [![PyPI - cufinufft](https://img.shields.io/pypi/dm/cufinufft?label=cufinufft%20(GPU))](https://pypi.org/project/cufinufft)
 [![Star Graph](https://img.shields.io/badge/GitHub-star%20history-blue?logo=github)](https://www.star-history.com/#flatironinstitute/finufft&Date)
+[![CodSpeed](https://img.shields.io/endpoint?url=https://codspeed.io/badge.json&repository=DiamonDinoia/poet)](https://codspeed.io/flatironinstitute/finufft)
 
 
 Principal author **Alex H. Barnett** (abarnett@flatironinstitute.org),
