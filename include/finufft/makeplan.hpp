@@ -218,11 +218,11 @@ template<typename TF> void FINUFFT_PLAN_T<TF>::precompute_horner_coeffs() {
 
   const auto nc_fit = max_nc_given_ns(nspread); // how many coeffs to fit
 
-  // get the xsimd padding
-  // (must match that used in spreadinterp.cpp: if we change horner simd_width there
-  // we must also change it here)
-  const auto simd_size = GetPaddedSIMDWidth<TF>(2 * nspread);
-  m.padded_ns          = (nspread + simd_size - 1) & -simd_size;
+  // Both the chunk stride here and the per-chunk stride in evaluate_kernel_vector
+  // flow through KernelBufferLayout<TF, NS>::stride (compile-time) and
+  // kernel_buffer_stride_runtime<TF>(ns) (runtime mirror), so they provably agree.
+  m.padded_ns          = finufft::spreadinterp::kernel_buffer_stride_runtime<TF>(nspread);
+  const auto simd_size = get_padded_simd_width<TF>(2 * nspread);
 
   m.horner_coeffs.fill(TF(0));
 

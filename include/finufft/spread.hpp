@@ -1,6 +1,8 @@
 #pragma once
 
+#include <finufft/plan.hpp>
 #include <finufft/simd.hpp>
+#include <finufft/utils.hpp>
 
 #include <cstddef>
 #include <numeric>
@@ -40,18 +42,17 @@ FINUFFT_NEVER_INLINE void FINUFFT_PLAN_T<TF>::spread_subproblem_1d_kernel(
      Converted to class member, Barbone 2/24/26.
   */
   using namespace finufft::spreadinterp;
-  using finufft::common::MAX_NSPREAD;
   using T                         = TF;
-  using simd_type                 = PaddedSIMD<T, 2 * NS>;
-  using arch_t                    = typename simd_type::arch_type;
+  using KBL                       = KernelBufferLayout<T, NS>;
+  using simd_type                 = typename KBL::simd_type;
+  using arch_t                    = typename KBL::arch_t;
   static constexpr auto padding   = get_padding<T, 2 * NS>();
-  static constexpr auto alignment = arch_t::alignment();
-  static constexpr auto simd_size = simd_type::size;
+  static constexpr auto simd_size = KBL::simd_size;
   static constexpr auto ns2       = NS * T(0.5); // half spread width
   const T *horner_coeffs_ptr      = m.horner_coeffs.data();
   // something weird here. Reversing ker{0} and std fill causes ker
   // to be zeroed inside the loop GCC uses AVX, clang AVX2
-  alignas(alignment) std::array<T, MAX_NSPREAD<double>> ker{0};
+  alignas(KBL::alignment) std::array<T, KBL::stride> ker{0};
   std::fill(du, du + 2 * size1, 0); // zero output
   // no padding needed if MAX_NSPREAD is 16
   // the largest read is 16 floats with avx512
@@ -176,18 +177,17 @@ FINUFFT_NEVER_INLINE void FINUFFT_PLAN_T<TF>::spread_subproblem_2d_kernel(
 */
 {
   using namespace finufft::spreadinterp;
-  using finufft::common::MAX_NSPREAD;
   using T                         = TF;
-  using simd_type                 = PaddedSIMD<T, 2 * NS>;
-  using arch_t                    = typename simd_type::arch_type;
+  using KBL                       = KernelBufferLayout<T, NS>;
+  using simd_type                 = typename KBL::simd_type;
+  using arch_t                    = typename KBL::arch_t;
   static constexpr auto padding   = get_padding<T, 2 * NS>();
-  static constexpr auto simd_size = simd_type::size;
-  static constexpr auto alignment = arch_t::alignment();
+  static constexpr auto simd_size = KBL::simd_size;
   const T *horner_coeffs_ptr      = m.horner_coeffs.data();
   // Kernel values stored in consecutive memory. This allows us to compute
   // values in all three directions in a single kernel evaluation call.
   static constexpr auto ns2 = NS * T(0.5);  // half spread width
-  alignas(alignment) std::array<T, 2 * MAX_NSPREAD<double>> kernel_values{0};
+  alignas(KBL::alignment) std::array<T, 2 * KBL::stride> kernel_values{0};
   std::fill(du, du + 2 * size1 * size2, 0); // initialized to 0 due to the padding
   for (uint64_t pt = 0; pt < M; pt++) {
     // loop over NU pts
@@ -200,7 +200,7 @@ FINUFFT_NEVER_INLINE void FINUFFT_PLAN_T<TF>::spread_subproblem_2d_kernel(
     evaluate_kernel_vector<NS, NC, T, simd_type>(kernel_values.data(), horner_coeffs_ptr,
                                                  x1, x2);
     const auto *ker1 = kernel_values.data();
-    const auto *ker2 = kernel_values.data() + MAX_NSPREAD<double>;
+    const auto *ker2 = kernel_values.data() + KBL::stride;
     // Combine kernel with complex source value to simplify inner loop
     // here 2* is because of complex
     static constexpr uint8_t kerval_vectors = (2 * NS + padding) / simd_size;
@@ -272,17 +272,16 @@ FINUFFT_NEVER_INLINE void FINUFFT_PLAN_T<TF>::spread_subproblem_3d_kernel(
 // Converted to class member, Barbone 2/24/26.
 {
   using namespace finufft::spreadinterp;
-  using finufft::common::MAX_NSPREAD;
   using T                         = TF;
-  using simd_type                 = PaddedSIMD<T, 2 * NS>;
-  using arch_t                    = typename simd_type::arch_type;
+  using KBL                       = KernelBufferLayout<T, NS>;
+  using simd_type                 = typename KBL::simd_type;
+  using arch_t                    = typename KBL::arch_t;
   static constexpr auto padding   = get_padding<T, 2 * NS>();
-  static constexpr auto simd_size = simd_type::size;
-  static constexpr auto alignment = arch_t::alignment();
+  static constexpr auto simd_size = KBL::simd_size;
   const T *horner_coeffs_ptr      = m.horner_coeffs.data();
 
   static constexpr auto ns2 = NS * T(0.5); // half spread width
-  alignas(alignment) std::array<T, 3 * MAX_NSPREAD<double>> kernel_values{0};
+  alignas(KBL::alignment) std::array<T, 3 * KBL::stride> kernel_values{0};
   std::fill(du, du + 2 * size1 * size2 * size3, 0);
 
   for (uint64_t pt = 0; pt < M; pt++) {
@@ -299,8 +298,8 @@ FINUFFT_NEVER_INLINE void FINUFFT_PLAN_T<TF>::spread_subproblem_3d_kernel(
     evaluate_kernel_vector<NS, NC, T, simd_type>(kernel_values.data(), horner_coeffs_ptr,
                                                  x1, x2, x3);
     const auto *ker1 = kernel_values.data();
-    const auto *ker2 = kernel_values.data() + MAX_NSPREAD<double>;
-    const auto *ker3 = kernel_values.data() + 2 * MAX_NSPREAD<double>;
+    const auto *ker2 = kernel_values.data() + KBL::stride;
+    const auto *ker3 = kernel_values.data() + 2 * KBL::stride;
     // Combine kernel with complex source value to simplify inner loop
     // here 2* is because of complex
     // kerval_vectors is the number of SIMD iterations needed to compute all the elements

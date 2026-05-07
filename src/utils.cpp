@@ -3,6 +3,7 @@
 
 // For self-test see ../test/testutils.cpp
 
+#include <finufft/plan.hpp>
 #include <finufft/utils.hpp>
 
 #include <cinttypes>

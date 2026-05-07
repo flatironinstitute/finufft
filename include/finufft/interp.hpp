@@ -1,6 +1,8 @@
 #pragma once
 
+#include <finufft/plan.hpp>
 #include <finufft/simd.hpp>
+#include <finufft/utils.hpp>
 
 namespace finufft::spreadinterp {
 
@@ -469,12 +471,12 @@ FINUFFT_NEVER_INLINE int FINUFFT_PLAN_T<TF>::interpSorted_kernel(
 // Interpolate to NU pts in sorted order from a uniform grid. See spreadinterp() for doc.
 {
   using namespace finufft::spreadinterp;
-  using finufft::common::MAX_NSPREAD;
   using finufft::utils::CNTime;
-  using simd_type                    = PaddedSIMD<TF, 2 * NS>;
-  using arch_t                       = typename simd_type::arch_type;
-  static constexpr auto alignment    = arch_t::alignment();
-  static constexpr auto simd_size    = simd_type::size;
+  using KBL                                      = KernelBufferLayout<TF, NS>;
+  using simd_type                                = typename KBL::simd_type;
+  using arch_t                                   = typename KBL::arch_t;
+  static constexpr auto alignment                = KBL::alignment;
+  static constexpr auto simd_size                = KBL::simd_size;
   static constexpr auto ns2          = NS * TF(0.5);
   const UBIGINT N1                   = m.nfdim[0];
   [[maybe_unused]] const UBIGINT N2              = m.nfdim[1];
@@ -503,12 +505,10 @@ FINUFFT_NEVER_INLINE int FINUFFT_PLAN_T<TF>::interpSorted_kernel(
     [[maybe_unused]] alignas(alignment) TF yjlist[CHUNKSIZE];
     [[maybe_unused]] alignas(alignment) TF zjlist[CHUNKSIZE];
     alignas(alignment) TF outbuf[2 * CHUNKSIZE];
-    alignas(alignment) std::array<TF, 3 * MAX_NSPREAD<double>> kernel_values{0};
+    alignas(KBL::alignment) std::array<TF, 3 * KBL::stride> kernel_values{0};
     auto *FINUFFT_RESTRICT ker1 = kernel_values.data();
-    [[maybe_unused]] auto *FINUFFT_RESTRICT ker2 =
-        kernel_values.data() + MAX_NSPREAD<double>;
-    [[maybe_unused]] auto *FINUFFT_RESTRICT ker3 =
-        kernel_values.data() + 2 * MAX_NSPREAD<double>;
+    [[maybe_unused]] auto *FINUFFT_RESTRICT ker2 = kernel_values.data() + KBL::stride;
+    [[maybe_unused]] auto *FINUFFT_RESTRICT ker3 = kernel_values.data() + 2 * KBL::stride;
 
 #pragma omp for schedule(dynamic, 1000)
     for (BIGINT i = 0; i < BIGINT(M); i += CHUNKSIZE) {
