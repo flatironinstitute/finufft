@@ -2,9 +2,15 @@ name: Run perftests
 
 on:
   workflow_dispatch:
+  push:
+    branches: [master]
 
 permissions:
   contents: write
+
+concurrency:
+  group: perftest-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   perftest:
@@ -87,20 +93,34 @@ jobs:
           path: ./outputs/
           merge-multiple: true
 
-      - name: Move results
+      - name: Assemble combined performance_change_summary.rst
         run: |
           rm -fr docs/pics/perftestci_*
-          mv outputs/*.rst docs/
           mv outputs/*.png docs/pics/
+          python3 - <<'PY'
+          from pathlib import Path
+
+          page = Path("docs/performance_change_summary.rst")
+          marker = ".. PERFTEST_BACKENDS_BELOW"
+          intro, _, _ = page.read_text(encoding="utf-8").partition(marker)
+          # Preserve the marker so subsequent runs can locate it again.
+          chunks = [intro.rstrip() + "\n\n" + marker + "\n"]
+          # Order: FFTW first, then DUCC.
+          for backend in ("fftw", "ducc"):
+              snippet = Path(f"outputs/performance_{backend}.rst")
+              if snippet.exists():
+                  chunks.append("\n" + snippet.read_text(encoding="utf-8").strip() + "\n")
+          page.write_text("\n".join(chunks) + "\n", encoding="utf-8")
+          PY
 
       - name: Commit generated perftest docs
-        if: github.event_name == 'workflow_dispatch'
+        if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/master')
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git checkout -B perftest-results
-          git add docs/pics/perftestci_* docs/*.rst
+          git add docs/pics/perftestci_* docs/performance_change_summary.rst
           git diff --staged --quiet || git commit -m "Generated new perftest report page. [no ci]"
           git push -f --set-upstream origin perftest-results

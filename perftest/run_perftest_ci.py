@@ -123,7 +123,7 @@ def main() -> None:
                 ax.text(
                     x[i],
                     durations[i],
-                    f"{durations[i] / durations[0]:.2f}x",
+                    f"{durations[0] / durations[i]:.2f}x",
                     ha="center",
                     va="bottom",
                 )

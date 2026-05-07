@@ -87,7 +87,7 @@ def main() -> None:
                 )
                 bottoms += heights
             ax.set_ylim(top=np.max(bottoms) * 1.1)
-            ax.bar_label(barc, labels=["1.00x", f"{bottoms[1] / bottoms[0]:.2f}x"])
+            ax.bar_label(barc, labels=["1.00x", f"{bottoms[0] / bottoms[1]:.2f}x"])
             ax.set_ylabel("time (ms)")
             ax.set_title(f"type:{transform} {param.pretty_string()}")
     axs[0][0].legend()

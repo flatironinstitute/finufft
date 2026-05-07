@@ -1,5 +1,5 @@
-{{ backend }}
----------------------------------------------
+Performance ({{ backend }} backend)
+-----------------------------------
 
 CPU name: ``{{ cpu_name }}``.
 
@@ -16,11 +16,11 @@ Compiler flags: ``{{ compiler_flags }}``.
 
 {% for dim, transform_groups in dim_transform_groups.items() %}
 {{ dim }}D Transforms
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~
 
 {% for group, images in transform_groups.items() %}
 Type {{ group }}
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^
 
 {% for image in images %}
 Parameters: ``{{ image.params }}``
