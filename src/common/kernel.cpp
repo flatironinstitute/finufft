@@ -1,10 +1,10 @@
-#include <algorithm>
 #include <cmath>
 #include <cstdio>
 #include <finufft_common/common.h>
 #include <finufft_common/kernel.h>
 #include <finufft_common/safe_call.h>
 #include <finufft_common/spread_opts.h>
+#include <finufft_errors.h>
 #include <limits>
 
 // this module uses finufft_spread_opts but does not know about FINUFFT_PLAN class

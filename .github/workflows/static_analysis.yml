@@ -1,0 +1,62 @@
+name: static analysis (clang-tidy + cppcheck)
+
+on: [push, pull_request]
+
+jobs:
+  static-analysis:
+    runs-on: ubuntu-24.04
+    env:
+      CMAKE_GENERATOR: Ninja
+    strategy:
+      fail-fast: false
+      matrix:
+        backend: [fftw, ducc]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Free disk space
+        if: ${{ !env.ACT }}
+        uses: jlumbroso/free-disk-space@main
+        with:
+          tool-cache: false
+
+      - name: Setup C++ toolchain (latest LLVM + matching clang-tidy + cppcheck)
+        uses: aminya/setup-cpp@v1
+        with:
+          # Pin to a recent LLVM. Using a version (vs. `llvm`/`true`) makes
+          # `clangtidy: <ver>` install the matching clang-tidy from apt.llvm.org
+          # rather than Ubuntu's stock clang-tidy-19.
+          compiler: llvm-21
+          clangtidy: "21"
+          cmake: true
+          ninja: true
+          cppcheck: true
+
+      - name: Install FFTW (Linux)
+        run: |
+          sudo apt update
+          sudo apt install -y libfftw3-dev
+
+      - name: Configure
+        run: |
+          cmake -S . -B build \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_C_COMPILER=clang \
+            -DCMAKE_CXX_COMPILER=clang++ \
+            -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+            -DFINUFFT_BUILD_TESTS=OFF \
+            -DFINUFFT_BUILD_EXAMPLES=OFF \
+            -DFINUFFT_USE_DUCC0=${{ matrix.backend == 'ducc' && 'ON' || 'OFF' }} \
+            -DFINUFFT_STATIC_ANALYSIS=ON \
+            -DFINUFFT_STATIC_ANALYSIS_WERROR=ON
+
+      - name: Build (clang-tidy + cppcheck run inline)
+        run: cmake --build build --target finufft
+
+      - name: Print versions
+        if: always()
+        run: |
+          clang++ --version
+          clang-tidy --version
+          cppcheck --version

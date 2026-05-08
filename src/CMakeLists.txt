@@ -1,5 +1,4 @@
 include(staticAnalysis)
-include(setupIWYU)
 
 if((APPLE) AND (CMAKE_CXX_COMPILER_ID STREQUAL "GNU"))
     add_link_options("-ld_classic")
@@ -77,6 +76,7 @@ endfunction()
 add_library(finufft_f32 OBJECT ${FINUFFT_PRECISION_SOURCES})
 target_compile_definitions(finufft_f32 PRIVATE FINUFFT_SINGLE)
 finufft_apply_compile_settings(finufft_f32)
+enable_static_analysis(finufft_f32)
 
 # Main library: double-precision precision sources + common sources + f32 objects
 set(FINUFFT_SOURCES ${FINUFFT_PRECISION_SOURCES} ${FINUFFT_COMMON_SOURCES})
@@ -89,7 +89,6 @@ endif()
 target_sources(finufft PRIVATE $<TARGET_OBJECTS:finufft_f32>)
 
 enable_static_analysis(finufft)
-add_iwyu_fix_target(finufft)
 add_library(finufft::finufft ALIAS finufft)
 
 finufft_apply_compile_settings(finufft)

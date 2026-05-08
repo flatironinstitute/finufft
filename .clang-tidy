@@ -1,0 +1,23 @@
+# Default config for `clang-tidy`. Single source of truth for both:
+#   - the per-target CXX_CLANG_TIDY property set by enable_static_analysis()
+#   - any direct `clang-tidy -p build <file>` invocation (CI, editor, etc.)
+#
+# Only `misc-include-cleaner` is enabled. HeaderFilterRegex restricts header
+# diagnostics to project files (src/ and include/), matching the previous
+# ANALYSIS_HEADER_FILTER cmake cache var.
+#
+# IgnoreHeaders filters headers the check should never name in a missing-
+# or unused-include finding. They mirror the rules in the (now-removed)
+# iwyu.imp: do not propose the *internal* headers of third-party
+# dependencies; let the user keep using each dep's documented umbrella
+# header. finufft_common is treated the same way: common.h is the public
+# umbrella, everything else under finufft_common/ is internal.
+Checks: '-*,misc-include-cleaner'
+WarningsAsErrors: ''
+HeaderFilterRegex: '.*/(src|include)/.*'
+FormatStyle: file
+CheckOptions:
+  - key: misc-include-cleaner.DeduplicateFindings
+    value: 'true'
+  - key: misc-include-cleaner.IgnoreHeaders
+    value: 'xsimd/.*;ducc0?/.*;thrust/.*;cub/.*;cuda/std/.*;fftw3.*;Eigen/.*;catch2/.*;benchmark/.*;_deps/.*;\.cpm/.*;finufft_common/.*;finufft/simd\.hpp;finufft/spreadinterp\.hpp;version$'

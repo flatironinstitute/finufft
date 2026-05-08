@@ -2,6 +2,7 @@
 #include <cmath>
 #include <finufft_common/common.h>
 #include <limits>
+#include <tuple>
 
 // Prefer the standard library's special-math `cyl_bessel_i` when available.
 #if defined(__has_include)
@@ -96,7 +97,7 @@ double cyl_bessel_i_custom(double nu, double x) noexcept {
   double term        = std::pow(halfx, nu) / std::tgamma(nu + 1.0); // k = 0
   double sum         = term;
 
-  static constexpr auto eps      = std::numeric_limits<double>::epsilon() * 10.0;
+  static constexpr auto eps       = std::numeric_limits<double>::epsilon() * 10.0;
   static constexpr auto max_terms = 100;
 
   for (int k = 1; k < max_terms; ++k) {
