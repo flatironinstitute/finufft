@@ -6,10 +6,10 @@
 #include <cstdio>
 #include <vector>
 
-#include <finufft/spreadinterp.hpp>
-#include <finufft/plan.hpp>
-#include <finufft/utils.hpp>
 #include <finufft/heuristics.hpp>
+#include <finufft/plan.hpp>
+#include <finufft/spreadinterp.hpp>
+#include <finufft/utils.hpp>
 
 // ---------- local math routines for type-3 setpts: --------
 
@@ -33,9 +33,9 @@ void FINUFFT_PLAN_T<TF>::set_nhg_type3(int idim, TF S, TF X)
 {
   using namespace finufft::common;
   using namespace finufft::utils;
-  int nss = m.spopts.nspread + 1; // since ns may be odd
-  TF Xsafe = X, Ssafe = S;       // may be tweaked locally
-  if (X == 0.0)                 // logic ensures XS>=1, handle X=0 a/o S=0
+  int nss  = m.spopts.nspread + 1; // since ns may be odd
+  TF Xsafe = X, Ssafe = S;         // may be tweaked locally
+  if (X == 0.0)                    // logic ensures XS>=1, handle X=0 a/o S=0
     if (S == 0.0) {
       Xsafe = 1.0;
       Ssafe = 1.0;
@@ -50,7 +50,7 @@ void FINUFFT_PLAN_T<TF>::set_nhg_type3(int idim, TF S, TF X)
   // catch too small nf, and nan or +-inf, otherwise spread fails...
   if (m.nfdim[idim] < 2 * m.spopts.nspread) m.nfdim[idim] = 2 * m.spopts.nspread;
   if (m.nfdim[idim] < MAX_NF)                     // otherwise will fail
-    m.nfdim[idim] = next235even(m.nfdim[idim]);   // expensive at huge nf
+    m.nfdim[idim] = next235even(m.nfdim[idim]);
   m.t3P.h[idim]   = TF(2.0 * PI / m.nfdim[idim]); // upsampled grid spacing
   m.t3P.gam[idim] = TF(m.nfdim[idim] / (2.0 * opts.upsampfac * Ssafe)); // x scale fac
 }
@@ -65,7 +65,7 @@ int FINUFFT_PLAN_T<TF>::setpts(BIGINT nj, const TF *xj, const TF *yj, const TF *
   // Method function to set NU points and do precomputations. Barnett 2020.
   // Barbone (3/4/26): removed warning_code_ plumbing (eps-too-small now throws).
   // See ../docs/cguru.doc for current documentation.
-  int d = dim;       // abbrev for spatial dim
+  int d = dim; // abbrev for spatial dim
   CNTime timer;
   timer.start();
   m.nj = nj; // the user only now chooses how many NU (x,y,z) pts
@@ -82,8 +82,9 @@ int FINUFFT_PLAN_T<TF>::setpts(BIGINT nj, const TF *xj, const TF *yj, const TF *
     // If upsampfac is not locked by user (auto mode), choose or update it now
     // based on the actual density nj/N(). Re-plan if density changed significantly.
     if (!upsamp_locked) {
-      double density   = double(nj) / double(N());
-      double upsampfac = bestUpsamplingFactor<TF>(opts.nthreads, density, dim, type, m.tol);
+      double density = double(nj) / double(N());
+      double upsampfac =
+          bestUpsamplingFactor<TF>(opts.nthreads, density, dim, type, m.tol);
       // Re-plan if this is the first call (upsampfac==0) or if upsampfac changed
       if (upsampfac != opts.upsampfac) {
         opts.upsampfac = upsampfac;
@@ -93,12 +94,12 @@ int FINUFFT_PLAN_T<TF>::setpts(BIGINT nj, const TF *xj, const TF *yj, const TF *
         setup_spreadinterp(); // throws on error
         precompute_horner_coeffs();
         // Perform the planning steps (first call or re-plan due to density change).
-        init_grid_kerFT_FFT();       // throws on error
+        init_grid_kerFT_FFT(); // throws on error
       }
     }
 
-    m.XYZ   = {xj, yj, zj}; // plan must keep pointers to user's fixed NU pts
-    spreadcheck();          // throws on error
+    m.XYZ = {xj, yj, zj}; // plan must keep pointers to user's fixed NU pts
+    spreadcheck();        // throws on error
     timer.restart();
     m.sortIndices.resize(nj);
     indexSort();
@@ -118,7 +119,7 @@ int FINUFFT_PLAN_T<TF>::setpts(BIGINT nj, const TF *xj, const TF *yj, const TF *
       fprintf(stderr, "[%s] nk (%lld) exceeds MAX_NU_PTS\n", __func__, (long long)nk);
       throw finufft::exception(FINUFFT_ERR_NUM_NU_PTS_INVALID);
     }
-    m.nk = nk; // user set # targ freq pts
+    m.nk  = nk; // user set # targ freq pts
     m.STU = {s, t, u};
 
     // For type 3 with deferred upsampfac (not locked by user), pick and persist
@@ -145,8 +146,8 @@ int FINUFFT_PLAN_T<TF>::setpts(BIGINT nj, const TF *xj, const TF *yj, const TF *
       if (opts.debug) // report on choices of shifts, centers, etc...
         printf("\tX%d=%.3g C%d=%.3g S%d=%.3g D%d=%.3g gam%d=%g nf%d=%lld h%d=%.3g\t\n",
                idim, m.t3P.X[idim], idim, m.t3P.C[idim], idim, S[idim], idim,
-               m.t3P.D[idim], idim, m.t3P.gam[idim], idim, (long long)m.nfdim[idim],
-               idim, m.t3P.h[idim]);
+               m.t3P.D[idim], idim, m.t3P.gam[idim], idim, (long long)m.nfdim[idim], idim,
+               m.t3P.h[idim]);
     }
     for (int idim = dim; idim < 3; ++idim)
       m.t3P.C[idim] = m.t3P.D[idim] = 0.0; // their defaults if dim 2 unused, etc
@@ -209,14 +210,13 @@ int FINUFFT_PLAN_T<TF>::setpts(BIGINT nj, const TF *xj, const TF *yj, const TF *
       for (int idim = 0; idim < dim; ++idim) {
         auto tSTUin = STU_in[idim][k];
         // rescale the target s_k etc to s'_k etc...
-        auto tSTUp =
-            m.t3P.h[idim] * m.t3P.gam[idim] * (tSTUin - m.t3P.D[idim]); // |s'_k| < pi/R
+        auto tSTUp = m.t3P.h[idim] * m.t3P.gam[idim] * (tSTUin - m.t3P.D[idim]); // |s'_k|
+                                                                                 // < pi/R
         phiHat *= onedim_phihat(tSTUp);
         if (do_phase) phase += (tSTUin - m.t3P.D[idim]) * m.t3P.C[idim];
         m.STUp[idim][k] = tSTUp;
       }
-      m.deconv[k] =
-          do_phase ? std::polar(TF(1) / phiHat, isign * phase) : TF(1) / phiHat;
+      m.deconv[k] = do_phase ? std::polar(TF(1) / phiHat, isign * phase) : TF(1) / phiHat;
     }
     if (opts.debug)
       printf("[%s t3] phase & deconv factors:\t%.3g s\n", __func__, timer.elapsedsec());
@@ -233,11 +233,11 @@ int FINUFFT_PLAN_T<TF>::setpts(BIGINT nj, const TF *xj, const TF *yj, const TF *
     // Plan and setpts once, for the (repeated) inner type 2 finufft call...
     timer.restart();
     BIGINT t2nmodes[]   = {m.nfdim[0], m.nfdim[1], m.nfdim[2]}; // t2's input actually fw
-    finufft_opts t2opts = opts;                           // deep copy, since not ptrs
-    t2opts.modeord      = 0;                              // needed for correct t3!
-    t2opts.debug        = std::max(0, opts.debug - 1);    // don't print as much detail
+    finufft_opts t2opts = opts;                        // deep copy, since not ptrs
+    t2opts.modeord      = 0;                           // needed for correct t3!
+    t2opts.debug        = std::max(0, opts.debug - 1); // don't print as much detail
     t2opts.spread_debug = std::max(0, opts.spread_debug - 1);
-    t2opts.showwarn     = 0;                              // so don't see warnings 2x
+    t2opts.showwarn     = 0;                           // so don't see warnings 2x
     if (!upsamp_locked)
       t2opts.upsampfac = 0.0; // if the upsampfac was auto, let inner
                               // t2 pick it again (from density=nj/Nf)
@@ -249,8 +249,8 @@ int FINUFFT_PLAN_T<TF>::setpts(BIGINT nj, const TF *xj, const TF *yj, const TF *
     // Use a non-const unique_ptr to ensure cleanup if setpts throws, then
     // transfer to the const unique_ptr member.
     std::unique_ptr<FINUFFT_PLAN_T<TF>> guard(tmpplan);
-    tmpplan->setpts(nk, m.STUp[0].data(), m.STUp[1].data(), m.STUp[2].data(), 0,
-                    nullptr, nullptr,
+    tmpplan->setpts(nk, m.STUp[0].data(), m.STUp[1].data(), m.STUp[2].data(), 0, nullptr,
+                    nullptr,
                     nullptr); // note nk = # output points (not nj); throws on error
     m.innerT2plan = std::move(guard);
     if (opts.debug)

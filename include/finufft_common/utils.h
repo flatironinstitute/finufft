@@ -10,6 +10,9 @@
 namespace finufft {
 namespace common {
 
+long next235even(long n);
+long next235beven(long n, long b);
+
 FINUFFT_EXPORT_TEST void gaussquad(int n, double *xgl, double *wgl);
 std::tuple<double, double> leg_eval(int n, double x);
 

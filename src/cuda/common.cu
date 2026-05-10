@@ -148,7 +148,7 @@ void set_nf_type12(CUFINUFFT_BIGINT ms, cufinufft_opts opts, finufft_spread_opts
   *nf = static_cast<CUFINUFFT_BIGINT>(std::ceil(opts.upsampfac * ms));
   if (*nf < 2 * spopts.nspread) *nf = 2 * spopts.nspread; // otherwise spread fails
   if (*nf < MAX_NF) {                                     // otherwise will fail anyway
-    *nf = utils::next235beven(*nf, opts.gpu_method == 4 ? bs : 1); // expensive at huge nf
+    *nf = common::next235beven(*nf, opts.gpu_method == 4 ? bs : 1);
   }
 }
 

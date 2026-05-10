@@ -96,7 +96,7 @@ double cyl_bessel_i_custom(double nu, double x) noexcept {
   double term        = std::pow(halfx, nu) / std::tgamma(nu + 1.0); // k = 0
   double sum         = term;
 
-  static constexpr auto eps      = std::numeric_limits<double>::epsilon() * 10.0;
+  static constexpr auto eps       = std::numeric_limits<double>::epsilon() * 10.0;
   static constexpr auto max_terms = 100;
 
   for (int k = 1; k < max_terms; ++k) {
@@ -115,32 +115,51 @@ double cyl_bessel_i(double nu, double x) noexcept {
 #endif
 }
 
-} // namespace common
-} // namespace finufft
+/* returns the smallest composite of 2, 3, 5 which is >= n */
+/* Copied from ducc0 FFT, Copyright (C) 2019 Peter Bell */
+static size_t good_size_235(size_t n) {
+  if (n <= 6) return n;
 
-namespace cufinufft {
-namespace utils {
+  size_t bestfac = 2 * n;
+  for (size_t f5 = 1; f5 < bestfac; f5 *= 5) {
+    size_t x = f5;
+    while (x < n) x *= 2;
+    for (;;) {
+      if (x < n)
+        x *= 3;
+      else if (x > n) {
+        if (x < bestfac) bestfac = x;
+        if (x & 1) break;
+        x >>= 1;
+      } else
+        return n;
+    }
+  }
+  return bestfac;
+}
+/* returns the smallest composite of 2, 3, 5 which is >= n
+   and a multiple of required_factor. */
+static size_t good_size_235(size_t n, size_t required_factor) {
+  return good_size_235((n + required_factor - 1) / required_factor) * required_factor;
+}
 
+long next235even(long n) {
+  // finds even integer not less than n, with prime factors no larger than 5
+  // (ie, "smooth").
+  n = std::max<long>(n, 1);
+  return good_size_235(size_t(n), 2);
+}
 long next235beven(long n, long b)
 // finds even integer not less than n, with prime factors no larger than 5
 // (ie, "smooth") and is a multiple of b (b is a number that the only prime
-// factors are 2,3,5). Adapted from fortran in hellskitchen. Barnett 2/9/17
-// changed INT64 type 3/28/17. Runtime is around n*1e-11 sec for big n.
-// added condition about b, Melody Shih 05/31/20
+// factors are 2,3,5).
 {
-  if (n <= 2) return 2;
-  if (n % 2 == 1) n += 1;                // even
-  long nplus  = n - 2;                   // to cancel out the +=2 at start of loop
-  long numdiv = 2;                       // a dummy that is >1
-  while ((numdiv > 1) || (nplus % b != 0)) {
-    nplus += 2;                          // stays even
-    numdiv = nplus;
-    while (numdiv % 2 == 0) numdiv /= 2; // remove all factors of 2,3,5...
-    while (numdiv % 3 == 0) numdiv /= 3;
-    while (numdiv % 5 == 0) numdiv /= 5;
-  }
-  return nplus;
+  n = std::max<long>(n, 1);
+  b = std::max<long>(b, 1);
+  // check if b is even ... if not, multiply by 2
+  if (b & 1) b *= 2;
+  return good_size_235(size_t(n), size_t(b));
 }
 
-} // namespace utils
-} // namespace cufinufft
+} // namespace common
+} // namespace finufft
