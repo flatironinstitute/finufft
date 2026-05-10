@@ -143,22 +143,11 @@ static size_t good_size_235(size_t n, size_t required_factor) {
   return good_size_235((n + required_factor - 1) / required_factor) * required_factor;
 }
 
-long next235even(long n) {
-  // finds even integer not less than n, with prime factors no larger than 5
-  // (ie, "smooth").
-  n = std::max<long>(n, 1);
-  return good_size_235(size_t(n), 2);
-}
-long next235beven(long n, long b)
-// finds even integer not less than n, with prime factors no larger than 5
-// (ie, "smooth") and is a multiple of b (b is a number that the only prime
-// factors are 2,3,5).
+long next235(long n, long required_factor)
 {
   n = std::max<long>(n, 1);
-  b = std::max<long>(b, 1);
-  // check if b is even ... if not, multiply by 2
-  if (b & 1) b *= 2;
-  return good_size_235(size_t(n), size_t(b));
+  required_factor = std::max<long>(required_factor, 1);
+  return good_size_235(size_t(n), size_t(required_factor));
 }
 
 } // namespace common

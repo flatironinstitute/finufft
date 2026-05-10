@@ -10,8 +10,10 @@
 namespace finufft {
 namespace common {
 
-long next235even(long n);
-long next235beven(long n, long b);
+// returns the smallest integer not less than n, which is a multiple of
+// "required_factor" and (besides the prime factors of "required_factor")
+// only has prime factors 2, 3, and 5).
+long next235(long n, long required_factor=1);
 
 FINUFFT_EXPORT_TEST void gaussquad(int n, double *xgl, double *wgl);
 std::tuple<double, double> leg_eval(int n, double x);

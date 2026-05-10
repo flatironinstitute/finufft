@@ -26,7 +26,7 @@ void FINUFFT_PLAN_T<TF>::set_nf_type12(BIGINT ms, BIGINT *nf) const
   *nf = BIGINT(std::ceil(opts.upsampfac * double(ms))); // round up to handle small cases
   if (*nf < 2 * m.spopts.nspread) *nf = 2 * m.spopts.nspread; // otherwise spread fails
   if (*nf < MAX_NF) {
-    *nf = next235even(*nf);
+    *nf = next235(*nf, 2);
   } else {
     fprintf(stderr,
             "[%s] nf=%.3g exceeds MAX_NF of %.3g, so exit without attempting "

@@ -35,7 +35,7 @@ int main(int argc, char *argv[]) {
   printf("testutils started...\n");
 #endif
 
-  // test next235even...
+  // test next235...
   // Barnett 2/9/17, made smaller range 3/28/17. pass-fail 6/16/23
   // The true outputs from {0,1,..,99}:
   const BIGINT next235even_true[100] = {
@@ -45,10 +45,10 @@ int main(int argc, char *argv[]) {
       60, 64, 64, 64, 64, 72, 72, 72, 72, 72, 72, 72, 72, 80, 80, 80, 80, 80,  80,  80,
       80, 90, 90, 90, 90, 90, 90, 90, 90, 90, 90, 96, 96, 96, 96, 96, 96, 100, 100, 100};
   for (BIGINT n = 0; n < 100; ++n) {
-    BIGINT o = next235even(n);
+    BIGINT o = next235(n, 2);
     BIGINT t = next235even_true[n];
     if (o != t) {
-      printf("next235even(%lld) =\t%lld, error should be %lld!\n", (long long)n,
+      printf("next235(%lld, 2) =\t%lld, error should be %lld!\n", (long long)n,
              (long long)o, (long long)t);
       return 1;
     }

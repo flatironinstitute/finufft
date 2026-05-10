@@ -153,7 +153,7 @@ auto set_nhg_type3(T S, T X, const cufinufft_opts &opts,
   //  catch too small nf, and nan or +-inf, otherwise spread fails...
   if (nf < 2 * spopts.nspread) nf = 2 * spopts.nspread;
   if (nf < MAX_NF) // otherwise will fail anyway
-    nf = next235beven(nf, 1);
+    nf = next235(nf, 2);
   // Note: b is 1 because type 3 uses a type 2 plan, so it should not need the extra
   // condition that seems to be used by Block Gather as type 2 are only GM-sort
   auto h   = 2 * T(PI) / nf;                         // upsampled grid spacing

@@ -50,7 +50,7 @@ void FINUFFT_PLAN_T<TF>::set_nhg_type3(int idim, TF S, TF X)
   // catch too small nf, and nan or +-inf, otherwise spread fails...
   if (m.nfdim[idim] < 2 * m.spopts.nspread) m.nfdim[idim] = 2 * m.spopts.nspread;
   if (m.nfdim[idim] < MAX_NF)                     // otherwise will fail
-    m.nfdim[idim] = next235even(m.nfdim[idim]);
+    m.nfdim[idim] = next235(m.nfdim[idim], 2);
   m.t3P.h[idim]   = TF(2.0 * PI / m.nfdim[idim]); // upsampled grid spacing
   m.t3P.gam[idim] = TF(m.nfdim[idim] / (2.0 * opts.upsampfac * Ssafe)); // x scale fac
 }
