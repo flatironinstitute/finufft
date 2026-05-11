@@ -115,37 +115,45 @@ double cyl_bessel_i(double nu, double x) noexcept {
 #endif
 }
 
-/* returns the smallest composite of 2, 3, 5 which is >= n */
+// Finds the smallest composite p of 2 and 3, such that p*x>=n.
+// Returns min(p*x, bestfac).
+// Copied from ducc0 FFT, Copyright (C) 2019 Peter Bell
+static size_t iter23(size_t n, size_t x, size_t bestfac) {
+  while (x < n) x *= 2;
+  // In the loop below, successively remove factors of 2 and
+  // add factors of 3, such that x stays in (n/2; 3*n).
+  // Whenever a new minimum target value is found, remember it.
+  // Stop if either x==n or no factors of 2 are left.
+  for (;;) {
+    if (x < n)
+      x *= 3;
+    else if (x > n) {
+      if (x < bestfac) bestfac = x;
+      if (x & 1) return bestfac; // no more factors 2 left
+      x >>= 1;                   // remove a factor 2
+    } else
+      return n;
+  }
+}
+/* Returns the smallest composite of 2, 3, 5 which is >= n */
 /* Copied from ducc0 FFT, Copyright (C) 2019 Peter Bell */
 static size_t good_size_235(size_t n) {
   if (n <= 6) return n;
 
-  size_t bestfac = 2 * n;
-  for (size_t f5 = 1; f5 < bestfac; f5 *= 5) {
-    size_t x = f5;
-    while (x < n) x *= 2;
-    for (;;) {
-      if (x < n)
-        x *= 3;
-      else if (x > n) {
-        if (x < bestfac) bestfac = x;
-        if (x & 1) break;
-        x >>= 1;
-      } else
-        return n;
-    }
-  }
+  size_t bestfac = 2 * n; // guaranteed upper limit to the solution
+  for (size_t f5 = 1; f5 < bestfac; f5 *= 5)
+    if ((bestfac = iter23(n, f5, bestfac)) == n) return n;
   return bestfac;
 }
-/* returns the smallest composite of 2, 3, 5 which is >= n
-   and a multiple of required_factor. */
+
+/* Returns the smallest composite of 2, 3, 5,
+   for which p*required_factor >= n. */
 static size_t good_size_235(size_t n, size_t required_factor) {
   return good_size_235((n + required_factor - 1) / required_factor) * required_factor;
 }
 
-long next235(long n, long required_factor)
-{
-  n = std::max<long>(n, 1);
+long next235(long n, long required_factor) {
+  n               = std::max<long>(n, 1);
   required_factor = std::max<long>(required_factor, 1);
   return good_size_235(size_t(n), size_t(required_factor));
 }
