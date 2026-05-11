@@ -1,0 +1,139 @@
+name: Perftest PR Comment
+
+# Trusted half of the perftest pipeline: triggered by completion of
+# the untrusted ``Perftest Pull Requests`` workflow. This file is
+# always read from the default branch (master), so PR-authored
+# changes to this YAML cannot escalate privileges. See the
+# ``perftest-pr-head.yml`` header comment.
+
+on:
+  workflow_run:
+    workflows: ["Perftest Pull Requests"]
+    types: [completed]
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+jobs:
+  comment:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout master (for git push to images branch)
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          ref: master
+          path: repo
+
+      - name: Download perftest artifact from triggering run
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: perftest-pr-head
+          path: artifact
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Parse metadata
+        id: meta
+        run: |
+          python3 - <<'PY' >> "$GITHUB_OUTPUT"
+          import json, pathlib
+          m = json.loads(pathlib.Path("artifact/perftest_meta.json").read_text())
+          for k, v in m.items():
+              v = str(v).replace("\r", "")
+              if "\n" in v:
+                  print(f"{k}<<EOF"); print(v); print("EOF")
+              else:
+                  print(f"{k}={v}")
+          PY
+
+      - name: Publish image to perftest-images branch
+        id: push-image
+        working-directory: repo
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ steps.meta.outputs.pr_number }}
+          PR_HEAD_SHA: ${{ steps.meta.outputs.pr_head_sha }}
+        run: |
+          set -euo pipefail
+          BRANCH=perftest-images
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Bootstrap the orphan branch on first run; otherwise check it out.
+          if git ls-remote --exit-code --heads origin "$BRANCH" >/dev/null 2>&1; then
+            git fetch origin "$BRANCH":"$BRANCH"
+            git checkout "$BRANCH"
+          else
+            git checkout --orphan "$BRANCH"
+            git rm -rf . >/dev/null 2>&1 || true
+            echo "Perftest image archive. One subdirectory per PR." > README.md
+            git add README.md
+            git commit -m "Bootstrap perftest-images branch [no ci]"
+          fi
+
+          # Auto-prune older images for this PR: only the most recent
+          # head SHA's plot is meaningful (PRs are squashed on merge).
+          rm -fr "pr-${PR_NUMBER}"
+          DEST="pr-${PR_NUMBER}/${PR_HEAD_SHA}.svg"
+          mkdir -p "pr-${PR_NUMBER}"
+          cp "${GITHUB_WORKSPACE}/artifact/perftest_comment_figure.svg" "$DEST"
+          git add -A "pr-${PR_NUMBER}"
+          if git diff --staged --quiet; then
+            echo "No image changes; reusing existing commit."
+          else
+            git commit -m "Perftest image PR #${PR_NUMBER} @ ${PR_HEAD_SHA} [no ci]"
+            git push origin "$BRANCH"
+          fi
+          echo "image_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          echo "image_path=$DEST" >> "$GITHUB_OUTPUT"
+
+      - name: Find existing managed comment
+        id: find-comment
+        uses: peter-evans/find-comment@3eae4d37986fb5a8592848f6a574fdf654e61f9e # v3
+        with:
+          issue-number: ${{ steps.meta.outputs.pr_number }}
+          comment-author: github-actions[bot]
+          body-includes: "<!-- pr-managed-comment -->"
+
+      - name: Create or update managed PR comment
+        uses: peter-evans/create-or-update-comment@71345be0265236311c031f5c7866368bd1eff043 # v4
+        with:
+          issue-number: ${{ steps.meta.outputs.pr_number }}
+          comment-id: ${{ steps.find-comment.outputs.comment-id }}
+          edit-mode: replace
+          body: |
+            <!-- pr-managed-comment -->
+            ![Perftest plot](https://raw.githubusercontent.com/${{ github.repository }}/${{ steps.push-image.outputs.image_sha }}/${{ steps.push-image.outputs.image_path }})
+
+            FFT backend: `${{ steps.meta.outputs.fft_backend }}`
+
+            _Numbers are advisory: GitHub-hosted runners have variable hardware. Treat <1.10× as noise._
+
+            <details>
+            <summary>CPU and compiler configuration</summary>
+
+            CPU name: `${{ steps.meta.outputs.cpu_name }}`.
+
+            Arch: `${{ steps.meta.outputs.arch }}`.
+
+            Core count: `${{ steps.meta.outputs.ncores }}`.
+
+            ISA extensions: `${{ steps.meta.outputs.cpu_flags }}`.
+
+            Compiler version: `${{ steps.meta.outputs.compiler_version }}`.
+
+            Compiler flags: `${{ steps.meta.outputs.compiler_flags }}`.
+
+            </details>
+
+            <details>
+            <summary>perftest commands</summary>
+
+            ```
+            ${{ fromJson(steps.meta.outputs.commands) }}
+            ```
+
+            </details>

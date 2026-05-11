@@ -1,0 +1,101 @@
+name: Perftest Pull Requests
+
+# Untrusted half of the perftest pipeline. This workflow runs from
+# the PR-head checkout (so it executes attacker-controlled CMake and
+# binaries), so it is deliberately scoped to ``contents: read`` only
+# and runs from a ``pull_request`` trigger (no secrets, no write
+# token). Posting the resulting comment is done by the trusted
+# companion workflow ``perftest-pr-head-comment.yml`` via
+# ``workflow_run``. See
+# https://securitylab.github.com/research/github-actions-preventing-pwn-requests/
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: perftest-pr-head-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  perftest-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout latest master
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          ref: master
+          path: master
+
+      - name: Checkout PR head
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: pr-head
+
+      - name: Setup Cpp
+        uses: aminya/setup-cpp@1f17f92d6a52bfcb1a25348e2c526c2e5cbb1134 # v1.8.0
+        with:
+          cmake: true
+          ninja: true
+
+      - name: Build master and PR head
+        run: |
+          mkdir -p builds && rm -fr builds/*
+          cmake -B builds/master -S master \
+            -DFINUFFT_BUILD_TESTS=ON -DFINUFFT_USE_DUCC0=ON \
+            -DCMAKE_BUILD_TYPE=Release
+          cmake --build builds/master --target perftest -j
+
+          # Use master's perftest sources against the PR build, so that
+          # only library code (not the perftest harness itself) varies
+          # between the two timings.
+          rm -fr pr-head/perftest
+          cp -r master/perftest pr-head/perftest
+          cmake -B builds/pr-head -S pr-head \
+            -DFINUFFT_BUILD_TESTS=ON -DFINUFFT_USE_DUCC0=ON \
+            -DCMAKE_BUILD_TYPE=Release
+          cmake --build builds/pr-head --target perftest -j
+
+      - name: Install plotting dependencies
+        run: python3 -m pip install --quiet matplotlib pandas numpy py-cpuinfo
+
+      - name: Run perftest comparison
+        id: test-perf
+        working-directory: master/perftest
+        run: |
+          python3 perftest_pr_head.py \
+            --master-perftest "$GITHUB_WORKSPACE/builds/master/perftest/perftest" \
+            --pr-perftest "$GITHUB_WORKSPACE/builds/pr-head/perftest/perftest" \
+            --plot-output "$GITHUB_WORKSPACE/perftest_comment_figure.svg" \
+            | tee "$GITHUB_WORKSPACE/perftest_meta.txt"
+
+      - name: Build comment metadata payload
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          python3 - <<'PY'
+          import json, os, pathlib
+          meta = {"pr_number": int(os.environ["PR_NUMBER"]),
+                  "pr_head_sha": os.environ["PR_HEAD_SHA"],
+                  "fft_backend": "DUCC"}
+          for line in pathlib.Path("perftest_meta.txt").read_text().splitlines():
+              if "=" in line:
+                  k, _, v = line.partition("=")
+                  meta[k.strip()] = v
+          pathlib.Path("perftest_meta.json").write_text(json.dumps(meta, indent=2))
+          PY
+
+      - name: Upload perftest artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: perftest-pr-head
+          path: |
+            perftest_comment_figure.svg
+            perftest_meta.json
+          retention-days: 7
+          if-no-files-found: error
