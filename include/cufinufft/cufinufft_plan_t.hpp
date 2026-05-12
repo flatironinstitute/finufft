@@ -401,7 +401,19 @@ private:
 
   void interp_nupts_driven(cuda_complex<T> *c, const cuda_complex<T> *fw,
                            int blksize) const;
-  void interp_subprob(cuda_complex<T> *c, const cuda_complex<T> *fw, int blksize) const;
+  void interp_subprob(cuda_complex<T> *c, const cuda_complex<T> *fw, int blksize) const {
+    using cufinufft::spreadinterp::do_interp_subprob;
+    switch (this->dim) {
+    case 1:
+      return do_interp_subprob<T, 1>(*this, c, fw, blksize);
+    case 2:
+      return do_interp_subprob<T, 2>(*this, c, fw, blksize);
+    case 3:
+      return do_interp_subprob<T, 3>(*this, c, fw, blksize);
+    default:
+      throw int(FINUFFT_ERR_DIM_NOTVALID);
+    }
+  }
 };
 
 // This class contains a subset of the information stored in
