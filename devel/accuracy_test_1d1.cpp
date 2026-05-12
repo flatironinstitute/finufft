@@ -81,7 +81,7 @@ int main(int argc, char *argv[]) {
   if (max_digits <= 0) {
     max_digits     = std::numeric_limits<FLT>::digits10;
     double min_tol = finufft::kernel::sigma_max_tol(upsampfac, kerformula,
-                                                    finufft::common::MAX_NSPREAD);
+                                                    finufft::common::MAX_NSPREAD<FLT>);
     // Cap max_digits based on achievable tolerance for the chosen upsampling
     // factor and kernel.  Use kernel::sigma_max_tol with the library's
     // MAX_NSPREAD to compute the smallest attainable sigma, then convert to

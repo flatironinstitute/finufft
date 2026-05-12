@@ -1,7 +1,6 @@
 #pragma once
 
-#include <finufft/plan.hpp>
-#include <finufft/utils.hpp>
+#include <finufft_common/defines.h>
 #include <finufft_common/kernel.h>
 
 // xsimd configuration: ensure unsupported architectures fall back to emulated.
@@ -54,7 +53,7 @@ template<class T, uint8_t N> constexpr std::size_t find_optimal_simd_width() {
   return static_cast<std::size_t>(optimal_simd_width);
 }
 
-template<class T, uint8_t N> constexpr std::size_t GetPaddedSIMDWidth() {
+template<class T, uint8_t N> constexpr std::size_t get_padded_simd_width() {
   // helper function to get the SIMD width with padding for the given number of elements
   // that minimizes the number of iterations
 
@@ -66,14 +65,14 @@ constexpr std::size_t get_simd_width_helper(uint8_t runtime_ns) {
     return static_cast<std::size_t>(0);
   } else {
     if (runtime_ns == ns) {
-      return GetPaddedSIMDWidth<T, ns>();
+      return get_padded_simd_width<T, ns>();
     } else {
       return get_simd_width_helper<T, ns - 1>(runtime_ns);
     }
   }
 }
-template<class T> constexpr std::size_t GetPaddedSIMDWidth(int runtime_ns) {
-  return get_simd_width_helper<T, 2 * ::finufft::common::MAX_NSPREAD>(runtime_ns);
+template<class T> constexpr std::size_t get_padded_simd_width(int runtime_ns) {
+  return get_simd_width_helper<T, 2 * ::finufft::common::MAX_NSPREAD<T>>(runtime_ns);
 }
 
 } // namespace finufft::utils
@@ -85,7 +84,7 @@ using finufft::common::INV_2PI;
 using finufft::common::MAX_NSPREAD;
 using finufft::common::MIN_NSPREAD;
 using finufft::utils::find_optimal_simd_width;
-using finufft::utils::GetPaddedSIMDWidth;
+using finufft::utils::get_padded_simd_width;
 
 struct zip_low {
   // helper struct to get the lower half of a SIMD register and zip it with itself
@@ -125,20 +124,21 @@ struct [[maybe_unused]] select_odd {
 
 // this finds the largest SIMD instruction set that can handle N elements
 // void otherwise -> compile error
-template<class T, uint8_t N, uint8_t K = N> constexpr auto BestSIMDHelper() {
+template<class T, uint8_t N, uint8_t K = N> constexpr auto best_simd_helper() {
   if constexpr (N % K == 0) {
     // returns void in the worst case
     return xsimd::make_sized_batch<T, K>{};
   } else {
-    return BestSIMDHelper<T, N, (K >> 1)>();
+    return best_simd_helper<T, N, (K >> 1)>();
   }
 }
 
 template<class T, uint8_t N>
-using PaddedSIMD = typename xsimd::make_sized_batch<T, GetPaddedSIMDWidth<T, N>()>::type;
+using PaddedSIMD =
+    typename xsimd::make_sized_batch<T, get_padded_simd_width<T, N>()>::type;
 
 template<class T, uint8_t ns> constexpr auto get_padding() {
-  constexpr uint8_t width = GetPaddedSIMDWidth<T, ns>();
+  constexpr uint8_t width = get_padded_simd_width<T, ns>();
   return ((ns + width - 1) & (-width)) - ns;
 }
 
@@ -155,10 +155,67 @@ template<class T, uint8_t ns> constexpr auto get_padding_helper(uint8_t runtime_
 }
 
 template<class T> uint8_t get_padding(uint8_t ns) {
-  return get_padding_helper<T, 2 * MAX_NSPREAD>(ns);
+  return get_padding_helper<T, 2 * MAX_NSPREAD<T>>(ns);
 }
+
+// Single source of truth for the kernel-evaluation buffer layout.
+//
+// `evaluate_kernel_vector<NS, NC, T, simd_type>` writes one direction's
+// worth of kernel values into a buffer; spread/interp call sites allocate
+// `K * stride` bytes for K=1..3 directions. Today every CPU caller uses
+// `simd_type = PaddedSIMD<T, 2*NS>` (the same SIMD width the inner
+// complex-pair loops use). This trait bundles that simd_type, the
+// per-direction stride, and the buffer alignment derived from the
+// *same* simd_type, so the buffer cannot drift from the writer.
+template<class T, uint8_t NS> struct KernelBufferLayout {
+  using simd_type                        = PaddedSIMD<T, 2 * NS>;
+  using arch_t                           = typename simd_type::arch_type;
+  static constexpr std::size_t simd_size = simd_type::size;
+  static constexpr std::size_t stride =
+      (std::size_t(NS) + simd_size - 1) & ~(simd_size - 1);
+  static constexpr std::size_t alignment = arch_t::alignment();
+
+  static_assert(stride >= NS, "kernel buffer stride must hold NS elements");
+  static_assert(stride % simd_size == 0,
+                "kernel buffer stride must be a multiple of SIMD write width");
+};
+
+namespace detail {
+template<class T, std::size_t... I>
+constexpr std::size_t fold_max_layout_stride(std::index_sequence<I...>) {
+  std::size_t m = 0;
+  ((m = KernelBufferLayout<T, uint8_t(MIN_NSPREAD + I)>::stride > m
+            ? KernelBufferLayout<T, uint8_t(MIN_NSPREAD + I)>::stride
+            : m),
+   ...);
+  return m;
+}
+} // namespace detail
+
+// Worst-case stride across every NS that may be instantiated for T.
+// Consumed by plan.hpp's horner_coeffs (type-erased over NS).
+template<class T>
+inline constexpr std::size_t max_kernel_buffer_stride = detail::fold_max_layout_stride<T>(
+    std::make_index_sequence<MAX_NSPREAD<T> - MIN_NSPREAD + 1>{});
+
+// Runtime mirror of KernelBufferLayout<T, NS>::stride. Same formula, runtime ns.
+// Pre: ns in [MIN_NSPREAD, MAX_NSPREAD<T>]. Post: when ns == NS,
+//   kernel_buffer_stride_runtime<T>(ns) == KernelBufferLayout<T, NS>::stride.
+template<class T> inline std::size_t kernel_buffer_stride_runtime(int ns) {
+  const std::size_t w = get_padded_simd_width<T>(2 * ns);
+  return (std::size_t(ns) + w - 1) & ~(w - 1);
+}
+
+// plan.hpp sizes horner_coeffs as MAX_NSPREAD<double>*MAX_NC (a loose bound that
+// keeps plan.hpp xsimd-free for test headers). Pin that bound here so it is
+// provably >= the actual stride for both precisions.
+static_assert(MAX_NSPREAD<double> >= max_kernel_buffer_stride<float>,
+              "horner_coeffs sizing in plan.hpp must cover float kernel buffer stride");
+static_assert(MAX_NSPREAD<double> >= max_kernel_buffer_stride<double>,
+              "horner_coeffs sizing in plan.hpp must cover double kernel buffer stride");
+
 template<class T, uint8_t N>
-using BestSIMD = typename decltype(BestSIMDHelper<T, N, xsimd::batch<T>::size>())::type;
+using BestSIMD = typename decltype(best_simd_helper<T, N, xsimd::batch<T>::size>())::type;
 
 template<class T, class V, size_t... Is>
 constexpr T generate_sequence_impl(V a, V b, std::index_sequence<Is...>) noexcept {
@@ -245,11 +302,14 @@ FINUFFT_ALWAYS_INLINE T fold_rescale(const T x, const UBIGINT N) noexcept {
   return (result - floor(result)) * T(N);
 }
 
-template<int ns, int nc, class T,
-         class simd_type = xsimd::make_sized_batch_t<T, find_optimal_simd_width<T, ns>()>,
-         typename... V>
+template<int ns, int nc, class T, class simd_type, typename... V>
 FINUFFT_ALWAYS_INLINE auto evaluate_kernel_vector(
     T *FINUFFT_RESTRICT ker, const T *horner_coeffs_ptr, const V... elems) noexcept {
+  using KBL = KernelBufferLayout<T, uint8_t(ns)>;
+  static_assert(std::is_same_v<simd_type, typename KBL::simd_type>,
+                "evaluate_kernel_vector simd_type must equal "
+                "KernelBufferLayout<T, NS>::simd_type — any other simd_type "
+                "would mis-size the caller's buffer");
   /* Main SIMD-accelerated 1D kernel evaluator, using precomputed Horner coeffs to
      evaluate kernel on a grid of ns ordinates lying in kernel support, which is
      here scaled to [-ns/2,ns/2].
@@ -280,13 +340,13 @@ FINUFFT_ALWAYS_INLINE auto evaluate_kernel_vector(
     // Parameters: ns (w), nc (NC), simd_type
     const T x                         = inputs[i];
     const T z                         = std::fma(T(2.0), x, T(ns - 1));
-    using arch_t                      = typename simd_type::arch_type;
-    static constexpr auto simd_size   = simd_type::size;
-    static constexpr auto padded_ns   = (ns + simd_size - 1) & -simd_size;
+    using arch_t                      = typename KBL::arch_t;
+    static constexpr auto simd_size   = KBL::simd_size;
+    static constexpr auto padded_ns   = KBL::stride;
     static constexpr auto use_ker_sym = (simd_size < ns);
     static constexpr auto stride      = padded_ns;
 
-    T *KER = ker + (i * MAX_NSPREAD);
+    T *KER = ker + (i * KBL::stride);
 
     if constexpr (use_ker_sym) {
       static constexpr uint8_t tail          = ns % simd_size;

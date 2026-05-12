@@ -3,7 +3,6 @@
 
 #pragma once
 
-#include "plan.hpp"
 #include <cmath>
 #include <finufft_common/common.h>
 

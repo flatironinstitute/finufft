@@ -6,6 +6,7 @@
 #include <cstdio>
 #include <vector>
 
+#include <cassert>
 #include <finufft/heuristics.hpp>
 #include <finufft/plan.hpp>
 #include <finufft/spreadinterp.hpp>
@@ -98,8 +99,14 @@ int FINUFFT_PLAN_T<TF>::setpts(BIGINT nj, const TF *xj, const TF *yj, const TF *
       }
     }
 
-    m.XYZ = {xj, yj, zj}; // plan must keep pointers to user's fixed NU pts
-    spreadcheck();        // throws on error
+    m.XYZ   = {xj, yj, zj}; // plan must keep pointers to user's fixed NU pts
+    // Invariant: m.padded_ns must equal the runtime mirror of
+    // KernelBufferLayout<TF, NS>::stride. Caught here if any path forgot to
+    // call precompute_horner_coeffs (or if the trait diverges from the runtime
+    // formula).
+    assert(m.padded_ns ==
+           finufft::spreadinterp::kernel_buffer_stride_runtime<TF>(m.spopts.nspread));
+    spreadcheck();          // throws on error
     timer.restart();
     m.sortIndices.resize(nj);
     indexSort();

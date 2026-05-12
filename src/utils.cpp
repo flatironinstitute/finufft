@@ -3,10 +3,15 @@
 
 // For self-test see ../test/testutils.cpp
 
+#include <finufft/plan.hpp>
 #include <finufft/utils.hpp>
 
 #include <cinttypes>
+#include <cstdint>
 #include <cstdio>
+#include <cstdlib>
+#include <exception>
+#include <utility>
 
 #include <chrono>
 #include <iostream>
@@ -50,9 +55,9 @@ double CNTime::restart()
 double CNTime::elapsedsec() const
 // returns answers as double, in seconds, to microsec accuracy. Barnett 5/22/18
 {
-  std::uint64_t now = std::chrono::duration_cast<std::chrono::microseconds>(
-                          std::chrono::steady_clock::now().time_since_epoch())
-                          .count();
+  std::uint64_t now   = std::chrono::duration_cast<std::chrono::microseconds>(
+                            std::chrono::steady_clock::now().time_since_epoch())
+                            .count();
   const double nowsec = double(now) * 1e-6;
   return nowsec - initial;
 }

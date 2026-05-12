@@ -8,10 +8,9 @@
 #include "finufft_common/common.h"
 #include "finufft_errors.h"
 
-// All indexing in library that potentially can exceed 2^31 uses 64-bit signed.
-// This includes all calling arguments (eg M,N) that could be huge someday.
-using BIGINT  = int64_t;
-using UBIGINT = uint64_t;
+// BIGINT/UBIGINT moved to <finufft_common/defines.h> (transitively included
+// below via common.h) so that <finufft/simd.hpp> can use them without
+// pulling in this whole header.
 
 // ------------- Library-wide algorithm parameter settings ----------------
 
@@ -94,11 +93,15 @@ private:
   // Configuration set once in the constructor stays on the plan itself.
   struct M {
     // --- Spreader configuration (computed by setup_spreadinterp) ---
-    TF tol{};                     // user tolerance, clamped to machine eps by spreader
-    finufft_spread_opts spopts{}; // spreading kernel parameters (nspread, beta, etc.)
-    int nc           = 0;         // number of Horner polynomial coefficients (<= MAX_NC)
-    size_t padded_ns = 0;         // SIMD-padded kernel width
-    alignas(64) std::array<TF, finufft::common::MAX_NSPREAD *
+    TF tol{};                      // user tolerance, clamped to machine eps by spreader
+    finufft_spread_opts spopts{};  // spreading kernel parameters (nspread, beta, etc.)
+    int nc = 0;     // number of Horner polynomial coefficients (<= MAX_NC)
+    size_t padded_ns = 0;          // SIMD-padded kernel width
+    // Worst-case sizing: simd.hpp's static_asserts pin
+    // max_kernel_buffer_stride<float|double> <= MAX_NSPREAD<double>, so this
+    // loose bound is provably safe. Tightening would force plan.hpp to depend
+    // on simd.hpp/xsimd, which the test headers don't have on their path.
+    alignas(64) std::array<TF, finufft::common::MAX_NSPREAD<double> *
                                    finufft::common::MAX_NC> horner_coeffs{0};
     // piecewise Horner coefficients table (ns x nc layout)
 

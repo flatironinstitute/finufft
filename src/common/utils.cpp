@@ -2,6 +2,7 @@
 #include <cmath>
 #include <finufft_common/common.h>
 #include <limits>
+#include <tuple>
 
 // Prefer the standard library's special-math `cyl_bessel_i` when available.
 #if defined(__has_include)
