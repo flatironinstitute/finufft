@@ -20,11 +20,11 @@ option(FINUFFT_BUILD_TESTS "Whether to build the FINUFFT tests" OFF)
 option(FINUFFT_INTERPROCEDURAL_OPTIMIZATION "Enable interprocedural optimization (LTO) if supported" OFF)
 option(FINUFFT_POSITION_INDEPENDENT_CODE "Whether to build the finufft library with position independent code (-fPIC). This forced ON when FINUFFT_SHARED_LINKING is ON." ON)
 option(FINUFFT_STATIC_ANALYSIS "Run clang-tidy/cppcheck" OFF)
+option(FINUFFT_STATIC_ANALYSIS_WERROR "Treat clang-tidy/cppcheck findings as errors (intended for CI)." OFF)
 option(FINUFFT_STATIC_LINKING "If ON builds the static finufft library, if OFF build a shared finufft library." ON)
 option(FINUFFT_USE_CPU "Whether to build the ordinary FINUFFT library (libfinufft)." ON)
 option(FINUFFT_USE_CUDA "Whether to build CUDA accelerated FINUFFT library (libcufinufft). This is completely independent of the main FINUFFT library" OFF)
 option(FINUFFT_USE_DUCC0 "Whether to use DUCC0 (instead of FFTW) for CPU FFTs" OFF)
-option(FINUFFT_USE_IWYU "Set CXX_INCLUDE_WHAT_YOU_USE on target (checker-only)" OFF)
 option(FINUFFT_USE_OPENMP "Whether to use OpenMP for parallelization. If disabled, the finufft library will be single threaded. This does not affect the choice of FFTW library." ON)
 set(
     FINUFFT_USE_SANITIZERS
@@ -43,8 +43,6 @@ cmake_dependent_option(FINUFFT_ENABLE_INSTALL "Disable installation in the case 
 cmake_dependent_option(FINUFFT_STATIC_LINKING "Disable static libraries in the case of python builds" ON "NOT FINUFFT_BUILD_PYTHON" OFF)
 cmake_dependent_option(FINUFFT_SHARED_LINKING "Shared should be the opposite of static linking" ON "NOT FINUFFT_STATIC_LINKING" OFF)
 cmake_dependent_option(FINUFFT_INTERPROCEDURAL_OPTIMIZATION "LTO should be the opposite of static linking" ON "NOT FINUFFT_STATIC_LINKING" OFF)
-# internal development options
-option(FINUFFT_IWYU_VERBOSE "Verbose IWYU tool output" ON)
 # gersemi: on
 
 # Use the folder that contains this CMakeLists.txt, not the project root

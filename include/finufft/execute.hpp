@@ -6,9 +6,9 @@
 #include <vector>
 
 #include <finufft/plan.hpp>
-#include <finufft/utils.hpp>
-#include <finufft/spreadinterp.hpp>
 #include <finufft/simd.hpp>
+#include <finufft/spreadinterp.hpp>
+#include <finufft/utils.hpp>
 
 /* Computational core for FINUFFT.
 
@@ -266,7 +266,7 @@ int FINUFFT_PLAN_T<T>::spreadinterpSortedBatch(
     std::complex<T> *fwi = fwBatch + i * nf(); // start of i'th fw array in
                                                // fwBatch workspace or user array
     std::complex<T> *ci = cBatch + i * m.nj;   // start of i'th c array in cBatch
-    spreadinterpSorted((T *)fwi, (T *)ci, adjoint);
+    spreadinterpSorted(reinterpret_cast<T *>(fwi), reinterpret_cast<T *>(ci), adjoint);
   }
   return 0;
 }
@@ -299,11 +299,11 @@ int FINUFFT_PLAN_T<T>::deconvolveBatch(int batchSize, std::complex<T> *fkBatch,
 
     // pick dim-specific routine; note prefactors hardcoded to 1.0...
     if (dim == 1)
-      deconvolveshuffle1d(dir, T(1), (T *)fki, fwi);
+      deconvolveshuffle1d(dir, T(1), reinterpret_cast<T *>(fki), fwi);
     else if (dim == 2)
-      deconvolveshuffle2d(dir, T(1), (T *)fki, fwi);
+      deconvolveshuffle2d(dir, T(1), reinterpret_cast<T *>(fki), fwi);
     else
-      deconvolveshuffle3d(dir, T(1), (T *)fki, fwi);
+      deconvolveshuffle3d(dir, T(1), reinterpret_cast<T *>(fki), fwi);
   }
   return 0;
 }
@@ -372,9 +372,9 @@ int FINUFFT_PLAN_T<TF>::execute_internal(TC *cj, TC *fk, bool adjoint, int ntran
 
       // current batch is either batchSize, or possibly truncated if last one
       int thisBatchSize = std::min(ntrans_actual - b * batchSize, batchSize);
-      int bB            = b * batchSize; // index of vector, since batchsizes same
+      int bB            = b * batchSize;  // index of vector, since batchsizes same
       TC *cjb           = cj + bB * m.nj; // point to batch of user weights
-      TC *fkb           = fk + bB * N(); // point to batch of user mode coeffs
+      TC *fkb           = fk + bB * N();  // point to batch of user mode coeffs
       if (opts.debug > 1)
         printf("[%s] start batch %d (size %d):\n", "execute", b, thisBatchSize);
 

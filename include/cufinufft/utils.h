@@ -176,7 +176,7 @@ template<typename Func, typename T, typename... Args>
 auto launch_dispatch_ndim_ns(Func &&func, int target_ndim, int target_ns,
                              Args &&...args) {
   using NdimSeq = make_range<1, 3>;
-  using NsSeq   = make_range<MIN_NSPREAD, MAX_NSPREAD>;
+  using NsSeq   = make_range<MIN_NSPREAD, MAX_NSPREAD<T>>;
   auto params   = std::make_tuple(DispatchParam<NdimSeq>{target_ndim},
                                   DispatchParam<NsSeq>{target_ns});
   return dispatch(std::forward<Func>(func), params, std::forward<Args>(args)...);
