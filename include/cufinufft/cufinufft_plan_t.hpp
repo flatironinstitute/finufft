@@ -384,24 +384,115 @@ private:
   void spreadSorted(const cuda_complex<T> *c, cuda_complex<T> *fw, int blksize) const;
   void interpSorted(cuda_complex<T> *c, const cuda_complex<T> *fw, int blksize) const;
 
-  // Per-method spread/interp entry points. Bodies live in per-method TUs
-  // (src/cuda/spread_*.cu, src/cuda/interp_*.cu) to preserve compile
-  // parallelism across nvcc invocations.
-  void indexSort_nupts_driven();   // gpu_method = 1
-  void indexSort_subprob_and_OD(); // gpu_method = 2 or 3
-  void indexSort_blockgather_3d(); // gpu_method = 4 (3D-only)
+  // Per-method spread/interp entry points. Worker templates that they
+  // dispatch to are defined in per-method per-dim TUs
+  // (src/cuda/spread_*_inst.cu, src/cuda/interp_*_inst.cu) to preserve
+  // compile parallelism across nvcc invocations.
+  void indexSort_nupts_driven() { // gpu_method = 1
+    using cufinufft::spreadinterp::do_indexSort_nupts_driven;
+    switch (this->dim) {
+    case 1:
+      return do_indexSort_nupts_driven<T, 1>(*this);
+    case 2:
+      return do_indexSort_nupts_driven<T, 2>(*this);
+    case 3:
+      return do_indexSort_nupts_driven<T, 3>(*this);
+    default:
+      throw int(FINUFFT_ERR_DIM_NOTVALID);
+    }
+  }
+  void indexSort_subprob_and_OD() { // gpu_method = 2 or 3
+    using cufinufft::spreadinterp::do_indexSort_subprob_and_OD;
+    switch (this->dim) {
+    case 1:
+      return do_indexSort_subprob_and_OD<T, 1>(*this);
+    case 2:
+      return do_indexSort_subprob_and_OD<T, 2>(*this);
+    case 3:
+      return do_indexSort_subprob_and_OD<T, 3>(*this);
+    default:
+      throw int(FINUFFT_ERR_DIM_NOTVALID);
+    }
+  }
+  void indexSort_blockgather_3d() { // gpu_method = 4 (3D-only)
+    if (this->dim != 3) throw int(FINUFFT_ERR_METHOD_NOTVALID);
+    cufinufft::spreadinterp::do_indexSort_blockgather_3d<T>(*this);
+  }
 
   void spread_nupts_driven(const cuda_complex<T> *c, cuda_complex<T> *fw,
-                           int blksize) const;
-  void spread_subprob(const cuda_complex<T> *c, cuda_complex<T> *fw, int blksize) const;
+                           int blksize) const {
+    using cufinufft::spreadinterp::do_spread_nupts_driven;
+    switch (this->dim) {
+    case 1:
+      return do_spread_nupts_driven<T, 1>(*this, c, fw, blksize);
+    case 2:
+      return do_spread_nupts_driven<T, 2>(*this, c, fw, blksize);
+    case 3:
+      return do_spread_nupts_driven<T, 3>(*this, c, fw, blksize);
+    default:
+      throw int(FINUFFT_ERR_DIM_NOTVALID);
+    }
+  }
+  void spread_subprob(const cuda_complex<T> *c, cuda_complex<T> *fw, int blksize) const {
+    using cufinufft::spreadinterp::do_spread_subprob;
+    switch (this->dim) {
+    case 1:
+      return do_spread_subprob<T, 1>(*this, c, fw, blksize);
+    case 2:
+      return do_spread_subprob<T, 2>(*this, c, fw, blksize);
+    case 3:
+      return do_spread_subprob<T, 3>(*this, c, fw, blksize);
+    default:
+      throw int(FINUFFT_ERR_DIM_NOTVALID);
+    }
+  }
   void spread_output_driven(const cuda_complex<T> *c, cuda_complex<T> *fw,
-                            int blksize) const;
+                            int blksize) const {
+    using cufinufft::spreadinterp::do_spread_output_driven;
+    switch (this->dim) {
+    case 1:
+      return do_spread_output_driven<T, 1>(*this, c, fw, blksize);
+    case 2:
+      return do_spread_output_driven<T, 2>(*this, c, fw, blksize);
+    case 3:
+      return do_spread_output_driven<T, 3>(*this, c, fw, blksize);
+    default:
+      throw int(FINUFFT_ERR_DIM_NOTVALID);
+    }
+  }
   void spread_blockgather_3d(const cuda_complex<T> *c, cuda_complex<T> *fw,
-                             int blksize) const;
+                             int blksize) const {
+    if (this->dim != 3) throw int(FINUFFT_ERR_METHOD_NOTVALID);
+    cufinufft::spreadinterp::do_spread_blockgather_3d<T>(*this, c, fw, blksize);
+  }
 
   void interp_nupts_driven(cuda_complex<T> *c, const cuda_complex<T> *fw,
-                           int blksize) const;
-  void interp_subprob(cuda_complex<T> *c, const cuda_complex<T> *fw, int blksize) const;
+                           int blksize) const {
+    using cufinufft::spreadinterp::do_interp_nupts_driven;
+    switch (this->dim) {
+    case 1:
+      return do_interp_nupts_driven<T, 1>(*this, c, fw, blksize);
+    case 2:
+      return do_interp_nupts_driven<T, 2>(*this, c, fw, blksize);
+    case 3:
+      return do_interp_nupts_driven<T, 3>(*this, c, fw, blksize);
+    default:
+      throw int(FINUFFT_ERR_DIM_NOTVALID);
+    }
+  }
+  void interp_subprob(cuda_complex<T> *c, const cuda_complex<T> *fw, int blksize) const {
+    using cufinufft::spreadinterp::do_interp_subprob;
+    switch (this->dim) {
+    case 1:
+      return do_interp_subprob<T, 1>(*this, c, fw, blksize);
+    case 2:
+      return do_interp_subprob<T, 2>(*this, c, fw, blksize);
+    case 3:
+      return do_interp_subprob<T, 3>(*this, c, fw, blksize);
+    default:
+      throw int(FINUFFT_ERR_DIM_NOTVALID);
+    }
+  }
 };
 
 // This class contains a subset of the information stored in

@@ -97,12 +97,12 @@ int cufinufft_plan_t<T>::setup_spreadinterp()
     ns = std::ceil(-log(eps) / (T(PI) * sqrt(1 - 1 / upsampfac))); // formula,
                                                                    // gamma=1
   ns = std::max(2, ns);   // we don't have ns=1 version yet
-  if (ns > MAX_NSPREAD) { // clip to match allocated arrays
+  if (ns > MAX_NSPREAD<T>) { // clip to match allocated arrays
     fprintf(stderr,
             "[%s] warning: at upsampfac=%.3g, tol=%.3g would need kernel width ns=%d; "
             "clipping to max %d.\n",
-            __func__, upsampfac, (double)eps, ns, MAX_NSPREAD);
-    ns  = MAX_NSPREAD;
+            __func__, upsampfac, (double)eps, ns, MAX_NSPREAD<T>);
+    ns = MAX_NSPREAD<T>;
     ier = FINUFFT_WARN_EPS_TOO_SMALL;
   }
   spopts.nspread = ns;
