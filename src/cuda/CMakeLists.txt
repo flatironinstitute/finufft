@@ -57,8 +57,8 @@ enable_static_analysis(cufinufft)
 set_property(TARGET ${target} PROPERTY INTERPROCEDURAL_OPTIMIZATION ${FINUFFT_INTERPROCEDURAL_OPTIMIZATION})
 add_library(finufft::cufinufft ALIAS cufinufft)
 target_include_directories(cufinufft PUBLIC ${CUFINUFFT_INCLUDE_DIRS})
-# Generated per-dim instantiation TUs in build dir need to find the
-# .cuh method-body headers in the source dir.
+# Generated per-dim instantiation TUs in build dir need to find
+# spreadinterp_common.cuh (shared device-helper header) in the source dir.
 target_include_directories(cufinufft PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 # set target build location
 set_target_properties(cufinufft PROPERTIES LIBRARY_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}")
