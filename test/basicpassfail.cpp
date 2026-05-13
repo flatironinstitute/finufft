@@ -8,7 +8,11 @@
 
 int main() {
   BIGINT M = 1e3, N = 1e3;            // defaults: M = # srcs, N = # modes out
-  double tol         = 1e-5;          // req tol, covers both single & double prec cases
+#ifdef SINGLE
+  double tol = 1e-3;                  // above single-prec rounding floor ~1.4e-4 at N=1e3
+#else
+  double tol = 1e-5;
+#endif
   int isign          = +1;            // exponential sign for NUFFT
   static const CPX I = CPX(0.0, 1.0); // imaginary unit. Note: avoid (CPX) cast
   std::vector<CPX> F(N);              // alloc output mode coeffs

@@ -30,5 +30,9 @@ inline constexpr double INV_2PI = 0.159154943091895335768883763372514362;
 inline constexpr int MIN_NC = 4;
 inline constexpr int MAX_NC = 19;
 
+// upsampling factor (sigma) bounds for the sigma_min estimator
+inline constexpr double MINSIGMA = 1.0;
+inline constexpr double MAXSIGMA = 2.0;
+
 } // namespace common
 } // namespace finufft

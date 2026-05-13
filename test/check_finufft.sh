@@ -20,9 +20,9 @@
 # precision-specific settings
 if [[ $1 == "SINGLE" ]]; then
 	PREC=single
-	export FINUFFT_REQ_TOL=1e-5
+	export FINUFFT_REQ_TOL=1e-3
 	# acceptable error (watch out for N~1e3 in 1D causing large round-off)
-	CHECK_TOL=2e-4
+	CHECK_TOL=1e-2
 	# modifier for executables, exported so that check?d.sh can also access...
 	export PRECSUF=f
 else

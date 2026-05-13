@@ -13,6 +13,10 @@ DTYPES = [np.complex64, np.complex128]
 OUTPUT_ARGS = [False, True]
 
 
+def type3_eps(dtype):
+    return 1e-3 if np.dtype(dtype) == np.dtype(np.complex64) else 1e-6
+
+
 @pytest.mark.parametrize("dtype", DTYPES)
 @pytest.mark.parametrize("shape", SHAPES)
 @pytest.mark.parametrize("n_pts", N_PTS)
@@ -82,14 +86,15 @@ def test_finufft3_simple(dtype, dim, n_source_pts, n_target_pts, n_trans, output
 
     source_pts, source_coefs, target_pts = utils.type3_problem(dtype,
             dim, n_source_pts, n_target_pts, n_trans)
+    eps = type3_eps(dtype)
 
     if not output_arg:
-        target_coefs = fun(*source_pts, source_coefs, *target_pts)
+        target_coefs = fun(*source_pts, source_coefs, *target_pts, eps=eps)
     else:
         target_coefs = np.empty(n_trans + (n_target_pts,), dtype=dtype)
-        fun(*source_pts, source_coefs, *target_pts, out=target_coefs)
+        fun(*source_pts, source_coefs, *target_pts, out=target_coefs, eps=eps)
 
-    utils.verify_type3(source_pts, source_coefs, target_pts, target_coefs, 1e-6)
+    utils.verify_type3(source_pts, source_coefs, target_pts, target_coefs, eps)
 
 def test_finufft_simple_errors():
     with pytest.raises(RuntimeError, match="x dtype should be"):

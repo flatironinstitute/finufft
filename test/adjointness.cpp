@@ -32,6 +32,7 @@ int main() {
   int ntr      = 1;            // how many transforms (one for now)
   finufft_opts opts;
   FINUFFT_DEFAULT_OPTS(&opts);
+  opts.allow_eps_too_small = 1; // honour requested tight tol; warn instead of throw
   // opts.upsampfac = 1.25;    // experts use to override default USF
 #ifdef SINGLE
   FLT tol        = 1e-6; // requested transform tol (small enough to force USF=2)
