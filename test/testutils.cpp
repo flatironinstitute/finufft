@@ -88,12 +88,10 @@ int main(int argc, char *argv[]) {
   constexpr FLT EPSILON = std::numeric_limits<FLT>::epsilon();
   FLT relerr            = 2.0 * EPSILON; // 1 ULP, fine since 1.0 rep exactly
   if (std::abs(infnorm(M, &a[0]) - 1.0) > relerr) return 1;
-  if (std::abs(twonorm(M, &a[0]) - std::sqrt((FLT)M)) > relerr * std::sqrt((FLT)M))
-    return 1;
+  if (std::abs(twonorm(M, &a[0]) - std::sqrt((FLT)M)) > relerr * std::sqrt((FLT)M)) return 1;
   b[0] = CPX(0.0, 0.0); // perturb b from a
   if (std::abs(errtwonorm(M, &a[0], &b[0]) - 1.0) > relerr) return 1;
-  if (std::abs(std::sqrt((FLT)M) * relerrtwonorm(M, &a[0], &b[0]) - 1.0) > relerr)
-    return 1;
+  if (std::abs(std::sqrt((FLT)M) * relerrtwonorm(M, &a[0], &b[0]) - 1.0) > relerr) return 1;
 
 #if defined(__cpp_lib_math_special_functions)
   // std::cyl_bessel_i present: compare std vs custom series

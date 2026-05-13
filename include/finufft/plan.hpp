@@ -107,26 +107,26 @@ private:
 
     // --- Fine grid (computed by init_grid_kerFT_FFT or set_nhg_type3) ---
     std::array<BIGINT, 3> nfdim{1, 1, 1};  // upsampled grid dimensions
-    std::array<std::vector<TF>, 3> phiHat; // FT of spreading kernel on mode grids
+    std::array<std::vector<TF>, 3> phiHat;  // FT of spreading kernel on mode grids
 
     // --- NU point data (set by setpts) ---
-    BIGINT nj = 0; // number of nonuniform source points
-    BIGINT nk = 0; // number of nonuniform target freqs (type 3 only)
+    BIGINT nj = 0;                 // number of nonuniform source points
+    BIGINT nk = 0;                 // number of nonuniform target freqs (type 3 only)
     std::array<const TF *, 3> XYZ{nullptr, nullptr, nullptr};
-    // pointers to user's NU source coords (no alloc)
-    std::vector<BIGINT> sortIndices; // bin-sort permutation of NU points
-    bool didSort = false;            // whether bin-sorting was applied
+                                   // pointers to user's NU source coords (no alloc)
+    std::vector<BIGINT> sortIndices;  // bin-sort permutation of NU points
+    bool didSort = false;             // whether bin-sorting was applied
 
     // --- Type 3 workspace (set by setpts for type 3 only) ---
     std::array<const TF *, 3> STU{nullptr, nullptr, nullptr};
-    // pointers to user's target NU-point arrays (no alloc)
-    std::vector<TC> prephase;            // pre-phase factors for all input NU pts
-    std::vector<TC> deconv;              // 1/kernel_FT * phase at all output NU pts
-    std::array<std::vector<TF>, 3> XYZp; // rescaled/centered source NU points (x'_j)
-    std::array<std::vector<TF>, 3> STUp; // rescaled/centered target freqs (s'_k)
-    type3params t3P;                     // type 3 rescaling/centering/phasing params
+                                   // pointers to user's target NU-point arrays (no alloc)
+    std::vector<TC> prephase;      // pre-phase factors for all input NU pts
+    std::vector<TC> deconv;        // 1/kernel_FT * phase at all output NU pts
+    std::array<std::vector<TF>, 3> XYZp;  // rescaled/centered source NU points (x'_j)
+    std::array<std::vector<TF>, 3> STUp;  // rescaled/centered target freqs (s'_k)
+    type3params t3P;               // type 3 rescaling/centering/phasing params
     std::unique_ptr<const FINUFFT_PLAN_T<TF>> innerT2plan;
-    // inner type-2 plan used in step 2 of type 3
+                                   // inner type-2 plan used in step 2 of type 3
 
     // --- FFT plan (created in constructor or init_grid_kerFT_FFT) ---
     std::unique_ptr<Finufft_FFT_plan<TF>, Finufft_FFT_plan_deleter<TF>> fftPlan;
@@ -139,9 +139,9 @@ public:
   int dim;  // overall dimension: 1,2 or 3
 
 private:
-  int ntrans;                 // how many transforms to do at once (vector or "many" mode)
-  int batchSize;              // # strength vectors to group together for FFTW, etc
-  int nbatch;                 // how many batches done to cover all ntrans vectors
+  int ntrans;             // how many transforms to do at once (vector or "many" mode)
+  int batchSize;          // # strength vectors to group together for FFTW, etc
+  int nbatch;             // how many batches done to cover all ntrans vectors
   bool upsamp_locked = false; // true if user specified upsampfac != 0, prevents auto
                               // update
 
@@ -161,6 +161,7 @@ public:
   finufft_opts opts; // this and spopts could be made ptrs
 
 private:
+
   int execute_internal(TC *cj, TC *fk, bool adjoint = false, int ntrans_actual = -1,
                        TC *aligned_scratch = nullptr, size_t scratch_size = 0) const;
   void setup_spreadinterp(); // throws FINUFFT_ERR_EPS_TOO_SMALL if tol unachievable
@@ -293,21 +294,21 @@ inline void finufft_default_opts_t(finufft_opts *o)
   o->spread_debug = 0;
   o->showwarn     = 1;
 
-  o->nthreads            = 0;
-  o->fftw                = FINUFFT_FFT_DEFAULT; // FFTW_ESTIMATE for FFTW; -1 for DUCC0
-  o->spread_sort         = 2;
-  o->spread_kerevalmeth  = 1;                   // deprecated, retained for ABI
-  o->spread_kerpad       = 1;                   // deprecated, retained for ABI
-  o->upsampfac           = 0.0;
-  o->spread_thread       = 0;
-  o->maxbatchsize        = 0;
-  o->spread_nthr_atomic  = -1;
-  o->spread_max_sp_size  = 0;
-  o->spread_kerformula   = 0;
+  o->nthreads           = 0;
+  o->fftw               = FINUFFT_FFT_DEFAULT; // FFTW_ESTIMATE for FFTW; -1 for DUCC0
+  o->spread_sort        = 2;
+  o->spread_kerevalmeth = 1;                   // deprecated, retained for ABI
+  o->spread_kerpad      = 1;                   // deprecated, retained for ABI
+  o->upsampfac          = 0.0;
+  o->spread_thread      = 0;
+  o->maxbatchsize       = 0;
+  o->spread_nthr_atomic = -1;
+  o->spread_max_sp_size = 0;
+  o->spread_kerformula  = 0;
   o->allow_eps_too_small = 0;
-  o->fftw_lock_fun       = nullptr;
-  o->fftw_unlock_fun     = nullptr;
-  o->fftw_lock_data      = nullptr;
+  o->fftw_lock_fun      = nullptr;
+  o->fftw_unlock_fun    = nullptr;
+  o->fftw_lock_data     = nullptr;
   // sphinx tag (don't remove): @defopts_end
   FINUFFT_DIAGNOSTIC_POP
 }

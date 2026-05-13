@@ -76,19 +76,19 @@ void FINUFFT_PLAN_T<TF>::onedim_fseries_kernel(BIGINT nf,
   int q = (int)(2 + 3.0 * J2); // not sure why so large? (NB cannot exceed MAX_NQUAD)
   TF f[MAX_NQUAD];
   double z[2 * MAX_NQUAD], w[2 * MAX_NQUAD];
-  gaussquad(2 * q, z, w);       // only half the nodes used, eg on (0,1)
+  gaussquad(2 * q, z, w); // only half the nodes used, eg on (0,1)
   std::complex<TF> a[MAX_NQUAD];
-  for (int n = 0; n < q; ++n) { // set up nodes z_n and vals f_n
-    z[n] *= J2;                 // rescale nodes
-                                // vals & quadr weighs
+  for (int n = 0; n < q; ++n) {            // set up nodes z_n and vals f_n
+    z[n] *= J2;                            // rescale nodes
+                                           // vals & quadr weighs
     f[n] = J2 * (TF)w[n] * evaluate_kernel_runtime(TF(z[n]));
     // phase winding rates
     a[n] = -std::exp(2 * PI * std::complex<double>(0, 1) * z[n] / double(nf));
   }
   BIGINT nout = nf / 2 + 1; // how many values we're writing to
   int nt      = std::min(nout, (BIGINT)m.spopts.nthreads); // how many chunks
-  std::vector<BIGINT> brk(nt + 1); // start indices for each thread
-  for (int t = 0; t <= nt; ++t)    // split nout mode indices btw threads
+  std::vector<BIGINT> brk(nt + 1);                       // start indices for each thread
+  for (int t = 0; t <= nt; ++t) // split nout mode indices btw threads
     brk[t] = (BIGINT)(0.5 + nout * t / (double)nt);
 #pragma omp parallel num_threads(nt)
   {                                                // each thread gets own chunk to do
@@ -198,7 +198,7 @@ template<typename TF> void FINUFFT_PLAN_T<TF>::setup_spreadinterp() {
 
   // heuristic dir=1 chunking for nthr>>1, typical for intel i7 and skylake...
   m.spopts.max_subproblem_size = (dim == 1) ? 10000 : 100000; // todo: revisit
-  if (opts.spread_max_sp_size > 0)                            // override
+  if (opts.spread_max_sp_size > 0)                             // override
     m.spopts.max_subproblem_size = opts.spread_max_sp_size;
   // nthr above which switch OMP critical->atomic (add_wrapped..). R Blackwell's val:
   m.spopts.atomic_threshold =
