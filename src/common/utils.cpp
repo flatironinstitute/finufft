@@ -116,32 +116,48 @@ double cyl_bessel_i(double nu, double x) noexcept {
 #endif
 }
 
-} // namespace common
-} // namespace finufft
-
-namespace cufinufft {
-namespace utils {
-
-long next235beven(long n, long b)
-// finds even integer not less than n, with prime factors no larger than 5
-// (ie, "smooth") and is a multiple of b (b is a number that the only prime
-// factors are 2,3,5). Adapted from fortran in hellskitchen. Barnett 2/9/17
-// changed INT64 type 3/28/17. Runtime is around n*1e-11 sec for big n.
-// added condition about b, Melody Shih 05/31/20
-{
-  if (n <= 2) return 2;
-  if (n % 2 == 1) n += 1;                // even
-  long nplus  = n - 2;                   // to cancel out the +=2 at start of loop
-  long numdiv = 2;                       // a dummy that is >1
-  while ((numdiv > 1) || (nplus % b != 0)) {
-    nplus += 2;                          // stays even
-    numdiv = nplus;
-    while (numdiv % 2 == 0) numdiv /= 2; // remove all factors of 2,3,5...
-    while (numdiv % 3 == 0) numdiv /= 3;
-    while (numdiv % 5 == 0) numdiv /= 5;
+// Finds the smallest composite p of 2 and 3, such that p*x>=n.
+// Returns min(p*x, bestfac).
+// Copied from ducc0 FFT, Copyright (C) 2019 Peter Bell
+static size_t iter23(size_t n, size_t x, size_t bestfac) {
+  while (x < n) x *= 2;
+  // In the loop below, successively remove factors of 2 and
+  // add factors of 3, such that x stays in (n/2; 3*n).
+  // Whenever a new minimum target value is found, remember it.
+  // Stop if either x==n or no factors of 2 are left.
+  for (;;) {
+    if (x < n)
+      x *= 3;
+    else if (x > n) {
+      if (x < bestfac) bestfac = x;
+      if (x & 1) return bestfac; // no more factors 2 left
+      x >>= 1;                   // remove a factor 2
+    } else
+      return n;
   }
-  return nplus;
+}
+/* Returns the smallest composite of 2, 3, 5 which is >= n */
+/* Copied from ducc0 FFT, Copyright (C) 2019 Peter Bell */
+static size_t good_size_235(size_t n) {
+  if (n <= 6) return n;
+
+  size_t bestfac = 2 * n; // guaranteed upper limit to the solution
+  for (size_t f5 = 1; f5 < bestfac; f5 *= 5)
+    if ((bestfac = iter23(n, f5, bestfac)) == n) return n;
+  return bestfac;
 }
 
-} // namespace utils
-} // namespace cufinufft
+/* Returns the smallest composite of 2, 3, 5,
+   for which p*required_factor >= n. */
+static size_t good_size_235(size_t n, size_t required_factor) {
+  return good_size_235((n + required_factor - 1) / required_factor) * required_factor;
+}
+
+long next235(long n, long required_factor) {
+  n               = std::max<long>(n, 1);
+  required_factor = std::max<long>(required_factor, 1);
+  return good_size_235(size_t(n), size_t(required_factor));
+}
+
+} // namespace common
+} // namespace finufft

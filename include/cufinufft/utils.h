@@ -70,9 +70,6 @@ namespace utils {
 
 using namespace finufft::common;
 
-// math helpers whose source is in src/utils.cpp
-FINUFFT_EXPORT long next235beven(long n, long b);
-
 /**
  * does a complex atomic add on a shared memory address
  * it adds the real and imaginary parts separately
@@ -155,8 +152,8 @@ auto set_nhg_type3(T S, T X, const cufinufft_opts &opts,
   // printf("initial nf=%lld, ns=%d\n",*nf,spopts.nspread);
   //  catch too small nf, and nan or +-inf, otherwise spread fails...
   if (nf < 2 * spopts.nspread) nf = 2 * spopts.nspread;
-  if (nf < MAX_NF)            // otherwise will fail anyway
-    nf = next235beven(nf, 1); // expensive at huge nf
+  if (nf < MAX_NF) // otherwise will fail anyway
+    nf = next235(nf, 2);
   // Note: b is 1 because type 3 uses a type 2 plan, so it should not need the extra
   // condition that seems to be used by Block Gather as type 2 are only GM-sort
   auto h   = 2 * T(PI) / nf;                         // upsampled grid spacing
