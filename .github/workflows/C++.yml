@@ -4,6 +4,9 @@ on:
   pull_request:
     branches:
       - master
+  push:
+    branches:
+      - master
   # Manual trigger (with an optional deploy toggle)
   workflow_dispatch:
     inputs:
