@@ -16,6 +16,8 @@ compilers, and in our experience (as of 2024), GCC13 gives the best
 performance. We do not recommend any GCC version prior to 9 on x86_64, due to
 vectorization issues.
 
+.. include:: _generated/platforms.rst
+
 .. note::
   There are now two choices of FFT library for the CPU build:
 

@@ -15,6 +15,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Validate platform-table generator parses workflows
+        run: |
+          python3 -m pip install --quiet PyYAML
+          python3 tools/gen_platform_table.py --check
+
       - name: Free disk space
         if: ${{ !env.ACT }}
         uses: jlumbroso/free-disk-space@main
