@@ -23,7 +23,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ ubuntu-22.04, macos-14, windows-2022 ]
+        os: [ ubuntu-24.04, macos-14, windows-2022 ]
 
     env:
       CTEST_OUTPUT_ON_FAILURE: "1"
@@ -38,7 +38,7 @@ jobs:
         uses: fortran-lang/setup-fortran@v1
         with:
           compiler: gcc
-          version: 13
+          version: 15
 
         # CMake + Ninja (uniform across OSes)
       - name: Setup CMake & Ninja

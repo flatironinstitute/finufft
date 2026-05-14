@@ -16,8 +16,9 @@
 */
 
 #include <finufft/interp.hpp>
-#include <finufft/spread.hpp>
 #include <finufft/plan.hpp>
+#include <finufft/spread.hpp>
+#include <finufft/utils.hpp>
 
 #include <algorithm>
 #include <cmath>
@@ -78,6 +79,9 @@ TF FINUFFT_PLAN_T<TF>::evaluate_kernel_runtime(TF x) const
   const TF ns2    = ns / TF(2.0); // half width w/2, in grid point units
   const TF *coefs = m.horner_coeffs.data();
   TF res          = TF(0.0);
+  // Invariant: m.padded_ns is the runtime mirror of
+  // finufft::spreadinterp::KernelBufferLayout<TF, NS>::stride; both are produced
+  // by kernel_buffer_stride_runtime<TF>(ns) in precompute_horner_coeffs.
   for (int i = 0; i < ns; ++i) {             // check if x falls into any piecewise panels
     if (x > -ns2 + i && x <= -ns2 + i + 1) { // if so, eval that Horner polynomial
       TF z = std::fma(TF(2.0), x - TF(i), TF(ns - 1)); // maps panel to z in [-1,1]

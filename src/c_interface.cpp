@@ -2,8 +2,9 @@
 #include <finufft.h>
 // private headers
 #include <array>
-#include <cstdio>
+#include <complex>
 #include <finufft/plan.hpp> // (must come after complex.h)
+#include <finufft_opts.h>
 
 using namespace std;
 using finufft::common::safe_finufft_call;
@@ -51,13 +52,15 @@ int finufftf_makeplan(int type, int dim, ci64 *n_modes, int iflag, int ntrans, f
 int finufft_setpts(finufft_plan p, i64 nj, cf64 *xj, cf64 *yj, cf64 *zj, i64 nk, cf64 *s,
                    cf64 *t, cf64 *u) {
   return safe_finufft_call([&]() -> int {
-    return reinterpret_cast<FINUFFT_PLAN_T<f64> *>(p)->setpts(nj, xj, yj, zj, nk, s, t, u);
+    return reinterpret_cast<FINUFFT_PLAN_T<f64> *>(p)->setpts(nj, xj, yj, zj, nk, s, t,
+                                                              u);
   });
 }
 int finufftf_setpts(finufftf_plan p, i64 nj, cf32 *xj, cf32 *yj, cf32 *zj, i64 nk,
                     cf32 *s, cf32 *t, cf32 *u) {
   return safe_finufft_call([&]() -> int {
-    return reinterpret_cast<FINUFFT_PLAN_T<f32> *>(p)->setpts(nj, xj, yj, zj, nk, s, t, u);
+    return reinterpret_cast<FINUFFT_PLAN_T<f32> *>(p)->setpts(nj, xj, yj, zj, nk, s, t,
+                                                              u);
   });
 }
 
@@ -132,19 +135,18 @@ int guru(int n_dims, int type, int n_transf, i64 nj, const std::array<const T *,
 }
 template<typename T>
 int guru13(int n_dims, int type, int n_transf, i64 nj,
-                  const std::array<const T *, 3> &xyz, const std::complex<T> *cj,
-                  int iflag, T eps, const std::array<ci64, 3> &n_modes, i64 nk,
-                  const std::array<const T *, 3> &stu, std::complex<T> *fk,
-                  const finufft_opts *popts) {
+           const std::array<const T *, 3> &xyz, const std::complex<T> *cj, int iflag,
+           T eps, const std::array<ci64, 3> &n_modes, i64 nk,
+           const std::array<const T *, 3> &stu, std::complex<T> *fk,
+           const finufft_opts *popts) {
   return guru(n_dims, type, n_transf, nj, xyz, const_cast<std::complex<T> *>(cj), iflag,
               eps, n_modes, nk, stu, fk, popts);
 }
 template<typename T>
-int guru2(int n_dims, int type, int n_transf, i64 nj,
-                 const std::array<const T *, 3> &xyz, std::complex<T> *cj, int iflag,
-                 T eps, const std::array<ci64, 3> &n_modes, i64 nk,
-                 const std::array<const T *, 3> &stu, const std::complex<T> *fk,
-                 const finufft_opts *popts) {
+int guru2(int n_dims, int type, int n_transf, i64 nj, const std::array<const T *, 3> &xyz,
+          std::complex<T> *cj, int iflag, T eps, const std::array<ci64, 3> &n_modes,
+          i64 nk, const std::array<const T *, 3> &stu, const std::complex<T> *fk,
+          const finufft_opts *popts) {
   return guru(n_dims, type, n_transf, nj, xyz, cj, iflag, eps, n_modes, nk, stu,
               const_cast<std::complex<T> *>(fk), popts);
 }

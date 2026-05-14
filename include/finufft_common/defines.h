@@ -1,5 +1,13 @@
 #pragma once
 
+#ifdef __cplusplus
+#include <cstdint>
+// All indexing in library that potentially can exceed 2^31 uses 64-bit signed.
+// This includes all calling arguments (eg M,N) that could be huge someday.
+using BIGINT  = int64_t;
+using UBIGINT = uint64_t;
+#endif
+
 /* IMPORTANT: for Windows compilers, you should add a line
         #define FINUFFT_DLL
    here if you are compiling/using FINUFFT as a DLL,

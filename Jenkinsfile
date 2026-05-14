@@ -1,26 +1,18 @@
-pipeline {
-  agent none
-  options {
-    disableConcurrentBuilds()
-    buildDiscarder(logRotator(numToKeepStr: '8', daysToKeepStr: '20'))
-    timeout(time: 1, unit: 'HOURS')
-  }
-  stages {
-    stage('main') {
-      agent {
-         dockerfile {
-            filename 'tools/cufinufft/docker/cuda11.2/Dockerfile-x86_64'
-            args '--gpus 2'
-            label 'v100'
-         }
-      }
-      environment {
-    HOME = "$WORKSPACE"
-    PYBIN = "/opt/python/cp310-cp310/bin"
-    LIBRARY_PATH = "$WORKSPACE/build"
-    LD_LIBRARY_PATH = "$WORKSPACE/build"
-      }
-      steps {
+properties([
+  disableConcurrentBuilds(),
+  buildDiscarder(logRotator(numToKeepStr: '8', daysToKeepStr: '20'))
+])
+
+try {
+  timeout(time: 1, unit: 'HOURS') {
+    buildPod(dockerfile: 'tools/cufinufft/docker/cuda11.2/Dockerfile-x86_64', gpus: 2, gpuType: 'v100') {
+      stage('build') {
+        withEnv([
+          "HOME=$WORKSPACE",
+          "PYBIN=/opt/python/cp310-cp310/bin",
+          "LIBRARY_PATH=$WORKSPACE/build",
+          "LD_LIBRARY_PATH=$WORKSPACE/build"
+        ]) {
     sh '''#!/bin/bash -ex
       nvidia-smi
     '''
@@ -38,7 +30,7 @@ pipeline {
                          -DBUILD_TESTING=ON \
                          -DFINUFFT_STATIC_LINKING=OFF
         cd build
-        make -j4
+        make -j$PARALLEL
     '''
     sh '''#!/bin/bash -ex
       cd build/test/cuda
@@ -70,30 +62,11 @@ pipeline {
       python3 -m pytest --framework=cupy python/cufinufft
       python3 -m pytest --framework=torch python/cufinufft
     '''
+        }
       }
     }
   }
-  post {
-    failure {
-      emailext subject: '$PROJECT_NAME - Build #$BUILD_NUMBER - $BUILD_STATUS',
-           body: '''$PROJECT_NAME - Build #$BUILD_NUMBER - $BUILD_STATUS
-
-Check console output at $BUILD_URL to view full results.
-
-Building $BRANCH_NAME for $CAUSE
-$JOB_DESCRIPTION
-
-Chages:
-$CHANGES
-
-End of build log:
-${BUILD_LOG,maxLines=200}
-''',
-           recipientProviders: [
-         [$class: 'DevelopersRecipientProvider'],
-           ],
-           replyTo: '$DEFAULT_REPLYTO',
-           to: 'janden@flatironinstitute.org'
-    }
-  }
+}
+finally {
+  emailFailure()
 }

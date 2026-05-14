@@ -1,5 +1,4 @@
 include(staticAnalysis)
-include(setupIWYU)
 
 set(SRC
     cufinufft.cu
@@ -27,7 +26,6 @@ else()
 endif()
 
 enable_static_analysis(cufinufft)
-add_iwyu_fix_target(cufinufft)
 set_property(TARGET ${target} PROPERTY INTERPROCEDURAL_OPTIMIZATION ${FINUFFT_INTERPROCEDURAL_OPTIMIZATION})
 add_library(finufft::cufinufft ALIAS cufinufft)
 target_include_directories(cufinufft PUBLIC ${CUFINUFFT_INCLUDE_DIRS})

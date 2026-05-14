@@ -25,13 +25,14 @@ public:
   [[maybe_unused]] static void cleanup_threads() {}
 };
 
-#else // FFTW path
+#else                       // FFTW path
 
 //clang-format off
 #include <complex>
-#include <fftw3.h> // (after complex) needed so can typedef FFTW_CPX
+#include <fftw3.h>          // (after complex) needed so can typedef FFTW_CPX
 //clang-format on
 #include <array>
+#include <cstdint>          // uint64_t
 #include <finufft/simd.hpp> // xsimd::aligned_allocator
 #include <mutex>
 #include <vector>
@@ -219,9 +220,12 @@ public:
 
 #endif // FINUFFT_USE_DUCC0
 
-#include <algorithm>         // std::min (for DUCC0 path)
+#include <algorithm> // IWYU pragma: keep   // std::min (for DUCC0 path; hidden by `using namespace std`)
+#include <cstddef>           // size_t
 #include <finufft/plan.hpp>  // FINUFFT_PLAN_T (includes FFT forward decl)
 #include <finufft/utils.hpp> // CNTime
+#include <finufft_errors.h>  // FINUFFT_ERR_MAXNALLOC
+#include <limits>            // std::numeric_limits
 
 using namespace std;
 
@@ -261,7 +265,7 @@ template std::vector<int> FINUFFT_PLAN_T<double>::gridsize_for_fft() const;
 // --- do_fft ---
 template<typename TF>
 void FINUFFT_PLAN_T<TF>::do_fft(TC *fwBatch, int ntrans_actual [[maybe_unused]],
-                                 bool adjoint) const
+                                bool adjoint) const
 // Execute FFT on fwBatch (in-place, batchSize transforms).
 // FFTW: ntrans_actual ignored (plan already sized to batchSize).
 // DUCC0: used for partial FFTs.
@@ -372,8 +376,8 @@ template void FINUFFT_PLAN_T<double>::do_fft(std::complex<double> *, int, bool) 
 // Allocates the fftPlan unique_ptr; needs complete Finufft_FFT_plan type.
 // Called from the constructor in makeplan.hpp.
 template<typename TF> void FINUFFT_PLAN_T<TF>::create_fft_plan() {
-  m.fftPlan.reset(new Finufft_FFT_plan<TF>(
-      opts.fftw_lock_fun, opts.fftw_unlock_fun, opts.fftw_lock_data));
+  m.fftPlan.reset(new Finufft_FFT_plan<TF>(opts.fftw_lock_fun, opts.fftw_unlock_fun,
+                                           opts.fftw_lock_data));
 }
 template void FINUFFT_PLAN_T<float>::create_fft_plan();
 template void FINUFFT_PLAN_T<double>::create_fft_plan();
@@ -388,7 +392,7 @@ template<typename TF> void FINUFFT_PLAN_T<TF>::init_grid_kerFT_FFT() {
   using namespace finufft::utils;
   CNTime timer{};
   m.spopts.spread_direction = type;
-  constexpr TF EPSILON    = std::numeric_limits<TF>::epsilon();
+  constexpr TF EPSILON      = std::numeric_limits<TF>::epsilon();
 
   if (opts.spreadinterponly) { // (unusual case of no NUFFT, just report)
     // spreadinterp grid will simply be the user's "mode" grid...
@@ -418,7 +422,7 @@ template<typename TF> void FINUFFT_PLAN_T<TF>::init_grid_kerFT_FFT() {
 
     // determine fine grid sizes, sanity check, then alloc...
     for (int idim = 0; idim < dim; ++idim) {
-      set_nf_type12(mstu[idim], &m.nfdim[idim]);   // throws if nf too big
+      set_nf_type12(mstu[idim], &m.nfdim[idim]);    // throws if nf too big
       m.phiHat[idim].resize(m.nfdim[idim] / 2 + 1); // alloc fseries
     }
 

@@ -1,0 +1,45 @@
+name: Perftest PR Cleanup
+
+# Removes ``pr-<NUM>/`` from the perftest-images branch when a PR is
+# closed (merged or not). Uses ``pull_request_target`` so it runs from
+# master's copy of this YAML with a write-scoped token, but never
+# checks out PR code (we only need the PR number from the event).
+
+on:
+  pull_request_target:
+    types: [closed]
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout perftest-images branch
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          ref: perftest-images
+          # Don't fail if the branch doesn't exist yet.
+          fetch-depth: 1
+        continue-on-error: true
+
+      - name: Remove pr-<NUM>/ if present
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ ! -d ".git" ]; then
+            echo "perftest-images branch not present; nothing to clean."
+            exit 0
+          fi
+          if [ ! -d "pr-${PR_NUMBER}" ]; then
+            echo "No pr-${PR_NUMBER}/ directory on perftest-images; nothing to clean."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git rm -rf "pr-${PR_NUMBER}"
+          git commit -m "Cleanup perftest images for PR #${PR_NUMBER} [no ci]"
+          git push origin perftest-images

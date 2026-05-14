@@ -3,7 +3,6 @@
 
 #pragma once
 
-#include "plan.hpp"
 #include <cmath>
 #include <finufft_common/common.h>
 
@@ -40,8 +39,6 @@ FINUFFT_ALWAYS_INLINE void arraywidcen(BIGINT n, const T *a, T *w, T *c)
   }
 }
 
-// routines in utils.cpp ...
-FINUFFT_EXPORT_TEST BIGINT next235even(BIGINT n);
 // jfm's timer class
 class FINUFFT_EXPORT_TEST CNTime {
 public:

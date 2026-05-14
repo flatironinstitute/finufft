@@ -1,0 +1,34 @@
+Performance ({{ backend }} backend)
+-----------------------------------
+
+CPU name: ``{{ cpu_name }}``.
+
+Arch: ``{{ arch }}``.
+
+Core count: ``{{ core_count }}``.
+
+ISA extensions present: ``{{ flags }}``.
+
+Compiler version: ``{{ compiler_version }}``.
+
+Compiler flags: ``{{ compiler_flags }}``.
+
+
+{% for dim, transform_groups in dim_transform_groups.items() %}
+{{ dim }}D Transforms
+~~~~~~~~~~~~~~~~~~~~~
+
+{% for group, images in transform_groups.items() %}
+Type {{ group }}
+^^^^^^^^^^^^^^^^
+
+{% for image in images %}
+Parameters: ``{{ image.params }}``
+
+.. image:: https://raw.githubusercontent.com/flatironinstitute/finufft/perftest-results/docs/{{ image.path }}
+   :alt: {{ image.path }}
+   :width: 100%
+
+{% endfor %}
+{% endfor %}
+{% endfor %}

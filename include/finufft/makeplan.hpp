@@ -9,10 +9,9 @@
 #include <vector>
 
 #include <finufft/plan.hpp>
-#include <finufft/utils.hpp>
 #include <finufft/spreadinterp.hpp>
-#include <finufft_common/kernel.h>
-#include <finufft_common/utils.h>
+#include <finufft/utils.hpp>
+#include <finufft_common/common.h>
 
 // ---------- local math routines (were in common.cpp; no need now): --------
 
@@ -23,11 +22,11 @@ void FINUFFT_PLAN_T<TF>::set_nf_type12(BIGINT ms, BIGINT *nf) const
 // unreasonably big. Previous args (opts, spopts) are now plan members.
 // Converted to class member, Barbone 2/24/26.
 {
-  using namespace finufft::utils;
+  using namespace finufft::common;
   *nf = BIGINT(std::ceil(opts.upsampfac * double(ms))); // round up to handle small cases
   if (*nf < 2 * m.spopts.nspread) *nf = 2 * m.spopts.nspread; // otherwise spread fails
   if (*nf < MAX_NF) {
-    *nf = next235even(*nf);                               // expensive at huge nf
+    *nf = next235(*nf, 2);
   } else {
     fprintf(stderr,
             "[%s] nf=%.3g exceeds MAX_NF of %.3g, so exit without attempting "
@@ -163,15 +162,18 @@ template<typename TF> void FINUFFT_PLAN_T<TF>::setup_spreadinterp() {
 
   // choose nspread and set it in spopts...
   int ns = theoretical_kernel_ns((double)m.tol, dim, type, opts.debug, m.spopts);
-  ns     = std::max(MIN_NSPREAD, ns); // clip low
-  if (ns > MAX_NSPREAD) {             // clip to largest spreadinterp.cpp allows
+  ns = std::max(MIN_NSPREAD, ns); // clip low
+  // per-precision cap: float spreadinterp is only instantiated up to
+  // MAX_NSPREAD<TF> (see constants.h, issue #827)
+  constexpr int max_ns = MAX_NSPREAD<TF>;
+  if (ns > max_ns) { // clip to largest spreadinterp.cpp allows
     if (opts.allow_eps_too_small) {
-      ns = MAX_NSPREAD;
+      ns = max_ns;
     } else {
       fprintf(stderr,
               "%s error: at upsampfac=%.3g, tol=%.3g would need kernel "
               "width ns=%d, exceeding max %d.\n",
-              __func__, m.spopts.upsampfac, (double)m.tol, ns, MAX_NSPREAD);
+              __func__, m.spopts.upsampfac, (double)m.tol, ns, max_ns);
       throw finufft::exception(FINUFFT_ERR_EPS_TOO_SMALL);
     }
   }
@@ -215,11 +217,11 @@ template<typename TF> void FINUFFT_PLAN_T<TF>::precompute_horner_coeffs() {
 
   const auto nc_fit = max_nc_given_ns(nspread); // how many coeffs to fit
 
-  // get the xsimd padding
-  // (must match that used in spreadinterp.cpp: if we change horner simd_width there
-  // we must also change it here)
-  const auto simd_size = GetPaddedSIMDWidth<TF>(2 * nspread);
-  m.padded_ns          = (nspread + simd_size - 1) & -simd_size;
+  // Both the chunk stride here and the per-chunk stride in evaluate_kernel_vector
+  // flow through KernelBufferLayout<TF, NS>::stride (compile-time) and
+  // kernel_buffer_stride_runtime<TF>(ns) (runtime mirror), so they provably agree.
+  m.padded_ns          = finufft::spreadinterp::kernel_buffer_stride_runtime<TF>(nspread);
+  const auto simd_size = get_padded_simd_width<TF>(2 * nspread);
 
   m.horner_coeffs.fill(TF(0));
 

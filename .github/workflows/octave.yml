@@ -1,0 +1,57 @@
+name: Build Octave MEX
+
+on:
+  schedule:
+    - cron: "0 0 * * 0"
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      deploy:
+        description: "Deploy after build?"
+        type: boolean
+        required: false
+        default: false
+
+jobs:
+  octave:
+    strategy:
+      fail-fast: false
+      matrix:
+        # 22.04 ships Octave 6.4 (no liboctmex), 24.04 ships Octave 8.4 (has it).
+        # Both paths exercise the version-aware lib fallback in matlab/CMakeLists.txt.
+        os: [ubuntu-22.04, ubuntu-24.04]
+    name: ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup C++ toolchain
+        uses: aminya/setup-cpp@v1
+        with:
+          cmake: true
+          ninja: true
+
+      - name: Install Octave + FFTW
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y octave octave-dev libfftw3-dev
+
+      - name: Configure
+        run: |
+          cmake -B build \
+            -DFINUFFT_BUILD_OCTAVE=ON \
+            -DFINUFFT_BUILD_TESTS=ON
+
+      - name: Build Octave MEX
+        run: cmake --build build -j --target octave_mex
+
+      - name: Run Octave tests
+        run: ctest --test-dir build -L octave --output-on-failure
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: ${{ matrix.os }}-finufft-octave-mex
+          path: build/matlab/octave/finufft.mex
+          if-no-files-found: error

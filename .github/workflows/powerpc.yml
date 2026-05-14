@@ -5,8 +5,11 @@ on:
   schedule:
     - cron: "0 0 * * 0"
 
-  # On tag push
+  # On tag push, and on every master push (so the platform-table badges in
+  # README.md always have a recent check-run to report against — see #508).
   push:
+    branches:
+      - master
     tags:
       - 'v*'
   # Manual trigger (with an optional deploy toggle)

@@ -6,7 +6,7 @@ jobs:
   cache:
     strategy:
       matrix:
-        os: [ubuntu-22.04]
+        os: [ubuntu-24.04]
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout code
@@ -55,8 +55,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { os: ubuntu-22.04, toolchain: gcc-13, sanitizer: ON }
-          - { os: ubuntu-22.04, toolchain: gcc-13, sanitizer: TSAN }
+          - { os: ubuntu-24.04, toolchain: gcc-15, sanitizer: ON }
+          - { os: ubuntu-24.04, toolchain: gcc-15, sanitizer: TSAN }
           - { os: macos-14, toolchain: llvm, sanitizer: ON }
 
     steps:

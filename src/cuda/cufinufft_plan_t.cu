@@ -43,6 +43,7 @@ static int setup_spreader(finufft_spread_opts &spopts, T eps, T upsampfac,
 {
   using finufft::common::MAX_NSPREAD;
   using finufft::common::PI;
+  constexpr int max_ns = MAX_NSPREAD<T>;
 
   if (upsampfac != 2.0 && upsampfac != 1.25) { // nonstandard sigma
     if (kerevalmeth == 1) {
@@ -82,13 +83,13 @@ static int setup_spreader(finufft_spread_opts &spopts, T eps, T upsampfac,
   if (upsampfac != 2.0)                      // override ns for custom sigma
     ns = std::ceil(-log(eps) / (T(PI) * sqrt(1 - 1 / upsampfac))); // formula,
                                                                    // gamma=1
-  ns = std::max(2, ns);   // we don't have ns=1 version yet
-  if (ns > MAX_NSPREAD) { // clip to match allocated arrays
+  ns = std::max(2, ns); // we don't have ns=1 version yet
+  if (ns > max_ns) {    // clip to match allocated arrays / instantiations
     fprintf(stderr,
             "[%s] warning: at upsampfac=%.3g, tol=%.3g would need kernel width ns=%d; "
             "clipping to max %d.\n",
-            __func__, upsampfac, (double)eps, ns, MAX_NSPREAD);
-    ns  = MAX_NSPREAD;
+            __func__, upsampfac, (double)eps, ns, max_ns);
+    ns  = max_ns;
     ier = FINUFFT_WARN_EPS_TOO_SMALL;
   }
   spopts.nspread = ns;

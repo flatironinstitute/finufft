@@ -4,6 +4,9 @@ on:
   pull_request:
     branches:
       - master
+  push:
+    branches:
+      - master
   # Manual trigger (with an optional deploy toggle)
   workflow_dispatch:
     inputs:
@@ -56,8 +59,8 @@ jobs:
 
     - name: Install gcc and fftw
       run: |
-        brew install gcc@14 fftw
-        cp make-platforms/make.inc.macosx_gcc-14 make.inc
+        brew install gcc@15 fftw
+        cp make-platforms/make.inc.macosx_gcc-15 make.inc
 
     - name: Compile C++ code
       run: |

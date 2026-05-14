@@ -231,9 +231,23 @@ htmlhelp_basename = 'finufftdoc'
 
 # To fix location of equation numbering. Barnett tried 6/19/18
 # see https://samnicholls.net/2016/06/15/how-to-sphinx-readthedocs/
+def _generate_platform_table(app):
+    """Run tools/gen_platform_table.py before source collection.
+
+    Emits docs/_generated/platforms.rst from the CI matrix; the file is
+    git-ignored — see issue #508.
+    """
+    import subprocess
+
+    here = os.path.dirname(os.path.abspath(__file__))
+    script = os.path.join(here, os.pardir, "tools", "gen_platform_table.py")
+    out = os.path.join(here, "_generated", "platforms.rst")
+    subprocess.check_call([sys.executable, script, "--format", "rst", "--output", out])
+
+
 def setup(app):
-    app.add_css_file('theme_overrides.css')
-# it doesn't fail if this file not found in _static  :(
+    app.add_css_file("theme_overrides.css")
+    app.connect("builder-inited", _generate_platform_table)
 
 
 

@@ -2,12 +2,12 @@
 BasedOnStyle: LLVM
 AlignAfterOpenBracket: Align
 AlignConsecutiveMacros: AcrossEmptyLinesAndComments
-AlignConsecutiveAssignments: Consecutive
+AlignConsecutiveAssignments: None
 AlignEscapedNewlines: Left
 AlignOperands: true
 AlignTrailingComments:
-  Kind: Always
-  OverEmptyLines: 1
+  Kind: Leave
+  OverEmptyLines: 0
 AllowShortIfStatementsOnASingleLine: WithoutElse
 AllowShortLambdasOnASingleLine: Inline
 AllowShortLoopsOnASingleLine: true

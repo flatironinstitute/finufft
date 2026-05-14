@@ -8,11 +8,12 @@
    They have been converted to C and repackaged by Libin Lu.
 */
 
+#include <algorithm>
 #include <array>
 #include <cmath>
 #include <finufft_common/pswf.h>
-#include <iostream>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 namespace finufft::common {

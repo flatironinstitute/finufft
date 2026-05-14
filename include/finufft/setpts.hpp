@@ -6,6 +6,8 @@
 #include <cstdio>
 #include <vector>
 
+#include <cassert>
+
 #include <finufft/spreadinterp.hpp>
 #include <finufft/plan.hpp>
 #include <finufft/utils.hpp>
@@ -50,7 +52,7 @@ void FINUFFT_PLAN_T<TF>::set_nhg_type3(int idim, TF S, TF X)
   // catch too small nf, and nan or +-inf, otherwise spread fails...
   if (m.nfdim[idim] < 2 * m.spopts.nspread) m.nfdim[idim] = 2 * m.spopts.nspread;
   if (m.nfdim[idim] < MAX_NF)                     // otherwise will fail
-    m.nfdim[idim] = next235even(m.nfdim[idim]);   // expensive at huge nf
+    m.nfdim[idim] = next235(m.nfdim[idim], 2);
   m.t3P.h[idim]   = TF(2.0 * PI / m.nfdim[idim]); // upsampled grid spacing
   m.t3P.gam[idim] = TF(m.nfdim[idim] / (2.0 * opts.upsampfac * Ssafe)); // x scale fac
 }
@@ -98,6 +100,12 @@ int FINUFFT_PLAN_T<TF>::setpts(BIGINT nj, const TF *xj, const TF *yj, const TF *
     }
 
     m.XYZ   = {xj, yj, zj}; // plan must keep pointers to user's fixed NU pts
+    // Invariant: m.padded_ns must equal the runtime mirror of
+    // KernelBufferLayout<TF, NS>::stride. Caught here if any path forgot to
+    // call precompute_horner_coeffs (or if the trait diverges from the runtime
+    // formula).
+    assert(m.padded_ns ==
+           finufft::spreadinterp::kernel_buffer_stride_runtime<TF>(m.spopts.nspread));
     spreadcheck();          // throws on error
     timer.restart();
     m.sortIndices.resize(nj);
