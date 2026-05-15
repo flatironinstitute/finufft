@@ -60,7 +60,7 @@ std::function<double(double)> kernel_definition_lambda(
     // continuous (deplinthed) KB, as in Barnett SIREV 2022, normalized to max nearly 1
     const double besselbeta = common::cyl_bessel_i(0, beta);
     return [beta, besselbeta](double z) {
-      return common::cyl_bessel_i(0, beta * std::sqrt(1.0 - z * z) - 1.0) / besselbeta;
+      return (common::cyl_bessel_i(0, beta * std::sqrt(1.0 - z * z)) - 1.0) / besselbeta;
     };
   } else if (kf == 5) {
     const double coshbeta = std::cosh(beta);
@@ -70,7 +70,7 @@ std::function<double(double)> kernel_definition_lambda(
   } else if (kf == 6) {
     const double coshbeta = std::cosh(beta);
     return [beta, coshbeta](double z) {
-      return std::cosh(beta * std::sqrt(1.0 - z * z) - 1.0) / coshbeta;
+      return (std::cosh(beta * std::sqrt(1.0 - z * z)) - 1.0) / coshbeta;
     }; // Potts-Tasche cont cosh-type
   } else if (kf >= 7 && kf <= 9) {
     finufft::common::PSWF0 pswf(beta);

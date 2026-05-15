@@ -9,6 +9,7 @@
 */
 
 #include <finufft_common/pswf.h>
+#include <finufft_common/safe_call.h>
 
 namespace finufft::common {
 
@@ -55,7 +56,7 @@ static void prolql1(int n, std::vector<double> &d, std::vector<double> &e) {
       }
 
       if (m == l) break;
-      if (j == 30) throw int(FINUFFT_ERR_PSWF_SETUP);
+      if (j == 30) throw finufft::exception(FINUFFT_ERR_PSWF_SETUP);
       ++j;
 
       double g = (d[l + 1] - d[l]) / (2. * e[l]);
