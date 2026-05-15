@@ -45,6 +45,8 @@ public:
     case FINUFFT_ERR_LOCK_FUNS_INVALID: return "FFTW lock/unlock functions invalid";
     case FINUFFT_ERR_NTHREADS_NOTVALID: return "number of threads not valid";
     case FINUFFT_ERR_KERFORMULA_NOTVALID: return "kernel formula not valid";
+    case FINUFFT_ERR_CUDA_FAILURE:
+      return "FINUFFT CUDA failure";
     default: return "unknown FINUFFT error";
     }
     FINUFFT_DIAGNOSTIC_POP

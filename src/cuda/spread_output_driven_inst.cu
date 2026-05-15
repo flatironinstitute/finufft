@@ -116,12 +116,12 @@ void spread_output_driven_launch(const cufinufft_plan_t<T> &d_plan,
   const auto launch = [&](auto kernel) {
     cufinufft_set_shared_memory(kernel, d_plan);
     cudaFuncSetSharedMemConfig(kernel, cudaSharedMemBankSizeEightByte);
-    THROW_IF_CUDA_ERROR
+    THROW_IF_CUDA_ERROR();
     for (int t = 0; t < blksize; t++) {
       kernel<<<d_plan.totalnumsubprob, std::min(256, std::max(bufsz, d_plan.opts.gpu_np)),
                sharedplanorysize, d_plan.stream>>>(
           d_plan, c + t * d_plan.M, fw + t * d_plan.nf, d_plan.opts.gpu_np);
-      THROW_IF_CUDA_ERROR
+      THROW_IF_CUDA_ERROR();
     }
   };
   (d_plan.opts.gpu_kerevalmeth == 1) ? launch(spread_output_driven<T, 1, ndim, ns>)

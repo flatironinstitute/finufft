@@ -72,7 +72,7 @@ void spread_nupts_driven_launch(const cufinufft_plan_t<T> &d_plan,
     for (int t = 0; t < blksize; t++) {
       kernel<<<blocks, threadsPerBlock, 0, d_plan.stream>>>(d_plan, c + t * d_plan.M,
                                                             fw + t * d_plan.nf);
-      THROW_IF_CUDA_ERROR
+      THROW_IF_CUDA_ERROR();
     }
   };
   (d_plan.opts.gpu_kerevalmeth == 1) ? launch(spread_nupts_driven<T, 1, ndim, ns>)
@@ -110,21 +110,21 @@ template<typename T, int Ndim> void do_indexSort_nupts_driven(cufinufft_plan_t<T
     calc_bin_size_noghost<T, Ndim><<<(p.M + 1024 - 1) / 1024, 1024, 0, p.stream>>>(
         p.M, p.nf123, inv_binsizes, nbins, dethrust(p.binsize), p.kxyz,
         dethrust(p.sortidx));
-    THROW_IF_CUDA_ERROR
+    THROW_IF_CUDA_ERROR();
 
     thrust::exclusive_scan(thrust::cuda::par.on(p.stream), p.binsize.begin(),
                            p.binsize.end(), p.binstartpts.begin());
-    THROW_IF_CUDA_ERROR
+    THROW_IF_CUDA_ERROR();
 
     calc_inverse_of_global_sort_idx<T, Ndim>
         <<<(p.M + 1024 - 1) / 1024, 1024, 0, p.stream>>>(
             p.M, inv_binsizes, nbins, dethrust(p.binstartpts), dethrust(p.sortidx),
             p.kxyz, dethrust(p.idxnupts), p.nf123);
-    THROW_IF_CUDA_ERROR
+    THROW_IF_CUDA_ERROR();
   } else {
     thrust::sequence(thrust::cuda::par.on(p.stream), p.idxnupts.begin(),
                      p.idxnupts.begin() + p.M);
-    THROW_IF_CUDA_ERROR
+    THROW_IF_CUDA_ERROR();
   }
 }
 

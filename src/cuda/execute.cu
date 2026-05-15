@@ -144,7 +144,8 @@ void cufinufft_plan_t<T>::execute_type1(cuda_complex<T> *d_c, cuda_complex<T> *d
 
     // Step 2: FFT
     cufftResult cufft_status = cufft_ex(fftplan.get(), fw, fw, iflag);
-    if (cufft_status != CUFFT_SUCCESS) throw finufft::exception(FINUFFT_ERR_CUDA_FAILURE);
+    if (cufft_status != CUFFT_SUCCESS)
+      throw cufinufft::cufft_exception(cufft_status, "cufft_ex_type1");
 
     // Step 3: deconvolve and shuffle
     deconvolve(fw, fk, blksize);
@@ -190,10 +191,10 @@ void cufinufft_plan_t<T>::execute_type2(cuda_complex<T> *d_c, cuda_complex<T> *d
       deconvolve(fw, fk, blksize);
 
       // Step 2: FFT
-      THROW_IF_CUDA_ERROR
+      THROW_IF_CUDA_ERROR();
       cufftResult cufft_status = cufft_ex(fftplan.get(), fw, fw, iflag);
       if (cufft_status != CUFFT_SUCCESS)
-        throw finufft::exception(FINUFFT_ERR_CUDA_FAILURE);
+        throw cufinufft::cufft_exception(cufft_status, "cufft_ex_type2");
     } else
       fw = fk; // interpolate directly from user input f
 

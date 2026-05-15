@@ -28,28 +28,17 @@
 #ifndef COMMON_HELPER_CUDA_H_
 #define COMMON_HELPER_CUDA_H_
 
-#include <cstdio>
+#include <string>
 
 #include <finufft_common/safe_call.h>
 #include <finufft_errors.h>
 
+#include <cuda_runtime.h>
 #include <cufft.h>
 
-// This will output the proper CUDA error strings in the event
-// that a CUDA host call returns an error
-#define checkCudaErrors(val) check((val), #val, __FILE__, __LINE__)
+namespace cufinufft {
 
-#define THROW_IF_CUDA_ERROR                                                          \
-  {                                                                                  \
-    cudaError_t err = cudaGetLastError();                                            \
-    if (err != cudaSuccess) {                                                        \
-      printf("[%s] Error: %s in %s at line %d\n", __func__, cudaGetErrorString(err), \
-             __FILE__, __LINE__);                                                    \
-      throw finufft::exception(FINUFFT_ERR_CUDA_FAILURE);                            \
-    }                                                                                \
-  }
-
-static const char *cufftGetErrorString(cufftResult error) {
+inline const char *cufftGetErrorString(cufftResult error) {
   switch (error) {
   case CUFFT_SUCCESS:
     return "CUFFT_SUCCESS";
@@ -93,8 +82,11 @@ static const char *cufftGetErrorString(cufftResult error) {
   case CUFFT_NOT_SUPPORTED:
     return "CUFFT_NOT_SUPPORTED";
 
-// they are deprecated in 12.9 removed in 13
-#if __CUDACC_VER_MAJOR__ < 13
+// Deprecated in cuFFT 12.9, removed in cuFFT 13. Only reference them when
+// compiling with nvcc < 13 (where the enums exist). `__CUDACC_VER_MAJOR__`
+// is undefined when this header is included from a plain C++ TU, in which
+// case the legacy cases are skipped too.
+#if defined(__CUDACC_VER_MAJOR__) && __CUDACC_VER_MAJOR__ < 13
   case CUFFT_LICENSE_ERROR:
     return "CUFFT_LICENSE_ERROR";
 
@@ -104,18 +96,101 @@ static const char *cufftGetErrorString(cufftResult error) {
   case CUFFT_INCOMPLETE_PARAMETER_LIST:
     return "CUFFT_INCOMPLETE_PARAMETER_LIST";
 #endif
-  }
 
+  default:
+    break; // Unknown / vendor-specific codes fall through.
+  }
   return "<unknown>";
 }
 
-template<typename T>
-void check(T result, const char *const func, const char *const file, const int line) {
-  if (result) {
-    fprintf(stderr, "CUDA error at %s:%d code=%d(%s) \"%s\" \n", file, line,
-            static_cast<unsigned int>(result), cudaGetErrorName(result), func);
-    throw finufft::exception(FINUFFT_ERR_CUDA_FAILURE);
+// Typed exception carrying a cudaError_t plus a caller-supplied operation tag
+// and optional source location. Mirrors how Thrust / CCCL / CUTLASS / PyTorch
+// / cuda-api-wrappers surface CUDA failures: a subclass with the raw status
+// code and a context string.
+class cuda_exception final : public finufft::exception {
+public:
+  cuda_exception(cudaError_t err, const char *op, const char *file = nullptr,
+                 int line = 0)
+      : finufft::exception(FINUFFT_ERR_CUDA_FAILURE, format(err, op, file, line)),
+        cuda_code_(err) {}
+
+  cudaError_t cuda_code() const noexcept { return cuda_code_; }
+
+private:
+  cudaError_t cuda_code_;
+
+  static std::string format(cudaError_t e, const char *op, const char *file, int line) {
+    std::string s = op ? op : "<unknown>";
+    if (file) {
+      s += " @ ";
+      s += file;
+      s += ":";
+      s += std::to_string(line);
+    }
+    s += ": ";
+    s += cudaGetErrorName(e);
+    s += " (";
+    s += cudaGetErrorString(e);
+    s += ")";
+    return s;
   }
+};
+
+class cufft_exception final : public finufft::exception {
+public:
+  cufft_exception(cufftResult err, const char *op, const char *file = nullptr,
+                  int line = 0)
+      : finufft::exception(FINUFFT_ERR_CUDA_FAILURE, format(err, op, file, line)),
+        cufft_code_(err) {}
+
+  cufftResult cufft_code() const noexcept { return cufft_code_; }
+
+private:
+  cufftResult cufft_code_;
+
+  static std::string format(cufftResult e, const char *op, const char *file, int line) {
+    std::string s = op ? op : "<unknown>";
+    if (file) {
+      s += " @ ";
+      s += file;
+      s += ":";
+      s += std::to_string(line);
+    }
+    s += ": ";
+    s += cufftGetErrorString(e);
+    return s;
+  }
+};
+
+namespace detail {
+
+// Sample (and clear) the sticky CUDA error flag. Throws if a kernel launch or
+// prior async call left an error on the stream. The macro form below fills
+// `op` from `__func__` and `file`/`line` from the call site.
+inline void throw_if_cuda_error(const char *op, const char *file = nullptr,
+                                int line = 0) {
+  if (const cudaError_t e = cudaGetLastError(); e != cudaSuccess)
+    throw cuda_exception(e, op, file, line);
 }
+
+// Check a synchronous CUDA runtime return code. Used by checkCudaErrors().
+inline void check_cuda_status(cudaError_t s, const char *op, const char *file = nullptr,
+                              int line = 0) {
+  if (s != cudaSuccess) throw cuda_exception(s, op, file, line);
+}
+
+} // namespace detail
+} // namespace cufinufft
+
+// Wrap a CUDA runtime call; `#call` stringifies the expression for the tag and
+// `__FILE__`/`__LINE__` pinpoint the call site for debugging.
+#define checkCudaErrors(call) \
+  ::cufinufft::detail::check_cuda_status((call), #call, __FILE__, __LINE__)
+
+// Sample the sticky CUDA error flag and tag it with the enclosing function
+// name and source location. `__func__` (C++11) and `__FILE__`/`__LINE__` are
+// the standard portable way to capture caller context inside a macro.
+#define THROW_IF_CUDA_ERROR() \
+  ::cufinufft::detail::throw_if_cuda_error(__func__, __FILE__, __LINE__)
 
 #endif // COMMON_HELPER_CUDA_H_

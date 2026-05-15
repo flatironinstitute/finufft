@@ -338,7 +338,7 @@ cufinufft_plan_t<T>::cufinufft_plan_t(int type_, int dim_, const int *nmodes, in
         throw finufft::exception(FINUFFT_ERR_INSUFFICIENT_SHMEM);
       }
     }
-    THROW_IF_CUDA_ERROR
+    THROW_IF_CUDA_ERROR();
   }
   // Bin size and memory info now printed in cufinufft_setup_binsize() (common.cu)
   // Additional runtime info at debug level 2
@@ -385,11 +385,8 @@ cufinufft_plan_t<T>::cufinufft_plan_t(int type_, int dim_, const int *nmodes, in
           cufftPlanMany(fftplan.for_creation(), dim, n, n, 1, ntot, n, 1, ntot,
                         cufft_type<T>(), batchsize);
 
-      if (cufft_status != CUFFT_SUCCESS) {
-        fprintf(stderr, "[%s] cufft makeplan error: %s", __func__,
-                cufftGetErrorString(cufft_status));
-        throw finufft::exception(FINUFFT_ERR_CUDA_FAILURE);
-      }
+      if (cufft_status != CUFFT_SUCCESS)
+        throw cufinufft::cufft_exception(cufft_status, "cufftPlanMany");
       cufftSetStream(fftplan.get(), stream);
 
       // compute up to 3 * NQUAD precomputed values on CPU

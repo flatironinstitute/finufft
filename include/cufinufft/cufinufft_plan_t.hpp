@@ -3,6 +3,7 @@
 
 #include <cuda/std/array>
 #include <cufft.h>
+#include <cufinufft/contrib/helper_cuda.h>
 #include <cufinufft/types.hpp>
 #include <cufinufft_opts.h>
 #include <finufft_common/safe_call.h>
@@ -122,8 +123,8 @@ private:
 
 public:
   explicit DeviceSwitcher(int newDevice) : orig_device{get_orig_device()} {
-    if (cudaSetDevice(newDevice) != cudaSuccess)
-      throw finufft::exception(FINUFFT_ERR_CUDA_FAILURE);
+    if (auto err = cudaSetDevice(newDevice); err != cudaSuccess)
+      throw cufinufft::cuda_exception(err, "DeviceSwitcher::cudaSetDevice");
   }
 
   ~DeviceSwitcher() {
@@ -163,7 +164,8 @@ public:
     T *p = nullptr;
     auto err =
         pool ? cudaMallocAsync(&p, n * sizeof(T), stream) : cudaMalloc(&p, n * sizeof(T));
-    if (err != cudaSuccess) throw finufft::exception(FINUFFT_ERR_CUDA_FAILURE);
+    if (err != cudaSuccess)
+      throw cufinufft::cuda_exception(err, pool ? "cudaMallocAsync" : "cudaMalloc");
     return enthrust(p);
   }
 

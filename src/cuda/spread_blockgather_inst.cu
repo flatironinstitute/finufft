@@ -290,7 +290,7 @@ void spread_blockgather_3d_launch(const cufinufft_plan_t<T> &d_plan,
       for (int t = 0; t < blksize; t++) {
         kernel<<<d_plan.totalnumsubprob, 64, sharedplanorysize, d_plan.stream>>>(
             d_plan, c + t * d_plan.M, fw + t * d_plan.nf);
-        THROW_IF_CUDA_ERROR
+        THROW_IF_CUDA_ERROR();
       }
     };
     (d_plan.opts.gpu_kerevalmeth == 1) ? launch(spread_3d_block_gather<T, 1, ndim, ns>)
@@ -374,7 +374,7 @@ template<typename T> void do_indexSort_blockgather_3d(cufinufft_plan_t<T> &p) {
 
   locate_nupts_to_bins_ghost<<<(M + 1024 - 1) / 1024, 1024, 0, stream>>>(
       M, bin_size, numobins, binsperobin, d_binsize, p.kxyz, d_sortidx, p.nf123);
-  THROW_IF_CUDA_ERROR
+  THROW_IF_CUDA_ERROR();
 
   dim3 threadsPerBlock = {8, 8, 8};
 
@@ -385,7 +385,7 @@ template<typename T> void do_indexSort_blockgather_3d(cufinufft_plan_t<T> &p) {
 
   fill_ghost_bins<<<blocks, threadsPerBlock, 0, stream>>>(binsperobin, numobins,
                                                           d_binsize);
-  THROW_IF_CUDA_ERROR
+  THROW_IF_CUDA_ERROR();
 
   int n = numbins[0] * numbins[1] * numbins[2];
   thrust::device_ptr<int> d_ptr(d_binsize);
@@ -420,7 +420,7 @@ template<typename T> void do_indexSort_blockgather_3d(cufinufft_plan_t<T> &p) {
   calc_subprob_3d_v1<<<(n + 1024 - 1) / 1024, 1024, 0, stream>>>(
       binsperobin, d_binsize, d_numsubprob, maxsubprobsize,
       numobins[0] * numobins[1] * numobins[2]);
-  THROW_IF_CUDA_ERROR
+  THROW_IF_CUDA_ERROR();
 
   n        = numobins[0] * numobins[1] * numobins[2];
   d_ptr    = thrust::device_pointer_cast(d_numsubprob);

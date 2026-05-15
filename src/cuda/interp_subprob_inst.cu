@@ -95,7 +95,7 @@ void interp_subprob_launch(const cufinufft_plan_t<T> &d_plan, cuda_complex<T> *c
     for (int t = 0; t < blksize; t++) {
       kernel<<<d_plan.totalnumsubprob, 256, sharedplanorysize, d_plan.stream>>>(
           d_plan, c + t * d_plan.M, fw + t * d_plan.nf);
-      THROW_IF_CUDA_ERROR
+      THROW_IF_CUDA_ERROR();
     }
   };
   (d_plan.opts.gpu_kerevalmeth == 1) ? launch(interp_subprob<T, 1, ndim, ns>)
