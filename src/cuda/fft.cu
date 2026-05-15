@@ -94,7 +94,7 @@ void fseries_kernel_compute(
   cu_fseries_kernel_compute<<<numBlocks, threadsPerBlock, 0, stream>>>(
       nf123, d_f, d_phase,
       {dethrust(d_fwkerhalf[0]), dethrust(d_fwkerhalf[1]), dethrust(d_fwkerhalf[2])}, ns);
-  THROW_IF_CUDA_ERROR
+  THROW_IF_CUDA_ERROR();
 }
 template void fseries_kernel_compute<float>(
     int dim, cuda::std::array<CUFINUFFT_BIGINT, 3> nf123, const float *d_f,
@@ -130,7 +130,7 @@ void nuft_kernel_compute(
   cu_nuft_kernel_compute<<<numBlocks, threadsPerBlock, 0, stream>>>(
       nf123, d_f, d_z, d_kxyz,
       {dethrust(d_fwkerhalf[0]), dethrust(d_fwkerhalf[1]), dethrust(d_fwkerhalf[2])}, ns);
-  THROW_IF_CUDA_ERROR
+  THROW_IF_CUDA_ERROR();
 }
 template void nuft_kernel_compute(
     int dim, cuda::std::array<CUFINUFFT_BIGINT, 3> nf123, const float *d_f,
