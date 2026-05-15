@@ -77,7 +77,7 @@ c     writes cj (strengths) and ier (status), reads fk (mode coeffs)
       call system_clock(t2,crate)
       t = (t2-t1)/float(crate)
       if (ier.eq.0) then
-         print '("adjoint done in ",f6.3," sec, ",e10.2" NU pts/s")',
+         print '("adjoint done in ",f6.3," sec, ",e10.2," NU pts/s")',
      $     t,M/t
       else
          print *,'failed! ier=',ier
