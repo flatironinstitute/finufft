@@ -1,9 +1,0 @@
-# example of how to override compiler choices in makefile.
-# Here we use GCC 7 in linux ubuntu 16.40 LTS (provides /usr/bin/g++-7, etc)
-# You should make your own.
-
-CXX=g++-7
-CC=gcc-7
-FC=gfortran-7
-
-CXXFLAGS += -g -Wall
