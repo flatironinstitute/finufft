@@ -5,6 +5,7 @@
 #include <cufft.h>
 #include <cufinufft/types.hpp>
 #include <cufinufft_opts.h>
+#include <finufft_common/safe_call.h>
 #include <finufft_common/spread_opts.h>
 #include <finufft_errors.h>
 #include <optional>
@@ -121,7 +122,8 @@ private:
 
 public:
   explicit DeviceSwitcher(int newDevice) : orig_device{get_orig_device()} {
-    if (cudaSetDevice(newDevice) != cudaSuccess) throw int(FINUFFT_ERR_CUDA_FAILURE);
+    if (cudaSetDevice(newDevice) != cudaSuccess)
+      throw finufft::exception(FINUFFT_ERR_CUDA_FAILURE);
   }
 
   ~DeviceSwitcher() {
@@ -161,7 +163,7 @@ public:
     T *p = nullptr;
     auto err =
         pool ? cudaMallocAsync(&p, n * sizeof(T), stream) : cudaMalloc(&p, n * sizeof(T));
-    if (err != cudaSuccess) throw int(FINUFFT_ERR_CUDA_FAILURE);
+    if (err != cudaSuccess) throw finufft::exception(FINUFFT_ERR_CUDA_FAILURE);
     return enthrust(p);
   }
 
@@ -369,9 +371,10 @@ private:
 
   // Helpers migrated from free functions in cufinufft::common / cufinufft::utils.
   // Use this->opts and this->spopts; called only from plan setup.
-  // Mirrors CPU FINUFFT_PLAN_T<TF>::setup_spreadinterp(). Returns nonzero
-  // (FINUFFT_WARN_EPS_TOO_SMALL) when tol was clamped up to eps_mach.
-  int setup_spreadinterp();
+  // Mirrors CPU FINUFFT_PLAN_T<TF>::setup_spreadinterp(). Sets
+  // this->eps_too_small (surfaced as FINUFFT_WARN_EPS_TOO_SMALL at the C
+  // boundary) when tol was clamped up to eps_mach. Throws on hard error.
+  void setup_spreadinterp();
   void set_nf_type12(CUFINUFFT_BIGINT ms, CUFINUFFT_BIGINT *nf, CUFINUFFT_BIGINT b) const;
   std::tuple<CUFINUFFT_BIGINT, T, T> set_nhg_type3(T S, T X) const;
   void precompute_fseries_nodes(CUFINUFFT_BIGINT nf, T *f, T *phase) const;
@@ -398,7 +401,7 @@ private:
     case 3:
       return do_indexSort_nupts_driven<T, 3>(*this);
     default:
-      throw int(FINUFFT_ERR_DIM_NOTVALID);
+      throw finufft::exception(FINUFFT_ERR_DIM_NOTVALID);
     }
   }
   void indexSort_subprob_and_OD() { // gpu_method = 2 or 3
@@ -411,11 +414,11 @@ private:
     case 3:
       return do_indexSort_subprob_and_OD<T, 3>(*this);
     default:
-      throw int(FINUFFT_ERR_DIM_NOTVALID);
+      throw finufft::exception(FINUFFT_ERR_DIM_NOTVALID);
     }
   }
   void indexSort_blockgather_3d() { // gpu_method = 4 (3D-only)
-    if (this->dim != 3) throw int(FINUFFT_ERR_METHOD_NOTVALID);
+    if (this->dim != 3) throw finufft::exception(FINUFFT_ERR_METHOD_NOTVALID);
     cufinufft::spreadinterp::do_indexSort_blockgather_3d<T>(*this);
   }
 
@@ -430,7 +433,7 @@ private:
     case 3:
       return do_spread_nupts_driven<T, 3>(*this, c, fw, blksize);
     default:
-      throw int(FINUFFT_ERR_DIM_NOTVALID);
+      throw finufft::exception(FINUFFT_ERR_DIM_NOTVALID);
     }
   }
   void spread_subprob(const cuda_complex<T> *c, cuda_complex<T> *fw, int blksize) const {
@@ -443,7 +446,7 @@ private:
     case 3:
       return do_spread_subprob<T, 3>(*this, c, fw, blksize);
     default:
-      throw int(FINUFFT_ERR_DIM_NOTVALID);
+      throw finufft::exception(FINUFFT_ERR_DIM_NOTVALID);
     }
   }
   void spread_output_driven(const cuda_complex<T> *c, cuda_complex<T> *fw,
@@ -457,12 +460,12 @@ private:
     case 3:
       return do_spread_output_driven<T, 3>(*this, c, fw, blksize);
     default:
-      throw int(FINUFFT_ERR_DIM_NOTVALID);
+      throw finufft::exception(FINUFFT_ERR_DIM_NOTVALID);
     }
   }
   void spread_blockgather_3d(const cuda_complex<T> *c, cuda_complex<T> *fw,
                              int blksize) const {
-    if (this->dim != 3) throw int(FINUFFT_ERR_METHOD_NOTVALID);
+    if (this->dim != 3) throw finufft::exception(FINUFFT_ERR_METHOD_NOTVALID);
     cufinufft::spreadinterp::do_spread_blockgather_3d<T>(*this, c, fw, blksize);
   }
 
@@ -477,7 +480,7 @@ private:
     case 3:
       return do_interp_nupts_driven<T, 3>(*this, c, fw, blksize);
     default:
-      throw int(FINUFFT_ERR_DIM_NOTVALID);
+      throw finufft::exception(FINUFFT_ERR_DIM_NOTVALID);
     }
   }
   void interp_subprob(cuda_complex<T> *c, const cuda_complex<T> *fw, int blksize) const {
@@ -490,7 +493,7 @@ private:
     case 3:
       return do_interp_subprob<T, 3>(*this, c, fw, blksize);
     default:
-      throw int(FINUFFT_ERR_DIM_NOTVALID);
+      throw finufft::exception(FINUFFT_ERR_DIM_NOTVALID);
     }
   }
 };
