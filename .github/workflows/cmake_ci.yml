@@ -235,11 +235,9 @@ jobs:
               rm -rf $build_dir
 
               cmake -E make_directory "$build_dir"
-              cmake -S . -B "$build_dir" \
+              cmake --preset dev -B "$build_dir" \
                 -DCMAKE_BUILD_TYPE=$build_type \
                 -DFINUFFT_ARCH_FLAGS="$arch" \
-                -DFINUFFT_BUILD_EXAMPLES=ON \
-                -DFINUFFT_BUILD_TESTS=ON \
                 -DFINUFFT_USE_DUCC0=$ducc_fft \
                 -DFINUFFT_USE_SANITIZERS=OFF \
                 -DCMAKE_MSVC_DEBUG_INFORMATION_FORMAT=Embedded \

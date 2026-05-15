@@ -45,16 +45,8 @@ jobs:
 
       - name: Configure
         run: |
-          cmake -S . -B build \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_C_COMPILER=clang \
-            -DCMAKE_CXX_COMPILER=clang++ \
-            -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
-            -DFINUFFT_BUILD_TESTS=OFF \
-            -DFINUFFT_BUILD_EXAMPLES=OFF \
-            -DFINUFFT_USE_DUCC0=${{ matrix.backend == 'ducc' && 'ON' || 'OFF' }} \
-            -DFINUFFT_STATIC_ANALYSIS=ON \
-            -DFINUFFT_STATIC_ANALYSIS_WERROR=ON
+          cmake --preset static-analysis -B build \
+            -DFINUFFT_USE_DUCC0=${{ matrix.backend == 'ducc' && 'ON' || 'OFF' }}
 
       - name: Build (clang-tidy + cppcheck run inline)
         run: cmake --build build --target finufft

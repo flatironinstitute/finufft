@@ -144,13 +144,10 @@ jobs:
             fi
 
             cmake -E make_directory "$build_dir"
-            cmake -S . -B "$build_dir" \
+            cmake --preset sanitizers -B "$build_dir" \
               -DCMAKE_BUILD_TYPE=$build_type \
               -DFINUFFT_ARCH_FLAGS="$arch" \
-              -DFINUFFT_BUILD_EXAMPLES=ON \
-              -DFINUFFT_BUILD_TESTS=ON \
-              -DFINUFFT_USE_DUCC0=ON \
-              -DFINUFFT_ENABLE_SANITIZERS="${{ matrix.sanitizer }}"
+              -DFINUFFT_USE_SANITIZERS="${{ matrix.sanitizer }}"
 
             cmake --build "$build_dir" --config "$build_type"
             ctest --test-dir "$build_dir" "${ctest_args[@]}"
