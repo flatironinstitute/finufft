@@ -282,7 +282,7 @@ void spread_blockgather_3d_launch(const cufinufft_plan_t<T> &d_plan,
     if (sharedplanorysize > 49152) {
       std::cerr << "[spread_blockgather_3d_launch] error: not enough shared memory"
                 << std::endl;
-      throw int(FINUFFT_ERR_INSUFFICIENT_SHMEM);
+      throw finufft::exception(FINUFFT_ERR_INSUFFICIENT_SHMEM);
     }
 
     const auto launch = [&](auto kernel) {
@@ -296,7 +296,7 @@ void spread_blockgather_3d_launch(const cufinufft_plan_t<T> &d_plan,
     (d_plan.opts.gpu_kerevalmeth == 1) ? launch(spread_3d_block_gather<T, 1, ndim, ns>)
                                        : launch(spread_3d_block_gather<T, 0, ndim, ns>);
   } else
-    throw int(FINUFFT_ERR_DIM_NOTVALID);
+    throw finufft::exception(FINUFFT_ERR_DIM_NOTVALID);
 }
 
 template<typename T> struct SpreadBlockGatherCaller {
@@ -335,7 +335,7 @@ template<typename T> void do_indexSort_blockgather_3d(cufinufft_plan_t<T> &p) {
               << p.nf123[2] << ")" << std::endl;
     std::cerr << "       (obinsizex, obinsizey, obinsizez) = (" << o_bin_size[0] << ", "
               << o_bin_size[1] << ", " << o_bin_size[2] << ")" << std::endl;
-    throw int(FINUFFT_ERR_BINSIZE_NOTVALID);
+    throw finufft::exception(FINUFFT_ERR_BINSIZE_NOTVALID);
   }
 
   cuda::std::array<int, 3> numobins;
@@ -353,7 +353,7 @@ template<typename T> void do_indexSort_blockgather_3d(cufinufft_plan_t<T> &p) {
               << bin_size[1] << ", " << bin_size[2] << ")" << std::endl;
     std::cerr << "      (obinsizex, obinsizey, obinsizez) = (" << o_bin_size[0] << ", "
               << o_bin_size[1] << ", " << o_bin_size[2] << ")" << std::endl;
-    throw int(FINUFFT_ERR_BINSIZE_NOTVALID);
+    throw finufft::exception(FINUFFT_ERR_BINSIZE_NOTVALID);
   }
 
   cuda::std::array<int, 3> binsperobin;

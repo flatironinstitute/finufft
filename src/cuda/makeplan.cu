@@ -41,12 +41,12 @@ static bool have_pool_support(const cufinufft_opts &opts) {
 }
 
 template<typename T>
-int cufinufft_plan_t<T>::setup_spreadinterp()
+void cufinufft_plan_t<T>::setup_spreadinterp()
 // Initializes spreader kernel params in this->spopts from this->tol,
 // this->opts.upsampfac, and this->opts.gpu_kerevalmeth (0:exp(sqrt()),
 // 1: Horner ppval). Mirrors CPU FINUFFT_PLAN_T<TF>::setup_spreadinterp().
-// Returns 0, or FINUFFT_WARN_EPS_TOO_SMALL when tol was clamped up to
-// eps_mach; throws on hard error.
+// Sets this->eps_too_small when tol was clamped up to eps_mach.
+// Throws finufft::exception on hard error.
 // As of v2.5 no longer sets ES_c, ES_halfwidth, since absent from spopts.
 // To do: *** update this to CPU v2.5 kernel choice, coeffs, params...
 {
@@ -64,11 +64,11 @@ int cufinufft_plan_t<T>::setup_spreadinterp()
           stderr,
           "[%s] error: nonstandard upsampfac=%.3g cannot be handled by kerevalmeth=1\n",
           __func__, upsampfac);
-      throw int(FINUFFT_ERR_HORNER_WRONG_BETA);
+      throw finufft::exception(FINUFFT_ERR_HORNER_WRONG_BETA);
     }
     if (upsampfac <= 1.0) { // no digits would result, ns infinite
       fprintf(stderr, "[%s] error: upsampfac=%.3g\n", __func__, upsampfac);
-      throw int(FINUFFT_ERR_UPSAMPFAC_TOO_SMALL);
+      throw finufft::exception(FINUFFT_ERR_UPSAMPFAC_TOO_SMALL);
     }
     // calling routine must abort on above errors, since spopts is garbage!
     if (!spreadinterponly && upsampfac > 4.0)
@@ -81,13 +81,12 @@ int cufinufft_plan_t<T>::setup_spreadinterp()
   spopts.upsampfac        = upsampfac;
 
   // as in FINUFFT v2.0, allow too-small-eps by truncating to eps_mach...
-  int ier             = 0;
   constexpr T EPSILON = std::numeric_limits<T>::epsilon();
   if (eps < EPSILON) {
     fprintf(stderr, "[%s]: warning, increasing tol=%.3g to eps_mach=%.3g.\n", __func__,
             (double)eps, (double)EPSILON);
     eps = EPSILON;
-    ier = FINUFFT_WARN_EPS_TOO_SMALL;
+    this->eps_too_small = true;
   }
 
   // Set kernel width w (aka ns) and ES kernel beta parameter, in spopts...
@@ -103,7 +102,7 @@ int cufinufft_plan_t<T>::setup_spreadinterp()
             "clipping to max %d.\n",
             __func__, upsampfac, (double)eps, ns, MAX_NSPREAD<T>);
     ns = MAX_NSPREAD<T>;
-    ier = FINUFFT_WARN_EPS_TOO_SMALL;
+    this->eps_too_small = true;
   }
   spopts.nspread = ns;
 
@@ -119,10 +118,9 @@ int cufinufft_plan_t<T>::setup_spreadinterp()
   if (debug)
     printf("[%s] (kerevalmeth=%d) eps=%.3g sigma=%.3g: chose ns=%d beta=%.3g\n", __func__,
            kerevalmeth, (double)eps, (double)upsampfac, ns, spopts.beta);
-  return ier;
 }
-template int cufinufft_plan_t<float>::setup_spreadinterp();
-template int cufinufft_plan_t<double>::setup_spreadinterp();
+template void cufinufft_plan_t<float>::setup_spreadinterp();
+template void cufinufft_plan_t<double>::setup_spreadinterp();
 
 template<typename T>
 std::tuple<CUFINUFFT_BIGINT, T, T> cufinufft_plan_t<T>::set_nhg_type3(T S, T X) const
@@ -181,7 +179,7 @@ template<typename T> void cufinufft_plan_t<T>::allocate_subprob_state() {
   case 4: {
     if (dim != 3) {
       std::cerr << "err: invalid method " << std::endl;
-      throw int(FINUFFT_ERR_METHOD_NOTVALID);
+      throw finufft::exception(FINUFFT_ERR_METHOD_NOTVALID);
     }
     cuda::std::array<int, 3> obinsizes{opts.gpu_obinsizex, opts.gpu_obinsizey,
                                        opts.gpu_obinsizez};
@@ -200,7 +198,7 @@ template<typename T> void cufinufft_plan_t<T>::allocate_subprob_state() {
   } break;
   default:
     std::cerr << "[allocate] error: invalid method\n";
-    throw int(FINUFFT_ERR_METHOD_NOTVALID);
+    throw finufft::exception(FINUFFT_ERR_METHOD_NOTVALID);
   }
   if (!opts.gpu_spreadinterponly)
     for (int idim = 0; idim < dim; ++idim) fwkerhalf[idim].resize(nf123[idim] / 2 + 1);
@@ -225,13 +223,13 @@ template<typename T> void cufinufft_plan_t<T>::allocate_nupts() {
   case 4: {
     if (dim != 3) {
       std::cerr << "err: invalid method " << std::endl;
-      throw int(FINUFFT_ERR_METHOD_NOTVALID);
+      throw finufft::exception(FINUFFT_ERR_METHOD_NOTVALID);
     }
     newsize_sortidx = M;
   } break;
   default:
     std::cerr << "[allocate_nupts] error: invalid method\n";
-    throw int(FINUFFT_ERR_METHOD_NOTVALID);
+    throw finufft::exception(FINUFFT_ERR_METHOD_NOTVALID);
   }
 
   if (newsize_sortidx != sortidx.size()) sortidx.resize(newsize_sortidx);
@@ -270,12 +268,12 @@ cufinufft_plan_t<T>::cufinufft_plan_t(int type_, int dim_, const int *nmodes, in
 
   if (type < 1 || type > 3) {
     fprintf(stderr, "[%s] Invalid type (%d): should be 1, 2, or 3.\n", __func__, type);
-    throw int(FINUFFT_ERR_TYPE_NOTVALID);
+    throw finufft::exception(FINUFFT_ERR_TYPE_NOTVALID);
   }
   if (ntransf < 1) {
     fprintf(stderr, "[%s] Invalid ntransf (%d): should be at least 1.\n", __func__,
             ntransf);
-    throw int(FINUFFT_ERR_NTRANS_NOTVALID);
+    throw finufft::exception(FINUFFT_ERR_NTRANS_NOTVALID);
   }
 
   // set nf1, nf2, nf3 to 1 for type 3, type 1, type 2 will overwrite this
@@ -311,7 +309,7 @@ cufinufft_plan_t<T>::cufinufft_plan_t(int type_, int dim_, const int *nmodes, in
     }
   }
   /* Setup Spreader */
-  eps_too_small = setup_spreadinterp() != 0;
+  setup_spreadinterp();
 
   spopts.spread_direction = type;
 
@@ -337,7 +335,7 @@ cufinufft_plan_t<T>::cufinufft_plan_t(int type_, int dim_, const int *nmodes, in
       } else {
         // User-specified method failed, or the fallback GM method failed.
         fprintf(stderr, "%s, method %d\n", e.what(), opts.gpu_method);
-        throw int(FINUFFT_ERR_INSUFFICIENT_SHMEM);
+        throw finufft::exception(FINUFFT_ERR_INSUFFICIENT_SHMEM);
       }
     }
     THROW_IF_CUDA_ERROR
@@ -390,7 +388,7 @@ cufinufft_plan_t<T>::cufinufft_plan_t(int type_, int dim_, const int *nmodes, in
       if (cufft_status != CUFFT_SUCCESS) {
         fprintf(stderr, "[%s] cufft makeplan error: %s", __func__,
                 cufftGetErrorString(cufft_status));
-        throw int(FINUFFT_ERR_CUDA_FAILURE);
+        throw finufft::exception(FINUFFT_ERR_CUDA_FAILURE);
       }
       cufftSetStream(fftplan.get(), stream);
 

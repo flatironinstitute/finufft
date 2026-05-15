@@ -8,6 +8,7 @@
 
 #include <cufinufft/cufinufft_plan_t.hpp>
 #include <cufinufft_opts.h>
+#include <finufft_common/safe_call.h>
 #include <finufft_errors.h>
 
 namespace cufinufft::common {
@@ -39,7 +40,7 @@ void cufinufft_set_shared_memory(V *kernel, const cufinufft_plan_t<T> &d_plan) {
             "Error: Shared memory required per block is %zu bytes, but the device "
             "supports only %d bytes.\n",
             shared_mem_required, shared_mem_per_block);
-    throw int(FINUFFT_ERR_INSUFFICIENT_SHMEM);
+    throw finufft::exception(FINUFFT_ERR_INSUFFICIENT_SHMEM);
   }
   cudaFuncSetAttribute(kernel, cudaFuncAttributeMaxDynamicSharedMemorySize,
                        shared_mem_required);

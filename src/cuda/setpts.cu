@@ -90,26 +90,26 @@ void cufinufft_plan_t<T>::setpts(int nj, const T *d_kx, const T *d_ky, const T *
   N = nk;
   if (N < 0) {
     fprintf(stderr, "[cufinufft] Invalid N (%d): cannot be negative.\n", N);
-    throw int(FINUFFT_ERR_NUM_NU_PTS_INVALID);
+    throw finufft::exception(FINUFFT_ERR_NUM_NU_PTS_INVALID);
   }
   if (N > MAX_NF) {
     fprintf(stderr, "[cufinufft] Invalid N (%d): cannot be greater than %d.\n", N,
             MAX_NF);
-    throw int(FINUFFT_ERR_NUM_NU_PTS_INVALID);
+    throw finufft::exception(FINUFFT_ERR_NUM_NU_PTS_INVALID);
   }
   if (dim > 0 && d_s == nullptr) {
     fprintf(stderr, "[%s] Error: d_s is nullptr but dim > 0.\n", __func__);
-    throw int(FINUFFT_ERR_INVALID_ARGUMENT);
+    throw finufft::exception(FINUFFT_ERR_INVALID_ARGUMENT);
   }
 
   if (dim > 1 && d_t == nullptr) {
     fprintf(stderr, "[%s] Error: d_t is nullptr but dim > 1.\n", __func__);
-    throw int(FINUFFT_ERR_INVALID_ARGUMENT);
+    throw finufft::exception(FINUFFT_ERR_INVALID_ARGUMENT);
   }
 
   if (dim > 2 && d_u == nullptr) {
     fprintf(stderr, "[%s] Error: d_u is nullptr but dim > 2.\n", __func__);
-    throw int(FINUFFT_ERR_INVALID_ARGUMENT);
+    throw finufft::exception(FINUFFT_ERR_INVALID_ARGUMENT);
   }
 
   using namespace cufinufft::utils;
@@ -149,7 +149,7 @@ void cufinufft_plan_t<T>::setpts(int nj, const T *d_kx, const T *d_ky, const T *
     fprintf(stderr,
             "[%s t3] fwBatch would be bigger than MAX_NF, not attempting malloc!\n",
             __func__);
-    throw int(FINUFFT_ERR_MAXNALLOC);
+    throw finufft::exception(FINUFFT_ERR_MAXNALLOC);
   }
 
   for (int idim = 0; idim < dim; ++idim) {

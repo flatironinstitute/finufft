@@ -25,7 +25,7 @@ template<typename T> void cufinufft_plan_t<T>::indexSort() {
     return;
   default:
     std::cerr << "[indexSort] error: incorrect gpu_method\n";
-    throw int(FINUFFT_ERR_METHOD_NOTVALID);
+    throw finufft::exception(FINUFFT_ERR_METHOD_NOTVALID);
   }
 }
 
@@ -43,7 +43,7 @@ void cufinufft_plan_t<T>::spreadSorted(const cuda_complex<T> *c, cuda_complex<T>
     return spread_blockgather_3d(c, fw, blksize);
   default:
     std::cerr << "[spread] error: incorrect gpu_method\n";
-    throw int(FINUFFT_ERR_METHOD_NOTVALID);
+    throw finufft::exception(FINUFFT_ERR_METHOD_NOTVALID);
   }
 }
 
@@ -57,7 +57,7 @@ void cufinufft_plan_t<T>::interpSorted(cuda_complex<T> *c, const cuda_complex<T>
     return interp_subprob(c, fw, blksize);
   default:
     std::cerr << "[interp] error: incorrect gpu_method\n";
-    throw int(FINUFFT_ERR_METHOD_NOTVALID);
+    throw finufft::exception(FINUFFT_ERR_METHOD_NOTVALID);
   }
 }
 

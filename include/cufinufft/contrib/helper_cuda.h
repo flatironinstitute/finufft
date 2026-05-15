@@ -30,6 +30,7 @@
 
 #include <cstdio>
 
+#include <finufft_common/safe_call.h>
 #include <finufft_errors.h>
 
 #include <cufft.h>
@@ -44,7 +45,7 @@
     if (err != cudaSuccess) {                                                        \
       printf("[%s] Error: %s in %s at line %d\n", __func__, cudaGetErrorString(err), \
              __FILE__, __LINE__);                                                    \
-      throw int(FINUFFT_ERR_CUDA_FAILURE);                                           \
+      throw finufft::exception(FINUFFT_ERR_CUDA_FAILURE);                            \
     }                                                                                \
   }
 
@@ -113,7 +114,7 @@ void check(T result, const char *const func, const char *const file, const int l
   if (result) {
     fprintf(stderr, "CUDA error at %s:%d code=%d(%s) \"%s\" \n", file, line,
             static_cast<unsigned int>(result), cudaGetErrorName(result), func);
-    throw int(FINUFFT_ERR_CUDA_FAILURE);
+    throw finufft::exception(FINUFFT_ERR_CUDA_FAILURE);
   }
 }
 
