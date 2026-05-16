@@ -12,7 +12,8 @@
 
 namespace finufft::kernel {
 
-double kernel_definition(const finufft_spread_opts &spopts, const double z) {
+std::function<double(double)> kernel_definition_lambda(
+    const finufft_spread_opts &spopts) {
   /* The spread/interp kernel phi_beta(z) function on standard interval z in [-1,1].
      This evaluation does not need to be fast; it is used *only* for polynomial
      interpolation via Horner coeffs (the interpolant is evaluated fast).
@@ -20,9 +21,6 @@ double kernel_definition(const finufft_spread_opts &spopts, const double z) {
      needed, thanks to numerical quadrature in finufft_core:onedim*; playing with
      new kernels is thus very easy.
     Inputs:
-    z      - real ordinate on standard interval [-1,1]. Handling of edge cases
-            at or near +-1 is no longer crucial, because precompute_horner_coeffs
-            (the only user of this function) has interpolation nodes in (-1,1).
     spopts - spread_opts struct containing fields:
       beta        - shape parameter for ES, KB, or other prolate kernels
                     (a.k.a. c parameter in PSWF).
@@ -32,7 +30,8 @@ double kernel_definition(const finufft_spread_opts &spopts, const double z) {
                     kerformula also to select a parameter-choice method.)
                     Note: the default 0 (in opts.spread_kerformula) is invalid here;
                     selection of a >0 kernel type must already have happened.
-    Output: phi(z), as in the notation of original 2019 paper ([FIN] in the docs).
+    Output: lambda function that can be called with z to return phi(z),
+                    as in the notation of original 2019 paper ([FIN] in the docs).
 
     Notes: 1) no normalization of max value or integral is needed, since any
             overall factor is cancelled out in the deconvolve step. However,
@@ -40,32 +39,53 @@ double kernel_definition(const finufft_spread_opts &spopts, const double z) {
             use them.
     Barnett rewritten 1/13/26 for double on [-1,1]; based on Barbone Dec 2025.
   */
-  if (std::abs(z) > 1.0) return 0.0;           // restrict support to [-1,1]
-  double beta = spopts.beta;                   // get shape param
-  double arg  = beta * std::sqrt(1.0 - z * z); // common argument for exp, I0, etc
+  double beta = spopts.beta; // get shape param
   int kf      = spopts.kerformula;
 
-  if (kf == 1 || kf == 2)
+  if (kf == 1 || kf == 2) {
     // ES ("exponential of semicircle" or "exp sqrt"), see [FIN] reference.
     // Used in FINUFFT 2017-2025 (up to v2.4.1). max is 1, as of v2.3.0.
-    return std::exp(arg) / std::exp(beta);
-  else if (kf == 3)
+    const double expbeta = std::exp(beta);
+    return [beta, expbeta](double z) {
+      if (std::abs(z) > 1.0) return 0.0; // restrict support to [-1,1]
+      return std::exp(beta * std::sqrt(1.0 - z * z)) / expbeta;
+    };
+  } else if (kf == 3) {
     // forwards Kaiser--Bessel (KB), normalized to max of 1.
     // std::cyl_bessel_i is from <cmath>, expects double. See src/common/utils.cpp
-    return common::cyl_bessel_i(0, arg) / common::cyl_bessel_i(0, beta);
-  else if (kf == 4)
+    const double besselbeta = common::cyl_bessel_i(0, beta);
+    return [beta, besselbeta](double z) {
+      if (std::abs(z) > 1.0) return 0.0; // restrict support to [-1,1]
+      return common::cyl_bessel_i(0, beta * std::sqrt(1.0 - z * z)) / besselbeta;
+    };
+  } else if (kf == 4) {
     // continuous (deplinthed) KB, as in Barnett SIREV 2022, normalized to max nearly 1
-    return (common::cyl_bessel_i(0, arg) - 1.0) / common::cyl_bessel_i(0, beta);
-  else if (kf == 5)
-    return std::cosh(arg) / std::cosh(beta); // normalized cosh-type of Rmk. 13 [FIN]
-  else if (kf == 6)
-    return (std::cosh(arg) - 1.0) / std::cosh(beta); // Potts-Tasche cont cosh-type
-  else if (kf >= 7 && kf <= 9)
-    return common::pswf(beta, z); // prolate (PSWF) Psi_0, normalized to 1 at z=0
-  else {
+    const double besselbeta = common::cyl_bessel_i(0, beta);
+    return [beta, besselbeta](double z) {
+      if (std::abs(z) > 1.0) return 0.0; // restrict support to [-1,1]
+      return (common::cyl_bessel_i(0, beta * std::sqrt(1.0 - z * z)) - 1.0) / besselbeta;
+    };
+  } else if (kf == 5) {
+    const double coshbeta = std::cosh(beta);
+    return [beta, coshbeta](double z) {
+      if (std::abs(z) > 1.0) return 0.0; // restrict support to [-1,1]
+      return std::cosh(beta * std::sqrt(1.0 - z * z)) / coshbeta;
+    }; // normalized cosh-type of Rmk. 13 [FIN]
+  } else if (kf == 6) {
+    const double coshbeta = std::cosh(beta);
+    return [beta, coshbeta](double z) {
+      if (std::abs(z) > 1.0) return 0.0; // restrict support to [-1,1]
+      return (std::cosh(beta * std::sqrt(1.0 - z * z)) - 1.0) / coshbeta;
+    }; // Potts-Tasche cont cosh-type
+  } else if (kf >= 7 && kf <= 9) {
+    finufft::common::PSWF0 pswf(beta);
+    return [pswf](double z) {
+      if (std::abs(z) > 1.0) return 0.0; // restrict support to [-1,1]
+      return pswf(z);
+    }; // prolate (PSWF) Psi_0, normalized to 1 at z=0
+  } else {
     fprintf(stderr, "[%s] unknown spopts.kerformula=%d\n", __func__, spopts.kerformula);
     throw finufft::exception(FINUFFT_ERR_KERFORMULA_NOTVALID);
-    return std::numeric_limits<double>::quiet_NaN(); // never gets here, non-signalling
   }
 }
 

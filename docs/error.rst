@@ -36,6 +36,7 @@ has the following meanings which are used by both CPU and GPU versions
   24 spread kernel formula type invalid
   25 unknown exception caught
   26 requested tolerance epsilon too small to achieve (hard error; tolerance must be >= machine epsilon)
+  27 iteration inside the setup code for the PSWF function evaluator failed to converge
 
 For any nonzero value of ``ier`` the transform may not have been performed and the output should not be trusted. However, we hope that the value of ``ier`` will help to narrow down the problem.
 
