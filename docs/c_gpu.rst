@@ -19,6 +19,67 @@ You will also want to read the examples in ``examples/cuda`` and ``test/cuda/cuf
 *Note*: The interface to cuFINUFFT has changed between versions 1.3 and 2.2.
 Please see :ref:`Migration to cuFINUFFT v2.2<cufinufft_migration>` for details.
 
+Simple interface
+----------------
+
+For users who only need to perform a single transform per plan, cuFINUFFT
+provides one-shot wrappers that combine all four plan steps (make, setpts,
+execute, destroy) into a single call. These mirror the CPU ``finufft1d1``
+family (see :ref:`c`) and follow the same naming and argument order; the
+only difference is that all input/output array pointers refer to memory on
+the GPU. They have double (``cufinufft``) and single (``cufinufftf``)
+precision versions, which we document together.
+
+For each dimension ``d`` (1, 2, or 3) and transform type ``t`` (1, 2, or 3),
+there are four entry points::
+
+    cufinufft{d}d{t}(...);            // double precision, single transform
+    cufinufftf{d}d{t}(...);           // single precision, single transform
+    cufinufft{d}d{t}many(n_transf, ...);   // double precision, many transforms
+    cufinufftf{d}d{t}many(n_transf, ...);  // single precision, many transforms
+
+This gives 36 entry points in total. The full prototypes are declared in
+``include/cufinufft.h``. As an example, the 1D type-1 simple call in single
+precision is:
+
+.. code-block:: c
+
+    int cufinufftf1d1(int64_t nj, const float *xj, const cuFloatComplex *cj,
+                      int iflag, float eps, int64_t ms, cuFloatComplex *fk,
+                      const cufinufft_opts *opts);
+
+Inputs:
+
+* ``nj`` — number of nonuniform points
+* ``xj`` — length-``nj`` device array of NU point coordinates (in :math:`[-\pi,\pi)`,
+  values outside are folded)
+* ``cj`` — length-``nj`` device array of NU strengths
+* ``iflag`` — sign in the complex exponential (>=0 for +, <0 for -)
+* ``eps`` — requested relative tolerance
+* ``ms`` — number of Fourier modes
+* ``fk`` — length-``ms`` device array, output
+* ``opts`` — optional options pointer (NULL for defaults)
+
+Returns ``0`` on success, otherwise an error code (see ``finufft_errors.h``).
+
+A complete example using the simple interface in place of the 4-step calls
+from the :ref:`Getting started <c_gpu>` walkthrough below is:
+
+.. code-block:: c
+
+    cufinufftf1d1(M, d_x, d_c, 1, 1e-6f, N, d_f, NULL);
+
+This single call replaces the ``makeplan``/``setpts``/``execute``/``destroy``
+sequence. Type-3 calls also take frequency-target arrays (``s`` for 1D,
+``s,t`` for 2D, ``s,t,u`` for 3D), exactly as in the CPU API. The ``many``
+variants take an ``n_transf`` parameter as the first argument and use the
+same set of NU points for ``n_transf`` consecutive transforms (with input
+and output arrays sized accordingly).
+
+The simple interface is intended for cases where the plan would otherwise be
+used exactly once. When the same NU points are reused across several
+transforms, use the 4-step plan interface below for better performance.
+
 Getting started
 ---------------
 
