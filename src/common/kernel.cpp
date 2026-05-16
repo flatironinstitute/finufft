@@ -47,6 +47,7 @@ std::function<double(double)> kernel_definition_lambda(
     // Used in FINUFFT 2017-2025 (up to v2.4.1). max is 1, as of v2.3.0.
     const double expbeta = std::exp(beta);
     return [beta, expbeta](double z) {
+      if (std::abs(z) > 1.0) return 0.0; // restrict support to [-1,1]
       return std::exp(beta * std::sqrt(1.0 - z * z)) / expbeta;
     };
   } else if (kf == 3) {
@@ -54,27 +55,32 @@ std::function<double(double)> kernel_definition_lambda(
     // std::cyl_bessel_i is from <cmath>, expects double. See src/common/utils.cpp
     const double besselbeta = common::cyl_bessel_i(0, beta);
     return [beta, besselbeta](double z) {
+      if (std::abs(z) > 1.0) return 0.0; // restrict support to [-1,1]
       return common::cyl_bessel_i(0, beta * std::sqrt(1.0 - z * z)) / besselbeta;
     };
   } else if (kf == 4) {
     // continuous (deplinthed) KB, as in Barnett SIREV 2022, normalized to max nearly 1
     const double besselbeta = common::cyl_bessel_i(0, beta);
     return [beta, besselbeta](double z) {
+      if (std::abs(z) > 1.0) return 0.0; // restrict support to [-1,1]
       return (common::cyl_bessel_i(0, beta * std::sqrt(1.0 - z * z)) - 1.0) / besselbeta;
     };
   } else if (kf == 5) {
     const double coshbeta = std::cosh(beta);
     return [beta, coshbeta](double z) {
+      if (std::abs(z) > 1.0) return 0.0; // restrict support to [-1,1]
       return std::cosh(beta * std::sqrt(1.0 - z * z)) / coshbeta;
     }; // normalized cosh-type of Rmk. 13 [FIN]
   } else if (kf == 6) {
     const double coshbeta = std::cosh(beta);
     return [beta, coshbeta](double z) {
+      if (std::abs(z) > 1.0) return 0.0; // restrict support to [-1,1]
       return (std::cosh(beta * std::sqrt(1.0 - z * z)) - 1.0) / coshbeta;
     }; // Potts-Tasche cont cosh-type
   } else if (kf >= 7 && kf <= 9) {
     finufft::common::PSWF0 pswf(beta);
     return [pswf](double z) {
+      if (std::abs(z) > 1.0) return 0.0; // restrict support to [-1,1]
       return pswf(z);
     }; // prolate (PSWF) Psi_0, normalized to 1 at z=0
   } else {
