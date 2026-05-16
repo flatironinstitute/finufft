@@ -57,7 +57,7 @@ c     use default options:
       call system_clock(t2,crate)
       t = (t2-t1)/float(crate)
       if (ier.eq.0) then
-         print '("done in ",f6.3," sec, ",e10.2" NU pts/s")',t,M/t
+         print '("done in ",f6.3," sec, ",e10.2," NU pts/s")',t,M/t
       else
          print *,'failed! ier=',ier
       endif
@@ -92,7 +92,7 @@ c     fields of derived type opts may be queried/set as usual...
       call system_clock(t2,crate)
       t = (t2-t1)/float(crate)
       if (ier.eq.0) then
-         print '("done in ",f6.3," sec, ",e10.2" NU pts/s")',t,M/t
+         print '("done in ",f6.3," sec, ",e10.2," NU pts/s")',t,M/t
       else
          print *,'failed! ier=',ier
       endif
