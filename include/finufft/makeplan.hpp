@@ -11,8 +11,7 @@
 #include <finufft/plan.hpp>
 #include <finufft/spreadinterp.hpp>
 #include <finufft/utils.hpp>
-#include <finufft_common/kernel.h>
-#include <finufft_common/utils.h>
+#include <finufft_common/common.h>
 
 // ---------- local math routines (were in common.cpp; no need now): --------
 
@@ -23,11 +22,11 @@ void FINUFFT_PLAN_T<TF>::set_nf_type12(BIGINT ms, BIGINT *nf) const
 // unreasonably big. Previous args (opts, spopts) are now plan members.
 // Converted to class member, Barbone 2/24/26.
 {
-  using namespace finufft::utils;
+  using namespace finufft::common;
   *nf = BIGINT(std::ceil(opts.upsampfac * double(ms))); // round up to handle small cases
   if (*nf < 2 * m.spopts.nspread) *nf = 2 * m.spopts.nspread; // otherwise spread fails
   if (*nf < MAX_NF) {
-    *nf = next235even(*nf);                                   // expensive at huge nf
+    *nf = next235(*nf, 2);
   } else {
     fprintf(stderr,
             "[%s] nf=%.3g exceeds MAX_NF of %.3g, so exit without attempting "

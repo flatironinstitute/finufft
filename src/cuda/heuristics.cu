@@ -1,211 +1,25 @@
+// GPU bin-size and Method-3 heuristics. Mirrors include/finufft/heuristics.hpp
+// on the CPU side. Owns shared-memory accounting (used to validate that the
+// chosen bin/np combo fits) and the per-architecture lookup tables for
+// Method 3.
+
 #include <algorithm>
+#include <cstdio>
 #include <iomanip>
 #include <iostream>
+#include <stdexcept>
 #include <string>
 
-#include <cuComplex.h>
 #include <cuda.h>
 
-#include <cufinufft/common.h>
 #include <cufinufft/contrib/helper_cuda.h>
-#include <cufinufft/defs.h>
-#include <cufinufft/spreadinterp.h>
-#include <cufinufft/utils.h>
+#include <cufinufft/heuristics.hpp>
+#include <cufinufft/spreadinterp.hpp>
+#include <cufinufft/utils.hpp>
 
 namespace cufinufft {
 namespace common {
-using namespace cufinufft::spreadinterp;
-using namespace finufft::common;
 using std::max;
-
-/** Kernel for computing approximations of exact Fourier series coeffs of
- *  cnufftspread's real symmetric kernel.
- * phase, f are intermediate results from function onedim_fseries_kernel_precomp().
- * this is the equispaced frequency case, used by type 1 & 2, matching
- * onedim_fseries_kernel in CPU code. Used by functions below in this file.
- */
-template<typename T>
-static __global__ void cu_fseries_kernel_compute(
-    cuda::std::array<CUFINUFFT_BIGINT, 3> nf123, const T *f, const T *phase,
-    cuda::std::array<T *, 3> fwkerhalf, int ns) {
-  T J2            = ns / 2.0;
-  int q           = (int)(2 + 3.0 * J2);
-  int nf          = nf123[threadIdx.y];
-  const T *phaset = phase + threadIdx.y * MAX_NQUAD;
-  const T *ft     = f + threadIdx.y * MAX_NQUAD;
-  T *oarr         = fwkerhalf[threadIdx.y];
-
-  for (int i = blockDim.x * blockIdx.x + threadIdx.x; i < nf / 2 + 1;
-       i += blockDim.x * gridDim.x) {
-    T x = 0.0;
-    for (int n = 0; n < q; n++) {
-      // in type 1/2 2*PI/nf -> k[i]
-      x += ft[n] * T(2) * std::cos(T(i) * phaset[n]);
-    }
-    oarr[i] = x * T(i % 2 ? -1 : 1); // signflip for the kernel origin being at PI
-  }
-}
-
-/** Kernel for computing approximations of exact Fourier series coeffs of
- *  cnufftspread's real symmetric kernel.
- * a , f are intermediate results from function onedim_fseries_kernel_precomp().
- * this is the arbitrary frequency case (hence the extra kx, ky, kx arguments), used by
- * type 3, matching KernelFSeries in CPU code. Used by functions below in this file.
- */
-template<typename T>
-static __global__ void cu_nuft_kernel_compute(
-    cuda::std::array<CUFINUFFT_BIGINT, 3> nf123, const T *f, const T *z,
-    cuda::std::array<const T *, 3> kxyz, cuda::std::array<T *, 3> fwkerhalf, int ns) {
-  T J2        = ns / 2.0;
-  int q       = (int)(2 + 2.0 * J2);
-  int nf      = nf123[threadIdx.y];
-  const T *at = z + threadIdx.y * MAX_NQUAD;
-  const T *ft = f + threadIdx.y * MAX_NQUAD;
-  T *oarr     = fwkerhalf[threadIdx.y];
-  const T *k  = kxyz[threadIdx.y];
-  for (int i = blockDim.x * blockIdx.x + threadIdx.x; i < nf;
-       i += blockDim.x * gridDim.x) {
-    T x = 0.0;
-    for (int n = 0; n < q; n++) {
-      x += ft[n] * T(2) * std::cos(k[i] * at[n]);
-    }
-    oarr[i] = x;
-  }
-}
-
-template<typename T>
-void fseries_kernel_compute(
-    int dim, cuda::std::array<CUFINUFFT_BIGINT, 3> nf123, const T *d_f, const T *d_phase,
-    cuda::std::array<gpu_array<T>, 3> &d_fwkerhalf, int ns, cudaStream_t stream)
-/*
-    wrapper for approximation of Fourier series of real symmetric spreading
-    kernel.
-
-    Melody Shih 2/20/22
-*/
-{
-  int nout = max(max(nf123[0] / 2 + 1, nf123[1] / 2 + 1), nf123[2] / 2 + 1);
-
-  dim3 threadsPerBlock(16, dim);
-  dim3 numBlocks((nout + 16 - 1) / 16, 1);
-
-  cu_fseries_kernel_compute<<<numBlocks, threadsPerBlock, 0, stream>>>(
-      nf123, d_f, d_phase,
-      {dethrust(d_fwkerhalf[0]), dethrust(d_fwkerhalf[1]), dethrust(d_fwkerhalf[2])}, ns);
-  THROW_IF_CUDA_ERROR
-}
-template void fseries_kernel_compute<float>(
-    int dim, cuda::std::array<CUFINUFFT_BIGINT, 3> nf123, const float *d_f,
-    const float *d_phase, cuda::std::array<gpu_array<float>, 3> &d_fwkerhalf, int ns,
-    cudaStream_t stream);
-template void fseries_kernel_compute<double>(
-    int dim, cuda::std::array<CUFINUFFT_BIGINT, 3> nf123, const double *d_f,
-    const double *d_phase, cuda::std::array<gpu_array<double>, 3> &d_fwkerhalf, int ns,
-    cudaStream_t stream);
-
-template<typename T>
-void nuft_kernel_compute(
-    int dim, cuda::std::array<CUFINUFFT_BIGINT, 3> nf123, const T *d_f, const T *d_z,
-    cuda::std::array<const T *, 3> d_kxyz, cuda::std::array<gpu_array<T>, 3> &d_fwkerhalf,
-    int ns, cudaStream_t stream)
-/*
-    Approximates exact Fourier transform of cnufftspread's real symmetric
-    kernel, directly via q-node quadrature on Euler-Fourier formula, exploiting
-    narrowness of kernel. Evaluates at set of arbitrary freqs k in [-pi, pi),
-    for a kernel with x measured in grid-spacings. (See previous routine for
-    FT definition).
-    It implements onedim_nuft_kernel in CPU code. Except it combines up to three
-    onedimensional kernel evaluations at once (for efficiency).
-
-    Marco Barbone 08/28/2024
-*/
-{
-  int nout = max(max(nf123[0], nf123[1]), nf123[2]);
-
-  dim3 threadsPerBlock(16, dim);
-  dim3 numBlocks((nout + 16 - 1) / 16, 1);
-
-  cu_nuft_kernel_compute<<<numBlocks, threadsPerBlock, 0, stream>>>(
-      nf123, d_f, d_z, d_kxyz,
-      {dethrust(d_fwkerhalf[0]), dethrust(d_fwkerhalf[1]), dethrust(d_fwkerhalf[2])}, ns);
-  THROW_IF_CUDA_ERROR
-}
-template void nuft_kernel_compute(
-    int dim, cuda::std::array<CUFINUFFT_BIGINT, 3> nf123, const float *d_f,
-    const float *d_z, cuda::std::array<const float *, 3> d_kxyz,
-    cuda::std::array<gpu_array<float>, 3> &d_fwkerhalf, int ns, cudaStream_t stream);
-template void nuft_kernel_compute(
-    int dim, cuda::std::array<CUFINUFFT_BIGINT, 3> nf123, const double *d_f,
-    const double *d_z, cuda::std::array<const double *, 3> d_kxyz,
-    cuda::std::array<gpu_array<double>, 3> &d_fwkerhalf, int ns, cudaStream_t stream);
-
-void set_nf_type12(CUFINUFFT_BIGINT ms, cufinufft_opts opts, finufft_spread_opts spopts,
-                   CUFINUFFT_BIGINT *nf, CUFINUFFT_BIGINT bs)
-// type 1 & 2 recipe for how to set 1d size of upsampled array, nf, given opts
-// and requested number of Fourier modes ms.
-{
-  // round up to handle small cases
-  *nf = static_cast<CUFINUFFT_BIGINT>(std::ceil(opts.upsampfac * ms));
-  if (*nf < 2 * spopts.nspread) *nf = 2 * spopts.nspread; // otherwise spread fails
-  if (*nf < MAX_NF) {                                     // otherwise will fail anyway
-    *nf = utils::next235beven(*nf, opts.gpu_method == 4 ? bs : 1); // expensive at huge nf
-  }
-}
-
-/*
-  Precomputation of approximations of exact Fourier series coeffs of cnufftspread's
-  real symmetric kernel.
-
-  Inputs:
-  nf - size of 1d uniform spread grid, must be even.
-  opts - spreading opts object, needed to eval kernel (must be already set up)
-  phase_winding - if true (type 1-2), scaling for the equispaced case else (type 3)
-                  scaling for the general kx,ky,kz case
-
-  Outputs:
-  a - vector of phases to be used for cosines on the GPU;
-  f - function values at quadrature nodes multiplied with quadrature weights (a, f are
-      provided as the inputs of onedim_fseries_kernel_compute() defined below)
-*/
-
-template<typename T>
-void onedim_fseries_kernel_precomp(CUFINUFFT_BIGINT nf, T *f, T *phase,
-                                   finufft_spread_opts opts) {
-  T J2 = opts.nspread / 2.0; // J/2, half-width of ker z-support
-  // # quadr nodes in z (from 0 to J/2; reflections will be added)...
-  const auto q = (int)(2 + 3.0 * J2); // matches CPU code
-  double z[2 * MAX_NQUAD];
-  double w[2 * MAX_NQUAD];
-  gaussquad(2 * q, z, w);       // only half the nodes used, for (0,1)
-  for (int n = 0; n < q; ++n) { // set up nodes z_n and vals f_n
-    z[n] *= J2;                 // rescale nodes
-    f[n]     = J2 * w[n] * evaluate_kernel((T)z[n], opts); // vals & quadr wei
-    phase[n] = T(2.0 * PI * z[n] / T(nf));                 // phase winding rates
-  }
-}
-template void onedim_fseries_kernel_precomp<float>(CUFINUFFT_BIGINT nf, float *f,
-                                                   float *a, finufft_spread_opts opts);
-template void onedim_fseries_kernel_precomp<double>(CUFINUFFT_BIGINT nf, double *f,
-                                                    double *a, finufft_spread_opts opts);
-
-template<typename T>
-void onedim_nuft_kernel_precomp(T *f, T *z, finufft_spread_opts opts) {
-  // it implements the first half of onedim_nuft_kernel in CPU code
-  T J2 = opts.nspread / 2.0; // J/2, half-width of ker z-support
-  // # quadr nodes in z (from 0 to J/2; reflections will be added)...
-  int q = (int)(2 + 2.0 * J2); // matches CPU code
-  double z_local[2 * MAX_NQUAD];
-  double w_local[2 * MAX_NQUAD];
-  gaussquad(2 * q, z_local, w_local);                     // half the nodes, (0,1)
-  for (int n = 0; n < q; ++n) {                           // set up nodes z_n and vals f_n
-    z[n] = J2 * T(z_local[n]);                            // rescale nodes
-    f[n] = J2 * w_local[n] * evaluate_kernel(z[n], opts); // vals & quadr wei
-  }
-}
-template void onedim_nuft_kernel_precomp<float>(float *f, float *a,
-                                                finufft_spread_opts opts);
-template void onedim_nuft_kernel_precomp<double>(double *f, double *a,
-                                                 finufft_spread_opts opts);
 
 template<typename T> std::size_t shared_memory_per_point(int dim, int ns) {
   return ns * sizeof(T) * dim       // kernel evaluations
@@ -636,3 +450,11 @@ template void cufinufft_setup_binsize<double>(int type, int ns, int dim,
                                               cufinufft_opts *opts);
 } // namespace common
 } // namespace cufinufft
+
+template<typename T> std::size_t cufinufft_plan_t<T>::shared_memory_required() const {
+  return cufinufft::common::shared_memory_required<T>(
+      dim, spopts.nspread, opts.gpu_binsizex, opts.gpu_binsizey, opts.gpu_binsizez,
+      opts.gpu_np);
+}
+template std::size_t cufinufft_plan_t<float>::shared_memory_required() const;
+template std::size_t cufinufft_plan_t<double>::shared_memory_required() const;

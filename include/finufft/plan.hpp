@@ -18,7 +18,6 @@
 #define FINUFFT_VER "2.6.0-dev"
 
 // Internal (nf1 etc) array allocation size that immediately raises error.
-// (Note: next235 takes 1s for 1e11, so it is also to prevent hang here.)
 // Increase this if you need >10TB (!) RAM...
 inline constexpr BIGINT MAX_NF = BIGINT(1e12);
 

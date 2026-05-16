@@ -4,7 +4,7 @@
 // octave (mkoctfile) needs this otherwise it doesn't know what int64_t is!
 #include <complex>
 
-#include <cufinufft/types.h>
+#include <cufinufft/types.hpp>
 
 #include <cuda_runtime.h>
 #include <thrust/extrema.h>
@@ -70,9 +70,6 @@ namespace utils {
 
 using namespace finufft::common;
 
-// math helpers whose source is in src/utils.cpp
-FINUFFT_EXPORT long next235beven(long n, long b);
-
 /**
  * does a complex atomic add on a shared memory address
  * it adds the real and imaginary parts separately
@@ -133,37 +130,6 @@ template<typename T> auto arraywidcen(int n, const T *a, cudaStream_t stream) {
   return std::make_tuple(w, c);
 }
 
-template<typename T>
-auto set_nhg_type3(T S, T X, const cufinufft_opts &opts,
-                   const finufft_spread_opts &spopts)
-// It implements the same named function in makeplan.hpp (see its docs)
-{
-  int nss = spopts.nspread + 1; // since ns may be odd
-  T Xsafe = X, Ssafe = S;       // may be tweaked locally
-  if (X == 0.0)                 // logic ensures XS>=1, handle X=0 a/o S=0
-    if (S == 0.0) {
-      Xsafe = 1.0;
-      Ssafe = 1.0;
-    } else
-      Xsafe = std::max(Xsafe, T(1) / S);
-  else
-    Ssafe = std::max(Ssafe, T(1) / X);
-  // use the safe X and S...
-  T nfd = 2.0 * opts.upsampfac * Ssafe * Xsafe / PI + nss;
-  if (!std::isfinite(nfd)) nfd = 0.0; // use FLT to catch inf
-  auto nf = (int)nfd;
-  // printf("initial nf=%lld, ns=%d\n",*nf,spopts.nspread);
-  //  catch too small nf, and nan or +-inf, otherwise spread fails...
-  if (nf < 2 * spopts.nspread) nf = 2 * spopts.nspread;
-  if (nf < MAX_NF)            // otherwise will fail anyway
-    nf = next235beven(nf, 1); // expensive at huge nf
-  // Note: b is 1 because type 3 uses a type 2 plan, so it should not need the extra
-  // condition that seems to be used by Block Gather as type 2 are only GM-sort
-  auto h   = 2 * T(PI) / nf;                         // upsampled grid spacing
-  auto gam = T(nf) / (2.0 * opts.upsampfac * Ssafe); // x scale fac to x'
-  return std::make_tuple(nf, h, gam);
-}
-
 // Wrapper around the generic dispatcher for ndim-based dispatch
 template<typename Func, typename T, typename... Args>
 auto launch_dispatch_ndim(Func &&func, int target_ndim, Args &&...args) {
@@ -176,7 +142,7 @@ template<typename Func, typename T, typename... Args>
 auto launch_dispatch_ndim_ns(Func &&func, int target_ndim, int target_ns,
                              Args &&...args) {
   using NdimSeq = make_range<1, 3>;
-  using NsSeq   = make_range<MIN_NSPREAD, MAX_NSPREAD<T>>;
+  using NsSeq = make_range<MIN_NSPREAD, MAX_NSPREAD<T>>;
   auto params   = std::make_tuple(DispatchParam<NdimSeq>{target_ndim},
                                   DispatchParam<NsSeq>{target_ns});
   return dispatch(std::forward<Func>(func), params, std::forward<Args>(args)...);

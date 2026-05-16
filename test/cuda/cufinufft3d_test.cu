@@ -8,8 +8,8 @@
 #include <cufinufft.h>
 #include <finufft_common/common.h>
 
-#include <cufinufft/cufinufft_plan_t.h>
-#include <cufinufft/utils.h>
+#include <cufinufft/cufinufft_plan_t.hpp>
+#include <cufinufft/utils.hpp>
 
 #include <thrust/complex.h>
 #include <thrust/device_vector.h>
@@ -142,7 +142,8 @@ int run_test(int method, int type, int N1, int N2, int N3, int M, T tol, T check
   printf("[time  ] cufinufft setNUpts:\t\t %.3g s\n", milliseconds / 1000);
 
   cudaEventRecord(start);
-  dplan->exec((cuda_complex<T> *)d_c.data().get(), (cuda_complex<T> *)d_fk.data().get());
+  dplan->execute((cuda_complex<T> *)d_c.data().get(),
+                 (cuda_complex<T> *)d_fk.data().get());
   cudaEventRecord(stop);
   cudaEventSynchronize(stop);
   cudaEventElapsedTime(&milliseconds, start, stop);
