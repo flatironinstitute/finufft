@@ -3,6 +3,10 @@ If not stated, FINUFFT is assumed (old cuFINUFFT <=1.3 is listed separately).
 
 v2.6.0-dev
 
+* Added C-level simple API to cuFINUFFT
+  (`cufinufft{,f}{1,2,3}d{1,2,3}[many]`) mirroring the CPU `finufft1d1`-style
+  one-shot wrappers. 36 new entry points that allocate a plan, set points,
+  execute, and destroy in a single call; inputs are device pointers. (Barbone)
 * Added `threadsafe_execute` regression test verifying concurrent `execute()`
   calls on the same plan produce correct results. Added sanitizer mode selection
   via `FINUFFT_USE_SANITIZERS=OFF|ON|MEMSAN|TSAN`, and extended the sanitizer
