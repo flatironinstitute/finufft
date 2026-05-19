@@ -121,11 +121,9 @@ jobs:
             DUCC0_FLAG="-DFINUFFT_USE_DUCC0=OFF"
           fi
 
-          cmake -S . -B build -G Ninja \
-            -DCMAKE_BUILD_TYPE=Release \
+          cmake --preset matlab -B build \
+            ${EXTRA_MACOS_FLAGS} \
             ${DUCC0_FLAG} \
-            -DFINUFFT_USE_OPENMP=ON \
-            -DFINUFFT_MATLAB_INSTALL=ON \
             -DMatlab_MEX_EXTENSION="${MEXEXT}" \
             -DCMAKE_MSVC_RUNTIME_LIBRARY="MultiThreaded$<$<CONFIG:Debug>:Debug>" \
             ${CUDA_FLAG}

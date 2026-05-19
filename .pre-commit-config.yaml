@@ -13,6 +13,7 @@ repos:
         language: python
         additional_dependencies: [clang-format==22.*]
         pass_filenames: true
+        require_serial: true
         types_or: [c++, c, cuda]
         files: \.(c|cc|cpp|h|hpp|cu|cuh)$
         exclude: '(^|/)(matlab/.*)$'
@@ -22,6 +23,7 @@ repos:
         language: python
         additional_dependencies: [gersemi==0.27.1]
         pass_filenames: true
+        require_serial: true
         files: '(^|/)(CMakeLists\.txt|[^/]+\.cmake(?:\.in)?)$'
   # --- Python ---
   - repo: https://github.com/akaihola/darker

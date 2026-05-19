@@ -40,6 +40,7 @@ Python-only users can simply install via ``pip install finufft`` which downloads
     On Windows with MSVC, FINUFFT also requires ``VCOMP140D.DLL`` which is part of the `Microsoft Visual C++ Redistributable <https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist?view=msvc-170>`_.
     It is likely to be already installed in your system.
     If the library is built on Windows with LLVM, it requires ``libomp140.x86.64.dll``; see `here <https://devblogs.microsoft.com/cppblog/improved-openmp-support-for-cpp-in-visual-studio/>`_.
+    On Windows the default CMake generator is Visual Studio (multi-config); see :ref:`multi-config` for the required ``--config`` flag, or use a :ref:`preset <cmake-presets>`.
 
 
 Including FINUFFT into your own CMake project
@@ -99,7 +100,51 @@ Then CMake will automatically download FINUFFT and link it to your executable.
 CMake based installation and compilation
 ----------------------------------------
 
-Make sure you have ``cmake`` version at least 3.24.
+Make sure you have ``cmake`` version at least 3.25.
+
+.. _cmake-presets:
+
+Quick start with CMake presets
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+FINUFFT ships a ``CMakePresets.json`` at the repository root that captures
+the canonical configurations used by CI and recommended for end users.
+Presets work identically across Linux, macOS, and Windows, and are picked
+up automatically by Visual Studio, VS Code (CMake Tools), and CLion.
+
+The recommended developer workflow is three commands:
+
+.. code-block:: bash
+
+  cmake --preset dev
+  cmake --build --preset dev
+  ctest --preset dev
+
+List all available presets with ``cmake --list-presets all``. The most
+useful ones are:
+
+==================  =================================================================
+Preset              When to use it
+==================  =================================================================
+``default``         End-user Release build (Ninja, single-config).
+``dev``             Contributor default: RelWithDebInfo, tests and examples on.
+``dev-ducc``        Same as ``dev`` but uses DUCC0 instead of FFTW.
+``ninja-multi``     Multi-config build; works the same on every OS (see below).
+``sanitizers``      Debug build with ASAN/UBSAN enabled.
+``static-analysis`` clang-tidy + cppcheck inline (matches the CI static-analysis job).
+``fortran``         Build the Fortran wrappers and examples.
+``matlab``          Build the MATLAB MEX interface.
+``gpu``             Build the cuFINUFFT GPU library (CUDA toolchain required).
+``all``             CPU + GPU + tests in one configuration.
+``all-wrappers``    Every CPU language wrapper at once (MATLAB + Fortran + DUCC0).
+==================  =================================================================
+
+See the `cmake-presets(7) <https://cmake.org/cmake/help/latest/manual/cmake-presets.7.html>`_
+manual for the full preset reference.
+
+Quick start without presets
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 The basic quick download, default building, and test and install
 is then done by:
 
@@ -115,6 +160,54 @@ is then done by:
 In ``build``, this creates the static library (``libfinufft.a`` on linux or OSX), and runs a test that should take a
 couple of seconds and report something like ``100% tests passed, 0 tests failed out of 17``. It then attempts to install the library.
 To instead build a shared library, see the ``FINUFFT_STATIC_LINKING`` CMake option below.
+
+.. _multi-config:
+
+Multi-configuration generators (Visual Studio, Xcode, Ninja Multi-Config)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+CMake generators come in two flavors. *Single-config* generators
+(Unix Makefiles, Ninja) bake the build type into the build directory:
+``-DCMAKE_BUILD_TYPE=Release`` at configure time determines what ``cmake
+--build`` produces. *Multi-config* generators (Visual Studio, Xcode,
+Ninja Multi-Config) ignore ``CMAKE_BUILD_TYPE`` and instead require the
+configuration to be chosen at build, test, and install time.
+
+This matters on Windows in particular, where CMake's default generator
+is Visual Studio. You can tell which generator was selected from the
+configure output (look for the ``-- Generator: ...`` line).
+
+With a multi-config generator, every command that operates on the build
+tree must specify ``--config <cfg>``:
+
+.. code-block:: bash
+
+  cmake -S . -B build -DFINUFFT_BUILD_TESTS=ON
+  cmake --build build --config Release --parallel
+  ctest   --test-dir build --build-config Release
+  cmake --install build --config Release
+
+Omitting ``--config`` on ``ctest`` typically reports::
+
+  Test not available without configuration. (Missing "-C <config>"?)
+
+The easier alternative is the ``ninja-multi`` preset, which works the
+same way on every platform:
+
+.. code-block:: bash
+
+  cmake --preset ninja-multi
+  cmake --build --preset ninja-multi
+  ctest --preset ninja-multi
+
+If you prefer a traditional single-config build on Windows, force a
+single-config generator explicitly:
+
+.. code-block:: bash
+
+  cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DFINUFFT_BUILD_TESTS=ON
+  cmake --build build --parallel
+  ctest --test-dir build
 
 .. note::
 

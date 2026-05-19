@@ -10,8 +10,8 @@
 #include <cufinufft.h>
 #include <finufft_common/common.h>
 
-#include <cufinufft/cufinufft_plan_t.h>
-#include <cufinufft/utils.h>
+#include <cufinufft/cufinufft_plan_t.hpp>
+#include <cufinufft/utils.hpp>
 
 #include <thrust/complex.h>
 #include <thrust/device_vector.h>
@@ -124,8 +124,8 @@ template<typename T> int run_test(int method) {
   printf("[time  ] cufinufft setNUpts (set 1):\t %.3g s\n", milliseconds / 1000);
 
   cudaEventRecord(start);
-  dplan->exec((cuda_complex<T> *)d_c1.data().get(),
-              (cuda_complex<T> *)d_fk1.data().get());
+  dplan->execute((cuda_complex<T> *)d_c1.data().get(),
+                 (cuda_complex<T> *)d_fk1.data().get());
 
   cudaEventRecord(stop);
   cudaEventSynchronize(stop);
@@ -143,8 +143,8 @@ template<typename T> int run_test(int method) {
   printf("[time  ] cufinufft setNUpts (set 2):\t %.3g s\n", milliseconds / 1000);
 
   cudaEventRecord(start);
-  dplan->exec((cuda_complex<T> *)d_c2.data().get(),
-              (cuda_complex<T> *)d_fk2.data().get());
+  dplan->execute((cuda_complex<T> *)d_c2.data().get(),
+                 (cuda_complex<T> *)d_fk2.data().get());
   cudaEventRecord(stop);
   cudaEventSynchronize(stop);
   cudaEventElapsedTime(&milliseconds, start, stop);

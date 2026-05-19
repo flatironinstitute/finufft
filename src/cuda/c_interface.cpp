@@ -4,7 +4,7 @@
 #include <limits>
 
 #include <cufinufft.h>
-#include <cufinufft/cufinufft_plan_t.h>
+#include <cufinufft/cufinufft_plan_t.hpp>
 #include <finufft_common/safe_call.h>
 
 using finufft::common::safe_finufft_call;
@@ -35,13 +35,12 @@ int cufinufftf_makeplan(int type, int dim, const int64_t *nmodes, int iflag, int
   return safe_finufft_call([&]() -> int {
     if (dim < 1 || dim > 3) {
       fprintf(stderr, "[%s] Invalid dim (%d), should be 1, 2 or 3.\n", __func__, dim);
-      return FINUFFT_ERR_DIM_NOTVALID;
+      throw finufft::exception(FINUFFT_ERR_DIM_NOTVALID);
     }
 
     int nmodes32[3];
-    if (is_invalid_mode_array(type, dim, nmodes, nmodes32)) {
-      return FINUFFT_ERR_NDATA_NOTVALID;
-    }
+    if (is_invalid_mode_array(type, dim, nmodes, nmodes32))
+      throw finufft::exception(FINUFFT_ERR_NDATA_NOTVALID);
 
     cufinufft_opts planopts;
     if (opts)
@@ -62,13 +61,12 @@ int cufinufft_makeplan(int type, int dim, const int64_t *nmodes, int iflag, int 
   return safe_finufft_call([&]() -> int {
     if (dim < 1 || dim > 3) {
       fprintf(stderr, "[%s] Invalid dim (%d), should be 1, 2 or 3.\n", __func__, dim);
-      return FINUFFT_ERR_DIM_NOTVALID;
+      throw finufft::exception(FINUFFT_ERR_DIM_NOTVALID);
     }
 
     int nmodes32[3];
-    if (is_invalid_mode_array(type, dim, nmodes, nmodes32)) {
-      return FINUFFT_ERR_NDATA_NOTVALID;
-    }
+    if (is_invalid_mode_array(type, dim, nmodes, nmodes32))
+      throw finufft::exception(FINUFFT_ERR_NDATA_NOTVALID);
 
     cufinufft_opts planopts;
     if (opts)
@@ -87,7 +85,8 @@ int cufinufftf_setpts(cufinufftf_plan d_plan, const int64_t M, const float *d_x,
                       const float *d_y, const float *d_z, int N, const float *d_s,
                       const float *d_t, const float *d_u) {
   return safe_finufft_call([&]() {
-    if (M > std::numeric_limits<int32_t>::max()) throw int(FINUFFT_ERR_NDATA_NOTVALID);
+    if (M > std::numeric_limits<int32_t>::max())
+      throw finufft::exception(FINUFFT_ERR_NDATA_NOTVALID);
 
     ((cufinufft_plan_t<float> *)d_plan)->setpts((int)M, d_x, d_y, d_z, N, d_s, d_t, d_u);
   });
@@ -97,7 +96,8 @@ int cufinufft_setpts(cufinufft_plan d_plan, const int64_t M, const double *d_x,
                      const double *d_y, const double *d_z, int N, const double *d_s,
                      const double *d_t, const double *d_u) {
   return safe_finufft_call([&]() {
-    if (M > std::numeric_limits<int32_t>::max()) throw int(FINUFFT_ERR_NDATA_NOTVALID);
+    if (M > std::numeric_limits<int32_t>::max())
+      throw finufft::exception(FINUFFT_ERR_NDATA_NOTVALID);
 
     ((cufinufft_plan_t<double> *)d_plan)->setpts((int)M, d_x, d_y, d_z, N, d_s, d_t, d_u);
   });
@@ -106,25 +106,25 @@ int cufinufft_setpts(cufinufft_plan d_plan, const int64_t M, const double *d_x,
 int cufinufftf_execute(cufinufftf_plan d_plan, cuFloatComplex *d_c,
                        cuFloatComplex *d_fk) {
   return safe_finufft_call(
-      [&]() { ((cufinufft_plan_t<float> *)d_plan)->exec(d_c, d_fk); });
+      [&]() { ((cufinufft_plan_t<float> *)d_plan)->execute(d_c, d_fk); });
 }
 
 int cufinufft_execute(cufinufft_plan d_plan, cuDoubleComplex *d_c,
                       cuda_complex<double> *d_fk) {
   return safe_finufft_call(
-      [&]() { ((cufinufft_plan_t<double> *)d_plan)->exec(d_c, d_fk); });
+      [&]() { ((cufinufft_plan_t<double> *)d_plan)->execute(d_c, d_fk); });
 }
 
 int cufinufftf_destroy(cufinufftf_plan d_plan) {
   return safe_finufft_call([&]() {
-    if (!d_plan) throw int(FINUFFT_ERR_PLAN_NOTVALID);
+    if (!d_plan) throw finufft::exception(FINUFFT_ERR_PLAN_NOTVALID);
     delete ((cufinufft_plan_t<float> *)d_plan);
   });
 }
 
 int cufinufft_destroy(cufinufft_plan d_plan) {
   return safe_finufft_call([&]() {
-    if (!d_plan) throw int(FINUFFT_ERR_PLAN_NOTVALID);
+    if (!d_plan) throw finufft::exception(FINUFFT_ERR_PLAN_NOTVALID);
     delete ((cufinufft_plan_t<double> *)d_plan);
   });
 }

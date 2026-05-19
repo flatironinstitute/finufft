@@ -7,20 +7,34 @@ Joakim Anden (KTH)
 Johannes Blaschke (LBNL)
 Alex Barnett (CCM, Flatiron Institute)
 Robert Blackwell (SCC, Flatiron Institute)
+Marco Barbone (Flatiron Institute)
 
 This project came out of Melody's 2018 and 2019 summer internships at
 the Flatiron Institute, advised by Alex Barnett.
 
-
-
 --------------
 
-This folder contains the main source files of the GPU implementations.
+Source layout under src/cuda/ (see CMakeLists.txt for the authoritative list):
 
-- cufinufft.cu
-  Four main stages of cufinufft API.
-  (1) cufinufft_makeplan, (2) cufinufft_setpts, (3) cufinufft_execute, (4) cufinufft_destroy.
-  Also, cufinufft_default_opts may precede stage 1.
+- c_interface.cpp         Pure-host C-API shim (cufinufft{,f}_makeplan/setpts/execute/destroy
+                          and cufinufft_default_opts). Compiled with the host C++ compiler.
+- spreadinterp.cpp        Pure-host method dispatchers calling
+                          cufinufft_plan_t<T>::{spread,interp}_*.
+- cufinufft_plan_t.cu     Class members of cufinufft_plan_t<T>: makeplan/setpts/execute and
+                          the deconvolve kernel.
+- common.cu               f-series / nuft kernel compute, host-side precompute, bin-size
+                          and Method-3 GPU heuristics.
+- spread_blockgather_inst.cu  Explicit instantiations for the 3D-only block-gather method.
 
-- cufinufft_plan_t.cu
-  Implementation of class members for the cufinufft_plan_t class
+Per-method per-dim pattern (configure_file copies in CMake):
+  <method>.cuh         method-body (host driver + __global__ kernels) as a header
+  <method>_inst.cu     thin TU with explicit instantiations, copied per dim 1/2/3
+                       with -DCUFINUFFT_DIM=<dim>.
+  Methods: spread_nupts_driven, spread_subprob, spread_output_driven,
+           interp_nupts_driven, interp_subprob.
+  spread_blockgather is 3D-only and uses a single inst TU (above).
+
+Headers under include/cufinufft/ are .hpp for internal C++; public C-API
+headers (cufinufft.h, cufinufft_opts.h) are .h. Headers under
+include/finufft_common/ are designed to be C-includable from public headers
+and intentionally stay .h.

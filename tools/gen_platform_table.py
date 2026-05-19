@@ -49,6 +49,21 @@ def _badge_url(workflow: str, job_name: str, label: str = "") -> str:
     return f"https://img.shields.io/github/check-runs/{REPO}/{ref}?{q}"
 
 
+def _workflow_status_url(workflow: str, label: str) -> str:
+    # Per-job check-run badges require the /github/check-runs endpoint, which
+    # shields.io queries without pagination (GitHub's default 30/page); jobs
+    # that don't land on page 1 render as "unknown status". For small,
+    # slow-changing workflows (C++.yml make path, powerpc.yml cross-compile)
+    # we fall back to a single workflow-level badge, which is paging-immune.
+    q = urllib.parse.urlencode(
+        {"branch": BRANCH, "label": label, "style": BADGE_STYLE},
+        quote_via=urllib.parse.quote,
+    )
+    return (
+        f"https://img.shields.io/github/actions/workflow/status/{REPO}/{workflow}?{q}"
+    )
+
+
 def _runs_url(workflow: str) -> str:
     return f"https://github.com/{REPO}/actions/workflows/{workflow}?query=branch%3A{BRANCH}"
 
@@ -116,8 +131,10 @@ def parse_powerpc(path: Path) -> list[Row]:
         for sysd in matrix["sys"]:
             # powerpc.yml sets a custom job `name:` template:
             #   '${{ matrix.target.arch }}, ${{ matrix.sys.compiler }} ${{ matrix.sys.version }}'
-            base = f"{target['arch']}, {sysd['compiler']} {sysd['version']}"
-            job_name = f"build ({base})"
+            # powerpc.yml's custom `name:` template overrides the
+            # `build (...)` wrapper that GH Actions would otherwise auto-add,
+            # so the rendered check-run name is just the template output.
+            job_name = f"{target['arch']}, {sysd['compiler']} {sysd['version']}"
             arch = target["arch"]
             os_label = "powerpc64le" if arch == "ppc64le" else "powerpc64"
             rows.append(
@@ -156,16 +173,22 @@ def render_md(rows: Iterable[Row]) -> str:
     for os_, group in groups:
         cells = []
         for r in group:
-            badge = _badge_url(r.workflow, r.job_name, label=r.compiler)
+            if r.workflow == "cmake_ci.yml":
+                badge = _badge_url(r.workflow, r.job_name, label=r.compiler)
+            else:
+                # C++.yml and powerpc.yml: collapse to workflow-level badge to
+                # dodge shields.io's check-runs pagination cap (see #508).
+                badge = _workflow_status_url(r.workflow, label=r.compiler)
             link = _runs_url(r.workflow)
             cells.append(f"[![{r.compiler}]({badge})]({link})")
         out.append(f"| {os_} | {' '.join(cells)} |")
     out.append("")
     out.append(
-        "_Each badge labels its toolchain and colours green/red with that job's "
-        "current status on `master`. CMake-CI rows on Linux/macOS exercise both "
-        "DUCC FFT and FFTW; Windows builds DUCC FFT only. `(make)` rows exercise "
-        "the legacy GNU-make build path. PowerPC rows build via cross-compile + QEMU._"
+        "_Each badge labels its toolchain and colours green/red with the latest "
+        "status on `master`. CMake-CI rows on Linux/macOS exercise both DUCC FFT "
+        "and FFTW; Windows builds DUCC FFT only. `(make)` rows share their "
+        "workflow's overall status (legacy GNU-make build path); PowerPC rows "
+        "likewise share `powerpc.yml`'s overall status (cross-compile + QEMU)._"
     )
     return "\n".join(out) + "\n"
 
@@ -176,7 +199,10 @@ def render_rst(rows: list[Row]) -> str:
     subs = []
     refs = []
     for i, r in enumerate(rows):
-        badge = _badge_url(r.workflow, r.job_name)
+        if r.workflow == "cmake_ci.yml":
+            badge = _badge_url(r.workflow, r.job_name)
+        else:
+            badge = _workflow_status_url(r.workflow, label=r.compiler)
         link = _runs_url(r.workflow)
         name = f"badge-{i}"
         subs.append(

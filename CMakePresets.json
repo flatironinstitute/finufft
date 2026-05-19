@@ -1,0 +1,193 @@
+{
+  "version": 6,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 25,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "default",
+      "displayName": "Default (Ninja, Release)",
+      "description": "Single-config Release build with Ninja. Recommended quick-start preset for end users.",
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "generator": "Ninja",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    },
+    {
+      "name": "dev",
+      "displayName": "Developer (RelWithDebInfo, tests + examples)",
+      "description": "Contributor default: RelWithDebInfo with tests and examples enabled.",
+      "inherits": "default",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+        "FINUFFT_BUILD_TESTS": "ON",
+        "FINUFFT_BUILD_EXAMPLES": "ON"
+      }
+    },
+    {
+      "name": "dev-ducc",
+      "displayName": "Developer + DUCC0 FFT",
+      "description": "Same as 'dev' but selects DUCC0 instead of FFTW.",
+      "inherits": "dev",
+      "cacheVariables": {
+        "FINUFFT_USE_DUCC0": "ON"
+      }
+    },
+    {
+      "name": "ninja-multi",
+      "displayName": "Ninja Multi-Config",
+      "description": "Multi-configuration Ninja build (Debug/Release/RelWithDebInfo selectable at build time). Useful on platforms where the default generator is multi-config.",
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "generator": "Ninja Multi-Config",
+      "cacheVariables": {
+        "FINUFFT_BUILD_TESTS": "ON",
+        "FINUFFT_BUILD_EXAMPLES": "ON"
+      }
+    },
+    {
+      "name": "sanitizers",
+      "displayName": "Sanitizers (ASAN/UBSAN)",
+      "description": "Debug build with FINUFFT_USE_SANITIZERS=ON. DUCC0 backend.",
+      "inherits": "dev-ducc",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "FINUFFT_USE_SANITIZERS": "ON"
+      }
+    },
+    {
+      "name": "static-analysis",
+      "displayName": "Static analysis (clang-tidy + cppcheck)",
+      "description": "clang-tidy + cppcheck run inline via clang; tests/examples disabled.",
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "generator": "Ninja",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_C_COMPILER": "clang",
+        "CMAKE_CXX_COMPILER": "clang++",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+        "FINUFFT_BUILD_TESTS": "OFF",
+        "FINUFFT_BUILD_EXAMPLES": "OFF",
+        "FINUFFT_STATIC_ANALYSIS": "ON",
+        "FINUFFT_STATIC_ANALYSIS_WERROR": "ON"
+      }
+    },
+    {
+      "name": "fortran",
+      "displayName": "Fortran wrappers + DUCC0",
+      "description": "Build the Fortran interface and examples.",
+      "inherits": "dev-ducc",
+      "cacheVariables": {
+        "FINUFFT_BUILD_FORTRAN": "ON"
+      }
+    },
+    {
+      "name": "matlab",
+      "displayName": "MATLAB MEX",
+      "description": "Build the MATLAB MEX interface and install layout.",
+      "inherits": "default",
+      "cacheVariables": {
+        "FINUFFT_BUILD_MATLAB": "ON",
+        "FINUFFT_MATLAB_INSTALL": "ON",
+        "FINUFFT_USE_OPENMP": "ON",
+        "FINUFFT_USE_SANITIZERS": "OFF"
+      }
+    },
+    {
+      "name": "gpu",
+      "displayName": "GPU (cuFINUFFT)",
+      "description": "Build the cuFINUFFT GPU library with tests. CUDA toolchain required.",
+      "inherits": "default",
+      "cacheVariables": {
+        "FINUFFT_USE_CUDA": "ON",
+        "BUILD_TESTING": "ON",
+        "FINUFFT_BUILD_TESTS": "ON",
+        "CMAKE_CUDA_ARCHITECTURES": "native"
+      }
+    },
+    {
+      "name": "all",
+      "displayName": "All (CPU + GPU + tests)",
+      "description": "Build both CPU and GPU libraries with tests and examples.",
+      "inherits": "dev",
+      "cacheVariables": {
+        "FINUFFT_USE_CUDA": "ON",
+        "BUILD_TESTING": "ON",
+        "FINUFFT_BUILD_TESTS": "ON",
+        "CMAKE_CUDA_ARCHITECTURES": "native"
+      }
+    },
+    {
+      "name": "all-wrappers",
+      "displayName": "All CPU wrappers (MATLAB + Fortran + DUCC0)",
+      "description": "Build every CPU language wrapper. Python wheels are built via cibuildwheel, not this preset; Octave is build only via 'make octave'.",
+      "inherits": "dev",
+      "cacheVariables": {
+        "FINUFFT_BUILD_MATLAB": "ON",
+        "FINUFFT_MATLAB_INSTALL": "ON",
+        "FINUFFT_BUILD_FORTRAN": "ON",
+        "FINUFFT_USE_DUCC0": "ON",
+        "FINUFFT_USE_SANITIZERS": "OFF"
+      }
+    }
+  ],
+  "buildPresets": [
+    { "name": "default", "configurePreset": "default" },
+    { "name": "dev", "configurePreset": "dev" },
+    { "name": "dev-ducc", "configurePreset": "dev-ducc" },
+    { "name": "ninja-multi", "configurePreset": "ninja-multi", "configuration": "Release" },
+    { "name": "sanitizers", "configurePreset": "sanitizers" },
+    { "name": "static-analysis", "configurePreset": "static-analysis", "targets": ["finufft"] },
+    { "name": "fortran", "configurePreset": "fortran" },
+    { "name": "matlab", "configurePreset": "matlab" },
+    { "name": "gpu", "configurePreset": "gpu" },
+    { "name": "all", "configurePreset": "all" },
+    { "name": "all-wrappers", "configurePreset": "all-wrappers" }
+  ],
+  "testPresets": [
+    {
+      "name": "dev",
+      "configurePreset": "dev",
+      "output": { "outputOnFailure": true },
+      "execution": { "noTestsAction": "error" }
+    },
+    {
+      "name": "dev-ducc",
+      "configurePreset": "dev-ducc",
+      "output": { "outputOnFailure": true },
+      "execution": { "noTestsAction": "error" }
+    },
+    {
+      "name": "ninja-multi",
+      "configurePreset": "ninja-multi",
+      "configuration": "Release",
+      "output": { "outputOnFailure": true },
+      "execution": { "noTestsAction": "error" }
+    },
+    {
+      "name": "sanitizers",
+      "configurePreset": "sanitizers",
+      "output": { "outputOnFailure": true },
+      "execution": { "noTestsAction": "error" }
+    },
+    {
+      "name": "fortran",
+      "configurePreset": "fortran",
+      "output": { "outputOnFailure": true },
+      "execution": { "noTestsAction": "error" }
+    }
+  ],
+  "workflowPresets": [
+    {
+      "name": "dev",
+      "description": "Configure, build, and test the developer preset in one command.",
+      "steps": [
+        { "type": "configure", "name": "dev" },
+        { "type": "build", "name": "dev" },
+        { "type": "test", "name": "dev" }
+      ]
+    }
+  ]
+}

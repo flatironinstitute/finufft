@@ -2,10 +2,14 @@
 #define CUFINUFFT_TYPES_H
 
 #include <cufft.h>
-#include <cufinufft/defs.h>
 #include <cufinufft_opts.h>
+#include <finufft_common/common.h>
 
 #include <cuComplex.h>
+#include <limits>
+
+// FIXME: If cufft ever takes N > INT_MAX...
+constexpr int32_t MAX_NF = std::numeric_limits<int32_t>::max();
 
 using CUFINUFFT_BIGINT = int;
 

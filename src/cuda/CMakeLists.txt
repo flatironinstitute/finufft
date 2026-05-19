@@ -1,11 +1,38 @@
 include(staticAnalysis)
 
-set(SRC
-    cufinufft.cu
-    common.cu
-    cufinufft_plan_t.cu
-    spreadinterp.cu
+set(SRC_CUDA
+    fft.cu
+    heuristics.cu
+    makeplan.cu
+    setpts.cu
+    execute.cu
+    spread_blockgather_inst.cu
 )
+# Pure-host TUs: dispatch + C-API shims with no kernel launches and no
+# __global__/__device__ tokens. Compile with the host C++ compiler so they
+# don't pay nvcc's parsing cost and so MSVC/Windows toolchains see plain C++.
+set(SRC_CXX c_interface.cpp spreadinterp.cpp)
+set(SRC ${SRC_CUDA} ${SRC_CXX})
+
+# Per-method per-dim instantiation TUs. Each *_inst.cu is compiled once
+# per dim (1, 2, 3) with -DCUFINUFFT_DIM=<dim> via configure_file copies
+# in the build dir. Splitting per (method, dim) maximizes nvcc parallelism
+# without duplicating source files in the tree.
+set(CUFINUFFT_PER_DIM_METHODS
+    spread_nupts_driven
+    spread_subprob
+    spread_output_driven
+    interp_nupts_driven
+    interp_subprob
+)
+foreach(method ${CUFINUFFT_PER_DIM_METHODS})
+    foreach(dim 1 2 3)
+        set(_gen ${CMAKE_CURRENT_BINARY_DIR}/${method}_${dim}d.cu)
+        configure_file(${CMAKE_CURRENT_SOURCE_DIR}/${method}_inst.cu ${_gen} COPYONLY)
+        set_source_files_properties(${_gen} PROPERTIES COMPILE_DEFINITIONS "CUFINUFFT_DIM=${dim}")
+        list(APPEND SRC ${_gen})
+    endforeach()
+endforeach()
 
 set(CUFINUFFT_INCLUDE_DIRS
     $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
@@ -24,11 +51,15 @@ if(FINUFFT_SHARED_LINKING)
 else()
     add_library(cufinufft STATIC ${SRC})
 endif()
+set_source_files_properties(${SRC_CXX} PROPERTIES LANGUAGE CXX)
 
 enable_static_analysis(cufinufft)
 set_property(TARGET ${target} PROPERTY INTERPROCEDURAL_OPTIMIZATION ${FINUFFT_INTERPROCEDURAL_OPTIMIZATION})
 add_library(finufft::cufinufft ALIAS cufinufft)
 target_include_directories(cufinufft PUBLIC ${CUFINUFFT_INCLUDE_DIRS})
+# Generated per-dim instantiation TUs in build dir need to find
+# spreadinterp_common.cuh (shared device-helper header) in the source dir.
+target_include_directories(cufinufft PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 # set target build location
 set_target_properties(cufinufft PROPERTIES LIBRARY_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}")
 
@@ -42,7 +73,14 @@ set_target_properties(
     cufinufft
     PROPERTIES
         CUDA_ARCHITECTURES "${CMAKE_CUDA_ARCHITECTURES}"
-        CUDA_SEPARABLE_COMPILATION ON
+        # RDC is disabled: no cross-TU __device__ calls exist (all device
+        # helpers are inline/__forceinline__/template in headers, all
+        # __global__ kernels are launched from the same TU that defines
+        # them). Turning this off skips the device-link step, enables
+        # whole-program inlining within each TU, and avoids MSVC + nvcc
+        # toolchain quirks. Reintroduce only if a future feature genuinely
+        # needs cross-TU device calls.
+        CUDA_SEPARABLE_COMPILATION OFF
         ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}"
         INTERPROCEDURAL_OPTIMIZATION ${FINUFFT_INTERPROCEDURAL_OPTIMIZATION}
         POSITION_INDEPENDENT_CODE ${FINUFFT_POSITION_INDEPENDENT_CODE}
