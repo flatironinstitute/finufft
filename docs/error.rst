@@ -58,7 +58,6 @@ limit, set in ``include/finufft/plan.hpp`` as ``MAX_NF``. The current value in t
 Allocations beyond this cause a graceful exit with error code ``2`` as above.
 Such a large allocation can be due to enormous ``N`` (in types 1 or 2), or ``M``,
 but also large values of the space-bandwidth product (loosely, range of :math:`\mathbf{x}_j` points times range of :math:`\mathbf{k}_j` points) for type 3 transforms; see Remark 5 in :ref:`reference FIN <refs>`.
-Note that mallocs smaller than this, but which still exceed available RAM, may cause segfaults as usual. For simplicity of code, we do not do error checking on every malloc or STL vector creation in the code, and neither is this recommended in modern style guides.
 If you have a large-RAM machine and want to exceed the above hard-coded limit, you will need
 to edit ``plan.hpp`` and recompile.
 
@@ -66,3 +65,6 @@ Similar sanity checks are done on the numbers of nonuniform points, and it is
 (barely) conceivable that you could want to
 increase ``MAX_NU_PTS`` beyond its current value
 of ``1e14`` in ``plan.hpp``, and recompile.
+
+All internal memory allocations performed by FINUFFT are checked for success, and error code 11 (general internal allocation failure) will be returned in case of an error.
+As a consequence, there should be no segmentation faults due to failing memory allocations; so if you observe one, it's very likely a genuine bug in the application.
