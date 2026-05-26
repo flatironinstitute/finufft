@@ -18,8 +18,10 @@
 
 // This switches FLT macro from double to float if SINGLE is defined, etc...
 
+#include "finufft/memory.hpp"
 #include "finufft/utils.hpp"
 #include "utils/norms.hpp"
+#include <cstdint>
 #include <finufft/test_defs.hpp>
 
 namespace finufft::common {
@@ -92,6 +94,24 @@ int main(int argc, char *argv[]) {
   b[0] = CPX(0.0, 0.0); // perturb b from a
   if (std::abs(errtwonorm(M, &a[0], &b[0]) - 1.0) > relerr) return 1;
   if (std::abs(std::sqrt((FLT)M) * relerrtwonorm(M, &a[0], &b[0]) - 1.0) > relerr) return 1;
+
+  // test reclaimable workspace allocator...
+  finufft::ReclaimableMemory buf;
+  buf.mark_reclaimable(); // no-op before allocation
+  if (!buf.allocate(0) || buf.size() != 0) return 1;
+
+  constexpr size_t nbytes = 8192;
+  if (!buf.allocate(nbytes) || buf.data() == nullptr || buf.size() != nbytes) return 1;
+  if ((reinterpret_cast<std::uintptr_t>(buf.data()) & 4095u) != 0u) return 1;
+
+  void *ptr = buf.data();
+  if (!buf.allocate(nbytes) || buf.data() != ptr) return 1; // same-size reuse
+  buf.mark_reclaimable();                                   // should be safe after alloc
+
+  finufft::ReclaimableMemory moved = std::move(buf);
+  if (buf.data() != nullptr || buf.size() != 0) return 1;
+  if (moved.data() != ptr || moved.size() != nbytes) return 1;
+  moved.mark_reclaimable();
 
 #if defined(__cpp_lib_math_special_functions)
   // std::cyl_bessel_i present: compare std vs custom series

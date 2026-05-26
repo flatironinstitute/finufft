@@ -20,6 +20,9 @@
 
 #if defined(_WIN32)
 #include <vector>
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
 #include <windows.h>
 #elif defined(__APPLE__)
 #include <sys/sysctl.h>
