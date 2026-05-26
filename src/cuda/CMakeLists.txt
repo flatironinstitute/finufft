@@ -44,7 +44,13 @@ set(CUFINUFFT_INCLUDE_DIRS
 
 set(CUFINUFFT_INCLUDE_DIRS ${CUFINUFFT_INCLUDE_DIRS} PARENT_SCOPE)
 
-list(APPEND FINUFFT_CUDA_FLAGS $<$<COMPILE_LANGUAGE:CUDA>:--extended-lambda --extra-device-vectorization -Wextra -Wall>)
+list(APPEND FINUFFT_CUDA_FLAGS $<$<COMPILE_LANGUAGE:CUDA>:--extended-lambda --extra-device-vectorization>)
+# -Wextra / -Wall are GCC/Clang spellings; nvcc forwards them to the host
+# compiler via -forward-unknown-to-host-compiler, where MSVC rejects /Wextra
+# with D8021. Only emit them when the host compiler understands them.
+if(NOT MSVC)
+    list(APPEND FINUFFT_CUDA_FLAGS $<$<COMPILE_LANGUAGE:CUDA>:-Wextra -Wall>)
+endif()
 
 if(FINUFFT_SHARED_LINKING)
     add_library(cufinufft SHARED ${SRC})
