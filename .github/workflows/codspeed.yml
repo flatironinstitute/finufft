@@ -11,6 +11,8 @@ permissions:
   id-token: write
 
 jobs:
+  # Builds only the codspeed_benchmark target (DUCC0 + CODSPEED_MODE=instrumentation)
+  # and runs it on CodSpeed's simulated CPU to track per-commit regressions.
   benchmarks:
     runs-on: ubuntu-latest
     steps:
