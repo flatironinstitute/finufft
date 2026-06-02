@@ -96,3 +96,13 @@ template<int NS, int NC> inline constexpr bool ValidKernelParams() noexcept {
 }
 
 } // namespace finufft::kernel
+
+namespace finufft::common {
+
+// Minimum sigma achieving requested tol. Hybrid model: uses exact analytical kernel
+// inversion in the kernel-dominated regime, switches to floor-corrected inversion only
+// when the rounding floor matters (tol near eps_round). Returns MAX_CHECK_SIGMA if not
+// achievable.
+double lowest_sigma(double tol, int dim, int ns, double eps_mach, double gridlen);
+
+} // namespace finufft::common
