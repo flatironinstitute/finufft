@@ -30,5 +30,11 @@ inline constexpr double INV_2PI = 0.159154943091895335768883763372514362;
 inline constexpr int MIN_NC = 4;
 inline constexpr int MAX_NC = 19;
 
+// upsampling factor (sigma) bounds for the sigma_min estimator. The estimator
+// never recommends sigma above 2.0: past that, raising sigma gives diminishing
+// returns and a wider kernel (ns) is the better lever, so 2.0 is the cap.
+inline constexpr double MIN_CHECK_SIGMA = 1.0;
+inline constexpr double MAX_CHECK_SIGMA = 2.0;
+
 } // namespace common
 } // namespace finufft
