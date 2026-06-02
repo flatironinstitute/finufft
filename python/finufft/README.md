@@ -4,6 +4,8 @@ Principal author **Alex H. Barnett**, main co-developers Jeremy F. Magland, Ludv
 
 This package provides a Python interface to the CPU library, enabling fast computation of nonuniform discrete Fourier transforms to specified precision in one, two, and three dimensions.
 It supports transforms of type 1 (nonuniform to uniform), type 2 (uniform to nonuniform) and type 3 (nonuniform to nonuniform).
+On CPU, unattainable requested tolerances now raise a `RuntimeError` by default; pass
+`allow_eps_too_small=1` to clamp to the best-achievable accuracy and continue instead.
 For more information, see the [online documentation](https://finufft.readthedocs.io/en/latest/python.html).
 
 If you find FINUFFT useful in your work, please cite this package and our paper:
