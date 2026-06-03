@@ -19,7 +19,11 @@ if(ducc0_ADDED)
         ${ducc0_SOURCE_DIR}/src/ducc0/infra/threading.cc
         ${ducc0_SOURCE_DIR}/src/ducc0/infra/mav.cc
     )
-    target_include_directories(ducc0 PUBLIC ${ducc0_SOURCE_DIR}/src/)
+    # Build-tree only: finufft's TUs include ducc fft headers, but downstream
+    # consumers of an installed (static) finufft never do (the public API is plain
+    # C). Wrapping in BUILD_INTERFACE keeps the absolute source path out of the
+    # exported interface so ducc0 can be part of finufftTargets and stay relocatable.
+    target_include_directories(ducc0 PUBLIC $<BUILD_INTERFACE:${ducc0_SOURCE_DIR}/src/>)
     target_compile_options(ducc0 PRIVATE $<$<CONFIG:Release,RelWithDebInfo>:${FINUFFT_ARCH_FLAGS}>)
     target_compile_options(ducc0 PRIVATE $<$<CONFIG:Release>:${FINUFFT_CXX_FLAGS_RELEASE}>)
     target_compile_options(ducc0 PRIVATE $<$<CONFIG:RelWithDebInfo>:${FINUFFT_CXX_FLAGS_RELWITHDEBINFO}>)

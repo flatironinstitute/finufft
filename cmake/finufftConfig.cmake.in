@@ -1,5 +1,30 @@
 @PACKAGE_INIT@
 
+include(CMakeFindDependencyMacro)
+
+# Re-discover the dependencies that the exported targets reference. For a SHARED
+# build everything is baked into the library, so only the (interface-propagated)
+# OpenMP runtime needs to be found. For a STATIC build the FFT backend and its
+# threading runtime are separate archives that the consumer must also link.
+if(@FINUFFT_USE_OPENMP@)
+    find_dependency(OpenMP COMPONENTS C CXX)
+endif()
+
+if(@FINUFFT_STATIC_LINKING@ AND @FINUFFT_USE_DUCC0@)
+    # DUCC0 is bundled by FINUFFT and exported alongside it (as finufft::ducc0).
+    # It only needs a threading runtime when OpenMP is not used.
+    if(NOT @FINUFFT_USE_OPENMP@)
+        find_dependency(Threads)
+    endif()
+endif()
+
+# Note: a STATIC build linked against FFTW (rather than the bundled DUCC0) does
+# not export or bundle FFTW. Such a consumer must make FFTW available themselves
+# (e.g. link it explicitly). We deliberately do not call find_dependency(FFTW)
+# here: FINUFFT locates FFTW via a bundled FindFFTW module that is not shipped
+# with the package, so the call would fail in a consumer. A SHARED build bakes
+# FFTW in and needs nothing.
+
 include("${CMAKE_CURRENT_LIST_DIR}/finufftTargets.cmake")
 
 check_required_components(finufft)
