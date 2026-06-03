@@ -71,7 +71,7 @@ Then add the following to your ``CMakeLists.txt``:
     SYSTEM
   )
 
-  target_link_library(your_executable [PUBLIC|PRIVATE|INTERFACE] finufft)
+  target_link_libraries(your_executable [PUBLIC|PRIVATE|INTERFACE] finufft::finufft)
 
 Then CMake will automatically download FINUFFT and link it to your executable.
 
@@ -93,9 +93,29 @@ Add the following to your ``CMakeLists.txt``:
     FetchContent_MakeAvailable(finufft)
 
     # Optionally, link the finufft library to your target
-    target_link_libraries(your_executable [PUBLIC|PRIVATE|INTERFACE] finufft)
+    target_link_libraries(your_executable [PUBLIC|PRIVATE|INTERFACE] finufft::finufft)
 
 Then CMake will automatically download FINUFFT and link it to your executable.
+
+3) **Installed package via** ``find_package``. If FINUFFT has been built and
+installed (see :ref:`below <cmake-install>`), a downstream project can consume
+the installed package directly:
+
+.. code-block:: cmake
+
+    find_package(finufft REQUIRED)
+    target_link_libraries(your_executable [PUBLIC|PRIVATE|INTERFACE] finufft::finufft)
+
+Point CMake at the install prefix when configuring your project, e.g.
+``-DCMAKE_PREFIX_PATH=/path/to/install`` (or ``-Dfinufft_DIR=/path/to/install/lib/cmake/finufft``).
+The package config pulls in the required dependencies automatically
+(OpenMP, and for a *static* install the FFT backend). A **shared** install is
+fully self-contained — everything, including the FFT backend, is baked into the
+library (``libfinufft.so``/``.dylib`` or ``finufft.dll``), so only the OpenMP
+runtime is needed at link time. For a **static** install built with the bundled
+DUCC0 backend, the backend archive is installed and exported alongside FINUFFT;
+a static install built against **FFTW** instead requires the consumer to make
+FFTW discoverable themselves (a shared build avoids this).
 
 CMake based installation and compilation
 ----------------------------------------
@@ -141,6 +161,8 @@ Preset              When to use it
 
 See the `cmake-presets(7) <https://cmake.org/cmake/help/latest/manual/cmake-presets.7.html>`_
 manual for the full preset reference.
+
+.. _cmake-install:
 
 Quick start without presets
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~

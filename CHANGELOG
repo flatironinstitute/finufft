@@ -3,6 +3,18 @@ If not stated, FINUFFT is assumed (old cuFINUFFT <=1.3 is listed separately).
 
 v2.6.0-dev
 
+* Installed `find_package(finufft)` consumption now works (issue #494): install
+  the transitive public headers (`finufft/finufft_eitherprec.h`,
+  `finufft_common/defines.h`), add `find_dependency()` to the package config so
+  `OpenMP`/FFT-backend targets resolve in a consumer, give `install(TARGETS)`
+  explicit ARCHIVE/LIBRARY/RUNTIME destinations, and stop leaking the absolute
+  `libm` path into the exported interface. A static install with the bundled
+  DUCC0 backend now exports `finufft_common` and `ducc0` so it links downstream.
+  Fixed the Windows shared/DLL build (`dll_EXPORTS` on `finufft_common`) and made
+  `copy_dll` refresh stale DLLs via a POST_BUILD `copy_if_different`. Removed the
+  stale `next235beven` declaration. Added a `test/cmake_consume` downstream
+  project and a CI job exercising find_package install consumption on Linux +
+  Windows, static + shared. (Barbone)
 * Refined sigma_min estimator and moved check to `setpts`; now throws
   `FINUFFT_ERR_EPS_TOO_SMALL` when upsampfac is too low for the requested
   tolerance. (Brodovič, Barbone)
