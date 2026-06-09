@@ -6,9 +6,13 @@ name: Update CI badges
 
 on:
   workflow_run:
+    # Refresh right after CI finishes. The "C++ Build" workflow is intentionally
+    # omitted: GitHub's workflow_run trigger parser rejects the "+" in its name
+    # ("Encountered an issue parsing workflow trigger(s)"). Its make-row badges
+    # read C++.yml's latest completed run anyway, refreshed whenever cmake ci
+    # finishes (they run together on every push) and by the scheduled run below.
     workflows:
       - "cmake ci linux macos windows"
-      - "C++ Build"
       - "PowerPC cross-compilation build"
     types: [completed]
   workflow_dispatch:
