@@ -109,7 +109,7 @@ jobs:
           - { os: windows-2022, toolchain: msvc }
           - { os: windows-2022, toolchain: clang-19 }
           - { os: windows-2025, toolchain: msvc }
-          - { os: windows-2025, toolchain: clang-19 }
+          - { os: windows-2025, toolchain: clang-20 }
 
           - { os: macos-14, toolchain: llvm }
           - { os: macos-14, toolchain: gcc-14 }
