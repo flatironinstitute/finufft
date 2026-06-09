@@ -1,7 +1,10 @@
 # Flatiron Institute Nonuniform Fast Fourier Transform library: FINUFFT
 
-[![C++ Build](https://github.com/flatironinstitute/finufft/workflows/C++%20Build/badge.svg)](https://github.com/flatironinstitute/finufft/actions)
-[![cmake CI](https://github.com/flatironinstitute/finufft/actions/workflows/cmake_ci.yml/badge.svg?branch=master)](https://github.com/flatironinstitute/finufft/actions/workflows/cmake_ci.yml)
+[![FORTRAN](https://img.shields.io/github/actions/workflow/status/flatironinstitute/finufft/fortran.yml?branch=master&label=FORTRAN)](https://github.com/flatironinstitute/finufft/actions/workflows/fortran.yml)
+[![MATLAB](https://img.shields.io/github/actions/workflow/status/flatironinstitute/finufft/mex.yml?branch=master&label=MATLAB)](https://github.com/flatironinstitute/finufft/actions/workflows/mex.yml)
+[![Octave](https://img.shields.io/github/actions/workflow/status/flatironinstitute/finufft/octave.yml?branch=master&label=Octave)](https://github.com/flatironinstitute/finufft/actions/workflows/octave.yml)
+[![CPU wheels](https://img.shields.io/github/actions/workflow/status/flatironinstitute/finufft/build_finufft_wheels.yml?branch=master&label=CPU%20wheels)](https://github.com/flatironinstitute/finufft/actions/workflows/build_finufft_wheels.yml)
+[![GPU wheels](https://img.shields.io/github/actions/workflow/status/flatironinstitute/finufft/build_cufinufft_wheels.yml?branch=master&label=GPU%20wheels)](https://github.com/flatironinstitute/finufft/actions/workflows/build_cufinufft_wheels.yml)
 [![Docs](https://readthedocs.org/projects/finufft/badge)](https://finufft.readthedocs.io)
 [![PyPI - finufft](https://img.shields.io/pypi/dm/finufft?label=finufft%20(CPU))](https://pypi.org/project/finufft)
 [![PyPI - cufinufft](https://img.shields.io/pypi/dm/cufinufft?label=cufinufft%20(GPU))](https://pypi.org/project/cufinufft)
