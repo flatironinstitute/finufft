@@ -2,9 +2,9 @@
 """Run the perftest matrix across tagged builds and render a docs page."""
 
 import argparse
+import hashlib
 import sys
 import time
-import uuid
 from collections import defaultdict
 from pathlib import Path
 
@@ -116,7 +116,14 @@ def main() -> None:
             ax.set_ylabel("Min time (ms)")
             ax.legend()
 
-            file = f"perftestci_{uuid.uuid4()}.png"
+            # Deterministic filename: stable across runs for a given
+            # (backend, transform, param) so the raw.githubusercontent URLs
+            # baked into the published RTD page keep resolving after the
+            # perftest-results branch is force-pushed. Random UUIDs would
+            # orphan the previously-rendered <img> tags on every run.
+            key = f"{args.backend}|t{transform}|" + "|".join(param.args())
+            digest = hashlib.sha1(key.encode()).hexdigest()[:16]
+            file = f"perftestci_{digest}.png"
             durations = np.array(makeplan) + np.array(setpts) + np.array(execute)
             ax.set_ylim(top=np.max(durations) * 1.1)
             for i in range(len(x)):
