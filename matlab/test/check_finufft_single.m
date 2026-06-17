@@ -11,6 +11,7 @@ eps     = 1e-4;   % requested accuracy
 o.debug = 0;      % choose 1 for timing breakdown text output
 FFTW_ESTIMATE = bitshift(1,6); o.fftw = FFTW_ESTIMATE;       % or see fftw3.h
 o.upsampfac=0;    % 0 (auto), 2.0 (default), or 1.25 (low-RAM, small-FFT)
+o.allow_eps_too_small = 1;   % single prec can't reach eps at this N; warn, don't throw
 M       = 1e4;    % # of NU pts (in all dims). Kept small to not lose 1d acc.
 N       = 1e4;    % # of modes (approx total, used in all dims).
 

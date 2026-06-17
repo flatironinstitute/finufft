@@ -161,7 +161,40 @@ message(STATUS "  CMAKE_CUDA_ARCHITECTURES: ${CMAKE_CUDA_ARCHITECTURES}")
 if(FINUFFT_ENABLE_INSTALL)
     include(GNUInstallDirs)
     include(CMakePackageConfigHelpers)
-    install(TARGETS ${INSTALL_TARGETS} EXPORT finufftTargets PUBLIC_HEADER)
+    install(
+        TARGETS ${INSTALL_TARGETS}
+        EXPORT finufftTargets
+        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        RUNTIME
+            DESTINATION
+                ${CMAKE_INSTALL_BINDIR} # .dll on Windows
+        PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+        INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+    )
+    # Static builds expose finufft's private FFT backend on the install interface
+    # (see src/CMakeLists.txt), so the backend targets must be part of the export.
+    # DUCC0 is bundled by FINUFFT; FFTW is not (a static + FFTW consumer supplies
+    # its own FFTW). A shared build bakes the backend in and exports nothing here.
+    if(FINUFFT_STATIC_LINKING AND FINUFFT_USE_DUCC0 AND TARGET ducc0)
+        install(TARGETS ducc0 finufft_fftlibs EXPORT finufftTargets ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
+    endif()
+    # Public transitive headers that live in subdirectories and are therefore not
+    # matched by the flat finufft*.h PUBLIC_HEADER glob. finufft.h pulls in
+    # finufft/finufft_eitherprec.h, which (with finufft_errors.h) pulls in
+    # finufft_common/defines.h; without these an installed consumer cannot
+    # compile. Only these two subdir headers are part of the public surface; the
+    # rest of include/finufft and include/finufft_common are internal.
+    if(FINUFFT_USE_CPU)
+        install(
+            FILES ${PROJECT_SOURCE_DIR}/include/finufft/finufft_eitherprec.h
+            DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/finufft
+        )
+        install(
+            FILES ${PROJECT_SOURCE_DIR}/include/finufft_common/defines.h
+            DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/finufft_common
+        )
+    endif()
     install(EXPORT finufftTargets NAMESPACE finufft:: DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/finufft)
     configure_package_config_file(
         cmake/finufftConfig.cmake.in

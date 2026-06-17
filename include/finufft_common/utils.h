@@ -165,15 +165,6 @@ decltype(auto) dispatch(Func &&func, ParamTuple &&params, Args &&...args) {
 } // namespace common
 } // namespace finufft
 
-namespace cufinufft::utils {
-// Smallest even n' >= n whose largest prime factor is <= 5 and which is a
-// multiple of b (b's prime factors must be in {2,3,5}). Defined alongside
-// gaussquad / leg_eval in src/common/utils.cpp; declared here so the decl
-// lives in the same shared header as the rest of src/common/utils.cpp's
-// public surface.
-FINUFFT_EXPORT long next235beven(long n, long b);
-} // namespace cufinufft::utils
-
 namespace finufft::utils {
 
 // Host versions of arrayrange / arraywidcen. The CUDA path has a separate

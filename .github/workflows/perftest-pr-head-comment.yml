@@ -106,9 +106,14 @@ jobs:
           edit-mode: replace
           body: |
             <!-- pr-managed-comment -->
+            FFT backend: `${{ steps.meta.outputs.fft_backend }}`
+
+            <details>
+            <summary>Perftest plot</summary>
+
             ![Perftest plot](https://raw.githubusercontent.com/${{ github.repository }}/${{ steps.push-image.outputs.image_sha }}/${{ steps.push-image.outputs.image_path }})
 
-            FFT backend: `${{ steps.meta.outputs.fft_backend }}`
+            </details>
 
             _Numbers are advisory: GitHub-hosted runners have variable hardware. Treat <1.10× as noise._
 

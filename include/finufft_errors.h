@@ -37,6 +37,7 @@ enum {
   FINUFFT_ERR_KERFORMULA_NOTVALID                  = 24,
   FINUFFT_ERR_UNKNOWN_EXCEPTION                    = 25,
   FINUFFT_ERR_EPS_TOO_SMALL                        = 26,
+  FINUFFT_ERR_PSWF_SETUP                           = 27,
 };
 // clang-format on
 #endif

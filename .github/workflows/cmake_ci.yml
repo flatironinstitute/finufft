@@ -109,7 +109,7 @@ jobs:
           - { os: windows-2022, toolchain: msvc }
           - { os: windows-2022, toolchain: clang-19 }
           - { os: windows-2025, toolchain: msvc }
-          - { os: windows-2025, toolchain: clang-19 }
+          - { os: windows-2025, toolchain: clang-20 }
 
           - { os: macos-14, toolchain: llvm }
           - { os: macos-14, toolchain: gcc-14 }
@@ -259,9 +259,82 @@ jobs:
             done
           done
 
+  # Regression guard for installed find_package(finufft) consumption (issue #494).
+  # Installs FINUFFT to a staging prefix and builds a standalone downstream
+  # project against it on Linux + Windows, for both static and shared (DLL)
+  # linking. This is the test that catches missing transitive headers, a missing
+  # find_dependency() in the package config, and the Windows DLL export/runtime
+  # path. Kept on the DUCC backend (the Windows FFT backend; FFTW is not a matrix
+  # axis here by project convention).
+  consume-test:
+    name: consume find_package (${{ matrix.os }}, ${{ matrix.linking }})
+    runs-on: ${{ matrix.os }}
+    needs: [cache]
+    env:
+      CMAKE_GENERATOR: Ninja
+      CPM_SOURCE_CACHE: cpm
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-22.04, windows-2022]
+        linking: [Static, Shared]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Restore Cache
+        uses: actions/cache/restore@v4
+        with:
+          key: cpm-cache-00-${{ runner.os == 'windows' && 'windows-' || '' }}${{ hashFiles('**/CMakeLists.txt', 'cmake/**') }}
+          enableCrossOsArchive: true
+          path: cpm
+      - name: Setup Cpp
+        uses: aminya/setup-cpp@v1
+        with:
+          vcvarsall: true
+          cmake: true
+          ninja: true
+      - name: Install FINUFFT and consume via find_package
+        shell: bash
+        run: |
+          set -euo pipefail
+          static=ON
+          [[ "${{ matrix.linking }}" == "Shared" ]] && static=OFF
+          stage="$PWD/_stage"
+
+          # Build and install FINUFFT to a staging prefix.
+          cmake -S . -B _build \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DFINUFFT_USE_DUCC0=ON \
+            -DFINUFFT_STATIC_LINKING=$static \
+            -DFINUFFT_ENABLE_INSTALL=ON \
+            -DCMAKE_MSVC_DEBUG_INFORMATION_FORMAT=Embedded \
+            -DCMAKE_POLICY_DEFAULT_CMP0141=NEW
+          cmake --build _build --config Release
+          cmake --install _build --prefix "$stage" --config Release
+
+          # The exported interface must not bake in build-machine absolute paths.
+          if grep -R "/usr/" "$stage"/lib*/cmake/finufft/finufftTargets*.cmake; then
+            echo "ERROR: absolute path leaked into exported finufftTargets"; exit 1
+          fi
+
+          # Consume it from a standalone project via find_package + the alias.
+          cmake -S test/cmake_consume -B _consume \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_PREFIX_PATH="$stage" \
+            -DCMAKE_MSVC_DEBUG_INFORMATION_FORMAT=Embedded \
+            -DCMAKE_POLICY_DEFAULT_CMP0141=NEW
+          cmake --build _consume --config Release
+
+          # Run the consumer; for the shared build help the loader find the library.
+          if [[ "$RUNNER_OS" == "Windows" ]]; then
+            ./_consume/app.exe
+          else
+            LD_LIBRARY_PATH="$stage/lib:$stage/lib64:${LD_LIBRARY_PATH:-}" ./_consume/app
+          fi
+
   cleanup:
     runs-on: ubuntu-22.04
-    needs: cmake-ci
+    needs: [cmake-ci, consume-test]
     steps:
       - name: Artifact cleanup
         uses: geekyeggo/delete-artifact@v5

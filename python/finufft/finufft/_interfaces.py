@@ -82,6 +82,8 @@ class Plan:
         n_trans         (int, optional): number of transforms to compute
                         simultaneously.
         eps             (float, optional): precision requested (>1e-16).
+                        Unattainable values raise ``RuntimeError`` unless
+                        ``allow_eps_too_small=1`` is passed via ``kwargs``.
         isign           (int, optional): if +1, uses the positive sign
                         exponential, otherwise the negative sign exponential;
                         defaults to +1 for types 1 and 3 and to -1 for type 2.

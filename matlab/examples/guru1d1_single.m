@@ -18,6 +18,7 @@ c = randn(1,M*ntrans,'single')+1i*randn(1,M*ntrans,'single');     % strengths
 % set options then plan the transform...
 opts.debug=2;
 opts.floatprec = 'single';   % tells it to make a single-precision plan
+opts.allow_eps_too_small = 1;   % single prec can't reach tol at this N; warn, don't throw
 disp('starting...'), tic
 plan = finufft_plan(type,n_modes,isign,ntrans,tol,opts);
 

@@ -99,9 +99,25 @@ if(FINUFFT_USE_OPENMP)
     endif()
 endif()
 
+# For a STATIC build, finufft.a does not contain its private static dependencies
+# (finufft_common and the FFT backend), so an installed consumer must link them
+# too. Propagate them on the install interface; the targets themselves are added
+# to the finufftTargets export in the install block. (A SHARED build bakes these
+# in and needs nothing extra.) xsimd is intentionally excluded: it is header-only
+# and only needed while compiling finufft, not by downstream consumers.
+if(FINUFFT_STATIC_LINKING)
+    target_link_libraries(finufft INTERFACE $<INSTALL_INTERFACE:finufft_common>)
+    if(FINUFFT_USE_DUCC0)
+        target_link_libraries(finufft INTERFACE $<INSTALL_INTERFACE:finufft_fftlibs>)
+    endif()
+endif()
+
 find_library(MATH_LIBRARY m)
 if(MATH_LIBRARY)
-    target_link_libraries(finufft PRIVATE ${MATH_LIBRARY})
+    # Wrap in BUILD_INTERFACE so the absolute /usr/lib/.../libm.so path is not
+    # baked into the installed package's INTERFACE_LINK_LIBRARIES (which would
+    # happen for a STATIC archive and break relocatability).
+    target_link_libraries(finufft PRIVATE $<BUILD_INTERFACE:${MATH_LIBRARY}>)
 endif()
 
 target_include_directories(finufft SYSTEM INTERFACE $<INSTALL_INTERFACE:include>)

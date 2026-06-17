@@ -4,6 +4,7 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdio>
+#include <functional>
 #include <vector>
 
 #include <finufft_common/constants.h>
@@ -67,7 +68,7 @@ template<class T, class F> std::vector<T> poly_fit(F &&f, int n) {
 // The spread/interp kernel phi_beta(z) on z in [-1,1]. Not performance-critical;
 // used only for polynomial interpolation (precompute_horner_coeffs). Always double.
 // Defined in src/common/kernel.cpp.
-double kernel_definition(const finufft_spread_opts &spopts, double z);
+std::function<double(double)> kernel_definition_lambda(const finufft_spread_opts &spopts);
 
 int theoretical_kernel_ns(double tol, int dim, int type, int debug,
                           const finufft_spread_opts &spopts);
@@ -95,3 +96,13 @@ template<int NS, int NC> inline constexpr bool ValidKernelParams() noexcept {
 }
 
 } // namespace finufft::kernel
+
+namespace finufft::common {
+
+// Minimum sigma achieving requested tol. Hybrid model: uses exact analytical kernel
+// inversion in the kernel-dominated regime, switches to floor-corrected inversion only
+// when the rounding floor matters (tol near eps_round). Returns MAX_CHECK_SIGMA if not
+// achievable.
+double lowest_sigma(double tol, int dim, int ns, double eps_mach, double gridlen);
+
+} // namespace finufft::common

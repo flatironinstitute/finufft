@@ -1,0 +1,64 @@
+name: Update CI badges
+
+# Publishes per-compiler CI status as shields.io "endpoint" JSON on the `badges`
+# branch, consumed by the platform table in README.md. See tools/update_badges.py
+# for why we self-host the status instead of using shields.io's check-runs badge.
+
+on:
+  workflow_run:
+    # Refresh right after CI finishes. The "C++ Build" workflow is intentionally
+    # omitted: GitHub's workflow_run trigger parser rejects the "+" in its name
+    # ("Encountered an issue parsing workflow trigger(s)"). Its make-row badges
+    # read C++.yml's latest completed run anyway, refreshed whenever cmake ci
+    # finishes (they run together on every push) and by the scheduled run below.
+    workflows:
+      - "cmake ci linux macos windows"
+      - "PowerPC cross-compilation build"
+    types: [completed]
+  workflow_dispatch:
+  schedule:
+    # Fallback refresh in case a workflow_run event is missed.
+    - cron: "37 */6 * * *"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ci-badges
+  cancel-in-progress: true
+
+jobs:
+  publish:
+    if: github.repository == 'flatironinstitute/finufft'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout master
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          ref: master
+
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
+        with:
+          python-version: '3.12'
+      - run: python3 -m pip install --quiet pyyaml
+
+      - name: Generate badge JSON
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python3 tools/update_badges.py \
+            --repo "$GITHUB_REPOSITORY" \
+            --ref master \
+            --output "$RUNNER_TEMP/badges"
+
+      - name: Publish to badges branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          # Orphan branch holding only the JSON files; force-pushed each run.
+          git checkout --orphan badges
+          git rm -rfq . >/dev/null 2>&1 || true
+          cp "$RUNNER_TEMP"/badges/*.json .
+          git add ./*.json
+          git commit -m "Update CI status badges [no ci]"
+          git push -f --set-upstream origin badges

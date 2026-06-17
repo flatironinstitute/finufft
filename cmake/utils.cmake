@@ -64,24 +64,18 @@ function(copy_dll source_target destination_target)
     if(NOT WIN32)
         return()
     endif()
-    # Get the binary directory of the destination target
+    # Place the shared library next to the consuming executable so it is found at
+    # runtime. Use a POST_BUILD copy_if_different (not a configure-time guard) so a
+    # rebuilt DLL is refreshed instead of leaving a stale copy in place.
     get_target_property(DESTINATION_DIR ${destination_target} BINARY_DIR)
-    set(DESTINATION_FILE ${DESTINATION_DIR}/$<TARGET_FILE_NAME:${source_target}>)
-    if(NOT EXISTS ${DESTINATION_FILE})
-        message(STATUS "Copying ${source_target} to ${DESTINATION_DIR} directory for ${destination_target}")
-        # Define the custom command to copy the source target to the destination
-        # directory
-        add_custom_command(
-            TARGET ${destination_target}
-            POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:${source_target}> ${DESTINATION_FILE}
-            COMMENT "Copying ${source_target} to ${destination_target} directory"
-        )
-    endif()
-    # Unset the variables to leave a clean state
-    unset(DESTINATION_DIR)
-    unset(SOURCE_FILE)
-    unset(DESTINATION_FILE)
+    add_custom_command(
+        TARGET ${destination_target}
+        POST_BUILD
+        COMMAND
+            ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:${source_target}>
+            ${DESTINATION_DIR}/$<TARGET_FILE_NAME:${source_target}>
+        COMMENT "Copying ${source_target} DLL next to ${destination_target}"
+    )
 endfunction()
 
 if(FINUFFT_INTERPROCEDURAL_OPTIMIZATION)

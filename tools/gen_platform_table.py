@@ -23,6 +23,10 @@ import yaml
 REPO = "flatironinstitute/finufft"
 BRANCH = "master"  # overridden by --branch
 BADGE_STYLE = "flat-square"
+# Per-job CI status is published as shields.io "endpoint" JSON on this branch by
+# .github/workflows/badges.yml; see _endpoint_badge_url for why.
+BADGE_BRANCH = "badges"
+RAW_BASE = "https://raw.githubusercontent.com"
 REPO_ROOT = Path(__file__).resolve().parent.parent
 WORKFLOWS = REPO_ROOT / ".github" / "workflows"
 
@@ -35,33 +39,30 @@ class Row:
     job_name: str  # job name as rendered by GitHub Actions
 
 
-def _badge_url(workflow: str, job_name: str, label: str = "") -> str:
-    # The /github/actions/workflow/status endpoint reports the WORKFLOW-level
-    # status and silently ignores a ?job= filter, so every per-job badge would
-    # collapse to the same colour. /github/check-runs supports nameFilter and
-    # returns the per-check-run conclusion (each matrix job is one check run).
-    ref = urllib.parse.quote(BRANCH, safe="")
-    q = urllib.parse.urlencode(
-        {"nameFilter": job_name, "label": label, "style": BADGE_STYLE},
-        quote_via=urllib.parse.quote,
-    )
-    del workflow  # retained in the call signature for link generation
-    return f"https://img.shields.io/github/check-runs/{REPO}/{ref}?{q}"
+def badge_slug(row: Row) -> str:
+    """Stable, URL-safe filename for a row's status JSON on the badges branch.
+
+    tools/update_badges.py writes ``<slug>.json`` and the README references the
+    same slug, so both must agree; keep this the single source of truth.
+    """
+    raw = f"{Path(row.workflow).stem}__{row.job_name}"
+    safe = "".join(c if (c.isalnum() or c in "._-") else "_" for c in raw)
+    return safe.strip("_")
 
 
-def _workflow_status_url(workflow: str, label: str) -> str:
-    # Per-job check-run badges require the /github/check-runs endpoint, which
-    # shields.io queries without pagination (GitHub's default 30/page); jobs
-    # that don't land on page 1 render as "unknown status". For small,
-    # slow-changing workflows (C++.yml make path, powerpc.yml cross-compile)
-    # we fall back to a single workflow-level badge, which is paging-immune.
-    q = urllib.parse.urlencode(
-        {"branch": BRANCH, "label": label, "style": BADGE_STYLE},
-        quote_via=urllib.parse.quote,
-    )
-    return (
-        f"https://img.shields.io/github/actions/workflow/status/{REPO}/{workflow}?{q}"
-    )
+def _endpoint_badge_url(row: Row) -> str:
+    # shields.io's /github/check-runs endpoint only inspects GitHub's first page
+    # of check runs (~30) and relies on shields.io's shared GitHub-API token
+    # pool, so on finufft (60+ check runs/commit) per-compiler badges render
+    # "unknown status" or "Unable to select next GitHub token from pool" for any
+    # job past page 1. Instead we self-publish the status as a shields "endpoint"
+    # badge: .github/workflows/badges.yml paginates the Checks API itself and
+    # commits one JSON per row to the badges branch. shields then renders our
+    # public JSON from raw.githubusercontent without touching GitHub's API, so
+    # the badges are reliable and need no third-party access to the repo.
+    json_url = f"{RAW_BASE}/{REPO}/{BADGE_BRANCH}/{badge_slug(row)}.json"
+    q = urllib.parse.urlencode({"url": json_url, "style": BADGE_STYLE})
+    return f"https://img.shields.io/endpoint?{q}"
 
 
 def _runs_url(workflow: str) -> str:
@@ -173,22 +174,19 @@ def render_md(rows: Iterable[Row]) -> str:
     for os_, group in groups:
         cells = []
         for r in group:
-            if r.workflow == "cmake_ci.yml":
-                badge = _badge_url(r.workflow, r.job_name, label=r.compiler)
-            else:
-                # C++.yml and powerpc.yml: collapse to workflow-level badge to
-                # dodge shields.io's check-runs pagination cap (see #508).
-                badge = _workflow_status_url(r.workflow, label=r.compiler)
+            badge = _endpoint_badge_url(r)
             link = _runs_url(r.workflow)
             cells.append(f"[![{r.compiler}]({badge})]({link})")
         out.append(f"| {os_} | {' '.join(cells)} |")
     out.append("")
     out.append(
         "_Each badge labels its toolchain and colours green/red with the latest "
-        "status on `master`. CMake-CI rows on Linux/macOS exercise both DUCC FFT "
-        "and FFTW; Windows builds DUCC FFT only. `(make)` rows share their "
-        "workflow's overall status (legacy GNU-make build path); PowerPC rows "
-        "likewise share `powerpc.yml`'s overall status (cross-compile + QEMU)._"
+        "status on `master`; status is self-published by `badges.yml` (see "
+        "`tools/gen_platform_table.py`) so per-compiler badges stay reliable. "
+        "CMake-CI rows on Linux/macOS exercise both DUCC FFT and FFTW; Windows "
+        "builds DUCC FFT only. `(make)` rows track their workflow's overall "
+        "status (legacy GNU-make build path); PowerPC rows are cross-compile + "
+        "QEMU._"
     )
     return "\n".join(out) + "\n"
 
@@ -199,10 +197,7 @@ def render_rst(rows: list[Row]) -> str:
     subs = []
     refs = []
     for i, r in enumerate(rows):
-        if r.workflow == "cmake_ci.yml":
-            badge = _badge_url(r.workflow, r.job_name)
-        else:
-            badge = _workflow_status_url(r.workflow, label=r.compiler)
+        badge = _endpoint_badge_url(r)
         link = _runs_url(r.workflow)
         name = f"badge-{i}"
         subs.append(
