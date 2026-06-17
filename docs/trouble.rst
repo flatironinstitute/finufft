@@ -99,7 +99,7 @@ If cuFINUFFT is slow (eg, less than $10^8$ nonuniform points per second), here i
 
 - Run our test codes with a similar problem size on your hardware. Build the tests, then, for example (matching the vectorized CPU example above)::
 
-    test/cuda/cufinufft2dmany_test 1 1 500 500 50 0 1000000 1e-5 1e-4 f
+    test/cuda/cufinufft2dmany_test 1 1 500 500 50 0 1000000 1e-5 1e-4 f 2.0
 
   which gives (on my A6000) the output::
 
