@@ -62,7 +62,7 @@ The process follows three main stages:
      For each point:
 
      - Loop over NUFFT points sequentially.
-     - Parallelize over kernel grid entries using a flattened loop up to $n_s^{\text{dim}}$.
+     - Parallelize over kernel grid entries using a flattened loop up to ``ns^{dim}``.
 
      Example pseudocode:
 
@@ -93,8 +93,8 @@ Memory Organization
   Stores kernel weights in shape ``(Np, dim, ns)``. Threads access only their assigned batch rows.
 
 - ``local_subgrid``:
-  A padded shared-memory grid with shape :math:``(bin\_size + padding)^{dim}``.
-  Where passing is :math:``padding = 2((ns+1)/2)``.
+  A padded shared-memory grid with shape ``(bin_size + padding)^{dim}``.
+  Where passing is ``padding = 2((ns+1)/2)``.
   Threads write to disjoint sections during accumulation to avoid races.
 
 Design Insights
