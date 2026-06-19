@@ -62,7 +62,7 @@ The process follows three main stages:
      For each point:
 
      - Loop over NUFFT points sequentially.
-     - Parallelize over kernel grid entries using a flattened loop up to :math:``n_s^{\text{dim}}``.
+     - Parallelize over kernel grid entries using a flattened loop up to $n_s^{\text{dim}}$.
 
      Example pseudocode:
 
