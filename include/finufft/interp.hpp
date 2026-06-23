@@ -471,11 +471,7 @@ FINUFFT_NEVER_INLINE int FINUFFT_PLAN_T<TF>::interpSorted_kernel(
   const TF *horner_coeffs_ptr                    = m.horner_coeffs.data();
 
   CNTime timer{};
-  auto nthr = MY_OMP_GET_MAX_THREADS();
-  if (m.spopts.nthreads > 0) nthr = m.spopts.nthreads;
-#ifndef _OPENMP
-  nthr = 1;
-#endif
+  const auto nthr = spreadNthreads(); // 1 when the batch loop nests around us
   if (m.spopts.debug)
     printf("\tinterp %dD (M=%lld; N1=%lld,N2=%lld,N3=%lld), nthr=%d\n", NDIMS,
            (long long)M, (long long)N1, (long long)N2, (long long)N3, nthr);

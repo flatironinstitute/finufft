@@ -344,11 +344,7 @@ int FINUFFT_PLAN_T<TF>::spreadSorted(TF *FINUFFT_RESTRICT data_uniform,
   CNTime timer{};
   const auto ndims = ndims_from_Ns(N1, N2, N3);
   const auto N     = N1 * N2 * N3; // output array size
-  auto nthr        = MY_OMP_GET_MAX_THREADS(); // guess # threads to use to spread
-  if (m.spopts.nthreads > 0) nthr = m.spopts.nthreads; // user override, now without limit
-#ifndef _OPENMP
-  nthr = 1; // single-threaded lib must override user
-#endif
+  const auto nthr = spreadNthreads(); // 1 when the batch loop nests around us
   if (m.spopts.debug)
     printf("\tspread %dD (M=%lld; N1=%lld,N2=%lld,N3=%lld), nthr=%d\n", ndims,
            (long long)M, (long long)N1, (long long)N2, (long long)N3, nthr);
