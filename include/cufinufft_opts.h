@@ -5,8 +5,9 @@
 // FINUFFT.jl/src/types.jl must be kept in sync with this struct
 
 typedef struct cufinufft_opts { // see cufinufft_default_opts() for defaults
-  double upsampfac; // upsampling ratio sigma, only 2.0 (standard) is implemented
-                    /* following options are for gpu */
+  double upsampfac; // upsampling ratio sigma
+
+  /* following options are for gpu */
   int gpu_method;   // 1: nonuniform-pts driven, 2: shared mem (SM), 3: output driven (OD)
   int gpu_sort;     // when NU-pts driven: 0: no sort (GM), 1: sort (GM-sort)
 
