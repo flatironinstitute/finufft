@@ -158,9 +158,14 @@ auto launch_dispatch_ndim_ns(Func &&func, int target_ndim, int target_ns,
  */
 inline unsigned optimal_block_threads(int device) noexcept {
   cudaGetDevice(&device);
-  cudaDeviceProp prop;
-  cudaGetDeviceProperties(&prop, device);
-  int major = prop.major;
+  // Query ONLY the compute-capability major. cudaGetDeviceProperties() fills the
+  // entire (large) cudaDeviceProp struct and costs ~54us/call on Ada, ~96us on
+  // A100. This runs once per interp launch == once per transform when
+  // batchsize==1 (the default; see makeplan.cu), so for an N-transform run it
+  // added that cost * N of pure device-query latency (issue #846).
+  // cudaDeviceGetAttribute is ~1000x cheaper and returns the identical major.
+  int major = 0;
+  cudaDeviceGetAttribute(&major, cudaDevAttrComputeCapabilityMajor, device);
   if (major >= 8) return 256;
   if (major >= 7) return 128;
   return 64;

@@ -277,7 +277,13 @@ cufinufft_plan_t<T>::cufinufft_plan_t(int type_, int dim_, const int *nmodes, in
   }
 
   // set nf1, nf2, nf3 to 1 for type 3, type 1, type 2 will overwrite this
-  nf123                 = {1, 1, 1};
+  nf123 = {1, 1, 1};
+  // gpu_maxbatchsize == 0 means "auto": use the batch-size heuristic below.
+  // Capture that intent BEFORE clamping the stored opt to >=1 -- otherwise the
+  // `if (batchsize == 0)` heuristic further down is unreachable and batchsize is
+  // always 1 (no batching of the n_transf transforms), which regressed the
+  // many-transform type-2 path vs cuFINUFFT <= 2.4.x (issue #846).
+  const int requested_maxbatchsize = opts.gpu_maxbatchsize;
   opts.gpu_maxbatchsize = std::max(opts.gpu_maxbatchsize, 1);
   opts.gpu_np           = opts.gpu_method == 3 ? opts.gpu_np : 0;
 
@@ -290,10 +296,11 @@ cufinufft_plan_t<T>::cufinufft_plan_t(int type_, int dim_, const int *nmodes, in
     opts.gpu_spreadinterponly = 1;
   }
 
-  batchsize = opts.gpu_maxbatchsize;
-  // TODO: check if this is the right heuristic
-  if (batchsize == 0)                 // implies: use a heuristic.
-    batchsize = std::min(ntransf, 8); // heuristic from test codes
+  // requested_maxbatchsize == 0 => auto: batch up to 8 transforms together
+  // (matches the CPU library and cuFINUFFT <= 2.4.x). Otherwise honor the
+  // user-requested value.
+  batchsize =
+      (requested_maxbatchsize > 0) ? requested_maxbatchsize : std::min(ntransf, 8);
 
   stream = (cudaStream_t)opts.gpu_stream;
 
