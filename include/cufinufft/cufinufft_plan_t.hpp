@@ -181,6 +181,29 @@ public:
 
 template<typename T> using gpu_array = thrust::device_vector<T, ThrustAllocatorAsync<T>>;
 
+// Uninitialized async-pool device scratch (RAII): allocated per use, freed
+// (stream-ordered) on scope exit. Unlike gpu_array (thrust::device_vector, which
+// value-initializes = zeros), gpu_scratch does NOT zero its memory -- callers that
+// memset/overwrite before the first read (e.g. the fw upsampled grid, which
+// spread/deconvolve zero every execute) thereby skip a redundant zeroing
+// (issue #846).
+template<typename T> class gpu_scratch {
+  ThrustAllocatorAsync<T> alloc_;
+  thrust::device_ptr<T> ptr_{};
+  std::size_t n_{};
+
+public:
+  gpu_scratch(std::size_t n, ThrustAllocatorAsync<T> alloc) : alloc_(alloc), n_(n) {
+    if (n_) ptr_ = alloc_.allocate(n_);
+  }
+  ~gpu_scratch() {
+    if (n_) alloc_.deallocate(ptr_, n_);
+  }
+  gpu_scratch(const gpu_scratch &) = delete;
+  gpu_scratch &operator=(const gpu_scratch &) = delete;
+  T *data() const { return n_ ? thrust::raw_pointer_cast(ptr_) : nullptr; }
+};
+
 template<typename T> inline T *dethrust(gpu_array<T> &arr) {
   return thrust::raw_pointer_cast(arr.data());
 }

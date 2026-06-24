@@ -278,14 +278,13 @@ cufinufft_plan_t<T>::cufinufft_plan_t(int type_, int dim_, const int *nmodes, in
 
   // set nf1, nf2, nf3 to 1 for type 3, type 1, type 2 will overwrite this
   nf123 = {1, 1, 1};
-  // gpu_maxbatchsize == 0 means "auto": use the batch-size heuristic below.
-  // Capture that intent BEFORE clamping the stored opt to >=1 -- otherwise the
-  // `if (batchsize == 0)` heuristic further down is unreachable and batchsize is
-  // always 1 (no batching of the n_transf transforms), which regressed the
-  // many-transform type-2 path vs cuFINUFFT <= 2.4.x (issue #846).
-  const int requested_maxbatchsize = opts.gpu_maxbatchsize;
-  opts.gpu_maxbatchsize = std::max(opts.gpu_maxbatchsize, 1);
-  opts.gpu_np           = opts.gpu_method == 3 ? opts.gpu_np : 0;
+  // opts.gpu_maxbatchsize is the single source of truth: <= 0 means "auto"
+  // (use the heuristic below), > 0 means honor the user's request. Do NOT clamp
+  // it to >= 1 here -- a clamped 1 would (a) make the auto heuristic dead code,
+  // pinning batchsize to 1 with no FFT batching of the n_transf transforms, and
+  // (b) leak into the type-3 inner type-2 plan via t2opts (setpts.cu), forcing
+  // that inner type-2 to process its batch one transform at a time (issue #846).
+  opts.gpu_np = opts.gpu_method == 3 ? opts.gpu_np : 0;
 
   if (type != 3) {
     mstu = {nmodes[0], nmodes[1], nmodes[2]};
@@ -296,11 +295,9 @@ cufinufft_plan_t<T>::cufinufft_plan_t(int type_, int dim_, const int *nmodes, in
     opts.gpu_spreadinterponly = 1;
   }
 
-  // requested_maxbatchsize == 0 => auto: batch up to 8 transforms together
-  // (matches the CPU library and cuFINUFFT <= 2.4.x). Otherwise honor the
-  // user-requested value.
-  batchsize =
-      (requested_maxbatchsize > 0) ? requested_maxbatchsize : std::min(ntransf, 8);
+  // gpu_maxbatchsize <= 0 => auto: batch up to 8 transforms together (matches
+  // the CPU library and cuFINUFFT <= 2.4.x). Otherwise honor the requested value.
+  batchsize = (opts.gpu_maxbatchsize > 0) ? opts.gpu_maxbatchsize : std::min(ntransf, 8);
 
   stream = (cudaStream_t)opts.gpu_stream;
 

@@ -146,8 +146,8 @@ void cufinufft_plan_t<T>::setpts(int nj, const T *d_kx, const T *d_ky, const T *
 
   // FIXME: MAX_NF might be too small...
   // Guard against the actual fwBatch allocation (nf * batchsize); batchsize is
-  // the resolved batch count (== the inner t2 plan's ntransf) and can exceed
-  // opts.gpu_maxbatchsize when the auto heuristic batches transforms (issue #846).
+  // the resolved batch count (== the inner t2 plan's ntransf), which can exceed
+  // the user's gpu_maxbatchsize hint when the auto heuristic batches (issue #846).
   if (nf * batchsize > MAX_NF) {
     fprintf(stderr,
             "[%s t3] fwBatch would be bigger than MAX_NF, not attempting malloc!\n",
