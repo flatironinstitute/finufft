@@ -38,6 +38,13 @@ jobs:
           cmake: true
           ninja: true
 
+      # Baseline release tags (v2.2.0…) pin their own FFTW download, which no
+      # longer configures on modern CMake (empty version URL + stale
+      # cmake_minimum_required). Provide system FFTW so every tag's
+      # find_package(FFTW) succeeds and skips the CPM download.
+      - name: Install FFTW
+        run: sudo apt-get update && sudo apt-get install -y libfftw3-dev
+
       - name: Checkout tagged versions
         run: |
           mkdir -p ../builds
