@@ -124,28 +124,12 @@ template void cufinufft_plan_t<double>::setup_spreadinterp();
 
 template<typename T>
 std::tuple<CUFINUFFT_BIGINT, T, T> cufinufft_plan_t<T>::set_nhg_type3(T S, T X) const
-// Mirror of CPU set_nhg_type3: choose nf, h, gam given source half-width S and
-// freq half-width X, using this plan's opts/spopts.
+// Choose nf, h, gam given source half-width S and freq half-width X, using this plan's
+// opts/spopts. Shares finufft::common::nhg_type3 with the CPU set_nhg_type3.
 {
-  using finufft::common::PI;
-  int nss = spopts.nspread + 1; // since ns may be odd
-  T Xsafe = X, Ssafe = S;       // may be tweaked locally
-  if (X == 0.0)                 // logic ensures XS>=1, handle X=0 a/o S=0
-    if (S == 0.0) {
-      Xsafe = 1.0;
-      Ssafe = 1.0;
-    } else
-      Xsafe = std::max(Xsafe, T(1) / S);
-  else
-    Ssafe = std::max(Ssafe, T(1) / X);
-  T nfd = 2.0 * opts.upsampfac * Ssafe * Xsafe / PI + nss;
-  if (!std::isfinite(nfd)) nfd = 0.0;
-  auto nf = (int)nfd;
-  if (nf < 2 * spopts.nspread) nf = 2 * spopts.nspread;
-  if (nf < MAX_NF) nf = finufft::common::next235(nf, 2);
-  auto h   = 2 * T(PI) / nf;
-  auto gam = T(nf) / (2.0 * opts.upsampfac * Ssafe);
-  return std::make_tuple(nf, h, gam);
+  const auto [nf, h, gam] =
+      finufft::common::nhg_type3(opts.upsampfac, X, S, spopts.nspread, MAX_NF);
+  return std::make_tuple((CUFINUFFT_BIGINT)nf, T(h), T(gam));
 }
 template std::tuple<CUFINUFFT_BIGINT, float, float>
 cufinufft_plan_t<float>::set_nhg_type3(float, float) const;

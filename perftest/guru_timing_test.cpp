@@ -58,12 +58,12 @@ int main(int argc, char *argv[])
   FINUFFT_DEFAULT_OPTS(&opts); // for guru interface
 
   // Collect command line arguments ------------------------------------------
-  if (argc < 8 || argc > 14) {
-    fprintf(
-        stderr,
-        "Usage: guru_timing_test ntransf type ndim N1 N2 N3 Nsrc [tol [debug "
-        "[spread_thread [maxbatchsize [spread_sort "
-        "[upsampfac]]]]]]\n\teg:\tguru_timing_test 100 1 2 1e2 1e2 0 1e6 1e-3 1 0 0 2\n");
+  if (argc < 8 || argc > 15) {
+    fprintf(stderr, "Usage: guru_timing_test ntransf type ndim N1 N2 N3 Nsrc [tol [debug "
+                    "[spread_thread [maxbatchsize [spread_sort "
+                    "[upsampfac [nthreads]]]]]]]\n\teg:\tguru_timing_test 100 1 2 1e2 "
+                    "1e2 0 1e6 1e-3 1 0 "
+                    "0 2\n");
     return 1;
   }
   sscanf(argv[1], "%d", &ntransf);
@@ -87,6 +87,7 @@ int main(int argc, char *argv[])
     sscanf(argv[13], "%lf", &w);
     opts.upsampfac = (FLT)w;
   }
+  if (argc > 14) sscanf(argv[14], "%d", &opts.nthreads); // 0 = use all (default)
 
   // Allocate and initialize input -------------------------------------------
   cout << scientific << setprecision(15);

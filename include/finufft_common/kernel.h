@@ -5,6 +5,7 @@
 #include <cstddef>
 #include <cstdio>
 #include <functional>
+#include <type_traits>
 #include <vector>
 
 #include <finufft_common/constants.h>
@@ -70,8 +71,28 @@ template<class T, class F> std::vector<T> poly_fit(F &&f, int n) {
 // Defined in src/common/kernel.cpp.
 std::function<double(double)> kernel_definition_lambda(const finufft_spread_opts &spopts);
 
+// Tolerance prefactor in the kernel aliasing law tol = tolfac*exp(-(ns-1)*pi*u).
+double kernel_tolfac(int dim, int type);
+
 int theoretical_kernel_ns(double tol, int dim, int type, int debug,
                           const finufft_spread_opts &spopts);
+
+// Clamp a theoretical kernel width to the width the plan will actually use: clip to
+// [MIN_NSPREAD, max_nspread] (widest spreadinterp template compiled), then the float
+// catastrophic-cancellation guard (constants.h: ns<=FLOAT_MAX_NS_CC for
+// upsampfac<FLOAT_CC_UPSAMPFAC_LIMIT). Shared by setup_spreadinterp() and the upsampfac
+// heuristic so they agree on the width.
+inline int clamp_kernel_ns(int ns, double upsampfac, int max_nspread, bool is_float) {
+  ns = std::max(common::MIN_NSPREAD, ns);
+  ns = std::min(ns, max_nspread);
+  if (is_float && upsampfac < common::FLOAT_CC_UPSAMPFAC_LIMIT)
+    ns = std::min(ns, common::FLOAT_MAX_NS_CC);
+  return ns;
+}
+template<class TF> inline int clamp_kernel_ns(int ns, double upsampfac) {
+  return clamp_kernel_ns(ns, upsampfac, common::MAX_NSPREAD<TF>,
+                         std::is_same_v<TF, float>);
+}
 
 void set_kernel_shape_given_ns(finufft_spread_opts &opts, int debug);
 
@@ -99,10 +120,52 @@ template<int NS, int NC> inline constexpr bool ValidKernelParams() noexcept {
 
 namespace finufft::common {
 
-// Minimum sigma achieving requested tol. Hybrid model: uses exact analytical kernel
-// inversion in the kernel-dominated regime, switches to floor-corrected inversion only
-// when the rounding floor matters (tol near eps_round). Returns MAX_CHECK_SIGMA if not
-// achievable.
+// Fine-grid length one dimension gets at this sigma, mirroring set_nf_type12
+// (makeplan.hpp): ceil(sigma*n_modes), floored at 2*ns, rounded up to the next even
+// 2,3,5-smooth number. set_nf_type12 owns the BIGINT/MAX_NF version; this is the
+// read-only mirror for the upsampfac selector.
+inline long fine_grid_len(double sigma, double n_modes, int ns) {
+  return next235(std::max((long)std::ceil(sigma * n_modes), (long)(2 * ns)), 2);
+}
+
+// Type-3 fine grid for one dimension, given the source/freq interval half-widths X,S.
+// Clamps so X*S>=1 (handling X and/or S == 0), sizes the upsampled grid nf (floored at
+// 2*ns, then next235-rounded unless it already exceeds max_nf, the allocation guard),
+// and returns spacing h=2pi/nf and x-rescale gam=nf/(2*sigma*S). All math in double;
+// callers narrow h/gam to their precision. Single source of truth for set_nhg_type3 on
+// CPU (setpts.hpp) and GPU (cuda/makeplan.cu) and the type-3 upsampfac cost model
+// (heuristics.hpp). Barnett 6/12/17 logic; extracted Barbone 6/26.
+// Returns the tuple (nf, h, gam); destructure with structured bindings.
+inline std::tuple<BIGINT, double, double> nhg_type3(double sigma, double X, double S,
+                                                    int ns, BIGINT max_nf) {
+  const int nss = ns + 1; // since ns may be odd
+  double Xs = X, Ss = S; // tweak so X*S>=1, handling X=0 and/or S=0
+  if (Xs == 0.0) {
+    if (Ss == 0.0) {
+      Xs = Ss = 1.0;
+    } else
+      Xs = 1.0 / Ss;
+  } else
+    Ss = std::max(Ss, 1.0 / Xs);
+  double nfd = 2.0 * sigma * Ss * Xs / PI + nss;
+  if (!std::isfinite(nfd)) nfd = 0.0;
+  BIGINT nf = std::max((BIGINT)nfd, (BIGINT)(2 * ns)); // catch too-small / nan / +-inf
+  if (nf < max_nf) nf = next235(nf, 2); // else too big; spread will error
+  return {nf, 2.0 * PI / (double)nf, (double)nf / (2.0 * sigma * Ss)};
+}
+
+// Smallest sigma whose theoretical_kernel_ns(tol,dim,type) is <= ns_target.
+double smallest_sigma_for_ns(double tol, int dim, int type, int ns_target);
+
+// Minimum sigma achieving requested tol, as used by check_sigma.
 double lowest_sigma(double tol, int dim, int ns, double eps_mach, double gridlen);
+
+// Whether the plan pipeline would accept this sigma at this tol.
+bool upsampfac_feasible(double sigma, double tol, int dim, int type, double eps_mach,
+                        int max_nspread, bool is_float, double maxN);
+
+// Smallest feasible sigma in [MIN_AUTO_UPSAMPFAC, MAX_AUTO_UPSAMPFAC] by bisection.
+double analytic_upsampfac(double tol, int dim, int type, double eps_mach, int max_nspread,
+                          bool is_float, double maxN);
 
 } // namespace finufft::common
