@@ -22,6 +22,7 @@
 // eps_round ~ eps_mach*gridlen. So two failure modes are reported:
 //   - tol below the rounding floor: unachievable at any sigma;
 //   - sigma below the sigma_min needed for tol: suggest a higher upsampfac.
+// sigma_min and the suggestion are capped at MAX_CHECK_SIGMA (see constants.h).
 // This validates achievability only; it does not touch the Horner kernel
 // polynomial (that is fit in precompute_horner_coeffs). Throws
 // FINUFFT_ERR_EPS_TOO_SMALL unless opts.allow_eps_too_small downgrades to warn.
@@ -31,8 +32,12 @@ template<typename TF> void FINUFFT_PLAN_T<TF>::check_sigma() {
   const double sigma_min = finufft::common::lowest_sigma(
       (double)m.tol, dim, m.spopts.nspread, eps_mach, gridlen);
   const double eps_round = 0.48 * eps_mach * gridlen;
-  // even MAX_CHECK_SIGMA cannot beat the rounding floor here
-  const bool unachievable = (double)m.tol <= eps_round;
+  // "unachievable" only when tol falls below the rounding floor by the same margin
+  // at which the lowest_sigma polynomial itself gives up (its r = tol/eps_round <= 0.5
+  // branch). Merely reaching the floor (0.5*eps_round < tol <= eps_round) still
+  // delivers ~tol accuracy on small/dense grids, so let it proceed rather than
+  // over-reporting; the polynomial (sigma_min) governs the remaining suggest case.
+  const bool unachievable = (double)m.tol <= 0.5 * eps_round;
   if (!unachievable && sigma_min <= m.spopts.upsampfac) return; // fine
   const double suggest = std::min(sigma_min, finufft::common::MAX_CHECK_SIGMA);
   const bool do_throw = !opts.allow_eps_too_small; // opt-in wins
@@ -43,6 +48,28 @@ template<typename TF> void FINUFFT_PLAN_T<TF>::check_sigma() {
               : (opts.allow_eps_too_small ? "suggest upsampfac>=" : "need upsampfac>="));
   if (!unachievable) fprintf(stderr, "  (%.3g)\n", suggest);
   if (do_throw) throw finufft::exception(FINUFFT_ERR_EPS_TOO_SMALL);
+}
+
+// Density-aware upsampfac for types 1/2 (model in finufft/heuristics.hpp).
+template<typename TF> double FINUFFT_PLAN_T<TF>::best_upsampfac() const {
+  const std::array<double, 3> nmodes{(double)mstu[0], (double)mstu[1], (double)mstu[2]};
+  return finufft::heuristics::best_type12<TF>((double)m.tol, dim, type, opts.nthreads,
+                                              nmodes.data(), (double)m.nj)
+      .sigma;
+}
+
+// Complexity-based upsampfac (sigma3) for type 3 (model in finufft/heuristics.hpp).
+// X,S are the per-dim source/target interval half-widths from arraywidcen.
+template<typename TF>
+double FINUFFT_PLAN_T<TF>::best_upsampfac_type3(const TF *X, const TF *S,
+                                                BIGINT nk) const {
+  std::array<double, 3> Xh{}, Sh{};
+  for (int idim = 0; idim < dim; ++idim) {
+    Xh[idim] = (double)X[idim];
+    Sh[idim] = (double)S[idim];
+  }
+  return finufft::heuristics::best_type3<TF>(
+      (double)m.tol, dim, opts.nthreads, (double)m.nj, Xh.data(), Sh.data(), (double)nk);
 }
 
 // ---------- local math routines for type-3 setpts: --------
@@ -63,30 +90,14 @@ void FINUFFT_PLAN_T<TF>::set_nhg_type3(int idim, TF S, TF X)
    Previous args (opts, spopts) are now plan members; outputs (nf, h, gam) are
    written directly to plan members nfdim, t3P.h, t3P.gam.
    Converted to class member, Barbone 2/24/26.
+   Body delegated to the shared finufft::common::nhg_type3, Barbone 6/26.
 */
 {
-  using namespace finufft::common;
-  using namespace finufft::utils;
-  int nss = m.spopts.nspread + 1; // since ns may be odd
-  TF Xsafe = X, Ssafe = S;       // may be tweaked locally
-  if (X == 0.0)                 // logic ensures XS>=1, handle X=0 a/o S=0
-    if (S == 0.0) {
-      Xsafe = 1.0;
-      Ssafe = 1.0;
-    } else
-      Xsafe = std::max(Xsafe, 1 / S);
-  else
-    Ssafe = std::max(Ssafe, 1 / X);
-  // use the safe X and S...
-  auto nfd = TF(2.0 * opts.upsampfac * Ssafe * Xsafe / PI + nss);
-  if (!std::isfinite(nfd)) nfd = 0.0;
-  m.nfdim[idim] = (BIGINT)nfd;
-  // catch too small nf, and nan or +-inf, otherwise spread fails...
-  if (m.nfdim[idim] < 2 * m.spopts.nspread) m.nfdim[idim] = 2 * m.spopts.nspread;
-  if (m.nfdim[idim] < MAX_NF)                     // otherwise will fail
-    m.nfdim[idim] = next235(m.nfdim[idim], 2);
-  m.t3P.h[idim]   = TF(2.0 * PI / m.nfdim[idim]); // upsampled grid spacing
-  m.t3P.gam[idim] = TF(m.nfdim[idim] / (2.0 * opts.upsampfac * Ssafe)); // x scale fac
+  const auto [nf, h, gam] =
+      finufft::common::nhg_type3(opts.upsampfac, X, S, m.spopts.nspread, MAX_NF);
+  m.nfdim[idim] = nf;
+  m.t3P.h[idim] = TF(h);   // upsampled grid spacing
+  m.t3P.gam[idim] = TF(gam); // x rescale factor, ie x'_j = x_j/gam (modulo shifts)
 }
 
 // --------- setpts user guru interface driver ----------
@@ -95,7 +106,6 @@ template<typename TF>
 int FINUFFT_PLAN_T<TF>::setpts(BIGINT nj, const TF *xj, const TF *yj, const TF *zj,
                                BIGINT nk, const TF *s, const TF *t, const TF *u) {
   using namespace finufft::utils;
-  using namespace finufft::heuristics;
   // Method function to set NU points and do precomputations. Barnett 2020.
   // Barbone (3/4/26): removed warning_code_ plumbing (eps-too-small now throws).
   // See ../docs/cguru.doc for current documentation.
@@ -117,7 +127,7 @@ int FINUFFT_PLAN_T<TF>::setpts(BIGINT nj, const TF *xj, const TF *yj, const TF *
     // based on the actual density nj/N(). Re-plan if density changed significantly.
     if (!upsamp_locked) {
       double density   = double(nj) / double(N());
-      double upsampfac = bestUpsamplingFactor<TF>(opts.nthreads, density, dim, type, m.tol);
+      double upsampfac = best_upsampfac();
       // Re-plan if this is the first call (upsampfac==0) or if upsampfac changed
       if (upsampfac != opts.upsampfac) {
         opts.upsampfac = upsampfac;
@@ -163,26 +173,33 @@ int FINUFFT_PLAN_T<TF>::setpts(BIGINT nj, const TF *xj, const TF *yj, const TF *
     m.nk = nk; // user set # targ freq pts
     m.STU = {s, t, u};
 
-    // For type 3 with deferred upsampfac (not locked by user), pick and persist
-    // an upsamp now using density=1.0 so that subsequent steps (set_nhg_type3 etc.)
-    // have a concrete upsampfac to work with. This choice is persisted so inner
-    // type-2 plans will inherit it.
-    double upsampfac = bestUpsamplingFactor<TF>(opts.nthreads, 1.0, dim, type, m.tol);
-    if (!upsamp_locked && (upsampfac != opts.upsampfac)) {
-      opts.upsampfac = upsampfac;
-      if (opts.debug > 1)
-        printf("[setpts t3] selected upsampfac=%.2f (density=1 used; persisted)\n",
-               opts.upsampfac);
-      setup_spreadinterp(); // throws on error
-      precompute_horner_coeffs();
-    }
-
-    // pick x, s intervals & shifts & # fine grid pts (nf) in each dim...
+    // pick x, s interval half-widths & shifts/centers (all sigma-independent, so
+    // computed before choosing the upsampfac that best_upsampfac_type3 needs)...
     std::array<TF, 3> S = {0, 0, 0};
     if (opts.debug) printf("\tM=%lld N=%lld\n", (long long)nj, (long long)nk);
     for (int idim = 0; idim < dim; ++idim) {
       arraywidcen(nj, XYZ_in[idim], &(m.t3P.X[idim]), &(m.t3P.C[idim]));
       arraywidcen(nk, STU_in[idim], &S[idim], &(m.t3P.D[idim]));
+    }
+
+    // For type 3 with deferred upsampfac (not locked by user), pick & persist
+    // sigma3 now via the complexity model (outer type-3 spread + inner type-2 cost,
+    // using the interval half-widths X,S just computed) so the subsequent
+    // set_nhg_type3 / inner-t2 plan steps inherit a near-optimal grid.
+    if (!upsamp_locked) {
+      double upsampfac = best_upsampfac_type3(m.t3P.X.data(), S.data(), nk);
+      if (upsampfac != opts.upsampfac) {
+        opts.upsampfac = upsampfac;
+        if (opts.debug > 1)
+          printf("[setpts t3] selected upsampfac=%.2f (cost model; persisted)\n",
+                 opts.upsampfac);
+        setup_spreadinterp(); // throws on error
+        precompute_horner_coeffs();
+      }
+    }
+
+    // ...then # fine grid pts (nf) per dim, now that sigma3 (and hence ns) is fixed.
+    for (int idim = 0; idim < dim; ++idim) {
       set_nhg_type3(idim, S[idim], m.t3P.X[idim]); // applies twist i)
       if (opts.debug) // report on choices of shifts, centers, etc...
         printf("\tX%d=%.3g C%d=%.3g S%d=%.3g D%d=%.3g gam%d=%g nf%d=%lld h%d=%.3g\t\n",
