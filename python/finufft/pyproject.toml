@@ -1,7 +1,7 @@
 [build-system]
 requires = [
     "scikit-build-core >= 0.4.3",
-    "cmake (>= 3.19, < 4)",
+    "cmake >= 3.25",
     "ninja >= 1.9.0",
 ]
 
@@ -10,7 +10,7 @@ build-backend = "scikit_build_core.build"
 [project]
 name = "finufft"
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.10"
 dependencies = ["numpy >= 1.12.0", "packaging"]
 authors = [
     {name = "Jeremy Magland"},
@@ -78,7 +78,9 @@ input = "finufft/__init__.py"
 [tool.cibuildwheel]
 # Necessary to see build output from the actual compilation
 build-verbosity = 1
-skip = "cp36-* cp37-* cp-38* pp* *-manylinux_i686 *_ppc64le *_s390x *_universal2"
+# Python floor (>=3.10) comes from requires-python; here we only drop
+# PyPy and unsupported architectures.
+skip = "pp* *-manylinux_i686 *_ppc64le *_s390x *_universal2"
 test-requires = ["pytest", "pytest-mock"]
 test-command = "pytest {project}/python/finufft/test"
 
@@ -89,9 +91,14 @@ config-settings = {"cmake.define.FINUFFT_ARCH_FLAGS" = "-march=x86-64", "cmake.d
 # TODO: CIBW crashes when we try to make config-settings above into a table. Why?
 
 [tool.cibuildwheel.linux]
-manylinux-x86_64-image = "manylinux2014"
-manylinux-aarch64-image = "manylinux2014"
-musllinux-x86_64-image = "musllinux_1_1"
+# Use manylinux_2_28 (AlmaLinux 8, glibc 2.28) rather than the older
+# manylinux2014 (CentOS 7, glibc 2.17), which is EOL and ships a frozen,
+# ancient GCC. This matches cibuildwheel's current default and what
+# numpy/scipy build against. Wheels therefore require glibc >= 2.28
+# (RHEL 8 / Ubuntu 18.10+), the same floor as numpy/scipy.
+manylinux-x86_64-image = "manylinux_2_28"
+manylinux-aarch64-image = "manylinux_2_28"
+musllinux-x86_64-image = "musllinux_1_2"
 
 [tool.cibuildwheel.windows]
 before-build = "pip install delvewheel"
@@ -99,12 +106,10 @@ before-build = "pip install delvewheel"
 # install delvewheel and run it.
 repair-wheel-command = "delvewheel repair -v --analyze-existing -w {dest_dir} {wheel}"
 
+# Override for ARM builds (macOS arm64 and Linux/musl aarch64): the
+# default config-settings pass -march=x86-64, which is invalid on ARM, so
+# clear FINUFFT_ARCH_FLAGS there. Note "*aarch64*" does not match the
+# "*arm64*" glob, so both patterns are required.
 [[tool.cibuildwheel.overrides]]
-select = "cp310-*"
-manylinux-x86_64-image = "manylinux_2_28"
-musllinux-x86_64-image = "musllinux_1_2"
-
-# Override for ARM64 builds
-[[tool.cibuildwheel.overrides]]
-select = "*arm64*"
+select = "*arm64* *aarch64*"
 config-settings = { "cmake.define.FINUFFT_ARCH_FLAGS" = "", "cmake.define.CMAKE_VERBOSE_MAKEFILE" = "ON" }

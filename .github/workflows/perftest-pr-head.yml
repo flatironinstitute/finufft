@@ -25,19 +25,19 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout latest master
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        uses: actions/checkout@v7
         with:
           ref: master
           path: master
 
       - name: Checkout PR head
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        uses: actions/checkout@v7
         with:
           ref: ${{ github.event.pull_request.head.sha }}
           path: pr-head
 
       - name: Setup Cpp
-        uses: aminya/setup-cpp@1f17f92d6a52bfcb1a25348e2c526c2e5cbb1134 # v1.8.0
+        uses: aminya/setup-cpp@v1
         with:
           cmake: true
           ninja: true
@@ -91,7 +91,7 @@ jobs:
           PY
 
       - name: Upload perftest artifact
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@v7
         with:
           name: perftest-pr-head
           path: |
