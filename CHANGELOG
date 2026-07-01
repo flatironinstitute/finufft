@@ -3,6 +3,13 @@ If not stated, FINUFFT is assumed (old cuFINUFFT <=1.3 is listed separately).
 
 v2.6.0-dev
 
+* Runtime->compile-time dispatch is now provided by the external header-only POET
+  library (pinned to v0.0.0) instead of the hand-rolled dispatcher in
+  `finufft_common/utils.h`. Removed ~140 lines of Cartesian-product/dispatcher
+  template machinery (`make_range`, `DispatchParam`, `dispatch`); call sites on both
+  CPU and GPU now use `poet::inclusive_range` / `poet::dispatch_param` /
+  `poet::dispatch`. Also dropped the dead `_USE_MATH_DEFINES` guard in cufinufft
+  (FINUFFT uses `finufft::common::PI`, never the `M_*` macros). (Barbone)
 * Auto upsampfac (`opts.upsampfac=0`) is now chosen by a complexity cost model
   (`finufft/heuristics.hpp`), replacing the static `bestUpsamplingFactor` table.
   It predicts spread+FFT cost in consistent flop units and minimizes over feasible

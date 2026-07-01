@@ -10,6 +10,9 @@ or via a GNU ``makefile`` (which has settings for platforms on linux, OSX, Windo
 We currently support both, and detail them in that order in the text below.
 The main language requirements are a C/C++ compiler supporting OpenMP and the
 C++17 standard.
+The CPU and CUDA spread/interpolate paths dispatch through `POET <https://github.com/flatironinstitute/poet>`_,
+a header-only library that, like ``xsimd`` and ``DUCC0``, is fetched automatically
+by the build (into the ``deps`` subdirectory), so there is nothing to install by hand.
 In practice, SIMD code generation also depends on the compiler version and
 target CPU. FINUFFT builds with no issues on Linux and MacOS using current
 compilers, and in our experience (as of 2024), GCC13 gives the best
