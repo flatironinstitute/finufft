@@ -2,6 +2,7 @@
 // Compiled three times via CMake foreach with -DCUFINUFFT_DIM={1,2,3}.
 
 #include <cufinufft/spreadinterp.hpp>
+#include <poet/poet.hpp>
 
 #ifndef CUFINUFFT_DIM
 #error "CUFINUFFT_DIM must be defined to 1, 2, or 3 (set by CMake)"
@@ -99,8 +100,8 @@ void do_interp_nupts_driven(const cufinufft_plan_t<T> &p, cuda_complex<T> *c,
                             const cuda_complex<T> *fw, int blksize) {
   using namespace finufft::common;
   InterpNuptsDrivenCaller<T, Ndim> caller{p, c, fw, blksize};
-  using NsSeq = make_range<MIN_NSPREAD, MAX_NSPREAD<T>>;
-  dispatch(caller, std::make_tuple(DispatchParam<NsSeq>{p.spopts.nspread}));
+  using NsSeq = poet::inclusive_range<MIN_NSPREAD, MAX_NSPREAD<T>>;
+  poet::dispatch(caller, std::make_tuple(poet::dispatch_param<NsSeq>{p.spopts.nspread}));
 }
 
 template void do_interp_nupts_driven<float, CUFINUFFT_DIM>(

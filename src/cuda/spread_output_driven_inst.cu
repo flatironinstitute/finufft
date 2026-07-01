@@ -4,6 +4,7 @@
 
 #include "spreadinterp_common.cuh"
 #include <cufinufft/spreadinterp.hpp>
+#include <poet/poet.hpp>
 
 #ifndef CUFINUFFT_DIM
 #error "CUFINUFFT_DIM must be defined to 1, 2, or 3 (set by CMake)"
@@ -143,8 +144,8 @@ void do_spread_output_driven(const cufinufft_plan_t<T> &p, const cuda_complex<T>
                              cuda_complex<T> *fw, int blksize) {
   using namespace finufft::common;
   SpreadOutputDrivenCaller<T, Ndim> caller{p, c, fw, blksize};
-  using NsSeq = make_range<MIN_NSPREAD, MAX_NSPREAD<T>>;
-  dispatch(caller, std::make_tuple(DispatchParam<NsSeq>{p.spopts.nspread}));
+  using NsSeq = poet::inclusive_range<MIN_NSPREAD, MAX_NSPREAD<T>>;
+  poet::dispatch(caller, std::make_tuple(poet::dispatch_param<NsSeq>{p.spopts.nspread}));
 }
 
 template void do_spread_output_driven<float, CUFINUFFT_DIM>(

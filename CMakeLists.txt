@@ -68,6 +68,7 @@ include(toolchain) # finds cmake/toolchain.cmake
 set(CPM_DOWNLOAD_VERSION "0.42.0" CACHE STRING "Version of CPM.cmake to use")
 set(FFTW_VERSION "3.3.11" CACHE STRING "Version of FFTW to use")
 set(XSIMD_VERSION "6842624" CACHE STRING "Version of xsimd to use") # this commit fixes gcc-10 for now
+set(POET_VERSION "v0.0.0" CACHE STRING "Version of POET to use")
 set(DUCC0_VERSION "ducc0_0_39_1" CACHE STRING "Version of ducc0 to use")
 set(CUDA11_CCCL_VERSION "2.8.5" CACHE STRING "Version of FINUFFT-cccl for cuda 11 to use")
 set(CUDA12_CCCL_VERSION "3.0.2" CACHE STRING "Version of FINUFFT-cccl for cuda 12 to use")
@@ -77,12 +78,16 @@ mark_as_advanced(
     FFTW_VERSION
     XTL_VERSION
     XSIMD_VERSION
+    POET_VERSION
     DUCC0_VERSION
     CUDA11_CCCL_VERSION
     CUDA12_CCCL_VERSION
 )
 
 include(setupCPM)
+
+# POET header-only dispatcher, used by both CPU and CUDA spread/interp paths.
+include(setupPOET)
 
 if(FINUFFT_USE_CPU)
     if(FINUFFT_USE_OPENMP)

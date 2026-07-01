@@ -34,7 +34,7 @@ endif()
 
 # Helper: apply common compile settings to a target (including all option-driven defines)
 function(finufft_apply_compile_settings target)
-    target_link_libraries(${target} PRIVATE $<BUILD_INTERFACE:finufft_fftlibs xsimd finufft_common>)
+    target_link_libraries(${target} PRIVATE $<BUILD_INTERFACE:finufft_fftlibs xsimd finufft_common poet::poet>)
     target_include_directories(${target} PUBLIC $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>)
     target_compile_features(${target} PRIVATE cxx_std_17)
     target_compile_options(${target} PRIVATE ${FINUFFT_ARCH_FLAGS})

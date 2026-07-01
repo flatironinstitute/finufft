@@ -1,1 +1,6 @@
 MSYS=ON
+# MinGW/MSYS gcc 16 hits an internal compiler error during parallel LTO
+# streaming ("cannot read 'LTO_section_decls'") on POET's heavily-templated
+# dispatch. Disable LTO for this from-source build; the shipped Windows library
+# is built with MSVC/clang via CMake, which is unaffected.
+LTO=OFF

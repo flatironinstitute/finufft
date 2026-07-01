@@ -1,6 +1,7 @@
 // Per-dim instantiation TU: 3D block-gather spread (gpu_method = 4), Ndim = 3.
 
 #include <cufinufft/spreadinterp.hpp>
+#include <poet/poet.hpp>
 
 namespace cufinufft {
 namespace spreadinterp {
@@ -314,8 +315,8 @@ void do_spread_blockgather_3d(const cufinufft_plan_t<T> &p, const cuda_complex<T
                               cuda_complex<T> *fw, int blksize) {
   using namespace finufft::common;
   SpreadBlockGatherCaller<T> caller{p, c, fw, blksize};
-  using NsSeq = make_range<MIN_NSPREAD, MAX_NSPREAD<T>>;
-  dispatch(caller, std::make_tuple(DispatchParam<NsSeq>{p.spopts.nspread}));
+  using NsSeq = poet::inclusive_range<MIN_NSPREAD, MAX_NSPREAD<T>>;
+  poet::dispatch(caller, std::make_tuple(poet::dispatch_param<NsSeq>{p.spopts.nspread}));
 }
 
 template<typename T> void do_indexSort_blockgather_3d(cufinufft_plan_t<T> &p) {

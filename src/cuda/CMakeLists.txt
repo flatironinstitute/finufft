@@ -124,6 +124,7 @@ target_link_libraries(
         $<BUILD_INTERFACE:CUDA::cufft>
         $<BUILD_INTERFACE:CCCL::CCCL>
         $<BUILD_INTERFACE:finufft_common>
+        $<BUILD_INTERFACE:poet::poet>
 )
 
 check_cxx_compiler_flag(-Wno-deprecated-declarations FINUFFT_HAS_NO_DEPRECATED_DECLARATIONS)

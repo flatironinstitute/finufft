@@ -14,10 +14,9 @@
 
 #include <finufft_common/common.h>
 
-#ifndef _USE_MATH_DEFINES
-#define _USE_MATH_DEFINES
-#endif
-#include <cmath>
+#include <poet/poet.hpp> // poet::dispatch / inclusive_range / dispatch_param
+
+#include <cmath> // std math only; finufft uses finufft::common::PI, not M_PI
 
 #if !defined(__CUDA_ARCH__) || __CUDA_ARCH__ >= 600 || defined(__clang__)
 #else
@@ -133,19 +132,19 @@ template<typename T> auto arraywidcen(int n, const T *a, cudaStream_t stream) {
 // Wrapper around the generic dispatcher for ndim-based dispatch
 template<typename Func, typename T, typename... Args>
 auto launch_dispatch_ndim(Func &&func, int target_ndim, Args &&...args) {
-  using NdimSeq = make_range<1, 3>;
-  auto params   = std::make_tuple(DispatchParam<NdimSeq>{target_ndim});
-  return dispatch(std::forward<Func>(func), params, std::forward<Args>(args)...);
+  using NdimSeq = poet::inclusive_range<1, 3>;
+  auto params = std::make_tuple(poet::dispatch_param<NdimSeq>{target_ndim});
+  return poet::dispatch(std::forward<Func>(func), params, std::forward<Args>(args)...);
 }
 // Wrapper around the generic dispatcher for ndim- and nspread-based dispatch
 template<typename Func, typename T, typename... Args>
 auto launch_dispatch_ndim_ns(Func &&func, int target_ndim, int target_ns,
                              Args &&...args) {
-  using NdimSeq = make_range<1, 3>;
-  using NsSeq = make_range<MIN_NSPREAD, MAX_NSPREAD<T>>;
-  auto params   = std::make_tuple(DispatchParam<NdimSeq>{target_ndim},
-                                  DispatchParam<NsSeq>{target_ns});
-  return dispatch(std::forward<Func>(func), params, std::forward<Args>(args)...);
+  using NdimSeq = poet::inclusive_range<1, 3>;
+  using NsSeq = poet::inclusive_range<MIN_NSPREAD, MAX_NSPREAD<T>>;
+  auto params = std::make_tuple(poet::dispatch_param<NdimSeq>{target_ndim},
+                                poet::dispatch_param<NsSeq>{target_ns});
+  return poet::dispatch(std::forward<Func>(func), params, std::forward<Args>(args)...);
 }
 
 /**

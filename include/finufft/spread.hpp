@@ -7,6 +7,8 @@
 #include <cstddef>
 #include <numeric>
 
+#include <poet/poet.hpp> // poet::dispatch / inclusive_range / dispatch_param
+
 namespace finufft::spreadinterp {
 } // namespace finufft::spreadinterp
 
@@ -912,10 +914,10 @@ void FINUFFT_PLAN_T<TF>::spread_subproblem_1d(BIGINT off1, UBIGINT size1, TF *du
   using namespace finufft::spreadinterp;
   using namespace finufft::common;
   SpreadSubproblem1dCaller caller{*this, off1, size1, du, M, kx, dd};
-  using NsSeq = make_range<MIN_NSPREAD, MAX_NSPREAD<TF>>;
-  using NcSeq = make_range<MIN_NC, MAX_NC>;
-  dispatch(caller, std::make_tuple(DispatchParam<NsSeq>{m.spopts.nspread},
-                                   DispatchParam<NcSeq>{m.nc}));
+  using NsSeq = poet::inclusive_range<MIN_NSPREAD, MAX_NSPREAD<TF>>;
+  using NcSeq = poet::inclusive_range<MIN_NC, MAX_NC>;
+  poet::dispatch(caller, std::make_tuple(poet::dispatch_param<NsSeq>{m.spopts.nspread},
+                                         poet::dispatch_param<NcSeq>{m.nc}));
 }
 
 template<typename TF>
@@ -929,10 +931,10 @@ void FINUFFT_PLAN_T<TF>::spread_subproblem_2d(
   using namespace finufft::spreadinterp;
   using namespace finufft::common;
   SpreadSubproblem2dCaller caller{*this, off1, off2, size1, size2, du, M, kx, ky, dd};
-  using NsSeq = make_range<MIN_NSPREAD, MAX_NSPREAD<TF>>;
-  using NcSeq = make_range<MIN_NC, MAX_NC>;
-  dispatch(caller, std::make_tuple(DispatchParam<NsSeq>{m.spopts.nspread},
-                                   DispatchParam<NcSeq>{m.nc}));
+  using NsSeq = poet::inclusive_range<MIN_NSPREAD, MAX_NSPREAD<TF>>;
+  using NcSeq = poet::inclusive_range<MIN_NC, MAX_NC>;
+  poet::dispatch(caller, std::make_tuple(poet::dispatch_param<NsSeq>{m.spopts.nspread},
+                                         poet::dispatch_param<NcSeq>{m.nc}));
 }
 
 template<typename TF>
@@ -947,8 +949,8 @@ void FINUFFT_PLAN_T<TF>::spread_subproblem_3d(
   using namespace finufft::common;
   SpreadSubproblem3dCaller caller{*this, off1, off2, off3, size1, size2, size3, du, M,
                                   kx,    ky,   kz,   dd};
-  using NsSeq = make_range<MIN_NSPREAD, MAX_NSPREAD<TF>>;
-  using NcSeq = make_range<MIN_NC, MAX_NC>;
-  dispatch(caller, std::make_tuple(DispatchParam<NsSeq>{m.spopts.nspread},
-                                   DispatchParam<NcSeq>{m.nc}));
+  using NsSeq = poet::inclusive_range<MIN_NSPREAD, MAX_NSPREAD<TF>>;
+  using NcSeq = poet::inclusive_range<MIN_NC, MAX_NC>;
+  poet::dispatch(caller, std::make_tuple(poet::dispatch_param<NsSeq>{m.spopts.nspread},
+                                         poet::dispatch_param<NcSeq>{m.nc}));
 }

@@ -71,6 +71,11 @@ XSIMD_URL := https://github.com/xtensor-stack/xsimd.git
 XSIMD_VERSION := 6842624
 XSIMD_DIR := $(DEPS_ROOT)/xsimd
 
+# POET header-only dispatcher dependency repo (VERSION can be a tag or commit)
+POET_URL := https://github.com/DiamonDinoia/poet.git
+POET_VERSION := v0.0.0
+POET_DIR := $(DEPS_ROOT)/poet
+
 # DUCC sources optional dependency repo
 DUCC_URL := https://github.com/mreineck/ducc.git
 DUCC_VERSION := ducc0_0_39_1
@@ -92,7 +97,7 @@ FINUFFT = $(dir $(realpath $(firstword $(MAKEFILE_LIST))))
 # Now come flags that should be added, whatever user overrode in make.inc.
 # -fPIC (position-indep code) needed to build dyn lib (.so)
 # Also, we force return (via :=) to the land of simply-expanded variables...
-INCL = -Iinclude -I$(XSIMD_DIR)/include
+INCL = -Iinclude -I$(XSIMD_DIR)/include -I$(POET_DIR)/include
 # single-thread total list of math and FFT libs (now both precisions)...
 # (Note: finufft tests use LIBSFFT; spread & util tests only need LIBS)
 LIBSFFT := $(LIBS)
@@ -219,12 +224,12 @@ fortran/%.o: fortran/%.cpp $(HEADERS)
 # Note src/spreadinterp.cpp includes finufft/plan.hpp which pulls in FFT forward decls
 # so fftw/ducc header needed for spreadinterp, though spreadinterp should not
 # depend on fftw/ducc directly?
-SHEAD = $(XSIMD_DIR)/include/xsimd/xsimd.hpp
+SHEAD = $(XSIMD_DIR)/include/xsimd/xsimd.hpp $(POET_DIR)/include/poet/poet.hpp
 src/spreadinterp.o: src/spreadinterp.cpp include/finufft/spreadinterp.hpp include/finufft/utils.hpp include/finufft_common/kernel.h include/finufft_common/spread_opts.h $(SHEAD)
 
 # we need xsimd functionality in plan.hpp, which is included by many other
 # files, so make sure we install xsimd before we process any of those files.
-include/finufft/plan.hpp: $(XSIMD_DIR)/include/xsimd/xsimd.hpp
+include/finufft/plan.hpp: $(XSIMD_DIR)/include/xsimd/xsimd.hpp $(POET_DIR)/include/poet/poet.hpp
 
 # lib -----------------------------------------------------------------------
 # build library with double/single prec both bundled in...
@@ -533,6 +538,13 @@ $(XSIMD_DIR)/include/xsimd/xsimd.hpp:
 	$(call clone_repo,$(XSIMD_URL),$(XSIMD_VERSION),$(XSIMD_DIR))
 	@echo "xsimd installed in deps/xsimd"
 
+# download: POET header-only dispatcher, no compile needed...
+$(POET_DIR)/include/poet/poet.hpp:
+	mkdir -p $(DEPS_ROOT)
+	@echo "Checking POET external dependency..."
+	$(call clone_repo,$(POET_URL),$(POET_VERSION),$(POET_DIR))
+	@echo "POET installed in deps/poet"
+
 # download DUCC... (an empty target just used to track if installed)
 $(DUCC_COOKIE):
 	mkdir -p $(DEPS_ROOT)
@@ -547,7 +559,7 @@ $(DUCC_SRCS): %.cc: $(DUCC_SETUP)
 $(DUCC_OBJS): %.o: %.cc
 	$(CXX) -c $(DUCC_CXXFLAGS) $(DUCC_INCL) $< -o $@
 
-setup: $(XSIMD_DIR)/include/xsimd/xsimd.hpp $(DUCC_SETUP)
+setup: $(XSIMD_DIR)/include/xsimd/xsimd.hpp $(POET_DIR)/include/poet/poet.hpp $(DUCC_SETUP)
 
 setupclean:
 	rm -rf $(DEPS_ROOT)

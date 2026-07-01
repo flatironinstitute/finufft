@@ -4,6 +4,8 @@
 #include <finufft/simd.hpp>
 #include <finufft/utils.hpp>
 
+#include <poet/poet.hpp> // poet::dispatch / inclusive_range / dispatch_param
+
 namespace finufft::spreadinterp {
 
 template<typename T, uint8_t ns>
@@ -621,10 +623,11 @@ int FINUFFT_PLAN_T<TF>::interpSorted_1d(TF *data_uniform, TF *data_nonuniform) c
   using namespace finufft::spreadinterp;
   using namespace finufft::common;
   InterpSorted1dCaller caller{*this, data_uniform, data_nonuniform};
-  using NsSeq = make_range<MIN_NSPREAD, MAX_NSPREAD<TF>>;
-  using NcSeq = make_range<MIN_NC, MAX_NC>;
-  return dispatch(caller, std::make_tuple(DispatchParam<NsSeq>{m.spopts.nspread},
-                                          DispatchParam<NcSeq>{m.nc}));
+  using NsSeq = poet::inclusive_range<MIN_NSPREAD, MAX_NSPREAD<TF>>;
+  using NcSeq = poet::inclusive_range<MIN_NC, MAX_NC>;
+  return poet::dispatch(caller,
+                        std::make_tuple(poet::dispatch_param<NsSeq>{m.spopts.nspread},
+                                        poet::dispatch_param<NcSeq>{m.nc}));
 }
 
 template<typename TF>
@@ -632,10 +635,11 @@ int FINUFFT_PLAN_T<TF>::interpSorted_2d(TF *data_uniform, TF *data_nonuniform) c
   using namespace finufft::spreadinterp;
   using namespace finufft::common;
   InterpSorted2dCaller caller{*this, data_uniform, data_nonuniform};
-  using NsSeq = make_range<MIN_NSPREAD, MAX_NSPREAD<TF>>;
-  using NcSeq = make_range<MIN_NC, MAX_NC>;
-  return dispatch(caller, std::make_tuple(DispatchParam<NsSeq>{m.spopts.nspread},
-                                          DispatchParam<NcSeq>{m.nc}));
+  using NsSeq = poet::inclusive_range<MIN_NSPREAD, MAX_NSPREAD<TF>>;
+  using NcSeq = poet::inclusive_range<MIN_NC, MAX_NC>;
+  return poet::dispatch(caller,
+                        std::make_tuple(poet::dispatch_param<NsSeq>{m.spopts.nspread},
+                                        poet::dispatch_param<NcSeq>{m.nc}));
 }
 
 template<typename TF>
@@ -643,10 +647,11 @@ int FINUFFT_PLAN_T<TF>::interpSorted_3d(TF *data_uniform, TF *data_nonuniform) c
   using namespace finufft::spreadinterp;
   using namespace finufft::common;
   InterpSorted3dCaller caller{*this, data_uniform, data_nonuniform};
-  using NsSeq = make_range<MIN_NSPREAD, MAX_NSPREAD<TF>>;
-  using NcSeq = make_range<MIN_NC, MAX_NC>;
-  return dispatch(caller, std::make_tuple(DispatchParam<NsSeq>{m.spopts.nspread},
-                                          DispatchParam<NcSeq>{m.nc}));
+  using NsSeq = poet::inclusive_range<MIN_NSPREAD, MAX_NSPREAD<TF>>;
+  using NcSeq = poet::inclusive_range<MIN_NC, MAX_NC>;
+  return poet::dispatch(caller,
+                        std::make_tuple(poet::dispatch_param<NsSeq>{m.spopts.nspread},
+                                        poet::dispatch_param<NcSeq>{m.nc}));
 }
 
 // ---------- FINUFFT_PLAN_T interpSorted method definition ----------
