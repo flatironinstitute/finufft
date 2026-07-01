@@ -223,6 +223,7 @@ add_test(NAME cufinufft_public_api COMMAND public_api_test)
 add_test(NAME cufinufft_makeplan COMMAND test_makeplan)
 add_test(NAME cufinufft_error_handling COMMAND cufinufft_error_handling)
 add_test(NAME cufinufft_math_test COMMAND cufinufft_math_test)
+add_test(NAME cufinufft_simple_test COMMAND cufinufft_simple_test)
 add_test(
     NAME cufinufft1dspreadinterponly_double_test
     COMMAND cufinufft1dspreadinterponly_test 1e3 1e6 1e-6 1e-5 d 2.00

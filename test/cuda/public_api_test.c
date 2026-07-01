@@ -182,11 +182,59 @@ int test_double(int M, int N) {
   return 0;
 }
 
+// Smoke test for the C-level simple API: same 1D type-1 problem as test_float,
+// but using cufinufftf1d1 (one call) instead of the 4-step plan path. Verifies
+// the C ABI (this TU is compiled as C, not C++).
+int test_simple_float(int M, int N) {
+  int64_t modes[1] = {N};
+
+  float *x;
+  float _Complex *c;
+  float _Complex *f;
+
+  float *d_x;
+  cuFloatComplex *d_c, *d_f;
+
+  x = (float *)malloc(M * sizeof(float));
+  c = (float _Complex *)malloc(M * sizeof(float _Complex));
+  f = (float _Complex *)malloc(N * sizeof(float _Complex));
+
+  srand(0);
+  for (int j = 0; j < M; ++j) {
+    x[j] = 2 * PI * (((float)rand()) / RAND_MAX - 1);
+    c[j] =
+        (2 * ((float)rand()) / RAND_MAX - 1) + I * (2 * ((float)rand()) / RAND_MAX - 1);
+  }
+
+  cudaMalloc((void **)&d_x, M * sizeof(float));
+  cudaMalloc((void **)&d_c, M * sizeof(float _Complex));
+  cudaMalloc((void **)&d_f, N * sizeof(float _Complex));
+  cudaMemcpy(d_x, x, M * sizeof(float), cudaMemcpyHostToDevice);
+  cudaMemcpy(d_c, c, M * sizeof(float _Complex), cudaMemcpyHostToDevice);
+
+  int rc = cufinufftf1d1(M, d_x, d_c, 1, 1e-6f, modes[0], d_f, NULL);
+
+  cudaMemcpy(f, d_f, N * sizeof(float _Complex), cudaMemcpyDeviceToHost);
+
+  cudaFree(d_x);
+  cudaFree(d_c);
+  cudaFree(d_f);
+
+  int idx = 4 * N / 7;
+  printf("simple f[%d] = %lf + %lfi\n", idx, crealf(f[idx]), cimagf(f[idx]));
+
+  free(x);
+  free(c);
+  free(f);
+  return rc;
+}
+
 int main() {
   // Problem size: number of nonuniform points (M) and grid size (N).
   const int M = 100, N = 200;
   int errf = test_float(M, N);
-  int err  = test_double(M, N);
+  int err = test_double(M, N);
+  int errs = test_simple_float(M, N);
 
-  return (err | errf);
+  return (err | errf | errs);
 }
