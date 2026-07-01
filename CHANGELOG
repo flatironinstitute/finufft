@@ -3,6 +3,15 @@ If not stated, FINUFFT is assumed (old cuFINUFFT <=1.3 is listed separately).
 
 v2.6.0-dev
 
+* Auto upsampfac (`opts.upsampfac=0`) is now chosen by a complexity cost model
+  (`finufft/heuristics.hpp`), replacing the static `bestUpsamplingFactor` table.
+  It predicts spread+FFT cost in consistent flop units and minimizes over feasible
+  sigma, so dense (spread-dominated) transforms take a narrower kernel at higher
+  sigma while sparse (FFT-dominated) ones stay near the smallest feasible sigma
+  (types 1/2/3, ~1.2-1.5x on 3D). The sigma ceiling is split into an accuracy cap
+  (`MAX_CHECK_SIGMA=2.0`) and a performance search ceiling
+  (`MAX_AUTO_UPSAMPFAC=2.5`), and planning is deferred to `setpts` so a single
+  plan is built once the point density is known. (Barbone, Brodovič)
 * Installed `find_package(finufft)` consumption now works (issue #494): install
   the transitive public headers (`finufft/finufft_eitherprec.h`,
   `finufft_common/defines.h`), add `find_dependency()` to the package config so

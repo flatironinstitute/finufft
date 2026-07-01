@@ -48,12 +48,15 @@ if(HAS_C_COMPLEX)
 endif()
 
 # Add ctest definitions not for both precisions...
+# testutils also unit-tests the complexity-based upsampfac picker, so it includes
+# the internal heuristics.hpp and needs xsimd on top of finufft_link_test.
 add_executable(testutils testutils.cpp)
 if(FINUFFT_USE_DUCC0)
     target_compile_definitions(testutils PRIVATE -DFINUFFT_USE_DUCC0)
 endif()
 target_compile_features(testutils PRIVATE cxx_std_17)
 finufft_link_test(testutils)
+target_link_libraries(testutils PRIVATE xsimd)
 add_test(NAME run_testutils COMMAND testutils WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
 
 add_executable(threadsafe_execute threadsafe_execute.cpp)
