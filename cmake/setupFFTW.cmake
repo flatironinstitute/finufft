@@ -28,7 +28,7 @@ if(FINUFFT_FFTW_LIBRARIES STREQUAL DEFAULT OR FINUFFT_FFTW_LIBRARIES STREQUAL DO
             URL
             "http://www.fftw.org/fftw-${FFTW_VERSION}.tar.gz"
             URL_HASH
-            "MD5=40ec8d0447d03b8f01f8c90aa77bd16f"
+            "MD5=8ccbf6a5ea78a16dbc3e1306e234cc5c"
             OPTIONS
             "ENABLE_SSE2 ON"
             "ENABLE_AVX ON"
@@ -46,7 +46,7 @@ if(FINUFFT_FFTW_LIBRARIES STREQUAL DEFAULT OR FINUFFT_FFTW_LIBRARIES STREQUAL DO
             URL
             "http://www.fftw.org/fftw-${FFTW_VERSION}.tar.gz"
             URL_HASH
-            "MD5=40ec8d0447d03b8f01f8c90aa77bd16f"
+            "MD5=8ccbf6a5ea78a16dbc3e1306e234cc5c"
             OPTIONS
             "ENABLE_SSE2 ON"
             "ENABLE_AVX ON"
