@@ -89,6 +89,25 @@ std::function<double(double)> kernel_definition_lambda(
   }
 }
 
+double kernel_tolfac(int dim, int type) {
+  // Tolerance prefactor in the kernel aliasing law tol = tolfac*exp(-(ns-1)*pi*u).
+  // PER_DIM^(dim-1) compensates empirical per-dimension error worsening; type 3 is TYPE3
+  // worse (affects the outer spread, not the inner type-2). Shared by
+  // theoretical_kernel_ns, smallest_sigma_for_ns and analytic_upsampfac so they cannot
+  // drift apart (a past source of type-3 inconsistency). PER_DIM and TYPE3 are distinct
+  // empirical fudge factors that happen to share the value 1.4. Integer-power multiply
+  // rather than std::pow.
+  constexpr double TOLFAC_1D = 0.18; // 1D type-1/2 base prefactor
+  constexpr double TOLFAC_PER_DIM = 1.4; // per-extra-dim worsening, ^(dim-1)
+  constexpr double TOLFAC_TYPE3 = 1.4; // type-3 outer-spread extra worsening
+  constexpr auto ipow = [](double base, int n) {
+    double r = 1.0;
+    for (int i = 0; i < n; ++i) r *= base;
+    return r;
+  };
+  return TOLFAC_1D * ipow(TOLFAC_PER_DIM, dim - 1) * (type == 3 ? TOLFAC_TYPE3 : 1.0);
+}
+
 int theoretical_kernel_ns(double tol, int dim, int type, int debug,
                           const finufft_spread_opts &spopts) {
   // returns ideal preferred spread width (ns, a.k.a. w) using convergence rate,
@@ -106,10 +125,7 @@ int theoretical_kernel_ns(double tol, int dim, int type, int debug,
           std::log(1.0 / tol) / (finufft::common::PI * std::sqrt(1.0 - 1.0 / sigma)));
   else { // generic formula for PSWF-like kernels. Currently for kf=8, PSWF (beta shift)
     // tweak tolfac and nsoff for user tol matching (& tolsweep passing) over sigma...
-    double tolfac = 0.18 * std::pow(1.4, (double)(dim - 1));
-    // (here the dim power compensated for empirical worsening by dim)
-    if (type == 3) // compensate for type 3 worse (affects outer spread, not inner t2)
-      tolfac *= 1.4;
+    const double tolfac = kernel_tolfac(dim, type);
     const double nsoff = 1.0; // width offset (helps balance err over sigma range)
     ns                 = (int)std::ceil(
         std::log(tolfac / tol) / (finufft::common::PI * std::sqrt(1.0 - 1.0 / sigma)) +
@@ -192,16 +208,24 @@ void set_kernel_shape_given_ns(finufft_spread_opts &spopts, int debug) {
 
 namespace finufft::common {
 
-// Invert the kernel aliasing formula from theoretical_kernel_ns (kf>=2):
-//   tol = tolfac * exp(-(ns - 1) * pi * u),  u = sqrt(1 - 1/sigma).
-// Returns sigma in [MIN_CHECK_SIGMA, MAX_CHECK_SIGMA]. Barbone.
-static double invert_kernel_sigma(double tol, int ns, int dim) {
-  const double tolfac = 0.18 * std::pow(1.4, dim - 1);
-  if (tol <= 0) return MAX_CHECK_SIGMA;
+double smallest_sigma_for_ns(double tol, int dim, int type, int ns_target) {
+  // Invert theoretical_kernel_ns's generic branch (kerformula=0):
+  //   ns = ceil( log(tolfac/tol) / (pi*sqrt(1-1/sigma)) + nsoff ),  nsoff = 1.0.
+  // Smallest sigma reaching ns_target sets the ceil argument to ns_target, so
+  // sqrt(1-1/sigma) = log(tolfac/tol) / (pi*(ns_target-1)). Stays in lockstep with
+  // the forward formula via kernel_tolfac and the matching nsoff.
+  // Inverts only the generic (kerformula=0) branch of theoretical_kernel_ns, which is
+  // what the upsampfac heuristic uses; a plan with kerformula>0 (e.g. legacy ES) uses a
+  // different width law, but the heuristic does not call this for those, so they cannot
+  // disagree.
+  const double tolfac = kernel::kernel_tolfac(dim, type);
+  // Clamped to MAX_AUTO_UPSAMPFAC (the performance range this inverse spans;
+  // lowest_sigma re-applies the tighter accuracy cap).
+  if (tol <= 0) return MAX_AUTO_UPSAMPFAC;
   if (tol >= tolfac) return MIN_CHECK_SIGMA + 0.01;
-  const double u = std::log(tolfac / tol) / ((ns - 1.0) * PI);
-  if (u >= 1.0) return MAX_CHECK_SIGMA;
-  return std::min(1.0 / (1.0 - u * u), MAX_CHECK_SIGMA);
+  const double u = std::log(tolfac / tol) / ((ns_target - 1.0) * PI);
+  if (u >= 1.0) return MAX_AUTO_UPSAMPFAC;
+  return std::min(1.0 / (1.0 - u * u), MAX_AUTO_UPSAMPFAC);
 }
 
 double lowest_sigma(double tol, int dim, int ns, double eps_mach, double gridlen) {
@@ -221,8 +245,11 @@ double lowest_sigma(double tol, int dim, int ns, double eps_mach, double gridlen
   const double eps_round = 0.48 * eps_mach * gridlen;
   const double r = tol / eps_round;
   if (r <= 0.5) return MAX_CHECK_SIGMA;
-  const double sigma_pure = invert_kernel_sigma(tol, ns, dim);
-  if (r >= 10.0) return sigma_pure;
+  // type=1 here: the floor correction below is type-agnostic and check_sigma's
+  // feasibility view uses the type-1 (type 1/2) kernel prefactor.
+  const double sigma_pure = smallest_sigma_for_ns(tol, dim, 1, ns);
+  if (r >= 10.0)
+    return std::min(sigma_pure, MAX_CHECK_SIGMA); // accuracy cap (constants.h)
   // Poly(1/r) correction coefficients {a2, a1, a0}, fit across all types:
   const double a2 = ns > 8 ? 0.014 : 0.555;
   const double a1 = ns > 8 ? 0.291 : -0.290;
@@ -230,6 +257,62 @@ double lowest_sigma(double tol, int dim, int ns, double eps_mach, double gridlen
   const double inv_r = 1.0 / r;
   const double correction = (a2 * inv_r + a1) * inv_r + a0;
   return std::min(sigma_pure + std::max(correction, 0.0), MAX_CHECK_SIGMA);
+}
+
+bool upsampfac_feasible(double sigma, double tol, int dim, int type, double eps_mach,
+                        int max_nspread, bool is_float, double maxN) {
+  // Purpose: returns whether the plan pipeline would ACCEPT this upsampfac at this tol,
+  // i.e. "feasible" = makeplan/check_sigma would neither throw nor silently lose
+  // accuracy. The upsampfac heuristic only ever proposes sigmas that pass this, so its
+  // pick always survives the real plan. maxN = largest mode count over dims (binds the
+  // fine grid); unused for type 3.
+  //
+  // Mirrors the plan pipeline's gates: clamp_kernel_ns covers the setup_spreadinterp
+  // width cap and the float catastrophic-cancellation guard (a clamped width would
+  // throw there or silently lose accuracy). Type 3 has no check_sigma, so that is its
+  // only gate; types 1/2 must also pass check_sigma's lowest_sigma test on the fine
+  // grid set_nf_type12 would build at this sigma.
+  // NB this assumes the generic (kerformula=0) width formula; see the so.kerformula=0
+  // below. A plan run with opts.spread_kerformula>0 may need a slightly different ns, but
+  // the heuristic and check_sigma both use the default kernel, so they stay consistent.
+  finufft_spread_opts so{};
+  so.kerformula = 0; // generic (PSWF-like) ns formula in theoretical_kernel_ns
+  so.upsampfac = sigma;
+  const int ns_t = kernel::theoretical_kernel_ns(tol, dim, type, 0, so);
+  const int ns = kernel::clamp_kernel_ns(ns_t, sigma, max_nspread, is_float);
+  if (ns < ns_t) return false;
+  if (type == 3) return true;
+  // fine-grid length as set_nf_type12 builds it (largest dim binds).
+  const long nf = fine_grid_len(sigma, maxN, ns);
+  return lowest_sigma(tol, dim, ns, eps_mach, (double)nf) <= sigma;
+}
+
+double analytic_upsampfac(double tol, int dim, int type, double eps_mach, int max_nspread,
+                          bool is_float, double maxN) {
+  // Smallest sigma in [MIN_AUTO_UPSAMPFAC, MAX_AUTO_UPSAMPFAC] the plan pipeline accepts
+  // (via upsampfac_feasible), found by bisection. This is the optimum directly when the
+  // FFT dominates (always type 3; sparse types 1/2) and is the lower end of the
+  // heuristic's candidate range otherwise. Returns MAX_AUTO_UPSAMPFAC when tol is
+  // unachievable (the largest sigma, which minimizes both ns and the roundoff
+  // amplification, getting closest to tol; the plan pipeline then reports the error).
+  // maxN = largest mode count over dims (1 for type 3).
+  auto feasible = [&](double sigma) {
+    return upsampfac_feasible(sigma, tol, dim, type, eps_mach, max_nspread, is_float,
+                              maxN);
+  };
+
+  // feasible() is not exactly monotone (integer ns and 235-smooth grid steps), but
+  // any flicker only costs a negligibly larger feasible sigma, never correctness:
+  // the returned value was itself accepted by feasible().
+  if (feasible(MIN_AUTO_UPSAMPFAC)) return MIN_AUTO_UPSAMPFAC;
+  if (!feasible(MAX_AUTO_UPSAMPFAC))
+    return MAX_AUTO_UPSAMPFAC; // pipeline reports the error
+  double lo = MIN_AUTO_UPSAMPFAC, hi = MAX_AUTO_UPSAMPFAC;
+  for (int i = 0; i < 40; ++i) { // invariant: feasible(hi) && !feasible(lo)
+    const double mid = 0.5 * (lo + hi);
+    (feasible(mid) ? hi : lo) = mid;
+  }
+  return hi; // smallest feasible sigma to ~1e-12 resolution
 }
 
 } // namespace finufft::common

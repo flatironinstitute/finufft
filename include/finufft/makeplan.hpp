@@ -160,36 +160,32 @@ template<typename TF> void FINUFFT_PLAN_T<TF>::setup_spreadinterp() {
     }
   }
 
-  // choose nspread and set it in spopts...
-  int ns = theoretical_kernel_ns((double)m.tol, dim, type, opts.debug, m.spopts);
-  ns = std::max(MIN_NSPREAD, ns); // clip low
+  // choose nspread and set it in spopts. The width actually used comes from the shared
+  // clamp_kernel_ns() (kernel.h); here we additionally report/throw when the requested
+  // tol is infeasible, and warn when the float guard narrows the kernel.
+  const int ns_theory =
+      theoretical_kernel_ns((double)m.tol, dim, type, opts.debug, m.spopts);
   // per-precision cap: float spreadinterp is only instantiated up to
   // MAX_NSPREAD<TF> (see constants.h, issue #827)
   constexpr int max_ns = MAX_NSPREAD<TF>;
-  if (ns > max_ns) { // clip to largest spreadinterp.cpp allows
-    if (opts.allow_eps_too_small) {
-      ns = max_ns;
-    } else {
-      fprintf(stderr,
-              "%s error: at upsampfac=%.3g, tol=%.3g would need kernel "
-              "width ns=%d, exceeding max %d.\n",
-              __func__, m.spopts.upsampfac, (double)m.tol, ns, max_ns);
-      throw finufft::exception(FINUFFT_ERR_EPS_TOO_SMALL);
-    }
+  if (ns_theory > max_ns && !opts.allow_eps_too_small) {
+    fprintf(stderr,
+            "%s error: at upsampfac=%.3g, tol=%.3g would need kernel "
+            "width ns=%d, exceeding max %d.\n",
+            __func__, m.spopts.upsampfac, (double)m.tol, ns_theory, max_ns);
+    throw finufft::exception(FINUFFT_ERR_EPS_TOO_SMALL);
   }
-  // further ns reduction to prevent catastrophic cancellation in float...
+  // catastrophic-cancellation guard narrows float below FLOAT_CC_UPSAMPFAC_LIMIT to
+  // FLOAT_MAX_NS_CC (both in constants.h; the clamp is in clamp_kernel_ns; warn here
+  // when it actually bites)...
   const bool singleprec = std::is_same_v<TF, float>;
-  if (singleprec && m.spopts.upsampfac < 1.4) {
-    int max_ns_CC = 8; // hacky, const, found via tolsweeptest.m (type 3 was 7)
-    if (ns > max_ns_CC) {
-      if (opts.showwarn)
-        fprintf(stderr,
-                "%s warning: ns reducing from %d to %d to prevent r_{dyn}-related"
-                "catastrophic cancellation.\n",
-                __func__, ns, max_ns_CC);
-      ns = max_ns_CC;
-    }
-  }
+  if (opts.showwarn && singleprec && m.spopts.upsampfac < FLOAT_CC_UPSAMPFAC_LIMIT &&
+      std::min(ns_theory, max_ns) > FLOAT_MAX_NS_CC)
+    fprintf(stderr,
+            "%s warning: ns reducing from %d to %d to prevent r_{dyn}-related"
+            "catastrophic cancellation.\n",
+            __func__, std::min(ns_theory, max_ns), FLOAT_MAX_NS_CC);
+  const int ns = clamp_kernel_ns<TF>(ns_theory, m.spopts.upsampfac);
   m.spopts.nspread = ns;
   set_kernel_shape_given_ns(m.spopts, opts.debug); // selects kernel params in spopts
   if (opts.debug || m.spopts.debug)
