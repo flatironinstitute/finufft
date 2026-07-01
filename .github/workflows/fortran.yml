@@ -30,7 +30,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         # Single, simple Fortran toolchain everywhere (gfortran).
         # This action also sets FC, and typically CC/CXX to compatible compilers.
       - name: Setup Fortran

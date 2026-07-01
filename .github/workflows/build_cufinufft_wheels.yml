@@ -29,11 +29,11 @@ jobs:
           - [ ubuntu-22.04, manylinux_x86_64 ]
           - [ windows-2022, win_amd64 ]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: ilammy/msvc-dev-cmd@v1
       - name: Setup CUDA
         if: ${{ matrix.buildplat[0] == 'windows-2022' }}
-        uses: Jimver/cuda-toolkit@v0.2.24
+        uses: Jimver/cuda-toolkit@v0.2.35
         with:
           cuda: '12.4.0'
           method: 'network'
@@ -44,7 +44,7 @@ jobs:
           use-local-cache: 'false'
           use-github-cache: 'false' #it is not working at the moment https://github.com/Jimver/cuda-toolkit/issues/390
       - name: Build ${{ matrix.buildplat[1] }} wheels
-        uses: pypa/cibuildwheel@v2.22.0
+        uses: pypa/cibuildwheel@v4.1
         with:
           package-dir: 'python/cufinufft'
         env:
@@ -52,18 +52,20 @@ jobs:
           CIBW_TEST_COMMAND: "echo 'Wheel installed'"
           CIBW_BUILD_FRONTEND: "pip; args: --no-deps"
           CIBW_BEFORE_ALL_LINUX: |
+            # manylinux_2_28 = AlmaLinux 8: rhel8 repo, toolkit only (no GPU driver).
+            # gcc-toolset-13 because the image defaults to gcc 14, which CUDA 12.4 nvcc rejects.
             if command -v yum &> /dev/null; then
-              yum install -y epel-release
-              yum-config-manager --add-repo https://developer.download.nvidia.com/compute/cuda/repos/rhel7/x86_64/cuda-rhel7.repo
-              yum install -y cuda-12-4
+              yum install -y yum-utils gcc-toolset-13
+              yum-config-manager --add-repo https://developer.download.nvidia.com/compute/cuda/repos/rhel8/x86_64/cuda-rhel8.repo
+              yum install -y cuda-toolkit-12-4
             else
               echo "Unsupported package manager. Exiting."
               exit 1
             fi
-          CIBW_ENVIRONMENT_LINUX: PATH=$PATH:/usr/local/cuda/bin LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/cuda/lib64
+          CIBW_ENVIRONMENT_LINUX: PATH=/opt/rh/gcc-toolset-13/root/usr/bin:$PATH:/usr/local/cuda/bin LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/cuda/lib64 CUDAHOSTCXX=/opt/rh/gcc-toolset-13/root/usr/bin/g++
           CIBW_ARCHS_LINUX: x86_64
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: cufinufft-wheels-${{ matrix.buildplat[1] }}
           path: ./wheelhouse/*.whl
