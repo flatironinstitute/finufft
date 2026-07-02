@@ -121,10 +121,12 @@ void cufinufft_plan_t<T>::execute_type1(cuda_complex<T> *d_c, cuda_complex<T> *d
 
   int nmodes = 1;
   for (int idim = 0; idim < dim; ++idim) nmodes *= mstu[idim];
-  // We don't need this buffer if we are just spreading; so we set
-  // its size to 0 in that case.
-  gpu_array<cuda_complex<T>> fwp(opts.gpu_spreadinterponly ? 0 : nf * batchsize, alloc);
-  auto *fw = dethrust(fwp);
+  // Per-execute upsampled-grid buffer, allocated UNINITIALIZED (issue #846): the
+  // spread path memsets fw before reading it, so a value-initialized device_vector
+  // would only do a redundant zero. Not needed when only spreading.
+  const auto fw_need = opts.gpu_spreadinterponly ? CUFINUFFT_BIGINT(0) : nf * batchsize;
+  gpu_scratch<cuda_complex<T>> fwp(static_cast<std::size_t>(fw_need), alloc);
+  auto *fw = fwp.data();
   for (int i = 0; i * batchsize < ntransf; i++) {
     int blksize   = std::min(ntransf - i * batchsize, batchsize);
     const auto *c = d_c + i * batchsize * M;
@@ -176,10 +178,12 @@ void cufinufft_plan_t<T>::execute_type2(cuda_complex<T> *d_c, cuda_complex<T> *d
 
   int nmodes = 1;
   for (int idim = 0; idim < dim; ++idim) nmodes *= mstu[idim];
-  // We don't need this buffer if we are just interpolating; so we set
-  // its size to 0 in that case.
-  gpu_array<cuda_complex<T>> fwp(opts.gpu_spreadinterponly ? 0 : nf * batchsize, alloc);
-  auto *fw = dethrust(fwp);
+  // Per-execute upsampled-grid buffer, allocated UNINITIALIZED (issue #846):
+  // deconvolve memsets fw before reading it, so a value-initialized device_vector
+  // would only do a redundant zero. Not needed when only interpolating.
+  const auto fw_need = opts.gpu_spreadinterponly ? CUFINUFFT_BIGINT(0) : nf * batchsize;
+  gpu_scratch<cuda_complex<T>> fwp(static_cast<std::size_t>(fw_need), alloc);
+  auto *fw = fwp.data();
   for (int i = 0; i * batchsize < ntransf_for_this_run; i++) {
     int blksize = std::min(ntransf_for_this_run - i * batchsize, batchsize);
     auto *c     = d_c + i * batchsize * M;
