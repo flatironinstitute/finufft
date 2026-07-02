@@ -32,10 +32,10 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Setup C++ toolchain
-        uses: aminya/setup-cpp@v1.7.1
+        uses: aminya/setup-cpp@v1
         with:
           cmake: true
           ninja: true
@@ -62,7 +62,7 @@ jobs:
       # Install CUDA on non-macOS runners
       - name: Install CUDA Toolkit (non-macOS)
         if: runner.os != 'macOS'
-        uses: Jimver/cuda-toolkit@v0.2.24
+        uses: Jimver/cuda-toolkit@v0.2.35
         with:
           cuda: '12.4.0'
           method: 'network'
@@ -74,13 +74,13 @@ jobs:
           use-github-cache: 'false' #it is not working at the moment https://github.com/Jimver/cuda-toolkit/issues/390
 
       - name: Set up MATLAB
-        uses: matlab-actions/setup-matlab@v2
+        uses: matlab-actions/setup-matlab@v3
         with:
           release: R2023b
           products: Parallel_Computing_Toolbox
           cache: false
       - name: Detect mexext via MATLAB
-        uses: matlab-actions/run-command@v2
+        uses: matlab-actions/run-command@v3
         with:
           command: |
             me = mexext;                       % e.g., mexa64|mexw64|mexmaci64|mexmaca64
@@ -135,7 +135,7 @@ jobs:
           fi
 
       - name: Run matlab math & tol-sweep tests
-        uses: matlab-actions/run-command@v2
+        uses: matlab-actions/run-command@v3
         with:
           command: |
             addpath(genpath('matlab'));
@@ -147,7 +147,7 @@ jobs:
         shell: bash
         run: cmake --build build --target package
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: finufft-matlab-mex-${{ matrix.os }}
           path: |

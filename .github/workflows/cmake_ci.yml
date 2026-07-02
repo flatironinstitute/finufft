@@ -7,9 +7,9 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           cache: 'pip'
           python-version: '3.10'
@@ -24,7 +24,7 @@ jobs:
           sed -i -E 's/(==|>=|<=|>|<|~=|!=).*//' requirements.txt
           cat requirements.txt
       - name: Upload requirements.txt
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: requirements
           path: requirements.txt
@@ -36,13 +36,13 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
       - name: create cache directory
         shell: bash
         run: mkdir -p "cpm"
       - name: Check if cache exists
         id: cache
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           key: cpm-cache-00-${{ runner.os == 'windows' && 'windows-' || '' }}${{ hashFiles('**/CMakeLists.txt', 'cmake/**') }}
           enableCrossOsArchive: true
@@ -66,7 +66,7 @@ jobs:
           cmake -S . -B build -DFINUFFT_USE_DUCC0=ON -DCPM_SOURCE_CACHE="cpm"
       - name: Cache dependencies
         if: steps.cache.outputs.cache-hit != 'true'
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v6
         with:
           key: cpm-cache-00-${{ runner.os == 'windows' && 'windows-' || '' }}${{ hashFiles('**/CMakeLists.txt', 'cmake/**') }}
           enableCrossOsArchive: true
@@ -142,22 +142,22 @@ jobs:
         with:
           tool-cache: false
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Restore Cache
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v6
         with:
           key: cpm-cache-00-${{ runner.os == 'windows' && 'windows-' || '' }}${{ hashFiles('**/CMakeLists.txt', 'cmake/**') }}
           enableCrossOsArchive: true
           path: cpm
 
       - name: Download requirements.txt
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: requirements
 
       - name: Run sccache-cache
-        uses: mozilla-actions/sccache-action@v0.0.9
+        uses: mozilla-actions/sccache-action@v0.0.10
 
       - name: Setup Cpp
         uses: aminya/setup-cpp@v1
@@ -190,7 +190,7 @@ jobs:
           sudo apt install -y libfftw3-dev
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.10'
           cache: 'pip'
@@ -280,9 +280,9 @@ jobs:
         linking: [Static, Shared]
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
       - name: Restore Cache
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v6
         with:
           key: cpm-cache-00-${{ runner.os == 'windows' && 'windows-' || '' }}${{ hashFiles('**/CMakeLists.txt', 'cmake/**') }}
           enableCrossOsArchive: true
@@ -337,6 +337,6 @@ jobs:
     needs: [cmake-ci, consume-test]
     steps:
       - name: Artifact cleanup
-        uses: geekyeggo/delete-artifact@v5
+        uses: geekyeggo/delete-artifact@v6
         with:
           name: requirements

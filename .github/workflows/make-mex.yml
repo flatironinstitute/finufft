@@ -25,9 +25,9 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
       - name: Set up MATLAB
-        uses: matlab-actions/setup-matlab@v2
+        uses: matlab-actions/setup-matlab@v3
         with:
           release: R2024b
           cache: true
@@ -65,11 +65,11 @@ jobs:
           sed -i '/  LIBSFFT/a \ \ LIBSFFT := `g++ --print-file-name libfftw3.a` `g++ --print-file-name libfftw3f.a` `g++ --print-file-name libfftw3_omp.a` `g++ --print-file-name libfftw3f_omp.a` -lm -lgomp' makefile
           make matlab
       - name: Run Matlab test
-        uses: matlab-actions/run-command@v2
+        uses: matlab-actions/run-command@v3
         with:
           command: addpath(genpath('matlab')), fullmathtest, tolsweeptest
       - name: Upload mex files
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ${{matrix.os}}-R2024b-finufft-mex
           path: ${{runner.workspace}}/finufft/matlab/finufft.mex*

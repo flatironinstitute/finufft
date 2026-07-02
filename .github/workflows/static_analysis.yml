@@ -13,7 +13,7 @@ jobs:
         backend: [fftw, ducc]
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Validate platform-table generator parses workflows
         run: |
