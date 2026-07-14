@@ -8,6 +8,40 @@
 #include <numeric>
 
 namespace finufft::spreadinterp {
+// SIMD min/max over a contiguous array. Same contract as utils::arrayrange but
+// vectorized: the scalar form there stores through *lo/*hi each iteration, which
+// GCC cannot prove non-aliasing with a[], and its min/max reduction won't
+// auto-vectorize without -ffinite-math-only (unsafe: INFINITY is the n==0
+// sentinel). Used by the hot get_subgrid bounding box (was ~8% of spread time).
+template<typename T>
+FINUFFT_ALWAYS_INLINE void simd_arrayrange(int64_t n, const T *a, T *lo, T *hi) noexcept {
+  using batch = xsimd::batch<T>;
+  static constexpr int64_t W = batch::size;
+  if (n < W) { // includes n==0 -> lo=+inf, hi=-inf (arrayrange contract)
+    T l = INFINITY, h = -INFINITY;
+    for (int64_t m = 0; m < n; ++m) {
+      l = std::min(l, a[m]);
+      h = std::max(h, a[m]);
+    }
+    *lo = l;
+    *hi = h;
+    return;
+  }
+  batch vlo = batch::load_unaligned(a), vhi = vlo;
+  int64_t m = W;
+  for (; m + W <= n; m += W) {
+    const batch v = batch::load_unaligned(a + m);
+    vlo = xsimd::min(vlo, v);
+    vhi = xsimd::max(vhi, v);
+  }
+  if (m < n) { // last full window ending at n; min/max idempotent on the overlap
+    const batch v = batch::load_unaligned(a + n - W);
+    vlo = xsimd::min(vlo, v);
+    vhi = xsimd::max(vhi, v);
+  }
+  *lo = xsimd::reduce_min(vlo);
+  *hi = xsimd::reduce_max(vhi);
+}
 } // namespace finufft::spreadinterp
 
 // ---------- FINUFFT_PLAN_T spread_subproblem_*_kernel method definitions ----------
@@ -797,19 +831,18 @@ void FINUFFT_PLAN_T<TF>::get_subgrid(BIGINT &offset1, BIGINT &offset2, BIGINT &o
 */
 {
   using namespace finufft::spreadinterp;
-  using finufft::utils::arrayrange;
   using T       = TF;
   const int ns  = m.spopts.nspread;
   const int ndims = dim;
   T ns2 = (T)ns / 2;
   T min_kx, max_kx; // 1st (x) dimension: get min/max of nonuniform points
-  arrayrange(M, kx, &min_kx, &max_kx);
+  simd_arrayrange(int64_t(M), kx, &min_kx, &max_kx);
   offset1      = (BIGINT)std::ceil(min_kx - ns2); // min index touched by kernel
   size1        = (BIGINT)std::ceil(max_kx - ns2) - offset1 + ns; // int(ceil) first!
   padded_size1 = size1 + get_padding<T>(2 * ns) / 2;
   if (ndims > 1) {
     T min_ky, max_ky; // 2nd (y) dimension: get min/max of nonuniform points
-    arrayrange(M, ky, &min_ky, &max_ky);
+    simd_arrayrange(int64_t(M), ky, &min_ky, &max_ky);
     offset2 = (BIGINT)std::ceil(min_ky - ns2);
     size2   = (BIGINT)std::ceil(max_ky - ns2) - offset2 + ns;
   } else {
@@ -818,7 +851,7 @@ void FINUFFT_PLAN_T<TF>::get_subgrid(BIGINT &offset1, BIGINT &offset2, BIGINT &o
   }
   if (ndims > 2) {
     T min_kz, max_kz; // 3rd (z) dimension: get min/max of nonuniform points
-    arrayrange(M, kz, &min_kz, &max_kz);
+    simd_arrayrange(int64_t(M), kz, &min_kz, &max_kz);
     offset3 = (BIGINT)std::ceil(min_kz - ns2);
     size3   = (BIGINT)std::ceil(max_kz - ns2) - offset3 + ns;
   } else {
