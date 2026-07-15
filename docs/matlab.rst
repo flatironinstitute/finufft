@@ -3,9 +3,22 @@
 MATLAB/Octave interfaces
 ========================
 
+The simplest way to install this interface is with `mip <https://mip.sh>`_,
+a package manager for MATLAB:
+
+.. code-block:: matlab
+
+   mip install finufft
+   mip load finufft
+
+This downloads a prebuilt MEX binary for Linux, macOS, or Windows, so no
+compiler is needed. See `mip.sh/docs <https://mip.sh/docs>`_ for details.
+
 .. note::
 
-   See the :ref:`installation page <install>` for how to build these interfaces.
+   mip is MATLAB-only. Octave users, or anyone who wants to customize the
+   build, should build from source instead — see the
+   :ref:`installation page <install>`.
 
 
 Quick-start examples
