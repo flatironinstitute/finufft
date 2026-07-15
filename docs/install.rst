@@ -37,6 +37,8 @@ to document your installation problem.
 
 Python-only users can simply install via ``pip install finufft`` which downloads a generic binary from PyPI. If you prefer a local Python package build, see :ref:`below<install-python>`.
 
+MATLAB-only users can similarly skip building from source by installing a precompiled MEX interface via `mip <https://mip.sh>`_, a package manager for MATLAB: ``mip install finufft`` then ``mip load finufft``. See the :ref:`MATLAB docs <matlab>` for details.
+
 .. note::
     Here are some overall notes about Windows. On Windows, MSVC works fine. However, the LLVM toolchain included in Visual Studio does not seem to have OpenMP, but it is still possible to build single-threaded FINUFFT.
     The official windows LLVM distribution builds FINUFFT with no issues, but debug builds using sanitizers break.
