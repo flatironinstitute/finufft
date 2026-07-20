@@ -24,6 +24,7 @@
 #include <cmath>
 #include <cstdio>
 #include <inttypes.h>
+#include <unistd.h>
 #include <vector>
 
 // ---------- FINUFFT_PLAN_T method definitions ----------
@@ -369,16 +370,77 @@ int FINUFFT_PLAN_T<TF>::spreadSorted(TF *FINUFFT_RESTRICT data_uniform,
     }
     if (m.spopts.debug) printf("\tt1 simple spreading:\t%.3g s\n", timer.elapsedsec());
   } else {
-    // ------- Fancy multi-core blocked t1 spreading ----
-    // Splits sorted inds (jfm's advanced2), could double RAM.
-    // choose nb (# subprobs) via used nthreads:
-    auto nb = std::min((UBIGINT)nthr, M); // simply split one subprob per thr...
-    if (nb * (BIGINT)m.spopts.max_subproblem_size < M) {
-      // ...or more subprobs to cap size
-      nb = 1 + (M - 1) / m.spopts.max_subproblem_size; // int div does
-      // ceil(M/m.spopts.max_subproblem_size)
+    int max_sp_size = m.spopts.max_subproblem_size;
+    if (max_sp_size == 0) {
+      const double density = (double)M / (double)N;
+      const double bin_x = 16, bin_y = 4, bin_z = 4;
+      const int nx = N1, ny = N2;
+      const double ns = m.spopts.nspread;
+
+      auto predicted_area = [&](double points_per_subproblem) -> double {
+        if (ndims == 1) {
+          const double f = std::min(1.0, points_per_subproblem / (nx * density));
+          const double size1 = nx * f + (1 - f) * bin_x + ns;
+          return size1;
+        } else if (ndims == 2) {
+          const double raw_f = points_per_subproblem / (nx * bin_y * density);
+          const double f = std::min(1.0, raw_f);
+          const double size1 = nx * f * (2 - f) + (1 - f) * bin_x + ns;
+          const double size2 = (1 + raw_f) * bin_y + ns;
+          return size1 * size2;
+        } else {
+          const double raw_f_x = points_per_subproblem / (nx * bin_y * bin_z * density);
+          const double f_x = std::min(1.0, raw_f_x);
+          const double raw_f_y = points_per_subproblem / (nx * ny * bin_z * density);
+          const double f_y = std::min(1.0, raw_f_y);
+          const double size1 = nx * f_x * (2 - f_x) + (1 - f_x) * bin_x + ns;
+          const double size2 = ny * f_y * (2 - f_y) + (1 - f_y) * bin_y + ns;
+          const double size3 = (1 + raw_f_y) * bin_z + ns;
+          return size1 * size2 * size3;
+        }
+      };
+
+      constexpr double CACHE_FRAC = 0.5;
+      const double bytes_cell = 2 * sizeof(TF);
+      const long l2_query = sysconf(_SC_LEVEL2_CACHE_SIZE);
+      const long l3_query = sysconf(_SC_LEVEL3_CACHE_SIZE);
+      const double bytes_per_thread =
+          (l3_query > 0) ? std::max((double)l3_query / nthr, (double)l2_query)
+                         : 1024 * 1024;
+      const double expected_area = CACHE_FRAC * bytes_per_thread / bytes_cell;
       if (m.spopts.debug)
-        printf("\tcapping subproblem sizes to max of %d\n", m.spopts.max_subproblem_size);
+        printf("\tl2_query=%ld l3_query=%ld bytes_per_thread=%.0f\n", l2_query, l3_query,
+               bytes_per_thread);
+
+      int lo = (ndims == 1) ? 10000 : 100000;
+      int hi = static_cast<int>(
+          std::min<UBIGINT>(M / (nthr), std::numeric_limits<int>::max()));
+      if (hi < lo) hi = lo;
+      const int hi_initial = hi;
+      int best = lo;
+      while (lo <= hi) {
+        const int mid = lo + (hi - lo) / 2;
+        if (predicted_area((double)mid) <= expected_area) {
+          best = mid;
+          lo = mid + 1;
+        } else {
+          if (mid == lo) break;
+          hi = mid - 1;
+        }
+      }
+      max_sp_size = best;
+      if (m.spopts.debug)
+        printf("\tauto max_subproblem_size=%d (predicted_area=%.3g, "
+               "expected_area=%.3g, hi=%d)\n",
+               best, predicted_area((double)best), expected_area, hi_initial);
+    }
+    auto nb = std::min((UBIGINT)nthr, M); // simply split one subprob per thr...
+    if (nb * (BIGINT)max_sp_size < M) {
+      // ...or more subprobs to cap size
+      nb = 1 + (M - 1) / max_sp_size; // int div does
+      // ceil(M/max_sp_size)
+      if (m.spopts.debug)
+        printf("\tcapping subproblem sizes to max of %d\n", max_sp_size);
     }
     if (M * 1000 < N) {
       // low-density heuristic: one thread per NU pt!
