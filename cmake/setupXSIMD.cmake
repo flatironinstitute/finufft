@@ -7,6 +7,8 @@ CPMAddPackage(
     ${XSIMD_VERSION}
     EXCLUDE_FROM_ALL
     YES
+    SYSTEM
+    YES
     GIT_SHALLOW
     NO
     OPTIONS
