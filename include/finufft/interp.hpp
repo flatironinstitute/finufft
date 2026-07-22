@@ -109,29 +109,15 @@ void interp_line(T *FINUFFT_RESTRICT target, const T *du, const T *ker, BIGINT i
         res_low            = xsimd::fma(ker0low, du_pt, res_low);
       }
 
-      // This does a horizontal sum using a loop instead of relying on SIMD instructions
-      // this is faster than the code below but less elegant.
-      // lambdas here to limit the scope of temporary variables and have the compiler
+      // lambda here to limit the scope of temporary variables and have the compiler
       // optimize the code better
       return res_low + res_hi;
     }();
-    const auto res_array = xsimd_to_array(res);
-    for (uint8_t i{0}; i < simd_size; i += 2) {
-      out[0] += res_array[i];
-      out[1] += res_array[i + 1];
-    }
-    // this is where the code differs from spread_kernel, the interpolator does an extra
-    // reduction step to SIMD elements down to 2 elements
-    // This is known as horizontal sum in SIMD terminology
-
-    // This does a horizontal sum using vector instruction,
-    // is slower than summing and looping
-    // clang-format off
-    // const auto res_real = xsimd::shuffle(res_low, res_hi, select_even_mask<arch_t>);
-    // const auto res_imag = xsimd::shuffle(res_low, res_hi, select_odd_mask<arch_t>);
-    // out[0]              = xsimd::reduce_add(res_real);
-    // out[1]              = xsimd::reduce_add(res_imag);
-    // clang-format on
+    // interpolator does an extra horizontal-sum step reducing the SIMD
+    // accumulator down to a single {re, im} pair (see complex_hadd).
+    const auto c = complex_hadd(res);
+    out[0] += c[0];
+    out[1] += c[1];
   }
   target[0] = out[0];
   target[1] = out[1];
@@ -273,11 +259,9 @@ void interp_square(T *FINUFFT_RESTRICT target, const T *du, const T *ker1,
       }
       return res_low + res_hi;
     }();
-    const auto res_array = xsimd_to_array(res);
-    for (uint8_t i{0}; i < simd_size; i += 2) {
-      out[0] += res_array[i];
-      out[1] += res_array[i + 1];
-    }
+    const auto c = complex_hadd(res);
+    out[0] += c[0];
+    out[1] += c[1];
   } else {
     // wraps somewhere: use ptr list
     // this is slower than above, but occurs much less often, with fractional
@@ -443,11 +427,9 @@ void interp_cube(T *FINUFFT_RESTRICT target, const T *du, const T *ker1,
       }
       return res_low + res_hi;
     }();
-    const auto res_array = xsimd_to_array(res);
-    for (uint8_t i{0}; i < simd_size; i += 2) {
-      out[0] += res_array[i];
-      out[1] += res_array[i + 1];
-    }
+    const auto c = complex_hadd(res);
+    out[0] += c[0];
+    out[1] += c[1];
   } else {
     return interp_cube_wrapped<T, ns, simd_type>(target, du, ker1, ker2, ker3, i1, i2, i3,
                                                  N1, N2, N3);
@@ -475,8 +457,7 @@ FINUFFT_NEVER_INLINE int FINUFFT_PLAN_T<TF>::interpSorted_kernel(
   using namespace finufft::spreadinterp;
   using finufft::utils::CNTime;
   using KBL                                      = KernelBufferLayout<TF, NS>;
-  using simd_type                                = typename KBL::simd_type;
-  using arch_t                                   = typename KBL::arch_t;
+  using simd_type = typename KBL::simd_type;
   static constexpr auto alignment                = KBL::alignment;
   static constexpr auto simd_size                = KBL::simd_size;
   static constexpr auto ns2          = NS * TF(0.5);
