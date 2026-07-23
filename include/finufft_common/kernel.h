@@ -96,6 +96,15 @@ template<class TF> inline int clamp_kernel_ns(int ns, double upsampfac) {
 
 void set_kernel_shape_given_ns(finufft_spread_opts &opts, int debug);
 
+// Analytic PSWF self-FT parameters. The order-0 PSWF is an eigenfunction of the
+// finite Fourier transform, so the kernel's continuous FT is a rescaled copy of the
+// kernel itself: phihat(xi) = prefac * phi(grid_scale*xi), with phi the Horner
+// approximant (evaluate_kernel_runtime, grid-unit arg), grid_scale = J2^2/beta,
+// prefac = J2*mu0, J2 = nspread/2, mu0 = int_{-1}^{1} PSWF0(beta,t) dt. Returns
+// (grid_scale, prefac). Used by the type-3 per-target evaluator (Kernel_onedim_FT);
+// type-1/2 fseries keeps quadrature. GPU-reusable. Defined in src/common/kernel.cpp.
+std::tuple<double, double> pswf_selfft_params(int nspread, double beta);
+
 // min and max number of poly coeffs allowed (compiled) for a given spread width ns.
 // Since for low upsampfacs, ns=16 can need only nc~12, allow such low nc here.
 // Note: spreadinterp.cpp compilation time grows with the gap between these bounds...
