@@ -3,6 +3,10 @@ If not stated, FINUFFT is assumed (old cuFINUFFT <=1.3 is listed separately).
 
 v2.6.0-dev
 
+* Sanitizer CI builds now compile at `-O1 -fno-omit-frame-pointer` (working around an
+  xsimd 14.3.0 constexpr immediate-argument folding bug at `-O0`), instrument the
+  single-precision `finufft_f32` object library, and mark xsimd/ducc0 includes as
+  `SYSTEM` to drop third-party warnings. (Barbone)
 * Added C-level simple API to cuFINUFFT
   (`cufinufft{,f}{1,2,3}d{1,2,3}[many]`) mirroring the CPU `finufft1d1`-style
   wrappers. 36 new entry points that allocate a plan, set points, execute, and

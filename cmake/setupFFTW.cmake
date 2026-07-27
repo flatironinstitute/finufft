@@ -70,7 +70,7 @@ if(FINUFFT_FFTW_LIBRARIES STREQUAL DEFAULT OR FINUFFT_FFTW_LIBRARIES STREQUAL DO
                 ${element}
                 PROPERTIES
                     POSITION_INDEPENDENT_CODE ${FINUFFT_POSITION_INDEPENDENT_CODE}
-                    CMAKE_MSVC_DEBUG_INFORMATION_FORMAT Embedded
+                    MSVC_DEBUG_INFORMATION_FORMAT Embedded
             )
         endforeach()
 

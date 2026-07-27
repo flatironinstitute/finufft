@@ -77,6 +77,7 @@ add_library(finufft_f32 OBJECT ${FINUFFT_PRECISION_SOURCES})
 target_compile_definitions(finufft_f32 PRIVATE FINUFFT_SINGLE)
 finufft_apply_compile_settings(finufft_f32)
 enable_static_analysis(finufft_f32)
+enable_asan(finufft_f32)
 
 # Main library: double-precision precision sources + common sources + f32 objects
 set(FINUFFT_SOURCES ${FINUFFT_PRECISION_SOURCES} ${FINUFFT_COMMON_SOURCES})

@@ -17,7 +17,7 @@ jobs:
         run: |
           # Pin pip to 25.2 to match the pip-tools compatibility seen in CI
           python3 -m pip install --upgrade "pip==25.2"
-          python3 -m pip install pip-tools
+          python3 -m pip install pip-tools typing_extensions
           python3 -m pip --version
           pip-compile --all-build-deps python/finufft/pyproject.toml -o requirements.txt
           echo pytest >> requirements.txt
@@ -240,8 +240,7 @@ jobs:
                 -DFINUFFT_ARCH_FLAGS="$arch" \
                 -DFINUFFT_USE_DUCC0=$ducc_fft \
                 -DFINUFFT_USE_SANITIZERS=OFF \
-                -DCMAKE_MSVC_DEBUG_INFORMATION_FORMAT=Embedded \
-                -DCMAKE_POLICY_DEFAULT_CMP0141=NEW
+                -DCMAKE_MSVC_DEBUG_INFORMATION_FORMAT=Embedded
 
               cmake --build "$build_dir" --config "$build_type"
               ctest --test-dir "$build_dir" --output-on-failure -j
@@ -252,7 +251,6 @@ jobs:
                 -C cmake.define.FINUFFT_ARCH_FLAGS="$arch" \
                 -C cmake.define.FINUFFT_USE_DUCC0=$ducc_fft \
                 -C cmake.define.CMAKE_MSVC_DEBUG_INFORMATION_FORMAT=Embedded \
-                -C cmake.define.CMAKE_POLICY_DEFAULT_CMP0141=NEW \
                 python/finufft
 
               python3 -m pytest python/finufft/test
@@ -307,8 +305,7 @@ jobs:
             -DFINUFFT_USE_DUCC0=ON \
             -DFINUFFT_STATIC_LINKING=$static \
             -DFINUFFT_ENABLE_INSTALL=ON \
-            -DCMAKE_MSVC_DEBUG_INFORMATION_FORMAT=Embedded \
-            -DCMAKE_POLICY_DEFAULT_CMP0141=NEW
+            -DCMAKE_MSVC_DEBUG_INFORMATION_FORMAT=Embedded
           cmake --build _build --config Release
           cmake --install _build --prefix "$stage" --config Release
 
@@ -321,8 +318,7 @@ jobs:
           cmake -S test/cmake_consume -B _consume \
             -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_PREFIX_PATH="$stage" \
-            -DCMAKE_MSVC_DEBUG_INFORMATION_FORMAT=Embedded \
-            -DCMAKE_POLICY_DEFAULT_CMP0141=NEW
+            -DCMAKE_MSVC_DEBUG_INFORMATION_FORMAT=Embedded
           cmake --build _consume --config Release
 
           # Run the consumer; for the shared build help the loader find the library.
