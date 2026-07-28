@@ -374,7 +374,7 @@ int FINUFFT_PLAN_T<TF>::spreadSorted(TF *FINUFFT_RESTRICT data_uniform,
     if (max_sp_size == 0) {
       if (ndims == 1) {
         max_sp_size = 10000;
-      } else if (m.type == 3 || nthr <= m.spopts.atomic_threshold) {
+      } else if (type == 3 || nthr <= m.spopts.atomic_threshold) {
         max_sp_size = 100000;
       } else {
         const double density = (double)M / (double)N;
