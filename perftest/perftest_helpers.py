@@ -29,7 +29,6 @@ EXTRA_ARGS: list[str] = [
     f"--n_runs={NRUNS}",
     "--sort=1",
     "--upsampfact=0",
-    "--kerevalmethod=1",
     "--debug=0",
     "--bandwidth=1.0",
 ]

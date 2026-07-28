@@ -31,7 +31,6 @@ struct test_options_t {
   std::int64_t N[3];
   int M;
   int ntransf;
-  int kerevalmethod;
   int sort;
   int threads;
   double tol;
@@ -56,7 +55,6 @@ struct test_options_t {
                 {"M", required_argument, 0, 0},
                 {"ntransf", required_argument, 0, 0},
                 {"tol", required_argument, 0, 0},
-                {"kerevalmethod", required_argument, 0, 0},
                 {"threads", required_argument, 0, 0},
                 {"sort", required_argument, 0, 0},
                 {"upsampfact", required_argument, 0, 0},
@@ -86,8 +84,7 @@ struct test_options_t {
     N[1]          = std::stof(get_or(options_map, "N2", "1"));
     N[2]          = std::stof(get_or(options_map, "N3", "1"));
     M             = std::stof(get_or(options_map, "M", "2E6"));
-    ntransf       = std::stoi(get_or(options_map, "ntransf", "1"));
-    kerevalmethod = std::stoi(get_or(options_map, "kerevalmethod", "1"));
+    ntransf = std::stoi(get_or(options_map, "ntransf", "1"));
     sort          = std::stoi(get_or(options_map, "sort", "1"));
     threads       = std::stoi(get_or(options_map, "threads", "0"));
     tol           = std::stof(get_or(options_map, "tol", "1E-5"));
@@ -105,7 +102,6 @@ struct test_options_t {
                 << "# N3 = " << opts.N[2] << "\n"
                 << "# M = " << opts.M << "\n"
                 << "# ntransf = " << opts.ntransf << "\n"
-                << "# kerevalmethod = " << opts.kerevalmethod << "\n"
                 << "# sort = " << opts.sort << "\n"
                 << "# threads = " << opts.threads << "\n"
                 << "# tol = " << opts.tol << "\n"
@@ -322,11 +318,6 @@ int main(int argc, char *argv[]) {
                      "    --tol <float>\n"
                      "           NUFFT tolerance. Scientific notation accepted (i.e. 1.2E-7)\n"
                      "           default: " << default_opts.tol << "\n" <<
-                     "    --kerevalmeth <int>\n"
-                     "           kernel evaluation method\n"
-                     "               0: Exponential of square root\n"
-                     "               1: Horner evaluation\n"
-                     "           default: " << default_opts.kerevalmethod << "\n" <<
                      "    --sort: <int>\n"
                      "           sort strategy\n"
                      "               0: do not sort the points\n"
