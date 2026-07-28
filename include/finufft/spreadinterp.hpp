@@ -372,67 +372,69 @@ int FINUFFT_PLAN_T<TF>::spreadSorted(TF *FINUFFT_RESTRICT data_uniform,
   } else {
     int max_sp_size = m.spopts.max_subproblem_size;
     if (max_sp_size == 0) {
-      const double density = (double)M / (double)N;
-      const double bin_x = 16, bin_y = 4, bin_z = 4;
-      const int nx = N1, ny = N2;
-      const double ns = m.spopts.nspread;
+      if (ndims == 1) {
+        max_sp_size = 10000;
+      } else if (m.type == 3 || nthr <= m.spopts.atomic_threshold) {
+        max_sp_size = 100000;
+      } else {
+        const double density = (double)M / (double)N;
+        const double bin_x = 16, bin_y = 4, bin_z = 4;
+        const int nx = N1, ny = N2;
+        const double ns = m.spopts.nspread;
 
-      auto predicted_area = [&](double points_per_subproblem) -> double {
-        if (ndims == 1) {
-          const double f = std::min(1.0, points_per_subproblem / (nx * density));
-          const double size1 = nx * f + (1 - f) * bin_x + ns;
-          return size1;
-        } else if (ndims == 2) {
-          const double raw_f = points_per_subproblem / (nx * bin_y * density);
-          const double f = std::min(1.0, raw_f);
-          const double size1 = nx * f * (2 - f) + (1 - f) * bin_x + ns;
-          const double size2 = (1 + raw_f) * bin_y + ns;
-          return size1 * size2;
-        } else {
-          const double raw_f_x = points_per_subproblem / (nx * bin_y * bin_z * density);
-          const double f_x = std::min(1.0, raw_f_x);
-          const double raw_f_y = points_per_subproblem / (nx * ny * bin_z * density);
-          const double f_y = std::min(1.0, raw_f_y);
-          const double size1 = nx * f_x * (2 - f_x) + (1 - f_x) * bin_x + ns;
-          const double size2 = ny * f_y * (2 - f_y) + (1 - f_y) * bin_y + ns;
-          const double size3 = (1 + raw_f_y) * bin_z + ns;
-          return size1 * size2 * size3;
+        auto predicted_area = [&](double points_per_subproblem) -> double {
+          if (ndims == 2) {
+            const double raw_f = points_per_subproblem / (nx * bin_y * density);
+            const double f = std::min(1.0, raw_f);
+            const double size1 = nx * f * (2 - f) + (1 - f) * bin_x + ns;
+            const double size2 = (1 + raw_f) * bin_y + ns;
+            return size1 * size2;
+          } else if (ndims == 3) {
+            const double raw_f_x = points_per_subproblem / (nx * bin_y * bin_z * density);
+            const double f_x = std::min(1.0, raw_f_x);
+            const double raw_f_y = points_per_subproblem / (nx * ny * bin_z * density);
+            const double f_y = std::min(1.0, raw_f_y);
+            const double size1 = nx * f_x * (2 - f_x) + (1 - f_x) * bin_x + ns;
+            const double size2 = ny * f_y * (2 - f_y) + (1 - f_y) * bin_y + ns;
+            const double size3 = (1 + raw_f_y) * bin_z + ns;
+            return size1 * size2 * size3;
+          } else {
+            fprintf(stderr, "%s error: ndims must be 2, or 3 (got %d)!\n", __func__,
+                    ndims);
+            throw finufft::exception(FINUFFT_ERR_DIM_NOTVALID);
+          }
+        };
+
+        constexpr double CACHE_FRAC = 0.9;
+        const double bytes_cell = 2 * sizeof(TF);
+        const long l3_query = sysconf(_SC_LEVEL3_CACHE_SIZE);
+        const double thread_bytes = (l3_query > 0) ? l3_query : 32 * 1024 * 1024;
+        const double expected_area = CACHE_FRAC * thread_bytes / bytes_cell;
+        if (m.spopts.debug)
+          printf("\tl3_query=%ld thread_bytes=%.0f\n", l3_query, thread_bytes);
+
+        int lo = 100000;
+        int hi = static_cast<int>(
+            std::min<UBIGINT>(M / (nthr), std::numeric_limits<int>::max()));
+        if (hi < lo) hi = lo;
+        const int hi_initial = hi;
+        int best = lo;
+        while (lo <= hi) {
+          const int mid = lo + (hi - lo) / 2;
+          if (predicted_area((double)mid) <= expected_area) {
+            best = mid;
+            lo = mid + 1;
+          } else {
+            if (mid == lo) break;
+            hi = mid - 1;
+          }
         }
-      };
-
-      constexpr double CACHE_FRAC = 0.5;
-      const double bytes_cell = 2 * sizeof(TF);
-      const long l2_query = sysconf(_SC_LEVEL2_CACHE_SIZE);
-      const long l3_query = sysconf(_SC_LEVEL3_CACHE_SIZE);
-      const double bytes_per_thread =
-          (l3_query > 0) ? std::max((double)l3_query / nthr, (double)l2_query)
-                         : 1024 * 1024;
-      const double expected_area = CACHE_FRAC * bytes_per_thread / bytes_cell;
-      if (m.spopts.debug)
-        printf("\tl2_query=%ld l3_query=%ld bytes_per_thread=%.0f\n", l2_query, l3_query,
-               bytes_per_thread);
-
-      int lo = (ndims == 1) ? 10000 : 100000;
-      int hi = static_cast<int>(
-          std::min<UBIGINT>(M / (nthr), std::numeric_limits<int>::max()));
-      if (hi < lo) hi = lo;
-      const int hi_initial = hi;
-      int best = lo;
-      while (lo <= hi) {
-        const int mid = lo + (hi - lo) / 2;
-        if (predicted_area((double)mid) <= expected_area) {
-          best = mid;
-          lo = mid + 1;
-        } else {
-          if (mid == lo) break;
-          hi = mid - 1;
-        }
+        max_sp_size = best;
+        if (m.spopts.debug)
+          printf("\tauto max_subproblem_size=%d (predicted_area=%.3g, "
+                 "expected_area=%.3g, hi=%d)\n",
+                 best, predicted_area((double)best), expected_area, hi_initial);
       }
-      max_sp_size = best;
-      if (m.spopts.debug)
-        printf("\tauto max_subproblem_size=%d (predicted_area=%.3g, "
-               "expected_area=%.3g, hi=%d)\n",
-               best, predicted_area((double)best), expected_area, hi_initial);
     }
     auto nb = std::min((UBIGINT)nthr, M); // simply split one subprob per thr...
     if (nb * (BIGINT)max_sp_size < M) {
