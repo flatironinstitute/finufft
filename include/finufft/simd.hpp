@@ -270,6 +270,29 @@ template<typename T> FINUFFT_ALWAYS_INLINE auto xsimd_to_array(const T &vec) noe
   return array;
 }
 
+// Horizontal sum of an interleaved {re,im,re,im,...} accumulator down to one
+// {re, im} pair. Folds the register in halves via memory, halving lane count
+// each step, until a scalar tail sum. Cheaper than the lane-by-lane loop.
+template<typename simd_type>
+FINUFFT_ALWAYS_INLINE std::array<typename simd_type::value_type, 2> complex_hadd(
+    const simd_type &res) noexcept {
+  using T = typename simd_type::value_type;
+  using half_t = xsimd::make_sized_batch_t<T, simd_type::size / 2>;
+  alignas(simd_type::arch_type::alignment()) std::array<T, simd_type::size> buf;
+  res.store_aligned(buf.data());
+  if constexpr (simd_type::size > 2 && !std::is_void_v<half_t>) {
+    return complex_hadd(half_t::load_aligned(buf.data()) +
+                        half_t::load_aligned(buf.data() + simd_type::size / 2));
+  } else {
+    std::array<T, 2> out{0, 0};
+    for (std::size_t i{0}; i < simd_type::size; i += 2) {
+      out[0] += buf[i];
+      out[1] += buf[i + 1];
+    }
+    return out;
+  }
+}
+
 // Forward declarations (defined in src/utils.cpp):
 FINUFFT_NEVER_INLINE void print_subgrid_info(
     int ndims, BIGINT offset1, BIGINT offset2, BIGINT offset3, UBIGINT padded_size1,
