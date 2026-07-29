@@ -9,6 +9,8 @@ if(CUDA_VERSION_MAJOR LESS 12)
         https://github.com/NVIDIA/cccl.git
         GIT_TAG
         v${CUDA11_CCCL_VERSION}
+        SYSTEM
+        YES
     )
 else()
     CPMAddPackage(
@@ -18,5 +20,7 @@ else()
         https://github.com/NVIDIA/cccl.git
         GIT_TAG
         v${CUDA12_CCCL_VERSION}
+        SYSTEM
+        YES
     )
 endif()

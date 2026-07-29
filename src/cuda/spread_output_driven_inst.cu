@@ -30,7 +30,6 @@ __global__ FINUFFT_FLATTEN void spread_output_driven(
   const int ptstart = info.ptstart;
   const int nupts   = info.nupts;
 
-  static constexpr auto ns_2f = T(ns * .5);
   static constexpr auto ns_2  = (ns + 1) / 2;
   int total                   = 1;
 

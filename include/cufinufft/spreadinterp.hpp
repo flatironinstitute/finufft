@@ -78,6 +78,7 @@ constexpr __forceinline__ __host__ __device__ T fold_rescale(T x, int N) {
   } else {
     static_assert(std::is_same_v<T, float> || std::is_same_v<T, double>,
                   "Only float and double are supported.");
+    return 0;
   }
 #else
   const auto result = std::fma(x, x2pi, half);

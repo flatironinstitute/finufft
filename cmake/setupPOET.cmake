@@ -7,6 +7,8 @@ CPMAddPackage(
     ${POET_VERSION}
     EXCLUDE_FROM_ALL
     YES
+    SYSTEM
+    YES
     GIT_SHALLOW
     YES
     OPTIONS

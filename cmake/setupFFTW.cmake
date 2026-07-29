@@ -7,6 +7,8 @@ CPMAddPackage(
     "master"
     EXCLUDE_FROM_ALL
     YES
+    SYSTEM
+    YES
     GIT_SHALLOW
     YES
 )
@@ -29,6 +31,8 @@ if(FINUFFT_FFTW_LIBRARIES STREQUAL DEFAULT OR FINUFFT_FFTW_LIBRARIES STREQUAL DO
             "http://www.fftw.org/fftw-${FFTW_VERSION}.tar.gz"
             URL_HASH
             "MD5=8ccbf6a5ea78a16dbc3e1306e234cc5c"
+            SYSTEM
+            YES
             OPTIONS
             "ENABLE_SSE2 ON"
             "ENABLE_AVX ON"
@@ -47,6 +51,8 @@ if(FINUFFT_FFTW_LIBRARIES STREQUAL DEFAULT OR FINUFFT_FFTW_LIBRARIES STREQUAL DO
             "http://www.fftw.org/fftw-${FFTW_VERSION}.tar.gz"
             URL_HASH
             "MD5=8ccbf6a5ea78a16dbc3e1306e234cc5c"
+            SYSTEM
+            YES
             OPTIONS
             "ENABLE_SSE2 ON"
             "ENABLE_AVX ON"
