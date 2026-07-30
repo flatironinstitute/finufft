@@ -2,7 +2,7 @@
 #define CUFINUFFT_HEURISTICS_HPP
 
 #include <cstddef>
-
+#include <cstdint>
 #include <cstdio>
 
 #include <cuda_runtime.h>
@@ -27,6 +27,11 @@ std::size_t shared_memory_required(int dim, int ns, int bin_size_x, int bin_size
 template<typename T>
 void cufinufft_setup_binsize(const GpuCapabilities &gpu, int type, int ns, int dim,
                              cufinufft_opts *opts);
+
+// How many transforms to batch into one FFT / spread pass, in [1, ntransf].
+// opts.gpu_maxbatchsize == 0 means auto; > 0 is honored (capped at ntransf).
+template<typename T>
+int choose_batchsize(const GpuCapabilities &gpu, const cufinufft_opts &opts, int ntransf);
 
 // Opt this kernel into the dynamic shared memory the plan needs, throwing
 // FINUFFT_ERR_INSUFFICIENT_SHMEM if the device cannot satisfy the request.
