@@ -2,6 +2,7 @@
 // Mirrors CPU src/makeplan.cpp. Also hosts the cufft_plan RAII destructor,
 // which is tied to plan setup.
 
+#include <cstdint>
 #include <iostream>
 
 #include <cufinufft/contrib/helper_cuda.h>
@@ -348,7 +349,15 @@ cufinufft_plan_t<T>::cufinufft_plan_t(int type_, int dim_, const int *nmodes, in
         printf("[cufinufft] (nf1,nf2,nf3) = (%d, %d, %d)\n", nf123[0], nf123[1],
                nf123[2]);
     }
-    nf = nf123[0] * nf123[1] * nf123[2];
+    // Widen first: nf123 are CUFINUFFT_BIGINT (int), so a 3D grid past MAX_NF would
+    // overflow instead of being rejected.
+    const auto nf_wide = std::int64_t(nf123[0]) * nf123[1] * nf123[2];
+    if (nf_wide > MAX_NF) {
+      fprintf(stderr, "[%s] nf=%lld exceeds MAX_NF, not attempting malloc!\n", __func__,
+              (long long)nf_wide);
+      throw finufft::exception(FINUFFT_ERR_MAXNALLOC);
+    }
+    nf = CUFINUFFT_BIGINT(nf_wide);
 
     allocate_subprob_state();
 

@@ -1,6 +1,8 @@
 // "setpts" stage: cufinufft_plan_t<T>::setpts and the type-1/2 helper.
 // Mirrors CPU src/setpts.cpp.
 
+#include <algorithm>
+#include <cstdint>
 #include <iostream>
 
 #include <cufinufft/contrib/helper_cuda.h>
@@ -8,6 +10,7 @@
 
 #include <cufinufft.h>
 #include <cufinufft/fft.hpp>
+
 #include <cufinufft/spreadinterp.hpp>
 #include <cufinufft/types.hpp>
 #include <cufinufft/utils.hpp>
@@ -142,15 +145,17 @@ void cufinufft_plan_t<T>::setpts(int nj, const T *d_kx, const T *d_ky, const T *
              type3_params.gam[2], nf123[2], type3_params.h[2]);
     }
   }
-  nf = nf123[0] * nf123[1] * nf123[2];
-
   // FIXME: MAX_NF might be too small...
-  if (nf * opts.gpu_maxbatchsize > MAX_NF) {
+  // Guard the fwBatch allocation, nf * batchsize. Widen first: CUFINUFFT_BIGINT is int
+  // and MAX_NF is INT32_MAX, so the product would overflow before tripping the guard.
+  const auto nf_wide = std::int64_t(nf123[0]) * nf123[1] * nf123[2];
+  if (nf_wide * batchsize > MAX_NF) {
     fprintf(stderr,
             "[%s t3] fwBatch would be bigger than MAX_NF, not attempting malloc!\n",
             __func__);
     throw finufft::exception(FINUFFT_ERR_MAXNALLOC);
   }
+  nf = CUFINUFFT_BIGINT(nf_wide);
 
   for (int idim = 0; idim < dim; ++idim) {
     kxyzp[idim].resize(M);
@@ -294,6 +299,7 @@ void cufinufft_plan_t<T>::setpts(int nj, const T *d_kx, const T *d_ky, const T *
     cufinufft_opts t2opts       = opts;
     t2opts.gpu_spreadinterponly = 0;
     t2opts.gpu_method           = 0;
+
     // Release the old inner plan before allocating the new one to
     // avoid holding both in memory at the same time, which could be wasteful.
     t2_plan.reset();
