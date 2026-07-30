@@ -252,6 +252,12 @@ cufinufft_plan_t<T>::cufinufft_plan_t(int type_, int dim_, const int *nmodes, in
             ntransf);
     throw finufft::exception(FINUFFT_ERR_NTRANS_NOTVALID);
   }
+  if (opts.gpu_maxbatchsize < 0) {
+    fprintf(stderr, "[%s] Invalid gpu_maxbatchsize (%d): should be 0 (auto) or > 0.\n",
+            __func__, opts.gpu_maxbatchsize);
+    throw finufft::exception(FINUFFT_ERR_INVALID_ARGUMENT);
+  }
+
   if (!warned_pools && !gpu.memory_pools_supported && opts.gpu_stream != nullptr) {
     fprintf(stderr,
             "[cufinufft] Warning: cudaMallocAsync not supported on this device. Use of "
@@ -260,9 +266,8 @@ cufinufft_plan_t<T>::cufinufft_plan_t(int type_, int dim_, const int *nmodes, in
   }
 
   // set nf1, nf2, nf3 to 1 for type 3, type 1, type 2 will overwrite this
-  nf123                 = {1, 1, 1};
-  opts.gpu_maxbatchsize = std::max(opts.gpu_maxbatchsize, 1);
-  opts.gpu_np           = opts.gpu_method == 3 ? opts.gpu_np : 0;
+  nf123 = {1, 1, 1};
+  opts.gpu_np = opts.gpu_method == 3 ? opts.gpu_np : 0;
 
   if (type != 3) {
     mstu = {nmodes[0], nmodes[1], nmodes[2]};
@@ -273,10 +278,7 @@ cufinufft_plan_t<T>::cufinufft_plan_t(int type_, int dim_, const int *nmodes, in
     opts.gpu_spreadinterponly = 1;
   }
 
-  batchsize = opts.gpu_maxbatchsize;
-  // TODO: check if this is the right heuristic
-  if (batchsize == 0)                 // implies: use a heuristic.
-    batchsize = std::min(ntransf, 8); // heuristic from test codes
+  batchsize = choose_batchsize<T>(gpu, opts, ntransf);
 
   stream = (cudaStream_t)opts.gpu_stream;
 

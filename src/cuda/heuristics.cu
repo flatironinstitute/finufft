@@ -361,11 +361,25 @@ void cufinufft_setup_binsize(const GpuCapabilities &gpu, [[maybe_unused]] int ty
         ", ns=" + std::to_string(ns) + ")");
 }
 
+template<typename T>
+int choose_batchsize(const GpuCapabilities &gpu, const cufinufft_opts &opts,
+                     int ntransf) {
+  // Cap at ntransf: a larger batch would make cuFFT transform grids that are then
+  // discarded.
+  if (opts.gpu_maxbatchsize) return std::min(opts.gpu_maxbatchsize, ntransf);
+
+  // Auto: a few transforms per FFT.
+  return std::min(ntransf, 8);
+}
+
 template void cufinufft_setup_binsize<float>(const GpuCapabilities &, int type, int ns,
                                              int dim, cufinufft_opts *opts);
 template void cufinufft_setup_binsize<double>(const GpuCapabilities &, int type, int ns,
                                               int dim, cufinufft_opts *opts);
-
+template int choose_batchsize<float>(const GpuCapabilities &, const cufinufft_opts &,
+                                     int);
+template int choose_batchsize<double>(const GpuCapabilities &, const cufinufft_opts &,
+                                      int);
 } // namespace common
 } // namespace cufinufft
 
