@@ -43,8 +43,16 @@ int main() {
   rc                    = check_rc("nmodes invalid", rc, FINUFFT_ERR_NDATA_NOTVALID, 5);
   if (rc) return rc;
 
-  // Upsamp too small -> expect FINUFFT_ERR_UPSAMPFAC_TOO_SMALL
+  // Negative gpu_maxbatchsize -> expect FINUFFT_ERR_INVALID_ARGUMENT.
+  // 0 means auto and > 0 is a request; negative has no meaning.
   cufinufft_opts opts;
+  cufinufft_default_opts(&opts);
+  opts.gpu_maxbatchsize = -1;
+  rc = cufinufftf_makeplan(1, 2, N, 1, 4, 1e-5f, &fplan, &opts);
+  rc = check_rc("gpu_maxbatchsize negative", rc, FINUFFT_ERR_INVALID_ARGUMENT, 9);
+  if (rc) return rc;
+
+  // Upsamp too small -> expect FINUFFT_ERR_UPSAMPFAC_TOO_SMALL
   cufinufft_default_opts(&opts);
   opts.upsampfac       = 0.9;
   opts.gpu_kerevalmeth = 0;
