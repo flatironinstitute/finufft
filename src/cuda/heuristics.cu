@@ -74,7 +74,8 @@ void GpuCapabilities::print_classification(int debug_level) const {
   printf("  Occupancy:\n");
   printf("    Max warps/SM: %d\n", max_warps_per_sm());
   printf("    Max threads/SM: %d\n", max_threads_per_sm);
-  printf("  L2: %.1f MB\n", l2_cache_size / 1048576.0);
+  printf("  L2: %.1f MB, memory bus: %d bits\n", l2_cache_size / 1048576.0,
+         global_mem_bus_width);
 
   if (debug_level >= 3) {
     printf("  Binsize Categories:\n");
