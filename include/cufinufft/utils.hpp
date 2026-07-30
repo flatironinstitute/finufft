@@ -147,39 +147,6 @@ auto launch_dispatch_ndim_ns(Func &&func, int target_ndim, int target_ns,
   return poet::dispatch(std::forward<Func>(func), params, std::forward<Args>(args)...);
 }
 
-/**
- * Return an architecture-specific upper bound for “good enough”
- * thread-block sizes.
- * Rationale (rule-of-thumb):
- *   SM 9x / 8x : 16 warps  = 256 threads
- *   SM 7x      :  8 warps  = 128 threads
- *   SM 6x-     :  4 warps  = 64 threads
- */
-inline unsigned optimal_block_threads(int device) noexcept {
-  cudaGetDevice(&device);
-  cudaDeviceProp prop;
-  cudaGetDeviceProperties(&prop, device);
-  int major = prop.major;
-  if (major >= 8) return 256;
-  if (major >= 7) return 128;
-  return 64;
-}
-
-/**
- * Choose a workload-aware block size for method-1 interpolation.
- * The architecture-specific cap above is still a good upper bound, but tiny
- * transforms often run better with fewer threads. Ramp up from one warp in
- * power-of-two steps until we hit either the workload size or the device cap.
- */
-inline unsigned optimal_interp_block_threads(int device, int M) noexcept {
-  const auto limit =
-      std::min(optimal_block_threads(device), static_cast<unsigned>(std::max(M, 32)));
-  if (limit >= 256) return 256;
-  if (limit >= 128) return 128;
-  if (limit >= 64) return 64;
-  return 32;
-}
-
 } // namespace utils
 } // namespace cufinufft
 
