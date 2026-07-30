@@ -2,7 +2,6 @@
 #define CUFINUFFT_HEURISTICS_HPP
 
 #include <cstddef>
-#include <cstdint>
 #include <cstdio>
 
 #include <cuda_runtime.h>
@@ -30,8 +29,10 @@ void cufinufft_setup_binsize(const GpuCapabilities &gpu, int type, int ns, int d
 
 // How many transforms to batch into one FFT / spread pass, in [1, ntransf].
 // opts.gpu_maxbatchsize == 0 means auto; > 0 is honored (capped at ntransf).
+// Pass nf == 0 when the fine grid is not known yet: the L2 refinement is then skipped.
 template<typename T>
-int choose_batchsize(const GpuCapabilities &gpu, const cufinufft_opts &opts, int ntransf);
+int choose_batchsize(const GpuCapabilities &gpu, const cufinufft_opts &opts, int ntransf,
+                     CUFINUFFT_BIGINT nf);
 
 // Opt this kernel into the dynamic shared memory the plan needs, throwing
 // FINUFFT_ERR_INSUFFICIENT_SHMEM if the device cannot satisfy the request.
