@@ -6,6 +6,7 @@
 #include <finufft_common/common.h>
 
 #include <algorithm>
+#include <cstdint>
 #include <cuComplex.h>
 #include <cuda_runtime.h>
 #include <limits>
@@ -96,6 +97,12 @@ struct GpuCapabilities {
 
   // Ada (8.9), Ampere 8.6, Blackwell workstation (12.0).
   bool is_small_smem() const { return max_smem_per_block_optin <= 110 * 1024; }
+
+  // Complex elements in the ~1/3 of L2 the batchsize heuristic budgets for the working
+  // set (in + out + twiddle).
+  template<typename T> std::int64_t l2_complex_budget() const {
+    return l2_cache_size / 3 / std::int64_t(sizeof(cuda_complex<T>));
+  }
 
   // Upper bound for "good enough" thread-block sizes:
   //   SM 9x / 8x : 16 warps = 256 threads

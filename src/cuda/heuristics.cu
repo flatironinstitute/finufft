@@ -133,7 +133,8 @@ namespace {
 // Returns (bin,np) for Method 3 based on GpuCapabilities::method3_category(),
 // dimension, and ns. Derived from sweeps over 8 GPUs (A100-40/80GB, H100-80/94GB,
 // H200, RTX 6000 Ada, RTX 4070 Mobile, RTX Blackwell), which is also where the
-// category boundaries come from:
+// category boundaries come from; sweeps and timings in
+// https://github.com/flatironinstitute/finufft/pull/807 :
 //
 //   AMPERE_LARGE: A100 (CC 8.0, 164 KB/block)
 //   HOPPER:       H100/H200 (CC 9.0, 228 KB/block)
@@ -363,24 +364,38 @@ void cufinufft_setup_binsize(const GpuCapabilities &gpu, [[maybe_unused]] int ty
 }
 
 template<typename T>
-int choose_batchsize(const GpuCapabilities &gpu, const cufinufft_opts &opts,
-                     int ntransf) {
+int choose_batchsize(const GpuCapabilities &gpu, const cufinufft_opts &opts, int ntransf,
+                     CUFINUFFT_BIGINT nf) {
   // Cap at ntransf: a larger batch would make cuFFT transform grids that are then
   // discarded.
   if (opts.gpu_maxbatchsize) return std::min(opts.gpu_maxbatchsize, ntransf);
 
-  // Auto: a few transforms per FFT.
-  return std::min(ntransf, 8);
+  // Before nf is known, a few transforms per FFT.
+  if (nf == 0) return std::min(ntransf, 8);
+
+  // Keep nf*batchsize inside the L2 budget, up to 32 to fill the SMs at small nf. Past
+  // the budget a batch only adds FFT work the grid cannot hold. Multi-GPU timings:
+  // https://github.com/flatironinstitute/finufft/pull/873
+  const std::int64_t l2_elems = gpu.l2_complex_budget<T>();
+  const int cap = int(std::clamp<std::int64_t>(l2_elems / nf, 1, std::min(ntransf, 32)));
+
+  // Spread out the batches evenly: the cuFFT plan is fixed at batchsize, and cufft_ex has
+  // no per-call count, so the last batch always transforms batchsize grids even when only
+  // blksize of them hold data. ntransf=9 with cap 8 would do 2x8 grid FFTs for 9
+  // transforms; balancing gives 2x5 instead. Never above cap, so the L2 bound still
+  // holds.
+  const int nbatch = 1 + (ntransf - 1) / cap;
+  return 1 + (ntransf - 1) / nbatch;
 }
 
 template void cufinufft_setup_binsize<float>(const GpuCapabilities &, int type, int ns,
                                              int dim, cufinufft_opts *opts);
 template void cufinufft_setup_binsize<double>(const GpuCapabilities &, int type, int ns,
                                               int dim, cufinufft_opts *opts);
-template int choose_batchsize<float>(const GpuCapabilities &, const cufinufft_opts &,
-                                     int);
+template int choose_batchsize<float>(const GpuCapabilities &, const cufinufft_opts &, int,
+                                     CUFINUFFT_BIGINT);
 template int choose_batchsize<double>(const GpuCapabilities &, const cufinufft_opts &,
-                                      int);
+                                      int, CUFINUFFT_BIGINT);
 } // namespace common
 } // namespace cufinufft
 
