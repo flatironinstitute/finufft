@@ -273,7 +273,8 @@ cufinufft_plan_t<T>::cufinufft_plan_t(int type_, int dim_, const int *nmodes, in
     opts.gpu_spreadinterponly = 1;
   }
 
-  batchsize = choose_batchsize<T>(gpu, opts, ntransf);
+  // Provisional: re-chosen below once nf is known.
+  batchsize = choose_batchsize<T>(gpu, opts, ntransf, 0);
 
   stream = (cudaStream_t)opts.gpu_stream;
 
@@ -354,6 +355,10 @@ cufinufft_plan_t<T>::cufinufft_plan_t(int type_, int dim_, const int *nmodes, in
     // We don't need any cuFFT plans or kernel values if we are only spreading /
     // interpolating
     if (!opts.gpu_spreadinterponly) {
+      batchsize = choose_batchsize<T>(gpu, opts, ntransf, nf); // now nf-aware (#846)
+      if (opts.debug)
+        printf("[cufinufft] batchsize=%d (nf=%d ntransf=%d maxbatchsize=%d)\n", batchsize,
+               nf, ntransf, opts.gpu_maxbatchsize);
       int n[3];
       int ntot = 1;
       for (int idim = 0; idim < dim; ++idim) {

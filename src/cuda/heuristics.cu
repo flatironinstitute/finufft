@@ -363,24 +363,29 @@ void cufinufft_setup_binsize(const GpuCapabilities &gpu, [[maybe_unused]] int ty
 }
 
 template<typename T>
-int choose_batchsize(const GpuCapabilities &gpu, const cufinufft_opts &opts,
-                     int ntransf) {
+int choose_batchsize(const GpuCapabilities &gpu, const cufinufft_opts &opts, int ntransf,
+                     CUFINUFFT_BIGINT nf) {
   // Cap at ntransf: a larger batch would make cuFFT transform grids that are then
   // discarded.
   if (opts.gpu_maxbatchsize) return std::min(opts.gpu_maxbatchsize, ntransf);
 
-  // Auto: a few transforms per FFT.
-  return std::min(ntransf, 8);
+  // Before nf is known, a few transforms per FFT.
+  if (nf == 0) return std::min(ntransf, 8);
+
+  // Keep nf*batchsize inside the L2 budget, up to 32 to fill the SMs at small nf. Past
+  // the budget a batch only adds FFT work the grid cannot hold.
+  const std::int64_t l2_elems = gpu.l2_complex_budget<T>();
+  return int(std::clamp<std::int64_t>(l2_elems / nf, 1, std::min(ntransf, 32)));
 }
 
 template void cufinufft_setup_binsize<float>(const GpuCapabilities &, int type, int ns,
                                              int dim, cufinufft_opts *opts);
 template void cufinufft_setup_binsize<double>(const GpuCapabilities &, int type, int ns,
                                               int dim, cufinufft_opts *opts);
-template int choose_batchsize<float>(const GpuCapabilities &, const cufinufft_opts &,
-                                     int);
+template int choose_batchsize<float>(const GpuCapabilities &, const cufinufft_opts &, int,
+                                     CUFINUFFT_BIGINT);
 template int choose_batchsize<double>(const GpuCapabilities &, const cufinufft_opts &,
-                                      int);
+                                      int, CUFINUFFT_BIGINT);
 } // namespace common
 } // namespace cufinufft
 
