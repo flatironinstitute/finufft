@@ -274,9 +274,6 @@ cufinufft_plan_t<T>::cufinufft_plan_t(int type_, int dim_, const int *nmodes, in
     opts.gpu_spreadinterponly = 1;
   }
 
-  // Provisional: re-chosen below once nf is known.
-  batchsize = choose_batchsize<T>(gpu, opts, ntransf, 0);
-
   stream = (cudaStream_t)opts.gpu_stream;
 
   // simple check to use upsampfac=1.25 if tol is big
@@ -359,15 +356,18 @@ cufinufft_plan_t<T>::cufinufft_plan_t(int type_, int dim_, const int *nmodes, in
     }
     nf = CUFINUFFT_BIGINT(nf_wide);
 
+    // The choice is L2-aware, so it waits for nf; type 3 stays 0 here and is resolved in
+    // setpts, which owns the allocation it bounds (#846).
+    batchsize = choose_batchsize<T>(gpu, opts, ntransf, nf);
+    if (opts.debug)
+      printf("[cufinufft] batchsize=%d (nf=%d ntransf=%d maxbatchsize=%d)\n", batchsize,
+             nf, ntransf, opts.gpu_maxbatchsize);
+
     allocate_subprob_state();
 
     // We don't need any cuFFT plans or kernel values if we are only spreading /
     // interpolating
     if (!opts.gpu_spreadinterponly) {
-      batchsize = choose_batchsize<T>(gpu, opts, ntransf, nf); // now nf-aware (#846)
-      if (opts.debug)
-        printf("[cufinufft] batchsize=%d (nf=%d ntransf=%d maxbatchsize=%d)\n", batchsize,
-               nf, ntransf, opts.gpu_maxbatchsize);
       int n[3];
       int ntot = 1;
       for (int idim = 0; idim < dim; ++idim) {

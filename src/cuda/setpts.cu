@@ -10,6 +10,7 @@
 
 #include <cufinufft.h>
 #include <cufinufft/fft.hpp>
+#include <cufinufft/heuristics.hpp>
 
 #include <cufinufft/spreadinterp.hpp>
 #include <cufinufft/types.hpp>
@@ -149,6 +150,9 @@ void cufinufft_plan_t<T>::setpts(int nj, const T *d_kx, const T *d_ky, const T *
   // Guard the fwBatch allocation, nf * batchsize. Widen first: CUFINUFFT_BIGINT is int
   // and MAX_NF is INT32_MAX, so the product would overflow before tripping the guard.
   const auto nf_wide = std::int64_t(nf123[0]) * nf123[1] * nf123[2];
+  // Only known here: nf123 comes from the type-3 params computed above. The outer plan is
+  // spread-only, so this resolves to 1 unless the user set gpu_maxbatchsize.
+  batchsize = cufinufft::common::choose_batchsize<T>(gpu, opts, ntransf, nf_wide);
   if (nf_wide * batchsize > MAX_NF) {
     fprintf(stderr,
             "[%s t3] fwBatch would be bigger than MAX_NF, not attempting malloc!\n",
@@ -299,7 +303,9 @@ void cufinufft_plan_t<T>::setpts(int nj, const T *d_kx, const T *d_ky, const T *
     cufinufft_opts t2opts       = opts;
     t2opts.gpu_spreadinterponly = 0;
     t2opts.gpu_method           = 0;
-
+    // The inner type 2 resolves its own batchsize: its fine grid is upsampled again from
+    // t2modes, and its ntransf is our batchsize, so it can only shrink from there.
+    t2opts.gpu_maxbatchsize = 0;
     // Release the old inner plan before allocating the new one to
     // avoid holding both in memory at the same time, which could be wasteful.
     t2_plan.reset();
