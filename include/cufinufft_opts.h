@@ -24,7 +24,8 @@ typedef struct cufinufft_opts { // see cufinufft_default_opts() for defaults
 
   int gpu_spreadinterponly; // 0: NUFFT, 1: spread or interpolation only
 
-  int gpu_maxbatchsize;
+  int gpu_maxbatchsize; // transforms per FFT: 0 auto, >0 used as given (capped at
+                        // ntransf), <0 invalid
 
   /* multi-gpu support */
   int gpu_device_id;
