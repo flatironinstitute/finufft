@@ -222,6 +222,9 @@ template<typename T> struct cufinufft_plan_t {
   finufft_spread_opts spopts;
   bool eps_too_small = false;
 
+  // Must precede `alloc` below, which reads it.
+  GpuCapabilities gpu;
+
   // Dynamic shared-memory bytes required per kernel launch for spread/interp.
   // Public because per-method drivers (spreadinterp.hpp) and shared-memory
   // setup (common.hpp::cufinufft_set_shared_memory) call it from outside the
@@ -290,10 +293,8 @@ private:
   friend void cufinufft::common::cufinufft_set_shared_memory(V *,
                                                              const cufinufft_plan_t<U> &);
 
-  bool supports_pools = false;
-
   ThrustAllocatorAsync<std::byte> alloc{(cudaStream_t)opts.gpu_stream, opts.gpu_device_id,
-                                        supports_pools};
+                                        gpu.memory_pools_supported != 0};
 
   // Plan-config invariants — set in the ctor's member-initializer list and
   // never mutated thereafter.
