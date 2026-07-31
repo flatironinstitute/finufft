@@ -405,7 +405,7 @@ int FINUFFT_PLAN_T<TF>::spreadSorted(TF *FINUFFT_RESTRICT data_uniform,
           }
         };
 
-        constexpr double CACHE_FRAC = 0.9;
+        constexpr double CACHE_FRAC = 0.25;
         const double bytes_cell = 2 * sizeof(TF);
         const long l3_query = sysconf(_SC_LEVEL3_CACHE_SIZE);
         const double thread_bytes = (l3_query > 0) ? l3_query : 32 * 1024 * 1024;
