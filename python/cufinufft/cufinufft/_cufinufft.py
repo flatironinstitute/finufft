@@ -43,15 +43,33 @@ library_names = ["libcufinufft", "cufinufft"]
 if reset_log_level:
     logging.root.setLevel(log_level)
 
-# First attempt: try from package directory
+# First attempt: resolve the packaged library through the import system rather
+# than by path. This also works for editable installs, where the library is not
+# next to this file and where the lookup is what triggers scikit-build-core's
+# on-demand rebuild (installed with -Ceditable.rebuild=true), so a stale library
+# can never be loaded. Returns None on Windows, where the .dll suffix is not an
+# importable one - the by-path search below covers that.
+try:
+    _spec = importlib.util.find_spec("cufinufft.libcufinufft")
+except (ImportError, AttributeError, ValueError):
+    _spec = None
+if _spec is not None and _spec.origin is not None:
+    try:
+        lib = ctypes.CDLL(_spec.origin)
+    except OSError:
+        lib = None
+
+# Second attempt: try from package directory
 for lib_name in library_names:
+    if lib is not None:
+        break
     try:
         lib = np.ctypeslib.load_library(lib_name, path)
         break
     except (OSError, AttributeError):
         pass
 
-# Second attempt: try from system path
+# Third attempt: try from system path
 if lib is None:
     libname = find_library('cufinufft')
     if libname is None:

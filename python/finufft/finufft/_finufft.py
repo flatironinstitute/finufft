@@ -6,6 +6,7 @@ Seperate bindings are provided for single and double precision libraries,
 differentiated by 'f' suffix.
 """
 import ctypes
+import importlib.util
 import pathlib
 from ctypes.util import find_library
 from ctypes import c_double
@@ -37,13 +38,31 @@ if reset_log_level:
 
 # TODO: See if there is a way to improve this so it is less hacky.
 lib = None
-# Try to load finufft installed from the python package.
+# Resolve the packaged library through the import system rather than by path.
+# This also works for editable installs, where the library is not next to this
+# file and where the lookup is what triggers scikit-build-core's on-demand
+# rebuild (installed with -Ceditable.rebuild=true), so a stale library can
+# never be loaded. Returns None on Windows, where the .dll suffix is not an
+# importable one - the by-path search below covers that.
+try:
+    _spec = importlib.util.find_spec('finufft.libfinufft')
+except (ImportError, AttributeError, ValueError):
+    _spec = None
+if _spec is not None and _spec.origin is not None:
+    try:
+        lib = ctypes.CDLL(_spec.origin)
+    except OSError:
+        lib = None
+
+# Try to load finufft installed next to this file (wheel layout).
 path = pathlib.Path(__file__).parent.resolve()
 # Ignoring the exceptions to avoid the print
 # exception, during the process of an exception another exception occurred
 # unix systems have lib prefix, non unix systems do not
 library_names = ['libfinufft', 'finufft']
 for lib_name in library_names:
+    if lib is not None:
+        break
     try:
         lib = np.ctypeslib.load_library(lib_name, path)
         break
