@@ -13,14 +13,25 @@ if(CUDA_VERSION_MAJOR LESS 12)
         YES
     )
 else()
-    CPMAddPackage(
+    # Any CCCL 3.x already on the machine will do, so take the one the CUDA
+    # toolkit ships (13.x does; its config lives in <libdir>/cmake/cccl, which
+    # plain prefix search does not reach) and only fetch when there is none.
+    # Preferring it is not just to save a download: the toolkit's
+    # <toolkit>/include/cccl lands ahead of any CPM include dir, so a fetched
+    # CCCL would have the toolkit's thrust/cub compiled against its libcudacxx
+    # - two incompatible trees, which fails to build.
+    cpmfindpackage(
         NAME
         CCCL
+        VERSION
+        3
         GIT_REPOSITORY
         https://github.com/NVIDIA/cccl.git
         GIT_TAG
         v${CUDA12_CCCL_VERSION}
         SYSTEM
         YES
+        FIND_PACKAGE_ARGUMENTS
+        "CONFIG PATHS ${CUDAToolkit_LIBRARY_DIR}/cmake ${CUDAToolkit_LIBRARY_ROOT}/lib64/cmake"
     )
 endif()
