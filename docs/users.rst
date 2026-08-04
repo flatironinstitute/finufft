@@ -56,6 +56,8 @@ and also add them to GitHub's Used By feature):
 
 #. `FIONA <https://github.com/ninoephremidze/FIONA>`__: Fresnel Integral Optimization via Non-uniform trAnsforms, by Nino Ephremidze, Marc Kamionkowski, and Cora Dvorkin. Uses the factorization (Bluestein) trick from our Fresnel integral work with FINUFFT for fast computation of gravitational-wave lensing (2026). https://arxiv.org/abs/2603.12333
 
+#. `Fast kernel methods <https://github.com/NathanDoumeche/fast-kernel>`__: essentially our prior EFGP method for the posterior mean in GP regression, repackaged in the language of kernel ridge regression, relying on our cuFINUFFT acting on pyTorch arrays. Nathan Doumèche, Francis Bach, et al. https://arxiv.org/abs/2509.02649 accepted to ICML2026 without discussion of our prior work: https://openreview.net/forum?id=QiDicUd6PB
+
 
 Python packages depending on FINUFFT
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
