@@ -67,10 +67,10 @@ include(toolchain) # finds cmake/toolchain.cmake
 set(CPM_DOWNLOAD_VERSION "0.43.1" CACHE STRING "Version of CPM.cmake to use")
 set(FFTW_VERSION "3.3.10" CACHE STRING "Version of FFTW to use")
 set(XSIMD_VERSION "14.3.0" CACHE STRING "Version of xsimd to use")
-set(POET_VERSION "v0.0.0" CACHE STRING "Version of POET to use")
-set(DUCC0_VERSION "ducc0_0_39_1" CACHE STRING "Version of ducc0 to use")
+set(POET_VERSION "v0.0.1" CACHE STRING "Version of POET to use")
+set(DUCC0_VERSION "ducc0_0_41_1" CACHE STRING "Version of ducc0 to use")
 set(CUDA11_CCCL_VERSION "2.8.5" CACHE STRING "Version of FINUFFT-cccl for cuda 11 to use")
-set(CUDA12_CCCL_VERSION "3.0.2" CACHE STRING "Version of FINUFFT-cccl for cuda 12 to use")
+set(CUDA12_CCCL_VERSION "3.4.2" CACHE STRING "Version of FINUFFT-cccl for cuda 12 to use")
 
 mark_as_advanced(
     CPM_DOWNLOAD_VERSION

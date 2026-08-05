@@ -3,6 +3,8 @@
 
 #include <cmath>
 #include <cuda.h>
+#include <cuda/std/array>
+#include <cuda/std/tuple>
 #include <thrust/sequence.h>
 
 #include <cufinufft/contrib/helper_cuda.h>

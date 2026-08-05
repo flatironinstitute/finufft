@@ -3,6 +3,14 @@ If not stated, FINUFFT is assumed (old cuFINUFFT <=1.3 is listed separately).
 
 v2.6.0-dev
 
+* Fixed the cuFINUFFT build against a CPM-fetched CCCL: it was added as an
+  include-SYSTEM package, and nvcc searches its own include directory before
+  every `-isystem` path, so `cuda/std/*` resolved to the CUDA toolkit's older
+  libcudacxx while thrust/cub came from the fetched tree. CUDA 11 failed to build
+  outright, and on CUDA 12 toolkits that ship thrust/cub the pinned CCCL version
+  was silently not the one compiled against. Fetching it non-SYSTEM exposed
+  missing `<cuda/std/tuple>`, `<cuda/std/array>` and `<iostream>` includes.
+  (Barbone)
 * Sanitizer CI builds now compile at `-O1 -fno-omit-frame-pointer` (working around an
   xsimd 14.3.0 constexpr immediate-argument folding bug at `-O0`), instrument the
   single-precision `finufft_f32` object library, and mark xsimd/ducc0 includes as

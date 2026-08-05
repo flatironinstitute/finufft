@@ -14,7 +14,13 @@
 
 #include <finufft_common/constants.h>
 #include <finufft_errors.h>
+#include <thrust/copy.h>
 #include <thrust/device_vector.h>
+#include <thrust/execution_policy.h>
+#include <thrust/fill.h>
+#include <thrust/iterator/zip_iterator.h>
+#include <thrust/transform.h>
+#include <thrust/tuple.h>
 
 template<typename T>
 void cufinufft_plan_t<T>::setpts_type12(int M_, const T *d_kx, const T *d_ky,

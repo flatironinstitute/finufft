@@ -6,6 +6,7 @@
 #include <cufinufft/contrib/helper_cuda.h>
 #include <cufinufft/types.hpp>
 #include <cufinufft_opts.h>
+#include <iostream>
 #include <finufft_common/safe_call.h>
 #include <finufft_common/spread_opts.h>
 #include <finufft_errors.h>
