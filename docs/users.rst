@@ -56,7 +56,6 @@ and also add them to GitHub's Used By feature):
 
 #. `FIONA <https://github.com/ninoephremidze/FIONA>`__: Fresnel Integral Optimization via Non-uniform trAnsforms, by Nino Ephremidze, Marc Kamionkowski, and Cora Dvorkin. Uses the factorization (Bluestein) trick from our Fresnel integral work with FINUFFT for fast computation of gravitational-wave lensing (2026). https://arxiv.org/abs/2603.12333
 
-#. `Fast kernel methods <https://github.com/NathanDoumeche/fast-kernel>`__: essentially our prior EFGP method for the posterior mean in GP regression, repackaged in the language of kernel ridge regression, relying on our cuFINUFFT acting on pyTorch arrays. Nathan Doumèche, Francis Bach, et al. https://arxiv.org/abs/2509.02649 accepted to ICML2026 without discussion of our prior work: https://openreview.net/forum?id=QiDicUd6PB
 
 
 Python packages depending on FINUFFT
@@ -128,7 +127,9 @@ For the latest see: Google Scholar `FINUFFT citations <https://scholar.google.co
 
 #. In molecular dynamics, FINUFFT enables a 10x speed-up in long-range electrostatic effects when `machine-learning interatomic potentials <https://journals.aps.org/prl/abstract/10.1103/ssp9-7s81>`__ with a `sum-of-Gaussians network <https://github.com/DuktigYajie/SOG-Net>`__, in work done by my colleague Jiuyang Liang (CCM) and collaborators.
 
+#. `Fast kernel methods <https://github.com/NathanDoumeche/fast-kernel>`__: uses a fast iterative NUFFT method for kernel ridge regression in a Sobolev space, relying on our cuFINUFFT acting on pyTorch arrays. The basic algorithm is the same as our EFGP method for the posterior mean in GP regression; however, they extend this to non-translationally-invariant physics-informed kernels that share the fast FFT apply. Nathan Doumèche, Francis Bach, et al. https://arxiv.org/abs/2509.02649 and an improved version under review https://openreview.net/forum?id=KQiJDlPFJN
 
+   
    
 Papers or codes using our new ES window (kernel spreading) function, but not the whole FINUFFT package:
 
