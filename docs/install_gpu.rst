@@ -5,7 +5,9 @@ Installation (GPU)
 
 .. note::
 
-    Python users may install the cuFINUFFT package using ``pip install cufinufft``, which contains binary wheels compiled against CUDA 11.2 on Linux. If these requirements do not work for your use case, please see the detailed instructions below.
+    Python users may install the cuFINUFFT package using ``pip install cufinufft``, which contains binary wheels built with CUDA 12.4; they need a CUDA 12 runtime (``libcudart.so.12`` and ``libcufft.so.11``) on the system. If these requirements do not work for your use case, please see the detailed instructions below.
+
+Building from source is supported with CUDA 11.8 and newer. CI runs the GPU test suite on every commit with CUDA 11.8 on Nvidia V100 (``sm_70``), CUDA 12.4 and 13.0 on A100 (``sm_80``) and CUDA 12.8 on RTX PRO 6000 Blackwell (``sm_120``).
 
 The GPU version of FINUFFT is called cuFINUFFT,
 and it uses CUDA kernels (often exploiting fast GPU shared memory)
@@ -85,9 +87,9 @@ For example, for CuPy, you would run
 
 .. code-block:: bash
 
-    pip install cupy-cuda11x
+    pip install cupy-cuda12x
 
-for the CUDA 11.2--11.x version of CuPy.
+for the CUDA 12.x version of CuPy (use ``cupy-cuda11x`` with a CUDA 11 toolkit).
 Assuming ``pytest`` is installed (otherwise, just run ``pip install pytest``), you can now test the installation by running
 
 .. code-block:: bash

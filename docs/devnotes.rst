@@ -50,7 +50,7 @@ Developer notes
 
   to your ``make.inc``, and then you can use the ``make mex`` task.
 
-* The cufinufft Python wheels are generated using Docker based on the manylinux2014 image. For instructions, see ``tools/cufinufft/distribution_helper.sh``. These are binary wheels that are built using CUDA 11 (or optionally CUDA 12, but these are not distributed on PyPI) and bundled with the necessary libraries.
+* The cufinufft Python wheels are binary wheels; the CUDA runtime and cuFFT are deliberately not bundled (see the ``auditwheel``/``delvewheel`` exclusions in ``python/cufinufft/pyproject.toml``), so they need a matching CUDA runtime on the system. The released ones are built by the ``build_cufinufft_wheels`` GitHub workflow; the same wheels are built and tested on GPU hardware for every supported CUDA version by the Jenkins pipeline, using ``tools/cufinufft/docker/Dockerfile-x86_64`` and ``tools/cufinufft/build-wheel.sh`` (see ``tools/cufinufft/docker/README`` for running that locally).
 
 * CMake compiling on linux at Flatiron Institute (Rusty cluster): We have had a report that if you want to use LLVM, you need to ``module load llvm/16.0.3`` otherwise the default ``llvm/14.0.6`` does not find ``OpenMP_CXX``.
 
