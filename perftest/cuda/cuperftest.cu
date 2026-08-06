@@ -32,9 +32,12 @@ struct test_options_t {
   int32_t N[3];
   int M;
   int ntransf;
+  int dim;
+  double X, S;
   int kerevalmethod;
   int method;
   int sort;
+  int maxbatchsize;
   double tol;
   int debug;
 
@@ -54,6 +57,10 @@ struct test_options_t {
           {"N3", required_argument, 0, 0},
           {"M", required_argument, 0, 0},
           {"ntransf", required_argument, 0, 0},
+          {"dim", required_argument, 0, 0},
+          {"X", required_argument, 0, 0},
+          {"S", required_argument, 0, 0},
+          {"maxbatchsize", required_argument, 0, 0},
           {"tol", required_argument, 0, 0},
           {"method", required_argument, 0, 0},
           {"kerevalmethod", required_argument, 0, 0},
@@ -84,7 +91,11 @@ struct test_options_t {
     N[2]          = std::stof(get_or(options_map, "N3", "1"));
     M             = std::stof(get_or(options_map, "M", "2E6"));
     ntransf       = std::stoi(get_or(options_map, "ntransf", "1"));
-    method        = std::stoi(get_or(options_map, "method", "1"));
+    dim = std::stoi(get_or(options_map, "dim", "0"));
+    X = std::stof(get_or(options_map, "X", "100"));
+    S = std::stof(get_or(options_map, "S", "10"));
+    maxbatchsize = std::stoi(get_or(options_map, "maxbatchsize", "0"));
+    method = std::stoi(get_or(options_map, "method", type == 3 ? "0" : "1"));
     kerevalmethod = std::stoi(get_or(options_map, "kerevalmethod", "1"));
     sort          = std::stoi(get_or(options_map, "sort", "1"));
     tol           = std::stof(get_or(options_map, "tol", "1E-5"));
@@ -100,6 +111,10 @@ struct test_options_t {
                 << "# N3 = " << opts.N[2] << "\n"
                 << "# M = " << opts.M << "\n"
                 << "# ntransf = " << opts.ntransf << "\n"
+                << "# dim = " << opts.dim << "\n"
+                << "# X = " << opts.X << "\n"
+                << "# S = " << opts.S << "\n"
+                << "# maxbatchsize = " << opts.maxbatchsize << "\n"
                 << "# method = " << opts.method << "\n"
                 << "# kerevalmethod = " << opts.kerevalmethod << "\n"
                 << "# sort = " << opts.sort << "\n"
@@ -193,10 +208,20 @@ template<typename T> void run_test(test_options_t &test_opts) {
   const int type      = test_opts.type;
   constexpr int iflag = 1;
 
+  // Type 3 has no mode grid: N is its number of frequency targets, spread over [-S, S],
+  // and the dimension cannot be inferred from N, so --dim is required.
+  const int nk = type == 3 ? N : 0;
+  if (type == 3 && !test_opts.dim) {
+    std::cerr << "type 3 needs an explicit --dim (1, 2 or 3)\n";
+    return;
+  }
+
   thrust::host_vector<T> x(M * ntransf), y(M * ntransf), z(M * ntransf);
+  thrust::host_vector<T> s(nk), t(nk), u(nk);
   thrust::host_vector<thrust::complex<T>> c(M * ntransf), fk(N * ntransf);
 
   thrust::device_vector<T> d_x(M * ntransf), d_y(M * ntransf), d_z(M * ntransf);
+  thrust::device_vector<T> d_s(nk), d_t(nk), d_u(nk);
   thrust::device_vector<thrust::complex<T>> d_c(M * ntransf), d_fk(N * ntransf);
 
   std::default_random_engine eng(1);
@@ -205,11 +230,13 @@ template<typename T> void run_test(test_options_t &test_opts) {
     return dist11(eng);
   };
 
-  // Making data
+  // Making data. Type 1/2 need x in [-pi,pi); type 3 takes any real, and the source
+  // half-width matters as much as S -- their product sets the fine grid.
+  const T half_width = type == 3 ? T(test_opts.X) : T(PI);
   for (int64_t i = 0; i < M; i++) {
-    x[i] = PI * randm11(); // x in [-pi,pi)
-    y[i] = PI * randm11();
-    z[i] = PI * randm11();
+    x[i] = half_width * randm11();
+    y[i] = half_width * randm11();
+    z[i] = half_width * randm11();
   }
   for (int64_t i = M; i < M * ntransf; ++i) {
     int64_t j = i % M;
@@ -218,12 +245,11 @@ template<typename T> void run_test(test_options_t &test_opts) {
     z[i]      = z[j];
   }
 
-  if (type == 1) {
+  if (type == 1 || type == 3) {
     for (int i = 0; i < M * ntransf; i++) {
       c[i].real(randm11());
       c[i].imag(randm11());
     }
-
   } else if (type == 2) {
     for (int i = 0; i < N * ntransf; i++) {
       fk[i].real(randm11());
@@ -233,17 +259,25 @@ template<typename T> void run_test(test_options_t &test_opts) {
     std::cerr << "Invalid type " << type << " supplied\n";
     return;
   }
+  for (int k = 0; k < nk; ++k) {
+    s[k] = test_opts.S * randm11();
+    t[k] = test_opts.S * randm11();
+    u[k] = test_opts.S * randm11();
+  }
 
   gpu_warmup();
 
   cufinufft_opts opts;
-  int dim = 0;
-  for (int i = 0; i < 3; ++i) dim = test_opts.N[i] > 1 ? i + 1 : dim;
+  // Type 3 has no mode grid to infer the dimension from, so --dim is required there.
+  int dim = test_opts.dim;
+  if (!dim)
+    for (int i = 0; i < 3; ++i) dim = test_opts.N[i] > 1 ? i + 1 : dim;
 
   cufinufft_default_opts(&opts);
   opts.gpu_method      = test_opts.method;
   opts.gpu_sort        = test_opts.sort;
   opts.gpu_kerevalmeth = test_opts.kerevalmethod;
+  opts.gpu_maxbatchsize = test_opts.maxbatchsize;
   opts.debug           = test_opts.debug;
 
   cufinufft_plan_t<T> *dplan;
@@ -253,28 +287,32 @@ template<typename T> void run_test(test_options_t &test_opts) {
     amortized_timer.start();
     h2d_timer.start();
     d_x = x, d_y = y, d_z = z;
-    if (type == 1) d_c = c;
+    d_s = s, d_t = t, d_u = u;
+    if (type == 1 || type == 3) d_c = c;
     if (type == 2) d_fk = fk;
     h2d_timer.stop();
 
     T *d_x_p                = dim >= 1 ? d_x.data().get() : nullptr;
     T *d_y_p                = dim >= 2 ? d_y.data().get() : nullptr;
     T *d_z_p                = dim == 3 ? d_z.data().get() : nullptr;
+    T *d_s_p = nk && dim >= 1 ? d_s.data().get() : nullptr;
+    T *d_t_p = nk && dim >= 2 ? d_t.data().get() : nullptr;
+    T *d_u_p = nk && dim == 3 ? d_u.data().get() : nullptr;
     cuda_complex<T> *d_c_p  = (cuda_complex<T> *)d_c.data().get();
     cuda_complex<T> *d_fk_p = (cuda_complex<T> *)d_fk.data().get();
 
     timeit(makeplan<T>, makeplan_timer, test_opts.type, dim, test_opts.N, iflag, ntransf,
            test_opts.tol, opts, &dplan);
     for (int i = 0; i < test_opts.n_runs; ++i) {
-      timeit(std::bind(&cufinufft_plan_t<T>::setpts, dplan, M, d_x_p, d_y_p, d_z_p, 0,
-                       nullptr, nullptr, nullptr),
+      timeit(std::bind(&cufinufft_plan_t<T>::setpts, dplan, M, d_x_p, d_y_p, d_z_p, nk,
+                       d_s_p, d_t_p, d_u_p),
              setpts_timer);
       timeit(std::bind(&cufinufft_plan_t<T>::execute, dplan, d_c_p, d_fk_p),
              execute_timer);
     }
 
     d2h_timer.start();
-    if (type == 1) fk = d_fk;
+    if (type == 1 || type == 3) fk = d_fk;
     if (type == 2) c = d_c;
     d2h_timer.stop();
 
@@ -318,7 +356,9 @@ int main(int argc, char *argv[]) {
                  "           float or double precision. i.e. 'f' or 'd'\n"
                  "           default: " << default_opts.prec << "\n" <<
                  "    --type <int>\n"
-                 "           type of transform. 1 or 2\n"
+                 "           type of transform. 1, 2 or 3\n"
+                 "           for type 3 the N's are the number of frequency targets, not modes,\n"
+                 "           and --dim is required\n"
                  "           default: " << default_opts.type << "\n" <<
                  "    --n_runs <int>\n"
                  "           number of runs to average performance over\n"
@@ -338,6 +378,15 @@ int main(int argc, char *argv[]) {
                  "    --ntransf <int>\n"
                  "           number of transforms to do simultaneously\n"
                  "           default: " << default_opts.ntransf << "\n" <<
+                 "    --dim <int>\n"
+                 "           dimension of the transform. 0 infers it from N1/N2/N3\n"
+                 "           default: " << default_opts.dim << "\n" <<
+                 "    --X <float>\n"
+                 "           type 3 only: sources are drawn from [-X, X]\n"
+                 "           default: " << default_opts.X << "\n" <<
+                 "    --S <float>\n"
+                 "           type 3 only: frequency targets are drawn from [-S, S]\n"
+                 "           default: " << default_opts.S << "\n" <<
                  "    --tol <float>\n"
                  "           NUFFT tolerance. Scientific notation accepted (i.e. 1.2E-7)\n"
                  "           default: " << default_opts.tol << "\n" <<
@@ -346,8 +395,10 @@ int main(int argc, char *argv[]) {
                  "               1: nupts driven\n"
                  "               2: sub-problem\n"
                  "               3: output-driven subproblem (experimental)\n"
+                 "               0: let the plan choose. Type 3 wants this: forcing\n"
+                 "                  method 1 on it costs 7x\n"
                  "           Note that not all methods are compatible with all dim/type combinations\n"
-                 "           default: " << default_opts.method << "\n" <<
+                 "           default: 1, or 0 for type 3\n" <<
                  "    --kerevalmeth <int>\n"
                  "           kernel evaluation method\n"
                  "               0: Exponential of square root\n"

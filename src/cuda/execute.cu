@@ -2,6 +2,7 @@
 // plus the deconvolve kernel that only the execute path uses.
 // Mirrors CPU src/execute.cpp.
 
+#include <cstdint>
 #include <iostream>
 
 #include <cufinufft/contrib/helper_cuda.h>
@@ -72,7 +73,8 @@ void cufinufft_plan_t<T>::deconvolve_nd<modeord, ndim>(
     Melody Shih 11/21/21
 */
 {
-  int nmodes = 1, nftot = 1;
+  // 64-bit: MAX_NF is 1e12, so these products overflow int on large 3D grids.
+  std::int64_t nmodes = 1, nftot = 1;
   for (int idim = 0; idim < ndim; ++idim) {
     nmodes *= mstu[idim];
     nftot *= nf123[idim];
@@ -83,8 +85,8 @@ void cufinufft_plan_t<T>::deconvolve_nd<modeord, ndim>(
     checkCudaErrors(
         cudaMemsetAsync(fw, 0, batchsize * nftot * sizeof(cuda_complex<T>), stream));
 
-  for (int t = 0; t < blksize; t++)
-    deconv_nd<T, modeord, ndim><<<(nmodes + 256 - 1) / 256, 256, 0, stream>>>(
+  for (std::int64_t t = 0; t < blksize; t++)
+    deconv_nd<T, modeord, ndim><<<uint((nmodes + 256 - 1) / 256), 256, 0, stream>>>(
         mstu, nf123, fw + t * nftot, fk + t * nmodes, dethrust(fwkerhalf), fw2fk);
 }
 
@@ -119,28 +121,25 @@ void cufinufft_plan_t<T>::execute_type1(cuda_complex<T> *d_c, cuda_complex<T> *d
 {
   assert(spopts.spread_direction == 1);
 
-  int nmodes = 1;
+  std::int64_t nmodes = 1;
   for (int idim = 0; idim < dim; ++idim) nmodes *= mstu[idim];
-  // We don't need this buffer if we are just spreading; so we set
-  // its size to 0 in that case.
-  gpu_array<cuda_complex<T>> fwp(opts.gpu_spreadinterponly ? 0 : nf * batchsize, alloc);
-  auto *fw = dethrust(fwp);
-  for (int i = 0; i * batchsize < ntransf; i++) {
-    int blksize   = std::min(ntransf - i * batchsize, batchsize);
+  // Uninitialized: spread memsets fw below. Size 0 when spreading only, which spreads
+  // straight into f.
+  const bool spread_only = opts.gpu_spreadinterponly;
+  gpu_scratch<cuda_complex<T>> fwp(spread_only ? 0 : std::size_t(nf) * batchsize, alloc);
+  for (std::int64_t i = 0; i * batchsize < ntransf; i++) {
+    int blksize = int(std::min<std::int64_t>(ntransf - i * batchsize, batchsize));
     const auto *c = d_c + i * batchsize * M;
-    auto *fk      = d_fk + i * batchsize * nmodes; // so deconvolve will write into
-                                                   // user output f
-    if (opts.gpu_spreadinterponly)
-      fw = fk;                                     // spread directly into the appropriate
-                                                   // section of the user output f
+    auto *fk = d_fk + i * batchsize * nmodes; // deconvolve writes user output f
+    auto *fw = spread_only ? fk : fwp.data();
 
-    checkCudaErrors(
-        cudaMemsetAsync(fw, 0, blksize * nf * sizeof(cuda_complex<T>), stream));
+    checkCudaErrors(cudaMemsetAsync(
+        fw, 0, std::size_t(blksize) * nf * sizeof(cuda_complex<T>), stream));
 
     // Step 1: Spread
     spreadSorted(c, fw, blksize);
 
-    if (opts.gpu_spreadinterponly) continue; // skip steps 2 and 3
+    if (spread_only) continue; // skip steps 2 and 3
 
     // Step 2: FFT
     cufftResult cufft_status = cufft_ex(fftplan.get(), fw, fw, iflag);
@@ -174,19 +173,22 @@ void cufinufft_plan_t<T>::execute_type2(cuda_complex<T> *d_c, cuda_complex<T> *d
   int ntransf_for_this_run = ntransf;
   if (ntransf_override) ntransf_for_this_run = *ntransf_override;
 
-  int nmodes = 1;
+  std::int64_t nmodes = 1;
   for (int idim = 0; idim < dim; ++idim) nmodes *= mstu[idim];
-  // We don't need this buffer if we are just interpolating; so we set
-  // its size to 0 in that case.
-  gpu_array<cuda_complex<T>> fwp(opts.gpu_spreadinterponly ? 0 : nf * batchsize, alloc);
-  auto *fw = dethrust(fwp);
-  for (int i = 0; i * batchsize < ntransf_for_this_run; i++) {
-    int blksize = std::min(ntransf_for_this_run - i * batchsize, batchsize);
-    auto *c     = d_c + i * batchsize * M;
-    auto *fk    = d_fk + i * batchsize * nmodes;
+  // Uninitialized: deconvolve overwrites fw below. Size 0 when interpolating only, which
+  // reads f directly.
+  const bool interp_only = opts.gpu_spreadinterponly;
+  gpu_scratch<cuda_complex<T>> fwp(interp_only ? 0 : std::size_t(nf) * batchsize, alloc);
+  // cufft_ex transforms all `batchsize` grids even when blksize < batchsize; the extra
+  // ones hold stale data and are discarded.
+  for (std::int64_t i = 0; i * batchsize < ntransf_for_this_run; i++) {
+    int blksize =
+        int(std::min<std::int64_t>(ntransf_for_this_run - i * batchsize, batchsize));
+    auto *c = d_c + i * batchsize * M;
+    auto *fk = d_fk + i * batchsize * nmodes;
+    auto *fw = interp_only ? fk : fwp.data();
 
-    // Skip steps 1 and 2 if interponly
-    if (!opts.gpu_spreadinterponly) {
+    if (!interp_only) {
       // Step 1: amplify Fourier coeffs fk and copy into upsampled array fw
       deconvolve(fw, fk, blksize);
 
@@ -195,8 +197,7 @@ void cufinufft_plan_t<T>::execute_type2(cuda_complex<T> *d_c, cuda_complex<T> *d
       cufftResult cufft_status = cufft_ex(fftplan.get(), fw, fw, iflag);
       if (cufft_status != CUFFT_SUCCESS)
         throw cufinufft::cufft_exception(cufft_status, "cufft_ex_type2");
-    } else
-      fw = fk; // interpolate directly from user input f
+    }
 
     // Step 3: Interpolate
     interpSorted(c, fw, blksize);
@@ -219,11 +220,11 @@ void cufinufft_plan_t<T>::execute_type3(cuda_complex<T> *d_c,
 
   Marco Barbone 08/14/2024
   */
-  gpu_array<cuda_complex<T>> CpBatch(M * batchsize, alloc);
-  gpu_array<cuda_complex<T>> fwp(nf * batchsize, alloc);
+  gpu_array<cuda_complex<T>> CpBatch(std::size_t(M) * batchsize, alloc);
+  gpu_array<cuda_complex<T>> fwp(std::size_t(nf) * batchsize, alloc);
   auto *fw = dethrust(fwp);
-  for (int i = 0; i * batchsize < ntransf; i++) {
-    int blksize                = std::min(ntransf - i * batchsize, batchsize);
+  for (std::int64_t i = 0; i * batchsize < ntransf; i++) {
+    int blksize = int(std::min<std::int64_t>(ntransf - i * batchsize, batchsize));
     cuda_complex<T> *d_cstart  = d_c + i * batchsize * M;
     cuda_complex<T> *d_fkstart = d_fk + i * batchsize * N;
     // setting input for spreader
@@ -231,8 +232,8 @@ void cufinufft_plan_t<T>::execute_type3(cuda_complex<T> *d_c,
     // setting output for spreader
     auto *fk = fw;
     // NOTE: fw might need to be set to 0
-    checkCudaErrors(
-        cudaMemsetAsync(fw, 0, blksize * nf * sizeof(cuda_complex<T>), stream));
+    checkCudaErrors(cudaMemsetAsync(
+        fw, 0, std::size_t(blksize) * nf * sizeof(cuda_complex<T>), stream));
     // Step 0: pre-phase the input strengths
     for (int block = 0; block < blksize; block++) {
       thrust::transform(thrust::cuda::par.on(stream), dethrust(prephase),

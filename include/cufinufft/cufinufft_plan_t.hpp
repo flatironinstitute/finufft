@@ -182,6 +182,26 @@ public:
 
 template<typename T> using gpu_array = thrust::device_vector<T, ThrustAllocatorAsync<T>>;
 
+// Device scratch (RAII, stream-ordered): gpu_array's allocator without
+// thrust::device_vector's value-initialization, for buffers the callee overwrites before
+// reading. Size 0 allocates nothing and data() returns nullptr.
+template<typename T> class gpu_scratch {
+  ThrustAllocatorAsync<T> alloc_;
+  thrust::device_ptr<T> ptr_{};
+  std::size_t n_{};
+
+public:
+  gpu_scratch(std::size_t n, ThrustAllocatorAsync<T> alloc) : alloc_(alloc), n_(n) {
+    if (n_) ptr_ = alloc_.allocate(n_);
+  }
+  ~gpu_scratch() {
+    if (n_) alloc_.deallocate(ptr_, n_);
+  }
+  gpu_scratch(const gpu_scratch &) = delete;
+  gpu_scratch &operator=(const gpu_scratch &) = delete;
+  T *data() const { return n_ ? thrust::raw_pointer_cast(ptr_) : nullptr; }
+};
+
 template<typename T> inline T *dethrust(gpu_array<T> &arr) {
   return thrust::raw_pointer_cast(arr.data());
 }
@@ -221,6 +241,9 @@ template<typename T> struct cufinufft_plan_t {
   cufinufft_opts opts;
   finufft_spread_opts spopts;
   bool eps_too_small = false;
+
+  // Must precede `alloc` below, which reads it.
+  GpuCapabilities gpu;
 
   // Dynamic shared-memory bytes required per kernel launch for spread/interp.
   // Public because per-method drivers (spreadinterp.hpp) and shared-memory
@@ -290,10 +313,8 @@ private:
   friend void cufinufft::common::cufinufft_set_shared_memory(V *,
                                                              const cufinufft_plan_t<U> &);
 
-  bool supports_pools = false;
-
   ThrustAllocatorAsync<std::byte> alloc{(cudaStream_t)opts.gpu_stream, opts.gpu_device_id,
-                                        supports_pools};
+                                        gpu.memory_pools_supported != 0};
 
   // Plan-config invariants — set in the ctor's member-initializer list and
   // never mutated thereafter.
