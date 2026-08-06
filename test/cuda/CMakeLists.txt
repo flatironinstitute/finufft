@@ -224,6 +224,9 @@ add_test(NAME cufinufft_makeplan COMMAND test_makeplan)
 add_test(NAME cufinufft_error_handling COMMAND cufinufft_error_handling)
 add_test(NAME cufinufft_math_test COMMAND cufinufft_math_test)
 add_test(NAME cufinufft_simple_test COMMAND cufinufft_simple_test)
+add_test(NAME cufinufft_multigpu COMMAND cufinufft_multigpu_test)
+# Returns 77 when only one device is visible: the cross-device path cannot run.
+set_tests_properties(cufinufft_multigpu PROPERTIES SKIP_RETURN_CODE 77)
 add_test(
     NAME cufinufft1dspreadinterponly_double_test
     COMMAND cufinufft1dspreadinterponly_test 1e3 1e6 1e-6 1e-5 d 2.00
