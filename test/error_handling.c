@@ -92,15 +92,20 @@ int main(void) {
     return 9;
   }
 
-  // Invalid kernel formula -> expect FINUFFT_ERR_KERFORMULA_NOTVALID
-  finufft_default_opts(&opts);
-  opts.upsampfac         = 2.0; // force kernel setup in makeplan
-  opts.spread_kerformula = 99;  // invalid kernel formula
-  rc                     = finufft_makeplan(1, 1, N, 1, 1, 1e-6, &plan, &opts);
-  if (rc != FINUFFT_ERR_KERFORMULA_NOTVALID) {
-    fprintf(stderr, "kerformula invalid: expected %d got %d\n",
-            FINUFFT_ERR_KERFORMULA_NOTVALID, rc);
-    return 10;
+  // Invalid kernel formula -> expect FINUFFT_ERR_KERFORMULA_NOTVALID.
+  // Only the PSWF formulas (7..9) survive; 1..6 (legacy ES/KB/cosh) and any other
+  // out-of-range value are now rejected.
+  const int bad_kerformulas[] = {3, 6, 99};
+  for (size_t i = 0; i < sizeof(bad_kerformulas) / sizeof(bad_kerformulas[0]); ++i) {
+    finufft_default_opts(&opts);
+    opts.upsampfac = 2.0; // force kernel setup in makeplan
+    opts.spread_kerformula = bad_kerformulas[i];
+    rc = finufft_makeplan(1, 1, N, 1, 1, 1e-6, &plan, &opts);
+    if (rc != FINUFFT_ERR_KERFORMULA_NOTVALID) {
+      fprintf(stderr, "kerformula=%d invalid: expected %d got %d\n", bad_kerformulas[i],
+              FINUFFT_ERR_KERFORMULA_NOTVALID, rc);
+      return 10;
+    }
   }
 
   printf("error_handling: PASS\n");
