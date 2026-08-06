@@ -381,7 +381,7 @@ Data handling options
 As a reminder, ``modeord=0`` selects increasing frequencies (negative through positive) in each dimension,
 while ``modeord=1`` selects FFT-style ordering starting at zero and wrapping over to negative frequencies half way through.
 
-**gpu_device_id**: Sets the GPU device ID. Leave at default unless you know what you're doing. [To be documented]
+**gpu_device_id**: CUDA device ordinal (as in ``cudaSetDevice``) that the plan lives on. It defaults to ``0``, *not* to the caller's current device: if your code works on another device you must set this field, otherwise the plan is built and executed on device 0. Every library call (``makeplan``, ``setpts``, ``execute``, ``destroy``) makes this device current for its duration and restores the caller's device before returning, so the caller's device is never changed behind its back. All device pointers you hand to ``setpts`` and ``execute``, and ``opts.gpu_stream`` if you set it, must belong to this device; the plan's own memory is allocated there. Plans on different devices are independent and may be used concurrently from different host threads. An invalid or unusable device id makes ``cufinufft_makeplan`` return ``FINUFFT_ERR_CUDA_FAILURE``.
 
 **gpu_spreadinterponly**: [Only has effect for type 1 or 2.] For experts only. If ``0`` do the NUFFT as intended. If ``1``, do *only* spreading (if ``type=1``) or *only* interpolation (if ``type=2``), using kernel shape parameters set by ``tol`` and ``upsampfac``; the result is not upsampled and is not a NUFFT.
 It is analogous to the CPU option named :ref:`spreadinterponly<sionly>` (please read that documentation!). [This flag is also internally used for GPU type 3 transforms, although it was originally a debug flag.]

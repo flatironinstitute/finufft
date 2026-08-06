@@ -11,6 +11,15 @@ v2.6.0-dev
   the kernel, replacing the per-target cosine quadrature in setpts. Users of
   spreadinterp_only now always see the PSWF kernel (consulted in discussion
   #881). (Barbone, Barnett #879)
+* Fixed cuFINUFFT `opts.gpu_device_id`: the plan constructor ran with the caller's
+  current device, so on any device other than that one `cufftPlanMany`, the fseries
+  kernel and the plain-allocator thrust vectors bound to the wrong device and the
+  transform died with `cudaErrorIllegalAddress`. It now switches device like `setpts`
+  and `execute` already did. New `cufinufft_multigpu` test runs a 2D type-1 double
+  transform on every visible device, with and without a caller-owned `gpu_stream`, and
+  checks that an unusable `gpu_device_id` returns `FINUFFT_ERR_CUDA_FAILURE`; with only
+  one device visible the cross-device half cannot run and the test reports a ctest SKIP.
+  (Barbone)
 * Fixed the cuFINUFFT build against a CPM-fetched CCCL: it was added as an
   include-SYSTEM package, and nvcc searches its own include directory before
   every `-isystem` path, so `cuda/std/*` resolved to the CUDA toolkit's older
