@@ -250,6 +250,11 @@ cufinufft_plan_t<T>::cufinufft_plan_t(int type_, int dim_, const int *nmodes, in
   using namespace cufinufft::common;
   using namespace finufft::common;
 
+  // As in setpts/execute: everything below (cufftPlanMany, the fseries kernel, the
+  // plain-allocator thrust vectors) binds to the *current* device, not to
+  // opts.gpu_device_id, so the plan must be built with that device current.
+  DeviceSwitcher switcher(opts.gpu_device_id);
+
   if (type < 1 || type > 3) {
     fprintf(stderr, "[%s] Invalid type (%d): should be 1, 2, or 3.\n", __func__, type);
     throw finufft::exception(FINUFFT_ERR_TYPE_NOTVALID);
