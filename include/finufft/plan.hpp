@@ -155,6 +155,25 @@ public:
   // func to return total # fine grid points...
   BIGINT nf() const { return m.nfdim[0] * m.nfdim[1] * m.nfdim[2]; }
 
+  /* Threads that actually run one spread/interp call, which is also the most
+     subproblems worth splitting into.
+
+     Under opts.spread_thread=2 (the auto choice for ntr>1) the batch loop in
+     spreadinterpSortedBatch takes the threads and this call nests inside it. OpenMP
+     nesting is off by default - omp_get_max_active_levels()==1 - so the inner team
+     is one thread however many num_threads() asks for. Splitting into nthreads
+     subproblems there buys no parallelism and each one still pays for a padded
+     subgrid to zero and add back, so the count has to follow the real team size. */
+  int spreadNthreads() const {
+    if (opts.spread_thread == 2 && batchSize > 1) return 1;
+    const int nthr = m.spopts.nthreads > 0 ? m.spopts.nthreads : MY_OMP_GET_MAX_THREADS();
+#ifdef _OPENMP
+    return nthr;
+#else
+    return 1; // single-threaded lib overrides the user
+#endif
+  }
+
   int fftSign; // sign in exponential for NUFFT defn, guaranteed to be +-1
 
 public:
