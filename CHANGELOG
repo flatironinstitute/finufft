@@ -3,6 +3,23 @@ If not stated, FINUFFT is assumed (old cuFINUFFT <=1.3 is listed separately).
 
 v2.6.0-dev
 
+* cuFINUFFT: fixed the batched (many-transform) type-2 performance regression of #846.
+  `gpu_maxbatchsize=0` (the default) now sizes the batch from the fine grid and the
+  device's L2 cache instead of the fixed `min(ntransf, 8)`, a type 3's outer
+  spread-only plan is no longer batched and its inner type 2 is pinned to the outer
+  batch instead of re-deciding, the auto batch is evened out across batches so the
+  last one is not mostly stale grids that cuFFT transforms anyway (1.04-1.11x at
+  `ntransf` just past a batch boundary, e.g. 9 or 17 with an L2 cap of 8), and a
+  user-supplied `gpu_maxbatchsize` is honored as given, capped at `ntransf` (negative
+  values are now rejected instead of silently clamped). Device attributes are queried
+  once per plan into a `GpuCapabilities` struct shared by the binsize and batchsize
+  heuristics. Measured against the regressed master over 26 shapes on
+  Blackwell/H100/A100/Ada: type-2 mean 2.1-10.4x, up to 96x at small N with large
+  `ntransf`; no shape slower. Against v2.4.1, which predates the regression, the
+  batched type-2 shapes are back to 0.95-0.97x of their old time, i.e. this is a
+  restore rather than a new speedup. (Barbone)
+* cuFINUFFT: `cuperftest` takes `--maxbatchsize` to force a batch size, so one binary
+  can benchmark every batch size. (Barbone)
 * The spread/interp kernel is now PSWF (prolate) only: opts.spread_kerformula
   takes 0 (default) or 7,8,9 (PSWF shape-parameter choices); the legacy ES (1,2),
   Kaiser-Bessel (3,4) and cosh-type (5,6) formulas are removed and now return
