@@ -1,6 +1,7 @@
 // Per-dim instantiation TU: nupts-driven interp (gpu_method = 1).
 // Compiled three times via CMake foreach with -DCUFINUFFT_DIM={1,2,3}.
 
+#include <cstdint>
 #include <cufinufft/spreadinterp.hpp>
 #include <poet/poet.hpp>
 
@@ -74,7 +75,7 @@ void interp_nupts_driven_launch(const cufinufft_plan_t<T> &d_plan, cuda_complex<
   const dim3 blocks{(d_plan.M + threadsPerBlock.x - 1) / threadsPerBlock.x, 1, 1};
 
   const auto launch = [&](auto kernel) {
-    for (int t = 0; t < blksize; t++) {
+    for (std::int64_t t = 0; t < blksize; t++) {
       kernel<<<blocks, threadsPerBlock, 0, d_plan.stream>>>(d_plan, c + t * d_plan.M,
                                                             fw + t * d_plan.nf);
       THROW_IF_CUDA_ERROR();
