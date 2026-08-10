@@ -3,6 +3,13 @@ If not stated, FINUFFT is assumed (old cuFINUFFT <=1.3 is listed separately).
 
 v2.6.0-dev
 
+* cuFINUFFT: fixed 32-bit overflows on large 3D fine grids. The `MAX_NF` guards
+  multiplied `int` operands, so `nf` and `nf*gpu_maxbatchsize` wrapped before the
+  comparison could reject them and the allocation came out undersized; `deconvolve_nd`
+  and the execute loops accumulated `nmodes`, `nftot` and the per-batch offsets
+  `i*batchsize*{M,nf,nmodes}` in `int`, which index device memory. `MAX_NF` itself is
+  unchanged, so this only makes the existing bound enforceable. The index types stay
+  32-bit; widening them is tracked in #890. (Barbone)
 * cuFINUFFT: fixed the batched (many-transform) type-2 performance regression of #846.
   `gpu_maxbatchsize=0` (the default) now sizes the batch from the fine grid and the
   device's L2 cache instead of the fixed `min(ntransf, 8)`, a type 3's outer
