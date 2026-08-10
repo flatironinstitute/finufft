@@ -1,5 +1,9 @@
-These configurations are based off of manylinux2014, which is itself based off
-of centos8.
+Dockerfile-x86_64 extends manylinux_2_28 (AlmaLinux 8) with a CUDA toolkit,
+parameterized by the CUDA_VERSION and GCC_TOOLSET build args. Jenkins uses it to
+build, test and package cufinufft for each supported CUDA version; locally:
 
-These images extend manylinux with a compatible CUDA toolkit and runtime
-environment suitable for both building and running code inside docker.
+    podman build --file tools/cufinufft/docker/Dockerfile-x86_64 \
+                 --build-arg CUDA_VERSION=12.4 --build-arg GCC_TOOLSET=13 \
+                 --tag cufinufft-cuda12.4 .
+    podman run --rm --device nvidia.com/gpu=all -v $PWD:/io -w /io \
+               cufinufft-cuda12.4 tools/cufinufft/build-wheel.sh "70;80;90"

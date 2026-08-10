@@ -28,6 +28,13 @@ v2.6.0-dev
   was silently not the one compiled against. Fetching it non-SYSTEM exposed
   missing `<cuda/std/tuple>`, `<cuda/std/array>` and `<iostream>` includes.
   (Barbone)
+* Jenkins now tests cuFINUFFT on CUDA 11.8, 12.4, 12.8 and 13.0 in parallel
+  (V100 `sm_70`, A100 `sm_80`, RTX PRO 6000 Blackwell `sm_120`, A100 `sm_80`),
+  building the manylinux wheel on each with the release tooling and running the
+  Python suite against that wheel. The three per-version manylinux2014
+  Dockerfiles are replaced by one CUDA-version-parameterized manylinux_2_28
+  image, which also carries the GPU frameworks the Python suite needs. Minimum
+  tested CUDA is now 11.8. (Barbone)
 * Sanitizer CI builds now compile at `-O1 -fno-omit-frame-pointer` (working around an
   xsimd 14.3.0 constexpr immediate-argument folding bug at `-O0`), instrument the
   single-precision `finufft_f32` object library, and mark xsimd/ducc0 includes as
