@@ -14,7 +14,7 @@ Here is the full documentation for these functions.
 They have double (``cufinufft``) and single (``cufinufftf``) precision versions, which we document together.
 The mathematical transforms are exactly as performed by FINUFFT, to which we refer for their definitions.
 
-You will also want to read the examples in ``examples/cuda`` and ``test/cuda/cufinufft*.cu``, and may want to read extra documentation in the source at ``src/cuda/cufinufft.cu``.
+You will also want to read the examples in ``examples/cuda`` and ``test/cuda/cufinufft*.cu``, and may want to read extra documentation in the source at ``src/cuda/c_interface.cpp``.
 
 *Note*: The interface to cuFINUFFT has changed between versions 1.3 and 2.2.
 Please see :ref:`Migration to cuFINUFFT v2.2<cufinufft_migration>` for details.
@@ -414,7 +414,7 @@ Algorithm performance options
 
 **gpu_maxbatchsize**: ``0`` use heuristically defined batch size for vectorized (many-transforms with same NU points) interface, else set this batch size.
 
-**gpu_stream**: CUDA stream to use. Leave at default unless you know what you're doing.
+**gpu_stream**: ``cudaStream_t`` (cast to ``void*``) on which all of the plan's work is issued; ``nullptr`` (the default) means the default stream. See :ref:`CUDA streams<gpu_streams>`.
 
 **gpu_np**: Min batch size used for ``method 3`` (output-driven, OD). It has to be a multiple of 16. It controls how much of shared memory is left as GPU cache instead of being manually populated. Default is usually best.
 
@@ -423,12 +423,53 @@ Default options for GPU
 ~~~~~~~~~~~~~~~~~~~~~~~
 
 For all GPU option default values we refer to the source code in
-``src/cuda/cufinufft.cu:cufinufft_default_opts``:
+``src/cuda/c_interface.cpp:cufinufft_default_opts``:
 
-.. literalinclude:: ../src/cuda/cufinufft.cu
+.. literalinclude:: ../src/cuda/c_interface.cpp
    :start-after: @gpu_defopts_start
    :end-before: @gpu_defopts_end
 
 For examples of advanced options-switching usage, see ``test/cuda/cufinufft*.cu`` and ``perftest/cuda/cuperftest.cu``.
 
 You may notice a lack of debugging/timing options in the GPU code. This is to avoid CUDA writing to stdout. Please help us out by adding some of these.
+
+
+.. _gpu_streams:
+
+CUDA streams
+------------
+
+Set ``opts.gpu_stream`` before ``cufinufft_makeplan`` to run a plan on your own
+stream::
+
+    cudaStream_t stream;
+    cudaStreamCreate(&stream);
+    cufinufft_default_opts(&opts);
+    opts.gpu_stream = (void *)stream;
+
+The handle is read once, at plan creation; changing ``opts`` afterwards has no
+effect. Every kernel and memory operation issued by ``setpts`` and ``execute``
+then goes on that stream, so transforms overlap with work on other streams.
+Points to note:
+
+* A plan owns one device workspace, which ``setpts`` and ``execute`` overwrite.
+  Use one plan per stream; do not drive a single plan from several streams or
+  host threads at once.
+
+* ``cufinufft_execute`` is asynchronous: synchronize the stream before reading
+  its output on the host. ``cufinufft_setpts`` synchronizes the plan's stream
+  once (to size internal arrays from a device-computed count) for every
+  ``gpu_method`` other than ``1``, and for all type 3 transforms. This blocks
+  only the calling host thread, not other streams.
+
+* Internal workspaces use ``cudaMallocAsync``/``cudaFreeAsync`` on the plan's
+  stream. This needs device memory-pool support
+  (``cudaDevAttrMemoryPoolsSupported``); without it cuFINUFFT falls back to
+  ``cudaMalloc``/``cudaFree``, which synchronize the whole device and remove any
+  overlap. A warning is printed once in that case.
+
+* The plan stores the stream handle but does not own it: destroy the plan before
+  the stream.
+
+For a worked example overlapping host-device transfers with transforms on two
+streams, see ``python/cufinufft/examples/example3d2many_async_cupy.py``.

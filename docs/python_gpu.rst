@@ -60,6 +60,17 @@ This example, along with similar examples for other frameworks, can be found in 
 Other possible calculations are possible by supplying different options during plan creation.
 See the full API documentation below for more information.
 
+CUDA streams
+------------
+
+``cufinufft.Plan`` accepts ``gpu_stream=<stream pointer>`` (for example
+``cupy.cuda.Stream().ptr``) to run the plan on a given stream; the semantics and
+caveats are those of the C interface, see :ref:`CUDA streams<gpu_streams>`.
+Since the plan holds a raw, non-reference-counted handle, keep the stream object
+alive and delete the ``Plan`` before it.
+A double-buffered example is in
+``python/cufinufft/examples/example3d2many_async_cupy.py``.
+
 Full documentation
 ------------------
 

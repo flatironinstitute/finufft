@@ -68,6 +68,10 @@ class Plan:
                         ID), ``gpu_stream`` (CUDA stream pointer) and
                         ``modeord`` (0: CMCL-compatible mode ordering,
                         1: FFT-style mode ordering).
+
+    The stream given by ``gpu_stream`` is stored as a raw handle that the plan
+    does not keep alive: the stream object must outlive the ``Plan``. Execution
+    on it is asynchronous, so synchronize before reading the output.
     """
 
     def __init__(self, nufft_type, n_modes, n_trans=1, eps=1e-6, isign=None,
