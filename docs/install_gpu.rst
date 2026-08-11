@@ -48,6 +48,96 @@ This will return a text string such as ``8.6`` which would incidate
 
 Note that by default the ``CMAKE_CUDA_ARCHITECTURES`` flag is set to ``native``, which means that the code will be compiled for the compute capability of the GPU on which the code is being compiled.
 This might not be portable so it is recommended to set this flag explicitly when building for multiple systems. A good alternative is ``all-major`` which will compile for all major compute capabilities.
+If no GPU is visible at configure time (an HPC login node, or a container build) we fall back to ``all-major`` for you.
+
+
+.. _install_gpu_sites:
+
+Building on HPC clusters
+------------------------
+
+Site-specific settings live in ``CMakePresets.json`` at the repository root
+(see :ref:`presets <cmake-presets>`), which replaces the ``site=``/``target=``
+``sites/make.inc.*`` mechanism of the legacy standalone cufinufft repository.
+Two GPU presets cover every site we know of (the same sites also have
+``make.inc`` files for the :ref:`make route <install_gpu_make>`):
+
+======================  =========================================================
+Preset                  When to use it
+======================  =========================================================
+``gpu-fat``             Any cluster whose GPU nodes are not all the same model,
+                        or where you configure on a login node with no GPU
+                        (Flatiron ``rusty``, CIMS, most university clusters).
+``gpu-perlmutter``      NERSC Perlmutter: Cray ``cc``/``CC`` wrappers, A100
+                        (``sm_80``).
+======================  =========================================================
+
+On Perlmutter, from a login node:
+
+.. code-block:: bash
+
+    module load PrgEnv-gnu gpu cudatoolkit cmake
+    cmake --preset gpu-perlmutter
+    cmake --build --preset gpu-perlmutter -j
+
+Elsewhere, load the site's CUDA toolkit and a host compiler that ``nvcc``
+accepts, then:
+
+.. code-block:: bash
+
+    cmake --preset gpu-fat
+    cmake --build --preset gpu-fat -j
+
+If you know the GPU you will run on, override the architecture to cut compile
+time and binary size, e.g. ``cmake --preset gpu-fat -D
+CMAKE_CUDA_ARCHITECTURES=80`` (A100) or ``90`` (H100).
+
+.. note::
+
+    The CPU library is compiled with ``-march=native`` by default. If your
+    login node and your GPU nodes have different CPUs, either build on a GPU
+    node (``srun``/``salloc`` an interactive job) or pass a portable
+    ``-D FINUFFT_ARCH_FLAGS=-march=x86-64-v3``, otherwise the CPU part of the
+    build may die with an illegal instruction at run time.
+
+The legacy presets for NERSC Cori, Cori-GPU and OLCF Summit are not
+reproduced: those machines have been retired (Cori in 2023, Summit in 2024),
+and their settings were only a compute capability plus paths that CMake's
+``find_package(CUDAToolkit)`` now discovers by itself.
+
+
+.. _install_gpu_make:
+
+Classic GNU make route
+----------------------
+
+CMake is the tested route (it is what CI builds), but the makefile also builds
+the GPU library, for sites where a ``make.inc`` is the path of least
+resistance:
+
+.. code-block:: bash
+
+    make cufinufft -j       # lib/libcufinufft.so and lib-static/libcufinufft.a
+    make checkgpu           # compile and run 1d/2d/3d GPU math tests (needs a GPU)
+
+Settings are overridden as usual by copying one of ``make-platforms/make.inc.*``
+to ``make.inc`` in the repository root. The site files ``make.inc.FI``,
+``make.inc.CIMS`` and ``make.inc.nersc_perlmutter`` are ported from the legacy
+standalone cufinufft's ``sites/`` directory. The GPU-specific variables are:
+
+=================  ==========================================================
+Variable           Meaning (default)
+=================  ==========================================================
+``NVCC``           CUDA compiler (``nvcc``).
+``NVARCH``         Architecture flags (``-arch=all-major``, ie a fat binary
+                   that needs no GPU present to build). For a single known
+                   GPU use eg ``-arch=sm_80``, which compiles much faster.
+``CXX``            also used as ``nvcc``'s host compiler (``-ccbin``).
+=================  ==========================================================
+
+This route builds the same sources with equivalent flags, but does not handle
+CCCL version pinning (it uses the CUDA toolkit's own copy), installation, or
+the Python/MATLAB GPU interfaces; use CMake for those.
 
 
 Testing

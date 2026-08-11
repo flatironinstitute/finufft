@@ -108,6 +108,27 @@
       }
     },
     {
+      "name": "gpu-fat",
+      "displayName": "GPU (cuFINUFFT), portable fat binary",
+      "description": "Like 'gpu' but embeds code for every major compute capability the CUDA toolkit supports, so the binary runs on any GPU node and the build needs no GPU present. Use on HPC login nodes and for mixed-GPU clusters (e.g. Flatiron rusty, CIMS). Compiles slower than 'gpu'.",
+      "inherits": "gpu",
+      "cacheVariables": {
+        "CMAKE_CUDA_ARCHITECTURES": "all-major"
+      }
+    },
+    {
+      "name": "gpu-perlmutter",
+      "displayName": "GPU (cuFINUFFT) on NERSC Perlmutter",
+      "description": "Cray compiler wrappers and A100 (sm_80); configures and builds on the login node. Needs 'module load PrgEnv-gnu gpu cudatoolkit cmake'.",
+      "inherits": "gpu",
+      "cacheVariables": {
+        "CMAKE_C_COMPILER": "cc",
+        "CMAKE_CXX_COMPILER": "CC",
+        "CMAKE_CUDA_HOST_COMPILER": "CC",
+        "CMAKE_CUDA_ARCHITECTURES": "80"
+      }
+    },
+    {
       "name": "all",
       "displayName": "All (CPU + GPU + tests)",
       "description": "Build both CPU and GPU libraries with tests and examples.",
@@ -143,6 +164,8 @@
     { "name": "fortran", "configurePreset": "fortran" },
     { "name": "matlab", "configurePreset": "matlab" },
     { "name": "gpu", "configurePreset": "gpu" },
+    { "name": "gpu-fat", "configurePreset": "gpu-fat" },
+    { "name": "gpu-perlmutter", "configurePreset": "gpu-perlmutter" },
     { "name": "all", "configurePreset": "all" },
     { "name": "all-wrappers", "configurePreset": "all-wrappers" }
   ],

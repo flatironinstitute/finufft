@@ -1,4 +1,5 @@
-# Makefile for FINUFFT (CPU code only, and its various interfaces)
+# Makefile for FINUFFT (CPU code and its various interfaces, plus the GPU
+# library via the 'cufinufft' target)
 
 # For simplicity, this is the only makefile; there are no makefiles in
 # subdirectories. This makefile is also useful to show humans how to compile
@@ -71,10 +72,11 @@ XSIMD_URL := https://github.com/xtensor-stack/xsimd.git
 XSIMD_VERSION := 6842624
 XSIMD_DIR := $(DEPS_ROOT)/xsimd
 
-# POET header-only dispatcher dependency repo (VERSION can be a tag or commit)
-POET_URL := https://github.com/DiamonDinoia/poet.git
-POET_VERSION := v0.0.0
+# POET dispatcher dependency: each release ships one amalgamated header (with
+# the generated poet/version.hpp inlined), so VERSION must be a release tag
+POET_VERSION := v0.0.1
 POET_DIR := $(DEPS_ROOT)/poet
+POET_URL := https://github.com/flatironinstitute/poet/releases/download/$(POET_VERSION)/poet.hpp
 
 # DUCC sources optional dependency repo
 DUCC_URL := https://github.com/mreineck/ducc.git
@@ -168,15 +170,17 @@ COMMON_OBJS = src/fft.o src/c_interface.o fortran/finufftfort.o
 # all lib dual-precision objs (note DUCC_OBJS empty if unused)
 OBJS = $(SOBJS) $(PRECISION_OBJS) $(PRECISION_OBJS:%.o=%_f.o) $(COMMON_OBJS) $(DUCC_OBJS)
 
-.PHONY: usage lib examples test perftest spreadtest spreadtestall fortran matlab octave all mex python clean objclean pyclean mexclean wheel docker-wheel gurutime docs setup setupclean
+.PHONY: usage lib cufinufft checkgpu examples test perftest spreadtest spreadtestall fortran matlab octave all mex python clean objclean pyclean mexclean wheel docker-wheel gurutime docs setup setupclean
 
 default: usage
 
 all: test lib examples fortran matlab octave python spreadtest spreadtestsweep perftest
 
 usage:
-	@echo "Makefile for FINUFFT CPU library. Please specify your task:"
-	@echo " make lib - build the main library (in lib/ and lib-static/)"
+	@echo "Makefile for FINUFFT. Please specify your task:"
+	@echo " make lib - build the main CPU library (in lib/ and lib-static/)"
+	@echo " make cufinufft - build the GPU library (needs the CUDA toolkit)"
+	@echo " make checkgpu - compile and run quick GPU math validation tests"
 	@echo " make examples - compile and run all codes in examples/"
 	@echo " make test - compile and run quick math validation tests"
 	@echo " make fortran - compile and run Fortran tests and examples"
@@ -254,6 +258,68 @@ endif
 # here $(OMPFLAGS) and $(LIBSFFT) is even needed for linking under mac osx.
 # see: http://www.cprogramming.com/tutorial/shared-libraries-linux-gcc.html
 # Also note -l libs come after objects, as per modern GCC requirement.
+
+
+# GPU library (cuFINUFFT) ----------------------------------------------------
+# Needs the CUDA toolkit (nvcc + cuFFT); CMake remains the tested route, this
+# mirrors src/cuda/CMakeLists.txt for sites that build with the makefile.
+# Override NVCC/NVARCH (and CXX, used as nvcc's host compiler) in make.inc;
+# see make-platforms/make.inc.{FI,CIMS,nersc_perlmutter} for site examples.
+NVCC ?= nvcc
+# fat binary by default: no GPU is needed at build time and the result runs on
+# any device the toolkit supports. For one known GPU use eg NVARCH = -arch=sm_80
+NVARCH ?= -arch=all-major
+CUINCL = -Iinclude -Icontrib -I$(POET_DIR)/include -Isrc/cuda
+NVCCFLAGS := -O3 -std=c++17 $(NVARCH) $(CUINCL) -ccbin=$(CXX) --extended-lambda \
+	     --extra-device-vectorization -Xcompiler "-fPIC -fvisibility=hidden" $(NVCCFLAGS)
+# pure-host TUs of the GPU lib (no kernels): -x c++ hands them straight to the
+# host compiler, but still with nvcc's include paths (cuda_runtime.h, CCCL)
+CUXXFLAGS := -x c++ -O3 -std=c++17 $(CUINCL) -ccbin=$(CXX) -Xcompiler "-fPIC -fvisibility=hidden" $(CUXXFLAGS)
+CULIBS = -lcufft -lcudart
+CULIBNAME = libcufinufft
+CUDYNLIB = lib/$(CULIBNAME).so
+CUSTATICLIB = lib-static/$(CULIBNAME).a
+ABSCUDYNLIB = $(FINUFFT)$(CUDYNLIB)
+
+# device TUs...
+CUOBJS := $(addprefix src/cuda/,fft.o heuristics.o makeplan.o setpts.o execute.o spread_blockgather_inst.o)
+# ...plus each *_inst.cu compiled once per dim (as configure_file does in CMake)
+CUMETHODS = spread_nupts_driven spread_subprob spread_output_driven interp_nupts_driven interp_subprob
+CUOBJS += $(foreach m,$(CUMETHODS),$(foreach d,1 2 3,src/cuda/$(m)_$(d)d.o))
+# ...plus host-only TUs, and the precision-independent common objects
+CUOBJS += src/cuda/c_interface.o src/cuda/spreadinterp.o $(SOBJS)
+CUHEADERS = $(HEADERS) $(POET_DIR)/include/poet/poet.hpp $(wildcard include/cufinufft/*.hpp src/cuda/*.cuh)
+
+src/cuda/%_1d.o: src/cuda/%_inst.cu $(CUHEADERS)
+	$(NVCC) $(NVCCFLAGS) -DCUFINUFFT_DIM=1 -c $< -o $@
+src/cuda/%_2d.o: src/cuda/%_inst.cu $(CUHEADERS)
+	$(NVCC) $(NVCCFLAGS) -DCUFINUFFT_DIM=2 -c $< -o $@
+src/cuda/%_3d.o: src/cuda/%_inst.cu $(CUHEADERS)
+	$(NVCC) $(NVCCFLAGS) -DCUFINUFFT_DIM=3 -c $< -o $@
+src/cuda/%.o: src/cuda/%.cu $(CUHEADERS)
+	$(NVCC) $(NVCCFLAGS) -c $< -o $@
+src/cuda/%.o: src/cuda/%.cpp $(CUHEADERS)
+	$(NVCC) $(CUXXFLAGS) -c $< -o $@
+
+cufinufft: $(CUSTATICLIB) $(CUDYNLIB)
+$(CUSTATICLIB): $(CUOBJS)
+	ar rcs $(CUSTATICLIB) $(CUOBJS)
+	@echo "$(CUSTATICLIB) built, $(NVARCH)"
+$(CUDYNLIB): $(CUOBJS)
+	$(NVCC) -shared $(NVARCH) -ccbin=$(CXX) $(CUOBJS) -o $(ABSCUDYNLIB) $(CULIBS) $(OMPLIBS)
+	@echo "$(CUDYNLIB) built, $(NVARCH)"
+
+# GPU math validation: needs an actual GPU (submit to a compute node on a cluster)
+# these use the internal C++ API, which the .so hides (-fvisibility=hidden), so
+# they link against the archive
+CUTESTS = test/cuda/cufinufft1d_test test/cuda/cufinufft2d_test test/cuda/cufinufft3d_test
+test/cuda/%: test/cuda/%.cu $(CUSTATICLIB)
+	$(NVCC) $(NVCCFLAGS) $< $(CUSTATICLIB) $(CULIBS) $(LIBS) -o $@
+checkgpu: $(CUTESTS)
+	test/cuda/cufinufft1d_test 0 1 2e3 4e3 1e-8 1e-7 d 2.0
+	test/cuda/cufinufft2d_test 0 1 2e2 2e2 4e3 1e-8 1e-7 d 2.0
+	test/cuda/cufinufft3d_test 0 1 20 40 30 4e3 1e-8 1e-7 d 2.0
+	@echo "GPU math tests passed"
 
 
 # examples (C++/C) -----------------------------------------------------------
@@ -538,12 +604,12 @@ $(XSIMD_DIR)/include/xsimd/xsimd.hpp:
 	$(call clone_repo,$(XSIMD_URL),$(XSIMD_VERSION),$(XSIMD_DIR))
 	@echo "xsimd installed in deps/xsimd"
 
-# download: POET header-only dispatcher, no compile needed...
+# download: POET, one self-contained header, no compile needed...
 $(POET_DIR)/include/poet/poet.hpp:
-	mkdir -p $(DEPS_ROOT)
-	@echo "Checking POET external dependency..."
-	$(call clone_repo,$(POET_URL),$(POET_VERSION),$(POET_DIR))
-	@echo "POET installed in deps/poet"
+	mkdir -p $(dir $@)
+	@echo "Downloading POET $(POET_VERSION)..."
+	curl -sSfL -o $@ $(POET_URL)
+	@echo "POET installed in $(POET_DIR)"
 
 # download DUCC... (an empty target just used to track if installed)
 $(DUCC_COOKIE):
@@ -582,9 +648,9 @@ docs/matlabhelp.doc: docs/genmatlabhelp.sh matlab/*.sh matlab/*.docsrc matlab/*.
 clean: objclean pyclean
 ifneq ($(MINGW),ON)
   # non-Windows-WSL clean up...
-	rm -f $(STATICLIB) $(DYNLIB)
+	rm -f $(STATICLIB) $(DYNLIB) $(CUSTATICLIB) $(CUDYNLIB)
 	rm -f matlab/finufft.mex*
-	rm -f $(TESTS) test/results/*.out perftest/results/*.out
+	rm -f $(TESTS) $(CUTESTS) test/results/*.out perftest/results/*.out
 	rm -f $(EXAMPLES) $(FE) $(ST) $(STF) $(STA) $(STAF) $(GTT) $(GTTF)
 	rm -f perftest/manysmallprobs perftest/big2d2f
 	rm -f examples/core test/core perftest/core $(FE_DIR)/core
@@ -606,7 +672,7 @@ endif
 objclean:
 ifneq ($(MINGW),ON)
   # some system other than Windows-WSL... (note: cleans DUCC objects regardless of FFT choice)
-	rm -f src/*.o src/common/*.o test/*.o examples/*.o matlab/*.o
+	rm -f src/*.o src/common/*.o src/cuda/*.o test/*.o examples/*.o matlab/*.o
 	rm -f fortran/*.o $(FE_DIR)/*.o $(FD)/*.o finufft_mod.mod
 	rm -f $(DUCC_SRC)/infra/*.o $(DUCC_SRC)/math/*.o
 else

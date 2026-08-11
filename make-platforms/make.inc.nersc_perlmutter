@@ -1,0 +1,18 @@
+# NERSC Perlmutter (GPU nodes are NVIDIA A100 only). Successor of the legacy
+# standalone cufinufft's sites/make.inc.nersc_perlmutter.
+# Copy to ../make.inc, then from a login node:
+#   module load PrgEnv-gnu gpu cudatoolkit cray-fftw
+#   make lib cufinufft -j
+# and run the GPU tests from a compute node ('salloc -C gpu -G1', make checkgpu).
+# The CMake equivalent is 'cmake --preset gpu-perlmutter'.
+
+# Cray compiler wrappers: they add the CUDA/FFTW/MPI include and library paths
+CXX = CC
+CC = cc
+FC = ftn
+
+# no fat binary needed: every GPU node is an A100
+NVARCH = -arch=sm_80
+CUDA_ROOT = $(CUDATOOLKIT_HOME)
+
+# login and GPU nodes are both AMD Milan, so -march=native (the default) is safe

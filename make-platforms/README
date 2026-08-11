@@ -5,3 +5,10 @@ Please copy one of these up to ../make.inc and possibly modify for
 your needs.
 
 Barnett 1/7/25
+
+The site files (make.inc.FI, make.inc.CIMS, make.inc.nersc_perlmutter) come
+from the legacy standalone cufinufft repo's sites/ directory, and cover both
+the CPU and GPU ('make cufinufft') builds. Its make.inc.nersc_cori,
+make.inc.nersc_cgpu and make.inc.olcf_summit were dropped: those machines have
+been retired (Cori 2023, Summit 2024). See docs/install_gpu.rst for the
+equivalent CMake presets.

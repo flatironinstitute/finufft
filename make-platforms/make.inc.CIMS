@@ -1,0 +1,10 @@
+# CIMS: NYU Courant Institute compute servers.
+# Ported from the legacy standalone cufinufft's sites/make.inc.CIMS, whose
+# CUDA_ROOT/INC/lib64 settings are no longer needed: put nvcc on your PATH
+# (module load cuda) and the makefile finds the toolkit through it.
+# Copy to ../make.inc, then 'make lib cufinufft -j'.
+# The CMake equivalent is 'cmake --preset gpu-fat'.
+
+# the GPUs here are not all the same model; -arch=all-major (the default) covers
+# them. The legacy file pinned the V100s:
+#NVARCH = -arch=sm_70

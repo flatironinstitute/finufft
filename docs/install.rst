@@ -3,10 +3,11 @@
 Installation
 ============
 
-There are two main routes to compile the CPU library from source:
-via CMake (the recommended modern way, being more platform-independent, and also the
-only way to build the GPU library),
+There are two main routes to compile the library from source:
+via CMake (the recommended modern way, being more platform-independent, and the
+only route for the Python/MATLAB GPU interfaces),
 or via a GNU ``makefile`` (which has settings for platforms on linux, OSX, Windows).
+Both can build the GPU library (see :ref:`Installation (GPU) <install_gpu>`).
 We currently support both, and detail them in that order in the text below.
 The main language requirements are a C/C++ compiler supporting OpenMP and the
 C++17 standard.
@@ -160,6 +161,9 @@ Preset              When to use it
 ``fortran``         Build the Fortran wrappers and examples.
 ``matlab``          Build the MATLAB MEX interface.
 ``gpu``             Build the cuFINUFFT GPU library (CUDA toolchain required).
+``gpu-fat``         GPU build for mixed GPU models, or a login node with no GPU
+                    (see :ref:`HPC clusters <install_gpu_sites>`).
+``gpu-perlmutter``  GPU build on NERSC Perlmutter (Cray wrappers, A100).
 ``all``             CPU + GPU + tests in one configuration.
 ``all-wrappers``    Every CPU language wrapper at once (MATLAB + Fortran + DUCC0).
 ==================  =================================================================
@@ -308,6 +312,8 @@ Have a look in ``make-platforms/`` to see what is available, and/or edit your ``
   make-platforms/make.inc.windows_msys
 
 Thus, those are the recommended files for OSX or Windows users to try as their ``make.inc``.
+The makefile also builds the GPU library via ``make cufinufft``; see
+:ref:`the GPU make route <install_gpu_make>`.
 
 .. note::
 

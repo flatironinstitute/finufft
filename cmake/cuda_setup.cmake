@@ -3,6 +3,9 @@
 include_guard(GLOBAL)
 
 function(detect_cuda_architecture)
+    # No GPU visible (HPC login node, container build): "native" would fail at
+    # compile time, "all-major" always builds and runs anywhere.
+    set(fallback "all-major")
     find_program(NVIDIA_SMI_EXECUTABLE nvidia-smi)
     if(NVIDIA_SMI_EXECUTABLE)
         execute_process(
@@ -32,13 +35,15 @@ function(detect_cuda_architecture)
         endif()
         message(
             WARNING
-            "Could not parse compute capability from nvidia-smi output '${compute_caps_raw}'. Using 'native'."
+            "Could not parse compute capability from nvidia-smi output '${compute_caps_raw}'. Using '${fallback}'."
         )
-        set(CMAKE_CUDA_ARCHITECTURES "native" CACHE STRING "CUDA SMs" FORCE)
     else()
-        message(WARNING "nvidia-smi not found. Using 'native'.")
-        set(CMAKE_CUDA_ARCHITECTURES "native" CACHE STRING "CUDA SMs" FORCE)
+        message(
+            WARNING
+            "nvidia-smi not found. Using '${fallback}'; pass -DCMAKE_CUDA_ARCHITECTURES=<sm> to target one GPU."
+        )
     endif()
+    set(CMAKE_CUDA_ARCHITECTURES "${fallback}" CACHE STRING "CUDA SMs" FORCE)
 endfunction()
 
 # Only detect if user didn't supply it on the command line/preset

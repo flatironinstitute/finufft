@@ -1,0 +1,23 @@
+# FI: Flatiron Institute, rusty cluster GPU nodes (mixed V100/A100/H100).
+# Ported from the legacy standalone cufinufft's sites/make.inc.FI (Barnett
+# 12/2/21), whose sm_80 plus gencode list is now just the default fat binary.
+# Copy to ../make.inc, then:
+#   module load gcc cuda
+#   make lib cufinufft -j
+# and to test on a GPU node:
+#   srun -p gpu -N1 --gpus=1 -c1 --constraint=a100 --exclusive --pty bash -i
+#   make checkgpu
+# The CMake equivalent is 'cmake --preset gpu-fat'.
+
+# GPU nodes are not all the same model, so keep the default fat binary
+# (-arch=all-major). If you only ever use one node type, eg:
+#NVARCH = -arch=sm_80
+
+# login and GPU nodes have different CPUs, so the default -march=native can
+# build a CPU library that dies with an illegal instruction on the GPU node.
+# This AVX2 baseline (needs GCC >= 11) runs on all of them; drop it if you
+# compile on the same node type you run on.
+CFLAGS = -O3 -funroll-loops -march=x86-64-v3 -fcx-limited-range -ffp-contract=fast \
+	 -fno-math-errno -fno-signed-zeros -fno-trapping-math -fassociative-math \
+	 -freciprocal-math -fmerge-all-constants -ftree-vectorize
+CXXFLAGS = $(CFLAGS)
