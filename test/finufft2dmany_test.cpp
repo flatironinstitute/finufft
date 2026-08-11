@@ -9,9 +9,9 @@ using namespace finufft::utils;
 const char *help[] = {
     "Tester for FINUFFT in 2d, vectorized, all 3 types, either precision.",
     "",
-    "Usage: finufft2dmany_test ntrans Nmodes1 Nmodes2 Nsrc [tol [debug [spread_thread "
-    "[maxbatchsize [spreadsort [upsampfac [errfail]]]]]]]",
-    "\teg:\tfinufft2dmany_test 100 1e2 1e2 1e5 1e-6 1 0 0 2 0.0 1e-5",
+    "Usage: finufft2dmany_test ntrans Nmodes1 Nmodes2 Nsrc [tol [debug "
+    "[maxbatchsize [spreadsort [upsampfac [errfail]]]]]]",
+    "\teg:\tfinufft2dmany_test 100 1e2 1e2 1e5 1e-6 1 0 2 0.0 1e-5",
     "\tnotes:\tif errfail present, exit code 1 if consistency error > errfail",
     NULL};
 // Melody Shih Jun 2018; Barnett removed many_seq 7/27/18. Extra args 5/21/20.
@@ -25,7 +25,7 @@ int main(int argc, char *argv[]) {
   FINUFFT_DEFAULT_OPTS(&opts);
   // opts.fftw = FFTW_MEASURE;  // change from default FFTW_ESTIMATE
   int isign = +1; // choose which exponential sign to test
-  if (argc < 5 || argc > 12) {
+  if (argc < 5 || argc > 11) {
     for (int i = 0; help[i]; ++i) fprintf(stderr, "%s\n", help[i]);
     return 2;
   }
@@ -40,14 +40,13 @@ int main(int argc, char *argv[]) {
   if (argc > 5) sscanf(argv[5], "%lf", &tol);
   if (argc > 6) sscanf(argv[6], "%d", &opts.debug);
   opts.spread_debug = (opts.debug > 1) ? 1 : 0; // see output from spreader
-  if (argc > 7) sscanf(argv[7], "%d", &opts.spread_thread);
-  if (argc > 8) sscanf(argv[8], "%d", &opts.maxbatchsize);
-  if (argc > 9) sscanf(argv[9], "%d", &opts.spread_sort);
-  if (argc > 10) {
-    sscanf(argv[10], "%lf", &w);
+  if (argc > 7) sscanf(argv[7], "%d", &opts.maxbatchsize);
+  if (argc > 8) sscanf(argv[8], "%d", &opts.spread_sort);
+  if (argc > 9) {
+    sscanf(argv[9], "%lf", &w);
     opts.upsampfac = (FLT)w;
   }
-  if (argc > 11) sscanf(argv[11], "%lf", &errfail);
+  if (argc > 10) sscanf(argv[10], "%lf", &errfail);
 
   cout << scientific << setprecision(15);
   BIGINT N = N1 * N2;

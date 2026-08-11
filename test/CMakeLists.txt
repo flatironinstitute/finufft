@@ -91,7 +91,7 @@ function(add_tests_with_prec PREC REQ_TOL CHECK_TOL SUFFIX)
 
     add_test(
         NAME run_finufft1dmany_test_${PREC}
-        COMMAND finufft1dmany_test${SUFFIX} 3 1e2 2e2 ${REQ_TOL} 0 0 0 2 0.0 ${CHECK_TOL}
+                COMMAND finufft1dmany_test${SUFFIX} 3 1e2 2e2 ${REQ_TOL} 0 0 2 0.0 ${CHECK_TOL}
         WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
     )
 
@@ -103,7 +103,7 @@ function(add_tests_with_prec PREC REQ_TOL CHECK_TOL SUFFIX)
 
     add_test(
         NAME run_finufft2dmany_test_${PREC}
-        COMMAND finufft2dmany_test${SUFFIX} 3 1e2 1e1 1e3 ${REQ_TOL} 0 0 0 2 0.0 ${CHECK_TOL}
+        COMMAND finufft2dmany_test${SUFFIX} 3 1e2 1e1 1e3 ${REQ_TOL} 0 0 2 0.0 ${CHECK_TOL}
         WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
     )
 
@@ -115,7 +115,7 @@ function(add_tests_with_prec PREC REQ_TOL CHECK_TOL SUFFIX)
 
     add_test(
         NAME run_finufft3dmany_test_${PREC}
-        COMMAND finufft3dmany_test${SUFFIX} 2 5 10 20 1e2 ${REQ_TOL} 0 0 0 2 0.0 ${CHECK_TOL}
+        COMMAND finufft3dmany_test${SUFFIX} 2 5 10 20 1e2 ${REQ_TOL} 0 0 2 0.0 ${CHECK_TOL}
         WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
     )
 

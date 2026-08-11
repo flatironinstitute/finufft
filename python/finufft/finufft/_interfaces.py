@@ -515,7 +515,6 @@ def err_handler(ier):
         10: "FINUFFT transform type invalid",
         11: "FINUFFT general malloc failure",
         12: "FINUFFT number of dimensions dim invalid",
-        13: "FINUFFT spread_thread option invalid",
         25: "FINUFFT unknown internal exception",
         26: "FINUFFT eps tolerance too small to achieve",
     }

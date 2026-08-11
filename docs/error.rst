@@ -22,7 +22,6 @@ has the following meanings which are used by both CPU and GPU versions
   10 transform type invalid
   11 general internal allocation failure
   12 dimension invalid
-  13 spread_thread option invalid
   14 invalid mode array (more than ~2^31 modes, dimension with 0 modes, etc)
   15 CUDA failure (failure to call any cuda function/kernel, malloc/memset, etc))
   16 attempt to destroy an uninitialized plan

@@ -72,16 +72,6 @@ int main(void) {
   }
 #endif
 
-  // Invalid spread_thread -> expect FINUFFT_ERR_SPREAD_THREAD_NOTVALID
-  finufft_default_opts(&opts);
-  opts.spread_thread = 3;
-  rc                 = finufft_makeplan(1, 1, N, 1, 1, 1e-6, &plan, &opts);
-  if (rc != FINUFFT_ERR_SPREAD_THREAD_NOTVALID) {
-    fprintf(stderr, "spread_thread invalid: expected %d got %d\n",
-            FINUFFT_ERR_SPREAD_THREAD_NOTVALID, rc);
-    return 8;
-  }
-
   // Invalid upsampfac -> expect FINUFFT_ERR_UPSAMPFAC_TOO_SMALL
   finufft_default_opts(&opts);
   opts.upsampfac = 1.0;

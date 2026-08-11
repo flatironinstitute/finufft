@@ -468,7 +468,7 @@ perftest: $(ST) $(STF) $(PERFEXECS) spreadtestsweep gurutime manysmallprobs bigt
 GTT=perftest/guru_timing_test
 GTTF=$(GTT)f
 gurutime: $(GTT) $(GTTF)
-	for i in $(GTT) $(GTTF); do $$i 100 1 2 1e2 1e2 0 1e6 1e-3 1 0 0 2; done
+	for i in $(GTT) $(GTTF); do $$i 100 1 2 1e2 1e2 0 1e6 1e-3 1 0 2; done
 
 # This was for a CCQ application... (zgemm was 10x faster! double-prec only)
 manysmallprobs: perftest/manysmallprobs

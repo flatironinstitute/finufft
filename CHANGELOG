@@ -20,6 +20,32 @@ v2.6.0-dev
   checks that an unusable `gpu_device_id` returns `FINUFFT_ERR_CUDA_FAILURE`; with only
   one device visible the cross-device half cannot run and the test reports a ctest SKIP.
   (Barbone)
+* Deprecated `opts.spread_thread`. Both directions now use all threads on the
+  whole batch, so there is nothing left to select. Spreading folds the batch loop
+  into the loop over subproblems (Sec. 5.2 of the FINUFFT paper), so (vector,
+  subproblem) pairs are what get assigned to threads and the paper's `omp
+  critical` on the add back becomes a per-vector lock; interp writes to distinct
+  outputs per thread, so it still takes the vectors in sequence with all threads
+  on each. The old automatic choice for ntr>1, `2`, only kept as many threads busy
+  as the batch was long: OMP nesting is off by default, so each vector still split
+  into `nthreads` subproblems, which one thread ran in sequence. Measures at least
+  as fast as either former scheme at every ntr. The field is retained for ABI
+  compatibility, is ignored, and emits a compiler deprecation warning in C++; the
+  argument was dropped from the `finufft?dmany_test` and `guru_timing_test` CLIs
+  and from the MATLAB opts parser (where an unknown field is silently ignored, so
+  old scripts still run). Error code 13
+  (`FINUFFT_ERR_SPREAD_THREAD_NOTVALID`) is no longer returned: the enum value is
+  kept and marked deprecated, but its dead string mappings were dropped from
+  `safe_call.h`, `matlab/errhandler.m`, the Python error table and
+  `docs/error.rst`. The MATLAB gateway `matlab/finufft.cpp` was regenerated with
+  mwrap 1.3.5 (the checked-in file dated from mwrap 1.1), which also picks up
+  mwrap's own fixes: braces in the complex-array copy macro (the old expansion
+  advanced the write pointer twice per element and set `.imag` outside the loop),
+  a real-valued scalar now read via `mxGetDoubles`/`mxGetSingles` instead of the
+  complex accessor, `sprintf` -> `snprintf`, and removal of the dead GPU-array
+  macros from the CPU gateway. Verified by building the mex under Octave and
+  running the MATLAB interface tests (`fullmathtest`, `check_finufft`,
+  `check_finufft_single`, guru examples). (Barbone)
 * Fixed the cuFINUFFT build against a CPM-fetched CCCL: it was added as an
   include-SYSTEM package, and nvcc searches its own include directory before
   every `-isystem` path, so `cuda/std/*` resolved to the CUDA toolkit's older

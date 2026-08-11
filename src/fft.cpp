@@ -400,13 +400,9 @@ template<typename TF> void FINUFFT_PLAN_T<TF>::init_grid_kerFT_FFT() {
 
     if (opts.debug) { // "long long" here is to avoid warnings with printf...
       printf("[%s] %dd spreadinterponly(dir=%d): (ms,mt,mu)=(%lld,%lld,%lld)"
-             "\n               ntrans=%d nthr=%d batchSize=%d kernel width ns=%d",
+             "\n               ntrans=%d nthr=%d batchSize=%d kernel width ns=%d\n",
              __func__, dim, type, (long long)mstu[0], (long long)mstu[1],
              (long long)mstu[2], ntrans, opts.nthreads, batchSize, m.spopts.nspread);
-      if (batchSize == 1) // spread_thread has no effect in this case
-        printf("\n");
-      else
-        printf(" spread_thread=%d\n", opts.spread_thread);
     }
 
   } else {               // ..... usual NUFFT: eval Fourier series, alloc workspace .....
@@ -429,14 +425,10 @@ template<typename TF> void FINUFFT_PLAN_T<TF>::init_grid_kerFT_FFT() {
     if (opts.debug) { // "long long" here is to avoid warnings with printf...
       printf("[%s] %dd%d: (ms,mt,mu)=(%lld,%lld,%lld) "
              "(nf1,nf2,nf3)=(%lld,%lld,%lld)\n               ntrans=%d nthr=%d "
-             "batchSize=%d ",
+             "batchSize=%d\n",
              __func__, dim, type, (long long)mstu[0], (long long)mstu[1],
              (long long)mstu[2], (long long)m.nfdim[0], (long long)m.nfdim[1],
              (long long)m.nfdim[2], ntrans, opts.nthreads, batchSize);
-      if (batchSize == 1) // spread_thread has no effect in this case
-        printf("\n");
-      else
-        printf(" spread_thread=%d\n", opts.spread_thread);
     }
 
     // STEP 0: get Fourier coeffs of spreading kernel along each fine grid dim

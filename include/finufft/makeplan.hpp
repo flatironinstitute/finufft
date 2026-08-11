@@ -412,14 +412,6 @@ FINUFFT_PLAN_T<TF>::FINUFFT_PLAN_T(int type_, int dim_, const BIGINT *n_modes, i
     batchSize = std::min(opts.maxbatchsize, ntrans);
     nbatch    = 1 + (ntrans - 1) / batchSize;          // resulting # batches
   }
-  // opts.spread_thread is deprecated and ignored: both directions are now threaded
-  // over the whole batch at once. Still validated so error 13 stays reachable.
-  if (opts.spread_thread == 0) opts.spread_thread = 2;
-  if (opts.spread_thread != 1 && opts.spread_thread != 2) {
-    fprintf(stderr, "[%s] illegal opts.spread_thread!\n", __func__);
-    throw finufft::exception(FINUFFT_ERR_SPREAD_THREAD_NOTVALID);
-  }
-
   if (type != 3) { // read in user Fourier mode array sizes...
     for (int idim = 0; idim < 3; ++idim) {
       mstu[idim] = (idim < dim) ? n_modes[idim] : 1;

@@ -78,7 +78,7 @@ fi
 
 ((N++))
 T=finufft1dmany_test$PRECSUF
-./$T$FEX 3 1e2 1e3 $FINUFFT_REQ_TOL 0 0 0 2 0.0 $CHECK_TOL 2>$DIR/$T.err.out | tee $DIR/$T.out
+./$T$FEX 3 1e2 1e3 $FINUFFT_REQ_TOL 0 0 2 0.0 $CHECK_TOL 2>$DIR/$T.err.out | tee $DIR/$T.out
 E=${PIPESTATUS[0]}
 if [[ $E -eq 0 ]]; then echo passed; elif [[ $E -eq $SIGSEGV ]]; then
 	echo crashed
@@ -102,7 +102,7 @@ fi
 
 ((N++))
 T=finufft2dmany_test$PRECSUF
-./$T$FEX 3 1e2 1e1 1e3 $FINUFFT_REQ_TOL 0 0 0 2 0.0 $CHECK_TOL 2>$DIR/$T.err.out | tee $DIR/$T.out
+./$T$FEX 3 1e2 1e1 1e3 $FINUFFT_REQ_TOL 0 0 2 0.0 $CHECK_TOL 2>$DIR/$T.err.out | tee $DIR/$T.out
 E=${PIPESTATUS[0]}
 if [[ $E -eq 0 ]]; then echo passed; elif [[ $E -eq $SIGSEGV ]]; then
 	echo crashed
@@ -126,7 +126,7 @@ fi
 
 ((N++))
 T=finufft3dmany_test$PRECSUF
-./$T$FEX 2 10 50 20 1e2 $FINUFFT_REQ_TOL 0 0 0 2 0.0 $CHECK_TOL 2>$DIR/$T.err.out | tee $DIR/$T.out
+./$T$FEX 2 10 50 20 1e2 $FINUFFT_REQ_TOL 0 0 2 0.0 $CHECK_TOL 2>$DIR/$T.err.out | tee $DIR/$T.out
 E=${PIPESTATUS[0]}
 if [[ $E -eq 0 ]]; then echo passed; elif [[ $E -eq $SIGSEGV ]]; then
 	echo crashed

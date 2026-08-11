@@ -19,7 +19,9 @@ type finufft_opts
    integer(kind=C_INT) :: spread_kerpad
    ! DEPRECATED: spread_kerpad kept for ABI compatibility, ignored by library
    real(kind=C_DOUBLE) :: upsampfac
-   integer(kind=C_INT) :: spread_thread, maxbatchsize
+   integer(kind=C_INT) :: spread_thread
+   ! DEPRECATED: spread_thread kept for ABI compatibility, ignored by library
+   integer(kind=C_INT) :: maxbatchsize
    integer(kind=C_INT) :: spread_nthr_atomic, spread_max_sp_size
    integer(kind=C_INT) :: spread_kerformula
    integer(kind=C_INT) :: allow_eps_too_small
