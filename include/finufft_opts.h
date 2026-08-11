@@ -49,8 +49,8 @@ typedef struct finufft_opts { // defaults see plan.hpp:finufft_default_opts_t()
   FINUFFT_DEPRECATED_FIELD("no effect; padding is handled internally")
   int spread_kerpad;      // deprecated; no effect (padding is handled internally)
   double upsampfac;       // upsampling ratio sigma: 2.0 std, 1.25 small FFT, 0.0 auto
-  int spread_thread;      // (vectorized ntr>1 only): 0 auto, 1 seq multithreaded,
-                          //                          2 parallel single-thread spread
+  FINUFFT_DEPRECATED_FIELD("no effect; all threads now spread the whole batch")
+  int spread_thread; // deprecated; no effect (all threads spread the whole batch)
   int maxbatchsize;       // (vectorized ntr>1 only): max transform batch, 0 auto
   int spread_nthr_atomic; // if >=0, threads above which spreader OMP critical goes
                           // atomic

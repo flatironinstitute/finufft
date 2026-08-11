@@ -30,16 +30,13 @@ int main(int argc, char *argv[])
    interfaces, and measuring their speed ratio.
 
    Usage: guru_timing_test ntransf type ndim Nmodes1 Nmodes2 Nmodes3 Nsrc
-          [tol [debug [spread_thread [maxbatchsize [spread_sort [upsampfac]]]]]]
+          [tol [debug [maxbatchsize [spread_sort [upsampfac]]]]]
 
    debug = 0: rel errors and overall timing
            1: timing breakdowns
            2: also spreading output
 
-   spread_scheme = 0: sequential maximally multithreaded spread/interp
-                   1: parallel singlethreaded spread/interp, nested last batch
-
-   Example: guru_timing_test 100 1 2 100 100 0 1000000 1e-3 1 0 0 2 2.0
+   Example: guru_timing_test 100 1 2 100 100 0 1000000 1e-3 1 0 2 2.0
 
    The unused dimensions of Nmodes may be left as zero.
    For type 3, Nmodes{1,2,3} controls the spread of NU freq targs in each dim.
@@ -58,12 +55,11 @@ int main(int argc, char *argv[])
   FINUFFT_DEFAULT_OPTS(&opts); // for guru interface
 
   // Collect command line arguments ------------------------------------------
-  if (argc < 8 || argc > 15) {
+  if (argc < 8 || argc > 14) {
     fprintf(stderr, "Usage: guru_timing_test ntransf type ndim N1 N2 N3 Nsrc [tol [debug "
-                    "[spread_thread [maxbatchsize [spread_sort "
-                    "[upsampfac [nthreads]]]]]]]\n\teg:\tguru_timing_test 100 1 2 1e2 "
-                    "1e2 0 1e6 1e-3 1 0 "
-                    "0 2\n");
+                    "[maxbatchsize [spread_sort "
+                    "[upsampfac [nthreads]]]]]]\n\teg:\tguru_timing_test 100 1 2 1e2 "
+                    "1e2 0 1e6 1e-3 1 0 2\n");
     return 1;
   }
   sscanf(argv[1], "%d", &ntransf);
@@ -80,14 +76,13 @@ int main(int argc, char *argv[])
   if (argc > 8) sscanf(argv[8], "%lf", &tol);
   if (argc > 9) sscanf(argv[9], "%d", &opts.debug);
   opts.spread_debug = (opts.debug > 1) ? 1 : 0; // see output from spreader
-  if (argc > 10) sscanf(argv[10], "%d", &opts.spread_thread);
-  if (argc > 11) sscanf(argv[11], "%d", &opts.maxbatchsize);
-  if (argc > 12) sscanf(argv[12], "%d", &opts.spread_sort);
-  if (argc > 13) {
-    sscanf(argv[13], "%lf", &w);
+  if (argc > 10) sscanf(argv[10], "%d", &opts.maxbatchsize);
+  if (argc > 11) sscanf(argv[11], "%d", &opts.spread_sort);
+  if (argc > 12) {
+    sscanf(argv[12], "%lf", &w);
     opts.upsampfac = (FLT)w;
   }
-  if (argc > 14) sscanf(argv[14], "%d", &opts.nthreads); // 0 = use all (default)
+  if (argc > 13) sscanf(argv[13], "%d", &opts.nthreads); // 0 = use all (default)
 
   // Allocate and initialize input -------------------------------------------
   cout << scientific << setprecision(15);

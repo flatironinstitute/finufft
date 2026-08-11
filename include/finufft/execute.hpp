@@ -255,10 +255,13 @@ int FINUFFT_PLAN_T<T>::spreadinterpSortedBatch(
   ChaithyaGR 1/7/25: new arg fwBatch (won't be p.fwBatch if spreadinterponly=1)
 */
 {
-  // Both directions now use one team over the whole batch: spreading is flattened over
-  // (element, subproblem), and interpolation takes the full team per element, which
-  // measures faster than the old nested batchSize-wide region at every ntransf. Nothing
-  // here depends on opts.spread_thread any more.
+  // Both directions now put all threads on the whole batch, so nothing is left to
+  // select. Spread: the batch loop is folded into the loop over subprobs, so it is
+  // (vector, subprob) pairs that get assigned to threads - all threads stay busy
+  // whatever ntr is - and the wrapped add back can only collide between threads on the
+  // same vector's fine grid. Interp: the loop below stays sequential, but omp par
+  // inside sees all threads, and one vector is already M/CHUNKSIZE chunks >> nthr, so
+  // folding it in would expose no parallelism. Both beat the old nested case.
   if ((m.spopts.spread_direction == 1) != adjoint) {
     spreadSorted(reinterpret_cast<T *>(fwBatch), reinterpret_cast<const T *>(cBatch),
                  batchSize);

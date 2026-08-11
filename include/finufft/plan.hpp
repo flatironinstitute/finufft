@@ -321,7 +321,7 @@ inline void finufft_default_opts_t(finufft_opts *o)
   o->spread_kerevalmeth = 1;                   // deprecated, retained for ABI
   o->spread_kerpad      = 1;                   // deprecated, retained for ABI
   o->upsampfac          = 0.0;
-  o->spread_thread      = 0;
+  o->spread_thread = 0; // deprecated, retained for ABI
   o->maxbatchsize       = 0;
   o->spread_nthr_atomic = -1;
   o->spread_max_sp_size = 0;

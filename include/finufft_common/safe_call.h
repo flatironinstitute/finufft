@@ -40,7 +40,6 @@ public:
     case FINUFFT_ERR_TYPE_NOTVALID: return "type not valid (must be 1, 2, or 3)";
     case FINUFFT_ERR_ALLOC: return "memory allocation failed";
     case FINUFFT_ERR_DIM_NOTVALID: return "dimension not valid (must be 1, 2, or 3)";
-    case FINUFFT_ERR_SPREAD_THREAD_NOTVALID: return "spread_thread option not valid";
     case FINUFFT_ERR_NUM_NU_PTS_INVALID: return "number of NU points invalid";
     case FINUFFT_ERR_LOCK_FUNS_INVALID: return "FFTW lock/unlock functions invalid";
     case FINUFFT_ERR_NTHREADS_NOTVALID: return "number of threads not valid";

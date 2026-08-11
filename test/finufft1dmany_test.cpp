@@ -9,9 +9,9 @@ using namespace finufft::utils;
 const char *help[] = {
     "Tester for FINUFFT in 1d, vectorized, all 3 types, either precision.",
     "",
-    "Usage: finufft1dmany_test ntrans Nmodes Nsrc [tol [debug [spread_thread "
-    "[maxbatchsize [spreadsort [upsampfac [errfail]]]]]]]",
-    "\teg:\tfinufft1dmany_test 100 1e3 1e4 1e-6 1 0 0 2 0.0 1e-5",
+    "Usage: finufft1dmany_test ntrans Nmodes Nsrc [tol [debug "
+    "[maxbatchsize [spreadsort [upsampfac [errfail]]]]]]",
+    "\teg:\tfinufft1dmany_test 100 1e3 1e4 1e-6 1 0 2 0.0 1e-5",
     "\tnotes:\tif errfail present, exit code 1 if consistency error > errfail",
     NULL};
 // Malleo 2019 based on Shih 2018. Tidied, extra args, Barnett 5/25/20 onwards
@@ -25,7 +25,7 @@ int main(int argc, char *argv[]) {
   FINUFFT_DEFAULT_OPTS(&opts);
   // opts.fftw = FFTW_MEASURE;  // change from usual FFTW_ESTIMATE
   int isign = +1; // choose which exponential sign to test
-  if (argc < 4 || argc > 11) {
+  if (argc < 4 || argc > 10) {
     for (int i = 0; help[i]; ++i) fprintf(stderr, "%s\n", help[i]);
     return 2;
   }
@@ -38,14 +38,13 @@ int main(int argc, char *argv[]) {
   if (argc > 4) sscanf(argv[4], "%lf", &tol);
   if (argc > 5) sscanf(argv[5], "%d", &opts.debug);
   opts.spread_debug = (opts.debug > 1) ? 1 : 0; // see output from spreader
-  if (argc > 6) sscanf(argv[6], "%d", &opts.spread_thread);
-  if (argc > 7) sscanf(argv[7], "%d", &opts.maxbatchsize);
-  if (argc > 8) sscanf(argv[8], "%d", &opts.spread_sort);
-  if (argc > 9) {
-    sscanf(argv[9], "%lf", &w);
+  if (argc > 6) sscanf(argv[6], "%d", &opts.maxbatchsize);
+  if (argc > 7) sscanf(argv[7], "%d", &opts.spread_sort);
+  if (argc > 8) {
+    sscanf(argv[8], "%lf", &w);
     opts.upsampfac = (FLT)w;
   }
-  if (argc > 10) sscanf(argv[10], "%lf", &errfail);
+  if (argc > 9) sscanf(argv[9], "%lf", &errfail);
 
   cout << scientific << setprecision(15);
 

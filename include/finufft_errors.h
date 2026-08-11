@@ -23,7 +23,8 @@ enum {
   FINUFFT_ERR_TYPE_NOTVALID                        = 10,
   FINUFFT_ERR_ALLOC                                = 11,
   FINUFFT_ERR_DIM_NOTVALID                         = 12,
-  FINUFFT_ERR_SPREAD_THREAD_NOTVALID               = 13,
+  FINUFFT_ERR_SPREAD_THREAD_NOTVALID FINUFFT_DEPRECATED_ENUM(
+      "unused; opts.spread_thread was deprecated in v2.6.0") = 13,
   FINUFFT_ERR_NDATA_NOTVALID                       = 14,
   FINUFFT_ERR_CUDA_FAILURE                         = 15,
   FINUFFT_ERR_PLAN_NOTVALID                        = 16,

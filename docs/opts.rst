@@ -180,25 +180,19 @@ As of v2.5.0, due to on-the-fly polynomial coefficient fitting, the kernel is eq
 
 * ``upsampfac>1.0`` : fix the upsampling factor, overriding the heuristic choice. A standard setting is 2 (which is good for achieving 9-digit or more accuracy), while a typical "low" setting is 1.25 (this reduces the RAM and FFT costs, and is good for up to 5-digit accuracy, unless the density M/N is high enough that its 50% wider spreading kernel would be counterproductive). Low upsampfac is especially efficient for type 3 transforms. Because the kernel width is limited to 16, only 9-digit accuracy can be reached when using ``upsampfac=1.25``, for instance.
 
-**spread_thread**: in the case of multiple transforms per call (``ntr>1``, or the "many" interfaces), controls how multithreading is used to spread/interpolate each batch of data.
+**spread_thread**: DEPRECATED as of v2.6.0, and ignored (the field is retained for ABI compatibility, and setting it emits a compiler deprecation warning in C++). Both directions now use all threads on the whole batch, so there is nothing left to choose. Spreading folds the batch loop into the loop over subproblems (the load-balanced scheme of Sec. 5.2 of our paper [FIN] in the :doc:`references <refs>`), so (vector, subproblem) pairs are what get assigned to threads, and the paper's ``omp critical`` on the add back into the fine grid becomes a per-vector lock. Interpolation writes to distinct outputs per thread, so it still takes the vectors in sequence, each with all threads.
 
-* ``spread_thread=0`` : makes an automatic choice between the below. Recommended.
+.. note::
 
-* ``spread_thread=1`` : acts on each vector in the batch in sequence, using multithreaded spread/interpolate on that vector. It can be slightly better than ``2`` for large problems.
-
-* ``spread_thread=2`` : acts on all vectors in a batch (of size chosen typically to be the number of threads) simultaneously, assigning each a thread which performs a single-threaded spread/interpolate.  It is much better than ``1`` for all but large problems. (Historical note: this was used by Melody Shih for the original "2dmany" interface in 2018.)
-
-  .. note::
-
-    Historical note: A former option ``3`` has been removed. This was like ``2`` except allowing nested OMP parallelism, so multi-threaded spread-interpolate was used for each of the vectors in a batch in parallel. This was used by Andrea Malleo in 2019. We have not yet found a case where this beats both ``1`` and ``2``, hence removed it due to complications with changing the OMP nesting state in both old and new OMP versions.
+  Historical note: this selected between multithreaded spread/interpolate on each vector of the batch in sequence (``1``), and one thread per vector with all vectors at once (``2``, used by Melody Shih for the original "2dmany" interface in 2018); a further option ``3`` allowing nested OMP parallelism (Andrea Malleo, 2019) was already removed. ``2`` was the automatic choice for ``ntr>1``, but only ever kept as many threads busy as the batch was long: OMP nesting is off by default, so each vector still split into ``nthreads`` subproblems, which one thread then ran in sequence.
 
 
 **maxbatchsize**:  in the case of multiple transforms per call (``ntr>1``, or the "many" interfaces), set the largest batch size of data vectors.
 Here ``0`` makes an automatic choice. If you are unhappy with this, then for small problems it should equal the number of threads, while for large problems it appears that ``1`` often better (since otherwise too much simultaneous RAM movement occurs). Some further work is needed to optimize this parameter.
 
-**spread_nthr_atomic**: if non-negative: for numbers of threads up to this value, an OMP critical block for ``add_wrapped_subgrid`` is used in spreading (type 1 transforms). Above this value, instead OMP atomic writes are used, which scale better for large thread numbers. If negative, the heuristic default in the spreader is used, set in ``src/spreadinterp.cpp:setup_spreader()``.
+**spread_nthr_atomic**: if non-negative: for numbers of threads up to this value, an OMP critical block for ``add_wrapped_subgrid`` is used in spreading (type 1 transforms). Above this value, instead OMP atomic writes are used, which scale better for large thread numbers. If negative, the heuristic default in the spreader is used, set in ``FINUFFT_PLAN_T::setup_spreadinterp()`` in ``include/finufft/makeplan.hpp``.
 
-**spread_max_sp_size**: if positive, overrides the maximum subproblem (chunking) size for multithreaded spreading (type 1 transforms). Otherwise the default in the spreader is used, set in ``src/spreadinterp.cpp:setup_spreader()``, which we believe is a decent heuristic for Intel i7 and xeon machines.
+**spread_max_sp_size**: if positive, overrides the maximum subproblem (chunking) size for multithreaded spreading (type 1 transforms). Otherwise the default in the spreader is used, set in ``FINUFFT_PLAN_T::setup_spreadinterp()`` in ``include/finufft/makeplan.hpp``, which we believe is a decent heuristic for Intel i7 and xeon machines.
 
 **spread_kerformula**: ``0`` uses the default spreading (gridding) kernel with default shape choice; ``7``, ``8`` and ``9`` select among shape parameter choices for it. As of v2.6.0 the prolate spheroidal wavefunction (PSWF) is the only kernel: the legacy ES, Kaiser--Bessel and cosh-type formulas (``1``--``6``, available up to v2.5.0) have been removed and now return an error. Only developers should mess with this parameter; users should leave it at default.
 
