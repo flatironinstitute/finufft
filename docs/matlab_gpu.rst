@@ -77,9 +77,10 @@ The interfaces are the same as the GPU ones except preceded by "cu".
 The options descriptions are rather abbreviated in the below;
 for full documentation see :ref:`opts_gpu`.
 Only the options listed below reach the library; any other field of ``opts``
-is ignored without warning. In particular ``gpu_stream`` cannot be set from
-MATLAB, which does not expose the CUDA stream backing a ``gpuArray``; see the
-timing note above for how to wait for a transform to finish.
+is ignored, with a ``FINUFFT:unknownOpt`` warning naming it. In particular
+``gpu_stream`` cannot be set from MATLAB, which does not expose the CUDA stream
+backing a ``gpuArray``; see the timing note above for how to wait for a
+transform to finish.
 Informative warnings and errors are raised in MATLAB style with unique
 codes (see sources ``errhandler.m``, ``cufinufft.mw``, and
 ``valid_*.m`` found `here <https://github.com/flatironinstitute/finufft/tree/master/matlab/>`_).

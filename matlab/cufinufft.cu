@@ -1163,6 +1163,15 @@ typedef std::complex<float> fcomplex;
      else if (strcmp(fname[ifield],"gpu_binsizez") == 0) {
        oc->gpu_binsizez = (int)round(*mxGetPr(mxGetFieldByNumber(om,idx,ifield)));
      }
+     else if (strcmp(fname[ifield],"gpu_obinsizex") == 0) {
+       oc->gpu_obinsizex = (int)round(*mxGetPr(mxGetFieldByNumber(om,idx,ifield)));
+     }
+     else if (strcmp(fname[ifield],"gpu_obinsizey") == 0) {
+       oc->gpu_obinsizey = (int)round(*mxGetPr(mxGetFieldByNumber(om,idx,ifield)));
+     }
+     else if (strcmp(fname[ifield],"gpu_obinsizez") == 0) {
+       oc->gpu_obinsizez = (int)round(*mxGetPr(mxGetFieldByNumber(om,idx,ifield)));
+     }
      else if (strcmp(fname[ifield],"gpu_device_id") == 0) {
        oc->gpu_device_id = (int)round(*mxGetPr(mxGetFieldByNumber(om,idx,ifield)));
      }
