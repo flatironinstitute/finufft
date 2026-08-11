@@ -99,6 +99,19 @@ int main(void) {
     }
   }
 
+  // Deprecated opts are ignored, not errors, but must warn at runtime (the only
+  // signal non-C++ wrappers get). ctest greps stderr for these three lines.
+  finufft_default_opts(&opts);
+  opts.spread_thread = 3;
+  opts.spread_kerevalmeth = 0;
+  opts.spread_kerpad = 0;
+  rc = finufft_makeplan(1, 1, N, 1, 1, 1e-6, &plan, &opts);
+  if (rc != 0) {
+    fprintf(stderr, "deprecated opts: expected 0 got %d\n", rc);
+    return 11;
+  }
+  finufft_destroy(plan);
+
   printf("error_handling: PASS\n");
   return 0;
 }

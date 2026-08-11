@@ -45,7 +45,13 @@ v2.6.0-dev
   complex accessor, `sprintf` -> `snprintf`, and removal of the dead GPU-array
   macros from the CPU gateway. Verified by building the mex under Octave and
   running the MATLAB interface tests (`fullmathtest`, `check_finufft`,
-  `check_finufft_single`, guru examples). (Barbone)
+  `check_finufft_single`, guru examples). Deprecated opts fields (`spread_thread`,
+  `spread_kerevalmeth`, `spread_kerpad`) now also warn at *runtime* when set away
+  from their default, gated on `opts.showwarn`, since only C/C++ callers see the
+  `[[deprecated]]` attribute; Python raises a `DeprecationWarning` from
+  `setkwopts` and the MATLAB gateway raises `FINUFFT:deprecatedOpt` via
+  `mexWarnMsgIdAndTxt` (a mex's stderr is not reliably shown in the MATLAB
+  desktop). (Barbone)
 * Fixed the cuFINUFFT build against a CPM-fetched CCCL: it was added as an
   include-SYSTEM package, and nvcc searches its own include directory before
   every `-isystem` path, so `cuda/std/*` resolved to the CUDA toolkit's older

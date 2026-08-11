@@ -672,6 +672,10 @@ def is_single_dtype(dtype):
 
 
 ### kwargs opt set
+### opts fields kept for ABI compatibility but ignored by the library
+DEPRECATED_OPTS = ("spread_thread", "spread_kerevalmeth", "spread_kerpad")
+
+
 def setkwopts(opt, **kwargs):
 
     # Use context manager to mutate `warnings` filter stack
@@ -683,6 +687,11 @@ def setkwopts(opt, **kwargs):
             if key in ("fftw_lock_fun", "fftw_unlock_fun", "fftw_lock_data"):
                 raise TypeError(
                     f"Invalid option '{key}': FFTW locks are not exposed in Python"
+                )
+            if key in DEPRECATED_OPTS:
+                warnings.warn(
+                    "FINUFFT opts." + key + " is deprecated and ignored",
+                    DeprecationWarning,
                 )
             if hasattr(opt, key):
                 setattr(opt, key, value)

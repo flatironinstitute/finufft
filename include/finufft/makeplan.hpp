@@ -412,6 +412,21 @@ FINUFFT_PLAN_T<TF>::FINUFFT_PLAN_T(int type_, int dim_, const BIGINT *n_modes, i
     batchSize = std::min(opts.maxbatchsize, ntrans);
     nbatch    = 1 + (ntrans - 1) / batchSize;          // resulting # batches
   }
+  // Deprecated opts are silently ignored, and only C++ callers see the [[deprecated]]
+  // attribute; warn at runtime so the Fortran/Python/MATLAB wrappers report it too.
+  if (opts.showwarn) {
+    const char *const fn = __func__; // __func__ inside the lambda is operator()
+    const auto warn = [fn](const char *name) {
+      fprintf(stderr, "%s warning: opts.%s is deprecated and ignored.\n", fn, name);
+    };
+    FINUFFT_DIAGNOSTIC_PUSH
+    FINUFFT_DISABLE_WARNING_DEPRECATED
+    if (opts.spread_thread != 0) warn("spread_thread");
+    if (opts.spread_kerevalmeth != 1) warn("spread_kerevalmeth");
+    if (opts.spread_kerpad != 1) warn("spread_kerpad");
+    FINUFFT_DIAGNOSTIC_POP
+  }
+
   if (type != 3) { // read in user Fourier mode array sizes...
     for (int idim = 0; idim < 3; ++idim) {
       mstu[idim] = (idim < dim) ? n_modes[idim] : 1;

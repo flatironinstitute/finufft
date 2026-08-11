@@ -182,6 +182,8 @@ As of v2.5.0, due to on-the-fly polynomial coefficient fitting, the kernel is eq
 
 **spread_thread**: DEPRECATED as of v2.6.0, and ignored (the field is retained for ABI compatibility, and setting it emits a compiler deprecation warning in C++). Both directions now use all threads on the whole batch, so there is nothing left to choose. Spreading folds the batch loop into the loop over subproblems (the load-balanced scheme of Sec. 5.2 of our paper [FIN] in the :doc:`references <refs>`), so (vector, subproblem) pairs are what get assigned to threads, and the paper's ``omp critical`` on the add back into the fine grid becomes a per-vector lock. Interpolation writes to distinct outputs per thread, so it still takes the vectors in sequence, each with all threads.
 
+Setting it to anything other than its ``0`` default prints a runtime warning (suppressed by ``showwarn=0``), so callers through the Fortran, Python and MATLAB wrappers - which cannot see the C++ attribute - are told it is ignored.
+
 .. note::
 
   Historical note: this selected between multithreaded spread/interpolate on each vector of the batch in sequence (``1``), and one thread per vector with all vectors at once (``2``, used by Melody Shih for the original "2dmany" interface in 2018); a further option ``3`` allowing nested OMP parallelism (Andrea Malleo, 2019) was already removed. ``2`` was the automatic choice for ``ntr>1``, but only ever kept as many threads busy as the batch was long: OMP nesting is off by default, so each vector still split into ``nthreads`` subproblems, which one thread then ran in sequence.
@@ -199,6 +201,8 @@ Here ``0`` makes an automatic choice. If you are unhappy with this, then for sma
 **spread_kerevalmeth**: [DEPRECATED] Kernel evaluation method in spreader/interpolator; retained only for API compatibility and documentation. The library now always uses the Horner piecewise-polynomial evaluation internally (the historical ``=1`` choice). Setting this field has no effect.
 
 **spread_kerpad**: [DEPRECATED] This option historically controlled padding to help SIMD vectorization for the removed direct-evaluation method. It is ignored by the library.
+
+Like ``spread_thread``, both of the above print a runtime warning when set away from their default, in addition to the C++ compiler deprecation warning.
 
 
 

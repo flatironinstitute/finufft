@@ -45,6 +45,11 @@ if(HAS_C_COMPLEX)
     target_compile_features(error_handling PRIVATE c_std_99)
     finufft_link_test(error_handling)
     add_test(NAME run_error_handling COMMAND error_handling WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
+        # the deprecated-opts case must warn, not error (non-C++ wrappers rely on it)
+    set_tests_properties(
+        run_error_handling
+        PROPERTIES PASS_REGULAR_EXPRESSION "opts.spread_thread is deprecated and ignored"
+    )
 endif()
 
 # Add ctest definitions not for both precisions...
@@ -88,6 +93,9 @@ function(add_tests_with_prec PREC REQ_TOL CHECK_TOL SUFFIX)
         COMMAND finufft1d_test${SUFFIX} 1e2 2e2 ${REQ_TOL} 0 2 0.0 ${CHECK_TOL}
         WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
     )
+
+    # default opts must stay silent: a deprecation warning here would hit every user
+    set_tests_properties(run_finufft1d_test_${PREC} PROPERTIES FAIL_REGULAR_EXPRESSION "deprecated and ignored")
 
     add_test(
         NAME run_finufft1dmany_test_${PREC}
