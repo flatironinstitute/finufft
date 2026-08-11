@@ -1169,8 +1169,14 @@ typedef std::complex<float> fcomplex;
      else if (strcmp(fname[ifield],"gpu_np") == 0) {
        oc->gpu_np = (int)round(*mxGetPr(mxGetFieldByNumber(om,idx,ifield)));
      }
-     else
+     /* matlab-only field, handled in cufinufft_plan.m... */
+     else if (strcmp(fname[ifield],"floatprec") == 0) {
        continue;
+     }
+     else
+       mexWarnMsgIdAndTxt("FINUFFT:unknownOpt",
+                          "copy_cufinufft_opts: unknown option \"%s\" ignored.",
+                          fname[ifield]);
    }
    mxFree(fname);
  }

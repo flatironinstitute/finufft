@@ -179,6 +179,7 @@ if(FINUFFT_BUILD_OCTAVE)
             test/fullmathtest.m
             test/check_finufft.m
             test/check_finufft_single.m
+            test/check_opts.m
             examples/guru1d1.m
             examples/guru1d1_single.m
             examples/guru1d1_adjoint.m

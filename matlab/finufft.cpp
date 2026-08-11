@@ -1168,8 +1168,17 @@ typedef std::complex<float> fcomplex;
      else if (strcmp(fname[ifield],"showwarn") == 0) {
        oc->showwarn = (int)round(*mxGetPr(mxGetFieldByNumber(om,idx,ifield)));
      }
-     else
+     /* matlab-only or deprecated fields, handled in finufft_plan.m... */
+     else if (strcmp(fname[ifield],"floatprec") == 0 ||
+              strcmp(fname[ifield],"chkbnds") == 0 ||
+              strcmp(fname[ifield],"spread_kerevalmeth") == 0 ||
+              strcmp(fname[ifield],"spread_kerpad") == 0) {
        continue;
+     }
+     else
+       mexWarnMsgIdAndTxt("FINUFFT:unknownOpt",
+                          "copy_finufft_opts: unknown option \"%s\" ignored.",
+                          fname[ifield]);
    }
    mxFree(fname);
  }

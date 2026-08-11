@@ -521,6 +521,7 @@ octave: matlab/finufft.cpp $(STATICLIB)
 	$(OCTAVE) test/fullmathtest.m ;\
 	$(OCTAVE) test/check_finufft.m ;\
 	$(OCTAVE) test/check_finufft_single.m ;\
+	$(OCTAVE) test/check_opts.m ;\
 	$(OCTAVE) examples/guru1d1.m ;\
 	$(OCTAVE) examples/guru1d1_single.m ;\
 	$(OCTAVE) examples/guru1d1_adjoint.m)
