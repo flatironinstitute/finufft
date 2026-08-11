@@ -233,18 +233,18 @@ private:
   std::vector<int> gridsize_for_fft() const;
   void do_fft(TC *fwBatch, int ntrans_actual, bool adjoint) const;
 
-  // Precomputed quadrature-based 1D kernel FT evaluator (used by type-3 setpts).
-  // Nested class: has access to plan's private members via implicit friendship.
+  // Analytic PSWF self-FT 1D kernel FT evaluator, one Horner eval per target
+  // (used by type-3 setpts). See finufft::kernel::pswf_selfft_params for the
+  // identity. Nested class: accesses plan's private members via friendship.
   class Kernel_onedim_FT {
-    std::vector<TF> z, f;
+    const FINUFFT_PLAN_T *plan_ptr = nullptr;
+    TF grid_scale = 0;
+    TF prefac = 0;
 
   public:
     Kernel_onedim_FT(const FINUFFT_PLAN_T &plan);
     FINUFFT_ALWAYS_INLINE TF operator()(TF k) const {
-      TF x = 0;
-      for (size_t n = 0; n < z.size(); ++n)
-        x += f[n] * 2 * std::cos(k * z[n]); // pos & neg freq pair
-      return x;
+      return prefac * plan_ptr->evaluate_kernel_runtime(k * grid_scale);
     }
   };
 

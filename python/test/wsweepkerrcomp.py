@@ -6,6 +6,7 @@ This script uses erralltypedim.py for the core error computations and calls the
 FINUFFT Python bindings to measure kernel support via spreadinterponly for each
 kernel formula, producing a figure saved under results/.
 """
+
 from __future__ import annotations
 
 import math
@@ -30,11 +31,19 @@ def main() -> None:
     import argparse
 
     p = argparse.ArgumentParser(description="Kernel-width sweep")
-    p.add_argument("--sigma", type=float, default=2.00, help="upsampling factor (sigma)")
-    p.add_argument("--dim", type=int, default=1, choices=[1, 2, 3], help="dimension to test")
-    p.add_argument("--M", type=int, default=1000, help="number of nonuniform points (M)")
+    p.add_argument(
+        "--sigma", type=float, default=2.00, help="upsampling factor (sigma)"
+    )
+    p.add_argument(
+        "--dim", type=int, default=1, choices=[1, 2, 3], help="dimension to test"
+    )
+    p.add_argument(
+        "--M", type=int, default=1000, help="number of nonuniform points (M)"
+    )
     p.add_argument("--Ntot", type=int, default=300, help="total number of modes (Ntot)")
-    p.add_argument("--ntr", type=int, default=10, help="# transforms to average per tol (ntr)")
+    p.add_argument(
+        "--ntr", type=int, default=10, help="# transforms to average per tol (ntr)"
+    )
     args = p.parse_args()
 
     prec = "double"
@@ -47,8 +56,9 @@ def main() -> None:
     sigma = float(args.sigma)
     tolsperdecade = 8
     tolstep = 10 ** (-1 / tolsperdecade)
-    kfnam = ["ES legacy", "ES Beatty", "KB Beatty", "cont-KB Beatty", "cosh-type", "smoothed cont-KB"]
-    kfs = list(range(1, len(kfnam) + 1))
+    # kerformula 1-6 (ES/KB/cosh) were removed in v2.6.0; PSWF betas only
+    kfnam = {7: "PSWF Beatty", 8: "PSWF beta-shift", 9: "PSWF Marco"}
+    kfs = sorted(kfnam)
 
     o = {"upsampfac": sigma, "showwarn": False, "allow_eps_too_small": 1}
     dims = [False, False, False]
@@ -148,7 +158,7 @@ def main() -> None:
                 elinewidth=0.6,
                 capsize=2,
             )
-            legs.append(f"kf={kfs[i]}: {kfnam[i]}")
+            legs.append(f"kf={kfs[i]}: {kfnam[kfs[i]]}")
         ax.set_yscale("log")
         ax.set_xlim(2, wmax)
         if np.isfinite(min_err) and np.isfinite(max_err):
@@ -157,16 +167,12 @@ def main() -> None:
         ax.set_ylabel("mean rel err")
         if legs:
             ax.legend(legs)
-        ax.set_title(
-            f"{dim}D type {y + 1} {prec}, N_tot={Ntot}, σ={sigma}", pad=6
-        )
+        ax.set_title(f"{dim}D type {y + 1} {prec}, N_tot={Ntot}, σ={sigma}", pad=6)
         ax.tick_params(axis="both", which="both", width=0.5, length=4)
         ax.set_facecolor("white")
 
     plt.tight_layout()
-    outfile = os.path.join(
-        results_dir, f"wsweepkerrcomp_{dim}D_{prec}_sig{sigma}.png"
-    )
+    outfile = os.path.join(results_dir, f"wsweepkerrcomp_{dim}D_{prec}_sig{sigma}.png")
     fig.savefig(outfile)
     print(f"Saved {outfile}")
 

@@ -35,7 +35,7 @@ static void usage() {
     "\ttol=requested accuracy\n"
     "\tsort=0 (no), 1 (yes), 2 (auto; default)\n"
     "\tspread_debug=0,1,...\n"
-    "\tspread_kerformula=0,1,... spread kernel type (>0 only for devs)\n"
+    "\tspread_kerformula=0 (default), 7,8,9 PSWF beta choice (only for devs)\n"
     "\tupsampfac>1.0: sigma upsampling factor (typ range 1.2 to 2.5)\n"
     "\nexample: ./spreadtestnd 3 8e6 8e6 1e-6 2 0 0 1.5\n");
 }
