@@ -457,16 +457,21 @@ Points to note:
   host threads at once.
 
 * ``cufinufft_execute`` is asynchronous: synchronize the stream before reading
-  its output on the host. ``cufinufft_setpts`` synchronizes the plan's stream
-  once (to size internal arrays from a device-computed count) for every
-  ``gpu_method`` other than ``1``, and for all type 3 transforms. This blocks
-  only the calling host thread, not other streams.
+  its output on the host. The same applies to the one-shot calls of the simple
+  interface, which run the four plan stages internally.
+
+* ``cufinufft_setpts`` is not: it waits on the plan's stream to read back
+  device-computed sizes, once for ``gpu_method=2`` and ``3``, twice for ``4``,
+  and once per dimension per point set for type 3. Only ``gpu_method=1``
+  (nonuniform points-driven, types 1 and 2) is free of this. It blocks the
+  calling host thread, not other streams.
 
 * Internal workspaces use ``cudaMallocAsync``/``cudaFreeAsync`` on the plan's
   stream. This needs device memory-pool support
   (``cudaDevAttrMemoryPoolsSupported``); without it cuFINUFFT falls back to
-  ``cudaMalloc``/``cudaFree``, which synchronize the whole device and remove any
-  overlap. A warning is printed once in that case.
+  ``cudaMalloc``/``cudaFree``, which are not stream-ordered: they synchronize
+  implicitly and remove the overlap you set the stream up for. A warning is
+  printed once in that case.
 
 * The plan stores the stream handle but does not own it: destroy the plan before
   the stream.
