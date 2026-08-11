@@ -96,6 +96,32 @@ template<class TF> inline int clamp_kernel_ns(int ns, double upsampfac) {
 
 void set_kernel_shape_given_ns(finufft_spread_opts &opts, int debug);
 
+// Analytic PSWF self-FT parameters. The order-0 PSWF is an eigenfunction of the
+// finite Fourier transform, so the kernel's continuous FT is a rescaled copy of the
+// kernel itself: phihat(xi) = prefac * phi(grid_scale*xi), with phi the Horner
+// approximant (evaluate_kernel_runtime, grid-unit arg), grid_scale = J2^2/beta,
+// J2 = nspread/2, and prefac = phihat(0) = int phi dx (as phi(0)=1). That integral
+// is closed-form from the panel coeffs: on panel i, phi = sum_j coeffs[j*stride+i]
+// z^(nc-1-j), z in [-1,1], dz = 2dx, so odd powers cancel and the whole setup is
+// ~ns.nc/2 flops, no quadrature. Integrating the approximant rather than the exact
+// PSWF makes phihat the FT of the function actually spread. Valid only inside the
+// kernel support, |xi| <= 1/grid_scale = 2.beta/nspread; type-3 deconv evaluates at
+// |xi| <= pi/upsampfac (= h.gam.S, setpts), and over every reachable (tol, dim,
+// precision, upsampfac >= 1.1) the margin 2.beta/nspread - pi/upsampfac is >= 0.47
+// for kerformula 7-9. Returns (grid_scale, prefac). Used by the type-3 per-target
+// evaluator (Kernel_onedim_FT); type-1/2 fseries keeps quadrature. GPU-reusable.
+// Barbone 7/23/26.
+template<class TF>
+inline std::tuple<double, double> pswf_selfft_params(
+    int nspread, double beta, const TF *coeffs, int nc, int stride) {
+  double prefac = 0;
+  for (int i = 0; i < nspread; ++i)
+    for (int j = nc - 1; j >= 0; j -= 2) // even powers of z only
+      prefac += double(coeffs[j * stride + i]) / (nc - j);
+  const double J2 = nspread / 2.0; // half-width of kernel z-support
+  return {J2 * J2 / beta, prefac};
+}
+
 // min and max number of poly coeffs allowed (compiled) for a given spread width ns.
 // Since for low upsampfacs, ns=16 can need only nc~12, allow such low nc here.
 // Note: spreadinterp.cpp compilation time grows with the gap between these bounds...

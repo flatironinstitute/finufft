@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <cstdint>
 #include <getopt.h>
 
@@ -117,42 +118,31 @@ struct Timer {
 
   void stop() { stop_.emplace_back(std::chrono::steady_clock::now()); }
 
+  // fractional ms: an integer-ms cast rounds every sub-ms event (small type-3
+  // setpts, small execute) down to zero.
+  float dt(size_t i) const {
+    return std::chrono::duration<float, std::milli>(stop_[i] - start_[i]).count();
+  }
+
   float mean() { return this->tot() / start_.size(); }
 
   float min() {
     float min_dt = std::numeric_limits<float>::max();
-    for (size_t i = 0; i < start_.size(); ++i) {
-      auto dt = float(
-          std::chrono::duration_cast<std::chrono::milliseconds>(stop_[i] - start_[i])
-              .count());
-      if (dt < min_dt) {
-        min_dt = dt;
-      }
-    }
+    for (size_t i = 0; i < start_.size(); ++i) min_dt = std::min(min_dt, dt(i));
     return min_dt;
   }
 
   float std() {
     float avg  = this->mean();
     double var = 0.0;
-    for (size_t i = 0; i < start_.size(); ++i) {
-      auto dt = float(
-          std::chrono::duration_cast<std::chrono::milliseconds>(stop_[i] - start_[i])
-              .count());
-      var += (dt - avg) * (dt - avg);
-    }
+    for (size_t i = 0; i < start_.size(); ++i) var += (dt(i) - avg) * (dt(i) - avg);
     var /= float(start_.size());
     return std::sqrt(var);
   }
 
   float tot() {
     float dt_tot = 0.0;
-    for (size_t i = 0; i < start_.size(); ++i) {
-      auto dt = float(
-          std::chrono::duration_cast<std::chrono::milliseconds>(stop_[i] - start_[i])
-              .count());
-      dt_tot += dt;
-    }
+    for (size_t i = 0; i < start_.size(); ++i) dt_tot += dt(i);
     return dt_tot;
   }
 

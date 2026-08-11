@@ -94,40 +94,27 @@ TF FINUFFT_PLAN_T<TF>::evaluate_kernel_runtime(TF x) const
 }
 
 /*
-  Approximates exact 1D Fourier transform of spreadinterp's real symmetric
-  kernel, directly via q-node quadrature on Euler-Fourier formula, exploiting
-  narrowness of kernel. Evaluates at set of arbitrary freqs k in [-pi, pi),
-  for a kernel with x measured in grid-spacings. (See onedim_fseries_kernel
-  for FT definition.) Note: old (pre-2025) name was: onedim_nuft_kernel().
+  1D Fourier transform of spreadinterp's real symmetric kernel, evaluated at a
+  set of arbitrary freqs k in [-pi, pi), for a kernel with x measured in
+  grid-spacings. (See onedim_fseries_kernel for FT definition.) Uses the
+  analytic PSWF self-FT (one Horner eval per freq; see pswf_selfft_params), the
+  prolate being an eigenfunction of the finite FT. Old name: onedim_nuft_kernel.
 
-  operator()(k) evaluates the Fourier transform of the kernel at a single
-  frequency k, using the z and f arrays from creation time.
+  operator()(k) returns the kernel FT phihat at a single frequency k.
     Input: k - frequency, dual to the kernel's natural argument, ie exp(i.k.z)
     Output: phihat - real Fourier transform evaluated at freq k
 
-  Barnett 2/8/17. openmp since cos slow 2/9/17.
-  11/25/25, replaced kernel_definition by evaluate_kernel_runtime, so that
-  the FT of the piecewise poly approximant (not "exact" kernel) is computed.
-  Converted to nested class of FINUFFT_PLAN_T, Barbone 2/24/26.
-  Previous constructor args (spopts, horner_coeffs_ptr, nc) are now read from
-  the plan reference.
+  Barnett 2/8/17. Converted to nested class, Barbone 2/24/26.
+  Analytic PSWF self-FT replacing per-point cosine quadrature, Barbone 7/23/26.
 */
 template<typename TF>
-FINUFFT_PLAN_T<TF>::Kernel_onedim_FT::Kernel_onedim_FT(const FINUFFT_PLAN_T &plan) {
-  // Creator: uses slow kernel evals to initialize z and f arrays.
-  using finufft::common::gaussquad;
-  TF J2 = plan.m.spopts.nspread / 2.0; // J/2, half-width of ker z-support
-  // # quadr nodes in z (from 0 to J/2; reflections will be added)...
-  int q = (int)(2 + 2.0 * J2); // > pi/2 ratio.  cannot exceed MAX_NQUAD
-  if (plan.m.spopts.debug) printf("q (# ker FT quadr pts) = %d\n", q);
-  std::vector<double> Z(2 * q), W(2 * q);
-  gaussquad(2 * q, Z.data(), W.data()); // only half the nodes used, for (0,1)
-  z.resize(q);
-  f.resize(q);
-  for (int n = 0; n < q; ++n) {
-    z[n] = TF(Z[n] * J2); // quadr nodes for [0,J/2] with weights J2 * w
-    f[n] = J2 * TF(W[n]) * plan.evaluate_kernel_runtime(z[n]);
-  }
+FINUFFT_PLAN_T<TF>::Kernel_onedim_FT::Kernel_onedim_FT(const FINUFFT_PLAN_T &plan)
+    : plan_ptr(&plan) {
+  const auto [gs, pf] = finufft::kernel::pswf_selfft_params(
+      plan.m.spopts.nspread, plan.m.spopts.beta, plan.m.horner_coeffs.data(), plan.m.nc,
+      int(plan.m.padded_ns));
+  grid_scale = TF(gs);
+  prefac = TF(pf);
 }
 
 template<typename TF>

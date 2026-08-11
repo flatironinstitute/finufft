@@ -23,8 +23,8 @@ sigma = 1.25;
 tolsperdecade = 10;
 tolstep = 10 ^ (-1 / tolsperdecade); % multiplicative step in tol, < 1
 % following names must match src/finufft_common/kernel.h:
-kfnam = {"ES legacy", "ES Beatty", "KB Beatty", "cont-KB Beatty", "cosh-type Bea", "cont cosh Bea", "PSWF Beatty", "PSWF beta-shift", "PSWF Marco"};
-kfs = [1 8];       % kernel formulae to test
+kfnam = {"", "", "", "", "", "", "PSWF Beatty", "PSWF beta-shift", "PSWF Marco"};
+kfs = [7 8 9];     % kernel formulae to test (1-6 removed in v2.6.0)
 
 o.upsampfac = sigma;
 %o.debug = 1;

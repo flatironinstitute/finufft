@@ -200,7 +200,7 @@ Here ``0`` makes an automatic choice. If you are unhappy with this, then for sma
 
 **spread_max_sp_size**: if positive, overrides the maximum subproblem (chunking) size for multithreaded spreading (type 1 transforms). Otherwise the default in the spreader is used, set in ``src/spreadinterp.cpp:setup_spreader()``, which we believe is a decent heuristic for Intel i7 and xeon machines.
 
-**spread_kerformula**: ``0`` uses default spreading (gridding) kernel with default shape choice, whereas positive integers select among various kernels and shape parameter choices. In particular ``1`` returns to the "legacy ES" choices used from the first 2017 code to v2.4.1 (2025). Only developers should mess with this parameter; users should leave it at default.
+**spread_kerformula**: ``0`` uses the default spreading (gridding) kernel with default shape choice; ``7``, ``8`` and ``9`` select among shape parameter choices for it. As of v2.6.0 the prolate spheroidal wavefunction (PSWF) is the only kernel: the legacy ES, Kaiser--Bessel and cosh-type formulas (``1``--``6``, available up to v2.5.0) have been removed and now return an error. Only developers should mess with this parameter; users should leave it at default.
 
 **spread_kerevalmeth**: [DEPRECATED] Kernel evaluation method in spreader/interpolator; retained only for API compatibility and documentation. The library now always uses the Horner piecewise-polynomial evaluation internally (the historical ``=1`` choice). Setting this field has no effect.
 
