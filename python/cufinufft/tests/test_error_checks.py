@@ -5,6 +5,7 @@ from cufinufft import Plan, _compat
 
 import utils
 
+
 def test_set_nu_raises_on_dtype(to_gpu):
     dtype = np.complex64
 
@@ -23,17 +24,15 @@ def test_set_nu_raises_on_dtype(to_gpu):
     plan = Plan(1, shape, eps=tol, dtype=dtype)
 
     with pytest.raises(TypeError):
-        plan.setpts(kxyz_gpu_wrong_type[0],
-                     kxyz_gpu[1], kxyz_gpu[2])
+        plan.setpts(kxyz_gpu_wrong_type[0], kxyz_gpu[1], kxyz_gpu[2])
     with pytest.raises(TypeError):
-        plan.setpts(kxyz_gpu[0],
-                     kxyz_gpu_wrong_type[1], kxyz_gpu[2])
+        plan.setpts(kxyz_gpu[0], kxyz_gpu_wrong_type[1], kxyz_gpu[2])
     with pytest.raises(TypeError):
-        plan.setpts(kxyz_gpu[0],
-                     kxyz_gpu[1], kxyz_gpu_wrong_type[2])
+        plan.setpts(kxyz_gpu[0], kxyz_gpu[1], kxyz_gpu_wrong_type[2])
     with pytest.raises(TypeError):
-        plan.setpts(kxyz_gpu_wrong_type[0],
-                     kxyz_gpu_wrong_type[1], kxyz_gpu_wrong_type[2])
+        plan.setpts(
+            kxyz_gpu_wrong_type[0], kxyz_gpu_wrong_type[1], kxyz_gpu_wrong_type[2]
+        )
 
 
 def test_set_pts_raises_on_size(to_gpu):
@@ -128,13 +127,11 @@ def test_exec_raises_on_dtype(to_gpu):
     kxyz_gpu = to_gpu(kxyz)
     fk_gpu = _compat.array_empty_like(kxyz_gpu, shape, dtype=complex_dtype)
     # Here we'll intentionally contruct an incorrect array dtype.
-    fk_gpu_wrong_dtype = _compat.array_empty_like(fk_gpu, shape,
-            dtype=np.complex128)
+    fk_gpu_wrong_dtype = _compat.array_empty_like(fk_gpu, shape, dtype=np.complex128)
 
     plan = Plan(1, shape, eps=tol, dtype=complex_dtype)
 
-    plan.setpts(kxyz_gpu[0],
-                 kxyz_gpu[1], kxyz_gpu[2])
+    plan.setpts(kxyz_gpu[0], kxyz_gpu[1], kxyz_gpu[2])
 
     with pytest.raises(TypeError):
         plan.execute(c_gpu, fk_gpu_wrong_dtype)

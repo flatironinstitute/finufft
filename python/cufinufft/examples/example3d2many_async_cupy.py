@@ -14,14 +14,17 @@ rng = np.random.Generator(np.random.PCG64(100))
 pinned_memory_pool = cupy.cuda.PinnedMemoryPool()
 cupy.cuda.set_pinned_memory_allocator(pinned_memory_pool.malloc)
 
+
 def _pin_memory(array):
     mem = cupy.cuda.alloc_pinned_memory(array.nbytes)
     ret = np.frombuffer(mem, array.dtype, array.size).reshape(array.shape)
     ret[...] = array
     return ret
 
+
 def test():
     # Set up parameters for problem.
+    # fmt: off
     N = (128, 128, 160)             # Size of uniform grid
     M = 6136781                     # Number of nonuniform points
     n_transf = 1                    # Number of nuffts to perform per batch
@@ -29,6 +32,7 @@ def test():
     eps = 1e-5                      # Requested tolerance
     dtype = np.float32              # Datatype (real)
     complex_dtype = np.complex64    # Datatype (complex)
+    # fmt: on
 
     # Generate coordinates of non-uniform points.
     x = 2 * np.pi * (rng.random(size=M, dtype=dtype) - 0.5)
@@ -36,7 +40,7 @@ def test():
     z = 2 * np.pi * (rng.random(size=M, dtype=dtype) - 0.5)
 
     # Generate grid values.
-    fk_all_naive = (rng.standard_normal((n_tot, n_transf, *N), dtype=dtype) + 1j * rng.standard_normal((n_tot, n_transf, *N), dtype=dtype))
+    fk_all_naive = (rng.standard_normal((n_tot, n_transf, *N), dtype=dtype) + 1j * rng.standard_normal((n_tot, n_transf, *N), dtype=dtype))  # fmt: skip
     fk_all = _pin_memory(fk_all_naive)
     c_all_async = _pin_memory(np.zeros(shape=(n_tot, n_transf, M), dtype=complex_dtype))
     c_all_sync = _pin_memory(np.zeros(shape=(n_tot, n_transf, M), dtype=complex_dtype))
@@ -44,7 +48,15 @@ def test():
 
     # Initialize the plan and set the points.
     plan_stream = cupy.cuda.Stream(null=True)
-    plan = cufinufft.Plan(2, N, n_transf, eps=eps, dtype=complex_dtype, gpu_kerevalmeth=1, gpu_stream=plan_stream.ptr)
+    plan = cufinufft.Plan(
+        2,
+        N,
+        n_transf,
+        eps=eps,
+        dtype=complex_dtype,
+        gpu_kerevalmeth=1,
+        gpu_stream=plan_stream.ptr,
+    )
     plan.setpts(cupy.array(x), cupy.array(y), cupy.array(z))
 
     # Using a simple front/back buffer approach. backbuffer is for DtoH transfers, and front for
@@ -54,9 +66,25 @@ def test():
     back_fk_gpu = cupy.empty(fk_all[0].shape, fk_all[0].dtype)
     front_c_gpu = cupy.empty(c_all_async[0].shape, c_all_async[0].dtype)
     back_c_gpu = cupy.empty(c_all_async[0].shape, c_all_async[0].dtype)
-    front_plan = cufinufft.Plan(2, N, n_transf, eps=eps, dtype=complex_dtype, gpu_kerevalmeth=1, gpu_stream=front_stream.ptr)
+    front_plan = cufinufft.Plan(
+        2,
+        N,
+        n_transf,
+        eps=eps,
+        dtype=complex_dtype,
+        gpu_kerevalmeth=1,
+        gpu_stream=front_stream.ptr,
+    )
     front_plan.setpts(cupy.array(x), cupy.array(y), cupy.array(z))
-    back_plan = cufinufft.Plan(2, N, n_transf, eps=eps, dtype=complex_dtype, gpu_kerevalmeth=1, gpu_stream=back_stream.ptr)
+    back_plan = cufinufft.Plan(
+        2,
+        N,
+        n_transf,
+        eps=eps,
+        dtype=complex_dtype,
+        gpu_kerevalmeth=1,
+        gpu_stream=back_stream.ptr,
+    )
     back_plan.setpts(cupy.array(x), cupy.array(y), cupy.array(z))
 
     # Run with async
@@ -66,7 +94,9 @@ def test():
         if i + 1 < n_tot:
             back_fk_gpu.set(fk_all[i + 1], stream=back_stream)
 
-        front_plan.execute(front_fk_gpu, out=front_c_gpu).get(out=c_all_async[i], stream=front_stream)
+        front_plan.execute(front_fk_gpu, out=front_c_gpu).get(
+            out=c_all_async[i], stream=front_stream
+        )
 
         back_stream, front_stream = front_stream, back_stream
         back_plan, front_plan = front_plan, back_plan
@@ -91,8 +121,8 @@ def test():
 
     naive_time = time.time() - st
 
-    assert(np.linalg.norm(c_all_sync - c_all_naive) == 0.0)
-    assert(np.linalg.norm(c_all_async - c_all_naive) == 0.0)
+    assert np.linalg.norm(c_all_sync - c_all_naive) == 0.0
+    assert np.linalg.norm(c_all_async - c_all_naive) == 0.0
 
     print(f"async timing: {async_time}")
     print(f"sync timing: {sync_time}")
@@ -106,5 +136,6 @@ def test():
     # might be deleted before cufinufft can use it in the deletion routines. Manually clear
     # them out here.
     del plan, front_plan, back_plan
+
 
 test()

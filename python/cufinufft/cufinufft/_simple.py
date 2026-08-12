@@ -1,38 +1,61 @@
 from cufinufft import Plan, _compat
 
+
 def nufft1d1(x, data, n_modes=None, out=None, eps=1e-6, isign=1, **kwargs):
-    return _invoke_plan(1, 1, x, None, None, data, None, None, None, out, isign, eps, n_modes,
-            kwargs)
+    return _invoke_plan(
+        1, 1, x, None, None, data, None, None, None, out, isign, eps, n_modes, kwargs
+    )
+
 
 def nufft1d2(x, data, out=None, eps=1e-6, isign=-1, **kwargs):
-    return _invoke_plan(1, 2, x, None, None, data, None, None, None, out, isign, eps, None,
-            kwargs)
+    return _invoke_plan(
+        1, 2, x, None, None, data, None, None, None, out, isign, eps, None, kwargs
+    )
+
 
 def nufft2d1(x, y, data, n_modes=None, out=None, eps=1e-6, isign=1, **kwargs):
-    return _invoke_plan(2, 1, x, y, None, data, None, None, None, out, isign, eps, n_modes,
-            kwargs)
+    return _invoke_plan(
+        2, 1, x, y, None, data, None, None, None, out, isign, eps, n_modes, kwargs
+    )
+
 
 def nufft2d2(x, y, data, out=None, eps=1e-6, isign=-1, **kwargs):
-    return _invoke_plan(2, 2, x, y, None, data, None, None, None, out, isign, eps, None, kwargs)
+    return _invoke_plan(
+        2, 2, x, y, None, data, None, None, None, out, isign, eps, None, kwargs
+    )
 
-def nufft3d1(x, y, z, data, n_modes=None, out=None, eps=1e-6, isign=1,
-        **kwargs):
-    return _invoke_plan(3, 1, x, y, z, data, None, None, None, out, isign, eps, n_modes, kwargs)
+
+def nufft3d1(x, y, z, data, n_modes=None, out=None, eps=1e-6, isign=1, **kwargs):
+    return _invoke_plan(
+        3, 1, x, y, z, data, None, None, None, out, isign, eps, n_modes, kwargs
+    )
+
 
 def nufft3d2(x, y, z, data, out=None, eps=1e-6, isign=-1, **kwargs):
-    return _invoke_plan(3, 2, x, y, z, data, None, None, None, out, isign, eps, None, kwargs)
+    return _invoke_plan(
+        3, 2, x, y, z, data, None, None, None, out, isign, eps, None, kwargs
+    )
+
 
 def nufft3d3(x, y, z, data, s, t, u, out=None, eps=1e-6, isign=1, **kwargs):
-    return _invoke_plan(3, 3, x, y, z, data, s, t, u, out, isign, eps, None,  kwargs)
+    return _invoke_plan(3, 3, x, y, z, data, s, t, u, out, isign, eps, None, kwargs)
+
 
 def nufft2d3(x, y, data, s, t, out=None, eps=1e-6, isign=1, **kwargs):
-    return _invoke_plan(2, 3, x, y, None, data, s, t, None, out, isign, eps, None, kwargs)
+    return _invoke_plan(
+        2, 3, x, y, None, data, s, t, None, out, isign, eps, None, kwargs
+    )
+
 
 def nufft1d3(x, data, s, out=None, eps=1e-6, isign=1, **kwargs):
-    return _invoke_plan(1, 3, x, None, None, data, s, None, None, out, isign, eps, None,  kwargs)
+    return _invoke_plan(
+        1, 3, x, None, None, data, s, None, None, out, isign, eps, None, kwargs
+    )
 
-def _invoke_plan(dim, nufft_type, x, y, z, data, s, t, u,  out, isign, eps,
-        n_modes=None, kwargs=None):
+
+def _invoke_plan(
+    dim, nufft_type, x, y, z, data, s, t, u, out, isign, eps, n_modes=None, kwargs=None
+):
     dtype = _compat.get_array_dtype(data)
 
     n_trans = _get_ntrans(dim, nufft_type, data)
@@ -76,28 +99,27 @@ def _wrap_docstring(docstring, tw=80, min_spacing=2):
 
     for k, line in enumerate(lines):
         if len(line) > tw:
-            last_space = line[:tw].rfind(' ')
-            indent_level = line.rfind(' ' * min_spacing) + min_spacing
+            last_space = line[:tw].rfind(" ")
+            indent_level = line.rfind(" " * min_spacing) + min_spacing
 
             lines[k] = line[:last_space]
 
-            new_line = (' ' * indent_level) + line[last_space + 1:]
+            new_line = (" " * indent_level) + line[last_space + 1 :]
 
             # Check if the indentation level continues on next line. If so,
             # concatenate, otherwise insert new line.
             if len(lines[k + 1]) - len(lines[k + 1].lstrip()) >= indent_level:
-                lines[k + 1] = new_line + ' ' + lines[k + 1].lstrip()
+                lines[k + 1] = new_line + " " + lines[k + 1].lstrip()
             else:
                 lines.insert(k + 1, new_line)
 
-    docstring = '\n'.join(lines)
+    docstring = "\n".join(lines)
 
     return docstring
 
 
 def _set_nufft_doc(f, dim, tp):
-    doc_nufft1 = \
-    """{dim}D type-1 (nonuniform to uniform) complex NUFFT
+    doc_nufft1 = """{dim}D type-1 (nonuniform to uniform) complex NUFFT
 
     ::
 
@@ -153,8 +175,7 @@ def _set_nufft_doc(f, dim, tp):
       f = cufinufft.nufft{dim}d1({pts}, c, {modes_tuple})
     """
 
-    doc_nufft2 = \
-    """{dim}D type-2 (uniform to nonuniform) complex NUFFT
+    doc_nufft2 = """{dim}D type-2 (uniform to nonuniform) complex NUFFT
 
     ::
 
@@ -206,8 +227,7 @@ def _set_nufft_doc(f, dim, tp):
       c = cufinufft.nufft{dim}d2({pts}, f)
     """
 
-    doc_nufft3 = \
-    """{dim}D type-3 (nonuniform to nonuniform) complex NUFFT
+    doc_nufft3 = """{dim}D type-3 (nonuniform to nonuniform) complex NUFFT
 
     ::
 
@@ -263,41 +283,65 @@ def _set_nufft_doc(f, dim, tp):
 
     doc_nufft = {1: doc_nufft1, 2: doc_nufft2, 3: doc_nufft3}
 
-    pts = ('x', 'y', 'z')
-    target_pts = ('s', 't', 'u')
+    pts = ("x", "y", "z")
+    target_pts = ("s", "t", "u")
     sample_modes = (50, 75, 100)
 
     dims = range(1, dim + 1)
 
     v = {}
 
-    v['dim'] = dim
+    v["dim"] = dim
 
-    v['modes'] = ', '.join('N{}'.format(i) for i in dims)
-    v['modes_tuple'] = '(' + v['modes'] + (', ' if dim == 1 else '') + ')'
-    v['pt_idx'] = ', '.join('k{}'.format(i) for i in dims)
-    v['pt_spacing'] = ' ' * (len(v['pt_idx']) - 2)
-    v['pt_inner'] = ' + '.join('k{0} {1}(j)'.format(i, x) for i, x in zip(dims, pts[:dim]))
-    v['pt_constraint'] = ', '.join('-N{0}/2 <= k{0} <= (N{0}-1)/2'.format(i) for i in dims)
-    v['pts_doc'] = '\n'.join('      {}         (float[M]): nonuniform points, in the interval [-pi, pi), values outside will be folded'.format(x) for x in pts[:dim])
+    v["modes"] = ", ".join("N{}".format(i) for i in dims)
+    v["modes_tuple"] = "(" + v["modes"] + (", " if dim == 1 else "") + ")"
+    v["pt_idx"] = ", ".join("k{}".format(i) for i in dims)
+    v["pt_spacing"] = " " * (len(v["pt_idx"]) - 2)
+    v["pt_inner"] = " + ".join(
+        "k{0} {1}(j)".format(i, x) for i, x in zip(dims, pts[:dim])
+    )
+    v["pt_constraint"] = ", ".join(
+        "-N{0}/2 <= k{0} <= (N{0}-1)/2".format(i) for i in dims
+    )
+    v["pts_doc"] = "\n".join(
+        "      {}         (float[M]): nonuniform points, in the interval [-pi, pi), values outside will be folded".format(
+            x
+        )
+        for x in pts[:dim]
+    )
 
     # for example
-    v['pts'] = ', '.join(str(x) for x in pts[:dim])
-    v['pts_generate'] = '\n'.join('      {} = 2 * cp.pi * cp.random.uniform(size=M)'.format(x) for x in pts[:dim])
-    v['sample_modes'] = ', '.join(str(n) for n in sample_modes[:dim])
+    v["pts"] = ", ".join(str(x) for x in pts[:dim])
+    v["pts_generate"] = "\n".join(
+        "      {} = 2 * cp.pi * cp.random.uniform(size=M)".format(x) for x in pts[:dim]
+    )
+    v["sample_modes"] = ", ".join(str(n) for n in sample_modes[:dim])
 
     # for type 3 only
-    v['src_pts_doc'] = '\n'.join('      {}         (float[M]): nonuniform points, valid in [-pi, pi), values outside will be folded'.format(x) for x in pts[:dim])
-    v['target_pts_doc'] = '\n'.join('      {}         (float[N]): nonuniform target points.'.format(x) for x in target_pts[:dim])
-    v['pt_inner_type3'] = ' + '.join('{0}[k] {1}[j]'.format(s, x) for s, x in zip(target_pts[:dim], pts[:dim]))
+    v["src_pts_doc"] = "\n".join(
+        "      {}         (float[M]): nonuniform points, valid in [-pi, pi), values outside will be folded".format(
+            x
+        )
+        for x in pts[:dim]
+    )
+    v["target_pts_doc"] = "\n".join(
+        "      {}         (float[N]): nonuniform target points.".format(x)
+        for x in target_pts[:dim]
+    )
+    v["pt_inner_type3"] = " + ".join(
+        "{0}[k] {1}[j]".format(s, x) for s, x in zip(target_pts[:dim], pts[:dim])
+    )
 
     # for type 3 example only
-    v['target_pts'] = ', '.join(str(x) for x in target_pts[:dim])
-    v['target_pts_generate'] = '\n'.join('      {} = 2 * np.pi * cp.random.uniform(size=N)'.format(x) for x in target_pts[:dim])
+    v["target_pts"] = ", ".join(str(x) for x in target_pts[:dim])
+    v["target_pts_generate"] = "\n".join(
+        "      {} = 2 * np.pi * cp.random.uniform(size=N)".format(x)
+        for x in target_pts[:dim]
+    )
 
     if dim > 1:
-        v['pt_inner'] = '(' + v['pt_inner'] + ')'
-        v['pt_inner_type3'] = '(' + v['pt_inner_type3'] + ')'
+        v["pt_inner"] = "(" + v["pt_inner"] + ")"
+        v["pt_inner_type3"] = "(" + v["pt_inner_type3"] + ")"
 
     f.__doc__ = _wrap_docstring(doc_nufft[tp].format(**v))
 

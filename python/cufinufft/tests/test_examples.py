@@ -16,6 +16,7 @@ for filename in os.listdir(examples_dir):
     if filename.endswith(".py"):
         scripts.append(os.path.join(examples_dir, filename))
 
+
 @pytest.mark.parametrize("filename", scripts)
 def test_example(filename, request):
     # Extract framework from format `example_framework.py`.

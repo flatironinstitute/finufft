@@ -4,6 +4,7 @@
 import numpy as np
 import finufft
 import time
+
 np.random.seed(42)
 
 # number of nonuniform points
@@ -17,8 +18,7 @@ y = 2 * np.pi * np.random.uniform(size=M)
 K = 4
 
 # generate K stacked strength arrays
-c = (np.random.standard_normal(size=(K, M))
-     + 1J * np.random.standard_normal(size=(K, M)))
+c = np.random.standard_normal(size=(K, M)) + 1j * np.random.standard_normal(size=(K, M))
 
 # desired number of Fourier modes (in x,y directions respectively)
 N1 = 1000
@@ -36,17 +36,17 @@ plan.setpts(x, y)
 
 # execute the plan (K transforms together, note c.shape must match)
 f = plan.execute(c)
-print("vectorized guru finufft2d1 done in {0:.2g} s.".format(time.time()-t0))
+print("vectorized guru finufft2d1 done in {0:.2g} s.".format(time.time() - t0))
 
 print(f.dtype)
 print(f.shape)
 
-k1 = 376     # do a math check, for a single output mode index (k1,k2)
+k1 = 376  # do a math check, for a single output mode index (k1,k2)
 k2 = -1000
-t = K-2      # from the t'th transform
-assert((k1>=-N1/2.) & (k1<N1/2.))   # float division easier here
-assert((k2>=-N2/2.) & (k2<N2/2.))
-assert((t>=0) & (t<K))
-ftest = sum(c[t,:] * np.exp(1.j*(k1*x + k2*y)))
-err = np.abs(f[t, k1+N1//2, k2+N2//2] - ftest) / np.max(np.abs(f))
+t = K - 2  # from the t'th transform
+assert (k1 >= -N1 / 2.0) & (k1 < N1 / 2.0)  # float division easier here
+assert (k2 >= -N2 / 2.0) & (k2 < N2 / 2.0)
+assert (t >= 0) & (t < K)
+ftest = sum(c[t, :] * np.exp(1.0j * (k1 * x + k2 * y)))
+err = np.abs(f[t, k1 + N1 // 2, k2 + N2 // 2] - ftest) / np.max(np.abs(f))
 print("Error relative to max: {0:.2e}".format(err))

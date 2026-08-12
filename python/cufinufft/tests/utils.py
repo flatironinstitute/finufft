@@ -80,7 +80,7 @@ def make_grid(shape):
     shape = shape
 
     grids = [np.arange(-(N // 2), (N + 1) // 2) for N in shape]
-    grids = np.meshgrid(*grids, indexing='ij')
+    grids = np.meshgrid(*grids, indexing="ij")
     return np.stack(grids)
 
 
@@ -111,7 +111,9 @@ def direct_type3(source_pts, source_coefs, target_pts, ind):
     target_pt = target_pts[:, ind]
     target_pt = target_pt[:, np.newaxis]
 
-    target_coef = np.sum(np.exp(1j * np.sum(target_pt * source_pts, axis=0)) * source_coefs, -1)
+    target_coef = np.sum(
+        np.exp(1j * np.sum(target_pt * source_pts, axis=0)) * source_coefs, -1
+    )
 
     return target_coef
 
@@ -159,32 +161,41 @@ def verify_type3(source_pts, source_coef, target_pts, target_coef, tol):
     target_est = target_coef[..., ind]
     target_true = direct_type3(source_pts, source_coef, target_pts, ind)
 
-    type3_rel_err = np.linalg.norm(target_est - target_true) / np.linalg.norm(target_true)
+    type3_rel_err = np.linalg.norm(target_est - target_true) / np.linalg.norm(
+        target_true
+    )
 
     assert type3_rel_err < 100 * tol
 
 
 def transfer_funcs(module_name):
     if module_name == "pycuda":
-        import pycuda.autoinit # NOQA:401
+        import pycuda.autoinit  # NOQA:401
         from pycuda.gpuarray import to_gpu
+
         def to_cpu(obj):
             return obj.get()
     elif module_name == "cupy":
         import cupy
+
         def to_gpu(obj):
             return cupy.array(obj)
+
         def to_cpu(obj):
             return obj.get()
     elif module_name == "numba":
         import numba.cuda
+
         to_gpu = numba.cuda.to_device
+
         def to_cpu(obj):
             return obj.copy_to_host()
     elif module_name == "torch":
         import torch
+
         def to_gpu(obj):
             return torch.as_tensor(obj, device=torch.device("cuda"))
+
         def to_cpu(obj):
             return obj.cpu().numpy()
     else:
