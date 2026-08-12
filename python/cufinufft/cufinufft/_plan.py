@@ -192,6 +192,8 @@ class Plan:
 
     @property
     def n_modes(self) -> tuple[int, ...]:
+        """The mode counts in each dimension, in ``ndarray.shape`` order, as
+        passed to the plan (the C library takes them reversed)."""
         return self._n_modes
 
     @property

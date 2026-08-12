@@ -9,9 +9,15 @@
 # Anden 8/18/20: auto-made docstrings for the 9 simple/many routines
 
 
+from __future__ import annotations
+
 import numpy as np
+import numpy.typing as npt
 import warnings
 import numbers
+
+from collections.abc import Iterable
+from typing import Any
 
 from ctypes import byref
 from ctypes import c_longlong
@@ -19,6 +25,12 @@ from ctypes import c_void_p
 import ctypes
 
 import finufft._finufft as _finufft
+
+
+# The C library requires exact dtypes: real points are float32/float64 and the
+# coefficients the matching complex64/complex128 (see _ensure_array_type).
+RealArray = npt.NDArray[np.floating]
+ComplexArray = npt.NDArray[np.complexfloating]
 
 
 ### Plan class definition
@@ -95,14 +107,14 @@ class Plan:
 
     def __init__(
         self,
-        nufft_type,
-        n_modes_or_dim,
-        n_trans=1,
-        eps=1e-6,
-        isign=None,
-        dtype="complex128",
-        **kwargs,
-    ):
+        nufft_type: int,
+        n_modes_or_dim: int | Iterable[int],
+        n_trans: int = 1,
+        eps: float = 1e-6,
+        isign: int | None = None,
+        dtype: npt.DTypeLike = "complex128",
+        **kwargs: Any,
+    ) -> None:
         # set default isign based on if isign is None
         if isign == None:
             if nufft_type == 2:
@@ -118,7 +130,7 @@ class Plan:
         # is assigned as an integer to the ctypes structure
         if "spread_kerformula" in kwargs:
             try:
-                opts.spread_kerformula = int(kwargs.get("spread_kerformula"))
+                opts.spread_kerformula = int(kwargs["spread_kerformula"])
             except Exception:
                 # fall back to generic setter below which will warn if invalid
                 pass
@@ -131,6 +143,7 @@ class Plan:
         plan = c_void_p(None)
 
         # setting n_modes and dim for makeplan
+        modes: tuple[int, ...]
         if nufft_type == 3:
             npdim = np.asarray(n_modes_or_dim, dtype=np.int64)
             if npdim.size != 1:
@@ -138,16 +151,17 @@ class Plan:
                     "FINUFFT type 3 plan n_modes_or_dim must be one number, the dimension"
                 )
             dim = int(npdim)
-            n_modes = np.ones([dim], dtype=np.int64)
+            modes = (1,) * dim  # ignored for type 3, can be anything
         else:
             npmodes = np.asarray(n_modes_or_dim, dtype=np.int64)
             if npmodes.size > 3 or npmodes.size < 1:
                 raise RuntimeError("FINUFFT n_modes dimension must be 1, 2, or 3")
             dim = int(npmodes.size)
-            n_modes = np.ones([dim], dtype=np.int64)
-            n_modes[0:dim] = npmodes[::-1]
+            modes = tuple(int(m) for m in npmodes.reshape(-1))
 
-        n_modes = (c_longlong * dim)(*n_modes)
+        # The caller gives the modes in ndarray.shape order (nZ, nY, nX); the
+        # library wants the Fortran order (nX, nY, nZ).
+        n_modes = (c_longlong * dim)(*modes[::-1])
 
         if is_single:
             self._makeplan = _finufft._makeplanf
@@ -171,41 +185,48 @@ class Plan:
             err_handler(ier)
 
         # set C++ side plan as inner_plan
-        self._inner_plan = plan
+        self._inner_plan: c_void_p | None = plan
 
         # set properties
         self._type = nufft_type
         self._dim = dim
-        self._n_modes = n_modes
+        self._n_modes = modes
         self._n_trans = n_trans
 
-        if is_single:
-            self._dtype = np.dtype("complex64")
-        else:
-            self._dtype = np.dtype("complex128")
+        self._dtype = np.dtype("complex64" if is_single else "complex128")
 
     @property
-    def type(self):
+    def type(self) -> int:
         return self._type
 
     @property
-    def dtype(self):
+    def dtype(self) -> np.dtype:
         return self._dtype
 
     @property
-    def dim(self):
+    def dim(self) -> int:
         return self._dim
 
     @property
-    def n_modes(self):
+    def n_modes(self) -> tuple[int, ...]:
+        """The mode counts in each dimension, in ``ndarray.shape`` order, as
+        passed to the plan (the C library takes them reversed)."""
         return self._n_modes
 
     @property
-    def n_trans(self):
+    def n_trans(self) -> int:
         return self._n_trans
 
     ### setpts
-    def setpts(self, x=None, y=None, z=None, s=None, t=None, u=None):
+    def setpts(
+        self,
+        x: RealArray | None = None,
+        y: RealArray | None = None,
+        z: RealArray | None = None,
+        s: RealArray | None = None,
+        t: RealArray | None = None,
+        u: RealArray | None = None,
+    ) -> None:
         r"""
         Set the nonuniform points
 
@@ -291,7 +312,9 @@ class Plan:
             err_handler(ier)
 
     ### execute
-    def execute(self, data, out=None):
+    def execute(
+        self, data: ComplexArray, out: ComplexArray | None = None
+    ) -> ComplexArray:
         r"""
         Execute the plan
 
@@ -321,7 +344,7 @@ class Plan:
         dim = self._dim
 
         if tp == 1 or tp == 2:
-            ms, mt, mu = [*self._n_modes, *([1] * (3 - len(self._n_modes)))]
+            ms, mt, mu = [*self._n_modes[::-1], *([1] * (3 - self._dim))]
 
         # input shape and size check
         if tp == 2:
@@ -342,7 +365,7 @@ class Plan:
         if out is None:
             if tp == 1:
                 _out = np.zeros(
-                    [*data.shape[:-1], *self._n_modes[::-1]],
+                    [*data.shape[:-1], *self._n_modes],
                     dtype=self._dtype,
                     order="C",
                 )
@@ -372,7 +395,9 @@ class Plan:
         return _out
 
     ### execute_adjoint
-    def execute_adjoint(self, data, out=None):
+    def execute_adjoint(
+        self, data: ComplexArray, out: ComplexArray | None = None
+    ) -> ComplexArray:
         r"""
         Execute the plan in the adjoint direction
 
@@ -407,7 +432,7 @@ class Plan:
         dim = self._dim
 
         if tp == 1 or tp == 2:
-            ms, mt, mu = [*self._n_modes, *([1] * (3 - len(self._n_modes)))]
+            ms, mt, mu = [*self._n_modes[::-1], *([1] * (3 - self._dim))]
 
         # input shape and size check
         if tp == 1:
@@ -432,7 +457,7 @@ class Plan:
                 _out = np.empty([*data.shape[:-dim], nj], dtype=self._dtype, order="C")
             if tp == 2:
                 _out = np.empty(
-                    [*data.shape[:-1], *self._n_modes[::-1]],
+                    [*data.shape[:-1], *self._n_modes],
                     dtype=self._dtype,
                     order="C",
                 )
@@ -459,7 +484,7 @@ class Plan:
 
         return _out
 
-    def __del__(self):
+    def __del__(self) -> None:
         destroy(self)
         self._inner_plan = None
 
@@ -1031,61 +1056,142 @@ def _set_nufft_doc(f, dim, tp, example="python/finufft/test/accuracy_speed_tests
 
 ### easy interfaces
 ### 1d1
-def nufft1d1(x, c, n_modes=None, out=None, eps=1e-6, isign=1, **kwargs):
+def nufft1d1(
+    x: RealArray,
+    c: ComplexArray,
+    n_modes: int | Iterable[int] | None = None,
+    out: ComplexArray | None = None,
+    eps: float = 1e-6,
+    isign: int = 1,
+    **kwargs: Any,
+) -> ComplexArray:
     return invoke_guru(
         1, 1, x, None, None, c, None, None, None, out, isign, eps, n_modes, **kwargs
     )
 
 
 ### 1d2
-def nufft1d2(x, f, out=None, eps=1e-6, isign=-1, **kwargs):
+def nufft1d2(
+    x: RealArray,
+    f: ComplexArray,
+    out: ComplexArray | None = None,
+    eps: float = 1e-6,
+    isign: int = -1,
+    **kwargs: Any,
+) -> ComplexArray:
     return invoke_guru(
         1, 2, x, None, None, out, None, None, None, f, isign, eps, None, **kwargs
     )
 
 
 ### 1d3
-def nufft1d3(x, c, s, out=None, eps=1e-6, isign=1, **kwargs):
+def nufft1d3(
+    x: RealArray,
+    c: ComplexArray,
+    s: RealArray,
+    out: ComplexArray | None = None,
+    eps: float = 1e-6,
+    isign: int = 1,
+    **kwargs: Any,
+) -> ComplexArray:
     return invoke_guru(
         1, 3, x, None, None, c, s, None, None, out, isign, eps, None, **kwargs
     )
 
 
 ### 2d1
-def nufft2d1(x, y, c, n_modes=None, out=None, eps=1e-6, isign=1, **kwargs):
+def nufft2d1(
+    x: RealArray,
+    y: RealArray,
+    c: ComplexArray,
+    n_modes: int | Iterable[int] | None = None,
+    out: ComplexArray | None = None,
+    eps: float = 1e-6,
+    isign: int = 1,
+    **kwargs: Any,
+) -> ComplexArray:
     return invoke_guru(
         2, 1, x, y, None, c, None, None, None, out, isign, eps, n_modes, **kwargs
     )
 
 
 ### 2d2
-def nufft2d2(x, y, f, out=None, eps=1e-6, isign=-1, **kwargs):
+def nufft2d2(
+    x: RealArray,
+    y: RealArray,
+    f: ComplexArray,
+    out: ComplexArray | None = None,
+    eps: float = 1e-6,
+    isign: int = -1,
+    **kwargs: Any,
+) -> ComplexArray:
     return invoke_guru(
         2, 2, x, y, None, out, None, None, None, f, isign, eps, None, **kwargs
     )
 
 
 ### 2d3
-def nufft2d3(x, y, c, s, t, out=None, eps=1e-6, isign=1, **kwargs):
+def nufft2d3(
+    x: RealArray,
+    y: RealArray,
+    c: ComplexArray,
+    s: RealArray,
+    t: RealArray,
+    out: ComplexArray | None = None,
+    eps: float = 1e-6,
+    isign: int = 1,
+    **kwargs: Any,
+) -> ComplexArray:
     return invoke_guru(2, 3, x, y, None, c, s, t, None, out, isign, eps, None, **kwargs)
 
 
 ### 3d1
-def nufft3d1(x, y, z, c, n_modes=None, out=None, eps=1e-6, isign=1, **kwargs):
+def nufft3d1(
+    x: RealArray,
+    y: RealArray,
+    z: RealArray,
+    c: ComplexArray,
+    n_modes: int | Iterable[int] | None = None,
+    out: ComplexArray | None = None,
+    eps: float = 1e-6,
+    isign: int = 1,
+    **kwargs: Any,
+) -> ComplexArray:
     return invoke_guru(
         3, 1, x, y, z, c, None, None, None, out, isign, eps, n_modes, **kwargs
     )
 
 
 ### 3d2
-def nufft3d2(x, y, z, f, out=None, eps=1e-6, isign=-1, **kwargs):
+def nufft3d2(
+    x: RealArray,
+    y: RealArray,
+    z: RealArray,
+    f: ComplexArray,
+    out: ComplexArray | None = None,
+    eps: float = 1e-6,
+    isign: int = -1,
+    **kwargs: Any,
+) -> ComplexArray:
     return invoke_guru(
         3, 2, x, y, z, out, None, None, None, f, isign, eps, None, **kwargs
     )
 
 
 ### 3d3
-def nufft3d3(x, y, z, c, s, t, u, out=None, eps=1e-6, isign=1, **kwargs):
+def nufft3d3(
+    x: RealArray,
+    y: RealArray,
+    z: RealArray,
+    c: ComplexArray,
+    s: RealArray,
+    t: RealArray,
+    u: RealArray,
+    out: ComplexArray | None = None,
+    eps: float = 1e-6,
+    isign: int = 1,
+    **kwargs: Any,
+) -> ComplexArray:
     return invoke_guru(3, 3, x, y, z, c, s, t, u, out, isign, eps, None, **kwargs)
 
 
