@@ -74,15 +74,19 @@ int main() {
   cudaMemcpy(d_c, c, M * sizeof(float _Complex), cudaMemcpyHostToDevice);
 
   // Make the cufinufft plan for a 1D type-1 transform with six digits of
-  // tolerance.
-  cufinufftf_makeplan(1, 1, modes, 1, 1, 1e-6, &plan, NULL);
+  // tolerance. Any ier above 1 is an error; 1 is a warning and the result is
+  // still usable.
+  int ier = cufinufftf_makeplan(1, 1, modes, 1, 1, 1e-6, &plan, NULL);
+  if (ier > 1) return ier;
 
   // Set the frequencies of the nonuniform points.
-  cufinufftf_setpts(plan, M, d_x, NULL, NULL, 0, NULL, NULL, NULL);
+  ier = cufinufftf_setpts(plan, M, d_x, NULL, NULL, 0, NULL, NULL, NULL);
+  if (ier > 1) return ier;
 
   // Actually execute the plan on the given coefficients and store the result
   // in the d_f array.
-  cufinufftf_execute(plan, d_c, d_f);
+  ier = cufinufftf_execute(plan, d_c, d_f);
+  if (ier > 1) return ier;
 
   // Copy the result back onto the host.
   cudaMemcpy(f, d_f, N * sizeof(float _Complex), cudaMemcpyDeviceToHost);

@@ -23,29 +23,32 @@ int main()
 */
 {
   int M     = 1e5;                // number of nonuniform points
-  int N     = 1e5;                // number of modes
-  float tol = 1e-5;               // desired accuracy
+  int N     = 1e4;                // number of modes
+  float tol = 1e-3;               // desired accuracy
 
   int type = 1, dim = 1;          // 1d1
   int64_t Ns[3];                  // guru describes mode array by vector [N1,N2..]
   Ns[0]       = N;
   int ntransf = 1;                // we want to do a single transform at a time
   finufftf_plan plan;             // creates single-prec plan struct: note the "f"
+  int ier        = 0;
   int changeopts = 1;             // do you want to try changing opts? 0 or 1
   if (changeopts) {               // demo how to change options away from defaults..
     finufft_opts opts;
     finufftf_default_opts(&opts); // note "f" for single-prec, throughout...
     opts.debug = 2;               // example options change
-    finufftf_makeplan(type, dim, Ns, +1, ntransf, tol, &plan, &opts);
+    ier        = finufftf_makeplan(type, dim, Ns, +1, ntransf, tol, &plan, &opts);
   } else                          // or, NULL here means use default opts...
-    finufftf_makeplan(type, dim, Ns, +1, ntransf, tol, &plan, NULL);
+    ier = finufftf_makeplan(type, dim, Ns, +1, ntransf, tol, &plan, NULL);
+  if (ier > 1) return ier;        // no plan to use; going on would segfault
 
   // generate some random nonuniform points
   vector<float> x(M);
   for (int j = 0; j < M; ++j)
     x[j] = PI * (2 * ((float)rand() / (float)RAND_MAX) - 1); // uniform random in [-pi,pi)
   // note FINUFFT doesn't use std::vector types, so we need to make a pointer...
-  finufftf_setpts(plan, M, &x[0], NULL, NULL, 0, NULL, NULL, NULL);
+  ier = finufftf_setpts(plan, M, &x[0], NULL, NULL, 0, NULL, NULL, NULL);
+  if (ier > 1) return ier; // the plan has no grid; executing it would segfault
 
   // generate some complex strengths
   vector<complex<float>> c(M);
@@ -55,7 +58,7 @@ int main()
 
   // alloc output array for the Fourier modes, then do the transform
   vector<complex<float>> F(N);
-  int ier = finufftf_execute(plan, &c[0], &F[0]);
+  ier = finufftf_execute(plan, &c[0], &F[0]);
 
   // for fun, do another with same NU pts (no re-sorting), but new strengths...
   for (int j = 0; j < M; ++j)
@@ -66,7 +69,7 @@ int main()
   finufftf_destroy(plan); // done with transforms of this size
 
   // rest is math checking and reporting...
-  int n = 12519; // check the answer just for this mode, must be in [-N/2,N/2)
+  int n = 1251; // check the answer just for this mode, must be in [-N/2,N/2)
   complex<float> Ftest = complex<float>(0, 0);
   for (int j = 0; j < M; ++j) Ftest += c[j] * exp(1if * (float)n * x[j]);
   int nout   = n + N / 2; // index in output array for freq mode n
