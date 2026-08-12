@@ -1,6 +1,30 @@
+from __future__ import annotations
+
 import inspect
 
+from typing import Any, Protocol
+
 import numpy as np
+
+
+class CudaArray(Protocol):
+    """A GPU array exposing the CUDA array interface.
+
+    Structurally satisfied by CuPy, Numba, PyTorch and PyCUDA arrays; the
+    members are the ones this package reads off the caller's arrays.
+    """
+
+    @property
+    def __cuda_array_interface__(self) -> dict[str, Any]: ...
+
+    @property
+    def shape(self) -> tuple[int, ...]: ...
+
+    @property
+    def dtype(self) -> Any: ...
+
+    @property
+    def ndim(self) -> int: ...
 
 
 def get_array_ptr(data):

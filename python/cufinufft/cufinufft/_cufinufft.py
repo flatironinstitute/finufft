@@ -141,7 +141,7 @@ _make_plan.argtypes = [
     CufinufftPlan_p,
     NufftOpts_p,
 ]
-_make_plan.restypes = c_int
+_make_plan.restype = c_int
 
 _make_planf = lib.cufinufftf_makeplan
 _make_planf.argtypes = [
@@ -154,7 +154,7 @@ _make_planf.argtypes = [
     CufinufftPlanf_p,
     NufftOpts_p,
 ]
-_make_planf.restypes = c_int
+_make_planf.restype = c_int
 
 _set_pts = lib.cufinufft_setpts
 _set_pts.argtypes = [
