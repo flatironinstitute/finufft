@@ -136,7 +136,8 @@ FINUFFT_NEVER_INLINE void FINUFFT_PLAN_T<TF>::spread_subproblem_1d_kernel(
     // This allows to save one load at each loop iteration.
     // The special case, allows to minimize padding otherwise out of bounds access.
     // See below for the details.
-    static constexpr auto regular_part = (2 * NS + padding) & (-(2 * simd_size));
+    static constexpr auto regular_part =
+        finufft::utils::round_down<2 * simd_size>(std::size_t(2 * NS + padding));
     // this loop increment is 2*simd_size by design
     // it allows to save one load this way at each iteration
 
@@ -552,7 +553,7 @@ inline void bin_sort_singlethread_impl(std::vector<BIGINT> &ret, UBIGINT M, cons
 
   // uint32_t counts halves cache footprint vs BIGINT (int64_t)
   std::vector<uint32_t> counts(nbins, 0);
-  const auto simd_M = M & UBIGINT(-simd_size); // round down to simd_size multiple
+  const auto simd_M = finufft::utils::round_down<simd_size>(M);
   UBIGINT i{};
 
   // counting pass: SIMD bin compute, scalar accumulate
@@ -669,7 +670,7 @@ inline void bin_sort_multithread_impl(std::vector<BIGINT> &ret, UBIGINT M, const
     const auto chunk_start = brk[t];
     const auto chunk_end   = brk[t + 1];
     const auto chunk_simd =
-        chunk_start + ((chunk_end - chunk_start) & UBIGINT(-simd_size));
+        chunk_start + finufft::utils::round_down<simd_size>(chunk_end - chunk_start);
 
     // each thread allocates its own histogram
     counts[t].resize(nbins, 0);

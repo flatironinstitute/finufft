@@ -12,7 +12,7 @@
 
 static const double PI = 3.141592653589793238462643383279502884;
 
-int main(void) {
+int main() {
   int N[2] = {300, 200}; // N1, N2 output mode numbers
   int M    = 500000;     // num. nonuniform input points
   int dim  = 2;

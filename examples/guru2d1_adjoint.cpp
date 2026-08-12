@@ -8,7 +8,7 @@ using namespace std;
 
 static const double PI = 3.141592653589793238462643383279502884;
 
-int main(int argc, char *argv[]) {
+int main() {
   /* 2D demo of computing the *adjoint* of the planned transform, needing the
      guru interface.
      We plan a type 2, and then perform its adjoint (which is a type 1 with the

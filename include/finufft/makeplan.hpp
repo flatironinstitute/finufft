@@ -240,8 +240,7 @@ template<typename TF> void FINUFFT_PLAN_T<TF>::precompute_horner_coeffs() {
     // affine map of x in [-1,1] to z in jth interval [-1+2j/w,-1+2(j+1)/w]
     const TF xshiftj = TF(2 * j + 1 - nspread); // jth center in [-w,w]
     // *** explore making this lambda double always, like kernel itself:
-    const auto kernel_this_interval = [xshiftj, this, nspread, kernel_lambda](
-                                          TF x) -> TF {
+    const auto kernel_this_interval = [xshiftj, nspread, kernel_lambda](TF x) -> TF {
       const TF z = (x + xshiftj) / (TF)nspread;
       return (TF)kernel_lambda((double)z);
     };
@@ -308,7 +307,7 @@ template<typename TF> void FINUFFT_PLAN_T<TF>::precompute_horner_coeffs() {
     // Note: k is the coefficient index in Horner order, with highest degree first.
     printf("dumping precomputed Horner coeffs...\n");
     for (size_t k = 0; k < static_cast<size_t>(m.nc); ++k) {
-      printf("[%s] idx=%lu: ", __func__, k);
+      printf("[%s] idx=%lld: ", __func__, (long long)k);
       for (size_t j = 0; j < m.padded_ns; ++j) // use padded_ns to show padding as well
         printf("%.14g ", static_cast<double>(m.horner_coeffs[k * m.padded_ns + j]));
       printf("\n");

@@ -23,7 +23,7 @@ static const double PI = 3.141592653589793238462643383279502884;
 // allows 1i to be the imaginary unit... (C++14 onwards)
 using namespace std::complex_literals;
 
-int main(int argc, char *argv[]) {
+int main() {
   int M      = 2e5;          // number of nonuniform points
   int N      = 1e5;          // number of modes
   double tol = 1e-9;         // desired accuracy

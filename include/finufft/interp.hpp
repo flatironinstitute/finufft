@@ -78,7 +78,8 @@ void interp_line(T *FINUFFT_RESTRICT target, const T *du, const T *ker, BIGINT i
   using arch_t                       = typename simd_type::arch_type;
   static constexpr auto padding      = get_padding<T, 2 * ns>();
   static constexpr auto simd_size    = simd_type::size;
-  static constexpr auto regular_part = (2 * ns + padding) & (-(2 * simd_size));
+  static constexpr auto regular_part =
+      finufft::utils::round_down<2 * simd_size>(std::size_t(2 * ns + padding));
   std::array<T, 2> out{0};
   const auto j = i1;
   // removing the wrapping leads up to 10% speedup in certain cases
@@ -92,16 +93,21 @@ void interp_line(T *FINUFFT_RESTRICT target, const T *du, const T *ker, BIGINT i
     const auto res = [du, j, ker]() constexpr noexcept {
       const auto du_ptr = du + 2 * j;
       simd_type res_low{0}, res_hi{0};
-      for (uint8_t dx{0}; dx < regular_part; dx += 2 * simd_size) {
-        const auto ker_v   = simd_type::load_aligned(ker + dx / 2);
-        const auto du_pt0  = simd_type::load_unaligned(du_ptr + dx);
-        const auto du_pt1  = simd_type::load_unaligned(du_ptr + dx + simd_size);
-        const auto ker0low = xsimd::swizzle(ker_v, zip_low_index<arch_t, T>);
-        const auto ker0hi  = xsimd::swizzle(ker_v, zip_hi_index<arch_t, T>);
-        res_low            = xsimd::fma(ker0low, du_pt0, res_low);
-        res_hi             = xsimd::fma(ker0hi, du_pt1, res_hi);
+      // narrow ns can leave regular_part == 0: then the tail block below does it all
+      if constexpr (regular_part > 0) {
+        for (uint8_t dx{0}; dx < regular_part; dx += 2 * simd_size) {
+          const auto ker_v = simd_type::load_aligned(ker + dx / 2);
+          const auto du_pt0 = simd_type::load_unaligned(du_ptr + dx);
+          const auto du_pt1 = simd_type::load_unaligned(du_ptr + dx + simd_size);
+          const auto ker0low = xsimd::swizzle(ker_v, zip_low_index<arch_t, T>);
+          const auto ker0hi = xsimd::swizzle(ker_v, zip_hi_index<arch_t, T>);
+          res_low = xsimd::fma(ker0low, du_pt0, res_low);
+          res_hi = xsimd::fma(ker0hi, du_pt1, res_hi);
+        }
       }
 
+      // sanity check at compile time that all the elements are computed
+      static_assert(regular_part + simd_size >= 2 * ns);
       if constexpr (regular_part < 2 * ns) {
         const auto ker0    = simd_type::load_unaligned(ker + (regular_part / 2));
         const auto du_pt   = simd_type::load_unaligned(du_ptr + regular_part);

@@ -17,7 +17,7 @@ static int check_rc(const char *label, int got, int expected, int code) {
   return 0;
 }
 
-int main(void) {
+int main() {
   const int64_t N[3] = {16, 16, 16};
   int rc;
 

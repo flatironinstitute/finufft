@@ -32,7 +32,7 @@ include(CheckCSourceCompiles)
 # gersemi: off
 check_c_source_compiles("
         #include <complex.h>
-        int main(void) {
+        int main() {
             float complex z = 1.0f + 2.0f*I;
             float x = crealf(z);
             return 0;

@@ -10,7 +10,7 @@
 
 static const double PI = 3.141592653589793238462643383279502884;
 
-int main(int argc, char *argv[])
+int main()
 /* Simple example of calling the FINUFFT library from C, using C complex type,
    with a math test. Single-precision version. C99 style. opts is a struct.
    To compile, see README. Usage: ./simple1d1cf
@@ -24,8 +24,9 @@ int main(int argc, char *argv[])
   float *x         = (float *)malloc(sizeof(float) * M);
   float complex *c = (float complex *)malloc(sizeof(float complex) * M);
   for (int j = 0; j < M; ++j) {
-    x[j] = PI * (2 * ((float)rand() / RAND_MAX) - 1); // uniform random in [-pi,pi)
-    c[j] = 2 * ((float)rand() / RAND_MAX) - 1 + I * (2 * ((float)rand() / RAND_MAX) - 1);
+    x[j] = PI * (2 * ((float)rand() / (float)RAND_MAX) - 1); // uniform random in [-pi,pi)
+    c[j] = 2 * ((float)rand() / (float)RAND_MAX) - 1 +
+           I * (2 * ((float)rand() / (float)RAND_MAX) - 1);
   }
   // allocate complex output array for the Fourier modes
   float complex *F = (float complex *)malloc(sizeof(float complex) * N);

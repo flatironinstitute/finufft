@@ -3,6 +3,10 @@
 #include <cmath>
 #include <iostream>
 #include <random>
+
+// test_defs.hpp pulls in PI but not INV_2PI, which the macros below use.
+using finufft::common::INV_2PI;
+
 // no vectorize
 // #pragma GCC optimize("no-tree-vectorize")
 /* local NU coord fold+rescale macro: does the following affine transform to x:

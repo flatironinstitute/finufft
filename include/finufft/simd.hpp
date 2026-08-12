@@ -33,7 +33,7 @@ template<class T, uint8_t N = 1> constexpr uint8_t min_simd_width() {
   } else {
     return N;
   }
-};
+}
 
 template<class T, uint8_t N> constexpr std::size_t find_optimal_simd_width() {
   // finds the smallest simd width that minimizes the number of iterations
@@ -139,7 +139,7 @@ using PaddedSIMD =
 
 template<class T, uint8_t ns> constexpr auto get_padding() {
   constexpr uint8_t width = get_padded_simd_width<T, ns>();
-  return ((ns + width - 1) & (-width)) - ns;
+  return finufft::utils::round_up<width>(int(ns)) - ns;
 }
 
 template<class T, uint8_t ns> constexpr auto get_padding_helper(uint8_t runtime_ns) {
@@ -172,7 +172,7 @@ template<class T, uint8_t NS> struct KernelBufferLayout {
   using arch_t                           = typename simd_type::arch_type;
   static constexpr std::size_t simd_size = simd_type::size;
   static constexpr std::size_t stride =
-      (std::size_t(NS) + simd_size - 1) & ~(simd_size - 1);
+      finufft::utils::round_up<simd_size>(std::size_t(NS));
   static constexpr std::size_t alignment = arch_t::alignment();
 
   static_assert(stride >= NS, "kernel buffer stride must hold NS elements");
@@ -202,8 +202,7 @@ inline constexpr std::size_t max_kernel_buffer_stride = detail::fold_max_layout_
 // Pre: ns in [MIN_NSPREAD, MAX_NSPREAD<T>]. Post: when ns == NS,
 //   kernel_buffer_stride_runtime<T>(ns) == KernelBufferLayout<T, NS>::stride.
 template<class T> inline std::size_t kernel_buffer_stride_runtime(int ns) {
-  const std::size_t w = get_padded_simd_width<T>(2 * ns);
-  return (std::size_t(ns) + w - 1) & ~(w - 1);
+  return finufft::utils::round_up(std::size_t(ns), get_padded_simd_width<T>(2 * ns));
 }
 
 // plan.hpp sizes horner_coeffs as MAX_NSPREAD<double>*MAX_NC (a loose bound that
@@ -391,7 +390,8 @@ FINUFFT_ALWAYS_INLINE auto evaluate_kernel_vector(
       simd_type k_prev, k_sym{0};
       for (uint8_t ii{0}, offset = offset_start; ii < end_idx;
            ii += simd_size, offset -= simd_size) {
-        auto k_odd = [ii, horner_coeffs_ptr]() constexpr noexcept {
+        // capture-all: ii/horner_coeffs_ptr are only used in the if_odd_degree branch
+        auto k_odd = [&]() constexpr noexcept {
           if constexpr (if_odd_degree) {
             return simd_type::load_aligned(horner_coeffs_ptr + ii);
           } else {

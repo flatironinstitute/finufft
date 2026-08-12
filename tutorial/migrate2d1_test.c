@@ -13,7 +13,7 @@
 
 static const double PI = 3.141592653589793238462643383279502884;
 
-int main(void) {
+int main() {
   int N[2]   = {300, 200}; // N0, N1 output shape in nfft3 sense
   int M      = 500000;     // num. nonuniform input points
   double tol = 1e-13;      // user must choose (unlike nfft3's simple call)

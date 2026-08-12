@@ -11,7 +11,7 @@ using namespace std;
 
 static const double PI = 3.141592653589793238462643383279502884;
 
-int main(int argc, char *argv[])
+int main()
 /* Example of calling the FINUFFT library from C++, using STL
    single complex vectors, with a math test.
    (See simple1d1 for double-precision version.)
@@ -29,8 +29,9 @@ int main(int argc, char *argv[])
   vector<float> x(M);
   vector<complex<float>> c(M);
   for (int j = 0; j < M; ++j) {
-    x[j] = PI * (2 * ((float)rand() / RAND_MAX) - 1); // uniform random in [-pi,pi)
-    c[j] = 2 * ((float)rand() / RAND_MAX) - 1 + I * (2 * ((float)rand() / RAND_MAX) - 1);
+    x[j] = PI * (2 * ((float)rand() / (float)RAND_MAX) - 1); // uniform random in [-pi,pi)
+    c[j] = 2 * ((float)rand() / (float)RAND_MAX) - 1 +
+           I * (2 * ((float)rand() / (float)RAND_MAX) - 1);
   }
   // allocate output array for the Fourier modes...
   vector<complex<float>> F(N);

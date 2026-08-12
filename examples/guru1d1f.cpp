@@ -15,7 +15,7 @@ static const double PI = 3.141592653589793238462643383279502884;
 // allows 1i to be the imaginary unit... (C++14 onwards)
 using namespace std::complex_literals;
 
-int main(int argc, char *argv[])
+int main()
 /* Example calling guru C++ interface to FINUFFT library, single-prec, passing
    pointers to STL vectors of C++ float complex numbers, with a math check.
    Barnett 7/5/20
@@ -43,15 +43,15 @@ int main(int argc, char *argv[])
   // generate some random nonuniform points
   vector<float> x(M);
   for (int j = 0; j < M; ++j)
-    x[j] = PI * (2 * ((float)rand() / RAND_MAX) - 1); // uniform random in [-pi,pi)
+    x[j] = PI * (2 * ((float)rand() / (float)RAND_MAX) - 1); // uniform random in [-pi,pi)
   // note FINUFFT doesn't use std::vector types, so we need to make a pointer...
   finufftf_setpts(plan, M, &x[0], NULL, NULL, 0, NULL, NULL, NULL);
 
   // generate some complex strengths
   vector<complex<float>> c(M);
   for (int j = 0; j < M; ++j)
-    c[j] =
-        2 * ((float)rand() / RAND_MAX) - 1 + 1if * (2 * ((float)rand() / RAND_MAX) - 1);
+    c[j] = 2 * ((float)rand() / (float)RAND_MAX) - 1 +
+           1if * (2 * ((float)rand() / (float)RAND_MAX) - 1);
 
   // alloc output array for the Fourier modes, then do the transform
   vector<complex<float>> F(N);
@@ -59,8 +59,8 @@ int main(int argc, char *argv[])
 
   // for fun, do another with same NU pts (no re-sorting), but new strengths...
   for (int j = 0; j < M; ++j)
-    c[j] =
-        2 * ((float)rand() / RAND_MAX) - 1 + 1if * (2 * ((float)rand() / RAND_MAX) - 1);
+    c[j] = 2 * ((float)rand() / (float)RAND_MAX) - 1 +
+           1if * (2 * ((float)rand() / (float)RAND_MAX) - 1);
   ier = finufftf_execute(plan, &c[0], &F[0]);
 
   finufftf_destroy(plan); // done with transforms of this size
