@@ -28,6 +28,11 @@ target_compile_options(padding PRIVATE -march=native)
 add_executable(guru_benchmark guru_benchmark.cpp)
 target_link_libraries(guru_benchmark finufft benchmark)
 
+# reports the detected thread count for the current affinity mask; run it under taskset
+add_executable(thread_count_affinity thread_count_affinity.cpp)
+target_compile_features(thread_count_affinity PRIVATE cxx_std_17)
+target_link_libraries(thread_count_affinity finufft)
+
 add_executable(binsort_gbench binsort_bench.cpp)
 target_link_libraries(binsort_gbench finufft benchmark xsimd)
 target_compile_options(binsort_gbench PRIVATE ${FINUFFT_ARCH_FLAGS})

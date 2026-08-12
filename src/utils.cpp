@@ -7,18 +7,17 @@
 #include <finufft/utils.hpp>
 
 #include <cinttypes>
+#include <climits>
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
 #include <exception>
-#include <utility>
 
 #include <chrono>
 #include <iostream>
-#include <sstream>
-#include <string>
 
 #if defined(_WIN32)
+#include <random> // for the rand_r shim at the bottom
 #include <vector>
 #include <windows.h>
 #elif defined(__APPLE__)
@@ -30,7 +29,6 @@
 #endif
 #include <fstream>
 #include <sched.h>
-#include <set>
 #endif
 
 namespace finufft::utils {
@@ -64,189 +62,104 @@ double CNTime::elapsedsec() const
 
 #ifdef _OPENMP
 namespace { // helpers local to this TU
-#if defined(_WIN32)
-// Returns the number of physical CPU cores on Windows (excluding hyper-threaded cores)
-unsigned getPhysicalCoreCount() {
-#if defined(__i386__) || defined(__x86_64__) || defined(_M_IX86) || defined(_M_X64)
-  int physicalCoreCount = 0;
 
-  // Determine the required buffer size.
+// Physical cores this process may run on (0 if unknown): one thread per core within the
+// affinity mask, counting an SMT pair once. A cgroup CPU quota (docker --cpus) is not
+// visible here.
+
+#if defined(_WIN32)
+
+unsigned getAllowedPhysicalCoreCount() {
+  // both APIs see only our own processor group, so >64 logical CPUs counts within one
+  // group, as before
+  DWORD_PTR processMask, systemMask;
+  if (!GetProcessAffinityMask(GetCurrentProcess(), &processMask, &systemMask)) return 0;
+
+  // one RelationProcessorCore entry per core: count those owning an allowed CPU
   DWORD bufferSize = 0;
   if (GetLogicalProcessorInformation(nullptr, &bufferSize) == FALSE &&
-      GetLastError() != ERROR_INSUFFICIENT_BUFFER) {
-    return physicalCoreCount;
-  }
-
-  // Calculate the number of entries and allocate a vector.
-  size_t entryCount = bufferSize / sizeof(SYSTEM_LOGICAL_PROCESSOR_INFORMATION);
-  std::vector<SYSTEM_LOGICAL_PROCESSOR_INFORMATION> procInfo(entryCount);
-  if (GetLogicalProcessorInformation(procInfo.data(), &bufferSize) != FALSE) {
-    for (const auto &info : procInfo) {
-      if (info.Relationship == RelationProcessorCore) ++physicalCoreCount;
+      GetLastError() == ERROR_INSUFFICIENT_BUFFER) {
+    std::vector<SYSTEM_LOGICAL_PROCESSOR_INFORMATION> procInfo(
+        bufferSize / sizeof(SYSTEM_LOGICAL_PROCESSOR_INFORMATION));
+    if (GetLogicalProcessorInformation(procInfo.data(), &bufferSize) != FALSE) {
+      unsigned cores = 0;
+      for (const auto &info : procInfo)
+        cores += (info.Relationship == RelationProcessorCore &&
+                  (info.ProcessorMask & processMask));
+      if (cores) return cores;
     }
   }
-
-  if (physicalCoreCount == 0) {
-    return MY_OMP_GET_MAX_THREADS();
-  }
-  return physicalCoreCount;
-#else
-  // On non-x86 architectures, there should be no hyper-threading
-  return MY_OMP_GET_MAX_THREADS();
-#endif
-}
-
-unsigned getAllowedCoreCount() {
-  DWORD_PTR processMask, systemMask;
-  if (!GetProcessAffinityMask(GetCurrentProcess(), &processMask, &systemMask)) {
-    return 0; // API call failed (should rarely happen for the current process)
-  }
-  // Count bits in processMask
-  int count = 0;
-  while (processMask) {
-    count += static_cast<int>(processMask & 1U);
-    processMask >>= 1;
-  }
+  // no topology: count logical CPUs
+  unsigned count = 0;
+  for (DWORD_PTR m = processMask; m; m >>= 1) count += unsigned(m & 1U);
   return count;
 }
 
 #elif defined(__APPLE__)
 
-// Returns the number of physical CPU cores on macOS (excluding hyper-threaded cores)
-unsigned getPhysicalCoreCount() {
-  int physicalCoreCount = 0;
-  int cores             = 0;
-  size_t size           = sizeof(cores);
-  if (sysctlbyname("hw.physicalcpu", &cores, &size, nullptr, 0) == 0) {
-    physicalCoreCount = cores;
-  }
-
-  if (physicalCoreCount == 0) {
-    return MY_OMP_GET_MAX_THREADS();
-  }
-  return physicalCoreCount;
-}
-
-unsigned getAllowedCoreCount() {
-  // MacOS does not support CPU affinity, so we return the maximum number of threads.
-  return MY_OMP_GET_MAX_THREADS();
+unsigned getAllowedPhysicalCoreCount() {
+  // no affinity API on macOS: the whole machine is always allowed
+  int cores = 0;
+  size_t size = sizeof(cores);
+  if (sysctlbyname("hw.physicalcpu", &cores, &size, nullptr, 0) != 0) return 0;
+  return cores > 0 ? unsigned(cores) : 0; // never let a bogus value wrap
 }
 
 #elif defined(__linux__)
-// Returns the number of physical CPU cores on Linux (excluding hyper-threaded cores)
-// Compatibility:
-// - Linux kernels 2.6 and later (provides /sys/devices/system/cpu topology interface)
-// - Any CPU architecture supported by the kernel (Intel, AMD, ARM, POWER, etc.)
-// - Works in containers or cgroups (reflects host topology)
-unsigned getPhysicalCoreCount() {
-  // only x86_64 and x86_32 architectures support HT (hyper-threading)
-  // in all other cases, we assume no HT and return MY_OMP_GET_MAX_THREADS()
-#if defined(__i386__) || defined(__x86_64__)
-  // Parse strings like "0-3,5,7-9" → {0,1,2,3,5,7,8,9}
-  auto parseCpuList = [](const std::string &s) {
-    std::vector<int> cpus;
-    std::istringstream iss(s);
-    for (std::string tok; std::getline(iss, tok, ',');) {
-      auto dash = tok.find('-');
-      if (dash == std::string::npos) {
-        cpus.push_back(std::stoi(tok));
-      } else {
-        int start = std::stoi(tok.substr(0, dash));
-        int end   = std::stoi(tok.substr(dash + 1));
-        for (int i = start; i <= end; ++i) cpus.push_back(i);
-      }
-    }
-    return cpus;
-  };
 
-  // Read a single integer from the given sysfs file
-  auto readInt = [&](const std::string &path, int &out) -> bool {
-    std::ifstream f(path);
-    if (!f.is_open()) return false;
-    f >> out;
-    return !f.fail();
-  };
+unsigned getAllowedPhysicalCoreCount() {
+  cpu_set_t mask;
+  CPU_ZERO(&mask);
+  if (sched_getaffinity(0, sizeof(mask), &mask) != 0) return 0;
 
-  // 1) Read list of present CPUs
-  std::ifstream presentF("/sys/devices/system/cpu/present");
-  if (!presentF.is_open()) {
-    return MY_OMP_GET_MAX_THREADS();
-  }
-  std::string presentLine;
-  std::getline(presentF, presentLine);
-  auto cpus = parseCpuList(presentLine);
-
-  // 2) For each CPU, read its package & core IDs
-  std::set<std::pair<int, int>> physicalCores;
-  for (int cpu : cpus) {
-    std::string topoBase =
-        "/sys/devices/system/cpu/cpu" + std::to_string(cpu) + "/topology/";
-    int pkg = -1, core = -1;
-    if (!readInt(topoBase + "physical_package_id", pkg)) continue;
-    if (!readInt(topoBase + "core_id", core)) continue;
-    physicalCores.emplace(pkg, core);
-  }
-
-  // 3) Return count if successful, else fallback
-  if (!physicalCores.empty()) {
-    return static_cast<unsigned>(physicalCores.size());
-  }
-#endif
-  // in ARM and RISKV we only need this
-  return MY_OMP_GET_MAX_THREADS();
-}
-
-unsigned getAllowedCoreCount() {
-  cpu_set_t cpuSet;
-  CPU_ZERO(&cpuSet);
-  if (sched_getaffinity(0, sizeof(cpu_set_t), &cpuSet) != 0) {
-    return 0; // Error (e.g., not supported or failed)
-  }
-  int count = 0;
+  // sysfs prints a CPU mask in ascending order, so the first sibling id names the core:
+  // both SMT siblings map to the same one and the core is counted once. A CPU with no
+  // such file (no sysfs topology at all) is its own core.
+  // (core_id is unusable: arm64/riscv without firmware topology report -1 for every CPU,
+  // which would collapse the whole machine to one core.)
+  cpu_set_t cores;
+  CPU_ZERO(&cores);
   for (int cpu = 0; cpu < CPU_SETSIZE; ++cpu) {
-    if (CPU_ISSET(cpu, &cpuSet)) {
-      ++count;
-    }
+    if (!CPU_ISSET(cpu, &mask)) continue;
+    char path[64];
+    snprintf(path, sizeof path,
+             "/sys/devices/system/cpu/cpu%d/topology/thread_siblings_list", cpu);
+    std::ifstream f(path);
+    int first; // stops at the ',' or '-' of a multi-sibling list
+    if (!(f >> first) || first < 0 || first >= CPU_SETSIZE) first = cpu;
+    CPU_SET(first, &cores);
   }
-  return count;
+  return unsigned(CPU_COUNT(&cores));
 }
 
 #else
 
 #warning "Unknown platform. Impossible to detect the number of physical cores."
-// Fallback version if none of the above platforms is detected.
-unsigned getPhysicalCoreCount() { return MY_OMP_GET_MAX_THREADS(); }
-unsigned getAllowedCoreCount() { return MY_OMP_GET_MAX_THREADS(); }
+unsigned getAllowedPhysicalCoreCount() { return 0; }
 
 #endif
 } // anonymous namespace
 
 unsigned getOptimalThreadCount() {
-  // if the user has set the OMP_NUM_THREADS environment variable, use that value
   static const auto cached_threads = []() -> unsigned {
-    const auto OMP_THREADS = std::getenv("OMP_NUM_THREADS");
-    if (OMP_THREADS) {
-      try {
-        return std::stoi(OMP_THREADS);
-      } catch (...) {
-        std::cerr << "Invalid OMP_NUM_THREADS value: " << OMP_THREADS
-                  << ". using default thread count." << std::endl;
-      }
+    // an explicit OMP_NUM_THREADS wins over anything we detect
+    if (const auto env = std::getenv("OMP_NUM_THREADS")) {
+      char *end;
+      const auto nthr = std::strtoll(env, &end, 10); // end==env if it does not parse
+      // 0 and negatives are not usable: 0 aborts makeplan, a negative wraps to a huge
+      // unsigned and crashes the FFT setup. Warn and detect instead. (INT_MAX, not
+      // numeric_limits: windows.h makes max() a macro.)
+      if (end != env && nthr > 0 && nthr <= INT_MAX) return unsigned(nthr);
+      std::cerr << "Invalid OMP_NUM_THREADS value: " << env
+                << ". using default thread count." << std::endl;
     }
-    // otherwise, use the min between number of physical cores or the number of allowed
-    // cores (e.g. by taskset)
     try {
-      const auto physicalCores = getPhysicalCoreCount();
-      const auto allowedCores  = getAllowedCoreCount();
-      if (physicalCores < allowedCores) {
-        return physicalCores;
-      }
-      return allowedCores;
+      if (const auto cores = getAllowedPhysicalCoreCount()) return cores;
     } catch (const std::exception &e) {
       std::cerr << "Error determining optimal thread count: " << e.what()
                 << ". Using OpenMP default thread count." << std::endl;
     }
-    return MY_OMP_GET_MAX_THREADS();
+    return MY_OMP_GET_MAX_THREADS(); // detection failed
   }();
 
   return cached_threads;
