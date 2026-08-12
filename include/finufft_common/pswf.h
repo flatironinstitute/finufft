@@ -3,6 +3,7 @@
 
 #include <array>
 #include <cmath>
+#include <cstddef>
 #include <finufft_errors.h>
 #include <vector>
 
@@ -34,7 +35,7 @@ private:
     T pjm2      = 1;
     T val       = workdata[0];
 
-    size_t i = 1;
+    std::size_t i = 1;
     for (; i + 1 < coef.size(); i += 2) {
       pjm1 = pjm2 * (xsq * coef[i][0] - coef[i][1]) - pjm1 * coef[i][2];
       val += workdata[i] * pjm1;

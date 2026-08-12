@@ -1,6 +1,10 @@
 
+#include <algorithm>
 #include <cmath>
+#include <cstddef>
 #include <finufft_common/common.h>
+#include <finufft_common/constants.h>
+#include <finufft_common/utils.h>
 #include <limits>
 #include <tuple>
 

@@ -1,5 +1,7 @@
 #ifdef FINUFFT_USE_DUCC0
-#include "ducc0/fft/fftnd_impl.h" // only needed for do_fft body; not in any header
+// ducc0's public fft.h only declares c2c; the header-only definition lives in
+// fftnd_impl.h, so that is the header to include. Needed for do_fft's body only.
+#include "ducc0/fft/fftnd_impl.h"
 #endif
 
 // --- Inlined from (now-deleted) detail/fft.hpp ---
