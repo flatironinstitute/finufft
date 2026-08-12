@@ -220,14 +220,12 @@ public:
 
 #endif // FINUFFT_USE_DUCC0
 
-#include <algorithm> // IWYU pragma: keep   // std::min (for DUCC0 path; hidden by `using namespace std`)
+#include <algorithm> // IWYU pragma: keep   // std::min (DUCC0 path)
 #include <cstddef>           // size_t
 #include <finufft/plan.hpp>  // FINUFFT_PLAN_T (includes FFT forward decl)
 #include <finufft/utils.hpp> // CNTime
 #include <finufft_errors.h>  // FINUFFT_ERR_MAXNALLOC
 #include <limits>            // std::numeric_limits
-
-using namespace std;
 
 // --- Finufft_FFT_plan_deleter (defined here where Finufft_FFT_plan is complete) ---
 template<typename T>
@@ -272,9 +270,9 @@ void FINUFFT_PLAN_T<TF>::do_fft(TC *fwBatch, int ntrans_actual [[maybe_unused]],
 // Converted to class member. Barbone 2/24/26.
 {
 #ifdef FINUFFT_USE_DUCC0
-  size_t nthreads = min<size_t>(MY_OMP_GET_MAX_THREADS(), opts.nthreads);
+  size_t nthreads = std::min<size_t>(MY_OMP_GET_MAX_THREADS(), opts.nthreads);
   const auto ns   = gridsize_for_fft();
-  vector<size_t> arrdims, axes;
+  std::vector<size_t> arrdims, axes;
   // ntrans_actual may be smaller than batchSize, which we can use
   // to our advantage with ducc FFT.
   arrdims.push_back(size_t(ntrans_actual));
