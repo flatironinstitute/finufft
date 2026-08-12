@@ -9,7 +9,7 @@
 
 static const double PI = 3.141592653589793238462643383279502884;
 
-int main(int argc, char *argv[])
+int main()
 /* Example calling guru interface to FINUFFT library from C, using
    C complex type, with a math check. Barnett 6/22/20.
    To compile, see README.  Usage: ./guru1d1c.  See also: guru1d1

@@ -14,9 +14,9 @@
  * Usage: ./binsort_bench [--benchmark_filter=<regex>] [--benchmark_repetitions=N]
  */
 
-#include <finufft/test_defs.h>
+#include <finufft/test_defs.hpp>
 
-#include <finufft/xsimd.hpp>
+#include <finufft/simd.hpp>
 
 #include <benchmark/benchmark.h>
 
@@ -803,8 +803,13 @@ static void bin_sort_noscatter_u32_unrolled(
   static constexpr auto simd_size = simd_type::size;
   using ta                        = ToArray<arch_t>;
 
-  const auto [nbins1, nbins2, nbins3, nbins, isky, iskz] =
-      compute_bin_params(N1, N2, N3, bin_size_x, bin_size_y, bin_size_z);
+  // plain struct, not a structured binding: capturing those is C++20
+  const auto bp = compute_bin_params(N1, N2, N3, bin_size_x, bin_size_y, bin_size_z);
+  const auto nbins1 = bp.nbins1;
+  const auto nbins2 = bp.nbins2;
+  const auto nbins = bp.nbins;
+  const auto isky = bp.isky;
+  const auto iskz = bp.iskz;
   const auto inv_bin_size_x_v = simd_type(1.0 / bin_size_x);
   const auto inv_bin_size_y_v = simd_type(1.0 / bin_size_y);
   const auto inv_bin_size_z_v = simd_type(1.0 / bin_size_z);

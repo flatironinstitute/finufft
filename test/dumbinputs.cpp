@@ -41,7 +41,7 @@
 
 using namespace std;
 
-int main(int argc, char *argv[]) {
+int main() {
   int M = 100;    // number of nonuniform points
   int N = 10;     // # modes, keep small, also output NU pts in type 3
 #ifdef SINGLE

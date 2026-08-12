@@ -10,7 +10,7 @@ using namespace std;
 
 static const double PI = 3.141592653589793238462643383279502884;
 
-int main(int argc, char *argv[]) {
+int main() {
 
   /* Simple 2D type-1 example of calling the FINUFFT library from C++, using plain
      arrays of C++ complex numbers, with a math test. Double precision version.

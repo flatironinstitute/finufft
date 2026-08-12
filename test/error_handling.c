@@ -9,7 +9,7 @@
 
 static void dummy_lock(void *data) { (void)data; }
 
-int main(void) {
+int main() {
   finufft_opts opts;
   finufft_default_opts(&opts);
 

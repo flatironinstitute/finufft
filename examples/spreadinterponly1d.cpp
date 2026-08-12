@@ -13,7 +13,7 @@ using namespace std;
 static const double PI = 3.141592653589793238462643383279502884;
 using namespace std::chrono;
 
-int main(int argc, char *argv[])
+int main()
 /* Example of double-prec spread/interp only tasks, with basic math tests.
    Complex I/O arrays, but recall the kernel is real.  Barnett 1/8/25.
 

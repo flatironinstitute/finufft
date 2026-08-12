@@ -9,7 +9,7 @@ using namespace finufft::utils;
 
 using namespace std;
 
-int main(int argc, char *argv[])
+int main()
 /* What is small-problem cost of FINUFFT library from C++, using plain
    arrays of C++ complex numbers?  Barnett 10/31/17.
    for Xi Chen question. Updated to also demo guru interface and compare speed.

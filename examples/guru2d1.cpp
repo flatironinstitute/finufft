@@ -8,7 +8,7 @@ using namespace std;
 
 static const double PI = 3.141592653589793238462643383279502884;
 
-int main(int argc, char *argv[]) {
+int main() {
   /* 2D type 1 guru interface example of calling the FINUFFT library from C++,
      using STL double complex vectors, with a math test. Similar to simple2d1
      except illustrates the guru interface.

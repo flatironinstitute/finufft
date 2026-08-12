@@ -47,7 +47,7 @@ double chk1d1(int n, vector<double> &x, vector<complex<double>> &c,
   return abs(F[nout] - Ftest) / Fmax;
 }
 
-int main(int argc, char *argv[]) {
+int main() {
   double tol = 1e-9;         // desired accuracy for both plans
   int type = 1, dim = 1;     // 1d1
   int64_t Ns[3];             // guru describes mode array by vector [N1,N2..]

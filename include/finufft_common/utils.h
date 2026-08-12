@@ -1,8 +1,11 @@
 #pragma once
 
 #include <array>
+#include <cassert>
 #include <cmath>
+#include <cstddef>
 #include <cstdint>
+#include <limits>
 #include <tuple>
 #include <type_traits>
 #include <utility>
@@ -35,6 +38,28 @@ double cyl_bessel_i_custom(double nu, double x) noexcept;
 } // namespace finufft
 
 namespace finufft::utils {
+
+// Round v down / up to a multiple of align. Every align used here is a SIMD
+// width or a kernel-buffer stride, i.e. a power of two; that is the property
+// the mask form relies on, so it is checked rather than assumed. The runtime
+// overloads exist so that a compile-time formula and its runtime mirror cannot
+// drift apart (see kernel_buffer_stride_runtime in simd.hpp).
+template<typename T> constexpr T round_down(T v, std::size_t align) noexcept {
+  assert(align != 0 && (align & (align - 1)) == 0); // power of two
+  return v & ~T(align - 1);
+}
+template<typename T> constexpr T round_up(T v, std::size_t align) noexcept {
+  return round_down(T(v + T(align - 1)), align);
+}
+template<std::size_t Align, typename T> constexpr T round_down(T v) noexcept {
+  static_assert(Align != 0 && (Align & (Align - 1)) == 0, "Align must be a power of two");
+  static_assert(Align - 1 <= std::size_t((std::numeric_limits<T>::max)()),
+                "Align does not fit in T; the mask would wrap");
+  return round_down(v, Align);
+}
+template<std::size_t Align, typename T> constexpr T round_up(T v) noexcept {
+  return round_down<Align>(T(v + T(Align - 1)));
+}
 
 // Host versions of arrayrange / arraywidcen. The CUDA path has a separate
 // device-pointer overload (in include/cufinufft/utils.hpp) that uses thrust.

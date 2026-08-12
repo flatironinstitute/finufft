@@ -16,7 +16,7 @@ static const double PI = 3.141592653589793238462643383279502884;
 // allows 1i to be the imaginary unit... (C++14 onwards)
 using namespace std::complex_literals;
 
-int main(int argc, char *argv[])
+int main()
 /* Example calling guru C++ interface to FINUFFT library, passing
    pointers to STL vectors of C++ double complex numbers, with a math check.
    Barnett 2/27/20

@@ -30,7 +30,7 @@ double cyl_bessel_i_custom(double nu, double x) noexcept;
 using namespace finufft::common;
 using namespace finufft::heuristics;
 
-int main(int argc, char *argv[]) {
+int main() {
 #ifdef SINGLE
   printf("testutilsf started...\n");
 #else

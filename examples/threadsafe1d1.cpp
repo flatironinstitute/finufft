@@ -12,7 +12,7 @@ using namespace std;
 
 static const double PI = 3.141592653589793238462643383279502884;
 
-int main(int argc, char *argv[])
+int main()
 /* Demo single-threaded FINUFFT calls from inside a OMP parallel block.
    Adapted from simple1d1.cpp: C++, STL double complex vectors, with math test.
    Barnett 4/19/21, eg for Goran Zauhar, issue #183. Also see: many1d1.cpp.

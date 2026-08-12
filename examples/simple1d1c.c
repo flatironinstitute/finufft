@@ -10,7 +10,7 @@
 
 static const double PI = 3.141592653589793238462643383279502884;
 
-int main(int argc, char *argv[])
+int main()
 /* Simple example of calling the FINUFFT library from C, using C complex type,
    with a math test. Double-precision. C99 style. opts is struct not ptr to it.
    To compile see README. Usage: ./simple1d1c

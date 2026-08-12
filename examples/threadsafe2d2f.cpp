@@ -42,7 +42,7 @@ int test_finufft(finufft_opts *opts)
   return ier;
 }
 
-int main(int argc, char *argv[]) {
+int main() {
   finufft_opts opts;
   finufftf_default_opts(&opts);
   opts.nthreads = 1;      // *crucial* so each call single-thread; else segfaults

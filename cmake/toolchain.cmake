@@ -43,7 +43,6 @@ set(FINUFFT_CXX_FLAGS_DEBUG
     -g3
     -ggdb
     -ggdb3
-    -Wall
     -Wextra
     -Wpedantic
     -Wno-unknown-pragmas
@@ -51,11 +50,23 @@ set(FINUFFT_CXX_FLAGS_DEBUG
     /permissive-
     /wd4068
 )
+# cl.exe accepts -Wall as a synonym for /Wall (every warning, including the purely
+# informational C4710/C4820/C4514), so the try_compile filter below cannot reject it.
+# /W4 above is the MSVC equivalent of -Wall -Wextra.
+if(NOT MSVC)
+    list(APPEND FINUFFT_CXX_FLAGS_DEBUG -Wall)
+endif()
 filter_supported_compiler_flags(FINUFFT_CXX_FLAGS_DEBUG FINUFFT_CXX_FLAGS_DEBUG)
 message(STATUS "FINUFFT Debug flags: ${FINUFFT_CXX_FLAGS_DEBUG}")
 
 list(APPEND FINUFFT_CXX_FLAGS_RELWITHDEBINFO ${FINUFFT_CXX_FLAGS_RELEASE} ${FINUFFT_CXX_FLAGS_DEBUG})
 message(STATUS "FINUFFT RelWithDebInfo flags: ${FINUFFT_CXX_FLAGS_RELWITHDEBINFO}")
+
+# Microsoft's CRT deprecates portable C (sscanf, getenv, ...) in favour of its _s
+# variants. Applies to any compiler using those headers, MSVC and clang alike.
+if(WIN32)
+    add_compile_definitions(_CRT_SECURE_NO_WARNINGS)
+endif()
 
 # ---- Architecture flags -------------------------------------------------------
 if(FINUFFT_ARCH_FLAGS STREQUAL "native")
