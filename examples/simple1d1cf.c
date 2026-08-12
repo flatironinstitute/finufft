@@ -16,9 +16,9 @@ int main()
    To compile, see README. Usage: ./simple1d1cf
 */
 {
-  int M     = 1e5;  // number of nonuniform points
-  int N     = 1e5;  // number of modes (NB if too large lose acc in 1d)
-  float tol = 1e-3; // desired accuracy
+  int M            = 1e5;  // number of nonuniform points
+  int N            = 1e4;  // number of modes
+  float tol        = 1e-3; // desired accuracy
 
   // generate some random nonuniform points (x) and complex strengths (c):
   float *x         = (float *)malloc(sizeof(float) * M);
@@ -37,9 +37,9 @@ int main()
   // opts.upsampfac = 1.25;                 // other opts...
 
   // call the NUFFT (with iflag=+1), passing pointers...
-  int ier = finufftf1d1(M, x, c, +1, tol, N, F, &opts);
+  int ier    = finufftf1d1(M, x, c, +1, tol, N, F, &opts);
 
-  int k = 14251;                         // check the answer just for this mode...
+  int k      = 1425;                     // check the answer just for this mode...
   assert(k >= -(double)N / 2 && k < (double)N / 2);
   float complex Ftest = 0.0f + 0.0f * I; // defined in complex.h (I too)
   for (int j = 0; j < M; ++j) Ftest += c[j] * cexpf(I * (float)k * x[j]);

@@ -3,10 +3,13 @@ set(EXAMPLES
     guru2d1_adjoint
     guru1d1f
     guru2d1
+    gurumany1d1
     many1d1
     simple1d1
     simple1d1f
+    simple2d1
     simulplans1d1
+    spreadinterponly1d
 )
 set(EXAMPLES_OPENMP threadsafe1d1 threadsafe2d2f)
 set(EXAMPLES_C guru1d1c simple1d1c simple1d1cf)
@@ -20,6 +23,7 @@ foreach(EXAMPLE ${EXAMPLES})
     if(CMAKE_PROJECT_NAME STREQUAL "FINUFFT")
         enable_asan(${EXAMPLE})
     endif()
+    add_test(NAME example_${EXAMPLE} COMMAND ${EXAMPLE})
 endforeach()
 
 # Windows does not have complex support in the c compiler we need to compile in c++ mode
@@ -48,6 +52,7 @@ if(HAS_C_COMPLEX)
         if(MATH_LIBRARY)
             target_link_libraries(${EXAMPLE} PRIVATE ${MATH_LIBRARY})
         endif()
+                add_test(NAME example_${EXAMPLE} COMMAND ${EXAMPLE})
     endforeach()
 endif()
 
@@ -60,5 +65,6 @@ if(FINUFFT_USE_OPENMP)
         if(CMAKE_PROJECT_NAME STREQUAL "FINUFFT")
             enable_asan(${EXAMPLE})
         endif()
+        add_test(NAME example_${EXAMPLE} COMMAND ${EXAMPLE})
     endforeach()
 endif()

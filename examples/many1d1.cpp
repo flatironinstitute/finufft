@@ -19,8 +19,6 @@ int main()
   int M              = 1e6;              // nonuniform points (same for all transforms)
   int N              = 1e6;              // number of modes (same for all transforms)
   double tol         = 1e-9;             // desired accuracy
-  finufft_opts *opts = new finufft_opts; // opts is pointer to struct
-  finufft_default_opts(opts);
   complex<double> I = complex<double>(0.0, 1.0); // the imaginary unit
 
   // generate some random nonuniform points (x) and complex strengths (c)...

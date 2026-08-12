@@ -18,11 +18,11 @@ int main()
    To compile, see README. Usage: ./simple1d1f
 */
 {
-  int M              = 1e5;  // number of nonuniform points
-  int N              = 1e5;  // number of modes (NB if too large lose acc in 1d)
-  float acc          = 1e-3; // desired accuracy
-  finufft_opts *opts = new finufft_opts;       // opts is pointer to struct
-  finufftf_default_opts(opts);                 // note finufft "f" suffix
+  int M     = 1e5;              // number of nonuniform points
+  int N     = 1e4;              // number of modes
+  float acc = 1e-3;             // desired accuracy
+  finufft_opts opts;            // opts is a plain struct
+  finufftf_default_opts(&opts); // note finufft "f" suffix
   complex<float> I = complex<float>(0.0, 1.0); // the imaginary unit
 
   // generate some random nonuniform points (x) and complex strengths (c)...
@@ -37,9 +37,9 @@ int main()
   vector<complex<float>> F(N);
 
   // call the NUFFT (with iflag=+1): note pointers (not STL vecs) passed...
-  int ier = finufftf1d1(M, &x[0], &c[0], +1, acc, N, &F[0], opts); // note "f"
+  int ier = finufftf1d1(M, &x[0], &c[0], +1, acc, N, &F[0], &opts); // note "f"
 
-  int k = 14251; // check the answer just for this mode...
+  int k   = 1425; // check the answer just for this mode...
   assert(k >= -(double)N / 2 && k < (double)N / 2);
   complex<float> Ftest = complex<float>(0, 0);
   for (int j = 0; j < M; ++j) Ftest += c[j] * exp(I * (float)k * x[j]);

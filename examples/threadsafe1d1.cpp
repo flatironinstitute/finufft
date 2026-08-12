@@ -19,17 +19,18 @@ int main()
    To compile, see README.
    Usage: ./threadsafe1d1
    Expected output: multiple text lines (however many default threads), each
-   reporting small error. Exit code does not check the error.
+   reporting small error.
 */
 {
-  int M              = 1e5;                      // number of nonuniform points
-  int N              = 1e5;                      // number of modes
-  double acc         = 1e-9;                     // desired accuracy
-  finufft_opts *opts = new finufft_opts;         // opts is pointer to struct
-  finufft_default_opts(opts);
+  int M      = 1e5;                              // number of nonuniform points
+  int N      = 1e5;                              // number of modes
+  double acc = 1e-9;                             // desired accuracy
+  finufft_opts opts;                             // opts is a plain struct
+  finufft_default_opts(&opts);
   complex<double> I = complex<double>(0.0, 1.0); // the imaginary unit
 
-  opts->nthreads = 1; // *crucial* so that each call single-thread (otherwise segfaults)
+  opts.nthreads = 1; // *crucial* so that each call single-thread (otherwise segfaults)
+  int overallstatus = 0;
 
   // Now have each thread do independent 1D type 1 on their own data:
 #pragma omp parallel
@@ -50,7 +51,8 @@ int main()
     vector<complex<double>> F(N);
 
     // call the NUFFT (with iflag=+1): note pointers (not STL vecs) passed...
-    int ier = finufft1d1(M, &x[0], &c[0], +1, acc, N, &F[0], opts);
+    int ier = finufft1d1(M, &x[0], &c[0], +1, acc, N, &F[0], &opts);
+    if (ier > 1) overallstatus = 1;
 
     int k = 42519; // check the answer just for this mode frequency...
     assert(k >= -(double)N / 2 && k < (double)N / 2);
@@ -68,5 +70,5 @@ int main()
            omp_get_thread_num(), ier, k, err);
   }
 
-  return 0;
+  return overallstatus;
 }

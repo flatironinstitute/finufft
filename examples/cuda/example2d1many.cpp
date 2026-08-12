@@ -83,12 +83,16 @@ int main()
   nmodes[2] = 1;
 
   ier = cufinufftf_makeplan(type, dim, nmodes, iflag, ntransf, tol, &dplan, NULL);
+  if (ier > 1) return ier;
 
   ier = cufinufftf_setpts(dplan, M, d_x, d_y, NULL, 0, NULL, NULL, NULL);
+  if (ier > 1) return ier;
 
   ier = cufinufftf_execute(dplan, d_c, d_fk);
+  if (ier > 1) return ier;
 
   ier = cufinufftf_destroy(dplan);
+  if (ier > 1) return ier;
 
   cudaMemcpy(fk, d_fk, N1 * N2 * ntransf * sizeof(cuFloatComplex),
              cudaMemcpyDeviceToHost);

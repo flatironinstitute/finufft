@@ -45,7 +45,7 @@ int test_finufft(finufft_opts *opts)
 int main() {
   finufft_opts opts;
   finufftf_default_opts(&opts);
-  opts.nthreads = 1;      // *crucial* so each call single-thread; else segfaults
+  opts.nthreads     = 1;  // *crucial* so each call single-thread; else segfaults
 
   int n_slices      = 50; // number of transforms. parallelize over slices
   int overallstatus = 0;
