@@ -5,13 +5,15 @@ import numpy as np
 
 def get_array_ptr(data):
     try:
-        return data.__cuda_array_interface__['data'][0]
+        return data.__cuda_array_interface__["data"][0]
     except RuntimeError:
         # Handle torch with gradient enabled
         # https://github.com/flatironinstitute/finufft/pull/326#issuecomment-1652212770
         return data.data_ptr()
     except AttributeError:
-        raise TypeError("Invalid GPU array implementation. Implementation must implement the standard cuda array interface.")
+        raise TypeError(
+            "Invalid GPU array implementation. Implementation must implement the standard cuda array interface."
+        )
 
 
 def get_array_module(obj):
@@ -41,7 +43,7 @@ def get_array_dtype(obj):
 
     if array_module == "torch":
         dtype_str = str(obj.dtype)
-        dtype_str = dtype_str[len("torch."):]
+        dtype_str = dtype_str[len("torch.") :]
         return np.dtype(dtype_str)
     else:
         return obj.dtype
@@ -72,6 +74,7 @@ def array_contiguous(obj):
 
     if array_module == "numba":
         import numba
+
         ret = numba.cuda.device_array(obj.shape, obj.dtype, stream=obj.stream)
         ret[:] = obj[:]
         return ret
@@ -86,9 +89,11 @@ def array_empty_like(obj, *args, **kwargs):
 
     if module_name == "numba":
         import numba.cuda
+
         return numba.cuda.device_array(*args, **kwargs)
     elif module_name == "torch":
         import torch
+
         if "shape" in kwargs:
             kwargs["size"] = kwargs.pop("shape")
         if "dtype" in kwargs:

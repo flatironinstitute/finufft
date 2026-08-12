@@ -25,9 +25,7 @@ def type3_eps(dtype):
 def test_finufft1_simple(dtype, shape, n_pts, n_trans, output_arg):
     dim = len(shape)
 
-    funs = {1: finufft.nufft1d1,
-            2: finufft.nufft2d1,
-            3: finufft.nufft3d1}
+    funs = {1: finufft.nufft1d1, 2: finufft.nufft2d1, 3: finufft.nufft3d1}
 
     fun = funs[dim]
 
@@ -47,6 +45,7 @@ def test_finufft1_simple(dtype, shape, n_pts, n_trans, output_arg):
 
     utils.verify_type1(pts, coefs, shape, sig, 1e-6)
 
+
 @pytest.mark.parametrize("dtype", DTYPES)
 @pytest.mark.parametrize("shape", SHAPES)
 @pytest.mark.parametrize("n_pts", N_PTS)
@@ -55,9 +54,7 @@ def test_finufft1_simple(dtype, shape, n_pts, n_trans, output_arg):
 def test_finufft2_simple(dtype, shape, n_pts, n_trans, output_arg):
     dim = len(shape)
 
-    funs = {1: finufft.nufft1d2,
-            2: finufft.nufft2d2,
-            3: finufft.nufft3d2}
+    funs = {1: finufft.nufft1d2, 2: finufft.nufft2d2, 3: finufft.nufft3d2}
 
     fun = funs[dim]
 
@@ -71,6 +68,7 @@ def test_finufft2_simple(dtype, shape, n_pts, n_trans, output_arg):
 
     utils.verify_type2(pts, sig, coefs, 1e-6)
 
+
 @pytest.mark.parametrize("dtype", DTYPES)
 @pytest.mark.parametrize("dim", list(set(len(shape) for shape in SHAPES)))
 @pytest.mark.parametrize("n_source_pts", N_PTS)
@@ -78,14 +76,13 @@ def test_finufft2_simple(dtype, shape, n_pts, n_trans, output_arg):
 @pytest.mark.parametrize("n_trans", N_TRANS)
 @pytest.mark.parametrize("output_arg", OUTPUT_ARGS)
 def test_finufft3_simple(dtype, dim, n_source_pts, n_target_pts, n_trans, output_arg):
-    funs = {1: finufft.nufft1d3,
-            2: finufft.nufft2d3,
-            3: finufft.nufft3d3}
+    funs = {1: finufft.nufft1d3, 2: finufft.nufft2d3, 3: finufft.nufft3d3}
 
     fun = funs[dim]
 
-    source_pts, source_coefs, target_pts = utils.type3_problem(dtype,
-            dim, n_source_pts, n_target_pts, n_trans)
+    source_pts, source_coefs, target_pts = utils.type3_problem(
+        dtype, dim, n_source_pts, n_target_pts, n_trans
+    )
     eps = type3_eps(dtype)
 
     if not output_arg:
@@ -95,6 +92,7 @@ def test_finufft3_simple(dtype, dim, n_source_pts, n_target_pts, n_trans, output
         fun(*source_pts, source_coefs, *target_pts, out=target_coefs, eps=eps)
 
     utils.verify_type3(source_pts, source_coefs, target_pts, target_coefs, eps)
+
 
 def test_finufft_simple_errors():
     with pytest.raises(RuntimeError, match="x dtype should be"):
@@ -119,10 +117,26 @@ def test_finufft_simple_errors():
         finufft.nufft1d2(np.zeros(1), np.zeros((2, 2, 2), np.complex128))
 
     with pytest.raises(RuntimeError, match="type 2 input dimension must be either dim"):
-        finufft.nufft1d1(np.zeros(1), np.zeros(1, np.complex128), 4, out=np.zeros((2, 2, 4), np.complex128))
+        finufft.nufft1d1(
+            np.zeros(1),
+            np.zeros(1, np.complex128),
+            4,
+            out=np.zeros((2, 2, 4), np.complex128),
+        )
 
-    with pytest.raises(RuntimeError, match="input n_trans and output n_trans do not match"):
-        finufft.nufft1d1(np.zeros(1), np.zeros((3, 1), np.complex128), 4, out=np.zeros((2, 4), np.complex128))
+    with pytest.raises(
+        RuntimeError, match="input n_trans and output n_trans do not match"
+    ):
+        finufft.nufft1d1(
+            np.zeros(1),
+            np.zeros((3, 1), np.complex128),
+            4,
+            out=np.zeros((2, 4), np.complex128),
+        )
 
-    with pytest.raises(RuntimeError, match="input n_modes and output n_modes do not match"):
-        finufft.nufft1d1(np.zeros(1), np.zeros(1, np.complex128), 4, out=np.zeros((3), np.complex128))
+    with pytest.raises(
+        RuntimeError, match="input n_modes and output n_modes do not match"
+    ):
+        finufft.nufft1d1(
+            np.zeros(1), np.zeros(1, np.complex128), 4, out=np.zeros((3), np.complex128)
+        )

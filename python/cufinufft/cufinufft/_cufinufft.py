@@ -33,6 +33,7 @@ reset_log_level = Version(np.__version__) < Version("1.25")
 
 if reset_log_level:
     import logging
+
     log_level = logging.root.level
 
 lib = None
@@ -71,38 +72,41 @@ for lib_name in library_names:
 
 # Third attempt: try from system path
 if lib is None:
-    libname = find_library('cufinufft')
+    libname = find_library("cufinufft")
     if libname is None:
         raise ImportError("Could not find cufinufft library in system path")
     try:
         lib = ctypes.cdll.LoadLibrary(libname)
     except (OSError, AttributeError) as e:
-        raise ImportError(f"Found cufinufft library at {libname}, but failed to load it: {e}")
+        raise ImportError(
+            f"Found cufinufft library at {libname}, but failed to load it: {e}"
+        )
 
 # Safety check - if somehow we still don't have a library
 if lib is None:
     raise ImportError("Failed to load cufinufft library")
 
+
 def _get_NufftOpts():
     fields = [
-        ('upsampfac', c_double),
-        ('gpu_method', c_int),
-        ('gpu_sort', c_int),
-        ('gpu_binsizex', c_int),
-        ('gpu_binsizey', c_int),
-        ('gpu_binsizez', c_int),
-        ('gpu_obinsizex', c_int),
-        ('gpu_obinsizey', c_int),
-        ('gpu_obinsizez', c_int),
-        ('gpu_maxsubprobsize', c_int),
-        ('gpu_kerevalmeth', c_int),
-        ('gpu_spreadinterponly', c_int),
-        ('gpu_maxbatchsize', c_int),
-        ('gpu_device_id', c_int),
-        ('gpu_stream', c_void_p),
-        ('modeord', c_int),
-        ('gpu_np', c_int),
-        ('debug', c_int)
+        ("upsampfac", c_double),
+        ("gpu_method", c_int),
+        ("gpu_sort", c_int),
+        ("gpu_binsizex", c_int),
+        ("gpu_binsizey", c_int),
+        ("gpu_binsizez", c_int),
+        ("gpu_obinsizex", c_int),
+        ("gpu_obinsizey", c_int),
+        ("gpu_obinsizez", c_int),
+        ("gpu_maxsubprobsize", c_int),
+        ("gpu_kerevalmeth", c_int),
+        ("gpu_spreadinterponly", c_int),
+        ("gpu_maxbatchsize", c_int),
+        ("gpu_device_id", c_int),
+        ("gpu_stream", c_void_p),
+        ("modeord", c_int),
+        ("gpu_np", c_int),
+        ("debug", c_int),
     ]
     return fields
 
@@ -128,26 +132,56 @@ _default_opts.restype = None
 
 _make_plan = lib.cufinufft_makeplan
 _make_plan.argtypes = [
-    c_int, c_int, c_int64_p, c_int,
-    c_int, c_double, CufinufftPlan_p, NufftOpts_p]
+    c_int,
+    c_int,
+    c_int64_p,
+    c_int,
+    c_int,
+    c_double,
+    CufinufftPlan_p,
+    NufftOpts_p,
+]
 _make_plan.restypes = c_int
 
 _make_planf = lib.cufinufftf_makeplan
 _make_planf.argtypes = [
-    c_int, c_int, c_int64_p, c_int,
-    c_int, c_float, CufinufftPlanf_p, NufftOpts_p]
+    c_int,
+    c_int,
+    c_int64_p,
+    c_int,
+    c_int,
+    c_float,
+    CufinufftPlanf_p,
+    NufftOpts_p,
+]
 _make_planf.restypes = c_int
 
 _set_pts = lib.cufinufft_setpts
 _set_pts.argtypes = [
-    c_void_p, c_int64, c_void_p, c_void_p, c_void_p, ctypes.c_int64, c_void_p,
-    c_void_p, c_void_p]
+    c_void_p,
+    c_int64,
+    c_void_p,
+    c_void_p,
+    c_void_p,
+    ctypes.c_int64,
+    c_void_p,
+    c_void_p,
+    c_void_p,
+]
 _set_pts.restype = c_int
 
 _set_ptsf = lib.cufinufftf_setpts
 _set_ptsf.argtypes = [
-    c_void_p, c_int64, c_void_p, c_void_p, c_void_p, ctypes.c_int64, c_void_p,
-    c_void_p, c_void_p]
+    c_void_p,
+    c_int64,
+    c_void_p,
+    c_void_p,
+    c_void_p,
+    ctypes.c_int64,
+    c_void_p,
+    c_void_p,
+    c_void_p,
+]
 _set_ptsf.restype = c_int
 
 _exec_plan = lib.cufinufft_execute

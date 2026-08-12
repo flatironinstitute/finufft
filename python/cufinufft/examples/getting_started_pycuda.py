@@ -13,8 +13,7 @@ N = 200000
 
 # generate positions for the nonuniform points and the coefficients
 x = 2 * np.pi * np.random.uniform(size=M)
-c = (np.random.standard_normal(size=M)
-     + 1J * np.random.standard_normal(size=M))
+c = np.random.standard_normal(size=M) + 1j * np.random.standard_normal(size=M)
 
 # move the data to GPU
 x_gpu = to_gpu(x)

@@ -10,12 +10,14 @@ from pycuda.gpuarray import to_gpu
 import cufinufft
 
 # Set up parameters for problem.
+# fmt: off
 N1, N2 = 59, 61                 # Size of uniform grid
 M = 100                         # Number of nonuniform points
 n_transf = 2                    # Number of input arrays
 eps = 1e-6                      # Requested tolerance
 dtype = np.float32              # Datatype (real)
 complex_dtype = np.complex64    # Datatype (complex)
+# fmt: on
 
 # Generate coordinates of non-uniform points.
 x = np.random.uniform(-np.pi, np.pi, size=M)
@@ -23,7 +25,7 @@ y = np.random.uniform(-np.pi, np.pi, size=M)
 
 # Generate source strengths.
 c = (np.random.standard_normal((n_transf, M))
-     + 1j * np.random.standard_normal((n_transf, M)))
+     + 1j * np.random.standard_normal((n_transf, M)))  # fmt: skip
 
 # Cast to desired datatype.
 x = x.astype(dtype)
@@ -59,4 +61,4 @@ for i in range(n_transf):
     print(f"[{i}] Absolute error on mode [{nt1}, {nt2}] is {err:.3g}")
     print(f"[{i}] Relative error on mode [{nt1}, {nt2}] is {rel_err:.3g}")
 
-    assert(rel_err < 10 * eps)
+    assert rel_err < 10 * eps

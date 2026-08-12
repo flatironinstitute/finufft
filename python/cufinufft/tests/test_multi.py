@@ -38,8 +38,7 @@ def test_multi_type1(framework, dtype=np.float32, shape=(16, 16, 16), M=4096, to
         c_gpu = gpuarray.to_gpu(c)
         fk_gpu = gpuarray.GPUArray(shape, dtype=complex_dtype)
 
-        plan = Plan(1, shape, eps=tol, dtype=complex_dtype,
-                         gpu_device_id=dev_id)
+        plan = Plan(1, shape, eps=tol, dtype=complex_dtype, gpu_device_id=dev_id)
 
         plan.setpts(k_gpu[0], k_gpu[1], k_gpu[2])
 
@@ -54,7 +53,7 @@ def test_multi_type1(framework, dtype=np.float32, shape=(16, 16, 16), M=4096, to
 
         type1_rel_err = np.abs(fk_target - fk_est) / np.abs(fk_target)
 
-        print(f'Type 1 relative error (GPU {dev_id}):', type1_rel_err)
+        print(f"Type 1 relative error (GPU {dev_id}):", type1_rel_err)
 
         ctx.pop()
 

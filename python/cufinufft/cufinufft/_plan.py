@@ -33,7 +33,7 @@ from cufinufft import _compat
 # If we are shutting down python, we don't need to run __del__
 #   This will avoid any shutdown gc ordering problems.
 exiting = False
-atexit.register(setattr, sys.modules[__name__], 'exiting', True)
+atexit.register(setattr, sys.modules[__name__], "exiting", True)
 
 
 class Plan:
@@ -74,8 +74,16 @@ class Plan:
     on it is asynchronous, so synchronize before reading the output.
     """
 
-    def __init__(self, nufft_type, n_modes, n_trans=1, eps=1e-6, isign=None,
-                 dtype="complex64", **kwargs):
+    def __init__(
+        self,
+        nufft_type,
+        n_modes,
+        n_trans=1,
+        eps=1e-6,
+        isign=None,
+        dtype="complex64",
+        **kwargs,
+    ):
         if isign is None:
             if nufft_type == 2:
                 isign = -1
@@ -107,9 +115,11 @@ class Plan:
         if nufft_type == 3:
             if isinstance(n_modes, numbers.Integral):
                 dim = n_modes
-                n_modes = (1,) * dim     # Ignored, can be anything
+                n_modes = (1,) * dim  # Ignored, can be anything
             else:
-                raise ValueError("For a type 3 plan, n_modes_or_dim must be a single number, the dimension")
+                raise ValueError(
+                    "For a type 3 plan, n_modes_or_dim must be a single number, the dimension"
+                )
         else:
             if isinstance(n_modes, numbers.Integral):
                 n_modes = (n_modes,)
@@ -128,12 +138,12 @@ class Plan:
         self._eps = float(eps)
         self._n_modes = n_modes
         self._n_trans = n_trans
-        self._maxbatch = 1    # TODO: optimize this one day
+        self._maxbatch = 1  # TODO: optimize this one day
 
         # Get the default option values.
         self._opts = self._default_opts()
         try:
-            if not getattr(self._opts, 'gpu_stream', None):
+            if not getattr(self._opts, "gpu_stream", None):
                 import ctypes as _ct
 
                 self._opts.gpu_stream = _ct.c_void_p(None)
@@ -146,7 +156,9 @@ class Plan:
         # Assign field names from kwargs if they match up, otherwise error.
         for k, v in kwargs.items():
             if k in ("fftw_lock_fun", "fftw_unlock_fun", "fftw_lock_data"):
-                raise TypeError(f"Invalid option '{k}': FFTW locks are not exposed in Python")
+                raise TypeError(
+                    f"Invalid option '{k}': FFTW locks are not exposed in Python"
+                )
             if k in field_names:
                 setattr(self._opts, k, v)
             else:
@@ -210,17 +222,19 @@ class Plan:
         _n_modes = self._n_modes[::-1] + (1,) * (3 - self._dim)
         _n_modes = (c_int64 * 3)(*_n_modes)
 
-        ier = self._make_plan(self._type,
-                      self._dim,
-                      _n_modes,
-                      self._isign,
-                      self._n_trans,
-                      self._eps,
-                      byref(self._plan),
-                      byref(self._opts))
+        ier = self._make_plan(
+            self._type,
+            self._dim,
+            _n_modes,
+            self._isign,
+            self._n_trans,
+            self._eps,
+            byref(self._plan),
+            byref(self._opts),
+        )
 
         if ier != 0:
-            raise RuntimeError('Error creating plan.')
+            raise RuntimeError("Error creating plan.")
 
     def setpts(self, x, y=None, z=None, s=None, t=None, u=None):
         """
@@ -297,15 +311,13 @@ class Plan:
             fpts_axes_t3 = [None] * 3
 
         # Then take three items off the stack as our reordered axis.
-        ier = self._setpts(self._plan,
-                           M, *fpts_axes[:3],
-                           N, *fpts_axes_t3[:3])
+        ier = self._setpts(self._plan, M, *fpts_axes[:3], N, *fpts_axes_t3[:3])
 
         self._nj = M
         self._nk = N
 
         if ier != 0:
-            raise RuntimeError('Error setting non-uniform points.')
+            raise RuntimeError("Error setting non-uniform points.")
 
     def execute(self, data, out=None):
         """
@@ -343,12 +355,13 @@ class Plan:
             req_data_shape = (self._n_trans, self._nj)
             req_out_shape = (self._nk,)
 
-        _data, data_shape = _ensure_array_shape(_data, "data", req_data_shape,
-                                                allow_reshape=True)
+        _data, data_shape = _ensure_array_shape(
+            _data, "data", req_data_shape, allow_reshape=True
+        )
         if self._type in [1, 3]:
             batch_shape = data_shape[:-1]
         else:
-            batch_shape = data_shape[:-self._dim]
+            batch_shape = data_shape[: -self._dim]
 
         req_out_shape = batch_shape + req_out_shape
 
@@ -358,14 +371,16 @@ class Plan:
             _out = _ensure_array_shape(_out, "out", req_out_shape)
 
         if self._type in [1, 3]:
-            ier = self._exec_plan(self._plan, _compat.get_array_ptr(_data),
-                    _compat.get_array_ptr(_out))
+            ier = self._exec_plan(
+                self._plan, _compat.get_array_ptr(_data), _compat.get_array_ptr(_out)
+            )
         elif self._type == 2:
-            ier = self._exec_plan(self._plan, _compat.get_array_ptr(_out),
-                    _compat.get_array_ptr(_data))
+            ier = self._exec_plan(
+                self._plan, _compat.get_array_ptr(_out), _compat.get_array_ptr(_data)
+            )
 
         if ier != 0:
-            raise RuntimeError('Error executing plan.')
+            raise RuntimeError("Error executing plan.")
 
         return _out
 
@@ -381,7 +396,7 @@ class Plan:
         ier = self._destroy_plan(self._plan)
 
         if ier != 0:
-            raise RuntimeError('Error destroying plan.')
+            raise RuntimeError("Error destroying plan.")
 
         # Reset plan to avoid double destroy.
         self._plan = None
@@ -395,17 +410,22 @@ def _ensure_array_type(x, name, dtype, output=False):
         return None
 
     if _compat.get_array_dtype(x) != dtype:
-        raise TypeError(f"Argument `{name}` does not have the correct dtype: "
-                        f"{x.dtype} was given, but {dtype} was expected.")
+        raise TypeError(
+            f"Argument `{name}` does not have the correct dtype: "
+            f"{x.dtype} was given, but {dtype} was expected."
+        )
 
     if not _compat.is_array_contiguous(x):
         if output or not _compat.array_can_contiguous(x):
-            raise TypeError(f"Argument `{name}` does not satisfy the "
-                            f"following requirement: C")
+            raise TypeError(
+                f"Argument `{name}` does not satisfy the following requirement: C"
+            )
         else:
-            warnings.warn(f"Argument `{name}` does not satisfy the "
-                          f"following requirement: C. Copying array "
-                          f"(this may reduce performance)")
+            warnings.warn(
+                f"Argument `{name}` does not satisfy the "
+                f"following requirement: C. Copying array "
+                f"(this may reduce performance)"
+            )
             x = _compat.array_contiguous(x)
 
     return x

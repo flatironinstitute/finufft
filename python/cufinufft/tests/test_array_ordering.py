@@ -7,7 +7,9 @@ from cufinufft import Plan, _compat
 import utils
 
 
-def test_type1_ordering(to_gpu, to_cpu, dtype=np.complex64, shape=(16, 16, 16), M=4096, tol=1e-3):
+def test_type1_ordering(
+    to_gpu, to_cpu, dtype=np.complex64, shape=(16, 16, 16), M=4096, tol=1e-3
+):
     k, c = utils.type1_problem(dtype, shape, M)
 
     k_gpu = to_gpu(k)

@@ -5,7 +5,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 import finufft
 
-def finufft1d_accuracy_plot(M=10_000, N=100, isign=+1, upsampfac=2.00, seed=42, hold_inputs=False):
+
+def finufft1d_accuracy_plot(
+    M=10_000, N=100, isign=+1, upsampfac=2.00, seed=42, hold_inputs=False
+):
     rng = np.random.default_rng(seed)
 
     # Tolerances: 10.^(-1:-0.02:-15)
@@ -20,7 +23,7 @@ def finufft1d_accuracy_plot(M=10_000, N=100, isign=+1, upsampfac=2.00, seed=42, 
 
     # Optionally hold inputs fixed across tolerances
     if hold_inputs:
-        x = rng.uniform(-np.pi, np.pi, size=M)                  # no dtype kw
+        x = rng.uniform(-np.pi, np.pi, size=M)  # no dtype kw
         c = rng.normal(size=M) + 1j * rng.normal(size=M)
         x = np.asarray(x, dtype=np.float64)
         c = np.asarray(c, dtype=np.complex128)
@@ -42,19 +45,20 @@ def finufft1d_accuracy_plot(M=10_000, N=100, isign=+1, upsampfac=2.00, seed=42, 
 
     # Plot
     plt.figure()
-    plt.loglog(tols, errs, '+', label='measured')
-    plt.plot(tols, tols, '-', label='y=x')
-    plt.xlabel('tol')
-    plt.ylabel('err')
-    plt.title(rf'1d1: $\|\tilde f - f\|_2 / \|f\|_2$, M={M}, N={N}')
-    plt.grid(True, which='both')
+    plt.loglog(tols, errs, "+", label="measured")
+    plt.plot(tols, tols, "-", label="y=x")
+    plt.xlabel("tol")
+    plt.ylabel("err")
+    plt.title(rf"1d1: $\|\tilde f - f\|_2 / \|f\|_2$, M={M}, N={N}")
+    plt.grid(True, which="both")
     plt.legend()
     plt.tight_layout()
     plt.show()
 
     return tols, errs
 
+
 if __name__ == "__main__":
     # Default: new x,c per tol; set hold_inputs=True to reuse inputs.
     finufft1d_accuracy_plot()
-    #finufft1d_accuracy_plot(upsampfac=1.25)
+    # finufft1d_accuracy_plot(upsampfac=1.25)
