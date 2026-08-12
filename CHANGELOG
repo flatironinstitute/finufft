@@ -20,6 +20,13 @@ v2.6.0-dev
   return to 0.95-0.97x of their old time, so this restores rather than adds.
   `cuperftest` gains `--maxbatchsize`.
   (Barbone)
+* The public Python API of both `finufft` and `cufinufft` is now type annotated,
+  and both packages ship a PEP 561 `py.typed` marker, so type checkers see the
+  real signatures instead of `Any` (#302). Aligning the two APIs changed one
+  behaviour: `finufft.Plan.n_modes` now returns the mode counts as a tuple in
+  `ndarray.shape` order, as the caller passed them and as
+  `cufinufft.Plan.n_modes` already did, instead of the reversed `ctypes` array
+  that goes down to the C library. (Barbone)
 * The spread/interp kernel is now PSWF (prolate) only: opts.spread_kerformula
   takes 0 (default) or 7,8,9 (PSWF shape-parameter choices); the legacy ES (1,2),
   Kaiser-Bessel (3,4) and cosh-type (5,6) formulas are removed and now return
