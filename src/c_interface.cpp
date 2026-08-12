@@ -6,7 +6,6 @@
 #include <finufft/plan.hpp> // (must come after complex.h)
 #include <finufft_opts.h>
 
-using namespace std;
 using finufft::common::safe_finufft_call;
 
 /* ---------------------------------------------------------------------------
