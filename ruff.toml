@@ -1,0 +1,15 @@
+# tutorial/poisson2dnuquad.py annotates a derivation with five column-aligned
+# comment tables; guarding each with `# fmt: off` would put ten pragma lines in
+# a teaching file, so the file is left hand-formatted instead. Elsewhere the
+# few aligned tables carry a `# fmt: off` guard and the file is formatted
+# normally. spreadbenchmark.py is Python 2.
+#
+# This covers bare `ruff format`; the darker pre-commit hook needs the same
+# list in .pre-commit-config.yaml, because darker calls ruff with
+# --stdin-filename=<basename> and these path patterns cannot match there.
+extend-exclude = [
+    "deps",
+    "devel",  # scratch experiments, not worth churning
+    "tutorial/poisson2dnuquad.py",
+    "perftest/spreadbenchmark.py",
+]

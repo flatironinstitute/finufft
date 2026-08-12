@@ -31,8 +31,12 @@ repos:
     hooks:
       - id: darker
         args: [--formatter=ruff]
-        additional_dependencies: [ruff==0.15.9]
-        exclude: '^perftest/spreadbenchmark\.py$'  # Python 2 file
+        # tomli: darker's ruff formatter imports it on Python < 3.11 but never
+        # declares it, so the hook fails to import there without this.
+        additional_dependencies: [ruff==0.15.9, 'tomli; python_version < "3.11"']
+        # Keep this in step with ruff.toml: darker calls ruff with
+        # --stdin-filename=<basename>, so ruff's own path excludes never match here.
+        exclude: '^(deps/|devel/|tutorial/poisson2dnuquad\.py$|perftest/spreadbenchmark\.py$)'
 
   # --- Shell ---
   - repo: https://github.com/scop/pre-commit-shfmt
