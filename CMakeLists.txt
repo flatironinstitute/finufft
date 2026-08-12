@@ -139,6 +139,23 @@ if(FINUFFT_BUILD_PYTHON)
     add_subdirectory(python)
 endif()
 
+# Regenerate the checked-in generated docs in the source tree - the same thing
+# `make docs` does, for people who never touch the makefile. Never edit
+# docs/*.doc by hand: they are marked linguist-generated in .gitattributes, and
+# addmhelp.sh also rewrites the help blocks in matlab/*.m from
+# matlab/opts.docbit. The generators are bash, hence UNIX only; docs/makefile.doc
+# is the makefile's own help text, so it stays a `make docs` job.
+if(UNIX)
+    add_custom_target(
+        finufft_docs
+        COMMAND ${CMAKE_COMMAND} -E chdir ${PROJECT_SOURCE_DIR}/matlab ./addmhelp.sh
+        COMMAND ${CMAKE_COMMAND} -E chdir ${PROJECT_SOURCE_DIR}/docs ./genmatlabhelp.sh
+        COMMAND ${CMAKE_COMMAND} -E chdir ${PROJECT_SOURCE_DIR}/docs ./makecdocs.sh
+        COMMENT "Regenerating matlab/*.m help blocks and docs/*.doc"
+        VERBATIM
+    )
+endif()
+
 # gersemi: off
 message(STATUS "FINUFFT configuration summary:")
 message(STATUS "  CMAKE_BUILD_TYPE: ${CMAKE_BUILD_TYPE}")
