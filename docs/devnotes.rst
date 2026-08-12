@@ -20,8 +20,21 @@ Developer notes
 
 * There are some sphinx tags in the source code, indicated by @ in comments. Please leave these alone since they are needed by the doc generation.
 
-* Source code is now in clang format: devs should run ``clang-format --files=<editedfile> -i --style=.clang-format`` before pushing, or set up their editor to do this
-  automatically. To bypass a git hook which uses this, use ``git commit --no-verify`` ...
+* Source code is now in clang format, and Python in ruff format. The pre-commit hooks do this for you, on the staged hunks only, so you can just write code and commit; run ``pre-commit install`` once to enable them. To format by hand instead, use ``clang-format -i --style=.clang-format <editedfile>`` or ``ruff format <editedfile>``, or set up your editor to do it. To bypass the hooks use ``git commit --no-verify``, or ``SKIP=<hook-id> git commit`` for a single one.
+
+* Run ``tools/setup-git.sh`` once after cloning. Git configuration is per clone, so the repo cannot ship it, and two things depend on it:
+
+  - ``blame.ignoreRevsFile``, so ``git blame`` skips the bulk-formatting commits listed in ``.git-blame-ignore-revs``.
+  - the ``diff.pyfmt``/``diff.cfmt`` textconv drivers, which diff Python and C/C++ through their formatters. Both sides of a diff are normalized, so a formatting-only commit shows up as an empty diff and review sees only real changes. ``git blame`` uses them too, and unlike the ignore file it also covers lines that a reformat created.
+
+  So ``git diff master...my-branch`` shows what you actually changed, and a rebase over a reformat stops being a wall of noise. To see the formatting anyway, switch the driver off for that one command::
+
+    git -c diff.pyfmt.textconv=cat show <sha>      # Python, raw
+    git -c diff.cfmt.textconv=cat show <sha>       # C/C++/CUDA, raw
+
+  Two caveats: ``--stat``, ``--numstat`` and ``--shortstat`` are computed from the raw blobs and so always report the unnormalized counts, and a normalized diff is for reading only -- it will not apply as a patch.
+
+  A few files are deliberately left hand-formatted and are excluded from ruff in ``ruff.toml`` (and again in ``.pre-commit-config.yaml``, since darker passes only a basename to ruff): ``devel/``, ``tutorial/poisson2dnuquad.py``, whose column-aligned comment tables annotate a derivation, and the Python 2 ``perftest/spreadbenchmark.py``. Elsewhere, use ``# fmt: off`` / ``# fmt: on`` around a block, or ``# fmt: skip`` on a statement, to keep layout that carries meaning.
 
 * If you add a new option field (recall it must be plain C style only, no special types) to ``include/finufft_opts.h``, don't forget to add it to ``include/finufft.fh``, ``include/finufft_mod.f90``, ``matlab/finufft.mw``, ``python/finufft/finufft/_finufft.py``, and the Julia interface, as well a paragraph describing its use in the docs. Also to set its default value in ``include/finufft/plan.hpp:finufft_default_opts_t``. You will then need to regenerate the docs as in ``docs/README``.
 
