@@ -144,10 +144,11 @@ endif()
 # docs/*.doc by hand: they are marked linguist-generated in .gitattributes, and
 # addmhelp.sh also rewrites the help blocks in matlab/*.m from
 # matlab/opts.docbit. The generators are bash, hence UNIX only; docs/makefile.doc
-# is the makefile's own help text, so it stays a `make docs` job.
+# is the makefile's own help text, so it stays a `make docs` job. This produces
+# sphinx's inputs; finufft_sphinx (FINUFFT_BUILD_DOCS) renders them to HTML.
 if(UNIX)
     add_custom_target(
-        finufft_docs
+        finufft_regen_docs
         COMMAND ${CMAKE_COMMAND} -E chdir ${PROJECT_SOURCE_DIR}/matlab ./addmhelp.sh
         COMMAND ${CMAKE_COMMAND} -E chdir ${PROJECT_SOURCE_DIR}/docs ./genmatlabhelp.sh
         COMMAND ${CMAKE_COMMAND} -E chdir ${PROJECT_SOURCE_DIR}/docs ./makecdocs.sh
