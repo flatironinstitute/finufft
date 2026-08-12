@@ -8,8 +8,11 @@
    They have been converted to C and repackaged by Libin Lu.
 */
 
+#include <algorithm>
 #include <finufft_common/pswf.h>
 #include <finufft_common/safe_call.h>
+#include <finufft_errors.h>
+#include <utility>
 
 namespace finufft::common {
 

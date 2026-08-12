@@ -1,10 +1,14 @@
+#include <algorithm>
 #include <cmath>
 #include <cstdio>
 #include <finufft_common/common.h>
+#include <finufft_common/constants.h>
 #include <finufft_common/kernel.h>
+#include <finufft_common/pswf.h>
 #include <finufft_common/safe_call.h>
 #include <finufft_common/spread_opts.h>
 #include <finufft_errors.h>
+#include <functional>
 
 // this module uses finufft_spread_opts but does not know about FINUFFT_PLAN class
 // nor finufft_opts. This allows it to be used by CPU & GPU.
