@@ -11,3 +11,26 @@ matlab/cufinufft_plan.m linguist-generated=true
 # docs/makecdocs.sh (from docs/*.docsrc), docs/genmatlabhelp.sh (from matlab/*.m),
 # and `make --no-print-directory > docs/makefile.doc`; every docs/*.doc is generated:
 docs/*.doc              linguist-generated=true
+
+# Diff these through ruff (see tools/setup-git.sh): they are kept ruff-formatted,
+# so a formatting-only commit shows up as an empty diff and review sees only real
+# changes. tutorial/poisson2dnuquad.py is absent on purpose: it is excluded from
+# ruff (see ruff.toml), so normalizing it would hide real edits.
+python/finufft/finufft/*.py      diff=pyfmt
+python/cufinufft/cufinufft/*.py  diff=pyfmt
+python/finufft/examples/*.py     diff=pyfmt
+python/cufinufft/examples/*.py   diff=pyfmt
+tutorial/realinterp*.py          diff=pyfmt
+docs/conf.py                     diff=pyfmt
+perftest/**/*.py                 diff=pyfmt
+tools/*.py                       diff=pyfmt
+python/test/*.py                 diff=pyfmt
+python/finufft/test/*.py         diff=pyfmt
+python/cufinufft/tests/*.py      diff=pyfmt
+*.c    diff=cfmt
+*.cc   diff=cfmt
+*.cpp  diff=cfmt
+*.h    diff=cfmt
+*.hpp  diff=cfmt
+*.cu   diff=cfmt
+*.cuh  diff=cfmt
