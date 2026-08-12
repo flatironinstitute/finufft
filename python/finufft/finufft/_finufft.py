@@ -141,7 +141,7 @@ _makeplan.argtypes = [
     FinufftPlan_p,
     FinufftOpts_p,
 ]
-_makeplan.restypes = c_int
+_makeplan.restype = c_int
 
 _makeplanf = lib.finufftf_makeplan
 _makeplanf.argtypes = [
@@ -154,7 +154,7 @@ _makeplanf.argtypes = [
     FinufftPlanf_p,
     FinufftOpts_p,
 ]
-_makeplanf.restypes = c_int
+_makeplanf.restype = c_int
 
 _setpts = lib.finufft_setpts
 _setpts.argtypes = [
