@@ -80,8 +80,8 @@ static void BM_finufft_guru_type1_realinput_plan_and_execute(benchmark::State &s
 BENCHMARK(BM_finufft_guru_type1_realinput_plan_and_execute)
     ->Unit(benchmark::kMicrosecond)
     ->Arg(0)  // default (prolate/PSWF, formula 8)
-    ->Arg(1)  // ES (exponential of semicircle, v2.4.1 kernel)
-    ->Arg(3)  // Kaiser-Bessel
-    ->Arg(4); // deplinthed Kaiser-Bessel
+    ->Arg(7)  // PSWF, alternative shape-parameter choices
+    ->Arg(8)
+    ->Arg(9);
 
 BENCHMARK_MAIN();

@@ -23,10 +23,6 @@
 #include <finufft/heuristics.hpp> // complexity-based upsampfac (sigma) picker
 #include <finufft/test_defs.hpp>
 
-namespace finufft::common {
-double cyl_bessel_i_custom(double nu, double x) noexcept;
-} // namespace finufft::common
-
 using namespace finufft::common;
 using namespace finufft::heuristics;
 
@@ -94,22 +90,6 @@ int main() {
   b[0] = CPX(0.0, 0.0); // perturb b from a
   if (std::abs(errtwonorm(M, &a[0], &b[0]) - 1.0) > relerr) return 1;
   if (std::abs(std::sqrt((FLT)M) * relerrtwonorm(M, &a[0], &b[0]) - 1.0) > relerr) return 1;
-
-#if defined(__cpp_lib_math_special_functions)
-  // std::cyl_bessel_i present: compare std vs custom series
-  for (double x = 0.0; x <= 42.0; x += 0.5) {
-    double stdv    = std::cyl_bessel_i(0, x);
-    double custom  = finufft::common::cyl_bessel_i_custom(0, x);
-    double rel_err = std::abs(1.0 - stdv / custom);
-    if (rel_err > std::numeric_limits<double>::epsilon() * 20) {
-      printf("fail: Bessel mismatch at x=%g: std=%g custom=%g rel_err=%g\n", x, stdv,
-             custom, rel_err);
-      return 1;
-    }
-  }
-#else
-  printf("Bessel comparison test skipped. std bessel function not available.\n");
-#endif
 
 #ifndef SINGLE
   // Complexity-based upsampfac (sigma) picker (finufft/heuristics.hpp). The block

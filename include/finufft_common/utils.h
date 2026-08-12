@@ -29,11 +29,6 @@ long next235(long n, long required_factor = 1);
 FINUFFT_EXPORT_TEST void gaussquad(int n, double *xgl, double *wgl);
 std::tuple<double, double> leg_eval(int n, double x);
 
-// Series implementation of the modified Bessel function of the first kind I_nu(x)
-double cyl_bessel_i(double nu, double x) noexcept;
-// Explicit custom series implementation exposed for testing
-double cyl_bessel_i_custom(double nu, double x) noexcept;
-
 } // namespace common
 } // namespace finufft
 
