@@ -255,13 +255,15 @@ int FINUFFT_PLAN_T<T>::spreadinterpSortedBatch(
   ChaithyaGR 1/7/25: new arg fwBatch (won't be p.fwBatch if spreadinterponly=1)
 */
 {
-  // opts.spread_thread: 1 sequential multithread, 2 parallel single-thread.
-  // omp_sets_nested deprecated, so don't use; assume not nested for 2 to work.
-  // But when nthr_outer=1 here, omp par inside the loop sees all threads...
-#ifdef _OPENMP
-  int nthr_outer = opts.spread_thread == 1 ? 1 : batchSize;
-#endif
-#pragma omp parallel for num_threads(nthr_outer)
+  // Both directions now use one team over the whole batch: spreading is flattened over
+  // (element, subproblem), and interpolation takes the full team per element, which
+  // measures faster than the old nested batchSize-wide region at every ntransf. Nothing
+  // here depends on opts.spread_thread any more.
+  if ((m.spopts.spread_direction == 1) != adjoint) {
+    spreadSorted(reinterpret_cast<T *>(fwBatch), reinterpret_cast<const T *>(cBatch),
+                 batchSize);
+    return 0;
+  }
   for (int i = 0; i < batchSize; i++) {
     std::complex<T> *fwi = fwBatch + i * nf(); // start of i'th fw array in
                                                // fwBatch workspace or user array
