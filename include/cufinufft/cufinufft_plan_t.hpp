@@ -377,10 +377,12 @@ private:
   cudaStream_t stream = 0;
 
   void execute_type1(cuda_complex<T> *d_c, cuda_complex<T> *d_fk) const;
-  // The "ntransf_override" parameter is only needed when a type 3 plan calls
-  // its inner type 2 plan. Leave at default in all other circumstances!
+  // The "ntransf_override" and "fw_scratch" parameters are only needed when a type 3
+  // plan calls its inner type 2 plan. Leave at default in all other circumstances!
+  // fw_scratch must hold at least nf*batchsize.
   void execute_type2(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
-                     std::optional<int> ntransf_override = std::optional<int>()) const;
+                     std::optional<int> ntransf_override = std::optional<int>(),
+                     cuda_complex<T> *fw_scratch = nullptr) const;
   void execute_type3(cuda_complex<T> *d_c, cuda_complex<T> *d_fk) const;
 
   void deconvolve(cuda_complex<T> *fw, cuda_complex<T> *fk, int blksize) const;
