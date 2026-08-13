@@ -72,7 +72,7 @@ inline int kernel_width_at(double tol, int dim, int type, double sigma) {
   so.kerformula = 0;
   so.upsampfac = sigma;
   return finufft::kernel::clamp_kernel_ns<TF>(
-      finufft::kernel::theoretical_kernel_ns(tol, dim, type, 0, so), sigma);
+      finufft::kernel::theoretical_kernel_ns(tol, dim, type, so), sigma);
 }
 
 // Returns the feasible upsampfac (sigma) that minimizes cost, and its predicted cost.

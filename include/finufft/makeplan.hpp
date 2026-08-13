@@ -163,8 +163,7 @@ template<typename TF> void FINUFFT_PLAN_T<TF>::setup_spreadinterp() {
   // choose nspread and set it in spopts. The width actually used comes from the shared
   // clamp_kernel_ns() (kernel.h); here we additionally report/throw when the requested
   // tol is infeasible, and warn when the float guard narrows the kernel.
-  const int ns_theory =
-      theoretical_kernel_ns((double)m.tol, dim, type, opts.debug, m.spopts);
+  const int ns_theory = theoretical_kernel_ns((double)m.tol, dim, type, m.spopts);
   // per-precision cap: float spreadinterp is only instantiated up to
   // MAX_NSPREAD<TF> (see constants.h, issue #827)
   constexpr int max_ns = MAX_NSPREAD<TF>;
