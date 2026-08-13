@@ -41,6 +41,9 @@ function(finufft_apply_compile_settings target)
     target_compile_options(${target} PRIVATE $<$<CONFIG:Release>:${FINUFFT_CXX_FLAGS_RELEASE}>)
     target_compile_options(${target} PRIVATE $<$<CONFIG:RelWithDebInfo>:${FINUFFT_CXX_FLAGS_RELWITHDEBINFO}>)
     target_compile_options(${target} PRIVATE $<$<CONFIG:Debug>:${FINUFFT_CXX_FLAGS_DEBUG}>)
+    target_compile_options(${target} PRIVATE ${FINUFFT_CXX_FLAGS_WARNINGS})
+    # the library copies finufft_opts, so its own sources drop the field deprecations
+    target_compile_definitions(${target} PRIVATE FINUFFT_NO_DEPRECATED_FIELDS)
     set_target_properties(
         ${target}
         PROPERTIES
@@ -48,6 +51,8 @@ function(finufft_apply_compile_settings target)
             INTERPROCEDURAL_OPTIMIZATION ${FINUFFT_INTERPROCEDURAL_OPTIMIZATION}
             CXX_VISIBILITY_PRESET hidden
             VISIBILITY_INLINES_HIDDEN YES
+            # Pairs with the warning flags above; MSVC also warns at its default level.
+            COMPILE_WARNING_AS_ERROR ${FINUFFT_WARNINGS_AS_ERRORS}
     )
     if(FINUFFT_USE_OPENMP)
         target_link_libraries(${target} PRIVATE OpenMP::OpenMP_CXX)

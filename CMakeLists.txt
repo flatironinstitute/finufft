@@ -26,6 +26,11 @@ option(FINUFFT_USE_CPU "Whether to build the ordinary FINUFFT library (libfinuff
 option(FINUFFT_USE_CUDA "Whether to build CUDA accelerated FINUFFT library (libcufinufft). This is completely independent of the main FINUFFT library" OFF)
 option(FINUFFT_USE_DUCC0 "Whether to use DUCC0 (instead of FFTW) for CPU FFTs" OFF)
 option(FINUFFT_USE_OPENMP "Whether to use OpenMP for parallelization. If disabled, the finufft library will be single threaded. This does not affect the choice of FFTW library." ON)
+option(
+    FINUFFT_WARNINGS_AS_ERRORS
+    "Treat compiler warnings in the finufft library sources as errors. Only Debug and RelWithDebInfo enable the warning flags, so Release builds are unaffected."
+    ON
+)
 set(
     FINUFFT_USE_SANITIZERS
     "OFF"

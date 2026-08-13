@@ -5,9 +5,12 @@
 #ifndef FINUFFT_OPTS_H
 #define FINUFFT_OPTS_H
 
-// Deprecation attribute for struct fields in C++14+ code, empty otherwise.
+// Deprecation attribute for struct fields in C++14+ code, empty otherwise. The library
+// copies this struct, and an implicit copy member reads every field, so its own sources
+// build with FINUFFT_NO_DEPRECATED_FIELDS. A user's call site still warns.
 #ifndef FINUFFT_DEPRECATED_FIELD
-#if defined(__cplusplus) && __cplusplus >= 201402L
+#if defined(__cplusplus) && __cplusplus >= 201402L && \
+    !defined(FINUFFT_NO_DEPRECATED_FIELDS)
 #define FINUFFT_DEPRECATED_FIELD(msg) [[deprecated(msg)]]
 #else
 #define FINUFFT_DEPRECATED_FIELD(msg)
