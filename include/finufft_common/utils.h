@@ -24,7 +24,7 @@ namespace common {
 
 // Returns p*required factor, where p is the smallest composite
 // of 2, 3, 5 such that p*required_factor >= n.
-long next235(long n, long required_factor = 1);
+BIGINT next235(BIGINT n, BIGINT required_factor = 1);
 
 FINUFFT_EXPORT_TEST void gaussquad(int n, double *xgl, double *wgl);
 std::tuple<double, double> leg_eval(int n, double x);

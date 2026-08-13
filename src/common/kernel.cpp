@@ -224,7 +224,7 @@ bool upsampfac_feasible(double sigma, double tol, int dim, int type, double eps_
   if (ns < ns_t) return false;
   if (type == 3) return true;
   // fine-grid length as set_nf_type12 builds it (largest dim binds).
-  const long nf = fine_grid_len(sigma, maxN, ns);
+  const BIGINT nf = fine_grid_len(sigma, maxN, ns);
   return lowest_sigma(tol, dim, ns, eps_mach, (double)nf) <= sigma;
 }
 
