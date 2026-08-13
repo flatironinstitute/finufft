@@ -150,8 +150,8 @@ namespace finufft::common {
 // (makeplan.hpp): ceil(sigma*n_modes), floored at 2*ns, rounded up to the next even
 // 2,3,5-smooth number. set_nf_type12 owns the BIGINT/MAX_NF version; this is the
 // read-only mirror for the upsampfac selector.
-inline long fine_grid_len(double sigma, double n_modes, int ns) {
-  return next235(std::max((long)std::ceil(sigma * n_modes), (long)(2 * ns)), 2);
+inline BIGINT fine_grid_len(double sigma, double n_modes, int ns) {
+  return next235(std::max(BIGINT(std::ceil(sigma * n_modes)), BIGINT(2 * ns)), 2);
 }
 
 // Type-3 fine grid for one dimension, given the source/freq interval half-widths X,S.

@@ -115,10 +115,10 @@ static size_t good_size_235(size_t n, size_t required_factor) {
   return good_size_235((n + required_factor - 1) / required_factor) * required_factor;
 }
 
-long next235(long n, long required_factor) {
-  n               = std::max<long>(n, 1);
-  required_factor = std::max<long>(required_factor, 1);
-  return good_size_235(size_t(n), size_t(required_factor));
+BIGINT next235(BIGINT n, BIGINT required_factor) {
+  n = std::max<BIGINT>(n, 1);
+  required_factor = std::max<BIGINT>(required_factor, 1);
+  return BIGINT(good_size_235(size_t(n), size_t(required_factor)));
 }
 
 } // namespace common

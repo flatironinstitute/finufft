@@ -51,6 +51,16 @@ int main() {
       return 1;
     }
   }
+  // a grid dimension above 2^31, which MAX_NF (1e12) allows. Catches a next235
+  // narrower than BIGINT, which on Windows a plain long is.
+  {
+    const BIGINT n = BIGINT(3e9), o = next235(n, 2);
+    if (o < n) {
+      printf("next235(%lld, 2) =\t%lld, error should be >= the input!\n", (long long)n,
+             (long long)o);
+      return 1;
+    }
+  }
   // various old devel expts and comments for next235even...
   // printf("starting huge next235even...\n");   // 1e11 takes 1 sec
   // BIGINT n=(BIGINT)120573851963;
