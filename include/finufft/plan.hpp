@@ -35,12 +35,24 @@ inline int MY_OMP_GET_NUM_THREADS [[maybe_unused]] () { return omp_get_num_threa
 inline int MY_OMP_GET_MAX_THREADS [[maybe_unused]] () { return omp_get_max_threads(); }
 inline int MY_OMP_GET_THREAD_NUM [[maybe_unused]] () { return omp_get_thread_num(); }
 inline void MY_OMP_SET_NUM_THREADS [[maybe_unused]] (int x) { omp_set_num_threads(x); }
+using my_omp_lock_t = omp_lock_t;
+inline void MY_OMP_INIT_LOCK [[maybe_unused]] (my_omp_lock_t *l) { omp_init_lock(l); }
+inline void MY_OMP_DESTROY_LOCK [[maybe_unused]] (my_omp_lock_t *l) {
+  omp_destroy_lock(l);
+}
+inline void MY_OMP_SET_LOCK [[maybe_unused]] (my_omp_lock_t *l) { omp_set_lock(l); }
+inline void MY_OMP_UNSET_LOCK [[maybe_unused]] (my_omp_lock_t *l) { omp_unset_lock(l); }
 #else
 // non-omp safe dummy versions of omp utils...
 inline int MY_OMP_GET_NUM_THREADS [[maybe_unused]] () { return 1; }
 inline int MY_OMP_GET_MAX_THREADS [[maybe_unused]] () { return 1; }
 inline int MY_OMP_GET_THREAD_NUM [[maybe_unused]] () { return 0; }
 inline void MY_OMP_SET_NUM_THREADS [[maybe_unused]] (int) {}
+struct my_omp_lock_t {};
+inline void MY_OMP_INIT_LOCK [[maybe_unused]] (my_omp_lock_t *) {}
+inline void MY_OMP_DESTROY_LOCK [[maybe_unused]] (my_omp_lock_t *) {}
+inline void MY_OMP_SET_LOCK [[maybe_unused]] (my_omp_lock_t *) {}
+inline void MY_OMP_UNSET_LOCK [[maybe_unused]] (my_omp_lock_t *) {}
 #endif
 
 // Forward declaration only. Full definition in src/fft.cpp.
@@ -222,7 +234,11 @@ private:
   void spread_subproblem_3d(BIGINT off1, BIGINT off2, BIGINT off3, UBIGINT size1,
                             UBIGINT size2, UBIGINT size3, TF *du, UBIGINT M, TF *kx,
                             TF *ky, TF *kz, TF *dd) const noexcept;
-  int spreadSorted(TF *FINUFFT_RESTRICT data_uniform, const TF *data_nonuniform) const;
+  // batchSize>1 folds the batch loop into the subproblem loop, so all nthr threads get
+  // assigned (vector, subprob) pairs out of the batchSize*nb of them. The per-vector
+  // strides are the plan's own 2*nf() and 2*nj.
+  int spreadSorted(TF *FINUFFT_RESTRICT data_uniform, const TF *data_nonuniform,
+                   int batchSize = 1) const;
   int interpSorted(TF *FINUFFT_RESTRICT data_uniform,
                    TF *FINUFFT_RESTRICT data_nonuniform) const;
   int interpSorted_1d(TF *data_uniform, TF *data_nonuniform) const;

@@ -309,7 +309,7 @@ int FINUFFT_PLAN_T<TF>::spreadinterpSorted(TF *data_uniform, TF *data_nonuniform
 
 template<typename TF>
 int FINUFFT_PLAN_T<TF>::spreadSorted(TF *FINUFFT_RESTRICT data_uniform,
-                                     const TF *data_nonuniform) const
+                                     const TF *data_nonuniform, int batchSize) const
 /* Spread NU pts (in sort order) to a uniform grid. See spreadinterpSorted() for doc.
    Plan members used in place of the former free-function arguments:
    sortIndices, nfdim[0..2], nj, XYZ[0..2], spopts, didSort, horner_coeffs, nc.
@@ -331,16 +331,25 @@ int FINUFFT_PLAN_T<TF>::spreadSorted(TF *FINUFFT_RESTRICT data_uniform,
   CNTime timer{};
   const auto ndims = ndims_from_Ns(N1, N2, N3);
   const auto N     = N1 * N2 * N3; // output array size
-  auto nthr        = MY_OMP_GET_MAX_THREADS(); // guess # threads to use to spread
+  const auto stride_u = 2 * N; // per-vector strides through the batch arrays
+  const auto stride_nu = 2 * M;
+  auto nthr = MY_OMP_GET_MAX_THREADS();
   if (m.spopts.nthreads > 0) nthr = m.spopts.nthreads; // user override, now without limit
 #ifndef _OPENMP
   nthr = 1; // single-threaded lib must override user
 #endif
   if (m.spopts.debug)
-    printf("\tspread %dD (M=%lld; N1=%lld,N2=%lld,N3=%lld), nthr=%d\n", ndims,
-           (long long)M, (long long)N1, (long long)N2, (long long)N3, nthr);
+    printf("\tspread %dD (M=%lld; N1=%lld,N2=%lld,N3=%lld), nthr=%d, batch=%d\n", ndims,
+           (long long)M, (long long)N1, (long long)N2, (long long)N3, nthr, batchSize);
   timer.start();
-  std::fill(data_uniform, data_uniform + 2 * N, 0.0); // zero the output array
+  // zero the whole batch, split by thread rather than by vector: the fill is
+  // bandwidth-bound and batchSize can be smaller than nthr. This used to be a serial
+  // fill per vector, run by the one thread the nested region gave us.
+  const auto ntot = BIGINT(batchSize) * BIGINT(stride_u);
+#pragma omp parallel for num_threads(nthr) schedule(static)
+  for (int t = 0; t < nthr; ++t)
+    std::fill(data_uniform + ntot * t / nthr, data_uniform + ntot * (t + 1) / nthr,
+              TF(0));
   if (m.spopts.debug) printf("\tzero output array\t%.3g s\n", timer.elapsedsec());
   if (M == 0) // no NU pts, we're done
     return 0;
@@ -359,7 +368,10 @@ int FINUFFT_PLAN_T<TF>::spreadSorted(TF *FINUFFT_RESTRICT data_uniform,
     // ------- Fancy multi-core blocked t1 spreading ----
     // Splits sorted inds (jfm's advanced2), could double RAM.
     // choose nb (# subprobs) via used nthreads:
-    auto nb = std::min((UBIGINT)nthr, M); // simply split one subprob per thr...
+    // one subprob per thread, but the batch loop is folded in below, so nthr/batchSize
+    // of them already keeps all threads busy; fewer, bigger subprobs mean fewer padded
+    // subgrids to zero and add back
+    auto nb = std::min((UBIGINT)((nthr + batchSize - 1) / batchSize), M);
     if (nb * (BIGINT)m.spopts.max_subproblem_size < M) {
       // ...or more subprobs to cap size
       nb = 1 + (M - 1) / m.spopts.max_subproblem_size; // int div does
@@ -376,69 +388,98 @@ int FINUFFT_PLAN_T<TF>::spreadSorted(TF *FINUFFT_RESTRICT data_uniform,
       nb = 1;
       if (m.spopts.debug) printf("\tunsorted nthr=1: forcing single subproblem...\n");
     }
-    if (m.spopts.debug && nthr > m.spopts.atomic_threshold)
-      printf("\tnthr big: switching add_wrapped OMP from critical to atomic (!)\n");
 
     std::vector<UBIGINT> brk(nb + 1); // NU index breakpoints defining nb subproblems
     for (UBIGINT p = 0; p <= nb; ++p) brk[p] = (M * p + nb - 1) / nb;
+
+    // nb and brk come only from plan state, so every vector in the batch splits into the
+    // same subprobs and the (vector, subprob) space is rectangular: collapse it, and all
+    // nthr threads get assigned pairs out of it, with no nesting needed.
+    // Two subprobs can only collide on the fine grid of a vector they share, so the
+    // guard follows the # threads on one vector, not nthr. Dynamic scheduling can put
+    // several threads on the same vector, so nb==1 is the only case provably free of
+    // collisions: there the vector is a single pair. Otherwise guard, atomic vs lock
+    // decided by how many threads land on one vector - the queue advances roughly in
+    // order, so those in flight on vector ib sit inside its window of nb iterations, at
+    // most min(nthr, nb) of them.
+    const bool needs_guard = nb > 1 && nthr > 1;
+    const bool use_atomic =
+        needs_guard && std::min((UBIGINT)nthr, nb) > (UBIGINT)m.spopts.atomic_threshold;
+    std::vector<my_omp_lock_t> locks(needs_guard && !use_atomic ? batchSize : 0);
+    for (auto &l : locks) MY_OMP_INIT_LOCK(&l);
+    if (m.spopts.debug && use_atomic)
+      printf("\tup to %d writers per output: add_wrapped switching to atomic (!)\n",
+             (int)std::min((UBIGINT)nthr, nb));
 
 #pragma omp parallel num_threads(nthr)
     {
       // local copies of NU pts and data for each subproblem
       std::vector<TF> kx0{}, ky0{}, kz0{}, dd0{}, du0{};
-#pragma omp for schedule(dynamic, 1)                     // each is big
-      for (BIGINT isub = 0; isub < BIGINT(nb); isub++) { // Main loop through subproblems
-        const auto M0 = brk[isub + 1] - brk[isub];      // # NU pts in this subproblem
-        // copy the location and data vectors for the nonuniform points
-        kx0.resize(M0);
-        ky0.resize(M0 * (N2 > 1));
-        kz0.resize(M0 * (N3 > 1));
-        dd0.resize(2 * M0); // complex strength data
-        for (UBIGINT j = 0; j < M0; j++) {
-          // todo: can avoid this copying?
-          const auto kk = m.sortIndices[j + brk[isub]]; // NU pt from subprob index list
-          kx0[j]        = fold_rescale<TF>(kx[kk], N1);
-          if (N2 > 1) ky0[j] = fold_rescale<TF>(ky[kk], N2);
-          if (N3 > 1) kz0[j] = fold_rescale<TF>(kz[kk], N3);
-          dd0[j * 2]     = data_nonuniform[kk * 2];     // real part
-          dd0[j * 2 + 1] = data_nonuniform[kk * 2 + 1]; // imag part
-        }
-        // get the subgrid which will include padding by roughly nspread/2
-        BIGINT offset1, offset2, offset3, padded_size1, size1, size2, size3;
-        get_subgrid(offset1, offset2, offset3, padded_size1, size1, size2, size3, M0,
-                    kx0.data(), ky0.data(), kz0.data());
-        if (m.spopts.debug > 1) {
-          print_subgrid_info(ndims, offset1, offset2, offset3, padded_size1, size1, size2,
-                             size3, M0);
-        }
-        // allocate output data for this subgrid
-        du0.resize(2 * padded_size1 * size2 * size3); // complex
-        // Spread to subgrid without need for bounds checking or wrapping
-        if (ndims == 1)
-          spread_subproblem_1d(offset1, padded_size1, du0.data(), M0, kx0.data(),
-                               dd0.data());
-        else if (ndims == 2)
-          spread_subproblem_2d(offset1, offset2, padded_size1, size2, du0.data(), M0,
-                               kx0.data(), ky0.data(), dd0.data());
-        else
-          spread_subproblem_3d(offset1, offset2, offset3, padded_size1, size2, size3,
-                               du0.data(), M0, kx0.data(), ky0.data(), kz0.data(),
-                               dd0.data());
-        // add subgrid to output (always do this); atomic vs critical chosen
-        if (nthr > m.spopts.atomic_threshold) {
-          add_wrapped_subgrid<true>(offset1, offset2, offset3, padded_size1, size1, size2,
-                                   size3, data_uniform,
-                                   du0.data()); // R Blackwell's atomic version
-        } else {
-#pragma omp critical
-          add_wrapped_subgrid<false>(offset1, offset2, offset3, padded_size1, size1, size2,
-                                    size3, data_uniform, du0.data());
-        }
-      } // end main loop over subprobs
+#pragma omp for collapse(2) schedule(dynamic, 1) // each is big
+      for (int ib = 0; ib < batchSize; ib++)
+        for (BIGINT isub = 0; isub < BIGINT(nb); isub++) { // Main loop through
+                                                           // subproblems
+          TF *FINUFFT_RESTRICT out = data_uniform + ib * stride_u;
+          const TF *const dd_in = data_nonuniform + ib * stride_nu;
+          const auto M0 = brk[isub + 1] - brk[isub]; // # NU pts in this subproblem
+          // copy the location and data vectors for the nonuniform points
+          kx0.resize(M0);
+          ky0.resize(M0 * (N2 > 1));
+          kz0.resize(M0 * (N3 > 1));
+          dd0.resize(2 * M0); // complex strength data
+          for (UBIGINT j = 0; j < M0; j++) {
+            // todo: can avoid this copying?
+            const auto kk = m.sortIndices[j + brk[isub]]; // NU pt from subprob index list
+            kx0[j] = fold_rescale<TF>(kx[kk], N1);
+            if (N2 > 1) ky0[j] = fold_rescale<TF>(ky[kk], N2);
+            if (N3 > 1) kz0[j] = fold_rescale<TF>(kz[kk], N3);
+            dd0[j * 2] = dd_in[kk * 2]; // real part
+            dd0[j * 2 + 1] = dd_in[kk * 2 + 1]; // imag part
+          }
+          // get the subgrid which will include padding by roughly nspread/2
+          BIGINT offset1, offset2, offset3, padded_size1, size1, size2, size3;
+          get_subgrid(offset1, offset2, offset3, padded_size1, size1, size2, size3, M0,
+                      kx0.data(), ky0.data(), kz0.data());
+          if (m.spopts.debug > 1) {
+            print_subgrid_info(ndims, offset1, offset2, offset3, padded_size1, size1,
+                               size2, size3, M0);
+          }
+          // allocate output data for this subgrid
+          du0.resize(2 * padded_size1 * size2 * size3); // complex
+          // Spread to subgrid without need for bounds checking or wrapping
+          if (ndims == 1)
+            spread_subproblem_1d(offset1, padded_size1, du0.data(), M0, kx0.data(),
+                                 dd0.data());
+          else if (ndims == 2)
+            spread_subproblem_2d(offset1, offset2, padded_size1, size2, du0.data(), M0,
+                                 kx0.data(), ky0.data(), dd0.data());
+          else
+            spread_subproblem_3d(offset1, offset2, offset3, padded_size1, size2, size3,
+                                 du0.data(), M0, kx0.data(), ky0.data(), kz0.data(),
+                                 dd0.data());
+          // add subgrid to the fine grid. Only threads on the same vector can collide,
+          // so the guard is per vector: atomic when many threads share one fine grid,
+          // else a lock on that vector (an unnamed critical would serialise unrelated
+          // vectors too), else nothing when nb==1 makes each vector a single pair.
+          if (use_atomic) {
+            add_wrapped_subgrid<true>(offset1, offset2, offset3, padded_size1, size1,
+                                      size2, size3, out, du0.data()); // R Blackwell's
+                                                                      // atomic ver
+          } else if (needs_guard) {
+            MY_OMP_SET_LOCK(&locks[ib]);
+            add_wrapped_subgrid<false>(offset1, offset2, offset3, padded_size1, size1,
+                                       size2, size3, out, du0.data());
+            MY_OMP_UNSET_LOCK(&locks[ib]);
+          } else {
+            add_wrapped_subgrid<false>(offset1, offset2, offset3, padded_size1, size1,
+                                       size2, size3, out, du0.data());
+          }
+        } // end main loop over subprobs
     }
+    for (auto &l : locks) MY_OMP_DESTROY_LOCK(&l);
     if (m.spopts.debug)
-      printf("\tt1 fancy spread: \t%.3g s (%" PRIu64 " subprobs)\n", timer.elapsedsec(),
-             nb);
+      printf("\tt1 fancy spread: \t%.3g s (%" PRIu64 " subprobs x %d elems)\n",
+             timer.elapsedsec(), nb, batchSize);
   } // end of choice of which t1 spread type to use
   return 0;
 }

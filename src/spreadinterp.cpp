@@ -24,7 +24,8 @@ extern template int FINUFFT_PLAN_T<FLT>::interpSorted_1d(FLT *, FLT *) const;
 extern template int FINUFFT_PLAN_T<FLT>::interpSorted_2d(FLT *, FLT *) const;
 extern template int FINUFFT_PLAN_T<FLT>::interpSorted_3d(FLT *, FLT *) const;
 
-template int FINUFFT_PLAN_T<FLT>::spreadSorted(FLT *FINUFFT_RESTRICT, const FLT *) const;
+template int FINUFFT_PLAN_T<FLT>::spreadSorted(FLT *FINUFFT_RESTRICT, const FLT *,
+                                               int) const;
 template int FINUFFT_PLAN_T<FLT>::interpSorted(FLT *FINUFFT_RESTRICT,
                                                FLT *FINUFFT_RESTRICT) const;
 template int FINUFFT_PLAN_T<FLT>::spreadinterpSorted(FLT *, FLT *, bool) const;
