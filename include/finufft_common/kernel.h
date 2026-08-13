@@ -74,7 +74,7 @@ std::function<double(double)> kernel_definition_lambda(const finufft_spread_opts
 // Tolerance prefactor in the kernel aliasing law tol = tolfac*exp(-(ns-1)*pi*u).
 double kernel_tolfac(int dim, int type);
 
-int theoretical_kernel_ns(double tol, int dim, int type, int debug,
+int theoretical_kernel_ns(double tol, int dim, int type,
                           const finufft_spread_opts &spopts);
 
 // Clamp a theoretical kernel width to the width the plan will actually use: clip to

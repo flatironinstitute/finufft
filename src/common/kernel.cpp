@@ -76,7 +76,7 @@ double kernel_tolfac(int dim, int type) {
   return TOLFAC_1D * ipow(TOLFAC_PER_DIM, dim - 1) * (type == 3 ? TOLFAC_TYPE3 : 1.0);
 }
 
-int theoretical_kernel_ns(double tol, int dim, int type, int debug,
+int theoretical_kernel_ns(double tol, int dim, int type,
                           const finufft_spread_opts &spopts) {
   // returns ideal preferred spread width (ns, a.k.a. w) using convergence rate,
   // in exact arithmetic, to achieve requested tolerance tol. Possibly uses
@@ -219,7 +219,7 @@ bool upsampfac_feasible(double sigma, double tol, int dim, int type, double eps_
   finufft_spread_opts so{};
   so.kerformula = 0; // generic (PSWF-like) ns formula in theoretical_kernel_ns
   so.upsampfac = sigma;
-  const int ns_t = kernel::theoretical_kernel_ns(tol, dim, type, 0, so);
+  const int ns_t = kernel::theoretical_kernel_ns(tol, dim, type, so);
   const int ns = kernel::clamp_kernel_ns(ns_t, sigma, max_nspread, is_float);
   if (ns < ns_t) return false;
   if (type == 3) return true;
