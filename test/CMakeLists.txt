@@ -136,6 +136,8 @@ function(add_tests_with_prec PREC REQ_TOL CHECK_TOL SUFFIX)
     )
 
     add_test(NAME run_tolsweep_${PREC} COMMAND tolsweep${SUFFIX} WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
+    # under valgrind tolsweep needs more than ctest's 1500 s default
+    set_tests_properties(run_tolsweep_${PREC} PROPERTIES TIMEOUT 3000)
 
     add_test(NAME run_adjointness_${PREC} COMMAND adjointness${SUFFIX} WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
 endfunction()
