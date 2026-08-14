@@ -40,8 +40,8 @@ c     or this is if you want default opts, make a null pointer...
 
 c     how many nonuniform pts
       M = 200000
-c     how many modes (not too much since FFTW_MEASURE slow later)
-      N = 100000
+c     how many modes (NB if too large lose acc in single prec)
+      N = 10000
 
       allocate(fk(N))
       allocate(xj(M))
@@ -60,7 +60,7 @@ c     mandatory parameters to FINUFFT guru interface... (ttype = trans type)
       dim = 1
       ntrans = 1
       iflag = 1
-      tol = 1e-5
+      tol = 1e-3
       allocate(n_modes(3))
       n_modes(1) = N
 c     (note since dim=1, unused entries on n_modes are never read)
