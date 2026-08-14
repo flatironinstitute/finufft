@@ -41,6 +41,8 @@ template<typename TF> void FINUFFT_PLAN_T<TF>::check_sigma() {
   if (!unachievable && sigma_min <= m.spopts.upsampfac) return; // fine
   const double suggest = std::min(sigma_min, finufft::common::MAX_CHECK_SIGMA);
   const bool do_throw = !opts.allow_eps_too_small; // opt-in wins
+  // an error always speaks; the warning obeys opts.showwarn, as every other warning does
+  if (!do_throw && !opts.showwarn) return;
   fprintf(stderr, "%s %s: upsampfac=%.3g too low for tol=%.3g; %s\n", __func__,
           do_throw ? "error" : "warning", m.spopts.upsampfac, (double)m.tol,
           unachievable
