@@ -35,3 +35,9 @@ foreach(EXAMPLE ${FORTRAN_EXAMPLES})
         add_test(NAME fort_${EXAMPLE}f COMMAND fort_${EXAMPLE}f)
     endif()
 endforeach()
+
+# guru1d1 includes fftw3.f, for the FFTW plan-mode constants
+if(TARGET fort_guru1d1)
+    target_link_libraries(fort_guru1d1 PRIVATE finufft_fftlibs)
+    target_link_libraries(fort_guru1d1f PRIVATE finufft_fftlibs)
+endif()
