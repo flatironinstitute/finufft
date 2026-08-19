@@ -269,7 +269,12 @@ catchError {
           }
           sh 'tools/ci/page-assemble.sh'
           if (pagePublishes) withGh {
-            sh 'tools/ci/page-publish.sh'
+            // gh's credential helper writes the global gitconfig, and this
+            // pod sets no home of its own: HOME is / there, and the build user
+            // cannot write it.
+            withEnv(["HOME=$WORKSPACE"]) {
+              sh 'tools/ci/page-publish.sh'
+            }
           } else {
             // A rehearsal stops here: the page and its figures ride out as
             // build artifacts, and the branch readthedocs fetches is untouched.
