@@ -17,6 +17,76 @@
 #include <cufinufft/spreadinterp.hpp>
 #include <cufinufft/utils.hpp>
 
+// GpuCapabilities members declared in types.hpp. Defined here so the Method-3
+// taxonomy and the debug printing stay with the heuristics they serve.
+Method3Category GpuCapabilities::method3_category() const {
+  // CC 8.0 = Ampere large (A100, A30)
+  if (cc_major == 8 && cc_minor == 0) return Method3Category::AMPERE_LARGE;
+
+  // CC 9.0 = Hopper (H100, H200)
+  if (cc_major == 9 && cc_minor == 0) return Method3Category::HOPPER;
+
+  // CC 8.9 = Ada Lovelace; SM count distinguishes desktop (RTX 6000 Ada, 142 SMs)
+  // from mobile (RTX 4070, 36-46 SMs).
+  if (cc_major == 8 && cc_minor == 9)
+    return (multiprocessor_count >= 80) ? Method3Category::ADA_DESKTOP
+                                        : Method3Category::ADA_MOBILE;
+
+  // CC 12.0 = Blackwell workstation (RTX 6000/5000 Blackwell): same table as Ada
+  // desktop (both are ~100KB/block parts).
+  if (cc_major == 12 && cc_minor == 0) return Method3Category::ADA_DESKTOP;
+
+  // CC 10.0 = Blackwell datacenter (B200) - treat as Hopper-like
+  if (cc_major == 10 && cc_minor == 0) return Method3Category::HOPPER;
+
+  return Method3Category::UNKNOWN;
+}
+
+const char *GpuCapabilities::method3_category_name() const {
+  switch (method3_category()) {
+  case Method3Category::AMPERE_LARGE:
+    return "Ampere-Large";
+  case Method3Category::HOPPER:
+    return "Hopper";
+  case Method3Category::ADA_DESKTOP:
+    return "Small-SMEM-Desktop";
+  case Method3Category::ADA_MOBILE:
+    return "Small-SMEM-Mobile";
+  case Method3Category::UNKNOWN:
+    return "Unknown";
+  }
+  return "Unknown";
+}
+
+void GpuCapabilities::print_classification(int debug_level) const {
+  if (debug_level < 2) return;
+
+  // Only for the name; every other field comes from cudaDeviceGetAttribute.
+  cudaDeviceProp prop{};
+  cudaGetDeviceProperties(&prop, device_id);
+  printf("[cufinufft] GPU Classification:\n");
+  printf("  Name: %s\n", prop.name);
+  printf("  Compute Capability: %d.%d\n", cc_major, cc_minor);
+  printf("  Multiprocessor Count: %d SMs\n", multiprocessor_count);
+  printf("  Shared Memory:\n");
+  printf("    Per-block (opt-in): %.1f KB\n", max_smem_per_block_optin / 1024.0);
+  printf("    Per-SM: %.1f KB\n", max_smem_per_sm / 1024.0);
+  printf("  Occupancy:\n");
+  printf("    Max warps/SM: %d\n", max_warps_per_sm());
+  printf("    Max threads/SM: %d\n", max_threads_per_sm);
+  printf("  L2: %.1f MB, memory bus: %d bits\n", l2_cache_size / 1048576.0,
+         global_mem_bus_width);
+
+  if (debug_level >= 3) {
+    printf("  Binsize Categories:\n");
+    printf("    Method 2/3: Hopper-like (>=200 KB/block, >=64 warps): %s\n",
+           is_hopper_like() ? "YES" : "NO");
+    printf("    Method 2/3: Small SMEM (<=110 KB/block): %s\n",
+           is_small_smem() ? "YES" : "NO");
+    printf("    Method 3: Category: %s\n", method3_category_name());
+  }
+}
+
 namespace cufinufft {
 namespace common {
 using std::max;
@@ -58,167 +128,21 @@ template<typename T> int find_bin_size(std::size_t mem_size, int dim, int ns) {
 
 namespace {
 // ============================================================================
-// GPU Classification for Binsize Selection
-// ============================================================================
-//
-// Categorizes GPUs based on runtime-queryable device attributes
-// to select optimal bin sizes for Methods 2 & 3.
-//
-// Background: Benchmark sweeps across 8 GPUs (A100-40GB, A100-80GB, H100-80GB,
-// H100-94GB, H200, RTX 6000 Ada, RTX 4070 Mobile, RTX Blackwell) revealed:
-//
-// METHOD 2: Requires 2-4 GPU groups depending on dimension
-// METHOD 3: Requires 4-5 GPU groups (highly architecture-sensitive)
-//
-//   Group 1 (Ampere Large):    A100 (CC 8.0, 164 KB/block)
-//   Group 2 (Hopper):          H100/H200 (CC 9.0, 228 KB/block)
-//   Group 3 (Small-SMEM Desk): Ada/Blackwell workstation-class parts
-//                              (~100 KB/block, high SM count)
-//   Group 4 (Small-SMEM Mob):  Mobile parts with low SM count (need very large np)
-//
-// Key insight: Method 3 couples shared memory footprint with work granularity
-// in ways that make different GPU architectures prefer vastly different configs.
-// ============================================================================
-
-// Method 3 GPU categories for granular heuristic selection
-enum class Method3Category {
-  AMPERE_LARGE, // A100: CC 8.0, prefers low shmem, small np
-  HOPPER,       // H100/H200: CC 9.0, can use larger np
-  ADA_DESKTOP,  // Small-SMEM desktop/workstation: Ada/Blackwell, high SM count
-  ADA_MOBILE,   // Small-SMEM mobile: low SM count
-  UNKNOWN       // Fallback
-};
-
-struct GpuCharacteristics {
-  int cc_major, cc_minor;
-  int max_smem_per_block_optin; // bytes
-  int max_smem_per_sm;          // bytes
-  int max_threads_per_sm;
-  int max_warps_per_sm;         // derived: max_threads_per_sm / 32
-  int multiprocessor_count;     // SM count
-  std::string gpu_name;
-
-  static GpuCharacteristics query(int device_id) {
-    GpuCharacteristics gpu{};
-
-    // Query compute capability
-    cudaDeviceGetAttribute(&gpu.cc_major, cudaDevAttrComputeCapabilityMajor, device_id);
-    cudaDeviceGetAttribute(&gpu.cc_minor, cudaDevAttrComputeCapabilityMinor, device_id);
-
-    // Query shared memory limits (primary classification signals)
-    cudaDeviceGetAttribute(&gpu.max_smem_per_block_optin,
-                           cudaDevAttrMaxSharedMemoryPerBlockOptin, device_id);
-    cudaDeviceGetAttribute(&gpu.max_smem_per_sm,
-                           cudaDevAttrMaxSharedMemoryPerMultiprocessor, device_id);
-
-    // Query occupancy limiters
-    cudaDeviceGetAttribute(&gpu.max_threads_per_sm,
-                           cudaDevAttrMaxThreadsPerMultiProcessor, device_id);
-    gpu.max_warps_per_sm = gpu.max_threads_per_sm / 32;
-
-    // Query SM count (for Ada desktop vs mobile classification)
-    cudaDeviceGetAttribute(&gpu.multiprocessor_count, cudaDevAttrMultiProcessorCount,
-                           device_id);
-
-    // Get GPU name
-    cudaDeviceProp prop{};
-    cudaGetDeviceProperties(&prop, device_id);
-    gpu.gpu_name = std::string(prop.name);
-
-    return gpu;
-  }
-
-  // Check if this GPU is "Hopper-like" for Method 2/3 binsize selection.
-  // "Hopper-like" = large shared memory (≥200 KB/block) AND high occupancy (≥64 warps/SM)
-  // Matches: H100 (9.0), H200 (9.0), Blackwell datacenter (10.0)
-  bool is_hopper_like() const {
-    return (max_smem_per_block_optin >= 200 * 1024) && (max_warps_per_sm >= 64);
-  }
-
-  // Check if this GPU has "small SMEM" constraints (≤110 KB/block).
-  // Matches: Ada (8.9), Ampere 8.6, Blackwell workstation (12.0)
-  bool is_small_smem() const { return (max_smem_per_block_optin <= 110 * 1024); }
-
-  // Classify GPU for Method 3 heuristics (5-category system)
-  Method3Category get_method3_category() const {
-    // CC 8.0 = Ampere large (A100, A30)
-    if (cc_major == 8 && cc_minor == 0) {
-      return Method3Category::AMPERE_LARGE;
-    }
-
-    // CC 9.0 = Hopper (H100, H200)
-    if (cc_major == 9 && cc_minor == 0) {
-      return Method3Category::HOPPER;
-    }
-
-    // CC 8.9 = Ada Lovelace (need SM count to distinguish desktop vs mobile)
-    // Desktop (RTX 6000 Ada): 142 SMs
-    // Mobile (RTX 4070): typically 36-46 SMs
-    // Threshold: 80 SMs
-    if (cc_major == 8 && cc_minor == 9) {
-      return (multiprocessor_count >= 80) ? Method3Category::ADA_DESKTOP
-                                          : Method3Category::ADA_MOBILE;
-    }
-
-    // CC 12.0 = Blackwell workstation (RTX 6000/5000 Blackwell)
-    // Reuse the same binsize table as Ada desktop (both are ~100KB/block parts).
-    if (cc_major == 12 && cc_minor == 0) return Method3Category::ADA_DESKTOP;
-
-    // CC 10.0 = Blackwell datacenter (B200) - treat as Hopper-like
-    if (cc_major == 10 && cc_minor == 0) {
-      return Method3Category::HOPPER;
-    }
-
-    // Unknown / future architectures: fallback to simple classification
-    return Method3Category::UNKNOWN;
-  }
-
-  const char *method3_category_name() const {
-    switch (get_method3_category()) {
-    case Method3Category::AMPERE_LARGE:
-      return "Ampere-Large";
-    case Method3Category::HOPPER:
-      return "Hopper";
-    case Method3Category::ADA_DESKTOP:
-      return "Small-SMEM-Desktop";
-    case Method3Category::ADA_MOBILE:
-      return "Small-SMEM-Mobile";
-    case Method3Category::UNKNOWN:
-      return "Unknown";
-    }
-    return "Unknown";
-  }
-
-  void print_classification(int debug_level) const {
-    if (debug_level < 2) return;
-
-    printf("[cufinufft] GPU Classification:\n");
-    printf("  Name: %s\n", gpu_name.c_str());
-    printf("  Compute Capability: %d.%d\n", cc_major, cc_minor);
-    printf("  Multiprocessor Count: %d SMs\n", multiprocessor_count);
-    printf("  Shared Memory:\n");
-    printf("    Per-block (opt-in): %.1f KB\n", max_smem_per_block_optin / 1024.0);
-    printf("    Per-SM: %.1f KB\n", max_smem_per_sm / 1024.0);
-    printf("  Occupancy:\n");
-    printf("    Max warps/SM: %d\n", max_warps_per_sm);
-    printf("    Max threads/SM: %d\n", max_threads_per_sm);
-
-    if (debug_level >= 3) {
-      printf("  Binsize Categories:\n");
-      printf("    Method 2/3: Hopper-like (≥200 KB/block, ≥64 warps): %s\n",
-             is_hopper_like() ? "YES" : "NO");
-      printf("    Method 2/3: Small SMEM (≤110 KB/block): %s\n",
-             is_small_smem() ? "YES" : "NO");
-      printf("    Method 3: Category: %s\n", method3_category_name());
-    }
-  }
-};
-
-// ============================================================================
 // Method 3 Heuristic (Benchmark-Validated Tables)
 // ============================================================================
-// Returns (bin,np) for Method 3 based on GPU category, dimension, and ns.
-// Tables derived from multi-GPU sweeps; achieves ~90% of optimal throughput.
+// Returns (bin,np) for Method 3 based on GpuCapabilities::method3_category(),
+// dimension, and ns. Derived from sweeps over 8 GPUs (A100-40/80GB, H100-80/94GB,
+// H200, RTX 6000 Ada, RTX 4070 Mobile, RTX Blackwell), which is also where the
+// category boundaries come from; sweeps and timings in
+// https://github.com/flatironinstitute/finufft/pull/807 :
+//
+//   AMPERE_LARGE: A100 (CC 8.0, 164 KB/block)
+//   HOPPER:       H100/H200 (CC 9.0, 228 KB/block)
+//   ADA_DESKTOP:  Ada/Blackwell workstation parts (~100 KB/block, high SM count)
+//   ADA_MOBILE:   mobile parts, low SM count (need very large np)
+//
+// Achieves ~90% of optimal throughput. Method 2 needs only the coarser 2-4 groups
+// that is_hopper_like()/is_small_smem() give.
 // ============================================================================
 struct Method3Config {
   int bin;
@@ -323,14 +247,9 @@ Method3Config get_method3_config(Method3Category category, int dim, int ns,
 } // anonymous namespace
 
 template<typename T>
-void cufinufft_setup_binsize([[maybe_unused]] int type, int ns, int dim,
-                             cufinufft_opts *opts) {
-  const int device_id = opts->gpu_device_id;
-  int shmem_limit{};
-  cudaDeviceGetAttribute(&shmem_limit, cudaDevAttrMaxSharedMemoryPerBlockOptin,
-                         device_id);
-
-  const auto gpu         = GpuCharacteristics::query(device_id);
+void cufinufft_setup_binsize(const GpuCapabilities &gpu, [[maybe_unused]] int type,
+                             int ns, int dim, cufinufft_opts *opts) {
+  const int shmem_limit = gpu.max_smem_per_block_optin;
   const int shmem_per_pt = static_cast<int>(shared_memory_per_point<T>(dim, ns));
 
   gpu.print_classification(opts->debug);
@@ -414,7 +333,7 @@ void cufinufft_setup_binsize([[maybe_unused]] int type, int ns, int dim,
       validate_fit(opts->gpu_np);
       debug_print(3, opts->gpu_np, user_np ? "(user)" : "(user bin)");
     } else {
-      auto cfg = get_method3_config<T>(gpu.get_method3_category(), dim, ns, shmem_limit,
+      auto cfg = get_method3_config<T>(gpu.method3_category(), dim, ns, shmem_limit,
                                        shmem_per_pt);
       set_bins(cfg.bin);
       opts->gpu_np = cfg.np;
@@ -444,10 +363,41 @@ void cufinufft_setup_binsize([[maybe_unused]] int type, int ns, int dim,
         ", ns=" + std::to_string(ns) + ")");
 }
 
-template void cufinufft_setup_binsize<float>(int type, int ns, int dim,
-                                             cufinufft_opts *opts);
-template void cufinufft_setup_binsize<double>(int type, int ns, int dim,
-                                              cufinufft_opts *opts);
+template<typename T>
+int choose_batchsize(const GpuCapabilities &gpu, const cufinufft_opts &opts, int ntransf,
+                     std::int64_t nf) {
+  // Cap at ntransf: a larger batch would make cuFFT transform grids that are then
+  // discarded.
+  if (opts.gpu_maxbatchsize) return std::min(opts.gpu_maxbatchsize, ntransf);
+
+  // No FFT to amortize a batch against, so it would only widen the working set. For a
+  // type 3's outer plan it would also evict the L2 that the inner type-2's FFT needs.
+  // Timings: https://github.com/flatironinstitute/finufft/pull/873
+  if (opts.gpu_spreadinterponly) return 1;
+
+  // Keep nf*batchsize inside the L2 budget, up to 32 to fill the SMs at small nf. Past
+  // the budget a batch only adds FFT work the grid cannot hold. Multi-GPU timings:
+  // https://github.com/flatironinstitute/finufft/pull/873
+  const std::int64_t l2_elems = gpu.l2_complex_budget<T>();
+  const int cap = int(std::clamp<std::int64_t>(l2_elems / nf, 1, std::min(ntransf, 32)));
+
+  // Spread out the batches evenly: the cuFFT plan is fixed at batchsize, and cufft_ex has
+  // no per-call count, so the last batch always transforms batchsize grids even when only
+  // blksize of them hold data. ntransf=9 with cap 8 would do 2x8 grid FFTs for 9
+  // transforms; balancing gives 2x5 instead. Never above cap, so the L2 bound still
+  // holds.
+  const int nbatch = 1 + (ntransf - 1) / cap;
+  return 1 + (ntransf - 1) / nbatch;
+}
+
+template void cufinufft_setup_binsize<float>(const GpuCapabilities &, int type, int ns,
+                                             int dim, cufinufft_opts *opts);
+template void cufinufft_setup_binsize<double>(const GpuCapabilities &, int type, int ns,
+                                              int dim, cufinufft_opts *opts);
+template int choose_batchsize<float>(const GpuCapabilities &, const cufinufft_opts &, int,
+                                     std::int64_t);
+template int choose_batchsize<double>(const GpuCapabilities &, const cufinufft_opts &,
+                                      int, std::int64_t);
 } // namespace common
 } // namespace cufinufft
 

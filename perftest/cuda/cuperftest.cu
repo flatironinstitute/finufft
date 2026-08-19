@@ -64,6 +64,7 @@ struct test_options_t {
   int kerevalmethod;
   int method;
   int sort;
+  int maxbatchsize;
   double tol;
   int debug;
 
@@ -86,6 +87,7 @@ struct test_options_t {
           {"tol", required_argument, 0, 0},
           {"method", required_argument, 0, 0},
           {"kerevalmethod", required_argument, 0, 0},
+          {"maxbatchsize", required_argument, 0, 0},
           {"sort", required_argument, 0, 0},
           {"debug", required_argument, 0, 0},
           {0, 0, 0, 0},
@@ -115,6 +117,7 @@ struct test_options_t {
     ntransf       = std::stoi(get_or(options_map, "ntransf", "1"));
     method        = std::stoi(get_or(options_map, "method", "1"));
     kerevalmethod = std::stoi(get_or(options_map, "kerevalmethod", "1"));
+    maxbatchsize  = std::stoi(get_or(options_map, "maxbatchsize", "0"));
     sort          = std::stoi(get_or(options_map, "sort", "1"));
     tol           = std::stof(get_or(options_map, "tol", "1E-5"));
     debug = std::stof(get_or(options_map, "debug", "0"));
@@ -131,6 +134,7 @@ struct test_options_t {
                 << "# ntransf = " << opts.ntransf << "\n"
                 << "# method = " << opts.method << "\n"
                 << "# kerevalmethod = " << opts.kerevalmethod << "\n"
+                << "# maxbatchsize = " << opts.maxbatchsize << "\n"
                 << "# sort = " << opts.sort << "\n"
                 << "# tol = " << opts.tol << "\n"
                 << "# debug = " << opts.debug << "\n";
@@ -306,6 +310,7 @@ template<typename T> void run_test(test_options_t &test_opts) {
   opts.gpu_method      = test_opts.method;
   opts.gpu_sort        = test_opts.sort;
   opts.gpu_kerevalmeth = test_opts.kerevalmethod;
+  opts.gpu_maxbatchsize = test_opts.maxbatchsize;
   set_debug(opts, test_opts.debug, 0);
 
   // The public API takes the mode counts as int64.
