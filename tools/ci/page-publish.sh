@@ -5,8 +5,10 @@
 # and raw.githubusercontent resolves a custom ref only by commit SHA.
 set -euxo pipefail
 
-# The figure filenames are digests of the case, so the URLs already published
-# keep resolving; carrying master's history here only ever made it bigger.
+# The figure filenames are digests of the case, so a case keeps its filename
+# from run to run. The published URLs live only as long as this commit: the
+# parentless push replaces the whole tree, so a figure this run did not write
+# stops resolving. Carrying master's history here only ever made it bigger.
 gh auth setup-git
 rm -rf ../page && mkdir -p ../page/docs/pics && cd ../page
 git init -q -b perftest-results .
