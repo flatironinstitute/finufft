@@ -4,13 +4,18 @@ This module contains the high level python wrapper for
 the cufinufft CUDA libraries.
 """
 
+from __future__ import annotations
+
 import atexit
-import collections.abc
 import numbers
 import sys
 import warnings
 
+from collections.abc import Iterable
+from typing import Any
+
 import numpy as np
+import numpy.typing as npt
 
 from ctypes import byref
 from ctypes import c_int64
@@ -28,6 +33,7 @@ from cufinufft._cufinufft import _destroy_plan
 from cufinufft._cufinufft import _destroy_planf
 
 from cufinufft import _compat
+from cufinufft._compat import CudaArray
 
 
 # If we are shutting down python, we don't need to run __del__
@@ -76,14 +82,14 @@ class Plan:
 
     def __init__(
         self,
-        nufft_type,
-        n_modes,
-        n_trans=1,
-        eps=1e-6,
-        isign=None,
-        dtype="complex64",
-        **kwargs,
-    ):
+        nufft_type: int,
+        n_modes: int | Iterable[int],
+        n_trans: int = 1,
+        eps: float = 1e-6,
+        isign: int | None = None,
+        dtype: npt.DTypeLike = "complex64",
+        **kwargs: Any,
+    ) -> None:
         if isign is None:
             if nufft_type == 2:
                 isign = -1
@@ -102,7 +108,7 @@ class Plan:
             self._setpts = _set_pts
             self._exec_plan = _exec_plan
             self._destroy_plan = _destroy_plan
-            self._real_dtype = np.float64
+            self._real_dtype: type[np.floating] = np.float64
         elif self._dtype == np.complex64:
             self._make_plan = _make_planf
             self._setpts = _set_ptsf
@@ -112,22 +118,23 @@ class Plan:
         else:
             raise TypeError("Expected complex64 or complex128.")
 
+        modes: tuple[int, ...]
         if nufft_type == 3:
             if isinstance(n_modes, numbers.Integral):
-                dim = n_modes
-                n_modes = (1,) * dim  # Ignored, can be anything
+                dim = int(n_modes)
+                modes = (1,) * dim  # Ignored, can be anything
             else:
                 raise ValueError(
                     "For a type 3 plan, n_modes_or_dim must be a single number, the dimension"
                 )
         else:
             if isinstance(n_modes, numbers.Integral):
-                n_modes = (n_modes,)
-            elif isinstance(n_modes, collections.abc.Iterable):
-                n_modes = tuple(n_modes)
+                modes = (int(n_modes),)
+            elif isinstance(n_modes, Iterable):
+                modes = tuple(n_modes)
             else:
                 raise ValueError(f"Invalid n_modes '{n_modes}'")
-            dim = len(n_modes)
+            dim = len(modes)
 
         if dim not in [1, 2, 3]:
             raise ValueError("Only dimensions 1, 2, and 3 supported")
@@ -136,7 +143,7 @@ class Plan:
         self._type = nufft_type
         self._isign = isign
         self._eps = float(eps)
-        self._n_modes = n_modes
+        self._n_modes = modes
         self._n_trans = n_trans
         self._maxbatch = 1  # TODO: optimize this one day
 
@@ -151,7 +158,7 @@ class Plan:
             pass
 
         # Extract list of valid field names.
-        field_names = [name for name, _ in self._opts._fields_]
+        field_names = [field[0] for field in self._opts._fields_]
 
         # Assign field names from kwargs if they match up, otherwise error.
         for k, v in kwargs.items():
@@ -169,30 +176,32 @@ class Plan:
 
         # Initialize a list for references to objects
         #   we want to keep around for life of instance.
-        self._references = []
+        self._references: list[Any] = []
 
     @property
-    def type(self):
+    def type(self) -> int:
         return self._type
 
     @property
-    def dtype(self):
+    def dtype(self) -> np.dtype:
         return self._dtype
 
     @property
-    def dim(self):
+    def dim(self) -> int:
         return self._dim
 
     @property
-    def n_modes(self):
+    def n_modes(self) -> tuple[int, ...]:
+        """The mode counts in each dimension, in ``ndarray.shape`` order, as
+        passed to the plan (the C library takes them reversed)."""
         return self._n_modes
 
     @property
-    def n_trans(self):
+    def n_trans(self) -> int:
         return self._n_trans
 
     @staticmethod
-    def _default_opts():
+    def _default_opts() -> NufftOpts:
         """
         Generates a cufinufft opt struct of the dtype coresponding to plan.
 
@@ -236,7 +245,15 @@ class Plan:
         if ier != 0:
             raise RuntimeError("Error creating plan.")
 
-    def setpts(self, x, y=None, z=None, s=None, t=None, u=None):
+    def setpts(
+        self,
+        x: CudaArray,
+        y: CudaArray | None = None,
+        z: CudaArray | None = None,
+        s: CudaArray | None = None,
+        t: CudaArray | None = None,
+        u: CudaArray | None = None,
+    ) -> None:
         """
         Set the nonuniform points
 
@@ -319,7 +336,7 @@ class Plan:
         if ier != 0:
             raise RuntimeError("Error setting non-uniform points.")
 
-    def execute(self, data, out=None):
+    def execute(self, data: CudaArray, out: CudaArray | None = None) -> CudaArray:
         """
         Execute the plan
 
@@ -345,6 +362,7 @@ class Plan:
         _data = _ensure_array_type(data, "data", self._dtype)
         _out = _ensure_array_type(out, "out", self._dtype, output=True)
 
+        req_data_shape: tuple[int, ...]
         if self._type == 1:
             req_data_shape = (self._n_trans, self._nj)
             req_out_shape = self._n_modes
@@ -384,7 +402,7 @@ class Plan:
 
         return _out
 
-    def __del__(self):
+    def __del__(self) -> None:
         """
         Destroy this instance's associated plan and storage.
         """

@@ -305,14 +305,14 @@ def test_finufft_plan_errors():
 def test_finufft_plan_properties():
     # Make sure properties work properly
     nufft_type = 2
-    n_modes = (8, 8)
+    n_modes = (8, 16)
     n_trans = 2
     dtype = np.complex64
 
     plan = Plan(nufft_type, n_modes, n_trans, dtype=dtype)
 
     assert plan.type == nufft_type
-    assert tuple(plan.n_modes) == n_modes
+    assert plan.n_modes == n_modes
     assert plan.dim == len(n_modes)
     assert plan.n_trans == n_trans
     assert plan.dtype == dtype
