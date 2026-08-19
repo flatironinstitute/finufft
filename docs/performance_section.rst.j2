@@ -1,26 +1,16 @@
-Performance ({{ backend }} backend)
------------------------------------
-
-CPU name: ``{{ cpu_name }}``.
-
-Arch: ``{{ arch }}``.
-
-Core count: ``{{ core_count }}``.
-
-ISA extensions present: ``{{ flags }}``.
-
-Compiler version: ``{{ compiler_version }}``.
-
-Compiler flags: ``{{ compiler_flags }}``.
-
+{{ heading }}
+{{ '~' * heading|length }}
+{% for label, value in facts %}
+{{ label }}: ``{{ value }}``.
+{% endfor %}
 
 {% for dim, transform_groups in dim_transform_groups.items() %}
 {{ dim }}D Transforms
-~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^
 
 {% for group, images in transform_groups.items() %}
 Type {{ group }}
-^^^^^^^^^^^^^^^^
+""""""""""""""""
 
 {% for image in images %}
 Parameters: ``{{ image.params }}``
