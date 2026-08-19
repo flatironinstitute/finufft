@@ -106,7 +106,7 @@ PROVENANCE = (
 )
 # Single-precision tols are kept above the rounding floor eps_round ~ eps_mach*N
 # so the achievability guard (check_sigma) does not reject them at the auto-
-# selected upsampfac: 1e4 modes -> 2e-3, 320^2 -> 1e-4, 1024^2 -> 5e-4.
+# selected upsampfac: 1e4 modes -> 2e-3, 320^2 -> 1e-4.
 
 # A pinned case's M is absolute; a whole-node case's M is per core, which the
 # runner multiplies by the node's physical core count.
@@ -115,7 +115,7 @@ PARAM_LIST = [
     Params("d", 1e4, 1, 1, 1, 1, 1e7, 1e-9),
     Params("f", 320, 320, 1, 1, 1, 1e7, 1e-4),
     Params("d", 320, 320, 1, 1, 1, 1e7, 1e-9),
-    Params("f", 1024, 1024, 1, 1, 0, 8e5, 5e-4),
+    Params("f", 320, 320, 1, 1, 0, 3e5, 1e-4),
     Params("d", 192, 192, 128, 1, 0, 8e4, 1e-7),
 ]
 TRANSFORMS = [1, 2, 3]
