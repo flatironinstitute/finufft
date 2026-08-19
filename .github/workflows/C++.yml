@@ -4,9 +4,8 @@ on:
   pull_request:
     branches:
       - master
+  # Every branch: a push has to be checked before a PR exists.
   push:
-    branches:
-      - master
   # Manual trigger (with an optional deploy toggle)
   workflow_dispatch:
     inputs:
