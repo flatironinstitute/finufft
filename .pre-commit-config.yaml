@@ -61,3 +61,11 @@ repos:
       - id: validate-pyproject
         additional_dependencies: ["validate-pyproject-schema-store[all]"]
         files: ^python/(finufft|cufinufft)/pyproject\.toml$
+
+  # --- Jenkinsfile ---
+  - repo: https://github.com/nvuillam/npm-groovy-lint
+    rev: v18.0.0
+    hooks:
+      - id: npm-groovy-lint
+        args: [--failon, error]
+        files: (^|/)Jenkinsfile$

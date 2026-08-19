@@ -4,17 +4,18 @@
 # auditwheel can produce manylinux_2_28 wheels from the image the tests run in.
 # Both tags are pinned so a CI failure is attributable.
 FROM quay.io/pypa/manylinux_2_28_x86_64:2026.08.04-1
-
 # GCC_TOOLSET must name a host compiler this nvcc accepts (<=11 for CUDA 11.x,
 # <=13 for CUDA 12.x, <=14 for CUDA 13.x); the image's default gcc is newer.
 ARG CUDA_VERSION=12.4
 ARG GCC_TOOLSET=13
-
-# cufinufft needs only nvcc, cudart and cuFFT. The rest are for the test venv:
+# cufinufft needs only nvcc, cudart and cuFFT. fftw-devel serves the perftest
+# page job: the release tags link the system FFTW through a find-module.
 # pycuda compiles against the profiler API and curand headers and links the
 # libcuda stub from cuda-driver-devel, cupy-cuda11x loads the system libnvrtc.
 RUN cuda_dash=$(echo ${CUDA_VERSION} | tr . -) && \
-    yum install -y yum-utils gcc-toolset-${GCC_TOOLSET} && \
+    yum install -y yum-utils epel-release gcc-toolset-${GCC_TOOLSET} fftw-devel && \
+    yum install -y ninja-build && \
+    ninja --version && \
     yum-config-manager --add-repo https://developer.download.nvidia.com/compute/cuda/repos/rhel8/x86_64/cuda-rhel8.repo && \
     yum install -y \
         cuda-nvcc-${cuda_dash} \
@@ -27,7 +28,6 @@ RUN cuda_dash=$(echo ${CUDA_VERSION} | tr . -) && \
         cuda-nvrtc-${cuda_dash} && \
     ln -s cuda-${CUDA_VERSION} /usr/local/cuda && \
     yum clean all && rm -rf /var/cache/yum/*
-
 ENV CUDA_HOME=/usr/local/cuda
 ENV PATH=/opt/rh/gcc-toolset-${GCC_TOOLSET}/root/usr/bin:/usr/local/cuda/bin:${PATH}
 # cuda-compat is installed but deliberately kept off LD_LIBRARY_PATH: forcing its
@@ -36,21 +36,46 @@ ENV PATH=/opt/rh/gcc-toolset-${GCC_TOOLSET}/root/usr/bin:/usr/local/cuda/bin:${P
 ENV LD_LIBRARY_PATH=/usr/local/cuda/lib64
 # The real libcuda.so.1 only appears at runtime, injected by the runtime.
 ENV LIBRARY_PATH=/usr/local/cuda/lib64/stubs
-
 ENV NVIDIA_VISIBLE_DEVICES=all
 ENV NVIDIA_DRIVER_CAPABILITIES=compute,utility
-
-# Default python3 for the build scripts; cmake/ninja are not in the base image.
+# Default python3 for the test scripts; manylinux carries cmake at
+# /usr/local/bin already, and the console tools pip installs (this interpreter's
+# own bin) are not on the image's PATH, so only auditwheel comes from pip.
 RUN ln -s /opt/python/cp312-cp312/bin/python3 /usr/local/bin/python3 && \
-    python3 -m pip install --no-cache-dir --upgrade pip auditwheel cmake ninja
-
+    python3 -m pip install --no-cache-dir --upgrade pip auditwheel
+# uv's installer targets /usr/local/bin on purpose: anything pip would install
+# lands in this interpreter's own bin, which the image's PATH never sees.
+RUN curl -LsSf https://astral.sh/uv/install.sh | env UV_UNMANAGED_INSTALL=/usr/local/bin sh && \
+    uv --version
+# HOME is the workspace in CI, so the cache needs a path outside it to be found.
+ENV UV_CACHE_DIR=/opt/uv-cache
+# Fail loudly rather than download a second interpreter behind the image's own.
+ENV UV_PYTHON_DOWNLOADS=never
+# Prime that cache with what the perftest scripts declare, so a CI run links the
+# wheels from the image instead of fetching them. The list is a cache hint only:
+# the scripts stay authoritative, and a drifted entry costs one download.
+#
+# The chmod is load-bearing: root writes this cache, an agent pod reads it as an
+# unprivileged uid, and uv wants the cache writable even to read from it.
+RUN uv venv /tmp/warm && \
+    uv pip install --python /tmp/warm \
+        matplotlib pandas numpy jinja2 py-cpuinfo archspec && \
+    rm -rf /tmp/warm && \
+    chmod -R a+rwX /opt/uv-cache
+# gh for the PR comment and the page publish. Only the binary lives here; the
+# credential arrives as an environment variable at build time.
+ARG GH_VERSION=2.97.0
+RUN curl -fsSL "https://github.com/cli/cli/releases/download/v${GH_VERSION}/gh_${GH_VERSION}_linux_amd64.tar.gz" \
+    | tar -xz -C /usr/local/bin --strip-components=2 "gh_${GH_VERSION}_linux_amd64/bin/gh"
 # The GPU frameworks the Python tests run against, baked in: ~3GB of downloads
-# per CI run otherwise. TORCH_INDEX must be a CUDA version PyTorch ships wheels
-# for (cu118, cu124, cu126, cu128, cu130 - there is no cu133, for instance).
-ARG TORCH_INDEX=cu124
+# per CI run otherwise. The benchmark pods build no wheels and run no tests,
+# so `BENCH=1` skips the whole block and its download.
+# TORCH_INDEX picks the GPU architectures the wheel carries; cu124 is gone,
+# its every torch pinning a cudnn that upstream pruned. Adding PyPI as an
+# extra index is not the fix - pip then drops the CUDA flavour entirely.
+ARG TORCH_INDEX=cu126
 RUN python3 -m pip install --no-cache-dir pytest pytest-mock numba pycuda \
         "cupy-cuda${CUDA_VERSION%%.*}x" && \
     python3 -m pip install --no-cache-dir torch \
         --index-url https://download.pytorch.org/whl/${TORCH_INDEX}
-
 CMD ["/bin/bash"]
