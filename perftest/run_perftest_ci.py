@@ -1,8 +1,13 @@
 #!/usr/bin/env python3
-"""Run the perftest matrix across tagged builds and render a docs page."""
+"""Run the perftest matrix across tagged builds and render one page section."""
+
+# /// script
+# dependencies = ["matplotlib", "pandas", "numpy", "jinja2", "py-cpuinfo", "archspec"]
+# ///
 
 import argparse
 import hashlib
+import subprocess
 import sys
 import time
 from collections import defaultdict
@@ -10,30 +15,101 @@ from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
-from jinja2 import Environment, FileSystemLoader
+from jinja2 import Environment, FileSystemLoader, StrictUndefined
 
-from perftest_config import PARAM_LIST, TRANSFORMS
+from cuperftest_helpers import (
+    GPU_STAGES,
+    gpu_args,
+    gpu_cases,
+    gpu_params_string,
+    nvcc_version,
+    query_gpu,
+    run_cuperftest,
+)
+from perftest_config import CPU_STAGES, PARAM_LIST, STAGE_COLORS, TRANSFORMS
 from perftest_helpers import (
     METRIC_COLUMN,
     build_command,
     cpu_metadata,
+    measure_cases,
+    physical_cores,
     read_cmake_metadata,
-    read_ncores,
     run_perftest,
+    usable_ncores,
 )
 
+# The GPU library is one backend rather than a choice of FFT libraries, so the
+# backend name is the language it is written in.
+CUDA = "cuda"
 
-def run_for_tag(param, perftest_bin: Path, transform: int):
-    if not perftest_bin.exists():
+
+def cpu_times(binary: Path, param, transform: int, cpu: int | None) -> dict[str, float]:
+    return {
+        stage: run_perftest(
+            build_command(param, transform, str(binary), cpu), param.threads != 1
+        ).loc[stage, METRIC_COLUMN]
+        for stage in CPU_STAGES
+    }
+
+
+def gpu_times(binary: Path, param, transform: int, cpu: int | None) -> dict[str, float]:
+    return run_cuperftest(str(binary), gpu_args(param, transform))
+
+
+def measure(times, binary: Path, param, transform: int, tag: str, cpu: int | None):
+    """One tag's stage times, or None with a reason on stderr.
+
+    A release predates what a case asks of it - cuperftest grew type 3 after
+    every tag on the plot - so a tag that cannot run a case drops out of that
+    case's plot instead of failing the page. Silence would read as coverage, so
+    the reason is printed.
+    """
+    if not binary.exists():
+        print(f"  tag={tag} skipped: no {binary}", file=sys.stderr, flush=True)
         return None
-    return run_perftest(build_command(param, transform, str(perftest_bin)))
+    try:
+        return times(binary, param, transform, cpu)
+    except (RuntimeError, KeyError, subprocess.CalledProcessError) as exc:
+        print(f"  tag={tag} skipped: {exc}", file=sys.stderr, flush=True)
+        return None
+
+
+def cpu_facts(builds_root: Path, cache_tag: str) -> list[tuple[str, str]]:
+    cpu = cpu_metadata()
+    meta = read_cmake_metadata(builds_root / cache_tag)
+    return [
+        ("CPU", cpu["cpu_name"]),
+        ("Arch", cpu["arch"]),
+        ("Usable processors", usable_ncores()),
+        # What a threads=0 case runs with: finufft asks for the physical cores
+        # of the affinity mask, which on an SMT part is half the processors.
+        ("Usable physical cores", len(physical_cores())),
+        ("Microarchitecture", cpu["uarch"]),
+        ("psABI level", cpu["level"]),
+        ("Compiler", meta["compiler_version"]),
+        ("Compiler flags", meta["compiler_flags"]),
+    ]
+
+
+def gpu_facts(builds_root: Path, cache_tag: str) -> list[tuple[str, str]]:
+    meta = read_cmake_metadata(builds_root / cache_tag)
+    release = next(
+        (ln.strip() for ln in nvcc_version().splitlines() if "release" in ln), "NA"
+    )
+    return [
+        ("Device", query_gpu()),
+        ("Toolkit", release),
+        ("Host compiler", meta["compiler_version"]),
+    ]
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(
         description="Run perftest matrix and generate plots."
     )
-    parser.add_argument("--backend", default="fftw", help="FFT backend name.")
+    parser.add_argument(
+        "--backend", default="fftw", help=f"fftw, ducc, or {CUDA} for the GPU library."
+    )
     parser.add_argument("--builds-root", default="./builds")
     parser.add_argument(
         "--tag-list",
@@ -42,7 +118,7 @@ def main() -> None:
     )
     parser.add_argument(
         "--page-template",
-        default="docs/performance_backend.rst.j2",
+        default="docs/performance_section.rst.j2",
         help="Path to the docs template page to render.",
     )
     parser.add_argument(
@@ -66,96 +142,108 @@ def main() -> None:
 
     tags = args.tag_list.split()
 
-    ncores = read_ncores(builds_root / "master" / "perftest" / "perftest")
-    meta = read_cmake_metadata(builds_root / args.cmake_cache_from)
+    # One switch, so the two libraries share the loop, the figures and the page
+    # section they render into. The GPU library has no thread count, so its case
+    # list is the same one with that distinction collapsed.
+    gpu = args.backend == CUDA
+    stages = GPU_STAGES if gpu else CPU_STAGES
+    cases = gpu_cases() if gpu else PARAM_LIST
+    binary = Path("perftest/cuda/cuperftest") if gpu else Path("perftest/perftest")
+    times = gpu_times if gpu else cpu_times
+    case_string = gpu_params_string if gpu else (lambda param: param.pretty_string())
+    heading = "cuFFT backend" if gpu else f"{args.backend.upper()} backend"
 
     dim_transform_groups = defaultdict(lambda: defaultdict(list))
 
-    total = len(PARAM_LIST) * len(TRANSFORMS)
-    done = 0
-    for param in PARAM_LIST:
-        for transform in TRANSFORMS:
-            done += 1
-            t0 = time.monotonic()
-            print(
-                f"[{done}/{total}] type={transform} "
-                f"{param.pretty_string().replace(chr(10), ' ')}",
-                file=sys.stderr,
-                flush=True,
-            )
-            x: list[str] = []
-            setpts: list[float] = []
-            makeplan: list[float] = []
-            execute: list[float] = []
-            for tag in tags:
-                tag_df = run_for_tag(
-                    param, builds_root / tag / "perftest" / "perftest", transform
-                )
-                if tag_df is None or tag_df.empty:
-                    continue
-                print(f"  tag={tag} ok", file=sys.stderr, flush=True)
-                x.append(tag)
-                makeplan.append(tag_df.loc["makeplan", METRIC_COLUMN])
-                setpts.append(tag_df.loc["setpts", METRIC_COLUMN])
-                execute.append(tag_df.loc["execute", METRIC_COLUMN])
-            print(
-                f"  done in {time.monotonic() - t0:.1f}s",
-                file=sys.stderr,
-                flush=True,
-            )
+    grid = [(param, transform) for param in cases for transform in TRANSFORMS]
 
-            if len(x) < 2:
+    def measure_case(k: int, cpu: int | None):
+        param, transform = grid[k]
+        t0 = time.monotonic()
+        x: list[str] = []
+        series: dict[str, list[float]] = {stage: [] for stage in stages}
+        for tag in tags:
+            tag_times = measure(
+                times, builds_root / tag / binary, param, transform, tag, cpu
+            )
+            if tag_times is None:
                 continue
+            x.append(tag)
+            for stage in stages:
+                series[stage].append(tag_times[stage])
+        # One line per case, printed when the case ends: concurrent cases would
+        # interleave a start line, a line per tag and a finish line beyond
+        # reading. It names the tags that ran, since a skip is silent here.
+        print(
+            f"[{k + 1}/{len(grid)}] type={transform} "
+            f"{case_string(param).replace(chr(10), ' ')} on cpu {cpu} "
+            f"done in {time.monotonic() - t0:.1f}s, tags={' '.join(x)}",
+            file=sys.stderr,
+            flush=True,
+        )
+        return x, series
 
-            fig, ax = plt.subplots()
-            ax.stackplot(
-                x, execute, setpts, makeplan, labels=["execute", "setpts", "makeplan"]
+    # The GPU cases keep a thread count they do not use, and one device cannot
+    # hold two of them at once, so that half stays one case at a time.
+    results = measure_cases([param for param, _ in grid], measure_case, not gpu)
+    for (param, transform), (x, series) in zip(grid, results):
+        if len(x) < 2:
+            continue
+
+        fig, ax = plt.subplots()
+        # The shared colors, not the default cycle: a stage keeps its color
+        # across this page and both plots in the PR comment. Bottom-up in
+        # the stage order, which is the order the two plots stack in.
+        ax.stackplot(
+            x,
+            *(series[stage] for stage in stages),
+            labels=stages,
+            colors=[STAGE_COLORS[stage] for stage in stages],
+        )
+        ax.grid(True, alpha=0.3)
+        ax.set_xlabel("Version")
+        ax.set_ylabel("Min time (ms)")
+        ax.legend()
+
+        # A digest of the case, so the filename is stable across runs and
+        # the raw.githubusercontent URLs already published keep resolving
+        # once the perftest-results branch is force-pushed.
+        key = f"{args.backend}|t{transform}|" + "|".join(param.digest_args())
+        digest = hashlib.sha1(key.encode()).hexdigest()[:16]
+        file = f"perftestci_{digest}.svg"
+        durations = np.sum([series[stage] for stage in stages], axis=0)
+        ax.set_ylim(top=np.max(durations) * 1.1)
+        for i in range(len(x)):
+            ax.text(
+                x[i],
+                durations[i],
+                f"{durations[0] / durations[i]:.2f}x",
+                ha="center",
+                va="bottom",
             )
-            ax.grid(True, alpha=0.3)
-            ax.set_xlabel("Version")
-            ax.set_ylabel("Min time (ms)")
-            ax.legend()
 
-            # Deterministic filename: stable across runs for a given
-            # (backend, transform, param) so the raw.githubusercontent URLs
-            # baked into the published RTD page keep resolving after the
-            # perftest-results branch is force-pushed. Random UUIDs would
-            # orphan the previously-rendered <img> tags on every run.
-            key = f"{args.backend}|t{transform}|" + "|".join(param.args())
-            digest = hashlib.sha1(key.encode()).hexdigest()[:16]
-            file = f"perftestci_{digest}.png"
-            durations = np.array(makeplan) + np.array(setpts) + np.array(execute)
-            ax.set_ylim(top=np.max(durations) * 1.1)
-            for i in range(len(x)):
-                ax.text(
-                    x[i],
-                    durations[i],
-                    f"{durations[0] / durations[i]:.2f}x",
-                    ha="center",
-                    va="bottom",
-                )
+        fig.savefig(output_dir / file)
+        plt.close(fig)
 
-            fig.savefig(output_dir / file)
-            plt.close(fig)
+        dim_transform_groups[param.ndim()][transform].append(
+            {
+                "path": f"pics/{file}",
+                "params": case_string(param),
+            }
+        )
 
-            dim_transform_groups[param.ndim()][transform].append(
-                {
-                    "path": f"pics/{file}",
-                    "params": param.pretty_string(),
-                }
-            )
-
-    cpu = cpu_metadata()
-    env = Environment(loader=FileSystemLoader(template_path.parent))
+    facts = (
+        gpu_facts(builds_root, args.cmake_cache_from)
+        if gpu
+        else cpu_facts(builds_root, args.cmake_cache_from)
+    )
+    env = Environment(
+        loader=FileSystemLoader(template_path.parent), undefined=StrictUndefined
+    )
     template = env.get_template(template_path.name)
     rendered = template.render(
-        backend=args.backend.upper(),
-        cpu_name=cpu["cpu_name"],
-        arch=cpu["arch"],
-        core_count=ncores,
-        flags=cpu["flags"],
-        compiler_version=meta["compiler_version"],
-        compiler_flags=meta["compiler_flags"],
+        heading=heading,
+        facts=facts,
         dim_transform_groups=dim_transform_groups,
     )
     (output_dir / f"performance_{args.backend}.rst").write_text(

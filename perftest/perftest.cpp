@@ -10,6 +10,8 @@
 
 #include <chrono>
 #include <finufft.h>
+
+#include "randunif.h"
 #ifndef FINUFFT_USE_DUCC0
 #include <fftw3.h>
 #endif
@@ -36,7 +38,6 @@ struct test_options_t {
   int threads;
   double tol;
   double upsampfact;
-  double bandwidth;
   int debug;
 
   test_options_t(int argc, char *argv[]) {
@@ -60,8 +61,7 @@ struct test_options_t {
                 {"sort", required_argument, 0, 0},
                 {"upsampfact", required_argument, 0, 0},
                 {"debug", required_argument, 0, 0},
-                {"bandwidth", required_argument, 0, 0},
-                {0, 0, 0, 0},
+                      {0, 0, 0, 0},
             };
       // clang-format on
 
@@ -90,8 +90,7 @@ struct test_options_t {
     threads       = std::stoi(get_or(options_map, "threads", "0"));
     tol           = std::stof(get_or(options_map, "tol", "1E-5"));
     upsampfact    = std::stof(get_or(options_map, "upsampfact", "0"));
-    debug         = std::stoi(get_or(options_map, "debug", "0"));
-    bandwidth     = std::stof(get_or(options_map, "bandwidth", "1"));
+    debug = std::stoi(get_or(options_map, "debug", "0"));
   }
 
   friend std::ostream &operator<<(std::ostream &outs, const test_options_t &opts) {
@@ -107,8 +106,7 @@ struct test_options_t {
                 << "# threads = " << opts.threads << "\n"
                 << "# tol = " << opts.tol << "\n"
                 << "# upsampfact = " << opts.upsampfact << "\n"
-                << "# debug = " << opts.debug << "\n"
-                << "# bandwidth = " << opts.bandwidth << "\n";
+                << "# debug = " << opts.debug << "\n";
   }
 };
 
@@ -166,22 +164,15 @@ template<typename T> void run_test(test_options_t &test_opts) {
   const int type      = test_opts.type;
   constexpr int iflag = 1;
 
-  std::vector<T> x(M * ntransf), y(M * ntransf), z(M * ntransf);
-  std::vector<T> s(N * ntransf), t(N * ntransf), u(N * ntransf);
-  std::vector<std::complex<T>> c(M * ntransf), fk(N * ntransf);
+  perftest_rand::noinit_vector<T> x(M * ntransf), y(M * ntransf), z(M * ntransf);
+  perftest_rand::noinit_vector<T> s(N * ntransf), t(N * ntransf), u(N * ntransf);
+  perftest_rand::noinit_vector<std::complex<T>> c(M * ntransf), fk(N * ntransf);
 
-  std::default_random_engine eng{42};
-  std::uniform_real_distribution<T> dist11(-1, 1);
-  auto randm11 = [&eng, &dist11]() {
-    return dist11(eng);
-  };
-
-  // Making data
-  for (int64_t i = 0; i < M; i++) {
-    x[i] = PI * randm11(); // x in [-pi,pi)
-    y[i] = PI * randm11();
-    z[i] = PI * randm11();
-  }
+  // Making data, in parallel and independently of the thread count.
+  perftest_rand::fill(x.data(), M, perftest_rand::X, T(PI), T(0));
+  perftest_rand::fill(y.data(), M, perftest_rand::Y, T(PI), T(0));
+  perftest_rand::fill(z.data(), M, perftest_rand::Z, T(PI), T(0));
+#pragma omp parallel for schedule(static)
   for (int64_t i = M; i < M * ntransf; ++i) {
     int64_t j = i % M;
     x[i]      = x[j];
@@ -189,27 +180,26 @@ template<typename T> void run_test(test_options_t &test_opts) {
     z[i]      = z[j];
   }
 
+  // std::complex<T> is [re, im] in memory, so one fill covers both parts.
   if (type == 1) {
-    for (int i = 0; i < M * ntransf; i++) {
-      c[i].real(randm11());
-      c[i].imag(randm11());
-    }
+    perftest_rand::fill(reinterpret_cast<T *>(c.data()), 2 * M * ntransf,
+                        perftest_rand::C, T(1), T(0));
 
   } else if (type == 2) {
-    for (int i = 0; i < N * ntransf; i++) {
-      fk[i].real(randm11());
-      fk[i].imag(randm11());
-    }
+    perftest_rand::fill(reinterpret_cast<T *>(fk.data()), 2 * N * ntransf,
+                        perftest_rand::FK, T(1), T(0));
   } else if (type == 3) {
-    for (int i = 0; i < M * ntransf; i++) {
-      c[i].real(randm11());
-      c[i].imag(randm11());
-    }
-    for (int i = 0; i < N * ntransf; i++) {
-      s[i] = PI * randm11() * test_opts.bandwidth;
-      t[i] = PI * randm11() * test_opts.bandwidth;
-      u[i] = PI * randm11() * test_opts.bandwidth;
-    }
+    perftest_rand::fill(reinterpret_cast<T *>(c.data()), 2 * M * ntransf,
+                        perftest_rand::C, T(1), T(0));
+    // Frequency range of a type 1 of the same size, as finufft_test picks it:
+    // S_d = N_d/2, offset so the range is not centred on zero. The
+    // space-bandwidth product then tracks N.
+    const T S1 = T(0.5) * test_opts.N[0];
+    const T S2 = T(0.5) * test_opts.N[1];
+    const T S3 = T(0.5) * test_opts.N[2];
+    perftest_rand::fill(s.data(), N * ntransf, perftest_rand::S, S1, T(1.7));
+    perftest_rand::fill(t.data(), N * ntransf, perftest_rand::T, S2, T(-0.5));
+    perftest_rand::fill(u.data(), N * ntransf, perftest_rand::U, S3, T(0.9));
 
   } else {
     std::cerr << "Invalid type " << type << " supplied\n";
@@ -323,10 +313,7 @@ int main(int argc, char *argv[]) {
                      "               0: no debug\n"
                      "               1: standard\n"
                      "               2: verbose\n"
-                     "           default: " << default_opts.debug << "\n"
-                     "    --bandwidth: <float>\n"
-                     "           bandwidth for type 3\n"
-                     "           default: " << default_opts.bandwidth << "\n";
+                     "           default: " << default_opts.debug << "\n";
     // clang-format on
     return 0;
   }

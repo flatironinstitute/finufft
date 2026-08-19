@@ -1,5 +1,8 @@
 add_executable(cuperftest cuperftest.cu)
 target_link_libraries(cuperftest PRIVATE cufinufft)
+# Named rather than inherited: the docs page builds this harness against every
+# release it plots, and the older cufinufft targets export no include directory.
+target_include_directories(cuperftest PRIVATE ${PROJECT_SOURCE_DIR}/include)
 target_compile_features(cuperftest PRIVATE cxx_std_17)
 set_target_properties(
     cuperftest
