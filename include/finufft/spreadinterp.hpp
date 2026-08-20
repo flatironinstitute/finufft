@@ -300,16 +300,18 @@ int FINUFFT_PLAN_T<TF>::spreadinterpSorted(TF *data_uniform, TF *data_nonuniform
    Converted to class member, Barbone 2/24/26.
 */
 {
-  if ((m.spopts.spread_direction == 1) != adjoint) // ======== direction 1 (spreading)
-    spreadSorted(data_uniform, data_nonuniform);
-  else // ================= direction 2 (interpolation) ===========
+  if ((m.spopts.spread_direction == 1) != adjoint) { // ======== direction 1 (spreading)
+    std::vector<SpreadScratch<TF>> scratch;          // one vector, so nothing to reuse
+    spreadSorted(data_uniform, data_nonuniform, 1, scratch);
+  } else // ================= direction 2 (interpolation) ===========
     interpSorted(data_uniform, data_nonuniform);
   return 0;
 }
 
 template<typename TF>
 int FINUFFT_PLAN_T<TF>::spreadSorted(TF *FINUFFT_RESTRICT data_uniform,
-                                     const TF *data_nonuniform, int batchSize) const
+                                     const TF *data_nonuniform, int batchSize,
+                                     std::vector<SpreadScratch<TF>> &scratch) const
 /* Spread NU pts (in sort order) to a uniform grid. See spreadinterpSorted() for doc.
    Plan members used in place of the former free-function arguments:
    sortIndices, nfdim[0..2], nj, XYZ[0..2], spopts, didSort, horner_coeffs, nc.
@@ -411,10 +413,19 @@ int FINUFFT_PLAN_T<TF>::spreadSorted(TF *FINUFFT_RESTRICT data_uniform,
       printf("\tup to %d writers per output: add_wrapped switching to atomic (!)\n",
              (int)std::min((UBIGINT)nthr, nb));
 
+    // One scratch per thread, grown once and then reused. resize() below keeps
+    // whatever capacity the previous batch left behind, so the steady state asks
+    // the allocator for nothing.
+    if (scratch.size() < size_t(nthr)) scratch.resize(nthr);
 #pragma omp parallel num_threads(nthr)
     {
       // local copies of NU pts and data for each subproblem
-      std::vector<TF> kx0{}, ky0{}, kz0{}, dd0{}, du0{};
+      auto &sc  = scratch[MY_OMP_GET_THREAD_NUM()];
+      auto &kx0 = sc.kx0;
+      auto &ky0 = sc.ky0;
+      auto &kz0 = sc.kz0;
+      auto &dd0 = sc.dd0;
+      auto &du0 = sc.du0;
 #pragma omp for collapse(2) schedule(dynamic, 1) // each is big
       for (int ib = 0; ib < batchSize; ib++)
         for (BIGINT isub = 0; isub < BIGINT(nb); isub++) { // Main loop through

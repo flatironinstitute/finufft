@@ -240,7 +240,8 @@ void FINUFFT_PLAN_T<T>::deconvolveshuffle3d(int dir, T prefac, T *fk,
 
 template<typename T>
 int FINUFFT_PLAN_T<T>::spreadinterpSortedBatch(
-    int batchSize, std::complex<T> *fwBatch, std::complex<T> *cBatch, bool adjoint) const
+    int batchSize, std::complex<T> *fwBatch, std::complex<T> *cBatch, bool adjoint,
+    std::vector<SpreadScratch<T>> &scratch) const
 /*
   Spreads (or interpolates) a batch of batchSize strength vectors in cBatch
   to (or from) the batch of fine working grids fwBatch, using the same set of
@@ -264,7 +265,7 @@ int FINUFFT_PLAN_T<T>::spreadinterpSortedBatch(
   // folding it in would expose no parallelism. Both beat the old nested case.
   if ((m.spopts.spread_direction == 1) != adjoint) {
     spreadSorted(reinterpret_cast<T *>(fwBatch), reinterpret_cast<const T *>(cBatch),
-                 batchSize);
+                 batchSize, scratch);
     return 0;
   }
   for (int i = 0; i < batchSize; i++) {
@@ -370,6 +371,10 @@ int FINUFFT_PLAN_T<TF>::execute_internal(TC *cj, TC *fk, bool adjoint, int ntran
              adjoint ? " adjoint" : "", ntrans_actual, nbatch, batchSize);
     // allocate temporary buffers
     bool scratch_provided = scratch_size >= size_t(nf() * batchSize);
+    // Lives for the whole execute, so the spreader's per-thread buffers are
+    // allocated once here rather than once per batch. Automatic storage: two
+    // threads executing this plan at the same time get one each.
+    std::vector<SpreadScratch<TF>> spread_scratch;
     std::vector<TC, xsimd::aligned_allocator<TC, 64>> fwBatch_(
         scratch_provided ? 0 : nf() * batchSize);
     TC *fwBatch = scratch_provided ? aligned_scratch : fwBatch_.data();
@@ -388,7 +393,8 @@ int FINUFFT_PLAN_T<TF>::execute_internal(TC *cj, TC *fk, bool adjoint, int ntran
       // usually spread/interp to/from fwBatch (vs spreadinterponly: to/from user grid)
       TC *fwBatch_or_fkb = opts.spreadinterponly ? fkb : fwBatch;
       if ((type == 1) != adjoint) { // spread NU pts X, weights cj, to fw grid
-        spreadinterpSortedBatch(thisBatchSize, fwBatch_or_fkb, cjb, adjoint);
+        spreadinterpSortedBatch(thisBatchSize, fwBatch_or_fkb, cjb, adjoint,
+                                spread_scratch);
         t_sprint += timer.elapsedsec();
         if (opts.spreadinterponly) // we're done (skip to next iteration of loop)
           continue;
@@ -411,7 +417,8 @@ int FINUFFT_PLAN_T<TF>::execute_internal(TC *cj, TC *fk, bool adjoint, int ntran
         deconvolveBatch(thisBatchSize, fkb, fwBatch, adjoint);
         t_deconv += timer.elapsedsec();
       } else { // interpolate unif fw grid to NU target pts
-        spreadinterpSortedBatch(thisBatchSize, fwBatch_or_fkb, cjb, adjoint);
+        spreadinterpSortedBatch(thisBatchSize, fwBatch_or_fkb, cjb, adjoint,
+                                spread_scratch);
         t_sprint += timer.elapsedsec();
       }
     } // ........end b loop
@@ -446,6 +453,8 @@ int FINUFFT_PLAN_T<TF>::execute_internal(TC *cj, TC *fk, bool adjoint, int ntran
     // so that it doesn't need to be reallocated for every batch.
     std::vector<TC, xsimd::aligned_allocator<TC, 64>> buf1, buf2, buf3;
     TC *CpBatch, *fwBatch, *fwBatch_inner;
+    // as for types 1 and 2: one scratch for the whole execute, reused per batch
+    std::vector<SpreadScratch<TF>> spread_scratch;
     if (!adjoint) { // we can combine CpBatch and fwBatch_inner!
       buf1.resize(
           std::max(m.nj * batchSize, m.innerT2plan->nf() * m.innerT2plan->batchSize));
@@ -493,8 +502,8 @@ int FINUFFT_PLAN_T<TF>::execute_internal(TC *cj, TC *fk, bool adjoint, int ntran
 
         // STEP 1: spread c'_j batch (x'_j NU pts) into internal fw batch grid...
         timer.restart();
-        spreadinterpSortedBatch(thisBatchSize, fwBatch, CpBatch,
-                                adjoint); // X are primed
+        spreadinterpSortedBatch(thisBatchSize, fwBatch, CpBatch, adjoint,
+                                spread_scratch); // X are primed
         t_sprint += timer.elapsedsec();
 
         // STEP 2: type 2 NUFFT from fw batch to user output fk array batch...
@@ -528,8 +537,8 @@ int FINUFFT_PLAN_T<TF>::execute_internal(TC *cj, TC *fk, bool adjoint, int ntran
         t_inner += timer.elapsedsec();
         // STEP 2: interpolate fwBatch into user output array ...
         timer.restart();
-        spreadinterpSortedBatch(thisBatchSize, fwBatch, cjb,
-                                adjoint); // X are primed
+        spreadinterpSortedBatch(thisBatchSize, fwBatch, cjb, adjoint,
+                                spread_scratch); // X are primed
         t_sprint += timer.elapsedsec();
         // STEP 3: post-phase (possibly) the c_j output strengths (in place) ...
         timer.restart();

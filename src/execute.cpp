@@ -9,8 +9,8 @@ using FLT = double;
 #endif
 
 // Suppress re-instantiation of all spread/interp method templates.
-extern template int FINUFFT_PLAN_T<FLT>::spreadSorted(FLT *FINUFFT_RESTRICT, const FLT *,
-                                                      int) const;
+extern template int FINUFFT_PLAN_T<FLT>::spreadSorted(
+    FLT *FINUFFT_RESTRICT, const FLT *, int, std::vector<SpreadScratch<FLT>> &) const;
 extern template int FINUFFT_PLAN_T<FLT>::interpSorted(FLT *FINUFFT_RESTRICT,
                                                        FLT *FINUFFT_RESTRICT) const;
 extern template void FINUFFT_PLAN_T<FLT>::spread_subproblem_1d(BIGINT, UBIGINT, FLT *,
