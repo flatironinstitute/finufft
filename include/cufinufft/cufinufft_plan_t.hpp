@@ -215,12 +215,10 @@ template<typename T> struct cufinufft_plan_t {
 
   ~cufinufft_plan_t() = default;
 
-  // Plan input config and a one-shot warning flag from the spreader setup
-  // are public; tests, perftests and the C-API wrapper read them directly,
-  // mirroring the FINUFFT_PLAN_T (CPU) convention of public `opts`.
+  // Plan input config is public; tests, perftests and the C-API wrapper read it
+  // directly, mirroring the FINUFFT_PLAN_T (CPU) convention of public `opts`.
   cufinufft_opts opts;
   finufft_spread_opts spopts;
-  bool eps_too_small = false;
 
   // Dynamic shared-memory bytes required per kernel launch for spread/interp.
   // Public because per-method drivers (spreadinterp.hpp) and shared-memory
@@ -374,9 +372,8 @@ private:
 
   // Helpers migrated from free functions in cufinufft::common / cufinufft::utils.
   // Use this->opts and this->spopts; called only from plan setup.
-  // Mirrors CPU FINUFFT_PLAN_T<TF>::setup_spreadinterp(). Sets
-  // this->eps_too_small (surfaced as FINUFFT_WARN_EPS_TOO_SMALL at the C
-  // boundary) when tol was clamped up to eps_mach. Throws on hard error.
+  // Mirrors CPU FINUFFT_PLAN_T<TF>::setup_spreadinterp(). Warns on stderr when
+  // tol was clamped up to eps_mach. Throws on hard error.
   void setup_spreadinterp();
   void set_nf_type12(CUFINUFFT_BIGINT ms, CUFINUFFT_BIGINT *nf, CUFINUFFT_BIGINT b) const;
   std::tuple<CUFINUFFT_BIGINT, T, T> set_nhg_type3(T S, T X) const;

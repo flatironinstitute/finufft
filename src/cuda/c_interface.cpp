@@ -11,13 +11,6 @@
 
 using finufft::common::safe_finufft_call;
 
-// FIXME: remove together with the deprecated legacy code-1 mapping in safe_call.h,
-// once the GPU stops returning it for tiny requested tolerances.
-FINUFFT_DIAGNOSTIC_PUSH
-FINUFFT_DISABLE_WARNING_DEPRECATED
-static constexpr int WARN_EPS_TOO_SMALL = FINUFFT_WARN_EPS_TOO_SMALL;
-FINUFFT_DIAGNOSTIC_POP
-
 static inline bool is_invalid_mode_array(int type, int dim, const int64_t *modes64,
                                          int32_t modes32[3]) {
   if (type == 3) {
@@ -60,7 +53,7 @@ int cufinufftf_makeplan(int type, int dim, const int64_t *nmodes, int iflag, int
     auto res =
         new cufinufft_plan_t<float>(type, dim, nmodes32, iflag, ntransf, tol, planopts);
     *d_plan_ptr = (cufinufftf_plan)res;
-    return res->eps_too_small ? WARN_EPS_TOO_SMALL : 0;
+    return 0;
   });
 }
 
@@ -86,7 +79,7 @@ int cufinufft_makeplan(int type, int dim, const int64_t *nmodes, int iflag, int 
     auto res =
         new cufinufft_plan_t<double>(type, dim, nmodes32, iflag, ntransf, tol, planopts);
     *d_plan_ptr = (cufinufft_plan)res;
-    return res->eps_too_small ? WARN_EPS_TOO_SMALL : 0;
+    return 0;
   });
 }
 
@@ -218,11 +211,10 @@ int simple_guru(
 
   auto plan = std::make_unique<cufinufft_plan_t<T>>(type, n_dims, nmodes32, iflag,
                                                     n_transf, eps, planopts);
-  const int warn = plan->eps_too_small ? WARN_EPS_TOO_SMALL : 0;
   // setpts/execute throw on failure; caught by the caller's safe_finufft_call.
   plan->setpts((int)nj, xyz[0], xyz[1], xyz[2], (int)nk, stu[0], stu[1], stu[2]);
   plan->execute(cj, fk);
-  return warn;
+  return 0;
 }
 
 // guru13/guru2 const_cast the input array (cj for types 1/3, fk for type 2)
