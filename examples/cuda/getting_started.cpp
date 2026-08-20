@@ -77,16 +77,16 @@ int main() {
   // tolerance. Any ier above 1 is an error; 1 is a warning and the result is
   // still usable.
   int ier = cufinufftf_makeplan(1, 1, modes, 1, 1, 1e-6, &plan, NULL);
-  if (ier > 1) return ier;
+  if (ier > 0) return ier;
 
   // Set the frequencies of the nonuniform points.
   ier = cufinufftf_setpts(plan, M, d_x, NULL, NULL, 0, NULL, NULL, NULL);
-  if (ier > 1) return ier;
+  if (ier > 0) return ier;
 
   // Actually execute the plan on the given coefficients and store the result
   // in the d_f array.
   ier = cufinufftf_execute(plan, d_c, d_f);
-  if (ier > 1) return ier;
+  if (ier > 0) return ier;
 
   // Copy the result back onto the host.
   cudaMemcpy(f, d_f, N * sizeof(float _Complex), cudaMemcpyDeviceToHost);

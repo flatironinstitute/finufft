@@ -144,7 +144,7 @@ int main(int argc, char *argv[]) {
     BIGINT nmodes[3] = {N, N, N};
     int type         = 1; // in FINUFFT API this gives spread via execute
     int ier          = FINUFFT_MAKEPLAN(type, d, nmodes, +1, 1, tol, &plan, &fopts);
-    if (ier > 1) {
+    if (ier > 0) {
       printf("error when creating the plan (ier=%d)!\n", ier);
       return ier;
     }

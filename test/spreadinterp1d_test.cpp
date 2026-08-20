@@ -57,7 +57,7 @@ int main(int argc, char *argv[]) {
   c[0]       = 1.0;
   int unused = +1;
   int ier    = FINUFFT1D1(1, x.data(), c.data(), unused, tol, N, F.data(), &opts);
-  if (ier > 1) {
+  if (ier > 0) {
     printf("error (ier=%d)!\n", ier);
     return ier;
   }
@@ -78,7 +78,7 @@ int main(int argc, char *argv[]) {
   timer.start();                    // c input, F output...
   ier      = FINUFFT1D1(M, x.data(), c.data(), unused, tol, N, F.data(), &opts);
   double t = timer.elapsedsec();
-  if (ier > 1) {
+  if (ier > 0) {
     printf("error (ier=%d)!\n", ier);
     return ier;
   }
@@ -95,7 +95,7 @@ int main(int argc, char *argv[]) {
   timer.restart();                                   // F input, c output...
   ier = FINUFFT1D2(M, x.data(), c.data(), unused, tol, N, F.data(), &opts);
   t   = timer.elapsedsec();
-  if (ier > 1) {
+  if (ier > 0) {
     printf("error (ier=%d)!\n", ier);
     return ier;
   }

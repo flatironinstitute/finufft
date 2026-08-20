@@ -94,16 +94,16 @@ int main()
   cufinufft_default_opts(&opts);
 
   ier = cufinufft_makeplan(type, dim, nmodes, iflag, ntransf, tol, &dplan, &opts);
-  if (ier > 1) return ier;
+  if (ier > 0) return ier;
 
   ier = cufinufft_setpts(dplan, M, d_x, d_y, NULL, N, d_s, d_t, NULL);
-  if (ier > 1) return ier;
+  if (ier > 0) return ier;
 
   ier = cufinufft_execute(dplan, d_c, d_fk);
-  if (ier > 1) return ier;
+  if (ier > 0) return ier;
 
   ier = cufinufft_destroy(dplan);
-  if (ier > 1) return ier;
+  if (ier > 0) return ier;
 
   cudaMemcpy(fk, d_fk, N * ntransf * sizeof(cuDoubleComplex), cudaMemcpyDeviceToHost);
 

@@ -83,5 +83,5 @@ int main()
   free(c);
   free(F);
   free(popts);
-  return ier > 1;
+  return ier > 0;
 }
