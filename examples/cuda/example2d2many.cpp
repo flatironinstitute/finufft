@@ -88,16 +88,16 @@ int main()
   opts.gpu_maxbatchsize = maxbatchsize;
 
   ier = cufinufft_makeplan(type, dim, nmodes, iflag, ntransf, tol, &dplan, &opts);
-  if (ier > 1) return ier;
+  if (ier > 0) return ier;
 
   ier = cufinufft_setpts(dplan, M, d_x, d_y, NULL, 0, NULL, NULL, NULL);
-  if (ier > 1) return ier;
+  if (ier > 0) return ier;
 
   ier = cufinufft_execute(dplan, d_c, d_fk);
-  if (ier > 1) return ier;
+  if (ier > 0) return ier;
 
   ier = cufinufft_destroy(dplan);
-  if (ier > 1) return ier;
+  if (ier > 0) return ier;
 
   cudaMemcpy(c, d_c, M * ntransf * sizeof(cuDoubleComplex), cudaMemcpyDeviceToHost);
 

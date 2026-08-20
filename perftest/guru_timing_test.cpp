@@ -158,7 +158,7 @@ int main(int argc, char *argv[])
   int ier = FINUFFT_MAKEPLAN(type, ndim, n_modes, isign, ntransf, tol, &plan, &opts);
   // (NB: the opts struct can no longer be modified with effect!)
   double plan_t = timer.elapsedsec();
-  if (ier > 1) {
+  if (ier > 0) {
     printf("error (ier=%d)!\n", ier);
     return ier;
   } else {

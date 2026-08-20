@@ -40,7 +40,7 @@ int main()
     ier        = finufftf_makeplan(type, dim, Ns, +1, ntransf, tol, &plan, &opts);
   } else                          // or, NULL here means use default opts...
     ier = finufftf_makeplan(type, dim, Ns, +1, ntransf, tol, &plan, NULL);
-  if (ier > 1) return ier;        // no plan to use; going on would segfault
+  if (ier > 0) return ier;        // no plan to use; going on would segfault
 
   // generate some random nonuniform points
   vector<float> x(M);
@@ -48,7 +48,7 @@ int main()
     x[j] = PI * (2 * ((float)rand() / (float)RAND_MAX) - 1); // uniform random in [-pi,pi)
   // note FINUFFT doesn't use std::vector types, so we need to make a pointer...
   ier = finufftf_setpts(plan, M, &x[0], NULL, NULL, 0, NULL, NULL, NULL);
-  if (ier > 1) return ier; // the plan has no grid; executing it would segfault
+  if (ier > 0) return ier; // the plan has no grid; executing it would segfault
 
   // generate some complex strengths
   vector<complex<float>> c(M);

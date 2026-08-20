@@ -80,7 +80,7 @@ int main(int argc, char *argv[]) {
   timer.start();
   int ier   = FINUFFT3D1MANY(ntransf, M, x, y, z, c, isign, tol, N1, N2, N3, F, &opts);
   double ti = timer.elapsedsec();
-  if (ier > 1) {
+  if (ier > 0) {
     printf("error (ier=%d)!\n", ier);
     return ier;
   } else
@@ -119,7 +119,7 @@ int main(int argc, char *argv[]) {
     ier    = FINUFFT3D1(M, x, y, z, cstart, isign, tol, N1, N2, N3, Fstart, &simpleopts);
   }
   double t = timer.elapsedsec();
-  if (ier > 1) {
+  if (ier > 0) {
     printf("error (ier=%d)!\n", ier);
     return ier;
   } else
@@ -147,7 +147,7 @@ int main(int argc, char *argv[]) {
   timer.restart();
   ier = FINUFFT3D2MANY(ntransf, M, x, y, z, c, isign, tol, N1, N2, N3, F, &opts);
   ti  = timer.elapsedsec();
-  if (ier > 1) {
+  if (ier > 0) {
     printf("error (ier=%d)!\n", ier);
     return ier;
   } else
@@ -181,7 +181,7 @@ int main(int argc, char *argv[]) {
     ier    = FINUFFT3D2(M, x, y, z, cstart, isign, tol, N1, N2, N3, Fstart, &simpleopts);
   }
   t = timer.elapsedsec();
-  if (ier > 1) {
+  if (ier > 0) {
     printf("error (ier=%d)!\n", ier);
     return ier;
   } else
@@ -233,7 +233,7 @@ int main(int argc, char *argv[]) {
   ier = FINUFFT3D3MANY(ntransf, M, x, y, z, c, isign, tol, N, s_freq, t_freq, u_freq, F,
                        &opts);
   ti  = timer.elapsedsec();
-  if (ier > 1) {
+  if (ier > 0) {
     printf("error (ier=%d)!\n", ier);
     return ier;
   } else
@@ -260,7 +260,7 @@ int main(int argc, char *argv[]) {
                         &simpleopts);
   }
   t = timer.elapsedsec();
-  if (ier > 1) {
+  if (ier > 0) {
     printf("error (ier=%d)!\n", ier);
     return ier;
   } else

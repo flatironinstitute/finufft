@@ -49,7 +49,7 @@ int main()
   c[0]       = 1.0;
   int unused = 1;
   int ier = finufft1d1(1, x.data(), c.data(), unused, tol, N, F.data(), &opts); // warm-up
-  if (ier > 1) return ier;
+  if (ier > 0) return ier;
   complex<double> kersum = 0.0;
   for (auto Fk : F) kersum += Fk; // kernel mass
 
@@ -64,7 +64,7 @@ int main()
   auto t0    = steady_clock::now(); // now spread with all M pts... (dir=1)
   ier      = finufft1d1(M, x.data(), c.data(), unused, tol, N, F.data(), &opts); // do it
   double t = (steady_clock::now() - t0) / 1.0s;
-  if (ier > 1) return ier;
+  if (ier > 0) return ier;
   complex<double> csum = 0.0; // tot input strength
   for (auto cj : c) csum += cj;
   complex<double> mass = 0.0; // tot output mass
@@ -78,7 +78,7 @@ int main()
   t0         = steady_clock::now(); // now interp to all M pts...  (dir=2)
   ier = finufft1d2(M, x.data(), c.data(), unused, tol, N, F.data(), &opts); // do it
   t   = (steady_clock::now() - t0) / 1.0s;
-  if (ier > 1) return ier;
+  if (ier > 0) return ier;
   csum = 0.0; // tot output
   for (auto cj : c) csum += cj;
   double maxerr = 0.0;

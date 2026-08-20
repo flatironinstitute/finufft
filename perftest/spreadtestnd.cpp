@@ -144,7 +144,7 @@ int main(int argc, char *argv[]) {
 
   // Make plan for type-1 (NU -> U). With spread/interp only, we can use adjoint too.
   int ier = FINUFFT_MAKEPLAN(1, d, nmodes, 1, 1, tol, &plan, &opts);
-  if (ier > 1) {
+  if (ier > 0) {
     printf("error when creating the plan (ier=%d)!\n", ier);
     return ier;
   }
@@ -230,7 +230,7 @@ int main(int argc, char *argv[]) {
   // a type-2 plan is created and executed.
   FINUFFT_PLAN plan2{};
   ier = FINUFFT_MAKEPLAN(2, d, nmodes, 1, 1, tol, &plan2, &opts);
-  if (ier > 1) {
+  if (ier > 0) {
     printf("error when creating the type-2 plan (ier=%d)!\n", ier);
     return ier;
   }

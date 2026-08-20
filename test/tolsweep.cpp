@@ -158,7 +158,7 @@ int main(int argc, char *argv[]) {
           else
             relerr = relerrtwonorm<BIGINT>(N, Fe, F);
 
-          if (ier > 1 || ier_set > 1) { // an error, not merely warning, we exit
+          if (ier > 0 || ier_set > 0) { // any nonzero code is an error, we exit
             fprintf(stderr, "   tolsweep: %dD%d failed! ier=%d, ier_setpts=%d\n", dim,
                     type, ier, ier_set);
             return 1;

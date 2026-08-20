@@ -72,7 +72,7 @@ int main(int argc, char *argv[]) {
   timer.start();
   int ier   = FINUFFT3D1(M, x, y, z, c, isign, tol, N1, N2, N3, F, &opts);
   double ti = timer.elapsedsec();
-  if (ier > 1) {
+  if (ier > 0) {
     printf("error (ier=%d)!\n", ier);
     return ier;
   } else
@@ -113,7 +113,7 @@ int main(int argc, char *argv[]) {
   timer.restart();
   ier = FINUFFT3D2(M, x, y, z, c, isign, tol, N1, N2, N3, F, &opts);
   ti  = timer.elapsedsec();
-  if (ier > 1) {
+  if (ier > 0) {
     printf("error (ier=%d)!\n", ier);
     return ier;
   } else
@@ -170,7 +170,7 @@ int main(int argc, char *argv[]) {
   timer.restart();
   ier = FINUFFT3D3(M, x, y, z, c, isign, tol, N, s, t, u, F, &opts);
   ti  = timer.elapsedsec();
-  if (ier > 1) {
+  if (ier > 0) {
     printf("error (ier=%d)!\n", ier);
     return ier;
   } else
