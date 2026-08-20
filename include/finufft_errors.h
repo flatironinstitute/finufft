@@ -7,6 +7,8 @@
 // All documentation is at ../docs/errors.rst (not here):
 // clang-format off
 enum {
+  // Retired: no longer returned by CPU or GPU. Kept for ABI; a tolerance below
+  // eps_mach now warns on stderr or raises FINUFFT_ERR_EPS_TOO_SMALL.
   FINUFFT_WARN_EPS_TOO_SMALL FINUFFT_DEPRECATED_ENUM(
       "use FINUFFT_ERR_EPS_TOO_SMALL instead") = 1,
 

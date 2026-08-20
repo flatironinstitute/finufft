@@ -45,7 +45,7 @@ void cufinufft_plan_t<T>::setup_spreadinterp()
 // Initializes spreader kernel params in this->spopts from this->tol,
 // this->opts.upsampfac, and this->opts.gpu_kerevalmeth (0:exp(sqrt()),
 // 1: Horner ppval). Mirrors CPU FINUFFT_PLAN_T<TF>::setup_spreadinterp().
-// Sets this->eps_too_small when tol was clamped up to eps_mach.
+// Warns on stderr when tol was clamped up to eps_mach.
 // Throws finufft::exception on hard error.
 // As of v2.5 no longer sets ES_c, ES_halfwidth, since absent from spopts.
 // To do: *** update this to CPU v2.5 kernel choice, coeffs, params...
@@ -86,7 +86,6 @@ void cufinufft_plan_t<T>::setup_spreadinterp()
     fprintf(stderr, "[%s]: warning, increasing tol=%.3g to eps_mach=%.3g.\n", __func__,
             (double)eps, (double)EPSILON);
     eps = EPSILON;
-    this->eps_too_small = true;
   }
 
   // Set kernel width w (aka ns) and ES kernel beta parameter, in spopts...
@@ -102,7 +101,6 @@ void cufinufft_plan_t<T>::setup_spreadinterp()
             "clipping to max %d.\n",
             __func__, upsampfac, (double)eps, ns, MAX_NSPREAD<T>);
     ns = MAX_NSPREAD<T>;
-    this->eps_too_small = true;
   }
   spopts.nspread = ns;
 
