@@ -121,18 +121,15 @@ void cufinufft_plan_t<T>::execute_type1(cuda_complex<T> *d_c, cuda_complex<T> *d
 
   int nmodes = 1;
   for (int idim = 0; idim < dim; ++idim) nmodes *= mstu[idim];
-  // We don't need this buffer if we are just spreading; so we set
-  // its size to 0 in that case.
-  gpu_array<cuda_complex<T>> fwp(opts.gpu_spreadinterponly ? 0 : nf * batchsize, alloc);
-  auto *fw = dethrust(fwp);
+  // Uninitialized: spread memsets fw below. Size 0 when spreading only, which spreads
+  // straight into f.
+  const bool spread_only = opts.gpu_spreadinterponly;
+  gpu_scratch<cuda_complex<T>> fwp(spread_only ? 0 : nf * batchsize, alloc);
   for (int i = 0; i * batchsize < ntransf; i++) {
-    int blksize   = std::min(ntransf - i * batchsize, batchsize);
+    int blksize = std::min(ntransf - i * batchsize, batchsize);
     const auto *c = d_c + i * batchsize * M;
-    auto *fk      = d_fk + i * batchsize * nmodes; // so deconvolve will write into
-                                                   // user output f
-    if (opts.gpu_spreadinterponly)
-      fw = fk;                                     // spread directly into the appropriate
-                                                   // section of the user output f
+    auto *fk = d_fk + i * batchsize * nmodes; // deconvolve writes user output f
+    auto *fw = spread_only ? fk : fwp.data();
 
     checkCudaErrors(
         cudaMemsetAsync(fw, 0, blksize * nf * sizeof(cuda_complex<T>), stream));
@@ -140,7 +137,7 @@ void cufinufft_plan_t<T>::execute_type1(cuda_complex<T> *d_c, cuda_complex<T> *d
     // Step 1: Spread
     spreadSorted(c, fw, blksize);
 
-    if (opts.gpu_spreadinterponly) continue; // skip steps 2 and 3
+    if (spread_only) continue; // skip steps 2 and 3
 
     // Step 2: FFT
     cufftResult cufft_status = cufft_ex(fftplan.get(), fw, fw, iflag);
@@ -154,7 +151,8 @@ void cufinufft_plan_t<T>::execute_type1(cuda_complex<T> *d_c, cuda_complex<T> *d
 
 template<typename T>
 void cufinufft_plan_t<T>::execute_type2(cuda_complex<T> *d_c, cuda_complex<T> *d_fk,
-                                        std::optional<int> ntransf_override) const
+                                        std::optional<int> ntransf_override,
+                                        cuda_complex<T> *fw_scratch) const
 /*
     1D/2D/3D Type-2 NUFFT
 
@@ -176,17 +174,20 @@ void cufinufft_plan_t<T>::execute_type2(cuda_complex<T> *d_c, cuda_complex<T> *d
 
   int nmodes = 1;
   for (int idim = 0; idim < dim; ++idim) nmodes *= mstu[idim];
-  // We don't need this buffer if we are just interpolating; so we set
-  // its size to 0 in that case.
-  gpu_array<cuda_complex<T>> fwp(opts.gpu_spreadinterponly ? 0 : nf * batchsize, alloc);
-  auto *fw = dethrust(fwp);
+  // Uninitialized: deconvolve overwrites fw below. Size 0 when interpolating only, which
+  // reads f directly.
+  const bool interp_only = opts.gpu_spreadinterponly;
+  gpu_scratch<cuda_complex<T>> fwp(interp_only || fw_scratch ? 0 : nf * batchsize, alloc);
+  auto *const fwbuf = fw_scratch ? fw_scratch : fwp.data();
+  // cufft_ex transforms all `batchsize` grids even when blksize < batchsize; the extra
+  // ones hold stale data and are discarded.
   for (int i = 0; i * batchsize < ntransf_for_this_run; i++) {
     int blksize = std::min(ntransf_for_this_run - i * batchsize, batchsize);
-    auto *c     = d_c + i * batchsize * M;
-    auto *fk    = d_fk + i * batchsize * nmodes;
+    auto *c = d_c + i * batchsize * M;
+    auto *fk = d_fk + i * batchsize * nmodes;
+    auto *fw = interp_only ? fk : fwbuf;
 
-    // Skip steps 1 and 2 if interponly
-    if (!opts.gpu_spreadinterponly) {
+    if (!interp_only) {
       // Step 1: amplify Fourier coeffs fk and copy into upsampled array fw
       deconvolve(fw, fk, blksize);
 
@@ -195,8 +196,7 @@ void cufinufft_plan_t<T>::execute_type2(cuda_complex<T> *d_c, cuda_complex<T> *d
       cufftResult cufft_status = cufft_ex(fftplan.get(), fw, fw, iflag);
       if (cufft_status != CUFFT_SUCCESS)
         throw cufinufft::cufft_exception(cufft_status, "cufft_ex_type2");
-    } else
-      fw = fk; // interpolate directly from user input f
+    }
 
     // Step 3: Interpolate
     interpSorted(c, fw, blksize);
@@ -219,15 +219,18 @@ void cufinufft_plan_t<T>::execute_type3(cuda_complex<T> *d_c,
 
   Marco Barbone 08/14/2024
   */
-  gpu_array<cuda_complex<T>> CpBatch(M * batchsize, alloc);
+  // Doubles as the inner type 2's fw: CpBatch is dead once the spread has read it,
+  // and deconvolve_nd overwrites the whole batchsize*nf before reading it.
+  gpu_scratch<cuda_complex<T>> CpBatch(std::size_t(std::max(M, t2_plan->nf)) * batchsize,
+                                       alloc);
   gpu_array<cuda_complex<T>> fwp(nf * batchsize, alloc);
   auto *fw = dethrust(fwp);
   for (int i = 0; i * batchsize < ntransf; i++) {
-    int blksize                = std::min(ntransf - i * batchsize, batchsize);
+    int blksize = std::min(ntransf - i * batchsize, batchsize);
     cuda_complex<T> *d_cstart  = d_c + i * batchsize * M;
     cuda_complex<T> *d_fkstart = d_fk + i * batchsize * N;
     // setting input for spreader
-    auto *c = dethrust(CpBatch);
+    auto *c = CpBatch.data();
     // setting output for spreader
     auto *fk = fw;
     // NOTE: fw might need to be set to 0
@@ -246,7 +249,7 @@ void cufinufft_plan_t<T>::execute_type3(cuda_complex<T> *d_c,
     // type 2 goes from fk to c
     // saving the results directly in the user output array d_fk
     // it needs to do blksize transforms
-    t2_plan->execute_type2(d_fkstart, fw, blksize);
+    t2_plan->execute_type2(d_fkstart, fw, blksize, c);
     // Step 3: deconvolve
     // now we need to d_fk = d_fk*deconv
     for (int j = 0; j < blksize; j++) {

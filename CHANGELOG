@@ -8,6 +8,18 @@ v2.6.0-dev
   from the CMake build, the single-precision ones asked for more modes than float
   can resolve, four leaked their opts and the CUDA ones ignored every return code.
   (Barbone)
+* cuFINUFFT: fixed the batched (many-transform) type-2 performance regression of #846.
+  `gpu_maxbatchsize=0` (the default) now sizes the batch from the fine grid and the
+  device's L2 cache instead of the fixed `min(ntransf, 8)`, and spreads the transforms
+  evenly over the batches; a user-supplied value is honored, capped at `ntransf`, and
+  negative values are rejected. A type 3 no longer batches its outer spread-only plan,
+  pins its inner type 2 to the outer batch, and shares one device buffer between the
+  pre-phase array and that inner plan's `fw`. Against the regressed master: type-2 mean
+  2.1-10.4x over 26 shapes on Blackwell/H100/A100/Ada, up to 96x; type 3 geomean 1.04x
+  over seven shapes on Ada; no shape slower. Against v2.4.1 the batched type-2 shapes
+  return to 0.95-0.97x of their old time, so this restores rather than adds.
+  `cuperftest` gains `--maxbatchsize`.
+  (Barbone)
 * The spread/interp kernel is now PSWF (prolate) only: opts.spread_kerformula
   takes 0 (default) or 7,8,9 (PSWF shape-parameter choices); the legacy ES (1,2),
   Kaiser-Bessel (3,4) and cosh-type (5,6) formulas are removed and now return

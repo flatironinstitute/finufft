@@ -412,7 +412,7 @@ Algorithm performance options
 
 **gpu_{o}binsize{x,y,z}**: various binsizes for sorting (GM-sort) or SM subproblem methods. Values of ``-1`` trigger the heuristically set default values. Leave at default unless you know what you're doing. [To be documented]
 
-**gpu_maxbatchsize**: ``0`` use heuristically defined batch size for vectorized (many-transforms with same NU points) interface, else set this batch size.
+**gpu_maxbatchsize**: for the vectorized (many-transforms with same NU points) interface, the largest batch of transforms to process per FFT. ``0`` (default) chooses it heuristically from the fine-grid size and the device's L2 cache size; a positive value is used as given, capped at ``ntransf``. Negative values are invalid.
 
 **gpu_stream**: ``cudaStream_t`` (cast to ``void*``) on which all of the plan's work is issued; ``nullptr`` (the default) means the default stream. See :ref:`CUDA streams<gpu_streams>`.
 
