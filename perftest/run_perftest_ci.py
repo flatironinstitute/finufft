@@ -18,7 +18,6 @@ import numpy as np
 from jinja2 import Environment, FileSystemLoader, StrictUndefined
 
 from cuperftest_helpers import (
-    GPU_STAGES,
     gpu_args,
     gpu_cases,
     gpu_params_string,
@@ -144,9 +143,11 @@ def main() -> None:
 
     # One switch, so the two libraries share the loop, the figures and the page
     # section they render into. The GPU library has no thread count, so its case
-    # list is the same one with that distinction collapsed.
+    # list is the same one with that distinction collapsed. Both libraries plot
+    # CPU_STAGES: cuperftest also times the host-device transfers, but those
+    # stage the harness's own test data, so no library change moves them and a
+    # release-over-release plot of them reads the node's link.
     gpu = args.backend == CUDA
-    stages = GPU_STAGES if gpu else CPU_STAGES
     cases = gpu_cases() if gpu else PARAM_LIST
     binary = Path("perftest/cuda/cuperftest") if gpu else Path("perftest/perftest")
     times = gpu_times if gpu else cpu_times
@@ -161,7 +162,7 @@ def main() -> None:
         param, transform = grid[k]
         t0 = time.monotonic()
         x: list[str] = []
-        series: dict[str, list[float]] = {stage: [] for stage in stages}
+        series: dict[str, list[float]] = {stage: [] for stage in CPU_STAGES}
         for tag in tags:
             tag_times = measure(
                 times, builds_root / tag / binary, param, transform, tag, cpu
@@ -169,7 +170,7 @@ def main() -> None:
             if tag_times is None:
                 continue
             x.append(tag)
-            for stage in stages:
+            for stage in CPU_STAGES:
                 series[stage].append(tag_times[stage])
         # One line per case, printed when the case ends: concurrent cases would
         # interleave a start line, a line per tag and a finish line beyond
@@ -196,9 +197,9 @@ def main() -> None:
         # the stage order, which is the order the two plots stack in.
         ax.stackplot(
             x,
-            *(series[stage] for stage in stages),
-            labels=stages,
-            colors=[STAGE_COLORS[stage] for stage in stages],
+            *(series[stage] for stage in CPU_STAGES),
+            labels=CPU_STAGES,
+            colors=[STAGE_COLORS[stage] for stage in CPU_STAGES],
         )
         ax.grid(True, alpha=0.3)
         ax.set_xlabel("Version")
@@ -211,7 +212,7 @@ def main() -> None:
         key = f"{args.backend}|t{transform}|" + "|".join(param.digest_args())
         digest = hashlib.sha1(key.encode()).hexdigest()[:16]
         file = f"perftestci_{digest}.svg"
-        durations = np.sum([series[stage] for stage in stages], axis=0)
+        durations = np.sum([series[stage] for stage in CPU_STAGES], axis=0)
         ax.set_ylim(top=np.max(durations) * 1.1)
         for i in range(len(x)):
             ax.text(

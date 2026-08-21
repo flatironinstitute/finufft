@@ -21,8 +21,6 @@ from perftest_config import (
 # Params fields cuperftest also understands. threads is CPU-only, so entries
 # that differ only in it name one GPU case.
 GPU_FIELDS = ("prec", "N1", "N2", "N3", "ntransf", "M", "tol")
-# cuperftest's own event names, in the order they happen.
-GPU_STAGES = ["host_to_device", "makeplan", "setpts", "execute", "device_to_host"]
 
 
 def gpu_args(param, transform: int) -> list[str]:
@@ -84,7 +82,10 @@ def run_cuperftest(binary: str, args: list[str]) -> dict[str, float]:
     body = "\n".join(ln for ln in out.splitlines() if not ln.startswith("#"))
     rows = csv.DictReader(io.StringIO(body))
     times = {r["event"]: float(r[METRIC_COLUMN]) for r in rows}
-    if not times.keys() >= set(GPU_STAGES):
+    # Only the stages the two libraries share: cuperftest also times the
+    # host-device transfers, and nothing reads them, so a tag that omits them
+    # still plots.
+    if not times.keys() >= set(CPU_STAGES):
         raise RuntimeError(f"missing events in:\n{out}")
     return times
 
@@ -96,9 +97,8 @@ def gpu_total(times: dict[str, float]) -> float:
     so the two halves publish one estimator. The transfers stay out of it: they
     stage the harness's own test data, so no library change can move them, and
     on a small case they are 70-82% of the total, which left the ratio mostly
-    reading a link the node shares. The comment's plot stacks these three stages
-    too, so its label matches its bar; the docs page stacks all five, because
-    there the question is what a release costs end to end.
+    reading a link the node shares. Every plot stacks these three stages too, so
+    each label matches its bar.
     """
     return sum(times[stage] for stage in CPU_STAGES)
 

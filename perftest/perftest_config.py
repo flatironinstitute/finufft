@@ -120,16 +120,13 @@ PARAM_LIST = [
 ]
 TRANSFORMS = [1, 2, 3]
 
-# Both plots read these, so a stage keeps its color across the two. The three
-# CPU stages come first and stack bottom-up in that order; the GPU transfers
-# have no CPU counterpart and take colors outside the shared set.
+# Every plot reads these, so a stage keeps its color across all of them. The
+# stages stack bottom-up in this order.
 CPU_STAGES = ["makeplan", "setpts", "execute"]
 STAGE_COLORS = {
     "execute": "C0",
     "setpts": "C1",
     "makeplan": "C2",
-    "host_to_device": "C7",
-    "device_to_host": "C4",
 }
 
 
