@@ -1021,12 +1021,6 @@ typedef std::complex<float> fcomplex;
      else if (strcmp(fname[ifield],"nthreads") == 0) {
        oc->nthreads = (int)round(*mxGetPr(mxGetFieldByNumber(om,idx,ifield)));
      }
-     else if (strcmp(fname[ifield],"spread_nthr_atomic") == 0) {
-       oc->spread_nthr_atomic = (int)round(*mxGetPr(mxGetFieldByNumber(om,idx,ifield)));
-     }
-     else if (strcmp(fname[ifield],"spread_max_sp_size") == 0) {
-       oc->spread_max_sp_size = (int)round(*mxGetPr(mxGetFieldByNumber(om,idx,ifield)));
-     }
      else if (strcmp(fname[ifield],"spread_kerformula") == 0) {
        oc->spread_kerformula = (int)round(*mxGetPr(mxGetFieldByNumber(om,idx,ifield)));
      }
@@ -1042,7 +1036,9 @@ typedef std::complex<float> fcomplex;
      /* deprecated fields, kept for ABI compatibility, ignored by the library */
      else if (strcmp(fname[ifield],"spread_thread") == 0 ||
               strcmp(fname[ifield],"spread_kerevalmeth") == 0 ||
-              strcmp(fname[ifield],"spread_kerpad") == 0) {
+              strcmp(fname[ifield],"spread_kerpad") == 0 ||
+              strcmp(fname[ifield],"spread_nthr_atomic") == 0 ||
+              strcmp(fname[ifield],"spread_max_sp_size") == 0) {
        mexWarnMsgIdAndTxt("FINUFFT:deprecatedOpt",
                           "FINUFFT opts.%s is deprecated and ignored", fname[ifield]);
      }

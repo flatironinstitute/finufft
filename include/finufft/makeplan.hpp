@@ -190,11 +190,6 @@ template<typename TF> void FINUFFT_PLAN_T<TF>::setup_spreadinterp() {
   if (opts.debug || m.spopts.debug)
     printf("\t\t\ttol=%.3g sigma=%.3g: chose ns=%d beta=%.3g\n", m.tol,
            m.spopts.upsampfac, ns, m.spopts.beta);
-
-  // heuristic dir=1 chunking for nthr>>1, typical for intel i7 and skylake...
-  m.spopts.max_subproblem_size = (dim == 1) ? 10000 : 100000; // todo: revisit
-  if (opts.spread_max_sp_size > 0)                            // override
-    m.spopts.max_subproblem_size = opts.spread_max_sp_size;
 }
 
 // ------------------- piecewise-poly Horner setup utility -----------------
@@ -420,6 +415,7 @@ FINUFFT_PLAN_T<TF>::FINUFFT_PLAN_T(int type_, int dim_, const BIGINT *n_modes, i
     if (opts.spread_kerevalmeth != 1) warn("spread_kerevalmeth");
     if (opts.spread_kerpad != 1) warn("spread_kerpad");
     if (opts.spread_nthr_atomic >= 0) warn("spread_nthr_atomic");
+    if (opts.spread_max_sp_size > 0) warn("spread_max_sp_size");
     FINUFFT_DIAGNOSTIC_POP
   }
 

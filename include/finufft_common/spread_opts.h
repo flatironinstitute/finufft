@@ -21,9 +21,7 @@ struct finufft_spread_opts {
   int kerpad=0;              // kept for ABI compatibility, ignored (direct eval removed)
   int nthreads=0;            // # threads for spreadinterp (0: use max avail)
   int sort_threads=0;        // # threads for sort (0: auto-choice up to nthreads)
-  int max_subproblem_size=0; // # pts per t1 subprob; sets extra RAM per thread
   int debug=0;               // 0: silent, 1: small text output, 2: verbose
-  int atomic_threshold=0;    // num threads before switching spreadSorted to using atomic ops
   double upsampfac=0;        // sigma, upsampling factor, >1.
   double beta=0;             // main kernel shape parameter (for prolate-like kernels)
   int kerformula=0;          // kernel function type; see finufft_common/kernel.h

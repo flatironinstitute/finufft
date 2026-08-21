@@ -64,6 +64,11 @@ v2.6.0-dev
   `setkwopts` and the MATLAB gateway raises `FINUFFT:deprecatedOpt` via
   `mexWarnMsgIdAndTxt` (a mex's stderr is not reliably shown in the MATLAB
   desktop). (Barbone)
+* Deprecated `opts.spread_nthr_atomic` and `opts.spread_max_sp_size`: the tiled
+  spread has no atomic route left to switch to and no subproblem size to cap.
+  Both fields are retained for ABI compatibility, are ignored, and emit a
+  compiler deprecation warning in C++; the MATLAB and Python option parsers
+  warn at run time. (Barbone)
 * Fixed the cuFINUFFT build against a CPM-fetched CCCL: it was added as an
   include-SYSTEM package, and nvcc searches its own include directory before
   every `-isystem` path, so `cuda/std/*` resolved to the CUDA toolkit's older
