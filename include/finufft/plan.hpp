@@ -75,6 +75,26 @@ FINUFFT_EXPORT_TEST void finufft_fft_cleanup_threads();
 #include <finufft_common/spread_opts.h>
 #include <finufft_opts.h>
 
+// Tile metadata produced by bin-sort and consumed by the tiled spread/interp driver.
+struct SpreadTileData {
+  std::vector<BIGINT> starts;        // length ntiles+1; tile t is starts[t]..starts[t+1]
+  int edge = 0;                      // fine grid points per tile edge
+  std::array<BIGINT, 3> nt{1, 1, 1}; // per-axis tile counts
+  std::array<BIGINT, 3> ngrid{1, 1, 1}; // per-axis fine grid points the tiles cover
+  bool empty() const { return starts.empty(); }
+  void clear() { *this = {}; }
+};
+
+// A subgrid of the fine grid: its lowest corner and its extents in fine grid points.
+// padded_size1 is size1 padded for the SIMD tail, and is the row stride of the buffer.
+struct Subgrid {
+  BIGINT off1 = 0, off2 = 0, off3 = 0;
+  BIGINT padded_size1 = 1, size1 = 1, size2 = 1, size3 = 1;
+  UBIGINT cells() const {
+    return UBIGINT(padded_size1) * UBIGINT(size2) * UBIGINT(size3);
+  }
+};
+
 template<typename TF> struct FINUFFT_PLAN_T { // the main plan class, fully C++
 
 private:
@@ -127,6 +147,7 @@ private:
     std::array<const TF *, 3> XYZ{nullptr, nullptr, nullptr};
                                    // pointers to user's NU source coords (no alloc)
     std::vector<BIGINT> sortIndices;  // bin-sort permutation of NU points
+    SpreadTileData tiles;             // tile offsets + metadata; empty unless tile-binned
     bool didSort = false;             // whether bin-sorting was applied
 
     // --- Type 3 workspace (set by setpts for type 3 only) ---
@@ -189,7 +210,10 @@ private:
   // Compile-time-dispatched kernel method templates (NS=nspread, NC=horner degree).
   // Bodies are defined in interp.hpp and spread.hpp respectively.
   template<int NS, int NC, int NDIMS>
-  int interpSorted_kernel(TF *data_uniform, TF *data_nonuniform) const;
+  void interp_subproblem_kernel(
+      BIGINT off1, BIGINT off2, BIGINT off3, UBIGINT padded_size1, UBIGINT size2,
+      UBIGINT size3, const TF *du, UBIGINT M, const TF *kx, const TF *ky, const TF *kz,
+      const BIGINT *idx, TF *FINUFFT_RESTRICT dd) const noexcept;
   template<int NS, int NC>
   void spread_subproblem_1d_kernel(BIGINT off1, UBIGINT size1, TF *FINUFFT_RESTRICT du,
                                    UBIGINT M, const TF *kx, const TF *dd) const noexcept;
@@ -203,48 +227,48 @@ private:
                                    UBIGINT M, const TF *kx, const TF *ky, const TF *kz,
                                    const TF *dd) const noexcept;
 
-  // Nested caller types used to dispatch to compile-time ns/nc kernel specialisations.
-  // Bodies are defined in spread.hpp and interp.hpp respectively.
-  struct SpreadSubproblem1dCaller;
-  struct SpreadSubproblem2dCaller;
-  struct SpreadSubproblem3dCaller;
-  struct InterpSorted1dCaller;
-  struct InterpSorted2dCaller;
-  struct InterpSorted3dCaller;
+  // Nested caller types that turn the runtime kernel width and Horner degree into
+  // template arguments, one per direction. Bodies are in spread.hpp and interp.hpp.
+  template<int NDIMS> struct SpreadSubproblemCaller;
+  template<int NDIMS> struct InterpSubproblemCaller;
 
-  void bin_sort_singlethread(double bin_size_x, double bin_size_y, double bin_size_z);
-  void bin_sort_multithread(double bin_size_x, double bin_size_y, double bin_size_z,
-                            int nthr);
-  template<bool thread_safe>
-  void add_wrapped_subgrid(BIGINT offset1, BIGINT offset2, BIGINT offset3,
-                           UBIGINT padded_size1, UBIGINT size1, UBIGINT size2,
-                           UBIGINT size3, TF *FINUFFT_RESTRICT data_uniform,
+  void bin_sort_singlethread(int cell, int cell_bits, SpreadTileData &tile_data_out);
+  void bin_sort_multithread(int cell, int nthr, int cell_bits,
+                            SpreadTileData &tile_data_out);
+  // Runs of a padded subgrid that are contiguous in both it and the fine grid it wraps
+  // onto: f(gi, si, n) gets the two element offsets and the run length. The wrap
+  // arithmetic lives here alone, so a pass over the pair only says what it does per run.
+  template<typename F> void walk_wrapped_subgrid(const Subgrid &sub, F &&f) const;
+  void copy_wrapped_subgrid(const Subgrid &sub, const TF *data_uniform,
+                            TF *FINUFFT_RESTRICT du0) const;
+  void add_wrapped_subgrid(const Subgrid &sub, TF *FINUFFT_RESTRICT data_uniform,
                            const TF *du0) const;
-  void get_subgrid(BIGINT &offset1, BIGINT &offset2, BIGINT &offset3,
-                   BIGINT &padded_size1, BIGINT &size1, BIGINT &size2, BIGINT &size3,
-                   UBIGINT M, const TF *kx, const TF *ky, const TF *kz) const;
+  // The smallest subgrid holding the kernel support of all M points.
+  Subgrid get_subgrid(UBIGINT M, const TF *kx, const TF *ky, const TF *kz) const;
 
   void spreadcheck() const;
   void indexSort();
-  void spread_subproblem_1d(BIGINT off1, UBIGINT size1, TF *du, UBIGINT M, TF *kx,
-                            TF *dd) const noexcept;
-  void spread_subproblem_2d(BIGINT off1, BIGINT off2, UBIGINT size1, UBIGINT size2,
-                            TF *FINUFFT_RESTRICT du, UBIGINT M, const TF *kx,
-                            const TF *ky, const TF *dd) const noexcept;
-  void spread_subproblem_3d(BIGINT off1, BIGINT off2, BIGINT off3, UBIGINT size1,
-                            UBIGINT size2, UBIGINT size3, TF *du, UBIGINT M, TF *kx,
-                            TF *ky, TF *kz, TF *dd) const noexcept;
+  // One entry point per direction. Each is a separate symbol per dimension, so the
+  // per-dimension TUs (spreadinterp_1d/2d/3d.cpp) instantiate one dimension each.
+  // ky and kz are unread below their dimension and may be null there.
+  template<int NDIMS>
+  void spread_subproblem(const Subgrid &sub, TF *FINUFFT_RESTRICT du, UBIGINT M,
+                         const TF *kx, const TF *ky, const TF *kz,
+                         const TF *dd) const noexcept;
+  // idx[j] is where point j of this subproblem sat before the sort, which is where its
+  // strength goes back to in dd.
+  template<int NDIMS>
+  void interp_subproblem(const Subgrid &sub, const TF *du, UBIGINT M, const TF *kx,
+                         const TF *ky, const TF *kz, const BIGINT *idx,
+                         TF *dd) const noexcept;
   // batchSize>1 folds the batch loop into the subproblem loop, so all nthr threads get
   // assigned (vector, subprob) pairs out of the batchSize*nb of them. The per-vector
   // strides are the plan's own 2*nf() and 2*nj.
-  int spreadSorted(TF *FINUFFT_RESTRICT data_uniform, const TF *data_nonuniform,
-                   int batchSize = 1) const;
-  int interpSorted(TF *FINUFFT_RESTRICT data_uniform,
-                   TF *FINUFFT_RESTRICT data_nonuniform) const;
-  int interpSorted_1d(TF *data_uniform, TF *data_nonuniform) const;
-  int interpSorted_2d(TF *data_uniform, TF *data_nonuniform) const;
-  int interpSorted_3d(TF *data_uniform, TF *data_nonuniform) const;
-  int spreadinterpSorted(TF *data_uniform, TF *data_nonuniform, bool adjoint) const;
+  // dir==1 spreads the strengths onto the fine grid, dir==2 interpolates them off it.
+  // One routine for both: the tiles, the subproblems and the padded subgrid are the same
+  // either way, and only what a subproblem does with its subgrid differs.
+  template<int dir>
+  int spreadinterpTiled(TF *data_uniform, TF *data_nonuniform, int batchSize = 1) const;
   TF evaluate_kernel_runtime(TF x) const;
   std::vector<int> gridsize_for_fft() const;
   void do_fft(TC *fwBatch, int ntrans_actual, bool adjoint) const;
@@ -272,13 +296,27 @@ private:
   void create_fft_plan();
 
 public:
-  FINUFFT_PLAN_T(int type, int dim, const BIGINT *n_modes, int iflag, int ntrans, TF tol,
-                 const finufft_opts *opts);
-  ~FINUFFT_PLAN_T(); // defined in src/fft.cpp where Finufft_FFT_plan is complete
+  // FINUFFT_EXPORT_TEST: a test drives the plan directly, so a shared build must export
+  // the three members it calls out of line.
+  FINUFFT_EXPORT_TEST FINUFFT_PLAN_T(int type, int dim, const BIGINT *n_modes, int iflag,
+                                     int ntrans, TF tol, const finufft_opts *opts);
+  FINUFFT_EXPORT_TEST ~FINUFFT_PLAN_T(); // defined in src/fft.cpp, where the FFT plan is
+                                         // complete
 
   // Remaining actions (not create/delete) in guru interface are now methods...
-  int setpts(BIGINT nj, const TF *xj, const TF *yj, const TF *zj, BIGINT nk, const TF *s,
-             const TF *t, const TF *u);
+  FINUFFT_EXPORT_TEST int setpts(BIGINT nj, const TF *xj, const TF *yj, const TF *zj,
+                                 BIGINT nk, const TF *s, const TF *t, const TF *u);
+
+  // which spread path the last setpts prepared: empty tiles mean the chunk cut
+  const SpreadTileData &tile_data() const { return m.tiles; }
+  // the permutation the sort produced, so a test can read a tile's points back
+  const std::vector<BIGINT> &sort_indices() const { return m.sortIndices; }
+  int nspread() const { return m.spopts.nspread; }
+  // whether the last setpts sorted, and the fine grid the sort rule is stated over
+  bool sorted() const { return m.didSort; }
+  UBIGINT grid_size() const {
+    return UBIGINT(m.nfdim[0]) * UBIGINT(m.nfdim[1]) * UBIGINT(m.nfdim[2]);
+  }
 
   int execute(TC *cj, TC *fk) const { return execute_internal(cj, fk, false); }
   int execute_adjoint(TC *cj, TC *fk) const { return execute_internal(cj, fk, true); }

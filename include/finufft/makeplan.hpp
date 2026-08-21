@@ -195,9 +195,6 @@ template<typename TF> void FINUFFT_PLAN_T<TF>::setup_spreadinterp() {
   m.spopts.max_subproblem_size = (dim == 1) ? 10000 : 100000; // todo: revisit
   if (opts.spread_max_sp_size > 0)                            // override
     m.spopts.max_subproblem_size = opts.spread_max_sp_size;
-  // nthr above which switch OMP critical->atomic (add_wrapped..). R Blackwell's val:
-  m.spopts.atomic_threshold =
-      (opts.spread_nthr_atomic >= 0) ? opts.spread_nthr_atomic : 10;
 }
 
 // ------------------- piecewise-poly Horner setup utility -----------------
@@ -422,6 +419,7 @@ FINUFFT_PLAN_T<TF>::FINUFFT_PLAN_T(int type_, int dim_, const BIGINT *n_modes, i
     if (opts.spread_thread != 0) warn("spread_thread");
     if (opts.spread_kerevalmeth != 1) warn("spread_kerevalmeth");
     if (opts.spread_kerpad != 1) warn("spread_kerpad");
+    if (opts.spread_nthr_atomic >= 0) warn("spread_nthr_atomic");
     FINUFFT_DIAGNOSTIC_POP
   }
 
