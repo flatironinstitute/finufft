@@ -4,6 +4,7 @@
 #include <complex>
 #include <cstdint>
 #include <memory>
+#include <vector>
 
 #include "finufft_common/common.h"
 #include "finufft_errors.h"
@@ -55,6 +56,16 @@ inline void MY_OMP_SET_LOCK [[maybe_unused]] (my_omp_lock_t *) {}
 inline void MY_OMP_UNSET_LOCK [[maybe_unused]] (my_omp_lock_t *) {}
 #endif
 
+// One thread's scratch for the subproblem loop in spreadSorted. Owned by the
+// caller, so its capacity survives from one batch to the next: du0 is a whole
+// padded subgrid, which is large enough that some allocators hand it back to the
+// OS on free, and doing that once per transform can cost more than the spreading
+// itself. Automatic storage in execute_internal, so concurrent executes on one
+// plan each get their own and nothing has to be cleaned up.
+template<typename TF> struct SpreadScratch {
+  std::vector<TF> kx0, ky0, kz0, dd0, du0;
+};
+
 // Forward declaration only. Full definition in src/fft.cpp.
 template<typename T> class Finufft_FFT_plan;
 
@@ -86,7 +97,8 @@ private:
   };
 
   int spreadinterpSortedBatch(int batchSize, std::complex<TF> *fwBatch,
-                              std::complex<TF> *cBatch, bool adjoint) const;
+                              std::complex<TF> *cBatch, bool adjoint,
+                              std::vector<SpreadScratch<TF>> &scratch) const;
   int deconvolveBatch(int batchSize, std::complex<TF> *fkBatch, std::complex<TF> *fwBatch,
                       bool adjoint) const;
   void deconvolveshuffle1d(int dir, TF prefac, TF *fk, std::complex<TF> *fw) const;
@@ -238,7 +250,7 @@ private:
   // assigned (vector, subprob) pairs out of the batchSize*nb of them. The per-vector
   // strides are the plan's own 2*nf() and 2*nj.
   int spreadSorted(TF *FINUFFT_RESTRICT data_uniform, const TF *data_nonuniform,
-                   int batchSize = 1) const;
+                   int batchSize, std::vector<SpreadScratch<TF>> &scratch) const;
   int interpSorted(TF *FINUFFT_RESTRICT data_uniform,
                    TF *FINUFFT_RESTRICT data_nonuniform) const;
   int interpSorted_1d(TF *data_uniform, TF *data_nonuniform) const;
