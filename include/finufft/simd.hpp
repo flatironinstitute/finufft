@@ -3,6 +3,10 @@
 #include <finufft_common/defines.h>
 #include <finufft_common/kernel.h>
 
+// The release flags carry -fassociative-math, which clang and gcc before 12 report through
+// no macro of their own. Without this xsimd drops the barriers that keep its SSE2
+// int64->double cast, and so xsimd::floor, exact.
+#define XSIMD_REASSOCIATIVE_MATH 1
 // xsimd configuration: ensure unsupported architectures fall back to emulated.
 #include <xsimd/config/xsimd_config.hpp>
 #ifdef XSIMD_NO_SUPPORTED_ARCHITECTURE
