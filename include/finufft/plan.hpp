@@ -89,12 +89,24 @@ struct SpreadTileData {
 struct SpreadSchedule;
 
 // A subgrid of the fine grid: its lowest corner and its extents in fine grid points.
-// padded_size1 is size1 padded for the SIMD tail, and is the row stride of the buffer.
+// padded_size1 is the row stride of the buffer, always set through set_size1.
 struct Subgrid {
   BIGINT off1 = 0, off2 = 0, off3 = 0;
   BIGINT padded_size1 = 1, size1 = 1, size2 = 1, size3 = 1;
   UBIGINT cells() const {
     return UBIGINT(padded_size1) * UBIGINT(size2) * UBIGINT(size3);
+  }
+  // Sets the first axis and the row stride together, so the two cannot disagree. tail is
+  // the complex cells the innermost SIMD store writes past the end of a row. A stride of
+  // a whole eight cache lines reaches only eight of the L1's 64 sets, and a subgrid on
+  // such a stride thrashes them, so one more line goes in whenever the stride lands
+  // there.
+  template<class T> void set_size1(BIGINT s, BIGINT tail) noexcept {
+    constexpr BIGINT line  = 64 / BIGINT(2 * sizeof(T)); // complex cells per cache line
+    constexpr BIGINT alias = 8 * line;
+    const BIGINT need      = s + tail;
+    size1                  = s;
+    padded_size1           = need + (need % alias == 0 ? line : 0);
   }
 };
 

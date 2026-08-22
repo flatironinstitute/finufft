@@ -137,6 +137,36 @@ UBIGINT expected_subs(const SpreadTileData &tiles, UBIGINT cap) {
   return n;
 }
 
+void test_row_stride() {
+  // Subgrid::set_size1 must clear the SIMD tail of the innermost store, and must never
+  // leave the stride on a whole eight cache lines: such a stride reaches only eight of
+  // the L1's 64 sets, and a subgrid walking many rows on it thrashes them.
+  const auto walk = [](auto tag) {
+    using T                = decltype(tag);
+    constexpr BIGINT line  = 64 / BIGINT(2 * sizeof(T));
+    constexpr BIGINT alias = 8 * line;
+    BIGINT widened         = 0;
+    for (uint8_t ns = finufft::common::MIN_NSPREAD; ns <= finufft::common::MAX_NSPREAD<T>;
+         ++ns) {
+      const BIGINT tail = BIGINT(finufft::spreadinterp::get_padding<T>(2 * ns) / 2);
+      for (BIGINT n1 = ns; n1 <= 4096; ++n1) {
+        Subgrid sub;
+        sub.set_size1<T>(n1, tail);
+        check(sub.size1 == n1, "set_size1 keeps the unpadded extent");
+        check(sub.padded_size1 >= n1 + tail, "the row stride clears the SIMD tail");
+        check(sub.padded_size1 % alias != 0, "the row stride avoids an eight-line alias");
+        check(sub.padded_size1 <= n1 + tail + line,
+              "the row stride adds at most one line");
+        widened += (sub.padded_size1 != n1 + tail);
+      }
+    }
+    // Without this the checks above still pass on a rule that widens nothing.
+    check(widened > 0, "the alias rule really widens some strides");
+  };
+  walk(double{});
+  walk(float{});
+}
+
 // One subproblem per non-empty tile, and the breakpoints walk the sorted list from its
 // start to its end without a gap or an overlap, so every point is spread exactly once.
 void test_cut() {
@@ -608,6 +638,7 @@ int main() {
   setvbuf(stdout, nullptr, _IONBF, 0);
   if (const char *d = std::getenv("FINUFFT_TEST_DEBUG")) test_debug = std::atoi(d);
   if (const char *s = std::getenv("FINUFFT_TEST_SMALL")) test_small = std::atoi(s);
+  test_row_stride();
   test_cut();
   test_ceilings();
   test_sort_rule();

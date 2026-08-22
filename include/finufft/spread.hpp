@@ -800,8 +800,9 @@ Subgrid FINUFFT_PLAN_T<TF>::get_subgrid(UBIGINT M, const TF *kx, const TF *ky,
     return std::pair{off, BIGINT(std::ceil(hi - half)) - off + ns};
   };
   Subgrid sub;
-  std::tie(sub.off1, sub.size1) = extent(kx);
-  sub.padded_size1              = sub.size1 + get_padding<TF>(2 * ns) / 2;
+  const auto [o1, n1] = extent(kx);
+  sub.off1            = o1;
+  sub.set_size1<TF>(n1, BIGINT(get_padding<TF>(2 * ns) / 2));
   if (dim > 1) std::tie(sub.off2, sub.size2) = extent(ky);
   if (dim > 2) std::tie(sub.off3, sub.size3) = extent(kz);
   return sub;
