@@ -25,13 +25,20 @@ v2.6.0-dev
   checks that an unusable `gpu_device_id` returns `FINUFFT_ERR_CUDA_FAILURE`; with only
   one device visible the cross-device half cannot run and the test reports a ctest SKIP.
   (Barbone)
+* Spreading and interpolation share one cache-tiled subproblem algorithm: the
+  sort bins the points into cubic tiles of the fine grid sized to one core's
+  L2, and both directions build the same padded subgrid per tile. Spreading
+  adds the subgrid back under one lock per fine grid; interpolation copies it
+  out and takes no lock. Interpolation now sorts, governed by
+  `opts.spread_sort`; spread_sort=0 costs a grid copy per subproblem, so leave
+  sorting on unless the grid is small. (Barbone)
 * Deprecated `opts.spread_thread`. Both directions now use all threads on the
   whole batch, so there is nothing left to select. Spreading folds the batch loop
   into the loop over subproblems (Sec. 5.2 of the FINUFFT paper), so (vector,
   subproblem) pairs are what get assigned to threads and the paper's `omp
-  critical` on the add back becomes a per-vector lock; interp writes to distinct
-  outputs per thread, so it still takes the vectors in sequence with all threads
-  on each. The old automatic choice for ntr>1, `2`, only kept as many threads busy
+  critical` on the add back becomes a per-vector lock; interp runs over the same
+  (vector, subproblem) pairs and needs no lock, since it only reads the fine
+  grid. The old automatic choice for ntr>1, `2`, only kept as many threads busy
   as the batch was long: OMP nesting is off by default, so each vector still split
   into `nthreads` subproblems, which one thread ran in sequence. Measures at least
   as fast as either former scheme at every ntr. The field is retained for ABI
@@ -57,6 +64,11 @@ v2.6.0-dev
   `setkwopts` and the MATLAB gateway raises `FINUFFT:deprecatedOpt` via
   `mexWarnMsgIdAndTxt` (a mex's stderr is not reliably shown in the MATLAB
   desktop). (Barbone)
+* Deprecated `opts.spread_nthr_atomic` and `opts.spread_max_sp_size`: the tiled
+  spread has no atomic route left to switch to and no subproblem size to cap.
+  Both fields are retained for ABI compatibility, are ignored, and emit a
+  compiler deprecation warning in C++; the MATLAB and Python option parsers
+  warn at run time. (Barbone)
 * Fixed the cuFINUFFT build against a CPM-fetched CCCL: it was added as an
   include-SYSTEM package, and nvcc searches its own include directory before
   every `-isystem` path, so `cuda/std/*` resolved to the CUDA toolkit's older

@@ -1,10 +1,11 @@
 #pragma once
 
+#include <finufft/kernel_dispatch.hpp>
 #include <finufft/plan.hpp>
 #include <finufft/simd.hpp>
 #include <finufft/utils.hpp>
 
-#include <poet/poet.hpp> // poet::dispatch / inclusive_range / dispatch_param
+#include <array>
 
 namespace finufft::spreadinterp {
 
@@ -446,211 +447,110 @@ void interp_cube(T *FINUFFT_RESTRICT target, const T *du, const T *ker1,
 
 } // namespace finufft::spreadinterp
 
-// ---------- FINUFFT_PLAN_T interpSorted_kernel method definition ----------
+// ---------- FINUFFT_PLAN_T interp_subproblem_kernel method definition ----------
 // FINUFFT_PLAN_T is already defined via the transitive include chain:
 //   simd.hpp -> finufft/plan.hpp
 //
-// Previous args (sort_indices, N1, N2, N3, M, kx, ky, kz, opts, horner_coeffs_ptr) are
-// now plan members. Dimensionality uses runtime plan member dim (replacing the old
-// ndims_from_Ns(N1,N2,N3) call). Converted to class member, Barbone 2/24/26.
+// The mirror of spread_subproblem_*d_kernel: one subproblem's points, read out of the
+// subgrid that subproblem holds. Barbone 2/24/26.
 
 template<typename TF>
 template<int NS, int NC, int NDIMS>
-FINUFFT_NEVER_INLINE int FINUFFT_PLAN_T<TF>::interpSorted_kernel(
-    TF *data_uniform, TF *data_nonuniform) const
-// Interpolate to NU pts in sorted order from a uniform grid. See spreadinterp() for doc.
+FINUFFT_NEVER_INLINE void FINUFFT_PLAN_T<TF>::interp_subproblem_kernel(
+    BIGINT off1, [[maybe_unused]] BIGINT off2, [[maybe_unused]] BIGINT off3,
+    UBIGINT padded_size1, [[maybe_unused]] UBIGINT size2, [[maybe_unused]] UBIGINT size3,
+    const TF *du, UBIGINT M, const TF *kx, [[maybe_unused]] const TF *ky,
+    [[maybe_unused]] const TF *kz, const BIGINT *idx,
+    TF *FINUFFT_RESTRICT dd) const noexcept
+/* Interpolate M NU points (kx, ky, kz, already folded into the fine grid box)
+   out of subgrid du into strengths dd.
+   The subgrid's lowest corner sits at off1,2,3 in fine-grid coords.
+   Rows are padded_size1 apart; the extent in the second and third dimensions is size2,3.
+   idx[j] is the pre-sort index of point j; the write to dd goes to dd + 2*idx[j]
+   directly, so no gathered buffer and copy is needed. A point's kernel support lies
+   inside the subgrid its own subproblem built, so the kernels' wrapped fallbacks only
+   ever run their in-bounds branch, at the subgrid's own edges.
+*/
 {
   using namespace finufft::spreadinterp;
-  using finufft::utils::CNTime;
-  using KBL                                      = KernelBufferLayout<TF, NS>;
-  using simd_type = typename KBL::simd_type;
-  static constexpr auto alignment                = KBL::alignment;
-  static constexpr auto simd_size                = KBL::simd_size;
-  static constexpr auto ns2          = NS * TF(0.5);
-  const UBIGINT N1                   = m.nfdim[0];
-  [[maybe_unused]] const UBIGINT N2              = m.nfdim[1];
-  [[maybe_unused]] const UBIGINT N3              = m.nfdim[2];
-  const UBIGINT M                    = m.nj;
-  const TF *FINUFFT_RESTRICT kx      = m.XYZ[0];
-  [[maybe_unused]] const TF *FINUFFT_RESTRICT ky = m.XYZ[1];
-  [[maybe_unused]] const TF *FINUFFT_RESTRICT kz = m.XYZ[2];
-  const TF *horner_coeffs_ptr                    = m.horner_coeffs.data();
-
-  CNTime timer{};
-  auto nthr = MY_OMP_GET_MAX_THREADS();
-  if (m.spopts.nthreads > 0) nthr = m.spopts.nthreads;
-#ifndef _OPENMP
-  nthr = 1;
-#endif
-  if (m.spopts.debug)
-    printf("\tinterp %dD (M=%lld; N1=%lld,N2=%lld,N3=%lld), nthr=%d\n", NDIMS,
-           (long long)M, (long long)N1, (long long)N2, (long long)N3, nthr);
-  timer.start();
-#pragma omp parallel num_threads(nthr)
-  {
-    static constexpr auto CHUNKSIZE = simd_size;
-    alignas(alignment) UBIGINT jlist[CHUNKSIZE];
-    alignas(alignment) TF xjlist[CHUNKSIZE];
-    [[maybe_unused]] alignas(alignment) TF yjlist[CHUNKSIZE];
-    [[maybe_unused]] alignas(alignment) TF zjlist[CHUNKSIZE];
-    alignas(alignment) TF outbuf[2 * CHUNKSIZE];
-    alignas(KBL::alignment) std::array<TF, 3 * KBL::stride> kernel_values{0};
-    auto *FINUFFT_RESTRICT ker1 = kernel_values.data();
-    [[maybe_unused]] auto *FINUFFT_RESTRICT ker2 = kernel_values.data() + KBL::stride;
-    [[maybe_unused]] auto *FINUFFT_RESTRICT ker3 = kernel_values.data() + 2 * KBL::stride;
-
-#pragma omp for schedule(dynamic, 1000)
-    for (BIGINT i = 0; i < BIGINT(M); i += CHUNKSIZE) {
-      const UBIGINT bufsize = (i + CHUNKSIZE > M) ? M - i : CHUNKSIZE;
-      for (UBIGINT ibuf = 0; ibuf < bufsize; ibuf++) {
-        UBIGINT j    = m.sortIndices[i + ibuf];
-        jlist[ibuf]  = j;
-        xjlist[ibuf] = fold_rescale<TF>(kx[j], N1);
-        if constexpr (NDIMS >= 2) yjlist[ibuf] = fold_rescale<TF>(ky[j], N2);
-        if constexpr (NDIMS == 3) zjlist[ibuf] = fold_rescale<TF>(kz[j], N3);
-      }
-
-      for (UBIGINT ibuf = 0; ibuf < bufsize; ibuf++) {
-        const auto xj = xjlist[ibuf];
-
-        auto *FINUFFT_RESTRICT target = outbuf + 2 * ibuf;
-
-        const auto i1 = BIGINT(std::ceil(xj - ns2));
-        const auto x1 = std::ceil(xj - ns2) - xj;
-
-        if constexpr (NDIMS == 1) {
-          evaluate_kernel_vector<NS, NC, TF, simd_type>(kernel_values.data(),
-                                                        horner_coeffs_ptr, x1);
-          interp_line<TF, NS, simd_type>(target, data_uniform, ker1, i1, N1);
-        } else if constexpr (NDIMS == 2) {
-          const auto yj = yjlist[ibuf];
-          const auto i2 = BIGINT(std::ceil(yj - ns2));
-          const auto x2 = std::ceil(yj - ns2) - yj;
-          evaluate_kernel_vector<NS, NC, TF, simd_type>(kernel_values.data(),
-                                                        horner_coeffs_ptr, x1, x2);
-          interp_square<TF, NS, simd_type>(target, data_uniform, ker1, ker2, i1, i2, N1,
-                                           N2);
-        } else {
-          const auto yj = yjlist[ibuf];
-          const auto zj = zjlist[ibuf];
-          const auto i2 = BIGINT(std::ceil(yj - ns2));
-          const auto i3 = BIGINT(std::ceil(zj - ns2));
-          const auto x2 = std::ceil(yj - ns2) - yj;
-          const auto x3 = std::ceil(zj - ns2) - zj;
-          evaluate_kernel_vector<NS, NC, TF, simd_type>(kernel_values.data(),
-                                                        horner_coeffs_ptr, x1, x2, x3);
-          interp_cube<TF, NS, simd_type>(target, data_uniform, ker1, ker2, ker3, i1, i2,
-                                         i3, N1, N2, N3);
-        }
-      }
-
-      for (UBIGINT ibuf = 0; ibuf < bufsize; ibuf++) {
-        const UBIGINT j            = jlist[ibuf];
-        data_nonuniform[2 * j]     = outbuf[2 * ibuf];
-        data_nonuniform[2 * j + 1] = outbuf[2 * ibuf + 1];
-      }
-    } // end NU targ loop
-  } // end parallel section
-  if (m.spopts.debug) printf("\tt2 spreading loop: \t%.3g s\n", timer.elapsedsec());
-  return 0;
+  using KBL                   = KernelBufferLayout<TF, NS>;
+  using simd_type             = typename KBL::simd_type;
+  static constexpr auto ns2   = NS * TF(0.5);
+  const TF *horner_coeffs_ptr = m.horner_coeffs.data();
+  alignas(KBL::alignment) std::array<TF, 3 * KBL::stride> kernel_values{0};
+  const auto *ker1                  = kernel_values.data();
+  [[maybe_unused]] const auto *ker2 = kernel_values.data() + KBL::stride;
+  [[maybe_unused]] const auto *ker3 = kernel_values.data() + 2 * KBL::stride;
+  for (UBIGINT j = 0; j < M; ++j) {
+    const auto xj = kx[j];
+    // ceil offset, hence rounding, must match that in get_subgrid...
+    const auto i1 = BIGINT(std::ceil(xj - ns2));
+    const auto x1 = std::ceil(xj - ns2) - xj;
+    if constexpr (NDIMS == 1) {
+      evaluate_kernel_vector<NS, NC, TF, simd_type>(kernel_values.data(),
+                                                    horner_coeffs_ptr, x1);
+      interp_line<TF, NS, simd_type>(dd + 2 * idx[j], du, ker1, i1 - off1, padded_size1);
+    } else if constexpr (NDIMS == 2) {
+      const auto yj = ky[j];
+      const auto i2 = BIGINT(std::ceil(yj - ns2));
+      const auto x2 = std::ceil(yj - ns2) - yj;
+      evaluate_kernel_vector<NS, NC, TF, simd_type>(kernel_values.data(),
+                                                    horner_coeffs_ptr, x1, x2);
+      interp_square<TF, NS, simd_type>(dd + 2 * idx[j], du, ker1, ker2, i1 - off1,
+                                       i2 - off2, padded_size1, size2);
+    } else {
+      const auto yj = ky[j];
+      const auto zj = kz[j];
+      const auto i2 = BIGINT(std::ceil(yj - ns2));
+      const auto i3 = BIGINT(std::ceil(zj - ns2));
+      const auto x2 = std::ceil(yj - ns2) - yj;
+      const auto x3 = std::ceil(zj - ns2) - zj;
+      evaluate_kernel_vector<NS, NC, TF, simd_type>(kernel_values.data(),
+                                                    horner_coeffs_ptr, x1, x2, x3);
+      interp_cube<TF, NS, simd_type>(dd + 2 * idx[j], du, ker1, ker2, ker3, i1 - off1,
+                                     i2 - off2, i3 - off3, padded_size1, size2, size3);
+    }
+  }
 }
 
-// ---------- FINUFFT_PLAN_T interp nested caller definition ----------
-// Out-of-class definition of the nested type declared in plan.hpp.
-// Member function templates are not allowed in local classes (GCC restriction),
-// so this must be a proper nested class definition of FINUFFT_PLAN_T<TF>.
-//
-// Previous free-function args are now read from the plan reference via
-// interpSorted_kernel. Converted to nested class of FINUFFT_PLAN_T, Barbone 2/24/26.
+// ---------- FINUFFT_PLAN_T interp-subproblem nested caller definition ----------
+// Out-of-class definition of the nested type declared in plan.hpp. Member function
+// templates are not allowed in local classes (GCC restriction), so this must be a proper
+// nested class definition of FINUFFT_PLAN_T<TF>. One definition serves every dimension,
+// since the kernel is templated on the dimension too and the arguments a lower dimension
+// does not use stay zero.
 
-template<typename TF> struct FINUFFT_PLAN_T<TF>::InterpSorted1dCaller {
+template<typename TF>
+template<int NDIMS>
+struct FINUFFT_PLAN_T<TF>::InterpSubproblemCaller {
   const FINUFFT_PLAN_T &plan;
-  TF *du;
-  TF *dnu;
+  const Subgrid &sub;
+  const TF *du;
+  UBIGINT M;
+  const TF *kx, *ky, *kz;
+  const BIGINT *idx;
+  TF *dd;
   template<int NS, int NC> int operator()() const {
     if constexpr (!::finufft::kernel::ValidKernelParams<NS, NC>())
       return finufft::spreadinterp::report_invalid_kernel_params(NS, NC);
-    else
-      return plan.template interpSorted_kernel<NS, NC, 1>(du, dnu);
+    else {
+      plan.template interp_subproblem_kernel<NS, NC, NDIMS>(
+          sub.off1, sub.off2, sub.off3, sub.padded_size1, sub.size2, sub.size3, du, M, kx,
+          ky, kz, idx, dd);
+      return 0;
+    }
   }
 };
 
-template<typename TF> struct FINUFFT_PLAN_T<TF>::InterpSorted2dCaller {
-  const FINUFFT_PLAN_T &plan;
-  TF *du;
-  TF *dnu;
-  template<int NS, int NC> int operator()() const {
-    if constexpr (!::finufft::kernel::ValidKernelParams<NS, NC>())
-      return finufft::spreadinterp::report_invalid_kernel_params(NS, NC);
-    else
-      return plan.template interpSorted_kernel<NS, NC, 2>(du, dnu);
-  }
-};
-
-template<typename TF> struct FINUFFT_PLAN_T<TF>::InterpSorted3dCaller {
-  const FINUFFT_PLAN_T &plan;
-  TF *du;
-  TF *dnu;
-  template<int NS, int NC>
-  int operator()() const {
-    if constexpr (!::finufft::kernel::ValidKernelParams<NS, NC>())
-      return finufft::spreadinterp::report_invalid_kernel_params(NS, NC);
-    else
-      return plan.template interpSorted_kernel<NS, NC, 3>(du, dnu);
-  }
-};
-
-// ---------- FINUFFT_PLAN_T interpSorted_Nd method definitions ----------
-// Per-dimension entry points: same dispatch logic as interpSorted, but each is a
-// separate symbol so that per-dimension TUs (spreadinterp_1d/2d/3d.cpp) can
-// provide explicit instantiations without repeating the other dimensions.
-
+// ---------- FINUFFT_PLAN_T interp_subproblem method definition ----------
+// Templated on the dimension, so that the per-dimension TUs (spreadinterp_1d/2d/3d.cpp)
+// each instantiate one dimension without pulling in the others.
 template<typename TF>
-int FINUFFT_PLAN_T<TF>::interpSorted_1d(TF *data_uniform, TF *data_nonuniform) const {
-  using namespace finufft::spreadinterp;
-  using namespace finufft::common;
-  InterpSorted1dCaller caller{*this, data_uniform, data_nonuniform};
-  using NsSeq = poet::inclusive_range<MIN_NSPREAD, MAX_NSPREAD<TF>>;
-  using NcSeq = poet::inclusive_range<MIN_NC, MAX_NC>;
-  return poet::dispatch(caller,
-                        std::make_tuple(poet::dispatch_param<NsSeq>{m.spopts.nspread},
-                                        poet::dispatch_param<NcSeq>{m.nc}));
-}
-
-template<typename TF>
-int FINUFFT_PLAN_T<TF>::interpSorted_2d(TF *data_uniform, TF *data_nonuniform) const {
-  using namespace finufft::spreadinterp;
-  using namespace finufft::common;
-  InterpSorted2dCaller caller{*this, data_uniform, data_nonuniform};
-  using NsSeq = poet::inclusive_range<MIN_NSPREAD, MAX_NSPREAD<TF>>;
-  using NcSeq = poet::inclusive_range<MIN_NC, MAX_NC>;
-  return poet::dispatch(caller,
-                        std::make_tuple(poet::dispatch_param<NsSeq>{m.spopts.nspread},
-                                        poet::dispatch_param<NcSeq>{m.nc}));
-}
-
-template<typename TF>
-int FINUFFT_PLAN_T<TF>::interpSorted_3d(TF *data_uniform, TF *data_nonuniform) const {
-  using namespace finufft::spreadinterp;
-  using namespace finufft::common;
-  InterpSorted3dCaller caller{*this, data_uniform, data_nonuniform};
-  using NsSeq = poet::inclusive_range<MIN_NSPREAD, MAX_NSPREAD<TF>>;
-  using NcSeq = poet::inclusive_range<MIN_NC, MAX_NC>;
-  return poet::dispatch(caller,
-                        std::make_tuple(poet::dispatch_param<NsSeq>{m.spopts.nspread},
-                                        poet::dispatch_param<NcSeq>{m.nc}));
-}
-
-// ---------- FINUFFT_PLAN_T interpSorted method definition ----------
-
-template<typename TF>
-int FINUFFT_PLAN_T<TF>::interpSorted(TF *data_uniform, TF *data_nonuniform) const
-// Dispatches to the per-dimension interpSorted_Nd based on this->dim.
-// Uses plan members sortIndices, nfdim, nj, XYZ, spopts, nc, horner_coeffs, dim.
-// Previous args (sort_indices, N1, N2, N3, M, kx, ky, kz, opts, horner_coeffs, nc)
-// are now plan members. Converted to class member, Barbone 2/24/26.
-{
-  if (dim == 1) return interpSorted_1d(data_uniform, data_nonuniform);
-  if (dim == 2) return interpSorted_2d(data_uniform, data_nonuniform);
-  return interpSorted_3d(data_uniform, data_nonuniform);
+template<int NDIMS>
+void FINUFFT_PLAN_T<TF>::interp_subproblem(const Subgrid &sub, const TF *du, UBIGINT M,
+                                           const TF *kx, const TF *ky, const TF *kz,
+                                           const BIGINT *idx, TF *dd) const noexcept {
+  finufft::spreadinterp::kernel_dispatch<TF>(
+      m.spopts.nspread, m.nc,
+      InterpSubproblemCaller<NDIMS>{*this, sub, du, M, kx, ky, kz, idx, dd});
 }

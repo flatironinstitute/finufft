@@ -9,6 +9,7 @@ set(TESTS
     finufft3d_test
     finufft3dmany_test
     spreadinterp1d_test
+    spread_schedule_test
     adjointness
     tolsweep
 )
@@ -21,6 +22,12 @@ foreach(TEST ${TESTS})
     target_compile_definitions(${TEST}f PRIVATE -DSINGLE)
     target_compile_features(${TEST}f PRIVATE cxx_std_17)
     finufft_link_test(${TEST}f)
+endforeach()
+
+# spread_schedule_test reads fold_rescale from the internal simd header, so it needs xsimd
+# and poet (the dispatcher) on top of finufft_link_test, as testutils does.
+foreach(TEST spread_schedule_test spread_schedule_testf)
+    target_link_libraries(${TEST} PRIVATE xsimd poet::poet)
 endforeach()
 
 # copy the DLLs to the build directory so that the tests can find them there fix
@@ -134,6 +141,21 @@ function(add_tests_with_prec PREC REQ_TOL CHECK_TOL SUFFIX)
         COMMAND spreadinterp1d_test${SUFFIX} 1e3 1e3 ${REQ_TOL} 0 2 2.0 ${CHECK_TOL}
         WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
     )
+
+    add_test(
+        NAME spread_schedule_${PREC}
+        COMMAND spread_schedule_test${SUFFIX}
+        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+    )
+    # the real-sort cases need an L2 large enough to tile the spread; skip, never pass
+    set_tests_properties(spread_schedule_${PREC} PROPERTIES SKIP_RETURN_CODE 77)
+    # a sanitizer build runs the same routes on smaller grids, inside ctest's timeout
+    if(FINUFFT_USE_SANITIZERS)
+        set_tests_properties(
+            spread_schedule_${PREC}
+            PROPERTIES ENVIRONMENT FINUFFT_TEST_SMALL=1
+        )
+    endif()
 
     add_test(NAME run_tolsweep_${PREC} COMMAND tolsweep${SUFFIX} WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
     # under valgrind tolsweep needs more than ctest's 1500 s default

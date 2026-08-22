@@ -167,7 +167,7 @@ automatically from call to call in the same executable (incidentally, also in th
 * ``spread_sort=1`` : always sorts
 * ``spread_sort=2`` : uses a heuristic to decide whether to sort or not.
 
-The heuristic bakes in empirical findings such as: generally it is not worth sorting in 1D type 2 transforms, or when the number of nonuniform points is small.
+As of v2.6.0 both directions sort. The heuristic sorts unless a single thread already holds the whole fine grid in its L2 cache. Everywhere else a sort costs one pass over the points and buys every later pass a fine grid that stays in cache. The sort also groups the points into the cache tiles that spreading and interpolation take as subproblems, so ``spread_sort=0`` leaves both directions with one chunk of the point list per thread instead.
 Feel free to try experimenting here; if you have highly-structured nonuniform point ordering (such as coming from polar-grid or propeller-type MRI k-points) it may be advantageous not to sort.
 
 **upsampfac**: This is the internal factor $\sigma$ by which the FFT (fine grid)
@@ -180,7 +180,7 @@ As of v2.5.0, due to on-the-fly polynomial coefficient fitting, the kernel is eq
 
 * ``upsampfac>1.0`` : fix the upsampling factor, overriding the heuristic choice. A standard setting is 2 (which is good for achieving 9-digit or more accuracy), while a typical "low" setting is 1.25 (this reduces the RAM and FFT costs, and is good for up to 5-digit accuracy, unless the density M/N is high enough that its 50% wider spreading kernel would be counterproductive). Low upsampfac is especially efficient for type 3 transforms. Because the kernel width is limited to 16, only 9-digit accuracy can be reached when using ``upsampfac=1.25``, for instance.
 
-**spread_thread**: DEPRECATED as of v2.6.0, and ignored (the field is retained for ABI compatibility, and setting it emits a compiler deprecation warning in C++). Both directions now use all threads on the whole batch, so there is nothing left to choose. Spreading folds the batch loop into the loop over subproblems (the load-balanced scheme of Sec. 5.2 of our paper [FIN] in the :doc:`references <refs>`), so (vector, subproblem) pairs are what get assigned to threads, and the paper's ``omp critical`` on the add back into the fine grid becomes a per-vector lock. Interpolation writes to distinct outputs per thread, so it still takes the vectors in sequence, each with all threads.
+**spread_thread**: DEPRECATED as of v2.6.0, and ignored (the field is retained for ABI compatibility, and setting it emits a compiler deprecation warning in C++). Both directions now use all threads on the whole batch, so there is nothing left to choose. Both directions fold the batch loop into the loop over subproblems (the load-balanced scheme of Sec. 5.2 of our paper [FIN] in the :doc:`references <refs>`), so (vector, subproblem) pairs are what get assigned to threads. Only spreading writes the fine grid, so the paper's ``omp critical`` on the add back becomes a per-vector lock; interpolation reads the grid and takes no lock at all.
 
 Setting it to anything other than its ``0`` default prints a runtime warning (suppressed by ``showwarn=0``), so callers through the Fortran, Python and MATLAB wrappers - which cannot see the C++ attribute - are told it is ignored.
 
@@ -192,9 +192,9 @@ Setting it to anything other than its ``0`` default prints a runtime warning (su
 **maxbatchsize**:  in the case of multiple transforms per call (``ntr>1``, or the "many" interfaces), set the largest batch size of data vectors.
 Here ``0`` makes an automatic choice. If you are unhappy with this, then for small problems it should equal the number of threads, while for large problems it appears that ``1`` often better (since otherwise too much simultaneous RAM movement occurs). Some further work is needed to optimize this parameter.
 
-**spread_nthr_atomic**: if non-negative: for numbers of threads up to this value, an OMP critical block for ``add_wrapped_subgrid`` is used in spreading (type 1 transforms). Above this value, instead OMP atomic writes are used, which scale better for large thread numbers. If negative, the heuristic default in the spreader is used, set in ``FINUFFT_PLAN_T::setup_spreadinterp()`` in ``include/finufft/makeplan.hpp``.
+**spread_nthr_atomic**: DEPRECATED as of v2.6.0, and ignored (the field is retained for ABI compatibility, and setting it emits a compiler deprecation warning in C++). It selected the thread count above which the add back into the fine grid switched from an OMP critical block to atomic writes. A subproblem is now a cache tile, and it adds under the lock of the fine grid it writes, so no atomic route is left to choose.
 
-**spread_max_sp_size**: if positive, overrides the maximum subproblem (chunking) size for multithreaded spreading (type 1 transforms). Otherwise the default in the spreader is used, set in ``FINUFFT_PLAN_T::setup_spreadinterp()`` in ``include/finufft/makeplan.hpp``, which we believe is a decent heuristic for Intel i7 and xeon machines.
+**spread_max_sp_size**: DEPRECATED as of v2.6.0, and ignored (the field is retained for ABI compatibility, and setting it emits a compiler deprecation warning in C++). It overrode the maximum subproblem size for multithreaded spreading. A subproblem is now a cache tile, so its size follows from the cache, and an unsorted point list is one tile cut one subproblem per thread.
 
 **spread_kerformula**: ``0`` uses the default spreading (gridding) kernel with default shape choice; ``7``, ``8`` and ``9`` select among shape parameter choices for it. As of v2.6.0 the prolate spheroidal wavefunction (PSWF) is the only kernel: the legacy ES, Kaiser--Bessel and cosh-type formulas (``1``--``6``, available up to v2.5.0) have been removed and now return an error. Only developers should mess with this parameter; users should leave it at default.
 
@@ -202,7 +202,7 @@ Here ``0`` makes an automatic choice. If you are unhappy with this, then for sma
 
 **spread_kerpad**: [DEPRECATED] This option historically controlled padding to help SIMD vectorization for the removed direct-evaluation method. It is ignored by the library.
 
-Like ``spread_thread``, both of the above print a runtime warning when set away from their default, in addition to the C++ compiler deprecation warning.
+Like ``spread_thread``, each of the deprecated options above prints a runtime warning when set away from its default, in addition to the C++ compiler deprecation warning.
 
 
 

@@ -673,7 +673,13 @@ def is_single_dtype(dtype):
 
 ### kwargs opt set
 ### opts fields kept for ABI compatibility but ignored by the library
-DEPRECATED_OPTS = ("spread_thread", "spread_kerevalmeth", "spread_kerpad")
+DEPRECATED_OPTS = (
+    "spread_thread",
+    "spread_kerevalmeth",
+    "spread_kerpad",
+    "spread_nthr_atomic",
+    "spread_max_sp_size",
+)
 
 
 def setkwopts(opt, **kwargs):
