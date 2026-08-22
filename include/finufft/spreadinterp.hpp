@@ -119,6 +119,17 @@ FINUFFT_PLAN_T<TF>::Kernel_onedim_FT::Kernel_onedim_FT(const FINUFFT_PLAN_T &pla
   prefac = TF(pf);
 }
 
+template<typename TF> int FINUFFT_PLAN_T<TF>::tile_doublings(int cell) const noexcept {
+  using finufft::spreadinterp::ndims_from_Ns;
+  return spread_tile_doublings(cell, ndims_from_Ns(m.nfdim[0], m.nfdim[1], m.nfdim[2]),
+                               m.spopts.nspread, double(m.nj) / double(grid_size()));
+}
+
+template<typename TF>
+SpreadSchedule FINUFFT_PLAN_T<TF>::make_schedule(int nthr, int batchSize) const {
+  return spread_schedule(m.tiles, UBIGINT(m.nj), grid_size(), nthr, batchSize);
+}
+
 template<typename TF>
 void FINUFFT_PLAN_T<TF>::indexSort()
 /* Decides whether or not to sort the NU pts (influenced by spopts.sort),
@@ -194,8 +205,7 @@ void FINUFFT_PLAN_T<TF>::indexSort()
       // cover (cell+ns)^ndims and every point of the cell revisits them. Grow from 4
       // while that fits L1 and the tile keeps two cells per edge.
       int edge              = 4;
-      int shift             = spread_tile_doublings(edge, ndims, m.spopts.nspread,
-                                                    double(M) / double(grid_N));
+      int shift             = tile_doublings(edge);
       // complex fine-grid elements L1 holds, the unit a cell's write set is counted in
       const double l1_cells = double(finufft::utils::getL1CacheSize()) / (2 * sizeof(TF));
       while (shift > 1 &&
@@ -348,7 +358,7 @@ int FINUFFT_PLAN_T<TF>::spreadinterpTiled(TF *data_uniform, TF *data_nonuniform,
   timer.start();
   // Skipping the sort leaves no tiles, and that list is one tile spanning the whole fine
   // grid, so one call cuts the points either way.
-  const SpreadSchedule sched = spread_schedule(m.tiles, M, N1 * N2 * N3, nthr, batchSize);
+  const SpreadSchedule sched = make_schedule(nthr, batchSize);
   const auto &bounds         = sched.bounds;
   const UBIGINT nb           = bounds.size() - 1;
   if (m.spopts.debug)

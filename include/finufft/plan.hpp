@@ -85,6 +85,9 @@ struct SpreadTileData {
   void clear() { *this = {}; }
 };
 
+// Defined in spread_schedule.hpp, which reads this header for the tile layout.
+struct SpreadSchedule;
+
 // A subgrid of the fine grid: its lowest corner and its extents in fine grid points.
 // padded_size1 is size1 padded for the SIMD tail, and is the row stride of the buffer.
 struct Subgrid {
@@ -248,6 +251,12 @@ private:
 
   void spreadcheck() const;
   void indexSort();
+  // The tiled spread policy, read off plan members: how many doublings of the sort cell
+  // make one tile edge, and how the sorted points split into subproblems. The rules
+  // themselves are pure functions in spread_schedule.hpp, so a test can drive them on a
+  // synthetic tile layout.
+  int tile_doublings(int cell) const noexcept;
+  SpreadSchedule make_schedule(int nthr, int batchSize) const;
   // One entry point per direction. Each is a separate symbol per dimension, so the
   // per-dimension TUs (spreadinterp_1d/2d/3d.cpp) instantiate one dimension each.
   // ky and kz are unread below their dimension and may be null there.
