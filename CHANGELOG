@@ -24,6 +24,8 @@ API and behavior changes:
 	spread_kerevalmeth
 	spread_kerpad
 	spread_thread (see #885 below)
+	spread_max_sp_size (a subproblem is now a cache tile, so there is no
+	  subproblem size left to cap)
   Notes on deprecated opts: such opts are kept for ABI compatibility, but labeled
   as deprecated. (We may remove them entirely after a 2nd major version change.)
   They give runtime warning if set away from their default (this can be disabled
