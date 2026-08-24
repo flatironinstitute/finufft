@@ -423,7 +423,6 @@ FINUFFT_PLAN_T<TF>::FINUFFT_PLAN_T(int type_, int dim_, const BIGINT *n_modes, i
     if (opts.spread_thread != 0) warn("spread_thread");
     if (opts.spread_kerevalmeth != 1) warn("spread_kerevalmeth");
     if (opts.spread_kerpad != 1) warn("spread_kerpad");
-    if (opts.spread_nthr_atomic >= 0) warn("spread_nthr_atomic");
     if (opts.spread_max_sp_size > 0) warn("spread_max_sp_size");
     FINUFFT_DIAGNOSTIC_POP
   }
