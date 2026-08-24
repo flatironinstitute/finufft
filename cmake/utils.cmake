@@ -106,6 +106,10 @@ function(finufft_link_test target)
         target_link_libraries(${target} PRIVATE OpenMP::OpenMP_C OpenMP::OpenMP_CXX)
     endif()
     enable_asan(${target})
+    # The internal headers read their SIMD width off the target ISA, and that width sets
+    # the padding of the spread subgrid. The link keeps one copy of those inline helpers,
+    # so a target on a narrower ISA than the library sizes the subgrid short of the store.
+    target_compile_options(${target} PRIVATE ${FINUFFT_ARCH_FLAGS})
     target_compile_features(${target} PRIVATE cxx_std_17)
     set_target_properties(${target} PROPERTIES POSITION_INDEPENDENT_CODE ${FINUFFT_POSITION_INDEPENDENT_CODE})
     if(FINUFFT_HAS_NO_DEPRECATED_DECLARATIONS)

@@ -9,6 +9,7 @@ set(TESTS
     finufft3d_test
     finufft3dmany_test
     spreadinterp1d_test
+    spread_schedule_test
     adjointness
     tolsweep
 )
@@ -21,6 +22,12 @@ foreach(TEST ${TESTS})
     target_compile_definitions(${TEST}f PRIVATE -DSINGLE)
     target_compile_features(${TEST}f PRIVATE cxx_std_17)
     finufft_link_test(${TEST}f)
+endforeach()
+
+# these testers read the schedule from internal headers, so they need xsimd and
+# poet (the dispatcher) on top of finufft_link_test, as testutils does.
+foreach(TEST spread_schedule_test spread_schedule_testf)
+    target_link_libraries(${TEST} PRIVATE xsimd poet::poet)
 endforeach()
 
 # copy the DLLs to the build directory so that the tests can find them there fix
@@ -45,7 +52,7 @@ if(HAS_C_COMPLEX)
     target_compile_features(error_handling PRIVATE c_std_99)
     finufft_link_test(error_handling)
     add_test(NAME run_error_handling COMMAND error_handling WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
-        # the deprecated-opts case must warn, not error (non-C++ wrappers rely on it)
+    # the deprecated-opts case must warn, not error (non-C++ wrappers rely on it)
     set_tests_properties(
         run_error_handling
         PROPERTIES PASS_REGULAR_EXPRESSION "opts.spread_thread is deprecated and ignored"
@@ -149,6 +156,12 @@ function(add_tests_with_prec PREC REQ_TOL CHECK_TOL SUFFIX)
         COMMAND spreadinterp1d_test${SUFFIX} 1e3 1e3 ${REQ_TOL} 0 2 2.0 ${CHECK_TOL}
         WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
     )
+
+    add_test(NAME spread_schedule_${PREC} COMMAND spread_schedule_test${SUFFIX} WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
+    # a sanitizer build runs the same routes on smaller grids, inside ctest's timeout
+    if(FINUFFT_USE_SANITIZERS)
+        set_tests_properties(spread_schedule_${PREC} PROPERTIES ENVIRONMENT FINUFFT_TEST_SMALL=1)
+    endif()
 
     add_test(NAME run_tolsweep_${PREC} COMMAND tolsweep${SUFFIX} WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
     # under valgrind tolsweep needs more than ctest's 1500 s default
