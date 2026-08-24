@@ -13,7 +13,7 @@ else()
 endif()
 
 # Sources compiled per-precision (once for float, once for double).
-# spreadinterp_Nd.cpp files each instantiate spread_subproblem_Nd + interpSorted_Nd
+# spreadinterp_Nd.cpp files each instantiate spread_subproblem_Nd + interp_subproblem_Nd
 # for their dimension, giving 6 TUs total (3 dims × 2 precisions).
 set(FINUFFT_PRECISION_SOURCES
     makeplan.cpp
