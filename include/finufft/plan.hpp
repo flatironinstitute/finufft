@@ -103,10 +103,14 @@ struct Subgrid {
     return UBIGINT(padded_size1) * UBIGINT(size2) * UBIGINT(size3);
   }
   // Sets the first axis and the row stride together, so the two cannot disagree. tail is
-  // the complex cells the innermost SIMD store writes past the end of a row.
+  // the complex cells the innermost SIMD store writes past a row's end; a stride of a
+  // whole eight cache lines reaches only eight L1 sets, so one more line goes in there.
   template<class T> void set_size1(BIGINT s, BIGINT tail) noexcept {
-    size1        = s;
-    padded_size1 = s + tail;
+    constexpr BIGINT line  = 64 / BIGINT(2 * sizeof(T)); // complex cells per cache line
+    constexpr BIGINT alias = 8 * line;
+    const BIGINT need      = s + tail;
+    size1                  = s;
+    padded_size1           = need + (need % alias == 0 ? line : 0);
   }
 };
 
