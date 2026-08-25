@@ -103,6 +103,15 @@ function(add_tests_with_prec PREC REQ_TOL CHECK_TOL SUFFIX)
         WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
     )
 
+    # maxbatchsize=1 forces nbatch=ntrans: the batch loop in execute runs once per
+    # transform with batchSize=1. All other many-tests leave maxbatchsize=0, which
+    # gives nbatch=1 on >=3 threads, so this path is otherwise never exercised.
+    add_test(
+        NAME run_finufft1dmany_test_nbatch_${PREC}
+        COMMAND finufft1dmany_test${SUFFIX} 8 1e2 2e2 ${REQ_TOL} 0 1 2 0.0 ${CHECK_TOL}
+        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+    )
+
     add_test(
         NAME run_finufft2d_test_${PREC}
         COMMAND finufft2d_test${SUFFIX} 1e2 1e1 1e3 ${REQ_TOL} 0 2 0.0 ${CHECK_TOL}
@@ -112,6 +121,12 @@ function(add_tests_with_prec PREC REQ_TOL CHECK_TOL SUFFIX)
     add_test(
         NAME run_finufft2dmany_test_${PREC}
         COMMAND finufft2dmany_test${SUFFIX} 3 1e2 1e1 1e3 ${REQ_TOL} 0 0 2 0.0 ${CHECK_TOL}
+        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+    )
+
+    add_test(
+        NAME run_finufft2dmany_test_nbatch_${PREC}
+        COMMAND finufft2dmany_test${SUFFIX} 8 1e2 1e1 1e3 ${REQ_TOL} 0 1 2 0.0 ${CHECK_TOL}
         WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
     )
 
