@@ -100,8 +100,11 @@ void do_spread_nupts_driven(const cufinufft_plan_t<T> &p, const cuda_complex<T> 
 }
 
 template<typename T, int Ndim> void do_indexSort_nupts_driven(cufinufft_plan_t<T> &p) {
-  if (p.opts.gpu_sort) {
-    auto layout         = compute_bin_layout<T, Ndim>(p.opts, p.nf123);
+  auto layout = compute_bin_layout<T, Ndim>(p.opts, p.nf123);
+  // One bin: the counting sort can only emit an arbitrary intra-bin order,
+  // i.e. no order at all. Skip its single-counter atomic hotspot and take the
+  // identity, which the GM kernel measures at least as fast.
+  if (p.opts.gpu_sort && layout.nbins_tot > 1) {
     auto &nbins         = layout.nbins;
     const int nbins_tot = layout.nbins_tot;
     auto &inv_binsizes  = layout.inv_binsizes;

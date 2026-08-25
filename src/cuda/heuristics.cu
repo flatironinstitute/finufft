@@ -16,6 +16,7 @@
 #include <cufinufft/heuristics.hpp>
 #include <cufinufft/spreadinterp.hpp>
 #include <cufinufft/utils.hpp>
+#include <finufft_common/kernel.h>
 
 // GpuCapabilities members declared in types.hpp. Defined here so the Method-3
 // taxonomy and the debug printing stay with the heuristics they serve.
@@ -246,8 +247,8 @@ Method3Config get_method3_config(Method3Category category, int dim, int ns,
 } // anonymous namespace
 
 template<typename T>
-void cufinufft_setup_binsize(const GpuCapabilities &gpu, [[maybe_unused]] int type,
-                             int ns, int dim, cufinufft_opts *opts) {
+void cufinufft_setup_binsize(const GpuCapabilities &gpu, int type, int ns, int dim,
+                             const CUFINUFFT_BIGINT *mstu, cufinufft_opts *opts) {
   const int shmem_limit = gpu.max_smem_per_block_optin;
   const int shmem_per_pt = static_cast<int>(shared_memory_per_point<T>(dim, ns));
 
@@ -288,10 +289,44 @@ void cufinufft_setup_binsize(const GpuCapabilities &gpu, [[maybe_unused]] int ty
   };
 
   switch (opts->gpu_method) {
-  case 1:
-    set_bins(dim == 1 ? 1024 : dim == 2 ? 40 : 8);
+  case 1: {
+    // The GM kernel stages no tile in shared memory; the bin width only sets
+    // setpts' sort granularity, which trades locality of the scattered grid
+    // atomics (small bins) against their spread over L2 sectors (large bins).
+    // The measured kernel is latency-bound with a fixed instruction count, so
+    // the trade turns on one device property: whether the fine grid stays L2
+    // resident. Below a third of L2 sorting never pays and one bin per dim
+    // (no effective sort) is fastest; above it the counting sort pays, and the
+    // else-branch restores the pre-#807 heuristic for that regime.
+    // The L2 rule is known-good only where it was measured: GM spread (t1,
+    // both precisions) and GM gather (t2, f32) improve on sm_80/89/90; t2 f64
+    // keeps the sized rule, whose 40/8 split measured best for gathers on
+    // A100/H100-class gather behavior and neutral on V100/Ada.
+    CUFINUFFT_BIGINT nf_est[3] = {1, 1, 1};
+    bool estimate_valid        = type != 3 && !(type == 2 && std::is_same_v<T, double>);
+    if (estimate_valid)
+      for (int d = 0; d < dim; ++d) {
+        if (mstu[d] <= 0) estimate_valid = false; // unset: sub-plan sized later
+        nf_est[d] = opts->gpu_spreadinterponly
+                        ? mstu[d]
+                        : CUFINUFFT_BIGINT(finufft::common::fine_grid_len(opts->upsampfac,
+                                                                          mstu[d], ns));
+      }
+    const auto cells = std::int64_t(nf_est[0]) * nf_est[1] * nf_est[2];
+    if (estimate_valid && cells <= gpu.l2_complex_budget<T>()) {
+      if (opts->gpu_binsizex == 0) opts->gpu_binsizex = int(std::max(nf_est[0], 1));
+      if (opts->gpu_binsizey == 0)
+        opts->gpu_binsizey = dim >= 2 ? int(std::max(nf_est[1], 1)) : 1;
+      if (opts->gpu_binsizez == 0)
+        opts->gpu_binsizez = dim >= 3 ? int(std::max(nf_est[2], 1)) : 1;
+    } else if (type == 2 && std::is_same_v<T, double>) {
+      set_bins(dim == 1 ? 1024 : dim == 2 ? 40 : 8);
+    } else {
+      set_bins(dim == 1 ? 1024 : std::max(find_bin_size<T>(shmem_limit, dim, ns), 4));
+    }
     debug_print(1, 0, "");
     break;
+  }
 
   case 2: {
     int bin = (dim == 1) ? 1024 : (dim == 2) ? 40 : 0;
@@ -390,9 +425,11 @@ int choose_batchsize(const GpuCapabilities &gpu, const cufinufft_opts &opts, int
 }
 
 template void cufinufft_setup_binsize<float>(const GpuCapabilities &, int type, int ns,
-                                             int dim, cufinufft_opts *opts);
+                                             int dim, const CUFINUFFT_BIGINT *mstu,
+                                             cufinufft_opts *opts);
 template void cufinufft_setup_binsize<double>(const GpuCapabilities &, int type, int ns,
-                                              int dim, cufinufft_opts *opts);
+                                              int dim, const CUFINUFFT_BIGINT *mstu,
+                                              cufinufft_opts *opts);
 template int choose_batchsize<float>(const GpuCapabilities &, const cufinufft_opts &, int,
                                      std::int64_t);
 template int choose_batchsize<double>(const GpuCapabilities &, const cufinufft_opts &,
