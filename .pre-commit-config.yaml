@@ -21,7 +21,7 @@ repos:
         name: gersemi (staged hunks)
         entry: python tools/gersemi-staged.py
         language: python
-        additional_dependencies: [gersemi==0.27.1]
+        additional_dependencies: [gersemi==0.28.1]
         pass_filenames: true
         require_serial: true
         files: '(^|/)(CMakeLists\.txt|[^/]+\.cmake(?:\.in)?)$'
@@ -33,7 +33,7 @@ repos:
         args: [--formatter=ruff]
         # tomli: darker's ruff formatter imports it on Python < 3.11 but never
         # declares it, so the hook fails to import there without this.
-        additional_dependencies: [ruff==0.15.9, 'tomli; python_version < "3.11"']
+        additional_dependencies: [ruff==0.16.4, 'tomli; python_version < "3.11"']
         # Keep this in step with ruff.toml: darker calls ruff with
         # --stdin-filename=<basename>, so ruff's own path excludes never match here.
         exclude: '^(deps/|devel/|tutorial/poisson2dnuquad\.py$|perftest/spreadbenchmark\.py$)'
