@@ -8,6 +8,9 @@ matlab/finufft.cpp      linguist-generated=true
 matlab/cufinufft.cu     linguist-generated=true
 matlab/finufft_plan.m   linguist-generated=true
 matlab/cufinufft_plan.m linguist-generated=true
+# docs/makecdocs.sh output from the matching matlab/*.docsrc:
+matlab/finufft[123]d[123].m   linguist-generated=true
+matlab/cufinufft[123]d[123].m linguist-generated=true
 # docs/makecdocs.sh (from docs/*.docsrc), docs/genmatlabhelp.sh (from matlab/*.m),
 # and `make --no-print-directory > docs/makefile.doc`; every docs/*.doc is generated:
 docs/*.doc              linguist-generated=true
