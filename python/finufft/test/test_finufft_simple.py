@@ -94,21 +94,6 @@ def test_finufft3_simple(dtype, dim, n_source_pts, n_target_pts, n_trans, output
     utils.verify_type3(source_pts, source_coefs, target_pts, target_coefs, eps)
 
 
-def test_finufft3_ignores_spreadinterponly(dtype=np.complex128, dim=2):
-    funs = {1: finufft.nufft1d3, 2: finufft.nufft2d3, 3: finufft.nufft3d3}
-
-    fun = funs[dim]
-
-    source_pts, source_coefs, target_pts = utils.type3_problem(dtype, dim, 20, 21)
-    eps = type3_eps(dtype)
-
-    target_coefs = fun(
-        *source_pts, source_coefs, *target_pts, eps=eps, spreadinterponly=1
-    )
-
-    utils.verify_type3(source_pts, source_coefs, target_pts, target_coefs, eps)
-
-
 def test_finufft_simple_errors():
     with pytest.raises(RuntimeError, match="x dtype should be"):
         finufft.nufft1d1(np.zeros(1, "int64"), np.zeros(1), (4,))

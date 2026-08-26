@@ -196,6 +196,16 @@ int main() {
     printf("1d3 XK prod too big:\twrong error code %d\n", ier);
     return 1;
   }
+  // spreadinterponly is defined for types 1,2 only; type 3 must ignore it
+  opts.spreadinterponly = 1;
+  ier                   = FINUFFT1D3(M, x, c, +1, acc, N, s, F, &opts);
+  opts.spreadinterponly = 0;
+  dirft1d3(M, x, c, +1, N, s, Fe);
+  err = relerrtwonorm(N, Fe, F);
+  if (ier || err > 100 * acc) {
+    printf("1d3 spreadinterponly:\tier=%d relerr=%.3g\n", ier, err);
+    return 1;
+  }
   int ndata = 10; // how many multiple vectors to test it on
   CPX *cm   = (CPX *)malloc(sizeof(CPX) * M * ndata);
   CPX *Fm   = (CPX *)malloc(sizeof(CPX) * NN * ndata);   // the biggest array
