@@ -17,8 +17,8 @@ void interp_line(T *FINUFFT_RESTRICT target, const T *du, const T *ker, BIGINT i
    data) array to a single complex output value "target", using as weights the
    1d kernel evaluation list ker1.
    Inputs:
-   du : input regular subgrid (alternating real,imag), row stride padded past the
-        widest SIMD read below (see Subgrid::set_size1)
+   du : input regular subgrid (alternating real,imag); the read past a row's end
+        falls in the next row, or in the buffer tail (see Subgrid::set_row_layout)
    ker1 : length-ns real array of 1d kernel evaluations, zero on its padding lanes
    i1 : start (left-most) x-coord index to read du from; the caller guarantees the
         kernel support lies inside the subgrid, so no index wraps
@@ -34,6 +34,7 @@ void interp_line(T *FINUFFT_RESTRICT target, const T *du, const T *ker, BIGINT i
    subgrid pad absorbs the SIMD overshoot and the zeroed ker lanes its values.
 */
 {
+  assert(i1 >= 0); // the cast below is unsigned, so a negative index would wrap
   using arch_t                       = typename simd_type::arch_type;
   static constexpr auto padding      = get_padding<T, 2 * ns>();
   static constexpr auto simd_size    = simd_type::size;
@@ -116,6 +117,7 @@ void interp_square(T *FINUFFT_RESTRICT target, const T *du, const T *ker1, const
    The code is largely similar to 1D interpolation, please see the explanation there
 */
 {
+  assert(i1 >= 0 && i2 >= 0); // the casts below are unsigned, so a negative index wraps
   std::array<T, 2> out{0};
   using arch_t                          = typename simd_type::arch_type;
   static constexpr auto padding         = get_padding<T, 2 * ns>();
@@ -200,6 +202,7 @@ void interp_cube(T *FINUFFT_RESTRICT target, const T *du, const T *ker1, const T
   static constexpr auto padding         = get_padding<T, 2 * ns>();
   static constexpr auto simd_size       = simd_type::size;
   static constexpr uint8_t line_vectors = (2 * ns + padding) / simd_size;
+  assert(i1 >= 0 && i2 >= 0 && i3 >= 0); // the casts below are unsigned, a negative wraps
   std::array<T, 2> out{0};
   const auto line = [N1, N2, i1 = UBIGINT(i1), i2 = UBIGINT(i2), i3 = UBIGINT(i3), ker2,
                      ker3, du]() constexpr noexcept {
@@ -326,10 +329,10 @@ template<typename TF> struct FINUFFT_PLAN_T<TF>::InterpSubproblem1dCaller {
     if constexpr (!::finufft::kernel::ValidKernelParams<NS, NC>())
       return finufft::spreadinterp::report_invalid_kernel_params(NS, NC);
     else {
-      // the row pad must absorb the widest SIMD read past a row's size1 cells; the
-      // runtime tail get_subgrid passes to set_size1 covers this compile-time padding
-      assert(sub.padded_size1 >=
-             sub.size1 + BIGINT(finufft::spreadinterp::get_padding<TF, 2 * NS>() / 2));
+      // the tail past the last row must absorb the widest SIMD read past a row's size1
+      // cells; the runtime tail get_subgrid passes to set_row_layout covers this
+      // compile-time padding
+      assert(sub.tail >= BIGINT(finufft::spreadinterp::get_padding<TF, 2 * NS>() / 2));
       plan.template interp_subproblem_kernel<NS, NC, 1>(
           sub.off1, sub.off2, sub.off3, sub.padded_size1, sub.size2, sub.size3, du, M, kx,
           nullptr, nullptr, idx, dd);
@@ -351,8 +354,7 @@ template<typename TF> struct FINUFFT_PLAN_T<TF>::InterpSubproblem2dCaller {
     if constexpr (!::finufft::kernel::ValidKernelParams<NS, NC>())
       return finufft::spreadinterp::report_invalid_kernel_params(NS, NC);
     else {
-      assert(sub.padded_size1 >=
-             sub.size1 + BIGINT(finufft::spreadinterp::get_padding<TF, 2 * NS>() / 2));
+      assert(sub.tail >= BIGINT(finufft::spreadinterp::get_padding<TF, 2 * NS>() / 2));
       plan.template interp_subproblem_kernel<NS, NC, 2>(
           sub.off1, sub.off2, sub.off3, sub.padded_size1, sub.size2, sub.size3, du, M, kx,
           ky, nullptr, idx, dd);
@@ -375,8 +377,7 @@ template<typename TF> struct FINUFFT_PLAN_T<TF>::InterpSubproblem3dCaller {
     if constexpr (!::finufft::kernel::ValidKernelParams<NS, NC>())
       return finufft::spreadinterp::report_invalid_kernel_params(NS, NC);
     else {
-      assert(sub.padded_size1 >=
-             sub.size1 + BIGINT(finufft::spreadinterp::get_padding<TF, 2 * NS>() / 2));
+      assert(sub.tail >= BIGINT(finufft::spreadinterp::get_padding<TF, 2 * NS>() / 2));
       plan.template interp_subproblem_kernel<NS, NC, 3>(
           sub.off1, sub.off2, sub.off3, sub.padded_size1, sub.size2, sub.size3, du, M, kx,
           ky, kz, idx, dd);

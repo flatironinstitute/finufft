@@ -139,11 +139,11 @@ The size of that box carries two costs.
 L2 stays resident for the whole subproblem. A larger box sends every kernel write out to
 L3 or to memory, and evicts whatever else that core held.
 
-**Traffic.** ``spread_subproblem_*`` zeroes the whole buffer before the kernels run, and
-``add_wrapped_subgrid`` adds every cell of the box back into the fine grid afterwards.
-Both walk the box, not the points. An empty region of the box therefore moves zeros
-twice, and the add back moves them under the write guard. Interpolation incurs the same
-traffic once, in the gather of the box out of the fine grid.
+**Traffic.** ``drain_wrapped_subgrid`` adds every cell of the box back into the fine
+grid and zeroes the cell in the same pass, so the next subproblem finds the zero buffer
+its kernels accumulate into without a second walk. The pass covers the box, not the
+points, so an empty region of the box still moves under the write guard. Interpolation
+incurs the same traffic once, in the gather of the box out of the fine grid.
 
 Parallelism over the batch
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -250,9 +250,9 @@ cap: the minimum and the maximum reach across the empty space between the cluste
 
 Such a subproblem incurs both costs. Residency: the box grows with ``N1``, so above some
 transform size the box leaves L2 and evicts the rest of the core's cache. Traffic: the
-zeroing and the add back both cover a full-width box, while the kernels write only the
-few columns the points fall in, so the subproblem moves the full width twice and only a
-fraction of that width carries data. Raising ``nb`` through the cap does not help. Below
+add back covers a full-width box, while the kernels write only the few columns the points
+fall in, so the subproblem moves the full width and only a fraction of that width carries
+data. Raising ``nb`` through the cap does not help. Below
 the row count every extra subproblem is another full-width box. Above it the number of
 full-width boxes stays at one per row boundary.
 
@@ -308,8 +308,8 @@ add back or the gather into the runs it needs, so no kernel wraps.
 
 **Empty space costs nothing.** The tile offsets define the subproblems, so a tile that
 holds no points produces no subproblem, and a thinly filled tile produces a box bounded
-by its own points instead of by the tile. Neither the zeroing nor the add back touches a
-cell the points cannot reach. The old cut had to hand every thread an equal count of
+by its own points instead of by the tile. The add back never touches a cell the points
+cannot reach. The old cut had to hand every thread an equal count of
 points wherever those points sat.
 
 The two runs quoted above, on v2.6::
@@ -347,7 +347,12 @@ tile, and the cache sizes the tile.
 
 With ``opts.spread_sort=0`` there are no tiles. The layout is one tile spanning the whole
 fine grid, which is the box an unsorted point list spans anyway, and the cut falls back
-to one subproblem per thread.
+to one subproblem per thread. ``indexSort`` is the only writer of the layout and
+``setpts`` its only caller, and it clears the layout before it decides, so every spread
+and interp until the next ``setpts`` cuts on the same one. A later ``setpts`` can re-size
+the fine grid the verdict is stated over: a type-3 plan sizes it from the points it is
+given, and a type-1 or type-2 plan on auto ``upsampfac`` re-plans when the point density
+moves. The clear is what keeps a sorted call's tiling out of an unsorted call after it.
 
 Non-uniform points
 ~~~~~~~~~~~~~~~~~~
@@ -355,8 +360,8 @@ Non-uniform points
 Clustering is the worst case for the equal-count cut, and the case the geometric cut
 bounds best. One 2D type-1 transform of one million points onto a 512 x 512 fine grid,
 four threads, ``tol=1e-6``, over four distributions. **cells** is the sum of
-``size1 * size2`` over the subproblems, so it counts the box area the zeroing and the
-add back walk, once per vector::
+``size1 * size2`` over the subproblems, so it counts the box area the add back covers,
+once per vector::
 
     distribution         v2.5 largest box   cells    v2.6 largest box   cells
     uniform                    520 x 63      321k          72 x 71      327k
@@ -381,21 +386,30 @@ small in absolute terms, and the tiled cut incurs them where the transform is ne
 The padded subgrid
 ~~~~~~~~~~~~~~~~~~
 
-``Subgrid`` stores the extents and one row stride, ``padded_size1``, always set together
-through ``set_size1``. The row carries two extras past the data.
+``Subgrid`` stores the extents, one row stride ``padded_size1``, and one ``tail``, all
+set together through ``set_row_layout``. The buffer carries two kinds of padding: one
+tail past its last row, and an optional extra cache line inside each row's stride.
 
 .. image:: pics/spread_subgrid_padding.svg
    :width: 100%
-   :alt: one row of the subgrid buffer: halo, tile interior, halo, SIMD tail, one
-         extra cache line
+   :alt: the subgrid buffer: three rows of halo, tile interior and halo, with one
+         SIMD tail past the last row and an optional extra cache line per row
 
 The **tail** absorbs the cells the innermost SIMD store writes past the end of a row.
-The kernel lanes that reach into the tail are zero, so no mask is needed. No kernel wraps
-any more, so the tail covers that overread alone.
+The kernel lanes that reach past the end are zero, so no mask is needed, and the store
+adds zero to whatever follows the row. A row therefore needs no tail of its own: only
+the last row of the buffer reaches past the allocation, and ``cells()`` adds one tail
+for it. The buffer stays zero between subproblems on its own: the drain zeroes
+every cell a run reaches, and the cells no run reaches, the tail and the anti-alias gap,
+keep the value they held, because that store writes back what it read.
 
-The **anti-alias padding** is one extra cache line, added when the stride would otherwise
-be a multiple of eight cache lines. Such a stride maps every row of the subgrid onto the
-same eight L1 sets. The extra line shifts each row.
+The tile sizer pays for both extras: its L2 ceiling measures
+``(edge + ns + line) * (edge + ns)^(d-1) + tail``, the cells the subproblem allocates,
+and not the bare ``(edge + ns)^d`` tile.
+
+The **anti-alias padding** is one extra cache line, added to the stride when the stride
+would otherwise be a multiple of eight cache lines. Such a stride maps every row of the
+subgrid onto the same eight L1 sets. The extra line shifts each row.
 
 The write guard
 ~~~~~~~~~~~~~~~
@@ -422,10 +436,5 @@ TODO
 * A tile carries its halo whatever its occupancy, and empty tiles cost nothing, so the
   gain left is a tile edge chosen against that halo cost
   (``spread_tile_doublings``, ``include/finufft/spread.hpp``).
-* The tile sizer bounds ``(edge + ns)^d`` cells against L2, but the buffer holds
-  ``padded_size1 * size2 * size3``. The tail and the anti-alias line make the second
-  larger than the first, so the ceiling is checked against the wrong extent and the
-  chosen tile is slightly optimistic (``Subgrid::set_size1``,
-  ``include/finufft/plan.hpp``).
 * Both directions still copy each subproblem's coordinates into per-thread buffers before
   the kernels run (``spreadSorted`` and ``interpSorted``).

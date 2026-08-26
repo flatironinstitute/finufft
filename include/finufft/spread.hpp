@@ -55,8 +55,8 @@ FINUFFT_ALWAYS_INLINE void simd_arrayrange(int64_t n, const T *a, T *lo, T *hi) 
 template<typename TF>
 template<int NS, int NC>
 FINUFFT_NEVER_INLINE void FINUFFT_PLAN_T<TF>::spread_subproblem_1d_kernel(
-    const BIGINT off1, const UBIGINT size1, TF *FINUFFT_RESTRICT du, const UBIGINT M,
-    const TF *const kx, const TF *const dd) const noexcept {
+    const BIGINT off1, TF *FINUFFT_RESTRICT du, const UBIGINT M, const TF *const kx,
+    const TF *const dd) const noexcept {
   /* 1D spreader from nonuniform to uniform subproblem grid, without wrapping.
      Inputs:
      off1 - integer offset of left end of du subgrid from that of overall fine
@@ -67,7 +67,8 @@ FINUFFT_NEVER_INLINE void FINUFFT_PLAN_T<TF>::spread_subproblem_1d_kernel(
                      [off1+ns/2,off1+size1-1-ns/2] so as kernels stay in bounds
      dd (length M complex, interleaved) - source strengths
      Outputs:
-     du (length size1 complex, interleaved) - preallocated uniform subgrid array
+     du (length size1 complex, interleaved) - preallocated uniform subgrid array,
+          zero on entry: the kernel accumulates into it (see spreadSorted)
 
      The reason periodic wrapping is avoided in subproblems is speed: avoids
      conditionals, indirection (pointers), and integer mod. Originally 2017.
@@ -91,7 +92,6 @@ FINUFFT_NEVER_INLINE void FINUFFT_PLAN_T<TF>::spread_subproblem_1d_kernel(
   // something weird here. Reversing ker{0} and std fill causes ker
   // to be zeroed inside the loop GCC uses AVX, clang AVX2
   alignas(KBL::alignment) std::array<T, KBL::stride> ker{0};
-  std::fill(du, du + 2 * size1, 0); // zero output
   // no padding needed if MAX_NSPREAD is 16
   // the largest read is 16 floats with avx512
   // if larger instructions will be available or half precision is used, this should be
@@ -202,14 +202,13 @@ FINUFFT_NEVER_INLINE void FINUFFT_PLAN_T<TF>::spread_subproblem_1d_kernel(
 template<typename TF>
 template<int NS, int NC>
 FINUFFT_NEVER_INLINE void FINUFFT_PLAN_T<TF>::spread_subproblem_2d_kernel(
-    const BIGINT off1, const BIGINT off2, const UBIGINT size1, const UBIGINT size2,
-    TF *FINUFFT_RESTRICT du, const UBIGINT M, const TF *kx, const TF *ky,
-    const TF *dd) const noexcept
+    const BIGINT off1, const BIGINT off2, const UBIGINT size1, TF *FINUFFT_RESTRICT du,
+    const UBIGINT M, const TF *kx, const TF *ky, const TF *dd) const noexcept
 /* spreader from dd (NU) to du (uniform) in 2D without wrapping.
    See above docs/notes for spread_subproblem_2d.
    kx,ky (size M) are NU locations in [off+ns/2,off+size-1-ns/2] in both dims.
    dd (size M complex) are complex source strengths
-   du (size size1*size2) is complex uniform output array
+   du (size size1*size2) is complex uniform output array, zero on entry
    For algoritmic details see spread_subproblem_1d_kernel.
    Previous arg horner_coeffs_ptr is now read from plan member horner_coeffs.data().
    Converted to class member, Barbone 2/24/26.
@@ -227,7 +226,6 @@ FINUFFT_NEVER_INLINE void FINUFFT_PLAN_T<TF>::spread_subproblem_2d_kernel(
   // values in all three directions in a single kernel evaluation call.
   static constexpr auto ns2 = NS * T(0.5);  // half spread width
   alignas(KBL::alignment) std::array<T, 2 * KBL::stride> kernel_values{0};
-  std::fill(du, du + 2 * size1 * size2, 0); // initialized to 0 due to the padding
   for (uint64_t pt = 0; pt < M; pt++) {
     // loop over NU pts
     const auto dd_pt = initialize_complex_register<simd_type>(dd[pt * 2], dd[pt * 2 + 1]);
@@ -304,9 +302,9 @@ template<typename TF>
 template<int NS, int NC>
 FINUFFT_NEVER_INLINE void FINUFFT_PLAN_T<TF>::spread_subproblem_3d_kernel(
     const BIGINT off1, const BIGINT off2, const BIGINT off3, const UBIGINT size1,
-    const UBIGINT size2, const UBIGINT size3, TF *FINUFFT_RESTRICT du, const UBIGINT M,
-    const TF *kx, const TF *ky, const TF *kz, const TF *dd) const noexcept
-// 3D version of spread_subproblem_1d_kernel.
+    const UBIGINT size2, TF *FINUFFT_RESTRICT du, const UBIGINT M, const TF *kx,
+    const TF *ky, const TF *kz, const TF *dd) const noexcept
+// 3D version of spread_subproblem_1d_kernel. du is zero on entry.
 // Previous arg horner_coeffs_ptr is now read from plan member horner_coeffs.data().
 // Converted to class member, Barbone 2/24/26.
 {
@@ -321,7 +319,6 @@ FINUFFT_NEVER_INLINE void FINUFFT_PLAN_T<TF>::spread_subproblem_3d_kernel(
 
   static constexpr auto ns2 = NS * T(0.5); // half spread width
   alignas(KBL::alignment) std::array<T, 3 * KBL::stride> kernel_values{0};
-  std::fill(du, du + 2 * size1 * size2 * size3, 0);
 
   for (uint64_t pt = 0; pt < M; pt++) {
     // loop over NU pts
@@ -425,15 +422,20 @@ void FINUFFT_PLAN_T<TF>::walk_wrapped_subgrid(const Subgrid &sub, OnRun &&on_run
 
 template<typename TF>
 template<bool thread_safe>
-void FINUFFT_PLAN_T<TF>::add_wrapped_subgrid(
-    const Subgrid &sub, TF *FINUFFT_RESTRICT data_uniform, const TF *du0) const
-/* Add a large subgrid (du0) to output grid (data_uniform), with periodic wrapping. The
-   thread_safe variant adds atomically, so any number of subproblems may write one grid at
-   once; the plain variant is for a writer that owns the grid alone.
+void FINUFFT_PLAN_T<TF>::drain_wrapped_subgrid(
+    const Subgrid &sub, TF *FINUFFT_RESTRICT data_uniform, TF *du0) const
+/* Add a large subgrid (du0) to output grid (data_uniform), with periodic wrapping, and
+   zero du0 in the same pass. The thread_safe variant adds atomically, so any number of
+   subproblems may write one grid at once; the plain variant is for a writer that owns the
+   grid alone.
+   The zeroing rides along because the runs cover every cell of the box exactly once. The
+   cells no run reaches, the anti-alias gap and the tail, stay zero on their own: the
+   store past a row's end carries zeroed kernel lanes, so it writes back what it read.
    Atomic writes: R Blackwell, Nov 2020; the two variants merged into one function,
    M. Barbone 06/24.
    Previous args (N1, N2, N3) are now read from plan member nfdim[0..2].
    Converted to class member, Barbone 2/24/26.
+   The add back carries the zeroing, M. Barbone 8/26/26.
 */
 {
   walk_wrapped_subgrid(sub, [&](BIGINT gi, BIGINT si, BIGINT n) {
@@ -444,6 +446,7 @@ void FINUFFT_PLAN_T<TF>::add_wrapped_subgrid(
       } else {
         data_uniform[gi + j] += du0[si + j];
       }
+      du0[si + j] = 0;
     }
   });
 }
@@ -452,11 +455,11 @@ template<typename TF>
 void FINUFFT_PLAN_T<TF>::copy_wrapped_subgrid(const Subgrid &sub, const TF *data_uniform,
                                               TF *FINUFFT_RESTRICT du0) const
 /* Read the subgrid (du0) back out of the input grid (data_uniform), the transpose of
-   add_wrapped_subgrid: same box, same wrapping, values copied instead of added. Every
+   drain_wrapped_subgrid: same box, same wrapping, values copied instead of added. Every
    point of a subproblem then interpolates out of one cache-sized block rather than out of
-   the whole fine grid. The pad each row carries beyond size1 stays as it is: the interp
-   kernels weight the overread at the end of a row by the zeroed kernel lanes, so its
-   value never reaches the output (see interp_line) (M. Barbone 8/25/26).
+   the whole fine grid. The overread at the end of a row falls in the next row, or in the
+   buffer tail on the last row; the interp kernels weight it by the zeroed kernel lanes,
+   so its value never reaches the output (see interp_line) (M. Barbone 8/25/26).
 */
 {
   walk_wrapped_subgrid(sub, [&](BIGINT gi, BIGINT si, BIGINT n) {
@@ -517,8 +520,8 @@ inline SpreadSchedule spread_schedule(const SpreadTileData &tiles, UBIGINT M,
   // the machine, so the count divides by the threads sharing a vector.
   const UBIGINT threads_per_vector = (UBIGINT(nthr) + batchSize - 1) / batchSize;
   // An unsorted point list is one tile spanning the whole fine grid. A subproblem there
-  // pays its whole box to zero and add back and saves the gather of its own points, so
-  // it holds max(point budget, grid cells) and never more than a thread's share.
+  // pays one pass over its whole box to drain it and saves the gather of its own points,
+  // so it holds max(point budget, grid cells) and never more than a thread's share.
   if (tiles.starts.size() < 2) {
     const UBIGINT cap = std::min((M + threads_per_vector - 1) / threads_per_vector,
                                  std::max(spread_point_budget(), grid_cells));
@@ -548,12 +551,20 @@ inline SpreadSchedule spread_schedule(const SpreadTileData &tiles, UBIGINT M,
 
 // TODO: the tile pays for its halo whatever the density, and empty tiles cost nothing,
 // so what is left to win is a tile edge that grows with the halo it has to pay for.
+template<class TF>
 inline int spread_tile_doublings(int cell, int ndims, int nspread,
                                  double density) noexcept {
+  // What the subproblem allocates, not the bare padded tile: set_row_layout may add an
+  // anti-alias line to the row stride, and cells() one tail past the last row. The line
+  // is counted always, since which sizes take it is not known until the points are in.
+  constexpr double line = 64.0 / double(2 * sizeof(TF)); // complex cells per cache line
+  const double tail     = double(finufft::spreadinterp::get_padding<TF>(2 * nspread) / 2);
   const auto padded_fits_l2 = [=](double edge) {
-    return spread_pow_ndims(edge + nspread, ndims) <=
+    const double rows = spread_pow_ndims(edge + nspread, ndims - 1);
+    return (edge + nspread + line) * rows + tail <=
            double(finufft::utils::getL2CacheSize()) / 16; // all of L2, at a fixed 16
-                                                          // bytes per complex cell
+                                                          // bytes per complex cell, as
+                                                          // in spread_bytes_per_point
   };
   // Grow while the next doubling keeps the padded subgrid in L2 and the tile's strengths
   // in a quarter of it. The point budget only caps growth: a tile over it is split into
@@ -929,7 +940,7 @@ Subgrid FINUFFT_PLAN_T<TF>::get_subgrid(UBIGINT M, const TF *kx, const TF *ky,
   Subgrid sub;
   const auto [o1, n1] = extent(kx);
   sub.off1            = o1;
-  sub.set_size1<TF>(n1, BIGINT(get_padding<TF>(2 * ns) / 2));
+  sub.set_row_layout<TF>(n1, BIGINT(get_padding<TF>(2 * ns) / 2));
   if (dim > 1) std::tie(sub.off2, sub.size2) = extent(ky);
   if (dim > 2) std::tie(sub.off3, sub.size3) = extent(kz);
   return sub;
@@ -952,8 +963,7 @@ template<typename TF> struct FINUFFT_PLAN_T<TF>::SpreadSubproblem1dCaller {
     if constexpr (!::finufft::kernel::ValidKernelParams<NS, NC>())
       return finufft::spreadinterp::report_invalid_kernel_params(NS, NC);
     else {
-      plan.template spread_subproblem_1d_kernel<NS, NC>(sub.off1, sub.padded_size1, du, M,
-                                                        kx, dd);
+      plan.template spread_subproblem_1d_kernel<NS, NC>(sub.off1, du, M, kx, dd);
       return 0;
     }
   }
@@ -972,7 +982,7 @@ template<typename TF> struct FINUFFT_PLAN_T<TF>::SpreadSubproblem2dCaller {
       return finufft::spreadinterp::report_invalid_kernel_params(NS, NC);
     else {
       plan.template spread_subproblem_2d_kernel<NS, NC>(
-          sub.off1, sub.off2, sub.padded_size1, sub.size2, du, M, kx, ky, dd);
+          sub.off1, sub.off2, sub.padded_size1, du, M, kx, ky, dd);
       return 0;
     }
   }
@@ -992,8 +1002,8 @@ template<typename TF> struct FINUFFT_PLAN_T<TF>::SpreadSubproblem3dCaller {
       return finufft::spreadinterp::report_invalid_kernel_params(NS, NC);
     else {
       plan.template spread_subproblem_3d_kernel<NS, NC>(sub.off1, sub.off2, sub.off3,
-                                                        sub.padded_size1, sub.size2,
-                                                        sub.size3, du, M, kx, ky, kz, dd);
+                                                        sub.padded_size1, sub.size2, du,
+                                                        M, kx, ky, kz, dd);
       return 0;
     }
   }

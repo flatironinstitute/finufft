@@ -191,7 +191,7 @@ template<typename TF> void FINUFFT_PLAN_T<TF>::setup_spreadinterp() {
     printf("\t\t\ttol=%.3g sigma=%.3g: chose ns=%d beta=%.3g\n", m.tol,
            m.spopts.upsampfac, ns, m.spopts.beta);
 
-  // nthr above which the add back goes lock->atomic (add_wrapped..). R Blackwell's val:
+  // nthr above which the add back goes lock->atomic (drain_wrapped..). R Blackwell's val:
   m.spopts.atomic_threshold =
       (opts.spread_nthr_atomic >= 0) ? opts.spread_nthr_atomic : 10;
 }

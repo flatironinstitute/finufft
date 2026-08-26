@@ -73,11 +73,13 @@ v2.6.0-dev
   adds the subgrid back under the guard it always used, one lock per fine grid
   or atomic writes above `opts.spread_nthr_atomic` threads on one grid;
   interpolation copies it out and takes no lock. Neither direction wraps in a
-  kernel any more, so the wrapped interpolation kernels are gone and each
-  row's pad only has to absorb the SIMD overread, which the zeroed kernel
-  lanes already null. Interpolation now sorts, governed by `opts.spread_sort`;
-  spread_sort=0 costs a grid copy per subproblem, so leave
-  sorting on unless the grid is small. (Barbone)
+  kernel any more, so the wrapped interpolation kernels are gone. The zeroed
+  kernel lanes make the SIMD store past a row's end write back what it read,
+  so the buffer carries one overread tail past its last row instead of a pad
+  per row, and the add back zeroes the buffer for the next subproblem in the
+  same pass. Interpolation now sorts, governed by `opts.spread_sort`;
+  spread_sort=0 costs a grid copy per subproblem, so leave sorting on unless
+  the grid is small. (Barbone)
 * Deprecated `opts.spread_thread`. Both directions now use all threads on the
   whole batch, so there is nothing left to select. Spreading folds the batch loop
   into the loop over subproblems (Sec. 5.2 of the FINUFFT paper), so (vector,
