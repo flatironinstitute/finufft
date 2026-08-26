@@ -95,22 +95,27 @@ struct SpreadSchedule {
 };
 
 // A subgrid of the fine grid: its lowest corner and its extents in fine grid points.
-// padded_size1 is the row stride of the buffer, always set through set_size1.
+// padded_size1 is the row stride of the buffer, always set through set_row_layout.
 struct Subgrid {
   BIGINT off1 = 0, off2 = 0, off3 = 0;
   BIGINT padded_size1 = 1, size1 = 1, size2 = 1, size3 = 1;
+  BIGINT tail = 0; // complex cells the innermost SIMD store writes past a row
+  // Complex cells the buffer holds: every row, and one tail for the last of them.
   UBIGINT cells() const {
-    return UBIGINT(padded_size1) * UBIGINT(size2) * UBIGINT(size3);
+    return UBIGINT(padded_size1) * UBIGINT(size2) * UBIGINT(size3) + UBIGINT(tail);
   }
-  // Sets the first axis and the row stride together, so the two cannot disagree. tail is
-  // the complex cells the innermost SIMD store writes past a row's end; a stride of a
-  // whole eight cache lines reaches only eight L1 sets, so one more line goes in there.
-  template<class T> void set_size1(BIGINT s, BIGINT tail) noexcept {
+  // Sets the first axis, its tail and the row stride together, so the three cannot
+  // disagree.
+  template<class T> void set_row_layout(BIGINT s, BIGINT tail_) noexcept {
     constexpr BIGINT line  = 64 / BIGINT(2 * sizeof(T)); // complex cells per cache line
     constexpr BIGINT alias = 8 * line;
-    const BIGINT need      = s + tail;
     size1                  = s;
-    padded_size1           = need + (need % alias == 0 ? line : 0);
+    // Only the last row needs its tail inside the buffer: elsewhere the store past a
+    // row's end carries zeroed kernel lanes, so it adds zero to the row that follows.
+    tail                   = tail_;
+    // A stride of a whole eight cache lines reaches only eight L1 sets, so one more line
+    // goes in there.
+    padded_size1           = s + (s % alias == 0 ? line : 0);
   }
 };
 
@@ -233,17 +238,19 @@ private:
       BIGINT off1, BIGINT off2, BIGINT off3, UBIGINT padded_size1, UBIGINT size2,
       UBIGINT size3, const TF *du, UBIGINT M, const TF *kx, const TF *ky, const TF *kz,
       const BIGINT *idx, TF *FINUFFT_RESTRICT dd) const noexcept;
+  // Only the strides the kernel indexes with: the outermost extent went with the fill
+  // these kernels used to do (see spreadSorted).
   template<int NS, int NC>
-  void spread_subproblem_1d_kernel(BIGINT off1, UBIGINT size1, TF *FINUFFT_RESTRICT du,
-                                   UBIGINT M, const TF *kx, const TF *dd) const noexcept;
+  void spread_subproblem_1d_kernel(BIGINT off1, TF *FINUFFT_RESTRICT du, UBIGINT M,
+                                   const TF *kx, const TF *dd) const noexcept;
   template<int NS, int NC>
-  void spread_subproblem_2d_kernel(BIGINT off1, BIGINT off2, UBIGINT size1, UBIGINT size2,
+  void spread_subproblem_2d_kernel(BIGINT off1, BIGINT off2, UBIGINT size1,
                                    TF *FINUFFT_RESTRICT du, UBIGINT M, const TF *kx,
                                    const TF *ky, const TF *dd) const noexcept;
   template<int NS, int NC>
   void spread_subproblem_3d_kernel(BIGINT off1, BIGINT off2, BIGINT off3, UBIGINT size1,
-                                   UBIGINT size2, UBIGINT size3, TF *FINUFFT_RESTRICT du,
-                                   UBIGINT M, const TF *kx, const TF *ky, const TF *kz,
+                                   UBIGINT size2, TF *FINUFFT_RESTRICT du, UBIGINT M,
+                                   const TF *kx, const TF *ky, const TF *kz,
                                    const TF *dd) const noexcept;
 
   // Nested caller types that turn the runtime kernel width and Horner degree into
@@ -266,9 +273,11 @@ private:
   void walk_wrapped_subgrid(const Subgrid &sub, OnRun &&on_run) const;
   void copy_wrapped_subgrid(const Subgrid &sub, const TF *data_uniform,
                             TF *FINUFFT_RESTRICT du0) const;
+  // Adds the subgrid onto the fine grid and leaves it zeroed, so the next subproblem
+  // finds the zero buffer its kernel needs without a second pass over it.
   template<bool thread_safe>
-  void add_wrapped_subgrid(const Subgrid &sub, TF *FINUFFT_RESTRICT data_uniform,
-                           const TF *du0) const;
+  void drain_wrapped_subgrid(const Subgrid &sub, TF *FINUFFT_RESTRICT data_uniform,
+                             TF *du0) const;
   // The smallest subgrid holding the kernel support of all M points.
   Subgrid get_subgrid(UBIGINT M, const TF *kx, const TF *ky, const TF *kz) const;
 
