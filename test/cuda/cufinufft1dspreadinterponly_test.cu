@@ -148,10 +148,33 @@ int run_test(int N1, int M, T tol, T checktol, int iflag, double upsampfac) {
   const auto rel_sup_err = sup_err / thrust::abs(kersum);
   printf("\trel sup err %.3g\n", rel_sup_err);
 
+  printf("type-3 test 1d:\n"); // ............................................
+  // gpu_spreadinterponly is defined for types 1,2 only; a type-3 plan must ignore it
+  thrust::host_vector<T> s(N1);
+  for (int i = 0; i < N1; i++) s[i] = N1 / 2 * randm11();
+  thrust::device_vector<T> d_s = s;
+  thrust::host_vector<thrust::complex<T>> fk3(N1);
+  thrust::device_vector<thrust::complex<T>> d_fk3(N1);
+
+  dplan = new cufinufft_plan_t<T>(3, dim, nmodes, iflag, ntransf, tol, opts);
+  dplan->setpts(M, d_x.data().get(), nullptr, nullptr, N1, d_s.data().get(), nullptr,
+                nullptr);
+  dplan->execute((cuda_complex<T> *)d_c.data().get(),
+                 (cuda_complex<T> *)d_fk3.data().get());
+  delete dplan;
+  fk3                    = d_fk3;
+
+  const int jt           = N1 / 2; // check arbitrary choice of one targ pt
+  thrust::complex<T> J   = thrust::complex<T>(0, iflag);
+  thrust::complex<T> Ftp = thrust::complex<T>(0, 0);
+  for (int j = 0; j < M; ++j) Ftp += c[j] * exp(J * (x[j] * s[jt]));
+  const auto rel_t3_err = abs(Ftp - fk3[jt]) / infnorm(N1, (std::complex<T> *)fk3.data());
+  printf("\tone mode: rel err in F[%d] is %.3g\n", jt, rel_t3_err);
+
   cudaEventDestroy(start);
   cudaEventDestroy(stop);
 
-  const auto rel_error = std::max(rel_mass_err, rel_sup_err);
+  const auto rel_error = std::max({rel_mass_err, rel_sup_err, rel_t3_err});
   return std::isnan(rel_error) || rel_error > checktol;
 }
 
