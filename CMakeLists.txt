@@ -90,6 +90,12 @@ mark_as_advanced(
 
 include(setupCPM)
 
+# Sphinx documentation targets; setupSphinx needs CPM, so it cannot live in
+# toolchain.cmake
+if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME AND FINUFFT_BUILD_DOCS)
+    include(setupSphinx)
+endif()
+
 # POET header-only dispatcher, used by both CPU and CUDA spread/interp paths.
 include(setupPOET)
 

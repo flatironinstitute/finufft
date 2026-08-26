@@ -242,7 +242,8 @@ def _generate_platform_table(app):
     """
     import subprocess
 
-    here = os.path.dirname(os.path.abspath(__file__))
+    # use app.srcdir, not __file__: cmake-sphinx copies conf.py to a cache dir
+    here = app.srcdir
     script = os.path.join(here, os.pardir, "tools", "gen_platform_table.py")
     out = os.path.join(here, "_generated", "platforms.rst")
     subprocess.check_call([sys.executable, script, "--format", "rst", "--output", out])

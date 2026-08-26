@@ -158,13 +158,10 @@ if(FINUFFT_SANITIZER_FLAGS)
     set(FINUFFT_SANITIZER_FLAGS $<$<CONFIG:Debug,RelWithDebInfo>:${FINUFFT_SANITIZER_FLAGS}>)
 endif()
 
-# ---- Top-project features (CTest, Sphinx) ------------------------------------
+# ---- Top-project features (CTest) --------------------------------------------
 if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
     include(CTest)
     if(FINUFFT_BUILD_TESTS)
         enable_testing()
-    endif()
-    if(FINUFFT_BUILD_DOCS)
-        include(setupSphinx)
     endif()
 endif()

@@ -5,6 +5,13 @@ Developer notes
 
 * Developers needing to update/regenerate documentation in general, including our readthedocs website, see ``docs/README``. Developers changing MATLAB/octave interfaces or docs, also see ``matlab/README``. Please also see ``contributing.md`` for code style and git hook guidelines.
 
+* To preview the docs locally, run ``make web`` (makefile), or the cmake way::
+
+    cmake --preset docs                  # or: cmake -B build -DFINUFFT_BUILD_DOCS=ON
+    cmake --build build/docs --target web
+
+  Both build the sphinx HTML and serve it at http://localhost:8042; Ctrl-C stops the server. The python deps (``sphinx`` plus those in ``docs/requirements.txt``) live in a venv whose setup commands - uv and plain pip - are in section 2 of ``docs/README`` and are reprinted by both targets when a dependency is missing; note cmake checks for sphinx and its ``texext`` extension at configure time, so activate the venv before running cmake.
+
 * FINUFFT is by default built with position-independent code (``-fPIC`` compile flag), by both the Makefile and CMake. See CMake options to change this for the static library. Developers changing the FINUFFT source code should use ``static`` functions unless they need to export the symbol; this will prevent performance degradation when using ``-fPIC``.
 
 * To update the version number, this needs to be done by hand in the following places (we decided that a version-bump script is not worth the hassle):

@@ -60,10 +60,32 @@ to install:
               https://github.com/matthew-brett/texext
   * python3 - since sphinx autodoc actually runs py to gen docstrings.
 
+The python deps are easiest in a venv. With uv:
+
+  uv venv ~/.venvs/finufft-docs   # skip if the venv already exists
+  uv pip install --python ~/.venvs/finufft-docs/bin/python sphinx -r docs/requirements.txt
+  source ~/.venvs/finufft-docs/bin/activate
+
+or with plain pip:
+
+  python3 -m venv ~/.venvs/finufft-docs   # skip if the venv already exists
+  ~/.venvs/finufft-docs/bin/pip install sphinx -r docs/requirements.txt
+  source ~/.venvs/finufft-docs/bin/activate
+
+The cmake route checks for sphinx and texext at configure time, so activate
+the venv before running cmake.
+
 Then it is possible to build docs locally in two ways. The cmake way or the make way
 
-The cmake way requires to run ``cmake --build [path to the build dir] --target finufft_sphinx``
+The cmake way requires configuring with ``-DFINUFFT_BUILD_DOCS=ON`` (or the
+``docs`` cmake preset: ``cmake --preset docs``, with the venv active), then
+running ``cmake --build [path to the build dir] --target finufft_sphinx``
 It creates a subfolder inside the build directory called ``finufft_sphinx`` containing the ``index.html``
+
+To build the HTML and serve it at http://localhost:8042 in one step, either
+run ``make web`` from the top-level directory, or the cmake way run
+``cmake --build [path to the build dir] --target web``
+(which also builds ``finufft_sphinx`` first). Ctrl-C stops the server.
 
 Alternatively (from this docs directory), run ``make latexpdf``
 and look in _build/latex/finufft.pdf for the PDF.

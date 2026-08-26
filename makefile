@@ -170,7 +170,7 @@ COMMON_OBJS = src/fft.o src/c_interface.o fortran/finufftfort.o
 # all lib dual-precision objs (note DUCC_OBJS empty if unused)
 OBJS = $(SOBJS) $(PRECISION_OBJS) $(PRECISION_OBJS:%.o=%_f.o) $(COMMON_OBJS) $(DUCC_OBJS)
 
-.PHONY: usage lib cufinufft checkgpu examples test perftest spreadtest spreadtestall fortran matlab octave all mex python clean objclean pyclean mexclean wheel docker-wheel gurutime docs setup setupclean
+.PHONY: usage lib cufinufft checkgpu examples test perftest spreadtest spreadtestall fortran matlab octave all mex python clean objclean pyclean mexclean wheel docker-wheel gurutime docs web setup setupclean
 
 default: usage
 
@@ -195,6 +195,7 @@ usage:
 	@echo " make clean - also remove all lib, MEX, py, and demo executables"
 	@echo " make setup - check (and possibly download) dependencies"
 	@echo " make setupclean - delete downloaded dependencies (try if errors)"
+	@echo " make web - build HTML docs and serve at http://localhost:8042"
 	@echo "For faster (multicore) compilation, append, for example, -j8"
 	@echo ""
 	@echo "Make options:"
@@ -641,6 +642,24 @@ docs: docs/*.docsrc docs/matlabhelp.doc docs/makecdocs.sh
 docs/matlabhelp.doc: docs/genmatlabhelp.sh matlab/*.sh matlab/*.docsrc matlab/*.docbit matlab/*.m
 	(cd matlab; ./addmhelp.sh)
 	(cd docs; ./genmatlabhelp.sh)
+
+# build the sphinx HTML docs (needs the python pkgs in docs/requirements.txt)
+# and serve them at http://localhost:8042 for local checking; Ctrl-C stops...
+web:
+	make -C docs html || { \
+		echo ""; \
+		echo "Doc build failed - missing sphinx deps? Set up an environment with uv:"; \
+		echo "  uv venv ~/.venvs/finufft-docs   # skip if the venv already exists"; \
+		echo "  uv pip install --python ~/.venvs/finufft-docs/bin/python sphinx -r docs/requirements.txt"; \
+		echo "  source ~/.venvs/finufft-docs/bin/activate"; \
+		echo "or with plain pip:"; \
+		echo "  python3 -m venv ~/.venvs/finufft-docs   # skip if the venv already exists"; \
+		echo "  ~/.venvs/finufft-docs/bin/pip install sphinx -r docs/requirements.txt"; \
+		echo "  source ~/.venvs/finufft-docs/bin/activate"; \
+		echo "then re-run 'make web' with the venv active."; \
+		exit 1; }
+	@echo "Serving docs at http://localhost:8042 (Ctrl-C to stop)"
+	@$(PYTHON) -m http.server 8042 -d docs/_build/html
 
 
 

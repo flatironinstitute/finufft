@@ -149,24 +149,26 @@ The recommended developer workflow is three commands:
 List all available presets with ``cmake --list-presets all``. The most
 useful ones are:
 
-==================  =================================================================
-Preset              When to use it
-==================  =================================================================
-``default``         End-user Release build (Ninja, single-config).
-``dev``             Contributor default: RelWithDebInfo, tests and examples on.
-``dev-ducc``        Same as ``dev`` but uses DUCC0 instead of FFTW.
-``ninja-multi``     Multi-config build; works the same on every OS (see below).
-``sanitizers``      Debug build with ASAN/UBSAN enabled.
-``static-analysis`` clang-tidy + cppcheck inline (matches the CI static-analysis job).
-``fortran``         Build the Fortran wrappers and examples.
-``matlab``          Build the MATLAB MEX interface.
-``gpu``             Build the cuFINUFFT GPU library (CUDA toolchain required).
-``gpu-fat``         GPU build for mixed GPU models, or a login node with no GPU
-                    (see :ref:`HPC clusters <install_gpu_sites>`).
-``gpu-perlmutter``  GPU build on NERSC Perlmutter (Cray wrappers, A100).
-``all``             CPU + GPU + tests in one configuration.
-``all-wrappers``    Every CPU language wrapper at once (MATLAB + Fortran + DUCC0).
-==================  =================================================================
+=================== =================================================================
+Preset               When to use it
+=================== =================================================================
+``default``          End-user Release build (Ninja, single-config).
+``dev``              Contributor default: RelWithDebInfo, tests and examples on.
+``dev-ducc``         Same as ``dev`` but uses DUCC0 instead of FFTW.
+``ninja-multi``      Multi-config build; works the same on every OS (see below).
+``sanitizers``       Debug build with ASAN/UBSAN enabled.
+``static-analysis``  clang-tidy + cppcheck inline (matches the CI static-analysis job).
+``fortran``          Build the Fortran wrappers and examples.
+``matlab``           Build the MATLAB MEX interface.
+``docs``             Build the sphinx HTML docs; the ``web`` target serves them.
+``dev-docs``         Same as ``dev`` plus the sphinx docs targets.
+``gpu``              Build the cuFINUFFT GPU library (CUDA toolchain required).
+``gpu-fat``          GPU build for mixed GPU models, or a login node with no GPU
+                     (see :ref:`HPC clusters <install_gpu_sites>`).
+``gpu-perlmutter``   GPU build on NERSC Perlmutter (Cray wrappers, A100).
+``all``              CPU + GPU + tests in one configuration.
+``all-wrappers``     Every CPU language wrapper at once (MATLAB + Fortran + DUCC0).
+=================== =================================================================
 
 See the `cmake-presets(7) <https://cmake.org/cmake/help/latest/manual/cmake-presets.7.html>`_
 manual for the full preset reference.
@@ -195,7 +197,7 @@ To instead build a shared library, see the ``FINUFFT_STATIC_LINKING`` CMake opti
 .. _multi-config:
 
 Multi-configuration generators (Visual Studio, Xcode, Ninja Multi-Config)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 CMake generators come in two flavors. *Single-config* generators
 (Unix Makefiles, Ninja) bake the build type into the build directory:

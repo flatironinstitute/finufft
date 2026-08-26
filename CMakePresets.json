@@ -96,6 +96,24 @@
       }
     },
     {
+      "name": "docs",
+      "displayName": "Documentation (sphinx)",
+      "description": "Enable the sphinx documentation targets: 'finufft_sphinx' builds the HTML, 'web' also serves it at http://localhost:8042. Activate the docs venv (docs/README section 2) before configuring.",
+      "inherits": "default",
+      "cacheVariables": {
+        "FINUFFT_BUILD_DOCS": "ON"
+      }
+    },
+    {
+      "name": "dev-docs",
+      "displayName": "Developer + documentation (sphinx)",
+      "description": "Same as 'dev' plus the sphinx documentation targets ('finufft_sphinx' builds the HTML, 'web' also serves it at http://localhost:8042). Activate the docs venv (docs/README section 2) before configuring.",
+      "inherits": "dev",
+      "cacheVariables": {
+        "FINUFFT_BUILD_DOCS": "ON"
+      }
+    },
+    {
       "name": "gpu",
       "displayName": "GPU (cuFINUFFT)",
       "description": "Build the cuFINUFFT GPU library with tests. CUDA toolchain required.",
@@ -163,6 +181,8 @@
     { "name": "static-analysis", "configurePreset": "static-analysis", "targets": ["finufft"] },
     { "name": "fortran", "configurePreset": "fortran" },
     { "name": "matlab", "configurePreset": "matlab" },
+    { "name": "docs", "configurePreset": "docs", "targets": ["finufft_sphinx"] },
+    { "name": "dev-docs", "configurePreset": "dev-docs" },
     { "name": "gpu", "configurePreset": "gpu" },
     { "name": "gpu-fat", "configurePreset": "gpu-fat" },
     { "name": "gpu-perlmutter", "configurePreset": "gpu-perlmutter" },
