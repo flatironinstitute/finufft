@@ -109,9 +109,9 @@ UBIGINT expected_subs(const SpreadTileData &tiles, UBIGINT cap) {
 }
 
 void test_row_stride() {
-  // Subgrid::set_size1 must clear the SIMD tail of the innermost store, and must never
-  // leave the stride on a whole eight cache lines: such a stride reaches only eight of
-  // the L1's 64 sets, and a subgrid walking many rows on it thrashes them.
+  // Subgrid::cells must hold the widest SIMD access of the last row, and set_row_layout
+  // must never leave the stride on a whole eight cache lines: such a stride reaches only
+  // eight of the L1's 64 sets, and a subgrid walking many rows on it thrashes them.
   const auto walk = [](auto tag) {
     using T                = decltype(tag);
     constexpr BIGINT line  = 64 / BIGINT(2 * sizeof(T));
@@ -122,13 +122,23 @@ void test_row_stride() {
       const BIGINT tail = BIGINT(finufft::spreadinterp::get_padding<T>(2 * ns) / 2);
       for (BIGINT n1 = ns; n1 <= 4096; ++n1) {
         Subgrid sub;
-        sub.set_size1<T>(n1, tail);
-        check(sub.size1 == n1, "set_size1 keeps the unpadded extent");
-        check(sub.padded_size1 >= n1 + tail, "the row stride clears the SIMD tail");
+        sub.size2 = 3;
+        sub.size3 = 5;
+        sub.set_row_layout<T>(n1, tail);
+        check(sub.size1 == n1, "set_row_layout keeps the unpadded extent");
+        check(sub.padded_size1 >= n1, "the row stride holds a whole row");
         check(sub.padded_size1 % alias != 0, "the row stride avoids an eight-line alias");
-        check(sub.padded_size1 <= n1 + tail + line,
-              "the row stride adds at most one line");
-        widened += (sub.padded_size1 != n1 + tail);
+        check(sub.padded_size1 <= n1 + line, "the row stride adds at most one line");
+        // The last row starts at padded_size1*(size2*size3-1) and its innermost store
+        // reaches size1+tail cells past that start.
+        const UBIGINT rows = UBIGINT(sub.size2 * sub.size3);
+        check(sub.cells() >= UBIGINT(sub.padded_size1) * (rows - 1) + UBIGINT(n1 + tail),
+              "the buffer holds the widest access of the last row");
+        // and no more: one tail for the whole buffer, not one per row. Fails on a rule
+        // that folds the tail into the stride.
+        check(sub.cells() <= UBIGINT(sub.padded_size1) * rows + UBIGINT(tail),
+              "the buffer carries one tail, not one per row");
+        widened += (sub.padded_size1 != n1);
       }
     }
     // Without this the checks above still pass on a rule that widens nothing.
@@ -176,8 +186,16 @@ void test_cut() {
 
 // True where even a one-cell tile's padded subgrid leaves L2. The tile then stays one
 // cell, so the L2-fit invariants below hold only where this is false.
+// Cells the subproblem allocates for a tile of this edge: the stride carries one
+// anti-alias line and the buffer one tail, both of which the ceiling must pay for.
+double padded_tile_cells(double edge, int ndims, int ns) {
+  const double line = 64.0 / double(2 * sizeof(FLT));
+  const double tail = double(finufft::spreadinterp::get_padding<FLT>(2 * ns) / 2);
+  return (edge + ns + line) * spread_pow_ndims(edge + ns, ndims - 1) + tail;
+}
+
 bool no_tile_fits(int ndims, int ns) {
-  return spread_pow_ndims(4.0 + ns, ndims) >
+  return padded_tile_cells(4.0, ndims, ns) >
          double(finufft::utils::getL2CacheSize()) / 16;
 }
 
@@ -189,14 +207,14 @@ void test_ceilings() {
     // whatever the density, the chosen tile respects both L2 ceilings
     const int ns = 13; // the width sigma 1.15 picks at eps=1e-6, not the sigma 2 width
     if (no_tile_fits(ndims, ns)) {
-      check(spread_tile_doublings(4, ndims, ns, 1.0) == 0,
+      check(spread_tile_doublings<FLT>(4, ndims, ns, 1.0) == 0,
             "an oversize cell stays a one-cell tile");
       continue;
     }
     for (double dens = 1e-6; dens < 1e3; dens *= 4) {
-      const int shift = spread_tile_doublings(4, ndims, ns, dens);
+      const int shift = spread_tile_doublings<FLT>(4, ndims, ns, dens);
       const double e2 = double(4 << shift);
-      check(spread_pow_ndims(e2 + ns, ndims) <=
+      check(padded_tile_cells(e2, ndims, ns) <=
                 double(finufft::utils::getL2CacheSize()) / 16,
             "the tile's padded subgrid fits L2");
       check(shift == 0 ||
@@ -206,7 +224,7 @@ void test_ceilings() {
     // density only ever shrinks the tile, and a sparse grid is tiled like a dense one
     int prev_dens = -1;
     for (double dens = 1e-6; dens < 1e3; dens *= 4) {
-      const int shift = spread_tile_doublings(4, ndims, ns, dens);
+      const int shift = spread_tile_doublings<FLT>(4, ndims, ns, dens);
       check(prev_dens < 0 || shift <= prev_dens, "a denser grid never grows the tile");
       prev_dens = shift;
     }
@@ -219,13 +237,13 @@ void test_ceilings() {
     int prev              = 1 << 30;
     for (int ns = 2; ns <= 24; ++ns) {
       if (no_tile_fits(ndims, ns)) {
-        check(spread_tile_doublings(4, ndims, ns, 1e-4) == 0,
+        check(spread_tile_doublings<FLT>(4, ndims, ns, 1e-4) == 0,
               "a tile too big for L2 stays one cell");
         continue;
       }
-      const int shift = spread_tile_doublings(4, ndims, ns, 1e-4);
+      const int shift = spread_tile_doublings<FLT>(4, ndims, ns, 1e-4);
       const double e  = double(4 << shift);
-      check(spread_pow_ndims(e + ns, ndims) <= l2_cells,
+      check(padded_tile_cells(e, ndims, ns) <= l2_cells,
             "the padded tile fits L2 at every ns");
       check(shift <= prev, "a wider kernel never grows the tile");
       prev = shift;
@@ -236,7 +254,7 @@ void test_ceilings() {
   for (int ndims = 2; ndims <= 3; ++ndims) {
     int ns = 2;
     while (ns < 1 << 16 && !no_tile_fits(ndims, ns)) ++ns;
-    check(spread_tile_doublings(4, ndims, ns, 1.0) == 0,
+    check(spread_tile_doublings<FLT>(4, ndims, ns, 1.0) == 0,
           "past the L2 width the tile stays one cell");
   }
 }
@@ -313,6 +331,105 @@ void test_sort_rule() {
                                                       // cache
 }
 
+// The layout a plan spreads on is a fact of its last setpts: indexSort clears the layout
+// before it decides, and nothing else writes it, so every spread and interp until the
+// next setpts reads that one layout. With the sort off it stays empty, and the schedule
+// then cuts the point list into equal chunks of one tile spanning the whole fine grid.
+void test_unsorted_cut() {
+  const BIGINT N   = 64;
+  const double tol = sizeof(FLT) == 4 ? 1e-3 : 1e-6;
+  std::vector<FLT> x, y, z;
+  std::vector<CPX> c;
+  finufft_opts opts;
+  FINUFFT_DEFAULT_OPTS(&opts);
+  opts.spreadinterponly = 1;
+  opts.upsampfac        = 2.0;
+  opts.spread_sort      = 0;
+  opts.debug            = test_debug;
+  std::array<BIGINT, 3> modes{N, N, N};
+  UBIGINT most_chunks = 0;
+  for (const int nthr : {1, 4}) {
+    opts.nthreads = nthr;
+    FINUFFT_PLAN_T<FLT> plan(1, 3, modes.data(), +1, 1, FLT(tol), &opts);
+    // two point sets on one plan: the second setpts must not read the first's layout
+    for (const BIGINT M : {BIGINT(20000), BIGINT(3000)}) {
+      uniform_points(M, 3, x, y, z, c);
+      check(
+          plan.setpts(M, x.data(), y.data(), z.data(), 0, nullptr, nullptr, nullptr) <= 1,
+          "the unsorted setpts ran");
+      check(!plan.sorted(), "spread_sort=0 does not sort");
+      check(plan.tile_data().empty(), "an unsorted plan carries no tile layout");
+      const auto sched =
+          spread_schedule(plan.tile_data(), UBIGINT(M), plan.grid_size(), nthr, 1);
+      const UBIGINT cap = sched.points_per_subproblem;
+      check(sched.bounds.front() == 0 && sched.bounds.back() == UBIGINT(M),
+            "the unsorted cut covers the whole point list");
+      check(sched.bounds.size() == 1 + (UBIGINT(M) + cap - 1) / cap,
+            "the unsorted cut is one tile, split by the cap alone");
+      UBIGINT widest = 0, narrowest = UBIGINT(M);
+      for (size_t p = 1; p < sched.bounds.size(); ++p) {
+        const UBIGINT gap = sched.bounds[p] - sched.bounds[p - 1];
+        widest            = std::max(widest, gap);
+        narrowest         = std::min(narrowest, gap);
+      }
+      check(widest <= cap, "no chunk of the unsorted cut runs past the cap");
+      check(widest - narrowest <= 1, "the chunks of one tile are equal to a point");
+      most_chunks = std::max(most_chunks, UBIGINT(sched.bounds.size() - 1));
+      printf("\tunsorted cut: T%d M=%lld -> %lld chunk(s) of %lld\n", nthr, (long long)M,
+             (long long)(sched.bounds.size() - 1), (long long)cap);
+    }
+  }
+  // Without this the checks above hold on a cut that never splits, where equal chunks and
+  // a cap are vacuous.
+  check(most_chunks > 1, "the unsorted cut really splits on more than one thread");
+
+  // A later setpts can re-size the fine grid the verdict is stated over: type 3 sizes it
+  // from the points, and types 1 and 2 on auto upsampfac re-plan when the density moves.
+  // A layout left over from a sorted setpts would have the next, unsorted one cut on a
+  // tiling of a grid it no longer has. Type 3 reaches the flip on any L2, so walk its
+  // spectral scale up to the first sorted verdict and then come back down.
+  finufft_opts o3;
+  FINUFFT_DEFAULT_OPTS(&o3);
+  o3.nthreads = 1; // the only route to the unsorted verdict under the default sort=2
+  o3.debug    = test_debug;
+  std::array<BIGINT, 3> nk_modes{1, 1, 1}; // unread: type 3 sizes itself from nk
+  const BIGINT M = 3000, NK = 3000;
+  std::vector<FLT> s, t, u;
+  std::vector<CPX> d;
+  uniform_points(M, 3, x, y, z, c);
+  uniform_points(NK, 3, s, t, u, d);
+  FINUFFT_PLAN_T<FLT> p3(3, 3, nk_modes.data(), +1, 1, FLT(tol), &o3);
+  const auto setpts_at = [&](double scale) {
+    std::vector<FLT> ss(s.size()), tt(t.size()), uu(u.size());
+    for (size_t j = 0; j < s.size(); ++j) {
+      ss[j] = FLT(double(s[j]) * scale);
+      tt[j] = FLT(double(t[j]) * scale);
+      uu[j] = FLT(double(u[j]) * scale);
+    }
+    const int ier =
+        p3.setpts(M, x.data(), y.data(), z.data(), NK, ss.data(), tt.data(), uu.data());
+    if (ier <= 1)
+      printf("\ttype-3 setpts at spectral scale %.3g: %s, fine grid %lld cells\n", scale,
+             p3.sorted() ? "sorted" : "not sorted", (long long)p3.grid_size());
+    return ier;
+  };
+  // The scale the flip needs depends on this core's L2, so grow until the verdict turns
+  // rather than fixing a scale, which keeps the widest fine grid as small as it can be.
+  bool saw_sorted = false;
+  for (double scale = 1.0; scale <= 1e3 && !saw_sorted; scale *= 2.0) {
+    if (setpts_at(scale) > 1) break;
+    check(p3.tile_data().empty() == !p3.sorted(),
+          "the type-3 layout follows the verdict of its setpts");
+    saw_sorted = p3.sorted();
+  }
+  check(saw_sorted, "the walk up the spectral scale reaches the sorted verdict");
+  // and back to a fine grid inside L2: the layout the sorted setpts built must be gone,
+  // or this plan would spread its next transform on a tiling of the wrong grid
+  check(setpts_at(1e-2) <= 1, "the narrow type-3 setpts ran");
+  check(!p3.sorted() && p3.tile_data().empty(),
+        "an unsorted setpts drops the layout a sorted one left");
+}
+
 // One dimension tiles like any other: the tile is an interval of the fine grid, which is
 // the shape a chunk of the sorted list has there anyway, so the tile arithmetic has to
 // hold in 1D too.
@@ -373,7 +490,7 @@ void test_interp_tiles() {
 
 // Translation covariance across the periodic boundary: shifting every point by k whole
 // cells circularly shifts the spread grid, and interpolation off the shifted grid returns
-// the unshifted values. The wrap sits in copy/add_wrapped_subgrid, so one 3D arm covers
+// the unshifted values. The wrap sits in copy/drain_wrapped_subgrid, so one 3D arm covers
 // it.
 void test_wrap_translation(BIGINT N, BIGINT M, double sigma, double tol) {
   const BIGINT k = N / 2 + 3; // whole cells to shift; the odd 3 breaks symmetry
@@ -465,6 +582,7 @@ int main() {
   test_cut();
   test_ceilings();
   test_sort_rule();
+  test_unsorted_cut();
   test_one_dim_tiles();
   test_interp_tiles();
   constexpr bool single = std::is_same_v<FLT, float>;

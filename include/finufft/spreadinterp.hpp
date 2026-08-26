@@ -22,6 +22,7 @@
 
 #include <algorithm>
 #include <array>
+#include <cassert>
 #include <cmath>
 #include <cstdio>
 #include <inttypes.h>
@@ -120,8 +121,9 @@ FINUFFT_PLAN_T<TF>::Kernel_onedim_FT::Kernel_onedim_FT(const FINUFFT_PLAN_T &pla
 
 template<typename TF> int FINUFFT_PLAN_T<TF>::tile_doublings(int cell) const noexcept {
   using finufft::spreadinterp::ndims_from_Ns;
-  return spread_tile_doublings(cell, ndims_from_Ns(m.nfdim[0], m.nfdim[1], m.nfdim[2]),
-                               m.spopts.nspread, double(m.nj) / double(grid_size()));
+  return spread_tile_doublings<TF>(cell,
+                                   ndims_from_Ns(m.nfdim[0], m.nfdim[1], m.nfdim[2]),
+                                   m.spopts.nspread, double(m.nj) / double(grid_size()));
 }
 
 template<typename TF>
@@ -348,7 +350,7 @@ int FINUFFT_PLAN_T<TF>::spreadSorted(TF *FINUFFT_RESTRICT data_uniform,
   const auto *kz = m.XYZ[2];
   CNTime timer{};
   const auto ndims     = ndims_from_Ns(N1, N2, N3);
-  const auto N         = N1 * N2 * N3; // fine grid size
+  const auto N         = N1 * N2 * N3; // output array size
   const auto stride_u  = 2 * N;        // per-vector strides through the batch arrays
   const auto stride_nu = 2 * M;
   auto nthr            = MY_OMP_GET_MAX_THREADS();
@@ -394,7 +396,7 @@ int FINUFFT_PLAN_T<TF>::spreadSorted(TF *FINUFFT_RESTRICT data_uniform,
   const bool use_atomic =
       needs_guard && std::min((UBIGINT)nthr, nb) > (UBIGINT)m.spopts.atomic_threshold;
   if (m.spopts.debug && use_atomic)
-    printf("\tup to %d writers per output: add_wrapped switching to atomic (!)\n",
+    printf("\tup to %d writers per output: drain_wrapped switching to atomic (!)\n",
            (int)std::min((UBIGINT)nthr, nb));
   std::vector<my_omp_lock_t> locks(needs_guard && !use_atomic ? batchSize : 0);
   for (auto &l : locks) MY_OMP_INIT_LOCK(&l);
@@ -431,7 +433,13 @@ int FINUFFT_PLAN_T<TF>::spreadSorted(TF *FINUFFT_RESTRICT data_uniform,
         if (m.spopts.debug > 1)
           print_subgrid_info(ndims, sub.off1, sub.off2, sub.off3, sub.padded_size1,
                              sub.size1, sub.size2, sub.size3, M0);
+        // du0 is zero here whatever resize does: it value-initializes what it appends,
+        // and drain_wrapped_subgrid left every cell the last subproblem touched zeroed.
+        // So the kernels below find the zero buffer they accumulate into. The cells no
+        // run reaches, the anti-alias gap and the tail, rest on the store past a row's
+        // end writing back what it read, so the check covers the whole buffer.
         du0.resize(2 * sub.cells()); // complex
+        assert(std::all_of(du0.begin(), du0.end(), [](TF v) { return v == TF(0); }));
         if (ndims == 1)
           spread_subproblem_1d(sub, du0.data(), M0, kx0.data(), ky0.data(), kz0.data(),
                                dd0.data());
@@ -441,12 +449,13 @@ int FINUFFT_PLAN_T<TF>::spreadSorted(TF *FINUFFT_RESTRICT data_uniform,
         else
           spread_subproblem_3d(sub, du0.data(), M0, kx0.data(), ky0.data(), kz0.data(),
                                dd0.data());
-        // add the subgrid back into the fine grid, under the guard the thread count chose
+        // add the subgrid back into the fine grid, under the guard the thread count
+        // chose, and leave du0 zeroed for the next subproblem
         if (use_atomic) {
-          add_wrapped_subgrid<true>(sub, grid, du0.data());
+          drain_wrapped_subgrid<true>(sub, grid, du0.data());
         } else {
           if (needs_guard) MY_OMP_SET_LOCK(&locks[ib]);
-          add_wrapped_subgrid<false>(sub, grid, du0.data());
+          drain_wrapped_subgrid<false>(sub, grid, du0.data());
           if (needs_guard) MY_OMP_UNSET_LOCK(&locks[ib]);
         }
       } // end main loop over subprobs
@@ -487,7 +496,7 @@ int FINUFFT_PLAN_T<TF>::interpSorted(TF *FINUFFT_RESTRICT data_uniform,
   const auto *kz = m.XYZ[2];
   CNTime timer{};
   const auto ndims     = ndims_from_Ns(N1, N2, N3);
-  const auto N         = N1 * N2 * N3; // fine grid size
+  const auto N         = N1 * N2 * N3; // output array size
   const auto stride_u  = 2 * N;        // per-vector strides through the batch arrays
   const auto stride_nu = 2 * M;
   auto nthr            = MY_OMP_GET_MAX_THREADS();
