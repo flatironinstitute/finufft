@@ -336,6 +336,11 @@ FINUFFT_PLAN_T<TF>::FINUFFT_PLAN_T(int type_, int dim_, const BIGINT *n_modes, i
     printf("[%s] new plan: FINUFFT version " FINUFFT_VER " .................\n",
            __func__);
 
+  // spreadinterponly only affects type 1 & 2
+  if (type == 3 && opts.spreadinterponly) {
+    opts.spreadinterponly = 0;
+  }
+
   if (!opts.spreadinterponly) { // Don't make FFTW plan if only spread/interpolate
     if (!opts.fftw_lock_fun != !opts.fftw_unlock_fun) {
       fprintf(stderr, "[%s] fftw_(un)lock functions should be both null or both set\n",
