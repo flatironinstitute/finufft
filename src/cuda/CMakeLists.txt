@@ -44,7 +44,14 @@ set(CUFINUFFT_INCLUDE_DIRS
 
 set(CUFINUFFT_INCLUDE_DIRS ${CUFINUFFT_INCLUDE_DIRS} PARENT_SCOPE)
 
-list(APPEND FINUFFT_CUDA_FLAGS $<$<COMPILE_LANGUAGE:CUDA>:--extended-lambda --extra-device-vectorization>)
+# --expt-relaxed-constexpr: device code reads the shared constexpr kernel-layout
+# rules (finufft::kernel::max_nc_given_ns) from finufft_common/kernel.h.
+list(
+    APPEND FINUFFT_CUDA_FLAGS
+    $<$<COMPILE_LANGUAGE:CUDA>:--extended-lambda
+    --extra-device-vectorization
+    --expt-relaxed-constexpr>
+)
 # -Wextra / -Wall are GCC/Clang spellings; nvcc forwards them to the host
 # compiler via -forward-unknown-to-host-compiler, where MSVC rejects /Wextra
 # with D8021. Only emit them when the host compiler understands them.

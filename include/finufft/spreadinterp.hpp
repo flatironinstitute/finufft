@@ -67,7 +67,8 @@ TF FINUFFT_PLAN_T<TF>::evaluate_kernel_runtime(TF x) const
    Coefficients are stored as horner_coeffs[j * padded_ns + i], where padded_ns
    is rounded up to SIMD alignment which *must* be consistent with that used
    in both evaluate_kernel_vector and precompute_horner_coeffs.
-   Reads spopts.nspread, nc, padded_ns, horner_coeffs from the plan.
+   Reads spopts.nspread, nc, padded_ns, horner_coeffs from the plan, and hands
+   them to finufft::kernel::evaluate_kernel_horner, shared with the GPU plan.
    Barbone (Dec/25). Fixed Lu 12/23/25.
    Simplified spopts, removed redundant |x|>=ns/2 exit point, Barnett 1/15/26.
    Previous args (x, ns, nc, horner_coeffs_ptr, spopts) are now plan members
@@ -75,22 +76,8 @@ TF FINUFFT_PLAN_T<TF>::evaluate_kernel_runtime(TF x) const
    Converted to class member, Barbone 2/24/26.
 */
 {
-  const int ns    = m.spopts.nspread;
-  const TF ns2    = ns / TF(2.0); // half width w/2, in grid point units
-  const TF *coefs = m.horner_coeffs.data();
-  TF res          = TF(0.0);
-  // Invariant: m.padded_ns is the runtime mirror of
-  // finufft::spreadinterp::KernelBufferLayout<TF, NS>::stride; both are produced
-  // by kernel_buffer_stride_runtime<TF>(ns) in precompute_horner_coeffs.
-  for (int i = 0; i < ns; ++i) {             // check if x falls into any piecewise panels
-    if (x > -ns2 + i && x <= -ns2 + i + 1) { // if so, eval that Horner polynomial
-      TF z = std::fma(TF(2.0), x - TF(i), TF(ns - 1)); // maps panel to z in [-1,1]
-      for (int j = 0; j < m.nc; ++j) // Horner loop (highest to lowest order)...
-        res = std::fma(res, z, coefs[j * m.padded_ns + i]);
-      break;
-    }
-  }
-  return res;
+  return finufft::kernel::evaluate_kernel_horner<TF>(x, m.spopts.nspread, m.nc,
+                                                     m.horner_coeffs.data(), m.padded_ns);
 }
 
 /*

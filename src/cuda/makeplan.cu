@@ -32,43 +32,33 @@ static bool warned_pools = false;
 
 template<typename T>
 void cufinufft_plan_t<T>::setup_spreadinterp()
-// Initializes spreader kernel params in this->spopts from this->tol,
-// this->opts.upsampfac, and this->opts.gpu_kerevalmeth (0:exp(sqrt()),
-// 1: Horner ppval). Mirrors CPU FINUFFT_PLAN_T<TF>::setup_spreadinterp().
-// Warns on stderr when tol was clamped up to eps_mach.
-// Throws finufft::exception on hard error.
-// As of v2.5 no longer sets ES_c, ES_halfwidth, since absent from spopts.
-// To do: *** update this to CPU v2.5 kernel choice, coeffs, params...
+// Sets this->spopts from this->tol and this->opts.upsampfac. Mirrors CPU
+// FINUFFT_PLAN_T<TF>::setup_spreadinterp() and shares its width, shape and formula
+// rules, so both libraries spread the same kernel. Warns on stderr when tol was
+// clamped up to eps_mach or the width clipped. Throws finufft::exception on hard error.
 {
-  using finufft::common::MAX_NSPREAD;
-  using finufft::common::PI;
+  using namespace finufft::common;
+  using namespace finufft::kernel;
   T eps                      = tol;
-  const T upsampfac          = T(opts.upsampfac);
-  const int kerevalmeth      = opts.gpu_kerevalmeth;
+  const double upsampfac     = opts.upsampfac;
   const int debug            = opts.debug;
   const int spreadinterponly = opts.gpu_spreadinterponly;
 
-  if (upsampfac != 2.0 && upsampfac != 1.25) { // nonstandard sigma
-    if (kerevalmeth == 1) {
-      fprintf(
-          stderr,
-          "[%s] error: nonstandard upsampfac=%.3g cannot be handled by kerevalmeth=1\n",
-          __func__, upsampfac);
-      throw finufft::exception(FINUFFT_ERR_HORNER_WRONG_BETA);
-    }
-    if (upsampfac <= 1.0) { // no digits would result, ns infinite
-      fprintf(stderr, "[%s] error: upsampfac=%.3g\n", __func__, upsampfac);
-      throw finufft::exception(FINUFFT_ERR_UPSAMPFAC_TOO_SMALL);
-    }
-    // calling routine must abort on above errors, since spopts is garbage!
-    if (!spreadinterponly && upsampfac > 4.0)
-      fprintf(stderr, "[%s] warning: upsampfac=%.3g is too large to be beneficial!\n",
-              __func__, upsampfac);
+  if (upsampfac <= 1.0) { // no digits would result, ns infinite
+    fprintf(stderr, "[%s] error: upsampfac=%.3g\n", __func__, upsampfac);
+    throw finufft::exception(FINUFFT_ERR_UPSAMPFAC_TOO_SMALL);
   }
+  if (!spreadinterponly && upsampfac > 4.0)
+    fprintf(stderr, "[%s] warning: upsampfac=%.3g is too large to be beneficial!\n",
+            __func__, upsampfac);
+  if (opts.gpu_kerevalmeth != 1) warn_deprecated_opt(__func__, "gpu_kerevalmeth");
 
   // defaults... (user can change after this function called)
   spopts.spread_direction = 0; // user should always set to 1 or 2 as desired
   spopts.upsampfac        = upsampfac;
+  // PSWF with the shifted shape param, the CPU default. Any kerformula
+  // kernel_definition_lambda knows works: the coefficients are fitted at run time.
+  spopts.kerformula       = 8;
 
   // as in FINUFFT v2.0, allow too-small-eps by truncating to eps_mach...
   constexpr T EPSILON = std::numeric_limits<T>::epsilon();
@@ -78,34 +68,35 @@ void cufinufft_plan_t<T>::setup_spreadinterp()
     eps = EPSILON;
   }
 
-  // Set kernel width w (aka ns) and ES kernel beta parameter, in spopts...
-  // To do: *** unify with new CPU kernel logic/coeffs of v2.5.
-  int ns = std::ceil(-log10(eps / (T)10.0)); // 1 digit per power of ten
-  if (upsampfac != 2.0)                      // override ns for custom sigma
-    ns = std::ceil(-log(eps) / (T(PI) * sqrt(1 - 1 / upsampfac))); // formula,
-                                                                   // gamma=1
-  ns = std::max(2, ns);   // we don't have ns=1 version yet
-  if (ns > MAX_NSPREAD<T>) { // clip to match allocated arrays
+  // Width from the aliasing law, then clipped to what is compiled: MAX_NSPREAD<T>,
+  // and the catastrophic-cancellation cap for float below FLOAT_CC_UPSAMPFAC_LIMIT.
+  const int ns_theory = theoretical_kernel_ns((double)eps, dim, type, spopts);
+  if (ns_theory > MAX_NSPREAD<T>)
     fprintf(stderr,
             "[%s] warning: at upsampfac=%.3g, tol=%.3g would need kernel width ns=%d; "
             "clipping to max %d.\n",
-            __func__, upsampfac, (double)eps, ns, MAX_NSPREAD<T>);
-    ns = MAX_NSPREAD<T>;
-  }
-  spopts.nspread = ns;
-
-  T betaoverns = 2.30;            // gives decent betas for default sigma=2.0
-  if (ns == 2) betaoverns = 2.20; // some small-width tweaks...
-  if (ns == 3) betaoverns = 2.26;
-  if (ns == 4) betaoverns = 2.38;
-  if (upsampfac != 2.0) { // again, override beta for custom sigma
-    T gamma    = 0.97;    // must match devel/gen_all_horner_C_code.m
-    betaoverns = gamma * T(PI) * (1 - 1 / (2 * upsampfac));
-  }
-  spopts.beta = betaoverns * (T)ns; // set the kernel beta (shape) parameter
+            __func__, upsampfac, (double)eps, ns_theory, MAX_NSPREAD<T>);
+  spopts.nspread = clamp_kernel_ns<T>(ns_theory, upsampfac);
+  set_kernel_shape_given_ns(spopts, debug); // selects kernel shape params in spopts
   if (debug)
-    printf("[%s] (kerevalmeth=%d) eps=%.3g sigma=%.3g: chose ns=%d beta=%.3g\n", __func__,
-           kerevalmeth, (double)eps, (double)upsampfac, ns, spopts.beta);
+    printf("[%s] eps=%.3g sigma=%.3g: chose ns=%d beta=%.3g\n", __func__, (double)eps,
+           upsampfac, spopts.nspread, spopts.beta);
+
+  // Fit into horner_coeffs_host with the CPU's fit_horner_coeffs; only the stride
+  // differs (ns here, padded_ns on the CPU). cufinufft_gpu_data copies the table into
+  // its by-value member, so no device allocation is needed. tol_cutoff 0 leaves the
+  // fit untruncated, because eval_kernel_vec_horner takes its row count at compile time.
+  const int ns     = spopts.nspread;
+  const int nc_fit = max_nc_given_ns<T>(ns);
+  horner_coeffs_host.assign(std::size_t(nc_fit) * ns, T(0));
+  nc = fit_horner_coeffs<T>(spopts, nc_fit, ns, 0.0, horner_coeffs_host.data());
+  if (opts.debug > 2)
+    for (int k = 0; k < nc; ++k) {
+      printf("[%s] coeffs idx=%d: ", __func__, k);
+      for (int j = 0; j < ns; ++j)
+        printf("%.14g ", double(horner_coeffs_host[std::size_t(k) * ns + j]));
+      printf("\n");
+    }
 }
 template void cufinufft_plan_t<float>::setup_spreadinterp();
 template void cufinufft_plan_t<double>::setup_spreadinterp();

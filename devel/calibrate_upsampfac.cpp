@@ -248,7 +248,7 @@ template<typename T> void run_config(const cal_options_t &o) {
     std::snprintf(
         buf, sizeof buf, "%c,%d,%d,%.1e,%lld,%lld,%d,%.4f,%.6f,%d,%d,%d,%.1f,%.6e\n",
         o.prec, o.dim, o.type, o.tol, (long long)Ntot, (long long)M, o.threads, sigmas[i],
-        times[i], (int)(i == k_opt), ns, finufft::kernel::max_nc_given_ns(ns),
+        times[i], (int)(i == k_opt), ns, finufft::kernel::max_nc_given_ns<double>(ns),
         grid_traffic_of(ns), fft_G_of(sigmas[i], ns));
     (*det) << buf;
   }
@@ -260,8 +260,8 @@ template<typename T> void run_config(const cal_options_t &o) {
     std::snprintf(
         buf, sizeof buf, "%c,%d,%d,%.1e,%lld,%lld,%d,%.4f,%d,%d,%.4f,%d,%.6f,%.6f,%.4f\n",
         o.prec, o.dim, o.type, o.tol, (long long)Ntot, (long long)M, o.threads, sigma_opt,
-        ns_opt, finufft::kernel::max_nc_given_ns(ns_opt), sigma_model, ns_model, t_opt,
-        t_model, t_model > 0 ? t_model / t_opt : 0.0);
+        ns_opt, finufft::kernel::max_nc_given_ns<double>(ns_opt), sigma_model, ns_model,
+        t_opt, t_model, t_model > 0 ? t_model / t_opt : 0.0);
     sf << buf;
   }
 }

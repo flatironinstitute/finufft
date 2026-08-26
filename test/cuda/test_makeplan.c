@@ -163,14 +163,14 @@ int main() {
     {
       cufinufft_opts opts;
       cufinufft_default_opts(&opts);
-      opts.upsampfac       = 0.9;
-      opts.gpu_kerevalmeth = 1;
-      assert(cufinufftf_makeplan(type, dim, N, iflag, ntransf, tol, &plan, &opts) ==
-             FINUFFT_ERR_HORNER_WRONG_BETA);
-
-      opts.gpu_kerevalmeth = 0;
+      opts.upsampfac = 0.9;
       assert(cufinufftf_makeplan(type, dim, N, iflag, ntransf, tol, &plan, &opts) ==
              FINUFFT_ERR_UPSAMPFAC_TOO_SMALL);
+
+      // A nonstandard upsampfac is fitted at run time, so it is accepted
+      opts.upsampfac = 1.6;
+      assert(cufinufftf_makeplan(type, dim, N, iflag, ntransf, tol, &plan, &opts) == 0);
+      cufinufftf_destroy(plan);
 
       // Should produce a warning, not an error
       opts.upsampfac = 4.5;

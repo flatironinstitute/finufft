@@ -142,23 +142,27 @@ template void nuft_kernel_compute(
     cuda::std::array<gpu_array<double>, 3> &d_fwkerhalf, int ns, cudaStream_t stream);
 
 template<typename T>
-void onedim_nuft_kernel_precomp(T *f, T *z, finufft_spread_opts opts) {
+void onedim_nuft_kernel_precomp(T *f, T *z, finufft_spread_opts opts, int nc,
+                                const T *coeffs) {
   // it implements the first half of onedim_nuft_kernel in CPU code
-  T J2 = opts.nspread / 2.0; // J/2, half-width of ker z-support
+  const int ns = opts.nspread;
+  T J2         = ns / 2.0; // J/2, half-width of ker z-support
   // # quadr nodes in z (from 0 to J/2; reflections will be added)...
   int q = (int)(2 + 2.0 * J2); // matches CPU code
   double z_local[2 * MAX_NQUAD];
   double w_local[2 * MAX_NQUAD];
-  gaussquad(2 * q, z_local, w_local);                     // half the nodes, (0,1)
-  for (int n = 0; n < q; ++n) {                           // set up nodes z_n and vals f_n
-    z[n] = J2 * T(z_local[n]);                            // rescale nodes
-    f[n] = J2 * w_local[n] * evaluate_kernel(z[n], opts); // vals & quadr wei
+  gaussquad(2 * q, z_local, w_local); // half the nodes, (0,1)
+  for (int n = 0; n < q; ++n) {       // set up nodes z_n and vals f_n
+    z[n] = J2 * T(z_local[n]);        // rescale nodes
+    // vals & quadr wei; the FT is of the approximant that is actually spread
+    f[n] = J2 * w_local[n] *
+           finufft::kernel::evaluate_kernel_horner<T>(z[n], ns, nc, coeffs, ns);
   }
 }
-template void onedim_nuft_kernel_precomp<float>(float *f, float *a,
-                                                finufft_spread_opts opts);
-template void onedim_nuft_kernel_precomp<double>(double *f, double *a,
-                                                 finufft_spread_opts opts);
+template void onedim_nuft_kernel_precomp<float>(
+    float *f, float *a, finufft_spread_opts opts, int, const float *);
+template void onedim_nuft_kernel_precomp<double>(
+    double *f, double *a, finufft_spread_opts opts, int, const double *);
 
 } // namespace common
 } // namespace cufinufft
@@ -185,7 +189,6 @@ template void cufinufft_plan_t<double>::set_nf_type12(
 template<typename T>
 void cufinufft_plan_t<T>::precompute_fseries_nodes(CUFINUFFT_BIGINT nf_, T *f,
                                                    T *phase) const {
-  using cufinufft::spreadinterp::evaluate_kernel;
   using finufft::common::gaussquad;
   using finufft::common::MAX_NQUAD;
   using finufft::common::PI;
@@ -196,8 +199,11 @@ void cufinufft_plan_t<T>::precompute_fseries_nodes(CUFINUFFT_BIGINT nf_, T *f,
   gaussquad(2 * q, z, w);       // only half the nodes used, for (0,1)
   for (int n = 0; n < q; ++n) { // set up nodes z_n and vals f_n
     z[n] *= J2;                 // rescale nodes
-    f[n]     = J2 * w[n] * evaluate_kernel((T)z[n], spopts); // vals & quadr wei
-    phase[n] = T(2.0 * PI * z[n] / T(nf_));                  // phase winding rates
+    // vals & quadr wei; the FT is of the approximant that is actually spread
+    f[n] = J2 * w[n] *
+           finufft::kernel::evaluate_kernel_horner<T>(
+               T(z[n]), spopts.nspread, nc, horner_coeffs_host.data(), spopts.nspread);
+    phase[n] = T(2.0 * PI * z[n] / T(nf_)); // phase winding rates
   }
 }
 template void cufinufft_plan_t<float>::precompute_fseries_nodes(CUFINUFFT_BIGINT, float *,

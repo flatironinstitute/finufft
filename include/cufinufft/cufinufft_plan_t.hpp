@@ -17,10 +17,12 @@
 #include <thrust/system/cuda/execution_policy.h>
 #include <type_traits>
 
+#include <algorithm>
 #include <cstddef>
 #include <cuComplex.h>
 #include <memory>
 #include <tuple>
+#include <vector>
 
 /* This header file contains the internal plan class of cufinufft,
    as well as other types and functions which are exclusively
@@ -331,6 +333,13 @@ private:
   cuda::std::array<gpu_array<T>, 3> fwkerhalf = {
       gpu_array<T>{0, alloc}, gpu_array<T>{0, alloc}, gpu_array<T>{0, alloc}};
 
+  // Piecewise-Horner kernel coefficients, fitted at plan time by setup_spreadinterp():
+  // nc rows of nspread panels, coeff k of panel j at [k*nspread + j]. Feeds the Fourier
+  // quadratures here, and the spread/interp kernels through cufinufft_gpu_data, which
+  // copies it by value. Untruncated, so nc == max_nc_given_ns<T>(nspread).
+  std::vector<T> horner_coeffs_host;
+  int nc                                  = 0;
+
   // for type 1,2 it is a pointer to kx, ky, kz (no new allocs), for type 3 it
   // for t3: allocated as "primed" (scaled) src pts x'_j, etc
   cuda::std::array<const T *, 3> kxyz     = {nullptr, nullptr, nullptr};
@@ -395,8 +404,8 @@ private:
 
   // Helpers migrated from free functions in cufinufft::common / cufinufft::utils.
   // Use this->opts and this->spopts; called only from plan setup.
-  // Mirrors CPU FINUFFT_PLAN_T<TF>::setup_spreadinterp(). Warns on stderr when
-  // tol was clamped up to eps_mach. Throws on hard error.
+  // Mirrors CPU FINUFFT_PLAN_T<TF>::setup_spreadinterp(): chooses the kernel width and
+  // shape, then fits its coefficients into spopts, nc and horner_coeffs_host. Throws.
   void setup_spreadinterp();
   void set_nf_type12(CUFINUFFT_BIGINT ms, CUFINUFFT_BIGINT *nf, CUFINUFFT_BIGINT b) const;
   std::tuple<CUFINUFFT_BIGINT, T, T> set_nhg_type3(T S, T X) const;
@@ -531,11 +540,14 @@ template<typename T> struct cufinufft_gpu_data {
   cufinufft_opts opts;
   finufft_spread_opts spopts;
 
-  // Derived ES-kernel parameters, cached so spread/interp kernels do not
-  // recompute them on every launch. es_c == (2/ns)^2; sigma == upsampfac.
-  T sigma   = 0;
-  T es_c    = 0;
-  T es_beta = 0;
+  // Piecewise-Horner kernel coefficients, in eval_kernel_vec_horner's layout (see
+  // cufinufft_plan_t::horner_coeffs_host). Keep the table in this struct: a by-value
+  // kernel parameter lands in the constant bank, and a global-memory table instead
+  // slows the shared-memory spread pass. The widest MAX_NSPREAD<T> table still fits.
+  static constexpr int max_coeffs =
+      finufft::common::MAX_NSPREAD<T> *
+      finufft::kernel::max_nc_given_ns<T>(finufft::common::MAX_NSPREAD<T>);
+  T horner_coeffs[max_coeffs]                 = {};
 
   int type                                    = 0;
   int dim                                     = 0;
@@ -582,9 +594,7 @@ template<typename T> struct cufinufft_gpu_data {
 
   cufinufft_gpu_data() = delete;
   cufinufft_gpu_data(const cufinufft_plan_t<T> &orig)
-      : opts(orig.opts), spopts(orig.spopts), sigma(orig.spopts.upsampfac),
-        es_c(T(4) / T(orig.spopts.nspread * orig.spopts.nspread)),
-        es_beta(orig.spopts.beta), type(orig.type), dim(orig.dim), M(orig.M),
+      : opts(orig.opts), spopts(orig.spopts), type(orig.type), dim(orig.dim), M(orig.M),
         nf123(orig.nf123), mstu(orig.mstu), ntransf(orig.ntransf),
         batchsize(orig.batchsize), iflag(orig.iflag),
         totalnumsubprob(orig.totalnumsubprob), xyz(orig.kxyz), N(orig.N), nf(orig.nf),
@@ -595,7 +605,17 @@ template<typename T> struct cufinufft_gpu_data {
         subprob_to_bin(dethrust(orig.subprob_to_bin)),
         subprobstartpts(dethrust(orig.subprobstartpts)),
         numnupts(dethrust(orig.numnupts)),
-        subprob_to_nupts(dethrust(orig.subprob_to_nupts)) {}
+        subprob_to_nupts(dethrust(orig.subprob_to_nupts)) {
+    std::copy(orig.horner_coeffs_host.begin(), orig.horner_coeffs_host.end(),
+              horner_coeffs);
+  }
 };
+
+// Every kernel takes this struct by value; the parameter space is 4 kB on every arch.
+static_assert(sizeof(cufinufft_gpu_data<float>) <= 4096, "gpu_data exceeds 4 kB");
+static_assert(sizeof(cufinufft_gpu_data<double>) <= 4096, "gpu_data exceeds 4 kB");
+// CUDA passes kernel parameters by bitwise copy into constant memory.
+static_assert(std::is_trivially_copyable_v<cufinufft_gpu_data<float>>);
+static_assert(std::is_trivially_copyable_v<cufinufft_gpu_data<double>>);
 
 #endif

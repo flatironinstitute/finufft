@@ -234,7 +234,8 @@ void cufinufft_plan_t<T>::setpts(int nj, const T *d_kx, const T *d_ky, const T *
     for (int idim = 0; idim < dim; ++idim) phi_hat123[idim].resize(N);
     for (int idim = 0; idim < dim; ++idim)
       onedim_nuft_kernel_precomp<T>(nuft_precomp_f.data() + idim * MAX_NQUAD,
-                                    nuft_precomp_z.data() + idim * MAX_NQUAD, spopts);
+                                    nuft_precomp_z.data() + idim * MAX_NQUAD, spopts, nc,
+                                    horner_coeffs_host.data());
     // copy the precomputed data to the device using thrust
     thrust::copy(nuft_precomp_z.begin(), nuft_precomp_z.end(), d_nuft_precomp_z.begin());
     thrust::copy(nuft_precomp_f.begin(), nuft_precomp_f.end(), d_nuft_precomp_f.begin());

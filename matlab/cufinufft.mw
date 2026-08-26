@@ -62,9 +62,6 @@ $     }
 $     else if (strcmp(fname[ifield],"gpu_sort") == 0) {
 $       oc->gpu_sort = (int)round(*mxGetPr(mxGetFieldByNumber(om,idx,ifield)));
 $     }
-$     else if (strcmp(fname[ifield],"gpu_kerevalmeth") == 0) {
-$       oc->gpu_kerevalmeth = (int)round(*mxGetPr(mxGetFieldByNumber(om,idx,ifield)));
-$     }
 $     else if (strcmp(fname[ifield],"gpu_spreadinterponly") == 0) {
 $       oc->gpu_spreadinterponly = (int)round(*mxGetPr(mxGetFieldByNumber(om,idx,ifield)));
 $     }
@@ -106,6 +103,11 @@ $       oc->gpu_device_id = (int)round(*mxGetPr(mxGetFieldByNumber(om,idx,ifield
 $     }
 $     else if (strcmp(fname[ifield],"gpu_np") == 0) {
 $       oc->gpu_np = (int)round(*mxGetPr(mxGetFieldByNumber(om,idx,ifield)));
+$     }
+$     /* deprecated fields, kept for ABI compatibility, ignored by the library */
+$     else if (strcmp(fname[ifield],"gpu_kerevalmeth") == 0) {
+$       mexWarnMsgIdAndTxt("FINUFFT:deprecatedOpt",
+$                          "cuFINUFFT opts.%s is deprecated and ignored", fname[ifield]);
 $     }
 $     /* matlab-only field, handled in cufinufft_plan.m... */
 $     else if (strcmp(fname[ifield],"floatprec") == 0) {

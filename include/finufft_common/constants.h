@@ -28,7 +28,11 @@ inline constexpr double INV_2PI = 0.159154943091895335768883763372514362;
 
 // polynomial degree bounds for all kernel approximation
 inline constexpr int MIN_NC = 4;
-inline constexpr int MAX_NC = 19;
+// Widest Horner fit worth compiling, per storage precision. An accuracy-budget cap,
+// not a saturation point: float still improves past 8, but 8 holds the fit inside the
+// aliasing budget. Binds only from ns=6 up; ns+3 binds first below that. Double is
+// uncapped in effect (ns+3 <= 19); capping it lands cells on the tol_cutoff knife-edge.
+template<class T> inline constexpr int MAX_NC    = std::is_same_v<T, float> ? 8 : 19;
 
 // Upsampling-factor (sigma) "rails". There are deliberately TWO intervals, not one,
 // because they serve two different jobs (a single interval cannot do both):
