@@ -25,6 +25,12 @@ endif()
 
 target_compile_features(finufft_common PRIVATE cxx_std_17)
 
+# Must match the sanitizer instrumentation of finufft, finufft_f32 and the tests.
+# libc++ and libstdc++ annotate std::vector's unused capacity for ASan only in
+# instrumented translation units, so a std::vector crossing an instrumented and an
+# uninstrumented copy of the same inline function reports a false container-overflow.
+enable_asan(finufft_common)
+
 # If you need -lm etc. Wrap in BUILD_INTERFACE so the absolute libm path is not
 # propagated into the installed package interface (finufft_common is a static
 # archive and is exported for static consumers).
