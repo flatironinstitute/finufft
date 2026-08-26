@@ -205,7 +205,7 @@ template<class T> inline std::size_t kernel_buffer_stride_runtime(int ns) {
   return finufft::utils::round_up(std::size_t(ns), get_padded_simd_width<T>(2 * ns));
 }
 
-// plan.hpp sizes horner_coeffs as MAX_NSPREAD<double>*MAX_NC (a loose bound that
+// plan.hpp sizes horner_coeffs as MAX_NSPREAD<double>*MAX_NC<T> (a loose bound that
 // keeps plan.hpp xsimd-free for test headers). Pin that bound here so it is
 // provably >= the actual stride for both precisions.
 static_assert(MAX_NSPREAD<double> >= max_kernel_buffer_stride<float>,

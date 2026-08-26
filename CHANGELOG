@@ -3,6 +3,19 @@ If not stated, FINUFFT is assumed (old cuFINUFFT <=1.3 is listed separately).
 
 v2.6.0-dev
 
+* cuFINUFFT now fits the spread/interp kernel's piecewise-Horner coefficients at plan
+  time with the CPU's own code (`finufft::kernel::fit_horner_coeffs`), instead of
+  reading one of two generated tables. Any `opts.upsampfac > 1.0` now works on the GPU,
+  not just 2.0 and 1.25, and the GPU spreads the same PSWF kernel as the CPU.
+  `opts.gpu_kerevalmeth` is deprecated and ignored, which halves the kernel
+  instantiations: the sm_89 static library drops from 37.6 MB to 22.1 MB and the device
+  kernel count from 1039 to 623. The fit always runs in double, so a float table is the
+  double table rounded, 2-3x more accurate at no run-time cost. `MAX_NC` is now per-
+  precision: float stops at 8 coefficients instead of growing as `ns+3`, taking 26.5%
+  off the CPU static library and 1.35% off the GPU one. The two
+  `ker_*_horner_allw_loop.inc` tables are deleted; `cuperftest` loses `--kerevalmethod`;
+  the MATLAB interface warns and ignores the field. New `cutolsweep` test: the GPU twin
+  of `test/tolsweep.cpp`, so CPU and GPU accuracy are held to one standard. (Barbone)
 * The examples are now built and run as ctest tests, on GitHub and on the Jenkins
   CUDA matrix. Nothing built them before, so they had rotted: three were missing
   from the CMake build, the single-precision ones asked for more modes than float

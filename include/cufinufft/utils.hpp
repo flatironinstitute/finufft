@@ -129,22 +129,15 @@ template<typename T> auto arraywidcen(int n, const T *a, cudaStream_t stream) {
   return std::make_tuple(w, c);
 }
 
-// Wrapper around the generic dispatcher for ndim-based dispatch
-template<typename Func, typename T, typename... Args>
-auto launch_dispatch_ndim(Func &&func, int target_ndim, Args &&...args) {
-  using NdimSeq = poet::inclusive_range<1, 3>;
-  auto params = std::make_tuple(poet::dispatch_param<NdimSeq>{target_ndim});
-  return poet::dispatch(std::forward<Func>(func), params, std::forward<Args>(args)...);
-}
-// Wrapper around the generic dispatcher for ndim- and nspread-based dispatch
-template<typename Func, typename T, typename... Args>
-auto launch_dispatch_ndim_ns(Func &&func, int target_ndim, int target_ns,
-                             Args &&...args) {
-  using NdimSeq = poet::inclusive_range<1, 3>;
-  using NsSeq = poet::inclusive_range<MIN_NSPREAD, MAX_NSPREAD<T>>;
-  auto params = std::make_tuple(poet::dispatch_param<NdimSeq>{target_ndim},
-                                poet::dispatch_param<NsSeq>{target_ns});
-  return poet::dispatch(std::forward<Func>(func), params, std::forward<Args>(args)...);
+/* Compile-time dispatch on the kernel width ns, the one shape parameter every
+   spread/interp kernel templates on; the Horner row count follows from ns
+   (finufft::kernel::max_nc_given_ns<T>). The caller is taken by value because
+   poet::dispatch needs a mutable functor. Caller exposes
+   template<int Ns> void operator()() const. */
+template<typename T, class Caller> void dispatch_kernel_shape(Caller caller, int ns) {
+  using NsSeq = poet::inclusive_range<finufft::common::MIN_NSPREAD,
+                                      finufft::common::MAX_NSPREAD<T>>;
+  poet::dispatch(caller, std::make_tuple(poet::dispatch_param<NsSeq>{ns}));
 }
 
 } // namespace utils

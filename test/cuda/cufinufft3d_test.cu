@@ -114,12 +114,11 @@ int run_test(int method, int type, int N1, int N2, int N3, int M, T tol, T check
   cufinufft_plan_t<T> *dplan;
   int dim = 3;
 
-  // Here we setup our own opts, for gpu_method and gpu_kerevalmeth.
+  // Here we setup our own opts, for gpu_method.
   cufinufft_opts opts;
   cufinufft_default_opts(&opts);
 
   opts.gpu_method      = method;
-  opts.gpu_kerevalmeth = 1;
   opts.upsampfac       = upsampfac;
   int nmodes[3]        = {N1, N2, N3};
   int ntransf          = 1;

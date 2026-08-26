@@ -54,18 +54,9 @@ int main() {
 
   // Upsamp too small -> expect FINUFFT_ERR_UPSAMPFAC_TOO_SMALL
   cufinufft_default_opts(&opts);
-  opts.upsampfac       = 0.9;
-  opts.gpu_kerevalmeth = 0;
-  rc                   = cufinufftf_makeplan(1, 2, N, 1, 1, 1e-5f, &fplan, &opts);
+  opts.upsampfac = 0.9;
+  rc             = cufinufftf_makeplan(1, 2, N, 1, 1, 1e-5f, &fplan, &opts);
   rc = check_rc("upsampfac too small", rc, FINUFFT_ERR_UPSAMPFAC_TOO_SMALL, 6);
-  if (rc) return rc;
-
-  // Horner wrong beta -> expect FINUFFT_ERR_HORNER_WRONG_BETA
-  cufinufft_default_opts(&opts);
-  opts.upsampfac       = 0.9;
-  opts.gpu_kerevalmeth = 1;
-  rc                   = cufinufftf_makeplan(1, 2, N, 1, 1, 1e-5f, &fplan, &opts);
-  rc = check_rc("horner wrong beta", rc, FINUFFT_ERR_HORNER_WRONG_BETA, 7);
   if (rc) return rc;
 
   // Insufficient shared memory in 3D: huge binsizes -> expect

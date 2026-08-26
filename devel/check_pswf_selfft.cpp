@@ -41,7 +41,7 @@ static std::vector<double> fit_panels(const finufft_spread_opts &so, int nc) {
   std::vector<double> c(size_t(nc) * ns);
   for (int j = 0; j < ns; ++j) {
     const double shift = 2 * j + 1 - ns;
-    auto panel = poly_fit<double>([&](double x) { return ker((x + shift) / ns); }, nc);
+    auto panel         = poly_fit([&](double x) { return ker((x + shift) / ns); }, nc);
     for (int k = 0; k < nc; ++k) c[size_t(k) * ns + j] = panel[k];
   }
   return c;
@@ -87,7 +87,7 @@ int main() {
         finufft_spread_opts so{};
         so.nspread = ns, so.upsampfac = sigma, so.kerformula = kf;
         set_kernel_shape_given_ns(so, 0);
-        const int nc = max_nc_given_ns(ns);
+        const int nc = max_nc_given_ns<double>(ns);
         const auto c = fit_panels(so, nc);
         const auto [grid_scale, prefac] =
             pswf_selfft_params(ns, so.beta, c.data(), nc, ns);
