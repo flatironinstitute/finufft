@@ -6,4 +6,4 @@ set -euxo pipefail
 rm -f docs/pics/perftestci_*
 mv outputs/*.svg docs/pics/
 python3 tools/perftest-page.py \
-	--page docs/performance_change_summary.rst --snippets outputs
+	--page docs/performance.rst --snippets outputs

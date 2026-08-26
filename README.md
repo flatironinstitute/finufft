@@ -74,7 +74,7 @@ If you prefer to read text files, the source to generate the above documentation
 - `docs/opts.rst`    : optional parameters
 - `docs/error.rst`   : error codes
 - `docs/trouble.rst` : troubleshooting and accuracy advice
-- `docs/performance.rst` : CPU timing benchmarks compared to older versions
+- `docs/performance.rst` : CI-generated CPU and GPU benchmark timings across releases
 - `docs/tut.rst` and `tutorial/*` : tutorial application examples
 - `docs/fortran.rst` : usage examples from Fortran, documentation of interface
 - `docs/matlab.rst` and `docs/matlabhelp.raw` : using the MATLAB/Octave interface

@@ -1,4 +1,4 @@
-"""Assemble docs/performance_change_summary.rst from the measured sections.
+"""Assemble docs/performance.rst from the measured sections.
 
 ``run_perftest_ci.py`` renders one ``performance_<backend>.rst`` and its
 figures per backend. This stitches them under the marker in the in-tree
