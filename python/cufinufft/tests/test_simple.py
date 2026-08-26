@@ -116,3 +116,26 @@ def test_cufinufft3_simple(
     target_coefs = to_cpu(target_coefs_gpu)
 
     utils.verify_type3(source_pts, source_coefs, target_pts, target_coefs, tol)
+
+
+def test_cufinufft3_ignores_spreadinterponly(to_gpu, to_cpu, dtype=np.complex128, dim=2):
+    fun = {1: cufinufft.nufft1d3, 2: cufinufft.nufft2d3, 3: cufinufft.nufft3d3}[dim]
+
+    source_pts, source_coefs, target_pts = utils.type3_problem(dtype, dim, 256, 257)
+    tol = 1e-6
+
+    source_pts_gpu = to_gpu(source_pts)
+    source_coefs_gpu = to_gpu(source_coefs)
+    target_pts_gpu = to_gpu(target_pts)
+
+    target_coefs_gpu = fun(
+        *source_pts_gpu,
+        source_coefs_gpu,
+        *target_pts_gpu,
+        eps=tol,
+        gpu_spreadinterponly=1,
+    )
+
+    utils.verify_type3(
+        source_pts, source_coefs, target_pts, to_cpu(target_coefs_gpu), tol
+    )
