@@ -61,7 +61,6 @@ struct test_options_t {
   int32_t N[3];
   int M;
   int ntransf;
-  int kerevalmethod;
   int method;
   int sort;
   int maxbatchsize;
@@ -86,7 +85,6 @@ struct test_options_t {
           {"ntransf", required_argument, 0, 0},
           {"tol", required_argument, 0, 0},
           {"method", required_argument, 0, 0},
-          {"kerevalmethod", required_argument, 0, 0},
           {"maxbatchsize", required_argument, 0, 0},
           {"sort", required_argument, 0, 0},
           {"debug", required_argument, 0, 0},
@@ -116,7 +114,6 @@ struct test_options_t {
     M             = std::stof(get_or(options_map, "M", "2E6"));
     ntransf       = std::stoi(get_or(options_map, "ntransf", "1"));
     method        = std::stoi(get_or(options_map, "method", "1"));
-    kerevalmethod = std::stoi(get_or(options_map, "kerevalmethod", "1"));
     maxbatchsize  = std::stoi(get_or(options_map, "maxbatchsize", "0"));
     sort          = std::stoi(get_or(options_map, "sort", "1"));
     tol           = std::stof(get_or(options_map, "tol", "1E-5"));
@@ -133,7 +130,6 @@ struct test_options_t {
                 << "# M = " << opts.M << "\n"
                 << "# ntransf = " << opts.ntransf << "\n"
                 << "# method = " << opts.method << "\n"
-                << "# kerevalmethod = " << opts.kerevalmethod << "\n"
                 << "# maxbatchsize = " << opts.maxbatchsize << "\n"
                 << "# sort = " << opts.sort << "\n"
                 << "# tol = " << opts.tol << "\n"
@@ -308,8 +304,7 @@ template<typename T> void run_test(test_options_t &test_opts) {
 
   cufinufft_default_opts(&opts);
   opts.gpu_method      = test_opts.method;
-  opts.gpu_sort        = test_opts.sort;
-  opts.gpu_kerevalmeth = test_opts.kerevalmethod;
+  opts.gpu_sort         = test_opts.sort;
   opts.gpu_maxbatchsize = test_opts.maxbatchsize;
   set_debug(opts, test_opts.debug, 0);
 
@@ -448,11 +443,6 @@ int main(int argc, char *argv[]) {
                  "               3: output-driven subproblem (experimental)\n"
                  "           Note that not all methods are compatible with all dim/type combinations\n"
                  "           default: " << default_opts.method << "\n" <<
-                 "    --kerevalmeth <int>\n"
-                 "           kernel evaluation method\n"
-                 "               0: Exponential of square root\n"
-                 "               1: Horner evaluation\n"
-                 "           default: " << default_opts.kerevalmethod << "\n" <<
                  "    --sort: <int>\n"
                  "           sort strategy\n"
                  "               0: do not sort the points\n"

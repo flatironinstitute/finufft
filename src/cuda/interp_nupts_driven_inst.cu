@@ -2,7 +2,6 @@
 // Compiled three times via CMake foreach with -DCUFINUFFT_DIM={1,2,3}.
 
 #include <cufinufft/spreadinterp.hpp>
-#include <poet/poet.hpp>
 
 #ifndef CUFINUFFT_DIM
 #error "CUFINUFFT_DIM must be defined to 1, 2, or 3 (set by CMake)"
@@ -12,19 +11,16 @@ namespace cufinufft {
 namespace spreadinterp {
 
 // Nupts-driven interpolation kernel
-template<typename T, int KEREVALMETH, int ndim, int ns>
+template<typename T, int ndim, int ns>
 __global__ FINUFFT_FLATTEN void interp_nupts_driven(
     cufinufft_gpu_data<T> p, cuda_complex<T> *c, const cuda_complex<T> *fw) {
-  T es_c    = p.es_c;
-  T es_beta = p.es_beta;
-  T sigma   = p.sigma;
 
   for (int i = blockDim.x * blockIdx.x + threadIdx.x; i < p.M;
        i += blockDim.x * gridDim.x) {
     const auto nuptsidx = loadReadOnly(p.idxnupts + i);
 
-    auto [ker, start] = get_kerval_and_startpos_nuptsdriven<T, KEREVALMETH, ndim, ns>(
-        nuptsidx, p.xyz, p.nf123, sigma, es_c, es_beta);
+    auto [ker, start]   = get_kerval_and_startpos_nuptsdriven<T, ndim, ns>(
+        nuptsidx, p.xyz, p.nf123, p.horner_coeffs);
 
     cuda_complex<T> cnow{0, 0};
     if constexpr (ndim == 1) {
@@ -80,8 +76,7 @@ void interp_nupts_driven_launch(const cufinufft_plan_t<T> &d_plan, cuda_complex<
       THROW_IF_CUDA_ERROR();
     }
   };
-  (d_plan.opts.gpu_kerevalmeth == 1) ? launch(interp_nupts_driven<T, 1, ndim, ns>)
-                                     : launch(interp_nupts_driven<T, 0, ndim, ns>);
+  launch(interp_nupts_driven<T, ndim, ns>);
 }
 
 template<typename T, int Ndim> struct InterpNuptsDrivenCaller {
@@ -97,10 +92,8 @@ template<typename T, int Ndim> struct InterpNuptsDrivenCaller {
 template<typename T, int Ndim>
 void do_interp_nupts_driven(const cufinufft_plan_t<T> &p, cuda_complex<T> *c,
                             const cuda_complex<T> *fw, int blksize) {
-  using namespace finufft::common;
   InterpNuptsDrivenCaller<T, Ndim> caller{p, c, fw, blksize};
-  using NsSeq = poet::inclusive_range<MIN_NSPREAD, MAX_NSPREAD<T>>;
-  poet::dispatch(caller, std::make_tuple(poet::dispatch_param<NsSeq>{p.spopts.nspread}));
+  utils::dispatch_kernel_shape<T>(caller, p.spopts.nspread);
 }
 
 template void do_interp_nupts_driven<float, CUFINUFFT_DIM>(

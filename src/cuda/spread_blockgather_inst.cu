@@ -2,7 +2,6 @@
 
 #include <cufinufft/spreadinterp.hpp>
 #include <iostream>
-#include <poet/poet.hpp>
 
 namespace cufinufft {
 namespace spreadinterp {
@@ -165,14 +164,11 @@ __global__ void calc_inverse_of_global_sort_index_ghost(
   }
 }
 
-template<typename T, int KEREVALMETH, int ndim, int ns>
+template<typename T, int ndim, int ns>
 __global__ void spread_3d_block_gather(cufinufft_gpu_data<T> p, const cuda_complex<T> *c,
                                        cuda_complex<T> *fw) {
   static_assert(ndim == 3, "unsupported dimensionality");
 
-  T es_c             = p.es_c;
-  T es_beta          = p.es_beta;
-  T sigma            = p.sigma;
   int maxsubprobsize = p.opts.gpu_maxsubprobsize;
 
   cuda::std::array<int, 3> obin_size{p.opts.gpu_obinsizex, p.opts.gpu_obinsizey,
@@ -233,11 +229,7 @@ __global__ void spread_3d_block_gather(cufinufft_gpu_data<T> p, const cuda_compl
       start_ -= offset[idim];
       end -= offset[idim];
 
-      if constexpr (KEREVALMETH == 1) {
-        eval_kernel_vec_horner<T, ns>(&ker[idim][0], pos, sigma);
-      } else {
-        eval_kernel_vec<T, ns>(&ker[idim][0], pos, es_c, es_beta);
-      }
+      eval_kernel_vec_horner<T, ns>(&ker[idim][0], pos, p.horner_coeffs);
 
       start[idim]    = start_;
       startnew[idim] = start_ < 0 ? 0 : start_;
@@ -295,8 +287,7 @@ void spread_blockgather_3d_launch(const cufinufft_plan_t<T> &d_plan,
         THROW_IF_CUDA_ERROR();
       }
     };
-    (d_plan.opts.gpu_kerevalmeth == 1) ? launch(spread_3d_block_gather<T, 1, ndim, ns>)
-                                       : launch(spread_3d_block_gather<T, 0, ndim, ns>);
+    launch(spread_3d_block_gather<T, ndim, ns>);
   } else
     throw finufft::exception(FINUFFT_ERR_DIM_NOTVALID);
 }
@@ -314,10 +305,8 @@ template<typename T> struct SpreadBlockGatherCaller {
 template<typename T>
 void do_spread_blockgather_3d(const cufinufft_plan_t<T> &p, const cuda_complex<T> *c,
                               cuda_complex<T> *fw, int blksize) {
-  using namespace finufft::common;
   SpreadBlockGatherCaller<T> caller{p, c, fw, blksize};
-  using NsSeq = poet::inclusive_range<MIN_NSPREAD, MAX_NSPREAD<T>>;
-  poet::dispatch(caller, std::make_tuple(poet::dispatch_param<NsSeq>{p.spopts.nspread}));
+  utils::dispatch_kernel_shape<T>(caller, p.spopts.nspread);
 }
 
 template<typename T> void do_indexSort_blockgather_3d(cufinufft_plan_t<T> &p) {

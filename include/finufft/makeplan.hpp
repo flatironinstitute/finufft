@@ -205,12 +205,12 @@ template<typename TF> void FINUFFT_PLAN_T<TF>::precompute_horner_coeffs() {
   using namespace finufft::utils;
   using namespace finufft::common;
   using namespace finufft::kernel;
-  // Solve for piecewise Horner coeffs for the function kernel.h:kernel_definition()
-  // Marco Barbone, Fall 2025. Barnett & Lu edits and two bugs fixed, Jan 2026.
-  // *** To-do: investigate using double when TF=float, and tol_cutoff, 1/13/26.
+  // Solve for the piecewise Horner coeffs of the kernel in m.spopts. The fit itself
+  // lives in finufft::kernel::fit_horner_coeffs (finufft_common/kernel.h), shared
+  // with the GPU plan; this method only supplies the CPU buffer layout.
+  // *** To-do: investigate tol_cutoff, 1/13/26.
   const auto nspread = m.spopts.nspread;
-
-  const auto nc_fit = max_nc_given_ns(nspread); // how many coeffs to fit
+  const auto nc_fit    = max_nc_given_ns<TF>(nspread); // how many coeffs to fit
 
   // Both the chunk stride here and the per-chunk stride in evaluate_kernel_vector
   // flow through KernelBufferLayout<TF, NS>::stride (compile-time) and
@@ -218,82 +218,14 @@ template<typename TF> void FINUFFT_PLAN_T<TF>::precompute_horner_coeffs() {
   m.padded_ns          = finufft::spreadinterp::kernel_buffer_stride_runtime<TF>(nspread);
   const auto simd_size = get_padded_simd_width<TF>(2 * nspread);
 
-  m.horner_coeffs.fill(TF(0));
-
-  m.nc = MIN_NC; // a class member which will become the number of coeffs used
+  // Coeff cut-off relative to tol, below which a degree is dropped: to-do make opts?
+  const double coeffs_tol_cutoff = 0.05;
 
   CNTime timer;
   timer.start();
-
-  // First pass: fit at max_degree (nc_fit-1), and save these coeffs,
-  // then determine largest nc needed and shuffle the coeffs if nc<nc_fit.
-  // Note: `poly_fit()` returns coefficients in descending-degree order
-  // (highest-degree first): coeffs[0] is the highest-degree term. We store
-  // them so that `horner_coeffs[k * padded_ns + j]` holds the k'th Horner
-  // coefficient (k=0 -> highest-degree). `horner_coeffs` was filled with
-  // zeros above, so panels that need fewer coefficients leave the rest as 0.
-
-  auto kernel_lambda = kernel_definition_lambda(m.spopts);
-
-  for (int j = 0; j < nspread; ++j) { // ......... loop over intervals (panels)
-    // affine map of x in [-1,1] to z in jth interval [-1+2j/w,-1+2(j+1)/w]
-    const TF xshiftj = TF(2 * j + 1 - nspread); // jth center in [-w,w]
-    // *** explore making this lambda double always, like kernel itself:
-    const auto kernel_this_interval = [xshiftj, nspread, kernel_lambda](TF x) -> TF {
-      const TF z = (x + xshiftj) / (TF)nspread;
-      return (TF)kernel_lambda((double)z);
-    };
-
-    // we're fitting in float for TF=float, *** explore always double:
-    const auto coeffs = poly_fit<TF>(kernel_this_interval, static_cast<int>(nc_fit));
-
-    // Save coefficients directly into final table (transposed/padded):
-    // coeffs[k] is highest->lowest, store at row k for panel j.
-    for (size_t k = 0; k < coeffs.size(); ++k) {
-      m.horner_coeffs[k * m.padded_ns + j] = coeffs[k];
-    }
-
-    // Truncate polynomial degree using a numerical coeff size cut-off:
-    // truncation at nc is allowed if all coeffs of degree nc have magnitude
-    // less than tol * coeffs_tol_cutoff. The smallest such nc is found.
-    // Experiments showed with this as 0.1, ns=15 still had err bump...
-    const TF coeffs_tol_cutoff = 0.05; // coeffs cut-off rel to tol: to-do make opts?
-    // Note: ordering is coeffs[0] highest degree, to coeffs[nc_fit-1] const term.
-    int nc_needed = 0; // initialize. then step down from highest degree...
-    for (size_t k = 0; k < coeffs.size(); ++k) {              // power is nc_fit-1-k
-      if (std::abs(coeffs[k]) >= m.tol * coeffs_tol_cutoff) { // stop when large enough
-        nc_needed = static_cast<int>(coeffs.size() - k);
-        break;
-      }
-    }
-    if (nc_needed > m.nc) m.nc = nc_needed; // nc update to be max over panels j
-  } // .............. end loop
-
-  // m.nc = nc_fit;  // overrides truncation, useful for debugging
-  //     prevent nc falling off bottom of valid range...
-  m.nc = std::max(m.nc, min_nc_given_ns(nspread));
-  // (we know nc cannot be larger than valid due to nc_fit initialization above)
-
-  // If the max required degree (m.nc) is less than nc_fit, we must shift
-  // the coefficients "left" (to lower row indices) so that the significant
-  // coefficients end at row nc-1.
-  if (m.nc < static_cast<int>(nc_fit)) {
-    const size_t shift = nc_fit - m.nc;
-    for (size_t k = 0; k < static_cast<size_t>(m.nc); ++k) {
-      const size_t src_row = k + shift;
-      const size_t dst_row = k;
-      for (size_t j = 0; j < m.padded_ns; ++j) {
-        m.horner_coeffs[dst_row * m.padded_ns + j] =
-            m.horner_coeffs[src_row * m.padded_ns + j];
-      }
-    }
-    // Zero out the now-unused tail rows for cleanliness
-    for (size_t k = m.nc; k < static_cast<size_t>(nc_fit); ++k) {
-      for (size_t j = 0; j < m.padded_ns; ++j) {
-        m.horner_coeffs[k * m.padded_ns + j] = TF(0);
-      }
-    }
-  }
+  m.horner_coeffs.fill(TF(0));
+  m.nc = fit_horner_coeffs<TF>(m.spopts, nc_fit, m.padded_ns,
+                               double(m.tol) * coeffs_tol_cutoff, m.horner_coeffs.data());
   double t = timer.elapsedsec();
 
   if (opts.debug || m.spopts.debug) {
@@ -410,12 +342,10 @@ FINUFFT_PLAN_T<TF>::FINUFFT_PLAN_T(int type_, int dim_, const BIGINT *n_modes, i
     batchSize = std::min(opts.maxbatchsize, ntrans);
     nbatch    = 1 + (ntrans - 1) / batchSize;          // resulting # batches
   }
-  // Deprecated opts are silently ignored, and only C++ callers see the [[deprecated]]
-  // attribute; warn at runtime so the Fortran/Python/MATLAB wrappers report it too.
   if (opts.showwarn) {
     const char *const fn = __func__; // __func__ inside the lambda is operator()
-    const auto warn = [fn](const char *name) {
-      fprintf(stderr, "%s warning: opts.%s is deprecated and ignored.\n", fn, name);
+    const auto warn      = [fn](const char *name) {
+      finufft::common::warn_deprecated_opt(fn, name);
     };
     FINUFFT_DIAGNOSTIC_PUSH
     FINUFFT_DISABLE_WARNING_DEPRECATED

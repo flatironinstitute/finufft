@@ -54,7 +54,6 @@ def test():
         n_transf,
         eps=eps,
         dtype=complex_dtype,
-        gpu_kerevalmeth=1,
         gpu_stream=plan_stream.ptr,
     )
     plan.setpts(cupy.array(x), cupy.array(y), cupy.array(z))
@@ -72,7 +71,6 @@ def test():
         n_transf,
         eps=eps,
         dtype=complex_dtype,
-        gpu_kerevalmeth=1,
         gpu_stream=front_stream.ptr,
     )
     front_plan.setpts(cupy.array(x), cupy.array(y), cupy.array(z))
@@ -82,7 +80,6 @@ def test():
         n_transf,
         eps=eps,
         dtype=complex_dtype,
-        gpu_kerevalmeth=1,
         gpu_stream=back_stream.ptr,
     )
     back_plan.setpts(cupy.array(x), cupy.array(y), cupy.array(z))

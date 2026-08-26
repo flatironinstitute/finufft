@@ -3,7 +3,6 @@
 
 #include "spreadinterp_common.cuh"
 #include <cufinufft/spreadinterp.hpp>
-#include <poet/poet.hpp>
 
 #ifndef CUFINUFFT_DIM
 #error "CUFINUFFT_DIM must be defined to 1, 2, or 3 (set by CMake)"
@@ -13,15 +12,11 @@ namespace cufinufft {
 namespace spreadinterp {
 
 // Subprob interpolation kernel
-template<typename T, int KEREVALMETH, int ndim, int ns>
+template<typename T, int ndim, int ns>
 __global__ FINUFFT_FLATTEN void interp_subprob(
     cufinufft_gpu_data<T> p, cuda_complex<T> *c, const cuda_complex<T> *fw) {
   extern __shared__ char sharedbuf[];
   auto fwshared = (cuda_complex<T> *)sharedbuf;
-
-  T sigma   = p.sigma;
-  T es_c    = p.es_c;
-  T es_beta = p.es_beta;
 
   // assume that bin_size > ns/2;
   auto info         = compute_subprob_block_info<T, ndim>(p, blockIdx.x);
@@ -42,8 +37,8 @@ __global__ FINUFFT_FLATTEN void interp_subprob(
   for (int i = threadIdx.x; i < nupts; i += blockDim.x) {
     const int idx       = ptstart + i;
     const auto nuptsidx = loadReadOnly(p.idxnupts + idx);
-    auto [ker, start]   = get_kerval_and_local_start<T, KEREVALMETH, ndim, ns>(
-        nuptsidx, p.xyz, p.nf123, offset, sigma, es_c, es_beta);
+    auto [ker, start] = get_kerval_and_local_start<T, ndim, ns>(nuptsidx, p.xyz, p.nf123,
+                                                                offset, p.horner_coeffs);
 
     cuda_complex<T> cnow{0, 0};
     if constexpr (ndim == 1) {
@@ -99,8 +94,7 @@ void interp_subprob_launch(const cufinufft_plan_t<T> &d_plan, cuda_complex<T> *c
       THROW_IF_CUDA_ERROR();
     }
   };
-  (d_plan.opts.gpu_kerevalmeth == 1) ? launch(interp_subprob<T, 1, ndim, ns>)
-                                     : launch(interp_subprob<T, 0, ndim, ns>);
+  launch(interp_subprob<T, ndim, ns>);
 }
 
 template<typename T, int Ndim> struct InterpSubprobCaller {
@@ -116,10 +110,8 @@ template<typename T, int Ndim> struct InterpSubprobCaller {
 template<typename T, int Ndim>
 void do_interp_subprob(const cufinufft_plan_t<T> &p, cuda_complex<T> *c,
                        const cuda_complex<T> *fw, int blksize) {
-  using namespace finufft::common;
   InterpSubprobCaller<T, Ndim> caller{p, c, fw, blksize};
-  using NsSeq = poet::inclusive_range<MIN_NSPREAD, MAX_NSPREAD<T>>;
-  poet::dispatch(caller, std::make_tuple(poet::dispatch_param<NsSeq>{p.spopts.nspread}));
+  utils::dispatch_kernel_shape<T>(caller, p.spopts.nspread);
 }
 
 template void do_interp_subprob<float, CUFINUFFT_DIM>(const cufinufft_plan_t<float> &,

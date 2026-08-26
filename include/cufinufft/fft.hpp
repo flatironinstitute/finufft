@@ -27,8 +27,11 @@ void nuft_kernel_compute(
 
 // Host-side Gauss-Legendre precompute that supplies (z, f) to nuft_kernel_compute.
 // Implements the first half of CPU's onedim_nuft_kernel.
+// coeffs/nc are the plan's piecewise-Horner kernel coefficients (host copy), so the
+// quadrature transforms the approximant that the spreader actually applies.
 template<typename T>
-void onedim_nuft_kernel_precomp(T *f, T *zout, finufft_spread_opts opts);
+void onedim_nuft_kernel_precomp(T *f, T *zout, finufft_spread_opts opts, int nc,
+                                const T *coeffs);
 
 } // namespace cufinufft::common
 

@@ -16,26 +16,26 @@
 
 namespace finufft::kernel {
 
-template<class T, class F> std::vector<T> poly_fit(F &&f, int n) {
-  static_assert(std::is_floating_point_v<T>, "T must be floating-point");
-  /* Expects f, a function handle for arguments on [-1,1], both I/O type T.
-     Returns vector of n coefficients a_{n-1}, ... a_1, a_0 of degree-(n-1)
-     polynomial that interpolates f at a set of hard-wired Chebyshev nodes.
+template<class F> std::vector<double> poly_fit(F &&f, int n) {
+  /* Expects f, a function handle for arguments on [-1,1]. Returns vector of n
+     coefficients a_{n-1}, ... a_1, a_0 of degree-(n-1) polynomial that
+     interpolates f at a set of hard-wired Chebyshev nodes. The fit is always
+     double; the caller rounds the result to its own storage precision.
 
      Barbone, Fall 2025.
      Barnett 12/29/25-1/13/26 removed a,b to simplify; no poly defn confusion.
   */
 
   // 1) Type-1 Chebyshev nodes t_k, data samples y_k = f(t_k)
-  std::vector<T> t(n), y(n);
+  std::vector<double> t(n), y(n);
   for (int k = 0; k < n; ++k) {
-    t[k] = std::cos((T(2 * k + 1) * common::PI) / (T(2) * T(n))); // in (-1,1)
-    // t[k]       = std::cos((T(k) * common::PI) / T(n-1)); // type-2 in [-1,1] also ok
-    y[k] = static_cast<T>(f(t[k])); // evaluate this sample
+    t[k] = std::cos(((2 * k + 1) * common::PI) / (2.0 * n)); // in (-1,1)
+    // t[k]     = std::cos((k * common::PI) / (n - 1)); // type-2 in [-1,1] also ok
+    y[k] = f(t[k]); // evaluate this sample
   }
 
   // 2) Newton divided differences on t: coef[j] = f[t0,..,tj]
-  std::vector<T> coef = y;
+  std::vector<double> coef = y;
   for (int j = 1; j < n; ++j)
     for (int i = n - 1; i >= j; --i)
       coef[i] = (coef[i] - coef[i - 1]) / (t[i] - t[i - j]);
@@ -46,8 +46,8 @@ template<class T, class F> std::vector<T> poly_fit(F &&f, int n) {
   // Returns r of length p.size()+1 so that r represents (t - c)*p(t).
   // Concretely: r[i] = -c*p[i] + (i>0 ? p[i-1] : 0) for i=0..p.size()-1,
   // and r[p.size()] = p[p.size()-1].
-  auto mul_by_linear = [](const std::vector<T> &p, T c) {
-    std::vector<T> r(p.size() + 1, T(0));
+  auto mul_by_linear = [](const std::vector<double> &p, double c) {
+    std::vector<double> r(p.size() + 1, 0.0);
     for (std::size_t i = 0; i < p.size(); ++i) {
       r[i] += -c * p[i]; // (t - c)*p
       r[i + 1] += p[i];
@@ -55,8 +55,8 @@ template<class T, class F> std::vector<T> poly_fit(F &&f, int n) {
     return r;
   };
 
-  std::vector<T> c(n, T(0));  // output coefficients in t
-  std::vector<T> basis{T(1)}; // Π_{m<j} (t - t_m), low→high
+  std::vector<double> c(n, 0.0);  // output coefficients in t
+  std::vector<double> basis{1.0}; // Π_{m<j} (t - t_m), low→high
   c[0] += coef[0];
   for (int j = 1; j < n; ++j) {
     basis = mul_by_linear(basis, t[j - 1]);
@@ -66,6 +66,19 @@ template<class T, class F> std::vector<T> poly_fit(F &&f, int n) {
   return c;
 }
 
+// min and max number of poly coeffs allowed (compiled) for a given spread width ns.
+// Since for low upsampfacs, ns=16 can need only nc~12, allow such low nc here.
+// Budget rules, not approximation-theory ones: they track the degree the aliasing
+// tolerance needs, which stops short of where the fit saturates.
+// Note: spreadinterp.cpp compilation time grows with the gap between these bounds...
+template<class T> inline constexpr int max_nc_given_ns(int ns) {
+  return std::min(common::MAX_NC<T>, ns + 3);
+}
+template<class T> inline constexpr int min_nc_given_ns(int ns) {
+  // must stay in bounds from constants.h, and never above the max
+  return std::min(max_nc_given_ns<T>(ns), std::max(common::MIN_NC, ns - 4));
+}
+
 // The spread/interp kernel phi_beta(z) on z in [-1,1]. Not performance-critical;
 // used only for polynomial interpolation (precompute_horner_coeffs). Always double.
 // Defined in src/common/kernel.cpp.
@@ -73,6 +86,73 @@ std::function<double(double)> kernel_definition_lambda(const finufft_spread_opts
 
 // Tolerance prefactor in the kernel aliasing law tol = tolfac*exp(-(ns-1)*pi*u).
 double kernel_tolfac(int dim, int type);
+
+// Evaluate the piecewise-polynomial kernel approximant at one ordinate. x is in grid
+// units, support [-ns/2, ns/2]; returns phi(2x/ns) in the 2019 paper's notation.
+// coeffs[j*stride + i] is Horner coefficient j (j=0 highest degree) of panel i, the
+// layout fit_horner_coeffs writes and the vector evaluators read. Need not be fast.
+template<class T>
+inline T evaluate_kernel_horner(T x, int ns, int nc, const T *coeffs,
+                                std::size_t stride) {
+  const T ns2 = T(ns) / T(2);                          // half width, in grid points
+  for (int i = 0; i < ns; ++i) {                       // find the panel x falls in
+    if (x > -ns2 + T(i) && x <= -ns2 + T(i) + T(1)) {
+      const T z = std::fma(T(2), x - T(i), T(ns - 1)); // panel maps to z in [-1,1]
+      T res     = T(0);
+      for (int j = 0; j < nc; ++j) // Horner loop, highest degree first
+        res = std::fma(res, z, coeffs[j * stride + i]);
+      return res;
+    }
+  }
+  return T(0);
+}
+
+// Fit the piecewise-Horner approximant of the kernel spopts selects: one
+// degree-(nc_fit-1) polynomial per grid-cell panel. Writes nc_fit*stride coefficients
+// to out in evaluate_kernel_horner's layout, zeroing columns [nspread, stride).
+// Then truncates: a leading row below tol_cutoff on every panel carries no accuracy,
+// so the surviving rows shift left and the freed tail is zeroed. Returns nc, the rows
+// the evaluators must read, never below min_nc_given_ns<T>(nspread). tol_cutoff <= 0
+// disables truncation and pins nc to nc_fit, which the GPU needs for its compile-time
+// nc. Shared by the CPU plan (SIMD-padded stride) and the GPU plan (stride == ns).
+// Barbone Fall 2025; Barnett & Lu edits and two bugs fixed Jan 2026; to common 8/26.
+template<class T>
+int fit_horner_coeffs(const finufft_spread_opts &spopts, int nc_fit, std::size_t stride,
+                      double tol_cutoff, T *out) {
+  const int ns             = spopts.nspread;
+  const auto kernel_lambda = kernel_definition_lambda(spopts);
+  std::fill(out, out + std::size_t(nc_fit) * stride, T(0));
+
+  int nc_needed = common::MIN_NC;           // max over panels of the degrees that matter
+  for (int i = 0; i < ns; ++i) {            // ............ loop over panels
+    const double xshift = 2.0 * i + 1 - ns; // center of panel i, in [-ns,ns]
+    // affine map of x in [-1,1] onto panel i, then the kernel there.
+    // The fit is always double; T sets the storage precision only.
+    const auto coeffs =
+        poly_fit([&](double x) { return kernel_lambda((x + xshift) / ns); }, nc_fit);
+    for (int j = 0; j < nc_fit; ++j) out[j * stride + i] = T(coeffs[j]);
+    if (tol_cutoff <= 0) continue;
+    // highest degree whose coefficient still matters on this panel. Experiments
+    // showed a cutoff of 0.1*tol still left an error bump at ns=15.
+    for (int j = 0; j < nc_fit; ++j)
+      if (std::abs(coeffs[j]) >= tol_cutoff) {
+        nc_needed = std::max(nc_needed, nc_fit - j);
+        break;
+      }
+  } // ...................................................
+  if (tol_cutoff <= 0) return nc_fit;
+
+  // keep nc inside the compiled range, then shift left so row nc-1 holds the const term
+  const int nc = std::max(nc_needed, min_nc_given_ns<T>(ns));
+  if (nc < nc_fit) {
+    const int shift = nc_fit - nc;
+    for (int j = 0; j < nc; ++j)
+      std::copy_n(out + std::size_t(j + shift) * stride, stride,
+                  out + std::size_t(j) * stride);
+    std::fill(out + std::size_t(nc) * stride, out + std::size_t(nc_fit) * stride, T(0));
+  }
+  return nc;
+}
 
 int theoretical_kernel_ns(double tol, int dim, int type,
                           const finufft_spread_opts &spopts);
@@ -122,24 +202,14 @@ inline std::tuple<double, double> pswf_selfft_params(
   return {J2 * J2 / beta, prefac};
 }
 
-// min and max number of poly coeffs allowed (compiled) for a given spread width ns.
-// Since for low upsampfacs, ns=16 can need only nc~12, allow such low nc here.
-// Note: spreadinterp.cpp compilation time grows with the gap between these bounds...
-inline constexpr int min_nc_given_ns(int ns) {
-  return std::max(common::MIN_NC, ns - 4); // note must stay in bounds from constants.h
-}
-inline constexpr int max_nc_given_ns(int ns) {
-  return std::min(common::MAX_NC, ns + 3); // "
-}
-
-template<int NS, int NC> inline constexpr bool ValidKernelParams() noexcept {
+template<class T, int NS, int NC> inline constexpr bool ValidKernelParams() noexcept {
   // NS = nspread (kernel width), NC = # poly coeffs in Horner evaluator.
   // Defines the compiled range of NC for each NS, in spreadinterp.
   // Other instantiations can be
   // compiled away at call sites using if constexpr to reduce binary size.
   // Barbone Dec 2025.
   // AHB changed to use the above two expressions, but needs checking if compile-time ok
-  return (NC >= min_nc_given_ns(NS)) && (NC <= max_nc_given_ns(NS));
+  return (NC >= min_nc_given_ns<T>(NS)) && (NC <= max_nc_given_ns<T>(NS));
 }
 
 } // namespace finufft::kernel

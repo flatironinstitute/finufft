@@ -20,7 +20,7 @@ enum {
       "unused; was never returned by the library") = 5,
   FINUFFT_ERR_SPREAD_DIR                           = 6,
   FINUFFT_ERR_UPSAMPFAC_TOO_SMALL                  = 7,
-  FINUFFT_ERR_HORNER_WRONG_BETA                    = 8,
+  FINUFFT_ERR_HORNER_WRONG_BETA                    = 8, // retired v2.6, kept for ABI
   FINUFFT_ERR_NTRANS_NOTVALID                      = 9,
   FINUFFT_ERR_TYPE_NOTVALID                        = 10,
   FINUFFT_ERR_ALLOC                                = 11,

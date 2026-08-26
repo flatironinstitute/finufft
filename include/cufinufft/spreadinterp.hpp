@@ -13,6 +13,7 @@
 #include <cufinufft/heuristics.hpp>
 #include <cufinufft/intrinsics.hpp>
 #include <cufinufft/utils.hpp>
+#include <finufft_common/kernel.h>
 #include <finufft_common/spread_opts.h>
 
 namespace cufinufft {
@@ -22,21 +23,6 @@ using namespace cufinufft::utils;
 using namespace cufinufft::common;
 // ^^ pulls in cufinufft_set_shared_memory + shared_memory_required (heuristics.hpp).
 // Per-method headers below call them unqualified.
-
-// ES kernel reference evaluator used by host-side FT-quadrature code in
-// src/cuda/common.cu. Kept here (rather than in the moved section below)
-// because it takes a runtime spopts and is not on the device hot path.
-template<typename T>
-inline T evaluate_kernel(T x, const finufft_spread_opts &spopts)
-/* ES ("exp sqrt" or "exp semicircle") kernel evaluation, single real argument:
-   returns phi(2x/ns) := exp(beta.[sqrt(1 - (2x/ns)^2) - 1]),  for |x| < ns/2.
-   This is the reference implementation, used by src/cuda/common.cu for onedim
-   FT quadrature approx, so it need not be fast. */
-{
-  T z = 2.0 * x / T(spopts.nspread); // argument on [-1,1]
-  if (std::abs(z) >= 1.0) return 0.0;
-  return exp(T(spopts.beta) * (sqrt(T(1.0) - z * z) - T(1.0)));
-}
 
 /* --------------------------- Shared Helpers ---------------------------- */
 
@@ -89,47 +75,27 @@ constexpr __forceinline__ __host__ __device__ T fold_rescale(T x, int N) {
 }
 
 template<typename T, int ns>
-__forceinline__ __device__ T evaluate_kernel(T x, T es_c, T es_beta)
-// ns (spread-width) templated fast evaluator for the above kernel function.
-// Direct eval, hardwired for this kernel, with shape param es_beta.
-// es_c must have been set up as (2/ns)^2; the point of precomputing this is to
-// reduce flops (as in the original CPU kernel). es_halfwidth has been cut.
-// Used only by the below eval_kernel_vec(), hence when gpu_kerevalmeth=0.
-// To do: *** unify kernel logic/coeffs with CPU codes in common/
+__forceinline__ __device__ void eval_kernel_vec_horner(T *ker, const T x, const T *coeffs)
+/* Fill ker[] with the piecewise-polynomial kernel approximant evaluated at
+   x_j = x + j, for j=0,..,ns-1. Thus x in [-ns/2,-ns/2+1], so x_j runs over the
+   ns grid points in the kernel support and panel j owns x_j.
+   coeffs[k*ns + j] is Horner coefficient k (k=0 highest degree) of panel j,
+   fitted at plan time by finufft::kernel::fit_horner_coeffs and carried by value in
+   cufinufft_gpu_data. The fit is untruncated, so the row count is
+   max_nc_given_ns<T>(ns), known at compile time, and this loop fully unrolls.
+   Matches the CPU evaluate_kernel_vector and the shared scalar
+   finufft::kernel::evaluate_kernel_horner. */
 {
-  const T zsq = es_c * x * x; // z^2, where z is arg for std interval [-1,1]
-  return (zsq < 1.0) ? exp((T)es_beta * (sqrt((T)1.0 - zsq) - (T)1.0)) : 0.0;
-}
-
-template<typename T, int w>
-__inline__ __device__ void eval_kernel_vec(T *ker, const T x, const T es_c,
-                                           const T es_beta) {
-  // Eval the above direct ES kernel evaluator for arguments x+j, for j=0,..,w-1.
-  // This is used when gpu_kerevalmeth=0.
-  // Serves the same purpose as the below function eval_kernel_vec_horner.
-  for (int i = 0; i < w; i++) ker[i] = evaluate_kernel<T, w>(std::abs(x + i), es_c, es_beta);
-}
-
-template<typename T, int w>
-__device__ void eval_kernel_vec_horner(T *ker, const T x, const double upsampfac)
-/* Fill ker[] with Horner piecewise poly approx to [-w/2,w/2] ES kernel eval at
-   x_j = x + j,  for j=0,..,w-1.  Thus x in [-w/2,-w/2+1].   w is aka ns.
-   Two upsampfacs implemented (same as CPU coeffs created in 2018, used to 2025).
-   The parameter (w and beta) choice in setup_spreadinterp must match these coeffs.
-   This is used when gpu_kerevalmeth=1.
-   To do: *** update horner evaluator and coeffs to match CPU in common/
-   */
-{
-  // const T z = T(2) * x + T(w - 1);
-  const auto z = cudaFMA(T(2), x, T(w - 1)); // scale so local grid offset z in [-1,1]
-  // insert the auto-generated code which expects z, w args, writes to ker...
-  if (upsampfac == 2.0) { // floating point equality is fine here
-    using FLT = T;
-#include "cufinufft/contrib/ker_horner_allw_loop.inc"
-  }
-  if (upsampfac == 1.25) { // floating point equality is fine here
-    using FLT = T;
-#include "cufinufft/contrib/ker_lowupsampfac_horner_allw_loop.inc"
+  constexpr int nc = finufft::kernel::max_nc_given_ns<T>(ns);
+  // scale so the local grid offset z lies in [-1,1]
+  const auto z     = cudaFMA(T(2), x, T(ns - 1));
+#pragma unroll
+  for (int j = 0; j < ns; ++j) {
+    // row 0 seeds the accumulator, so the FMA loop starts at row 1
+    T res = coeffs[j];
+#pragma unroll
+    for (int k = 1; k < nc; ++k) res = cudaFMA(res, z, coeffs[k * ns + j]);
+    ker[j] = res;
   }
 }
 
@@ -151,21 +117,17 @@ inline __host__ __device__ int nbins_total(const cuda::std::array<int, 3> &nbins
 // For the current nonuniform point (given via idx), compute the set of
 // start indices of the spreading/interpolation area in the locally stored subgrid.
 // Also compute the kernel values to use in spreading/interpolation.
-template<typename T, int KEREVALMETH, int ndim, int ns>
-__device__ auto get_kerval_and_local_start(
+template<typename T, int ndim, int ns>
+__forceinline__ __device__ auto get_kerval_and_local_start(
     int idx, cuda::std::array<const T *, 3> xyz, cuda::std::array<int, 3> nf,
-    cuda::std::array<int, ndim> offset, T sigma, T es_c, T es_beta) {
+    cuda::std::array<int, ndim> offset, const T *coeffs) {
   constexpr auto ns_2f = T(ns * .5);
   cuda::std::array<cuda::std::array<T, ns>, ndim> ker;
   cuda::std::array<int, ndim> start;
   for (int idim = 0; idim < ndim; ++idim) {
     const auto rescaled = fold_rescale(loadReadOnly(xyz[idim] + idx), nf[idim]);
     const auto s        = int(std::ceil(rescaled - ns_2f));
-    if constexpr (KEREVALMETH == 1) {
-      eval_kernel_vec_horner<T, ns>(&ker[idim][0], T(s) - rescaled, sigma);
-    } else {
-      eval_kernel_vec<T, ns>(&ker[idim][0], T(s) - rescaled, es_c, es_beta);
-    }
+    eval_kernel_vec_horner<T, ns>(&ker[idim][0], T(s) - rescaled, coeffs);
     start[idim] = s - offset[idim];
   }
   return cuda::std::make_tuple(ker, start);
@@ -175,21 +137,17 @@ __device__ auto get_kerval_and_local_start(
 // start indices of the spreading/interpolation area in the locally stored subgrid.
 // Also compute the kernel values to use in spreading/interpolation.
 // (Version for nonunifom-points-driven algorithm.)
-template<typename T, int KEREVALMETH, int ndim, int ns>
-__device__ auto get_kerval_and_startpos_nuptsdriven(
-    int idx, cuda::std::array<const T *, 3> xyz, cuda::std::array<int, 3> nf, T sigma,
-    T es_c, T es_beta) {
+template<typename T, int ndim, int ns>
+__forceinline__ __device__ auto get_kerval_and_startpos_nuptsdriven(
+    int idx, cuda::std::array<const T *, 3> xyz, cuda::std::array<int, 3> nf,
+    const T *coeffs) {
   constexpr auto ns_2f = T(ns * .5);
   cuda::std::array<cuda::std::array<T, ns>, ndim> ker;
   cuda::std::array<int, ndim> start;
   for (size_t idim = 0; idim < ndim; ++idim) {
     const auto rescaled = fold_rescale(loadReadOnly(xyz[idim] + idx), nf[idim]);
     const auto s        = int(std::ceil(rescaled - ns_2f));
-    if constexpr (KEREVALMETH == 1) {
-      eval_kernel_vec_horner<T, ns>(&ker[idim][0], T(s) - rescaled, sigma);
-    } else {
-      eval_kernel_vec<T, ns>(&ker[idim][0], T(s) - rescaled, es_c, es_beta);
-    }
+    eval_kernel_vec_horner<T, ns>(&ker[idim][0], T(s) - rescaled, coeffs);
     start[idim] = s + ((s < 0) ? nf[idim] : 0);
   }
   return cuda::std::make_tuple(ker, start);
