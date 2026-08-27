@@ -3,11 +3,34 @@ If not stated, FINUFFT is assumed (old cuFINUFFT <=1.3 is listed separately).
 
 v2.6.0-dev
 
+* Fixed CPU type 3 honoring `opts.spreadinterponly`: the option is documented to affect
+  types 1 and 2 only, and cuFINUFFT already ignored it for type 3, but the CPU plan
+  applied it, so a type-3 call with the flag set returned wrong values instead of the
+  transform. The flag is now cleared at plan creation; its checks moved from the Python
+  tests to `test/dumbinputs.cpp` and `cufinufft1dspreadinterponly_test`. (Garrison)
+* cuFINUFFT no longer returns `FINUFFT_WARN_EPS_TOO_SMALL` (code 1) when the requested
+  tolerance is clamped up to machine precision: both clamp sites already warn on stderr,
+  and `cufinufft{,f}_makeplan` now return 0. The enum value is kept for ABI and marked
+  retired; its dead string mapping is dropped from `safe_call.h`. (Barbone)
+* Fixed two cuFINUFFT kernel-evaluation `abs` calls resolving to the C integer overload
+  on some toolchains, silently truncating their floating-point argument: they are now
+  `std::abs` (#740). (Barbone)
+* The `check_sigma` "upsampfac too low for tol" warning now honors `opts.showwarn=0`, as
+  `docs/opts.rst` promises and the other warnings already do; the error path is
+  unchanged and always speaks. (Barbone)
+* New CMake option `FINUFFT_WARNINGS_AS_ERRORS` (default ON) turns the library's own
+  compiler warnings into errors; only Debug and RelWithDebInfo add the warning flags, so
+  Release builds are unaffected, and no dependency in the build tree is judged by them.
+  (Barbone)
 * The examples are now built and run as ctest tests, on GitHub and on the Jenkins
   CUDA matrix. Nothing built them before, so they had rotted: three were missing
   from the CMake build, the single-precision ones asked for more modes than float
   can resolve, four leaked their opts and the CUDA ones ignored every return code.
   (Barbone)
+* Fixed a silent fine-grid wraparound on Windows: `set_nf_type12` hands `next235` a
+  dimension that `MAX_NF` allows up to 1e12, but that `long` argument is 32-bit on
+  Windows; the wrapped negative value was clamped and the transform ran on a tiny grid
+  instead of failing. `next235` now takes BIGINT. (Barbone)
 * cuFINUFFT: fixed the batched (many-transform) type-2 performance regression of #846.
   `gpu_maxbatchsize=0` (the default) now sizes the batch from the fine grid and the
   device's L2 cache instead of the fixed `min(ntransf, 8)`, and spreads the transforms
