@@ -72,4 +72,9 @@ jobs:
 
       - name: Test
         shell: bash
-        run: ctest --test-dir build --output-on-failure -j
+        # Windows: Git's mingw64/bin precedes the toolchain on PATH and ships a
+        # libstdc++-6.dll without the __emutls_* imports of gfortran 15 binaries
+        # (STATUS_ENTRYPOINT_NOT_FOUND, exit 0xc0000139); the toolchain must win.
+        run: |
+          [[ "$RUNNER_OS" == "Windows" ]] && export PATH="$(dirname "$(command -v gfortran)"):$PATH"
+          ctest --test-dir build --output-on-failure -j
