@@ -31,9 +31,10 @@ v2.6.0-dev
   build failed. Ninja was unaffected, which is why no CI cell saw it; a
   configure-only `windows-2022` job now asserts the three lists are non-empty
   under that generator. (Barbone)
-* Fixed `Debug` builds failing to compile on any AVX2 host. At `-O0` the compiler
+* Fixed `Debug` builds failing to compile with GCC on an AVX2 host. At `-O0` GCC
   no longer folds an intrinsic's immediate argument, and xsimd 14.3.0 then rejects
-  `_mm_permute_ps` with "the last argument must be an 8-bit immediate". xsimd is
+  `_mm_permute_ps` with "the last argument must be an 8-bit immediate" (GCC 12 to 15
+  all reject it; clang folds the argument at `-O0` and is unaffected). xsimd is
   pinned to the commit that fixes it (four past 14.3.0) until the next release, and
   a `Debug` job at `-march=x86-64-v3` now covers the configuration: every other CI
   cell builds at `-O1` or higher, where the fold happens and the bug is invisible.

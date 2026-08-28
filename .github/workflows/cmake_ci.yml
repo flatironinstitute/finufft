@@ -322,14 +322,16 @@ jobs:
         with:
           cmake: true
           ninja: true
-      # Every other cell builds at -O1 or higher, where the compiler folds an
-      # intrinsic's immediate argument on its way in. At -O0 it does not, and
-      # xsimd before PR #1387 then fails to compile _mm_permute_ps. The arch
-      # level is pinned rather than native so the AVX2 path is the one compiled
-      # whatever the runner turns out to be.
+      # Every other cell builds at -O1 or higher, where GCC folds an intrinsic's
+      # immediate argument on its way in. At -O0 it does not, and xsimd before
+      # PR #1387 then fails to compile _mm_permute_ps (GCC 12 to 15 alike; clang
+      # folds it and never sees the bug, so the compiler is named rather than
+      # left to the image default). The arch level is pinned rather than native
+      # so the AVX2 path is the one compiled whatever the runner turns out to be.
       - name: Build Debug
         run: |
           cmake -S . -B _debug -DCMAKE_BUILD_TYPE=Debug \
+            -DCMAKE_CXX_COMPILER=g++-13 \
             -DFINUFFT_ARCH_FLAGS=-march=x86-64-v3 \
             -DFINUFFT_USE_DUCC0=ON -DFINUFFT_BUILD_TESTS=ON
           cmake --build _debug
