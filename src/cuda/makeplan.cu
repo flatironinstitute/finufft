@@ -313,6 +313,8 @@ cufinufft_plan_t<T>::cufinufft_plan_t(int type_, int dim_, const int *nmodes, in
     const bool auto_method = opts.gpu_method == 0;
     if (auto_method) {
       // Default to method 2 (SM) for type 1/3, otherwise method 1 (GM).
+      // TODO: this pick leaves speed behind — t2 f32 resident 2D/3D prefers 2,
+      // dense 3D t1 prefers 3, and dense 3D likes maxsubprobsize 4096 with 2.
       opts.gpu_method = (type == 1 || type == 3) ? 2 : 1;
     }
     try {
