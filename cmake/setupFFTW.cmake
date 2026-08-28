@@ -71,6 +71,17 @@ if(FINUFFT_FFTW_LIBRARIES STREQUAL DEFAULT OR FINUFFT_FFTW_LIBRARIES STREQUAL DO
             list(APPEND FINUFFT_FFTW_LIBRARIES fftw3_omp fftw3f_omp)
         endif()
 
+        # A hermetic configure (vcpkg passes -DFETCHCONTENT_FULLY_DISCONNECTED=ON)
+        # leaves CPM printing "Adding package" while populating nothing, and the
+        # missing targets then surface far away as an install() error.
+        if(NOT TARGET fftw3)
+            message(
+                FATAL_ERROR
+                "FINUFFT could not fetch FFTW (FETCHCONTENT_FULLY_DISCONNECTED=${FETCHCONTENT_FULLY_DISCONNECTED}). "
+                "Install FFTW where find_package(FFTW) can see it, or allow the download."
+            )
+        endif()
+
         foreach(element IN LISTS FINUFFT_FFTW_LIBRARIES)
             set_target_properties(
                 ${element}

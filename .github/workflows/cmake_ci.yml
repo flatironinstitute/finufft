@@ -392,6 +392,24 @@ jobs:
           cmake --build _fetch --config Release
           ./_fetch/app
 
+      # A package manager that forbids downloads (vcpkg passes
+      # -DFETCHCONTENT_FULLY_DISCONNECTED=ON) used to get an unrelated
+      # "install TARGETS given target fftw3 which does not exist" at the end of
+      # the configure. setupFFTW.cmake now says so where it happens; this is the
+      # control proving the message still appears.
+      - name: Downloaded FFTW reports a clear error when fetching is forbidden
+        if: runner.os == 'Linux' && matrix.linking == 'Static' && matrix.backend == 'fftw'
+        shell: bash
+        run: |
+          set -euo pipefail
+          if cmake -S . -B _nofetch -DFINUFFT_USE_DUCC0=OFF \
+               -DFINUFFT_FFTW_LIBRARIES=DOWNLOAD \
+               -DFETCHCONTENT_FULLY_DISCONNECTED=ON > nofetch.log 2>&1; then
+            echo "ERROR: configure succeeded with fetching disabled"; exit 1
+          fi
+          grep -q "FINUFFT could not fetch FFTW" nofetch.log \
+            || { echo "ERROR: guard message missing"; tail -30 nofetch.log; exit 1; }
+
   cleanup:
     runs-on: ubuntu-22.04
     needs: [cmake-ci, consume-test, msvc-generator-flags]
