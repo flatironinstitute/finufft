@@ -561,10 +561,9 @@ inline int spread_tile_doublings(int cell, int ndims, int nspread,
   const double tail     = double(finufft::spreadinterp::get_padding<TF>(2 * nspread) / 2);
   const auto padded_fits_l2 = [=](double edge) {
     const double rows = spread_pow_ndims(edge + nspread, ndims - 1);
+    // all of L2, in the fixed spread_bytes_per_point unit, so fp32 gets no wider a tile
     return (edge + nspread + line) * rows + tail <=
-           double(finufft::utils::getL2CacheSize()) / 16; // all of L2, at a fixed 16
-                                                          // bytes per complex cell, as
-                                                          // in spread_bytes_per_point
+           double(finufft::utils::getL2CacheSize() / spread_bytes_per_point);
   };
   // Grow while the next doubling keeps the padded subgrid in L2 and the tile's strengths
   // in a quarter of it. The point budget only caps growth: a tile over it is split into
