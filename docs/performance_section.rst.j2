@@ -8,10 +8,16 @@
 {{ dim }}D Transforms
 ^^^^^^^^^^^^^^^^^^^^^
 
-{% for group, images in transform_groups.items() %}
+{% for group, method_groups in transform_groups.items() %}
 Type {{ group }}
 """"""""""""""""
 
+{% for method_heading, images in method_groups.items() %}
+{% if method_heading %}
+{{ method_heading }}
+{{ '+' * method_heading|length }}
+
+{% endif %}
 {% for image in images %}
 Parameters: ``{{ image.params }}``
 
@@ -19,6 +25,7 @@ Parameters: ``{{ image.params }}``
    :alt: {{ image.path }}
    :width: 100%
 
+{% endfor %}
 {% endfor %}
 {% endfor %}
 {% endfor %}

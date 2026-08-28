@@ -100,7 +100,8 @@ PROVENANCE = (
     "the per-round ratios. A ratio is bold where the band excludes 1.00, which "
     "is where the run resolved a change; every other row resolved nothing. "
     "Every option a caller may leave alone is left alone (sorting, upsampling "
-    "factor, kernel choice), so a change to one of finufft's heuristics shows "
+    "factor, kernel choice, and on the GPU the spreading method), so a change "
+    "to one of finufft's heuristics shows "
     "up here as the change in time it causes. The thread count is the exception: "
     "a case is defined by the count it runs at._"
 )

@@ -18,8 +18,11 @@ import numpy as np
 from jinja2 import Environment, FileSystemLoader, StrictUndefined
 
 from cuperftest_helpers import (
+    GPU_METHOD_NAMES,
     gpu_args,
     gpu_cases,
+    gpu_method_heading,
+    gpu_methods,
     gpu_params_string,
     nvcc_version,
     query_gpu,
@@ -42,7 +45,9 @@ from perftest_helpers import (
 CUDA = "cuda"
 
 
-def cpu_times(binary: Path, param, transform: int, cpu: int | None) -> dict[str, float]:
+def cpu_times(
+    binary: Path, param, transform: int, method: int | None, cpu: int | None
+) -> dict[str, float]:
     return {
         stage: run_perftest(
             build_command(param, transform, str(binary), cpu), param.threads != 1
@@ -51,11 +56,21 @@ def cpu_times(binary: Path, param, transform: int, cpu: int | None) -> dict[str,
     }
 
 
-def gpu_times(binary: Path, param, transform: int, cpu: int | None) -> dict[str, float]:
-    return run_cuperftest(str(binary), gpu_args(param, transform))
+def gpu_times(
+    binary: Path, param, transform: int, method: int | None, cpu: int | None
+) -> dict[str, float]:
+    return run_cuperftest(str(binary), gpu_args(param, transform, method))
 
 
-def measure(times, binary: Path, param, transform: int, tag: str, cpu: int | None):
+def measure(
+    times,
+    binary: Path,
+    param,
+    transform: int,
+    method: int | None,
+    tag: str,
+    cpu: int | None,
+):
     """One tag's stage times, or None with a reason on stderr.
 
     A release predates what a case asks of it - cuperftest grew type 3 after
@@ -67,7 +82,7 @@ def measure(times, binary: Path, param, transform: int, tag: str, cpu: int | Non
         print(f"  tag={tag} skipped: no {binary}", file=sys.stderr, flush=True)
         return None
     try:
-        return times(binary, param, transform, cpu)
+        return times(binary, param, transform, method, cpu)
     except (RuntimeError, KeyError, subprocess.CalledProcessError) as exc:
         print(f"  tag={tag} skipped: {exc}", file=sys.stderr, flush=True)
         return None
@@ -151,21 +166,32 @@ def main() -> None:
     cases = gpu_cases() if gpu else PARAM_LIST
     binary = Path("perftest/cuda/cuperftest") if gpu else Path("perftest/perftest")
     times = gpu_times if gpu else cpu_times
-    case_string = gpu_params_string if gpu else (lambda param: param.pretty_string())
+    case_string = (
+        gpu_params_string if gpu else (lambda param, method: param.pretty_string())
+    )
     heading = "cuFFT backend" if gpu else f"{args.backend.upper()} backend"
 
-    dim_transform_groups = defaultdict(lambda: defaultdict(list))
+    dim_transform_groups = defaultdict(lambda: defaultdict(lambda: defaultdict(list)))
 
-    grid = [(param, transform) for param in cases for transform in TRANSFORMS]
+    # The GPU library spreads by one of several methods and the library's own
+    # pick is one of them, so a case is charted once per method it can run: a
+    # chart that mixed them would hide which one a release moved. The CPU
+    # library has no such axis, so its grid keeps one chart per case.
+    grid = [
+        (param, transform, method)
+        for param in cases
+        for transform in TRANSFORMS
+        for method in (gpu_methods(transform) if gpu else [None])
+    ]
 
     def measure_case(k: int, cpu: int | None):
-        param, transform = grid[k]
+        param, transform, method = grid[k]
         t0 = time.monotonic()
         x: list[str] = []
         series: dict[str, list[float]] = {stage: [] for stage in CPU_STAGES}
         for tag in tags:
             tag_times = measure(
-                times, builds_root / tag / binary, param, transform, tag, cpu
+                times, builds_root / tag / binary, param, transform, method, tag, cpu
             )
             if tag_times is None:
                 continue
@@ -177,7 +203,7 @@ def main() -> None:
         # reading. It names the tags that ran, since a skip is silent here.
         print(
             f"[{k + 1}/{len(grid)}] type={transform} "
-            f"{case_string(param).replace(chr(10), ' ')} on cpu {cpu} "
+            f"{case_string(param, method).replace(chr(10), ' ')} on cpu {cpu} "
             f"done in {time.monotonic() - t0:.1f}s, tags={' '.join(x)}",
             file=sys.stderr,
             flush=True,
@@ -186,8 +212,8 @@ def main() -> None:
 
     # The GPU cases keep a thread count they do not use, and one device cannot
     # hold two of them at once, so that half stays one case at a time.
-    results = measure_cases([param for param, _ in grid], measure_case, not gpu)
-    for (param, transform), (x, series) in zip(grid, results):
+    results = measure_cases([param for param, _, _ in grid], measure_case, not gpu)
+    for (param, transform, method), (x, series) in zip(grid, results):
         if len(x) < 2:
             continue
 
@@ -205,11 +231,22 @@ def main() -> None:
         ax.set_xlabel("Version")
         ax.set_ylabel("Min time (ms)")
         ax.legend()
+        # The figure names the method itself, so a chart read on its own - the
+        # page links each one by URL - still says which method it timed.
+        if method is not None:
+            ax.set_title(
+                f"type {transform}, method {method} ({GPU_METHOD_NAMES[method]})"
+            )
 
         # A digest of the case, so the filename is stable across runs and
         # the raw.githubusercontent URLs already published keep resolving
         # once the perftest-results branch is force-pushed.
-        key = f"{args.backend}|t{transform}|" + "|".join(param.digest_args())
+        # A method suffix only on the backend that has methods, so the CPU page's
+        # figures keep the names their published URLs already point at.
+        method_key = "" if method is None else f"|m{method}"
+        key = f"{args.backend}|t{transform}{method_key}|" + "|".join(
+            param.digest_args()
+        )
         digest = hashlib.sha1(key.encode()).hexdigest()[:16]
         file = f"perftestci_{digest}.svg"
         durations = np.sum([series[stage] for stage in CPU_STAGES], axis=0)
@@ -226,10 +263,15 @@ def main() -> None:
         fig.savefig(output_dir / file)
         plt.close(fig)
 
-        dim_transform_groups[param.ndim()][transform].append(
+        # Keyed by the method's heading, so the page groups the charts under it
+        # and a backend without methods keys every chart under one empty
+        # heading the template leaves out.
+        dim_transform_groups[param.ndim()][transform][
+            gpu_method_heading(method)
+        ].append(
             {
                 "path": f"pics/{file}",
-                "params": case_string(param),
+                "params": case_string(param, method),
             }
         )
 

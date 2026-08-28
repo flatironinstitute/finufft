@@ -115,7 +115,7 @@ struct test_options_t {
     N[2]          = std::stof(get_or(options_map, "N3", "1"));
     M             = std::stof(get_or(options_map, "M", "2E6"));
     ntransf       = std::stoi(get_or(options_map, "ntransf", "1"));
-    method        = std::stoi(get_or(options_map, "method", "1"));
+    method        = std::stoi(get_or(options_map, "method", "0"));
     kerevalmethod = std::stoi(get_or(options_map, "kerevalmethod", "1"));
     maxbatchsize  = std::stoi(get_or(options_map, "maxbatchsize", "0"));
     sort          = std::stoi(get_or(options_map, "sort", "1"));
@@ -443,6 +443,8 @@ int main(int argc, char *argv[]) {
                  "           default: " << default_opts.tol << "\n" <<
                  "    --method <int>\n"
                  "           NUFFT method\n"
+                 "               0: the library picks, as it does for a caller\n"
+                 "                  that leaves gpu_method alone\n"
                  "               1: nupts driven\n"
                  "               2: sub-problem\n"
                  "               3: output-driven subproblem (experimental)\n"
