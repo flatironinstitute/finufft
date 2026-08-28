@@ -176,6 +176,7 @@ void FINUFFT_PLAN_T<TF>::indexSort()
 
   timer.start(); // if needed, sort all the NU pts...
   m.didSort    = false;
+  // No sort leaves m.tiles empty: one tile spanning the whole fine grid (SpreadTileData).
   m.tiles.clear();
   auto maxnthr = MY_OMP_GET_MAX_THREADS(); // used if both below opts default
   if (m.spopts.nthreads > 0)
