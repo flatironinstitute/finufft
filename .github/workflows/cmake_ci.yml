@@ -338,6 +338,56 @@ jobs:
       - name: Test Debug
         run: ctest --test-dir _debug --output-on-failure -j -E tolsweep
 
+  vcpkg-port:
+    name: vcpkg overlay port (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-22.04, windows-2022]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+      # The port names a released tarball, which is what a user installs, but
+      # what needs testing is this commit. Only the source-fetch call changes.
+      - name: Point the port at this checkout
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p _ov/finufft
+          cp tools/vcpkg/finufft/vcpkg.json _ov/finufft/
+          # The path goes in literally: vcpkg scrubs the environment it hands to
+          # the build, so $ENV{GITHUB_WORKSPACE} reads back empty on Windows.
+          {
+            echo "set(SOURCE_PATH \"${GITHUB_WORKSPACE//\\//}\")"
+            sed -n '/^vcpkg_check_features/,$p' tools/vcpkg/finufft/portfile.cmake
+          } > _ov/finufft/portfile.cmake
+          cat _ov/finufft/portfile.cmake
+      # x64-windows-static-md, not x64-windows: vcpkg's own fftw3 port fails to
+      # link fftw3_omp.dll (LNK1120, 32 unresolved externals), and the static
+      # libraries are the case #494 was about anyway.
+      - name: Install through vcpkg
+        shell: bash
+        run: |
+          set -euo pipefail
+          triplet=x64-linux
+          [[ "$RUNNER_OS" == "Windows" ]] && triplet=x64-windows-static-md
+          "$VCPKG_INSTALLATION_ROOT/vcpkg" install "finufft:$triplet" \
+            --overlay-ports=_ov --x-install-root="$PWD/_vcpkg"
+      # An installed package that no consumer can use is not installed.
+      - name: Consume it
+        shell: bash
+        run: |
+          set -euo pipefail
+          triplet=x64-linux
+          [[ "$RUNNER_OS" == "Windows" ]] && triplet=x64-windows-static-md
+          cmake -S test/cmake_consume -B _consume \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_PREFIX_PATH="$PWD/_vcpkg/$triplet" \
+            -DCMAKE_MSVC_DEBUG_INFORMATION_FORMAT=Embedded
+          cmake --build _consume --config Release
+          if [[ "$RUNNER_OS" == "Windows" ]]; then ./_consume/Release/app.exe; else ./_consume/app; fi
+
   consume-test:
     name: consume find_package (${{ matrix.os }}, ${{ matrix.linking }}, ${{ matrix.backend }})
     runs-on: ${{ matrix.os }}
@@ -449,7 +499,7 @@ jobs:
 
   cleanup:
     runs-on: ubuntu-22.04
-    needs: [cmake-ci, consume-test, msvc-generator-flags, debug-build]
+    needs: [cmake-ci, consume-test, msvc-generator-flags, debug-build, vcpkg-port]
     steps:
       - name: Artifact cleanup
         uses: geekyeggo/delete-artifact@v6
