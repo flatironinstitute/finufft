@@ -315,13 +315,24 @@ void cufinufft_setup_binsize(const GpuCapabilities &gpu, int type, int ns, int d
                         : CUFINUFFT_BIGINT(finufft::common::fine_grid_len(opts->upsampfac,
                                                                           mstu[d], ns));
       }
-    const auto cells = std::int64_t(nf_est[0]) * nf_est[1] * nf_est[2];
-    if (estimate_valid && cells <= gpu.l2_complex_budget<T>()) {
+    const auto cells  = std::int64_t(nf_est[0]) * nf_est[1] * nf_est[2];
+    const auto budget = gpu.l2_complex_budget<T>();
+    if (estimate_valid && cells <= budget) {
       if (opts->gpu_binsizex == 0) opts->gpu_binsizex = int(std::max(nf_est[0], 1));
       if (opts->gpu_binsizey == 0)
         opts->gpu_binsizey = dim >= 2 ? int(std::max(nf_est[1], 1)) : 1;
       if (opts->gpu_binsizez == 0)
         opts->gpu_binsizez = dim >= 3 ? int(std::max(nf_est[2], 1)) : 1;
+    } else if (estimate_valid && dim >= 2 && cells <= 3 * budget) {
+      // Mid band (budget..L2): a 4-way (2D) split keeps each bin's grid tile
+      // inside the budget; a smaller bin over-serializes the atomics.
+      if (opts->gpu_binsizex == 0)
+        opts->gpu_binsizex = int(std::max<CUFINUFFT_BIGINT>((nf_est[0] + 1) / 2, 1));
+      if (opts->gpu_binsizey == 0)
+        opts->gpu_binsizey = int(std::max<CUFINUFFT_BIGINT>((nf_est[1] + 1) / 2, 1));
+      if (opts->gpu_binsizez == 0)
+        opts->gpu_binsizez =
+            dim >= 3 ? int(std::max<CUFINUFFT_BIGINT>((nf_est[2] + 1) / 2, 1)) : 1;
     } else if (type == 2 && std::is_same_v<T, double>) {
       set_bins(dim == 1 ? 1024 : dim == 2 ? 40 : 8);
     } else {
