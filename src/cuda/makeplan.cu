@@ -184,7 +184,14 @@ template<typename T> void cufinufft_plan_t<T>::allocate_nupts() {
 
   switch (opts.gpu_method) {
   case 1: {
-    if (opts.gpu_sort) newsize_sortidx = M;
+    if (opts.gpu_sort) {
+      // bin = nf leaves one bin; do_indexSort then takes the identity path and
+      // sortidx is never touched — skip its M-sized allocation.
+      const int bs[3]    = {opts.gpu_binsizex, opts.gpu_binsizey, opts.gpu_binsizez};
+      std::int64_t nbins = 1;
+      for (int i = 0; i < dim; ++i) nbins *= (nf123[i] + bs[i] - 1) / bs[i];
+      if (nbins > 1) newsize_sortidx = M;
+    }
     newsize_idxnupts = M;
   } break;
   case 2:
