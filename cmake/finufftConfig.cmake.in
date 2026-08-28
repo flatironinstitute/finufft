@@ -7,7 +7,11 @@ include(CMakeFindDependencyMacro)
 # OpenMP runtime needs to be found. For a STATIC build the FFT backend and its
 # threading runtime are separate archives that the consumer must also link.
 if(@FINUFFT_USE_OPENMP@)
-    find_dependency(OpenMP COMPONENTS C CXX)
+    # Only OpenMP::OpenMP_CXX appears in the export. Asking for the C component
+    # as well fails outright in a consumer that enables only CXX, because
+    # FindOpenMP cannot compile its probe for a language the project never
+    # enabled.
+    find_dependency(OpenMP COMPONENTS CXX)
 endif()
 
 if(@FINUFFT_STATIC_LINKING@ AND @FINUFFT_USE_DUCC0@)
