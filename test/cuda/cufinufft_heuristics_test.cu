@@ -1,6 +1,11 @@
 // Host-side checks of cufinufft_setup_binsize: every auto pick stays inside the
 // shared-memory budget, explicit user (bin, np) survive verbatim, a partial user
 // bin gets its unset dims filled, and the msub / smem roots floor exactly.
+//
+// cufinufft_setup_binsize is pure and takes GpuCapabilities by value, so the whole
+// budget sweep runs against a table of synthetic devices as well as the live one.
+// A runner holds one card; the rule it exercises is a function of L2, bus width and
+// shared memory, so one card validates one point of it.
 #ifdef NDEBUG
 #undef NDEBUG
 #endif
@@ -9,11 +14,41 @@
 
 #include <cufinufft.h>
 #include <cufinufft/heuristics.hpp>
+#include <finufft_common/constants.h>
 
 using cufinufft::common::cufinufft_setup_binsize;
 using cufinufft::common::shared_memory_required;
 
 namespace {
+
+// cudaDeviceGetAttribute values, from the cards themselves or from the occupancy
+// limits in the CUDA C Programming Guide: cc, SMs, smem/block opt-in, smem/SM,
+// threads/SM, L2 bytes, bus bits. Spans both bus classes and both smem classes.
+struct DeviceProfile {
+  const char *name;
+  int cc_major, cc_minor, sms, smem_block, smem_sm, threads_sm, l2, bus;
+};
+constexpr DeviceProfile kProfiles[] = {
+    {"V100", 7, 0, 80, 98304, 98304, 2048, 6291456, 4096},
+    {"A100", 8, 0, 108, 166912, 167936, 2048, 41943040, 5120},
+    {"H100", 9, 0, 132, 232448, 233472, 2048, 52428800, 5120},
+    {"L40S", 8, 9, 142, 101376, 102400, 1536, 100663296, 384},
+    {"RTX 4070 Laptop", 8, 9, 36, 101376, 102400, 1536, 33554432, 128},
+};
+
+GpuCapabilities synthetic(const DeviceProfile &p) {
+  GpuCapabilities g{};
+  g.cc_major                 = p.cc_major;
+  g.cc_minor                 = p.cc_minor;
+  g.multiprocessor_count     = p.sms;
+  g.max_smem_per_block_optin = p.smem_block;
+  g.max_smem_per_sm          = p.smem_sm;
+  g.max_threads_per_sm       = p.threads_sm;
+  g.l2_cache_size            = p.l2;
+  g.memory_bus_width         = p.bus;
+  g.memory_pools_supported   = 1;
+  return g;
+}
 
 cufinufft_opts base_opts(int method) {
   cufinufft_opts o;
@@ -23,25 +58,47 @@ cufinufft_opts base_opts(int method) {
   return o;
 }
 
+// Every auto pick over the full accepted kernel width, on one device. No pick may
+// throw and none may ask for more shared memory than the device grants: bin sizes
+// index that tile, so an over-budget pick is a memory bug before it is a slow one.
+template<typename T> void budget_sweep(const GpuCapabilities &gpu, const char *device) {
+  const CUFINUFFT_BIGINT mstu[3] = {128, 128, 128};
+  const auto limit               = std::size_t(gpu.max_smem_per_block_optin);
+
+  for (int method = 1; method <= 3; ++method)
+    for (int dim = 1; dim <= 3; ++dim)
+      for (int type = 1; type <= 3; ++type)
+        for (int ns = finufft::common::MIN_NSPREAD; ns <= finufft::common::MAX_NSPREAD<T>;
+             ++ns) {
+          auto o = base_opts(method);
+          try {
+            cufinufft_setup_binsize<T>(gpu, type, ns, dim, mstu, &o);
+          } catch (const std::exception &e) {
+            printf("%s: method %d dim %d type %d ns %d threw: %s\n", device, method, dim,
+                   type, ns, e.what());
+            assert(false && "an auto pick must not throw");
+          }
+          assert(o.gpu_binsizex >= 1);
+          assert(o.gpu_binsizey >= 1 && (dim >= 2 || o.gpu_binsizey == 1));
+          assert(o.gpu_binsizez >= 1 && (dim >= 3 || o.gpu_binsizez == 1));
+          if (method >= 2) {
+            const auto need = shared_memory_required<T>(
+                dim, ns, o.gpu_binsizex, o.gpu_binsizey, o.gpu_binsizez, o.gpu_np);
+            if (need > limit)
+              printf("%s: method %d dim %d type %d ns %d needs %zu of %zu bytes\n",
+                     device, method, dim, type, ns, need, limit);
+            assert(need <= limit);
+          }
+          if (method == 3) assert(o.gpu_np >= 16);
+        }
+}
+
 template<typename T> void run(const GpuCapabilities &gpu) {
   const CUFINUFFT_BIGINT mstu[3] = {128, 128, 128};
   const auto limit               = std::size_t(gpu.max_smem_per_block_optin);
 
-  // auto picks: bins set in active dims, 1 elsewhere, tile + np inside the budget
-  for (int method = 1; method <= 3; ++method)
-    for (int dim = 1; dim <= 3; ++dim)
-      for (int type = 1; type <= 2; ++type)
-        for (int ns : {4, 7, 10}) {
-          auto o = base_opts(method);
-          cufinufft_setup_binsize<T>(gpu, type, ns, dim, mstu, &o);
-          assert(o.gpu_binsizex >= 1);
-          assert(o.gpu_binsizey >= 1 && (dim >= 2 || o.gpu_binsizey == 1));
-          assert(o.gpu_binsizez >= 1 && (dim >= 3 || o.gpu_binsizez == 1));
-          if (method >= 2)
-            assert(shared_memory_required<T>(dim, ns, o.gpu_binsizex, o.gpu_binsizey,
-                                             o.gpu_binsizez, o.gpu_np) <= limit);
-          if (method == 3) assert(o.gpu_np >= 16);
-        }
+  budget_sweep<T>(gpu, "live device");
+  for (const auto &p : kProfiles) budget_sweep<T>(synthetic(p), p.name);
 
   { // method 3: explicit (bin, np) is honored verbatim
     auto o         = base_opts(3);

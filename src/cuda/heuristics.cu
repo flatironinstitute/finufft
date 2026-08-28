@@ -232,6 +232,12 @@ void cufinufft_setup_binsize(const GpuCapabilities &gpu, int type, int ns, int d
     const bool user_np  = (opts->gpu_np != 0);
     const bool user_bin = (opts->gpu_binsizex | opts->gpu_binsizey | opts->gpu_binsizez);
 
+    // Points the derived pick stages per batch: one warp. Larger np costs shared
+    // memory and occupancy without adding work. The tile is capped against the
+    // memory left after them, not against the whole limit, because the block
+    // allocates tile + derived_np * shmem_per_pt.
+    constexpr int derived_np = 32;
+
     // The bin response is a broad valley: its lower edge (halo amplification,
     // (1+2*ceil(ns/2)/bin)^dim work per point) is device-independent, its upper edge
     // (resident blocks/SM = smem/tile) only rises with more shared memory. A
@@ -239,7 +245,8 @@ void cufinufft_setup_binsize(const GpuCapabilities &gpu, int type, int ns, int d
     // largest tile that fits.
     const auto valley_bin = [&] {
       const int target = dim == 1 ? 256 : dim == 2 ? 16 : 6;
-      return std::min(target, find_bin_size<T>(shmem_limit, dim, ns));
+      const int tile_mem = std::max(0, shmem_limit - derived_np * shmem_per_pt);
+      return std::min(target, find_bin_size<T>(tile_mem, dim, ns));
     };
 
     // np filling the shared memory left after the tile the bins imply.
@@ -272,9 +279,7 @@ void cufinufft_setup_binsize(const GpuCapabilities &gpu, int type, int ns, int d
         throw std::runtime_error("[cufinufft] Insufficient shmem for Method 3 (ns=" +
                                  std::to_string(ns) + "). Try Method 1.");
       set_bins(bin);
-      // One warp staged per batch; larger np costs shared memory and occupancy
-      // without adding work.
-      opts->gpu_np = 32;
+      opts->gpu_np = derived_np;
     }
     validate_fit(opts->gpu_np);
     debug_print(3, opts->gpu_np, note);
