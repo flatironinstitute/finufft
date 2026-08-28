@@ -59,7 +59,17 @@ if (-not (Test-Path "$matlabRoot\bin\matlab.exe")) {
     $mpm = "$tools\tmp\mpm.exe"
     Invoke-WebRequest -Uri 'https://www.mathworks.com/mpm/win64/mpm' -OutFile $mpm
     & $mpm install --release=$env:MATLAB_RELEASE --destination="$matlabRoot.partial" --products $products.Split(' ')
-    if ($LASTEXITCODE -ne 0) { throw "mpm install failed with $LASTEXITCODE" }
+    if ($LASTEXITCODE -ne 0) {
+        # Build 9 exited -1 after printing only "Products will be installed to".
+        # Windows mpm keeps the reason in its log under TEMP, so print the tail
+        # of the newest one or the next failure is just as mute.
+        Get-ChildItem $env:TEMP -Filter 'mathworks*.log' -ErrorAction SilentlyContinue |
+            Sort-Object LastWriteTime | Select-Object -Last 1 | ForEach-Object {
+                Write-Host "--- $($_.FullName)"
+                Get-Content $_.FullName -Tail 40
+            }
+        throw "mpm install failed with $LASTEXITCODE"
+    }
     Move-Item "$matlabRoot.partial" $matlabRoot
 }
 

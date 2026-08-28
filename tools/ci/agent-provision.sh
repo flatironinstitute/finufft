@@ -31,12 +31,17 @@ Darwin)
 	# maci64 and maca64 are separate mpm builds, and an Intel mpm cannot install
 	# an Apple silicon MATLAB.
 	[[ "$(uname -m)" == arm64 ]] && mpm_arch=maca64 || mpm_arch=maci64
+	# matlabroot on macOS is the .app bundle itself, and mpm appends .app to a
+	# destination that lacks it, so build 9 installed one level over from where
+	# --destination pointed and the rename found nothing.
+	matlab_suffix=.app
 	;;
 Linux)
 	cmake_archive=cmake-${CMAKE_VERSION}-linux-x86_64
 	cmake_bin=$CI_TOOLS/$cmake_archive/bin
 	ninja_zip=ninja-linux.zip
 	mpm_arch=glnxa64
+	matlab_suffix=
 	;;
 *)
 	echo "agent-provision.sh does not cover $(uname -s)" >&2
@@ -59,14 +64,19 @@ fi
 
 # mpm resumes nothing: a half-finished install would be taken for a good one, so
 # it builds under .partial and is renamed only once mpm has returned 0.
-matlab_root=$CI_TOOLS/matlab/$MATLAB_RELEASE
+matlab_root=$CI_TOOLS/matlab/$MATLAB_RELEASE$matlab_suffix
+partial=$CI_TOOLS/matlab/$MATLAB_RELEASE.partial$matlab_suffix
 if [[ ! -x "$matlab_root/bin/matlab" ]]; then
-	rm -rf "$matlab_root.partial"
+	rm -rf "$partial" "$partial.app"
 	curl -fsSL -o "$CI_TOOLS/tmp/mpm" "https://www.mathworks.com/mpm/$mpm_arch/mpm"
 	chmod +x "$CI_TOOLS/tmp/mpm"
 	"$CI_TOOLS/tmp/mpm" install --release="$MATLAB_RELEASE" \
-		--destination="$matlab_root.partial" --products $MATLAB_PRODUCTS
-	mv "$matlab_root.partial" "$matlab_root"
+		--destination="$partial" --products $MATLAB_PRODUCTS
+	# Build 9: both macs reported "Products will be installed to:
+	# <destination>.app" whatever the destination was. Take whichever exists, so
+	# a destination that already ends in .app cannot grow a second one.
+	[[ -d "$partial" ]] || partial=$partial.app
+	mv "$partial" "$matlab_root"
 fi
 
 # Assert rather than trust: a truncated install has to fail here, not later in a

@@ -471,10 +471,14 @@ catchError {
                     "there is nowhere beside it to cache 10 GB of MATLAB"
             }
             def tools = env.WORKSPACE.substring(0, cut) + 'ci-tools'
+            // matlabroot on macOS is the .app bundle; agent-provision.sh keeps
+            // that suffix because mpm insists on it.
+            def mlroot = "${tools}/matlab/${MATLAB_RELEASE}" +
+                         (label == 'win' ? '' : '.app')
             withEnv(["CI_TOOLS=${tools}",
                      "MATLAB_RELEASE=${MATLAB_RELEASE}",
                      "PATH+CI_TOOLS=${tools}/bin",
-                     "PATH+MATLAB=${tools}/matlab/${MATLAB_RELEASE}/bin"]) {
+                     "PATH+MATLAB=${mlroot}/bin"]) {
               if (label == 'win') {
                 powershell 'tools/ci/agent-provision.ps1'
                 powershell 'tools/ci/matlab-build.ps1'
