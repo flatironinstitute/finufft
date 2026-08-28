@@ -17,8 +17,20 @@ function(filter_supported_compiler_flags input_flags_var output_flags_var)
         string(REPLACE "=" "_" flag_var ${flag}) # Convert flag to a valid variable
         # name
         string(REPLACE "-" "" flag_var ${flag_var}) # Remove '-' for the variable
-        # name Append the test linker flag to the existing flags
-        set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${flag}")
+        # name
+        # -fsanitize=address has to be on the link line too, or the probe's own
+        # executable fails to link and the flag is dropped. MSVC is the exception:
+        # cl adds the sanitizer runtime itself (enable_asan() makes the same
+        # distinction), and link.exe answers a compile flag with
+        # "LNK4044: unrecognized option '/GF'; ignored", which matches CMake's
+        # "[Uu]nrecogni[sz]ed [^\n]*option" fail pattern. Under the Visual Studio
+        # generator that rejected every MSVC flag, so /wd4244 and /wd4849 went
+        # missing and their warnings became errors. Measured on windows-2022,
+        # cl 19.44, CMake 3.31.10: with the append the probe fails under
+        # Visual Studio 17 2022 and passes under Ninja; without it, both pass.
+        if(NOT MSVC)
+            set(CMAKE_EXE_LINKER_FLAGS "${ORIGINAL_LINKER_FLAGS} ${flag}")
+        endif()
         check_cxx_compiler_flag(${flag} ${flag_var})
         if(${flag_var})
             # If supported, append the flag to the list of supported flags

@@ -276,6 +276,31 @@ jobs:
   # FindFFTW module). Linux installs libfftw3-dev so its fftw cells take the
   # system path; Windows has no system FFTW, so its fftw cells take the
   # downloaded path.
+  # The Visual Studio generator is not the one every other Windows cell uses, and
+  # it filters compiler flags differently: a probe that also puts the flag on the
+  # link line gets LNK4044 back and drops every MSVC flag, which silently removes
+  # the /wd* list and turns C4244 into an error under COMPILE_WARNING_AS_ERROR.
+  # Configure only - the point is which flags survive, not the build.
+  msvc-generator-flags:
+    name: flag filter (Visual Studio generator)
+    runs-on: windows-2022
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+      - name: Configure with the Visual Studio generator
+        shell: bash
+        run: |
+          set -euo pipefail
+          cmake -S . -B _vs -G "Visual Studio 17 2022" -DFINUFFT_USE_DUCC0=ON | tee cfg.log
+          for list in "Release flags" "Debug flags" "warning flags"; do
+            value=$(sed -n "s/^-- FINUFFT $list: //p" cfg.log)
+            echo "$list = [$value]"
+            if [ -z "$value" ]; then
+              echo "ERROR: FINUFFT $list came out empty under the Visual Studio generator"
+              exit 1
+            fi
+          done
+
   consume-test:
     name: consume find_package (${{ matrix.os }}, ${{ matrix.linking }}, ${{ matrix.backend }})
     runs-on: ${{ matrix.os }}
@@ -369,7 +394,7 @@ jobs:
 
   cleanup:
     runs-on: ubuntu-22.04
-    needs: [cmake-ci, consume-test]
+    needs: [cmake-ci, consume-test, msvc-generator-flags]
     steps:
       - name: Artifact cleanup
         uses: geekyeggo/delete-artifact@v6
