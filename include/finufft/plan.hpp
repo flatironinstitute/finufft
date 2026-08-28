@@ -76,7 +76,10 @@ FINUFFT_EXPORT_TEST void finufft_fft_cleanup_threads();
 #include <finufft_common/spread_opts.h>
 #include <finufft_opts.h>
 
-// Tile metadata produced by bin-sort and consumed by the tiled spread/interp driver.
+// Tile metadata produced by bin-sort and consumed by the tiled spread/interp driver. A
+// skipped sort leaves it empty, which spread_schedule reads as one tile spanning the
+// whole fine grid. Each subproblem's buffer box comes from get_subgrid over its own
+// points either way, so no code sizes a buffer from the tiles.
 struct SpreadTileData {
   std::vector<BIGINT> starts;        // length ntiles+1; tile t is starts[t]..starts[t+1]
   int edge = 0;                      // fine grid points per tile edge
@@ -218,9 +221,10 @@ public:
   finufft_opts opts; // this and spopts could be made ptrs
 
 private:
-
-  int execute_internal(TC *cj, TC *fk, bool adjoint = false, int ntrans_actual = -1,
-                       TC *aligned_scratch = nullptr, size_t scratch_size = 0) const;
+  // FINUFFT_EXPORT_TEST: the inline execute()/execute_adjoint() a test calls land here
+  FINUFFT_EXPORT_TEST int execute_internal(
+      TC *cj, TC *fk, bool adjoint = false, int ntrans_actual = -1,
+      TC *aligned_scratch = nullptr, size_t scratch_size = 0) const;
   void setup_spreadinterp(); // throws FINUFFT_ERR_EPS_TOO_SMALL if tol unachievable
   void check_sigma(); // throws FINUFFT_ERR_EPS_TOO_SMALL if sigma too low for tol
   double best_upsampfac() const; // density-aware sigma, types 1/2 (setpts)
@@ -346,7 +350,7 @@ private:
 
 public:
   // FINUFFT_EXPORT_TEST: a test drives the plan directly, so a shared build must export
-  // the three members it calls out of line.
+  // the members it calls out of line.
   FINUFFT_EXPORT_TEST FINUFFT_PLAN_T(int type, int dim, const BIGINT *n_modes, int iflag,
                                      int ntrans, TF tol, const finufft_opts *opts);
   FINUFFT_EXPORT_TEST ~FINUFFT_PLAN_T(); // defined in src/fft.cpp, where the FFT plan is
@@ -371,6 +375,9 @@ public:
   int execute_adjoint(TC *cj, TC *fk) const { return execute_internal(cj, fk, true); }
 
   // accessors for reading the internal state of the plan
+  // the coordinates the spread runs on: the user's own for types 1 and 2, the plan's
+  // rescaled copy for type 3
+  const std::array<const TF *, 3> &getXYZ() const { return m.XYZ; }
   BIGINT Nj() const { return m.nj; }
   BIGINT Nk() const { return m.nk; }
   TF Tol() const { return m.tol; }
