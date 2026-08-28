@@ -128,9 +128,7 @@ if(FINUFFT_BUILD_FORTRAN)
 endif()
 
 # ---- Sanitizers ---------------------------------------------------------------
-# TODO: drop the -O1 below (revert to Debug -O0) once xsimd > 14.3.0 ships the fix
-# for the constexpr immediate-argument folding (xsimd_avx_128.hpp "last argument
-# must be an 8-bit immediate" at -O0). -O1 is only here to work around that.
+# -O1, not Debug's -O0: an instrumented build is slow enough already.
 set(FINUFFT_SANITIZER_FLAGS)
 string(TOUPPER "${FINUFFT_USE_SANITIZERS}" FINUFFT_USE_SANITIZERS_MODE)
 if(FINUFFT_USE_SANITIZERS_MODE STREQUAL "OFF")

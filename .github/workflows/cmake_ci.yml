@@ -301,6 +301,43 @@ jobs:
             fi
           done
 
+  debug-build:
+    name: Debug at -O0 (AVX2)
+    runs-on: ubuntu-24.04
+    needs: [cache]
+    env:
+      CMAKE_GENERATOR: Ninja
+      CPM_SOURCE_CACHE: cpm
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+      - name: Restore Cache
+        uses: actions/cache/restore@v6
+        with:
+          key: cpm-cache-00-${{ hashFiles('**/CMakeLists.txt', 'cmake/**') }}
+          enableCrossOsArchive: true
+          path: cpm
+      - name: Setup Cpp
+        uses: aminya/setup-cpp@v1
+        with:
+          cmake: true
+          ninja: true
+      # Every other cell builds at -O1 or higher, where the compiler folds an
+      # intrinsic's immediate argument on its way in. At -O0 it does not, and
+      # xsimd before PR #1387 then fails to compile _mm_permute_ps. The arch
+      # level is pinned rather than native so the AVX2 path is the one compiled
+      # whatever the runner turns out to be.
+      - name: Build Debug
+        run: |
+          cmake -S . -B _debug -DCMAKE_BUILD_TYPE=Debug \
+            -DFINUFFT_ARCH_FLAGS=-march=x86-64-v3 \
+            -DFINUFFT_USE_DUCC0=ON -DFINUFFT_BUILD_TESTS=ON
+          cmake --build _debug
+      # The two tolerance sweeps dominate an -O0 run (144 s against 10 s for the
+      # next slowest test), and every RelWithDebInfo cell already runs them.
+      - name: Test Debug
+        run: ctest --test-dir _debug --output-on-failure -j -E tolsweep
+
   consume-test:
     name: consume find_package (${{ matrix.os }}, ${{ matrix.linking }}, ${{ matrix.backend }})
     runs-on: ${{ matrix.os }}
@@ -412,7 +449,7 @@ jobs:
 
   cleanup:
     runs-on: ubuntu-22.04
-    needs: [cmake-ci, consume-test, msvc-generator-flags]
+    needs: [cmake-ci, consume-test, msvc-generator-flags, debug-build]
     steps:
       - name: Artifact cleanup
         uses: geekyeggo/delete-artifact@v6

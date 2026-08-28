@@ -71,7 +71,10 @@ include(toolchain) # finds cmake/toolchain.cmake
 # Versions for dependencies
 set(CPM_DOWNLOAD_VERSION "0.43.1" CACHE STRING "Version of CPM.cmake to use")
 set(FFTW_VERSION "3.3.10" CACHE STRING "Version of FFTW to use")
-set(XSIMD_VERSION "14.3.0" CACHE STRING "Version of xsimd to use")
+# Four commits past 14.3.0, for xsimd PR #1387. Without it any Debug build on an
+# AVX2 host fails: _mm_permute_ps in xsimd_avx_128.hpp gets a non-constant
+# immediate at -O0. Move to the next xsimd release once it ships that fix.
+set(XSIMD_VERSION "c71a9b23258c613b6f61ae9857342dc7b774dcab" CACHE STRING "Version of xsimd to use")
 set(POET_VERSION "v0.0.1" CACHE STRING "Version of POET to use")
 set(DUCC0_VERSION "ducc0_0_41_1" CACHE STRING "Version of ducc0 to use")
 set(CUDA11_CCCL_VERSION "2.8.5" CACHE STRING "Version of FINUFFT-cccl for cuda 11 to use")

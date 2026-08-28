@@ -31,6 +31,21 @@ v2.6.0-dev
   build failed. Ninja was unaffected, which is why no CI cell saw it; a
   configure-only `windows-2022` job now asserts the three lists are non-empty
   under that generator. (Barbone)
+* Fixed `Debug` builds failing to compile on any AVX2 host. At `-O0` the compiler
+  no longer folds an intrinsic's immediate argument, and xsimd 14.3.0 then rejects
+  `_mm_permute_ps` with "the last argument must be an 8-bit immediate". xsimd is
+  pinned to the commit that fixes it (four past 14.3.0) until the next release, and
+  a `Debug` job at `-march=x86-64-v3` now covers the configuration: every other CI
+  cell builds at `-O1` or higher, where the fold happens and the bug is invisible.
+  (Barbone)
+* Added a vcpkg port under `tools/vcpkg/finufft`, the last part of #494. vcpkg has
+  no FINUFFT port, so it is used as an overlay:
+  `vcpkg install finufft --overlay-ports=tools/vcpkg`. (Barbone)
+* `setupFFTW.cmake` now reports a build that is not allowed to download FFTW.
+  vcpkg and other hermetic builds set `FETCHCONTENT_FULLY_DISCONNECTED`, which
+  leaves CPM announcing the package while populating nothing; the first symptom
+  used to be `install TARGETS given target "fftw3" which does not exist`, several
+  hundred lines away from the cause. (Barbone)
 * Fixed CPU type 3 honoring `opts.spreadinterponly`: the option is documented to affect
   types 1 and 2 only, and cuFINUFFT already ignored it for type 3, but the CPU plan
   applied it, so a type-3 call with the flag set returned wrong values instead of the
