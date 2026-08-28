@@ -375,6 +375,9 @@ jobs:
           cmake --build _consume --config Release
           if [[ "$RUNNER_OS" == "Windows" ]]; then ./_consume/Release/app.exe; else ./_consume/app; fi
 
+  # Linux and its two FFTW controls moved to Jenkins, where the same script runs
+  # with a real device for the GPU half. Windows stays here: no Jenkins agent
+  # carries a toolchain.
   consume-test:
     name: consume find_package (${{ matrix.os }}, ${{ matrix.linking }}, ${{ matrix.backend }})
     runs-on: ${{ matrix.os }}
@@ -382,20 +385,17 @@ jobs:
     env:
       CMAKE_GENERATOR: Ninja
       CPM_SOURCE_CACHE: cpm
+      LINKING: ${{ matrix.linking }}
+      BACKEND: ${{ matrix.backend }}
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-22.04, windows-2022]
+        os: [windows-2022]
         linking: [Static, Shared]
         backend: [ducc, fftw]
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
-      - name: Install fftw (Linux)
-        if: runner.os == 'Linux' && matrix.backend == 'fftw'
-        run: |
-          sudo apt update
-          sudo apt install -y libfftw3-dev
       - name: Restore Cache
         uses: actions/cache/restore@v6
         with:
@@ -408,185 +408,13 @@ jobs:
           vcvarsall: true
           cmake: true
           ninja: true
-      - name: Install FINUFFT and consume via find_package
+      - name: Install FINUFFT and consume it
         shell: bash
-        run: |
-          set -euo pipefail
-          static=ON
-          [[ "${{ matrix.linking }}" == "Shared" ]] && static=OFF
-          ducc=ON
-          [[ "${{ matrix.backend }}" == "fftw" ]] && ducc=OFF
-          stage="$PWD/_stage"
-
-          # Build and install FINUFFT to a staging prefix.
-          cmake -S . -B _build \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DFINUFFT_USE_DUCC0=$ducc \
-            -DFINUFFT_STATIC_LINKING=$static \
-            -DFINUFFT_ENABLE_INSTALL=ON \
-            -DCMAKE_MSVC_DEBUG_INFORMATION_FORMAT=Embedded
-          cmake --build _build --config Release
-          cmake --install _build --prefix "$stage" --config Release
-
-          # The exported interface must not bake in build-machine absolute paths.
-          if grep -R "/usr/" "$stage"/lib*/cmake/finufft/finufftTargets*.cmake; then
-            echo "ERROR: absolute path leaked into exported finufftTargets"; exit 1
-          fi
-
-          # Consume it from a standalone project via find_package + the alias.
-          cmake -S test/cmake_consume -B _consume \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_PREFIX_PATH="$stage" \
-            -DCMAKE_MSVC_DEBUG_INFORMATION_FORMAT=Embedded
-          cmake --build _consume --config Release
-
-          # Run the consumer; for the shared build help the loader find the library.
-          if [[ "$RUNNER_OS" == "Windows" ]]; then
-            ./_consume/app.exe
-          else
-            LD_LIBRARY_PATH="$stage/lib:$stage/lib64:${LD_LIBRARY_PATH:-}" ./_consume/app
-          fi
-
-      # Second consumption route: FetchContent/add_subdirectory, which builds
-      # FINUFFT as a subproject rather than against an install. It is what the
-      # CPM and FetchContent recipes in docs/install.rst do, and it is the path
-      # that breaks when a top-level-only guard (CTest, docs targets, install
-      # rules) is missing. One cell per OS is enough - the route does not depend
-      # on linkage or backend.
-      - name: Consume via FetchContent
-        if: matrix.linking == 'Static' && matrix.backend == 'ducc'
-        shell: bash
-        run: |
-          set -euo pipefail
-          cmake -S test/cmake_consume/fetchcontent -B _fetch \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DFINUFFT_SOURCE_DIR="$PWD" \
-            -DFINUFFT_USE_DUCC0=ON \
-            -DCMAKE_MSVC_DEBUG_INFORMATION_FORMAT=Embedded
-          cmake --build _fetch --config Release
-          ./_fetch/app
-
-      # A package manager that forbids downloads (vcpkg passes
-      # -DFETCHCONTENT_FULLY_DISCONNECTED=ON) used to get an unrelated
-      # "install TARGETS given target fftw3 which does not exist" at the end of
-      # the configure. setupFFTW.cmake now says so where it happens; this is the
-      # control proving the message still appears.
-      - name: Downloaded FFTW reports a clear error when fetching is forbidden
-        if: runner.os == 'Linux' && matrix.linking == 'Static' && matrix.backend == 'fftw'
-        shell: bash
-        run: |
-          set -euo pipefail
-          if cmake -S . -B _nofetch -DFINUFFT_USE_DUCC0=OFF \
-               -DFINUFFT_FFTW_LIBRARIES=DOWNLOAD \
-               -DFETCHCONTENT_FULLY_DISCONNECTED=ON > nofetch.log 2>&1; then
-            echo "ERROR: configure succeeded with fetching disabled"; exit 1
-          fi
-          grep -q "FINUFFT could not fetch FFTW" nofetch.log \
-            || { echo "ERROR: guard message missing"; tail -30 nofetch.log; exit 1; }
-
-      # A hand-supplied FFTW cannot be exported, so a static install leaves the
-      # consumer to link it. The DEFAULT configure is the negative control: it
-      # exports its FFTW and must stay silent.
-      - name: A hand-supplied FFTW warns that the static install cannot export it
-        if: runner.os == 'Linux' && matrix.linking == 'Static' && matrix.backend == 'fftw'
-        shell: bash
-        run: |
-          set -euo pipefail
-          cmake -S . -B _userfftw -DFINUFFT_USE_DUCC0=OFF -DFINUFFT_STATIC_LINKING=ON \
-            -DFINUFFT_FFTW_LIBRARIES="fftw3;fftw3f" > userfftw.log 2>&1
-          grep -q "is supplied by hand" userfftw.log \
-            || { echo "ERROR: warning missing"; tail -30 userfftw.log; exit 1; }
-          cmake -S . -B _deffftw -DFINUFFT_USE_DUCC0=OFF -DFINUFFT_STATIC_LINKING=ON \
-            > deffftw.log 2>&1
-          if grep -q "is supplied by hand" deffftw.log; then
-            echo "ERROR: DEFAULT warned as well, so the check proves nothing"; exit 1
-          fi
-
-  # The GPU twin of consume-test. GitHub runners carry no device, so the two
-  # consumers are built and never run: the packaging defects this guards against
-  # (an empty link interface on the installed cufinufft, CUDA headers missing
-  # from its interface include directories, a missing find_dependency(CUDAToolkit))
-  # all surface at configure and link time. A run would need a device, and a
-  # step written to tolerate a missing device would pass on any regression.
-  consume-test-cuda:
-    name: consume find_package (cufinufft)
-    runs-on: ubuntu-22.04
-    env:
-      CMAKE_GENERATOR: Ninja
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v7
-      - name: Setup Cpp
-        uses: aminya/setup-cpp@v1
-        with:
-          cmake: true
-          ninja: true
-      - name: Setup CUDA
-        uses: Jimver/cuda-toolkit@v0.2.35
-        with:
-          cuda: '12.4.0'
-          method: 'network'
-          linux-local-args: '["--toolkit"]'
-          log-file-suffix: 'consume-cuda-install.txt'
-          sub-packages: '["nvcc", "cudart"]'
-          non-cuda-sub-packages: '["libcufft","libcufft-dev"]'
-          use-local-cache: 'false'
-          use-github-cache: 'false' #it is not working at the moment https://github.com/Jimver/cuda-toolkit/issues/390
-      # FINUFFT_USE_CPU=OFF makes this the CUDA-only install as well, the one that
-      # used to ship cufinufft.h without the headers it includes. One architecture,
-      # not the all-major fallback cuda_setup.cmake picks when nvidia-smi is
-      # absent: nothing here is executed, and all-major multiplies the compile
-      # time by the number of supported SMs.
-      - name: Install cufinufft and consume via find_package
-        shell: bash
-        run: |
-          set -euo pipefail
-          stage="$PWD/_stage"
-          cmake -S . -B _build \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DFINUFFT_USE_CUDA=ON \
-            -DFINUFFT_USE_CPU=OFF \
-            -DFINUFFT_ENABLE_INSTALL=ON \
-            -DCMAKE_CUDA_ARCHITECTURES=70
-          cmake --build _build
-          cmake --install _build --prefix "$stage"
-
-          cmake -S test/cmake_consume/cuda -B _consume \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_PREFIX_PATH="$stage"
-          cmake --build _consume
-      # The control. A build-only guard that has never failed cannot be told from
-      # one that cannot fail, so #494's GPU shape is put back into a copy of the
-      # install: cufinufft with an empty link interface. The consumer must stop.
-      - name: Emptying the cufinufft link interface breaks the consumer
-        shell: bash
-        run: |
-          set -euo pipefail
-          cp -a _stage _broken
-          sed -i 's/CUDA::cudart;CUDA::cufft//' _broken/lib*/cmake/finufft/finufftTargets.cmake
-          if cmake -S test/cmake_consume/cuda -B _broken_consume \
-               -DCMAKE_BUILD_TYPE=Release \
-               -DCMAKE_PREFIX_PATH="$PWD/_broken" > broken.log 2>&1 \
-             && cmake --build _broken_consume >> broken.log 2>&1; then
-            echo "ERROR: consumer built against an empty link interface, so the guard proves nothing"
-            exit 1
-          fi
-          grep -qE "undefined (reference to|symbol)[ :]*.?cuda" broken.log \
-            || { echo "ERROR: it failed for some other reason"; tail -30 broken.log; exit 1; }
-      - name: Consume via FetchContent
-        shell: bash
-        run: |
-          set -euo pipefail
-          cmake -S test/cmake_consume/cuda/fetchcontent -B _fetch \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DFINUFFT_SOURCE_DIR="$PWD" \
-            -DFINUFFT_USE_CPU=OFF \
-            -DCMAKE_CUDA_ARCHITECTURES=70
-          cmake --build _fetch
+        run: tools/ci/install-test.sh
 
   cleanup:
     runs-on: ubuntu-22.04
-    needs: [cmake-ci, consume-test, consume-test-cuda, msvc-generator-flags, debug-build, vcpkg-port]
+    needs: [cmake-ci, consume-test, msvc-generator-flags, debug-build, vcpkg-port]
     steps:
       - name: Artifact cleanup
         uses: geekyeggo/delete-artifact@v6

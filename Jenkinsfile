@@ -304,6 +304,50 @@ catchError {
     if (pagePublishes || (env.CHANGE_TITLE ?: '').contains('[perf page]')) measures << pageJob
     if (measures) jobs['measure'] = { for (measure in measures) measure() }
 
+    // Install and consume, the three routes a user takes: find_package against
+    // an install, FetchContent against the sources, and a bare compiler line.
+    // tools/ci/install-test.sh is the same script cmake_ci.yml runs on Windows,
+    // where no Jenkins agent carries a toolchain.
+    //
+    // One pod per half rather than one per cell: an install plus two consumers
+    // is a couple of minutes, and four pods would spend longer being scheduled
+    // than working. The arms run in sequence in a fresh directory each time.
+    jobs['install cpu'] = {
+      runPod(tag: 'cuda12.8', cpus: 8, memory: '16Gi') {
+        stage('install cpu') {
+          for (linking in ['Static', 'Shared']) {
+            for (backend in ['ducc', 'fftw']) {
+              // The FFTW controls need a configure each and no build, so they
+              // ride on one arm rather than all four.
+              def controls = (linking == 'Static' && backend == 'fftw') ? '1' : '0'
+              withEnv(["HOME=$WORKSPACE", "LINKING=${linking}", "BACKEND=${backend}",
+                       "CONTROLS=${controls}"]) {
+                sh 'rm -rf _build _stage _consume _fetch _plain_app && tools/ci/install-test.sh'
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // The GPU twin, and the reason it is here rather than only on GitHub: a
+    // runner has the CUDA toolkit but no device, so it can link the consumer and
+    // never run it. This pod runs it.
+    jobs['install cuda'] = {
+      runPod(tag: 'cuda12.8', cpus: 8, memory: '16Gi', gpus: 1) {
+        stage('install cuda') {
+          def arch = gpuArch()
+          if (!arch) {
+            error "nvidia-smi did not report compute_cap - the consumer would build for the wrong card"
+          }
+          withEnv(["HOME=$WORKSPACE", "CUDA=1", "CUDA_ARCH=${arch}", "CONTROLS=1",
+                   "LIBRARY_PATH=/usr/local/cuda/lib64/stubs"]) {
+            sh 'tools/ci/install-test.sh'
+          }
+        }
+      }
+    }
+
     parallel jobs
   }
 }
