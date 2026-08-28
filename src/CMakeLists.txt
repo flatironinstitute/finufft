@@ -130,10 +130,22 @@ target_include_directories(finufft SYSTEM INTERFACE $<INSTALL_INTERFACE:include>
 
 enable_asan(finufft)
 
-if(FINUFFT_ENABLE_INSTALL)
-    file(GLOB FINUFFT_PUBLIC_HEADERS "${PROJECT_SOURCE_DIR}/include/finufft*.h")
-    set_target_properties(finufft PROPERTIES PUBLIC_HEADER "${FINUFFT_PUBLIC_HEADERS}")
-endif()
+# The public surface, listed rather than globbed: finufft.h reaches the other
+# four by #include, and everything else under include/ is internal. install()
+# ships exactly this set, keeping the subdirectory layout, so a header cannot be
+# published without the headers it includes.
+target_sources(
+    finufft
+    PUBLIC
+        FILE_SET HEADERS
+            BASE_DIRS ${PROJECT_SOURCE_DIR}/include
+            FILES
+                ${PROJECT_SOURCE_DIR}/include/finufft.h
+                ${PROJECT_SOURCE_DIR}/include/finufft_opts.h
+                ${PROJECT_SOURCE_DIR}/include/finufft_errors.h
+                ${PROJECT_SOURCE_DIR}/include/finufft/finufft_eitherprec.h
+                ${PROJECT_SOURCE_DIR}/include/finufft_common/defines.h
+)
 
 set(_targets ${INSTALL_TARGETS})
 list(APPEND _targets finufft)

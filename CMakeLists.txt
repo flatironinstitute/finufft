@@ -199,10 +199,8 @@ if(FINUFFT_ENABLE_INSTALL)
         EXPORT finufftTargets
         ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
         LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-        RUNTIME
-            DESTINATION
-                ${CMAKE_INSTALL_BINDIR} # .dll on Windows
-        PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} # .dll on Windows
+        FILE_SET HEADERS DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
         INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
     )
     # Static builds expose finufft's private FFT backend on the install interface
@@ -220,31 +218,6 @@ if(FINUFFT_ENABLE_INSTALL)
         if(FINUFFT_FFT_FIND_MODULE)
             install(FILES ${FINUFFT_FFT_FIND_MODULE} DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/finufft)
         endif()
-    endif()
-    # Public transitive headers that live in subdirectories and are therefore not
-    # matched by the flat finufft*.h PUBLIC_HEADER glob. finufft.h pulls in
-    # finufft/finufft_eitherprec.h, which (with finufft_errors.h) pulls in
-    # finufft_common/defines.h; without these an installed consumer cannot
-    # compile. Only these two subdir headers are part of the public surface; the
-    # rest of include/finufft and include/finufft_common are internal.
-    if(FINUFFT_USE_CPU)
-        install(
-            FILES ${PROJECT_SOURCE_DIR}/include/finufft/finufft_eitherprec.h
-            DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/finufft
-        )
-    endif()
-    # cufinufft.h includes finufft_errors.h and finufft_common/defines.h too, and
-    # in a CUDA-only build neither the finufft target nor the branch above exists
-    # to install them, which leaves an installed cufinufft.h that cannot be
-    # included.
-    if(FINUFFT_USE_CPU OR FINUFFT_USE_CUDA)
-        install(
-            FILES ${PROJECT_SOURCE_DIR}/include/finufft_common/defines.h
-            DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/finufft_common
-        )
-    endif()
-    if(FINUFFT_USE_CUDA AND NOT FINUFFT_USE_CPU)
-        install(FILES ${PROJECT_SOURCE_DIR}/include/finufft_errors.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
     endif()
     install(EXPORT finufftTargets NAMESPACE finufft:: DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/finufft)
     configure_package_config_file(
