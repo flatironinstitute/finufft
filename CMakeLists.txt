@@ -232,10 +232,19 @@ if(FINUFFT_ENABLE_INSTALL)
             FILES ${PROJECT_SOURCE_DIR}/include/finufft/finufft_eitherprec.h
             DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/finufft
         )
+    endif()
+    # cufinufft.h includes finufft_errors.h and finufft_common/defines.h too, and
+    # in a CUDA-only build neither the finufft target nor the branch above exists
+    # to install them, which leaves an installed cufinufft.h that cannot be
+    # included.
+    if(FINUFFT_USE_CPU OR FINUFFT_USE_CUDA)
         install(
             FILES ${PROJECT_SOURCE_DIR}/include/finufft_common/defines.h
             DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/finufft_common
         )
+    endif()
+    if(FINUFFT_USE_CUDA AND NOT FINUFFT_USE_CPU)
+        install(FILES ${PROJECT_SOURCE_DIR}/include/finufft_errors.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
     endif()
     install(EXPORT finufftTargets NAMESPACE finufft:: DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/finufft)
     configure_package_config_file(
