@@ -10,6 +10,18 @@ v2.6.0-dev
   `FindFFTW` module that located it and `finufftConfig.cmake` re-runs it. The CI
   consume test gained a backend axis, so all four backend/linkage combinations are
   guarded, plus the `FetchContent` consumer that nothing ran before. (Barbone)
+* Fixed three more defects in the same installed-package path. `finufftConfig.cmake`
+  asked for `find_dependency(OpenMP COMPONENTS C CXX)` while the export only names
+  `OpenMP::OpenMP_CXX`, so every consumer declaring `LANGUAGES CXX` failed with
+  "Could NOT find OpenMP (missing: OpenMP_C_FOUND C)"; the consume test declared
+  `LANGUAGES C CXX` and hid it, and now declares `CXX` alone. A static
+  `finufft::cufinufft` exported an empty link interface, leaving the consumer 401
+  undefined `cuda*` and `cufft*` symbols, and its exported include directories read
+  a `CUDA::cudart` target that no consumer created; `finufftConfig.cmake` now runs
+  `find_dependency(CUDAToolkit)` and the install interface carries `CUDA::cudart`,
+  `CUDA::cufft` and `finufft_common`. A CUDA-only install shipped `cufinufft.h`
+  without the `finufft_errors.h` and `finufft_common/defines.h` that it includes.
+  (Barbone)
 * Fixed CPU type 3 honoring `opts.spreadinterponly`: the option is documented to affect
   types 1 and 2 only, and cuFINUFFT already ignored it for type 3, but the CPU plan
   applied it, so a type-3 call with the flag set returned wrong values instead of the

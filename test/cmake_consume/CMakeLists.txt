@@ -8,7 +8,10 @@
 # It is the regression guard for: missing transitive headers, missing
 # find_dependency() in the config, and the Windows DLL export/runtime path.
 cmake_minimum_required(VERSION 3.19)
-project(finufft_consume LANGUAGES C CXX)
+# CXX only, deliberately: a C++-only consumer is the common case and the strict
+# one. Enabling C here would hide a find_dependency() in finufftConfig.cmake that
+# asks for a C component the consumer never enables.
+project(finufft_consume LANGUAGES CXX)
 
 find_package(finufft REQUIRED)
 

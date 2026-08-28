@@ -55,7 +55,7 @@ Including FINUFFT into your own CMake project
 This is the easiest way to install and use FINUFFT if you already use
 CMake in your own project, since CMake automates all aspects of
 installation and compilation.
-There are two options: CPM or FetchContent.
+There are three options: CPM, FetchContent, or an installed package.
 We recommend the first.
 
 1) **CPM**. First include `CPM <https://github.com/cpm-cmake/CPM.cmake>`_ to your project, by following the `instructions <https://github.com/cpm-cmake/CPM.cmake/wiki/Downloading-CPM.cmake-in-CMake>`_ to automatically add CPM to CMake.
@@ -123,6 +123,20 @@ well: DUCC0 and a FINUFFT-downloaded FFTW are installed and exported as archives
 alongside FINUFFT, and a static install against a *system* FFTW installs the
 ``FindFFTW`` module that located it, which ``find_package(finufft)`` re-runs to
 find the same FFTW in the consumer.
+
+The GPU library is exported as ``finufft::cufinufft`` by the same package, so a
+build configured with ``-DFINUFFT_USE_CUDA=ON`` gives:
+
+.. code-block:: cmake
+
+    find_package(finufft REQUIRED)
+    target_link_libraries(your_executable PRIVATE finufft::cufinufft)
+
+``find_package(finufft)`` runs ``find_dependency(CUDAToolkit)`` for it, so the
+CUDA toolkit has to be visible to the consumer as well. The consumer does not
+have to enable the ``CUDA`` language: the public headers are plain C++ and a
+static ``cufinufft`` carries ``CUDA::cudart`` and ``CUDA::cufft`` on its link
+interface.
 
 CMake based installation and compilation
 ----------------------------------------
