@@ -127,6 +127,17 @@ target_link_libraries(
         $<BUILD_INTERFACE:poet::poet>
 )
 
+# A static libcufinufft.a keeps the CUDA runtime, cuFFT and finufft_common as
+# unresolved references, so an installed consumer has to link them too.
+# finufftConfig.cmake re-runs find_dependency(CUDAToolkit) to recreate the two
+# imported targets. CCCL and poet are header-only and contribute no symbols.
+if(FINUFFT_ENABLE_INSTALL AND NOT FINUFFT_SHARED_LINKING)
+    target_link_libraries(
+        cufinufft
+        INTERFACE $<INSTALL_INTERFACE:CUDA::cudart> $<INSTALL_INTERFACE:CUDA::cufft> $<INSTALL_INTERFACE:finufft_common>
+    )
+endif()
+
 check_cxx_compiler_flag(-Wno-deprecated-declarations FINUFFT_HAS_NO_DEPRECATED_DECLARATIONS)
 # disable deprecated warnings for tests if supported
 if(FINUFFT_HAS_NO_DEPRECATED_DECLARATIONS)

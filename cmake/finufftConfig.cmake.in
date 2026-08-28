@@ -35,6 +35,13 @@ if(EXISTS "${CMAKE_CURRENT_LIST_DIR}/FindFFTW.cmake" AND NOT TARGET FFTW::Double
     list(POP_FRONT CMAKE_MODULE_PATH)
 endif()
 
+# cufinufft carries CUDA::cudart and CUDA::cufft on its install interface, both
+# as imported targets, so CUDAToolkit has to be found again here whatever the
+# linkage: a shared cufinufft still takes their include directories.
+if(@FINUFFT_USE_CUDA@)
+    find_dependency(CUDAToolkit)
+endif()
+
 include("${CMAKE_CURRENT_LIST_DIR}/finufftTargets.cmake")
 
 check_required_components(finufft)
