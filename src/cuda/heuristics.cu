@@ -118,9 +118,11 @@ template std::size_t shared_memory_required<double>(
 // Function to find bin_size_x == bin_size_y
 // where bin_size_x * bin_size_y * bin_size_z < mem_size
 template<typename T> int find_bin_size(std::size_t mem_size, int dim, int ns) {
-  const auto elements        = mem_size / sizeof(cuda_complex<T>);
-  const auto padded_bin_size = int(std::floor(std::pow(elements, 1.0 / dim)));
-  const auto bin_size        = padded_bin_size - (2 * (ns + 1) / 2);
+  const auto elements  = mem_size / sizeof(cuda_complex<T>);
+  auto padded_bin_size = int(std::floor(std::pow(elements, 1.0 / dim)));
+  // pow(64, 1/3.) < 4 in IEEE 754: bump when the next integer still fits
+  if (std::pow(double(padded_bin_size + 1), dim) <= double(elements)) ++padded_bin_size;
+  const auto bin_size = padded_bin_size - 2 * ((ns + 1) / 2);
   // TODO: over one dimension we could increase this a bit
   //       maybe the shape should not be uniform
   return bin_size;
