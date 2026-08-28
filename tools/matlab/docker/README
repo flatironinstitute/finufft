@@ -1,0 +1,53 @@
+Two images, because the MATLAB interface is judged by the route a user takes
+rather than by the build.
+
+Dockerfile-x86_64 is the builder: docker.io/mathworks/matlab-deps plus a C++/CUDA
+toolchain and a MATLAB installed by mpm, MathWorks' package manager. The Jenkins
+"matlab build" stage runs tools/ci/matlab-build.sh in it and produces the CPack
+archive finufft-matlab-mex-linux.tar.gz.
+
+Dockerfile-consume is the clean room: docker.io/mathworks/matlab, which already
+carries a MATLAB, plus Parallel_Computing_Toolbox and the CUDA run-time shared
+objects the MEX links against. No cmake, no CUDA toolkit and no FINUFFT file,
+and the image asserts that at build time: without the assertion a stage that
+quietly rebuilt or relinked would still pass. The "matlab consume" stage unpacks
+the archive in it and runs the interface tests.
+
+The base image does carry a gcc, because MATLAB bundles a compiler for its own
+mex. Nothing in the interface tests invokes it.
+
+The win, macpro and macm1 agents shipped with no MATLAB and no build toolchain,
+so tools/ci/agent-provision.{sh,ps1} installs cmake, ninja and the same mpm
+MATLAB into a cache beside the workspace, and on win the MSVC build tools as
+well. That install needs administrator rights and is the one piece the script
+cannot do for itself; it reports whether the agent holds them before it tries.
+
+    podman build --file tools/matlab/docker/Dockerfile-x86_64 \
+                 --build-arg MATLAB_RELEASE=R2025b \
+                 --tag finufft-matlab:R2025b tools/matlab/docker
+
+Installing MATLAB needs no license; starting it checks one out. Only the consume
+half starts MATLAB, so only that half needs one:
+
+    MLM_LICENSE_FILE=<port>@<host>   the institute network license manager
+
+That is the variable `module load matlab` sets on the SCC hosts. Neither a
+Kubernetes pod nor a provisioned agent has a module tree, so Jenkins supplies it
+from a Secret text credential with id matlab-license, and tools/ci/matlab-consume.sh
+fails with that instruction when it is missing.
+
+A credential rather than a global environment variable because this Jenkins
+console is readable without authentication, and Jenkins masks a credential in it.
+The address of the license manager does not belong in a public build log.
+
+Locally, a MATLAB that is already licensed on the host can stand in for both:
+
+    podman run --rm --userns=keep-id \
+               -v /usr/local/MATLAB:/usr/local/MATLAB:ro \
+               -v "$HOME/.matlab:$HOME/.matlab:ro" -e HOME="$HOME" \
+               -v $PWD:/io -w /io finufft-matlab:R2025b \
+               env PATH=/usr/local/MATLAB/R2025b/bin:$PATH tools/ci/matlab-build.sh
+
+The image carries CUDA so the same stage builds cufinufft_mex. Only the tests
+need a device: tools/ci/matlab_test.m fails rather than skipping when
+FINUFFT_CI_GPU=1 and no device answers.

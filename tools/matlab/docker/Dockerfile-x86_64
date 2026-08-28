@@ -1,0 +1,58 @@
+# Build/test image for the FINUFFT MATLAB MEX interface on Linux.
+#
+# matlab-deps carries the OS packages a MATLAB install needs and nothing else,
+# so MATLAB itself comes from mpm, MathWorks' package manager. Installing needs
+# no license; mex and matlab -batch both check one out. The Jenkins pod supplies
+# MLM_LICENSE_FILE at run time, forwarded from the value `module load matlab`
+# sets on the SCC hosts. A license may never be baked into an image.
+#
+# Tags are pinned so a CI failure is attributable, as in the cufinufft image.
+ARG MATLAB_RELEASE=R2025b
+FROM docker.io/mathworks/matlab-deps:${MATLAB_RELEASE}
+ARG MATLAB_RELEASE=R2025b
+# Parallel_Computing_Toolbox is what supplies gpu/mxGPUArray.h and canUseGPU,
+# which the CUDA MEX needs to build and the GPU half of fullmathtest to run.
+ARG MATLAB_PRODUCTS="MATLAB Parallel_Computing_Toolbox"
+# CUDA for cufinufft_mex. A pod with no card still builds it; only the tests
+# need a device, and matlab_test.m fails rather than skipping when one is asked
+# for and missing.
+ARG CUDA_VERSION=12.8
+
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        build-essential ca-certificates cmake curl git ninja-build \
+        libfftw3-dev libomp-dev python3 unzip wget && \
+    rm -rf /var/lib/apt/lists/*
+
+# NVIDIA's own noble repo, so nvcc matches the cudart the pod's driver serves.
+RUN cuda_dash=$(echo ${CUDA_VERSION} | tr . -) && \
+    wget -q https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64/cuda-keyring_1.1-1_all.deb && \
+    dpkg -i cuda-keyring_1.1-1_all.deb && rm cuda-keyring_1.1-1_all.deb && \
+    apt-get update && apt-get install -y --no-install-recommends \
+        cuda-nvcc-${cuda_dash} \
+        cuda-cudart-dev-${cuda_dash} \
+        libcufft-dev-${cuda_dash} && \
+    ln -s cuda-${CUDA_VERSION} /usr/local/cuda && \
+    rm -rf /var/lib/apt/lists/*
+ENV CUDA_HOME=/usr/local/cuda
+ENV PATH=/usr/local/cuda/bin:/opt/matlab/bin:${PATH}
+# The real libcuda.so.1 only appears at run time, injected by the runtime.
+ENV LIBRARY_PATH=/usr/local/cuda/lib64/stubs
+ENV NVIDIA_VISIBLE_DEVICES=all
+ENV NVIDIA_DRIVER_CAPABILITIES=compute,utility
+
+# mpm needs no license to install, and refuses to run as root without --destination.
+RUN wget -q https://www.mathworks.com/mpm/glnxa64/mpm && \
+    chmod +x mpm && \
+    ./mpm install --release=${MATLAB_RELEASE} --destination=/opt/matlab \
+        --products ${MATLAB_PRODUCTS} && \
+    rm -f mpm /tmp/mathworks_root.log
+
+# No `matlab -batch` here: starting MATLAB checks out a license, and the image
+# must build without one. Assert the pieces the build and the tests need
+# instead, so a truncated mpm install fails here rather than in a CI stage.
+RUN test -x /opt/matlab/bin/matlab && \
+    test -x /opt/matlab/bin/mex && \
+    test -f /opt/matlab/extern/include/mex.h && \
+    test -f /opt/matlab/toolbox/parallel/gpu/extern/include/gpu/mxGPUArray.h
+CMD ["/bin/bash"]

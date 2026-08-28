@@ -71,6 +71,42 @@ def configs = [
   [cuda: '13.0', gcc: 14, torch: 'cu130', gpuType: 'a100',    archs: ['75', '80', '86', '89', '90', '100', '120']],
 ]
 
+// The MATLAB release the Linux image installs. The Windows and macOS hosts run
+// whatever SCC installed on them, and the stage prints it, so the three targets
+// are not required to agree.
+def MATLAB_RELEASE = 'R2025b'
+
+// mpm installs MATLAB without a license, but starting MATLAB checks one out, so
+// the license reaches the machine at run time and never enters an image. On the
+// SCC hosts `module load matlab` sets MLM_LICENSE_FILE to the institute license
+// manager; neither a Kubernetes pod nor an agent this pipeline provisioned has a
+// module tree, so the value comes from a Jenkins credential.
+//
+// A credential rather than a global environment variable, for one reason: this
+// console is world-readable without authentication, and Jenkins masks a
+// credential in it. The address of the institute license manager is not
+// something a public build log should carry.
+//
+// Secret text, id matlab-license, holding the <port>@<host> that
+// `module load matlab` reports. Only the consuming half needs it: building the
+// MEX never starts MATLAB.
+def withMatlabLicense(Closure body) {
+  withCredentials([string(credentialsId: 'matlab-license',
+                          variable: 'MLM_LICENSE_FILE')]) {
+    body()
+  }
+}
+
+// The MATLAB image is 10 GB and takes a quarter of an hour to build, so the
+// stage and its image are gated together: a topic branch neither builds nor
+// pulls it.
+//
+// A branch named for this machinery is the exception: a change to the MATLAB
+// stage has to be provable on the branch that makes it, without opening a pull
+// request first.
+def matlabRuns = env.CHANGE_ID || env.BRANCH_NAME == 'master' ||
+                 (env.BRANCH_NAME ?: '').contains('matlab')
+
 catchError {
   timeout(time: 3, unit: 'HOURS') {
     buildImages(configs.collect { cfg ->
@@ -79,7 +115,16 @@ catchError {
         buildArgs: "--build-arg CUDA_VERSION=${cfg.cuda} --build-arg GCC_TOOLSET=${cfg.gcc}" +
                    " --build-arg TORCH_INDEX=${cfg.torch}"
       ]
-    }, checkout: true)
+    } + (matlabRuns ? [
+      [ context: 'tools/matlab/docker', dockerfile: 'Dockerfile-x86_64',
+        tag: 'matlab',
+        buildArgs: "--build-arg MATLAB_RELEASE=${MATLAB_RELEASE}"
+      ],
+      [ context: 'tools/matlab/docker', dockerfile: 'Dockerfile-consume',
+        tag: 'matlab-consume',
+        buildArgs: "--build-arg MATLAB_RELEASE=${MATLAB_RELEASE}"
+      ]
+    ] : []), checkout: true)
 
     def jobs = configs.collectEntries { cfg -> ['cuda-' + cfg.cuda, {
       runPod(tag: "cuda${cfg.cuda}", cpus: 8, memory: '32Gi',
@@ -306,8 +351,8 @@ catchError {
 
     // Install and consume, the three routes a user takes: find_package against
     // an install, FetchContent against the sources, and a bare compiler line.
-    // tools/ci/install-test.sh is the same script cmake_ci.yml runs on Windows,
-    // where no Jenkins agent carries a toolchain.
+    // tools/ci/install-test.sh is the same script cmake_ci.yml runs on Windows
+    // and the mac agents run below.
     //
     // One pod per half rather than one per cell: an install plus two consumers
     // is a couple of minutes, and four pods would spend longer being scheduled
@@ -345,6 +390,116 @@ catchError {
             sh 'tools/ci/install-test.sh'
           }
         }
+      }
+    }
+
+    // MATLAB, in two pods, because the point is the route a user takes rather
+    // than the build. The first has the toolchain, MATLAB and CUDA and produces
+    // the CPack archive. The second is the mathworks/matlab image plus the
+    // run-time libraries FINUFFT declares, with no compiler, no cmake and no
+    // CUDA toolkit, and unpacks that archive and runs the interface tests
+    // against it. A MEX that only works beside its own build tree fails there.
+    //
+    // Both take a card, so fullmathtest covers the GPU half. gpuType is unset on
+    // purpose: correctness does not need a whole card, so these pods schedule on
+    // any GPU node rather than queueing for the V100 the timing stages hold.
+    if (matlabRuns) {
+      jobs['matlab'] = {
+        runPod(tag: 'matlab', cpus: 8, memory: '32Gi', gpus: 1) {
+          stage('matlab build') {
+            def arch = gpuArch()
+            if (!arch) {
+              error "nvidia-smi did not report compute_cap - the GPU half would skip silently"
+            }
+            withEnv([
+              "HOME=$WORKSPACE",
+              "CUDA_ARCH=${arch}",
+              "FINUFFT_CI_GPU=1",
+              "LIBRARY_PATH=/usr/local/cuda/lib64/stubs"
+            ]) {
+              sh 'tools/ci/matlab-build.sh'
+            }
+            stash name: 'matlab-mex', includes: 'finufft-matlab-mex-*.tar.gz'
+            archiveArtifacts artifacts: 'finufft-matlab-mex-*.tar.gz', fingerprint: true
+          }
+        }
+        runPod(tag: 'matlab-consume', cpus: 4, memory: '16Gi', gpus: 1) {
+          stage('matlab consume') {
+            unstash 'matlab-mex'
+            withEnv(["HOME=$WORKSPACE", "FINUFFT_CI_GPU=1"]) {
+              withMatlabLicense { sh 'tools/ci/matlab-consume.sh' }
+            }
+          }
+        }
+      }
+    }
+
+    // The install routes and the MATLAB interface on the three host agents.
+    // Probed on 2026-08-28, all three carry a system compiler and nothing else:
+    // no cmake, no ninja, no MATLAB, and win has no Visual Studio either.
+    // agent-provision installs them, so the first build on an agent pays for the
+    // ~10 GB MATLAB download and the rest find it already there.
+    //
+    // CI_TOOLS sits beside the workspace root rather than inside it: a workspace
+    // belongs to one branch and is wiped, and an install that large must outlive
+    // that. The two directories under it are what agent-provision produces:
+    // bin holds cmake and ninja, matlab/<release> holds MATLAB.
+    //
+    // The macs run install-test.sh over the same four arms as the Linux pod, so
+    // Intel and Apple silicon both cover find_package, FetchContent and the bare
+    // compiler line. Windows does not, because install-test.sh needs the
+    // compiler vcvars sets and only matlab-build.ps1 enters that shell;
+    // cmake_ci.yml keeps the Windows consume until that is worth moving.
+    //
+    // CPU only. The hosts have no card, so matlab_test.m is left with
+    // FINUFFT_CI_GPU unset and the pods above stay the only GPU coverage.
+    //
+    // Build then consume the MEX, as on Linux, but on one machine: there is no
+    // second Windows or macOS agent to be the clean room, so these stages prove
+    // the archive route without proving the absence of a toolchain.
+    def matlabHost = { label ->
+      return {
+        node(label) {
+          stage("host ${label}") {
+            checkout scm
+            // Cut the workspace root out of WORKSPACE rather than walking up
+            // with '..': mpm rejects a --destination that is not canonical, and
+            // build 8 spent all three agents finding that out.
+            def cut = env.WORKSPACE.lastIndexOf('workspace')
+            if (cut < 0) {
+              error "WORKSPACE ${env.WORKSPACE} has no workspace component, so " +
+                    "there is nowhere beside it to cache 10 GB of MATLAB"
+            }
+            def tools = env.WORKSPACE.substring(0, cut) + 'ci-tools'
+            withEnv(["CI_TOOLS=${tools}",
+                     "MATLAB_RELEASE=${MATLAB_RELEASE}",
+                     "PATH+CI_TOOLS=${tools}/bin",
+                     "PATH+MATLAB=${tools}/matlab/${MATLAB_RELEASE}/bin"]) {
+              if (label == 'win') {
+                powershell 'tools/ci/agent-provision.ps1'
+                powershell 'tools/ci/matlab-build.ps1'
+                withMatlabLicense { powershell 'tools/ci/matlab-consume.ps1' }
+              } else {
+                sh 'tools/ci/agent-provision.sh'
+                for (linking in ['Static', 'Shared']) {
+                  for (backend in ['ducc', 'fftw']) {
+                    withEnv(["LINKING=${linking}", "BACKEND=${backend}"]) {
+                      sh 'rm -rf _build _stage _consume _fetch _plain_app && tools/ci/install-test.sh'
+                    }
+                  }
+                }
+                sh 'tools/ci/matlab-build.sh'
+                withMatlabLicense { sh 'tools/ci/matlab-consume.sh' }
+              }
+            }
+          }
+        }
+      }
+    }
+
+    if (matlabRuns) {
+      for (label in ['win', 'macpro', 'macm1']) {
+        jobs['host ' + label] = matlabHost(label)
       }
     }
 

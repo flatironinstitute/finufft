@@ -1,0 +1,65 @@
+# The consumer half of the MATLAB proof.
+#
+# Dockerfile-x86_64 builds the MEX and packages it with CPack. This image runs
+# that package, and carries MATLAB plus the run-time libraries FINUFFT declares
+# and nothing else: no cmake, no CUDA toolkit and no FINUFFT file at all. A MEX
+# that only works beside its own build tree fails here.
+#
+# MathWorks publish a MATLAB image already, so this one starts from it rather
+# than installing MATLAB again. The base carries MATLAB alone, so mpm adds the
+# one toolbox the GPU MEX needs.
+ARG MATLAB_RELEASE=R2025b
+FROM docker.io/mathworks/matlab:${MATLAB_RELEASE}
+ARG MATLAB_RELEASE=R2025b
+ARG CUDA_VERSION=12.8
+USER root
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Runtime packages only. libcufft and cuda-cudart without -dev are the shared
+# objects cufinufft_mex links against; the toolkit that produced it is not here.
+RUN cuda_dash=$(echo ${CUDA_VERSION} | tr . -) && \
+    apt-get update && apt-get install -y --no-install-recommends ca-certificates wget && \
+    wget -q https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64/cuda-keyring_1.1-1_all.deb && \
+    dpkg -i cuda-keyring_1.1-1_all.deb && rm cuda-keyring_1.1-1_all.deb && \
+    apt-get update && apt-get install -y --no-install-recommends \
+        cuda-cudart-${cuda_dash} \
+        libcufft-${cuda_dash} && \
+    rm -rf /var/lib/apt/lists/*
+ENV NVIDIA_VISIBLE_DEVICES=all
+ENV NVIDIA_DRIVER_CAPABILITIES=compute,utility
+
+# Parallel_Computing_Toolbox supplies gpuArray and canUseGPU, which the CUDA MEX
+# needs at run time. mpm adds products to an install --destination points at.
+#
+# The install root is asserted before mpm runs rather than discovered from its
+# failure: matlab on PATH may be a symlink or a wrapper script, so the documented
+# layout comes first and the resolved link is the fallback.
+RUN matlabroot=/opt/matlab/${MATLAB_RELEASE} && \
+    [ -f ${matlabroot}/extern/include/mex.h ] || \
+        matlabroot=$(dirname $(dirname $(readlink -f $(command -v matlab)))) && \
+    test -f ${matlabroot}/extern/include/mex.h && \
+    echo "matlabroot=${matlabroot}" && \
+    wget -q https://www.mathworks.com/mpm/glnxa64/mpm && chmod +x mpm && \
+    ./mpm install --release=${MATLAB_RELEASE} --destination=${matlabroot} \
+        --products Parallel_Computing_Toolbox && \
+    rm -f mpm /tmp/mathworks_root.log
+
+# The proof is only worth as much as this assertion. nvcc and cmake have to be
+# absent, or a consume stage that quietly rebuilt or relinked would still pass,
+# and so does every FINUFFT file: the only one in this image must be the one the
+# stage unpacks from the archive.
+#
+# gcc is deliberately not on that list. Build 6 of this branch found the base
+# image carries one, because MATLAB bundles a compiler for its own mex, and
+# nothing in the interface tests invokes it.
+RUN for t in nvcc cmake; do \
+        if command -v $t; then echo "ERROR: $t is on PATH, so this image cannot prove anything"; exit 1; fi; \
+    done && \
+    if find / -xdev \( -name 'finufft*' -o -name 'cufinufft*' \) -print -quit | grep .; then \
+        echo "ERROR: a FINUFFT file is already in the image"; exit 1; \
+    fi && \
+    find /opt /usr/local -name mxGPUArray.h -path '*/gpu/*' | grep .
+
+# No USER line: the Jenkins pod sets runAsUser itself, and a name guessed here
+# would only be a second place for it to disagree.
+CMD ["/bin/bash"]
