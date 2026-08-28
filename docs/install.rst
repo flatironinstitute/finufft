@@ -142,9 +142,18 @@ vcpkg
 ~~~~~
 
 ``tools/vcpkg/finufft`` is a vcpkg port that builds and installs the package
-above. vcpkg does not carry FINUFFT itself, so use the directory as an overlay::
+above. vcpkg does not carry FINUFFT itself, so use the directory as an overlay,
+from the root of a FINUFFT checkout::
 
   vcpkg install finufft --overlay-ports=tools/vcpkg
+
+The port builds that checkout rather than a released tarball, so it always
+matches the sources beside it. vcpkg keys its binary cache on the portfile and
+not on those sources, so add ``--editable`` after editing FINUFFT itself.
+
+On Windows add ``--triplet x64-windows-static-md``, which is the triplet the CI
+covers. The default ``x64-windows`` triplet fails inside vcpkg's own ``fftw3``
+port, which cannot link ``fftw3_omp.dll`` (``LNK1120``, 32 unresolved externals).
 
 The port keeps the ``fftw`` and ``openmp`` features on by default and offers
 ``ducc0`` as an alternative FFT backend. It builds ``xsimd``, ``poet`` and the

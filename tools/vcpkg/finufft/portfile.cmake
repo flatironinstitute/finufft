@@ -1,10 +1,9 @@
-vcpkg_from_github(
-    OUT_SOURCE_PATH SOURCE_PATH
-    REPO flatironinstitute/finufft
-    REF "v${VERSION}"
-    SHA512 a5f782eb16a5317ade277db8b1925472e448602abd0c8b5a24f6433db2452dc116782590bb7e49344e65a3c7528457479403dc588a508edb6c6b5c31e04ce35a
-    HEAD_REF master
-)
+# The port builds the checkout it ships in, not a release tarball. Every FINUFFT
+# tag up to v2.5.0 installs a finufftConfig.cmake that no consumer can use (it
+# asks for OpenMP components the export does not name), so a release SHA512 here
+# would hand the user a broken package. Building the tree next to the portfile
+# also means CI installs the file below verbatim rather than a rewritten copy.
+get_filename_component(SOURCE_PATH "${CMAKE_CURRENT_LIST_DIR}/../../.." ABSOLUTE)
 
 vcpkg_check_features(
     OUT_FEATURE_OPTIONS FEATURE_OPTIONS

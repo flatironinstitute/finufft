@@ -41,7 +41,10 @@ v2.6.0-dev
   (Barbone)
 * Added a vcpkg port under `tools/vcpkg/finufft`, the last part of #494. vcpkg has
   no FINUFFT port, so it is used as an overlay:
-  `vcpkg install finufft --overlay-ports=tools/vcpkg`. (Barbone)
+  `vcpkg install finufft --overlay-ports=tools/vcpkg`. The port builds the checkout
+  it ships in rather than a release tarball: v2.5.0 and everything before it install
+  a `finufftConfig.cmake` that no consumer can configure against. CI installs the
+  port and builds a consumer against it on Linux and Windows. (Barbone)
 * `setupFFTW.cmake` now reports a build that is not allowed to download FFTW.
   vcpkg and other hermetic builds set `FETCHCONTENT_FULLY_DISCONNECTED`, which
   leaves CPM announcing the package while populating nothing; the first symptom
