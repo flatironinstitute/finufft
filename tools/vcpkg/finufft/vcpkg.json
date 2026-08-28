@@ -1,0 +1,42 @@
+{
+  "name": "finufft",
+  "version": "2.5.0",
+  "description": "Nonuniform fast Fourier transforms of types 1, 2 and 3, in dimensions 1, 2 and 3",
+  "homepage": "https://github.com/flatironinstitute/finufft",
+  "documentation": "https://finufft.readthedocs.io",
+  "license": "Apache-2.0",
+  "supports": "!uwp & !android",
+  "dependencies": [
+    {
+      "name": "vcpkg-cmake",
+      "host": true
+    },
+    {
+      "name": "vcpkg-cmake-config",
+      "host": true
+    }
+  ],
+  "default-features": [
+    "fftw",
+    "openmp"
+  ],
+  "features": {
+    "ducc0": {
+      "description": "Use the bundled DUCC0 FFT instead of FFTW"
+    },
+    "fftw": {
+      "description": "Use FFTW as the FFT backend",
+      "dependencies": [
+        {
+          "name": "fftw3",
+          "features": [
+            "openmp"
+          ]
+        }
+      ]
+    },
+    "openmp": {
+      "description": "Multithread with OpenMP"
+    }
+  }
+}

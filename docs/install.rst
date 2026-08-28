@@ -138,6 +138,21 @@ have to enable the ``CUDA`` language: the public headers are plain C++ and a
 static ``cufinufft`` carries ``CUDA::cudart`` and ``CUDA::cufft`` on its link
 interface.
 
+vcpkg
+~~~~~
+
+``tools/vcpkg/finufft`` is a vcpkg port that builds and installs the package
+above. vcpkg does not carry FINUFFT itself, so use the directory as an overlay::
+
+  vcpkg install finufft --overlay-ports=tools/vcpkg
+
+The port keeps the ``fftw`` and ``openmp`` features on by default and offers
+``ducc0`` as an alternative FFT backend. It builds ``xsimd``, ``poet`` and the
+``findFFTW`` module from their upstream repositories at configure time, so the
+build needs network access even though vcpkg normally forbids it. That is also
+why the port is not submitted to the vcpkg registry: an upstream port would
+first need those three dependencies packaged.
+
 CMake based installation and compilation
 ----------------------------------------
 
