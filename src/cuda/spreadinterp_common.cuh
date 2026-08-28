@@ -49,7 +49,6 @@ template<typename T, int Ndim> struct bin_layout {
   cuda::std::array<int, 3> binsizes;
   cuda::std::array<int, 3> nbins;
   int nbins_tot;
-  cuda::std::array<T, 3> inv_binsizes;
 };
 
 template<typename T, int Ndim>
@@ -59,8 +58,7 @@ inline bin_layout<T, Ndim> compute_bin_layout(
                                     opts.gpu_binsizez};
   auto nbins      = get_nbins<Ndim>(nf123, binsizes);
   const int total = nbins_total(nbins);
-  cuda::std::array<T, 3> inv{T(1) / binsizes[0], T(1) / binsizes[1], T(1) / binsizes[2]};
-  return {binsizes, nbins, total, inv};
+  return {binsizes, nbins, total};
 }
 
 } // namespace spreadinterp
