@@ -118,6 +118,15 @@ add_library(finufft_fftlibs INTERFACE)
 target_link_libraries(finufft_fftlibs INTERFACE ${FINUFFT_FFTW_LIBRARIES})
 
 # A user-supplied FINUFFT_FFTW_LIBRARIES leaves both variables empty: that FFTW is
-# the user's to reproduce, so the install interface stays silent about it.
+# the user's to reproduce, so the install interface stays silent about it. A static
+# archive carries no FFTW of its own, so say once that the consumer inherits the job.
+if(FINUFFT_ENABLE_INSTALL AND FINUFFT_STATIC_LINKING AND NOT FINUFFT_FFT_EXPORT_TARGETS AND NOT FINUFFT_FFT_FIND_MODULE)
+    message(
+        WARNING
+        "FINUFFT_FFTW_LIBRARIES=${FINUFFT_FFTW_LIBRARIES} is supplied by hand, so the installed "
+        "static package cannot export it: a consumer of finufft::finufft has to link the same FFTW itself."
+    )
+endif()
+
 set(FINUFFT_FFT_EXPORT_TARGETS "${FINUFFT_FFT_EXPORT_TARGETS}" PARENT_SCOPE)
 set(FINUFFT_FFT_FIND_MODULE "${FINUFFT_FFT_FIND_MODULE}" PARENT_SCOPE)

@@ -499,6 +499,24 @@ jobs:
           grep -q "FINUFFT could not fetch FFTW" nofetch.log \
             || { echo "ERROR: guard message missing"; tail -30 nofetch.log; exit 1; }
 
+      # A hand-supplied FFTW cannot be exported, so a static install leaves the
+      # consumer to link it. The DEFAULT configure is the negative control: it
+      # exports its FFTW and must stay silent.
+      - name: A hand-supplied FFTW warns that the static install cannot export it
+        if: runner.os == 'Linux' && matrix.linking == 'Static' && matrix.backend == 'fftw'
+        shell: bash
+        run: |
+          set -euo pipefail
+          cmake -S . -B _userfftw -DFINUFFT_USE_DUCC0=OFF -DFINUFFT_STATIC_LINKING=ON \
+            -DFINUFFT_FFTW_LIBRARIES="fftw3;fftw3f" > userfftw.log 2>&1
+          grep -q "is supplied by hand" userfftw.log \
+            || { echo "ERROR: warning missing"; tail -30 userfftw.log; exit 1; }
+          cmake -S . -B _deffftw -DFINUFFT_USE_DUCC0=OFF -DFINUFFT_STATIC_LINKING=ON \
+            > deffftw.log 2>&1
+          if grep -q "is supplied by hand" deffftw.log; then
+            echo "ERROR: DEFAULT warned as well, so the check proves nothing"; exit 1
+          fi
+
   cleanup:
     runs-on: ubuntu-22.04
     needs: [cmake-ci, consume-test, msvc-generator-flags, debug-build, vcpkg-port]
