@@ -3,10 +3,12 @@
 // used to validate that a chosen bin/np combination fits.
 
 #include <algorithm>
+#include <array>
 #include <cstdio>
 #include <iomanip>
 #include <iostream>
 #include <limits>
+#include <optional>
 #include <stdexcept>
 #include <string>
 
@@ -69,16 +71,21 @@ template std::size_t shared_memory_required<float>(
 template std::size_t shared_memory_required<double>(
     int dim, int ns, int bin_size_x, int bin_size_y, int bin_size_z, int np);
 
+// Largest r with r^dim <= value. std::pow alone is short by one ulp on exact powers
+// (pow(64, 1/3.) < 4 in IEEE 754), so retry the next integer.
+static int integer_root(double value, int dim) {
+  auto r = int(std::floor(std::pow(value, 1.0 / dim)));
+  if (std::pow(double(r + 1), dim) <= value) ++r;
+  return r;
+}
+
 // Function to find bin_size_x == bin_size_y
 // where bin_size_x * bin_size_y * bin_size_z < mem_size
 template<typename T> int find_bin_size(std::size_t mem_size, int dim, int ns) {
-  const auto elements  = mem_size / sizeof(cuda_complex<T>);
-  auto padded_bin_size = int(std::floor(std::pow(elements, 1.0 / dim)));
-  // pow(64, 1/3.) < 4 in IEEE 754: bump when the next integer still fits
-  if (std::pow(double(padded_bin_size + 1), dim) <= double(elements)) ++padded_bin_size;
-  const auto bin_size = padded_bin_size - 2 * ((ns + 1) / 2);
-  // TODO: over one dimension we could increase this a bit
-  //       maybe the shape should not be uniform
+  const auto elements        = mem_size / sizeof(cuda_complex<T>);
+  const auto padded_bin_size = integer_root(double(elements), dim);
+  const auto bin_size        = padded_bin_size - 2 * ((ns + 1) / 2);
+  // TODO: one dimension could take a larger bin; the tile shape need not be uniform
   return bin_size;
 }
 
@@ -123,71 +130,83 @@ void cufinufft_setup_binsize(const GpuCapabilities &gpu, int type, int ns, int d
 
   switch (opts->gpu_method) {
   case 1: {
-    // The GM kernel stages no tile in shared memory; the bin width only sets
-    // setpts' sort granularity, which trades locality of the scattered grid
-    // atomics (small bins) against their spread over L2 sectors (large bins),
-    // and bin = nf skips the sort entirely.
-    //   t2 gather reads the grid through the texture path: 1D never wants a
-    //   sort, 2D only pays once the grid leaves ~2 budgets, 3D always sorts.
-    //   t1 scatter keeps bin = nf while the grid is resident (2 budgets on
-    //   wide-bus parts and in 1D, 1 budget on 384-bit GDDR), then halves per
-    //   dim while each 2^(k*dim) tile fits K (1 budget on Hopper/Blackwell,
-    //   1/2 on split-L2 sm_80 and on GDDR) inside a per-dim spill band; deeper
-    //   grids revert to the pre-#807 sized bins (1024 / 40 / 8).
-    CUFINUFFT_BIGINT nf_est[3] = {1, 1, 1};
-    bool estimate_valid        = type != 3; // type 3 outer plan: modes unset
-    if (estimate_valid)
-      for (int d = 0; d < dim; ++d) {
-        if (mstu[d] <= 0) { // unset: sub-plan sized later
-          estimate_valid = false;
-          break;
-        }
-        nf_est[d] = opts->gpu_spreadinterponly
-                        ? mstu[d]
-                        : CUFINUFFT_BIGINT(finufft::common::fine_grid_len(opts->upsampfac,
-                                                                          mstu[d], ns));
-      }
-    const auto cells  = std::int64_t(nf_est[0]) * nf_est[1] * nf_est[2];
-    const auto budget = gpu.l2_complex_budget<T>();
-    const bool wide   = gpu.wide_memory_bus();
+    // The GM kernel stages no tile in shared memory; the bin width only sets setpts'
+    // sort granularity, which trades locality of the scattered grid atomics (small
+    // bins) against their spread over L2 sectors (large bins). bin = nf makes one bin
+    // per dim and skips the sort entirely.
 
-    // bin = ceil(nf / 2^shift) per dim; shift 0 makes one bin and skips the sort.
-    auto set_bins_nf  = [&](int shift) {
-      const auto bin = [&](int d) {
-        const auto v = (nf_est[d] + (CUFINUFFT_BIGINT(1) << shift) - 1) >> shift;
-        return int(std::clamp<CUFINUFFT_BIGINT>(v, 1, std::numeric_limits<int>::max()));
-      };
-      if (opts->gpu_binsizex == 0) opts->gpu_binsizex = bin(0);
-      if (opts->gpu_binsizey == 0) opts->gpu_binsizey = dim >= 2 ? bin(1) : 1;
-      if (opts->gpu_binsizez == 0) opts->gpu_binsizez = dim >= 3 ? bin(2) : 1;
-    };
+    // The pre-#807 fixed bins, for every case no L2 rule covers.
     const auto sized_bins = [&] {
       return dim == 1 ? 1024 : dim == 2 ? 40 : 8;
     };
 
-    if (!estimate_valid) {
+    // Fine grid per dim, empty when the modes are not known at plan time.
+    const auto fine_grid = [&]() -> std::optional<std::array<CUFINUFFT_BIGINT, 3>> {
+      if (type == 3) return std::nullopt; // outer plan: modes unset
+      std::array<CUFINUFFT_BIGINT, 3> nf{1, 1, 1};
+      for (int d = 0; d < dim; ++d) {
+        if (mstu[d] <= 0) return std::nullopt; // unset: sub-plan sized later
+        nf[d] = opts->gpu_spreadinterponly
+                    ? mstu[d]
+                    : CUFINUFFT_BIGINT(
+                          finufft::common::fine_grid_len(opts->upsampfac, mstu[d], ns));
+      }
+      return nf;
+    }();
+
+    if (!fine_grid) {
       set_bins(sized_bins());
-    } else if (type == 2) {
-      if (dim == 1 || (dim == 2 && cells <= 2 * budget))
-        set_bins_nf(0);
-      else
-        set_bins(sized_bins());
-    } else if (cells <= ((wide || dim == 1) ? 2 * budget : budget)) {
-      set_bins_nf(0);
-    } else {
+      debug_print(1, 0, "");
+      break;
+    }
+
+    const auto &nf_est         = *fine_grid;
+    const auto cells           = std::int64_t(nf_est[0]) * nf_est[1] * nf_est[2];
+    const auto budget          = gpu.l2_complex_budget<T>();
+    const bool wide            = gpu.wide_memory_bus();
+
+    // Halve each dim `shift` times: bin = ceil(nf / 2^shift).
+    const auto set_bins_halved = [&](int shift) {
+      const auto halved = [&](int d) {
+        const auto v = (nf_est[d] + (CUFINUFFT_BIGINT(1) << shift) - 1) >> shift;
+        return int(std::clamp<CUFINUFFT_BIGINT>(v, 1, std::numeric_limits<int>::max()));
+      };
+      if (opts->gpu_binsizex == 0) opts->gpu_binsizex = halved(0);
+      if (opts->gpu_binsizey == 0) opts->gpu_binsizey = dim >= 2 ? halved(1) : 1;
+      if (opts->gpu_binsizez == 0) opts->gpu_binsizez = dim >= 3 ? halved(2) : 1;
+    };
+
+    // t2 gather reads the grid through the texture path: 1D never wants a sort, 2D
+    // only pays once the grid leaves ~2 budgets, 3D always sorts.
+    const auto gather_shift = [&]() -> std::optional<int> {
+      if (dim == 1 || (dim == 2 && cells <= 2 * budget)) return 0;
+      return std::nullopt;
+    };
+
+    // t1 scatter keeps one bin while the grid stays L2-resident, then halves per dim
+    // while each 2^(k*dim) tile still fits K, inside a per-dim spill band. Deeper
+    // grids fall back to the sized bins.
+    const auto scatter_shift = [&]() -> std::optional<int> {
+      // 2 budgets on wide-bus parts and in 1D, 1 budget on 384-bit GDDR.
+      const std::int64_t resident_cap = (wide || dim == 1) ? 2 * budget : budget;
+      if (cells <= resident_cap) return 0;
+      if (dim == 1) return std::nullopt;
+      // K: 1 budget on Hopper/Blackwell, 1/2 on split-L2 sm_80 and on GDDR.
       const std::int64_t tile_cap = (wide && gpu.cc_major != 8) ? budget : budget / 2;
       const std::int64_t band =
-          wide ? (dim == 2 ? std::numeric_limits<std::int64_t>::max() : 8 * budget)
-               : (dim == 2 ? 4 * budget : 2 * budget);
-      int shift = 0;
-      if (dim >= 2 && cells <= band)
-        for (int k = 1; k <= 2 && !shift; ++k)
-          if ((cells >> (k * dim)) <= tile_cap) shift = k;
-      if (shift)
-        set_bins_nf(shift);
-      else
-        set_bins(sized_bins());
-    }
+          dim == 2 ? (wide ? std::numeric_limits<std::int64_t>::max() : 4 * budget)
+                   : (wide ? 8 * budget : 2 * budget);
+      if (cells > band) return std::nullopt;
+      for (int k = 1; k <= 2; ++k)
+        if ((cells >> (k * dim)) <= tile_cap) return k;
+      return std::nullopt;
+    };
+
+    const auto shift = (type == 2) ? gather_shift() : scatter_shift();
+    if (shift.has_value())
+      set_bins_halved(*shift);
+    else
+      set_bins(sized_bins());
     debug_print(1, 0, "");
     break;
   }
@@ -198,10 +217,8 @@ void cufinufft_setup_binsize(const GpuCapabilities &gpu, int type, int ns, int d
     // capped by the largest padded tile that fits shared memory. Dense f64 3D on
     // large-smem parts wants a smaller bin, but its optimum is device-jagged and
     // method 3 serves those cells faster, so no table is worth reintroducing.
-    const int msub = opts->gpu_maxsubprobsize;
-    int bin        = int(std::floor(std::pow(double(msub), 1.0 / dim)));
-    if (std::pow(double(bin + 1), dim) <= double(msub)) ++bin; // pow(64,1/3.) < 4
-    bin = std::min(bin, find_bin_size<T>(shmem_limit, dim, ns));
+    const int bin = std::min(integer_root(double(opts->gpu_maxsubprobsize), dim),
+                             find_bin_size<T>(shmem_limit, dim, ns));
     if (bin < 1)
       throw std::runtime_error("[cufinufft] Insufficient shmem for Method 2 (ns=" +
                                std::to_string(ns) + "). Try Method 1.");
@@ -215,50 +232,52 @@ void cufinufft_setup_binsize(const GpuCapabilities &gpu, int type, int ns, int d
     const bool user_np  = (opts->gpu_np != 0);
     const bool user_bin = (opts->gpu_binsizex | opts->gpu_binsizey | opts->gpu_binsizez);
 
+    // The bin response is a broad valley: its lower edge (halo amplification,
+    // (1+2*ceil(ns/2)/bin)^dim work per point) is device-independent, its upper edge
+    // (resident blocks/SM = smem/tile) only rises with more shared memory. A
+    // low-valley pick therefore transfers across devices: bin 256/16/6, capped by the
+    // largest tile that fits.
+    const auto valley_bin = [&] {
+      const int target = dim == 1 ? 256 : dim == 2 ? 16 : 6;
+      return std::min(target, find_bin_size<T>(shmem_limit, dim, ns));
+    };
+
+    // np filling the shared memory left after the tile the bins imply.
+    const auto np_for_rest = [&] {
+      const auto grid_mem = int(shared_memory_required<T>(
+          dim, ns, opts->gpu_binsizex, opts->gpu_binsizey, opts->gpu_binsizez, 0));
+      const int rem       = shmem_limit - grid_mem;
+      if (rem < shmem_per_pt * 16)
+        throw std::runtime_error("[cufinufft] User bin too large (no room for np≥16)");
+      return std::max(16, (rem / shmem_per_pt) & ~15);
+    };
+
+    const char *note = "";
     if (user_np && !user_bin) {
-      int avail = shmem_limit - opts->gpu_np * shmem_per_pt;
+      const int avail = shmem_limit - opts->gpu_np * shmem_per_pt;
       if (avail <= 0)
         throw std::runtime_error(
             "[cufinufft] gpu_np=" + std::to_string(opts->gpu_np) + " too large");
       set_bins(find_bin_size<T>(avail, dim, ns));
-      validate_fit(opts->gpu_np);
-      debug_print(3, opts->gpu_np, "(user np)");
+      note = "(user np)";
     } else if (user_bin) {
       // A partial user bin leaves dims at 0 (zero-size tile, nbins div-by-zero
       // downstream): fill the unset dims with the derived pick.
-      set_bins(std::max(1, std::min(dim == 1   ? 256
-                                    : dim == 2 ? 16
-                                               : 6,
-                                    find_bin_size<T>(shmem_limit, dim, ns))));
-      if (!user_np) { // np unset: fill the shared memory left after the tile
-        int grid_mem = static_cast<int>(shared_memory_required<T>(
-            dim, ns, opts->gpu_binsizex, opts->gpu_binsizey, opts->gpu_binsizez, 0));
-        int rem      = shmem_limit - grid_mem;
-        if (rem < shmem_per_pt * 16)
-          throw std::runtime_error("[cufinufft] User bin too large (no room for np≥16)");
-        opts->gpu_np = std::max(16, (rem / shmem_per_pt) & ~15);
-      }
-      validate_fit(opts->gpu_np);
-      debug_print(3, opts->gpu_np, user_np ? "(user)" : "(user bin)");
+      set_bins(std::max(1, valley_bin()));
+      if (!user_np) opts->gpu_np = np_for_rest();
+      note = user_np ? "(user)" : "(user bin)";
     } else {
-      // The bin response is a broad valley: its lower edge (halo amplification,
-      // (1+2*ceil(ns/2)/bin)^dim work per point) is device-independent, its upper
-      // edge (resident blocks/SM = smem/tile) only rises with more shared memory.
-      // A low-valley pick therefore transfers across devices: bin 256/16/6, capped
-      // by the largest tile that fits. np = 32 stages one warp per batch; larger
-      // np costs shared memory and occupancy without adding work.
-      const int bin = std::min(dim == 1   ? 256
-                               : dim == 2 ? 16
-                                          : 6,
-                               find_bin_size<T>(shmem_limit, dim, ns));
+      const int bin = valley_bin();
       if (bin < 1)
         throw std::runtime_error("[cufinufft] Insufficient shmem for Method 3 (ns=" +
                                  std::to_string(ns) + "). Try Method 1.");
       set_bins(bin);
+      // One warp staged per batch; larger np costs shared memory and occupancy
+      // without adding work.
       opts->gpu_np = 32;
-      validate_fit(opts->gpu_np);
-      debug_print(3, opts->gpu_np, "");
     }
+    validate_fit(opts->gpu_np);
+    debug_print(3, opts->gpu_np, note);
     break;
   }
 
