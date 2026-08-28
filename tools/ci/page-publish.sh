@@ -12,7 +12,7 @@ set -euxo pipefail
 gh auth setup-git
 rm -rf ../page && mkdir -p ../page/docs/pics && cd ../page
 git init -q -b perftest-results .
-cp "$WORKSPACE"/docs/performance_change_summary.rst docs/
+cp "$WORKSPACE"/docs/performance.rst docs/
 cp "$WORKSPACE"/docs/pics/perftestci_* docs/pics/
 git config user.name flatiron-jenkins
 git config user.email flatiron-jenkins@flatironinstitute.org

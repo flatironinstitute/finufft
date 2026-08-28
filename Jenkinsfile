@@ -278,7 +278,7 @@ catchError {
           } else {
             // A rehearsal stops here: the page and its figures ride out as
             // build artifacts, and the branch readthedocs fetches is untouched.
-            archiveArtifacts artifacts: 'docs/performance_change_summary.rst,docs/pics/perftestci_*.svg'
+            archiveArtifacts artifacts: 'docs/performance.rst,docs/pics/perftestci_*.svg'
           }
         }
       }
