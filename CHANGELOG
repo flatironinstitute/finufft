@@ -21,7 +21,9 @@ v2.6.0-dev
   `find_dependency(CUDAToolkit)` and the install interface carries `CUDA::cudart`,
   `CUDA::cufft` and `finufft_common`. A CUDA-only install shipped `cufinufft.h`
   without the `finufft_errors.h` and `finufft_common/defines.h` that it includes.
-  (Barbone)
+  A CI job now builds a CXX-only consumer of `finufft::cufinufft` through both
+  `find_package` and `FetchContent`; all three defects surface at configure or
+  link time, so the runner needs no device. (Barbone)
 * Fixed the Visual Studio generator dropping every MSVC compiler flag.
   `filter_supported_compiler_flags` puts each flag on the link line as well,
   which `-fsanitize=address` needs, but link.exe answers a compile flag with
