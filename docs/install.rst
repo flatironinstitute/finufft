@@ -118,10 +118,11 @@ The package config pulls in the required dependencies automatically
 (OpenMP, and for a *static* install the FFT backend). A **shared** install is
 fully self-contained — everything, including the FFT backend, is baked into the
 library (``libfinufft.so``/``.dylib`` or ``finufft.dll``), so only the OpenMP
-runtime is needed at link time. For a **static** install built with the bundled
-DUCC0 backend, the backend archive is installed and exported alongside FINUFFT;
-a static install built against **FFTW** instead requires the consumer to make
-FFTW discoverable themselves (a shared build avoids this).
+runtime is needed at link time. A **static** install carries its FFT backend as
+well: DUCC0 and a FINUFFT-downloaded FFTW are installed and exported as archives
+alongside FINUFFT, and a static install against a *system* FFTW installs the
+``FindFFTW`` module that located it, which ``find_package(finufft)`` re-runs to
+find the same FFTW in the consumer.
 
 CMake based installation and compilation
 ----------------------------------------

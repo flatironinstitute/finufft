@@ -81,6 +81,9 @@ if(FINUFFT_FFTW_LIBRARIES STREQUAL DEFAULT OR FINUFFT_FFTW_LIBRARIES STREQUAL DO
         endforeach()
 
         target_include_directories(fftw3 PUBLIC $<BUILD_INTERFACE:${fftw3_SOURCE_DIR}/api>)
+        # FINUFFT builds these archives itself, so a static install ships them
+        # inside finufftTargets (see the install block in the top-level CMakeLists).
+        set(FINUFFT_FFT_EXPORT_TARGETS ${FINUFFT_FFTW_LIBRARIES})
     else()
         # link against single thread fftw
         set(FINUFFT_FFTW_LIBRARIES "FFTW::Float" "FFTW::Double")
@@ -93,8 +96,17 @@ if(FINUFFT_FFTW_LIBRARIES STREQUAL DEFAULT OR FINUFFT_FFTW_LIBRARIES STREQUAL DO
             # user override
             list(APPEND FINUFFT_FFTW_LIBRARIES "FFTW::Float${FINUFFT_FFTW_SUFFIX}" "FFTW::Double${FINUFFT_FFTW_SUFFIX}")
         endif()
+        # FFTW::* are imported targets of the system FFTW, which no export set can
+        # carry. A static install ships this FindFFTW module next to the package
+        # config instead, and finufftConfig.cmake re-runs it to recreate them.
+        set(FINUFFT_FFT_FIND_MODULE "${findfftw_SOURCE_DIR}/FindFFTW.cmake")
     endif()
 endif()
 
 add_library(finufft_fftlibs INTERFACE)
 target_link_libraries(finufft_fftlibs INTERFACE ${FINUFFT_FFTW_LIBRARIES})
+
+# A user-supplied FINUFFT_FFTW_LIBRARIES leaves both variables empty: that FFTW is
+# the user's to reproduce, so the install interface stays silent about it.
+set(FINUFFT_FFT_EXPORT_TARGETS "${FINUFFT_FFT_EXPORT_TARGETS}" PARENT_SCOPE)
+set(FINUFFT_FFT_FIND_MODULE "${FINUFFT_FFT_FIND_MODULE}" PARENT_SCOPE)

@@ -18,12 +18,18 @@ if(@FINUFFT_STATIC_LINKING@ AND @FINUFFT_USE_DUCC0@)
     endif()
 endif()
 
-# Note: a STATIC build linked against FFTW (rather than the bundled DUCC0) does
-# not export or bundle FFTW. Such a consumer must make FFTW available themselves
-# (e.g. link it explicitly). We deliberately do not call find_dependency(FFTW)
-# here: FINUFFT locates FFTW via a bundled FindFFTW module that is not shipped
-# with the package, so the call would fail in a consumer. A SHARED build bakes
-# FFTW in and needs nothing.
+# A STATIC build against a *system* FFTW exports the FFTW::* imported targets by
+# name, so they have to exist again here. The install ships the FindFFTW module
+# that located them next to this file; its presence is the marker for that case.
+# A static build against a downloaded FFTW carries the archives in the export
+# instead, and a SHARED build bakes FFTW in, so neither installs the module.
+# The NOT TARGET guard matters: FindFFTW creates its imported targets
+# unconditionally, so a second run in a consumer that already found FFTW aborts.
+if(EXISTS "${CMAKE_CURRENT_LIST_DIR}/FindFFTW.cmake" AND NOT TARGET FFTW::Double)
+    list(PREPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}")
+    find_dependency(FFTW)
+    list(POP_FRONT CMAKE_MODULE_PATH)
+endif()
 
 include("${CMAKE_CURRENT_LIST_DIR}/finufftTargets.cmake")
 

@@ -3,6 +3,13 @@ If not stated, FINUFFT is assumed (old cuFINUFFT <=1.3 is listed separately).
 
 v2.6.0-dev
 
+* Fixed a static install being unusable with the FFTW backend, which is the default
+  (#494): the installed package exported no FFTW at all, so `find_package(finufft)`
+  handed the consumer a `libfinufft.a` full of undefined `fftw_*` symbols. A downloaded
+  FFTW now ships its archives inside `finufftTargets`, a system FFTW ships the
+  `FindFFTW` module that located it and `finufftConfig.cmake` re-runs it. The CI
+  consume test gained a backend axis, so all four backend/linkage combinations are
+  guarded, plus the `FetchContent` consumer that nothing ran before. (Barbone)
 * Fixed CPU type 3 honoring `opts.spreadinterponly`: the option is documented to affect
   types 1 and 2 only, and cuFINUFFT already ignored it for type 3, but the CPU plan
   applied it, so a type-3 call with the flag set returned wrong values instead of the

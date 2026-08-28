@@ -47,4 +47,11 @@ if(ducc0_ADDED)
 
     add_library(finufft_fftlibs INTERFACE)
     target_link_libraries(finufft_fftlibs INTERFACE ducc0)
+
+    # FINUFFT builds ducc0 itself, so a static install ships it inside
+    # finufftTargets (see the install block in the top-level CMakeLists).
+    set(FINUFFT_FFT_EXPORT_TARGETS ducc0)
 endif()
+
+set(FINUFFT_FFT_EXPORT_TARGETS "${FINUFFT_FFT_EXPORT_TARGETS}" PARENT_SCOPE)
+set(FINUFFT_FFT_FIND_MODULE "" PARENT_SCOPE)

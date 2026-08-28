@@ -270,10 +270,14 @@ jobs:
   # project against it on Linux + Windows, for both static and shared (DLL)
   # linking. This is the test that catches missing transitive headers, a missing
   # find_dependency() in the package config, and the Windows DLL export/runtime
-  # path. Kept on the DUCC backend (the Windows FFT backend; FFTW is not a matrix
-  # axis here by project convention).
+  # path. Both FFT backends are covered: a static install has to hand the backend
+  # to the consumer, and the two backends do it differently (DUCC0 and a
+  # downloaded FFTW ship archives in finufftTargets, a system FFTW ships the
+  # FindFFTW module). Linux installs libfftw3-dev so its fftw cells take the
+  # system path; Windows has no system FFTW, so its fftw cells take the
+  # downloaded path.
   consume-test:
-    name: consume find_package (${{ matrix.os }}, ${{ matrix.linking }})
+    name: consume find_package (${{ matrix.os }}, ${{ matrix.linking }}, ${{ matrix.backend }})
     runs-on: ${{ matrix.os }}
     needs: [cache]
     env:
@@ -284,9 +288,15 @@ jobs:
       matrix:
         os: [ubuntu-22.04, windows-2022]
         linking: [Static, Shared]
+        backend: [ducc, fftw]
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
+      - name: Install fftw (Linux)
+        if: runner.os == 'Linux' && matrix.backend == 'fftw'
+        run: |
+          sudo apt update
+          sudo apt install -y libfftw3-dev
       - name: Restore Cache
         uses: actions/cache/restore@v6
         with:
@@ -305,12 +315,14 @@ jobs:
           set -euo pipefail
           static=ON
           [[ "${{ matrix.linking }}" == "Shared" ]] && static=OFF
+          ducc=ON
+          [[ "${{ matrix.backend }}" == "fftw" ]] && ducc=OFF
           stage="$PWD/_stage"
 
           # Build and install FINUFFT to a staging prefix.
           cmake -S . -B _build \
             -DCMAKE_BUILD_TYPE=Release \
-            -DFINUFFT_USE_DUCC0=ON \
+            -DFINUFFT_USE_DUCC0=$ducc \
             -DFINUFFT_STATIC_LINKING=$static \
             -DFINUFFT_ENABLE_INSTALL=ON \
             -DCMAKE_MSVC_DEBUG_INFORMATION_FORMAT=Embedded
@@ -335,6 +347,25 @@ jobs:
           else
             LD_LIBRARY_PATH="$stage/lib:$stage/lib64:${LD_LIBRARY_PATH:-}" ./_consume/app
           fi
+
+      # Second consumption route: FetchContent/add_subdirectory, which builds
+      # FINUFFT as a subproject rather than against an install. It is what the
+      # CPM and FetchContent recipes in docs/install.rst do, and it is the path
+      # that breaks when a top-level-only guard (CTest, docs targets, install
+      # rules) is missing. One cell per OS is enough - the route does not depend
+      # on linkage or backend.
+      - name: Consume via FetchContent
+        if: matrix.linking == 'Static' && matrix.backend == 'ducc'
+        shell: bash
+        run: |
+          set -euo pipefail
+          cmake -S test/cmake_consume/fetchcontent -B _fetch \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DFINUFFT_SOURCE_DIR="$PWD" \
+            -DFINUFFT_USE_DUCC0=ON \
+            -DCMAKE_MSVC_DEBUG_INFORMATION_FORMAT=Embedded
+          cmake --build _fetch --config Release
+          ./_fetch/app
 
   cleanup:
     runs-on: ubuntu-22.04

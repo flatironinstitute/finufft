@@ -206,11 +206,20 @@ if(FINUFFT_ENABLE_INSTALL)
         INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
     )
     # Static builds expose finufft's private FFT backend on the install interface
-    # (see src/CMakeLists.txt), so the backend targets must be part of the export.
-    # DUCC0 is bundled by FINUFFT; FFTW is not (a static + FFTW consumer supplies
-    # its own FFTW). A shared build bakes the backend in and exports nothing here.
-    if(FINUFFT_STATIC_LINKING AND FINUFFT_USE_DUCC0 AND TARGET ducc0)
-        install(TARGETS ducc0 finufft_fftlibs EXPORT finufftTargets ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
+    # (see src/CMakeLists.txt), so the backend must be part of the export. DUCC0
+    # and a downloaded FFTW are archives FINUFFT builds itself, so they ship
+    # inside finufftTargets; a system FFTW is found again by the consumer through
+    # the FindFFTW module installed beside the package config. A shared build
+    # bakes the backend in and exports nothing here.
+    if(FINUFFT_STATIC_LINKING AND (FINUFFT_FFT_EXPORT_TARGETS OR FINUFFT_FFT_FIND_MODULE))
+        install(
+            TARGETS finufft_fftlibs ${FINUFFT_FFT_EXPORT_TARGETS}
+            EXPORT finufftTargets
+            ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        )
+        if(FINUFFT_FFT_FIND_MODULE)
+            install(FILES ${FINUFFT_FFT_FIND_MODULE} DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/finufft)
+        endif()
     endif()
     # Public transitive headers that live in subdirectories and are therefore not
     # matched by the flat finufft*.h PUBLIC_HEADER glob. finufft.h pulls in

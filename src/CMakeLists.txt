@@ -113,7 +113,7 @@ endif()
 # and only needed while compiling finufft, not by downstream consumers.
 if(FINUFFT_STATIC_LINKING)
     target_link_libraries(finufft INTERFACE $<INSTALL_INTERFACE:finufft_common>)
-    if(FINUFFT_USE_DUCC0)
+    if(FINUFFT_FFT_EXPORT_TARGETS OR FINUFFT_FFT_FIND_MODULE)
         target_link_libraries(finufft INTERFACE $<INSTALL_INTERFACE:finufft_fftlibs>)
     endif()
 endif()
