@@ -306,7 +306,10 @@ void cufinufft_setup_binsize(const GpuCapabilities &gpu, int type, int ns, int d
     bool estimate_valid        = type != 3 && !(type == 2 && std::is_same_v<T, double>);
     if (estimate_valid)
       for (int d = 0; d < dim; ++d) {
-        if (mstu[d] <= 0) estimate_valid = false; // unset: sub-plan sized later
+        if (mstu[d] <= 0) { // unset: sub-plan sized later
+          estimate_valid = false;
+          break;
+        }
         nf_est[d] = opts->gpu_spreadinterponly
                         ? mstu[d]
                         : CUFINUFFT_BIGINT(finufft::common::fine_grid_len(opts->upsampfac,
