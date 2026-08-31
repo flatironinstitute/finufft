@@ -1,12 +1,14 @@
-// GPU bin-size and Method-3 heuristics. Mirrors include/finufft/heuristics.hpp
-// on the CPU side. Owns shared-memory accounting (used to validate that the
-// chosen bin/np combo fits) and the per-architecture lookup tables for
-// Method 3.
+// GPU bin-size heuristics, derived from device attributes (L2, bus width, shared
+// memory) rather than per-architecture tables. Owns the shared-memory accounting
+// used to validate that a chosen bin/np combination fits.
 
 #include <algorithm>
+#include <array>
 #include <cstdio>
 #include <iomanip>
 #include <iostream>
+#include <limits>
+#include <optional>
 #include <stdexcept>
 #include <string>
 
@@ -16,48 +18,10 @@
 #include <cufinufft/heuristics.hpp>
 #include <cufinufft/spreadinterp.hpp>
 #include <cufinufft/utils.hpp>
+#include <finufft_common/kernel.h>
 
-// GpuCapabilities members declared in types.hpp. Defined here so the Method-3
-// taxonomy and the debug printing stay with the heuristics they serve.
-Method3Category GpuCapabilities::method3_category() const {
-  // CC 8.0 = Ampere large (A100, A30)
-  if (cc_major == 8 && cc_minor == 0) return Method3Category::AMPERE_LARGE;
-
-  // CC 9.0 = Hopper (H100, H200)
-  if (cc_major == 9 && cc_minor == 0) return Method3Category::HOPPER;
-
-  // CC 8.9 = Ada Lovelace; SM count distinguishes desktop (RTX 6000 Ada, 142 SMs)
-  // from mobile (RTX 4070, 36-46 SMs).
-  if (cc_major == 8 && cc_minor == 9)
-    return (multiprocessor_count >= 80) ? Method3Category::ADA_DESKTOP
-                                        : Method3Category::ADA_MOBILE;
-
-  // CC 12.0 = Blackwell workstation (RTX 6000/5000 Blackwell): same table as Ada
-  // desktop (both are ~100KB/block parts).
-  if (cc_major == 12 && cc_minor == 0) return Method3Category::ADA_DESKTOP;
-
-  // CC 10.0 = Blackwell datacenter (B200) - treat as Hopper-like
-  if (cc_major == 10 && cc_minor == 0) return Method3Category::HOPPER;
-
-  return Method3Category::UNKNOWN;
-}
-
-const char *GpuCapabilities::method3_category_name() const {
-  switch (method3_category()) {
-  case Method3Category::AMPERE_LARGE:
-    return "Ampere-Large";
-  case Method3Category::HOPPER:
-    return "Hopper";
-  case Method3Category::ADA_DESKTOP:
-    return "Small-SMEM-Desktop";
-  case Method3Category::ADA_MOBILE:
-    return "Small-SMEM-Mobile";
-  case Method3Category::UNKNOWN:
-    return "Unknown";
-  }
-  return "Unknown";
-}
-
+// GpuCapabilities member declared in types.hpp; defined here to keep <cstdio>
+// out of the header.
 void GpuCapabilities::print_classification(int debug_level) const {
   if (debug_level < 2) return;
 
@@ -75,15 +39,8 @@ void GpuCapabilities::print_classification(int debug_level) const {
   printf("    Max warps/SM: %d\n", max_warps_per_sm());
   printf("    Max threads/SM: %d\n", max_threads_per_sm);
   printf("  L2: %.1f MB\n", l2_cache_size / 1048576.0);
-
-  if (debug_level >= 3) {
-    printf("  Binsize Categories:\n");
-    printf("    Method 2/3: Hopper-like (>=200 KB/block, >=64 warps): %s\n",
-           is_hopper_like() ? "YES" : "NO");
-    printf("    Method 2/3: Small SMEM (<=110 KB/block): %s\n",
-           is_small_smem() ? "YES" : "NO");
-    printf("    Method 3: Category: %s\n", method3_category_name());
-  }
+  printf("  Memory bus: %d-bit (%s)\n", memory_bus_width,
+         wide_memory_bus() ? "wide" : "narrow");
 }
 
 namespace cufinufft {
@@ -114,140 +71,27 @@ template std::size_t shared_memory_required<float>(
 template std::size_t shared_memory_required<double>(
     int dim, int ns, int bin_size_x, int bin_size_y, int bin_size_z, int np);
 
+// Largest r with r^dim <= value. std::pow alone is short by one ulp on exact powers
+// (pow(64, 1/3.) < 4 in IEEE 754), so retry the next integer.
+static int integer_root(double value, int dim) {
+  auto r = int(std::floor(std::pow(value, 1.0 / dim)));
+  if (std::pow(double(r + 1), dim) <= value) ++r;
+  return r;
+}
+
 // Function to find bin_size_x == bin_size_y
 // where bin_size_x * bin_size_y * bin_size_z < mem_size
 template<typename T> int find_bin_size(std::size_t mem_size, int dim, int ns) {
   const auto elements        = mem_size / sizeof(cuda_complex<T>);
-  const auto padded_bin_size = int(std::floor(std::pow(elements, 1.0 / dim)));
-  const auto bin_size        = padded_bin_size - (2 * (ns + 1) / 2);
-  // TODO: over one dimension we could increase this a bit
-  //       maybe the shape should not be uniform
+  const auto padded_bin_size = integer_root(double(elements), dim);
+  const auto bin_size        = padded_bin_size - 2 * ((ns + 1) / 2);
+  // TODO: one dimension could take a larger bin; the tile shape need not be uniform
   return bin_size;
 }
 
-namespace {
-// ============================================================================
-// Method 3 Heuristic (Benchmark-Validated Tables)
-// ============================================================================
-// Returns (bin,np) for Method 3 based on GpuCapabilities::method3_category(),
-// dimension, and ns. Derived from sweeps over 8 GPUs (A100-40/80GB, H100-80/94GB,
-// H200, RTX 6000 Ada, RTX 4070 Mobile, RTX Blackwell), which is also where the
-// category boundaries come from; sweeps and timings in
-// https://github.com/flatironinstitute/finufft/pull/807 :
-//
-//   AMPERE_LARGE: A100 (CC 8.0, 164 KB/block)
-//   HOPPER:       H100/H200 (CC 9.0, 228 KB/block)
-//   ADA_DESKTOP:  Ada/Blackwell workstation parts (~100 KB/block, high SM count)
-//   ADA_MOBILE:   mobile parts, low SM count (need very large np)
-//
-// Achieves ~90% of optimal throughput. Method 2 needs only the coarser 2-4 groups
-// that is_hopper_like()/is_small_smem() give.
-// ============================================================================
-struct Method3Config {
-  int bin;
-  int np;
-};
-
-inline int ns_bucket(int ns) {
-  return (ns <= 4) ? 0 : (ns <= 7) ? 1 : (ns <= 10) ? 2 : 3;
-}
-
 template<typename T>
-Method3Config get_method3_config(Method3Category category, int dim, int ns,
-                                 int shmem_limit_bytes, int shmem_per_point_bytes) {
-  const int complex_bytes = sizeof(cuda_complex<T>);
-  // For unknown GPUs: compute bins dynamically based on available SMEM
-  if (category == Method3Category::UNKNOWN) {
-    // Iteratively find (bin, np) satisfying: bin >= 8, np >= 16
-    // Start conservative (60% to grid), increase by 10% each iteration up to 100%
-    double load_factor = 0.60;
-    int bin            = 0;
-    int np             = 0;
-
-    while (load_factor <= 1.0) {
-      const int grid_budget = static_cast<int>(shmem_limit_bytes * load_factor);
-      const int elements    = grid_budget / complex_bytes;
-      const int padded_bin  = static_cast<int>(std::floor(std::pow(elements, 1.0 / dim)));
-      bin                   = padded_bin - (2 * (ns + 1) / 2);
-
-      // Calculate actual grid memory and check remaining space for np
-      const size_t grid_mem = shared_memory_required<T>(dim, ns, bin, bin, bin, 0);
-      const int shmem_rem   = shmem_limit_bytes - static_cast<int>(grid_mem);
-      np                    = (shmem_rem / shmem_per_point_bytes) & ~15;
-
-      // Accept if both bin reasonable AND np sufficient (or we've exhausted options)
-      if ((bin >= 8 && np >= 16) || load_factor >= 1.0) break;
-
-      load_factor += 0.10; // Try 10% more aggressive
-    }
-
-    // Ensure minimums
-    bin = std::max(4, bin);
-    np  = std::max(16, std::min(2048, np));
-
-    return {bin, np};
-  }
-
-  // Known GPUs: use benchmark-validated tables
-  // Tables: [category][dim-1][ns_bucket] for 4 GPU types × 3 dims × 4 ns ranges
-  static constexpr int BIN[4][3][4] = {
-      {{362, 351, 753, 285}, {29, 25, 25, 23}, {8, 8, 7, 7}},    // AMPERE_LARGE
-      {{511, 532, 441, 446}, {17, 14, 12, 21}, {10, 8, 8, 9}},   // HOPPER
-      {{212, 169, 222, 123}, {23, 16, 13, 23}, {9, 9, 7, 4}},    // SMALL-SMEM DESKTOP
-      {{199, 423, 191, 356}, {34, 39, 40, 40}, {12, 10, 7, 4}}}; // SMALL-SMEM MOBILE
-
-  static constexpr int NP[4][3][4] = {
-      {{208, 144, 128, 96}, {16, 16, 64, 48}, {96, 64, 16, 48}},      // AMPERE_LARGE
-      {{288, 192, 160, 128}, {176, 112, 80, 112}, {240, 16, 64, 64}}, // HOPPER
-      {{128, 96, 64, 64}, {80, 80, 112, 32}, {112, 112, 16, 16}}, // SMALL-SMEM DESKTOP
-      {{0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}}};                // MOBILE (computed)
-
-  const int category_idx = (category == Method3Category::AMPERE_LARGE)  ? 0
-                           : (category == Method3Category::HOPPER)      ? 1
-                           : (category == Method3Category::ADA_DESKTOP) ? 2
-                                                                        : 3; // ADA_MOBILE
-
-  const int dim_idx = std::max(0, std::min(2, dim - 1));
-  const int ns_idx  = ns_bucket(ns);
-
-  Method3Config cfg{BIN[category_idx][dim_idx][ns_idx],
-                    NP[category_idx][dim_idx][ns_idx]};
-
-  // Mobile GPUs: compute np to fill remaining shmem after grid tile
-  // Constraint: np must be at least 16 for reasonable performance
-  if (cfg.np == 0) {
-    // Start with table bin, reduce if necessary to ensure np >= 16
-    int bin = cfg.bin;
-
-    while (bin >= 1) {
-      const size_t grid_mem = shared_memory_required<T>(dim, ns, bin, bin, bin, 0);
-      const int shmem_rem   = shmem_limit_bytes - static_cast<int>(grid_mem);
-      const int np          = shmem_rem / shmem_per_point_bytes;
-
-      if (np >= 16) {
-        cfg.bin = bin;
-        cfg.np  = np;
-        break;
-      }
-
-      bin--; // Table bin too large, try smaller
-    }
-
-    if (cfg.np == 0) {
-      throw std::runtime_error("[cufinufft] Mobile GPU: insufficient SMEM for Method 3 "
-                               "(cannot satisfy np≥16 even with bin=1)");
-    }
-  }
-
-  cfg.np = std::max(16, std::min(2048, cfg.np & ~15));
-  return cfg;
-}
-
-} // anonymous namespace
-
-template<typename T>
-void cufinufft_setup_binsize(const GpuCapabilities &gpu, [[maybe_unused]] int type,
-                             int ns, int dim, cufinufft_opts *opts) {
+void cufinufft_setup_binsize(const GpuCapabilities &gpu, int type, int ns, int dim,
+                             const CUFINUFFT_BIGINT *mstu, cufinufft_opts *opts) {
   const int shmem_limit = gpu.max_smem_per_block_optin;
   const int shmem_per_pt = static_cast<int>(shared_memory_per_point<T>(dim, ns));
 
@@ -274,10 +118,7 @@ void cufinufft_setup_binsize(const GpuCapabilities &gpu, [[maybe_unused]] int ty
     printf("[cufinufft] Method %d: dim=%d, ns=%d, bin=%dx%dx%d", method, dim, ns,
            opts->gpu_binsizex, opts->gpu_binsizey, opts->gpu_binsizez);
     if (np > 0) printf(", np=%d", np);
-    if (note[0])
-      printf(" %s", note);
-    else if (method == 3 && np > 0)
-      printf(" [%s]", gpu.method3_category_name());
+    if (note[0]) printf(" %s", note);
     printf("\n");
     if (opts->debug >= 2) {
       size_t use = shared_memory_required<T>(dim, ns, opts->gpu_binsizex,
@@ -288,19 +129,96 @@ void cufinufft_setup_binsize(const GpuCapabilities &gpu, [[maybe_unused]] int ty
   };
 
   switch (opts->gpu_method) {
-  case 1:
-    set_bins(dim == 1 ? 1024 : dim == 2 ? 40 : 8);
+  case 1: {
+    // The GM kernel stages no tile in shared memory; the bin width only sets setpts'
+    // sort granularity, which trades locality of the scattered grid atomics (small
+    // bins) against their spread over L2 sectors (large bins). bin = nf makes one bin
+    // per dim and skips the sort entirely.
+
+    // The pre-#807 fixed bins, for every case no L2 rule covers.
+    const auto sized_bins = [&] {
+      return dim == 1 ? 1024 : dim == 2 ? 40 : 8;
+    };
+
+    // Fine grid per dim, empty when the modes are not known at plan time.
+    const auto fine_grid = [&]() -> std::optional<std::array<CUFINUFFT_BIGINT, 3>> {
+      if (type == 3) return std::nullopt; // outer plan: modes unset
+      std::array<CUFINUFFT_BIGINT, 3> nf{1, 1, 1};
+      for (int d = 0; d < dim; ++d) {
+        if (mstu[d] <= 0) return std::nullopt; // unset: sub-plan sized later
+        nf[d] = opts->gpu_spreadinterponly
+                    ? mstu[d]
+                    : CUFINUFFT_BIGINT(
+                          finufft::common::fine_grid_len(opts->upsampfac, mstu[d], ns));
+      }
+      return nf;
+    }();
+
+    if (!fine_grid) {
+      set_bins(sized_bins());
+      debug_print(1, 0, "");
+      break;
+    }
+
+    const auto &nf_est         = *fine_grid;
+    const auto cells           = std::int64_t(nf_est[0]) * nf_est[1] * nf_est[2];
+    const auto budget          = gpu.l2_complex_budget<T>();
+    const bool wide            = gpu.wide_memory_bus();
+
+    // Halve each dim `shift` times: bin = ceil(nf / 2^shift).
+    const auto set_bins_halved = [&](int shift) {
+      const auto halved = [&](int d) {
+        const auto v = (nf_est[d] + (CUFINUFFT_BIGINT(1) << shift) - 1) >> shift;
+        return int(std::clamp<CUFINUFFT_BIGINT>(v, 1, std::numeric_limits<int>::max()));
+      };
+      if (opts->gpu_binsizex == 0) opts->gpu_binsizex = halved(0);
+      if (opts->gpu_binsizey == 0) opts->gpu_binsizey = dim >= 2 ? halved(1) : 1;
+      if (opts->gpu_binsizez == 0) opts->gpu_binsizez = dim >= 3 ? halved(2) : 1;
+    };
+
+    // t2 gather reads the grid through the texture path: 1D never wants a sort, 2D
+    // only pays once the grid leaves ~2 budgets, 3D always sorts.
+    const auto gather_shift = [&]() -> std::optional<int> {
+      if (dim == 1 || (dim == 2 && cells <= 2 * budget)) return 0;
+      return std::nullopt;
+    };
+
+    // t1 scatter keeps one bin while the grid stays L2-resident, then halves per dim
+    // while each 2^(k*dim) tile still fits K, inside a per-dim spill band. Deeper
+    // grids fall back to the sized bins.
+    const auto scatter_shift = [&]() -> std::optional<int> {
+      // 2 budgets on wide-bus parts and in 1D, 1 budget on 384-bit GDDR.
+      const std::int64_t resident_cap = (wide || dim == 1) ? 2 * budget : budget;
+      if (cells <= resident_cap) return 0;
+      if (dim == 1) return std::nullopt;
+      // K: 1 budget on Hopper/Blackwell, 1/2 on split-L2 sm_80 and on GDDR.
+      const std::int64_t tile_cap = (wide && gpu.cc_major != 8) ? budget : budget / 2;
+      const std::int64_t band =
+          dim == 2 ? (wide ? std::numeric_limits<std::int64_t>::max() : 4 * budget)
+                   : (wide ? 8 * budget : 2 * budget);
+      if (cells > band) return std::nullopt;
+      for (int k = 1; k <= 2; ++k)
+        if ((cells >> (k * dim)) <= tile_cap) return k;
+      return std::nullopt;
+    };
+
+    const auto shift = (type == 2) ? gather_shift() : scatter_shift();
+    if (shift.has_value())
+      set_bins_halved(*shift);
+    else
+      set_bins(sized_bins());
     debug_print(1, 0, "");
     break;
+  }
 
   case 2: {
-    int bin = (dim == 1) ? 1024 : (dim == 2) ? 40 : 0;
-    if (bin == 0) {
-      double load = (ns <= 6) ? 0.50 : (ns <= 10 && !gpu.is_small_smem()) ? 0.90 : 1.0;
-      int target  = static_cast<int>(shmem_limit * load);
-      bin         = find_bin_size<T>(target, dim, ns);
-      if (bin < 1) bin = find_bin_size<T>(shmem_limit, dim, ns);
-    }
+    // One subproblem is one block's batch of <= maxsubprobsize points, so size the
+    // bin to fill a subproblem at the ~1 point/cell design density: bin^dim = msub,
+    // capped by the largest padded tile that fits shared memory. Dense f64 3D on
+    // large-smem parts wants a smaller bin, but its optimum is device-jagged and
+    // method 3 serves those cells faster, so no table is worth reintroducing.
+    const int bin = std::min(integer_root(double(opts->gpu_maxsubprobsize), dim),
+                             find_bin_size<T>(shmem_limit, dim, ns));
     if (bin < 1)
       throw std::runtime_error("[cufinufft] Insufficient shmem for Method 2 (ns=" +
                                std::to_string(ns) + "). Try Method 1.");
@@ -314,31 +232,57 @@ void cufinufft_setup_binsize(const GpuCapabilities &gpu, [[maybe_unused]] int ty
     const bool user_np  = (opts->gpu_np != 0);
     const bool user_bin = (opts->gpu_binsizex | opts->gpu_binsizey | opts->gpu_binsizez);
 
+    // Points the derived pick stages per batch: one warp. Larger np costs shared
+    // memory and occupancy without adding work. The tile is capped against the
+    // memory left after them, not against the whole limit, because the block
+    // allocates tile + derived_np * shmem_per_pt.
+    constexpr int derived_np = 32;
+
+    // The bin response is a broad valley: its lower edge (halo amplification,
+    // (1+2*ceil(ns/2)/bin)^dim work per point) is device-independent, its upper edge
+    // (resident blocks/SM = smem/tile) only rises with more shared memory. A
+    // low-valley pick therefore transfers across devices: bin 256/16/6, capped by the
+    // largest tile that fits.
+    const auto valley_bin = [&] {
+      const int target = dim == 1 ? 256 : dim == 2 ? 16 : 6;
+      const int tile_mem = std::max(0, shmem_limit - derived_np * shmem_per_pt);
+      return std::min(target, find_bin_size<T>(tile_mem, dim, ns));
+    };
+
+    // np filling the shared memory left after the tile the bins imply.
+    const auto np_for_rest = [&] {
+      const auto grid_mem = int(shared_memory_required<T>(
+          dim, ns, opts->gpu_binsizex, opts->gpu_binsizey, opts->gpu_binsizez, 0));
+      const int rem       = shmem_limit - grid_mem;
+      if (rem < shmem_per_pt * 16)
+        throw std::runtime_error("[cufinufft] User bin too large (no room for np≥16)");
+      return std::max(16, (rem / shmem_per_pt) & ~15);
+    };
+
+    const char *note = "";
     if (user_np && !user_bin) {
-      int avail = shmem_limit - opts->gpu_np * shmem_per_pt;
+      const int avail = shmem_limit - opts->gpu_np * shmem_per_pt;
       if (avail <= 0)
         throw std::runtime_error(
             "[cufinufft] gpu_np=" + std::to_string(opts->gpu_np) + " too large");
       set_bins(find_bin_size<T>(avail, dim, ns));
-      validate_fit(opts->gpu_np);
-      debug_print(3, opts->gpu_np, "(user np)");
+      note = "(user np)";
     } else if (user_bin) {
-      int grid_mem = static_cast<int>(shared_memory_required<T>(
-          dim, ns, opts->gpu_binsizex, opts->gpu_binsizey, opts->gpu_binsizez, 0));
-      int rem      = shmem_limit - grid_mem;
-      if (rem < shmem_per_pt * 16)
-        throw std::runtime_error("[cufinufft] User bin too large (no room for np≥16)");
-      opts->gpu_np = std::max(16, (rem / shmem_per_pt) & ~15);
-      validate_fit(opts->gpu_np);
-      debug_print(3, opts->gpu_np, user_np ? "(user)" : "(user bin)");
+      // A partial user bin leaves dims at 0 (zero-size tile, nbins div-by-zero
+      // downstream): fill the unset dims with the derived pick.
+      set_bins(std::max(1, valley_bin()));
+      if (!user_np) opts->gpu_np = np_for_rest();
+      note = user_np ? "(user)" : "(user bin)";
     } else {
-      auto cfg = get_method3_config<T>(gpu.method3_category(), dim, ns, shmem_limit,
-                                       shmem_per_pt);
-      set_bins(cfg.bin);
-      opts->gpu_np = cfg.np;
-      validate_fit(cfg.np);
-      debug_print(3, cfg.np, "");
+      const int bin = valley_bin();
+      if (bin < 1)
+        throw std::runtime_error("[cufinufft] Insufficient shmem for Method 3 (ns=" +
+                                 std::to_string(ns) + "). Try Method 1.");
+      set_bins(bin);
+      opts->gpu_np = derived_np;
     }
+    validate_fit(opts->gpu_np);
+    debug_print(3, opts->gpu_np, note);
     break;
   }
 
@@ -390,9 +334,11 @@ int choose_batchsize(const GpuCapabilities &gpu, const cufinufft_opts &opts, int
 }
 
 template void cufinufft_setup_binsize<float>(const GpuCapabilities &, int type, int ns,
-                                             int dim, cufinufft_opts *opts);
+                                             int dim, const CUFINUFFT_BIGINT *mstu,
+                                             cufinufft_opts *opts);
 template void cufinufft_setup_binsize<double>(const GpuCapabilities &, int type, int ns,
-                                              int dim, cufinufft_opts *opts);
+                                              int dim, const CUFINUFFT_BIGINT *mstu,
+                                              cufinufft_opts *opts);
 template int choose_batchsize<float>(const GpuCapabilities &, const cufinufft_opts &, int,
                                      std::int64_t);
 template int choose_batchsize<double>(const GpuCapabilities &, const cufinufft_opts &,
