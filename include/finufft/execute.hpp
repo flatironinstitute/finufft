@@ -250,29 +250,21 @@ int FINUFFT_PLAN_T<T>::spreadinterpSortedBatch(
   Notes:
   1) cBatch (c_j I/O) is already assumed to have the correct offset, ie here we
    read from the start of cBatch (unlike Malleo). fwBatch also has zero offset.
-  2) this routine is a batched version of spreadinterpSorted in spreadinterp.cpp
+  2) this routine picks the direction and hands the whole batch to spreadSorted
+   or interpSorted.
   Barnett 5/19/20, based on Malleo 2019.
   ChaithyaGR 1/7/25: new arg fwBatch (won't be p.fwBatch if spreadinterponly=1)
 */
 {
-  // Both directions now put all threads on the whole batch, so nothing is left to
-  // select. Spread: the batch loop is folded into the loop over subprobs, so it is
-  // (vector, subprob) pairs that get assigned to threads - all threads stay busy
-  // whatever ntr is - and the wrapped add back can only collide between threads on the
-  // same vector's fine grid. Interp: the loop below stays sequential, but omp par
-  // inside sees all threads, and one vector is already M/CHUNKSIZE chunks >> nthr, so
-  // folding it in would expose no parallelism. Both beat the old nested case.
-  if ((m.spopts.spread_direction == 1) != adjoint) {
+  // Both directions fold the batch loop into the loop over subprobs, so threads draw
+  // (vector, subprob) pairs and all of them stay busy whatever ntr is. Only spreading
+  // writes the fine grid, so only spreading guards its writes, per vector.
+  if ((m.spopts.spread_direction == 1) != adjoint)
     spreadSorted(reinterpret_cast<T *>(fwBatch), reinterpret_cast<const T *>(cBatch),
                  batchSize);
-    return 0;
-  }
-  for (int i = 0; i < batchSize; i++) {
-    std::complex<T> *fwi = fwBatch + i * nf(); // start of i'th fw array in
-                                               // fwBatch workspace or user array
-    std::complex<T> *ci = cBatch + i * m.nj;   // start of i'th c array in cBatch
-    spreadinterpSorted(reinterpret_cast<T *>(fwi), reinterpret_cast<T *>(ci), adjoint);
-  }
+  else
+    interpSorted(reinterpret_cast<T *>(fwBatch), reinterpret_cast<T *>(cBatch),
+                 batchSize);
   return 0;
 }
 
