@@ -14,9 +14,14 @@ rm -rf ../page && mkdir -p ../page/docs/pics && cd ../page
 git init -q -b perftest-results .
 cp "$WORKSPACE"/docs/performance_change_summary.rst docs/
 cp "$WORKSPACE"/docs/pics/perftestci_* docs/pics/
+# The docs-rebuild workflow turns this push into a readthedocs build of
+# "latest". A push event runs workflows from the pushed ref, so the file has
+# to ride the orphan commit.
+mkdir -p .github/workflows
+cp "$WORKSPACE"/.github/workflows/docs-rebuild.yml .github/workflows/
 git config user.name flatiron-jenkins
 git config user.email flatiron-jenkins@flatironinstitute.org
-git add docs
+git add docs .github
 git commit -qm "Generated new perftest report page."
 git push -f https://github.com/flatironinstitute/finufft \
 	HEAD:refs/heads/perftest-results
