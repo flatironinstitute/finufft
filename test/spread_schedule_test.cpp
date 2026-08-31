@@ -361,17 +361,16 @@ void check_setpts_state(const FINUFFT_PLAN_T<FLT> &plan, BIGINT M, const char *w
   check(outside == 0, say("every point sits in the box of the tile it was binned into"));
 }
 
-// The sort pays wherever a later pass returns to a fine cell the cache has dropped; one
-// thread writing a fine grid inside L2 never does, and that case is the only route left
-// to the untiled chunk cut. Pin both directions of the rule.
+// opts.spread_sort alone decides: 1 and 2 both sort (and tile) on any grid size and
+// thread count; 0 never sorts (test_unsorted_cut pins that side).
 void test_sort_rule() {
   const BIGINT M     = 20000;
-  const auto plan_of = [&](int dim, BIGINT N, int nthr, bool past_l2, const char *what) {
+  const auto plan_of = [&](int dim, BIGINT N, int nthr, const char *what) {
     std::vector<FLT> x, y, z;
     std::vector<CPX> c;
     uniform_points(M, x, y, z, c);
     finufft_opts opts;
-    FINUFFT_DEFAULT_OPTS(&opts);
+    FINUFFT_DEFAULT_OPTS(&opts); // default spread_sort=2: the sorted side of the rule
     opts.spreadinterponly = 1;
     opts.upsampfac        = 2.0;
     opts.nthreads         = nthr;
@@ -380,39 +379,20 @@ void test_sort_rule() {
     FINUFFT_PLAN_T<FLT> plan(1, dim, modes.data(), +1, 1, FLT(tol), &opts);
     check(plan.setpts(M, x.data(), y.data(), z.data(), 0, nullptr, nullptr, nullptr) <= 1,
           "the sort-rule setpts ran");
-    // the fine grid this plan really got, which is what the rule is stated over
-    const UBIGINT bytes = 2 * sizeof(FLT) * UBIGINT(plan.grid_size());
-    const bool fits     = bytes <= UBIGINT(finufft::utils::getL2CacheSize());
-    const bool want     = !(nthr == 1 && fits);
-    check(fits != past_l2, "the arm reaches the cache regime it is named for");
-    char msg[160];
-    snprintf(msg, sizeof(msg), "%s: fine grid %lld bytes on T%d %s sorted", what,
-             (long long)bytes, nthr, want ? "is" : "is not");
-    check(plan.sorted() == want, msg);
-    // sorting always tiles: a one-cell tile is the smallest and is always taken
-    snprintf(msg, sizeof(msg), "%s: T%d %s tiled", what, nthr, want ? "is" : "is not");
-    check(plan.tile_data().empty() == !want, msg);
-    printf("\tsort rule: %s on T%d, fine grid %lld bytes: %s, %s\n", what, nthr,
-           (long long)bytes, plan.sorted() ? "sorted" : "not sorted",
-           plan.tile_data().empty() ? "chunk cut" : "tiled");
+    check_setpts_state(plan, M, what); // demands a tiled layout under the default sort
+    printf("\tsort rule: %s on T%d: sorted and tiled\n", what, nthr);
   };
-  // an edge whose fine grid is twice one core's L2, so the arm stays past L2 on any
-  // machine; a fixed edge lands exactly on the L2 boundary in one precision or the other
-  const auto past_l2_edge = [] {
-    const double cells =
-        2.0 * double(finufft::utils::getL2CacheSize()) / double(2 * sizeof(FLT));
-    return BIGINT(std::ceil(std::cbrt(cells)));
-  };
-  plan_of(3, 16, 1, false, "a grid inside L2"); // fine grid 16^3, under one core's L2
-  plan_of(3, 16, 8, false, "a grid inside L2"); // any multithread run sorts, even in L2
-  plan_of(3, past_l2_edge(), 1, true, "a grid past L2"); // one thread, nothing cached
-  // sorting must tile in every dimension, not only the 3D grids the arms above use
-  plan_of(1, 1024, 8, false, "a 1D grid");
-  plan_of(2, 32, 8, false, "a 2D grid");
+  // 16^3 sits inside any core's L2 on one thread: the exact case the removed in-L2
+  // no-sort heuristic used to skip
+  plan_of(3, 16, 1, "a grid inside L2, one thread");
+  // sorting must tile in every dimension, not only the 3D grids the other tests use;
+  // eight threads with 10*M > grid cells take the multithreaded bin sort here
+  plan_of(1, 1024, 8, "a 1D grid");
+  plan_of(2, 32, 8, "a 2D grid");
 }
 
 // The layout a plan spreads on is a fact of its last setpts: indexSort clears the layout
-// before it decides, and nothing else writes it, so every spread and interp until the
+// before it fills it, and nothing else writes it, so every spread and interp until the
 // next setpts reads that one layout. With the sort off it stays empty, and the schedule
 // then cuts the point list into equal chunks of one tile spanning the whole fine grid.
 void test_unsorted_cut() {
@@ -437,8 +417,8 @@ void test_unsorted_cut() {
       check(
           plan.setpts(M, x.data(), y.data(), z.data(), 0, nullptr, nullptr, nullptr) <= 1,
           "the unsorted setpts ran");
-      check(!plan.sorted(), "spread_sort=0 does not sort");
-      check(plan.tile_data().empty(), "an unsorted plan carries no tile layout");
+      // demands the empty layout and the identity permutation spread_sort=0 promises
+      check_setpts_state(plan, M, "the unsorted cut");
       const auto sched =
           spread_schedule(plan.tile_data(), UBIGINT(M), plan.grid_size(), nthr, 1);
       const UBIGINT cap = sched.points_per_subproblem;
@@ -462,15 +442,19 @@ void test_unsorted_cut() {
   // Without this the checks above hold on a cut that never splits, where equal chunks and
   // a cap are vacuous.
   check(most_chunks > 1, "the unsorted cut really splits on more than one thread");
+}
 
-  // A later setpts can re-size the fine grid the verdict is stated over: type 3 sizes it
-  // from the points, and types 1 and 2 on auto upsampfac re-plan when the density moves.
-  // A layout left over from a sorted setpts would have the next, unsorted one cut on a
-  // tiling of a grid it no longer has. Type 3 reaches the flip on any L2, so walk its
-  // spectral scale up to the first sorted verdict and then come back down.
+// A later setpts can re-size the fine grid the layout is stated over: type 3 sizes it
+// from the points, and types 1 and 2 on auto upsampfac re-plan when the density moves.
+// A layout left over from an earlier setpts would tile a grid the plan no longer has;
+// check_setpts_state inside setpts_at pins the layout to the grid each setpts sized.
+void test_type3_regrid() {
+  const double tol = sizeof(FLT) == 4 ? 1e-3 : 1e-6;
+  std::vector<FLT> x, y, z;
+  std::vector<CPX> c;
   finufft_opts o3;
   FINUFFT_DEFAULT_OPTS(&o3);
-  o3.nthreads = 1; // the only route to the unsorted verdict under the default sort=2
+  o3.nthreads = 1;                         // one thread keeps the small type-3 walk cheap
   o3.debug    = test_debug;
   std::array<BIGINT, 3> nk_modes{1, 1, 1}; // unread: type 3 sizes itself from nk
   const BIGINT M = 3000, NK = 3000;
@@ -493,37 +477,31 @@ void test_unsorted_cut() {
       char what[64];
       snprintf(what, sizeof(what), "type 3 at spectral scale %.3g", scale);
       check_setpts_state(p3, M, what);
-      printf("\ttype-3 setpts at spectral scale %.3g: %s, fine grid %lld cells\n", scale,
-             p3.sorted() ? "sorted" : "not sorted", (long long)p3.grid_size());
+      printf("\ttype-3 setpts at spectral scale %.3g: fine grid %lld cells\n", scale,
+             (long long)p3.grid_size());
     }
     return ier;
   };
-  // The scale the flip needs depends on this core's L2, so grow until the verdict turns
-  // rather than fixing a scale, which keeps the widest fine grid as small as it can be.
-  bool saw_sorted = false;
-  for (double scale = 1.0; scale <= 1e3 && !saw_sorted; scale *= 2.0) {
-    if (setpts_at(scale) > 1) break;
-    check(p3.tile_data().empty() == !p3.sorted(),
-          "the type-3 layout follows the verdict of its setpts");
-    saw_sorted = p3.sorted();
-  }
-  check(saw_sorted, "the walk up the spectral scale reaches the sorted verdict");
-  // and back to a fine grid inside L2: the layout the sorted setpts built must be gone,
-  // or this plan would spread its next transform on a tiling of the wrong grid
+  // The walk grows the grid and shrinks it back: a layout kept across setpts would tile
+  // the wrong grid and fail the box check inside check_setpts_state.
+  check(setpts_at(1.0) <= 1, "the type-3 setpts ran");
+  const UBIGINT grid0 = p3.grid_size();
+  check(setpts_at(8.0) <= 1, "the wide type-3 setpts ran");
+  check(p3.grid_size() > grid0, "the wider spectrum re-sizes the fine grid up");
   check(setpts_at(1e-2) <= 1, "the narrow type-3 setpts ran");
-  check(!p3.sorted() && p3.tile_data().empty(),
-        "an unsorted setpts drops the layout a sorted one left");
+  check(p3.grid_size() < grid0, "the narrow spectrum re-sizes the fine grid down");
 }
 
 // ------------------------------------------------------- one plan, many setpts
 
 // A plan is not a fresh plan: every setpts runs on the state the last one left. With the
-// upsampfac on auto the point count alone re-plans the fine grid, so one plan crosses the
-// sort rule in both directions. After each setpts check the state the plan now holds,
-// then the transform it computes against a plan that has seen nothing else: a layout left
-// over from an earlier setpts misplaces whole strengths, which no rounding hides. The
-// fresh plan itself is what finufft3d_test, tolsweep and adjointness check against a
-// direct sum, so a direct sum here would only repeat them one configuration at a time.
+// upsampfac on auto the point count alone re-plans the fine grid, so one plan rebuilds
+// its layout on grids of both sizes. After each setpts check the state the plan now
+// holds, then the transform it computes against a plan that has seen nothing else: a
+// layout left over from an earlier setpts misplaces whole strengths, which no rounding
+// hides. The fresh plan itself is what finufft3d_test, tolsweep and adjointness check
+// against a direct sum, so a direct sum here would only repeat them one configuration at
+// a time.
 void test_setpts_churn() {
   const double tol          = sizeof(FLT) == 4 ? 1e-4 : 1e-9;
   // What thread arrival order may move a type-1 result by: the add back reassociates and
@@ -549,35 +527,38 @@ void test_setpts_churn() {
   for (size_t i = 0; i < ng; ++i)
     Fin[i] = CPX(FLT(std::sin(0.7 * double(i))), FLT(std::cos(0.3 * double(i))));
 
-  // The point count at which the density re-plans the fine grid past this core's L2 and
-  // the rule turns the sort on. It follows the cache size, so probe for it rather than
-  // fix a number; setpts alone settles the verdict, so the probe runs no transform.
+  // The point count at which the density re-plans the fine grid (upsampfac on auto). It
+  // follows the cache size, so probe for it rather than fix a number; setpts alone
+  // settles the grid, so the probe runs no transform.
   const BIGINT Mlo = 300;
   BIGINT Mhi       = 0;
   {
     finufft_opts o;
     FINUFFT_DEFAULT_OPTS(&o);
-    o.nthreads = 1; // the only route to the unsorted verdict under the default sort=2
+    o.nthreads = 1;
     o.debug    = test_debug;
     FINUFFT_PLAN_T<FLT> probe(1, 3, modes.data(), +1, 1, FLT(tol), &o);
+    UBIGINT grid_lo = 0;
     for (BIGINT M = Mlo; M <= 3000000 && Mhi == 0; M *= 10) {
       uniform_points(M, x, y, z, c, rng());
       check(probe.setpts(M, x.data(), y.data(), z.data(), 0, nullptr, nullptr, nullptr) <=
                 1,
             "the probe setpts ran");
-      if (probe.sorted()) Mhi = M;
+      if (grid_lo == 0)
+        grid_lo = probe.grid_size();
+      else if (probe.grid_size() != grid_lo)
+        Mhi = M;
     }
-    check(Mhi > 0, "the point count alone reaches the sorted verdict");
+    check(Mhi > 0, "the point count alone re-plans the fine grid");
   }
 
-  // The thread count and the sort pick the route: one thread under the default sort is
-  // the only way to the unsorted chunk cut, spread_sort=0 forces that cut onto four
-  // threads, and spread_nthr_atomic=0 forces the atomic add back.
+  // The sort picks the route: spread_sort=0 forces the unsorted chunk cut, and
+  // spread_nthr_atomic=0 forces the atomic add back; the thread counts vary the
+  // add-back path.
   struct Arm {
     int sort, nthr, atomic;
   };
   static constexpr Arm arms[]{{2, 1, -1}, {2, 4, 0}, {0, 4, -1}};
-  int sorted_rounds = 0, unsorted_rounds = 0;
   for (const auto arm : arms) {
     finufft_opts opts;
     FINUFFT_DEFAULT_OPTS(&opts);
@@ -630,17 +611,12 @@ void test_setpts_churn() {
                double(drift2));
       check(double(drift2) <= drift2_bound, msg);
 
-      sorted_rounds += plan.sorted();
-      unsorted_rounds += !plan.sorted();
+      // check_setpts_state above pins the layout to the arm's option every round
       printf("\tchurn %s: %s, sigma %.3g, %lld fine cells, drift %.3g / %.3g\n", what,
              plan.sorted() ? "sorted" : "not sorted", plan.opts.upsampfac,
              (long long)plan.grid_size(), double(drift), double(drift2));
     }
   }
-  // Without both, the sequence never crosses the rule and the churn proves nothing about
-  // a layout outliving the grid it was built on.
-  check(sorted_rounds > 0 && unsorted_rounds > 0,
-        "the point count alone takes one plan across the sort rule both ways");
 }
 // Translation covariance across the periodic boundary: shifting every point by k whole
 // cells circularly shifts the spread grid, and interpolation off the shifted grid returns
@@ -739,6 +715,7 @@ int main() {
   test_ceilings();
   test_sort_rule();
   test_unsorted_cut();
+  test_type3_regrid();
   test_setpts_churn();
   constexpr bool single = std::is_same_v<FLT, float>;
   test_wrap_translation(32, 3000, 2.0, single ? 1e-4 : 1e-9);
