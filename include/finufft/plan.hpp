@@ -175,7 +175,6 @@ private:
                                    // pointers to user's NU source coords (no alloc)
     std::vector<BIGINT> sortIndices;  // bin-sort permutation of NU points
     SpreadTileData tiles;             // tile offsets + metadata; empty unless tile-binned
-    bool didSort = false;             // whether bin-sorting was applied
 
     // --- Type 3 workspace (set by setpts for type 3 only) ---
     std::array<const TF *, 3> STU{nullptr, nullptr, nullptr};
@@ -271,7 +270,7 @@ private:
   void bin_sort_multithread(int cell, int nthr, int cell_bits,
                             SpreadTileData &tile_data_out);
   // Runs of a padded subgrid that are contiguous in both it and the fine grid it wraps
-  // onto: f(gi, si, n) gets the two element offsets and the run length. The wrap
+  // onto: on_run(gi, si, n) gets the two element offsets and the run length. The wrap
   // arithmetic lives here alone, so a pass over the pair only says what it does per run.
   template<typename OnRun>
   void walk_wrapped_subgrid(const Subgrid &sub, OnRun &&on_run) const;
@@ -365,8 +364,8 @@ public:
   // the permutation the sort produced, so a test can read a tile's points back
   const std::vector<BIGINT> &sort_indices() const { return m.sortIndices; }
   int nspread() const { return m.spopts.nspread; }
-  // whether the last setpts sorted, and the fine grid the sort rule is stated over
-  bool sorted() const { return m.didSort; }
+  // whether setpts sorts; fixed at plan creation, spopts.sort == 0 is the only no
+  bool sorted() const { return m.spopts.sort != 0; }
   UBIGINT grid_size() const {
     return UBIGINT(m.nfdim[0]) * UBIGINT(m.nfdim[1]) * UBIGINT(m.nfdim[2]);
   }

@@ -133,33 +133,15 @@ SpreadSchedule FINUFFT_PLAN_T<TF>::make_schedule(int nthr, int batchSize) const 
 
 template<typename TF>
 void FINUFFT_PLAN_T<TF>::indexSort()
-/* Decides whether or not to sort the NU pts (influenced by spopts.sort),
-   and if yes, calls either single- or multi-threaded bin sort, writing
-   reordered index list to sortIndices. If decided not to sort, the
-   identity permutation is written to sortIndices. Sets didSort accordingly.
-   The permutation is designed to make RAM access close to contiguous, to
-   speed up spreading/interpolation, in the case of disordered NU points.
-   Ie, XYZ[0][sortIndices[j]], j=0,..,nj-1, is a good ordering for the
-   x-coords of NU pts, etc.
-
-   The following args from the old free-function interface are now read/written
-   as plan members:
-    nj           - number of input NU points.
-    XYZ          - pointers to length-nj arrays of real coords of NU pts.
-                   Domain is [-pi, pi), points outside are folded in.
-                   (only XYZ[2] used in 1D, only XYZ[0] and XYZ[1] in 2D.)
-    nfdim        - integer sizes of overall box (nfdim[1]=nfdim[2]=1 for 1D,
-                   nfdim[2]=1 for 2D).
-                   0 = x (fastest), 1 = y (medium), 2 = z (slowest).
-    spopts       - spreading options struct,
-                   see finufft_common/spread_opts.h
-   Outputs (plan members):
-    sortIndices  - a good permutation of NU points. (Preallocated to length nj.)
-    didSort      - whether a sort was done (true) or not (false).
-
+/* Sorts the NU pts unless spopts.sort == 0, calling either single- or
+   multi-threaded bin sort: sortIndices (preallocated to length nj) gets the
+   permutation and m.tiles the cache-tile layout it binned into. When
+   spopts.sort == 0 the identity permutation is written and m.tiles stays
+   empty. The permutation makes RAM access close to contiguous during
+   spreading/interpolation: XYZ[0][sortIndices[j]], j=0,..,nj-1, is a good
+   ordering for the x-coords, etc. Reads the plan members nj, XYZ, nfdim and
+   spopts, documented at the spreader interface comment further below.
    Barnett 2017; split out by Melody Shih, Jun 2018. Barnett nthr logic 2024.
-   Previous args (M, kx, ky, kz, N1, N2, N3, opts) are now plan members
-   (nj, XYZ, nfdim, spopts). Output sortIndices and didSort are plan members.
    Converted to class member, Barbone 2/24/26.
 */
 {
@@ -169,71 +151,56 @@ void FINUFFT_PLAN_T<TF>::indexSort()
   const UBIGINT N1 = m.nfdim[0], N2 = m.nfdim[1], N3 = m.nfdim[2];
   const UBIGINT M = m.nj;
 
-  // Both directions bin into cubic cache tiles and take each tile as one subproblem, so
-  // the subgrids are cache-sized cuboids, not x-saturated slabs. Skipping the sort leaves
-  // one tile, the whole fine grid, which is the box an unsorted subproblem spans anyway.
-  const int ndims = ndims_from_Ns(N1, N2, N3);
-
-  timer.start(); // if needed, sort all the NU pts...
-  m.didSort    = false;
-  // No sort leaves m.tiles empty: one tile spanning the whole fine grid (SpreadTileData).
+  timer.start();
+  // No sort leaves m.tiles empty: one tile spanning the whole fine grid (SpreadTileData),
+  // which is the box an unsorted subproblem spans anyway.
   m.tiles.clear();
-  auto maxnthr = MY_OMP_GET_MAX_THREADS(); // used if both below opts default
-  if (m.spopts.nthreads > 0)
-    maxnthr = m.spopts.nthreads;           // user nthreads overrides, without limit
-  // the threads that will spread; the sort override below must not reach this
-  const int spreading_threads = int(maxnthr);
-  if (m.spopts.sort_threads > 0)
-    maxnthr = m.spopts.sort_threads;       // high-priority override, also no limit
-  // A sort costs one pass over the points and buys every later pass a fine grid that
-  // stays in cache, so it pays wherever the grid does not already fit: one thread
-  // writing a grid inside L2 revisits nothing the cache lost, and there the pass is all
-  // cost.
-  const bool cache_resident =
-      spreading_threads == 1 &&
-      2 * sizeof(TF) * N1 * N2 * N3 <= UBIGINT(finufft::utils::getL2CacheSize());
-  if (m.spopts.sort == 1 || (m.spopts.sort == 2 && !cache_resident)) {
-    // store a good permutation ordering of all NU pts (dim=1,2 or 3)
-    int sort_nthr = m.spopts.sort_threads; // 0, or user max # threads for sort
-#ifndef _OPENMP
-    sort_nthr = 1; // if single-threaded lib, override user
-#endif
-    auto grid_N = N1 * N2 * N3;
-    if (sort_nthr == 0) // multithreaded auto choice: when N>>M, one thread is better!
-      sort_nthr = (10 * M > grid_N) ? maxnthr : 1; // heuristic
-    // Tile the fine grid into cubic cells, grouped 2^doublings cells per tile edge.
-    const auto [cell, doublings] = [&]() -> std::pair<int, int> {
-      // A coarser cell is a cheaper sort, and L1 bounds it: the cell's kernel writes
-      // cover (cell+ns)^ndims and every point of the cell revisits them. Grow from 4
-      // while the doubled cell's write set fits L1 and the tile keeps two cells per edge.
-      int edge              = 4;
-      int shift             = tile_doublings(edge);
-      // complex fine-grid elements L1 holds, the unit a cell's write set is counted in
-      const double l1_cells = double(finufft::utils::getL1CacheSize()) / (2 * sizeof(TF));
-      while (shift > 1 &&
-             spread_pow_ndims(2.0 * edge + m.spopts.nspread, ndims) <= l1_cells) {
-        edge *= 2;
-        --shift;
-      }
-      return {edge, shift};
-    }();
-    if (m.spopts.debug)
-      printf("\tspread tiles of %d grid pts per edge, cells of %d\n", cell << doublings,
-             cell);
-    if (sort_nthr == 1)
-      bin_sort_singlethread(cell, doublings, m.tiles);
-    else // sort_nthr>1, user fixes # threads (>=2)
-      bin_sort_multithread(cell, sort_nthr, doublings, m.tiles);
-    if (m.spopts.debug)
-      printf("\tsorted (%d threads):\t%.3g s\n", sort_nthr, timer.elapsedsec());
-    m.didSort = true;
-  } else {
+  // user nthreads overrides the OMP max, without limit
+  const int maxnthr =
+      m.spopts.nthreads > 0 ? m.spopts.nthreads : MY_OMP_GET_MAX_THREADS();
+  if (m.spopts.sort == 0) {
 #pragma omp parallel for num_threads(maxnthr) schedule(static, 1000000)
     for (BIGINT i = 0; i < BIGINT(M); i++) // here omp helps xeon, hinders i7
       m.sortIndices[i] = i;                // the identity permutation
-    if (m.spopts.debug)
-      printf("\tnot sorted (sort=%d): \t%.3g s\n", (int)m.spopts.sort, timer.elapsedsec());
+    if (m.spopts.debug) printf("\tnot sorted (sort=0): \t%.3g s\n", timer.elapsedsec());
+    return;
   }
+  // Both directions bin into cubic cache tiles and take each tile as one subproblem, so
+  // the subgrids are cache-sized cuboids, not x-saturated slabs.
+  const int ndims = ndims_from_Ns(N1, N2, N3);
+  // store a good permutation ordering of all NU pts (dim=1,2 or 3)
+  int sort_nthr   = m.spopts.sort_threads; // 0, or user max # threads for sort
+#ifndef _OPENMP
+  sort_nthr = 1;                           // if single-threaded lib, override user
+#endif
+  auto grid_N = N1 * N2 * N3;
+  if (sort_nthr == 0) // multithreaded auto choice: when N>>M, one thread is better!
+    sort_nthr = (10 * M > grid_N) ? maxnthr : 1; // heuristic
+  // Tile the fine grid into cubic cells, grouped 2^doublings cells per tile edge.
+  const auto [cell, doublings] = [&]() -> std::pair<int, int> {
+    // A coarser cell is a cheaper sort, and L1 bounds it: the cell's kernel writes
+    // cover (cell+ns)^ndims and every point of the cell revisits them. Grow from 4
+    // while the doubled cell's write set fits L1 and the tile keeps two cells per edge.
+    int edge              = 4;
+    int shift             = tile_doublings(edge);
+    // complex fine-grid elements L1 holds, the unit a cell's write set is counted in
+    const double l1_cells = double(finufft::utils::getL1CacheSize()) / (2 * sizeof(TF));
+    while (
+        shift > 1 && spread_pow_ndims(2.0 * edge + m.spopts.nspread, ndims) <= l1_cells) {
+      edge *= 2;
+      --shift;
+    }
+    return {edge, shift};
+  }();
+  if (m.spopts.debug)
+    printf("\tspread tiles of %d grid pts per edge, cells of %d\n", cell << doublings,
+           cell);
+  if (sort_nthr == 1)
+    bin_sort_singlethread(cell, doublings, m.tiles);
+  else // sort_nthr>1, user fixes # threads (>=2)
+    bin_sort_multithread(cell, sort_nthr, doublings, m.tiles);
+  if (m.spopts.debug)
+    printf("\tsorted (%d threads):\t%.3g s\n", sort_nthr, timer.elapsedsec());
 }
 
 /* ------------Spreader/interpolator for 1, 2, or 3 dimensions --------------
@@ -289,7 +256,6 @@ void FINUFFT_PLAN_T<TF>::indexSort()
   sortIndices  - length-nj permutation giving the order in which nonuniform points
             should be processed (produced by indexSort). If no sort was performed,
             contains the identity permutation.
-  didSort      - bool indicating whether a sort was actually performed.
   tiles        - the tile layout that sort binned into, empty unless tile-binned. The
             subproblems come off its offsets, so it selects the subproblem splitting
             (see spread_schedule).

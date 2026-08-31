@@ -167,9 +167,9 @@ automatically from call to call in the same executable (incidentally, also in th
 
 * ``spread_sort=0`` : never sorts
 * ``spread_sort=1`` : always sorts
-* ``spread_sort=2`` : uses a heuristic to decide whether to sort or not.
+* ``spread_sort=2`` : same as 1 (default)
 
-As of v2.6.0 both directions sort. The heuristic sorts unless a single thread already holds the whole fine grid in its L2 cache. Everywhere else a sort costs one pass over the points and buys every later pass a fine grid that stays in cache. The sort also groups the points into the cache tiles that spreading and interpolation take as subproblems, so ``spread_sort=0`` leaves both directions with one chunk of the point list per thread instead.
+As of v2.6.0 both directions sort. A sort costs one pass over the points and buys every later pass a fine grid that stays in cache. The sort also groups the points into the cache tiles that spreading and interpolation take as subproblems, so ``spread_sort=0`` leaves both directions with one chunk of the point list per thread instead.
 Feel free to try experimenting here; if you have highly-structured nonuniform point ordering (such as coming from polar-grid or propeller-type MRI k-points) it may be advantageous not to sort.
 
 **upsampfac**: This is the internal factor $\sigma$ by which the FFT (fine grid)

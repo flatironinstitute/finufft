@@ -46,7 +46,7 @@ typedef struct finufft_opts { // defaults see plan.hpp:finufft_default_opts_t()
   // algorithm performance opts...
   int nthreads;           // number of threads to use, or 0 uses all available
   int fftw;               // plan flags to FFTW (FFTW_ESTIMATE=64, FFTW_MEASURE=0,...)
-  int spread_sort;        // spreader: 0 don't sort, 1 do, or 2 heuristic choice
+  int spread_sort;        // spreader: 0 don't sort, 1 do, or 2 same as 1
   FINUFFT_DEPRECATED_FIELD("no effect; Horner is always used")
   int spread_kerevalmeth; // deprecated; no effect (Horner is always used)
   FINUFFT_DEPRECATED_FIELD("no effect; padding is handled internally")
