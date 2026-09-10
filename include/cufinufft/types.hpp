@@ -65,7 +65,8 @@ struct GpuCapabilities {
   int max_smem_per_sm{};          // bytes
   int max_threads_per_sm{};
   int multiprocessor_count{};
-  int l2_cache_size{}; // bytes
+  int l2_cache_size{};        // bytes
+  int global_mem_bus_width{}; // bits; GDDR reports <= 512, HBM >= 4096
   int memory_pools_supported{};
 
   static GpuCapabilities query(int device_id) {
@@ -81,6 +82,7 @@ struct GpuCapabilities {
     get(&gpu.max_threads_per_sm, cudaDevAttrMaxThreadsPerMultiProcessor);
     get(&gpu.multiprocessor_count, cudaDevAttrMultiProcessorCount);
     get(&gpu.l2_cache_size, cudaDevAttrL2CacheSize);
+    get(&gpu.global_mem_bus_width, cudaDevAttrGlobalMemoryBusWidth);
     get(&gpu.memory_pools_supported, cudaDevAttrMemoryPoolsSupported);
     return gpu;
   }
