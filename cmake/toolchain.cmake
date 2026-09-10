@@ -80,8 +80,8 @@ set(FINUFFT_CXX_FLAGS_WARNINGS
 # clang 18 reports a lone -fcx-limited-range as overriding the empty option it compares
 # against; clang 19 fixed that comparison. GCC accepts the unknown -Wno- silently, which
 # then annotates every later diagnostic, so ask for it on clang alone.
-if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-    list(APPEND FINUFFT_CXX_FLAGS_WARNINGS -Wno-overriding-option)
+if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|IntelLLVM")
+    list(APPEND FINUFFT_CXX_FLAGS_WARNINGS -Wno-overriding-option -Wno-overriding-complex-range)
 endif()
 filter_supported_compiler_flags(FINUFFT_CXX_FLAGS_WARNINGS FINUFFT_CXX_FLAGS_WARNINGS)
 message(STATUS "FINUFFT warning flags: ${FINUFFT_CXX_FLAGS_WARNINGS}")
