@@ -78,6 +78,16 @@ using UBIGINT = uint64_t;
 #define FINUFFT_LIKELY(x)   (x)
 #endif
 
+// Suppress auto-vectorization of the loop that follows. The bin-sort placement
+// loops (spread.hpp) carry a dependence through counts[] that icpx before 2026.0
+// vectorizes wrongly: it omits the AVX-512 conflict rank from the scatter index,
+// so lanes sharing a bin collide. g++ and icpx 2026.0 leave these loops scalar.
+#if defined(__INTEL_LLVM_COMPILER) && (__INTEL_LLVM_COMPILER < 20260000)
+#define FINUFFT_NO_VECTORIZE_ON_INTEL _Pragma("clang loop vectorize(disable)")
+#else
+#define FINUFFT_NO_VECTORIZE_ON_INTEL
+#endif
+
 // Portable diagnostic push/pop and deprecation-warning suppression.
 #if defined(__GNUC__)
 #define FINUFFT_DIAGNOSTIC_PUSH _Pragma("GCC diagnostic push")
