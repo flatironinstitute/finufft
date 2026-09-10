@@ -571,11 +571,13 @@ inline void bin_sort_singlethread_impl(std::vector<BIGINT> &ret, UBIGINT M, cons
   for (i = 0; i < simd_M; i += simd_size) {
     const auto bin       = compute_bins(i);
     const auto bin_array = to_array(bin);
+    FINUFFT_NO_VECTORIZE_ON_INTEL
     for (std::size_t j = 0; j < simd_size; ++j) {
       ret[counts[bin_array[j]]] = BIGINT(j + i);
       ++counts[bin_array[j]];
     }
   }
+  FINUFFT_NO_VECTORIZE_ON_INTEL
   for (; i < M; i++) {
     const auto bin   = compute_bin_scalar(i);
     ret[counts[bin]] = BIGINT(i);
@@ -726,11 +728,13 @@ inline void bin_sort_multithread_impl(std::vector<BIGINT> &ret, UBIGINT M, const
     for (i = chunk_start; i < chunk_simd; i += simd_size) {
       const auto bin       = compute_bins(i);
       const auto bin_array = to_array(bin);
+      FINUFFT_NO_VECTORIZE_ON_INTEL
       for (std::size_t j = 0; j < simd_size; ++j) {
         ret[my_counts[bin_array[j]]] = BIGINT(j + i);
         ++my_counts[bin_array[j]];
       }
     }
+    FINUFFT_NO_VECTORIZE_ON_INTEL
     for (; i < chunk_end; i++) {
       const auto bin      = compute_bin_scalar(i);
       ret[my_counts[bin]] = BIGINT(i);
