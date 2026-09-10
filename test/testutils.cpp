@@ -20,11 +20,13 @@
 
 #include "finufft/utils.hpp"
 #include "utils/norms.hpp"
-#include <finufft/heuristics.hpp> // complexity-based upsampfac (sigma) picker
+#include <finufft/heuristics.hpp>  // complexity-based upsampfac (sigma) picker
 #include <finufft/test_defs.hpp>
+#include <finufft_common/kernel.h> // plan-time piecewise-Horner kernel fit
 
 using namespace finufft::common;
 using namespace finufft::heuristics;
+using namespace finufft::kernel;
 
 int main() {
 #ifdef SINGLE
@@ -102,6 +104,89 @@ int main() {
   if (std::abs(std::sqrt((FLT)M) * relerrtwonorm(M, &a[0], &b[0]) - 1.0) > relerr) return 1;
 
 #ifndef SINGLE
+  // Plan-time piecewise-Horner kernel fit (finufft::kernel::fit_horner_coeffs). Both
+  // storage precisions are explicit, so the block runs once, in the double build.
+  {
+    // (A) The fit stays under the aliasing tolerance its width was chosen for, or under
+    // the storage round-off floor where that is larger. It sweeps sigma because beta
+    // moves with sigma, so the hardest fit sits at the top of the rail, not at a round
+    // sigma. Both nc bounds are guarded: one row fewer fails at either end.
+    const auto check_fit = [](auto proto, double sigma, int ns) {
+      using T = decltype(proto);
+      finufft_spread_opts spopts{};
+      spopts.nspread    = ns;
+      spopts.upsampfac  = sigma;
+      spopts.kerformula = 8; // PSWF with the shifted shape param, as the plans use
+      set_kernel_shape_given_ns(spopts, 0);
+      const int nc = max_nc_given_ns<T>(ns);
+      std::vector<T> coeffs(std::size_t(nc) * ns);
+      fit_horner_coeffs<T>(spopts, nc, ns, 0.0, coeffs.data());
+      const auto phi   = kernel_definition_lambda(spopts);
+      // The aliasing law the width comes from, tol = tolfac*exp(-(ns-1)*pi*u), inverted
+      // for the tol that produced this ns. tolfac is smallest for 1D types 1 and 2 and
+      // the forward formula ceils, so this is the strictest tol any plan asks.
+      const double u   = std::sqrt(1.0 - 1.0 / sigma);
+      const double tol = kernel_tolfac(1, 1) * std::exp(-(ns - 1) * PI * u);
+      // The fit must not eat a noticeable share of the budget. Both constants are
+      // empirical, with no analytic bound behind them; widen them only against a
+      // measurement. Aliasing binds at small ns, the eps floor at large ns.
+      const double bound =
+          std::max(0.2 * tol, 48.0 * double(std::numeric_limits<T>::epsilon()));
+      double worst = 0.0;
+      for (int i = 0; i < ns; ++i) { // ................... loop over panels
+        const double xshift = 2.0 * i + 1 - ns;
+        for (int k = 0; k < 200; ++k) {
+          const double z = -1.0 + (2.0 * k + 1.0) / 200.0; // panel ordinate, in (-1,1)
+          const T x = T(i - 0.5 * ns + 0.5 * (z + 1.0));   // the same point, grid units
+          const double got =
+              double(evaluate_kernel_horner<T>(x, ns, nc, coeffs.data(), ns));
+          worst = std::max(worst, std::abs(got - phi((z + xshift) / ns)));
+        }
+      }
+      if (worst > bound)
+        printf("fail: horner fit %s sigma=%.3f ns=%d nc=%d: err %.3g exceeds %.3g\n",
+               sizeof(T) == 4 ? "float" : "double", sigma, ns, nc, worst, bound);
+      return worst <= bound;
+    };
+
+    // (B) The fit is always double, so the float table is the rounded double table.
+    // Guards against a per-precision fit, which loses two digits for nothing.
+    const auto check_float_is_rounded_double = [](double sigma, int ns) {
+      finufft_spread_opts spopts{};
+      spopts.nspread    = ns;
+      spopts.upsampfac  = sigma;
+      spopts.kerformula = 8;
+      set_kernel_shape_given_ns(spopts, 0);
+      const int nc = max_nc_given_ns<float>(ns);
+      std::vector<float> cf(std::size_t(nc) * ns);
+      std::vector<double> cd(std::size_t(nc) * ns);
+      fit_horner_coeffs<float>(spopts, nc, ns, 0.0, cf.data());
+      fit_horner_coeffs<double>(spopts, nc, ns, 0.0, cd.data());
+      for (std::size_t i = 0; i < cf.size(); ++i)
+        if (cf[i] != float(cd[i])) {
+          printf("fail: float horner coeff %zu differs from the rounded double fit, "
+                 "sigma=%.3f ns=%d\n",
+                 i, sigma, ns);
+          return false;
+        }
+      return true;
+    };
+
+    // Sweep every sigma makeplan accepts without warning, which is wider than the
+    // auto-heuristic's rail: a user may set opts.upsampfac by hand.
+    for (int k = 0; k <= 39; ++k) {
+      const double sigma = 1.05 + 0.05 * k; // 1.05 .. 3.00
+      for (int ns = MIN_NSPREAD; ns <= MAX_NSPREAD<float>; ++ns) {
+        // clamp_kernel_ns caps float to FLOAT_MAX_NS_CC below FLOAT_CC_UPSAMPFAC_LIMIT
+        if (sigma < FLOAT_CC_UPSAMPFAC_LIMIT && ns > FLOAT_MAX_NS_CC) continue;
+        if (!check_fit(0.0f, sigma, ns) || !check_float_is_rounded_double(sigma, ns))
+          return 1;
+      }
+      for (int ns = MIN_NSPREAD; ns <= MAX_NSPREAD<double>; ++ns)
+        if (!check_fit(0.0, sigma, ns)) return 1;
+    }
+  }
+
   // Complexity-based upsampfac (sigma) picker (finufft/heuristics.hpp). The block
   // exercises both precisions explicitly, so it runs once in the double build.
   {

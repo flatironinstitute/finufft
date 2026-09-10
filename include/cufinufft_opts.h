@@ -20,7 +20,7 @@ typedef struct cufinufft_opts { // see cufinufft_default_opts() for defaults
   int gpu_obinsizez;
 
   int gpu_maxsubprobsize;
-  int gpu_kerevalmeth;      // 0: direct exp(sqrt()), 1: Horner ppval
+  int gpu_kerevalmeth;      // kept for ABI compatibility, ignored (Horner is always used)
 
   int gpu_spreadinterponly; // 0: NUFFT, 1: spread or interpolation only
 

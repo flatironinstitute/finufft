@@ -568,7 +568,7 @@ template<typename TF> struct FINUFFT_PLAN_T<TF>::InterpSorted1dCaller {
   TF *du;
   TF *dnu;
   template<int NS, int NC> int operator()() const {
-    if constexpr (!::finufft::kernel::ValidKernelParams<NS, NC>())
+    if constexpr (!::finufft::kernel::ValidKernelParams<TF, NS, NC>())
       return finufft::spreadinterp::report_invalid_kernel_params(NS, NC);
     else
       return plan.template interpSorted_kernel<NS, NC, 1>(du, dnu);
@@ -580,7 +580,7 @@ template<typename TF> struct FINUFFT_PLAN_T<TF>::InterpSorted2dCaller {
   TF *du;
   TF *dnu;
   template<int NS, int NC> int operator()() const {
-    if constexpr (!::finufft::kernel::ValidKernelParams<NS, NC>())
+    if constexpr (!::finufft::kernel::ValidKernelParams<TF, NS, NC>())
       return finufft::spreadinterp::report_invalid_kernel_params(NS, NC);
     else
       return plan.template interpSorted_kernel<NS, NC, 2>(du, dnu);
@@ -593,7 +593,7 @@ template<typename TF> struct FINUFFT_PLAN_T<TF>::InterpSorted3dCaller {
   TF *dnu;
   template<int NS, int NC>
   int operator()() const {
-    if constexpr (!::finufft::kernel::ValidKernelParams<NS, NC>())
+    if constexpr (!::finufft::kernel::ValidKernelParams<TF, NS, NC>())
       return finufft::spreadinterp::report_invalid_kernel_params(NS, NC);
     else
       return plan.template interpSorted_kernel<NS, NC, 3>(du, dnu);
@@ -611,7 +611,7 @@ int FINUFFT_PLAN_T<TF>::interpSorted_1d(TF *data_uniform, TF *data_nonuniform) c
   using namespace finufft::common;
   InterpSorted1dCaller caller{*this, data_uniform, data_nonuniform};
   using NsSeq = poet::inclusive_range<MIN_NSPREAD, MAX_NSPREAD<TF>>;
-  using NcSeq = poet::inclusive_range<MIN_NC, MAX_NC>;
+  using NcSeq = poet::inclusive_range<MIN_NC, MAX_NC<TF>>;
   return poet::dispatch(caller,
                         std::make_tuple(poet::dispatch_param<NsSeq>{m.spopts.nspread},
                                         poet::dispatch_param<NcSeq>{m.nc}));
@@ -623,7 +623,7 @@ int FINUFFT_PLAN_T<TF>::interpSorted_2d(TF *data_uniform, TF *data_nonuniform) c
   using namespace finufft::common;
   InterpSorted2dCaller caller{*this, data_uniform, data_nonuniform};
   using NsSeq = poet::inclusive_range<MIN_NSPREAD, MAX_NSPREAD<TF>>;
-  using NcSeq = poet::inclusive_range<MIN_NC, MAX_NC>;
+  using NcSeq = poet::inclusive_range<MIN_NC, MAX_NC<TF>>;
   return poet::dispatch(caller,
                         std::make_tuple(poet::dispatch_param<NsSeq>{m.spopts.nspread},
                                         poet::dispatch_param<NcSeq>{m.nc}));
@@ -635,7 +635,7 @@ int FINUFFT_PLAN_T<TF>::interpSorted_3d(TF *data_uniform, TF *data_nonuniform) c
   using namespace finufft::common;
   InterpSorted3dCaller caller{*this, data_uniform, data_nonuniform};
   using NsSeq = poet::inclusive_range<MIN_NSPREAD, MAX_NSPREAD<TF>>;
-  using NcSeq = poet::inclusive_range<MIN_NC, MAX_NC>;
+  using NcSeq = poet::inclusive_range<MIN_NC, MAX_NC<TF>>;
   return poet::dispatch(caller,
                         std::make_tuple(poet::dispatch_param<NsSeq>{m.spopts.nspread},
                                         poet::dispatch_param<NcSeq>{m.nc}));

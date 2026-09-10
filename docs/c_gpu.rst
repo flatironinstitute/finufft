@@ -404,9 +404,9 @@ Algorithm performance options
 
 **gpu_sort**: ``0`` do not sort nonuniform points, ``1`` do sort nonuniform points. Only has an effect when ``gpu_method=1`` (or if this method has been internally chosen when ``gpu_method=0``). Unlike the CPU code, there is no auto-choice since in our experience sorting is fast and always helps. It is possible for structured NU point inputs that ``gpu_sort=0`` may be the faster.
 
-**gpu_kerevalmeth**: ``0`` use direct (reference) kernel evaluation, which is not recommended for speed (however, it allows nonstandard ``opts.upsampfac`` to be used). ``1`` use Horner piecewise polynomial evaluation (recommended, only valid for ``upsampfac=2.0`` or ``1.25``).
+**gpu_kerevalmeth**: [DEPRECATED] Kernel evaluation method in spreader/interpolator; retained only for API compatibility. The library now always uses the Horner piecewise-polynomial evaluation (the historical ``=1`` choice), whose coefficients are fitted at plan time for the requested ``upsampfac``. Setting this field has no effect.
 
-**upsampfac**: set upsampling factor. For the recommended ``gpu_kerevalmeth=1`` you must choose the standard ``upsampfac=2.0``. If you are willing to risk a slower kernel evaluation, you may set any ``upsampfac>1.0``, but this is experimental and unsupported. Finally, ``upsampfac=1.0`` is an advanced GPU setting only to be paired with the "spread/interpolate only" mode triggered by setting ``gpu_spreadinterponly=1`` (see options above); do not use this unless you know what you are doing!
+**upsampfac**: set upsampling factor. Any ``upsampfac>1.0`` works: the kernel's Horner coefficients are fitted at plan time, so no value is privileged. Standard settings are ``2.0`` (good for 9 or more digits) and ``1.25`` (lower RAM and FFT cost, up to about 5 digits). ``0.0`` selects the built-in choice.
 
 **gpu_maxsubprobsize**: maximum number of NU points to be handled in a single subproblem in the spreading SM method (``gpu_method=2`` only)
 

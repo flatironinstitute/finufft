@@ -4,7 +4,6 @@
 
 #include "spreadinterp_common.cuh"
 #include <cufinufft/spreadinterp.hpp>
-#include <poet/poet.hpp>
 
 #ifndef CUFINUFFT_DIM
 #error "CUFINUFFT_DIM must be defined to 1, 2, or 3 (set by CMake)"
@@ -14,14 +13,10 @@ namespace cufinufft {
 namespace spreadinterp {
 
 // Output-driven spreading kernel
-template<typename T, int KEREVALMETH, int ndim, int ns>
+template<typename T, int ndim, int ns>
 __global__ FINUFFT_FLATTEN void spread_output_driven(
     cufinufft_gpu_data<T> p, const cuda_complex<T> *c, cuda_complex<T> *fw, int np) {
   extern __shared__ char sharedbuf[];
-
-  T sigma   = p.sigma;
-  T es_c    = p.es_c;
-  T es_beta = p.es_beta;
 
   // assume that bin_size > ns/2;
   auto info         = compute_subprob_block_info<T, ndim>(p, blockIdx.x);
@@ -61,8 +56,8 @@ __global__ FINUFFT_FLATTEN void spread_output_driven(
     for (int i = threadIdx.x; i < batch_size; i += blockDim.x) {
       const int nuptsidx      = loadReadOnly(p.idxnupts + ptstart + i + batch_begin);
       nupts_sm[i]             = loadReadOnly(c + nuptsidx);
-      auto [ker, local_shift] = get_kerval_and_local_start<T, KEREVALMETH, ndim, ns>(
-          nuptsidx, p.xyz, p.nf123, offset, sigma, es_c, es_beta);
+      auto [ker, local_shift] = get_kerval_and_local_start<T, ndim, ns>(
+          nuptsidx, p.xyz, p.nf123, offset, p.horner_coeffs);
       kerevals[i] = ker;
       shift[i]    = local_shift;
     }
@@ -124,8 +119,7 @@ void spread_output_driven_launch(const cufinufft_plan_t<T> &d_plan,
       THROW_IF_CUDA_ERROR();
     }
   };
-  (d_plan.opts.gpu_kerevalmeth == 1) ? launch(spread_output_driven<T, 1, ndim, ns>)
-                                     : launch(spread_output_driven<T, 0, ndim, ns>);
+  launch(spread_output_driven<T, ndim, ns>);
 }
 
 template<typename T, int Ndim> struct SpreadOutputDrivenCaller {
@@ -141,10 +135,8 @@ template<typename T, int Ndim> struct SpreadOutputDrivenCaller {
 template<typename T, int Ndim>
 void do_spread_output_driven(const cufinufft_plan_t<T> &p, const cuda_complex<T> *c,
                              cuda_complex<T> *fw, int blksize) {
-  using namespace finufft::common;
   SpreadOutputDrivenCaller<T, Ndim> caller{p, c, fw, blksize};
-  using NsSeq = poet::inclusive_range<MIN_NSPREAD, MAX_NSPREAD<T>>;
-  poet::dispatch(caller, std::make_tuple(poet::dispatch_param<NsSeq>{p.spopts.nspread}));
+  utils::dispatch_kernel_shape<T>(caller, p.spopts.nspread);
 }
 
 template void do_spread_output_driven<float, CUFINUFFT_DIM>(

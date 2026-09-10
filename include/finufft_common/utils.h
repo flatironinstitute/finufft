@@ -5,6 +5,7 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <cstdio>
 #include <limits>
 #include <tuple>
 #include <type_traits>
@@ -28,6 +29,14 @@ BIGINT next235(BIGINT n, BIGINT required_factor = 1);
 
 FINUFFT_EXPORT_TEST void gaussquad(int n, double *xgl, double *wgl);
 std::tuple<double, double> leg_eval(int n, double x);
+
+// One message for every deprecated opts field, CPU and GPU. A deprecated field is
+// silently ignored, and only C++ callers see the [[deprecated]] attribute, so warn at
+// run time for the Fortran/Python/MATLAB/Julia wrappers. Callers own the gate: the CPU
+// has opts.showwarn, the GPU has no such field.
+inline void warn_deprecated_opt(const char *fn, const char *name) {
+  std::fprintf(stderr, "%s warning: opts.%s is deprecated and ignored.\n", fn, name);
+}
 
 } // namespace common
 } // namespace finufft
