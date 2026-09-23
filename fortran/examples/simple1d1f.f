@@ -32,8 +32,8 @@ c     or this is if you want default opts, make a null pointer...
 
 c     how many nonuniform pts
       M = 200000
-c     how many modes
-      N = 100000
+c     how many modes (NB if too large lose acc in single prec)
+      N = 10000
 
       allocate(fk(N))
       allocate(xj(M))
@@ -50,7 +50,7 @@ c     create some quasi-random NU pts in [-pi, pi), complex strengths
 c     mandatory parameters to FINUFFT: sign of +-i in NUFFT
       iflag = 1
 c     tolerance
-      tol = 1e-2
+      tol = 5e-3
 c     Do transform: writes to fk (mode coeffs), and ier (status flag).
 c     use default options:
       call finufftf1d1(M,xj,cj,iflag,tol,N,fk,defopts,ier)
@@ -60,6 +60,7 @@ c     use default options:
          print '("done in ",f6.3," sec, ",e10.2," NU pts/s")',t,M/t
       else
          print *,'failed! ier=',ier
+         stop 1
       endif
 
 c     math test: single output mode with given freq (not array index) k
@@ -77,6 +78,8 @@ c     compute inf norm of fk coeffs for use in rel err
       ktestindex = ktest + N/2 + 1
       print '("rel err for mode k=",i10," is ",e10.2)',ktest,
      $     cabs(fk(ktestindex)-fktest)/fmax
+      err = cabs(fk(ktestindex)-fktest)/fmax
+      if (err.gt.10*tol) stop 1
 
 c     do another transform, but now first setting some options...
       print *,''
@@ -98,6 +101,7 @@ c     tell it to ignore that the error model says not possible...
          print '("done in ",f6.3," sec, ",e10.2," NU pts/s")',t,M/t
       else
          print *,'failed! ier=',ier
+         stop 1
       endif
 
       stop

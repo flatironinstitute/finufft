@@ -74,8 +74,8 @@ c
       print*,'Starting 3D testing: ', 'nj =',nj, 'ms,mt,mu =',ms,mt,mu
       do i = 1,3
          if (i.eq.1) eps=1e-2
-         if (i.eq.2) eps=1e-4
-         if (i.eq.3) eps=1e-5
+         if (i.eq.2) eps=1e-3
+         if (i.eq.3) eps=5e-4
 	 print*,' '
 	 print*,' Requested precision eps =',eps
 	 print*,' '
@@ -90,6 +90,7 @@ c
          print *, ' ier = ',ier
          call errcomp(fk0,fk1,nk,err)
          print *, ' type 1 error = ',err
+         if (ier.ne.0 .or. err.gt.10*eps) stop 1
 c
 c     -----------------------
 c      call 3D Type 2 method
@@ -100,6 +101,7 @@ c     -----------------------
          print *, ' ier = ',ier
          call errcomp(cj0,cj1,nj,err)
          print *, ' type 2 error = ',err
+         if (ier.ne.0 .or. err.gt.10*eps) stop 1
 c
 c     -----------------------
 c      call 3D Type3 method
@@ -116,6 +118,7 @@ c     -----------------------
          print *, ' ier = ',ier
          call errcomp(fk0,fk1,nk,err)
          print *, ' type 3 error = ',err
+         if (ier.ne.0 .or. err.gt.10*eps) stop 1
       enddo
       stop
       end

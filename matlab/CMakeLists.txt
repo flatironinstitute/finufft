@@ -205,6 +205,7 @@ if(FINUFFT_BUILD_OCTAVE)
             examples/guru1d1.m
             examples/guru1d1_single.m
             examples/guru1d1_adjoint.m
+            examples/demo_spreadinterponly2d.m
         )
 
         # Fixture: build the mex before any octave_* test runs.

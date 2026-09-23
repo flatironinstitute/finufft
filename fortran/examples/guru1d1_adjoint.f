@@ -85,6 +85,7 @@ c     writes cj (strengths) and ier (status), reads fk (mode coeffs)
      $     t,M/t
       else
          print *,'failed! ier=',ier
+         stop 1
       endif
       call finufft_destroy(plan,ier)
 
@@ -103,6 +104,8 @@ c     compute inf norm of output vector for use in rel err
       enddo
       print '("rel err for target j=",i10," is ",e10.2)',jtest,
      $     cdabs(cj(jtest)-cjtest)/cmax
+      err = cdabs(cj(jtest)-cjtest)/cmax
+      if (err.gt.10*tol) stop 1
 
       stop
       end

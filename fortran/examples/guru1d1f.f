@@ -83,6 +83,7 @@ c     Do it: reads cj (strengths), writes fk (mode coeffs) and ier (status)
          print '("done in ",f6.3," sec, ",e10.2," NU pts/s")',t,M/t
       else
          print *,'failed! ier=',ier
+         stop 1
       endif
       call finufftf_destroy(plan,ier)
 
@@ -102,6 +103,8 @@ c     compute inf norm of fk coeffs for use in rel err
       ktestindex = ktest + N/2 + 1
       print '("rel err for mode k=",i10," is ",e10.2)',ktest,
      $     cabs(fk(ktestindex)-fktest)/fmax
+      err = cabs(fk(ktestindex)-fktest)/fmax
+      if (err.gt.10*tol) stop 1
 
 c     ----------- GURU DEMO WITH NEW OPTIONS, MULTIPLE EXECS ----------
       print *,''
@@ -134,6 +137,7 @@ c     change the NU pts then do another transform w/ existing strengths...
          print *,'done.'
       else
          print *,'failed! ier=',ier
+         stop 1
       endif
       call finufftf_destroy(plan,ier)
 

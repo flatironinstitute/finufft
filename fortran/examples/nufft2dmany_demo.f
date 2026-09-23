@@ -44,7 +44,6 @@ c     As with nufft2d_demo.f, nj is "M" the # NU pts, and nk is "N", # modes:
       nj = n1*n2
       nk = ms*mt
 
-      maxerr = 0.0
 c     first alloc everything
       allocate(xj(nj))
       allocate(yj(nj))
@@ -88,6 +87,7 @@ c     -----------------------
 c
          call finufft2d1many(ntrans,nj,xj,yj,cj,iflag,
      &                         eps,ms,mt,fk1,defopts,ier)
+         maxerr = 0.0
          do d = 1, ntrans
             call dirft2d1(nj,xj,yj,cj(1+(d-1)*nj:d*nj),iflag,ms,mt,
      &                    fk0(1+(d-1)*nk:d*nk))
@@ -95,13 +95,15 @@ c
      &                   nk,err)
             maxerr = max(maxerr,err)
          enddo
-         print *, ' max type 1 error = ',err
+         print *, ' max type 1 error = ',maxerr
+         if (ier.ne.0 .or. maxerr.gt.10*eps) stop 1
 c
 c     -----------------------
 c      call 2D Type 2 method
 c     -----------------------
          call finufft2d2many(ntrans,nj,xj,yj,cj1,iflag,
      &                         eps,ms,mt,fk0,defopts,ier)
+         maxerr = 0.0
          do d = 1, ntrans
             call dirft2d2(nj,xj,yj,cj0(1+(d-1)*nj:d*nj),iflag,ms,mt,
      &                    fk0(1+(d-1)*nk:d*nk))
@@ -109,7 +111,8 @@ c     -----------------------
      &                   nj,err)
             maxerr = max(maxerr,err)
          enddo
-         print *, ' max type 2 error = ',err
+         print *, ' max type 2 error = ',maxerr
+         if (ier.ne.0 .or. maxerr.gt.10*eps) stop 1
 c
 c     -----------------------
 c      call 2D Type3 method
@@ -121,6 +124,7 @@ c     -----------------------
 
          call finufft2d3many(ntrans,nj,xj,yj,cj,iflag,eps,nk,sk,tk,
      &        fk1,defopts,ier)
+         maxerr = 0.0
          do d = 1, ntrans
             call dirft2d3(nj,xj,yj,cj(1+(d-1)*nj:d*nj),iflag,nk,
      &           sk,tk,fk0(1+(d-1)*nk:d*nk))
@@ -128,7 +132,8 @@ c     -----------------------
      &                   nk,err)
             maxerr = max(maxerr,err)
          enddo
-         print *, ' max type 3 error = ',err
+         print *, ' max type 3 error = ',maxerr
+         if (ier.ne.0 .or. maxerr.gt.10*eps) stop 1
       enddo
       stop
       end

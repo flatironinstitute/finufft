@@ -36,6 +36,7 @@ f = finufft2d1(x,y,c,isign,tol,N1,N2,opts);      % do it
 t = toc;
 mass = sum(f(:)); err = abs(mass - kersum*sum(c))/abs(mass);  % relative err
 fprintf('2D spread-only: %.3g s (%.3g NU pt/s), mass err %.3g\n',t, M/t, err)
+assert(err < 10*tol)
 
 % interp only demo: ---------
 f = 0*f+1.0;                                     % unit complex input data
@@ -44,3 +45,4 @@ c = finufft2d2(x,y,isign,tol,f,opts);            % do it
 t = toc;
 maxerr = max(abs(c-kersum)) / kersum;            % worst-case c err
 fprintf('2D interp-only: %.3g s (%.3g NU pt/s), max err %.3g\n', t, M/t, maxerr)
+assert(maxerr < 10*tol)

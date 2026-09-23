@@ -40,7 +40,7 @@ c     or this is if you want default opts, make a null pointer...
 
 c     how many nonuniform pts
       M = 1000000
-c     how many modes
+c     how many modes (NB if too large lose acc in single prec)
       N = 100000
 
       allocate(fk(N))
@@ -59,7 +59,7 @@ c     mandatory parameters to FINUFFT guru interface...
       dim = 1
       ntrans = 1
       iflag = 1
-      tol = 1e-5
+      tol = 1e-3
       allocate(n_modes(3))
       n_modes(1) = N
 c     (note since dim=1, unused entries on n_modes are never read)
@@ -85,6 +85,7 @@ c     reads fk (mode coeffs), writes cj (strengths) and ier (status)
          print '("done in ",f6.3," sec, ",e10.2," NU pts/s")',t,M/t
       else
          print *,'failed! ier=',ier
+         stop 1
       endif
       call finufftf_destroy(plan,ier)
 
@@ -105,6 +106,8 @@ c     compute inf norm of fk coeffs for use in rel err
       ktestindex = ktest + N/2 + 1
       print '("rel err for mode k=",i10," is ",e10.2)',ktest,
      $     cabs(fk(ktestindex)-fktest)/fmax
+      err = cabs(fk(ktestindex)-fktest)/fmax
+      if (err.gt.10*tol) stop 1
 
       stop
       end
