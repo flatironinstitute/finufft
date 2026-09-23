@@ -1,0 +1,13 @@
+# Build environment for `pip install .` from this directory. The macOS system clang has no
+# OpenMP, hence llvm-openmp; without fftw the build downloads and compiles its own.
+name: finufft-build
+channels:
+  - conda-forge
+dependencies:
+  - python >=3.10
+  - pip
+  - c-compiler
+  - cxx-compiler
+  - binutils  # unprefixed `ar`; c-compiler/cxx-compiler alone leave CMAKE_AR unresolved
+  - llvm-openmp
+  - fftw
