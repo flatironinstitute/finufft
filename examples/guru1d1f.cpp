@@ -82,5 +82,5 @@ int main()
   printf("guru 1D type-1 single-prec NUFFT done. ier=%d, rel err in F[%d] is %.3g\n", ier,
          n, err);
 
-  return ier;
+  return ier || err > 10 * tol;
 }

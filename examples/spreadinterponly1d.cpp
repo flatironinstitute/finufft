@@ -37,7 +37,6 @@ int main()
   opts.spreadinterponly = 1;    // task: the following two control kernel used...
   double tol            = 1e-9; // tolerance for (real) kernel shape design only
   opts.upsampfac        = 2.0;  // pretend upsampling factor (really no upsampling)
-       // opts.spread_kerevalmeth = 0;  // DEPRECATED: no effect; the library always uses Horner.
 
   complex<double> I = complex<double>(0.0, 1.0); // the imaginary unit
   vector<double> x(M);                           // input
@@ -83,7 +82,8 @@ int main()
   for (auto cj : c) csum += cj;
   double maxerr = 0.0;
   for (auto cj : c) maxerr = max(maxerr, abs(cj - kersum));
+  double relmaxerr = maxerr / abs(kersum);
   printf("1D interp-only, double-prec, %.3g s (%.3g NU pt/sec), ier=%d, max err %.3g\n",
-         t, M / t, ier, maxerr / abs(kersum));
-  return 0;
+         t, M / t, ier, relmaxerr);
+  return ier || relerr > 10 * tol || relmaxerr > 10 * tol;
 }

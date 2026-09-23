@@ -7,20 +7,22 @@ import numpy as np
 
 np.random.seed(42)
 
-N = int(1e6)
+# single precision cannot resolve better than about max(N_i) * eps_mach, so a
+# single-precision plan needs both a modest mode count and a coarse tolerance.
+# Same sizes as examples/guru1d1f.cpp.
+N = int(1e4)
 M = int(1e5)
+tol = 1e-3
 x = np.random.uniform(-np.pi, np.pi, M)
 x = x.astype("float32")
 c = np.random.randn(M) + 1.0j * np.random.randn(M)
 c = c.astype("complex64")
 F = np.zeros([N], dtype=np.complex64)  # allocate F (modes out)
-n_modes = np.ones([1], dtype=np.int64)
-n_modes[0] = N
 
 strt = time.time()
 
 # plan, using proper specifier for single-precision transform
-plan = fp.Plan(1, (N,), dtype="complex64")
+plan = fp.Plan(1, (N,), eps=tol, dtype="complex64")
 
 # set pts
 plan.setpts(x)
@@ -40,3 +42,4 @@ for j in range(M):
 Fmax = np.max(np.abs(F))
 err = np.abs((F[n + N // 2] - Ftest) / Fmax)
 print("Error relative to max of F: {0:.2e}".format(err))
+assert err < 10 * tol

@@ -76,5 +76,5 @@ int main() {
   printf("\tdone: ier=%d; for transform %d, rel err in F[%d] is %.3g\n", ier, trans, k,
          err);
 
-  return ier;
+  return ier || err > 10 * tol;
 }

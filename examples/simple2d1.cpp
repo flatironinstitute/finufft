@@ -34,7 +34,7 @@ int main() {
 
     // each component uniform random in [-1,1]
     c[i] =
-        2 * ((double)rand() / RAND_MAX - 1) + I * (2 * ((double)rand() / RAND_MAX) - 1);
+        2 * ((double)rand() / RAND_MAX) - 1 + I * (2 * ((double)rand() / RAND_MAX) - 1);
   }
 
   // choose numbers of output Fourier coefficients in each dimension
@@ -71,5 +71,5 @@ int main() {
   double err = abs(F[indexOut] - Ftest) / Fmax;
   cout << "2D type-1 NUFFT done. ier=" << ier << ", err in F[" << indexOut
        << "] rel to max(F) is " << setprecision(2) << err << endl;
-  return ier;
+  return ier || err > 10 * tol;
 }

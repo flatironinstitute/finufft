@@ -12,13 +12,12 @@ M = int(1e5)
 x = np.random.uniform(-np.pi, np.pi, M)
 c = np.random.randn(M) + 1.0j * np.random.randn(M)
 F = np.zeros([N], dtype=np.complex128)  # allocate F (modes out)
-n_modes = np.ones([1], dtype=np.int64)
-n_modes[0] = N
 
+eps = 1e-6
 strt = time.time()
 
 # plan
-plan = fp.Plan(1, (N,))
+plan = fp.Plan(1, (N,), eps=eps)
 
 # set pts
 plan.setpts(x)
@@ -38,3 +37,4 @@ for j in range(M):
 Fmax = np.max(np.abs(F))
 err = np.abs((F[n + N // 2] - Ftest) / Fmax)
 print("Error relative to max of F: {0:.2e}".format(err))
+assert err < 10 * eps

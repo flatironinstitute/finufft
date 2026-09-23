@@ -31,7 +31,7 @@ int main() {
     y[i] = PI * (2 * (double)rand() / RAND_MAX - 1); // uniform random in [-pi, pi)
     // each component uniform random in [-1,1]
     c[i] =
-        2 * ((double)rand() / RAND_MAX - 1) + I * (2 * ((double)rand() / RAND_MAX) - 1);
+        2 * ((double)rand() / RAND_MAX) - 1 + I * (2 * ((double)rand() / RAND_MAX) - 1);
   }
 
   // choose numbers of output Fourier coefficients in each dimension
@@ -45,7 +45,7 @@ int main() {
   int64_t Ns[] = {N1, N2};           // N1,N2 as 64-bit int array
   // step 1: make a plan...
   finufft_plan plan;
-  int ier = finufft_makeplan(type, dim, Ns, +1, ntrans, tol, &plan, NULL);
+  int ier = finufft_makeplan(type, dim, Ns, +1, ntrans, tol, &plan, &opts);
   // step 2: send in M nonuniform points (just x, y in this case)...
   finufft_setpts(plan, M, &x[0], &y[0], NULL, 0, NULL, NULL, NULL);
   // step 3: do the planned transform to the c strength data, output to F...
@@ -78,5 +78,5 @@ int main() {
   double err = abs(F[indexOut] - Ftest) / Fmax;
   cout << "2D type-1 NUFFT done. ier=" << ier << ", err in F[" << indexOut
        << "] rel to max(F) is " << setprecision(2) << err << endl;
-  return ier;
+  return ier || err > 10 * tol;
 }

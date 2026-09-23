@@ -28,8 +28,9 @@ N2 = 2000
 nufft_type = 1
 
 # instantiate the plan (note n_trans must be set here), also setting tolerance:
+eps = 1e-9
 t0 = time.time()
-plan = finufft.Plan(nufft_type, (N1, N2), eps=1e-9, n_trans=K)
+plan = finufft.Plan(nufft_type, (N1, N2), eps=eps, n_trans=K)
 
 # set the nonuniform points
 plan.setpts(x, y)
@@ -50,3 +51,4 @@ assert (t >= 0) & (t < K)
 ftest = sum(c[t, :] * np.exp(1.0j * (k1 * x + k2 * y)))
 err = np.abs(f[t, k1 + N1 // 2, k2 + N2 // 2] - ftest) / np.max(np.abs(f))
 print("Error relative to max: {0:.2e}".format(err))
+assert err < 10 * eps
