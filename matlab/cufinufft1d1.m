@@ -19,7 +19,7 @@
 %           in either case, mode range is integers lying in [-ms/2, (ms-1)/2]
 %     opts   optional struct with optional fields controlling the following:
 %     opts.debug:   0 (silent, default), 1 (timing breakdown), 2 (debug info).
-%     opts.upsampfac:   sigma.  2.0 (default), or 1.25 (low RAM, smaller FFT).
+%     opts.upsampfac:   sigma.  0 (auto, default), 2.0 (standard), or 1.25 (low RAM, smaller FFT).
 %     opts.gpu_method:  0 (auto, default), 1 (GM or GM-sort), 2 (SM).
 %     opts.gpu_sort:  0 (do not sort NU pts), 1 (sort when GM method, default).
 %     opts.gpu_kerevalmeth:  0 (slow reference). 1 (Horner ppoly, default).
