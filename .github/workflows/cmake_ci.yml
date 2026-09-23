@@ -80,6 +80,20 @@ jobs:
           enableCrossOsArchive: true
           path: cpm
 
+  # Runs the documented conda recipe (docs/install.rst) verbatim, so a change to either
+  # the script or environment.yml that breaks the build is caught here.
+  # cufinufft's recipe is not run here: it pulls the multi-GB nvidia cuda-toolkit conda
+  # package, which risks this job's time budget with no GPU available to test against.
+  conda-build:
+    name: conda build (finufft)
+    runs-on: ubuntu-latest
+    container: condaforge/miniforge3:latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - name: Build and test via conda
+        run: bash python/finufft/conda-install.sh
+
   cmake-ci:
     runs-on: ${{ matrix.os }}
     needs: [cache, pip-requirements]

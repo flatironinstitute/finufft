@@ -1,0 +1,15 @@
+# Build environment for `pip install .` from this directory. nvcc needs a host compiler and an
+# unprefixed `ar` (from binutils); the CPU library (OpenMP/FFTW) is not built for this package.
+name: cufinufft-build
+channels:
+  - nvidia/label/cuda-12.4.0
+  - conda-forge
+dependencies:
+  - python >=3.10
+  - pip
+  - c-compiler
+  - cxx-compiler
+  - binutils  # unprefixed `ar`; c-compiler/cxx-compiler alone leave CMAKE_AR unresolved
+  - cuda-toolkit
+  - pip:
+    - cupy-cuda12x

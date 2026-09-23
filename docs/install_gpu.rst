@@ -189,6 +189,26 @@ Assuming ``pytest`` is installed (otherwise, just run ``pip install pytest``), y
 In contrast to the C interface tests, these check for correctness, so a successful test run signifies that the library is working correctly.
 Note that you can specify other framework (``pycuda``, ``torch``, or ``numba``) for testing using the ``--framework`` argument.
 
+Building inside a conda environment
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+conda is not an officially supported way to install cuFINUFFT. Building from source
+inside a conda environment gets the CUDA toolkit and CuPy from conda instead of a
+system install. The environment file and the install script live next to the package
+they build, in ``python/cufinufft``:
+
+.. code-block:: bash
+
+  bash python/cufinufft/conda-install.sh
+
+.. literalinclude:: ../python/cufinufft/conda-install.sh
+   :language: bash
+   :start-after: @conda_cufinufft_start
+   :end-before: @conda_cufinufft_end
+
+.. literalinclude:: ../python/cufinufft/environment.yml
+   :language: yaml
+
 
 Matlab interface
 ----------------
