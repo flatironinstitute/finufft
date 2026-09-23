@@ -309,12 +309,12 @@ cufinufft_plan_t<T>::cufinufft_plan_t(int type_, int dim_, const int *nmodes, in
       opts.gpu_method = (type == 1 || type == 3) ? 2 : 1;
     }
     try {
-      cufinufft_setup_binsize<T>(gpu, type, spopts.nspread, dim, &opts);
+      cufinufft_setup_binsize<T>(gpu, type, spopts.nspread, dim, mstu.data(), &opts);
     } catch (const std::runtime_error &e) {
       if (auto_method) {
         // Auto-selection of SM failed, fall back to GM and try again.
         opts.gpu_method = 1;
-        cufinufft_setup_binsize<T>(gpu, type, spopts.nspread, dim, &opts);
+        cufinufft_setup_binsize<T>(gpu, type, spopts.nspread, dim, mstu.data(), &opts);
       } else {
         // User-specified method failed, or the fallback GM method failed.
         fprintf(stderr, "%s, method %d\n", e.what(), opts.gpu_method);
