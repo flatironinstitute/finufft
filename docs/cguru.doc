@@ -7,10 +7,15 @@
  
    Make a plan to perform one or more general transforms.
  
-   Under the hood, for type 1 and 2, this chooses spread/interp kernel
-   parameters, precomputes the kernel Fourier transform, and (for FFTW), plans
-   a pair of FFTs. For type 3, only the kernel parameters are chosen, since
-   the FFT sizes are not yet known.
+   Under the hood, if opts.upsampfac is explicitly set (nonzero), for type 1
+   and 2 this immediately chooses spread/interp kernel parameters, precomputes
+   the kernel Fourier transform, and (for FFTW), plans a pair of FFTs. With the
+   default opts.upsampfac=0 (auto), makeplan only validates tol (clamping or
+   erroring per opts.allow_eps_too_small); the density-dependent upsampfac
+   choice, kernel setup, and FFT planning are deferred to the following
+   setpts call instead, and a later setpts with a different point density can
+   trigger a re-plan. For type 3, only the kernel parameters may be chosen (if
+   upsampfac is locked), since the FFT sizes are not yet known.
  
  Inputs:
       type   type of transform (1,2, or 3)
@@ -29,7 +34,8 @@
      return value  0: success, 1: success but warning, >1: error (see error.rst)
  
    Notes:
-      * All available threads are planned by default (but see opts.nthreads)
+      * By default (opts.nthreads=0) the number of physical cores available is
+        used (honoring OMP_NUM_THREADS if set); see opts.rst
       * The vectorized (many vector) plan, ie ntrans>1, can be much faster
         than repeated calls with the same nonuniform points.
         Note that here the I/O data ordering is stacked rather than interleaved.

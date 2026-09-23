@@ -152,7 +152,7 @@ Diagnostic options
 Algorithm performance options
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-**nthreads**: (Ignored in single-threaded library builds.) If positive, sets the number of threads to use throughout (multi-threaded build of) library, or if ``0`` uses the maximum number of threads available according to OpenMP. In the positive case, no cap is placed on this number. This number of threads is passed to bin-sorting (which may choose to use less threads), but is adhered to in FFTW and spreading/interpolation steps. This number of threads (or 1 for single-threaded builds) also controls the batch size for vectorized transforms (ie ``ntr>1`` :ref:`here <c>`).
+**nthreads**: (Ignored in single-threaded library builds.) If positive, sets the number of threads to use throughout (multi-threaded build of) library. In the positive case, no cap is placed on this number. If ``0`` (the default), the library instead detects the number of physical cores available: an explicit ``OMP_NUM_THREADS`` environment variable wins if set to a valid positive value, otherwise the number of physical cores within the process's affinity mask is used, falling back to OpenMP's ``omp_get_max_threads()`` only if that detection fails. This number of threads is passed to bin-sorting (which may choose to use less threads), but is adhered to in FFTW and spreading/interpolation steps. This number of threads (or 1 for single-threaded builds) also controls the batch size for vectorized transforms (ie ``ntr>1`` :ref:`here <c>`).
 For medium-to-large transforms, ``0`` is usually recommended.
 However, for (repeated) small transforms it can be advantageous to use a small number, even as small as ``1``.
 
@@ -173,10 +173,9 @@ Feel free to try experimenting here; if you have highly-structured nonuniform po
 **upsampfac**: This is the internal factor $\sigma$ by which the FFT (fine grid)
 is chosen larger than
 the number of requested modes in each dimension, for type 1 and 2 transforms. For type 3 transforms this factor gets squared, due to type 2 nested in a type-1-spreading operation, so has even more influence.
-As of v2.5.0, due to on-the-fly polynomial coefficient fitting, the kernel is equally efficient for an arbitrary upsampling factor greater than 1, but the useful range is around 1.2 up to 3.0.
+As of v2.5.0, due to on-the-fly polynomial coefficient fitting, the kernel is equally efficient for an arbitrary upsampling factor greater than 1; the library warns if it strays outside ``[1.15, 3.0]`` as unlikely to be beneficial (and possibly library-breaking).
 
-* ``upsampfac=0.0`` : use heuristics to choose a good ``upsampfac`` based on the problem.
- The value chosen is visible in the text output via setting ``debug>=1``. This default setting is recommended for most users; however, if you seek more performance you may want to set if 
+* ``upsampfac=0.0`` : use a density-aware cost model (see ``finufft/heuristics.hpp``) to choose a good ``upsampfac`` for the problem. For type 1 and 2 this choice needs the actual point density ``M/N``, so it (and, on the first call or a re-plan, the kernel Fourier transform and FFT setup) happens in ``finufft_setpts``, not ``finufft_makeplan``; a later ``setpts`` call with a significantly different density can trigger a re-plan. The value chosen is visible in the text output via setting ``debug>=1``. This default setting is recommended for most users; however, if you seek more performance you may want to set it yourself, guided by the advice below. If the requested tolerance cannot be achieved at any upsampling factor, ``setpts`` returns ``ier=26``.
 
 * ``upsampfac>1.0`` : fix the upsampling factor, overriding the heuristic choice. A standard setting is 2 (which is good for achieving 9-digit or more accuracy), while a typical "low" setting is 1.25 (this reduces the RAM and FFT costs, and is good for up to 5-digit accuracy, unless the density M/N is high enough that its 50% wider spreading kernel would be counterproductive). Low upsampfac is especially efficient for type 3 transforms. Because the kernel width is limited to 16, only 9-digit accuracy can be reached when using ``upsampfac=1.25``, for instance.
 
@@ -203,6 +202,14 @@ Here ``0`` makes an automatic choice. If you are unhappy with this, then for sma
 **spread_kerpad**: [DEPRECATED] This option historically controlled padding to help SIMD vectorization for the removed direct-evaluation method. It is ignored by the library.
 
 Like ``spread_thread``, both of the above print a runtime warning when set away from their default, in addition to the C++ compiler deprecation warning.
+
+**allow_eps_too_small**: CPU only. Controls what happens when the requested tolerance ``eps`` is below machine epsilon.
+
+* ``allow_eps_too_small=0`` (default): a hard error (``ier=26``, ``FINUFFT_ERR_EPS_TOO_SMALL``) is raised and no transform is performed.
+
+* ``allow_eps_too_small=1``: ``eps`` is silently clamped up to machine epsilon and the transform proceeds.
+
+(The GPU library has no such option: it always clamps and warns on stderr; see :ref:`error codes <error>`.)
 
 
 

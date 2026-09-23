@@ -13,6 +13,14 @@ v2.6.0-dev
   -march=x86-64 Release builds folded points wrongly and segfaulted;
   XSIMD_REASSOCIATIVE_MATH is now forced on, the fold accepts any real coordinate, and
   the docs no longer state a [-3pi,3pi] input domain (#918). (Barbone)
+* Fixed the default (`opts.nthreads=0`) to count physical cores only, not SMT siblings
+  (#888). (Barbone)
+* MATLAB/Octave: mistyped `opts` fields now warn with id `FINUFFT:unknownOpt` instead of
+  being silently ignored (#896). (Barbone)
+* Restored `CMakePresets.json` as the canonical entry point for local and CI builds
+  (#864). (Barbone)
+* New CMake option `FINUFFT_BUILD_OCTAVE` builds and mex-links the Octave interface
+  (#861). (Barbone)
 * Fixed CPU type 3 honoring `opts.spreadinterponly`: the option is documented to affect
   types 1 and 2 only, and cuFINUFFT already ignored it for type 3, but the CPU plan
   applied it, so a type-3 call with the flag set returned wrong values instead of the
@@ -89,8 +97,9 @@ v2.6.0-dev
   as fast as either former scheme at every ntr. The field is retained for ABI
   compatibility, is ignored, and emits a compiler deprecation warning in C++; the
   argument was dropped from the `finufft?dmany_test` and `guru_timing_test` CLIs
-  and from the MATLAB opts parser (where an unknown field is silently ignored, so
-  old scripts still run). Error code 13
+  and from the MATLAB opts parser (where at the time an unknown field was silently
+  ignored, so old scripts still ran; a later change made this warn instead, see
+  above). Error code 13
   (`FINUFFT_ERR_SPREAD_THREAD_NOTVALID`) is no longer returned: the enum value is
   kept and marked deprecated, but its dead string mappings were dropped from
   `safe_call.h`, `matlab/errhandler.m`, the Python error table and
@@ -191,7 +200,9 @@ v2.6.0-dev
   now emit compiler deprecation warnings.
   BREAKING CHANGE: FINUFFT_WARN_EPS_TOO_SMALL (ier=1) is now a hard error
   (FINUFFT_ERR_EPS_TOO_SMALL, ier=26). Users must pass tolerance >= machine
-  epsilon. The old enum value is retained but deprecated.
+  epsilon, or set the new `opts.allow_eps_too_small=1` to clamp the tolerance
+  up to machine epsilon and proceed as before. The old enum value is retained
+  but deprecated.
   (Barbone)
 * Internal cuFINUFFT refactoring
   - Spreading/interpolation functions of different dimensionalities were

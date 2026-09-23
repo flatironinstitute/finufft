@@ -387,6 +387,12 @@ while ``modeord=1`` selects FFT-style ordering starting at zero and wrapping ove
 It is analogous to the CPU option named :ref:`spreadinterponly<sionly>` (please read that documentation!). [This flag is also internally used for GPU type 3 transforms, although it was originally a debug flag.]
 
 
+Diagnostic options
+~~~~~~~~~~~~~~~~~~~
+
+**debug**: Controls the amount of debug/timing output to stdout; see the CPU option of the same name :ref:`debug<opts>`. ``0`` (default): silent. ``1``: some information, including the chosen bin sizes and (if ``upsampfac`` was left at its ``0`` auto default) the auto-chosen value. ``2``: more, including a breakdown of shared-memory usage per method.
+
+
 Algorithm performance options
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -406,11 +412,11 @@ Algorithm performance options
 
 **gpu_kerevalmeth**: ``0`` use direct (reference) kernel evaluation, which is not recommended for speed (however, it allows nonstandard ``opts.upsampfac`` to be used). ``1`` use Horner piecewise polynomial evaluation (recommended, only valid for ``upsampfac=2.0`` or ``1.25``).
 
-**upsampfac**: set upsampling factor. For the recommended ``gpu_kerevalmeth=1`` you must choose the standard ``upsampfac=2.0``. If you are willing to risk a slower kernel evaluation, you may set any ``upsampfac>1.0``, but this is experimental and unsupported. Finally, ``upsampfac=1.0`` is an advanced GPU setting only to be paired with the "spread/interpolate only" mode triggered by setting ``gpu_spreadinterponly=1`` (see options above); do not use this unless you know what you are doing!
+**upsampfac**: set upsampling factor. ``0.0`` (default) auto-chooses: ``2.0`` in general, or ``1.25`` for a type 3 transform with ``tol>=1e-9``; both values work with the recommended ``gpu_kerevalmeth=1`` (Horner). If you are willing to risk a slower kernel evaluation, you may set any other ``upsampfac>1.0`` together with ``gpu_kerevalmeth=0``, but this is experimental and unsupported. Finally, ``upsampfac=1.0`` is an advanced GPU setting only to be paired with the "spread/interpolate only" mode triggered by setting ``gpu_spreadinterponly=1`` (see options above); do not use this unless you know what you are doing!
 
 **gpu_maxsubprobsize**: maximum number of NU points to be handled in a single subproblem in the spreading SM method (``gpu_method=2`` only)
 
-**gpu_{o}binsize{x,y,z}**: various binsizes for sorting (GM-sort) or SM subproblem methods. Values of ``-1`` trigger the heuristically set default values. Leave at default unless you know what you're doing. [To be documented]
+**gpu_{o}binsize{x,y,z}**: various binsizes for sorting (GM-sort) or SM/OD subproblem methods. ``0`` (default) triggers the heuristically set default values; any other value less than ``1`` is invalid and throws. Leave at default unless you know what you're doing. [To be documented]
 
 **gpu_maxbatchsize**: for the vectorized (many-transforms with same NU points) interface, the largest batch of transforms to process per FFT. ``0`` (default) chooses it heuristically from the fine-grid size and the device's L2 cache size; a positive value is used as given, capped at ``ntransf``. Negative values are invalid.
 
@@ -431,7 +437,7 @@ For all GPU option default values we refer to the source code in
 
 For examples of advanced options-switching usage, see ``test/cuda/cufinufft*.cu`` and ``perftest/cuda/cuperftest.cu``.
 
-You may notice a lack of debugging/timing options in the GPU code. This is to avoid CUDA writing to stdout. Please help us out by adding some of these.
+The GPU code's debugging/timing output (``opts.debug``, see above) is more limited than the CPU library's, to avoid excessive CUDA-side stdout writes. Please help us out by extending it.
 
 
 .. _gpu_streams:
