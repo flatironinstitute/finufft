@@ -23,10 +23,11 @@ std::size_t shared_memory_required(int dim, int ns, int bin_size_x, int bin_size
 
 // Pick (bin sizes, np) for the requested gpu_method on the device named in
 // opts->gpu_device_id. Mutates opts in place. Mirrors finufft::heuristics on
-// the CPU side.
+// the CPU side. mstu holds the user mode sizes (the method-1 L2 rule estimates
+// the fine grid from them); it is unset for type 3's outer plan.
 template<typename T>
 void cufinufft_setup_binsize(const GpuCapabilities &gpu, int type, int ns, int dim,
-                             cufinufft_opts *opts);
+                             const CUFINUFFT_BIGINT *mstu, cufinufft_opts *opts);
 
 // How many transforms to batch into one FFT / spread pass, in [1, ntransf]. Needs the
 // fine grid, so it is called once nf is known.

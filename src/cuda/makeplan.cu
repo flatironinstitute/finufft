@@ -184,7 +184,14 @@ template<typename T> void cufinufft_plan_t<T>::allocate_nupts() {
 
   switch (opts.gpu_method) {
   case 1: {
-    if (opts.gpu_sort) newsize_sortidx = M;
+    if (opts.gpu_sort) {
+      // bin = nf leaves one bin; do_indexSort then takes the identity path and
+      // sortidx is never touched — skip its M-sized allocation.
+      const int bs[3]    = {opts.gpu_binsizex, opts.gpu_binsizey, opts.gpu_binsizez};
+      std::int64_t nbins = 1;
+      for (int i = 0; i < dim; ++i) nbins *= (nf123[i] + bs[i] - 1) / bs[i];
+      if (nbins > 1) newsize_sortidx = M;
+    }
     newsize_idxnupts = M;
   } break;
   case 2:
@@ -309,12 +316,12 @@ cufinufft_plan_t<T>::cufinufft_plan_t(int type_, int dim_, const int *nmodes, in
       opts.gpu_method = (type == 1 || type == 3) ? 2 : 1;
     }
     try {
-      cufinufft_setup_binsize<T>(gpu, type, spopts.nspread, dim, &opts);
+      cufinufft_setup_binsize<T>(gpu, type, spopts.nspread, dim, mstu.data(), &opts);
     } catch (const std::runtime_error &e) {
       if (auto_method) {
         // Auto-selection of SM failed, fall back to GM and try again.
         opts.gpu_method = 1;
-        cufinufft_setup_binsize<T>(gpu, type, spopts.nspread, dim, &opts);
+        cufinufft_setup_binsize<T>(gpu, type, spopts.nspread, dim, mstu.data(), &opts);
       } else {
         // User-specified method failed, or the fallback GM method failed.
         fprintf(stderr, "%s, method %d\n", e.what(), opts.gpu_method);
