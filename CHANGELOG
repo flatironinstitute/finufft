@@ -3,6 +3,9 @@ If not stated, FINUFFT is assumed (old cuFINUFFT <=1.3 is listed separately).
 
 v2.6.0-dev
 
+* cuFINUFFT: fixed 32-bit overflow of `nf1*nf2*nf3`, pointer offsets
+  `i*batchsize*{M,nf,nmodes}`/`block*M`/`j*N`, and int32 narrowing of `upsampfac*ms` in
+  `set_nf_type12`/`set_nhg_type3` that hid it from the new `MAX_NF` guard (#890). (Barbone)
 * Fixed CPU type 3 honoring `opts.spreadinterponly`: the option is documented to affect
   types 1 and 2 only, and cuFINUFFT already ignored it for type 3, but the CPU plan
   applied it, so a type-3 call with the flag set returned wrong values instead of the

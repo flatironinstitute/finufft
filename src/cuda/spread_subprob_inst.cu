@@ -3,6 +3,7 @@
 // Also instantiates the prep helper shared with output-driven (gpu_method = 3).
 
 #include "spreadinterp_common.cuh"
+#include <cstdint>
 #include <cufinufft/spreadinterp.hpp>
 #include <poet/poet.hpp>
 
@@ -104,7 +105,7 @@ void spread_subprob_launch(const cufinufft_plan_t<T> &d_plan, const cuda_complex
 
   const auto launch = [&](auto kernel) {
     cufinufft_set_shared_memory(kernel, d_plan);
-    for (int t = 0; t < blksize; t++) {
+    for (std::int64_t t = 0; t < blksize; t++) {
       kernel<<<d_plan.totalnumsubprob, 256, sharedplanorysize, d_plan.stream>>>(
           d_plan, c + t * d_plan.M, fw + t * d_plan.nf);
       THROW_IF_CUDA_ERROR();
