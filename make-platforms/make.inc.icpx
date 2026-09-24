@@ -1,0 +1,14 @@
+# Makefile variable overrides for the Intel oneAPI compilers (icpx, icx).
+#
+# icpx defaults to -fp-model=fast and -complex-range=promoted; this file
+# gives it the gcc/clang math model.
+#
+# Copy this file to make.inc, editing as needed.
+
+CXX = icpx
+CC = icx
+# icpx -fopenmp links libiomp5; use it for every consumer instead of the default -lgomp.
+OMPLIBS = -liomp5
+
+CFLAGS := -fno-fast-math $(subst -fcx-limited-range,-fcomplex-arithmetic=basic,$(CFLAGS))
+CXXFLAGS := -fno-fast-math $(subst -fcx-limited-range,-fcomplex-arithmetic=basic,$(CXXFLAGS))

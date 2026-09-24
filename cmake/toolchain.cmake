@@ -39,6 +39,12 @@ set(FINUFFT_CXX_FLAGS_RELEASE
 if(NOT APPLE AND NOT WIN32)
     list(APPEND FINUFFT_CXX_FLAGS_RELEASE -fno-semantic-interposition)
 endif()
+# icpx defaults to -fp-model=fast and -complex-range=promoted, which -fcx-limited-range warns about.
+# Directory options precede target ones, so the Release math flags still apply on top.
+if(CMAKE_CXX_COMPILER_ID STREQUAL "IntelLLVM")
+    add_compile_options($<$<COMPILE_LANGUAGE:C,CXX>:-fno-fast-math>)
+    list(TRANSFORM FINUFFT_CXX_FLAGS_RELEASE REPLACE "^-fcx-limited-range$" "-fcomplex-arithmetic=basic")
+endif()
 filter_supported_compiler_flags(FINUFFT_CXX_FLAGS_RELEASE FINUFFT_CXX_FLAGS_RELEASE)
 message(STATUS "FINUFFT Release flags: ${FINUFFT_CXX_FLAGS_RELEASE}")
 set(FINUFFT_CXX_FLAGS_RELWITHDEBINFO ${FINUFFT_CXX_FLAGS_RELEASE})
@@ -80,8 +86,8 @@ set(FINUFFT_CXX_FLAGS_WARNINGS
 # clang 18 reports a lone -fcx-limited-range as overriding the empty option it compares
 # against; clang 19 fixed that comparison. GCC accepts the unknown -Wno- silently, which
 # then annotates every later diagnostic, so ask for it on clang alone.
-if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|IntelLLVM")
-    list(APPEND FINUFFT_CXX_FLAGS_WARNINGS -Wno-overriding-option -Wno-overriding-complex-range)
+if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    list(APPEND FINUFFT_CXX_FLAGS_WARNINGS -Wno-overriding-option)
 endif()
 filter_supported_compiler_flags(FINUFFT_CXX_FLAGS_WARNINGS FINUFFT_CXX_FLAGS_WARNINGS)
 message(STATUS "FINUFFT warning flags: ${FINUFFT_CXX_FLAGS_WARNINGS}")
