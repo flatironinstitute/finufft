@@ -292,7 +292,7 @@ These apply to CMake (as above), or GNU make (as below).
 
 .. warning::
 
-  Intel compilers (unlike GPU compilers) currently engage ``fastmath`` behavior with ``-O2`` or ``-O3``. This may interfere with our use of ``std::isfinite`` in our source and test codes. For this reason in the Intel presets ``icx`` and ``icc`` have set ``-fp-model=strict``. You may get more speed if you remove this flag, or try ``-fno-finite-math-only``.
+  Intel compilers (unlike GPU compilers) currently engage ``fastmath`` behavior with ``-O2`` or ``-O3``, which can interfere with ``std::isfinite`` in FINUFFT's source and tests. For ``icpx``, CMake adds ``-fno-fast-math`` and ``-fcomplex-arithmetic=basic`` so its Release flags match gcc and clang; for the GNU make route, ``cp make-platforms/make.inc.icpx make.inc`` applies the same flags.
 
 
 Classic GNU make based route
