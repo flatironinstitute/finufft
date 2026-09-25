@@ -125,21 +125,23 @@ For experts only.
 Diagnostic options
 ~~~~~~~~~~~~~~~~~~~~~~~
 
+.. _debug:
+
 **debug**: Controls the amount of overall debug/timing output to stdout.
 
 * ``debug=0`` : silent
 
-* ``debug=1`` : prints some information
+* ``debug=1`` : prints a one-line plan summary at plan creation (dimension, type, ``ntrans``), the point and mode counts in ``setpts``, and per-stage total timings (spread/interpolate, FFT, deconvolution) after ``execute``.
 
-* ``debug=2`` : prints more information
+* ``debug=2`` : prints more: per-batch tracing and finer timings (eg the per-batch FFT time), plus extra plan-setup detail (eg thread detection).
 
 **spread_debug**: Controls the amount of debug/timing output from the spreader/interpolator.
 
 * ``spread_debug=0`` : silent
 
-  * ``spread_debug=1`` : prints some timing information
+* ``spread_debug=1`` : prints some timing information
 
-  * ``spread_debug=2`` : prints lots. This can print thousands of lines since it includes one line per *subproblem*.
+* ``spread_debug=2`` : prints lots. This can print thousands of lines since it includes one line per *subproblem*.
 
 
 **showwarn**: Whether to print warnings (these go to stderr).

@@ -272,7 +272,7 @@ and pass.
 Octave, instead of (or as well as) MATLAB, can be built the same CMake way by setting
 ``-DFINUFFT_BUILD_OCTAVE=ON``; this needs ``mkoctfile``, ``octave`` and
 ``octave-config`` on ``PATH`` (install ``octave`` and ``liboctave-dev``/``octave-devel``).
-It builds ``finufft.mex`` as a native CMake module library into ``build/matlab`` and, if
+It builds ``finufft.mex`` as a native CMake module library into ``build/matlab/octave`` and, if
 ``FINUFFT_BUILD_TESTS`` is also ``ON``, registers the Octave ``.m`` scripts as individual
 CTest entries under the ``octave`` label.
 
