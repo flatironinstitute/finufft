@@ -1,15 +1,18 @@
 # Build environment for `pip install .` from this directory. nvcc needs a host compiler and an
 # unprefixed `ar` (from binutils); the CPU library (OpenMP/FFTW) is not built for this package.
+# The toolkit comes from conda-forge, not nvidia's channel: only conda-forge uses the
+# targets/<arch> layout cupy 14's discovery requires (nvidia's flat layout crashes it).
 name: cufinufft-build
 channels:
-  - nvidia/label/cuda-12.4.0
   - conda-forge
 dependencies:
   - python >=3.10
   - pip
-  - c-compiler
-  - cxx-compiler
-  - binutils  # unprefixed `ar`; c-compiler/cxx-compiler alone leave CMAKE_AR unresolved
-  - cuda-toolkit
+  # nvcc 12.4 rejects a host gcc newer than 13 and conda-forge's cuda-nvcc 12.4
+  # constrains gcc further to <13; unpinned compilers now mean gcc 15.
+  - gcc=12
+  - gxx=12
+  - binutils  # unprefixed `ar`; gcc/gxx alone leave CMAKE_AR unresolved
+  - cuda-toolkit=12.4
   - pip:
     - cupy-cuda12x
