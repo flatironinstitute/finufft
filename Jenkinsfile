@@ -112,6 +112,34 @@ catchError {
       }
     }] }
 
+    // The conda recipes the docs hand to users (install.rst, install_gpu.rst), run
+    // verbatim from python/*/conda-install.sh. The GitHub container job was dropped
+    // for these: cufinufft's environment pulls the multi-GB cuda-toolkit conda
+    // package and its pytest needs a card, which only this cluster has, and the
+    // finufft one gets a cleaner signal beside it than from a second CI system.
+    // miniforge's /opt/conda is read-only to the pod's uid, so conda's state moves
+    // into the workspace; the scripts create the env by name and never touch base.
+    // No gpuType: either recipe takes any card, like the unpinned 11.8 matrix entry.
+    def condaEnv = [
+      "HOME=$WORKSPACE",
+      "CONDA_ENVS_PATH=$WORKSPACE/.conda/envs",
+      "CONDA_PKGS_DIRS=$WORKSPACE/.conda/pkgs"
+    ]
+    jobs['conda finufft'] = {
+      runPod(image: 'condaforge/miniforge3:latest', cpus: 8, memory: '16Gi') {
+        stage('conda finufft') {
+          withEnv(condaEnv) { sh 'bash python/finufft/conda-install.sh' }
+        }
+      }
+    }
+    jobs['conda cufinufft'] = {
+      runPod(image: 'condaforge/miniforge3:latest', cpus: 8, memory: '32Gi', gpus: 1) {
+        stage('conda cufinufft') {
+          withEnv(condaEnv) { sh 'bash python/cufinufft/conda-install.sh' }
+        }
+      }
+    }
+
     // The perftest comment, PR builds only: CHANGE_ID is unset on branch builds.
     // Each half writes its own section in its own pod - the CPU half wants cores
     // and no card, the GPU half wants the card - so the two run in parallel and

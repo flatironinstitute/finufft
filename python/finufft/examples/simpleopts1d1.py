@@ -29,6 +29,7 @@ for j in range(M):
 Fmax = np.max(np.abs(F))
 err = np.abs((F[n + N // 2] - Ftest) / Fmax)
 print("Error relative to max of F: {0:.2e}".format(err))
+assert err < 25 * acc  # 25x the requested tol, the python tests' margin
 
 # now test FFT mode output version, overwriting F...
 strt = time.time()
@@ -36,6 +37,7 @@ finufft.nufft1d1(x, c, out=F, eps=acc, isign=iflag, modeord=1)
 print("Finished nufft in {0:.2g} seconds (modeord=1)".format(time.time() - strt))
 err = np.abs((F[n] - Ftest) / Fmax)  # now zero offset in F array
 print("Error relative to max of F: {0:.2e}".format(err))
+assert err < 25 * acc  # 25x the requested tol, the python tests' margin
 
 # now test low-upsampfac (sigma) version...
 strt = time.time()
@@ -44,3 +46,4 @@ print(Ftest2 is F)
 print("Finished nufft in {0:.2g} seconds (upsampfac=1.25)".format(time.time() - strt))
 err = np.abs((Ftest2[n + N // 2] - Ftest) / Fmax)  # now zero offset in F array
 print("Error relative to max of F: {0:.2e}".format(err))
+assert err < 25 * acc  # 25x the requested tol, the python tests' margin
