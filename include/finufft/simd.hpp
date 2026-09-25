@@ -3,6 +3,9 @@
 #include <finufft_common/defines.h>
 #include <finufft_common/kernel.h>
 
+// clang sets no -fassociative-math macro, so xsimd's barrier compiles out; force it on.
+#define XSIMD_REASSOCIATIVE_MATH 1
+
 // xsimd configuration: ensure unsupported architectures fall back to emulated.
 #include <xsimd/config/xsimd_config.hpp>
 #ifdef XSIMD_NO_SUPPORTED_ARCHITECTURE

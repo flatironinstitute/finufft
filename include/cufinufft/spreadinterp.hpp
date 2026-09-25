@@ -56,7 +56,7 @@ constexpr __forceinline__ __device__ T cudaFMA(const T a, const T b, const T c) 
 
 /**
  * local NU coord fold+rescale macro: does the following affine transform to x:
- *   (x+PI) mod PI    each to [0,N)
+ *   ((x+PI) mod 2PI) * N / (2PI)    in [0,N)
  */
 template<typename T>
 constexpr __forceinline__ __host__ __device__ T fold_rescale(T x, int N) {

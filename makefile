@@ -69,7 +69,7 @@ DEPS_ROOT := deps
 
 # xsimd header-only dependency repo (VERSION can be a tag or commit)
 XSIMD_URL := https://github.com/xtensor-stack/xsimd.git
-XSIMD_VERSION := 6842624
+XSIMD_VERSION := 14.3.0
 XSIMD_DIR := $(DEPS_ROOT)/xsimd
 
 # POET dispatcher dependency: each release ships one amalgamated header (with

@@ -44,7 +44,7 @@ int run_test(int method, int type, int N1, int M, T tol, T checktol, int iflag,
 
   // Making data
   for (int i = 0; i < M; i++) {
-    x[i] = PI * randm11(); // x in [-pi,pi)
+    x[i] = 3 * PI * randm11(); // beyond [-pi,pi), so the fold is exercised
   }
 
   if (type == 1) {
