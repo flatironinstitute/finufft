@@ -99,7 +99,6 @@ fe = sum(c.*exp(1i*isign*(s(k)*x+t(k)*y+u(k)*z)));
 fprintf('3D type-3: rel err in f[%d] is %.3g\n',k,abs((fe-f(k))/max(f(:))))
 fprintf('total 3D time: %.3f s\n',toc)
 
-o.many_seq = 0; % 0 simultaneously do nufft on all data (default) or 1 sequentially
 tic; % --------- 2Dmanys
 N1=ceil(2.0*sqrt(N)); N2=round(N/N1);           % pick Fourier mode ranges
 ndata = ceil(1e7/(N1*N2+M));
