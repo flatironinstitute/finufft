@@ -99,11 +99,12 @@ v2.6.0-dev
   argument was dropped from the `finufft?dmany_test` and `guru_timing_test` CLIs
   and from the MATLAB opts parser (where at the time an unknown field was silently
   ignored, so old scripts still ran; a later change made this warn instead, see
-  above). Error code 13
-  (`FINUFFT_ERR_SPREAD_THREAD_NOTVALID`) is no longer returned: the enum value is
-  kept and marked deprecated, but its dead string mappings were dropped from
-  `safe_call.h`, `matlab/errhandler.m`, the Python error table and
-  `docs/error.rst`. The MATLAB gateway `matlab/finufft.cpp` was regenerated with
+   above). Error code 13
+   (`FINUFFT_ERR_SPREAD_THREAD_NOTVALID`) is no longer returned: the enum value is
+   kept and marked deprecated, and its dead string mappings were dropped from
+   `safe_call.h` and `matlab/errhandler.m`; the Python error table and
+   `docs/error.rst` keep the mapping, marked deprecated and unused, to stay in
+   sync with the header. The MATLAB gateway `matlab/finufft.cpp` was regenerated with
   mwrap 1.3.5 (the checked-in file dated from mwrap 1.1), which also picks up
   mwrap's own fixes: braces in the complex-array copy macro (the old expansion
   advanced the write pointer twice per element and set `.imag` outside the loop),

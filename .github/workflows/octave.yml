@@ -53,5 +53,5 @@ jobs:
       - uses: actions/upload-artifact@v7
         with:
           name: ${{ matrix.os }}-finufft-octave-mex
-          path: build/matlab/octave/finufft.mex
+          path: build/octave/finufft.mex
           if-no-files-found: error

@@ -390,7 +390,7 @@ It is analogous to the CPU option named :ref:`spreadinterponly<sionly>` (please 
 Diagnostic options
 ~~~~~~~~~~~~~~~~~~~
 
-**debug**: Controls the amount of debug output to stdout. Unlike the CPU option of the same name (see :ref:`debug<debug>`), the GPU code prints plan-setup diagnostics only, and only during plan creation; it has no timing output.
+**debug**: Controls the amount of debug output to stdout. Unlike the CPU option of the same name (see :ref:`debug<debug>`), the GPU code prints plan-setup diagnostics only, during plan creation and ``setpts``; it has no timing output.
 
 * ``debug=0`` : silent (the default)
 

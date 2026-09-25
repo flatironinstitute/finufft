@@ -16,7 +16,7 @@ has the following meanings which are used by both CPU and GPU versions
   4  spreader: [DEPRECATED]
   5  spreader: array allocation error [DEPRECATED, unused: never returned by the library]
   6  spreader: illegal direction (should be 1 or 2)
-  7  upsampfac too small (should be >1.0)
+  7  upsampfac too small (should be 0 for auto-choose, or >1.0)
   8  upsampfac not a value with known Horner poly eval rule (currently 2.0 or 1.25 only);
      raised only by the GPU library, and only when opts.gpu_kerevalmeth=1
   9  ntrans not valid in "many" (vectorized) or guru interface (should be >= 1)
@@ -42,7 +42,7 @@ has the following meanings which are used by both CPU and GPU versions
 For any nonzero value of ``ier`` the transform may not have been performed and the output should not be trusted. However, we hope that the value of ``ier`` will help to narrow down the problem.
 
 .. note::
-   On CPU, prior to v2.6.0, ``ier=1`` was a warning that still completed the transform at reduced accuracy. The default CPU behavior is now a hard error (``ier=26``). Setting ``opts.allow_eps_too_small=1`` clamps the requested tolerance to machine epsilon and allows the transform to proceed with no warning. GPU behavior differs: cuFINUFFT has no ``allow_eps_too_small`` option and always clamps the tolerance up to machine epsilon, printing a warning to stderr, and returns ``ier=0``.
+   On CPU, prior to v2.6.0, ``ier=1`` was a warning that still completed the transform at reduced accuracy. The default CPU behavior is now a hard error (``ier=26``). Setting ``opts.allow_eps_too_small=1`` clamps the requested tolerance to machine epsilon and allows the transform to proceed with a warning on stderr (suppressed by ``showwarn=0``) and ``ier=0``. GPU behavior differs: cuFINUFFT has no ``allow_eps_too_small`` option and always clamps the tolerance up to machine epsilon, printing a warning to stderr, and returns ``ier=0``.
 
 FINUFFT sometimes also sends error text to ``stderr`` if it detects faulty input parameters. Please check your terminal output.
 
