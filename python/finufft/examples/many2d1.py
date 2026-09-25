@@ -39,3 +39,4 @@ assert (t >= 0) & (t < K)
 ftest = sum(c[t, :] * np.exp(1.0j * (k1 * x + k2 * y)))
 err = np.abs(f[t, k1 + N1 // 2, k2 + N2 // 2] - ftest) / np.max(np.abs(f))
 print("Error relative to max: {0:.2e}".format(err))
+assert err < 25 * 1e-9  # 25x the requested tol, the python tests' margin

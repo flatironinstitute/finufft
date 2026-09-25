@@ -24,3 +24,9 @@ f_gpu = cufinufft.nufft1d1(x_gpu, c_gpu, (N,))
 
 # move results off the GPU
 f = f_gpu.get()
+# check one output mode against the direct computation; asserts on the default tol
+n = 1425
+f_test = np.sum(c * np.exp(1j * n * x))
+rel_err = np.abs(f[n + N // 2] - f_test) / np.max(np.abs(f))
+print(f"Relative error on mode {n} is {float(rel_err):.3g}")
+assert rel_err < 10 * 1e-6  # default tol, as in example2d1_pycuda

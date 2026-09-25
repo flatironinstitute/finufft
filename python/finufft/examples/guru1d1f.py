@@ -40,3 +40,4 @@ for j in range(M):
 Fmax = np.max(np.abs(F))
 err = np.abs((F[n + N // 2] - Ftest) / Fmax)
 print("Error relative to max of F: {0:.2e}".format(err))
+assert err < 25 * 1e-6  # default tol is 1e-6; 25x margin as in the python tests
