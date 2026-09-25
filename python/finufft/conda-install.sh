@@ -10,4 +10,6 @@ conda env create -f environment.yml
 conda activate finufft-build
 pip install . pytest
 pytest test
+# pytest does not run examples/; each example asserts its own math check.
+for example in examples/*.py; do python "$example"; done
 # sphinx tag (don't remove): @conda_finufft_end

@@ -10,5 +10,6 @@ eval "$(conda shell.bash hook)"
 conda env create -f environment.yml
 conda activate cufinufft-build
 pip install . pytest
+# tests/test_examples.py also runs every examples/ script for the given framework.
 pytest --framework=cupy tests
 # sphinx tag (don't remove): @conda_cufinufft_end
