@@ -12,17 +12,13 @@ Also you will need to include ../include/finufft.fh if you want to change opts.
 
 Please refer to (equivalent forms of) documentation in
   ../docs/fortran.rst                (human-readable text)
-  ../finufft-manual.pdf              (PDF)
   https://finufft.readthedocs.io/    (online)
 
 Please (cd ..; make fortran) to build and run the examples.
 Notes:
  1) the examples include versions of the three nufft?d_demo.f driver codes
-    from the CMCL NUFFT package, adjusted only to call FINUFFT. The (rather
-    ambitious) final tolerance they request is tol=1e-16. For this case
-    FINUFFT will report a warning that it cannot achieve it, and gets merely
-    around 1e-14.
-
+    from the CMCL NUFFT package, adjusted only to call FINUFFT, and not to
+    request overambitious tolerances.
 
 COPYRIGHT (C) 2017-2020 Simons Foundation Inc.
 
