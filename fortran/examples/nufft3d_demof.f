@@ -75,7 +75,7 @@ c
       do i = 1,3
          if (i.eq.1) eps=1e-2
          if (i.eq.2) eps=1e-4
-         if (i.eq.3) eps=1e-6
+         if (i.eq.3) eps=1e-5
 	 print*,' '
 	 print*,' Requested precision eps =',eps
 	 print*,' '

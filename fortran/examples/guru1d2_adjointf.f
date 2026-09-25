@@ -32,6 +32,8 @@ c     to pass null pointers to unused arguments...
 
 c     this is what you use as the "opaque" ptr to ptr to finufft_plan...
       integer*8 plan
+c     this is how you create the options struct in fortran...
+      type(finufft_opts) opts
 c     or this is if you want default opts, make a null pointer...
       type(finufft_opts), pointer :: defopts => null()
 
@@ -39,7 +41,7 @@ c     or this is if you want default opts, make a null pointer...
 c     how many nonuniform pts
       M = 1000000
 c     how many modes
-      N = 30000
+      N = 100000
 
       allocate(fk(N))
       allocate(xj(M))
@@ -62,9 +64,11 @@ c     mandatory parameters to FINUFFT guru interface...
       n_modes(1) = N
 c     (note since dim=1, unused entries on n_modes are never read)
       call system_clock(t1)
-c     use default options
+c     plan with opt to allow the tol at this N (in FP32 error model)
+      call finufft_default_opts(opts)
+      opts%allow_eps_too_small=1
       call finufftf_makeplan(ttype,dim,n_modes,iflag,ntrans,
-     $     tol,plan,defopts,ier)
+     $     tol,plan,opts,ier)
 c     note for ttype 1 or 2, arguments 6-9 ignored...
       call finufftf_setpts(plan,M,xj,dummy,dummy,dummy,
      $     dummy,dummy,dummy,ier)

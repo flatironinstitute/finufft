@@ -50,7 +50,7 @@ c     create some quasi-random NU pts in [-pi, pi), complex strengths
 c     mandatory parameters to FINUFFT: sign of +-i in NUFFT
       iflag = 1
 c     tolerance
-      tol = 1e-6
+      tol = 1e-2
 c     Do transform: writes to fk (mode coeffs), and ier (status flag).
 c     use default options:
       call finufftf1d1(M,xj,cj,iflag,tol,N,fk,defopts,ier)
@@ -86,6 +86,8 @@ c     fields of derived type opts may be queried/set as usual...
       opts%debug = 2
 c     note upsampfac is real*8 regardless of the transform precision...
       opts%upsampfac = 1.25d0
+c     tell it to ignore that the error model says not possible...
+      opts%allow_eps_too_small = 1
       print *,'first list our new set of opts vals (cf finufft_opts.h):'
       print *,opts
       call system_clock(t1)
