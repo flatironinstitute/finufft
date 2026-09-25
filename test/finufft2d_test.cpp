@@ -56,8 +56,8 @@ int main(int argc, char *argv[]) {
     unsigned int se = MY_OMP_GET_THREAD_NUM(); // needed for parallel random #s
 #pragma omp for schedule(static, TEST_RANDCHUNK)
     for (BIGINT j = 0; j < M; ++j) {
-      x[j] = PI * randm11r(&se);
-      y[j] = PI * randm11r(&se);
+      x[j] = 3 * PI * randm11r(&se); // beyond [-pi,pi), so the fold is exercised
+      y[j] = 3 * PI * randm11r(&se);
       c[j] = crandm11r(&se);
     }
   }

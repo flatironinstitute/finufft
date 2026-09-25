@@ -9,6 +9,10 @@ v2.6.0-dev
 * icpx builds now use the gcc/clang math model (-fno-fast-math,
   -fcomplex-arithmetic=basic) via CMake and make-platforms/make.inc.icpx (#914).
   (Barbone)
+* xsimd's reassociation barrier was compiled out under -fassociative-math on clang, so
+  -march=x86-64 Release builds folded points wrongly and segfaulted;
+  XSIMD_REASSOCIATIVE_MATH is now forced on, the fold accepts any real coordinate, and
+  the docs no longer state a [-3pi,3pi] input domain (#918). (Barbone)
 * Fixed CPU type 3 honoring `opts.spreadinterponly`: the option is documented to affect
   types 1 and 2 only, and cuFINUFFT already ignored it for type 3, but the CPU plan
   applied it, so a type-3 call with the flag set returned wrong values instead of the

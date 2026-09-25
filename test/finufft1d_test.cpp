@@ -51,7 +51,7 @@ int main(int argc, char *argv[]) {
     unsigned int se = MY_OMP_GET_THREAD_NUM();   // needed for parallel random #s
 #pragma omp for schedule(static, TEST_RANDCHUNK) // static => non-stochastic
     for (BIGINT j = 0; j < M; ++j) {
-      x[j] = PI * randm11r(&se);                 // fills [-pi,pi)
+      x[j] = 3 * PI * randm11r(&se); // beyond [-pi,pi), so the fold is exercised
       c[j] = crandm11r(&se);
     }
   }

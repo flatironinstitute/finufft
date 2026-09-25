@@ -65,15 +65,9 @@ Both type 1 and type 2 transforms are invariant under
 translations of the NU points by multiples of $2\pi$,
 thus one could require that all NU points live in the
 origin-centered box $[-\pi,\pi)^d$.
-In fact, as a compromise between library speed, and flexibility for the user
-(for instance, to avoid boundary points being flagged as outside of
-this box due to round-off error), our library only
-requires that the NU points lie in the three-times-bigger box
-$\mathbf{x}_j \in [-3\pi,3\pi]^d$.
-This allows the user to choose a convenient periodic domain that does not
-touch this three-times-bigger box.
-However, there may be a slight speed increase if most points fall in
-$[-\pi,\pi)^d$.
+In fact, the NU points may be any real numbers: each coordinate is folded
+periodically into $[-\pi,\pi)^d$, so round-off error grows with
+$|\mathbf{x}_j|$.
 
 Finally, the **type 3** (NU to NU) transform does not have restrictions on
 the NU points, and there is no periodicity.

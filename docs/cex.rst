@@ -61,7 +61,7 @@ which is zero if successful (otherwise see :ref:`error codes <error>`).
 
 .. note::
 
-   FINUFFT works with a periodicity of :math:`2\pi` for type 1 and 2 transforms; see :ref:`definitions <math>`. For example, nonuniform points :math:`x=\pm\pi` are equivalent. Points must lie in the input domain :math:`[-3\pi,3\pi)`, which allows the user to assume a convenient periodic domain such as  :math:`[-\pi,\pi)` or :math:`[0,2\pi)`. To handle points outside of :math:`[-3\pi,3\pi)` the user must fold them back into this domain before passing to FINUFFT. FINUFFT does not handle this case, for speed reasons. To use a different periodicity, linearly rescale your coordinates.
+   FINUFFT works with a periodicity of :math:`2\pi` for type 1 and 2 transforms; see :ref:`definitions <math>`. For example, nonuniform points :math:`x=\pm\pi` are equivalent. The input points can be any real numbers: each coordinate is folded internally into :math:`[-\pi,\pi)`, so round-off error grows with :math:`|x|`. To use a different periodicity, linearly rescale your coordinates.
 
 If instead you want to change some options, first
 put default values in a ``finufft_opts`` struct,

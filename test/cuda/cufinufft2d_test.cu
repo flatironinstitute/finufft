@@ -42,8 +42,8 @@ int run_test(int method, int type, int N1, int N2, int M, T tol, T checktol, int
 
   // Making data
   for (int i = 0; i < M; i++) {
-    x[i] = PI * randm11(); // x in [-pi,pi)
-    y[i] = PI * randm11();
+    x[i] = 3 * PI * randm11(); // beyond [-pi,pi), so the fold is exercised
+    y[i] = 3 * PI * randm11();
   }
   if (type == 1) {
     for (int i = 0; i < M; i++) {
