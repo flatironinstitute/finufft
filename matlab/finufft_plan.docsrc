@@ -49,9 +49,10 @@ OPTS12
 %     plan            finufft_plan object (opaque pointer)
 %
 % Notes:
-%  * For type 1 and 2, this does the FFTW planning and kernel-FT precomputation.
+%  * For type 1 and 2, this does the FFTW planning and kernel-FT precomputation
+%    (unless opts.upsampfac=0, which defers them to setpts).
 %  * For type 3, this does very little, since the FFT sizes are not yet known.
-%  * Be default all threads are planned; control how many with opts.nthreads.
+%  * By default physical cores are planned; control how many with opts.nthreads.
 %  * The vectorized (many vector) plan, ie ntrans>1, can be much faster
 %    than repeated calls with the same nonuniform points. Note that here the I/O
 %    data ordering is stacked rather than interleaved. See ../docs/matlab.rst

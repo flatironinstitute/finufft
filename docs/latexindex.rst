@@ -1,13 +1,11 @@
-.. _index:
-
 .. finufft documentation master file - latex only.
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
    Barnett 8/27/20: split this out as separate latexindex.rst.
    Also see latex section of conf.py for tocdepth override, etc.
+   The "index" label lives on overview.rst's own line 1 (chapter 1), not here.
 
 :orphan:
-
 
 Flatiron Institute Nonuniform Fast Fourier Transform
 =====================================================

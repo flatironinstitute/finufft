@@ -54,7 +54,7 @@ class Plan:
     some data, yielding the desired output.
 
     Args:
-        nufft_type      (int): type of NUFFT (1 or 2).
+        nufft_type      (int): type of NUFFT (1, 2, or 3).
         n_modes         (tuple of ints): the number of modes in each
                         dimension (for example `(50, 100)`).
         n_trans         (int, optional): number of transforms to compute.
@@ -66,7 +66,9 @@ class Plan:
                         'complex64' or 'complex128'.
         **kwargs        (optional): additional options corresponding may be
                         specified as keyword arguments. These include
-                        upsampling ratio ``upsampfac`` (default ``2.0``),
+                        upsampling ratio ``upsampfac`` (default ``0.0``, which
+                        picks ``2.0``, or ``1.25`` for a type 3 transform with
+                        ``eps>=1e-9``),
                         ``gpu_method`` (1: nonuniform points-driven, 2: shared
                         memory), ``gpu_sort`` (for ``gpu_method == 1``, 0: no
                         sort, 1: sort), ``gpu_kerevalmeth`` (0: direct

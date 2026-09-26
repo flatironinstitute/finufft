@@ -1,3 +1,6 @@
+import inspect
+import os
+import re
 import warnings
 
 import pytest
@@ -5,6 +8,7 @@ import pytest
 import numpy as np
 
 from finufft import Plan
+from finufft._interfaces import err_handler
 
 import utils
 
@@ -132,6 +136,19 @@ def test_finufft3_plan(dtype, dim, n_source_pts, n_target_pts, output_arg):
         plan.execute_adjoint(source_coefs, out=target_coefs)
 
     utils.verify_type3(source_pts, source_coefs, target_pts, target_coefs, eps)
+
+
+def test_err_handler_matches_header():
+    # err_handler's switcher is a hand-kept copy of include/finufft_errors.h
+    # (no build step imports the header into Python); codes must match 1:1.
+    header = os.path.join(
+        os.path.dirname(__file__), "..", "..", "..", "include", "finufft_errors.h"
+    )
+    header_codes = {int(c) for c in re.findall(r"=\s*(\d+),", open(header).read())}
+    switcher_codes = {
+        int(c) for c in re.findall(r"^\s*(\d+):", inspect.getsource(err_handler), re.M)
+    }
+    assert switcher_codes == header_codes
 
 
 def test_finufft_plan_errors():

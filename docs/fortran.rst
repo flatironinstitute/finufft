@@ -40,7 +40,7 @@ Since the default is CMCL mode ordering, the output for frequency index ``k``
 is found in ``fk(k+N/2+1)``.
 ``ier=0`` indicates success, otherwise error codes are
 as in :ref:`here <error>`.
-All available OMP threads are used, unless FINUFFT was built single-threaded.
+By default (``opts.nthreads=0``), the number of physical cores available is used (honoring ``OMP_NUM_THREADS`` if set), unless FINUFFT was built single-threaded; see :ref:`opts`.
 (Note that here the unallocated ``null`` is simply a way to pass
 a NULL pointer to our C++ wrapper; another would be ``%val(0_8)``.)
 For a minimally complete test code demonstrating the above see

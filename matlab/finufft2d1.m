@@ -24,13 +24,13 @@
 %     opts   optional struct with optional fields controlling the following:
 %     opts.debug:   0 (silent, default), 1 (timing breakdown), 2 (debug info).
 %     opts.spread_debug: spreader: 0 (no text, default), 1 (some), or 2 (lots)
-%     opts.showwarn:  1 (default, warnings appear in stdout), 0 (no warnings)
+%     opts.showwarn:  1 (default, warnings appear on stderr), 0 (no warnings)
 %     opts.spread_sort:  0 (don't sort NU pts), 1 (do), 2 (auto, default)
 %     opts.fftw: FFTW plan mode, 64=FFTW_ESTIMATE (default), 0=FFTW_MEASURE, etc
-%     opts.upsampfac:   sigma.  2.0 (default), or 1.25 (low RAM, smaller FFT)
+%     opts.upsampfac:   sigma.  0 (auto, default), 2.0 (standard), or 1.25 (low RAM, smaller FFT)
 %     opts.allow_eps_too_small: 0 (default hard error if tol<epsmach), 1 (clamp and proceed)
 %     opts.maxbatchsize:  for ntrans>1 only. max blocking size, or 0 for auto.
-%     opts.nthreads:   number of threads, or 0: use all available (default)
+%     opts.nthreads:   number of threads, or 0: use physical cores available (default)
 %     opts.spread_kerformula: 0 (default), >0 (nonstandard funcs) [experts only]
 %     opts.modeord: 0 (CMCL increasing mode ordering, default), 1 (FFT ordering)
 %     opts.spreadinterponly: 0 (perform NUFFT, default), 1 (only spread/interp)

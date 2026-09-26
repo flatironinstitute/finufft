@@ -37,7 +37,7 @@ typedef struct cufinufft_opts { // see cufinufft_default_opts() for defaults
 
   int gpu_np;  // min batch_size for Output Driven
 
-  int debug;   // 0: no debug, 1: debug
+  int debug;   // 0: silent, 1: plan-setup info, 2: more (incl. shared-mem usage)
 } cufinufft_opts;
 
 #endif
