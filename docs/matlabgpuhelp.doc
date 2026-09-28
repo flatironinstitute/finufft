@@ -20,8 +20,8 @@
      ms    number of Fourier modes computed, may be even or odd;
            in either case, mode range is integers lying in [-ms/2, (ms-1)/2]
      opts   optional struct with optional fields controlling the following:
-     opts.debug:   0 (silent, default), 1 (timing breakdown), 2 (debug info).
-     opts.upsampfac:   sigma.  2.0 (default), or 1.25 (low RAM, smaller FFT).
+     opts.debug:   0 (silent, default), 1 (plan-setup info), 2 (more, incl. shared-mem usage). No timing output.
+     opts.upsampfac:   sigma.  0 (auto, default), 2.0 (standard), or 1.25 (low RAM, smaller FFT).
      opts.gpu_method:  0 (auto, default), 1 (GM or GM-sort), 2 (SM).
      opts.gpu_sort:  0 (do not sort NU pts), 1 (sort when GM method, default).
      opts.gpu_kerevalmeth:  0 (slow reference). 1 (Horner ppoly, default).
@@ -70,8 +70,8 @@
      isign if >=0, uses + sign in exponential, otherwise - sign.
      eps   relative precision requested (generally between 1e-15 and 1e-1)
      opts   optional struct with optional fields controlling the following:
-     opts.debug:   0 (silent, default), 1 (timing breakdown), 2 (debug info).
-     opts.upsampfac:   sigma.  2.0 (default), or 1.25 (low RAM, smaller FFT).
+     opts.debug:   0 (silent, default), 1 (plan-setup info), 2 (more, incl. shared-mem usage). No timing output.
+     opts.upsampfac:   sigma.  0 (auto, default), 2.0 (standard), or 1.25 (low RAM, smaller FFT).
      opts.gpu_method:  0 (auto, default), 1 (GM or GM-sort), 2 (SM).
      opts.gpu_sort:  0 (do not sort NU pts), 1 (sort when GM method, default).
      opts.gpu_kerevalmeth:  0 (slow reference). 1 (Horner ppoly, default).
@@ -120,8 +120,8 @@
      eps   relative precision requested (generally between 1e-15 and 1e-1)
      s     length-nk vector of frequency locations of nonuniform targets
      opts   optional struct with optional fields controlling the following:
-     opts.debug:   0 (silent, default), 1 (timing breakdown), 2 (debug info).
-     opts.upsampfac:   sigma.  2.0 (default), or 1.25 (low RAM, smaller FFT).
+     opts.debug:   0 (silent, default), 1 (plan-setup info), 2 (more, incl. shared-mem usage). No timing output.
+     opts.upsampfac:   sigma.  0 (auto, default), 2.0 (standard), or 1.25 (low RAM, smaller FFT).
      opts.gpu_method:  0 (auto, default), 1 (GM or GM-sort), 2 (SM).
      opts.gpu_sort:  0 (do not sort NU pts), 1 (sort when GM method, default).
      opts.gpu_kerevalmeth:  0 (slow reference). 1 (Horner ppoly, default).
@@ -173,8 +173,8 @@
      ms,mt  number of Fourier modes requested in x & y; each may be even or odd.
             In either case the mode range is integers lying in [-m/2, (m-1)/2]
      opts   optional struct with optional fields controlling the following:
-     opts.debug:   0 (silent, default), 1 (timing breakdown), 2 (debug info).
-     opts.upsampfac:   sigma.  2.0 (default), or 1.25 (low RAM, smaller FFT).
+     opts.debug:   0 (silent, default), 1 (plan-setup info), 2 (more, incl. shared-mem usage). No timing output.
+     opts.upsampfac:   sigma.  0 (auto, default), 2.0 (standard), or 1.25 (low RAM, smaller FFT).
      opts.gpu_method:  0 (auto, default), 1 (GM or GM-sort), 2 (SM).
      opts.gpu_sort:  0 (do not sort NU pts), 1 (sort when GM method, default).
      opts.gpu_kerevalmeth:  0 (slow reference). 1 (Horner ppoly, default).
@@ -226,8 +226,8 @@
      isign if >=0, uses + sign in exponential, otherwise - sign.
      eps   relative precision requested (generally between 1e-15 and 1e-1)
      opts   optional struct with optional fields controlling the following:
-     opts.debug:   0 (silent, default), 1 (timing breakdown), 2 (debug info).
-     opts.upsampfac:   sigma.  2.0 (default), or 1.25 (low RAM, smaller FFT).
+     opts.debug:   0 (silent, default), 1 (plan-setup info), 2 (more, incl. shared-mem usage). No timing output.
+     opts.upsampfac:   sigma.  0 (auto, default), 2.0 (standard), or 1.25 (low RAM, smaller FFT).
      opts.gpu_method:  0 (auto, default), 1 (GM or GM-sort), 2 (SM).
      opts.gpu_sort:  0 (do not sort NU pts), 1 (sort when GM method, default).
      opts.gpu_kerevalmeth:  0 (slow reference). 1 (Horner ppoly, default).
@@ -277,8 +277,8 @@
      s,t   frequency coordinates of nonuniform targets in R^2,
            each a length-nk vector.
      opts   optional struct with optional fields controlling the following:
-     opts.debug:   0 (silent, default), 1 (timing breakdown), 2 (debug info).
-     opts.upsampfac:   sigma.  2.0 (default), or 1.25 (low RAM, smaller FFT).
+     opts.debug:   0 (silent, default), 1 (plan-setup info), 2 (more, incl. shared-mem usage). No timing output.
+     opts.upsampfac:   sigma.  0 (auto, default), 2.0 (standard), or 1.25 (low RAM, smaller FFT).
      opts.gpu_method:  0 (auto, default), 1 (GM or GM-sort), 2 (SM).
      opts.gpu_sort:  0 (do not sort NU pts), 1 (sort when GM method, default).
      opts.gpu_kerevalmeth:  0 (slow reference). 1 (Horner ppoly, default).
@@ -332,8 +332,8 @@
            even or odd.
            In either case the mode range is integers lying in [-m/2, (m-1)/2]
      opts   optional struct with optional fields controlling the following:
-     opts.debug:   0 (silent, default), 1 (timing breakdown), 2 (debug info).
-     opts.upsampfac:   sigma.  2.0 (default), or 1.25 (low RAM, smaller FFT).
+     opts.debug:   0 (silent, default), 1 (plan-setup info), 2 (more, incl. shared-mem usage). No timing output.
+     opts.upsampfac:   sigma.  0 (auto, default), 2.0 (standard), or 1.25 (low RAM, smaller FFT).
      opts.gpu_method:  0 (auto, default), 1 (GM or GM-sort), 2 (SM).
      opts.gpu_sort:  0 (do not sort NU pts), 1 (sort when GM method, default).
      opts.gpu_kerevalmeth:  0 (slow reference). 1 (Horner ppoly, default).
@@ -387,8 +387,8 @@
      isign if >=0, uses + sign in exponential, otherwise - sign.
      eps   relative precision requested (generally between 1e-15 and 1e-1)
      opts   optional struct with optional fields controlling the following:
-     opts.debug:   0 (silent, default), 1 (timing breakdown), 2 (debug info).
-     opts.upsampfac:   sigma.  2.0 (default), or 1.25 (low RAM, smaller FFT).
+     opts.debug:   0 (silent, default), 1 (plan-setup info), 2 (more, incl. shared-mem usage). No timing output.
+     opts.upsampfac:   sigma.  0 (auto, default), 2.0 (standard), or 1.25 (low RAM, smaller FFT).
      opts.gpu_method:  0 (auto, default), 1 (GM or GM-sort), 2 (SM).
      opts.gpu_sort:  0 (do not sort NU pts), 1 (sort when GM method, default).
      opts.gpu_kerevalmeth:  0 (slow reference). 1 (Horner ppoly, default).
@@ -439,8 +439,8 @@
      s,t,u  frequency coordinates of nonuniform targets in R^3,
            each a length-nk vector.
      opts   optional struct with optional fields controlling the following:
-     opts.debug:   0 (silent, default), 1 (timing breakdown), 2 (debug info).
-     opts.upsampfac:   sigma.  2.0 (default), or 1.25 (low RAM, smaller FFT).
+     opts.debug:   0 (silent, default), 1 (plan-setup info), 2 (more, incl. shared-mem usage). No timing output.
+     opts.upsampfac:   sigma.  0 (auto, default), 2.0 (standard), or 1.25 (low RAM, smaller FFT).
      opts.gpu_method:  0 (auto, default), 1 (GM or GM-sort), 2 (SM).
      opts.gpu_sort:  0 (do not sort NU pts), 1 (sort when GM method, default).
      opts.gpu_kerevalmeth:  0 (slow reference). 1 (Horner ppoly, default).
@@ -513,8 +513,8 @@
      isign if >=0, uses + sign in exponential, otherwise - sign.
      eps   relative precision requested (generally between 1e-15 and 1e-1)
      opts   optional struct with optional fields controlling the following:
-     opts.debug:   0 (silent, default), 1 (timing breakdown), 2 (debug info).
-     opts.upsampfac:   sigma.  2.0 (default), or 1.25 (low RAM, smaller FFT).
+     opts.debug:   0 (silent, default), 1 (plan-setup info), 2 (more, incl. shared-mem usage). No timing output.
+     opts.upsampfac:   sigma.  0 (auto, default), 2.0 (standard), or 1.25 (low RAM, smaller FFT).
      opts.gpu_method:  0 (auto, default), 1 (GM or GM-sort), 2 (SM).
      opts.gpu_sort:  0 (do not sort NU pts), 1 (sort when GM method, default).
      opts.gpu_kerevalmeth:  0 (slow reference). 1 (Horner ppoly, default).

@@ -16,11 +16,8 @@ a header-only library that, like ``xsimd`` and ``DUCC0``, is fetched automatical
 by the build (into the ``deps`` subdirectory), so there is nothing to install by hand.
 In practice, SIMD code generation also depends on the compiler version and
 target CPU. FINUFFT builds with no issues on Linux and MacOS using current
-compilers, and in our experience (as of 2024), GCC13 gives the best
-performance. We do not recommend any GCC version prior to 9 on x86_64, due to
+compilers. We do not recommend any GCC version prior to 9 on x86_64, due to
 vectorization issues.
-
-.. include:: _generated/platforms.rst
 
 .. note::
   There are now two choices of FFT library for the CPU build:
@@ -29,6 +26,8 @@ vectorization issues.
     * `DUCC0 FFT <https://gitlab.mpcdf.mpg.de/mtr/ducc>`_ (which is automatically installed into the ``deps`` subdirectory by CMake or GNU make).
 
   Both are available in either CMake or GNU make build routes. Currently FFTW3 is the default in both routes, since DUCC0 is new as of FINUFFT v2.3 and not as well tested. DUCC0 is from the same author as `PocketFFT <https://gitlab.mpcdf.mpg.de/mtr/pocketfft>`_ (used, for instance, by `scipy <https://scipy.org/>`_); however, DUCC0 FFT is more optimized than PocketFFT. Choosing DUCC0 also exploits the block-sparsity structure in 2D and 3D transforms, and is generally faster than FFTW3 in those cases. In 1D, the relative speed of FFTW3 and DUCC0 varies depending on `N` and the batch size. DUCC0 has no plan stage, whereas FFTW3 requires a plan stage. Some idea of their relative performance can be found in `this discussion <https://github.com/flatironinstitute/finufft/pull/463#issuecomment-2223988300>`_. We encourage the power user to try switching to DUCC to see if it is faster in their setting.
+
+.. include:: _generated/platforms.rst
 
 If you cannot get FINUFFT to compile (see details below), as a last resort you might find
 a precompiled binary for your platform under Assets for various
@@ -265,10 +264,16 @@ Here are our CMake build options, showing name, explanatory text, and default va
    :start-after: @cmake_opts_start
    :end-before: @cmake_opts_end
 
-
 After a CMake MATLAB build, the MEX executable and associated M-files will be in ``build/matlab``. There is currently no CTest for MATLAB. Instead, open MATLAB by hand, add this ``build/matlab`` directory to your path,
 cd to ``matlab/test`` and run ``fullmathtest`` which should run for 1 second
 and pass.
+
+Octave, instead of (or as well as) MATLAB, can be built the same CMake way by setting
+``-DFINUFFT_BUILD_OCTAVE=ON``; this needs ``mkoctfile``, ``octave`` and
+``octave-config`` on ``PATH`` (install ``octave`` and ``liboctave-dev``/``octave-devel``).
+It builds ``finufft.mex`` as a native CMake module library into ``build/octave`` and, if
+``FINUFFT_BUILD_TESTS`` is also ``ON``, registers the Octave ``.m`` scripts as individual
+CTest entries under the ``octave`` label.
 
 
 Notes on compiler flags for various systems
@@ -373,7 +378,7 @@ Optionally you need:
 * for Fortran wrappers: compiler such as ``gfortran`` in GCC
 * for MATLAB wrappers: MATLAB (versions at least R2016b up to current work)
 * for Octave wrappers: recent Octave version at least 4.4, and its development libraries
-* for the python wrappers you will need ``python`` version at least 3.8 (python 2 is unsupported), with ``numpy``.
+* for the python wrappers you will need ``python`` version at least 3.10 (python 2 is unsupported), with ``numpy``.
 
 
 1) Linux: tips for installing dependencies and compiling
@@ -620,7 +625,7 @@ or the older-style eyeball check with::
 which should report errors around ``1e-6`` and throughputs around 1-10 million points/sec.
 
 However, better performance will result by locally compiling the library on your CPU into a Python module. This can better exploit your CPU's capabilities than the ``pypi`` distribution that ``pip install finufft`` downloads.
-We assume ``python`` (hence ``pip``; make sure you have that installed), at least version 3.8. We now use the modern ``pyproject.toml`` build system,
+We assume ``python`` (hence ``pip``; make sure you have that installed), at least version 3.10. We now use the modern ``pyproject.toml`` build system,
 which locally compiles with cmake (giving you native performance on your CPU).
 For this, run::
 
@@ -657,6 +662,7 @@ There can be confusion and conflicts between various versions of python and inst
 
 Now you are in a virtual environment that starts from scratch. All pip installed packages will go inside the ``env1`` directory. (You can get out of the environment by typing ``deactivate``). Also see documentation for ``conda``. In both cases ``python`` will call the version of python you set up. To get the packages FINUFFT needs::
 
-  pip install -r python/requirements.txt
+  pip install -r python/finufft/requirements.txt
+  # or, for the GPU package: pip install -r python/cufinufft/requirements.txt
 
 Then ``pip install finufft`` or build as above.

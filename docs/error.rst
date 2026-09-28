@@ -14,14 +14,16 @@ has the following meanings which are used by both CPU and GPU versions
   2  stopped due to needing internal array size >MAX_NF (defined in plan.hpp)
   3  spreader: fine grid too small compared to spread (kernel) width
   4  spreader: [DEPRECATED]
-  5  spreader: array allocation error
+  5  spreader: array allocation error [DEPRECATED, unused: never returned by the library]
   6  spreader: illegal direction (should be 1 or 2)
-  7  upsampfac too small (should be >1.0)
-  8  upsampfac not a value with known Horner poly eval rule (currently 2.0 or 1.25 only)
+  7  upsampfac too small (should be 0 for auto-choose, or >1.0)
+  8  upsampfac not a value with known Horner poly eval rule (currently 2.0 or 1.25 only);
+     raised only by the GPU library, and only when opts.gpu_kerevalmeth=1
   9  ntrans not valid in "many" (vectorized) or guru interface (should be >= 1)
   10 transform type invalid
   11 general internal allocation failure
   12 dimension invalid
+  13 opts.spread_thread invalid [DEPRECATED, unused: spread_thread was deprecated in v2.6.0]
   14 invalid mode array (more than ~2^31 modes, dimension with 0 modes, etc)
   15 CUDA failure (failure to call any cuda function/kernel, malloc/memset, etc))
   16 attempt to destroy an uninitialized plan
@@ -34,13 +36,13 @@ has the following meanings which are used by both CPU and GPU versions
   23 nthreads invalid
   24 spread kernel formula type invalid
   25 unknown exception caught
-  26 requested tolerance epsilon too small to achieve (hard error; tolerance must be >= machine epsilon)
+  26 requested tolerance epsilon too small to achieve (``FINUFFT_ERR_EPS_TOO_SMALL``) (hard error unless ``opts.allow_eps_too_small=1``; covers tolerance below machine epsilon and any tolerance the kernel width or rounding floor cannot reach)
   27 iteration inside the setup code for the PSWF function evaluator failed to converge
 
 For any nonzero value of ``ier`` the transform may not have been performed and the output should not be trusted. However, we hope that the value of ``ier`` will help to narrow down the problem.
 
 .. note::
-   On CPU, prior to v2.6.0, ``ier=1`` was a warning that still completed the transform at reduced accuracy. The default CPU behavior is now a hard error (``ier=26``). Setting ``opts.allow_eps_too_small=1`` clamps the requested tolerance to machine epsilon and allows the transform to proceed with no warning. GPU behavior is unchanged for now.
+   On CPU, prior to v2.6.0, ``ier=1`` was a warning that still completed the transform at reduced accuracy. The default CPU behavior is now a hard error (``FINUFFT_ERR_EPS_TOO_SMALL``). Setting ``opts.allow_eps_too_small=1`` prevents this error wherever it can be raised: the transform proceeds at the best achievable accuracy, with a successful status return code (``ier=0``). It may print a warning on stderr (suppressed by ``opts.showwarn=0``). GPU behavior currently differs: cuFINUFFT has no ``allow_eps_too_small`` option and always clamps the tolerance up to machine epsilon, printing a warning to stderr, and returns ``ier=0``.
 
 FINUFFT sometimes also sends error text to ``stderr`` if it detects faulty input parameters. Please check your terminal output.
 

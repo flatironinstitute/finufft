@@ -148,7 +148,7 @@ if(FINUFFT_BUILD_OCTAVE)
     )
     message(STATUS "Found Octave ${Octave_VERSION} (include: ${Octave_INCLUDEDIR}, lib: ${Octave_LIBDIR})")
 
-    set(_octave_mex_dir "${CMAKE_CURRENT_BINARY_DIR}/octave")
+    set(_octave_mex_dir "${CMAKE_BINARY_DIR}/octave")
 
     # Octave's mex loader checks for an integer symbol __octave_mex_soversion__
     # exported by the .mex; mkoctfile injects this via a tiny auto-generated TU.
