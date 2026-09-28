@@ -40,11 +40,11 @@ properties([
 // A whole-node pod is `exclusive: true`: a co-tenant pollutes a CPU measurement
 // and pinning does not isolate it. The count has to stay next to it, because a
 // cpu request still sets the pod's cpuset and runPod defaults to 4 - measured on
-// build 50, whose exclusive pod got 4 of the node's 72 processors. 64 is the
-// most the current exclusive node (66 allocatable) can give while the jnlp
-// sidecar keeps 1, and an even count means whole cores rather than SMT halves.
+// build 50, whose exclusive pod got 4 of the node's 72 processors. The exclusive
+// node has SMT off and 30 cores allocatable (SCC Jenkins wiki); the jnlp sidecar
+// keeps 1.
 // The harness sizes every case from the affinity mask it ends up with.
-def PERF_CPU_CORES = 64
+def PERF_CPU_CORES = 29
 
 // gh is in the image; the credential is an environment variable of the step
 // and never lives on disk. Publishing runs in the main container.
@@ -128,8 +128,7 @@ catchError {
         stage('perf cpu') {
           withEnv([
             "HOME=$WORKSPACE",
-            "CPM_SOURCE_CACHE=$WORKSPACE/.cpm",
-            "PARALLEL=16"
+            "CPM_SOURCE_CACHE=$WORKSPACE/.cpm"
           ]) {
             sh 'tools/ci/perf-cpu.sh'
           }
@@ -150,8 +149,7 @@ catchError {
             "HOME=$WORKSPACE",
             "CUDA_ARCH=${arch}",
             "CPM_SOURCE_CACHE=$WORKSPACE/.cpm",
-            "LIBRARY_PATH=/usr/local/cuda/lib64/stubs",
-            "PARALLEL=12"
+            "LIBRARY_PATH=/usr/local/cuda/lib64/stubs"
           ]) {
             sh 'tools/ci/perf-gpu.sh'
           }
@@ -208,7 +206,6 @@ catchError {
         withEnv([
           "HOME=$WORKSPACE",
           "CPM_SOURCE_CACHE=$WORKSPACE/.cpm",
-          "PARALLEL=16",
           "VERSIONS=${PAGE_VERSIONS}",
           "BACKEND=${backend}",
           "DUCC=${ducc}"
@@ -243,7 +240,6 @@ catchError {
             "CUDA_ARCH=${arch}",
             "CPM_SOURCE_CACHE=$WORKSPACE/.cpm",
             "LIBRARY_PATH=/usr/local/cuda/lib64/stubs",
-            "PARALLEL=12",
             "VERSIONS=${PAGE_VERSIONS}"
           ]) {
             sh 'tools/ci/page-worktrees.sh'
