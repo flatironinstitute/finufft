@@ -112,6 +112,31 @@ catchError {
       }
     }] }
 
+    // The MEX against every MATLAB release MathWorks publishes an image for,
+    // pulled as is: matlab: true injects the license, and the script fetches
+    // the toolchain. matlab-deep-learning carries the Parallel Computing
+    // Toolbox, so those releases also build and test the GPU MEX; r2020b has
+    // only the plain image and runs the CPU half. canUseGPU() is false on the
+    // Blackwell MIG slices (r2023b, r2025a), so the GPU legs take a V100. The
+    // license server has no r2026b yet.
+    def matlabs = ['r2021b', 'r2022a', 'r2022b', 'r2023a', 'r2023b', 'r2024a',
+                   'r2024b', 'r2025a', 'r2025b', 'r2026a']
+    jobs['matlab-r2020b'] = {
+      runPod(image: 'docker.io/mathworks/matlab:r2020b', cpus: 8, memory: '16Gi', matlab: true) {
+        stage('matlab r2020b') {
+          withEnv(["HOME=$WORKSPACE"]) { sh 'tools/ci/matlab-test.sh' }
+        }
+      }
+    }
+    matlabs.each { rel -> jobs['matlab-' + rel] = {
+      runPod(image: "docker.io/mathworks/matlab-deep-learning:${rel}", cpus: 8, memory: '16Gi',
+             gpus: 1, gpuType: 'v100', matlab: true) {
+        stage("matlab ${rel}") {
+          withEnv(["HOME=$WORKSPACE", "CUDA_ARCH=${gpuArch()}"]) { sh 'tools/ci/matlab-test.sh' }
+        }
+      }
+    } }
+
     // The perftest comment, PR builds only: CHANGE_ID is unset on branch builds.
     // Each half writes its own section in its own pod - the CPU half wants cores
     // and no card, the GPU half wants the card - so the two run in parallel and
