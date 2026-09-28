@@ -61,7 +61,11 @@ source_suffix = {".rst": "restructuredtext"}
 # The encoding of source files.
 # source_encoding = 'utf-8-sig'
 
-# The master toctree document.
+
+# master_doc: index.rst (HTML/man) or latexindex.rst (LaTeX). Both include
+# overview.src; their labels would duplicate if both sides were read in one
+# run, so the builder-inited hook in setup() below excludes whichever side
+# is unused and repoints master_doc for LaTeX once app.builder.name is known.
 master_doc = "index"
 
 # General information about the project.
@@ -98,6 +102,11 @@ highlight_language = "none"
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files (.rst only)
 exclude_patterns = ["_build", "overview_meat"]
+
+# index.rst and overview.rst/latexindex.rst both include overview.src; its labels would
+# duplicate if both sides were built in one run, so setup()'s builder-inited hook
+# swaps this to exclude index.rst instead, once the LaTeX builder is confirmed.
+exclude_patterns += ["overview.rst", "latexindex.rst"]
 
 # The reST default role (used for this markup: `text`) to use for all
 # documents.
@@ -249,9 +258,19 @@ def _generate_platform_table(app):
     subprocess.check_call([sys.executable, script, "--format", "rst", "--output", out])
 
 
+def _select_builder_docs(app):
+    """Pick master_doc/exclude_patterns once app.builder.name is known."""
+    if app.builder.name == "latex":
+        app.config.master_doc = "latexindex"
+        app.config.exclude_patterns.remove("overview.rst")
+        app.config.exclude_patterns.remove("latexindex.rst")
+        app.config.exclude_patterns.append("index.rst")
+
+
 def setup(app):
     app.add_css_file("theme_overrides.css")
     app.connect("builder-inited", _generate_platform_table)
+    app.connect("builder-inited", _select_builder_docs)
 
 
 # -- Options for LaTeX output ---------------------------------------------

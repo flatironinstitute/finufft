@@ -525,14 +525,14 @@ def _ensure_array_type(x, name, dtype, output=False):
     return x
 
 
-### error handler (keep up to date with FINUFFT/include/defs.h)
+### error handler (keep up to date with FINUFFT/include/finufft_errors.h)
 def err_handler(ier):
     switcher = {
-        1: "FINUFFT eps tolerance too small to achieve",
+        1: "FINUFFT eps tolerance too small to achieve [DEPRECATED, see code 26]",  # DEPRECATED
         2: "FINUFFT malloc size requested greater than MAX_NF",
         3: "FINUFFT spreader fine grid too small compared to kernel width",
         4: "FINUFFT spreader nonuniform point out of range [-pi, pi)^d [DEPRECATED]",  # DEPRECATED
-        5: "FINUFFT spreader malloc error",
+        5: "FINUFFT spreader malloc error [DEPRECATED, unused: never returned by the library]",  # DEPRECATED
         6: "FINUFFT spreader illegal direction (must be 1 or 2)",
         7: "FINUFFT opts.upsampfac not > 1.0",
         8: "FINUFFT opts.upsampfac not a value with known Horner polynomial rule",
@@ -540,8 +540,21 @@ def err_handler(ier):
         10: "FINUFFT transform type invalid",
         11: "FINUFFT general malloc failure",
         12: "FINUFFT number of dimensions dim invalid",
+        13: "FINUFFT opts.spread_thread invalid [DEPRECATED, unused: spread_thread was deprecated in v2.6.0]",  # DEPRECATED
+        14: "FINUFFT invalid mode array (more than ~2^31 modes, dimension with 0 modes, etc)",
+        15: "FINUFFT CUDA failure (GPU only)",
+        16: "FINUFFT attempt to destroy an uninitialized plan",
+        17: "FINUFFT invalid spread/interp method for dimension (GPU only)",
+        18: "FINUFFT size of bins for subprob/blockgather invalid (GPU only)",
+        19: "FINUFFT GPU shmem too small for subprob/blockgather parameters (GPU only)",
+        20: "FINUFFT invalid number of nonuniform points: nj or nk negative, or too big",
+        21: "FINUFFT invalid input argument not covered by other errors",
+        22: "FINUFFT invalid FFTW lock function",
+        23: "FINUFFT nthreads invalid",
+        24: "FINUFFT spread kernel formula type invalid",
         25: "FINUFFT unknown internal exception",
         26: "FINUFFT eps tolerance too small to achieve",
+        27: "FINUFFT PSWF setup iteration failed to converge",
     }
     err_msg = switcher.get(ier, "Unknown error")
 

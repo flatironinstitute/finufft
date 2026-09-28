@@ -161,6 +161,10 @@ To perform the call above using the plan interface, we would write
     f = plan.execute(c)
 
 See the complete demo in ``python/finufft/examples/guru2d1.py``.
+The plan's ``n_modes`` property reports the mode counts in the same
+``(N1, N2, ...)`` order passed to the constructor above (``ndarray.shape``
+order), not the reversed order the underlying C library uses internally.
+
 All interfaces support both single and double precision, but for the plan, this must be specified at initialization time using the ``dtype`` argument
 
 .. code-block:: python
@@ -183,6 +187,10 @@ pass ``allow_eps_too_small=1`` when constructing the plan or calling the simple 
 
 See the complete demo, with math test, in ``python/finufft/examples/guru2d1f.py``.
 
+
+The ``finufft`` package ships inline type annotations and a ``py.typed``
+marker file, so type checkers such as ``mypy`` pick up its signatures
+without a separate stub package.
 
 Full documentation
 ------------------
