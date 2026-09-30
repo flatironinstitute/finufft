@@ -34,20 +34,26 @@ int main()
   int ntransf = 1;       // we want to do a single transform at a time
   finufft_plan plan;     // creates a plan struct
   int changeopts = 0;    // do you want to try changing opts? 0 or 1
+  int ier;               // status of guru calls
   if (changeopts) {      // demo how to change options away from defaults..
     finufft_opts opts;
     finufft_default_opts(&opts);
     opts.debug = 1; // example options change
-    finufft_makeplan(type, dim, Ns, +1, ntransf, tol, &plan, &opts);
+    ier        = finufft_makeplan(type, dim, Ns, +1, ntransf, tol, &plan, &opts);
   } else            // or, NULL here means use default opts...
-    finufft_makeplan(type, dim, Ns, +1, ntransf, tol, &plan, NULL);
+    ier = finufft_makeplan(type, dim, Ns, +1, ntransf, tol, &plan, NULL);
+  if (ier) return ier; // no plan to use; going on would segfault
 
   // generate some random nonuniform points
   vector<double> x(M);
   for (int j = 0; j < M; ++j)
     x[j] = PI * (2 * ((double)rand() / RAND_MAX) - 1); // uniform random in [-pi,pi)
   // note FINUFFT doesn't use std::vector types, so we need to make a pointer...
-  finufft_setpts(plan, M, x.data(), NULL, NULL, 0, NULL, NULL, NULL);
+  ier = finufft_setpts(plan, M, x.data(), NULL, NULL, 0, NULL, NULL, NULL);
+  if (ier) {
+    finufft_destroy(plan);
+    return ier;
+  }
 
   // generate some complex strengths
   vector<complex<double>> c(M);
@@ -57,7 +63,7 @@ int main()
 
   // alloc output array for the Fourier modes, then do the transform
   vector<complex<double>> F(N);
-  int ier = finufft_execute(plan, c.data(), F.data());
+  ier = finufft_execute(plan, c.data(), F.data());
 
   // for fun, do another with same NU pts (no re-sorting), but new strengths...
   for (int j = 0; j < M; ++j)

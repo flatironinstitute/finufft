@@ -37,21 +37,26 @@ int main()
   int ier = finufft1d1many(ntrans, M, &x[0], &c[0], +1, tol, N, &F[0], NULL);
   // docs-end: many1d1
 
-  int k     = 142519;     // check the answer just for this mode...
-  int trans = ntrans - 1; // ...in this transform
+  int k   = 142519; // check the answer just for this mode, in every transform...
   assert(k >= -(double)N / 2 && k < (double)N / 2);
 
-  complex<double> Ftest = complex<double>(0, 0);           // do the naive calc...
-  for (int j = 0; j < M; ++j)
-    Ftest += c[j + M * trans] * exp(I * (double)k * x[j]); // c from transform # trans
-  double Fmax = 0.0; // compute inf norm of F for transform # trans
-  for (int m = 0; m < N; ++m) {
-    double aF = abs(F[m + N * trans]);
-    if (aF > Fmax) Fmax = aF;
+  double err = 0.0;
+  for (int trans = 0; trans < ntrans; ++trans) {
+    complex<double> Ftest = complex<double>(0, 0);           // do the naive calc...
+    for (int j = 0; j < M; ++j)
+      Ftest += c[j + M * trans] * exp(I * (double)k * x[j]); // c from transform # trans
+    double Fmax = 0.0; // compute inf norm of F for transform # trans
+    for (int m = 0; m < N; ++m) {
+      double aF = abs(F[m + N * trans]);
+      if (aF > Fmax) Fmax = aF;
+    }
+    int kout    = k + N / 2 + N * trans; // output index, freq mode k, transform # trans
+    double terr = abs(F[kout] - Ftest) / Fmax;
+    if (terr > err) err = terr;
+    printf("\ttransform %d, rel err in F[%d] is %.3g\n", trans, k, terr);
   }
-  int kout   = k + N / 2 + N * trans; // output index, freq mode k, transform # trans
-  double err = abs(F[kout] - Ftest) / Fmax;
-  printf("1D type-1 double-prec NUFFT done. ier=%d, rel err in F[%d] is %.3g\n", ier, k,
-         err);
+  printf("1D type-1 double-prec NUFFT done. ier=%d, worst rel err over %d transforms "
+         "in F[%d] is %.3g\n",
+         ier, ntrans, k, err);
   return ier || !(err <= 10 * tol);
 }

@@ -47,14 +47,20 @@ int main() {
   // step 1: make a plan...
   finufft_plan plan;
   int ier = finufft_makeplan(type, dim, Ns, +1, ntrans, tol, &plan, &opts);
+  if (ier) return ier;
   // step 2: send in M nonuniform points (just x, y in this case)...
-  finufft_setpts(plan, M, &x[0], &y[0], NULL, 0, NULL, NULL, NULL);
+  ier = finufft_setpts(plan, M, &x[0], &y[0], NULL, 0, NULL, NULL, NULL);
+  if (ier) {
+    finufft_destroy(plan);
+    return ier;
+  }
   // step 3: do the planned transform to the c strength data, output to F...
-  finufft_execute(plan, &c[0], &F[0]);
+  ier = finufft_execute(plan, &c[0], &F[0]);
   // ... you could now send in new points, and/or do transforms with new c data
   // ...
   // step 4: free the memory used by the plan...
   finufft_destroy(plan);
+  if (ier) return ier;
   // docs-end: guru2d1
 
   int k1 = round(0.45 * N1); // check the answer for mode frequency (k1,k2)

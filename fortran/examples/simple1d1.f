@@ -109,5 +109,15 @@ c     fields of derived type opts may be queried/set as usual...
       endif
 c     docs-end: options
 
+c     math test of the options-changing transform (same reference & threshold)
+      fmax = 0
+      do k=1,N
+         fmax = max(fmax,cdabs(fk(k)))
+      enddo
+      print '("rel err for mode k=",i10," is ",e10.2)',ktest,
+     $     cdabs(fk(ktestindex)-fktest)/fmax
+      err = cdabs(fk(ktestindex)-fktest)/fmax
+      if (.not.(err.le.10*tol)) stop 1
+
       stop
       end

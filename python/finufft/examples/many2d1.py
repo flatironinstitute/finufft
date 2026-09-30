@@ -34,13 +34,12 @@ print("vectorized finufft2d1 done in {0:.2g} s.".format(time.time() - t0))
 print(f.shape)
 # docs-end: many2d1
 
-k1 = 376  # do a math check, for a single output mode index (k1,k2)
+k1 = 376  # do a math check, for a single output mode index (k1,k2), every transform
 k2 = -1000
-t = K - 1  # from the t'th transform
 assert (k1 >= -N1 / 2.0) & (k1 < N1 / 2.0)  # float division easier here
 assert (k2 >= -N2 / 2.0) & (k2 < N2 / 2.0)
-assert (t >= 0) & (t < K)
-ftest = sum(c[t, :] * np.exp(1.0j * (k1 * x + k2 * y)))
-err = np.abs(f[t, k1 + N1 // 2, k2 + N2 // 2] - ftest) / np.max(np.abs(f))
-print("Error relative to max: {0:.2e}".format(err))
-assert err <= 10 * eps
+for t in range(K):
+    ftest = sum(c[t, :] * np.exp(1.0j * (k1 * x + k2 * y)))
+    err = np.abs(f[t, k1 + N1 // 2, k2 + N2 // 2] - ftest) / np.max(np.abs(f[t]))
+    print("Transform {0}, error relative to max: {1:.2e}".format(t, err))
+    assert err <= 10 * eps

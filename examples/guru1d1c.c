@@ -36,15 +36,20 @@ int main()
     finufft_default_opts(popts);
     popts->debug    = 1;                                  // example options change
     popts->nthreads = 4;                                  // "
-    finufft_makeplan(type, dim, Ns, +1, ntransf, tol, &plan, popts);
+    ier             = finufft_makeplan(type, dim, Ns, +1, ntransf, tol, &plan, popts);
   } else // or, NULL here means use default opts...
-    finufft_makeplan(type, dim, Ns, +1, ntransf, tol, &plan, NULL);
+    ier = finufft_makeplan(type, dim, Ns, +1, ntransf, tol, &plan, NULL);
+  if (ier) return ier; // no plan to use; going on would segfault
 
   // generate some random nonuniform points
   x = (double *)malloc(sizeof(double) * M);
   for (j = 0; j < M; ++j)
     x[j] = PI * (2 * ((double)rand() / RAND_MAX) - 1); // uniform random in [-pi,pi)
-  finufft_setpts(plan, M, x, NULL, NULL, 0, NULL, NULL, NULL);
+  ier = finufft_setpts(plan, M, x, NULL, NULL, 0, NULL, NULL, NULL);
+  if (ier) {
+    finufft_destroy(plan);
+    return ier;
+  }
 
   // generate some complex strengths
   c = (double complex *)malloc(sizeof(double complex) * M);

@@ -33,13 +33,18 @@ int main() {
   int type = 1, dim = 1;     // 1d1
   int64_t Ns[3] = {N, 0, 0}; // guru describes mode array by vector [N1,N2..]
   finufft_plan plan;         // creates a plan struct (NULL below: default opts)
-  finufft_makeplan(type, dim, Ns, isign, ntrans, tol, &plan, NULL);
+  int ier = finufft_makeplan(type, dim, Ns, isign, ntrans, tol, &plan, NULL);
+  if (ier) return ier;       // no plan to use; going on would segfault
 
   // generate random nonuniform points and pass to FINUFFT
   vector<double> x(M);
   for (int j = 0; j < M; ++j)
     x[j] = PI * (2 * ((double)rand() / RAND_MAX) - 1); // uniform random in [-pi,pi)
-  finufft_setpts(plan, M, x.data(), NULL, NULL, 0, NULL, NULL, NULL);
+  ier = finufft_setpts(plan, M, x.data(), NULL, NULL, 0, NULL, NULL, NULL);
+  if (ier) {
+    finufft_destroy(plan);
+    return ier;
+  }
 
   // generate ntrans complex strength vectors each of length M (the slow bit!)
   vector<complex<double>> c(M * ntrans); // plain contiguous storage
@@ -52,7 +57,7 @@ int main() {
   printf("guru many 1D type-1 double-prec, tol=%.3g, executing %d transforms "
          "(vectorized), each size %d NU pts to %d modes...\n",
          tol, ntrans, M, N);
-  int ier = finufft_execute(plan, c.data(), F.data());
+  ier = finufft_execute(plan, c.data(), F.data());
 
   // could now change c, do another execute, do another setpts, execute, etc...
 

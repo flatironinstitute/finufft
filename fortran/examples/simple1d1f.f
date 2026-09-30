@@ -104,5 +104,15 @@ c     tell it to ignore that the error model says not possible...
          stop 1
       endif
 
+c     math test of the options-changing transform (same reference & threshold)
+      fmax = 0
+      do k=1,N
+         fmax = max(fmax,cabs(fk(k)))
+      enddo
+      print '("rel err for mode k=",i10," is ",e10.2)',ktest,
+     $     cabs(fk(ktestindex)-fktest)/fmax
+      err = cabs(fk(ktestindex)-fktest)/fmax
+      if (.not.(err.le.10*tol)) stop 1
+
       stop
       end
