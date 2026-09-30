@@ -13,6 +13,7 @@
 
 static const double PI = 3.141592653589793238462643383279502884;
 
+// docs-start: migrate2d1
 int main() {
   int N[2]   = {300, 200}; // N0, N1 output shape in nfft3 sense
   int M      = 500000;     // num. nonuniform input points
@@ -48,6 +49,7 @@ int main() {
                                                                        // N0,N1 swapped!
 
   double secs = (clock() - before) / (double)CLOCKS_PER_SEC;
+  // docs-end: migrate2d1
 
   // now test that f_hat is as it would have been if original data were sent to nfft3...
   int kx = -17, ky = 33; // check one output f_hat(kx,ky) vs direct computation
@@ -65,5 +67,5 @@ int main() {
   free(y);
   free(f);
   free(f_hat); // user deallocates own I/O arrays
-  return ier;
+  return ier || err > 10 * tol;
 }
