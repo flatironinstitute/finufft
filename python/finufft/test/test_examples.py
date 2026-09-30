@@ -29,6 +29,7 @@ def test_impossible_tolerance_fails():
     )
     proc = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True)
     assert proc.returncode != 0, "expected subprocess to reject eps=1e-9"
-    assert "eps" in proc.stderr.lower() or "RuntimeError" in proc.stderr, (
+    # must be FINUFFT's eps-too-small failure (ier 26), not an unrelated crash
+    assert "RuntimeError: FINUFFT eps tolerance too small to achieve" in proc.stderr, (
         f"unexpected failure mode, stderr: {proc.stderr!r}"
     )

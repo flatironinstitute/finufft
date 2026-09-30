@@ -24,9 +24,12 @@ opts.upsampfac = 2.0;          % must be one of the legitimate choices
 % spread M=1 single unit-strength somewhere (eg, at the origin)...
 f = finufft2d1(0.0,0.0,1.0,isign,tol,N1,N2,opts);
 kersum = sum(f(:));   % ... to get its mass, and plot it on 0-indexed grid...
-% only plot when a display + graphics toolkit exist (works headless under ctest)
-isplot = ~isempty(available_graphics_toolkits()) && ~isempty(getenv('DISPLAY'));
-if ~isplot && exist('usejava','file'), isplot = usejava('awt'); end   % MATLAB fallback
+% only plot when a display + graphics exist (Octave: graphics toolkit; MATLAB: java AWT)
+if exist('OCTAVE_VERSION', 'builtin') ~= 0
+  isplot = ~isempty(available_graphics_toolkits()) && ~isempty(getenv('DISPLAY'));
+else
+  isplot = usejava('awt');   % MATLAB
+end
 if isplot
   figure; surf(0:N1-1,0:N2-1,log10(real(f))'); xlabel('x'); ylabel('y');
   hold on; plot3(N1/2,N2/2,0.0,'k.','markersize',20); axis vis3d

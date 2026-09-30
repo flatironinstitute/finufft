@@ -94,7 +94,8 @@ The FINUFFT C++ interface is intentionally also C-compatible, for simplity.
 Thus, to use from C, the above example only needs to replace the C++
 ``vector`` with C-style array creation. Using C99 style, the
 above code, with options setting, becomes
-(the complete demo is ``examples/simple1d1c.c``):
+(excerpt; the full file with the final accuracy check is
+``examples/simple1d1c.c``):
 
 .. literalinclude:: ../examples/simple1d1c.c
   :language: C
@@ -112,9 +113,9 @@ the correct indexing of output modes. Don't forget to compile your C code with
 
 We assume Fortran-style contiguous multidimensional arrays, as opposed
 to C-style arrays of pointers; this allows the widest compatibility with other
-languages. Here is a full 2D type-1 example (the complete demo with math check
-is ``examples/simple2d1.cpp``; it uses ``N1=2000``, ``N2=1000`` and requests
-``tol=1e-6``):
+languages. Here is a 2D type-1 example (excerpt; the full file with the final
+accuracy check is ``examples/simple2d1.cpp``; it uses ``N1=2000``, ``N2=1000``
+and requests ``tol=1e-6``):
 
 .. literalinclude:: ../examples/simple2d1.cpp
   :language: C++
@@ -151,7 +152,8 @@ interface (which does the entire stack in one call)
 than to repeatedly call the above "simple" interfaces.
 This is especially true for many small problems.
 Here we show how to do a stack of 1D type 1 NUFFT transforms, in C++
-(the complete demo, with ``ntrans=3``, is ``examples/many1d1.cpp``).
+(excerpt; the full file with the final accuracy check is
+``examples/many1d1.cpp``, which uses ``ntrans=3``).
 The strength data vectors are taken to be contiguous (the whole
 first vector, followed by the second, etc, rather than interleaved.)
 Ie, viewed as a matrix in Fortran storage, each column is a strength vector.
@@ -185,9 +187,9 @@ set of stacked strength data (for type 1 and 3, or coefficients for type 2),
 reusing the existing FFTW plan and sorted points.
 Finally, you may execute *adjoints* of the planned transforms without
 re-planning, making forward-adjoint transform pairs very convenient.
-Here's the full 2D type 1 C++ guru example (the complete demo with math check
-is ``examples/guru2d1.cpp``; it uses ``N1=2000``, ``N2=1000`` and requests
-``tol=1e-6``):
+Here's the 2D type 1 C++ guru example (excerpt; the full file with the final
+accuracy check is ``examples/guru2d1.cpp``; it uses ``N1=2000``, ``N2=1000``
+and requests ``tol=1e-6``):
 
 .. literalinclude:: ../examples/guru2d1.cpp
   :language: C++

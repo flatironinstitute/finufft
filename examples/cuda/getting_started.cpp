@@ -28,9 +28,9 @@
 // docs-end: gs-headers
 
 static const double PI = 3.141592653589793238462643383279502884;
+// docs-start: gs-params
 
 int main() {
-  // docs-start: gs-params
   // Problem size: number of nonuniform points (M) and grid size (N).
   const int M = 100000, N = 10000;
 

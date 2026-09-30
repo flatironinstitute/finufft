@@ -93,10 +93,11 @@ c
      &                    fk0(1+(d-1)*nk:d*nk))
             call errcomp(fk0(1+(d-1)*nk:d*nk),fk1(1+(d-1)*nk:d*nk),
      &                   nk,err)
+            if (.not.(err.le.10*eps)) stop 1
             maxerr = max(maxerr,err)
          enddo
          print *, ' max type 1 error = ',maxerr
-         if (ier.ne.0 .or. maxerr.gt.10*eps) stop 1
+         if (ier.ne.0 .or. .not.(maxerr.le.10*eps)) stop 1
 c
 c     -----------------------
 c      call 2D Type 2 method
@@ -109,10 +110,11 @@ c     -----------------------
      &                    fk0(1+(d-1)*nk:d*nk))
             call errcomp(cj0(1+(d-1)*nj:d*nj),cj1(1+(d-1)*nj:d*nj),
      &                   nj,err)
+            if (.not.(err.le.10*eps)) stop 1
             maxerr = max(maxerr,err)
          enddo
          print *, ' max type 2 error = ',maxerr
-         if (ier.ne.0 .or. maxerr.gt.10*eps) stop 1
+         if (ier.ne.0 .or. .not.(maxerr.le.10*eps)) stop 1
 c
 c     -----------------------
 c      call 2D Type3 method
@@ -130,10 +132,11 @@ c     -----------------------
      &           sk,tk,fk0(1+(d-1)*nk:d*nk))
             call errcomp(fk0(1+(d-1)*nk:d*nk),fk1(1+(d-1)*nk:d*nk),
      &                   nk,err)
+            if (.not.(err.le.10*eps)) stop 1
             maxerr = max(maxerr,err)
          enddo
          print *, ' max type 3 error = ',maxerr
-         if (ier.ne.0 .or. maxerr.gt.10*eps) stop 1
+         if (ier.ne.0 .or. .not.(maxerr.le.10*eps)) stop 1
       enddo
       stop
       end
