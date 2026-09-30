@@ -4,6 +4,7 @@
    To compile (assuming FINUFFT include and lib in path):
    gcc migrate2d1_test.c -o migrate2d1_test -lfinufft -lfftw3 -lm
  */
+// docs-start: migrate2d1
 #include <complex.h>
 #include <finufft.h>
 #include <math.h>
@@ -13,15 +14,14 @@
 
 static const double PI = 3.141592653589793238462643383279502884;
 
-// docs-start: migrate2d1
 int main() {
   int N[2]   = {300, 200}; // N0, N1 output shape in nfft3 sense
   int M      = 500000;     // num. nonuniform input points
   double tol = 1e-13;      // user must choose (unlike nfft3's simple call)
 
   // user allocates all external arrays (and no internal ones)
-  double *x = (double *)malloc(sizeof(double) * M); // x (0th) coords only here
-  double *y = (double *)malloc(sizeof(double) * M); // y (1st) coords need separate ptr
+  double *x  = (double *)malloc(sizeof(double) * M); // x (0th) coords only here
+  double *y  = (double *)malloc(sizeof(double) * M); // y (1st) coords need separate ptr
   double complex *f = (double complex *)malloc(sizeof(double complex) * M);
   double complex *f_hat =
       (double complex *)malloc(sizeof(double complex) * N[0] * N[1]); // output
@@ -45,11 +45,10 @@ int main() {
   finufft_opts opts;            // opts struct
   finufft_default_opts(&opts);  // set default opts (must start with this)
   opts.nthreads = 1;            // enforce single-thread
-  int ier = finufft2d1(M, y, x, f, +1, tol, N[1], N[0], f_hat, &opts); // both x,y and
+  int ier     = finufft2d1(M, y, x, f, +1, tol, N[1], N[0], f_hat, &opts); // both x,y and
                                                                        // N0,N1 swapped!
 
   double secs = (clock() - before) / (double)CLOCKS_PER_SEC;
-  // docs-end: migrate2d1
 
   // now test that f_hat is as it would have been if original data were sent to nfft3...
   int kx = -17, ky = 33; // check one output f_hat(kx,ky) vs direct computation
@@ -67,5 +66,6 @@ int main() {
   free(y);
   free(f);
   free(f_hat); // user deallocates own I/O arrays
-  return ier || err > 10 * tol;
+  return ier || !(err <= 10 * tol);
 }
+// docs-end: migrate2d1

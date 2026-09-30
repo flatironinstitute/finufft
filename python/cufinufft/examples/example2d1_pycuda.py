@@ -61,4 +61,4 @@ for i in range(n_transf):
     print(f"[{i}] Absolute error on mode [{nt1}, {nt2}] is {err:.3g}")
     print(f"[{i}] Relative error on mode [{nt1}, {nt2}] is {rel_err:.3g}")
 
-    assert rel_err < 10 * eps
+    assert rel_err <= 10 * eps

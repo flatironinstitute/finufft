@@ -32,4 +32,4 @@ assert (n >= -N / 2.0) & (n < N / 2.0)
 ftest = sum(c * np.exp(1.0j * n * x))
 err = np.abs(f[n + N // 2] - ftest) / np.max(np.abs(f))
 print("Error relative to max: {0:.2e}".format(err))
-assert err < 10 * eps
+assert err <= 10 * eps

@@ -15,10 +15,10 @@ c     tested file; everything outside the math check is shown in the docs)
       program simple1d1
       implicit none
 
+c     docs-start: quick-start
 c     our fortran-header, always needed
       include 'finufft.fh'
 
-c     docs-start: quick-start
 c     note some inputs are int (int*4) but others BIGINT (int*8)
       integer ier,iflag
       integer*8 N,ktest,M,j,k,ktestindex,t1,t2,crate
@@ -85,7 +85,7 @@ c     compute inf norm of fk coeffs for use in rel err
       print '("rel err for mode k=",i10," is ",e10.2)',ktest,
      $     cdabs(fk(ktestindex)-fktest)/fmax
       err = cdabs(fk(ktestindex)-fktest)/fmax
-      if (err.gt.10*tol) stop 1
+      if (.not.(err.le.10*tol)) stop 1
 
 c     docs-start: options
 c     do another transform, but now first setting some options...

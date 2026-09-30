@@ -53,5 +53,5 @@ int main()
   double err = abs(F[kout] - Ftest) / Fmax;
   printf("1D type-1 double-prec NUFFT done. ier=%d, rel err in F[%d] is %.3g\n", ier, k,
          err);
-  return ier || err > 10 * tol;
+  return ier || !(err <= 10 * tol);
 }

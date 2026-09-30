@@ -103,5 +103,5 @@ int main() {
   printf("planB: 1D type-1 double-prec NUFFT done. ier=%d, rel err in F[%d] is %.3g\n",
          ierB, n, errB);
 
-  return ierA || ierB || errA > 10 * tol || errB > 10 * tol;
+  return ierA || ierB || !(errA <= 10 * tol) || !(errB <= 10 * tol);
 }

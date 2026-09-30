@@ -52,5 +52,5 @@ int main()
   float err = abs(F[kout] - Ftest) / Fmax;
   printf("1D type-1 single-prec NUFFT done. ier=%d, rel err in F[%d] is %.3g\n", ier, k,
          err);
-  return ier || err > 10 * acc;
+  return ier || !(err <= 10 * acc);
 }

@@ -37,4 +37,4 @@ for j in range(M):
 Fmax = np.max(np.abs(F))
 err = np.abs((F[n + N // 2] - Ftest) / Fmax)
 print("Error relative to max of F: {0:.2e}".format(err))
-assert err < 10 * eps
+assert err <= 10 * eps

@@ -82,7 +82,7 @@ program simple1d1
   print '("rel err for mode k=",i10," is ",e10.2)',ktest, &
        cdabs(fk(ktestindex)-fktest)/fmax
   err = cdabs(fk(ktestindex)-fktest)/fmax
-  if (err.gt.10*tol) stop 1
+  if (.not.(err.le.10*tol)) stop 1
 
   ! docs-start: simple1d1-f90-options
   ! do another transform, but now first setting some options...

@@ -105,7 +105,7 @@ c     compute inf norm of output vector for use in rel err
       print '("rel err for target j=",i10," is ",e10.2)',jtest,
      $     cdabs(cj(jtest)-cjtest)/cmax
       err = cdabs(cj(jtest)-cjtest)/cmax
-      if (err.gt.10*tol) stop 1
+      if (.not.(err.le.10*tol)) stop 1
 
       stop
       end

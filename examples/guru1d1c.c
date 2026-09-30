@@ -83,5 +83,5 @@ int main()
   free(c);
   free(F);
   free(popts);
-  return ier > 0 || err > 10 * tol;
+  return ier > 0 || !(err <= 10 * tol);
 }

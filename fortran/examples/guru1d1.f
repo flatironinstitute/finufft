@@ -105,7 +105,7 @@ c     compute inf norm of fk coeffs for use in rel err
       print '("rel err for mode k=",i10," is ",e10.2)',ktest,
      $     cdabs(fk(ktestindex)-fktest)/fmax
       err = cdabs(fk(ktestindex)-fktest)/fmax
-      if (err.gt.10*tol) stop 1
+      if (.not.(err.le.10*tol)) stop 1
 
 c     ----------- GURU DEMO WITH NEW OPTIONS, MULTIPLE EXECS ----------
       print *,''

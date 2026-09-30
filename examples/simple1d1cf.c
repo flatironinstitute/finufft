@@ -56,5 +56,5 @@ int main()
   free(x);
   free(c);
   free(F);
-  return ier || err > 10 * tol;
+  return ier || !(err <= 10 * tol);
 }

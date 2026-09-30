@@ -85,5 +85,5 @@ int main()
   double relmaxerr = maxerr / abs(kersum);
   printf("1D interp-only, double-prec, %.3g s (%.3g NU pt/sec), ier=%d, max err %.3g\n",
          t, M / t, ier, relmaxerr);
-  return ier || relerr > 10 * tol || relmaxerr > 10 * tol;
+  return ier || !(relerr <= 10 * tol) || !(relmaxerr <= 10 * tol);
 }
