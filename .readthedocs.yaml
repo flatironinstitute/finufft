@@ -23,6 +23,9 @@ formats: all
 # Build documentation in the docs/ directory with Sphinx
 sphinx:
   configuration: docs/conf.py
+  # broken literalincludes, bad refs etc fail the build (local check:
+  # sphinx-build -W -b html docs <outdir>)
+  fail_on_warning: true
 
 # Optionally set the version of Python and requirements required to build your docs
 python:
