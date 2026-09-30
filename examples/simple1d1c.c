@@ -1,3 +1,4 @@
+// docs-start: quick-start-c
 // this is all you must include to access finufft from C...
 #include <finufft.h>
 
@@ -38,6 +39,9 @@ int main()
 
   // call the NUFFT (with iflag=+1), passing pointers...
   int ier = finufft1d1(M, x, c, +1, tol, N, F, &opts);
+  // docs-end: quick-start-c
+
+  // (now do something with F here!...)
 
   int k = 142519;                       // check the answer just for this mode...
   assert(k >= -(double)N / 2 && k < (double)N / 2);

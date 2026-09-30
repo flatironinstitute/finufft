@@ -1,3 +1,4 @@
+// docs-start: quick-start
 // this is all you must include for the finufft lib...
 #include <finufft.h>
 
@@ -10,6 +11,7 @@
 using namespace std;
 
 static const double PI = 3.141592653589793238462643383279502884;
+// docs-end: quick-start
 
 int main()
 /* Example of calling the FINUFFT library from C++, using STL
@@ -20,26 +22,33 @@ int main()
    Usage: ./simple1d1
 */
 {
+  // docs-start: walkthrough
   int M              = 1e6;                      // number of nonuniform points
-  int N              = 1e6;                      // number of modes
+  int N              = 1e6;                      // number of output modes
   double acc         = 1e-9;                     // desired accuracy
   finufft_opts opts;                             // opts is a plain struct
   finufft_default_opts(&opts);
   complex<double> I = complex<double>(0.0, 1.0); // the imaginary unit
+  // docs-end: walkthrough
 
-  // generate some random nonuniform points (x) and complex strengths (c)...
+  // docs-start: declare-fill
+  // generate nonuniform points (x) and complex strengths (c), uniform random in
+  // [-pi,pi)...
   vector<double> x(M);
   vector<complex<double>> c(M);
   for (int j = 0; j < M; ++j) {
-    x[j] = PI * (2 * ((double)rand() / RAND_MAX) - 1); // uniform random in [-pi,pi)
+    x[j] = PI * (2 * ((double)rand() / RAND_MAX) - 1);
     c[j] =
         2 * ((double)rand() / RAND_MAX) - 1 + I * (2 * ((double)rand() / RAND_MAX) - 1);
   }
-  // allocate output array for the Fourier modes...
+  // allocate output array for the N Fourier modes...
   vector<complex<double>> F(N);
+  // docs-end: declare-fill
 
+  // docs-start: transform
   // call the NUFFT (with iflag=+1): note pointers (not STL vecs) passed...
   int ier = finufft1d1(M, &x[0], &c[0], +1, acc, N, &F[0], &opts);
+  // docs-end: transform
 
   int k = 142519; // check the answer just for this mode frequency...
   assert(k >= -(double)N / 2 && k < (double)N / 2);

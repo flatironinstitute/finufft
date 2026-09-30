@@ -1,3 +1,4 @@
+// docs-start: guru2d1
 #include <finufft.h>
 
 #include <complex>
@@ -54,6 +55,7 @@ int main() {
   // ...
   // step 4: free the memory used by the plan...
   finufft_destroy(plan);
+  // docs-end: guru2d1
 
   int k1 = round(0.45 * N1); // check the answer for mode frequency (k1,k2)
   int k2 = round(-0.35 * N2);

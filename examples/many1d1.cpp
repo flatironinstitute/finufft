@@ -1,3 +1,4 @@
+// docs-start: many1d1
 #include <finufft.h>
 
 #include <cassert>
@@ -34,6 +35,7 @@ int main()
 
   // call the NUFFT (with iflag=+1): note pointers (not STL vecs) passed...
   int ier = finufft1d1many(ntrans, M, &x[0], &c[0], +1, tol, N, &F[0], NULL);
+  // docs-end: many1d1
 
   int k     = 142519;     // check the answer just for this mode...
   int trans = ntrans - 1; // ...in this transform
