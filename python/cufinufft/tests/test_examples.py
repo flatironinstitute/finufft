@@ -23,6 +23,9 @@ def test_example(filename, request):
     framework = Path(filename).stem.split("_")[-1]
 
     if framework in request.config.getoption("framework"):
-        subprocess.check_call([sys.executable, filename])
+        env = {
+            k: v for k, v in os.environ.items() if k != "PYTHONOPTIMIZE"
+        }  # keep asserts
+        subprocess.check_call([sys.executable, filename], env=env)
     else:
         pytest.skip("Example not in list of frameworks")
