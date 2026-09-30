@@ -1,3 +1,4 @@
+% docs-start: guru1d1
 % MATLAB/octave demo script of guru interface to FINUFFT, 1D type 1.
 % Lu 5/11/2020. Barnett added timing, tweaked.
 % For demo of its adjoint see guru1d1_adjoint.m
@@ -21,12 +22,17 @@ opts.debug=2;    % set options then plan the transform...
 plan = finufft_plan(type,n_modes,isign,ntrans,tol,opts);
 
 plan.setpts(x);                                 % send in NU pts
+% (note: the x array should now not be altered until all executes are done!)
 
 f = plan.execute(c);                               % do the transform
 disp('done.'); toc
 
+% ...one could now change the points with setpts, and/or do new transforms
+% ...with new c data, and/or do adjoint transforms with new data...
+
 % if you do not want to do more transforms of this size, clean up...
 delete(plan);
+% docs-end: guru1d1
 
 % check the error of one output...
 nt = ceil(0.37*N);                              % pick a mode index
