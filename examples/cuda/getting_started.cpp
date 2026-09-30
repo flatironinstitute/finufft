@@ -17,6 +17,7 @@
 
  */
 
+// docs-start: gs-headers
 #include <complex.h>
 #include <cuComplex.h>
 #include <cuda_runtime.h>
@@ -24,10 +25,12 @@
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
+// docs-end: gs-headers
 
 static const double PI = 3.141592653589793238462643383279502884;
 
 int main() {
+  // docs-start: gs-params
   // Problem size: number of nonuniform points (M) and grid size (N).
   const int M = 100000, N = 10000;
 
@@ -38,18 +41,18 @@ int main() {
   float *x;
   float _Complex *c;
   float _Complex *f;
+  // docs-end: gs-params
 
+  // docs-start: gs-device
   // Device pointers.
   float *d_x;
   cuFloatComplex *d_c, *d_f;
 
   // Store cufinufft plan.
   cufinufftf_plan plan;
+  // docs-end: gs-device
 
-  // Manual calculation at a single point idx.
-  int idx;
-  float _Complex f0;
-
+  // docs-start: gs-fill
   // Allocate the host arrays.
   x = (float *)malloc(M * sizeof(float));
   c = (float _Complex *)malloc(M * sizeof(float _Complex));
@@ -64,7 +67,9 @@ int main() {
     c[j] =
         (2 * ((float)rand()) / RAND_MAX - 1) + I * (2 * ((float)rand()) / RAND_MAX - 1);
   }
+  // docs-end: gs-fill
 
+  // docs-start: gs-transfer
   // Allocate the device arrays and copy the x and c arrays.
   cudaMalloc(&d_x, M * sizeof(float));
   cudaMalloc(&d_c, M * sizeof(float _Complex));
@@ -72,7 +77,9 @@ int main() {
 
   cudaMemcpy(d_x, x, M * sizeof(float), cudaMemcpyHostToDevice);
   cudaMemcpy(d_c, c, M * sizeof(float _Complex), cudaMemcpyHostToDevice);
+  // docs-end: gs-transfer
 
+  // docs-start: gs-plan
   // Make the cufinufft plan for a 1D type-1 transform with six digits of
   // tolerance. Any ier above 1 is an error; 1 is a warning and the result is
   // still usable.
@@ -87,7 +94,9 @@ int main() {
   // in the d_f array.
   ier = cufinufftf_execute(plan, d_c, d_f);
   if (ier > 0) return ier;
+  // docs-end: gs-plan
 
+  // docs-start: gs-back
   // Copy the result back onto the host.
   cudaMemcpy(f, d_f, N * sizeof(float _Complex), cudaMemcpyDeviceToHost);
 
@@ -97,6 +106,13 @@ int main() {
   cudaFree(d_x);
   cudaFree(d_c);
   cudaFree(d_f);
+  // docs-end: gs-back
+
+  // The rest of the program (manual NUDFT accuracy check, printing of one
+  // output, and host cleanup) is not shown in the docs.
+  // Manual calculation at a single point idx.
+  int idx;
+  float _Complex f0;
 
   // Pick an index to check the result of the calculation.
   idx = 4 * N / 7;

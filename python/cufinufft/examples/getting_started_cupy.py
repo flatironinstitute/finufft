@@ -1,3 +1,4 @@
+# docs-start: getting-started-cupy
 import cupy as cp
 
 import cufinufft
@@ -17,3 +18,4 @@ f_gpu = cufinufft.nufft1d1(x_gpu, c_gpu, (N,))
 
 # move results off the GPU
 f = f_gpu.get()
+# docs-end: getting-started-cupy
