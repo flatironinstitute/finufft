@@ -81,7 +81,11 @@ int main()
   csum = 0.0; // tot output
   for (auto cj : c) csum += cj;
   double maxerr = 0.0;
-  for (auto cj : c) maxerr = max(maxerr, abs(cj - kersum));
+  for (auto cj : c) {
+    double e = abs(cj - kersum);
+    if (!(e <= 10 * tol * abs(kersum))) return 1; // also catches NaN
+    maxerr = max(maxerr, e);
+  }
   double relmaxerr = maxerr / abs(kersum);
   printf("1D interp-only, double-prec, %.3g s (%.3g NU pt/sec), ier=%d, max err %.3g\n",
          t, M / t, ier, relmaxerr);

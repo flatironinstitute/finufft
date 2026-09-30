@@ -52,6 +52,7 @@ int main()
     }
     int kout    = k + N / 2 + N * trans; // output index, freq mode k, transform # trans
     double terr = abs(F[kout] - Ftest) / Fmax;
+    if (!(terr <= 10 * tol)) return 1;   // also catches NaN
     if (terr > err) err = terr;
     printf("\ttransform %d, rel err in F[%d] is %.3g\n", trans, k, terr);
   }

@@ -53,4 +53,4 @@ c = finufft2d2(x,y,isign,tol,f,opts);            % do it
 t = toc;
 maxerr = max(abs(c-kersum)) / kersum;            % worst-case c err
 fprintf('2D interp-only: %.3g s (%.3g NU pt/s), max err %.3g\n', t, M/t, maxerr)
-assert(maxerr < 10*tol)
+assert(all(isfinite(c)) && maxerr < 10*tol)   % max() ignores NaN
