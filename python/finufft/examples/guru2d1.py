@@ -1,3 +1,4 @@
+# docs-start: guru2d1
 # demo of vectorized 2D type 1 FINUFFT in python via guru interface. Should stay close to docs/python.rst
 # Lu 8/20/20
 
@@ -41,6 +42,7 @@ print("vectorized guru finufft2d1 done in {0:.2g} s.".format(time.time() - t0))
 
 print(f.dtype)
 print(f.shape)
+# docs-end: guru2d1
 
 k1 = 376  # do a math check, for a single output mode index (k1,k2)
 k2 = -1000

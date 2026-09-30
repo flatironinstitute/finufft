@@ -1,4 +1,6 @@
-# demo of vectorized 2D type 1 FINUFFT in python via guru interface. Should stay close to docs/python.rst
+# docs-start: guru2d1f
+# demo of vectorized 2D type 1 FINUFFT in single precision via guru interface.
+# Should stay close to docs/python.rst
 # Lu 8/20/20
 
 import numpy as np
@@ -32,7 +34,7 @@ N2 = 2000
 # specify type 1 transform
 nufft_type = 1
 
-# instantiate the plan (note n_trans must be set here), also setting tolerance:
+# instantiate the plan (note n_trans and dtype must be set here):
 t0 = time.time()
 # single precision resolves no finer than about max(N_i) * eps_mach, so eps=1e-4 fails
 eps = 1e-3
@@ -41,7 +43,7 @@ plan = finufft.Plan(nufft_type, (N1, N2), eps=eps, n_trans=K, dtype="complex64")
 # set the nonuniform points
 plan.setpts(x, y)
 
-# execute the plan (K transforms together, note c.shape must match)
+# execute the plan, giving single-precision output
 f = plan.execute(c)
 print(
     "vectorized guru single-prec finufft2d1 done in {0:.2g} s.".format(time.time() - t0)
@@ -49,6 +51,7 @@ print(
 
 print(f.dtype)
 print(f.shape)
+# docs-end: guru2d1f
 
 k1 = 37  # do a math check, for a single output mode index (k1,k2)
 k2 = -100

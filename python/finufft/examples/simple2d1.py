@@ -1,3 +1,4 @@
+# docs-start: simple2d1
 # demo of 2D type 1 FINUFFT in python. Should stay close to docs/python.rst
 # Barnett 8/19/20
 
@@ -21,11 +22,12 @@ c = np.random.standard_normal(size=M) + 1j * np.random.standard_normal(size=M)
 N1 = 1000
 N2 = 2000
 
-# calculate the transform
+# calculate the 2D transform; outputs f array of shape (N1, N2)
 eps = 1e-9
 t0 = time.time()
 f = finufft.nufft2d1(x, y, c, (N1, N2), eps=eps)
 print("finufft2d1 done in {0:.2g} s.".format(time.time() - t0))
+# docs-end: simple2d1
 
 k1 = 376  # do a math check, for a single output mode index (k1,k2)
 k2 = -1000

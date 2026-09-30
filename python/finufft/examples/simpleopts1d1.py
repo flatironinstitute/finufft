@@ -1,3 +1,4 @@
+# docs-start: simpleopts1d1
 # convert DFM's simple demo to JFM interface, include modeord test.
 # Barnett 10/25/17. Adde upsampfac, 6/18/18
 
@@ -19,7 +20,8 @@ F = np.zeros([N], dtype=np.complex128)  # allocate F (modes out)
 
 strt = time.time()
 F = finufft.nufft1d1(x, c, N, eps=acc, isign=iflag, debug=1, spread_debug=1)
-print("Finished nufft in {0:.2g} seconds. Checking...".format(time.time() - strt))
+print("Finished nufft in {0:.2g} seconds.".format(time.time() - strt))
+# docs-end: simpleopts1d1
 
 n = 142519  # mode to check
 Ftest = 0.0
