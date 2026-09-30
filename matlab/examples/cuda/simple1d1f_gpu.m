@@ -23,7 +23,7 @@ tgpu = toc;
 fprintf('done in %.3g s: throughput (excl H<->D) is %.3g NUpt/s\n',tgpu,M/tgpu)
 
 % check the error of only one output, also on GPU...
-nt = ceil(0.47*N);                       % pick a mode index in -N/2,..,N/2-1
-fe = sum(c.*exp(1i*isign*nt*x));         % exact
-of = floor(N/2)+1;                       % mode index offset
-fprintf('rel err in F[%d] is %.3g\n',nt,abs(fe-f(nt+of))/norm(f,Inf))
+nt1 = ceil(0.47*N1); nt2 = ceil(0.47*N2);       % pick mode indices in -Ni/2,..,Ni/2-1
+fe = sum(c.*exp(1i*(nt1*x + nt2*y)));           % exact
+of1 = floor(N1/2)+1; of2 = floor(N2/2)+1;       % mode index offsets
+fprintf('rel err in F[%d,%d] is %.3g\n',nt1,nt2,abs(fe-f(nt1+of1,nt2+of2))/norm(f(:),Inf))
