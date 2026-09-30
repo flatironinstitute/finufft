@@ -17,23 +17,21 @@ Quick-start example
 
 To perform a double-precision 1D type 1 transform from ``M`` nonuniform points ``xj``
 with strengths ``cj``, to ``N`` output modes whose coefficients will be written
-into the ``fk`` array, using 9-digit tolerance, the $+i$ imaginary sign,
-and default options, the declarations and call are
+into the ``fk`` array, the declarations are
+(from the complete demo ``fortran/examples/simple1d1.f``):
 
-.. code-block:: fortran
+.. literalinclude:: ../fortran/examples/simple1d1.f
+  :language: fortran
+  :start-after: docs-start: quick-start
+  :end-before: docs-end: quick-start
 
-      integer ier,iflag
-      integer*8 N,M
-      real*8, allocatable :: xj(:)
-      real*8 tol
-      complex*16, allocatable :: cj(:),fk(:)
-      integer*8, allocatable :: null
+Then, using 9-digit tolerance, the $+i$ imaginary sign,
+and default options, the call is:
 
- !    (...allocate xj, cj, and fk, and fill xj and cj here...)
-
-      tol = 1.0D-9
-      iflag = +1
-      call finufft1d1(M,xj,cj,iflag,tol,N,fk,null,ier)
+.. literalinclude:: ../fortran/examples/simple1d1.f
+  :language: fortran
+  :start-after: docs-start: default-call
+  :end-before: docs-end: default-call
 
 which writes the output to ``fk``, and the status to the integer ``ier``.
 Since the default is CMCL mode ordering, the output for frequency index ``k``
@@ -41,9 +39,10 @@ is found in ``fk(k+N/2+1)``.
 ``ier=0`` indicates success, otherwise error codes are
 as in :ref:`here <error>`.
 By default (``opts.nthreads=0``), the number of physical cores available is used (honoring ``OMP_NUM_THREADS`` if set), unless FINUFFT was built single-threaded; see :ref:`opts`.
-(Note that here the unallocated ``null`` is simply a way to pass
-a NULL pointer to our C++ wrapper; another would be ``%val(0_8)``.)
-For a minimally complete test code demonstrating the above see
+(Note that here the null pointer ``defopts`` is one way to pass
+default options to our C++ wrapper; another would be an unallocated
+``integer*8, allocatable :: null`` or ``%val(0_8)``.)
+For the minimally complete test code demonstrating the above see
 ``fortran/examples/simple1d1.f``.
 
 .. note::
@@ -83,23 +82,29 @@ Changing options
 
 To choose non-default options in the above example, create an options
 derived type, set it to default values, change whichever you wish, and pass
-it to FINUFFT, for instance
+it to FINUFFT. This is what the second half of the
+``fortran/examples/simple1d1.f`` demo does:
 
-.. code-block:: fortran
+.. literalinclude:: ../fortran/examples/simple1d1.f
+  :language: fortran
+  :start-after: docs-start: options
+  :end-before: docs-end: options
 
-      include 'finufft.fh'
-      type(finufft_opts) opts
+The same demo in "modern" f90 style, using the ``finufft_mod`` module instead
+of the include file (see ``fortran/examples/simple1d1.f90``), sets up the
+transform like this (again minus the accuracy check):
 
- !    (...declare, allocate, and fill stuff as above...)
+.. literalinclude:: ../fortran/examples/simple1d1.f90
+  :language: fortran
+  :start-after: docs-start: simple1d1-f90-setup
+  :end-before: docs-end: simple1d1-f90-setup
 
-      call finufft_default_opts(opts)
-      opts%debug = 2
-      opts%upsampfac = 1.25d0
-      call finufft1d1(M,xj,cj,iflag,tol,N,fk,opts,ier)
+and its options-changing second half is:
 
-See ``fortran/examples/simple1d1.f`` for the complete code,
-and below for the complete list of Fortran subroutines available,
-and more complicated examples.
+.. literalinclude:: ../fortran/examples/simple1d1.f90
+  :language: fortran
+  :start-after: docs-start: simple1d1-f90-options
+  :end-before: docs-end: simple1d1-f90-options
 
 See ``modeord`` in :ref:`Options<opts>`
 to instead use FFT-style mode ordering, which
