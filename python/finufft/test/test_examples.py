@@ -20,15 +20,15 @@ def test_example(script):
 
 
 def test_impossible_tolerance_fails():
-    """Positive control: single precision cannot meet eps=1e-9, so the subprocess must exit nonzero."""
+    """Positive control: single precision cannot meet eps=1e-9, so the subprocess must fail with FINUFFT's eps-too-small error."""
     code = (
         "import numpy as np, finufft\n"
         "x = np.random.uniform(-np.pi, np.pi, 1000).astype('float32')\n"
         "c = (np.random.randn(1000) + 1j * np.random.randn(1000)).astype('complex64')\n"
         "finufft.nufft1d1(x, c, 1000, eps=1e-9)\n"
     )
-    with pytest.raises(subprocess.CalledProcessError):
-        subprocess.check_call([sys.executable, "-c", code])
-    print(
-        "positive control: eps=1e-9 in single precision correctly failed the subprocess"
+    proc = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True)
+    assert proc.returncode != 0, "expected subprocess to reject eps=1e-9"
+    assert "eps" in proc.stderr.lower() or "RuntimeError" in proc.stderr, (
+        f"unexpected failure mode, stderr: {proc.stderr!r}"
     )
