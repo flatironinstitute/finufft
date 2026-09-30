@@ -70,11 +70,15 @@ c     use default options
      $     tol,plan,defopts,ier)
       if (ier.ne.0) then
          print *,'makeplan failed! ier=',ier
-         stop
+         stop 1
       endif
 c     note for ttype 1 or 2, arguments 6-9 ignored...
       call finufft_setpts(plan,M,xj,dummy,dummy,dummy,
      $     dummy,dummy,dummy,ier)
+      if (ier.ne.0) then
+         call finufft_destroy(plan,ier)
+         stop 1
+      endif
 c     Do adjoint of planned transform:
 c     writes cj (strengths) and ier (status), reads fk (mode coeffs)
       call finufft_execute_adjoint(plan,cj,fk,ier)

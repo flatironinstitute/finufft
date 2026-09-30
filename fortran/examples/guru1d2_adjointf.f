@@ -71,11 +71,15 @@ c     plan with opt to allow the tol at this N (in FP32 error model)
      $     tol,plan,opts,ier)
       if (ier.ne.0) then
          print *,'makeplan failed! ier=',ier
-         stop
+         stop 1
       endif
 c     note for ttype 1 or 2, arguments 6-9 ignored...
       call finufftf_setpts(plan,M,xj,dummy,dummy,dummy,
      $     dummy,dummy,dummy,ier)
+      if (ier.ne.0) then
+         call finufftf_destroy(plan,ier)
+         stop 1
+      endif
 c     Do the adjoint of planned transform:
 c     reads fk (mode coeffs), writes cj (strengths) and ier (status)
       call finufftf_execute_adjoint(plan,cj,fk,ier)

@@ -71,11 +71,15 @@ c     use default options
      $     tol,plan,defopts,ier)
       if (ier.ne.0) then
          print *,'makeplan failed! ier=',ier
-         stop
+         stop 1
       endif
 c     note for ttype 1 or 2, arguments 6-9 ignored...
       call finufft_setpts(plan,M,xj,dummy,dummy,dummy,
      $     dummy,dummy,dummy,ier)
+      if (ier.ne.0) then
+         call finufft_destroy(plan,ier)
+         stop 1
+      endif
 c     Do it: reads cj (strengths), writes fk (mode coeffs) and ier (status)
       call finufft_execute(plan,cj,fk,ier)
       call system_clock(t2,crate)
@@ -117,8 +121,13 @@ c     refer to fftw3.f to set various FFTW plan modes...
 c     note you need a fresh plan if change opts
       call finufft_makeplan(ttype,dim,n_modes,iflag,ntrans,
      $     tol,plan,opts,ier)
+      if (ier.ne.0) stop 1
       call finufft_setpts(plan,M,xj,dummy,dummy,dummy,
      $     dummy,dummy,dummy,ier)
+      if (ier.ne.0) then
+         call finufft_destroy(plan,ier)
+         stop 1
+      endif
 c     Do it: reads cj (strengths), writes fk (mode coeffs) and ier (status)
       call finufft_execute(plan,cj,fk,ier)
 c     change the strengths
@@ -133,6 +142,10 @@ c     change the NU pts then do another transform w/ existing strengths...
       enddo
       call finufft_setpts(plan,M,xj,dummy,dummy,dummy,
      $     dummy,dummy,dummy,ier)
+      if (ier.ne.0) then
+         call finufft_destroy(plan,ier)
+         stop 1
+      endif
       call finufft_execute(plan,cj,fk,ier)
       if (ier.eq.0) then
          print *,'done.'

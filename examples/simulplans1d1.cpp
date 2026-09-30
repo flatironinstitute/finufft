@@ -60,9 +60,14 @@ int main() {
 
   finufft_plan planA, planB; // creates plan structs
   Ns[0] = NA;
-  finufft_makeplan(type, dim, Ns, +1, ntransf, tol, &planA, NULL);
+  int ier = finufft_makeplan(type, dim, Ns, +1, ntransf, tol, &planA, NULL);
+  if (ier) return ier;
   Ns[0] = NB;
-  finufft_makeplan(type, dim, Ns, +1, ntransf, tol, &planB, NULL);
+  ier   = finufft_makeplan(type, dim, Ns, +1, ntransf, tol, &planB, NULL);
+  if (ier) {
+    finufft_destroy(planA);
+    return ier;
+  }
 
   // generate some random nonuniform points
   vector<double> xA(MA), xB(MB);
@@ -72,8 +77,13 @@ int main() {
     xB[j] = PI * (2 * ((double)rand() / RAND_MAX) - 1); // uniform random in [-pi,pi)
 
   // note FINUFFT doesn't use std::vector types, so we need to make a pointer...
-  finufft_setpts(planA, MA, &xA[0], NULL, NULL, 0, NULL, NULL, NULL);
-  finufft_setpts(planB, MB, &xB[0], NULL, NULL, 0, NULL, NULL, NULL);
+  ier = finufft_setpts(planA, MA, &xA[0], NULL, NULL, 0, NULL, NULL, NULL);
+  if (!ier) ier = finufft_setpts(planB, MB, &xB[0], NULL, NULL, 0, NULL, NULL, NULL);
+  if (ier) {
+    finufft_destroy(planA);
+    finufft_destroy(planB);
+    return ier;
+  }
 
   // generate some complex strengths
   vector<complex<double>> cA(MA), cB(MB);
