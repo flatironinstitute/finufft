@@ -25,13 +25,12 @@
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
+
+static const double PI = 3.141592653589793238462643383279502884;
 // docs-end: gs-headers
 
-// docs-start: gs-params
-static const double PI = 3.141592653589793238462643383279502884;
-// docs-end: gs-params
-
 int main() {
+  // docs-start: gs-params
   // Problem size: number of nonuniform points (M) and grid size (N).
   const int M = 100000, N = 10000;
 

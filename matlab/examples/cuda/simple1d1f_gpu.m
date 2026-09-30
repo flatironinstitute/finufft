@@ -12,14 +12,14 @@ N1 = 10000; N2 = 5000;                   % desired Fourier mode array sizes
 tol = 1e-3;
 % docs-end: simple1d1f-gpu
 
-% docs-start: simple1d1f-gpu-timed
+% docs-start: simple1d1f-timed
 dev = gpuDevice();                       % crucial for valid timing
 tic
 f = cufinufft2d1(x,y,c,+1,tol,N1,N2);    % do it (all opts default)
 %opts.gpu_method=2; f = cufinufft2d1(x,y,c,+1,tol,N1,N2,opts); % do it with opts
 wait(dev)                                % crucial for valid timing
 tgpu = toc;
-% docs-end: simple1d1f-gpu-timed
+% docs-end: simple1d1f-timed
 fprintf('done in %.3g s: throughput (excl H<->D) is %.3g NUpt/s\n',tgpu,M/tgpu)
 
 % check the error of only one output, also on GPU...

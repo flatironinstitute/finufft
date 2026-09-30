@@ -49,8 +49,8 @@ see `simple1d1f_gpu.m <https://github.com/flatironinstitute/finufft/tree/master/
 
    .. literalinclude:: ../matlab/examples/cuda/simple1d1f_gpu.m
      :language: matlab
-     :start-after: docs-start: simple1d1f-gpu-timed
-     :end-before: docs-end: simple1d1f-gpu-timed
+     :start-after: docs-start: simple1d1f-timed
+     :end-before: docs-end: simple1d1f-timed
 
 .. note::
 
