@@ -65,6 +65,10 @@ c     (note since dim=1, unused entries on n_modes are never read)
 c     use default options
       call finufft_makeplan(ttype,dim,n_modes,iflag,ntrans,
      $     tol,plan,defopts,ier)
+      if (ier.ne.0) then
+         print *,'makeplan failed! ier=',ier
+         stop
+      endif
 c     note for ttype 1 or 2, arguments 6-9 ignored...
       call finufft_setpts(plan,M,xj,dummy,dummy,dummy,
      $     dummy,dummy,dummy,ier)
