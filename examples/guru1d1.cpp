@@ -69,6 +69,29 @@ int main()
     return ier;
   }
 
+  // NaN-safe math check of one output mode vs direct sum, for current c...
+  int n = 142519;                                   // check the answer just for this mode
+  assert(n >= -(double)N / 2 && n < (double)N / 2); // ensure meaningful test
+  auto relerr = [&]() -> double {
+    complex<double> Ftest = complex<double>(0, 0);
+    for (int j = 0; j < M; ++j) Ftest += c[j] * exp(1i * (double)n * x[j]);
+    double Fmax = 0.0; // compute inf norm of F
+    for (int m = 0; m < N; ++m) {
+      double aF = abs(F[m]);
+      if (!isfinite(aF)) return NAN; // any NaN/Inf fails
+      if (aF > Fmax) Fmax = aF;
+    }
+    int nout = n + N / 2; // index in output array for freq mode n
+    return abs(F[nout] - Ftest) / Fmax;
+  };
+  double err = relerr();
+  if (!(err <= 10 * tol)) {
+    finufft_destroy(plan);
+    return 1;
+  }
+  printf("guru 1D type-1 double-prec NUFFT done. ier=%d, rel err in F[%d] is %.3g\n", ier,
+         n, err);
+
   // for fun, do another with same NU pts (no re-sorting), but new strengths...
   for (int j = 0; j < M; ++j)
     c[j] =
@@ -82,20 +105,9 @@ int main()
   finufft_destroy(plan); // don't forget! done with transforms of this size
 
   // rest is math checking and reporting...
-  int n = 142519;                                   // check the answer just for this mode
-  assert(n >= -(double)N / 2 && n < (double)N / 2); // ensure meaningful test
-  complex<double> Ftest = complex<double>(0, 0);
-  for (int j = 0; j < M; ++j) Ftest += c[j] * exp(1i * (double)n * x[j]);
-  int nout    = n + N / 2; // index in output array for freq mode n
-  double Fmax = 0.0;       // compute inf norm of F
-  for (int m = 0; m < N; ++m) {
-    double aF = abs(F[m]);
-    if (!isfinite(aF)) return 1; // any NaN/Inf fails
-    if (aF > Fmax) Fmax = aF;
-  }
-  double err = abs(F[nout] - Ftest) / Fmax;
+  err = relerr();
   printf("guru 1D type-1 double-prec NUFFT done. ier=%d, rel err in F[%d] is %.3g\n", ier,
          n, err);
 
-  return ier || !(err <= 10 * tol);
+  return !(err <= 10 * tol);
 }

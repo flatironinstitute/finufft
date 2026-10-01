@@ -64,6 +64,28 @@ int main()
     return ier;
   }
 
+  // NaN-safe math check of one output mode vs direct sum, for current c...
+  int n       = 1251; // check the answer just for this mode, must be in [-N/2,N/2)
+  auto relerr = [&]() -> float {
+    complex<float> Ftest = complex<float>(0, 0);
+    for (int j = 0; j < M; ++j) Ftest += c[j] * exp(1if * (float)n * x[j]);
+    float Fmax = 0.0; // compute inf norm of F
+    for (int m = 0; m < N; ++m) {
+      float aF = abs(F[m]);
+      if (!isfinite(aF)) return NAN; // any NaN/Inf fails
+      if (aF > Fmax) Fmax = aF;
+    }
+    int nout = n + N / 2; // index in output array for freq mode n
+    return abs(F[nout] - Ftest) / Fmax;
+  };
+  float err = relerr();
+  if (!(err <= 10 * tol)) {
+    finufftf_destroy(plan);
+    return 1;
+  }
+  printf("guru 1D type-1 single-prec NUFFT done. ier=%d, rel err in F[%d] is %.3g\n", ier,
+         n, err);
+
   // for fun, do another with same NU pts (no re-sorting), but new strengths...
   for (int j = 0; j < M; ++j)
     c[j] = 2 * ((float)rand() / (float)RAND_MAX) - 1 +
@@ -77,19 +99,9 @@ int main()
   finufftf_destroy(plan); // done with transforms of this size
 
   // rest is math checking and reporting...
-  int n = 1251; // check the answer just for this mode, must be in [-N/2,N/2)
-  complex<float> Ftest = complex<float>(0, 0);
-  for (int j = 0; j < M; ++j) Ftest += c[j] * exp(1if * (float)n * x[j]);
-  int nout   = n + N / 2; // index in output array for freq mode n
-  float Fmax = 0.0;       // compute inf norm of F
-  for (int m = 0; m < N; ++m) {
-    float aF = abs(F[m]);
-    if (!isfinite(aF)) return 1; // any NaN/Inf fails
-    if (aF > Fmax) Fmax = aF;
-  }
-  float err = abs(F[nout] - Ftest) / Fmax;
+  err = relerr();
   printf("guru 1D type-1 single-prec NUFFT done. ier=%d, rel err in F[%d] is %.3g\n", ier,
          n, err);
 
-  return ier || !(err <= 10 * tol);
+  return !(err <= 10 * tol);
 }

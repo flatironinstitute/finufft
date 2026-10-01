@@ -60,19 +60,12 @@ int main()
   ier = finufft_execute(plan, c, F);
   if (ier) goto cleanup;
 
-  // for fun, do another with same NU pts (no re-sorting), but new strengths...
-  for (j = 0; j < M; ++j)
-    c[j] =
-        2 * ((double)rand() / RAND_MAX) - 1 + I * (2 * ((double)rand() / RAND_MAX) - 1);
-  ier = finufft_execute(plan, c, F);
-  if (ier) goto cleanup;
-
-  // rest is math checking and reporting...
-  int n = 142519; // check the answer just for this mode
+  // NaN-safe math check of one output mode vs direct sum, for current c...
+  int n = 142519;    // check the answer just for this mode
+  nout  = n + N / 2; // index in output array for freq mode n
   Ftest = 0.0 + 0.0 * I;
   for (j = 0; j < M; ++j) Ftest += c[j] * cexp(I * (double)n * x[j]);
-  nout = n + N / 2; // index in output array for freq mode n
-  Fmax = 0.0;       // compute inf norm of F
+  Fmax = 0.0; // compute inf norm of F
   for (m = 0; m < N; ++m) {
     aF = cabs(F[m]);
     if (!isfinite(aF)) Fmax = NAN; // any NaN/Inf fails (NaN err)
@@ -82,7 +75,32 @@ int main()
   printf("guru C-interface 1D type-1 NUFFT done. ier=%d, err in F[%d] rel to max(F) is "
          "%.3g\n",
          ier, n, err);
-  ier = ier > 0 || !(err <= 10 * tol);
+  if (!(err <= 10 * tol)) {
+    ier = 1;
+    goto cleanup;
+  }
+
+  // for fun, do another with same NU pts (no re-sorting), but new strengths...
+  for (j = 0; j < M; ++j)
+    c[j] =
+        2 * ((double)rand() / RAND_MAX) - 1 + I * (2 * ((double)rand() / RAND_MAX) - 1);
+  ier = finufft_execute(plan, c, F);
+  if (ier) goto cleanup;
+
+  // rest is math checking and reporting...
+  Ftest = 0.0 + 0.0 * I;
+  for (j = 0; j < M; ++j) Ftest += c[j] * cexp(I * (double)n * x[j]);
+  Fmax = 0.0; // compute inf norm of F
+  for (m = 0; m < N; ++m) {
+    aF = cabs(F[m]);
+    if (!isfinite(aF)) Fmax = NAN; // any NaN/Inf fails (NaN err)
+    if (aF > Fmax) Fmax = aF;
+  }
+  err = cabs(F[nout] - Ftest) / Fmax;
+  printf("guru C-interface 1D type-1 NUFFT done. ier=%d, err in F[%d] rel to max(F) is "
+         "%.3g\n",
+         ier, n, err);
+  ier = !(err <= 10 * tol);
 
 cleanup:
   if (plan) finufft_destroy(plan); // only destroy a plan that was made

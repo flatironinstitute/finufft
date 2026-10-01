@@ -93,9 +93,22 @@ int main() {
 
   // allocate output arrays for the Fourier modes...
   vector<complex<double>> FA(NA), FB(NB);
+  int n    = 116354; // mode frequencies used for the checks
   int ierA = finufft_execute(planA, &cA[0], &FA[0]);
   int ierB = finufft_execute(planB, &cB[0], &FB[0]);
   if (ierA || ierB) {
+    finufft_destroy(planA);
+    finufft_destroy(planB);
+    return 1;
+  }
+  // NaN-safe check of each execute's output before it is overwritten...
+  double errA = chk1d1(n, xA, cA, FA);
+  double errB = chk1d1(27152, xB, cB, FB);
+  printf("planA: 1D type-1 double-prec NUFFT done. ier=%d, rel err in F[%d] is %.3g\n",
+         ierA, n, errA);
+  printf("planB: 1D type-1 double-prec NUFFT done. ier=%d, rel err in F[%d] is %.3g\n",
+         ierB, 27152, errB);
+  if (!(errA <= 10 * tol) || !(errB <= 10 * tol)) {
     finufft_destroy(planA);
     finufft_destroy(planB);
     return 1;
@@ -115,14 +128,12 @@ int main() {
   finufft_destroy(planB);
 
   // math checking and reporting...
-  int n       = 116354;
-  double errA = chk1d1(n, xA, cA, FA);
+  errA = chk1d1(n, xA, cA, FA);
   printf("planA: 1D type-1 double-prec NUFFT done. ier=%d, rel err in F[%d] is %.3g\n",
          ierA, n, errA);
-  n           = 27152;
-  double errB = chk1d1(n, xB, cB, FB);
+  errB = chk1d1(27152, xB, cB, FB);
   printf("planB: 1D type-1 double-prec NUFFT done. ier=%d, rel err in F[%d] is %.3g\n",
-         ierB, n, errB);
+         ierB, 27152, errB);
 
-  return ierA || ierB || !(errA <= 10 * tol) || !(errB <= 10 * tol);
+  return !(errA <= 10 * tol) || !(errB <= 10 * tol);
 }
