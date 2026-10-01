@@ -2,15 +2,18 @@
 #include <finufft.h>
 
 // also used in this example...
+#include <algorithm>
 #include <cassert>
+#include <cmath>
 #include <complex>
 #include <cstdio>
+#include <numeric>
 #include <omp.h>
-#include <stdlib.h>
+#include <random>
 #include <vector>
 using namespace std;
 
-static const double PI = 3.141592653589793238462643383279502884;
+constexpr double pi = 3.14159265358979323846;
 
 int main()
 /* Demo single-threaded FINUFFT calls from inside a OMP parallel block.
@@ -22,9 +25,9 @@ int main()
    reporting small error.
 */
 {
-  int M      = 1e5;                              // number of nonuniform points
-  int N      = 1e5;                              // number of modes
-  double acc = 1e-9;                             // desired accuracy
+  constexpr int M      = 1e5;                    // number of nonuniform points
+  constexpr int N      = 1e5;                    // number of modes
+  constexpr double acc = 1e-9;                   // desired accuracy
   finufft_opts opts;                             // opts is a plain struct
   finufft_default_opts(&opts);
   complex<double> I = complex<double>(0.0, 1.0); // the imaginary unit
@@ -39,32 +42,25 @@ int main()
     // Note that these are local to the thread (if you have the *same* sets of
     // NU pts x for each thread, consider instead using one vectorized multithreaded
     // transform, which would be faster).
+    mt19937 rng(12345 + omp_get_thread_num());
+    uniform_real_distribution<double> upi(-pi, pi), u1(-1.0, 1.0);
     vector<double> x(M);
-    vector<complex<double>> c(M);
-    for (int j = 0; j < M; ++j) {
-      x[j] = PI * (2 * ((double)rand() / RAND_MAX) - 1); // uniform random in [-pi,pi)
-      c[j] =
-          2 * ((double)rand() / RAND_MAX) - 1 + I * (2 * ((double)rand() / RAND_MAX) - 1);
-    }
-
-    // allocate output array for the Fourier modes... local to the thread
-    vector<complex<double>> F(N);
-
+    vector<complex<double>> c(M), F(N); // F: output modes, local to the thread
+    generate(x.begin(), x.end(), [&] { return upi(rng); });
+    generate(c.begin(), c.end(), [&] { return complex<double>{u1(rng), u1(rng)}; });
     // call the NUFFT (with iflag=+1): note pointers (not STL vecs) passed...
     int ier = finufft1d1(M, &x[0], &c[0], +1, acc, N, &F[0], &opts);
     if (ier > 0) overallstatus = 1;
-
-    int k = 42519; // check the answer just for this mode frequency...
+    constexpr int k = 42519; // check the answer just for this mode frequency...
     assert(k >= -(double)N / 2 && k < (double)N / 2);
-    complex<double> Ftest = complex<double>(0, 0);
-    for (int j = 0; j < M; ++j) Ftest += c[j] * exp(I * (double)k * x[j]);
-    double Fmax = 0.0; // compute inf norm of F
-    for (int m = 0; m < N; ++m) {
-      double aF = abs(F[m]);
-      if (aF > Fmax) Fmax = aF;
-    }
-    int kout   = k + N / 2; // index in output array for freq mode k
-    double err = abs(F[kout] - Ftest) / Fmax;
+    vector<complex<double>> terms(M);
+    transform(c.begin(), c.end(), x.begin(), terms.begin(),
+              [&](auto cj, auto xj) { return cj * exp(I * double(k) * xj); });
+    const auto Ftest = reduce(terms.begin(), terms.end());
+    const auto Fmax = abs(
+        *max_element(F.begin(), F.end(), [](auto a, auto b) { return abs(a) < abs(b); }));
+    const auto err = abs(F[k + N / 2] - Ftest) / Fmax;   // k + N/2: index of freq mode k
+    if (!(err < 10 * acc)) overallstatus = 1;            // also catches NaN
 
     printf("[thread %2d] 1D t-1 dbl-prec NUFFT done. ier=%d, rel err in F[%d]: %.3g\n",
            omp_get_thread_num(), ier, k, err);

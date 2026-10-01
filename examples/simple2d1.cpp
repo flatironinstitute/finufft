@@ -1,14 +1,19 @@
+// docs-start: simple2d1
 // this is all you must include for the finufft lib...
 #include <complex>
 #include <finufft.h>
 
 // also needed for this example...
+#include <algorithm>
+#include <cmath>
 #include <iomanip>
 #include <iostream>
+#include <numeric>
+#include <random>
 #include <vector>
 using namespace std;
 
-static const double PI = 3.141592653589793238462643383279502884;
+constexpr double pi = 3.14159265358979323846;
 
 int main() {
 
@@ -17,29 +22,25 @@ int main() {
      To compile, see README. Usage:  ./simple2d1
   */
 
-  int M      = 1e6;  // number of nonuniform points
-  int N      = 1e6;  // approximate total number of modes (N1*N2)
-  double tol = 1e-6; // desired accuracy
+  constexpr int M      = 1e6;  // number of nonuniform points
+  constexpr int N      = 1e6;  // approximate total number of modes (N1*N2)
+  constexpr double tol = 1e-6; // desired accuracy
   finufft_opts opts;
   finufft_default_opts(&opts);
   complex<double> I(0.0, 1.0); // the imaginary unit
 
   // generate random non-uniform points on (x,y) and complex strengths (c):
+  mt19937 rng(12345);
+  uniform_real_distribution<double> upi(-pi, pi), u1(-1.0, 1.0);
   vector<double> x(M), y(M);
   vector<complex<double>> c(M);
-
-  for (int i = 0; i < M; i++) {
-    x[i] = PI * (2 * (double)rand() / RAND_MAX - 1); // uniform random in [-pi, pi)
-    y[i] = PI * (2 * (double)rand() / RAND_MAX - 1); // uniform random in [-pi, pi)
-
-    // each component uniform random in [-1,1]
-    c[i] =
-        2 * ((double)rand() / RAND_MAX - 1) + I * (2 * ((double)rand() / RAND_MAX) - 1);
-  }
+  generate(x.begin(), x.end(), [&] { return upi(rng); });
+  generate(y.begin(), y.end(), [&] { return upi(rng); });
+  generate(c.begin(), c.end(), [&] { return complex<double>{u1(rng), u1(rng)}; });
 
   // choose numbers of output Fourier coefficients in each dimension
-  int N1 = round(2.0 * sqrt(N));
-  int N2 = round(N / N1);
+  const int N1 = round(2.0 * sqrt(N));
+  const int N2 = round(N / N1);
 
   // output array for the Fourier modes
   vector<complex<double>> F(N1 * N2);
@@ -47,29 +48,31 @@ int main() {
   // call the NUFFT (with iflag += 1): note passing in pointers...
   opts.upsampfac = 1.25;
   int ier        = finufft2d1(M, &x[0], &y[0], &c[0], 1, tol, N1, N2, &F[0], &opts);
+  // docs-end: simple2d1
+  if (ier) return ier;
 
-  int k1 = round(0.45 * N1); // check the answer for mode frequency (k1,k2)
-  int k2 = round(-0.35 * N2);
+  const int k1 = round(0.45 * N1); // check the answer for mode frequency (k1,k2)
+  const int k2 = round(-0.35 * N2);
 
-  complex<double> Ftest(0, 0);
-  for (int j = 0; j < M; j++)
-    Ftest += c[j] * exp(I * ((double)k1 * x[j] + (double)k2 * y[j]));
+  vector<complex<double>> terms(M);
+  transform(x.begin(), x.end(), y.begin(), terms.begin(), [&](auto xj, auto yj) {
+    return exp(I * (double(k1) * xj + double(k2) * yj));
+  });
+  transform(terms.begin(), terms.end(), c.begin(), terms.begin(),
+            [](auto tj, auto cj) { return tj * cj; });
+  const auto Ftest = reduce(terms.begin(), terms.end());
 
-  // compute inf norm of F
-  double Fmax = 0.0;
-  for (int m = 0; m < N1 * N2; m++) {
-    double aF = abs(F[m]);
-    if (aF > Fmax) Fmax = aF;
-  }
+  const auto Fmax = abs(
+      *max_element(F.begin(), F.end(), [](auto a, auto b) { return abs(a) < abs(b); }));
 
   // indices in output array for this frequency pair (k1,k2)
-  int k1out    = k1 + N1 / 2;
-  int k2out    = k2 + N2 / 2;
-  int indexOut = k1out + k2out * (N1);
+  const int k1out    = k1 + N1 / 2;
+  const int k2out    = k2 + N2 / 2;
+  const int indexOut = k1out + k2out * (N1);
 
   // compute relative error
-  double err = abs(F[indexOut] - Ftest) / Fmax;
+  const auto err     = abs(F[indexOut] - Ftest) / Fmax;
   cout << "2D type-1 NUFFT done. ier=" << ier << ", err in F[" << indexOut
        << "] rel to max(F) is " << setprecision(2) << err << endl;
-  return ier;
+  return !(err < 10 * tol);
 }

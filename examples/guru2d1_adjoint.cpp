@@ -1,12 +1,16 @@
 #include <finufft.h>
 
+#include <algorithm>
+#include <cmath>
 #include <complex>
 #include <iomanip>
 #include <iostream>
+#include <numeric>
+#include <random>
 #include <vector>
 using namespace std;
 
-static const double PI = 3.141592653589793238462643383279502884;
+constexpr double pi = 3.14159265358979323846;
 
 int main() {
   /* 2D demo of computing the *adjoint* of the planned transform, needing the
@@ -19,71 +23,71 @@ int main() {
      feature. Barbone and Barnett, June 2025.
      To compile, see README.  Usage: ./guru2d1_adjoint
   */
-  int M      = 1e6;  // number of nonuniform points
-  int N      = 1e6;  // approximate total number of modes (N1*N2)
-  double tol = 1e-6; // desired accuracy
+  constexpr int M      = 1e6;  // number of nonuniform points
+  constexpr int N      = 1e6;  // approximate total number of modes (N1*N2)
+  constexpr double tol = 1e-6; // desired accuracy
   finufft_opts opts;
   finufft_default_opts(&opts);
   opts.upsampfac = 1.25;
   complex<double> I(0.0, 1.0); // the imaginary unit
 
   // generate random non-uniform points on (x,y) and complex strengths (c):
+  mt19937 rng(12345);
+  uniform_real_distribution<double> upi(-pi, pi), u1(-1.0, 1.0);
   vector<double> x(M), y(M);
   vector<complex<double>> c(M);
-
-  for (int i = 0; i < M; i++) {
-    x[i] = PI * (2 * (double)rand() / RAND_MAX - 1); // uniform random in [-pi, pi)
-    y[i] = PI * (2 * (double)rand() / RAND_MAX - 1); // uniform random in [-pi, pi)
-    // each component uniform random in [-1,1]
-    c[i] =
-        2 * ((double)rand() / RAND_MAX - 1) + I * (2 * ((double)rand() / RAND_MAX) - 1);
-  }
+  generate(x.begin(), x.end(), [&] { return upi(rng); });
+  generate(y.begin(), y.end(), [&] { return upi(rng); });
+  generate(c.begin(), c.end(), [&] { return complex<double>{u1(rng), u1(rng)}; });
 
   // choose numbers of output Fourier coefficients in each dimension
-  int N1 = round(2.0 * sqrt(N));
-  int N2 = round(N / N1);
+  const int N1 = round(2.0 * sqrt(N));
+  const int N2 = round(N / N1);
 
   // output array for the Fourier modes
   vector<complex<double>> F(N1 * N2);
 
-  int type = 2, dim = 2, ntrans = 1; // you could also do ntrans>1
-  int64_t Ns[] = {N1, N2};           // N1,N2 as 64-bit int array
+  constexpr int type = 2, dim = 2, ntrans = 1; // you could also do ntrans>1
+  const int64_t Ns[] = {N1, N2};               // N1,N2 as 64-bit int array
 
   // step 1: make a plan... note we choose isign=-1 for this type 2 plan
   finufft_plan plan;
-  int ier = finufft_makeplan(type, dim, Ns, -1, ntrans, tol, &plan, NULL);
+  int ier = finufft_makeplan(type, dim, Ns, -1, ntrans, tol, &plan, &opts);
+  if (ier) return ier;
   // step 2: send in M nonuniform points (just x, y in this case)...
-  finufft_setpts(plan, M, &x[0], &y[0], NULL, 0, NULL, NULL, NULL);
+  ier = finufft_setpts(plan, M, &x[0], &y[0], NULL, 0, NULL, NULL, NULL);
+  if (ier) return ier;
   // step 3: do the adjoint of the planned transform. This maps
   // c strength data, to F output, and is identical to the type 1 with isign=+1.
-  finufft_execute_adjoint(plan, &c[0], &F[0]);
+  ier = finufft_execute_adjoint(plan, &c[0], &F[0]);
   // ... you could now send in new points, and/or do transforms or their adjoints.
   // ...
   // step 4: free the memory used by the plan...
   finufft_destroy(plan);
+  if (ier) return ier;
 
-  int k1 = round(0.45 * N1); // check the answer for mode frequency (k1,k2)
-  int k2 = round(-0.35 * N2);
+  const int k1 = round(0.45 * N1); // check the answer for mode frequency (k1,k2)
+  const int k2 = round(-0.35 * N2);
 
-  complex<double> Ftest(0, 0);
-  for (int j = 0; j < M; j++)
-    Ftest += c[j] * exp(I * ((double)k1 * x[j] + (double)k2 * y[j]));
+  vector<complex<double>> terms(M);
+  transform(x.begin(), x.end(), y.begin(), terms.begin(), [&](auto xj, auto yj) {
+    return exp(I * (double(k1) * xj + double(k2) * yj));
+  });
+  transform(terms.begin(), terms.end(), c.begin(), terms.begin(),
+            [](auto tj, auto cj) { return tj * cj; });
+  const auto Ftest = reduce(terms.begin(), terms.end());
 
-  // compute inf norm of F
-  double Fmax = 0.0;
-  for (int m = 0; m < N1 * N2; m++) {
-    double aF = abs(F[m]);
-    if (aF > Fmax) Fmax = aF;
-  }
+  const auto Fmax = abs(
+      *max_element(F.begin(), F.end(), [](auto a, auto b) { return abs(a) < abs(b); }));
 
   // indices in output array for this frequency pair (k1,k2)
-  int k1out    = k1 + (int)N1 / 2;
-  int k2out    = k2 + (int)N2 / 2;
-  int indexOut = k1out + k2out * (N1);
+  const int k1out    = k1 + (int)N1 / 2;
+  const int k2out    = k2 + (int)N2 / 2;
+  const int indexOut = k1out + k2out * (N1);
 
   // compute relative error
-  double err = abs(F[indexOut] - Ftest) / Fmax;
+  const auto err     = abs(F[indexOut] - Ftest) / Fmax;
   cout << "2D adjoint-of-type-2 NUFFT done. ier=" << ier << ", err in F[" << indexOut
        << "] rel to max(F) is " << setprecision(2) << err << endl;
-  return ier;
+  return !(err < 10 * tol);
 }

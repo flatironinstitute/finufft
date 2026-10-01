@@ -2,15 +2,17 @@
 #include <finufft.h>
 
 // also used in this example...
-#include <cassert>
+#include <algorithm>
 #include <chrono>
+#include <cmath>
 #include <complex>
 #include <cstdio>
-#include <stdlib.h>
+#include <numeric>
+#include <random>
 #include <vector>
 using namespace std;
 
-static const double PI = 3.141592653589793238462643383279502884;
+constexpr double pi = 3.14159265358979323846;
 using namespace std::chrono;
 
 int main()
@@ -30,19 +32,17 @@ int main()
    See: spreadtestnd for usage of internal (non FINUFFT-API) spread/interp.
 */
 {
-  int M = 1e7; // number of nonuniform points
-  int N = 1e7; // size of regular grid
+  constexpr int M = 1e7; // number of nonuniform points
+  constexpr int N = 1e7; // size of regular grid
   finufft_opts opts;
   finufft_default_opts(&opts);
   opts.spreadinterponly = 1;    // task: the following two control kernel used...
-  double tol            = 1e-9; // tolerance for (real) kernel shape design only
+  constexpr double tol  = 1e-9; // tolerance for (real) kernel shape design only
   opts.upsampfac        = 2.0;  // pretend upsampling factor (really no upsampling)
-       // opts.spread_kerevalmeth = 0;  // DEPRECATED: no effect; the library always uses Horner.
 
-  complex<double> I = complex<double>(0.0, 1.0); // the imaginary unit
-  vector<double> x(M);                           // input
-  vector<complex<double>> c(M);                  // input
-  vector<complex<double>> F(N);                  // output (spread to this array)
+  vector<double> x(M);          // input
+  vector<complex<double>> c(M); // input
+  vector<complex<double>> F(N); // output (spread to this array)
 
   // first spread M=1 single unit-strength at the origin, only to get its total mass...
   x[0]       = 0.0;
@@ -50,40 +50,35 @@ int main()
   int unused = 1;
   int ier = finufft1d1(1, x.data(), c.data(), unused, tol, N, F.data(), &opts); // warm-up
   if (ier > 0) return ier;
-  complex<double> kersum = 0.0;
-  for (auto Fk : F) kersum += Fk; // kernel mass
+  const auto kersum = reduce(F.begin(), F.end()); // kernel mass
 
   // Now generate random nonuniform points (x) and complex strengths (c)...
-  for (int j = 0; j < M; ++j) {
-    x[j] = PI * (2 * ((double)rand() / RAND_MAX) - 1); // uniform random in [-pi,pi)
-    c[j] =
-        2 * ((double)rand() / RAND_MAX) - 1 + I * (2 * ((double)rand() / RAND_MAX) - 1);
-  }
+  mt19937 rng(12345);
+  uniform_real_distribution<double> upi(-pi, pi), u1(-1.0, 1.0);
+  generate(x.begin(), x.end(), [&] { return upi(rng); });
+  generate(c.begin(), c.end(), [&] { return complex<double>{u1(rng), u1(rng)}; });
 
   opts.debug = 1;
   auto t0    = steady_clock::now(); // now spread with all M pts... (dir=1)
   ier      = finufft1d1(M, x.data(), c.data(), unused, tol, N, F.data(), &opts); // do it
   double t = (steady_clock::now() - t0) / 1.0s;
   if (ier > 0) return ier;
-  complex<double> csum = 0.0; // tot input strength
-  for (auto cj : c) csum += cj;
-  complex<double> mass = 0.0; // tot output mass
-  for (auto Fk : F) mass += Fk;
-  double relerr = abs(mass - kersum * csum) / abs(mass);
+  const auto csum   = reduce(c.begin(), c.end()); // tot input strength
+  const auto mass   = reduce(F.begin(), F.end()); // tot output mass
+  const auto relerr = abs(mass - kersum * csum) / abs(mass);
   printf("1D spread-only, double-prec, %.3g s (%.3g NU pt/sec), ier=%d, mass err %.3g\n",
          t, M / t, ier, relerr);
 
-  for (auto &Fk : F) Fk = complex<double>{1.0, 0.0}; // unit grid input
+  fill(F.begin(), F.end(), complex<double>{1.0, 0.0}); // unit grid input
   opts.debug = 0;
   t0         = steady_clock::now(); // now interp to all M pts...  (dir=2)
   ier = finufft1d2(M, x.data(), c.data(), unused, tol, N, F.data(), &opts); // do it
   t   = (steady_clock::now() - t0) / 1.0s;
   if (ier > 0) return ier;
-  csum = 0.0; // tot output
-  for (auto cj : c) csum += cj;
-  double maxerr = 0.0;
-  for (auto cj : c) maxerr = max(maxerr, abs(cj - kersum));
+  vector<double> terms(M);
+  transform(c.begin(), c.end(), terms.begin(), [&](auto cj) { return abs(cj - kersum); });
+  const auto maxerr = *max_element(terms.begin(), terms.end());
   printf("1D interp-only, double-prec, %.3g s (%.3g NU pt/sec), ier=%d, max err %.3g\n",
          t, M / t, ier, maxerr / abs(kersum));
-  return 0;
+  return !(relerr < 10 * tol && maxerr < 10 * tol * abs(kersum));
 }

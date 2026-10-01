@@ -26,10 +26,10 @@ using namespace std;
 int test_finufft(finufft_opts *opts)
 // self-contained small test that one single-prec FINUFFT2D2 has no error/crash
 {
-  size_t n_rows = 256, n_cols = 256;   // 2d image size
-  size_t n_read = 512, n_spokes = 128; // some k-space point params
-  size_t M = n_read * n_spokes;        // how many k-space pts; MRI-specific
-  std::vector<float> x(M);             // bunch of zero input data
+  constexpr size_t n_rows = 256, n_cols = 256;   // 2d image size
+  constexpr size_t n_read = 512, n_spokes = 128; // some k-space point params
+  constexpr size_t M = n_read * n_spokes;        // how many k-space pts; MRI-specific
+  std::vector<float> x(M);                       // bunch of zero input data
   std::vector<float> y(M);
   std::vector<std::complex<float>> img(n_rows * n_cols); // coeffs
   std::vector<std::complex<float>> ksp(M); // output array (vals @ k-space pts)
@@ -45,10 +45,10 @@ int test_finufft(finufft_opts *opts)
 int main() {
   finufft_opts opts;
   finufftf_default_opts(&opts);
-  opts.nthreads     = 1;  // *crucial* so each call single-thread; else segfaults
+  opts.nthreads          = 1;  // *crucial* so each call single-thread; else segfaults
 
-  int n_slices      = 50; // number of transforms. parallelize over slices
-  int overallstatus = 0;
+  constexpr int n_slices = 50; // number of transforms. parallelize over slices
+  int overallstatus      = 0;
 #pragma omp parallel for
   for (int i = 0; i < n_slices; i++) {
     int ier = test_finufft(&opts);
