@@ -13,9 +13,9 @@ build:
   jobs:
     # Fetch the perftest summary from the perftest-results branch, regenerated
     # by the Jenkins perftest page job, so master carries no bot figures.
-    # "|| true" keeps the in-tree placeholder when the fetch fails.
+    # Download to a temp file; mv only on success so the in-tree placeholder survives a failed fetch.
     pre_build:
-      - curl -fsSL https://raw.githubusercontent.com/flatironinstitute/finufft/perftest-results/docs/performance.rst -o docs/performance.rst || true
+      - curl -fsSL https://raw.githubusercontent.com/flatironinstitute/finufft/perftest-results/docs/performance.rst -o docs/performance.rst.tmp && mv docs/performance.rst.tmp docs/performance.rst || rm -f docs/performance.rst.tmp
 
 # Build all formats
 formats: all

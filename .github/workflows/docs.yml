@@ -14,9 +14,9 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: '3.11'
-      # Same fetch RTD does in .readthedocs.yaml pre_build; placeholder kept on failure.
+      # Same fetch RTD does in .readthedocs.yaml pre_build; placeholder kept on failure (temp file + mv).
       - name: Fetch perftest summary
-        run: curl -fsSL https://raw.githubusercontent.com/flatironinstitute/finufft/perftest-results/docs/performance.rst -o docs/performance.rst || true
+        run: curl -fsSL https://raw.githubusercontent.com/flatironinstitute/finufft/perftest-results/docs/performance.rst -o docs/performance.rst.tmp && mv docs/performance.rst.tmp docs/performance.rst || rm -f docs/performance.rst.tmp
       - name: Install requirements
         run: pip install -r docs/requirements.txt
       - name: Build docs (warnings as errors)
