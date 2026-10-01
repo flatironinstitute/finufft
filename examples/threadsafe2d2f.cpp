@@ -49,7 +49,7 @@ int main() {
 
   int n_slices      = 50; // number of transforms. parallelize over slices
   int overallstatus = 0;
-#pragma omp parallel for reduction(| : overallstatus)
+#pragma omp parallel for
   for (int i = 0; i < n_slices; i++) {
     int ier = test_finufft(&opts);
     if (ier != 0) overallstatus = 1;

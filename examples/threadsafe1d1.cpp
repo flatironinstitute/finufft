@@ -33,7 +33,7 @@ int main()
   int overallstatus = 0;
 
   // Now have each thread do independent 1D type 1 on their own data:
-#pragma omp parallel reduction(| : overallstatus)
+#pragma omp parallel
   {
     // generate some random nonuniform points (x) and complex strengths (c)...
     // Note that these are local to the thread (if you have the *same* sets of
