@@ -23,6 +23,7 @@ formats: all
 # Build documentation in the docs/ directory with Sphinx
 sphinx:
   configuration: docs/conf.py
+  fail_on_warning: true
 
 # Optionally set the version of Python and requirements required to build your docs
 python:
