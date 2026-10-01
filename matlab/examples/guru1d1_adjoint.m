@@ -1,3 +1,4 @@
+% docs-start: guru1d1-adjoint
 % MATLAB/octave demo script of guru interface to FINUFFT, 1D type 1,
 % performing *adjoint* of planned transform. Compare to guru1d1.m
 % Barnett 6/25/25.
@@ -27,6 +28,7 @@ disp('done.'); toc
 
 % if you do not want to do more transforms of this size, clean up...
 delete(plan);
+% docs-end: guru1d1-adjoint
 
 % check the error of one output... because of adjoint it's a strength
 j = ceil(0.77*M);                               % pick a NU target pt
