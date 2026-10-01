@@ -19,7 +19,7 @@ c = np.random.randn(M) + 1.0j * np.random.randn(M)
 F = np.zeros([N], dtype=np.complex128)  # allocate F (modes out)
 
 strt = time.time()
-F = finufft.nufft1d1(x, c, N, eps=acc, isign=iflag, debug=1, spread_debug=1)
+F = finufft.nufft1d1(x, c, N, out=F, eps=acc, isign=iflag, debug=1, spread_debug=1)
 print("Finished nufft in {0:.2g} seconds.".format(time.time() - strt))
 
 n = 142519  # mode to check
