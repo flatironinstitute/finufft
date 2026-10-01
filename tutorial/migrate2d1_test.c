@@ -47,10 +47,7 @@ int main() {
   opts.nthreads = 1;            // enforce single-thread
   int ier     = finufft2d1(M, y, x, f, +1, tol, N[1], N[0], f_hat, &opts); // both x,y and
                                                                        // N0,N1 swapped!
-  if (ier) { // no valid output to read
-    free(x), free(y), free(f), free(f_hat);
-    return ier;
-  }
+  if (ier) goto cleanup; // no valid output to read
 
   double secs = (clock() - before) / (double)CLOCKS_PER_SEC;
 
@@ -71,5 +68,12 @@ int main() {
   free(f);
   free(f_hat); // user deallocates own I/O arrays
   return ier || !(err <= 10 * tol);
-}
+
 // docs-end: migrate2d1
+cleanup:
+  free(x);
+  free(y);
+  free(f);
+  free(f_hat);
+  return ier;
+}

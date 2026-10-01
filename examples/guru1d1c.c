@@ -29,7 +29,7 @@ int main()
   double complex *c = NULL, *F = NULL, Ftest;
 
   finufft_opts *popts = NULL; // pointer to opts struct
-  finufft_plan plan;          // pointer to (also C-compatible) plan struct
+  finufft_plan plan   = NULL; // pointer to (also C-compatible) plan struct
   Ns[0]          = N;         // mode numbers for plan
   int changeopts = 0;         // do you want to try changing opts? 0 or 1
   if (changeopts) {           // demo how to change options away from defaults..
@@ -40,17 +40,14 @@ int main()
     ier             = finufft_makeplan(type, dim, Ns, +1, ntransf, tol, &plan, popts);
   } else // or, NULL here means use default opts...
     ier = finufft_makeplan(type, dim, Ns, +1, ntransf, tol, &plan, NULL);
-  if (ier) { // no plan to use; going on would segfault
-    free(popts);
-    return ier;
-  }
+  if (ier) goto cleanup; // no plan to use; going on would segfault
 
   // generate some random nonuniform points
   x = (double *)malloc(sizeof(double) * M);
   for (j = 0; j < M; ++j)
     x[j] = PI * (2 * ((double)rand() / RAND_MAX) - 1); // uniform random in [-pi,pi)
   ier = finufft_setpts(plan, M, x, NULL, NULL, 0, NULL, NULL, NULL);
-  if (ier) goto done;
+  if (ier) goto cleanup;
 
   // generate some complex strengths
   c = (double complex *)malloc(sizeof(double complex) * M);
@@ -61,14 +58,14 @@ int main()
   // alloc output array for the Fourier modes, then do the transform
   F   = (double complex *)malloc(sizeof(double complex) * N);
   ier = finufft_execute(plan, c, F);
-  if (ier) goto done;
+  if (ier) goto cleanup;
 
   // for fun, do another with same NU pts (no re-sorting), but new strengths...
   for (j = 0; j < M; ++j)
     c[j] =
         2 * ((double)rand() / RAND_MAX) - 1 + I * (2 * ((double)rand() / RAND_MAX) - 1);
   ier = finufft_execute(plan, c, F);
-  if (ier) goto done;
+  if (ier) goto cleanup;
 
   // rest is math checking and reporting...
   int n = 142519; // check the answer just for this mode
@@ -85,12 +82,13 @@ int main()
   printf("guru C-interface 1D type-1 NUFFT done. ier=%d, err in F[%d] rel to max(F) is "
          "%.3g\n",
          ier, n, err);
+  ier = ier > 0 || !(err <= 10 * tol);
 
-done:
-  finufft_destroy(plan); // plan exists here; done with transforms of this size
+cleanup:
+  if (plan) finufft_destroy(plan); // only destroy a plan that was made
   free(x);
   free(c);
   free(F);
   free(popts);
-  return ier > 0 || !(err <= 10 * tol);
+  return ier;
 }

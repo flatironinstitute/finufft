@@ -40,10 +40,7 @@ int main()
   // call the NUFFT (with iflag=+1), passing pointers...
   int ier = finufft1d1(M, x, c, +1, tol, N, F, &opts);
   // docs-end: quick-start-c
-  if (ier) { // no valid output to read
-    free(x), free(c), free(F);
-    return ier;
-  }
+  if (ier) goto cleanup; // no valid output to read
 
   // (now do something with F here!...)
 
@@ -66,4 +63,10 @@ int main()
   free(c);
   free(F);
   return ier || !(err <= 10 * tol);
+
+cleanup: // docs never show this (marker above)
+  free(x);
+  free(c);
+  free(F);
+  return ier;
 }
