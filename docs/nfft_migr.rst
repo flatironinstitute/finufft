@@ -54,11 +54,12 @@ The code is found in our :file:`tutorial/nfft2d1_test.c`. Running the executable
 
  2D type 1 (NFFT3) done in 0.589 s: f_hat[-17,33]=86.0632804289+-350.023846367i, rel err 9.93e-14
 
-To show how to migrate this, we write a self-contained code that generates exactly
+To show how to migrate this, ``tutorial/migrate2d1_test.c`` generates exactly
 the same "user data" (same random seed), then uses FINUFFT to do the transform
 to achieve exactly the same ``f_hat`` output array (in row-major C ordering).
 This entails scaling and swapping the nonequispaced coordinates just before sending
-to FINUFFT. Here is the corresponding C code (compare to the above):
+to FINUFFT. Here is the corresponding C code (excerpt; the full file with the
+final accuracy check is ``tutorial/migrate2d1_test.c``):
 
 .. literalinclude:: ../tutorial/migrate2d1_test.c
    :language: c
