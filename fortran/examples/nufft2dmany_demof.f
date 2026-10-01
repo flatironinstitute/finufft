@@ -1,6 +1,7 @@
 c     Demo using FINUFFT for single-precision 2d transforms in legacy fortran.
 c     Does types 1,2,3, including math test against direct summation.
-c     Default opts only (see simple1d1 for how to change opts).
+c     Default opts only (see simple1d1f for how to change opts).
+c     To build and run it, see docs/fortran.rst.
 c
 c     A modification of drivers from the CMCL NUFFT, (C) 2004-2009,
 c     Leslie Greengard and June-Yub Lee. See: cmcl_license.txt.
@@ -9,13 +10,8 @@ c     Vectorized (many data vectors) demo type 1,2 by Melody Shih, 2018,
 c     type 3 & single-prec by Alex Barnett, 2020. Based on nufft2d_demo.f.
 c     Also see: ../README.
 c
-c     Compile with, eg (GCC, multithreaded; paste to a single line):
-c
-c     gfortran nufft2dmany_demof.f ../directft/dirft2df.f -o nufft2dmany_demof
-c     -L../../lib -lfinufftf
-c
-c     Note: you must link to single-precision build of FINUFFT
       program nufft2dmany_demof
+      use, intrinsic :: ieee_arithmetic, only: ieee_is_finite
       implicit none
 
 c     our fortran-header, always needed
@@ -24,7 +20,7 @@ c
       integer i,ier,iflag,j,k1,k2,mx,n1,n2,ntrans,d
       integer*8 ms,mt,nj,nk
       real*4, allocatable :: xj(:),yj(:),sk(:),tk(:)
-      real*4 err,pi,eps,salg,ealg,maxerr
+      real*4 err,pi,tol,maxerr
       parameter (pi=3.141592653589793238462643383279502884197d0)
       complex*8, allocatable :: cj(:),cj0(:),cj1(:),fk0(:),fk1(:)
 c     for default opts, make a null pointer...
@@ -71,44 +67,55 @@ c     start tests
 c     -----------------------
 c
       iflag = 1
-      print*,'Starting 2Dmany testing: ntrans =', ntrans, ' nj =',nj,
-     &     ' ms,mt =',ms,mt
       do i = 1,3
-         if (i.eq.1) eps=1e-2
-         if (i.eq.2) eps=1e-4
-         if (i.eq.3) eps=1e-5
-	 print*,' '
-	 print*,' Requested precision eps =',eps
-	 print*,' '
+         if (i.eq.1) tol=1e-2
+         if (i.eq.2) tol=1e-4
+         if (i.eq.3) tol=1e-5
 c
 c     -----------------------
 c     call 2D Type 1 method
 c     -----------------------
 c
          call finufftf2d1many(ntrans,nj,xj,yj,cj,iflag,
-     &                         eps,ms,mt,fk1,defopts,ier)
+     &                         tol,ms,mt,fk1,defopts,ier)
+         if (ier.ne.0) then
+            print *, 'FAILED: finufftf2d1many ier is not 0'
+            stop 1, quiet=.true.
+         endif
          do d = 1, ntrans
             call dirft2d1f(nj,xj,yj,cj(1+(d-1)*nj:d*nj),iflag,ms,mt,
      &                    fk0(1+(d-1)*nk:d*nk))
             call errcomp(fk0(1+(d-1)*nk:d*nk),fk1(1+(d-1)*nk:d*nk),
      &                   nk,err)
+            if (.not.ieee_is_finite(sum(abs(fk1(1+(d-1)*nk:d*nk))))
+     $           .or. .not.(err.le.10*tol)) then
+            print *, 'FAILED: type 1 rel err too large, or NaN or Inf'
+               stop 1, quiet=.true.
+            endif
             maxerr = max(maxerr,err)
          enddo
-         print *, ' max type 1 error = ',err
 c
 c     -----------------------
 c      call 2D Type 2 method
 c     -----------------------
          call finufftf2d2many(ntrans,nj,xj,yj,cj1,iflag,
-     &                         eps,ms,mt,fk0,defopts,ier)
+     &                         tol,ms,mt,fk0,defopts,ier)
+         if (ier.ne.0) then
+            print *, 'FAILED: finufftf2d2many ier is not 0'
+            stop 1, quiet=.true.
+         endif
          do d = 1, ntrans
             call dirft2d2f(nj,xj,yj,cj0(1+(d-1)*nj:d*nj),iflag,ms,mt,
      &                    fk0(1+(d-1)*nk:d*nk))
             call errcomp(cj0(1+(d-1)*nj:d*nj),cj1(1+(d-1)*nj:d*nj),
      &                   nj,err)
+            if (.not.ieee_is_finite(sum(abs(cj1(1+(d-1)*nj:d*nj))))
+     $           .or. .not.(err.le.10*tol)) then
+            print *, 'FAILED: type 2 rel err too large, or NaN or Inf'
+               stop 1, quiet=.true.
+            endif
             maxerr = max(maxerr,err)
          enddo
-         print *, ' max type 2 error = ',err
 c
 c     -----------------------
 c      call 2D Type3 method
@@ -118,18 +125,26 @@ c     -----------------------
             tk(k1) = 32*(sin(-pi/2+k1*pi/nk))
          enddo
 
-         call finufftf2d3many(ntrans,nj,xj,yj,cj,iflag,eps,nk,sk,tk,
+         call finufftf2d3many(ntrans,nj,xj,yj,cj,iflag,tol,nk,sk,tk,
      &        fk1,defopts,ier)
+         if (ier.ne.0) then
+            print *, 'FAILED: finufftf2d3many ier is not 0'
+            stop 1, quiet=.true.
+         endif
          do d = 1, ntrans
             call dirft2d3f(nj,xj,yj,cj(1+(d-1)*nj:d*nj),iflag,nk,
      &           sk,tk,fk0(1+(d-1)*nk:d*nk))
             call errcomp(fk0(1+(d-1)*nk:d*nk),fk1(1+(d-1)*nk:d*nk),
      &                   nk,err)
+            if (.not.ieee_is_finite(sum(abs(fk1(1+(d-1)*nk:d*nk))))
+     $           .or. .not.(err.le.10*tol)) then
+            print *, 'FAILED: type 3 rel err too large, or NaN or Inf'
+               stop 1, quiet=.true.
+            endif
             maxerr = max(maxerr,err)
          enddo
-         print *, ' max type 3 error = ',err
       enddo
-      stop
+      print '("max rel err = ",e10.2)',maxerr
       end
 c
 c
@@ -140,14 +155,14 @@ c
       implicit none
       integer*8 k,n
       complex*8 fk0(n), fk1(n)
-      real *4 salg,ealg,err
+      real *4 fmax,emax,err
 c
-      ealg = 0e0
-      salg = 0e0
+      emax = 0e0
+      fmax = 0e0
       do k = 1, n
-         ealg = ealg + cabs(fk1(k)-fk0(k))**2
-         salg = salg + cabs(fk0(k))**2
+         emax = max(emax,cabs(fk1(k)-fk0(k)))
+         fmax = max(fmax,cabs(fk1(k)))
       enddo
-      err =sqrt(ealg/salg)
+      err = emax/fmax
       return
       end
