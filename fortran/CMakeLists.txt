@@ -15,8 +15,13 @@ set(FORTRAN_EXAMPLES
     nufft2dmany_demo
     nufft3d_demo
     simple1d1
+    guru1d1_adjoint
+    guru1d2_adjoint
 )
+# Notes: all these need single-prec versions.
+# we still don't build simple1d1_f90
 
+# see end for reason for this
 if(NOT FINUFFT_USE_DUCC0)
     list(APPEND FORTRAN_EXAMPLES guru1d1)
 endif()

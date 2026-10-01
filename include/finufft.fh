@@ -1,8 +1,8 @@
 c     Fortran header recreating finufft_opts struct in fortran (f90 style).
-c     This must be kept synchronized with finufft_opts.h, matching its order.
+c     This must be kept synchronized with finufft_opts.h, matching bytewise.
 c     Also see finufft_mod.f90 and ../fortran/finufftfort.cpp.
 c     Barnett 5/29/20. One prec 7/2/20. Fix ordering bug 11/29/24.
-c     erase chkbnds 1/7/25.
+c     erase chkbnds 1/7/25. fftw_* stuff int*8 not int, 10/1/26.
 
       type finufft_opts
 
@@ -14,16 +14,16 @@ c     diagnostic opts...
 
 c     alg performance opts...
       integer nthreads, fftw, spread_sort, spread_kerevalmeth
-c     DEPRECATED: spread_kerevalmeth kept for ABI compatibility, ignored by library
+c     DEPRECATED: spread_kerevalmeth kept for ABI compatibility, ignored
       integer spread_kerpad
-c     DEPRECATED: spread_kerpad kept for ABI compatibility, ignored by library
+c     DEPRECATED: spread_kerpad kept for ABI compatibility, ignored
       real*8 upsampfac
       integer spread_thread
-c     DEPRECATED: spread_thread kept for ABI compatibility, ignored by library
+c     DEPRECATED: spread_thread kept for ABI compatibility, ignored
       integer maxbatchsize, spread_nthr_atomic
       integer spread_max_sp_size
       integer spread_kerformula
       integer allow_eps_too_small
-      integer fftw_lock_fun, fftw_unlock_fun, fftw_lock_data
+      integer*8 fftw_lock_fun, fftw_unlock_fun, fftw_lock_data
 
       end type
