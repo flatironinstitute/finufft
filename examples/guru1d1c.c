@@ -36,15 +36,17 @@ int main()
     finufft_default_opts(popts);
     popts->debug    = 1;                                  // example options change
     popts->nthreads = 4;                                  // "
-    finufft_makeplan(type, dim, Ns, +1, ntransf, tol, &plan, popts);
+    ier             = finufft_makeplan(type, dim, Ns, +1, ntransf, tol, &plan, popts);
   } else // or, NULL here means use default opts...
-    finufft_makeplan(type, dim, Ns, +1, ntransf, tol, &plan, NULL);
+    ier = finufft_makeplan(type, dim, Ns, +1, ntransf, tol, &plan, NULL);
+  if (ier) return ier; // exiting main: the OS frees the memory
 
   // generate some random nonuniform points
   x = (double *)malloc(sizeof(double) * M);
   for (j = 0; j < M; ++j)
     x[j] = PI * (2 * ((double)rand() / RAND_MAX) - 1); // uniform random in [-pi,pi)
-  finufft_setpts(plan, M, x, NULL, NULL, 0, NULL, NULL, NULL);
+  ier = finufft_setpts(plan, M, x, NULL, NULL, 0, NULL, NULL, NULL);
+  if (ier) return ier;
 
   // generate some complex strengths
   c = (double complex *)malloc(sizeof(double complex) * M);
@@ -55,33 +57,38 @@ int main()
   // alloc output array for the Fourier modes, then do the transform
   F   = (double complex *)malloc(sizeof(double complex) * N);
   ier = finufft_execute(plan, c, F);
+  if (ier) return ier;
 
   // for fun, do another with same NU pts (no re-sorting), but new strengths...
   for (j = 0; j < M; ++j)
     c[j] =
         2 * ((double)rand() / RAND_MAX) - 1 + I * (2 * ((double)rand() / RAND_MAX) - 1);
   ier = finufft_execute(plan, c, F);
-
-  finufft_destroy(plan); // done with transforms of this size
+  if (ier) return ier;
 
   // rest is math checking and reporting...
   int n = 142519; // check the answer just for this mode
   Ftest = 0.0 + 0.0 * I;
   for (j = 0; j < M; ++j) Ftest += c[j] * cexp(I * (double)n * x[j]);
-  nout = n + N / 2; // index in output array for freq mode n
-  Fmax = 0.0;       // compute inf norm of F
+  nout       = n + N / 2; // index in output array for freq mode n
+  Fmax       = 0.0;       // compute inf norm of F
+  int finite = 1;         // track non-finite elements
   for (m = 0; m < N; ++m) {
     aF = cabs(F[m]);
+    if (!isfinite(aF)) finite = 0;
     if (aF > Fmax) Fmax = aF;
   }
   err = cabs(F[nout] - Ftest) / Fmax;
-  printf("guru C-interface 1D type-1 NUFFT done. ier=%d, err in F[%d] rel to max(F) is "
-         "%.3g\n",
-         ier, n, err);
+  if (!finite || !(err < 10 * tol)) {
+    fprintf(stderr, "FAILED: rel err %.3g in F[%d], or F not finite\n", err, n);
+    return 1;
+  }
+  printf("rel err in F[%d] is %.3g\n", n, err);
 
+  finufft_destroy(plan); // done with transforms of this size
   free(x);
   free(c);
   free(F);
   free(popts);
-  return ier > 0;
+  return 0;
 }

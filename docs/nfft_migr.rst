@@ -54,14 +54,19 @@ The code is found in our :file:`tutorial/nfft2d1_test.c`. Running the executable
 
  2D type 1 (NFFT3) done in 0.589 s: f_hat[-17,33]=86.0632804289+-350.023846367i, rel err 9.93e-14
 
-To show how to migrate this, we write a self-contained code that generates exactly
+To show how to migrate this, ``tutorial/migrate2d1_test.c`` generates exactly
 the same "user data" (same random seed), then uses FINUFFT to do the transform
 to achieve exactly the same ``f_hat`` output array (in row-major C ordering).
 This entails scaling and swapping the nonequispaced coordinates just before sending
-to FINUFFT. Here is the corresponding C code (compare to the above):
+to FINUFFT. Here is the corresponding C code (excerpt; the full file with the
+final accuracy check is ``tutorial/migrate2d1_test.c``; compile it,
+with FINUFFT include and library in the path, using
+``gcc migrate2d1_test.c -o migrate2d1_test -lfinufft -lfftw3 -lm``):
 
 .. literalinclude:: ../tutorial/migrate2d1_test.c
    :language: c
+   :start-after: docs-start: migrate2d1
+   :end-before: docs-end: migrate2d1
 
 The fact that NFFT3 uses row-major mode arrays whereas FINUFFT uses column-major has
 been handled here by swapping the input $x$ and $y$ coordinates and array sizes in the
@@ -71,7 +76,7 @@ executable gives:
 
 ::
 
- 2D type 1 (FINUFFT) in 0.0787 s: f_hat[-17,33]=86.0632804289+-350.023846367i, rel err 9.58e-14
+ rel err in f_hat[-17,33] is 1.38e-14
 
 Comparing to the above, we see the same answer to all shown digits, a similar error for this tested output entry, plus a 7.5$\times$ speed-up. (Both use a single thread, tested on the same AMD 5700U laptop.) The user may of course now set a coarser (larger) value for ``tol`` and see a further speed-up.
 

@@ -10,6 +10,12 @@ Quick-start example in C++
 
 Here's how to perform a 1D type-1 transform
 in double precision from C++, using STL complex vectors.
+From the repository root, build and run the first example::
+
+  cmake -S . -B build -DFINUFFT_BUILD_EXAMPLES=ON
+  cmake --build build
+  build/examples/simple1d1
+
 First include our header, and some others needed for the demo:
 
 .. code-block:: C++
@@ -78,22 +84,14 @@ make your changes, then pass the pointer to FINUFFT:
    - Without the ``finufft_default_opts`` call, options may take on arbitrary values which may cause a crash.
    - Note that, as of version 2.0, ``opts`` is passed as a pointer in both places.
 
-See ``examples/simple1d1.cpp`` for a simple full working demo of the above, including a test of the math. If you instead use single-precision arrays,
+See ``examples/simple1d1.cpp`` for a simple full working demo of the above, including a test of the math (the demo uses ``M=10^7`` and ``N=10^6``). If you instead use single-precision arrays,
 replace the tag ``finufft`` by ``finufftf`` in each command; see ``examples/simple1d1f.cpp``.
 
-From the ``examples/`` directory, to compile on a linux/GCC system, linking to the static library, use eg::
+From the ``examples/`` directory, to compile the C quick-start example on a Linux/GCC system, linking to the static library, use::
 
-  g++ -fopenmp simple1d1.cpp -o simple1d1 -I../include ../lib-static/libfinufft.a -lfftw3_omp -lfftw3 -lfftw3f_omp -lfftw3f
+  gcc -fopenmp simple1d1c.c -o simple1d1c -I../include -Wl,--start-group ../build/src/libfinufft.a ../build/src/common/libfinufft_common.a -Wl,--end-group -lfftw3_omp -lfftw3 -lfftw3f_omp -lfftw3f -lstdc++ -lm
 
-Executing ``./simple1d1`` should now work (exit code ``0`` and displaying a small error).
-If you used ``FFT=DUCC`` you can of course drop the linking of the four ``fftw3`` libraries.
-Better is instead to link to the dynamic shared (``.so``) library, via eg::
-
-  g++ -fopenmp simple1d1.cpp -o simple1d1 -I../include -Wl,-rpath,$FINUFFT/lib/ -lfinufft
-
-where ``$FINUFFT`` must be replaced by (or be an environment variable set to) the absolute install path for this repository.
-Notice how ``rpath`` is used to make an executable that may be called from, or moved to, anywhere.
-See ``examples/README`` for general compilation instructions for the examples.
+The ``-lstdc++`` is needed for any C code linking against FINUFFT; see ``examples/README`` for general compilation instructions for the examples.
 The ``examples`` and ``test`` directories are good places to see further
 usage examples. The documentation for all 18 simple interfaces,
 and the more flexible guru interface, is further down this page.
@@ -106,29 +104,24 @@ Thus, to use from C, the above example only needs to replace the C++
 ``vector`` with C-style array creation. Using C99 style, the
 above code, with options setting, becomes:
 
-.. code-block:: C
+.. literalinclude:: ../examples/simple1d1c.c
+  :language: C
+  :start-after: docs-start: quick-start-c
+  :end-before: docs-end: quick-start-c
 
-  #include <finufft.h>
-  #include <stdlib.h>
-  #include <complex.h>
+.. literalinclude:: ../examples/simple1d1c.c
+  :language: C
+  :start-after: docs-start: call
+  :end-before: docs-end: call
 
-  int M = 1e7;            // number of nonuniform points
-  double* x = (double *)malloc(sizeof(double)*M);
-  double complex* c = (double complex*)malloc(sizeof(double complex)*M);
-  for (int j=0; j<M; ++j) {
-    x[j] = M_PI*(2*((double)rand()/RAND_MAX)-1);  // uniform random in [-pi,pi)
-    c[j] = 2*((double)rand()/RAND_MAX)-1 + I*(2*((double)rand()/RAND_MAX)-1);
-  }
-  int N = 1e6;            // number of modes
-  double complex* F = (double complex*)malloc(sizeof(double complex)*N);
-  finufft_opts opts;                      // make an opts struct
-  finufft_default_opts(&opts);          // set default opts (must do this)
-  opts.debug = 2;                       // more debug/timing to stdout
-  int ier = finufft1d1(M,x,c,+1,1e-9,N,F,&opts);
+The full example file is ``examples/simple1d1c.c``. Compile it against the static library with ``gcc -fopenmp simple1d1c.c -o simple1d1c -I../include -Wl,--start-group ../build/src/libfinufft.a ../build/src/common/libfinufft_common.a -Wl,--end-group -lfftw3_omp -lfftw3 -lfftw3f_omp -lfftw3f -lstdc++ -lm``, or see ``examples/README`` for other linking options.
 
-  // (now do something with F here!...)
+The full file then frees its arrays:
 
-  free(x); free(c); free(F);
+.. literalinclude:: ../examples/simple1d1c.c
+  :language: C
+  :start-after: docs-start: destroy
+  :end-before: docs-end: destroy
 
 See ``examples/simple1d1c.c`` and ``examples/simple1d1cf.c`` for
 double- and single-precision C examples, including the math check to insure
