@@ -129,12 +129,14 @@ c     note you need a fresh plan if change opts
       endif
 c     Do it: reads cj (strengths), writes fk (mode coeffs) and ier (status)
       call finufftf_execute(plan,cj,fk,ier)
+      if (ier.ne.0) stop 1
 c     change the strengths
       do j = 1,M
          cj(j) = cmplx( sin((10e0*j)/M), cos(2.0+(20e0*j)/M))
       enddo
 c     do another transform using same NU pts
       call finufftf_execute(plan,cj,fk,ier)
+      if (ier.ne.0) stop 1
 c     change the NU pts then do another transform w/ existing strengths...
       do j = 1,M
          xj(j) = pi/2.0 * cos(pi*j/M)

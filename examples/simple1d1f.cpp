@@ -38,6 +38,7 @@ int main()
 
   // call the NUFFT (with iflag=+1): note pointers (not STL vecs) passed...
   int ier = finufftf1d1(M, &x[0], &c[0], +1, acc, N, &F[0], &opts); // note "f"
+  if (ier) return ier; // no valid output to read
 
   int k   = 1425; // check the answer just for this mode...
   assert(k >= -(double)N / 2 && k < (double)N / 2);

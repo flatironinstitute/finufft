@@ -72,6 +72,7 @@ c     -----------------------
 c
          call dirft1d1(nj,xj,cj,iflag, ms,fk0)
          call finufft1d1(nj,xj,cj,iflag,eps,ms,fk1,defopts,ier)
+         if (ier.ne.0) stop 1
          call errcomp(fk0,fk1,ms,err)
          print *,' ier = ',ier
          print *,' type 1 error = ',err
@@ -83,6 +84,7 @@ c     -----------------------
 c
          call dirft1d2(nj,xj,cj0,iflag, ms,fk0,ier)
          call finufft1d2(nj,xj,cj1,iflag, eps, ms,fk0,defopts,ier)
+         if (ier.ne.0) stop 1
          call errcomp(cj0,cj1,nj,err)
          print *,' ier = ',ier
          print *,' type 2 error = ',err
@@ -96,6 +98,7 @@ c     -----------------------
          enddo
          call dirft1d3(nj,xj,cj,iflag, ms,sk,fk0)
          call finufft1d3(nj,xj,cj,iflag,eps, ms,sk,fk1,defopts,ier)
+         if (ier.ne.0) stop 1
          call errcomp(fk0,fk1,ms,err)
          print *,' ier = ',ier
          print *,' type 3 error = ',err

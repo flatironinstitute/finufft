@@ -86,6 +86,7 @@ c     -----------------------
 c
          call finufftf2d1many(ntrans,nj,xj,yj,cj,iflag,
      &                         eps,ms,mt,fk1,defopts,ier)
+         if (ier.ne.0) stop 1
          maxerr = 0.0
          do d = 1, ntrans
             call dirft2d1f(nj,xj,yj,cj(1+(d-1)*nj:d*nj),iflag,ms,mt,
@@ -103,6 +104,7 @@ c      call 2D Type 2 method
 c     -----------------------
          call finufftf2d2many(ntrans,nj,xj,yj,cj1,iflag,
      &                         eps,ms,mt,fk0,defopts,ier)
+         if (ier.ne.0) stop 1
          maxerr = 0.0
          do d = 1, ntrans
             call dirft2d2f(nj,xj,yj,cj0(1+(d-1)*nj:d*nj),iflag,ms,mt,
@@ -125,6 +127,7 @@ c     -----------------------
 
          call finufftf2d3many(ntrans,nj,xj,yj,cj,iflag,eps,nk,sk,tk,
      &        fk1,defopts,ier)
+         if (ier.ne.0) stop 1
          maxerr = 0.0
          do d = 1, ntrans
             call dirft2d3f(nj,xj,yj,cj(1+(d-1)*nj:d*nj),iflag,nk,

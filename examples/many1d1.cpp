@@ -36,6 +36,7 @@ int main()
   // call the NUFFT (with iflag=+1): note pointers (not STL vecs) passed...
   int ier = finufft1d1many(ntrans, M, &x[0], &c[0], +1, tol, N, &F[0], NULL);
   // docs-end: many1d1
+  if (ier) return ier; // no valid output to read
 
   int k   = 142519; // check the answer just for this mode, in every transform...
   assert(k >= -(double)N / 2 && k < (double)N / 2);

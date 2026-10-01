@@ -78,6 +78,7 @@ c     -----------------------
 c
          call dirft2d1f(nj,xj,yj,cj,iflag,ms,mt,fk0)
          call finufftf2d1(nj,xj,yj,cj,iflag,eps,ms,mt,fk1,defopts,ier)
+         if (ier.ne.0) stop 1
          call errcomp(fk0,fk1,nk,err)
          print *, ' ier = ',ier
          call errcomp(fk0,fk1,nk,err)
@@ -89,6 +90,7 @@ c      call 2D Type 2 method
 c     -----------------------
          call dirft2d2f(nj,xj,yj,cj0,iflag,ms,mt,fk0)
          call finufftf2d2(nj,xj,yj,cj1,iflag,eps,ms,mt,fk0,defopts,ier)
+         if (ier.ne.0) stop 1
          print *, ' ier = ',ier
          call errcomp(cj0,cj1,nj,err)
          print *, ' type 2 error = ',err
@@ -105,6 +107,7 @@ c     -----------------------
          call dirft2d3f(nj,xj,yj,cj,iflag,nk,sk,tk,fk0)
          call finufftf2d3(nj,xj,yj,cj,iflag,eps,nk,sk,tk,fk1,defopts,
      1        ier)
+         if (ier.ne.0) stop 1
 c
          print *, ' ier = ',ier
          call errcomp(fk0,fk1,nk,err)

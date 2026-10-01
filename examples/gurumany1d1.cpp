@@ -58,6 +58,10 @@ int main() {
          "(vectorized), each size %d NU pts to %d modes...\n",
          tol, ntrans, M, N);
   ier = finufft_execute(plan, c.data(), F.data());
+  if (ier) {
+    finufft_destroy(plan);
+    return ier;
+  }
 
   // could now change c, do another execute, do another setpts, execute, etc...
 

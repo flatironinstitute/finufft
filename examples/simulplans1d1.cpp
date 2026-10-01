@@ -94,12 +94,22 @@ int main() {
   vector<complex<double>> FA(NA), FB(NB);
   int ierA = finufft_execute(planA, &cA[0], &FA[0]);
   int ierB = finufft_execute(planB, &cB[0], &FB[0]);
+  if (ierA || ierB) {
+    finufft_destroy(planA);
+    finufft_destroy(planB);
+    return 1;
+  }
 
   // change strengths and exec again for fun...
   strengths(cA);
   strengths(cB);
   ierA = finufft_execute(planA, &cA[0], &FA[0]);
   ierB = finufft_execute(planB, &cB[0], &FB[0]);
+  if (ierA || ierB) {
+    finufft_destroy(planA);
+    finufft_destroy(planB);
+    return 1;
+  }
   finufft_destroy(planA);
   finufft_destroy(planB);
 

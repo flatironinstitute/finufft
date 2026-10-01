@@ -49,6 +49,7 @@ int main() {
   opts.upsampfac = 1.25;
   int ier        = finufft2d1(M, &x[0], &y[0], &c[0], 1, tol, N1, N2, &F[0], &opts);
   // docs-end: simple2d1
+  if (ier) return ier;       // no valid output to read
 
   int k1 = round(0.45 * N1); // check the answer for mode frequency (k1,k2)
   int k2 = round(-0.35 * N2);

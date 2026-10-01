@@ -38,6 +38,10 @@ int main()
 
   // call the NUFFT (with iflag=+1), passing pointers...
   int ier    = finufftf1d1(M, x, c, +1, tol, N, F, &opts);
+  if (ier) { // no valid output to read
+    free(x), free(c), free(F);
+    return ier;
+  }
 
   int k      = 1425;                     // check the answer just for this mode...
   assert(k >= -(double)N / 2 && k < (double)N / 2);

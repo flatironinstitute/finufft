@@ -49,6 +49,7 @@ int main()
   // call the NUFFT (with iflag=+1): note pointers (not STL vecs) passed...
   int ier = finufft1d1(M, &x[0], &c[0], +1, acc, N, &F[0], &opts);
   // docs-end: transform
+  if (ier) return ier; // no valid output to read
 
   int k = 142519; // check the answer just for this mode frequency...
   assert(k >= -(double)N / 2 && k < (double)N / 2);

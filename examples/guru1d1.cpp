@@ -64,12 +64,20 @@ int main()
   // alloc output array for the Fourier modes, then do the transform
   vector<complex<double>> F(N);
   ier = finufft_execute(plan, c.data(), F.data());
+  if (ier) {
+    finufft_destroy(plan);
+    return ier;
+  }
 
   // for fun, do another with same NU pts (no re-sorting), but new strengths...
   for (int j = 0; j < M; ++j)
     c[j] =
         2 * ((double)rand() / RAND_MAX) - 1 + 1i * (2 * ((double)rand() / RAND_MAX) - 1);
   ier = finufft_execute(plan, c.data(), F.data());
+  if (ier) {
+    finufft_destroy(plan);
+    return ier;
+  }
 
   finufft_destroy(plan); // don't forget! done with transforms of this size
 

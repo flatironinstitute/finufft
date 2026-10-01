@@ -59,12 +59,20 @@ int main()
   // alloc output array for the Fourier modes, then do the transform
   vector<complex<float>> F(N);
   ier = finufftf_execute(plan, &c[0], &F[0]);
+  if (ier > 0) {
+    finufftf_destroy(plan);
+    return ier;
+  }
 
   // for fun, do another with same NU pts (no re-sorting), but new strengths...
   for (int j = 0; j < M; ++j)
     c[j] = 2 * ((float)rand() / (float)RAND_MAX) - 1 +
            1if * (2 * ((float)rand() / (float)RAND_MAX) - 1);
   ier = finufftf_execute(plan, &c[0], &F[0]);
+  if (ier > 0) {
+    finufftf_destroy(plan);
+    return ier;
+  }
 
   finufftf_destroy(plan); // done with transforms of this size
 

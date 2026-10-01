@@ -40,6 +40,10 @@ int main()
   // call the NUFFT (with iflag=+1), passing pointers...
   int ier = finufft1d1(M, x, c, +1, tol, N, F, &opts);
   // docs-end: quick-start-c
+  if (ier) { // no valid output to read
+    free(x), free(c), free(F);
+    return ier;
+  }
 
   // (now do something with F here!...)
 

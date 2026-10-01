@@ -130,12 +130,14 @@ c     note you need a fresh plan if change opts
       endif
 c     Do it: reads cj (strengths), writes fk (mode coeffs) and ier (status)
       call finufft_execute(plan,cj,fk,ier)
+      if (ier.ne.0) stop 1
 c     change the strengths
       do j = 1,M
          cj(j) = dcmplx( dsin((10d0*j)/M), dcos(2.0+(20d0*j)/M))
       enddo
 c     do another transform using same NU pts
       call finufft_execute(plan,cj,fk,ier)
+      if (ier.ne.0) stop 1
 c     change the NU pts then do another transform w/ existing strengths...
       do j = 1,M
          xj(j) = pi/2.0 * dcos(pi*j/M)

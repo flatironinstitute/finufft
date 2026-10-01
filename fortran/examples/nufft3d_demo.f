@@ -88,6 +88,7 @@ c
          call dirft3d1(nj,xj,yj,zj,cj,iflag,ms,mt,mu,fk0)
          call finufft3d1(nj,xj,yj,zj,cj,iflag,eps,ms,mt,mu,fk1,defopts,
      1        ier)
+         if (ier.ne.0) stop 1
          print *, ' ier = ',ier
          call errcomp(fk0,fk1,nk,err)
          print *, ' type 1 error = ',err
@@ -99,6 +100,7 @@ c     -----------------------
          call dirft3d2(nj,xj,yj,zj,cj0,iflag,ms,mt,mu,fk0)
          call finufft3d2(nj,xj,yj,zj,cj1,iflag,eps,ms,mt,mu,fk0,defopts,
      1        ier)
+         if (ier.ne.0) stop 1
          print *, ' ier = ',ier
          call errcomp(cj0,cj1,nj,err)
          print *, ' type 2 error = ',err
@@ -116,6 +118,7 @@ c     -----------------------
          call dirft3d3(nj,xj,yj,zj,cj,iflag,nk,sk,tk,uk,fk0)
          call finufft3d3(nj,xj,yj,zj,cj,iflag,eps,nk,sk,tk,uk,fk1,
      1        defopts,ier)
+         if (ier.ne.0) stop 1
          print *, ' ier = ',ier
          call errcomp(fk0,fk1,nk,err)
          print *, ' type 3 error = ',err
