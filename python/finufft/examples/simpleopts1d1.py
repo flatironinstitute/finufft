@@ -1,46 +1,40 @@
-# convert DFM's simple demo to JFM interface, include modeord test.
-# Barnett 10/25/17. Adde upsampfac, 6/18/18
+# demo of 1D type 1 FINUFFT options (modeord, upsampfac, out) in python.
+# Barnett 10/25/17. Added upsampfac, 6/18/18
 
-import time
 import finufft
 import numpy as np
 
-# print finufft.nufft1d1.__doc__
-
 np.random.seed(42)
 
-acc = 1.0e-9
-iflag = 1
+# docs-start: simpleopts1d1
+tol = 1.0e-9
 N = int(1e6)
 M = int(1e5)
 x = np.random.uniform(-np.pi, np.pi, M)
 c = np.random.randn(M) + 1.0j * np.random.randn(M)
-F = np.zeros([N], dtype=np.complex128)  # allocate F (modes out)
 
-strt = time.time()
-F = finufft.nufft1d1(x, c, N, tol=acc, isign=iflag, debug=1, spread_debug=1)
-print("Finished nufft in {0:.2g} seconds. Checking...".format(time.time() - strt))
+# default options
+F1 = finufft.nufft1d1(x, c, N, tol=tol, isign=1)
+
+# FFT mode order, written into the preallocated output array
+F2 = np.zeros(N, dtype=np.complex128)
+Ftest2 = finufft.nufft1d1(x, c, out=F2, tol=tol, isign=1, modeord=1)
+
+# lower upsampling factor (sigma)
+F3 = finufft.nufft1d1(x, c, N, tol=tol, isign=1, upsampfac=1.25)
+# docs-end: simpleopts1d1
+
+if Ftest2 is not F2:
+    raise SystemExit("FAILED: out=F2 not used, returned a different array")
 
 n = 142519  # mode to check
-Ftest = 0.0
-# this is so slow...
-for j in range(M):
-    Ftest += c[j] * np.exp(n * x[j] * 1.0j)
-Fmax = np.max(np.abs(F))
-err = np.abs((F[n + N // 2] - Ftest) / Fmax)
-print("Error relative to max of F: {0:.2e}".format(err))
-
-# now test FFT mode output version, overwriting F...
-strt = time.time()
-finufft.nufft1d1(x, c, out=F, tol=acc, isign=iflag, modeord=1)
-print("Finished nufft in {0:.2g} seconds (modeord=1)".format(time.time() - strt))
-err = np.abs((F[n] - Ftest) / Fmax)  # now zero offset in F array
-print("Error relative to max of F: {0:.2e}".format(err))
-
-# now test low-upsampfac (sigma) version...
-strt = time.time()
-Ftest2 = finufft.nufft1d1(x, c, N, F, acc, iflag, upsampfac=1.25)
-print(Ftest2 is F)
-print("Finished nufft in {0:.2g} seconds (upsampfac=1.25)".format(time.time() - strt))
-err = np.abs((Ftest2[n + N // 2] - Ftest) / Fmax)  # now zero offset in F array
-print("Error relative to max of F: {0:.2e}".format(err))
+Ftest = np.sum(c * np.exp(1.0j * n * x))
+# modeord=1 gives FFT mode order; there mode n sits at index n
+for F, i in ((F1, n + N // 2), (F2, n), (F3, n + N // 2)):
+    Fmax = np.max(np.abs(F))
+    if not np.isfinite(Fmax):
+        raise SystemExit(f"FAILED: max |F| is not finite: {Fmax:.3g}")
+    err = np.abs(F[i] - Ftest) / Fmax
+    if err > 10 * tol:
+        raise SystemExit(f"FAILED: relative error {err:.2e}, max |F| {Fmax:.3g}")
+print(f"Error relative to max: {err:.2e}")
