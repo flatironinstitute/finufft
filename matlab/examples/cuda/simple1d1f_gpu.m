@@ -28,5 +28,5 @@ fe = sum(c.*exp(1i*(nt1*x + nt2*y)));           % exact
 of1 = floor(N1/2)+1; of2 = floor(N2/2)+1;       % mode index offsets
 err = gather(abs(fe-f(nt1+of1,nt2+of2))/norm(f(:),Inf));
 fprintf('rel err in F[%d,%d] is %.3g\n',nt1,nt2,err)
-assert(all(isfinite(gather(f(:)))) && err < 10*tol, ...
+assert(gather(all(isfinite(f(:)))) && err < 10*tol, ...
        'simple1d1f_gpu: output nonfinite or error %.3g >= %.3g', err, 10*tol)
