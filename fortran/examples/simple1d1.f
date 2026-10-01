@@ -32,8 +32,6 @@ c     this is how you create the options struct in fortran...
       type(finufft_opts) opts
 c     or this is if you want default opts, make a null pointer...
       type(finufft_opts), pointer :: defopts => null()
-c     docs-end: quick-start
-
 c     how many nonuniform pts
       M = 2000000
 c     how many modes
@@ -42,6 +40,7 @@ c     how many modes
       allocate(fk(N))
       allocate(xj(M))
       allocate(cj(M))
+c     docs-end: quick-start
       print *,''
       print *,'creating data then run simple interface, default opts...'
 c     create some quasi-random NU pts in [-pi, pi), complex strengths
