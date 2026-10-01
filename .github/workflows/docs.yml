@@ -1,0 +1,23 @@
+name: docs
+
+on:
+  # Every branch: a push has to be checked before a PR exists.
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  sphinx:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+      # Same fetch RTD does in .readthedocs.yaml pre_build; placeholder kept on failure.
+      - name: Fetch perftest summary
+        run: curl -fsSL https://raw.githubusercontent.com/flatironinstitute/finufft/perftest-results/docs/performance.rst -o docs/performance.rst || true
+      - name: Install requirements
+        run: pip install -r docs/requirements.txt
+      - name: Build docs (warnings as errors)
+        run: sphinx-build -W -b html docs docs/_build/html
