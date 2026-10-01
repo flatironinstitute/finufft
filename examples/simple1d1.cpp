@@ -33,7 +33,7 @@ int main()
 
   // docs-start: declare-fill
   // generate nonuniform points (x) and complex strengths (c), uniform random in
-  // [-pi,pi)...
+  // [-pi,pi) (x only; c is in [-1,1])...
   vector<double> x(M);
   vector<complex<double>> c(M);
   for (int j = 0; j < M; ++j) {
