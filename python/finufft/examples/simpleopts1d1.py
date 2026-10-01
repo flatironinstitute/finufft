@@ -37,7 +37,8 @@ assert err <= 10 * acc
 strt = time.time()
 finufft.nufft1d1(x, c, out=F, eps=acc, isign=iflag, modeord=1)
 print("Finished nufft in {0:.2g} seconds (modeord=1)".format(time.time() - strt))
-err = np.abs((F[n] - Ftest) / Fmax)  # now zero offset in F array
+assert np.all(np.isfinite(F))
+err = np.abs((F[n] - Ftest) / np.max(np.abs(F)))  # now zero offset in F array
 print("Error relative to max of F: {0:.2e}".format(err))
 assert err <= 10 * acc
 
@@ -46,7 +47,8 @@ strt = time.time()
 Ftest2 = finufft.nufft1d1(x, c, N, F, acc, iflag, upsampfac=1.25)
 print(Ftest2 is F)
 print("Finished nufft in {0:.2g} seconds (upsampfac=1.25)".format(time.time() - strt))
-err = np.abs((Ftest2[n + N // 2] - Ftest) / Fmax)  # now zero offset in F array
+assert np.all(np.isfinite(Ftest2))
+err = np.abs((Ftest2[n + N // 2] - Ftest) / np.max(np.abs(Ftest2)))
 print("Error relative to max of F: {0:.2e}".format(err))
 assert err <= 10 * acc
 # docs-end: simpleopts1d1
