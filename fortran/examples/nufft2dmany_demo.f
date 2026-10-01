@@ -23,7 +23,7 @@ c
       integer i,ier,iflag,j,k1,k2,mx,n1,n2,ntrans,d
       integer*8 ms,mt,nj,nk
       real*8, allocatable :: xj(:),yj(:),sk(:),tk(:)
-      real*8 err,pi,eps,salg,ealg,maxerr
+      real*8 err,pi,tol,salg,ealg,maxerr
       parameter (pi=3.141592653589793238462643383279502884197d0)
       complex*16, allocatable :: cj(:),cj0(:),cj1(:),fk0(:),fk1(:)
 c     for default opts, make a null pointer...
@@ -74,12 +74,12 @@ c
       print*,'Starting 2Dmany testing: ntrans =', ntrans, ' nj =',nj,
      &     ' ms,mt =',ms,mt
       do i = 1,4
-         if (i.eq.1) eps=1d-3
-         if (i.eq.2) eps=1d-6
-         if (i.eq.3) eps=1d-9
-         if (i.eq.4) eps=1d-12
+         if (i.eq.1) tol=1d-3
+         if (i.eq.2) tol=1d-6
+         if (i.eq.3) tol=1d-9
+         if (i.eq.4) tol=1d-12
 	 print*,' '
-	 print*,' Requested precision eps =',eps
+	 print*,' Requested precision tol =',tol
 	 print*,' '
 c
 c     -----------------------
@@ -87,12 +87,13 @@ c     call 2D Type 1 method
 c     -----------------------
 c
          call finufft2d1many(ntrans,nj,xj,yj,cj,iflag,
-     &                         eps,ms,mt,fk1,defopts,ier)
+     &                         tol,ms,mt,fk1,defopts,ier)
          do d = 1, ntrans
             call dirft2d1(nj,xj,yj,cj(1+(d-1)*nj:d*nj),iflag,ms,mt,
      &                    fk0(1+(d-1)*nk:d*nk))
             call errcomp(fk0(1+(d-1)*nk:d*nk),fk1(1+(d-1)*nk:d*nk),
      &                   nk,err)
+            if (.not.(err.le.10*tol)) stop 1
             maxerr = max(maxerr,err)
          enddo
          print *, ' max type 1 error = ',err
@@ -101,12 +102,13 @@ c     -----------------------
 c      call 2D Type 2 method
 c     -----------------------
          call finufft2d2many(ntrans,nj,xj,yj,cj1,iflag,
-     &                         eps,ms,mt,fk0,defopts,ier)
+     &                         tol,ms,mt,fk0,defopts,ier)
          do d = 1, ntrans
             call dirft2d2(nj,xj,yj,cj0(1+(d-1)*nj:d*nj),iflag,ms,mt,
      &                    fk0(1+(d-1)*nk:d*nk))
             call errcomp(cj0(1+(d-1)*nj:d*nj),cj1(1+(d-1)*nj:d*nj),
      &                   nj,err)
+            if (.not.(err.le.10*tol)) stop 1
             maxerr = max(maxerr,err)
          enddo
          print *, ' max type 2 error = ',err
@@ -119,13 +121,14 @@ c     -----------------------
             tk(k1) = 32*(dsin(-pi/2+k1*pi/nk))
          enddo
 
-         call finufft2d3many(ntrans,nj,xj,yj,cj,iflag,eps,nk,sk,tk,
+         call finufft2d3many(ntrans,nj,xj,yj,cj,iflag,tol,nk,sk,tk,
      &        fk1,defopts,ier)
          do d = 1, ntrans
             call dirft2d3(nj,xj,yj,cj(1+(d-1)*nj:d*nj),iflag,nk,
      &           sk,tk,fk0(1+(d-1)*nk:d*nk))
             call errcomp(fk0(1+(d-1)*nk:d*nk),fk1(1+(d-1)*nk:d*nk),
      &                   nk,err)
+            if (.not.(err.le.10*tol)) stop 1
             maxerr = max(maxerr,err)
          enddo
          print *, ' max type 3 error = ',err

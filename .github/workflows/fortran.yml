@@ -5,10 +5,13 @@ on:
   schedule:
     - cron: "0 0 * * 0"
 
-  # On tag push
+  # Every branch push and PR, plus version tags.
   push:
+    branches:
+      - '**'
     tags:
       - 'v*'
+  pull_request:
   # Manual trigger (with an optional deploy toggle)
   workflow_dispatch:
     inputs:
