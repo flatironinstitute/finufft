@@ -52,6 +52,10 @@ int main() {
   cufinufftf_plan plan;
   // docs-end: gs-device
 
+  // Manual calculation at a single point idx.
+  int idx;
+  float _Complex f0;
+
   // docs-start: gs-fill
   // Allocate the host arrays.
   x = (float *)malloc(M * sizeof(float));
@@ -107,12 +111,6 @@ int main() {
   cudaFree(d_c);
   cudaFree(d_f);
   // docs-end: gs-back
-
-  // The rest of the program (manual NUDFT accuracy check, printing of one
-  // output, and host cleanup) is not shown in the docs.
-  // Manual calculation at a single point idx.
-  int idx;
-  float _Complex f0;
 
   // Pick an index to check the result of the calculation.
   idx = 4 * N / 7;

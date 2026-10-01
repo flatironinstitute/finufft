@@ -114,13 +114,6 @@ We also define the corresponding data pointers on the device (GPU) as well as th
   :start-after: docs-start: gs-device
   :end-before: docs-end: gs-device
 
-Finally, we'll need some variables to compute the NUDFT at some arbitrary point to check the accuracy of the cuFINUFFT call:
-
-.. code-block:: c
-
-    int idx;
-    float _Complex f0;
-
 Now the actual work can begin. First, we allocate the host (CPU) arrays and fill the ``x`` and ``c`` arrays with appropriate values (``f`` will hold the output of the cuFINUFFT call). The frequencies in ``x`` are interpreted with periodicity :math:`2\pi`, while the coefficients ``c`` can be any value. Here we draw the frequencies and coefficients from the uniform distributions on :math:`[-\pi, \pi]` and :math:`[-1, 1]^2` respectively.
 
 .. literalinclude:: ../examples/cuda/getting_started.cpp
