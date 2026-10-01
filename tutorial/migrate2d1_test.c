@@ -63,14 +63,10 @@ int main() {
   printf("2D type 1 (FINUFFT) in %.3g s: f_hat[%d,%d]=%.12g+%.12gi, rel err %.3g\n", secs,
          kx, ky, creal(f_hat[i]), cimag(f_hat[i]), err);
 
-  free(x);
-  free(y);
-  free(f);
-  free(f_hat); // user deallocates own I/O arrays
-  return ier || !(err <= 10 * tol);
+  ier = !(err <= 10 * tol);
 
 // docs-end: migrate2d1
-cleanup:
+cleanup: // user deallocates own I/O arrays
   free(x);
   free(y);
   free(f);

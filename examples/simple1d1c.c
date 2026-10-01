@@ -59,10 +59,7 @@ int main()
   printf("1D type 1 NUFFT done. ier=%d, err in F[%d] rel to max(F) is %.3g\n", ier, k,
          err);
 
-  free(x);
-  free(c);
-  free(F);
-  return ier || !(err <= 10 * tol);
+  ier = !(err <= 10 * tol);
 
 cleanup: // docs never show this (marker above)
   free(x);
