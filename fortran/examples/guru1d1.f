@@ -132,6 +132,19 @@ c     note you need a fresh plan if change opts
 c     Do it: reads cj (strengths), writes fk (mode coeffs) and ier (status)
       call finufft_execute(plan,cj,fk,ier)
       if (ier.ne.0) stop 1
+c     check mode ktest vs direct sum; all of fk must be finite
+      fktest = dcmplx(0,0)
+      do j=1,M
+         fktest = fktest + cj(j) * dcmplx( dcos(ktest*xj(j)),
+     $        dsin(iflag*ktest*xj(j)) )
+      enddo
+      fmax = 0
+      do k=1,N
+         if (.not.(cdabs(fk(k)).le.huge(fmax))) stop 1
+         fmax = max(fmax,cdabs(fk(k)))
+      enddo
+      err = cdabs(fk(ktestindex)-fktest)/fmax
+      if (.not.(err.le.10*tol)) stop 1
 c     change the strengths
       do j = 1,M
          cj(j) = dcmplx( dsin((10d0*j)/M), dcos(2.0+(20d0*j)/M))
@@ -139,6 +152,19 @@ c     change the strengths
 c     do another transform using same NU pts
       call finufft_execute(plan,cj,fk,ier)
       if (ier.ne.0) stop 1
+c     check mode ktest vs direct sum; all of fk must be finite
+      fktest = dcmplx(0,0)
+      do j=1,M
+         fktest = fktest + cj(j) * dcmplx( dcos(ktest*xj(j)),
+     $        dsin(iflag*ktest*xj(j)) )
+      enddo
+      fmax = 0
+      do k=1,N
+         if (.not.(cdabs(fk(k)).le.huge(fmax))) stop 1
+         fmax = max(fmax,cdabs(fk(k)))
+      enddo
+      err = cdabs(fk(ktestindex)-fktest)/fmax
+      if (.not.(err.le.10*tol)) stop 1
 c     change the NU pts then do another transform w/ existing strengths...
       do j = 1,M
          xj(j) = pi/2.0 * dcos(pi*j/M)
@@ -156,6 +182,19 @@ c     change the NU pts then do another transform w/ existing strengths...
          print *,'failed! ier=',ier
          stop 1
       endif
+c     check mode ktest vs direct sum; all of fk must be finite
+      fktest = dcmplx(0,0)
+      do j=1,M
+         fktest = fktest + cj(j) * dcmplx( dcos(ktest*xj(j)),
+     $        dsin(iflag*ktest*xj(j)) )
+      enddo
+      fmax = 0
+      do k=1,N
+         if (.not.(cdabs(fk(k)).le.huge(fmax))) stop 1
+         fmax = max(fmax,cdabs(fk(k)))
+      enddo
+      err = cdabs(fk(ktestindex)-fktest)/fmax
+      if (.not.(err.le.10*tol)) stop 1
       call finufft_destroy(plan,ier)
 
       stop
