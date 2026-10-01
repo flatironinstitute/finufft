@@ -58,12 +58,12 @@ int main() {
   c = (float _Complex *)malloc(M * sizeof(float _Complex));
   f = (float _Complex *)malloc(N * sizeof(float _Complex));
 
-  // Fill with random numbers. Frequencies must be in the interval [-pi, pi)
+  // Fill with random numbers. Frequencies must be in the interval [-pi, pi]
   // while strengths can be any value.
   srand(0);
 
   for (int j = 0; j < M; ++j) {
-    x[j] = 2 * PI * (((float)rand()) / RAND_MAX - 1);
+    x[j] = PI * (2 * (((float)rand()) / RAND_MAX) - 1);
     c[j] =
         (2 * ((float)rand()) / RAND_MAX - 1) + I * (2 * ((float)rand()) / RAND_MAX - 1);
   }
