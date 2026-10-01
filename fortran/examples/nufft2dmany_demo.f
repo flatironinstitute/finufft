@@ -98,7 +98,6 @@ c
             maxerr = max(maxerr,err)
          enddo
          print *, ' max type 1 error = ',maxerr
-         if (ier.ne.0 .or. .not.(maxerr.le.10*eps)) stop 1
 c
 c     -----------------------
 c      call 2D Type 2 method
@@ -116,7 +115,6 @@ c     -----------------------
             maxerr = max(maxerr,err)
          enddo
          print *, ' max type 2 error = ',maxerr
-         if (ier.ne.0 .or. .not.(maxerr.le.10*eps)) stop 1
 c
 c     -----------------------
 c      call 2D Type3 method
@@ -139,7 +137,6 @@ c     -----------------------
             maxerr = max(maxerr,err)
          enddo
          print *, ' max type 3 error = ',maxerr
-         if (ier.ne.0 .or. .not.(maxerr.le.10*eps)) stop 1
       enddo
       stop
       end

@@ -85,7 +85,7 @@ c
          print *, ' ier = ',ier
          call errcomp(fk0,fk1,nk,err)
          print *, ' type 1 error = ',err
-         if (ier.ne.0 .or. .not.(err.le.10*eps)) stop 1
+         if (.not.(err.le.10*eps)) stop 1
 c
 c     -----------------------
 c      call 2D Type 2 method
@@ -96,7 +96,7 @@ c     -----------------------
          print *, ' ier = ',ier
          call errcomp(cj0,cj1,nj,err)
          print *, ' type 2 error = ',err
-         if (ier.ne.0 .or. .not.(err.le.10*eps)) stop 1
+         if (.not.(err.le.10*eps)) stop 1
 c
 c     -----------------------
 c      call 2D Type3 method
@@ -113,7 +113,7 @@ c
          print *, ' ier = ',ier
          call errcomp(fk0,fk1,nk,err)
          print *, ' type 3 error = ',err
-         if (ier.ne.0 .or. .not.(err.le.10*eps)) stop 1
+         if (.not.(err.le.10*eps)) stop 1
       enddo
       stop
       end

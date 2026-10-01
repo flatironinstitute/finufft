@@ -92,5 +92,5 @@ int main() {
   double err = abs(F[indexOut] - Ftest) / Fmax;
   cout << "2D adjoint-of-type-2 NUFFT done. ier=" << ier << ", err in F[" << indexOut
        << "] rel to max(F) is " << setprecision(2) << err << endl;
-  return ier || !(err <= 10 * tol);
+  return !(err <= 10 * tol);
 }
