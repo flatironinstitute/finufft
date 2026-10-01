@@ -68,7 +68,9 @@ int main()
   for (auto cj : c) csum += cj;
   complex<double> mass = 0.0; // tot output mass
   for (auto Fk : F) mass += Fk;
-  double relerr = abs(mass - kersum * csum) / abs(mass);
+  double asum = 0.0;          // normalize by sum|c|, since sum c may nearly cancel
+  for (auto cj : c) asum += abs(cj);
+  double relerr = abs(mass - kersum * csum) / (abs(kersum) * asum);
   printf("1D spread-only, double-prec, %.3g s (%.3g NU pt/sec), ier=%d, mass err %.3g\n",
          t, M / t, ier, relerr);
 

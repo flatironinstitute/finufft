@@ -42,7 +42,7 @@ c = randn(M,1)+1i*randn(M,1);                    % strengths
 tic;
 f = finufft2d1(x,y,c,isign,tol,N1,N2,opts);      % do it
 t = toc;
-mass = sum(f(:)); err = abs(mass - kersum*sum(c))/abs(mass);  % relative err
+mass = sum(f(:)); err = abs(mass - kersum*sum(c))/(abs(kersum)*sum(abs(c)));  % rel err, no cancellation
 fprintf('2D spread-only: %.3g s (%.3g NU pt/s), mass err %.3g\n',t, M/t, err)
 assert(err < 10*tol)
 
