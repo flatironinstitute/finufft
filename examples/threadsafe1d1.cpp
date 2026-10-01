@@ -61,10 +61,12 @@ int main()
     double Fmax = 0.0; // compute inf norm of F
     for (int m = 0; m < N; ++m) {
       double aF = abs(F[m]);
+      if (!isfinite(aF)) overallstatus = 1; // any NaN/Inf fails
       if (aF > Fmax) Fmax = aF;
     }
     int kout   = k + N / 2; // index in output array for freq mode k
     double err = abs(F[kout] - Ftest) / Fmax;
+    if (!(err <= 10 * acc)) overallstatus = 1; // also catches NaN
 
     printf("[thread %2d] 1D t-1 dbl-prec NUFFT done. ier=%d, rel err in F[%d]: %.3g\n",
            omp_get_thread_num(), ier, k, err);

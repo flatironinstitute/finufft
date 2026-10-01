@@ -101,6 +101,7 @@ c     note flipped iflag on the sin term, since adjoint...
 c     compute inf norm of fk coeffs for use in rel err
       fmax = 0
       do k=1,N
+         if (.not.(cdabs(fk(k)).le.huge(fmax))) stop 1
          fmax = max(fmax,cdabs(fk(k)))
       enddo
       ktestindex = ktest + N/2 + 1

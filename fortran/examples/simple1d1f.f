@@ -73,6 +73,7 @@ c     math test: single output mode with given freq (not array index) k
 c     compute inf norm of fk coeffs for use in rel err
       fmax = 0
       do k=1,N
+         if (.not.(cabs(fk(k)).le.huge(fmax))) stop 1
          fmax = max(fmax,cabs(fk(k)))
       enddo
       ktestindex = ktest + N/2 + 1
@@ -107,6 +108,7 @@ c     tell it to ignore that the error model says not possible...
 c     math test of the options-changing transform (same reference & threshold)
       fmax = 0
       do k=1,N
+         if (.not.(cabs(fk(k)).le.huge(fmax))) stop 1
          fmax = max(fmax,cabs(fk(k)))
       enddo
       print '("rel err for mode k=",i10," is ",e10.2)',ktest,

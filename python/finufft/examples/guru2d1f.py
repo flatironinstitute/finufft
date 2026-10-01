@@ -59,6 +59,7 @@ assert (k1 >= -N1 / 2.0) & (k1 < N1 / 2.0)  # float division easier here
 assert (k2 >= -N2 / 2.0) & (k2 < N2 / 2.0)
 for t in range(K):
     ftest = sum(c[t, :] * np.exp(1.0j * (k1 * x + k2 * y)))
+    assert np.all(np.isfinite(f[t]))
     err = np.abs(f[t, k1 + N1 // 2, k2 + N2 // 2] - ftest) / np.max(np.abs(f[t]))
     print("Transform {0}, error relative to max: {1:.2e}".format(t, err))
     assert err <= 10 * eps

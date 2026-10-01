@@ -50,6 +50,7 @@ int main()
   float Fmax = 0.0;                      // compute inf norm of F
   for (int m = 0; m < N; ++m) {
     float aF = cabsf(F[m]);
+    if (!isfinite(aF)) Fmax = NAN; // any NaN/Inf fails (NaN err)
     if (aF > Fmax) Fmax = aF;
   }
   int kout  = k + N / 2; // index in output array for freq mode k

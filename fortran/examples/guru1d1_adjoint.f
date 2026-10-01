@@ -104,6 +104,7 @@ c     math test: single output target, note flipped isign
 c     compute inf norm of output vector for use in rel err
       cmax = 0
       do j=1,M
+         if (.not.(cdabs(cj(j)).le.huge(cmax))) stop 1
          cmax = max(cmax,cdabs(cj(j)))
       enddo
       print '("rel err for target j=",i10," is ",e10.2)',jtest,

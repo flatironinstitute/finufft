@@ -27,6 +27,7 @@ Ftest = 0.0
 # this is so slow...
 for j in range(M):
     Ftest += c[j] * np.exp(n * x[j] * 1.0j)
+assert np.all(np.isfinite(F))
 Fmax = np.max(np.abs(F))
 err = np.abs((F[n + N // 2] - Ftest) / Fmax)
 print("Error relative to max of F: {0:.2e}".format(err))

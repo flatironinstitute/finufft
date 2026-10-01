@@ -84,6 +84,7 @@ int main()
   float Fmax = 0.0;       // compute inf norm of F
   for (int m = 0; m < N; ++m) {
     float aF = abs(F[m]);
+    if (!isfinite(aF)) return 1; // any NaN/Inf fails
     if (aF > Fmax) Fmax = aF;
   }
   float err = abs(F[nout] - Ftest) / Fmax;

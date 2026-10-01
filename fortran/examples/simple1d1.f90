@@ -76,6 +76,7 @@ program simple1d1
   ! compute inf norm of fk coeffs for use in rel err
   fmax = 0
   do k=1,N
+     if (.not.(cdabs(fk(k)).le.huge(fmax))) stop 1
      fmax = max(fmax,cdabs(fk(k)))
   enddo
   ktestindex = ktest + N/2 + 1
@@ -110,6 +111,7 @@ program simple1d1
   ! math test of the options-changing transform (same reference & threshold)
   fmax = 0
   do k=1,N
+     if (.not.(cdabs(fk(k)).le.huge(fmax))) stop 1
      fmax = max(fmax,cdabs(fk(k)))
   enddo
   print '("rel err for mode k=",i10," is ",e10.2)',ktest, &

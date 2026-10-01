@@ -62,6 +62,7 @@ int main() {
   double Fmax = 0.0;
   for (int m = 0; m < N1 * N2; m++) {
     double aF = abs(F[m]);
+    if (!isfinite(aF)) return 1; // any NaN/Inf fails
     if (aF > Fmax) Fmax = aF;
   }
 
