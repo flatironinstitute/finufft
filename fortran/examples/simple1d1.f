@@ -40,7 +40,6 @@ c     how many modes
       allocate(fk(N))
       allocate(xj(M))
       allocate(cj(M))
-c     docs-end: quick-start
       print *,''
       print *,'creating data then run simple interface, default opts...'
 c     create some quasi-random NU pts in [-pi, pi), complex strengths
@@ -48,6 +47,7 @@ c     create some quasi-random NU pts in [-pi, pi), complex strengths
          xj(j) = pi * dcos(pi*j/M)
          cj(j) = dcmplx( dsin((100d0*j)/M), dcos(1.0+(50d0*j)/M))
       enddo
+c     docs-end: quick-start
 
       call system_clock(t1)
 c     docs-start: default-call

@@ -17,7 +17,7 @@ Quick-start example
 
 To perform a double-precision 1D type 1 transform from ``M`` nonuniform points ``xj``
 with strengths ``cj``, to ``N`` output modes whose coefficients will be written
-into the ``fk`` array, the declarations are
+into the ``fk`` array, the declarations and data setup are
 (from the complete demo ``fortran/examples/simple1d1.f``):
 
 .. literalinclude:: ../fortran/examples/simple1d1.f
