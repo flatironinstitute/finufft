@@ -4,6 +4,7 @@
    To compile (assuming FINUFFT include and lib in path):
    gcc migrate2d1_test.c -o migrate2d1_test -lfinufft -lfftw3 -lm
  */
+// docs-start: migrate2d1
 #include <complex.h>
 #include <finufft.h>
 #include <math.h>
@@ -19,8 +20,8 @@ int main() {
   double tol = 1e-13;      // user must choose (unlike nfft3's simple call)
 
   // user allocates all external arrays (and no internal ones)
-  double *x = (double *)malloc(sizeof(double) * M); // x (0th) coords only here
-  double *y = (double *)malloc(sizeof(double) * M); // y (1st) coords need separate ptr
+  double *x  = (double *)malloc(sizeof(double) * M); // x (0th) coords only here
+  double *y  = (double *)malloc(sizeof(double) * M); // y (1st) coords need separate ptr
   double complex *f = (double complex *)malloc(sizeof(double complex) * M);
   double complex *f_hat =
       (double complex *)malloc(sizeof(double complex) * N[0] * N[1]); // output
@@ -44,10 +45,13 @@ int main() {
   finufft_opts opts;            // opts struct
   finufft_default_opts(&opts);  // set default opts (must start with this)
   opts.nthreads = 1;            // enforce single-thread
-  int ier = finufft2d1(M, y, x, f, +1, tol, N[1], N[0], f_hat, &opts); // both x,y and
+  int ier     = finufft2d1(M, y, x, f, +1, tol, N[1], N[0], f_hat, &opts); // both x,y and
                                                                        // N0,N1 swapped!
 
   double secs = (clock() - before) / (double)CLOCKS_PER_SEC;
+
+  // docs-end: migrate2d1
+  if (ier) return ier; // no valid output to read
 
   // now test that f_hat is as it would have been if original data were sent to nfft3...
   int kx = -17, ky = 33; // check one output f_hat(kx,ky) vs direct computation
@@ -60,6 +64,8 @@ int main() {
   double err = cabs(f_hat[i] - f_hat_test) / cabs(f_hat_test);
   printf("2D type 1 (FINUFFT) in %.3g s: f_hat[%d,%d]=%.12g+%.12gi, rel err %.3g\n", secs,
          kx, ky, creal(f_hat[i]), cimag(f_hat[i]), err);
+
+  ier = !(err < 10 * tol); // NaN err fails
 
   free(x);
   free(y);

@@ -36,15 +36,17 @@ int main()
     finufft_default_opts(popts);
     popts->debug    = 1;                                  // example options change
     popts->nthreads = 4;                                  // "
-    finufft_makeplan(type, dim, Ns, +1, ntransf, tol, &plan, popts);
+    ier             = finufft_makeplan(type, dim, Ns, +1, ntransf, tol, &plan, popts);
   } else // or, NULL here means use default opts...
-    finufft_makeplan(type, dim, Ns, +1, ntransf, tol, &plan, NULL);
+    ier = finufft_makeplan(type, dim, Ns, +1, ntransf, tol, &plan, NULL);
+  if (ier) return ier; // no plan to use; going on would segfault
 
   // generate some random nonuniform points
   x = (double *)malloc(sizeof(double) * M);
   for (j = 0; j < M; ++j)
     x[j] = PI * (2 * ((double)rand() / RAND_MAX) - 1); // uniform random in [-pi,pi)
-  finufft_setpts(plan, M, x, NULL, NULL, 0, NULL, NULL, NULL);
+  ier = finufft_setpts(plan, M, x, NULL, NULL, 0, NULL, NULL, NULL);
+  if (ier) return ier;
 
   // generate some complex strengths
   c = (double complex *)malloc(sizeof(double complex) * M);
@@ -55,14 +57,14 @@ int main()
   // alloc output array for the Fourier modes, then do the transform
   F   = (double complex *)malloc(sizeof(double complex) * N);
   ier = finufft_execute(plan, c, F);
+  if (ier) return ier;
 
   // for fun, do another with same NU pts (no re-sorting), but new strengths...
   for (j = 0; j < M; ++j)
     c[j] =
         2 * ((double)rand() / RAND_MAX) - 1 + I * (2 * ((double)rand() / RAND_MAX) - 1);
   ier = finufft_execute(plan, c, F);
-
-  finufft_destroy(plan); // done with transforms of this size
+  if (ier) return ier;
 
   // rest is math checking and reporting...
   int n = 142519; // check the answer just for this mode
@@ -78,10 +80,12 @@ int main()
   printf("guru C-interface 1D type-1 NUFFT done. ier=%d, err in F[%d] rel to max(F) is "
          "%.3g\n",
          ier, n, err);
+  ier = !(err < 10 * tol); // NaN err fails
 
+  finufft_destroy(plan);
   free(x);
   free(c);
   free(F);
   free(popts);
-  return ier > 0;
+  return ier;
 }
