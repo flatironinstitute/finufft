@@ -5,7 +5,7 @@ M = 10; N = 8;
 x = 2*pi*rand(M,1); c = randn(M,1) + 1i*randn(M,1);
 
 lastwarn('');
-o = struct('upsampfact', 2.0);              % typo for upsampfac
+o = struct('deliberatelywrongopt', 2.0);    % unknown opt
 finufft1d1(x, c, +1, 1e-6, N, o);
 [~, id] = lastwarn();
 if ~strcmp(id, 'FINUFFT:unknownOpt')
