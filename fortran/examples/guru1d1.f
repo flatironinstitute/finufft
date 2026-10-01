@@ -133,11 +133,6 @@ c     Do it: reads cj (strengths), writes fk (mode coeffs) and ier (status)
       call finufft_execute(plan,cj,fk,ier)
       if (ier.ne.0) stop 1
 c     check mode ktest vs direct sum; all of fk must be finite
-      fktest = dcmplx(0,0)
-      do j=1,M
-         fktest = fktest + cj(j) * dcmplx( dcos(ktest*xj(j)),
-     $        dsin(iflag*ktest*xj(j)) )
-      enddo
       fmax = 0
       do k=1,N
          if (.not.(cdabs(fk(k)).le.huge(fmax))) stop 1
