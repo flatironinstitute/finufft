@@ -24,8 +24,9 @@ int main()
   int ntransf = 1;       // we want to do a single transform at a time
   int64_t j, m, nout;
   int ier;
-  double *x, err, Fmax, aF;
-  double complex *c, *F, Ftest;
+  double err        = NAN, Fmax, aF;
+  double *x         = NULL;
+  double complex *c = NULL, *F = NULL, Ftest;
 
   finufft_opts *popts = NULL; // pointer to opts struct
   finufft_plan plan;          // pointer to (also C-compatible) plan struct
@@ -39,17 +40,17 @@ int main()
     ier             = finufft_makeplan(type, dim, Ns, +1, ntransf, tol, &plan, popts);
   } else // or, NULL here means use default opts...
     ier = finufft_makeplan(type, dim, Ns, +1, ntransf, tol, &plan, NULL);
-  if (ier) return ier; // no plan to use; going on would segfault
+  if (ier) { // no plan to use; going on would segfault
+    free(popts);
+    return ier;
+  }
 
   // generate some random nonuniform points
   x = (double *)malloc(sizeof(double) * M);
   for (j = 0; j < M; ++j)
     x[j] = PI * (2 * ((double)rand() / RAND_MAX) - 1); // uniform random in [-pi,pi)
   ier = finufft_setpts(plan, M, x, NULL, NULL, 0, NULL, NULL, NULL);
-  if (ier) {
-    finufft_destroy(plan);
-    return ier;
-  }
+  if (ier) goto done;
 
   // generate some complex strengths
   c = (double complex *)malloc(sizeof(double complex) * M);
@@ -60,22 +61,14 @@ int main()
   // alloc output array for the Fourier modes, then do the transform
   F   = (double complex *)malloc(sizeof(double complex) * N);
   ier = finufft_execute(plan, c, F);
-  if (ier) {
-    finufft_destroy(plan);
-    return ier;
-  }
+  if (ier) goto done;
 
   // for fun, do another with same NU pts (no re-sorting), but new strengths...
   for (j = 0; j < M; ++j)
     c[j] =
         2 * ((double)rand() / RAND_MAX) - 1 + I * (2 * ((double)rand() / RAND_MAX) - 1);
   ier = finufft_execute(plan, c, F);
-  if (ier) {
-    finufft_destroy(plan);
-    return ier;
-  }
-
-  finufft_destroy(plan); // done with transforms of this size
+  if (ier) goto done;
 
   // rest is math checking and reporting...
   int n = 142519; // check the answer just for this mode
@@ -93,6 +86,8 @@ int main()
          "%.3g\n",
          ier, n, err);
 
+done:
+  finufft_destroy(plan); // plan exists here; done with transforms of this size
   free(x);
   free(c);
   free(F);
