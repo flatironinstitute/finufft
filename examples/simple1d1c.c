@@ -1,3 +1,4 @@
+// docs-start: quick-start-c
 // this is all you must include to access finufft from C...
 #include <finufft.h>
 
@@ -24,7 +25,7 @@ int main()
   double *x         = (double *)malloc(sizeof(double) * M);
   double complex *c = (double complex *)malloc(sizeof(double complex) * M);
   for (int j = 0; j < M; ++j) {
-    x[j] = PI * (2 * ((double)rand() / RAND_MAX) - 1); // uniform random in [-pi,pi)
+    x[j] = PI * (2 * ((double)rand() / RAND_MAX) - 1); // uniform random in [-pi,pi]
     c[j] =
         2 * ((double)rand() / RAND_MAX) - 1 + I * (2 * ((double)rand() / RAND_MAX) - 1);
   }
@@ -38,6 +39,10 @@ int main()
 
   // call the NUFFT (with iflag=+1), passing pointers...
   int ier = finufft1d1(M, x, c, +1, tol, N, F, &opts);
+  // docs-end: quick-start-c
+  if (ier) return ier; // no valid output to read
+
+  // (now do something with F here!...)
 
   int k = 142519;                       // check the answer just for this mode...
   assert(k >= -(double)N / 2 && k < (double)N / 2);
@@ -52,6 +57,8 @@ int main()
   double err = cabs(F[kout] - Ftest) / Fmax;
   printf("1D type 1 NUFFT done. ier=%d, err in F[%d] rel to max(F) is %.3g\n", ier, k,
          err);
+
+  ier = !(err < 10 * tol); // NaN err fails
 
   free(x);
   free(c);

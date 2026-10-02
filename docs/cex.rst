@@ -104,31 +104,14 @@ Quick-start example in C
 The FINUFFT C++ interface is intentionally also C-compatible, for simplity.
 Thus, to use from C, the above example only needs to replace the C++
 ``vector`` with C-style array creation. Using C99 style, the
-above code, with options setting, becomes:
+above code, with options setting, becomes
+(excerpt; the full file with the final accuracy check is
+``examples/simple1d1c.c``):
 
-.. code-block:: C
-
-  #include <finufft.h>
-  #include <stdlib.h>
-  #include <complex.h>
-
-  int M = 1e7;            // number of nonuniform points
-  double* x = (double *)malloc(sizeof(double)*M);
-  double complex* c = (double complex*)malloc(sizeof(double complex)*M);
-  for (int j=0; j<M; ++j) {
-    x[j] = M_PI*(2*((double)rand()/RAND_MAX)-1);  // uniform random in [-pi,pi)
-    c[j] = 2*((double)rand()/RAND_MAX)-1 + I*(2*((double)rand()/RAND_MAX)-1);
-  }
-  int N = 1e6;            // number of modes
-  double complex* F = (double complex*)malloc(sizeof(double complex)*N);
-  finufft_opts opts;                      // make an opts struct
-  finufft_default_opts(&opts);          // set default opts (must do this)
-  opts.debug = 2;                       // more debug/timing to stdout
-  int ier = finufft1d1(M,x,c,+1,1e-9,N,F,&opts);
-
-  // (now do something with F here!...)
-
-  free(x); free(c); free(F);
+.. literalinclude:: ../examples/simple1d1c.c
+  :language: C
+  :start-after: docs-start: quick-start-c
+  :end-before: docs-end: quick-start-c
 
 See ``examples/simple1d1c.c`` and ``examples/simple1d1cf.c`` for
 double- and single-precision C examples, including the math check to insure

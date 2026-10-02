@@ -24,7 +24,7 @@ int main()
   float *x         = (float *)malloc(sizeof(float) * M);
   float complex *c = (float complex *)malloc(sizeof(float complex) * M);
   for (int j = 0; j < M; ++j) {
-    x[j] = PI * (2 * ((float)rand() / (float)RAND_MAX) - 1); // uniform random in [-pi,pi)
+    x[j] = PI * (2 * ((float)rand() / (float)RAND_MAX) - 1); // uniform random in [-pi,pi]
     c[j] = 2 * ((float)rand() / (float)RAND_MAX) - 1 +
            I * (2 * ((float)rand() / (float)RAND_MAX) - 1);
   }
@@ -38,6 +38,7 @@ int main()
 
   // call the NUFFT (with iflag=+1), passing pointers...
   int ier    = finufftf1d1(M, x, c, +1, tol, N, F, &opts);
+  if (ier) return ier;                   // no valid output to read
 
   int k      = 1425;                     // check the answer just for this mode...
   assert(k >= -(double)N / 2 && k < (double)N / 2);
@@ -52,6 +53,8 @@ int main()
   float err = cabsf(F[kout] - Ftest) / Fmax;
   printf("1D type 1 NUFFT, single-prec. ier=%d, err in F[%d] rel to max(F) is %.3g\n",
          ier, k, err);
+
+  ier = !(err < 10 * tol); // NaN err fails
 
   free(x);
   free(c);

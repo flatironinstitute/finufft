@@ -54,6 +54,17 @@ if(HAS_C_COMPLEX)
         endif()
                 add_test(NAME example_${EXAMPLE} COMMAND ${EXAMPLE})
     endforeach()
+    # the NFFT3-migration tutorial demo (included by docs/nfft_migr.rst) lives
+    # in tutorial/ but is a plain C FINUFFT example; build+run it here.
+    add_executable(migrate2d1_test ../tutorial/migrate2d1_test.c)
+    target_link_libraries(migrate2d1_test PRIVATE finufft)
+    if(CMAKE_PROJECT_NAME STREQUAL "FINUFFT")
+        enable_asan(migrate2d1_test)
+    endif()
+    if(MATH_LIBRARY)
+        target_link_libraries(migrate2d1_test PRIVATE ${MATH_LIBRARY})
+    endif()
+    add_test(NAME example_migrate2d1_test COMMAND migrate2d1_test)
 endif()
 
 if(FINUFFT_USE_OPENMP)
