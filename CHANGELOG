@@ -220,6 +220,8 @@ v2.6.0-dev
   - file contents were reshuffled to simplify and reduce inter-file
     dependencies; as a result, internal headers are much smaller now.
   (Reinecke)
+* Conda environment files and install scripts for building the Python packages from
+  source (#917). (Barbone)
 
 v2.5.1 4/8/26
 
