@@ -13,6 +13,7 @@ c     Alex Barnett and Libin Lu 5/28/20, fix ptrs 10/6/21
       program simple1d1
       implicit none
 
+c     docs-start: quick-start
 c     our fortran-header, always needed
       include 'finufft.fh'
 
@@ -45,8 +46,10 @@ c     create some quasi-random NU pts in [-pi, pi), complex strengths
          xj(j) = pi * dcos(pi*j/M)
          cj(j) = dcmplx( dsin((100d0*j)/M), dcos(1.0+(50d0*j)/M))
       enddo
+c     docs-end: quick-start
 
       call system_clock(t1)
+c     docs-start: default-call
 c     mandatory parameters to FINUFFT: sign of +-i in NUFFT
       iflag = 1
 c     tolerance
@@ -54,12 +57,14 @@ c     tolerance
 c     Do transform: writes to fk (mode coeffs), and ier (status flag).
 c     use default options:
       call finufft1d1(M,xj,cj,iflag,tol,N,fk,defopts,ier)
+c     docs-end: default-call
       call system_clock(t2,crate)
       t = (t2-t1)/float(crate)
       if (ier.eq.0) then
          print '("done in ",f6.3," sec, ",e10.2," NU pts/s")',t,M/t
       else
          print *,'failed! ier=',ier
+         stop 1
       endif
 
 c     math test: single output mode with given freq (not array index) k
@@ -78,6 +83,7 @@ c     compute inf norm of fk coeffs for use in rel err
       print '("rel err for mode k=",i10," is ",e10.2)',ktest,
      $     cdabs(fk(ktestindex)-fktest)/fmax
 
+c     docs-start: options
 c     do another transform, but now first setting some options...
       print *,''
       print *, 'setting new options, rerun simple interface...'
@@ -95,7 +101,11 @@ c     fields of derived type opts may be queried/set as usual...
          print '("done in ",f6.3," sec, ",e10.2," NU pts/s")',t,M/t
       else
          print *,'failed! ier=',ier
+         stop 1
       endif
+c     docs-end: options
+      err = cdabs(fk(ktestindex)-fktest)/fmax
+      if (.not.(err.le.10*tol)) stop 1
 
       stop
       end

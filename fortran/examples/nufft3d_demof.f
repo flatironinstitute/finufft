@@ -23,7 +23,7 @@ c     our fortran-header, always needed
       integer i,ier,iflag,j,k1,k2,k3,mx,n1,n2,n3
       integer*8 ms,mt,mu,nj,nk
       real*4, allocatable :: xj(:),yj(:),zj(:),sk(:),tk(:),uk(:)
-      real*4 err,pi,eps,salg,ealg
+      real*4 err,pi,tol,salg,ealg
       parameter (pi=3.141592653589793238462643383279502884197d0)
       complex*8, allocatable :: cj(:),cj0(:),cj1(:),fk0(:),fk1(:)
 c     for default opts, make a null pointer...
@@ -73,11 +73,11 @@ c
       iflag = 1
       print*,'Starting 3D testing: ', 'nj =',nj, 'ms,mt,mu =',ms,mt,mu
       do i = 1,3
-         if (i.eq.1) eps=1e-2
-         if (i.eq.2) eps=1e-4
-         if (i.eq.3) eps=1e-5
+         if (i.eq.1) tol=1e-2
+         if (i.eq.2) tol=1e-3
+         if (i.eq.3) tol=5e-4
 	 print*,' '
-	 print*,' Requested precision eps =',eps
+	 print*,' Requested precision tol =',tol
 	 print*,' '
 c
 c     -----------------------
@@ -86,20 +86,22 @@ c     -----------------------
 c
          call dirft3d1f(nj,xj,yj,zj,cj,iflag,ms,mt,mu,fk0)
          call finufftf3d1(nj,xj,yj,zj,cj,iflag,
-     1        eps,ms,mt,mu,fk1,defopts,ier)
+     1        tol,ms,mt,mu,fk1,defopts,ier)
          print *, ' ier = ',ier
          call errcomp(fk0,fk1,nk,err)
          print *, ' type 1 error = ',err
+         if (.not.(err.le.10*tol)) stop 1
 c
 c     -----------------------
 c      call 3D Type 2 method
 c     -----------------------
          call dirft3d2f(nj,xj,yj,zj,cj0,iflag,ms,mt,mu,fk0)
-         call finufftf3d2(nj,xj,yj,zj,cj1,iflag,eps,ms,mt,mu,fk0,
+         call finufftf3d2(nj,xj,yj,zj,cj1,iflag,tol,ms,mt,mu,fk0,
      1        defopts,ier)
          print *, ' ier = ',ier
          call errcomp(cj0,cj1,nj,err)
          print *, ' type 2 error = ',err
+         if (.not.(err.le.10*tol)) stop 1
 c
 c     -----------------------
 c      call 3D Type3 method
@@ -111,11 +113,12 @@ c     -----------------------
          enddo
 
          call dirft3d3f(nj,xj,yj,zj,cj,iflag,nk,sk,tk,uk,fk0)
-         call finufftf3d3(nj,xj,yj,zj,cj,iflag,eps,nk,sk,tk,uk,fk1,
+         call finufftf3d3(nj,xj,yj,zj,cj,iflag,tol,nk,sk,tk,uk,fk1,
      1        defopts,ier)
          print *, ' ier = ',ier
          call errcomp(fk0,fk1,nk,err)
          print *, ' type 3 error = ',err
+         if (.not.(err.le.10*tol)) stop 1
       enddo
       stop
       end

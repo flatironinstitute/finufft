@@ -25,7 +25,7 @@ c
       integer i,ier,iflag,j,k1,mx
       integer*8 ms,nj
       real*8, allocatable :: xj(:),sk(:)
-      real*8 err,eps,pi
+      real*8 err,tol,pi
       parameter (pi=3.141592653589793238462643383279502884197d0)
       complex*16, allocatable :: cj(:),cj0(:),cj1(:),fk0(:),fk1(:)
 c     for default opts, make a null pointer...
@@ -58,12 +58,12 @@ c
       iflag = 1
       print*,' Start 1D testing: ', ' nj =',nj, ' ms =',ms
       do i = 1,4
-         if (i.eq.1) eps=1d-3
-         if (i.eq.2) eps=1d-6
-         if (i.eq.3) eps=1d-9
-         if (i.eq.4) eps=1d-12
+         if (i.eq.1) tol=1d-3
+         if (i.eq.2) tol=1d-6
+         if (i.eq.3) tol=1d-9
+         if (i.eq.4) tol=1d-12
 	 print*,' '
-  	 print*,' Requested precision eps =',eps
+  	 print*,' Requested precision tol =',tol
 	 print*,' '
 c
 c     -----------------------
@@ -71,20 +71,22 @@ c     call 1D Type1 method
 c     -----------------------
 c
          call dirft1d1(nj,xj,cj,iflag, ms,fk0)
-         call finufft1d1(nj,xj,cj,iflag,eps,ms,fk1,defopts,ier)
+         call finufft1d1(nj,xj,cj,iflag,tol,ms,fk1,defopts,ier)
          call errcomp(fk0,fk1,ms,err)
          print *,' ier = ',ier
          print *,' type 1 error = ',err
+         if (.not.(err.le.10*tol)) stop 1
 c
 c     -----------------------
 c     call 1D Type2 method
 c     -----------------------
 c
          call dirft1d2(nj,xj,cj0,iflag, ms,fk0,ier)
-         call finufft1d2(nj,xj,cj1,iflag, eps, ms,fk0,defopts,ier)
+         call finufft1d2(nj,xj,cj1,iflag, tol, ms,fk0,defopts,ier)
          call errcomp(cj0,cj1,nj,err)
          print *,' ier = ',ier
          print *,' type 2 error = ',err
+         if (.not.(err.le.10*tol)) stop 1
 c
 c     -----------------------
 c     call 1D Type3 method
@@ -93,10 +95,11 @@ c     -----------------------
             sk(k1) = 48*dcos(k1*pi/ms)
          enddo
          call dirft1d3(nj,xj,cj,iflag, ms,sk,fk0)
-         call finufft1d3(nj,xj,cj,iflag,eps, ms,sk,fk1,defopts,ier)
-         call errcomp(cj0,cj1,nj,err)
+         call finufft1d3(nj,xj,cj,iflag,tol, ms,sk,fk1,defopts,ier)
+         call errcomp(fk0,fk1,ms,err)
          print *,' ier = ',ier
          print *,' type 3 error = ',err
+         if (.not.(err.le.10*tol)) stop 1
       enddo
       stop
       end

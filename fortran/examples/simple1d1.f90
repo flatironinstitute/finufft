@@ -10,6 +10,7 @@
 
 ! Alex Barnett, to demo Reinhard Neder f90 module, 1/20/23.
 
+! docs-start: simple1d1-f90-setup
 program simple1d1
 
   ! use the module (which happens to live in ../../include)
@@ -61,7 +62,9 @@ program simple1d1
      print '("done in ",f6.3," sec, ",e10.2," NU pts/s")',t,M/t
   else
      print *,'failed! ier=',ier
+     stop 1
   endif
+  ! docs-end: simple1d1-f90-setup
 
   ! math test: single output mode with given freq (not array index) k
   ktest = N/3
@@ -79,6 +82,7 @@ program simple1d1
   print '("rel err for mode k=",i10," is ",e10.2)',ktest, &
        cdabs(fk(ktestindex)-fktest)/fmax
 
+  ! docs-start: simple1d1-f90-options
   ! do another transform, but now first setting some options...
   print *,''
   print *, 'setting new options, rerun simple interface...'
@@ -96,7 +100,12 @@ program simple1d1
      print '("done in ",f6.3," sec, ",e10.2," NU pts/s")',t,M/t
   else
      print *,'failed! ier=',ier
+     stop 1
   endif
+
+  ! docs-end: simple1d1-f90-options
+  err = cdabs(fk(ktestindex)-fktest)/fmax
+  if (.not.(err.le.10*tol)) stop 1
 
   stop
 end program simple1d1
