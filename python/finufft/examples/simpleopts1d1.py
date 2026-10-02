@@ -1,3 +1,4 @@
+# docs-start: simpleopts1d1
 # convert DFM's simple demo to JFM interface, include modeord test.
 # Barnett 10/25/17. Adde upsampfac, 6/18/18
 
@@ -5,11 +6,9 @@ import time
 import finufft
 import numpy as np
 
-# print finufft.nufft1d1.__doc__
-
 np.random.seed(42)
 
-acc = 1.0e-9
+tol = 1.0e-9
 iflag = 1
 N = int(1e6)
 M = int(1e5)
@@ -18,7 +17,7 @@ c = np.random.randn(M) + 1.0j * np.random.randn(M)
 F = np.zeros([N], dtype=np.complex128)  # allocate F (modes out)
 
 strt = time.time()
-F = finufft.nufft1d1(x, c, N, eps=acc, isign=iflag, debug=1, spread_debug=1)
+F = finufft.nufft1d1(x, c, N, eps=tol, isign=iflag, debug=1, spread_debug=1)
 print("Finished nufft in {0:.2g} seconds. Checking...".format(time.time() - strt))
 
 n = 142519  # mode to check
@@ -29,18 +28,22 @@ for j in range(M):
 Fmax = np.max(np.abs(F))
 err = np.abs((F[n + N // 2] - Ftest) / Fmax)
 print("Error relative to max of F: {0:.2e}".format(err))
+assert err <= 10 * tol
 
 # now test FFT mode output version, overwriting F...
 strt = time.time()
-finufft.nufft1d1(x, c, out=F, eps=acc, isign=iflag, modeord=1)
+finufft.nufft1d1(x, c, out=F, eps=tol, isign=iflag, modeord=1)
 print("Finished nufft in {0:.2g} seconds (modeord=1)".format(time.time() - strt))
-err = np.abs((F[n] - Ftest) / Fmax)  # now zero offset in F array
+err = np.abs((F[n] - Ftest) / np.max(np.abs(F)))  # now zero offset in F array
 print("Error relative to max of F: {0:.2e}".format(err))
+assert err <= 10 * tol
 
 # now test low-upsampfac (sigma) version...
 strt = time.time()
-Ftest2 = finufft.nufft1d1(x, c, N, F, acc, iflag, upsampfac=1.25)
-print(Ftest2 is F)
+Ftest2 = finufft.nufft1d1(x, c, N, F, tol, iflag, upsampfac=1.25)
+assert Ftest2 is F
 print("Finished nufft in {0:.2g} seconds (upsampfac=1.25)".format(time.time() - strt))
-err = np.abs((Ftest2[n + N // 2] - Ftest) / Fmax)  # now zero offset in F array
+err = np.abs((Ftest2[n + N // 2] - Ftest) / np.max(np.abs(Ftest2)))
 print("Error relative to max of F: {0:.2e}".format(err))
+assert err <= 10 * tol
+# docs-end: simpleopts1d1
