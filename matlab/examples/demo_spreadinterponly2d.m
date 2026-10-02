@@ -18,15 +18,22 @@ tol = 1e-9;
 opts.upsampfac = 2.0;          % must be one of the legitimate choices
 
 % or, slower direct kernel eval to access nonstandard upsampfacs...
-%opts.spread_kerevalmeth=0;
 %opts.upsampfac = Inf;          % can be anything in (1,Inf], up to ns<=16
 
 % spread M=1 single unit-strength somewhere (eg, at the origin)...
 f = finufft2d1(0.0,0.0,1.0,isign,tol,N1,N2,opts);
 kersum = sum(f(:));   % ... to get its mass, and plot it on 0-indexed grid...
-figure; surf(0:N1-1,0:N2-1,log10(real(f))'); xlabel('x'); ylabel('y');
-hold on; plot3(N1/2,N2/2,0.0,'k.','markersize',20); axis vis3d
-colorbar; title('spreadinterponly2d: log_{10} spreading kernel'); drawnow
+% only plot when a display + graphics exist (Octave: graphics toolkit; MATLAB: java AWT)
+if exist('OCTAVE_VERSION', 'builtin') ~= 0
+  isplot = ~isempty(available_graphics_toolkits()) && (~isunix() || ismac() || ~isempty(getenv('DISPLAY')));
+else
+  isplot = usejava('awt');   % MATLAB
+end
+if isplot
+  figure; surf(0:N1-1,0:N2-1,log10(real(f))'); xlabel('x'); ylabel('y');
+  hold on; plot3(N1/2,N2/2,0.0,'k.','markersize',20); axis vis3d
+  colorbar; title('spreadinterponly2d: log_{10} spreading kernel'); drawnow
+end
 
 % spread only demo: ---------
 x = 2*pi*rand(M,1); y = 2*pi*rand(M,1);          % NU pts
@@ -34,8 +41,9 @@ c = randn(M,1)+1i*randn(M,1);                    % strengths
 tic;
 f = finufft2d1(x,y,c,isign,tol,N1,N2,opts);      % do it
 t = toc;
-mass = sum(f(:)); err = abs(mass - kersum*sum(c))/abs(mass);  % relative err
+mass = sum(f(:)); err = abs(mass - kersum*sum(c))/(abs(kersum)*sum(abs(c)));  % rel err, no cancellation
 fprintf('2D spread-only: %.3g s (%.3g NU pt/s), mass err %.3g\n',t, M/t, err)
+assert(err < 10*tol)
 
 % interp only demo: ---------
 f = 0*f+1.0;                                     % unit complex input data
@@ -44,3 +52,4 @@ c = finufft2d2(x,y,isign,tol,f,opts);            % do it
 t = toc;
 maxerr = max(abs(c-kersum)) / kersum;            % worst-case c err
 fprintf('2D interp-only: %.3g s (%.3g NU pt/s), max err %.3g\n', t, M/t, maxerr)
+assert(maxerr < 10*tol)
