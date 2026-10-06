@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.24)
+cmake_minimum_required(VERSION 3.23)
 
 # Build a small static helper library for CPU-only kernel parameter helpers
 # Source is in ../kernel.cpp as requested

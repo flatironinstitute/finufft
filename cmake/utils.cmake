@@ -17,8 +17,10 @@ function(filter_supported_compiler_flags input_flags_var output_flags_var)
         string(REPLACE "=" "_" flag_var ${flag}) # Convert flag to a valid variable
         # name
         string(REPLACE "-" "" flag_var ${flag_var}) # Remove '-' for the variable
-        # name Append the test linker flag to the existing flags
-        set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${flag}")
+        # name
+        if(NOT MSVC)
+            set(CMAKE_EXE_LINKER_FLAGS "${ORIGINAL_LINKER_FLAGS} ${flag}")
+        endif()
         check_cxx_compiler_flag(${flag} ${flag_var})
         if(${flag_var})
             # If supported, append the flag to the list of supported flags

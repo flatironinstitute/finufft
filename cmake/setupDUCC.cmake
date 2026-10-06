@@ -47,4 +47,8 @@ if(ducc0_ADDED)
 
     add_library(finufft_fftlibs INTERFACE)
     target_link_libraries(finufft_fftlibs INTERFACE ducc0)
+    set(FINUFFT_FFT_BUNDLE ducc0)
 endif()
+
+set(FINUFFT_FFT_BUNDLE "${FINUFFT_FFT_BUNDLE}" PARENT_SCOPE)
+set(FINUFFT_FFTW_FIND_MODULE "" PARENT_SCOPE)
