@@ -98,11 +98,14 @@ set_target_properties(
         WINDOWS_EXPORT_ALL_SYMBOLS NO
 )
 
+# The interface stays at C++17 in every build, so the installed package asks a consumer
+# for the same standard whether or not it was built in CI.
+target_compile_features(cufinufft PUBLIC cxx_std_17)
 if(DEFINED ENV{GITHUB_ACTIONS} AND "$ENV{GITHUB_ACTIONS}" STREQUAL "true" AND MSVC)
     message(STATUS "GITHUB_ACTIONS on Windows using c++20 for cufinufft")
     target_compile_features(cufinufft PRIVATE cxx_std_20 cuda_std_20)
 else()
-    target_compile_features(cufinufft PRIVATE cxx_std_17 cuda_std_17)
+    target_compile_features(cufinufft PRIVATE cuda_std_17)
 endif()
 target_compile_options(cufinufft PUBLIC ${FINUFFT_CUDA_FLAGS})
 
@@ -127,11 +130,27 @@ target_link_libraries(
         $<BUILD_INTERFACE:poet::poet>
 )
 
+if(FINUFFT_ENABLE_INSTALL AND FINUFFT_STATIC_LINKING)
+    target_link_libraries(
+        cufinufft
+        INTERFACE $<INSTALL_INTERFACE:CUDA::cudart> $<INSTALL_INTERFACE:CUDA::cufft> $<INSTALL_INTERFACE:finufft_common>
+    )
+endif()
+
 check_cxx_compiler_flag(-Wno-deprecated-declarations FINUFFT_HAS_NO_DEPRECATED_DECLARATIONS)
 # disable deprecated warnings for tests if supported
 if(FINUFFT_HAS_NO_DEPRECATED_DECLARATIONS)
     target_compile_options(cufinufft PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:-Wno-deprecated-declarations>)
 endif()
 
-file(GLOB CUFINUFFT_PUBLIC_HEADERS "${CMAKE_SOURCE_DIR}/include/cufinufft*.h")
-set_target_properties(cufinufft PROPERTIES PUBLIC_HEADER "${CUFINUFFT_PUBLIC_HEADERS}")
+target_sources(
+    cufinufft
+    PUBLIC
+        FILE_SET HEADERS
+            BASE_DIRS ${PROJECT_SOURCE_DIR}/include
+            FILES
+                ${PROJECT_SOURCE_DIR}/include/cufinufft.h
+                ${PROJECT_SOURCE_DIR}/include/cufinufft_opts.h
+                ${PROJECT_SOURCE_DIR}/include/finufft_errors.h
+                ${PROJECT_SOURCE_DIR}/include/finufft_common/defines.h
+)

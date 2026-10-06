@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.25...4.4)
+cmake_minimum_required(VERSION 3.23...4.4)
 project(FINUFFT VERSION 2.6.0 LANGUAGES C CXX)
 
 include(CMakeDependentOption)
@@ -44,7 +44,13 @@ set(FINUFFT_FFTW_SUFFIX "DEFAULT" CACHE STRING "Suffix for FFTW libraries (e.g. 
 set(FINUFFT_ARCH_FLAGS "native" CACHE STRING "Compiler flags for specifying target architecture, defaults to -march=native")
 # sphinx tag (don't remove): @cmake_opts_end
 set_property(CACHE FINUFFT_USE_SANITIZERS PROPERTY STRINGS OFF ON MEMSAN TSAN)
-cmake_dependent_option(FINUFFT_ENABLE_INSTALL "Disable installation in the case of python builds" ON "NOT FINUFFT_BUILD_PYTHON" OFF)
+cmake_dependent_option(
+    FINUFFT_ENABLE_INSTALL
+    "Install FINUFFT. Defaults to ON for a top-level build and OFF when FINUFFT is a subproject."
+    ${PROJECT_IS_TOP_LEVEL}
+    "NOT FINUFFT_BUILD_PYTHON"
+    OFF
+)
 cmake_dependent_option(FINUFFT_STATIC_LINKING "Disable static libraries in the case of python builds" ON "NOT FINUFFT_BUILD_PYTHON" OFF)
 cmake_dependent_option(FINUFFT_SHARED_LINKING "Shared should be the opposite of static linking" ON "NOT FINUFFT_STATIC_LINKING" OFF)
 cmake_dependent_option(FINUFFT_INTERPROCEDURAL_OPTIMIZATION "LTO should be the opposite of static linking" ON "NOT FINUFFT_STATIC_LINKING" OFF)
@@ -199,34 +205,14 @@ if(FINUFFT_ENABLE_INSTALL)
         EXPORT finufftTargets
         ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
         LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-        RUNTIME
-            DESTINATION
-                ${CMAKE_INSTALL_BINDIR} # .dll on Windows
-        PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} # .dll on Windows
+        FILE_SET HEADERS DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
         INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
     )
-    # Static builds expose finufft's private FFT backend on the install interface
-    # (see src/CMakeLists.txt), so the backend targets must be part of the export.
-    # DUCC0 is bundled by FINUFFT; FFTW is not (a static + FFTW consumer supplies
-    # its own FFTW). A shared build bakes the backend in and exports nothing here.
-    if(FINUFFT_STATIC_LINKING AND FINUFFT_USE_DUCC0 AND TARGET ducc0)
-        install(TARGETS ducc0 finufft_fftlibs EXPORT finufftTargets ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
-    endif()
-    # Public transitive headers that live in subdirectories and are therefore not
-    # matched by the flat finufft*.h PUBLIC_HEADER glob. finufft.h pulls in
-    # finufft/finufft_eitherprec.h, which (with finufft_errors.h) pulls in
-    # finufft_common/defines.h; without these an installed consumer cannot
-    # compile. Only these two subdir headers are part of the public surface; the
-    # rest of include/finufft and include/finufft_common are internal.
-    if(FINUFFT_USE_CPU)
-        install(
-            FILES ${PROJECT_SOURCE_DIR}/include/finufft/finufft_eitherprec.h
-            DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/finufft
-        )
-        install(
-            FILES ${PROJECT_SOURCE_DIR}/include/finufft_common/defines.h
-            DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/finufft_common
-        )
+    # A static build bundles a downloaded FFT backend into libfinufft.a; only a
+    # system FFTW needs the FindFFTW module that found it shipped alongside.
+    if(FINUFFT_STATIC_LINKING AND FINUFFT_FFTW_FIND_MODULE)
+        install(FILES ${FINUFFT_FFTW_FIND_MODULE} DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/finufft)
     endif()
     install(EXPORT finufftTargets NAMESPACE finufft:: DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/finufft)
     configure_package_config_file(

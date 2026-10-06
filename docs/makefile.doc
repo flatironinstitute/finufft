@@ -1,5 +1,8 @@
-Makefile for FINUFFT CPU library. Please specify your task:
- make lib - build the main library (in lib/ and lib-static/)
+Makefile for FINUFFT. Please specify your task:
+ make lib - build the main CPU library (in lib/ and lib-static/)
+ make install PREFIX=<dir> - install the CPU library and its headers
+ make cufinufft - build the GPU library (needs the CUDA toolkit)
+ make checkgpu - compile and run quick GPU math validation tests
  make examples - compile and run all codes in examples/
  make test - compile and run quick math validation tests
  make fortran - compile and run Fortran tests and examples
@@ -13,7 +16,8 @@ Makefile for FINUFFT CPU library. Please specify your task:
  make objclean - remove all object files, preserving libs & MEX
  make clean - also remove all lib, MEX, py, and demo executables
  make setup - check (and possibly download) dependencies
- make setupclean - delete downloaded dependencies
+ make setupclean - delete downloaded dependencies (try if errors)
+ make web - build HTML docs and serve at http://localhost:8042
 For faster (multicore) compilation, append, for example, -j8
 
 Make options:

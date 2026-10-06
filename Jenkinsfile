@@ -325,6 +325,31 @@ catchError {
     if (pagePublishes || (env.CHANGE_TITLE ?: '').contains('[perf page]')) measures << pageJob
     if (measures) jobs['measure'] = { for (measure in measures) measure() }
 
+    jobs['install cpu'] = {
+      runPod(tag: 'cuda12.8', cpus: 8, memory: '16Gi') {
+        stage('install cpu') {
+          for (arm in [['Static', 'ducc', 'ON'], ['Static', 'fftw', 'ON'],
+                       ['Shared', 'ducc', 'ON'], ['Shared', 'fftw', 'ON'],
+                       ['Static', 'ducc', 'OFF'], ['Static', 'fftw-dl', 'ON']]) {
+            def linking = arm[0]
+            def backend = arm[1]
+            def openmp = arm[2]
+            withEnv(["HOME=$WORKSPACE", "LINKING=${linking}", "BACKEND=${backend}",
+                     "OPENMP=${openmp}"]) {
+              sh 'tools/ci/install-test.sh'
+            }
+          }
+
+          // The Debug arm covers the GCC -O1 workaround (xsimd 14.3.0 folds
+          // immediate arguments wrongly at -O0, see cmake/toolchain.cmake).
+          withEnv(["HOME=$WORKSPACE", "LINKING=Static", "BACKEND=ducc",
+                   "OPENMP=ON", "BUILD_TYPE=Debug"]) {
+            sh 'tools/ci/install-test.sh'
+          }
+        }
+      }
+    }
+
     parallel jobs
   }
 }

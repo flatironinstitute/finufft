@@ -36,7 +36,7 @@ endif()
 function(finufft_apply_compile_settings target)
     target_link_libraries(${target} PRIVATE $<BUILD_INTERFACE:finufft_fftlibs xsimd finufft_common poet::poet>)
     target_include_directories(${target} PUBLIC $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>)
-    target_compile_features(${target} PRIVATE cxx_std_17)
+    target_compile_features(${target} PUBLIC cxx_std_17)
     target_compile_options(${target} PRIVATE ${FINUFFT_ARCH_FLAGS})
     target_compile_options(${target} PRIVATE $<$<CONFIG:Release>:${FINUFFT_CXX_FLAGS_RELEASE}>)
     target_compile_options(${target} PRIVATE $<$<CONFIG:RelWithDebInfo>:${FINUFFT_CXX_FLAGS_RELWITHDEBINFO}>)
@@ -105,19 +105,24 @@ if(FINUFFT_USE_OPENMP)
     endif()
 endif()
 
-# For a STATIC build, finufft.a does not contain its private static dependencies
-# (finufft_common and the FFT backend), so an installed consumer must link them
-# too. Propagate them on the install interface; the targets themselves are added
-# to the finufftTargets export in the install block. (A SHARED build bakes these
-# in and needs nothing extra.) xsimd is intentionally excluded: it is header-only
-# and only needed while compiling finufft, not by downstream consumers.
+# For a STATIC build, finufft.a bundles the FFT library built here (DUCC0 or a
+# downloaded FFTW) but not finufft_common or a system FFTW, so an installed consumer
+# links those through the install interface and the finufftTargets export. (A SHARED
+# build bakes everything in.) xsimd is header-only and never needed downstream.
 if(FINUFFT_STATIC_LINKING)
     target_link_libraries(finufft INTERFACE $<INSTALL_INTERFACE:finufft_common>)
-    if(FINUFFT_USE_DUCC0)
+    foreach(lib IN LISTS FINUFFT_FFT_BUNDLE)
+        target_sources(finufft PRIVATE $<TARGET_OBJECTS:${lib}>)
+    endforeach()
+    if(FINUFFT_USE_DUCC0 AND NOT OpenMP_CXX_FOUND)
+        find_package(Threads REQUIRED)
+        target_link_libraries(finufft PRIVATE Threads::Threads)
+    endif()
+    if(FINUFFT_FFTW_FIND_MODULE)
         target_link_libraries(finufft INTERFACE $<INSTALL_INTERFACE:finufft_fftlibs>)
+        list(APPEND INSTALL_TARGETS finufft_fftlibs)
     endif()
 endif()
-
 find_library(MATH_LIBRARY m)
 if(MATH_LIBRARY)
     # Wrap in BUILD_INTERFACE so the absolute /usr/lib/.../libm.so path is not
@@ -130,10 +135,18 @@ target_include_directories(finufft SYSTEM INTERFACE $<INSTALL_INTERFACE:include>
 
 enable_asan(finufft)
 
-if(FINUFFT_ENABLE_INSTALL)
-    file(GLOB FINUFFT_PUBLIC_HEADERS "${PROJECT_SOURCE_DIR}/include/finufft*.h")
-    set_target_properties(finufft PROPERTIES PUBLIC_HEADER "${FINUFFT_PUBLIC_HEADERS}")
-endif()
+target_sources(
+    finufft
+    PUBLIC
+        FILE_SET HEADERS
+            BASE_DIRS ${PROJECT_SOURCE_DIR}/include
+            FILES
+                ${PROJECT_SOURCE_DIR}/include/finufft.h
+                ${PROJECT_SOURCE_DIR}/include/finufft_opts.h
+                ${PROJECT_SOURCE_DIR}/include/finufft_errors.h
+                ${PROJECT_SOURCE_DIR}/include/finufft/finufft_eitherprec.h
+                ${PROJECT_SOURCE_DIR}/include/finufft_common/defines.h
+)
 
 set(_targets ${INSTALL_TARGETS})
 list(APPEND _targets finufft)

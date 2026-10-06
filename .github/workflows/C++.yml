@@ -35,6 +35,18 @@ jobs:
       run: |
         make test
 
+    - name: make install into a staging prefix, then check the prefix
+      run: |
+        make -j lib
+        make install PREFIX="$PWD/_makestage"
+        test -f "$PWD/_makestage/lib/libfinufft.so"
+        test -f "$PWD/_makestage/lib/libfinufft.a"
+        test -f "$PWD/_makestage/include/finufft.h"
+        test -f "$PWD/_makestage/include/finufft/finufft_eitherprec.h"
+        test -f "$PWD/_makestage/include/finufft_common/defines.h"
+        make objclean >/dev/null
+        rm -rf "$PWD/_makestage"
+
   MacOS_clang:
     runs-on: macos-14
     env:
@@ -62,8 +74,8 @@ jobs:
 
     - name: Install gcc and fftw
       run: |
-        brew install gcc@15 fftw
-        cp make-platforms/make.inc.macosx_gcc-15 make.inc
+        brew install gcc fftw
+        cp make-platforms/make.inc.macosx_gcc make.inc
 
     - name: Compile C++ code
       run: |

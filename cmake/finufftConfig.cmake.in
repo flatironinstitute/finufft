@@ -6,24 +6,33 @@ include(CMakeFindDependencyMacro)
 # build everything is baked into the library, so only the (interface-propagated)
 # OpenMP runtime needs to be found. For a STATIC build the FFT backend and its
 # threading runtime are separate archives that the consumer must also link.
-if(@FINUFFT_USE_OPENMP@)
-    find_dependency(OpenMP COMPONENTS C CXX)
+if(@FINUFFT_USE_CPU@ AND @FINUFFT_USE_OPENMP@)
+    find_dependency(OpenMP COMPONENTS CXX)
 endif()
 
 if(@FINUFFT_STATIC_LINKING@ AND @FINUFFT_USE_DUCC0@)
-    # DUCC0 is bundled by FINUFFT and exported alongside it (as finufft::ducc0).
-    # It only needs a threading runtime when OpenMP is not used.
+    # DUCC0 is bundled into libfinufft and only needs a threading runtime without OpenMP.
     if(NOT @FINUFFT_USE_OPENMP@)
         find_dependency(Threads)
     endif()
 endif()
 
-# Note: a STATIC build linked against FFTW (rather than the bundled DUCC0) does
-# not export or bundle FFTW. Such a consumer must make FFTW available themselves
-# (e.g. link it explicitly). We deliberately do not call find_dependency(FFTW)
-# here: FINUFFT locates FFTW via a bundled FindFFTW module that is not shipped
-# with the package, so the call would fail in a consumer. A SHARED build bakes
-# FFTW in and needs nothing.
+if(EXISTS "${CMAKE_CURRENT_LIST_DIR}/FindFFTW.cmake" AND NOT TARGET FFTW::Double)
+    # find_dependency() returns from this file when it fails, which would leave the
+    # module path prepended in the consumer, so the search runs through find_package.
+    list(PREPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}")
+    find_package(FFTW QUIET)
+    list(POP_FRONT CMAKE_MODULE_PATH)
+    if(NOT FFTW_FOUND)
+        set(finufft_FOUND FALSE)
+        set(finufft_NOT_FOUND_MESSAGE "finufft was built against FFTW, which was not found")
+        return()
+    endif()
+endif()
+
+if(@FINUFFT_USE_CUDA@)
+    find_dependency(CUDAToolkit)
+endif()
 
 include("${CMAKE_CURRENT_LIST_DIR}/finufftTargets.cmake")
 
