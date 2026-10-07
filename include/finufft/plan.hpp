@@ -4,9 +4,9 @@
 #include <complex>
 #include <cstdint>
 #include <memory>
+#include <vector>
 
 #include "finufft_common/common.h"
-#include "finufft_errors.h"
 
 // BIGINT/UBIGINT moved to <finufft_common/defines.h> (transitively included
 // below via common.h) so that <finufft/simd.hpp> can use them without
