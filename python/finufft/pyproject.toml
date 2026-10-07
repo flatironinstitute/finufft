@@ -59,7 +59,7 @@ sdist.exclude = [".*",
                  "fortran",
                  "Jenkinsfile",
                  "lib*",
-                 "make*",
+                 "/make*", # root Makefile & make.inc.*; unanchored hits src/makeplan.cpp
                  "matlab",
                  "perftest",
                  "test",
