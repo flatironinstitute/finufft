@@ -83,33 +83,26 @@ Then CMake will automatically download FINUFFT and link it to your executable.
 2) **FetchContent**: This tool is provided directly by CMake.
 Add the following to your ``CMakeLists.txt``:
 
-.. code-block:: cmake
+.. literalinclude:: ../examples/quick-start/fetchcontent/CMakeLists.txt
+    :language: cmake
+    :start-after: docs-start: fetchcontent
+    :end-before: docs-end: fetchcontent
 
-    include(FetchContent)
-
-    # Define the finufft library
-    FetchContent_Declare(
-      finufft
-      GIT_REPOSITORY https://github.com/flatironinstitute/finufft.git
-      GIT_TAG v2.5.1
-    )
-
-    # Make the content available
-    FetchContent_MakeAvailable(finufft)
-
-    # Optionally, link the finufft library to your target
-    target_link_libraries(your_executable [PUBLIC|PRIVATE|INTERFACE] finufft::finufft)
-
+The full recipe is ``examples/quick-start/fetchcontent/CMakeLists.txt`` in the
+source tree; configure and build it with ``cmake -S examples/quick-start/fetchcontent -B build-app && cmake --build build-app``.
 Then CMake will automatically download FINUFFT and link it to your executable.
 
 3) **Installed package via** ``find_package``. If FINUFFT has been built and
 installed (see :ref:`below <cmake-install>`), a downstream project can consume
 the installed package directly:
 
-.. code-block:: cmake
+.. literalinclude:: ../examples/quick-start/find_package/CMakeLists.txt
+    :language: cmake
+    :start-after: docs-start: find_package
+    :end-before: docs-end: find_package
 
-    find_package(finufft REQUIRED)
-    target_link_libraries(your_executable [PUBLIC|PRIVATE|INTERFACE] finufft::finufft)
+The full recipe is ``examples/quick-start/find_package/CMakeLists.txt``; configure
+it with ``cmake -S examples/quick-start/find_package -B build-app -DCMAKE_PREFIX_PATH=/path/to/install && cmake --build build-app``.
 
 Point CMake at the install prefix when configuring your project, e.g.
 ``-DCMAKE_PREFIX_PATH=/path/to/install`` (or ``-Dfinufft_DIR=/path/to/install/lib/cmake/finufft``).
