@@ -1,0 +1,11 @@
+# Build environment for `pip install .` from this directory.
+channels:
+  - conda-forge
+dependencies:
+  - python >=3.10
+  - pip
+  - c-compiler
+  - cxx-compiler
+  - binutils
+  - llvm-openmp
+  - fftw

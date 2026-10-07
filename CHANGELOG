@@ -3,6 +3,10 @@ If not stated, FINUFFT is assumed (old cuFINUFFT <=1.3 is listed separately).
 
 v2.6.0-dev
 
+* Documented how to build the Python package from source inside a conda
+  environment, with an environment file and install script under
+  `python/finufft` (#668). (Abergel, Barbone)
+
 * macOS GCC via GNU make now follows Homebrew's unversioned `gcc` formula: the
   new `make-platforms/make.inc.macosx_gcc` replaces the deleted
   `make.inc.macosx_gcc-10`/`-14`/`-15` files, reading the compiler names from
