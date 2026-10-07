@@ -38,7 +38,7 @@ def test_multi_type1(framework, dtype=np.float32, shape=(16, 16, 16), M=4096, to
         c_gpu = gpuarray.to_gpu(c)
         fk_gpu = gpuarray.GPUArray(shape, dtype=complex_dtype)
 
-        plan = Plan(1, shape, eps=tol, dtype=complex_dtype, gpu_device_id=dev_id)
+        plan = Plan(1, shape, tol=tol, dtype=complex_dtype, gpu_device_id=dev_id)
 
         plan.setpts(k_gpu[0], k_gpu[1], k_gpu[2])
 

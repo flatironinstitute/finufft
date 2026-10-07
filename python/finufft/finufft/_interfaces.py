@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import numpy as np
 import numpy.typing as npt
+import sys
 import warnings
 import numbers
 
@@ -34,6 +35,39 @@ ComplexArray = npt.NDArray[np.complexfloating]
 
 
 ### Plan class definition
+def _external_stacklevel() -> int:
+    # Count frames from this package so warnings point at the user's call.
+    pkg = __name__.split(".")[0]
+    frame = sys._getframe(1)
+    level = 1
+    while (
+        frame is not None and frame.f_globals.get("__name__", "").split(".")[0] == pkg
+    ):
+        level += 1
+        frame = frame.f_back
+    return level
+
+
+def _resolve_tol(tol, kwargs):
+    # Resolve the tolerance and handle `eps` as a deprecated alias of `tol`.
+    # Detect whether `eps` was passed at all: an explicit `eps=None` still
+    # counts as passed.
+    if "eps" in kwargs:
+        eps = kwargs.pop("eps")
+        if tol is not None:
+            raise TypeError("got both `tol` and deprecated alias `eps`; use `tol`")
+        warnings.warn(
+            "eps is deprecated, use tol",
+            DeprecationWarning,
+            stacklevel=_external_stacklevel(),
+        )
+        if eps is not None:
+            tol = eps
+    if tol is None:
+        tol = 1e-6
+    return tol
+
+
 class Plan:
     r"""
     A non-uniform fast Fourier transform (NUFFT) plan
@@ -94,9 +128,10 @@ class Plan:
                         number of dimensions (between 1 and 3).
         n_trans         (int, optional): number of transforms to compute
                         simultaneously.
-        eps             (float, optional): precision requested (>1e-16).
+        tol             (float, optional): precision requested (>1e-16).
                         Unattainable values raise ``RuntimeError`` unless
                         ``allow_eps_too_small=1`` is passed via ``kwargs``.
+                        ``eps`` is a deprecated alias of ``tol``.
         isign           (int, optional): if +1, uses the positive sign
                         exponential, otherwise the negative sign exponential;
                         defaults to +1 for types 1 and 3 and to -1 for type 2.
@@ -110,11 +145,14 @@ class Plan:
         nufft_type: int,
         n_modes_or_dim: int | Iterable[int],
         n_trans: int = 1,
-        eps: float = 1e-6,
+        tol: float | None = None,
         isign: int | None = None,
         dtype: npt.DTypeLike = "complex128",
         **kwargs: Any,
     ) -> None:
+        # resolve tol and the deprecated eps alias before any opts handling
+        tol = _resolve_tol(tol, kwargs)
+
         # set default isign based on if isign is None
         if isign == None:
             if nufft_type == 2:
@@ -177,7 +215,7 @@ class Plan:
             self._destroy = _finufft._destroy
 
         ier = self._makeplan(
-            nufft_type, dim, n_modes, isign, n_trans, eps, byref(plan), byref(opts)
+            nufft_type, dim, n_modes, isign, n_trans, tol, byref(plan), byref(opts)
         )
 
         # check error
@@ -750,7 +788,7 @@ def destroy(plan):
 
 
 ### invoke guru interface, this function is used for simple interfaces
-def invoke_guru(dim, tp, x, y, z, c, s, t, u, f, isign, eps, n_modes, **kwargs):
+def invoke_guru(dim, tp, x, y, z, c, s, t, u, f, isign, tol, n_modes, **kwargs):
     # infer dtype from x
     if x.dtype == np.dtype("float64"):
         pdtype = "complex128"
@@ -794,9 +832,9 @@ def invoke_guru(dim, tp, x, y, z, c, s, t, u, f, isign, eps, n_modes, **kwargs):
 
     # plan
     if tp == 3:
-        plan = Plan(tp, dim, n_trans, eps, isign, pdtype, **kwargs)
+        plan = Plan(tp, dim, n_trans, tol, isign, pdtype, **kwargs)
     else:
-        plan = Plan(tp, n_modes, n_trans, eps, isign, pdtype, **kwargs)
+        plan = Plan(tp, n_modes, n_trans, tol, isign, pdtype, **kwargs)
 
     # setpts
     plan.setpts(x, y, z, s, t, u)
@@ -855,7 +893,8 @@ def _set_nufft_doc(f, dim, tp, example="python/finufft/test/accuracy_speed_tests
       out       (complex[{modes}] or complex[n_tr, {modes}], optional): output array
                 for Fourier mode values. If ``n_modes`` is specifed, the shape
                 must match, otherwise ``n_modes`` is inferred from ``out``.
-      eps       (float, optional): precision requested (>1e-16).
+      tol       (float, optional): precision requested (>1e-16).
+                ``eps`` is a deprecated alias of ``tol``.
       isign     (int, optional): if non-negative, uses positive sign in
                 exponential, otherwise negative sign.
       **kwargs  (optional): for more options, see :ref:`opts`.
@@ -908,7 +947,8 @@ def _set_nufft_doc(f, dim, tp, example="python/finufft/test/accuracy_speed_tests
                 the mode indices {pt_idx} satisfy {pt_constraint}.
       out       (complex[M] or complex[n_tr, M], optional): output array
                 at targets.
-      eps       (float, optional): precision requested (>1e-16).
+      tol       (float, optional): precision requested (>1e-16).
+                ``eps`` is a deprecated alias of ``tol``.
       isign     (int, optional): if non-negative, uses positive sign in
                 exponential, otherwise negative sign.
       **kwargs  (optional): for more options, see :ref:`opts`.
@@ -961,7 +1001,8 @@ def _set_nufft_doc(f, dim, tp, example="python/finufft/test/accuracy_speed_tests
       c         (complex[M] or complex[n_tr, M]): source strengths.
 {target_pts_doc}
       out       (complex[N] or complex[n_tr, N], optional): output values at target frequencies.
-      eps       (float, optional): precision requested (>1e-16).
+      tol       (float, optional): precision requested (>1e-16).
+                ``eps`` is a deprecated alias of ``tol``.
       isign     (int, optional): if non-negative, uses positive sign in
                 exponential, otherwise negative sign.
       **kwargs  (optional): for more options, see :ref:`opts`.
@@ -1074,12 +1115,12 @@ def nufft1d1(
     c: ComplexArray,
     n_modes: int | Iterable[int] | None = None,
     out: ComplexArray | None = None,
-    eps: float = 1e-6,
+    tol: float | None = None,
     isign: int = 1,
     **kwargs: Any,
 ) -> ComplexArray:
     return invoke_guru(
-        1, 1, x, None, None, c, None, None, None, out, isign, eps, n_modes, **kwargs
+        1, 1, x, None, None, c, None, None, None, out, isign, tol, n_modes, **kwargs
     )
 
 
@@ -1088,12 +1129,12 @@ def nufft1d2(
     x: RealArray,
     f: ComplexArray,
     out: ComplexArray | None = None,
-    eps: float = 1e-6,
+    tol: float | None = None,
     isign: int = -1,
     **kwargs: Any,
 ) -> ComplexArray:
     return invoke_guru(
-        1, 2, x, None, None, out, None, None, None, f, isign, eps, None, **kwargs
+        1, 2, x, None, None, out, None, None, None, f, isign, tol, None, **kwargs
     )
 
 
@@ -1103,12 +1144,12 @@ def nufft1d3(
     c: ComplexArray,
     s: RealArray,
     out: ComplexArray | None = None,
-    eps: float = 1e-6,
+    tol: float | None = None,
     isign: int = 1,
     **kwargs: Any,
 ) -> ComplexArray:
     return invoke_guru(
-        1, 3, x, None, None, c, s, None, None, out, isign, eps, None, **kwargs
+        1, 3, x, None, None, c, s, None, None, out, isign, tol, None, **kwargs
     )
 
 
@@ -1119,12 +1160,12 @@ def nufft2d1(
     c: ComplexArray,
     n_modes: int | Iterable[int] | None = None,
     out: ComplexArray | None = None,
-    eps: float = 1e-6,
+    tol: float | None = None,
     isign: int = 1,
     **kwargs: Any,
 ) -> ComplexArray:
     return invoke_guru(
-        2, 1, x, y, None, c, None, None, None, out, isign, eps, n_modes, **kwargs
+        2, 1, x, y, None, c, None, None, None, out, isign, tol, n_modes, **kwargs
     )
 
 
@@ -1134,12 +1175,12 @@ def nufft2d2(
     y: RealArray,
     f: ComplexArray,
     out: ComplexArray | None = None,
-    eps: float = 1e-6,
+    tol: float | None = None,
     isign: int = -1,
     **kwargs: Any,
 ) -> ComplexArray:
     return invoke_guru(
-        2, 2, x, y, None, out, None, None, None, f, isign, eps, None, **kwargs
+        2, 2, x, y, None, out, None, None, None, f, isign, tol, None, **kwargs
     )
 
 
@@ -1151,11 +1192,11 @@ def nufft2d3(
     s: RealArray,
     t: RealArray,
     out: ComplexArray | None = None,
-    eps: float = 1e-6,
+    tol: float | None = None,
     isign: int = 1,
     **kwargs: Any,
 ) -> ComplexArray:
-    return invoke_guru(2, 3, x, y, None, c, s, t, None, out, isign, eps, None, **kwargs)
+    return invoke_guru(2, 3, x, y, None, c, s, t, None, out, isign, tol, None, **kwargs)
 
 
 ### 3d1
@@ -1166,12 +1207,12 @@ def nufft3d1(
     c: ComplexArray,
     n_modes: int | Iterable[int] | None = None,
     out: ComplexArray | None = None,
-    eps: float = 1e-6,
+    tol: float | None = None,
     isign: int = 1,
     **kwargs: Any,
 ) -> ComplexArray:
     return invoke_guru(
-        3, 1, x, y, z, c, None, None, None, out, isign, eps, n_modes, **kwargs
+        3, 1, x, y, z, c, None, None, None, out, isign, tol, n_modes, **kwargs
     )
 
 
@@ -1182,12 +1223,12 @@ def nufft3d2(
     z: RealArray,
     f: ComplexArray,
     out: ComplexArray | None = None,
-    eps: float = 1e-6,
+    tol: float | None = None,
     isign: int = -1,
     **kwargs: Any,
 ) -> ComplexArray:
     return invoke_guru(
-        3, 2, x, y, z, out, None, None, None, f, isign, eps, None, **kwargs
+        3, 2, x, y, z, out, None, None, None, f, isign, tol, None, **kwargs
     )
 
 
@@ -1201,11 +1242,11 @@ def nufft3d3(
     t: RealArray,
     u: RealArray,
     out: ComplexArray | None = None,
-    eps: float = 1e-6,
+    tol: float | None = None,
     isign: int = 1,
     **kwargs: Any,
 ) -> ComplexArray:
-    return invoke_guru(3, 3, x, y, z, c, s, t, u, out, isign, eps, None, **kwargs)
+    return invoke_guru(3, 3, x, y, z, c, s, t, u, out, isign, tol, None, **kwargs)
 
 
 _set_nufft_doc(

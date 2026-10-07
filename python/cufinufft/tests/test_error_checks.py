@@ -21,7 +21,7 @@ def test_set_nu_raises_on_dtype(to_gpu):
     # Here we'll intentionally contruct an incorrect array dtype.
     kxyz_gpu_wrong_type = to_gpu(kxyz.real.astype(np.float64))
 
-    plan = Plan(1, shape, eps=tol, dtype=dtype)
+    plan = Plan(1, shape, tol=tol, dtype=dtype)
 
     with pytest.raises(TypeError):
         plan.setpts(kxyz_gpu_wrong_type[0], kxyz_gpu[1], kxyz_gpu[2])
@@ -48,7 +48,7 @@ def test_set_pts_raises_on_size(to_gpu):
 
     kxyz_gpu = to_gpu(kxyz)
 
-    plan = Plan(1, shape, eps=tol, dtype=complex_dtype)
+    plan = Plan(1, shape, tol=tol, dtype=complex_dtype)
 
     with pytest.raises(TypeError, match="`y` must be of shape") as err:
         plan.setpts(kxyz_gpu[0], kxyz_gpu[1][:4])
@@ -70,7 +70,7 @@ def test_set_pts_raises_on_nonvector(to_gpu):
 
     kxyz_gpu = to_gpu(kxyz)
 
-    plan = Plan(1, shape, eps=tol, dtype=complex_dtype)
+    plan = Plan(1, shape, tol=tol, dtype=complex_dtype)
 
     with pytest.raises(TypeError, match="`x` must be a vector") as err:
         plan.setpts(kxyz)
@@ -89,14 +89,14 @@ def test_set_pts_raises_on_number_of_args(to_gpu):
 
     kxyz_gpu = to_gpu(kxyz)
 
-    plan = Plan(1, shape, eps=tol, dtype=complex_dtype)
+    plan = Plan(1, shape, tol=tol, dtype=complex_dtype)
 
     with pytest.raises(TypeError, match="is 1, but `y` was specified") as err:
         plan.setpts(*kxyz_gpu[:2])
 
     shape = (16, 16)
 
-    plan = Plan(1, shape, eps=tol, dtype=complex_dtype)
+    plan = Plan(1, shape, tol=tol, dtype=complex_dtype)
 
     with pytest.raises(TypeError, match="is 2, but `z` was specified") as err:
         plan.setpts(*kxyz_gpu)
@@ -129,7 +129,7 @@ def test_exec_raises_on_dtype(to_gpu):
     # Here we'll intentionally contruct an incorrect array dtype.
     fk_gpu_wrong_dtype = _compat.array_empty_like(fk_gpu, shape, dtype=np.complex128)
 
-    plan = Plan(1, shape, eps=tol, dtype=complex_dtype)
+    plan = Plan(1, shape, tol=tol, dtype=complex_dtype)
 
     plan.setpts(kxyz_gpu[0], kxyz_gpu[1], kxyz_gpu[2])
 

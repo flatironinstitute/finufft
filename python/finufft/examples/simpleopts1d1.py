@@ -18,7 +18,7 @@ c = np.random.randn(M) + 1.0j * np.random.randn(M)
 F = np.zeros([N], dtype=np.complex128)  # allocate F (modes out)
 
 strt = time.time()
-F = finufft.nufft1d1(x, c, N, eps=acc, isign=iflag, debug=1, spread_debug=1)
+F = finufft.nufft1d1(x, c, N, tol=acc, isign=iflag, debug=1, spread_debug=1)
 print("Finished nufft in {0:.2g} seconds. Checking...".format(time.time() - strt))
 
 n = 142519  # mode to check
@@ -32,7 +32,7 @@ print("Error relative to max of F: {0:.2e}".format(err))
 
 # now test FFT mode output version, overwriting F...
 strt = time.time()
-finufft.nufft1d1(x, c, out=F, eps=acc, isign=iflag, modeord=1)
+finufft.nufft1d1(x, c, out=F, tol=acc, isign=iflag, modeord=1)
 print("Finished nufft in {0:.2g} seconds (modeord=1)".format(time.time() - strt))
 err = np.abs((F[n] - Ftest) / Fmax)  # now zero offset in F array
 print("Error relative to max of F: {0:.2e}".format(err))

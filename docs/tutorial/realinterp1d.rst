@@ -46,14 +46,14 @@ deliberately small (see other demos which scale things up):
 
   # Do the naive (double-length c array) NUFFT version:
   cref = np.concatenate([np.conj(np.flip(c[1:])), c])  # reflect to 1-Nf...Nf-1 coeffs
-  ft = np.real(fi.nufft1d2(targs,cref,eps=1e-12,isign=1))       # f at targs (isign!)
+  ft = np.real(fi.nufft1d2(targs,cref,tol=1e-12,isign=1))       # f at targs (isign!)
   # (taking Re here was just a formality; it is already real to eps_mach)
   print("naive (reflected) 1d2 max err:", np.linalg.norm(fun(targs) - ft, np.inf))
 
   # now demo avoid doubling the NUFFT length via freq shift and mult by phase:
   c[1:] *= 2.0     # since each nonzero coeff appears twice in reflected array
   N0 = Nf//2       # starting freq index shift that FINUFFT interprets for c array
-  ftp = fi.nufft1d2(targs,c,eps=1e-12,isign=1)         # f at targs but with phase
+  ftp = fi.nufft1d2(targs,c,tol=1e-12,isign=1)         # f at targs but with phase
   # the key step: rephase (to account for shift), only then take Re (needed!)...
   ft = np.real( ftp * (np.cos(N0*targs) + 1j*np.sin(N0*targs)))   # guess 1j sign
   print("unpadded 1d2 max err:", np.linalg.norm(fun(targs) - ft, np.inf))

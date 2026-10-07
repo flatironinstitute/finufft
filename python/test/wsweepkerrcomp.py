@@ -92,7 +92,7 @@ def main() -> None:
                 np.array([0.0], dtype=float),
                 np.array([1.0], dtype=np.complex128),
                 n_modes=100,
-                eps=tol,
+                tol=tol,
                 isign=isign,
                 **o_spread,
             )

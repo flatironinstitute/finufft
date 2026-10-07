@@ -56,16 +56,16 @@ Once installed, to calculate a 1D type 1 transform from nonuniform to uniform po
 The input here is a set of complex strengths ``c``, which are used to approximate (1) in :ref:`math`.
 That approximation is stored in ``f``, which is indexed from ``-N // 2`` up to ``N // 2 - 1`` (since ``N`` is even; if odd it would be ``-(N - 1) // 2`` up to ``(N - 1) // 2``).
 The approximation is accurate to a tolerance of ``1e-6``, which is the default tolerance of ``nufft1d1``.
-It can be modified using the ``eps`` argument:
+It can be modified using the ``tol`` argument:
 
 .. code-block:: python
 
     # calculate the transform to higher accuracy
-    f = finufft.nufft1d1(x, c, N, eps=1e-12)
+    f = finufft.nufft1d1(x, c, N, tol=1e-12)
 
 Note, however, that a lower tolerance (that is, a higher accuracy) results in a slower transform. See ``python/finufft/examples/simple1d1.py`` for the demo code that includes a basic math test (useful to check both the math and the indexing).
 
-On CPU, if ``eps`` is so small that FINUFFT knows the requested accuracy is unattainable,
+On CPU, if ``tol`` is so small that FINUFFT knows the requested accuracy is unattainable,
 the Python interface raises ``RuntimeError`` (status ``ier=26``) during plan creation
 or ``setpts``. If you want FINUFFT to clamp to the best-achievable accuracy and proceed
 instead, pass ``allow_eps_too_small=1``.
@@ -100,7 +100,7 @@ We can also go the other way, from uniform to non-uniform points, using a type 2
 
 Now the output is a complex vector of length ``M`` approximating (2) in :ref:`math`, that is the adjoint (but not inverse) of (1). (Note that the default sign in the exponential is negative for type 2 in the Python interface.)
 
-In addition to tolerance ``eps``, we can adjust other options for the transform.
+In addition to tolerance ``tol``, we can adjust other options for the transform.
 These are listed in :ref:`opts` and are specified as keyword arguments in the Python interface.
 For example, to change the mode ordering to FFT style (that is, in each dimension ``Ni = N1`` or ``N2``, the indices go from ``0`` to ``Ni // 2 - 1``, then from ``-Ni // 2`` to ``-1``, since each ``Ni`` is even), we call
 
@@ -181,7 +181,7 @@ All interfaces support both single and double precision, but for the plan, this 
     # execute the plan, giving single-precision output
     f = plan.execute(c)
 
-As above, requesting an unattainable ``eps`` now raises ``RuntimeError`` by default.
+As above, requesting an unattainable ``tol`` now raises ``RuntimeError`` by default.
 For exploratory or backwards-compatible workflows that prefer clamp-and-proceed behavior,
 pass ``allow_eps_too_small=1`` when constructing the plan or calling the simple interface.
 
