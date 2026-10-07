@@ -3,6 +3,7 @@
 // -DCUFINUFFT_DIM={1,2,3}; produces one object per dim.
 
 #include "spreadinterp_common.cuh"
+#include <cstdint>
 #include <cufinufft/spreadinterp.hpp>
 #include <poet/poet.hpp>
 
@@ -70,7 +71,7 @@ void spread_nupts_driven_launch(const cufinufft_plan_t<T> &d_plan,
   const dim3 blocks{(unsigned(d_plan.M) + 15) / 16, 1, 1};
 
   const auto launch = [&](auto kernel) {
-    for (int t = 0; t < blksize; t++) {
+    for (std::int64_t t = 0; t < blksize; t++) {
       kernel<<<blocks, threadsPerBlock, 0, d_plan.stream>>>(d_plan, c + t * d_plan.M,
                                                             fw + t * d_plan.nf);
       THROW_IF_CUDA_ERROR();
