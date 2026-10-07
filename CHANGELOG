@@ -18,6 +18,11 @@ v2.6.0-dev
 * icpx builds now use the gcc/clang math model (-fno-fast-math,
   -fcomplex-arithmetic=basic) via CMake and make-platforms/make.inc.icpx (#914).
   (Barbone)
+* New minimal CMake quick-start recipes under ``examples/quick-start/`` show the
+  FetchContent and installed ``find_package`` consume routes, and
+  ``tools/ci/install-test.sh`` builds and runs both on every install CI pass;
+  the same files are included into ``docs/install.rst`` so the documented code
+  is the tested code. (Barbone)
 * xsimd's reassociation barrier was compiled out under -fassociative-math on clang, so
   -march=x86-64 Release builds folded points wrongly and segfaulted;
   XSIMD_REASSOCIATIVE_MATH is now forced on, the fold accepts any real coordinate, and
