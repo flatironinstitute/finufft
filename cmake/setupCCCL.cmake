@@ -20,8 +20,6 @@ else()
     # Prefer the CCCL the toolkit ships (13.x does; its config lives in
     # <libdir>/cmake/cccl, which plain prefix search does not reach) - its
     # <toolkit>/include/cccl wins over any CPM include dir anyway, so fetching
-    # over it just mixes two trees. 12.x ships thrust/cub but no config, so it
-    # fetches, and non-SYSTEM for the same reason as the CUDA 11 branch.
     cpmfindpackage(
         NAME
         CCCL

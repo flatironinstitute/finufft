@@ -1,0 +1,12 @@
+# Build environment for `pip install .` from this directory.
+name: cufinufft-build
+channels:
+  - conda-forge
+dependencies:
+  - python >=3.10
+  - pip
+  - gcc=12  # nvcc 12.4 rejects a host gcc newer than 13
+  - gxx=12
+  - binutils  # unprefixed `ar`, which CMake needs
+  - cuda-toolkit  # conda-forge only: it carries the targets/<arch> include layout
+  - cupy  # conda-forge builds each cupy against a cuda-version; >=13.3 reads the targets/<arch> layout (cupy/cupy#8519)

@@ -676,8 +676,8 @@ An additional performance test you could then do is::
 Building inside a conda environment
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-conda is not an officially supported way to install FINUFFT; ``pip install finufft``
-needs none of it. Building from source inside a conda environment gives a library tuned
+conda is not an officially supported way to install FINUFFT;
+Building from source inside a conda environment gives a library tuned
 to the machine's CPU (the wheels target baseline ``x86-64``). The environment file and
 the install script live next to the package they build, in ``python/finufft``:
 
@@ -697,7 +697,7 @@ the install script live next to the package they build, in ``python/finufft``:
 ``--config-settings=cmake.define.FINUFFT_USE_DUCC0=ON`` to the script's ``pip install``
 line to use the bundled DUCC0 FFT instead of FFTW. This recipe is from
 `@remy-abergel <https://github.com/flatironinstitute/finufft/discussions/649#discussioncomment-12969277>`_
-(issue #668).
+(issue #668). The GPU package follows the same pattern; see :ref:`install_gpu`.
 
 A few words about python environments
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
