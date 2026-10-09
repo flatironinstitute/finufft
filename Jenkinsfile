@@ -350,6 +350,33 @@ catchError {
       }
     }
 
+    // The conda recipe from docs/install.rst, run without change. /opt/conda
+    // belongs to root, so conda keeps its environments and packages in the workspace.
+    jobs['conda finufft'] = {
+      runPod(image: 'docker.io/condaforge/miniforge3:latest', cpus: 8, memory: '16Gi') {
+        stage('conda finufft') {
+          withEnv(["HOME=$WORKSPACE",
+                   "CONDA_ENVS_PATH=$WORKSPACE/.conda/envs",
+                   "CONDA_PKGS_DIRS=$WORKSPACE/.conda/pkgs"]) {
+            sh 'bash python/finufft/conda-install.sh'
+          }
+        }
+      }
+    }
+    // CUDA 12.4 from conda cannot target sm_120, so the pod takes an a100.
+    jobs['conda cufinufft'] = {
+      runPod(image: 'docker.io/condaforge/miniforge3:latest', cpus: 8, memory: '32Gi',
+             gpus: 1, gpuType: 'a100') {
+        stage('conda cufinufft') {
+          withEnv(["HOME=$WORKSPACE",
+                   "CONDA_ENVS_PATH=$WORKSPACE/.conda/envs",
+                   "CONDA_PKGS_DIRS=$WORKSPACE/.conda/pkgs"]) {
+            sh 'bash python/cufinufft/conda-install.sh'
+          }
+        }
+      }
+    }
+
     parallel jobs
   }
 }
