@@ -218,10 +218,10 @@ bool upsampfac_feasible(double sigma, double tol, int dim, int type, double eps_
   // opts.spread_kerformula>0 may need a slightly different ns, but the heuristic and
   // check_sigma both use the default kernel, so they stay consistent.
   finufft_spread_opts so{};
-  so.kerformula  = 0; // generic (PSWF-like) ns formula in theoretical_kernel_ns
-  so.upsampfac   = sigma;
+  so.kerformula = 0; // generic (PSWF-like) ns formula in theoretical_kernel_ns
+  so.upsampfac = sigma;
   const int ns_t = kernel::theoretical_kernel_ns(tol, dim, type, so);
-  const int ns   = kernel::clamp_kernel_ns(ns_t, sigma, max_nspread, is_float);
+  const int ns = kernel::clamp_kernel_ns(ns_t, sigma, max_nspread, is_float);
   if (ns < ns_t) return false;
   if (type == 3)
     // Type 3 has no check_sigma; the floor here keeps the auto selector at or above

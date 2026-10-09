@@ -102,8 +102,8 @@ sigma_info minimize(double tol, int dim, int type, double maxN, Cost &&cost,
                     double lo = 0.0) {
   using namespace finufft::common;
   constexpr double eps_mach = std::numeric_limits<TF>::epsilon();
-  constexpr bool is_float   = std::is_same_v<TF, float>;
-  const auto feasible       = [&](double sigma) {
+  constexpr bool is_float = std::is_same_v<TF, float>;
+  const auto feasible = [&](double sigma) {
     return upsampfac_feasible(sigma, tol, dim, type, eps_mach, MAX_NSPREAD<TF>, is_float,
                               maxN);
   };
