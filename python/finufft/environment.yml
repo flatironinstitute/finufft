@@ -1,4 +1,5 @@
 # Build environment for `pip install .` from this directory.
+name: finufft-build
 channels:
   - conda-forge
 dependencies:

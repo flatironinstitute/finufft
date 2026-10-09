@@ -116,9 +116,9 @@ catchError {
     // pulled as is: matlab: true injects the license, and the script fetches
     // the toolchain. matlab-deep-learning carries the Parallel Computing
     // Toolbox, so those releases also build and test the GPU MEX; r2020b has
-    // only the plain image and runs the CPU half. canUseGPU() is false on the
-    // Blackwell MIG slices (r2023b, r2025a), so the GPU legs take a V100. The
-    // license server has no r2026b yet.
+    // only the plain image and runs the CPU half. gpuDevice() in r2024a fails
+    // on a MIG slice (NVML Invalid Argument), so that release keeps the V100.
+    // The license server has no r2026b yet.
     def matlabs = ['r2021b', 'r2022a', 'r2022b', 'r2023a', 'r2023b', 'r2024a',
                    'r2024b', 'r2025a', 'r2025b', 'r2026a']
     jobs['matlab-r2020b'] = {
@@ -130,7 +130,7 @@ catchError {
     }
     matlabs.each { rel -> jobs['matlab-' + rel] = {
       runPod(image: "docker.io/mathworks/matlab-deep-learning:${rel}", cpus: 8, memory: '16Gi',
-             gpus: 1, gpuType: 'v100', matlab: true) {
+             gpus: 1, gpuType: rel == 'r2024a' ? 'v100' : 'a100', matlab: true) {
         stage("matlab ${rel}") {
           withEnv(["HOME=$WORKSPACE", "CUDA_ARCH=${gpuArch()}"]) { sh 'tools/ci/matlab-test.sh' }
         }
