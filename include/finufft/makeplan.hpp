@@ -146,9 +146,6 @@ template<typename TF> void FINUFFT_PLAN_T<TF>::setup_spreadinterp() {
             "benefit and may break the library;\n",
             __func__, m.spopts.upsampfac);
 
-  // crucial: where the default kerformula is set ....*    see kernel.{h,cpp}
-  m.spopts.kerformula = (opts.spread_kerformula == 0) ? 8 : opts.spread_kerformula;
-
   constexpr TF EPSILON = std::numeric_limits<TF>::epsilon(); // 2.2e-16 or 1.2e-7
   if (m.tol < EPSILON) { // unfeasible request: no hope of beating eps_mach...
     if (opts.allow_eps_too_small) {
@@ -331,6 +328,10 @@ FINUFFT_PLAN_T<TF>::FINUFFT_PLAN_T(int type_, int dim_, const BIGINT *n_modes, i
     finufft_default_opts_t(&opts);
   else             // or read from what's passed in
     opts = *opts_; // keep a deep copy; changing *opts_ now has no effect
+
+  // Resolved here, before any setpts-time sigma search reads m.spopts.kerformula.
+  m.spopts.kerformula = opts.spread_kerformula;
+  if (!m.spopts.kerformula) m.spopts.kerformula = finufft::common::DEFAULT_KERFORMULA;
 
   if (opts.debug)  // do a hello world
     printf("[%s] new plan: FINUFFT version " FINUFFT_VER " .................\n",

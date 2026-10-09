@@ -53,6 +53,15 @@ inline constexpr double MAX_CHECK_SIGMA = 2.0;
 inline constexpr double MIN_AUTO_UPSAMPFAC = 1.15;
 inline constexpr double MAX_AUTO_UPSAMPFAC = 2.5;
 
+// Lowest sigma the auto heuristic may pick for type 3 in the absence of a rounding
+// constraint. Below it the fixed kernel-width prefactor (kernel_tolfac type 3)
+// underestimates the band-edge error. Gates only the automatic selector; a
+// user-locked type-3 sigma is honored as given.
+// Measured floor (sigma-pr-check/final/min_scan.csv): 1.18 misses tol on the float
+// demof3d geometry; 1.20 passes it, tolsweep, and the Windows-style repro in both
+// precisions and at OMP_NUM_THREADS 1 and 16.
+inline constexpr double MIN_AUTO_UPSAMPFAC_TYPE3 = 1.20;
+
 // Single-precision catastrophic-cancellation guard (the ONE place these live).
 // Below FLOAT_CC_UPSAMPFAC_LIMIT the dynamic range r_dyn blows up, so float kernels are
 // capped to FLOAT_MAX_NS_CC to avoid losing accuracy. Referenced by clamp_kernel_ns
@@ -61,6 +70,13 @@ inline constexpr double FLOAT_CC_UPSAMPFAC_LIMIT = 1.4;
 // max ns allowed (single prec, low sigma) without excessive catastrophic cancellation;
 // hacky, const, found via tolsweeptest.m (type 3 was 7).
 inline constexpr int FLOAT_MAX_NS_CC = 8;
+
+// Default kernel function formula (PSWF): the value a user spread_kerformula of 0
+// resolves to.
+inline constexpr int DEFAULT_KERFORMULA          = 8;
+
+// c in the full-pipeline rounding floor eps_round = c * eps_mach * nf.
+inline constexpr double ROUND_FAC                = 0.48;
 
 } // namespace common
 } // namespace finufft

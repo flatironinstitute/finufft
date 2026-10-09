@@ -187,11 +187,18 @@ double smallest_sigma_for_ns(double tol, int dim, int type, int ns_target);
 double lowest_sigma(double tol, int dim, int ns, double eps_mach, double gridlen);
 
 // Whether the plan pipeline would accept this sigma at this tol.
-bool upsampfac_feasible(double sigma, double tol, int dim, int type, double eps_mach,
-                        int max_nspread, bool is_float, double maxN);
+// kerformula must be a resolved formula (>0): the plan's m.spopts.kerformula
+// when a plan is in scope, else DEFAULT_KERFORMULA (constants.h).
+FINUFFT_EXPORT_TEST bool upsampfac_feasible(double sigma, double tol, int dim, int type,
+                                            double eps_mach, int max_nspread,
+                                            bool is_float, double maxN, int kerformula);
 
-// Smallest feasible sigma in [MIN_AUTO_UPSAMPFAC, MAX_AUTO_UPSAMPFAC] by bisection.
-double analytic_upsampfac(double tol, int dim, int type, double eps_mach, int max_nspread,
-                          bool is_float, double maxN);
+// Smallest feasible sigma the plan pipeline accepts, by bisection. Lower end is
+// max(lo, MIN_AUTO_UPSAMPFAC), lifted to MIN_AUTO_UPSAMPFAC_TYPE3 for type 3.
+// lo: search lower bound; the bisection runs on [max(lo, MIN_AUTO_UPSAMPFAC),
+// MAX_AUTO_UPSAMPFAC]. kerformula as for upsampfac_feasible.
+FINUFFT_EXPORT_TEST double analytic_upsampfac(
+    double tol, int dim, int type, double eps_mach, int max_nspread, bool is_float,
+    double maxN, int kerformula, double lo = MIN_AUTO_UPSAMPFAC);
 
 } // namespace finufft::common

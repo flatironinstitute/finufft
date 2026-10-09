@@ -147,14 +147,15 @@ int main() {
 
     // (C) sigma=2.5 is feasible down to eps_mach for every dim/type, both precisions ->
     // analytic_upsampfac never returns an infeasible sigma for any tol the pipeline
-    // forwards (it clamps tol up to eps_mach first).
+    // forwards (it clamps tol up to eps_mach first). Type 3 is tol-gated by the
+    // rounding gate, so 2.5 fails at eps_mach there and is excluded.
     for (int dim = 1; dim <= 3; ++dim)
-      for (int type = 1; type <= 3; ++type) {
+      for (int type = 1; type <= 2; ++type) {
         const double maxN = 256;
         if (!upsampfac_feasible(MAX_AUTO_UPSAMPFAC, eps_d, dim, type, eps_d, ns_d, false,
-                                maxN) ||
+                                maxN, DEFAULT_KERFORMULA) ||
             !upsampfac_feasible(MAX_AUTO_UPSAMPFAC, eps_f, dim, type, eps_f, ns_f, true,
-                                maxN)) {
+                                maxN, DEFAULT_KERFORMULA)) {
           printf("fail: sigma=2.5 infeasible at eps_mach: dim=%d type=%d\n", dim, type);
           return 1;
         }
@@ -164,9 +165,11 @@ int main() {
     // achievable tols (its contract: the pick always survives the real plan).
     for (double tol : tols) {
       const double maxN = 1e4;
-      const double s = analytic_upsampfac(tol, 2, 1, eps_d, ns_d, false, maxN);
+      const double s =
+          analytic_upsampfac(tol, 2, 1, eps_d, ns_d, false, maxN, DEFAULT_KERFORMULA);
       if (!(s >= MIN_AUTO_UPSAMPFAC - 1e-9 && s <= MAX_AUTO_UPSAMPFAC + 1e-9) ||
-          !upsampfac_feasible(s, tol, 2, 1, eps_d, ns_d, false, maxN)) {
+          !upsampfac_feasible(s, tol, 2, 1, eps_d, ns_d, false, maxN,
+                              DEFAULT_KERFORMULA)) {
         printf("fail: analytic sigma %.3f not feasible/in range at tol=%.0e\n", s, tol);
         return 1;
       }
@@ -179,10 +182,12 @@ int main() {
       const double tol = 1e-13; // tight enough that ns drops across [2.0,2.5]
       const double dense_modes[3] = {64, 64, 64};
       const double sparse_modes[3] = {512, 512, 512};
-      const double sigma_dense =
-          best_type12<double>(tol, dim, type, nthr, dense_modes, /*npts=*/5e7).sigma;
-      const double sigma_sparse =
-          best_type12<double>(tol, dim, type, nthr, sparse_modes, /*npts=*/1e3).sigma;
+      const double sigma_dense  = best_type12<double>(tol, dim, type, nthr, dense_modes,
+                                                      /*npts=*/5e7, DEFAULT_KERFORMULA)
+                                      .sigma;
+      const double sigma_sparse = best_type12<double>(tol, dim, type, nthr, sparse_modes,
+                                                      /*npts=*/1e3, DEFAULT_KERFORMULA)
+                                      .sigma;
       if (!(sigma_dense > sigma_sparse) || !(sigma_dense > MAX_CHECK_SIGMA - 1e-9)) {
         printf("fail: dense sigma (%.3f) should exceed sparse (%.3f) and 2.0\n",
                sigma_dense, sigma_sparse);
