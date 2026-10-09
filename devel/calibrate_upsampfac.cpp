@@ -139,14 +139,12 @@ template<typename T> void run_config(const cal_options_t &o) {
                   &w, &cen);
       S[d] = (double)w;
     }
-    sigma_model = finufft::heuristics::best_type3<T>(o.tol, o.dim, nthreads_eff,
-                                                     (double)M, X.data(), S.data(),
-                                                     (double)Ntot, DEFAULT_KERFORMULA);
+    sigma_model = finufft::heuristics::best_type3<T>(
+        o.tol, o.dim, nthreads_eff, (double)M, X.data(), S.data(), (double)Ntot);
   } else {
-    sigma_model =
-        finufft::heuristics::best_type12<T>(o.tol, o.dim, o.type, nthreads_eff,
-                                            nmodes.data(), (double)M, DEFAULT_KERFORMULA)
-            .sigma;
+    sigma_model = finufft::heuristics::best_type12<T>(o.tol, o.dim, o.type, nthreads_eff,
+                                                      nmodes.data(), (double)M)
+                      .sigma;
   }
   const auto width_of = [&](double sigma) {
     return finufft::heuristics::kernel_width_at<T>(o.tol, o.dim, o.type, sigma);
@@ -171,8 +169,8 @@ template<typename T> void run_config(const cal_options_t &o) {
 
   // ---- sweep forced sigma ----
   const double maxN = o.type == 3 ? 1.0 : (double)*std::max_element(Nd, Nd + o.dim);
-  const double sigma_min = analytic_upsampfac(o.tol, o.dim, o.type, eps, MAX_NSPREAD<T>,
-                                              is_float, maxN, DEFAULT_KERFORMULA);
+  const double sigma_min =
+      analytic_upsampfac(o.tol, o.dim, o.type, eps, MAX_NSPREAD<T>, is_float, maxN);
 
   std::int64_t Narr[3] = {Nd[0], Nd[1], Nd[2]};
   constexpr int iflag = 1;

@@ -201,7 +201,7 @@ double lowest_sigma(double tol, int dim, int ns, double eps_mach, double gridlen
 }
 
 bool upsampfac_feasible(double sigma, double tol, int dim, int type, double eps_mach,
-                        int max_nspread, bool is_float, double maxN, int kerformula) {
+                        int max_nspread, bool is_float, double maxN) {
   // Purpose: returns whether the plan pipeline would ACCEPT this upsampfac at this tol,
   // i.e. "feasible" = makeplan/check_sigma would neither throw nor silently lose
   // accuracy. The upsampfac heuristic only ever proposes sigmas that pass this, so its
@@ -214,6 +214,9 @@ bool upsampfac_feasible(double sigma, double tol, int dim, int type, double eps_
   // MIN_AUTO_UPSAMPFAC_TYPE3 floor are its gates; types 1/2 must also pass
   // check_sigma's lowest_sigma test on the fine grid set_nf_type12 would build at this
   // sigma.
+  // NB this assumes the generic (kerformula=0) width formula; a plan run with
+  // opts.spread_kerformula>0 may need a slightly different ns, but the heuristic and
+  // check_sigma both use the default kernel, so they stay consistent.
   finufft_spread_opts so{};
   so.kerformula  = 0; // generic (PSWF-like) ns formula in theoretical_kernel_ns
   so.upsampfac   = sigma;
@@ -221,8 +224,8 @@ bool upsampfac_feasible(double sigma, double tol, int dim, int type, double eps_
   const int ns   = kernel::clamp_kernel_ns(ns_t, sigma, max_nspread, is_float);
   if (ns < ns_t) return false;
   if (type == 3)
-    // Type 3 has no check_sigma; its only plan-side gate is the locked-sigma
-    // floor in setpts (MIN_AUTO_UPSAMPFAC_TYPE3).
+    // Type 3 has no check_sigma; the floor here keeps the auto selector at or above
+    // MIN_AUTO_UPSAMPFAC_TYPE3. A user-locked sigma is unaffected (setpts honors it).
     return sigma >= MIN_AUTO_UPSAMPFAC_TYPE3;
   // fine-grid length as set_nf_type12 builds it (largest dim binds).
   const BIGINT nf = fine_grid_len(sigma, maxN, ns);
@@ -230,7 +233,7 @@ bool upsampfac_feasible(double sigma, double tol, int dim, int type, double eps_
 }
 
 double analytic_upsampfac(double tol, int dim, int type, double eps_mach, int max_nspread,
-                          bool is_float, double maxN, int kerformula, double lo) {
+                          bool is_float, double maxN, double lo) {
   // Smallest sigma in [MIN_AUTO_UPSAMPFAC, MAX_AUTO_UPSAMPFAC] the plan pipeline accepts
   // (via upsampfac_feasible), found by bisection. This is the optimum directly when the
   // FFT dominates (always type 3; sparse types 1/2) and is the lower end of the
@@ -240,18 +243,21 @@ double analytic_upsampfac(double tol, int dim, int type, double eps_mach, int ma
   // maxN = largest mode count over dims (1 for type 3).
   auto feasible = [&](double sigma) {
     return upsampfac_feasible(sigma, tol, dim, type, eps_mach, max_nspread, is_float,
-                              maxN, kerformula);
+                              maxN);
   };
 
   // feasible() is not exactly monotone (integer ns and 235-smooth grid steps), but
   // any flicker only costs a negligibly larger feasible sigma, never correctness:
   // the returned value was itself accepted by feasible().
   // Bisect on [start, MAX_AUTO_UPSAMPFAC]; start lifts the loose end past lo and,
-  // for type 3, past the kernel-law floor MIN_AUTO_UPSAMPFAC_TYPE3.
-  const double start = [&] {
-    if (type == 3) return std::max(lo, MIN_AUTO_UPSAMPFAC_TYPE3);
-    return std::max(lo, MIN_AUTO_UPSAMPFAC);
-  }();
+  // for type 3, past the kernel-law floor MIN_AUTO_UPSAMPFAC_TYPE3, and is capped so
+  // the search stays inside the documented auto interval.
+  const double start = std::min(
+      [&] {
+        if (type == 3) return std::max(lo, MIN_AUTO_UPSAMPFAC_TYPE3);
+        return std::max(lo, MIN_AUTO_UPSAMPFAC);
+      }(),
+      MAX_AUTO_UPSAMPFAC);
   if (feasible(start)) return start;
   if (!feasible(MAX_AUTO_UPSAMPFAC))
     return MAX_AUTO_UPSAMPFAC;   // pipeline reports the error

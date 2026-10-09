@@ -60,8 +60,7 @@ template<typename TF> void FINUFFT_PLAN_T<TF>::check_sigma() {
 template<typename TF> double FINUFFT_PLAN_T<TF>::best_upsampfac() const {
   const std::array<double, 3> nmodes{(double)mstu[0], (double)mstu[1], (double)mstu[2]};
   return finufft::heuristics::best_type12<TF>((double)m.tol, dim, type, opts.nthreads,
-                                              nmodes.data(), (double)m.nj,
-                                              m.spopts.kerformula)
+                                              nmodes.data(), (double)m.nj)
       .sigma;
 }
 
@@ -75,9 +74,8 @@ double FINUFFT_PLAN_T<TF>::best_upsampfac_type3(const TF *X, const TF *S,
     Xh[idim] = (double)X[idim];
     Sh[idim] = (double)S[idim];
   }
-  return finufft::heuristics::best_type3<TF>((double)m.tol, dim, opts.nthreads,
-                                             (double)m.nj, Xh.data(), Sh.data(),
-                                             (double)nk, m.spopts.kerformula);
+  return finufft::heuristics::best_type3<TF>(
+      (double)m.tol, dim, opts.nthreads, (double)m.nj, Xh.data(), Sh.data(), (double)nk);
 }
 
 // ---------- local math routines for type-3 setpts: --------
@@ -309,14 +307,14 @@ int FINUFFT_PLAN_T<TF>::setpts(BIGINT nj, const TF *xj, const TF *yj, const TF *
     t2opts.spread_debug = std::max(0, opts.spread_debug - 1);
     t2opts.showwarn     = 0;                              // so don't see warnings 2x
     if (!upsamp_locked) {
-      const double inner_sigma_floor = finufft::heuristics::type3_inner_sigma_floor<TF>(
-          (double)m.tol, dim, m.spopts.kerformula);
+      const double inner_sigma_floor =
+          finufft::heuristics::type3_inner_sigma_floor<TF>((double)m.tol, dim);
       const std::array<double, 3> t2nm{(double)m.nfdim[0], (double)m.nfdim[1],
                                        (double)m.nfdim[2]};
-      t2opts.upsampfac = finufft::heuristics::best_type12<TF>(
-                             (double)m.tol, dim, 2, opts.nthreads, t2nm.data(),
-                             (double)nk, m.spopts.kerformula, inner_sigma_floor)
-                             .sigma;
+      t2opts.upsampfac =
+          finufft::heuristics::best_type12<TF>((double)m.tol, dim, 2, opts.nthreads,
+                                               t2nm.data(), (double)nk, inner_sigma_floor)
+              .sigma;
     }
     // (...could vary other t2opts here?)
     // MR: temporary hack, until we have figured out the C++ interface.

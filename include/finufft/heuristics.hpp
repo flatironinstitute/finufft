@@ -92,35 +92,33 @@ inline int kernel_width_at(double tol, int dim, int type, double sigma) {
 //
 //   cost(sigma, ns): caller-supplied score of a candidate in consistent flop units.
 //   maxN:            largest mode count over dims (1 for type 3).
-//   kerformula:      the plan's resolved kernel formula (the auto search must judge
-//                    sigma on the kernel the plan will actually run).
 //   lo:              optional lower bound on the search. Default 0 means no bound.
 //                    If a feasible sigma >= lo exists, the pick is feasible and
 //                    >= min(lo, MAX_AUTO_UPSAMPFAC). Otherwise the analytic start
 //                    comes back. The plan pipeline reports the failure.
 // If tol is unachievable, returns the largest sigma and the plan pipeline reports it.
 template<typename TF, class Cost>
-sigma_info minimize(double tol, int dim, int type, double maxN, int kerformula,
-                    Cost &&cost, double lo = 0.0) {
+sigma_info minimize(double tol, int dim, int type, double maxN, Cost &&cost,
+                    double lo = 0.0) {
   using namespace finufft::common;
   constexpr double eps_mach = std::numeric_limits<TF>::epsilon();
   constexpr bool is_float   = std::is_same_v<TF, float>;
   const auto feasible       = [&](double sigma) {
     return upsampfac_feasible(sigma, tol, dim, type, eps_mach, MAX_NSPREAD<TF>, is_float,
-                              maxN, kerformula);
+                              maxN);
   };
-  const double sigma_min = analytic_upsampfac(tol, dim, type, eps_mach, MAX_NSPREAD<TF>,
-                                              is_float, maxN, kerformula);
-  const int ns_min       = kernel_width_at<TF>(tol, dim, type, sigma_min);
+  const double sigma_min =
+      analytic_upsampfac(tol, dim, type, eps_mach, MAX_NSPREAD<TF>, is_float, maxN);
+  const int ns_min = kernel_width_at<TF>(tol, dim, type, sigma_min);
   sigma_info best{sigma_min, cost(sigma_min, ns_min)};
   if (!feasible(sigma_min)) return best; // tol unachievable; pipeline reports
   // Search starts at the smallest feasible sigma >= lo (analytic_upsampfac's own
   // bisection on [max(lo, MIN_AUTO_UPSAMPFAC), MAX_AUTO_UPSAMPFAC]); nothing feasible
   // there means no feasible sigma >= lo at all.
-  const double sigma_lo =
-      lo > sigma_min ? analytic_upsampfac(tol, dim, type, eps_mach, MAX_NSPREAD<TF>,
-                                          is_float, maxN, kerformula, lo)
-                     : sigma_min;
+  const double sigma_lo = lo > sigma_min
+                              ? analytic_upsampfac(tol, dim, type, eps_mach,
+                                                   MAX_NSPREAD<TF>, is_float, maxN, lo)
+                              : sigma_min;
   if (!feasible(sigma_lo)) return best; // nothing >= lo; pipeline reports
   best = {sigma_lo, cost(sigma_lo, kernel_width_at<TF>(tol, dim, type, sigma_lo))};
   for (int ns_t = kernel_width_at<TF>(tol, dim, type, sigma_lo) - 1;
@@ -141,13 +139,13 @@ sigma_info minimize(double tol, int dim, int type, double maxN, int kerformula,
 // keep the chosen sigma >= the type-3 inner-sigma floor; 0 leaves types 1/2 as was).
 template<typename TF>
 sigma_info best_type12(double tol, int dim, int type, int nthreads, const double *nmodes,
-                       double npts, int kerformula, double lo = 0.0) {
+                       double npts, double lo = 0.0) {
   const double c    = c_fft(nthreads);
   const double maxN = *std::max_element(nmodes, nmodes + dim);
   const auto cost   = [&](double sigma, int ns) {
     return spread_cost<TF>(npts, ns, dim) + fft_cost(c, nmodes, sigma, ns, dim);
   };
-  return minimize<TF>(tol, dim, type, maxN, kerformula, cost, lo);
+  return minimize<TF>(tol, dim, type, maxN, cost, lo);
 }
 
 // Fine-grid length set_nhg_type3 builds for one dim at this sigma3, from the
@@ -161,11 +159,10 @@ inline double type3_fine_grid_len(double sigma3, double X, double S, int ns3) {
 
 // Floor on the inner type-2 sigma of a type-3 plan: the inner t2 deconvolution error
 // adds to the outer one, so the inner search starts at the type-3 minimum.
-template<typename TF>
-double type3_inner_sigma_floor(double tol, int dim, int kerformula) {
+template<typename TF> double type3_inner_sigma_floor(double tol, int dim) {
   return finufft::common::analytic_upsampfac(
       tol, dim, 3, std::numeric_limits<TF>::epsilon(), finufft::common::MAX_NSPREAD<TF>,
-      std::is_same_v<TF, float>, 1.0, kerformula);
+      std::is_same_v<TF, float>, 1.0);
 }
 
 // Returns the cost-minimizing upsampfac (sigma3) for a type-3 transform.
@@ -177,18 +174,18 @@ double type3_inner_sigma_floor(double tol, int dim, int kerformula) {
 // interval half-widths (from arraywidcen).
 template<typename TF>
 double best_type3(double tol, int dim, int nthreads, double nj, const double *X,
-                  const double *S, double nk, int kerformula) {
-  const double inner_sigma_floor = type3_inner_sigma_floor<TF>(tol, dim, kerformula);
+                  const double *S, double nk) {
+  const double inner_sigma_floor = type3_inner_sigma_floor<TF>(tol, dim);
   const auto cost                = [&](double sigma3, int outer_ns) {
     std::array<double, 3> nmodes{1.0, 1.0, 1.0};
     for (int idim = 0; idim < dim; ++idim)
       nmodes[idim] = type3_fine_grid_len(sigma3, X[idim], S[idim], outer_ns);
-    const auto inner_pick = best_type12<TF>(tol, dim, 2, nthreads, nmodes.data(), nk,
-                                            kerformula, inner_sigma_floor);
+    const auto inner_pick =
+        best_type12<TF>(tol, dim, 2, nthreads, nmodes.data(), nk, inner_sigma_floor);
     const double outer_spread_cost = spread_cost<TF>(nj, outer_ns, dim);
     return outer_spread_cost + inner_pick.cost;
   };
-  return minimize<TF>(tol, dim, /*type=*/3, /*maxN=*/1.0, kerformula, cost).sigma;
+  return minimize<TF>(tol, dim, /*type=*/3, /*maxN=*/1.0, cost).sigma;
 }
 
 } // namespace finufft::heuristics
