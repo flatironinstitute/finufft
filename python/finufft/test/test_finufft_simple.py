@@ -86,10 +86,10 @@ def test_finufft3_simple(dtype, dim, n_source_pts, n_target_pts, n_trans, output
     eps = type3_eps(dtype)
 
     if not output_arg:
-        target_coefs = fun(*source_pts, source_coefs, *target_pts, eps=eps)
+        target_coefs = fun(*source_pts, source_coefs, *target_pts, tol=eps)
     else:
         target_coefs = np.empty(n_trans + (n_target_pts,), dtype=dtype)
-        fun(*source_pts, source_coefs, *target_pts, out=target_coefs, eps=eps)
+        fun(*source_pts, source_coefs, *target_pts, out=target_coefs, tol=eps)
 
     utils.verify_type3(source_pts, source_coefs, target_pts, target_coefs, eps)
 
@@ -140,3 +140,40 @@ def test_finufft_simple_errors():
         finufft.nufft1d1(
             np.zeros(1), np.zeros(1, np.complex128), 4, out=np.zeros((3), np.complex128)
         )
+
+
+def test_tol_eps_alias():
+    rng = np.random.default_rng(0)
+    x = rng.uniform(-np.pi, np.pi, 50)
+    c = rng.standard_normal(50) + 1j * rng.standard_normal(50)
+
+    f_tol = finufft.nufft1d1(x, c, 32, tol=1e-9)
+
+    # eps= is a deprecated alias: same values, exactly one warning
+    with pytest.warns(DeprecationWarning, match="eps is deprecated, use tol"):
+        f_eps = finufft.nufft1d1(x, c, 32, eps=1e-9)
+    np.testing.assert_allclose(f_tol, f_eps, rtol=1e-12, atol=1e-12)
+
+    # Plan as well: deprecated alias warns and gives the same result
+    with pytest.warns(DeprecationWarning, match="eps is deprecated, use tol"):
+        plan_eps = finufft.Plan(1, (32,), eps=1e-9)
+    plan_tol = finufft.Plan(1, (32,), tol=1e-9)
+    xg = rng.uniform(-np.pi, np.pi, 50)
+    cg = rng.standard_normal(50) + 1j * rng.standard_normal(50)
+    plan_tol.setpts(xg)
+    plan_eps.setpts(xg)
+    np.testing.assert_allclose(
+        plan_tol.execute(cg), plan_eps.execute(cg), rtol=1e-12, atol=1e-12
+    )
+
+    # both tol and eps is an error
+    with pytest.raises(TypeError, match="both `tol` and deprecated alias `eps`"):
+        finufft.nufft1d1(x, c, 32, tol=1e-9, eps=1e-9)
+    with pytest.raises(TypeError, match="both `tol` and deprecated alias `eps`"):
+        finufft.Plan(1, (32,), tol=1e-9, eps=1e-9)
+    # an explicit eps=None still counts as passing eps
+    with pytest.raises(TypeError, match="both `tol` and deprecated alias `eps`"):
+        finufft.nufft1d1(x, c, 32, tol=1e-9, eps=None)
+
+    # tol alone gives no warning at all (the run uses -W error::DeprecationWarning)
+    finufft.nufft1d1(x, c, 32, tol=1e-9)

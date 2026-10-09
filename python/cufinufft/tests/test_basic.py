@@ -31,7 +31,7 @@ def test_type1(to_gpu, to_cpu, dtype, shape, M, tol, output_arg, modeord, gpu_me
     k_gpu = to_gpu(k)
     c_gpu = to_gpu(c)
 
-    plan = Plan(1, shape, eps=tol, dtype=dtype, modeord=modeord, gpu_method=gpu_method)
+    plan = Plan(1, shape, tol=tol, dtype=dtype, modeord=modeord, gpu_method=gpu_method)
 
     # Since k_gpu is an array of shape (dim, M), this will expand to
     # plan.setpts(k_gpu[0], ..., k_gpu[dim]), allowing us to handle all
@@ -61,7 +61,7 @@ def test_type1(to_gpu, to_cpu, dtype, shape, M, tol, output_arg, modeord, gpu_me
 def test_type2(to_gpu, to_cpu, dtype, shape, M, tol, output_arg, contiguous, modeord):
     k, fk = utils.type2_problem(dtype, shape, M)
 
-    plan = Plan(2, shape, eps=tol, dtype=dtype, modeord=modeord)
+    plan = Plan(2, shape, tol=tol, dtype=dtype, modeord=modeord)
 
     check_result = True
 
@@ -148,7 +148,7 @@ def test_opts(to_gpu, to_cpu, shape=(8, 8, 8), M=32, tol=1e-3):
     c_gpu = to_gpu(c)
     fk_gpu = _compat.array_empty_like(c_gpu, shape, dtype=dtype)
 
-    plan = Plan(1, shape, eps=tol, dtype=dtype, gpu_sort=False, gpu_maxsubprobsize=10)
+    plan = Plan(1, shape, tol=tol, dtype=dtype, gpu_sort=False, gpu_maxsubprobsize=10)
 
     plan.setpts(k_gpu[0], k_gpu[1], k_gpu[2])
 

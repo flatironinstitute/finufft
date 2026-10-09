@@ -42,6 +42,39 @@ exiting = False
 atexit.register(setattr, sys.modules[__name__], "exiting", True)
 
 
+def _external_stacklevel() -> int:
+    # Count frames from this package so warnings point at the user's call.
+    pkg = __name__.split(".")[0]
+    frame = sys._getframe(1)
+    level = 1
+    while (
+        frame is not None and frame.f_globals.get("__name__", "").split(".")[0] == pkg
+    ):
+        level += 1
+        frame = frame.f_back
+    return level
+
+
+def _resolve_tol(tol, kwargs):
+    # Resolve the tolerance and handle `eps` as a deprecated alias of `tol`.
+    # Detect whether `eps` was passed at all: an explicit `eps=None` still
+    # counts as passed.
+    if "eps" in kwargs:
+        eps = kwargs.pop("eps")
+        if tol is not None:
+            raise TypeError("got both `tol` and deprecated alias `eps`; use `tol`")
+        warnings.warn(
+            "eps is deprecated, use tol",
+            DeprecationWarning,
+            stacklevel=_external_stacklevel(),
+        )
+        if eps is not None:
+            tol = eps
+    if tol is None:
+        tol = 1e-6
+    return tol
+
+
 class Plan:
     """
     A non-uniform fast Fourier transform (NUFFT) plan
@@ -58,7 +91,8 @@ class Plan:
         n_modes         (tuple of ints): the number of modes in each
                         dimension (for example `(50, 100)`).
         n_trans         (int, optional): number of transforms to compute.
-        eps             (float, optional): precision requested (>1e-16).
+        tol             (float, optional): precision requested (>1e-16).
+                        ``eps`` is a deprecated alias of ``tol``.
         isign           (int, optional): if +1, uses the positive sign
                         exponential, otherwise the negative sign; defaults to
                         +1 for type 1 and to -1 for type 2.
@@ -87,7 +121,7 @@ class Plan:
         nufft_type: int,
         n_modes: int | Iterable[int],
         n_trans: int = 1,
-        eps: float = 1e-6,
+        tol: float | None = None,
         isign: int | None = None,
         dtype: npt.DTypeLike = "complex64",
         **kwargs: Any,
@@ -101,6 +135,9 @@ class Plan:
         # Need to set the plan here in case something goes wrong later on,
         # otherwise we error during __del__.
         self._plan = None
+
+        # resolve tol and the deprecated eps alias before any opts handling
+        tol = _resolve_tol(tol, kwargs)
 
         # Setup type bound methods
         self._dtype = np.dtype(dtype)
@@ -144,7 +181,7 @@ class Plan:
         self._dim = dim
         self._type = nufft_type
         self._isign = isign
-        self._eps = float(eps)
+        self._eps = float(tol)
         self._n_modes = modes
         self._n_trans = n_trans
         self._maxbatch = 1  # TODO: optimize this one day

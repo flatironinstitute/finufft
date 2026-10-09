@@ -12,6 +12,9 @@ v2.6.0-dev
   `make.inc.macosx_gcc-10`/`-14`/`-15` files, reading the compiler names from
   the formula's bin dir, and CI installs `brew install gcc` (not `gcc@NN`).
   To pin a GCC major, pass `CXX=g++-NN CC=gcc-NN` on the make line. (Barbone)
+* Python (finufft and cufinufft): the tolerance parameter is now ``tol``;
+  ``eps`` still works as a deprecated alias that warns once per call (#923).
+  (Barbone)
 * icpx before 2026.0 miscompiles bin sorting by not recognizing a loop carried and
   generating the wrong vectorization. Fixed by disabling vectorization on that
   particular loop #914. (Menke)

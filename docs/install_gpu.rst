@@ -179,7 +179,7 @@ For example, for CuPy, you would run
 
     pip install cupy-cuda12x
 
-for the CUDA 12.x version of CuPy (use ``cupy-cuda11x`` with a CUDA 11 toolkit).
+Use the cupy wheel that matches the major version of your CUDA toolkit: ``cupy-cuda12x`` for CUDA 12, ``cupy-cuda13x`` for CUDA 13.
 Assuming ``pytest`` is installed (otherwise, just run ``pip install pytest``), you can now test the installation by running
 
 .. code-block:: bash
