@@ -1,6 +1,7 @@
 c     Demo using FINUFFT for single-precision 1d transforms in legacy fortran.
 c     Does types 1,2,3, including math test against direct summation.
 c     Default opts only (see simple1d1f for how to change opts).
+c     To build and run it, see docs/fortran.rst.
 c
 c     A slight modification of drivers from the CMCL NUFFT, (C) 2004-2009,
 c     Leslie Greengard and June-Yub Lee. See: cmcl_license.txt.
@@ -9,12 +10,8 @@ c     Tweaked by Alex Barnett to call FINUFFT 2/17/17, & single prec.
 c     dyn malloc; type 2 uses same input data fk0, 3/8/17
 c     Also see: ../README.
 c
-c     Compile with, eg (GCC, multithreaded, static lib; paste to a single line):
-c
-c     gfortran nufft1d_demof.f ../directft/dirft1df.f -o nufft1d_demof
-c     ../../lib-static/libfinufftf.a -lstdc++ -lfftw3f -lfftw3f_omp -lm -fopenmp
-c
       program nufft1d_demof
+      use, intrinsic :: ieee_arithmetic, only: ieee_is_finite
       implicit none
 
 c     our fortran-header, always needed
@@ -25,7 +22,7 @@ c
       integer i,ier,iflag,j,k1,mx
       integer*8 ms,nj
       real*4, allocatable :: xj(:),sk(:)
-      real*4 err,eps,pi
+      real*4 err,maxerr,tol,pi
       parameter (pi=3.141592653589793238462643383279502884197d0)
       complex*8, allocatable :: cj(:),cj0(:),cj1(:),fk0(:),fk1(:)
 c     for default opts, make a null pointer...
@@ -55,34 +52,47 @@ c     start tests
 c     --------------------------------------------------
 c
       iflag = 1
-      print*,' Start 1D testing: ', ' nj =',nj, ' ms =',ms
+      maxerr = 0e0
       do i = 1,3
-         if (i.eq.1) eps=1e-2
-         if (i.eq.2) eps=1e-4
-         if (i.eq.3) eps=1e-5
-	 print*,' '
-  	 print*,' Requested precision eps =',eps
-	 print*,' '
+         if (i.eq.1) tol=1e-2
+         if (i.eq.2) tol=1e-4
+         if (i.eq.3) tol=1e-5
 c
 c     -----------------------
 c     call 1D Type1 method
 c     -----------------------
 c
          call dirft1d1f(nj,xj,cj,iflag, ms,fk0)
-         call finufftf1d1(nj,xj,cj,iflag,eps,ms,fk1,defopts,ier)
+         call finufftf1d1(nj,xj,cj,iflag,tol,ms,fk1,defopts,ier)
+         if (ier.ne.0) then
+            print *, 'FAILED: finufftf1d1 ier is not 0'
+            stop 1, quiet=.true.
+         endif
          call errcomp(fk0,fk1,ms,err)
-         print *,' ier = ',ier
-         print *,' type 1 error = ',err
+         if (.not.ieee_is_finite(sum(abs(fk1))) .or.
+     $        .not.(err.le.10*tol)) then
+            print *, 'FAILED: type 1 rel err too large, or NaN or Inf'
+            stop 1, quiet=.true.
+         endif
+         maxerr = max(maxerr,err)
 c
 c     -----------------------
 c     call 1D Type2 method
 c     -----------------------
 c
          call dirft1d2f(nj,xj,cj0,iflag, ms,fk0,ier)
-         call finufftf1d2(nj,xj,cj1,iflag, eps, ms,fk0,defopts,ier)
+         call finufftf1d2(nj,xj,cj1,iflag, tol, ms,fk0,defopts,ier)
+         if (ier.ne.0) then
+            print *, 'FAILED: finufftf1d2 ier is not 0'
+            stop 1, quiet=.true.
+         endif
          call errcomp(cj0,cj1,nj,err)
-         print *,' ier = ',ier
-         print *,' type 2 error = ',err
+         if (.not.ieee_is_finite(sum(abs(cj1))) .or.
+     $        .not.(err.le.10*tol)) then
+            print *, 'FAILED: type 2 rel err too large, or NaN or Inf'
+            stop 1, quiet=.true.
+         endif
+         maxerr = max(maxerr,err)
 c
 c     -----------------------
 c     call 1D Type3 method
@@ -91,12 +101,20 @@ c     -----------------------
             sk(k1) = 48*cos(k1*pi/ms)
          enddo
          call dirft1d3f(nj,xj,cj,iflag, ms,sk,fk0)
-         call finufftf1d3(nj,xj,cj,iflag,eps, ms,sk,fk1,defopts,ier)
-         call errcomp(cj0,cj1,nj,err)
-         print *,' ier = ',ier
-         print *,' type 3 error = ',err
+         call finufftf1d3(nj,xj,cj,iflag,tol, ms,sk,fk1,defopts,ier)
+         if (ier.ne.0) then
+            print *, 'FAILED: finufftf1d3 ier is not 0'
+            stop 1, quiet=.true.
+         endif
+         call errcomp(fk0,fk1,ms,err)
+         if (.not.ieee_is_finite(sum(abs(fk1))) .or.
+     $        .not.(err.le.10*tol)) then
+            print *, 'FAILED: type 3 rel err too large, or NaN or Inf'
+            stop 1, quiet=.true.
+         endif
+         maxerr = max(maxerr,err)
       enddo
-      stop
+      print '("max rel err = ",e10.2)',maxerr
       end
 c
 c
@@ -107,14 +125,14 @@ c
       implicit none
       integer*8 k,n
       complex*8 fk0(n), fk1(n)
-      real *4 salg,ealg,err
+      real *4 fmax,emax,err
 c
-      ealg = 0e0
-      salg = 0e0
+      emax = 0e0
+      fmax = 0e0
       do k = 1, n
-         ealg = ealg + cabs(fk1(k)-fk0(k))**2
-         salg = salg + cabs(fk0(k))**2
+         emax = max(emax,cabs(fk1(k)-fk0(k)))
+         fmax = max(fmax,cabs(fk1(k)))
       enddo
-      err =sqrt(ealg/salg)
+      err = emax/fmax
       return
       end

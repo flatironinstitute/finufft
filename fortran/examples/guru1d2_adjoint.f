@@ -2,16 +2,12 @@ c     Guru interface from fortran for adjoint of 1D type 2 transform,
 c     (equiv to a type 2 with flipped iflag), math test of one output.
 c     Double-precision only.
 c     Legacy-style: f77, plus dynamic allocation & derived types from f90.
-
-c     To compile (linux/GCC) from this directory, use eg (paste to one line):
-
-c     gfortran -fopenmp -I../../include -I/usr/include guru1d2_adjoint.f
-c     ../../lib/libfinufft.so -lfftw3 -lfftw3_omp -lgomp -lstdc++
-c     -o guru1d2_adjoint
+c     To build and run it, see docs/fortran.rst.
 
 c     Martin Reinecke and Alex Barnett, 6/26/25
 
       program guru1d2_adjoint
+      use, intrinsic :: ieee_arithmetic, only: ieee_is_finite
       implicit none
 
 c     our fortran header, always needed
@@ -19,9 +15,9 @@ c     our fortran header, always needed
 
 c     note some inputs are int (int*4) but others BIGINT (int*8)
       integer ier,iflag
-      integer*8 N,ktest,M,j,k,ktestindex,t1,t2,crate
+      integer*8 N,ktest,M,j,k,ktestindex
       real*8, allocatable :: xj(:)
-      real*8 err,tol,pi,t,fmax
+      real*8 err,tol,pi,fmax
       parameter (pi=3.141592653589793238462643383279502884197d0)
       complex*16, allocatable :: cj(:),fk(:)
       complex*16 fktest
@@ -44,8 +40,6 @@ c     how many modes
       allocate(fk(N))
       allocate(xj(M))
       allocate(cj(M))
-      print *,''
-      print *,'creating data then run guru interface, default opts...'
 c     create some quasi-random NU pts in [-pi, pi), complex strengths
       do j = 1,M
          xj(j) = pi * dcos(pi*j/M)
@@ -61,26 +55,26 @@ c     mandatory parameters to FINUFFT guru interface...
       allocate(n_modes(3))
       n_modes(1) = N
 c     (note since dim=1, unused entries on n_modes are never read)
-      call system_clock(t1)
 c     use default options
       call finufft_makeplan(ttype,dim,n_modes,iflag,ntrans,
      $     tol,plan,defopts,ier)
       if (ier.ne.0) then
-         print *,'makeplan failed! ier=',ier
-         stop
+         print *, 'FAILED: finufft_makeplan ier is not 0'
+         stop 1, quiet=.true.
       endif
 c     note for ttype 1 or 2, arguments 6-9 ignored...
       call finufft_setpts(plan,M,xj,dummy,dummy,dummy,
      $     dummy,dummy,dummy,ier)
+      if (ier.ne.0) then
+         print *, 'FAILED: finufft_setpts ier is not 0'
+         stop 1, quiet=.true.
+      endif
 c     Do the adjoint of planned transform:
 c     reads fk (mode coeffs), writes cj (strengths) and ier (status)
       call finufft_execute_adjoint(plan,cj,fk,ier)
-      call system_clock(t2,crate)
-      t = (t2-t1)/float(crate)
-      if (ier.eq.0) then
-         print '("done in ",f6.3," sec, ",e10.2," NU pts/s")',t,M/t
-      else
-         print *,'failed! ier=',ier
+      if (ier.ne.0) then
+         print *, 'FAILED: finufft_execute_adjoint ier is not 0'
+         stop 1, quiet=.true.
       endif
       call finufft_destroy(plan,ier)
 
@@ -98,9 +92,14 @@ c     compute inf norm of fk coeffs for use in rel err
       do k=1,N
          fmax = max(fmax,cdabs(fk(k)))
       enddo
+c     max() skips NaN, so check the sum over all outputs
       ktestindex = ktest + N/2 + 1
-      print '("rel err for mode k=",i10," is ",e10.2)',ktest,
-     $     cdabs(fk(ktestindex)-fktest)/fmax
-
-      stop
+      err = cdabs(fk(ktestindex)-fktest)/fmax
+c     (written so that a NaN err also fails)
+      if (.not.ieee_is_finite(sum(abs(fk))) .or.
+     $     .not.(err.le.10*tol)) then
+         print *, 'FAILED: rel err too large, or NaN or Inf in output'
+         stop 1, quiet=.true.
+      endif
+      print '("rel err = ",e10.2)',err
       end
