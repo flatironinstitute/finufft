@@ -1,0 +1,28 @@
+name: Docs rebuild on perftest page publish
+
+# readthedocs bakes the perftest summary in at docs-build time (pre_build in
+# .readthedocs.yaml), so a fresh page stays invisible until "latest" rebuilds.
+# Jenkins pushes the page to perftest-results; this workflow turns that push
+# into a build of "latest" through the project's generic incoming webhook
+# (Admin > Integrations - a project-scoped token, so no readthedocs credential
+# lives in Jenkins, where any job editor can read it). A push event runs the
+# workflow file from the pushed ref, so page-publish.sh copies this file into
+# the orphan commit.
+on:
+  push:
+    branches: [perftest-results]
+
+jobs:
+  rebuild:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger readthedocs build of latest
+        env:
+          URL: ${{ secrets.RTD_WEBHOOK_URL }}
+          TOKEN: ${{ secrets.RTD_WEBHOOK_TOKEN }}
+        # branches takes git branch names, not version slugs: master maps to
+        # the "latest" version. The endpoint answers 200 even when it builds
+        # nothing, so the grep is the actual verdict.
+        run: |
+          curl -fsS --data "branches=master&token=$TOKEN" "$URL" | tee response.json
+          grep -q '"build_triggered":true' response.json
