@@ -9,7 +9,7 @@
 int main() {
   BIGINT M = 1e3, N = 1e3;            // defaults: M = # srcs, N = # modes out
 #ifdef SINGLE
-  double tol = 1e-3; // above single-prec rounding floor ~1.4e-4 at N=1e3
+  double tol = 1e-3;                  // above single-prec rounding floor ~1.4e-4 at N=1e3
 #else
   double tol = 1e-5;
 #endif
