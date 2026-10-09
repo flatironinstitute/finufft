@@ -65,10 +65,10 @@ double kernel_tolfac(int dim, int type) {
   // drift apart (a past source of type-3 inconsistency). PER_DIM and TYPE3 are distinct
   // empirical fudge factors that happen to share the value 1.4. Integer-power multiply
   // rather than std::pow.
-  constexpr double TOLFAC_1D      = 0.18; // 1D type-1/2 base prefactor
-  constexpr double TOLFAC_PER_DIM = 1.4;  // per-extra-dim worsening, ^(dim-1)
-  constexpr double TOLFAC_TYPE3   = 1.4;  // type-3 outer-spread extra worsening
-  constexpr auto ipow             = [](double base, int n) {
+  constexpr double TOLFAC_1D = 0.18; // 1D type-1/2 base prefactor
+  constexpr double TOLFAC_PER_DIM = 1.4; // per-extra-dim worsening, ^(dim-1)
+  constexpr double TOLFAC_TYPE3 = 1.4; // type-3 outer-spread extra worsening
+  constexpr auto ipow = [](double base, int n) {
     double r = 1.0;
     for (int i = 0; i < n; ++i) r *= base;
     return r;
@@ -82,12 +82,12 @@ int theoretical_kernel_ns(double tol, int dim, int type,
   // in exact arithmetic, to achieve requested tolerance tol. Possibly uses
   // other parameters in spopts (upsampfac, kerformula,...). No clipping of ns
   // to valid range done here. Input upsampfac must be >1.0.
-  double sigma        = spopts.upsampfac;
+  double sigma = spopts.upsampfac;
   // generic formula for PSWF-like kernels. Currently for kf=8, PSWF (beta shift).
   // tweak tolfac and nsoff for user tol matching (& tolsweep passing) over sigma...
   const double tolfac = kernel_tolfac(dim, type);
-  const double nsoff  = 1.0; // width offset (helps balance err over sigma range)
-  int ns              = (int)std::ceil(
+  const double nsoff = 1.0; // width offset (helps balance err over sigma range)
+  int ns = (int)std::ceil(
       std::log(tolfac / tol) / (finufft::common::PI * std::sqrt(1.0 - 1.0 / sigma)) +
       nsoff);
   return ns;
@@ -97,9 +97,9 @@ void set_kernel_shape_given_ns(finufft_spread_opts &spopts, int debug) {
   // Writes kernel shape parameter(s) (beta,...), into spopts, given previously-set
   // kernel info fields in spopts, principally: nspread, upsampfac, kerformula.
   // debug >0 causes stdout reporting.
-  int ns                   = spopts.nspread;
-  double sigma             = spopts.upsampfac;
-  int kf                   = spopts.kerformula;
+  int ns       = spopts.nspread;
+  double sigma = spopts.upsampfac;
+  int kf       = spopts.kerformula;
   // Std shape param formula using ES model for cutoff, eg (4.5) in [FIN] with gamma=1.
   // For PSWF, aligns cut-off (start of aliasing) with freq (c) param. Used below...
   const double beta_cutoff = common::PI * (double)ns * (1.0 - 1.0 / (2.0 * sigma));
@@ -113,7 +113,7 @@ void set_kernel_shape_given_ns(finufft_spread_opts &spopts, int debug) {
     */
     double c_Beatty = (ns == 2) ? 0.5 : 0.8; // ns=2 case gives error fac 2 better for KB
     double pis      = common::PI * common::PI;
-    spopts.beta     = std::sqrt(beta_cutoff * beta_cutoff - c_Beatty / pis);
+    spopts.beta = std::sqrt(beta_cutoff * beta_cutoff - c_Beatty / pis);
 
   } else if (kf == 8) {
     // Std shape param with const shift to exploit a little more tail decay,
@@ -123,7 +123,7 @@ void set_kernel_shape_given_ns(finufft_spread_opts &spopts, int debug) {
                                       // spopts.beta = beta_cutoff; // std param
 
   } else if (kf == 9) {
-    double t    = beta_cutoff / common::PI;
+    double t = beta_cutoff / common::PI;
     // Marco's LSQ fit using simple functions of t, 1/23/26.
     spopts.beta = ((-0.00149087 * t + 0.0218459) * t + 3.06269) * t - 0.0365245;
   }

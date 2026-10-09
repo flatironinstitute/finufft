@@ -48,7 +48,7 @@ inline double c_fft(int nthreads) {
   // calibrated on ccmlin075 (AVX-512, FFTW); see devel/calibrate_upsampfac.cpp.
   // Centred in a wide flat plateau (C in ~[1.2,3] all pick within 3% of optimum on
   // 1D/2D/3D, f32/f64, single/multi-thread); one shared set covers FFTW and DUCC0.
-  constexpr double C_FFT_BASE   = 2.0;
+  constexpr double C_FFT_BASE = 2.0;
   constexpr double K_FFT_THREAD = 0.50;
   return C_FFT_BASE * std::pow((double)std::max(1, nthreads), K_FFT_THREAD);
 }
@@ -70,7 +70,7 @@ template<typename TF>
 inline int kernel_width_at(double tol, int dim, int type, double sigma) {
   finufft_spread_opts so{};
   so.kerformula = 0;
-  so.upsampfac  = sigma;
+  so.upsampfac = sigma;
   return finufft::kernel::clamp_kernel_ns<TF>(
       finufft::kernel::theoretical_kernel_ns(tol, dim, type, so), sigma);
 }
