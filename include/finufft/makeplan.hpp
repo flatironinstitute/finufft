@@ -253,8 +253,8 @@ template<typename TF> void FINUFFT_PLAN_T<TF>::precompute_horner_coeffs() {
     // Truncate polynomial degree using a numerical coeff size cut-off:
     // truncation at nc is allowed if all coeffs of degree nc have magnitude
     // less than tol * coeffs_tol_cutoff. The smallest such nc is found.
-    // Experiments showed with this as 0.1, ns=15 still had err bump...
-    const TF coeffs_tol_cutoff = 0.05; // coeffs cut-off rel to tol: to-do make opts?
+    // Experiments showed with this as 0.1, then 0.05, ns=15 still had err bump...
+    const TF coeffs_tol_cutoff = 0.02; // coeffs cut-off rel to tol: to-do make opts?
     // Note: ordering is coeffs[0] highest degree, to coeffs[nc_fit-1] const term.
     int nc_needed = 0; // initialize. then step down from highest degree...
     for (size_t k = 0; k < coeffs.size(); ++k) {              // power is nc_fit-1-k
