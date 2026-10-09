@@ -38,7 +38,7 @@ int main() {
   opts.allow_eps_too_small = 1;
 
   std::vector<FLT> x(M), y(M), z(M), X, Y, Z;
-  std::vector<CPX> c(M), ce(M), F, Fe;
+  std::vector<CPX> c(M), ce(M), F, Fe, c0(M), F0;
   srand(42);
 
 #ifdef SINGLE
@@ -59,60 +59,72 @@ int main() {
 
     for (double sigma : sigmas) {
       opts.upsampfac = sigma;
-      double tol     = tolmax;
+      // One fixed problem per (dim, sigma) so points along each curve are
+      // comparable; inputs drawn once here, reused across tols and types.
+      // c0/F0 are the pristine copies; c/F get clobbered by EXECUTE/dirft each
+      // iteration and are restored below.
+      for (BIGINT j = 0; j < M; ++j) {
+        x[j]  = PI * randm11();
+        y[j]  = PI * randm11();
+        z[j]  = PI * randm11();
+        c0[j] = crandm11();
+      }
+      F0.resize(N);
+      for (BIGINT k = 0; k < N; ++k) {
+        X[k]  = Nm[0] * rand01();
+        Y[k]  = Nm[1] * rand01();
+        Z[k]  = Nm[2] * rand01();
+        F0[k] = crandm11();
+      }
+      double tol = tolmax;
       for (int t = 0; t < ntols; ++t) {
         for (int type = 1; type <= 3; ++type) {
-          for (BIGINT j = 0; j < M; ++j) {
-            x[j] = PI * randm11();
-            y[j] = PI * randm11();
-            z[j] = PI * randm11();
-            c[j] = crandm11();
-          }
-          for (BIGINT k = 0; k < N; ++k) {
-            X[k] = Nm[0] * rand01();
-            Y[k] = Nm[1] * rand01();
-            Z[k] = Nm[2] * rand01();
-            F[k] = crandm11();
-          }
-          FINUFFT_PLAN plan;
+          c                 = c0;
+          F                 = F0;
+          FINUFFT_PLAN plan = nullptr;
           int ier = FINUFFT_MAKEPLAN(type, dim, Nm, isign, ntr, (FLT)tol, &plan, &opts);
-          int ier_set = FINUFFT_SETPTS(plan, M, x.data(), y.data(), z.data(), N, X.data(),
-                                       Y.data(), Z.data());
-          if (ier == 0 && ier_set == 0) FINUFFT_EXECUTE(plan, c.data(), F.data());
-          if (plan) FINUFFT_DESTROY(plan);
-
-          // direct exact eval, matching tolsweep
-          if (dim == 1) {
-            if (type == 1)
-              dirft1d1<BIGINT>(M, x, c, isign, Nm[0], Fe);
-            else if (type == 2)
-              dirft1d2<BIGINT>(M, x, ce, isign, Nm[0], F);
-            else
-              dirft1d3<BIGINT>(M, x, c, isign, Nm[0], X, Fe);
-          } else if (dim == 2) {
-            if (type == 1)
-              dirft2d1<BIGINT>(M, x, y, c, isign, Nm[0], Nm[1], Fe);
-            else if (type == 2)
-              dirft2d2<BIGINT>(M, x, y, ce, isign, Nm[0], Nm[1], F);
-            else
-              dirft2d3<BIGINT>(M, x, y, c, isign, N, X, Y, Fe);
-          } else {
-            if (type == 1)
-              dirft3d1<BIGINT>(M, x, y, z, c, isign, Nm[0], Nm[1], Nm[2], Fe);
-            else if (type == 2)
-              dirft3d2<BIGINT>(M, x, y, z, ce, isign, Nm[0], Nm[1], Nm[2], F);
-            else
-              dirft3d3<BIGINT>(M, x, y, z, c, isign, N, X, Y, Z, Fe);
+          int ier_set = FINUFFT_ERR_PLAN_NOTVALID, ier_ex = FINUFFT_ERR_PLAN_NOTVALID;
+          if (ier == 0) {
+            ier_set = FINUFFT_SETPTS(plan, M, x.data(), y.data(), z.data(), N, X.data(),
+                                     Y.data(), Z.data());
+            if (ier_set == 0) ier_ex = FINUFFT_EXECUTE(plan, c.data(), F.data());
+            FINUFFT_DESTROY(plan);
           }
-          double relerr;
-          if (type == 2)
-            relerr = relerrtwonorm<BIGINT>(M, ce, c);
-          else
-            relerr = relerrtwonorm<BIGINT>(N, Fe, F);
+          const int ier_all = ier ? ier : (ier_set ? ier_set : ier_ex);
+          // relerr valid only on success; NaN flags a failed row in the CSV.
+          double relerr     = std::numeric_limits<double>::quiet_NaN();
+          if (ier_all == 0) {
+            // direct exact eval, matching tolsweep
+            if (dim == 1) {
+              if (type == 1)
+                dirft1d1<BIGINT>(M, x, c, isign, Nm[0], Fe);
+              else if (type == 2)
+                dirft1d2<BIGINT>(M, x, ce, isign, Nm[0], F);
+              else
+                dirft1d3<BIGINT>(M, x, c, isign, Nm[0], X, Fe);
+            } else if (dim == 2) {
+              if (type == 1)
+                dirft2d1<BIGINT>(M, x, y, c, isign, Nm[0], Nm[1], Fe);
+              else if (type == 2)
+                dirft2d2<BIGINT>(M, x, y, ce, isign, Nm[0], Nm[1], F);
+              else
+                dirft2d3<BIGINT>(M, x, y, c, isign, N, X, Y, Fe);
+            } else {
+              if (type == 1)
+                dirft3d1<BIGINT>(M, x, y, z, c, isign, Nm[0], Nm[1], Nm[2], Fe);
+              else if (type == 2)
+                dirft3d2<BIGINT>(M, x, y, z, ce, isign, Nm[0], Nm[1], Nm[2], F);
+              else
+                dirft3d3<BIGINT>(M, x, y, z, c, isign, N, X, Y, Z, Fe);
+            }
+            if (type == 2)
+              relerr = relerrtwonorm<BIGINT>(M, ce, c);
+            else
+              relerr = relerrtwonorm<BIGINT>(N, Fe, F);
+          }
 
-          int ier_max = std::max(ier, ier_set);
           printf("%s,%d,%d,%.3g,%.3e,%.3e,%d\n", precname, dim, type, sigma, tol, relerr,
-                 ier_max);
+                 ier_all);
         }
         tol *= tolstep;
       }
