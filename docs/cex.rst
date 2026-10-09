@@ -10,47 +10,43 @@ Quick-start example in C++
 
 Here's how to perform a 1D type-1 transform
 in double precision from C++, using STL complex vectors.
+From the repository root, build and run the first example::
+
+  cmake -S . -B build -DFINUFFT_BUILD_EXAMPLES=ON
+  cmake --build build
+  build/examples/simple1d1
+
 First include our header, and some others needed for the demo:
 
-.. code-block:: C++
+.. literalinclude:: ../examples/simple1d1.cpp
+  :language: C++
+  :start-after: docs-start: quick-start
+  :end-before: docs-end: quick-start
 
-  #include "finufft.h"
-  #include <vector>
-  #include <complex>
-  #include <stdlib.h>
+We need nonuniform points ``x`` and complex strengths ``c``. Let's create random ones for now,
+drawn from a fixed-seed generator (``mt19937`` + ``uniform_real_distribution``):
 
-We need nonuniform points ``x`` and complex strengths ``c``. Let's create random ones for now:
+.. literalinclude:: ../examples/simple1d1.cpp
+  :language: C++
+  :start-after: docs-start: walkthrough
+  :end-before: docs-end: walkthrough
 
-.. code-block:: C++
+The full example file is ``examples/simple1d1.cpp``. Build and run all examples from the repository root with ``cmake -S . -B build -DFINUFFT_BUILD_EXAMPLES=ON`` and ``cmake --build build``.
 
-  int M = 1e7;                                   // number of nonuniform points
-  vector<double> x(M);
-  vector<complex<double> > c(M);
-  complex<double> I = complex<double>(0.0,1.0);  // the imaginary unit
-  for (int j=0; j<M; ++j) {
-    x[j] = M_PI*(2*((double)rand()/RAND_MAX)-1); // uniform random in [-pi,pi)
-    c[j] = 2*((double)rand()/RAND_MAX)-1 + I*(2*((double)rand()/RAND_MAX)-1);
-  }
-
-With ``N`` as the desired number of Fourier mode coefficients,
-allocate their output array:
-
-.. code-block:: C++
-
-  int N = 1e6;                                   // number of output modes
-  vector<complex<double> > F(N);
-
-Now do the NUFFT (with default options, indicated by the ``NULL`` in the following call). Since the interface is
+Now do the NUFFT (with default options; here we pass our own, initialized to defaults). Since the interface is
 C-compatible, we pass pointers to the start of the arrays (rather than
 C++-style vector objects), and also pass ``N``:
 
-.. code-block:: C++
+.. literalinclude:: ../examples/simple1d1.cpp
+  :language: C++
+  :start-after: docs-start: transform
+  :end-before: docs-end: transform
 
-  int ier = finufft1d1(M,&x[0],&c[0],+1,1e-9,N,&F[0],NULL);
+The full example file is ``examples/simple1d1.cpp``. Compile it against the static library with ``g++ -fopenmp simple1d1.cpp -o simple1d1 -I../include -Wl,--start-group ../build/src/libfinufft.a ../build/src/common/libfinufft_common.a -Wl,--end-group -lfftw3_omp -lfftw3 -lfftw3f_omp -lfftw3f``, or see ``examples/README`` for other linking options.
 
 This fills ``F`` with the output modes, in increasing ordering
 with the integer frequency indices from ``-N/2`` up to ``N/2-1``
-(since ``N`` is even; for odd is would be ``-(N-1)/2`` up to ``(N-1)/2``).
+(since ``N`` is even; for odd ``N`` it would be ``-(N-1)/2`` up to ``(N-1)/2``).
 The transform (:math:`10^7` points to :math:`10^6` modes) takes 0.4 seconds on a laptop.
 The index is thus offset by ``N/2`` (this is integer division in the odd case), so that frequency ``k`` is output in
 ``F[N/2 + k]``.
@@ -63,37 +59,25 @@ which is zero if successful (otherwise see :ref:`error codes <error>`).
 
    FINUFFT works with a periodicity of :math:`2\pi` for type 1 and 2 transforms; see :ref:`definitions <math>`. For example, nonuniform points :math:`x=\pm\pi` are equivalent. The input points can be any real numbers: each coordinate is folded internally into :math:`[-\pi,\pi)`, so round-off error grows with :math:`|x|`. To use a different periodicity, linearly rescale your coordinates.
 
-If instead you want to change some options, first
-put default values in a ``finufft_opts`` struct,
-make your changes, then pass the pointer to FINUFFT:
+If instead you want to change some options, put default values in the
+``finufft_opts`` struct, make your changes, then pass the pointer to FINUFFT.
+For instance, to print timing/debug info, the call sequence differs from the
+above only in::
 
-.. code-block:: C++
-
-  finufft_opts* opts = new finufft_opts;
-  finufft_default_opts(opts);
-  opts->debug = 1;                                // prints timing/debug info
-  int ier = finufft1d1(M,&x[0],&c[0],+1,tol,N,&F[0],opts);
+  opts.debug = 1;                                // prints timing/debug info
+  int ier = finufft1d1(M,&x[0],&c[0],+1,tol,N,&F[0],&opts);
 
 .. warning::
    - Without the ``finufft_default_opts`` call, options may take on arbitrary values which may cause a crash.
-   - Note that, as of version 2.0, ``opts`` is passed as a pointer in both places.
 
-See ``examples/simple1d1.cpp`` for a simple full working demo of the above, including a test of the math. If you instead use single-precision arrays,
+See ``examples/simple1d1.cpp`` for a simple full working demo of the above, including a test of the math (the demo uses ``M=10^7`` and ``N=10^6``). If you instead use single-precision arrays,
 replace the tag ``finufft`` by ``finufftf`` in each command; see ``examples/simple1d1f.cpp``.
 
-From the ``examples/`` directory, to compile on a linux/GCC system, linking to the static library, use eg::
+From the ``examples/`` directory, to compile the C quick-start example on a Linux/GCC system, linking to the static library, use::
 
-  g++ -fopenmp simple1d1.cpp -o simple1d1 -I../include ../lib-static/libfinufft.a -lfftw3_omp -lfftw3 -lfftw3f_omp -lfftw3f
+  gcc -fopenmp simple1d1c.c -o simple1d1c -I../include -Wl,--start-group ../build/src/libfinufft.a ../build/src/common/libfinufft_common.a -Wl,--end-group -lfftw3_omp -lfftw3 -lfftw3f_omp -lfftw3f -lstdc++ -lm
 
-Executing ``./simple1d1`` should now work (exit code ``0`` and displaying a small error).
-If you used ``FFT=DUCC`` you can of course drop the linking of the four ``fftw3`` libraries.
-Better is instead to link to the dynamic shared (``.so``) library, via eg::
-
-  g++ -fopenmp simple1d1.cpp -o simple1d1 -I../include -Wl,-rpath,$FINUFFT/lib/ -lfinufft
-
-where ``$FINUFFT`` must be replaced by (or be an environment variable set to) the absolute install path for this repository.
-Notice how ``rpath`` is used to make an executable that may be called from, or moved to, anywhere.
-See ``examples/README`` for general compilation instructions for the examples.
+The ``-lstdc++`` is needed for any C code linking against FINUFFT; see ``examples/README`` for general compilation instructions for the examples.
 The ``examples`` and ``test`` directories are good places to see further
 usage examples. The documentation for all 18 simple interfaces,
 and the more flexible guru interface, is further down this page.
@@ -141,28 +125,16 @@ the correct indexing of output modes. Don't forget to compile your C code with
 
 We assume Fortran-style contiguous multidimensional arrays, as opposed
 to C-style arrays of pointers; this allows the widest compatibility with other
-languages. Assuming the same headers as above, we first create points
-:math:`(x_j,y_j)` in the square :math:`[-\pi,\pi)^2`, and strengths as before:
+languages. Here is a 2D type-1 example (excerpt; the full file with the final
+accuracy check is ``examples/simple2d1.cpp``; it uses ``N1=2000``, ``N2=500``
+and requests ``tol=1e-6``):
 
-.. code-block:: C++
+.. literalinclude:: ../examples/simple2d1.cpp
+  :language: C++
+  :start-after: docs-start: simple2d1
+  :end-before: docs-end: simple2d1
 
-  int M = 1e7;                                   // number of nonuniform points
-  vector<double> x(M), y(M);
-  vector<complex<double> > c(M);
-  for (int j=0; j<M; ++j) {
-    x[j] = M_PI*(2*((double)rand()/RAND_MAX)-1);
-    y[j] = M_PI*(2*((double)rand()/RAND_MAX)-1);
-    c[j] = 2*((double)rand()/RAND_MAX)-1 + I*(2*((double)rand()/RAND_MAX)-1);
-  }
-
-Let's say we want ``N1=1000`` by ``N2=2000`` 2D Fourier coefficients.
-We allocate and do the (default options) transform thus:
-
-.. code-block:: C++
-
-  int N1=1000, N2=2000;
-  vector<complex<double> > F(N1*N2);
-  int ier = finufft2d1(M,&x[0],&y[0], &c[0], +1, 1e-6, N1, N2, &F[0], NULL);
+The full example file is ``examples/simple2d1.cpp``. Compile it against the static library with ``g++ -fopenmp simple2d1.cpp -o simple2d1 -I../include -Wl,--start-group ../build/src/libfinufft.a ../build/src/common/libfinufft_common.a -Wl,--end-group -lfftw3_omp -lfftw3 -lfftw3f_omp -lfftw3f``, or see ``examples/README`` for other linking options.
 
 This transform takes 0.6 seconds on a laptop.
 The modes have increasing ordering
@@ -177,7 +149,7 @@ See ``opts.modeord`` in :ref:`Options<opts>`
 to instead use FFT-style mode ordering, which
 simply differs by an "fftshift" (as it is commonly called).
 
-See ``examples/simple2d1.cpp`` for an example with a math check, to
+See ``examples/simple2d1.cpp`` for the same example with a math check, to
 insure that the mode indexing is correctly understood.
 
 
@@ -193,29 +165,20 @@ it can be faster to use a "vectorized"
 interface (which does the entire stack in one call)
 than to repeatedly call the above "simple" interfaces.
 This is especially true for many small problems.
-Here we show how to do a stack of ``ntrans=10`` 1D type 1 NUFFT transforms, in C++,
-assuming the same headers as in the first example above.
+Here we show how to do a stack of 1D type 1 NUFFT transforms, in C++
+(excerpt; the full file with the final accuracy check is
+``examples/many1d1.cpp``, which uses ``ntrans=3``).
 The strength data vectors are taken to be contiguous (the whole
 first vector, followed by the second, etc, rather than interleaved.)
 Ie, viewed as a matrix in Fortran storage, each column is a strength vector.
 
-.. code-block:: C++
+.. literalinclude:: ../examples/many1d1.cpp
+  :language: C++
+  :start-after: docs-start: many1d1
+  :end-before: docs-end: many1d1
 
-  int ntrans = 10;                               // how many transforms
-  int M = 1e7;                                   // number of nonuniform points
-  vector<double> x(M);
-  vector<complex<double> > c(M*ntrans);          // ntrans strength vectors
-  complex<double> I = complex<double>(0.0,1.0);  // the imaginary unit
-  for (int j=0; j<M; ++j)
-    x[j] = M_PI*(2*((double)rand()/RAND_MAX)-1);
-  for (int j=0; j<M*ntrans; ++j)                 // fill all ntrans vectors...
-    c[j] = 2*((double)rand()/RAND_MAX)-1 + I*(2*((double)rand()/RAND_MAX)-1);
-  int N = 1e6;                                   // number of output modes
-  vector<complex<double> > F(N*trans);           // ntrans output vectors
-  int ier = finufft1d1(M,&x[0],&c[0],+1,1e-9,N,&F[0],NULL);    // default opts
+The full example file is ``examples/many1d1.cpp``. Compile it against the static library with ``g++ -fopenmp many1d1.cpp -o many1d1 -I../include -Wl,--start-group ../build/src/libfinufft.a ../build/src/common/libfinufft_common.a -Wl,--end-group -lfftw3_omp -lfftw3 -lfftw3f_omp -lfftw3f``, or see ``examples/README`` for other linking options.
 
-This takes 2.6 seconds on a laptop, around 1.4x faster than
-making 10 separate "simple" calls.
 The frequency index ``k`` in transform number ``t`` (zero-indexing the transforms) is in ``F[k + (int)N/2 + N*t]``.
 
 See ``examples/many1d1.cpp`` and ``test/finufft?dmany_test.cpp``
@@ -238,28 +201,16 @@ set of stacked strength data (for type 1 and 3, or coefficients for type 2),
 reusing the existing FFTW plan and sorted points.
 Finally, you may execute *adjoints* of the planned transforms without
 re-planning, making forward-adjoint transform pairs very convenient.
-Now we redo the above 2D type 1 C++ example with the guru interface.
+Here's the 2D type 1 C++ guru example (excerpt; the full file with the final
+accuracy check is ``examples/guru2d1.cpp``; it uses ``N1=2000``, ``N2=500``
+and requests ``tol=1e-6``):
 
-One first makes a plan giving transform parameters, but no data:
+.. literalinclude:: ../examples/guru2d1.cpp
+  :language: C++
+  :start-after: docs-start: guru2d1
+  :end-before: docs-end: guru2d1
 
-.. code-block:: C++
-
-  // (assume x, y, c are filled, and F allocated, as in the 2D code above...)
-  int type=1, dim=2, ntrans=1;
-  int64_t Ns[] = {1000,2000};                    // N1,N2 as 64-bit int array
-  // step 1: make a plan...
-  finufft_plan plan;
-  int ier = finufft_makeplan(type, dim, Ns, +1, ntrans, 1e-6, &plan, NULL);
-  // step 2: send in pointers to M nonuniform points (just x, y in this case)...
-  finufft_setpts(plan, M, &x[0], &y[0], NULL, 0, NULL, NULL, NULL);
-  // (user should not change x, y nonuniform point arrays here!)
-  // step 3: do the planned transform to the c strength data, output to F...
-  finufft_execute(plan, &c[0], &F[0]);
-  // ... you could now send in new points, and/or do transforms with new c data
-  // ... or even adjoint transforms with the same points but now mapping F to c.
-  // ...
-  // step 4: when done, free the memory used by the plan...
-  finufft_destroy(plan);
+The full example file is ``examples/guru2d1.cpp``. Compile it against the static library with ``g++ -fopenmp guru2d1.cpp -o guru2d1 -I../include -Wl,--start-group ../build/src/libfinufft.a ../build/src/common/libfinufft_common.a -Wl,--end-group -lfftw3_omp -lfftw3 -lfftw3f_omp -lfftw3f``, or see ``examples/README`` for other linking options.
 
 This writes the Fourier coefficients to ``F`` just as in the earlier 2D example.
 One difference from the above simple and vectorized interfaces
@@ -292,7 +243,7 @@ OpenMP parallel block. In this case ``opts.nthreads=1`` should be set, otherwise
 a segfault will occur. This is useful if you don't want to synchronize
 independent transforms.
 For demos of this "parallelize over single-threaded transforms" use case, see
-the following, which are built as part of the ``make examples`` task:
+the following, which are built with ``-DFINUFFT_BUILD_EXAMPLES=ON``:
 
 * ``examples/threadsafe1d1`` which runs a 1D type-1 separately on each thread, checking the math, and
 
