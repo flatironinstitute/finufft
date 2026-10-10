@@ -191,6 +191,23 @@ int main() {
         return 1;
       }
     }
+
+    // (F) best_type12's `lo` lower bound is honored: the pick clears lo and stays
+    // feasible for the same geometry. Guards setpts.hpp's inner t2 sigma floor, the
+    // only caller that passes lo != 0.
+    {
+      const int dim = 2, type = 2, nthr = 1;
+      const double tol = 1e-1, lo = 1.7;
+      const double modes[2] = {256, 256};
+      const auto pick =
+          best_type12<double>(tol, dim, type, nthr, modes, /*npts=*/1e6, lo);
+      if (!(pick.sigma >= lo - 1e-9) ||
+          !upsampfac_feasible(pick.sigma, tol, dim, type, eps_d, ns_d, false, 256.0)) {
+        printf("fail: best_type12(lo=1.7) sigma=%.3f below floor or infeasible\n",
+               pick.sigma);
+        return 1;
+      }
+    }
   }
 #endif
 
