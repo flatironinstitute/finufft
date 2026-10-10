@@ -203,9 +203,10 @@ int FINUFFT_PLAN_T<TF>::setpts(BIGINT nj, const TF *xj, const TF *yj, const TF *
         precompute_horner_coeffs();
       }
     }
-    // A user-locked type-3 upsampfac is honored as given; the
+    // A user-locked type-3 upsampfac is honored as given. The
     // MIN_AUTO_UPSAMPFAC_TYPE3 floor gates only the automatic selector (in
-    // analytic_upsampfac). check_sigma still guards the rounding-floor cases.
+    // analytic_upsampfac). check_sigma runs for types 1 and 2 only, so type 3
+    // has no sigma check here.
 
     // ...then # fine grid pts (nf) per dim, now that sigma3 (and hence ns) is fixed.
     for (int idim = 0; idim < dim; ++idim) {

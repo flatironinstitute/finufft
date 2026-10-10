@@ -61,6 +61,21 @@ def series(typ, dim, sig):
     return tols, errs
 
 
+# each series needs two or more ier=0 rows; name the failing rows, before any write
+bad = []
+for typ in types:
+    for dim in dims:
+        for sig in (0.0, 2.0):
+            cell = [r for r in rows if r[0] == dim and r[1] == typ and r[2] == sig]
+            ok = [r for r in cell if r[5] == 0]
+            if len(ok) < 2:
+                failed = [(r[3], r[5]) for r in cell if r[5] != 0]
+                bad.append(f"type {typ} dim {dim} sigma={sig}: {len(ok)} ok row(s), "
+                           f"failing (tol, ier): {failed}")
+if bad:
+    sys.exit(f"{csv}, prec={prec}:\n" + "\n".join(bad))
+
+
 def draw(out_png):
     fig, axes = plt.subplots(3, 3, figsize=(12, 10), sharex=True, sharey=True)
     floors = FLOOR[prec]
@@ -79,7 +94,8 @@ def draw(out_png):
                 ax.loglog(tols, errs, sig_styles[sig], color=sig_colors[sig],
                           label=siglab[sig], marker="o", markersize=3,
                           linewidth=1)
-                # first miss: smallest tol at which err > tolslack*tol
+                # first miss: largest tol at which err > tolslack*tol, found by
+                # scanning tol downward as tolsweep does
                 for tol, err in zip(reversed(tols), reversed(errs)):
                     if err > slack * tol:
                         ax.plot(tol, err, "x", color=sig_colors[sig],
@@ -125,16 +141,13 @@ def draw(out_png):
                frameon=False)
     fig.suptitle(f"FINUFFT {prec}: eps vs achieved relative L2 error")
     fig.tight_layout(rect=(0, 0.05, 1, 1))
-    fig.savefig(out_png, dpi=160, bbox_inches="tight")
-    # assert grid shape, two data curves per cell, every artist named
+    # assert grid shape and that every artist is named, before the write
     assert len(axes.flat) == 9
     for ax in axes.flat:
-        labels = [l.get_label() for l in ax.get_lines()]
-        for lab in labels:
+        for lab in (l.get_label() for l in ax.get_lines()):
             assert lab and not lab.startswith("_"), f"unlabeled artist: {lab!r}"
-        data = [lab for lab in labels if lab in ("sigma=auto", "sigma=2.0")]
-        assert len(data) == 2, f"{ax.get_title()}: {len(data)} data lines"
-    print(f"assertions ok: 9 axes, 2 data lines per cell, all artists labeled")
+    fig.savefig(out_png, dpi=160, bbox_inches="tight")
+    print(f"assertions ok: 9 axes, all artists labeled")
     plt.close(fig)
     print(f"wrote {out_png}")
 
