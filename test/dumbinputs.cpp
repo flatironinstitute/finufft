@@ -147,6 +147,66 @@ int main() {
     printf("1d3 tol=0:\twrong err code %d\n", ier);
     return 1;
   }
+  { // user-locked upsampfac on 1d3: locked sigma is honored as given (the
+    // MIN_AUTO_UPSAMPFAC_TYPE3 floor gates only the automatic selector).
+    finufft_opts opts_l18 = opts;
+    opts_l18.upsampfac    = 1.18f;
+    const FLT tol_l18     = 1e-3; // loose tol, above the rounding floor in float too
+    ier                   = FINUFFT1D3(M, x, c, +1, tol_l18, N, s, F, &opts_l18);
+    if (ier) {
+      printf("1d3 locked upsampfac=1.18:\twrong err code %d\n", ier);
+      return 1;
+    }
+    finufft_opts opts_l16 = opts;
+    opts_l16.upsampfac    = 1.6;
+    ier                   = FINUFFT1D3(M, x, c, +1, acc, N, s, F, &opts_l16);
+    if (ier) {
+      printf("1d3 locked upsampfac=1.6:\twrong err code %d\n", ier);
+      return 1;
+    }
+    // The auto sigma on a band-edge 25x40 2D type-3 target set at tol must stay at or
+    // above MIN_AUTO_UPSAMPFAC_TYPE3; below it the kernel law understates err (audit F1).
+    // setpts persists the auto sigma into plan->opts for type 3.
+#ifdef SINGLE
+    const FLT tol_f1 = 1e-5f; // float: below ~1e-6 makeplan rejects before sigma is
+                              // chosen
+#else
+    const FLT tol_f1 = 1e-11;
+#endif
+    const BIGINT MF1 = 500, NX = 25, NY = 40;
+    FINUFFT_PLAN planf1;
+    BIGINT Ns1f1[3] = {1, 1, 1};
+    ier             = FINUFFT_MAKEPLAN(3, 2, Ns1f1, +1, 1, tol_f1, &planf1, &opts);
+    int ier_spf1    = 0;
+    if (!ier) {
+      FLT *xf1 = (FLT *)malloc(sizeof(FLT) * MF1);
+      FLT *yf1 = (FLT *)malloc(sizeof(FLT) * MF1);
+      FLT *sf1 = (FLT *)malloc(sizeof(FLT) * NX * NY);
+      FLT *tf1 = (FLT *)malloc(sizeof(FLT) * NX * NY);
+      srand(42);
+      for (int j = 0; j < MF1; ++j) {
+        xf1[j] = PI * randm11();
+        yf1[j] = PI * randm11();
+      }
+      for (int k = 0; k < NX * NY; ++k) {
+        sf1[k] = NX * (randm11() > 0 ? 1 : -1) * (0.9 + 0.05 * (randm11() + 1));
+        tf1[k] = NY * (randm11() > 0 ? 1 : -1) * (0.9 + 0.05 * (randm11() + 1));
+      }
+      ier_spf1 =
+          FINUFFT_SETPTS(planf1, MF1, xf1, yf1, nullptr, NX * NY, sf1, tf1, nullptr);
+      free(xf1);
+      free(yf1);
+      free(sf1);
+      free(tf1);
+    }
+    if (ier || ier_spf1 ||
+        planf1->opts.upsampfac < finufft::common::MIN_AUTO_UPSAMPFAC_TYPE3) {
+      printf("1d3 auto type-3 floor:\tier=%d setpts ier=%d sigma=%g\n", ier, ier_spf1,
+             ier ? -1.0 : (double)planf1->opts.upsampfac);
+      return 1;
+    }
+    FINUFFT_DESTROY(planf1);
+  }
   ier = FINUFFT1D3(M, x, c, +1, acc, 0, s, F, &opts);
   if (ier) {
     printf("1d3 nk=0:\tier=%d\n", ier);

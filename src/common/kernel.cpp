@@ -172,7 +172,7 @@ double smallest_sigma_for_ns(double tol, int dim, int type, int ns_target) {
 double lowest_sigma(double tol, int dim, int ns, double eps_mach, double gridlen) {
   // Minimum sigma achieving requested tol. Two regimes:
   //
-  //   r = tol / eps_round,  eps_round = 0.48 * eps_mach * N.
+  //   r = tol / eps_round,  eps_round = ROUND_FAC * eps_mach * N.
   //
   // Kernel regime (r >= 10): pure analytical inversion of the aliasing formula,
   //   exact to ~0.0001 sigma (validated in find_sigma_bound.py).
@@ -183,8 +183,8 @@ double lowest_sigma(double tol, int dim, int ns, double eps_mach, double gridlen
   //   Coefficients fit by least-squares on empirical sigma_min data across
   //   N=50..5000, types 1-3, dim 1 (see devel/find_sigma_bound.py).
   //   Separate coefficients for ns>8 (double) and ns<=8 (float).
-  const double eps_round = 0.48 * eps_mach * gridlen;
-  const double r = tol / eps_round;
+  const double eps_round = ROUND_FAC * eps_mach * gridlen;
+  const double r         = tol / eps_round;
   if (r <= 0.5) return MAX_CHECK_SIGMA;
   // type=1 here: the floor correction below is type-agnostic and check_sigma's
   // feasibility view uses the type-1 (type 1/2) kernel prefactor.
@@ -192,10 +192,10 @@ double lowest_sigma(double tol, int dim, int ns, double eps_mach, double gridlen
   if (r >= 10.0)
     return std::min(sigma_pure, MAX_CHECK_SIGMA); // accuracy cap (constants.h)
   // Poly(1/r) correction coefficients {a2, a1, a0}, fit across all types:
-  const double a2 = ns > 8 ? 0.014 : 0.555;
-  const double a1 = ns > 8 ? 0.291 : -0.290;
-  const double a0 = ns > 8 ? -0.043 : 0.071;
-  const double inv_r = 1.0 / r;
+  const double a2         = ns > 8 ? 0.014 : 0.555;
+  const double a1         = ns > 8 ? 0.291 : -0.290;
+  const double a0         = ns > 8 ? -0.043 : 0.071;
+  const double inv_r      = 1.0 / r;
   const double correction = (a2 * inv_r + a1) * inv_r + a0;
   return std::min(sigma_pure + std::max(correction, 0.0), MAX_CHECK_SIGMA);
 }
@@ -210,26 +210,30 @@ bool upsampfac_feasible(double sigma, double tol, int dim, int type, double eps_
   //
   // Mirrors the plan pipeline's gates: clamp_kernel_ns covers the setup_spreadinterp
   // width cap and the float catastrophic-cancellation guard (a clamped width would
-  // throw there or silently lose accuracy). Type 3 has no check_sigma, so that is its
-  // only gate; types 1/2 must also pass check_sigma's lowest_sigma test on the fine
-  // grid set_nf_type12 would build at this sigma.
-  // NB this assumes the generic (kerformula=0) width formula; see the so.kerformula=0
-  // below. A plan run with opts.spread_kerformula>0 may need a slightly different ns, but
-  // the heuristic and check_sigma both use the default kernel, so they stay consistent.
+  // throw there or silently lose accuracy). For type 3, clamp_kernel_ns and the
+  // MIN_AUTO_UPSAMPFAC_TYPE3 floor are its gates; types 1/2 must also pass
+  // check_sigma's lowest_sigma test on the fine grid set_nf_type12 would build at this
+  // sigma.
+  // NB this assumes the generic (kerformula=0) width formula; a plan run with
+  // opts.spread_kerformula>0 may need a slightly different ns, but the heuristic and
+  // check_sigma both use the default kernel, so they stay consistent.
   finufft_spread_opts so{};
   so.kerformula = 0; // generic (PSWF-like) ns formula in theoretical_kernel_ns
   so.upsampfac = sigma;
   const int ns_t = kernel::theoretical_kernel_ns(tol, dim, type, so);
   const int ns = kernel::clamp_kernel_ns(ns_t, sigma, max_nspread, is_float);
   if (ns < ns_t) return false;
-  if (type == 3) return true;
+  if (type == 3)
+    // Type 3 has no check_sigma; the floor here keeps the auto selector at or above
+    // MIN_AUTO_UPSAMPFAC_TYPE3. A user-locked sigma is unaffected (setpts honors it).
+    return sigma >= MIN_AUTO_UPSAMPFAC_TYPE3;
   // fine-grid length as set_nf_type12 builds it (largest dim binds).
   const BIGINT nf = fine_grid_len(sigma, maxN, ns);
   return lowest_sigma(tol, dim, ns, eps_mach, (double)nf) <= sigma;
 }
 
 double analytic_upsampfac(double tol, int dim, int type, double eps_mach, int max_nspread,
-                          bool is_float, double maxN) {
+                          bool is_float, double maxN, double lo) {
   // Smallest sigma in [MIN_AUTO_UPSAMPFAC, MAX_AUTO_UPSAMPFAC] the plan pipeline accepts
   // (via upsampfac_feasible), found by bisection. This is the optimum directly when the
   // FFT dominates (always type 3; sparse types 1/2) and is the lower end of the
@@ -245,15 +249,24 @@ double analytic_upsampfac(double tol, int dim, int type, double eps_mach, int ma
   // feasible() is not exactly monotone (integer ns and 235-smooth grid steps), but
   // any flicker only costs a negligibly larger feasible sigma, never correctness:
   // the returned value was itself accepted by feasible().
-  if (feasible(MIN_AUTO_UPSAMPFAC)) return MIN_AUTO_UPSAMPFAC;
+  // Bisect on [start, MAX_AUTO_UPSAMPFAC]; start lifts the loose end past lo and,
+  // for type 3, past the kernel-law floor MIN_AUTO_UPSAMPFAC_TYPE3, and is capped so
+  // the search stays inside the documented auto interval.
+  const double start = std::min(
+      [&] {
+        if (type == 3) return std::max(lo, MIN_AUTO_UPSAMPFAC_TYPE3);
+        return std::max(lo, MIN_AUTO_UPSAMPFAC);
+      }(),
+      MAX_AUTO_UPSAMPFAC);
+  if (feasible(start)) return start;
   if (!feasible(MAX_AUTO_UPSAMPFAC))
-    return MAX_AUTO_UPSAMPFAC; // pipeline reports the error
-  double lo = MIN_AUTO_UPSAMPFAC, hi = MAX_AUTO_UPSAMPFAC;
-  for (int i = 0; i < 40; ++i) { // invariant: feasible(hi) && !feasible(lo)
-    const double mid = 0.5 * (lo + hi);
-    (feasible(mid) ? hi : lo) = mid;
+    return MAX_AUTO_UPSAMPFAC;   // pipeline reports the error
+  double lb = start, ub = MAX_AUTO_UPSAMPFAC;
+  for (int i = 0; i < 40; ++i) { // invariant: feasible(ub) && !feasible(lb)
+    const double mid          = 0.5 * (lb + ub);
+    (feasible(mid) ? ub : lb) = mid;
   }
-  return hi; // smallest feasible sigma to ~1e-12 resolution
+  return ub; // smallest feasible sigma to ~1e-12 resolution
 }
 
 } // namespace finufft::common

@@ -28,10 +28,10 @@
 // FINUFFT_ERR_EPS_TOO_SMALL unless opts.allow_eps_too_small downgrades to warn.
 template<typename TF> void FINUFFT_PLAN_T<TF>::check_sigma() {
   constexpr double eps_mach = std::numeric_limits<TF>::epsilon();
-  const double gridlen = *std::max_element(m.nfdim.begin(), m.nfdim.begin() + dim);
-  const double sigma_min = finufft::common::lowest_sigma(
+  const double gridlen      = *std::max_element(m.nfdim.begin(), m.nfdim.begin() + dim);
+  const double sigma_min    = finufft::common::lowest_sigma(
       (double)m.tol, dim, m.spopts.nspread, eps_mach, gridlen);
-  const double eps_round = 0.48 * eps_mach * gridlen;
+  const double eps_round  = finufft::common::ROUND_FAC * eps_mach * gridlen;
   // "unachievable" only when tol falls below the rounding floor by the same margin
   // at which the lowest_sigma polynomial itself gives up (its r = tol/eps_round <= 0.5
   // branch). Merely reaching the floor (0.5*eps_round < tol <= eps_round) still
@@ -43,12 +43,16 @@ template<typename TF> void FINUFFT_PLAN_T<TF>::check_sigma() {
   const bool do_throw = !opts.allow_eps_too_small; // opt-in wins
   // an error always speaks; the warning obeys opts.showwarn, as every other warning does
   if (!do_throw && !opts.showwarn) return;
-  fprintf(stderr, "%s %s: upsampfac=%.3g too low for tol=%.3g; %s\n", __func__,
-          do_throw ? "error" : "warning", m.spopts.upsampfac, (double)m.tol,
-          unachievable
-              ? "rounding floor dominates (eps_round ~= tol); no upsampfac helps"
-              : (opts.allow_eps_too_small ? "suggest upsampfac>=" : "need upsampfac>="));
-  if (!unachievable) fprintf(stderr, "  (%.3g)\n", suggest);
+  const char *level = do_throw ? "error" : "warning";
+  if (unachievable)
+    fprintf(stderr,
+            "%s %s: tol=%.3g is below the rounding floor %.3g (eps_round); no "
+            "upsampfac can meet it\n",
+            __func__, level, (double)m.tol, eps_round);
+  else
+    fprintf(stderr, "%s %s: upsampfac=%.3g too low for tol=%.3g; %s upsampfac>=%.3g\n",
+            __func__, level, m.spopts.upsampfac, (double)m.tol,
+            do_throw ? "need" : "suggest", suggest);
   if (do_throw) throw finufft::exception(FINUFFT_ERR_EPS_TOO_SMALL);
 }
 
@@ -199,6 +203,10 @@ int FINUFFT_PLAN_T<TF>::setpts(BIGINT nj, const TF *xj, const TF *yj, const TF *
         precompute_horner_coeffs();
       }
     }
+    // A user-locked type-3 upsampfac is honored as given. The
+    // MIN_AUTO_UPSAMPFAC_TYPE3 floor gates only the automatic selector (in
+    // analytic_upsampfac). check_sigma runs for types 1 and 2 only, so type 3
+    // has no sigma check here.
 
     // ...then # fine grid pts (nf) per dim, now that sigma3 (and hence ns) is fixed.
     for (int idim = 0; idim < dim; ++idim) {
@@ -299,9 +307,16 @@ int FINUFFT_PLAN_T<TF>::setpts(BIGINT nj, const TF *xj, const TF *yj, const TF *
     t2opts.debug        = std::max(0, opts.debug - 1);    // don't print as much detail
     t2opts.spread_debug = std::max(0, opts.spread_debug - 1);
     t2opts.showwarn     = 0;                              // so don't see warnings 2x
-    if (!upsamp_locked)
-      t2opts.upsampfac = 0.0; // if the upsampfac was auto, let inner
-                              // t2 pick it again (from density=nj/Nf)
+    if (!upsamp_locked) {
+      const double inner_sigma_floor =
+          finufft::heuristics::type3_inner_sigma_floor<TF>((double)m.tol, dim);
+      const std::array<double, 3> t2nm{(double)m.nfdim[0], (double)m.nfdim[1],
+                                       (double)m.nfdim[2]};
+      t2opts.upsampfac =
+          finufft::heuristics::best_type12<TF>((double)m.tol, dim, 2, opts.nthreads,
+                                               t2nm.data(), (double)nk, inner_sigma_floor)
+              .sigma;
+    }
     // (...could vary other t2opts here?)
     // MR: temporary hack, until we have figured out the C++ interface.
     FINUFFT_PLAN_T<TF> *tmpplan;

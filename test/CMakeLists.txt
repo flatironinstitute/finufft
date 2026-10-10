@@ -161,6 +161,6 @@ endfunction()
 # tols; these are for classical tests that test one tol at fp32 and one at fp64.
 # (The middle two tol arguments are not used by some of the tests, eg, by
 # tolsweep)...
-# Float tol loosened from 1e-5 pending auto-mode sigma coupling (see setpts.hpp TODO).
+# Float tol loosened from 1e-5 pending auto-mode sigma coupling in setpts.
 add_tests_with_prec(float 1e-3 1e-2 f)
 add_tests_with_prec(double 1e-12 1e-11 "")

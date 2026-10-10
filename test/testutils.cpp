@@ -164,7 +164,7 @@ int main() {
     // achievable tols (its contract: the pick always survives the real plan).
     for (double tol : tols) {
       const double maxN = 1e4;
-      const double s = analytic_upsampfac(tol, 2, 1, eps_d, ns_d, false, maxN);
+      const double s    = analytic_upsampfac(tol, 2, 1, eps_d, ns_d, false, maxN);
       if (!(s >= MIN_AUTO_UPSAMPFAC - 1e-9 && s <= MAX_AUTO_UPSAMPFAC + 1e-9) ||
           !upsampfac_feasible(s, tol, 2, 1, eps_d, ns_d, false, maxN)) {
         printf("fail: analytic sigma %.3f not feasible/in range at tol=%.0e\n", s, tol);
@@ -179,13 +179,32 @@ int main() {
       const double tol = 1e-13; // tight enough that ns drops across [2.0,2.5]
       const double dense_modes[3] = {64, 64, 64};
       const double sparse_modes[3] = {512, 512, 512};
-      const double sigma_dense =
-          best_type12<double>(tol, dim, type, nthr, dense_modes, /*npts=*/5e7).sigma;
-      const double sigma_sparse =
-          best_type12<double>(tol, dim, type, nthr, sparse_modes, /*npts=*/1e3).sigma;
+      const double sigma_dense  = best_type12<double>(tol, dim, type, nthr, dense_modes,
+                                                      /*npts=*/5e7)
+                                      .sigma;
+      const double sigma_sparse = best_type12<double>(tol, dim, type, nthr, sparse_modes,
+                                                      /*npts=*/1e3)
+                                      .sigma;
       if (!(sigma_dense > sigma_sparse) || !(sigma_dense > MAX_CHECK_SIGMA - 1e-9)) {
         printf("fail: dense sigma (%.3f) should exceed sparse (%.3f) and 2.0\n",
                sigma_dense, sigma_sparse);
+        return 1;
+      }
+    }
+
+    // (F) best_type12's `lo` lower bound is honored: the pick clears lo and stays
+    // feasible for the same geometry. Guards setpts.hpp's inner t2 sigma floor, the
+    // only caller that passes lo != 0.
+    {
+      const int dim = 2, type = 2, nthr = 1;
+      const double tol = 1e-1, lo = 1.7;
+      const double modes[2] = {256, 256};
+      const auto pick =
+          best_type12<double>(tol, dim, type, nthr, modes, /*npts=*/1e6, lo);
+      if (!(pick.sigma >= lo - 1e-9) ||
+          !upsampfac_feasible(pick.sigma, tol, dim, type, eps_d, ns_d, false, 256.0)) {
+        printf("fail: best_type12(lo=1.7) sigma=%.3f below floor or infeasible\n",
+               pick.sigma);
         return 1;
       }
     }

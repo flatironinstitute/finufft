@@ -60,6 +60,7 @@ FLOOR_C = 0.48  # eps_round = FLOOR_C * eps_mach * N ([FIN] Remark 9)
 
 # Poly(1/r) correction coefficients {a2, a1, a0} for the transition region,
 # fit by least-squares across all types, N=50..5000 (see this file's Usage).
+# Must match kernel.cpp lowest_sigma's two fits: ns > 8 (double) vs ns <= 8 (float).
 POLY_DOUBLE = (0.014, 0.291, -0.043)  # ns > 8
 POLY_FLOAT = (0.555, -0.290, 0.071)  # ns <= 8
 
