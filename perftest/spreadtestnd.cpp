@@ -13,6 +13,7 @@
  * Barbone switched to public FINUFFT API 11/07/2025
  * Barnett 1/12/26: update for v2.5.0, kill all deprecated flags/args, tidy
    and fix the setpts incorrect usage, use M=1 for kersum.
+ * Barnett 10/13/26: opts override FINUFFT_ERR_EPS_TOO_SMALL & its warning.
 */
 
 #include <cmath>
@@ -34,7 +35,7 @@ static void usage() {
     "\tN=# uniform pts (rough total; per-dim N = round(N^(1/d)))\n"
     "\ttol=requested accuracy\n"
     "\tsort=0 (no), 1 (yes), 2 (auto; default)\n"
-    "\tspread_debug=0,1,...\n"
+    "\tspread_debug=0 (default), 1, ... (eg, use 1 to see the ns chosen)\n"
     "\tspread_kerformula=0 (default), 7,8,9 PSWF beta choice (only for devs)\n"
     "\tupsampfac>1.0: sigma upsampling factor (typ range 1.2 to 2.5)\n"
     "\nexample: ./spreadtestnd 3 8e6 8e6 1e-6 2 0 0 1.5\n");
@@ -137,8 +138,11 @@ int main(int argc, char *argv[]) {
   opts.spread_kerformula = kerformula;
   opts.spread_debug      = spread_debug;
   opts.spread_sort       = sort;
-  opts.showwarn          = 1;
-  opts.spreadinterponly  = 1; // the key to how this tester can use FINUFFT API
+  opts.spreadinterponly    = 1; // the key to how this tester can use FINUFFT API.
+  // We override the catching of unachievable errors for a NUFFT, since the math test
+  // done here simply tests total mass, a weaker test for spread/interp only:
+  opts.allow_eps_too_small = 1;
+  opts.showwarn            = 0; // also ignore unachievable tol warnings
 
   BIGINT nmodes[3] = {N, N, N};
 
