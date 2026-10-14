@@ -20,9 +20,14 @@ v2.6.0-dev
   (Barbone)
 * New minimal CMake quick-start recipes under ``examples/quick-start/`` show the
   FetchContent and installed ``find_package`` consume routes, and
-  ``tools/ci/install-test.sh`` builds and runs both on every install CI pass;
+  ``tools/ci/install-test.cmake`` builds and runs both on every install CI pass;
   the same files are included into ``docs/install.rst`` so the documented code
   is the tested code. (Barbone)
+* A matching GPU recipe ``examples/quick-start/cuda`` consumes an installed
+  cuFINUFFT with ``find_package`` and is included into ``docs/install_gpu.rst``;
+  the GPU Jenkins legs build and run all three recipes against the checkout,
+  and the Windows and macOS host agents run the same ``cmake -P`` script on
+  the CPU recipes. (Barbone)
 * xsimd's reassociation barrier was compiled out under -fassociative-math on clang, so
   -march=x86-64 Release builds folded points wrongly and segfaulted;
   XSIMD_REASSOCIATIVE_MATH is now forced on, the fold accepts any real coordinate, and

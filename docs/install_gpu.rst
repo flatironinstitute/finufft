@@ -52,6 +52,24 @@ If you leave ``CMAKE_CUDA_ARCHITECTURES`` unset, CMake queries ``nvidia-smi`` fo
 This is not portable, so set this flag explicitly when building for multiple systems. A good alternative is ``all-major`` which will compile for all major compute capabilities.
 If ``nvidia-smi`` is missing or no GPU is visible at configure time (an HPC login node, or a container build), we fall back to ``all-major`` for you.
 
+Consuming an installed cuFINUFFT from CMake
+--------------------------------------------
+
+Once cuFINUFFT is built and installed (``cmake --install build --prefix <prefix>``
+after the configure above), a downstream project finds it with ``find_package``
+and links ``finufft::cufinufft``:
+
+.. literalinclude:: ../examples/quick-start/cuda/CMakeLists.txt
+    :language: cmake
+    :start-after: docs-start: find_package_cuda
+    :end-before: docs-end: find_package_cuda
+
+The full recipe, with a runnable ``main.cu`` that checks its result against a
+direct sum, is ``examples/quick-start/cuda/``; configure
+it with ``cmake -S examples/quick-start/cuda -B build-app -DCMAKE_PREFIX_PATH=/path/to/install && cmake --build build-app``.
+The recipe builds for the GPU of this machine. To build for other GPUs, pass
+``-DCMAKE_CUDA_ARCHITECTURES=<arch>``.
+
 
 .. _install_gpu_sites:
 
