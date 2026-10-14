@@ -135,7 +135,7 @@ int main(int argc, char *argv[]) {
   finufft_opts opts;
   FINUFFT_DEFAULT_OPTS(&opts);
   opts.upsampfac         = upsampfac;
-  opts.spread_kerformula = kerformula;
+  opts.spread_kerformula   = kerformula; // for devs only
   opts.spread_debug      = spread_debug;
   opts.spread_sort       = sort;
   opts.spreadinterponly    = 1; // the key to how this tester can use FINUFFT API.
@@ -173,9 +173,9 @@ int main(int argc, char *argv[]) {
   auto kersum = std::accumulate(d_uniform.begin(), d_uniform.end(), CPX(0.0, 0.0));
 
   // -------- Type-1 test (spread) --------
-  printf("dim=%d, per-dim Nj=%lld, total N=%.3g, M=%.3g, tol=%.3g\n", d, (long long)N,
+  printf("dim=%d, per-dim Nj=%lld, total N=%.3g, M=%.3g, tol=%.3g,\n", d, (long long)N,
          (double)Ng, (double)M, tol);
-  printf(" sort=%d, spread_debug=%d, kerform=%d, upsamp=%.3g\n", sort, spread_debug,
+  printf("   sort=%d, spread_debug=%d, kerform=%d, upsamp=%.3g\n", sort, spread_debug,
          kerformula, (double)upsampfac);
 
   // make random data...
@@ -214,7 +214,7 @@ int main(int argc, char *argv[]) {
   CPX csum   = std::accumulate(d_nonuniform.begin(), d_nonuniform.end(), CPX(0.0, 0.0));
   CPX mass   = std::accumulate(d_uniform.begin(), d_uniform.end(), CPX(0.0, 0.0));
   FLT relerr = std::abs(mass - kersum * csum) / std::abs(kersum * csum); // relative err
-  printf("\trel err %.3g\n", relerr);
+  printf("\trel mass err %.3g\n", relerr);
 
   // -------- Type-2 test (U -> NU) using new NU locs, separate type-2 plan --------
   // sets uniform grid to 1.0 everywhere...
@@ -261,7 +261,7 @@ int main(int argc, char *argv[]) {
   FLT superr = 0.0;
   for (auto &cj : d_nonuniform) superr = std::max(superr, std::abs(cj - kersum));
   FLT relsuperr = superr / std::abs(kersum);
-  printf("\trel err %.3g\n", relsuperr);
+  printf("\trel mass err %.3g\n", relsuperr);
   FINUFFT_DESTROY(plan2);
   return 0;
 }
