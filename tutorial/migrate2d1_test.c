@@ -9,9 +9,9 @@
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <time.h>
 
 static const double PI = 3.141592653589793238462643383279502884;
+// docs-end: migrate2d1
 
 int main() {
   int N[2]   = {300, 200}; // N0, N1 output shape in nfft3 sense
@@ -34,20 +34,21 @@ int main() {
         2 * ((double)rand() / RAND_MAX) - 1 + I * (2 * ((double)rand() / RAND_MAX) - 1);
   }
 
-  clock_t before = clock();
-
   // do transform, includes precompute, writing to f_hat...
   for (int j = 0; j < M; ++j) { // change user coords so finufft same as nfft3
     x[j] *= 2 * PI;
     y[j] *= 2 * PI;             // scales from 1-periodic to 2pi-periodic
   }
+  // docs-start: migrate2d1
   finufft_opts opts;            // opts struct
   finufft_default_opts(&opts);  // set default opts (must start with this)
   opts.nthreads = 1;            // enforce single-thread
+  // the simple call does the whole transform
   int ier = finufft2d1(M, y, x, f, +1, tol, N[1], N[0], f_hat, &opts); // both x,y and
                                                                        // N0,N1 swapped!
 
-  double secs = (clock() - before) / (double)CLOCKS_PER_SEC;
+  // docs-end: migrate2d1
+  if (ier) return ier; // no valid output to read
 
   // now test that f_hat is as it would have been if original data were sent to nfft3...
   int kx = -17, ky = 33; // check one output f_hat(kx,ky) vs direct computation
@@ -57,13 +58,24 @@ int main() {
   double complex f_hat_test = 0.0 + 0.0 * I;
   for (int j = 0; j < M; ++j)       // since x,y were mult by 2pi, no such factor here...
     f_hat_test += f[j] * cexp(I * ((double)kx * x[j] + (double)ky * y[j]));
-  double err = cabs(f_hat[i] - f_hat_test) / cabs(f_hat_test);
-  printf("2D type 1 (FINUFFT) in %.3g s: f_hat[%d,%d]=%.12g+%.12gi, rel err %.3g\n", secs,
-         kx, ky, creal(f_hat[i]), cimag(f_hat[i]), err);
+  double Fmax = 0.0;                // compute inf norm of f_hat
+  int finite  = 1;                  // track non-finite elements
+  for (int m = 0; m < N[0] * N[1]; ++m) {
+    double aF = cabs(f_hat[m]);
+    if (!isfinite(aF)) finite = 0;
+    if (aF > Fmax) Fmax = aF;
+  }
+  double err = cabs(f_hat[i] - f_hat_test) / Fmax;
+  if (!finite || !(err < 10 * tol)) {
+    fprintf(stderr, "FAILED: rel err %.3g in f_hat[%d,%d], or f_hat not finite\n", err,
+            kx, ky);
+    return 1;
+  }
+  printf("rel err in f_hat[%d,%d] is %.3g\n", kx, ky, err);
 
   free(x);
   free(y);
   free(f);
   free(f_hat); // user deallocates own I/O arrays
-  return ier;
+  return 0;
 }
