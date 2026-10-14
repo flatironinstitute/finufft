@@ -97,10 +97,17 @@ catchError {
             "HOME=$WORKSPACE",
             "CUDA=${cfg.cuda}",
             "CUDA_ARCH=${arch}",
+            "WITH_CUDA=ON",
             "LIBRARY_PATH=$WORKSPACE/build:/usr/local/cuda/lib64/stubs",
             "LD_LIBRARY_PATH=$WORKSPACE/build:/usr/local/cuda/lib64"
           ]) {
             sh 'tools/ci/cuda-build-test.sh'
+            // The quick-start recipes against this checkout: install-test
+            // builds and installs the tree, then consumes the staged install
+            // with find_package (CPU and, behind WITH_CUDA, cuFINUFFT) and
+            // FetchContent. The CPU arms alone also run on the install cpu
+            // leg and on the host agents below.
+            sh 'cmake -P tools/ci/install-test.cmake'
             sh 'tools/ci/cuda-wheel.sh'
             // catchError so a wheel that fails its tests still gets archived below.
             catchError(buildResult: 'UNSTABLE', stageResult: 'UNSTABLE') {
@@ -336,7 +343,7 @@ catchError {
             def openmp = arm[2]
             withEnv(["HOME=$WORKSPACE", "LINKING=${linking}", "BACKEND=${backend}",
                      "OPENMP=${openmp}"]) {
-              sh 'tools/ci/install-test.sh'
+              sh 'cmake -P tools/ci/install-test.cmake'
             }
           }
 
@@ -344,7 +351,7 @@ catchError {
           // immediate arguments wrongly at -O0, see cmake/toolchain.cmake).
           withEnv(["HOME=$WORKSPACE", "LINKING=Static", "BACKEND=ducc",
                    "OPENMP=ON", "BUILD_TYPE=Debug"]) {
-            sh 'tools/ci/install-test.sh'
+            sh 'cmake -P tools/ci/install-test.cmake'
           }
         }
       }
@@ -375,6 +382,45 @@ catchError {
           }
         }
       }
+    }
+
+    // The quick-start recipes on the bare-metal host agents, CPU only: the
+    // card lives in the k8s pods. install-test.cmake is the same install,
+    // consume and run flow as on Linux; host-quick-start.* first puts cmake on
+    // the agent, which ships MSVC (win) or Xcode (macs) but no cmake. CI_TOOLS
+    // sits in the build's own workspace. Jenkins gives each concurrent build a
+    // fresh workspace, so two builds never share a half-written cache. The two
+    // arms of one build share the download. OpenMP needs libomp, which only
+    // the win agent's MSVC provides, so the macs run single threaded.
+    def quickStartHost = { label ->
+      return {
+        node(label) {
+          stage("quick-start ${label}") {
+            checkout scm
+            def tools = isUnix() ? "${env.WORKSPACE}/.ci-tools" : "${env.WORKSPACE}\\.ci-tools"
+            def arms = [['Static', 'OFF'], ['Shared', 'OFF']]
+            if (label == 'win') {
+              arms = [['Static', 'ON'], ['Shared', 'ON']]
+            }
+            def bin = isUnix() ? "${tools}/bin" : "${tools}\\bin"
+            withEnv(["CI_TOOLS=${tools}", "PATH+CI_TOOLS=${bin}"]) {
+              for (arm in arms) {
+                withEnv(["LINKING=${arm[0]}", "OPENMP=${arm[1]}", "BACKEND=ducc",
+                         "WITH_CUDA=OFF"]) {
+                  if (isUnix()) {
+                    sh 'tools/ci/host-quick-start.sh'
+                  } else {
+                    powershell 'tools/ci/host-quick-start.ps1'
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+    for (label in ['win', 'macpro', 'macm1']) {
+      jobs['quick-start ' + label] = quickStartHost(label)
     }
 
     parallel jobs

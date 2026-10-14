@@ -51,3 +51,14 @@ cufinufft/python/cufinufft/docs/_templates
 cmake-build-*/
 build-*/
 benchmarks-*/
+
+# cmake bootstrap of the host quick-start legs (Jenkins), per-build workspace
+.ci-tools/
+
+# scratch dirs of tools/ci/install-test.cmake
+/_build/
+/_stage/
+/_consume/
+/_consume_cuda/
+/_fetch/
+/_leak/
