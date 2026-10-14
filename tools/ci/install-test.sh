@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
-rm -rf _build _stage _consume _leak
+rm -rf _build _stage _consume _fetch _leak
 
 linking=${LINKING:-Static}
 backend=${BACKEND:-ducc}
@@ -14,7 +14,7 @@ static=ON
 ducc=ON
 [[ "$backend" == fftw* ]] && ducc=OFF
 
-consumer=tools/ci/find_package-consumer
+consumer=examples/quick-start/find_package
 install_flags=(-DFINUFFT_USE_DUCC0=$ducc -DFINUFFT_STATIC_LINKING=$static
 	-DFINUFFT_USE_OPENMP=$openmp)
 # fftw-dl forces the downloaded FFTW: exercises the static-bundle install route.
@@ -88,6 +88,19 @@ cmake -S "$consumer" -B _consume -DCMAKE_BUILD_TYPE=$build_type \
 	-DCMAKE_MSVC_DEBUG_INFORMATION_FORMAT=Embedded
 cmake --build _consume --config $build_type
 
-export LD_LIBRARY_PATH="$stage/lib:$stage/lib64:${LD_LIBRARY_PATH:-}"
-export DYLD_LIBRARY_PATH="$stage/lib:${DYLD_LIBRARY_PATH:-}"
-run_app _consume
+# Run the find_package consumer with the staged install on the library search
+# path. Scope the path to this run only: the FetchContent recipe below builds
+# its own library and must not resolve symbols against the staged one.
+(
+	export LD_LIBRARY_PATH="$stage/lib:$stage/lib64:${LD_LIBRARY_PATH:-}"
+	export DYLD_LIBRARY_PATH="$stage/lib:${DYLD_LIBRARY_PATH:-}"
+	run_app _consume
+)
+
+# The documented recipes double as consume tests: the find_package one above, the FetchContent one from source.
+cmake -S examples/quick-start/fetchcontent -B _fetch -DCMAKE_BUILD_TYPE=$build_type \
+	-DFETCHCONTENT_SOURCE_DIR_FINUFFT="$PWD" \
+	-DCMAKE_MSVC_DEBUG_INFORMATION_FORMAT=Embedded \
+	"${install_flags[@]}"
+cmake --build _fetch --config $build_type
+run_app _fetch
