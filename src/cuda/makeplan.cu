@@ -2,6 +2,7 @@
 // Mirrors CPU src/makeplan.cpp. Also hosts the cufft_plan RAII destructor,
 // which is tied to plan setup.
 
+#include <cstdint>
 #include <iostream>
 
 #include <cufinufft/contrib/helper_cuda.h>
@@ -111,18 +112,18 @@ template void cufinufft_plan_t<float>::setup_spreadinterp();
 template void cufinufft_plan_t<double>::setup_spreadinterp();
 
 template<typename T>
-std::tuple<CUFINUFFT_BIGINT, T, T> cufinufft_plan_t<T>::set_nhg_type3(T S, T X) const
+std::tuple<std::int64_t, T, T> cufinufft_plan_t<T>::set_nhg_type3(T S, T X) const
 // Choose nf, h, gam given source half-width S and freq half-width X, using this plan's
 // opts/spopts. Shares finufft::common::nhg_type3 with the CPU set_nhg_type3.
 {
   const auto [nf, h, gam] =
       finufft::common::nhg_type3(opts.upsampfac, X, S, spopts.nspread, MAX_NF);
-  return std::make_tuple((CUFINUFFT_BIGINT)nf, T(h), T(gam));
+  return std::make_tuple(nf, T(h), T(gam));
 }
-template std::tuple<CUFINUFFT_BIGINT, float, float>
-cufinufft_plan_t<float>::set_nhg_type3(float, float) const;
-template std::tuple<CUFINUFFT_BIGINT, double, double>
-cufinufft_plan_t<double>::set_nhg_type3(double, double) const;
+template std::tuple<std::int64_t, float, float> cufinufft_plan_t<float>::set_nhg_type3(
+    float, float) const;
+template std::tuple<std::int64_t, double, double> cufinufft_plan_t<double>::set_nhg_type3(
+    double, double) const;
 
 template<typename T> void cufinufft_plan_t<T>::allocate_subprob_state() {
   cuda::std::array<int, 3> binsizes{opts.gpu_binsizex, opts.gpu_binsizey,
@@ -334,23 +335,40 @@ cufinufft_plan_t<T>::cufinufft_plan_t(int type_, int dim_, const int *nmodes, in
   // for the spreader
 
   if (type == 1 || type == 2) {
+    // int64: set_nf_type12's ceil(upsampfac*ms) can itself exceed CUFINUFFT_BIGINT
+    // (int32) for a single large dimension, so nf123 must stay wide until the MAX_NF
+    // check below.
+    std::array<std::int64_t, 3> nf123_wide{1, 1, 1};
     if (opts.gpu_spreadinterponly) {
       // spread/interp grid is precisely the user "mode" sizes, no upsampling
-      for (int idim = 0; idim < dim; ++idim) nf123[idim] = mstu[idim];
+      for (int idim = 0; idim < dim; ++idim) nf123_wide[idim] = mstu[idim];
       if (opts.debug) {
-        printf("[cufinufft] spreadinterponly mode: (nf1,nf2,nf3) = (%d, %d, %d)\n",
-               nf123[0], nf123[1], nf123[2]);
+        printf("[cufinufft] spreadinterponly mode: (nf1,nf2,nf3) = (%lld, %lld, %lld)\n",
+               (long long)nf123_wide[0], (long long)nf123_wide[1],
+               (long long)nf123_wide[2]);
       }
     } else { // usual NUFFT with fine grid using upsampling
       std::array<int, 3> obinsize{opts.gpu_obinsizex, opts.gpu_obinsizey,
                                   opts.gpu_obinsizez};
       for (int idim = 0; idim < dim; ++idim)
-        set_nf_type12(mstu[idim], &nf123[idim], obinsize[idim]);
+        set_nf_type12(mstu[idim], &nf123_wide[idim], obinsize[idim]);
       if (opts.debug)
-        printf("[cufinufft] (nf1,nf2,nf3) = (%d, %d, %d)\n", nf123[0], nf123[1],
-               nf123[2]);
+        printf("[cufinufft] (nf1,nf2,nf3) = (%lld, %lld, %lld)\n",
+               (long long)nf123_wide[0], (long long)nf123_wide[1],
+               (long long)nf123_wide[2]);
     }
-    nf = nf123[0] * nf123[1] * nf123[2];
+    // Widen first: nf123 are CUFINUFFT_BIGINT (int), so a 3D grid past MAX_NF would
+    // overflow instead of being rejected.
+    const auto nf_wide = nf123_wide[0] * nf123_wide[1] * nf123_wide[2];
+    if (nf_wide > MAX_NF) {
+      fprintf(stderr, "[%s] nf=%lld exceeds MAX_NF, not attempting malloc!\n", __func__,
+              (long long)nf_wide);
+      throw finufft::exception(FINUFFT_ERR_MAXNALLOC);
+    }
+    // Safe to narrow now: nf_wide <= MAX_NF and every factor is positive, so each one is.
+    for (int idim = 0; idim < dim; ++idim)
+      nf123[idim] = CUFINUFFT_BIGINT(nf123_wide[idim]);
+    nf = CUFINUFFT_BIGINT(nf_wide);
 
     // The choice is L2-aware, so it waits for nf; type 3 stays 0 here and is resolved in
     // setpts, which owns the allocation it bounds (#846).

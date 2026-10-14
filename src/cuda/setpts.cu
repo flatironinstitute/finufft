@@ -1,6 +1,7 @@
 // "setpts" stage: cufinufft_plan_t<T>::setpts and the type-1/2 helper.
 // Mirrors CPU src/setpts.cpp.
 
+#include <cstdint>
 #include <iostream>
 
 #include <cufinufft/contrib/helper_cuda.h>
@@ -121,13 +122,16 @@ void cufinufft_plan_t<T>::setpts(int nj, const T *d_kx, const T *d_ky, const T *
   }
 
   using namespace cufinufft::utils;
+  // int64: set_nhg_type3's nf can overflow CUFINUFFT_BIGINT (int32) for a single large
+  // dimension, so nf123 must stay wide until the MAX_NF check below.
+  cuda::std::array<std::int64_t, 3> nf123_wide{1, 1, 1};
   for (int idim = 0; idim < dim; ++idim) {
     const auto [xx, cc]           = arraywidcen<T>(M, d_kxyz[idim], stream);
     type3_params.X[idim]          = xx;
     type3_params.C[idim]          = cc;
     const auto [SS, DD]           = arraywidcen<T>(N, d_stu[idim], stream);
     const auto [nfnf, hh, gamgam] = set_nhg_type3(SS, xx);
-    nf123[idim]                   = nfnf;
+    nf123_wide[idim]              = nfnf;
     type3_params.S[idim]          = SS;
     type3_params.D[idim]          = DD;
     type3_params.h[idim]          = hh;
@@ -136,32 +140,35 @@ void cufinufft_plan_t<T>::setpts(int nj, const T *d_kx, const T *d_ky, const T *
   if (opts.debug) {
     printf("[%s]", __func__);
     printf("\tM=%d N=%d\n", M, N);
-    printf("\tX1=%.3g C1=%.3g S1=%.3g D1=%.3g gam1=%g nf1=%d h1=%.3g\t\n",
+    printf("\tX1=%.3g C1=%.3g S1=%.3g D1=%.3g gam1=%g nf1=%lld h1=%.3g\t\n",
            type3_params.X[0], type3_params.C[0], type3_params.S[0], type3_params.D[0],
-           type3_params.gam[0], nf123[0], type3_params.h[0]);
+           type3_params.gam[0], (long long)nf123_wide[0], type3_params.h[0]);
     if (dim > 1) {
-      printf("\tX2=%.3g C2=%.3g S2=%.3g D2=%.3g gam2=%g nf2=%d h2=%.3g\n",
+      printf("\tX2=%.3g C2=%.3g S2=%.3g D2=%.3g gam2=%g nf2=%lld h2=%.3g\n",
              type3_params.X[1], type3_params.C[1], type3_params.S[1], type3_params.D[1],
-             type3_params.gam[1], nf123[1], type3_params.h[1]);
+             type3_params.gam[1], (long long)nf123_wide[1], type3_params.h[1]);
     }
     if (dim > 2) {
-      printf("\tX3=%.3g C3=%.3g S3=%.3g D3=%.3g gam3=%g nf3=%d h3=%.3g\n",
+      printf("\tX3=%.3g C3=%.3g S3=%.3g D3=%.3g gam3=%g nf3=%lld h3=%.3g\n",
              type3_params.X[2], type3_params.C[2], type3_params.S[2], type3_params.D[2],
-             type3_params.gam[2], nf123[2], type3_params.h[2]);
+             type3_params.gam[2], (long long)nf123_wide[2], type3_params.h[2]);
     }
   }
-  nf = nf123[0] * nf123[1] * nf123[2];
-
   // FIXME: MAX_NF might be too small...
+  // Guard the fwBatch allocation, nf * batchsize.
+  const auto nf_wide = nf123_wide[0] * nf123_wide[1] * nf123_wide[2];
   // Only known here: nf123 comes from the type-3 params computed above. The outer plan is
   // spread-only, so this resolves to 1 unless the user set gpu_maxbatchsize.
-  batchsize = cufinufft::common::choose_batchsize<T>(gpu, opts, ntransf, nf);
-  if (nf * batchsize > MAX_NF) {
+  batchsize = cufinufft::common::choose_batchsize<T>(gpu, opts, ntransf, nf_wide);
+  if (nf_wide * batchsize > MAX_NF) {
     fprintf(stderr,
             "[%s t3] fwBatch would be bigger than MAX_NF, not attempting malloc!\n",
             __func__);
     throw finufft::exception(FINUFFT_ERR_MAXNALLOC);
   }
+  // Safe to narrow now: nf_wide <= MAX_NF/batchsize and every factor is positive.
+  for (int idim = 0; idim < dim; ++idim) nf123[idim] = CUFINUFFT_BIGINT(nf123_wide[idim]);
+  nf = CUFINUFFT_BIGINT(nf_wide);
 
   for (int idim = 0; idim < dim; ++idim) {
     kxyzp[idim].resize(M);
