@@ -107,12 +107,12 @@ int main() {
   {
     const double eps_d = std::numeric_limits<double>::epsilon();
     const double eps_f = std::numeric_limits<float>::epsilon();
-    const int ns_d = MAX_NSPREAD<double>, ns_f = MAX_NSPREAD<float>;
+    const int ns_f      = MAX_NSPREAD<float>;
 
     // (A) ns is non-increasing as sigma rises (the minimizer enumerates one candidate
-    // per achievable width). Double holds over the whole auto range; float only above
-    // FLOAT_CC_UPSAMPFAC_LIMIT, since below it the catastrophic-cancellation guard caps
-    // ns low, so ns jumps up at the threshold.
+    // per achievable width). Double holds over the whole auto range. Float holds only
+    // where the cancellation guard in clamp_kernel_ns (kernel.h) does not cap ns: the
+    // cap rises with sigma, so a capped ns can step up.
     const double tols[] = {1e-3, 1e-6, 1e-10, 1e-13};
     for (int dim = 1; dim <= 3; ++dim)
       for (int type = 1; type <= 3; ++type)
@@ -125,9 +125,12 @@ int main() {
                      type, tol, s);
               return 1;
             }
-            prev_d = nd;
-            if (s < FLOAT_CC_UPSAMPFAC_LIMIT) continue; // skip float CC-capped region
+            prev_d       = nd;
             const int nf = kernel_width_at<float>(tol, dim, type, s);
+            // skip float sigmas where the cancellation guard caps ns (low-sigma prefix)
+            if (nf <
+                std::min(finufft::kernel::theoretical_kernel_ns(tol, dim, type, s), ns_f))
+              continue;
             if (nf > prev_f) {
               printf("fail: ns(float) rose: dim=%d type=%d tol=%.0e sigma=%.2f\n", dim,
                      type, tol, s);
@@ -151,9 +154,9 @@ int main() {
     for (int dim = 1; dim <= 3; ++dim)
       for (int type = 1; type <= 3; ++type) {
         const double maxN = 256;
-        if (!upsampfac_feasible(MAX_AUTO_UPSAMPFAC, eps_d, dim, type, eps_d, ns_d, false,
+        if (!upsampfac_feasible(MAX_AUTO_UPSAMPFAC, eps_d, dim, type, eps_d, false,
                                 maxN) ||
-            !upsampfac_feasible(MAX_AUTO_UPSAMPFAC, eps_f, dim, type, eps_f, ns_f, true,
+            !upsampfac_feasible(MAX_AUTO_UPSAMPFAC, eps_f, dim, type, eps_f, true,
                                 maxN)) {
           printf("fail: sigma=2.5 infeasible at eps_mach: dim=%d type=%d\n", dim, type);
           return 1;
@@ -164,9 +167,9 @@ int main() {
     // achievable tols (its contract: the pick always survives the real plan).
     for (double tol : tols) {
       const double maxN = 1e4;
-      const double s = analytic_upsampfac(tol, 2, 1, eps_d, ns_d, false, maxN);
+      const double s    = analytic_upsampfac(tol, 2, 1, eps_d, false, maxN);
       if (!(s >= MIN_AUTO_UPSAMPFAC - 1e-9 && s <= MAX_AUTO_UPSAMPFAC + 1e-9) ||
-          !upsampfac_feasible(s, tol, 2, 1, eps_d, ns_d, false, maxN)) {
+          !upsampfac_feasible(s, tol, 2, 1, eps_d, false, maxN)) {
         printf("fail: analytic sigma %.3f not feasible/in range at tol=%.0e\n", s, tol);
         return 1;
       }

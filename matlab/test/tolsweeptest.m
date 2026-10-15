@@ -1,5 +1,5 @@
 % Pass/fail test for error over a range of tolerances, 3 types, fixed dim.
-% CPU only. Raises error if fails; use for CI. Two upsampfacs for now.
+% CPU only. Raises error if fails; use for CI. Three upsampfacs: 0 (auto), 1.25, 2.
 % Simplified from plottolsweep; uses erralltypedim.
 % Barnett 12/22/25, add CI vs fig-plot to results 1/20/26; all dims 1/21/26.
 
@@ -11,7 +11,7 @@ CI = true;  % leave true after debug! not CI: plot figs & don't raise errors
 M = 500;            % NU pts in each test
 ntr = 20;           % #transforms to average error over (little extra direct cost)
 isign = +1;
-sigmas = [1.25 2];             % a.k.a. upsampfac, list to test
+sigmas = [0 1.25 2];           % a.k.a. upsampfac, list to test (0 = auto)
 tolslack = [4.0; 4.0; 5.0];    % factors by which eps can exceed tol (3 types)
 o.showwarn = 0; %o.debug=1;
 o.spread_kerformula = 0;       % custom FINUFFT opts (should be defaults for CI)
@@ -27,12 +27,12 @@ for dim = 1:3  % ======== dimensions
     % at tol<1e-10, say, for sig=2. But too large (>200) starts to lose digits in
     % single-prec due to condition-num of problem. To keep floors32 around 1e-5
     % need keep N low.
-    floors32 = [1e-4 2e-5];        % float: seemingly controlled by Nmax, rdyn
-    floors64 = [1e-9 3e-14];       % double: former limited by wmax
+    floors32 = [2e-5 1e-4 2e-5];   % float, per sigma in sigmas: auto held to sigma 2
+    floors64 = [3e-14 1e-9 3e-14]; % double: former limited by wmax
   elseif dim==2
-    Ntot = 1e3; floors32 = [1e-4 2e-5]; floors64 = [2e-9 3e-14];
+    Ntot = 1e3; floors32 = [2e-5 1e-4 2e-5]; floors64 = [3e-14 2e-9 3e-14];
   else
-    Ntot = 2e3; floors32 = [2e-4 1e-5]; floors64 = [3e-8 3e-14];
+    Ntot = 2e3; floors32 = [1e-5 2e-4 1e-5]; floors64 = [3e-14 3e-8 3e-14];
   end
   dims = false(1, 3); dims(dim) = true;  % only test this dim
 

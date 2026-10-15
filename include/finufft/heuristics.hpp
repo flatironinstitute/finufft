@@ -9,10 +9,9 @@
 #include <limits>
 #include <type_traits>
 
-#include <finufft/spreadinterp.hpp>     // finufft::spreadinterp::get_padding<TF>
-#include <finufft_common/constants.h>   // PI, MAX_CHECK_SIGMA, MIN/MAX_AUTO_UPSAMPFAC
-#include <finufft_common/kernel.h>      // ns formulas, feasibility, fine_grid_len
-#include <finufft_common/spread_opts.h> // finufft_spread_opts
+#include <finufft/spreadinterp.hpp>   // finufft::spreadinterp::get_padding<TF>
+#include <finufft_common/constants.h> // MAX_AUTO_UPSAMPFAC
+#include <finufft_common/kernel.h>    // ns formulas, feasibility, fine_grid_len
 
 namespace finufft::heuristics {
 
@@ -68,14 +67,14 @@ inline double fft_cost(double c, const double *nmodes, double sigma, int ns, int
 // Lets the cost model score each candidate sigma at its real ns.
 template<typename TF>
 inline int kernel_width_at(double tol, int dim, int type, double sigma) {
-  finufft_spread_opts so{};
-  so.kerformula = 0;
-  so.upsampfac = sigma;
   return finufft::kernel::clamp_kernel_ns<TF>(
-      finufft::kernel::theoretical_kernel_ns(tol, dim, type, so), sigma);
+      finufft::kernel::theoretical_kernel_ns(tol, dim, type, sigma), sigma, dim);
 }
 
 // Returns the feasible upsampfac (sigma) that minimizes cost, and its predicted cost.
+// The search starts at the smallest feasible sigma (analytic_upsampfac), then scores
+// the smallest sigma for each narrower kernel width up to MAX_AUTO_UPSAMPFAC. Larger
+// sigma narrows ns but grows the fine grid.
 //   cost(sigma, ns): caller-supplied score of a candidate in consistent flop units.
 //   maxN:            largest mode count over dims (1 for type 3).
 // If tol is unachievable, returns the largest sigma and the plan pipeline reports it.
@@ -84,12 +83,10 @@ sigma_info minimize(double tol, int dim, int type, double maxN, Cost &&cost) {
   using namespace finufft::common;
   constexpr double eps_mach = std::numeric_limits<TF>::epsilon();
   constexpr bool is_float = std::is_same_v<TF, float>;
-  const auto feasible = [&](double sigma) {
-    return upsampfac_feasible(sigma, tol, dim, type, eps_mach, MAX_NSPREAD<TF>, is_float,
-                              maxN);
+  const auto feasible       = [&](double sigma) {
+    return upsampfac_feasible(sigma, tol, dim, type, eps_mach, is_float, maxN);
   };
-  const double sigma_min =
-      analytic_upsampfac(tol, dim, type, eps_mach, MAX_NSPREAD<TF>, is_float, maxN);
+  const double sigma_min = analytic_upsampfac(tol, dim, type, eps_mach, is_float, maxN);
   const int ns_min = kernel_width_at<TF>(tol, dim, type, sigma_min);
   sigma_info best{sigma_min, cost(sigma_min, ns_min)};
   if (!feasible(sigma_min)) return best; // tol unachievable; pipeline reports

@@ -150,6 +150,12 @@ function(add_tests_with_prec PREC REQ_TOL CHECK_TOL SUFFIX)
         WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
     )
 
+    add_test(
+        NAME spreadinterp1d_auto_${PREC}
+        COMMAND spreadinterp1d_test${SUFFIX} 1e3 1e3 ${REQ_TOL} 0 2 0.0 ${CHECK_TOL}
+        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+    )
+
     add_test(NAME run_tolsweep_${PREC} COMMAND tolsweep${SUFFIX} WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
     # under valgrind tolsweep needs more than ctest's 1500 s default
     set_tests_properties(run_tolsweep_${PREC} PROPERTIES TIMEOUT 3000)

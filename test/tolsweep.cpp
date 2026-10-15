@@ -1,6 +1,6 @@
 /* test/tolsweep: pass-fail accuracy test for either float/double CPU FINUFFT
-   that sweeps across full range of tolerances, dims, types, for set of upsampfacs
-   (just two std USFs for now).
+   that sweeps across full range of tolerances, dims, types, at sigma 0 (the
+   auto selector) and the standard upsampfacs 1.25 and 2.0.
    Uses relative L2 error norms, with direct reference evaluation.
    Exit code: zero if success, nonzero upon failure.
 
@@ -47,12 +47,13 @@ int main(int argc, char *argv[]) {
   int verbose    = 2; // show summary line for each dim, sigma, type
   int debug      = 0;
   // test set of upsampfacs each with matching error floor for each dim...
-  const int nu         = 2;           // how many upsampfacs
-  double upsampfac[nu] = {1.25, 2.0}; // just the standard sigmas for now
+  const int nu            = 3;                // how many upsampfacs
+  double upsampfac[nu]    = {0.0, 1.25, 2.0}; // 0 = auto selector, then std sigmas
 #ifdef SINGLE
-  double floor[nu][3] = {{1e-4, 1e-4, 2e-4}, {2e-5, 2e-5, 1e-5}}; // inner is dim
+  double floor[nu][3] = {{2e-5, 2e-5, 1e-5}, {1e-4, 1e-4, 2e-4}, {2e-5, 2e-5, 1e-5}};
 #else
-  double floor[nu][3] = {{1e-9, 2e-9, 3e-8}, {3e-14, 3e-14, 3e-14}};
+  double floor[nu][3] = {
+      {3e-14, 3e-14, 3e-14}, {1e-9, 2e-9, 3e-8}, {3e-14, 3e-14, 3e-14}};
 #endif
 
   // If user asked for help, print usage and exit

@@ -169,8 +169,7 @@ template<typename T> void run_config(const cal_options_t &o) {
 
   // ---- sweep forced sigma ----
   const double maxN = o.type == 3 ? 1.0 : (double)*std::max_element(Nd, Nd + o.dim);
-  const double sigma_min =
-      analytic_upsampfac(o.tol, o.dim, o.type, eps, MAX_NSPREAD<T>, is_float, maxN);
+  const double sigma_min = analytic_upsampfac(o.tol, o.dim, o.type, eps, is_float, maxN);
 
   std::int64_t Narr[3] = {Nd[0], Nd[1], Nd[2]};
   constexpr int iflag = 1;

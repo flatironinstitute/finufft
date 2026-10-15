@@ -21,7 +21,7 @@ sigma_min uses two regimes based on r = tol / eps_round:
   - Transition regime (r < 10): sigma = sigma_pure + poly(1/r), where the degree-2
     polynomial in 1/r captures the rounding floor effect. Coefficients fit by
     least-squares on empirical data across N=50..5000, types 1-3, dim 1.
-    Separate coefficients for double (ns>8) and float (ns<=8).
+    Fits exist at kernel widths 8 and 16 only; ns > 8 uses the width-16 fit.
 
 References:
   [FIN] Barnett, Magland & af Klinteberg, SISC 2019, arxiv:1808.06736
@@ -58,10 +58,12 @@ TOLFAC = 0.18  # kernel aliasing prefactor (same as theoretical_kernel_ns kf>=2)
 DIM_FAC = 1.4  # per-dimension correction: tolfac *= 1.4^(dim-1)
 FLOOR_C = 0.48  # eps_round = FLOOR_C * eps_mach * N ([FIN] Remark 9)
 
-# Poly(1/r) correction coefficients {a2, a1, a0} for the transition region,
-# fit by least-squares across all types, N=50..5000 (see this file's Usage).
-POLY_DOUBLE = (0.014, 0.291, -0.043)  # ns > 8
-POLY_FLOAT = (0.555, -0.290, 0.071)  # ns <= 8
+# Poly(1/r) correction coefficients {a2, a1, a0} for the transition region, fit by
+# least-squares on types 1-3, dim 1, N=50..5000 (see this file's Usage). The fit was
+# sampled at kernel widths 8 (POLY_NS8) and 16 (POLY_NS16). The selection reads ns
+# alone. ns > 8 picks POLY_NS16, whatever the transform type or precision.
+POLY_NS16 = (0.014, 0.291, -0.043)
+POLY_NS8 = (0.555, -0.290, 0.071)
 
 
 def _prec_params(prec):
@@ -96,7 +98,7 @@ def sigma_min_from_model(tol, ns, dim, eps_mach, gridlen):
     sigma_pure = _invert_kernel_sigma(tol, ns, dim)
     if r >= 10.0:
         return sigma_pure
-    a2, a1, a0 = POLY_DOUBLE if ns > 8 else POLY_FLOAT
+    a2, a1, a0 = POLY_NS16 if ns > 8 else POLY_NS8
     inv_r = 1.0 / r
     correction = (a2 * inv_r + a1) * inv_r + a0
     return min(sigma_pure + max(correction, 0), MAX_CHECK_SIGMA)

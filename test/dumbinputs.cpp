@@ -147,6 +147,23 @@ int main() {
     printf("1d3 tol=0:\twrong err code %d\n", ier);
     return 1;
   }
+  { // user-locked upsampfac on 1d3 is used as given, even below MIN_AUTO_UPSAMPFAC.
+    finufft_opts opts_l18 = opts;
+    opts_l18.upsampfac    = 1.18f;
+    const FLT tol_l18     = 1e-3; // loose tol, above the rounding floor in float too
+    ier                   = FINUFFT1D3(M, x, c, +1, tol_l18, N, s, F, &opts_l18);
+    if (ier) {
+      printf("1d3 locked upsampfac=1.18:\twrong err code %d\n", ier);
+      return 1;
+    }
+    finufft_opts opts_l16 = opts;
+    opts_l16.upsampfac    = 1.6;
+    ier                   = FINUFFT1D3(M, x, c, +1, acc, N, s, F, &opts_l16);
+    if (ier) {
+      printf("1d3 locked upsampfac=1.6:\twrong err code %d\n", ier);
+      return 1;
+    }
+  }
   ier = FINUFFT1D3(M, x, c, +1, acc, 0, s, F, &opts);
   if (ier) {
     printf("1d3 nk=0:\tier=%d\n", ier);
