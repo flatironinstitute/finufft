@@ -628,7 +628,10 @@ def valid_ntr_tp12(dim, shape, n_transin, n_modesin):
 
 ### valid number of transforms
 def valid_ntr(x, c):
-    n_trans = int(c.size / x.size)
+    if x.size == 0:
+        n_trans = c.shape[0] if c.ndim == 2 else 1
+    else:
+        n_trans = int(c.size / x.size)
     if n_trans * x.size != c.size:
         raise RuntimeError("FINUFFT c.size must be divisible by x.size")
     valid_cshape(c.shape, x.size, n_trans)

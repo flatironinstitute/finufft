@@ -47,6 +47,28 @@ def test_finufft1_simple(dtype, shape, n_pts, n_trans, output_arg):
 
 
 @pytest.mark.parametrize("dtype", DTYPES)
+@pytest.mark.parametrize("shape", [(1,), (1, 1), (1, 1, 1)])
+@pytest.mark.parametrize("n_trans", [(), (1,), (2,)])
+@pytest.mark.parametrize("output_arg", OUTPUT_ARGS)
+def test_finufft1_simple_empty(dtype, shape, n_trans, output_arg):
+    dim = len(shape)
+
+    funs = {1: finufft.nufft1d1, 2: finufft.nufft2d1, 3: finufft.nufft3d1}
+    fun = funs[dim]
+
+    pts, coefs = utils.type1_problem(dtype, shape, 0, n_trans)
+
+    if not output_arg:
+        sig = fun(*pts, coefs, shape, nthreads=1)
+    else:
+        sig = np.full(n_trans + shape, np.nan, dtype=dtype)
+        fun(*pts, coefs, out=sig, nthreads=1)
+
+    assert sig.dtype == dtype
+    np.testing.assert_array_equal(sig, np.zeros(n_trans + shape, dtype=dtype))
+
+
+@pytest.mark.parametrize("dtype", DTYPES)
 @pytest.mark.parametrize("shape", SHAPES)
 @pytest.mark.parametrize("n_pts", N_PTS)
 @pytest.mark.parametrize("n_trans", N_TRANS)
