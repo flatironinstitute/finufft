@@ -175,7 +175,7 @@ int main(int argc, char *argv[]) {
   // -------- Type-1 test (spread) --------
   printf("dim=%d, per-dim Nj=%lld, total N=%.3g, M=%.3g, tol=%.3g,\n", d, (long long)N,
          (double)Ng, (double)M, tol);
-  printf("   sort=%d, spread_debug=%d, kerform=%d, upsamp=%.3g\n", sort, spread_debug,
+  printf("    sort=%d, spread_debug=%d, kerform=%d, upsamp=%.3g\n", sort, spread_debug,
          kerformula, (double)upsampfac);
 
   // make random data...

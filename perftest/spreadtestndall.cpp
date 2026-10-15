@@ -136,9 +136,12 @@ int main(int argc, char *argv[]) {
     fopts.upsampfac          = upsampfac;
     fopts.spread_sort        = sort;
     fopts.debug              = 0; // hardwired for now
-    fopts.spread_debug       = 0; // "
-    fopts.showwarn           = 1;
+    fopts.spread_debug        = 0; // "
     fopts.spreadinterponly   = 1; // key to use via FINUFFT API
+    // We override the catching of unachievable errors for a NUFFT, since the math test
+    // done here simply tests total mass, a weaker test for spread/interp only:
+    fopts.allow_eps_too_small = 1;
+    fopts.showwarn            = 0; // also ignore unachievable tol warnings
 
     FINUFFT_PLAN plan{};
     BIGINT nmodes[3] = {N, N, N};
@@ -192,7 +195,7 @@ int main(int argc, char *argv[]) {
     CPX csum   = std::accumulate(d_nonuniform.begin(), d_nonuniform.end(), CPX(0.0, 0.0));
     CPX mass   = std::accumulate(d_uniform.begin(), d_uniform.end(), CPX(0.0, 0.0));
     FLT relerr = std::abs(mass - kersum * csum) / std::abs(kersum * csum);
-    printf("\trel err %.3g\n", relerr);
+    printf("\trel mass err %.3g\n", relerr);
 
     for (BIGINT i = 0; i < Ng; ++i) d_uniform[i] = CPX(1.0, 0.0); // const on grid
 
@@ -210,7 +213,7 @@ int main(int argc, char *argv[]) {
     FLT superr = 0.0;
     for (auto &cj : d_nuout) superr = std::max(superr, std::abs(cj - kersum));
     FLT relsuperr = superr / std::abs(kersum);
-    printf("\trel err %.3g\n", relsuperr);
+    printf("\trel mass err %.3g\n", relsuperr);
 
     FINUFFT_DESTROY(plan);
   } //                                          ---------------- end digits loop
