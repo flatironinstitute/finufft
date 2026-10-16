@@ -67,3 +67,12 @@ if(HAVE_GETOPT_H)
     target_link_libraries(calibrate_upsampfac PRIVATE xsimd poet::poet)
     target_compile_options(calibrate_upsampfac PRIVATE ${FINUFFT_ARCH_FLAGS})
 endif()
+
+# no getopt.h here: buildable on MSVC too
+add_executable(eps_vs_achieved eps_vs_achieved.cpp)
+finufft_link_test(eps_vs_achieved)
+target_include_directories(eps_vs_achieved PRIVATE "../test")
+add_executable(eps_vs_achievedf eps_vs_achieved.cpp)
+target_compile_definitions(eps_vs_achievedf PRIVATE -DSINGLE)
+finufft_link_test(eps_vs_achievedf)
+target_include_directories(eps_vs_achievedf PRIVATE "../test")

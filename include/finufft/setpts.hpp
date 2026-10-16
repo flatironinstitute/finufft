@@ -16,39 +16,30 @@
 
 // ---------- local helpers for setpts: --------
 
-// Checks that the chosen upsampfac (sigma) is large enough to reach the
-// requested tol, now that the upsampled grid length nfdim is known. Larger
-// sigma lowers the kernel-aliasing error but cannot beat the rounding floor
-// eps_round ~ eps_mach*gridlen. So two failure modes are reported:
-//   - tol below the rounding floor: unachievable at any sigma;
-//   - sigma below the sigma_min needed for tol: suggest a higher upsampfac.
-// sigma_min and the suggestion are capped at MAX_CHECK_SIGMA (see constants.h).
-// This validates achievability only; it does not touch the Horner kernel
-// polynomial (that is fit in precompute_horner_coeffs). Throws
-// FINUFFT_ERR_EPS_TOO_SMALL unless opts.allow_eps_too_small downgrades to warn.
+// Checks that upsampfac (sigma) can meet tol on the fine grid nfdim, by the same
+// lowest_sigma test the auto pick uses. Two failures: tol below the rounding floor
+// (no sigma helps), or sigma below the needed one. Throws FINUFFT_ERR_EPS_TOO_SMALL
+// unless opts.allow_eps_too_small turns the error into a warning.
 template<typename TF> void FINUFFT_PLAN_T<TF>::check_sigma() {
   constexpr double eps_mach = std::numeric_limits<TF>::epsilon();
-  const double gridlen = *std::max_element(m.nfdim.begin(), m.nfdim.begin() + dim);
-  const double sigma_min = finufft::common::lowest_sigma(
+  const double gridlen      = *std::max_element(m.nfdim.begin(), m.nfdim.begin() + dim);
+  const double sigma_min    = finufft::common::lowest_sigma(
       (double)m.tol, dim, m.spopts.nspread, eps_mach, gridlen);
-  const double eps_round = 0.48 * eps_mach * gridlen;
-  // "unachievable" only when tol falls below the rounding floor by the same margin
-  // at which the lowest_sigma polynomial itself gives up (its r = tol/eps_round <= 0.5
-  // branch). Merely reaching the floor (0.5*eps_round < tol <= eps_round) still
-  // delivers ~tol accuracy on small/dense grids, so let it proceed rather than
-  // over-reporting; the polynomial (sigma_min) governs the remaining suggest case.
-  const bool unachievable = (double)m.tol <= 0.5 * eps_round;
-  if (!unachievable && sigma_min <= m.spopts.upsampfac) return; // fine
-  const double suggest = std::min(sigma_min, finufft::common::MAX_CHECK_SIGMA);
+  if (sigma_min <= m.spopts.upsampfac) return;     // fine
   const bool do_throw = !opts.allow_eps_too_small; // opt-in wins
   // an error always speaks; the warning obeys opts.showwarn, as every other warning does
   if (!do_throw && !opts.showwarn) return;
-  fprintf(stderr, "%s %s: upsampfac=%.3g too low for tol=%.3g; %s\n", __func__,
-          do_throw ? "error" : "warning", m.spopts.upsampfac, (double)m.tol,
-          unachievable
-              ? "rounding floor dominates (eps_round ~= tol); no upsampfac helps"
-              : (opts.allow_eps_too_small ? "suggest upsampfac>=" : "need upsampfac>="));
-  if (!unachievable) fprintf(stderr, "  (%.3g)\n", suggest);
+  const char *level = do_throw ? "error" : "warning";
+  if (std::isinf(sigma_min))
+    fprintf(stderr,
+            "%s %s: tol=%.3g is below the rounding floor %.3g (eps_round); no "
+            "upsampfac can meet it\n",
+            __func__, level, (double)m.tol,
+            finufft::common::rounding_floor(eps_mach, gridlen));
+  else
+    fprintf(stderr, "%s %s: upsampfac=%.3g too low for tol=%.3g; %s upsampfac>=%.3g\n",
+            __func__, level, m.spopts.upsampfac, (double)m.tol,
+            do_throw ? "need" : "suggest", sigma_min);
   if (do_throw) throw finufft::exception(FINUFFT_ERR_EPS_TOO_SMALL);
 }
 
@@ -103,6 +94,46 @@ void FINUFFT_PLAN_T<TF>::set_nhg_type3(int idim, TF S, TF X)
 }
 
 // --------- setpts user guru interface driver ----------
+// How the plan picks sigma (upsampfac) and the kernel width ns:
+// clang-format off
+//                      +-----------------------+
+//                      |   user sigma given?   |
+//                      |    (0.0 means auto)   |
+//                      +-----+-----------+-----+
+//                        yes |           | no
+//        +-------------------v+   +------v---------------------+
+//        | use the given      |   | AUTO PICK                  |
+//        | sigma              |   | 1. start at the floor 1.25 |
+//        +---------+----------+   | 2. drop any sigma that     |
+//                  |              |    cannot meet tol         |
+//                  |              |    (aliasing + rounding)   |
+//                  |              +-----------+----------------+
+//                  +--------------------------+
+//                                             v
+//               +------------------------------------------+
+//               | ns ~ log(1/tol) / sqrt(1 - 1/sigma)      |
+//               +-------------------+----------------------+
+//                                   v
+//               +------------------------------------------+
+//               | float only: cap ns at float_max_ns_cc    |
+//               +-------------------+----------------------+
+//                                   v
+//               +------------------------------------------+
+//               | rounding floor met?                      |
+//               | lowest_sigma(tol, dim, ns, nf) <= sigma  |
+//               +------------------+-----------------------+
+//                              yes |             | no
+//                                  |     +-------v-------+
+//                                  |     | exit ier = 26 |
+//                                  |     +---------------+
+//               +------------------v-----------------------+
+//               | min flops (spread + FFT cost)            |
+//               +------------------+-----------------------+
+//                                  v
+//                      +-----------v--+
+//                      |  run plan    |
+//                      +--------------+
+// clang-format on
 
 template<typename TF>
 int FINUFFT_PLAN_T<TF>::setpts(BIGINT nj, const TF *xj, const TF *yj, const TF *zj,
@@ -199,6 +230,7 @@ int FINUFFT_PLAN_T<TF>::setpts(BIGINT nj, const TF *xj, const TF *yj, const TF *
         precompute_horner_coeffs();
       }
     }
+    // A user-locked type-3 upsampfac is used as given: type 3 has no check_sigma.
 
     // ...then # fine grid pts (nf) per dim, now that sigma3 (and hence ns) is fixed.
     for (int idim = 0; idim < dim; ++idim) {

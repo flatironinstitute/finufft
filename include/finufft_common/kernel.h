@@ -74,24 +74,32 @@ std::function<double(double)> kernel_definition_lambda(const finufft_spread_opts
 // Tolerance prefactor in the kernel aliasing law tol = tolfac*exp(-(ns-1)*pi*u).
 double kernel_tolfac(int dim, int type);
 
-int theoretical_kernel_ns(double tol, int dim, int type,
-                          const finufft_spread_opts &spopts);
+int theoretical_kernel_ns(double tol, int dim, int type, double sigma);
+
+// Widest float ns that does not lose accuracy to catastrophic cancellation at low
+// sigma: 8 plus a sigma- and dim-dependent step of 1/0.075 per unit over the knee.
+inline int float_max_ns_cc(double sigma, int dim) {
+  constexpr double UPSAMPFAC_STEP = 1.0 / 0.075;
+  return 8 + static_cast<int>(std::floor(
+                 std::max(0.0, (sigma - 0.975 - 0.125 * dim) * UPSAMPFAC_STEP)));
+}
 
 // Clamp a theoretical kernel width to the width the plan will actually use: clip to
-// [MIN_NSPREAD, max_nspread] (widest spreadinterp template compiled), then the float
-// catastrophic-cancellation guard (constants.h: ns<=FLOAT_MAX_NS_CC for
-// upsampfac<FLOAT_CC_UPSAMPFAC_LIMIT). Shared by setup_spreadinterp() and the upsampfac
-// heuristic so they agree on the width.
-inline int clamp_kernel_ns(int ns, double upsampfac, int max_nspread, bool is_float) {
-  ns = std::max(common::MIN_NSPREAD, ns);
-  ns = std::min(ns, max_nspread);
-  if (is_float && upsampfac < common::FLOAT_CC_UPSAMPFAC_LIMIT)
-    ns = std::min(ns, common::FLOAT_MAX_NS_CC);
+// [MIN_NSPREAD, MAX_NSPREAD] (widest spreadinterp template compiled),
+// then the float catastrophic-cancellation guard. Shared by setup_spreadinterp() and
+// the upsampfac heuristic so they agree on the width.
+inline int clamp_kernel_ns(int ns, double upsampfac, int dim, bool is_float) {
+  using common::MAX_NSPREAD;
+  const int max_ns = is_float ? MAX_NSPREAD<float> : MAX_NSPREAD<double>;
+  ns               = std::max(common::MIN_NSPREAD, ns);
+  ns               = std::min(ns, max_ns);
+  // Float catastrophic-cancellation guard. Both sides are int, so a huge upsampfac
+  // cannot overflow.
+  if (is_float) ns = std::min(ns, float_max_ns_cc(upsampfac, dim));
   return ns;
 }
-template<class TF> inline int clamp_kernel_ns(int ns, double upsampfac) {
-  return clamp_kernel_ns(ns, upsampfac, common::MAX_NSPREAD<TF>,
-                         std::is_same_v<TF, float>);
+template<class TF> inline int clamp_kernel_ns(int ns, double upsampfac, int dim) {
+  return clamp_kernel_ns(ns, upsampfac, dim, std::is_same_v<TF, float>);
 }
 
 void set_kernel_shape_given_ns(finufft_spread_opts &opts, int debug);
@@ -183,15 +191,21 @@ inline std::tuple<BIGINT, double, double> nhg_type3(double sigma, double X, doub
 // Smallest sigma whose theoretical_kernel_ns(tol,dim,type) is <= ns_target.
 double smallest_sigma_for_ns(double tol, int dim, int type, int ns_target);
 
-// Minimum sigma achieving requested tol, as used by check_sigma.
+// Rounding floor of the full pipeline on a fine grid of length gridlen.
+inline double rounding_floor(double eps_mach, double gridlen) {
+  return ROUND_FAC * eps_mach * gridlen;
+}
+
+// Smallest sigma that meets tol, capped at MAX_CHECK_SIGMA. Infinity when tol is
+// below half the rounding floor, where no sigma meets it.
 double lowest_sigma(double tol, int dim, int ns, double eps_mach, double gridlen);
 
 // Whether the plan pipeline would accept this sigma at this tol.
 bool upsampfac_feasible(double sigma, double tol, int dim, int type, double eps_mach,
-                        int max_nspread, bool is_float, double maxN);
+                        bool is_float, double maxN);
 
 // Smallest feasible sigma in [MIN_AUTO_UPSAMPFAC, MAX_AUTO_UPSAMPFAC] by bisection.
-double analytic_upsampfac(double tol, int dim, int type, double eps_mach, int max_nspread,
-                          bool is_float, double maxN);
+double analytic_upsampfac(double tol, int dim, int type, double eps_mach, bool is_float,
+                          double maxN);
 
 } // namespace finufft::common

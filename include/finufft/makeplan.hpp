@@ -140,11 +140,12 @@ template<typename TF> void FINUFFT_PLAN_T<TF>::setup_spreadinterp() {
     throw finufft::exception(FINUFFT_ERR_UPSAMPFAC_TOO_SMALL);
   }
   if (opts.showwarn && !opts.spreadinterponly &&
-      (m.spopts.upsampfac < 1.15 || m.spopts.upsampfac > 3.0))
+      (m.spopts.upsampfac < MIN_USEFUL_UPSAMPFAC ||
+       m.spopts.upsampfac > MAX_USEFUL_UPSAMPFAC))
     fprintf(stderr,
-            "%s warning: upsampfac=%.3g outside [1.15, 3.0] is unlikely to provide "
+            "%s warning: upsampfac=%.3g outside [%.2f, %.1f] is unlikely to provide "
             "benefit and may break the library;\n",
-            __func__, m.spopts.upsampfac);
+            __func__, m.spopts.upsampfac, MIN_USEFUL_UPSAMPFAC, MAX_USEFUL_UPSAMPFAC);
 
   // crucial: where the default kerformula is set ....*    see kernel.{h,cpp}
   m.spopts.kerformula = (opts.spread_kerformula == 0) ? 8 : opts.spread_kerformula;
@@ -163,7 +164,8 @@ template<typename TF> void FINUFFT_PLAN_T<TF>::setup_spreadinterp() {
   // choose nspread and set it in spopts. The width actually used comes from the shared
   // clamp_kernel_ns() (kernel.h); here we additionally report/throw when the requested
   // tol is infeasible, and warn when the float guard narrows the kernel.
-  const int ns_theory = theoretical_kernel_ns((double)m.tol, dim, type, m.spopts);
+  const int ns_theory =
+      theoretical_kernel_ns((double)m.tol, dim, type, m.spopts.upsampfac);
   // per-precision cap: float spreadinterp is only instantiated up to
   // MAX_NSPREAD<TF> (see constants.h, issue #827)
   constexpr int max_ns = MAX_NSPREAD<TF>;
@@ -174,17 +176,14 @@ template<typename TF> void FINUFFT_PLAN_T<TF>::setup_spreadinterp() {
             __func__, m.spopts.upsampfac, (double)m.tol, ns_theory, max_ns);
     throw finufft::exception(FINUFFT_ERR_EPS_TOO_SMALL);
   }
-  // catastrophic-cancellation guard narrows float below FLOAT_CC_UPSAMPFAC_LIMIT to
-  // FLOAT_MAX_NS_CC (both in constants.h; the clamp is in clamp_kernel_ns; warn here
-  // when it actually bites)...
-  const bool singleprec = std::is_same_v<TF, float>;
-  if (opts.showwarn && singleprec && m.spopts.upsampfac < FLOAT_CC_UPSAMPFAC_LIMIT &&
-      std::min(ns_theory, max_ns) > FLOAT_MAX_NS_CC)
+  const int ns = clamp_kernel_ns<TF>(ns_theory, m.spopts.upsampfac, dim);
+  // only the float catastrophic-cancellation guard in clamp_kernel_ns narrows ns
+  // below min(ns_theory, max_ns); warn when it bites.
+  if (opts.showwarn && ns < std::min(ns_theory, max_ns))
     fprintf(stderr,
             "%s warning: ns reducing from %d to %d to prevent r_{dyn}-related"
             "catastrophic cancellation.\n",
-            __func__, std::min(ns_theory, max_ns), FLOAT_MAX_NS_CC);
-  const int ns = clamp_kernel_ns<TF>(ns_theory, m.spopts.upsampfac);
+            __func__, std::min(ns_theory, max_ns), ns);
   m.spopts.nspread = ns;
   set_kernel_shape_given_ns(m.spopts, opts.debug); // selects kernel params in spopts
   if (opts.debug || m.spopts.debug)
