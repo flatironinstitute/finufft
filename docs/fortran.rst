@@ -22,18 +22,21 @@ and default options, the declarations and call are
 
 .. code-block:: fortran
 
+      include 'finufft.fh'
+
       integer ier,iflag
       integer*8 N,M
       real*8, allocatable :: xj(:)
       real*8 tol
       complex*16, allocatable :: cj(:),fk(:)
-      integer*8, allocatable :: null
+      type(finufft_opts) opts
+      type(finufft_opts), pointer :: defopts => null()
 
  !    (...allocate xj, cj, and fk, and fill xj and cj here...)
 
       tol = 1.0D-9
       iflag = +1
-      call finufft1d1(M,xj,cj,iflag,tol,N,fk,null,ier)
+      call finufft1d1(M,xj,cj,iflag,tol,N,fk,defopts,ier)
 
 which writes the output to ``fk``, and the status to the integer ``ier``.
 Since the default is CMCL mode ordering, the output for frequency index ``k``
@@ -41,10 +44,10 @@ is found in ``fk(k+N/2+1)``.
 ``ier=0`` indicates success, otherwise error codes are
 as in :ref:`here <error>`.
 By default (``opts.nthreads=0``), the number of physical cores available is used (honoring ``OMP_NUM_THREADS`` if set), unless FINUFFT was built single-threaded; see :ref:`opts`.
-(Note that here the unallocated ``null`` is simply a way to pass
+(Note that here the disassociated pointer ``defopts`` is simply a way to pass
 a NULL pointer to our C++ wrapper; another would be ``%val(0_8)``.)
 For a minimally complete test code demonstrating the above see
-``fortran/examples/simple1d1.f``.
+`simple1d1.f <https://github.com/flatironinstitute/finufft/blob/master/fortran/examples/simple1d1.f>`_.
 
 .. note::
 
@@ -58,22 +61,36 @@ For a minimally complete test code demonstrating the above see
    the ``(k1,k2)`` frequency coefficient from transform number ``t`` is
    to be found at ``fk(k1+N1/2+1 + (k2+N2/2)*N1 + t*N1*N2)``.
 
-From the ``fortran/examples/`` directory, to
-compile (eg using GCC/linux) and link such a program against the FINUFFT
-static library, one must list dependent libraries by hand::
+Building and running the examples
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-  gfortran -I../../include simple1d1.f -o simple1d1 ../../lib-static/libfinufft.a -lfftw3 -lfftw3_omp -lgomp -lstdc++
+From the top-level directory of the repository, configure with the Fortran
+wrappers and examples enabled, build, and run an example
+(each ``fort_*`` program is named after its source file)::
 
-Then to execute run ``./simple1d1``. Alternatively, a smaller executable results by
-linking against the dynamic (``.so``) library (which links all dependent libraries)::
+  cmake -S . -B build -DFINUFFT_BUILD_FORTRAN=ON -DFINUFFT_BUILD_EXAMPLES=ON
+  cmake --build build
+  build/fortran/fort_simple1d1
 
-  gfortran -I../../include simple1d1.f -o simple1d1 -L../../lib -Wl,-rpath=$FINUFFT/lib -lfinufft
+(The ``fortran`` CMake preset does the same, but with the DUCC0 FFT library
+and the build directory ``build/fortran``.)
+On success each example prints one line with its relative error.
+On a wrong result it prints one ``FAILED`` message and exits with a nonzero status.
 
-where ``$FINUFFT`` must be replaced by (or be an environment variable set to) the absolute install path for this repository.
-Note the use of ``rpath`` to make an executable that may be run from, or moved to, any directory.
-Alternatively you may want to compile with ``g++`` and use ``-lgfortran`` at the end of the compile statement instead of ``-lstdc++``.
+To compile and link a program of your own against the FINUFFT static library
+from this build, one must list dependent libraries by hand.
+From the ``fortran/examples/`` directory, using GCC on Linux::
+
+  gfortran -fopenmp -I../../include simple1d1.f -o simple1d1 \
+    ../../build/src/libfinufft.a \
+    ../../build/src/common/libfinufft_common.a \
+    -lfftw3 -lfftw3_omp -lfftw3f -lfftw3f_omp -lstdc++ -lm
+
+Then to execute run ``./simple1d1``.
+The demos ``nufft*d_demo*.f`` also need the direct summation routine, for
+instance by adding ``../directft/dirft1d.f`` (or ``dirft1df.f`` for single precision) to the compile line.
 In Mac OSX, replace ``fftw3_omp`` by ``fftw3_threads``, and if you use
-clang, ``-lgomp`` by ``-lomp``. See ``makefile`` and ``make-platforms/*``.
+clang, replace ``-fopenmp`` by ``-Xclang -fopenmp`` and link ``-lomp``.
 
 .. note ::
  Our simple interface is designed to be a near drop-in replacement for the native f90 `CMCL libraries of Greengard-Lee <http://www.cims.nyu.edu/cmcl/nufft/nufft.html>`_. The differences are: i) we added a penultimate argument in the list which allows options to be changed, and ii) our normalization differs for type 1 transforms (divide FINUFFT output by $M$ to match CMCL output).
@@ -83,23 +100,35 @@ Changing options
 
 To choose non-default options in the above example, create an options
 derived type, set it to default values, change whichever you wish, and pass
-it to FINUFFT, for instance
+it to FINUFFT. This is what the second half of the
+``fortran/examples/simple1d1.f`` demo does:
 
-.. code-block:: fortran
+.. literalinclude:: ../fortran/examples/simple1d1.f
+  :language: fortran
+  :start-after: docs-start: options
+  :end-before: docs-end: options
 
-      include 'finufft.fh'
-      type(finufft_opts) opts
+The full example is ``fortran/examples/simple1d1.f``. From the ``fortran/examples/`` directory, compile it with ``gfortran -fopenmp -I../../include simple1d1.f -o simple1d1 ../../build/src/libfinufft.a ../../build/src/common/libfinufft_common.a -lfftw3 -lfftw3_omp -lfftw3f -lfftw3f_omp -lstdc++ -lm`` and run it with ``./simple1d1``.
 
- !    (...declare, allocate, and fill stuff as above...)
+The same demo in "modern" f90 style, using the ``finufft_mod`` module instead
+of the include file (see ``fortran/examples/simple1d1.f90``), sets up the
+transform like this (again minus the accuracy check):
 
-      call finufft_default_opts(opts)
-      opts%debug = 2
-      opts%upsampfac = 1.25d0
-      call finufft1d1(M,xj,cj,iflag,tol,N,fk,opts,ier)
+.. literalinclude:: ../fortran/examples/simple1d1.f90
+  :language: fortran
+  :start-after: docs-start: simple1d1-f90-setup
+  :end-before: docs-end: simple1d1-f90-setup
 
-See ``fortran/examples/simple1d1.f`` for the complete code,
-and below for the complete list of Fortran subroutines available,
-and more complicated examples.
+The full example is ``fortran/examples/simple1d1.f90``. From the ``fortran/examples/`` directory, compile it with ``gfortran -fopenmp -I../../include ../../include/finufft_mod.f90 simple1d1.f90 -o simple1d1f90 ../../build/src/libfinufft.a ../../build/src/common/libfinufft_common.a -lfftw3 -lfftw3_omp -lfftw3f -lfftw3f_omp -lstdc++ -lm`` and run it with ``./simple1d1f90``.
+
+and its options-changing second half is:
+
+.. literalinclude:: ../fortran/examples/simple1d1.f90
+  :language: fortran
+  :start-after: docs-start: simple1d1-f90-options
+  :end-before: docs-end: simple1d1-f90-options
+
+The full example is ``fortran/examples/simple1d1.f90``. Compile it with the ``gfortran`` command that the previous sentence gives, and run it with ``./simple1d1f90``.
 
 See ``modeord`` in :ref:`Options<opts>`
 to instead use FFT-style mode ordering, which
@@ -193,17 +222,11 @@ version).
 The last four here are modified from demos in the
 `CMCL NUFFT libraries <http://www.cims.nyu.edu/cmcl/nufft/nufft.html>`_.
 The first three of these have been changed only to use FINUFFT.
-The final tolerance they request is ``tol=1d-16``. For this case FINUFFT
-will report a warning that it cannot achieve it, and gets
-merely around $10^{-14}$.
 The last four demos require direct summation (slow) reference implementations
 of the transforms in ``fortran/directft``, modified from their CMCL
 counterparts only to remove the $1/M$ prefactor for type 1 transforms.
 
-All demos have self-contained example GCC
-compilation/linking commands in their comment headers.
-For dynamic linking so that execution works from any directory, bake in an
-absolute path via the compile flag ``-Wl,-rpath,$(FINUFFT)/lib``.
+To build and run all demos see above.
 
 For authorship and licensing of the Fortran wrappers, see
 the `README <https://github.com/flatironinstitute/finufft/blob/master/fortran/README>`_ in the fortran directory.

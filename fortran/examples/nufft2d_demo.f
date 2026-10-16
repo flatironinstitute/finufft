@@ -1,6 +1,7 @@
 c     Demo using FINUFFT for double-precision 2d transforms in legacy fortran.
 c     Does types 1,2,3, including math test against direct summation.
 c     Default opts only (see simple1d1 for how to change opts).
+c     To build and run it, see docs/fortran.rst.
 c
 c     A slight modification of drivers from the CMCL NUFFT, (C) 2004-2009,
 c     Leslie Greengard and June-Yub Lee. See: cmcl_license.txt.
@@ -9,12 +10,8 @@ c     Tweaked by Alex Barnett to call FINUFFT 2/17/17.
 c     dyn malloc; type 2 uses same input data fk0, 3/8/17
 c     Also see: ../README.
 c
-c     Compile with, eg (GCC, multithreaded, static lib, paste to a single line):
-c
-c     gfortran nufft2d_demo.f ../directft/dirft2d.f -o nufft2d_demo
-c     ../../lib-static/libfinufft.a -lstdc++ -lfftw3 -lfftw3_omp -lm -fopenmp
-c
       program nufft2d_demo
+      use, intrinsic :: ieee_arithmetic, only: ieee_is_finite
       implicit none
 
 c     our fortran-header, always needed
@@ -23,7 +20,7 @@ c
       integer i,ier,iflag,j,k1,k2,mx,n1,n2
       integer*8 nj,ms,mt,nk
       real*8, allocatable :: xj(:),yj(:),sk(:),tk(:)
-      real*8 err,pi,eps,salg,ealg
+      real*8 err,maxerr,pi,tol
       parameter (pi=3.141592653589793238462643383279502884197d0)
       complex*16, allocatable :: cj(:),cj0(:),cj1(:),fk0(:),fk1(:)
 c     for default opts, make a null pointer...
@@ -64,35 +61,47 @@ c     start tests
 c     -----------------------
 c
       iflag = 1
-      print*,'Starting 2D testing: ', ' nj =',nj, ' ms,mt =',ms,mt
+      maxerr = 0d0
       do i = 1,4
-         if (i.eq.1) eps=1d-3
-         if (i.eq.2) eps=1d-6
-         if (i.eq.3) eps=1d-9
-         if (i.eq.4) eps=1d-12
-	 print*,' '
-	 print*,' Requested precision eps =',eps
-	 print*,' '
+         if (i.eq.1) tol=1d-3
+         if (i.eq.2) tol=1d-6
+         if (i.eq.3) tol=1d-9
+         if (i.eq.4) tol=1d-12
 c
 c     -----------------------
 c     call 2D Type 1 method
 c     -----------------------
 c
          call dirft2d1(nj,xj,yj,cj,iflag,ms,mt,fk0)
-         call finufft2d1(nj,xj,yj,cj,iflag,eps,ms,mt,fk1,defopts,ier)
+         call finufft2d1(nj,xj,yj,cj,iflag,tol,ms,mt,fk1,defopts,ier)
+         if (ier.ne.0) then
+            print *, 'FAILED: finufft2d1 ier is not 0'
+            stop 1, quiet=.true.
+         endif
          call errcomp(fk0,fk1,nk,err)
-         print *, ' ier = ',ier
-         call errcomp(fk0,fk1,nk,err)
-         print *, ' type 1 error = ',err
+         if (.not.ieee_is_finite(sum(abs(fk1))) .or.
+     $        .not.(err.le.10*tol)) then
+            print *, 'FAILED: type 1 rel err too large, or NaN or Inf'
+            stop 1, quiet=.true.
+         endif
+         maxerr = max(maxerr,err)
 c
 c     -----------------------
 c      call 2D Type 2 method
 c     -----------------------
          call dirft2d2(nj,xj,yj,cj0,iflag,ms,mt,fk0)
-         call finufft2d2(nj,xj,yj,cj1,iflag,eps,ms,mt,fk0,defopts,ier)
-         print *, ' ier = ',ier
+         call finufft2d2(nj,xj,yj,cj1,iflag,tol,ms,mt,fk0,defopts,ier)
+         if (ier.ne.0) then
+            print *, 'FAILED: finufft2d2 ier is not 0'
+            stop 1, quiet=.true.
+         endif
          call errcomp(cj0,cj1,nj,err)
-         print *, ' type 2 error = ',err
+         if (.not.ieee_is_finite(sum(abs(cj1))) .or.
+     $        .not.(err.le.10*tol)) then
+            print *, 'FAILED: type 2 rel err too large, or NaN or Inf'
+            stop 1, quiet=.true.
+         endif
+         maxerr = max(maxerr,err)
 c
 c     -----------------------
 c      call 2D Type3 method
@@ -103,13 +112,20 @@ c     -----------------------
          enddo
 
          call dirft2d3(nj,xj,yj,cj,iflag,nk,sk,tk,fk0)
-         call finufft2d3(nj,xj,yj,cj,iflag,eps,nk,sk,tk,fk1,defopts,ier)
-c
-         print *, ' ier = ',ier
+         call finufft2d3(nj,xj,yj,cj,iflag,tol,nk,sk,tk,fk1,defopts,ier)
+         if (ier.ne.0) then
+            print *, 'FAILED: finufft2d3 ier is not 0'
+            stop 1, quiet=.true.
+         endif
          call errcomp(fk0,fk1,nk,err)
-         print *, ' type 3 error = ',err
+         if (.not.ieee_is_finite(sum(abs(fk1))) .or.
+     $        .not.(err.le.10*tol)) then
+            print *, 'FAILED: type 3 rel err too large, or NaN or Inf'
+            stop 1, quiet=.true.
+         endif
+         maxerr = max(maxerr,err)
       enddo
-      stop
+      print '("max rel err = ",e10.2)',maxerr
       end
 c
 c
@@ -120,14 +136,14 @@ c
       implicit none
       integer*8 k,n
       complex*16 fk0(n), fk1(n)
-      real *8 salg,ealg,err
+      real *8 fmax,emax,err
 c
-      ealg = 0d0
-      salg = 0d0
+      emax = 0d0
+      fmax = 0d0
       do k = 1, n
-         ealg = ealg + cdabs(fk1(k)-fk0(k))**2
-         salg = salg + cdabs(fk0(k))**2
+         emax = max(emax,cdabs(fk1(k)-fk0(k)))
+         fmax = max(fmax,cdabs(fk1(k)))
       enddo
-      err =sqrt(ealg/salg)
+      err = emax/fmax
       return
       end
