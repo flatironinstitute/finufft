@@ -1,62 +1,49 @@
-# Put cmake on a Jenkins win agent that ships none, then run the
-# cross-platform quick-start test through the Visual Studio generator, which
-# drives msbuild with its own environment: no vcvars needed. cmake lands in
-# CI_TOOLS inside the workspace, so the second test arm skips the download.
-#
-# MSVC is the one piece that needs administrator rights: vs_BuildTools.exe has
-# no per-user install mode. When the agent has no Visual Studio and this job
-# has no admin rights, the throw names the command SCC has to run once.
-#
-# Env: CI_TOOLS (install root; its bin\ is on PATH through PATH+CI_TOOLS)
+# Run the cross-platform quick-start test on the Windows agent's own
+# toolchain: MSVC from the installed Visual Studio, cmake from the bundled
+# CMake component. Run from the checkout root, once per test arm.
 $ErrorActionPreference = 'Stop'
-$ProgressPreference = 'SilentlyContinue'
-
-if (-not $env:CI_TOOLS) { throw "CI_TOOLS is not set" }
-$cmakeVersion = if ($env:CMAKE_VERSION) { $env:CMAKE_VERSION } else { '3.31.6' }
-$tools = $env:CI_TOOLS
-
-New-Item -ItemType Directory -Force -Path "$tools\bin", "$tools\tmp" | Out-Null
-
-# The archive's share\ directory has to move with cmake.exe: it resolves its
-# modules relative to the executable.
-if (-not (Get-Command cmake -ErrorAction SilentlyContinue)) {
-    $zip = "$tools\tmp\cmake.zip"
-    Invoke-WebRequest -Uri "https://github.com/Kitware/CMake/releases/download/v$cmakeVersion/cmake-$cmakeVersion-windows-x86_64.zip" -OutFile $zip
-    Expand-Archive -Path $zip -DestinationPath "$tools\tmp" -Force
-    Copy-Item -Recurse -Force "$tools\tmp\cmake-$cmakeVersion-windows-x86_64\*" $tools
-}
 
 # vswhere ships with the VS installer, but its presence says nothing about a
 # usable toolchain: ask it for the VC++ tools component instead.
 $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
-$vcToolsPath = ""
-if (Test-Path $vswhere) {
-    $vcToolsPath = & $vswhere -latest -products * `
-        -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 `
-        -property installationPath
-}
-if (-not $vcToolsPath) {
-    $admin = ([Security.Principal.WindowsPrincipal] `
-            [Security.Principal.WindowsIdentity]::GetCurrent()
-    ).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
-    if (-not $admin) {
-        throw @"
-no Visual Studio on this agent and no administrator rights to install one.
-vs_BuildTools.exe has no per-user install mode, so SCC has to run, once, as
-administrator:
-  winget install --id Microsoft.VisualStudio.2022.BuildTools --override ``
-    "--quiet --wait --norestart --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended"
-"@
-    }
-    $bootstrap = "$tools\tmp\vs_BuildTools.exe"
-    Invoke-WebRequest -Uri 'https://aka.ms/vs/17/release/vs_BuildTools.exe' -OutFile $bootstrap
-    # 3010 is "installed, wants a reboot", which the toolchain does not need.
-    & $bootstrap --quiet --wait --norestart --nocache `
-        --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended
-    if ($LASTEXITCODE -ne 0 -and $LASTEXITCODE -ne 3010) {
-        throw "vs_BuildTools returned $LASTEXITCODE"
-    }
+if (-not (Test-Path $vswhere)) { throw "vswhere.exe not found at $vswhere" }
+$vsRoot = & $vswhere -latest -products * `
+    -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 `
+    -property installationPath
+$vcvars = "$vsRoot\VC\Auxiliary\Build\vcvars64.bat"
+if (-not (Test-Path $vcvars)) {
+    throw "vcvars64.bat not found at $vcvars - is the VC++ toolset installed?"
 }
 
-cmake -P tools/ci/install-test.cmake
+# vcvars64.bat is a batch script: load its environment by importing the set
+# output of a cmd that runs it, so cl.exe and nmake reach cmake below.
+cmd /c "call `"$vcvars`" && set" | ForEach-Object {
+    if ($_ -match '^([^=]+)=(.*)$') {
+        [Environment]::SetEnvironmentVariable($matches[1], $matches[2], 'Process')
+    }
+}
+if ($LASTEXITCODE -ne 0) { throw "vcvars64.bat failed with $LASTEXITCODE" }
+
+# NMake ships with the VC tools vcvars loads, so the leg needs nothing else installed.
+$env:CMAKE_GENERATOR = 'NMake Makefiles'
+
+# Use the CMake that Visual Studio bundles, never whatever cmake is first on PATH.
+$cmake = "$vsRoot\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe"
+if (-not (Test-Path $cmake)) {
+    throw "Visual Studio CMake component not installed: $cmake"
+}
+# Prepend the bundled bin dir so install-test.cmake's child cmake calls use the same cmake.
+$env:Path = "$(Split-Path -Parent $cmake);$env:Path"
+Write-Host "cmake: $cmake"
+Write-Host "cmake: $(& $cmake --version | Select-Object -First 1)"
+
+if ($env:CC -eq 'clang-cl') {
+    # This arm wants clang-cl: pin it to the LLVM that Visual Studio bundles,
+    # so no other clang-cl on PATH can take the build.
+    $env:CC = "$vsRoot\VC\Tools\Llvm\x64\bin\clang-cl.exe"
+    $env:CXX = $env:CC
+    if (-not (Test-Path $env:CC)) { throw "clang-cl.exe not found at $env:CC" }
+}
+
+& $cmake -P tools/ci/install-test.cmake
 if ($LASTEXITCODE -ne 0) { throw "install-test.cmake failed with $LASTEXITCODE" }
