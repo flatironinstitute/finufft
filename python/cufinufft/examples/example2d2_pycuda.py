@@ -53,6 +53,7 @@ for i in range(n_transf):
 
     # Calculate the absolute and relative error.
     err = np.abs(c[i, jt] - c_true)
+    assert np.all(np.isfinite(c[i]))
     rel_err = err / np.max(np.abs(c[i]))
 
     print(f"[{i}] Absolute error on point [{jt}] is {err:.3g}")

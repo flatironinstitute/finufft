@@ -56,6 +56,7 @@ for i in range(n_transf):
 
     # Calculate the absolute and relative error.
     err = np.abs(fk[i, nt1, nt2] - fk_true)
+    assert np.all(np.isfinite(fk[i]))
     rel_err = err / np.max(np.abs(fk[i]))
 
     print(f"[{i}] Absolute error on mode [{nt1}, {nt2}] is {err:.3g}")
