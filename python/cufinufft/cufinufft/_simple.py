@@ -12,12 +12,12 @@ def nufft1d1(
     data: CudaArray,
     n_modes: int | Iterable[int] | None = None,
     out: CudaArray | None = None,
-    eps: float = 1e-6,
+    tol: float | None = None,
     isign: int = 1,
     **kwargs: Any,
 ) -> CudaArray:
     return _invoke_plan(
-        1, 1, x, None, None, data, None, None, None, out, isign, eps, n_modes, kwargs
+        1, 1, x, None, None, data, None, None, None, out, isign, tol, n_modes, kwargs
     )
 
 
@@ -25,12 +25,12 @@ def nufft1d2(
     x: CudaArray,
     data: CudaArray,
     out: CudaArray | None = None,
-    eps: float = 1e-6,
+    tol: float | None = None,
     isign: int = -1,
     **kwargs: Any,
 ) -> CudaArray:
     return _invoke_plan(
-        1, 2, x, None, None, data, None, None, None, out, isign, eps, None, kwargs
+        1, 2, x, None, None, data, None, None, None, out, isign, tol, None, kwargs
     )
 
 
@@ -40,12 +40,12 @@ def nufft2d1(
     data: CudaArray,
     n_modes: int | Iterable[int] | None = None,
     out: CudaArray | None = None,
-    eps: float = 1e-6,
+    tol: float | None = None,
     isign: int = 1,
     **kwargs: Any,
 ) -> CudaArray:
     return _invoke_plan(
-        2, 1, x, y, None, data, None, None, None, out, isign, eps, n_modes, kwargs
+        2, 1, x, y, None, data, None, None, None, out, isign, tol, n_modes, kwargs
     )
 
 
@@ -54,12 +54,12 @@ def nufft2d2(
     y: CudaArray,
     data: CudaArray,
     out: CudaArray | None = None,
-    eps: float = 1e-6,
+    tol: float | None = None,
     isign: int = -1,
     **kwargs: Any,
 ) -> CudaArray:
     return _invoke_plan(
-        2, 2, x, y, None, data, None, None, None, out, isign, eps, None, kwargs
+        2, 2, x, y, None, data, None, None, None, out, isign, tol, None, kwargs
     )
 
 
@@ -70,12 +70,12 @@ def nufft3d1(
     data: CudaArray,
     n_modes: int | Iterable[int] | None = None,
     out: CudaArray | None = None,
-    eps: float = 1e-6,
+    tol: float | None = None,
     isign: int = 1,
     **kwargs: Any,
 ) -> CudaArray:
     return _invoke_plan(
-        3, 1, x, y, z, data, None, None, None, out, isign, eps, n_modes, kwargs
+        3, 1, x, y, z, data, None, None, None, out, isign, tol, n_modes, kwargs
     )
 
 
@@ -85,12 +85,12 @@ def nufft3d2(
     z: CudaArray,
     data: CudaArray,
     out: CudaArray | None = None,
-    eps: float = 1e-6,
+    tol: float | None = None,
     isign: int = -1,
     **kwargs: Any,
 ) -> CudaArray:
     return _invoke_plan(
-        3, 2, x, y, z, data, None, None, None, out, isign, eps, None, kwargs
+        3, 2, x, y, z, data, None, None, None, out, isign, tol, None, kwargs
     )
 
 
@@ -103,11 +103,11 @@ def nufft3d3(
     t: CudaArray,
     u: CudaArray,
     out: CudaArray | None = None,
-    eps: float = 1e-6,
+    tol: float | None = None,
     isign: int = 1,
     **kwargs: Any,
 ) -> CudaArray:
-    return _invoke_plan(3, 3, x, y, z, data, s, t, u, out, isign, eps, None, kwargs)
+    return _invoke_plan(3, 3, x, y, z, data, s, t, u, out, isign, tol, None, kwargs)
 
 
 def nufft2d3(
@@ -117,12 +117,12 @@ def nufft2d3(
     s: CudaArray,
     t: CudaArray,
     out: CudaArray | None = None,
-    eps: float = 1e-6,
+    tol: float | None = None,
     isign: int = 1,
     **kwargs: Any,
 ) -> CudaArray:
     return _invoke_plan(
-        2, 3, x, y, None, data, s, t, None, out, isign, eps, None, kwargs
+        2, 3, x, y, None, data, s, t, None, out, isign, tol, None, kwargs
     )
 
 
@@ -131,17 +131,17 @@ def nufft1d3(
     data: CudaArray,
     s: CudaArray,
     out: CudaArray | None = None,
-    eps: float = 1e-6,
+    tol: float | None = None,
     isign: int = 1,
     **kwargs: Any,
 ) -> CudaArray:
     return _invoke_plan(
-        1, 3, x, None, None, data, s, None, None, out, isign, eps, None, kwargs
+        1, 3, x, None, None, data, s, None, None, out, isign, tol, None, kwargs
     )
 
 
 def _invoke_plan(
-    dim, nufft_type, x, y, z, data, s, t, u, out, isign, eps, n_modes=None, kwargs=None
+    dim, nufft_type, x, y, z, data, s, t, u, out, isign, tol, n_modes=None, kwargs=None
 ):
     dtype = _compat.get_array_dtype(data)
 
@@ -153,9 +153,9 @@ def _invoke_plan(
         n_modes = data.shape[-dim:]
 
     if nufft_type == 3:
-        plan = Plan(nufft_type, dim, n_trans, eps, isign, dtype, **kwargs)
+        plan = Plan(nufft_type, dim, n_trans, tol, isign, dtype, **kwargs)
     else:
-        plan = Plan(nufft_type, n_modes, n_trans, eps, isign, dtype, **kwargs)
+        plan = Plan(nufft_type, n_modes, n_trans, tol, isign, dtype, **kwargs)
 
     plan.setpts(x, y, z, s, t, u)
 
@@ -226,7 +226,8 @@ def _set_nufft_doc(f, dim, tp):
       out       (complex[{modes}] or complex[n_tr, {modes}], optional): output array
                 for Fourier mode values. If ``n_modes`` is specifed, the shape
                 must match, otherwise ``n_modes`` is inferred from ``out``.
-      eps       (float, optional): precision requested (>1e-16).
+      tol       (float, optional): precision requested (>1e-16).
+                ``eps`` is a deprecated alias of ``tol``.
       isign     (int, optional): if non-negative, uses positive sign in
                 exponential, otherwise negative sign.
       **kwargs  (optional): other options may be specified, see the ``Plan``
@@ -278,7 +279,8 @@ def _set_nufft_doc(f, dim, tp):
                 the mode indices {pt_idx} satisfy {pt_constraint}.
       out       (complex[M] or complex[n_tr, M], optional): output array
                 at targets.
-      eps       (float, optional): precision requested (>1e-16).
+      tol       (float, optional): precision requested (>1e-16).
+                ``eps`` is a deprecated alias of ``tol``.
       isign     (int, optional): if non-negative, uses positive sign in
                 exponential, otherwise negative sign.
       **kwargs  (optional): other options may be specified, see the ``Plan``
@@ -329,7 +331,8 @@ def _set_nufft_doc(f, dim, tp):
       c         (complex[M] or complex[n_tr, M]): source strengths.
 {target_pts_doc}
       out       (complex[N] or complex[n_tr, N], optional): output values at target frequencies.
-      eps       (float, optional): precision requested (>1e-16).
+      tol       (float, optional): precision requested (>1e-16).
+                ``eps`` is a deprecated alias of ``tol``.
       isign     (int, optional): if non-negative, uses positive sign in
                 exponential, otherwise negative sign.
       **kwargs  (optional): other options may be specified, see the ``Plan``
@@ -422,7 +425,7 @@ def _set_nufft_doc(f, dim, tp):
     # for type 3 example only
     v["target_pts"] = ", ".join(str(x) for x in target_pts[:dim])
     v["target_pts_generate"] = "\n".join(
-        "      {} = 2 * np.pi * cp.random.uniform(size=N)".format(x)
+        "      {} = 2 * cp.pi * cp.random.uniform(size=N)".format(x)
         for x in target_pts[:dim]
     )
 

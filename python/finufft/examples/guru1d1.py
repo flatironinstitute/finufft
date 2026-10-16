@@ -1,8 +1,7 @@
-# Simple 1d1 python interface call
+# demo of 1D type 1 FINUFFT in python via the plan (guru) interface
 # Lu 02/07/20.
 
-import time
-import finufft as fp
+import finufft
 import numpy as np
 
 np.random.seed(42)
@@ -15,10 +14,10 @@ F = np.zeros([N], dtype=np.complex128)  # allocate F (modes out)
 n_modes = np.ones([1], dtype=np.int64)
 n_modes[0] = N
 
-strt = time.time()
+tol = 1e-6
 
 # plan
-plan = fp.Plan(1, (N,))
+plan = finufft.Plan(1, (N,), tol=tol)
 
 # set pts
 plan.setpts(x)
@@ -26,15 +25,13 @@ plan.setpts(x)
 # exec
 plan.execute(c, F)
 
-# timing
-print("Finished nufft in {0:.2g} seconds. Checking...".format(time.time() - strt))
-
 # check error
 n = 142519  # mode to check
-Ftest = 0.0
-# this is so slow...
-for j in range(M):
-    Ftest += c[j] * np.exp(n * x[j] * 1.0j)
+Ftest = np.sum(c * np.exp(1.0j * n * x))
 Fmax = np.max(np.abs(F))
-err = np.abs((F[n + N // 2] - Ftest) / Fmax)
-print("Error relative to max of F: {0:.2e}".format(err))
+if not np.isfinite(Fmax):
+    raise SystemExit(f"FAILED: max |F| is not finite: {Fmax:.3g}")
+err = np.abs(F[n + N // 2] - Ftest) / Fmax
+if err > 10 * tol:
+    raise SystemExit(f"FAILED: relative error {err:.2e}, max |F| {Fmax:.3g}")
+print(f"Error relative to max: {err:.2e}")

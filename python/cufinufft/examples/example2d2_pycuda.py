@@ -14,7 +14,7 @@ import cufinufft
 N1, N2 = 37, 41                 # Size of uniform grid
 M = 17                          # Number of nonuniform points
 n_transf = 2                    # Number of input arrays
-eps = 1e-6                      # Requested tolerance
+tol = 1e-6                      # Requested tolerance
 dtype = np.float32              # Datatype (real)
 complex_dtype = np.complex64    # Datatype (complex)
 # fmt: on
@@ -33,7 +33,7 @@ y = y.astype(dtype)
 fk = fk.astype(complex_dtype)
 
 # Initialize the plan and set the points.
-plan = cufinufft.Plan(2, (N1, N2), n_transf, eps=eps, dtype=complex_dtype)
+plan = cufinufft.Plan(2, (N1, N2), n_transf, tol=tol, dtype=complex_dtype)
 plan.setpts(to_gpu(x), to_gpu(y))
 
 # Execute the plan, reading from the uniform grid fk and storing the result
@@ -58,4 +58,7 @@ for i in range(n_transf):
     print(f"[{i}] Absolute error on point [{jt}] is {err:.3g}")
     print(f"[{i}] Relative error on point [{jt}] is {rel_err:.3g}")
 
-    assert rel_err < 15 * eps
+    if not np.all(np.isfinite(c[i])):
+        raise SystemExit(f"FAILED: c[{i}] is not finite")
+    if rel_err > 15 * tol:
+        raise SystemExit(f"FAILED: rel err {rel_err:.3g} exceeds 15*tol")

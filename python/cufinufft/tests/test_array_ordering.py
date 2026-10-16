@@ -15,7 +15,7 @@ def test_type1_ordering(
     k_gpu = to_gpu(k)
     c_gpu = to_gpu(c)
 
-    plan = Plan(1, shape, eps=tol, dtype=dtype)
+    plan = Plan(1, shape, tol=tol, dtype=dtype)
 
     plan.setpts(*k_gpu)
 

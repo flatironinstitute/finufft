@@ -36,7 +36,7 @@ def finufft1d_accuracy_plot(
             c = np.asarray(c, dtype=np.complex128)
 
         # FINUFFT type-1. Pass (N,) not N. Pass opts via 'opts=...'.
-        f_nufft = finufft.nufft1d1(x, c, N, eps=tol, upsampfac=upsampfac)
+        f_nufft = finufft.nufft1d1(x, c, N, tol=tol, upsampfac=upsampfac)
 
         # Exact result: fe[k] = sum_j c_j * exp(i*isign*k*x_j)
         fe = np.exp(1j * isign * (ns[:, None] * x[None, :])) @ c

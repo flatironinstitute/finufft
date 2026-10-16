@@ -79,7 +79,7 @@ def erralltypedim(
             np.ascontiguousarray(x, dtype=real_dtype),
             np.ascontiguousarray(c, dtype=complex_dtype),
             n_modes=N,
-            eps=tol,
+            tol=tol,
             isign=isign,
             **(o or {}),
         )
@@ -95,7 +95,7 @@ def erralltypedim(
         C = finufft.nufft1d2(
             np.ascontiguousarray(x, dtype=real_dtype),
             np.ascontiguousarray(f, dtype=complex_dtype),
-            eps=tol,
+            tol=tol,
             isign=isign,
             **(o or {}),
         )
@@ -114,7 +114,7 @@ def erralltypedim(
             np.ascontiguousarray(x, dtype=real_dtype),
             np.ascontiguousarray(c, dtype=complex_dtype),
             np.ascontiguousarray(s, dtype=real_dtype),
-            eps=tol,
+            tol=tol,
             isign=isign,
             **(o or {}),
         )
@@ -140,7 +140,7 @@ def erralltypedim(
             np.ascontiguousarray(y, dtype=real_dtype),
             np.ascontiguousarray(c, dtype=complex_dtype),
             n_modes=(N1, N2),
-            eps=tol,
+            tol=tol,
             isign=isign,
             **(o or {}),
         )
@@ -154,7 +154,7 @@ def erralltypedim(
             np.ascontiguousarray(x, dtype=real_dtype),
             np.ascontiguousarray(y, dtype=real_dtype),
             np.ascontiguousarray(f2, dtype=complex_dtype),
-            eps=tol,
+            tol=tol,
             isign=isign,
             **(o or {}),
         )
@@ -180,7 +180,7 @@ def erralltypedim(
             np.ascontiguousarray(c, dtype=complex_dtype),
             np.ascontiguousarray(s, dtype=real_dtype),
             np.ascontiguousarray(t, dtype=real_dtype),
-            eps=tol,
+            tol=tol,
             isign=isign,
             **(o or {}),
         )
@@ -212,7 +212,7 @@ def erralltypedim(
             np.ascontiguousarray(z, dtype=real_dtype),
             np.ascontiguousarray(c, dtype=complex_dtype),
             n_modes=(N1, N2, N3),
-            eps=tol,
+            tol=tol,
             isign=isign,
             **(o or {}),
         )
@@ -227,7 +227,7 @@ def erralltypedim(
             np.ascontiguousarray(y, dtype=real_dtype),
             np.ascontiguousarray(z, dtype=real_dtype),
             np.ascontiguousarray(f3d, dtype=complex_dtype),
-            eps=tol,
+            tol=tol,
             isign=isign,
             **(o or {}),
         )
@@ -261,7 +261,7 @@ def erralltypedim(
             np.ascontiguousarray(s, dtype=real_dtype),
             np.ascontiguousarray(t, dtype=real_dtype),
             np.ascontiguousarray(u, dtype=real_dtype),
-            eps=tol,
+            tol=tol,
             isign=isign,
             **(o or {}),
         )

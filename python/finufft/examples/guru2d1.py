@@ -1,9 +1,10 @@
-# demo of vectorized 2D type 1 FINUFFT in python via guru interface. Should stay close to docs/python.rst
+# demo of vectorized 2D type 1 FINUFFT in python via guru interface.
+# Should stay close to docs/python.rst
 # Lu 8/20/20
 
-import numpy as np
+# docs-start: guru2d1
 import finufft
-import time
+import numpy as np
 
 np.random.seed(42)
 
@@ -28,25 +29,27 @@ N2 = 2000
 nufft_type = 1
 
 # instantiate the plan (note n_trans must be set here), also setting tolerance:
-t0 = time.time()
-plan = finufft.Plan(nufft_type, (N1, N2), eps=1e-9, n_trans=K)
+tol = 1e-9
+plan = finufft.Plan(nufft_type, (N1, N2), tol=tol, n_trans=K)
 
 # set the nonuniform points
 plan.setpts(x, y)
 
 # execute the plan (K transforms together, note c.shape must match)
 f = plan.execute(c)
-print("vectorized guru finufft2d1 done in {0:.2g} s.".format(time.time() - t0))
+# docs-end: guru2d1
 
-print(f.dtype)
-print(f.shape)
+assert f.shape == (K, N1, N2)
 
 k1 = 376  # do a math check, for a single output mode index (k1,k2)
 k2 = -1000
-t = K - 2  # from the t'th transform
-assert (k1 >= -N1 / 2.0) & (k1 < N1 / 2.0)  # float division easier here
-assert (k2 >= -N2 / 2.0) & (k2 < N2 / 2.0)
-assert (t >= 0) & (t < K)
-ftest = sum(c[t, :] * np.exp(1.0j * (k1 * x + k2 * y)))
-err = np.abs(f[t, k1 + N1 // 2, k2 + N2 // 2] - ftest) / np.max(np.abs(f))
-print("Error relative to max: {0:.2e}".format(err))
+assert -N1 / 2 <= k1 < N1 / 2  # float division easier here
+assert -N2 / 2 <= k2 < N2 / 2
+ftest = c @ np.exp(1.0j * (k1 * x + k2 * y))
+Fmax = np.max(np.abs(f), axis=(1, 2))
+if not np.all(np.isfinite(Fmax)):
+    raise SystemExit(f"FAILED: max |f| is not finite: {Fmax.max():.3g}")
+err = np.max(np.abs(f[:, k1 + N1 // 2, k2 + N2 // 2] - ftest) / Fmax)
+if err > 10 * tol:
+    raise SystemExit(f"FAILED: max relative error {err:.2e}, max |f| {Fmax.max():.3g}")
+print(f"Max error relative to max: {err:.2e}")

@@ -29,7 +29,7 @@ def test():
     M = 6136781                     # Number of nonuniform points
     n_transf = 1                    # Number of nuffts to perform per batch
     n_tot = 32                      # Number of batches to execute
-    eps = 1e-5                      # Requested tolerance
+    tol = 1e-5                      # Requested tolerance
     dtype = np.float32              # Datatype (real)
     complex_dtype = np.complex64    # Datatype (complex)
     # fmt: on
@@ -52,7 +52,7 @@ def test():
         2,
         N,
         n_transf,
-        eps=eps,
+        tol=tol,
         dtype=complex_dtype,
         gpu_kerevalmeth=1,
         gpu_stream=plan_stream.ptr,
@@ -70,7 +70,7 @@ def test():
         2,
         N,
         n_transf,
-        eps=eps,
+        tol=tol,
         dtype=complex_dtype,
         gpu_kerevalmeth=1,
         gpu_stream=front_stream.ptr,
@@ -80,7 +80,7 @@ def test():
         2,
         N,
         n_transf,
-        eps=eps,
+        tol=tol,
         dtype=complex_dtype,
         gpu_kerevalmeth=1,
         gpu_stream=back_stream.ptr,
