@@ -19,6 +19,9 @@ compiler is needed. See `mip.sh/docs <https://mip.sh/docs>`_ for details.
    mip is MATLAB-only. Octave users, or anyone who wants to customize the
    build, should build from source instead — see the
    :ref:`installation page <install>`.
+   After an Octave build, run an example from the repo root with
+   ``addpath('build/octave'); addpath('matlab/examples'); guru1d1``
+   (``build`` is your CMake build directory).
 
 
 Quick-start examples
@@ -39,8 +42,8 @@ as follows:
 The column vector output ``f`` should be interpreted as the Fourier
 coefficients with frequency indices ``k = -N/2:N/2-1``.
 (This is because ``N`` is even; otherwise ``k = -(N-1)/2:(N-1)/2``.)
-The values in ``f`` are accurate (relative to this vector's 2-norm)
-to roughly 12 digits, as requested by the tolerance argument ``1e-12``.
+The values in ``f`` approximate the exact sums to roughly the requested
+tolerance ``1e-12`` (relative to this vector's 2-norm).
 Choosing a larger (ie, worse) tolerance leads to faster transforms.
 The ``+1`` controls the sign in the exponential; recall equation
 :eq:`1d1`. All :ref:`options<opts>` maybe be changed from
@@ -75,22 +78,24 @@ repeated small transforms, where "small" means each transform takes of
 order 0.01 sec or less.
 The guru interface is also very convenient for applying forward-adjoint
 transform pairs, common in imaging or optimization applications.
-Here we use the guru interface to repeat the first demo above:
+Here is the core of the guru demo for a (vectorized, 2-transform) 1D type 1
+(``matlab/examples/guru1d1.m``). The snippet prints nothing; the accuracy
+check that prints the relative error lives at the end of the ``.m`` file:
 
-.. code-block:: matlab
+.. literalinclude:: ../matlab/examples/guru1d1.m
+  :language: matlab
+  :start-after: docs-start: guru1d1
+  :end-before: docs-end: guru1d1
 
-  type = 1; ntr = 1; o.modeord = 1;   % transform type, #transforms, opts
-  N = 2e5;                            % how many desired Fourier modes?
-  plan = finufft_plan(1,N,+1,ntr,1e-12,o);      % plan for N output modes
-  M = 1e5;                            % number of NU source points
-  x = 2*pi*rand(M,1);                 % array of NU source points
-  plan.setpts(x,[],[]);               % pass pointer to this array (M inferred)
-  % (note: the x array should now not be altered until all executes are done!)
-  c = randn(M,1)+1i*randn(M,1);       % iid random complex data (row or col vec)
-  f = plan.execute(c);                % do the transform (0.008 sec, ie, faster)
-  % ...one could now change the points with setpts, and/or do new transforms
-  % ...with new c data, and/or do adjoint transforms with new data...
-  delete(plan);                       % don't forget to clean up
+The companion demo ``matlab/examples/guru1d1_adjoint.m`` is standalone
+(it creates its own plan of the same shape) and applies the *adjoint* of
+the planned transform to new (Fourier coefficient) data,
+that is, a type 2 transform with flipped sign:
+
+.. literalinclude:: ../matlab/examples/guru1d1_adjoint.m
+  :language: matlab
+  :start-after: docs-start: guru1d1-adjoint
+  :end-before: docs-end: guru1d1-adjoint
 
 .. warning::
 

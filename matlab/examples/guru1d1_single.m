@@ -16,16 +16,13 @@ x = pi*(2*rand(1,M,'single')-1);                % choose NU points
 c = randn(1,M*ntrans,'single')+1i*randn(1,M*ntrans,'single');     % strengths
 
 % set options then plan the transform...
-opts.debug=2;
 opts.floatprec = 'single';   % tells it to make a single-precision plan
 opts.allow_eps_too_small = 1;   % single prec can't reach tol at this N; warn, don't throw
-disp('starting...'), tic
 plan = finufft_plan(type,n_modes,isign,ntrans,tol,opts);
 
 plan.setpts(x);                                 % send in NU pts
 
 f = plan.execute(c);                               % do the transform
-disp('done.'); toc
 
 % if you do not want to do more transforms of this size, clean up...
 delete(plan);
@@ -35,4 +32,7 @@ nt = ceil(0.37*N);                              % pick a mode index
 t = ceil(0.7*ntrans);                           % pick a transform in stack
 fe = sum(c(M*(t-1)+(1:M)).*exp(1i*isign*nt*x));           % exact
 of1 = floor(N/2) + 1 + N*(t-1);                           % mode index offset
-fprintf('rel err in F[%d] is %.3g\n',nt,abs(fe-f(nt+of1))/norm(f,Inf))
+assert(all(isfinite(f(:))), 'guru1d1_single: wrong result, NaN or Inf in f')
+Fmax = max(abs(f(:)));
+assert(abs(fe-f(nt+of1))/Fmax < 1e-2, 'guru1d1_single: wrong result, error above 1e-2')   % single prec + rounding floor: cannot do better
+fprintf('rel err in F[%d] is %.3g\n',nt,abs(fe-f(nt+of1))/Fmax)
