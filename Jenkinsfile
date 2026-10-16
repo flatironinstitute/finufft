@@ -11,8 +11,6 @@ properties([
 // rather than written down, and archs is what this nvcc can target - a pod that
 // lands outside it skips instead of failing (sm_120 needs CUDA >= 12.8; 13.x
 // dropped sm_70).
-// One card of each kind, so no run duplicates an arch: 13.x cannot go on the
-// V100 at all, which leaves 12.6 as the only entry that can still cover sm_70.
 // The 11.8 entry is the unpinned one: it takes any GPU node and is the only one
 // asking for two GPUs, since cufinufft_multigpu does not care which cards it
 // gets (it SKIPs anyway unless they are full cards, as CUDA enumerates one MIG
@@ -20,10 +18,9 @@ properties([
 // torch names the PyTorch wheel index. It must match the toolkit, because the
 // image puts /usr/local/cuda/lib64 on LD_LIBRARY_PATH, which outranks torch's
 // RUNPATH: a newer bundled cudart is shadowed by the older system one and every
-// import dies on a missing symbol. It also decides which architectures the wheel
-// carries, and cu126 is the last index building for sm_70 - hence 12.6 for the
-// V100 rather than 12.4, whose index stopped resolving when the cudnn its every
-// torch pins was pruned from download.pytorch.org and pypi.nvidia.com alike.
+// import dies on a missing symbol. Use 12.6 rather than 12.4, whose index
+// stopped resolving when the cudnn its every torch pins was pruned from
+// download.pytorch.org and pypi.nvidia.com alike.
 // Each pod needs a host driver its CUDA accepts (13.0 wants r580+); cuda-compat
 // does not bridge a major version, so the first sh block prints nvidia-smi.
 
@@ -66,23 +63,17 @@ def gpuArch() {
 
 def configs = [
   [cuda: '11.8', gcc: 11, torch: 'cu118',                     archs: ['70', '75', '80', '86', '89', '90'], gpus: 2],
-  [cuda: '12.6', gcc: 13, torch: 'cu126', gpuType: 'v100',    archs: ['70', '75', '80', '86', '89', '90']],
+  [cuda: '12.6', gcc: 13, torch: 'cu126', gpuType: 'a100',    archs: ['70', '75', '80', '86', '89', '90']],
   [cuda: '12.8', gcc: 13, torch: 'cu128', gpuType: 'rtx6000', archs: ['70', '75', '80', '86', '89', '90', '100', '120']],
   [cuda: '13.0', gcc: 14, torch: 'cu130', gpuType: 'a100',    archs: ['75', '80', '86', '89', '90', '100', '120']],
 ]
 
 catchError {
   timeout(time: 3, unit: 'HOURS') {
-    buildImages(configs.collect { cfg ->
-      [ context: 'tools/cufinufft/docker', dockerfile: 'Dockerfile-x86_64',
-        tag: "cuda${cfg.cuda}",
-        buildArgs: "--build-arg CUDA_VERSION=${cfg.cuda} --build-arg GCC_TOOLSET=${cfg.gcc}" +
-                   " --build-arg TORCH_INDEX=${cfg.torch}"
-      ]
-    }, checkout: true)
-
+    // install cpu median 4980 s over 17 builds, serial make on 8 cpus.
+    def installCpus = 8
     def jobs = configs.collectEntries { cfg -> ['cuda-' + cfg.cuda, {
-      runPod(tag: "cuda${cfg.cuda}", cpus: 8, memory: '32Gi',
+      runPod(tag: "cuda${cfg.cuda}", cpus: installCpus, memory: '32Gi',
              gpus: cfg.gpus ?: 1, gpuType: cfg.gpuType) {
         stage("cuda ${cfg.cuda}") {
           def arch = gpuArch()
@@ -107,7 +98,9 @@ catchError {
             // with find_package (CPU and, behind WITH_CUDA, cuFINUFFT) and
             // FetchContent. The CPU arms alone also run on the install cpu
             // leg and on the host agents below.
-            sh 'cmake -P tools/ci/install-test.cmake'
+            withEnv(["CMAKE_BUILD_PARALLEL_LEVEL=${installCpus}"]) {
+              sh 'cmake -P tools/ci/install-test.cmake'
+            }
             sh 'tools/ci/cuda-wheel.sh'
             // catchError so a wheel that fails its tests still gets archived below.
             catchError(buildResult: 'UNSTABLE', stageResult: 'UNSTABLE') {
@@ -333,25 +326,27 @@ catchError {
     if (measures) jobs['measure'] = { for (measure in measures) measure() }
 
     jobs['install cpu'] = {
-      runPod(tag: 'cuda12.8', cpus: 8, memory: '16Gi') {
+      runPod(tag: 'cuda12.8', cpus: installCpus, memory: '16Gi') {
         stage('install cpu') {
-          for (arm in [['Static', 'ducc', 'ON'], ['Static', 'fftw', 'ON'],
-                       ['Shared', 'ducc', 'ON'], ['Shared', 'fftw', 'ON'],
-                       ['Static', 'ducc', 'OFF'], ['Static', 'fftw-dl', 'ON']]) {
-            def linking = arm[0]
-            def backend = arm[1]
-            def openmp = arm[2]
-            withEnv(["HOME=$WORKSPACE", "LINKING=${linking}", "BACKEND=${backend}",
-                     "OPENMP=${openmp}"]) {
+          withEnv(["CMAKE_BUILD_PARALLEL_LEVEL=${installCpus}"]) {
+            for (arm in [['Static', 'ducc', 'ON'], ['Static', 'fftw', 'ON'],
+                         ['Shared', 'ducc', 'ON'], ['Shared', 'fftw', 'ON'],
+                         ['Static', 'ducc', 'OFF'], ['Static', 'fftw-dl', 'ON']]) {
+              def linking = arm[0]
+              def backend = arm[1]
+              def openmp = arm[2]
+              withEnv(["HOME=$WORKSPACE", "LINKING=${linking}", "BACKEND=${backend}",
+                       "OPENMP=${openmp}"]) {
+                sh 'cmake -P tools/ci/install-test.cmake'
+              }
+            }
+
+            // The Debug arm covers the GCC -O1 workaround (xsimd 14.3.0 folds
+            // immediate arguments wrongly at -O0, see cmake/toolchain.cmake).
+            withEnv(["HOME=$WORKSPACE", "LINKING=Static", "BACKEND=ducc",
+                     "OPENMP=ON", "BUILD_TYPE=Debug"]) {
               sh 'cmake -P tools/ci/install-test.cmake'
             }
-          }
-
-          // The Debug arm covers the GCC -O1 workaround (xsimd 14.3.0 folds
-          // immediate arguments wrongly at -O0, see cmake/toolchain.cmake).
-          withEnv(["HOME=$WORKSPACE", "LINKING=Static", "BACKEND=ducc",
-                   "OPENMP=ON", "BUILD_TYPE=Debug"]) {
-            sh 'cmake -P tools/ci/install-test.cmake'
           }
         }
       }
@@ -386,12 +381,14 @@ catchError {
 
     // The quick-start recipes on the bare-metal host agents, CPU only: the
     // card lives in the k8s pods. install-test.cmake is the same install,
-    // consume and run flow as on Linux; host-quick-start.* first puts cmake on
-    // the agent, which ships MSVC (win) or Xcode (macs) but no cmake. CI_TOOLS
-    // sits in the build's own workspace. Jenkins gives each concurrent build a
-    // fresh workspace, so two builds never share a half-written cache. The two
-    // arms of one build share the download. OpenMP needs libomp, which only
-    // the win agent's MSVC provides, so the macs run single threaded.
+    // consume and run flow as on Linux; host-quick-start.* finds the tools on
+    // the agent: the win script takes the VS-bundled cmake and loads
+    // the MSVC environment from vcvars64.bat, the mac script downloads cmake
+    // into CI_TOOLS, which sits in the build's own workspace. Jenkins gives
+    // each concurrent build a fresh workspace, so two builds never share a
+    // half-written cache. The macs' two arms share the download. OpenMP needs
+    // libomp, which only the win agent's MSVC provides, so the macs run
+    // single threaded.
     def quickStartHost = { label ->
       return {
         node(label) {
@@ -400,13 +397,19 @@ catchError {
             def tools = isUnix() ? "${env.WORKSPACE}/.ci-tools" : "${env.WORKSPACE}\\.ci-tools"
             def arms = [['Static', 'OFF'], ['Shared', 'OFF']]
             if (label == 'win') {
-              arms = [['Static', 'ON'], ['Shared', 'ON']]
+              // The third arm builds static through clang-cl, the LLVM that
+              // Visual Studio bundles beside MSVC.
+              arms = [['Static', 'ON'], ['Shared', 'ON'], ['Static', 'ON', 'clang-cl']]
             }
             def bin = isUnix() ? "${tools}/bin" : "${tools}\\bin"
             withEnv(["CI_TOOLS=${tools}", "PATH+CI_TOOLS=${bin}"]) {
               for (arm in arms) {
-                withEnv(["LINKING=${arm[0]}", "OPENMP=${arm[1]}", "BACKEND=ducc",
-                         "WITH_CUDA=OFF"]) {
+                def armEnv = ["LINKING=${arm[0]}", "OPENMP=${arm[1]}", "BACKEND=ducc",
+                              "WITH_CUDA=OFF"]
+                if (arm.size() > 2) {
+                  armEnv += ["CC=${arm[2]}", "CXX=${arm[2]}"]
+                }
+                withEnv(armEnv) {
                   if (isUnix()) {
                     sh 'tools/ci/host-quick-start.sh'
                   } else {
@@ -419,11 +422,29 @@ catchError {
         }
       }
     }
+    def hostJobs = [:]
     for (label in ['win', 'macpro', 'macm1']) {
-      jobs['quick-start ' + label] = quickStartHost(label)
+      hostJobs['quick-start ' + label] = quickStartHost(label)
     }
 
-    parallel jobs
+    // The host legs take bare agents and need no pod image, so they run beside
+    // the image build instead of behind it. The pod legs keep their order:
+    // buildImages first, then all their pods at once.
+    parallel(
+      'pod legs': {
+        buildImages(configs.collect { cfg ->
+          [ context: 'tools/cufinufft/docker', dockerfile: 'Dockerfile-x86_64',
+            tag: "cuda${cfg.cuda}",
+            buildArgs: "--build-arg CUDA_VERSION=${cfg.cuda} --build-arg GCC_TOOLSET=${cfg.gcc}" +
+                       " --build-arg TORCH_INDEX=${cfg.torch}"
+          ]
+        }, checkout: true)
+        parallel jobs
+      },
+      'host legs': {
+        parallel hostJobs
+      }
+    )
   }
 }
 emailFailure()
