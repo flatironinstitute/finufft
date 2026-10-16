@@ -210,17 +210,20 @@ __device__ auto compute_offset(const int bidx, const cuda::std::array<int, 3> &n
 }
 
 // For the current nonuniform point (given via idx), compute the flat index
-// of the bin it falls into.
+// of the bin it falls into. Integer division, exactly consistent with the
+// cell the spread/interp kernels derive from the same coordinate: a float
+// reciprocal-multiply here misassigns boundary points by up to 2 cells at
+// nf ~ 2^24, overflowing the ns/2-padded tile of the subprob-style kernels.
 template<int ndim, typename T>
 __device__ int compute_bin_index(
-    int idx, cuda::std::array<int, 3> nf, cuda::std::array<T, 3> inv_binsizes,
+    int idx, cuda::std::array<int, 3> nf, cuda::std::array<int, 3> binsizes,
     cuda::std::array<int, 3> nbins, cuda::std::array<const T *, 3> xyz) {
   int binidx = 0;
   int stride = 1;
   for (int idim = 0; idim < ndim; ++idim) {
     const T rescaled = fold_rescale(loadReadOnly(xyz[idim] + idx), nf[idim]);
-    int bin          = floor(rescaled * inv_binsizes[idim]);
-    bin              = bin >= nbins[idim] ? bin - 1 : bin;
+    int bin          = int(rescaled) / binsizes[idim];
+    bin              = bin >= nbins[idim] ? nbins[idim] - 1 : bin;
     bin              = bin < 0 ? 0 : bin;
     binidx += bin * stride;
     stride *= nbins[idim];
@@ -299,12 +302,12 @@ __device__ void shared_mem_copy_helper(cuda::std::array<int, 3> binsizes,
 template<typename T, int ndim>
 __global__ FINUFFT_FLATTEN void calc_bin_size_noghost(
     const int M, const cuda::std::array<int, 3> nf,
-    const cuda::std::array<T, 3> inv_binsizes, const cuda::std::array<int, 3> nbins,
+    const cuda::std::array<int, 3> binsizes, const cuda::std::array<int, 3> nbins,
     int *FINUFFT_RESTRICT bin_size, const cuda::std::array<const T *, 3> xyz,
     int *FINUFFT_RESTRICT sortidx) {
   for (int i = threadIdx.x + blockIdx.x * blockDim.x; i < M;
        i += gridDim.x * blockDim.x) {
-    const int binidx = compute_bin_index<ndim>(i, nf, inv_binsizes, nbins, xyz);
+    const int binidx = compute_bin_index<ndim>(i, nf, binsizes, nbins, xyz);
     const int oldidx = atomicAdd(&bin_size[binidx], 1);
     storeCacheStreaming(sortidx + i, oldidx);
   }
@@ -312,13 +315,13 @@ __global__ FINUFFT_FLATTEN void calc_bin_size_noghost(
 
 template<typename T, int ndim>
 __global__ FINUFFT_FLATTEN void calc_inverse_of_global_sort_idx(
-    const int M, const cuda::std::array<T, 3> inv_binsizes,
+    const int M, const cuda::std::array<int, 3> binsizes,
     const cuda::std::array<int, 3> nbins, const int *FINUFFT_RESTRICT bin_startpts,
     const int *FINUFFT_RESTRICT sortidx, const cuda::std::array<const T *, 3> xyz,
     int *FINUFFT_RESTRICT index, const cuda::std::array<int, 3> nf) {
   for (int i = threadIdx.x + blockIdx.x * blockDim.x; i < M;
        i += gridDim.x * blockDim.x) {
-    const int binidx = compute_bin_index<ndim>(i, nf, inv_binsizes, nbins, xyz);
+    const int binidx = compute_bin_index<ndim>(i, nf, binsizes, nbins, xyz);
     storeCacheStreaming(
         index + loadReadOnly(bin_startpts + binidx) + loadReadOnly(sortidx + i), i);
   }

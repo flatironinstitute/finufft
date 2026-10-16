@@ -137,20 +137,19 @@ template<typename T, int Ndim> void do_indexSort_subprob_and_OD(cufinufft_plan_t
   auto layout         = compute_bin_layout<T, Ndim>(p.opts, p.nf123);
   auto &nbins         = layout.nbins;
   const int nbins_tot = layout.nbins_tot;
-  auto &inv_binsizes  = layout.inv_binsizes;
+  auto &binsizes      = layout.binsizes;
 
   checkCudaErrors(
       cudaMemsetAsync(dethrust(p.binsize), 0, nbins_tot * sizeof(int), p.stream));
   calc_bin_size_noghost<T, Ndim><<<(p.M + 1024 - 1) / 1024, 1024, 0, p.stream>>>(
-      p.M, p.nf123, inv_binsizes, nbins, dethrust(p.binsize), p.kxyz,
-      dethrust(p.sortidx));
+      p.M, p.nf123, binsizes, nbins, dethrust(p.binsize), p.kxyz, dethrust(p.sortidx));
   THROW_IF_CUDA_ERROR();
   thrust::exclusive_scan(thrust::cuda::par.on(p.stream), p.binsize.begin(),
                          p.binsize.end(), p.binstartpts.begin());
   THROW_IF_CUDA_ERROR();
   calc_inverse_of_global_sort_idx<T, Ndim>
       <<<(p.M + 1024 - 1) / 1024, 1024, 0, p.stream>>>(
-          p.M, inv_binsizes, nbins, dethrust(p.binstartpts), dethrust(p.sortidx), p.kxyz,
+          p.M, binsizes, nbins, dethrust(p.binstartpts), dethrust(p.sortidx), p.kxyz,
           dethrust(p.idxnupts), p.nf123);
   THROW_IF_CUDA_ERROR();
 
