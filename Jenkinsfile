@@ -128,9 +128,14 @@ catchError {
         }
       }
     }
+    // r2026a takes any GPU: it supports every compute capability. Its map
+    // entry is null (runPod then asks for no card type); the rest take a100.
+    def matlabGpuType = ['r2024a': 'v100', 'r2026a': null]
     matlabs.each { rel -> jobs['matlab-' + rel] = {
       runPod(image: "docker.io/mathworks/matlab-deep-learning:${rel}", cpus: 8, memory: '16Gi',
-             gpus: 1, gpuType: rel == 'r2024a' ? 'v100' : 'a100', matlab: true) {
+             gpus: 1,
+             gpuType: matlabGpuType.containsKey(rel) ? matlabGpuType[rel] : 'a100',
+             matlab: true) {
         stage("matlab ${rel}") {
           withEnv(["HOME=$WORKSPACE", "CUDA_ARCH=${gpuArch()}"]) { sh 'tools/ci/matlab-test.sh' }
         }
@@ -325,31 +330,46 @@ catchError {
     if (pagePublishes || (env.CHANGE_TITLE ?: '').contains('[perf page]')) measures << pageJob
     if (measures) jobs['measure'] = { for (measure in measures) measure() }
 
-    jobs['install cpu'] = {
-      runPod(tag: 'cuda12.8', cpus: installCpus, memory: '16Gi') {
-        stage('install cpu') {
-          withEnv(["CMAKE_BUILD_PARALLEL_LEVEL=${installCpus}"]) {
-            for (arm in [['Static', 'ducc', 'ON'], ['Static', 'fftw', 'ON'],
-                         ['Shared', 'ducc', 'ON'], ['Shared', 'fftw', 'ON'],
-                         ['Static', 'ducc', 'OFF'], ['Static', 'fftw-dl', 'ON']]) {
-              def linking = arm[0]
-              def backend = arm[1]
-              def openmp = arm[2]
-              withEnv(["HOME=$WORKSPACE", "LINKING=${linking}", "BACKEND=${backend}",
-                       "OPENMP=${openmp}"]) {
-                sh 'cmake -P tools/ci/install-test.cmake'
+    // The seven install arms run 32-33 min serially in one pod (Jenkins
+    // jenkins-fix builds 4 and 6). Two pods split the arms between them. The
+    // fftw-dl arm's _fetch consumer finds the system FFTW (DEFAULT), so the
+    // arm downloads and builds FFTW once. A host without a system FFTW still
+    // downloads it. See the FFTW note in tools/ci/install-test.cmake.
+    def installLeg = { name, arms ->
+      return {
+        runPod(tag: 'cuda12.8', cpus: installCpus, memory: '16Gi') {
+          stage(name) {
+            withEnv(["CMAKE_BUILD_PARALLEL_LEVEL=${installCpus}"]) {
+              for (arm in arms) {
+                def linking = arm[0]
+                def backend = arm[1]
+                def openmp = arm[2]
+                def armEnv = ["HOME=$WORKSPACE", "LINKING=${linking}", "BACKEND=${backend}",
+                              "OPENMP=${openmp}"]
+                if (arm.size() > 3) {
+                  armEnv += ["BUILD_TYPE=${arm[3]}"]
+                }
+                withEnv(armEnv) {
+                  sh 'cmake -P tools/ci/install-test.cmake'
+                }
               }
-            }
-
-            // The Debug arm covers the GCC -O1 workaround (xsimd 14.3.0 folds
-            // immediate arguments wrongly at -O0, see cmake/toolchain.cmake).
-            withEnv(["HOME=$WORKSPACE", "LINKING=Static", "BACKEND=ducc",
-                     "OPENMP=ON", "BUILD_TYPE=Debug"]) {
-              sh 'cmake -P tools/ci/install-test.cmake'
             }
           }
         }
       }
+    }
+    // Measured arm times, Jenkins jenkins-fix build 9: leg 1 takes 3:58 +
+    // 7:12 + 3:55 (about 15 min). Leg 2 takes 2:33 + 3:08 + 2:30 + 2:59
+    // (about 11 min). The fftw-dl arm takes 7:12 in build 9 against 11:00 in
+    // builds 4 and 6. The Debug tuple's fourth field sets BUILD_TYPE. That arm
+    // covers the GCC -O1 workaround (xsimd 14.3.0 folds immediate arguments
+    // wrongly at -O0, see cmake/toolchain.cmake).
+    def installArms1 = [['Static', 'ducc', 'ON'], ['Static', 'fftw-dl', 'ON'],
+                        ['Static', 'ducc', 'ON', 'Debug']]
+    def installArms2 = [['Static', 'fftw', 'ON'], ['Shared', 'ducc', 'ON'],
+                        ['Shared', 'fftw', 'ON'], ['Static', 'ducc', 'OFF']]
+    ['install cpu 1': installArms1, 'install cpu 2': installArms2].each { n, arms ->
+      jobs[n] = installLeg(n, arms)
     }
 
     // The conda recipe from docs/install.rst, run without change. /opt/conda

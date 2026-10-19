@@ -52,9 +52,10 @@ set(install_flags -DFINUFFT_USE_DUCC0=${ducc} -DFINUFFT_STATIC_LINKING=${static}
 if(CMAKE_HOST_WIN32 AND "$ENV{CC}" MATCHES "clang-cl")
     list(APPEND install_flags -DFINUFFT_WARNINGS_AS_ERRORS=OFF)
 endif()
+set(fftw_download_opt -DFINUFFT_FFTW_LIBRARIES=DOWNLOAD)
 # fftw-dl forces the downloaded FFTW: exercises the static-bundle install route.
 if(BACKEND STREQUAL "fftw-dl")
-    list(APPEND install_flags -DFINUFFT_FFTW_LIBRARIES=DOWNLOAD)
+    list(APPEND install_flags ${fftw_download_opt})
 endif()
 
 set(cuda_flags)
@@ -226,10 +227,20 @@ run(${CMAKE_COMMAND} -S "${checkout}/examples/quick-start/find_package"
 run(${CMAKE_COMMAND} --build "${checkout}/_consume" --config ${BUILD_TYPE})
 run_staged(_consume)
 
+# The _build pass above covers the FFTW download route, so this saves a
+# second FFTW build. On branch jenkins-fix the fftw-dl arm falls from
+# 11:00 (builds 4 and 6) to 7:12 (build 9).
+list(FIND install_flags ${fftw_download_opt} fftw_download_flag)
+set(fetch_fftw_default)
+if(NOT fftw_download_flag EQUAL -1)
+    set(fetch_fftw_default -DFINUFFT_FFTW_LIBRARIES=DEFAULT)
+endif()
+
 run(${CMAKE_COMMAND} -S "${checkout}/examples/quick-start/fetchcontent"
     -B "${checkout}/_fetch" -DCMAKE_BUILD_TYPE=${BUILD_TYPE}
     -DFETCHCONTENT_SOURCE_DIR_FINUFFT=${checkout}
     -DCMAKE_MSVC_DEBUG_INFORMATION_FORMAT=Embedded ${install_flags}
+    ${fetch_fftw_default}
 )
 run(${CMAKE_COMMAND} --build "${checkout}/_fetch" --config ${BUILD_TYPE})
 run_app(_fetch)

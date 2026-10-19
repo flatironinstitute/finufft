@@ -16,7 +16,7 @@ if (-not (Test-Path $vcvars)) {
 }
 
 # vcvars64.bat is a batch script: load its environment by importing the set
-# output of a cmd that runs it, so cl.exe and nmake reach cmake below.
+# output of a cmd that runs it, so cl.exe reaches cmake below.
 cmd /c "call `"$vcvars`" && set" | ForEach-Object {
     if ($_ -match '^([^=]+)=(.*)$') {
         [Environment]::SetEnvironmentVariable($matches[1], $matches[2], 'Process')
@@ -24,18 +24,27 @@ cmd /c "call `"$vcvars`" && set" | ForEach-Object {
 }
 if ($LASTEXITCODE -ne 0) { throw "vcvars64.bat failed with $LASTEXITCODE" }
 
-# NMake ships with the VC tools vcvars loads, so the leg needs nothing else installed.
-$env:CMAKE_GENERATOR = 'NMake Makefiles'
+# The bundled Ninja compiles on all cores. The old generator compiled one file
+# at a time.
+$ninja = "$vsRoot\Common7\IDE\CommonExtensions\Microsoft\CMake\Ninja\ninja.exe"
+if (-not (Test-Path $ninja)) {
+    throw "Visual Studio Ninja not found: $ninja"
+}
+$env:CMAKE_GENERATOR = 'Ninja'
+$env:CMAKE_BUILD_PARALLEL_LEVEL = $env:NUMBER_OF_PROCESSORS
 
 # Use the CMake that Visual Studio bundles, never whatever cmake is first on PATH.
 $cmake = "$vsRoot\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe"
 if (-not (Test-Path $cmake)) {
     throw "Visual Studio CMake component not installed: $cmake"
 }
-# Prepend the bundled bin dir so install-test.cmake's child cmake calls use the same cmake.
-$env:Path = "$(Split-Path -Parent $cmake);$env:Path"
+# Prepend the bundled bin and Ninja dirs so install-test.cmake's child cmake
+# calls use the same tools.
+$env:Path = "$(Split-Path -Parent $cmake);$(Split-Path -Parent $ninja);$env:Path"
 Write-Host "cmake: $cmake"
 Write-Host "cmake: $(& $cmake --version | Select-Object -First 1)"
+Write-Host "ninja: $ninja"
+Write-Host "ninja: $(& $ninja --version)"
 
 if ($env:CC -eq 'clang-cl') {
     # This arm wants clang-cl: pin it to the LLVM that Visual Studio bundles,

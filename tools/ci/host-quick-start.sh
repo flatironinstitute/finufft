@@ -20,4 +20,4 @@ if ! command -v cmake >/dev/null 2>&1; then
 fi
 hash -r 2>/dev/null || true
 
-cmake -P tools/ci/install-test.cmake
+CMAKE_BUILD_PARALLEL_LEVEL=$(sysctl -n hw.ncpu) cmake -P tools/ci/install-test.cmake
