@@ -399,6 +399,18 @@ catchError {
       }
     }
 
+    // The vcpkg overlay port from docs/install.rst, built by a pinned vcpkg and
+    // consumed in classic and in manifest mode. A CPU pod: no card is needed.
+    jobs['vcpkg port'] = {
+      runPod(tag: 'cuda12.8', cpus: 8, memory: '16Gi') {
+        stage('vcpkg port') {
+          withEnv(["HOME=$WORKSPACE", 'VCPKG_MAX_CONCURRENCY=8']) {
+            sh 'tools/ci/vcpkg-port-test.sh'
+          }
+        }
+      }
+    }
+
     // The quick-start recipes on the bare-metal host agents, CPU only: the
     // card lives in the k8s pods. install-test.cmake is the same install,
     // consume and run flow as on Linux; host-quick-start.* finds the tools on

@@ -78,4 +78,7 @@ RUN python3 -m pip install --no-cache-dir pytest pytest-mock numba pycuda \
         "cupy-cuda${CUDA_VERSION%%.*}x" && \
     python3 -m pip install --no-cache-dir torch \
         --index-url https://download.pytorch.org/whl/${TORCH_INDEX}
+# vcpkg's bootstrap needs zip and unzip (the vcpkg port stage). A layer of its
+# own, so the torch layers above stay cached.
+RUN yum install -y zip unzip && yum clean all
 CMD ["/bin/bash"]
