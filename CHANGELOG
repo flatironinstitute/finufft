@@ -170,6 +170,8 @@ Documentation and testing:
 * Documented how to build the Python package from source inside a conda
   environment, with an environment file and install script under
   `python/finufft` (#668). (Abergel, Barbone)
+* C++ examples are C++17, and exit nonzero when a call fails or the math check
+  fails. docs/cex.rst draws the C++ snippets from them (#926, Barbone)
 * Added `threadsafe_execute` regression test verifying concurrent `execute()`
   calls on the same plan produce correct results. Added sanitizer mode selection
   via `FINUFFT_USE_SANITIZERS=OFF|ON|MEMSAN|TSAN`, and extended the sanitizer

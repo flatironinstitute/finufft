@@ -2,11 +2,12 @@
 #include <finufft.h>
 
 // also used in this example...
+#include <algorithm>
 #include <cassert>
 #include <complex>
 #include <cstdio>
 #include <omp.h>
-#include <stdlib.h>
+#include <random>
 #include <vector>
 using namespace std;
 
@@ -39,25 +40,24 @@ int main()
     // Note that these are local to the thread (if you have the *same* sets of
     // NU pts x for each thread, consider instead using one vectorized multithreaded
     // transform, which would be faster).
+    mt19937 rng(12345 + omp_get_thread_num()); // rand() is not thread-safe
+    uniform_real_distribution<double> upi(-PI, PI), u1(-1.0, 1.0);
     vector<double> x(M);
     vector<complex<double>> c(M);
-    for (int j = 0; j < M; ++j) {
-      x[j] = PI * (2 * ((double)rand() / RAND_MAX) - 1); // uniform random in [-pi,pi)
-      c[j] =
-          2 * ((double)rand() / RAND_MAX) - 1 + I * (2 * ((double)rand() / RAND_MAX) - 1);
-    }
+    generate(x.begin(), x.end(), [&] { return upi(rng); }); // uniform random in [-pi,pi)
+    generate(c.begin(), c.end(), [&] { return complex<double>{u1(rng), u1(rng)}; });
 
     // allocate output array for the Fourier modes... local to the thread
     vector<complex<double>> F(N);
 
     // call the NUFFT (with iflag=+1): note pointers (not STL vecs) passed...
-    int ier = finufft1d1(M, &x[0], &c[0], +1, acc, N, &F[0], &opts);
-    if (ier > 0) overallstatus = 1;
+    int ier = finufft1d1(M, x.data(), c.data(), +1, acc, N, F.data(), &opts);
+    if (ier) overallstatus = 1;
 
     int k = 42519; // check the answer just for this mode frequency...
-    assert(k >= -(double)N / 2 && k < (double)N / 2);
+    assert(k >= -double(N) / 2 && k < double(N) / 2);
     complex<double> Ftest = complex<double>(0, 0);
-    for (int j = 0; j < M; ++j) Ftest += c[j] * exp(I * (double)k * x[j]);
+    for (int j = 0; j < M; ++j) Ftest += c[j] * exp(I * double(k) * x[j]);
     double Fmax = 0.0; // compute inf norm of F
     for (int m = 0; m < N; ++m) {
       double aF = abs(F[m]);
@@ -68,6 +68,7 @@ int main()
 
     printf("[thread %2d] 1D t-1 dbl-prec NUFFT done. ier=%d, rel err in F[%d]: %.3g\n",
            omp_get_thread_num(), ier, k, err);
+    if (!(err <= 10 * acc)) overallstatus = 1;
   }
 
   return overallstatus;
