@@ -14,6 +14,7 @@ M = 100000
 x = 2 * np.pi * np.random.uniform(size=M)
 y = 2 * np.pi * np.random.uniform(size=M)
 
+# docs-start: many2d1
 # number of transforms
 K = 4
 
@@ -28,6 +29,7 @@ N2 = 2000
 t0 = time.time()
 f = finufft.nufft2d1(x, y, c, (N1, N2), eps=1e-9)
 print("vectorized finufft2d1 done in {0:.2g} s.".format(time.time() - t0))
+# docs-end: many2d1
 print(f.shape)
 
 k1 = 376  # do a math check, for a single output mode index (k1,k2)
@@ -39,3 +41,5 @@ assert (t >= 0) & (t < K)
 ftest = sum(c[t, :] * np.exp(1.0j * (k1 * x + k2 * y)))
 err = np.abs(f[t, k1 + N1 // 2, k2 + N2 // 2] - ftest) / np.max(np.abs(f))
 print("Error relative to max: {0:.2e}".format(err))
+if not err <= 1e-8:
+    raise SystemExit(f"FAILED: relative error {err:.2e}")

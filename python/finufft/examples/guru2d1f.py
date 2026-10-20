@@ -20,6 +20,7 @@ K = 4
 # generate K stacked strength arrays
 c = np.random.standard_normal(size=(K, M)) + 1j * np.random.standard_normal(size=(K, M))
 
+# docs-start: guru2d1f
 # convert input data to single precision
 x = x.astype("float32")
 y = y.astype("float32")
@@ -44,6 +45,7 @@ f = plan.execute(c)
 print(
     "vectorized guru single-prec finufft2d1 done in {0:.2g} s.".format(time.time() - t0)
 )
+# docs-end: guru2d1f
 
 print(f.dtype)
 print(f.shape)
@@ -57,3 +59,5 @@ assert (t >= 0) & (t < K)
 ftest = sum(c[t, :] * np.exp(1.0j * (k1 * x + k2 * y)))
 err = np.abs(f[t, k1 + N1 // 2, k2 + N2 // 2] - ftest) / np.max(np.abs(f))
 print("Error relative to max: {0:.2e}".format(err))
+if not err <= 1e-3:
+    raise SystemExit(f"FAILED: relative error {err:.2e}")
