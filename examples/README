@@ -10,11 +10,10 @@ clearly as possible.
 The suffix "c" indicates a C language (as opposed to C++) demo.
 (For calling from Fortran, see the demos in ../fortran/examples)
 
-For each example, an exit code 0 indicates success, otherwise failure, usually
-taken from FINUFFT's exit code. These examples do not perform pass-fail math
-tests, rather simply report errors to stdout. The user must check error by eye.
+For each example, an exit code 0 indicates success, otherwise failure.
 
-They are compiled in ../makefile via the task "make examples", or...
+They are compiled in ../makefile via the task "make examples", or with CMake
+using -DFINUFFT_BUILD_EXAMPLES=ON (binaries land in build/examples/), or...
 
 
 COMPILATION INSTRUCTIONS for each example
