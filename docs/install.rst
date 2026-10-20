@@ -123,6 +123,31 @@ default of ``FINUFFT_ENABLE_INSTALL`` is OFF, and ``cmake --install`` on the
 parent project installs the parent alone. Configure with
 ``-DFINUFFT_ENABLE_INSTALL=ON`` to install FINUFFT from a subproject build.
 
+4) **vcpkg**. FINUFFT is not in the vcpkg registry yet. The overlay port in
+``tools/vcpkg`` builds FINUFFT from a clone of this repository. In classic mode:
+
+.. code-block:: bash
+
+    git clone https://github.com/flatironinstitute/finufft.git
+    vcpkg install finufft --overlay-ports=finufft/tools/vcpkg
+
+Then configure the project with the vcpkg toolchain,
+``-DCMAKE_TOOLCHAIN_FILE=$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake``, and
+use ``find_package(finufft)`` as in 3). In manifest mode, add ``"finufft"`` to
+the ``dependencies`` of the project's ``vcpkg.json``, and give the overlay in
+``vcpkg-configuration.json``:
+
+.. code-block:: json
+
+    { "overlay-ports": ["/path/to/finufft/tools/vcpkg"] }
+
+The default features are ``fftw`` and ``openmp``; ``finufft[core,ducc0,openmp]``
+uses DUCC0 instead of FFTW. CPM downloads xsimd, POET, findFFTW and DUCC0 during
+the build, so the install needs network access. vcpkg's binary cache does not
+see changes to the clone. After a ``git pull``, install again with
+``--binarysource=clear`` (in classic mode, run ``vcpkg remove finufft`` first).
+CI runs both modes on x64-linux with ``tools/ci/vcpkg-port-test.sh``.
+
 CMake based installation and compilation
 ----------------------------------------
 
