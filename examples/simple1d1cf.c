@@ -1,14 +1,12 @@
+#define _USE_MATH_DEFINES // M_PI on MSVC
 // this is all you must include...
 #include <finufft.h>
 
 // also needed for this example...
-#include <assert.h>
 #include <complex.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
-
-static const double PI = 3.141592653589793238462643383279502884;
 
 int main()
 /* Simple example of calling the FINUFFT library from C, using C complex type,
@@ -24,7 +22,7 @@ int main()
   float *x         = (float *)malloc(sizeof(float) * M);
   float complex *c = (float complex *)malloc(sizeof(float complex) * M);
   for (int j = 0; j < M; ++j) {
-    x[j] = PI * (2 * ((float)rand() / (float)RAND_MAX) - 1); // uniform random in [-pi,pi)
+    x[j] = M_PI * (2 * ((float)rand() / (float)RAND_MAX) - 1); // random in [-pi,pi)
     c[j] = 2 * ((float)rand() / (float)RAND_MAX) - 1 +
            I * (2 * ((float)rand() / (float)RAND_MAX) - 1);
   }
@@ -33,28 +31,32 @@ int main()
 
   finufft_opts opts;            // opts struct (not ptr)
   finufftf_default_opts(&opts); // set default opts (must do this)
-  opts.debug = 2;               // show how to override a default
   // opts.upsampfac = 1.25;                 // other opts...
 
   // call the NUFFT (with iflag=+1), passing pointers...
   int ier    = finufftf1d1(M, x, c, +1, tol, N, F, &opts);
+  if (ier) return ier;                   // need to check; no valid output to read
 
-  int k      = 1425;                     // check the answer just for this mode...
-  assert(k >= -(double)N / 2 && k < (double)N / 2);
+  int k               = 1425;            // check the answer just for this mode...
   float complex Ftest = 0.0f + 0.0f * I; // defined in complex.h (I too)
   for (int j = 0; j < M; ++j) Ftest += c[j] * cexpf(I * (float)k * x[j]);
   float Fmax = 0.0;                      // compute inf norm of F
+  int finite = 1;
   for (int m = 0; m < N; ++m) {
     float aF = cabsf(F[m]);
+    if (!isfinite(aF)) finite = 0;
     if (aF > Fmax) Fmax = aF;
   }
   int kout  = k + N / 2; // index in output array for freq mode k
   float err = cabsf(F[kout] - Ftest) / Fmax;
-  printf("1D type 1 NUFFT, single-prec. ier=%d, err in F[%d] rel to max(F) is %.3g\n",
-         ier, k, err);
+  if (!finite || !(err < 10 * tol)) {
+    fprintf(stderr, "FAILED: rel err %.3g in F[%d], or F not finite\n", err, k);
+    return 1;
+  }
+  printf("rel err in F[%d] is %.3g\n", k, err);
 
   free(x);
   free(c);
   free(F);
-  return ier;
+  return 0;
 }

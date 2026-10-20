@@ -1,3 +1,5 @@
+#define _USE_MATH_DEFINES // M_PI on MSVC
+// docs-start: migrate2d1_test
 /* Minimal example of 2D "adjoint" (aka type 1) NUFFT using FINUFFT
    to match NFFT3's conventions, and the same user-given data as
    for nfft2d1_test.c.   Single-threaded, timer.   Barnett 5/18/24
@@ -10,8 +12,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
-
-static const double PI = 3.141592653589793238462643383279502884;
 
 int main() {
   int N[2]   = {300, 200}; // N0, N1 output shape in nfft3 sense
@@ -38,8 +38,8 @@ int main() {
 
   // do transform, includes precompute, writing to f_hat...
   for (int j = 0; j < M; ++j) { // change user coords so finufft same as nfft3
-    x[j] *= 2 * PI;
-    y[j] *= 2 * PI;             // scales from 1-periodic to 2pi-periodic
+    x[j] *= 2 * M_PI;
+    y[j] *= 2 * M_PI;           // scales from 1-periodic to 2pi-periodic
   }
   finufft_opts opts;            // opts struct
   finufft_default_opts(&opts);  // set default opts (must start with this)
@@ -60,10 +60,21 @@ int main() {
   double err = cabs(f_hat[i] - f_hat_test) / cabs(f_hat_test);
   printf("2D type 1 (FINUFFT) in %.3g s: f_hat[%d,%d]=%.12g+%.12gi, rel err %.3g\n", secs,
          kx, ky, creal(f_hat[i]), cimag(f_hat[i]), err);
+  // docs-end: migrate2d1_test
+  if (ier) return ier;
+
+  int finite = 1; // fail also on any non-finite output
+  for (int m = 0; m < N[0] * N[1]; ++m)
+    if (!isfinite(cabs(f_hat[m]))) finite = 0;
+  if (!finite || !(err < 10 * tol)) {
+    fprintf(stderr, "FAILED: rel err %.3g in f_hat[%d,%d], or f_hat not finite\n", err,
+            kx, ky);
+    return 1;
+  }
 
   free(x);
   free(y);
   free(f);
   free(f_hat); // user deallocates own I/O arrays
-  return ier;
+  return 0;
 }
