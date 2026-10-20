@@ -1,3 +1,4 @@
+// docs-start: simple1d1c-includes
 // this is all you must include to access finufft from C...
 #include <finufft.h>
 
@@ -9,6 +10,7 @@
 #include <stdlib.h>
 
 static const double PI = 3.141592653589793238462643383279502884;
+// docs-end: simple1d1c-includes
 
 int main()
 /* Simple example of calling the FINUFFT library from C, using C complex type,
@@ -16,11 +18,9 @@ int main()
    To compile see README. Usage: ./simple1d1c
 */
 {
-  int M      = 1e6;  // number of nonuniform points
-  int N      = 1e6;  // number of modes
-  double tol = 1e-9; // desired accuracy
-
   // generate some random nonuniform points (x) and complex strengths (c):
+  // docs-start: simple1d1c-data
+  int M             = 1e6; // number of nonuniform points
   double *x         = (double *)malloc(sizeof(double) * M);
   double complex *c = (double complex *)malloc(sizeof(double complex) * M);
   for (int j = 0; j < M; ++j) {
@@ -28,16 +28,23 @@ int main()
     c[j] =
         2 * ((double)rand() / RAND_MAX) - 1 + I * (2 * ((double)rand() / RAND_MAX) - 1);
   }
-  // allocate complex output array for the Fourier modes
-  double complex *F = (double complex *)malloc(sizeof(double complex) * N);
+  // docs-end: simple1d1c-data
 
+  // allocate complex output array for the Fourier modes
+  // docs-start: simple1d1c-alloc
+  int N             = 1e6; // number of modes
+  double complex *F = (double complex *)malloc(sizeof(double complex) * N);
+  // docs-end: simple1d1c-alloc
+
+  // call the NUFFT (with iflag=+1), passing pointers...
+  // docs-start: simple1d1c-call
   finufft_opts opts;           // opts struct (not ptr)
   finufft_default_opts(&opts); // set default opts (must do this)
   opts.debug = 2;              // show how to override a default
-  // opts.upsampfac = 1.25;              // other opts...
-
-  // call the NUFFT (with iflag=+1), passing pointers...
-  int ier = finufft1d1(M, x, c, +1, tol, N, F, &opts);
+  double tol = 1e-9;           // desired accuracy
+  int ier    = finufft1d1(M, x, c, +1, tol, N, F, &opts);
+  // docs-end: simple1d1c-call
+  if (ier) return ier;
 
   int k = 142519;                       // check the answer just for this mode...
   assert(k >= -(double)N / 2 && k < (double)N / 2);
@@ -52,9 +59,15 @@ int main()
   double err = cabs(F[kout] - Ftest) / Fmax;
   printf("1D type 1 NUFFT done. ier=%d, err in F[%d] rel to max(F) is %.3g\n", ier, k,
          err);
+  if (!(err <= 10 * tol)) {
+    fprintf(stderr, "FAILED: rel err %.3g in F[%d]\n", err, k);
+    return 1;
+  }
 
+  // docs-start: simple1d1c-free
   free(x);
   free(c);
   free(F);
+  // docs-end: simple1d1c-free
   return ier;
 }
