@@ -1,7 +1,7 @@
 function errhandler(ier)
 % ERRHANDLER  translate FINUFFT's ier status into MATLAB warnings/error throws.
 
-% Barnett 6/13/20, updated 1/29/26.
+% Barnett 6/13/20, updated 1/29/26, 10/20/26.
 
 % Note that there are other matlab-only error types defined in valid_*.m
 
@@ -9,16 +9,10 @@ switch ier
   % These should match the ERR_ #defines in ../include/finufft_errors.h
   % All of those should be caught here, else a C++ error will crash MATLAB entirely
   % and make for unhappy users:
- case 1
-  warning('FINUFFT:epsTooSmall','FINUFFT eps tolerance too small to achieve');
  case 2
   error('FINUFFT:mallocGtMaxNf','FINUFFT malloc size requested greater than MAXNF');
  case 3
   error('FINUFFT:spreadinterp:fineGridSmall','FINUFFT spreader fine grid too small compared to kernel width');
- case 4
-  error('FINUFFT:spreadinterp:NUrange','[DEPRECATED]');
- case 5
-  error('FINUFFT:spreadinterp:malloc','FINUFFT spreader malloc error');
  case 6
   error('FINUFFT:spreadinterp:badDir','FINUFFT spreader illegal direction (must be 1 or 2)');
  case 7
@@ -58,5 +52,17 @@ switch ier
  case 25
   error('FINUFFT:unknownException','FINUFFT unknown internal exception');
  case 26
-  error('FINUFFT:epsTooSmall','FINUFFT eps tolerance too small to achieve');
+   error('FINUFFT:epsTooSmall','FINUFFT eps tolerance too small to achieve');
+ case 27
+   error('FINUFFT:PSWFSetupErr','FINUFFT PSWF function evaluator setup failure');
+
+  % Deprecated error codes (should not be raised; see ../include/finufft_errors.h):
+ case 1
+  warning('FINUFFT:epsTooSmall','[DEPRECATED]');
+ case 4
+  error('FINUFFT:spreadinterp:NUrange','[DEPRECATED]');
+ case 5
+  error('FINUFFT:spreadinterp:malloc','[DEPRECATED]');
+ case 13
+  error('FINUFFT:spreadinterp:threadInvalid','[DEPRECATED]');
 end
