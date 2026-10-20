@@ -24,6 +24,7 @@ c = np.random.standard_normal(size=(K, M)) + 1j * np.random.standard_normal(size
 N1 = 1000
 N2 = 2000
 
+# docs-start: guru2d1
 # specify type 1 transform
 nufft_type = 1
 
@@ -37,6 +38,7 @@ plan.setpts(x, y)
 # execute the plan (K transforms together, note c.shape must match)
 f = plan.execute(c)
 print("vectorized guru finufft2d1 done in {0:.2g} s.".format(time.time() - t0))
+# docs-end: guru2d1
 
 print(f.dtype)
 print(f.shape)
@@ -50,3 +52,5 @@ assert (t >= 0) & (t < K)
 ftest = sum(c[t, :] * np.exp(1.0j * (k1 * x + k2 * y)))
 err = np.abs(f[t, k1 + N1 // 2, k2 + N2 // 2] - ftest) / np.max(np.abs(f))
 print("Error relative to max: {0:.2e}".format(err))
+if not err <= 1e-8:
+    raise SystemExit(f"FAILED: relative error {err:.2e}")

@@ -20,7 +20,8 @@ n_modes[0] = N
 strt = time.time()
 
 # plan, using proper specifier for single-precision transform
-plan = fp.Plan(1, (N,), dtype="complex64")
+eps = 1e-1
+plan = fp.Plan(1, (N,), eps=eps, dtype="complex64")
 
 # set pts
 plan.setpts(x)
@@ -40,3 +41,5 @@ for j in range(M):
 Fmax = np.max(np.abs(F))
 err = np.abs((F[n + N // 2] - Ftest) / Fmax)
 print("Error relative to max of F: {0:.2e}".format(err))
+if not err <= 10 * eps:
+    raise SystemExit(f"FAILED: relative error {err:.2e}")
