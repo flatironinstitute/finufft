@@ -35,4 +35,7 @@ nt = ceil(0.37*N);                              % pick a mode index
 t = ceil(0.7*ntrans);                           % pick a transform in stack
 fe = sum(c(M*(t-1)+(1:M)).*exp(1i*isign*nt*x));           % exact
 of1 = floor(N/2) + 1 + N*(t-1);                           % mode index offset
-fprintf('rel err in F[%d] is %.3g\n',nt,abs(fe-f(nt+of1))/norm(f,Inf))
+assert(all(isfinite(f(:))), 'guru1d1_single: wrong result, NaN or Inf in f')
+Fmax = max(abs(f(:)));
+assert(abs(fe-f(nt+of1))/Fmax < 1e-2, 'guru1d1_single: wrong result, error above 1e-2')   % single prec + rounding floor: cannot do better
+fprintf('rel err in F[%d] is %.3g\n',nt,abs(fe-f(nt+of1))/Fmax)
