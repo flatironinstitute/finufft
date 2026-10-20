@@ -12,6 +12,7 @@ c     -o guru1d1_adjointf
 c     Alex Barnett 10/1/26 based on guru1d1_adjoint.f
 
       program guru1d1_adjointf
+      use, intrinsic :: ieee_arithmetic, only: ieee_is_finite
       implicit none
 
 c     our fortran header, always needed
@@ -19,9 +20,9 @@ c     our fortran header, always needed
 
 c     note some inputs are int (int*4) but others BIGINT (int*8)
       integer ier,iflag
-      integer*8 N,jtest,M,j,k,t1,t2,crate
+      integer*8 N,jtest,M,j,k
       real*4, allocatable :: xj(:)
-      real*4 err,tol,pi,t,cmax
+      real*4 err,tol,pi,cmax
       parameter (pi=3.141592653589793238462643383279502884197d0)
       complex*8, allocatable :: cj(:),fk(:)
       complex*8 cjtest
@@ -45,8 +46,6 @@ c     Note we use correct math indexing on the input mode array fk...
       allocate(fk(-N/2:(N-1)/2))
       allocate(xj(M))
       allocate(cj(M))
-      print *,''
-      print *,'creating data then run guru interface, default opts...'
 c     create some quasi-random NU pts in [-pi, pi), complex modes
       do j = 1,M
          xj(j) = pi * cos(pi*j/M)
@@ -64,27 +63,26 @@ c     We plan a type 1 (recalling its adjoint will be done)
       allocate(n_modes(3))
       n_modes(1) = N
 c     (note since dim=1, unused entries on n_modes are never read)
-      call system_clock(t1)
 c     use default options
       call finufftf_makeplan(ttype,dim,n_modes,iflag,ntrans,
      $     tol,plan,defopts,ier)
       if (ier.ne.0) then
-         print *,'makeplan failed! ier=',ier
-         stop
+         print *, 'FAILED: finufftf_makeplan ier is not 0'
+         stop 1, quiet=.true.
       endif
 c     note for ttype 1 or 2, arguments 6-9 ignored...
       call finufftf_setpts(plan,M,xj,dummy,dummy,dummy,
      $     dummy,dummy,dummy,ier)
+      if (ier.ne.0) then
+         print *, 'FAILED: finufftf_setpts ier is not 0'
+         stop 1, quiet=.true.
+      endif
 c     Do adjoint of planned transform:
 c     writes cj (strengths) and ier (status), reads fk (mode coeffs)
       call finufftf_execute_adjoint(plan,cj,fk,ier)
-      call system_clock(t2,crate)
-      t = (t2-t1)/float(crate)
-      if (ier.eq.0) then
-         print '("adjoint done in ",f6.3," sec, ",e10.2," NU pts/s")',
-     $     t,M/t
-      else
-         print *,'failed! ier=',ier
+      if (ier.ne.0) then
+         print *, 'FAILED: finufftf_execute_adjoint ier is not 0'
+         stop 1, quiet=.true.
       endif
       call finufftf_destroy(plan,ier)
 
@@ -97,12 +95,14 @@ c     math test: single output target, note flipped isign
      $        sin(-iflag*k*xj(jtest)) )
       enddo
 c     compute inf norm of output vector for use in rel err
-      cmax = 0
-      do j=1,M
-         cmax = max(cmax,cabs(cj(j)))
-      enddo
-      print '("rel err for target j=",i10," is ",e10.2)',jtest,
-     $     cabs(cj(jtest)-cjtest)/cmax
-
-      stop
+      cmax = maxval(abs(cj))
+c     maxval skips NaN, so check the sum over all outputs
+      err = cabs(cj(jtest)-cjtest)/cmax
+c     (written so that a NaN err also fails)
+      if (.not.ieee_is_finite(sum(abs(cj))) .or.
+     $     .not.(err.le.10*tol)) then
+         print *, 'FAILED: rel err too large, or NaN or Inf in output'
+         stop 1, quiet=.true.
+      endif
+      print '("rel err = ",e10.2)',err
       end

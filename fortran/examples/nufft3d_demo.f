@@ -15,6 +15,7 @@ c     gfortran nufft3d_demo.f ../directft/dirft3d.f -o nufft3d_demo
 c     ../../lib-static/libfinufft.a -lstdc++ -lfftw3 -lfftw3_omp -lm -fopenmp
 c
       program nufft3d_demo
+      use, intrinsic :: ieee_arithmetic, only: ieee_is_finite
       implicit none
 
 c     our fortran-header, always needed
@@ -23,7 +24,7 @@ c     our fortran-header, always needed
       integer i,ier,iflag,j,k1,k2,k3,mx,n1,n2,n3
       integer*8 ms,mt,mu,nj,nk
       real*8, allocatable :: xj(:),yj(:),zj(:),sk(:),tk(:),uk(:)
-      real*8 err,pi,eps,salg,ealg
+      real*8 err,maxerr,pi,tol
       parameter (pi=3.141592653589793238462643383279502884197d0)
       complex*16, allocatable :: cj(:),cj0(:),cj1(:),fk0(:),fk1(:)
 c     for default opts, make a null pointer...
@@ -71,36 +72,49 @@ c     start tests
 c     -----------------------
 c
       iflag = 1
-      print*,'Starting 3D testing: ', 'nj =',nj, 'ms,mt,mu =',ms,mt,mu
+      maxerr = 0d0
       do i = 1,4
-         if (i.eq.1) eps=1d-3
-         if (i.eq.2) eps=1d-6
-         if (i.eq.3) eps=1d-9
-         if (i.eq.4) eps=1d-12
-	 print*,' '
-	 print*,' Requested precision eps =',eps
-	 print*,' '
+         if (i.eq.1) tol=1d-3
+         if (i.eq.2) tol=1d-6
+         if (i.eq.3) tol=1d-9
+         if (i.eq.4) tol=1d-12
 c
 c     -----------------------
 c     call 3D Type 1 method
 c     -----------------------
 c
          call dirft3d1(nj,xj,yj,zj,cj,iflag,ms,mt,mu,fk0)
-         call finufft3d1(nj,xj,yj,zj,cj,iflag,eps,ms,mt,mu,fk1,defopts,
+         call finufft3d1(nj,xj,yj,zj,cj,iflag,tol,ms,mt,mu,fk1,defopts,
      1        ier)
-         print *, ' ier = ',ier
+         if (ier.ne.0) then
+            print *, 'FAILED: finufft3d1 ier is not 0'
+            stop 1, quiet=.true.
+         endif
          call errcomp(fk0,fk1,nk,err)
-         print *, ' type 1 error = ',err
+         if (.not.ieee_is_finite(sum(abs(fk1))) .or.
+     $        .not.(err.le.10*tol)) then
+            print *, 'FAILED: type 1 rel err too large, or NaN or Inf'
+            stop 1, quiet=.true.
+         endif
+         maxerr = max(maxerr,err)
 c
 c     -----------------------
 c      call 3D Type 2 method
 c     -----------------------
          call dirft3d2(nj,xj,yj,zj,cj0,iflag,ms,mt,mu,fk0)
-         call finufft3d2(nj,xj,yj,zj,cj1,iflag,eps,ms,mt,mu,fk0,defopts,
+         call finufft3d2(nj,xj,yj,zj,cj1,iflag,tol,ms,mt,mu,fk0,defopts,
      1        ier)
-         print *, ' ier = ',ier
+         if (ier.ne.0) then
+            print *, 'FAILED: finufft3d2 ier is not 0'
+            stop 1, quiet=.true.
+         endif
          call errcomp(cj0,cj1,nj,err)
-         print *, ' type 2 error = ',err
+         if (.not.ieee_is_finite(sum(abs(cj1))) .or.
+     $        .not.(err.le.10*tol)) then
+            print *, 'FAILED: type 2 rel err too large, or NaN or Inf'
+            stop 1, quiet=.true.
+         endif
+         maxerr = max(maxerr,err)
 c
 c     -----------------------
 c      call 3D Type3 method
@@ -112,13 +126,21 @@ c     -----------------------
          enddo
 
          call dirft3d3(nj,xj,yj,zj,cj,iflag,nk,sk,tk,uk,fk0)
-         call finufft3d3(nj,xj,yj,zj,cj,iflag,eps,nk,sk,tk,uk,fk1,
+         call finufft3d3(nj,xj,yj,zj,cj,iflag,tol,nk,sk,tk,uk,fk1,
      1        defopts,ier)
-         print *, ' ier = ',ier
+         if (ier.ne.0) then
+            print *, 'FAILED: finufft3d3 ier is not 0'
+            stop 1, quiet=.true.
+         endif
          call errcomp(fk0,fk1,nk,err)
-         print *, ' type 3 error = ',err
+         if (.not.ieee_is_finite(sum(abs(fk1))) .or.
+     $        .not.(err.le.10*tol)) then
+            print *, 'FAILED: type 3 rel err too large, or NaN or Inf'
+            stop 1, quiet=.true.
+         endif
+         maxerr = max(maxerr,err)
       enddo
-      stop
+      print '("max rel err = ",e10.2)',maxerr
       end
 c
 c
@@ -129,14 +151,10 @@ c
       implicit none
       integer*8 k,n
       complex*16 fk0(n), fk1(n)
-      real *8 salg,ealg,err
+      real *8 fmax,emax,err
 c
-      ealg = 0d0
-      salg = 0d0
-      do k = 1, n
-         ealg = ealg + cdabs(fk1(k)-fk0(k))**2
-         salg = salg + cdabs(fk0(k))**2
-      enddo
-      err =sqrt(ealg/salg)
+      emax = maxval(abs(fk1-fk0))
+      fmax = maxval(abs(fk1))
+      err = emax/fmax
       return
       end

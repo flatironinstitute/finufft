@@ -44,7 +44,7 @@ By default (``opts.nthreads=0``), the number of physical cores available is used
 (Note that here the unallocated ``null`` is simply a way to pass
 a NULL pointer to our C++ wrapper; another would be ``%val(0_8)``.)
 For a minimally complete test code demonstrating the above see
-``fortran/examples/simple1d1.f``.
+`simple1d1.f <https://github.com/flatironinstitute/finufft/blob/master/fortran/examples/simple1d1.f>`_.
 
 .. note::
 
@@ -97,7 +97,7 @@ it to FINUFFT, for instance
       opts%upsampfac = 1.25d0
       call finufft1d1(M,xj,cj,iflag,tol,N,fk,opts,ier)
 
-See ``fortran/examples/simple1d1.f`` for the complete code,
+See `simple1d1.f <https://github.com/flatironinstitute/finufft/blob/master/fortran/examples/simple1d1.f>`_ for the complete code,
 and below for the complete list of Fortran subroutines available,
 and more complicated examples.
 
