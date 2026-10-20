@@ -26,7 +26,9 @@ c     note some inputs are int (int*4) but others BIGINT (int*8)
       complex*16 fktest
 
 c     this is how you create the options struct in fortran...
+! docs-start: make-opts
       type(finufft_opts) opts
+! docs-end: make-opts
 c     or this is if you want default opts, make a null pointer...
       type(finufft_opts), pointer :: defopts => null()
 
@@ -47,6 +49,7 @@ c     create some quasi-random NU pts in [-pi, pi), complex strengths
       enddo
 
       call system_clock(t1)
+! docs-start: transform
 c     mandatory parameters to FINUFFT: sign of +-i in NUFFT
       iflag = 1
 c     tolerance
@@ -54,12 +57,14 @@ c     tolerance
 c     Do transform: writes to fk (mode coeffs), and ier (status flag).
 c     use default options:
       call finufft1d1(M,xj,cj,iflag,tol,N,fk,defopts,ier)
+! docs-end: transform
       call system_clock(t2,crate)
       t = (t2-t1)/float(crate)
       if (ier.eq.0) then
          print '("done in ",f6.3," sec, ",e10.2," NU pts/s")',t,M/t
       else
          print *,'failed! ier=',ier
+         stop 1
       endif
 
 c     math test: single output mode with given freq (not array index) k
@@ -75,12 +80,14 @@ c     compute inf norm of fk coeffs for use in rel err
          fmax = max(fmax,cdabs(fk(k)))
       enddo
       ktestindex = ktest + N/2 + 1
-      print '("rel err for mode k=",i10," is ",e10.2)',ktest,
-     $     cdabs(fk(ktestindex)-fktest)/fmax
+      err = cdabs(fk(ktestindex)-fktest)/fmax
+      print '("rel err for mode k=",i10," is ",e10.2)',ktest,err
+      if (.not.(err.le.10*tol)) stop 1
 
 c     do another transform, but now first setting some options...
       print *,''
       print *, 'setting new options, rerun simple interface...'
+! docs-start: set-opts
       call finufft_default_opts(opts)
 c     fields of derived type opts may be queried/set as usual...
       opts%debug = 2
@@ -89,12 +96,14 @@ c     fields of derived type opts may be queried/set as usual...
       print *,opts
       call system_clock(t1)
       call finufft1d1(M,xj,cj,iflag,tol,N,fk,opts,ier)
+! docs-end: set-opts
       call system_clock(t2,crate)
       t = (t2-t1)/float(crate)
       if (ier.eq.0) then
          print '("done in ",f6.3," sec, ",e10.2," NU pts/s")',t,M/t
       else
          print *,'failed! ier=',ier
+         stop 1
       endif
 
       stop

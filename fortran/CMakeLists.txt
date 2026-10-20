@@ -19,7 +19,6 @@ set(FORTRAN_EXAMPLES
     guru1d2_adjoint
 )
 # Notes: all these need single-prec versions.
-# we still don't build simple1d1_f90
 
 # see end for reason for this
 if(NOT FINUFFT_USE_DUCC0)
@@ -45,4 +44,14 @@ endforeach()
 if(TARGET fort_guru1d1)
     target_link_libraries(fort_guru1d1 PRIVATE finufft_fftlibs)
     target_link_libraries(fort_guru1d1f PRIVATE finufft_fftlibs)
+endif()
+
+# simple1d1_f90 needs finufft_mod.f90, so it does not fit the EXAMPLE/EXAMPLEf pairing above.
+if(FINUFFT_BUILD_EXAMPLES OR (BUILD_TESTING AND FINUFFT_BUILD_TESTS))
+    add_executable(fort_simple1d1_f90 ../include/finufft_mod.f90 examples/simple1d1.f90)
+    target_link_libraries(fort_simple1d1_f90 PRIVATE finufft)
+endif()
+
+if(BUILD_TESTING AND FINUFFT_BUILD_TESTS)
+    add_test(NAME fort_simple1d1_f90 COMMAND fort_simple1d1_f90)
 endif()

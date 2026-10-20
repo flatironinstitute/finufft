@@ -87,9 +87,11 @@ c
          call dirft3d1f(nj,xj,yj,zj,cj,iflag,ms,mt,mu,fk0)
          call finufftf3d1(nj,xj,yj,zj,cj,iflag,
      1        eps,ms,mt,mu,fk1,defopts,ier)
+         if (ier.ne.0) stop 1
          print *, ' ier = ',ier
          call errcomp(fk0,fk1,nk,err)
          print *, ' type 1 error = ',err
+         if (.not.(err.le.10*eps)) stop 1
 c
 c     -----------------------
 c      call 3D Type 2 method
@@ -97,25 +99,29 @@ c     -----------------------
          call dirft3d2f(nj,xj,yj,zj,cj0,iflag,ms,mt,mu,fk0)
          call finufftf3d2(nj,xj,yj,zj,cj1,iflag,eps,ms,mt,mu,fk0,
      1        defopts,ier)
+         if (ier.ne.0) stop 1
          print *, ' ier = ',ier
          call errcomp(cj0,cj1,nj,err)
          print *, ' type 2 error = ',err
+         if (.not.(err.le.10*eps)) stop 1
 c
 c     -----------------------
 c      call 3D Type3 method
 c     -----------------------
          do k1 = 1, nk
-            sk(k1) = 12*(cos(k1*pi/nk))
-            tk(k1) = 8*(sin(-pi/2+k1*pi/nk))
-            uk(k1) = 10*(cos(k1*pi/nk))
+            sk(k1) = 6*(cos(k1*pi/nk))
+            tk(k1) = 6*(sin(-pi/2+k1*pi/nk))
+            uk(k1) = 6*(cos(k1*pi/nk))
          enddo
 
          call dirft3d3f(nj,xj,yj,zj,cj,iflag,nk,sk,tk,uk,fk0)
          call finufftf3d3(nj,xj,yj,zj,cj,iflag,eps,nk,sk,tk,uk,fk1,
      1        defopts,ier)
+         if (ier.ne.0) stop 1
          print *, ' ier = ',ier
          call errcomp(fk0,fk1,nk,err)
          print *, ' type 3 error = ',err
+         if (.not.(err.le.10*eps)) stop 1
       enddo
       stop
       end

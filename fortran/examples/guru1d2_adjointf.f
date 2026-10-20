@@ -71,11 +71,12 @@ c     plan with opt to allow the tol at this N (in FP32 error model)
      $     tol,plan,opts,ier)
       if (ier.ne.0) then
          print *,'makeplan failed! ier=',ier
-         stop
+         stop 1
       endif
 c     note for ttype 1 or 2, arguments 6-9 ignored...
       call finufftf_setpts(plan,M,xj,dummy,dummy,dummy,
      $     dummy,dummy,dummy,ier)
+      if (ier.ne.0) stop 1
 c     Do the adjoint of planned transform:
 c     reads fk (mode coeffs), writes cj (strengths) and ier (status)
       call finufftf_execute_adjoint(plan,cj,fk,ier)
@@ -85,6 +86,7 @@ c     reads fk (mode coeffs), writes cj (strengths) and ier (status)
          print '("done in ",f6.3," sec, ",e10.2," NU pts/s")',t,M/t
       else
          print *,'failed! ier=',ier
+         stop 1
       endif
       call finufftf_destroy(plan,ier)
 
@@ -103,8 +105,9 @@ c     compute inf norm of fk coeffs for use in rel err
          fmax = max(fmax,cabs(fk(k)))
       enddo
       ktestindex = ktest + N/2 + 1
-      print '("rel err for mode k=",i10," is ",e10.2)',ktest,
-     $     cabs(fk(ktestindex)-fktest)/fmax
+      err = cabs(fk(ktestindex)-fktest)/fmax
+      print '("rel err for mode k=",i10," is ",e10.2)',ktest,err
+      if (.not.(err.le.10*tol)) stop 1
 
       stop
       end
