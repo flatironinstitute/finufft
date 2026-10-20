@@ -205,7 +205,9 @@ if(FINUFFT_BUILD_OCTAVE)
             examples/guru1d1.m
             examples/guru1d1_single.m
             examples/guru1d1_adjoint.m
+            examples/demo_spreadinterponly2d.m
         )
+        set(_octave_test_helpers examples/plottingavail.m)
 
         # Fixture: build the mex before any octave_* test runs.
         add_test(
@@ -223,6 +225,14 @@ if(FINUFFT_BUILD_OCTAVE)
                     "addpath('${_octave_mex_dir}'); run('${CMAKE_CURRENT_SOURCE_DIR}/${_t}')"
             )
             set_tests_properties(octave_${_n} PROPERTIES LABELS octave FIXTURES_REQUIRED octave_mex_built)
+        endforeach()
+        # Helper .m files the tests call (not tests themselves), placed on addpath.
+        foreach(_h IN LISTS _octave_test_helpers)
+            add_custom_command(
+                TARGET octave_mex
+                POST_BUILD
+                COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_CURRENT_SOURCE_DIR}/${_h} ${_octave_mex_dir}
+            )
         endforeach()
     endif()
 endif()
