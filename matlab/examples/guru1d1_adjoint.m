@@ -3,6 +3,7 @@
 % Barnett 6/25/25.
 clear
 
+% docs-start: guru1d1-adjoint
 % set required parameters...
 isign   = +1;     % sign of imaginary unit in exponential, for planned
 tol     = 1e-9;   % requested accuracy
@@ -27,6 +28,7 @@ disp('done.'); toc
 
 % if you do not want to do more transforms of this size, clean up...
 delete(plan);
+% docs-end: guru1d1-adjoint
 
 % check the error of one output... because of adjoint it's a strength
 j = ceil(0.77*M);                               % pick a NU target pt
@@ -34,4 +36,6 @@ t = ceil(0.7*ntrans);                           % pick a transform in stack
 ms=size(f,1); mm = (ceil(-ms/2):floor((ms-1)/2))';   % mode index list
 ce = sum(f(:,t).*exp(-1i*isign*mm*x(j)));        % crucial f, mm same shape
                                                  % note isign flip (by adj)
-fprintf('rel err in c[%d] is %.3g\n',j,abs((ce-c(j,t))/max(c(:))))
+err = abs((ce-c(j,t))/max(c(:)));
+fprintf('rel err in c[%d] is %.3g\n',j,err)
+if ~(err <= 10*tol), error('guru1d1_adjoint: error above 10*tol'), end

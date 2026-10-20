@@ -35,4 +35,6 @@ nt = ceil(0.37*N);                              % pick a mode index
 t = ceil(0.7*ntrans);                           % pick a transform in stack
 fe = sum(c(M*(t-1)+(1:M)).*exp(1i*isign*nt*x));           % exact
 of1 = floor(N/2) + 1 + N*(t-1);                           % mode index offset
-fprintf('rel err in F[%d] is %.3g\n',nt,abs(fe-f(nt+of1))/norm(f,Inf))
+err = abs(fe-f(nt+of1))/norm(f,Inf);
+fprintf('rel err in F[%d] is %.3g\n',nt,err)
+if ~(err <= 1e-2), error('guru1d1_single: error above 1e-2'), end

@@ -166,6 +166,8 @@ Performance/accuracy/code improvements:
 
 Documentation and testing:
 
+* MATLAB/Octave examples fail when the accuracy gate is not met, and the guru
+  snippets of docs/matlab.rst come from the tested examples (Barbone #922)
 * C-API error codes now have single source of truth (Barnett #935)
 * Documented how to build the Python package from source inside a conda
   environment, with an environment file and install script under
