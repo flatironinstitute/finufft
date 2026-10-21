@@ -57,6 +57,14 @@ Developer notes
 
   See ``devel/README`` for more details. The ES kernel coefficient and poly approx degree for both of the above are defined in a single location, ``devel/get_degree_and_beta.m``, which must match the C++ ``setup_spreadinterp()`` function.
 
+* Tolerance check. ``check_sigma`` (``include/finufft/setpts.hpp``) refuses a plan with ``FINUFFT_ERR_EPS_TOO_SMALL`` if one of three error estimates exceeds ``tol``. ``upsampfac_feasible`` (``src/common/kernel.cpp``) holds the formulas and their equation numbers in the 2019 SISC paper:
+
+  - rounding: ``0.35 eps_mach N sqrt(dim)``, with N the largest mode count (type 3: the outer fine-grid size times an off-centre phase factor);
+  - aliasing: ``c_d E exp(-pi (w-1) q)``;
+  - deconvolution: ``eps_mach exp(pi w (b - q))``.
+
+  The auto upsampfac (``include/finufft/heuristics.hpp``) proposes only values that pass the last two. The 0.35 and ``c_d`` (``kernel_tolfac``) are fits. Known gaps: the rounding estimate is low for some large type 3 transforms (double, 1D, N=1e6, tol=1e-10 runs with an error of 11 tol), and a forced ``upsampfac=2`` in single precision at N=50, tol near 3e-6 gives up to 2.6 tol.
+
 * Continuous Integration (CI). See files for this in ``.github/workflows/``. It currently tests the default ``makefile`` settings in linux, and three other ``make.inc.*`` files covering OSX and Windows (MinGW). CI does not test build the variant OMP=OFF. The dev should test these locally. Likewise, the Julia wrapper is separate and thus not tested in CI. We have added ``JenkinsFile`` for the GPU CI via python wrappers.
 
 * **Installing MWrap**. This is needed only for experts to rebuild the matlab/octave interfaces.
