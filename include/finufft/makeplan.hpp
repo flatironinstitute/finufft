@@ -75,32 +75,37 @@ void FINUFFT_PLAN_T<TF>::onedim_fseries_kernel(BIGINT nf,
   // # quadr nodes in z (from 0 to J/2; reflections will be added)...
   int q = (int)(2 + 3.0 * J2); // not sure why so large? (NB cannot exceed MAX_NQUAD)
   TF f[MAX_NQUAD];
-  double z[2 * MAX_NQUAD], w[2 * MAX_NQUAD];
-  gaussquad(2 * q, z, w);       // only half the nodes used, eg on (0,1)
+  double zq[2 * MAX_NQUAD], wq[2 * MAX_NQUAD];
+  gaussquad(2 * q, zq, wq); // only half the nodes used, eg on (0,1)
+  const std::complex<TF> I(0, 1);
+  TF z[MAX_NQUAD];
   std::complex<TF> a[MAX_NQUAD];
   for (int n = 0; n < q; ++n) { // set up nodes z_n and vals f_n
-    z[n] *= J2;                 // rescale nodes
+    z[n] = J2 * TF(zq[n]);      // rescale nodes
                                 // vals & quadr weighs
-    f[n] = J2 * (TF)w[n] * evaluate_kernel_runtime(TF(z[n]));
+    f[n] = J2 * TF(wq[n]) * evaluate_kernel_runtime(z[n]);
     // phase winding rates
-    a[n] = -std::exp(2 * PI * std::complex<double>(0, 1) * z[n] / double(nf));
+    a[n] = -std::exp(TF(2 * PI) * I * z[n] / TF(nf));
   }
-  BIGINT nout = nf / 2 + 1; // how many values we're writing to
-  int nt      = std::min(nout, (BIGINT)m.spopts.nthreads); // how many chunks
-  std::vector<BIGINT> brk(nt + 1); // start indices for each thread
-  for (int t = 0; t <= nt; ++t)    // split nout mode indices btw threads
-    brk[t] = (BIGINT)(0.5 + nout * t / (double)nt);
-#pragma omp parallel num_threads(nt)
-  {                                                // each thread gets own chunk to do
-    int t = MY_OMP_GET_THREAD_NUM();
-    std::complex<TF> aj[MAX_NQUAD];                // phase rotator for this thread
+  // Fixed blocks of outputs. Each block starts from the direct phase
+  // a[n]^jstart = (-1)^jstart * exp(2 pi i z[n] jstart / nf), so the table does not
+  // depend on the thread count and the recurrence runs at most FSERIES_BLOCK steps.
+  constexpr BIGINT FSERIES_BLOCK = 64;
+  const BIGINT nout              = nf / 2 + 1; // how many values we're writing to
+  const BIGINT nblocks           = (nout + FSERIES_BLOCK - 1) / FSERIES_BLOCK;
+#pragma omp parallel for num_threads(m.spopts.nthreads) schedule(static)
+  for (BIGINT block = 0; block < nblocks; ++block) {
+    const BIGINT jstart = block * FSERIES_BLOCK;
+    const BIGINT jend   = std::min(nout, jstart + FSERIES_BLOCK);
+    const TF sign       = (jstart % 2) ? -1 : 1;
+    std::complex<TF> aj[MAX_NQUAD]; // phase rotator for this block
     for (int n = 0; n < q; ++n)
-      aj[n] = std::pow(a[n], (TF)brk[t]);          // init phase factors for chunk
-    for (BIGINT j = brk[t]; j < brk[t + 1]; ++j) { // loop along output array
-      TF x = 0.0;                                  // accumulator for answer at this j
+      aj[n] = sign * std::exp(TF(2 * PI) * I * z[n] * TF(jstart) / TF(nf));
+    for (BIGINT j = jstart; j < jend; ++j) { // loop along output array
+      TF x = 0.0;                            // accumulator for answer at this j
       for (int n = 0; n < q; ++n) {
-        x += f[n] * 2 * std::real(aj[n]);          // include the negative freq
-        aj[n] *= a[n];                             // wind the phases
+        x += f[n] * 2 * std::real(aj[n]);    // include the negative freq
+        aj[n] *= a[n];                       // wind the phases
       }
       fwkerhalf[j] = x;
     }
