@@ -4,6 +4,12 @@ Please wrap at 80 chars per line.
 
 v2.6.0-dev
 
+* The kernel Fourier series table (deconvolution factors) no longer depends on
+  nthreads; at tol 1e-12 the error at 2 threads was 6.6x that at 1 thread.
+  onedim_fseries_kernel now splits the outputs into fixed blocks of
+  FSERIES_BLOCK = 64 (a new internal library parameter). Each block starts from
+  the direct phase, and the phase winding runs at most 64 steps. The phase math
+  is in the working precision. (Barbone #946)
 * macOS wheels link a static libomp with hidden symbols instead of bundling
   libomp.dylib. The bundled copy aborted with "OMP: Error #15" next to another
   libomp, e.g. Homebrew NumPy, and crashed or hung when KMP_DUPLICATE_LIB_OK
