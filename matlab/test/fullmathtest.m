@@ -2,7 +2,8 @@
 % many-vector option (ntr). Tests only one typical tol per precision.
 % (For sweep over tols see plottolsweep.m)
 % Short runtime (~1 sec per device).
-% Barnett 4/2/25, broken out erralltypedim 12/21/25.
+% Barnett 4/2/25, broken out erralltypedim 12/21/25,
+% added zero-size checks, tweaked formatting 10/21/26
 
 addpath(fileparts(mfilename('fullpath')))
 clear
@@ -39,7 +40,7 @@ for precdev=precdevs  % ......... loop precisions & devices
   % choose small problems suitable for direct NUDFT computation...
   M       = 1e3;    % # of NU pts (in all dims, and for type 3 targs too)
   Ntot    = 1e3;    % # of modes (approx total, used in all dims, causes
-                    % round-off in 1D, hence)
+                    % round-off esp in 1D, hence not big).
   ntr     = 20;     % # transforms (averages err)
   isign   = +1;     % sign of imaginary unit in exponential
   % various opts

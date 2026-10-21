@@ -9,8 +9,8 @@
 % Can use CPU or GPU transforms (via myrand). Can report text output.
 %
 % Input arguments:
-%  M      = # NU pts
-%  Ntot   = # modes (approx, total)
+%  M      = # NU pts (for type 3: sources nj)
+%  Ntot   = # modes (approx, total). If 0, makes type-3 use nk=0 targets.
 %  ntr    = # transform vectors to test per type & dim (direct: for free)
 %  isign  = +-1 passed to FINUFFT
 %  prec   = `single` or `double`
@@ -18,14 +18,14 @@
 %  o      = [optional] opts struct passed to FINUFFT
 %  myrand = [optional] @rand (for CPU) or @gpuArray.rand (for GPU transforms).
 %  dims   = [optional] bool length-3 vec giving which dims to test (empty=all)
-%  errcheck = [optional] make text output of errors as the tests done, and
-%             report fail if error>errcheck or error is NaN.
+%  errcheck = [optional] if nonnegative, make text output of errors as the
+%             tests done, and report fail if error>errcheck or error is NaN.
 %
 % [err, info] = erralltypedim(...) returns info struct with at least fields:
 %   info.Nmax = max N used in each dim, 1x3 vector
 %
-% Barnett 12/21/25. Helper used by fullmathtest, plottolsweep, wsweepkerrcomp.
-% 10/21/26 Ntot targs for t3; extended to zero-size I/O edge cases; errcheck=0.
+% Barnett 12/21/25. Helper used by: fullmathtest, plottolsweep, wsweepkerrcomp.
+% 10/21/26 extended to test zero-size I/O edge cases; allow errcheck=0.
 function [err, info] = erralltypedim(M,Ntot,ntr,isign,prec,tol,o,myrand,dims,errcheck)
 err = nan(3,3);
 info.Nmax = nan(1,3);
@@ -40,6 +40,7 @@ y = 2*pi*myrand(M,1,prec);      % (col vecs)
 z = 2*pi*myrand(M,1,prec);
 % complex strengths, possibly stacked in M*ntr array...
 c = (2*myrand(M,ntr,prec)-1) + 1i*(2*myrand(M,ntr,prec)-1);
+Nk = M; if Ntot==0, Nk=0; end   % type-3 targs: default is # NU pts, NOT modes
 
 if dims(1) % ----------------------------------------------- 1D ----------
   N = Ntot; info.Nmax(1) = N;
@@ -62,11 +63,11 @@ if dims(1) % ----------------------------------------------- 1D ----------
     if err(2,1)<=errcheck, fprintf('pass\n'); else fprintf('FAIL!\n'); end
   end
 
-  s = N*myrand(N,1,prec);            % N target freqs of space-bandwidth O(N)
+  s = N*myrand(Nk,1,prec);            % Nk target freqs of space-bandwidth O(N)
   f = finufft1d3(x,c,isign,tol,s,o);
   fe = exp(1i*isign*s*x')*c;         % type 3 NUDFT mat (via outer prod)
   err(3,1) = norm(f-fe)/norm(fe);
-  if M==0 || N==0, err(3,1) = norm(f); end    % test checks for zero
+  if M==0 || Nk==0, err(3,1) = norm(f); end    % test checks for zero
   if errcheck>=0, fprintf('\t\t1D type 3:\t%12.3g\t',err(3,1));
     if err(3,1)<=errcheck, fprintf('pass\n'); else fprintf('FAIL!\n'); end
   end
@@ -96,11 +97,11 @@ if dims(2) % ------------------------------------------------- 2D ---------
     if err(2,2)<=errcheck, fprintf('pass\n'); else fprintf('FAIL!\n'); end
   end
 
-  s = N1*myrand(Ntot,1,prec); t = N2*myrand(Ntot,1,prec);   % Ntot target freqs
+  s = N1*myrand(Nk,1,prec); t = N2*myrand(Nk,1,prec);   % Nk target freqs
   f = finufft2d3(x,y,c,isign,tol,s,t,o);
   fe = exp(1i*isign*(s*x'+t*y'))*c;    % type 3 NUDFT matrix (via outer prods)
   err(3,2) = norm(f-fe)/norm(fe);
-  if M==0 || Ntot==0, err(3,2) = norm(f); end    % test checks for zero
+  if M==0 || Nk==0, err(3,2) = norm(f); end    % test checks for zero
   if errcheck>=0, fprintf('\t\t2D type 3:\t%12.3g\t',err(3,2));
     if err(3,2)<=errcheck, fprintf('pass\n'); else fprintf('FAIL!\n'); end
   end
@@ -132,11 +133,11 @@ if dims(3) % ------------------------------------------------- 3D ---------
     if err(2,3)<=errcheck, fprintf('pass\n'); else fprintf('FAIL!\n'); end
   end
 
-  s = N1*myrand(Ntot,1,prec); t = N2*myrand(Ntot,1,prec); u = N3*myrand(Ntot,1,prec);
+  s = N1*myrand(Nk,1,prec); t = N2*myrand(Nk,1,prec); u = N3*myrand(Nk,1,prec);
   f = finufft3d3(x,y,z,c,isign,tol,s,t,u,o);
   fe = exp(1i*isign*(s*x'+t*y'+u*z'))*c;    % type 3 NUDFT matrix
   err(3,3) = norm(f-fe)/norm(fe);
-  if M==0 || Ntot==0, err(3,3) = norm(f); end    % test checks for zero
+  if M==0 || Nk==0, err(3,3) = norm(f); end    % test checks for zero
   if errcheck>=0, fprintf('\t\t3D type 3:\t%12.3g\t',err(3,3));
     if err(3,3)<=errcheck, fprintf('pass\n'); else fprintf('FAIL!\n'); end
   end
