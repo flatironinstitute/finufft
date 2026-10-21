@@ -188,24 +188,22 @@ inline std::tuple<BIGINT, double, double> nhg_type3(double sigma, double X, doub
   return {nf, 2.0 * PI / (double)nf, (double)nf / (2.0 * sigma * Ss)};
 }
 
-// Smallest sigma whose theoretical_kernel_ns(tol,dim,type) is <= ns_target.
+// Smallest sigma with theoretical_kernel_ns(tol,dim,type) <= ns_target, plus a
+// relative 1e-12 so that rounding keeps it there.
 double smallest_sigma_for_ns(double tol, int dim, int type, int ns_target);
 
-// Rounding floor of the full pipeline on a fine grid of length gridlen.
-inline double rounding_floor(double eps_mach, double gridlen) {
-  return ROUND_FAC * eps_mach * gridlen;
+// eps_round = ROUND_FAC eps_mach N sqrt(dim), N = n_modes, ROUND_FAC fitted. Rounding
+// of x_j by eps_mach is amplified by |k| <= N/2 (docs/trouble.rst, [FIN] Remark 9);
+// sqrt(dim) adds the independent errors of dim coordinates.
+inline double rounding_floor(double eps_mach, double n_modes, int dim) {
+  return ROUND_FAC * eps_mach * n_modes * std::sqrt((double)dim);
 }
 
-// Smallest sigma that meets tol, capped at MAX_CHECK_SIGMA. Infinity when tol is
-// below half the rounding floor, where no sigma meets it.
-double lowest_sigma(double tol, int dim, int ns, double eps_mach, double gridlen);
+// Returns eps_alias <= tol && eps_deconv <= tol at sigma; both in kernel.cpp.
+bool upsampfac_feasible(double sigma, double tol, int dim, int type, bool is_float,
+                        double maxN);
 
-// Whether the plan pipeline would accept this sigma at this tol.
-bool upsampfac_feasible(double sigma, double tol, int dim, int type, double eps_mach,
-                        bool is_float, double maxN);
-
-// Smallest feasible sigma in [MIN_AUTO_UPSAMPFAC, MAX_AUTO_UPSAMPFAC] by bisection.
-double analytic_upsampfac(double tol, int dim, int type, double eps_mach, bool is_float,
-                          double maxN);
+// Returns min{sigma in [MIN_AUTO_UPSAMPFAC, MAX_AUTO_UPSAMPFAC] : feasible(sigma)}.
+double analytic_upsampfac(double tol, int dim, int type, bool is_float, double maxN);
 
 } // namespace finufft::common

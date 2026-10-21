@@ -16,30 +16,31 @@
 
 // ---------- local helpers for setpts: --------
 
-// Checks that upsampfac (sigma) can meet tol on the fine grid nfdim, by the same
-// lowest_sigma test the auto pick uses. Two failures: tol below the rounding floor
-// (no sigma helps), or sigma below the needed one. Throws FINUFFT_ERR_EPS_TOO_SMALL
-// unless opts.allow_eps_too_small turns the error into a warning.
-template<typename TF> void FINUFFT_PLAN_T<TF>::check_sigma() {
+// Throws FINUFFT_ERR_EPS_TOO_SMALL if rounding_floor > tol or !upsampfac_feasible.
+// opts.allow_eps_too_small warns instead.
+template<typename TF> void FINUFFT_PLAN_T<TF>::check_sigma(double n_modes) {
+  using namespace finufft::common;
   constexpr double eps_mach = std::numeric_limits<TF>::epsilon();
-  const double gridlen      = *std::max_element(m.nfdim.begin(), m.nfdim.begin() + dim);
-  const double sigma_min    = finufft::common::lowest_sigma(
-      (double)m.tol, dim, m.spopts.nspread, eps_mach, gridlen);
-  if (sigma_min <= m.spopts.upsampfac) return;     // fine
+  constexpr bool is_float   = std::is_same_v<TF, float>;
+  const double tol = m.tol, sigma = m.spopts.upsampfac;
+  const double maxN      = type == 3 ? 1.0 : n_modes; // type 3 takes a from sigma, not N
+  const double eps_round = rounding_floor(eps_mach, n_modes, dim);
+  const bool below_floor = eps_round > tol;
+  if (!below_floor && upsampfac_feasible(sigma, tol, dim, type, is_float, maxN)) return;
   const bool do_throw = !opts.allow_eps_too_small; // opt-in wins
   // an error always speaks; the warning obeys opts.showwarn, as every other warning does
   if (!do_throw && !opts.showwarn) return;
   const char *level = do_throw ? "error" : "warning";
-  if (std::isinf(sigma_min))
-    fprintf(stderr,
-            "%s %s: tol=%.3g is below the rounding floor %.3g (eps_round); no "
-            "upsampfac can meet it\n",
-            __func__, level, (double)m.tol,
-            finufft::common::rounding_floor(eps_mach, gridlen));
-  else
-    fprintf(stderr, "%s %s: upsampfac=%.3g too low for tol=%.3g; %s upsampfac>=%.3g\n",
-            __func__, level, m.spopts.upsampfac, (double)m.tol,
-            do_throw ? "need" : "suggest", sigma_min);
+  const double sigma_min = analytic_upsampfac(tol, dim, type, is_float, maxN);
+  if (below_floor)
+    fprintf(stderr, "%s %s: tol=%.3g is below the rounding floor %.2g\n", __func__, level,
+            tol, eps_round);
+  else if (!upsampfac_feasible(sigma_min, tol, dim, type, is_float, maxN))
+    fprintf(stderr, "%s %s: no upsampfac<=%.3g meets tol=%.3g\n", __func__, level,
+            MAX_AUTO_UPSAMPFAC, tol);
+  else // ceil(100 sigma_min)/100 >= sigma_min; %.2f alone can round below it
+    fprintf(stderr, "%s %s: upsampfac=%.3g cannot meet tol=%.3g; upsampfac=%.2f can\n",
+            __func__, level, sigma, tol, std::ceil(100 * sigma_min) / 100);
   if (do_throw) throw finufft::exception(FINUFFT_ERR_EPS_TOO_SMALL);
 }
 
@@ -104,9 +105,9 @@ void FINUFFT_PLAN_T<TF>::set_nhg_type3(int idim, TF S, TF X)
 //        +-------------------v+   +------v---------------------+
 //        | use the given      |   | AUTO PICK                  |
 //        | sigma              |   | 1. start at the floor 1.25 |
-//        +---------+----------+   | 2. drop any sigma that     |
-//                  |              |    cannot meet tol         |
-//                  |              |    (aliasing + rounding)   |
+//        +---------+----------+   | 2. drop any sigma with     |
+//                  |              |    eps_alias > tol or      |
+//                  |              |    eps_deconv > tol        |
 //                  |              +-----------+----------------+
 //                  +--------------------------+
 //                                             v
@@ -119,8 +120,8 @@ void FINUFFT_PLAN_T<TF>::set_nhg_type3(int idim, TF S, TF X)
 //               +-------------------+----------------------+
 //                                   v
 //               +------------------------------------------+
-//               | rounding floor met?                      |
-//               | lowest_sigma(tol, dim, ns, nf) <= sigma  |
+//               | eps_round, eps_alias and eps_deconv      |
+//               | <= tol? (the last two at the capped ns)  |
 //               +------------------+-----------------------+
 //                              yes |             | no
 //                                  |     +-------v-------+
@@ -174,7 +175,8 @@ int FINUFFT_PLAN_T<TF>::setpts(BIGINT nj, const TF *xj, const TF *yj, const TF *
       }
     }
 
-    check_sigma(); // throws if upsampfac too low for tol (nfdim now known)
+    // N = max_i mstu[i]; throws if eps_round, eps_alias or eps_deconv > tol
+    check_sigma((double)*std::max_element(mstu.begin(), mstu.begin() + dim));
 
     m.XYZ   = {xj, yj, zj}; // plan must keep pointers to user's fixed NU pts
     // Invariant: m.padded_ns must equal the runtime mirror of
@@ -230,7 +232,6 @@ int FINUFFT_PLAN_T<TF>::setpts(BIGINT nj, const TF *xj, const TF *yj, const TF *
         precompute_horner_coeffs();
       }
     }
-    // A user-locked type-3 upsampfac is used as given: type 3 has no check_sigma.
 
     // ...then # fine grid pts (nf) per dim, now that sigma3 (and hence ns) is fixed.
     for (int idim = 0; idim < dim; ++idim) {
@@ -251,6 +252,19 @@ int FINUFFT_PLAN_T<TF>::setpts(BIGINT nj, const TF *xj, const TF *yj, const TF *
               __func__);
       throw finufft::exception(FINUFFT_ERR_MAXNALLOC);
     }
+    // N = max_i nfdim[i] max|x_i| max|s_i| / (X_i S_i), max|x_i| = |C_i| + X_i,
+    // max|s_i| = |D_i| + S_i. The inner type 2 has nfdim[i] modes, and the pre- and
+    // post-phases use the raw x, s: N ~ (2 sigma/pi) max|x_i| max|s_i|
+    // (docs/trouble.rst).
+    double n_modes = 0.0;
+    for (int idim = 0; idim < dim; ++idim) {
+      const double X = m.t3P.X[idim], S_i = S[idim], XS = X * S_i;
+      const double off_centre =
+          XS > 0 ? (std::abs(m.t3P.C[idim]) + X) * (std::abs(m.t3P.D[idim]) + S_i) / XS
+                 : 1.0;
+      n_modes = std::max(n_modes, (double)m.nfdim[idim] * off_centre);
+    }
+    check_sigma(n_modes); // throws if eps_round, eps_alias or eps_deconv > tol
 
     // alloc rescaled NU src pts x'_j (in X etc), rescaled NU targ pts s'_k ...
     // We do this by resizing Xp, Yp, and Zp, and pointing X, Y, Z to their data;

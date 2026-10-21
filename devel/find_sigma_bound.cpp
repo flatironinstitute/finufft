@@ -1,3 +1,4 @@
+// LEGACY: data for the PR 845 lowest_sigma fit, replaced by eps_round/eps_alias.
 // Empirical sigma_min data generator for the upsampfac warning estimator.
 // Outputs CSV: prec,type,dim,tol,sigma_empirical,sigma_analytical,b,delta,N
 // See devel/find_sigma_bound.py for model fitting and validation.
@@ -112,7 +113,7 @@ double lowest_sigma(double tol, int type, int dim, int maxns, int kerformula) {
 template<typename T>
 void run_combo(int n_dims, int type, const train_options_t &cmd_opts,
                std::mutex &output_mutex) {
-  constexpr double sigma_max = finufft::common::MAX_CHECK_SIGMA;
+  constexpr double sigma_max = 2.0; // fit range sigma <= 2.0
   constexpr int iflag = 1;
 
   // Private arrays per thread

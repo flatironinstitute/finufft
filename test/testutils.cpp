@@ -148,31 +148,73 @@ int main() {
       return 1;
     }
 
-    // (C) sigma=2.5 is feasible down to eps_mach for every dim/type, both precisions ->
-    // analytic_upsampfac never returns an infeasible sigma for any tol the pipeline
-    // forwards (it clamps tol up to eps_mach first).
+    // (C) For eps_round <= tol <= 1e3 eps_round, analytic_upsampfac returns a feasible
+    // sigma in [MIN_AUTO_UPSAMPFAC, MAX_AUTO_UPSAMPFAC] for every dim/type, both
+    // precisions, short and long grids. A fixed sigma = 2.5 is not enough here: E makes
+    // it infeasible on short grids ((F) below).
     for (int dim = 1; dim <= 3; ++dim)
-      for (int type = 1; type <= 3; ++type) {
-        const double maxN = 256;
-        if (!upsampfac_feasible(MAX_AUTO_UPSAMPFAC, eps_d, dim, type, eps_d, false,
-                                maxN) ||
-            !upsampfac_feasible(MAX_AUTO_UPSAMPFAC, eps_f, dim, type, eps_f, true,
-                                maxN)) {
-          printf("fail: sigma=2.5 infeasible at eps_mach: dim=%d type=%d\n", dim, type);
-          return 1;
-        }
-      }
+      for (int type = 1; type <= 3; ++type)
+        for (double maxN : {16.0, 256.0, 1e5})
+          for (int is_float = 0; is_float <= 1; ++is_float)
+            for (int k = 0; k < 40; ++k) {
+              const double eps_round =
+                  rounding_floor(is_float ? eps_f : eps_d, maxN, dim);
+              const double tol = eps_round * std::pow(1e3, k / 39.0);
+              const double s   = analytic_upsampfac(tol, dim, type, is_float, maxN);
+              if (s < MIN_AUTO_UPSAMPFAC || s > MAX_AUTO_UPSAMPFAC ||
+                  !upsampfac_feasible(s, tol, dim, type, is_float, maxN)) {
+                printf("fail: analytic sigma %.3f infeasible: dim=%d type=%d N=%g %s "
+                       "tol=%.3g\n",
+                       s, dim, type, maxN, is_float ? "float" : "double", tol);
+                return 1;
+              }
+            }
 
-    // (D) analytic_upsampfac returns a sigma that is itself feasible, for a range of
-    // achievable tols (its contract: the pick always survives the real plan).
-    for (double tol : tols) {
-      const double maxN = 1e4;
-      const double s    = analytic_upsampfac(tol, 2, 1, eps_d, false, maxN);
-      if (!(s >= MIN_AUTO_UPSAMPFAC - 1e-9 && s <= MAX_AUTO_UPSAMPFAC + 1e-9) ||
-          !upsampfac_feasible(s, tol, 2, 1, eps_d, false, maxN)) {
-        printf("fail: analytic sigma %.3f not feasible/in range at tol=%.0e\n", s, tol);
+    // (G) minimize scores type 3 at each width edge smallest_sigma_for_ns(ns_t); every
+    // edge must be feasible. Control: without the 1e-12 step, some edges must fail.
+    {
+      int unstepped_fails = 0;
+      for (int dim = 1; dim <= 3; ++dim)
+        for (int k = 3; k <= 13; ++k)
+          for (int ns_t = 2; ns_t <= MAX_NSPREAD<double>; ++ns_t) {
+            const double tol = std::pow(10.0, -k);
+            const double s   = smallest_sigma_for_ns(tol, dim, 3, ns_t);
+            if (s < MIN_AUTO_UPSAMPFAC || s >= MAX_AUTO_UPSAMPFAC) continue;
+            if (!upsampfac_feasible(s, tol, dim, 3, false, 1.0)) {
+              printf("fail: type 3 sigma %.6f (ns %d) infeasible: dim=%d tol=%.3g\n", s,
+                     ns_t, dim, tol);
+              return 1;
+            }
+            unstepped_fails +=
+                !upsampfac_feasible(s / (1 + 1e-12), tol, dim, 3, false, 1.0);
+          }
+      printf("(G) %d unstepped edge sigmas infeasible, all stepped ones feasible\n",
+             unstepped_fails);
+      if (unstepped_fails == 0) {
+        printf("fail: (G) control: no unstepped edge sigma is infeasible\n");
         return 1;
       }
+    }
+
+    // (F) eps_alias/tol = 42, 0.18, 1.05 at sigma = 1.25, 2.0, 2.5: want
+    // eps_alias(analytic_upsampfac) <= tol.
+    {
+      const double maxN   = 16;
+      const double tol    = 5.6234e-14;
+      const auto feasible = [&](double s) {
+        return upsampfac_feasible(s, tol, 2, 1, false, maxN);
+      };
+      if (feasible(MIN_AUTO_UPSAMPFAC) || feasible(MAX_AUTO_UPSAMPFAC) ||
+          !feasible(2.0)) {
+        printf("fail: (F) cell no longer has an interior-only feasible sigma\n");
+        return 1;
+      }
+      const double s = analytic_upsampfac(tol, 2, 1, false, maxN);
+      if (!feasible(s)) {
+        printf("fail: (F) analytic sigma %.3f not feasible\n", s);
+        return 1;
+      }
+      printf("(F) interior-only feasible cell: analytic sigma %.3f\n", s);
     }
 
     // (E) Density drives the pick: a spread-dominated transform (many points, small
@@ -186,7 +228,7 @@ int main() {
           best_type12<double>(tol, dim, type, nthr, dense_modes, /*npts=*/5e7).sigma;
       const double sigma_sparse =
           best_type12<double>(tol, dim, type, nthr, sparse_modes, /*npts=*/1e3).sigma;
-      if (!(sigma_dense > sigma_sparse) || !(sigma_dense > MAX_CHECK_SIGMA - 1e-9)) {
+      if (!(sigma_dense > sigma_sparse) || !(sigma_dense > 2.0 - 1e-9)) {
         printf("fail: dense sigma (%.3f) should exceed sparse (%.3f) and 2.0\n",
                sigma_dense, sigma_sparse);
         return 1;
