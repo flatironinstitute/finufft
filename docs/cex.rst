@@ -106,29 +106,22 @@ Thus, to use from C, the above example only needs to replace the C++
 ``vector`` with C-style array creation. Using C99 style, the
 above code, with options setting, becomes:
 
-.. code-block:: C
+.. literalinclude:: ../examples/simple1d1c.c
+  :language: C
+  :start-after: docs-start: simple1d1c-includes
+  :end-before: docs-end: simple1d1c-includes
 
-  #include <finufft.h>
-  #include <stdlib.h>
-  #include <complex.h>
+.. literalinclude:: ../examples/simple1d1c.c
+  :language: C
+  :start-after: docs-start: simple1d1c-body
+  :end-before: docs-end: simple1d1c-body
+  :dedent: 2
 
-  int M = 1e7;            // number of nonuniform points
-  double* x = (double *)malloc(sizeof(double)*M);
-  double complex* c = (double complex*)malloc(sizeof(double complex)*M);
-  for (int j=0; j<M; ++j) {
-    x[j] = M_PI*(2*((double)rand()/RAND_MAX)-1);  // uniform random in [-pi,pi)
-    c[j] = 2*((double)rand()/RAND_MAX)-1 + I*(2*((double)rand()/RAND_MAX)-1);
-  }
-  int N = 1e6;            // number of modes
-  double complex* F = (double complex*)malloc(sizeof(double complex)*N);
-  finufft_opts opts;                      // make an opts struct
-  finufft_default_opts(&opts);          // set default opts (must do this)
-  opts.debug = 2;                       // more debug/timing to stdout
-  int ier = finufft1d1(M,x,c,+1,1e-9,N,F,&opts);
-
-  // (now do something with F here!...)
-
-  free(x); free(c); free(F);
+.. literalinclude:: ../examples/simple1d1c.c
+  :language: C
+  :start-after: docs-start: simple1d1c-free
+  :end-before: docs-end: simple1d1c-free
+  :dedent: 2
 
 See ``examples/simple1d1c.c`` and ``examples/simple1d1cf.c`` for
 double- and single-precision C examples, including the math check to insure
