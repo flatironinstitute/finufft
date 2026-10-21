@@ -49,6 +49,8 @@ function f = finufft3d3(x,y,z,c,isign,eps,s,t,u,o)
 valid_setpts(false,3,3,x,y,z,s,t,u);
 o.floatprec=class(x);                      % should be 'double' or 'single'
 n_transf = valid_ntr(x,c);
+if isempty(x), f = zeros(numel(s),n_transf); return; end   % no sources
+if isempty(s), f = zeros(0,n_transf); return; end          % no targets
 p = finufft_plan(3,3,isign,n_transf,eps,o);
 p.setpts(x,y,z,s,t,u);
 f = p.execute(c);
