@@ -2,7 +2,8 @@
 % many-vector option (ntr). Tests only one typical tol per precision.
 % (For sweep over tols see plottolsweep.m)
 % Short runtime (~1 sec per device).
-% Barnett 4/2/25, broken out erralltypedim 12/21/25.
+% Barnett 4/2/25, broken out erralltypedim 12/21/25,
+% added zero-size checks, tweaked formatting 10/21/26
 
 addpath(fileparts(mfilename('fullpath')))
 clear
@@ -16,6 +17,7 @@ end
 if isempty(precdevs)
   warning('Found neither CPU nor GPU MEX files; testing nothing!');
 end
+disp('fullmathtest...')
 
 for precdev=precdevs  % ......... loop precisions & devices
                       %  s=single, d=double; sd = CPU, SD = GPU
@@ -38,7 +40,7 @@ for precdev=precdevs  % ......... loop precisions & devices
   % choose small problems suitable for direct NUDFT computation...
   M       = 1e3;    % # of NU pts (in all dims, and for type 3 targs too)
   Ntot    = 1e3;    % # of modes (approx total, used in all dims, causes
-                    % round-off in 1D, hence)
+                    % round-off esp in 1D, hence not big).
   ntr     = 20;     % # transforms (averages err)
   isign   = +1;     % sign of imaginary unit in exponential
   % various opts
@@ -52,7 +54,21 @@ for precdev=precdevs  % ......... loop precisions & devices
   % meas the errors, with text reporting
   err = erralltypedim(M,Ntot,ntr,isign,prec,tol,o,myrand,[],errcheck);
   % raise error if needed (breaks script, and CI)
-  if ~(max(err(:))<errcheck), error('fullmathtest error failed'); end
-  disp('fullmathtest passed.')
+  if max(err(:))>errcheck || sum(isnan(err(:)))>0
+    error('  one or more math test error failed!');
+  end
+  disp('  all math tests passed. Checking zero-length edge cases:')
+
+  % test zero-size edge-cases
+  err = erralltypedim(0,Ntot,ntr,isign,prec,tol,o,myrand,[]);
+  if max(err(:))>0 || sum(isnan(err(:)))>0
+    error('  one or more M=0 tests failed!');
+  end
+  disp('  all M=0 (empty NU pts array) tests passed.')
+  err = erralltypedim(M,0,ntr,isign,prec,tol,o,myrand,[]);
+  if max(err(:))>0 || sum(isnan(err(:)))>0
+    error('  one or more Ntot=0 tests failed!');
+  end
+  disp('  all Ntot=0 (empty mode, or type-3 targets) tests passed.')
   
 end     % ..........................

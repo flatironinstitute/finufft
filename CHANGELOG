@@ -4,6 +4,9 @@ Please wrap at 80 chars per line.
 
 v2.6.0-dev
 
+* MATLAB/Octave wrapper correctly handles empty mode or NU point arrays,
+  including testing in fullmathtest, and prevents segfaults via nk=0 calls
+  to type-3 (bugfix, Barnett #941, fixes #937).
 * C-API error codes now have single source of truth (Barnett #935)
 * Documented how to build the Python package from source inside a conda
   environment, with an environment file and install script under
