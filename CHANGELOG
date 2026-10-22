@@ -4,6 +4,10 @@ Please wrap at 80 chars per line.
 
 v2.6.0-dev
 
+* macOS wheels link a static libomp with hidden symbols instead of bundling
+  libomp.dylib. The bundled copy aborted with "OMP: Error #15" next to another
+  libomp, e.g. Homebrew NumPy, and crashed or hung when KMP_DUPLICATE_LIB_OK
+  was set (#942). (Barbone)
 * C-API error codes now have single source of truth (Barnett #935)
 * Documented how to build the Python package from source inside a conda
   environment, with an environment file and install script under
