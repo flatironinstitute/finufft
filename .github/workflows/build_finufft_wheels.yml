@@ -53,13 +53,18 @@ jobs:
         env:
           # Arch comes from the runner (x86_64 on ubuntu-22.04, aarch64 on
           # ubuntu-22.04-arm); CIBW_BUILD already scopes the platform tag.
+          # A wheel that bundles libomp.dylib crashes or hangs next to another
+          # libomp, e.g. Homebrew NumPy (#942): dyld binds the weak template
+          # symbols of both copies to one of them. Link Homebrew's static
+          # libomp with all its symbols hidden instead. Homebrew libomp.dylib is
+          # the second runtime for test_duplicate_openmp.py.
           CIBW_BEFORE_ALL_MACOS: |
             brew install llvm libomp
           CIBW_ENVIRONMENT_MACOS: >
             CC=$(brew --prefix llvm)/bin/clang
             CXX=$(brew --prefix llvm)/bin/clang++
             CFLAGS="-I$(brew --prefix libomp)/include"
-            LDFLAGS="-L$(brew --prefix libomp)/lib"
+            CMAKE_ARGS="-DOpenMP_omp_LIBRARY=-Wl,-load_hidden,$(brew --prefix libomp)/lib/libomp.a"
             MACOSX_DEPLOYMENT_TARGET=14
           CIBW_BUILD: '*-${{ matrix.buildplat[1] }}'
       - uses: actions/upload-artifact@v7
