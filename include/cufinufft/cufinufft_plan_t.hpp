@@ -18,6 +18,7 @@
 #include <type_traits>
 
 #include <cstddef>
+#include <cstdint>
 #include <cuComplex.h>
 #include <memory>
 #include <tuple>
@@ -398,8 +399,13 @@ private:
   // Mirrors CPU FINUFFT_PLAN_T<TF>::setup_spreadinterp(). Warns on stderr when
   // tol was clamped up to eps_mach. Throws on hard error.
   void setup_spreadinterp();
-  void set_nf_type12(CUFINUFFT_BIGINT ms, CUFINUFFT_BIGINT *nf, CUFINUFFT_BIGINT b) const;
-  std::tuple<CUFINUFFT_BIGINT, T, T> set_nhg_type3(T S, T X) const;
+  // nf is int64: ceil(upsampfac*ms) can overflow CUFINUFFT_BIGINT (int32) for a single
+  // large dimension, and makeplan's MAX_NF guard must see the true value before
+  // narrowing.
+  void set_nf_type12(CUFINUFFT_BIGINT ms, std::int64_t *nf, CUFINUFFT_BIGINT b) const;
+  // nf is int64: nhg_type3's nf can overflow CUFINUFFT_BIGINT (int32) for a single large
+  // dimension, and setpts's MAX_NF guard must see the true value before narrowing.
+  std::tuple<std::int64_t, T, T> set_nhg_type3(T S, T X) const;
   void precompute_fseries_nodes(CUFINUFFT_BIGINT nf, T *f, T *phase) const;
 
   // Spread/interp drivers — implementations live in src/cuda/spreadinterp.cu.

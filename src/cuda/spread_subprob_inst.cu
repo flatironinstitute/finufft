@@ -3,6 +3,7 @@
 // Also instantiates the prep helper shared with output-driven (gpu_method = 3).
 
 #include "spreadinterp_common.cuh"
+#include <cstdint>
 #include <cufinufft/spreadinterp.hpp>
 #include <poet/poet.hpp>
 
@@ -104,7 +105,7 @@ void spread_subprob_launch(const cufinufft_plan_t<T> &d_plan, const cuda_complex
 
   const auto launch = [&](auto kernel) {
     cufinufft_set_shared_memory(kernel, d_plan);
-    for (int t = 0; t < blksize; t++) {
+    for (std::int64_t t = 0; t < blksize; t++) {
       kernel<<<d_plan.totalnumsubprob, 256, sharedplanorysize, d_plan.stream>>>(
           d_plan, c + t * d_plan.M, fw + t * d_plan.nf);
       THROW_IF_CUDA_ERROR();
@@ -134,10 +135,10 @@ void do_spread_subprob(const cufinufft_plan_t<T> &p, const cuda_complex<T> *c,
 }
 
 template<typename T, int Ndim> void do_indexSort_subprob_and_OD(cufinufft_plan_t<T> &p) {
-  auto layout         = compute_bin_layout<T, Ndim>(p.opts, p.nf123);
-  auto &nbins         = layout.nbins;
-  const int nbins_tot = layout.nbins_tot;
-  auto &inv_binsizes  = layout.inv_binsizes;
+  auto layout                  = compute_bin_layout<T, Ndim>(p.opts, p.nf123);
+  auto &nbins                  = layout.nbins;
+  const std::int64_t nbins_tot = layout.nbins_tot;
+  auto &inv_binsizes           = layout.inv_binsizes;
 
   checkCudaErrors(
       cudaMemsetAsync(dethrust(p.binsize), 0, nbins_tot * sizeof(int), p.stream));
