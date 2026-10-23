@@ -18,6 +18,7 @@
 #include <finufft/interp.hpp>
 #include <finufft/plan.hpp>
 #include <finufft/spread.hpp>
+#include <finufft/traffic_select.hpp>
 #include <finufft/utils.hpp>
 
 #include <algorithm>
@@ -170,6 +171,36 @@ void FINUFFT_PLAN_T<TF>::indexSort()
     maxnthr = m.spopts.nthreads;           // user nthreads overrides, without limit
   if (m.spopts.sort_threads > 0)
     maxnthr = m.spopts.sort_threads;       // high-priority override, also no limit
+
+  // type-1 spreading: choose the bins and max_subproblem_size that minimise the
+  // estimated DRAM traffic of sort + spread; a user-set max_subproblem_size is kept.
+  // If the cache sizes are unknown (non-Linux, or sysfs unreadable) the defaults stay.
+  const auto &caches = finufft::traffic_select::cache_info();
+  if (m.spopts.spread_direction == 1 && !caches.ok && (m.spopts.debug || opts.debug))
+    printf("\tauto-select off: cache sizes unknown, keeping default bins and "
+           "max_subproblem_size\n");
+  if (m.spopts.spread_direction == 1 && caches.ok && M > 0) {
+    int spread_nthr = MY_OMP_GET_MAX_THREADS();
+    if (m.spopts.nthreads > 0) spread_nthr = m.spopts.nthreads;
+    int sel_sort_nthr = m.spopts.sort_threads;
+#ifndef _OPENMP
+    spread_nthr   = 1;
+    sel_sort_nthr = 1;
+#endif
+    if (sel_sort_nthr == 0) sel_sort_nthr = (10 * M > N1 * N2 * N3) ? maxnthr : 1;
+    const auto c = finufft::traffic_select::select(
+        dim, int(sizeof(TF)), {double(N1), double(N2), double(N3)}, double(M),
+        m.spopts.nspread, spread_nthr, sel_sort_nthr, {0, 0, 0},
+        opts.spread_max_sp_size > 0 ? opts.spread_max_sp_size : 0,
+        caches);
+    bin_size_x = c.bins[0];
+    if (dim > 1) bin_size_y = c.bins[1];
+    if (dim > 2) bin_size_z = c.bins[2];
+    m.spopts.max_subproblem_size = c.max_sp;
+    if (m.spopts.debug || opts.debug)
+      printf("\tauto-selected bins %gx%gx%g, max_subproblem_size %d (%.2f lines/pt)\n",
+             bin_size_x, bin_size_y, bin_size_z, c.max_sp, c.lines);
+  }
   if (m.spopts.sort == 1 || (m.spopts.sort == 2 && better_to_sort)) {
     // store a good permutation ordering of all NU pts (dim=1,2 or 3)
     int sort_nthr = m.spopts.sort_threads; // 0, or user max # threads for sort
