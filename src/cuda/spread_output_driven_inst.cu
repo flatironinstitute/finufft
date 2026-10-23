@@ -3,6 +3,7 @@
 // Prep is shared with gpu_method=2 and instantiated in spread_subprob_inst.cu.
 
 #include "spreadinterp_common.cuh"
+#include <cstdint>
 #include <cufinufft/spreadinterp.hpp>
 #include <poet/poet.hpp>
 
@@ -117,7 +118,7 @@ void spread_output_driven_launch(const cufinufft_plan_t<T> &d_plan,
     cufinufft_set_shared_memory(kernel, d_plan);
     cudaFuncSetSharedMemConfig(kernel, cudaSharedMemBankSizeEightByte);
     THROW_IF_CUDA_ERROR();
-    for (int t = 0; t < blksize; t++) {
+    for (std::int64_t t = 0; t < blksize; t++) {
       kernel<<<d_plan.totalnumsubprob, std::min(256, std::max(bufsz, d_plan.opts.gpu_np)),
                sharedplanorysize, d_plan.stream>>>(
           d_plan, c + t * d_plan.M, fw + t * d_plan.nf, d_plan.opts.gpu_np);

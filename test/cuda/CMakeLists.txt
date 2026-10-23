@@ -221,6 +221,8 @@ endfunction()
 
 add_test(NAME cufinufft_public_api COMMAND public_api_test)
 add_test(NAME cufinufft_makeplan COMMAND test_makeplan)
+add_test(NAME cufinufft_max_nf COMMAND test_max_nf)
+add_test(NAME cufinufft_bin_counts COMMAND test_bin_counts)
 add_test(NAME cufinufft_error_handling COMMAND cufinufft_error_handling)
 add_test(NAME cufinufft_math_test COMMAND cufinufft_math_test)
 add_test(NAME cufinufft_simple_test COMMAND cufinufft_simple_test)

@@ -2,6 +2,7 @@
 #define __CUSPREADINTERP_H__
 
 #include <cmath>
+#include <cstdint>
 #include <cuda.h>
 #include <cuda/std/array>
 #include <cuda/std/tuple>
@@ -140,12 +141,28 @@ inline __host__ __device__ auto get_nbins(cuda::std::array<int, 3> nf123,
                                           cuda::std::array<int, 3> binsizes) {
   cuda::std::array<int, 3> nbins{1, 1, 1};
   for (int idim = 0; idim < ndim; ++idim)
-    nbins[idim] = (nf123[idim] + binsizes[idim] - 1) / binsizes[idim];
+    nbins[idim] = 1 + (nf123[idim] - 1) / binsizes[idim]; // ceil(nf/bin), no int overflow
   return nbins;
 }
 
-inline __host__ __device__ int nbins_total(const cuda::std::array<int, 3> &nbins) {
-  return nbins[0] * nbins[1] * nbins[2];
+inline __host__ __device__ std::int64_t nbins_total(
+    const cuda::std::array<int, 3> &nbins) {
+  // product in int64: the int product overflows at 2048^3 bins
+  return std::int64_t(nbins[0]) * nbins[1] * nbins[2];
+}
+
+// Checked fine-grid product against the MAX_NF allocation guard. Rejects a nonpositive
+// factor or one past MAX_NF / product before the multiply, so the product never
+// overflows past the guard (issue #890). Throws FINUFFT_ERR_MAXNALLOC.
+inline std::int64_t nf_product_checked(const cuda::std::array<std::int64_t, 3> &nf123,
+                                       int dim) {
+  std::int64_t nf = 1;
+  for (int idim = 0; idim < dim; ++idim) {
+    if (nf123[idim] <= 0 || nf123[idim] > MAX_NF / nf) // product stays <= MAX_NF
+      throw finufft::exception(FINUFFT_ERR_MAXNALLOC);
+    nf *= nf123[idim];
+  }
+  return nf;
 }
 
 // For the current nonuniform point (given via idx), compute the set of
@@ -324,27 +341,31 @@ __global__ FINUFFT_FLATTEN void calc_inverse_of_global_sort_idx(
   }
 }
 
+// ceil(n / b) for n >= 0 and b >= 1: 0 at n = 0, no overflow near INT_MAX.
+inline __host__ __device__ int ceil_div(int n, int b) { return n / b + (n % b != 0); }
+
 // `static` (not `inline`) so each TU gets a uniquely-named kernel symbol;
 // otherwise, with RDC off, every TU that includes this header registers a
 // kernel with the same mangled name and the CUDA Runtime emits a
 // "Duplicate entry kernels" warning at first launch (compute-sanitizer
 // reports it as an error). Templated kernels above don't have the issue
 // because vague-linkage lets the linker fold the duplicates.
-static __global__ void calc_subprob(const int *FINUFFT_RESTRICT bin_size,
-                                    int *FINUFFT_RESTRICT num_subprob,
-                                    const int maxsubprobsize, const int numbins) {
-  for (int i = threadIdx.x + blockIdx.x * blockDim.x; i < numbins;
+static __global__ void calc_subprob(
+    const int *FINUFFT_RESTRICT bin_size, int *FINUFFT_RESTRICT num_subprob,
+    const int maxsubprobsize, const std::int64_t numbins) {
+  for (std::int64_t i = threadIdx.x + blockIdx.x * blockDim.x; i < numbins;
        i += gridDim.x * blockDim.x) {
-    num_subprob[i] = (loadReadOnly(bin_size + i) + maxsubprobsize - 1) / maxsubprobsize;
+    // ceil(bin_size / maxsubprobsize): the +b-1 form overflows int near 2^31
+    num_subprob[i] = ceil_div(loadReadOnly(bin_size + i), maxsubprobsize);
   }
 }
 static __global__ void map_b_into_subprob(
     int *FINUFFT_RESTRICT d_subprob_to_bin, const int *FINUFFT_RESTRICT d_subprobstartpts,
-    const int *FINUFFT_RESTRICT d_numsubprob, const int numbins) {
-  for (int i = threadIdx.x + blockIdx.x * blockDim.x; i < numbins;
+    const int *FINUFFT_RESTRICT d_numsubprob, const std::int64_t numbins) {
+  for (std::int64_t i = threadIdx.x + blockIdx.x * blockDim.x; i < numbins;
        i += gridDim.x * blockDim.x) {
     for (int j = 0; j < loadReadOnly(d_numsubprob + i); j++) {
-      d_subprob_to_bin[loadReadOnly(d_subprobstartpts + i) + j] = i;
+      d_subprob_to_bin[loadReadOnly(d_subprobstartpts + i) + j] = int(i);
     }
   }
 }
