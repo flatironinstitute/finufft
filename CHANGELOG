@@ -23,6 +23,10 @@ v2.6.0-dev
 * icpx builds now use the gcc/clang math model (-fno-fast-math,
   -fcomplex-arithmetic=basic) via CMake and make-platforms/make.inc.icpx (#914).
   (Barbone)
+* A vcpkg overlay port under `tools/vcpkg` installs FINUFFT from a clone with
+  `vcpkg install finufft --overlay-ports=tools/vcpkg`, in classic or manifest
+  mode; features `fftw` (default), `ducc0` and `openmp` (default). A Jenkins
+  stage builds the port and consumes it in both modes. (Barbone)
 * New minimal CMake quick-start recipes under ``examples/quick-start/`` show the
   FetchContent and installed ``find_package`` consume routes, and
   ``tools/ci/install-test.cmake`` builds and runs both on every install CI pass;
