@@ -144,74 +144,72 @@ namespace finufft::common {
 double smallest_sigma_for_ns(double tol, int dim, int type, int ns_target) {
   // Inverse of theoretical_kernel_ns: ns = ceil(log(tolfac/tol)/(pi*sqrt(1-1/sigma))
   // + 1) equals ns_target first where sqrt(1-1/sigma) = log(tolfac/tol)/(pi*(ns-1)).
-  // Clamped to MAX_AUTO_UPSAMPFAC; lowest_sigma applies the MAX_CHECK_SIGMA cap.
+  // Result <= MAX_AUTO_UPSAMPFAC, edge_rel_step above that edge: at the edge itself,
+  // rounding can give ns_target+1 or eps_alias one ulp above tol.
+  constexpr double edge_rel_step = 1e-12;
   const double tolfac = kernel::kernel_tolfac(dim, type);
   if (tol <= 0) return MAX_AUTO_UPSAMPFAC;
   if (tol >= tolfac) return 1.0 + 0.01; // any sigma > 1 meets this tol
   const double u = std::log(tolfac / tol) / ((ns_target - 1.0) * PI);
   if (u >= 1.0) return MAX_AUTO_UPSAMPFAC;
-  return std::min(1.0 / (1.0 - u * u), MAX_AUTO_UPSAMPFAC);
+  return std::min((1.0 + edge_rel_step) / (1.0 - u * u), MAX_AUTO_UPSAMPFAC);
 }
 
-double lowest_sigma(double tol, int dim, int ns, double eps_mach, double gridlen) {
-  // Minimum sigma achieving requested tol, with r = tol / rounding_floor:
-  //   r <= 0.5:     no sigma meets tol (infinity).
-  //   r >= 10:      inverse of the aliasing law, exact to ~0.0001 sigma.
-  //   0.5 < r < 10: the floor matters; add a2/r^2 + a1/r + a0 to that inverse.
-  // Widths ns <= FIT_NS_KNEE take the fit at ns=8, wider widths the fit at ns=16.
-  // Fit on types 1-3, dim 1, N=50..5000 (devel/find_sigma_bound.py).
-  const double r = tol / rounding_floor(eps_mach, gridlen);
-  if (r <= 0.5) return std::numeric_limits<double>::infinity();
-  // check_sigma runs for types 1/2 only, so the type-1/2 prefactor applies.
-  const double sigma_pure = smallest_sigma_for_ns(tol, dim, 1, ns);
-  if (r >= 10.0) return std::min(sigma_pure, MAX_CHECK_SIGMA);
-  constexpr int FIT_NS_KNEE = 8;
-  const double a2           = ns > FIT_NS_KNEE ? 0.014 : 0.555;
-  const double a1           = ns > FIT_NS_KNEE ? 0.291 : -0.290;
-  const double a0           = ns > FIT_NS_KNEE ? -0.043 : 0.071;
-  const double inv_r = 1.0 / r;
-  const double correction = (a2 * inv_r + a1) * inv_r + a0;
-  return std::min(sigma_pure + std::max(correction, 0.0), MAX_CHECK_SIGMA);
-}
-
-bool upsampfac_feasible(double sigma, double tol, int dim, int type, double eps_mach,
-                        bool is_float, double maxN) {
-  // Whether the plan accepts this sigma at this tol: setup_spreadinterp must not clamp
-  // the width (a clamp throws or loses accuracy), and for types 1/2 check_sigma must
-  // pass on the fine grid that set_nf_type12 builds. The auto pick proposes only
-  // sigmas that pass. maxN = largest mode count over dims; unused for type 3.
+bool upsampfac_feasible(double sigma, double tol, int dim, int type, bool is_float,
+                        double maxN) {
+  // Returns eps_alias <= tol && eps_deconv <= tol. [FIN] notation, w = ns, n = nf,
+  // N = maxN, frequencies in cycles per fine-grid point:
+  //   b = 1 - 1/(2 sigma)   kernel cutoff, (4.5)
+  //   a = N/(2n)            top mode; type 3: a = 1/(2 sigma) (nhg_type3)
+  //   q = sqrt(b^2 - a^2)
+  // eps_alias  = c_d E exp(-pi (w-1) q): (4.7), with the w-1 of the width law (1.7).
+  //   c_d = kernel_tolfac (fitted). E = sqrt(x/(1 - e^-x)), x = 2 pi (w-1) a/(n q),
+  //   turns the integral in c_d into the sum over the modes near a; type 3: E = 1.
+  // eps_deconv = eps_mach exp(pi w (b - q)): deconvolution divides by phihat, so
+  //   rounding grows by r_dyn = phihat(0)/phihat(a), (3.21) with beta = pi w b.
+  //   [FIN] states (3.21) for type 3; types 1 and 2 divide by the same phihat.
   const int ns_t = kernel::theoretical_kernel_ns(tol, dim, type, sigma);
-  const int ns   = kernel::clamp_kernel_ns(ns_t, sigma, dim, is_float);
-  if (ns < ns_t) return false;
-  if (type == 3) return true;
-  // fine-grid length as set_nf_type12 builds it (largest dim binds).
-  const BIGINT nf = fine_grid_len(sigma, maxN, ns);
-  // Caps infinity (tol under the rounding floor); check_sigma reports the error.
-  return std::min(lowest_sigma(tol, dim, ns, eps_mach, (double)nf), MAX_CHECK_SIGMA) <=
-         sigma;
+  const int ns                    = kernel::clamp_kernel_ns(ns_t, sigma, dim, is_float);
+  const double nf                 = (double)fine_grid_len(sigma, maxN, ns);
+  const double kernel_cutoff_freq = 1.0 - 0.5 / sigma;                         // b
+  const double top_mode_freq      = type == 3 ? 0.5 / sigma : 0.5 * maxN / nf; // a
+  const double top_mode_decay     =                                            // q
+      std::sqrt(kernel_cutoff_freq * kernel_cutoff_freq - top_mode_freq * top_mode_freq);
+  const double edge_mode_step =                                                // x
+      type == 3 ? 0.0 : 2 * (ns - 1) * PI * top_mode_freq / (top_mode_decay * nf);
+  const double edge_factor =                                                   // E
+      edge_mode_step > 0 ? std::sqrt(edge_mode_step / -std::expm1(-edge_mode_step)) : 1.0;
+  const double eps_alias = kernel::kernel_tolfac(dim, type) * edge_factor *
+                           std::exp(-(ns - 1) * PI * top_mode_decay);
+  const double eps_mach = is_float ? std::numeric_limits<float>::epsilon()
+                                   : std::numeric_limits<double>::epsilon();
+  const double eps_deconv =
+      eps_mach * std::exp(ns * PI * (kernel_cutoff_freq - top_mode_decay));
+  return eps_alias <= tol && eps_deconv <= tol;
 }
 
-double analytic_upsampfac(double tol, int dim, int type, double eps_mach, bool is_float,
-                          double maxN) {
-  // Smallest sigma in [MIN_AUTO_UPSAMPFAC, MAX_AUTO_UPSAMPFAC] that
-  // upsampfac_feasible accepts, by bisection. It is the lower end of the cost search.
-  // Returns MAX_AUTO_UPSAMPFAC when tol is unachievable: the largest sigma gets closest
-  // to tol, and the plan pipeline reports the error. maxN as in upsampfac_feasible.
+double analytic_upsampfac(double tol, int dim, int type, bool is_float, double maxN) {
+  // Returns min{sigma in [MIN_AUTO_UPSAMPFAC, MAX_AUTO_UPSAMPFAC] : feasible(sigma)},
+  // else MAX_AUTO_UPSAMPFAC. E makes feasible not monotone in sigma: scan
+  // sigma_k = MIN_AUTO_UPSAMPFAC + k scan_step to the first feasible sigma_k, then
+  // bisect (sigma_{k-1}, sigma_k].
   auto feasible = [&](double sigma) {
-    return upsampfac_feasible(sigma, tol, dim, type, eps_mach, is_float, maxN);
+    return upsampfac_feasible(sigma, tol, dim, type, is_float, maxN);
   };
-
-  // feasible() is not exactly monotone (integer ns, 235-smooth grid steps). A flicker
-  // costs only a slightly larger sigma: the result itself passed feasible().
-  if (feasible(MIN_AUTO_UPSAMPFAC)) return MIN_AUTO_UPSAMPFAC;
-  if (!feasible(MAX_AUTO_UPSAMPFAC))
-    return MAX_AUTO_UPSAMPFAC; // pipeline reports the error
-  double lo = MIN_AUTO_UPSAMPFAC, hi = MAX_AUTO_UPSAMPFAC;
+  // shortcut: misses a feasible interval narrower than scan_step; refine if one shows up.
+  constexpr double scan_step = 0.05;
+  double lo = MIN_AUTO_UPSAMPFAC, hi = MIN_AUTO_UPSAMPFAC;
+  while (!feasible(hi)) {
+    if (hi >= MAX_AUTO_UPSAMPFAC) return MAX_AUTO_UPSAMPFAC;
+    lo = hi;
+    hi = std::min(hi + scan_step, MAX_AUTO_UPSAMPFAC);
+  }
+  if (hi == MIN_AUTO_UPSAMPFAC) return hi;
   for (int i = 0; i < 40; ++i) { // invariant: feasible(hi) && !feasible(lo)
     const double mid = 0.5 * (lo + hi);
     (feasible(mid) ? hi : lo) = mid;
   }
-  return hi; // smallest feasible sigma to ~1e-12 resolution
+  return hi;
 }
 
 } // namespace finufft::common

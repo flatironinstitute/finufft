@@ -223,6 +223,71 @@ int main() {
     printf("1d3 spreadinterponly:\tier=%d relerr=%.3g\n", ier, err);
     return 1;
   }
+  { // FINUFFT_ERR_EPS_TOO_SMALL iff eps_round, eps_alias or eps_deconv > tol
+    const FLT tol_floor   = 1000 * std::numeric_limits<FLT>::epsilon();
+    const int64_t N_floor = 10000; // eps_round = 0.35 eps_mach N_floor = 3500 eps_mach
+    std::vector<CPX> F_floor(N_floor);
+    std::vector<FLT> x_off(M); // (|C|+X)/X = (1e4+pi)/pi = 3.2e3
+    for (int j = 0; j < M; ++j) x_off[j] = x[j] + 10000;
+    const double upsampfac = opts.upsampfac;
+    opts.upsampfac         = 2.0;
+    ier = FINUFFT1D1(M, x, c, +1, tol_floor, N_floor, F_floor.data(), &opts);
+    if (ier != FINUFFT_ERR_EPS_TOO_SMALL) {
+      printf("1d1 eps_round > tol:\twrong err code %d\n", ier);
+      return 1;
+    }
+    ier = FINUFFT1D1(M, x, c, +1, 7 * tol_floor, N_floor, F_floor.data(), &opts);
+    if (ier) {
+      printf("1d1 eps_round < tol:\twrong err code %d\n", ier);
+      return 1;
+    }
+    ier = FINUFFT1D3(M, x_off.data(), c, +1, tol_floor, N, s, F, &opts);
+    if (ier != FINUFFT_ERR_EPS_TOO_SMALL) {
+      printf("1d3 off-centre eps_round > tol:\twrong err code %d\n", ier);
+      return 1;
+    }
+    ier = FINUFFT1D3(M, x, c, +1, tol_floor, N, s, F, &opts);
+    if (ier) {
+      printf("1d3 centred eps_round < tol:\twrong err code %d\n", ier);
+      return 1;
+    }
+    ier = FINUFFT3D1(M, x, x, x, c, +1, 1.511e-3, 8, 8, 8, F, &opts);
+    if (ier) {
+      printf("3d1 sigma 2 eps_alias < tol:\twrong err code %d\n", ier);
+      return 1;
+    }
+    // sigma 1.25, N = 8, nf = 10: edge_factor 1.6, eps_alias = 2.0e-3 > tol
+    opts.upsampfac = 1.25;
+    ier            = FINUFFT3D1(M, x, x, x, c, +1, 1.511e-3, 8, 8, 8, F, &opts);
+    if (ier != FINUFFT_ERR_EPS_TOO_SMALL) {
+      printf("3d1 sigma 1.25 eps_alias > tol:\twrong err code %d\n", ier);
+      return 1;
+    }
+    // ns clamps (float 9 -> 8, double 17 -> 16), eps_alias(ns) < tol
+    ier = FINUFFT3D1(M, x, x, x, c, +1, std::is_same_v<FLT, float> ? 1e-5 : 1.249e-10, 8,
+                     8, 8, F, &opts);
+    if (ier) {
+      printf("3d1 clamped eps_alias < tol:\twrong err code %d\n", ier);
+      return 1;
+    }
+    // float, sigma 1.25, N = 50, ns 9, nf 64: eps_alias = 0.90 tol, eps_deconv = 2.8 tol.
+    // With allow_eps_too_small the measured error is 1.28 tol.
+    // Double has no such cell: at sigma 1.25 eps_alias > tol first.
+    if constexpr (std::is_same_v<FLT, float>) {
+      ier = FINUFFT1D1(M, x, c, +1, 2.5e-6, 50, F_floor.data(), &opts);
+      if (ier != FINUFFT_ERR_EPS_TOO_SMALL) {
+        printf("1d1 sigma 1.25 eps_deconv > tol:\twrong err code %d\n", ier);
+        return 1;
+      }
+      opts.upsampfac = 2.0;
+      ier            = FINUFFT1D1(M, x, c, +1, 2.5e-6, 50, F_floor.data(), &opts);
+      if (ier) {
+        printf("1d1 sigma 2 eps_deconv < tol:\twrong err code %d\n", ier);
+        return 1;
+      }
+    }
+    opts.upsampfac = upsampfac;
+  }
   int ndata = 10; // how many multiple vectors to test it on
   CPX *cm   = (CPX *)malloc(sizeof(CPX) * M * ndata);
   CPX *Fm   = (CPX *)malloc(sizeof(CPX) * NN * ndata);   // the biggest array

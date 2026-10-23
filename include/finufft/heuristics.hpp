@@ -81,12 +81,11 @@ inline int kernel_width_at(double tol, int dim, int type, double sigma) {
 template<typename TF, class Cost>
 sigma_info minimize(double tol, int dim, int type, double maxN, Cost &&cost) {
   using namespace finufft::common;
-  constexpr double eps_mach = std::numeric_limits<TF>::epsilon();
   constexpr bool is_float = std::is_same_v<TF, float>;
-  const auto feasible       = [&](double sigma) {
-    return upsampfac_feasible(sigma, tol, dim, type, eps_mach, is_float, maxN);
+  const auto feasible     = [&](double sigma) {
+    return upsampfac_feasible(sigma, tol, dim, type, is_float, maxN);
   };
-  const double sigma_min = analytic_upsampfac(tol, dim, type, eps_mach, is_float, maxN);
+  const double sigma_min = analytic_upsampfac(tol, dim, type, is_float, maxN);
   const int ns_min = kernel_width_at<TF>(tol, dim, type, sigma_min);
   sigma_info best{sigma_min, cost(sigma_min, ns_min)};
   if (!feasible(sigma_min)) return best; // tol unachievable; pipeline reports

@@ -162,20 +162,12 @@ template<typename TF> void FINUFFT_PLAN_T<TF>::setup_spreadinterp() {
   }
 
   // choose nspread and set it in spopts. The width actually used comes from the shared
-  // clamp_kernel_ns() (kernel.h); here we additionally report/throw when the requested
-  // tol is infeasible, and warn when the float guard narrows the kernel.
+  // clamp_kernel_ns() (kernel.h); check_sigma tests the error at that ns.
   const int ns_theory =
       theoretical_kernel_ns((double)m.tol, dim, type, m.spopts.upsampfac);
   // per-precision cap: float spreadinterp is only instantiated up to
   // MAX_NSPREAD<TF> (see constants.h, issue #827)
   constexpr int max_ns = MAX_NSPREAD<TF>;
-  if (ns_theory > max_ns && !opts.allow_eps_too_small) {
-    fprintf(stderr,
-            "%s error: at upsampfac=%.3g, tol=%.3g would need kernel "
-            "width ns=%d, exceeding max %d.\n",
-            __func__, m.spopts.upsampfac, (double)m.tol, ns_theory, max_ns);
-    throw finufft::exception(FINUFFT_ERR_EPS_TOO_SMALL);
-  }
   const int ns = clamp_kernel_ns<TF>(ns_theory, m.spopts.upsampfac, dim);
   // only the float catastrophic-cancellation guard in clamp_kernel_ns narrows ns
   // below min(ns_theory, max_ns); warn when it bites.

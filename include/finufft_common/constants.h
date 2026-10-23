@@ -29,15 +29,13 @@ inline constexpr int MAX_NC = 19;
 // 1.25 it lands on the aliasing-law boundary with no accuracy margin; above 2.0 a
 // narrower kernel can still pay off for dense, spread-dominated transforms.
 inline constexpr double MIN_AUTO_UPSAMPFAC       = 1.25;
-inline constexpr double MAX_AUTO_UPSAMPFAC = 2.5;
-// lowest_sigma never asks for more: past 2.0 the aliasing error barely drops.
-inline constexpr double MAX_CHECK_SIGMA          = 2.0;
+inline constexpr double MAX_AUTO_UPSAMPFAC       = 2.5;
 // makeplan warns on a user upsampfac outside this range, which rarely pays off.
 inline constexpr double MIN_USEFUL_UPSAMPFAC     = 1.15;
 inline constexpr double MAX_USEFUL_UPSAMPFAC     = 3.0;
 
-// c in the full-pipeline rounding floor eps_round = c * eps_mach * nf.
-inline constexpr double ROUND_FAC                = 0.48;
+// eps_round = ROUND_FAC eps_mach N sqrt(dim) (rounding_floor, kernel.h).
+inline constexpr double ROUND_FAC                = 0.35;
 
 } // namespace common
 } // namespace finufft

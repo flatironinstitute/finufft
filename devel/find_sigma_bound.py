@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""Validate the sigma_min estimator used in kernel.cpp (finufft::common).
+"""LEGACY: validates the PR 845 lowest_sigma fit, replaced by eps_round/eps_alias.
 
 The estimator predicts the minimum upsampling factor (sigma) needed to achieve
-a requested tolerance, used by makeplan to warn when upsampfac is too low.
+a requested tolerance.
 
-Error model (matches C++ lowest_sigma in kernel.cpp):
+Error model (the PR 845 lowest_sigma):
 
     eps_l2(sigma) = eps_alias + eps_round
 
@@ -53,7 +53,7 @@ from scipy.special import pro_ang1
 PI = np.pi
 MAX_CHECK_SIGMA = 2.0
 
-# Model coefficients — must match kernel.cpp lowest_sigma.
+# Model coefficients of the PR 845 lowest_sigma.
 TOLFAC = 0.18  # kernel aliasing prefactor (same as theoretical_kernel_ns kf>=2)
 DIM_FAC = 1.4  # per-dimension correction: tolfac *= 1.4^(dim-1)
 FLOOR_C = 0.48  # eps_round = FLOOR_C * eps_mach * N ([FIN] Remark 9)
@@ -74,7 +74,7 @@ def _prec_params(prec):
 
 
 # ---------------------------------------------------------------------------
-# Model (matches C++ lowest_sigma in kernel.cpp)
+# PR 845 model (lowest_sigma)
 # ---------------------------------------------------------------------------
 def _invert_kernel_sigma(tol, ns, dim):
     """Pure analytical sigma inversion (kernel formula only, no floor)."""
@@ -90,7 +90,7 @@ def _invert_kernel_sigma(tol, ns, dim):
 
 
 def sigma_min_from_model(tol, ns, dim, eps_mach, gridlen):
-    """Minimum sigma via hybrid model (matches C++ lowest_sigma)."""
+    """Minimum sigma via the PR 845 hybrid model (lowest_sigma)."""
     eps_round = FLOOR_C * eps_mach * gridlen
     r = tol / eps_round
     if r <= 0.5:
