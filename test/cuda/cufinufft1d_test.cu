@@ -13,6 +13,8 @@
 
 #include "../utils/dirft1d.hpp"
 #include "../utils/norms.hpp"
+#include "../utils/test.hpp"
+
 #include <cufinufft/contrib/helper_cuda.h>
 #include <cufinufft/cufinufft_plan_t.hpp>
 #include <cufinufft/utils.hpp>
@@ -152,9 +154,7 @@ int run_test(int method, int type, int N1, int M, T tol, T checktol, int iflag,
   totaltime += milliseconds;
   printf("[time  ] cufinufft destroy:\t\t %.3g s\n", milliseconds / 1000);
 
-  printf("[Method %d] %d U pts to %d NU pts in %.3g s:      %.3g NU pts/s\n",
-         opts.gpu_method, N1, M, totaltime / 1000, M / totaltime * 1000);
-  printf("\t\t\t\t\t(exec-only thoughput: %.3g NU pts/s)\n", M / exec_ms * 1000);
+  finufft::test::print_cuda_status_({type, opts.gpu_method, M, N1, totaltime, exec_ms});
 
   if (type == 1)
     fk = d_fk;

@@ -18,6 +18,7 @@
 
 #include "../utils/dirft2d.hpp"
 #include "../utils/norms.hpp"
+#include "../utils/test.hpp"
 
 constexpr auto TEST_BIGPROB = 1e8;
 
@@ -158,9 +159,8 @@ int run_test(int method, int type, int N1, int N2, int M, T tol, T checktol, int
   else if (type == 3)
     fk = d_fk;
 
-  printf("[Method %d] %d NU pts to %d U pts in %.3g s:      %.3g NU pts/s\n",
-         opts.gpu_method, M, N1 * N2, totaltime / 1000, M / totaltime * 1000);
-  printf("\t\t\t\t\t(exec-only thoughput: %.3g NU pts/s)\n", M / exec_ms * 1000);
+  finufft::test::print_cuda_status_(
+      {type, opts.gpu_method, M, N1 * N2, totaltime, exec_ms});
 
   T rel_error = std::numeric_limits<T>::max();
   if (type == 1) {
