@@ -17,6 +17,7 @@
 
 #include "../utils/dirft3d.hpp"
 #include "../utils/norms.hpp"
+#include "../utils/test.hpp"
 
 constexpr auto TEST_BIGPROB = 1e8;
 
@@ -166,9 +167,8 @@ int run_test(int method, int type, int N1, int N2, int N3, int M, T tol, T check
   else if (type == 3)
     fk = d_fk;
 
-  printf("[Method %d] %d NU pts to %d U pts in %.3g s:\t%.3g NU pts/s\n", opts.gpu_method,
-         M, N1 * N2 * N3, totaltime / 1000, M / totaltime * 1000);
-  printf("\t\t\t\t\t(exec-only thoughput: %.3g NU pts/s)\n", M / exec_ms * 1000);
+  finufft::test::print_cuda_status_(
+      {type, opts.gpu_method, M, N1 * N2 * N3, totaltime, exec_ms});
 
   T rel_error = std::numeric_limits<T>::max();
   if (type == 1) {
@@ -178,11 +178,11 @@ int run_test(int method, int type, int N1, int N2, int N3, int M, T tol, T check
     for (int j = 0; j < M; ++j)
       Ft += c[j] * exp(J * (nt1 * x[j] + nt2 * y[j] + nt3 * z[j])); // crude direct
 
-    int it = N1 / 2 + nt1 + N1 * (N2 / 2 + nt2) + N1 * N2 * (N3 / 2 + nt3); // index
-                                                                            // in
-                                                                            // complex
-                                                                            // F as 1d
-                                                                            // array
+    int it    = N1 / 2 + nt1 + N1 * (N2 / 2 + nt2) + N1 * N2 * (N3 / 2 + nt3); // index
+                                                                               // in
+                                                                               // complex
+                                                                               // F as 1d
+                                                                               // array
     rel_error = abs(Ft - fk[it]) / infnorm(N1, (std::complex<T> *)fk.data());
     printf("[gpu   ] one mode: rel err in F[%d,%d,%d] is %.3g\n", nt1, nt2, nt3,
            rel_error);
@@ -198,7 +198,7 @@ int run_test(int method, int type, int N1, int N2, int N3, int M, T tol, T check
     thrust::complex<T> J  = thrust::complex<T>(0, iflag);
     thrust::complex<T> ct = thrust::complex<T>(0, 0);
 
-    int m = 0;
+    int m                 = 0;
     for (int m3 = -(N3 / 2); m3 <= (N3 - 1) / 2; ++m3)   // loop in correct order over F
       for (int m2 = -(N2 / 2); m2 <= (N2 - 1) / 2; ++m2) // loop in correct order
                                                          // over F
