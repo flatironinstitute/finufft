@@ -18,7 +18,7 @@
 
 #include "../utils/dirft2d.hpp"
 #include "../utils/norms.hpp"
-#include "../utils/test.hpp"
+#include "./test.hpp"
 
 constexpr auto TEST_BIGPROB = 1e8;
 
