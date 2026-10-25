@@ -154,7 +154,7 @@ int run_test(int method, int type, int N1, int M, T tol, T checktol, int iflag,
   totaltime += milliseconds;
   printf("[time  ] cufinufft destroy:\t\t %.3g s\n", milliseconds / 1000);
 
-  finufft::test::print_cuda_status_({type, opts.gpu_method, M, N1, totaltime, exec_ms});
+  print_cuda_status_(type, opts.gpu_method, M, N1, totaltime, exec_ms);
 
   if (type == 1)
     fk = d_fk;

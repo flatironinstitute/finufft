@@ -167,8 +167,7 @@ int run_test(int method, int type, int N1, int N2, int N3, int M, T tol, T check
   else if (type == 3)
     fk = d_fk;
 
-  finufft::test::print_cuda_status_(
-      {type, opts.gpu_method, M, N1 * N2 * N3, totaltime, exec_ms});
+  print_cuda_status_(type, opts.gpu_method, M, N1 * N2 * N3, totaltime, exec_ms);
 
   T rel_error = std::numeric_limits<T>::max();
   if (type == 1) {
