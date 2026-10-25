@@ -13,7 +13,7 @@
 
 #include "../utils/dirft1d.hpp"
 #include "../utils/norms.hpp"
-#include "../utils/test.hpp"
+#include "./test.hpp"
 
 #include <cufinufft/contrib/helper_cuda.h>
 #include <cufinufft/cufinufft_plan_t.hpp>
