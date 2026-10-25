@@ -159,8 +159,7 @@ int run_test(int method, int type, int N1, int N2, int M, T tol, T checktol, int
   else if (type == 3)
     fk = d_fk;
 
-  finufft::test::print_cuda_status_(
-      {type, opts.gpu_method, M, N1 * N2, totaltime, exec_ms});
+  print_cuda_status_(type, opts.gpu_method, M, N1 * N2, totaltime, exec_ms);
 
   T rel_error = std::numeric_limits<T>::max();
   if (type == 1) {
@@ -171,7 +170,7 @@ int run_test(int method, int type, int N1, int N2, int M, T tol, T checktol, int
       Ft += c[j] * exp(J * (nt1 * x[j] + nt2 * y[j])); // crude direct
     const int it = N1 / 2 + nt1 + N1 * (N2 / 2 + nt2); // index in complex F as 1d
                                                        // array
-    rel_error = abs(Ft - fk[it]) / infnorm(N1, (std::complex<T> *)fk.data());
+    rel_error    = abs(Ft - fk[it]) / infnorm(N1, (std::complex<T> *)fk.data());
     printf("[gpu   ] one mode: rel err in F[%d,%d] is %.3g\n", nt1, nt2, rel_error);
     if (type == 1 && static_cast<int64_t>(M) * N1 * N2 <= TEST_BIGPROB) {
       std::vector<thrust::complex<T>> Ft(N1 * N2);
@@ -185,7 +184,7 @@ int run_test(int method, int type, int N1, int N2, int M, T tol, T checktol, int
     thrust::complex<T> J  = thrust::complex<T>(0, iflag);
     thrust::complex<T> ct = thrust::complex<T>(0, 0);
 
-    int m = 0;
+    int m                 = 0;
     for (int m2 = -(N2 / 2); m2 <= (N2 - 1) / 2; ++m2) // loop in correct order over F
       for (int m1 = -(N1 / 2); m1 <= (N1 - 1) / 2; ++m1)
         ct += fk[m++] * exp(J * (m1 * x[jt] + m2 * y[jt])); // crude direct
