@@ -12,6 +12,7 @@
 int main() {
   finufft_opts opts;
   finufft_default_opts(&opts);
+  opts.allow_eps_too_small = 1;
 
   // A non-trivial round trip: a tiny type-1 1D transform.
   const int64_t M = 8;

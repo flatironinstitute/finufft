@@ -12,6 +12,7 @@ static void dummy_lock(void *data) { (void)data; }
 int main() {
   finufft_opts opts;
   finufft_default_opts(&opts);
+  opts.allow_eps_too_small = 1;
 
   finufft_plan plan = NULL;
   int rc            = 0;
@@ -62,6 +63,7 @@ int main() {
 #ifdef _OPENMP
   // Invalid lock function pairing -> expect FINUFFT_ERR_LOCK_FUNS_INVALID
   finufft_default_opts(&opts);
+  opts.allow_eps_too_small = 1;
   opts.fftw_lock_fun   = dummy_lock;
   opts.fftw_unlock_fun = NULL;
   rc                   = finufft_makeplan(1, 1, N, 1, 1, 1e-6, &plan, &opts);
@@ -74,6 +76,7 @@ int main() {
 
   // Invalid upsampfac -> expect FINUFFT_ERR_UPSAMPFAC_TOO_SMALL
   finufft_default_opts(&opts);
+  opts.allow_eps_too_small = 1;
   opts.upsampfac = 1.0;
   rc             = finufft_makeplan(1, 1, N, 1, 1, 1e-6, &plan, &opts);
   if (rc != FINUFFT_ERR_UPSAMPFAC_TOO_SMALL) {
@@ -89,6 +92,7 @@ int main() {
   const int bad_kerformulas[] = {1, 3, 6, 99};
   for (size_t i = 0; i < sizeof(bad_kerformulas) / sizeof(bad_kerformulas[0]); ++i) {
     finufft_default_opts(&opts);
+    opts.allow_eps_too_small = 1;
     opts.upsampfac = 2.0; // force kernel setup in makeplan
     opts.spread_kerformula = bad_kerformulas[i];
     rc = finufft_makeplan(1, 1, N, 1, 1, 1e-6, &plan, &opts);
@@ -102,6 +106,7 @@ int main() {
   // Deprecated opts are ignored, not errors, but must warn at runtime (the only
   // signal non-C++ wrappers get). ctest greps stderr for these three lines.
   finufft_default_opts(&opts);
+  opts.allow_eps_too_small = 1;
   opts.spread_thread = 3;
   opts.spread_kerevalmeth = 0;
   opts.spread_kerpad = 0;
