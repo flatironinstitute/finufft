@@ -28,6 +28,7 @@ int main() {
 
   finufft_opts opts;
   finufft_default_opts(&opts);
+  opts.allow_eps_too_small = 1;
   opts.nthreads        = 1;
   opts.debug           = 0;
   opts.fftw_lock_fun   = locker;

@@ -29,6 +29,7 @@ int main(int argc, char *argv[]) {
   FLT errmax     = 0;
   finufft_opts opts;
   FINUFFT_DEFAULT_OPTS(&opts); // put defaults in opts
+  opts.allow_eps_too_small = 1;
   opts.spreadinterponly = 1;   // this task
   if (argc < 3 || argc > 8) {
     for (int i = 0; help[i]; ++i) fprintf(stderr, "%s\n", help[i]);

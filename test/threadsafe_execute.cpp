@@ -27,6 +27,7 @@ int main() {
 
   finufft_opts opts;
   finufft_default_opts(&opts);
+  opts.allow_eps_too_small = 1;
   opts.nthreads = 1; // crucial: parallelism is across concurrent plan executes
   opts.debug    = 0;
 
