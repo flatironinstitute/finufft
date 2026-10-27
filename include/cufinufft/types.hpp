@@ -45,16 +45,6 @@ static inline cufftResult cufft_ex(cufftHandle plan, cufftDoubleComplex *idata,
   return cufftExecZ2Z(plan, idata, odata, direction);
 }
 
-// Method 3 couples shared-memory footprint with work granularity, so it needs finer
-// buckets than the is_hopper_like()/is_small_smem() split Method 2 uses.
-enum class Method3Category {
-  AMPERE_LARGE, // A100: CC 8.0, prefers low shmem, small np
-  HOPPER,       // H100/H200: CC 9.0, can use larger np
-  ADA_DESKTOP,  // Small-SMEM desktop/workstation: Ada/Blackwell, high SM count
-  ADA_MOBILE,   // Small-SMEM mobile: low SM count
-  UNKNOWN       // Fallback
-};
-
 // Device attributes the heuristics and launch paths need, queried once per plan with
 // cudaDeviceGetAttribute. cudaGetDeviceProperties is far slower, so it stays in the
 // debug print.
@@ -65,7 +55,8 @@ struct GpuCapabilities {
   int max_smem_per_sm{};          // bytes
   int max_threads_per_sm{};
   int multiprocessor_count{};
-  int l2_cache_size{}; // bytes
+  int l2_cache_size{};    // bytes
+  int memory_bus_width{}; // bits
   int memory_pools_supported{};
 
   static GpuCapabilities query(int device_id) {
@@ -81,20 +72,17 @@ struct GpuCapabilities {
     get(&gpu.max_threads_per_sm, cudaDevAttrMaxThreadsPerMultiProcessor);
     get(&gpu.multiprocessor_count, cudaDevAttrMultiProcessorCount);
     get(&gpu.l2_cache_size, cudaDevAttrL2CacheSize);
+    get(&gpu.memory_bus_width, cudaDevAttrGlobalMemoryBusWidth);
     get(&gpu.memory_pools_supported, cudaDevAttrMemoryPoolsSupported);
     return gpu;
   }
 
   int max_warps_per_sm() const { return max_threads_per_sm / 32; }
 
-  // "Hopper-like" = large shared memory (>=200 KB/block) AND high occupancy
-  // (>=64 warps/SM). Matches H100/H200 (9.0) and Blackwell datacenter (10.0).
-  bool is_hopper_like() const {
-    return max_smem_per_block_optin >= 200 * 1024 && max_warps_per_sm() >= 64;
-  }
-
-  // Ada (8.9), Ampere 8.6, Blackwell workstation (12.0).
-  bool is_small_smem() const { return max_smem_per_block_optin <= 110 * 1024; }
+  // >= 512-bit bus: HBM datacenter parts plus 512-bit GDDR7 workstation Blackwell.
+  // These keep large method-1 bins effective past L2 residency; 384-bit GDDR parts
+  // (Ada, L40S) do not. See the method-1 binsize rule in heuristics.cu.
+  bool wide_memory_bus() const { return memory_bus_width >= 512; }
 
   // Complex elements in the ~1/3 of L2 the batchsize heuristic budgets for the working
   // set (in + out + twiddle).
@@ -124,9 +112,7 @@ struct GpuCapabilities {
     return 32;
   }
 
-  // Defined in heuristics.cu: keeps the Method-3 table and <cstdio> out of this header.
-  Method3Category method3_category() const;
-  const char *method3_category_name() const;
+  // Defined in heuristics.cu: keeps <cstdio> out of this header.
   void print_classification(int debug_level) const;
 };
 

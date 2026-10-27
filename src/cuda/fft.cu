@@ -5,6 +5,7 @@
 // src/fft.cpp.
 
 #include <algorithm>
+#include <cstdint>
 
 #include <cuComplex.h>
 #include <cuda.h>
@@ -164,23 +165,24 @@ template void onedim_nuft_kernel_precomp<double>(double *f, double *a,
 } // namespace cufinufft
 
 template<typename T>
-void cufinufft_plan_t<T>::set_nf_type12(CUFINUFFT_BIGINT ms, CUFINUFFT_BIGINT *nf,
+void cufinufft_plan_t<T>::set_nf_type12(CUFINUFFT_BIGINT ms, std::int64_t *nf,
                                         CUFINUFFT_BIGINT bs) const
 // type 1 & 2 recipe for how to set 1d size of upsampled array, nf, given opts
 // and requested number of Fourier modes ms.
 {
-  // round up to handle small cases
-  *nf = static_cast<CUFINUFFT_BIGINT>(std::ceil(opts.upsampfac * ms));
+  // round up to handle small cases. int64: ceil(upsampfac*ms) can exceed CUFINUFFT_BIGINT
+  // (int32) for a single large ms, so this must stay wide until makeplan's MAX_NF check.
+  *nf = static_cast<std::int64_t>(std::ceil(opts.upsampfac * ms));
   if (*nf < 2 * spopts.nspread) *nf = 2 * spopts.nspread; // otherwise spread fails
   if (*nf < MAX_NF) {                                     // otherwise will fail anyway
     if (bs & 1) bs *= 2; // make sure that bs is even
     *nf = finufft::common::next235(*nf, opts.gpu_method == 4 ? bs : 2);
   }
 }
-template void cufinufft_plan_t<float>::set_nf_type12(CUFINUFFT_BIGINT, CUFINUFFT_BIGINT *,
+template void cufinufft_plan_t<float>::set_nf_type12(CUFINUFFT_BIGINT, std::int64_t *,
                                                      CUFINUFFT_BIGINT) const;
-template void cufinufft_plan_t<double>::set_nf_type12(
-    CUFINUFFT_BIGINT, CUFINUFFT_BIGINT *, CUFINUFFT_BIGINT) const;
+template void cufinufft_plan_t<double>::set_nf_type12(CUFINUFFT_BIGINT, std::int64_t *,
+                                                      CUFINUFFT_BIGINT) const;
 
 template<typename T>
 void cufinufft_plan_t<T>::precompute_fseries_nodes(CUFINUFFT_BIGINT nf_, T *f,

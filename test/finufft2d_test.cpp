@@ -22,6 +22,7 @@ int main(int argc, char *argv[]) {
   double err, errfail = INFINITY, errmax = 0;
   finufft_opts opts;
   FINUFFT_DEFAULT_OPTS(&opts);
+  opts.allow_eps_too_small = 1;
   // opts.fftw = FFTW_MEASURE;  // change from usual FFTW_ESTIMATE
   int isign = +1; // choose which exponential sign to test
   if (argc < 4 || argc > 9) {

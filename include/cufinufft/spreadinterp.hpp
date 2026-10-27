@@ -2,6 +2,7 @@
 #define __CUSPREADINTERP_H__
 
 #include <cmath>
+#include <cstdint>
 #include <cuda.h>
 #include <cuda/std/array>
 #include <cuda/std/tuple>
@@ -140,12 +141,28 @@ inline __host__ __device__ auto get_nbins(cuda::std::array<int, 3> nf123,
                                           cuda::std::array<int, 3> binsizes) {
   cuda::std::array<int, 3> nbins{1, 1, 1};
   for (int idim = 0; idim < ndim; ++idim)
-    nbins[idim] = (nf123[idim] + binsizes[idim] - 1) / binsizes[idim];
+    nbins[idim] = 1 + (nf123[idim] - 1) / binsizes[idim]; // ceil(nf/bin), no int overflow
   return nbins;
 }
 
-inline __host__ __device__ int nbins_total(const cuda::std::array<int, 3> &nbins) {
-  return nbins[0] * nbins[1] * nbins[2];
+inline __host__ __device__ std::int64_t nbins_total(
+    const cuda::std::array<int, 3> &nbins) {
+  // product in int64: the int product overflows at 2048^3 bins
+  return std::int64_t(nbins[0]) * nbins[1] * nbins[2];
+}
+
+// Checked fine-grid product against the MAX_NF allocation guard. Rejects a nonpositive
+// factor or one past MAX_NF / product before the multiply, so the product never
+// overflows past the guard (issue #890). Throws FINUFFT_ERR_MAXNALLOC.
+inline std::int64_t nf_product_checked(const cuda::std::array<std::int64_t, 3> &nf123,
+                                       int dim) {
+  std::int64_t nf = 1;
+  for (int idim = 0; idim < dim; ++idim) {
+    if (nf123[idim] <= 0 || nf123[idim] > MAX_NF / nf) // product stays <= MAX_NF
+      throw finufft::exception(FINUFFT_ERR_MAXNALLOC);
+    nf *= nf123[idim];
+  }
+  return nf;
 }
 
 // For the current nonuniform point (given via idx), compute the set of
@@ -210,17 +227,20 @@ __device__ auto compute_offset(const int bidx, const cuda::std::array<int, 3> &n
 }
 
 // For the current nonuniform point (given via idx), compute the flat index
-// of the bin it falls into.
+// of the bin it falls into. Integer division, exactly consistent with the
+// cell the spread/interp kernels derive from the same coordinate: a float
+// reciprocal-multiply here misassigns boundary points by up to 2 cells at
+// nf ~ 2^24, overflowing the ns/2-padded tile of the subprob-style kernels.
 template<int ndim, typename T>
 __device__ int compute_bin_index(
-    int idx, cuda::std::array<int, 3> nf, cuda::std::array<T, 3> inv_binsizes,
+    int idx, cuda::std::array<int, 3> nf, cuda::std::array<int, 3> binsizes,
     cuda::std::array<int, 3> nbins, cuda::std::array<const T *, 3> xyz) {
   int binidx = 0;
   int stride = 1;
   for (int idim = 0; idim < ndim; ++idim) {
     const T rescaled = fold_rescale(loadReadOnly(xyz[idim] + idx), nf[idim]);
-    int bin          = floor(rescaled * inv_binsizes[idim]);
-    bin              = bin >= nbins[idim] ? bin - 1 : bin;
+    int bin          = int(rescaled) / binsizes[idim];
+    bin              = bin >= nbins[idim] ? nbins[idim] - 1 : bin;
     bin              = bin < 0 ? 0 : bin;
     binidx += bin * stride;
     stride *= nbins[idim];
@@ -299,12 +319,12 @@ __device__ void shared_mem_copy_helper(cuda::std::array<int, 3> binsizes,
 template<typename T, int ndim>
 __global__ FINUFFT_FLATTEN void calc_bin_size_noghost(
     const int M, const cuda::std::array<int, 3> nf,
-    const cuda::std::array<T, 3> inv_binsizes, const cuda::std::array<int, 3> nbins,
+    const cuda::std::array<int, 3> binsizes, const cuda::std::array<int, 3> nbins,
     int *FINUFFT_RESTRICT bin_size, const cuda::std::array<const T *, 3> xyz,
     int *FINUFFT_RESTRICT sortidx) {
   for (int i = threadIdx.x + blockIdx.x * blockDim.x; i < M;
        i += gridDim.x * blockDim.x) {
-    const int binidx = compute_bin_index<ndim>(i, nf, inv_binsizes, nbins, xyz);
+    const int binidx = compute_bin_index<ndim>(i, nf, binsizes, nbins, xyz);
     const int oldidx = atomicAdd(&bin_size[binidx], 1);
     storeCacheStreaming(sortidx + i, oldidx);
   }
@@ -312,17 +332,20 @@ __global__ FINUFFT_FLATTEN void calc_bin_size_noghost(
 
 template<typename T, int ndim>
 __global__ FINUFFT_FLATTEN void calc_inverse_of_global_sort_idx(
-    const int M, const cuda::std::array<T, 3> inv_binsizes,
+    const int M, const cuda::std::array<int, 3> binsizes,
     const cuda::std::array<int, 3> nbins, const int *FINUFFT_RESTRICT bin_startpts,
     const int *FINUFFT_RESTRICT sortidx, const cuda::std::array<const T *, 3> xyz,
     int *FINUFFT_RESTRICT index, const cuda::std::array<int, 3> nf) {
   for (int i = threadIdx.x + blockIdx.x * blockDim.x; i < M;
        i += gridDim.x * blockDim.x) {
-    const int binidx = compute_bin_index<ndim>(i, nf, inv_binsizes, nbins, xyz);
+    const int binidx = compute_bin_index<ndim>(i, nf, binsizes, nbins, xyz);
     storeCacheStreaming(
         index + loadReadOnly(bin_startpts + binidx) + loadReadOnly(sortidx + i), i);
   }
 }
+
+// ceil(n / b) for n >= 0 and b >= 1: 0 at n = 0, no overflow near INT_MAX.
+inline __host__ __device__ int ceil_div(int n, int b) { return n / b + (n % b != 0); }
 
 // `static` (not `inline`) so each TU gets a uniquely-named kernel symbol;
 // otherwise, with RDC off, every TU that includes this header registers a
@@ -330,21 +353,22 @@ __global__ FINUFFT_FLATTEN void calc_inverse_of_global_sort_idx(
 // "Duplicate entry kernels" warning at first launch (compute-sanitizer
 // reports it as an error). Templated kernels above don't have the issue
 // because vague-linkage lets the linker fold the duplicates.
-static __global__ void calc_subprob(const int *FINUFFT_RESTRICT bin_size,
-                                    int *FINUFFT_RESTRICT num_subprob,
-                                    const int maxsubprobsize, const int numbins) {
-  for (int i = threadIdx.x + blockIdx.x * blockDim.x; i < numbins;
+static __global__ void calc_subprob(
+    const int *FINUFFT_RESTRICT bin_size, int *FINUFFT_RESTRICT num_subprob,
+    const int maxsubprobsize, const std::int64_t numbins) {
+  for (std::int64_t i = threadIdx.x + blockIdx.x * blockDim.x; i < numbins;
        i += gridDim.x * blockDim.x) {
-    num_subprob[i] = (loadReadOnly(bin_size + i) + maxsubprobsize - 1) / maxsubprobsize;
+    // ceil(bin_size / maxsubprobsize): the +b-1 form overflows int near 2^31
+    num_subprob[i] = ceil_div(loadReadOnly(bin_size + i), maxsubprobsize);
   }
 }
 static __global__ void map_b_into_subprob(
     int *FINUFFT_RESTRICT d_subprob_to_bin, const int *FINUFFT_RESTRICT d_subprobstartpts,
-    const int *FINUFFT_RESTRICT d_numsubprob, const int numbins) {
-  for (int i = threadIdx.x + blockIdx.x * blockDim.x; i < numbins;
+    const int *FINUFFT_RESTRICT d_numsubprob, const std::int64_t numbins) {
+  for (std::int64_t i = threadIdx.x + blockIdx.x * blockDim.x; i < numbins;
        i += gridDim.x * blockDim.x) {
     for (int j = 0; j < loadReadOnly(d_numsubprob + i); j++) {
-      d_subprob_to_bin[loadReadOnly(d_subprobstartpts + i) + j] = i;
+      d_subprob_to_bin[loadReadOnly(d_subprobstartpts + i) + j] = int(i);
     }
   }
 }

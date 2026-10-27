@@ -43,24 +43,22 @@ __device__ __forceinline__ subprob_block_info<T, ndim> compute_subprob_block_inf
 }
 
 // Host-side bin-layout bundle used by indexSort_nupts_driven and
-// indexSort_subprob_and_OD. Same four values are derived from p.opts and
+// indexSort_subprob_and_OD. Same three values are derived from p.opts and
 // p.nf123 in both places.
-template<typename T, int Ndim> struct bin_layout {
+struct bin_layout {
   cuda::std::array<int, 3> binsizes;
   cuda::std::array<int, 3> nbins;
-  int nbins_tot;
-  cuda::std::array<T, 3> inv_binsizes;
+  std::int64_t nbins_tot;
 };
 
-template<typename T, int Ndim>
-inline bin_layout<T, Ndim> compute_bin_layout(
-    const cufinufft_opts &opts, const cuda::std::array<CUFINUFFT_BIGINT, 3> &nf123) {
+template<int Ndim>
+inline bin_layout compute_bin_layout(const cufinufft_opts &opts,
+                                     const cuda::std::array<CUFINUFFT_BIGINT, 3> &nf123) {
   cuda::std::array<int, 3> binsizes{opts.gpu_binsizex, opts.gpu_binsizey,
                                     opts.gpu_binsizez};
-  auto nbins      = get_nbins<Ndim>(nf123, binsizes);
-  const int total = nbins_total(nbins);
-  cuda::std::array<T, 3> inv{T(1) / binsizes[0], T(1) / binsizes[1], T(1) / binsizes[2]};
-  return {binsizes, nbins, total, inv};
+  auto nbins               = get_nbins<Ndim>(nf123, binsizes);
+  const std::int64_t total = nbins_total(nbins);
+  return {binsizes, nbins, total};
 }
 
 } // namespace spreadinterp

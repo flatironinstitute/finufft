@@ -3,6 +3,7 @@
 // -DCUFINUFFT_DIM={1,2,3}; produces one object per dim.
 
 #include "spreadinterp_common.cuh"
+#include <cstdint>
 #include <cufinufft/spreadinterp.hpp>
 #include <poet/poet.hpp>
 
@@ -70,7 +71,7 @@ void spread_nupts_driven_launch(const cufinufft_plan_t<T> &d_plan,
   const dim3 blocks{(unsigned(d_plan.M) + 15) / 16, 1, 1};
 
   const auto launch = [&](auto kernel) {
-    for (int t = 0; t < blksize; t++) {
+    for (std::int64_t t = 0; t < blksize; t++) {
       kernel<<<blocks, threadsPerBlock, 0, d_plan.stream>>>(d_plan, c + t * d_plan.M,
                                                             fw + t * d_plan.nf);
       THROW_IF_CUDA_ERROR();
@@ -100,17 +101,19 @@ void do_spread_nupts_driven(const cufinufft_plan_t<T> &p, const cuda_complex<T> 
 }
 
 template<typename T, int Ndim> void do_indexSort_nupts_driven(cufinufft_plan_t<T> &p) {
-  if (p.opts.gpu_sort) {
-    auto layout         = compute_bin_layout<T, Ndim>(p.opts, p.nf123);
-    auto &nbins         = layout.nbins;
-    const int nbins_tot = layout.nbins_tot;
-    auto &inv_binsizes  = layout.inv_binsizes;
+  auto layout = compute_bin_layout<Ndim>(p.opts, p.nf123);
+  // One bin: the counting sort can only emit an arbitrary intra-bin order,
+  // i.e. no order at all. Skip its single-counter atomic hotspot and take the
+  // identity, which the GM kernel measures at least as fast.
+  if (p.opts.gpu_sort && layout.nbins_tot > 1) {
+    auto &nbins                  = layout.nbins;
+    const std::int64_t nbins_tot = layout.nbins_tot;
+    auto &binsizes               = layout.binsizes;
 
     checkCudaErrors(
         cudaMemsetAsync(dethrust(p.binsize), 0, nbins_tot * sizeof(int), p.stream));
     calc_bin_size_noghost<T, Ndim><<<(p.M + 1024 - 1) / 1024, 1024, 0, p.stream>>>(
-        p.M, p.nf123, inv_binsizes, nbins, dethrust(p.binsize), p.kxyz,
-        dethrust(p.sortidx));
+        p.M, p.nf123, binsizes, nbins, dethrust(p.binsize), p.kxyz, dethrust(p.sortidx));
     THROW_IF_CUDA_ERROR();
 
     thrust::exclusive_scan(thrust::cuda::par.on(p.stream), p.binsize.begin(),
@@ -119,8 +122,8 @@ template<typename T, int Ndim> void do_indexSort_nupts_driven(cufinufft_plan_t<T
 
     calc_inverse_of_global_sort_idx<T, Ndim>
         <<<(p.M + 1024 - 1) / 1024, 1024, 0, p.stream>>>(
-            p.M, inv_binsizes, nbins, dethrust(p.binstartpts), dethrust(p.sortidx),
-            p.kxyz, dethrust(p.idxnupts), p.nf123);
+            p.M, binsizes, nbins, dethrust(p.binstartpts), dethrust(p.sortidx), p.kxyz,
+            dethrust(p.idxnupts), p.nf123);
     THROW_IF_CUDA_ERROR();
   } else {
     thrust::sequence(thrust::cuda::par.on(p.stream), p.idxnupts.begin(),
