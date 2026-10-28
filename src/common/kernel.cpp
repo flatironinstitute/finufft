@@ -46,7 +46,7 @@ std::function<double(double)> kernel_definition_lambda(
   double beta = spopts.beta; // get shape param
   int kf      = spopts.kerformula;
 
-  if (kf >= 7 && kf <= 9) {
+  if (kf >= 7 && kf <= 10) { // 10 is the nf/N twin of 8
     finufft::common::PSWF0 pswf(beta);
     return [pswf](double z) {
       if (std::abs(z) > 1.0) return 0.0; // restrict support to [-1,1]
@@ -107,7 +107,7 @@ void set_kernel_shape_given_ns(finufft_spread_opts &spopts, int debug) {
     double pis      = common::PI * common::PI;
     spopts.beta = std::sqrt(beta_cutoff * beta_cutoff - c_Beatty / pis);
 
-  } else if (kf == 8) {
+  } else if (kf == 8 || kf == 10) {
     // Std shape param with const shift to exploit a little more tail decay,
     // in the style of Beatty (above) but without the sqrt; a const is better at high ns.
     // This is best for PSWF, within 0.1 digit.
@@ -129,6 +129,8 @@ void set_kernel_shape_given_ns(finufft_spread_opts &spopts, int debug) {
         return "PSWF (beta shift)";
       case 9:
         return "PSWF (beta Marco)";
+      case 10:
+        return "PSWF (beta shift, nf/N)";
       default:
         return "unknown";
       }

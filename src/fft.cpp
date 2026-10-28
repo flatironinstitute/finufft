@@ -226,7 +226,8 @@ public:
 #include <cstddef>           // size_t
 #include <finufft/plan.hpp>  // FINUFFT_PLAN_T (includes FFT forward decl)
 #include <finufft/utils.hpp> // CNTime
-#include <finufft_errors.h>  // FINUFFT_ERR_MAXNALLOC
+#include <finufft_common/kernel.h> // set_kernel_shape_given_ns
+#include <finufft_errors.h>        // FINUFFT_ERR_MAXNALLOC
 #include <limits>            // std::numeric_limits
 
 // --- Finufft_FFT_plan_deleter (defined here where Finufft_FFT_plan is complete) ---
@@ -429,6 +430,24 @@ template<typename TF> void FINUFFT_PLAN_T<TF>::init_grid_kerFT_FFT() {
              __func__, dim, type, (long long)mstu[0], (long long)mstu[1],
              (long long)mstu[2], (long long)m.nfdim[0], (long long)m.nfdim[1],
              (long long)m.nfdim[2], ntrans, opts.nthreads, batchSize);
+    }
+
+    // kf 10: beta from the effective upsampling nf/N, known only now. The offset 0.05
+    // was chosen over 0.03..0.11 with the Horner trim on (1D type 1, double). ns and
+    // check_sigma keep the requested upsampfac.
+    if (m.spopts.kerformula == 10) {
+      // sigma_eff = min over dims of nf_d/N_d
+      double sigma_eff = std::numeric_limits<double>::infinity();
+      for (int idim = 0; idim < dim; ++idim)
+        sigma_eff = std::min(sigma_eff, double(m.nfdim[idim]) / double(mstu[idim]));
+      finufft_spread_opts sp = m.spopts; // copy: check_sigma still reads upsampfac
+      sp.upsampfac           = sigma_eff;
+      finufft::kernel::set_kernel_shape_given_ns(sp, 0);
+      m.spopts.beta = sp.beta;
+      precompute_horner_coeffs(); // Horner coeffs (and so phiHat) use the new beta
+      if (opts.debug)
+        printf("[%s] beta from nf/N: kerformula=%d sigma_eff=%.6g beta=%.6g\n", __func__,
+               m.spopts.kerformula, sigma_eff, m.spopts.beta);
     }
 
     // STEP 0: get Fourier coeffs of spreading kernel along each fine grid dim

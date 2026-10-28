@@ -116,8 +116,10 @@ void set_kernel_shape_given_ns(finufft_spread_opts &opts, int debug);
 // kernel support, |xi| <= 1/grid_scale = 2.beta/nspread; type-3 deconv evaluates at
 // |xi| <= pi/upsampfac (= h.gam.S, setpts), and over every reachable (tol, dim,
 // precision, upsampfac >= 1.1) the margin 2.beta/nspread - pi/upsampfac is >= 0.47
-// for kerformula 7-9. Returns (grid_scale, prefac). Used by the type-3 per-target
-// evaluator (Kernel_onedim_FT); type-1/2 fseries keeps quadrature. GPU-reusable.
+// for kerformula 7-10 (the type-3 outer plan, which uses this, takes the
+// kerformula 8 beta for 10). Returns (grid_scale, prefac). Used by the type-3
+// per-target evaluator (Kernel_onedim_FT); type-1/2 fseries keeps quadrature.
+// GPU-reusable.
 // Barbone 7/23/26.
 template<class TF>
 inline std::tuple<double, double> pswf_selfft_params(
