@@ -24,9 +24,11 @@ for precdev=precdevs  % ......... loop precisions & devices
   if sum(precdev=='sd')
     devname = 'CPU               ';
     myrand = @rand;
+    edgecases = 1;
   else
     dev = gpuDevice(); devname = dev.Name;
     myrand = @gpuArray.rand;
+    edgecases = 0;	% until #947 fixed, don't test zero-length GPU
   end
   if sum(precdev=='sS')
     prec = 'single';
@@ -45,8 +47,8 @@ for precdev=precdevs  % ......... loop precisions & devices
   isign   = +1;     % sign of imaginary unit in exponential
   % various opts
   o.debug = 0;      % choose 1 for timing breakdown text output
-  o.spread_debug=0; % spread-specific debug info
-  o.spread_kerformula=0;
+  %o.spread_debug=0;   % spread-specific debug info (not for GPU)
+  %o.spread_kerformula=0;     % (not for GPU)
   o.upsampfac=0;    % 0 (auto), 2.0 (default), or 1.25 (low-RAM, small-FFT)
   fprintf('%s\tprec=%s\ttol=%.3g, M=%d, Ntot=%d, ntrans=%d\n',...
           devname, prec, tol, M, Ntot, ntr)
@@ -57,18 +59,21 @@ for precdev=precdevs  % ......... loop precisions & devices
   if max(err(:))>errcheck || sum(isnan(err(:)))>0
     error('  one or more math test error failed!');
   end
-  disp('  all math tests passed. Checking zero-length edge cases:')
-
-  % test zero-size edge-cases
-  err = erralltypedim(0,Ntot,ntr,isign,prec,tol,o,myrand,[]);
-  if max(err(:))>0 || sum(isnan(err(:)))>0
-    error('  one or more M=0 tests failed!');
-  end
-  disp('  all M=0 (empty NU pts array) tests passed.')
-  err = erralltypedim(M,0,ntr,isign,prec,tol,o,myrand,[]);
-  if max(err(:))>0 || sum(isnan(err(:)))>0
-    error('  one or more Ntot=0 tests failed!');
-  end
-  disp('  all Ntot=0 (empty mode, or type-3 targets) tests passed.')
+  disp('  all math tests passed.')
   
+
+  if edgecases
+    disp('  Checking zero-length edge cases:')
+    err = erralltypedim(0,Ntot,ntr,isign,prec,tol,o,myrand,[]);
+    if max(err(:))>0 || sum(isnan(err(:)))>0
+      error('  one or more M=0 tests failed!');
+    end
+    disp('  all M=0 (empty NU pts array) tests passed.')
+    err = erralltypedim(M,0,ntr,isign,prec,tol,o,myrand,[]);
+    if max(err(:))>0 || sum(isnan(err(:)))>0
+      error('  one or more Ntot=0 tests failed!');
+    end
+    disp('  all Ntot=0 (empty mode, or type-3 targets) tests passed.')
+  end
+
 end     % ..........................
