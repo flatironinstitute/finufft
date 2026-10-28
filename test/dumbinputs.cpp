@@ -213,6 +213,25 @@ int main() {
     printf("1d3 XK prod too big:\twrong error code %d\n", ier);
     return 1;
   }
+  // type 3 with zero input points
+  ier = FINUFFT1D3(0, x, c, +1, acc, N, s, F, &opts);
+  if (ier != 0) { // this call should have succeeded
+    printf("1d3 with zero input points failed unexpectedly\n");
+    return 1;
+  }
+  // check that the output values are all zero
+  for (int i = 0; i < N; ++i) {
+    if (std::abs(F[i]) > 0) {
+      printf("nonzero output value detected\n");
+      return 1;
+    }
+  }
+  // type 3 with zero output points
+  ier = FINUFFT1D3(M, x, c, +1, acc, 0, s, F, &opts);
+  if (ier != 0) { // this call should have succeeded
+    printf("1d3 with zero input points failed unexpectedly\n");
+    return 1;
+  }
   // spreadinterponly is defined for types 1,2 only; type 3 must ignore it
   opts.spreadinterponly = 1;
   ier                   = FINUFFT1D3(M, x, c, +1, acc, N, s, F, &opts);

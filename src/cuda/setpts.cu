@@ -126,14 +126,23 @@ void cufinufft_plan_t<T>::setpts(int nj, const T *d_kx, const T *d_ky, const T *
   // dimension, so nf123 must stay wide until the MAX_NF check below.
   cuda::std::array<std::int64_t, 3> nf123_wide{1, 1, 1};
   for (int idim = 0; idim < dim; ++idim) {
-    const auto [xx, cc]           = arraywidcen<T>(M, d_kxyz[idim], stream);
-    type3_params.X[idim]          = xx;
-    type3_params.C[idim]          = cc;
-    const auto [SS, DD]           = arraywidcen<T>(N, d_stu[idim], stream);
-    const auto [nfnf, hh, gamgam] = set_nhg_type3(SS, xx);
+    // special treatment of M==0/N==0, because arraywidcen doesn't work in that case
+    if (M>0) {
+      const auto [xx, cc]           = arraywidcen<T>(M, d_kxyz[idim], stream);
+      type3_params.X[idim]          = xx;
+      type3_params.C[idim]          = cc;
+    } else {
+      type3_params.X[idim] = type3_params.C[idim] = 0;
+    }
+    if (N>0) {
+      const auto [SS, DD]           = arraywidcen<T>(N, d_stu[idim], stream);
+      type3_params.S[idim]          = SS;
+      type3_params.D[idim]          = DD;
+    } else {
+      type3_params.S[idim] = type3_params.D[idim] = 0;
+    }
+    const auto [nfnf, hh, gamgam] = set_nhg_type3(type3_params.S[idim], type3_params.X[idim]);
     nf123_wide[idim]              = nfnf;
-    type3_params.S[idim]          = SS;
-    type3_params.D[idim]          = DD;
     type3_params.h[idim]          = hh;
     type3_params.gam[idim]        = gamgam;
   }
