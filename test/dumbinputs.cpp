@@ -755,6 +755,18 @@ int main() {
   FINUFFT_DESTROY(plan);
   FINUFFT_MAKEPLAN(3, 1, Ns, +1, 1, acc, &plan, NULL); // type 3, now kill it
   FINUFFT_DESTROY(plan);
+  { // type 3 adjoint with nk=0: each output c_j is an empty sum, so must be 0
+    FLT xa[1] = {0.25}, sa[1] = {0.0};
+    CPX ca[1] = {CPX(7.0, 3.0)}, Fa[1] = {CPX(0.0, 0.0)};
+    FINUFFT_MAKEPLAN(3, 1, Ns, +1, 1, acc, &plan, &opts);
+    FINUFFT_SETPTS(plan, 1, xa, NULL, NULL, 0, sa, NULL, NULL);
+    ier = FINUFFT_EXECUTE_ADJOINT(plan, ca, Fa);
+    FINUFFT_DESTROY(plan);
+    if (ier || ca[0] != CPX(0.0, 0.0)) {
+      printf("1d3 adjoint nk=0:\tier=%d c=(%.3g,%.3g)\n", ier, real(ca[0]), imag(ca[0]));
+      return 1;
+    }
+  }
   // *** todo: more extensive bad inputs and error catching in guru...
 
 #ifdef SINGLE
