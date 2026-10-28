@@ -13,6 +13,7 @@ else
   n_transf = s(end);                      % outer dim of c (eg, 0-by-n_transf in 1D). This is a bit
                                           % silly, but is the correct size (eg for erralltypedim)
 end
-if n_transf*numel(x)~=numel(c)            % raises no error in the empty case
+if n_transf*numel(x)~=numel(c)            % raises no error in the both-empty case
+                                          % else x empty and c nonempty should error
   error('FINUFFT:badCsize','FINUFFT numel(c) must be divisible by numel(x)');
 end
