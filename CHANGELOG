@@ -4,6 +4,9 @@ Please wrap at 80 chars per line.
 
 v2.6.0-dev
 
+* MATLAB/Octave wrapper correctly handles empty mode or NU point arrays,
+  including testing in fullmathtest, and prevents segfaults via nk=0 calls
+  to type-3 (bugfix, Barnett #941, fixes #937).
 * The kernel Fourier series table (deconvolution factors) no longer depends on
   nthreads; at tol 1e-12 the error at 2 threads was 6.6x that at 1 thread.
   onedim_fseries_kernel now splits the outputs into fixed blocks of
