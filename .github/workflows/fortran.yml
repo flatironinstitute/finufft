@@ -23,7 +23,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ ubuntu-24.04, macos-14, windows-2022 ]
+        os: [ ubuntu-24.04, macos-15, macos-26, windows-2022 ]
 
     env:
       CTEST_OUTPUT_ON_FAILURE: "1"

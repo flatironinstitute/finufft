@@ -65,7 +65,8 @@ jobs:
         include:
           - { os: ubuntu-24.04, toolchain: gcc-15, sanitizer: ON }
           - { os: ubuntu-24.04, toolchain: gcc-15, sanitizer: TSAN }
-          - { os: macos-14, toolchain: llvm, sanitizer: ON }
+          - { os: macos-15, toolchain: llvm, sanitizer: ON }
+#         - { os: macos-26, toolchain: llvm, sanitizer: ON } every test hangs under ASan (clang 21.1.8, image 20261013)
 
     steps:
       - name: Show CPU info (Linux)

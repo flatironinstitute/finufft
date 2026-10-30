@@ -119,12 +119,12 @@ jobs:
           - { os: windows-2025, toolchain: msvc }
           - { os: windows-2025, toolchain: clang-20 }
 
-          - { os: macos-14, toolchain: llvm }
-          - { os: macos-14, toolchain: gcc-14 }
           - { os: macos-15, toolchain: llvm }
           - { os: macos-15, toolchain: gcc-15 }
           - { os: macos-15-intel, toolchain: llvm }
           - { os: macos-15-intel, toolchain: gcc-15 }
+          - { os: macos-26, toolchain: llvm }
+          - { os: macos-26, toolchain: gcc-15 }
 
     steps:
       - name: Show CPU info (Linux)

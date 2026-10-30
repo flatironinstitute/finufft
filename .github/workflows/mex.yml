@@ -26,8 +26,8 @@ jobs:
           - os: ubuntu-22.04
           - os: windows-2022
 #         - os: macos-13 this requires matlab openmp to work.
-          - os: macos-14
           - os: macos-15
+#         - os: macos-26 MATLAB (setup-matlab@v3) hangs at start (image 20261013)
     name: ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
 
