@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""LEGACY: validates the PR 845 lowest_sigma fit, replaced by eps_round/eps_alias.
+"""LEGACY: validates the PR 845 lowest_sigma fit, replaced by the error model in kernel.h.
 
 The estimator predicts the minimum upsampling factor (sigma) needed to achieve
 a requested tolerance.

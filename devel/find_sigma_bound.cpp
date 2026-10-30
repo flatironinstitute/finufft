@@ -1,4 +1,4 @@
-// LEGACY: data for the PR 845 lowest_sigma fit, replaced by eps_round/eps_alias.
+// LEGACY: data for the PR 845 lowest_sigma fit, replaced by the error model in kernel.h.
 // Empirical sigma_min data generator for the upsampfac warning estimator.
 // Outputs CSV: prec,type,dim,tol,sigma_empirical,sigma_analytical,b,delta,N
 // See devel/find_sigma_bound.py for model fitting and validation.

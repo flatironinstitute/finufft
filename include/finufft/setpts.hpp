@@ -16,31 +16,31 @@
 
 // ---------- local helpers for setpts: --------
 
-// Throws FINUFFT_ERR_EPS_TOO_SMALL if rounding_floor > tol or !upsampfac_feasible.
-// opts.allow_eps_too_small warns instead.
-template<typename TF> void FINUFFT_PLAN_T<TF>::check_sigma(double n_modes) {
-  using namespace finufft::common;
-  constexpr double eps_mach = std::numeric_limits<TF>::epsilon();
-  constexpr bool is_float   = std::is_same_v<TF, float>;
-  const double tol = m.tol, sigma = m.spopts.upsampfac;
-  const double maxN      = type == 3 ? 1.0 : n_modes; // type 3 takes a from sigma, not N
-  const double eps_round = rounding_floor(eps_mach, n_modes, dim);
-  const bool below_floor = eps_round > tol;
-  if (!below_floor && upsampfac_feasible(sigma, tol, dim, type, is_float, maxN)) return;
+// opts.allow_eps_too_small warns instead of throwing.
+template<typename TF> void FINUFFT_PLAN_T<TF>::check_sigma(double mode_diagonal) {
+  using namespace finufft::kernel;
+  const double tol = plan_tol(m.tol, type), sigma = m.spopts.upsampfac;
+  const double maxN =
+      type == 3 ? 1.0 : (double)*std::max_element(mstu.begin(), mstu.begin() + dim);
+  const double eps_round =
+      rounding_error(std::numeric_limits<TF>::epsilon(), mode_diagonal);
+  // The user's tol. Rounding is one source for the whole transform, so a nested inner
+  // plan checks it against the outer tol.
+  const double tol_user  = m.tol_whole > 0 ? m.tol_whole : (double)m.tol;
+  const bool below_floor = eps_round > tol_user;
+  if (!below_floor &&
+      upsampfac_feasible(sigma, tol, dim, type, std::is_same_v<TF, float>, maxN))
+    return;
   const bool do_throw = !opts.allow_eps_too_small; // opt-in wins
   // an error always speaks; the warning obeys opts.showwarn, as every other warning does
   if (!do_throw && !opts.showwarn) return;
   const char *level = do_throw ? "error" : "warning";
-  const double sigma_min = analytic_upsampfac(tol, dim, type, is_float, maxN);
   if (below_floor)
     fprintf(stderr, "%s %s: tol=%.3g is below the rounding floor %.2g\n", __func__, level,
-            tol, eps_round);
-  else if (!upsampfac_feasible(sigma_min, tol, dim, type, is_float, maxN))
-    fprintf(stderr, "%s %s: no upsampfac<=%.3g meets tol=%.3g\n", __func__, level,
-            MAX_AUTO_UPSAMPFAC, tol);
-  else // ceil(100 sigma_min)/100 >= sigma_min; %.2f alone can round below it
-    fprintf(stderr, "%s %s: upsampfac=%.3g cannot meet tol=%.3g; upsampfac=%.2f can\n",
-            __func__, level, sigma, tol, std::ceil(100 * sigma_min) / 100);
+            tol_user, eps_round);
+  else
+    fprintf(stderr, "%s %s: upsampfac=%.3g cannot meet tol=%.3g\n", __func__, level,
+            sigma, tol_user);
   if (do_throw) throw finufft::exception(FINUFFT_ERR_EPS_TOO_SMALL);
 }
 
@@ -62,8 +62,9 @@ double FINUFFT_PLAN_T<TF>::best_upsampfac_type3(const TF *X, const TF *S,
     Xh[idim] = (double)X[idim];
     Sh[idim] = (double)S[idim];
   }
-  return finufft::heuristics::best_type3<TF>(
-      (double)m.tol, dim, opts.nthreads, (double)m.nj, Xh.data(), Sh.data(), (double)nk);
+  return finufft::heuristics::best_type3<TF>(finufft::kernel::plan_tol(m.tol, 3), dim,
+                                             opts.nthreads, (double)m.nj, Xh.data(),
+                                             Sh.data(), (double)nk);
 }
 
 // ---------- local math routines for type-3 setpts: --------
@@ -95,45 +96,41 @@ void FINUFFT_PLAN_T<TF>::set_nhg_type3(int idim, TF S, TF X)
 }
 
 // --------- setpts user guru interface driver ----------
-// How the plan picks sigma (upsampfac) and the kernel width ns:
+// How setpts picks sigma (upsampfac) and checks tol:
 // clang-format off
-//                      +-----------------------+
-//                      |   user sigma given?   |
-//                      |    (0.0 means auto)   |
-//                      +-----+-----------+-----+
-//                        yes |           | no
-//        +-------------------v+   +------v---------------------+
-//        | use the given      |   | AUTO PICK                  |
-//        | sigma              |   | 1. start at the floor 1.25 |
-//        +---------+----------+   | 2. drop any sigma with     |
-//                  |              |    eps_alias > tol or      |
-//                  |              |    eps_deconv > tol        |
-//                  |              +-----------+----------------+
-//                  +--------------------------+
-//                                             v
-//               +------------------------------------------+
-//               | ns ~ log(1/tol) / sqrt(1 - 1/sigma)      |
-//               +-------------------+----------------------+
-//                                   v
-//               +------------------------------------------+
-//               | float only: cap ns at float_max_ns_cc    |
-//               +-------------------+----------------------+
-//                                   v
-//               +------------------------------------------+
-//               | eps_round, eps_alias and eps_deconv      |
-//               | <= tol? (the last two at the capped ns)  |
-//               +------------------+-----------------------+
-//                              yes |             | no
-//                                  |     +-------v-------+
-//                                  |     | exit ier = 26 |
-//                                  |     +---------------+
-//               +------------------v-----------------------+
-//               | min flops (spread + FFT cost)            |
-//               +------------------+-----------------------+
-//                                  v
-//                      +-----------v--+
-//                      |  run plan    |
-//                      +--------------+
+//            +-------------------------+
+//            | user gave upsampfac?    |
+//            +---+-----------------+---+
+//            yes |                 | no (0.0)
+//   +------------v----+   +--------v----------------------+
+//   | keep it         |   | best_upsampfac(_type3),       |
+//   |                 |   | heuristics.hpp minimize:      |
+//   |                 |   | for each width ns,            |
+//   |                 |   |   sigma = max(sigma_for_ns,   |
+//   |                 |   |     MIN_AUTO_UPSAMPFAC,       |
+//   |                 |   |     sigma_for_deconv)         |
+//   |                 |   | skip ns if the plan uses      |
+//   |                 |   |   another width there or      |
+//   |                 |   |   upsampfac_feasible refuses  |
+//   |                 |   | keep min flops (spread + FFT) |
+//   |                 |   | none left: MAX_AUTO_UPSAMPFAC |
+//   +------------+----+   +--------+----------------------+
+//                +--------+--------+
+//                         v
+//   +---------------------+--------------------------+
+//   | setup_spreadinterp: ns from the width law,     |
+//   | then clamp_kernel_ns                           |
+//   +---------------------+--------------------------+
+//                         v
+//   +---------------------+--------------------------+
+//   | check_sigma: rounding_error and                |
+//   | upsampfac_feasible meet tol?                   |
+//   +-----------+------------------------+-----------+
+//           yes |                        | no
+//               v                        v
+//   +-----------+-----+       +----------+--------+
+//   | run plan        |       | exit ier = 26     |
+//   +-----------------+       +-------------------+
 // clang-format on
 
 template<typename TF>
@@ -175,8 +172,10 @@ int FINUFFT_PLAN_T<TF>::setpts(BIGINT nj, const TF *xj, const TF *yj, const TF *
       }
     }
 
-    // N = max_i mstu[i]; throws if eps_round, eps_alias or eps_deconv > tol
-    check_sigma((double)*std::max_element(mstu.begin(), mstu.begin() + dim));
+    // mode_diagonal of rounding_error: the length of the diagonal of the box of modes.
+    double sum_sq = 0.0;
+    for (int idim = 0; idim < dim; ++idim) sum_sq += std::pow((double)mstu[idim], 2);
+    check_sigma(std::sqrt(sum_sq));
 
     m.XYZ   = {xj, yj, zj}; // plan must keep pointers to user's fixed NU pts
     // Invariant: m.padded_ns must equal the runtime mirror of
@@ -252,19 +251,17 @@ int FINUFFT_PLAN_T<TF>::setpts(BIGINT nj, const TF *xj, const TF *yj, const TF *
               __func__);
       throw finufft::exception(FINUFFT_ERR_MAXNALLOC);
     }
-    // N = max_i nfdim[i] max|x_i| max|s_i| / (X_i S_i), max|x_i| = |C_i| + X_i,
-    // max|s_i| = |D_i| + S_i. The inner type 2 has nfdim[i] modes, and the pre- and
-    // post-phases use the raw x, s: N ~ (2 sigma/pi) max|x_i| max|s_i|
-    // (docs/trouble.rst).
-    double n_modes = 0.0;
+    // mode_diagonal of rounding_error: the diagonal of the outer fine grid, times the
+    // off-centre factor of x and s, which enlarges the phases (docs/trouble.rst).
+    double sum_sq = 0.0;
     for (int idim = 0; idim < dim; ++idim) {
       const double X = m.t3P.X[idim], S_i = S[idim], XS = X * S_i;
       const double off_centre =
           XS > 0 ? (std::abs(m.t3P.C[idim]) + X) * (std::abs(m.t3P.D[idim]) + S_i) / XS
                  : 1.0;
-      n_modes = std::max(n_modes, (double)m.nfdim[idim] * off_centre);
+      sum_sq += std::pow((double)m.nfdim[idim] * off_centre, 2);
     }
-    check_sigma(n_modes); // throws if eps_round, eps_alias or eps_deconv > tol
+    check_sigma(std::sqrt(sum_sq));
 
     // alloc rescaled NU src pts x'_j (in X etc), rescaled NU targ pts s'_k ...
     // We do this by resizing Xp, Yp, and Zp, and pointing X, Y, Z to their data;
@@ -351,8 +348,10 @@ int FINUFFT_PLAN_T<TF>::setpts(BIGINT nj, const TF *xj, const TF *yj, const TF *
     // (...could vary other t2opts here?)
     // MR: temporary hack, until we have figured out the C++ interface.
     FINUFFT_PLAN_T<TF> *tmpplan;
-    finufft_makeplan_t<TF>(2, d, t2nmodes, fftSign, batchSize, m.tol, &tmpplan,
+    finufft_makeplan_t<TF>(2, d, t2nmodes, fftSign, batchSize,
+                           (TF)finufft::kernel::plan_tol(m.tol, type), &tmpplan,
                            &t2opts); // throws on error
+    tmpplan->m.tol_whole = (double)m.tol;
     // Use a non-const unique_ptr to ensure cleanup if setpts throws, then
     // transfer to the const unique_ptr member.
     std::unique_ptr<FINUFFT_PLAN_T<TF>> guard(tmpplan);

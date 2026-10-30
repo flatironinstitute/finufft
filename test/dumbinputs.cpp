@@ -41,6 +41,10 @@
 
 using namespace std;
 
+// Weyl sequence for the nested-plan cell in main. A function, not a lambda: workaround
+// for MSVC 2022 (19.44), which fails with C1001 on the lambda.
+static double weyl(double a, int j) { return std::fmod(a * (j + 1), 1.0); }
+
 int main() {
   int M = 100;    // number of nonuniform points
   int N = 10;     // # modes, keep small, also output NU pts in type 3
@@ -223,66 +227,80 @@ int main() {
     printf("1d3 spreadinterponly:\tier=%d relerr=%.3g\n", ier, err);
     return 1;
   }
-  { // FINUFFT_ERR_EPS_TOO_SMALL iff eps_round, eps_alias or eps_deconv > tol
+  { // FINUFFT_ERR_EPS_TOO_SMALL iff one term of the error model (kernel.h) > tol
     const FLT tol_floor   = 1000 * std::numeric_limits<FLT>::epsilon();
-    const int64_t N_floor = 10000; // eps_round = 0.35 eps_mach N_floor = 3500 eps_mach
+    const int64_t N_floor = 10000; // rounding_error = 3500 eps_mach
     std::vector<CPX> F_floor(N_floor);
-    std::vector<FLT> x_off(M); // (|C|+X)/X = (1e4+pi)/pi = 3.2e3
+    std::vector<FLT> x_off(M);     // off-centre factor 3.2e3
     for (int j = 0; j < M; ++j) x_off[j] = x[j] + 10000;
     const double upsampfac = opts.upsampfac;
     opts.upsampfac         = 2.0;
     ier = FINUFFT1D1(M, x, c, +1, tol_floor, N_floor, F_floor.data(), &opts);
     if (ier != FINUFFT_ERR_EPS_TOO_SMALL) {
-      printf("1d1 eps_round > tol:\twrong err code %d\n", ier);
+      printf("1d1 rounding_error > tol:\twrong err code %d\n", ier);
       return 1;
     }
     ier = FINUFFT1D1(M, x, c, +1, 7 * tol_floor, N_floor, F_floor.data(), &opts);
     if (ier) {
-      printf("1d1 eps_round < tol:\twrong err code %d\n", ier);
+      printf("1d1 rounding_error < tol:\twrong err code %d\n", ier);
+      return 1;
+    }
+    // N = (N_floor, 2): the short dim adds almost nothing to the rounding floor
+    std::vector<CPX> F_floor2(2 * N_floor);
+    ier = FINUFFT2D1(M, x, x, c, +1, 4.2 * tol_floor, N_floor, 2, F_floor2.data(), &opts);
+    if (ier) {
+      printf("2d1 elongated rounding_error < tol:\twrong err code %d\n", ier);
       return 1;
     }
     ier = FINUFFT1D3(M, x_off.data(), c, +1, tol_floor, N, s, F, &opts);
     if (ier != FINUFFT_ERR_EPS_TOO_SMALL) {
-      printf("1d3 off-centre eps_round > tol:\twrong err code %d\n", ier);
+      printf("1d3 off-centre rounding_error > tol:\twrong err code %d\n", ier);
       return 1;
     }
     ier = FINUFFT1D3(M, x, c, +1, tol_floor, N, s, F, &opts);
     if (ier) {
-      printf("1d3 centred eps_round < tol:\twrong err code %d\n", ier);
+      printf("1d3 centred rounding_error < tol:\twrong err code %d\n", ier);
       return 1;
     }
     ier = FINUFFT3D1(M, x, x, x, c, +1, 1.511e-3, 8, 8, 8, F, &opts);
     if (ier) {
-      printf("3d1 sigma 2 eps_alias < tol:\twrong err code %d\n", ier);
+      printf("3d1 sigma 2 aliasing < tol:\twrong err code %d\n", ier);
       return 1;
     }
-    // sigma 1.25, N = 8, nf = 10: edge_factor 1.6, eps_alias = 2.0e-3 > tol
+    // sigma 1.25, N = 8, nf = 10: E 1.6, aliasing needs a wider ns
     opts.upsampfac = 1.25;
     ier            = FINUFFT3D1(M, x, x, x, c, +1, 1.511e-3, 8, 8, 8, F, &opts);
     if (ier != FINUFFT_ERR_EPS_TOO_SMALL) {
-      printf("3d1 sigma 1.25 eps_alias > tol:\twrong err code %d\n", ier);
+      printf("3d1 sigma 1.25 aliasing > tol:\twrong err code %d\n", ier);
       return 1;
     }
-    // ns clamps (float 9 -> 8, double 17 -> 16), eps_alias(ns) < tol
+    // ns clamps (float 9 -> 8, double 17 -> 16), aliasing meets tol at the clamped ns
     ier = FINUFFT3D1(M, x, x, x, c, +1, std::is_same_v<FLT, float> ? 1e-5 : 1.249e-10, 8,
                      8, 8, F, &opts);
     if (ier) {
-      printf("3d1 clamped eps_alias < tol:\twrong err code %d\n", ier);
+      printf("3d1 clamped aliasing < tol:\twrong err code %d\n", ier);
       return 1;
     }
-    // float, sigma 1.25, N = 50, ns 9, nf 64: eps_alias = 0.90 tol, eps_deconv = 2.8 tol.
+    // float, sigma 1.25, N = 50, ns 9, nf 64: aliasing meets tol, deconv_error = 2.8 tol.
     // With allow_eps_too_small the measured error is 1.28 tol.
-    // Double has no such cell: at sigma 1.25 eps_alias > tol first.
+    // Double has no such cell: at sigma 1.25 aliasing fails first.
     if constexpr (std::is_same_v<FLT, float>) {
       ier = FINUFFT1D1(M, x, c, +1, 2.5e-6, 50, F_floor.data(), &opts);
       if (ier != FINUFFT_ERR_EPS_TOO_SMALL) {
-        printf("1d1 sigma 1.25 eps_deconv > tol:\twrong err code %d\n", ier);
+        printf("1d1 sigma 1.25 deconv_error > tol:\twrong err code %d\n", ier);
         return 1;
       }
       opts.upsampfac = 2.0;
       ier            = FINUFFT1D1(M, x, c, +1, 2.5e-6, 50, F_floor.data(), &opts);
       if (ier) {
-        printf("1d1 sigma 2 eps_deconv < tol:\twrong err code %d\n", ier);
+        printf("1d1 sigma 2 deconv_error < tol:\twrong err code %d\n", ier);
+        return 1;
+      }
+      // 3D, N = 8, sigma 2, ns 7: refused only because deconv_error carries the factor
+      // dim; without it this cell would plan.
+      ier = FINUFFT3D1(M, x, x, x, c, +1, 7.5e-7, 8, 8, 8, F, &opts);
+      if (ier != FINUFFT_ERR_EPS_TOO_SMALL) {
+        printf("3d1 sigma 2 dim deconv_error > tol:\twrong err code %d\n", ier);
         return 1;
       }
     }
@@ -466,6 +484,31 @@ int main() {
   if (ier) {
     printf("2d3 M=nk=1:\tier=%d\n", ier);
     return ier;
+  }
+  { // The rounding floor compares against the whole tol, so a nested inner plan that
+    // meets tol but not its own plan_tol still plans. Float type-3 2D, X=pi, S=4, Weyl
+    // points; the inner floor alone refuses tol in about [1.44e-6, 1.96e-6].
+    const int Mb = 500, Kb = 64;
+    std::vector<FLT> xb(Mb), yb(Mb), sb(Kb), tb(Kb);
+    std::vector<CPX> cb(Mb), Fb(Kb);
+    for (int j = 0; j < Mb; ++j) {
+      xb[j] = (FLT)(PI * (2 * weyl(0.6180339887498949, j) - 1));
+      yb[j] = (FLT)(PI * (2 * weyl(0.7548776662466927, j) - 1));
+      cb[j] = sin((FLT)1.3 * j) + IMA * cos((FLT)0.9 * j);
+    }
+    for (int k = 0; k < Kb; ++k) {
+      sb[k] = (FLT)(4 * (2 * weyl(0.7548776662466927, k + 7919) - 1));
+      tb[k] = (FLT)(4 * (2 * weyl(0.5698402909980532, k + 7919) - 1));
+    }
+    finufft_opts ob;
+    FINUFFT_DEFAULT_OPTS(&ob);
+    ob.nthreads = 1;
+    ier = FINUFFT2D3(Mb, xb.data(), yb.data(), cb.data(), +1, (FLT)1.68e-6, Kb, sb.data(),
+                     tb.data(), Fb.data(), &ob);
+    if (ier) {
+      printf("2d3 whole-tol floor:\tier=%d\n", ier);
+      return ier;
+    }
   }
   for (int k = 0; k < N; ++k) shuge[k] = sqrt(huge) * s[k]; // less huge coords
   ier = FINUFFT2D3(M, x, x, c, +1, acc, N, shuge, shuge, F, &opts);

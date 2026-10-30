@@ -34,7 +34,7 @@ inline constexpr double MAX_AUTO_UPSAMPFAC       = 2.5;
 inline constexpr double MIN_USEFUL_UPSAMPFAC     = 1.15;
 inline constexpr double MAX_USEFUL_UPSAMPFAC     = 3.0;
 
-// eps_round = ROUND_FAC eps_mach N sqrt(dim) (rounding_floor, kernel.h).
+// Fitted prefactor of rounding_error (kernel.h).
 inline constexpr double ROUND_FAC                = 0.35;
 
 } // namespace common

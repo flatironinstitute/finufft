@@ -25,6 +25,7 @@
 
 using namespace finufft::common;
 using namespace finufft::heuristics;
+using namespace finufft::kernel;
 
 int main() {
 #ifdef SINGLE
@@ -109,115 +110,133 @@ int main() {
     const double eps_f = std::numeric_limits<float>::epsilon();
     const int ns_f      = MAX_NSPREAD<float>;
 
-    // (A) ns is non-increasing as sigma rises (the minimizer enumerates one candidate
+    // ns is non-increasing as sigma rises (the minimizer enumerates one candidate
     // per achievable width). Double holds over the whole auto range. Float holds only
     // where the cancellation guard in clamp_kernel_ns (kernel.h) does not cap ns: the
     // cap rises with sigma, so a capped ns can step up.
     const double tols[] = {1e-3, 1e-6, 1e-10, 1e-13};
     for (int dim = 1; dim <= 3; ++dim)
-      for (int type = 1; type <= 3; ++type)
-        for (double tol : tols) {
-          int prev_d = 1 << 30, prev_f = 1 << 30;
-          for (double s = MIN_AUTO_UPSAMPFAC; s <= MAX_AUTO_UPSAMPFAC + 1e-9; s += 0.05) {
-            const int nd = kernel_width_at<double>(tol, dim, type, s);
-            if (nd > prev_d) {
-              printf("fail: ns(double) rose: dim=%d type=%d tol=%.0e sigma=%.2f\n", dim,
-                     type, tol, s);
-              return 1;
-            }
-            prev_d       = nd;
-            const int nf = kernel_width_at<float>(tol, dim, type, s);
-            // skip float sigmas where the cancellation guard caps ns (low-sigma prefix)
-            if (nf <
-                std::min(finufft::kernel::theoretical_kernel_ns(tol, dim, type, s), ns_f))
-              continue;
-            if (nf > prev_f) {
-              printf("fail: ns(float) rose: dim=%d type=%d tol=%.0e sigma=%.2f\n", dim,
-                     type, tol, s);
-              return 1;
-            }
-            prev_f = nf;
+      for (double tol : tols) {
+        int prev_d = 1 << 30, prev_f = 1 << 30;
+        for (int i = 0; i <= 25; ++i) { // step 0.05; an index, as a running sum drifts
+          const double s =
+              MIN_AUTO_UPSAMPFAC + (MAX_AUTO_UPSAMPFAC - MIN_AUTO_UPSAMPFAC) * i / 25;
+          const int nd = kernel_width_at<double>(tol, dim, s);
+          if (nd > prev_d) {
+            printf("fail: ns(double) rose: dim=%d tol=%.0e sigma=%.2f\n", dim, tol, s);
+            return 1;
           }
+          prev_d       = nd;
+          const int nf = kernel_width_at<float>(tol, dim, s);
+          // skip float sigmas where the cancellation guard caps ns (low-sigma prefix)
+          if (nf < std::min(ns_for_sigma(tol, dim, s), ns_f)) continue;
+          if (nf > prev_f) {
+            printf("fail: ns(float) rose: dim=%d tol=%.0e sigma=%.2f\n", dim, tol, s);
+            return 1;
+          }
+          prev_f = nf;
         }
+      }
 
-    // (B) The narrow-kernel lever is real: at tight tol, ns strictly drops from
-    // sigma 2.0 to 2.5 (double, dim 3), so higher sigma can pay off.
-    if (!(kernel_width_at<double>(1e-13, 3, 1, 2.5) <
-          kernel_width_at<double>(1e-13, 3, 1, 2.0))) {
-      printf("fail: expected ns(2.5) < ns(2.0) at tol=1e-13 dim=3\n");
-      return 1;
-    }
-
-    // (C) For eps_round <= tol <= 1e3 eps_round, analytic_upsampfac returns a feasible
-    // sigma in [MIN_AUTO_UPSAMPFAC, MAX_AUTO_UPSAMPFAC] for every dim/type, both
-    // precisions, short and long grids. A fixed sigma = 2.5 is not enough here: E makes
-    // it infeasible on short grids ((F) below).
-    for (int dim = 1; dim <= 3; ++dim)
-      for (int type = 1; type <= 3; ++type)
-        for (double maxN : {16.0, 256.0, 1e5})
-          for (int is_float = 0; is_float <= 1; ++is_float)
-            for (int k = 0; k < 40; ++k) {
-              const double eps_round =
-                  rounding_floor(is_float ? eps_f : eps_d, maxN, dim);
-              const double tol = eps_round * std::pow(1e3, k / 39.0);
-              const double s   = analytic_upsampfac(tol, dim, type, is_float, maxN);
-              if (s < MIN_AUTO_UPSAMPFAC || s > MAX_AUTO_UPSAMPFAC ||
-                  !upsampfac_feasible(s, tol, dim, type, is_float, maxN)) {
-                printf("fail: analytic sigma %.3f infeasible: dim=%d type=%d N=%g %s "
-                       "tol=%.3g\n",
-                       s, dim, type, maxN, is_float ? "float" : "double", tol);
+    // The inverses (kernel.h) round-trip with their forward functions: each returns the
+    // smallest 3-digit sigma above 1 that meets its target, or infinity if
+    // MAX_AUTO_UPSAMPFAC does not meet it.
+    {
+      const auto round_trips = [&](double s, const auto &ok) {
+        if (!std::isfinite(s)) return !ok(MAX_AUTO_UPSAMPFAC);
+        const double milli = std::round(1000 * s);
+        return milli / 1000 == s && ok(s) && (milli == 1001 || !ok((milli - 1) / 1000));
+      };
+      int checked = 0;
+      for (int dim = 1; dim <= 3; ++dim)
+        for (int ns = 2; ns <= 16; ++ns)
+          for (int k = 0; k <= 15; ++k) {
+            const double tol   = k == 0 ? 0.9 : std::pow(10.0, -k);
+            const auto gets_ns = [&](double s) {
+              return ns_for_sigma(tol, dim, s) <= ns;
+            };
+            if (!round_trips(sigma_for_ns(tol, dim, ns), gets_ns)) {
+              printf("fail: sigma_for_ns does not round-trip with ns_for_sigma: dim=%d "
+                     "ns=%d tol=%.0e\n",
+                     dim, ns, tol);
+              return 1;
+            }
+            ++checked;
+            for (double eps : {eps_d, eps_f}) {
+              const auto ok = [&](double s) {
+                return deconv_error(eps, dim, ns, s, alias_decay(s, 0.5 / s)) <= tol;
+              };
+              if (!round_trips(sigma_for_deconv(eps, dim, ns, tol), ok)) {
+                printf("fail: sigma_for_deconv does not round-trip with deconv_error: "
+                       "dim=%d ns=%d eps=%.1e tol=%.0e\n",
+                       dim, ns, eps, tol);
                 return 1;
               }
+              ++checked;
             }
-
-    // (G) minimize scores type 3 at each width edge smallest_sigma_for_ns(ns_t); every
-    // edge must be feasible. Control: without the 1e-12 step, some edges must fail.
-    {
-      int unstepped_fails = 0;
-      for (int dim = 1; dim <= 3; ++dim)
-        for (int k = 3; k <= 13; ++k)
-          for (int ns_t = 2; ns_t <= MAX_NSPREAD<double>; ++ns_t) {
-            const double tol = std::pow(10.0, -k);
-            const double s   = smallest_sigma_for_ns(tol, dim, 3, ns_t);
-            if (s < MIN_AUTO_UPSAMPFAC || s >= MAX_AUTO_UPSAMPFAC) continue;
-            if (!upsampfac_feasible(s, tol, dim, 3, false, 1.0)) {
-              printf("fail: type 3 sigma %.6f (ns %d) infeasible: dim=%d tol=%.3g\n", s,
-                     ns_t, dim, tol);
-              return 1;
-            }
-            unstepped_fails +=
-                !upsampfac_feasible(s / (1 + 1e-12), tol, dim, 3, false, 1.0);
           }
-      printf("(G) %d unstepped edge sigmas infeasible, all stepped ones feasible\n",
-             unstepped_fails);
-      if (unstepped_fails == 0) {
-        printf("fail: (G) control: no unstepped edge sigma is infeasible\n");
-        return 1;
-      }
-    }
-
-    // (F) eps_alias/tol = 42, 0.18, 1.05 at sigma = 1.25, 2.0, 2.5: want
-    // eps_alias(analytic_upsampfac) <= tol.
-    {
-      const double maxN   = 16;
-      const double tol    = 5.6234e-14;
-      const auto feasible = [&](double s) {
-        return upsampfac_feasible(s, tol, 2, 1, false, maxN);
+      // Controls, at an edge the loop proved: one 3-digit step below and above it, and
+      // one ulp above it.
+      const double s8 = sigma_for_ns(1e-6, 1, 8), m8 = std::round(1000 * s8);
+      const auto ok8 = [&](double x) {
+        return ns_for_sigma(1e-6, 1, x) <= 8;
       };
-      if (feasible(MIN_AUTO_UPSAMPFAC) || feasible(MAX_AUTO_UPSAMPFAC) ||
-          !feasible(2.0)) {
-        printf("fail: (F) cell no longer has an interior-only feasible sigma\n");
+      if (round_trips((m8 - 1) / 1000, ok8) || round_trips((m8 + 1) / 1000, ok8) ||
+          round_trips(std::nextafter(s8, 2.0), ok8)) {
+        printf("fail: round_trips accepts a sigma off the 3-digit edge\n");
         return 1;
       }
-      const double s = analytic_upsampfac(tol, 2, 1, false, maxN);
-      if (!feasible(s)) {
-        printf("fail: (F) analytic sigma %.3f not feasible\n", s);
-        return 1;
-      }
-      printf("(F) interior-only feasible cell: analytic sigma %.3f\n", s);
+      printf("sigma_for_ns and sigma_for_deconv round-trip with their forward functions "
+             "in %d cells; the three off-edge controls fail\n",
+             checked);
     }
 
-    // (E) Density drives the pick: a spread-dominated transform (many points, small
+    // Every auto pick other than the fallback MAX_AUTO_UPSAMPFAC is feasible, and the
+    // fallback is not: a feasible fallback is a width edge that minimize missed.
+    // Control: in the 2D N=16 tol 5.6234e-14 cell only an interior sigma is feasible,
+    // so a pick stuck at either end of the auto range fails.
+    {
+      int picks = 0, fallbacks = 0, bad = 0;
+      const auto check = [&](auto prec, int dim, int type, double N, double tol) {
+        using TF           = decltype(prec);
+        const double nm[3] = {N, N, N}, X[3] = {3, 3, 3}, S[3] = {N, N, N};
+        const double sigma = type == 3
+                                 ? best_type3<TF>(tol, dim, 1, 1e3, X, S, 1e3)
+                                 : best_type12<TF>(tol, dim, type, 1, nm, 1e3).sigma;
+        const bool ok      = upsampfac_feasible(
+            sigma, tol, dim, type, std::is_same_v<TF, float>, type == 3 ? 1.0 : N);
+        ++picks;
+        fallbacks += !ok && sigma == MAX_AUTO_UPSAMPFAC;
+        bad += ok == (sigma == MAX_AUTO_UPSAMPFAC);
+        return ok;
+      };
+      const auto feasible_16 = [&](double s) {
+        return upsampfac_feasible(s, 5.6234e-14, 2, 1, false, 16);
+      };
+      if (feasible_16(MIN_AUTO_UPSAMPFAC) || feasible_16(MAX_AUTO_UPSAMPFAC) ||
+          !check(0.0, 2, 1, 16, 5.6234e-14)) {
+        printf("fail: control cell: the pick is not the interior feasible sigma\n");
+        return 1;
+      }
+      for (int dim = 1; dim <= 3; ++dim)
+        for (int type = 1; type <= 3; ++type)
+          for (double N : {16.0, 256.0, 1e5})
+            for (int k = 2; k <= 14; ++k) {
+              check(0.0, dim, type, N, std::pow(10.0, -k));
+              check(0.0f, dim, type, N, std::pow(10.0, -k));
+            }
+      printf("%d auto picks: %d feasible, %d fallbacks at MAX_AUTO_UPSAMPFAC, %d "
+             "infeasible or feasible fallbacks; the interior-only control cell passes\n",
+             picks, picks - fallbacks - bad, fallbacks, bad);
+      if (bad > 0 || picks == fallbacks) {
+        printf(
+            "fail: an infeasible pick below MAX_AUTO_UPSAMPFAC, a feasible fallback, or "
+            "no feasible pick\n");
+        return 1;
+      }
+    }
+
+    // Density drives the pick: a spread-dominated transform (many points, small
     // grid) chooses a larger sigma than an FFT-dominated one (few points, large grid).
     {
       const int dim = 3, type = 1, nthr = 1;
@@ -228,7 +247,7 @@ int main() {
           best_type12<double>(tol, dim, type, nthr, dense_modes, /*npts=*/5e7).sigma;
       const double sigma_sparse =
           best_type12<double>(tol, dim, type, nthr, sparse_modes, /*npts=*/1e3).sigma;
-      if (!(sigma_dense > sigma_sparse) || !(sigma_dense > 2.0 - 1e-9)) {
+      if (!(sigma_dense > sigma_sparse) || !(sigma_dense > 2.0)) {
         printf("fail: dense sigma (%.3f) should exceed sparse (%.3f) and 2.0\n",
                sigma_dense, sigma_sparse);
         return 1;

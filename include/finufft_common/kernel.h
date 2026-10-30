@@ -5,6 +5,7 @@
 #include <cstddef>
 #include <cstdio>
 #include <functional>
+#include <limits>
 #include <type_traits>
 #include <vector>
 
@@ -71,10 +72,64 @@ template<class T, class F> std::vector<T> poly_fit(F &&f, int n) {
 // Defined in src/common/kernel.cpp.
 std::function<double(double)> kernel_definition_lambda(const finufft_spread_opts &spopts);
 
-// Tolerance prefactor in the kernel aliasing law tol = tolfac*exp(-(ns-1)*pi*u).
-double kernel_tolfac(int dim, int type);
+// Plan error model: one function per error source, each compared with tol, and next to
+// each its inverse in sigma. An inverse returns the smallest 3-digit sigma above the
+// edge of its target, or infinity above MAX_AUTO_UPSAMPFAC. Both must be changed at the
+// same time.
+// [FIN] is the 2019 SISC paper; docs/devnotes.rst lists the known gaps.
+// No CPU types, so cufinufft can use it once it uses the same kernel and width law.
 
-int theoretical_kernel_ns(double tol, int dim, int type, double sigma);
+// Rounding of the inputs, amplified by the mode index, [FIN] Remark 9. mode_diagonal
+// is the length of the diagonal of the box of modes.
+inline double rounding_error(double eps_mach, double mode_diagonal) {
+  return common::ROUND_FAC * eps_mach * mode_diagonal;
+}
+
+// Aliasing prefactor c_d of the width law.
+double kernel_tolfac(int dim);
+
+// Decay rate of the kernel tail past the top mode a, in cycles per fine-grid point.
+inline double alias_decay(double sigma, double a) {
+  const double cutoff = 1.0 - 0.5 / sigma; // [FIN] (4.5)
+  return std::sqrt(std::fma(cutoff, cutoff, -a * a));
+}
+
+// Aliasing, as the smallest width that meets tol, [FIN] (4.7). It is a width and not
+// an error, so the feasibility check and the width law agree at the edge of a width.
+// Zero or NaN decay gives the max int.
+inline int aliasing_ns(double tol, double tolfac, double decay) {
+  if (!(decay > 0.0)) return std::numeric_limits<int>::max();
+  const double w = std::ceil(std::log(tolfac / tol) / (common::PI * decay) + 1.0);
+  return (int)std::clamp(w, 1.0, (double)std::numeric_limits<int>::max());
+}
+
+// The width law: aliasing_ns on an infinite grid, before clamp_kernel_ns.
+int ns_for_sigma(double tol, int dim, double sigma);
+
+// Inverse of ns_for_sigma.
+double sigma_for_ns(double tol, int dim, int ns);
+
+// Rounding amplified by the deconvolution, [FIN] (3.21). The paper states it in 1D;
+// the factor dim is fitted.
+inline double deconv_error(double eps_mach, int dim, int ns, double sigma, double decay) {
+  return dim * eps_mach * std::exp(ns * common::PI * (1.0 - 0.5 / sigma - decay));
+}
+
+// Inverse of deconv_error at the type-3 top mode. Types 1/2 have a lower top mode, so
+// for them it is an upper bound.
+double sigma_for_deconv(double eps_mach, int dim, int ns, double tol);
+
+// Tolerance of one plan. Type 3 runs an outer and an inner plan whose independent
+// relative errors add as a root sum of squares, so the two plans split tol equally.
+inline double plan_tol(double tol, int type) {
+  return type == 3 ? tol / std::sqrt(2.0) : tol;
+}
+
+// Whether sigma is feasible: at the width the plan uses at sigma, the aliasing and
+// deconvolution terms meet tol. Rounding is checked by the caller, since sigma does not
+// move it. maxN is the largest mode count; type 3 ignores it.
+bool upsampfac_feasible(double sigma, double tol, int dim, int type, bool is_float,
+                        double maxN);
 
 // Widest float ns that does not lose accuracy to catastrophic cancellation at low
 // sigma: 8 plus a sigma- and dim-dependent step of 1/0.075 per unit over the knee.
@@ -100,6 +155,14 @@ inline int clamp_kernel_ns(int ns, double upsampfac, int dim, bool is_float) {
 }
 template<class TF> inline int clamp_kernel_ns(int ns, double upsampfac, int dim) {
   return clamp_kernel_ns(ns, upsampfac, dim, std::is_same_v<TF, float>);
+}
+
+// The width setup_spreadinterp uses at sigma.
+inline int kernel_width_at(double tol, int dim, double sigma, bool is_float) {
+  return clamp_kernel_ns(ns_for_sigma(tol, dim, sigma), sigma, dim, is_float);
+}
+template<class TF> inline int kernel_width_at(double tol, int dim, double sigma) {
+  return kernel_width_at(tol, dim, sigma, std::is_same_v<TF, float>);
 }
 
 void set_kernel_shape_given_ns(finufft_spread_opts &opts, int debug);
@@ -187,23 +250,5 @@ inline std::tuple<BIGINT, double, double> nhg_type3(double sigma, double X, doub
   if (nf < max_nf) nf = next235(nf, 2); // else too big; spread will error
   return {nf, 2.0 * PI / (double)nf, (double)nf / (2.0 * sigma * Ss)};
 }
-
-// Smallest sigma with theoretical_kernel_ns(tol,dim,type) <= ns_target, plus a
-// relative 1e-12 so that rounding keeps it there.
-double smallest_sigma_for_ns(double tol, int dim, int type, int ns_target);
-
-// eps_round = ROUND_FAC eps_mach N sqrt(dim), N = n_modes, ROUND_FAC fitted. Rounding
-// of x_j by eps_mach is amplified by |k| <= N/2 (docs/trouble.rst, [FIN] Remark 9);
-// sqrt(dim) adds the independent errors of dim coordinates.
-inline double rounding_floor(double eps_mach, double n_modes, int dim) {
-  return ROUND_FAC * eps_mach * n_modes * std::sqrt((double)dim);
-}
-
-// Returns eps_alias <= tol && eps_deconv <= tol at sigma; both in kernel.cpp.
-bool upsampfac_feasible(double sigma, double tol, int dim, int type, bool is_float,
-                        double maxN);
-
-// Returns min{sigma in [MIN_AUTO_UPSAMPFAC, MAX_AUTO_UPSAMPFAC] : feasible(sigma)}.
-double analytic_upsampfac(double tol, int dim, int type, bool is_float, double maxN);
 
 } // namespace finufft::common

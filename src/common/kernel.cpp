@@ -58,31 +58,58 @@ std::function<double(double)> kernel_definition_lambda(
   }
 }
 
-double kernel_tolfac(int dim, int type) {
-  // Tolerance prefactor in the kernel aliasing law tol = tolfac*exp(-(ns-1)*pi*u).
-  // PER_DIM^(dim-1) covers the measured error growth per dimension; TYPE3 covers the
-  // type-3 outer spread. The two are separate fits that share the value 1.4. The width
-  // law and its inverse both read it, so they cannot disagree.
-  constexpr double TOLFAC_1D = 0.18; // 1D type-1/2 base prefactor
-  constexpr double TOLFAC_PER_DIM = 1.4; // per-extra-dim worsening, ^(dim-1)
-  constexpr double TOLFAC_TYPE3 = 1.4; // type-3 outer-spread extra worsening
+double kernel_tolfac(int dim) {
+  constexpr double TOLFAC_1D      = 0.18; // 1D base prefactor
+  constexpr double TOLFAC_PER_DIM = 1.4;  // per-extra-dim worsening, ^(dim-1)
   constexpr auto ipow = [](double base, int n) {
     double r = 1.0;
     for (int i = 0; i < n; ++i) r *= base;
     return r;
   };
-  return TOLFAC_1D * ipow(TOLFAC_PER_DIM, dim - 1) * (type == 3 ? TOLFAC_TYPE3 : 1.0);
+  return TOLFAC_1D * ipow(TOLFAC_PER_DIM, dim - 1);
 }
 
-int theoretical_kernel_ns(double tol, int dim, int type, double sigma) {
-  // Spread width ns that meets tol at upsampfac sigma > 1 in exact arithmetic, by the
-  // aliasing law. One law for all PSWF kerformulas; no clip to the compiled range.
-  const double tolfac = kernel_tolfac(dim, type);
-  const double nsoff = 1.0; // width offset (helps balance err over sigma range)
-  int ns = (int)std::ceil(
-      std::log(tolfac / tol) / (finufft::common::PI * std::sqrt(1.0 - 1.0 / sigma)) +
-      nsoff);
-  return ns;
+int ns_for_sigma(double tol, int dim, double sigma) {
+  return aliasing_ns(tol, kernel_tolfac(dim), alias_decay(sigma, 0.5 / sigma));
+}
+
+// Sigma needs 3 digits. sigma_edge returns the smallest 3-digit sigma above 1/t, or
+// infinity above MAX_AUTO_UPSAMPFAC. Each inverse solves for t = 1/sigma: no pole.
+static double sigma_edge(double t) {
+  if (t * common::MAX_AUTO_UPSAMPFAC < 1.0)
+    return std::numeric_limits<double>::infinity();
+  return (std::floor(1000.0 / t) + 1.0) / 1000.0;
+}
+
+double sigma_for_ns(double tol, int dim, int ns) {
+  // u: the alias_decay that the width ns needs at tol.
+  const double u =
+      std::max(0.0, std::log(kernel_tolfac(dim) / tol) / ((ns - 1) * common::PI));
+  return sigma_edge(1.0 - u * u);
+}
+
+double sigma_for_deconv(double eps_mach, int dim, int ns, double tol) {
+  // r: the largest cutoff - alias_decay that meets tol, at most its value 1/2 at sigma 1.
+  const double r = std::min(0.5, std::log(tol / (dim * eps_mach)) / (ns * common::PI));
+  // t solves cutoff - alias_decay = r.
+  return sigma_edge(r < 0.0 ? 0.0 : 2.0 * (std::sqrt(2.0 * r) - r));
+}
+
+bool upsampfac_feasible(double sigma, double tol, int dim, int type, bool is_float,
+                        double maxN) {
+  const int ns          = kernel_width_at(tol, dim, sigma, is_float);
+  const double nf       = (double)common::fine_grid_len(sigma, maxN, ns);
+  // Type 3 has no N: its top mode is fixed by sigma (nhg_type3).
+  const double a        = type == 3 ? 0.5 / sigma : 0.5 * maxN / nf;
+  const double decay    = alias_decay(sigma, a);
+  // E: on a short grid the modes near a are discrete, and kernel_tolfac fits the
+  // integral over them.
+  const double x        = type == 3 ? 0.0 : 2 * (ns - 1) * common::PI * a / (decay * nf);
+  const double E        = x > 0 ? std::sqrt(x / -std::expm1(-x)) : 1.0;
+  const double eps_mach = is_float ? std::numeric_limits<float>::epsilon()
+                                   : std::numeric_limits<double>::epsilon();
+  return ns >= aliasing_ns(tol, kernel_tolfac(dim) * E, decay) &&
+         deconv_error(eps_mach, dim, ns, sigma, decay) <= tol;
 }
 
 void set_kernel_shape_given_ns(finufft_spread_opts &spopts, int debug) {
@@ -138,78 +165,3 @@ void set_kernel_shape_given_ns(finufft_spread_opts &spopts, int debug) {
 }
 
 } // namespace finufft::kernel
-
-namespace finufft::common {
-
-double smallest_sigma_for_ns(double tol, int dim, int type, int ns_target) {
-  // Inverse of theoretical_kernel_ns: ns = ceil(log(tolfac/tol)/(pi*sqrt(1-1/sigma))
-  // + 1) equals ns_target first where sqrt(1-1/sigma) = log(tolfac/tol)/(pi*(ns-1)).
-  // Result <= MAX_AUTO_UPSAMPFAC, edge_rel_step above that edge: at the edge itself,
-  // rounding can give ns_target+1 or eps_alias one ulp above tol.
-  constexpr double edge_rel_step = 1e-12;
-  const double tolfac = kernel::kernel_tolfac(dim, type);
-  if (tol <= 0) return MAX_AUTO_UPSAMPFAC;
-  if (tol >= tolfac) return 1.0 + 0.01; // any sigma > 1 meets this tol
-  const double u = std::log(tolfac / tol) / ((ns_target - 1.0) * PI);
-  if (u >= 1.0) return MAX_AUTO_UPSAMPFAC;
-  return std::min((1.0 + edge_rel_step) / (1.0 - u * u), MAX_AUTO_UPSAMPFAC);
-}
-
-bool upsampfac_feasible(double sigma, double tol, int dim, int type, bool is_float,
-                        double maxN) {
-  // Returns eps_alias <= tol && eps_deconv <= tol. [FIN] notation, w = ns, n = nf,
-  // N = maxN, frequencies in cycles per fine-grid point:
-  //   b = 1 - 1/(2 sigma)   kernel cutoff, (4.5)
-  //   a = N/(2n)            top mode; type 3: a = 1/(2 sigma) (nhg_type3)
-  //   q = sqrt(b^2 - a^2)
-  // eps_alias  = c_d E exp(-pi (w-1) q): (4.7), with the w-1 of the width law (1.7).
-  //   c_d = kernel_tolfac (fitted). E = sqrt(x/(1 - e^-x)), x = 2 pi (w-1) a/(n q),
-  //   turns the integral in c_d into the sum over the modes near a; type 3: E = 1.
-  // eps_deconv = eps_mach exp(pi w (b - q)): deconvolution divides by phihat, so
-  //   rounding grows by r_dyn = phihat(0)/phihat(a), (3.21) with beta = pi w b.
-  //   [FIN] states (3.21) for type 3; types 1 and 2 divide by the same phihat.
-  const int ns_t = kernel::theoretical_kernel_ns(tol, dim, type, sigma);
-  const int ns                    = kernel::clamp_kernel_ns(ns_t, sigma, dim, is_float);
-  const double nf                 = (double)fine_grid_len(sigma, maxN, ns);
-  const double kernel_cutoff_freq = 1.0 - 0.5 / sigma;                         // b
-  const double top_mode_freq      = type == 3 ? 0.5 / sigma : 0.5 * maxN / nf; // a
-  const double top_mode_decay     =                                            // q
-      std::sqrt(kernel_cutoff_freq * kernel_cutoff_freq - top_mode_freq * top_mode_freq);
-  const double edge_mode_step =                                                // x
-      type == 3 ? 0.0 : 2 * (ns - 1) * PI * top_mode_freq / (top_mode_decay * nf);
-  const double edge_factor =                                                   // E
-      edge_mode_step > 0 ? std::sqrt(edge_mode_step / -std::expm1(-edge_mode_step)) : 1.0;
-  const double eps_alias = kernel::kernel_tolfac(dim, type) * edge_factor *
-                           std::exp(-(ns - 1) * PI * top_mode_decay);
-  const double eps_mach = is_float ? std::numeric_limits<float>::epsilon()
-                                   : std::numeric_limits<double>::epsilon();
-  const double eps_deconv =
-      eps_mach * std::exp(ns * PI * (kernel_cutoff_freq - top_mode_decay));
-  return eps_alias <= tol && eps_deconv <= tol;
-}
-
-double analytic_upsampfac(double tol, int dim, int type, bool is_float, double maxN) {
-  // Returns min{sigma in [MIN_AUTO_UPSAMPFAC, MAX_AUTO_UPSAMPFAC] : feasible(sigma)},
-  // else MAX_AUTO_UPSAMPFAC. E makes feasible not monotone in sigma: scan
-  // sigma_k = MIN_AUTO_UPSAMPFAC + k scan_step to the first feasible sigma_k, then
-  // bisect (sigma_{k-1}, sigma_k].
-  auto feasible = [&](double sigma) {
-    return upsampfac_feasible(sigma, tol, dim, type, is_float, maxN);
-  };
-  // shortcut: misses a feasible interval narrower than scan_step; refine if one shows up.
-  constexpr double scan_step = 0.05;
-  double lo = MIN_AUTO_UPSAMPFAC, hi = MIN_AUTO_UPSAMPFAC;
-  while (!feasible(hi)) {
-    if (hi >= MAX_AUTO_UPSAMPFAC) return MAX_AUTO_UPSAMPFAC;
-    lo = hi;
-    hi = std::min(hi + scan_step, MAX_AUTO_UPSAMPFAC);
-  }
-  if (hi == MIN_AUTO_UPSAMPFAC) return hi;
-  for (int i = 0; i < 40; ++i) { // invariant: feasible(hi) && !feasible(lo)
-    const double mid = 0.5 * (lo + hi);
-    (feasible(mid) ? hi : lo) = mid;
-  }
-  return hi;
-}
-
-} // namespace finufft::common

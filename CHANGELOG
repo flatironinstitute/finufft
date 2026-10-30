@@ -10,11 +10,16 @@ v2.6.0-dev
   FSERIES_BLOCK = 64 (a new internal library parameter). Each block starts from
   the direct phase, and the phase winding runs at most 64 steps. The phase math
   is in the working precision. (Barbone #946)
-* FINUFFT_ERR_EPS_TOO_SMALL now comes from three error estimates, each
-  checked against tol: rounding 0.35 eps_mach N sqrt(dim), kernel aliasing,
-  and deconvolution of rounding (eq. (3.21) of the 2019 SISC paper). They
-  replace lowest_sigma and MAX_CHECK_SIGMA and also run for type 3. A clamped
-  width alone no longer refuses; tol = eps_mach always does. (Barbone)
+* FINUFFT_ERR_EPS_TOO_SMALL now comes from three error estimates, each checked
+  against tol: rounding of the inputs (with the root sum of squares of the
+  mode counts), kernel aliasing, and deconvolution of rounding (eq. (3.21) of
+  the 2019 SISC paper). They replace lowest_sigma and MAX_CHECK_SIGMA and also
+  run for type 3. A clamped width alone no longer refuses; tol = eps_mach
+  always does. Type 3 splits tol equally between its outer and inner plans, in
+  place of its own width-law prefactor. The auto upsampfac takes, for each
+  kernel width, the smallest sigma that gives that width and meets the
+  deconvolution limit, and keeps the feasible width with the lowest predicted
+  cost. (Barbone)
 * macOS wheels link a static libomp with hidden symbols instead of bundling
   libomp.dylib. The bundled copy aborted with "OMP: Error #15" next to another
   libomp, e.g. Homebrew NumPy, and crashed or hung when KMP_DUPLICATE_LIB_OK
