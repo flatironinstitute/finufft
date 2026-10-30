@@ -221,7 +221,7 @@ int main() {
   }
   // check that the output values are all zero
   for (int i = 0; i < N; ++i) {
-    if (std::abs(F[i]) > 0) {
+    if (F[i] != CPX(0.0, 0.0)) {
       printf("nonzero output value detected\n");
       return 1;
     }
