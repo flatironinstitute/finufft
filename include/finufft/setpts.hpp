@@ -211,8 +211,15 @@ int FINUFFT_PLAN_T<TF>::setpts(BIGINT nj, const TF *xj, const TF *yj, const TF *
     std::array<TF, 3> S = {0, 0, 0};
     if (opts.debug) printf("\tM=%lld N=%lld\n", (long long)nj, (long long)nk);
     for (int idim = 0; idim < dim; ++idim) {
-      arraywidcen(nj, XYZ_in[idim], &(m.t3P.X[idim]), &(m.t3P.C[idim]));
-      arraywidcen(nk, STU_in[idim], &S[idim], &(m.t3P.D[idim]));
+      // special treatment of nj==0/nk==0, because arraywidcen doesn't work in that case
+      if (nj>0)
+        arraywidcen(nj, XYZ_in[idim], &(m.t3P.X[idim]), &(m.t3P.C[idim]));
+      else
+        m.t3P.X[idim] = m.t3P.C[idim] = 0;
+      if (nk>0)
+        arraywidcen(nk, STU_in[idim], &S[idim], &(m.t3P.D[idim]));
+      else
+        S[idim] = m.t3P.D[idim] = 0;
     }
 
     // For type 3 with deferred upsampfac (not locked by user), pick & persist

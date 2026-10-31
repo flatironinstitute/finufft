@@ -213,6 +213,25 @@ int main() {
     printf("1d3 XK prod too big:\twrong error code %d\n", ier);
     return 1;
   }
+  // type 3 with zero input points
+  ier = FINUFFT1D3(0, x, c, +1, acc, N, s, F, &opts);
+  if (ier != 0) { // this call should have succeeded
+    printf("1d3 with zero input points failed unexpectedly\n");
+    return 1;
+  }
+  // check that the output values are all zero
+  for (int i = 0; i < N; ++i) {
+    if (F[i] != CPX(0.0, 0.0)) {
+      printf("nonzero output value detected\n");
+      return 1;
+    }
+  }
+  // type 3 with zero output points
+  ier = FINUFFT1D3(M, x, c, +1, acc, 0, s, F, &opts);
+  if (ier != 0) { // this call should have succeeded
+    printf("1d3 with zero input points failed unexpectedly\n");
+    return 1;
+  }
   // spreadinterponly is defined for types 1,2 only; type 3 must ignore it
   opts.spreadinterponly = 1;
   ier                   = FINUFFT1D3(M, x, c, +1, acc, N, s, F, &opts);
@@ -736,6 +755,18 @@ int main() {
   FINUFFT_DESTROY(plan);
   FINUFFT_MAKEPLAN(3, 1, Ns, +1, 1, acc, &plan, NULL); // type 3, now kill it
   FINUFFT_DESTROY(plan);
+  { // type 3 adjoint with nk=0: each output c_j is an empty sum, so must be 0
+    FLT xa[1] = {0.25}, sa[1] = {0.0};
+    CPX ca[1] = {CPX(7.0, 3.0)}, Fa[1] = {CPX(0.0, 0.0)};
+    FINUFFT_MAKEPLAN(3, 1, Ns, +1, 1, acc, &plan, &opts);
+    FINUFFT_SETPTS(plan, 1, xa, NULL, NULL, 0, sa, NULL, NULL);
+    ier = FINUFFT_EXECUTE_ADJOINT(plan, ca, Fa);
+    FINUFFT_DESTROY(plan);
+    if (ier || ca[0] != CPX(0.0, 0.0)) {
+      printf("1d3 adjoint nk=0:\tier=%d c=(%.3g,%.3g)\n", ier, real(ca[0]), imag(ca[0]));
+      return 1;
+    }
+  }
   // *** todo: more extensive bad inputs and error catching in guru...
 
 #ifdef SINGLE
