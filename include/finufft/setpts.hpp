@@ -188,7 +188,7 @@ int FINUFFT_PLAN_T<TF>::setpts(BIGINT nj, const TF *xj, const TF *yj, const TF *
     m.sortIndices.resize(nj);
     indexSort();
     if (opts.debug)
-      printf("[%s] sort (didSort=%d):\t\t%.3g s\n", __func__, (int)m.didSort,
+      printf("[%s] sort (sorted=%d):\t\t%.3g s\n", __func__, (int)sorted(),
              timer.elapsedsec());
 
   } else { // ------------------------- TYPE 3 SETPTS -----------------------
@@ -320,7 +320,7 @@ int FINUFFT_PLAN_T<TF>::setpts(BIGINT nj, const TF *xj, const TF *yj, const TF *
     m.spopts.spread_direction = 1;
     indexSort();
     if (opts.debug)
-      printf("[%s t3] sort (didSort=%d):\t\t%.3g s\n", __func__, (int)m.didSort,
+      printf("[%s t3] sort (sorted=%d):\t\t%.3g s\n", __func__, (int)sorted(),
              timer.elapsedsec());
 
     // Plan and setpts once, for the (repeated) inner type 2 finufft call...

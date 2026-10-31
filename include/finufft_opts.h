@@ -46,7 +46,7 @@ typedef struct finufft_opts { // defaults see plan.hpp:finufft_default_opts_t()
   // algorithm performance opts...
   int nthreads;           // number of threads to use, or 0 uses all available
   int fftw;               // plan flags to FFTW (FFTW_ESTIMATE=64, FFTW_MEASURE=0,...)
-  int spread_sort;        // spreader: 0 don't sort, 1 do, or 2 heuristic choice
+  int spread_sort;        // spreader: 0 don't sort, 1 do, or 2 same as 1
   FINUFFT_DEPRECATED_FIELD("no effect; Horner is always used")
   int spread_kerevalmeth; // deprecated; no effect (Horner is always used)
   FINUFFT_DEPRECATED_FIELD("no effect; padding is handled internally")
@@ -54,10 +54,11 @@ typedef struct finufft_opts { // defaults see plan.hpp:finufft_default_opts_t()
   double upsampfac;       // upsampling ratio sigma: 2.0 std, 1.25 small FFT, 0.0 auto
   FINUFFT_DEPRECATED_FIELD("no effect; all threads now spread the whole batch")
   int spread_thread; // deprecated; no effect (all threads spread the whole batch)
-  int maxbatchsize;       // (vectorized ntr>1 only): max transform batch, 0 auto
-  int spread_nthr_atomic; // if >=0, threads above which spreader OMP critical goes
-                          // atomic
-  int spread_max_sp_size; // if >0, overrides spreader (dir=1) max subproblem size
+  int maxbatchsize;  // (vectorized ntr>1 only): max transform batch, 0 auto
+  int spread_nthr_atomic; // if >=0, threads above which spreader's add back goes from
+                          // one lock per fine grid to atomic
+  FINUFFT_DEPRECATED_FIELD("no effect; a subproblem is a cache tile")
+  int spread_max_sp_size; // deprecated; no effect (a subproblem is a cache tile)
   int spread_kerformula;  // kernel function formula: 0 default, [>0 devs/debug only]
                           // Non-zero values are unsupported and behavior can change
   int allow_eps_too_small; // CPU only: 0 hard error if tol too small, 1 clamp and proceed

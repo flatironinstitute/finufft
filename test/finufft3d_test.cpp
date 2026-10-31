@@ -23,7 +23,6 @@ int main(int argc, char *argv[]) {
   FINUFFT_DEFAULT_OPTS(&opts);
   opts.allow_eps_too_small = 1;
   // opts.fftw = FFTW_MEASURE;  // change from usual FFTW_ESTIMATE
-  // opts.spread_max_sp_size = 3e4; // override test
   // opts.spread_nthr_atomic = 15;  // "
   int isign = +1; // choose which exponential sign to test
   if (argc < 5 || argc > 10) {

@@ -10,6 +10,8 @@ using FLT = double;
 #endif
 
 template void FINUFFT_PLAN_T<FLT>::spread_subproblem_2d(
-    BIGINT, BIGINT, UBIGINT, UBIGINT, FLT *FINUFFT_RESTRICT, UBIGINT, const FLT *,
-    const FLT *, const FLT *) const noexcept;
-template int FINUFFT_PLAN_T<FLT>::interpSorted_2d(FLT *, FLT *) const;
+    const Subgrid &, FLT *, UBIGINT, const FLT *, const FLT *, const FLT *,
+    const FLT *) const noexcept;
+template void FINUFFT_PLAN_T<FLT>::interp_subproblem_2d(
+    const Subgrid &, const FLT *, UBIGINT, const FLT *, const FLT *, const FLT *,
+    const BIGINT *, FLT *) const noexcept;

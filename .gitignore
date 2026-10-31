@@ -25,9 +25,22 @@ fortran/examples/nufft1d_demo_legacyf
 fortran/examples/nufft2d_demof
 fortran/examples/nufft2dmany_demof
 fortran/examples/nufft3d_demof
+*_testf
+test/adjointness
+test/adjointnessf
+test/basicpassfail
+test/basicpassfailf
 test/dumbinputs
+test/dumbinputsf
+test/error_handling
 test/finufft1d_basicpassfail
 test/testlib
+test/testutils
+test/testutilsf
+test/threadsafe_execute
+test/threadsafe_executef
+test/tolsweep
+test/tolsweepf
 __pycache__*
 
 docs/_build
