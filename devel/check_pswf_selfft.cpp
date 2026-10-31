@@ -109,7 +109,7 @@ int main() {
         }
         // kernel error scale, floored at double roundoff (ft_err cannot beat it)
         const double ker_err = std::max(
-            kernel_tolfac(1, 3) * std::exp(-(ns - 1) * PI * std::sqrt(1 - 1 / sigma)),
+            kernel_tolfac(1) * std::exp(-(ns - 1) * PI * std::sqrt(1 - 1 / sigma)),
             1e-14);
         printf("%3d %3d %5.2f %8.3f %10.2e %10.2e %10.2e %10.2f%s\n", kf, ns, sigma,
                margin, p_err, ft_err, ker_err, ft_err / ker_err,

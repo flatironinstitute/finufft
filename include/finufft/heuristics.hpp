@@ -62,42 +62,27 @@ inline double fft_cost(double c, const double *nmodes, double sigma, int ns, int
 
 // --- candidate enumeration ---
 
-// Kernel width ns the plan would actually use at this (tol, sigma): the theoretical
-// width clamped to the compiled/feasible range, exactly as setup_spreadinterp picks it.
-// Lets the cost model score each candidate sigma at its real ns.
-template<typename TF>
-inline int kernel_width_at(double tol, int dim, int type, double sigma) {
-  return finufft::kernel::clamp_kernel_ns<TF>(
-      finufft::kernel::theoretical_kernel_ns(tol, dim, type, sigma), sigma, dim);
-}
-
-// Returns the feasible upsampfac (sigma) that minimizes cost, and its predicted cost.
-// The search starts at the smallest feasible sigma (analytic_upsampfac), then scores
-// the smallest sigma for each narrower kernel width up to MAX_AUTO_UPSAMPFAC. Larger
-// sigma narrows ns but grows the fine grid.
-//   cost(sigma, ns): caller-supplied score of a candidate in consistent flop units.
-//   maxN:            largest mode count over dims (1 for type 3).
-// If tol is unachievable, returns the largest sigma and the plan pipeline reports it.
+// The cheapest feasible (sigma, ns). Each width gets one candidate, its smallest sigma
+// by the inverses. A width is skipped if the plan uses another width there or
+// upsampfac_feasible rejects it. Nothing feasible gives MAX_AUTO_UPSAMPFAC, which
+// check_sigma refuses if it is infeasible. Gaps: docs/devnotes.rst.
 template<typename TF, class Cost>
 sigma_info minimize(double tol, int dim, int type, double maxN, Cost &&cost) {
   using namespace finufft::common;
-  constexpr double eps_mach = std::numeric_limits<TF>::epsilon();
-  constexpr bool is_float = std::is_same_v<TF, float>;
-  const auto feasible       = [&](double sigma) {
-    return upsampfac_feasible(sigma, tol, dim, type, eps_mach, is_float, maxN);
-  };
-  const double sigma_min = analytic_upsampfac(tol, dim, type, eps_mach, is_float, maxN);
-  const int ns_min = kernel_width_at<TF>(tol, dim, type, sigma_min);
-  sigma_info best{sigma_min, cost(sigma_min, ns_min)};
-  if (!feasible(sigma_min)) return best; // tol unachievable; pipeline reports
-  for (int ns_t = ns_min - 1;
-       ns_t >= kernel_width_at<TF>(tol, dim, type, MAX_AUTO_UPSAMPFAC); --ns_t) {
-    const double s = std::clamp(smallest_sigma_for_ns(tol, dim, type, ns_t), sigma_min,
-                                MAX_AUTO_UPSAMPFAC);
-    if (!feasible(s)) continue;
-    const double c = cost(s, kernel_width_at<TF>(tol, dim, type, s));
-    if (c < best.cost) best = {s, c};
+  using namespace finufft::kernel;
+  sigma_info best{MAX_AUTO_UPSAMPFAC, std::numeric_limits<double>::infinity()};
+  for (int ns = MIN_NSPREAD; ns <= MAX_NSPREAD<TF>; ++ns) {
+    const double sigma =
+        std::max({sigma_for_ns(tol, dim, ns), MIN_AUTO_UPSAMPFAC,
+                  sigma_for_deconv(std::numeric_limits<TF>::epsilon(), dim, ns, tol)});
+    if (sigma > MAX_AUTO_UPSAMPFAC || kernel_width_at<TF>(tol, dim, sigma) != ns ||
+        !upsampfac_feasible(sigma, tol, dim, type, std::is_same_v<TF, float>, maxN))
+      continue;
+    const double c = cost(sigma, ns);
+    if (c <= best.cost) best = {sigma, c}; // ns rises, so a tie keeps the larger ns
   }
+  if (best.cost == std::numeric_limits<double>::infinity())
+    best.cost = cost(best.sigma, kernel_width_at<TF>(tol, dim, best.sigma));
   return best;
 }
 

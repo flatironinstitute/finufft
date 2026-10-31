@@ -167,20 +167,11 @@ template<typename TF> void FINUFFT_PLAN_T<TF>::setup_spreadinterp() {
   }
 
   // choose nspread and set it in spopts. The width actually used comes from the shared
-  // clamp_kernel_ns() (kernel.h); here we additionally report/throw when the requested
-  // tol is infeasible, and warn when the float guard narrows the kernel.
-  const int ns_theory =
-      theoretical_kernel_ns((double)m.tol, dim, type, m.spopts.upsampfac);
+  // clamp_kernel_ns() (kernel.h); check_sigma tests the error at that ns.
+  const int ns_theory  = ns_for_sigma(plan_tol(m.tol, type), dim, m.spopts.upsampfac);
   // per-precision cap: float spreadinterp is only instantiated up to
   // MAX_NSPREAD<TF> (see constants.h, issue #827)
   constexpr int max_ns = MAX_NSPREAD<TF>;
-  if (ns_theory > max_ns && !opts.allow_eps_too_small) {
-    fprintf(stderr,
-            "%s error: at upsampfac=%.3g, tol=%.3g would need kernel "
-            "width ns=%d, exceeding max %d.\n",
-            __func__, m.spopts.upsampfac, (double)m.tol, ns_theory, max_ns);
-    throw finufft::exception(FINUFFT_ERR_EPS_TOO_SMALL);
-  }
   const int ns = clamp_kernel_ns<TF>(ns_theory, m.spopts.upsampfac, dim);
   // only the float catastrophic-cancellation guard in clamp_kernel_ns narrows ns
   // below min(ns_theory, max_ns); warn when it bites.
@@ -259,13 +250,14 @@ template<typename TF> void FINUFFT_PLAN_T<TF>::precompute_horner_coeffs() {
 
     // Truncate polynomial degree using a numerical coeff size cut-off:
     // truncation at nc is allowed if all coeffs of degree nc have magnitude
-    // less than tol * coeffs_tol_cutoff. The smallest such nc is found.
+    // below cutoff. The smallest such nc is found.
     // Experiments showed with this as 0.1, ns=15 still had err bump...
     const TF coeffs_tol_cutoff = 0.05; // coeffs cut-off rel to tol: to-do make opts?
     // Note: ordering is coeffs[0] highest degree, to coeffs[nc_fit-1] const term.
+    const double cutoff        = plan_tol(m.tol, type) * coeffs_tol_cutoff;
     int nc_needed = 0; // initialize. then step down from highest degree...
     for (size_t k = 0; k < coeffs.size(); ++k) {              // power is nc_fit-1-k
-      if (std::abs(coeffs[k]) >= m.tol * coeffs_tol_cutoff) { // stop when large enough
+      if (std::abs(coeffs[k]) >= cutoff) {                    // stop when large enough
         nc_needed = static_cast<int>(coeffs.size() - k);
         break;
       }

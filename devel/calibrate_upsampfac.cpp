@@ -1,8 +1,8 @@
 // Calibration data generator for the complexity-based upsampfac selector
 // (include/finufft/heuristics.hpp). For each (prec,dim,type,tol,N,M,threads) config
-// it sweeps the forced upsampfac sigma over the feasible window
-// [analytic_upsampfac, MAX_AUTO_UPSAMPFAC] (step --sigma_step), times setpts+execute
-// (min over --n_runs, same min-time pattern as perftest.cpp), and emits:
+// it sweeps the forced upsampfac sigma over [MIN_AUTO_UPSAMPFAC, MAX_AUTO_UPSAMPFAC]
+// (step --sigma_step), skips the sigmas upsampfac_feasible refuses, times
+// setpts+execute (min over --n_runs, same min-time pattern as perftest.cpp), and emits:
 //   - a per-sigma detail CSV (stdout or --detail), and
 //   - a per-config summary CSV (--summary) comparing the empirical optimum against
 //     the production model's choice.
@@ -81,7 +81,6 @@ template<typename T> void run_config(const cal_options_t &o) {
   using namespace finufft::common;
   using finufft::utils::arraywidcen;
   constexpr bool is_float = std::is_same_v<T, float>;
-  constexpr double eps = std::numeric_limits<T>::epsilon();
 
   std::int64_t Nd[3];
   split_modes(o.N, o.dim, Nd);
@@ -123,6 +122,7 @@ template<typename T> void run_config(const cal_options_t &o) {
   std::array<double, 3> nmodes{(double)Nd[0], (double)Nd[1], (double)Nd[2]};
   std::array<double, 3> X{}, S{}; // type-3 interval half-widths (unused for 1/2)
   double sigma_model;
+  const double tol = finufft::kernel::plan_tol(o.tol, o.type); // tol of one plan
   if (o.type == 3) {
     for (int d = 0; d < o.dim; ++d) {
       T w, cen;
@@ -139,15 +139,15 @@ template<typename T> void run_config(const cal_options_t &o) {
                   &w, &cen);
       S[d] = (double)w;
     }
-    sigma_model = finufft::heuristics::best_type3<T>(
-        o.tol, o.dim, nthreads_eff, (double)M, X.data(), S.data(), (double)Ntot);
+    sigma_model = finufft::heuristics::best_type3<T>(tol, o.dim, nthreads_eff, (double)M,
+                                                     X.data(), S.data(), (double)Ntot);
   } else {
-    sigma_model = finufft::heuristics::best_type12<T>(o.tol, o.dim, o.type, nthreads_eff,
+    sigma_model = finufft::heuristics::best_type12<T>(tol, o.dim, o.type, nthreads_eff,
                                                       nmodes.data(), (double)M)
                       .sigma;
   }
   const auto width_of = [&](double sigma) {
-    return finufft::heuristics::kernel_width_at<T>(o.tol, o.dim, o.type, sigma);
+    return finufft::kernel::kernel_width_at<T>(tol, o.dim, sigma);
   };
   // grid traffic (SIMD-padded, ISA-specific, constant-independent) and FFT fine-grid
   // product G at a given sigma/ns, so the Python fitter can reconstruct the model cost
@@ -168,15 +168,19 @@ template<typename T> void run_config(const cal_options_t &o) {
   const int ns_model = width_of(sigma_model);
 
   // ---- sweep forced sigma ----
-  const double maxN = o.type == 3 ? 1.0 : (double)*std::max_element(Nd, Nd + o.dim);
-  const double sigma_min = analytic_upsampfac(o.tol, o.dim, o.type, eps, is_float, maxN);
+  const double maxN    = o.type == 3 ? 1.0 : (double)*std::max_element(Nd, Nd + o.dim);
 
   std::int64_t Narr[3] = {Nd[0], Nd[1], Nd[2]};
   constexpr int iflag = 1;
 
   std::vector<double> sigmas, times;
-  for (double sigma = sigma_min; sigma <= MAX_AUTO_UPSAMPFAC + 1e-9;
-       sigma += o.sigma_step) {
+  // An integer index: a running sum of the step drifts from MAX_AUTO_UPSAMPFAC.
+  const double span = MAX_AUTO_UPSAMPFAC - MIN_AUTO_UPSAMPFAC;
+  const int nstep   = std::max(1, (int)std::lround(span / o.sigma_step));
+  for (int k = 0; k <= nstep; ++k) {
+    const double sigma = MIN_AUTO_UPSAMPFAC + span * k / nstep;
+    if (!finufft::kernel::upsampfac_feasible(sigma, tol, o.dim, o.type, is_float, maxN))
+      continue;
     finufft_opts opts;
     finufft_default_opts(&opts);
     opts.debug = 0;

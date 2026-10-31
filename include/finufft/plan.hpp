@@ -105,7 +105,8 @@ private:
   // Configuration set once in the constructor stays on the plan itself.
   struct M {
     // --- Spreader configuration (computed by setup_spreadinterp) ---
-    TF tol{};                      // user tolerance, clamped to machine eps by spreader
+    TF tol{};           // user tol (inner: outer plan_tol), clamped to eps_mach
+    double tol_whole{}; // whole-transform tol when this plan is a nested inner
     finufft_spread_opts spopts{};  // spreading kernel parameters (nspread, beta, etc.)
     int nc = 0;     // number of Horner polynomial coefficients (<= MAX_NC)
     size_t padded_ns = 0;          // SIMD-padded kernel width
@@ -177,7 +178,7 @@ private:
   int execute_internal(TC *cj, TC *fk, bool adjoint = false, int ntrans_actual = -1,
                        TC *aligned_scratch = nullptr, size_t scratch_size = 0) const;
   void setup_spreadinterp(); // throws FINUFFT_ERR_EPS_TOO_SMALL if tol unachievable
-  void check_sigma(); // throws FINUFFT_ERR_EPS_TOO_SMALL if sigma too low for tol
+  void check_sigma(double mode_diagonal); // throws if tol is unmet
   double best_upsampfac() const; // density-aware sigma, types 1/2 (setpts)
   // complexity-based sigma for type 3 (outer spread + inner t2 cost); X,S are the
   // source/target interval half-widths over dims (see setpts).
