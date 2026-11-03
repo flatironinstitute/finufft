@@ -12,41 +12,37 @@ Here's how to perform a 1D type-1 transform
 in double precision from C++, using STL complex vectors.
 First include our header, and some others needed for the demo:
 
-.. code-block:: C++
-
-  #include "finufft.h"
-  #include <vector>
-  #include <complex>
-  #include <stdlib.h>
+.. literalinclude:: ../examples/simple1d1.cpp
+  :language: C++
+  :start-after: docs-start: simple1d1-includes
+  :end-before: docs-end: simple1d1-includes
 
 We need nonuniform points ``x`` and complex strengths ``c``. Let's create random ones for now:
 
-.. code-block:: C++
-
-  int M = 1e7;                                   // number of nonuniform points
-  vector<double> x(M);
-  vector<complex<double> > c(M);
-  complex<double> I = complex<double>(0.0,1.0);  // the imaginary unit
-  for (int j=0; j<M; ++j) {
-    x[j] = M_PI*(2*((double)rand()/RAND_MAX)-1); // uniform random in [-pi,pi)
-    c[j] = 2*((double)rand()/RAND_MAX)-1 + I*(2*((double)rand()/RAND_MAX)-1);
-  }
+.. literalinclude:: ../examples/simple1d1.cpp
+  :language: C++
+  :dedent: 2
+  :start-after: docs-start: simple1d1-data
+  :end-before: docs-end: simple1d1-data
 
 With ``N`` as the desired number of Fourier mode coefficients,
 allocate their output array:
 
-.. code-block:: C++
-
-  int N = 1e6;                                   // number of output modes
-  vector<complex<double> > F(N);
+.. literalinclude:: ../examples/simple1d1.cpp
+  :language: C++
+  :dedent: 2
+  :start-after: docs-start: simple1d1-modes
+  :end-before: docs-end: simple1d1-modes
 
 Now do the NUFFT (with default options, indicated by the ``NULL`` in the following call). Since the interface is
 C-compatible, we pass pointers to the start of the arrays (rather than
 C++-style vector objects), and also pass ``N``:
 
-.. code-block:: C++
-
-  int ier = finufft1d1(M,&x[0],&c[0],+1,1e-9,N,&F[0],NULL);
+.. literalinclude:: ../examples/simple1d1.cpp
+  :language: C++
+  :dedent: 2
+  :start-after: docs-start: simple1d1-call
+  :end-before: docs-end: simple1d1-call
 
 This fills ``F`` with the output modes, in increasing ordering
 with the integer frequency indices from ``-N/2`` up to ``N/2-1``
@@ -144,25 +140,20 @@ to C-style arrays of pointers; this allows the widest compatibility with other
 languages. Assuming the same headers as above, we first create points
 :math:`(x_j,y_j)` in the square :math:`[-\pi,\pi)^2`, and strengths as before:
 
-.. code-block:: C++
-
-  int M = 1e7;                                   // number of nonuniform points
-  vector<double> x(M), y(M);
-  vector<complex<double> > c(M);
-  for (int j=0; j<M; ++j) {
-    x[j] = M_PI*(2*((double)rand()/RAND_MAX)-1);
-    y[j] = M_PI*(2*((double)rand()/RAND_MAX)-1);
-    c[j] = 2*((double)rand()/RAND_MAX)-1 + I*(2*((double)rand()/RAND_MAX)-1);
-  }
+.. literalinclude:: ../examples/simple2d1.cpp
+  :language: C++
+  :dedent: 2
+  :start-after: docs-start: simple2d1-data
+  :end-before: docs-end: simple2d1-data
 
 Let's say we want ``N1=1000`` by ``N2=2000`` 2D Fourier coefficients.
 We allocate and do the (default options) transform thus:
 
-.. code-block:: C++
-
-  int N1=1000, N2=2000;
-  vector<complex<double> > F(N1*N2);
-  int ier = finufft2d1(M,&x[0],&y[0], &c[0], +1, 1e-6, N1, N2, &F[0], NULL);
+.. literalinclude:: ../examples/simple2d1.cpp
+  :language: C++
+  :dedent: 2
+  :start-after: docs-start: simple2d1-call
+  :end-before: docs-end: simple2d1-call
 
 This transform takes 0.6 seconds on a laptop.
 The modes have increasing ordering
@@ -199,20 +190,11 @@ The strength data vectors are taken to be contiguous (the whole
 first vector, followed by the second, etc, rather than interleaved.)
 Ie, viewed as a matrix in Fortran storage, each column is a strength vector.
 
-.. code-block:: C++
-
-  int ntrans = 10;                               // how many transforms
-  int M = 1e7;                                   // number of nonuniform points
-  vector<double> x(M);
-  vector<complex<double> > c(M*ntrans);          // ntrans strength vectors
-  complex<double> I = complex<double>(0.0,1.0);  // the imaginary unit
-  for (int j=0; j<M; ++j)
-    x[j] = M_PI*(2*((double)rand()/RAND_MAX)-1);
-  for (int j=0; j<M*ntrans; ++j)                 // fill all ntrans vectors...
-    c[j] = 2*((double)rand()/RAND_MAX)-1 + I*(2*((double)rand()/RAND_MAX)-1);
-  int N = 1e6;                                   // number of output modes
-  vector<complex<double> > F(N*trans);           // ntrans output vectors
-  int ier = finufft1d1(M,&x[0],&c[0],+1,1e-9,N,&F[0],NULL);    // default opts
+.. literalinclude:: ../examples/many1d1.cpp
+  :language: C++
+  :dedent: 2
+  :start-after: docs-start: many1d1
+  :end-before: docs-end: many1d1
 
 This takes 2.6 seconds on a laptop, around 1.4x faster than
 making 10 separate "simple" calls.
@@ -242,24 +224,11 @@ Now we redo the above 2D type 1 C++ example with the guru interface.
 
 One first makes a plan giving transform parameters, but no data:
 
-.. code-block:: C++
-
-  // (assume x, y, c are filled, and F allocated, as in the 2D code above...)
-  int type=1, dim=2, ntrans=1;
-  int64_t Ns[] = {1000,2000};                    // N1,N2 as 64-bit int array
-  // step 1: make a plan...
-  finufft_plan plan;
-  int ier = finufft_makeplan(type, dim, Ns, +1, ntrans, 1e-6, &plan, NULL);
-  // step 2: send in pointers to M nonuniform points (just x, y in this case)...
-  finufft_setpts(plan, M, &x[0], &y[0], NULL, 0, NULL, NULL, NULL);
-  // (user should not change x, y nonuniform point arrays here!)
-  // step 3: do the planned transform to the c strength data, output to F...
-  finufft_execute(plan, &c[0], &F[0]);
-  // ... you could now send in new points, and/or do transforms with new c data
-  // ... or even adjoint transforms with the same points but now mapping F to c.
-  // ...
-  // step 4: when done, free the memory used by the plan...
-  finufft_destroy(plan);
+.. literalinclude:: ../examples/guru2d1.cpp
+  :language: C++
+  :dedent: 2
+  :start-after: docs-start: guru2d1
+  :end-before: docs-end: guru2d1
 
 This writes the Fourier coefficients to ``F`` just as in the earlier 2D example.
 One difference from the above simple and vectorized interfaces
