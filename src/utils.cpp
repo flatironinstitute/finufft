@@ -19,6 +19,9 @@
 #if defined(_WIN32)
 #include <random> // for the rand_r shim at the bottom
 #include <vector>
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
 #include <windows.h>
 #elif defined(__APPLE__)
 #include <sys/sysctl.h>

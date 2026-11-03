@@ -1,3 +1,14 @@
+/* Regression test for thread-safe concurrent execute() on the same plan.
+
+   Creates a single 1D type-1 plan and then runs finufft_execute from
+   multiple threads simultaneously, each into its own output array.
+   Correctness is verified against a direct (slow) Fourier transform.
+   This catches data races in internal scratch workspace allocation.
+
+   Usage: ./threadsafe_execute     (exit 0 = pass, >0 = fail)
+   Barbone, Mar 2026.
+*/
+
 #include <finufft.h>
 #include <finufft_common/constants.h>
 #include <finufft_opts.h>
