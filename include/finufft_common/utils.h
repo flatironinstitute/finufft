@@ -6,6 +6,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <limits>
+#include <stdexcept>
 #include <tuple>
 #include <type_traits>
 #include <utility>
@@ -62,11 +63,10 @@ template<typename T>
 FINUFFT_ALWAYS_INLINE void arrayrange(int64_t n, const T *a, T *lo, T *hi)
 // With a a length-n array, writes out min(a) to lo and max(a) to hi,
 // so that all a values lie in [lo,hi].
-// If n==0, lo and hi are not finite.
 {
-  *lo = INFINITY;
-  *hi = -INFINITY;
-  for (int64_t m = 0; m < n; ++m) {
+  if (n <= 0) throw std::invalid_argument("n<=0");
+  *lo = *hi = a[0];
+  for (int64_t m = 1; m < n; ++m) {
     if (a[m] < *lo) *lo = a[m];
     if (a[m] > *hi) *hi = a[m];
   }

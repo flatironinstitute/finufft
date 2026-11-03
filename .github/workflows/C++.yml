@@ -48,7 +48,7 @@ jobs:
         rm -rf "$PWD/_makestage"
 
   MacOS_clang:
-    runs-on: macos-14
+    runs-on: macos-15
     env:
       MACOSX_DEPLOYMENT_TARGET: 11.0
 
@@ -65,7 +65,7 @@ jobs:
         make test
 
   MacOS_gcc:
-    runs-on: macos-14
+    runs-on: macos-15
     env:
       MACOSX_DEPLOYMENT_TARGET: 11.0
 
