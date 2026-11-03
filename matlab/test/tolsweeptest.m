@@ -22,7 +22,7 @@ tolstep = 10 ^ (-1 / tolsperdecade);     % multiplicative step in tol, < 1
 for dim = 1:3  % ======== dimensions
   fprintf('tolsweeptest dim=%d: =================================\n',dim)
   if dim==1
-    Ntot = 50; % tot #modes (simply N when dim=1).
+    Ntot = 50;    % tot #modes (simply N when dim=1).
     % Ntot in 1D is subtle: too small (<50) gives unrealistic fast t1&2 convergence
     % at tol<1e-10, say, for sig=2. But too large (>200) starts to lose digits in
     % single-prec due to condition-num of problem. To keep floors32 around 1e-5

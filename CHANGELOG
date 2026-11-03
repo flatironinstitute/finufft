@@ -4,8 +4,10 @@ Please wrap at 80 chars per line.
 
 v2.6.0-dev
 
-* Fixed NaN results or segfaults that could happen when running type 3 transforms
-  that have zero input or output points (#938). (Reinecke)
+* MATLAB/Octave wrapper correctly handles empty mode or NU point arrays,
+  including testing in fullmathtest (bugfix, Barnett #941, fixes #937).
+* Fixed NaN results or segfaults that could happen when running type 3 transform
+  that have zero input or output points (#938, Reinecke)
 * The kernel Fourier series table (deconvolution factors) no longer depends on
   nthreads; at tol 1e-12 the error at 2 threads was 6.6x that at 1 thread.
   onedim_fseries_kernel now splits the outputs into fixed blocks of
