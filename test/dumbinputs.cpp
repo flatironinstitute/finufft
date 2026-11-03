@@ -122,6 +122,19 @@ int main() {
     printf("1d1 M=0:\tier=%d nrm(F)=%.3g\n", ier, t);
     return 1;
   }
+  // spreadinterponly of no points must zero the fine grid, not keep the caller's
+  // data; the grid is NN cells since N=10 is below the 2*nspread minimum box, and
+  // the loose tol keeps the float rounding floor of an NN grid feasible
+  finufft_opts opts_sponly     = opts;
+  opts_sponly.spreadinterponly = 1;
+  opts_sponly.upsampfac        = 2.0;
+  for (int k = 0; k < NN; ++k) F[k] = CPX(1, 1); // a marker the transform must erase
+  ier = FINUFFT1D1(0, x, c, +1, (FLT)1e-3, NN, F, &opts_sponly);
+  t   = twonorm(NN, F);
+  if (ier > 1 || t != 0.0) {
+    printf("1d1 spreadinterponly M=0:\tier=%d nrm(F)=%.3g\n", ier, t);
+    return 1;
+  }
   for (int k = 0; k < NN; ++k)
     F[k] = sin((FLT)0.7 * k) + IMA * cos((FLT)0.3 * k); // set F for t2
   ier = FINUFFT1D2(M, x, c, +1, 0, N, F, &opts);

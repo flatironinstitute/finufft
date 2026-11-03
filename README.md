@@ -82,7 +82,7 @@ If you prefer to read text files, the source to generate the above documentation
 - `docs/python_gpu.rst` : Python interface to GPU library
 - `docs/julia.rst`   : information for Julia users
 - `docs/nfft_migr.rst` and `docs/cufinufft_migration` : guides for migration
-- `docs/impl_gpu.rst`: implementation notes for GPU code
+- `docs/impl.rst`   : implementation notes for the CPU and GPU code
 - `docs/devnotes.rst`: notes/guide for developers
 - `docs/related.rst` : other recommended NUFFT packages
 - `docs/users.rst`   : some known users of FINUFFT, dependent packages

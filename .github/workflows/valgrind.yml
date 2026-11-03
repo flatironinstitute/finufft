@@ -58,5 +58,8 @@ jobs:
 
       - name: Memcheck (CTest)
         working-directory: ./build
+        env:
+          # valgrind runs the spread schedule test far past ctest's timeout at full size
+          FINUFFT_TEST_SMALL: 1
         run: |
           ctest -T memcheck --output-on-failure -j
