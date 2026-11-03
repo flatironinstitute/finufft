@@ -10,8 +10,9 @@ if ~isempty(x)
   n_transf = round(numel(c)/numel(x));    % this allows general row/col vec, matrix, input shapes
 else
   s = size(c);                            % for empty NU pts array, can only infer n_transf from
-  n_transf = s(end);                      % outer dim of c (eg, 0-by-n_transf in 1D). This is a bit
-                                          % silly, but is the correct size (eg for erralltypedim)
+  n_transf = max(1, s(end));              % outer dim of c (eg, 0-by-n_transf in 1D). This is a bit
+                                          % silly, but is the correct size (eg for erralltypedim).
+                                          % The max prevents n_transf=0 when x empty, thus executes
 end
 if n_transf*numel(x)~=numel(c)            % raises no error in the both-empty case
                                           % else x empty and c nonempty should error

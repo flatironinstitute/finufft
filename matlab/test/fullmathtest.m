@@ -74,6 +74,34 @@ for precdev=precdevs  % ......... loop precisions & devices
       error('  one or more Ntot=0 tests failed!');
     end
     disp('  all Ntot=0 (empty mode, or type-3 targets) tests passed.')
+
+    % various by-hand dumb input cases (to-do? x empty but c not...)
+    % the API does not prescribe shapes; we just verify empty vs numel=1
+    tol = 1e-6;
+    e = myrand(0,0);      % trick to make 0*0 array on relevant device
+    f = myrand(1,1);      % nonempty array on this same device
+    % 1d...
+    assert(numel(   finufft1d1(e,e,+1,tol,1)         )==1)
+    assert(isempty( finufft1d1(e,e,+1,tol,0)         ))
+    assert(numel(   finufft1d2(f,+1,tol,e)           )==1)
+    assert(isempty( finufft1d2(e,+1,tol,e)           ))
+    assert(numel(   finufft1d3(e,e,+1,tol,f)         )==1)
+    assert(isempty( finufft1d3(e,e,+1,tol,e)         ))
+    % 2d...
+    assert(numel(   finufft2d1(e,e,e,+1,tol,1,1)     )==1)
+    assert(isempty( finufft2d1(e,e,e,+1,tol,0,0)     ))
+    assert(numel(   finufft2d2(f,f,+1,tol,e)         )==1)
+    assert(isempty( finufft2d2(e,e,+1,tol,e)         ))
+    assert(numel(   finufft2d3(e,e,e,+1,tol,f,f)     )==1)
+    assert(isempty( finufft2d3(e,e,e,+1,tol,e,e)     ))
+    % 3d...
+    assert(numel(   finufft3d1(e,e,e,e,+1,tol,1,1,1) )==1)
+    assert(isempty( finufft3d1(e,e,e,e,+1,tol,0,0,0) ))
+    assert(numel(   finufft3d2(f,f,f,+1,tol,e)       )==1)
+    assert(isempty( finufft3d2(e,e,e,+1,tol,e)       ))
+    assert(numel(   finufft3d3(e,e,e,e,+1,tol,f,f,f) )==1)
+    assert(isempty( finufft3d3(e,e,e,e,+1,tol,e,e,e) ))
+    disp('  all 0*0 size input tests passed.')
   end
 
 end     % ..........................
