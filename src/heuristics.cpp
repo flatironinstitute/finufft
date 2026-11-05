@@ -82,7 +82,10 @@ double FINUFFT_PLAN_T<TF>::best_sigma_for_tol(int type,
   for (int ns = 2; ns <= max_ns; ++ns) {
     const auto sigma_alias = min_sigma_for_aliasing_error(tol, dim, type, ns);
     const auto sigma_deconv = min_sigma_for_deconv_error(tol, dim, ns, eps_mach);
-    const auto sigma_ns     = std::max({sigma_alias, sigma_deconv, MIN_AUTO_UPSAMPFAC});
+    // round up to 3 digits: off the edge, where theoretical_kernel_ns can round ns up
+    const auto sigma_ns =
+        std::ceil(1000 * std::max({sigma_alias, sigma_deconv, MIN_AUTO_UPSAMPFAC})) /
+        1000;
     if (opts.debug > 1)
       printf("[%s] ns=%d: sigma_alias=%.3g sigma_deconv=%.3g sigma_ns=%.3g\n", __func__,
              ns, sigma_alias, sigma_deconv, sigma_ns);
