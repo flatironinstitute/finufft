@@ -27,7 +27,7 @@ TOLSLACK = {1: 4.0, 2: 4.0, 3: 5.0}
 
 # test/tolsweep.cpp lines 50-56: floor[nu][3], row = upsampfac index
 # (0 = auto, 1 = 1.25, 2 = 2.0), column = dim - 1. These are tolsweep's
-# acceptance floors, not the library's rounding_floor() model: the auto
+# acceptance floors, not the library's rounding_error() model: the auto
 # series can pick a different grid at each tol.
 FLOOR = {
     "float": {0: (2e-5, 2e-5, 1e-5), 2: (2e-5, 2e-5, 1e-5)},

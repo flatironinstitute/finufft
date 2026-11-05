@@ -25,19 +25,22 @@ inline constexpr int MIN_NC = 4;
 inline constexpr int MAX_NC = 19;
 
 // Upsampfac (sigma) bounds.
-// The auto pick searches [MIN_AUTO_UPSAMPFAC, MAX_AUTO_UPSAMPFAC] for all types. Below
-// 1.25 it lands on the aliasing-law boundary with no accuracy margin; above 2.0 a
+// best_sigma_for_tol searches [MIN_AUTO_UPSAMPFAC, MAX_AUTO_UPSAMPFAC] for all types.
+// Below 1.25 it lands on the aliasing-law boundary with no accuracy margin; above 2.0 a
 // narrower kernel can still pay off for dense, spread-dominated transforms.
 inline constexpr double MIN_AUTO_UPSAMPFAC       = 1.25;
-inline constexpr double MAX_AUTO_UPSAMPFAC = 2.5;
-// lowest_sigma never asks for more: past 2.0 the aliasing error barely drops.
-inline constexpr double MAX_CHECK_SIGMA          = 2.0;
+inline constexpr double MAX_AUTO_UPSAMPFAC       = 2.5;
 // makeplan warns on a user upsampfac outside this range, which rarely pays off.
 inline constexpr double MIN_USEFUL_UPSAMPFAC     = 1.15;
 inline constexpr double MAX_USEFUL_UPSAMPFAC     = 3.0;
 
-// c in the full-pipeline rounding floor eps_round = c * eps_mach * nf.
-inline constexpr double ROUND_FAC                = 0.48;
+// Width offset in the kernel aliasing law tol =
+// tolfac*exp(-pi*(ns-NSOFF)*sqrt(1-1/sigma)), read by theoretical_kernel_ns and its
+// inverse min_sigma_for_aliasing_error.
+inline constexpr double NSOFF                    = 1.0;
+
+// Fitted prefactor of rounding_error (finufft_common/kernel.h).
+inline constexpr double ROUND_FAC                = 0.35;
 
 } // namespace common
 } // namespace finufft
