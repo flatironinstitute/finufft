@@ -126,6 +126,35 @@ int main() {
     }
   }
 
+  // min_sigma_for_deconv_error(ns) is the edge of the forward law
+  // dim*eps*exp(pi*ns*(1 - 1/(2 sigma) - sqrt(1-1/sigma))). The wider kernel needs more
+  // sigma, so at the midpoint m of the edges for ns and ns+1, ns meets tol and ns+1 not.
+  {
+    int checked = 0, failed = 0;
+    for (const double eps : {(double)std::numeric_limits<float>::epsilon(),
+                             std::numeric_limits<double>::epsilon()})
+      for (int dim = 1; dim <= 3; ++dim)
+        for (int k = 1; k <= 15; ++k)
+          for (int ns = 2; ns < 16; ++ns) {
+            const double tol = std::pow(10.0, -k);
+            const double hi  = min_sigma_for_deconv_error(tol, dim, ns + 1, eps);
+            if (!(hi > 1.0 && std::isfinite(hi))) continue;
+            const double m = (min_sigma_for_deconv_error(tol, dim, ns, eps) + hi) / 2;
+            auto err       = [&](int w) {
+              return dim * eps *
+                     std::exp(PI * w * (1 - 1 / (2 * m) - std::sqrt(1 - 1 / m)));
+            };
+            ++checked;
+            failed += !(err(ns) <= tol && err(ns + 1) > tol);
+          }
+    if (checked == 0 || failed) { // an empty sweep proves nothing
+      printf("fail: min_sigma_for_deconv_error is off the edge in %d of %d cells\n",
+             failed, checked);
+      return 1;
+    }
+    printf("min_sigma_for_deconv_error: edge holds in %d cells\n", checked);
+  }
+
 #ifdef SINGLE
   printf("testutilsf passed.\n");
 #else

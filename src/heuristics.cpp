@@ -70,24 +70,28 @@ double FINUFFT_PLAN_T<TF>::best_sigma_for_tol(int type,
   const auto tol          = m.tol;
   auto sigma              = std::numeric_limits<double>::infinity();
   auto flops              = std::numeric_limits<double>::infinity();
-  int ns                  = is_float ? MAX_NSPREAD<float> : MAX_NSPREAD<double>;
-  auto compute_flops      = [&](double sigma_here) {
-    // price the ns the plan will use at sigma_here, as setup_spreadinterp sets it
-    const int ns_plan = clamp_kernel_ns(theoretical_kernel_ns(tol, dim, type, sigma_here),
-                                        sigma_here, dim, is_float);
-    return type == 3 ? flops_type3(ns_plan, sigma_here)
-                     : flops_type12(ns_plan, sigma_here, nmodes);
+  const int max_ns        = is_float ? MAX_NSPREAD<float> : MAX_NSPREAD<double>;
+  auto compute_flops      = [&](double sigma_ns) {
+    // price the ns the plan will use at sigma_ns, as setup_spreadinterp sets it
+    const int ns_plan = clamp_kernel_ns(theoretical_kernel_ns(tol, dim, type, sigma_ns),
+                                        sigma_ns, dim, is_float);
+    return type == 3 ? flops_type3(ns_plan, sigma_ns)
+                     : flops_type12(ns_plan, sigma_ns, nmodes);
   };
-  for (; ns > 1; --ns) {
+  for (int ns = 2; ns <= max_ns; ++ns) {
     const auto sigma_alias = min_sigma_for_aliasing_error(tol, dim, type, ns);
     const auto sigma_deconv = min_sigma_for_deconv_error(tol, dim, ns, eps_mach);
-    const auto sigma_here   = std::max({sigma_alias, sigma_deconv, MIN_AUTO_UPSAMPFAC});
+    const auto sigma_ns     = std::max({sigma_alias, sigma_deconv, MIN_AUTO_UPSAMPFAC});
+    if (opts.debug > 1)
+      printf("[%s] ns=%d: sigma_alias=%.3g sigma_deconv=%.3g sigma_ns=%.3g\n", __func__,
+             ns, sigma_alias, sigma_deconv, sigma_ns);
     // also skips infinity; continue because sigma is not really monotone in ns.
-    if (sigma_here > MAX_AUTO_UPSAMPFAC) continue;
-    const auto flops_here = compute_flops(sigma_here);
-    if (flops_here < flops) {
-      flops = flops_here;
-      sigma = sigma_here;
+    if (sigma_ns > MAX_AUTO_UPSAMPFAC) continue;
+    const auto flops_ns = compute_flops(sigma_ns);
+    if (opts.debug > 1) printf("[%s] ns=%d: flops_ns=%.3g\n", __func__, ns, flops_ns);
+    if (flops_ns < flops) {
+      flops = flops_ns;
+      sigma = sigma_ns;
     }
   }
   return sigma;
