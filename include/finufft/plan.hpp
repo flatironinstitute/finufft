@@ -82,7 +82,7 @@ private:
 
   // Type 3 rescaling/centering/phasing parameters:
   struct type3params {
-    std::array<TF, 3> X, S, C, D, h, gam; // X,S=halfwid C=center D=freqcen h,gam=rescale
+    std::array<TF, 3> X, C, D, h, gam; // X=halfwid C=center D=freqcen h,gam=rescale
   };
 
   int spreadinterpSortedBatch(int batchSize, std::complex<TF> *fwBatch,
@@ -181,7 +181,7 @@ private:
   void check_sigma(double mode_diagonal);
   double best_sigma_for_tol(int type, const std::array<double, 3> &nmodes) const;
   double flops_type12(int ns, double sigma, const std::array<double, 3> &nmodes) const;
-  double flops_type3(int ns, double sigma) const;
+  double flops_type3(int ns, double sigma, const std::array<double, 3> &S) const;
   void precompute_horner_coeffs();
   void set_nf_type12(BIGINT ms, BIGINT *nf) const;
   void onedim_fseries_kernel(BIGINT nf, std::vector<TF> &fwkerhalf) const;

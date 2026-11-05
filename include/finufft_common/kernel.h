@@ -73,13 +73,8 @@ std::function<double(double)> kernel_definition_lambda(const finufft_spread_opts
 
 int theoretical_kernel_ns(double tol, int dim, int type, double sigma);
 
-// Smallest sigma whose aliasing error tolfac*exp(-pi*(ns-NSOFF)*sqrt(1-1/sigma)) meets
-// tol, the inverse of theoretical_kernel_ns. Infinity if none.
 double min_sigma_for_aliasing_error(double tol, int dim, int type, int ns);
 
-// Smallest sigma whose deconvolution error
-// dim*eps_mach*exp(pi*ns*(1 - 1/(2 sigma) - sqrt(1-1/sigma))) meets tol ([FIN] (3.21)).
-// Infinity if none.
 double min_sigma_for_deconv_error(double tol, int dim, int ns, double eps_mach);
 
 // Clamp a theoretical kernel width to the width the plan will actually use: clip to

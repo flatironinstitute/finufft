@@ -149,8 +149,7 @@ int FINUFFT_PLAN_T<TF>::setpts(BIGINT nj, const TF *xj, const TF *yj, const TF *
 
     // pick x, s interval half-widths & shifts/centers (all sigma-independent, so
     // computed before choosing the upsampfac)...
-    auto &S = m.t3P.S;
-    S       = {0, 0, 0};
+    std::array<TF, 3> S = {0, 0, 0};
     if (opts.debug) printf("\tM=%lld N=%lld\n", (long long)nj, (long long)nk);
     for (int idim = 0; idim < dim; ++idim) {
       // special treatment of nj==0/nk==0, because arraywidcen doesn't work in that case
@@ -167,8 +166,9 @@ int FINUFFT_PLAN_T<TF>::setpts(BIGINT nj, const TF *xj, const TF *yj, const TF *
     // For type 3 with deferred upsampfac (not locked by user), pick & persist
     // sigma3 now, so set_nhg_type3 and the inner t2 plan use it.
     if (!upsamp_locked) {
-      double upsampfac = best_sigma_for_tol(type, {});
-      // no sigma meets tol: plan at the widest sigma, check_sigma reports it
+      double upsampfac =
+          best_sigma_for_tol(type, {(double)S[0], (double)S[1], (double)S[2]});
+      // no sigma meets tol: plan at the widest sigma
       if (!std::isfinite(upsampfac)) upsampfac = finufft::common::MAX_AUTO_UPSAMPFAC;
       if (upsampfac != opts.upsampfac) {
         opts.upsampfac = upsampfac;
@@ -178,6 +178,7 @@ int FINUFFT_PLAN_T<TF>::setpts(BIGINT nj, const TF *xj, const TF *yj, const TF *
         precompute_horner_coeffs();
       }
     }
+    // A user-locked type-3 upsampfac is used as given: type 3 has no check_sigma.
 
     // ...then # fine grid pts (nf) per dim, now that sigma3 (and hence ns) is fixed.
     for (int idim = 0; idim < dim; ++idim) {
@@ -198,19 +199,6 @@ int FINUFFT_PLAN_T<TF>::setpts(BIGINT nj, const TF *xj, const TF *yj, const TF *
               __func__);
       throw finufft::exception(FINUFFT_ERR_MAXNALLOC);
     }
-    // The inner type 2 has nfdim modes. The pre- and post-phases use the raw x, s,
-    // which off-centre data make larger than the half-widths X, S by
-    // max|x|/X = (|C|+X)/X and max|s|/S = (|D|+S)/S..
-    double mode_diagonal = 0.0;
-    for (int idim = 0; idim < dim; ++idim) {
-      const double X = m.t3P.X[idim], max_x = std::abs(m.t3P.C[idim]) + X;
-      const double max_s = std::abs(m.t3P.D[idim]) + S[idim];
-      double n           = m.nfdim[idim];
-      if (X * S[idim] > 0) n *= max_x * max_s / (X * S[idim]);
-      mode_diagonal += n * n;
-    }
-    // Throws FINUFFT_ERR_EPS_TOO_SMALL if tol is not achievable
-    check_sigma(std::sqrt(mode_diagonal));
 
     // alloc rescaled NU src pts x'_j (in X etc), rescaled NU targ pts s'_k ...
     // We do this by resizing Xp, Yp, and Zp, and pointing X, Y, Z to their data;

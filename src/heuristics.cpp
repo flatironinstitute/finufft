@@ -44,13 +44,14 @@ double FINUFFT_PLAN_T<TF>::flops_type12(int ns, double sigma,
 }
 
 // Type 3: spread nj sources onto the nhg_type3 grid, then the inner type 2 to nk
-// targets at its own best sigma.
-template<typename TF> double FINUFFT_PLAN_T<TF>::flops_type3(int ns, double sigma) const {
+// targets at its own best sigma. S holds the target half-widths.
+template<typename TF>
+double FINUFFT_PLAN_T<TF>::flops_type3(int ns, double sigma,
+                                       const std::array<double, 3> &S) const {
   const bool is_float = std::is_same_v<TF, float>;
   std::array<double, 3> nf{1.0, 1.0, 1.0};
   for (int idim = 0; idim < dim; ++idim)
-    nf[idim] =
-        (double)std::get<0>(nhg_type3(sigma, m.t3P.X[idim], m.t3P.S[idim], ns, MAX_NF));
+    nf[idim] = (double)std::get<0>(nhg_type3(sigma, m.t3P.X[idim], S[idim], ns, MAX_NF));
   const double sigma2 = best_sigma_for_tol(2, nf);
   if (!std::isfinite(sigma2)) return std::numeric_limits<double>::infinity();
   const int ns2 = clamp_kernel_ns(theoretical_kernel_ns(m.tol, dim, 2, sigma2), sigma2,
@@ -59,8 +60,8 @@ template<typename TF> double FINUFFT_PLAN_T<TF>::flops_type3(int ns, double sigm
 }
 
 // Fewest-flops sigma in [MIN_AUTO_UPSAMPFAC, MAX_AUTO_UPSAMPFAC] that meets tol, or
-// infinity if none does. Type 1/2 prices the nmodes grid; type 3 reads X, S from the
-// plan and ignores nmodes.
+// infinity if none does. nmodes holds the mode counts for type 1/2 and the target
+// half-widths S for type 3.
 template<typename TF>
 double FINUFFT_PLAN_T<TF>::best_sigma_for_tol(int type,
                                               const std::array<double, 3> &nmodes) const {
@@ -75,7 +76,7 @@ double FINUFFT_PLAN_T<TF>::best_sigma_for_tol(int type,
     // price the ns the plan will use at sigma_ns, as setup_spreadinterp sets it
     const int ns_plan = clamp_kernel_ns(theoretical_kernel_ns(tol, dim, type, sigma_ns),
                                         sigma_ns, dim, is_float);
-    return type == 3 ? flops_type3(ns_plan, sigma_ns)
+    return type == 3 ? flops_type3(ns_plan, sigma_ns, nmodes)
                      : flops_type12(ns_plan, sigma_ns, nmodes);
   };
   for (int ns = 2; ns <= max_ns; ++ns) {
