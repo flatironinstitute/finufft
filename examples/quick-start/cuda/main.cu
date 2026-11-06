@@ -13,11 +13,11 @@
 
 int main() {
   const int M = 100000, N = 1000; // nonuniform points, modes
-  const double tol = 1e-9, pi = 3.14159265358979323846;
+  constexpr double tol = 1e-9, PI = 3.141592653589793238462643383279502884;
   const std::complex<double> I(0.0, 1.0);
 
   std::mt19937 rng(12345); // fixed seed: reproducible example output
-  std::uniform_real_distribution<double> upi(-pi, pi), u1(-1.0, 1.0);
+  std::uniform_real_distribution<double> upi(-PI, PI), u1(-1.0, 1.0);
   std::vector<double> x(M);
   std::vector<std::complex<double>> c(M), F(N);
   std::generate(x.begin(), x.end(), [&] { return upi(rng); });

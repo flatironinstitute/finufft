@@ -1,15 +1,22 @@
-Examples of cuFINUFFT usage in C++ and Python
+Examples of cuFINUFFT usage in C++. Each is built and run as a test (ctest -R example_)
+and exits nonzero on an accuracy error, NaN or Inf.
 
-Here we show 2D transforms of type 1 and 2, being performed, and tested,
-in C++, and in Python. In each case, a batch of transforms is done with
-new coefficients or weights, but the same set of nonuniform points; this
-explains the suffix "many" in the code names. You may set ntransf=1 to
-perform a single transform. Default options are used. In each case the
-four steps (plan, setpts, execute, destroy) are used. A math test is also
-performed; see the FINUFFT documentation for the definitions of the
-transforms: https://finufft.readthedocs.io/en/latest/math.html
+getting_started.cpp     1D type 1, single precision, plan interface (the docs walkthrough)
+simple1d1.cu           1D type 1, simple interface, double precision
+simple1d1f.cu          1D type 1, simple interface, single precision
+simple2d1.cu           2D type 1, simple interface
+many1d1.cu             1D type 1, simple interface, many transforms with the same points
+guru1d1.cu             1D type 1, guru (plan) interface, double precision
+guru1d1f.cu            1D type 1, guru (plan) interface, single precision
+guru2d1.cu             2D type 1, guru (plan) interface
+gurumany1d1.cu         1D type 1, guru (plan) interface, many transforms
+example2d1many.cu      2D type 1, batch of transforms with the same points, single precision
+example2d2many.cu      2D type 2, batch of transforms with the same points, double precision
+example2d3many.cu      2D type 3, batch of transforms with the same points, double precision
+simulplans1d1.cu       1D type 1, two plans alive at once
+spreadinterponly1d.cu  1D spread-only and interpolate-only (gpu_spreadinterponly) tasks
+threadsafe1d1.cu       1D type 1, one plan and CUDA stream per thread
+threadsafe2d2f.cu      2D type 2, single precision, one plan and CUDA stream per thread
 
-For more usage examples see:
-
-../test/cufinufft*.cu
-../python/cufinufft/tests/*.py
+See ../../python/cufinufft/examples for Python and ../../matlab/examples/cuda for MATLAB.
+More usage examples: ../../test/cuda/cufinufft*.cu

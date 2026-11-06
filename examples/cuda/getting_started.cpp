@@ -17,55 +17,48 @@
 
  */
 
+// docs-start: getting_started-includes
 #include <complex.h>
 #include <cuComplex.h>
-#include <cuda_runtime.h>
 #include <cufinufft.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
+// docs-end: getting_started-includes
 
-static const double PI = 3.141592653589793238462643383279502884;
+constexpr double PI = 3.141592653589793238462643383279502884;
+
+#include <cuda_runtime.h>
 
 int main() {
-  // Problem size: number of nonuniform points (M) and grid size (N).
-  const int M = 100000, N = 10000;
+  // docs-start: getting_started-main
+  const int M = 100000, N = 10000; // number of NU points, grid size
 
-  // Size of the grid as an array.
-  int64_t modes[1] = {N};
+  int64_t modes[1] = {N};          // grid size as an array
 
-  // Host pointers: frequencies (x), coefficients (c), and output (f).
-  float *x;
-  float _Complex *c;
-  float _Complex *f;
+  float *x;                        // NU points
+  float _Complex *c;               // strengths
+  float _Complex *f;               // output
 
-  // Device pointers.
-  float *d_x;
+  float *d_x;                      // device (GPU) pointers
   cuFloatComplex *d_c, *d_f;
 
-  // Store cufinufft plan.
   cufinufftf_plan plan;
 
-  // Manual calculation at a single point idx.
-  int idx;
+  int idx; // for the check at one index
   float _Complex f0;
 
-  // Allocate the host arrays.
   x = (float *)malloc(M * sizeof(float));
   c = (float _Complex *)malloc(M * sizeof(float _Complex));
   f = (float _Complex *)malloc(N * sizeof(float _Complex));
 
-  // Fill with random numbers. Frequencies must be in the interval [-pi, pi)
-  // while strengths can be any value.
   srand(0);
 
-  for (int j = 0; j < M; ++j) {
-    x[j] = 2 * PI * (((float)rand()) / RAND_MAX - 1);
-    c[j] =
-        (2 * ((float)rand()) / RAND_MAX - 1) + I * (2 * ((float)rand()) / RAND_MAX - 1);
+  for (int j = 0; j < M; ++j) { // x is 2pi-periodic, c is any
+    x[j] = 2 * PI * ((float)rand() / RAND_MAX - 1);
+    c[j] = (2 * (float)rand() / RAND_MAX - 1) + I * (2 * (float)rand() / RAND_MAX - 1);
   }
 
-  // Allocate the device arrays and copy the x and c arrays.
   cudaMalloc(&d_x, M * sizeof(float));
   cudaMalloc(&d_c, M * sizeof(float _Complex));
   cudaMalloc(&d_f, N * sizeof(float _Complex));
@@ -73,50 +66,52 @@ int main() {
   cudaMemcpy(d_x, x, M * sizeof(float), cudaMemcpyHostToDevice);
   cudaMemcpy(d_c, c, M * sizeof(float _Complex), cudaMemcpyHostToDevice);
 
-  // Make the cufinufft plan for a 1D type-1 transform with six digits of
-  // tolerance. Any ier above 1 is an error; 1 is a warning and the result is
-  // still usable.
+  // type 1, 1D, +, 1 transf, tol
   int ier = cufinufftf_makeplan(1, 1, modes, 1, 1, 1e-6, &plan, NULL);
   if (ier > 0) return ier;
 
-  // Set the frequencies of the nonuniform points.
   ier = cufinufftf_setpts(plan, M, d_x, NULL, NULL, 0, NULL, NULL, NULL);
   if (ier > 0) return ier;
 
-  // Actually execute the plan on the given coefficients and store the result
-  // in the d_f array.
   ier = cufinufftf_execute(plan, d_c, d_f);
   if (ier > 0) return ier;
 
-  // Copy the result back onto the host.
   cudaMemcpy(f, d_f, N * sizeof(float _Complex), cudaMemcpyDeviceToHost);
 
-  // Destroy the plan and free the device arrays after we're done.
   cufinufftf_destroy(plan);
 
   cudaFree(d_x);
   cudaFree(d_c);
   cudaFree(d_f);
 
-  // Pick an index to check the result of the calculation.
   idx = 4 * N / 7;
 
   printf("f[%d] = %lf + %lfi\n", idx, crealf(f[idx]), cimagf(f[idx]));
 
-  // Calculate the result manually using the formula for the type-1
-  // transform.
-  f0 = 0;
+  f0 = 0; // direct type-1 sum, to compare
 
   for (int j = 0; j < M; ++j) {
     f0 += c[j] * cexp(I * x[j] * (idx - N / 2));
   }
 
   printf("f0[%d] = %lf + %lfi\n", idx, crealf(f0), cimagf(f0));
+  // docs-end: getting_started-main
 
-  // Finally free the host arrays.
+  // Fail on a CUDA error, nonfinite output, or relative error above 1e-3.
+  // The single-precision direct sum above is only good to about 1e-4.
+  const float maxerr = 1e-3f;
+  float Fmax         = 0.0f;
+  for (int m = 0; m < N; ++m) {
+    const float a = cabsf(f[m]);
+    if (a > Fmax || !isfinite(a)) Fmax = a; // a NaN entry makes Fmax NaN
+  }
+  const float err = cabsf(f[idx] - f0) / Fmax;
+  printf("getting_started: rel err in f[%d] is %.3g\n", idx, err);
+  const bool ok = cudaGetLastError() == cudaSuccess && isfinite(Fmax) && err <= maxerr;
+
   free(x);
   free(c);
   free(f);
 
-  return 0;
+  return ok ? 0 : 1;
 }

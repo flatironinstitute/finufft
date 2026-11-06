@@ -89,130 +89,18 @@ Getting started
 Let us consider applying a 1D type-1 transform in single precision.
 First we need to include some headers
 
-.. code-block:: c
+.. literalinclude:: ../examples/cuda/getting_started.cpp
+  :language: c
+  :start-after: docs-start: getting_started-includes
+  :end-before: docs-end: getting_started-includes
 
-    #include <cufinufft.h>
-    #include <stdlib.h>
-    #include <stdio.h>
-    #include <math.h>
-    #include <complex.h>
-    #include <cuComplex.h>
+Then, inside our ``main`` function, we do the transform and check one output against the type-1 NUDFT formula:
 
-Inside our ``main`` function, we first define the problem parameters and some pointers for the data arrays:
-
-.. code-block:: c
-
-    const int M = 100000, N = 10000;
-
-    int64_t modes[1] = {N};
-
-    float *x;
-    float _Complex *c;
-    float _Complex *f;
-
-Here ``M`` is the number of nonuniform points, ``N`` is the size of our 1D grid. cuFINUFFT expets the grid size to be given as an array, so we also define the ``modes`` integer array. Finally we have the nonuniform points ``x``, the coefficients (or strengths) ``c`` and the output values ``f`` on the grid.
-
-Note that we are using the ``float _Complex`` type here to remain compatible with both C and C++.
-For the former, we can use ``float complex`` while the latter would accept ``std::complex<float>`` instead.
-
-We also define the corresponding data pointers on the device (GPU) as well as the cuFINUFFT plan:
-
-.. code-block:: c
-
-    float *d_x;
-    cuFloatComplex *d_c, *d_f;
-
-    cufinufftf_plan plan;
-
-Finally, we'll need some variables to compute the NUDFT at some arbitrary point to check the accuracy of the cuFINUFFT call:
-
-.. code-block:: c
-
-    int idx;
-    float _Complex f0;
-
-Now the actual work can begin. First, we allocate the host (CPU) arrays and fill the ``x`` and ``c`` arrays with appropriate values (``f`` will hold the output of the cuFINUFFT call). The frequencies in ``x`` are interpreted with periodicity :math:`2\pi`, while the coefficients ``c`` can be any value. Here we draw the frequencies and coefficients from the uniform distributions on :math:`[-\pi, \pi]` and :math:`[-1, 1]^2` respectively.
-
-.. code-block:: c
-
-    x = (float *) malloc(M * sizeof(float));
-    c = (float _Complex *) malloc(M * sizeof(float _Complex));
-    f = (float _Complex *) malloc(N * sizeof(float _Complex));
-
-    srand(0);
-
-    for(int j = 0; j < M; ++j) {
-        x[j] = 2 * M_PI * (((float) rand()) / RAND_MAX - 1);
-        c[j] = (2 * ((float) rand()) / RAND_MAX - 1)
-               + I * (2 * ((float) rand()) / RAND_MAX - 1);
-    }
-
-Now that the data is generated, we must transfer it to the device. For this, we first allocate the necessary arrays using ``cudaMalloc`` and then transfer the data using ``cudaMemcpy``.
-
-.. code-block:: c
-
-    cudaMalloc(&d_x, M * sizeof(float));
-    cudaMalloc(&d_c, M * sizeof(float _Complex));
-    cudaMalloc(&d_f, N * sizeof(float _Complex));
-
-    cudaMemcpy(d_x, x, M * sizeof(float), cudaMemcpyHostToDevice);
-    cudaMemcpy(d_c, c, M * sizeof(float _Complex), cudaMemcpyHostToDevice);
-
-It's finally time to put cuFINUFFT to work. First, we create a plan using ``cufinufftf_makeplan`` (the prefix ``cufinufftf_`` is replaced with ``cufinufft_`` when working in double precision).
-
-.. code-block:: c
-
-    cufinufftf_makeplan(1, 1, modes, 1, 1, 1e-6, &plan, NULL);
-
-The first argument gives the type, while the second gives the number of dimensions. After this, we have the grid size as an integer array, followed by the sign in the complex exponential (here positive) and the number of transforms to compute simultaneously (here just one). Then there's the tolerance (six digits) and finally there's a pointer to the plan and a non-mandatory options structure.
-
-Once the plan is created, we set the points and execute the plan.
-
-.. code-block:: c
-
-    cufinufftf_setpts(plan, M, d_x, NULL, NULL, 0, NULL, NULL, NULL);
-
-    cufinufftf_execute(plan, d_c, d_f);
-
-Once the results are calculated, we transfer the data back onto the host, destroy the plan, and free the device arrays.
-
-.. code-block:: c
-
-    cudaMemcpy(f, d_f, N * sizeof(float _Complex), cudaMemcpyDeviceToHost);
-
-    cufinufftf_destroy(plan);
-
-    cudaFree(d_x);
-    cudaFree(d_c);
-    cudaFree(d_f);
-
-The result is now in the host array ``f`` and we can print out its value at a particular index.
-
-.. code-block:: c
-
-    idx = 4 * N / 7;
-
-    printf("f[%d] = %lf + %lfi\n", idx, crealf(f[idx]), cimagf(f[idx]));
-
-If we want, we can complare this to the value obtained using the type-1 NUDFT formula.
-
-.. code-block:: c
-
-    f0 = 0;
-
-    for(int j = 0; j < M; ++j) {
-        f0 += c[j] * cexp(I * x[j] * (idx - N / 2));
-    }
-
-    printf("f0[%d] = %lf + %lfi\n", idx, crealf(f0), cimagf(f0));
-
-Finally, we'll want to deallocate the arrays once we're done with them.
-
-.. code-block:: c
-
-    free(x);
-    free(c);
-    free(f);
+.. literalinclude:: ../examples/cuda/getting_started.cpp
+  :language: c
+  :dedent: 2
+  :start-after: docs-start: getting_started-main
+  :end-before: docs-end: getting_started-main
 
 The complete listing can be found in ``examples/cuda/getting_started.cpp``.
 
