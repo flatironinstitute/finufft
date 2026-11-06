@@ -15,6 +15,7 @@ c     gfortran nufft1d_demo.f ../directft/dirft1d.f -o nufft1d_demo
 c     ../../lib-static/libfinufft.a -lstdc++ -lfftw3 -lfftw3_omp -lm -fopenmp
 c
       program nufft1d_demo
+      use, intrinsic :: ieee_arithmetic, only: ieee_is_finite
       implicit none
 
 c     our fortran-header, always needed
@@ -25,7 +26,7 @@ c
       integer i,ier,iflag,j,k1,mx
       integer*8 ms,nj
       real*8, allocatable :: xj(:),sk(:)
-      real*8 err,eps,pi
+      real*8 err,maxerr,tol,pi
       parameter (pi=3.141592653589793238462643383279502884197d0)
       complex*16, allocatable :: cj(:),cj0(:),cj1(:),fk0(:),fk1(:)
 c     for default opts, make a null pointer...
@@ -56,35 +57,48 @@ c     start tests
 c     --------------------------------------------------
 c
       iflag = 1
-      print*,' Start 1D testing: ', ' nj =',nj, ' ms =',ms
+      maxerr = 0d0
       do i = 1,4
-         if (i.eq.1) eps=1d-3
-         if (i.eq.2) eps=1d-6
-         if (i.eq.3) eps=1d-9
-         if (i.eq.4) eps=1d-12
-	 print*,' '
-  	 print*,' Requested precision eps =',eps
-	 print*,' '
+         if (i.eq.1) tol=1d-3
+         if (i.eq.2) tol=1d-6
+         if (i.eq.3) tol=1d-9
+         if (i.eq.4) tol=1d-12
 c
 c     -----------------------
 c     call 1D Type1 method
 c     -----------------------
 c
          call dirft1d1(nj,xj,cj,iflag, ms,fk0)
-         call finufft1d1(nj,xj,cj,iflag,eps,ms,fk1,defopts,ier)
+         call finufft1d1(nj,xj,cj,iflag,tol,ms,fk1,defopts,ier)
+         if (ier.ne.0) then
+            print *, 'FAILED: finufft1d1 ier is not 0'
+            stop 1, quiet=.true.
+         endif
          call errcomp(fk0,fk1,ms,err)
-         print *,' ier = ',ier
-         print *,' type 1 error = ',err
+         if (.not.ieee_is_finite(sum(abs(fk1))) .or.
+     $        .not.(err.le.10*tol)) then
+            print *, 'FAILED: type 1 rel err too large, or NaN or Inf'
+            stop 1, quiet=.true.
+         endif
+         maxerr = max(maxerr,err)
 c
 c     -----------------------
 c     call 1D Type2 method
 c     -----------------------
 c
          call dirft1d2(nj,xj,cj0,iflag, ms,fk0,ier)
-         call finufft1d2(nj,xj,cj1,iflag, eps, ms,fk0,defopts,ier)
+         call finufft1d2(nj,xj,cj1,iflag, tol, ms,fk0,defopts,ier)
+         if (ier.ne.0) then
+            print *, 'FAILED: finufft1d2 ier is not 0'
+            stop 1, quiet=.true.
+         endif
          call errcomp(cj0,cj1,nj,err)
-         print *,' ier = ',ier
-         print *,' type 2 error = ',err
+         if (.not.ieee_is_finite(sum(abs(cj1))) .or.
+     $        .not.(err.le.10*tol)) then
+            print *, 'FAILED: type 2 rel err too large, or NaN or Inf'
+            stop 1, quiet=.true.
+         endif
+         maxerr = max(maxerr,err)
 c
 c     -----------------------
 c     call 1D Type3 method
@@ -93,12 +107,20 @@ c     -----------------------
             sk(k1) = 48*dcos(k1*pi/ms)
          enddo
          call dirft1d3(nj,xj,cj,iflag, ms,sk,fk0)
-         call finufft1d3(nj,xj,cj,iflag,eps, ms,sk,fk1,defopts,ier)
-         call errcomp(cj0,cj1,nj,err)
-         print *,' ier = ',ier
-         print *,' type 3 error = ',err
+         call finufft1d3(nj,xj,cj,iflag,tol, ms,sk,fk1,defopts,ier)
+         if (ier.ne.0) then
+            print *, 'FAILED: finufft1d3 ier is not 0'
+            stop 1, quiet=.true.
+         endif
+         call errcomp(fk0,fk1,ms,err)
+         if (.not.ieee_is_finite(sum(abs(fk1))) .or.
+     $        .not.(err.le.10*tol)) then
+            print *, 'FAILED: type 3 rel err too large, or NaN or Inf'
+            stop 1, quiet=.true.
+         endif
+         maxerr = max(maxerr,err)
       enddo
-      stop
+      print '("max rel err = ",e10.2)',maxerr
       end
 c
 c
@@ -109,14 +131,10 @@ c
       implicit none
       integer*8 k,n
       complex*16 fk0(n), fk1(n)
-      real *8 salg,ealg,err
+      real *8 fmax,emax,err
 c
-      ealg = 0d0
-      salg = 0d0
-      do k = 1, n
-         ealg = ealg + cdabs(fk1(k)-fk0(k))**2
-         salg = salg + cdabs(fk0(k))**2
-      enddo
-      err =sqrt(ealg/salg)
+      emax = maxval(abs(fk1-fk0))
+      fmax = maxval(abs(fk1))
+      err = emax/fmax
       return
       end

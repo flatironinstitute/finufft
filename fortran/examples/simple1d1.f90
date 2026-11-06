@@ -14,14 +14,18 @@ program simple1d1
 
   ! use the module (which happens to live in ../../include)
   use finufft_mod
+  use, intrinsic :: ieee_arithmetic, only: ieee_is_finite
 
   implicit none
 
+  ! fmax is the max abs of the FINUFFT output, used only by the accuracy check
+  real*8 fmax
+
   ! note some inputs are int (int*4) but others BIGINT (int*8)
   integer ier,iflag
-  integer*8 N,ktest,M,j,k,ktestindex,t1,t2,crate
+  integer*8 N,ktest,M,j,k,ktestindex
   real*8, allocatable :: xj(:)
-  real*8 err,tol,pi,fmax,t
+  real*8 err,tol,pi
   parameter (pi=3.141592653589793238462643383279502884197d0)
   complex*16, allocatable :: cj(:),fk(:)
   complex*16 fktest
@@ -39,15 +43,12 @@ program simple1d1
   allocate(fk(N))
   allocate(xj(M))
   allocate(cj(M))
-  print *,''
-  print *,'creating data then run simple interface, default opts...'
   ! create some quasi-random NU pts in [-pi, pi), complex strengths
   do j = 1,M
      xj(j) = pi * dcos(pi*j/M)
      cj(j) = dcmplx( dsin((100d0*j)/M), dcos(1.0+(50d0*j)/M))
   enddo
 
-  call system_clock(t1)
   ! mandatory parameters to FINUFFT: sign of +-i in NUFFT
   iflag = 1
   ! tolerance
@@ -55,12 +56,9 @@ program simple1d1
   ! Do transform: writes to fk (mode coeffs), and ier (status flag).
   ! use default options:
   call finufft1d1(M,xj,cj,iflag,tol,N,fk,defopts,ier)
-  call system_clock(t2,crate)
-  t = (t2-t1)/float(crate)
-  if (ier.eq.0) then
-     print '("done in ",f6.3," sec, ",e10.2," NU pts/s")',t,M/t
-  else
-     print *,'failed! ier=',ier
+  if (ier.ne.0) then
+     print *, 'FAILED: finufft1d1 ier is not 0'
+     stop 1, quiet=.true.
   endif
 
   ! math test: single output mode with given freq (not array index) k
@@ -71,32 +69,32 @@ program simple1d1
           dsin(iflag*ktest*xj(j)) )
   enddo
   ! compute inf norm of fk coeffs for use in rel err
-  fmax = 0
-  do k=1,N
-     fmax = max(fmax,cdabs(fk(k)))
-  enddo
+  fmax = maxval(abs(fk))
+  ! maxval skips NaN, so check the sum over all outputs
   ktestindex = ktest + N/2 + 1
-  print '("rel err for mode k=",i10," is ",e10.2)',ktest, &
-       cdabs(fk(ktestindex)-fktest)/fmax
-
-  ! do another transform, but now first setting some options...
-  print *,''
-  print *, 'setting new options, rerun simple interface...'
-  call finufft_default_opts(opts)
-  ! fields of derived type opts may be queried/set as usual...
-  opts%debug = 2
-  opts%upsampfac = 1.25d0
-  print *,'first list our new set of opts vals (cf finufft_opts.h):'
-  print *,opts
-  call system_clock(t1)
-  call finufft1d1(M,xj,cj,iflag,tol,N,fk,opts,ier)
-  call system_clock(t2,crate)
-  t = (t2-t1)/float(crate)
-  if (ier.eq.0) then
-     print '("done in ",f6.3," sec, ",e10.2," NU pts/s")',t,M/t
-  else
-     print *,'failed! ier=',ier
+  err = cdabs(fk(ktestindex)-fktest)/fmax
+  ! (written so that a NaN err also fails)
+  if (.not.ieee_is_finite(sum(abs(fk))) .or. &
+       .not.(err.le.10*tol)) then
+     print *, 'FAILED: rel err too large, or NaN or Inf in output'
+     stop 1, quiet=.true.
   endif
 
-  stop
+  ! do another transform, but now first setting some options...
+  call finufft_default_opts(opts)
+  ! fields of derived type opts may be queried/set as usual...
+  opts%upsampfac = 1.25d0
+  call finufft1d1(M,xj,cj,iflag,tol,N,fk,opts,ier)
+  if (ier.ne.0) then
+     print *, 'FAILED: finufft1d1 ier is not 0'
+     stop 1, quiet=.true.
+  endif
+  fmax = maxval(abs(fk))
+  err = cdabs(fk(ktestindex)-fktest)/fmax
+  if (.not.ieee_is_finite(sum(abs(fk))) .or. &
+       .not.(err.le.10*tol)) then
+     print *, 'FAILED: rel err too large, or NaN or Inf in output'
+     stop 1, quiet=.true.
+  endif
+  print '("rel err = ",e10.2)',err
 end program simple1d1
