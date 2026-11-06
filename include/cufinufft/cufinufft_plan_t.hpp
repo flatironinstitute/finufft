@@ -143,13 +143,18 @@ public:
   using Base      = thrust::device_malloc_allocator<T>;
   using pointer   = typename Base::pointer;
   using size_type = typename Base::size_type;
+  using system_type = decltype(thrust::cuda::par_nosync.on(cudaStream_t{}));
 
 private:
   cudaStream_t stream;
   int deviceID;
   bool pool;
+  system_type policy = thrust::cuda::par_nosync.on(stream);
 
 public:
+  // Sets a device_vector's execution stream to the allocator's
+  __host__ __device__ system_type &system() { return policy; }
+
   // Prefer explicit stream; no default ctor needed if you always pass alloc to
   // device_vector
   template<typename U> friend struct ThrustAllocatorAsync;
