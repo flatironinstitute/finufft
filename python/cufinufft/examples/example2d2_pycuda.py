@@ -53,9 +53,13 @@ for i in range(n_transf):
 
     # Calculate the absolute and relative error.
     err = np.abs(c[i, jt] - c_true)
-    rel_err = err / np.max(np.abs(c[i]))
+    Fmax = np.max(np.abs(c[i]))
+    if not np.isfinite(Fmax):
+        raise SystemExit(f"FAILED: max |c[{i}]| is not finite: {Fmax:.3g}")
+    rel_err = err / Fmax
 
     print(f"[{i}] Absolute error on point [{jt}] is {err:.3g}")
     print(f"[{i}] Relative error on point [{jt}] is {rel_err:.3g}")
 
-    assert rel_err < 15 * eps
+    if rel_err > 15 * eps:
+        raise SystemExit(f"FAILED: rel err {rel_err:.3g} exceeds 15*eps")

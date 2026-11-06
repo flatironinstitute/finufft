@@ -32,26 +32,10 @@ If you would like to compile from source, see :ref:`the Python installation inst
 
 Once installed, to calculate a 1D type 1 transform from nonuniform to uniform points, we import ``finufft``, specify the nonuniform points ``x``, their strengths ``c``, and call ``nufft1d1``:
 
-.. code-block:: python
-
-    import numpy as np
-    import finufft
-
-    # number of nonuniform points
-    M = 100000
-
-    # the nonuniform points
-    x = 2 * np.pi * np.random.uniform(size=M)
-
-    # their complex strengths
-    c = (np.random.standard_normal(size=M)
-        + 1J * np.random.standard_normal(size=M))
-
-    # desired number of Fourier modes (uniform outputs)
-    N = 200000
-
-    # calculate the transform
-    f = finufft.nufft1d1(x, c, N)
+.. literalinclude:: ../python/finufft/examples/simple1d1.py
+  :language: python
+  :start-after: docs-start: simple1d1
+  :end-before: docs-end: simple1d1
 
 The input here is a set of complex strengths ``c``, which are used to approximate (1) in :ref:`math`.
 That approximation is stored in ``f``, which is indexed from ``-N // 2`` up to ``N // 2 - 1`` (since ``N`` is even; if odd it would be ``-(N - 1) // 2`` up to ``(N - 1) // 2``).
@@ -72,18 +56,10 @@ instead, pass ``allow_eps_too_small=1``.
 
 For higher dimensions, we would specify point locations in more than one dimension:
 
-.. code-block:: python
-
-    # 2D nonuniform points (x,y coords)
-    x = 2 * np.pi * np.random.uniform(size=M)
-    y = 2 * np.pi * np.random.uniform(size=M)
-
-    # desired number of Fourier modes (in x, y directions respectively)
-    N1 = 1000
-    N2 = 2000
-
-    # the 2D transform outputs f array of shape (N1, N2)
-    f = finufft.nufft2d1(x, y, c, (N1, N2))
+.. literalinclude:: ../python/finufft/examples/simple2d1.py
+  :language: python
+  :start-after: docs-start: simple2d1
+  :end-before: docs-end: simple2d1
 
 See ``python/finufft/examples/simple2d1.py`` for the demo code that includes a basic math test (useful to check both the math and the indexing).
 
@@ -125,17 +101,10 @@ Note that the above functions are all vectorized, which means that they can take
 This can bring significant speedups for small inputs by avoiding multiple short calls to FINUFFT.
 For the 2D type 1 vectorized interface, we would call
 
-.. code-block:: python
-
-    # number of transforms
-    K = 4
-
-    # generate K stacked coefficient arrays
-    c = (np.random.standard_normal(size=(K, M))
-         + 1J * np.random.standard_normal(size=(K, M)))
-
-    # calculate the K transforms simultaneously (K is inferred from c.shape)
-    f = finufft.nufft2d1(x, y, c, (N1, N2))
+.. literalinclude:: ../python/finufft/examples/many2d1.py
+  :language: python
+  :start-after: docs-start: many2d1
+  :end-before: docs-end: many2d1
 
 The output array ``f`` would then have the shape ``(K, N1, N2)``.
 See the complete demo in ``python/finufft/examples/many2d1.py``.
@@ -146,19 +115,10 @@ This can speed up calculations if multiple transforms are executed for the same 
 Additionally, if the same nonuniform points are reused between calls, we gain an extra speedup since the points only have to be sorted once.
 To perform the call above using the plan interface, we would write
 
-.. code-block:: python
-
-    # specify type 1 transform
-    nufft_type = 1
-
-    # instantiate the plan (note ntrans must be set here)
-    plan = finufft.Plan(nufft_type, (N1, N2), n_trans=K)
-
-    # set the nonuniform points
-    plan.setpts(x, y)
-
-    # execute the plan
-    f = plan.execute(c)
+.. literalinclude:: ../python/finufft/examples/guru2d1.py
+  :language: python
+  :start-after: docs-start: guru2d1
+  :end-before: docs-end: guru2d1
 
 See the complete demo in ``python/finufft/examples/guru2d1.py``.
 The plan's ``n_modes`` property reports the mode counts in the same
@@ -167,19 +127,10 @@ order), not the reversed order the underlying C library uses internally.
 
 All interfaces support both single and double precision, but for the plan, this must be specified at initialization time using the ``dtype`` argument
 
-.. code-block:: python
-
-    # convert input data to single precision
-    x = x.astype('float32')
-    y = y.astype('float32')
-    c = c.astype('complex64')
-
-    # instantiate the plan and set the points
-    plan = finufft.Plan(nufft_type, (N1, N2), n_trans=K, dtype='complex64')
-    plan.setpts(x, y)
-
-    # execute the plan, giving single-precision output
-    f = plan.execute(c)
+.. literalinclude:: ../python/finufft/examples/guru2d1f.py
+  :language: python
+  :start-after: docs-start: guru2d1f
+  :end-before: docs-end: guru2d1f
 
 As above, requesting an unattainable ``eps`` now raises ``RuntimeError`` by default.
 For exploratory or backwards-compatible workflows that prefer clamp-and-proceed behavior,
