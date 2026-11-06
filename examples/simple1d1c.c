@@ -1,60 +1,61 @@
-// this is all you must include to access finufft from C...
-#include <finufft.h>
-
-// also needed for this example...
-#include <assert.h>
-#include <complex.h>
-#include <math.h>
-#include <stdio.h>
-#include <stdlib.h>
-
-static const double PI = 3.141592653589793238462643383279502884;
-
-int main()
 /* Simple example of calling the FINUFFT library from C, using C complex type,
    with a math test. Double-precision. C99 style. opts is struct not ptr to it.
-   To compile see README. Usage: ./simple1d1c
+   To build, see docs/cex.rst. Usage: ./simple1d1c
+   The code between the docs-start and docs-end markers is shown in docs/cex.rst
+   (not int main), so keep it short.
 */
-{
-  int M      = 1e6;  // number of nonuniform points
-  int N      = 1e6;  // number of modes
-  double tol = 1e-9; // desired accuracy
+#define _USE_MATH_DEFINES // M_PI on MSVC
+#include <math.h>
+#include <stdio.h>
 
-  // generate some random nonuniform points (x) and complex strengths (c):
+// docs-start: simple1d1c-includes
+#include <complex.h>
+#include <finufft.h>
+#include <stdlib.h>
+// docs-end: simple1d1c-includes
+
+int main() {
+  // docs-start: simple1d1c-body
+  int M             = 1e7; // number of nonuniform points
   double *x         = (double *)malloc(sizeof(double) * M);
   double complex *c = (double complex *)malloc(sizeof(double complex) * M);
   for (int j = 0; j < M; ++j) {
-    x[j] = PI * (2 * ((double)rand() / RAND_MAX) - 1); // uniform random in [-pi,pi)
-    c[j] =
-        2 * ((double)rand() / RAND_MAX) - 1 + I * (2 * ((double)rand() / RAND_MAX) - 1);
+    x[j] = M_PI * (2 * (double)rand() / RAND_MAX - 1); // uniform random in [-pi,pi)
+    c[j] = 2 * (double)rand() / RAND_MAX - 1 + I * (2 * (double)rand() / RAND_MAX - 1);
   }
-  // allocate complex output array for the Fourier modes
+  int N             = 1e6;     // number of modes
   double complex *F = (double complex *)malloc(sizeof(double complex) * N);
-
-  finufft_opts opts;           // opts struct (not ptr)
+  finufft_opts opts;           // make an opts struct
   finufft_default_opts(&opts); // set default opts (must do this)
-  opts.debug = 2;              // show how to override a default
-  // opts.upsampfac = 1.25;              // other opts...
+  opts.debug = 2;              // more debug/timing to stdout
+  int ier    = finufft1d1(M, x, c, +1, 1e-9, N, F, &opts);
 
-  // call the NUFFT (with iflag=+1), passing pointers...
-  int ier = finufft1d1(M, x, c, +1, tol, N, F, &opts);
+  // (now do something with F here!...)
+  // docs-end: simple1d1c-body
 
-  int k = 142519;                       // check the answer just for this mode...
-  assert(k >= -(double)N / 2 && k < (double)N / 2);
-  double complex Ftest = 0.0 + 0.0 * I; // defined in complex.h (I too)
+  if (ier) return ier;           // no valid output to read
+
+  int k                = 142519; // check the answer just for this mode...
+  double complex Ftest = 0.0 + 0.0 * I;
   for (int j = 0; j < M; ++j) Ftest += c[j] * cexp(I * (double)k * x[j]);
-  double Fmax = 0.0;                    // compute inf norm of F
+  double Fmax = 0.0; // compute inf norm of F
+  int finite  = 1;   // track non-finite elements
   for (int m = 0; m < N; ++m) {
     double aF = cabs(F[m]);
+    if (!isfinite(aF)) finite = 0;
     if (aF > Fmax) Fmax = aF;
   }
-  int kout   = k + N / 2; // index in output array for freq mode k
-  double err = cabs(F[kout] - Ftest) / Fmax;
-  printf("1D type 1 NUFFT done. ier=%d, err in F[%d] rel to max(F) is %.3g\n", ier, k,
-         err);
+  double err = cabs(F[k + N / 2] - Ftest) / Fmax; // F[k + N/2] is mode k
+  if (!finite || !(err < 10 * 1e-9)) {
+    fprintf(stderr, "FAILED: rel err %.3g in F[%d], or F not finite\n", err, k);
+    return 1;
+  }
+  printf("rel err in F[%d] is %.3g\n", k, err);
 
+  // docs-start: simple1d1c-free
   free(x);
   free(c);
   free(F);
-  return ier;
+  // docs-end: simple1d1c-free
+  return 0;
 }
