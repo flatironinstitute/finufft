@@ -77,20 +77,10 @@ The guru interface is also very convenient for applying forward-adjoint
 transform pairs, common in imaging or optimization applications.
 Here we use the guru interface to repeat the first demo above:
 
-.. code-block:: matlab
-
-  type = 1; ntr = 1; o.modeord = 1;   % transform type, #transforms, opts
-  N = 2e5;                            % how many desired Fourier modes?
-  plan = finufft_plan(1,N,+1,ntr,1e-12,o);      % plan for N output modes
-  M = 1e5;                            % number of NU source points
-  x = 2*pi*rand(M,1);                 % array of NU source points
-  plan.setpts(x,[],[]);               % pass pointer to this array (M inferred)
-  % (note: the x array should now not be altered until all executes are done!)
-  c = randn(M,1)+1i*randn(M,1);       % iid random complex data (row or col vec)
-  f = plan.execute(c);                % do the transform (0.008 sec, ie, faster)
-  % ...one could now change the points with setpts, and/or do new transforms
-  % ...with new c data, and/or do adjoint transforms with new data...
-  delete(plan);                       % don't forget to clean up
+.. literalinclude:: ../matlab/examples/guru1d1.m
+  :language: matlab
+  :start-after: docs-start: guru1d1
+  :end-before: docs-end: guru1d1
 
 .. warning::
 
