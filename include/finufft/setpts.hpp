@@ -94,8 +94,8 @@ int FINUFFT_PLAN_T<TF>::setpts(BIGINT nj, const TF *xj, const TF *yj, const TF *
                    // (all we can do is check and maybe bin-sort the NU pts)
     // If upsampfac is not locked by user (auto mode), choose or update it now.
     if (!upsamp_locked) {
-      double upsampfac =
-          best_sigma_for_tol(type, {(double)mstu[0], (double)mstu[1], (double)mstu[2]});
+      double upsampfac = best_sigma_for_tol(
+          type, {(double)mstu[0], (double)mstu[1], (double)mstu[2]}, false);
       // no sigma meets tol: plan at the widest sigma, check_sigma reports it
       if (!std::isfinite(upsampfac)) upsampfac = finufft::common::MAX_AUTO_UPSAMPFAC;
       // Re-plan if this is the first call (upsampfac==0) or if upsampfac changed
@@ -167,7 +167,7 @@ int FINUFFT_PLAN_T<TF>::setpts(BIGINT nj, const TF *xj, const TF *yj, const TF *
     // sigma3 now, so set_nhg_type3 and the inner t2 plan use it.
     if (!upsamp_locked) {
       double upsampfac =
-          best_sigma_for_tol(type, {(double)S[0], (double)S[1], (double)S[2]});
+          best_sigma_for_tol(type, {(double)S[0], (double)S[1], (double)S[2]}, false);
       // no sigma meets tol: plan at the widest sigma
       if (!std::isfinite(upsampfac)) upsampfac = finufft::common::MAX_AUTO_UPSAMPFAC;
       if (upsampfac != opts.upsampfac) {

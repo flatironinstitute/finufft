@@ -1,5 +1,7 @@
-// Upsampfac (sigma) selection for plans made with upsampfac=0: a flop model and the
-// search over kernel widths that minimizes it.
+// Routines for automatic choice of upsampfac (sigma) in a way that achieves
+// the user's tolerance while minimizing a CPU compute time cost model.
+// This is done by a search over sigma for each ns (kernel spread width).
+// Fall 2026, Marco Barbone, with assistance from Alex Barnett, and AI.
 
 #include <algorithm>
 #include <array>
@@ -15,8 +17,11 @@
 using namespace finufft::common;
 using namespace finufft::kernel;
 
-// Spread work per NU point: the 2*ns-wide complex row runs as ceil(2*ns/simd_width)
-// SIMD ops, times ns^(dim-1) rows.
+// ============ CPU cost model (denoted by "flops") for transforms =============
+
+// Spread/interp cost.
+// For each NU pt, the 2*ns-wide complex
+// row runs as ceil(2*ns/simd_width) SIMD ops, times ns^(dim-1) rows.
 static double spread_flops(bool is_float, double npts, int ns, int dim) {
   using namespace finufft::spreadinterp;
   const double padded_2ns =
@@ -28,8 +33,9 @@ static double spread_flops(bool is_float, double npts, int ns, int dim) {
   return npts * std::max(padded_2ns / simd, 1.0) * rows;
 }
 
-// Type 1/2: spread the NU points, then the FFT c*G*log2(G) on the fine grid of volume
-// G. In a type-3 plan this is the inner type 2, with nk points. c weighs one FFT point
+// Type 1/2: spread/interp of NU points, plus the FFT c*G*log2(G) on the fine grid
+// of volume G. In a type-3 plan this is the inner type 2, with nk points.
+// The value c weighs one FFT point
 // against one spread op; it rises with threads, as spreading scales ~linearly and the
 // FFT sublinearly. Calibrated on ccmlin075 (AVX-512, FFTW).
 template<typename TF>
@@ -49,22 +55,37 @@ template<typename TF>
 double FINUFFT_PLAN_T<TF>::flops_type3(int ns, double sigma,
                                        const std::array<double, 3> &S) const {
   const bool is_float = std::is_same_v<TF, float>;
+  // first mock up the fine-grid sizes for the inner t2, to use in its CPU cost model
   std::array<double, 3> nf{1.0, 1.0, 1.0};
   for (int idim = 0; idim < dim; ++idim)
     nf[idim] = (double)std::get<0>(nhg_type3(sigma, m.t3P.X[idim], S[idim], ns, MAX_NF));
-  const double sigma2 = best_sigma_for_tol(2, nf);
+  const double sigma2 = best_sigma_for_tol(2, nf, true); // best sigma for the inner t2
   if (!std::isfinite(sigma2)) return std::numeric_limits<double>::infinity();
   const int ns2 = clamp_kernel_ns(theoretical_kernel_ns(m.tol, dim, 2, sigma2), sigma2,
                                   dim, is_float);
   return spread_flops(is_float, (double)m.nj, ns, dim) + flops_type12(ns2, sigma2, nf);
 }
 
-// Fewest-flops sigma in [MIN_AUTO_UPSAMPFAC, MAX_AUTO_UPSAMPFAC] that meets tol, or
-// infinity if none does. nmodes holds the mode counts for type 1/2 and the target
-// half-widths S for type 3.
+/* ================================================================================
+   The main optimization routine for picking the "best" sigma: one which minimizes
+   a CPU cost model while achieving the user's requested tolerance in the plan.
+   The sigma must of course lie in [MIN_AUTO_UPSAMPFAC, MAX_AUTO_UPSAMPFAC] as
+   defined in constants.h.
+
+   Inputs: type - transform type (1,2 or 3)
+           nmodes - Fourier mode array dims as doubles (if type=1 or 2), or
+                    the target NU frequency array half-widths S (if type=3).
+           is_inner_t2 - true iff measuring for the inner type-2 (affects debug)
+   (Since this is a plan class method, all other info is taken from the plan.)
+   Output: sigma - the upsampling factor chosen, or +infinity if no sigma can meet
+                   the user's requested tol.
+   Notes:
+   * for type-3 this calls itself max_ns-1 times as type=2 because of flops_type3
+   * ns is not returned because later theoretical_kernel_ns should give the same ns
+*/
 template<typename TF>
-double FINUFFT_PLAN_T<TF>::best_sigma_for_tol(int type,
-                                              const std::array<double, 3> &nmodes) const {
+double FINUFFT_PLAN_T<TF>::best_sigma_for_tol(
+    int type, const std::array<double, 3> &nmodes, bool is_inner_t2) const {
   constexpr auto is_float = std::is_same_v<TF, float>;
   const auto eps_mach     = is_float ? std::numeric_limits<float>::epsilon()
                                      : std::numeric_limits<double>::epsilon();
@@ -72,6 +93,7 @@ double FINUFFT_PLAN_T<TF>::best_sigma_for_tol(int type,
   auto sigma              = std::numeric_limits<double>::infinity();
   auto flops              = std::numeric_limits<double>::infinity();
   const int max_ns        = is_float ? MAX_NSPREAD<float> : MAX_NSPREAD<double>;
+  // The main CPU cost model as inline func to be used in ns loop below...
   auto compute_flops      = [&](double sigma_ns) {
     // price the ns the plan will use at sigma_ns, as setup_spreadinterp sets it
     const int ns_plan = clamp_kernel_ns(theoretical_kernel_ns(tol, dim, type, sigma_ns),
@@ -79,28 +101,37 @@ double FINUFFT_PLAN_T<TF>::best_sigma_for_tol(int type,
     return type == 3 ? flops_type3(ns_plan, sigma_ns, nmodes)
                      : flops_type12(ns_plan, sigma_ns, nmodes);
   };
+  // limit the O(max_ns^2) lines of output when type=3, or indent if debug>2...
+  const auto show_debug  = is_inner_t2 ? (opts.debug > 2) : (opts.debug > 1);
+  const char *indent_str = is_inner_t2 ? "\t" : "";
   for (int ns = 2; ns <= max_ns; ++ns) {
     const auto sigma_alias = min_sigma_for_aliasing_error(tol, dim, type, ns);
     const auto sigma_deconv = min_sigma_for_deconv_error(tol, dim, ns, eps_mach);
     const auto sigma_ns     = std::max({sigma_alias, sigma_deconv, MIN_AUTO_UPSAMPFAC});
-    if (opts.debug > 1)
-      printf("[%s] ns=%d: sigma_alias=%.3g sigma_deconv=%.3g sigma_ns=%.3g\n", __func__,
+    if (show_debug)
+      printf("%s[%s] ns=%2d: sig_a=%.3g sig_d=%.3g, sig_ns=%.3g:\t", indent_str, __func__,
              ns, sigma_alias, sigma_deconv, sigma_ns);
-    // also skips infinity; continue because sigma is not really monotone in ns.
-    if (sigma_ns > MAX_AUTO_UPSAMPFAC) continue;
+    // also skips if infinity; continue because sigma is not really monotone in ns
+    if (sigma_ns > MAX_AUTO_UPSAMPFAC) {
+      if (show_debug) printf("(sig too large)\n");
+      continue;
+    }
+    // How much sigma gets bumped up to be safely on the correct side of the
+    // boundary induced by the ceil in theoretical_kernel_ns. Must also be
+    // small enough not to affect efficiency...
     constexpr double edge_pad = 1e-3;
     const auto sigma_pad      = sigma_ns + edge_pad;
     const auto flops_ns       = compute_flops(sigma_pad);
-    if (opts.debug > 1) printf("[%s] ns=%d: flops_ns=%.3g\n", __func__, ns, flops_ns);
+    if (show_debug) printf("flops_ns=%.3g\n", flops_ns);
     if (flops_ns < flops) {
       flops = flops_ns;
       sigma = sigma_pad;
     }
   }
-  return sigma;
+  return sigma; // to-do: consider returning flops (to predict CPU time), and ns
 }
 
 template double FINUFFT_PLAN_T<float>::best_sigma_for_tol(
-    int type, const std::array<double, 3> &nmodes) const;
+    int type, const std::array<double, 3> &nmodes, bool is_inner_t2) const;
 template double FINUFFT_PLAN_T<double>::best_sigma_for_tol(
-    int type, const std::array<double, 3> &nmodes) const;
+    int type, const std::array<double, 3> &nmodes, bool is_inner_t2) const;

@@ -179,7 +179,8 @@ private:
   void setup_spreadinterp(); // throws FINUFFT_ERR_EPS_TOO_SMALL if tol unachievable
   // Throws FINUFFT_ERR_EPS_TOO_SMALL if tol is not achievable
   void check_sigma(double mode_diagonal);
-  double best_sigma_for_tol(int type, const std::array<double, 3> &nmodes) const;
+  double best_sigma_for_tol(int type, const std::array<double, 3> &nmodes,
+                            bool is_inner_t2) const;
   double flops_type12(int ns, double sigma, const std::array<double, 3> &nmodes) const;
   double flops_type3(int ns, double sigma, const std::array<double, 3> &S) const;
   void precompute_horner_coeffs();
