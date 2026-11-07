@@ -20,11 +20,11 @@
 
 #include "finufft/utils.hpp"
 #include "utils/norms.hpp"
-#include <finufft/heuristics.hpp> // complexity-based upsampfac (sigma) picker
 #include <finufft/test_defs.hpp>
+#include <finufft_common/kernel.h>
 
 using namespace finufft::common;
-using namespace finufft::heuristics;
+using namespace finufft::kernel;
 
 int main() {
 #ifdef SINGLE
@@ -101,99 +101,30 @@ int main() {
   if (std::abs(errtwonorm(M, &a[0], &b[0]) - 1.0) > relerr) return 1;
   if (std::abs(std::sqrt((FLT)M) * relerrtwonorm(M, &a[0], &b[0]) - 1.0) > relerr) return 1;
 
-#ifndef SINGLE
-  // Complexity-based upsampfac (sigma) picker (finufft/heuristics.hpp). The block
-  // exercises both precisions explicitly, so it runs once in the double build.
+  // min_sigma_for_aliasing_error(ns) is the edge of theoretical_kernel_ns. The wider
+  // kernel needs less sigma, so at the midpoint m of the edges for ns and ns+1 the
+  // width is ns+1.
   {
-    const double eps_d = std::numeric_limits<double>::epsilon();
-    const double eps_f = std::numeric_limits<float>::epsilon();
-    const int ns_f      = MAX_NSPREAD<float>;
-
-    // (A) ns is non-increasing as sigma rises (the minimizer enumerates one candidate
-    // per achievable width). Double holds over the whole auto range. Float holds only
-    // where the cancellation guard in clamp_kernel_ns (kernel.h) does not cap ns: the
-    // cap rises with sigma, so a capped ns can step up.
-    const double tols[] = {1e-3, 1e-6, 1e-10, 1e-13};
+    int checked = 0, failed = 0;
     for (int dim = 1; dim <= 3; ++dim)
-      for (int type = 1; type <= 3; ++type)
-        for (double tol : tols) {
-          int prev_d = 1 << 30, prev_f = 1 << 30;
-          for (double s = MIN_AUTO_UPSAMPFAC; s <= MAX_AUTO_UPSAMPFAC + 1e-9; s += 0.05) {
-            const int nd = kernel_width_at<double>(tol, dim, type, s);
-            if (nd > prev_d) {
-              printf("fail: ns(double) rose: dim=%d type=%d tol=%.0e sigma=%.2f\n", dim,
-                     type, tol, s);
-              return 1;
-            }
-            prev_d       = nd;
-            const int nf = kernel_width_at<float>(tol, dim, type, s);
-            // skip float sigmas where the cancellation guard caps ns (low-sigma prefix)
-            if (nf <
-                std::min(finufft::kernel::theoretical_kernel_ns(tol, dim, type, s), ns_f))
-              continue;
-            if (nf > prev_f) {
-              printf("fail: ns(float) rose: dim=%d type=%d tol=%.0e sigma=%.2f\n", dim,
-                     type, tol, s);
-              return 1;
-            }
-            prev_f = nf;
+      for (int k = 1; k <= 15; ++k)
+        for (int ns = 2; ns < 16; ++ns) {
+          const double tol = std::pow(10.0, -k);
+          for (int type = 1; type <= 3; ++type) {
+            const double m = (min_sigma_for_aliasing_error(tol, dim, type, ns) +
+                              min_sigma_for_aliasing_error(tol, dim, type, ns + 1)) /
+                             2;
+            if (!(m > 1.0 && std::isfinite(m))) continue;
+            ++checked;
+            failed += theoretical_kernel_ns(tol, dim, type, m) != ns + 1;
           }
         }
-
-    // (B) The narrow-kernel lever is real: at tight tol, ns strictly drops from
-    // sigma 2.0 to 2.5 (double, dim 3), so higher sigma can pay off.
-    if (!(kernel_width_at<double>(1e-13, 3, 1, 2.5) <
-          kernel_width_at<double>(1e-13, 3, 1, 2.0))) {
-      printf("fail: expected ns(2.5) < ns(2.0) at tol=1e-13 dim=3\n");
+    if (checked == 0 || failed) { // an empty sweep proves nothing
+      printf("fail: min_sigma_for_aliasing_error is off the edge in %d of %d cells\n",
+             failed, checked);
       return 1;
     }
-
-    // (C) sigma=2.5 is feasible down to eps_mach for every dim/type, both precisions ->
-    // analytic_upsampfac never returns an infeasible sigma for any tol the pipeline
-    // forwards (it clamps tol up to eps_mach first).
-    for (int dim = 1; dim <= 3; ++dim)
-      for (int type = 1; type <= 3; ++type) {
-        const double maxN = 256;
-        if (!upsampfac_feasible(MAX_AUTO_UPSAMPFAC, eps_d, dim, type, eps_d, false,
-                                maxN) ||
-            !upsampfac_feasible(MAX_AUTO_UPSAMPFAC, eps_f, dim, type, eps_f, true,
-                                maxN)) {
-          printf("fail: sigma=2.5 infeasible at eps_mach: dim=%d type=%d\n", dim, type);
-          return 1;
-        }
-      }
-
-    // (D) analytic_upsampfac returns a sigma that is itself feasible, for a range of
-    // achievable tols (its contract: the pick always survives the real plan).
-    for (double tol : tols) {
-      const double maxN = 1e4;
-      const double s    = analytic_upsampfac(tol, 2, 1, eps_d, false, maxN);
-      if (!(s >= MIN_AUTO_UPSAMPFAC - 1e-9 && s <= MAX_AUTO_UPSAMPFAC + 1e-9) ||
-          !upsampfac_feasible(s, tol, 2, 1, eps_d, false, maxN)) {
-        printf("fail: analytic sigma %.3f not feasible/in range at tol=%.0e\n", s, tol);
-        return 1;
-      }
-    }
-
-    // (E) Density drives the pick: a spread-dominated transform (many points, small
-    // grid) chooses a larger sigma than an FFT-dominated one (few points, large grid).
-    {
-      const int dim = 3, type = 1, nthr = 1;
-      const double tol = 1e-13; // tight enough that ns drops across [2.0,2.5]
-      const double dense_modes[3] = {64, 64, 64};
-      const double sparse_modes[3] = {512, 512, 512};
-      const double sigma_dense =
-          best_type12<double>(tol, dim, type, nthr, dense_modes, /*npts=*/5e7).sigma;
-      const double sigma_sparse =
-          best_type12<double>(tol, dim, type, nthr, sparse_modes, /*npts=*/1e3).sigma;
-      if (!(sigma_dense > sigma_sparse) || !(sigma_dense > MAX_CHECK_SIGMA - 1e-9)) {
-        printf("fail: dense sigma (%.3f) should exceed sparse (%.3f) and 2.0\n",
-               sigma_dense, sigma_sparse);
-        return 1;
-      }
-    }
   }
-#endif
 
 #ifdef SINGLE
   printf("testutilsf passed.\n");

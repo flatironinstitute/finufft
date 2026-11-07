@@ -166,7 +166,7 @@ PRECISION_OBJS = src/makeplan.o src/setpts.o src/execute.o \
                  src/spreadinterp.o \
                  src/spreadinterp_1d.o src/spreadinterp_2d.o src/spreadinterp_3d.o
 # common objs compiled once for both precisions
-COMMON_OBJS = src/fft.o src/c_interface.o fortran/finufftfort.o
+COMMON_OBJS = src/fft.o src/heuristics.o src/c_interface.o fortran/finufftfort.o
 # all lib dual-precision objs (note DUCC_OBJS empty if unused)
 OBJS = $(SOBJS) $(PRECISION_OBJS) $(PRECISION_OBJS:%.o=%_f.o) $(COMMON_OBJS) $(DUCC_OBJS)
 
@@ -381,8 +381,6 @@ test/%f: test/%.cpp $(DYNLIB)
 test/error_handling: test/error_handling.c $(DYNLIB)
 	$(CC) $(CFLAGS) ${LDFLAGS} $< $(ABSDYNLIB) $(LIBSFFT) $(CLINK) -o $@
 # low-level tests that are cleaner if depend on only specific objects...
-# testutils also unit-tests the upsampfac picker (finufft/heuristics.hpp), which pulls
-# in kernel.o/pswf.o symbols; $(SOBJS) is exactly the precision-independent object set.
 test/testutils: test/testutils.cpp $(SOBJS)
 	$(CXX) $(CXXFLAGS) ${LDFLAGS} test/testutils.cpp $(SOBJS) $(LIBS) -o test/testutils
 test/testutilsf: test/testutils.cpp $(SOBJS)
