@@ -14,6 +14,9 @@ v2.6.0-dev
   FSERIES_BLOCK = 64 (a new internal library parameter). Each block starts from
   the direct phase, and the phase winding runs at most 64 steps. The phase math
   is in the working precision. (Barbone #946)
+* FINUFFT_ERR_EPS_TOO_SMALL (types 1, 2) comes from estimates of rounding,
+  aliasing and deconvolution error. upsampfac=0 picks, of the sigmas that
+  meet tol, the one with the fewest flops. (Barbone)
 * macOS wheels link a static libomp with hidden symbols instead of bundling
   libomp.dylib. The bundled copy aborted with "OMP: Error #15" next to another
   libomp, e.g. Homebrew NumPy, and crashed or hung when KMP_DUPLICATE_LIB_OK

@@ -177,11 +177,11 @@ private:
   int execute_internal(TC *cj, TC *fk, bool adjoint = false, int ntrans_actual = -1,
                        TC *aligned_scratch = nullptr, size_t scratch_size = 0) const;
   void setup_spreadinterp(); // throws FINUFFT_ERR_EPS_TOO_SMALL if tol unachievable
-  void check_sigma(); // throws FINUFFT_ERR_EPS_TOO_SMALL if sigma too low for tol
-  double best_upsampfac() const; // density-aware sigma, types 1/2 (setpts)
-  // complexity-based sigma for type 3 (outer spread + inner t2 cost); X,S are the
-  // source/target interval half-widths over dims (see setpts).
-  double best_upsampfac_type3(const TF *X, const TF *S, BIGINT nk) const;
+  // Throws FINUFFT_ERR_EPS_TOO_SMALL if tol is not achievable
+  void check_sigma(double mode_diagonal);
+  double best_sigma_for_tol(int type, const std::array<double, 3> &nmodes) const;
+  double flops_type12(int ns, double sigma, const std::array<double, 3> &nmodes) const;
+  double flops_type3(int ns, double sigma, const std::array<double, 3> &S) const;
   void precompute_horner_coeffs();
   void set_nf_type12(BIGINT ms, BIGINT *nf) const;
   void onedim_fseries_kernel(BIGINT nf, std::vector<TF> &fwkerhalf) const;

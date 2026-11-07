@@ -8,7 +8,6 @@
 
 #include <cassert>
 
-#include <finufft/heuristics.hpp>
 #include <finufft/plan.hpp>
 #include <finufft/spreadinterp.hpp>
 #include <finufft/utils.hpp>
@@ -16,53 +15,31 @@
 
 // ---------- local helpers for setpts: --------
 
-// Checks that upsampfac (sigma) can meet tol on the fine grid nfdim, by the same
-// lowest_sigma test the auto pick uses. Two failures: tol below the rounding floor
-// (no sigma helps), or sigma below the needed one. Throws FINUFFT_ERR_EPS_TOO_SMALL
-// unless opts.allow_eps_too_small turns the error into a warning.
-template<typename TF> void FINUFFT_PLAN_T<TF>::check_sigma() {
+// Throws FINUFFT_ERR_EPS_TOO_SMALL if rounding_error > tol, or if upsampfac is below
+// min_sigma_for_aliasing_error or min_sigma_for_deconv_error at the plan ns.
+// opts.allow_eps_too_small warns instead.
+template<typename TF> void FINUFFT_PLAN_T<TF>::check_sigma(double mode_diagonal) {
+  using namespace finufft::common;
+  using namespace finufft::kernel;
   constexpr double eps_mach = std::numeric_limits<TF>::epsilon();
-  const double gridlen      = *std::max_element(m.nfdim.begin(), m.nfdim.begin() + dim);
-  const double sigma_min    = finufft::common::lowest_sigma(
-      (double)m.tol, dim, m.spopts.nspread, eps_mach, gridlen);
-  if (sigma_min <= m.spopts.upsampfac) return;     // fine
+  const double tol = m.tol, sigma = m.spopts.upsampfac;
+  const int ns           = m.spopts.nspread;
+  const double eps_round = rounding_error(eps_mach, mode_diagonal);
+  const bool below_floor = eps_round > tol;
+  const double sigma_min = std::max(min_sigma_for_aliasing_error(tol, dim, type, ns),
+                                    min_sigma_for_deconv_error(tol, dim, ns, eps_mach));
+  if (!below_floor && sigma >= sigma_min) return;
   const bool do_throw = !opts.allow_eps_too_small; // opt-in wins
   // an error always speaks; the warning obeys opts.showwarn, as every other warning does
   if (!do_throw && !opts.showwarn) return;
   const char *level = do_throw ? "error" : "warning";
-  if (std::isinf(sigma_min))
-    fprintf(stderr,
-            "%s %s: tol=%.3g is below the rounding floor %.3g (eps_round); no "
-            "upsampfac can meet it\n",
-            __func__, level, (double)m.tol,
-            finufft::common::rounding_floor(eps_mach, gridlen));
+  if (below_floor)
+    fprintf(stderr, "%s %s: tol=%.3g is below the rounding floor %.2g\n", __func__, level,
+            tol, eps_round);
   else
-    fprintf(stderr, "%s %s: upsampfac=%.3g too low for tol=%.3g; %s upsampfac>=%.3g\n",
-            __func__, level, m.spopts.upsampfac, (double)m.tol,
-            do_throw ? "need" : "suggest", sigma_min);
+    fprintf(stderr, "%s %s: upsampfac=%.3g at ns=%d cannot meet tol=%.3g; needs %.3g\n",
+            __func__, level, sigma, ns, tol, sigma_min);
   if (do_throw) throw finufft::exception(FINUFFT_ERR_EPS_TOO_SMALL);
-}
-
-// Density-aware upsampfac for types 1/2 (model in finufft/heuristics.hpp).
-template<typename TF> double FINUFFT_PLAN_T<TF>::best_upsampfac() const {
-  const std::array<double, 3> nmodes{(double)mstu[0], (double)mstu[1], (double)mstu[2]};
-  return finufft::heuristics::best_type12<TF>((double)m.tol, dim, type, opts.nthreads,
-                                              nmodes.data(), (double)m.nj)
-      .sigma;
-}
-
-// Complexity-based upsampfac (sigma3) for type 3 (model in finufft/heuristics.hpp).
-// X,S are the per-dim source/target interval half-widths from arraywidcen.
-template<typename TF>
-double FINUFFT_PLAN_T<TF>::best_upsampfac_type3(const TF *X, const TF *S,
-                                                BIGINT nk) const {
-  std::array<double, 3> Xh{}, Sh{};
-  for (int idim = 0; idim < dim; ++idim) {
-    Xh[idim] = (double)X[idim];
-    Sh[idim] = (double)S[idim];
-  }
-  return finufft::heuristics::best_type3<TF>(
-      (double)m.tol, dim, opts.nthreads, (double)m.nj, Xh.data(), Sh.data(), (double)nk);
 }
 
 // ---------- local math routines for type-3 setpts: --------
@@ -94,47 +71,6 @@ void FINUFFT_PLAN_T<TF>::set_nhg_type3(int idim, TF S, TF X)
 }
 
 // --------- setpts user guru interface driver ----------
-// How the plan picks sigma (upsampfac) and the kernel width ns:
-// clang-format off
-//                      +-----------------------+
-//                      |   user sigma given?   |
-//                      |    (0.0 means auto)   |
-//                      +-----+-----------+-----+
-//                        yes |           | no
-//        +-------------------v+   +------v---------------------+
-//        | use the given      |   | AUTO PICK                  |
-//        | sigma              |   | 1. start at the floor 1.25 |
-//        +---------+----------+   | 2. drop any sigma that     |
-//                  |              |    cannot meet tol         |
-//                  |              |    (aliasing + rounding)   |
-//                  |              +-----------+----------------+
-//                  +--------------------------+
-//                                             v
-//               +------------------------------------------+
-//               | ns ~ log(1/tol) / sqrt(1 - 1/sigma)      |
-//               +-------------------+----------------------+
-//                                   v
-//               +------------------------------------------+
-//               | float only: cap ns at float_max_ns_cc    |
-//               +-------------------+----------------------+
-//                                   v
-//               +------------------------------------------+
-//               | rounding floor met?                      |
-//               | lowest_sigma(tol, dim, ns, nf) <= sigma  |
-//               +------------------+-----------------------+
-//                              yes |             | no
-//                                  |     +-------v-------+
-//                                  |     | exit ier = 26 |
-//                                  |     +---------------+
-//               +------------------v-----------------------+
-//               | min flops (spread + FFT cost)            |
-//               +------------------+-----------------------+
-//                                  v
-//                      +-----------v--+
-//                      |  run plan    |
-//                      +--------------+
-// clang-format on
-
 template<typename TF>
 int FINUFFT_PLAN_T<TF>::setpts(BIGINT nj, const TF *xj, const TF *yj, const TF *zj,
                                BIGINT nk, const TF *s, const TF *t, const TF *u) {
@@ -156,25 +92,30 @@ int FINUFFT_PLAN_T<TF>::setpts(BIGINT nj, const TF *xj, const TF *yj, const TF *
 
   if (type != 3) { // ------------------ TYPE 1,2 SETPTS -------------------
                    // (all we can do is check and maybe bin-sort the NU pts)
-    // If upsampfac is not locked by user (auto mode), choose or update it now
-    // based on the actual density nj/N(). Re-plan if density changed significantly.
+    // If upsampfac is not locked by user (auto mode), choose or update it now.
     if (!upsamp_locked) {
-      double density   = double(nj) / double(N());
-      double upsampfac = best_upsampfac();
+      double upsampfac =
+          best_sigma_for_tol(type, {(double)mstu[0], (double)mstu[1], (double)mstu[2]});
+      // no sigma meets tol: plan at the widest sigma, check_sigma reports it
+      if (!std::isfinite(upsampfac)) upsampfac = finufft::common::MAX_AUTO_UPSAMPFAC;
       // Re-plan if this is the first call (upsampfac==0) or if upsampfac changed
       if (upsampfac != opts.upsampfac) {
         opts.upsampfac = upsampfac;
         if (opts.debug)
-          printf("[setpts] selected best upsampfac=%.3g (density=%.3g, nj=%lld)\n",
-                 opts.upsampfac, density, (long long)nj);
+          printf("[setpts] selected best upsampfac=%.3g (nj=%lld)\n", opts.upsampfac,
+                 (long long)nj);
         setup_spreadinterp(); // throws on error
         precompute_horner_coeffs();
-        // Perform the planning steps (first call or re-plan due to density change).
+        // Perform the planning steps (first call or re-plan on a new upsampfac).
         init_grid_kerFT_FFT();       // throws on error
       }
     }
 
-    check_sigma(); // throws if upsampfac too low for tol (nfdim now known)
+    double mode_diagonal = 0.0;
+    for (int idim = 0; idim < dim; ++idim)
+      mode_diagonal += (double)mstu[idim] * mstu[idim];
+    // Throws FINUFFT_ERR_EPS_TOO_SMALL if tol is not achievable
+    check_sigma(std::sqrt(mode_diagonal));
 
     m.XYZ   = {xj, yj, zj}; // plan must keep pointers to user's fixed NU pts
     // Invariant: m.padded_ns must equal the runtime mirror of
@@ -207,7 +148,7 @@ int FINUFFT_PLAN_T<TF>::setpts(BIGINT nj, const TF *xj, const TF *yj, const TF *
     m.STU = {s, t, u};
 
     // pick x, s interval half-widths & shifts/centers (all sigma-independent, so
-    // computed before choosing the upsampfac that best_upsampfac_type3 needs)...
+    // computed before choosing the upsampfac)...
     std::array<TF, 3> S = {0, 0, 0};
     if (opts.debug) printf("\tM=%lld N=%lld\n", (long long)nj, (long long)nk);
     for (int idim = 0; idim < dim; ++idim) {
@@ -223,16 +164,16 @@ int FINUFFT_PLAN_T<TF>::setpts(BIGINT nj, const TF *xj, const TF *yj, const TF *
     }
 
     // For type 3 with deferred upsampfac (not locked by user), pick & persist
-    // sigma3 now via the complexity model (outer type-3 spread + inner type-2 cost,
-    // using the interval half-widths X,S just computed) so the subsequent
-    // set_nhg_type3 / inner-t2 plan steps inherit a near-optimal grid.
+    // sigma3 now, so set_nhg_type3 and the inner t2 plan use it.
     if (!upsamp_locked) {
-      double upsampfac = best_upsampfac_type3(m.t3P.X.data(), S.data(), nk);
+      double upsampfac =
+          best_sigma_for_tol(type, {(double)S[0], (double)S[1], (double)S[2]});
+      // no sigma meets tol: plan at the widest sigma
+      if (!std::isfinite(upsampfac)) upsampfac = finufft::common::MAX_AUTO_UPSAMPFAC;
       if (upsampfac != opts.upsampfac) {
         opts.upsampfac = upsampfac;
         if (opts.debug > 1)
-          printf("[setpts t3] selected upsampfac=%.2f (cost model; persisted)\n",
-                 opts.upsampfac);
+          printf("[setpts t3] selected upsampfac=%.2f (persisted)\n", opts.upsampfac);
         setup_spreadinterp(); // throws on error
         precompute_horner_coeffs();
       }
@@ -339,8 +280,7 @@ int FINUFFT_PLAN_T<TF>::setpts(BIGINT nj, const TF *xj, const TF *yj, const TF *
     t2opts.spread_debug = std::max(0, opts.spread_debug - 1);
     t2opts.showwarn     = 0;                              // so don't see warnings 2x
     if (!upsamp_locked)
-      t2opts.upsampfac = 0.0; // if the upsampfac was auto, let inner
-                              // t2 pick it again (from density=nj/Nf)
+      t2opts.upsampfac = 0.0; // if the upsampfac was auto, let inner t2 pick it again
     // (...could vary other t2opts here?)
     // MR: temporary hack, until we have figured out the C++ interface.
     FINUFFT_PLAN_T<TF> *tmpplan;
