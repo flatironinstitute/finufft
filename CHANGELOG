@@ -1,36 +1,192 @@
 List of features / changes made / release notes, in reverse chronological order.
 If not stated, CPU FINUFFT is assumed (old cuFINUFFT <=1.3 listed separately).
-Please wrap at 80 chars per line.
+Please wrap at 80 chars per line. From v2.6 we split changes into 4 categories.
 
+-------------------------------------------------------------------------------
 v2.6.0-dev
 
-* MATLAB/Octave wrapper correctly handles empty mode or NU point arrays,
-  including testing in fullmathtest (bugfix, Barnett #941, fixes #937).
-* Fixed NaN results or segfaults that could happen when running type 3 transform
-  that have zero input or output points (#938, Reinecke)
+API and behavior changes:
+
+* BREAKING CHANGE: what used to be a warning (FINUFFT_WARN_EPS_TOO_SMALL, code
+  ier=1) is now replaced by a hard error (FINUFFT_ERR_EPS_TOO_SMALL, code ier=26)
+  which is raised if the user-requested tolerance is predicted to be
+  unachievable using a new detailed internal error model. This *may* raise new
+  errors in existing code using FINUFFT (CPU version; GPU is not yet affected).
+  The purpose is to alert users that their requested tolerance most likely
+  cannot be achieved using any internal parameters, for the given transform and
+  working precision (float vs double).
+  Thus alerted, users may set `opts.allow_eps_too_small=1` to disable the
+  raising of this error (a warning goes to stderr, which in turn may be disabled
+  via `opts.showwarn=0`). (Barbone; Barnett; Reinecke, and whole team)
+* Deprecated opts fields:
+	spread_kerevalmeth
+	spread_kerpad
+	spread_thread (see #885 below)
+  Notes on deprecated opts: such opts are kept for ABI compatibility, but labeled
+  as deprecated. (We may remove them entirely after a 2nd major version change.)
+  They give runtime warning if set away from their default (this can be disabled
+  via `opts.showwarn`). C/C++ callers see a `[[deprecated]]` attribute;
+  Python raises a `DeprecationWarning` from `setkwopts` and the
+  MATLAB gateway raises `FINUFFT:deprecatedOpt` via `mexWarnMsgIdAndTxt`
+  (since a mex's stderr is not reliably shown in the MATLAB desktop).
+* Deprecated error codes: (such now emit compiler deprecation warnings)
+	FINUFFT_WARN_EPS_TOO_SMALL
+	FINUFFT_ERR_SPREAD_PTS_OUT_RANGE
+	FINUFFT_ERR_SPREAD_ALLOC
+	FINUFFT_ERR_SPREAD_THREAD_NOTVALID
+* MATLAB/Octave: any nonexistent `opts` fields now warn with id
+  `FINUFFT:unknownOpt` instead of being silently ignored (#896). (Barbone)
+* cuFINUFFT: `makeplan` rejects `gpu_maxsubprobsize < 1` with
+  `FINUFFT_ERR_INVALID_ARGUMENT`. (Barbone)
+* The default (`opts.nthreads=0`) now counts physical cores only, not
+  logical cores which include SMT siblings (#888, Barbone)
+* cuFINUFFT no longer returns `FINUFFT_WARN_EPS_TOO_SMALL` (code 1) when the
+  requested tolerance is clamped up to machine precision: both clamp sites
+  already warn on stderr, and `cufinufft{,f}_makeplan` now return 0.
+  The enum value is kept for ABI and marked retired; its dead string mapping is
+  dropped from `safe_call.h`. (Barbone)
+* The public Python API of both `finufft` and `cufinufft` is now type annotated,
+  and both packages ship a PEP 561 `py.typed` marker, so type checkers see the
+  real signatures instead of `Any` (#302). Aligning the two APIs changed one
+  behaviour: `finufft.Plan.n_modes` now returns the mode counts as a tuple in
+  `ndarray.shape` order, as the caller passed them and as
+  `cufinufft.Plan.n_modes` already did, instead of the reversed `ctypes` array
+  that goes down to the C library. (Barbone)
+* Added C-level simple API to GPU library cuFINUFFT
+  (`cufinufft{,f}{1,2,3}d{1,2,3}[many]`) mirroring the CPU `finufft1d1`-style
+  wrappers. 36 new entry points that allocate a plan, set points, execute, and
+  destroy in a single call, for the common case of a single transform per plan;
+  inputs are device pointers. This is additive; the 4-step plan interface is
+  unchanged. (Barbone, building on prior cuFINUFFT simple-interface work by
+  J. Anden. #863).
+
+Performance/accuracy/code improvements:
+
 * The kernel Fourier series table (deconvolution factors) no longer depends on
   nthreads; at tol 1e-12 the error at 2 threads was 6.6x that at 1 thread.
   onedim_fseries_kernel now splits the outputs into fixed blocks of
   FSERIES_BLOCK = 64 (a new internal library parameter). Each block starts from
   the direct phase, and the phase winding runs at most 64 steps. The phase math
   is in the working precision. (Barbone #946)
-* FINUFFT_ERR_EPS_TOO_SMALL (types 1, 2) comes from estimates of rounding,
-  aliasing and deconvolution error. upsampfac=0 picks, of the sigmas that
-  meet tol, the one with the fewest flops. (Barbone)
-* macOS wheels link a static libomp with hidden symbols instead of bundling
-  libomp.dylib. The bundled copy aborted with "OMP: Error #15" next to another
-  libomp, e.g. Homebrew NumPy, and crashed or hung when KMP_DUPLICATE_LIB_OK
-  was set (#942). (Barbone)
+* Auto upsampfac (`opts.upsampfac=0`) is now chosen by a complexity cost model
+  (`finufft/heuristics.hpp`), replacing the static `bestUpsamplingFactor` table.
+  It predicts spread+FFT cost in consistent flop units and minimizes over
+  the sigma range that achieves the uer tolerance. Thus, dense (spread-dominated)
+  transforms take a narrower kernel at higher sigma while sparse (FFT-dominated)
+  ones stay near the smallest feasible sigma
+  (types 1/2/3, ~1.2-1.5x on 3D). The sigma ceiling is split into an accuracy cap
+  (`MAX_CHECK_SIGMA=2.0`) and a performance search ceiling
+  (`MAX_AUTO_UPSAMPFAC=2.5`), and planning is deferred to `setpts` so a single
+  plan is built once the point density is known. (Barbone, Brodovič, #868).
+* Continuing the above item, automated choice of sigma (upsampling factor)
+  now simplified, and uses an error
+  model based on theory from the [FIN] paper. The model predicts the minimum
+  sigma that can achieve the tolerance for a given ns. For this, two types of
+  errors are modeled: aliasing (kernel, indep of eps_mach), and deconvolution
+  (rounding amplificiation of eps_mach due to r_dyn). From these valid sigma
+  ranges, the one minimizing a CPU cost model is chosen. (For type 3 the cost
+  of the inner type-2 is modeled, so that the best sigma is chosen for both
+  steps). A FINUFFT_ERR_EPS_TOO_SMALL error is thrown if the tolerance cannot
+  be met by the error model (with a third term: the rounding error due to the
+  condition number of the problem). (Barbone, Barnett #939)
+* cuFINUFFT: bin sizes are now derived from GPU limits: method 1 from an L2
+  budget, method 2's 2D bin 40->32, method 3 256/16/6; sort skipped at nbins==1.
+  (Barbone)
+* cuFINUFFT: fixed the batched (many-transform) type-2 performance regression
+  of #846. `gpu_maxbatchsize=0` (the default) now sizes the batch from the fine
+  grid and the device's L2 cache instead of the fixed `min(ntransf, 8)`, and
+  spreads the transforms evenly over the batches; a user-supplied value is
+  honored, capped at `ntransf`, and negative values are rejected. A type 3 no
+  longer batches its outer spread-only plan, pins its inner type 2 to the
+  outer batch, and shares one device buffer between the pre-phase array and
+  that inner plan's `fw`. Against the regressed master: type-2 mean 2.1-10.4x
+  over 26 shapes on Blackwell/H100/A100/Ada, up to 96x; type 3 geomean 1.04x
+  over seven shapes on Ada; no shape slower. Against v2.4.1 the batched type-2
+  shapes return to 0.95-0.97x of their old time, so this restores rather than
+  adds. `cuperftest` gains `--maxbatchsize`. (Barbone)
+* The spread/interp kernel is now PSWF (prolate) only: opts.spread_kerformula
+  takes 0 (default) or 7,8,9 (PSWF shape-parameter choices); the legacy ES (1,2),
+  Kaiser-Bessel (3,4) and cosh-type (5,6) formulas are removed and now return
+  FINUFFT_ERR_KERFORMULA_NOTVALID. Since the order-0 PSWF is an eigenfunction of
+  the finite Fourier transform, type 3 gets its kernel FT as a rescaled copy of
+  the kernel, replacing slower per-target cosine quadrature in setpts. Users of
+  spreadinterp_only now always see the PSWF kernel (consulted in Discussion
+  #881). (Barbone, Barnett #879)
+* Spreading/interpolation now uses all threads on the whole batch.
+  (this deprecates `opts.spread_thread`). Ie: 1) Spreading folds the batch loop
+  into the loop over subproblems, so (vector, subproblem) pairs are what get
+  assigned to threads. 2) Interpolation writes to distinct outputs per thread,
+  so it still takes the vectors in sequence with all threads on each.
+  (Notes: the old automatic choice for ntr>1, `2`, only kept as many threads
+  busy as the batch was long: OMP nesting was off, so each vector
+  still split into `nthreads` subproblems, which one thread ran in sequence.
+  The new version is at least as fast as either former scheme at every ntr.)
+* Matlab interface rebuilt with Mwrap 1.3.5, fixing: braces in the complex-array
+  copy macro (the old expansion advanced the write pointer twice per element and
+  set `.imag` outside the loop), a real-valued scalar now read via
+  `mxGetDoubles`/`mxGetSingles` instead of the complex accessor, `sprintf` ->
+  `snprintf`, and removal of the dead GPU-array macros from the CPU gateway.
+  (Barbone).
+* Runtime->compile-time dispatch is now provided by the external header-only POET
+  library (pinned to v0.0.0) instead of the hand-rolled dispatcher in
+  `finufft_common/utils.h`. Removed ~140 lines of Cartesian-product/dispatcher
+  template machinery (`make_range`, `DispatchParam`, `dispatch`); call sites on
+  both CPU and GPU now use `poet::inclusive_range` / `poet::dispatch_param` /
+  `poet::dispatch`. Also dropped the dead `_USE_MATH_DEFINES` guard in cufinufft
+  (FINUFFT uses `finufft::common::PI`, never the `M_*` macros). (Barbone)
+* SIMD-vectorized bin sort with parallel prefix sum: uint32_t bin counts,
+  ndims dispatch for vectorized coordinate binning, std::exclusive_scan for
+  parallel prefix sum of offsets, restored single-threaded variant as
+  bin_sort_singlethread. (Barbone, #562).
+* Internal C++ refactoring: core implementation (makeplan, setpts, execute,
+  spread/interp) moved to template headers in include/finufft/,
+  with per-precision explicit-instantiation TUs in src/. Many internal free
+  functions converted to private methods on FINUFFT_PLAN_T, reducing
+  parameter passing and improving encapsulation. FFT plan management
+  consolidated in src/fft.cpp with an opaque custom deleter. C++ internal
+  headers renamed from .h to .hpp. No public API changes. (Barbone)
+* Mutable plan state extracted into nested struct M, separating computed
+  state from immutable configuration. Internal C++ error handling now uses
+  exceptions (finufft::exception) instead of integer return codes.
+  Memory leak fixes in guru helper and type-3 inner plan via RAII.
+* Internal cuFINUFFT refactoring (Reinecke: #826, #818, #830):
+  - Spreading/interpolation functions of different dimensionalities were
+    merged and templated on number of dimensions. Operation count in critical
+    inner loops was reduced.
+  - Memory management is now done in C++ style (RAII) using Thrust allocators
+  - cufinufft's C-style interface is now const-correct
+    (backwards-compatible change)
+  - Internal error management is now based on exceptions (currently via
+    throwing/catching integers, to be improved in the future)
+  - many nearly identical code paths were merged, reducing overall
+    source code size (e.g. cufinufft1_exec instead of
+    cufinufft1d1_exec/cufinufft2d1_exec/cufinufft3d1_exec)
+  - file contents were reshuffled to simplify and reduce inter-file
+    dependencies; as a result, internal headers are much smaller now.
+
+Documentation and testing:
+
 * C-API error codes now have single source of truth (Barnett #935)
 * Documented how to build the Python package from source inside a conda
   environment, with an environment file and install script under
   `python/finufft` (#668). (Abergel, Barbone)
+* Added `threadsafe_execute` regression test verifying concurrent `execute()`
+  calls on the same plan produce correct results. Added sanitizer mode selection
+  via `FINUFFT_USE_SANITIZERS=OFF|ON|MEMSAN|TSAN`, and extended the sanitizer
+  GitHub workflow to run a focused Linux TSAN job. (Barbone)
+
+Build and packaging:
+
+* macOS wheels link a static libomp with hidden symbols instead of bundling
+  libomp.dylib. The bundled copy aborted with "OMP: Error #15" next to another
+  libomp, e.g. Homebrew NumPy, and crashed or hung when KMP_DUPLICATE_LIB_OK
+  was set (#942). (Barbone)
 * macOS GCC via GNU make now follows Homebrew's unversioned `gcc` formula: the
   new `make-platforms/make.inc.macosx_gcc` replaces the deleted
   `make.inc.macosx_gcc-10`/`-14`/`-15` files, reading the compiler names from
   the formula's bin dir, and CI installs `brew install gcc` (not `gcc@NN`).
   To pin a GCC major, pass `CXX=g++-NN CC=gcc-NN` on the make line. (Barbone)
-* icpx before 2026.0 miscompiles bin sorting by not recognizing a loop carried and
+  * icpx before 2026.0 miscompiles bin sorting by not recognizing a loop carried,
   generating the wrong vectorization. Fixed by disabling vectorization on that
   particular loop #914. (Menke)
 * icpx builds now use the gcc/clang math model (-fno-fast-math,
@@ -50,128 +206,19 @@ v2.6.0-dev
   the GPU Jenkins legs build and run all three recipes against the checkout,
   and the Windows and macOS host agents run the same ``cmake -P`` script on
   the CPU recipes. (Barbone)
-* xsimd's reassociation barrier was compiled out under -fassociative-math on clang, so
-  -march=x86-64 Release builds folded points wrongly and segfaulted;
-  XSIMD_REASSOCIATIVE_MATH is now forced on, the fold accepts any real coordinate, and
-  the docs no longer state a [-3pi,3pi] input domain (#918). (Barbone)
-* Fixed the default (`opts.nthreads=0`) to count physical cores only, not SMT siblings
-  (#888). (Barbone)
-* MATLAB/Octave: mistyped `opts` fields now warn with id `FINUFFT:unknownOpt` instead of
-  being silently ignored (#896). (Barbone)
-* Restored `CMakePresets.json` as the canonical entry point for local and CI builds
-  (#864). (Barbone)
-* New CMake option `FINUFFT_BUILD_OCTAVE` builds and mex-links the Octave interface
-  (#861). (Barbone)
-* cuFINUFFT: fixed 32-bit overflow in the bin and subprob counts of gpu_methods 1-3
-  (`get_nbins`, `nbins_total`, `calc_subprob`; method 4 is untouched by design), and
-  `allocate_subprob_state` now sizes bins with the integer `nbins_total(get_nbins(...))`
-  count instead of a float ceil product (issue #890, PR #894). (Barbone)
-* cuFINUFFT: fixed 32-bit overflow of `nf1*nf2*nf3`, pointer offsets
-  `i*batchsize*{M,nf,nmodes}`/`block*M`/`j*N`, and int32 narrowing of `upsampfac*ms` in
-  `set_nf_type12`/`set_nhg_type3` that hid it from the new `MAX_NF` guard (issue #890,
-  PR #894). (Barbone)
-* cuFINUFFT: bin sizes are now derived from GPU limits: method 1 from an L2 budget, method
-  2's 2D bin 40->32, method 3 256/16/6; sort skipped at nbins==1. (Barbone)
-* cuFINUFFT: `makeplan` rejects `gpu_maxsubprobsize < 1` with
-  `FINUFFT_ERR_INVALID_ARGUMENT`. (Barbone)
-* Fixed CPU type 3 honoring `opts.spreadinterponly`: the option is documented to affect
-  types 1 and 2 only, and cuFINUFFT already ignored it for type 3, but the CPU plan
-  applied it, so a type-3 call with the flag set returned wrong values instead of the
-  transform. The flag is now cleared at plan creation; its checks moved from the Python
-  tests to `test/dumbinputs.cpp` and `cufinufft1dspreadinterponly_test`. (Garrison)
-* cuFINUFFT no longer returns `FINUFFT_WARN_EPS_TOO_SMALL` (code 1) when the requested
-  tolerance is clamped up to machine precision: both clamp sites already warn on stderr,
-  and `cufinufft{,f}_makeplan` now return 0. The enum value is kept for ABI and marked
-  retired; its dead string mapping is dropped from `safe_call.h`. (Barbone)
-* Fixed two cuFINUFFT kernel-evaluation `abs` calls resolving to the C integer overload
-  on some toolchains, silently truncating their floating-point argument: they are now
-  `std::abs` (#740). (Barbone)
-* The `check_sigma` "upsampfac too low for tol" warning now honors `opts.showwarn=0`, as
-  `docs/opts.rst` promises and the other warnings already do; the error path is
-  unchanged and always speaks. (Barbone)
-* New CMake option `FINUFFT_WARNINGS_AS_ERRORS` (default ON) turns the library's own
-  compiler warnings into errors; only Debug and RelWithDebInfo add the warning flags, so
-  Release builds are unaffected, and no dependency in the build tree is judged by them.
-  (Barbone)
+* Restored `CMakePresets.json` as the canonical entry point for local and
+  CI builds (#864). (Barbone)
+* New CMake option `FINUFFT_BUILD_OCTAVE` builds and mex-links the Octave
+  interface (#861). (Barbone)
+* New CMake option `FINUFFT_WARNINGS_AS_ERRORS` (default ON) turns the
+  library's own compiler warnings into errors; only Debug and RelWithDebInfo
+  add the warning flags, so Release builds are unaffected, and no dependency in
+  the build tree is judged by them. (Barbone)
 * The examples are now built and run as ctest tests, on GitHub and on the Jenkins
   CUDA matrix. Nothing built them before, so they had rotted: three were missing
   from the CMake build, the single-precision ones asked for more modes than float
-  can resolve, four leaked their opts and the CUDA ones ignored every return code.
-  (Barbone)
-* Fixed a silent fine-grid wraparound on Windows: `set_nf_type12` hands `next235` a
-  dimension that `MAX_NF` allows up to 1e12, but that `long` argument is 32-bit on
-  Windows; the wrapped negative value was clamped and the transform ran on a tiny grid
-  instead of failing. `next235` now takes BIGINT. (Barbone)
-* cuFINUFFT: fixed the batched (many-transform) type-2 performance regression of #846.
-  `gpu_maxbatchsize=0` (the default) now sizes the batch from the fine grid and the
-  device's L2 cache instead of the fixed `min(ntransf, 8)`, and spreads the transforms
-  evenly over the batches; a user-supplied value is honored, capped at `ntransf`, and
-  negative values are rejected. A type 3 no longer batches its outer spread-only plan,
-  pins its inner type 2 to the outer batch, and shares one device buffer between the
-  pre-phase array and that inner plan's `fw`. Against the regressed master: type-2 mean
-  2.1-10.4x over 26 shapes on Blackwell/H100/A100/Ada, up to 96x; type 3 geomean 1.04x
-  over seven shapes on Ada; no shape slower. Against v2.4.1 the batched type-2 shapes
-  return to 0.95-0.97x of their old time, so this restores rather than adds.
-  `cuperftest` gains `--maxbatchsize`.
-  (Barbone)
-* The public Python API of both `finufft` and `cufinufft` is now type annotated,
-  and both packages ship a PEP 561 `py.typed` marker, so type checkers see the
-  real signatures instead of `Any` (#302). Aligning the two APIs changed one
-  behaviour: `finufft.Plan.n_modes` now returns the mode counts as a tuple in
-  `ndarray.shape` order, as the caller passed them and as
-  `cufinufft.Plan.n_modes` already did, instead of the reversed `ctypes` array
-  that goes down to the C library. (Barbone)
-* The spread/interp kernel is now PSWF (prolate) only: opts.spread_kerformula
-  takes 0 (default) or 7,8,9 (PSWF shape-parameter choices); the legacy ES (1,2),
-  Kaiser-Bessel (3,4) and cosh-type (5,6) formulas are removed and now return
-  FINUFFT_ERR_KERFORMULA_NOTVALID. Since the order-0 PSWF is an eigenfunction of
-  the finite Fourier transform, type 3 gets its kernel FT as a rescaled copy of
-  the kernel, replacing the per-target cosine quadrature in setpts. Users of
-  spreadinterp_only now always see the PSWF kernel (consulted in discussion
-  #881). (Barbone, Barnett #879)
-* Fixed cuFINUFFT `opts.gpu_device_id`: the plan constructor ran with the caller's
-  current device, so on any device other than that one `cufftPlanMany`, the fseries
-  kernel and the plain-allocator thrust vectors bound to the wrong device and the
-  transform died with `cudaErrorIllegalAddress`. It now switches device like `setpts`
-  and `execute` already did. New `cufinufft_multigpu` test runs a 2D type-1 double
-  transform on every visible device, with and without a caller-owned `gpu_stream`, and
-  checks that an unusable `gpu_device_id` returns `FINUFFT_ERR_CUDA_FAILURE`; with only
-  one device visible the cross-device half cannot run and the test reports a ctest SKIP.
-  (Barbone)
-* Deprecated `opts.spread_thread`. Both directions now use all threads on the
-  whole batch, so there is nothing left to select. Spreading folds the batch loop
-  into the loop over subproblems (Sec. 5.2 of the FINUFFT paper), so (vector,
-  subproblem) pairs are what get assigned to threads and the paper's `omp
-  critical` on the add back becomes a per-vector lock; interp writes to distinct
-  outputs per thread, so it still takes the vectors in sequence with all threads
-  on each. The old automatic choice for ntr>1, `2`, only kept as many threads busy
-  as the batch was long: OMP nesting is off by default, so each vector still split
-  into `nthreads` subproblems, which one thread ran in sequence. Measures at least
-  as fast as either former scheme at every ntr. The field is retained for ABI
-  compatibility, is ignored, and emits a compiler deprecation warning in C++; the
-  argument was dropped from the `finufft?dmany_test` and `guru_timing_test` CLIs
-  and from the MATLAB opts parser (where at the time an unknown field was silently
-  ignored, so old scripts still ran; a later change made this warn instead, see
-  above). Error code 13
-  (`FINUFFT_ERR_SPREAD_THREAD_NOTVALID`) is no longer returned: the enum value is
-  kept and marked deprecated, and its dead string mappings were dropped from
-  `safe_call.h` and `matlab/errhandler.m`; the Python error table and
-  `docs/error.rst` keep the mapping, marked deprecated and unused, to stay in
-  sync with the header. The MATLAB gateway `matlab/finufft.cpp` was regenerated with
-  mwrap 1.3.5 (the checked-in file dated from mwrap 1.1), which also picks up
-  mwrap's own fixes: braces in the complex-array copy macro (the old expansion
-  advanced the write pointer twice per element and set `.imag` outside the loop),
-  a real-valued scalar now read via `mxGetDoubles`/`mxGetSingles` instead of the
-  complex accessor, `sprintf` -> `snprintf`, and removal of the dead GPU-array
-  macros from the CPU gateway. Verified by building the mex under Octave and
-  running the MATLAB interface tests (`fullmathtest`, `check_finufft`,
-  `check_finufft_single`, guru examples). Deprecated opts fields (`spread_thread`,
-  `spread_kerevalmeth`, `spread_kerpad`) now also warn at *runtime* when set away
-  from their default, gated on `opts.showwarn`, since only C/C++ callers see the
-  `[[deprecated]]` attribute; Python raises a `DeprecationWarning` from
-  `setkwopts` and the MATLAB gateway raises `FINUFFT:deprecatedOpt` via
-  `mexWarnMsgIdAndTxt` (a mex's stderr is not reliably shown in the MATLAB
-  desktop). (Barbone)
+  can resolve, four leaked their opts and the CUDA ones ignored every return
+  code. (Barbone)
 * Fixed the cuFINUFFT build against a CPM-fetched CCCL: it was added as an
   include-SYSTEM package, and nvcc searches its own include directory before
   every `-isystem` path, so `cuda/std/*` resolved to the CUDA toolkit's older
@@ -187,33 +234,10 @@ v2.6.0-dev
   Dockerfiles are replaced by one CUDA-version-parameterized manylinux_2_28
   image, which also carries the GPU frameworks the Python suite needs. Minimum
   tested CUDA is now 11.8. (Barbone)
-* Sanitizer CI builds now compile at `-O1 -fno-omit-frame-pointer` (working around an
-  xsimd 14.3.0 constexpr immediate-argument folding bug at `-O0`), instrument the
-  single-precision `finufft_f32` object library, and mark xsimd/ducc0 includes as
-  `SYSTEM` to drop third-party warnings. (Barbone)
-* Added C-level simple API to cuFINUFFT
-  (`cufinufft{,f}{1,2,3}d{1,2,3}[many]`) mirroring the CPU `finufft1d1`-style
-  wrappers. 36 new entry points that allocate a plan, set points, execute, and
-  destroy in a single call, for the common case of a single transform per plan;
-  inputs are device pointers. This is additive; the 4-step plan interface is
-  unchanged. (Barbone, building on prior cuFINUFFT simple-interface work by
-  Janden)
-* Runtime->compile-time dispatch is now provided by the external header-only POET
-  library (pinned to v0.0.0) instead of the hand-rolled dispatcher in
-  `finufft_common/utils.h`. Removed ~140 lines of Cartesian-product/dispatcher
-  template machinery (`make_range`, `DispatchParam`, `dispatch`); call sites on both
-  CPU and GPU now use `poet::inclusive_range` / `poet::dispatch_param` /
-  `poet::dispatch`. Also dropped the dead `_USE_MATH_DEFINES` guard in cufinufft
-  (FINUFFT uses `finufft::common::PI`, never the `M_*` macros). (Barbone)
-* Auto upsampfac (`opts.upsampfac=0`) is now chosen by a complexity cost model
-  (`finufft/heuristics.hpp`), replacing the static `bestUpsamplingFactor` table.
-  It predicts spread+FFT cost in consistent flop units and minimizes over feasible
-  sigma, so dense (spread-dominated) transforms take a narrower kernel at higher
-  sigma while sparse (FFT-dominated) ones stay near the smallest feasible sigma
-  (types 1/2/3, ~1.2-1.5x on 3D). The sigma ceiling is split into an accuracy cap
-  (`MAX_CHECK_SIGMA=2.0`) and a performance search ceiling
-  (`MAX_AUTO_UPSAMPFAC=2.5`), and planning is deferred to `setpts` so a single
-  plan is built once the point density is known. (Barbone, Brodovič)
+* Sanitizer CI builds now compile at `-O1 -fno-omit-frame-pointer` (working
+  around an xsimd 14.3.0 constexpr immediate-argument folding bug at `-O0`),
+  instrument the single-precision `finufft_f32` object library, and mark
+  xsimd/ducc0 includes as `SYSTEM` to drop third-party warnings. (Barbone)
 * Installed `find_package(finufft)` consumption now works (issue #494): install
   the transitive public headers (`finufft/finufft_eitherprec.h`,
   `finufft_common/defines.h`), add `find_dependency()` to the package config so
@@ -225,58 +249,61 @@ v2.6.0-dev
   `copy_dll` refresh stale DLLs via a POST_BUILD `copy_if_different`. Removed the
   stale `next235beven` declaration. Added a `test/cmake_consume` downstream
   project and a CI job exercising find_package install consumption on Linux +
-  Windows, static + shared. (Barbone)
-* A static install with FFTW now links downstream: a downloaded FFTW is bundled, a system
-  FFTW is found again via the installed FindFFTW. A CXX-only consumer finds OpenMP (#494).
-  (Barbone)
-* Refined sigma_min estimator and moved check to `setpts`; now throws
-  `FINUFFT_ERR_EPS_TOO_SMALL` when upsampfac is too low for the requested
-  tolerance. (Brodovič, Barbone)
-* Added `threadsafe_execute` regression test verifying concurrent `execute()`
-  calls on the same plan produce correct results. Added sanitizer mode selection
-  via `FINUFFT_USE_SANITIZERS=OFF|ON|MEMSAN|TSAN`, and extended the sanitizer
-  GitHub workflow to run a focused Linux TSAN job. (Barbone)
-* SIMD-vectorized bin sort with parallel prefix sum: uint32_t bin counts,
-  ndims dispatch for vectorized coordinate binning, std::exclusive_scan for
-  parallel prefix sum of offsets, restored single-threaded variant as
-  bin_sort_singlethread. (Barbone)
-* Internal C++ refactoring: core implementation (makeplan, setpts, execute,
-  spread/interp) moved to template headers in include/finufft/,
-  with per-precision explicit-instantiation TUs in src/. Many internal free
-  functions converted to private methods on FINUFFT_PLAN_T, reducing
-  parameter passing and improving encapsulation. FFT plan management
-  consolidated in src/fft.cpp with an opaque custom deleter. C++ internal
-  headers renamed from .h to .hpp. No public API changes.
-  (Barbone)
-* Mutable plan state extracted into nested struct M, separating computed
-  state from immutable configuration. Internal C++ error handling now uses
-  exceptions (finufft::exception) instead of integer return codes.
-  Memory leak fixes in guru helper and type-3 inner plan via RAII.
-  Deprecated opts fields (spread_kerevalmeth, spread_kerpad) and unused
-  error codes (FINUFFT_ERR_SPREAD_PTS_OUT_RANGE, FINUFFT_ERR_SPREAD_ALLOC)
-  now emit compiler deprecation warnings.
-  BREAKING CHANGE: FINUFFT_WARN_EPS_TOO_SMALL (ier=1) is now a hard error
-  (FINUFFT_ERR_EPS_TOO_SMALL, ier=26). Users must pass tolerance >= machine
-  epsilon and greater than an internal rounding error estimate, or set the new
-  `opts.allow_eps_too_small=1` to disable the raising of this error. The old
-  enum value is retained but deprecated.
-  (Barbone)
-* Internal cuFINUFFT refactoring
-  - Spreading/interpolation functions of different dimensionalities were
-    merged and templated on number of dimensions. Operation count in critical
-    inner loops was reduced.
-  - Memory management is now done in C++ style (RAII) using Thrust allocators
-  - Cufinufftt's C-style interface is now const-correct
-    (backwards-compatible change)
-  - Internal error management is now based on exceptions (currently via
-    throwing/catching integers, to be improved in the future)
-  - many nearly identical code paths were merged, reducing overall
-    source code size (e.g. cufinufft1_exec instead of
-    cufinufft1d1_exec/cufinufft2d1_exec/cufinufft3d1_exec)
-  - file contents were reshuffled to simplify and reduce inter-file
-    dependencies; as a result, internal headers are much smaller now.
-  (Reinecke)
+  Windows, static + shared. (Barbone, #866).
+* A static install with FFTW now links downstream: a downloaded FFTW is bundled,
+  a system FFTW is found again via the installed FindFFTW. A CXX-only consumer
+  finds OpenMP (#494, Barbone)
 
+Bugfixes:
+
+* MATLAB/Octave wrapper now correctly handles empty mode or NU point arrays,
+  including testing in fullmathtest.m (Barnett #941, fixes #937).
+* Fixed NaN results or segfaults that could happen when running type 3 transform
+  that have zero input or output points (#938, Reinecke)
+* xsimd's reassociation barrier was compiled out under -fassociative-math on
+  clang, so -march=x86-64 Release built folded points wrongly and segfaulted.
+  XSIMD_REASSOCIATIVE_MATH is now forced on, the fold accepts any real
+  coordinate, and the docs no longer state a [-3pi,3pi] input domain
+  (#918, Barbone)
+* cuFINUFFT: fixed 32-bit overflow in the bin and subprob counts of gpu_methods
+  1-3 (`get_nbins`, `nbins_total`, `calc_subprob`; method 4 is untouched by
+  design), and `allocate_subprob_state` now sizes bins with the integer
+  `nbins_total(get_nbins(...))` count instead of a float ceil product
+  (issue #890, PR #894). (Barbone)
+* cuFINUFFT: fixed 32-bit overflow of `nf1*nf2*nf3`, pointer offsets
+  `i*batchsize*{M,nf,nmodes}`/`block*M`/`j*N`, and int32 narrowing of
+  `upsampfac*ms` in `set_nf_type12`/`set_nhg_type3` that hid it from the new
+  `MAX_NF` guard (issue #890, PR #894). (Barbone)
+* Fixed CPU type 3 honoring `opts.spreadinterponly`: the option is documented to
+  affect types 1 and 2 only, and cuFINUFFT already ignored it for type 3, but
+  the CPU plan applied it, so a type-3 call with the flag set returned wrong
+  values instead of the transform. The flag is now cleared at plan creation;
+  its checks moved from the Python tests to `test/dumbinputs.cpp` and
+  `cufinufft1dspreadinterponly_test`. (Garrison, #908)
+* Fixed two cuFINUFFT kernel-evaluation `abs` calls resolving to the C integer
+  overload on some toolchains, silently truncating their floating-point
+  argument: they are now `std::abs` (#740, Barbone)
+* Fixed a silent fine-grid wraparound on Windows: `set_nf_type12` hands
+  `next235` a dimension that `MAX_NF` allows up to 1e12, but that `long`
+  argument is 32-bit on Windows; the wrapped negative value was clamped and
+  the transform ran on a tiny grid instead of failing. `next235` now takes
+  BIGINT. (Barbone)
+* Fixed cuFINUFFT `opts.gpu_device_id`: the plan constructor ran with the
+  caller's current device, so on any device other than that one `cufftPlanMany`,
+  the fseries kernel and the plain-allocator thrust vectors bound to the wrong
+  device and the transform died with `cudaErrorIllegalAddress`. It now switches
+  device like `setpts` and `execute` already did. New `cufinufft_multigpu` test
+  runs a 2D type-1 double transform on every visible device, with
+  and without a caller-owned `gpu_stream`, and checks that an
+  unusable `gpu_device_id` returns `FINUFFT_ERR_CUDA_FAILURE`; with
+  only one device visible the cross-device half cannot run and the
+  test reports a ctest SKIP. (Barbone, #886)
+* The `check_sigma` "upsampfac too low for tol" warning now honors
+  `opts.showwarn=0`, as `docs/opts.rst` promises and the other warnings already
+  do; the error path is unchanged and always speaks. (Barbone)
+
+
+-----------------------------------------------------------------------------
 v2.5.1 4/8/26
 
 * Fix thread safety of PSWF kernel evaluation (Barbone, Lu, #835, #838)
@@ -286,6 +313,7 @@ v2.5.1 4/8/26
 * Fix git-clang-format stale .lock files in pre-commit (Barbone)
 * Doc improvements for PSWF functions (Barnett)
 
+-----------------------------------------------------------------------------
 v2.5.0 3/3/26
 
 * Major overhaul of spreading (gridding) kernel function choice, parameters,
@@ -406,9 +434,9 @@ V 2.4.0 (5/27/25)
 * Binary Python wheels for Windows and musllinux (Barbone).
 * fix CMake MATLAB build (final *.m copy), PR 667 (Barnett).
 * fixed empty-opts bug in MATLAB/Octave for {cu}finufft, PR 666 (Barnett).
-* MATLAB/Octave unified fullmathtest.m for CPU and/or GPU (Barnett).
+* MATLAB/Octave unified fullmathtest.m for CPU and/or GPU (Barnett, #634).
 * MATLAB GPU interface (MEX CUDA) via gpuArrays, PR 634 (mostly Libin Lu;
-  docs/examples/tests/interfaces by Barnett; sped up by Fortunato).
+  docs/examples/tests/interfaces by Barnett; sped up by D. Fortunato).
 * Tweaked choice of upsampfac to use a density based heuristic for type 1 and 2
   in the CPU library. This gives a significant speedup for some cases.
   For now we assume density=1.0 (to revisit).  Barbone. PR #638 & 652.
