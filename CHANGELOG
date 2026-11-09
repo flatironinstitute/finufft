@@ -256,6 +256,8 @@ Build and packaging:
 
 Bugfixes:
 
+* MATLAB/Octave type3 ajoint now is correctly an adjoint. It was
+  ovewrtiting the input array with garbage bedofore. (Barbone #952).
 * MATLAB/Octave wrapper now correctly handles empty mode or NU point arrays,
   including testing in fullmathtest.m (Barnett #941, fixes #937).
 * Fixed NaN results or segfaults that could happen when running type 3 transform

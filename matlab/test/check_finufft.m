@@ -124,4 +124,21 @@ ce = sum(fd(:).*exp(1i*isign*(mm1(:)*x(j)+mm2(:)*y(j))));
 fprintf('2Dmany type-2: rel err in c[%d,%d] is %.3g\n',j,d,abs((ce-c(j,d))/max(c(:))))
 fprintf('total 2Dmany time: %.3f s\n',toc)
 
+% --------- type-3 plan adjoint (guru) vs direct sum
+% Regression: the type-3 adjoint must call the adjoint mex stub.
+M3 = 20; N3 = 15;                           % # NU pts, # targ freqs (N3<M3)
+x3 = 2*pi*rand(M3,1) - pi;
+s3 = 2*pi*rand(N3,1) - pi;
+f3 = randn(N3,1)+1i*randn(N3,1);
+p3 = finufft_plan(3, 1, isign, 1, eps, o);
+p3.setpts(x3, [], [], s3);
+c3 = p3.execute_adjoint(f3);
+ce = exp(-1i*isign*(x3*s3.')) * f3;          % exact: c_j = sum_k f_k e^{-i isign s_k x_j}
+re = norm(c3(:)-ce(:))/norm(ce(:));
+fprintf('type-3 plan adjoint: rel err in c is %.3g\n',re)
+if ~(re < 1e-4)                             % NaN or garbage output must fail here
+  error('t3adj: type-3 plan adjoint rel err %.3g exceeds 1e-4',re)
+end
+delete(p3);
+
 fprintf('All-dimensions total time: %.3f s\n',toc(tt))

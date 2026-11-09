@@ -427,10 +427,10 @@ finufft(mex_id_, o);
         result = squeeze(reshape(result, [ms mt mu n_trans]));
       elseif plan.type == 3           % adjoint of type 3 has reversed data flow of type 3
         if strcmp(plan.floatprec,'double')
-          mex_id_ = 'c o int = finufft_execute(c i finufft_plan, c o dcomplex[xx], c i dcomplex[])';
+          mex_id_ = 'c o int = finufft_execute_adjoint(c i finufft_plan, c o dcomplex[xx], c i dcomplex[])';
 [ier, result] = finufft(mex_id_, plan, data_in, nj, n_trans);
         else
-          mex_id_ = 'c o int = finufftf_execute(c i finufftf_plan, c o fcomplex[xx], c i fcomplex[])';
+          mex_id_ = 'c o int = finufftf_execute_adjoint(c i finufftf_plan, c o fcomplex[xx], c i fcomplex[])';
 [ier, result] = finufft(mex_id_, plan, data_in, nj, n_trans);
         end
       end

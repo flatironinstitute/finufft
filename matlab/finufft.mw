@@ -352,9 +352,9 @@ classdef finufft_plan < handle
         result = squeeze(reshape(result, [ms mt mu n_trans]));
       elseif plan.type == 3           % adjoint of type 3 has reversed data flow of type 3
         if strcmp(plan.floatprec,'double')
-          # int ier = finufft_execute(finufft_plan plan, output dcomplex[nj, n_trans] result, dcomplex[] data_in);
+          # int ier = finufft_execute_adjoint(finufft_plan plan, output dcomplex[nj, n_trans] result, dcomplex[] data_in);
         else
-          # int ier = finufftf_execute(finufftf_plan plan, output fcomplex[nj, n_trans] result, fcomplex[] data_in);
+          # int ier = finufftf_execute_adjoint(finufftf_plan plan, output fcomplex[nj, n_trans] result, fcomplex[] data_in);
         end
       end
       errhandler(ier);
