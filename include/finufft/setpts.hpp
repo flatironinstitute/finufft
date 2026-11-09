@@ -15,9 +15,9 @@
 
 // ---------- local helpers for setpts: --------
 
-// Throws FINUFFT_ERR_EPS_TOO_SMALL if rounding_error > tol, or if upsampfac is below
+// Throws FINUFFT_ERR_EPS_TOO_SMALL if tol < rounding_error, or if upsampfac is below
 // min_sigma_for_aliasing_error or min_sigma_for_deconv_error at the plan ns.
-// opts.allow_eps_too_small warns instead.
+// (Or, if opts.allow_eps_too_small true, warns instead).
 template<typename TF> void FINUFFT_PLAN_T<TF>::check_sigma(double mode_diagonal) {
   using namespace finufft::common;
   using namespace finufft::kernel;
@@ -25,12 +25,12 @@ template<typename TF> void FINUFFT_PLAN_T<TF>::check_sigma(double mode_diagonal)
   const double tol = m.tol, sigma = m.spopts.upsampfac;
   const int ns           = m.spopts.nspread;
   const double eps_round = rounding_error(eps_mach, mode_diagonal);
-  const bool below_floor = eps_round > tol;
+  const bool below_floor = (tol < eps_round); // *** this is really cond-num limited
   const double sigma_min = std::max(min_sigma_for_aliasing_error(tol, dim, type, ns),
                                     min_sigma_for_deconv_error(tol, dim, ns, eps_mach));
   if (!below_floor && sigma >= sigma_min) return;
   const bool do_throw = !opts.allow_eps_too_small; // opt-in wins
-  // an error always speaks; the warning obeys opts.showwarn, as every other warning does
+  // an error always speaks; the warning obeys opts.showwarn
   if (!do_throw && !opts.showwarn) return;
   const char *level = do_throw ? "error" : "warning";
   if (below_floor)
@@ -42,31 +42,15 @@ template<typename TF> void FINUFFT_PLAN_T<TF>::check_sigma(double mode_diagonal)
   if (do_throw) throw finufft::exception(FINUFFT_ERR_EPS_TOO_SMALL);
 }
 
-// ---------- local math routines for type-3 setpts: --------
-
 template<typename TF>
 void FINUFFT_PLAN_T<TF>::set_nhg_type3(int idim, TF S, TF X)
-/* sets nfdim[idim], t3P.h[idim], and t3P.gam[idim], for type 3 only.
-   Inputs:
-   idim - which dimension (0,1,2)
-   X and S are the xj and sk interval half-widths respectively.
-   Reads opts and spopts from the plan.
-   Outputs written to plan members:
-   nfdim[idim] - size of upsampled grid for this dimension.
-   t3P.h[idim] - grid spacing = 2pi/nf
-   t3P.gam[idim] - x rescale factor, ie x'_j = x_j/gam (modulo shifts).
-   Barnett 2/13/17. Caught inf/nan 3/14/17. io int types changed 3/28/17
-   New logic 6/12/17
-   Previous args (opts, spopts) are now plan members; outputs (nf, h, gam) are
-   written directly to plan members nfdim, t3P.h, t3P.gam.
-   Converted to class member, Barbone 2/24/26.
-   Body delegated to the shared finufft::common::nhg_type3, Barbone 6/26.
-*/
+// Sets fine grid params in a single dimension (idim) of plan, for type-3 transform.
+// Docs now in finufft::common::nhg_type3, where the code body moved, Barbone 6/26.
 {
   const auto [nf, h, gam] =
       finufft::common::nhg_type3(opts.upsampfac, X, S, m.spopts.nspread, MAX_NF);
-  m.nfdim[idim] = nf;
-  m.t3P.h[idim] = TF(h);   // upsampled grid spacing
+  m.nfdim[idim]   = nf;      // fine grid size
+  m.t3P.h[idim]   = TF(h);   // upsampled (fine) grid spacing h
   m.t3P.gam[idim] = TF(gam); // x rescale factor, ie x'_j = x_j/gam (modulo shifts)
 }
 

@@ -135,25 +135,11 @@ template<int NS, int NC> inline constexpr bool ValidKernelParams() noexcept {
 
 namespace finufft::common {
 
-// Fine-grid length one dimension gets at this sigma, mirroring set_nf_type12
-// (makeplan.hpp): ceil(sigma*n_modes), floored at 2*ns, rounded up to the next even
-// 2,3,5-smooth number. set_nf_type12 owns the BIGINT/MAX_NF version; this is the
-// read-only mirror for the upsampfac selector.
-BIGINT fine_grid_len(double sigma, double n_modes, int ns);
+// These are documented at their source code in kernel.cpp:
 
-// Type-3 fine grid for one dimension, given the source/freq interval half-widths X,S.
-// Clamps so X*S>=1 (handling X and/or S == 0), sizes the upsampled grid nf (floored at
-// 2*ns, then next235-rounded unless it already exceeds max_nf, the allocation guard),
-// and returns spacing h=2pi/nf and x-rescale gam=nf/(2*sigma*S). All math in double;
-// callers narrow h/gam to their precision. Single source of truth for set_nhg_type3 on
-// CPU (setpts.hpp) and GPU (cuda/makeplan.cu) and the type-3 upsampfac cost model
-// (src/heuristics.cpp). Barnett 6/12/17 logic; extracted Barbone 6/26.
-// Returns the tuple (nf, h, gam); destructure with structured bindings.
+BIGINT fine_grid_len(double sigma, double n_modes, int ns);
 std::tuple<BIGINT, double, double> nhg_type3(double sigma, double X, double S, int ns,
                                              BIGINT max_nf);
-
-// Rounding error ROUND_FAC*eps_mach*mode_diagonal, with mode_diagonal the 2-norm of
-// the mode counts ([FIN] Remark 9). No sigma lowers it.
 double rounding_error(double eps_mach, double mode_diagonal);
 
 } // namespace finufft::common

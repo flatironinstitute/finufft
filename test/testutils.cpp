@@ -16,12 +16,11 @@
        -I../include ../src/utils.o -o testutilsf -lgomp -DSINGLE
 */
 
-// This switches FLT macro from double to float if SINGLE is defined, etc...
-
 #include "finufft/utils.hpp"
 #include "utils/norms.hpp"
-#include <finufft/test_defs.hpp>
 #include <finufft_common/kernel.h>
+// This switches FLT macro from double to float if SINGLE is defined, etc...
+#include <finufft/test_defs.hpp>
 
 using namespace finufft::common;
 using namespace finufft::kernel;
