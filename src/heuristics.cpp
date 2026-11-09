@@ -116,19 +116,15 @@ double FINUFFT_PLAN_T<TF>::best_sigma_for_tol(
       if (show_debug) printf("(sig too large)\n");
       continue;
     }
-    // How much sigma gets bumped up to be safely on the correct side of the
-    // boundary induced by the ceil in theoretical_kernel_ns. Must also be
-    // small enough not to affect efficiency...
-    constexpr double edge_pad = 1e-3;
-    const auto sigma_pad      = sigma_ns + edge_pad;
+    const auto sigma_pad      = sigma_ns + UPSAMPFAC_EDGE_PAD; // bump, constants.h
     const auto flops_ns       = compute_flops(sigma_pad);
     if (show_debug) printf("flops_ns=%.3g\n", flops_ns);
     if (flops_ns < flops) {
       flops = flops_ns;
-      sigma = sigma_pad;
+      sigma = sigma_pad; // update best sigma candidate
     }
   }
-  return sigma; // to-do: consider returning flops (to predict CPU time), and ns
+  return sigma; // to-do: consider also returning flops (to predict CPU time) and ns
 }
 
 template double FINUFFT_PLAN_T<float>::best_sigma_for_tol(

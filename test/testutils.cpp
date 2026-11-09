@@ -96,32 +96,46 @@ int main() {
   constexpr FLT EPSILON = std::numeric_limits<FLT>::epsilon();
   FLT relerr            = 2.0 * EPSILON; // 1 ULP, fine since 1.0 rep exactly
   if (std::abs(infnorm(M, &a[0]) - 1.0) > relerr) return 1;
-  if (std::abs(twonorm(M, &a[0]) - std::sqrt((FLT)M)) > relerr * std::sqrt((FLT)M)) return 1;
+  if (std::abs(twonorm(M, &a[0]) - std::sqrt((FLT)M)) > relerr * std::sqrt((FLT)M))
+    return 1;
   b[0] = CPX(0.0, 0.0); // perturb b from a
   if (std::abs(errtwonorm(M, &a[0], &b[0]) - 1.0) > relerr) return 1;
-  if (std::abs(std::sqrt((FLT)M) * relerrtwonorm(M, &a[0], &b[0]) - 1.0) > relerr) return 1;
+  if (std::abs(std::sqrt((FLT)M) * relerrtwonorm(M, &a[0], &b[0]) - 1.0) > relerr)
+    return 1;
 
-  // min_sigma_for_aliasing_error(ns) is the edge of theoretical_kernel_ns. The wider
-  // kernel needs less sigma, so at the midpoint m of the edges for ns and ns+1 the
-  // width is ns+1.
+  // Test that ns -> sigma -> sigma_pad -> ns is the identity operation, where the
+  // first step is min_sigma_for_aliasing_error(), the middle increases sigma slightly
+  // (the sign here relies on ceil not floor being used in theoretical_kernel_ns),
+  // and the third step is theoretical_kernel_ns() itself. Ie, this tests that
+  // min_sigma_for_aliasing_error is the inverse function of the formula inside
+  // theoretical_kernel_ns (omitting its ceil step), with respect to ns and sigma,
+  // holding tol and all else fixed. This is needed so an auto-chosen sigma causes the
+  // same ns as assumed in the CPU cost model to be chosen later in the plan.
+  // Barnett 11/8/26 simplified and covers usage precisely needed in best_sigma_for_tol()
   {
-    int checked = 0, failed = 0;
+    int nchecked = 0, nfailed = 0;
     for (int dim = 1; dim <= 3; ++dim)
-      for (int k = 1; k <= 15; ++k)
-        for (int ns = 2; ns < 16; ++ns) {
-          const double tol = std::pow(10.0, -k);
+      for (int k = 1; k <= 15; ++k) {
+        const double tol = std::pow(10.0, -k);
+        for (int ns = 2; ns <= MAX_NSPREAD<FLT>; ++ns) {
           for (int type = 1; type <= 3; ++type) {
-            const double m = (min_sigma_for_aliasing_error(tol, dim, type, ns) +
-                              min_sigma_for_aliasing_error(tol, dim, type, ns + 1)) /
-                             2;
-            if (!(m > 1.0 && std::isfinite(m))) continue;
-            ++checked;
-            failed += theoretical_kernel_ns(tol, dim, type, m) != ns + 1;
+            const auto sigma_ns = min_sigma_for_aliasing_error(tol, dim, type, ns);
+            // note: since min_sigma_for_deconv_error is not invokved, the following
+            // actually tests some sigma's not needed in best_sigma_for_tol...
+            if (sigma_ns < MIN_AUTO_UPSAMPFAC || sigma_ns > MAX_AUTO_UPSAMPFAC) continue;
+            const double sigma_pad = sigma_ns + UPSAMPFAC_EDGE_PAD; // bump, constants.h
+            ++nchecked;
+            int tkns = theoretical_kernel_ns(tol, dim, type, sigma_pad);
+            if (tkns != ns) {
+              printf("\tfail: ns=%d tkns=%d sigma_pad=%.16g\n", ns, tkns, sigma_pad);
+              ++nfailed;
+            }
           }
         }
-    if (checked == 0 || failed) { // an empty sweep proves nothing
-      printf("fail: min_sigma_for_aliasing_error is off the edge in %d of %d cells\n",
-             failed, checked);
+      }
+    if (nchecked == 0 || nfailed) { // an empty sweep proves nothing
+      printf("fail: min_sigma_for_aliasing_error does not match ns in %d of %d cases\n",
+             nfailed, nchecked);
       return 1;
     }
   }
