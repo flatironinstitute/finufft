@@ -78,8 +78,17 @@ int main() {
       cudaDeviceSynchronize();
     }
 
+    // Zero modes are a valid empty mode set (issue #947)
     {
       int64_t N[3] = {0, 20, 15};
+      assert(cufinufftf_makeplan(type, dim, N, iflag, ntransf, tol, &plan, NULL) == 0);
+      cufinufftf_destroy(plan);
+      cudaDeviceSynchronize();
+    }
+
+    // Negative modes are invalid
+    {
+      int64_t N[3] = {-1, 20, 15};
       assert(cufinufftf_makeplan(type, dim, N, iflag, ntransf, tol, &plan, NULL) ==
              FINUFFT_ERR_NDATA_NOTVALID);
       cudaDeviceSynchronize();
@@ -126,8 +135,8 @@ int main() {
 
     {
       int64_t N[3] = {10, 0, 1};
-      assert(cufinufftf_makeplan(type, dim, N, iflag, ntransf, tol, &plan, NULL) ==
-             FINUFFT_ERR_NDATA_NOTVALID);
+      assert(cufinufftf_makeplan(type, dim, N, iflag, ntransf, tol, &plan, NULL) == 0);
+      cufinufftf_destroy(plan);
       cudaDeviceSynchronize();
     }
 
@@ -200,8 +209,8 @@ int main() {
 
     {
       int64_t N[3] = {10, 15, 0};
-      assert(cufinufftf_makeplan(type, dim, N, iflag, ntransf, tol, &plan, NULL) ==
-             FINUFFT_ERR_NDATA_NOTVALID);
+      assert(cufinufftf_makeplan(type, dim, N, iflag, ntransf, tol, &plan, NULL) == 0);
+      cufinufftf_destroy(plan);
       cudaDeviceSynchronize();
     }
 

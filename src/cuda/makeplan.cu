@@ -352,8 +352,12 @@ cufinufft_plan_t<T>::cufinufft_plan_t(int type_, int dim_, const int *nmodes, in
     // check below.
     cuda::std::array<std::int64_t, 3> nf123_wide{1, 1, 1};
     if (opts.gpu_spreadinterponly) {
-      // spread/interp grid is precisely the user "mode" sizes, no upsampling
-      for (int idim = 0; idim < dim; ++idim) nf123_wide[idim] = mstu[idim];
+      // spread/interp grid is precisely the user "mode" sizes, no upsampling.
+      for (int idim = 0; idim < dim; ++idim) {
+        // 0 is a valid input, but we need to clamp to 1
+        // otherwise we get a zero-sized array allocation and a segfault later
+        nf123_wide[idim] = std::max<std::int64_t>(mstu[idim], 1);
+      }
       if (opts.debug) {
         printf("[cufinufft] spreadinterponly mode: (nf1,nf2,nf3) = (%lld, %lld, %lld)\n",
                (long long)nf123_wide[0], (long long)nf123_wide[1],
