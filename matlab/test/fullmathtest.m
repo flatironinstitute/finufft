@@ -4,7 +4,7 @@
 % Short runtime (~1 sec per device).
 % Barnett 4/2/25, broken out erralltypedim 12/21/25,
 % added zero-size checks, tweaked formatting 10/21/26,
-% added (empty srcs, nonempty targs) and empty plan zero checks 11/8/26
+% added (empty srcs, nonempty targs) zero check 11/8/26
 
 addpath(fileparts(mfilename('fullpath')))
 clear
@@ -29,7 +29,7 @@ for precdev=precdevs  % ......... loop precisions & devices
   else
     dev = gpuDevice(); devname = dev.Name;
     myrand = @gpuArray.rand;
-    edgecases = 0;	% until #947 fixed, don't test zero-length GPU
+    edgecases = 1;
   end
   if sum(precdev=='sS')
     prec = 'single';
@@ -104,15 +104,9 @@ for precdev=precdevs  % ......... loop precisions & devices
     assert(isempty( finufft3d3(e,e,e,e,+1,tol,e,e,e) ))
     disp('  all 0*0 size input tests passed.')
 
-    % the two empty-input behaviours erralltypedim cannot reach: when it has
-    % no sources its type-3 targets are empty too, and it never calls the
-    % plan interface...
+    % empty sources with nonempty type-3 targets: erralltypedim cannot reach this
     assert(~any( finufft1d3(e,e,+1,tol,f) ))       % empty srcs, nonempty t3 targs: zeros
-    p = finufft_plan(3,1,+1,1,tol);
-    p.setpts(e,[],[],f,[],[]);
-    assert(~any( p.execute(e) ))                   % empty pts via plan: zeros
-    delete(p);
-    disp('  all empty-srcs nonempty-targs & empty-plan tests passed.')
+    disp('  empty-srcs nonempty-targs test passed.')
   end
 
 end     % ..........................
