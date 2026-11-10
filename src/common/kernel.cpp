@@ -201,7 +201,7 @@ double min_sigma_for_deconv_error(double tol, int dim, int ns, double eps_mach) 
 
      the beta_cutoff formula in the above set_kernel_shape_given_ns().
      The inversion procedure first gets r_dyn easily from (1). Then comes the
-     fun part: solving for sigma given r_dyn. Combining (2) and (3) gives:
+     tricky part: solving for sigma given r_dyn. Combining (2) and (3) gives:
 
        2.log(r_dyn)/(pi.w) =:  v  = 2 - 1/sigma - 2.sqrt(1 - 1/sigma)    (4)
                                   = 1 + y^2 - 2y
@@ -214,20 +214,21 @@ double min_sigma_for_deconv_error(double tol, int dim, int ns, double eps_mach) 
      Barbone's derivation is in the convo here:
      https://github.com/flatironinstitute/finufft/pull/951
 
-     A pitfall to avoid is to try and exploit r_dyn ~ exp(beta) * tol, which
-     expresses the sketch in Fig. 3.1(b).
+     It may instead be simpler to exploit r_dyn ~ exp(beta) * tol, which
+     expresses the sketch in Fig. 3.1(b), but the above suffices.
 
      Notes: theory would predict (r_dyn)^dim instead of c=dim above, and this
      would apply for the larger w values in float.
      However, Barnett believes that the exact result of this formula is not
      crucial, because the empirically-fitted float_max_ns_cc() above is what
      actually prevents deconv CC (large ns, small sigma, float prec case).
+     TODO: understand this, possibly unify with float_max_ns_cc().
   */
   const double r_dyn = tol / (dim * eps_mach); // solves (1) above for r_dyn
   const double v     = 2.0 * std::log(r_dyn) / (common::PI * ns); // (4) above
-  if (!(v > 0.0)) return std::numeric_limits<double>::infinity();
-  const double q = std::min(std::sqrt(v), 1.0);                   // implements (5) above
-  return 1.0 / (q * (2.0 - q));                                   // implements (6) above
+  if (!(v > 0.0)) return std::numeric_limits<double>::infinity(); // unachievable
+  const double q = std::min(std::sqrt(v), 1.0);                   // implements (5)
+  return 1.0 / (q * (2.0 - q));                                   // implements (6)
 }
 
 } // namespace finufft::kernel

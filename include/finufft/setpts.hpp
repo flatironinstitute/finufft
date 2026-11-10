@@ -15,17 +15,18 @@
 
 // ---------- local helpers for setpts: --------
 
-// Throws FINUFFT_ERR_EPS_TOO_SMALL if tol < rounding_error, or if upsampfac is below
+// Throws FINUFFT_ERR_EPS_TOO_SMALL if tol < rounding_error(), the NUDFT problem
+// condition-number based lower bound on error, or if upsampfac is below
 // min_sigma_for_aliasing_error or min_sigma_for_deconv_error at the plan ns.
-// (Or, if opts.allow_eps_too_small true, warns instead).
+// (Or, if opts.allow_eps_too_small true, it warns instead).
 template<typename TF> void FINUFFT_PLAN_T<TF>::check_sigma(double mode_diagonal) {
   using namespace finufft::common;
   using namespace finufft::kernel;
   constexpr double eps_mach = std::numeric_limits<TF>::epsilon();
   const double tol = m.tol, sigma = m.spopts.upsampfac;
   const int ns           = m.spopts.nspread;
-  const double eps_round = rounding_error(eps_mach, mode_diagonal);
-  const bool below_floor = (tol < eps_round); // *** this is really cond-num limited
+  const double eps_round = rounding_error(eps_mach, mode_diagonal); // cond-num based
+  const bool below_floor = (tol < eps_round);
   const double sigma_min = std::max(min_sigma_for_aliasing_error(tol, dim, type, ns),
                                     min_sigma_for_deconv_error(tol, dim, ns, eps_mach));
   if (!below_floor && sigma >= sigma_min) return;
@@ -34,8 +35,8 @@ template<typename TF> void FINUFFT_PLAN_T<TF>::check_sigma(double mode_diagonal)
   if (!do_throw && !opts.showwarn) return;
   const char *level = do_throw ? "error" : "warning";
   if (below_floor)
-    fprintf(stderr, "%s %s: tol=%.3g is below the rounding floor %.2g\n", __func__, level,
-            tol, eps_round);
+    fprintf(stderr, "%s %s: tol=%.3g is below cond#-limited achievable error %.2g\n",
+            __func__, level, tol, eps_round);
   else
     fprintf(stderr, "%s %s: upsampfac=%.3g at ns=%d cannot meet tol=%.3g; needs %.3g\n",
             __func__, level, sigma, ns, tol, sigma_min);
