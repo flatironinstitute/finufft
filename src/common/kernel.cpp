@@ -179,37 +179,55 @@ double min_sigma_for_aliasing_error(double tol, int dim, int type, int ns) {
 }
 
 double min_sigma_for_deconv_error(double tol, int dim, int ns, double eps_mach) {
-  /* Analytic solution of the sigma that matches tol in an error model for
+  /* Analytic solution of the sigma that matches tol given ns, in an error model for
      rounding amplification due to division by kernel FT at the largest freq N/2.
      Its main use is in stopping too small a sigma being auto-chosen by
      best_sigma_for_tol(), and in deciding if to throw FINUFFT_ERR_EPS_TOO_SMALL
-     in check_sigma().
-     The formula inverted for sigma is
-       tol ~ c * eps_mach * r_dyn(sigma,w),
-     where c seems to be set to dim, the dimension (1,2, or 3), and
-     r_dyn(sigma), the 1D deconvolution dynamic range, is (3.21) of the [FIN]
-     paper,
-       r_dyn ~ exp(beta - sqrt(beta^2 - (pi.w/2sigma)^2) ).
-     Here w is ns, the width, and beta (shape param) also depends on sigma.
-     We simplify this using (4.5) for beta (with gamma=1), the beta_cutoff
-     formula in the above set_kernel_shape_given_ns(). This gives
-       r_dyn ~ exp(beta) * exp(-pi.w.sqrt(1 - 1/sigma))
-             ~ exp(beta) * tol,
-     noting the aliasing formulae (1.7) or (4.6) used to match tol.
-     Taking the log gives the r_dyn interpretation sketched in Fig. 3.1(b).
+     later in check_sigma().
+     The formula inverted for sigma is, recalling w is another symbol for ns,
 
-     *** to-do: understand the below AI-generated sigma inversion formula!
+       tol ~ c * eps_mach * r_dyn(sigma,w),                              (1)
 
-     Notes: theory would predict (r_dyn)^dim instead of c=dim above (to-do:
-     investigate this dim-dependence).
+     where c=dim is currently the dimension (1,2, or 3), at least by AI fitting
+     over the w range where float_max_ns_cc() restricts to.
+     r_dyn is the 1D deconvolution dynamic range (3.21) of the [FIN] paper,
+
+       r_dyn ~ exp(beta - sqrt(beta^2 - (pi.w/2sigma)^2) ).              (2)
+
+     We assume the kernel shape beta is always set according to w & sigma
+     via its standard ES-kernel model formula (4.5) with gamma=1,
+
+       beta = pi.w.( 1-1/(2sigma) )                                      (3)
+
+     the beta_cutoff formula in the above set_kernel_shape_given_ns().
+     The inversion procedure first gets r_dyn easily from (1). Then comes the
+     fun part: solving for sigma given r_dyn. Combining (2) and (3) gives:
+
+       2.log(r_dyn)/(pi.w) =:  v  = 2 - 1/sigma - 2.sqrt(1 - 1/sigma)    (4)
+                                  = 1 + y^2 - 2y
+
+     where y^2 = 1-1/sigma is in (0,1). Solving the quadratic for y gives
+
+       y = 1 - sqrt(v) =: 1-q,         where q = sqrt(v)                 (5)
+
+     from which one gets sigma = 1/(1-y^2) = 1/[q(2-q)].                 (6)
+     Barbone's derivation is in the convo here:
+     https://github.com/flatironinstitute/finufft/pull/951
+
+     A pitfall to avoid is to try and exploit r_dyn ~ exp(beta) * tol, which
+     expresses the sketch in Fig. 3.1(b).
+
+     Notes: theory would predict (r_dyn)^dim instead of c=dim above, and this
+     would apply for the larger w values in float.
      However, Barnett believes that the exact result of this formula is not
      crucial, because the empirically-fitted float_max_ns_cc() above is what
      actually prevents deconv CC (large ns, small sigma, float prec case).
   */
-  const double v = 2.0 * std::log(tol / (dim * eps_mach)) / (common::PI * ns);
+  const double r_dyn = tol / (dim * eps_mach); // solves (1) above for r_dyn
+  const double v     = 2.0 * std::log(r_dyn) / (common::PI * ns); // (4) above
   if (!(v > 0.0)) return std::numeric_limits<double>::infinity();
-  const double q = std::min(std::sqrt(v), 1.0);
-  return 1.0 / (q * (2.0 - q));
+  const double q = std::min(std::sqrt(v), 1.0);                   // implements (5) above
+  return 1.0 / (q * (2.0 - q));                                   // implements (6) above
 }
 
 } // namespace finufft::kernel

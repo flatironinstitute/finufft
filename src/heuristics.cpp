@@ -80,7 +80,7 @@ double FINUFFT_PLAN_T<TF>::flops_type3(int ns, double sigma,
    Output: sigma - the upsampling factor chosen, or +infinity if no sigma can meet
                    the user's requested tol.
    Notes:
-   * for type-3 this calls itself max_ns-1 times as type=2 because of flops_type3
+   * for type-3 this calls itself max_ns-1 times as type=2 because of flops_type3()
    * ns is not returned because later theoretical_kernel_ns should give the same ns
 */
 template<typename TF>
@@ -121,10 +121,10 @@ double FINUFFT_PLAN_T<TF>::best_sigma_for_tol(
     if (show_debug) printf("flops_ns=%.3g\n", flops_ns);
     if (flops_ns < flops) {
       flops = flops_ns;
-      sigma = sigma_pad; // update best sigma candidate
+      sigma = sigma_pad;
     }
   }
-  return sigma; // to-do: consider also returning flops (to predict CPU time) and ns
+  return sigma; // TODO: consider also returning flops (to predict CPU time) and ns
 }
 
 template double FINUFFT_PLAN_T<float>::best_sigma_for_tol(
