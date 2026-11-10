@@ -59,7 +59,7 @@ std::function<double(double)> kernel_definition_lambda(
 }
 
 static double kernel_tolfac(int dim, int type) {
-  // Tolerance prefactor in the kernel aliasing law tol = tolfac*exp(-(ns-NSOFF)*pi*u).
+  // Tolerance prefactor in the below kernel aliasing law. (Fitted Barnett Jan 2026).
   // PER_DIM^(dim-1) covers the measured error growth per dimension; TYPE3 covers the
   // type-3 outer spread. The two are separate fits that share the value 1.4. The width
   // law and its inverse both read it, so they cannot disagree.
@@ -70,8 +70,22 @@ static double kernel_tolfac(int dim, int type) {
 }
 
 int theoretical_kernel_ns(double tol, int dim, int type, double sigma) {
-  // Spread width ns that meets tol at upsampfac sigma > 1 in exact arithmetic, by the
-  // aliasing law. One law for all PSWF kerformulas; no clip to the compiled range.
+  /* Spread/interp kernel width ns (aka w) that meets tol at upsampfac sigma > 1 in exact
+     arithmetic, via a kernel aliasing law. The law is given by keeping only the
+     exponential term in equation (1.7) or (4.6) in the [FIN] publication, then inverting
+     for w given tol (ie eps_infty) and sigma.
+     A prefactor (the above kernel_tolfac), and w offset (NSOFF), were hand fitted so ns
+     with the PSWF kernel with default shape parameter gives errors lying below dotted
+     lines in tolsweeptest.m and hence passes tolsweeptest.cpp (by Barnett, Jan 2026).
+     The aliasing kernel error model is thus (tol being relative tolerance),
+             tol ~ eps_infty = tolfac.exp(-pi*(w-NSOFF)*sqrt(1-1/sigma)) .
+     Notes:
+     1) min_sigma_for_aliasing_error() below must be the inverse of this function
+        (without the ceil operation).
+     2) The use of ceil to get the integer output is crucial (see testutils.cpp).
+     3) Any similarity of (w-NSOFF) to (w-1) in eqn (1.7) is coincidental, since hand-fit.
+     Barnett Jan 2026; tolfac split out Fall 2026; updated docs 11/8/26.
+  */
   const double tolfac = kernel_tolfac(dim, type);
   int ns              = (int)std::ceil(
       std::log(tolfac / tol) / (finufft::common::PI * std::sqrt(1.0 - 1.0 / sigma)) +
@@ -79,14 +93,16 @@ int theoretical_kernel_ns(double tol, int dim, int type, double sigma) {
   return ns;
 }
 
-// Widest float ns that does not lose accuracy to catastrophic cancellation at low
-// sigma: 8 plus a sigma- and dim-dependent step of 1/0.075 per unit over the knee.
+// Widest ns that does not lose accuracy to catastrophic cancellation in float, at low
+// sigma. Used below.
 static int float_max_ns_cc(double sigma, int dim) {
   constexpr double UPSAMPFAC_STEP = 1.0 / 0.075;
   return 8 + static_cast<int>(std::floor(
                  std::max(0.0, (sigma - 0.975 - 0.125 * dim) * UPSAMPFAC_STEP)));
 }
 
+// Clip kernel width ns to compiled kernel evaluator limits, and apply max limit
+// due to catastrophic cancellation.
 int clamp_kernel_ns(int ns, double upsampfac, int dim, bool is_float) {
   using common::MAX_NSPREAD;
   const int max_ns = is_float ? MAX_NSPREAD<float> : MAX_NSPREAD<double>;
@@ -151,30 +167,104 @@ void set_kernel_shape_given_ns(finufft_spread_opts &spopts, int debug) {
 }
 
 double min_sigma_for_aliasing_error(double tol, int dim, int type, int ns) {
+  // An analytic inverse for the (ns,sigma) relationship in theoretical_kernel_ns()
+  // above, without its final ceil operation. Returns +infinity if no sigma can
+  // achieve tol (eps_infty). See testutils.cpp for test.
   const double u =
       std::log(kernel_tolfac(dim, type) / tol) / ((ns - common::NSOFF) * common::PI);
-  if (!(u < 1.0)) return std::numeric_limits<double>::infinity();
+  // crucial that the following is +infinity (since needs to be > MAX_AUTO_UPSAMPFAC)
+  if (!(u < 1.0)) return std::numeric_limits<double>::infinity(); // unachievable
   if (u <= 0.0) return 1.0;
   return 1.0 / (1.0 - u * u);
 }
 
 double min_sigma_for_deconv_error(double tol, int dim, int ns, double eps_mach) {
-  const double v = 2.0 * std::log(tol / (dim * eps_mach)) / (common::PI * ns);
-  if (!(v > 0.0)) return std::numeric_limits<double>::infinity();
-  const double q = std::min(std::sqrt(v), 1.0);
-  return 1.0 / (q * (2.0 - q));
+  /* Analytic solution of the sigma that matches tol given ns, in an error model for
+     rounding amplification due to division by kernel FT at the largest freq N/2.
+     Its main use is in stopping too small a sigma being auto-chosen by
+     best_sigma_for_tol(), and in deciding if to throw FINUFFT_ERR_EPS_TOO_SMALL
+     later in check_sigma().
+     The formula inverted for sigma is, recalling w is another symbol for ns,
+
+       tol ~ c * eps_mach * r_dyn(sigma,w),                              (1)
+
+     where c=dim is currently the dimension (1,2, or 3), at least by AI fitting
+     over the w range where float_max_ns_cc() restricts to.
+     r_dyn is the 1D deconvolution dynamic range (3.21) of the [FIN] paper,
+
+       r_dyn ~ exp(beta - sqrt(beta^2 - (pi.w/2sigma)^2) ).              (2)
+
+     We assume the kernel shape beta is always set according to w & sigma
+     via its standard ES-kernel model formula (4.5) with gamma=1,
+
+       beta = pi.w.( 1-1/(2sigma) )                                      (3)
+
+     the beta_cutoff formula in the above set_kernel_shape_given_ns().
+     The inversion procedure first gets r_dyn easily from (1). Then comes the
+     tricky part: solving for sigma given r_dyn. Combining (2) and (3) gives:
+
+       2.log(r_dyn)/(pi.w) =:  v  = 2 - 1/sigma - 2.sqrt(1 - 1/sigma)    (4)
+                                  = 1 + y^2 - 2y
+
+     where y^2 = 1-1/sigma is in (0,1). Solving the quadratic for y gives
+
+       y = 1 - sqrt(v) =: 1-q,         where q = sqrt(v)                 (5)
+
+     from which one gets sigma = 1/(1-y^2) = 1/[q(2-q)].                 (6)
+     Barbone's derivation is in the convo here:
+     https://github.com/flatironinstitute/finufft/pull/951
+
+     It may instead be simpler to exploit r_dyn ~ exp(beta) * tol, which
+     expresses the sketch in Fig. 3.1(b), but the above suffices.
+
+     Notes: theory would predict (r_dyn)^dim instead of c=dim above, and this
+     would apply for the larger w values in float.
+     However, Barnett believes that the exact result of this formula is not
+     crucial, because the empirically-fitted float_max_ns_cc() above is what
+     actually prevents deconv CC (large ns, small sigma, float prec case).
+     TODO: understand this, possibly unify with float_max_ns_cc().
+  */
+  const double r_dyn = tol / (dim * eps_mach); // solves (1) above for r_dyn
+  const double v     = 2.0 * std::log(r_dyn) / (common::PI * ns); // (4) above
+  if (!(v > 0.0)) return std::numeric_limits<double>::infinity(); // unachievable
+  const double q = std::min(std::sqrt(v), 1.0);                   // implements (5)
+  return 1.0 / (q * (2.0 - q));                                   // implements (6)
 }
 
 } // namespace finufft::kernel
 
 namespace finufft::common {
 
+// For heuristics only: a mirror of makeplan:set_nf_type12() except without a plan.
+// To-do: consider having makeplan call this as SSOT, since a pain to maintain two
+// functions!
 BIGINT fine_grid_len(double sigma, double n_modes, int ns) {
   return next235(std::max(BIGINT(std::ceil(sigma * n_modes)), BIGINT(2 * ns)), 2);
 }
 
 std::tuple<BIGINT, double, double> nhg_type3(double sigma, double X, double S, int ns,
                                              BIGINT max_nf) {
+  /* Sets nf (number fine grid pts), h (fine grid spacing), gamma (x_j rescaling factor)
+     for type 3 transforms only. These are returned in a tuple (nf, h, gam).
+     Satisfying the constraints for type 3 is hard-won and elaborate; see Sec 3.3 [FIN].
+     This is now the single source of truth for the set_nhg_type3 task, used by:
+     CPU (setpts.hpp), GPU (cuda/makeplan.cu), and the type-3 upsampfac CPU cost model
+     (src/heuristics.cpp).
+
+     Inputs:
+       X and S are the xj and sk interval half-widths respectively.
+       ns = kernel width
+       max_nf is an upper limit, historically to protect next235, and used the same
+          MAX_NF fine-grid allocation guard. (to-do: check if needed).
+     Outputs:
+       nf is the size of upsampled grid for a given single dimension.
+       h is the grid spacing = 2pi/nf
+       gam is the x rescale factor, ie x'_j = x_j/gam  (modulo shifts).
+
+     History: Barnett 2/13/17. Caught inf/nan 3/14/17. io int types changed 3/28/17
+     New logic 6/12/17. Extracted Barbone 6/26 to unify logic (SSOT); recovered doc
+     Barnett 11/8/26.
+  */
   const int nss = ns + 1; // since ns may be odd
   double Xs = X, Ss = S;  // tweak so X*S>=1, handling X=0 and/or S=0
   if (Xs == 0.0) {
@@ -192,6 +282,11 @@ std::tuple<BIGINT, double, double> nhg_type3(double sigma, double X, double S, i
 }
 
 double rounding_error(double eps_mach, double mode_diagonal) {
+  // Error model for inevitable rounding error amplification due to the condition
+  // number of the NUDFT problem (Remark 9 in [FIN] paper; also see "math" section of
+  // docs/trouble.rst). The prefactor is fitted (Barbone, Fall 2026).
+  // mode_diagonal is the Pythagorean sum of the Ni mode dimensions (i=1,..,dim).
+  // eps_mach is machine epsilon as usual.
   return ROUND_FAC * eps_mach * mode_diagonal;
 }
 
