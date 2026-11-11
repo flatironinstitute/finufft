@@ -237,6 +237,9 @@ src/spreadinterp.o: src/spreadinterp.cpp include/finufft/spreadinterp.hpp includ
 # files, so make sure we install xsimd before we process any of those files.
 include/finufft/plan.hpp: $(XSIMD_DIR)/include/xsimd/xsimd.hpp $(POET_DIR)/include/poet/poet.hpp
 
+# src/fft.cpp includes ducc headers, so under make -j clone ducc first (no-op for FFTW).
+src/fft.o: $(DUCC_SETUP)
+
 # lib -----------------------------------------------------------------------
 # build library with double/single prec both bundled in...
 lib: $(STATICLIB) $(DYNLIB)
