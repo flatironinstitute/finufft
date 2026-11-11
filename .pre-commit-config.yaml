@@ -11,7 +11,7 @@ repos:
         name: clang-format (staged hunks)
         entry: python tools/clang-format-staged.py
         language: python
-        additional_dependencies: [clang-format==22.*]
+        additional_dependencies: [clang-format==23.*]
         pass_filenames: true
         require_serial: true
         types_or: [c++, c, cuda]
@@ -19,9 +19,9 @@ repos:
         exclude: '(^|/)(matlab/.*)$'
       - id: gersemi-staged
         name: gersemi (staged hunks)
-        entry: python tools/gersemi-staged.py
+        entry: python tools/format-staged.py gersemi
         language: python
-        additional_dependencies: [gersemi==0.28.1]
+        additional_dependencies: [gersemi==0.29.2]
         pass_filenames: true
         require_serial: true
         files: '(^|/)(CMakeLists\.txt|[^/]+\.cmake(?:\.in)?)$'
@@ -33,16 +33,23 @@ repos:
         args: [--formatter=ruff]
         # tomli: darker's ruff formatter imports it on Python < 3.11 but never
         # declares it, so the hook fails to import there without this.
-        additional_dependencies: [ruff==0.16.4, 'tomli; python_version < "3.11"']
+        additional_dependencies: [ruff==0.17.4, 'tomli; python_version < "3.11"']
         # Keep this in step with ruff.toml: darker calls ruff with
         # --stdin-filename=<basename>, so ruff's own path excludes never match here.
         exclude: '^(deps/|devel/|tutorial/poisson2dnuquad\.py$|perftest/spreadbenchmark\.py$)'
 
-  # --- Shell ---
-  - repo: https://github.com/scop/pre-commit-shfmt
-    rev: v3.13.1-1
+  # --- Shell: staged hunks only, like the C++ and CMake hooks ---
+  - repo: local
     hooks:
-      - id: shfmt
+      - id: shfmt-staged
+        name: shfmt (staged hunks)
+        entry: python tools/format-staged.py shfmt
+        language: python
+        additional_dependencies: ["shfmt_py @ git+https://github.com/scop/pre-commit-shfmt@v3.14.1-1"]
+        pass_filenames: true
+        require_serial: true
+        types: [shell]
+        exclude_types: [csh, tcsh]
 
   # --- Standard file hygiene ---
   - repo: https://github.com/pre-commit/pre-commit-hooks
@@ -56,7 +63,7 @@ repos:
 
   # --- Python package validation ---
   - repo: https://github.com/abravalheri/validate-pyproject
-    rev: v0.25
+    rev: v0.27
     hooks:
       - id: validate-pyproject
         additional_dependencies: ["validate-pyproject-schema-store[all]"]
@@ -64,7 +71,7 @@ repos:
 
   # --- Jenkinsfile ---
   - repo: https://github.com/nvuillam/npm-groovy-lint
-    rev: v18.0.0
+    rev: v19.0.1
     hooks:
       - id: npm-groovy-lint
         args: [--failon, error]
