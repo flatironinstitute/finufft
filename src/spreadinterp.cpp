@@ -1,4 +1,5 @@
 #include <finufft/spreadinterp.hpp>
+#include <finufft/plan.hpp> // FINUFFT_PLAN_T
 
 // Per-dimension functions are explicitly instantiated in spreadinterp_1d/2d/3d.cpp.
 // This TU handles the remaining per-precision symbols.

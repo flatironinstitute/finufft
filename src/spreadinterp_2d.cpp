@@ -1,4 +1,5 @@
 #include <finufft/spreadinterp.hpp>
+#include <finufft/plan.hpp> // FINUFFT_PLAN_T
 
 // Per-dimension TU: explicit instantiation of 2D spread and interp for one precision.
 // Compiled twice (with/without FINUFFT_SINGLE) to cover both float and double.
