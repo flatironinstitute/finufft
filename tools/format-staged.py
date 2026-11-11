@@ -1,12 +1,15 @@
 #!/usr/bin/env python3
-"""Format staged CMake hunks only by splicing full-file gersemi output.
+"""Format staged hunks only by splicing full-file formatter output.
+
+Usage: format-staged.py <formatter> <file>...  The formatter must print the
+formatted file on stdout when it gets the path (gersemi, shfmt).
 
 gersemi's own --line-ranges rewrites lines outside the given ranges, and the
 rewrites do not converge across runs (each re-staging shifts the ranges and
-flips the same lines again), so the hook cannot trust it. The file is
-formatted in full instead and only the hunks intersecting the staged lines
-are spliced back in; everything outside them stays byte-identical, the same
-contract the clang-format hook keeps for C++.
+flips the same lines again), so the hook cannot trust it; shfmt has no range
+option. The file is formatted in full instead and only the hunks intersecting
+the staged lines are spliced back in; everything outside them stays
+byte-identical, the same contract the clang-format hook keeps for C++.
 """
 
 from __future__ import annotations
@@ -30,7 +33,7 @@ def intersects(ranges, i1: int, i2: int) -> bool:
 
 
 def main() -> int:
-    paths = sys.argv[1:]
+    formatter, paths = sys.argv[1], sys.argv[2:]
     ranges_by_path = get_staged_line_ranges(paths)
     modified = []
 
@@ -40,7 +43,7 @@ def main() -> int:
             continue
 
         original = open(path).read()
-        result = subprocess.run(["gersemi", path], capture_output=True, text=True)
+        result = subprocess.run([formatter, path], capture_output=True, text=True)
         if result.returncode != 0:
             output = (result.stdout + result.stderr).strip()
             if output:
@@ -71,7 +74,7 @@ def main() -> int:
 
     if modified:
         for path in modified:
-            print(f"reformatted staged CMake hunks in {path}")
+            print(f"{formatter}: reformatted staged hunks in {path}")
         return 1
     return 0
 
