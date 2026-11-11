@@ -224,6 +224,7 @@ public:
 
 #include <algorithm> // IWYU pragma: keep   // std::min (DUCC0 path)
 #include <cstddef>           // size_t
+#include <cstdio>            // stderr
 #include <finufft/plan.hpp>  // FINUFFT_PLAN_T (includes FFT forward decl)
 #include <finufft/utils.hpp> // CNTime
 #include <finufft_errors.h>  // FINUFFT_ERR_MAXNALLOC

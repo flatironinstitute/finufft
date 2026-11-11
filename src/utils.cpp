@@ -22,7 +22,7 @@
 #include <windows.h>
 #elif defined(__APPLE__)
 #include <sys/sysctl.h>
-#include <sys/types.h>
+#include <sys/types.h> // IWYU pragma: keep (sysctlbyname(3) requires it)
 #elif defined(__linux__)
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE // Enable GNU extensions for sched_getaffinity

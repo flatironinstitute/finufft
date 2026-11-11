@@ -1,4 +1,8 @@
 #include <finufft/makeplan.hpp>
+#include <finufft/plan.hpp> // FINUFFT_PLAN_T
+#include <finufft_opts.h>
+
+#include <vector>
 
 // Explicit instantiations, selected by FINUFFT_SINGLE define.
 // Private members are included because they are called from setpts

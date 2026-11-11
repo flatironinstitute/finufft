@@ -1,4 +1,5 @@
 #include <finufft/setpts.hpp>
+#include <finufft/plan.hpp> // FINUFFT_PLAN_T
 
 // Explicit instantiation, selected by FINUFFT_SINGLE define.
 
