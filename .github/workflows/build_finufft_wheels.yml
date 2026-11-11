@@ -47,7 +47,7 @@ jobs:
           # (another one at c:\mingw64 is, however), so we add it to the path.
           echo "c:\msys64\mingw64\bin;" >> $env:GITHUB_PATH
       - name: Build ${{ matrix.buildplat[1] }} wheels
-        uses: pypa/cibuildwheel@v4.1
+        uses: pypa/cibuildwheel@v4.3
         with:
           package-dir: 'python/finufft'
         env:

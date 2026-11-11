@@ -95,7 +95,7 @@ jobs:
           path: cpm
 
       - name: Run sccache-cache
-        uses: mozilla-actions/sccache-action@v0.0.10
+        uses: mozilla-actions/sccache-action@v0.0.11
 
       - name: Setup Cpp
         uses: aminya/setup-cpp@v1

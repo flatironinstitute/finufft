@@ -62,7 +62,7 @@ jobs:
       # Install CUDA on non-macOS runners
       - name: Install CUDA Toolkit (non-macOS)
         if: runner.os != 'macOS'
-        uses: Jimver/cuda-toolkit@v0.2.35
+        uses: Jimver/cuda-toolkit@v0.2.36
         with:
           cuda: '12.4.0'
           method: 'network'
