@@ -39,7 +39,7 @@ jobs:
         uses: fortran-lang/setup-fortran@v1
         with:
           compiler: gcc
-          version: 15
+          version: 16
 
         # CMake + Ninja (uniform across OSes)
       - name: Setup CMake & Ninja
