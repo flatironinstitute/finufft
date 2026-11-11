@@ -74,13 +74,13 @@ XSIMD_DIR := $(DEPS_ROOT)/xsimd
 
 # POET dispatcher dependency: each release ships one amalgamated header (with
 # the generated poet/version.hpp inlined), so VERSION must be a release tag
-POET_VERSION := v0.0.1
+POET_VERSION := v0.0.3
 POET_DIR := $(DEPS_ROOT)/poet
 POET_URL := https://github.com/flatironinstitute/poet/releases/download/$(POET_VERSION)/poet.hpp
 
 # DUCC sources optional dependency repo
 DUCC_URL := https://github.com/mreineck/ducc.git
-DUCC_VERSION := ducc0_0_39_1
+DUCC_VERSION := ducc0_0_42_0
 DUCC_DIR := $(DEPS_ROOT)/ducc
 # this dummy file used as empty target by make...
 DUCC_COOKIE := $(DUCC_DIR)/.finufft_has_ducc
