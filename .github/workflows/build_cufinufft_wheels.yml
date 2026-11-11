@@ -33,7 +33,7 @@ jobs:
       - uses: ilammy/msvc-dev-cmd@v1
       - name: Setup CUDA
         if: ${{ matrix.buildplat[0] == 'windows-2022' }}
-        uses: Jimver/cuda-toolkit@v0.2.35
+        uses: Jimver/cuda-toolkit@v0.2.36
         with:
           cuda: '12.4.0'
           method: 'network'
@@ -44,7 +44,7 @@ jobs:
           use-local-cache: 'false'
           use-github-cache: 'false' #it is not working at the moment https://github.com/Jimver/cuda-toolkit/issues/390
       - name: Build ${{ matrix.buildplat[1] }} wheels
-        uses: pypa/cibuildwheel@v4.1
+        uses: pypa/cibuildwheel@v4.3
         with:
           package-dir: 'python/cufinufft'
         env:

@@ -17,14 +17,14 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v7
       - name: Set up Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v7
         with:
           cache: 'pip'
           python-version: '3.10'
       - name: Generate requirements.txt
         run: |
-          # Pin pip to 25.2 to match the pip-tools compatibility seen in CI
-          python3 -m pip install --upgrade "pip==25.2"
+          # Pin pip to 26.3 to match the pip-tools compatibility seen in CI
+          python3 -m pip install --upgrade "pip==26.3"
           python3 -m pip install pip-tools typing_extensions
           python3 -m pip --version
           pip-compile --all-build-deps python/finufft/pyproject.toml -o requirements.txt
@@ -165,7 +165,7 @@ jobs:
           name: requirements
 
       - name: Run sccache-cache
-        uses: mozilla-actions/sccache-action@v0.0.10
+        uses: mozilla-actions/sccache-action@v0.0.11
 
       - name: Setup Cpp
         uses: aminya/setup-cpp@v1
@@ -198,7 +198,7 @@ jobs:
           sudo apt install -y libfftw3-dev
 
       - name: Set up Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v7
         with:
           python-version: '3.10'
           cache: 'pip'
