@@ -1,8 +1,8 @@
 [build-system]
 requires = [
-    "scikit-build-core >= 0.4.3",
+    "scikit-build-core >= 0.5.0",
     "cmake >= 3.25",
-    "ninja >= 1.9.0",
+    "ninja >= 1.10.2",
 ]
 
 build-backend = "scikit_build_core.build"
@@ -11,7 +11,7 @@ build-backend = "scikit_build_core.build"
 name = "finufft"
 readme = "README.md"
 requires-python = ">=3.10"
-dependencies = ["numpy >= 1.12.0", "packaging"]
+dependencies = ["numpy >= 1.21.3", "packaging"]
 authors = [
     {name = "Jeremy Magland"},
     {name = "Daniel Foreman-Mackey"},
