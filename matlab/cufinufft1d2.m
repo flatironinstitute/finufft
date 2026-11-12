@@ -50,6 +50,7 @@ function c = cufinufft1d2(x,isign,eps,f,o)
 valid_setpts(true,2,1,x);
 o.floatprec=underlyingType(x);             % should be 'double' or 'single'
 [ms,n_transf]=size(f);                     % if f a col vec, n_transf=1, but...
+if ms==0 && n_transf==0, n_transf=1; end   % allow f 0*0 to return empty
 if ms==1, ms=n_transf; n_transf=1; end     % allow a single row vec as valid f
 p = cufinufft_plan(2,ms,isign,n_transf,eps,o);
 p.setpts(x);

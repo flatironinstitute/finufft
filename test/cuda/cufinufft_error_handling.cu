@@ -37,8 +37,8 @@ int main() {
   rc = check_rc("ntrans invalid", rc, FINUFFT_ERR_NTRANS_NOTVALID, 4);
   if (rc) return rc;
 
-  // Invalid nmodes -> expect FINUFFT_ERR_NDATA_NOTVALID
-  const int64_t Nbad[3] = {0, 1, 1};
+  // Negative nmodes -> expect FINUFFT_ERR_NDATA_NOTVALID
+  const int64_t Nbad[3] = {-1, 1, 1};
   rc                    = cufinufftf_makeplan(1, 1, Nbad, 1, 1, 1e-5f, &fplan, NULL);
   rc                    = check_rc("nmodes invalid", rc, FINUFFT_ERR_NDATA_NOTVALID, 5);
   if (rc) return rc;
@@ -100,6 +100,28 @@ int main() {
   rc = cufinufftf_setpts(fplan, 1, NULL, NULL, NULL, -1, NULL, NULL, NULL);
   rc = check_rc("type3 N invalid", rc, FINUFFT_ERR_NUM_NU_PTS_INVALID, 25);
   cufinufftf_destroy(fplan);
+  if (rc) return rc;
+
+  // M < 0 or > INT32_MAX -> expect FINUFFT_ERR_NUM_NU_PTS_INVALID (matches CPU)
+  rc = cufinufftf_makeplan(1, 1, N, 1, 1, 1e-5f, &fplan, NULL);
+  rc = check_rc("makeplan (M invalid)", rc, CUFINUFFT_SUCCESS, 26);
+  if (rc) return rc;
+  rc = cufinufftf_setpts(fplan, -1, NULL, NULL, NULL, 0, NULL, NULL, NULL);
+  rc = check_rc("setpts M negative", rc, FINUFFT_ERR_NUM_NU_PTS_INVALID, 27);
+  if (rc) return rc;
+  rc = cufinufftf_setpts(fplan, (int64_t)INT32_MAX + 1, NULL, NULL, NULL, 0, NULL, NULL,
+                         NULL);
+  rc = check_rc("setpts M huge", rc, FINUFFT_ERR_NUM_NU_PTS_INVALID, 28);
+  cufinufftf_destroy(fplan);
+  if (rc) return rc;
+  rc = cufinufftf1d1(-1, NULL, NULL, 1, 1e-5f, 16, NULL, NULL);
+  rc = check_rc("1d1 M negative", rc, FINUFFT_ERR_NUM_NU_PTS_INVALID, 29);
+  if (rc) return rc;
+  rc = cufinufftf1d1((int64_t)1e16, NULL, NULL, 1, 1e-5f, 16, NULL, NULL);
+  rc = check_rc("1d1 M huge", rc, FINUFFT_ERR_NUM_NU_PTS_INVALID, 30);
+  if (rc) return rc;
+  rc = cufinufftf1d3(1, NULL, NULL, 1, 1e-5f, (int64_t)1e16, NULL, NULL, NULL);
+  rc = check_rc("1d3 nk huge", rc, FINUFFT_ERR_NUM_NU_PTS_INVALID, 31);
   if (rc) return rc;
 
   printf("cufinufft_error_handling: PASS\n");

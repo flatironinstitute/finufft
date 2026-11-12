@@ -66,6 +66,12 @@ Notes: the type T means either single or double, matching the
 {
   M = M_;
 
+  // With no NU points, or no modes on a type 1/2 plan, nothing is sorted or
+  // spread; the output is still zeroed but we can skip the rest of the setpts stage.
+  std::int64_t nmodes = 1;
+  for (int idim = 0; idim < dim; ++idim) nmodes *= std::int64_t(mstu[idim]);
+  if (M == 0 || (type != 3 && nmodes == 0)) return;
+
   allocate_nupts();
 
   kxyz = {d_kx, d_ky, d_kz};
@@ -106,6 +112,8 @@ void cufinufft_plan_t<T>::setpts(int nj, const T *d_kx, const T *d_ky, const T *
             MAX_NF);
     throw finufft::exception(FINUFFT_ERR_NUM_NU_PTS_INVALID);
   }
+  // With no NU points or no type-3 targets we can skip the rest of the setpts stage,
+  if (M == 0 || N == 0) return;
   if (dim > 0 && d_s == nullptr) {
     fprintf(stderr, "[%s] Error: d_s is nullptr but dim > 0.\n", __func__);
     throw finufft::exception(FINUFFT_ERR_INVALID_ARGUMENT);

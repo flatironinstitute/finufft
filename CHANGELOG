@@ -261,6 +261,9 @@ Bugfixes:
 
 * MATLAB/Octave type3 ajoint now is correctly an adjoint. It was
   ovewrtiting the input array with garbage bedofore. (Barbone #952).
+* CUDA now handles empty NU point or target arrays, and empty mode sets for types 1/2,
+  without segfaulting or returning NaN; cufinufft1d2 matches finufft1d2 for a 0-by-0
+  mode array (#953, Barbone)
 * MATLAB/Octave wrapper now correctly handles empty mode or NU point arrays,
   including testing in fullmathtest.m (Barnett #941, fixes #937).
 * Fixed NaN results or segfaults that could happen when running type 3 transform

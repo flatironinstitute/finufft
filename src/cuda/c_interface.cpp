@@ -21,7 +21,7 @@ static inline bool is_invalid_mode_array(int type, int dim, const int64_t *modes
   int64_t tot_size = 1;
   for (int i = 0; i < dim; ++i) {
     if (modes64[i] > std::numeric_limits<int32_t>::max()) return true;
-    if (modes64[i] <= 0) return true;
+    if (modes64[i] < 0) return true; // 0 is a valid empty mode set, see #947
     modes32[i] = modes64[i];
     tot_size *= modes64[i];
   }
@@ -87,8 +87,9 @@ int cufinufftf_setpts(cufinufftf_plan d_plan, const int64_t M, const float *d_x,
                       const float *d_y, const float *d_z, int N, const float *d_s,
                       const float *d_t, const float *d_u) {
   return safe_finufft_call([&]() {
-    if (M > std::numeric_limits<int32_t>::max())
-      throw finufft::exception(FINUFFT_ERR_NDATA_NOTVALID);
+    // checking for negative M is needed here since it can be overflow
+    if (M < 0 || M > std::numeric_limits<int32_t>::max())
+      throw finufft::exception(FINUFFT_ERR_NUM_NU_PTS_INVALID);
 
     ((cufinufft_plan_t<float> *)d_plan)->setpts((int)M, d_x, d_y, d_z, N, d_s, d_t, d_u);
   });
@@ -98,8 +99,8 @@ int cufinufft_setpts(cufinufft_plan d_plan, const int64_t M, const double *d_x,
                      const double *d_y, const double *d_z, int N, const double *d_s,
                      const double *d_t, const double *d_u) {
   return safe_finufft_call([&]() {
-    if (M > std::numeric_limits<int32_t>::max())
-      throw finufft::exception(FINUFFT_ERR_NDATA_NOTVALID);
+    if (M < 0 || M > std::numeric_limits<int32_t>::max())
+      throw finufft::exception(FINUFFT_ERR_NUM_NU_PTS_INVALID);
 
     ((cufinufft_plan_t<double> *)d_plan)->setpts((int)M, d_x, d_y, d_z, N, d_s, d_t, d_u);
   });
@@ -196,8 +197,9 @@ int simple_guru(
 // still free GPU resources.
 {
   if (n_dims < 1 || n_dims > 3) return FINUFFT_ERR_DIM_NOTVALID;
-  if (nj > std::numeric_limits<int32_t>::max()) return FINUFFT_ERR_NDATA_NOTVALID;
-  if (nk > std::numeric_limits<int32_t>::max()) return FINUFFT_ERR_NDATA_NOTVALID;
+  if (nj < 0 || nj > std::numeric_limits<int32_t>::max())
+    return FINUFFT_ERR_NUM_NU_PTS_INVALID;
+  if (nk > std::numeric_limits<int32_t>::max()) return FINUFFT_ERR_NUM_NU_PTS_INVALID;
 
   int nmodes32[3];
   if (is_invalid_mode_array(type, n_dims, n_modes.data(), nmodes32))

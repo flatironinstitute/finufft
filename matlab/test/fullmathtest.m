@@ -3,7 +3,8 @@
 % (For sweep over tols see plottolsweep.m)
 % Short runtime (~1 sec per device).
 % Barnett 4/2/25, broken out erralltypedim 12/21/25,
-% added zero-size checks, tweaked formatting 10/21/26
+% added zero-size checks, tweaked formatting 10/21/26,
+% added (empty srcs, nonempty targs) zero check 11/8/26
 
 addpath(fileparts(mfilename('fullpath')))
 clear
@@ -28,7 +29,7 @@ for precdev=precdevs  % ......... loop precisions & devices
   else
     dev = gpuDevice(); devname = dev.Name;
     myrand = @gpuArray.rand;
-    edgecases = 0;	% until #947 fixed, don't test zero-length GPU
+    edgecases = 1;
   end
   if sum(precdev=='sS')
     prec = 'single';
@@ -52,7 +53,7 @@ for precdev=precdevs  % ......... loop precisions & devices
   o.upsampfac=0;    % 0 (auto), 2.0 (default), or 1.25 (low-RAM, small-FFT)
   fprintf('%s\tprec=%s\ttol=%.3g, M=%d, Ntot=%d, ntrans=%d\n',...
           devname, prec, tol, M, Ntot, ntr)
-  
+
   % meas the errors, with text reporting
   err = erralltypedim(M,Ntot,ntr,isign,prec,tol,o,myrand,[],errcheck);
   % raise error if needed (breaks script, and CI)
@@ -60,7 +61,7 @@ for precdev=precdevs  % ......... loop precisions & devices
     error('  one or more math test error failed!');
   end
   disp('  all math tests passed.')
-  
+
 
   if edgecases
     disp('  Checking zero-length edge cases:')
@@ -102,6 +103,10 @@ for precdev=precdevs  % ......... loop precisions & devices
     assert(numel(   finufft3d3(e,e,e,e,+1,tol,f,f,f) )==1)
     assert(isempty( finufft3d3(e,e,e,e,+1,tol,e,e,e) ))
     disp('  all 0*0 size input tests passed.')
+
+    % empty sources with nonempty type-3 targets: erralltypedim cannot reach this
+    assert(~any( finufft1d3(e,e,+1,tol,f) ))       % empty srcs, nonempty t3 targs: zeros
+    disp('  empty-srcs nonempty-targs test passed.')
   end
 
 end     % ..........................
