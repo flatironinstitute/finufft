@@ -174,6 +174,9 @@ Documentation and testing:
   calls on the same plan produce correct results. Added sanitizer mode selection
   via `FINUFFT_USE_SANITIZERS=OFF|ON|MEMSAN|TSAN`, and extended the sanitizer
   GitHub workflow to run a focused Linux TSAN job. (Barbone)
+* Fortran examples exit nonzero when ier/=0 or when the relative error
+  exceeds 10*tol. docs/fortran.rst fixes the stale tol=1d-16
+  claim and links simple1d1.f by URL. (Barbone #924)
 
 Build and packaging:
 

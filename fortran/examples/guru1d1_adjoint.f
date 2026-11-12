@@ -70,11 +70,12 @@ c     use default options
      $     tol,plan,defopts,ier)
       if (ier.ne.0) then
          print *,'makeplan failed! ier=',ier
-         stop
+         stop 1
       endif
 c     note for ttype 1 or 2, arguments 6-9 ignored...
       call finufft_setpts(plan,M,xj,dummy,dummy,dummy,
      $     dummy,dummy,dummy,ier)
+      if (ier.ne.0) stop 1
 c     Do adjoint of planned transform:
 c     writes cj (strengths) and ier (status), reads fk (mode coeffs)
       call finufft_execute_adjoint(plan,cj,fk,ier)
@@ -85,6 +86,7 @@ c     writes cj (strengths) and ier (status), reads fk (mode coeffs)
      $     t,M/t
       else
          print *,'failed! ier=',ier
+         stop 1
       endif
       call finufft_destroy(plan,ier)
 
@@ -101,8 +103,9 @@ c     compute inf norm of output vector for use in rel err
       do j=1,M
          cmax = max(cmax,cdabs(cj(j)))
       enddo
-      print '("rel err for target j=",i10," is ",e10.2)',jtest,
-     $     cdabs(cj(jtest)-cjtest)/cmax
+      err = cdabs(cj(jtest)-cjtest)/cmax
+      print '("rel err for target j=",i10," is ",e10.2)',jtest,err
+      if (.not.(err.le.10*tol)) stop 1
 
       stop
       end

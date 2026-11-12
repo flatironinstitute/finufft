@@ -60,6 +60,7 @@ c     use default options:
          print '("done in ",f6.3," sec, ",e10.2," NU pts/s")',t,M/t
       else
          print *,'failed! ier=',ier
+         stop 1
       endif
 
 c     math test: single output mode with given freq (not array index) k
@@ -75,8 +76,9 @@ c     compute inf norm of fk coeffs for use in rel err
          fmax = max(fmax,cabs(fk(k)))
       enddo
       ktestindex = ktest + N/2 + 1
-      print '("rel err for mode k=",i10," is ",e10.2)',ktest,
-     $     cabs(fk(ktestindex)-fktest)/fmax
+      err = cabs(fk(ktestindex)-fktest)/fmax
+      print '("rel err for mode k=",i10," is ",e10.2)',ktest,err
+      if (.not.(err.le.10*tol)) stop 1
 
 c     do another transform, but now first setting some options...
       print *,''
@@ -98,6 +100,7 @@ c     tell it to ignore that the error model says not possible...
          print '("done in ",f6.3," sec, ",e10.2," NU pts/s")',t,M/t
       else
          print *,'failed! ier=',ier
+         stop 1
       endif
 
       stop

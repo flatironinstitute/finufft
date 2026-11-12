@@ -22,18 +22,22 @@ and default options, the declarations and call are
 
 .. code-block:: fortran
 
+      include 'finufft.fh'
       integer ier,iflag
       integer*8 N,M
       real*8, allocatable :: xj(:)
       real*8 tol
       complex*16, allocatable :: cj(:),fk(:)
-      integer*8, allocatable :: null
+      type(finufft_opts), pointer :: defopts => null()
 
  !    (...allocate xj, cj, and fk, and fill xj and cj here...)
 
-      tol = 1.0D-9
-      iflag = +1
-      call finufft1d1(M,xj,cj,iflag,tol,N,fk,null,ier)
+With the data filled, the call is
+
+.. literalinclude:: ../fortran/examples/simple1d1.f
+   :language: fortran
+   :start-after: docs-start: transform
+   :end-before: docs-end: transform
 
 which writes the output to ``fk``, and the status to the integer ``ier``.
 Since the default is CMCL mode ordering, the output for frequency index ``k``
@@ -41,10 +45,10 @@ is found in ``fk(k+N/2+1)``.
 ``ier=0`` indicates success, otherwise error codes are
 as in :ref:`here <error>`.
 By default (``opts.nthreads=0``), the number of physical cores available is used (honoring ``OMP_NUM_THREADS`` if set), unless FINUFFT was built single-threaded; see :ref:`opts`.
-(Note that here the unallocated ``null`` is simply a way to pass
+(Note that here the nullified ``defopts`` is simply a way to pass
 a NULL pointer to our C++ wrapper; another would be ``%val(0_8)``.)
 For a minimally complete test code demonstrating the above see
-``fortran/examples/simple1d1.f``.
+`simple1d1.f <https://github.com/flatironinstitute/finufft/blob/master/fortran/examples/simple1d1.f>`_.
 
 .. note::
 
@@ -56,7 +60,7 @@ For a minimally complete test code demonstrating the above see
    ``finufft2d1many(ntrans,M,xj,yj,cj,iflag,tol,N1,N2,fk,opts,ier)``
    with CMCL mode-ordering,
    the ``(k1,k2)`` frequency coefficient from transform number ``t`` is
-   to be found at ``fk(k1+N1/2+1 + (k2+N2/2)*N1 + t*N1*N2)``.
+   to be found at ``fk(k1+N1/2+1 + (k2+N2/2)*N1 + (t-1)*N1*N2)``.
 
 From the ``fortran/examples/`` directory, to
 compile (eg using GCC/linux) and link such a program against the FINUFFT
@@ -82,22 +86,23 @@ Changing options
 ~~~~~~~~~~~~~~~~
 
 To choose non-default options in the above example, create an options
-derived type, set it to default values, change whichever you wish, and pass
+derived type,
+
+.. literalinclude:: ../fortran/examples/simple1d1.f
+   :language: fortran
+   :start-after: docs-start: make-opts
+   :end-before: docs-end: make-opts
+
+set it to default values, change whichever you wish, and pass
 it to FINUFFT, for instance
 
-.. code-block:: fortran
+.. literalinclude:: ../fortran/examples/simple1d1.f
+   :language: fortran
+   :start-after: docs-start: set-opts
+   :end-before: docs-end: set-opts
+   :lines: 1-4,8
 
-      include 'finufft.fh'
-      type(finufft_opts) opts
-
- !    (...declare, allocate, and fill stuff as above...)
-
-      call finufft_default_opts(opts)
-      opts%debug = 2
-      opts%upsampfac = 1.25d0
-      call finufft1d1(M,xj,cj,iflag,tol,N,fk,opts,ier)
-
-See ``fortran/examples/simple1d1.f`` for the complete code,
+See `simple1d1.f <https://github.com/flatironinstitute/finufft/blob/master/fortran/examples/simple1d1.f>`_ for the complete code,
 and below for the complete list of Fortran subroutines available,
 and more complicated examples.
 
@@ -193,9 +198,11 @@ version).
 The last four here are modified from demos in the
 `CMCL NUFFT libraries <http://www.cims.nyu.edu/cmcl/nufft/nufft.html>`_.
 The first three of these have been changed only to use FINUFFT.
-The final tolerance they request is ``tol=1d-16``. For this case FINUFFT
-will report a warning that it cannot achieve it, and gets
-merely around $10^{-14}$.
+A ``tol`` below the condition-number-limited achievable error sets
+``ier`` to ``FINUFFT_ERR_EPS_TOO_SMALL``.
+On CPU, setting ``opts%allow_eps_too_small=1`` allows a ``tol`` below this
+limit. FINUFFT then warns instead of failing and proceeds at the best
+achievable accuracy. See :ref:`opts`.
 The last four demos require direct summation (slow) reference implementations
 of the transforms in ``fortran/directft``, modified from their CMCL
 counterparts only to remove the $1/M$ prefactor for type 1 transforms.

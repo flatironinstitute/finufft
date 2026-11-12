@@ -70,11 +70,12 @@ c     use default options
      $     tol,plan,defopts,ier)
       if (ier.ne.0) then
          print *,'makeplan failed! ier=',ier
-         stop
+         stop 1
       endif
 c     note for type 1 or 2, arguments 6-9 ignored...
       call finufftf_setpts(plan,M,xj,dummy,dummy,dummy,
      $     dummy,dummy,dummy,ier)
+      if (ier.ne.0) stop 1
 c     Do it: reads cj (strengths), writes fk (mode coeffs) and ier (status)
       call finufftf_execute(plan,cj,fk,ier)
       call system_clock(t2,crate)
@@ -83,6 +84,7 @@ c     Do it: reads cj (strengths), writes fk (mode coeffs) and ier (status)
          print '("done in ",f6.3," sec, ",e10.2," NU pts/s")',t,M/t
       else
          print *,'failed! ier=',ier
+         stop 1
       endif
       call finufftf_destroy(plan,ier)
 
@@ -100,8 +102,9 @@ c     compute inf norm of fk coeffs for use in rel err
          fmax = max(fmax,cabs(fk(k)))
       enddo
       ktestindex = ktest + N/2 + 1
-      print '("rel err for mode k=",i10," is ",e10.2)',ktest,
-     $     cabs(fk(ktestindex)-fktest)/fmax
+      err = cabs(fk(ktestindex)-fktest)/fmax
+      print '("rel err for mode k=",i10," is ",e10.2)',ktest,err
+      if (.not.(err.le.10*tol)) stop 1
 
 c     ----------- GURU DEMO WITH NEW OPTIONS, MULTIPLE EXECS ----------
       print *,''
@@ -113,27 +116,33 @@ c     refer to fftw3.f to set various FFTW plan modes...
 c     note you need a fresh plan if change opts
       call finufftf_makeplan(ttype,dim,n_modes,iflag,ntrans,
      $     tol,plan,opts,ier)
+      if (ier.ne.0) stop 1
       call finufftf_setpts(plan,M,xj,dummy,dummy,dummy,
      $     dummy,dummy,dummy,ier)
+      if (ier.ne.0) stop 1
 c     Do it: reads cj (strengths), writes fk (mode coeffs) and ier (status)
       call finufftf_execute(plan,cj,fk,ier)
+      if (ier.ne.0) stop 1
 c     change the strengths
       do j = 1,M
          cj(j) = cmplx( sin((10e0*j)/M), cos(2.0+(20e0*j)/M))
       enddo
 c     do another transform using same NU pts
       call finufftf_execute(plan,cj,fk,ier)
+      if (ier.ne.0) stop 1
 c     change the NU pts then do another transform w/ existing strengths...
       do j = 1,M
          xj(j) = pi/2.0 * cos(pi*j/M)
       enddo
       call finufftf_setpts(plan,M,xj,dummy,dummy,dummy,
      $     dummy,dummy,dummy,ier)
+      if (ier.ne.0) stop 1
       call finufftf_execute(plan,cj,fk,ier)
       if (ier.eq.0) then
          print *,'done.'
       else
          print *,'failed! ier=',ier
+         stop 1
       endif
       call finufftf_destroy(plan,ier)
 
