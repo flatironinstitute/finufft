@@ -87,7 +87,7 @@ void cufinufft_plan_t<T>::deconvolve_nd<modeord, ndim>(
         cudaMemsetAsync(fw, 0, batchsize * nftot * sizeof(cuda_complex<T>), stream));
 
   for (std::int64_t t = 0; t < blksize; t++)
-    deconv_nd<T, modeord, ndim><<<uint((nmodes + 256 - 1) / 256), 256, 0, stream>>>(
+    deconv_nd<T, modeord, ndim><<<unsigned((nmodes + 256 - 1) / 256), 256, 0, stream>>>(
         mstu, nf123, fw + t * nftot, fk + t * nmodes, dethrust(fwkerhalf), fw2fk);
 }
 
