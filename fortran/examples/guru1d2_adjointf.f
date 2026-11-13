@@ -66,7 +66,7 @@ c     (note since dim=1, unused entries on n_modes are never read)
       call system_clock(t1)
 c     plan with opt to allow the tol at this N (in FP32 error model)
       call finufft_default_opts(opts)
-      opts%allow_eps_too_small=1
+      opts%allow_tol_too_small=1
       call finufftf_makeplan(ttype,dim,n_modes,iflag,ntrans,
      $     tol,plan,opts,ier)
       if (ier.ne.0) then

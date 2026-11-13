@@ -111,7 +111,7 @@ FinufftOpts._fields_ = [
     ("spread_nthr_atomic", c_int),
     ("spread_max_sp_size", c_int),
     ("spread_kerformula", c_int),
-    ("allow_eps_too_small", c_int),
+    ("allow_tol_too_small", c_int),
     ("fftw_lock_fun", c_void_p),
     ("fftw_unlock_fun", c_void_p),
     ("fftw_lock_data", c_void_p),

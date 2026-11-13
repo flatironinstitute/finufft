@@ -3,7 +3,7 @@
    (M=500; N per dim {50, 25x40, 10x11x12}). Emits one CSV row per
    (prec,dim,type,sigma,tol). Pairs with devel/eps_vs_achieved.py for plotting.
    Built twice (double, and -DSINGLE). Same direct-reference error metric as
-   test/tolsweep.cpp. opts.allow_eps_too_small=1 so the rounding floor shows.
+   test/tolsweep.cpp. opts.allow_tol_too_small=1 so the rounding floor shows.
 */
 #include <cmath>
 #include <cstdio>
@@ -35,7 +35,7 @@ int main() {
   FINUFFT_DEFAULT_OPTS(&opts);
   opts.nthreads            = 1;
   opts.showwarn            = 0;
-  opts.allow_eps_too_small = 1;
+  opts.allow_tol_too_small = 1;
 
   std::vector<FLT> x(M), y(M), z(M), X, Y, Z;
   std::vector<CPX> c(M), F, c0(M), F0;

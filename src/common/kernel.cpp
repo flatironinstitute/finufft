@@ -182,7 +182,7 @@ double min_sigma_for_deconv_error(double tol, int dim, int ns, double eps_mach) 
   /* Analytic solution of the sigma that matches tol given ns, in an error model for
      rounding amplification due to division by kernel FT at the largest freq N/2.
      Its main use is in stopping too small a sigma being auto-chosen by
-     best_sigma_for_tol(), and in deciding if to throw FINUFFT_ERR_EPS_TOO_SMALL
+     best_sigma_for_tol(), and in deciding if to throw FINUFFT_ERR_TOL_TOO_SMALL
      later in check_sigma().
      The formula inverted for sigma is, recalling w is another symbol for ns,
 

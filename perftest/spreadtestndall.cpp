@@ -140,7 +140,7 @@ int main(int argc, char *argv[]) {
     fopts.spreadinterponly   = 1; // key to use via FINUFFT API
     // We override the catching of unachievable errors for a NUFFT, since the math test
     // done here simply tests total mass, a weaker test for spread/interp only:
-    fopts.allow_eps_too_small = 1;
+    fopts.allow_tol_too_small = 1;
     fopts.showwarn            = 0; // also ignore unachievable tol warnings
 
     FINUFFT_PLAN plan{};

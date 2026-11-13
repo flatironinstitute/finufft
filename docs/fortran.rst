@@ -199,8 +199,8 @@ The last four here are modified from demos in the
 `CMCL NUFFT libraries <http://www.cims.nyu.edu/cmcl/nufft/nufft.html>`_.
 The first three of these have been changed only to use FINUFFT.
 A ``tol`` below the condition-number-limited achievable error sets
-``ier`` to ``FINUFFT_ERR_EPS_TOO_SMALL``.
-On CPU, setting ``opts%allow_eps_too_small=1`` allows a ``tol`` below this
+``ier`` to ``FINUFFT_ERR_TOL_TOO_SMALL``.
+On CPU, setting ``opts%allow_tol_too_small=1`` allows a ``tol`` below this
 limit. FINUFFT then warns instead of failing and proceeds at the best
 achievable accuracy. See :ref:`opts`.
 The last four demos require direct summation (slow) reference implementations

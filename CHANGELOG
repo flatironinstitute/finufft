@@ -8,16 +8,18 @@ v2.6.0-dev
 API and behavior changes:
 
 * BREAKING CHANGE: what used to be a warning (FINUFFT_WARN_EPS_TOO_SMALL, code
-  ier=1) is now replaced by a hard error (FINUFFT_ERR_EPS_TOO_SMALL, code ier=26)
+  ier=1) is now replaced by a hard error (FINUFFT_ERR_TOL_TOO_SMALL, code ier=26)
   which is raised if the user-requested tolerance is predicted to be
   unachievable using a new detailed internal error model. This *may* raise new
   errors in existing code using FINUFFT (CPU version; GPU is not yet affected).
   The purpose is to alert users that their requested tolerance most likely
   cannot be achieved using any internal parameters, for the given transform and
   working precision (float vs double).
-  Thus alerted, users may set `opts.allow_eps_too_small=1` to disable the
+  Thus alerted, users may set `opts.allow_tol_too_small=1` to disable the
   raising of this error (a warning goes to stderr, which in turn may be disabled
   via `opts.showwarn=0`). (Barbone; Barnett; Reinecke, and whole team)
+* Renamed FINUFFT_ERR_EPS_TOO_SMALL to FINUFFT_ERR_TOL_TOO_SMALL for
+  consistency (Barbone #956)
 * Deprecated opts fields:
 	spread_kerevalmeth
 	spread_kerpad
@@ -86,7 +88,7 @@ Performance/accuracy/code improvements:
   (rounding amplificiation of eps_mach due to r_dyn). From these valid sigma
   ranges, the one minimizing a CPU cost model is chosen. (For type 3 the cost
   of the inner type-2 is modeled, so that the best sigma is chosen for both
-  steps). A FINUFFT_ERR_EPS_TOO_SMALL error is thrown if the tolerance cannot
+  steps). A FINUFFT_ERR_TOL_TOO_SMALL error is thrown if the tolerance cannot
   be met by the error model (with a third term: the rounding error due to the
   condition number of the problem). (Barbone, Barnett #939)
 * cuFINUFFT: bin sizes are now derived from GPU limits: method 1 from an L2

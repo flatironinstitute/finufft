@@ -52,7 +52,7 @@ Note, however, that a lower tolerance (that is, a higher accuracy) results in a 
 On CPU, if ``eps`` is so small that FINUFFT knows the requested accuracy is unattainable,
 the Python interface raises ``RuntimeError`` (status ``ier=26``) during plan creation
 or ``setpts``. If you want FINUFFT to clamp to the best-achievable accuracy and proceed
-instead, pass ``allow_eps_too_small=1``.
+instead, pass ``allow_tol_too_small=1``.
 
 For higher dimensions, we would specify point locations in more than one dimension:
 
@@ -135,7 +135,7 @@ All interfaces support both single and double precision, but for the plan, this 
 
 As above, requesting an unattainable ``eps`` now raises ``RuntimeError`` by default.
 For exploratory or backwards-compatible workflows that prefer clamp-and-proceed behavior,
-pass ``allow_eps_too_small=1`` when constructing the plan or calling the simple interface.
+pass ``allow_tol_too_small=1`` when constructing the plan or calling the simple interface.
 
 See the complete demo, with math test, in ``python/finufft/examples/guru2d1f.py``.
 

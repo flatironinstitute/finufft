@@ -13,7 +13,7 @@
  * Barbone switched to public FINUFFT API 11/07/2025
  * Barnett 1/12/26: update for v2.5.0, kill all deprecated flags/args, tidy
    and fix the setpts incorrect usage, use M=1 for kersum.
- * Barnett 10/13/26: opts override FINUFFT_ERR_EPS_TOO_SMALL & its warning.
+ * Barnett 10/13/26: opts override FINUFFT_ERR_TOL_TOO_SMALL & its warning.
 */
 
 #include <cmath>
@@ -141,7 +141,7 @@ int main(int argc, char *argv[]) {
   opts.spreadinterponly    = 1; // the key to how this tester can use FINUFFT API.
   // We override the catching of unachievable errors for a NUFFT, since the math test
   // done here simply tests total mass, a weaker test for spread/interp only:
-  opts.allow_eps_too_small = 1;
+  opts.allow_tol_too_small = 1;
   opts.showwarn            = 0; // also ignore unachievable tol warnings
 
   BIGINT nmodes[3] = {N, N, N};
