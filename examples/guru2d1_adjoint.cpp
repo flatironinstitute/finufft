@@ -1,8 +1,10 @@
 #include <finufft.h>
 
+#include <algorithm>
 #include <complex>
 #include <iomanip>
 #include <iostream>
+#include <random>
 #include <vector>
 using namespace std;
 
@@ -28,16 +30,15 @@ int main() {
   complex<double> I(0.0, 1.0); // the imaginary unit
 
   // generate random non-uniform points on (x,y) and complex strengths (c):
+  mt19937 rng(12345);
+  uniform_real_distribution<double> upi(-PI, PI), u1(-1.0, 1.0);
   vector<double> x(M), y(M);
   vector<complex<double>> c(M);
 
-  for (int i = 0; i < M; i++) {
-    x[i] = PI * (2 * (double)rand() / RAND_MAX - 1); // uniform random in [-pi, pi)
-    y[i] = PI * (2 * (double)rand() / RAND_MAX - 1); // uniform random in [-pi, pi)
-    // each component uniform random in [-1,1]
-    c[i] =
-        2 * ((double)rand() / RAND_MAX - 1) + I * (2 * ((double)rand() / RAND_MAX) - 1);
-  }
+  generate(x.begin(), x.end(), [&] { return upi(rng); }); // uniform random in [-pi, pi)
+  generate(y.begin(), y.end(), [&] { return upi(rng); }); // uniform random in [-pi, pi)
+  // each component uniform random in [-1,1]
+  generate(c.begin(), c.end(), [&] { return complex<double>{u1(rng), u1(rng)}; });
 
   // choose numbers of output Fourier coefficients in each dimension
   int N1 = round(2.0 * sqrt(N));
@@ -51,23 +52,27 @@ int main() {
 
   // step 1: make a plan... note we choose isign=-1 for this type 2 plan
   finufft_plan plan;
-  int ier = finufft_makeplan(type, dim, Ns, -1, ntrans, tol, &plan, NULL);
+  int ier = finufft_makeplan(type, dim, Ns, -1, ntrans, tol, &plan, &opts);
+  if (ier) return ier;
   // step 2: send in M nonuniform points (just x, y in this case)...
-  finufft_setpts(plan, M, &x[0], &y[0], NULL, 0, NULL, NULL, NULL);
+  ier =
+      finufft_setpts(plan, M, x.data(), y.data(), nullptr, 0, nullptr, nullptr, nullptr);
+  if (ier) return ier;
   // step 3: do the adjoint of the planned transform. This maps
   // c strength data, to F output, and is identical to the type 1 with isign=+1.
-  finufft_execute_adjoint(plan, &c[0], &F[0]);
+  ier = finufft_execute_adjoint(plan, c.data(), F.data());
   // ... you could now send in new points, and/or do transforms or their adjoints.
   // ...
   // step 4: free the memory used by the plan...
   finufft_destroy(plan);
+  if (ier) return ier;
 
   int k1 = round(0.45 * N1); // check the answer for mode frequency (k1,k2)
   int k2 = round(-0.35 * N2);
 
   complex<double> Ftest(0, 0);
   for (int j = 0; j < M; j++)
-    Ftest += c[j] * exp(I * ((double)k1 * x[j] + (double)k2 * y[j]));
+    Ftest += c[j] * exp(I * (double(k1) * x[j] + double(k2) * y[j]));
 
   // compute inf norm of F
   double Fmax = 0.0;
@@ -77,13 +82,14 @@ int main() {
   }
 
   // indices in output array for this frequency pair (k1,k2)
-  int k1out    = k1 + (int)N1 / 2;
-  int k2out    = k2 + (int)N2 / 2;
+  int k1out    = k1 + N1 / 2;
+  int k2out    = k2 + N2 / 2;
   int indexOut = k1out + k2out * (N1);
 
   // compute relative error
-  double err = abs(F[indexOut] - Ftest) / Fmax;
+  double err   = abs(F[indexOut] - Ftest) / Fmax;
   cout << "2D adjoint-of-type-2 NUFFT done. ier=" << ier << ", err in F[" << indexOut
        << "] rel to max(F) is " << setprecision(2) << err << endl;
+  if (!(err <= 10 * tol)) return 1;
   return ier;
 }

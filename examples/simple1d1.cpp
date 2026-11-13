@@ -1,15 +1,18 @@
+// docs-start: simple1d1-includes
 // this is all you must include for the finufft lib...
 #include <finufft.h>
 
 // also used in this example...
+#include <algorithm>
 #include <cassert>
 #include <complex>
 #include <cstdio>
-#include <stdlib.h>
+#include <random>
 #include <vector>
 using namespace std;
 
 static const double PI = 3.141592653589793238462643383279502884;
+// docs-end: simple1d1-includes
 
 int main()
 /* Example of calling the FINUFFT library from C++, using STL
@@ -20,31 +23,34 @@ int main()
    Usage: ./simple1d1
 */
 {
-  int M              = 1e6;                      // number of nonuniform points
-  int N              = 1e6;                      // number of modes
-  double acc         = 1e-9;                     // desired accuracy
-  finufft_opts opts;                             // opts is a plain struct
-  finufft_default_opts(&opts);
-  complex<double> I = complex<double>(0.0, 1.0); // the imaginary unit
-
   // generate some random nonuniform points (x) and complex strengths (c)...
+  // docs-start: simple1d1-data
+  int M = 1e7; // number of nonuniform points
+  mt19937 rng(12345);
+  uniform_real_distribution<double> upi(-PI, PI), u1(-1.0, 1.0);
   vector<double> x(M);
   vector<complex<double>> c(M);
-  for (int j = 0; j < M; ++j) {
-    x[j] = PI * (2 * ((double)rand() / RAND_MAX) - 1); // uniform random in [-pi,pi)
-    c[j] =
-        2 * ((double)rand() / RAND_MAX) - 1 + I * (2 * ((double)rand() / RAND_MAX) - 1);
-  }
+  generate(x.begin(), x.end(), [&] { return upi(rng); }); // uniform random in [-pi,pi)
+  generate(c.begin(), c.end(), [&] { return complex<double>{u1(rng), u1(rng)}; });
+  // docs-end: simple1d1-data
+
   // allocate output array for the Fourier modes...
+  // docs-start: simple1d1-alloc
+  int N = 1e6; // number of modes
   vector<complex<double>> F(N);
+  // docs-end: simple1d1-alloc
 
   // call the NUFFT (with iflag=+1): note pointers (not STL vecs) passed...
-  int ier = finufft1d1(M, &x[0], &c[0], +1, acc, N, &F[0], &opts);
+  // docs-start: simple1d1-call
+  double acc = 1e-9; // desired accuracy
+  int ier    = finufft1d1(M, x.data(), c.data(), +1, acc, N, F.data(), nullptr);
+  // docs-end: simple1d1-call
 
-  int k = 142519; // check the answer just for this mode frequency...
-  assert(k >= -(double)N / 2 && k < (double)N / 2);
+  int k      = 142519; // check the answer just for this mode frequency...
+  assert(k >= -double(N) / 2 && k < double(N) / 2);
+  complex<double> I     = complex<double>(0.0, 1.0); // the imaginary unit
   complex<double> Ftest = complex<double>(0, 0);
-  for (int j = 0; j < M; ++j) Ftest += c[j] * exp(I * (double)k * x[j]);
+  for (int j = 0; j < M; ++j) Ftest += c[j] * exp(I * double(k) * x[j]);
   double Fmax = 0.0; // compute inf norm of F
   for (int m = 0; m < N; ++m) {
     double aF = abs(F[m]);
@@ -54,5 +60,6 @@ int main()
   double err = abs(F[kout] - Ftest) / Fmax;
   printf("1D type-1 double-prec NUFFT done. ier=%d, rel err in F[%d] is %.3g\n", ier, k,
          err);
+  if (!(err <= 10 * acc)) return 1;
   return ier;
 }

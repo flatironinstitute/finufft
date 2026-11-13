@@ -2,11 +2,13 @@
 #include <finufft.h>
 
 // also used in this example...
+#include <algorithm>
 #include <cassert>
 #include <chrono>
+#include <cmath>
 #include <complex>
 #include <cstdio>
-#include <stdlib.h>
+#include <random>
 #include <vector>
 using namespace std;
 
@@ -37,34 +39,33 @@ int main()
   opts.spreadinterponly = 1;    // task: the following two control kernel used...
   double tol            = 1e-9; // tolerance for (real) kernel shape design only
   opts.upsampfac        = 2.0;  // pretend upsampling factor (really no upsampling)
-       // opts.spread_kerevalmeth = 0;  // DEPRECATED: no effect; the library always uses Horner.
+  // opts.spread_kerevalmeth is DEPRECATED: no effect; the library always uses Horner.
 
-  complex<double> I = complex<double>(0.0, 1.0); // the imaginary unit
-  vector<double> x(M);                           // input
-  vector<complex<double>> c(M);                  // input
-  vector<complex<double>> F(N);                  // output (spread to this array)
+  complex<double> I     = complex<double>(0.0, 1.0); // the imaginary unit
+  vector<double> x(M);                               // input
+  vector<complex<double>> c(M);                      // input
+  vector<complex<double>> F(N);                      // output (spread to this array)
 
   // first spread M=1 single unit-strength at the origin, only to get its total mass...
   x[0]       = 0.0;
   c[0]       = 1.0;
   int unused = 1;
   int ier = finufft1d1(1, x.data(), c.data(), unused, tol, N, F.data(), &opts); // warm-up
-  if (ier > 0) return ier;
+  if (ier) return ier;
   complex<double> kersum = 0.0;
   for (auto Fk : F) kersum += Fk; // kernel mass
 
   // Now generate random nonuniform points (x) and complex strengths (c)...
-  for (int j = 0; j < M; ++j) {
-    x[j] = PI * (2 * ((double)rand() / RAND_MAX) - 1); // uniform random in [-pi,pi)
-    c[j] =
-        2 * ((double)rand() / RAND_MAX) - 1 + I * (2 * ((double)rand() / RAND_MAX) - 1);
-  }
+  mt19937 rng(12345);
+  uniform_real_distribution<double> upi(-PI, PI), u1(-1.0, 1.0);
+  generate(x.begin(), x.end(), [&] { return upi(rng); }); // uniform random in [-pi,pi)
+  generate(c.begin(), c.end(), [&] { return complex<double>{u1(rng), u1(rng)}; });
 
   opts.debug = 1;
   auto t0    = steady_clock::now(); // now spread with all M pts... (dir=1)
   ier      = finufft1d1(M, x.data(), c.data(), unused, tol, N, F.data(), &opts); // do it
   double t = (steady_clock::now() - t0) / 1.0s;
-  if (ier > 0) return ier;
+  if (ier) return ier;
   complex<double> csum = 0.0; // tot input strength
   for (auto cj : c) csum += cj;
   complex<double> mass = 0.0; // tot output mass
@@ -78,12 +79,15 @@ int main()
   t0         = steady_clock::now(); // now interp to all M pts...  (dir=2)
   ier = finufft1d2(M, x.data(), c.data(), unused, tol, N, F.data(), &opts); // do it
   t   = (steady_clock::now() - t0) / 1.0s;
-  if (ier > 0) return ier;
+  if (ier) return ier;
   csum = 0.0; // tot output
   for (auto cj : c) csum += cj;
   double maxerr = 0.0;
   for (auto cj : c) maxerr = max(maxerr, abs(cj - kersum));
   printf("1D interp-only, double-prec, %.3g s (%.3g NU pt/sec), ier=%d, max err %.3g\n",
          t, M / t, ier, maxerr / abs(kersum));
+  // max() skips a NaN element, but csum carries it
+  if (!(relerr <= 10 * tol && maxerr <= 10 * tol * abs(kersum) && !isnan(abs(csum))))
+    return 1;
   return 0;
 }
