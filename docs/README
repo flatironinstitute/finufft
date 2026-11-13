@@ -32,6 +32,9 @@ git, due to its dominant and growing contribution to the size of the repo.
 Note that ../README.md also should be considered part of the docs, since
 it contains a precis for text-loving and github-facing humans.
 
+Note that there are some sphinx tags indicated by @ in the source codes;
+do not remove them!
+
 
 1) Details for running ``make docs''
 
@@ -44,7 +47,7 @@ sphinx through its autodoc extension.  To run ``make docs'' locally,
 you only need bash.
 
 Note that ``make docs`` no longer builds a local copy of the docs in
-either HTML or PDF; to do this keep reading.
+either HTML or PDF; to do this, keep reading.
 
 
 2) How to do a local sphinx doc build for devs to check them quickly
@@ -92,10 +95,8 @@ and look in _build/latex/finufft.pdf for the PDF.
 
 Or, run ``make html`` then point your browser to
 the local file _build/html/index.html
-
-Note that there are some sphinx tags indicated by @ in the source codes;
-do not remove them.
+If you don't want to activate the venv, use ``uv run make html``.
 
 
-Alex Barnett, 2022/6/13.
+Alex Barnett, 2026/11/13
 Marco Barbone, 2024/08/01
