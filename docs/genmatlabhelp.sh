@@ -33,4 +33,3 @@ do
     sed -n '/^%/p' $i | sed 's/^.//' >> $OUT
     printf "\n" >> $OUT
 done
-

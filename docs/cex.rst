@@ -61,7 +61,7 @@ which is zero if successful (otherwise see :ref:`error codes <error>`).
 
 .. note::
 
-   FINUFFT works with a periodicity of :math:`2\pi` for type 1 and 2 transforms; see :ref:`definitions <math>`. For example, nonuniform points :math:`x=\pm\pi` are equivalent. The input points can be any real numbers: each coordinate is folded internally into :math:`[-\pi,\pi)`, so round-off error grows with :math:`|x|`. To use a different periodicity, linearly rescale your coordinates.
+   FINUFFT works with a periodicity of :math:`2\pi` for type 1 and 2 transforms; see :ref:`definitions <math>`. For example, nonuniform points :math:`x=\pm\pi` are equivalent. The input points can be any real numbers: each coordinate is folded internally into :math:`[-\pi,\pi)`. (Be aware that coordinates of large magnitures inevitably result in relative round-off error of size :math:`\mathcal{O}(|x|)`, as is true for the evaluation of any trigonometric function.) To achieve the effect of a different periodicity, you must rescale your coordinates.
 
 If instead you want to change some options, first
 put default values in a ``finufft_opts`` struct,
@@ -101,8 +101,9 @@ and the more flexible guru interface, is further down this page.
 Quick-start example in C
 --------------------------
 
-The FINUFFT C++ interface is intentionally also C-compatible, for simplicity.
-Thus, to use from C, the above example only needs to replace the C++
+FINUFFT has a C interface, since this is the most flexible, and simplifies
+the other language wrappers.
+To use from C, the above example only needs to replace the C++
 ``vector`` with C-style array creation, here in C99 style.
 First include our header, and some others needed for the demo:
 
