@@ -70,9 +70,11 @@ c     -----------------------
 c
          call dirft1d1f(nj,xj,cj,iflag, ms,fk0)
          call finufftf1d1(nj,xj,cj,iflag,eps,ms,fk1,defopts,ier)
+         if (ier.ne.0) stop 1
          call errcomp(fk0,fk1,ms,err)
          print *,' ier = ',ier
          print *,' type 1 error = ',err
+         if (.not.(err.le.10*eps)) stop 1
 c
 c     -----------------------
 c     call 1D Type2 method
@@ -80,9 +82,11 @@ c     -----------------------
 c
          call dirft1d2f(nj,xj,cj0,iflag, ms,fk0,ier)
          call finufftf1d2(nj,xj,cj1,iflag, eps, ms,fk0,defopts,ier)
+         if (ier.ne.0) stop 1
          call errcomp(cj0,cj1,nj,err)
          print *,' ier = ',ier
          print *,' type 2 error = ',err
+         if (.not.(err.le.10*eps)) stop 1
 c
 c     -----------------------
 c     call 1D Type3 method
@@ -92,9 +96,11 @@ c     -----------------------
          enddo
          call dirft1d3f(nj,xj,cj,iflag, ms,sk,fk0)
          call finufftf1d3(nj,xj,cj,iflag,eps, ms,sk,fk1,defopts,ier)
-         call errcomp(cj0,cj1,nj,err)
+         if (ier.ne.0) stop 1
+         call errcomp(fk0,fk1,ms,err)
          print *,' ier = ',ier
          print *,' type 3 error = ',err
+         if (.not.(err.le.10*eps)) stop 1
       enddo
       stop
       end

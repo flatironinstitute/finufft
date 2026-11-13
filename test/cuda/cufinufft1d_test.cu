@@ -163,6 +163,8 @@ int run_test(int method, int type, int N1, int M, T tol, T checktol, int iflag,
   else if (type == 3)
     fk = d_fk;
 
+  if (M == 0 || N1 == 0) return check_empty_output_((type == 2) ? c : fk);
+
   T rel_error = std::numeric_limits<T>::max();
   if (type == 1) {
     int nt1                = 0.37 * N1; // choose some mode index to check

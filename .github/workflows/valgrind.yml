@@ -20,6 +20,7 @@ jobs:
       - name: Setup Cpp
         uses: aminya/setup-cpp@v1
         with:
+          # gcc-16 emits VEX vmovq that valgrind 3.22 cannot decode
           compiler: gcc-15
           cmake: true
           ninja: true

@@ -1,5 +1,9 @@
+#include <algorithm>
 #include <array>
 #include <cstdio>
+
+#include <thrust/complex.h>
+#include <thrust/host_vector.h>
 
 inline void print_cuda_status_(int type, int method, int count_NU, int count_secondary,
                                float totaltime, float exectime) {
@@ -16,4 +20,16 @@ inline void print_cuda_status_(int type, int method, int count_NU, int count_sec
 
   ::printf("\t\t\t\t\t(exec-only throughput: %.3g NU pts/s)\n",
            total_points / exectime * 1000);
+}
+
+// M=0 or an empty mode set: there is no input to compare against, so the output
+// must be all zero; any nonzero value is a failure.
+template<typename T>
+int check_empty_output_(const thrust::host_vector<thrust::complex<T>> &out) {
+  const bool allzero = std::all_of(
+      out.begin(), out.end(),
+      [](const thrust::complex<T> &v) { return v == thrust::complex<T>(0, 0); });
+  ::printf("[gpu   ] empty input or mode set: output %s all zero\n",
+           allzero ? "is" : "is NOT");
+  return allzero ? 0 : 1;
 }

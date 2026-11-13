@@ -4,6 +4,8 @@
 #include <finufft/simd.hpp>
 #include <finufft/utils.hpp>
 
+#include <algorithm>
+#include <array>
 #include <cstddef>
 #include <numeric>
 
@@ -41,8 +43,17 @@ FINUFFT_ALWAYS_INLINE void simd_arrayrange(int64_t n, const T *a, T *lo, T *hi) 
     vlo = xsimd::min(vlo, v);
     vhi = xsimd::max(vhi, v);
   }
+  // shortcut: clang 23 X86 backend mis-narrows an f64 VPERMV in xsimd reduce_min/max on
+  // 8-lane doubles, fixed by https://github.com/llvm/llvm-project/pull/238829 (unmerged);
+  // drop once no supported clang 23 lacks it
+#if defined(__clang__) && __clang_major__ == 23
+  const auto lbuf = xsimd_to_array(vlo), hbuf = xsimd_to_array(vhi);
+  *lo = *std::min_element(lbuf.begin(), lbuf.end());
+  *hi = *std::max_element(hbuf.begin(), hbuf.end());
+#else
   *lo = xsimd::reduce_min(vlo);
   *hi = xsimd::reduce_max(vhi);
+#endif
 }
 } // namespace finufft::spreadinterp
 

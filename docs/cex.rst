@@ -61,7 +61,7 @@ which is zero if successful (otherwise see :ref:`error codes <error>`).
 
 .. note::
 
-   FINUFFT works with a periodicity of :math:`2\pi` for type 1 and 2 transforms; see :ref:`definitions <math>`. For example, nonuniform points :math:`x=\pm\pi` are equivalent. The input points can be any real numbers: each coordinate is folded internally into :math:`[-\pi,\pi)`, so round-off error grows with :math:`|x|`. To use a different periodicity, linearly rescale your coordinates.
+   FINUFFT works with a periodicity of :math:`2\pi` for type 1 and 2 transforms; see :ref:`definitions <math>`. For example, nonuniform points :math:`x=\pm\pi` are equivalent. The input points can be any real numbers: each coordinate is folded internally into :math:`[-\pi,\pi)`. (Be aware that coordinates of large magnitures inevitably result in relative round-off error of size :math:`\mathcal{O}(|x|)`, as is true for the evaluation of any trigonometric function.) To achieve the effect of a different periodicity, you must rescale your coordinates.
 
 If instead you want to change some options, first
 put default values in a ``finufft_opts`` struct,
@@ -101,34 +101,48 @@ and the more flexible guru interface, is further down this page.
 Quick-start example in C
 --------------------------
 
-The FINUFFT C++ interface is intentionally also C-compatible, for simplity.
-Thus, to use from C, the above example only needs to replace the C++
-``vector`` with C-style array creation. Using C99 style, the
-above code, with options setting, becomes:
+FINUFFT has a C interface, since this is the most flexible, and simplifies
+the other language wrappers.
+To use from C, the above example only needs to replace the C++
+``vector`` with C-style array creation, here in C99 style.
+First include our header, and some others needed for the demo:
 
-.. code-block:: C
+.. literalinclude:: ../examples/simple1d1c.c
+  :language: C
+  :start-after: docs-start: simple1d1c-includes
+  :end-before: docs-end: simple1d1c-includes
 
-  #include <finufft.h>
-  #include <stdlib.h>
-  #include <complex.h>
+Create random nonuniform points ``x`` and complex strengths ``c`` in C arrays:
 
-  int M = 1e7;            // number of nonuniform points
-  double* x = (double *)malloc(sizeof(double)*M);
-  double complex* c = (double complex*)malloc(sizeof(double complex)*M);
-  for (int j=0; j<M; ++j) {
-    x[j] = M_PI*(2*((double)rand()/RAND_MAX)-1);  // uniform random in [-pi,pi)
-    c[j] = 2*((double)rand()/RAND_MAX)-1 + I*(2*((double)rand()/RAND_MAX)-1);
-  }
-  int N = 1e6;            // number of modes
-  double complex* F = (double complex*)malloc(sizeof(double complex)*N);
-  finufft_opts opts;                      // make an opts struct
-  finufft_default_opts(&opts);          // set default opts (must do this)
-  opts.debug = 2;                       // more debug/timing to stdout
-  int ier = finufft1d1(M,x,c,+1,1e-9,N,F,&opts);
+.. literalinclude:: ../examples/simple1d1c.c
+  :language: C
+  :dedent: 2
+  :start-after: docs-start: simple1d1c-data
+  :end-before: docs-end: simple1d1c-data
 
-  // (now do something with F here!...)
+Allocate the output array for the ``N`` Fourier mode coefficients:
 
-  free(x); free(c); free(F);
+.. literalinclude:: ../examples/simple1d1c.c
+  :language: C
+  :dedent: 2
+  :start-after: docs-start: simple1d1c-alloc
+  :end-before: docs-end: simple1d1c-alloc
+
+Now set the options, here only ``debug=2`` for more debug/timing output, and do the NUFFT:
+
+.. literalinclude:: ../examples/simple1d1c.c
+  :language: C
+  :dedent: 2
+  :start-after: docs-start: simple1d1c-call
+  :end-before: docs-end: simple1d1c-call
+
+After using ``F``, free the arrays:
+
+.. literalinclude:: ../examples/simple1d1c.c
+  :language: C
+  :dedent: 2
+  :start-after: docs-start: simple1d1c-free
+  :end-before: docs-end: simple1d1c-free
 
 See ``examples/simple1d1c.c`` and ``examples/simple1d1cf.c`` for
 double- and single-precision C examples, including the math check to insure

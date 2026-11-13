@@ -40,8 +40,8 @@ jobs:
           # Pin to a recent LLVM. Using a version (vs. `llvm`/`true`) makes
           # `clangtidy: <ver>` install the matching clang-tidy from apt.llvm.org
           # rather than Ubuntu's stock clang-tidy-19.
-          compiler: llvm-21
-          clangtidy: "21"
+          compiler: llvm-23
+          clangtidy: "23"
           cmake: true
           ninja: true
           cppcheck: true

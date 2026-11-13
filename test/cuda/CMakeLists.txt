@@ -227,6 +227,7 @@ add_test(NAME cufinufft_error_handling COMMAND cufinufft_error_handling)
 add_test(NAME cufinufft_heuristics COMMAND cufinufft_heuristics_test)
 add_test(NAME cufinufft_math_test COMMAND cufinufft_math_test)
 add_test(NAME cufinufft_simple_test COMMAND cufinufft_simple_test)
+add_test(NAME cufinufft_dumbinputs COMMAND cufinufft_dumbinputs)
 add_test(NAME cufinufft_t3_batch COMMAND cufinufft_t3_batch_test)
 add_test(NAME cufinufft_multigpu COMMAND cufinufft_multigpu_test)
 # Returns 77 when only one device is visible: the cross-device path cannot run.

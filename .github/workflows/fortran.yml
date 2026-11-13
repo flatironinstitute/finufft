@@ -9,6 +9,7 @@ on:
   push:
     tags:
       - 'v*'
+  pull_request:
   # Manual trigger (with an optional deploy toggle)
   workflow_dispatch:
     inputs:
@@ -38,7 +39,7 @@ jobs:
         uses: fortran-lang/setup-fortran@v1
         with:
           compiler: gcc
-          version: 15
+          version: 16
 
         # CMake + Ninja (uniform across OSes)
       - name: Setup CMake & Ninja

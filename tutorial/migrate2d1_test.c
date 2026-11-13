@@ -4,6 +4,7 @@
    To compile (assuming FINUFFT include and lib in path):
    gcc migrate2d1_test.c -o migrate2d1_test -lfinufft -lfftw3 -lm
  */
+// docs-start: migrate2d1_test-data
 #include <complex.h>
 #include <finufft.h>
 #include <math.h>
@@ -19,8 +20,8 @@ int main() {
   double tol = 1e-13;      // user must choose (unlike nfft3's simple call)
 
   // user allocates all external arrays (and no internal ones)
-  double *x = (double *)malloc(sizeof(double) * M); // x (0th) coords only here
-  double *y = (double *)malloc(sizeof(double) * M); // y (1st) coords need separate ptr
+  double *x  = (double *)malloc(sizeof(double) * M); // x (0th) coords only here
+  double *y  = (double *)malloc(sizeof(double) * M); // y (1st) coords need separate ptr
   double complex *f = (double complex *)malloc(sizeof(double complex) * M);
   double complex *f_hat =
       (double complex *)malloc(sizeof(double complex) * N[0] * N[1]); // output
@@ -33,9 +34,11 @@ int main() {
     f[j] =
         2 * ((double)rand() / RAND_MAX) - 1 + I * (2 * ((double)rand() / RAND_MAX) - 1);
   }
+  // docs-end: migrate2d1_test-data
 
   clock_t before = clock();
 
+  // docs-start: migrate2d1_test-call
   // do transform, includes precompute, writing to f_hat...
   for (int j = 0; j < M; ++j) { // change user coords so finufft same as nfft3
     x[j] *= 2 * PI;
@@ -44,8 +47,9 @@ int main() {
   finufft_opts opts;            // opts struct
   finufft_default_opts(&opts);  // set default opts (must start with this)
   opts.nthreads = 1;            // enforce single-thread
-  int ier = finufft2d1(M, y, x, f, +1, tol, N[1], N[0], f_hat, &opts); // both x,y and
+  int ier     = finufft2d1(M, y, x, f, +1, tol, N[1], N[0], f_hat, &opts); // both x,y and
                                                                        // N0,N1 swapped!
+  // docs-end: migrate2d1_test-call
 
   double secs = (clock() - before) / (double)CLOCKS_PER_SEC;
 
@@ -60,6 +64,12 @@ int main() {
   double err = cabs(f_hat[i] - f_hat_test) / cabs(f_hat_test);
   printf("2D type 1 (FINUFFT) in %.3g s: f_hat[%d,%d]=%.12g+%.12gi, rel err %.3g\n", secs,
          kx, ky, creal(f_hat[i]), cimag(f_hat[i]), err);
+  if (ier) return ier;
+
+  if (!(err <= 10 * tol)) {
+    fprintf(stderr, "FAILED: rel err %.3g in f_hat[%d,%d]\n", err, kx, ky);
+    return 1;
+  }
 
   free(x);
   free(y);

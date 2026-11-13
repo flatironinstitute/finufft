@@ -52,6 +52,11 @@ int main()
   float err = cabsf(F[kout] - Ftest) / Fmax;
   printf("1D type 1 NUFFT, single-prec. ier=%d, err in F[%d] rel to max(F) is %.3g\n",
          ier, k, err);
+  if (ier) return ier;
+  if (!(err <= 10 * tol)) {
+    fprintf(stderr, "FAILED: rel err %.3g in F[%d]\n", err, k);
+    return 1;
+  }
 
   free(x);
   free(c);

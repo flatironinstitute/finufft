@@ -161,6 +161,8 @@ int run_test(int method, int type, int N1, int N2, int M, T tol, T checktol, int
 
   print_cuda_status_(type, opts.gpu_method, M, N1 * N2, totaltime, exec_ms);
 
+  if (M == 0 || N1 * N2 == 0) return check_empty_output_((type == 2) ? c : fk);
+
   T rel_error = std::numeric_limits<T>::max();
   if (type == 1) {
     const int nt1         = 0.37 * N1;

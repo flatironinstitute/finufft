@@ -168,6 +168,9 @@ Documentation and testing:
 
 * MATLAB/Octave examples fail when the accuracy gate is not met, and the guru
   snippets of docs/matlab.rst come from the tested examples (Barbone #922)
+* The C examples (simple1d1c, simple1d1cf, guru1d1c) and the NFFT3 migration
+  tutorial exit nonzero when the error exceeds tolerance. migrate2d1_test runs in
+  ctest. (Barbone #925)
 * C-API error codes now have single source of truth (Barnett #935)
 * Documented how to build the Python package from source inside a conda
   environment, with an environment file and install script under
@@ -176,6 +179,9 @@ Documentation and testing:
   calls on the same plan produce correct results. Added sanitizer mode selection
   via `FINUFFT_USE_SANITIZERS=OFF|ON|MEMSAN|TSAN`, and extended the sanitizer
   GitHub workflow to run a focused Linux TSAN job. (Barbone)
+* Fortran examples exit nonzero when ier/=0 or when the relative error
+  exceeds 10*tol. docs/fortran.rst fixes the stale tol=1d-16
+  claim and links simple1d1.f by URL. (Barbone #924)
 
 Build and packaging:
 
@@ -260,6 +266,9 @@ Bugfixes:
 
 * MATLAB/Octave type3 ajoint now is correctly an adjoint. It was
   ovewrtiting the input array with garbage bedofore. (Barbone #952).
+* CUDA now handles empty NU point or target arrays, and empty mode sets for types 1/2,
+  without segfaulting or returning NaN; cufinufft1d2 matches finufft1d2 for a 0-by-0
+  mode array (#953, Barbone)
 * MATLAB/Octave wrapper now correctly handles empty mode or NU point arrays,
   including testing in fullmathtest.m (Barnett #941, fixes #937).
 * Fixed NaN results or segfaults that could happen when running type 3 transform

@@ -1,4 +1,8 @@
 #include <finufft/execute.hpp>
+#include <finufft/plan.hpp> // FINUFFT_PLAN_T
+
+#include <complex>
+#include <cstddef>
 
 // Explicit instantiation, selected by FINUFFT_SINGLE define.
 

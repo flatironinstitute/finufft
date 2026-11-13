@@ -63,8 +63,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { os: ubuntu-24.04, toolchain: gcc-15, sanitizer: ON }
-          - { os: ubuntu-24.04, toolchain: gcc-15, sanitizer: TSAN }
+          - { os: ubuntu-24.04, toolchain: gcc-16, sanitizer: ON }
+          - { os: ubuntu-24.04, toolchain: gcc-16, sanitizer: TSAN }
           - { os: macos-15, toolchain: llvm, sanitizer: ON }
 #         - { os: macos-26, toolchain: llvm, sanitizer: ON } every test hangs under ASan (clang 21.1.8, image 20261013)
 
@@ -95,7 +95,7 @@ jobs:
           path: cpm
 
       - name: Run sccache-cache
-        uses: mozilla-actions/sccache-action@v0.0.10
+        uses: mozilla-actions/sccache-action@v0.0.11
 
       - name: Setup Cpp
         uses: aminya/setup-cpp@v1

@@ -88,12 +88,14 @@ c     -----------------------
 c
          call finufft2d1many(ntrans,nj,xj,yj,cj,iflag,
      &                         eps,ms,mt,fk1,defopts,ier)
+         if (ier.ne.0) stop 1
          do d = 1, ntrans
             call dirft2d1(nj,xj,yj,cj(1+(d-1)*nj:d*nj),iflag,ms,mt,
      &                    fk0(1+(d-1)*nk:d*nk))
             call errcomp(fk0(1+(d-1)*nk:d*nk),fk1(1+(d-1)*nk:d*nk),
      &                   nk,err)
             maxerr = max(maxerr,err)
+            if (.not.(err.le.10*eps)) stop 1
          enddo
          print *, ' max type 1 error = ',err
 c
@@ -102,12 +104,14 @@ c      call 2D Type 2 method
 c     -----------------------
          call finufft2d2many(ntrans,nj,xj,yj,cj1,iflag,
      &                         eps,ms,mt,fk0,defopts,ier)
+         if (ier.ne.0) stop 1
          do d = 1, ntrans
             call dirft2d2(nj,xj,yj,cj0(1+(d-1)*nj:d*nj),iflag,ms,mt,
      &                    fk0(1+(d-1)*nk:d*nk))
             call errcomp(cj0(1+(d-1)*nj:d*nj),cj1(1+(d-1)*nj:d*nj),
      &                   nj,err)
             maxerr = max(maxerr,err)
+            if (.not.(err.le.10*eps)) stop 1
          enddo
          print *, ' max type 2 error = ',err
 c
@@ -121,12 +125,14 @@ c     -----------------------
 
          call finufft2d3many(ntrans,nj,xj,yj,cj,iflag,eps,nk,sk,tk,
      &        fk1,defopts,ier)
+         if (ier.ne.0) stop 1
          do d = 1, ntrans
             call dirft2d3(nj,xj,yj,cj(1+(d-1)*nj:d*nj),iflag,nk,
      &           sk,tk,fk0(1+(d-1)*nk:d*nk))
             call errcomp(fk0(1+(d-1)*nk:d*nk),fk1(1+(d-1)*nk:d*nk),
      &                   nk,err)
             maxerr = max(maxerr,err)
+            if (.not.(err.le.10*eps)) stop 1
          enddo
          print *, ' max type 3 error = ',err
       enddo
