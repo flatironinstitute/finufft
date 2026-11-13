@@ -398,8 +398,6 @@ Diagnostic options
 
 * ``debug=2`` : prints more, including a classification of the GPU (name, compute capability, shared-memory sizes) and the shared-memory footprint of the chosen method configuration.
 
-* ``debug>=3`` : also prints the GPU binsize categories used by the method-2/3 heuristics.
-
 
 Algorithm performance options
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
