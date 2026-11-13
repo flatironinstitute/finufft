@@ -166,6 +166,8 @@ Performance/accuracy/code improvements:
 
 Documentation and testing:
 
+* MATLAB/Octave examples fail when the accuracy gate is not met, and the guru
+  snippets of docs/matlab.rst come from the tested examples (Barbone #922)
 * The C examples (simple1d1c, simple1d1cf, guru1d1c) and the NFFT3 migration
   tutorial exit nonzero when the error exceeds tolerance. migrate2d1_test runs in
   ctest. (Barbone #925)
