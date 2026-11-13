@@ -53,11 +53,11 @@ enum {
       // spread kernel formula type invalid
   FINUFFT_ERR_UNKNOWN_EXCEPTION      = 25,
       // unknown exception caught
-  FINUFFT_ERR_EPS_TOO_SMALL          = 26,
+  FINUFFT_ERR_TOL_TOO_SMALL          = 26,
       // requested tolerance (eps) deemed too small to achieve given problem parameters
       // in working precision, due to rounding errors or condition number of problem.
       // See Troubleshooting section of docs. If you know what you are doing, disable
-      // the raising of this by setting opts.allow_eps_too_small=1. A warning is still
+      // the raising of this by setting opts.allow_tol_too_small=1. A warning is still
       // given.
   FINUFFT_ERR_PSWF_SETUP             = 27,
       // iteration inside the setup code for the PSWF function evaluator failed
@@ -67,9 +67,9 @@ enum {
   // Deprecated error codes (no longer returned by CPU or GPU) go here, kept for ABI:
 
   FINUFFT_WARN_EPS_TOO_SMALL FINUFFT_DEPRECATED_ENUM(
-      "retired: use FINUFFT_ERR_EPS_TOO_SMALL instead") = 1,
+      "retired: use FINUFFT_ERR_TOL_TOO_SMALL instead") = 1,
   // Note: a tol below eps_mach or estimated achievable error for the problem size
-  // now warns on stderr or raises FINUFFT_ERR_EPS_TOO_SMALL.
+  // now warns on stderr or raises FINUFFT_ERR_TOL_TOO_SMALL.
 
   FINUFFT_ERR_SPREAD_PTS_OUT_RANGE FINUFFT_DEPRECATED_ENUM(
       "retired: bounds checking was removed in v2.3.0") = 4,

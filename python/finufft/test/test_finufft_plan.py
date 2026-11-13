@@ -178,7 +178,7 @@ def test_finufft_plan_errors():
 
     with warnings.catch_warnings(record=True) as caught:
         warnings.simplefilter("always")
-        Plan(1, (8, 8), eps=1e-30, allow_eps_too_small=1)
+        Plan(1, (8, 8), eps=1e-30, allow_tol_too_small=1)
     assert not any("eps tolerance too small" in str(w.message) for w in caught)
 
     with pytest.raises(TypeError, match="does not have the correct dtype"):

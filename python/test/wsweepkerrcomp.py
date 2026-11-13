@@ -60,7 +60,7 @@ def main() -> None:
     kfnam = {7: "PSWF Beatty", 8: "PSWF beta-shift", 9: "PSWF Marco"}
     kfs = sorted(kfnam)
 
-    o = {"upsampfac": sigma, "showwarn": False, "allow_eps_too_small": 1}
+    o = {"upsampfac": sigma, "showwarn": False, "allow_tol_too_small": 1}
     dims = [False, False, False]
     dims[dim - 1] = True
     nkf = len(kfs)

@@ -126,8 +126,8 @@ template<typename TF> void FINUFFT_PLAN_T<TF>::setup_spreadinterp() {
     See finufft_common/spread_opts.h for docs on all spopts fields.
     Note that spopts.spread_direction is not set.
     Throws on error (see codes in finufft_errors.h), including
-    FINUFFT_ERR_EPS_TOO_SMALL if requested eps (tol) is below machine epsilon,
-    unless opts.allow_eps_too_small requests clamp-and-proceed behavior.
+    FINUFFT_ERR_TOL_TOO_SMALL if requested eps (tol) is below machine epsilon,
+    unless opts.allow_tol_too_small requests clamp-and-proceed behavior.
     Barbone (Dec/25): ensure legacy kereval/kerpad user opts are treated as no-ops.
     1/8/26: Barnett redo (merges setup_spreader & setup_spreader_for_nufft of 2017).
     Barbone (3/4/26): eps-too-small is now a hard error (throw), not a warning.
@@ -157,12 +157,12 @@ template<typename TF> void FINUFFT_PLAN_T<TF>::setup_spreadinterp() {
 
   constexpr TF EPSILON = std::numeric_limits<TF>::epsilon(); // 2.2e-16 or 1.2e-7
   if (m.tol < EPSILON) { // unfeasible request: no hope of beating eps_mach...
-    if (opts.allow_eps_too_small) {
+    if (opts.allow_tol_too_small) {
       m.tol = EPSILON;
     } else {
       fprintf(stderr, "%s error: requested tol=%.3g is below eps_mach=%.3g.\n", __func__,
               (double)m.tol, (double)EPSILON);
-      throw finufft::exception(FINUFFT_ERR_EPS_TOO_SMALL);
+      throw finufft::exception(FINUFFT_ERR_TOL_TOO_SMALL);
     }
   }
 
@@ -451,10 +451,10 @@ FINUFFT_PLAN_T<TF>::FINUFFT_PLAN_T(int type_, int dim_, const BIGINT *n_modes, i
     // However, we can still reject or clamp unachievable tiny tolerances now.
     const TF eps_mach = std::numeric_limits<TF>::epsilon();
     if (m.tol < eps_mach) {
-      if (opts.allow_eps_too_small) {
+      if (opts.allow_tol_too_small) {
         m.tol = eps_mach;
       } else
-        throw finufft::exception(FINUFFT_ERR_EPS_TOO_SMALL);
+        throw finufft::exception(FINUFFT_ERR_TOL_TOO_SMALL);
     }
   }
 

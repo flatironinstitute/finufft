@@ -39,7 +39,7 @@ for precdev=precdevs  % ......... loop precisions & devices
           devname, prec, dim, M, Ntot, ntr, ntols)
   tols = tolstep.^(0:ntols-1);     % go down from tol = 1
   errs = nan(3, ntols);            % for 3 types (just 1D for now), each tol
-  o.allow_eps_too_small = 1;
+  o.allow_tol_too_small = 1;
   for t=1:ntols
     tol = tols(t);
     [nineerrs, info] = erralltypedim(M,Ntot,ntr,isign,prec,tol,o,myrand,dims);

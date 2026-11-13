@@ -57,7 +57,7 @@ Developer notes
 
   See ``devel/README`` for more details. The ES kernel coefficient and poly approx degree for both of the above are defined in a single location, ``devel/get_degree_and_beta.m``, which must match the C++ ``setup_spreadinterp()`` function.
 
-* Tolerance check. ``check_sigma`` (``include/finufft/setpts.hpp``) refuses a plan with ``FINUFFT_ERR_EPS_TOO_SMALL`` if ``rounding_error`` exceeds ``tol``, or if ``upsampfac`` is below ``min_sigma_for_aliasing_error`` or ``min_sigma_for_deconv_error`` at the width the plan uses. The three functions are in ``include/finufft_common/kernel.h``. Type 3 has no check.
+* Tolerance check. ``check_sigma`` (``include/finufft/setpts.hpp``) refuses a plan with ``FINUFFT_ERR_TOL_TOO_SMALL`` if ``rounding_error`` exceeds ``tol``, or if ``upsampfac`` is below ``min_sigma_for_aliasing_error`` or ``min_sigma_for_deconv_error`` at the width the plan uses. The three functions are in ``include/finufft_common/kernel.h``. Type 3 has no check.
 
   With ``upsampfac=0``, ``best_sigma_for_tol`` (``src/heuristics.cpp``) sets the upsampfac. For each kernel width it takes the smallest sigma in [1.25, 2.5] that ``check_sigma`` accepts, and keeps the one with the fewest flops (``flops_type12``, ``flops_type3``). ``ROUND_FAC``, ``kernel_tolfac`` and the factor ``dim`` in the deconvolution estimate are fits.
 

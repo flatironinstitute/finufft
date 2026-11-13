@@ -82,7 +82,7 @@ int main(int argc, char *argv[]) {
   opts.debug             = debug;
   opts.showwarn = showwarn;
   opts.nthreads = 1; // single-threaded FINUFFT faster since small (esp valgrind!)
-  opts.allow_eps_too_small = 1;
+  opts.allow_tol_too_small = 1;
 
   std::vector<FLT> x(M), y(M), z(M), X, Y, Z; // xyz real vs XYZ freq-space
   std::vector<CPX> c(M), ce(M), F, Fe; // (we don't know N yet, since varies by dim)
