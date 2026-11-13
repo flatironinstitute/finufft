@@ -166,6 +166,9 @@ Performance/accuracy/code improvements:
 
 Documentation and testing:
 
+* The C examples (simple1d1c, simple1d1cf, guru1d1c) and the NFFT3 migration
+  tutorial exit nonzero when the error exceeds tolerance. migrate2d1_test runs in
+  ctest. (Barbone #925)
 * C-API error codes now have single source of truth (Barnett #935)
 * Documented how to build the Python package from source inside a conda
   environment, with an environment file and install script under

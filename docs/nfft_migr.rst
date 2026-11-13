@@ -62,10 +62,21 @@ to FINUFFT. Here is the corresponding C code (compare to the above):
 
 .. literalinclude:: ../tutorial/migrate2d1_test.c
    :language: c
+   :start-after: docs-start: migrate2d1_test-data
+   :end-before: docs-end: migrate2d1_test-data
 
 The fact that NFFT3 uses row-major mode arrays whereas FINUFFT uses column-major has
 been handled here by swapping the input $x$ and $y$ coordinates and array sizes in the
-FINUFFT call. (Equivalently, this could have been achieved by transposing the ``f_hat``
+FINUFFT call:
+
+.. literalinclude:: ../tutorial/migrate2d1_test.c
+   :language: c
+   :dedent: 2
+   :emphasize-lines: 9-10
+   :start-after: docs-start: migrate2d1_test-call
+   :end-before: docs-end: migrate2d1_test-call
+
+(Equivalently, this could have been achieved by transposing the ``f_hat``
 output array. We recommend the former route since it saves memory.) Running the
 executable gives:
 
