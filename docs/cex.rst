@@ -54,7 +54,8 @@ Here ``+1`` sets the sign of :math:`i` in the exponentials
 ``acc=1e-9`` requests 9-digit relative tolerance, and ``ier`` is a status output
 which is zero if successful (otherwise see :ref:`error codes <error>`).
 With :math:`10^7` points and :math:`10^6` modes, as above, the transform takes 0.2 seconds on a laptop.
-.. to generate that timing claim, since the examples do not have timing, use:   test/finufft1d_test 1e6 1e7 1e-9 0 2 0.0
+
+.. to generate above timing claim, since the examples do not have timing, use:   test/finufft1d_test 1e6 1e7 1e-9 0 2 0.0
 
 .. note::
 
@@ -167,7 +168,6 @@ and do the transform (here with ``upsampfac=1.25``) thus:
 
 This transform (from 10 million points to 2 million modes)
 takes 0.3 seconds on a laptop.
-.. to generate that timing claim, use:   est/finufft2d_test 1000 2000 1e7 1e-6 0 2 0
 The modes have increasing ordering
 of integer frequency indices from ``-N1/2`` up to ``N1/2-1``
 in the fast (``x``) dimension,
@@ -175,6 +175,8 @@ then indices from ``-N2/2`` up to ``N2/2-1`` in the slow (``y``) dimension
 (since both ``N1`` and ``N2`` are even).
 So, the output frequency ``(k1,k2)`` is found in
 ``F[N1/2 + k1 + (N2/2 + k2)*N1]``.
+
+.. to generate the above timing claim, use:   est/finufft2d_test 1000 2000 1e7 1e-6 0 2 0
 
 See ``opts.modeord`` in :ref:`Options<opts>`
 to instead use FFT-style mode ordering, which
@@ -228,8 +230,9 @@ One call does the whole stack (with default options):
   :end-before: docs-end: many1d1-call
 
 The stack of transforms takes 0.3 seconds on a laptop, about twice as fast as making 10 separate "simple" calls.
-.. to generate those timing claims, use:    test/finufft1dmany_test 10 1e6 2e6 1e-9 0 0 2 0.0
 The frequency index ``k`` in transform number ``t`` (zero-indexing the transforms) is in ``F[k + (int)N/2 + N*t]``.
+
+.. to generate above timing claims, use:    test/finufft1dmany_test 10 1e6 2e6 1e-9 0 0 2 0.0
 
 See ``examples/many1d1.cpp`` and ``test/finufft?dmany_test.cpp``
 for more examples.
