@@ -22,7 +22,7 @@ int main() {
   // generate random non-uniform points on (x,y) and complex strengths (c),
   // each strength component uniform random in [-1,1]:
   // docs-start: simple2d1-data
-  int M = 1e6; // number of nonuniform points
+  int M = 1e7; // number of nonuniform points
   vector<double> x(M), y(M);
   vector<complex<double>> c(M);
 
@@ -36,9 +36,8 @@ int main() {
   // choose numbers of output Fourier coefficients in each dimension,
   // and allocate the output array for the Fourier modes
   // docs-start: simple2d1-alloc
-  int N  = 1e6; // approximate total number of modes (N1*N2)
-  int N1 = round(2.0 * sqrt(N));
-  int N2 = round(N / N1);
+  int N1 = 1000;
+  int N2 = 2000;
   vector<complex<double>> F(N1 * N2);
   // docs-end: simple2d1-alloc
 
@@ -69,7 +68,7 @@ int main() {
   // indices in output array for this frequency pair (k1,k2)
   int k1out    = k1 + N1 / 2;
   int k2out    = k2 + N2 / 2;
-  int indexOut = k1out + k2out * (N1);
+  int indexOut = k1out + k2out * N1;
 
   // compute relative error
   double err   = abs(F[indexOut] - Ftest) / Fmax;

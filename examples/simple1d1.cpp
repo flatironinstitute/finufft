@@ -25,7 +25,7 @@ int main()
 {
   // generate some random nonuniform points (x) and complex strengths (c)...
   // docs-start: simple1d1-data
-  int M = 1e6; // number of nonuniform points
+  int M = 1e7; // number of nonuniform points
   mt19937 rng(12345);
   uniform_real_distribution<double> upi(-PI, PI), u1(-1.0, 1.0);
   vector<double> x(M);

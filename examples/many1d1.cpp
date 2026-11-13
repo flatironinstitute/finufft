@@ -18,8 +18,8 @@ int main()
 {
   // generate some random nonuniform points (x) and complex strengths (c)...
   // docs-start: many1d1-data
-  int ntrans = 3;   // how many stacked transforms to do
-  int M      = 1e6; // nonuniform points (same for all transforms)
+  int ntrans = 10;  // how many stacked transforms to do
+  int M      = 2e6; // nonuniform points (same locations for all transforms)
   vector<double> x(M);
   vector<complex<double>> c(M * ntrans);
   mt19937 rng(12345);

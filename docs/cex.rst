@@ -47,13 +47,14 @@ C++-style vector objects), and also pass ``N``:
 This fills ``F`` with the output modes, in increasing ordering
 with the integer frequency indices from ``-N/2`` up to ``N/2-1``
 (since ``N`` is even; for odd it would be ``-(N-1)/2`` up to ``(N-1)/2``).
-With :math:`10^7` points (the code above uses :math:`10^6`) and :math:`10^6` modes, the transform takes 0.4 seconds on a laptop.
 The index is thus offset by ``N/2`` (this is integer division in the odd case), so that frequency ``k`` is output in
 ``F[N/2 + k]``.
 Here ``+1`` sets the sign of :math:`i` in the exponentials
 (see :ref:`definitions <math>`),
 ``acc=1e-9`` requests 9-digit relative tolerance, and ``ier`` is a status output
 which is zero if successful (otherwise see :ref:`error codes <error>`).
+With :math:`10^7` points and :math:`10^6` modes, as above, the transform takes 0.2 seconds on a laptop.
+.. to generate that timing claim, since the examples do not have timing, use:   test/finufft1d_test 1e6 1e7 1e-9 0 2 0.0
 
 .. note::
 
@@ -147,8 +148,8 @@ languages. Assuming the same headers as above, we first create points
   :start-after: docs-start: simple2d1-data
   :end-before: docs-end: simple2d1-data
 
-Let's say we want about ``N=1e6`` 2D Fourier coefficients, here ``N1=2000`` by ``N2=500``.
-We allocate the output array:
+Let's say we want to compute ``N1=1000`` by ``N2=2000``
+2D Fourier coefficients. We allocate the output array:
 
 .. literalinclude:: ../examples/simple2d1.cpp
   :language: C++
@@ -164,7 +165,9 @@ and do the transform (here with ``upsampfac=1.25``) thus:
   :start-after: docs-start: simple2d1-call
   :end-before: docs-end: simple2d1-call
 
-With :math:`10^7` points and ``N1=1000`` by ``N2=2000`` modes (the code above uses :math:`10^6` points and ``N1=2000`` by ``N2=500``), this transform takes 0.6 seconds on a laptop.
+This transform (from 10 million points to 2 million modes)
+takes 0.3 seconds on a laptop.
+.. to generate that timing claim, use:   est/finufft2d_test 1000 2000 1e7 1e-6 0 2 0
 The modes have increasing ordering
 of integer frequency indices from ``-N1/2`` up to ``N1/2-1``
 in the fast (``x``) dimension,
@@ -193,8 +196,9 @@ it can be faster to use a "vectorized"
 interface (which does the entire stack in one call)
 than to repeatedly call the above "simple" interfaces.
 This is especially true for many small problems.
-Here we show how to do a stack of ``ntrans=3`` 1D type 1 NUFFT transforms, in C++,
-assuming the same headers as in the first example above.
+Here we show how to do a stack of ``ntrans=10`` 1D type 1 NUFFT transforms
+each similar to the first example above, in C++,
+assuming the same headers as in that example.
 The strength data vectors are taken to be contiguous (the whole
 first vector, followed by the second, etc, rather than interleaved.)
 Ie, viewed as a matrix in Fortran storage, each column is a strength vector.
@@ -223,8 +227,8 @@ One call does the whole stack (with default options):
   :start-after: docs-start: many1d1-call
   :end-before: docs-end: many1d1-call
 
-With ``ntrans=10`` and :math:`10^7` points (the code above uses ``ntrans=3`` and :math:`10^6`), this takes 2.6 seconds on a laptop, around 1.4x faster than
-making 10 separate "simple" calls.
+The stack of transforms takes 0.3 seconds on a laptop, about twice as fast as making 10 separate "simple" calls.
+.. to generate those timing claims, use:    test/finufft1dmany_test 10 1e6 2e6 1e-9 0 0 2 0.0
 The frequency index ``k`` in transform number ``t`` (zero-indexing the transforms) is in ``F[k + (int)N/2 + N*t]``.
 
 See ``examples/many1d1.cpp`` and ``test/finufft?dmany_test.cpp``
