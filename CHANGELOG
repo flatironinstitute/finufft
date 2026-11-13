@@ -312,6 +312,8 @@ Bugfixes:
 * The `check_sigma` "upsampfac too low for tol" warning now honors
   `opts.showwarn=0`, as `docs/opts.rst` promises and the other warnings already
   do; the error path is unchanged and always speaks. (Barbone)
+* cuFINUFFT returns 18 for a negative bin size and 17 for an invalid
+  `gpu_method`. Type 3 prints `upsampfac` at `debug=1` (#919, #955). (Barbone)
 
 
 -----------------------------------------------------------------------------

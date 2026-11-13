@@ -463,7 +463,8 @@ int main(int argc, char *argv[]) {
                  "    --debug: <int>\n"
                  "           print cufinufft debug info\n"
                  "               0: do not print debug info\n"
-                 "               1: print debug info\n"
+                 "               1: print plan-setup info\n"
+                 "               2: also print GPU classification and shared-mem usage\n"
                  "           default: " << default_opts.debug << "\n";
     // clang-format on
     return 0;

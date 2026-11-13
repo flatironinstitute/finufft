@@ -270,6 +270,18 @@ cufinufft_plan_t<T>::cufinufft_plan_t(int type_, int dim_, const int *nmodes, in
             __func__, opts.gpu_maxsubprobsize);
     throw finufft::exception(FINUFFT_ERR_INVALID_ARGUMENT);
   }
+  if (opts.gpu_method < 0 || opts.gpu_method > 4) {
+    fprintf(stderr, "[%s] Invalid gpu_method (%d): should be 0 to 4.\n", __func__,
+            opts.gpu_method);
+    throw finufft::exception(FINUFFT_ERR_METHOD_NOTVALID);
+  }
+  for (const int bs : {opts.gpu_binsizex, opts.gpu_binsizey, opts.gpu_binsizez,
+                       opts.gpu_obinsizex, opts.gpu_obinsizey, opts.gpu_obinsizez})
+    if (bs < 0) {
+      fprintf(stderr, "[%s] Invalid gpu bin size (%d): should be 0 (auto) or > 0.\n",
+              __func__, bs);
+      throw finufft::exception(FINUFFT_ERR_BINSIZE_NOTVALID);
+    }
 
   if (!warned_pools && !gpu.memory_pools_supported && opts.gpu_stream != nullptr) {
     fprintf(stderr,
@@ -335,12 +347,6 @@ cufinufft_plan_t<T>::cufinufft_plan_t(int type_, int dim_, const int *nmodes, in
       }
     }
     THROW_IF_CUDA_ERROR();
-  }
-  // Bin size and memory info now printed in cufinufft_setup_binsize() (common.cu)
-  // Additional runtime info at debug level 2
-  if (opts.debug >= 2) {
-    printf("[cufinufft] Runtime: grid=(%d,%d,%d), M=%d\n", nf123[0], nf123[1], nf123[2],
-           M);
   }
 
   // dynamically request the maximum amount of shared memory available

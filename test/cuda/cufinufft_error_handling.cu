@@ -79,6 +79,28 @@ int main() {
   rc = check_rc("insufficient shmem", rc, FINUFFT_ERR_INSUFFICIENT_SHMEM, 8);
   if (rc) return rc;
 
+  // Negative gpu_(o)binsize* -> expect FINUFFT_ERR_BINSIZE_NOTVALID for each method
+  int *const binsizes[] = {&opts.gpu_binsizex,  &opts.gpu_binsizey,  &opts.gpu_binsizez,
+                           &opts.gpu_obinsizex, &opts.gpu_obinsizey, &opts.gpu_obinsizez};
+  for (const int method : {0, 1, 2, 3, 4})
+    for (int i = 0; i < 6; ++i) {
+      cufinufft_default_opts(&opts);
+      opts.gpu_method = method;
+      *binsizes[i]    = -1;
+      char label[64];
+      snprintf(label, sizeof label, "negative binsize %d, method %d", i, method);
+      rc |= check_rc(label, cufinufftf_makeplan(1, 3, N, 1, 1, 1e-5f, &fplan, &opts),
+                     FINUFFT_ERR_BINSIZE_NOTVALID, 10);
+    }
+
+  // Invalid gpu_method -> expect FINUFFT_ERR_METHOD_NOTVALID
+  cufinufft_default_opts(&opts);
+  opts.gpu_method = 5;
+  rc |= check_rc("gpu_method invalid",
+                 cufinufftf_makeplan(1, 3, N, 1, 1, 1e-5f, &fplan, &opts),
+                 FINUFFT_ERR_METHOD_NOTVALID, 11);
+  if (rc) return rc;
+
   // Destroy null -> expect FINUFFT_ERR_PLAN_NOTVALID
   rc = cufinufft_destroy(NULL);
   rc = check_rc("destroy null", rc, FINUFFT_ERR_PLAN_NOTVALID, 21);

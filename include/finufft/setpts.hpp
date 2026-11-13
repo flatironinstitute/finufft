@@ -157,7 +157,7 @@ int FINUFFT_PLAN_T<TF>::setpts(BIGINT nj, const TF *xj, const TF *yj, const TF *
       if (!std::isfinite(upsampfac)) upsampfac = finufft::common::MAX_AUTO_UPSAMPFAC;
       if (upsampfac != opts.upsampfac) {
         opts.upsampfac = upsampfac;
-        if (opts.debug > 1)
+        if (opts.debug)
           printf("[setpts t3] selected upsampfac=%.2f (persisted)\n", opts.upsampfac);
         setup_spreadinterp(); // throws on error
         precompute_horner_coeffs();
