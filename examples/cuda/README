@@ -1,15 +1,38 @@
-Examples of cuFINUFFT usage in C++ and Python
+Examples of cuFINUFFT usage in C and C++
 
-Here we show 2D transforms of type 1 and 2, being performed, and tested,
-in C++, and in Python. In each case, a batch of transforms is done with
-new coefficients or weights, but the same set of nonuniform points; this
-explains the suffix "many" in the code names. You may set ntransf=1 to
-perform a single transform. Default options are used. In each case the
-four steps (plan, setpts, execute, destroy) are used. A math test is also
-performed; see the FINUFFT documentation for the definitions of the
-transforms: https://finufft.readthedocs.io/en/latest/math.html
+Each is built and run as a test (ctest -R example_) and exits nonzero on an
+error, NaN or Inf, or accuracy failure.
+
+getting_started.c      1D type 1, single precision, guru (plan) interface, in C (the docs walkthrough)
+simple1d1.cu           1D type 1, simple interface, double precision
+simple1d1f.cu          1D type 1, simple interface, single precision
+simple2d1.cu           2D type 1, simple interface
+many1d1.cu             1D type 1, simple interface, many transforms with the same points
+guru1d1.cu             1D type 1, guru (plan) interface, double precision
+guru1d1f.cu            1D type 1, guru (plan) interface, single precision
+guru2d1.cu             2D type 1, guru (plan) interface
+gurumany1d1.cu         1D type 1, guru (plan) interface, many transforms with the same points
+example2d1many.cu      2D type 1, many transforms with the same points, single precision
+example2d2many.cu      2D type 2, many transforms with the same points, double precision
+example2d3many.cu      2D type 3, many transforms with the same points, double precision
+simulplans1d1.cu       1D type 1, two plans alive at once
+spreadinterponly1d.cu  1D spread-only and interpolate-only (gpu_spreadinterponly) tasks
+threadsafe1d1.cu       1D type 1, one plan and CUDA stream per thread
+threadsafe2d2f.cu      2D type 2, single precision, one plan and CUDA stream per thread
 
 For more usage examples see:
 
-../test/cufinufft*.cu
+../test/cuda/cufinufft*.cu
 ../python/cufinufft/tests/*.py
+
+To compile getting_started.c by hand from this directory, run
+
+    nvcc -o getting_started getting_started.c -lcufinufft
+
+If the library is not installed in the standard directories, set the paths first:
+
+    export CPATH="${CPATH:+${CPATH}:}../../include"
+    export LIBRARY_PATH="${LIBRARY_PATH:+${LIBRARY_PATH}:}../../build"
+    export LD_LIBRARY_PATH="${LD_LIBRARY_PATH:+${LD_LIBRARY_PATH}:}../../build"
+
+Then run ./getting_started.

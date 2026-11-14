@@ -173,6 +173,10 @@ Documentation and testing:
   ctest. (Barbone #925)
 * Python examples check accuracy and fail on errors, and the docs snippets
   come from the example code (Barbone #923)
+* New CUDA examples mirror the CPU C++ examples (simple, guru, many,
+  simulplans, spreadinterponly, threadsafe). Each exits nonzero on a failed
+  call or accuracy check. The GPU getting-started docs snippets come from these
+  tested examples. (Barbone #927)
 * C-API error codes now have single source of truth (Barnett #935)
 * Documented how to build the Python package from source inside a conda
   environment, with an environment file and install script under
