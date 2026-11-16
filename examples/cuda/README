@@ -4,6 +4,7 @@ Each is built and run as a test (ctest -R example_) and exits nonzero on an
 error, NaN or Inf, or accuracy failure.
 
 getting_started.c      1D type 1, single precision, guru (plan) interface, in C (the docs walkthrough)
+simple1d1cf.c          1D type 1, simple interface, single precision, in C (the docs walkthrough)
 simple1d1.cu           1D type 1, simple interface, double precision
 simple1d1f.cu          1D type 1, simple interface, single precision
 simple2d1.cu           2D type 1, simple interface

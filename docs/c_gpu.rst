@@ -19,53 +19,55 @@ Please see :ref:`Migration to cuFINUFFT v2.2<cufinufft_migration>` for details.
 Getting started
 ---------------
 
-Here is a 1D type-1 transform in single precision, from ``examples/cuda/simple1d1f.cu``.
-cuFINUFFT takes raw device pointers, so any GPU array works.
-This C++ example uses ``thrust::device_vector``, which comes with the CUDA toolkit.
-A ``device_vector`` allocates GPU memory, copies a host vector on assignment, and frees the memory when it goes out of scope.
-With ``x`` and ``c`` filled on the host, copy them to the GPU and make room for the output ``F``:
+cuFINUFFT has a C interface that takes raw device pointers, so any GPU array works.
+Here is a 1D type-1 transform in single precision with the simple interface, in C, from ``examples/cuda/simple1d1cf.c``.
+C has no Thrust, so the code calls the CUDA runtime directly: ``cudaMalloc``, ``cudaMemcpy`` and ``cudaFree``.
+This needs no C++ compiler for the user code, only a C99 compiler and the CUDA runtime.
+First include the headers, and define :math:`\pi` for the demo:
 
-.. literalinclude:: ../examples/cuda/simple1d1f.cu
-  :language: c++
+.. literalinclude:: ../examples/cuda/simple1d1cf.c
+  :language: c
+  :start-after: docs-start: simple1d1cf-includes
+  :end-before: docs-end: simple1d1cf-includes
+
+With ``M`` nonuniform points ``x`` and complex strengths ``c`` filled on the CPU, copy them to the GPU and make room for the ``N`` output modes:
+
+.. literalinclude:: ../examples/cuda/simple1d1cf.c
+  :language: c
   :dedent: 2
-  :start-after: docs-start: simple1d1f-device
-  :end-before: docs-end: simple1d1f-device
+  :start-after: docs-start: simple1d1cf-device
+  :end-before: docs-end: simple1d1cf-device
 
-``std::complex<float>`` and ``cuFloatComplex`` have the same layout, so a cast passes the arrays to cuFINUFFT.
-Now do the NUFFT (with default options, indicated by the ``nullptr``).
+``float complex`` and ``cuFloatComplex`` have the same layout, so the copies need no conversion.
+Now do the NUFFT (with default options, indicated by the ``NULL``).
 The ``cufinufftf`` prefix selects single precision (``cufinufft1d1`` is the double-precision call):
 
-.. literalinclude:: ../examples/cuda/simple1d1f.cu
-  :language: c++
+.. literalinclude:: ../examples/cuda/simple1d1cf.c
+  :language: c
   :dedent: 2
-  :start-after: docs-start: simple1d1f-call
-  :end-before: docs-end: simple1d1f-call
+  :start-after: docs-start: simple1d1cf-call
+  :end-before: docs-end: simple1d1cf-call
 
-Then copy ``F`` back to the CPU:
+Then copy ``f`` back to the CPU and free the GPU arrays:
 
-.. literalinclude:: ../examples/cuda/simple1d1f.cu
-  :language: c++
+.. literalinclude:: ../examples/cuda/simple1d1cf.c
+  :language: c
   :dedent: 2
-  :start-after: docs-start: simple1d1f-copy
-  :end-before: docs-end: simple1d1f-copy
+  :start-after: docs-start: simple1d1cf-copy
+  :end-before: docs-end: simple1d1cf-copy
 
-The guru interface has four steps: 1) making a plan, 2) setting the nonuniform points in this plan, 3) executing one or more transforms using the current nonuniform points, then, when all is done, 4) destroying the plan.
+As on the CPU, ``f`` holds the modes with frequency indices from ``-N/2`` up to ``N/2-1``,
+so frequency ``k`` is in ``f[N/2 + k]``.
+
+The simple interface fits when each set of nonuniform points is used for only one transform.
+For more control, the guru interface splits this call into four steps: 1) making a plan, 2) setting the nonuniform points in this plan, 3) executing one or more transforms using the current nonuniform points, then, when all is done, 4) destroying the plan.
 The simplest case is to call them in order, i.e., 1234.
 However, it is possible to repeat 3 with new strength or coefficient data, or to repeat 2 to choose new nonuniform points in order to do one or more step 3's again, before destroying.
 For instance, 123334 and 1232334 are allowed.
-If non-standard algorithm options are desired, an extra function is needed before making the plan; see bottom of this page for options.
 Use the guru interface when the same nonuniform points repeat across transforms, so the plan setup runs only once.
+If non-standard algorithm options are desired, an extra function is needed before making the plan; see bottom of this page for options.
 
-Here is the same transform with the guru interface, in C, from ``examples/cuda/getting_started.c``.
-C has no Thrust, so the code calls the CUDA runtime directly: ``cudaMalloc``, ``cudaMemcpy`` and ``cudaFree``.
-This version needs no C++ compiler for the user code, only a C99 compiler and the CUDA runtime.
-First include the headers, and define :math:`\pi` for the demo:
-
-.. literalinclude:: ../examples/cuda/getting_started.c
-  :language: c
-  :start-after: docs-start: getting_started-includes
-  :end-before: docs-end: getting_started-includes
-
+Here is the same transform with the guru interface, in C, from ``examples/cuda/getting_started.c``, which has the same headers.
 Create random nonuniform points ``x`` and complex strengths ``c`` on the CPU:
 
 .. literalinclude:: ../examples/cuda/getting_started.c
@@ -109,6 +111,7 @@ Step 2: send in the ``M`` nonuniform points on the GPU:
   :end-before: docs-end: getting_started-setpts
 
 The user should not change ``d_x`` from here on.
+
 Step 3: do the planned transform to the ``d_c`` strength data, output to ``d_f``:
 
 .. literalinclude:: ../examples/cuda/getting_started.c
@@ -118,6 +121,7 @@ Step 3: do the planned transform to the ``d_c`` strength data, output to ``d_f``
   :end-before: docs-end: getting_started-execute
 
 You could now send in new points, and/or do transforms with new ``d_c`` data.
+
 Step 4: when done, copy the result to the CPU and free the plan and the GPU arrays:
 
 .. literalinclude:: ../examples/cuda/getting_started.c
@@ -126,8 +130,35 @@ Step 4: when done, copy the result to the CPU and free the plan and the GPU arra
   :start-after: docs-start: getting_started-destroy
   :end-before: docs-end: getting_started-destroy
 
-As on the CPU, ``f`` holds the modes with frequency indices from ``-N/2`` up to ``N/2-1``,
-so frequency ``k`` is in ``f[N/2 + k]``.
+In C++ this is a bit less painful.
+``thrust::device_vector``, which comes with the CUDA toolkit, allocates GPU memory, copies a host vector on assignment, and frees the memory when it goes out of scope.
+Here is the simple-interface transform again, in C++, from ``examples/cuda/simple1d1f.cu``.
+With ``x`` and ``c`` filled on the host, copy them to the GPU and make room for the output ``F``:
+
+.. literalinclude:: ../examples/cuda/simple1d1f.cu
+  :language: c++
+  :dedent: 2
+  :start-after: docs-start: simple1d1f-device
+  :end-before: docs-end: simple1d1f-device
+
+``std::complex<float>`` and ``cuFloatComplex`` have the same layout, so a cast passes the arrays to cuFINUFFT.
+Now do the NUFFT (with default options, indicated by the ``nullptr``).
+The ``cufinufftf`` prefix selects single precision (``cufinufft1d1`` is the double-precision call):
+
+.. literalinclude:: ../examples/cuda/simple1d1f.cu
+  :language: c++
+  :dedent: 2
+  :start-after: docs-start: simple1d1f-call
+  :end-before: docs-end: simple1d1f-call
+
+Then copy ``F`` back to the CPU:
+
+.. literalinclude:: ../examples/cuda/simple1d1f.cu
+  :language: c++
+  :dedent: 2
+  :start-after: docs-start: simple1d1f-copy
+  :end-before: docs-end: simple1d1f-copy
+
 The complete examples, with a math check, are in ``examples/cuda``.
 
 Full documentation
@@ -176,8 +207,18 @@ Inputs:
 
 Returns ``0`` on success, otherwise an error code (see ``finufft_errors.h``).
 
-Type-3 calls also take frequency-target arrays (``s`` for 1D,
-``s,t`` for 2D, ``s,t,u`` for 3D), exactly as in the CPU API. The ``many``
+Type-3 calls also take the number ``nk`` of frequency targets and their
+device arrays (``s`` for 1D, ``s,t`` for 2D, ``s,t,u`` for 3D), exactly as in
+the CPU API. The 1D type-3 call in single precision is:
+
+.. code-block:: c
+
+    int cufinufftf1d3(int64_t nj, const float *xj, const cuFloatComplex *cj,
+                      int iflag, float eps, int64_t nk, const float *s,
+                      cuFloatComplex *fk, const cufinufft_opts *opts);
+
+Here ``s`` is a length-``nk`` device array of target frequencies, and ``fk`` is
+a length-``nk`` device array, output. The ``many``
 variants take an ``n_transf`` parameter as the first argument and use the
 same set of NU points for ``n_transf`` consecutive transforms (with input
 and output arrays sized accordingly).
@@ -239,7 +280,8 @@ Set nonuniform points
 ~~~~~~~~~~~~~~~~~~~~~
 
 This tells cuFINUFFT where to look for the coordinates of nonuniform points, and, if appropriate, creates an internal sorting index array to choose a good order to sweep through these points.
-For types 1 and 3 these points are "sources", but for type 2, "targets".
+For types 1 and 3 the points ``x, y, z`` are "sources", but for type 2, "targets".
+For type 3, ``s, t, u`` are the "target" frequencies.
 
 .. code-block:: c
 
