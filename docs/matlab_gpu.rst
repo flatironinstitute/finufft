@@ -35,7 +35,7 @@ The resulting output ``f`` is a complex single-precision ``gpuArray`` of size
 (number of rows) corresponds to the x input coordinate, and the second to y.
 If you need to change the definition of the period from $2\pi$, you cannot;
 instead linearly rescale your points before sending them to FINUFFT.
-The above shows a throughput of about 0.5 billion points/sec (on my A6000).
+The above shows a throughput of about 0.5 billion points/sec (on an A6000).
 For the full example code that also verifies one of the outputs,
 see `simple2d1f_gpu.m <https://github.com/flatironinstitute/finufft/tree/master/matlab/examples/cuda/simple2d1f_gpu.m>`_.
 
