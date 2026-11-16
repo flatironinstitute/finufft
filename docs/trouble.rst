@@ -68,7 +68,7 @@ If FINUFFT is slow (eg, less than $10^6$ to $10^7$ nonuniform points per second,
 
     OMP_NUMTHREADS=8 test/finufft2dmany_test 50 500 500 1e6 1e-5
 
-  which compares the stack of transforms to the same transforms performed individually (showing a 2x speedup on my laptop). For single precision tests, append ``f`` to the executable name in both of the above examples. The command line options for each tester can be seen by executing without any options.
+  which compares the stack of transforms to the same transforms performed individually (showing a 2x speedup on a laptop). For single precision tests, append ``f`` to the executable name in both of the above examples. The command line options for each tester can be seen by executing without any options.
 
 - Compare your timings against those reported on our :ref:`performance <performance>` page, for similar problem parameters, and read the information on that page.
 
@@ -101,7 +101,7 @@ If cuFINUFFT is slow (eg, less than $10^8$ nonuniform points per second), here i
 
     test/cuda/cufinufft2dmany_test 1 1 500 500 50 0 1000000 1e-5 1e-4 f 2.0
 
-  which gives (on my A6000) the output::
+  which gives (on an A6000) the output::
 
     #modes = 250000, #inputs = 50, #NUpts = 1000000
     [time  ] dummy warmup call to CUFFT	 0.00184 s
