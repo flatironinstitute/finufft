@@ -176,8 +176,8 @@ private:
 
   int execute_internal(TC *cj, TC *fk, bool adjoint = false, int ntrans_actual = -1,
                        TC *aligned_scratch = nullptr, size_t scratch_size = 0) const;
-  void setup_spreadinterp(); // throws FINUFFT_ERR_EPS_TOO_SMALL if tol unachievable
-  // Throws FINUFFT_ERR_EPS_TOO_SMALL if tol is not achievable
+  void setup_spreadinterp(); // throws FINUFFT_ERR_TOL_TOO_SMALL if tol unachievable
+  // Throws FINUFFT_ERR_TOL_TOO_SMALL if tol is not achievable
   void check_sigma(double mode_diagonal);
   double best_sigma_for_tol(int type, const std::array<double, 3> &nmodes,
                             bool is_inner_t2) const;
@@ -327,7 +327,7 @@ inline void finufft_default_opts_t(finufft_opts *o)
   o->spread_nthr_atomic = -1;
   o->spread_max_sp_size = 0;
   o->spread_kerformula  = 0;
-  o->allow_eps_too_small = 0;
+  o->allow_tol_too_small = 0;
   o->fftw_lock_fun      = nullptr;
   o->fftw_unlock_fun    = nullptr;
   o->fftw_lock_data     = nullptr;

@@ -29,7 +29,7 @@ kfs = [7 8 9];     % kernel formulae to test (1-6 removed in v2.6.0)
 o.upsampfac = sigma;
 %o.debug = 1;
 o.showwarn = 0;
-o.allow_eps_too_small = 1;
+o.allow_tol_too_small = 1;
 dims = false(1, 3); dims(dim) = true;  % only test this dim
 nkf = numel(kfs);
 mintol = 10 * eps(prec);        % stop above eps_mach

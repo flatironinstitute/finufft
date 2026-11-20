@@ -28,7 +28,7 @@
 %     opts.spread_sort:  0 (don't sort NU pts), 1 (do), 2 (auto, default)
 %     opts.fftw: FFTW plan mode, 64=FFTW_ESTIMATE (default), 0=FFTW_MEASURE, etc
 %     opts.upsampfac:   sigma.  0 (auto, default), 2.0 (standard), or 1.25 (low RAM, smaller FFT)
-%     opts.allow_eps_too_small: 0 (default hard error if tol too small), 1 (clamp and proceed)
+%     opts.allow_tol_too_small: 0 (default hard error if tol too small), 1 (clamp and proceed)
 %     opts.maxbatchsize:  for ntrans>1 only. max blocking size, or 0 for auto.
 %     opts.nthreads:   number of threads, or 0: use all physical cores (default)
 %     opts.spread_kerformula: 0 (default), >0 (nonstandard funcs) [experts only]

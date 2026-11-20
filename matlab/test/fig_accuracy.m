@@ -8,7 +8,7 @@ isign = +1; % sign of imaginary unit in exponential
 o.debug = 0;      % choose 1 for timing breakdown text output
 o.spread_function = 0;    % >0 for experts only
 o.upsampfac = 2.0;
-o.allow_eps_too_small = 1;
+o.allow_tol_too_small = 1;
 
 % use one of these...
 tols = 10.^(0:-0.02:-15); o.upsampfac = 2.0;

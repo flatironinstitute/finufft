@@ -15,10 +15,10 @@
 
 // ---------- local helpers for setpts: --------
 
-// Throws FINUFFT_ERR_EPS_TOO_SMALL if tol < rounding_error(), the NUDFT problem
+// Throws FINUFFT_ERR_TOL_TOO_SMALL if tol < rounding_error(), the NUDFT problem
 // condition-number based lower bound on error, or if upsampfac is below
 // min_sigma_for_aliasing_error or min_sigma_for_deconv_error at the plan ns.
-// (Or, if opts.allow_eps_too_small true, it warns instead).
+// (Or, if opts.allow_tol_too_small true, it warns instead).
 template<typename TF> void FINUFFT_PLAN_T<TF>::check_sigma(double mode_diagonal) {
   using namespace finufft::common;
   using namespace finufft::kernel;
@@ -30,7 +30,7 @@ template<typename TF> void FINUFFT_PLAN_T<TF>::check_sigma(double mode_diagonal)
   const double sigma_min = std::max(min_sigma_for_aliasing_error(tol, dim, type, ns),
                                     min_sigma_for_deconv_error(tol, dim, ns, eps_mach));
   if (!below_floor && sigma >= sigma_min) return;
-  const bool do_throw = !opts.allow_eps_too_small; // opt-in wins
+  const bool do_throw = !opts.allow_tol_too_small; // opt-in wins
   // an error always speaks; the warning obeys opts.showwarn
   if (!do_throw && !opts.showwarn) return;
   const char *level = do_throw ? "error" : "warning";
@@ -40,7 +40,7 @@ template<typename TF> void FINUFFT_PLAN_T<TF>::check_sigma(double mode_diagonal)
   else
     fprintf(stderr, "%s %s: upsampfac=%.3g at ns=%d cannot meet tol=%.3g; needs %.3g\n",
             __func__, level, sigma, ns, tol, sigma_min);
-  if (do_throw) throw finufft::exception(FINUFFT_ERR_EPS_TOO_SMALL);
+  if (do_throw) throw finufft::exception(FINUFFT_ERR_TOL_TOO_SMALL);
 }
 
 template<typename TF>
@@ -99,7 +99,7 @@ int FINUFFT_PLAN_T<TF>::setpts(BIGINT nj, const TF *xj, const TF *yj, const TF *
     double mode_diagonal = 0.0;
     for (int idim = 0; idim < dim; ++idim)
       mode_diagonal += (double)mstu[idim] * mstu[idim];
-    // Throws FINUFFT_ERR_EPS_TOO_SMALL if tol is not achievable
+    // Throws FINUFFT_ERR_TOL_TOO_SMALL if tol is not achievable
     check_sigma(std::sqrt(mode_diagonal));
 
     m.XYZ   = {xj, yj, zj}; // plan must keep pointers to user's fixed NU pts

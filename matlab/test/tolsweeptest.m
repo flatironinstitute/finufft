@@ -15,7 +15,7 @@ sigmas = [0 1.25 2];           % a.k.a. upsampfac, list to test (0 = auto)
 tolslack = [4.0; 4.0; 5.0];    % factors by which eps can exceed tol (3 types)
 o.showwarn = 0; %o.debug=1;
 o.spread_kerformula = 0;       % custom FINUFFT opts (should be defaults for CI)
-o.allow_eps_too_small = 1;
+o.allow_tol_too_small = 1;
 tolsperdecade = 8;             % tol resolution
 tolstep = 10 ^ (-1 / tolsperdecade);     % multiplicative step in tol, < 1
 
