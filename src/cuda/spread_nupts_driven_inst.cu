@@ -116,8 +116,8 @@ template<typename T, int Ndim> void do_indexSort_nupts_driven(cufinufft_plan_t<T
         p.M, p.nf123, binsizes, nbins, dethrust(p.binsize), p.kxyz, dethrust(p.sortidx));
     THROW_IF_CUDA_ERROR();
 
-    thrust::exclusive_scan(thrust::cuda::par.on(p.stream), p.binsize.begin(),
-                           p.binsize.end(), p.binstartpts.begin());
+    thrust::exclusive_scan(p.thrust_policy(), p.binsize.begin(), p.binsize.end(),
+                           p.binstartpts.begin());
     THROW_IF_CUDA_ERROR();
 
     calc_inverse_of_global_sort_idx<T, Ndim>
@@ -126,8 +126,7 @@ template<typename T, int Ndim> void do_indexSort_nupts_driven(cufinufft_plan_t<T
             dethrust(p.idxnupts), p.nf123);
     THROW_IF_CUDA_ERROR();
   } else {
-    thrust::sequence(thrust::cuda::par.on(p.stream), p.idxnupts.begin(),
-                     p.idxnupts.begin() + p.M);
+    thrust::sequence(p.thrust_policy(), p.idxnupts.begin(), p.idxnupts.begin() + p.M);
     THROW_IF_CUDA_ERROR();
   }
 }

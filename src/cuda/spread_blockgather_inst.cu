@@ -393,7 +393,7 @@ template<typename T> void do_indexSort_blockgather_3d(cufinufft_plan_t<T> &p) {
   int n = numbins[0] * numbins[1] * numbins[2];
   thrust::device_ptr<int> d_ptr(d_binsize);
   thrust::device_ptr<int> d_result(d_binstartpts + 1);
-  thrust::inclusive_scan(thrust::cuda::par.on(stream), d_ptr, d_ptr + n, d_result);
+  thrust::inclusive_scan(p.thrust_policy(), d_ptr, d_ptr + n, d_result);
 
   checkCudaErrors(cudaMemsetAsync(d_binstartpts, 0, sizeof(int), stream));
 
@@ -428,7 +428,7 @@ template<typename T> void do_indexSort_blockgather_3d(cufinufft_plan_t<T> &p) {
   n        = numobins[0] * numobins[1] * numobins[2];
   d_ptr    = thrust::device_pointer_cast(d_numsubprob);
   d_result = thrust::device_pointer_cast(d_subprobstartpts + 1);
-  thrust::inclusive_scan(thrust::cuda::par.on(stream), d_ptr, d_ptr + n, d_result);
+  thrust::inclusive_scan(p.thrust_policy(), d_ptr, d_ptr + n, d_result);
 
   checkCudaErrors(cudaMemsetAsync(d_subprobstartpts, 0, sizeof(int), stream));
 

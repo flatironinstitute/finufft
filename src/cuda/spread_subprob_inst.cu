@@ -145,8 +145,8 @@ template<typename T, int Ndim> void do_indexSort_subprob_and_OD(cufinufft_plan_t
   calc_bin_size_noghost<T, Ndim><<<(p.M + 1024 - 1) / 1024, 1024, 0, p.stream>>>(
       p.M, p.nf123, binsizes, nbins, dethrust(p.binsize), p.kxyz, dethrust(p.sortidx));
   THROW_IF_CUDA_ERROR();
-  thrust::exclusive_scan(thrust::cuda::par.on(p.stream), p.binsize.begin(),
-                         p.binsize.end(), p.binstartpts.begin());
+  thrust::exclusive_scan(p.thrust_policy(), p.binsize.begin(), p.binsize.end(),
+                         p.binstartpts.begin());
   THROW_IF_CUDA_ERROR();
   calc_inverse_of_global_sort_idx<T, Ndim>
       <<<(p.M + 1024 - 1) / 1024, 1024, 0, p.stream>>>(
@@ -161,7 +161,7 @@ template<typename T, int Ndim> void do_indexSort_subprob_and_OD(cufinufft_plan_t
       dethrust(p.binsize), dethrust(p.numsubprob), p.opts.gpu_maxsubprobsize, nbins_tot);
   THROW_IF_CUDA_ERROR();
 
-  thrust::inclusive_scan(thrust::cuda::par.on(p.stream), p.numsubprob.begin(),
+  thrust::inclusive_scan(p.thrust_policy(), p.numsubprob.begin(),
                          p.numsubprob.begin() + nbins_tot, p.subprobstartpts.begin() + 1);
   THROW_IF_CUDA_ERROR();
 

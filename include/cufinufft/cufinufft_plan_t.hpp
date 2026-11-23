@@ -328,6 +328,10 @@ private:
   ThrustAllocatorAsync<std::byte> alloc{(cudaStream_t)opts.gpu_stream, opts.gpu_device_id,
                                         gpu.memory_pools_supported != 0};
 
+  // Our Thrust policy: allocations and operations on the plan stream.
+  // At each Thrust call site, we should explicitly pass this policy.
+  auto thrust_policy() const { return thrust::cuda::par(alloc).on(stream); }
+
   // Plan-config invariants — set in the ctor's member-initializer list and
   // never mutated thereafter.
   const int type;
