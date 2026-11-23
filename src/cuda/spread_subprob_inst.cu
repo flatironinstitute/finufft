@@ -170,7 +170,7 @@ template<typename T, int Ndim> void do_indexSort_subprob_and_OD(cufinufft_plan_t
   checkCudaErrors(
       cudaMemcpyAsync(&totalnumsubprob, &(dethrust(p.subprobstartpts)[nbins_tot]),
                       sizeof(int), cudaMemcpyDeviceToHost, p.stream));
-  cudaStreamSynchronize(p.stream);
+  checkCudaErrors(cudaStreamSynchronize(p.stream));
   resize_discard(p.subprob_to_bin, totalnumsubprob);
 
   map_b_into_subprob<<<(nbins[0] * nbins[1] + 1024 - 1) / 1024, 1024, 0, p.stream>>>(
