@@ -136,14 +136,14 @@ void cufinufft_plan_t<T>::setpts(int nj, const T *d_kx, const T *d_ky, const T *
   for (int idim = 0; idim < dim; ++idim) {
     // special treatment of M==0/N==0, because arraywidcen doesn't work in that case
     if (M>0) {
-      const auto [xx, cc]           = arraywidcen<T>(M, d_kxyz[idim], stream);
+      const auto [xx, cc] = arraywidcen<T>(M, d_kxyz[idim], thrust_policy(), stream);
       type3_params.X[idim]          = xx;
       type3_params.C[idim]          = cc;
     } else {
       type3_params.X[idim] = type3_params.C[idim] = 0;
     }
     if (N>0) {
-      const auto [SS, DD]           = arraywidcen<T>(N, d_stu[idim], stream);
+      const auto [SS, DD] = arraywidcen<T>(N, d_stu[idim], thrust_policy(), stream);
       type3_params.S[idim]          = SS;
       type3_params.D[idim]          = DD;
     } else {
@@ -202,10 +202,9 @@ void cufinufft_plan_t<T>::setpts(int nj, const T *d_kx, const T *d_ky, const T *
   for (int idim = 0; idim < dim; ++idim) {
     const auto ig = T(1) / type3_params.gam[idim];
     const auto C  = -type3_params.C[idim];
-    thrust::transform(thrust::cuda::par.on(stream), d_kxyz[idim], d_kxyz[idim] + M,
-                      dethrust(kxyzp[idim]), [ig, C] __host__ __device__(const T x) -> T {
-                        return (x + C) * ig;
-                      });
+    thrust::transform(
+        thrust_policy(), d_kxyz[idim], d_kxyz[idim] + M, dethrust(kxyzp[idim]),
+        [ig, C] __host__ __device__(const T x) -> T { return (x + C) * ig; });
   }
   if (type3_params.D[0] != 0 || type3_params.D[1] != 0 || type3_params.D[2] != 0) {
     // if ky is null, use kx for ky and kz
@@ -219,32 +218,32 @@ void cufinufft_plan_t<T>::setpts(int nj, const T *d_kx, const T *d_ky, const T *
                                                      (dim > 2) ? d_kz : d_kx));
     const auto D        = type3_params.D;
     const auto realsign = iflag >= 0 ? T(1) : T(-1);
-    thrust::transform(
-        thrust::cuda::par.on(stream), iterator, iterator + M, dethrust(prephase),
-        [D, realsign] __host__
-        __device__(const thrust::tuple<T, T, T> &tuple) -> cuda_complex<T> {
-          const auto x = thrust::get<0>(tuple);
-          const auto y = thrust::get<1>(tuple);
-          const auto z = thrust::get<2>(tuple);
-          // no branching because D[1] and D[2] are 0 if dim < 2 and dim < 3
-          // this is generally faster on GPU
-          const auto phase = D[0] * x + D[1] * y + D[2] * z;
-          // TODO: nvcc should have the sincos function
-          //       check the cos + i*sin
-          //       ref: https://en.wikipedia.org/wiki/Cis_(mathematics)
-          return cuda_complex<T>{std::cos(phase), std::sin(phase) * realsign};
-        });
+    thrust::transform(thrust_policy(), iterator, iterator + M, dethrust(prephase),
+                      [D, realsign] __host__
+                      __device__(const thrust::tuple<T, T, T> &tuple) -> cuda_complex<T> {
+                        const auto x     = thrust::get<0>(tuple);
+                        const auto y     = thrust::get<1>(tuple);
+                        const auto z     = thrust::get<2>(tuple);
+                        // no branching because D[1] and D[2] are 0 if dim < 2 and dim < 3
+                        // this is generally faster on GPU
+                        const auto phase = D[0] * x + D[1] * y + D[2] * z;
+                        // TODO: nvcc should have the sincos function
+                        //       check the cos + i*sin
+                        //       ref: https://en.wikipedia.org/wiki/Cis_(mathematics)
+                        return cuda_complex<T>{std::cos(phase),
+                                               std::sin(phase) * realsign};
+                      });
   } else {
-    thrust::fill(thrust::cuda::par.on(stream), dethrust(prephase), dethrust(prephase) + M,
+    thrust::fill(thrust_policy(), dethrust(prephase), dethrust(prephase) + M,
                  cuda_complex<T>{1, 0});
   }
 
   for (int idim = 0; idim < dim; ++idim) {
     const auto scale = type3_params.h[idim] * type3_params.gam[idim];
     const auto D     = -type3_params.D[idim];
-    thrust::transform(
-        thrust::cuda::par.on(stream), d_stu[idim], d_stu[idim] + N, dethrust(STUp[idim]),
-        [scale, D] __host__ __device__(const T s) -> T { return scale * (s + D); });
+    thrust::transform(thrust_policy(), d_stu[idim], d_stu[idim] + N, dethrust(STUp[idim]),
+                      [scale, D] __host__
+                      __device__(const T s) -> T { return scale * (s + D); });
   }
   { // here we declare phi_hat1, phi_hat2, and phi_hat3
     // and the precomputed data for the fseries kernel
@@ -281,8 +280,8 @@ void cufinufft_plan_t<T>::setpts(int nj, const T *d_kx, const T *d_ky, const T *
                            // to avoid out of bounds access, use phi_hat1 if dim < 3
                            dim > 2 ? phi_hat123[2].data() : phi_hat123[0].data()));
     auto xdim = dim;
-    thrust::transform(thrust::cuda::par.on(stream), phi_hat_iterator,
-                      phi_hat_iterator + N, dethrust(deconv),
+    thrust::transform(thrust_policy(), phi_hat_iterator, phi_hat_iterator + N,
+                      dethrust(deconv),
                       [xdim] __host__
                       __device__(const thrust::tuple<T, T, T> tuple) -> cuda_complex<T> {
                         auto phiHat = thrust::get<0>(tuple);
@@ -305,8 +304,8 @@ void cufinufft_plan_t<T>::setpts(int nj, const T *d_kx, const T *d_ky, const T *
       const auto phase_iterator = thrust::make_zip_iterator(
           thrust::make_tuple(d_s, dim > 1 ? d_t : d_s, dim > 2 ? d_u : d_s));
       thrust::transform(
-          thrust::cuda::par.on(stream), phase_iterator, phase_iterator + N,
-          dethrust(deconv), dethrust(deconv),
+          thrust_policy(), phase_iterator, phase_iterator + N, dethrust(deconv),
+          dethrust(deconv),
           [c1, c2, c3, d1, d2, d3, realsign] __host__
           __device__(const thrust::tuple<T, T, T> tuple,
                      cuda_complex<T> deconv) -> cuda_complex<T> {

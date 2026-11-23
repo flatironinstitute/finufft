@@ -64,6 +64,8 @@ API and behavior changes:
 
 Performance/accuracy/code improvements:
 
+* cuFINUFFT: do more work asynchronously on the plan stream where possible.
+  (Garrison, #957)
 * The kernel Fourier series table (deconvolution factors) no longer depends on
   nthreads; at tol 1e-12 the error at 2 threads was 6.6x that at 1 thread.
   onedim_fseries_kernel now splits the outputs into fixed blocks of

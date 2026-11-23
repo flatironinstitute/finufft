@@ -244,8 +244,8 @@ void cufinufft_plan_t<T>::execute_type3(cuda_complex<T> *d_c,
         fw, 0, std::size_t(blksize) * nf * sizeof(cuda_complex<T>), stream));
     // Step 0: pre-phase the input strengths
     for (std::int64_t block = 0; block < blksize; block++) {
-      thrust::transform(thrust::cuda::par.on(stream), dethrust(prephase),
-                        dethrust(prephase) + M, d_cstart + block * M, c + block * M,
+      thrust::transform(thrust_policy(), dethrust(prephase), dethrust(prephase) + M,
+                        d_cstart + block * M, c + block * M,
                         thrust::multiplies<cuda_complex<T>>());
     }
     // Step 1: Spread
@@ -259,8 +259,8 @@ void cufinufft_plan_t<T>::execute_type3(cuda_complex<T> *d_c,
     // Step 3: deconvolve
     // now we need to d_fk = d_fk*deconv
     for (std::int64_t j = 0; j < blksize; j++) {
-      thrust::transform(thrust::cuda::par.on(stream), dethrust(deconv),
-                        dethrust(deconv) + N, d_fkstart + j * N, d_fkstart + j * N,
+      thrust::transform(thrust_policy(), dethrust(deconv), dethrust(deconv) + N,
+                        d_fkstart + j * N, d_fkstart + j * N,
                         thrust::multiplies<cuda_complex<T>>());
     }
   }
@@ -288,8 +288,7 @@ void cufinufft_plan_t<T>::execute(cuda_complex<T> *d_c, cuda_complex<T> *d_fk) c
       n_out = std::int64_t(ntransf) * M;
       out   = d_c;
     }
-    if (n_out > 0)
-      thrust::fill_n(thrust::cuda::par.on(stream), out, n_out, cuda_complex<T>{});
+    if (n_out > 0) thrust::fill_n(thrust_policy(), out, n_out, cuda_complex<T>{});
     return;
   }
   switch (type) {
