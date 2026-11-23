@@ -136,16 +136,16 @@ template<typename T> void cufinufft_plan_t<T>::allocate_subprob_state() {
   switch (opts.gpu_method) {
   case 1: {
     if (opts.gpu_sort) {
-      binsize.resize(numbins);
-      binstartpts.resize(numbins);
+      resize_discard(binsize, numbins);
+      resize_discard(binstartpts, numbins);
     }
   } break;
   case 2:
   case 3: {
-    numsubprob.resize(numbins);
-    binsize.resize(numbins);
-    binstartpts.resize(numbins);
-    subprobstartpts.resize(numbins + 1);
+    resize_discard(numsubprob, numbins);
+    resize_discard(binsize, numbins);
+    resize_discard(binstartpts, numbins);
+    resize_discard(subprobstartpts, numbins + 1);
   } break;
   case 4: {
     if (dim != 3) {
@@ -162,17 +162,18 @@ template<typename T> void cufinufft_plan_t<T>::allocate_subprob_state() {
       numbins_tot *= numobins * (binsperobin + 2);
     }
 
-    numsubprob.resize(numobins_tot);
-    binsize.resize(numbins_tot);
-    binstartpts.resize(numbins_tot + 1);
-    subprobstartpts.resize(numobins_tot + 1);
+    resize_discard(numsubprob, numobins_tot);
+    resize_discard(binsize, numbins_tot);
+    resize_discard(binstartpts, numbins_tot + 1);
+    resize_discard(subprobstartpts, numobins_tot + 1);
   } break;
   default:
     std::cerr << "[allocate] error: invalid method\n";
     throw finufft::exception(FINUFFT_ERR_METHOD_NOTVALID);
   }
   if (!opts.gpu_spreadinterponly)
-    for (int idim = 0; idim < dim; ++idim) fwkerhalf[idim].resize(nf123[idim] / 2 + 1);
+    for (int idim = 0; idim < dim; ++idim)
+      resize_discard(fwkerhalf[idim], nf123[idim] / 2 + 1);
 }
 template void cufinufft_plan_t<float>::allocate_subprob_state();
 template void cufinufft_plan_t<double>::allocate_subprob_state();
@@ -211,8 +212,8 @@ template<typename T> void cufinufft_plan_t<T>::allocate_nupts() {
     throw finufft::exception(FINUFFT_ERR_METHOD_NOTVALID);
   }
 
-  if (newsize_sortidx != sortidx.size()) sortidx.resize(newsize_sortidx);
-  if (newsize_idxnupts != idxnupts.size()) idxnupts.resize(newsize_idxnupts);
+  resize_discard(sortidx, newsize_sortidx);
+  resize_discard(idxnupts, newsize_idxnupts);
 }
 template void cufinufft_plan_t<float>::allocate_nupts();
 template void cufinufft_plan_t<double>::allocate_nupts();

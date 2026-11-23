@@ -270,6 +270,8 @@ Build and packaging:
 
 Bugfixes:
 
+* cuFINUFFT: fix `setpts` using the default stream, potentially invalidating
+  memory being used by an in-flight execute. (Garrison #957)
 * MATLAB/Octave type3 ajoint now is correctly an adjoint. It was
   ovewrtiting the input array with garbage bedofore. (Barbone #952).
 * CUDA now handles empty NU point or target arrays, and empty mode sets for types 1/2,

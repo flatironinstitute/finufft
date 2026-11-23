@@ -188,6 +188,14 @@ public:
 
 template<typename T> using gpu_array = thrust::device_vector<T, ThrustAllocatorAsync<T>>;
 
+// Resize without preserving contents. Avoids an unnecessary copy of data that is about
+// to be erased, but more importantly, avoids such a copy operation occurring on the
+// default stream.
+template<typename T> void resize_discard(gpu_array<T> &arr, std::size_t n) {
+  if (n > arr.capacity()) arr.clear();
+  arr.resize(n);
+}
+
 // Device scratch (RAII, stream-ordered): gpu_array's allocator without
 // thrust::device_vector's value-initialization, for buffers the callee overwrites before
 // reading. Size 0 allocates nothing and data() returns nullptr.
