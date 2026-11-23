@@ -330,7 +330,7 @@ private:
 
   // Our Thrust policy: allocations and operations on the plan stream.
   // At each Thrust call site, we should explicitly pass this policy.
-  auto thrust_policy() const { return thrust::cuda::par(alloc).on(stream); }
+  auto thrust_policy() const { return thrust::cuda::par_nosync(alloc).on(stream); }
 
   // Plan-config invariants — set in the ctor's member-initializer list and
   // never mutated thereafter.
