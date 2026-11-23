@@ -221,12 +221,10 @@ void cufinufft_plan_t<T>::setpts(int nj, const T *d_kx, const T *d_ky, const T *
     thrust::transform(thrust_policy(), iterator, iterator + M, dethrust(prephase),
                       [D, realsign] __host__
                       __device__(const thrust::tuple<T, T, T> &tuple) -> cuda_complex<T> {
-                        const auto x     = thrust::get<0>(tuple);
-                        const auto y     = thrust::get<1>(tuple);
-                        const auto z     = thrust::get<2>(tuple);
+                        const auto [x, y, z] = tuple;
                         // no branching because D[1] and D[2] are 0 if dim < 2 and dim < 3
                         // this is generally faster on GPU
-                        const auto phase = D[0] * x + D[1] * y + D[2] * z;
+                        const auto phase     = D[0] * x + D[1] * y + D[2] * z;
                         // TODO: nvcc should have the sincos function
                         //       check the cos + i*sin
                         //       ref: https://en.wikipedia.org/wiki/Cis_(mathematics)
