@@ -426,20 +426,22 @@ cufinufft_plan_t<T>::cufinufft_plan_t(int type_, int dim_, const int *nmodes, in
       // compute up to 3 * NQUAD precomputed values on CPU
       T fseries_precomp_phase[3 * MAX_NQUAD];
       T fseries_precomp_f[3 * MAX_NQUAD];
-      thrust::device_vector<T> d_fseries_precomp_phase(3 * MAX_NQUAD);
-      thrust::device_vector<T> d_fseries_precomp_f(3 * MAX_NQUAD);
+      gpu_scratch<T> d_fseries_precomp_phase(3 * MAX_NQUAD, alloc);
+      gpu_scratch<T> d_fseries_precomp_f(3 * MAX_NQUAD, alloc);
       for (int idim = 0; idim < dim; ++idim)
         precompute_fseries_nodes(nf123[idim], fseries_precomp_f + idim * MAX_NQUAD,
                                  fseries_precomp_phase + idim * MAX_NQUAD);
-      // copy the precomputed data to the device using thrust
-      thrust::copy(fseries_precomp_phase, fseries_precomp_phase + 3 * MAX_NQUAD,
-                   d_fseries_precomp_phase.begin());
-      thrust::copy(fseries_precomp_f, fseries_precomp_f + 3 * MAX_NQUAD,
-                   d_fseries_precomp_f.begin());
+      // copy the precomputed data to the device
+      checkCudaErrors(
+          cudaMemcpyAsync(d_fseries_precomp_phase.data(), fseries_precomp_phase,
+                          sizeof(fseries_precomp_phase), cudaMemcpyHostToDevice, stream));
+      checkCudaErrors(
+          cudaMemcpyAsync(d_fseries_precomp_f.data(), fseries_precomp_f,
+                          sizeof(fseries_precomp_f), cudaMemcpyHostToDevice, stream));
       // the full fseries is done on the GPU here
-      fseries_kernel_compute(dim, nf123, d_fseries_precomp_f.data().get(),
-                             d_fseries_precomp_phase.data().get(), fwkerhalf,
-                             spopts.nspread, stream);
+      fseries_kernel_compute(dim, nf123, d_fseries_precomp_f.data(),
+                             d_fseries_precomp_phase.data(), fwkerhalf, spopts.nspread,
+                             stream);
     }
   }
 }
