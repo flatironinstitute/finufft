@@ -251,21 +251,23 @@ void cufinufft_plan_t<T>::setpts(int nj, const T *d_kx, const T *d_ky, const T *
 
     std::array<T, 3 * MAX_NQUAD> nuft_precomp_z{};
     std::array<T, 3 * MAX_NQUAD> nuft_precomp_f{};
-    thrust::device_vector<T> d_nuft_precomp_z(3 * MAX_NQUAD);
-    thrust::device_vector<T> d_nuft_precomp_f(3 * MAX_NQUAD);
+    gpu_scratch<T> d_nuft_precomp_z(3 * MAX_NQUAD, alloc);
+    gpu_scratch<T> d_nuft_precomp_f(3 * MAX_NQUAD, alloc);
     cuda::std::array<gpu_array<T>, 3> phi_hat123(
         {gpu_array<T>{0, alloc}, gpu_array<T>{0, alloc}, gpu_array<T>{0, alloc}});
     for (int idim = 0; idim < dim; ++idim) phi_hat123[idim].resize(N);
     for (int idim = 0; idim < dim; ++idim)
       onedim_nuft_kernel_precomp<T>(nuft_precomp_f.data() + idim * MAX_NQUAD,
                                     nuft_precomp_z.data() + idim * MAX_NQUAD, spopts);
-    // copy the precomputed data to the device using thrust
-    thrust::copy(nuft_precomp_z.begin(), nuft_precomp_z.end(), d_nuft_precomp_z.begin());
-    thrust::copy(nuft_precomp_f.begin(), nuft_precomp_f.end(), d_nuft_precomp_f.begin());
-    // sync the stream before calling the kernel might be needed
-    nuft_kernel_compute(dim, {N, N, N}, d_nuft_precomp_f.data().get(),
-                        d_nuft_precomp_z.data().get(), STU, phi_hat123, spopts.nspread,
-                        stream);
+    // copy the precomputed data to the device
+    checkCudaErrors(
+        cudaMemcpyAsync(d_nuft_precomp_z.data(), nuft_precomp_z.data(),
+                        sizeof(nuft_precomp_z), cudaMemcpyHostToDevice, stream));
+    checkCudaErrors(
+        cudaMemcpyAsync(d_nuft_precomp_f.data(), nuft_precomp_f.data(),
+                        sizeof(nuft_precomp_f), cudaMemcpyHostToDevice, stream));
+    nuft_kernel_compute(dim, {N, N, N}, d_nuft_precomp_f.data(), d_nuft_precomp_z.data(),
+                        STU, phi_hat123, spopts.nspread, stream);
 
     const auto is_c_finite = std::isfinite(type3_params.C[0]) &&
                              std::isfinite(type3_params.C[1]) &&
