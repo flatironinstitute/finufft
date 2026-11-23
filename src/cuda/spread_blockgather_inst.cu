@@ -400,7 +400,7 @@ template<typename T> void do_indexSort_blockgather_3d(cufinufft_plan_t<T> &p) {
   int totalNUpts;
   checkCudaErrors(cudaMemcpyAsync(&totalNUpts, &d_binstartpts[n], sizeof(int),
                                   cudaMemcpyDeviceToHost, stream));
-  cudaStreamSynchronize(stream);
+  checkCudaErrors(cudaStreamSynchronize(stream));
   resize_discard(p.idxnupts, totalNUpts);
 
   calc_inverse_of_global_sort_index_ghost<<<(M + 1024 - 1) / 1024, 1024, 0, stream>>>(
@@ -435,7 +435,7 @@ template<typename T> void do_indexSort_blockgather_3d(cufinufft_plan_t<T> &p) {
   int totalnumsubprob;
   checkCudaErrors(cudaMemcpyAsync(&totalnumsubprob, &d_subprobstartpts[n], sizeof(int),
                                   cudaMemcpyDeviceToHost, stream));
-  cudaStreamSynchronize(stream);
+  checkCudaErrors(cudaStreamSynchronize(stream));
   resize_discard(p.subprob_to_bin, totalnumsubprob);
   map_b_into_subprob_3d_v1<<<(n + 1024 - 1) / 1024, 1024, 0, stream>>>(
       dethrust(p.subprob_to_bin), d_subprobstartpts, d_numsubprob, n);
