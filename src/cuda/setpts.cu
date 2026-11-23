@@ -189,13 +189,13 @@ void cufinufft_plan_t<T>::setpts(int nj, const T *d_kx, const T *d_ky, const T *
   nf = CUFINUFFT_BIGINT(nf_wide);
 
   for (int idim = 0; idim < dim; ++idim) {
-    kxyzp[idim].resize(M);
+    resize_discard(kxyzp[idim], M);
     kxyz[idim] = dethrust(kxyzp[idim]);
-    STUp[idim].resize(N);
+    resize_discard(STUp[idim], N);
     STU[idim] = dethrust(STUp[idim]);
   }
-  prephase.resize(M);
-  deconv.resize(N);
+  resize_discard(prephase, M);
+  resize_discard(deconv, N);
 
   // NOTE: init-captures are not allowed for extended __host__ __device__ lambdas
 
