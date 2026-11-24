@@ -18,12 +18,13 @@ Developer notes
 
   - ``CMakeLists.txt`` for cmake
   - ``docs/conf.py`` for sphinx
-  - ``docs/install.rst`` cmake git tags (3 places)
+  - ``docs/install.rst`` cmake git tags (2 places)
   - ``examples/quick-start/fetchcontent/CMakeLists.txt`` GIT_TAG
   - ``python/finufft/finufft/__init__.py`` for the python pkg version
   - ``python/cufinufft/cufinufft/__init__.py`` for the GPU python pkg version
   - ``include/finufft/plan.hpp`` for debug output
   - ``matlab/Contents.m`` for the MATLAB/Octave help
+  - ``tools/vcpkg/finufft/vcpkg.json`` for the vcpkg overlay port
   - ``CHANGELOG``: don't forget to describe the new features and changes, folding lines at 80 chars.
 
 * There are some sphinx tags in the source code, indicated by @ in comments. Please leave these alone since they are needed by the doc generation.

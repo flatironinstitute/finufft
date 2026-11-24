@@ -18,7 +18,8 @@ export VCPKG_BINARY_SOURCES=clear VCPKG_DISABLE_METRICS=1
 
 port_version=$(sed -n 's/^  "version": "\(.*\)",$/\1/p' "$overlay/finufft/vcpkg.json")
 cmake_version=$(sed -n 's/^project(FINUFFT VERSION \([0-9.]*\) .*/\1/p' "$repo/CMakeLists.txt")
-if [ -z "$cmake_version" ] || [ "$port_version" != "$cmake_version" ]; then
+# A release candidate X.Y.Z-rcN in vcpkg.json matches the numeric X.Y.Z in CMake.
+if [ -z "$cmake_version" ] || [ "${port_version%%-*}" != "$cmake_version" ]; then
 	echo "FAIL: vcpkg.json version '$port_version' != CMakeLists.txt version '$cmake_version'"
 	exit 1
 fi

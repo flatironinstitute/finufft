@@ -15,7 +15,7 @@
 // ------------- Library-wide algorithm parameter settings ----------------
 
 // Library version (is a string)
-#define FINUFFT_VER "2.6.0-dev"
+#define FINUFFT_VER "2.6.0-rc1"
 
 // Internal (nf1 etc) array allocation size that immediately raises error.
 // Increase this if you need >10TB (!) RAM...

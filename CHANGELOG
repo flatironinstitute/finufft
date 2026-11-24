@@ -3,7 +3,7 @@ If not stated, CPU FINUFFT is assumed (old cuFINUFFT <=1.3 listed separately).
 Please wrap at 80 chars per line. From v2.6 we split changes into 4 categories.
 
 -------------------------------------------------------------------------------
-v2.6.0-dev
+v2.6.0 (release candidate 1, 11/24/26)
 
 API and behavior changes:
 
@@ -61,6 +61,8 @@ API and behavior changes:
   inputs are device pointers. This is additive; the 4-step plan interface is
   unchanged. (Barbone, building on prior cuFINUFFT simple-interface work by
   J. Anden. #863).
+* New error code FINUFFT_ERR_PSWF_SETUP (ier=27). (Reinecke #854)
+* Python needs >= 3.10, and finufft needs numpy >= 1.21.3. (Barbone #874, #954)
 
 Performance/accuracy/code improvements:
 
@@ -167,6 +169,10 @@ Performance/accuracy/code improvements:
     cufinufft1d1_exec/cufinufft2d1_exec/cufinufft3d1_exec)
   - file contents were reshuffled to simplify and reduce inter-file
     dependencies; as a result, internal headers are much smaller now.
+* Auto upsampfac floor raised from 1.15 to 1.25. (Barbone #930)
+* FFT sizes come from ducc0 good_size(); the sizes are the same. (Reinecke #858)
+* Single precision instantiates kernel widths ns <= 12 only. (Barbone #857)
+* SIMD subgrid bounds and complex horizontal sum. (Barbone #875, #878)
 
 Documentation and testing:
 
@@ -194,6 +200,11 @@ Documentation and testing:
 * Fortran examples exit nonzero when ier/=0 or when the relative error
   exceeds 10*tol. docs/fortran.rst fixes the stale tol=1d-16
   claim and links simple1d1.f by URL. (Barbone #924)
+* README CPU platform table generated from the CI workflows. (Barbone #862)
+* MATLAB docs recommend mip to install the interface. (Magland #876)
+* perftest: removed the obsolete kerevalmethod option. (Guflly #880)
+* CUDA tests print a shared status line. (Bogado da Silva Lins #945)
+* perftest PR bot: first a GitHub Action, now Jenkins. (Artur; Barbone #900)
 
 Build and packaging:
 
@@ -273,6 +284,11 @@ Build and packaging:
 * A static install with FFTW now links downstream: a downloaded FFTW is bundled,
   a system FFTW is found again via the installed FindFFTW. A CXX-only consumer
   finds OpenMP (#494, Barbone)
+* GPU presets gpu-fat, gpu-perlmutter; `make cufinufft`. (Barbone, fixes #280)
+* Editable Python installs load the rebuilt library. (Barbone #884)
+* Jenkins CI moved to a Kubernetes-based Jenkins. (Simon #859)
+* Fixed the Apple Clang build via the OpenMP settings. (Krimmer #825)
+* Fortran examples build only with FINUFFT_BUILD_EXAMPLES. (Fikl #824)
 
 Bugfixes:
 
@@ -330,6 +346,9 @@ Bugfixes:
   do; the error path is unchanged and always speaks. (Barbone)
 * cuFINUFFT returns 18 for a negative bin size and 17 for an invalid
   `gpu_method`. Type 3 prints `upsampfac` at `debug=1` (#919, #955). (Barbone)
+* Python finufft accepts empty NU point arrays (M=0). (vera-rubin #936)
+* MATLAB GPU opts parser accepts gpu_obinsize{x,y,z}. (Barbone #896)
+* Fixed a clang 23 AVX-512 miscompile of the subgrid bounds. (Barbone #954)
 
 
 -----------------------------------------------------------------------------

@@ -63,13 +63,13 @@ Then add the following to your ``CMakeLists.txt``:
 .. code-block:: cmake
 
   # short version
-  CPMAddPackage("gh:flatironinstitute/finufft#v2.5.1")
+  CPMAddPackage("gh:flatironinstitute/finufft#v2.6.0-rc1")
 
   # alternative in case custom options are needed
   CPMAddPackage(
     NAME             Finufft
     GIT_REPOSITORY   https://github.com/flatironinstitute/finufft.git
-    GIT_TAG          v2.5.1
+    GIT_TAG          v2.6.0-rc1
     GIT_SHALLOW      Yes
     GIT_PROGRESS     Yes
     EXCLUDE_FROM_ALL Yes
