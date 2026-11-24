@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 340" width="100%"
+     font-family="DejaVu Sans, Helvetica, Arial, sans-serif" role="img">
+<defs>
+  <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7"
+          orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#334155"/></marker>
+  <marker id="arb" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7"
+          orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#2563eb"/></marker>
+</defs>
+<text x="90.0" y="32.0" font-size="14" text-anchor="start" fill="#0f172a" font-weight="bold" font-family="DejaVu Sans, Helvetica, Arial, sans-serif">The subgrid buffer</text>
+<text x="90.0" y="54.0" font-size="12.5" text-anchor="start" fill="#475569" font-weight="normal" font-family="DejaVu Sans, Helvetica, Arial, sans-serif">padded_size1 is the row stride, size1 is the data. The rows follow each other in memory, and one tail closes the buffer.</text>
+<line x1="110.0" y1="86.0" x2="568.0" y2="86.0" stroke="#2563eb" stroke-width="1.3" marker-end="url(#arb)"/>
+<line x1="568.0" y1="86.0" x2="110.0" y2="86.0" stroke="#2563eb" stroke-width="1.3" marker-end="url(#arb)"/>
+<text x="339.0" y="79.0" font-size="12.5" text-anchor="middle" fill="#2563eb" font-weight="normal" font-family="DejaVu Sans Mono, Consolas, monospace">padded_size1  (row stride)</text>
+<line x1="110.0" y1="112.0" x2="502.0" y2="112.0" stroke="#334155" stroke-width="1.3" marker-end="url(#ar)"/>
+<line x1="502.0" y1="112.0" x2="110.0" y2="112.0" stroke="#334155" stroke-width="1.3" marker-end="url(#ar)"/>
+<text x="306.0" y="105.0" font-size="12.5" text-anchor="middle" fill="#334155" font-weight="normal" font-family="DejaVu Sans Mono, Consolas, monospace">size1 = edge + ns</text>
+<rect x="110.0" y="126.0" width="46.0" height="34.0" fill="#fffbeb" fill-opacity="1" stroke="#d97706" stroke-width="1.4" rx="0"/>
+<text x="133.0" y="141.0" font-size="11.5" text-anchor="middle" fill="#d97706" font-weight="normal" font-family="DejaVu Sans, Helvetica, Arial, sans-serif">halo</text>
+<text x="133.0" y="155.0" font-size="11" text-anchor="middle" fill="#d97706" font-weight="normal" font-family="DejaVu Sans Mono, Consolas, monospace">ns/2</text>
+<rect x="156.0" y="126.0" width="300.0" height="34.0" fill="#dbeafe" fill-opacity="1" stroke="#2563eb" stroke-width="1.4" rx="0"/>
+<text x="306.0" y="141.0" font-size="11.5" text-anchor="middle" fill="#2563eb" font-weight="normal" font-family="DejaVu Sans, Helvetica, Arial, sans-serif">tile interior</text>
+<text x="306.0" y="155.0" font-size="11" text-anchor="middle" fill="#2563eb" font-weight="normal" font-family="DejaVu Sans Mono, Consolas, monospace">edge</text>
+<rect x="456.0" y="126.0" width="46.0" height="34.0" fill="#fffbeb" fill-opacity="1" stroke="#d97706" stroke-width="1.4" rx="0"/>
+<text x="479.0" y="141.0" font-size="11.5" text-anchor="middle" fill="#d97706" font-weight="normal" font-family="DejaVu Sans, Helvetica, Arial, sans-serif">halo</text>
+<text x="479.0" y="155.0" font-size="11" text-anchor="middle" fill="#d97706" font-weight="normal" font-family="DejaVu Sans Mono, Consolas, monospace">ns/2</text>
+<rect x="502.0" y="126.0" width="66.0" height="34.0" fill="#f3e8ff" fill-opacity="1" stroke="#7e22ce" stroke-width="1.4" stroke-dasharray="4 3" rx="0"/>
+<text x="535.0" y="147.0" font-size="11.5" text-anchor="middle" fill="#7e22ce" font-weight="normal" font-family="DejaVu Sans, Helvetica, Arial, sans-serif">1 line</text>
+<text x="100.0" y="147.0" font-size="12" text-anchor="end" fill="#475569" font-weight="normal" font-family="DejaVu Sans Mono, Consolas, monospace">row 0</text>
+<rect x="110.0" y="167.0" width="46.0" height="34.0" fill="#fffbeb" fill-opacity="1" stroke="#d97706" stroke-width="1.4" rx="0"/>
+<rect x="156.0" y="167.0" width="300.0" height="34.0" fill="#dbeafe" fill-opacity="1" stroke="#2563eb" stroke-width="1.4" rx="0"/>
+<rect x="456.0" y="167.0" width="46.0" height="34.0" fill="#fffbeb" fill-opacity="1" stroke="#d97706" stroke-width="1.4" rx="0"/>
+<rect x="502.0" y="167.0" width="66.0" height="34.0" fill="#f3e8ff" fill-opacity="1" stroke="#7e22ce" stroke-width="1.4" stroke-dasharray="4 3" rx="0"/>
+<text x="100.0" y="188.0" font-size="12" text-anchor="end" fill="#475569" font-weight="normal" font-family="DejaVu Sans Mono, Consolas, monospace">row 1</text>
+<rect x="110.0" y="208.0" width="46.0" height="34.0" fill="#fffbeb" fill-opacity="1" stroke="#d97706" stroke-width="1.4" rx="0"/>
+<rect x="156.0" y="208.0" width="300.0" height="34.0" fill="#dbeafe" fill-opacity="1" stroke="#2563eb" stroke-width="1.4" rx="0"/>
+<rect x="456.0" y="208.0" width="46.0" height="34.0" fill="#fffbeb" fill-opacity="1" stroke="#d97706" stroke-width="1.4" rx="0"/>
+<rect x="502.0" y="208.0" width="66.0" height="34.0" fill="#f3e8ff" fill-opacity="1" stroke="#7e22ce" stroke-width="1.4" stroke-dasharray="4 3" rx="0"/>
+<rect x="568.0" y="208.0" width="86.0" height="34.0" fill="#dcfce7" fill-opacity="1" stroke="#15803d" stroke-width="1.4" rx="0"/>
+<text x="611.0" y="229.0" font-size="11.5" text-anchor="middle" fill="#15803d" font-weight="normal" font-family="DejaVu Sans, Helvetica, Arial, sans-serif">SIMD tail</text>
+<text x="100.0" y="229.0" font-size="12" text-anchor="end" fill="#475569" font-weight="normal" font-family="DejaVu Sans Mono, Consolas, monospace">row 2</text>
+<text x="90.0" y="272.0" font-size="12.5" text-anchor="start" fill="#15803d" font-weight="normal" font-family="DejaVu Sans, Helvetica, Arial, sans-serif">One tail closes the buffer. The store past a row's end carries zeroed kernel lanes, so it adds zero to</text>
+<text x="90.0" y="290.0" font-size="12.5" text-anchor="start" fill="#15803d" font-weight="normal" font-family="DejaVu Sans, Helvetica, Arial, sans-serif">whatever follows the row, and only the last row of the buffer needs a tail of its own.</text>
+<text x="90.0" y="312.0" font-size="12.5" text-anchor="start" fill="#7e22ce" font-weight="normal" font-family="DejaVu Sans, Helvetica, Arial, sans-serif">The extra line, dashed, is added only when the stride would be a multiple of eight cache lines.</text>
+</svg>

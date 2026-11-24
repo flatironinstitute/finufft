@@ -24,6 +24,8 @@ API and behavior changes:
 	spread_kerevalmeth
 	spread_kerpad
 	spread_thread (see #885 below)
+	spread_max_sp_size (a subproblem is now a cache tile, so there is no
+	  subproblem size left to cap)
   Notes on deprecated opts: such opts are kept for ABI compatibility, but labeled
   as deprecated. (We may remove them entirely after a 2nd major version change.)
   They give runtime warning if set away from their default (this can be disabled
@@ -118,11 +120,27 @@ Performance/accuracy/code improvements:
   the kernel, replacing slower per-target cosine quadrature in setpts. Users of
   spreadinterp_only now always see the PSWF kernel (consulted in Discussion
   #881). (Barbone, Barnett #879)
+* Spreading and interpolation share one cache-tiled subproblem algorithm: the
+  sort bins the points into cubic tiles of the fine grid sized to one core's
+  L2, and both directions build the same padded subgrid per tile. Spreading
+  adds the subgrid back under the guard it always used, one lock per fine grid
+  or atomic writes above `opts.spread_nthr_atomic` threads on one grid;
+  interpolation copies it out and takes no lock. Neither direction wraps in a
+  kernel any more, so the wrapped interpolation kernels are gone. The zeroed
+  kernel lanes make the SIMD store past a row's end write back what it read,
+  so the buffer carries one overread tail past its last row instead of a pad
+  per row, and the add back zeroes the buffer for the next subproblem in the
+  same pass. Interpolation now sorts, governed by `opts.spread_sort`, which
+  alone decides: 1 and 2 both sort (the old in-L2 no-sort heuristic is gone);
+  spread_sort=0 costs a grid copy per subproblem, so leave sorting on unless
+  the grid is small. (Barbone)
 * Spreading/interpolation now uses all threads on the whole batch.
   (this deprecates `opts.spread_thread`). Ie: 1) Spreading folds the batch loop
   into the loop over subproblems, so (vector, subproblem) pairs are what get
-  assigned to threads. 2) Interpolation writes to distinct outputs per thread,
-  so it still takes the vectors in sequence with all threads on each.
+  assigned to threads, with a per-vector lock on the add back, or atomic
+  writes above `opts.spread_nthr_atomic` threads on one grid. 2) Interpolation
+  runs over the same (vector, subproblem) pairs and needs no lock, since it
+  only reads the fine grid.
   (Notes: the old automatic choice for ntr>1, `2`, only kept as many threads
   busy as the batch was long: OMP nesting was off, so each vector
   still split into `nthreads` subproblems, which one thread ran in sequence.
