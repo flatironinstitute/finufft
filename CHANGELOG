@@ -223,6 +223,9 @@ Build and packaging:
 * icpx builds now use the gcc/clang math model (-fno-fast-math,
   -fcomplex-arithmetic=basic) via CMake and make-platforms/make.inc.icpx (#914).
   (Barbone)
+* ifx before 2026.0 miscompiles the 2D and 3D type 1 and 2 Fortran direct sums
+  at -O2 and above, failing the 2D/3D Fortran demos. CMake builds this test-only
+  reference code at -O1 for those versions. (Menke)
 * A vcpkg overlay port under `tools/vcpkg` installs FINUFFT from a clone with
   `vcpkg install finufft --overlay-ports=tools/vcpkg`, in classic or manifest
   mode; features `fftw` (default), `ducc0` and `openmp` (default). A Jenkins
