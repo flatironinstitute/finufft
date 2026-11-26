@@ -8,6 +8,12 @@ add_library(
     directft/dirft3d.f
     directft/dirft3df.f
 )
+# ifx before 2026.0 miscompiles the 2D and 3D type 1 and 2 direct sums at -O2
+# and above: its HIR loop optimizer zeroes or misplaces the output. This is
+# test-only reference code, so -O1 costs nothing.
+if(CMAKE_Fortran_COMPILER_ID STREQUAL "IntelLLVM" AND CMAKE_Fortran_COMPILER_VERSION VERSION_LESS 2026.0)
+    target_compile_options(directft PRIVATE -O1)
+endif()
 
 set(FORTRAN_EXAMPLES
     nufft1d_demo
